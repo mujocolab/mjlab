@@ -5,6 +5,12 @@ This is extremely bad code and very much work in progress. I'm just exploring di
 ## Installation
 
 ```bash
+# For 5090 only.
+uv pip install -U "jax[cuda12]<0.6.1"
+uv pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
+```
+
+```bash
 uv pip install -e .
 python -c "import mjlab"  # Trigger menagerie download.
 ```
