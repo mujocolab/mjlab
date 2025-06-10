@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mjlab"
+version = "0.0.0"
+readme = "README.md"
+authors = [
+    {name = "Kevin Zakka", email = "zakka@berkeley.edu"},
+]
+requires-python = ">=3.10"
+dynamic = ["description"]
+dependencies = [
+    "etils",
+    "jax",
+    "flax",
+    "mujoco-mjx>=3.2.7",
+    "mujoco>=3.2.7",
+    "tqdm",
+    "tyro",
+    "tensorboard",
+    "rsl-rl-lib",
+    "torch",
+    "wandb",
+    "ruff",
+]
