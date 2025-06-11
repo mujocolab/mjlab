@@ -102,14 +102,9 @@ class RewardScales:
   torques: float = -0.0002
   dof_acc: float = -2.5e-7
   action_rate: float = -0.01
-  feet_air_time: float = 0.0
+  feet_air_time: float = 0.25
   flat_orientation: float = -2.5
-
-  # Unused.
-  orientation: float = 0.0
-  pose: float = 0.0
-  termination: float = 0.0
-  energy: float = 0.0
+  pose: float = -1.0
 
 
 @dataclass(frozen=True)
@@ -255,6 +250,7 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
       "feet_air_time": self._reward_feet_air_time(
         state.info["feet_air_time"], first_contact, state.info["command"]
       ),
+      "pose": self._reward_pose(self.go1.joint_angles(data)),
     }
     rewards = {k: v * self._reward_scales[k] for k, v in reward_terms.items()}
     for k, v in rewards.items():
@@ -344,6 +340,10 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     rew_air_time = jp.sum((air_time - 0.5) * first_contact)
     rew_air_time *= cmd_norm > 0.01  # No reward for zero commands.
     return rew_air_time
+
+  def _reward_pose(self, qpos: jax.Array) -> jax.Array:
+    error = jp.sum(jp.square(qpos - self._default_pose))
+    return jp.exp(-error / 10)
 
 
 if __name__ == "__main__":
