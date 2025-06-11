@@ -60,7 +60,7 @@ def main(
   ppo_runner = OnPolicyRunner(
     env, asdict(agent_cfg), log_dir=None, device=agent_cfg.device
   )
-  ppo_runner.load(resume_path)  # , map_location=agent_cfg.device)
+  ppo_runner.load(resume_path, map_location=agent_cfg.device)
 
   policy = ppo_runner.get_inference_policy(device=env.device)
   # policy_nn = ppo_runner.alg.policy
@@ -88,7 +88,7 @@ def main(
 
   states = [jax.tree.map(grab_first, state) for state in states]
 
-  frames = env.unwrapped.render(states, camera=camera)
+  frames = env.unwrapped.render(states, camera=camera, height=480, width=640)
   import mediapy as mp
 
   mp.write_video(f"{task_name}.mp4", frames, fps=(1.0 / env.unwrapped.task.dt))

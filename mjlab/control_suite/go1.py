@@ -34,10 +34,6 @@ class Go1(entity.Entity):
     self._imu_site = self.spec.site("imu")
     self._joints = self.get_non_root_joints()
     self._actuators = self.spec.actuators
-
-    self._torso_geom1 = self.spec.body("torso_collision1")
-    self._torso_geom2 = self.spec.body("torso_collision2")
-
     self._gyro_sensor = self.spec.sensor("gyro")
     self._local_linvel_sensor = self.spec.sensor("local_linvel")
     self._upvector_sensor = self.spec.sensor("upvector")
@@ -46,7 +42,9 @@ class Go1(entity.Entity):
     for act in self._actuators:
       act.gainprm[0] = Kp
       act.biasprm[1] = -Kp
-      act.biasprm[2] = -Kv
+      act.biasprm[2] = 0.0
+    for jnt in self._joints:
+      jnt.damping = Kv
 
   @property
   def joints(self) -> Tuple[mujoco.MjsJoint]:
@@ -82,12 +80,6 @@ class Go1(entity.Entity):
   def local_linvel(self, data: mjx.Data) -> jax.Array:
     return data.bind(self.mjx_model, self._local_linvel_sensor).sensordata
 
-  def global_linvel(self, data: mjx.Data) -> jax.Array:
-    return data.bind(self.mjx_model, self._global_linvel_sensor).sensordata
-
-  def global_angvel(self, data: mjx.Data) -> jax.Array:
-    return data.bind(self.mjx_model, self._global_angvel_sensor).sensordata
-
   def projected_gravity(self, data: mjx.Data) -> jax.Array:
     return data.bind(self.mjx_model, self._imu_site).xmat.T @ jp.array([0, 0, -1.0])
 
@@ -110,7 +102,7 @@ class RewardScales:
   torques: float = -0.0002
   dof_acc: float = -2.5e-7
   action_rate: float = -0.01
-  feet_air_time: float = 0.25
+  feet_air_time: float = 0.0
   flat_orientation: float = -2.5
 
   # Unused.
@@ -124,20 +116,19 @@ class RewardScales:
 class RewardConfig:
   scales: RewardScales = RewardScales()
   tracking_sigma: float = 0.25
-  max_foot_height: float = 0.1
 
 
 @dataclass
 class Go1Config(mjx_task.TaskConfig):
   """Go1 configuration."""
 
-  sim_dt: float = 0.002
+  sim_dt: float = 0.004
   ctrl_dt: float = 0.02
-  solver_iterations: int = 3
+  solver_iterations: int = 1
   solver_ls_iterations: int = 5
   euler_damping: bool = False
   max_episode_length: int = 1_000
-  Kp: float = 25
+  Kp: float = 35
   Kv: float = 0.5
   action_scale: float = 0.25
   command_config: CommandConfig = CommandConfig()
@@ -149,7 +140,7 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     root, entities = Go1Env.build_scene(config)
     super().__init__(config, root, entities=entities)
 
-    self._reward_scales = asdict(self._config.reward_config.scales)
+    self._reward_scales = asdict(self.cfg.reward_config.scales)
     self._floor_geom_id = self._mj_model.geom("floor").id
     feet_geoms = ["FR", "FL", "RR", "RL"]
     self._feet_geom_id = np.array([self._mj_model.geom(name).id for name in feet_geoms])
@@ -175,7 +166,7 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     arena.floor_geom.condim = 3
     arena.floor_geom.friction[0] = 0.6
 
-    arena.spec.stat.meansize = 0.03
+    arena.spec.stat.meansize = 0.04
 
     frame = arena.spec.worldbody.add_frame()
     arena.spec.attach(go1_entity.spec, prefix="", frame=frame)
@@ -190,22 +181,8 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     self._default_pose = jp.array(self.mj_model.keyframe("home").qpos[7:])
 
   def before_step(self, action: jax.Array, state: mjx_env.State) -> mjx.Data:
-    motor_targets = self._default_pose + action * self._config.action_scale
-    data = super().before_step(motor_targets, state)
-
-    contact = jp.array(
-      [
-        geoms_colliding(data, geom_id, self._floor_geom_id)
-        for geom_id in self._feet_geom_id
-      ]
-    )
-    contact_filt = contact | state.info["last_contact"]
-    first_contact = (state.info["feet_air_time"] > 0.0) * contact_filt
-    state.info["feet_air_time"] += self.dt
-    state.info["first_contact"] = first_contact
-    state.info["contact"] = contact
-
-    return data
+    motor_targets = self._default_pose + action * self.cfg.action_scale
+    return super().before_step(motor_targets, state)
 
   def initialize_episode(self, data: mjx.Data, rng: jax.Array):
     qpos = self._init_q
@@ -247,6 +224,19 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     )
 
   def get_reward(self, data, state, action, done):
+    del done  # Unused.
+
+    contact = jp.array(
+      [
+        geoms_colliding(data, geom_id, self._floor_geom_id)
+        for geom_id in self._feet_geom_id
+      ]
+    )
+    contact_filt = contact | state.info["last_contact"]
+    first_contact = (state.info["feet_air_time"] > 0.0) * contact_filt
+    state.info["feet_air_time"] += self.dt
+    state.info["first_contact"] = first_contact
+
     joint_torques = self.go1.joint_torques(data)
     joint_accelerations = self.go1.joint_accelerations(data)
     reward_terms = {
@@ -258,20 +248,22 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
       ),
       "lin_vel_z": self._cost_lin_vel_z(self.go1.local_linvel(data)),
       "ang_vel_xy": self._cost_ang_vel_xy(self.go1.gyro(data)),
-      "flat_orientation": self._cost_flat_orientation(self.go1.upvector(data)),
+      "flat_orientation": self._cost_flat_orientation(self.go1.projected_gravity(data)),
       "torques": self._cost_torques(joint_torques),
       "action_rate": self._cost_action_rate(action, state.info["last_act"]),
       "dof_acc": self._cost_dof_acc(joint_accelerations),
       "feet_air_time": self._reward_feet_air_time(
-        state.info["feet_air_time"],
-        state.info["first_contact"],
-        state.info["command"],
+        state.info["feet_air_time"], first_contact, state.info["command"]
       ),
     }
     rewards = {k: v * self._reward_scales[k] for k, v in reward_terms.items()}
     for k, v in rewards.items():
       state.metrics[f"reward/{k}"] = v / self.dt
+
     reward = sum(rewards.values()) * self.dt
+    state.info["feet_air_time"] *= ~contact
+    state.info["last_contact"] = contact
+
     return reward
 
   def after_step(
@@ -283,24 +275,18 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
   ) -> mjx.Data:
     state.info["step"] += 1
     state.info["last_act"] = action
-    state.info["feet_air_time"] *= ~state.info["contact"]
-    state.info["last_contact"] = state.info["contact"]
+    # Update command.
     state.info["rng"], cmd_rng = jax.random.split(state.info["rng"])
     state.info["command"] = jp.where(
-      state.info["step"] > 500,
-      self._sample_command(cmd_rng),
-      state.info["command"],
+      state.info["step"] > 500, self._sample_command(cmd_rng), state.info["command"]
     )
     state.info["step"] = jp.where(
-      done | (state.info["step"] > 500),
-      0,
-      state.info["step"],
+      done | (state.info["step"] > 500), 0, state.info["step"]
     )
     return data
 
   def should_terminate_episode(self, data: mjx.Data, state: mjx_env.State) -> jax.Array:
     del state  # Unused.
-    # return self.go1.upvector(data)[-1] < 0.0
     torso_ground_contact = jp.array(
       [
         geoms_colliding(data, geom_id, self._floor_geom_id)
@@ -310,7 +296,7 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     return jp.any(torso_ground_contact)
 
   def _sample_command(self, rng: jax.Array) -> jax.Array:
-    cfg: CommandConfig = self._config.command_config
+    cfg: CommandConfig = self.cfg.command_config
     rng1, rng2, rng3 = jax.random.split(rng, 3)
     lin_vel_x = jax.random.uniform(rng1, minval=cfg.min[0], maxval=cfg.max[0])
     lin_vel_y = jax.random.uniform(rng2, minval=cfg.min[1], maxval=cfg.max[1])
@@ -320,38 +306,30 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
   # Reward functions.
 
   def _reward_tracking_lin_vel(
-    self,
-    commands: jax.Array,
-    local_vel: jax.Array,
+    self, commands: jax.Array, local_vel: jax.Array
   ) -> jax.Array:
-    # Tracking of linear velocity commands (xy axes).
     lin_vel_error = jp.sum(jp.square(commands[:2] - local_vel[:2]))
-    return jp.exp(-lin_vel_error / self._config.reward_config.tracking_sigma)
+    return jp.exp(-lin_vel_error / self.cfg.reward_config.tracking_sigma)
 
   def _reward_tracking_ang_vel(
     self,
     commands: jax.Array,
     ang_vel: jax.Array,
   ) -> jax.Array:
-    # Tracking of angular velocity commands (yaw).
     ang_vel_error = jp.square(commands[2] - ang_vel[2])
-    return jp.exp(-ang_vel_error / self._config.reward_config.tracking_sigma)
+    return jp.exp(-ang_vel_error / self.cfg.reward_config.tracking_sigma)
 
-  def _cost_lin_vel_z(self, global_linvel) -> jax.Array:
-    # Penalize z axis base linear velocity.
-    return jp.square(global_linvel[2])
+  def _cost_lin_vel_z(self, local_vel) -> jax.Array:
+    return jp.square(local_vel[2])
 
-  def _cost_ang_vel_xy(self, global_angvel) -> jax.Array:
-    # Penalize xy axes base angular velocity.
-    return jp.sum(jp.square(global_angvel[:2]))
+  def _cost_ang_vel_xy(self, ang_vel) -> jax.Array:
+    return jp.sum(jp.square(ang_vel[:2]))
 
-  def _cost_flat_orientation(self, torso_zaxis: jax.Array) -> jax.Array:
-    # Penalize non flat base orientation.
-    return jp.sum(jp.square(torso_zaxis[:2]))
+  def _cost_flat_orientation(self, gravity: jax.Array) -> jax.Array:
+    return jp.sum(jp.square(gravity[:2]))
 
   def _cost_torques(self, torques: jax.Array) -> jax.Array:
-    # Penalize torques.
-    return jp.sqrt(jp.sum(jp.square(torques))) + jp.sum(jp.abs(torques))
+    return jp.sum(jp.square(torques))
 
   def _cost_dof_acc(self, qacc: jax.Array) -> jax.Array:
     return jp.sum(jp.square(qacc))
@@ -362,7 +340,6 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
   def _reward_feet_air_time(
     self, air_time: jax.Array, first_contact: jax.Array, commands: jax.Array
   ) -> jax.Array:
-    # Reward air time.
     cmd_norm = jp.linalg.norm(commands)
     rew_air_time = jp.sum((air_time - 0.5) * first_contact)
     rew_air_time *= cmd_norm > 0.01  # No reward for zero commands.
