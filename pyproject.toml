@@ -24,4 +24,8 @@ dependencies = [
     "torch",
     "wandb",
     "ruff",
+    "mediapy",
 ]
+
+[tool.ruff]
+indent-width = 2
