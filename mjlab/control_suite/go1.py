@@ -1,6 +1,6 @@
 from dataclasses import dataclass, asdict
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Union
 
 import jax
 import jax.numpy as jp
@@ -24,6 +24,20 @@ def get_assets() -> Dict[str, bytes]:
   mjx_env.update_assets(assets, path, "*.xml")
   mjx_env.update_assets(assets, path / "assets")
   return assets
+
+
+def get_rz(
+  phi: Union[jax.Array, float], swing_height: Union[jax.Array, float] = 0.08
+) -> jax.Array:
+  def cubic_bezier_interpolation(y_start, y_end, x):
+    y_diff = y_end - y_start
+    bezier = x**3 + 3 * (x**2 * (1 - x))
+    return y_start + y_diff * bezier
+
+  x = (phi + jp.pi) / (2 * jp.pi)
+  stance = cubic_bezier_interpolation(0, swing_height, 2 * x)
+  swing = cubic_bezier_interpolation(swing_height, 0, 2 * x - 1)
+  return jp.where(x <= 0.5, stance, swing)
 
 
 class Go1(entity.Entity):
@@ -102,7 +116,7 @@ class RewardScales:
   torques: float = -0.0002
   dof_acc: float = -2.5e-7
   action_rate: float = -0.01
-  feet_air_time: float = 0.25
+  feet_phase: float = 1.0
   flat_orientation: float = -2.5
   pose: float = -1.0
 
@@ -111,6 +125,7 @@ class RewardScales:
 class RewardConfig:
   scales: RewardScales = RewardScales()
   tracking_sigma: float = 0.25
+  max_foot_height: float = 0.1
 
 
 @dataclass
@@ -136,16 +151,13 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     super().__init__(config, root, entities=entities)
 
     self._reward_scales = asdict(self.cfg.reward_config.scales)
-    self._floor_geom_id = self._mj_model.geom("floor").id
+
     feet_geoms = ["FR", "FL", "RR", "RL"]
-    self._feet_geom_id = np.array([self._mj_model.geom(name).id for name in feet_geoms])
-    self._feet_site_id = np.array([self._mj_model.site(name).id for name in feet_geoms])
-    self._torso_geom_ids = np.array(
-      [
-        self._mj_model.geom(name).id
-        for name in ["trunk_collision1", "trunk_collision2"]
-      ]
-    )
+    torso_geoms = ["trunk_collision1", "trunk_collision2"]
+    self._floor_geom_id = self._mj_model.geom("floor").id
+    self._feet_geom_id = np.array([self._mj_model.geom(n).id for n in feet_geoms])
+    self._feet_site_id = np.array([self._mj_model.site(n).id for n in feet_geoms])
+    self._torso_geom_ids = np.array([self._mj_model.geom(n).id for n in torso_geoms])
 
   @staticmethod
   def build_scene(config: Go1Config) -> Tuple[entity.Entity, Dict[str, entity.Entity]]:
@@ -192,6 +204,10 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     data = data.replace(qpos=qpos)
     rng, cmd_rng = jax.random.split(rng)
     command = self._sample_command(cmd_rng)
+    rng, key = jax.random.split(rng)
+    gait_freq = jax.random.uniform(key, (1,), minval=1.25, maxval=1.75)
+    phase_dt = 2 * jp.pi * self.dt * gait_freq
+    phase = jp.array([0, jp.pi, 0, jp.pi])  # trot.
     info = {
       "rng": rng,
       "step": 0,
@@ -201,6 +217,8 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
       "last_contact": jp.zeros(4, dtype=bool),
       "first_contact": jp.zeros(4, dtype=bool),
       "contact": jp.zeros(4, dtype=bool),
+      "phase": phase,
+      "phase_dt": phase_dt,
     }
     metrics = {f"reward/{k}": jp.zeros(()) for k in self._reward_scales.keys()}
     return data, info, metrics
@@ -215,6 +233,7 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
         self.go1.local_linvel(data),
         state.info["last_act"],
         state.info["command"],
+        jp.concatenate([jp.cos(state.info["phase"]), jp.sin(state.info["phase"])]),
       ]
     )
 
@@ -247,10 +266,8 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
       "torques": self._cost_torques(joint_torques),
       "action_rate": self._cost_action_rate(action, state.info["last_act"]),
       "dof_acc": self._cost_dof_acc(joint_accelerations),
-      "feet_air_time": self._reward_feet_air_time(
-        state.info["feet_air_time"], first_contact, state.info["command"]
-      ),
       "pose": self._reward_pose(self.go1.joint_angles(data)),
+      "feet_phase": self._reward_feet_phase(data, state.info["phase"]),
     }
     rewards = {k: v * self._reward_scales[k] for k, v in reward_terms.items()}
     for k, v in rewards.items():
@@ -270,6 +287,8 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     done: jax.Array,
   ) -> mjx.Data:
     state.info["step"] += 1
+    phase_tp1 = state.info["phase"] + state.info["phase_dt"]
+    state.info["phase"] = jp.fmod(phase_tp1 + jp.pi, 2 * jp.pi) - jp.pi
     state.info["last_act"] = action
     # Update command.
     state.info["rng"], cmd_rng = jax.random.split(state.info["rng"])
@@ -289,7 +308,8 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
         for geom_id in self._torso_geom_ids
       ]
     )
-    return jp.any(torso_ground_contact)
+    fall_termination = jp.any(torso_ground_contact)
+    return fall_termination | jp.isnan(data.qpos).any() | jp.isnan(data.qvel).any()
 
   def _sample_command(self, rng: jax.Array) -> jax.Array:
     cfg: CommandConfig = self.cfg.command_config
@@ -344,6 +364,12 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
   def _reward_pose(self, qpos: jax.Array) -> jax.Array:
     error = jp.sum(jp.square(qpos - self._default_pose))
     return jp.exp(-error / 10)
+
+  def _reward_feet_phase(self, data: mjx.Data, phase: jax.Array) -> jax.Array:
+    foot_z = data.site_xpos[self._feet_site_id][..., -1]
+    rz = get_rz(phase, swing_height=self.cfg.reward_config.max_foot_height)
+    error = jp.sum(jp.square(foot_z - rz))
+    return jp.exp(-error / 0.005)
 
 
 if __name__ == "__main__":
