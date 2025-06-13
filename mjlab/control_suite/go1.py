@@ -56,9 +56,7 @@ class Go1(entity.Entity):
     for act in self._actuators:
       act.gainprm[0] = Kp
       act.biasprm[1] = -Kp
-      act.biasprm[2] = 0.0
-    for jnt in self._joints:
-      jnt.damping = Kv
+      act.biasprm[2] = -Kv
 
   @property
   def joints(self) -> Tuple[mujoco.MjsJoint]:
@@ -134,8 +132,9 @@ class Go1Config(mjx_task.TaskConfig):
 
   sim_dt: float = 0.004
   ctrl_dt: float = 0.02
-  solver_iterations: int = 1
-  solver_ls_iterations: int = 5
+  solver_iterations: int = 5
+  solver_ls_iterations: int = 8
+  integrator: str = "implicitfast"
   euler_damping: bool = False
   max_episode_length: int = 1_000
   Kp: float = 35
@@ -158,6 +157,7 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     self._feet_geom_id = np.array([self._mj_model.geom(n).id for n in feet_geoms])
     self._feet_site_id = np.array([self._mj_model.site(n).id for n in feet_geoms])
     self._torso_geom_ids = np.array([self._mj_model.geom(n).id for n in torso_geoms])
+    self._imu_site_id = self._mj_model.site("imu").id
 
   @staticmethod
   def build_scene(config: Go1Config) -> Tuple[entity.Entity, Dict[str, entity.Entity]]:
@@ -207,7 +207,7 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     rng, key = jax.random.split(rng)
     gait_freq = jax.random.uniform(key, (1,), minval=1.25, maxval=1.75)
     phase_dt = 2 * jp.pi * self.dt * gait_freq
-    phase = jp.array([0, jp.pi, 0, jp.pi])  # trot.
+    phase = jp.array([0, jp.pi, jp.pi, 0])
     info = {
       "rng": rng,
       "step": 0,
@@ -223,7 +223,7 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     metrics = {f"reward/{k}": jp.zeros(()) for k in self._reward_scales.keys()}
     return data, info, metrics
 
-  def get_observation(self, data, state):
+  def get_observation(self, data: mjx.Data, state: mjx_env.State):
     return jp.concatenate(
       [
         self.go1.gyro(data),
@@ -251,8 +251,6 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     state.info["feet_air_time"] += self.dt
     state.info["first_contact"] = first_contact
 
-    joint_torques = self.go1.joint_torques(data)
-    joint_accelerations = self.go1.joint_accelerations(data)
     reward_terms = {
       "tracking_lin_vel": self._reward_tracking_lin_vel(
         state.info["command"], self.go1.local_linvel(data)
@@ -263,10 +261,10 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
       "lin_vel_z": self._cost_lin_vel_z(self.go1.local_linvel(data)),
       "ang_vel_xy": self._cost_ang_vel_xy(self.go1.gyro(data)),
       "flat_orientation": self._cost_flat_orientation(self.go1.projected_gravity(data)),
-      "torques": self._cost_torques(joint_torques),
+      "torques": self._cost_torques(self.go1.joint_torques(data)),
       "action_rate": self._cost_action_rate(action, state.info["last_act"]),
-      "dof_acc": self._cost_dof_acc(joint_accelerations),
-      "pose": self._reward_pose(self.go1.joint_angles(data)),
+      "dof_acc": self._cost_dof_acc(self.go1.joint_accelerations(data)),
+      "pose": self._cost_pose(self.go1.joint_angles(data)),
       "feet_phase": self._reward_feet_phase(data, state.info["phase"]),
     }
     rewards = {k: v * self._reward_scales[k] for k, v in reward_terms.items()}
@@ -361,9 +359,8 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     rew_air_time *= cmd_norm > 0.01  # No reward for zero commands.
     return rew_air_time
 
-  def _reward_pose(self, qpos: jax.Array) -> jax.Array:
-    error = jp.sum(jp.square(qpos - self._default_pose))
-    return jp.exp(-error / 10)
+  def _cost_pose(self, qpos: jax.Array) -> jax.Array:
+    return jp.sum(jp.square(qpos - self._default_pose))
 
   def _reward_feet_phase(self, data: mjx.Data, phase: jax.Array) -> jax.Array:
     foot_z = data.site_xpos[self._feet_site_id][..., -1]

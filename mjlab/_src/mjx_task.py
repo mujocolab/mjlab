@@ -11,6 +11,11 @@ from mujoco import mjx
 from mjlab._src import entity
 from mjlab._src.types import Observation, State
 
+_integrator_map = {
+  "implicitfast": mujoco.mjtIntegrator.mjINT_IMPLICITFAST,
+  "euler": mujoco.mjtIntegrator.mjINT_EULER,
+}
+
 
 @dataclass
 class TaskConfig:
@@ -31,6 +36,7 @@ class TaskConfig:
   """Maximum number of steps per episode."""
 
   def apply_defaults(self, spec: mujoco.MjSpec) -> None:
+    spec.option.integrator = _integrator_map[self.integrator]
     spec.option.timestep = self.sim_dt
     spec.option.iterations = self.solver_iterations
     spec.option.ls_iterations = self.solver_ls_iterations

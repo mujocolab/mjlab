@@ -1,14 +1,14 @@
 <mujoco model="go1">
   <compiler angle="radian" meshdir="../external_deps/mujoco_menagerie/unitree_go1/assets" autolimits="true"/>
 
-  <option timestep="0.004" integrator="Euler"/>
+  <option timestep="0.004"/>
 
   <default>
     <default class="go1">
       <!-- This globaly disables all collisions. -->
       <geom condim="1" contype="0" conaffinity="0"/>
-      <joint axis="0 1 0" armature="0.005" damping="0.5"/>
-      <position forcerange="-23.7 23.7" inheritrange="1" kp="35"/>
+      <joint axis="0 1 0" armature="0.005"/>
+      <position forcerange="-23.7 23.7" inheritrange="1" kp="35" kv="0.5"/>
       <default class="abduction">
         <joint axis="1 0 0" range="-0.863 0.863" frictionloss="0.3"/>
       </default>
