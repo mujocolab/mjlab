@@ -7,6 +7,7 @@ import jax.numpy as jp
 import mujoco
 from mujoco import mjx
 
+from mjlab._src.types import State
 from mjlab._src import entity, mjx_task, reward
 
 _HERE = Path(__file__).parent
@@ -14,9 +15,12 @@ _CARTPOLE_XML = _HERE / "cartpole.xml"
 
 
 class Cartpole(entity.Entity):
-  def post_init(self) -> None:
-    self._slider_joint = self.spec.joint("slider")
-    self._hinge_joint = self.spec.joint("hinge_1")
+  """A cartpole entity."""
+
+  def __init__(self, spec: mujoco.MjSpec):
+    super().__init__(spec)
+    self._slider_joint = spec.joint("slider")
+    self._hinge_joint = spec.joint("hinge_1")
 
   @property
   def slider_joint(self) -> mujoco.MjsJoint:
@@ -26,9 +30,9 @@ class Cartpole(entity.Entity):
   def hinge_joint(self) -> mujoco.MjsJoint:
     return self._hinge_joint
 
-  def cart_position(self, data: mjx.Data) -> jax.Array:
+  def cart_position(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
     """Returns the position of the cart."""
-    return data.bind(self.mjx_model, self._slider_joint).qpos
+    return data.bind(model, self._slider_joint).qpos
 
   def angular_vel(self, data: mjx.Data) -> jax.Array:
     """Returns the angular velocity of the pole."""
@@ -42,11 +46,11 @@ class Cartpole(entity.Entity):
     """Returns the sine of the pole angle."""
     return data.xmat[2, 0, 2]
 
-  def bounded_position(self, data: mjx.Data) -> jax.Array:
+  def bounded_position(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
     """Returns the state, with pole angle split into sin/cos."""
     return jp.hstack(
       [
-        self.cart_position(data),
+        self.cart_position(model, data),
         self.pole_angle_cos(data),
         self.pole_angle_sin(data),
       ]
@@ -63,6 +67,7 @@ class CartpoleConfig(mjx_task.TaskConfig):
   solver_ls_iterations: int = 4
   euler_damping: bool = False
   max_episode_length: int = 1_000
+  integrator: str = "euler"
 
 
 class Swingup(mjx_task.MjxTask[CartpoleConfig]):
@@ -70,7 +75,8 @@ class Swingup(mjx_task.MjxTask[CartpoleConfig]):
 
   def __init__(self, config: CartpoleConfig = CartpoleConfig()):
     root, entities = Swingup.build_scene(config)
-    super().__init__(config, root, entities=entities)
+    self.cartpole: Cartpole = entities["cartpole"]
+    super().__init__(config, root.spec, entities=entities)
 
   @staticmethod
   def build_scene(
@@ -80,21 +86,30 @@ class Swingup(mjx_task.MjxTask[CartpoleConfig]):
     cfg.apply_defaults(root_spec.spec)
     return root_spec, {"cartpole": root_spec}
 
-  def after_compile(self) -> None:
-    super().after_compile()
-    self.cartpole: Cartpole = self._entities["cartpole"]
+  def domain_randomize(self, model: mjx.Model, rng: jax.Array) -> mjx.Model:
+    rng, key = jax.random.split(rng)
+    cart_body_id = self.spec.body("cart").id
+    cart_mass = model.body_mass[cart_body_id]
+    body_mass = model.body_mass.at[cart_body_id].set(
+      cart_mass * jax.random.uniform(key, (), minval=0.5, maxval=1.5)
+    )
+    model = model.replace(body_mass=body_mass)
+    return model
 
   def initialize_episode(
-    self, data: mjx.Data, rng: jax.Array
+    self,
+    model: mjx.Model,
+    data: mjx.Data,
+    rng: jax.Array,
   ) -> Tuple[mjx.Data, Dict[str, Any], Dict[str, Any]]:
     rng, rng1, rng2, rng3 = jax.random.split(rng, 4)
-    data = data.bind(self.mjx_model, self.cartpole.slider_joint).set(
+    data = data.bind(model, self.cartpole.slider_joint).set(
       "qpos", 0.01 * jax.random.normal(rng1)
     )
-    data = data.bind(self.mjx_model, self.cartpole.hinge_joint).set(
+    data = data.bind(model, self.cartpole.hinge_joint).set(
       "qpos", jp.pi + 0.01 * jax.random.normal(rng2)
     )
-    qvel = 0.01 * jax.random.normal(rng3, (self.mjx_model.nv,))
+    qvel = 0.01 * jax.random.normal(rng3, (model.nv,))
     data = data.replace(qvel=qvel)
     metrics = {
       "reward/upright": jp.zeros(()),
@@ -107,18 +122,21 @@ class Swingup(mjx_task.MjxTask[CartpoleConfig]):
     info = {"rng": rng}
     return data, info, metrics
 
-  def get_observation(self, data, state):
-    del state  # Unused.
-    return jp.concatenate([self.cartpole.bounded_position(data), data.qvel])
+  def get_observation(self, data: mjx.Data, state: State):
+    return jp.concatenate(
+      [self.cartpole.bounded_position(state.model, data), data.qvel]
+    )
 
-  def get_reward(self, data, state, action, done):
+  def get_reward(
+    self, data: mjx.Data, state: State, action: jax.Array, done: jax.Array
+  ):
     del done  # Unused.
 
     pole_angle_cos = self.cartpole.pole_angle_cos(data)
     upright = (pole_angle_cos + 1) / 2
     state.metrics["reward/upright"] = upright
 
-    cart_position = self.cartpole.cart_position(data)
+    cart_position = self.cartpole.cart_position(state.model, data)
     centered = reward.tolerance(cart_position, margin=2)
     centered = (1 + centered) / 2
     state.metrics["reward/centered"] = centered

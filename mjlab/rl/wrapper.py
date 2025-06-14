@@ -126,7 +126,7 @@ class RslRlVecEnvWrapper(VecEnv, Generic[ConfigT, TaskT]):
 
   def reset(self):
     self.first_state = self._reset_fn(self.key_reset)
-    self.state = self._reset_fn(self.key_reset)
+    self.state = self.first_state.replace()
 
     # Reset buffers.
     self.episode_length_buf = torch.zeros(

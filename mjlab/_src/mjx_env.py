@@ -35,11 +35,19 @@ class MjxEnv(Generic[TaskT]):
 
   def reset(self, rng: jax.Array) -> State:
     """Resets the environment to an initial state."""
-    data = init(self.task.mjx_model)
+    rng, dr_rng = jax.random.split(rng)
+    model = self.task.domain_randomize(mjx.put_model(self.task.model), dr_rng)
+    data = init(model)
     reward, done = jp.zeros(2)
-    data, info, metrics = self.task.initialize_episode(data, rng)
+    data, info, metrics = self.task.initialize_episode(model, data, rng)
     state = State(
-      data=data, obs={}, reward=reward, done=done, metrics=metrics, info=info
+      model=model,
+      data=data,
+      obs={},
+      reward=reward,
+      done=done,
+      metrics=metrics,
+      info=info,
     )
     obs = self.task.get_observation(data=data, state=state)
     return state.replace(obs=obs)
@@ -48,7 +56,7 @@ class MjxEnv(Generic[TaskT]):
     """Run one timestep of the environment's dynamics."""
     data = self.task.before_step(action=action, state=state)
     data = step(
-      model=self.task.mjx_model,
+      model=state.model,
       data=data,
       n_substeps=self.task.n_substeps,
       before_substep_fn=partial(self.task.before_substep, action=action, state=state),
@@ -82,7 +90,7 @@ class MjxEnv(Generic[TaskT]):
     modify_scene_fns: Optional[Sequence[Callable[[mujoco.MjvScene], None]]] = None,
   ) -> Sequence[np.ndarray]:
     return render_array(
-      self.task.mj_model,
+      self.task.model,
       trajectory,
       height,
       width,

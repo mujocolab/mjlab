@@ -6,7 +6,6 @@ from typing import Dict, Optional, Sequence, Tuple, TypeVar, Type
 
 import mujoco
 import numpy as np
-from mujoco import mjx
 
 from mjlab._src import sim_structs
 
@@ -18,8 +17,6 @@ class Entity(abc.ABC):
 
   def __init__(self, spec: mujoco.MjSpec):
     self._spec = spec
-    self._mjx_model = None
-    self.post_init()
 
   @classmethod
   def from_file(
@@ -41,28 +38,6 @@ class Entity(abc.ABC):
     return cls(spec)
 
   # Methods.
-
-  @property
-  def mjx_model(self) -> mjx.Model:
-    if self._mjx_model is None:
-      raise ValueError("You must bind a model to the entity before using it.")
-    return self._mjx_model
-
-  def post_init(self) -> None:
-    """Hook called after initialization."""
-    pass
-
-  def bind_model(self, model: mjx.Model) -> None:
-    self._mjx_model = model
-
-  @property
-  def spec(self) -> mujoco.MjSpec:
-    """Returns the underlying mujoco.MjSpec."""
-    return self._spec
-
-  def assets(self) -> Dict[str, bytes]:
-    """Returns the spec assets."""
-    return self._spec.assets
 
   def compile(self) -> mujoco.MjModel:
     """Compiles the robot model into an MjModel."""
@@ -182,3 +157,15 @@ class Entity(abc.ABC):
       name=sensor.name,
       objname=sensor.object_name,
     )
+
+  # Properties.
+
+  @property
+  def spec(self) -> mujoco.MjSpec:
+    """Returns the underlying mujoco.MjSpec."""
+    return self._spec
+
+  @property
+  def assets(self) -> Dict[str, bytes]:
+    """Returns the spec assets."""
+    return self._spec.assets

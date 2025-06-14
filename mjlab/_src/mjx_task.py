@@ -34,14 +34,18 @@ class TaskConfig:
   the Euler integrator. Typically set to `False` for better performance in MJX."""
   max_episode_length: int
   """Maximum number of steps per episode."""
+  integrator: str
+  """Integrator to use for the simulation."""
 
-  def apply_defaults(self, spec: mujoco.MjSpec) -> None:
+  def apply_defaults(self, spec: mujoco.MjSpec) -> mujoco.MjSpec:
+    # TODO(kevin): Should we make a copy?
     spec.option.integrator = _integrator_map[self.integrator]
     spec.option.timestep = self.sim_dt
     spec.option.iterations = self.solver_iterations
     spec.option.ls_iterations = self.solver_ls_iterations
     if not self.euler_damping:
       spec.option.disableflags |= mujoco.mjtDisableBit.mjDSBL_EULERDAMP
+    return spec
 
 
 ConfigT = TypeVar("ConfigT", bound=TaskConfig)
@@ -49,6 +53,17 @@ ConfigT = TypeVar("ConfigT", bound=TaskConfig)
 
 class MjxTask(abc.ABC, Generic[ConfigT]):
   """Base class for all tasks."""
+
+  def __init__(
+    self,
+    config: TaskConfig,
+    spec: mujoco.MjSpec,
+    entities: Optional[Dict[str, entity.Entity]] = None,
+  ):
+    self._config = config
+    self._entities = entities
+    self._spec = config.apply_defaults(spec)
+    self._model = self._spec.compile()
 
   @classmethod
   def from_xml_str(
@@ -70,30 +85,10 @@ class MjxTask(abc.ABC, Generic[ConfigT]):
       xml = f.read()
     return cls.from_xml_str(config, xml, assets)
 
-  def __init__(
-    self,
-    config: TaskConfig,
-    root: entity.Entity,
-    entities: Optional[Dict[str, entity.Entity]] = None,
-  ):
-    self._config = config
-    self._root = root
-    self._spec = root.spec
-    self._entities = entities
-
-    # Compile spec into MjModel.
-    config.apply_defaults(self._spec)
-    self._mj_model = self._spec.compile()
-    self._mjx_model = mjx.put_model(self._mj_model)
-    self.after_compile()
-
-  def after_compile(self) -> None:
-    """Callback executed after construction.
-
-    The default implementation binds the entities to compiled model.
-    """
-    for e in self._entities.values():
-      e.bind_model(self.mjx_model)
+  def domain_randomize(self, model: mjx.Model, rng: jax.Array) -> mjx.Model:
+    """Applies domain randomization to the model."""
+    del rng  # Unused.
+    return model
 
   def before_step(self, action: jax.Array, state: State) -> mjx.Data:
     """Callback executed before the physics step.
@@ -127,7 +122,7 @@ class MjxTask(abc.ABC, Generic[ConfigT]):
 
     The default implementation does nothing.
     """
-    del state, done  # Unused.
+    del action, state, done  # Unused.
     return data
 
   def should_terminate_episode(self, data: mjx.Data, state: State) -> jax.Array:
@@ -137,7 +132,7 @@ class MjxTask(abc.ABC, Generic[ConfigT]):
 
   @abc.abstractmethod
   def initialize_episode(
-    self, data: mjx.Data, rng: jax.Array
+    self, model: mjx.Model, data: mjx.Data, rng: jax.Array
   ) -> Tuple[mjx.Data, Dict[str, Any], Dict[str, Any]]:
     """Modifies the physics state before the next episode begins."""
     raise NotImplementedError
@@ -161,19 +156,24 @@ class MjxTask(abc.ABC, Generic[ConfigT]):
   # Properties.
 
   @property
+  def spec(self) -> mujoco.MjSpec:
+    """Returns the root spec."""
+    return self._spec
+
+  @property
   def cfg(self) -> ConfigT:
     """Returns the task configuration."""
     return self._config
 
   @property
-  def mj_model(self) -> mujoco.MjModel:
-    """Returns the compiled C mujoco model."""
-    return self._mj_model
+  def entities(self) -> Dict[str, entity.Entity]:
+    """Returns the entities in the task."""
+    return self._entities
 
   @property
-  def mjx_model(self) -> mjx.Model:
-    """Returns the compiled MJX model."""
-    return self._mjx_model
+  def model(self) -> mujoco.MjModel:
+    """Returns the compiled C mujoco model."""
+    return self._model
 
   @property
   def action_size(self) -> int:
@@ -182,7 +182,7 @@ class MjxTask(abc.ABC, Generic[ConfigT]):
     Subclasses should override this property if overriding `apply_action`. By
     default, it returns the number of actuators in the model.
     """
-    return self._mjx_model.nu
+    return self._model.nu
 
   @property
   def dt(self) -> float:
@@ -192,7 +192,7 @@ class MjxTask(abc.ABC, Generic[ConfigT]):
   @property
   def sim_dt(self) -> float:
     """Returns the simulation time step."""
-    return self._mj_model.opt.timestep
+    return self._config.sim_dt
 
   @property
   def n_substeps(self) -> int:

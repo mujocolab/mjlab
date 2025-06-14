@@ -43,7 +43,9 @@ def get_rz(
 class Go1(entity.Entity):
   """Go1 entity."""
 
-  def post_init(self) -> None:
+  def __init__(self, spec: mujoco.MjSpec):
+    super().__init__(spec)
+
     self._torso_body = self.spec.body("trunk")
     self._imu_site = self.spec.site("imu")
     self._joints = self.get_non_root_joints()
@@ -74,29 +76,29 @@ class Go1(entity.Entity):
   def nv(self) -> int:
     return self.mjx_model.nv - 6
 
-  def joint_angles(self, data: mjx.Data) -> jax.Array:
-    return data.bind(self.mjx_model, self._joints).qpos
+  def joint_angles(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
+    return data.bind(model, self._joints).qpos
 
-  def joint_velocities(self, data: mjx.Data) -> jax.Array:
-    return data.bind(self.mjx_model, self._joints).qvel
+  def joint_velocities(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
+    return data.bind(model, self._joints).qvel
 
-  def joint_accelerations(self, data: mjx.Data) -> jax.Array:
-    return data.bind(self.mjx_model, self._joints).qacc
+  def joint_accelerations(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
+    return data.bind(model, self._joints).qacc
 
-  def joint_torques(self, data: mjx.Data) -> jax.Array:
-    return data.bind(self.mjx_model, self._actuators).force
+  def joint_torques(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
+    return data.bind(model, self._actuators).force
 
-  def gyro(self, data: mjx.Data) -> jax.Array:
-    return data.bind(self.mjx_model, self._gyro_sensor).sensordata
+  def gyro(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
+    return data.bind(model, self._gyro_sensor).sensordata
 
-  def local_linvel(self, data: mjx.Data) -> jax.Array:
-    return data.bind(self.mjx_model, self._local_linvel_sensor).sensordata
+  def local_linvel(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
+    return data.bind(model, self._local_linvel_sensor).sensordata
 
-  def projected_gravity(self, data: mjx.Data) -> jax.Array:
-    return data.bind(self.mjx_model, self._imu_site).xmat.T @ jp.array([0, 0, -1.0])
+  def projected_gravity(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
+    return data.bind(model, self._imu_site).xmat.T @ jp.array([0, 0, -1.0])
 
-  def upvector(self, data: mjx.Data) -> jax.Array:
-    return data.bind(self.mjx_model, self._upvector_sensor).sensordata
+  def upvector(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
+    return data.bind(model, self._upvector_sensor).sensordata
 
 
 @dataclass(frozen=True)
@@ -147,17 +149,19 @@ class Go1Config(mjx_task.TaskConfig):
 class Go1Env(mjx_task.MjxTask[Go1Config]):
   def __init__(self, config: Go1Config = Go1Config()):
     root, entities = Go1Env.build_scene(config)
-    super().__init__(config, root, entities=entities)
-
+    super().__init__(config, root.spec, entities=entities)
+    self.go1: Go1 = entities["go1"]
     self._reward_scales = asdict(self.cfg.reward_config.scales)
 
     feet_geoms = ["FR", "FL", "RR", "RL"]
     torso_geoms = ["trunk_collision1", "trunk_collision2"]
-    self._floor_geom_id = self._mj_model.geom("floor").id
-    self._feet_geom_id = np.array([self._mj_model.geom(n).id for n in feet_geoms])
-    self._feet_site_id = np.array([self._mj_model.site(n).id for n in feet_geoms])
-    self._torso_geom_ids = np.array([self._mj_model.geom(n).id for n in torso_geoms])
-    self._imu_site_id = self._mj_model.site("imu").id
+    self._floor_geom_id = self.model.geom("floor").id
+    self._feet_geom_id = np.array([self.model.geom(n).id for n in feet_geoms])
+    self._feet_site_id = np.array([self.model.site(n).id for n in feet_geoms])
+    self._torso_geom_ids = np.array([self.model.geom(n).id for n in torso_geoms])
+    self._imu_site_id = self.model.site("imu").id
+    self._init_q = jp.array(self.model.keyframe("home").qpos)
+    self._default_pose = jp.array(self.model.keyframe("home").qpos[7:])
 
   @staticmethod
   def build_scene(config: Go1Config) -> Tuple[entity.Entity, Dict[str, entity.Entity]]:
@@ -180,18 +184,19 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
 
     return arena, {"go1": go1_entity, "arena": arena}
 
-  def after_compile(self) -> None:
-    super().after_compile()
-    self.go1: Go1 = self._entities["go1"]
-
-    self._init_q = jp.array(self._mj_model.keyframe("home").qpos)
-    self._default_pose = jp.array(self.mj_model.keyframe("home").qpos[7:])
+  def domain_randomize(self, model: mjx.Model, rng: jax.Array) -> mjx.Model:
+    rng, key = jax.random.split(rng)
+    geom_floor_id = self.spec.geom("floor").id
+    geom_friction = model.geom_friction.at[geom_floor_id, 0].set(
+      jax.random.uniform(key, minval=0.4, maxval=1.0)
+    )
+    return model.replace(geom_friction=geom_friction)
 
   def before_step(self, action: jax.Array, state: mjx_env.State) -> mjx.Data:
     motor_targets = self._default_pose + action * self.cfg.action_scale
     return super().before_step(motor_targets, state)
 
-  def initialize_episode(self, data: mjx.Data, rng: jax.Array):
+  def initialize_episode(self, model: mjx.Model, data: mjx.Data, rng: jax.Array):
     qpos = self._init_q
     rng, key = jax.random.split(rng)
     dxy = jax.random.uniform(key, (2,), minval=-0.5, maxval=0.5)
@@ -211,7 +216,7 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     info = {
       "rng": rng,
       "step": 0,
-      "last_act": jp.zeros(self.mjx_model.nu),
+      "last_act": jp.zeros(model.nu),
       "command": command,
       "feet_air_time": jp.zeros(4),
       "last_contact": jp.zeros(4, dtype=bool),
@@ -226,11 +231,11 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
   def get_observation(self, data: mjx.Data, state: mjx_env.State):
     return jp.concatenate(
       [
-        self.go1.gyro(data),
-        self.go1.projected_gravity(data),
-        self.go1.joint_angles(data),
-        self.go1.joint_velocities(data),
-        self.go1.local_linvel(data),
+        self.go1.gyro(state.model, data),
+        self.go1.projected_gravity(state.model, data),
+        self.go1.joint_angles(state.model, data),
+        self.go1.joint_velocities(state.model, data),
+        self.go1.local_linvel(state.model, data),
         state.info["last_act"],
         state.info["command"],
         jp.concatenate([jp.cos(state.info["phase"]), jp.sin(state.info["phase"])]),
@@ -251,20 +256,25 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     state.info["feet_air_time"] += self.dt
     state.info["first_contact"] = first_contact
 
+    local_linvel = self.go1.local_linvel(state.model, data)
+    gyro = self.go1.gyro(state.model, data)
+    projected_gravity = self.go1.projected_gravity(state.model, data)
+    joint_torques = self.go1.joint_torques(state.model, data)
+    joint_accelerations = self.go1.joint_accelerations(state.model, data)
+    joint_angles = self.go1.joint_angles(state.model, data)
+
     reward_terms = {
       "tracking_lin_vel": self._reward_tracking_lin_vel(
-        state.info["command"], self.go1.local_linvel(data)
+        state.info["command"], local_linvel
       ),
-      "tracking_ang_vel": self._reward_tracking_ang_vel(
-        state.info["command"], self.go1.gyro(data)
-      ),
-      "lin_vel_z": self._cost_lin_vel_z(self.go1.local_linvel(data)),
-      "ang_vel_xy": self._cost_ang_vel_xy(self.go1.gyro(data)),
-      "flat_orientation": self._cost_flat_orientation(self.go1.projected_gravity(data)),
-      "torques": self._cost_torques(self.go1.joint_torques(data)),
+      "tracking_ang_vel": self._reward_tracking_ang_vel(state.info["command"], gyro),
+      "lin_vel_z": self._cost_lin_vel_z(local_linvel),
+      "ang_vel_xy": self._cost_ang_vel_xy(gyro),
+      "flat_orientation": self._cost_flat_orientation(projected_gravity),
+      "torques": self._cost_torques(joint_torques),
       "action_rate": self._cost_action_rate(action, state.info["last_act"]),
-      "dof_acc": self._cost_dof_acc(self.go1.joint_accelerations(data)),
-      "pose": self._cost_pose(self.go1.joint_angles(data)),
+      "dof_acc": self._cost_dof_acc(joint_accelerations),
+      "pose": self._cost_pose(joint_angles),
       "feet_phase": self._reward_feet_phase(data, state.info["phase"]),
     }
     rewards = {k: v * self._reward_scales[k] for k, v in reward_terms.items()}
