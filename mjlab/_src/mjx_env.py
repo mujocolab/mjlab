@@ -27,7 +27,7 @@ from mjlab._src.types import ObservationSize, State
 TaskT = TypeVar("TaskT", bound=mjx_task.MjxTask)
 
 
-@dataclass(frozen=True)
+@dataclass
 class MjxEnv(Generic[TaskT]):
   """Base class for playground environments."""
 
@@ -35,13 +35,10 @@ class MjxEnv(Generic[TaskT]):
 
   def reset(self, rng: jax.Array) -> State:
     """Resets the environment to an initial state."""
-    rng, dr_rng = jax.random.split(rng)
-    model = self.task.domain_randomize(mjx.put_model(self.task.model), dr_rng)
-    data = init(model)
+    data = init(self.task.mjx_model)
     reward, done = jp.zeros(2)
-    data, info, metrics = self.task.initialize_episode(model, data, rng)
+    data, info, metrics = self.task.initialize_episode(data, rng)
     state = State(
-      model=model,
       data=data,
       obs={},
       reward=reward,
@@ -56,7 +53,7 @@ class MjxEnv(Generic[TaskT]):
     """Run one timestep of the environment's dynamics."""
     data = self.task.before_step(action=action, state=state)
     data = step(
-      model=state.model,
+      model=self.task.mjx_model,
       data=data,
       n_substeps=self.task.n_substeps,
       before_substep_fn=partial(self.task.before_substep, action=action, state=state),

@@ -86,30 +86,35 @@ class Swingup(mjx_task.MjxTask[CartpoleConfig]):
     cfg.apply_defaults(root_spec.spec)
     return root_spec, {"cartpole": root_spec}
 
-  def domain_randomize(self, model: mjx.Model, rng: jax.Array) -> mjx.Model:
-    rng, key = jax.random.split(rng)
+  def domain_randomize(self, model: mjx.Model, rng: jax.Array) -> Tuple[mjx.Model, Any]:
     cart_body_id = self.spec.body("cart").id
-    cart_mass = model.body_mass[cart_body_id]
-    body_mass = model.body_mass.at[cart_body_id].set(
-      cart_mass * jax.random.uniform(key, (), minval=0.5, maxval=1.5)
-    )
-    model = model.replace(body_mass=body_mass)
-    return model
+
+    @jax.vmap
+    def _randomize(rng):
+      rng, key = jax.random.split(rng)
+      cart_mass = model.body_mass[cart_body_id]
+      body_mass = model.body_mass.at[cart_body_id].set(
+        cart_mass * jax.random.uniform(key, (), minval=0.5, maxval=1.5)
+      )
+      return body_mass
+
+    body_mass = _randomize(rng)
+    in_axes = jax.tree_util.tree_map(lambda x: None, model)
+    in_axes = in_axes.tree_replace({"body_mass": 0})
+    model = model.tree_replace({"body_mass": body_mass})
+    return model, in_axes
 
   def initialize_episode(
-    self,
-    model: mjx.Model,
-    data: mjx.Data,
-    rng: jax.Array,
+    self, data: mjx.Data, rng: jax.Array
   ) -> Tuple[mjx.Data, Dict[str, Any], Dict[str, Any]]:
     rng, rng1, rng2, rng3 = jax.random.split(rng, 4)
-    data = data.bind(model, self.cartpole.slider_joint).set(
+    data = data.bind(self.mjx_model, self.cartpole.slider_joint).set(
       "qpos", 0.01 * jax.random.normal(rng1)
     )
-    data = data.bind(model, self.cartpole.hinge_joint).set(
+    data = data.bind(self.mjx_model, self.cartpole.hinge_joint).set(
       "qpos", jp.pi + 0.01 * jax.random.normal(rng2)
     )
-    qvel = 0.01 * jax.random.normal(rng3, (model.nv,))
+    qvel = 0.01 * jax.random.normal(rng3, (self.mjx_model.nv,))
     data = data.replace(qvel=qvel)
     metrics = {
       "reward/upright": jp.zeros(()),
@@ -123,8 +128,9 @@ class Swingup(mjx_task.MjxTask[CartpoleConfig]):
     return data, info, metrics
 
   def get_observation(self, data: mjx.Data, state: State):
+    del state  # Unused.
     return jp.concatenate(
-      [self.cartpole.bounded_position(state.model, data), data.qvel]
+      [self.cartpole.bounded_position(self.mjx_model, data), data.qvel]
     )
 
   def get_reward(
@@ -136,7 +142,7 @@ class Swingup(mjx_task.MjxTask[CartpoleConfig]):
     upright = (pole_angle_cos + 1) / 2
     state.metrics["reward/upright"] = upright
 
-    cart_position = self.cartpole.cart_position(state.model, data)
+    cart_position = self.cartpole.cart_position(self.mjx_model, data)
     centered = reward.tolerance(cart_position, margin=2)
     centered = (1 + centered) / 2
     state.metrics["reward/centered"] = centered

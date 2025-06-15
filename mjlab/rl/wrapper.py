@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Generic, Optional, TypeVar
 
 import jax
@@ -75,8 +76,33 @@ class RslRlVecEnvWrapper(VecEnv, Generic[ConfigT, TaskT]):
         f"Number of environments ({num_envs}) must be divisible by the number of devices ({device_count})"
       )
 
-    v_reset = jax.vmap(env.reset)
-    v_step = jax.vmap(env.step)
+    randomization_batch_size = num_envs // device_count
+    randomization_rng = jax.random.split(key_env, randomization_batch_size)
+    v_randomization_fn = partial(env.task.domain_randomize, rng=randomization_rng)
+    mjx_model_v, in_axes = v_randomization_fn(env.task.mjx_model)
+
+    def _env_fn(mjx_model):
+      env.unwrapped._mjx_model = mjx_model
+      return env
+
+    def _reset_fn(rng):
+      def _reset(m, r):
+        env = _env_fn(m)
+        return env.reset(r)
+
+      return jax.vmap(_reset, in_axes=[in_axes, 0])(mjx_model_v, rng)
+
+    def _step_fn(state, action):
+      def _step(m, s, a):
+        env = _env_fn(m)
+        return env.step(s, a)
+
+      return jax.vmap(_step, in_axes=[in_axes, 0, 0])(mjx_model_v, state, action)
+
+    # v_reset = jax.vmap(env.reset)
+    # v_step = jax.vmap(env.step)
+    v_reset = _reset_fn
+    v_step = _step_fn
     if local_devices_to_use > 1:
       self._reset_fn = jax.pmap(v_reset, axis_name=_PMAP_AXIS_NAME)
       self._step_fn = jax.pmap(v_step, axis_name=_PMAP_AXIS_NAME)
