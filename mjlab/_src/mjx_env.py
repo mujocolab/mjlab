@@ -84,7 +84,6 @@ class MjxEnv(Generic[TaskT]):
     width: int = 320,
     camera: Optional[str] = None,
     scene_option: Optional[mujoco.MjvOption] = None,
-    # modify_scene_fns: Optional[Sequence[Callable[[mujoco.MjvScene], None]]] = None,
   ) -> Sequence[np.ndarray]:
     return render_array(
       self.task.model,
@@ -108,7 +107,7 @@ def render_array(
   width: int = 640,
   camera: Optional[str] = None,
   scene_option: Optional[mujoco.MjvOption] = None,
-  modify_scene_fn=None,
+  modify_scene_fn: Optional[Callable[[State, mujoco.MjvScene], None]] = None,
 ):
   """Renders a trajectory as an array of images."""
   renderer = mujoco.Renderer(mj_model, height=height, width=width)
