@@ -12,9 +12,15 @@ from mjlab.control_suite.humanoid import (
   HumanoidWalkConfig,
   HumanoidRunConfig,
 )
+from mjlab.control_suite.g1 import G1Config
 
 TaskConfigUnion = Union[
-  CartpoleConfig, Go1Config, HumanoidStandConfig, HumanoidWalkConfig, HumanoidRunConfig
+  CartpoleConfig,
+  Go1Config,
+  HumanoidStandConfig,
+  HumanoidWalkConfig,
+  HumanoidRunConfig,
+  G1Config,
 ]
 
 _HERE = Path(__file__).parent
