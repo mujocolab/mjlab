@@ -9,7 +9,7 @@ from rsl_rl.runners import OnPolicyRunner
 
 from mjlab import TaskConfigUnion
 from mjlab._src import registry
-from mjlab.rl import config, utils, wrapper
+from mjlab.rl import config, utils, wrapper, exporter
 
 _HERE = Path(__file__).parent
 
@@ -49,6 +49,7 @@ def main(
   env = registry.make(task_name, task_cfg)
 
   if video:
+    # TODO(kevin): Implement this.
     print("[info]: Recording video during eval.")
     pass
 
@@ -63,13 +64,15 @@ def main(
   ppo_runner.load(resume_path, map_location=agent_cfg.device)
 
   policy = ppo_runner.get_inference_policy(device=env.device)
-  # policy_nn = ppo_runner.alg.policy
-  # export policy to onnx/jit
-  # export_model_dir = os.path.join(os.path.dirname(resume_path), "exported")
-  # export_policy_as_jit(policy_nn, ppo_runner.obs_normalizer, path=export_model_dir, filename="policy.pt")
-  # export_policy_as_onnx(
-  #     policy_nn, normalizer=ppo_runner.obs_normalizer, path=export_model_dir, filename="policy.onnx"
-  # )
+  policy_nn = ppo_runner.alg.policy
+
+  export_model_dir = resume_path / "exported"
+  exporter.export_policy_as_onnx(
+    policy=policy_nn,
+    normalizer=ppo_runner.obs_normalizer,
+    path=export_model_dir,
+    filename="policy.onnx",
+  )
 
   states = []
 

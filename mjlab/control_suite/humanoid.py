@@ -83,7 +83,7 @@ class _HumanoidConfig(mjx_task.TaskConfig):
   solver_ls_iterations: int = 5
   euler_damping: bool = False
   max_episode_length: int = 1_000
-  integrator: str = "euler"
+  integrator: str = "implicitfast"
 
 
 class _Humanoid(mjx_task.MjxTask[_HumanoidConfig]):

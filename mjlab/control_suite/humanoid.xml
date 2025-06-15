@@ -4,10 +4,6 @@
 
   <option timestep="0.005"/>
 
-  <custom>
-    <numeric data="4" name="max_contact_points"/>
-  </custom>
-
   <default>
     <motor ctrlrange="-1 1" ctrllimited="true"/>
     <default class="body">

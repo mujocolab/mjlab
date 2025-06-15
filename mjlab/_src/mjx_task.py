@@ -155,6 +155,15 @@ class MjxTask(abc.ABC, Generic[ConfigT]):
     """Calculates the reward given the physics state."""
     raise NotImplementedError
 
+  def visualize(self, state: State, scn: mujoco.MjvScene) -> None:
+    """Visualizes the task state in the scene.
+
+    This method can be overridden by subclasses to add custom visualizations
+    to the scene. The default implementation does nothing.
+    """
+    del state, scn  # Unused.
+    pass
+
   # Properties.
 
   @property
