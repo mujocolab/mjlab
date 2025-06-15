@@ -143,7 +143,7 @@ class RslRlVecEnvWrapper(VecEnv, Generic[ConfigT, TaskT]):
     if self.asymmetric_obs:
       obs = _jax_to_torch(self.state.obs["state"], device=self.device)
       critic_obs = _jax_to_torch(self.state.obs["privileged_state"], device=self.device)
-      extras["observations"]["critic"] = critic_obs
+      extras["observations"]["critic"] = critic_obs.reshape(self.num_envs, -1)
     else:
       obs = _jax_to_torch(self.state.obs, device=self.device)
     obs = obs.reshape(self.num_envs, -1)

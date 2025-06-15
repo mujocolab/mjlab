@@ -70,7 +70,7 @@ class MjxEnv(Generic[TaskT]):
     abstract_state = jax.eval_shape(self.reset, jax.random.PRNGKey(0))
     obs = abstract_state.obs
     if isinstance(obs, Mapping):
-      return jax.tree_util.tree_map(lambda x: x.shape, obs)
+      return jax.tree_util.tree_map(lambda x: x.shape[-1], obs)
     return obs.shape[-1]
 
   @property

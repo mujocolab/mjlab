@@ -103,22 +103,24 @@ class Go1(entity.Entity):
 
 @dataclass(frozen=True)
 class CommandConfig:
-  min: Tuple[float, float, float] = (-1.0, -1.0, -1.0)
-  max: Tuple[float, float, float] = (1.0, 1.0, 1.0)
+  min: Tuple[float, float, float] = (-1.5, -0.8, -1.2)
+  max: Tuple[float, float, float] = (1.5, 0.8, 1.2)
 
 
 @dataclass(frozen=True)
 class RewardScales:
-  tracking_lin_vel: float = 1.5
-  tracking_ang_vel: float = 0.75
-  lin_vel_z: float = -2.0
+  tracking_lin_vel: float = 1.0
+  tracking_ang_vel: float = 0.5
+  lin_vel_z: float = -0.5
   ang_vel_xy: float = -0.05
+  flat_orientation: float = -5.0
+  dof_pos_limits: float = -1.0
+  pose: float = -0.5
+  feet_phase: float = 1.0
   torques: float = -0.0002
   dof_acc: float = -2.5e-7
   action_rate: float = -0.01
-  feet_phase: float = 1.0
-  flat_orientation: float = -2.5
-  pose: float = -1.0
+  energy: float = -0.001
 
 
 @dataclass(frozen=True)
@@ -126,6 +128,15 @@ class RewardConfig:
   scales: RewardScales = RewardScales()
   tracking_sigma: float = 0.25
   max_foot_height: float = 0.1
+
+
+@dataclass(frozen=True)
+class NoiseConfig:
+  joint_pos: float = 0.03
+  joint_vel: float = 1.5
+  gyro: float = 0.2
+  projected_gravity: float = 0.05
+  linvel: float = 0.1
 
 
 @dataclass(frozen=True)
@@ -141,9 +152,12 @@ class Go1Config(mjx_task.TaskConfig):
   max_episode_length: int = 1_000
   Kp: float = 35
   Kv: float = 0.5
-  action_scale: float = 0.25
+  noise_level: float = 1.0
+  action_scale: float = 0.5
+  soft_joint_pos_limit_factor: float = 0.9
   command_config: CommandConfig = CommandConfig()
   reward_config: RewardConfig = RewardConfig()
+  noise_config: NoiseConfig = NoiseConfig()
 
 
 class Go1Env(mjx_task.MjxTask[Go1Config]):
@@ -162,6 +176,12 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     self._imu_site_id = self.model.site("imu").id
     self._init_q = jp.array(self.model.keyframe("home").qpos)
     self._default_pose = jp.array(self.model.keyframe("home").qpos[7:])
+    jnt_ids = [j.id for j in self.go1.joints]
+    lowers, uppers = self.model.jnt_range[jnt_ids].T
+    c = (lowers + uppers) / 2
+    r = uppers - lowers
+    self._soft_lowers = c - 0.5 * r * self.cfg.soft_joint_pos_limit_factor
+    self._soft_uppers = c + 0.5 * r * self.cfg.soft_joint_pos_limit_factor
 
   @staticmethod
   def build_scene(config: Go1Config) -> Tuple[entity.Entity, Dict[str, entity.Entity]]:
@@ -204,17 +224,17 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
         * jax.random.uniform(key, (len(joint_dof_ids),), minval=0.9, maxval=1.1)
       )
 
-      # Scale all link masses: *U(0.9, 1.1).
+      # Link masses: *U(0.9, 1.1).
       rng, key = jax.random.split(rng)
       dmass = jax.random.uniform(key, shape=(model.nbody,), minval=0.9, maxval=1.1)
       body_mass = model.body_mass.at[:].set(model.body_mass * dmass)
 
-      # Jitter center of mass: +U(-0.05, 0.05).
+      # Link center of masses: +U(-0.05, 0.05).
       rng, key = jax.random.split(rng)
       dpos = jax.random.uniform(key, shape=(model.nbody, 3), minval=-0.02, maxval=0.02)
       body_ipos = model.body_ipos.at[:].set(model.body_ipos + dpos)
 
-      # Jitter qpos0: +U(-0.05, 0.05).
+      # Joint calibration offsets: +U(-0.05, 0.05).
       rng, key = jax.random.split(rng)
       dqpos = jax.random.uniform(
         key, shape=(len(joint_qpos_ids),), minval=-0.05, maxval=0.05
@@ -277,19 +297,62 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     metrics = {f"reward/{k}": jp.zeros(()) for k in self._reward_scales.keys()}
     return data, info, metrics
 
+  def _apply_noise(
+    self, info: dict[str, Any], value: jax.Array, scale: float
+  ) -> jax.Array:
+    info["rng"], noise_rng = jax.random.split(info["rng"])
+    noise = 2 * jax.random.uniform(noise_rng, shape=value.shape) - 1
+    noisy_value = value + noise * self.cfg.noise_level * scale
+    return noisy_value
+
   def get_observation(self, data: mjx.Data, state: mjx_env.State):
-    return jp.concatenate(
+    cfg: NoiseConfig = self.cfg.noise_config
+
+    # Ground-truth observations.
+    gyro = self.go1.gyro(self.mjx_model, data)
+    projected_gravity = self.go1.projected_gravity(self.mjx_model, data)
+    joint_angles = self.go1.joint_angles(self.mjx_model, data)
+    joint_velocities = self.go1.joint_velocities(self.mjx_model, data)
+    local_linvel = self.go1.local_linvel(self.mjx_model, data)
+
+    # Noisy observations.
+    noisy_gyro = self._apply_noise(state.info, gyro, cfg.gyro)
+    noisy_projected_gravity = self._apply_noise(
+      state.info, projected_gravity, cfg.projected_gravity
+    )
+    noisy_joint_angles = self._apply_noise(state.info, joint_angles, cfg.joint_pos)
+    noisy_joint_velocities = self._apply_noise(
+      state.info, joint_velocities, cfg.joint_vel
+    )
+    noisy_local_linvel = self._apply_noise(state.info, local_linvel, cfg.linvel)
+
+    obs = jp.hstack(
       [
-        self.go1.gyro(self.mjx_model, data),
-        self.go1.projected_gravity(self.mjx_model, data),
-        self.go1.joint_angles(self.mjx_model, data),
-        self.go1.joint_velocities(self.mjx_model, data),
-        self.go1.local_linvel(self.mjx_model, data),
+        noisy_gyro,
+        noisy_projected_gravity,
+        noisy_joint_angles,
+        noisy_joint_velocities,
+        noisy_local_linvel,
         state.info["last_act"],
         state.info["command"],
         jp.concatenate([jp.cos(state.info["phase"]), jp.sin(state.info["phase"])]),
       ]
     )
+    privileged_obs = jp.hstack(
+      [
+        obs,
+        gyro,
+        projected_gravity,
+        joint_angles,
+        joint_velocities,
+        local_linvel,
+      ]
+    )
+
+    return {
+      "state": obs,
+      "privileged_state": privileged_obs,
+    }
 
   def get_reward(self, data, state, action, done):
     del done  # Unused.
@@ -299,6 +362,7 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     joint_torques = self.go1.joint_torques(self.mjx_model, data)
     joint_accelerations = self.go1.joint_accelerations(self.mjx_model, data)
     joint_angles = self.go1.joint_angles(self.mjx_model, data)
+    joint_velocities = self.go1.joint_velocities(self.mjx_model, data)
     reward_terms = {
       "tracking_lin_vel": self._reward_tracking_lin_vel(
         state.info["command"], local_linvel
@@ -311,6 +375,8 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
       "action_rate": self._cost_action_rate(action, state.info["last_act"]),
       "dof_acc": self._cost_dof_acc(joint_accelerations),
       "pose": self._cost_pose(joint_angles),
+      "dof_pos_limits": self._cost_joint_pos_limits(joint_angles),
+      "energy": self._cost_energy(joint_velocities, joint_torques),
       "feet_phase": self._reward_feet_phase(data, state.info["phase"]),
     }
     rewards = {k: v * self._reward_scales[k] for k, v in reward_terms.items()}
@@ -386,6 +452,9 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
   def _cost_torques(self, torques: jax.Array) -> jax.Array:
     return jp.sum(jp.square(torques))
 
+  def _cost_energy(self, qvel: jax.Array, torques: jax.Array) -> jax.Array:
+    return jp.sum(jp.abs(qvel) * jp.abs(torques))
+
   def _cost_dof_acc(self, qacc: jax.Array) -> jax.Array:
     return jp.sum(jp.square(qacc))
 
@@ -393,7 +462,13 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     return jp.sum(jp.square(act - last_act))
 
   def _cost_pose(self, qpos: jax.Array) -> jax.Array:
-    return jp.sum(jp.square(qpos - self._default_pose))
+    weight = jp.array([1.0, 1.0, 0.1] * 4)
+    return jp.sum(jp.square(qpos - self._default_pose) * weight)
+
+  def _cost_joint_pos_limits(self, qpos: jax.Array) -> jax.Array:
+    out_of_limits = -jp.clip(qpos - self._soft_lowers, None, 0.0)
+    out_of_limits += jp.clip(qpos - self._soft_uppers, 0.0, None)
+    return jp.sum(out_of_limits)
 
   def _reward_feet_phase(self, data: mjx.Data, phase: jax.Array) -> jax.Array:
     foot_z = data.site_xpos[self._feet_site_id][..., -1]
