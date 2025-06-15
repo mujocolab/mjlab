@@ -84,7 +84,7 @@ class MjxEnv(Generic[TaskT]):
     width: int = 320,
     camera: Optional[str] = None,
     scene_option: Optional[mujoco.MjvOption] = None,
-    modify_scene_fns: Optional[Sequence[Callable[[mujoco.MjvScene], None]]] = None,
+    # modify_scene_fns: Optional[Sequence[Callable[[mujoco.MjvScene], None]]] = None,
   ) -> Sequence[np.ndarray]:
     return render_array(
       self.task.model,
@@ -93,7 +93,7 @@ class MjxEnv(Generic[TaskT]):
       width,
       camera,
       scene_option=scene_option,
-      modify_scene_fns=modify_scene_fns,
+      modify_scene_fn=self.task.visualize,
     )
 
   @property
@@ -108,16 +108,11 @@ def render_array(
   width: int = 640,
   camera: Optional[str] = None,
   scene_option: Optional[mujoco.MjvOption] = None,
-  modify_scene_fns: Optional[Sequence[Callable[[mujoco.MjvScene], None]]] = None,
-  hfield_data: Optional[jax.Array] = None,
+  modify_scene_fn=None,
 ):
   """Renders a trajectory as an array of images."""
   renderer = mujoco.Renderer(mj_model, height=height, width=width)
   camera = camera or -1
-
-  if hfield_data is not None:
-    mj_model.hfield_data = hfield_data.reshape(mj_model.hfield_data.shape)
-    mujoco.mjr_uploadHField(mj_model, renderer._mjr_context, 0)
 
   def get_image(state, modify_scn_fn=None) -> np.ndarray:
     d = mujoco.MjData(mj_model)
@@ -127,16 +122,12 @@ def render_array(
     mujoco.mj_forward(mj_model, d)
     renderer.update_scene(d, camera=camera, scene_option=scene_option)
     if modify_scn_fn is not None:
-      modify_scn_fn(renderer.scene)
+      modify_scn_fn(state, renderer.scene)
     return renderer.render()
 
   if isinstance(trajectory, list):
     out = []
-    for i, state in enumerate(tqdm.tqdm(trajectory)):
-      if modify_scene_fns is not None:
-        modify_scene_fn = modify_scene_fns[i]
-      else:
-        modify_scene_fn = None
+    for state in tqdm.tqdm(trajectory):
       out.append(get_image(state, modify_scene_fn))
   else:
     out = get_image(trajectory)

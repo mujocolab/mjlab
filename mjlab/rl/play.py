@@ -74,7 +74,6 @@ def main(
   states = []
 
   obs, _ = env.get_observations()
-  states.append(env.state)
   timestep = 0
   while timestep < env.unwrapped.task.cfg.max_episode_length:
     with torch.inference_mode():

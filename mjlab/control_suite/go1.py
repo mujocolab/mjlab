@@ -169,6 +169,7 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
 
     feet_geoms = ["FR", "FL", "RR", "RL"]
     torso_geoms = ["trunk_collision1", "trunk_collision2"]
+    self._torso_body_id = self.model.body("trunk").id
     self._floor_geom_id = self.model.geom("floor").id
     self._feet_geom_id = np.array([self.model.geom(n).id for n in feet_geoms])
     self._feet_site_id = np.array([self.model.site(n).id for n in feet_geoms])
@@ -475,6 +476,62 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     rz = get_rz(phase, swing_height=self.cfg.reward_config.max_foot_height)
     error = jp.sum(jp.square(foot_z - rz))
     return jp.exp(-error / 0.005)
+
+  # Visualization.
+
+  def visualize(self, state: mjx_env.State, scn):
+    torso_pos = state.data.xpos[self._torso_body_id]
+    torso_rot = state.data.xmat[self._torso_body_id]
+
+    def local_to_world(vec):
+      return torso_pos + torso_rot @ vec
+
+    def make_arrow(from_local, to_local):
+      return local_to_world(from_local), local_to_world(to_local)
+
+    def add_arrow(from_w, to_w, rgba, width=0.015, size=(0.005, 0.02, 0.02)):
+      scn.ngeom += 1
+      geom = scn.geoms[scn.ngeom - 1]
+      geom.category = mujoco.mjtCatBit.mjCAT_DECOR
+
+      mujoco.mjv_initGeom(
+        geom=geom,
+        type=mujoco.mjtGeom.mjGEOM_ARROW.value,
+        size=np.array(size, dtype=np.float32),
+        pos=np.zeros(3),
+        mat=np.zeros(9),
+        rgba=np.asarray(rgba, dtype=np.float32),
+      )
+
+      mujoco.mjv_connector(
+        geom=geom,
+        type=mujoco.mjtGeom.mjGEOM_ARROW.value,
+        width=width,
+        from_=from_w,
+        to=to_w,
+      )
+
+    scale = 0.75  # Scale the arrows to 75% of their original size.
+    z_offset = 0.2  # Leave a 20cm gap between the base and the arrows.
+
+    # Commanded velocities.
+    cmd = state.info["command"]
+    cmd_lin_from = np.array([0, 0, z_offset]) * scale
+    cmd_lin_to = cmd_lin_from + np.array([cmd[0], cmd[1], 0]) * scale
+    cmd_ang_from = cmd_lin_from
+    cmd_ang_to = cmd_ang_from + np.array([0, 0, cmd[2]]) * scale
+    add_arrow(*make_arrow(cmd_lin_from, cmd_lin_to), rgba=[0.2, 0.2, 0.6, 0.6])
+    add_arrow(*make_arrow(cmd_ang_from, cmd_ang_to), rgba=[0.2, 0.6, 0.2, 0.6])
+
+    # Actual velocities.
+    linvel = self.go1.local_linvel(self.mjx_model, state.data)
+    gyro = self.go1.gyro(self.mjx_model, state.data)
+    act_lin_from = np.array([0, 0, z_offset]) * scale
+    act_lin_to = act_lin_from + np.array([linvel[0], linvel[1], 0]) * scale
+    act_ang_from = act_lin_from
+    act_ang_to = act_ang_from + np.array([0, 0, gyro[2]]) * scale
+    add_arrow(*make_arrow(act_lin_from, act_lin_to), rgba=[0.0, 0.6, 1.0, 0.7])
+    add_arrow(*make_arrow(act_ang_from, act_ang_to), rgba=[0.0, 1.0, 0.4, 0.7])
 
 
 if __name__ == "__main__":
