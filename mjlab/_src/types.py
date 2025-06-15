@@ -15,7 +15,6 @@ Info = Dict[str, Any]
 class State:
   """Environment state for training and inference."""
 
-  model: mjx.Model
   data: mjx.Data
   obs: Observation
   reward: jax.Array

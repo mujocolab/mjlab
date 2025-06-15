@@ -25,6 +25,7 @@ dependencies = [
     "wandb",
     "ruff",
     "mediapy",
+    "gymnasium>=1.0",
 ]
 
 [tool.ruff]

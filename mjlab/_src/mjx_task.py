@@ -17,7 +17,7 @@ _integrator_map = {
 }
 
 
-@dataclass
+@dataclass(frozen=True)
 class TaskConfig:
   """Base class for task configs."""
 
@@ -64,6 +64,7 @@ class MjxTask(abc.ABC, Generic[ConfigT]):
     self._entities = entities
     self._spec = config.apply_defaults(spec)
     self._model = self._spec.compile()
+    self._mjx_model = mjx.put_model(self._model)
 
   @classmethod
   def from_xml_str(
@@ -85,10 +86,11 @@ class MjxTask(abc.ABC, Generic[ConfigT]):
       xml = f.read()
     return cls.from_xml_str(config, xml, assets)
 
-  def domain_randomize(self, model: mjx.Model, rng: jax.Array) -> mjx.Model:
+  def domain_randomize(self, model: mjx.Model, rng: jax.Array) -> Tuple[mjx.Model, Any]:
     """Applies domain randomization to the model."""
     del rng  # Unused.
-    return model
+    in_axes = jax.tree.map(lambda x: None, model)
+    return model, in_axes
 
   def before_step(self, action: jax.Array, state: State) -> mjx.Data:
     """Callback executed before the physics step.
@@ -132,7 +134,7 @@ class MjxTask(abc.ABC, Generic[ConfigT]):
 
   @abc.abstractmethod
   def initialize_episode(
-    self, model: mjx.Model, data: mjx.Data, rng: jax.Array
+    self, data: mjx.Data, rng: jax.Array
   ) -> Tuple[mjx.Data, Dict[str, Any], Dict[str, Any]]:
     """Modifies the physics state before the next episode begins."""
     raise NotImplementedError
@@ -152,6 +154,15 @@ class MjxTask(abc.ABC, Generic[ConfigT]):
   ) -> jax.Array:
     """Calculates the reward given the physics state."""
     raise NotImplementedError
+
+  def visualize(self, state: State, scn: mujoco.MjvScene) -> None:
+    """Visualizes the task state in the scene.
+
+    This method can be overridden by subclasses to add custom visualizations
+    to the scene. The default implementation does nothing.
+    """
+    del state, scn  # Unused.
+    pass
 
   # Properties.
 
@@ -174,6 +185,11 @@ class MjxTask(abc.ABC, Generic[ConfigT]):
   def model(self) -> mujoco.MjModel:
     """Returns the compiled C mujoco model."""
     return self._model
+
+  @property
+  def mjx_model(self) -> mjx.Model:
+    """Returns the mjx model."""
+    return self._mjx_model
 
   @property
   def action_size(self) -> int:

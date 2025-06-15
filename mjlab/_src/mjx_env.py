@@ -35,13 +35,10 @@ class MjxEnv(Generic[TaskT]):
 
   def reset(self, rng: jax.Array) -> State:
     """Resets the environment to an initial state."""
-    rng, dr_rng = jax.random.split(rng)
-    model = self.task.domain_randomize(mjx.put_model(self.task.model), dr_rng)
-    data = init(model)
+    data = init(self.task.mjx_model)
     reward, done = jp.zeros(2)
-    data, info, metrics = self.task.initialize_episode(model, data, rng)
+    data, info, metrics = self.task.initialize_episode(data, rng)
     state = State(
-      model=model,
       data=data,
       obs={},
       reward=reward,
@@ -56,7 +53,7 @@ class MjxEnv(Generic[TaskT]):
     """Run one timestep of the environment's dynamics."""
     data = self.task.before_step(action=action, state=state)
     data = step(
-      model=state.model,
+      model=self.task.mjx_model,
       data=data,
       n_substeps=self.task.n_substeps,
       before_substep_fn=partial(self.task.before_substep, action=action, state=state),
@@ -73,7 +70,7 @@ class MjxEnv(Generic[TaskT]):
     abstract_state = jax.eval_shape(self.reset, jax.random.PRNGKey(0))
     obs = abstract_state.obs
     if isinstance(obs, Mapping):
-      return jax.tree_util.tree_map(lambda x: x.shape, obs)
+      return jax.tree_util.tree_map(lambda x: x.shape[-1], obs)
     return obs.shape[-1]
 
   @property
@@ -87,7 +84,6 @@ class MjxEnv(Generic[TaskT]):
     width: int = 320,
     camera: Optional[str] = None,
     scene_option: Optional[mujoco.MjvOption] = None,
-    modify_scene_fns: Optional[Sequence[Callable[[mujoco.MjvScene], None]]] = None,
   ) -> Sequence[np.ndarray]:
     return render_array(
       self.task.model,
@@ -96,7 +92,7 @@ class MjxEnv(Generic[TaskT]):
       width,
       camera,
       scene_option=scene_option,
-      modify_scene_fns=modify_scene_fns,
+      modify_scene_fn=self.task.visualize,
     )
 
   @property
@@ -111,16 +107,11 @@ def render_array(
   width: int = 640,
   camera: Optional[str] = None,
   scene_option: Optional[mujoco.MjvOption] = None,
-  modify_scene_fns: Optional[Sequence[Callable[[mujoco.MjvScene], None]]] = None,
-  hfield_data: Optional[jax.Array] = None,
+  modify_scene_fn: Optional[Callable[[State, mujoco.MjvScene], None]] = None,
 ):
   """Renders a trajectory as an array of images."""
   renderer = mujoco.Renderer(mj_model, height=height, width=width)
   camera = camera or -1
-
-  if hfield_data is not None:
-    mj_model.hfield_data = hfield_data.reshape(mj_model.hfield_data.shape)
-    mujoco.mjr_uploadHField(mj_model, renderer._mjr_context, 0)
 
   def get_image(state, modify_scn_fn=None) -> np.ndarray:
     d = mujoco.MjData(mj_model)
@@ -130,16 +121,12 @@ def render_array(
     mujoco.mj_forward(mj_model, d)
     renderer.update_scene(d, camera=camera, scene_option=scene_option)
     if modify_scn_fn is not None:
-      modify_scn_fn(renderer.scene)
+      modify_scn_fn(state, renderer.scene)
     return renderer.render()
 
   if isinstance(trajectory, list):
     out = []
-    for i, state in enumerate(tqdm.tqdm(trajectory)):
-      if modify_scene_fns is not None:
-        modify_scene_fn = modify_scene_fns[i]
-      else:
-        modify_scene_fn = None
+    for state in tqdm.tqdm(trajectory):
       out.append(get_image(state, modify_scene_fn))
   else:
     out = get_image(trajectory)

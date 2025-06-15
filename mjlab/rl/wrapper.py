@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Generic, Optional, TypeVar
 
 import jax
@@ -5,6 +6,7 @@ import jax.numpy as jp
 import torch
 from rsl_rl.env import VecEnv
 
+from mujoco import mjx
 from mjlab._src import mjx_env, mjx_task
 from mjlab._src.types import State
 
@@ -75,8 +77,31 @@ class RslRlVecEnvWrapper(VecEnv, Generic[ConfigT, TaskT]):
         f"Number of environments ({num_envs}) must be divisible by the number of devices ({device_count})"
       )
 
-    v_reset = jax.vmap(env.reset)
-    v_step = jax.vmap(env.step)
+    randomization_batch_size = num_envs // device_count
+    randomization_rng = jax.random.split(key_env, randomization_batch_size)
+    v_randomization_fn = partial(env.task.domain_randomize, rng=randomization_rng)
+    mjx_model_v, in_axes = v_randomization_fn(env.task.mjx_model)
+
+    def _env_fn(mjx_model: mjx.Model) -> mjx_env.MjxEnv:
+      env.unwrapped.task._mjx_model = mjx_model
+      return env
+
+    def _reset_fn(rng: jax.Array) -> State:
+      def _reset(m, r):
+        env = _env_fn(m)
+        return env.reset(r)
+
+      return jax.vmap(_reset, in_axes=[in_axes, 0])(mjx_model_v, rng)
+
+    def _step_fn(state: State, action: jax.Array) -> State:
+      def _step(m, s, a):
+        env = _env_fn(m)
+        return env.step(s, a)
+
+      return jax.vmap(_step, in_axes=[in_axes, 0, 0])(mjx_model_v, state, action)
+
+    v_reset = _reset_fn
+    v_step = _step_fn
     if local_devices_to_use > 1:
       self._reset_fn = jax.pmap(v_reset, axis_name=_PMAP_AXIS_NAME)
       self._step_fn = jax.pmap(v_step, axis_name=_PMAP_AXIS_NAME)
@@ -118,7 +143,7 @@ class RslRlVecEnvWrapper(VecEnv, Generic[ConfigT, TaskT]):
     if self.asymmetric_obs:
       obs = _jax_to_torch(self.state.obs["state"], device=self.device)
       critic_obs = _jax_to_torch(self.state.obs["privileged_state"], device=self.device)
-      extras["observations"]["critic"] = critic_obs
+      extras["observations"]["critic"] = critic_obs.reshape(self.num_envs, -1)
     else:
       obs = _jax_to_torch(self.state.obs, device=self.device)
     obs = obs.reshape(self.num_envs, -1)
@@ -202,32 +227,3 @@ class RslRlVecEnvWrapper(VecEnv, Generic[ConfigT, TaskT]):
   @property
   def unwrapped(self):
     return self.env.unwrapped
-
-
-if __name__ == "__main__":
-  import time
-
-  from mjlab.control_suite import cartpole
-
-  seed = 12345
-  torch.manual_seed(seed)
-
-  task = cartpole.Swingup()
-  env = mjx_env.MjxEnv(task)
-
-  num_envs = 4
-  wrapper = RslRlVecEnvWrapper(env, num_envs=num_envs, seed=seed)
-
-  tic = time.time()
-  i = 0
-  while True:
-    actions = torch.randn(num_envs, wrapper.num_actions) * 0.1
-    next_obs, rewards, dones, info = wrapper.step(actions)
-    i += 1
-    if torch.all(dones):
-      print(f"All episodes terminated after {i} steps.")
-      break
-    if i > 1000:
-      break
-  toc = time.time()
-  print(f"Time taken: {toc - tic} seconds")

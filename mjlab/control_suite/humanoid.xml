@@ -2,12 +2,7 @@
   <include file="common.xml"/>
   <statistic extent="2" center="0 0 1"/>
 
-  <option timestep="0.005">
-  </option>
-
-  <custom>
-    <numeric data="4" name="max_contact_points"/>
-  </custom>
+  <option timestep="0.005"/>
 
   <default>
     <motor ctrlrange="-1 1" ctrllimited="true"/>
