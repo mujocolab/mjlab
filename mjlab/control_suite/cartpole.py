@@ -57,7 +57,7 @@ class Cartpole(entity.Entity):
     )
 
 
-@dataclass
+@dataclass(frozen=True)
 class CartpoleConfig(mjx_task.TaskConfig):
   """Cartpole configuration."""
 

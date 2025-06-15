@@ -17,7 +17,7 @@ _integrator_map = {
 }
 
 
-@dataclass
+@dataclass(frozen=True)
 class TaskConfig:
   """Base class for task configs."""
 

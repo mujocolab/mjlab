@@ -27,7 +27,7 @@ from mjlab._src.types import ObservationSize, State
 TaskT = TypeVar("TaskT", bound=mjx_task.MjxTask)
 
 
-@dataclass
+@dataclass(frozen=True)
 class MjxEnv(Generic[TaskT]):
   """Base class for playground environments."""
 
