@@ -1,14 +1,16 @@
 from dataclasses import asdict
 from pathlib import Path
 import time
-from typing import Annotated, Optional
+from typing import Annotated, List, Optional
 
 import jax
+import jax.numpy as jp
 import torch
 import tyro
 from rsl_rl.runners import OnPolicyRunner
 
 from mjlab import TaskConfigUnion
+from mjlab._src.types import State
 from mjlab._src import registry, mjx_task
 from mjlab.rl import config, utils, wrapper, exporter
 
@@ -96,7 +98,7 @@ def main(
   toc = time.time()
   print(f"[INFO]: Time to step: {toc - tic} seconds")
 
-  states = []
+  states: List[State] = []
 
   viewer = mujoco.viewer.launch_passive(m, d, show_left_ui=False, show_right_ui=False)
   with viewer:
@@ -104,13 +106,18 @@ def main(
     viewer.cam.fixedcamid = m.camera(camera).id
     while viewer.is_running():
       start = time.time()
+      env.state = env.state.tree_replace(
+        {"data.xfrc_applied": jp.array(d.xfrc_applied)[None, None]}
+      )
       with torch.inference_mode():
         actions = policy(obs)
       obs, _, _, _ = env.step(actions)
       viewer.user_scn.ngeom = 0
       dx = jax.tree.map(lambda x: x[0, 0], env.state.data)
-      mjx.get_data_into(d, m, dx)
-      task.visualize(jax.tree.map(lambda x: x[0, 0], env.state), viewer.user_scn)
+      with viewer.lock():
+        mjx.get_data_into(d, m, dx)
+        task.visualize(jax.tree.map(lambda x: x[0, 0], env.state), viewer.user_scn)
+        mujoco.mj_camlight(m, d)
       viewer.sync()
       if len(states) < video_length:
         states.append(jax.tree.map(lambda x: x[0, 0], env.state))
@@ -121,7 +128,7 @@ def main(
   if video:
     import mediapy as mp
 
-    frames = env.unwrapped.render(states, camera=camera, height=480, width=640)
+    frames = env.unwrapped.render(states, camera=camera)
     video_path = resume_path.parent / "video"
     if not video_path.exists():
       video_path.mkdir(parents=True)

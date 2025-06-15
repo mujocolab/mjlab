@@ -30,3 +30,9 @@ dependencies = [
 
 [tool.ruff]
 indent-width = 2
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+warn_unused_configs = true
+exclude = ["external_deps/", "exporter.py", "wrapper.py"]

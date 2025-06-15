@@ -47,7 +47,7 @@ class MjxEnv(Generic[TaskT]):
       info=info,
     )
     obs = self.task.get_observation(data=data, state=state)
-    return state.replace(obs=obs)
+    return state.replace(obs=obs)  # type: ignore[attr-defined]
 
   def step(self, state: State, action: jax.Array) -> State:
     """Run one timestep of the environment's dynamics."""
@@ -63,7 +63,7 @@ class MjxEnv(Generic[TaskT]):
     obs = self.task.get_observation(data=data, state=state)
     reward = self.task.get_reward(data=data, state=state, action=action, done=done)
     data = self.task.after_step(data=data, state=state, action=action, done=done)
-    return state.replace(data=data, obs=obs, reward=reward, done=done)
+    return state.replace(data=data, obs=obs, reward=reward, done=done)  # type: ignore[attr-defined]
 
   @property
   def observation_size(self) -> ObservationSize:
@@ -80,11 +80,14 @@ class MjxEnv(Generic[TaskT]):
   def render(
     self,
     trajectory: List[State],
-    height: int = 240,
-    width: int = 320,
+    height: int = 480,
+    width: int = 640,
     camera: Optional[str] = None,
     scene_option: Optional[mujoco.MjvOption] = None,
   ) -> Sequence[np.ndarray]:
+    # Ensure offscreen buffer is big enough to render the full image.
+    self.task.model.vis.global_.offwidth = width
+    self.task.model.vis.global_.offheight = height
     return render_array(
       self.task.model,
       trajectory,
@@ -111,7 +114,7 @@ def render_array(
 ):
   """Renders a trajectory as an array of images."""
   renderer = mujoco.Renderer(mj_model, height=height, width=width)
-  camera = camera or -1
+  cam = camera or -1
 
   def get_image(state, modify_scn_fn=None) -> np.ndarray:
     d = mujoco.MjData(mj_model)
@@ -119,11 +122,12 @@ def render_array(
     d.mocap_pos, d.mocap_quat = state.data.mocap_pos, state.data.mocap_quat
     d.xfrc_applied = state.data.xfrc_applied
     mujoco.mj_forward(mj_model, d)
-    renderer.update_scene(d, camera=camera, scene_option=scene_option)
+    renderer.update_scene(d, camera=cam, scene_option=scene_option)
     if modify_scn_fn is not None:
       modify_scn_fn(state, renderer.scene)
     return renderer.render()
 
+  out: List[np.ndarray] | np.ndarray
   if isinstance(trajectory, list):
     out = []
     for state in tqdm.tqdm(trajectory):
@@ -178,13 +182,3 @@ def step(
     return data
 
   return jax.lax.fori_loop(0, n_substeps, substep_fn, data)
-
-
-def get_sensor_data(
-  model: mujoco.MjModel, data: mjx.Data, sensor_name: str
-) -> jax.Array:
-  """Gets sensor data given sensor name."""
-  sensor_id = model.sensor(sensor_name).id
-  sensor_adr = model.sensor_adr[sensor_id]
-  sensor_dim = model.sensor_dim[sensor_id]
-  return data.sensordata[sensor_adr : sensor_adr + sensor_dim]

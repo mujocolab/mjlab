@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, cast
 
 import jax
 import jax.numpy as jp
@@ -91,7 +91,7 @@ class _Humanoid(mjx_task.MjxTask[_HumanoidConfig]):
 
   def __init__(self, config: _HumanoidConfig = _HumanoidConfig()):
     root, entities = _Humanoid.build_scene(config)
-    self.humanoid: Humanoid = entities["humanoid"]
+    self.humanoid: Humanoid = cast(Humanoid, entities["humanoid"])
     super().__init__(config, root.spec, entities=entities)
 
   @staticmethod

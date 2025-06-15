@@ -80,8 +80,9 @@
   </asset>
 
   <worldbody>
-    <light name="spotlight" mode="targetbodycom" target="trunk" pos="3 0 4"/>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
     <body name="trunk" pos="0 0 0.445" childclass="go1">
+      <light pos="0 0 2" mode="trackcom"/>
       <camera name="tracking" pos="0.846 -1.3 0.316" xyaxes="0.866 0.500 0.000 -0.171 0.296 0.940" mode="trackcom"/>
       <camera name="top" pos="-1 0 1" xyaxes="0 -1 0 0.7 0 0.7" mode="trackcom"/>
       <camera name="side" pos="0 -1 .3" xyaxes="1 0 0 0 1 2" mode="trackcom"/>
@@ -91,8 +92,10 @@
         diaginertia="0.0716565 0.0630105 0.0168101"/>
       <freejoint/>
       <geom class="visual" mesh="trunk"/>
-      <geom name="trunk_collision1" class="collision" quat="1 0 1 0" pos="0 -0.04 0" size="0.058 0.125" type="cylinder" contype="0" conaffinity="1"/>
-      <geom name="trunk_collision2" class="collision" quat="1 0 1 0" pos="0 +0.04 0" size="0.058 0.125" type="cylinder" contype="0" conaffinity="1"/>
+      <geom name="trunk_collision1" class="collision" quat="1 0 1 0" pos="0 -0.04 0" size="0.058 0.125" type="cylinder"
+        contype="0" conaffinity="1"/>
+      <geom name="trunk_collision2" class="collision" quat="1 0 1 0" pos="0 +0.04 0" size="0.058 0.125" type="cylinder"
+        contype="0" conaffinity="1"/>
       <site name="imu" pos="-0.01592 -0.06659 -0.00617" group="5"/>
       <body name="FR_hip" pos="0.1881 -0.04675 0">
         <inertial pos="-0.0049166 0.00762615 -8.865e-05" quat="0.507341 0.514169 0.495027 0.482891" mass="0.68"

@@ -50,10 +50,10 @@ class Entity(abc.ABC):
 
   def add_skybox(
     self,
-    rgb1: Tuple[float, float, float] = (1, 1, 1),
-    rgb2: Tuple[float, float, float] = (1, 1, 1),
-    width: int = 800,
-    height: int = 800,
+    rgb1: Tuple[float, float, float] = (0.3, 0.5, 0.7),
+    rgb2: Tuple[float, float, float] = (0.1, 0.2, 0.3),
+    width: int = 512,
+    height: int = 3072,
   ) -> None:
     """Add a skybox to the scene."""
     self._spec.add_texture(

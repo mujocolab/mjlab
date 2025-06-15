@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, cast
 
 import jax
 import jax.numpy as jp
@@ -75,7 +75,7 @@ class Swingup(mjx_task.MjxTask[CartpoleConfig]):
 
   def __init__(self, config: CartpoleConfig = CartpoleConfig()):
     root, entities = Swingup.build_scene(config)
-    self.cartpole: Cartpole = entities["cartpole"]
+    self.cartpole: Cartpole = cast(Cartpole, entities["cartpole"])
     super().__init__(config, root.spec, entities=entities)
 
   @staticmethod

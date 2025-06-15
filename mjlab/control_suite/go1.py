@@ -1,6 +1,6 @@
 from dataclasses import dataclass, asdict
 from pathlib import Path
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Tuple, Union, cast
 
 import jax
 import jax.numpy as jp
@@ -19,7 +19,7 @@ _GO1_XML = _HERE / "go1.xml"
 
 
 def get_assets() -> Dict[str, bytes]:
-  assets = {}
+  assets: Dict[str, bytes] = {}
   path = MENAGERIE_PATH / "unitree_go1"
   mjx_env.update_assets(assets, path, "*.xml")
   mjx_env.update_assets(assets, path / "assets")
@@ -67,14 +67,6 @@ class Go1(entity.Entity):
   @property
   def actuators(self) -> Tuple[mujoco.MjsActuator]:
     return self._actuators
-
-  @property
-  def nq(self) -> int:
-    return self.mjx_model.nq - 7
-
-  @property
-  def nv(self) -> int:
-    return self.mjx_model.nv - 6
 
   def joint_angles(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
     return data.bind(model, self._joints).qpos
@@ -164,7 +156,7 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
   def __init__(self, config: Go1Config = Go1Config()):
     root, entities = Go1Env.build_scene(config)
     super().__init__(config, root.spec, entities=entities)
-    self.go1: Go1 = entities["go1"]
+    self.go1: Go1 = cast(Go1, entities["go1"])
     self._reward_scales = asdict(self.cfg.reward_config.scales)
 
     feet_geoms = ["FR", "FL", "RR", "RL"]
@@ -198,7 +190,7 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     arena.floor_geom.condim = 3
     arena.floor_geom.friction[0] = 0.6
 
-    arena.spec.stat.meansize = 0.04
+    arena.spec.stat.meansize = 0.03
 
     frame = arena.spec.worldbody.add_frame()
     arena.spec.attach(go1_entity.spec, prefix="", frame=frame)
@@ -480,13 +472,15 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
   # Visualization.
 
   def visualize(self, state: mjx_env.State, scn):
-    torso_pos = state.data.xpos[self._torso_body_id]
-    torso_rot = state.data.xmat[self._torso_body_id]
+    torso_pos = np.asarray(state.data.xpos[self._torso_body_id])
+    torso_rot = np.asarray(state.data.xmat[self._torso_body_id])
 
-    def local_to_world(vec):
+    def local_to_world(vec: np.ndarray) -> np.ndarray:
       return torso_pos + torso_rot @ vec
 
-    def make_arrow(from_local, to_local):
+    def make_arrow(
+      from_local: np.ndarray, to_local: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
       return local_to_world(from_local), local_to_world(to_local)
 
     def add_arrow(from_w, to_w, rgba, width=0.015, size=(0.005, 0.02, 0.02)):

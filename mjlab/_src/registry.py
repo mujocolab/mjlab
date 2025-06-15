@@ -116,7 +116,7 @@ def make(
   """
   task_info = _REGISTRY.get_task(task_name)
   if config is None:
-    config = task_info.config_cls()
+    config = task_info.config_cls()  # type: ignore[call-arg]
   task_instance = task_info.task_cls(config, **kwargs)
   return mjx_env.MjxEnv(task=task_instance)
 

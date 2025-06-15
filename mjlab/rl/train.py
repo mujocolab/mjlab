@@ -39,11 +39,11 @@ def main(
   log_root_path.mkdir(parents=True, exist_ok=True)
   print(f"[INFO] Logging experiment in directory: {log_root_path}")
 
-  log_dir = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-  print(f"Exact experiment name requested from command line: {log_dir}")
+  dirname = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+  print(f"Exact experiment name requested from command line: {dirname}")
   if agent_cfg.run_name:
-    log_dir += f"_{agent_cfg.run_name}"
-  log_dir = log_root_path / log_dir
+    dirname += f"_{agent_cfg.run_name}"
+  log_dir = log_root_path / dirname
 
   task_name = registry.get_task_name_by_config_class_name(task_cfg.__class__.__name__)
   env = registry.make(task_name, task_cfg)

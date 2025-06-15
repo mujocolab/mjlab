@@ -32,7 +32,7 @@ def _clone_with_progress(repo_url: str, target_path: str, commit_sha: str) -> No
     current = 0
     while True:
       # Read output line by line.
-      output = process.stderr.readline()  # pytype: disable=attribute-error
+      output = process.stderr.readline()  # type: ignore
       if not output and process.poll() is not None:
         break
       if output:

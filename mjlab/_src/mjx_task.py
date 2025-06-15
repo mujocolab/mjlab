@@ -1,7 +1,7 @@
 import abc
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Generic, Optional, Tuple, TypeVar
+from typing import Any, Dict, Generic, Optional, Tuple, Type, TypeVar
 
 import jax
 import jax.numpy as jp
@@ -49,6 +49,7 @@ class TaskConfig:
 
 
 ConfigT = TypeVar("ConfigT", bound=TaskConfig)
+TaskType = TypeVar("TaskType", bound="MjxTask")
 
 
 class MjxTask(abc.ABC, Generic[ConfigT]):
@@ -56,9 +57,9 @@ class MjxTask(abc.ABC, Generic[ConfigT]):
 
   def __init__(
     self,
-    config: TaskConfig,
+    config: ConfigT,
     spec: mujoco.MjSpec,
-    entities: Optional[Dict[str, entity.Entity]] = None,
+    entities: Dict[str, entity.Entity] = {},
   ):
     self._config = config
     self._entities = entities
@@ -68,19 +69,22 @@ class MjxTask(abc.ABC, Generic[ConfigT]):
 
   @classmethod
   def from_xml_str(
-    cls, config: TaskConfig, xml: str, assets: Optional[Dict[str, bytes]] = None
-  ) -> "MjxTask":
+    cls: Type[TaskType],
+    config: ConfigT,
+    xml: str,
+    assets: Optional[Dict[str, bytes]] = None,
+  ) -> TaskType:
     """Instantiates the task from an xml string."""
     spec = mujoco.MjSpec.from_string(xml, assets=assets)
     return cls(config, entity.Entity(spec))
 
   @classmethod
   def from_xml_path(
-    cls,
-    config: TaskConfig,
+    cls: Type[TaskType],
+    config: ConfigT,
     xml_path: Path,
     assets: Optional[Dict[str, bytes]] = None,
-  ) -> "MjxTask":
+  ) -> TaskType:
     """Instantiates the task from an xml file."""
     with open(xml_path, "r") as f:
       xml = f.read()
