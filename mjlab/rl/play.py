@@ -1,5 +1,6 @@
 from dataclasses import asdict
 from pathlib import Path
+import time
 from typing import Annotated, Optional
 
 import jax
@@ -8,8 +9,12 @@ import tyro
 from rsl_rl.runners import OnPolicyRunner
 
 from mjlab import TaskConfigUnion
-from mjlab._src import registry
+from mjlab._src import registry, mjx_task
 from mjlab.rl import config, utils, wrapper, exporter
+
+import mujoco
+from mujoco import mjx
+import mujoco.viewer
 
 _HERE = Path(__file__).parent
 
@@ -66,7 +71,7 @@ def main(
   policy = ppo_runner.get_inference_policy(device=env.device)
   policy_nn = ppo_runner.alg.policy
 
-  export_model_dir = resume_path / "exported"
+  export_model_dir = resume_path.parent / "exported"
   exporter.export_policy_as_onnx(
     policy=policy_nn,
     normalizer=ppo_runner.obs_normalizer,
@@ -74,26 +79,47 @@ def main(
     filename="policy.onnx",
   )
 
-  states = []
+  task: mjx_task.MjxTask = env.unwrapped.task
+  m = task.model  # C Mujoco model.
+  d = mujoco.MjData(m)  # C Mujoco data.
 
   obs, _ = env.get_observations()
-  timestep = 0
-  while timestep < env.unwrapped.task.cfg.max_episode_length:
-    with torch.inference_mode():
-      actions = policy(obs)
-    obs, _, _, _ = env.step(actions)
-    states.append(env.state)
-    timestep += 1
 
-  def grab_first(x):
-    return x[0, 0]
+  viewer = mujoco.viewer.launch_passive(m, d)
+  with viewer:
+    while viewer.is_running():
+      start = time.time()
+      with torch.inference_mode():
+        actions = policy(obs)
+      obs, _, _, _ = env.step(actions)
+      viewer.user_scn.ngeom = 0
+      dx = jax.tree.map(lambda x: x[0, 0], env.state.data)
+      mjx.get_data_into(d, m, dx)
+      task.visualize(jax.tree.map(lambda x: x[0, 0], env.state), viewer.user_scn)
+      viewer.sync()
+      elapsed = time.time() - start
+      if elapsed < task.dt:
+        time.sleep(task.dt - elapsed)
 
-  states = [jax.tree.map(grab_first, state) for state in states]
+  # states = []
+  # obs, _ = env.get_observations()
+  # timestep = 0
+  # while timestep < env.unwrapped.task.cfg.max_episode_length:
+  #   with torch.inference_mode():
+  #     actions = policy(obs)
+  #   obs, _, _, _ = env.step(actions)
+  #   states.append(env.state)
+  #   timestep += 1
 
-  frames = env.unwrapped.render(states, camera=camera, height=480, width=640)
-  import mediapy as mp
+  # def grab_first(x):
+  #   return x[0, 0]
 
-  mp.write_video(f"{task_name}.mp4", frames, fps=(1.0 / env.unwrapped.task.dt))
+  # states = [jax.tree.map(grab_first, state) for state in states]
+
+  # frames = env.unwrapped.render(states, camera=camera, height=480, width=640)
+  # import mediapy as mp
+
+  # mp.write_video(f"{task_name}.mp4", frames, fps=(1.0 / env.unwrapped.task.dt))
 
 
 if __name__ == "__main__":

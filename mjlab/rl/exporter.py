@@ -13,6 +13,8 @@ def export_policy_as_onnx(
 ):
   """Export policy to an ONNX file."""
   policy_exporter = _OnnxPolicyExporter(policy, normalizer, verbose)
+  if not path.exists():
+    path.mkdir(parents=True, exist_ok=True)
   policy_exporter.export(path, filename)
 
 
@@ -56,8 +58,6 @@ class _OnnxPolicyExporter(torch.nn.Module):
   def export(self, path: Path, filename: str) -> None:
     self.to("cpu")
     save_path = path / filename
-    if not save_path.parent.exists():
-      save_path.parent.mkdir(parents=True, exist_ok=True)
     if self.is_recurrent:
       obs = torch.zeros(1, self.rnn.input_size)
       h_in = torch.zeros(self.rnn.num_layers, 1, self.rnn.hidden_size)
