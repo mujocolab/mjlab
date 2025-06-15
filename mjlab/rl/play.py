@@ -117,7 +117,7 @@ def main(
       with viewer.lock():
         mjx.get_data_into(d, m, dx)
         task.visualize(jax.tree.map(lambda x: x[0, 0], env.state), viewer.user_scn)
-        mujoco.mj_camlight(m, d)
+        mujoco.mj_forward(m, d)
       viewer.sync()
       if len(states) < video_length:
         states.append(jax.tree.map(lambda x: x[0, 0], env.state))
