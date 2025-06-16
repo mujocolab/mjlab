@@ -120,8 +120,8 @@ class G1(entity.Entity):
 
 @dataclass(frozen=True)
 class CommandConfig:
-  min: Tuple[float, float, float] = (-1.5, -0.8, -1.2)
-  max: Tuple[float, float, float] = (1.5, 0.8, 1.2)
+  min: Tuple[float, float, float] = (-1.5, -0.8, -1.57)
+  max: Tuple[float, float, float] = (1.5, 0.8, 1.57)
 
 
 @dataclass(frozen=True)
@@ -144,8 +144,10 @@ class RewardScales:
 @dataclass(frozen=True)
 class RewardConfig:
   scales: RewardScales = RewardScales()
-  tracking_sigma: float = 0.25
   max_foot_height: float = 0.1
+  lin_vel_std: float = 0.2
+  ang_vel_std: float = 0.5
+  foot_height_std: float = 0.005
 
 
 @dataclass(frozen=True)
@@ -185,8 +187,8 @@ class G1Env(mjx_task.MjxTask[G1Config]):
 
     self._torso_body_id = self.model.body(consts.TORSO_BODY).id
     self._feet_site_id = np.array([self.model.site(n).id for n in consts.FEET_SITES])
-    self._init_q = jp.array(self.model.keyframe("home").qpos)
-    self._default_pose = jp.array(self.model.keyframe("home").qpos[7:])
+    self._init_q = jp.array(self.model.keyframe("knees_bent").qpos)
+    self._default_pose = jp.array(self.model.keyframe("knees_bent").qpos[7:])
     jnt_ids = [j.id for j in self.g1.joints]
     lowers, uppers = self.model.jnt_range[jnt_ids].T
     c = (lowers + uppers) / 2
@@ -245,6 +247,9 @@ class G1Env(mjx_task.MjxTask[G1Config]):
       "phase_dt": phase_dt,
     }
     metrics = {f"reward/{k}": jp.zeros(()) for k in self._reward_scales.keys()}
+    metrics["metrics/lin_vel_norm"] = jp.zeros(())
+    metrics["metrics/ang_vel_norm"] = jp.zeros(())
+    metrics["metrics/phase_norm"] = jp.zeros(())
     return data, info, metrics
 
   def _apply_noise(
@@ -315,9 +320,11 @@ class G1Env(mjx_task.MjxTask[G1Config]):
     joint_velocities = self.g1.joint_velocities(self.mjx_model, data)
     reward_terms = {
       "tracking_lin_vel": self._reward_tracking_lin_vel(
-        state.info["command"], local_linvel
+        state.info["command"], local_linvel, state
       ),
-      "tracking_ang_vel": self._reward_tracking_ang_vel(state.info["command"], gyro),
+      "tracking_ang_vel": self._reward_tracking_ang_vel(
+        state.info["command"], gyro, state
+      ),
       "lin_vel_z": self._cost_lin_vel_z(local_linvel),
       "ang_vel_xy": self._cost_ang_vel_xy(gyro),
       "flat_orientation": self._cost_flat_orientation(projected_gravity),
@@ -327,7 +334,7 @@ class G1Env(mjx_task.MjxTask[G1Config]):
       "pose": self._cost_pose(joint_angles),
       "dof_pos_limits": self._cost_joint_pos_limits(joint_angles),
       "energy": self._cost_energy(joint_velocities, joint_torques),
-      "feet_phase": self._reward_feet_phase(data, state.info["phase"]),
+      "feet_phase": self._reward_feet_phase(data, state),
       "collision": self._cost_collision(data),
     }
     rewards = {k: v * self._reward_scales[k] for k, v in reward_terms.items()}
@@ -371,19 +378,28 @@ class G1Env(mjx_task.MjxTask[G1Config]):
 
   # Reward functions.
 
+  def _exp_reward(self, error: jax.Array, sigma: float) -> jax.Array:
+    """Exponential reward function."""
+    error_sq = jp.square(error)
+    var = jp.square(sigma)
+    return jp.exp(-error_sq / var)
+
   def _reward_tracking_lin_vel(
-    self, commands: jax.Array, local_vel: jax.Array
+    self, commands: jax.Array, local_vel: jax.Array, state: mjx_env.State
   ) -> jax.Array:
-    lin_vel_error = jp.sum(jp.square(commands[:2] - local_vel[:2]))
-    return jp.exp(-lin_vel_error / self.cfg.reward_config.tracking_sigma)
+    lin_vel_error = jp.linalg.norm(commands[:2] - local_vel[:2])
+    state.metrics["metrics/lin_vel_norm"] = lin_vel_error
+    return self._exp_reward(lin_vel_error, self.cfg.reward_config.lin_vel_std)
 
   def _reward_tracking_ang_vel(
     self,
     commands: jax.Array,
     ang_vel: jax.Array,
+    state: mjx_env.State,
   ) -> jax.Array:
-    ang_vel_error = jp.square(commands[2] - ang_vel[2])
-    return jp.exp(-ang_vel_error / self.cfg.reward_config.tracking_sigma)
+    ang_vel_error = commands[2] - ang_vel[2]
+    state.metrics["metrics/ang_vel_norm"] = ang_vel_error
+    return self._exp_reward(ang_vel_error, self.cfg.reward_config.ang_vel_std)
 
   def _cost_lin_vel_z(self, local_vel) -> jax.Array:
     return jp.square(local_vel[2])
@@ -420,11 +436,14 @@ class G1Env(mjx_task.MjxTask[G1Config]):
       coll.append(geoms_colliding(data, geom1_id, geom2_id))
     return jp.any(jp.stack(coll))
 
-  def _reward_feet_phase(self, data: mjx.Data, phase: jax.Array) -> jax.Array:
+  def _reward_feet_phase(self, data: mjx.Data, state: mjx_env.State) -> jax.Array:
     foot_z = data.site_xpos[self._feet_site_id][..., -1]
-    rz = get_rz(phase, swing_height=self.cfg.reward_config.max_foot_height)
-    error = jp.sum(jp.square(foot_z - rz))
-    return jp.exp(-error / 0.005)
+    rz = get_rz(
+      state.info["phase"], swing_height=self.cfg.reward_config.max_foot_height
+    )
+    error = jp.mean(jp.linalg.norm(foot_z - rz, axis=-1))
+    state.metrics["metrics/foot_height_norm"] = error
+    return self._exp_reward(error, self.cfg.reward_config.foot_height_std)
 
   # Visualization.
 
@@ -463,11 +482,11 @@ class G1Env(mjx_task.MjxTask[G1Config]):
       )
 
     scale = 0.75  # Scale the arrows to 75% of their original size.
-    x_offset = 0.2  # Leave a 20cm gap between the base and the arrows.
+    z_offset = 0.7  # Leave a 60cm gap between the base and the arrows.
 
     # Commanded velocities.
     cmd = state.info["command"]
-    cmd_lin_from = np.array([x_offset, 0, 0]) * scale
+    cmd_lin_from = np.array([0, 0, z_offset]) * scale
     cmd_lin_to = cmd_lin_from + np.array([cmd[0], cmd[1], 0]) * scale
     cmd_ang_from = cmd_lin_from
     cmd_ang_to = cmd_ang_from + np.array([0, 0, cmd[2]]) * scale
@@ -477,7 +496,7 @@ class G1Env(mjx_task.MjxTask[G1Config]):
     # Actual velocities.
     linvel = self.g1.local_linvel(self.mjx_model, state.data)
     gyro = self.g1.gyro(self.mjx_model, state.data)
-    act_lin_from = np.array([x_offset, 0, 0]) * scale
+    act_lin_from = np.array([0, 0, z_offset]) * scale
     act_lin_to = act_lin_from + np.array([linvel[0], linvel[1], 0]) * scale
     act_ang_from = act_lin_from
     act_ang_to = act_ang_from + np.array([0, 0, gyro[2]]) * scale
