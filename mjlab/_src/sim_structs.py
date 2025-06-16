@@ -37,6 +37,9 @@ class CollisionPair:
   friction: Sequence[float] | None = None
   solref: Sequence[float] | None = None
 
+  def full_name(self) -> str:
+    return f"{self.geom1}__{self.geom2}"
+
 
 @dataclass(frozen=True)
 class Keyframe:

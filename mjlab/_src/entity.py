@@ -88,7 +88,7 @@ class Entity(abc.ABC):
   def add_collision_pair(self, collision_pair: sim_structs.CollisionPair) -> None:
     """Adds a collision pair to the robot."""
     pair = self._spec.add_pair(
-      name=f"{collision_pair.geom1}__{collision_pair.geom2}",
+      name=collision_pair.full_name(),
       geomname1=collision_pair.geom1,
       geomname2=collision_pair.geom2,
       condim=collision_pair.condim,

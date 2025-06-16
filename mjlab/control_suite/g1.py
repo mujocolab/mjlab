@@ -1,6 +1,7 @@
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any, Dict, Tuple, Union, cast
+import re
 
 import jax
 import jax.numpy as jp
@@ -65,29 +66,42 @@ class G1(entity.Entity):
     for collision_pair in consts.SELF_COLLISIONS:
       self.add_collision_pair(collision_pair)
 
+    foot_floor_pairs = []
     for side in ["left", "right"]:
       for i in range(1, 4):
-        self.add_collision_pair(
-          CollisionPair(
-            geom1=f"{side}_foot{i}_collision",
-            geom2="floor",
-            condim=_FOOT_CONDIM,
-            friction=_FOOT_FRICTION,
-            solref=_FOOT_SOLREF,
-          )
+        pair = CollisionPair(
+          geom1=f"{side}_foot{i}_collision",
+          geom2="floor",
+          condim=_FOOT_CONDIM,
+          friction=_FOOT_FRICTION,
+          solref=_FOOT_SOLREF,
         )
+        self.add_collision_pair(pair)
+        foot_floor_pairs.append(pair.full_name())
+    self._foot_floor_pairs = tuple(foot_floor_pairs)
 
     self._torso_body = self.spec.body(consts.TORSO_BODY)
     self._imu_site = self.spec.site(consts.PELVIS_IMU_SITE)
     self._joints = self.get_non_root_joints()
+    self._ankle_joints = [
+      j for j in self._joints if re.match(r".*_ankle_(pitch|roll)_joint", j.name)
+    ]
     self._actuators = self.spec.actuators
     self._gyro_sensor = self.spec.sensor("gyro")
     self._local_linvel_sensor = self.spec.sensor("local_linvel")
     self._upvector_sensor = self.spec.sensor("upvector")
 
   @property
+  def foot_floor_pairs(self) -> Tuple[str, ...]:
+    return self._foot_floor_pairs
+
+  @property
   def joints(self) -> Tuple[mujoco.MjsJoint]:
     return self._joints
+
+  @property
+  def ankle_joints(self) -> Tuple[mujoco.MjsJoint]:
+    return self._ankle_joints
 
   @property
   def actuators(self) -> Tuple[mujoco.MjsActuator]:
@@ -95,6 +109,9 @@ class G1(entity.Entity):
 
   def joint_angles(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
     return data.bind(model, self._joints).qpos
+
+  def ankle_joint_angles(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
+    return data.bind(model, self._ankle_joints).qpos
 
   def joint_velocities(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
     return data.bind(model, self._joints).qvel
@@ -120,8 +137,8 @@ class G1(entity.Entity):
 
 @dataclass(frozen=True)
 class CommandConfig:
-  min: Tuple[float, float, float] = (-1.5, -0.8, -1.57)
-  max: Tuple[float, float, float] = (1.5, 0.8, 1.57)
+  min: Tuple[float, float, float] = (-1.5, -0.8, -1.5)
+  max: Tuple[float, float, float] = (1.5, 0.8, 1.5)
 
 
 @dataclass(frozen=True)
@@ -145,9 +162,9 @@ class RewardScales:
 class RewardConfig:
   scales: RewardScales = RewardScales()
   max_foot_height: float = 0.1
-  lin_vel_std: float = 0.2
+  lin_vel_std: float = 0.5
   ang_vel_std: float = 0.5
-  foot_height_std: float = 0.01
+  foot_height_std: float = 0.07
 
 
 @dataclass(frozen=True)
@@ -189,8 +206,8 @@ class G1Env(mjx_task.MjxTask[G1Config]):
     self._feet_site_id = np.array([self.model.site(n).id for n in consts.FEET_SITES])
     self._init_q = jp.array(self.model.keyframe("knees_bent").qpos)
     self._default_pose = jp.array(self.model.keyframe("knees_bent").qpos[7:])
-    jnt_ids = [j.id for j in self.g1.joints]
-    lowers, uppers = self.model.jnt_range[jnt_ids].T
+    joint_ids = [j.id for j in self.g1.ankle_joints]
+    lowers, uppers = self.model.jnt_range[joint_ids].T
     c = (lowers + uppers) / 2
     r = uppers - lowers
     self._soft_lowers = c - 0.5 * r * self.cfg.soft_joint_pos_limit_factor
@@ -217,57 +234,57 @@ class G1Env(mjx_task.MjxTask[G1Config]):
 
     return arena, {"g1": g1_entity, "arena": arena}
 
-  def domain_randomize(self, model: mjx.Model, rng: jax.Array) -> Tuple[mjx.Model, Any]:
-    joint_dof_ids = jp.array([model.bind(j).dofadr for j in self.g1.joints])
-    joint_qpos_ids = jp.array([model.bind(j).qposadr for j in self.g1.joints])
+  # def domain_randomize(self, model: mjx.Model, rng: jax.Array) -> Tuple[mjx.Model, Any]:
+  #   joint_qpos_ids = jp.array([model.bind(j).qposadr for j in self.g1.joints])
+  #   collision_pair_ids = jp.array(
+  #     [self.spec.pair(p).id for p in self.g1.foot_floor_pairs]
+  #   )
 
-    @jax.vmap
-    def _randomize(rng):
-      # Joint stiction: *U(0.9, 1.1).
-      rng, key = jax.random.split(rng)
-      dof_frictionloss = model.dof_frictionloss.at[joint_dof_ids].set(
-        model.dof_frictionloss[joint_dof_ids]
-        * jax.random.uniform(key, (len(joint_dof_ids),), minval=0.9, maxval=1.1)
-      )
+  #   @jax.vmap
+  #   def _randomize(rng):
+  #     # Floor friction: *U(0.4, 1.0).
+  #     rng, key = jax.random.split(rng)
+  #     friction = jax.random.uniform(key, minval=0.6, maxval=1.0)
+  #     pair_friction = model.pair_friction.at[collision_pair_ids, 0:2].set(friction)
 
-      # Link masses: *U(0.9, 1.1).
-      rng, key = jax.random.split(rng)
-      dmass = jax.random.uniform(key, shape=(model.nbody,), minval=0.9, maxval=1.1)
-      body_mass = model.body_mass.at[:].set(model.body_mass * dmass)
+  #     # Link masses: *U(0.9, 1.1).
+  #     rng, key = jax.random.split(rng)
+  #     dmass = jax.random.uniform(key, shape=(model.nbody,), minval=0.9, maxval=1.1)
+  #     body_mass = model.body_mass.at[:].set(model.body_mass * dmass)
 
-      # Link center of masses: +U(-0.05, 0.05).
-      rng, key = jax.random.split(rng)
-      dpos = jax.random.uniform(key, shape=(model.nbody, 3), minval=-0.02, maxval=0.02)
-      body_ipos = model.body_ipos.at[:].set(model.body_ipos + dpos)
+  #     # Link center of masses: +U(-0.05, 0.05).
+  #     rng, key = jax.random.split(rng)
+  #     dpos = jax.random.uniform(key, shape=(model.nbody, 3), minval=-0.02, maxval=0.02)
+  #     body_ipos = model.body_ipos.at[:].set(model.body_ipos + dpos)
 
-      # Joint calibration offsets: +U(-0.05, 0.05).
-      rng, key = jax.random.split(rng)
-      dqpos = jax.random.uniform(
-        key, shape=(len(joint_qpos_ids),), minval=-0.05, maxval=0.05
-      )
-      qpos0 = model.qpos0.at[joint_qpos_ids].set(model.qpos0[joint_qpos_ids] + dqpos)
+  #     # Joint calibration offsets: +U(-0.05, 0.05).
+  #     rng, key = jax.random.split(rng)
+  #     dqpos = jax.random.uniform(
+  #       key, shape=(len(joint_qpos_ids),), minval=-0.05, maxval=0.05
+  #     )
+  #     qpos0 = model.qpos0.at[joint_qpos_ids].set(model.qpos0[joint_qpos_ids] + dqpos)
 
-      return dof_frictionloss, body_mass, body_ipos, qpos0
+  #     return pair_friction, body_mass, body_ipos, qpos0
 
-    dof_frictionloss, body_mass, body_ipos, qpos0 = _randomize(rng)
-    in_axes = jax.tree_util.tree_map(lambda x: None, model)
-    in_axes = in_axes.tree_replace(
-      {
-        "dof_frictionloss": 0,
-        "body_mass": 0,
-        "body_ipos": 0,
-        "qpos0": 0,
-      }
-    )
-    model = model.tree_replace(
-      {
-        "dof_frictionloss": dof_frictionloss,
-        "body_mass": body_mass,
-        "body_ipos": body_ipos,
-        "qpos0": qpos0,
-      }
-    )
-    return model, in_axes
+  #   pair_friction, body_mass, body_ipos, qpos0 = _randomize(rng)
+  #   in_axes = jax.tree_util.tree_map(lambda x: None, model)
+  #   in_axes = in_axes.tree_replace(
+  #     {
+  #       "pair_friction": 0,
+  #       "body_mass": 0,
+  #       "body_ipos": 0,
+  #       "qpos0": 0,
+  #     }
+  #   )
+  #   model = model.tree_replace(
+  #     {
+  #       "pair_friction": pair_friction,
+  #       "body_mass": body_mass,
+  #       "body_ipos": body_ipos,
+  #       "qpos0": qpos0,
+  #     }
+  #   )
+  #   return model, in_axes
 
   def before_step(self, action: jax.Array, state: mjx_env.State) -> mjx.Data:
     motor_targets = self._default_pose + action * self.cfg.action_scale
@@ -386,6 +403,7 @@ class G1Env(mjx_task.MjxTask[G1Config]):
     joint_accelerations = self.g1.joint_accelerations(self.mjx_model, data)
     joint_angles = self.g1.joint_angles(self.mjx_model, data)
     joint_velocities = self.g1.joint_velocities(self.mjx_model, data)
+    ankle_joint_angles = self.g1.ankle_joint_angles(self.mjx_model, data)
     reward_terms = {
       "tracking_lin_vel": self._reward_tracking_lin_vel(
         state.info["command"], local_linvel, state
@@ -400,7 +418,7 @@ class G1Env(mjx_task.MjxTask[G1Config]):
       "action_rate": self._cost_action_rate(action, state.info["last_act"]),
       "dof_acc": self._cost_dof_acc(joint_accelerations),
       "pose": self._cost_pose(joint_angles),
-      "dof_pos_limits": self._cost_joint_pos_limits(joint_angles),
+      "dof_pos_limits": self._cost_joint_pos_limits(ankle_joint_angles),
       "energy": self._cost_energy(joint_velocities, joint_torques),
       "feet_phase": self._reward_feet_phase(data, state),
       "collision": self._cost_collision(data),
@@ -446,11 +464,8 @@ class G1Env(mjx_task.MjxTask[G1Config]):
 
   # Reward functions.
 
-  def _exp_reward(self, error: jax.Array, sigma: float) -> jax.Array:
-    """Exponential reward function."""
-    error_sq = jp.square(error)
-    var = jp.square(sigma)
-    return jp.exp(-error_sq / var)
+  def _exp_reward(self, error: jax.Array, sigma: jax.Array) -> jax.Array:
+    return jp.exp(-(error**2) / sigma**2)
 
   def _reward_tracking_lin_vel(
     self, commands: jax.Array, local_vel: jax.Array, state: mjx_env.State
@@ -493,9 +508,9 @@ class G1Env(mjx_task.MjxTask[G1Config]):
   def _cost_pose(self, qpos: jax.Array) -> jax.Array:
     return jp.sum(jp.square(qpos - self._default_pose))
 
-  def _cost_joint_pos_limits(self, qpos: jax.Array) -> jax.Array:
-    out_of_limits = -jp.clip(qpos - self._soft_lowers, None, 0.0)
-    out_of_limits += jp.clip(qpos - self._soft_uppers, 0.0, None)
+  def _cost_joint_pos_limits(self, ankle_qpos: jax.Array) -> jax.Array:
+    out_of_limits = -jp.clip(ankle_qpos - self._soft_lowers, None, 0.0)
+    out_of_limits += jp.clip(ankle_qpos - self._soft_uppers, 0.0, None)
     return jp.sum(out_of_limits)
 
   def _cost_collision(self, data: mjx.Data) -> jax.Array:
