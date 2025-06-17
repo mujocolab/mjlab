@@ -56,7 +56,11 @@ def main(
 
   tic = time.time()
   env = wrapper.RslRlVecEnvWrapper(
-    env, num_envs=num_envs, seed=0, device=agent_cfg.device
+    env,
+    num_envs=num_envs,
+    seed=0,
+    device=agent_cfg.device,
+    resample_on_reset=True,
   )
   toc = time.time()
   print(f"[INFO]: Time to wrap env: {toc - tic} seconds")
@@ -98,29 +102,36 @@ def main(
   toc = time.time()
   print(f"[INFO]: Time to step: {toc - tic} seconds")
 
+  def unbatch(state_or_data):
+    return jax.tree.map(lambda x: x.squeeze(0), state_or_data)
+
   states: List[State] = []
 
   viewer = mujoco.viewer.launch_passive(m, d, show_left_ui=False, show_right_ui=False)
   with viewer:
-    viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
-    viewer.cam.fixedcamid = m.camera(camera).id
+    if camera is not None:
+      viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
+      viewer.cam.fixedcamid = m.camera(camera).id
+    else:
+      mujoco.mjv_defaultFreeCamera(m, viewer.cam)
     while viewer.is_running():
       start = time.time()
       env.state = env.state.tree_replace(
-        {"data.xfrc_applied": jp.array(d.xfrc_applied)[None, None]}
+        {"data.xfrc_applied": jp.array(d.xfrc_applied)[None]}
       )
       with torch.inference_mode():
         actions = policy(obs)
       obs, _, _, _ = env.step(actions)
       viewer.user_scn.ngeom = 0
-      dx = jax.tree.map(lambda x: x[0, 0], env.state.data)
+      unbatched_state = unbatch(env.state)
+      unbatched_data = unbatch(env.state.data)
       with viewer.lock():
-        mjx.get_data_into(d, m, dx)
-        task.visualize(jax.tree.map(lambda x: x[0, 0], env.state), viewer.user_scn)
+        mjx.get_data_into(d, m, unbatched_data)
+        task.visualize(unbatched_state, viewer.user_scn)
         mujoco.mj_forward(m, d)
       viewer.sync()
       if len(states) < video_length:
-        states.append(jax.tree.map(lambda x: x[0, 0], env.state))
+        states.append(unbatched_state)
       elapsed = time.time() - start
       if elapsed < task.dt:
         time.sleep(task.dt - elapsed)

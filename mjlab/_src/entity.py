@@ -74,6 +74,15 @@ class Entity(abc.ABC):
       joints.append(jnt)
     return tuple(joints)
 
+  def get_root_joint(self) -> Optional[mujoco.MjsJoint]:
+    """Returns the root joint."""
+    joint = None
+    for jnt in self._spec.joints:
+      if jnt.type == mujoco.mjtJoint.mjJNT_FREE:
+        joint = jnt
+        break
+    return joint
+
   def add_keyframe(
     self,
     keyframe: sim_structs.Keyframe,

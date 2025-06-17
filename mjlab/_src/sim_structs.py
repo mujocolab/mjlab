@@ -4,32 +4,25 @@ from typing import Sequence
 import numpy as np
 
 
+# TODO(kevin): Add support for dampratio.
 @dataclass(frozen=True)
 class PDActuator:
   """A PD actuator."""
 
+  kp: float
+  """Position gain."""
+  kv: float
+  """D gain."""
   joint_name: str
   """Name of the joint the actuator is applying torque to."""
   armature: float = 0.0
   """Reflected inertia. Defaults to zero."""
   torque_limit: float | None = None
   """Torque limit. Assumed to be symmetric about zero. If None, no limit is applied."""
-  kp: float | None = None
-  """Position gain."""
-  kv: float | None = None
-  """D gain."""
-  dampratio: float | None = None
-  """Damping ratio."""
 
   def __post_init__(self):
-    # Either kp and kv or dampratio must be provided.
-    if self.kp is None and self.kv is None and self.dampratio is None:
-      raise ValueError("Either kp and kv or dampratio must be provided.")
-    if self.kp is not None and self.kv is not None and self.dampratio is not None:
-      raise ValueError("Only one of kp and kv or dampratio must be provided.")
-    # kp and kv must be positive.
-    assert self.kp > 0.0
-    assert self.kv > 0.0
+    assert self.kp >= 0.0
+    assert self.kv >= 0.0
     assert self.armature >= 0.0
     if self.torque_limit is not None:
       assert self.torque_limit > 0.0

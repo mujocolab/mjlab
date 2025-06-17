@@ -7,7 +7,6 @@ import jax
 import jax.numpy as jp
 import mujoco
 from mujoco import mjx
-from mujoco.mjx._src import math
 import numpy as np
 
 from mjlab._src.collision import geoms_colliding
@@ -16,6 +15,7 @@ from mjlab._src import entity, mjx_env, mjx_task
 from mjlab._src.arenas import FlatTerrainArena
 
 from mjlab.control_suite import g1_constants as consts
+from mjlab.control_suite import utils
 from mjlab._src.sim_structs import CollisionPair
 
 _HERE = Path(__file__).parent
@@ -83,9 +83,9 @@ class G1(entity.Entity):
     self._torso_body = self.spec.body(consts.TORSO_BODY)
     self._imu_site = self.spec.site(consts.PELVIS_IMU_SITE)
     self._joints = self.get_non_root_joints()
-    self._ankle_joints = [
+    self._ankle_joints = tuple([
       j for j in self._joints if re.match(r".*_ankle_(pitch|roll)_joint", j.name)
-    ]
+    ])
     self._actuators = self.spec.actuators
     self._gyro_sensor = self.spec.sensor("gyro")
     self._local_linvel_sensor = self.spec.sensor("local_linvel")
@@ -145,16 +145,16 @@ class CommandConfig:
 class RewardScales:
   tracking_lin_vel: float = 1.0
   tracking_ang_vel: float = 0.5
-  lin_vel_z: float = -0.5
-  ang_vel_xy: float = -0.05
-  flat_orientation: float = -5.0
+  lin_vel_z: float = 0.0
+  ang_vel_xy: float = -0.15
+  flat_orientation: float = -1.0
   dof_pos_limits: float = -1.0
   pose: float = -0.5
   feet_phase: float = 1.0
   torques: float = -0.0002
   dof_acc: float = -2.5e-7
   action_rate: float = -0.01
-  energy: float = -0.001
+  energy: float = -5e-5
   collision: float = -1.0
 
 
@@ -162,7 +162,7 @@ class RewardScales:
 class RewardConfig:
   scales: RewardScales = RewardScales()
   tracking_sigma: float = 0.25
-  max_foot_height: float = 0.1
+  max_foot_height: float = 0.12
 
 
 @dataclass(frozen=True)
@@ -215,39 +215,17 @@ class G1Env(mjx_task.MjxTask[G1Config]):
       geom1_id = self.model.geom(pair.geom1).id
       geom2_id = self.model.geom(pair.geom2).id
       self._collision_pairs.append((geom1_id, geom2_id))
+    # fmt: off
     self._weights = jp.array(
       [
-        0.1,
-        1.0,
-        1.0,
-        0.1,
-        1.0,
-        1.0,  # left leg.
-        0.1,
-        1.0,
-        1.0,
-        0.1,
-        1.0,
-        1.0,  # right leg.
-        1.0,
-        1.0,
-        1.0,  # waist.
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,  # left arm.
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,  # right arm.
+        0.1, 1.0, 1.0, 0.1, 1.0, 1.0,  # left leg.
+        0.1, 1.0, 1.0, 0.1, 1.0, 1.0,  # right leg.
+        1.0, 1.0, 1.0,  # waist.
+        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,  # left arm.
+        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,  # right arm.
       ]
     )
+    # fmt: on
 
   @staticmethod
   def build_scene(config: G1Config) -> Tuple[entity.Entity, Dict[str, entity.Entity]]:
@@ -265,57 +243,57 @@ class G1Env(mjx_task.MjxTask[G1Config]):
 
     return arena, {"g1": g1_entity, "arena": arena}
 
-  # def domain_randomize(self, model: mjx.Model, rng: jax.Array) -> Tuple[mjx.Model, Any]:
-  #   joint_qpos_ids = jp.array([model.bind(j).qposadr for j in self.g1.joints])
-  #   collision_pair_ids = jp.array(
-  #     [self.spec.pair(p).id for p in self.g1.foot_floor_pairs]
-  #   )
+  def domain_randomize(self, model: mjx.Model, rng: jax.Array) -> Tuple[mjx.Model, Any]:
+    joint_qpos_ids = jp.array([model.bind(j).qposadr for j in self.g1.joints])
+    collision_pair_ids = jp.array(
+      [self.spec.pair(p).id for p in self.g1.foot_floor_pairs]
+    )
 
-  #   @jax.vmap
-  #   def _randomize(rng):
-  #     # Floor friction: *U(0.4, 1.0).
-  #     rng, key = jax.random.split(rng)
-  #     friction = jax.random.uniform(key, minval=0.6, maxval=1.0)
-  #     pair_friction = model.pair_friction.at[collision_pair_ids, 0:2].set(friction)
+    @jax.vmap
+    def _randomize(rng):
+      # Floor friction: *U(0.4, 1.0).
+      rng, key = jax.random.split(rng)
+      friction = jax.random.uniform(key, minval=0.6, maxval=1.0)
+      pair_friction = model.pair_friction.at[collision_pair_ids, 0:2].set(friction)
 
-  #     # Link masses: *U(0.9, 1.1).
-  #     rng, key = jax.random.split(rng)
-  #     dmass = jax.random.uniform(key, shape=(model.nbody,), minval=0.9, maxval=1.1)
-  #     body_mass = model.body_mass.at[:].set(model.body_mass * dmass)
+      # Link masses: *U(0.9, 1.1).
+      rng, key = jax.random.split(rng)
+      dmass = jax.random.uniform(key, shape=(model.nbody,), minval=0.9, maxval=1.1)
+      body_mass = model.body_mass.at[:].set(model.body_mass * dmass)
 
-  #     # Link center of masses: +U(-0.05, 0.05).
-  #     rng, key = jax.random.split(rng)
-  #     dpos = jax.random.uniform(key, shape=(model.nbody, 3), minval=-0.02, maxval=0.02)
-  #     body_ipos = model.body_ipos.at[:].set(model.body_ipos + dpos)
+      # Link center of masses: +U(-0.05, 0.05).
+      rng, key = jax.random.split(rng)
+      dpos = jax.random.uniform(key, shape=(model.nbody, 3), minval=-0.02, maxval=0.02)
+      body_ipos = model.body_ipos.at[:].set(model.body_ipos + dpos)
 
-  #     # Joint calibration offsets: +U(-0.05, 0.05).
-  #     rng, key = jax.random.split(rng)
-  #     dqpos = jax.random.uniform(
-  #       key, shape=(len(joint_qpos_ids),), minval=-0.05, maxval=0.05
-  #     )
-  #     qpos0 = model.qpos0.at[joint_qpos_ids].set(model.qpos0[joint_qpos_ids] + dqpos)
+      # Joint calibration offsets: +U(-0.05, 0.05).
+      rng, key = jax.random.split(rng)
+      dqpos = jax.random.uniform(
+        key, shape=(len(joint_qpos_ids),), minval=-0.05, maxval=0.05
+      )
+      qpos0 = model.qpos0.at[joint_qpos_ids].set(model.qpos0[joint_qpos_ids] + dqpos)
 
-  #     return pair_friction, body_mass, body_ipos, qpos0
+      return pair_friction, body_mass, body_ipos, qpos0
 
-  #   pair_friction, body_mass, body_ipos, qpos0 = _randomize(rng)
-  #   in_axes = jax.tree_util.tree_map(lambda x: None, model)
-  #   in_axes = in_axes.tree_replace(
-  #     {
-  #       "pair_friction": 0,
-  #       "body_mass": 0,
-  #       "body_ipos": 0,
-  #       "qpos0": 0,
-  #     }
-  #   )
-  #   model = model.tree_replace(
-  #     {
-  #       "pair_friction": pair_friction,
-  #       "body_mass": body_mass,
-  #       "body_ipos": body_ipos,
-  #       "qpos0": qpos0,
-  #     }
-  #   )
-  #   return model, in_axes
+    pair_friction, body_mass, body_ipos, qpos0 = _randomize(rng)
+    in_axes = jax.tree_util.tree_map(lambda x: None, model)
+    in_axes = in_axes.tree_replace(
+      {
+        "pair_friction": 0,
+        "body_mass": 0,
+        "body_ipos": 0,
+        "qpos0": 0,
+      }
+    )
+    model = model.tree_replace(
+      {
+        "pair_friction": pair_friction,
+        "body_mass": body_mass,
+        "body_ipos": body_ipos,
+        "qpos0": qpos0,
+      }
+    )
+    return model, in_axes
 
   def before_step(self, action: jax.Array, state: mjx_env.State) -> mjx.Data:
     motor_targets = self._default_pose + action * self.cfg.action_scale
@@ -323,15 +301,34 @@ class G1Env(mjx_task.MjxTask[G1Config]):
 
   def initialize_episode(self, data: mjx.Data, rng: jax.Array):
     qpos = self._init_q
+    qvel = jp.zeros(self.mjx_model.nv)
+    data = data.replace(qpos=qpos, qvel=qvel)
+
+    # rng, key = jax.random.split(rng)
+    # data = utils.reset_joints_by_scale(
+    #   rng=rng,
+    #   robot=self.g1,
+    #   model=self.mjx_model,
+    #   data=data,
+    #   position_range=(0.5, 1.5),
+    # )
+
     rng, key = jax.random.split(rng)
-    dxy = jax.random.uniform(key, (2,), minval=-0.5, maxval=0.5)
-    qpos = qpos.at[0:2].set(qpos[0:2] + dxy)
-    rng, key = jax.random.split(rng)
-    yaw = jax.random.uniform(key, (1,), minval=-3.14, maxval=3.14)
-    quat = math.axis_angle_to_quat(jp.array([0, 0, 1]), yaw)
-    new_quat = math.quat_mul(qpos[3:7], quat)
-    qpos = qpos.at[3:7].set(new_quat)
-    data = data.replace(qpos=qpos)
+    data = utils.reset_root_state(
+      rng=rng,
+      robot=self.g1,
+      model=self.mjx_model,
+      data=data,
+      pose_range={"x": (-2.5, 2.5), "y": (-2.5, 2.5), "yaw": (-3.14, 3.14)},
+      velocity_range={
+        "x": (-0.5, 0.5),
+        "y": (-0.5, 0.5),
+        "z": (-0.5, 0.5),
+        "roll": (-0.5, 0.5),
+        "pitch": (-0.5, 0.5),
+        "yaw": (-0.5, 0.5),
+      },
+    )
     rng, cmd_rng = jax.random.split(rng)
     command = self._sample_command(cmd_rng)
     rng, key = jax.random.split(rng)
