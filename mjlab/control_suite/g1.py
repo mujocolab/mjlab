@@ -83,9 +83,9 @@ class G1(entity.Entity):
     self._torso_body = self.spec.body(consts.TORSO_BODY)
     self._imu_site = self.spec.site(consts.PELVIS_IMU_SITE)
     self._joints = self.get_non_root_joints()
-    self._ankle_joints = [
+    self._ankle_joints = tuple([
       j for j in self._joints if re.match(r".*_ankle_(pitch|roll)_joint", j.name)
-    ]
+    ])
     self._actuators = self.spec.actuators
     self._gyro_sensor = self.spec.sensor("gyro")
     self._local_linvel_sensor = self.spec.sensor("local_linvel")

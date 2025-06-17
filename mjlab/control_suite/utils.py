@@ -42,8 +42,8 @@ def reset_root_state(
   allowed_keys = ["x", "y", "z", "roll", "pitch", "yaw"]
   range_list = [pose_range.get(key, (0.0, 0.0)) for key in allowed_keys]
   vel_range_list = [velocity_range.get(key, (0.0, 0.0)) for key in allowed_keys]
-  ranges = jp.vstack(range_list)
-  vel_ranges = jp.vstack(vel_range_list)
+  ranges = jp.vstack([jp.array(r) for r in range_list])
+  vel_ranges = jp.vstack([jp.array(r) for r in vel_range_list])
   rng, key_pos, key_vel = jax.random.split(rng, 3)
   samples = jax.random.uniform(key_pos, (6,), minval=ranges[:, 0], maxval=ranges[:, 1])
   root_joint = robot.get_root_joint()
