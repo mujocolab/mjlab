@@ -358,4 +358,10 @@
       </body>
     </body>
   </worldbody>
+
+  <sensor>
+    <gyro site="imu_in_pelvis" name="gyro"/>
+    <velocimeter site="imu_in_pelvis" name="local_linvel"/>
+    <framezaxis objtype="site" objname="imu_in_pelvis" name="upvector"/>
+  </sensor>
 </mujoco>
