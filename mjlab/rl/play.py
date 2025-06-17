@@ -56,7 +56,11 @@ def main(
 
   tic = time.time()
   env = wrapper.RslRlVecEnvWrapper(
-    env, num_envs=num_envs, seed=0, device=agent_cfg.device
+    env,
+    num_envs=num_envs,
+    seed=0,
+    device=agent_cfg.device,
+    resample_on_reset=True,
   )
   toc = time.time()
   print(f"[INFO]: Time to wrap env: {toc - tic} seconds")

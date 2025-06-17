@@ -13,11 +13,19 @@ from mjlab._src.types import State
 ConfigT = TypeVar("ConfigT", bound=mjx_task.TaskConfig)
 TaskT = TypeVar("TaskT", bound=mjx_task.MjxTask[ConfigT])
 
+_PMAP_AXIS_NAME = "i"
 
-def _jax_to_torch(tensor: jax.Array, device) -> torch.Tensor:
+
+def _jax_to_torch(tensor: jax.Array, device: str = "cuda:0") -> torch.Tensor:
   import torch.utils.dlpack as tpack
 
-  return tpack.from_dlpack(tensor).to(device)
+  torch_shards = []
+  for buffer in [x.data for x in tensor.addressable_shards]:
+    t = tpack.from_dlpack(buffer)
+    if t.device != torch.device(device):
+      t = t.to(device, non_blocking=True)
+    torch_shards.append(t)
+  return torch.cat(torch_shards, dim=0)
 
 
 def _torch_to_jax(tensor: torch.Tensor) -> jax.Array:
@@ -35,7 +43,8 @@ class RslRlVecEnvWrapper(VecEnv, Generic[ConfigT, TaskT]):
     num_envs: int,
     seed: int,
     clip_actions: Optional[float] = None,
-    device: str = "cuda:0",
+    max_devices_per_host: Optional[int] = None,
+    device: str = "cpu",
     resample_on_reset: bool = False,
   ):
     self.env = env
@@ -44,11 +53,30 @@ class RslRlVecEnvWrapper(VecEnv, Generic[ConfigT, TaskT]):
     self.device = device
     self.resample_on_reset = resample_on_reset
 
+    process_count = jax.process_count()
+    process_id = jax.process_index()
+    local_device_count = jax.local_device_count()
+    self.local_devices_to_use = (
+      min(local_device_count, max_devices_per_host)
+      if max_devices_per_host is not None
+      else local_device_count
+    )
+    device_count = self.local_devices_to_use * process_count
+    self.process_count = process_count
+
+    if num_envs % device_count != 0:
+      raise ValueError(
+        f"Number of environments ({num_envs}) must be divisible by the number of devices ({device_count})"
+      )
+
     key = jax.random.PRNGKey(seed)
-    _, key_env = jax.random.split(key)
+    _, local_key = jax.random.split(key)
+    local_key = jax.random.fold_in(local_key, process_id)
+    local_key, key_env = jax.random.split(local_key)
     self.key_env = key_env
 
-    randomization_rng = jax.random.split(key_env, num_envs)
+    randomization_batch_size = num_envs // device_count
+    randomization_rng = jax.random.split(key_env, randomization_batch_size)
     v_randomization_fn = partial(env.task.domain_randomize, rng=randomization_rng)
     mjx_model_v, in_axes = v_randomization_fn(env.task.mjx_model)
 
@@ -70,8 +98,16 @@ class RslRlVecEnvWrapper(VecEnv, Generic[ConfigT, TaskT]):
 
       return jax.vmap(_step, in_axes=[in_axes, 0, 0])(mjx_model_v, state, action)
 
-    self._reset_fn = jax.jit(_reset_fn)
-    self._step_fn = jax.jit(_step_fn)
+    self._reset_fn = (
+      jax.pmap(_reset_fn, axis_name=_PMAP_AXIS_NAME)
+      if self.local_devices_to_use > 1
+      else jax.jit(jax.vmap(_reset_fn))
+    )
+    self._step_fn = (
+      jax.pmap(_step_fn, axis_name=_PMAP_AXIS_NAME)
+      if self.local_devices_to_use > 1
+      else jax.jit(jax.vmap(_step_fn))
+    )
 
     self.key_reset = self._generate_key_reset(self._next_key())
 
@@ -95,7 +131,8 @@ class RslRlVecEnvWrapper(VecEnv, Generic[ConfigT, TaskT]):
     return subkey
 
   def _generate_key_reset(self, key: jax.Array) -> jax.Array:
-    return jax.random.split(key, self.num_envs)
+    key_envs = jax.random.split(key, self.num_envs // self.process_count)
+    return jp.reshape(key_envs, (self.local_devices_to_use, -1) + key_envs.shape[1:])
 
   def get_observations(self):
     extras = {"observations": {}}
@@ -120,13 +157,11 @@ class RslRlVecEnvWrapper(VecEnv, Generic[ConfigT, TaskT]):
     return self.get_observations()
 
   def _reset_envs(self):
-    done_mask = _torch_to_jax(self.reset_buf)
+    done_mask = _torch_to_jax(self.reset_buf).reshape(self.local_devices_to_use, -1)
 
     if self.resample_on_reset:
       self.key_reset = self._generate_key_reset(self._next_key())
-      first_state = self._reset_fn(self.key_reset)
-    else:
-      first_state = self._reset_fn(self.key_reset)
+    first_state = self._reset_fn(self.key_reset)
 
     def _apply_mask(first, current):
       def mask_leaf(f, c):
@@ -145,7 +180,7 @@ class RslRlVecEnvWrapper(VecEnv, Generic[ConfigT, TaskT]):
   def step(self, actions):
     if self.clip_actions is not None:
       actions = torch.clamp(actions, -self.clip_actions, self.clip_actions)
-    actions = actions.reshape(self.num_envs, self.num_actions)
+    actions = actions.reshape(self.local_devices_to_use, -1, self.num_actions)
     self.state = self.state.replace(done=jp.zeros_like(self.state.done))
     self.state = self._step_fn(self.state, _torch_to_jax(actions))
 
@@ -155,7 +190,7 @@ class RslRlVecEnvWrapper(VecEnv, Generic[ConfigT, TaskT]):
 
     def _totorch_reshape(x):
       x = _jax_to_torch(x, device=self.device)
-      return x.reshape(self.num_envs, *x.shape[1:])
+      return x.reshape(self.num_envs, *x.shape[2:])
 
     self.reset_terminated[:] = _totorch_reshape(self.state.done)
     self.reset_time_outs[:] = self.episode_length_buf >= self.max_episode_length
