@@ -83,9 +83,9 @@ class G1(entity.Entity):
     self._torso_body = self.spec.body(consts.TORSO_BODY)
     self._imu_site = self.spec.site(consts.PELVIS_IMU_SITE)
     self._joints = self.get_non_root_joints()
-    self._ankle_joints = tuple([
-      j for j in self._joints if re.match(r".*_ankle_(pitch|roll)_joint", j.name)
-    ])
+    self._ankle_joints = tuple(
+      [j for j in self._joints if re.match(r".*_ankle_(pitch|roll)_joint", j.name)]
+    )
     self._actuators = self.spec.actuators
     self._gyro_sensor = self.spec.sensor("gyro")
     self._local_linvel_sensor = self.spec.sensor("local_linvel")
@@ -131,6 +131,9 @@ class G1(entity.Entity):
   def projected_gravity(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
     return data.bind(model, self._imu_site).xmat.T @ jp.array([0, 0, -1.0])
 
+  def torso_projected_gravity(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
+    return data.bind(model, self._torso_body).xmat.T @ jp.array([0, 0, -1.0])
+
   def upvector(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
     return data.bind(model, self._upvector_sensor).sensordata
 
@@ -156,6 +159,7 @@ class RewardScales:
   action_rate: float = -0.01
   energy: float = -5e-5
   collision: float = -1.0
+  termination: float = -100.0
 
 
 @dataclass(frozen=True)
@@ -303,16 +307,14 @@ class G1Env(mjx_task.MjxTask[G1Config]):
     qpos = self._init_q
     qvel = jp.zeros(self.mjx_model.nv)
     data = data.replace(qpos=qpos, qvel=qvel)
-
-    # rng, key = jax.random.split(rng)
-    # data = utils.reset_joints_by_scale(
-    #   rng=rng,
-    #   robot=self.g1,
-    #   model=self.mjx_model,
-    #   data=data,
-    #   position_range=(0.5, 1.5),
-    # )
-
+    rng, key = jax.random.split(rng)
+    data = utils.reset_joints_by_scale(
+      rng=rng,
+      robot=self.g1,
+      model=self.mjx_model,
+      data=data,
+      position_range=(0.5, 1.5),
+    )
     rng, key = jax.random.split(rng)
     data = utils.reset_root_state(
       rng=rng,
@@ -375,6 +377,12 @@ class G1Env(mjx_task.MjxTask[G1Config]):
     )
     noisy_local_linvel = self._apply_noise(state.info, local_linvel, cfg.linvel)
 
+    # Privileged observations.
+    foot_pos = data.site_xpos[self._feet_site_id][..., -1]
+    joint_torques = self.g1.joint_torques(self.mjx_model, data)
+    root_pos = data.qpos[:3]
+    root_quat = data.qpos[3:7]
+
     obs = jp.hstack(
       [
         noisy_gyro,
@@ -395,6 +403,11 @@ class G1Env(mjx_task.MjxTask[G1Config]):
         joint_angles,
         joint_velocities,
         local_linvel,
+        # Extra.
+        foot_pos,
+        joint_torques,
+        root_pos,
+        root_quat,
       ]
     )
 
@@ -404,7 +417,6 @@ class G1Env(mjx_task.MjxTask[G1Config]):
     }
 
   def get_reward(self, data, state, action, done):
-    del done  # Unused.
     local_linvel = self.g1.local_linvel(self.mjx_model, data)
     gyro = self.g1.gyro(self.mjx_model, data)
     projected_gravity = self.g1.projected_gravity(self.mjx_model, data)
@@ -413,6 +425,7 @@ class G1Env(mjx_task.MjxTask[G1Config]):
     joint_angles = self.g1.joint_angles(self.mjx_model, data)
     joint_velocities = self.g1.joint_velocities(self.mjx_model, data)
     ankle_joint_angles = self.g1.ankle_joint_angles(self.mjx_model, data)
+    torso_gravity = self.g1.torso_projected_gravity(self.mjx_model, data)
     reward_terms = {
       "tracking_lin_vel": self._reward_tracking_lin_vel(
         state.info["command"], local_linvel
@@ -420,7 +433,7 @@ class G1Env(mjx_task.MjxTask[G1Config]):
       "tracking_ang_vel": self._reward_tracking_ang_vel(state.info["command"], gyro),
       "lin_vel_z": self._cost_lin_vel_z(local_linvel),
       "ang_vel_xy": self._cost_ang_vel_xy(gyro),
-      "flat_orientation": self._cost_flat_orientation(projected_gravity),
+      "flat_orientation": self._cost_flat_orientation(projected_gravity, torso_gravity),
       "torques": self._cost_torques(joint_torques),
       "action_rate": self._cost_action_rate(action, state.info["last_act"]),
       "dof_acc": self._cost_dof_acc(joint_accelerations),
@@ -429,6 +442,7 @@ class G1Env(mjx_task.MjxTask[G1Config]):
       "energy": self._cost_energy(joint_velocities, joint_torques),
       "feet_phase": self._reward_feet_phase(data, state.info["phase"]),
       "collision": self._cost_collision(data),
+      "termination": done,
     }
     rewards = {k: v * self._reward_scales[k] for k, v in reward_terms.items()}
     for k, v in rewards.items():
@@ -491,8 +505,10 @@ class G1Env(mjx_task.MjxTask[G1Config]):
   def _cost_ang_vel_xy(self, ang_vel) -> jax.Array:
     return jp.sum(jp.square(ang_vel[:2]))
 
-  def _cost_flat_orientation(self, gravity: jax.Array) -> jax.Array:
-    return jp.sum(jp.square(gravity[:2]))
+  def _cost_flat_orientation(
+    self, gravity: jax.Array, torso_gravity: jax.Array
+  ) -> jax.Array:
+    return jp.sum(jp.square(gravity[:2])) + jp.sum(jp.square(torso_gravity[:2]))
 
   def _cost_torques(self, torques: jax.Array) -> jax.Array:
     return jp.sum(jp.square(torques))
