@@ -5,6 +5,7 @@ import jax
 import jax.numpy as jp
 import mujoco
 from mujoco import mjx
+import numpy as np
 
 from mjlab.utils import reset as reset_utils
 from mjlab.core import entity, mjx_env, mjx_task, step
@@ -27,6 +28,9 @@ class Go1(UnitreeGo1):
       geom.contype = 0
       geom.conaffinity = 1
       geom.condim = 1
+
+    self.spec.add_numeric(name="max_contact_points", data=np.array([30]))
+    self.spec.add_numeric(name="max_geom_pairs", data=np.array([12]))
 
 
 @dataclass(frozen=True)
