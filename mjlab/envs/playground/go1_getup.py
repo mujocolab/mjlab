@@ -224,11 +224,11 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
       },
     )
 
-    def settle(_, data: mjx.Data) -> mjx.Data:
-      return mjx.step(self.mjx_model, data)
+    # def settle(_, data: mjx.Data) -> mjx.Data:
+    #   return mjx.step(self.mjx_model, data)
 
-    data = jax.lax.fori_loop(0, self._settle_steps, settle, data)
-    data = data.replace(time=0.0)
+    # data = jax.lax.fori_loop(0, self._settle_steps, settle, data)
+    # data = data.replace(time=0.0)
 
     info = {
       "rng": rng,
@@ -364,7 +364,8 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
 
   def _reward_height(self, torso_height: jax.Array) -> jax.Array:
     height = jp.min(jp.array([torso_height, self._z_des]))
-    return jp.exp(height) - 1.0
+    error = jp.square(self._z_des - height)
+    return jp.exp(-error / 0.005)
 
   def _reward_posture(self, joint_angles: jax.Array, gate: jax.Array) -> jax.Array:
     cost = jp.sum(jp.square(joint_angles - self._default_pose))
