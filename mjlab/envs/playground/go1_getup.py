@@ -13,6 +13,15 @@ from mjlab.entities.arenas import FlatTerrainArena
 from mjlab.entities.go1 import UnitreeGo1, get_assets, GO1_XML
 from mjlab.entities.go1 import go1_constants as consts
 
+_UNWANTED_COLLISIONS = [
+  "FR_hip_collision2",
+  "FL_hip_collision2",
+  "RR_hip_collision2",
+  "RR_hip_collision3",
+  "RL_hip_collision2",
+  "RL_hip_collision3",
+]
+
 
 class Go1(UnitreeGo1):
   """Go1 with custom collision pairs."""
@@ -23,7 +32,7 @@ class Go1(UnitreeGo1):
 
     # Disable self-collisions, enable collisions with the floor.
     for geom in self.spec.geoms:
-      if geom.classname.name == "visual":
+      if geom.classname.name == "visual" or geom.name in _UNWANTED_COLLISIONS:
         continue
       geom.contype = 0
       geom.conaffinity = 1
