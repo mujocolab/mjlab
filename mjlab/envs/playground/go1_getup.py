@@ -1,4 +1,5 @@
 from dataclasses import dataclass, asdict
+import functools
 from typing import Any, Dict, Tuple, cast
 
 import jax
@@ -186,6 +187,15 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
     motor_targets = self._default_pose + action * self.cfg.action_scale
     return super().before_step(motor_targets, state)
 
+  @functools.partial(jax.jit, static_argnums=(0,))
+  def _settle(self, data: mjx.Data) -> mjx.Data:
+    def _step_fn(_, data: mjx.Data) -> mjx.Data:
+      return mjx.step(self.mjx_model, data)
+
+    data = jax.lax.fori_loop(0, self._settle_steps, _step_fn, data)
+    data = data.replace(time=0.0)
+    return data
+
   def initialize_episode(self, data: mjx.Data, rng: jax.Array):
     qpos = jp.zeros(self.mjx_model.nq)
     qvel = jp.zeros(self.mjx_model.nv)
@@ -224,11 +234,7 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
       },
     )
 
-    # def settle(_, data: mjx.Data) -> mjx.Data:
-    #   return mjx.step(self.mjx_model, data)
-
-    # data = jax.lax.fori_loop(0, self._settle_steps, settle, data)
-    # data = data.replace(time=0.0)
+    data = self._settle(data)
 
     info = {
       "rng": rng,
