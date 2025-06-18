@@ -159,7 +159,7 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
 
   def domain_randomize(self, model: mjx.Model, rng: jax.Array) -> Tuple[mjx.Model, Any]:
     collision_pair_ids = jp.array(
-      [self.spec.pair(p).id for p in self.go1.foot_floor_pairs]
+      [self.spec.pair(p.full_name()).id for p in FLOOR_COLLISIONS]
     )
     joint_dof_ids = jp.array([model.bind(j).dofadr for j in self.go1.joints])
     joint_qpos_ids = jp.array([model.bind(j).qposadr for j in self.go1.joints])
