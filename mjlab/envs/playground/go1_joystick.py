@@ -19,12 +19,12 @@ _FOOT_CONDIM = 3
 _FOOT_SOLIMP = (0.9, 0.95, 0.023)
 
 
-FLOOR_COLLISIONS = (
+FLOOR_COLLISIONS = [
   CollisionPair(
     foot, "floor", condim=_FOOT_CONDIM, friction=_FOOT_FRICTION, solimp=_FOOT_SOLIMP
   )
   for foot in consts.FEET_GEOMS
-)
+]
 
 
 class Go1(UnitreeGo1):
@@ -158,7 +158,7 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
     return arena, {"go1": go1_entity, "arena": arena}
 
   def domain_randomize(self, model: mjx.Model, rng: jax.Array) -> Tuple[mjx.Model, Any]:
-    collision_pair_ids = jp.array(
+    foot_floor_pairs = jp.array(
       [self.spec.pair(p.full_name()).id for p in FLOOR_COLLISIONS]
     )
     joint_dof_ids = jp.array([model.bind(j).dofadr for j in self.go1.joints])
@@ -169,7 +169,7 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
       # Floor friction: *U(0.4, 1.0).
       rng, key = jax.random.split(rng)
       friction = jax.random.uniform(key, minval=0.6, maxval=1.0)
-      pair_friction = model.pair_friction.at[collision_pair_ids, 0:2].set(friction)
+      pair_friction = model.pair_friction.at[foot_floor_pairs, 0:2].set(friction)
 
       # Joint stiction: *U(0.9, 1.1).
       rng, key = jax.random.split(rng)
