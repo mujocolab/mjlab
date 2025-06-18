@@ -143,12 +143,6 @@ class MjxTask(abc.ABC, Generic[ConfigT]):
     """Modifies the physics state before the next episode begins."""
     raise NotImplementedError
 
-  def settle_episode(self, data: mjx.Data, state: State) -> mjx.Data:
-    """Lets the physics run for a specified number of steps to settle the physics at
-    the start of the episode. By default, it does not run."""
-    del data, state  # Unused.
-    return data
-
   @abc.abstractmethod
   def get_observation(self, data: mjx.Data, state: State) -> Observation:
     """Calculates the observation given the physics state."""

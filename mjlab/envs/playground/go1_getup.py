@@ -135,6 +135,55 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
 
     return arena, {"go1": go1_entity, "arena": arena}
 
+  def domain_randomize(self, model: mjx.Model, rng: jax.Array) -> Tuple[mjx.Model, Any]:
+    joint_qpos_ids = jp.array([model.bind(j).qposadr for j in self.go1.joints])
+
+    @jax.vmap
+    def _randomize(rng):
+      # Floor friction: *U(0.4, 1.0).
+      rng, key = jax.random.split(rng)
+      friction = jax.random.uniform(key, minval=0.6, maxval=1.0)
+      geom_friction = model.geom_friction.at[self._floor_geom_id, 0].set(friction)
+
+      # Link masses: *U(0.9, 1.1).
+      rng, key = jax.random.split(rng)
+      dmass = jax.random.uniform(key, shape=(model.nbody,), minval=0.9, maxval=1.1)
+      body_mass = model.body_mass.at[:].set(model.body_mass * dmass)
+
+      # Link center of masses: +U(-0.05, 0.05).
+      rng, key = jax.random.split(rng)
+      dpos = jax.random.uniform(key, shape=(model.nbody, 3), minval=-0.02, maxval=0.02)
+      body_ipos = model.body_ipos.at[:].set(model.body_ipos + dpos)
+
+      # Joint calibration offsets: +U(-0.05, 0.05).
+      rng, key = jax.random.split(rng)
+      dqpos = jax.random.uniform(
+        key, shape=(len(joint_qpos_ids),), minval=-0.05, maxval=0.05
+      )
+      qpos0 = model.qpos0.at[joint_qpos_ids].set(model.qpos0[joint_qpos_ids] + dqpos)
+
+      return geom_friction, body_mass, body_ipos, qpos0
+
+    geom_friction, body_mass, body_ipos, qpos0 = _randomize(rng)
+    in_axes = jax.tree_util.tree_map(lambda x: None, model)
+    in_axes = in_axes.tree_replace(
+      {
+        "geom_friction": 0,
+        "body_mass": 0,
+        "body_ipos": 0,
+        "qpos0": 0,
+      }
+    )
+    model = model.tree_replace(
+      {
+        "geom_friction": geom_friction,
+        "body_mass": body_mass,
+        "body_ipos": body_ipos,
+        "qpos0": qpos0,
+      }
+    )
+    return model, in_axes
+
   def before_step(self, action: jax.Array, state: mjx_env.State) -> mjx.Data:
     motor_targets = self._default_pose + action * self.cfg.action_scale
     return super().before_step(motor_targets, state)
@@ -176,6 +225,11 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
         "yaw": (-0.5, 0.5),
       },
     )
+
+    # Let the robot fall and settle.
+    data = step(self.mjx_model, data, self._settle_steps)
+    data = data.replace(time=0.0)
+
     info = {
       "rng": rng,
       "last_act": jp.zeros(self.mjx_model.nu),
@@ -184,11 +238,6 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
     metrics["metrics/height_error"] = jp.zeros(())
     metrics["metrics/orientation_error"] = jp.zeros(())
     return data, info, metrics
-
-  def settle_episode(self, data: mjx.Data, state: mjx_env.State) -> mjx.Data:
-    del state  # Unused.
-    data = step(self.mjx_model, data, self._settle_steps)
-    return data.replace(time=0.0)
 
   def _apply_noise(
     self, info: dict[str, Any], value: jax.Array, scale: float
