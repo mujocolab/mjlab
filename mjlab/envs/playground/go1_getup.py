@@ -176,11 +176,6 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
         "yaw": (-0.5, 0.5),
       },
     )
-
-    # Run the physics to allow the robot to settle.
-    data = step(self.mjx_model, data, self._settle_steps)
-    data = data.replace(time=0.0)
-
     info = {
       "rng": rng,
       "last_act": jp.zeros(self.mjx_model.nu),
@@ -189,6 +184,11 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
     metrics["metrics/height_error"] = jp.zeros(())
     metrics["metrics/orientation_error"] = jp.zeros(())
     return data, info, metrics
+
+  def settle_episode(self, data: mjx.Data, state: mjx_env.State) -> mjx.Data:
+    del state  # Unused.
+    data = step(self.mjx_model, data, self._settle_steps)
+    return data.replace(time=0.0)
 
   def _apply_noise(
     self, info: dict[str, Any], value: jax.Array, scale: float

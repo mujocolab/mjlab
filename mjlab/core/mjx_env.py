@@ -43,6 +43,7 @@ class MjxEnv(Generic[TaskT]):
       metrics=metrics,
       info=info,
     )
+    data = self.task.settle_episode(data, state)
     obs = self.task.get_observation(data=data, state=state)
     return state.replace(obs=obs)  # type: ignore[attr-defined]
 
