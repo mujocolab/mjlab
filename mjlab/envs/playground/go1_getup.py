@@ -1,5 +1,4 @@
 from dataclasses import dataclass, asdict
-import functools
 from typing import Any, Dict, Tuple, cast
 
 import jax
@@ -9,7 +8,7 @@ from mujoco import mjx
 import numpy as np
 
 from mjlab.utils import reset as reset_utils
-from mjlab.core import entity, mjx_env, mjx_task
+from mjlab.core import entity, mjx_env, mjx_task, step
 from mjlab.entities.arenas import FlatTerrainArena
 from mjlab.entities.go1 import UnitreeGo1, get_assets, GO1_XML
 from mjlab.entities.go1 import go1_constants as consts
@@ -187,15 +186,6 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
     motor_targets = self._default_pose + action * self.cfg.action_scale
     return super().before_step(motor_targets, state)
 
-  @functools.partial(jax.jit, static_argnums=(0,))
-  def _settle(self, data: mjx.Data) -> mjx.Data:
-    def _step_fn(_, data: mjx.Data) -> mjx.Data:
-      return mjx.step(self.mjx_model, data)
-
-    data = jax.lax.fori_loop(0, self._settle_steps, _step_fn, data)
-    data = data.replace(time=0.0)
-    return data
-
   def initialize_episode(self, data: mjx.Data, rng: jax.Array):
     qpos = jp.zeros(self.mjx_model.nq)
     qvel = jp.zeros(self.mjx_model.nv)
@@ -234,7 +224,9 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
       },
     )
 
-    data = self._settle(data)
+    # Let the robot fall and settle.
+    data = step(self.mjx_model, data, self._settle_steps)
+    data = data.replace(time=0.0)
 
     info = {
       "rng": rng,
