@@ -3,6 +3,7 @@
 from mjlab.envs.registry import _REGISTRY
 from mjlab.envs.playground import go1_joystick
 from mjlab.envs.playground import g1_joystick
+from mjlab.envs.playground import go1_getup
 
 _REGISTRY.register_task(
   "Velocity-Flat-G1-v0",
@@ -14,4 +15,10 @@ _REGISTRY.register_task(
   "Velocity-Flat-Unitree-Go1-v0",
   go1_joystick.Go1JoystickEnv,
   go1_joystick.Go1JoystickConfig,
+)
+
+_REGISTRY.register_task(
+  "Getup-Unitree-Go1-v0",
+  go1_getup.Go1GetupEnv,
+  go1_getup.Go1GetupConfig,
 )

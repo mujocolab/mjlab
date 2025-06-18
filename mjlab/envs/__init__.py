@@ -12,11 +12,13 @@ from mjlab.envs.toy.humanoid import (
 
 # Playground envs.
 from mjlab.envs.playground.go1_joystick import Go1JoystickConfig
+from mjlab.envs.playground.go1_getup import Go1GetupConfig
 from mjlab.envs.playground.g1_joystick import G1Config
 
 TaskConfigUnion = Union[
   CartpoleConfig,
   Go1JoystickConfig,
+  Go1GetupConfig,
   HumanoidStandConfig,
   HumanoidWalkConfig,
   HumanoidRunConfig,

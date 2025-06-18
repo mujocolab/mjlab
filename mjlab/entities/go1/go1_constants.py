@@ -3,7 +3,6 @@
 # fmt: off
 
 from mjlab.entities.structs import (
-  CollisionPair,
   Keyframe,
   PDActuator,
   Sensor,
