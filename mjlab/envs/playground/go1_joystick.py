@@ -168,7 +168,7 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
     def _randomize(rng):
       # Floor friction: *U(0.4, 1.0).
       rng, key = jax.random.split(rng)
-      friction = jax.random.uniform(key, minval=0.6, maxval=1.0)
+      friction = jax.random.uniform(key, minval=0.4, maxval=1.0)
       pair_friction = model.pair_friction.at[foot_floor_pairs, 0:2].set(friction)
 
       # Joint stiction: *U(0.9, 1.1).

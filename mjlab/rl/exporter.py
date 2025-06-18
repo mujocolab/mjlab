@@ -1,7 +1,10 @@
+import os
 from pathlib import Path
 from typing import Optional
+import onnx
 import torch
 import copy
+from mjlab.core import MjxEnv, MjxTask
 
 
 def export_policy_as_onnx(
@@ -87,3 +90,43 @@ class _OnnxPolicyExporter(torch.nn.Module):
         output_names=["actions"],
         dynamic_axes={},
       )
+
+
+def list_to_csv_str(arr, *, decimals: int = 3, delimiter: str = ",") -> str:
+  fmt = f"{{:.{decimals}f}}"
+  return delimiter.join(
+    fmt.format(x)
+    if isinstance(x, (int, float))
+    else str(x)  # numbers → format, strings → as-is
+    for x in arr
+  )
+
+
+def attach_onnx_metadata(
+  env: MjxEnv, run_path: str, path: str, filename="policy.onnx"
+) -> None:
+  onnx_path = os.path.join(path, filename)
+
+  task: MjxTask = env.task
+  robot = task.robot
+
+  metadata = {
+    "run_path": run_path,
+    "joint_names": robot.joint_names,
+    "joint_stiffness": robot.joint_stiffness,
+    "joint_damping": robot.joint_damping,
+    "default_joint_pos": robot.default_joint_pos_nominal,
+    "command_names": [],
+    "observation_names": task.observation_names,
+    "action_scale": task.cfg.action_scale,
+  }
+
+  model = onnx.load(onnx_path)
+
+  for k, v in metadata.items():
+    entry = onnx.StringStringEntryProto()
+    entry.key = k
+    entry.value = list_to_csv_str(v) if isinstance(v, list) else str(v)
+    model.metadata_props.append(entry)
+
+  onnx.save(model, onnx_path)

@@ -8,7 +8,7 @@ from pathlib import Path
 import torch
 import tyro
 
-from rsl_rl.runners import OnPolicyRunner
+from mjlab.rl.on_policy_runner import MjlabOnPolicyRunner as OnPolicyRunner
 
 from mjlab import MJLAB_ROOT_PATH
 from mjlab.envs import TaskConfigUnion

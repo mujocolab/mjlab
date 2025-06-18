@@ -9,6 +9,7 @@ import mujoco
 from mujoco import mjx
 
 from mjlab.core import entity
+from mjlab.entities import robot
 from mjlab.core.types import Observation, State
 
 _integrator_map = {
@@ -218,3 +219,14 @@ class MjxTask(abc.ABC, Generic[ConfigT]):
   def n_substeps(self) -> int:
     """Returns the number of simulation substeps per control step."""
     return int(round(self.dt / self.sim_dt))
+
+  @property
+  @abc.abstractmethod
+  def robot(self) -> robot.Robot:
+    """Returns the robot entity."""
+    raise NotImplementedError
+
+  @property
+  def observation_names(self) -> Tuple[str, ...]:
+    """Returns the names of the observations."""
+    raise NotImplementedError

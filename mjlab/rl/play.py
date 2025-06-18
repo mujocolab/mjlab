@@ -7,7 +7,7 @@ import jax
 import jax.numpy as jp
 import torch
 import tyro
-from rsl_rl.runners import OnPolicyRunner
+from mjlab.rl.on_policy_runner import MjlabOnPolicyRunner as OnPolicyRunner
 
 from mjlab.envs import TaskConfigUnion
 from mjlab.core.types import State

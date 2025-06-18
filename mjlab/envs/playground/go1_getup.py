@@ -41,6 +41,23 @@ class Go1(UnitreeGo1):
     self.spec.add_numeric(name="max_contact_points", data=np.array([30]))
     self.spec.add_numeric(name="max_geom_pairs", data=np.array([12]))
 
+    self._actuators = self.spec.actuators
+    self._joint_stiffness = tuple([a.gainprm[0] for a in self._actuators])
+    self._joint_damping = tuple([-a.biasprm[2] for a in self._actuators])
+    self._default_joint_pos_nominal = self.spec.key("home").ctrl
+
+  @property
+  def joint_stiffness(self) -> Tuple[float, ...]:
+    return self._joint_stiffness
+
+  @property
+  def joint_damping(self) -> Tuple[float, ...]:
+    return self._joint_damping
+
+  @property
+  def default_joint_pos_nominal(self) -> Tuple[float, ...]:
+    return self._default_joint_pos_nominal
+
 
 @dataclass(frozen=True)
 class RewardScales:
@@ -48,9 +65,9 @@ class RewardScales:
   torso_height: float = 1.0
   posture: float = 1.0
   stand_still: float = 1.0
-  action_rate: float = -0.001
+  action_rate: float = -0.01
   dof_pos_limits: float = -0.1
-  torques: float = -1e-5
+  torques: float = -1e-6
   dof_acc: float = -2.5e-7
   dof_vel: float = -0.1
 
@@ -58,6 +75,7 @@ class RewardScales:
 @dataclass(frozen=True)
 class RewardConfig:
   scales: RewardScales = RewardScales()
+  max_velocity: float = 2.0 * jp.pi
 
 
 @dataclass(frozen=True)
@@ -100,7 +118,7 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
     self._floor_geom_id = self.model.geom("floor").id
     self._imu_site_id = self.model.site("imu").id
     self._init_q = jp.array(self.model.keyframe("home").qpos)
-    self._default_pose = jp.array(self.model.keyframe("home").qpos[7:])
+    self._default_pose = jp.array(self.go1.default_joint_pos_nominal)
     jnt_ids = [j.id for j in self.go1.joints]
     lowers, uppers = self.model.jnt_range[jnt_ids].T
     c = (lowers + uppers) / 2
@@ -110,6 +128,16 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
     self._settle_steps = int(0.5 / self.sim_dt)
     self._z_des = 0.275
     self._up_vec = jp.array([0.0, 0.0, -1.0])
+
+  @property
+  def observation_names(self) -> Tuple[str, ...]:
+    return (
+      "base_ang_vel",
+      "projected_gravity",
+      "joint_pos",
+      "joint_vel",
+      "actions",
+    )
 
   @staticmethod
   def build_scene(
@@ -141,7 +169,7 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
     def _randomize(rng):
       # Floor friction: *U(0.4, 1.0).
       rng, key = jax.random.split(rng)
-      friction = jax.random.uniform(key, minval=0.6, maxval=1.0)
+      friction = jax.random.uniform(key, minval=0.4, maxval=1.0)
       geom_friction = model.geom_friction.at[self._floor_geom_id, 0].set(friction)
 
       # Link masses: *U(0.9, 1.1).
@@ -182,6 +210,10 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
       }
     )
     return model, in_axes
+
+  @property
+  def robot(self) -> entity.Entity:
+    return self.go1
 
   def before_step(self, action: jax.Array, state: mjx_env.State) -> mjx.Data:
     motor_targets = self._default_pose + action * self.cfg.action_scale
@@ -277,7 +309,7 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
       [
         noisy_gyro,
         noisy_projected_gravity,
-        noisy_joint_angles,
+        noisy_joint_angles - self._default_pose,
         noisy_joint_velocities,
         state.info["last_act"],
       ]
@@ -366,9 +398,8 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
 
   def _reward_height(self, torso_height: jax.Array) -> jax.Array:
     height = jp.min(jp.array([torso_height, self._z_des]))
-    # error = jp.square(self._z_des - height)
-    # return jp.exp(-error / 0.005)
-    return jp.exp(height) - 1.0
+    error = jp.square(self._z_des - height)
+    return jp.exp(-error / 0.01)
 
   def _reward_posture(self, joint_angles: jax.Array, gate: jax.Array) -> jax.Array:
     cost = jp.sum(jp.square(joint_angles - self._default_pose))
@@ -395,9 +426,7 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
     return jp.sum(out_of_limits)
 
   def _cost_dof_vel(self, qvel: jax.Array) -> jax.Array:
-    max_velocity = 2.0 * jp.pi  # rad/s
-    cost = jp.maximum(jp.abs(qvel) - max_velocity, 0.0)
-    return jp.sum(jp.square(cost))
+    return jp.sum(jp.maximum(jp.abs(qvel) - self.cfg.reward_config.max_velocity, 0.0))
 
 
 if __name__ == "__main__":

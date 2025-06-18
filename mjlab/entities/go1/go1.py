@@ -5,12 +5,12 @@ from typing import Tuple
 from mujoco import mjx
 import jax
 import jax.numpy as jp
-from mjlab.core import entity
 
 from mjlab.entities.go1 import go1_constants as consts
+from mjlab.entities import robot
 
 
-class UnitreeGo1(entity.Entity):
+class UnitreeGo1(robot.Robot):
   """Unitree Go1 quadruped."""
 
   def post_init(self):
@@ -23,7 +23,6 @@ class UnitreeGo1(entity.Entity):
     self._torso_body = self.spec.body(consts.TORSO_BODY)
     self._imu_site = self.spec.site(consts.IMU_SITE)
     self._joints = self.get_non_root_joints()
-    self._actuators = self.spec.actuators
     self._gyro_sensor = self.spec.sensor("gyro")
     self._local_linvel_sensor = self.spec.sensor("local_linvel")
     self._upvector_sensor = self.spec.sensor("upvector")
@@ -33,8 +32,8 @@ class UnitreeGo1(entity.Entity):
     return self._joints
 
   @property
-  def actuators(self) -> Tuple[mujoco.MjsActuator]:
-    return self._actuators
+  def joint_names(self) -> Tuple[str, ...]:
+    return tuple([j.name for j in self._joints])
 
   def joint_angles(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
     return data.bind(model, self._joints).qpos
