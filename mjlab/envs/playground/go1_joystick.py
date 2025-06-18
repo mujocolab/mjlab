@@ -13,7 +13,7 @@ from mjlab.entities.arenas import FlatTerrainArena, PlaygroundTerrainArena
 from mjlab.entities.go1 import UnitreeGo1, get_assets, GO1_XML
 from mjlab.entities.go1 import go1_constants as consts
 from mjlab.entities import robot
-from mjlab.envs.playground import reset_utils
+from mjlab.utils import reset as reset_utils
 
 
 class Go1(UnitreeGo1):
