@@ -110,13 +110,17 @@ def attach_onnx_metadata(
   task: MjxTask = env.task
   robot = task.robot
 
+  command_names = []
+  if hasattr(task, "command_names"):
+    command_names = task.command_names
+
   metadata = {
     "run_path": run_path,
     "joint_names": robot.joint_names,
     "joint_stiffness": robot.joint_stiffness,
     "joint_damping": robot.joint_damping,
     "default_joint_pos": robot.default_joint_pos_nominal,
-    "command_names": [],
+    "command_names": command_names,
     "observation_names": task.observation_names,
     "action_scale": task.cfg.action_scale,
   }

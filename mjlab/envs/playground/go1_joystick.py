@@ -13,6 +13,7 @@ from mjlab.entities.arenas import FlatTerrainArena
 from mjlab.entities.go1 import UnitreeGo1, get_assets, GO1_XML
 from mjlab.entities.go1 import go1_constants as consts
 from mjlab.entities.structs import CollisionPair
+from mjlab.entities import robot
 
 _FOOT_FRICTION = (0.6, 0.6)
 _FOOT_CONDIM = 3
@@ -35,6 +36,23 @@ class Go1(UnitreeGo1):
     for collision_pair in FLOOR_COLLISIONS:
       self.add_collision_pair(collision_pair)
     super().post_init()
+
+    self._actuators = self.spec.actuators
+    self._joint_stiffness = tuple([a.gainprm[0] for a in self._actuators])
+    self._joint_damping = tuple([-a.biasprm[2] for a in self._actuators])
+    self._default_joint_pos_nominal = self.spec.key("home").ctrl
+
+  @property
+  def joint_stiffness(self) -> Tuple[float, ...]:
+    return self._joint_stiffness
+
+  @property
+  def joint_damping(self) -> Tuple[float, ...]:
+    return self._joint_damping
+
+  @property
+  def default_joint_pos_nominal(self) -> Tuple[float, ...]:
+    return self._default_joint_pos_nominal
 
 
 def get_rz(
@@ -126,13 +144,34 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
     self._torso_geom_ids = np.array([self.model.geom(n).id for n in torso_geoms])
     self._imu_site_id = self.model.site("imu").id
     self._init_q = jp.array(self.model.keyframe("home").qpos)
-    self._default_pose = jp.array(self.model.keyframe("home").qpos[7:])
+    self._default_pose = jp.array(self.go1.default_joint_pos_nominal)
     jnt_ids = [j.id for j in self.go1.joints]
     lowers, uppers = self.model.jnt_range[jnt_ids].T
     c = (lowers + uppers) / 2
     r = uppers - lowers
     self._soft_lowers = c - 0.5 * r * self.cfg.soft_joint_pos_limit_factor
     self._soft_uppers = c + 0.5 * r * self.cfg.soft_joint_pos_limit_factor
+
+  @property
+  def robot(self) -> robot.Robot:
+    return self.go1
+
+  @property
+  def observation_names(self) -> Tuple[str, ...]:
+    return (
+      "base_ang_vel",
+      "projected_gravity",
+      "joint_pos",
+      "joint_vel",
+      "base_lin_vel",
+      "actions",
+      "command",
+      "phase",
+    )
+
+  @property
+  def command_names(self) -> Tuple[str, ...]:
+    return ("twist",)
 
   @staticmethod
   def build_scene(
@@ -284,7 +323,7 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
       [
         noisy_gyro,
         noisy_projected_gravity,
-        noisy_joint_angles,
+        noisy_joint_angles - self._default_pose,
         noisy_joint_velocities,
         noisy_local_linvel,
         state.info["last_act"],

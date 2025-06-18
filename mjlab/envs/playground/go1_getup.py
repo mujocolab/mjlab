@@ -12,6 +12,7 @@ from mjlab.core import entity, mjx_env, mjx_task, step
 from mjlab.entities.arenas import FlatTerrainArena
 from mjlab.entities.go1 import UnitreeGo1, get_assets, GO1_XML
 from mjlab.entities.go1 import go1_constants as consts
+from mjlab.entities import robot
 
 _UNWANTED_COLLISIONS = [
   "FR_hip_collision2",
@@ -212,7 +213,7 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
     return model, in_axes
 
   @property
-  def robot(self) -> entity.Entity:
+  def robot(self) -> robot.Robot:
     return self.go1
 
   def before_step(self, action: jax.Array, state: mjx_env.State) -> mjx.Data:
