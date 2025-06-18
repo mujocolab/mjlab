@@ -4,37 +4,31 @@ from typing import Any, Dict, Tuple, Union, cast
 import jax
 import jax.numpy as jp
 import mujoco
+import enum
 from mujoco import mjx
-from mujoco.mjx._src import math
 import numpy as np
 
 from mjlab.core import entity, mjx_env, mjx_task
-from mjlab.entities.arenas import FlatTerrainArena
+from mjlab.entities.arenas import FlatTerrainArena, PlaygroundTerrainArena
 from mjlab.entities.go1 import UnitreeGo1, get_assets, GO1_XML
 from mjlab.entities.go1 import go1_constants as consts
-from mjlab.entities.structs import CollisionPair
 from mjlab.entities import robot
-
-_FOOT_FRICTION = (0.6, 0.6)
-_FOOT_CONDIM = 3
-_FOOT_SOLIMP = (0.9, 0.95, 0.023)
-
-
-FLOOR_COLLISIONS = [
-  CollisionPair(
-    foot, "floor", condim=_FOOT_CONDIM, friction=_FOOT_FRICTION, solimp=_FOOT_SOLIMP
-  )
-  for foot in consts.FEET_GEOMS
-]
+from mjlab.envs.playground import reset_utils
 
 
 class Go1(UnitreeGo1):
   """Go1 with custom collision pairs."""
 
   def post_init(self):
-    self.add_pd_actuators_from_patterns(consts.CRITICALLY_DAMPED_ACTUATOR_SPECS)
-    for collision_pair in FLOOR_COLLISIONS:
-      self.add_collision_pair(collision_pair)
+    self.add_pd_actuators_from_patterns(consts.ACTUATOR_SPECS)
+
+    for geom in self.spec.geoms:
+      if geom.name not in consts.FEET_GEOMS:
+        continue
+      geom.contype = 0
+      geom.conaffinity = 1
+      geom.solimp[:3] = (0.9, 0.95, 0.023)
+
     super().post_init()
 
     self._actuators = self.spec.actuators
@@ -67,6 +61,11 @@ def get_rz(
   stance = cubic_bezier_interpolation(0, swing_height, 2 * x)
   swing = cubic_bezier_interpolation(swing_height, 0, 2 * x - 1)
   return jp.where(x <= 0.5, stance, swing)
+
+
+class Terrain(enum.Enum):
+  FLAT = enum.auto()
+  PLAYGROUND = enum.auto()
 
 
 @dataclass(frozen=True)
@@ -120,6 +119,7 @@ class Go1JoystickConfig(mjx_task.TaskConfig):
   max_episode_length: int = 1_000
   noise_level: float = 1.0
   action_scale: float = 0.5
+  terrain: Terrain = Terrain.FLAT
   soft_joint_pos_limit_factor: float = 0.9
   command_config: CommandConfig = CommandConfig()
   reward_config: RewardConfig = RewardConfig()
@@ -135,12 +135,11 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
     self.go1: Go1 = cast(Go1, entities["go1"])
     self._reward_scales = asdict(self.cfg.reward_config.scales)
 
-    feet_geoms = ["FR", "FL", "RR", "RL"]
     torso_geoms = ["trunk_collision1", "trunk_collision2"]
     self._torso_body_id = self.model.body("trunk").id
     self._floor_geom_id = self.model.geom("floor").id
-    self._feet_geom_id = np.array([self.model.geom(n).id for n in feet_geoms])
-    self._feet_site_id = np.array([self.model.site(n).id for n in feet_geoms])
+    self._feet_geom_id = np.array([self.model.geom(n).id for n in consts.FEET_GEOMS])
+    self._feet_site_id = np.array([self.model.site(n).id for n in consts.FEET_SITES])
     self._torso_geom_ids = np.array([self.model.geom(n).id for n in torso_geoms])
     self._imu_site_id = self.model.site("imu").id
     self._init_q = jp.array(self.model.keyframe("home").qpos)
@@ -177,11 +176,14 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
   def build_scene(
     config: Go1JoystickConfig,
   ) -> Tuple[entity.Entity, Dict[str, entity.Entity]]:
-    del config  # Unused.
     assets = get_assets()
     go1_entity = Go1.from_file(GO1_XML, assets=assets)
 
-    arena = FlatTerrainArena()
+    if config.terrain == Terrain.PLAYGROUND:
+      arena = PlaygroundTerrainArena()
+    else:
+      arena = FlatTerrainArena()
+
     arena.add_skybox()
     arena.floor_geom.contype = 1
     arena.floor_geom.conaffinity = 0
@@ -197,18 +199,15 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
     return arena, {"go1": go1_entity, "arena": arena}
 
   def domain_randomize(self, model: mjx.Model, rng: jax.Array) -> Tuple[mjx.Model, Any]:
-    foot_floor_pairs = jp.array(
-      [self.spec.pair(p.full_name()).id for p in FLOOR_COLLISIONS]
-    )
     joint_dof_ids = jp.array([model.bind(j).dofadr for j in self.go1.joints])
     joint_qpos_ids = jp.array([model.bind(j).qposadr for j in self.go1.joints])
 
     @jax.vmap
     def _randomize(rng):
-      # Floor friction: *U(0.4, 1.0).
+      # Floor friction: *U(0.5, 1.0).
       rng, key = jax.random.split(rng)
-      friction = jax.random.uniform(key, minval=0.4, maxval=1.0)
-      pair_friction = model.pair_friction.at[foot_floor_pairs, 0:2].set(friction)
+      friction = jax.random.uniform(key, minval=0.2, maxval=1.0)
+      geom_friction = model.geom_friction.at[self._floor_geom_id, 0].set(friction)
 
       # Joint stiction: *U(0.9, 1.1).
       rng, key = jax.random.split(rng)
@@ -234,13 +233,13 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
       )
       qpos0 = model.qpos0.at[joint_qpos_ids].set(model.qpos0[joint_qpos_ids] + dqpos)
 
-      return pair_friction, dof_frictionloss, body_mass, body_ipos, qpos0
+      return geom_friction, dof_frictionloss, body_mass, body_ipos, qpos0
 
-    pair_friction, dof_frictionloss, body_mass, body_ipos, qpos0 = _randomize(rng)
+    geom_friction, dof_frictionloss, body_mass, body_ipos, qpos0 = _randomize(rng)
     in_axes = jax.tree_util.tree_map(lambda x: None, model)
     in_axes = in_axes.tree_replace(
       {
-        "pair_friction": 0,
+        "geom_friction": 0,
         "dof_frictionloss": 0,
         "body_mass": 0,
         "body_ipos": 0,
@@ -249,7 +248,7 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
     )
     model = model.tree_replace(
       {
-        "pair_friction": pair_friction,
+        "geom_friction": geom_friction,
         "dof_frictionloss": dof_frictionloss,
         "body_mass": body_mass,
         "body_ipos": body_ipos,
@@ -264,15 +263,36 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
 
   def initialize_episode(self, data: mjx.Data, rng: jax.Array):
     qpos = self._init_q
+    qvel = jp.zeros(self.mjx_model.nv)
+    data = data.replace(qpos=qpos, qvel=qvel)
     rng, key = jax.random.split(rng)
-    dxy = jax.random.uniform(key, (2,), minval=-0.5, maxval=0.5)
-    qpos = qpos.at[0:2].set(qpos[0:2] + dxy)
+    data = reset_utils.reset_joints_by_scale(
+      rng=rng,
+      robot=self.go1,
+      model=self.mjx_model,
+      data=data,
+      position_range=(0.5, 1.5),
+    )
     rng, key = jax.random.split(rng)
-    yaw = jax.random.uniform(key, (1,), minval=-3.14, maxval=3.14)
-    quat = math.axis_angle_to_quat(jp.array([0, 0, 1]), yaw)
-    new_quat = math.quat_mul(qpos[3:7], quat)
-    qpos = qpos.at[3:7].set(new_quat)
-    data = data.replace(qpos=qpos)
+    pose_range = {"x": (-2.5, 2.5), "y": (-2.5, 2.5), "yaw": (-3.14, 3.14)}
+    if self.cfg.terrain == Terrain.PLAYGROUND:
+      pose_range["z"] = (0.35, 0.35)
+    data = reset_utils.reset_root_state(
+      rng=rng,
+      robot=self.g1,
+      model=self.mjx_model,
+      data=data,
+      pose_range=pose_range,
+      velocity_range={
+        "x": (-0.5, 0.5),
+        "y": (-0.5, 0.5),
+        "z": (-0.5, 0.5),
+        "roll": (-0.5, 0.5),
+        "pitch": (-0.5, 0.5),
+        "yaw": (-0.5, 0.5),
+      },
+    )
+
     rng, cmd_rng = jax.random.split(rng)
     command = self._sample_command(cmd_rng)
     rng, key = jax.random.split(rng)
