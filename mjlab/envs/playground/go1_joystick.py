@@ -279,7 +279,7 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
       pose_range["z"] = (0.35, 0.35)
     data = reset_utils.reset_root_state(
       rng=rng,
-      robot=self.g1,
+      robot=self.go1,
       model=self.mjx_model,
       data=data,
       pose_range=pose_range,
