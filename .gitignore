@@ -3,3 +3,4 @@ logs/
 __pycache__/
 external_deps/
 MUJOCO_LOG.TXT
+motion_imitation/

@@ -3,7 +3,7 @@ from mujoco import mjx
 from mujoco.mjx._src import math
 import jax
 import jax.numpy as jp
-from mjlab._src import entity
+from mjlab.core import entity
 
 
 def reset_joints_by_scale(

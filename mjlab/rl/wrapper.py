@@ -7,8 +7,8 @@ import torch
 from rsl_rl.env import VecEnv
 
 from mujoco import mjx
-from mjlab._src import mjx_env, mjx_task
-from mjlab._src.types import State
+from mjlab.core import mjx_env, mjx_task
+from mjlab.core.types import State
 
 ConfigT = TypeVar("ConfigT", bound=mjx_task.TaskConfig)
 TaskT = TypeVar("TaskT", bound=mjx_task.MjxTask[ConfigT])

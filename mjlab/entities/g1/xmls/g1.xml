@@ -1,5 +1,5 @@
 <mujoco model="g1_29dof_rev_1_0">
-  <compiler angle="radian" meshdir="../external_deps/mujoco_menagerie/unitree_g1/assets" autolimits="true"/>
+  <compiler angle="radian" meshdir="../../../external_deps/mujoco_menagerie/unitree_g1/assets" autolimits="true"/>
 
   <option timestep="0.004"/>
 

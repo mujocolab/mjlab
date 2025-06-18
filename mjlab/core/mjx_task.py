@@ -8,8 +8,8 @@ import jax.numpy as jp
 import mujoco
 from mujoco import mjx
 
-from mjlab._src import entity
-from mjlab._src.types import Observation, State
+from mjlab.core import entity
+from mjlab.core.types import Observation, State
 
 _integrator_map = {
   "implicitfast": mujoco.mjtIntegrator.mjINT_IMPLICITFAST,

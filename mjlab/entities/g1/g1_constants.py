@@ -1,8 +1,8 @@
-"""Constants for G1."""
+"""Unitree G1 constants."""
 
 # fmt: off
 
-from mjlab._src.sim_structs import (
+from mjlab.entities.structs import (
   CollisionPair,
   Keyframe,
   PDActuator,

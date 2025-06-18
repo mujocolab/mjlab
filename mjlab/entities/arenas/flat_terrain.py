@@ -1,15 +1,13 @@
 import mujoco
 
-from mjlab._src.arenas import arena
+from mjlab.entities.arenas import arena
 
 
 class FlatTerrainArena(arena.Arena):
   """An arena with a flat terrain."""
 
-  def __init__(self):
-    super().__init__()
-
-    self._spec.add_texture(
+  def post_init(self):
+    self.spec.add_texture(
       name="groundplane",
       type=mujoco.mjtTexture.mjTEXTURE_2D,
       builtin=mujoco.mjtBuiltin.mjBUILTIN_CHECKER,
@@ -20,14 +18,14 @@ class FlatTerrainArena(arena.Arena):
       width=300,
       height=300,
     )
-    self._spec.add_material(
+    self.spec.add_material(
       name="groundplane",
       texuniform=True,
       texrepeat=(4, 4),
       reflectance=0.2,
     ).textures[mujoco.mjtTextureRole.mjTEXROLE_RGB] = "groundplane"
 
-    self._floor_geom = self._spec.worldbody.add_geom(
+    self._floor_geom = self.spec.worldbody.add_geom(
       name="floor",
       size=(0, 0, 0.01),
       type=mujoco.mjtGeom.mjGEOM_PLANE,

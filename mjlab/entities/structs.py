@@ -19,6 +19,8 @@ class PDActuator:
   """Reflected inertia. Defaults to zero."""
   torque_limit: float | None = None
   """Torque limit. Assumed to be symmetric about zero. If None, no limit is applied."""
+  frictionloss: float = 0.0
+  """Stiction. Defaults to zero."""
 
   def __post_init__(self):
     assert self.kp >= 0.0
@@ -26,6 +28,7 @@ class PDActuator:
     assert self.armature >= 0.0
     if self.torque_limit is not None:
       assert self.torque_limit > 0.0
+    assert self.frictionloss >= 0.0
 
 
 @dataclass(frozen=True)
@@ -37,6 +40,7 @@ class CollisionPair:
   condim: int = 1
   friction: Sequence[float] | None = None
   solref: Sequence[float] | None = None
+  solimp: Sequence[float] | None = None
 
   def full_name(self) -> str:
     return f"{self.geom1}__{self.geom2}"

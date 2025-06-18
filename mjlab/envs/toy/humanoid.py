@@ -7,10 +7,11 @@ import jax.numpy as jp
 import mujoco
 from mujoco import mjx
 
-from mjlab._src import entity, mjx_task, reward
+from mjlab.core import entity, mjx_task
+from mjlab.envs.toy import reward
 
 _HERE = Path(__file__).parent
-_HUMANOID_XML = _HERE / "humanoid.xml"
+_HUMANOID_XML = _HERE / "xmls" / "humanoid.xml"
 
 # Height of head above which stand reward is 1.
 _STAND_HEIGHT = 1.4
@@ -23,8 +24,7 @@ _RUN_SPEED = 10
 class Humanoid(entity.Entity):
   """Humanoid entity."""
 
-  def __init__(self, spec: mujoco.MjSpec):
-    super().__init__(spec)
+  def post_init(self):
     self._torso_body = self.spec.body("torso")
     self._head_body = self.spec.body("head")
     self._joints = self.get_non_root_joints()

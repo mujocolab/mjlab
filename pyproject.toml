@@ -25,7 +25,12 @@ dependencies = [
     "wandb",
     "ruff",
     "mediapy",
-    "gymnasium>=1.0",
+    "scipy",
+]
+
+[project.optional-dependencies]
+mimic = [
+    "mink",
 ]
 
 [tool.ruff]

@@ -1,5 +1,4 @@
 from dataclasses import dataclass, asdict
-from pathlib import Path
 from typing import Any, Dict, Tuple, Union, cast
 
 import jax
@@ -9,94 +8,10 @@ from mujoco import mjx
 from mujoco.mjx._src import math
 import numpy as np
 
-from mjlab._src.collision import geoms_colliding
-from mjlab._src import MENAGERIE_PATH
-from mjlab._src import entity, mjx_env, mjx_task
-from mjlab._src.arenas import FlatTerrainArena
-
-_HERE = Path(__file__).parent
-_GO1_XML = _HERE / "go1.xml"
-
-
-def get_assets() -> Dict[str, bytes]:
-  assets: Dict[str, bytes] = {}
-  path = MENAGERIE_PATH / "unitree_go1"
-  mjx_env.update_assets(assets, path, "*.xml")
-  mjx_env.update_assets(assets, path / "assets")
-  return assets
-
-
-def get_rz(
-  phi: Union[jax.Array, float], swing_height: Union[jax.Array, float] = 0.08
-) -> jax.Array:
-  def cubic_bezier_interpolation(y_start, y_end, x):
-    y_diff = y_end - y_start
-    bezier = x**3 + 3 * (x**2 * (1 - x))
-    return y_start + y_diff * bezier
-
-  x = (phi + jp.pi) / (2 * jp.pi)
-  stance = cubic_bezier_interpolation(0, swing_height, 2 * x)
-  swing = cubic_bezier_interpolation(swing_height, 0, 2 * x - 1)
-  return jp.where(x <= 0.5, stance, swing)
-
-
-class Go1(entity.Entity):
-  """Go1 entity."""
-
-  def __init__(self, spec: mujoco.MjSpec):
-    super().__init__(spec)
-
-    self._torso_body = self.spec.body("trunk")
-    self._imu_site = self.spec.site("imu")
-    self._joints = self.get_non_root_joints()
-    self._actuators = self.spec.actuators
-    self._gyro_sensor = self.spec.sensor("gyro")
-    self._local_linvel_sensor = self.spec.sensor("local_linvel")
-    self._upvector_sensor = self.spec.sensor("upvector")
-
-  def change_pd_gains(self, Kp: float, Kv: float) -> None:
-    for act in self._actuators:
-      act.gainprm[0] = Kp
-      act.biasprm[1] = -Kp
-      act.biasprm[2] = -Kv
-
-  @property
-  def joints(self) -> Tuple[mujoco.MjsJoint]:
-    return self._joints
-
-  @property
-  def actuators(self) -> Tuple[mujoco.MjsActuator]:
-    return self._actuators
-
-  def joint_angles(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
-    return data.bind(model, self._joints).qpos
-
-  def joint_velocities(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
-    return data.bind(model, self._joints).qvel
-
-  def joint_accelerations(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
-    return data.bind(model, self._joints).qacc
-
-  def joint_torques(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
-    return data.bind(model, self._actuators).force
-
-  def gyro(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
-    return data.bind(model, self._gyro_sensor).sensordata
-
-  def local_linvel(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
-    return data.bind(model, self._local_linvel_sensor).sensordata
-
-  def projected_gravity(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
-    return data.bind(model, self._imu_site).xmat.T @ jp.array([0, 0, -1.0])
-
-  def upvector(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
-    return data.bind(model, self._upvector_sensor).sensordata
-
-
-@dataclass(frozen=True)
-class CommandConfig:
-  min: Tuple[float, float, float] = (-1.5, -0.8, -1.2)
-  max: Tuple[float, float, float] = (1.5, 0.8, 1.2)
+from mjlab.utils.collision import geoms_colliding
+from mjlab.core import entity, mjx_env, mjx_task
+from mjlab.entities.arenas import FlatTerrainArena
+from mjlab.entities.go1 import UnitreeGo1, get_assets, GO1_XML
 
 
 @dataclass(frozen=True)
@@ -132,7 +47,7 @@ class NoiseConfig:
 
 
 @dataclass(frozen=True)
-class Go1Config(mjx_task.TaskConfig):
+class Go1GetupConfig(mjx_task.TaskConfig):
   """Go1 configuration."""
 
   sim_dt: float = 0.004
@@ -147,16 +62,17 @@ class Go1Config(mjx_task.TaskConfig):
   noise_level: float = 1.0
   action_scale: float = 0.5
   soft_joint_pos_limit_factor: float = 0.9
-  command_config: CommandConfig = CommandConfig()
   reward_config: RewardConfig = RewardConfig()
   noise_config: NoiseConfig = NoiseConfig()
 
 
-class Go1Env(mjx_task.MjxTask[Go1Config]):
-  def __init__(self, config: Go1Config = Go1Config()):
-    root, entities = Go1Env.build_scene(config)
+class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
+  """Go1 fall recovery task."""
+
+  def __init__(self, config: Go1GetupConfig = Go1GetupConfig()):
+    root, entities = Go1GetupEnv.build_scene(config)
     super().__init__(config, root.spec, entities=entities)
-    self.go1: Go1 = cast(Go1, entities["go1"])
+    self.go1: UnitreeGo1 = cast(UnitreeGo1, entities["go1"])
     self._reward_scales = asdict(self.cfg.reward_config.scales)
 
     feet_geoms = ["FR", "FL", "RR", "RL"]
@@ -177,9 +93,11 @@ class Go1Env(mjx_task.MjxTask[Go1Config]):
     self._soft_uppers = c + 0.5 * r * self.cfg.soft_joint_pos_limit_factor
 
   @staticmethod
-  def build_scene(config: Go1Config) -> Tuple[entity.Entity, Dict[str, entity.Entity]]:
+  def build_scene(
+    config: Go1GetupConfig,
+  ) -> Tuple[entity.Entity, Dict[str, entity.Entity]]:
     assets = get_assets()
-    go1_entity = Go1.from_file(_GO1_XML, assets=assets)
+    go1_entity = UnitreeGo1.from_file(GO1_XML, assets=assets)
     go1_entity.change_pd_gains(config.Kp, config.Kv)
 
     arena = FlatTerrainArena()
@@ -532,9 +450,9 @@ if __name__ == "__main__":
   import mujoco.viewer
   import tyro
 
-  def build_and_compile_and_launch(cfg: Go1Config):
-    root, _ = Go1Env.build_scene(config=cfg)
+  def build_and_compile_and_launch(cfg: Go1GetupConfig):
+    root, _ = Go1GetupEnv.build_scene(config=cfg)
     cfg.apply_defaults(root.spec)
     mujoco.viewer.launch(root.spec.compile())
 
-  build_and_compile_and_launch(tyro.cli(Go1Config))
+  build_and_compile_and_launch(tyro.cli(Go1GetupConfig))

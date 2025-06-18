@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple, Type
 
-from mjlab._src import mjx_env, mjx_task
+from mjlab.core import mjx_env, mjx_task
 
 
 @dataclass(frozen=True)

@@ -7,20 +7,20 @@ import jax.numpy as jp
 import mujoco
 from mujoco import mjx
 
-from mjlab._src.types import State
-from mjlab._src import entity, mjx_task, reward
+from mjlab.core.types import State
+from mjlab.core import mjx_task, entity
+from mjlab.envs.toy import reward
 
 _HERE = Path(__file__).parent
-_CARTPOLE_XML = _HERE / "cartpole.xml"
+_CARTPOLE_XML = _HERE / "xmls" / "cartpole.xml"
 
 
 class Cartpole(entity.Entity):
   """A cartpole entity."""
 
-  def __init__(self, spec: mujoco.MjSpec):
-    super().__init__(spec)
-    self._slider_joint = spec.joint("slider")
-    self._hinge_joint = spec.joint("hinge_1")
+  def post_init(self):
+    self._slider_joint = self.spec.joint("slider")
+    self._hinge_joint = self.spec.joint("hinge_1")
 
   @property
   def slider_joint(self) -> mujoco.MjsJoint:

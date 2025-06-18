@@ -7,7 +7,7 @@ from typing import Dict, Optional, Sequence, Tuple, TypeVar, Type
 import mujoco
 import numpy as np
 
-from mjlab._src import sim_structs
+from mjlab.entities import structs
 
 T = TypeVar("T", bound="Entity")
 
@@ -17,6 +17,11 @@ class Entity(abc.ABC):
 
   def __init__(self, spec: mujoco.MjSpec):
     self._spec = spec
+    self.post_init()
+
+  def post_init(self):
+    """Callback executed after the constructor."""
+    pass
 
   @classmethod
   def from_file(
@@ -85,7 +90,7 @@ class Entity(abc.ABC):
 
   def add_keyframe(
     self,
-    keyframe: sim_structs.Keyframe,
+    keyframe: structs.Keyframe,
     ctrl: Optional[np.ndarray] = None,
   ) -> None:
     """Adds a keyframe to the robot."""
@@ -94,7 +99,7 @@ class Entity(abc.ABC):
       assert ctrl.shape == keyframe.joint_angles.shape
       key.ctrl = ctrl
 
-  def add_collision_pair(self, collision_pair: sim_structs.CollisionPair) -> None:
+  def add_collision_pair(self, collision_pair: structs.CollisionPair) -> None:
     """Adds a collision pair to the robot."""
     pair = self._spec.add_pair(
       name=collision_pair.full_name(),
@@ -108,8 +113,11 @@ class Entity(abc.ABC):
         pair.friction[i] = collision_pair.friction[i]
     if collision_pair.solref is not None:
       pair.solref = collision_pair.solref
+    if collision_pair.solimp is not None:
+      for i in range(len(collision_pair.solimp)):
+        pair.solimp[i] = collision_pair.solimp[i]
 
-  def add_pd_actuator(self, actuator: sim_structs.PDActuator) -> None:
+  def add_pd_actuator(self, actuator: structs.PDActuator) -> None:
     """Adds a PD actuator to the robot."""
     act = self._spec.add_actuator(
       name=actuator.joint_name,
@@ -125,7 +133,7 @@ class Entity(abc.ABC):
 
   def add_pd_actuators_from_patterns(
     self,
-    actuator_specs: Sequence[sim_structs.PDActuator],
+    actuator_specs: Sequence[structs.PDActuator],
     zero_out_joint_damping: bool = True,
   ) -> None:
     for joint in self.get_non_root_joints():
@@ -135,13 +143,14 @@ class Entity(abc.ABC):
           if zero_out_joint_damping:
             joint.damping = 0.0
           joint.armature = actual_spec.armature
+          joint.frictionloss = actual_spec.frictionloss
           if actual_spec.torque_limit is not None:
             joint.actfrcrange[0] = -actual_spec.torque_limit
             joint.actfrcrange[1] = actual_spec.torque_limit
           self.add_pd_actuator(actual_spec)
           break
 
-  def add_sensor(self, sensor: sim_structs.Sensor) -> None:
+  def add_sensor(self, sensor: structs.Sensor) -> None:
     """Adds a sensor to the robot."""
 
     sensor_type_map = {

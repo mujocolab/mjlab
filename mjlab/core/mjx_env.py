@@ -1,9 +1,7 @@
 from dataclasses import dataclass
 from functools import partial
 from typing import (
-  Any,
   Callable,
-  Dict,
   Generic,
   List,
   Mapping,
@@ -18,11 +16,10 @@ import jax.numpy as jp
 import mujoco
 import numpy as np
 import tqdm
-from etils import epath
 from mujoco import mjx
 
-from mjlab._src import mjx_task
-from mjlab._src.types import ObservationSize, State
+from mjlab.core import mjx_task
+from mjlab.core.types import ObservationSize, State
 
 TaskT = TypeVar("TaskT", bound=mjx_task.MjxTask)
 
@@ -88,7 +85,7 @@ class MjxEnv(Generic[TaskT]):
     # Ensure offscreen buffer is big enough to render the full image.
     self.task.model.vis.global_.offwidth = width
     self.task.model.vis.global_.offheight = height
-    return render_array(
+    return _render_array(
       self.task.model,
       trajectory,
       height,
@@ -103,7 +100,7 @@ class MjxEnv(Generic[TaskT]):
     return self
 
 
-def render_array(
+def _render_array(
   mj_model: mujoco.MjModel,
   trajectory: Union[List[State], State],
   height: int = 480,
@@ -137,27 +134,6 @@ def render_array(
 
   renderer.close()
   return out
-
-
-def update_assets(
-  assets: Dict[str, Any],
-  path: Union[str, epath.Path],
-  glob: str = "*",
-  recursive: bool = False,
-):
-  """Update the assets dictionary with the contents of the given path.
-
-  Args:
-    assets: The dictionary to update.
-    path: The path to the directory to update.
-    glob: The glob pattern to use to find files.
-    recursive: Whether to recursively update the assets dictionary.
-  """
-  for f in epath.Path(path).glob(glob):
-    if f.is_file():
-      assets[f.name] = f.read_bytes()
-    elif f.is_dir() and recursive:
-      update_assets(assets, f, glob, recursive)
 
 
 def init(model: mjx.Model) -> mjx.Data:

@@ -3,9 +3,10 @@ from typing import Dict, Optional
 
 import mujoco
 
-from mjlab._src import ROOT_PATH, entity
+from mjlab.core import entity
+from mjlab import MJLAB_ROOT_PATH
 
-_XML = ROOT_PATH / "arenas" / "xmls" / "arena.xml"
+_XML = MJLAB_ROOT_PATH / "mjlab" / "entities" / "arenas" / "xmls" / "arena.xml"
 
 
 class Arena(entity.Entity, abc.ABC):
