@@ -81,6 +81,7 @@ class Go1GetupConfig(mjx_task.TaskConfig):
   max_episode_length: int = 300
   noise_level: float = 1.0
   action_scale: float = 0.5
+  drop_from_height_prob: float = 0.6
   soft_joint_pos_limit_factor: float = 0.95
   reward_config: RewardConfig = RewardConfig()
   noise_config: NoiseConfig = NoiseConfig()
@@ -188,7 +189,6 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
 
   def initialize_episode(self, data: mjx.Data, rng: jax.Array):
     qpos = jp.zeros(self.mjx_model.nq)
-    qvel = jp.zeros(self.mjx_model.nv)
 
     rng, key = jax.random.split(rng)
     joint_angles = jax.random.uniform(
@@ -204,7 +204,11 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
     quat /= jp.linalg.norm(quat) + 1e-6
     qpos = qpos.at[3:7].set(quat)
 
-    data = data.replace(qpos=qpos, qvel=qvel, ctrl=qpos[7:])
+    rng, key = jax.random.split(rng)
+    drop_from_height = jax.random.bernoulli(key, self.cfg.drop_from_height_prob)
+    qpos = jp.where(drop_from_height, qpos, self._init_q)
+
+    data = data.replace(qpos=qpos, ctrl=qpos[7:])
 
     # Initialize root body velocity.
     rng, key = jax.random.split(rng)
@@ -362,8 +366,9 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
 
   def _reward_height(self, torso_height: jax.Array) -> jax.Array:
     height = jp.min(jp.array([torso_height, self._z_des]))
-    error = jp.square(self._z_des - height)
-    return jp.exp(-error / 0.005)
+    # error = jp.square(self._z_des - height)
+    # return jp.exp(-error / 0.005)
+    return jp.exp(height) - 1.0
 
   def _reward_posture(self, joint_angles: jax.Array, gate: jax.Array) -> jax.Array:
     cost = jp.sum(jp.square(joint_angles - self._default_pose))
