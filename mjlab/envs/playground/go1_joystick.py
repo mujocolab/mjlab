@@ -8,6 +8,7 @@ import enum
 from mujoco import mjx
 import numpy as np
 
+from mjlab.utils.collision import geoms_colliding
 from mjlab.core import entity, mjx_env, mjx_task
 from mjlab.entities.arenas import FlatTerrainArena, PlaygroundTerrainArena
 from mjlab.entities.go1 import UnitreeGo1, get_assets, GO1_XML
@@ -25,7 +26,7 @@ class Go1(UnitreeGo1):
     for geom in self.spec.geoms:
       if geom.name not in consts.FEET_GEOMS:
         continue
-      geom.contype = 0
+      geom.contype = 1
       geom.conaffinity = 1
       geom.solimp[:3] = (0.9, 0.95, 0.023)
 
@@ -88,6 +89,7 @@ class RewardScales:
   dof_acc: float = -2.5e-7
   action_rate: float = -0.01
   energy: float = -0.001
+  collision: float = -1.0
 
 
 @dataclass(frozen=True)
@@ -150,6 +152,11 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
     r = uppers - lowers
     self._soft_lowers = c - 0.5 * r * self.cfg.soft_joint_pos_limit_factor
     self._soft_uppers = c + 0.5 * r * self.cfg.soft_joint_pos_limit_factor
+    self._collision_pairs = []
+    for pair in (("FR", "FL"), ("RR", "RL")):
+      geom1_id = self.model.geom(pair[0]).id
+      geom2_id = self.model.geom(pair[1]).id
+      self._collision_pairs.append((geom1_id, geom2_id))
 
   @property
   def robot(self) -> robot.Robot:
@@ -186,7 +193,7 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
 
     arena.add_skybox()
     arena.floor_geom.contype = 1
-    arena.floor_geom.conaffinity = 0
+    arena.floor_geom.conaffinity = 1
     arena.floor_geom.priority = 1
     arena.floor_geom.condim = 3
     arena.floor_geom.friction[0] = 0.6
@@ -391,6 +398,7 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
       "dof_pos_limits": self._cost_joint_pos_limits(joint_angles),
       "energy": self._cost_energy(joint_velocities, joint_torques),
       "feet_phase": self._reward_feet_phase(data, state.info["phase"]),
+      "collision": self._cost_collision(data),
     }
     rewards = {k: v * self._reward_scales[k] for k, v in reward_terms.items()}
     for k, v in rewards.items():
@@ -476,6 +484,12 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
     out_of_limits = -jp.clip(qpos - self._soft_lowers, None, 0.0)
     out_of_limits += jp.clip(qpos - self._soft_uppers, 0.0, None)
     return jp.sum(out_of_limits)
+
+  def _cost_collision(self, data: mjx.Data) -> jax.Array:
+    coll = []
+    for geom1_id, geom2_id in self._collision_pairs:
+      coll.append(geoms_colliding(data, geom1_id, geom2_id))
+    return jp.any(jp.stack(coll))
 
   def _reward_feet_phase(self, data: mjx.Data, phase: jax.Array) -> jax.Array:
     foot_z = data.site_xpos[self._feet_site_id][..., -1]
