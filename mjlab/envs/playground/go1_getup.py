@@ -8,7 +8,7 @@ from mujoco import mjx
 import numpy as np
 
 from mjlab.utils import reset as reset_utils
-from mjlab.core import entity, mjx_env, mjx_task, step
+from mjlab.core import entity, mjx_env, mjx_task
 from mjlab.entities.arenas import FlatTerrainArena
 from mjlab.entities.go1 import UnitreeGo1, get_assets, GO1_XML
 from mjlab.entities.go1 import go1_constants as consts
@@ -58,8 +58,6 @@ class RewardScales:
 @dataclass(frozen=True)
 class RewardConfig:
   scales: RewardScales = RewardScales()
-  tracking_sigma: float = 0.25
-  max_foot_height: float = 0.1
 
 
 @dataclass(frozen=True)
@@ -226,8 +224,10 @@ class Go1GetupEnv(mjx_task.MjxTask[Go1GetupConfig]):
       },
     )
 
-    # Let the robot fall and settle.
-    data = step(self.mjx_model, data, self._settle_steps)
+    def settle(_, data: mjx.Data) -> mjx.Data:
+      return mjx.step(self.mjx_model, data)
+
+    data = jax.lax.fori_loop(0, self._settle_steps, settle, data)
     data = data.replace(time=0.0)
 
     info = {
