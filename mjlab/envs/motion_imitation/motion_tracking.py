@@ -97,27 +97,27 @@ class G1(UnitreeG1):
 @dataclass(frozen=True)
 class RewardScales:
   # Pos.
-  track_root_pos: float = 0.15
-  track_joint_pos: float = 0.5
-  track_eef_pos: float = 0.5
-  track_body_pos: float = 0.15
+  track_root_pos: float = 1.0
+  track_joint_pos: float = 0.0
+  track_eef_pos: float = 1.0
+  track_body_pos: float = 1.0
   # Rot.
-  track_root_rot: float = 0.075
-  track_eef_rot: float = 0.0
-  track_body_rot: float = 0.075
+  track_root_rot: float = 1.0
+  track_eef_rot: float = 1.0
+  track_body_rot: float = 1.0
   # Linvels.
-  track_root_vel: float = 0.05
-  track_eef_vel: float = 0.0
-  track_body_vel: float = 0.05
+  track_root_vel: float = 1.0
+  track_eef_vel: float = 1.0
+  track_body_vel: float = 1.0
   # Angvels.
-  track_joint_vel: float = 0.05
-  track_root_angvel: float = 0.075
-  track_eef_angvel: float = 0.0
-  track_body_angvel: float = 0.075
+  track_joint_vel: float = 0.0
+  track_root_angvel: float = 1.0
+  track_eef_angvel: float = 1.0
+  track_body_angvel: float = 1.0
   # COM.
   track_com_pos: float = 0.0
   # Other.
-  energy: float = -3e-4
+  energy: float = 0.0
   action_rate: float = -1e-3
   termination: float = 0.0
   alive: float = 0.0
@@ -130,24 +130,24 @@ class RewardConfig:
   scales: RewardScales = RewardScales()
   # Pos.
   joint_pos_std: float = 0.5
-  root_pos_std: float = 40.0
-  eef_pos_std: float = 40.0
-  body_pos_std: float = 40.0
+  root_pos_std: float = 0.5
+  eef_pos_std: float = 0.1
+  body_pos_std: float = 0.5
   # Rot.
-  root_rot_std: float = 10.0
-  eef_rot_std: float = 10.0
-  body_rot_std: float = 10.0
+  root_rot_std: float = 0.7
+  eef_rot_std: float = 0.7
+  body_rot_std: float = 0.7
   # Linvels.
-  root_vel_std: float = 0.1
-  eef_vel_std: float = 2.0
-  body_vel_std: float = 2.0
+  root_vel_std: float = 1.0
+  eef_vel_std: float = 1.0
+  body_vel_std: float = 1.0
   # Angvels.
-  joint_vel_std: float = 0.01
-  root_angvel_std: float = 0.1
-  eef_angvel_std: float = 0.1
-  body_angvel_std: float = 0.1
+  joint_vel_std: float = 1.0
+  root_angvel_std: float = 1.57
+  eef_angvel_std: float = 1.57
+  body_angvel_std: float = 1.57
   # COM.
-  com_pos_std: float = 10.0
+  com_pos_std: float = 0.5
 
 
 @dataclass(frozen=True)
@@ -280,7 +280,7 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
     # fmt: on
 
   @property
-  def robot(self):
+  def robot(self) -> entity.Entity:
     return self.g1
 
   @property
@@ -313,11 +313,6 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
     arena.spec.attach(g1_entity.spec, prefix="", frame=frame)
 
     return arena, {"g1": g1_entity, "arena": arena}
-
-  def before_step(self, action: jax.Array, state: mjx_env.State) -> mjx.Data:
-    motor_targets = self._default_pose + action * self.cfg.action_scale
-    state.info["step_index"] = state.info["step_index"] + 1
-    return super().before_step(motor_targets, state)
 
   def initialize_episode(self, data: mjx.Data, rng: jax.Array):
     rng, rng_init = jax.random.split(rng)
@@ -364,7 +359,27 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
       "last_act": jp.zeros(self.mjx_model.nu),
     }
     metrics = {f"reward/{k}": jp.zeros(()) for k in self._reward_scales.keys()}
+    metrics["metrics/root_pos_error"] = jp.zeros(())
+    metrics["metrics/root_rot_error"] = jp.zeros(())
+    metrics["metrics/eef_pos_error"] = jp.zeros(())
+    metrics["metrics/eef_rot_error"] = jp.zeros(())
+    metrics["metrics/body_pos_error"] = jp.zeros(())
+    metrics["metrics/body_rot_error"] = jp.zeros(())
+    metrics["metrics/joint_pos_error"] = jp.zeros(())
+    metrics["metrics/root_vel_error"] = jp.zeros(())
+    metrics["metrics/root_angvel_error"] = jp.zeros(())
+    metrics["metrics/eef_vel_error"] = jp.zeros(())
+    metrics["metrics/eef_angvel_error"] = jp.zeros(())
+    metrics["metrics/joint_vel_error"] = jp.zeros(())
+    metrics["metrics/body_vel_error"] = jp.zeros(())
+    metrics["metrics/body_angvel_error"] = jp.zeros(())
+    metrics["metrics/com_pos_error"] = jp.zeros(())
     return data, info, metrics
+
+  def before_step(self, action: jax.Array, state: mjx_env.State) -> mjx.Data:
+    motor_targets = self._default_pose + action * self.cfg.action_scale
+    state.info["step_index"] = state.info["step_index"] + 1
+    return super().before_step(motor_targets, state)
 
   def _apply_noise(
     self, info: dict[str, Any], value: jax.Array, scale: float
@@ -489,25 +504,56 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
 
   def get_reward(self, data, state, action, done):
     ref = self._ref.get(state.info["step_index"])
+    cfg: RewardConfig = self.cfg.reward_config
     reward_terms = {
       # Positions and rotations.
-      "track_root_pos": self._reward_tracking_root_pos(data, ref, state.metrics),
-      "track_root_rot": self._reward_tracking_root_rot(data, ref, state.metrics),
-      "track_eef_pos": self._reward_tracking_eef_pos(data, ref, state.metrics),
-      "track_eef_rot": self._reward_tracking_eef_rot(data, ref, state.metrics),
-      "track_body_pos": self._reward_tracking_body_pos(data, ref, state.metrics),
-      "track_body_rot": self._reward_tracking_body_rot(data, ref, state.metrics),
-      "track_joint_pos": self._reward_tracking_joint_pos(data, ref, state.metrics),
+      "track_root_pos": self._reward_tracking_root_pos(
+        data, ref, state.metrics, cfg.root_pos_std
+      ),
+      "track_root_rot": self._reward_tracking_root_rot(
+        data, ref, state.metrics, cfg.root_rot_std
+      ),
+      "track_eef_pos": self._reward_tracking_eef_pos(
+        data, ref, state.metrics, cfg.eef_pos_std
+      ),
+      "track_eef_rot": self._reward_tracking_eef_rot(
+        data, ref, state.metrics, cfg.eef_rot_std
+      ),
+      "track_body_pos": self._reward_tracking_body_pos(
+        data, ref, state.metrics, cfg.body_pos_std
+      ),
+      "track_body_rot": self._reward_tracking_body_rot(
+        data, ref, state.metrics, cfg.body_rot_std
+      ),
+      "track_joint_pos": self._reward_tracking_joint_pos(
+        data, ref, state.metrics, cfg.joint_pos_std
+      ),
       # Linear and angular velocities.
-      "track_root_vel": self._reward_tracking_root_vel(data, ref, state.metrics),
-      "track_root_angvel": self._reward_tracking_root_angvel(data, ref, state.metrics),
-      "track_eef_vel": self._reward_tracking_eef_vel(data, ref, state.metrics),
-      "track_eef_angvel": self._reward_tracking_eef_angvel(data, ref, state.metrics),
-      "track_joint_vel": self._reward_tracking_joint_vel(data, ref, state.metrics),
-      "track_body_vel": self._reward_tracking_body_vel(data, ref, state.metrics),
-      "track_body_angvel": self._reward_tracking_body_angvel(data, ref, state.metrics),
+      "track_root_vel": self._reward_tracking_root_vel(
+        data, ref, state.metrics, cfg.root_vel_std
+      ),
+      "track_root_angvel": self._reward_tracking_root_angvel(
+        data, ref, state.metrics, cfg.root_angvel_std
+      ),
+      "track_eef_vel": self._reward_tracking_eef_vel(
+        data, ref, state.metrics, cfg.eef_vel_std
+      ),
+      "track_eef_angvel": self._reward_tracking_eef_angvel(
+        data, ref, state.metrics, cfg.eef_angvel_std
+      ),
+      "track_joint_vel": self._reward_tracking_joint_vel(
+        data, ref, state.metrics, cfg.joint_vel_std
+      ),
+      "track_body_vel": self._reward_tracking_body_vel(
+        data, ref, state.metrics, cfg.body_vel_std
+      ),
+      "track_body_angvel": self._reward_tracking_body_angvel(
+        data, ref, state.metrics, cfg.body_angvel_std
+      ),
       # COM.
-      "track_com_pos": self._reward_tracking_com_pos(data, ref, state.metrics),
+      "track_com_pos": self._reward_tracking_com_pos(
+        data, ref, state.metrics, cfg.com_pos_std
+      ),
       # Other.
       "termination": done,
       "alive": jp.array(1.0) - done,
@@ -522,96 +568,153 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
     reward = sum(rewards.values()) * self.dt
     return reward
 
+  def _exp_rew(self, error: jax.Array, std: jax.Array) -> jax.Array:
+    return jp.exp(-error / std)
+
   def _reward_tracking_root_pos(
-    self, data: mjx.Data, ref: ReferenceMotion, metrics: dict[str, Any]
+    self,
+    data: mjx.Data,
+    ref: ReferenceMotion,
+    metrics: dict[str, Any],
+    std: jax.Array,
   ) -> jax.Array:
     """Reward for tracking the root position in the world frame."""
     root_pos_diff = ref.root_pos - data.qpos[:3]
     root_pos_err = root_pos_diff @ root_pos_diff
-    return jp.exp(-self.cfg.reward_config.root_pos_std * root_pos_err)
+    metrics["metrics/root_pos_error"] = jp.sqrt(root_pos_err)
+    return self._exp_rew(root_pos_err, std)
 
   def _reward_tracking_root_rot(
-    self, data: mjx.Data, ref: ReferenceMotion, metrics: dict[str, Any]
+    self,
+    data: mjx.Data,
+    ref: ReferenceMotion,
+    metrics: dict[str, Any],
+    std: jax.Array,
   ) -> jax.Array:
     """Reward for tracking the root rotation in the world frame."""
     root_rot_diff_angle = quaternion_to_angle(data.qpos[3:7], ref.root_quat)
     root_rot_err = root_rot_diff_angle * root_rot_diff_angle
-    return jp.exp(-self.cfg.reward_config.root_rot_std * root_rot_err)
+    metrics["metrics/root_rot_error"] = root_rot_err
+    return self._exp_rew(root_rot_err, std)
 
   def _reward_tracking_eef_pos(
-    self, data: mjx.Data, ref: ReferenceMotion, metrics: dict[str, Any]
+    self,
+    data: mjx.Data,
+    ref: ReferenceMotion,
+    metrics: dict[str, Any],
+    std: jax.Array,
   ) -> jax.Array:
     """Reward for tracking the end-effector positions in the world frame."""
     eef_pos = data.xpos[self._end_effector_ids]
     ref_eef_pos = ref.pos[self._end_effector_ids]
     eef_pos_diff = ref_eef_pos - eef_pos
     eef_pos_err = jp.sum(jp.square(eef_pos_diff), axis=-1).mean()
-    return jp.exp(-self.cfg.reward_config.eef_pos_std * eef_pos_err)
+    metrics["metrics/eef_pos_error"] = jp.sqrt(eef_pos_err)
+    return self._exp_rew(eef_pos_err, std)
 
   def _reward_tracking_eef_rot(
-    self, data: mjx.Data, ref: ReferenceMotion, metrics: dict[str, Any]
+    self,
+    data: mjx.Data,
+    ref: ReferenceMotion,
+    metrics: dict[str, Any],
+    std: jax.Array,
   ) -> jax.Array:
     """Reward for tracking the end-effector rotations in the world frame."""
     eef_rot_6d = mat_to_rotation_6d(data.xmat[self._end_effector_ids])
     ref_eef_rot_6d = quaternion_to_rotation_6d(ref.rot[self._end_effector_ids])
     eef_rot_diff = eef_rot_6d - ref_eef_rot_6d
     eef_rot_err = jp.sum(jp.square(eef_rot_diff), axis=-1).mean()
-    return jp.exp(-self.cfg.reward_config.eef_rot_std * eef_rot_err)
+    metrics["metrics/eef_rot_error"] = eef_rot_err
+    return self._exp_rew(eef_rot_err, std)
 
   def _reward_tracking_body_pos(
-    self, data: mjx.Data, ref: ReferenceMotion, metrics: dict[str, Any]
+    self,
+    data: mjx.Data,
+    ref: ReferenceMotion,
+    metrics: dict[str, Any],
+    std: jax.Array,
   ) -> jax.Array:
     """Reward for tracking the body positions in the world frame."""
     body_pos = data.xpos[self._body_ids_minus_eef]
     ref_body_pos = ref.pos[self._body_ids_minus_eef]
     body_pos_diff = ref_body_pos - body_pos
     body_pos_err = jp.sum(jp.square(body_pos_diff), axis=-1).mean()
-    return jp.exp(-self.cfg.reward_config.body_pos_std * body_pos_err)
+    metrics["metrics/body_pos_error"] = jp.sqrt(body_pos_err)
+    return self._exp_rew(body_pos_err, std)
 
   def _reward_tracking_body_rot(
-    self, data: mjx.Data, ref: ReferenceMotion, metrics: dict[str, Any]
+    self,
+    data: mjx.Data,
+    ref: ReferenceMotion,
+    metrics: dict[str, Any],
+    std: jax.Array,
   ) -> jax.Array:
     """Reward for tracking the body rotations in the world frame."""
     body_rot_6d = mat_to_rotation_6d(data.xmat[self._body_ids_minus_eef])
     ref_body_rot_6d = quaternion_to_rotation_6d(ref.rot[self._body_ids_minus_eef])
     body_rot_diff = body_rot_6d - ref_body_rot_6d
     body_rot_err = jp.sum(jp.square(body_rot_diff), axis=-1).mean()
-    return jp.exp(-self.cfg.reward_config.body_rot_std * body_rot_err)
+    metrics["metrics/body_rot_error"] = body_rot_err
+    return self._exp_rew(body_rot_err, std)
 
   def _reward_tracking_joint_pos(
-    self, data: mjx.Data, ref: ReferenceMotion, metrics: dict[str, Any]
+    self,
+    data: mjx.Data,
+    ref: ReferenceMotion,
+    metrics: dict[str, Any],
+    std: jax.Array,
   ) -> jax.Array:
     """Reward for tracking the joint positions."""
     diff = ref.joint_pos - data.qpos[7:]
     error = diff @ diff
-    return jp.exp(-self.cfg.reward_config.joint_pos_std * error)
+    metrics["metrics/joint_pos_error"] = jp.sqrt(error)
+    return self._exp_rew(error, std)
 
   def _reward_tracking_root_vel(
-    self, data: mjx.Data, ref: ReferenceMotion, metrics: dict[str, Any]
+    self,
+    data: mjx.Data,
+    ref: ReferenceMotion,
+    metrics: dict[str, Any],
+    std: jax.Array,
   ) -> jax.Array:
     """Reward for tracking the root linear velocity in the world frame."""
     root_vel_diff = ref.root_vel - data.qvel[:3]
     root_vel_err = root_vel_diff @ root_vel_diff
-    return jp.exp(-self.cfg.reward_config.root_vel_std * root_vel_err)
+    metrics["metrics/root_vel_error"] = jp.sqrt(root_vel_err)
+    return self._exp_rew(root_vel_err, std)
 
   def _reward_tracking_root_angvel(
-    self, data: mjx.Data, ref: ReferenceMotion, metrics: dict[str, Any]
+    self,
+    data: mjx.Data,
+    ref: ReferenceMotion,
+    metrics: dict[str, Any],
+    std: jax.Array,
   ) -> jax.Array:
     """Reward for tracking the root angular velocity in the world frame."""
     root_ang_vel_diff = ref.root_angvel - data.qvel[3:6]
     root_ang_vel_err = root_ang_vel_diff @ root_ang_vel_diff
-    return jp.exp(-self.cfg.reward_config.root_angvel_std * root_ang_vel_err)
+    metrics["metrics/root_angvel_error"] = jp.sqrt(root_ang_vel_err)
+    return self._exp_rew(root_ang_vel_err, std)
 
   def _reward_tracking_joint_vel(
-    self, data: mjx.Data, ref: ReferenceMotion, metrics: dict[str, Any]
+    self,
+    data: mjx.Data,
+    ref: ReferenceMotion,
+    metrics: dict[str, Any],
+    std: jax.Array,
   ) -> jax.Array:
     """Reward for tracking the joint velocities."""
     diff = ref.joint_vel - data.qvel[6:]
     error = diff @ diff
-    return jp.exp(-self.cfg.reward_config.joint_vel_std * error)
+    metrics["metrics/joint_vel_error"] = jp.sqrt(error)
+    return self._exp_rew(error, std)
 
   def _reward_tracking_eef_vel(
-    self, data: mjx.Data, ref: ReferenceMotion, metrics: dict[str, Any]
+    self,
+    data: mjx.Data,
+    ref: ReferenceMotion,
+    metrics: dict[str, Any],
+    std: jax.Array,
   ) -> jax.Array:
     """Reward for tracking the end-effector linear velocities in the world frame."""
     # Convert COM-frame velocities to world-frame velocities.
@@ -622,10 +725,15 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
     ref_eef_vel = ref.linvel[self._end_effector_ids]
     eef_vel_diff = ref_eef_vel - eef_vel
     eef_vel_err = jp.sum(jp.square(eef_vel_diff), axis=-1).mean()
-    return jp.exp(-self.cfg.reward_config.eef_vel_std * eef_vel_err)
+    metrics["metrics/eef_vel_error"] = jp.sqrt(eef_vel_err)
+    return self._exp_rew(eef_vel_err, std)
 
   def _reward_tracking_eef_angvel(
-    self, data: mjx.Data, ref: ReferenceMotion, metrics: dict[str, Any]
+    self,
+    data: mjx.Data,
+    ref: ReferenceMotion,
+    metrics: dict[str, Any],
+    std: jax.Array,
   ) -> jax.Array:
     """Reward for tracking the end-effector angular velocities in the world frame."""
     # Com-frame angular velocities are also world-frame angular velocities.
@@ -633,10 +741,15 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
     ref_eef_angvel = ref.angvel[self._end_effector_ids]
     eef_angvel_diff = ref_eef_angvel - eef_angvel
     eef_angvel_err = jp.sum(jp.square(eef_angvel_diff), axis=-1).mean()
-    return jp.exp(-self.cfg.reward_config.eef_angvel_std * eef_angvel_err)
+    metrics["metrics/eef_angvel_error"] = jp.sqrt(eef_angvel_err)
+    return self._exp_rew(eef_angvel_err, std)
 
   def _reward_tracking_body_vel(
-    self, data: mjx.Data, ref: ReferenceMotion, metrics: dict[str, Any]
+    self,
+    data: mjx.Data,
+    ref: ReferenceMotion,
+    metrics: dict[str, Any],
+    std: jax.Array,
   ) -> jax.Array:
     """Reward for tracking the body linear velocities in the world frame."""
     # Convert COM-frame velocities to world-frame velocities.
@@ -647,10 +760,15 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
     ref_body_vel = ref.linvel[self._body_ids_minus_eef]
     body_vel_diff = ref_body_vel - body_vel
     body_vel_err = jp.sum(jp.square(body_vel_diff), axis=-1).mean()
-    return jp.exp(-self.cfg.reward_config.body_vel_std * body_vel_err)
+    metrics["metrics/body_vel_error"] = jp.sqrt(body_vel_err)
+    return self._exp_rew(body_vel_err, std)
 
   def _reward_tracking_body_angvel(
-    self, data: mjx.Data, ref: ReferenceMotion, metrics: dict[str, Any]
+    self,
+    data: mjx.Data,
+    ref: ReferenceMotion,
+    metrics: dict[str, Any],
+    std: jax.Array,
   ) -> jax.Array:
     """Reward for tracking the body angular velocities in the world frame."""
     # Com-frame angular velocities are also world-frame angular velocities.
@@ -658,15 +776,21 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
     ref_body_angvel = ref.angvel[self._body_ids_minus_eef]
     body_angvel_diff = ref_body_angvel - body_angvel
     body_angvel_err = jp.sum(jp.square(body_angvel_diff), axis=-1).mean()
-    return jp.exp(-self.cfg.reward_config.body_angvel_std * body_angvel_err)
+    metrics["metrics/body_angvel_error"] = jp.sqrt(body_angvel_err)
+    return self._exp_rew(body_angvel_err, std)
 
   def _reward_tracking_com_pos(
-    self, data: mjx.Data, ref: ReferenceMotion, metrics: dict[str, Any]
+    self,
+    data: mjx.Data,
+    ref: ReferenceMotion,
+    metrics: dict[str, Any],
+    std: jax.Array,
   ) -> jax.Array:
     """Reward for tracking the center of mass position."""
     com_pos_diff = ref.com - data.subtree_com[0]
     com_pos_err = com_pos_diff @ com_pos_diff
-    return jp.exp(-self.cfg.reward_config.com_pos_std * com_pos_err)
+    metrics["metrics/com_pos_error"] = jp.sqrt(com_pos_err)
+    return self._exp_rew(com_pos_err, std)
 
   def _cost_action_rate(self, act: jax.Array, last_act: jax.Array) -> jax.Array:
     """Cost for the action rate."""
