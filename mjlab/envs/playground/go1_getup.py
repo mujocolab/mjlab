@@ -95,6 +95,7 @@ class Go1GetupConfig(mjx_task.TaskConfig):
   integrator: str = "implicitfast"
   euler_damping: bool = False
   max_episode_length: int = 300
+  friction_cone: str = "pyramidal"
   noise_level: float = 1.0
   action_scale: float = 0.5
   drop_from_height_prob: float = 0.6
