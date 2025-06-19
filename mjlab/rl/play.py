@@ -83,6 +83,8 @@ def main(
     path=export_model_dir,
     filename="policy.onnx",
   )
+  exporter.attach_onnx_metadata(env.unwrapped, wandb_run_path, path=export_model_dir)
+  print(f"[INFO] Saved policy to: {export_model_dir / 'policy.onnx'}")
 
   task: mjx_task.MjxTask = env.unwrapped.task
   m = task.model

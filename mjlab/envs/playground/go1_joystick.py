@@ -47,7 +47,7 @@ class Go1(UnitreeGo1):
 
   @property
   def default_joint_pos_nominal(self) -> Tuple[float, ...]:
-    return self._default_joint_pos_nominal
+    return tuple(self._default_joint_pos_nominal.tolist())
 
 
 def get_rz(
@@ -213,7 +213,7 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
     def _randomize(rng):
       # Floor friction: *U(0.5, 1.0).
       rng, key = jax.random.split(rng)
-      friction = jax.random.uniform(key, minval=0.2, maxval=1.0)
+      friction = jax.random.uniform(key, minval=0.4, maxval=1.0)
       geom_friction = model.geom_friction.at[self._floor_geom_id, 0].set(friction)
 
       # Joint stiction: *U(0.9, 1.1).

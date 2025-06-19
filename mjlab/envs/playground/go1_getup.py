@@ -57,7 +57,7 @@ class Go1(UnitreeGo1):
 
   @property
   def default_joint_pos_nominal(self) -> Tuple[float, ...]:
-    return self._default_joint_pos_nominal
+    return tuple(self._default_joint_pos_nominal.tolist())
 
 
 @dataclass(frozen=True)

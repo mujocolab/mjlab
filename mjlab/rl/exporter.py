@@ -130,7 +130,7 @@ def attach_onnx_metadata(
   for k, v in metadata.items():
     entry = onnx.StringStringEntryProto()
     entry.key = k
-    entry.value = list_to_csv_str(v) if isinstance(v, list) else str(v)
+    entry.value = list_to_csv_str(v) if isinstance(v, (list, tuple)) else str(v)
     model.metadata_props.append(entry)
 
   onnx.save(model, onnx_path)
