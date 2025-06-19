@@ -14,6 +14,8 @@ class UnitreeGo1(robot.Robot):
   """Unitree Go1 quadruped."""
 
   def post_init(self):
+    self.add_pd_actuators_from_patterns(consts.ACTUATOR_SPECS)
+
     for keyframe in consts.KEYFRAMES:
       self.add_keyframe(keyframe, ctrl=keyframe.joint_angles)
 
@@ -23,6 +25,7 @@ class UnitreeGo1(robot.Robot):
     self._torso_body = self.spec.body(consts.TORSO_BODY)
     self._imu_site = self.spec.site(consts.IMU_SITE)
     self._joints = self.get_non_root_joints()
+    self._actuators = self.spec.actuators
     self._gyro_sensor = self.spec.sensor("gyro")
     self._local_linvel_sensor = self.spec.sensor("local_linvel")
     self._upvector_sensor = self.spec.sensor("upvector")
@@ -30,6 +33,10 @@ class UnitreeGo1(robot.Robot):
   @property
   def joints(self) -> Tuple[mujoco.MjsJoint]:
     return self._joints
+
+  @property
+  def actuators(self) -> Tuple[mujoco.MjsActuator]:
+    return self._actuators
 
   @property
   def joint_names(self) -> Tuple[str, ...]:

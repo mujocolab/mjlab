@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import Optional
 import onnx
@@ -103,9 +102,9 @@ def list_to_csv_str(arr, *, decimals: int = 3, delimiter: str = ",") -> str:
 
 
 def attach_onnx_metadata(
-  env: MjxEnv, run_path: str, path: str, filename="policy.onnx"
+  env: MjxEnv, run_path: Path, path: Path, filename="policy.onnx"
 ) -> None:
-  onnx_path = os.path.join(path, filename)
+  onnx_path = path / filename
 
   task: MjxTask = env.task
   robot = task.robot
@@ -115,7 +114,7 @@ def attach_onnx_metadata(
     command_names = task.command_names
 
   metadata = {
-    "run_path": run_path,
+    "run_path": str(run_path),
     "joint_names": robot.joint_names,
     "joint_stiffness": robot.joint_stiffness,
     "joint_damping": robot.joint_damping,

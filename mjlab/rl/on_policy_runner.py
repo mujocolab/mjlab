@@ -14,5 +14,9 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
       export_policy_as_onnx(
         self.alg.policy, normalizer=self.obs_normalizer, path=policy_path
       )
-      attach_onnx_metadata(self.env.unwrapped, wandb.run.name, path=policy_path)
+      wandb_run = wandb.run
+      assert wandb_run is not None
+      run_name = wandb_run.name
+      assert run_name is not None
+      attach_onnx_metadata(self.env.unwrapped, Path(run_name), path=policy_path)
       wandb.save(policy_path / "policy.onnx", base_path=policy_path)

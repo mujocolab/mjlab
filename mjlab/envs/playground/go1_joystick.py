@@ -10,7 +10,7 @@ import numpy as np
 
 from mjlab.utils.collision import geoms_colliding
 from mjlab.core import entity, mjx_env, mjx_task
-from mjlab.entities.arenas import FlatTerrainArena, PlaygroundTerrainArena
+from mjlab.entities.arenas import FlatTerrainArena, PlaygroundTerrainArena, Arena
 from mjlab.entities.go1 import UnitreeGo1, get_assets, GO1_XML
 from mjlab.entities.go1 import go1_constants as consts
 from mjlab.entities import robot
@@ -21,8 +21,6 @@ class Go1(UnitreeGo1):
   """Go1 with custom collision pairs."""
 
   def post_init(self):
-    self.add_pd_actuators_from_patterns(consts.ACTUATOR_SPECS)
-
     for geom in self.spec.geoms:
       if geom.name not in consts.FEET_GEOMS:
         continue
@@ -32,7 +30,6 @@ class Go1(UnitreeGo1):
 
     super().post_init()
 
-    self._actuators = self.spec.actuators
     self._joint_stiffness = tuple([a.gainprm[0] for a in self._actuators])
     self._joint_damping = tuple([-a.biasprm[2] for a in self._actuators])
     self._default_joint_pos_nominal = self.spec.key("home").ctrl
@@ -118,6 +115,7 @@ class Go1JoystickConfig(mjx_task.TaskConfig):
   solver_ls_iterations: int = 8
   integrator: str = "implicitfast"
   euler_damping: bool = False
+  friction_cone: str = "elliptic"
   max_episode_length: int = 1_000
   noise_level: float = 1.0
   action_scale: float = 0.5
@@ -186,12 +184,13 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
     assets = get_assets()
     go1_entity = Go1.from_file(GO1_XML, assets=assets)
 
+    arena: Arena
     if config.terrain == Terrain.PLAYGROUND:
       arena = PlaygroundTerrainArena()
     else:
       arena = FlatTerrainArena()
+      arena.add_skybox()
 
-    arena.add_skybox()
     arena.floor_geom.contype = 1
     arena.floor_geom.conaffinity = 1
     arena.floor_geom.priority = 1
@@ -211,9 +210,9 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
 
     @jax.vmap
     def _randomize(rng):
-      # Floor friction: *U(0.5, 1.0).
+      # Floor friction: *U(0.2, 1.0).
       rng, key = jax.random.split(rng)
-      friction = jax.random.uniform(key, minval=0.4, maxval=1.0)
+      friction = jax.random.uniform(key, minval=0.2, maxval=1.0)
       geom_friction = model.geom_friction.at[self._floor_geom_id, 0].set(friction)
 
       # Joint stiction: *U(0.9, 1.1).

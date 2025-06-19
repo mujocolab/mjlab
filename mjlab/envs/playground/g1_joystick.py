@@ -162,6 +162,27 @@ class G1Env(mjx_task.MjxTask[G1Config]):
     )
     # fmt: on
 
+  @property
+  def observation_names(self) -> Tuple[str, ...]:
+    return (
+      "base_ang_vel",
+      "projected_gravity",
+      "joint_pos",
+      "joint_vel",
+      "base_lin_vel",
+      "actions",
+      "command",
+      "phase",
+    )
+
+  @property
+  def command_names(self) -> Tuple[str, ...]:
+    return ("twist",)
+
+  @property
+  def robot(self) -> entity.Entity:
+    return self.g1
+
   @staticmethod
   def build_scene(config: G1Config) -> Tuple[entity.Entity, Dict[str, entity.Entity]]:
     del config  # Unused.

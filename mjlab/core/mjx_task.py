@@ -9,12 +9,16 @@ import mujoco
 from mujoco import mjx
 
 from mjlab.core import entity
-from mjlab.entities import robot
 from mjlab.core.types import Observation, State
 
 _integrator_map = {
   "implicitfast": mujoco.mjtIntegrator.mjINT_IMPLICITFAST,
   "euler": mujoco.mjtIntegrator.mjINT_EULER,
+}
+
+_cone_map = {
+  "pyramidal": mujoco.mjtCone.mjCONE_PYRAMIDAL,
+  "elliptic": mujoco.mjtCone.mjCONE_ELLIPTIC,
 }
 
 
@@ -37,6 +41,8 @@ class TaskConfig:
   """Maximum number of steps per episode."""
   integrator: str
   """Integrator to use for the simulation."""
+  friction_cone: str = "pyramidal"
+  """Friction cone model to use for the simulation."""
 
   def apply_defaults(self, spec: mujoco.MjSpec) -> mujoco.MjSpec:
     # TODO(kevin): Should we make a copy?
@@ -46,6 +52,7 @@ class TaskConfig:
     spec.option.ls_iterations = self.solver_ls_iterations
     if not self.euler_damping:
       spec.option.disableflags |= mujoco.mjtDisableBit.mjDSBL_EULERDAMP
+    spec.option.cone = _cone_map[self.friction_cone]
     return spec
 
 
@@ -222,7 +229,7 @@ class MjxTask(abc.ABC, Generic[ConfigT]):
 
   @property
   @abc.abstractmethod
-  def robot(self) -> robot.Robot:
+  def robot(self) -> entity.Entity:
     """Returns the robot entity."""
     raise NotImplementedError
 

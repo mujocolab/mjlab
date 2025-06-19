@@ -78,6 +78,14 @@ class Swingup(mjx_task.MjxTask[CartpoleConfig]):
     self.cartpole: Cartpole = cast(Cartpole, entities["cartpole"])
     super().__init__(config, root.spec, entities=entities)
 
+  @property
+  def observation_names(self) -> Tuple[str, ...]:
+    return ("cart_position", "pole_angle_cos", "pole_angle_sin", "qvel")
+
+  @property
+  def robot(self) -> entity.Entity:
+    return self.cartpole
+
   @staticmethod
   def build_scene(
     cfg: CartpoleConfig,

@@ -94,6 +94,21 @@ class _Humanoid(mjx_task.MjxTask[_HumanoidConfig]):
     self.humanoid: Humanoid = cast(Humanoid, entities["humanoid"])
     super().__init__(config, root.spec, entities=entities)
 
+  @property
+  def observation_names(self) -> Tuple[str, ...]:
+    return (
+      "joint_angles",
+      "head_height",
+      "extremities",
+      "torso_vertical_orientation",
+      "com_vel",
+      "qvel",
+    )
+
+  @property
+  def robot(self) -> entity.Entity:
+    return self.humanoid
+
   @staticmethod
   def build_scene(
     cfg: _HumanoidConfig,

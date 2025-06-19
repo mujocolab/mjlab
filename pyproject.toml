@@ -40,4 +40,4 @@ indent-width = 2
 python_version = "3.12"
 ignore_missing_imports = true
 warn_unused_configs = true
-exclude = ["external_deps/", "exporter.py", "wrapper.py"]
+exclude = ["external_deps/", "exporter.py", "wrapper.py", "motion_imitation/"]

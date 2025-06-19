@@ -11,7 +11,6 @@ from mjlab.utils import reset as reset_utils
 from mjlab.core import entity, mjx_env, mjx_task, step
 from mjlab.entities.arenas import FlatTerrainArena
 from mjlab.entities.go1 import UnitreeGo1, get_assets, GO1_XML
-from mjlab.entities.go1 import go1_constants as consts
 from mjlab.entities import robot
 
 _UNWANTED_COLLISIONS = [
@@ -28,7 +27,6 @@ class Go1(UnitreeGo1):
   """Go1 with custom collision pairs."""
 
   def post_init(self):
-    self.add_pd_actuators_from_patterns(consts.ACTUATOR_SPECS)
     super().post_init()
 
     # Disable self-collisions, enable collisions with the floor.
@@ -42,7 +40,6 @@ class Go1(UnitreeGo1):
     self.spec.add_numeric(name="max_contact_points", data=np.array([30]))
     self.spec.add_numeric(name="max_geom_pairs", data=np.array([12]))
 
-    self._actuators = self.spec.actuators
     self._joint_stiffness = tuple([a.gainprm[0] for a in self._actuators])
     self._joint_damping = tuple([-a.biasprm[2] for a in self._actuators])
     self._default_joint_pos_nominal = self.spec.key("home").ctrl
