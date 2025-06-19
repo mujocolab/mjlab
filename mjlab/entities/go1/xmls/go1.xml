@@ -6,7 +6,7 @@
   <default>
     <default class="go1">
       <!-- This globaly disables all collisions. -->
-      <geom condim="1" contype="0" conaffinity="0"/>
+      <geom contype="0" conaffinity="0"/>
       <joint axis="0 1 0"/>
       <position inheritrange="1"/>
       <default class="abduction">
