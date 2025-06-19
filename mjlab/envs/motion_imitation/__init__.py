@@ -20,7 +20,6 @@ __all__ = (
 
 class G1MotionTrackingDanceConfig(G1MotionTrackingConfig):
   motion_name: str = "dance1_subject2_50hz.npz"
-  max_episode_length: int = 851
 
 
 _REGISTRY.register_task(

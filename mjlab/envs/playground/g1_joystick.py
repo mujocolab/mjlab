@@ -260,7 +260,7 @@ class G1Env(mjx_task.MjxTask[G1Config]):
     qvel = jp.zeros(self.mjx_model.nv)
     data = data.replace(qpos=qpos, qvel=qvel)
     rng, key = jax.random.split(rng)
-    data = reset_utils.reset_joints_by_scale(
+    data = reset_utils.reset_joints_by_noise_scale(
       rng=rng,
       robot=self.g1,
       model=self.mjx_model,

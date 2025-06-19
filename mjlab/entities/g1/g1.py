@@ -28,6 +28,14 @@ class UnitreeG1(robot.Robot):
     self._local_linvel_sensor = self.spec.sensor("local_linvel")
     self._upvector_sensor = self.spec.sensor("upvector")
 
+    freejoint = self.get_root_joint()
+    assert freejoint is not None
+    self._freejoint = freejoint
+
+  @property
+  def freejoint(self) -> mujoco.MjsJoint:
+    return self._freejoint
+
   @property
   def joints(self) -> Tuple[mujoco.MjsJoint]:
     return self._joints
@@ -45,6 +53,12 @@ class UnitreeG1(robot.Robot):
     return tuple([j.name for j in self._joints])
 
   # Observations.
+
+  def root_pos(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
+    return data.bind(model, self._freejoint).qpos[:3]
+
+  def root_quat(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
+    return data.bind(model, self._freejoint).qpos[3:7]
 
   def joint_angles(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
     return data.bind(model, self._joints).qpos

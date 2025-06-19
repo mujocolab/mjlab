@@ -127,7 +127,7 @@ class RewardScales:
 class RewardConfig:
   scales: RewardScales = RewardScales()
   # Pos.
-  joint_pos_std: float = 100.0  # Unused.
+  joint_pos_std: float = 0.5
   root_pos_std: float = 0.3
   eef_pos_std: float = 0.1
   body_pos_std: float = 0.3
@@ -136,16 +136,16 @@ class RewardConfig:
   eef_rot_std: float = 0.1
   body_rot_std: float = 0.4
   # Linvels.
-  root_vel_std: float = 100.0  # Unused.
+  root_vel_std: float = 1.0
   eef_vel_std: float = 0.5
   body_vel_std: float = 0.5
   # Angvels.
-  joint_vel_std: float = 100.0  # Unused.
-  root_angvel_std: float = 100.0  # Unused.
+  joint_vel_std: float = 2.0
+  root_angvel_std: float = np.pi
   eef_angvel_std: float = np.pi
   body_angvel_std: float = np.pi
   # COM.
-  com_pos_std: float = 100.0  # Unused.
+  com_pos_std: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -173,7 +173,7 @@ class G1MotionTrackingConfig(mjx_task.TaskConfig):
   noise_level: float = 1.0
   action_scale: float = 0.5
   friction_cone: str = "pyramidal"
-  max_episode_length: int = 1_000
+  max_episode_length: int = 2_000
   soft_joint_pos_limit_factor: float = 0.9
   reward_config: RewardConfig = RewardConfig()
   noise_config: NoiseConfig = NoiseConfig()
@@ -236,9 +236,6 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
     )
     self._body_ids_minus_root = np.array(
       [self.model.body(name).id for name in consts.BODY_NAMES[1:]]
-    )
-    self._body_ids_minus_eef = np.array(
-      [self.model.body(name).id for name in consts.BODY_NAMES_MINUS_END_EFFECTORS]
     )
 
     # Define unwanted collision pairs.
@@ -312,6 +309,44 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
 
     return arena, {"g1": g1_entity, "arena": arena}
 
+  def domain_randomize(self, model: mjx.Model, rng: jax.Array) -> Tuple[mjx.Model, Any]:
+    joint_qpos_ids = jp.array([model.bind(j).qposadr for j in self.g1.joints])
+    collision_pair_ids = jp.array(
+      [self.spec.pair(p).id for p in self.g1.foot_floor_pairs]
+    )
+
+    @jax.vmap
+    def _randomize(rng):
+      # Floor friction: *U(0.4, 1.0).
+      rng, key = jax.random.split(rng)
+      friction = jax.random.uniform(key, minval=0.6, maxval=1.0)
+      pair_friction = model.pair_friction.at[collision_pair_ids, 0:2].set(friction)
+
+      # Joint calibration offsets: +U(-0.05, 0.05).
+      rng, key = jax.random.split(rng)
+      dqpos = jax.random.uniform(
+        key, shape=(len(joint_qpos_ids),), minval=-0.05, maxval=0.05
+      )
+      qpos0 = model.qpos0.at[joint_qpos_ids].set(model.qpos0[joint_qpos_ids] + dqpos)
+
+      return pair_friction, qpos0
+
+    pair_friction, qpos0 = _randomize(rng)
+    in_axes = jax.tree_util.tree_map(lambda x: None, model)
+    in_axes = in_axes.tree_replace(
+      {
+        "pair_friction": 0,
+        "qpos0": 0,
+      }
+    )
+    model = model.tree_replace(
+      {
+        "pair_friction": pair_friction,
+        "qpos0": qpos0,
+      }
+    )
+    return model, in_axes
+
   def initialize_episode(self, data: mjx.Data, rng: jax.Array):
     rng, rng_init = jax.random.split(rng)
     random_step_index = jax.random.randint(rng_init, (), 0, len(self._ref))
@@ -321,12 +356,12 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
     ref_qvel = ref.qvel
     data = data.replace(qpos=ref_qpos, qvel=ref_qvel)
     rng, key = jax.random.split(rng)
-    data = reset_utils.reset_joints_by_scale(
+    data = reset_utils.reset_joints_by_noise_add(
       key,
       robot=self.g1,
       model=self.mjx_model,
       data=data,
-      position_range=(0.8, 1.2),
+      position_range=(-0.1, 0.1),
     )
     rng, key = jax.random.split(rng)
     data = reset_utils.reset_root_state(
@@ -413,39 +448,59 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
         cur_torso_quat_inv, next_ref.rot[self._torso_body_id]
       )
 
+      # Target body positions in the egocentric frame.
+      next_body_pos = next_ref.pos[self._body_ids_minus_root]  # (N, 3)
+      next_body_quat = next_ref.rot[self._body_ids_minus_root]  # (N, 4)
+      rel_pos = next_body_pos - cur_torso_pos
+      next_body_pos_ego = jp.einsum("ij,nj->ni", cur_torso_mat_inv, rel_pos)
+      quat_mul_batched = jax.vmap(mjx_math.quat_mul, in_axes=(None, 0))
+      next_body_quat_ego = quat_mul_batched(cur_torso_quat_inv, next_body_quat)
+
+      # Target joint positions and velocities.
+      next_joint_angles = next_ref.joint_pos
+      next_joint_velocities = next_ref.joint_vel
+
+      # Target end-effector positions.
+      next_eef_pos = next_ref.pos[self._end_effector_ids]
+
       return {
-        "qpos": next_ref.joint_pos,
-        "qvel": next_ref.joint_vel,
-        "eef_pos": next_ref.pos[self._end_effector_ids],
+        "joint_angles": next_joint_angles,
+        "joint_velocities": next_joint_velocities,
+        "eef_pos": next_eef_pos,
         "torso_pos": next_torso_pos,
         "torso_quat": next_torso_quat,
+        "body_pos": next_body_pos_ego,
+        "body_quat": next_body_quat_ego,
       }
 
     goals = jax.vmap(get_single_goal)(jp.array(self.cfg.target_horizon_steps))
 
     return {
-      "target_qpos": goals["qpos"].reshape(-1),
-      "target_qvel": goals["qvel"].reshape(-1),
+      "target_joint_angles": goals["joint_angles"].reshape(-1),
+      "target_joint_velocities": goals["joint_velocities"].reshape(-1),
       "target_torso_pos": goals["torso_pos"].reshape(-1),
       "target_torso_quat": goals["torso_quat"].reshape(-1),
       "target_eef_pos": goals["eef_pos"].reshape(-1),
+      "target_body_pos": goals["body_pos"].reshape(-1),
+      "target_body_quat": goals["body_quat"].reshape(-1),
     }
 
   def get_observation(self, data: mjx.Data, state: mjx_env.State):
     cfg: NoiseConfig = self.cfg.noise_config
 
     # Ground-truth observations.
-    root_pos = data.qpos[:3]
-    root_quat = data.qpos[3:7]
-    joint_pos = data.qpos[7:]
-    joint_vel = data.qvel[6:]
+    joint_pos = self.g1.joint_angles(self.mjx_model, data)
+    joint_vel = self.g1.joint_velocities(self.mjx_model, data)
+    joint_torques = self.g1.joint_torques(self.mjx_model, data)
     linvel = self.g1.local_linvel(self.mjx_model, data)
     gyro = self.g1.gyro(self.mjx_model, data)
-    eef_pos = data.xpos[self._end_effector_ids]
     projected_gravity = data.xmat[self._pelvis_body_id].T @ jp.array([0, 0, -1])
     torso_pos = data.xpos[self._torso_body_id]
     torso_xmat = data.xmat[self._torso_body_id]
     torso_quat = Rotation.from_matrix(torso_xmat).as_quat(scalar_first=True)
+
+    # Goal observations.
+    goals = self._get_goal_obs(state, torso_pos, torso_quat)
 
     # Noisy observations.
     noisy_joint_pos = self._apply_noise(state.info, joint_pos, cfg.joint_pos)
@@ -455,17 +510,19 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
     noisy_projected_gravity = self._apply_noise(
       state.info, projected_gravity, cfg.projected_gravity
     )
-    noisy_torso_pos = self._apply_noise(state.info, torso_pos, cfg.root_pos)
-    noisy_torso_quat = self._apply_noise(state.info, torso_quat, cfg.root_quat)
-
-    # Goal observations.
-    goals = self._get_goal_obs(state, noisy_torso_pos, noisy_torso_quat)
+    noisy_target_torso_pos = self._apply_noise(
+      state.info, goals["target_torso_pos"], cfg.root_pos
+    )
+    noisy_target_torso_quat = self._apply_noise(
+      state.info, goals["target_torso_quat"], cfg.root_quat
+    )
 
     obs = jp.hstack(
       [
-        goals["target_qpos"],
-        goals["target_qvel"],
-        goals["target_torso_pos"],
+        goals["target_joint_angles"],
+        goals["target_joint_velocities"],
+        noisy_target_torso_pos,
+        noisy_target_torso_quat,
         noisy_projected_gravity,
         noisy_linvel,
         noisy_gyro,
@@ -476,22 +533,20 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
     )
     privileged_obs = jp.hstack(
       [
-        obs,
-        # Unnoised.
-        root_pos,
-        root_quat,
-        torso_pos,
-        torso_quat,
-        joint_pos - self._default_pose,
-        joint_vel,
+        goals["target_joint_angles"],
+        goals["target_joint_velocities"],
+        goals["target_torso_pos"],
+        goals["target_torso_quat"],
+        projected_gravity,
         linvel,
         gyro,
-        eef_pos.reshape(-1),
-        goals["target_eef_pos"],
-        goals["target_torso_quat"],
+        joint_pos - self._default_pose,
+        joint_vel,
+        state.info["last_act"],
         # Extra.
-        data.xfrc_applied[self._torso_body_id],  # Torso wrench.
-        data.actuator_force,  # Actuator torques.
+        joint_torques,
+        goals["target_body_pos"],
+        goals["target_body_quat"],
       ]
     )
 
@@ -633,8 +688,8 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
     std: jax.Array,
   ) -> jax.Array:
     """Reward for tracking the body positions in the world frame."""
-    body_pos = data.xpos[self._body_ids_minus_eef]
-    ref_body_pos = ref.pos[self._body_ids_minus_eef]
+    body_pos = data.xpos[self._body_ids_minus_root]
+    ref_body_pos = ref.pos[self._body_ids_minus_root]
     body_pos_diff = ref_body_pos - body_pos
     body_pos_err = jp.sum(jp.square(body_pos_diff), axis=-1).mean()
     metrics["metrics/body_pos_error"] = jp.sqrt(body_pos_err)
@@ -648,8 +703,8 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
     std: jax.Array,
   ) -> jax.Array:
     """Reward for tracking the body rotations in the world frame."""
-    body_rot_6d = mat_to_rotation_6d(data.xmat[self._body_ids_minus_eef])
-    ref_body_rot_6d = quaternion_to_rotation_6d(ref.rot[self._body_ids_minus_eef])
+    body_rot_6d = mat_to_rotation_6d(data.xmat[self._body_ids_minus_root])
+    ref_body_rot_6d = quaternion_to_rotation_6d(ref.rot[self._body_ids_minus_root])
     body_rot_diff = body_rot_6d - ref_body_rot_6d
     body_rot_err = jp.sum(jp.square(body_rot_diff), axis=-1).mean()
     metrics["metrics/body_rot_error"] = body_rot_err
@@ -754,8 +809,8 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
     com_linvel = data.cvel[:, 3:6]
     offset = data.xpos - data.subtree_com[self._body_rootid]
     all_body_vel = com_linvel - jp.cross(offset, com_linvel)
-    body_vel = all_body_vel[self._body_ids_minus_eef]
-    ref_body_vel = ref.linvel[self._body_ids_minus_eef]
+    body_vel = all_body_vel[self._body_ids_minus_root]
+    ref_body_vel = ref.linvel[self._body_ids_minus_root]
     body_vel_diff = ref_body_vel - body_vel
     body_vel_err = jp.sum(jp.square(body_vel_diff), axis=-1).mean()
     metrics["metrics/body_vel_error"] = jp.sqrt(body_vel_err)
@@ -770,8 +825,8 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
   ) -> jax.Array:
     """Reward for tracking the body angular velocities in the world frame."""
     # Com-frame angular velocities are also world-frame angular velocities.
-    body_angvel = data.cvel[self._body_ids_minus_eef, 0:3]
-    ref_body_angvel = ref.angvel[self._body_ids_minus_eef]
+    body_angvel = data.cvel[self._body_ids_minus_root, 0:3]
+    ref_body_angvel = ref.angvel[self._body_ids_minus_root]
     body_angvel_diff = ref_body_angvel - body_angvel
     body_angvel_err = jp.sum(jp.square(body_angvel_diff), axis=-1).mean()
     metrics["metrics/body_angvel_error"] = jp.sqrt(body_angvel_err)

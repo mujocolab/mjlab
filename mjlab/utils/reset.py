@@ -6,7 +6,7 @@ import jax.numpy as jp
 from mjlab.core import entity
 
 
-def reset_joints_by_scale(
+def reset_joints_by_noise_scale(
   rng: jax.Array,
   robot: entity.Entity,
   model: mjx.Model,
@@ -28,6 +28,31 @@ def reset_joints_by_scale(
   qpos = data.qpos.at[qpos_ids].set(data.qpos[qpos_ids] * pos_scale)
   qpos = qpos.at[qpos_ids].set(jp.clip(qpos[qpos_ids], limits[:, 0], limits[:, 1]))
   qvel = data.qvel.at[qvel_ids].set(data.qvel[qvel_ids] * vel_scale)
+  return data.replace(qpos=qpos, qvel=qvel)
+
+
+def reset_joints_by_noise_add(
+  rng: jax.Array,
+  robot: entity.Entity,
+  model: mjx.Model,
+  data: mjx.Data,
+  position_range: Tuple[float, float] = (0.0, 0.0),
+  velocity_range: Tuple[float, float] = (0.0, 0.0),
+):
+  jnts = robot.get_non_root_joints()
+  qpos_ids = jp.array([model.bind(jnt).qposadr for jnt in jnts])
+  qvel_ids = jp.array([model.bind(jnt).dofadr for jnt in jnts])
+  limits = jp.stack([model.bind(jnt).range for jnt in jnts], axis=0)
+  rng, key_pos, key_vel = jax.random.split(rng, 3)
+  pos_noise = jax.random.uniform(
+    key_pos, shape=(len(qpos_ids),), minval=position_range[0], maxval=position_range[1]
+  )
+  vel_noise = jax.random.uniform(
+    key_vel, shape=(len(qvel_ids),), minval=velocity_range[0], maxval=velocity_range[1]
+  )
+  qpos = data.qpos.at[qpos_ids].set(data.qpos[qpos_ids] + pos_noise)
+  qpos = qpos.at[qpos_ids].set(jp.clip(qpos[qpos_ids], limits[:, 0], limits[:, 1]))
+  qvel = data.qvel.at[qvel_ids].set(data.qvel[qvel_ids] + vel_noise)
   return data.replace(qpos=qpos, qvel=qvel)
 
 

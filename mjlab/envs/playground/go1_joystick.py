@@ -272,7 +272,7 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
     qvel = jp.zeros(self.mjx_model.nv)
     data = data.replace(qpos=qpos, qvel=qvel)
     rng, key = jax.random.split(rng)
-    data = reset_utils.reset_joints_by_scale(
+    data = reset_utils.reset_joints_by_noise_scale(
       rng=rng,
       robot=self.go1,
       model=self.mjx_model,
