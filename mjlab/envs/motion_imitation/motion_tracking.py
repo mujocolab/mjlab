@@ -96,29 +96,27 @@ class G1(UnitreeG1):
 
 @dataclass(frozen=True)
 class RewardScales:
-  # Pos.
+  # Pos and rot.
   track_root_pos: float = 1.0
-  track_joint_pos: float = 0.0
   track_eef_pos: float = 1.0
   track_body_pos: float = 1.0
-  # Rot.
   track_root_rot: float = 1.0
   track_eef_rot: float = 1.0
   track_body_rot: float = 1.0
-  # Linvels.
-  track_root_vel: float = 1.0
+  track_joint_pos: float = 0.0
+  # Linvels and angvels.
+  track_root_vel: float = 0.0
   track_eef_vel: float = 1.0
   track_body_vel: float = 1.0
-  # Angvels.
-  track_joint_vel: float = 0.0
-  track_root_angvel: float = 1.0
+  track_root_angvel: float = 0.0
   track_eef_angvel: float = 1.0
   track_body_angvel: float = 1.0
+  track_joint_vel: float = 0.0
   # COM.
   track_com_pos: float = 0.0
   # Other.
   energy: float = 0.0
-  action_rate: float = -1e-3
+  action_rate: float = -1e-2
   termination: float = 0.0
   alive: float = 0.0
   dof_pos_limits: float = -1.0
@@ -129,25 +127,25 @@ class RewardScales:
 class RewardConfig:
   scales: RewardScales = RewardScales()
   # Pos.
-  joint_pos_std: float = 0.5
-  root_pos_std: float = 0.5
+  joint_pos_std: float = 100.0  # Unused.
+  root_pos_std: float = 0.3
   eef_pos_std: float = 0.1
-  body_pos_std: float = 0.5
+  body_pos_std: float = 0.3
   # Rot.
-  root_rot_std: float = 0.7
-  eef_rot_std: float = 0.7
-  body_rot_std: float = 0.7
+  root_rot_std: float = 0.4
+  eef_rot_std: float = 0.1
+  body_rot_std: float = 0.4
   # Linvels.
-  root_vel_std: float = 1.0
-  eef_vel_std: float = 1.0
-  body_vel_std: float = 1.0
+  root_vel_std: float = 100.0  # Unused.
+  eef_vel_std: float = 0.5
+  body_vel_std: float = 0.5
   # Angvels.
-  joint_vel_std: float = 1.0
-  root_angvel_std: float = 1.57
-  eef_angvel_std: float = 1.57
-  body_angvel_std: float = 1.57
+  joint_vel_std: float = 100.0  # Unused.
+  root_angvel_std: float = 100.0  # Unused.
+  eef_angvel_std: float = np.pi
+  body_angvel_std: float = np.pi
   # COM.
-  com_pos_std: float = 0.5
+  com_pos_std: float = 100.0  # Unused.
 
 
 @dataclass(frozen=True)
@@ -569,7 +567,7 @@ class MotionTrackingEnv(mjx_task.MjxTask[G1MotionTrackingConfig]):
     return reward
 
   def _exp_rew(self, error: jax.Array, std: jax.Array) -> jax.Array:
-    return jp.exp(-error / std)
+    return jp.exp(-error / (std**2))
 
   def _reward_tracking_root_pos(
     self,
