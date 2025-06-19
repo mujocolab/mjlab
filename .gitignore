@@ -1,6 +1,9 @@
 wandb/
 logs/
+onnx/
 __pycache__/
 external_deps/
 MUJOCO_LOG.TXT
-motion_imitation/
+processed/
+patch_policies.ipynb
+scripts/

@@ -7,14 +7,16 @@ from mujoco import mjx
 import jax
 import jax.numpy as jp
 
-from mjlab.core import entity
 from mjlab.entities.g1 import g1_constants as consts
+from mjlab.entities import robot
 
 
-class UnitreeG1(entity.Entity):
+class UnitreeG1(robot.Robot):
   """Unitree G1 humanoid."""
 
   def post_init(self):
+    self.add_pd_actuators_from_patterns(consts.ACTUATOR_SPECS)
+
     self._torso_body = self.spec.body(consts.TORSO_BODY)
     self._imu_site = self.spec.site(consts.PELVIS_IMU_SITE)
     self._joints = self.get_non_root_joints()
@@ -37,6 +39,10 @@ class UnitreeG1(entity.Entity):
   @property
   def actuators(self) -> Tuple[mujoco.MjsActuator]:
     return self._actuators
+
+  @property
+  def joint_names(self) -> Tuple[str, ...]:
+    return tuple([j.name for j in self._joints])
 
   # Observations.
 

@@ -13,6 +13,10 @@ EXTERNAL_DEPS_PATH = MJLAB_SRC_PATH / "external_deps"
 MENAGERIE_PATH = EXTERNAL_DEPS_PATH / "mujoco_menagerie"
 MENAGERIE_COMMIT_SHA = "14ceccf557cc47240202f2354d684eca58ff8de4"
 
+MOTION_DATA_DIR = MJLAB_SRC_PATH / "envs" / "motion_imitation" / "data"
+LAFAN1_DATA_DIR = MOTION_DATA_DIR / "lafan1"
+PROCESSED_DATA_DIR = MOTION_DATA_DIR / "processed"
+
 
 def update_assets(
   assets: Dict[str, Any],
