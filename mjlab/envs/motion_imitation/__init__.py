@@ -18,13 +18,9 @@ __all__ = (
 )
 
 
-def _get_episode_length(motion_name: str) -> int:
-  return len(ReferenceMotion.from_npz(PROCESSED_DATA_DIR / motion_name))
-
-
 class G1MotionTrackingDanceConfig(G1MotionTrackingConfig):
   motion_name: str = "dance1_subject2_50hz.npz"
-  max_episode_length: int = _get_episode_length(motion_name)
+  max_episode_length: int = 851
 
 
 _REGISTRY.register_task(

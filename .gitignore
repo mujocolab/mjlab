@@ -6,4 +6,3 @@ external_deps/
 MUJOCO_LOG.TXT
 processed/
 patch_policies.ipynb
-scripts/

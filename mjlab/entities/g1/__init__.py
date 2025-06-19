@@ -8,7 +8,6 @@ G1_XML = MJLAB_SRC_PATH / "entities" / "g1" / "xmls" / "g1.xml"
 def get_assets() -> Dict[str, bytes]:
   assets: Dict[str, bytes] = {}
   path = MENAGERIE_PATH / "unitree_g1"
-  update_assets(assets, path, "*.xml")
   update_assets(assets, path / "assets")
   return assets
 
