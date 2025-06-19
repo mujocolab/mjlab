@@ -170,7 +170,7 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
       "base_lin_vel",
       "actions",
       "command",
-      "phase",
+      # "phase",
     )
 
   @property
@@ -354,7 +354,7 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
         noisy_local_linvel,
         state.info["last_act"],
         state.info["command"],
-        jp.concatenate([jp.cos(state.info["phase"]), jp.sin(state.info["phase"])]),
+        # jp.concatenate([jp.cos(state.info["phase"]), jp.sin(state.info["phase"])]),
       ]
     )
     privileged_obs = jp.hstack(
@@ -365,6 +365,7 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
         joint_angles,
         joint_velocities,
         local_linvel,
+        jp.concatenate([jp.cos(state.info["phase"]), jp.sin(state.info["phase"])]),
       ]
     )
 

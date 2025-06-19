@@ -35,7 +35,7 @@ class Go1(UnitreeGo1):
         continue
       geom.contype = 0
       geom.conaffinity = 1
-      geom.condim = 1
+      geom.condim = 1  # The floor has priority 1 so no need to set condim 3 here.
 
     self.spec.add_numeric(name="max_contact_points", data=np.array([30]))
     self.spec.add_numeric(name="max_geom_pairs", data=np.array([12]))

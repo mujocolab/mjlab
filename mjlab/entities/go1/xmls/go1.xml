@@ -88,6 +88,7 @@
       <geom class="visual" mesh="trunk"/>
       <geom name="trunk_collision1" class="collision" quat="1 0 1 0" pos="0 -0.04 0" size="0.058 0.125" type="cylinder"/>
       <geom name="trunk_collision2" class="collision" quat="1 0 1 0" pos="0 +0.04 0" size="0.058 0.125" type="cylinder"/>
+      <geom name="head_collision" class="collision" type="sphere" size="0.06" pos="0.24 0 0"/>
       <site name="imu" pos="-0.01592 -0.06659 -0.00617" group="5"/>
       <body name="FR_hip" pos="0.1881 -0.04675 0">
         <inertial pos="-0.0049166 0.00762615 -8.865e-05" quat="0.507341 0.514169 0.495027 0.482891" mass="0.68"
