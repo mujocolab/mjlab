@@ -14,6 +14,7 @@ from mjlab.envs.toy.humanoid import (
 from mjlab.envs.playground.go1_joystick import Go1JoystickConfig
 from mjlab.envs.playground.go1_getup import Go1GetupConfig
 from mjlab.envs.playground.g1_joystick import G1Config
+from mjlab.envs.playground.t1_getup import T1GetupConfig
 
 # Motion imitation envs.
 from mjlab.envs.motion_imitation import G1MotionTrackingDanceConfig
@@ -27,4 +28,5 @@ TaskConfigUnion = Union[
   HumanoidRunConfig,
   G1Config,
   G1MotionTrackingDanceConfig,
+  T1GetupConfig,
 ]
