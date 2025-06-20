@@ -47,12 +47,12 @@ class T1(BoosterT1):
 @dataclass(frozen=True)
 class RewardScales:
   torso_height: float = 1.0
-  posture: float = 1.0
-  action_rate: float = -0.01
+  posture: float = 0.1
+  action_rate: float = -1e-3
   torques: float = 0.0
   dof_acc: float = 0.0
-  dof_vel: float = 0.0
-  dof_pos_limits: float = -1.0
+  dof_vel: float = -1e-2
+  dof_pos_limits: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -79,10 +79,10 @@ class T1GetupConfig(mjx_task.TaskConfig):
   solver_ls_iterations: int = 8
   integrator: str = "implicitfast"
   euler_damping: bool = False
-  max_episode_length: int = 500
+  max_episode_length: int = 300
   friction_cone: str = "pyramidal"
   noise_level: float = 1.0
-  action_scale: float = 0.5
+  action_scale: float = 1.0
   drop_from_height_prob: float = 0.6
   soft_joint_pos_limit_factor: float = 0.95
   reward_config: RewardConfig = RewardConfig()
