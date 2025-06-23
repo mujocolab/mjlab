@@ -104,8 +104,9 @@
   </default>
 
   <worldbody>
-    <light name="spotlight" mode="targetbodycom" target="Trunk" pos="0 -2 4" exponent="20"/>
+    <light pos="0 0 3" dir="0 0 -1" directional="true"/>
     <body name="Trunk" pos="0 0 .7" childclass="t1">
+      <light pos="0 0 2" mode="trackcom"/>
       <freejoint/>
       <inertial pos="0.0551365 -1.42058e-06 0.105062" quat="0.99996 1.40561e-05 -0.00899532 -1.39249e-05" mass="11.7"
         diaginertia="0.0915404 0.0767787 0.0556055"/>
