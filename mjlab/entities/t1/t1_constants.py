@@ -74,6 +74,9 @@ FLOOR_COLLISIONS = (
   # Shin.
   CollisionPair("left_shin", "floor", 3),
   CollisionPair("right_shin", "floor", 3),
+  # Knees.
+  CollisionPair("left_knee", "floor", 3),
+  CollisionPair("right_knee", "floor", 3),
 )
 
 

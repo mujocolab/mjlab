@@ -6,6 +6,7 @@ import jax.numpy as jp
 import mujoco
 from mujoco import mjx
 
+from mjlab.utils.collision import geoms_colliding
 from mjlab.utils import reset as reset_utils
 from mjlab.core import entity, mjx_env, mjx_task, step
 from mjlab.entities.arenas import FlatTerrainArena
@@ -47,12 +48,13 @@ class T1(BoosterT1):
 @dataclass(frozen=True)
 class RewardScales:
   torso_height: float = 1.0
-  posture: float = 0.1
-  action_rate: float = -1e-3
-  torques: float = 0.0
-  dof_acc: float = 0.0
-  dof_vel: float = -1e-2
-  dof_pos_limits: float = 0.0
+  pose: float = 0.5
+  dof_pos_limits: float = -1.0
+  action_rate: float = -0.01
+  torques: float = -2e-5
+  dof_acc: float = -1e-7
+  dof_vel: float = -1e-1
+  self_collision: float = -0.1
 
 
 @dataclass(frozen=True)
@@ -79,7 +81,7 @@ class T1GetupConfig(mjx_task.TaskConfig):
   solver_ls_iterations: int = 8
   integrator: str = "implicitfast"
   euler_damping: bool = False
-  max_episode_length: int = 300
+  max_episode_length: int = 500
   friction_cone: str = "pyramidal"
   noise_level: float = 1.0
   action_scale: float = 1.0
@@ -234,8 +236,8 @@ class T1GetupEnv(mjx_task.MjxTask[T1GetupConfig]):
       data=data,
       pose_range={},
       velocity_range={
-        "x": (-0.5, 0.5),
-        "y": (-0.5, 0.5),
+        "x": (-1.5, 1.5),
+        "y": (-1.5, 1.5),
         "z": (-0.5, 0.5),
         "roll": (-0.5, 0.5),
         "pitch": (-0.5, 0.5),
@@ -329,22 +331,27 @@ class T1GetupEnv(mjx_task.MjxTask[T1GetupConfig]):
     joint_accelerations = self.t1.joint_accelerations(self.mjx_model, data)
     joint_angles = self.t1.joint_angles(self.mjx_model, data)
     joint_velocities = self.t1.joint_velocities(self.mjx_model, data)
+    is_upright = self._is_upright(gravity)
     reward_terms = {
       "torso_height": self._reward_height(
         torso_height, waist_height, gravity, state.metrics
       ),
-      "posture": self._reward_posture(joint_angles),
+      "pose": self._reward_pose(joint_angles, is_upright),
       "action_rate": self._cost_action_rate(action, state.info["last_act"]),
       "torques": self._cost_torques(joint_torques),
       "dof_acc": self._cost_dof_acc(joint_accelerations),
       "dof_vel": self._cost_dof_vel(joint_velocities),
       "dof_pos_limits": self._cost_joint_pos_limits(joint_angles),
+      "self_collision": self._cost_self_collision(data),
     }
     rewards = {k: v * self._reward_scales[k] for k, v in reward_terms.items()}
     for k, v in rewards.items():
       state.metrics[f"reward/{k}"] = v / self.dt
     reward = sum(rewards.values()) * self.dt
     return reward
+
+  def _is_upright(self, gravity: jax.Array) -> jax.Array:
+    return jp.linalg.norm(gravity - jp.array([0, 0, 1])) < 0.01
 
   def after_step(
     self,
@@ -387,9 +394,10 @@ class T1GetupEnv(mjx_task.MjxTask[T1GetupConfig]):
     r_ori = (0.5 * up_vec[2] + 0.5) ** 2
     return r_ori * (r_height + 1.0) / 2.0
 
-  def _reward_posture(self, joint_angles: jax.Array) -> jax.Array:
+  def _reward_pose(self, joint_angles: jax.Array, gate: jax.Array) -> jax.Array:
     cost = jp.sum(jp.square(joint_angles - self._default_pose))
-    return jp.exp(-0.5 * cost)
+    reward = jp.exp(-cost / 0.5)
+    return reward
 
   def _cost_torques(self, torques: jax.Array) -> jax.Array:
     return jp.sum(jp.square(torques))
@@ -407,6 +415,11 @@ class T1GetupEnv(mjx_task.MjxTask[T1GetupConfig]):
 
   def _cost_dof_vel(self, qvel: jax.Array) -> jax.Array:
     return jp.sum(jp.maximum(jp.abs(qvel) - self.cfg.reward_config.max_velocity, 0.0))
+
+  def _cost_self_collision(self, data: mjx.Data) -> jax.Array:
+    c = geoms_colliding(data, self._left_hand_geom_id, self._left_thigh_geom_id)
+    c |= geoms_colliding(data, self._right_hand_geom_id, self._right_thigh_geom_id)
+    return jp.any(c)
 
 
 if __name__ == "__main__":
