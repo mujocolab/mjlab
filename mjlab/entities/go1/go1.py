@@ -7,28 +7,35 @@ import jax
 import jax.numpy as jp
 
 from mjlab.entities.go1 import go1_constants as consts
-from mjlab.entities import robot
+from mjlab.entities import robot, robot_config
+from mjlab.utils import spec as spec_utils
+
+
+UnitreeGo1Config = robot_config.RobotConfig(
+  joints=consts.JOINT_CONFIG,
+  actuators=consts.ACTUATOR_CONFIG,
+  sensors=consts.SENSOR_CONFIG,
+  keyframes=consts.KEYFRAME_CONFIG,
+)
 
 
 class UnitreeGo1(robot.Robot):
   """Unitree Go1 quadruped."""
 
-  def post_init(self):
-    self.add_pd_actuators_from_patterns(consts.ACTUATOR_SPECS)
-
-    for keyframe in consts.KEYFRAMES:
-      self.add_keyframe(keyframe, ctrl=keyframe.joint_angles)
-
-    for sensor in consts.SENSORS:
-      self.add_sensor(sensor)
+  def post_init(self) -> None:
+    self._joints = spec_utils.get_non_root_joints(self.spec)
+    self._actuators = self.spec.actuators
 
     self._torso_body = self.spec.body(consts.TORSO_BODY)
     self._imu_site = self.spec.site(consts.IMU_SITE)
-    self._joints = self.get_non_root_joints()
-    self._actuators = self.spec.actuators
     self._gyro_sensor = self.spec.sensor("gyro")
     self._local_linvel_sensor = self.spec.sensor("local_linvel")
     self._upvector_sensor = self.spec.sensor("upvector")
+
+  @classmethod
+  def from_default_config(cls) -> "UnitreeGo1":
+    spec = mujoco.MjSpec.from_file(str(consts.GO1_XML))
+    return cls(spec, config=UnitreeGo1Config)
 
   @property
   def joints(self) -> Tuple[mujoco.MjsJoint]:

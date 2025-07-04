@@ -32,7 +32,7 @@ class MjxEnv(Generic[TaskT]):
 
   def reset(self, rng: jax.Array) -> State:
     """Resets the environment to an initial state."""
-    data = init(self.task.mjx_model)
+    data = mjx.make_data(self.task.mjx_model)
     reward, done = jp.zeros(2)
     data, info, metrics = self.task.initialize_episode(data, rng)
     state = State(
@@ -134,12 +134,6 @@ def _render_array(
 
   renderer.close()
   return out
-
-
-def init(model: mjx.Model) -> mjx.Data:
-  """Initialize the physics state."""
-  data = mjx.make_data(model)
-  return mjx.forward(model, data)
 
 
 def step(

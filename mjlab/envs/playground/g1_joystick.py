@@ -12,7 +12,7 @@ from mjlab.core import entity, mjx_env, mjx_task
 from mjlab.entities.arenas import FlatTerrainArena
 
 from mjlab.utils import reset as reset_utils
-from mjlab.entities.structs import CollisionPair
+from mjlab.entities.robot_config import CollisionPair
 from mjlab.entities.g1 import g1_constants as consts
 from mjlab.entities.g1 import UnitreeG1, get_assets, G1_XML
 

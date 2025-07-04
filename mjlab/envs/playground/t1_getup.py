@@ -84,7 +84,7 @@ class T1GetupConfig(mjx_task.TaskConfig):
   max_episode_length: int = 500
   friction_cone: str = "pyramidal"
   noise_level: float = 1.0
-  action_scale: float = 1.0
+  action_scale: float = 0.5
   drop_from_height_prob: float = 0.6
   soft_joint_pos_limit_factor: float = 0.95
   reward_config: RewardConfig = RewardConfig()
@@ -106,12 +106,14 @@ class T1GetupEnv(mjx_task.MjxTask[T1GetupConfig]):
     self._imu_site_id = self.model.site(consts.IMU_SITE).id
     self._init_q = jp.array(self.model.keyframe("home").qpos)
     self._default_pose = jp.array(self.t1.default_joint_pos_nominal)
+
     jnt_ids = [j.id for j in self.t1.joints]
     lowers, uppers = self.model.jnt_range[jnt_ids].T
     c = (lowers + uppers) / 2
     r = uppers - lowers
     self._soft_lowers = c - 0.5 * r * self.cfg.soft_joint_pos_limit_factor
     self._soft_uppers = c + 0.5 * r * self.cfg.soft_joint_pos_limit_factor
+
     self._settle_steps = int(0.5 / self.sim_dt)
     self._torso_height_des = 0.67
     self._waist_height_des = 0.55
@@ -304,16 +306,19 @@ class T1GetupEnv(mjx_task.MjxTask[T1GetupConfig]):
     )
     privileged_obs = jp.hstack(
       [
+        # Unnoised.
         gyro,
         projected_gravity,
         joint_angles,
         joint_velocities,
-        local_linvel,
-        torso_height,
-        torques,
+        state.info["last_act"],
+        # Extra.
         root_pos,
         root_quat,
+        local_linvel,
+        torso_height,
         waist_height,
+        torques,
       ]
     )
 

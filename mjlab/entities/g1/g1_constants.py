@@ -2,7 +2,7 @@
 
 # fmt: off
 
-from mjlab.entities.structs import (
+from mjlab.entities.robot_config import (
   CollisionPair,
   Keyframe,
   PDActuator,

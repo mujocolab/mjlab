@@ -12,7 +12,7 @@ import numpy as np
 from mjlab.core import entity, mjx_env, mjx_task
 from mjlab.entities.g1 import UnitreeG1, get_assets, G1_XML
 from mjlab.entities.g1 import g1_constants as consts
-from mjlab.entities.structs import CollisionPair
+from mjlab.entities.robot_config import CollisionPair
 from mjlab.entities.arenas import FlatTerrainArena
 from mjlab.envs.motion_imitation import ReferenceMotion
 from mjlab import PROCESSED_DATA_DIR
