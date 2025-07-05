@@ -1,6 +1,8 @@
 import abc
 from pathlib import Path
-from typing import Optional, TypeVar, Type, Tuple, Dict, Tuple
+from typing import Optional, TypeVar, Type, Dict, Tuple
+
+import numpy as np
 from mjlab.core import entity
 import mujoco
 
@@ -52,3 +54,9 @@ class Robot(entity.Entity, abc.ABC):
   @abc.abstractmethod
   def joint_names(self) -> Tuple[str, ...]:
     raise NotImplementedError
+
+  def joint_stiffness(self) -> np.ndarray:
+    return np.array([a.gainprm[0] for a in self.actuators])
+
+  def joint_damping(self) -> np.ndarray:
+    return np.array([-a.biasprm[2] for a in self.actuators])

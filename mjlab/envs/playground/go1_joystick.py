@@ -11,40 +11,26 @@ import numpy as np
 from mjlab.utils.collision import geoms_colliding
 from mjlab.core import entity, mjx_env, mjx_task
 from mjlab.entities.arenas import FlatTerrainArena, PlaygroundTerrainArena, Arena
-from mjlab.entities.go1 import UnitreeGo1, get_assets, GO1_XML
+from mjlab.entities.go1 import go1
 from mjlab.entities.go1 import go1_constants as consts
-from mjlab.entities import robot
+from mjlab.entities import robot, robot_config
 from mjlab.utils import reset as reset_utils
 
 
-class Go1(UnitreeGo1):
+class Go1(go1.UnitreeGo1):
   """Go1 with custom collision pairs."""
 
   def post_init(self):
+    super().post_init()
+    self.default_joint_pos_nominal = tuple(consts.HOME_KEYFRAME.ctrl.tolist())
+
+    # Modify foot geom solimp.
     for geom in self.spec.geoms:
       if geom.name not in consts.FEET_GEOMS:
         continue
       geom.contype = 1
       geom.conaffinity = 1
       geom.solimp[:3] = (0.9, 0.95, 0.023)
-
-    super().post_init()
-
-    self._joint_stiffness = tuple([a.gainprm[0] for a in self._actuators])
-    self._joint_damping = tuple([-a.biasprm[2] for a in self._actuators])
-    self._default_joint_pos_nominal = self.spec.key("home").ctrl
-
-  @property
-  def joint_stiffness(self) -> Tuple[float, ...]:
-    return self._joint_stiffness
-
-  @property
-  def joint_damping(self) -> Tuple[float, ...]:
-    return self._joint_damping
-
-  @property
-  def default_joint_pos_nominal(self) -> Tuple[float, ...]:
-    return tuple(self._default_joint_pos_nominal.tolist())
 
 
 def get_rz(
@@ -181,15 +167,15 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
   def build_scene(
     config: Go1JoystickConfig,
   ) -> Tuple[entity.Entity, Dict[str, entity.Entity]]:
-    assets = get_assets()
-    go1_entity = Go1.from_file(GO1_XML, assets=assets)
+    go1_entity = Go1.from_default_config()
 
     arena: Arena
     if config.terrain == Terrain.PLAYGROUND:
       arena = PlaygroundTerrainArena()
     else:
       arena = FlatTerrainArena()
-      arena.add_skybox()
+      skybox = robot_config.Skybox()
+      skybox.edit_spec(arena.spec)
 
     arena.floor_geom.contype = 1
     arena.floor_geom.conaffinity = 1

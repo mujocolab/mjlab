@@ -25,7 +25,6 @@ class UnitreeGo1(robot.Robot):
   def post_init(self) -> None:
     self._joints = spec_utils.get_non_root_joints(self.spec)
     self._actuators = self.spec.actuators
-
     self._torso_body = self.spec.body(consts.TORSO_BODY)
     self._imu_site = self.spec.site(consts.IMU_SITE)
     self._gyro_sensor = self.spec.sensor("gyro")

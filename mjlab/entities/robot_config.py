@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Sequence, Tuple, Protocol
 import fnmatch
 
@@ -20,9 +20,22 @@ class RobotConfig:
   keyframes: Sequence[SpecEditor]
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    for group in (self.joints, self.actuators, self.sensors, self.keyframes):
-      for cfg in group:
-        cfg.edit_spec(spec)
+    for cfg in self.joints:
+      cfg.edit_spec(spec)
+
+    for cfg in self.sensors:
+      cfg.edit_spec(spec)
+
+    for cfg in self.keyframes:
+      cfg.edit_spec(spec)
+
+    # Add actuators in joint order.
+    for joint in spec.joints:
+      for act_cfg in self.actuators:
+        if fnmatch.fnmatch(joint.name, act_cfg.joint_name):
+          bound_cfg = replace(act_cfg, joint_name=joint.name)
+          bound_cfg.edit_spec(spec)
+          break
 
 
 _SENSOR_TYPE_MAP = {
@@ -60,27 +73,15 @@ class Sensor:
     )
 
 
-def match_joints(spec: mujoco.MjSpec, pattern: str) -> Sequence[mujoco.MjsJoint]:
-  matches = [j for j in spec.joints if fnmatch.fnmatch(j.name, pattern)]
-  if not matches:
-    raise ValueError(f"No joints matched pattern: {pattern}")
-  return matches
-
-
 @dataclass(frozen=True)
 class Actuator:
   """Configuration for an actuator."""
 
   kp: float
-  """Position gain."""
   kv: float
-  """D gain."""
   joint_name: str
-  """Name of the joint the actuator is applying torque to."""
   torque_limit: float | None = None
-  """Torque limit. Assumed to be symmetric about zero. If None, no limit is applied."""
   inheritrange: float = 1.0
-  """Sets the control range of the actuator to match the joint's target range."""
 
   def __post_init__(self):
     assert self.kp >= 0.0
@@ -89,18 +90,18 @@ class Actuator:
       assert self.torque_limit > 0.0
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    for jnt in match_joints(spec, self.joint_name):
-      act = spec.add_actuator(
-        name=jnt.name,
-        target=jnt.name,
-        trntype=mujoco.mjtTrn.mjTRN_JOINT,
-        gaintype=mujoco.mjtGain.mjGAIN_FIXED,
-        biastype=mujoco.mjtBias.mjBIAS_AFFINE,
-        inheritrange=self.inheritrange,
-      )
-      act.gainprm[0] = self.kp
-      act.biasprm[1] = -self.kp
-      act.biasprm[2] = -self.kv
+    act = spec.add_actuator(
+      name=self.joint_name,
+      target=self.joint_name,
+      trntype=mujoco.mjtTrn.mjTRN_JOINT,
+      gaintype=mujoco.mjtGain.mjGAIN_FIXED,
+      biastype=mujoco.mjtBias.mjBIAS_AFFINE,
+      inheritrange=self.inheritrange,
+      forcerange=(-self.torque_limit, self.torque_limit),
+    )
+    act.gainprm[0] = self.kp
+    act.biasprm[1] = -self.kp
+    act.biasprm[2] = -self.kv
 
 
 @dataclass(frozen=True)
@@ -108,13 +109,9 @@ class Joint:
   """Configuration for a joint."""
 
   joint_name: str
-  """Joint name."""
   damping: float = 0.0
-  """Joint damping."""
   frictionloss: float = 0.0
-  """Joint stiction."""
   armature: float = 0.0
-  """Reflected inertia."""
 
   def __post_init__(self):
     assert self.damping >= 0.0
@@ -122,10 +119,11 @@ class Joint:
     assert self.frictionloss >= 0.0
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    for jnt in match_joints(spec, self.joint_name):
-      jnt.damping = self.damping
-      jnt.frictionloss = self.frictionloss
-      jnt.armature = self.armature
+    for jnt in spec.joints:
+      if fnmatch.fnmatch(jnt.name, self.joint_name):
+        jnt.damping = self.damping
+        jnt.frictionloss = self.frictionloss
+        jnt.armature = self.armature
 
 
 @dataclass(frozen=True)
@@ -133,15 +131,10 @@ class Keyframe:
   """Configuration for a keyframe."""
 
   name: str
-  """Name of the keyframe."""
   root_pos: np.ndarray
-  """Root position in the world frame."""
   root_quat: np.ndarray
-  """Root orientation as a (w, x, y, z) quaternion."""
   joint_angles: np.ndarray
-  """Joint angles."""
   ctrl: np.ndarray | None = None
-  """Actuator control signal."""
 
   @property
   def qpos(self) -> np.ndarray:

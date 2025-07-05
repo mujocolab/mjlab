@@ -13,7 +13,7 @@ class Entity(abc.ABC):
     self.post_init()
 
   def post_init(self):
-    """Callback executed after the constructor."""
+    """Callback executed after the constructor. By default, does nothing."""
     pass
 
   def compile(self) -> mujoco.MjModel:
