@@ -7,28 +7,31 @@ from mujoco import mjx
 import jax
 import jax.numpy as jp
 
-from mjlab.entities.g1 import g1_constants as consts
+from mjlab.entities.robots.g1 import g1_constants as consts
 from mjlab.entities.robots import robot
+from mjlab.utils import spec as spec_utils
 
 
 class UnitreeG1(robot.Robot):
   """Unitree G1 humanoid."""
 
-  def post_init(self):
-    self.add_pd_actuators_from_patterns(consts.ACTUATOR_SPECS)
+  def __init__(self, config: robot.RobotConfig = consts.DefaultConfig):
+    spec = mujoco.MjSpec.from_file(str(consts.G1_XML), assets=consts.get_assets())
+    super().__init__(spec=spec, config=config)
 
-    self._torso_body = self.spec.body(consts.TORSO_BODY)
-    self._imu_site = self.spec.site(consts.PELVIS_IMU_SITE)
-    self._joints = self.get_non_root_joints()
+    self._joints = spec_utils.get_non_root_joints(self.spec)
+    self._actuators = self.spec.actuators
     self._ankle_joints = tuple(
       [j for j in self._joints if re.match(r".*_ankle_(pitch|roll)_joint", j.name)]
     )
-    self._actuators = tuple(self.spec.actuators)
+
+    self._torso_body = self.spec.body(consts.TORSO_BODY)
+    self._imu_site = self.spec.site(consts.PELVIS_IMU_SITE)
     self._gyro_sensor = self.spec.sensor("gyro")
     self._local_linvel_sensor = self.spec.sensor("local_linvel")
     self._upvector_sensor = self.spec.sensor("upvector")
 
-    freejoint = self.get_root_joint()
+    freejoint = spec_utils.get_root_joint(spec)
     assert freejoint is not None
     self._freejoint = freejoint
 
@@ -37,20 +40,16 @@ class UnitreeG1(robot.Robot):
     return self._freejoint
 
   @property
-  def joints(self) -> Tuple[mujoco.MjsJoint]:
+  def joints(self) -> Tuple[mujoco.MjsJoint, ...]:
     return self._joints
 
   @property
-  def ankle_joints(self) -> Tuple[mujoco.MjsJoint]:
-    return self._ankle_joints
-
-  @property
-  def actuators(self) -> Tuple[mujoco.MjsActuator]:
+  def actuators(self) -> Tuple[mujoco.MjsActuator, ...]:
     return self._actuators
 
   @property
-  def joint_names(self) -> Tuple[str, ...]:
-    return tuple([j.name for j in self._joints])
+  def ankle_joints(self) -> Tuple[mujoco.MjsJoint, ...]:
+    return self._ankle_joints
 
   # Observations.
 

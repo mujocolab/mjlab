@@ -1,7 +1,5 @@
 <mujoco model="g1_29dof_rev_1_0">
-  <compiler angle="radian" meshdir="../../../external_deps/mujoco_menagerie/unitree_g1/assets" autolimits="true"/>
-
-  <option timestep="0.004"/>
+  <compiler angle="radian" meshdir="../../../../external_deps/mujoco_menagerie/unitree_g1/assets" autolimits="true"/>
 
   <default>
     <default class="g1">
@@ -130,7 +128,7 @@
   </asset>
 
   <worldbody>
-    <light pos="0 0 3" dir="0 0 -1" directional="true"/>
+    <light pos="0 0 3" dir="0 0 -1" type="directional"/>
     <body name="pelvis" pos="0 0 0.793" childclass="g1">
       <light pos="0 0 2" mode="trackcom"/>
       <camera name="tracking" pos="1.734 -1.135 .35" xyaxes="0.552 0.834 -0.000 -0.170 0.112 0.979" mode="trackcom"/>
@@ -358,10 +356,4 @@
       </body>
     </body>
   </worldbody>
-
-  <sensor>
-    <gyro site="imu_in_pelvis" name="gyro"/>
-    <velocimeter site="imu_in_pelvis" name="local_linvel"/>
-    <framezaxis objtype="site" objname="imu_in_pelvis" name="upvector"/>
-  </sensor>
 </mujoco>

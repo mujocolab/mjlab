@@ -2,12 +2,34 @@
 
 # fmt: off
 
-from mjlab.entities.robot_config import (
+from typing import Dict
+
+import numpy as np
+from mjlab.entities.robots.editors import (
   CollisionPair,
   Keyframe,
-  PDActuator,
+  Actuator,
+  Joint,
   Sensor,
 )
+from mjlab.entities.robots.robot import RobotConfig
+from mjlab import MJLAB_SRC_PATH, MENAGERIE_PATH, update_assets
+
+##
+# MJCF and assets.
+##
+
+G1_XML = MJLAB_SRC_PATH / "entities" / "robots" / "g1" / "xmls" / "g1.xml"
+
+def get_assets() -> Dict[str, bytes]:
+  assets: Dict[str, bytes] = {}
+  path = MENAGERIE_PATH / "unitree_g1"
+  update_assets(assets, path / "assets")
+  return assets
+
+##
+# Constants.
+##
 
 NU = 29
 NQ = NU + 7
@@ -73,30 +95,62 @@ END_EFFECTOR_NAMES = [
 PELVIS_IMU_SITE = "imu_in_pelvis"
 TORSO_IMU_SITE = "imu_in_torso"
 
+##
+# Actuator config.
+##
 
-ACTUATOR_SPECS = (
+
+ACTUATOR_CONFIG = (
   # Leg joints.
-  PDActuator(joint_name="*hip_pitch_joint", kp=75, kv=2, armature=0.01017752004, torque_limit=88),
-  PDActuator(joint_name="*hip_roll_joint", kp=75, kv=2, armature=0.025101925, torque_limit=139),
-  PDActuator(joint_name="*hip_yaw_joint", kp=75, kv=2, armature=0.01017752004, torque_limit=88),
-  PDActuator(joint_name="*knee_joint", kp=75, kv=2, armature=0.025101925, torque_limit=139),
-  PDActuator(joint_name="*ankle_pitch_joint", kp=20, kv=2, armature=0.00721945, torque_limit=50),
-  PDActuator(joint_name="*ankle_roll_joint", kp=20, kv=2, armature=0.00721945, torque_limit=50),
+  Actuator(joint_name="*hip_pitch_joint", kp=75, kv=2, torque_limit=88),
+  Actuator(joint_name="*hip_roll_joint", kp=75, kv=2, torque_limit=139),
+  Actuator(joint_name="*hip_yaw_joint", kp=75, kv=2, torque_limit=88),
+  Actuator(joint_name="*knee_joint", kp=75, kv=2, torque_limit=139),
+  Actuator(joint_name="*ankle_pitch_joint", kp=20, kv=2, torque_limit=50),
+  Actuator(joint_name="*ankle_roll_joint", kp=20, kv=2, torque_limit=50),
 
   # Waist joints.
-  PDActuator(joint_name="waist_yaw_joint", kp=75, kv=2, armature=0.01017752004, torque_limit=88),
-  PDActuator(joint_name="waist_pitch_joint", kp=75, kv=2, armature=0.00721945, torque_limit=50),
-  PDActuator(joint_name="waist_roll_joint", kp=75, kv=2, armature=0.00721945, torque_limit=50),
+  Actuator(joint_name="waist_yaw_joint", kp=75, kv=2, torque_limit=88),
+  Actuator(joint_name="waist_pitch_joint", kp=75, kv=2, torque_limit=50),
+  Actuator(joint_name="waist_roll_joint", kp=75, kv=2, torque_limit=50),
 
   # Arm joints.
-  PDActuator(joint_name="*shoulder_pitch_joint", kp=75, kv=2, armature=0.003609725, torque_limit=25),
-  PDActuator(joint_name="*shoulder_roll_joint", kp=75, kv=2, armature=0.003609725, torque_limit=25),
-  PDActuator(joint_name="*shoulder_yaw_joint", kp=75, kv=2, armature=0.003609725, torque_limit=25),
-  PDActuator(joint_name="*elbow_joint", kp=75, kv=2, armature=0.003609725, torque_limit=25),
-  PDActuator(joint_name="*wrist_roll_joint", kp=20, kv=2, armature=0.003609725, torque_limit=25),
-  PDActuator(joint_name="*wrist_pitch_joint", kp=20, kv=2, armature=0.00425, torque_limit=5),
-  PDActuator(joint_name="*wrist_yaw_joint", kp=20, kv=2, armature=0.00425, torque_limit=5),
+  Actuator(joint_name="*shoulder_pitch_joint", kp=75, kv=2, torque_limit=25),
+  Actuator(joint_name="*shoulder_roll_joint", kp=75, kv=2, torque_limit=25),
+  Actuator(joint_name="*shoulder_yaw_joint", kp=75, kv=2, torque_limit=25),
+  Actuator(joint_name="*elbow_joint", kp=75, kv=2, torque_limit=25),
+  Actuator(joint_name="*wrist_roll_joint", kp=20, kv=2, torque_limit=25),
+  Actuator(joint_name="*wrist_pitch_joint", kp=20, kv=2, torque_limit=5),
+  Actuator(joint_name="*wrist_yaw_joint", kp=20, kv=2, torque_limit=5),
 )
+
+JOINT_CONFIG = (
+  # Leg joints.
+  Joint(joint_name="*hip_pitch_joint", armature=0.01017752004),
+  Joint(joint_name="*hip_roll_joint", armature=0.025101925),
+  Joint(joint_name="*hip_yaw_joint", armature=0.01017752004),
+  Joint(joint_name="*knee_joint", armature=0.025101925),
+  Joint(joint_name="*ankle_pitch_joint", armature=0.00721945),
+  Joint(joint_name="*ankle_roll_joint", armature=0.00721945),
+
+  # Waist joints.
+  Joint(joint_name="waist_yaw_joint", armature=0.01017752004),
+  Joint(joint_name="waist_pitch_joint", armature=0.00721945),
+  Joint(joint_name="waist_roll_joint", armature=0.00721945),
+
+  # Arm joints.
+  Joint(joint_name="*shoulder_pitch_joint", armature=0.003609725),
+  Joint(joint_name="*shoulder_roll_joint", armature=0.003609725),
+  Joint(joint_name="*shoulder_yaw_joint", armature=0.003609725),
+  Joint(joint_name="*elbow_joint", armature=0.003609725),
+  Joint(joint_name="*wrist_roll_joint", armature=0.003609725),
+  Joint(joint_name="*wrist_pitch_joint", armature=0.00425),
+  Joint(joint_name="*wrist_yaw_joint", armature=0.00425),
+)
+
+##
+# Collision config.
+##
 
 SELF_COLLISIONS = (
   # Foot - foot.
@@ -163,6 +217,9 @@ FLOOR_COLLISIONS = (
   CollisionPair("right_hand_collision", "floor", 3),
 )
 
+##
+# Keyframe config.
+##
 
 _HOME_JOINT_ANGLES = [
   -0.1, 0, 0, 0.3, -0.2, 0,
@@ -173,11 +230,12 @@ _HOME_JOINT_ANGLES = [
 ]
 _HOME_ROOT_POS = [0, 0, 0.783675]
 _HOME_ROOT_QUAT = [1, 0, 0, 0]
-_HOME_KEYFRAME = Keyframe.initialize(
+HOME_KEYFRAME = Keyframe(
   name="home",
-  root_pos=_HOME_ROOT_POS,
-  root_quat=_HOME_ROOT_QUAT,
-  joint_angles=_HOME_JOINT_ANGLES,
+  root_pos=np.array(_HOME_ROOT_POS),
+  root_quat=np.array(_HOME_ROOT_QUAT),
+  joint_angles=np.array(_HOME_JOINT_ANGLES),
+  ctrl=np.array(_HOME_JOINT_ANGLES),
 )
 
 _KNEE_BENT_JOINT_ANGLES = [
@@ -189,21 +247,36 @@ _KNEE_BENT_JOINT_ANGLES = [
 ]
 _KNEE_BENT_ROOT_POS = [0, 0, 0.755]
 _KNEE_BENT_ROOT_QUAT = [1, 0, 0, 0]
-_KNEE_BENT_KEYFRAME = Keyframe.initialize(
+KNEE_BENT_KEYFRAME = Keyframe(
   name="knees_bent",
-  root_pos=_KNEE_BENT_ROOT_POS,
-  root_quat=_KNEE_BENT_ROOT_QUAT,
-  joint_angles=_KNEE_BENT_JOINT_ANGLES,
+  root_pos=np.array(_KNEE_BENT_ROOT_POS),
+  root_quat=np.array(_KNEE_BENT_ROOT_QUAT),
+  joint_angles=np.array(_KNEE_BENT_JOINT_ANGLES),
+  ctrl=np.array(_KNEE_BENT_JOINT_ANGLES),
 )
 
-KEYFRAMES = (
-  _HOME_KEYFRAME,
-  _KNEE_BENT_KEYFRAME,
+KEYFRAME_CONFIG = (
+  HOME_KEYFRAME,
+  KNEE_BENT_KEYFRAME,
 )
 
+##
+# Sensor config.
+##
 
-SENSORS = (
-    Sensor("gyro", "gyro", "imu_in_pelvis", "site"),
-    Sensor("local_linvel", "velocimeter", "imu_in_pelvis", "site"),
-    Sensor("upvector", "framezaxis", "imu_in_pelvis", "site"),
+SENSOR_CONFIG = (
+  Sensor("gyro", "gyro", PELVIS_IMU_SITE, "site"),
+  Sensor("local_linvel", "velocimeter", PELVIS_IMU_SITE, "site"),
+  Sensor("upvector", "framezaxis", PELVIS_IMU_SITE, "site"),
+)
+
+##
+# Robot configs.
+##
+
+DefaultConfig = RobotConfig(
+  joints=JOINT_CONFIG,
+  actuators=ACTUATOR_CONFIG,
+  sensors=SENSOR_CONFIG,
+  keyframes=KEYFRAME_CONFIG,
 )
