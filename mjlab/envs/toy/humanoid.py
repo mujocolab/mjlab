@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Dict, Tuple, cast
 
 import jax
@@ -9,9 +8,7 @@ from mujoco import mjx
 
 from mjlab.core import entity, mjx_task
 from mjlab.envs.toy import reward
-
-_HERE = Path(__file__).parent
-_HUMANOID_XML = _HERE / "xmls" / "humanoid.xml"
+from mjlab.entities.robots.mujoco_humanoid import MujocoHumanoid
 
 # Height of head above which stand reward is 1.
 _STAND_HEIGHT = 1.4
@@ -19,57 +16,6 @@ _STAND_HEIGHT = 1.4
 # Horizontal speeds above which move reward is 1.
 _WALK_SPEED = 1
 _RUN_SPEED = 10
-
-
-class Humanoid(entity.Entity):
-  """Humanoid entity."""
-
-  def post_init(self):
-    self._torso_body = self.spec.body("torso")
-    self._head_body = self.spec.body("head")
-    self._joints = self.get_non_root_joints()
-    self._com_vel_sensor = self.spec.sensor("torso_subtreelinvel")
-
-    extremities = []
-    for side in ("left", "right"):
-      for limb in ("hand", "foot"):
-        extremities.append(self.spec.body(f"{side}_{limb}"))
-    self._extremities = tuple(extremities)
-
-  @property
-  def joints(self) -> Tuple[mujoco.MjsJoint]:
-    return self._joints
-
-  def torso_upright(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
-    """Returns projection from z-axes of torso to the z-axes of the world."""
-    return data.bind(model, self._torso_body).xmat[2, 2]
-
-  def head_height(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
-    """Returns the height of the head above the ground."""
-    return data.bind(model, self._head_body).xpos[2]
-
-  def center_of_mass_position(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
-    """Returns position of the center-of-mass."""
-    return data.bind(model, self._torso_body).subtree_com
-
-  def center_of_mass_velocity(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
-    """Returns velocity of the center-of-mass."""
-    return data.bind(model, self._com_vel_sensor).sensordata
-
-  def torso_vertical_orientation(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
-    """Returns the z-projection of the torso orientation matrix."""
-    return data.bind(model, self._torso_body).xmat[2]
-
-  def joint_angles(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
-    """Returns the state without global orientation or position."""
-    return data.bind(model, self._joints).qpos
-
-  def extremities(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
-    """Returns end-effector positions in egocentric frame."""
-    torso_frame = data.bind(model, self._torso_body).xmat
-    torso_pos = data.bind(model, self._torso_body).xpos
-    torso_to_limb = data.bind(model, self._extremities).xpos - torso_pos
-    return torso_to_limb @ torso_frame
 
 
 @dataclass(frozen=True)
@@ -91,7 +37,7 @@ class _Humanoid(mjx_task.MjxTask[_HumanoidConfig]):
 
   def __init__(self, config: _HumanoidConfig = _HumanoidConfig()):
     root, entities = _Humanoid.build_scene(config)
-    self.humanoid: Humanoid = cast(Humanoid, entities["humanoid"])
+    self.humanoid: MujocoHumanoid = cast(MujocoHumanoid, entities["humanoid"])
     super().__init__(config, root.spec, entities=entities)
 
   @property
@@ -113,7 +59,7 @@ class _Humanoid(mjx_task.MjxTask[_HumanoidConfig]):
   def build_scene(
     cfg: _HumanoidConfig,
   ) -> Tuple[entity.Entity, Dict[str, entity.Entity]]:
-    root_spec = Humanoid.from_file(_HUMANOID_XML)
+    root_spec = MujocoHumanoid()
     cfg.apply_defaults(root_spec.spec)
     return root_spec, {"humanoid": root_spec}
 

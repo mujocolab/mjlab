@@ -1,8 +1,31 @@
 <mujoco model="humanoid">
-  <include file="common.xml"/>
   <statistic extent="2" center="0 0 1"/>
 
-  <option timestep="0.005"/>
+  <visual>
+    <headlight ambient=".4 .4 .4" diffuse=".8 .8 .8" specular="0.1 0.1 0.1"/>
+    <map znear=".01"/>
+    <quality shadowsize="2048"/>
+  </visual>
+
+  <asset>
+    <texture name="skybox" type="skybox" builtin="gradient" rgb1=".4 .6 .8" rgb2="0 0 0" width="800" height="800"
+      mark="random" markrgb="1 1 1"/>
+    <texture name="grid" type="2d" builtin="checker" rgb1=".1 .2 .3" rgb2=".2 .3 .4" width="300" height="300"
+      mark="edge" markrgb=".2 .3 .4"/>
+    <material name="grid" texture="grid" texrepeat="1 1" texuniform="true" reflectance=".2"/>
+    <material name="self" rgba=".7 .5 .3 1"/>
+    <material name="self_default" rgba=".7 .5 .3 1"/>
+    <material name="self_highlight" rgba="0 .5 .3 1"/>
+    <material name="effector" rgba=".7 .4 .2 1"/>
+    <material name="effector_default" rgba=".7 .4 .2 1"/>
+    <material name="effector_highlight" rgba="0 .5 .3 1"/>
+    <material name="decoration" rgba=".3 .5 .7 1"/>
+    <material name="eye" rgba="0 .2 1 1"/>
+    <material name="target" rgba=".6 .3 .3 1"/>
+    <material name="target_default" rgba=".6 .3 .3 1"/>
+    <material name="target_highlight" rgba=".6 .3 .3 .4"/>
+    <material name="site" rgba=".5 .5 .5 .3"/>
+  </asset>
 
   <default>
     <motor ctrlrange="-1 1" ctrllimited="true"/>
@@ -103,21 +126,25 @@
     <motor name="abdomen_y" gear="40" joint="abdomen_y"/>
     <motor name="abdomen_z" gear="40" joint="abdomen_z"/>
     <motor name="abdomen_x" gear="40" joint="abdomen_x"/>
+
     <motor name="right_hip_x" gear="40" joint="right_hip_x"/>
     <motor name="right_hip_z" gear="40" joint="right_hip_z"/>
     <motor name="right_hip_y" gear="120" joint="right_hip_y"/>
     <motor name="right_knee" gear="80" joint="right_knee"/>
     <motor name="right_ankle_x" gear="20" joint="right_ankle_x"/>
     <motor name="right_ankle_y" gear="20" joint="right_ankle_y"/>
+
     <motor name="left_hip_x" gear="40" joint="left_hip_x"/>
     <motor name="left_hip_z" gear="40" joint="left_hip_z"/>
     <motor name="left_hip_y" gear="120" joint="left_hip_y"/>
     <motor name="left_knee" gear="80" joint="left_knee"/>
     <motor name="left_ankle_x" gear="20" joint="left_ankle_x"/>
     <motor name="left_ankle_y" gear="20" joint="left_ankle_y"/>
+
     <motor name="right_shoulder1" gear="20" joint="right_shoulder1"/>
     <motor name="right_shoulder2" gear="20" joint="right_shoulder2"/>
     <motor name="right_elbow" gear="40" joint="right_elbow"/>
+
     <motor name="left_shoulder1" gear="20" joint="left_shoulder1"/>
     <motor name="left_shoulder2" gear="20" joint="left_shoulder2"/>
     <motor name="left_elbow" gear="40" joint="left_elbow"/>

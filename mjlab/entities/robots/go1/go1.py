@@ -27,16 +27,12 @@ class UnitreeGo1(robot.Robot):
     self._upvector_sensor = self.spec.sensor("upvector")
 
   @property
-  def joints(self) -> Tuple[mujoco.MjsJoint]:
+  def joints(self) -> Tuple[mujoco.MjsJoint, ...]:
     return self._joints
 
   @property
-  def actuators(self) -> Tuple[mujoco.MjsActuator]:
+  def actuators(self) -> Tuple[mujoco.MjsActuator, ...]:
     return self._actuators
-
-  @property
-  def joint_names(self) -> Tuple[str, ...]:
-    return tuple([j.name for j in self._joints])
 
   def joint_angles(self, model: mjx.Model, data: mjx.Data) -> jax.Array:
     return data.bind(model, self._joints).qpos
