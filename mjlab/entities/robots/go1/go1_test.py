@@ -2,9 +2,9 @@ import numpy as np
 from absl.testing import absltest
 import mujoco
 
-from mjlab.entities.go1 import go1_constants as consts
-from mjlab.entities.go1.go1 import UnitreeGo1
-from mjlab.entities.robot_config import RobotConfig, Actuator, Joint
+from mjlab.entities.robots.go1 import go1_constants as consts
+from mjlab.entities.robots.go1.go1 import UnitreeGo1
+from mjlab.entities.robots import editors, robot
 
 
 class TestGo1Robot(absltest.TestCase):
@@ -12,17 +12,17 @@ class TestGo1Robot(absltest.TestCase):
     self.frictionloss = [0.1, 0.3, 1.0]
     self.armature = [0.005, 0.0025, 0.001]
     jnt_cfg = (
-      Joint(
+      editors.Joint(
         joint_name="*hip_joint",
         frictionloss=self.frictionloss[0],
         armature=self.armature[0],
       ),
-      Joint(
+      editors.Joint(
         joint_name="*thigh_joint",
         frictionloss=self.frictionloss[1],
         armature=self.armature[1],
       ),
-      Joint(
+      editors.Joint(
         joint_name="*calf_joint",
         frictionloss=self.frictionloss[2],
         armature=self.armature[2],
@@ -31,32 +31,32 @@ class TestGo1Robot(absltest.TestCase):
     self.kps = [35, 15, 5]
     self.kvs = [0.5, 0.25, 0.1]
     act_cfg = (
-      Actuator(
+      editors.Actuator(
         joint_name="*hip_joint",
         kp=self.kps[0],
         kv=self.kvs[0],
         torque_limit=consts.ACTUATOR_HIP_TORQUE_LIMIT,
       ),
-      Actuator(
+      editors.Actuator(
         joint_name="*thigh_joint",
         kp=self.kps[1],
         kv=self.kvs[1],
         torque_limit=consts.ACTUATOR_HIP_TORQUE_LIMIT,
       ),
-      Actuator(
+      editors.Actuator(
         joint_name="*calf_joint",
         kp=self.kps[2],
         kv=self.kvs[2],
         torque_limit=consts.ACTUATOR_KNEE_TORQUE_LIMIT,
       ),
     )
-    cfg = RobotConfig(
+    cfg = robot.RobotConfig(
       joints=jnt_cfg,
       actuators=act_cfg,
       sensors=consts.SENSOR_CONFIG,
       keyframes=consts.KEYFRAME_CONFIG,
     )
-    go1 = UnitreeGo1.from_file(consts.GO1_XML, config=cfg, assets=consts.get_assets())
+    go1 = UnitreeGo1(config=cfg)
     self.model = go1.compile()
 
   def test_can_compile_and_step(self):

@@ -9,7 +9,7 @@ import numpy as np
 
 from mjlab.utils.collision import geoms_colliding
 from mjlab.core import entity, mjx_env, mjx_task
-from mjlab.entities.arenas import FlatTerrainArena
+from mjlab.entities.terrains import FlatTerrainArena
 
 from mjlab.utils import reset as reset_utils
 from mjlab.entities.robot_config import CollisionPair

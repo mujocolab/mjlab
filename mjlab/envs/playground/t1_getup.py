@@ -9,10 +9,10 @@ from mujoco import mjx
 from mjlab.utils.collision import geoms_colliding
 from mjlab.utils import reset as reset_utils
 from mjlab.core import entity, mjx_env, mjx_task, step
-from mjlab.entities.arenas import FlatTerrainArena
+from mjlab.entities.terrains import FlatTerrainArena
 from mjlab.entities.t1 import BoosterT1, get_assets, T1_XML
 from mjlab.entities.t1 import t1_constants as consts
-from mjlab.entities import robot
+from mjlab.entities.robots import robot
 
 
 class T1(BoosterT1):

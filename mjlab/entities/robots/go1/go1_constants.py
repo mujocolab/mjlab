@@ -3,12 +3,13 @@
 # fmt: off
 
 import numpy as np
-from mjlab.entities.robot_config import (
+from mjlab.entities.robots.editors import (
   Keyframe,
   Actuator,
   Joint,
   Sensor,
 )
+from mjlab.entities.robots.robot import RobotConfig
 from typing import Dict
 from mjlab import MJLAB_SRC_PATH, MENAGERIE_PATH, update_assets
 
@@ -16,7 +17,7 @@ from mjlab import MJLAB_SRC_PATH, MENAGERIE_PATH, update_assets
 # MJCF and assets.
 ##
 
-GO1_XML = MJLAB_SRC_PATH / "entities" / "go1" / "xmls" / "go1.xml"
+GO1_XML = MJLAB_SRC_PATH / "entities" / "robots" / "go1" / "xmls" / "go1.xml"
 
 def get_assets() -> Dict[str, bytes]:
   assets: Dict[str, bytes] = {}
@@ -104,4 +105,15 @@ JOINT_CONFIG = (
   Joint(joint_name="*hip_joint", armature=ACTUATOR_HIP_ARMATURE),
   Joint(joint_name="*thigh_joint", armature=ACTUATOR_HIP_ARMATURE),
   Joint(joint_name="*calf_joint", armature=ACTUATOR_KNEE_ARMATURE),
+)
+
+##
+# Robot configs.
+##
+
+DefaultConfig = RobotConfig(
+  joints=JOINT_CONFIG,
+  actuators=ACTUATOR_CONFIG,
+  sensors=SENSOR_CONFIG,
+  keyframes=KEYFRAME_CONFIG,
 )

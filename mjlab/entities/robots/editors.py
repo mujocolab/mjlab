@@ -1,41 +1,9 @@
-from dataclasses import dataclass, replace
-from typing import Sequence, Tuple, Protocol
+from dataclasses import dataclass
+from typing import Sequence
 import fnmatch
-
 import numpy as np
 import mujoco
-
-
-class SpecEditor(Protocol):
-  """Any object that knows how to edit an MjSpec."""
-
-  def edit_spec(self, spec: mujoco.MjSpec) -> None: ...
-
-
-@dataclass(frozen=True)
-class RobotConfig:
-  joints: Sequence[SpecEditor]
-  actuators: Sequence[SpecEditor]
-  sensors: Sequence[SpecEditor]
-  keyframes: Sequence[SpecEditor]
-
-  def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    for cfg in self.joints:
-      cfg.edit_spec(spec)
-
-    for cfg in self.sensors:
-      cfg.edit_spec(spec)
-
-    for cfg in self.keyframes:
-      cfg.edit_spec(spec)
-
-    # Add actuators in joint order.
-    for joint in spec.joints:
-      for act_cfg in self.actuators:
-        if fnmatch.fnmatch(joint.name, act_cfg.joint_name):
-          bound_cfg = replace(act_cfg, joint_name=joint.name)
-          bound_cfg.edit_spec(spec)
-          break
+from mjlab.core.editors import SpecEditor
 
 
 _SENSOR_TYPE_MAP = {
@@ -56,7 +24,7 @@ _SENSOR_OBJECT_TYPE_MAP = {
 
 
 @dataclass(frozen=True)
-class Sensor:
+class Sensor(SpecEditor):
   """Configuration for a sensor."""
 
   name: str
@@ -74,7 +42,7 @@ class Sensor:
 
 
 @dataclass(frozen=True)
-class Actuator:
+class Actuator(SpecEditor):
   """Configuration for an actuator."""
 
   kp: float
@@ -105,7 +73,7 @@ class Actuator:
 
 
 @dataclass(frozen=True)
-class Joint:
+class Joint(SpecEditor):
   """Configuration for a joint."""
 
   joint_name: str
@@ -127,7 +95,7 @@ class Joint:
 
 
 @dataclass(frozen=True)
-class Keyframe:
+class Keyframe(SpecEditor):
   """Configuration for a keyframe."""
 
   name: str
@@ -145,7 +113,7 @@ class Keyframe:
 
 
 @dataclass(frozen=True)
-class CollisionPair:
+class CollisionPair(SpecEditor):
   """Configuration for a collision pair."""
 
   geom1: str
@@ -173,21 +141,3 @@ class CollisionPair:
     if self.solimp is not None:
       for i in range(len(self.solimp)):
         pair.solimp[i] = self.solimp[i]
-
-
-@dataclass(frozen=True)
-class Skybox:
-  rgb1: Tuple[float, float, float] = (0.3, 0.5, 0.7)
-  rgb2: Tuple[float, float, float] = (0.1, 0.2, 0.3)
-  width: int = 512
-  height: int = 3072
-
-  def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    spec.add_texture(
-      type=mujoco.mjtTexture.mjTEXTURE_SKYBOX,
-      builtin=mujoco.mjtBuiltin.mjBUILTIN_GRADIENT,
-      rgb1=self.rgb1,
-      rgb2=self.rgb2,
-      width=self.width,
-      height=self.height,
-    )

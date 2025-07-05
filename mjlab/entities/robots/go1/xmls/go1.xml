@@ -1,5 +1,5 @@
 <mujoco model="go1">
-  <compiler angle="radian" meshdir="../../../external_deps/mujoco_menagerie/unitree_go1/assets" autolimits="true"/>
+  <compiler angle="radian" meshdir="../../../../external_deps/mujoco_menagerie/unitree_go1/assets" autolimits="true"/>
 
   <default>
     <default class="go1">

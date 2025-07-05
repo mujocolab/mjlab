@@ -4,24 +4,21 @@ from typing import Any, Dict, Tuple, Union, cast
 import jax
 import jax.numpy as jp
 import mujoco
-import enum
 from mujoco import mjx
 import numpy as np
 
+from mjlab.entities.robots import robot
 from mjlab.utils.collision import geoms_colliding
 from mjlab.core import entity, mjx_env, mjx_task
-from mjlab.entities.arenas import FlatTerrainArena, PlaygroundTerrainArena, Arena
-from mjlab.entities.go1 import go1
-from mjlab.entities.go1 import go1_constants as consts
-from mjlab.entities import robot, robot_config
+from mjlab.entities.robots.go1 import go1
+from mjlab.entities.robots.go1 import go1_constants as consts
+from mjlab.entities import terrains
 from mjlab.utils import reset as reset_utils
 
 
 class Go1(go1.UnitreeGo1):
-  """Go1 with custom collision pairs."""
-
-  def post_init(self):
-    super().post_init()
+  def __init__(self, config: robot.RobotConfig = consts.DefaultConfig):
+    super().__init__(config=config)
     self.default_joint_pos_nominal = tuple(consts.HOME_KEYFRAME.ctrl.tolist())
 
     # Modify foot geom solimp.
@@ -45,11 +42,6 @@ def get_rz(
   stance = cubic_bezier_interpolation(0, swing_height, 2 * x)
   swing = cubic_bezier_interpolation(swing_height, 0, 2 * x - 1)
   return jp.where(x <= 0.5, stance, swing)
-
-
-class Terrain(enum.Enum):
-  FLAT = enum.auto()
-  PLAYGROUND = enum.auto()
 
 
 @dataclass(frozen=True)
@@ -105,7 +97,7 @@ class Go1JoystickConfig(mjx_task.TaskConfig):
   max_episode_length: int = 1_000
   noise_level: float = 1.0
   action_scale: float = 0.5
-  terrain: Terrain = Terrain.FLAT
+  terrain: terrains.TerrainType = terrains.TerrainType.FLAT
   soft_joint_pos_limit_factor: float = 0.9
   command_config: CommandConfig = CommandConfig()
   reward_config: RewardConfig = RewardConfig()
@@ -167,15 +159,10 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
   def build_scene(
     config: Go1JoystickConfig,
   ) -> Tuple[entity.Entity, Dict[str, entity.Entity]]:
-    go1_entity = Go1.from_default_config()
+    go1_entity = Go1()
 
-    arena: Arena
-    if config.terrain == Terrain.PLAYGROUND:
-      arena = PlaygroundTerrainArena()
-    else:
-      arena = FlatTerrainArena()
-      skybox = robot_config.Skybox()
-      skybox.edit_spec(arena.spec)
+    terrain_cfg = terrains.get_terrain_config(config.terrain)
+    arena = terrains.Terrain(config=terrain_cfg)
 
     arena.floor_geom.contype = 1
     arena.floor_geom.conaffinity = 1
@@ -267,7 +254,7 @@ class Go1JoystickEnv(mjx_task.MjxTask[Go1JoystickConfig]):
     )
     rng, key = jax.random.split(rng)
     pose_range = {"x": (-2.5, 2.5), "y": (-2.5, 2.5), "yaw": (-3.14, 3.14)}
-    if self.cfg.terrain == Terrain.PLAYGROUND:
+    if self.cfg.terrain == terrains.RoughTerrain:
       pose_range["z"] = (0.35, 0.35)
     data = reset_utils.reset_root_state(
       rng=rng,

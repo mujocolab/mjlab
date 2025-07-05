@@ -9,9 +9,9 @@ import numpy as np
 
 from mjlab.utils import reset as reset_utils
 from mjlab.core import entity, mjx_env, mjx_task, step
-from mjlab.entities.arenas import FlatTerrainArena
+from mjlab.entities.terrains import FlatTerrainArena
 from mjlab.entities.go1 import UnitreeGo1, get_assets, GO1_XML
-from mjlab.entities import robot
+from mjlab.entities.robots import robot
 
 _UNWANTED_COLLISIONS = [
   "FR_hip_collision2",

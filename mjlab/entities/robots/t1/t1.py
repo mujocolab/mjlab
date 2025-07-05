@@ -1,4 +1,4 @@
-"""Unitree G1 humanoid."""
+"""Booster T1 humanoid."""
 
 from typing import Tuple
 import re
@@ -7,21 +7,24 @@ from mujoco import mjx
 import jax
 import jax.numpy as jp
 
-from mjlab.entities.g1 import g1_constants as consts
-from mjlab.entities import robot
+from mjlab.entities.t1 import t1_constants as consts
+from mjlab.entities.robots import robot
 
 
-class UnitreeG1(robot.Robot):
-  """Unitree G1 humanoid."""
+class BoosterT1(robot.Robot):
+  """Booster T1 humanoid."""
 
   def post_init(self):
     self.add_pd_actuators_from_patterns(consts.ACTUATOR_SPECS)
 
+    for sensor in consts.SENSORS:
+      self.add_sensor(sensor)
+
     self._torso_body = self.spec.body(consts.TORSO_BODY)
-    self._imu_site = self.spec.site(consts.PELVIS_IMU_SITE)
+    self._imu_site = self.spec.site(consts.IMU_SITE)
     self._joints = self.get_non_root_joints()
     self._ankle_joints = tuple(
-      [j for j in self._joints if re.match(r".*_ankle_(pitch|roll)_joint", j.name)]
+      [j for j in self._joints if re.match(r".*_Ankle_(Pitch|Roll)", j.name)]
     )
     self._actuators = tuple(self.spec.actuators)
     self._gyro_sensor = self.spec.sensor("gyro")

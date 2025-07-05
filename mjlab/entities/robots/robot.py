@@ -1,24 +1,54 @@
 import abc
+from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Optional, TypeVar, Type, Dict, Tuple
+import fnmatch
+from typing import Optional, TypeVar, Type, Dict, Tuple, Sequence
 
 import numpy as np
 from mjlab.core import entity
 import mujoco
 
-from mjlab.entities.robot_config import RobotConfig
+from mjlab.entities.robots import editors
 
 T = TypeVar("T", bound="Robot")
 
 
+@dataclass(frozen=True)
+class RobotConfig:
+  joints: Sequence[editors.Joint]
+  actuators: Sequence[editors.Actuator]
+  sensors: Sequence[editors.Sensor]
+  keyframes: Sequence[editors.Keyframe]
+
+  def edit_spec(self, spec: mujoco.MjSpec) -> None:
+    for cfg in self.joints:
+      cfg.edit_spec(spec)
+    for cfg in self.sensors:
+      cfg.edit_spec(spec)
+    for cfg in self.keyframes:
+      cfg.edit_spec(spec)
+
+    # Add actuators in joint order.
+    for joint in spec.joints:
+      joint: mujoco.MjsJoint
+      for act_cfg in self.actuators:
+        if fnmatch.fnmatch(joint.name, act_cfg.joint_name):
+          bound_cfg = replace(act_cfg, joint_name=joint.name)
+          bound_cfg.edit_spec(spec)
+          break
+
+
 class Robot(entity.Entity, abc.ABC):
-  """Base class for robot entities."""
+  """Abstract base class for robot entities.
+
+  Subclasses must implement `joints` and `actuators` properties.
+  """
 
   def __init__(self, spec: mujoco.MjSpec, config: RobotConfig | None = None):
+    self._spec = spec
     self._config = config
     if config is not None:
       config.edit_spec(spec)
-    super().__init__(spec)
 
   @classmethod
   def from_file(
@@ -51,9 +81,12 @@ class Robot(entity.Entity, abc.ABC):
     raise NotImplementedError
 
   @property
-  @abc.abstractmethod
+  def spec(self) -> mujoco.MjSpec:
+    return self._spec
+
+  @property
   def joint_names(self) -> Tuple[str, ...]:
-    raise NotImplementedError
+    return tuple([j.name for j in self.joints])
 
   def joint_stiffness(self) -> np.ndarray:
     return np.array([a.gainprm[0] for a in self.actuators])
