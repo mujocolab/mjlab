@@ -7,8 +7,8 @@ import torch
 from rsl_rl.env import VecEnv
 
 from mujoco import mjx
-from mjlab._src import mjx_env, mjx_task
-from mjlab._src.types import State
+from mjlab.core import mjx_env, mjx_task
+from mjlab.core.types import State
 
 ConfigT = TypeVar("ConfigT", bound=mjx_task.TaskConfig)
 TaskT = TypeVar("TaskT", bound=mjx_task.MjxTask[ConfigT])
@@ -108,7 +108,8 @@ class RslRlVecEnvWrapper(VecEnv, Generic[ConfigT, TaskT]):
     return obs.reshape(self.num_envs, -1), extras
 
   def reset(self):
-    self.state = self._reset_fn(self.key_reset).replace()
+    self.first_state = self._reset_fn(self.key_reset)
+    self.state = self.first_state.replace()
     self.episode_length_buf = torch.zeros(
       self.num_envs, dtype=torch.long, device=self.device
     )
@@ -126,7 +127,7 @@ class RslRlVecEnvWrapper(VecEnv, Generic[ConfigT, TaskT]):
       self.key_reset = self._generate_key_reset(self._next_key())
       first_state = self._reset_fn(self.key_reset)
     else:
-      first_state = self._reset_fn(self.key_reset)
+      first_state = self.first_state
 
     def _apply_mask(first, current):
       def mask_leaf(f, c):

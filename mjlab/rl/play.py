@@ -7,16 +7,18 @@ import jax
 import jax.numpy as jp
 import torch
 import tyro
-from rsl_rl.runners import OnPolicyRunner
+from mjlab.rl.on_policy_runner import MjlabOnPolicyRunner as OnPolicyRunner
 
-from mjlab import TaskConfigUnion
-from mjlab._src.types import State
-from mjlab._src import registry, mjx_task
+from mjlab.envs import TaskConfigUnion
+from mjlab.core.types import State
+from mjlab.core import mjx_task
 from mjlab.rl import config, utils, wrapper, exporter
 
 import mujoco
 from mujoco import mjx
 import mujoco.viewer
+
+from mjlab.envs import registry
 
 _HERE = Path(__file__).parent
 
@@ -81,6 +83,9 @@ def main(
     path=export_model_dir,
     filename="policy.onnx",
   )
+  if wandb_run_path is not None:
+    exporter.attach_onnx_metadata(env.unwrapped, wandb_run_path, path=export_model_dir)
+    print(f"[INFO] Saved policy to: {export_model_dir / 'policy.onnx'}")
 
   task: mjx_task.MjxTask = env.unwrapped.task
   m = task.model

@@ -25,7 +25,18 @@ dependencies = [
     "wandb",
     "ruff",
     "mediapy",
-    "gymnasium>=1.0",
+    "scipy",
+]
+
+[project.optional-dependencies]
+test = [
+    "absl-py",
+    "pytest",
+    "pytest-xdist",
+]
+mimic = [
+    "mink",
+    "loop_rate_limiters",
 ]
 
 [tool.ruff]
@@ -35,4 +46,7 @@ indent-width = 2
 python_version = "3.12"
 ignore_missing_imports = true
 warn_unused_configs = true
-exclude = ["external_deps/", "exporter.py", "wrapper.py"]
+exclude = ["external_deps/", "exporter.py", "wrapper.py", "motion_imitation/"]
+
+[tool.pytest.ini_options]
+addopts = "--ignore=mjlab/external_deps"

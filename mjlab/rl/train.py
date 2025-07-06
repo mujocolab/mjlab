@@ -8,10 +8,11 @@ from pathlib import Path
 import torch
 import tyro
 
-from rsl_rl.runners import OnPolicyRunner
+from mjlab.rl.on_policy_runner import MjlabOnPolicyRunner as OnPolicyRunner
 
-from mjlab import TaskConfigUnion, MJLAB_ROOT_PATH
-from mjlab._src import registry
+from mjlab import MJLAB_ROOT_PATH
+from mjlab.envs import TaskConfigUnion
+from mjlab.envs import registry
 from mjlab.rl import config, utils, wrapper
 
 torch.backends.cuda.matmul.allow_tf32 = True
@@ -48,6 +49,11 @@ def main(
   task_name = registry.get_task_name_by_config_class_name(task_cfg.__class__.__name__)
   env = registry.make(task_name, task_cfg)
 
+  if agent_cfg.resume:
+    resume_path = utils.get_checkpoint_path(
+      log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint
+    )
+
   # Wrap the env to be compatible with RSL-RL.
   env = wrapper.RslRlVecEnvWrapper(
     env,
@@ -64,6 +70,9 @@ def main(
     device=agent_cfg.device,
   )
   runner.add_git_repo_to_log(str(MJLAB_ROOT_PATH))
+  if agent_cfg.resume:
+    print(f"[INFO]: Loading model checkpoint from: {resume_path}")
+    runner.load(resume_path)
 
   # Dump the configuration into the log dir.
   utils.dump_yaml(log_dir / "params" / "env.yaml", asdict(task_cfg))
