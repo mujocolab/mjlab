@@ -2,54 +2,105 @@
 
 # fmt: off
 
-from mjlab.entities.robot_config import (
+from typing import Dict
+
+import numpy as np
+from mjlab.entities.robots.editors import (
   CollisionPair,
   Keyframe,
-  PDActuator,
+  Actuator,
   Sensor,
+  Joint,
 )
+from mjlab.entities.robots.robot import RobotConfig
+from mjlab import MJLAB_SRC_PATH, MENAGERIE_PATH, update_assets
 
+##
+# MJCF and assets
+##
+
+T1_XML = MJLAB_SRC_PATH / "entities" / "robots" / "t1" / "xmls" / "t1.xml"
+
+
+def get_assets() -> Dict[str, bytes]:
+  assets: Dict[str, bytes] = {}
+  path = MENAGERIE_PATH / "booster_t1"
+  update_assets(assets, path / "assets")
+  return assets
+
+##
+# Constants.
+##
+
+NU = 2 + 4 * 2 + 1 + 6 * 2
+NQ = NU + 7
+NV = NQ - 1
+
+# Sites.
 LEFT_FOOT_SITE = "left_foot"
 RIGHT_FOOT_SITE = "right_foot"
-
 FEET_SITES = (
   LEFT_FOOT_SITE,
   RIGHT_FOOT_SITE,
 )
-
 HAND_SITES = (
   "left_hand",
   "right_hand",
 )
+IMU_SITE = "imu"
 
+# Geoms.
 FEET_GEOMS = ["left_foot", "right_foot"]
 
+# Bodies.
 TORSO_BODY = "Trunk"
 ROOT_BODY = TORSO_BODY
 
-BODY_NAMES = []
+##
+# Actuator config.
+##
 
-IMU_SITE = "imu"
+ACTUATOR_CONFIG = (
+  Actuator(joint_name="AAHead_yaw", kp=20, kv=5, torque_limit=7),
+  Actuator(joint_name="Head_pitch", kp=20, kv=5, torque_limit=7),
 
+  Actuator(joint_name="*_Shoulder_Pitch", kp=20, kv=2, torque_limit=18),
+  Actuator(joint_name="*_Shoulder_Roll", kp=20, kv=2, torque_limit=18),
+  Actuator(joint_name="*_Elbow_Pitch", kp=20, kv=2, torque_limit=18),
+  Actuator(joint_name="*_Elbow_Yaw", kp=20, kv=2, torque_limit=18),
 
-ACTUATOR_SPECS = (
-  PDActuator(joint_name="AAHead_yaw", kp=20, kv=5, armature=0.005, torque_limit=7),
-  PDActuator(joint_name="Head_pitch", kp=20, kv=5, armature=0.005, torque_limit=7),
+  Actuator(joint_name="Waist", kp=50, kv=5, torque_limit=30),
 
-  PDActuator(joint_name="*_Shoulder_Pitch", kp=20, kv=2, armature=0.005, torque_limit=18),
-  PDActuator(joint_name="*_Shoulder_Roll", kp=20, kv=2, armature=0.005, torque_limit=18),
-  PDActuator(joint_name="*_Elbow_Pitch", kp=20, kv=2, armature=0.005, torque_limit=18),
-  PDActuator(joint_name="*_Elbow_Yaw", kp=20, kv=2, armature=0.005, torque_limit=18),
-
-  PDActuator(joint_name="Waist", kp=50, kv=5, armature=0.005, torque_limit=30),
-
-  PDActuator(joint_name="*_Hip_Pitch", kp=50, kv=5, armature=0.005, torque_limit=45),
-  PDActuator(joint_name="*_Hip_Roll", kp=50, kv=5, armature=0.005, torque_limit=30),
-  PDActuator(joint_name="*_Hip_Yaw", kp=50, kv=5, armature=0.005, torque_limit=30),
-  PDActuator(joint_name="*_Knee_Pitch", kp=50, kv=5, armature=0.005, torque_limit=60),
-  PDActuator(joint_name="*_Ankle_Pitch", kp=20, kv=2, armature=0.005, torque_limit=20),
-  PDActuator(joint_name="*_Ankle_Roll", kp=20, kv=2, armature=0.005, torque_limit=15),
+  Actuator(joint_name="*_Hip_Pitch", kp=50, kv=5, torque_limit=45),
+  Actuator(joint_name="*_Hip_Roll", kp=50, kv=5, torque_limit=30),
+  Actuator(joint_name="*_Hip_Yaw", kp=50, kv=5, torque_limit=30),
+  Actuator(joint_name="*_Knee_Pitch", kp=50, kv=5, torque_limit=60),
+  Actuator(joint_name="*_Ankle_Pitch", kp=20, kv=2, torque_limit=20),
+  Actuator(joint_name="*_Ankle_Roll", kp=20, kv=2, torque_limit=15),
 )
+
+JOINT_CONFIG = (
+  Joint(joint_name="AAHead_yaw"),
+  Joint(joint_name="Head_pitch"),
+
+  Joint(joint_name="*_Shoulder_Pitch"),
+  Joint(joint_name="*_Shoulder_Roll"),
+  Joint(joint_name="*_Elbow_Pitch"),
+  Joint(joint_name="*_Elbow_Yaw"),
+
+  Joint(joint_name="Waist"),
+
+  Joint(joint_name="*_Hip_Pitch"),
+  Joint(joint_name="*_Hip_Roll"),
+  Joint(joint_name="*_Hip_Yaw"),
+  Joint(joint_name="*_Knee_Pitch"),
+  Joint(joint_name="*_Ankle_Pitch"),
+  Joint(joint_name="*_Ankle_Roll"),
+)
+
+##
+# Collision config.
+##
 
 SELF_COLLISIONS = (
   CollisionPair("left_hand", "left_thigh", 1),
@@ -79,6 +130,9 @@ FLOOR_COLLISIONS = (
   CollisionPair("right_knee", "floor", 3),
 )
 
+##
+# Keyframe config.
+##
 
 _HOME_JOINT_ANGLES = [
   0, 0,
@@ -90,19 +144,34 @@ _HOME_JOINT_ANGLES = [
 ]
 _HOME_ROOT_POS = [0, 0, 0.665]
 _HOME_ROOT_QUAT = [1, 0, 0, 0]
-_HOME_KEYFRAME = Keyframe.initialize(
+HOME_KEYFRAME = Keyframe(
   name="home",
-  root_pos=_HOME_ROOT_POS,
-  root_quat=_HOME_ROOT_QUAT,
-  joint_angles=_HOME_JOINT_ANGLES,
+  root_pos=np.array(_HOME_ROOT_POS),
+  root_quat=np.array(_HOME_ROOT_QUAT),
+  joint_angles=np.array(_HOME_JOINT_ANGLES),
+  ctrl=np.array(_HOME_JOINT_ANGLES),
 )
-KEYFRAMES = (
-  _HOME_KEYFRAME,
+KEYFRAME_CONFIG = (
+  HOME_KEYFRAME,
 )
 
+##
+# Sensor config.
+##
 
-SENSORS = (
-    Sensor("gyro", "gyro", "imu", "site"),
-    Sensor("local_linvel", "velocimeter", "imu", "site"),
-    Sensor("upvector", "framezaxis", "imu", "site"),
+SENSOR_CONFIG = (
+    Sensor("gyro", "gyro", IMU_SITE, "site"),
+    Sensor("local_linvel", "velocimeter", IMU_SITE, "site"),
+    Sensor("upvector", "framezaxis", IMU_SITE, "site"),
+)
+
+##
+# Robot configs.
+##
+
+DefaultConfig = RobotConfig(
+  joints=JOINT_CONFIG,
+  actuators=ACTUATOR_CONFIG,
+  sensors=SENSOR_CONFIG,
+  keyframes=KEYFRAME_CONFIG,
 )
