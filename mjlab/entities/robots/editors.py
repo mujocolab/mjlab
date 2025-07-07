@@ -91,6 +91,8 @@ class SensorEditor(SpecEditor):
 
   SENSOR_OBJECT_TYPE_MAP = {
     "site": mujoco.mjtObj.mjOBJ_SITE,
+    "geom": mujoco.mjtObj.mjOBJ_GEOM,
+    "body": mujoco.mjtObj.mjOBJ_BODY,
   }
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:

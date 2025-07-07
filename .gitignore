@@ -6,3 +6,4 @@ external_deps/
 MUJOCO_LOG.TXT
 processed/
 notebooks/
+.vscode/

@@ -40,4 +40,4 @@ class RobotCfg:
   sensors: dict[str, SensorCfg]
   keyframes: dict[str, KeyframeCfg]
   soft_joint_pos_limit_factor: float = 1.0
-  asset_fn: Callable[[], dict[str, bytes]] = field(default_factory=lambda: {})
+  asset_fn: Callable[[], dict[str, bytes]] = field(default_factory=lambda: (lambda: {}))

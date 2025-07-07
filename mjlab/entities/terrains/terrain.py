@@ -1,38 +1,39 @@
-from typing import Optional
 import mujoco
+
 from mjlab.core import entity
-from mjlab import MJLAB_ROOT_PATH
-from dataclasses import dataclass
-
+from mjlab.entities.terrains.terrain_config import TerrainCfg
 from mjlab.entities.terrains import editors
-
-_XML = MJLAB_ROOT_PATH / "mjlab" / "entities" / "terrains" / "xmls" / "terrain.xml"
-
-
-@dataclass(frozen=True)
-class TerrainConfig:
-  terrain: editors.TerrainEditor
-  skybox: Optional[editors.Skybox] = None
-
-  def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    if self.skybox is not None:
-      self.skybox.edit_spec(spec)
-    self.terrain.edit_spec(spec)
 
 
 class Terrain(entity.Entity):
-  def __init__(self, config: TerrainConfig | None = None):
-    self._spec = mujoco.MjSpec.from_file(str(_XML))
-    self._config = config
-    if config is not None:
-      config.edit_spec(self._spec)
+  def __init__(self, terrain_cfg: TerrainCfg):
+    self._cfg = terrain_cfg
 
-    self._floor_geom = self.spec.geom(config.terrain.name)
+    assets = terrain_cfg.asset_fn()
+    if terrain_cfg.xml_path is not None:
+      self._spec = mujoco.MjSpec.from_file(str(terrain_cfg.xml_path), assets=assets)
+    else:
+      self._spec = mujoco.MjSpec()
+      self._spec.assets = assets
+
+    self._configure_textures()
+    self._configure_materials()
+    self._configure_spec()
 
   @property
   def spec(self) -> mujoco.MjSpec:
     return self._spec
 
-  @property
-  def floor_geom(self) -> mujoco.MjsGeom:
-    return self._floor_geom
+  # Private methods.
+
+  def _configure_textures(self) -> None:
+    for tex_name, tex in self._cfg.textures.items():
+      editors.TextureEditor(tex_name, tex).edit_spec(self._spec)
+
+  def _configure_materials(self) -> None:
+    for mat_name, mat in self._cfg.materials.items():
+      editors.MaterialEditor(mat_name, mat).edit_spec(self._spec)
+
+  def _configure_spec(self):
+    if self._cfg.construct_fn is not None:
+      self._cfg.construct_fn(self._spec)
