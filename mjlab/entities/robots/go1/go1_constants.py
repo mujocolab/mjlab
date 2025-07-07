@@ -2,16 +2,11 @@
 
 # fmt: off
 
-import numpy as np
-from mjlab.entities.robots.editors import (
-  Keyframe,
-  Actuator,
-  Joint,
-  Sensor,
-)
-from mjlab.entities.robots.robot import RobotConfig
 from typing import Dict
 from mjlab import MJLAB_SRC_PATH, MENAGERIE_PATH, update_assets
+
+from mjlab.entities.robots.robot_config import RobotCfg
+from mjlab.entities.robots.robot_config import KeyframeCfg, ActuatorCfg, SensorCfg
 
 ##
 # MJCF and assets.
@@ -37,47 +32,13 @@ NV = NQ - 1
 TORSO_BODY = "trunk"
 ROOT_BODY = TORSO_BODY
 
-FEET_SITES = ("FR", "FL", "RR", "RL")
 FEET_GEOMS = ("FR", "FL", "RR", "RL")
 
+FEET_SITES = ("FR", "FL", "RR", "RL")
 IMU_SITE = "imu"
 
 ##
-# Keyframe config.
-##
-
-_HOME_JOINT_ANGLES = [
-  0.1, 0.9, -1.8,
-  -0.1, 0.9, -1.8,
-  0.1, 0.9, -1.8,
-  -0.1, 0.9, -1.8,
-]
-_HOME_ROOT_POS = [0, 0, 0.278]
-_HOME_ROOT_QUAT = [1, 0, 0, 0]
-HOME_KEYFRAME = Keyframe(
-  name="home",
-  root_pos=np.array(_HOME_ROOT_POS),
-  root_quat=np.array(_HOME_ROOT_QUAT),
-  joint_angles=np.array(_HOME_JOINT_ANGLES),
-  ctrl=np.array(_HOME_JOINT_ANGLES),
-)
-
-KEYFRAME_CONFIG = (
-  HOME_KEYFRAME,
-)
-
-##
-# Sensor config.
-##
-
-SENSOR_CONFIG = (
-  Sensor("gyro", "gyro", IMU_SITE, "site"),
-  Sensor("local_linvel", "velocimeter", IMU_SITE, "site"),
-  Sensor("upvector", "framezaxis", IMU_SITE, "site"),
-)
-
-##
-# Actuator config.
+# Motor specs.
 ##
 
 # Motor specs (from Unitree).
@@ -95,25 +56,55 @@ ACTUATOR_KNEE_VELOCITY_LIMIT = MOTOR_VELOCITY_LIMIT / KNEE_GEAR_RATIO
 ACTUATOR_HIP_TORQUE_LIMIT = MOTOR_TORQUE_LIMIT * HIP_GEAR_RATIO
 ACTUATOR_KNEE_TORQUE_LIMIT = MOTOR_TORQUE_LIMIT * KNEE_GEAR_RATIO
 
-ACTUATOR_CONFIG = (
-  Actuator(joint_name="*hip_joint", kp=35, kv=0.5, torque_limit=ACTUATOR_HIP_TORQUE_LIMIT),
-  Actuator(joint_name="*thigh_joint", kp=35, kv=0.5, torque_limit=ACTUATOR_HIP_TORQUE_LIMIT),
-  Actuator(joint_name="*calf_joint", kp=35, kv=0.5, torque_limit=ACTUATOR_KNEE_TORQUE_LIMIT),
+GO1_HIP_ACTUATOR_CFG = ActuatorCfg(
+  joint_names_expr=[".*_hip_joint", ".*_thigh_joint"],
+  effort_limit=ACTUATOR_HIP_TORQUE_LIMIT,
+  stiffness=35,
+  damping=0.5,
+  armature=ACTUATOR_HIP_ARMATURE,
 )
-
-JOINT_CONFIG = (
-  Joint(joint_name="*hip_joint", armature=ACTUATOR_HIP_ARMATURE),
-  Joint(joint_name="*thigh_joint", armature=ACTUATOR_HIP_ARMATURE),
-  Joint(joint_name="*calf_joint", armature=ACTUATOR_KNEE_ARMATURE),
+GO1_KNEE_ACTUATOR_CFG = ActuatorCfg(
+  joint_names_expr=[".*_calf_joint"],
+  effort_limit=ACTUATOR_KNEE_TORQUE_LIMIT,
+  stiffness=35,
+  damping=0.5,
+  armature=ACTUATOR_KNEE_ARMATURE,
 )
 
 ##
-# Robot configs.
+# Keyframes.
 ##
 
-DefaultConfig = RobotConfig(
-  joints=JOINT_CONFIG,
-  actuators=ACTUATOR_CONFIG,
-  sensors=SENSOR_CONFIG,
-  keyframes=KEYFRAME_CONFIG,
+
+GO1_HOME_KEYFRAME = KeyframeCfg(
+  root_pos=(0.0, 0.0, 0.278),
+  joint_pos={
+    ".*thigh_joint": 0.9,
+    ".*calf_joint": -1.8,
+    ".*R_hip_joint": 0.1,
+    ".*L_hip_joint": -0.1,
+  },
+  use_joint_pos_for_ctrl=True,
+)
+
+##
+# Final config.
+##
+
+GO1_ROBOT_CFG = RobotCfg(
+  xml_path=GO1_XML,
+  asset_fn=get_assets,
+  actuators=(
+    GO1_HIP_ACTUATOR_CFG,
+    GO1_KNEE_ACTUATOR_CFG,
+  ),
+  sensors={
+    "gyro": SensorCfg("gyro", IMU_SITE, "site"),
+    "local_linvel": SensorCfg("velocimeter", IMU_SITE, "site"),
+    "upvector": SensorCfg("framezaxis", IMU_SITE, "site"),
+  },
+  soft_joint_pos_limit_factor=0.9,
+  keyframes={
+    "home": GO1_HOME_KEYFRAME,
+  },
 )

@@ -79,7 +79,7 @@
       <site name="head" pos="0.3 0 0" rgba="1 0 0 1" size="0.02" group="5"/>
       <inertial pos="0.0223 0.002 -0.0005" quat="-0.00342088 0.705204 0.000106698 0.708996" mass="5.204"
         diaginertia="0.0716565 0.0630105 0.0168101"/>
-      <freejoint/>
+      <freejoint name="floating_base_joint"/>
       <geom class="visual" mesh="trunk"/>
       <geom name="trunk_collision1" class="collision" quat="1 0 1 0" pos="0 -0.04 0" size="0.058 0.125" type="cylinder"/>
       <geom name="trunk_collision2" class="collision" quat="1 0 1 0" pos="0 +0.04 0" size="0.058 0.125" type="cylinder"/>

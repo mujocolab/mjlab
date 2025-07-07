@@ -8,17 +8,14 @@ import jax.numpy as jp
 
 from mjlab.entities.robots.go1 import go1_constants as consts
 from mjlab.entities.robots import robot
-from mjlab.utils import spec as spec_utils
 
 
 class UnitreeGo1(robot.Robot):
   """Unitree Go1 quadruped."""
 
-  def __init__(self, config: robot.RobotConfig = consts.DefaultConfig):
-    spec = mujoco.MjSpec.from_file(str(consts.GO1_XML), assets=consts.get_assets())
-    super().__init__(spec=spec, config=config)
+  def __init__(self, robot_cfg):
+    super().__init__(robot_cfg)
 
-    self._joints = spec_utils.get_non_root_joints(self.spec)
     self._actuators = self.spec.actuators
     self._torso_body = self.spec.body(consts.TORSO_BODY)
     self._imu_site = self.spec.site(consts.IMU_SITE)
@@ -28,7 +25,7 @@ class UnitreeGo1(robot.Robot):
 
   @property
   def joints(self) -> Tuple[mujoco.MjsJoint, ...]:
-    return self._joints
+    return self._non_root_joints
 
   @property
   def actuators(self) -> Tuple[mujoco.MjsActuator, ...]:

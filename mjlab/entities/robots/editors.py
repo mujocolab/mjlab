@@ -1,143 +1,102 @@
 from dataclasses import dataclass
-from typing import Sequence
-import fnmatch
 import numpy as np
 import mujoco
+
 from mjlab.core.editors import SpecEditor
+from mjlab.entities.robots.robot_config import KeyframeCfg, ActuatorCfg, SensorCfg
+from mjlab.utils.string import resolve_expr, filter_exp
+from mjlab.utils.spec import get_non_root_joints
 
 
-_SENSOR_TYPE_MAP = {
-  "gyro": mujoco.mjtSensor.mjSENS_GYRO,
-  "upvector": mujoco.mjtSensor.mjSENS_FRAMEZAXIS,
-  "velocimeter": mujoco.mjtSensor.mjSENS_VELOCIMETER,
-  "framequat": mujoco.mjtSensor.mjSENS_FRAMEQUAT,
-  "framepos": mujoco.mjtSensor.mjSENS_FRAMEPOS,
-  "framelinvel": mujoco.mjtSensor.mjSENS_FRAMELINVEL,
-  "frameangvel": mujoco.mjtSensor.mjSENS_FRAMEANGVEL,
-  "framezaxis": mujoco.mjtSensor.mjSENS_FRAMEZAXIS,
-  "accelerometer": mujoco.mjtSensor.mjSENS_ACCELEROMETER,
-}
-
-_SENSOR_OBJECT_TYPE_MAP = {
-  "site": mujoco.mjtObj.mjOBJ_SITE,
-}
-
-
-@dataclass(frozen=True)
-class Sensor(SpecEditor):
-  """Configuration for a sensor."""
-
+@dataclass
+class KeyframeEditor(SpecEditor):
   name: str
-  sensor_type: str
-  object_name: str
-  object_type: str
+  cfg: KeyframeCfg
+
+  def edit_spec(self, spec: mujoco.MjSpec) -> None:
+    jnt_names = [j.name for j in get_non_root_joints(spec)]
+
+    joint_pos = resolve_expr(self.cfg.joint_pos, jnt_names)
+    joint_vel = resolve_expr(self.cfg.joint_vel, jnt_names)
+    ctrl = (
+      joint_pos
+      if self.cfg.use_joint_pos_for_ctrl
+      else resolve_expr(self.cfg.ctrl, jnt_names)
+    )
+
+    qpos = np.concatenate((self.cfg.root_pos, self.cfg.root_quat, joint_pos))
+    qvel = np.concatenate((self.cfg.root_lin_vel, self.cfg.root_ang_vel, joint_vel))
+
+    spec.add_key(
+      name=self.name,
+      time=self.cfg.time,
+      qpos=np.asarray(qpos),
+      qvel=np.asarray(qvel),
+      ctrl=np.asarray(ctrl),
+    )
+
+
+@dataclass
+class ActuatorEditor(SpecEditor):
+  cfgs: tuple[ActuatorCfg, ...]
+
+  def edit_spec(self, spec: mujoco.MjSpec) -> None:
+    jnts = get_non_root_joints(spec)
+    joint_names = [j.name for j in jnts]
+
+    # Build a list of (cfg, joint_name) by resolving the config regex.
+    flat: list[tuple[ActuatorCfg, str]] = []
+    for cfg in self.cfgs:
+      matched = filter_exp(cfg.joint_names_expr, joint_names)
+      for name in matched:
+        flat.append((cfg, name))
+
+    # Sort by the joint index in the spec.
+    flat.sort(key=lambda pair: joint_names.index(pair[1]))
+
+    for cfg, jn in flat:
+      spec.joint(jn).armature = cfg.armature
+      spec.joint(jn).frictionloss = cfg.frictionloss
+
+      act = spec.add_actuator(
+        name=jn,
+        target=jn,
+        trntype=mujoco.mjtTrn.mjTRN_JOINT,
+        gaintype=mujoco.mjtGain.mjGAIN_FIXED,
+        biastype=mujoco.mjtBias.mjBIAS_AFFINE,
+        inheritrange=1.0,
+        forcerange=(-cfg.effort_limit, cfg.effort_limit),
+      )
+      act.gainprm[0] = cfg.stiffness
+      act.biasprm[1] = -cfg.stiffness
+      act.biasprm[2] = -cfg.damping
+
+
+@dataclass
+class SensorEditor(SpecEditor):
+  name: str
+  cfg: SensorCfg
+
+  SENSOR_TYPE_MAP = {
+    "gyro": mujoco.mjtSensor.mjSENS_GYRO,
+    "upvector": mujoco.mjtSensor.mjSENS_FRAMEZAXIS,
+    "velocimeter": mujoco.mjtSensor.mjSENS_VELOCIMETER,
+    "framequat": mujoco.mjtSensor.mjSENS_FRAMEQUAT,
+    "framepos": mujoco.mjtSensor.mjSENS_FRAMEPOS,
+    "framelinvel": mujoco.mjtSensor.mjSENS_FRAMELINVEL,
+    "frameangvel": mujoco.mjtSensor.mjSENS_FRAMEANGVEL,
+    "framezaxis": mujoco.mjtSensor.mjSENS_FRAMEZAXIS,
+    "accelerometer": mujoco.mjtSensor.mjSENS_ACCELEROMETER,
+  }
+
+  SENSOR_OBJECT_TYPE_MAP = {
+    "site": mujoco.mjtObj.mjOBJ_SITE,
+  }
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
     spec.add_sensor(
-      type=_SENSOR_TYPE_MAP[self.sensor_type],
-      objtype=_SENSOR_OBJECT_TYPE_MAP[self.object_type],
+      type=self.SENSOR_TYPE_MAP[self.cfg.sensor_type],
+      objtype=self.SENSOR_OBJECT_TYPE_MAP[self.cfg.object_type],
       name=self.name,
-      objname=self.object_name,
+      objname=self.cfg.object_name,
     )
-
-
-@dataclass(frozen=True)
-class Actuator(SpecEditor):
-  """Configuration for an actuator."""
-
-  kp: float
-  kv: float
-  joint_name: str
-  torque_limit: float | None = None
-  inheritrange: float = 1.0
-
-  def __post_init__(self):
-    assert self.kp >= 0.0
-    assert self.kv >= 0.0
-    if self.torque_limit is not None:
-      assert self.torque_limit > 0.0
-
-  def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    act = spec.add_actuator(
-      name=self.joint_name,
-      target=self.joint_name,
-      trntype=mujoco.mjtTrn.mjTRN_JOINT,
-      gaintype=mujoco.mjtGain.mjGAIN_FIXED,
-      biastype=mujoco.mjtBias.mjBIAS_AFFINE,
-      inheritrange=self.inheritrange,
-      forcerange=(-self.torque_limit, self.torque_limit),
-    )
-    act.gainprm[0] = self.kp
-    act.biasprm[1] = -self.kp
-    act.biasprm[2] = -self.kv
-
-
-@dataclass(frozen=True)
-class Joint(SpecEditor):
-  """Configuration for a joint."""
-
-  joint_name: str
-  damping: float = 0.0
-  frictionloss: float = 0.0
-  armature: float = 0.0
-
-  def __post_init__(self):
-    assert self.damping >= 0.0
-    assert self.armature >= 0.0
-    assert self.frictionloss >= 0.0
-
-  def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    for jnt in spec.joints:
-      if fnmatch.fnmatch(jnt.name, self.joint_name):
-        jnt.damping = self.damping
-        jnt.frictionloss = self.frictionloss
-        jnt.armature = self.armature
-
-
-@dataclass(frozen=True)
-class Keyframe(SpecEditor):
-  """Configuration for a keyframe."""
-
-  name: str
-  root_pos: np.ndarray
-  root_quat: np.ndarray
-  joint_angles: np.ndarray
-  ctrl: np.ndarray | None = None
-
-  @property
-  def qpos(self) -> np.ndarray:
-    return np.concatenate([self.root_pos, self.root_quat, self.joint_angles])
-
-  def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    spec.add_key(name=self.name, qpos=self.qpos, ctrl=self.ctrl)
-
-
-@dataclass(frozen=True)
-class CollisionPair(SpecEditor):
-  """Configuration for a collision pair."""
-
-  geom1: str
-  geom2: str
-  condim: int = 1
-  friction: Sequence[float] | None = None
-  solref: Sequence[float] | None = None
-  solimp: Sequence[float] | None = None
-
-  def full_name(self) -> str:
-    return f"{self.geom1}__{self.geom2}"
-
-  def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    pair = spec.add_pair(
-      name=self.full_name(),
-      geomname1=self.geom1,
-      geomname2=self.geom2,
-      condim=self.condim,
-    )
-    if self.friction is not None:
-      for i in range(len(self.friction)):
-        pair.friction[i] = self.friction[i]
-    if self.solref is not None:
-      pair.solref = self.solref
-    if self.solimp is not None:
-      for i in range(len(self.solimp)):
-        pair.solimp[i] = self.solimp[i]

@@ -1,95 +1,53 @@
-import abc
-from dataclasses import dataclass, replace
-from pathlib import Path
-import fnmatch
-from typing import Optional, TypeVar, Type, Dict, Tuple, Sequence
-
-import numpy as np
-from mjlab.core import entity
 import mujoco
+import numpy as np
 
+from mjlab.core import entity
+from mjlab.entities.robots.robot_config import RobotCfg
 from mjlab.entities.robots import editors
-
-T = TypeVar("T", bound="Robot")
-
-
-@dataclass(frozen=True)
-class RobotConfig:
-  joints: Sequence[editors.Joint]
-  actuators: Sequence[editors.Actuator]
-  sensors: Sequence[editors.Sensor]
-  keyframes: Sequence[editors.Keyframe]
-
-  def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    for cfg in self.joints:
-      cfg.edit_spec(spec)
-    for cfg in self.sensors:
-      cfg.edit_spec(spec)
-    for cfg in self.keyframes:
-      cfg.edit_spec(spec)
-
-    # Add actuators in joint order.
-    for joint in spec.joints:
-      joint: mujoco.MjsJoint
-      for act_cfg in self.actuators:
-        if fnmatch.fnmatch(joint.name, act_cfg.joint_name):
-          bound_cfg = replace(act_cfg, joint_name=joint.name)
-          bound_cfg.edit_spec(spec)
-          break
+from mjlab.utils.spec import get_non_root_joints
 
 
-class Robot(entity.Entity, abc.ABC):
-  """Abstract base class for robot entities.
+class Robot(entity.Entity):
+  def __init__(self, robot_cfg: RobotCfg):
+    self._cfg = robot_cfg
+    self._spec = mujoco.MjSpec.from_file(
+      str(robot_cfg.xml_path),
+      assets=robot_cfg.asset_fn(),
+    )
 
-  Subclasses must implement `joints` and `actuators` properties.
-  """
+    self._non_root_joints = get_non_root_joints(self._spec)
+    self._modify_joint_range()
 
-  def __init__(self, spec: mujoco.MjSpec, config: RobotConfig | None = None):
-    self._spec = spec
-    self._config = config
-    if config is not None:
-      config.edit_spec(spec)
+    self._configure_keyframes()
+    self._configure_actuators()
+    self._configure_sensors()
 
-  @classmethod
-  def from_file(
-    cls: Type[T],
-    xml_path: Path,
-    config: Optional[RobotConfig] = None,
-    assets: Optional[Dict[str, bytes]] = None,
-  ) -> T:
-    spec = mujoco.MjSpec.from_file(str(xml_path), assets=assets)
-    return cls(spec, config=config)
+  # Private methods.
 
-  @classmethod
-  def from_xml_str(
-    cls: Type[T],
-    xml_str: str,
-    config: Optional[RobotConfig] = None,
-    assets: Optional[Dict[str, bytes]] = None,
-  ) -> T:
-    spec = mujoco.MjSpec.from_string(xml_str, assets=assets)
-    return cls(spec, config=config)
+  def _configure_keyframes(self):
+    for key_name, key in self._cfg.keyframes.items():
+      editors.KeyframeEditor(key_name, key).edit_spec(self._spec)
 
-  @property
-  @abc.abstractmethod
-  def joints(self) -> Tuple[mujoco.MjsJoint, ...]:
-    raise NotImplementedError
+  def _configure_actuators(self):
+    editors.ActuatorEditor(self._cfg.actuators).edit_spec(self._spec)
 
-  @property
-  @abc.abstractmethod
-  def actuators(self) -> Tuple[mujoco.MjsActuator, ...]:
-    raise NotImplementedError
+  def _configure_sensors(self):
+    for sns_name, sens in self._cfg.sensors.items():
+      editors.SensorEditor(sns_name, sens).edit_spec(self._spec)
+
+  def _modify_joint_range(self):
+    ranges = [j.range for j in self._non_root_joints]
+    lowers = np.array([r[0] for r in ranges])
+    uppers = np.array([r[1] for r in ranges])
+    c = (lowers + uppers) / 2
+    r = uppers - lowers
+    soft_lowers = c - 0.5 * r * self._cfg.soft_joint_pos_limit_factor
+    soft_uppers = c + 0.5 * r * self._cfg.soft_joint_pos_limit_factor
+    for i, j in enumerate(self._non_root_joints):
+      j.range[0] = soft_lowers[i]
+      j.range[1] = soft_uppers[i]
+    ranges = [j.range for j in self._non_root_joints]
 
   @property
   def spec(self) -> mujoco.MjSpec:
     return self._spec
-
-  @property
-  def joint_names(self) -> Tuple[str, ...]:
-    return tuple([j.name for j in self.joints])
-
-  def joint_stiffness(self) -> np.ndarray:
-    return np.array([a.gainprm[0] for a in self.actuators])
-
-  def joint_damping(self) -> np.ndarray:
-    return np.array([-a.biasprm[2] for a in self.actuators])
