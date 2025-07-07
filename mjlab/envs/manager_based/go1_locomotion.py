@@ -1,8 +1,5 @@
 from dataclasses import dataclass
 
-from mjlab.entities.robots.robot import Robot
-from mjlab.entities.robots.go1 import go1_constants
-from mjlab.entities import terrains
 
 ##
 # Scene.

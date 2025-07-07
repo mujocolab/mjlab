@@ -5,8 +5,9 @@ from typing import Callable
 import mujoco
 
 
-@dataclass
+@dataclass(frozen=True)
 class TextureCfg:
+  name: str
   type: str
   builtin: str
   mark: str
@@ -17,18 +18,31 @@ class TextureCfg:
   height: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class MaterialCfg:
+  name: str
   texuniform: bool
   texrepeat: tuple[int, int]
   reflectance: float = 0.0
   texture: str | None = None
 
 
+@dataclass(frozen=True)
+class GeomCfg:
+  name: str
+  body: str
+  type: str
+  size: tuple[int, ...]
+  rgba: tuple[float, float, float, float] = (0.5, 0.5, 0.5, 1)
+  material: str | None = None
+  group: int = 0
+
+
 @dataclass
 class TerrainCfg:
   xml_path: Path | None = None
   asset_fn: Callable[[], dict[str, bytes]] = field(default_factory=lambda: (lambda: {}))
-  textures: dict[str, TextureCfg] = field(default_factory=dict)
-  materials: dict[str, MaterialCfg] = field(default_factory=dict)
+  textures: tuple[TextureCfg, ...] = ()
+  materials: tuple[MaterialCfg, ...] = ()
+  geoms: tuple[GeomCfg, ...] = ()
   construct_fn: Callable[[mujoco.MjSpec], None] | None = None

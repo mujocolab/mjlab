@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Callable
 
 
-@dataclass
+@dataclass(frozen=True)
 class KeyframeCfg:
   root_pos: tuple[float, float, float] = (0.0, 0.0, 0.0)
   root_quat: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)
@@ -16,7 +16,7 @@ class KeyframeCfg:
   use_joint_pos_for_ctrl: bool = False
 
 
-@dataclass
+@dataclass(frozen=True)
 class ActuatorCfg:
   joint_names_expr: list[str]
   effort_limit: float
@@ -26,7 +26,7 @@ class ActuatorCfg:
   armature: float = 0.0
 
 
-@dataclass
+@dataclass(frozen=True)
 class SensorCfg:
   sensor_type: str
   object_name: str

@@ -18,6 +18,7 @@ class Terrain(entity.Entity):
 
     self._configure_textures()
     self._configure_materials()
+    self._configure_geoms()
     self._configure_spec()
 
   @property
@@ -27,12 +28,16 @@ class Terrain(entity.Entity):
   # Private methods.
 
   def _configure_textures(self) -> None:
-    for tex_name, tex in self._cfg.textures.items():
-      editors.TextureEditor(tex_name, tex).edit_spec(self._spec)
+    for tex in self._cfg.textures:
+      editors.TextureEditor(tex).edit_spec(self._spec)
 
   def _configure_materials(self) -> None:
-    for mat_name, mat in self._cfg.materials.items():
-      editors.MaterialEditor(mat_name, mat).edit_spec(self._spec)
+    for mat in self._cfg.materials:
+      editors.MaterialEditor(mat).edit_spec(self._spec)
+
+  def _configure_geoms(self) -> None:
+    for geom in self._cfg.geoms:
+      editors.GeomEditor(geom).edit_spec(self._spec)
 
   def _configure_spec(self):
     if self._cfg.construct_fn is not None:
