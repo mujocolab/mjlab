@@ -27,9 +27,9 @@ def get_assets() -> Dict[str, bytes]:
 
 # Motor specs (from Unitree).
 ROTOR_INERTIAS_5020 = (
-  0.0000139,
-  0.0000017,
-  0.0000169,
+  0.139e-4,
+  0.017e-4,
+  0.169e-4,
 )
 GEARS_5020 = (
   1,
