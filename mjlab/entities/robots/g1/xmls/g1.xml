@@ -4,10 +4,10 @@
   <default>
     <default class="g1">
       <default class="visual">
-        <geom group="2" type="mesh" density="0" material="silver"/>
+        <geom group="2" type="mesh" density="0" material="silver" contype="0" conaffinity="0"/>
       </default>
       <default class="collision">
-        <geom group="3" rgba=".2 .6 .2 .3" type="capsule"/>
+        <geom group="3" rgba=".2 .6 .2 .3" type="capsule" contype="1" conaffinity="1"/>
         <default class="foot_box">
           <geom pos="0.04 0 -0.029" size="0.09 0.03 0.008" type="box" group="4"/>
         </default>
@@ -16,7 +16,6 @@
         </default>
       </default>
       <site group="5" rgba="1 0 0 1"/>
-      <geom condim="1" contype="0" conaffinity="0"/>
       <joint solimplimit="0 0.99 0.01" solreflimit=".008 1"/>
     </default>
   </default>
@@ -63,7 +62,6 @@
   </asset>
 
   <worldbody>
-    <light pos="0 0 3" dir="0 0 -1" type="directional"/>
     <body name="pelvis" pos="0 0 0.793" childclass="g1">
       <light pos="0 0 2" mode="trackcom"/>
       <camera name="tracking" pos="1.734 -1.135 .35" xyaxes="0.552 0.834 -0.000 -0.170 0.112 0.979" mode="trackcom"/>
@@ -179,8 +177,8 @@
               mass="7.818" diaginertia="0.121847 0.109825 0.0273735"/>
             <joint name="waist_pitch_joint" axis="0 1 0" range="-0.52 0.52"/>
             <geom class="visual" mesh="torso_link"/>
-            <geom pos="0.0039635 0 -0.044" quat="1 0 0 0" class="visual" material="black" mesh="logo_link"/>
-            <geom pos="0.0039635 0 -0.044" class="visual" material="black" mesh="head_link"/>
+            <geom class="visual" pos="0.0039635 0 -0.044" quat="1 0 0 0" material="black" mesh="logo_link"/>
+            <geom class="visual" pos="0.0039635 0 -0.044" material="black" mesh="head_link"/>
             <geom name="torso_collision" class="collision" size="0.09" fromto="0.01 0 0.08 0.01 0 0.2"/>
             <geom name="head_collision" class="collision" type="sphere" size="0.06" pos="0 0 .43"/>
             <site name="imu_in_torso" size="0.01" pos="-0.03959 -0.00224 0.14792"/>

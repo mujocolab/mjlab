@@ -3,9 +3,11 @@
 # fmt: off
 
 from typing import Dict
+from mjlab.entities.robots.actuator import ElectricActuator, reflected_inertia_from_two_stage_planetary
 from mjlab import MJLAB_SRC_PATH, MENAGERIE_PATH, update_assets
 from mjlab.entities.robots.robot_config import RobotCfg
 from mjlab.entities.robots.robot_config import KeyframeCfg, ActuatorCfg, SensorCfg
+from mjlab.entities.common.config import CollisionCfg
 
 ##
 # MJCF and assets.
@@ -20,75 +22,78 @@ def get_assets() -> Dict[str, bytes]:
   return assets
 
 ##
-# Constants.
+# Actuator config.
 ##
 
-NU = 29
-NQ = NU + 7
-NV = NQ - 1
-
-PELVIS_BODY = "pelvis"
-TORSO_BODY = "torso_link"
-ROOT_BODY = PELVIS_BODY
-BODY_NAMES = [
-  "pelvis",  # root body
-  "left_hip_roll_link",
-  "left_knee_link",
-  "left_ankle_roll_link",
-  "right_hip_roll_link",
-  "right_knee_link",
-  "right_ankle_roll_link",
-  "torso_link",
-  "left_shoulder_roll_link",
-  "left_elbow_link",
-  "left_wrist_yaw_link",
-  "right_shoulder_roll_link",
-  "right_elbow_link",
-  "right_wrist_yaw_link",
-]
-BODY_NAMES_MINUS_END_EFFECTORS = [
-  "torso_link",
-  "left_hip_roll_link",
-  "left_knee_link",
-  "right_hip_roll_link",
-  "right_knee_link",
-  "left_shoulder_roll_link",
-  "left_elbow_link",
-  "right_shoulder_roll_link",
-  "right_elbow_link",
-]
-END_EFFECTOR_NAMES = [
-  "left_ankle_roll_link",
-  "right_ankle_roll_link",
-  "left_wrist_yaw_link",
-  "right_wrist_yaw_link",
-]
-
-LEFT_FEET_GEOMS = [f"left_foot{i}_collision" for i in range(1, 4)]
-RIGHT_FEET_GEOMS = [f"right_foot{i}_collision" for i in range(1, 4)]
-FEET_GEOMS = LEFT_FEET_GEOMS + RIGHT_FEET_GEOMS
-
-LEFT_FOOT_SITE = "left_foot"
-RIGHT_FOOT_SITE = "right_foot"
-FEET_SITES = (
-  LEFT_FOOT_SITE,
-  RIGHT_FOOT_SITE,
+# Motor specs (from Unitree).
+ROTOR_INERTIAS_5020 = (
+  0.0000139,
+  0.0000017,
+  0.0000169,
 )
-HAND_SITES = (
-  "left_palm",
-  "right_palm",
+GEARS_5020 = (
+  1,
+  1 + (46/18),
+  1 + (56/16),
 )
-PELVIS_IMU_SITE = "imu_in_pelvis"
-TORSO_IMU_SITE = "imu_in_torso"
+ARMATURE_5020 = reflected_inertia_from_two_stage_planetary(ROTOR_INERTIAS_5020, GEARS_5020)
 
-##
-# Motor specs.
-##
+ROTOR_INERTIAS_7520_14 = (
+  0.489e-4,
+  0.098e-4,
+  0.533e-4,
+)
+GEARS_7520_14 = (
+  1,
+  4.5,
+  1 + (48/22),
+)
+ARMATURE_7520_14 = reflected_inertia_from_two_stage_planetary(ROTOR_INERTIAS_7520_14, GEARS_7520_14)
 
-ARMATURE_5020 = 0.003609725
-ARMATURE_7520_14 = 0.010177520
-ARMATURE_7520_22 = 0.025101925
-ARMATURE_4010 = 0.00425
+ROTOR_INERTIAS_7520_22 = (
+  0.489e-4,
+  0.109e-4,
+  0.738e-4,
+)
+GEARS_7520_22 = (
+  1,
+  4.5,
+  5,
+)
+ARMATURE_7520_22 = reflected_inertia_from_two_stage_planetary(ROTOR_INERTIAS_7520_22, GEARS_7520_22)
+
+ROTOR_INERTIAS_4010 = (
+  0.068e-4,
+  0.0,
+  0.0,
+)
+GEARS_4010 = (
+  1,
+  5,
+  5,
+)
+ARMATURE_4010 = reflected_inertia_from_two_stage_planetary(ROTOR_INERTIAS_4010, GEARS_4010)
+
+ACTUATOR_5020 = ElectricActuator(
+  reflected_inertia=ARMATURE_5020,
+  velocity_limit=37.0,
+  effort_limit=25.0,
+)
+ACTUATOR_7520_14 = ElectricActuator(
+  reflected_inertia=ARMATURE_7520_14,
+  velocity_limit=32.0,
+  effort_limit=88.0,
+)
+ACTUATOR_7520_22 = ElectricActuator(
+  reflected_inertia=ARMATURE_7520_22,
+  velocity_limit=20.0,
+  effort_limit=139.0,
+)
+ACTUATOR_4010 = ElectricActuator(
+  reflected_inertia=ARMATURE_4010,
+  velocity_limit=22.0,
+  effort_limit=5.0,
+)
 
 NATURAL_FREQ = 10 * 2.0 * 3.1415926535  # 10Hz
 DAMPING_RATIO = 2.0
@@ -103,7 +108,7 @@ DAMPING_7520_14 = 2.0 * DAMPING_RATIO * ARMATURE_7520_14 * NATURAL_FREQ
 DAMPING_7520_22 = 2.0 * DAMPING_RATIO * ARMATURE_7520_22 * NATURAL_FREQ
 DAMPING_4010 = 2.0 * DAMPING_RATIO * ARMATURE_4010 * NATURAL_FREQ
 
-ACTUATOR_5020 = ActuatorCfg(
+G1_ACTUATOR_5020 = ActuatorCfg(
   joint_names_expr=[
     ".*_elbow_joint",
     ".*_shoulder_pitch_joint",
@@ -111,50 +116,47 @@ ACTUATOR_5020 = ActuatorCfg(
     ".*_shoulder_yaw_joint",
     ".*_wrist_roll_joint",
   ],
-  effort_limit=25.0,
+  effort_limit=ACTUATOR_5020.effort_limit,
+  armature=ACTUATOR_5020.reflected_inertia,
   stiffness=STIFFNESS_5020,
   damping=DAMPING_5020,
-  armature=ARMATURE_5020,
 )
-
-ACTUATOR_7520_14 = ActuatorCfg(
+G1_ACTUATOR_7520_14 = ActuatorCfg(
   joint_names_expr=[".*_hip_pitch_joint", ".*_hip_yaw_joint", "waist_yaw_joint"],
-  effort_limit=88.0,
+  effort_limit=ACTUATOR_7520_14.effort_limit,
+  armature=ACTUATOR_7520_14.reflected_inertia,
   stiffness=STIFFNESS_7520_14,
   damping=DAMPING_7520_14,
-  armature=ARMATURE_7520_14,
 )
-
-ACTUATOR_7520_22 = ActuatorCfg(
+G1_ACTUATOR_7520_22 = ActuatorCfg(
   joint_names_expr=[".*_hip_roll_joint", ".*_knee_joint"],
-  effort_limit=139.0,
+  effort_limit=ACTUATOR_7520_22.effort_limit,
+  armature=ACTUATOR_7520_22.reflected_inertia,
   stiffness=STIFFNESS_7520_22,
   damping=DAMPING_7520_22,
-  armature=ARMATURE_7520_22,
 )
-
-ACTUATOR_4010 = ActuatorCfg(
+G1_ACTUATOR_4010 = ActuatorCfg(
   joint_names_expr=[".*_wrist_pitch_joint", ".*_wrist_yaw_joint"],
-  effort_limit=5.0,
+  effort_limit=ACTUATOR_4010.effort_limit,
+  armature=ACTUATOR_4010.reflected_inertia,
   stiffness=STIFFNESS_4010,
   damping=DAMPING_4010,
-  armature=ARMATURE_4010,
 )
 
-ACTUATOR_WAIST = ActuatorCfg(
+# Waist pitch/roll and ankles are 4 bar linkages with 2 5020 actuators.
+G1_ACTUATOR_WAIST = ActuatorCfg(
   joint_names_expr=["waist_pitch_joint", "waist_roll_joint"],
-  effort_limit=50.0,
+  effort_limit=ACTUATOR_5020.effort_limit * 2,
+  armature=ACTUATOR_5020.reflected_inertia * 2,
   stiffness=STIFFNESS_5020 * 2,
   damping=DAMPING_5020 * 2,
-  armature=ARMATURE_5020 * 2,
 )
-
-ACTUATOR_ANKLE = ActuatorCfg(
+G1_ACTUATOR_ANKLE = ActuatorCfg(
   joint_names_expr=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"],
-  effort_limit=50.0,
+  effort_limit=ACTUATOR_5020.effort_limit * 2,
+  armature=ACTUATOR_5020.reflected_inertia * 2,
   stiffness=STIFFNESS_5020 * 2,
   damping=DAMPING_5020 * 2,
-  armature=ARMATURE_5020 * 2,
 )
 
 ##
@@ -162,6 +164,7 @@ ACTUATOR_ANKLE = ActuatorCfg(
 ##
 
 HOME_KEYFRAME = KeyframeCfg(
+  name="home",
   root_pos=(0, 0, 0.783675),
   joint_pos={
     ".*_hip_pitch_joint": -0.1,
@@ -176,6 +179,7 @@ HOME_KEYFRAME = KeyframeCfg(
 )
 
 KNEES_BENT_KEYFRAME = KeyframeCfg(
+  name="knees_bent",
   root_pos=(0, 0, 0.755),
   joint_pos={
     ".*_hip_pitch_joint": -0.312,
@@ -191,6 +195,29 @@ KNEES_BENT_KEYFRAME = KeyframeCfg(
 )
 
 ##
+# Collision config.
+##
+
+# This enables all collisions, including self collisions.
+# Self-collisions are given condim=1 while foot collisions
+# are given condim=3 and custom friction and solimp.
+FULL_COLLISION = CollisionCfg(
+  geom_names_expr=[".*_collision"],
+  condim={".*_foot*_collision": 3},
+  priority={".*_foot*_collision": 1},
+  friction={".*_foot*_collision": (0.6,)},
+)
+
+FULL_COLLISION_WITHOUT_SELF = CollisionCfg(
+  geom_names_expr=[".*_collision"],
+  contype=0,
+  conaffinity=1,
+  condim={".*_foot*_collision": 3},
+  priority={".*_foot*_collision": 1},
+  friction={".*_foot*_collision": (0.6,)},
+)
+
+##
 # Final config.
 ##
 
@@ -198,21 +225,22 @@ G1_ROBOT_CFG = RobotCfg(
   xml_path=G1_XML,
   asset_fn=get_assets,
   actuators=(
-    ACTUATOR_5020,
-    ACTUATOR_7520_14,
-    ACTUATOR_7520_22,
-    ACTUATOR_4010,
-    ACTUATOR_WAIST,
-    ACTUATOR_ANKLE,
+    G1_ACTUATOR_5020,
+    G1_ACTUATOR_7520_14,
+    G1_ACTUATOR_7520_22,
+    G1_ACTUATOR_4010,
+    G1_ACTUATOR_WAIST,
+    G1_ACTUATOR_ANKLE,
   ),
   sensors={
-    "gyro": SensorCfg("gyro", PELVIS_IMU_SITE, "site"),
-    "local_linvel": SensorCfg("velocimeter", PELVIS_IMU_SITE, "site"),
-    "upvector": SensorCfg("framezaxis", PELVIS_IMU_SITE, "site"),
+    SensorCfg("body_ang_vel", "gyro", "imu_in_pelvis", "site"),
+    SensorCfg("body_lin_vel", "velocimeter", "imu_in_pelvis", "site"),
+    SensorCfg("body_zaxis", "framezaxis", "imu_in_pelvis", "site"),
   },
   soft_joint_pos_limit_factor=0.95,
-  keyframes={
-    "home": HOME_KEYFRAME,
-    "knees_bent": KNEES_BENT_KEYFRAME,
-  },
+  keyframes=(
+    HOME_KEYFRAME,
+    KNEES_BENT_KEYFRAME,
+  ),
+  collisions=(FULL_COLLISION,)
 )

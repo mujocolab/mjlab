@@ -4,7 +4,9 @@
 
 from typing import Dict
 from mjlab import MJLAB_SRC_PATH, MENAGERIE_PATH, update_assets
+from mjlab.entities.robots.actuator import ElectricActuator, reflected_inertia, rpm_to_rad
 from mjlab.entities.robots.robot_config import RobotCfg
+from mjlab.entities.common.config import CollisionCfg
 from mjlab.entities.robots.robot_config import KeyframeCfg, ActuatorCfg, SensorCfg
 
 ##
@@ -21,77 +23,80 @@ def get_assets() -> Dict[str, bytes]:
   return assets
 
 ##
-# Constants.
-##
-
-NU = 2 + 4 * 2 + 1 + 6 * 2
-NQ = NU + 7
-NV = NQ - 1
-
-# Bodies.
-TORSO_BODY = "Trunk"
-ROOT_BODY = TORSO_BODY
-
-# Geoms.
-FEET_GEOMS = ["left_foot", "right_foot"]
-
-# Sites.
-LEFT_FOOT_SITE = "left_foot"
-RIGHT_FOOT_SITE = "right_foot"
-FEET_SITES = (
-  LEFT_FOOT_SITE,
-  RIGHT_FOOT_SITE,
-)
-HAND_SITES = (
-  "left_hand",
-  "right_hand",
-)
-IMU_SITE = "imu"
-
-##
 # Actuator config.
 ##
 
-ARM_ROTOR_INERTIA = 18.2 * 1e-6
-ARM_GEAR_RATIO = 36
-ARM_ARMATURE = ARM_ROTOR_INERTIA * ARM_GEAR_RATIO ** 2
+ROTOR_INERTIA_ARM = 18.2e-6
+GEAR_ARM = 36
+ARMATURE_ARM = reflected_inertia(ROTOR_INERTIA_ARM, GEAR_ARM)
 
-ANKLE_ROTOR_INERTIA = 25.5 * 1e-6
-ANKLE_GEAR_RATIO = 36
-ANKLE_ARMATURE = ANKLE_ROTOR_INERTIA * ANKLE_GEAR_RATIO ** 2
+ROTOR_INERTIA_ANKLE = 25.5e-6
+GEAR_ANKLE = 36
+ARMATURE_ANKLE = reflected_inertia(ROTOR_INERTIA_ANKLE, GEAR_ANKLE)
 
-HIP_ROLL_YAW_ROTOR_INERTIA = 51.457 * 1e-6
-HIP_ROLL_YAW_GEAR_RATIO = 25
-HIP_ROLL_YAW_ARMATURE = HIP_ROLL_YAW_ROTOR_INERTIA * HIP_ROLL_YAW_GEAR_RATIO ** 2
+ROTOR_INERTIA_HIP_RY = 51.457e-6
+GEAR_HIP_RY = 25
+ARMATURE_HIP_RY = reflected_inertia(ROTOR_INERTIA_HIP_RY, GEAR_HIP_RY)
 
-HIP_PITCH_ROTOR_INERTIA = 146.69 * 1e-6
-HIP_PITCH_GEAR_RATIO = 18
-HIP_PITCH_ARMATURE = HIP_PITCH_ROTOR_INERTIA * HIP_PITCH_GEAR_RATIO ** 2
+ROTOR_INERTIA_HIP_P = 146.69e-6
+GEAR_HIP_P = 18
+ARMATURE_HIP_P = reflected_inertia(ROTOR_INERTIA_HIP_P, GEAR_HIP_P)
 
-KNEE_ROTOR_INERTIA = 184.053 * 1e-6
-KNEE_GEAR_RATIO = 18
-KNEE_ARMATURE = KNEE_ROTOR_INERTIA * KNEE_GEAR_RATIO ** 2
+ROTOR_INERTIA_KNEE = 184.053e-6
+GEAR_KNEE = 18
+ARMATURE_KNEE = reflected_inertia(ROTOR_INERTIA_KNEE, GEAR_KNEE)
 
-NECK_ROTOR_INERTIA = 18.0 * 1e-6
-NECK_GEAR_RATIO = 10
-NECK_ARMATURE = NECK_ROTOR_INERTIA * NECK_GEAR_RATIO ** 2
+ROTOR_INERTIA_NECK = 18e-6
+GEAR_NECK = 10
+ARMATURE_NECK = reflected_inertia(ROTOR_INERTIA_NECK, GEAR_NECK)
 
-NATURAL_FREQ = 10 * 2.0 * 3.1415926535  # 10Hz
+ACTUATOR_ARM = ElectricActuator(
+  reflected_inertia=ARMATURE_ARM,
+  velocity_limit=rpm_to_rad(184.0),
+  effort_limit=36.0,
+)
+ACTUATOR_ANKLE = ElectricActuator(
+  reflected_inertia=ARMATURE_ANKLE,
+  velocity_limit=rpm_to_rad(117.0),
+  effort_limit=75.0,
+)
+ACTUATOR_HIP_RY = ElectricActuator(
+  reflected_inertia=ARMATURE_HIP_RY,
+  velocity_limit=rpm_to_rad(135.0),
+  effort_limit=60.0,
+)
+ACTUATOR_HIP_P = ElectricActuator(
+  reflected_inertia=ARMATURE_HIP_P,
+  velocity_limit=rpm_to_rad(157.0),
+  effort_limit=90.0,
+)
+ACTUATOR_KNEE = ElectricActuator(
+  reflected_inertia=ARMATURE_KNEE,
+  velocity_limit=rpm_to_rad(140.0),
+  effort_limit=130.0,
+)
+ACTUATOR_NECK = ElectricActuator(
+  reflected_inertia=ARMATURE_NECK,
+  velocity_limit=rpm_to_rad(400.0),
+  effort_limit=7.0,
+)
+
+NATURAL_FREQ = 5 * 2.0 * 3.1415926535  # 10Hz
 DAMPING_RATIO = 2.0
 
-STIFFNESS_ARM = ARM_ARMATURE * NATURAL_FREQ ** 2
-STIFFNESS_ANKLE = ANKLE_ARMATURE * NATURAL_FREQ ** 2
-STIFFNESS_HIP_ROLL_YAW = HIP_ROLL_YAW_ARMATURE * NATURAL_FREQ ** 2
-STIFFNESS_HIP_PITCH = HIP_PITCH_ARMATURE * NATURAL_FREQ ** 2
-STIFFNESS_KNEE = KNEE_ARMATURE * NATURAL_FREQ ** 2
-STIFFNESS_NECK = NECK_ARMATURE * NATURAL_FREQ ** 2
+STIFFNESS_ARM = ARMATURE_ARM * NATURAL_FREQ ** 2
+STIFFNESS_ANKLE = ARMATURE_ANKLE * NATURAL_FREQ ** 2
+STIFFNESS_HIP_RY = ARMATURE_HIP_RY * NATURAL_FREQ ** 2
+STIFFNESS_HIP_P = ARMATURE_HIP_P * NATURAL_FREQ ** 2
+STIFFNESS_KNEE = ARMATURE_KNEE * NATURAL_FREQ ** 2
+STIFFNESS_NECK = ARMATURE_NECK * NATURAL_FREQ ** 2
 
-DAMPING_ARM = 2.0 * DAMPING_RATIO * ARM_ARMATURE * NATURAL_FREQ
-DAMPING_ANKLE = 2.0 * DAMPING_RATIO * ANKLE_ARMATURE * NATURAL_FREQ
-DAMPING_HIP_ROLL_YAW = 2.0 * DAMPING_RATIO * HIP_ROLL_YAW_ARMATURE * NATURAL_FREQ
-DAMPING_HIP_PITCH = 2.0 * DAMPING_RATIO * HIP_PITCH_ARMATURE * NATURAL_FREQ
-DAMPING_KNEE = 2.0 * DAMPING_RATIO * KNEE_ARMATURE * NATURAL_FREQ
-DAMPING_NECK = 2.0 * DAMPING_RATIO * NECK_ARMATURE * NATURAL_FREQ
+DAMPING_ARM = 2.0 * DAMPING_RATIO * ARMATURE_ARM * NATURAL_FREQ
+DAMPING_ANKLE = 2.0 * DAMPING_RATIO * ARMATURE_ANKLE * NATURAL_FREQ
+DAMPING_HIP_RY = 2.0 * DAMPING_RATIO * ARMATURE_HIP_RY * NATURAL_FREQ
+DAMPING_HIP_P = 2.0 * DAMPING_RATIO * ARMATURE_HIP_P * NATURAL_FREQ
+DAMPING_KNEE = 2.0 * DAMPING_RATIO * ARMATURE_KNEE * NATURAL_FREQ
+DAMPING_NECK = 2.0 * DAMPING_RATIO * ARMATURE_NECK * NATURAL_FREQ
 
 ACTUATOR_ARM = ActuatorCfg(
   joint_names_expr=[
@@ -100,59 +105,46 @@ ACTUATOR_ARM = ActuatorCfg(
     ".*_Elbow_Pitch",
     ".*_Elbow_Yaw",
   ],
-  effort_limit=36.0,
+  effort_limit=ACTUATOR_ARM.effort_limit,
+  armature=ACTUATOR_ARM.reflected_inertia,
   stiffness=STIFFNESS_ARM,
   damping=DAMPING_ARM,
-  armature=ARM_ARMATURE,
+)
+ACTUATOR_HIP_ROLL_YAW = ActuatorCfg(
+  joint_names_expr=[".*_Hip_Roll", ".*_Hip_Yaw", "Waist"],
+  effort_limit=ACTUATOR_HIP_RY.effort_limit,
+  armature=ACTUATOR_HIP_RY.reflected_inertia,
+  stiffness=STIFFNESS_HIP_RY,
+  damping=DAMPING_HIP_RY,
+)
+ACTUATOR_HIP_PITCH = ActuatorCfg(
+  joint_names_expr=[".*_Hip_Pitch"],
+  effort_limit=ACTUATOR_HIP_P.effort_limit,
+  armature=ACTUATOR_HIP_P.reflected_inertia,
+  stiffness=STIFFNESS_HIP_P,
+  damping=DAMPING_HIP_P,
+)
+ACTUATOR_KNEE = ActuatorCfg(
+  joint_names_expr=[".*_Knee_Pitch"],
+  effort_limit=ACTUATOR_KNEE.effort_limit,
+  armature=ACTUATOR_KNEE.reflected_inertia,
+  stiffness=STIFFNESS_KNEE,
+  damping=DAMPING_KNEE,
+)
+ACTUATOR_NECK = ActuatorCfg(
+  joint_names_expr=["AAHead_yaw", "Head_pitch"],
+  effort_limit=ACTUATOR_NECK.effort_limit,
+  armature=ACTUATOR_NECK.reflected_inertia,
+  stiffness=STIFFNESS_NECK,
+  damping=DAMPING_NECK,
 )
 
 ACTUATOR_ANKLE = ActuatorCfg(
   joint_names_expr=[".*_Ankle_Pitch", ".*_Ankle_Roll"],
-  effort_limit=75.0,
-  stiffness=STIFFNESS_ANKLE,
-  damping=DAMPING_ANKLE,
-  armature=ANKLE_ARMATURE,
-)
-
-ACTUATOR_HIP_ROLL_YAW = ActuatorCfg(
-  joint_names_expr=[".*_Hip_Roll", ".*_Hip_Yaw",],
-  effort_limit=60.0,
-  stiffness=STIFFNESS_HIP_ROLL_YAW,
-  damping=DAMPING_HIP_ROLL_YAW,
-  armature=HIP_ROLL_YAW_ARMATURE,
-)
-
-ACTUATOR_HIP_PITCH = ActuatorCfg(
-  joint_names_expr=[".*_Hip_Pitch"],
-  effort_limit=90.0,
-  stiffness=STIFFNESS_HIP_PITCH,
-  damping=DAMPING_HIP_PITCH,
-  armature=HIP_PITCH_ARMATURE,
-)
-
-ACTUATOR_KNEE = ActuatorCfg(
-  joint_names_expr=[".*_Knee_Pitch"],
-  effort_limit=130.0,
-  stiffness=STIFFNESS_KNEE,
-  damping=DAMPING_KNEE,
-  armature=KNEE_ARMATURE,
-)
-
-ACTUATOR_NECK = ActuatorCfg(
-  joint_names_expr=["AAHead_yaw", "Head_pitch"],
-  effort_limit=7.0,
-  stiffness=STIFFNESS_NECK,
-  damping=DAMPING_NECK,
-  armature=NECK_ARMATURE,
-)
-
-# FIX.
-ACTUATOR_WAIST = ActuatorCfg(
-  joint_names_expr=["Waist"],
-  effort_limit=90.0,
-  stiffness=STIFFNESS_HIP_PITCH,
-  damping=DAMPING_HIP_PITCH,
-  armature=HIP_PITCH_ARMATURE,
+  effort_limit=ACTUATOR_ANKLE.effort_limit * 2,
+  armature=ACTUATOR_ANKLE.reflected_inertia * 2,
+  stiffness=STIFFNESS_ANKLE * 2,
+  damping=DAMPING_ANKLE * 2,
 )
 
 ##
@@ -160,6 +152,7 @@ ACTUATOR_WAIST = ActuatorCfg(
 ##
 
 HOME_KEYFRAME = KeyframeCfg(
+  name="home",
   root_pos=(0, 0, 0.665),
   joint_pos={
     "Left_Shoulder_Roll": -1.4,
@@ -171,6 +164,29 @@ HOME_KEYFRAME = KeyframeCfg(
     ".*_Ankle_Pitch": -0.2,
   },
   use_joint_pos_for_ctrl=True,
+)
+
+##
+# Collision config.
+##
+
+# This enables all collisions, including self collisions.
+# Self-collisions are given condim=1 while foot collisions
+# are given condim=3 and custom friction and solimp.
+FULL_COLLISION = CollisionCfg(
+  geom_names_expr=[".*_collision"],
+  condim={".*_foot_collision": 3},
+  priority={".*_foot_collision": 1},
+  friction={".*_foot_collision": (0.6,)},
+)
+
+FULL_COLLISION_WITHOUT_SELF = CollisionCfg(
+  geom_names_expr=[".*_collision"],
+  contype=0,
+  conaffinity=1,
+  condim={".*_foot_collision": 3},
+  priority={".*_foot_collision": 1},
+  friction={".*_foot_collision": (0.6,)},
 )
 
 ##
@@ -187,15 +203,13 @@ T1_ROBOT_CFG = RobotCfg(
     ACTUATOR_HIP_PITCH,
     ACTUATOR_KNEE,
     ACTUATOR_NECK,
-    ACTUATOR_WAIST,
   ),
-  sensors={
-    "gyro": SensorCfg("gyro", IMU_SITE, "site"),
-    "local_linvel": SensorCfg("velocimeter", IMU_SITE, "site"),
-    "upvector": SensorCfg("framezaxis", IMU_SITE, "site"),
-  },
+  sensors=(
+    SensorCfg("body_ang_vel", "gyro", "imu", "site"),
+    SensorCfg("body_lin_vel", "velocimeter", "imu", "site"),
+    SensorCfg("body_zaxis", "framezaxis", "imu", "site"),
+  ),
   soft_joint_pos_limit_factor=0.95,
-  keyframes={
-    "home": HOME_KEYFRAME,
-  },
+  keyframes=(HOME_KEYFRAME,),
+  collisions=(FULL_COLLISION,)
 )

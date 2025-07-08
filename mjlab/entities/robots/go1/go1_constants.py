@@ -5,6 +5,7 @@
 from typing import Dict
 from mjlab import MJLAB_SRC_PATH, MENAGERIE_PATH, update_assets
 
+from mjlab.entities.robots.actuator import ElectricActuator, reflected_inertia
 from mjlab.entities.robots.robot_config import RobotCfg
 from mjlab.entities.robots.robot_config import KeyframeCfg, ActuatorCfg, SensorCfg, CollisionCfg
 
@@ -22,53 +23,42 @@ def get_assets() -> Dict[str, bytes]:
   return assets
 
 ##
-# Constants.
+# Actuator config.
 ##
 
-NU = 12
-NQ = NU + 7
-NV = NQ - 1
+# Rotor inertia.
+# Ref: https://github.com/unitreerobotics/unitree_ros/blob/master/robots/go1_description/urdf/go1.urdf#L515
+# Extracted Ixx (rotation along x-axis).
+ROTOR_INERTIA = 0.000111842
 
-TORSO_BODY = "trunk"
-ROOT_BODY = TORSO_BODY
-
-FEET_GEOMS = ("FR", "FL", "RR", "RL")
-
-FEET_SITES = ("FR", "FL", "RR", "RL")
-IMU_SITE = "imu"
-
-##
-# Motor specs.
-##
-
-# Motor specs (from Unitree).
-MOTOR_ROTOR_INERTIA = 0.005 / (6 ** 2)
-MOTOR_VELOCITY_LIMIT = 30.1 * 6  # [rad]/[s].
-MOTOR_TORQUE_LIMIT = 23.7 / 6  # [N][m].
-
-# Actuator specs.
+# Gearbox.
 HIP_GEAR_RATIO = 6
 KNEE_GEAR_RATIO = HIP_GEAR_RATIO * 1.5
-ACTUATOR_HIP_ARMATURE = MOTOR_ROTOR_INERTIA * HIP_GEAR_RATIO ** 2
-ACTUATOR_KNEE_ARMATURE = MOTOR_ROTOR_INERTIA * KNEE_GEAR_RATIO ** 2
-ACTUATOR_HIP_VELOCITY_LIMIT = MOTOR_VELOCITY_LIMIT / HIP_GEAR_RATIO
-ACTUATOR_KNEE_VELOCITY_LIMIT = MOTOR_VELOCITY_LIMIT / KNEE_GEAR_RATIO
-ACTUATOR_HIP_TORQUE_LIMIT = MOTOR_TORQUE_LIMIT * HIP_GEAR_RATIO
-ACTUATOR_KNEE_TORQUE_LIMIT = MOTOR_TORQUE_LIMIT * KNEE_GEAR_RATIO
+
+HIP_ACTUATOR = ElectricActuator(
+  reflected_inertia=reflected_inertia(ROTOR_INERTIA, HIP_GEAR_RATIO),
+  velocity_limit=30.1,
+  effort_limit=23.7,
+)
+KNEE_ACTUATOR = ElectricActuator(
+  reflected_inertia=reflected_inertia(ROTOR_INERTIA, KNEE_GEAR_RATIO),
+  actuator_effort_limit=35.55,
+  actuator_velocity_limit=20.06,
+)
 
 GO1_HIP_ACTUATOR_CFG = ActuatorCfg(
   joint_names_expr=[".*_hip_joint", ".*_thigh_joint"],
-  effort_limit=ACTUATOR_HIP_TORQUE_LIMIT,
+  effort_limit=HIP_ACTUATOR.effort_limit,
   stiffness=35,
   damping=0.5,
-  armature=ACTUATOR_HIP_ARMATURE,
+  armature=HIP_ACTUATOR.reflected_inertia,
 )
 GO1_KNEE_ACTUATOR_CFG = ActuatorCfg(
   joint_names_expr=[".*_calf_joint"],
-  effort_limit=ACTUATOR_KNEE_TORQUE_LIMIT,
+  effort_limit=KNEE_ACTUATOR.effort_limit,
   stiffness=35,
   damping=0.5,
-  armature=ACTUATOR_KNEE_ARMATURE,
+  armature=KNEE_ACTUATOR.reflected_inertia,
 )
 
 ##
@@ -127,9 +117,9 @@ GO1_ROBOT_CFG = RobotCfg(
     GO1_KNEE_ACTUATOR_CFG,
   ),
   sensors=(
-    SensorCfg("body_ang_vel", "gyro", IMU_SITE, "site"),
-    SensorCfg("body_lin_vel", "velocimeter", IMU_SITE, "site"),
-    SensorCfg("upvector", "framezaxis", IMU_SITE, "site"),
+    SensorCfg("body_ang_vel", "gyro", "imu", "site"),
+    SensorCfg("body_lin_vel", "velocimeter", "imu", "site"),
+    SensorCfg("body_zaxis", "framezaxis", "imu", "site"),
   ),
   soft_joint_pos_limit_factor=0.95,
   keyframes=(GO1_HOME_KEYFRAME,),
