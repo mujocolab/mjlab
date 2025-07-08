@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from mjlab.entities.scene.scene import Scene
 from mjlab.entities.scene.scene_config import SceneCfg, LightCfg
@@ -10,7 +10,6 @@ from mjlab.entities.terrains.flat_terrain import FLAT_TERRAIN_CFG
 ##
 # Scene.
 ##
-
 
 SCENE_CFG = SceneCfg(
   terrains=(FLAT_TERRAIN_CFG,),
@@ -114,9 +113,18 @@ class CurriculumCfg:
 #     self.episode_length = 20.0
 
 
+@dataclass
+class Go1LocomotionFlatEnvCfg:
+  scene: SceneCfg = field(default_factory=lambda: SCENE_CFG)
+
+
 if __name__ == "__main__":
   import mujoco.viewer
+  import tyro
 
-  scene = Scene(SCENE_CFG)
-  scene.write_xml("test.xml")
+  cfg = tyro.cli(Go1LocomotionFlatEnvCfg)
+  scene = Scene(cfg.scene)
+
+  # scene = Scene(SCENE_CFG)
+  # scene.write_xml("test.xml")
   mujoco.viewer.launch(scene.compile())

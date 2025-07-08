@@ -18,4 +18,4 @@ class Entity(abc.ABC):
   def write_xml(self, xml_path: Path) -> None:
     """Writes the robot model to an XML file."""
     with open(xml_path, "w") as f:
-      f.write(self._spec.to_xml())
+      f.write(self.spec.to_xml())
