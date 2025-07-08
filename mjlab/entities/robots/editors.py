@@ -10,7 +10,6 @@ from mjlab.utils.spec import get_non_root_joints
 
 @dataclass
 class KeyframeEditor(SpecEditor):
-  name: str
   cfg: KeyframeCfg
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
@@ -28,7 +27,7 @@ class KeyframeEditor(SpecEditor):
     qvel = np.concatenate((self.cfg.root_lin_vel, self.cfg.root_ang_vel, joint_vel))
 
     spec.add_key(
-      name=self.name,
+      name=self.cfg.name,
       time=self.cfg.time,
       qpos=np.asarray(qpos),
       qvel=np.asarray(qvel),
@@ -74,7 +73,6 @@ class ActuatorEditor(SpecEditor):
 
 @dataclass
 class SensorEditor(SpecEditor):
-  name: str
   cfg: SensorCfg
 
   SENSOR_TYPE_MAP = {
@@ -97,8 +95,8 @@ class SensorEditor(SpecEditor):
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
     spec.add_sensor(
+      name=self.cfg.name,
       type=self.SENSOR_TYPE_MAP[self.cfg.sensor_type],
       objtype=self.SENSOR_OBJECT_TYPE_MAP[self.cfg.object_type],
-      name=self.name,
       objname=self.cfg.object_name,
     )

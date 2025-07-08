@@ -1,5 +1,5 @@
 from mjlab.entities.terrains import terrain_config
-
+from mjlab.entities.common.config import CollisionCfg
 
 texture = terrain_config.TextureCfg(
   name="groundplane",
@@ -23,14 +23,18 @@ material = terrain_config.MaterialCfg(
 
 geom = terrain_config.GeomCfg(
   name="floor",
-  body="worldbody",
   type="plane",
   size=(0, 0, 0.01),
   material="groundplane",
+)
+
+coll = CollisionCfg(
+  geom_names_expr=["floor"],
 )
 
 FLAT_TERRAIN_CFG = terrain_config.TerrainCfg(
   textures=(texture,),
   materials=(material,),
   geoms=(geom,),
+  # collisions=(coll,),
 )

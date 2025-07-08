@@ -4,6 +4,7 @@ import numpy as np
 from mjlab.core import entity
 from mjlab.entities.robots.robot_config import RobotCfg
 from mjlab.entities.robots import editors
+from mjlab.entities.common import editors as common_editors
 from mjlab.utils.spec import get_non_root_joints
 
 
@@ -21,21 +22,30 @@ class Robot(entity.Entity):
     self._configure_keyframes()
     self._configure_actuators()
     self._configure_sensors()
+    self._configure_collisions()
+
+  @property
+  def spec(self) -> mujoco.MjSpec:
+    return self._spec
 
   # Private methods.
 
-  def _configure_keyframes(self):
-    for key_name, key in self._cfg.keyframes.items():
-      editors.KeyframeEditor(key_name, key).edit_spec(self._spec)
+  def _configure_keyframes(self) -> None:
+    for key in self._cfg.keyframes:
+      editors.KeyframeEditor(key).edit_spec(self._spec)
 
-  def _configure_actuators(self):
+  def _configure_actuators(self) -> None:
     editors.ActuatorEditor(self._cfg.actuators).edit_spec(self._spec)
 
-  def _configure_sensors(self):
-    for sns_name, sens in self._cfg.sensors.items():
-      editors.SensorEditor(sns_name, sens).edit_spec(self._spec)
+  def _configure_sensors(self) -> None:
+    for sens in self._cfg.sensors:
+      editors.SensorEditor(sens).edit_spec(self._spec)
 
-  def _modify_joint_range(self):
+  def _configure_collisions(self) -> None:
+    for col in self._cfg.collisions:
+      common_editors.CollisionEditor(col).edit_spec(self._spec)
+
+  def _modify_joint_range(self) -> None:
     ranges = [j.range for j in self._non_root_joints]
     lowers = np.array([r[0] for r in ranges])
     uppers = np.array([r[1] for r in ranges])
@@ -47,7 +57,3 @@ class Robot(entity.Entity):
       j.range[0] = soft_lowers[i]
       j.range[1] = soft_uppers[i]
     ranges = [j.range for j in self._non_root_joints]
-
-  @property
-  def spec(self) -> mujoco.MjSpec:
-    return self._spec

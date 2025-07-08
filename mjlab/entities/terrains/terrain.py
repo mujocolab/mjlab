@@ -3,6 +3,7 @@ import mujoco
 from mjlab.core import entity
 from mjlab.entities.terrains.terrain_config import TerrainCfg
 from mjlab.entities.terrains import editors
+from mjlab.entities.common import editors as common_editors
 
 
 class Terrain(entity.Entity):
@@ -20,6 +21,7 @@ class Terrain(entity.Entity):
     self._configure_materials()
     self._configure_geoms()
     self._configure_spec()
+    self._configure_collisions()
 
   @property
   def spec(self) -> mujoco.MjSpec:
@@ -29,15 +31,19 @@ class Terrain(entity.Entity):
 
   def _configure_textures(self) -> None:
     for tex in self._cfg.textures:
-      editors.TextureEditor(tex).edit_spec(self._spec)
+      common_editors.TextureEditor(tex).edit_spec(self._spec)
 
   def _configure_materials(self) -> None:
     for mat in self._cfg.materials:
-      editors.MaterialEditor(mat).edit_spec(self._spec)
+      common_editors.MaterialEditor(mat).edit_spec(self._spec)
 
   def _configure_geoms(self) -> None:
     for geom in self._cfg.geoms:
       editors.GeomEditor(geom).edit_spec(self._spec)
+
+  def _configure_collisions(self) -> None:
+    for col in self._cfg.collisions:
+      common_editors.CollisionEditor(col).edit_spec(self._spec)
 
   def _configure_spec(self):
     if self._cfg.construct_fn is not None:

@@ -6,7 +6,7 @@ from typing import Dict
 from mjlab import MJLAB_SRC_PATH, MENAGERIE_PATH, update_assets
 
 from mjlab.entities.robots.robot_config import RobotCfg
-from mjlab.entities.robots.robot_config import KeyframeCfg, ActuatorCfg, SensorCfg
+from mjlab.entities.robots.robot_config import KeyframeCfg, ActuatorCfg, SensorCfg, CollisionCfg
 
 ##
 # MJCF and assets.
@@ -77,6 +77,7 @@ GO1_KNEE_ACTUATOR_CFG = ActuatorCfg(
 
 
 GO1_HOME_KEYFRAME = KeyframeCfg(
+  name="home",
   root_pos=(0.0, 0.0, 0.278),
   joint_pos={
     ".*thigh_joint": 0.9,
@@ -85,6 +86,33 @@ GO1_HOME_KEYFRAME = KeyframeCfg(
     ".*L_hip_joint": -0.1,
   },
   use_joint_pos_for_ctrl=True,
+)
+
+##
+# Collision config.
+##
+
+# This disables all collisions except the feet.
+# Furthermore feet self collisions are disabled.
+FEET_ONLY_COLLISION = CollisionCfg(
+  geom_names_expr=[".*_foot_collision"],
+  contype=0,
+  conaffinity=1,
+  condim=3,
+  priority=1,
+  friction=(0.6,),
+  solimp=(0.9, 0.95, 0.023),
+)
+
+# This enables all collisions, including self collisions.
+# Self-collisions are given condim=1 while foot collisions
+# are given condim=3 and custom friction and solimp.
+FULL_COLLISION = CollisionCfg(
+  geom_names_expr=[".*_collision"],
+  condim={".*_foot_collision": 3},
+  priority={".*_foot_collision": 1},
+  friction={".*_foot_collision": (0.6,)},
+  solimp={".*_foot_collision": (0.9, 0.95, 0.023)}
 )
 
 ##
@@ -98,13 +126,12 @@ GO1_ROBOT_CFG = RobotCfg(
     GO1_HIP_ACTUATOR_CFG,
     GO1_KNEE_ACTUATOR_CFG,
   ),
-  sensors={
-    "gyro": SensorCfg("gyro", IMU_SITE, "site"),
-    "local_linvel": SensorCfg("velocimeter", IMU_SITE, "site"),
-    "upvector": SensorCfg("framezaxis", IMU_SITE, "site"),
-  },
-  soft_joint_pos_limit_factor=0.9,
-  keyframes={
-    "home": GO1_HOME_KEYFRAME,
-  },
+  sensors=(
+    SensorCfg("body_ang_vel", "gyro", IMU_SITE, "site"),
+    SensorCfg("body_lin_vel", "velocimeter", IMU_SITE, "site"),
+    SensorCfg("upvector", "framezaxis", IMU_SITE, "site"),
+  ),
+  soft_joint_pos_limit_factor=0.95,
+  keyframes=(GO1_HOME_KEYFRAME,),
+  collisions=(FEET_ONLY_COLLISION,),
 )

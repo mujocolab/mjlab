@@ -2,9 +2,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
+from mjlab.entities.common.config import CollisionCfg
+
 
 @dataclass(frozen=True)
 class KeyframeCfg:
+  name: str
   root_pos: tuple[float, float, float] = (0.0, 0.0, 0.0)
   root_quat: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)
   joint_pos: dict[str, float] = field(default_factory=lambda: {".*": 0.0})
@@ -28,6 +31,7 @@ class ActuatorCfg:
 
 @dataclass(frozen=True)
 class SensorCfg:
+  name: str
   sensor_type: str
   object_name: str
   object_type: str
@@ -36,8 +40,9 @@ class SensorCfg:
 @dataclass
 class RobotCfg:
   xml_path: Path
-  actuators: tuple[ActuatorCfg, ...]
-  sensors: dict[str, SensorCfg]
-  keyframes: dict[str, KeyframeCfg]
+  actuators: tuple[ActuatorCfg, ...] = ()
+  sensors: tuple[SensorCfg, ...] = ()
+  keyframes: tuple[KeyframeCfg, ...] = ()
+  collisions: tuple[CollisionCfg, ...] = ()
   soft_joint_pos_limit_factor: float = 1.0
   asset_fn: Callable[[], dict[str, bytes]] = field(default_factory=lambda: (lambda: {}))
