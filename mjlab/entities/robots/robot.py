@@ -56,4 +56,3 @@ class Robot(entity.Entity):
     for i, j in enumerate(self._non_root_joints):
       j.range[0] = soft_lowers[i]
       j.range[1] = soft_uppers[i]
-    ranges = [j.range for j in self._non_root_joints]
