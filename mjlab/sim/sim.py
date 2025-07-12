@@ -1,28 +1,62 @@
+from typing import Sequence
+import torch
 from mjlab.sim.sim_config import SimulationCfg
 
 import mujoco
-import torch
 import warp as wp
 import mujoco_warp as mjwarp
 
 
 class Simulation:
-  def __init__(self, model: mujoco.MjModel, cfg: SimulationCfg | None = None):
-    if cfg is None:
-      self.cfg = SimulationCfg()
-    else:
-      self.cfg = cfg
+  """MjWarp simulation backend."""
+
+  def __init__(self, cfg: SimulationCfg):
+    self.cfg = cfg
     self.device = self.cfg.device
     self.num_envs = self.cfg.num_envs
 
-    self.mjmodel = model
-    self.mjdata = mujoco.MjData(model)
-    mujoco.mj_forward(self.mjmodel, self.mjdata)
+    self._mj_model: mujoco.MjModel | None = None
+    self._mj_data: mujoco.MjData | None = None
+    self._wp_model: mjwarp.Model | None = None
+    self._wp_data: mjwarp.Data | None = None
 
-    self._wp_model = mjwarp.put_model(self.mjmodel)
+  # Properties.
+
+  @property
+  def mj_model(self) -> mujoco.MjModel:
+    if self._mj_model is None:
+      raise ValueError
+    return self._mj_model
+
+  @property
+  def mj_data(self) -> mujoco.MjData:
+    if self._mj_data is None:
+      raise ValueError
+    return self._mj_data
+
+  @property
+  def wp_model(self) -> mjwarp.Model:
+    if self._wp_model is None:
+      raise ValueError
+    return self._wp_model
+
+  @property
+  def wp_data(self) -> mjwarp.Data:
+    if self._wp_data is None:
+      raise ValueError
+    return self._wp_data
+
+  # Methods.
+
+  def initialize(self, model: mujoco.MjModel):
+    self._mj_model = model
+    self._mj_data = mujoco.MjData(model)
+    mujoco.mj_forward(self._mj_model, self._mj_data)
+
+    self._wp_model = mjwarp.put_model(self._mj_model)
     self._wp_data = mjwarp.put_data(
-      self.mjmodel,
-      self.mjdata,
+      self._mj_model,
+      self._mj_data,
       nworld=self.cfg.num_envs,
       nconmax=self.cfg.nconmax,
       njmax=self.cfg.njmax,
@@ -36,3 +70,9 @@ class Simulation:
 
   def step(self):
     mjwarp.step(self._wp_model, self._wp_data)
+
+  def set_ctrl(self, ctrl: torch.Tensor, ctrl_ids: Sequence[int] | None = None) -> None:
+    ctrl_wp = wp.from_torch(ctrl)
+    if ctrl_ids is None:
+      ctrl_ids = slice(None)
+    self.wp_data.ctrl[:, ctrl_ids] = ctrl_wp

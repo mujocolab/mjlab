@@ -1,4 +1,6 @@
-from dataclasses import dataclass
+from __future__ import annotations
+
+from dataclasses import dataclass, MISSING
 
 from mjlab.entities.scene.scene_config import SceneCfg
 from mjlab.sim.sim_config import SimulationCfg
@@ -6,7 +8,9 @@ from mjlab.sim.sim_config import SimulationCfg
 
 @dataclass
 class ManagerBasedEnvCfg:
-  decimation: int
-  scene: SceneCfg
+  decimation: int = MISSING
+  scene: SceneCfg = MISSING
+  observations: object = MISSING
+  actions: object = MISSING
   seed: int | None = None
   sim: SimulationCfg = SimulationCfg()

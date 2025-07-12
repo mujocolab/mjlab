@@ -1,7 +1,7 @@
+import time
 import mujoco
 from pathlib import Path
 
-import numpy as np
 
 from mjlab.core import entity
 from mjlab.entities.scene.scene_config import SceneCfg
@@ -42,7 +42,11 @@ class Scene(entity.Entity):
   # Private methods.
 
   def _compile(self) -> None:
+    tic = time.time()
     self._model: mujoco.MjModel = self._spec.compile()
+    toc = time.time()
+    mj_compile_time = toc - tic
+    print(f"[DEBUG] Compiled spec into MjModel. Took {mj_compile_time:.4f} seconds.")
 
   def _configure_terrain(self) -> None:
     for ter_name, ter_cfg in self._cfg.terrains.items():

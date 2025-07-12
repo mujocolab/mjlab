@@ -25,6 +25,7 @@ class SceneEntityCfg:
   qpos_ids: list[int] = field(default_factory=list)
   dof_ids: list[int] = field(default_factory=list)
   body_ids: list[int] = field(default_factory=list)
+  actuator_ids: list[int] = field(default_factory=list)
 
   def resolve(self, model: mujoco.MjModel) -> None:
     self._resolve_joint_names(model)
@@ -58,6 +59,14 @@ class SceneEntityCfg:
       self.qpos_ids.extend(range(qpos_start, qpos_start + qpos_width(joint.type[0])))
       self.dof_ids.extend(range(dof_start, dof_start + dof_width(joint.type[0])))
       self.joint_ids.append(joint.id)
+
+    # Resolve actuators acting on each joint.
+    for i in range(model.nu):
+      act = model.actuator(i)
+      if act.trntype[0] != mujoco.mjtTrn.mjTRN_JOINT:
+        continue
+      if act.trnid[0] in self.joint_ids:
+        self.actuator_ids.append(i)
 
   def _resolve_body_names(self, model: mujoco.MjModel) -> None:
     # Extract body names scoped to this entity (skip world body).

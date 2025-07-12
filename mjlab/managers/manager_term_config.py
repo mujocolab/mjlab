@@ -1,5 +1,10 @@
-from dataclasses import dataclass, field
-from typing import Any, Callable, Type
+from __future__ import annotations
+
+from dataclasses import dataclass, field, MISSING
+from typing import Any, Callable, Type, TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from mjlab.managers.action_manager import ActionTerm
 
 
 def term(term_cls: Type, **kwargs) -> Any:
@@ -13,6 +18,20 @@ class ManagerTermBaseCfg:
 
 
 ##
+# Action manager.
+##
+
+
+@dataclass(kw_only=True)
+class ActionTermCfg:
+  """Configuration for an action term."""
+
+  class_type: type[ActionTerm] = MISSING
+  asset_name: str = MISSING
+  clip: dict[str, tuple] | None = None
+
+
+##
 # Event manager.
 ##
 
@@ -21,7 +40,7 @@ class ManagerTermBaseCfg:
 class EventTermCfg(ManagerTermBaseCfg):
   """Configuration for an event term."""
 
-  mode: str
+  mode: str = ""
   interval_range_s: tuple[float, float] | None = None
   is_global_time: bool = False
   min_step_count_between_reset: int = 0

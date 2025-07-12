@@ -5,6 +5,9 @@ from mjlab.envs.manager_based_env_config import ManagerBasedEnvCfg
 from mjlab.entities.scene.scene import Scene
 from mjlab.sim.sim import Simulation
 
+from mjlab.managers.observation_manager import ObservationManager
+from mjlab.managers.action_manager import ActionManager
+
 
 class ManagerBasedEnv:
   def __init__(self, cfg: ManagerBasedEnvCfg):
@@ -15,8 +18,7 @@ class ManagerBasedEnv:
     else:
       print("No seed set for the environment.")
 
-    self.scene = Scene(self.cfg.scene)
-    self.sim = Simulation(self.scene.compile(), cfg=self.cfg.sim)
+    self.sim = Simulation(self.cfg.sim)
 
     if "cuda" in self.device:
       torch.cuda.set_device(self.device)
@@ -27,10 +29,16 @@ class ManagerBasedEnv:
     print(f"\tPhysics step-size     : {self.physics_dt}")
     print(f"\tEnvironment step-size : {self.step_dt}")
 
+    # Generate the scene.
+    self.scene = Scene(self.cfg.scene)
+
+    # TODO Event manager.
+
     self._sim_step_counter = 0
     self.extras = {}
 
     # Reset sim and step once.
+    self.sim.initialize(self.scene.model)
 
     self.load_managers()
 
@@ -55,8 +63,11 @@ class ManagerBasedEnv:
   # Setup.
 
   def load_managers(self):
-    self.action_manager = None
-    self.observation_manager = None
+    self.observation_manager = ObservationManager(self.cfg.observations, self)
+    print("[INFO] Observation Manager:", self.observation_manager)
+
+    self.action_manager = ActionManager(self.cfg.actions, self)
+    print("[INFO] Action Manager:", self.action_manager)
 
   # MDP operations.
 
@@ -107,44 +118,3 @@ class ManagerBasedEnv:
   def _reset_idx(self, env_ids: torch.Tensor) -> None:
     # Reset using env_ids.
     pass
-
-
-if __name__ == "__main__":
-  from mjlab.sim.sim_config import SimulationCfg
-  from mjlab.entities.scene.scene import Scene
-  from mjlab.entities.scene.scene_config import SceneCfg, LightCfg
-  from mjlab.entities.common.config import TextureCfg, OptionCfg
-  from mjlab.entities.robots.go1.go1_constants import GO1_ROBOT_CFG
-  from mjlab.entities.terrains.flat_terrain import FLAT_TERRAIN_CFG
-
-  SCENE_CFG = SceneCfg(
-    terrains=(FLAT_TERRAIN_CFG,),
-    robots=(GO1_ROBOT_CFG,),
-    lights=(LightCfg(pos=(0, 0, 1.5), type="directional"),),
-    skybox=TextureCfg(
-      name="skybox",
-      type="skybox",
-      builtin="gradient",
-      rgb1=(0.3, 0.5, 0.7),
-      rgb2=(0.1, 0.2, 0.3),
-      width=512,
-      height=3072,
-    ),
-  )
-
-  SIM_CFG = SimulationCfg(
-    num_envs=8,
-    mujoco=OptionCfg(
-      timestep=0.004,
-      integrator="implicitfast",
-    ),
-  )
-
-  cfg = ManagerBasedEnvCfg(
-    seed=0,
-    decimation=1,
-    scene=SCENE_CFG,
-    sim=SIM_CFG,
-  )
-
-  env = ManagerBasedEnv(cfg)

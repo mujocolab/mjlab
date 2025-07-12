@@ -1,6 +1,5 @@
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 
-from mjlab.entities.scene.scene import Scene
 from mjlab.entities.scene.scene_config import SceneCfg, LightCfg
 from mjlab.entities.common.config import TextureCfg
 from mjlab.entities.robots.g1.g1_constants import G1_ROBOT_CFG
@@ -9,13 +8,11 @@ from mjlab.entities.terrains.flat_terrain import FLAT_TERRAIN_CFG
 from mjlab.managers.manager_term_config import ObservationGroupCfg as ObsGroup
 from mjlab.managers.manager_term_config import ObservationTermCfg as ObsTerm
 from mjlab.managers.manager_term_config import RewardTermCfg as RewardTerm
+from mjlab.managers.manager_term_config import ActionTermCfg as ActionTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
-
-from mjlab.envs.mdp import rewards, observations
-from mjlab.utils.dataclasses import get_terms
-
-import mujoco
+from mjlab.envs.mdp import rewards, observations, actions
+from mjlab.envs.manager_based_env import ManagerBasedEnv, ManagerBasedEnvCfg
 
 
 ##
@@ -38,10 +35,6 @@ SCENE_CFG = SceneCfg(
   ),
 )
 
-# robot
-# terrain
-# skybox
-
 ##
 # MDP.
 ##
@@ -51,14 +44,6 @@ SCENE_CFG = SceneCfg(
 
 @dataclass
 class CommandsCfg:
-  pass
-
-
-# Actions.
-
-
-@dataclass
-class ActionCfg:
   pass
 
 
@@ -84,7 +69,28 @@ class ObservationCfg:
     def __post_init__(self):
       self.enable_corruption = True
 
+  @dataclass
+  class CriticCfg(ObsGroup):
+    ankle_pos: ObsTerm = term(
+      ObsTerm,
+      func=observations.joint_pos,
+      params={"entity_cfg": SceneEntityCfg("g2", joint_names=[".*ankle"])},
+    )
+
+    hip_pos: ObsTerm = term(
+      ObsTerm,
+      func=observations.joint_pos,
+      params={"entity_cfg": SceneEntityCfg("g2", joint_names=[".*hip"])},
+    )
+
+    waist_pos: ObsTerm = term(
+      ObsTerm,
+      func=observations.joint_pos,
+      params={"entity_cfg": SceneEntityCfg("g2", joint_names=[".*waist"])},
+    )
+
   policy: PolicyCfg = field(default_factory=PolicyCfg)
+  critic: CriticCfg = field(default_factory=CriticCfg)
 
 
 # Events.
@@ -124,6 +130,20 @@ class CurriculumCfg:
   pass
 
 
+# Actions.
+
+
+@dataclass
+class ActionCfg:
+  joint_pos: ActionTerm = term(
+    actions.JointPositionActionCfg,
+    asset_name="g2",
+    joint_names=[".*"],
+    scale=0.5,
+    use_default_offset=True,
+  )
+
+
 ##
 # Environment.
 ##
@@ -132,49 +152,18 @@ class CurriculumCfg:
 
 
 @dataclass
-class Go1LocomotionFlatEnvCfg:
-  scene: SceneCfg = field(default_factory=SceneCfg)
+class Go1LocomotionFlatEnvCfg(ManagerBasedEnvCfg):
+  decimation: int = 1
+  scene: SceneCfg = field(default_factory=lambda: SCENE_CFG)
   observations: ObservationCfg = field(default_factory=ObservationCfg)
+  actions: ActionCfg = field(default_factory=ActionCfg)
   # commands: CommandsCfg = CommandsCfg()
-  # actions: ActionCfg = ActionCfg()
   # events: EventCfg = EventCfg()
   # rewards: RewardCfg = RewardCfg()
   # terminations: TerminationCfg = TerminationCfg()
   # curriculum: CurriculumCfg = CurriculumCfg()
 
-  def __post_init__(self):
-    self.decimation = 4
-    self.episode_length = 20.0
-
 
 if __name__ == "__main__":
-  # Construct the scene: terrain + robot + cameras/lights/skybox.
-  scene = Scene(SCENE_CFG)
-  data = mujoco.MjData(scene.model)
-
-  mujoco.mj_resetDataKeyframe(scene.model, data, 0)
-  mujoco.mj_forward(scene.model, data)
-
-  obs_cfg = ObservationCfg()
-
-  @dataclass
-  class Env:
-    data: mujoco.MjData
-
-  for obs_name, obs_cfg in get_terms(obs_cfg.policy, ObsTerm).items():
-    if "entity_cfg" in obs_cfg.params:
-      obs_cfg.params["entity_cfg"].resolve(scene.model)
-
-    env = Env(data=data)
-    val = obs_cfg.func(env=env, **obs_cfg.params)
-    print(f"{obs_name}: {val}")
-
-  rew_cfg = RewardCfg()
-
-  for rew_name, rew_cfg in get_terms(rew_cfg, RewardTerm).items():
-    if "entity_cfg" in rew_cfg.params:
-      rew_cfg.params["entity_cfg"].resolve(scene.model)
-
-    env = Env(data=data)
-    val = rew_cfg.func(env=env, **rew_cfg.params)
-    print(f"{rew_name}: {val}")
+  env_cfg = Go1LocomotionFlatEnvCfg()
+  env = ManagerBasedEnv(cfg=env_cfg)
