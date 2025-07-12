@@ -34,3 +34,22 @@ class CollisionCfg:
   solref: tuple[float, ...] | dict[str, tuple[float, ...]] | None = None
   solimp: tuple[float, ...] | dict[str, tuple[float, ...]] | None = None
   disable_other_geoms: bool = True
+
+
+@dataclass(frozen=True)
+class OptionCfg:
+  # Integrator settings.
+  timestep: float = 0.002
+  integrator: str = "implicitfast"
+  # Friction settings.
+  impratio: int = 1
+  cone: str = "elliptic"
+  # Solver settings.
+  jacobian: str = "auto"
+  solver: str = "newton"
+  iterations: int = 100
+  tolerance: float = 1e-8
+  ls_iterations: int = 50
+  ls_tolerance: float = 0.01
+  # Other.
+  gravity: tuple[float, float, float] = (0, 0, -9.81)

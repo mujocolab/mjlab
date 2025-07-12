@@ -11,10 +11,8 @@ from mjlab.utils.spec import get_non_root_joints
 class Robot(entity.Entity):
   def __init__(self, robot_cfg: RobotCfg):
     self._cfg = robot_cfg
-    self._spec = mujoco.MjSpec.from_file(
-      str(robot_cfg.xml_path),
-      assets=robot_cfg.asset_fn(),
-    )
+    spec = mujoco.MjSpec.from_file(str(robot_cfg.xml_path), assets=robot_cfg.asset_fn())
+    super().__init__(spec)
 
     self._non_root_joints = get_non_root_joints(self._spec)
     self._modify_joint_range()
@@ -24,9 +22,9 @@ class Robot(entity.Entity):
     self._configure_sensors()
     self._configure_collisions()
 
-  @property
-  def spec(self) -> mujoco.MjSpec:
-    return self._spec
+  # @property
+  # def spec(self) -> mujoco.MjSpec:
+  #   return self._spec
 
   # Private methods.
 

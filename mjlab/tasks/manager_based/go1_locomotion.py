@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 
 from mjlab.entities.scene.scene import Scene
-from mjlab.entities.scene.scene_config import SceneCfg, LightCfg
+from mjlab.entities.scene.scene_config import SceneCfg, LightCfg, OptionCfg
 from mjlab.entities.common.config import TextureCfg
 from mjlab.entities.robots.go1.go1_constants import GO1_ROBOT_CFG
 from mjlab.entities.terrains.flat_terrain import FLAT_TERRAIN_CFG
@@ -23,6 +23,10 @@ SCENE_CFG = SceneCfg(
     rgb2=(0.1, 0.2, 0.3),
     width=512,
     height=3072,
+  ),
+  option=OptionCfg(
+    timestep=0.004,
+    integrator="implicitfast",
   ),
 )
 

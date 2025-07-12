@@ -2,7 +2,12 @@ from dataclasses import dataclass
 import mujoco
 
 from mjlab.core.editors import SpecEditor
-from mjlab.entities.common.config import TextureCfg, MaterialCfg, CollisionCfg
+from mjlab.entities.common.config import (
+  TextureCfg,
+  MaterialCfg,
+  CollisionCfg,
+  OptionCfg,
+)
 from mjlab.utils.string import filter_exp, resolve_field
 from mjlab.utils.spec import disable_collision, set_array_field
 
@@ -98,3 +103,44 @@ class CollisionEditor(SpecEditor):
       for geom_name in other_geoms:
         geom = spec.geom(geom_name)
         disable_collision(geom)
+
+
+@dataclass
+class OptionEditor(SpecEditor):
+  cfg: OptionCfg
+
+  JACOBIAN_MAP = {
+    "auto": mujoco.mjtJacobian.mjJAC_AUTO,
+    "dense": mujoco.mjtJacobian.mjJAC_DENSE,
+    "sparse": mujoco.mjtJacobian.mjJAC_SPARSE,
+  }
+  CONE_MAP = {
+    "elliptic": mujoco.mjtCone.mjCONE_ELLIPTIC,
+    "pyramidal": mujoco.mjtCone.mjCONE_PYRAMIDAL,
+  }
+  INTEGRATOR_MAP = {
+    "euler": mujoco.mjtIntegrator.mjINT_EULER,
+    "implicitfast": mujoco.mjtIntegrator.mjINT_IMPLICITFAST,
+  }
+  SOLVER_MAP = {
+    "newton": mujoco.mjtSolver.mjSOL_NEWTON,
+    "cg": mujoco.mjtSolver.mjSOL_CG,
+    "pgs": mujoco.mjtSolver.mjSOL_PGS,
+  }
+
+  def edit_spec(self, spec: mujoco.MjSpec) -> None:
+    attrs = {
+      "jacobian": self.JACOBIAN_MAP[self.cfg.jacobian],
+      "cone": self.CONE_MAP[self.cfg.cone],
+      "integrator": self.INTEGRATOR_MAP[self.cfg.integrator],
+      "solver": self.SOLVER_MAP[self.cfg.solver],
+      "timestep": self.cfg.timestep,
+      "impratio": self.cfg.impratio,
+      "gravity": self.cfg.gravity,
+      "iterations": self.cfg.iterations,
+      "tolerance": self.cfg.tolerance,
+      "ls_iterations": self.cfg.ls_iterations,
+      "ls_tolerance": self.cfg.ls_tolerance,
+    }
+    for k, v in attrs.items():
+      setattr(spec.option, k, v)

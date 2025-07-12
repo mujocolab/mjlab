@@ -11,8 +11,8 @@ import tyro
 from mjlab.rl.on_policy_runner import MjlabOnPolicyRunner as OnPolicyRunner
 
 from mjlab import MJLAB_ROOT_PATH
-from mjlab.envs import TaskConfigUnion
-from mjlab.envs import registry
+from mjlab.tasks import TaskConfigUnion
+from mjlab.tasks import registry
 from mjlab.rl import config, utils, wrapper
 
 torch.backends.cuda.matmul.allow_tf32 = True

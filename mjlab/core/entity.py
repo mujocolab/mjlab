@@ -1,15 +1,22 @@
-import abc
 from pathlib import Path
 
 import mujoco
 
 
-class Entity(abc.ABC):
+class Entity:
+  def __init__(self, spec: mujoco.MjSpec):
+    self._spec = spec
+
+    self._geoms: tuple[mujoco.MjsGeom, ...] = self._spec.geoms
+    self._bodies: tuple[mujoco.MjsBody, ...] = self._spec.bodies
+    self._joints: tuple[mujoco.MjsJoint, ...] = self._spec.joints
+    self._actuators: tuple[mujoco.MjsActuator, ...] = self._spec.actuators
+    self._sensors: tuple[mujoco.MjsSensor, ...] = self._spec.sensors
+
   @property
-  @abc.abstractmethod
   def spec(self) -> mujoco.MjSpec:
     """Returns the underlying mujoco.MjSpec."""
-    raise NotImplementedError
+    return self._spec
 
   def compile(self) -> mujoco.MjModel:
     """Compiles the robot model into an MjModel."""

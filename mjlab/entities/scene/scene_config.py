@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from mjlab.entities.robots.robot import RobotCfg
 from mjlab.entities.terrains.terrain import TerrainCfg
@@ -30,13 +30,10 @@ class CameraCfg:
   quat: tuple[float, float, float, float] = (1, 0, 0, 0)
 
 
-# TODO(kevin): Think about where to add collision config.
-
-
 @dataclass
 class SceneCfg:
-  terrains: tuple[TerrainCfg, ...] = ()
-  robots: tuple[RobotCfg, ...] = ()
+  terrains: dict[str, TerrainCfg] = field(default_factory=dict)
+  robots: dict[str, RobotCfg] = field(default_factory=dict)
   lights: tuple[LightCfg, ...] = ()
   cameras: tuple[CameraCfg, ...] = ()
   skybox: TextureCfg | None = None

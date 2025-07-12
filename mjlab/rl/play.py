@@ -9,7 +9,7 @@ import torch
 import tyro
 from mjlab.rl.on_policy_runner import MjlabOnPolicyRunner as OnPolicyRunner
 
-from mjlab.envs import TaskConfigUnion
+from mjlab.tasks import TaskConfigUnion
 from mjlab.core.types import State
 from mjlab.core import mjx_task
 from mjlab.rl import config, utils, wrapper, exporter
@@ -18,7 +18,7 @@ import mujoco
 from mujoco import mjx
 import mujoco.viewer
 
-from mjlab.envs import registry
+from mjlab.tasks import registry
 
 _HERE = Path(__file__).parent
 

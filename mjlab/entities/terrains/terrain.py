@@ -12,20 +12,17 @@ class Terrain(entity.Entity):
 
     assets = terrain_cfg.asset_fn()
     if terrain_cfg.xml_path is not None:
-      self._spec = mujoco.MjSpec.from_file(str(terrain_cfg.xml_path), assets=assets)
+      spec = mujoco.MjSpec.from_file(str(terrain_cfg.xml_path), assets=assets)
     else:
-      self._spec = mujoco.MjSpec()
-      self._spec.assets = assets
+      spec = mujoco.MjSpec()
+      spec.assets = assets
+    super().__init__(spec)
 
     self._configure_textures()
     self._configure_materials()
     self._configure_geoms()
     self._configure_spec()
     self._configure_collisions()
-
-  @property
-  def spec(self) -> mujoco.MjSpec:
-    return self._spec
 
   # Private methods.
 
