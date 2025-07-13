@@ -1,8 +1,10 @@
 """Useful methods for MPD rewards."""
 
 import torch
+import warp as wp
 
 from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.envs.manager_based_rl_env import ManagerBasedRLEnv
 
 """
 joint_torques_l2(
@@ -32,9 +34,9 @@ joint_torques_l2(
 
 
 def joint_torques_l2(
-  env, entity_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRLEnv,
+  entity_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
-  # entity = env.scene[asset_cfg.name]
-  arr = env.data.qfrc_actuator[entity_cfg.dof_ids]
-  torques = torch.from_numpy(arr)[None]
+  torques_wp = env.sim.wp_data.qfrc_actuator[:, entity_cfg.dof_ids]
+  torques = wp.from_torch(torques_wp)
   return torch.sum(torch.square(torques), dim=-1)

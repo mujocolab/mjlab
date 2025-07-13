@@ -6,7 +6,7 @@ from mjlab.entities.scene.scene_config import SceneCfg
 from mjlab.sim.sim_config import SimulationCfg
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ManagerBasedEnvCfg:
   decimation: int = MISSING
   scene: SceneCfg = MISSING

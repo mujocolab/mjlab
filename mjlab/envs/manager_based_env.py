@@ -77,18 +77,14 @@ class ManagerBasedEnv:
     env_ids: Sequence[int] | None = None,
     options: dict[str, Any] | None = None,
   ):
+    del options  # Unused.
     if env_ids is None:
       env_ids = torch.arange(self.num_envs, dtype=torch.int64, device=self.device)
-
     if seed is not None:
       self.seed(seed)
-
     self._reset_idx(env_ids)
-
     self.sim.forward()
-
-    # self.obs_buf = self.observation_manager.compute()
-
+    self.obs_buf = self.observation_manager.compute()
     return self.obs_buf, self.extras
 
   def step(

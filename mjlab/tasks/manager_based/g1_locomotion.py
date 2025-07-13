@@ -12,7 +12,8 @@ from mjlab.managers.manager_term_config import ActionTermCfg as ActionTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.envs.mdp import rewards, observations, actions
-from mjlab.envs.manager_based_env import ManagerBasedEnv, ManagerBasedEnvCfg
+from mjlab.envs.manager_based_rl_env import ManagerBasedRLEnv
+from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
 
 
 ##
@@ -152,18 +153,24 @@ class ActionCfg:
 
 
 @dataclass
-class Go1LocomotionFlatEnvCfg(ManagerBasedEnvCfg):
-  decimation: int = 1
+class Go1LocomotionFlatEnvCfg(ManagerBasedRlEnvCfg):
   scene: SceneCfg = field(default_factory=lambda: SCENE_CFG)
   observations: ObservationCfg = field(default_factory=ObservationCfg)
   actions: ActionCfg = field(default_factory=ActionCfg)
+  decimation: int = 1
+  rewards: RewardCfg = field(default_factory=RewardCfg)
+  episode_length_s: float = 10.0
   # commands: CommandsCfg = CommandsCfg()
   # events: EventCfg = EventCfg()
-  # rewards: RewardCfg = RewardCfg()
   # terminations: TerminationCfg = TerminationCfg()
   # curriculum: CurriculumCfg = CurriculumCfg()
 
 
 if __name__ == "__main__":
   env_cfg = Go1LocomotionFlatEnvCfg()
-  env = ManagerBasedEnv(cfg=env_cfg)
+  env = ManagerBasedRLEnv(cfg=env_cfg)
+
+  obs, extras = env.reset()
+  from ipdb import set_trace
+
+  set_trace()

@@ -2,6 +2,8 @@ from __future__ import annotations
 import abc
 from typing import TYPE_CHECKING, Any, Sequence
 
+from mjlab.managers.scene_entity_config import SceneEntityCfg
+
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_env import ManagerBasedEnv
   from mjlab.managers.manager_term_config import ManagerTermBaseCfg
@@ -62,6 +64,8 @@ class ManagerBase(abc.ABC):
   def active_terms(self) -> list[str] | dict[str, list[str]]:
     raise NotImplementedError
 
+  # Methods.
+
   def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, float]:
     """Resets the manager and returns logging info for the current step."""
     del env_ids  # Unused.
@@ -76,3 +80,10 @@ class ManagerBase(abc.ABC):
   @abc.abstractmethod
   def _prepare_terms(self):
     raise NotImplementedError
+
+  def _resolve_common_term_cfg(self, term_name: str, term_cfg: ManagerTermBaseCfg):
+    for key, value in term_cfg.params.items():
+      if isinstance(value, SceneEntityCfg):
+        value.resolve(self._env.sim.mj_model)
+        term_cfg.params[key] = value
+      # TODO: initialize the term if it is a class.

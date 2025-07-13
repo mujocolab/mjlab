@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field, MISSING
 from typing import Any, Callable, Type, TYPE_CHECKING
 
+import torch
+
 if TYPE_CHECKING:
   from mjlab.managers.action_manager import ActionTerm
 
@@ -55,10 +57,10 @@ class EventTermCfg(ManagerTermBaseCfg):
 class ObservationTermCfg(ManagerTermBaseCfg):
   """Configuration for an observation term."""
 
-  noise: Any | None = None
+  # noise: Any | None = None
   clip: tuple[float, float] | None = None
-  history_length: int = 0
-  flatten_history_dim: bool = True
+  # history_length: int = 0
+  # flatten_history_dim: bool = True
 
 
 @dataclass
@@ -75,11 +77,14 @@ class ObservationGroupCfg:
 ##
 
 
-@dataclass
+@dataclass(kw_only=True)
 class RewardTermCfg(ManagerTermBaseCfg):
   """Configuration for a reward term."""
 
-  weight: float = 0.0
+  func: Callable[..., torch.Tensor] = MISSING
+  weight: float = MISSING
+
+  # TODO(kevin): Sanity check weight is valid type.
 
 
 ##

@@ -1,7 +1,9 @@
 """Useful methods for MDP observations."""
 
 import torch
+import warp as wp
 
+from mjlab.envs.manager_based_rl_env import ManagerBasedRLEnv
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 ##
@@ -24,7 +26,8 @@ def root_quat(env, entity_cfg: SceneEntityCfg) -> torch.Tensor:
 
 
 def joint_pos(
-  env, entity_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRLEnv,
+  entity_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
-  arr = env.data.qpos[entity_cfg.qpos_ids]
-  return torch.from_numpy(arr)
+  qpos_t = wp.to_torch(env.sim.wp_data.qpos)
+  return qpos_t[:, entity_cfg.qpos_ids]
