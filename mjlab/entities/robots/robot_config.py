@@ -5,7 +5,7 @@ from typing import Callable
 from mjlab.entities.common.config import CollisionCfg
 
 
-@dataclass(frozen=True)
+@dataclass
 class KeyframeCfg:
   name: str
   root_pos: tuple[float, float, float] = (0.0, 0.0, 0.0)
@@ -19,7 +19,7 @@ class KeyframeCfg:
   use_joint_pos_for_ctrl: bool = False
 
 
-@dataclass(frozen=True)
+@dataclass
 class ActuatorCfg:
   joint_names_expr: list[str]
   effort_limit: float
@@ -29,7 +29,7 @@ class ActuatorCfg:
   armature: float = 0.0
 
 
-@dataclass(frozen=True)
+@dataclass
 class SensorCfg:
   name: str
   sensor_type: str

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, MISSING
+from dataclasses import dataclass, MISSING, field
 
 from mjlab.entities.scene.scene_config import SceneCfg
 from mjlab.sim.sim_config import SimulationCfg
@@ -13,4 +13,4 @@ class ManagerBasedEnvCfg:
   observations: object = MISSING
   actions: object = MISSING
   seed: int | None = None
-  sim: SimulationCfg = SimulationCfg()
+  sim: SimulationCfg = field(default_factory=SimulationCfg)

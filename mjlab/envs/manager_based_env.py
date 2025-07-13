@@ -1,9 +1,12 @@
 from typing import Any, Sequence
+import numpy as np
 import torch
 
 from mjlab.envs.manager_based_env_config import ManagerBasedEnvCfg
 from mjlab.entities.scene.scene import Scene
+from mjlab.entities.common.editors import OptionEditor
 from mjlab.sim.sim import Simulation
+from mjlab.utils import random
 
 from mjlab.managers.observation_manager import ObservationManager
 from mjlab.managers.action_manager import ActionManager
@@ -31,6 +34,7 @@ class ManagerBasedEnv:
 
     # Generate the scene.
     self.scene = Scene(self.cfg.scene)
+    OptionEditor(cfg=self.cfg.sim.mujoco).edit_spec(self.scene.spec)
 
     # TODO Event manager.
 
@@ -92,19 +96,20 @@ class ManagerBasedEnv:
     action: torch.Tensor,
   ) -> tuple[Any, dict]:
     self.action_manager.process_action(action.to(self.device))
-
     for _ in range(self.cfg.decimation):
       self._sim_step_counter += 1
       self.action_manager.apply_action()
       self.sim.step()
-
     self.obs_buf = self.observation_manager.compute()
-
     return self.obs_buf, self.extras
 
   @staticmethod
   def seed(seed: int = -1) -> int:
-    pass
+    if seed == -1:
+      seed = np.random.randint(0, 10_000)
+    print(f"Setting seed: {seed}")
+    random.seed_rng(seed)
+    return seed
 
   def close(self):
     pass
@@ -112,5 +117,10 @@ class ManagerBasedEnv:
   # Private methods.
 
   def _reset_idx(self, env_ids: torch.Tensor) -> None:
-    # Reset using env_ids.
-    pass
+    # Observation manager.
+    self.extras["log"] = dict()
+    info = self.observation_manager.reset(env_ids)
+    self.extras["log"].update(info)
+    # Action manager.
+    info = self.action_manager.reset(env_ids)
+    self.extras["log"].update(info)

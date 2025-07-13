@@ -37,6 +37,5 @@ def joint_torques_l2(
   env: ManagerBasedRLEnv,
   entity_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
-  torques_wp = env.sim.wp_data.qfrc_actuator[:, entity_cfg.dof_ids]
-  torques = wp.from_torch(torques_wp)
+  torques = wp.to_torch(env.sim.wp_data.qfrc_actuator)[:, entity_cfg.dof_ids]
   return torch.sum(torch.square(torques), dim=-1)

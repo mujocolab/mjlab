@@ -1,11 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from mjlab.entities.common.config import OptionCfg
 
 
-@dataclass(frozen=True)
+@dataclass(kw_only=True)
 class SimulationCfg:
   num_envs: int = 1
   nconmax: int | None = None
   njmax: int | None = None
   device: str = "cuda:0"
-  mujoco: OptionCfg = OptionCfg()
+  mujoco: OptionCfg = field(default_factory=OptionCfg)

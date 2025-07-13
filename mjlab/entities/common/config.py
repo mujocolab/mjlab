@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 
-@dataclass(frozen=True)
+@dataclass
 class TextureCfg:
   name: str
   type: str
@@ -14,7 +14,7 @@ class TextureCfg:
   markrgb: tuple[float, float, float] = (0.0, 0.0, 0.0)
 
 
-@dataclass(frozen=True)
+@dataclass
 class MaterialCfg:
   name: str
   texuniform: bool
@@ -23,7 +23,7 @@ class MaterialCfg:
   texture: str | None = None
 
 
-@dataclass(frozen=True)
+@dataclass
 class CollisionCfg:
   geom_names_expr: list[str]
   contype: int | dict[str, int] = 1
@@ -36,7 +36,7 @@ class CollisionCfg:
   disable_other_geoms: bool = True
 
 
-@dataclass(frozen=True)
+@dataclass
 class OptionCfg:
   # Integrator settings.
   timestep: float = 0.002

@@ -232,15 +232,15 @@ G1_ROBOT_CFG = RobotCfg(
     G1_ACTUATOR_WAIST,
     G1_ACTUATOR_ANKLE,
   ),
-  sensors={
+  sensors=(
     SensorCfg("body_ang_vel", "gyro", "imu_in_pelvis", "site"),
     SensorCfg("body_lin_vel", "velocimeter", "imu_in_pelvis", "site"),
     SensorCfg("body_zaxis", "framezaxis", "imu_in_pelvis", "site"),
-  },
+  ),
   soft_joint_pos_limit_factor=0.95,
   keyframes=(
     HOME_KEYFRAME,
     KNEES_BENT_KEYFRAME,
   ),
-  collisions=(FULL_COLLISION,)
+  collisions=(FULL_COLLISION_WITHOUT_SELF,)
 )

@@ -5,7 +5,7 @@ from mjlab.entities.terrains.terrain import TerrainCfg
 from mjlab.entities.common.config import TextureCfg
 
 
-@dataclass(frozen=True)
+@dataclass
 class LightCfg:
   name: str | None = None
   body: str = "world"
@@ -19,7 +19,7 @@ class LightCfg:
   exponent: float = 10
 
 
-@dataclass(frozen=True)
+@dataclass
 class CameraCfg:
   name: str
   body: str = "world"

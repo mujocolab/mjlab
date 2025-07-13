@@ -11,9 +11,10 @@ from mjlab.managers.manager_term_config import RewardTermCfg as RewardTerm
 from mjlab.managers.manager_term_config import ActionTermCfg as ActionTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
-from mjlab.envs.mdp import rewards, observations, actions
+from mjlab.envs.mdp import rewards, observations, actions, terminations
 from mjlab.envs.manager_based_rl_env import ManagerBasedRLEnv
 from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
+from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 
 
 ##
@@ -23,7 +24,7 @@ from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
 
 SCENE_CFG = SceneCfg(
   terrains={"floor": FLAT_TERRAIN_CFG},
-  robots={"g1": G1_ROBOT_CFG, "g2": G1_ROBOT_CFG},
+  robots={"g1": G1_ROBOT_CFG},
   lights=(LightCfg(pos=(0, 0, 1.5), type="directional"),),
   skybox=TextureCfg(
     name="skybox",
@@ -58,13 +59,13 @@ class ObservationCfg:
     ankle_pos: ObsTerm = term(
       ObsTerm,
       func=observations.joint_pos,
-      params={"entity_cfg": SceneEntityCfg("g2", joint_names=[".*ankle"])},
+      params={"entity_cfg": SceneEntityCfg("g1", joint_names=[".*ankle"])},
     )
 
     hip_pos: ObsTerm = term(
       ObsTerm,
       func=observations.joint_pos,
-      params={"entity_cfg": SceneEntityCfg("g2", joint_names=[".*hip"])},
+      params={"entity_cfg": SceneEntityCfg("g1", joint_names=[".*hip"])},
     )
 
     def __post_init__(self):
@@ -75,19 +76,19 @@ class ObservationCfg:
     ankle_pos: ObsTerm = term(
       ObsTerm,
       func=observations.joint_pos,
-      params={"entity_cfg": SceneEntityCfg("g2", joint_names=[".*ankle"])},
+      params={"entity_cfg": SceneEntityCfg("g1", joint_names=[".*ankle"])},
     )
 
     hip_pos: ObsTerm = term(
       ObsTerm,
       func=observations.joint_pos,
-      params={"entity_cfg": SceneEntityCfg("g2", joint_names=[".*hip"])},
+      params={"entity_cfg": SceneEntityCfg("g1", joint_names=[".*hip"])},
     )
 
     waist_pos: ObsTerm = term(
       ObsTerm,
       func=observations.joint_pos,
-      params={"entity_cfg": SceneEntityCfg("g2", joint_names=[".*waist"])},
+      params={"entity_cfg": SceneEntityCfg("g1", joint_names=[".*waist"])},
     )
 
   policy: PolicyCfg = field(default_factory=PolicyCfg)
@@ -120,7 +121,7 @@ class RewardCfg:
 
 @dataclass
 class TerminationCfg:
-  pass
+  time_out: DoneTerm = term(DoneTerm, func=terminations.time_out, time_out=True)
 
 
 # Curriculum.
@@ -138,7 +139,7 @@ class CurriculumCfg:
 class ActionCfg:
   joint_pos: ActionTerm = term(
     actions.JointPositionActionCfg,
-    asset_name="g2",
+    asset_name="g1",
     joint_names=[".*"],
     scale=0.5,
     use_default_offset=True,
@@ -162,15 +163,33 @@ class Go1LocomotionFlatEnvCfg(ManagerBasedRlEnvCfg):
   episode_length_s: float = 10.0
   # commands: CommandsCfg = CommandsCfg()
   # events: EventCfg = EventCfg()
-  # terminations: TerminationCfg = TerminationCfg()
+  terminations: TerminationCfg = field(default_factory=TerminationCfg)
   # curriculum: CurriculumCfg = CurriculumCfg()
+
+  def __post_init__(self):
+    self.sim.mujoco.integrator = "implicitfast"
+    self.sim.mujoco.cone = "pyramidal"
+    self.sim.mujoco.timestep = 0.005
+    self.sim.mujoco.iterations = 10
+    self.sim.mujoco.ls_iterations = 20
+    self.sim.num_envs = 4096
+    self.sim.nconmax = 32768
 
 
 if __name__ == "__main__":
+  import torch
+  from tqdm.auto import tqdm
+
   env_cfg = Go1LocomotionFlatEnvCfg()
   env = ManagerBasedRLEnv(cfg=env_cfg)
 
-  obs, extras = env.reset()
-  from ipdb import set_trace
+  # import mujoco.viewer
+  # mujoco.viewer.launch(env.sim.mj_model)
 
-  set_trace()
+  obs, extras = env.reset()
+
+  for _ in tqdm(range(25)):
+    action = torch.rand(
+      (env.num_envs, env.action_manager.total_action_dim), device="cuda:0"
+    )
+    env.step(action)

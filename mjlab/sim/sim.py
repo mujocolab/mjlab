@@ -72,7 +72,10 @@ class Simulation:
     mjwarp.step(self._wp_model, self._wp_data)
 
   def set_ctrl(self, ctrl: torch.Tensor, ctrl_ids: Sequence[int] | None = None) -> None:
+    from ipdb import set_trace
+
+    set_trace()
     ctrl_wp = wp.from_torch(ctrl)
     if ctrl_ids is None:
       ctrl_ids = slice(None)
-    self.wp_data.ctrl[:, ctrl_ids] = ctrl_wp
+    self.wp_data.ctrl[:] = ctrl_wp
