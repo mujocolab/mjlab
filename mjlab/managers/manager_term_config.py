@@ -38,11 +38,11 @@ class ActionTermCfg:
 ##
 
 
-@dataclass
+@dataclass(kw_only=True)
 class EventTermCfg(ManagerTermBaseCfg):
   """Configuration for an event term."""
 
-  mode: str = ""
+  mode: str = MISSING
   interval_range_s: tuple[float, float] | None = None
   is_global_time: bool = False
   min_step_count_between_reset: int = 0

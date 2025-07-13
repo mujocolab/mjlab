@@ -68,6 +68,11 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
     )
 
   def _reset_idx(self, env_ids: Sequence[int]) -> None:
+    if "reset" in self.event_manager.available_modes:
+      env_step_count = self._sim_step_counter // self.cfg.decimation
+      self.event_manager.apply(
+        mode="reset", env_ids=env_ids, global_env_step_count=env_step_count
+      )
     self.extras["log"] = dict()
     # observation manager.
     info = self.observation_manager.reset(env_ids)

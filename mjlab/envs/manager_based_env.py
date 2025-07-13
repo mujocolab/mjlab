@@ -4,12 +4,12 @@ import torch
 
 from mjlab.envs.manager_based_env_config import ManagerBasedEnvCfg
 from mjlab.entities.scene.scene import Scene
-from mjlab.entities.common.editors import OptionEditor
 from mjlab.sim.sim import Simulation
 from mjlab.utils import random
 
 from mjlab.managers.observation_manager import ObservationManager
 from mjlab.managers.action_manager import ActionManager
+from mjlab.managers.event_manager import EventManager
 
 
 class ManagerBasedEnv:
@@ -34,12 +34,12 @@ class ManagerBasedEnv:
 
     # Generate the scene.
     self.scene = Scene(self.cfg.scene)
-    OptionEditor(cfg=self.cfg.sim.mujoco).edit_spec(self.scene.spec)
-
-    # TODO Event manager.
+    self.scene.configure_sim_options(self.cfg.sim.mujoco)
 
     self._sim_step_counter = 0
     self.extras = {}
+
+    self.event_manager = EventManager(cfg.events, self)
 
     # Reset sim and step once.
     self.sim.initialize(self.scene.model)
@@ -67,6 +67,8 @@ class ManagerBasedEnv:
   # Setup.
 
   def load_managers(self):
+    print("[INFO] Event manager: ", self.event_manager)
+
     self.observation_manager = ObservationManager(self.cfg.observations, self)
     print("[INFO] Observation Manager:", self.observation_manager)
 
@@ -117,6 +119,11 @@ class ManagerBasedEnv:
   # Private methods.
 
   def _reset_idx(self, env_ids: torch.Tensor) -> None:
+    if "reset" in self.event_manager.available_modes:
+      env_step_count = self._sim_step_counter // self.cfg.decimation
+      self.event_manager.apply(
+        mode="reset", env_ids=env_ids, global_env_step_count=env_step_count
+      )
     # Observation manager.
     self.extras["log"] = dict()
     info = self.observation_manager.reset(env_ids)

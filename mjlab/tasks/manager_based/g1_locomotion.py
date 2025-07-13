@@ -183,11 +183,7 @@ if __name__ == "__main__":
   env_cfg = Go1LocomotionFlatEnvCfg()
   env = ManagerBasedRLEnv(cfg=env_cfg)
 
-  # import mujoco.viewer
-  # mujoco.viewer.launch(env.sim.mj_model)
-
   obs, extras = env.reset()
-
   for _ in tqdm(range(25)):
     action = torch.rand(
       (env.num_envs, env.action_manager.total_action_dim), device="cuda:0"

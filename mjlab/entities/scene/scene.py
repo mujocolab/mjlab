@@ -8,6 +8,7 @@ from mjlab.entities.scene.scene_config import SceneCfg
 from mjlab.entities.scene import editors
 from mjlab.entities.robots.robot import Robot
 from mjlab.entities.terrains.terrain import Terrain
+from mjlab.entities.common.config import OptionCfg
 from mjlab.entities.common import editors as common_editors
 
 _HERE = Path(__file__).parent
@@ -73,3 +74,6 @@ class Scene(entity.Entity):
   def _configure_skybox(self) -> None:
     if self._cfg.skybox is not None:
       common_editors.TextureEditor(self._cfg.skybox).edit_spec(self._spec)
+
+  def configure_sim_options(self, cfg: OptionCfg) -> None:
+    common_editors.OptionEditor(cfg).edit_spec(self._spec)

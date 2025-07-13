@@ -71,7 +71,6 @@ class ManagerBase(abc.ABC):
     del env_ids  # Unused.
     return {}
 
-  @abc.abstractmethod
   def get_active_iterable_terms(
     self, env_idx: int
   ) -> Sequence[tuple[str, Sequence[float]]]:

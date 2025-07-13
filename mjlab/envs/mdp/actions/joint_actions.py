@@ -28,6 +28,9 @@ class JointAction(ActionTerm):
     self._raw_actions = torch.zeros(self.num_envs, self.action_dim, device=self.device)
     self._processed_actions = torch.zeros_like(self._raw_actions)
 
+    self._scale = cfg.scale
+    self._offset = cfg.offset
+
   # Properties.
 
   @property
@@ -36,8 +39,7 @@ class JointAction(ActionTerm):
 
   def process_actions(self, actions: torch.Tensor):
     self._raw_actions[:] = actions
-    # TODO
-    # self._processed_actions = self._raw_actions * self._scale + self._offset
+    self._processed_actions = self._raw_actions * self._scale + self._offset
     # clip
 
   def reset(self, env_ids: Sequence[int] | None = None) -> None:
