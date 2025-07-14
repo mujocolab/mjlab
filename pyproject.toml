@@ -21,12 +21,8 @@ test = [
     "absl-py",
     "pytest",
     "pytest-xdist",
+    "pre-commit",
 ]
 
 [tool.ruff]
 indent-width = 2
-
-[tool.mypy]
-python_version = "3.12"
-ignore_missing_imports = true
-warn_unused_configs = true

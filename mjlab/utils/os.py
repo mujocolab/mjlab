@@ -1,6 +1,7 @@
 from typing import Any, Dict, Union
 from pathlib import Path
 
+
 def update_assets(
   assets: Dict[str, Any],
   path: Union[str, Path],

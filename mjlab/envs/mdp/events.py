@@ -31,4 +31,3 @@ def reset_joints_by_scale(
   asset_cfg: SceneEntityCfg = SceneEntityCfg(name="robot"),
 ):
   pass
-  
