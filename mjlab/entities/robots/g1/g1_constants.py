@@ -4,10 +4,11 @@
 
 from typing import Dict
 from mjlab.entities.robots.actuator import ElectricActuator, reflected_inertia_from_two_stage_planetary
-from mjlab import MJLAB_SRC_PATH, MENAGERIE_PATH, update_assets
 from mjlab.entities.robots.robot_config import RobotCfg
 from mjlab.entities.robots.robot_config import KeyframeCfg, ActuatorCfg, SensorCfg
 from mjlab.entities.common.config import CollisionCfg
+from mjlab.utils.os import update_assets
+from mjlab import MJLAB_SRC_PATH
 
 ##
 # MJCF and assets.
@@ -17,8 +18,7 @@ G1_XML = MJLAB_SRC_PATH / "entities" / "robots" / "g1" / "xmls" / "g1.xml"
 
 def get_assets() -> Dict[str, bytes]:
   assets: Dict[str, bytes] = {}
-  path = MENAGERIE_PATH / "unitree_g1"
-  update_assets(assets, path / "assets")
+  update_assets(assets, G1_XML.parent / "assets")
   return assets
 
 ##

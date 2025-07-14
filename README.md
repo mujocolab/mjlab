@@ -4,22 +4,17 @@ This is extremely bad code and very much work in progress. I'm just exploring di
 
 ## Installation
 
-```bash
-# For 5090 only.
-uv pip install -U "jax[cuda12]<0.6.1"
-uv pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
-```
+1. Install `mjwarp`.
 
 ```bash
-uv pip install -e .
-python -c "import mjlab"  # Trigger menagerie download.
+pip install warp-lang --pre --upgrade -f https://pypi.nvidia.com/warp-lang/
+pip install mujoco --pre --upgrade -f https://py.mujoco.org/
+git clone https://github.com/google-deepmind/mujoco_warp.git
+pip install -e .[dev,cuda]
 ```
 
-## Benchmark
+2. [Install](https://pytorch.org/get-started/locally/) `pytorch`. On a 5090, I used the below command:
 
 ```bash
-python mjlab/rl/train.py task-cfg:cartpole-config --num-envs 128 --agent-cfg.experiment-name cartpole_experiment --agent-cfg.max-iterations 1500
-python mjlab/rl/train.py task-cfg:go1-config --num-envs 1024 --agent-cfg.experiment-name go1_experiment --agent-cfg.max-iterations 300
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 ```
-
-For cpu, add ` --agent-cfg.device "cpu"`.

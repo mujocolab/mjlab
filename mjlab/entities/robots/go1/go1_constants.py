@@ -3,7 +3,8 @@
 # fmt: off
 
 from typing import Dict
-from mjlab import MJLAB_SRC_PATH, MENAGERIE_PATH, update_assets
+from mjlab import MJLAB_SRC_PATH
+from mjlab.utils.os import update_assets
 
 from mjlab.entities.robots.actuator import ElectricActuator, reflected_inertia
 from mjlab.entities.robots.robot_config import RobotCfg
@@ -17,9 +18,7 @@ GO1_XML = MJLAB_SRC_PATH / "entities" / "robots" / "go1" / "xmls" / "go1.xml"
 
 def get_assets() -> Dict[str, bytes]:
   assets: Dict[str, bytes] = {}
-  path = MENAGERIE_PATH / "unitree_go1"
-  update_assets(assets, path, "*.xml")
-  update_assets(assets, path / "assets")
+  update_assets(assets, GO1_XML.parent / "assets")
   return assets
 
 ##

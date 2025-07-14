@@ -1,5 +1,5 @@
 <mujoco model="T1">
-  <compiler angle="radian" autolimits="true" meshdir="../../../../external_deps/mujoco_menagerie/booster_t1/assets"/>
+  <compiler angle="radian" autolimits="true" meshdir="assets"/>
 
   <asset>
     <material name="light_gray" rgba="0.76 0.76 0.76 1"/>

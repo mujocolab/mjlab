@@ -12,20 +12,8 @@ authors = [
 requires-python = ">=3.10"
 dynamic = ["description"]
 dependencies = [
-    "etils",
-    # "jax",
-    # "flax",
-    # "mujoco-mjx>=3.2.7",
-    "mujoco>=3.2.7",
-    "tqdm",
     "tyro",
-    "tensorboard",
-    # "rsl-rl-lib",
-    # "torch",
-    # "wandb",
-    "ruff",
-    "mediapy",
-    "scipy",
+    "tqdm",
 ]
 
 [project.optional-dependencies]
@@ -33,10 +21,6 @@ test = [
     "absl-py",
     "pytest",
     "pytest-xdist",
-]
-mimic = [
-    "mink",
-    "loop_rate_limiters",
 ]
 
 [tool.ruff]
@@ -46,7 +30,3 @@ indent-width = 2
 python_version = "3.12"
 ignore_missing_imports = true
 warn_unused_configs = true
-exclude = ["external_deps/", "exporter.py", "wrapper.py", "motion_imitation/"]
-
-[tool.pytest.ini_options]
-addopts = "--ignore=mjlab/external_deps"
