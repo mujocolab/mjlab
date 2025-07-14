@@ -11,10 +11,11 @@ from mjlab.managers.manager_term_config import RewardTermCfg as RewardTerm
 from mjlab.managers.manager_term_config import ActionTermCfg as ActionTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
-from mjlab.envs.mdp import rewards, observations, actions, terminations
+from mjlab.envs.mdp import rewards, observations, actions, terminations, events
 from mjlab.envs.manager_based_rl_env import ManagerBasedRLEnv
 from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
 from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
+from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 
 
 ##
@@ -100,8 +101,31 @@ class ObservationCfg:
 
 @dataclass
 class EventCfg:
-  pass
-
+  reset_base: EventTerm = term(
+    EventTerm,
+    func=events.reset_root_state_uniform,
+    mode="reset",
+    params={
+      "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
+      "velocity_range": {
+        "x": (-0.5, 0.5),
+        "y": (-0.5, 0.5),
+        "z": (-0.5, 0.5),
+        "roll": (-0.5, 0.5),
+        "pitch": (-0.5, 0.5),
+        "yaw": (-0.5, 0.5),
+      },
+    },
+  )
+  reset_robot_joints: EventTerm = term(
+    EventTerm,
+    func=events.reset_joints_by_scale,
+    mode="reset",
+    params={
+      "position_range": (0.5, 1.5),
+      "velocity_range": (0.0, 0.0),
+    },
+  )
 
 # Rewards.
 
@@ -161,10 +185,8 @@ class Go1LocomotionFlatEnvCfg(ManagerBasedRlEnvCfg):
   decimation: int = 1
   rewards: RewardCfg = field(default_factory=RewardCfg)
   episode_length_s: float = 10.0
-  # commands: CommandsCfg = CommandsCfg()
-  # events: EventCfg = EventCfg()
+  events: EventCfg = field(default_factory=EventCfg)
   terminations: TerminationCfg = field(default_factory=TerminationCfg)
-  # curriculum: CurriculumCfg = CurriculumCfg()
 
   def __post_init__(self):
     self.sim.mujoco.integrator = "implicitfast"
