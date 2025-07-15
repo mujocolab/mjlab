@@ -10,7 +10,7 @@ This is extremely bad code and very much work in progress. I'm just exploring di
 pip install warp-lang --pre --upgrade -f https://pypi.nvidia.com/warp-lang/
 pip install mujoco --pre --upgrade -f https://py.mujoco.org/
 git clone https://github.com/google-deepmind/mujoco_warp.git
-pip install -e .[dev,cuda]
+pip install -e .[dev,cuda] --config-settings editable_mode=strict
 ```
 
 2. [Install](https://pytorch.org/get-started/locally/) `pytorch`. On a 5090, I used the below command:

@@ -39,7 +39,7 @@ class SceneEntityCfg:
     ]
 
     # Resolve joint names based on user input: default to all scoped joints,
-    # apply filter patterns (e.g., regex), or map unscoped exact names to full names
+    # apply filter patterns (e.g., regex), or map unscoped exact names to full names.
     if not self.joint_names:
       self.joint_names = scoped_joint_names
     elif any(name.startswith(".") for name in self.joint_names):
@@ -67,6 +67,7 @@ class SceneEntityCfg:
         continue
       if act.trnid[0] in self.joint_ids:
         self.actuator_ids.append(i)
+    print(f"actuator ids: {self.actuator_ids}")
 
   def _resolve_body_names(self, model: mujoco.MjModel) -> None:
     # Extract body names scoped to this entity (skip world body).
