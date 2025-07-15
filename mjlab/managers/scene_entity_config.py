@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Sequence
 
 import mujoco
 from mjlab.utils.string import filter_exp
@@ -17,8 +18,8 @@ def qpos_width(joint_type: mujoco.mjtJoint) -> int:
 @dataclass
 class SceneEntityCfg:
   name: str
-  joint_names: tuple[str, ...] = ()
-  body_names: tuple[str, ...] = ()
+  joint_names: Sequence[str] = ()
+  body_names: Sequence[str] = ()
   preserve_order: bool = False
 
   joint_ids: list[int] = field(default_factory=list)
@@ -41,15 +42,17 @@ class SceneEntityCfg:
     # Resolve joint names based on user input: default to all scoped joints,
     # apply filter patterns (e.g., regex), or map unscoped exact names to full names.
     if not self.joint_names:
-      self.joint_names = scoped_joint_names
+      resolved_joint_names = scoped_joint_names
     elif any(name.startswith(".") for name in self.joint_names):
-      self.joint_names = filter_exp(self.joint_names, scoped_joint_names)
+      resolved_joint_names = filter_exp(self.joint_names, scoped_joint_names)
     else:
       full_names = [
         name if name.startswith(f"{self.name}/") else f"{self.name}/{name}"
         for name in self.joint_names
       ]
-      self.joint_names = [name for name in full_names if name in scoped_joint_names]
+      resolved_joint_names = [name for name in full_names if name in scoped_joint_names]
+
+    self.joint_names = tuple(resolved_joint_names)
 
     # Resolve IDs for each joint.
     for name in self.joint_names:
@@ -67,7 +70,6 @@ class SceneEntityCfg:
         continue
       if act.trnid[0] in self.joint_ids:
         self.actuator_ids.append(i)
-    print(f"actuator ids: {self.actuator_ids}")
 
   def _resolve_body_names(self, model: mujoco.MjModel) -> None:
     # Extract body names scoped to this entity (skip world body).
@@ -79,29 +81,18 @@ class SceneEntityCfg:
     # Resolve body names based on user input: default to all scoped bodies,
     # apply filter patterns (e.g., regex), or map unscoped exact names to full names
     if not self.body_names:
-      self.body_names = scoped_body_names
+      resolved_body_names = scoped_body_names
     elif any(name.startswith(".") for name in self.body_names):
-      self.body_names = filter_exp(self.body_names, scoped_body_names)
+      resolved_body_names = filter_exp(self.body_names, scoped_body_names)
     else:
       full_names = [
         name if name.startswith(f"{self.name}/") else f"{self.name}/{name}"
         for name in self.body_names
       ]
-      self.body_names = [name for name in full_names if name in scoped_body_names]
+      resolved_body_names = [name for name in full_names if name in scoped_body_names]
+
+    self.body_names = tuple(resolved_body_names)
 
     # Resolve IDs for each body.
     for name in self.body_names:
       self.body_ids.append(model.body(name).id)
-
-  def _resolve_geom_names(self, model: mujoco.MjModel) -> None:
-    geom_names = [model.geom(i).name for i in range(model.ngeom)]
-    if not self.geom_names:
-      self.geom_names = geom_names
-      geom_subset = self.geom_names
-    else:
-      geom_subset = filter_exp(self.geom_names, geom_names)
-    geom_ids = []
-    for name in geom_subset:
-      geom = model.geom(name)
-      geom_ids.append(geom.id)
-    self.geom_ids = geom_ids
