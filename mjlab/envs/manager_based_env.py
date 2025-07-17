@@ -5,7 +5,7 @@ import torch
 from mjlab.envs.manager_based_env_config import ManagerBasedEnvCfg
 from mjlab.entities.scene.scene import Scene
 from mjlab.sim.sim import Simulation
-from mjlab.utils import random
+from mjlab.utils import random as random_utils
 
 from mjlab.managers.observation_manager import ObservationManager
 from mjlab.managers.action_manager import ActionManager
@@ -102,7 +102,7 @@ class ManagerBasedEnv:
     if seed == -1:
       seed = np.random.randint(0, 10_000)
     print(f"Setting seed: {seed}")
-    random.seed_rng(seed)
+    random_utils.seed_rng(seed)
     return seed
 
   def close(self):

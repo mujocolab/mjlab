@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 
 from mjlab.entities.scene.scene_config import SceneCfg, LightCfg
 from mjlab.entities.common.config import TextureCfg
-from mjlab.entities.robots.g1.g1_constants import G1_ROBOT_CFG
+from mjlab.entities.robots.go1.go1_constants import GO1_ROBOT_CFG
 from mjlab.entities.terrains.flat_terrain import FLAT_TERRAIN_CFG
 
 from mjlab.managers.manager_term_config import ObservationGroupCfg as ObsGroup
@@ -17,6 +17,8 @@ from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
 from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 
+from mjlab.tasks.manager_based.mdp import terminations as custom_terminations
+
 
 ##
 # Scene.
@@ -25,7 +27,7 @@ from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 
 SCENE_CFG = SceneCfg(
   terrains={"floor": FLAT_TERRAIN_CFG},
-  robots={"robot": G1_ROBOT_CFG},
+  robots={"robot": GO1_ROBOT_CFG},
   lights=(LightCfg(pos=(0, 0, 1.5), type="directional"),),
   skybox=TextureCfg(
     name="skybox",
@@ -90,12 +92,12 @@ class EventCfg:
     params={
       "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
       "velocity_range": {
-        "x": (-0.5, 0.5),
-        "y": (-0.5, 0.5),
-        "z": (-0.5, 0.5),
-        "roll": (-0.5, 0.5),
-        "pitch": (-0.5, 0.5),
-        "yaw": (-0.5, 0.5),
+        "x": (1.5, 1.5),
+        # "y": (0.5, 0.5),
+        # "z": (0.5, 0.5),
+        # "roll": (-0.5, 0.5),
+        # "pitch": (-0.5, 0.5),
+        # "yaw": (-0.5, 0.5),
       },
     },
   )
@@ -130,6 +132,11 @@ class RewardCfg:
 @dataclass
 class TerminationCfg:
   time_out: DoneTerm = term(DoneTerm, func=terminations.time_out, time_out=True)
+  fell_over: DoneTerm = term(
+    DoneTerm,
+    func=custom_terminations.bad_orientation,
+    params={"threshold": 0.0, "asset_cfg": SceneEntityCfg("robot", site_names=["imu"])},
+  )
 
 
 # Curriculum.
@@ -149,7 +156,7 @@ class ActionCfg:
     actions.JointPositionActionCfg,
     asset_name="robot",
     joint_names=[".*"],
-    scale=0.5,
+    scale=0.0,
     use_default_offset=True,
   )
 
@@ -162,7 +169,7 @@ class ActionCfg:
 
 
 @dataclass
-class G1LocomotionFlatEnvCfg(ManagerBasedRlEnvCfg):
+class Go1LocomotionFlatEnvCfg(ManagerBasedRlEnvCfg):
   scene: SceneCfg = field(default_factory=lambda: SCENE_CFG)
   observations: ObservationCfg = field(default_factory=ObservationCfg)
   actions: ActionCfg = field(default_factory=ActionCfg)
@@ -189,7 +196,7 @@ if __name__ == "__main__":
   import time
 
   # Setup environment
-  env_cfg = G1LocomotionFlatEnvCfg()
+  env_cfg = Go1LocomotionFlatEnvCfg()
   env = ManagerBasedRLEnv(cfg=env_cfg)
 
   mjm = env.sim.mj_model
@@ -197,6 +204,7 @@ if __name__ == "__main__":
 
   def copy_env_to_viewer():
     mjd.qpos[:] = env.sim.data.qpos[0].cpu().numpy()
+    mjd.qvel[:] = env.sim.data.qvel[0].cpu().numpy()
     mujoco.mj_forward(mjm, mjd)
 
   def copy_viewer_to_env():

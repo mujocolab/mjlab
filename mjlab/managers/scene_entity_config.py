@@ -20,6 +20,7 @@ class SceneEntityCfg:
   name: str
   joint_names: Sequence[str] = ()
   body_names: Sequence[str] = ()
+  site_names: Sequence[str] = ()
   preserve_order: bool = False
 
   joint_ids: list[int] = field(default_factory=list)
@@ -27,10 +28,12 @@ class SceneEntityCfg:
   dof_ids: list[int] = field(default_factory=list)
   body_ids: list[int] = field(default_factory=list)
   actuator_ids: list[int] = field(default_factory=list)
+  site_ids: list[int] = field(default_factory=list)
 
   def resolve(self, model: mujoco.MjModel) -> None:
     self._resolve_joint_names(model)
     self._resolve_body_names(model)
+    self._resolve_site_names(model)
 
   def _resolve_joint_names(self, model: mujoco.MjModel) -> None:
     # Extract joint names scoped to this entity.
@@ -96,3 +99,29 @@ class SceneEntityCfg:
     # Resolve IDs for each body.
     for name in self.body_names:
       self.body_ids.append(model.body(name).id)
+
+  def _resolve_site_names(self, model: mujoco.MjModel) -> None:
+    # Extract site names scoped to this entity.
+    all_site_names = [model.site(i).name for i in range(model.nsite)]
+    scoped_site_names = [
+      name for name in all_site_names if name.startswith(f"{self.name}/")
+    ]
+
+    # Resolve site names based on user input: default to all scoped bodies,
+    # apply filter patterns (e.g., regex), or map unscoped exact names to full names
+    if not self.site_names:
+      resolved_site_names = scoped_site_names
+    elif any(name.startswith(".") for name in self.site_names):
+      resolved_site_names = filter_exp(self.site_names, scoped_site_names)
+    else:
+      full_names = [
+        name if name.startswith(f"{self.name}/") else f"{self.name}/{name}"
+        for name in self.site_names
+      ]
+      resolved_site_names = [name for name in full_names if name in scoped_site_names]
+
+    self.site_names = tuple(resolved_site_names)
+
+    # Resolve IDs for each site.
+    for name in self.site_names:
+      self.site_ids.append(model.site(name).id)
