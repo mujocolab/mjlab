@@ -1,38 +1,10 @@
 from dataclasses import dataclass
-import numpy as np
 import mujoco
 
-from mjlab.core.editors import SpecEditor
-from mjlab.entities.robots.robot_config import KeyframeCfg, ActuatorCfg, SensorCfg
-from mjlab.utils.string import resolve_expr, filter_exp
+from mjlab.entities.editors import SpecEditor
+from mjlab.entities.robots.robot_config import ActuatorCfg, SensorCfg
+from mjlab.utils.string import filter_exp
 from mjlab.utils.spec import get_non_root_joints
-
-
-@dataclass
-class KeyframeEditor(SpecEditor):
-  cfg: KeyframeCfg
-
-  def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    jnt_names = [j.name for j in get_non_root_joints(spec)]
-
-    joint_pos = resolve_expr(self.cfg.joint_pos, jnt_names)
-    joint_vel = resolve_expr(self.cfg.joint_vel, jnt_names)
-    ctrl = (
-      joint_pos
-      if self.cfg.use_joint_pos_for_ctrl
-      else resolve_expr(self.cfg.ctrl, jnt_names)
-    )
-
-    qpos = np.concatenate((self.cfg.root_pos, self.cfg.root_quat, joint_pos))
-    qvel = np.concatenate((self.cfg.root_lin_vel, self.cfg.root_ang_vel, joint_vel))
-
-    spec.add_key(
-      name=self.cfg.name,
-      time=self.cfg.time,
-      qpos=np.asarray(qpos),
-      qvel=np.asarray(qvel),
-      ctrl=np.asarray(ctrl),
-    )
 
 
 @dataclass

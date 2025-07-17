@@ -1,7 +1,8 @@
 import mujoco
 import numpy as np
 
-from mjlab.core import entity
+from mjlab.utils.string import resolve_expr
+from mjlab.entities import entity
 from mjlab.entities.robots.robot_config import RobotCfg
 from mjlab.entities.robots import editors
 from mjlab.entities.common import editors as common_editors
@@ -17,20 +18,25 @@ class Robot(entity.Entity):
     self._non_root_joints = get_non_root_joints(self._spec)
     self._modify_joint_range()
 
-    self._configure_keyframes()
+    self._configure_init_state()
     self._configure_actuators()
     self._configure_sensors()
     self._configure_collisions()
 
-  # @property
-  # def spec(self) -> mujoco.MjSpec:
-  #   return self._spec
-
   # Private methods.
 
-  def _configure_keyframes(self) -> None:
-    for key in self._cfg.keyframes:
-      editors.KeyframeEditor(key).edit_spec(self._spec)
+  def _configure_init_state(self) -> None:
+    default_root_state = (
+      tuple(self._cfg.init_state.pos)
+      + tuple(self._cfg.init_state.rot)
+      + tuple(self._cfg.init_state.lin_vel)
+      + tuple(self._cfg.init_state.ang_vel)
+    )
+    self._default_root_state = default_root_state
+
+    jnt_names = [j.name for j in self._non_root_joints]
+    self._default_joint_pos = resolve_expr(self._cfg.init_state.joint_pos, jnt_names)
+    self._default_joint_vel = resolve_expr(self._cfg.init_state.joint_vel, jnt_names)
 
   def _configure_actuators(self) -> None:
     editors.ActuatorEditor(self._cfg.actuators).edit_spec(self._spec)

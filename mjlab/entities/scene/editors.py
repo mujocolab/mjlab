@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import mujoco
 
-from mjlab.core.editors import SpecEditor
+from mjlab.entities.editors import SpecEditor
 from mjlab.entities.scene.scene_config import LightCfg, CameraCfg
 
 CAM_LIGHT_MODE_MAP = {

@@ -6,17 +6,13 @@ from mjlab.entities.common.config import CollisionCfg
 
 
 @dataclass
-class KeyframeCfg:
-  name: str
-  root_pos: tuple[float, float, float] = (0.0, 0.0, 0.0)
-  root_quat: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)
+class InitialStateCfg:
+  pos: tuple[float, float, float] = (0.0, 0.0, 0.0)
+  rot: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)
+  lin_vel: tuple[float, float, float] = (0.0, 0.0, 0.0)
+  ang_vel: tuple[float, float, float] = (0.0, 0.0, 0.0)
   joint_pos: dict[str, float] = field(default_factory=lambda: {".*": 0.0})
-  ctrl: dict[str, float] = field(default_factory=lambda: {".*": 0.0})
-  time: float = 0.0
-  root_lin_vel: tuple[float, float, float] = (0.0, 0.0, 0.0)
-  root_ang_vel: tuple[float, float, float] = (0.0, 0.0, 0.0)
   joint_vel: dict[str, float] = field(default_factory=lambda: {".*": 0.0})
-  use_joint_pos_for_ctrl: bool = False
 
 
 @dataclass
@@ -40,9 +36,9 @@ class SensorCfg:
 @dataclass
 class RobotCfg:
   xml_path: Path
+  init_state: InitialStateCfg = field(default_factory=InitialStateCfg)
   actuators: tuple[ActuatorCfg, ...] = ()
   sensors: tuple[SensorCfg, ...] = ()
-  keyframes: tuple[KeyframeCfg, ...] = ()
   collisions: tuple[CollisionCfg, ...] = ()
   soft_joint_pos_limit_factor: float = 1.0
   asset_fn: Callable[[], dict[str, bytes]] = field(default_factory=lambda: (lambda: {}))

@@ -1,6 +1,6 @@
 import mujoco
 
-from mjlab.core import entity
+from mjlab.entities import entity
 from mjlab.entities.terrains.terrain_config import TerrainCfg
 from mjlab.entities.terrains import editors
 from mjlab.entities.common import editors as common_editors

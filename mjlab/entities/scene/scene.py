@@ -2,8 +2,7 @@ import time
 import mujoco
 from pathlib import Path
 
-
-from mjlab.core import entity
+from mjlab.entities import entity
 from mjlab.entities.scene.scene_config import SceneCfg
 from mjlab.entities.scene import editors
 from mjlab.entities.robots.robot import Robot

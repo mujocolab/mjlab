@@ -54,8 +54,11 @@ class JointPositionAction(JointAction):
     super().__init__(cfg=cfg, env=env)
 
     if cfg.use_default_offset:
-      # TODO
-      pass
+      self._offset = torch.tensor(
+        env.scene.entities["robot"]._default_joint_pos,
+        dtype=torch.float,
+        device=self.device,
+      )
 
   def apply_actions(self):
     self._env.sim.set_ctrl(self._processed_actions, ctrl_ids=self._actuator_ids)

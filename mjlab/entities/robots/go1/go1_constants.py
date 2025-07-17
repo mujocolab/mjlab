@@ -8,7 +8,7 @@ from mjlab.utils.os import update_assets
 
 from mjlab.entities.robots.actuator import ElectricActuator, reflected_inertia
 from mjlab.entities.robots.robot_config import RobotCfg
-from mjlab.entities.robots.robot_config import KeyframeCfg, ActuatorCfg, SensorCfg, CollisionCfg
+from mjlab.entities.robots.robot_config import InitialStateCfg, ActuatorCfg, SensorCfg, CollisionCfg
 
 ##
 # MJCF and assets.
@@ -65,16 +65,14 @@ GO1_KNEE_ACTUATOR_CFG = ActuatorCfg(
 ##
 
 
-GO1_HOME_KEYFRAME = KeyframeCfg(
-  name="home",
-  root_pos=(0.0, 0.0, 0.278),
+INIT_STATE = InitialStateCfg(
+  pos=(0.0, 0.0, 0.278),
   joint_pos={
     ".*thigh_joint": 0.9,
     ".*calf_joint": -1.8,
     ".*R_hip_joint": 0.1,
     ".*L_hip_joint": -0.1,
   },
-  use_joint_pos_for_ctrl=True,
 )
 
 ##
@@ -111,6 +109,7 @@ FULL_COLLISION = CollisionCfg(
 GO1_ROBOT_CFG = RobotCfg(
   xml_path=GO1_XML,
   asset_fn=get_assets,
+  init_state=INIT_STATE,
   actuators=(
     GO1_HIP_ACTUATOR_CFG,
     GO1_KNEE_ACTUATOR_CFG,
@@ -121,6 +120,5 @@ GO1_ROBOT_CFG = RobotCfg(
     SensorCfg("body_zaxis", "framezaxis", "imu", "site"),
   ),
   soft_joint_pos_limit_factor=0.95,
-  keyframes=(GO1_HOME_KEYFRAME,),
   collisions=(FEET_ONLY_COLLISION,),
 )

@@ -17,6 +17,7 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
       cfg.sim.num_envs, device=cfg.sim.device, dtype=torch.long
     )
     super().__init__(cfg=cfg)
+    print("[INFO]: Completed setting up the environment...")
 
   # Properties.
 
@@ -32,7 +33,6 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
 
   def load_managers(self):
     # command manager
-    # observation / action manager
     super().load_managers()
     # termination manager
     self.termination_manager = TerminationManager(self.cfg.terminations, self)
@@ -47,7 +47,9 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
     for _ in range(self.cfg.decimation):
       self._sim_step_counter += 1
       self.action_manager.apply_action()
+      # self.scene.write_data_to_sim()
       self.sim.step()
+      # self.scene.update(dt=self.physics_dt)
     self.episode_length_buf += 1
     self.common_step_counter += 1
     self.reset_buf = self.termination_manager.compute()
@@ -57,6 +59,7 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
     reset_env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
     if len(reset_env_ids) > 0:
       self._reset_idx(reset_env_ids)
+      # self.scene.write_data_to_sim()
       self.sim.forward()
     self.obs_buf = self.observation_manager.compute()
     return (
@@ -68,6 +71,7 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
     )
 
   def _reset_idx(self, env_ids: Sequence[int]) -> None:
+    # self.scene.reset(env_ids)
     if "reset" in self.event_manager.available_modes:
       env_step_count = self._sim_step_counter // self.cfg.decimation
       self.event_manager.apply(
@@ -86,5 +90,5 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
     # termination manager.
     info = self.termination_manager.reset(env_ids)
     self.extras["log"].update(info)
-    # reset the episode lengh buffer.
+    # reset the episode length buffer.
     self.episode_length_buf[env_ids] = 0

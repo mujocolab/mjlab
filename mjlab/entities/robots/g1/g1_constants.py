@@ -5,7 +5,7 @@
 from typing import Dict
 from mjlab.entities.robots.actuator import ElectricActuator, reflected_inertia_from_two_stage_planetary
 from mjlab.entities.robots.robot_config import RobotCfg
-from mjlab.entities.robots.robot_config import KeyframeCfg, ActuatorCfg, SensorCfg
+from mjlab.entities.robots.robot_config import InitialStateCfg, ActuatorCfg, SensorCfg
 from mjlab.entities.common.config import CollisionCfg
 from mjlab.utils.os import update_assets
 from mjlab import MJLAB_SRC_PATH
@@ -163,9 +163,8 @@ G1_ACTUATOR_ANKLE = ActuatorCfg(
 # Keyframe config.
 ##
 
-HOME_KEYFRAME = KeyframeCfg(
-  name="home",
-  root_pos=(0, 0, 0.783675),
+HOME_KEYFRAME = InitialStateCfg(
+  pos=(0, 0, 0.783675),
   joint_pos={
     ".*_hip_pitch_joint": -0.1,
     ".*_knee_joint": 0.3,
@@ -175,12 +174,10 @@ HOME_KEYFRAME = KeyframeCfg(
     "left_shoulder_roll_joint": 0.2,
     "right_shoulder_roll_joint": -0.2,
   },
-  use_joint_pos_for_ctrl=True,
 )
 
-KNEES_BENT_KEYFRAME = KeyframeCfg(
-  name="knees_bent",
-  root_pos=(0, 0, 0.755),
+KNEES_BENT_KEYFRAME = InitialStateCfg(
+  pos=(0, 0, 0.755),
   joint_pos={
     ".*_hip_pitch_joint": -0.312,
     ".*_knee_joint": 0.669,
@@ -191,7 +188,6 @@ KNEES_BENT_KEYFRAME = KeyframeCfg(
     "left_shoulder_roll_joint": 0.22,
     "right_shoulder_roll_joint": -0.22,
   },
-  use_joint_pos_for_ctrl=True,
 )
 
 ##
@@ -217,6 +213,15 @@ FULL_COLLISION_WITHOUT_SELF = CollisionCfg(
   friction={".*_foot*_collision": (0.6,)},
 )
 
+FEET_ONLY_COLLISION = CollisionCfg(
+  geom_names_expr=[r"^(left|right)_foot[1-3]_collision$"],
+  contype=0,
+  conaffinity=1,
+  condim=3,
+  priority=1,
+  friction=(0.6,),
+)
+
 ##
 # Final config.
 ##
@@ -238,9 +243,6 @@ G1_ROBOT_CFG = RobotCfg(
     SensorCfg("body_zaxis", "framezaxis", "imu_in_pelvis", "site"),
   ),
   soft_joint_pos_limit_factor=0.95,
-  keyframes=(
-    HOME_KEYFRAME,
-    KNEES_BENT_KEYFRAME,
-  ),
+  init_state=KNEES_BENT_KEYFRAME,
   collisions=(FULL_COLLISION_WITHOUT_SELF,)
 )

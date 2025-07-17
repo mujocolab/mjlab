@@ -4,6 +4,7 @@ from mjlab.sim.sim_config import SimulationCfg
 from mjlab.sim.sim_data import WarpBridge
 
 import mujoco
+import warp as wp
 import mujoco_warp as mjwarp
 
 
@@ -59,6 +60,7 @@ class Simulation:
   def initialize(self, model: mujoco.MjModel):
     self._mj_model = model
     self._mj_data = mujoco.MjData(model)
+    mujoco.mj_resetDataKeyframe(self._mj_model, self._mj_data, 0)
     mujoco.mj_forward(self._mj_model, self._mj_data)
 
     self._wp_model = mjwarp.put_model(self._mj_model)
@@ -70,14 +72,18 @@ class Simulation:
       njmax=self.cfg.njmax,
     )
 
+    with wp.ScopedCapture() as capture:
+      mjwarp.step(self.wp_model, self.wp_data)
+    self.graph = capture.graph
+
   def reset(self):
-    pass
+    print("Called sim.reset()")
 
   def forward(self):
     mjwarp.forward(self.wp_model, self.wp_data)
 
   def step(self):
-    mjwarp.step(self.wp_model, self.wp_data)
+    wp.capture_launch(self.graph)
 
   def set_ctrl(self, ctrl: torch.Tensor, ctrl_ids: Sequence[int] | None = None) -> None:
     if ctrl_ids is None:

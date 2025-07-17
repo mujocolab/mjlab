@@ -15,38 +15,28 @@ from mjlab.managers.event_manager import EventManager
 class ManagerBasedEnv:
   def __init__(self, cfg: ManagerBasedEnvCfg):
     self.cfg = cfg
-
     if self.cfg.seed is not None:
       self.cfg.seed = self.seed(self.cfg.seed)
     else:
       print("No seed set for the environment.")
+    self._sim_step_counter = 0
+    self.extras = {}
+    self.obs_buf = {}
 
     self.sim = Simulation(self.cfg.sim)
-
     if "cuda" in self.device:
       torch.cuda.set_device(self.device)
+    self.scene = Scene(self.cfg.scene)
+    self.scene.configure_sim_options(self.cfg.sim.mujoco)
+    print("[INFO]: Scene manager: ", self.scene)
+    self.sim.initialize(self.scene.model)
+    self.load_managers()
 
     print("[INFO]: Base environment:")
     print(f"\tEnvironment device    : {self.device}")
     print(f"\tEnvironment seed      : {self.cfg.seed}")
     print(f"\tPhysics step-size     : {self.physics_dt}")
     print(f"\tEnvironment step-size : {self.step_dt}")
-
-    # Generate the scene.
-    self.scene = Scene(self.cfg.scene)
-    self.scene.configure_sim_options(self.cfg.sim.mujoco)
-
-    self._sim_step_counter = 0
-    self.extras = {}
-
-    self.event_manager = EventManager(cfg.events, self)
-
-    # Reset sim and step once.
-    self.sim.initialize(self.scene.model)
-
-    self.load_managers()
-
-    self.obs_buf = {}
 
   @property
   def num_envs(self) -> int:
@@ -61,17 +51,16 @@ class ManagerBasedEnv:
     return self.cfg.sim.mujoco.timestep * self.cfg.decimation
 
   @property
-  def device(self):
+  def device(self) -> str:
     return self.sim.device
 
   # Setup.
 
   def load_managers(self):
+    self.event_manager = EventManager(self.cfg.events, self)
     print("[INFO] Event manager: ", self.event_manager)
-
     self.observation_manager = ObservationManager(self.cfg.observations, self)
     print("[INFO] Observation Manager:", self.observation_manager)
-
     self.action_manager = ActionManager(self.cfg.actions, self)
     print("[INFO] Action Manager:", self.action_manager)
 
@@ -89,6 +78,7 @@ class ManagerBasedEnv:
     if seed is not None:
       self.seed(seed)
     self._reset_idx(env_ids)
+    # self.scene.write_data_to_sim()
     self.sim.forward()
     self.obs_buf = self.observation_manager.compute()
     return self.obs_buf, self.extras
@@ -101,7 +91,9 @@ class ManagerBasedEnv:
     for _ in range(self.cfg.decimation):
       self._sim_step_counter += 1
       self.action_manager.apply_action()
+      # self.scene.write_data_to_sim()
       self.sim.step()
+      # self.scene.update(dt=self.physics_dt)
     self.obs_buf = self.observation_manager.compute()
     return self.obs_buf, self.extras
 
@@ -114,20 +106,25 @@ class ManagerBasedEnv:
     return seed
 
   def close(self):
+    # TODO: Do i need to do something here?
     pass
 
   # Private methods.
 
   def _reset_idx(self, env_ids: torch.Tensor) -> None:
+    # self.scene.reset(env_ids)
     if "reset" in self.event_manager.available_modes:
       env_step_count = self._sim_step_counter // self.cfg.decimation
       self.event_manager.apply(
         mode="reset", env_ids=env_ids, global_env_step_count=env_step_count
       )
-    # Observation manager.
     self.extras["log"] = dict()
+    # Observation manager.
     info = self.observation_manager.reset(env_ids)
     self.extras["log"].update(info)
     # Action manager.
     info = self.action_manager.reset(env_ids)
+    self.extras["log"].update(info)
+    # Event manager.
+    info = self.event_manager.reset(env_ids)
     self.extras["log"].update(info)
