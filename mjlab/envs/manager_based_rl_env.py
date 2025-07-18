@@ -6,6 +6,7 @@ from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
 
 from mjlab.managers.reward_manager import RewardManager
 from mjlab.managers.termination_manager import TerminationManager
+from mjlab.managers.command_manager import CommandManager
 
 
 class ManagerBasedRLEnv(ManagerBasedEnv):
@@ -32,11 +33,12 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
   # Methods.
 
   def load_managers(self):
-    # command manager
+    # NOTE: Order is important.
+    self.command_manager = CommandManager(self.cfg.commands, self)
+    print("[INFO] Command Manager:", self.command_manager)
     super().load_managers()
-    # termination manager
     self.termination_manager = TerminationManager(self.cfg.terminations, self)
-    # reward manager
+    print("[INFO] Termination Manager:", self.termination_manager)
     self.reward_manager = RewardManager(self.cfg.rewards, self)
     print("[INFO] Reward Manager:", self.reward_manager)
     # curriculum manager
@@ -61,6 +63,7 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
       self._reset_idx(reset_env_ids)
       # self.scene.write_data_to_sim()
       self.sim.forward()
+    self.command_manager.compute(dt=self.step_dt)
     self.obs_buf = self.observation_manager.compute()
     return (
       self.obs_buf,

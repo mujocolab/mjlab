@@ -11,11 +11,19 @@ from mjlab.managers.manager_term_config import RewardTermCfg as RewardTerm
 from mjlab.managers.manager_term_config import ActionTermCfg as ActionTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
-from mjlab.envs.mdp import rewards, observations, actions, terminations, events
+from mjlab.envs.mdp import (
+  rewards,
+  observations,
+  actions,
+  terminations,
+  events,
+  commands,
+)
 from mjlab.envs.manager_based_rl_env import ManagerBasedRLEnv
 from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
 from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
+import math
 
 from mjlab.tasks.manager_based.mdp import terminations as custom_terminations
 from mjlab.utils.noise import NoiseModelWithAdditiveBiasCfg, GaussianNoiseCfg
@@ -50,7 +58,23 @@ SCENE_CFG = SceneCfg(
 
 @dataclass
 class CommandsCfg:
-  pass
+  base_velocity: commands.UniformVelocityCommandCfg = term(
+    commands.UniformVelocityCommandCfg,
+    asset_name="robot",
+    # "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"])
+    resampling_time_range=(10.0, 10.0),
+    rel_standing_envs=0.02,
+    rel_heading_envs=1.0,
+    heading_command=True,
+    heading_control_stiffness=0.5,
+    debug_vis=True,
+    ranges=commands.UniformVelocityCommandCfg.Ranges(
+      lin_vel_x=(-1.0, 1.0),
+      lin_vel_y=(-1.0, 1.0),
+      ang_vel_z=(-1.0, 1.0),
+      heading=(-math.pi, math.pi),
+    ),
+  )
 
 
 # Observations.
@@ -97,12 +121,12 @@ class EventCfg:
     params={
       "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
       "velocity_range": {
-        "x": (1.5, 1.5),
-        # "y": (0.5, 0.5),
-        # "z": (0.5, 0.5),
-        # "roll": (-0.5, 0.5),
-        # "pitch": (-0.5, 0.5),
-        # "yaw": (-0.5, 0.5),
+        "x": (-0.5, 0.5),
+        "y": (-0.5, 0.5),
+        "z": (-0.5, 0.5),
+        "roll": (-0.5, 0.5),
+        "pitch": (-0.5, 0.5),
+        "yaw": (-0.5, 0.5),
       },
     },
   )
@@ -183,6 +207,7 @@ class Go1LocomotionFlatEnvCfg(ManagerBasedRlEnvCfg):
   episode_length_s: float = 10.0
   events: EventCfg = field(default_factory=EventCfg)
   terminations: TerminationCfg = field(default_factory=TerminationCfg)
+  commands: CommandsCfg = field(default_factory=CommandsCfg)
 
   def __post_init__(self):
     self.sim.mujoco.integrator = "implicitfast"

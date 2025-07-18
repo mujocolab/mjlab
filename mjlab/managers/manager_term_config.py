@@ -7,6 +7,7 @@ import torch
 
 if TYPE_CHECKING:
   from mjlab.managers.action_manager import ActionTerm
+  from mjlab.managers.command_manager import CommandTerm
 
 
 def term(term_cls: Type, **kwargs) -> Any:
@@ -31,6 +32,20 @@ class ActionTermCfg:
   class_type: type[ActionTerm] = MISSING
   asset_name: str = MISSING
   clip: dict[str, tuple] | None = None
+
+
+##
+# Command manager.
+##
+
+
+@dataclass(kw_only=True)
+class CommandTermCfg:
+  """Configuration for a command generator term."""
+
+  class_type: type[CommandTerm] = MISSING
+  resampling_time_range: tuple[float, float] = MISSING
+  debug_vis: bool = False
 
 
 ##

@@ -18,3 +18,10 @@ pip install -e .[dev,cuda] --config-settings editable_mode=strict
 ```bash
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 ```
+
+## TODO
+
+- [ ] Domain randomization
+- [ ] `rsl_rl` integration
+  - [ ] `VecEnv` wrapper
+  - [ ] `train.py` and `play.py`

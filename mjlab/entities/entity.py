@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import mujoco
+import mujoco_warp as mjwarp
 
 
 class Entity:
@@ -26,3 +27,6 @@ class Entity:
     """Writes the robot model to an XML file."""
     with open(xml_path, "w") as f:
       f.write(self.spec.to_xml())
+
+  def update(self, dt: float, data: mjwarp.Data) -> None:
+    pass

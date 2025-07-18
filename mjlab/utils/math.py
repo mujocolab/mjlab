@@ -1,27 +1,4 @@
-import os
-import numpy as np
-import random
 import torch
-import warp as wp
-
-
-def seed_rng(seed: int, torch_deterministic: bool = False) -> None:
-  np.random.seed(seed)
-  random.seed(seed)
-  os.environ["PYTHONHASHSEED"] = str(seed)
-
-  wp.rand_init(seed)
-
-  torch.manual_seed(seed)
-  torch.cuda.manual_seed(seed)
-
-  if torch_deterministic:
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
-    torch.use_deterministic_algorithms(True)
-  else:
-    torch.backends.cudnn.benchmark = True
-    torch.backends.cudnn.deterministic = False
 
 
 def sample_uniform(
@@ -117,3 +94,16 @@ def quat_mul(q1: torch.Tensor, q2: torch.Tensor) -> torch.Tensor:
   z = qq - zz + (z1 + y1) * (w2 - x2)
 
   return torch.stack([w, x, y, z], dim=-1).view(shape)
+
+
+@torch.jit.script
+def quat_apply_inverse(quat: torch.Tensor, vec: torch.Tensor) -> torch.Tensor:
+  # store shape
+  shape = vec.shape
+  # reshape to (N, 3) for multiplication
+  quat = quat.reshape(-1, 4)
+  vec = vec.reshape(-1, 3)
+  # extract components from quaternions
+  xyz = quat[:, 1:]
+  t = xyz.cross(vec, dim=-1) * 2
+  return (vec - quat[:, 0:1] * t + xyz.cross(t, dim=-1)).view(shape)

@@ -1,4 +1,5 @@
 import mujoco
+import mujoco_warp as mjwarp
 import numpy as np
 
 from mjlab.utils.string import resolve_expr
@@ -22,6 +23,11 @@ class Robot(entity.Entity):
     self._configure_actuators()
     self._configure_sensors()
     self._configure_collisions()
+
+  # Public methods.
+
+  def update(self, dt: float, data: mjwarp.Data) -> None:
+    self._data.update(dt)
 
   # Private methods.
 

@@ -23,20 +23,22 @@ class ManagerBasedEnv:
     self.extras = {}
     self.obs_buf = {}
 
-    self.sim = Simulation(self.cfg.sim)
-    if "cuda" in self.device:
-      torch.cuda.set_device(self.device)
     self.scene = Scene(self.cfg.scene)
     self.scene.configure_sim_options(self.cfg.sim.mujoco)
     print("[INFO]: Scene manager: ", self.scene)
-    self.sim.initialize(self.scene.model)
-    self.load_managers()
+
+    mjm = self.scene.compile()
+    self.sim = Simulation(cfg=self.cfg.sim, model=mjm)
+    if "cuda" in self.device:
+      torch.cuda.set_device(self.device)
 
     print("[INFO]: Base environment:")
     print(f"\tEnvironment device    : {self.device}")
     print(f"\tEnvironment seed      : {self.cfg.seed}")
     print(f"\tPhysics step-size     : {self.physics_dt}")
     print(f"\tEnvironment step-size : {self.step_dt}")
+
+    self.load_managers()
 
   @property
   def num_envs(self) -> int:
@@ -93,7 +95,7 @@ class ManagerBasedEnv:
       self.action_manager.apply_action()
       # self.scene.write_data_to_sim()
       self.sim.step()
-      # self.scene.update(dt=self.physics_dt)
+      self.scene.update(dt=self.physics_dt, data=self.sim.data)
     self.obs_buf = self.observation_manager.compute()
     return self.obs_buf, self.extras
 

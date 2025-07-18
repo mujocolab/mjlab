@@ -21,6 +21,7 @@ class SceneEntityCfg:
   joint_names: Sequence[str] = ()
   body_names: Sequence[str] = ()
   site_names: Sequence[str] = ()
+  # sensor_names: Sequence[str] = ()
   preserve_order: bool = False
 
   joint_ids: list[int] = field(default_factory=list)
@@ -29,11 +30,13 @@ class SceneEntityCfg:
   body_ids: list[int] = field(default_factory=list)
   actuator_ids: list[int] = field(default_factory=list)
   site_ids: list[int] = field(default_factory=list)
+  # sensor_name2slice: dict[int, list[int]] =
 
   def resolve(self, model: mujoco.MjModel) -> None:
     self._resolve_joint_names(model)
     self._resolve_body_names(model)
     self._resolve_site_names(model)
+    # self._resolve_sensor_names(model)
 
   def _resolve_joint_names(self, model: mujoco.MjModel) -> None:
     # Extract joint names scoped to this entity.
@@ -125,3 +128,34 @@ class SceneEntityCfg:
     # Resolve IDs for each site.
     for name in self.site_names:
       self.site_ids.append(model.site(name).id)
+
+  # def _resolve_sensor_names(self, model: mujoco.MjModel) -> None:
+  #   # Extract site names scoped to this entity.
+  #   all_sensor_names = [model.sensor(i).name for i in range(model.nsensor)]
+  #   scoped_sensor_names = [
+  #     name for name in all_sensor_names if name.startswith(f"{self.name}/")
+  #   ]
+  #
+  #   # Resolve site names based on user input: default to all scoped bodies,
+  #   # apply filter patterns (e.g., regex), or map unscoped exact names to full names
+  #   if not self.sensor_names:
+  #     resolved_sensor_names = scoped_sensor_names
+  #   elif any(name.startswith(".") for name in self.sensor_names):
+  #     resolved_sensor_names = filter_exp(self.sensor_names, scoped_sensor_names)
+  #   else:
+  #     full_names = [
+  #       name if name.startswith(f"{self.name}/") else f"{self.name}/{name}"
+  #       for name in self.site_names
+  #     ]
+  #     resolved_sensor_names = [name for name in full_names if name in scoped_sensor_names]
+  #
+  #   self.sensor_names = tuple(resolved_sensor_names)
+  #
+  #   for name in self.sensor_names:
+  #     sensor = model.sensor(name)
+  #     sensor_id = sensor.id
+  #     sensor_adr = sensor.sensor_adr
+  #     sensor_dim = sensor.sensor_dim
+  #     self.sensor_ids.append(sensor_id)
+  #     self.sensor_dims.append(sensor_dim)
+  #     self.sensor_addresses.append(sensor_adr)
