@@ -57,10 +57,8 @@ class EventTermCfg(ManagerTermBaseCfg):
 class ObservationTermCfg(ManagerTermBaseCfg):
   """Configuration for an observation term."""
 
-  # noise: Any | None = None
+  noise: Any | None = None
   clip: tuple[float, float] | None = None
-  # history_length: int = 0
-  # flatten_history_dim: bool = True
 
 
 @dataclass

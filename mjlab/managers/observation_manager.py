@@ -1,4 +1,4 @@
-from typing import Any, Sequence
+from typing import Sequence
 
 import numpy as np
 import torch
@@ -6,6 +6,7 @@ from mjlab.managers.manager_base import ManagerBase
 from mjlab.managers.manager_term_config import ObservationGroupCfg, ObservationTermCfg
 
 from mjlab.utils.dataclasses import get_terms
+from mjlab.utils.noise import noise_model, noise_cfg
 
 
 class ObservationManager(ManagerBase):
@@ -55,6 +56,13 @@ class ObservationManager(ManagerBase):
     obs_terms = zip(group_term_names, self._group_obs_term_cfgs[group_name])
     for term_name, term_cfg in obs_terms:
       obs: torch.Tensor = term_cfg.func(self._env, **term_cfg.params).clone()
+      if isinstance(term_cfg.noise, noise_cfg.NoiseCfg):
+        obs = term_cfg.noise.func(obs, term_cfg.noise)
+      elif (
+        isinstance(term_cfg.noise, noise_cfg.NoiseModelCfg)
+        and term_cfg.noise.func is not None
+      ):
+        obs = term_cfg.noise.func(obs)
       group_obs[term_name] = obs
     if self._group_obs_concatenate[group_name]:
       return torch.cat(
@@ -97,7 +105,7 @@ class ObservationManager(ManagerBase):
     self._group_obs_class_term_cfgs: dict[str, list[ObservationTermCfg]] = dict()
     self._group_obs_concatenate: dict[str, bool] = dict()
     self._group_obs_concatenate_dim: dict[str, int] = dict()
-    self._group_obs_class_instances: list[Any] = list()
+    self._group_obs_class_instances: list[noise_model.NoiseModel] = list()
 
     group_cfg_items = get_terms(self.cfg, ObservationGroupCfg).items()
     for group_name, group_cfg in group_cfg_items:
@@ -124,15 +132,28 @@ class ObservationManager(ManagerBase):
           print(f"term: {term_name} set to None, skipping...")
           continue
 
-        # TODO: resolve
         self._resolve_common_term_cfg(term_name, term_cfg)
 
+        if not group_cfg.enable_corruption:
+          term_cfg.noise = None
         self._group_obs_term_names[group_name].append(term_name)
         self._group_obs_term_cfgs[group_name].append(term_cfg)
 
         obs_dims = tuple(term_cfg.func(self._env, **term_cfg.params).shape)
         self._group_obs_term_dim[group_name].append(obs_dims[1:])
 
-        # if isinstance(term_cfg.func, ManagerTermBase):
-        #   self._group_obs_class_term_cfgs[group_name].append(term_cfg)
-        #   term_cfg.func.reset()
+        # Prepare noise model classes.
+        if term_cfg.noise is not None and isinstance(
+          term_cfg.noise, noise_cfg.NoiseModelCfg
+        ):
+          noise_model_cls = term_cfg.noise.class_type
+          if not issubclass(noise_model_cls, noise_model.NoiseModel):
+            raise TypeError(
+              f"Class type for observation term '{term_name}' NoiseModelCfg"
+              f" is not a subclass of 'NoiseModel'. Received: '{type(noise_model_cls)}'."
+            )
+          # Initialize func to be the noise model class instance.
+          term_cfg.noise.func = noise_model_cls(
+            term_cfg.noise, num_envs=self._env.num_envs, device=self._env.device
+          )
+          self._group_obs_class_instances.append(term_cfg.noise.func)

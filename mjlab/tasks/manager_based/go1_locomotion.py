@@ -18,6 +18,7 @@ from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 
 from mjlab.tasks.manager_based.mdp import terminations as custom_terminations
+from mjlab.utils.noise import NoiseModelWithAdditiveBiasCfg, GaussianNoiseCfg
 
 
 ##
@@ -63,6 +64,10 @@ class ObservationCfg:
       ObsTerm,
       func=observations.joint_pos,
       params={"entity_cfg": SceneEntityCfg("robot", joint_names=[".*hip"])},
+      noise=NoiseModelWithAdditiveBiasCfg(
+        noise_cfg=GaussianNoiseCfg(mean=0.0, std=0.002, operation="add"),
+        bias_noise_cfg=GaussianNoiseCfg(mean=0.0, std=0.0001, operation="abs"),
+      ),
     )
 
     def __post_init__(self):
