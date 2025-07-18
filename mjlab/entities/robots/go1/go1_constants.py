@@ -80,7 +80,7 @@ INIT_STATE = InitialStateCfg(
 ##
 
 # This disables all collisions except the feet.
-# Furthermore feet self collisions are disabled.
+# Furthermore, feet self collisions are disabled.
 FEET_ONLY_COLLISION = CollisionCfg(
   geom_names_expr=[".*_foot_collision"],
   contype=0,
@@ -91,15 +91,18 @@ FEET_ONLY_COLLISION = CollisionCfg(
   solimp=(0.9, 0.95, 0.023),
 )
 
-# This enables all collisions, including self collisions.
-# Self-collisions are given condim=1 while foot collisions
-# are given condim=3 and custom friction and solimp.
+# This enables all collisions, excluding self collisions.
+# Foot collisions are given custom condim, friction and solimp.
+# NOTE(kevin): mjwarp hangs when I enable self collisions.
 FULL_COLLISION = CollisionCfg(
   geom_names_expr=[".*_collision"],
   condim={".*_foot_collision": 3},
   priority={".*_foot_collision": 1},
   friction={".*_foot_collision": (0.6,)},
-  solimp={".*_foot_collision": (0.9, 0.95, 0.023)}
+  solimp={".*_foot_collision": (0.9, 0.95, 0.023)},
+  # Circumvent https://github.com/google-deepmind/mujoco_warp/issues/521.
+  contype=0,
+  conaffinity=1,
 )
 
 ##
@@ -120,5 +123,5 @@ GO1_ROBOT_CFG = RobotCfg(
     SensorCfg("body_zaxis", "framezaxis", "imu", "site"),
   ),
   soft_joint_pos_limit_factor=0.95,
-  collisions=(FEET_ONLY_COLLISION,),
+  collisions=(FULL_COLLISION,),
 )
