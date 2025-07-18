@@ -19,6 +19,8 @@ pip install -e .[dev,cuda] --config-settings editable_mode=strict
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 ```
 
+3. Install mjlab: `pip install -e .[test]`
+
 ## TODO
 
 - [ ] Domain randomization
