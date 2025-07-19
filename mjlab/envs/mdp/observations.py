@@ -1,31 +1,68 @@
 """Useful methods for MDP observations."""
+from __future__ import annotations
 
+from typing import TYPE_CHECKING
 import torch
 
-from mjlab.envs.manager_based_rl_env import ManagerBasedRLEnv
 from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.entities.robots.robot import Robot
+
+if TYPE_CHECKING:
+  from mjlab.envs.manager_based_env import ManagerBasedEnv
+  from mjlab.envs.manager_based_rl_env import ManagerBasedRLEnv
 
 ##
 # Root state.
 ##
 
+def base_lin_vel(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+  asset: Robot = env.scene.entities[asset_cfg.name]
+  return asset.data.root_link_lin_vel_b
 
-def root_pos(env, entity_cfg: SceneEntityCfg) -> torch.Tensor:
-  # env.scene[entity_cfg.name]
-  pass
+def base_ang_vel(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+  asset: Robot = env.scene.entities[asset_cfg.name]
+  return asset.data.root_link_ang_vel_b
 
-
-def root_quat(env, entity_cfg: SceneEntityCfg) -> torch.Tensor:
-  pass
-
+def projected_gravity(
+  env: ManagerBasedEnv,
+  asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+  asset: Robot = env.scene.entities[asset_cfg.name]
+  return asset.data.projected_gravity_b
 
 ##
 # Joint state.
 ##
 
 
-def joint_pos(
-  env: ManagerBasedRLEnv,
-  entity_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+def joint_pos_rel(
+    env: ManagerBasedEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
-  return env.sim.data.qpos[:, entity_cfg.qpos_ids]
+  from ipdb import set_trace; set_trace()
+  asset: Robot = env.scene.entities[asset_cfg.name]
+  return asset.data.joint_pos[:, asset_cfg.joint_q_adr] - asset.data.default_joint_pos[:, asset_cfg.joint_q_adr]
+
+def joint_vel(
+    env: ManagerBasedEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+  asset: Robot = env.scene.entities[asset_cfg.name]
+  return asset.data.joint_vel[:, asset_cfg.joint_v_adr]
+
+
+##
+# Actions.
+##
+
+def last_action(env: ManagerBasedEnv, action_name: str | None = None) -> torch.Tensor:
+  if action_name is None:
+    return env.action_manager.action
+  return env.action_manager.get_term(action_name).raw_actions
+
+##
+# Commands.
+##
+
+def generated_commands(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
+  return env.command_manager.get_command(command_name)

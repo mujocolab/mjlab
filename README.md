@@ -27,3 +27,4 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 - [ ] `rsl_rl` integration
   - [ ] `VecEnv` wrapper
   - [ ] `train.py` and `play.py`
+- [ ] Observation history and modifiers

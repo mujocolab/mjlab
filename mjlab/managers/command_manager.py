@@ -26,8 +26,13 @@ class CommandTerm(ManagerTermBase):
     self.command_counter = torch.zeros(
       self.num_envs, device=self.device, dtype=torch.long
     )
-
-    self._debug_viz_handle = None
+    
+  def debug_vis(self, scn):
+    if self.cfg.debug_vis:
+      self._debug_vis_impl(scn)
+      
+  def _debug_vis_impl(self, scn):
+    pass
 
   @property
   @abc.abstractmethod
@@ -83,6 +88,10 @@ class CommandManager(ManagerBase):
   def __init__(self, cfg: object, env: ManagerBasedRLEnv):
     super().__init__(cfg, env)
     self._commands = dict()
+    
+  def debug_vis(self, scn):
+    for term in self._terms.values():
+      term.debug_vis(scn)
 
   # Properties.
 

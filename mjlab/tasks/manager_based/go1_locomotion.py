@@ -26,7 +26,7 @@ from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 import math
 
 from mjlab.tasks.manager_based.mdp import terminations as custom_terminations
-from mjlab.utils.noise import NoiseModelWithAdditiveBiasCfg, GaussianNoiseCfg
+from mjlab.utils.noise import UniformNoiseCfg as Unoise
 
 
 ##
@@ -61,7 +61,6 @@ class CommandsCfg:
   base_velocity: commands.UniformVelocityCommandCfg = term(
     commands.UniformVelocityCommandCfg,
     asset_name="robot",
-    # "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"])
     resampling_time_range=(10.0, 10.0),
     rel_standing_envs=0.02,
     rel_heading_envs=1.0,
@@ -84,26 +83,52 @@ class CommandsCfg:
 class ObservationCfg:
   @dataclass
   class PolicyCfg(ObsGroup):
-    hip_pos: ObsTerm = term(
+    base_lin_vel: ObsTerm = term(
       ObsTerm,
-      func=observations.joint_pos,
-      params={"entity_cfg": SceneEntityCfg("robot", joint_names=[".*hip"])},
-      noise=NoiseModelWithAdditiveBiasCfg(
-        noise_cfg=GaussianNoiseCfg(mean=0.0, std=0.002, operation="add"),
-        bias_noise_cfg=GaussianNoiseCfg(mean=0.0, std=0.0001, operation="abs"),
-      ),
+      func=observations.base_lin_vel,
+      noise=Unoise(n_min=-0.1, n_max=0.1),
+    )
+    base_ang_vel: ObsTerm = term(
+      ObsTerm,
+      func=observations.base_ang_vel,
+      noise=Unoise(n_min=-0.2, n_max=0.2),
+    )
+    projected_gravity: ObsTerm = term(
+      ObsTerm,
+      func=observations.projected_gravity,
+      noise=Unoise(n_min=-0.05, n_max=0.05),
+    )
+    joint_pos: ObsTerm = term(
+      ObsTerm,
+      func=observations.joint_pos_rel,
+    noise = Unoise(n_min=-0.01, n_max=0.01),
+    )
+    joint_vel: ObsTerm = term(
+      ObsTerm,
+      func=observations.joint_vel,
+      noise=Unoise(n_min=-1.5, n_max=1.5),
+    )
+    actions: ObsTerm = term(
+      ObsTerm,
+      func=observations.last_action,
+    )
+    velocity_commands: ObsTerm = term(
+      ObsTerm,
+      func=observations.generated_commands,
+      params={"command_name": "base_velocity"},
     )
 
     def __post_init__(self):
       self.enable_corruption = True
+      self.concatenate_terms = True
 
   @dataclass
-  class CriticCfg(ObsGroup):
-    hip_pos: ObsTerm = term(
-      ObsTerm,
-      func=observations.joint_pos,
-      params={"entity_cfg": SceneEntityCfg("robot", joint_names=[".*hip"])},
-    )
+  class CriticCfg(PolicyCfg):
+    pass
+  
+    def __post_init__(self):
+      super().__post_init__()
+      self.enable_corruption = False
 
   policy: PolicyCfg = field(default_factory=PolicyCfg)
   critic: CriticCfg = field(default_factory=CriticCfg)
@@ -140,6 +165,9 @@ class EventCfg:
       "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
     },
   )
+  
+  # Add push.
+  # Add domain randomization.
 
 
 # Rewards.
@@ -147,12 +175,28 @@ class EventCfg:
 
 @dataclass
 class RewardCfg:
-  dof_torques: RewardTerm = term(
-    RewardTerm,
-    func=rewards.joint_torques_l2,
-    weight=-1e-4,
-    params={"entity_cfg": SceneEntityCfg("robot", joint_names=[".*"])},
-  )
+  pass
+  # # Task.
+  # track_lin_vel_xy_exp: RewardTerm = term(
+  #   RewardTerm,
+  #   func=rewards.track_lin_vel_xy_exp,
+  #   weight=1.0,
+  #   params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
+  # )
+  # track_ang_vel_z_exp: RewardTerm = term(
+  #   RewardTerm,
+  #   func=rewards.track_ang_vel_z_exp,
+  #   weight=0.5,
+  #   params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+  # )
+  # # Penalties.
+  # lin_vel_z_l2: RewardTerm = term(RewardTerm, func=rewards.lin_vel_z_l2, weight=-2.0)
+  # ang_vel_xy_l2: RewardTerm = term(RewardTerm, func=rewards.ang_vel_xy_l2, weight=-0.05)
+  # dof_torques_l2: RewardTerm = term(RewardTerm, func=rewards.joint_torques_l2, weight=-1.0e-5)
+  # dof_acc_l2: RewardTerm = term(RewardTerm, func=rewards.joint_acc_l2, weight=-2.5e-7)
+  # action_rate_l2: RewardTerm = term(RewardTerm, func=rewards.action_rate_l2, weight=-0.01)
+  # flat_orientation_l2: RewardTerm = term(RewardTerm, func=rewards.flat_orientation_l2, weight=0.0)
+  # dof_pos_limits: RewardTerm = term(RewardTerm, func=rewards.joint_pos_limits, weight=0.0)
 
 
 # Terminations.
@@ -164,7 +208,7 @@ class TerminationCfg:
   fell_over: DoneTerm = term(
     DoneTerm,
     func=custom_terminations.bad_orientation,
-    params={"threshold": 0.0, "asset_cfg": SceneEntityCfg("robot", site_names=["imu"])},
+    params={"threshold": 0.5},
   )
 
 
@@ -185,7 +229,7 @@ class ActionCfg:
     actions.JointPositionActionCfg,
     asset_name="robot",
     joint_names=[".*"],
-    scale=0.0,
+    scale=0.5,
     use_default_offset=True,
   )
 
@@ -215,15 +259,16 @@ class Go1LocomotionFlatEnvCfg(ManagerBasedRlEnvCfg):
     self.sim.mujoco.timestep = 0.004
     self.sim.mujoco.iterations = 10
     self.sim.mujoco.ls_iterations = 20
-    self.sim.num_envs = 1
-    # self.sim.nconmax = 32768
-    # self.sim.njmax = 3000
+    self.sim.num_envs = 2
+    # self.sim.njmax = 1028
 
 
 if __name__ == "__main__":
   import torch
   import mujoco.viewer
   import time
+  
+  VIZ_OTHERS = False
 
   # Setup environment
   env_cfg = Go1LocomotionFlatEnvCfg()
@@ -231,6 +276,13 @@ if __name__ == "__main__":
 
   mjm = env.sim.mj_model
   mjd = env.sim.mj_data
+  
+  # # For visualizing other envs.
+  # if VIZ_OTHERS:
+  #   vd = mujoco.MjData(mjm)
+  #   pert = mujoco.MjvPerturb()
+  #   vopt = mujoco.MjvOption()
+  #   catmask = mujoco.mjtCatBit.mjCAT_DYNAMIC
 
   def copy_env_to_viewer():
     mjd.qpos[:] = env.sim.data.qpos[0].cpu().numpy()
@@ -271,6 +323,16 @@ if __name__ == "__main__":
 
       copy_viewer_to_env()
       env.step(get_zero_action())
+
+      viewer.user_scn.ngeom = 0
+      env.update_visualizers(viewer.user_scn)
+      
+      # if VIZ_OTHERS:
+      #   for i in range(1, env.num_envs):
+      #     vd.qpos[:] = env.sim.data.qpos[i].cpu().numpy()
+      #     vd.qvel[:] = env.sim.data.qvel[i].cpu().numpy()
+      #     mujoco.mj_forward(mjm, vd)
+      #     mujoco.mjv_addGeoms(mjm, vd, vopt, pert, catmask, viewer.user_scn)
 
       copy_env_to_viewer()
       viewer.sync(state_only=True)

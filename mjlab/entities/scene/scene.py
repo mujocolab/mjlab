@@ -1,6 +1,6 @@
 import mujoco
 from pathlib import Path
-import mujoco_warp as mjwarp
+import torch
 
 from mjlab.entities import entity
 from mjlab.entities.scene.scene_config import SceneCfg
@@ -9,6 +9,8 @@ from mjlab.entities.robots.robot import Robot
 from mjlab.entities.terrains.terrain import Terrain
 from mjlab.entities.common.config import OptionCfg
 from mjlab.entities.common import editors as common_editors
+from mjlab.entities.indexing import EntityIndexing, SceneIndexing
+from mjlab.utils.mujoco import dof_width, qpos_width
 
 _HERE = Path(__file__).parent
 _XML = _HERE / "scene.xml"
@@ -18,6 +20,8 @@ class Scene(entity.Entity):
   def __init__(self, scene_cfg: SceneCfg):
     self._cfg = scene_cfg
     self._entities: dict[str, entity.Entity] = {}
+    self._indexing: SceneIndexing = SceneIndexing()
+
     spec = mujoco.MjSpec.from_file(str(_XML))
     super().__init__(spec)
 
@@ -33,19 +37,24 @@ class Scene(entity.Entity):
   def entities(self) -> dict[str, entity.Entity]:
     return self._entities
 
+  @property
+  def indexing(self) -> SceneIndexing:
+    return self._indexing
+
   # Methods.
 
-  def initialize(self):
-    print("SCENE INITIALIZE")
+  def initialize(self, model: mujoco.MjModel, data, device):
+    self._compute_indexing(model, device)
+    for ent_name, ent in self._entities.items():
+      ent.initialize(self.indexing.entities[ent_name], data, device)
 
   def reset(self):
-    print("SCENE RESET")
-    pass
+    for ent in self._entities.values():
+      ent.reset()
 
-  def update(self, dt: float, data: mjwarp.Data) -> None:
-    print("SCENE UPDATE")
-    # for en in self._entities.values():
-    #   en.update(dt, data)
+  def update(self, dt: float) -> None:
+    for ent in self._entities.values():
+      ent.update(dt)
 
   # Private methods.
 
@@ -77,3 +86,80 @@ class Scene(entity.Entity):
 
   def configure_sim_options(self, cfg: OptionCfg) -> None:
     common_editors.OptionEditor(cfg).edit_spec(self._spec)
+
+  def _compute_indexing(self, model: mujoco.MjModel, device: str) -> None:
+    for ent_name, ent in self._entities.items():
+      body_ids = []
+      body_root_ids = []
+      for body in ent.spec.bodies:
+        body_name = body.name
+        if body_name == "world":
+          continue
+        body = model.body(body_name)
+        body_ids.append(body.id)
+        body_root_ids.extend(body.rootid)
+      body_ids = torch.tensor(body_ids, dtype=torch.int, device=device)
+      body_root_ids = torch.tensor(body_root_ids, dtype=torch.int, device=device)
+
+      geom_ids = []
+      for geom in ent.spec.geoms:
+        geom_name = geom.name
+        geom_id = model.geom(geom_name).id
+        geom_ids.append(geom_id)
+      geom_ids = torch.tensor(geom_ids, dtype=torch.int, device=device)
+
+      site_ids = []
+      for site in ent.spec.sites:
+        site_name = site.name
+        site_id = model.site(site_name).id
+        site_ids.append(site_id)
+      site_ids = torch.tensor(site_ids, dtype=torch.int, device=device)
+
+      sensor_adr = {}
+      for sensor in ent.spec.sensors:
+        sensor_name = sensor.name
+        sns = model.sensor(sensor_name)
+        dim = sns.dim[0]
+        start_adr = sns.adr[0]
+        sensor_adr[sensor_name] = torch.arange(
+          start_adr, start_adr + dim, dtype=torch.int, device=device
+        )
+
+      joint_q_adr = []
+      joint_v_adr = []
+      free_joint_q_adr = []
+      free_joint_v_adr = []
+      for joint in ent.spec.joints:
+        jnt = model.joint(joint.name)
+        jnt_type = jnt.type[0]
+        vadr = jnt.dofadr[0]
+        qadr = jnt.qposadr[0]
+        if jnt_type == mujoco.mjtJoint.mjJNT_FREE:
+          free_joint_v_adr.extend(range(vadr, vadr + 6))
+          free_joint_q_adr.extend(range(qadr, qadr + 7))
+        else:
+          vdim = dof_width(jnt_type)
+          joint_v_adr.extend(range(vadr, vadr + vdim))
+          qdim = qpos_width(jnt_type)
+          joint_q_adr.extend(range(qadr, qadr + qdim))
+
+      root_body_id = None
+      for joint in ent.spec.joints:
+        jnt = model.joint(joint.name)
+        if jnt.type[0] == mujoco.mjtJoint.mjJNT_FREE:
+          # TODO: Why is jnt.bodyid an array?
+          root_body_id = model.jnt_bodyid[jnt.id]
+
+      indexing = EntityIndexing(
+        root_body_id=root_body_id,
+        body_ids=body_ids,
+        body_root_ids=body_root_ids,
+        geom_ids=geom_ids,
+        site_ids=site_ids,
+        sensor_adr=sensor_adr,
+        joint_q_adr=torch.tensor(joint_q_adr, dtype=torch.int, device=device),
+        joint_v_adr=torch.tensor(joint_v_adr, dtype=torch.int, device=device),
+        free_joint_v_adr=torch.tensor(free_joint_v_adr, dtype=torch.int, device=device),
+        free_joint_q_adr=torch.tensor(free_joint_q_adr, dtype=torch.int, device=device),
+      )
+      self._indexing.entities[ent_name] = indexing

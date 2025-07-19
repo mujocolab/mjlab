@@ -32,6 +32,11 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
 
   # Methods.
 
+  def setup_manager_visualizers(self):
+    self.manager_visualizers = {
+      "command_manager": self.command_manager,
+    }
+
   def load_managers(self):
     # NOTE: Order is important.
     self.command_manager = CommandManager(self.cfg.commands, self)
@@ -49,9 +54,8 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
     for _ in range(self.cfg.decimation):
       self._sim_step_counter += 1
       self.action_manager.apply_action()
-      # self.scene.write_data_to_sim()
       self.sim.step()
-      # self.scene.update(dt=self.physics_dt)
+      self.scene.update(dt=self.physics_dt)
     self.episode_length_buf += 1
     self.common_step_counter += 1
     self.reset_buf = self.termination_manager.compute()
@@ -61,7 +65,6 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
     reset_env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
     if len(reset_env_ids) > 0:
       self._reset_idx(reset_env_ids)
-      # self.scene.write_data_to_sim()
       self.sim.forward()
     self.command_manager.compute(dt=self.step_dt)
     self.obs_buf = self.observation_manager.compute()

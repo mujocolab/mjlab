@@ -19,9 +19,11 @@ class JointAction(ActionTerm):
 
     self._entity_cfg = SceneEntityCfg(name=cfg.asset_name, joint_names=cfg.joint_names)
     self._entity_cfg.resolve(env.sim.mj_model)
+
     self._joint_ids = self._entity_cfg.joint_ids
     self._joint_names = self._entity_cfg.joint_names
     self._num_joints = len(self._joint_ids)
+
     self._actuator_ids = []
     for aid in self._entity_cfg.actuator_ids:
       if not is_position_actuator(env.sim.mj_model.actuator(aid)):

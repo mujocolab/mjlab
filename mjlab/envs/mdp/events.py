@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from mjlab.utils import math as math_utils
 from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.entities.robots.robot import Robot
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_env import ManagerBasedEnv
@@ -63,13 +64,9 @@ def reset_joints_by_scale(
   velocity_range: tuple[float, float],
   asset_cfg: SceneEntityCfg = SceneEntityCfg(name="robot"),
 ):
-  asset = env.scene.entities[asset_cfg.name]
-  joint_pos = torch.tensor(asset._default_joint_pos, device=env.device)[None].repeat(
-    env.num_envs, 1
-  )
-  joint_vel = torch.tensor(asset._default_joint_vel, device=env.device)[None].repeat(
-    env.num_envs, 1
-  )
+  asset: Robot = env.scene.entities[asset_cfg.name]
+  joint_pos = asset.data.default_joint_pos[env_ids, asset_cfg.joint_q_adr].clone()
+  joint_vel = asset.data.default_joint_vel[env_ids, asset_cfg.joint_v_adr].clone()
 
   joint_pos *= math_utils.sample_uniform(
     *position_range, joint_pos.shape, joint_pos.device

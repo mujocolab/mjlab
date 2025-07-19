@@ -1,4 +1,5 @@
 from typing import Any, Sequence
+
 import numpy as np
 import torch
 
@@ -31,6 +32,7 @@ class ManagerBasedEnv:
     self.sim = Simulation(cfg=self.cfg.sim, model=mjm)
     if "cuda" in self.device:
       torch.cuda.set_device(self.device)
+    self.scene.initialize(self.sim.mj_model, self.sim.data, self.device)
 
     print("[INFO]: Base environment:")
     print(f"\tEnvironment device    : {self.device}")
@@ -39,6 +41,7 @@ class ManagerBasedEnv:
     print(f"\tEnvironment step-size : {self.step_dt}")
 
     self.load_managers()
+    self.setup_manager_visualizers()
 
   @property
   def num_envs(self) -> int:
@@ -57,6 +60,9 @@ class ManagerBasedEnv:
     return self.sim.device
 
   # Setup.
+
+  def setup_manager_visualizers(self):
+    self.manager_visualizers = {}
 
   def load_managers(self):
     self.event_manager = EventManager(self.cfg.events, self)
@@ -80,7 +86,6 @@ class ManagerBasedEnv:
     if seed is not None:
       self.seed(seed)
     self._reset_idx(env_ids)
-    # self.scene.write_data_to_sim()
     self.sim.forward()
     self.obs_buf = self.observation_manager.compute()
     return self.obs_buf, self.extras
@@ -93,9 +98,8 @@ class ManagerBasedEnv:
     for _ in range(self.cfg.decimation):
       self._sim_step_counter += 1
       self.action_manager.apply_action()
-      # self.scene.write_data_to_sim()
       self.sim.step()
-      self.scene.update(dt=self.physics_dt, data=self.sim.data)
+      self.scene.update(dt=self.physics_dt)
     self.obs_buf = self.observation_manager.compute()
     return self.obs_buf, self.extras
 
@@ -110,6 +114,10 @@ class ManagerBasedEnv:
   def close(self):
     # TODO: Do i need to do something here?
     pass
+  
+  def update_visualizers(self, scn):
+    for mod in self.manager_visualizers.values():
+      mod.debug_vis(scn)
 
   # Private methods.
 

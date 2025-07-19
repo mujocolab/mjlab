@@ -1,6 +1,7 @@
 import mujoco
 import mujoco_warp as mjwarp
 import numpy as np
+import torch
 
 from mjlab.utils.string import resolve_expr
 from mjlab.entities import entity
@@ -8,6 +9,8 @@ from mjlab.entities.robots.robot_config import RobotCfg
 from mjlab.entities.robots import editors
 from mjlab.entities.common import editors as common_editors
 from mjlab.utils.spec import get_non_root_joints
+from mjlab.entities.robots.robot_data import RobotData
+from mjlab.entities.indexing import EntityIndexing
 
 
 class Robot(entity.Entity):
@@ -26,8 +29,23 @@ class Robot(entity.Entity):
 
   # Public methods.
 
-  def update(self, dt: float, data: mjwarp.Data) -> None:
+  def initialize(
+    self, indexing: EntityIndexing, data: mjwarp.Data, device: str
+  ) -> None:
+    self._data = RobotData(indexing=indexing, data=data, device=device)
+    self._data.default_joint_pos = torch.tensor(self._default_joint_pos, device=device).repeat(data.nworld, 1)
+    self._data.default_joint_vel = torch.zeros_like(self._data.default_joint_pos)
+    self._data.default_root_state = torch.tensor(self._default_root_state, device=device).repeat(data.nworld, 1)
+
+  def update(self, dt: float) -> None:
     self._data.update(dt)
+
+  def reset(self):
+    pass
+
+  @property
+  def data(self) -> RobotData:
+    return self._data
 
   # Private methods.
 

@@ -67,6 +67,9 @@ class ActionManager(ManagerBase):
     return self._term_names
 
   # Methods.
+  
+  def get_term(self, name: str) -> ActionTerm:
+    return self._terms[name]
 
   def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, float]:
     if env_ids is None:
