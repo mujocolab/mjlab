@@ -1,20 +1,17 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, MISSING
 import mujoco
-
-slice_field = field(default_factory=lambda: slice(None))
 
 
 @dataclass
 class SceneEntityCfg:
-  name: str
+  """Configuration for a scene entity that is used by the manager's term."""
+
+  name: str = MISSING
   joint_names: str | list[str] | None = None
   body_names: str | list[str] | None = None
+  joint_ids: list[str] | slice = field(default_factory=lambda: slice(None))
+  body_ids: list[int] | slice = field(default_factory=lambda: slice(None))
   preserve_order: bool = False
-  joint_ids: list[str] | slice = slice_field
-  joint_q_adr: list[int] | slice = slice_field
-  joint_v_adr: list[int] | slice = slice_field
-  body_ids: list[int] | slice = slice_field
-  actuator_ids: list[int] | slice = slice_field
 
   def resolve(self, model: mujoco.MjModel) -> None:
     self._resolve_joint_names(model)

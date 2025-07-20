@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from mjlab.entities.common.config import OptionCfg
+from mjlab.utils.spec_editor.spec_editor_config import OptionCfg
 
 
 @dataclass(kw_only=True)

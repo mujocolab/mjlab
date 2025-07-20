@@ -1,18 +1,16 @@
 from dataclasses import dataclass, field
 
-from mjlab.entities.scene.scene_config import SceneCfg, LightCfg
-from mjlab.entities.common.config import TextureCfg
-from mjlab.entities.robots.go1.go1_constants import GO1_ROBOT_CFG
+from mjlab.scene.scene_config import SceneCfg, LightCfg
+from mjlab.utils.spec_editor.spec_editor_config import TextureCfg
+from mjlab.asset_zoo.robots.unitree_go1.go1_constants import GO1_ROBOT_CFG
 from mjlab.entities.terrains.flat_terrain import FLAT_TERRAIN_CFG
 
 from mjlab.managers.manager_term_config import ObservationGroupCfg as ObsGroup
 from mjlab.managers.manager_term_config import ObservationTermCfg as ObsTerm
-from mjlab.managers.manager_term_config import RewardTermCfg as RewardTerm
 from mjlab.managers.manager_term_config import ActionTermCfg as ActionTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.envs.mdp import (
-  rewards,
   observations,
   actions,
   terminations,
@@ -88,35 +86,35 @@ class ObservationCfg:
       func=observations.base_lin_vel,
       noise=Unoise(n_min=-0.1, n_max=0.1),
     )
-    base_ang_vel: ObsTerm = term(
-      ObsTerm,
-      func=observations.base_ang_vel,
-      noise=Unoise(n_min=-0.2, n_max=0.2),
-    )
-    projected_gravity: ObsTerm = term(
-      ObsTerm,
-      func=observations.projected_gravity,
-      noise=Unoise(n_min=-0.05, n_max=0.05),
-    )
-    joint_pos: ObsTerm = term(
-      ObsTerm,
-      func=observations.joint_pos_rel,
-    noise = Unoise(n_min=-0.01, n_max=0.01),
-    )
-    joint_vel: ObsTerm = term(
-      ObsTerm,
-      func=observations.joint_vel,
-      noise=Unoise(n_min=-1.5, n_max=1.5),
-    )
-    actions: ObsTerm = term(
-      ObsTerm,
-      func=observations.last_action,
-    )
-    velocity_commands: ObsTerm = term(
-      ObsTerm,
-      func=observations.generated_commands,
-      params={"command_name": "base_velocity"},
-    )
+    # base_ang_vel: ObsTerm = term(
+    #   ObsTerm,
+    #   func=observations.base_ang_vel,
+    #   noise=Unoise(n_min=-0.2, n_max=0.2),
+    # )
+    # projected_gravity: ObsTerm = term(
+    #   ObsTerm,
+    #   func=observations.projected_gravity,
+    #   noise=Unoise(n_min=-0.05, n_max=0.05),
+    # )
+    # joint_pos: ObsTerm = term(
+    #   ObsTerm,
+    #   func=observations.joint_pos_rel,
+    # noise = Unoise(n_min=-0.01, n_max=0.01),
+    # )
+    # joint_vel: ObsTerm = term(
+    #   ObsTerm,
+    #   func=observations.joint_vel,
+    #   noise=Unoise(n_min=-1.5, n_max=1.5),
+    # )
+    # actions: ObsTerm = term(
+    #   ObsTerm,
+    #   func=observations.last_action,
+    # )
+    # velocity_commands: ObsTerm = term(
+    #   ObsTerm,
+    #   func=observations.generated_commands,
+    #   params={"command_name": "base_velocity"},
+    # )
 
     def __post_init__(self):
       self.enable_corruption = True
@@ -125,7 +123,7 @@ class ObservationCfg:
   @dataclass
   class CriticCfg(PolicyCfg):
     pass
-  
+
     def __post_init__(self):
       super().__post_init__()
       self.enable_corruption = False
@@ -165,7 +163,7 @@ class EventCfg:
       "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
     },
   )
-  
+
   # Add push.
   # Add domain randomization.
 
@@ -267,7 +265,7 @@ if __name__ == "__main__":
   import torch
   import mujoco.viewer
   import time
-  
+
   VIZ_OTHERS = False
 
   # Setup environment
@@ -276,7 +274,7 @@ if __name__ == "__main__":
 
   mjm = env.sim.mj_model
   mjd = env.sim.mj_data
-  
+
   # # For visualizing other envs.
   # if VIZ_OTHERS:
   #   vd = mujoco.MjData(mjm)
@@ -326,7 +324,7 @@ if __name__ == "__main__":
 
       viewer.user_scn.ngeom = 0
       env.update_visualizers(viewer.user_scn)
-      
+
       # if VIZ_OTHERS:
       #   for i in range(1, env.num_envs):
       #     vd.qpos[:] = env.sim.data.qpos[i].cpu().numpy()

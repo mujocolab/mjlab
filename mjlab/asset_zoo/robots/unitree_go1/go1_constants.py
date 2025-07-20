@@ -2,24 +2,31 @@
 
 # fmt: off
 
+import mujoco
 from typing import Dict
 from mjlab import MJLAB_SRC_PATH
 from mjlab.utils.os import update_assets
 
-from mjlab.entities.robots.actuator import ElectricActuator, reflected_inertia
+from mjlab.utils.actuator import ElectricActuator, reflected_inertia
 from mjlab.entities.robots.robot_config import RobotCfg
-from mjlab.entities.robots.robot_config import InitialStateCfg, ActuatorCfg, SensorCfg, CollisionCfg
+from mjlab.utils.spec_editor import ActuatorCfg, SensorCfg, CollisionCfg
 
 ##
 # MJCF and assets.
 ##
 
-GO1_XML = MJLAB_SRC_PATH / "entities" / "robots" / "go1" / "xmls" / "go1.xml"
+GO1_XML = MJLAB_SRC_PATH / "asset_zoo" / "robots" / "unitree_go1" / "xmls" / "go1.xml"
+assert GO1_XML.exists()
 
 def get_assets() -> Dict[str, bytes]:
   assets: Dict[str, bytes] = {}
   update_assets(assets, GO1_XML.parent / "assets")
   return assets
+
+def get_spec() -> mujoco.MjSpec:
+  assets = get_assets()
+  return mujoco.MjSpec.from_file(str(GO1_XML), assets=assets)
+
 
 ##
 # Actuator config.
@@ -65,7 +72,7 @@ GO1_KNEE_ACTUATOR_CFG = ActuatorCfg(
 ##
 
 
-INIT_STATE = InitialStateCfg(
+INIT_STATE = RobotCfg.InitialStateCfg(
   pos=(0.0, 0.0, 0.278),
   joint_pos={
     ".*thigh_joint": 0.9,
@@ -110,8 +117,6 @@ FULL_COLLISION = CollisionCfg(
 ##
 
 GO1_ROBOT_CFG = RobotCfg(
-  xml_path=GO1_XML,
-  asset_fn=get_assets,
   init_state=INIT_STATE,
   actuators=(
     GO1_HIP_ACTUATOR_CFG,
@@ -124,4 +129,13 @@ GO1_ROBOT_CFG = RobotCfg(
   ),
   soft_joint_pos_limit_factor=0.95,
   collisions=(FULL_COLLISION,),
+  spec_fn=get_spec,
 )
+
+
+if __name__ == "__main__":
+  from mjlab.entities.robots.robot import Robot
+  import mujoco.viewer
+
+  terr = Robot(GO1_ROBOT_CFG)
+  mujoco.viewer.launch(terr.compile())

@@ -2,9 +2,10 @@ from __future__ import annotations
 from typing import Sequence, TYPE_CHECKING
 
 from mjlab.managers.action_manager import ActionTerm
-from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.utils.string import filter_exp
 import torch
 from mjlab.utils.mujoco import is_position_actuator
+from mjlab.entities.robots.robot import Robot
 
 if TYPE_CHECKING:
   from mjlab.envs.mdp.actions import actions_config
@@ -14,15 +15,24 @@ if TYPE_CHECKING:
 class JointAction(ActionTerm):
   """Base class for joint actions."""
 
+  cfg: actions_config.JointActionCfg
+  _asset: Robot
+
   def __init__(self, cfg: actions_config.JointActionCfg, env: ManagerBasedEnv):
     super().__init__(cfg=cfg, env=env)
 
-    self._entity_cfg = SceneEntityCfg(name=cfg.asset_name, joint_names=cfg.joint_names)
-    self._entity_cfg.resolve(env.sim.mj_model)
+    from ipdb import set_trace
 
-    self._joint_ids = self._entity_cfg.joint_ids
-    self._joint_names = self._entity_cfg.joint_names
-    self._num_joints = len(self._joint_ids)
+    set_trace()
+    joint_names = filter_exp(self.cfg.joint_names, self._asset.joint_names)
+    # joint_ids = self._asset.
+
+    # joint_ids, joint_names = self.
+    # self._entity_cfg = SceneEntityCfg(name=cfg.asset_name, joint_names=cfg.joint_names)
+    # self._entity_cfg.resolve(env.sim.mj_model)
+    # self._joint_ids = self._entity_cfg.joint_ids
+    # self._joint_names = self._entity_cfg.joint_names
+    self._num_joints = len(joint_ids)
 
     self._actuator_ids = []
     for aid in self._entity_cfg.actuator_ids:
@@ -45,7 +55,7 @@ class JointAction(ActionTerm):
   def process_actions(self, actions: torch.Tensor):
     self._raw_actions[:] = actions
     self._processed_actions = self._raw_actions * self._scale + self._offset
-    # clip
+    # TODO: clip
 
   def reset(self, env_ids: Sequence[int] | None = None) -> None:
     self._raw_actions[env_ids] = 0.0
@@ -56,11 +66,7 @@ class JointPositionAction(JointAction):
     super().__init__(cfg=cfg, env=env)
 
     if cfg.use_default_offset:
-      self._offset = torch.tensor(
-        env.scene.entities["robot"]._default_joint_pos,
-        dtype=torch.float,
-        device=self.device,
-      )
+      self._offset = self._asset.data.default_joint_pos[:, self._joint_ids].clone()
 
   def apply_actions(self):
     self._env.sim.set_ctrl(self._processed_actions, ctrl_ids=self._actuator_ids)

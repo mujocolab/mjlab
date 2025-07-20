@@ -1,30 +1,26 @@
 from pathlib import Path
+import abc
+from typing import Sequence
 
 import mujoco
 import mujoco_warp as mjwarp
 
 from mjlab.entities.indexing import EntityIndexing
+from mjlab.entities.entity_config import EntityCfg
+from mjlab.utils.spec_editor.spec_editor import (
+  TextureEditor,
+  MaterialEditor,
+  LightEditor,
+  CameraEditor,
+)
 
 
-class Entity:
-  def __init__(self, spec: mujoco.MjSpec):
-    self._spec = spec
-
+class Entity(abc.ABC):
+  def __init__(self, cfg: EntityCfg):
+    self.cfg = cfg
+    self._spec = cfg.spec_fn()
+    self._configure_spec()
     self._give_names_to_missing_elems()
-    # TODO: Add more sanity checking and processing.
-
-  def _give_names_to_missing_elems(self):
-    def _incremental_rename(elem_list, elem_type: str):
-      counter = 0
-      for elem in elem_list:
-        if not elem.name:
-          elem.name = f"{elem_type}_{counter}"
-          counter += 1
-
-    _incremental_rename(self._spec.bodies, "body")
-    _incremental_rename(self._spec.geoms, "geom")
-    _incremental_rename(self._spec.sites, "site")
-    _incremental_rename(self._spec.sensors, "sensor")
 
   # Attributes.
 
@@ -54,3 +50,32 @@ class Entity:
 
   def reset(self):
     pass
+
+  # Private methods.
+
+  def _configure_spec(self) -> None:
+    for light in self.cfg.lights:
+      LightEditor(light).edit_spec(self._spec)
+    for camera in self.cfg.cameras:
+      CameraEditor(camera).edit_spec(self._spec)
+    for tex in self.cfg.textures:
+      TextureEditor(tex).edit_spec(self._spec)
+    for mat in self.cfg.materials:
+      MaterialEditor(mat).edit_spec(self._spec)
+
+  def _give_names_to_missing_elems(self) -> None:
+    """Ensure all important elements of the spec have names to simplify attachment."""
+
+    def _incremental_rename(
+      elem_list: Sequence[mujoco.MjsElement], elem_type: str
+    ) -> None:
+      counter: int = 0
+      for elem in elem_list:
+        if not elem.name:
+          elem.name = f"{elem_type}_{counter}"
+          counter += 1
+
+    _incremental_rename(self._spec.bodies, "body")
+    _incremental_rename(self._spec.geoms, "geom")
+    _incremental_rename(self._spec.sites, "site")
+    _incremental_rename(self._spec.sensors, "sensor")

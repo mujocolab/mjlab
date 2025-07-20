@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from mjlab.envs.manager_based_env_config import ManagerBasedEnvCfg
-from mjlab.entities.scene.scene import Scene
+from mjlab.scene import Scene
 from mjlab.sim.sim import Simulation
 from mjlab.utils import random as random_utils
 
@@ -114,7 +114,7 @@ class ManagerBasedEnv:
   def close(self):
     # TODO: Do i need to do something here?
     pass
-  
+
   def update_visualizers(self, scn):
     for mod in self.manager_visualizers.values():
       mod.debug_vis(scn)

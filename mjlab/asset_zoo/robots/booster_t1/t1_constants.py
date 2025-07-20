@@ -5,16 +5,16 @@
 from typing import Dict
 from mjlab import MJLAB_SRC_PATH
 from mjlab.utils.os import update_assets
-from mjlab.entities.robots.actuator import ElectricActuator, reflected_inertia, rpm_to_rad
+from mjlab.utils.actuator import ElectricActuator, reflected_inertia, rpm_to_rad
 from mjlab.entities.robots.robot_config import RobotCfg
-from mjlab.entities.common.config import CollisionCfg
+from mjlab.utils.spec_editor.spec_editor_config import CollisionCfg
 from mjlab.entities.robots.robot_config import KeyframeCfg, ActuatorCfg, SensorCfg
 
 ##
 # MJCF and assets
 ##
 
-T1_XML = MJLAB_SRC_PATH / "entities" / "robots" / "t1" / "xmls" / "t1.xml"
+T1_XML = MJLAB_SRC_PATH / "entities" / "robots" / "booster_t1" / "xmls" / "booster_t1.xml"
 
 
 def get_assets() -> Dict[str, bytes]:

@@ -1,29 +1,42 @@
 import mujoco
-from pathlib import Path
 import torch
 
 from mjlab.entities import entity
-from mjlab.entities.scene.scene_config import SceneCfg
-from mjlab.entities.scene import editors
+from mjlab.scene.scene_config import SceneCfg
 from mjlab.entities.robots.robot import Robot
 from mjlab.entities.terrains.terrain import Terrain
-from mjlab.entities.common.config import OptionCfg
-from mjlab.entities.common import editors as common_editors
+from mjlab.utils.spec_editor.spec_editor_config import OptionCfg
+from mjlab.utils.spec_editor import spec_editor as common_editors
 from mjlab.entities.indexing import EntityIndexing, SceneIndexing
 from mjlab.utils.mujoco import dof_width, qpos_width
 
-_HERE = Path(__file__).parent
-_XML = _HERE / "scene.xml"
+# _HERE = Path(__file__).parent
+# _XML = _HERE / "scene.xml"
+
+_XML = r"""
+<mujoco model="mjlab scene">
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+    <rgba force="1 0 0 1" haze="0.15 0.25 0.35 1"/>
+    <global azimuth="135" elevation="-25" offwidth="1920" offheight="1080"/>
+    <map force="0.005"/>
+    <scale forcewidth="0.25" contactwidth="0.4" contactheight="0.15"/>
+    <quality shadowsize="8192"/>
+  </visual>
+  <statistic meansize="0.02"/>
+</mujoco>
+"""
 
 
-class Scene(entity.Entity):
+class Scene:
   def __init__(self, scene_cfg: SceneCfg):
     self._cfg = scene_cfg
     self._entities: dict[str, entity.Entity] = {}
     self._indexing: SceneIndexing = SceneIndexing()
 
-    spec = mujoco.MjSpec.from_file(str(_XML))
-    super().__init__(spec)
+    # spec = mujoco.MjSpec.from_file(str(_XML))
+    self._spec = mujoco.MjSpec.from_string(_XML)
+    # super().__init__(spec)
 
     self._configure_terrain()
     self._configure_robots()

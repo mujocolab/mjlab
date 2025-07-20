@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, MISSING, field
 
-from mjlab.entities.scene.scene_config import SceneCfg
+from mjlab.scene.scene_config import SceneCfg
 from mjlab.sim.sim_config import SimulationCfg
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 from mjlab.managers.manager_term_config import term

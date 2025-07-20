@@ -12,11 +12,6 @@ class TimestampedBuffer:
 
 
 class RobotData:
-  
-  default_root_state: torch.Tensor = None
-  default_joint_pos: torch.Tensor = None
-  default_joint_vel: torch.Tensor = None
-
   def __init__(self, indexing: EntityIndexing, data: mjwarp.Data, device: str):
     self.indexing = indexing
     self.data = data
@@ -48,6 +43,12 @@ class RobotData:
 
   def update(self, dt: float):
     self._sim_timestamp += dt
+
+  default_root_state: torch.Tensor = None
+  default_joint_pos: torch.Tensor = None
+  default_joint_vel: torch.Tensor = None
+  body_names: list[str] = None
+  joint_names: list[str] = None
 
   # Root properties.
 
@@ -232,7 +233,7 @@ class RobotData:
     return math_utils.quat_apply_inverse(
       self.root_link_quat_w, self.root_link_lin_vel_w
     )
-  
+
   @property
   def root_link_ang_vel_b(self) -> torch.Tensor:
     return math_utils.quat_apply_inverse(

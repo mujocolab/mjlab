@@ -93,18 +93,18 @@ class UniformVelocityCommand(CommandTerm):
     base_pos_w = self.robot.data.root_link_pos_w.clone()  # (num_envs, 3)
     base_quat_w = self.robot.data.root_link_quat_w.clone()
     base_mat_w = matrix_from_quat(base_quat_w)
-    
+
     base_pos_w = base_pos_w[0].cpu().numpy()
     base_mat_w = base_mat_w[0].cpu().numpy()
     cmd = self.command[0].cpu().numpy()
     lin_vel_b = self.robot.data.root_link_lin_vel_b[0].cpu().numpy()
     ang_vel_b = self.robot.data.root_link_lin_vel_b[0].cpu().numpy()
-    
+
     def local_to_world(vec: np.ndarray) -> np.ndarray:
       return base_pos_w + base_mat_w @ vec
-    
+
     def make_arrow(
-        from_local: np.ndarray, to_local: np.ndarray
+      from_local: np.ndarray, to_local: np.ndarray
     ) -> tuple[np.ndarray, np.ndarray]:
       return local_to_world(from_local), local_to_world(to_local)
 
@@ -129,7 +129,7 @@ class UniformVelocityCommand(CommandTerm):
         from_=from_w,
         to=to_w,
       )
-      
+
     scale = 0.75
     z_offset = 0.2
     cmd_lin_from = np.array([0, 0, z_offset]) * scale
@@ -138,7 +138,7 @@ class UniformVelocityCommand(CommandTerm):
     cmd_ang_to = cmd_ang_from + np.array([0, 0, cmd[2]]) * scale
     add_arrow(*make_arrow(cmd_lin_from, cmd_lin_to), rgba=[0.2, 0.2, 0.6, 0.6])
     add_arrow(*make_arrow(cmd_ang_from, cmd_ang_to), rgba=[0.2, 0.6, 0.2, 0.6])
-    
+
     # Actual velocities.
     act_lin_from = np.array([0, 0, z_offset]) * scale
     act_lin_to = act_lin_from + np.array([lin_vel_b[0], lin_vel_b[1], 0]) * scale

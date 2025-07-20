@@ -83,6 +83,7 @@ class ManagerBase(abc.ABC):
   def _resolve_common_term_cfg(self, term_name: str, term_cfg: ManagerTermBaseCfg):
     for key, value in term_cfg.params.items():
       if isinstance(value, SceneEntityCfg):
-        value.resolve(self._env.sim.mj_model)
+        # value.resolve(self._env.sim.mj_model)
+        value.resolve(self._env.scene)
         term_cfg.params[key] = value
       # TODO: initialize the term if it is a class.

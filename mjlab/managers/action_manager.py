@@ -19,6 +19,7 @@ class ActionTerm(ManagerTermBase):
   def __init__(self, cfg: ActionTermCfg, env: ManagerBasedEnv):
     self.cfg = cfg
     self._env = env
+    self._asset = self._env.scene.entities[self.cfg.asset_name]
 
   @property
   @abc.abstractmethod
@@ -67,7 +68,7 @@ class ActionManager(ManagerBase):
     return self._term_names
 
   # Methods.
-  
+
   def get_term(self, name: str) -> ActionTerm:
     return self._terms[name]
 

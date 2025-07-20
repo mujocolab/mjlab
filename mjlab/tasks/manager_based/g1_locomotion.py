@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 
-from mjlab.entities.scene.scene_config import SceneCfg, LightCfg
-from mjlab.entities.common.config import TextureCfg
-from mjlab.entities.robots.g1.g1_constants import G1_ROBOT_CFG
+from mjlab.scene.scene_config import SceneCfg, LightCfg
+from mjlab.utils.spec_editor.spec_editor_config import TextureCfg
+from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ROBOT_CFG
 from mjlab.entities.terrains.flat_terrain import FLAT_TERRAIN_CFG
 
 from mjlab.managers.manager_term_config import ObservationGroupCfg as ObsGroup

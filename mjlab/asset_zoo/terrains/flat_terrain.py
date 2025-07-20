@@ -1,7 +1,7 @@
 from mjlab.entities.terrains import terrain_config
-from mjlab.entities.common.config import CollisionCfg
+from mjlab.utils.spec_editor import spec_editor_config
 
-texture = terrain_config.TextureCfg(
+texture = spec_editor_config.TextureCfg(
   name="groundplane",
   type="2d",
   builtin="checker",
@@ -13,7 +13,7 @@ texture = terrain_config.TextureCfg(
   height=300,
 )
 
-material = terrain_config.MaterialCfg(
+material = spec_editor_config.MaterialCfg(
   name="groundplane",
   texuniform=True,
   texrepeat=(4, 4),
@@ -21,20 +21,22 @@ material = terrain_config.MaterialCfg(
   texture="groundplane",
 )
 
-geom = terrain_config.GeomCfg(
+geom = spec_editor_config.GeomCfg(
   name="floor",
   type="plane",
   size=(0, 0, 0.01),
   material="groundplane",
 )
 
-coll = CollisionCfg(
-  geom_names_expr=["floor"],
-)
-
 FLAT_TERRAIN_CFG = terrain_config.TerrainCfg(
   textures=(texture,),
   materials=(material,),
   geoms=(geom,),
-  # collisions=(coll,),
 )
+
+if __name__ == "__main__":
+  from mjlab.entities.terrains.terrain import Terrain
+  import mujoco.viewer
+
+  terr = Terrain(FLAT_TERRAIN_CFG)
+  mujoco.viewer.launch(terr.compile())
