@@ -23,6 +23,11 @@ test = [
     "pytest-xdist",
     "pre-commit",
 ]
+rl = [
+    "rsl-rl-lib",
+    "tensorboard",
+    "wandb",
+]
 
 [tool.ruff]
 indent-width = 2

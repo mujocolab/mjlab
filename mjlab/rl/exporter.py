@@ -1,29 +1,115 @@
-from pathlib import Path
-from typing import Optional
-import onnx
-import torch
 import copy
-from mjlab.core import MjxEnv, MjxTask
+import os
+import torch
+
+
+def export_policy_as_jit(
+  policy: object, normalizer: object | None, path: str, filename="policy.pt"
+):
+  """Export policy into a Torch JIT file.
+
+  Args:
+      policy: The policy torch module.
+      normalizer: The empirical normalizer module. If None, Identity is used.
+      path: The path to the saving directory.
+      filename: The name of exported JIT file. Defaults to "policy.pt".
+  """
+  policy_exporter = _TorchPolicyExporter(policy, normalizer)
+  policy_exporter.export(path, filename)
 
 
 def export_policy_as_onnx(
   policy: object,
-  normalizer: Optional[object],
-  path: Path,
-  filename: str = "policy.onnx",
-  verbose: bool = False,
+  path: str,
+  normalizer: object | None = None,
+  filename="policy.onnx",
+  verbose=False,
 ):
-  """Export policy to an ONNX file."""
+  """Export policy into a Torch ONNX file.
+
+  Args:
+      policy: The policy torch module.
+      normalizer: The empirical normalizer module. If None, Identity is used.
+      path: The path to the saving directory.
+      filename: The name of exported ONNX file. Defaults to "policy.onnx".
+      verbose: Whether to print the model summary. Defaults to False.
+  """
+  if not os.path.exists(path):
+    os.makedirs(path, exist_ok=True)
   policy_exporter = _OnnxPolicyExporter(policy, normalizer, verbose)
-  if not path.exists():
-    path.mkdir(parents=True, exist_ok=True)
   policy_exporter.export(path, filename)
 
 
+"""
+Helper Classes - Private.
+"""
+
+
+class _TorchPolicyExporter(torch.nn.Module):
+  """Exporter of actor-critic into JIT file."""
+
+  def __init__(self, policy, normalizer=None):
+    super().__init__()
+    self.is_recurrent = policy.is_recurrent
+    # copy policy parameters
+    if hasattr(policy, "actor"):
+      self.actor = copy.deepcopy(policy.actor)
+      if self.is_recurrent:
+        self.rnn = copy.deepcopy(policy.memory_a.rnn)
+    elif hasattr(policy, "student"):
+      self.actor = copy.deepcopy(policy.student)
+      if self.is_recurrent:
+        self.rnn = copy.deepcopy(policy.memory_s.rnn)
+    else:
+      raise ValueError("Policy does not have an actor/student module.")
+    # set up recurrent network
+    if self.is_recurrent:
+      self.rnn.cpu()
+      self.register_buffer(
+        "hidden_state", torch.zeros(self.rnn.num_layers, 1, self.rnn.hidden_size)
+      )
+      self.register_buffer(
+        "cell_state", torch.zeros(self.rnn.num_layers, 1, self.rnn.hidden_size)
+      )
+      self.forward = self.forward_lstm
+      self.reset = self.reset_memory
+    # copy normalizer if exists
+    if normalizer:
+      self.normalizer = copy.deepcopy(normalizer)
+    else:
+      self.normalizer = torch.nn.Identity()
+
+  def forward_lstm(self, x):
+    x = self.normalizer(x)
+    x, (h, c) = self.rnn(x.unsqueeze(0), (self.hidden_state, self.cell_state))
+    self.hidden_state[:] = h
+    self.cell_state[:] = c
+    x = x.squeeze(0)
+    return self.actor(x)
+
+  def forward(self, x):
+    return self.actor(self.normalizer(x))
+
+  @torch.jit.export
+  def reset(self):
+    pass
+
+  def reset_memory(self):
+    self.hidden_state[:] = 0.0
+    self.cell_state[:] = 0.0
+
+  def export(self, path, filename):
+    os.makedirs(path, exist_ok=True)
+    path = os.path.join(path, filename)
+    self.to("cpu")
+    traced_script_module = torch.jit.script(self)
+    traced_script_module.save(path)
+
+
 class _OnnxPolicyExporter(torch.nn.Module):
-  def __init__(
-    self, policy: object, normalizer: Optional[object] = None, verbose: bool = False
-  ):
+  """Exporter of actor-critic into ONNX file."""
+
+  def __init__(self, policy, normalizer=None, verbose=False):
     super().__init__()
     self.verbose = verbose
     self.is_recurrent = policy.is_recurrent
@@ -57,9 +143,9 @@ class _OnnxPolicyExporter(torch.nn.Module):
   def forward(self, x):
     return self.actor(self.normalizer(x))
 
-  def export(self, path: Path, filename: str) -> None:
+  def export(self, path, filename):
     self.to("cpu")
-    save_path = path / filename
+    self.eval()
     if self.is_recurrent:
       obs = torch.zeros(1, self.rnn.input_size)
       h_in = torch.zeros(self.rnn.num_layers, 1, self.rnn.hidden_size)
@@ -68,7 +154,7 @@ class _OnnxPolicyExporter(torch.nn.Module):
       torch.onnx.export(
         self,
         (obs, h_in, c_in),
-        save_path,
+        os.path.join(path, filename),
         export_params=True,
         opset_version=11,
         verbose=self.verbose,
@@ -81,7 +167,7 @@ class _OnnxPolicyExporter(torch.nn.Module):
       torch.onnx.export(
         self,
         obs,
-        save_path,
+        os.path.join(path, filename),
         export_params=True,
         opset_version=11,
         verbose=self.verbose,
@@ -89,47 +175,3 @@ class _OnnxPolicyExporter(torch.nn.Module):
         output_names=["actions"],
         dynamic_axes={},
       )
-
-
-def list_to_csv_str(arr, *, decimals: int = 3, delimiter: str = ",") -> str:
-  fmt = f"{{:.{decimals}f}}"
-  return delimiter.join(
-    fmt.format(x)
-    if isinstance(x, (int, float))
-    else str(x)  # numbers → format, strings → as-is
-    for x in arr
-  )
-
-
-def attach_onnx_metadata(
-  env: MjxEnv, run_path: Path, path: Path, filename="policy.onnx"
-) -> None:
-  onnx_path = path / filename
-
-  task: MjxTask = env.task
-  robot = task.robot
-
-  command_names = []
-  if hasattr(task, "command_names"):
-    command_names = task.command_names
-
-  metadata = {
-    "run_path": str(run_path),
-    "joint_names": robot.joint_names,
-    "joint_stiffness": robot.joint_stiffness,
-    "joint_damping": robot.joint_damping,
-    "default_joint_pos": robot.default_joint_pos_nominal,
-    "command_names": command_names,
-    "observation_names": task.observation_names,
-    "action_scale": task.cfg.action_scale,
-  }
-
-  model = onnx.load(onnx_path)
-
-  for k, v in metadata.items():
-    entry = onnx.StringStringEntryProto()
-    entry.key = k
-    entry.value = list_to_csv_str(v) if isinstance(v, (list, tuple)) else str(v)
-    model.metadata_props.append(entry)
-
-  onnx.save(model, onnx_path)

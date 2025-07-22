@@ -24,8 +24,7 @@ def get_assets() -> Dict[str, bytes]:
   return assets
 
 def get_spec() -> mujoco.MjSpec:
-  assets = get_assets()
-  return mujoco.MjSpec.from_file(str(GO1_XML), assets=assets)
+  return mujoco.MjSpec.from_file(str(GO1_XML), assets=get_assets())
 
 
 ##
@@ -118,17 +117,17 @@ FULL_COLLISION = CollisionCfg(
 
 GO1_ROBOT_CFG = RobotCfg(
   init_state=INIT_STATE,
-  actuators=(
+  actuators=[
     GO1_HIP_ACTUATOR_CFG,
     GO1_KNEE_ACTUATOR_CFG,
-  ),
-  sensors=(
+  ],
+  sensors=[
     SensorCfg("body_ang_vel", "gyro", "imu", "site"),
     SensorCfg("body_lin_vel", "velocimeter", "imu", "site"),
     SensorCfg("body_zaxis", "framezaxis", "imu", "site"),
-  ),
+  ],
   soft_joint_pos_limit_factor=0.95,
-  collisions=(FULL_COLLISION,),
+  collisions=[FULL_COLLISION,],
   spec_fn=get_spec,
 )
 
@@ -137,5 +136,5 @@ if __name__ == "__main__":
   from mjlab.entities.robots.robot import Robot
   import mujoco.viewer
 
-  terr = Robot(GO1_ROBOT_CFG)
-  mujoco.viewer.launch(terr.compile())
+  ent = Robot(GO1_ROBOT_CFG)
+  mujoco.viewer.launch(ent.compile())

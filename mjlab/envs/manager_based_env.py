@@ -61,16 +61,16 @@ class ManagerBasedEnv:
 
   # Setup.
 
-  def setup_manager_visualizers(self):
+  def setup_manager_visualizers(self) -> None:
     self.manager_visualizers = {}
 
-  def load_managers(self):
+  def load_managers(self) -> None:
     self.event_manager = EventManager(self.cfg.events, self)
     print("[INFO] Event manager: ", self.event_manager)
-    self.observation_manager = ObservationManager(self.cfg.observations, self)
-    print("[INFO] Observation Manager:", self.observation_manager)
     self.action_manager = ActionManager(self.cfg.actions, self)
     print("[INFO] Action Manager:", self.action_manager)
+    self.observation_manager = ObservationManager(self.cfg.observations, self)
+    print("[INFO] Observation Manager:", self.observation_manager)
 
   # MDP operations.
 
@@ -86,6 +86,8 @@ class ManagerBasedEnv:
     if seed is not None:
       self.seed(seed)
     self._reset_idx(env_ids)
+    self.scene.write_data_to_sim()
+    # self.sim.data.qacc[:] = 0.0
     self.sim.forward()
     self.obs_buf = self.observation_manager.compute()
     return self.obs_buf, self.extras
@@ -98,6 +100,7 @@ class ManagerBasedEnv:
     for _ in range(self.cfg.decimation):
       self._sim_step_counter += 1
       self.action_manager.apply_action()
+      self.scene.write_data_to_sim()
       self.sim.step()
       self.scene.update(dt=self.physics_dt)
     self.obs_buf = self.observation_manager.compute()

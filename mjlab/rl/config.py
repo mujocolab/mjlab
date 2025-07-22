@@ -1,18 +1,22 @@
-from dataclasses import dataclass
-from typing import Literal, Optional, Tuple
+from dataclasses import dataclass, field
+from typing import Literal, Tuple
 
 
 @dataclass(frozen=True)
-class PpoActorCriticConfig:
+class RslRlPpoActorCriticCfg:
   """Config for the PPO actor-critic networks."""
 
   init_noise_std: float = 1.0
   """The initial noise standard deviation of the policy."""
   noise_std_type: Literal["scalar", "log"] = "scalar"
   """The type of noise standard deviation for the policy. Default is scalar."""
-  actor_hidden_dims: Tuple[int, ...] = (128, 128, 128)
+  actor_obs_normalization: bool = True
+  """Whether to normalize the observation for the actor network. Default is False."""
+  critic_obs_normalization: bool = True
+  """Whether to normalize the observation for the critic network. Default is False."""
+  actor_hidden_dims: Tuple[int, ...] = (512, 256, 128)
   """The hidden dimensions of the actor network."""
-  critic_hidden_dims: Tuple[int, ...] = (128, 128, 128)
+  critic_hidden_dims: Tuple[int, ...] = (512, 256, 128)
   """The hidden dimensions of the critic network."""
   activation: str = "elu"
   """The activation function to use in the actor and critic networks."""
@@ -21,7 +25,7 @@ class PpoActorCriticConfig:
 
 
 @dataclass(frozen=True)
-class PpoAlgorithmConfig:
+class RslRlPpoAlgorithmCfg:
   """Config for the PPO algorithm."""
 
   num_learning_epochs: int = 5
@@ -38,7 +42,7 @@ class PpoAlgorithmConfig:
   """The discount factor."""
   lam: float = 0.95
   """The lambda parameter for Generalized Advantage Estimation (GAE)."""
-  entropy_coef: float = 0.01
+  entropy_coef: float = 0.005
   """The coefficient for the entropy loss."""
   desired_kl: float = 0.01
   """The desired KL divergence between the new and old policies."""
@@ -59,27 +63,24 @@ class PpoAlgorithmConfig:
   """Ignore, required by RSL-RL."""
 
 
+def _default_obs_groups():
+  return {"policy": ["policy"], "critic": ["policy"]}
+
+
 @dataclass(frozen=True)
-class OnPolicyRunnerConfig:
+class RslRlBaseRunnerCfg:
   seed: int = 42
   """The seed for the experiment. Default is 42."""
   device: str = "cuda:0"
   """The device for the rl-agent. Default is cpu."""
   num_steps_per_env: int = 24
   """The number of steps per environment update."""
-  max_iterations: int = 300
+  max_iterations: int = 1500
   """The maximum number of iterations."""
-  empirical_normalization: bool = False
-  """Whether to use empirical normalization."""
-  policy: PpoActorCriticConfig = PpoActorCriticConfig()
-  """The policy network configuration."""
-  algorithm: PpoAlgorithmConfig = PpoAlgorithmConfig()
-  """The algorithm configuration."""
-  clip_actions: Optional[float] = None
-  """The clipping value for actions. If None, then no clipping is applied."""
+  obs_groups: dict[str, list[str]] = field(default_factory=_default_obs_groups)
   save_interval: int = 50
   """The number of iterations between saves."""
-  experiment_name: str = "cartpole_experiment"
+  experiment_name: str = "exp1"
   """The experiment name."""
   run_name: str = ""
   """The run name. Default is empty string."""
@@ -97,3 +98,25 @@ class OnPolicyRunnerConfig:
   """The checkpoint file to load. Default is "model_.*.pt" (all). If regex expression,
   the latest (alphabetical order) matching file will be loaded.
   """
+
+
+@dataclass(frozen=True)
+class RslRlOnPolicyRunnerCfg(RslRlBaseRunnerCfg):
+  class_name: str = "OnPolicyRunner"
+  """The runner class name. Default is OnPolicyRunner."""
+
+  policy: RslRlPpoActorCriticCfg = field(default_factory=RslRlPpoActorCriticCfg)
+  """The policy configuration."""
+
+  algorithm: RslRlPpoAlgorithmCfg = field(default_factory=RslRlPpoAlgorithmCfg)
+  """The algorithm configuration."""
+
+
+if __name__ == "__main__":
+  from dataclasses import asdict
+
+  agent_cfg = RslRlOnPolicyRunnerCfg()
+  result = asdict(agent_cfg)
+  print("Keys in result:", list(result.keys()))
+  print("'algorithm' in result:", "algorithm" in result)
+  print("Type of result:", type(result))

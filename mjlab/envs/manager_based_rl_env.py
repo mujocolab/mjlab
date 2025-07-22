@@ -54,6 +54,7 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
     for _ in range(self.cfg.decimation):
       self._sim_step_counter += 1
       self.action_manager.apply_action()
+      self.scene.write_data_to_sim()
       self.sim.step()
       self.scene.update(dt=self.physics_dt)
     self.episode_length_buf += 1
@@ -65,7 +66,11 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
     reset_env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
     if len(reset_env_ids) > 0:
       self._reset_idx(reset_env_ids)
+      self.scene.write_data_to_sim()
       self.sim.forward()
+      self.sim.data.qacc[:] = 0.0
+      print("after reset: ")
+      print(self.sim.data.qacc.max())
     self.command_manager.compute(dt=self.step_dt)
     self.obs_buf = self.observation_manager.compute()
     return (
@@ -92,6 +97,12 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
     self.extras["log"].update(info)
     # rewards manager.
     info = self.reward_manager.reset(env_ids)
+    self.extras["log"].update(info)
+    # command manager
+    info = self.command_manager.reset(env_ids)
+    self.extras["log"].update(info)
+    # event manager
+    info = self.event_manager.reset(env_ids)
     self.extras["log"].update(info)
     # termination manager.
     info = self.termination_manager.reset(env_ids)

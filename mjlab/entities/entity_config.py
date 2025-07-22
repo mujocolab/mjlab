@@ -6,6 +6,7 @@ from mjlab.utils.spec_editor.spec_editor_config import (
   CameraCfg,
   TextureCfg,
   MaterialCfg,
+  SensorCfg,
 )
 
 
@@ -21,7 +22,9 @@ class EntityCfg:
   )
   init_state: InitialStateCfg = field(default_factory=InitialStateCfg)
   debug_vis: bool = False
-  lights: tuple[LightCfg, ...] = ()
-  cameras: tuple[CameraCfg, ...] = ()
-  textures: tuple[TextureCfg, ...] = ()
-  materials: tuple[MaterialCfg, ...] = ()
+
+  lights: list[LightCfg] = field(default_factory=list)
+  cameras: list[CameraCfg] = field(default_factory=list)
+  textures: list[TextureCfg] = field(default_factory=list)
+  materials: list[MaterialCfg] = field(default_factory=list)
+  sensors: list[SensorCfg] = field(default_factory=list)

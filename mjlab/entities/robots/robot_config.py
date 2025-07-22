@@ -3,7 +3,6 @@ from mjlab.entities.entity_config import EntityCfg
 from mjlab.utils.spec_editor.spec_editor_config import (
   CollisionCfg,
   ActuatorCfg,
-  SensorCfg,
 )
 
 
@@ -17,7 +16,6 @@ class RobotCfg(EntityCfg):
     joint_vel: dict[str, float] = field(default_factory=lambda: {".*": 0.0})
 
   init_state: InitialStateCfg = field(default_factory=InitialStateCfg)
-  actuators: tuple[ActuatorCfg, ...] = ()
-  sensors: tuple[SensorCfg, ...] = ()
-  collisions: tuple[CollisionCfg, ...] = ()
+  actuators: list[ActuatorCfg] = field(default_factory=list)
+  collisions: list[CollisionCfg] = field(default_factory=list)
   soft_joint_pos_limit_factor: float = 1.0

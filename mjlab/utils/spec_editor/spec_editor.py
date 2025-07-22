@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import mujoco
 
 from mjlab.utils.spec_editor.spec_editor_config import (
@@ -180,7 +180,8 @@ class GeomEditor(SpecEditor):
 
 @dataclass
 class ActuatorEditor(SpecEditor):
-  cfgs: tuple[ActuatorCfg, ...]
+  cfgs: list[ActuatorCfg]
+  jnt_names: list[str] = field(default_factory=list)
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
     jnts = get_non_root_joints(spec)
@@ -195,6 +196,8 @@ class ActuatorEditor(SpecEditor):
 
     # Sort by the joint index in the spec.
     flat.sort(key=lambda pair: joint_names.index(pair[1]))
+
+    self.jnt_names = [f[1] for f in flat]
 
     for cfg, jn in flat:
       spec.joint(jn).armature = cfg.armature

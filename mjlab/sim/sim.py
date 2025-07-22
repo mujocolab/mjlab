@@ -67,7 +67,7 @@ class Simulation:
   # Methods.
 
   def reset(self):
-    pass
+    raise NotImplementedError
 
   def forward(self):
     wp.capture_launch(self.forward_graph)

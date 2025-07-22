@@ -10,10 +10,7 @@ from mjlab.utils.spec_editor import spec_editor as common_editors
 from mjlab.entities.indexing import EntityIndexing, SceneIndexing
 from mjlab.utils.mujoco import dof_width, qpos_width
 
-# _HERE = Path(__file__).parent
-# _XML = _HERE / "scene.xml"
-
-_XML = r"""
+_BASE_XML = r"""
 <mujoco model="mjlab scene">
   <visual>
     <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
@@ -31,20 +28,17 @@ _XML = r"""
 class Scene:
   def __init__(self, scene_cfg: SceneCfg):
     self._cfg = scene_cfg
+    self._spec = mujoco.MjSpec.from_string(_BASE_XML)
     self._entities: dict[str, entity.Entity] = {}
     self._indexing: SceneIndexing = SceneIndexing()
-
-    # spec = mujoco.MjSpec.from_file(str(_XML))
-    self._spec = mujoco.MjSpec.from_string(_XML)
-    # super().__init__(spec)
-
-    self._configure_terrain()
-    self._configure_robots()
-    self._configure_lights()
-    self._configure_cameras()
-    self._configure_skybox()
+    self._attach_terrains()
+    self._attach_robots()
 
   # Attributes.
+
+  @property
+  def spec(self):
+    return self._spec
 
   @property
   def entities(self) -> dict[str, entity.Entity]:
@@ -55,6 +49,16 @@ class Scene:
     return self._indexing
 
   # Methods.
+
+  def __str__(self) -> str:
+    msg = f"<class {self.__class__.__name__}>\n"
+    return msg
+
+  def compile(self):
+    return self._spec.compile()
+
+  def configure_sim_options(self, cfg: OptionCfg) -> None:
+    common_editors.OptionEditor(cfg).edit_spec(self._spec)
 
   def initialize(self, model: mujoco.MjModel, data, device):
     self._compute_indexing(model, device)
@@ -69,36 +73,25 @@ class Scene:
     for ent in self._entities.values():
       ent.update(dt)
 
+  def write_data_to_sim(self) -> None:
+    for ent in self._entities.values():
+      ent.write_data_to_sim()
+
   # Private methods.
 
-  def _configure_terrain(self) -> None:
+  def _attach_terrains(self) -> None:
     for ter_name, ter_cfg in self._cfg.terrains.items():
       ter = Terrain(ter_cfg)
       self._entities[ter_name] = ter
       frame = self._spec.worldbody.add_frame()
       self._spec.attach(ter.spec, prefix=f"{ter_name}/", frame=frame)
 
-  def _configure_robots(self) -> None:
+  def _attach_robots(self) -> None:
     for rob_name, rob_cfg in self._cfg.robots.items():
       rob = Robot(rob_cfg)
       self._entities[rob_name] = rob
       frame = self._spec.worldbody.add_frame()
       self._spec.attach(rob.spec, prefix=f"{rob_name}/", frame=frame)
-
-  def _configure_lights(self) -> None:
-    for lig in self._cfg.lights:
-      editors.LightEditor(lig).edit_spec(self._spec)
-
-  def _configure_cameras(self) -> None:
-    for cam in self._cfg.cameras:
-      editors.CameraEditor(cam).edit_spec(self._spec)
-
-  def _configure_skybox(self) -> None:
-    if self._cfg.skybox is not None:
-      common_editors.TextureEditor(self._cfg.skybox).edit_spec(self._spec)
-
-  def configure_sim_options(self, cfg: OptionCfg) -> None:
-    common_editors.OptionEditor(cfg).edit_spec(self._spec)
 
   def _compute_indexing(self, model: mujoco.MjModel, device: str) -> None:
     for ent_name, ent in self._entities.items():
@@ -156,6 +149,11 @@ class Scene:
           qdim = qpos_width(jnt_type)
           joint_q_adr.extend(range(qadr, qadr + qdim))
 
+      ctrl_ids = []
+      for actuator in ent.spec.actuators:
+        act = model.actuator(actuator.name)
+        ctrl_ids.append(act.id)
+
       root_body_id = None
       for joint in ent.spec.joints:
         jnt = model.joint(joint.name)
@@ -174,5 +172,6 @@ class Scene:
         joint_v_adr=torch.tensor(joint_v_adr, dtype=torch.int, device=device),
         free_joint_v_adr=torch.tensor(free_joint_v_adr, dtype=torch.int, device=device),
         free_joint_q_adr=torch.tensor(free_joint_q_adr, dtype=torch.int, device=device),
+        ctrl_ids=torch.tensor(ctrl_ids, dtype=torch.int, device=device),
       )
       self._indexing.entities[ent_name] = indexing

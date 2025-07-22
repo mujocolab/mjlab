@@ -54,7 +54,7 @@ class RewardManager(ManagerBase):
     self._reward_buf[:] = 0.0
     for term_idx, (name, term_cfg) in enumerate(zip(self._term_names, self._term_cfgs)):
       if term_cfg.weight == 0.0:
-        self._step_rewardp[:, term_idx] = 0.0
+        self._step_reward[:, term_idx] = 0.0
         continue
       value = term_cfg.func(self._env, **term_cfg.params) * term_cfg.weight * dt
       self._reward_buf += value

@@ -1,29 +1,27 @@
 from dataclasses import dataclass, field
 
-from mjlab.scene.scene_config import SceneCfg, LightCfg
-from mjlab.utils.spec_editor.spec_editor_config import TextureCfg
+from mjlab.scene.scene_config import SceneCfg
 from mjlab.asset_zoo.robots.unitree_go1.go1_constants import GO1_ROBOT_CFG
-from mjlab.entities.terrains.flat_terrain import FLAT_TERRAIN_CFG
+from mjlab.asset_zoo.terrains.flat_terrain import FLAT_TERRAIN_CFG
+from mjlab.utils.spec_editor.spec_editor_config import TextureCfg, LightCfg
 
 from mjlab.managers.manager_term_config import ObservationGroupCfg as ObsGroup
 from mjlab.managers.manager_term_config import ObservationTermCfg as ObsTerm
 from mjlab.managers.manager_term_config import ActionTermCfg as ActionTerm
+from mjlab.managers.manager_term_config import RewardTermCfg as RewardTerm
 from mjlab.managers.manager_term_config import term
-from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.envs.mdp import (
   observations,
   actions,
   terminations,
   events,
-  commands,
+  rewards,
 )
 from mjlab.envs.manager_based_rl_env import ManagerBasedRLEnv
 from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
 from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
-import math
 
-from mjlab.tasks.manager_based.mdp import terminations as custom_terminations
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
 
 
@@ -31,12 +29,9 @@ from mjlab.utils.noise import UniformNoiseCfg as Unoise
 # Scene.
 ##
 
-
-SCENE_CFG = SceneCfg(
-  terrains={"floor": FLAT_TERRAIN_CFG},
-  robots={"robot": GO1_ROBOT_CFG},
-  lights=(LightCfg(pos=(0, 0, 1.5), type="directional"),),
-  skybox=TextureCfg(
+terrain_cfg = FLAT_TERRAIN_CFG
+terrain_cfg.textures.append(
+  TextureCfg(
     name="skybox",
     type="skybox",
     builtin="gradient",
@@ -46,31 +41,30 @@ SCENE_CFG = SceneCfg(
     height=3072,
   ),
 )
+terrain_cfg.lights.append(
+  LightCfg(pos=(0, 0, 1.5), type="directional"),
+)
+
+SCENE_CFG = SceneCfg(
+  terrains={"floor": FLAT_TERRAIN_CFG},
+  robots={"robot": GO1_ROBOT_CFG},
+)
 
 ##
 # MDP.
 ##
 
-# Commands.
+# Actions.
 
 
 @dataclass
-class CommandsCfg:
-  base_velocity: commands.UniformVelocityCommandCfg = term(
-    commands.UniformVelocityCommandCfg,
+class ActionCfg:
+  joint_pos: ActionTerm = term(
+    actions.JointPositionActionCfg,
     asset_name="robot",
-    resampling_time_range=(10.0, 10.0),
-    rel_standing_envs=0.02,
-    rel_heading_envs=1.0,
-    heading_command=True,
-    heading_control_stiffness=0.5,
-    debug_vis=True,
-    ranges=commands.UniformVelocityCommandCfg.Ranges(
-      lin_vel_x=(-1.0, 1.0),
-      lin_vel_y=(-1.0, 1.0),
-      ang_vel_z=(-1.0, 1.0),
-      heading=(-math.pi, math.pi),
-    ),
+    actuator_names=[".*"],
+    scale=0.5,
+    use_default_offset=True,
   )
 
 
@@ -81,55 +75,40 @@ class CommandsCfg:
 class ObservationCfg:
   @dataclass
   class PolicyCfg(ObsGroup):
-    base_lin_vel: ObsTerm = term(
+    projected_gravity: ObsTerm = term(
       ObsTerm,
-      func=observations.base_lin_vel,
-      noise=Unoise(n_min=-0.1, n_max=0.1),
+      func=observations.projected_gravity,
+      noise=Unoise(n_min=-0.05, n_max=0.05),
     )
-    # base_ang_vel: ObsTerm = term(
-    #   ObsTerm,
-    #   func=observations.base_ang_vel,
-    #   noise=Unoise(n_min=-0.2, n_max=0.2),
-    # )
-    # projected_gravity: ObsTerm = term(
-    #   ObsTerm,
-    #   func=observations.projected_gravity,
-    #   noise=Unoise(n_min=-0.05, n_max=0.05),
-    # )
-    # joint_pos: ObsTerm = term(
-    #   ObsTerm,
-    #   func=observations.joint_pos_rel,
-    # noise = Unoise(n_min=-0.01, n_max=0.01),
-    # )
-    # joint_vel: ObsTerm = term(
-    #   ObsTerm,
-    #   func=observations.joint_vel,
-    #   noise=Unoise(n_min=-1.5, n_max=1.5),
-    # )
-    # actions: ObsTerm = term(
-    #   ObsTerm,
-    #   func=observations.last_action,
-    # )
-    # velocity_commands: ObsTerm = term(
-    #   ObsTerm,
-    #   func=observations.generated_commands,
-    #   params={"command_name": "base_velocity"},
-    # )
+    joint_pos: ObsTerm = term(
+      ObsTerm,
+      func=observations.joint_pos_rel,
+      noise=Unoise(n_min=-0.01, n_max=0.01),
+    )
+    joint_vel: ObsTerm = term(
+      ObsTerm,
+      func=observations.joint_vel,
+      noise=Unoise(n_min=-1.5, n_max=1.5),
+    )
+    actions: ObsTerm = term(
+      ObsTerm,
+      func=observations.last_action,
+    )
 
     def __post_init__(self):
-      self.enable_corruption = True
+      self.enable_corruption = False
       self.concatenate_terms = True
 
-  @dataclass
-  class CriticCfg(PolicyCfg):
-    pass
-
-    def __post_init__(self):
-      super().__post_init__()
-      self.enable_corruption = False
+  # @dataclass
+  # class CriticCfg(PolicyCfg):
+  #   pass
+  #
+  #   def __post_init__(self):
+  #     super().__post_init__()
+  #     self.enable_corruption = False
 
   policy: PolicyCfg = field(default_factory=PolicyCfg)
-  critic: CriticCfg = field(default_factory=CriticCfg)
+  # critic: CriticCfg = field(default_factory=CriticCfg)
 
 
 # Events.
@@ -142,27 +121,33 @@ class EventCfg:
     func=events.reset_root_state_uniform,
     mode="reset",
     params={
-      "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
-      "velocity_range": {
+      "pose_range": {
         "x": (-0.5, 0.5),
         "y": (-0.5, 0.5),
-        "z": (-0.5, 0.5),
-        "roll": (-0.5, 0.5),
-        "pitch": (-0.5, 0.5),
-        "yaw": (-0.5, 0.5),
+        "z": (0.5, 0.5),
+        "yaw": (-3.14, 3.14),
       },
+      # "velocity_range": {
+      #   "x": (-0.5, 0.5),
+      #   "y": (-0.5, 0.5),
+      #   "z": (-0.5, 0.5),
+      #   "roll": (-0.5, 0.5),
+      #   "pitch": (-0.5, 0.5),
+      #   "yaw": (-0.5, 0.5),
+      # },
+      "velocity_range": {},
     },
   )
-  reset_robot_joints: EventTerm = term(
-    EventTerm,
-    func=events.reset_joints_by_scale,
-    mode="reset",
-    params={
-      "position_range": (0.5, 1.5),
-      "velocity_range": (0.0, 0.0),
-      "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
-    },
-  )
+  # reset_robot_joints: EventTerm = term(
+  #   EventTerm,
+  #   func=events.reset_joints_by_scale,
+  #   mode="reset",
+  #   params={
+  #     "position_range": (0.5, 1.5),
+  #     "velocity_range": (0.0, 0.0),
+  #     "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
+  #   },
+  # )
 
   # Add push.
   # Add domain randomization.
@@ -173,28 +158,24 @@ class EventCfg:
 
 @dataclass
 class RewardCfg:
-  pass
-  # # Task.
-  # track_lin_vel_xy_exp: RewardTerm = term(
-  #   RewardTerm,
-  #   func=rewards.track_lin_vel_xy_exp,
-  #   weight=1.0,
-  #   params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
-  # )
-  # track_ang_vel_z_exp: RewardTerm = term(
-  #   RewardTerm,
-  #   func=rewards.track_ang_vel_z_exp,
-  #   weight=0.5,
-  #   params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
-  # )
-  # # Penalties.
-  # lin_vel_z_l2: RewardTerm = term(RewardTerm, func=rewards.lin_vel_z_l2, weight=-2.0)
-  # ang_vel_xy_l2: RewardTerm = term(RewardTerm, func=rewards.ang_vel_xy_l2, weight=-0.05)
-  # dof_torques_l2: RewardTerm = term(RewardTerm, func=rewards.joint_torques_l2, weight=-1.0e-5)
+  orientation: RewardTerm = term(RewardTerm, func=rewards.upright, weight=1.0)
+  # height: RewardTerm = term(RewardTerm, func=rewards.torso_desired_height, weight=1.0)
+  posture: RewardTerm = term(RewardTerm, func=rewards.posture, weight=1.0)
+
+  # Penalties.
+  dof_torques_l2: RewardTerm = term(
+    RewardTerm, func=rewards.joint_torques_l2, weight=-1.0e-5
+  )
   # dof_acc_l2: RewardTerm = term(RewardTerm, func=rewards.joint_acc_l2, weight=-2.5e-7)
-  # action_rate_l2: RewardTerm = term(RewardTerm, func=rewards.action_rate_l2, weight=-0.01)
-  # flat_orientation_l2: RewardTerm = term(RewardTerm, func=rewards.flat_orientation_l2, weight=0.0)
-  # dof_pos_limits: RewardTerm = term(RewardTerm, func=rewards.joint_pos_limits, weight=0.0)
+  action_rate_l2: RewardTerm = term(
+    RewardTerm, func=rewards.action_rate_l2, weight=-0.01
+  )
+  # flat_orientation_l2: RewardTerm = term(
+  #   RewardTerm, func=rewards.flat_orientation_l2, weight=-2.5
+  # )
+  # dof_pos_limits: RewardTerm = term(
+  #   RewardTerm, func=rewards.joint_pos_limits, weight=0.0
+  # )
 
 
 # Terminations.
@@ -203,11 +184,6 @@ class RewardCfg:
 @dataclass
 class TerminationCfg:
   time_out: DoneTerm = term(DoneTerm, func=terminations.time_out, time_out=True)
-  fell_over: DoneTerm = term(
-    DoneTerm,
-    func=custom_terminations.bad_orientation,
-    params={"threshold": 0.5},
-  )
 
 
 # Curriculum.
@@ -218,18 +194,9 @@ class CurriculumCfg:
   pass
 
 
-# Actions.
-
-
 @dataclass
-class ActionCfg:
-  joint_pos: ActionTerm = term(
-    actions.JointPositionActionCfg,
-    asset_name="robot",
-    joint_names=[".*"],
-    scale=0.5,
-    use_default_offset=True,
-  )
+class CommandCfg:
+  pass
 
 
 ##
@@ -240,7 +207,7 @@ class ActionCfg:
 
 
 @dataclass
-class Go1LocomotionFlatEnvCfg(ManagerBasedRlEnvCfg):
+class Go1GetupFlatEnvCfg(ManagerBasedRlEnvCfg):
   scene: SceneCfg = field(default_factory=lambda: SCENE_CFG)
   observations: ObservationCfg = field(default_factory=ObservationCfg)
   actions: ActionCfg = field(default_factory=ActionCfg)
@@ -249,7 +216,7 @@ class Go1LocomotionFlatEnvCfg(ManagerBasedRlEnvCfg):
   episode_length_s: float = 10.0
   events: EventCfg = field(default_factory=EventCfg)
   terminations: TerminationCfg = field(default_factory=TerminationCfg)
-  commands: CommandsCfg = field(default_factory=CommandsCfg)
+  commands: CommandCfg = field(default_factory=CommandCfg)
 
   def __post_init__(self):
     self.sim.mujoco.integrator = "implicitfast"
@@ -257,8 +224,9 @@ class Go1LocomotionFlatEnvCfg(ManagerBasedRlEnvCfg):
     self.sim.mujoco.timestep = 0.004
     self.sim.mujoco.iterations = 10
     self.sim.mujoco.ls_iterations = 20
-    self.sim.num_envs = 2
-    # self.sim.njmax = 1028
+    self.sim.num_envs = 1
+    self.sim.njmax = 81920
+    self.sim.nconmax = 25000
 
 
 if __name__ == "__main__":
@@ -269,7 +237,7 @@ if __name__ == "__main__":
   VIZ_OTHERS = False
 
   # Setup environment
-  env_cfg = Go1LocomotionFlatEnvCfg()
+  env_cfg = Go1GetupFlatEnvCfg()
   env = ManagerBasedRLEnv(cfg=env_cfg)
 
   mjm = env.sim.mj_model
@@ -319,7 +287,7 @@ if __name__ == "__main__":
     while viewer.is_running():
       frame_start = time.perf_counter()
 
-      copy_viewer_to_env()
+      # copy_viewer_to_env()
       env.step(get_zero_action())
 
       viewer.user_scn.ngeom = 0
@@ -333,7 +301,7 @@ if __name__ == "__main__":
       #     mujoco.mjv_addGeoms(mjm, vd, vopt, pert, catmask, viewer.user_scn)
 
       copy_env_to_viewer()
-      viewer.sync(state_only=True)
+      viewer.sync(state_only=False)
 
       elapsed = time.perf_counter() - frame_start
       remaining_time = FRAME_TIME - elapsed

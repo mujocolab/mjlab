@@ -1,16 +1,19 @@
+from typing import Sequence
+
 import mujoco_warp as mjwarp
 import numpy as np
 import torch
+import mujoco
 
 from mjlab.utils.string import resolve_expr
 from mjlab.entities import entity
 from mjlab.entities.robots.robot_config import RobotCfg
 from mjlab.utils.spec_editor.spec_editor import (
   ActuatorEditor,
-  SensorEditor,
   CollisionEditor,
 )
 from mjlab.utils.spec import get_non_root_joints
+from mjlab.utils import string as string_utils
 from mjlab.entities.robots.robot_data import RobotData
 from mjlab.entities.indexing import EntityIndexing
 
@@ -22,12 +25,22 @@ class Robot(entity.Entity):
     super().__init__(robot_cfg)
 
     self._non_root_joints = get_non_root_joints(self._spec)
-    self._joint_names = [j.name for j in self._non_root_joints]
-    self._body_names = [b.name for b in self.spec.bodies if b.name != "world"]
-    
     self._modify_joint_range()
+    self._joint_names = [j.name for j in self._non_root_joints]
+    self.num_joints = len(self._joint_names)
 
-  # Public methods.
+    self._body_names = [b.name for b in self.spec.bodies if b.name != "world"]
+
+    self._actuator_names = [a.name for a in self._spec.actuators]
+    self.actuator_to_joint = {}
+    for actuator in self._spec.actuators:
+      if actuator.trntype != mujoco.mjtTrn.mjTRN_JOINT:
+        continue
+      self.actuator_to_joint[actuator.name] = actuator.target
+    self.joint_actuators = list(self.actuator_to_joint.values())
+    self.joint_actuators = list(self.actuator_to_joint.values())
+
+  # Attributes.
 
   @property
   def joint_names(self) -> list[str]:
@@ -36,6 +49,41 @@ class Robot(entity.Entity):
   @property
   def body_names(self) -> list[str]:
     return self._body_names
+
+  @property
+  def actuator_names(self) -> list[str]:
+    return self._actuator_names
+
+  # Public methods.
+
+  def find_bodies(
+    self, name_keys: str | Sequence[str], preserve_order: bool = False
+  ) -> tuple[list[int], list[str]]:
+    return string_utils.resolve_matching_names(
+      name_keys, self.body_names, preserve_order
+    )
+
+  def find_joints(
+    self,
+    name_keys: str | Sequence[str],
+    joint_subset: list[str] | None = None,
+    preserve_order: bool = False,
+  ) -> tuple[list[int], list[str]]:
+    if joint_subset is None:
+      joint_subset = self.joint_names
+    return string_utils.resolve_matching_names(name_keys, joint_subset, preserve_order)
+
+  def find_actuators(
+    self,
+    name_keys: str | Sequence[str],
+    actuator_subset: list[str] | None = None,
+    preserve_order: bool = False,
+  ):
+    if actuator_subset is None:
+      actuator_subset = self.actuator_names
+    return string_utils.resolve_matching_names(
+      name_keys, actuator_subset, preserve_order
+    )
 
   def initialize(
     self, indexing: EntityIndexing, data: mjwarp.Data, device: str
@@ -62,26 +110,123 @@ class Robot(entity.Entity):
       device=device,
     ).repeat(data.nworld, 1)
 
+    self._data.joint_pos_target = torch.zeros(
+      data.nworld, self.num_joints, device=device
+    )
+    self._joint_pos_target_sim = torch.zeros_like(self._data.joint_pos_target)
+
     self._data.joint_names = self.joint_names
     self._data.body_names = self.body_names
 
   def update(self, dt: float) -> None:
     self._data.update(dt)
 
-  def reset(self):
-    pass
+  # def write_data_to_sim(self):
+  # pass
+  # self._apply_actuator_model()
+  # self._data.data.ctrl[:] = self._joint_pos_target_sim
+
+  # def _apply_actuator_model(self):
+  #   self._joint_pos_target_sim[:, self.actuator_joint_indices] = self._data.joint_pos_target[:, self.actuator_joint_indices]
+
+  # def reset(self):
+  # pass
 
   @property
   def data(self) -> RobotData:
     return self._data
 
+  def write_root_pose_to_sim(
+    self, root_pose: torch.Tensor, env_ids: Sequence[int] | None = None
+  ):
+    self.write_root_link_pose_to_sim(root_pose, env_ids=env_ids)
+
+  def write_root_link_pose_to_sim(
+    self, root_pose: torch.Tensor, env_ids: Sequence[int] | None = None
+  ):
+    if env_ids is None:
+      env_ids = slice(None)
+    if env_ids != slice(None):
+      env_ids = env_ids[:, None]
+    q_slice = self.data.indexing.free_joint_q_adr
+    self._data.data.qpos[env_ids, q_slice] = root_pose
+
+  def write_root_velocity_to_sim(
+    self, root_velocity: torch.Tensor, env_ids: Sequence[int] | None = None
+  ):
+    self.write_root_com_velocity_to_sim(root_velocity=root_velocity, env_ids=env_ids)
+
+  def write_root_com_velocity_to_sim(
+    self, root_velocity: torch.Tensor, env_ids: Sequence[int] | None = None
+  ):
+    if env_ids is None:
+      env_ids = slice(None)
+    if env_ids != slice(None):
+      env_ids = env_ids[:, None]
+    v_slice = self.data.indexing.free_joint_v_adr
+    self._data.data.qvel[env_ids, v_slice] = root_velocity
+
+  def write_joint_state_to_sim(
+    self,
+    position: torch.Tensor,
+    velocity: torch.Tensor,
+    joint_ids: Sequence[int] | slice | None = None,
+    env_ids: Sequence[int] | slice | None = None,
+  ):
+    self.write_joint_position_to_sim(position, joint_ids=joint_ids, env_ids=env_ids)
+    self.write_joint_velocity_to_sim(velocity, joint_ids=joint_ids, env_ids=env_ids)
+
+  def write_joint_position_to_sim(
+    self,
+    position: torch.Tensor,
+    joint_ids: Sequence[int] | slice | None = None,
+    env_ids: Sequence[int] | slice | None = None,
+  ):
+    if env_ids is None:
+      env_ids = slice(None)
+    if joint_ids is None:
+      joint_ids = slice(None)
+    if env_ids != slice(None):
+      env_ids = env_ids[:, None]
+    q_slice = self._data.indexing.joint_q_adr[joint_ids]
+    self._data.data.qpos[env_ids, q_slice] = position
+
+  def write_joint_velocity_to_sim(
+    self,
+    velocity: torch.Tensor,
+    joint_ids: Sequence[int] | slice | None = None,
+    env_ids: Sequence[int] | slice | None = None,
+  ):
+    if env_ids is None:
+      env_ids = slice(None)
+    if joint_ids is None:
+      joint_ids = slice(None)
+    if env_ids != slice(None):
+      env_ids = env_ids[:, None]
+    v_slice = self._data.indexing.joint_v_adr[joint_ids]
+    self._data.data.qvel[env_ids, v_slice] = velocity
+
+  def set_joint_position_target(
+    self,
+    target: torch.Tensor,
+    joint_ids: Sequence[int] | slice | None = None,
+    env_ids: Sequence[int] | None = None,
+  ):
+    if env_ids is None:
+      env_ids = slice(None)
+    if joint_ids is None:
+      joint_ids = slice(None)
+    if env_ids != slice(None):
+      env_ids = env_ids[:, None]
+    self._data.joint_pos_target[env_ids, joint_ids] = target
+
   # Private methods.
 
   def _configure_spec(self) -> None:
     super()._configure_spec()
-    ActuatorEditor(self.cfg.actuators).edit_spec(self._spec)
-    for sens in self.cfg.sensors:
-      SensorEditor(sens).edit_spec(self._spec)
+    editor = ActuatorEditor(self.cfg.actuators)
+    editor.edit_spec(self._spec)
+    self._actuator_joint_names = editor.jnt_names
     for col in self.cfg.collisions:
       CollisionEditor(col).edit_spec(self._spec)
 

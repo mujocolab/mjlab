@@ -16,6 +16,7 @@ class EntityIndexing:
   joint_v_adr: torch.Tensor
   free_joint_q_adr: torch.Tensor
   free_joint_v_adr: torch.Tensor
+  ctrl_ids: torch.Tensor
 
 
 @dataclass

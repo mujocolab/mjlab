@@ -12,6 +12,7 @@ from mjlab.utils.spec_editor.spec_editor import (
   MaterialEditor,
   LightEditor,
   CameraEditor,
+  SensorEditor,
 )
 
 
@@ -51,6 +52,9 @@ class Entity(abc.ABC):
   def reset(self):
     pass
 
+  def write_data_to_sim(self) -> None:
+    pass
+
   # Private methods.
 
   def _configure_spec(self) -> None:
@@ -62,6 +66,8 @@ class Entity(abc.ABC):
       TextureEditor(tex).edit_spec(self._spec)
     for mat in self.cfg.materials:
       MaterialEditor(mat).edit_spec(self._spec)
+    for sns in self.cfg.sensors:
+      SensorEditor(sns).edit_spec(self._spec)
 
   def _give_names_to_missing_elems(self) -> None:
     """Ensure all important elements of the spec have names to simplify attachment."""
