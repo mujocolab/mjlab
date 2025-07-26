@@ -10,13 +10,13 @@ class RslRlPpoActorCriticCfg:
   """The initial noise standard deviation of the policy."""
   noise_std_type: Literal["scalar", "log"] = "scalar"
   """The type of noise standard deviation for the policy. Default is scalar."""
-  actor_obs_normalization: bool = True
+  actor_obs_normalization: bool = False
   """Whether to normalize the observation for the actor network. Default is False."""
-  critic_obs_normalization: bool = True
+  critic_obs_normalization: bool = False
   """Whether to normalize the observation for the critic network. Default is False."""
-  actor_hidden_dims: Tuple[int, ...] = (512, 256, 128)
+  actor_hidden_dims: Tuple[int, ...] = (128, 128, 128)
   """The hidden dimensions of the actor network."""
-  critic_hidden_dims: Tuple[int, ...] = (512, 256, 128)
+  critic_hidden_dims: Tuple[int, ...] = (128, 128, 128)
   """The hidden dimensions of the critic network."""
   activation: str = "elu"
   """The activation function to use in the actor and critic networks."""
@@ -75,7 +75,7 @@ class RslRlBaseRunnerCfg:
   """The device for the rl-agent. Default is cpu."""
   num_steps_per_env: int = 24
   """The number of steps per environment update."""
-  max_iterations: int = 1500
+  max_iterations: int = 300
   """The maximum number of iterations."""
   obs_groups: dict[str, list[str]] = field(default_factory=_default_obs_groups)
   save_interval: int = 50

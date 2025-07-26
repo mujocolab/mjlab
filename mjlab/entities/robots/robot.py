@@ -1,7 +1,6 @@
 from typing import Sequence
 
 import mujoco_warp as mjwarp
-import numpy as np
 import torch
 import mujoco
 
@@ -25,11 +24,11 @@ class Robot(entity.Entity):
     super().__init__(robot_cfg)
 
     self._non_root_joints = get_non_root_joints(self._spec)
-    self._modify_joint_range()
     self._joint_names = [j.name for j in self._non_root_joints]
     self.num_joints = len(self._joint_names)
 
     self._body_names = [b.name for b in self.spec.bodies if b.name != "world"]
+    self.num_bodies = len(self._body_names)
 
     self._actuator_names = [a.name for a in self._spec.actuators]
     self.actuator_to_joint = {}
@@ -104,11 +103,11 @@ class Robot(entity.Entity):
     self._data.default_joint_pos = torch.tensor(
       resolve_expr(self.cfg.init_state.joint_pos, self.joint_names),
       device=device,
-    ).repeat(data.nworld, 1)
+    )[None].repeat(data.nworld, 1)
     self._data.default_joint_vel = torch.tensor(
       resolve_expr(self.cfg.init_state.joint_vel, self.joint_names),
       device=device,
-    ).repeat(data.nworld, 1)
+    )[None].repeat(data.nworld, 1)
 
     self._data.joint_pos_target = torch.zeros(
       data.nworld, self.num_joints, device=device
@@ -118,19 +117,33 @@ class Robot(entity.Entity):
     self._data.joint_names = self.joint_names
     self._data.body_names = self.body_names
 
+    dof_limits = torch.tensor(
+      [j.range.tolist() for j in self._non_root_joints],
+      dtype=torch.float,
+      device=device,
+    )
+    self._data.default_joint_pos_limits = dof_limits[None].repeat(data.nworld, 1, 1)
+    self._data.joint_pos_limits = self._data.default_joint_pos_limits.clone()
+
+    joint_pos_mean = (
+      self._data.joint_pos_limits[..., 0] + self._data.joint_pos_limits[..., 1]
+    ) / 2
+    joint_pos_range = (
+      self._data.joint_pos_limits[..., 1] - self._data.joint_pos_limits[..., 0]
+    )
+    soft_limit_factor = self.cfg.soft_joint_pos_limit_factor
+    self._data.soft_joint_pos_limits = torch.zeros(
+      data.nworld, self.num_joints, 2, device=device
+    )
+    self._data.soft_joint_pos_limits[..., 0] = (
+      joint_pos_mean - 0.5 * joint_pos_range * soft_limit_factor
+    )
+    self._data.soft_joint_pos_limits[..., 1] = (
+      joint_pos_mean + 0.5 * joint_pos_range * soft_limit_factor
+    )
+
   def update(self, dt: float) -> None:
     self._data.update(dt)
-
-  # def write_data_to_sim(self):
-  # pass
-  # self._apply_actuator_model()
-  # self._data.data.ctrl[:] = self._joint_pos_target_sim
-
-  # def _apply_actuator_model(self):
-  #   self._joint_pos_target_sim[:, self.actuator_joint_indices] = self._data.joint_pos_target[:, self.actuator_joint_indices]
-
-  # def reset(self):
-  # pass
 
   @property
   def data(self) -> RobotData:
@@ -229,15 +242,3 @@ class Robot(entity.Entity):
     self._actuator_joint_names = editor.jnt_names
     for col in self.cfg.collisions:
       CollisionEditor(col).edit_spec(self._spec)
-
-  def _modify_joint_range(self) -> None:
-    ranges = [j.range for j in self._non_root_joints]
-    lowers = np.array([r[0] for r in ranges])
-    uppers = np.array([r[1] for r in ranges])
-    c = (lowers + uppers) / 2
-    r = uppers - lowers
-    soft_lowers = c - 0.5 * r * self.cfg.soft_joint_pos_limit_factor
-    soft_uppers = c + 0.5 * r * self.cfg.soft_joint_pos_limit_factor
-    for i, j in enumerate(self._non_root_joints):
-      j.range[0] = soft_lowers[i]
-      j.range[1] = soft_uppers[i]

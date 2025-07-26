@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from mjlab.scene.scene_config import SceneCfg
 from mjlab.asset_zoo.robots.unitree_go1.go1_constants import GO1_ROBOT_CFG
@@ -17,7 +17,6 @@ from mjlab.envs.mdp import (
   events,
   rewards,
 )
-from mjlab.envs.manager_based_rl_env import ManagerBasedRLEnv
 from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
 from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
@@ -29,7 +28,7 @@ from mjlab.utils.noise import UniformNoiseCfg as Unoise
 # Scene.
 ##
 
-terrain_cfg = FLAT_TERRAIN_CFG
+terrain_cfg = replace(FLAT_TERRAIN_CFG)
 terrain_cfg.textures.append(
   TextureCfg(
     name="skybox",
@@ -63,7 +62,7 @@ class ActionCfg:
     actions.JointPositionActionCfg,
     asset_name="robot",
     actuator_names=[".*"],
-    scale=0.5,
+    scale=0.0,
     use_default_offset=True,
   )
 
@@ -122,10 +121,10 @@ class EventCfg:
     mode="reset",
     params={
       "pose_range": {
-        "x": (-0.5, 0.5),
-        "y": (-0.5, 0.5),
+        # "x": (-0.5, 0.5),
+        # "y": (-0.5, 0.5),
         "z": (0.5, 0.5),
-        "yaw": (-3.14, 3.14),
+        # "yaw": (-3.14, 3.14),
       },
       # "velocity_range": {
       #   "x": (-0.5, 0.5),
@@ -145,7 +144,7 @@ class EventCfg:
   #   params={
   #     "position_range": (0.5, 1.5),
   #     "velocity_range": (0.0, 0.0),
-  #     "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
+  #     # "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
   #   },
   # )
 
@@ -213,7 +212,7 @@ class Go1GetupFlatEnvCfg(ManagerBasedRlEnvCfg):
   actions: ActionCfg = field(default_factory=ActionCfg)
   decimation: int = 5
   rewards: RewardCfg = field(default_factory=RewardCfg)
-  episode_length_s: float = 10.0
+  episode_length_s: float = 1.0
   events: EventCfg = field(default_factory=EventCfg)
   terminations: TerminationCfg = field(default_factory=TerminationCfg)
   commands: CommandCfg = field(default_factory=CommandCfg)
@@ -224,7 +223,7 @@ class Go1GetupFlatEnvCfg(ManagerBasedRlEnvCfg):
     self.sim.mujoco.timestep = 0.004
     self.sim.mujoco.iterations = 10
     self.sim.mujoco.ls_iterations = 20
-    self.sim.num_envs = 1
+    self.sim.num_envs = 64
     self.sim.njmax = 81920
     self.sim.nconmax = 25000
 
@@ -233,38 +232,64 @@ if __name__ == "__main__":
   import torch
   import mujoco.viewer
   import time
+  from mjlab.scene import Scene
+  import mujoco_warp as mjwarp
+  import warp as wp
+  from mjlab.sim.sim_data import WarpBridge
 
-  VIZ_OTHERS = False
-
-  # Setup environment
   env_cfg = Go1GetupFlatEnvCfg()
-  env = ManagerBasedRLEnv(cfg=env_cfg)
 
-  mjm = env.sim.mj_model
-  mjd = env.sim.mj_data
+  scene = Scene(SCENE_CFG)
+  scene.configure_sim_options(env_cfg.sim.mujoco)
 
-  # # For visualizing other envs.
-  # if VIZ_OTHERS:
-  #   vd = mujoco.MjData(mjm)
-  #   pert = mujoco.MjvPerturb()
-  #   vopt = mujoco.MjvOption()
-  #   catmask = mujoco.mjtCatBit.mjCAT_DYNAMIC
+  #   xml_string = """
+  # <mujoco>
+  #   <worldbody>
+  #     <light diffuse=".5 .5 .5" pos="0 0 3" dir="0 0 -1"/>
+  #     <geom type="plane" size="1 1 0.1" rgba=".9 0 0 1"/>
+  #     <body pos="0 0 1">
+  #       <joint type="free"/>
+  #       <geom type="box" size=".1 .2 .3" rgba="0 .9 0 1"/>
+  #     </body>
+  #   </worldbody>
+  # </mujoco>
+  #   """
+
+  mjm = scene.compile()
+  # mjm = mujoco.MjModel.from_xml_string(xml_string)
+  mjd = mujoco.MjData(mjm)
+
+  mujoco.mj_resetDataKeyframe(mjm, mjd, 0)
+  mujoco.mj_forward(mjm, mjd)
+  wp_model = mjwarp.put_model(mjm)
+  wp_data = mjwarp.put_data(
+    mjm,
+    mjd,
+    nworld=1,
+  )
+
+  data = WarpBridge(wp_data)
+
+  with wp.ScopedCapture() as capture:
+    mjwarp.step(wp_model, wp_data)
+  step_graph = capture.graph
+
+  with wp.ScopedCapture() as capture:
+    mjwarp.forward(wp_model, wp_data)
+  forward_graph = capture.graph
 
   def copy_env_to_viewer():
-    mjd.qpos[:] = env.sim.data.qpos[0].cpu().numpy()
-    mjd.qvel[:] = env.sim.data.qvel[0].cpu().numpy()
+    mjd.qpos[:] = data.qpos[0].cpu().numpy()
+    mjd.qvel[:] = data.qvel[0].cpu().numpy()
     mujoco.mj_forward(mjm, mjd)
 
   def copy_viewer_to_env():
-    xfrc_applied = torch.tensor(mjd.xfrc_applied, dtype=torch.float, device=env.device)
-    env.sim.data.xfrc_applied[:] = xfrc_applied[None]
+    xfrc_applied = torch.tensor(mjd.xfrc_applied, dtype=torch.float, device="cuda:0")
+    data.xfrc_applied[:] = xfrc_applied[None]
 
-  @torch.no_grad()
-  def get_zero_action():
-    return torch.rand(
-      (env.num_envs, env.action_manager.total_action_dim),
-      device="cuda:0",
-    )
+  # @torch.inference_mode()
+  # def get_zero_action():
+  #   return torch.zeros(12, device="cuda:0")
 
   FRAME_TIME = 1.0 / 60.0
 
@@ -274,34 +299,27 @@ if __name__ == "__main__":
   def key_callback(key: int) -> None:
     if key == KEY_ENTER:
       print("RESET KEY DETECTED")
-      env.reset()
+      data.qpos[:, 2] = 0.5
+      wp.capture_launch(forward_graph)
 
   viewer = mujoco.viewer.launch_passive(mjm, mjd, key_callback=key_callback)
   with viewer:
-    obs, extras = env.reset()
-    copy_env_to_viewer()
+    with viewer.lock():
+      copy_env_to_viewer()
+    viewer.sync()
 
     last_frame_time = time.perf_counter()
-
     step = 0
     while viewer.is_running():
       frame_start = time.perf_counter()
 
-      # copy_viewer_to_env()
-      env.step(get_zero_action())
+      copy_viewer_to_env()
+      for i in range(env_cfg.decimation):
+        wp.capture_launch(step_graph)
 
-      viewer.user_scn.ngeom = 0
-      env.update_visualizers(viewer.user_scn)
-
-      # if VIZ_OTHERS:
-      #   for i in range(1, env.num_envs):
-      #     vd.qpos[:] = env.sim.data.qpos[i].cpu().numpy()
-      #     vd.qvel[:] = env.sim.data.qvel[i].cpu().numpy()
-      #     mujoco.mj_forward(mjm, vd)
-      #     mujoco.mjv_addGeoms(mjm, vd, vopt, pert, catmask, viewer.user_scn)
-
-      copy_env_to_viewer()
-      viewer.sync(state_only=False)
+      with viewer.lock():
+        copy_env_to_viewer()
+      viewer.sync(state_only=True)
 
       elapsed = time.perf_counter() - frame_start
       remaining_time = FRAME_TIME - elapsed

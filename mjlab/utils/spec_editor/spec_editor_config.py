@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -80,8 +81,7 @@ class ActuatorCfg:
 class SensorCfg:
   name: str
   sensor_type: str
-  object_name: str
-  object_type: str
+  kwargs: dict[str, Any]
 
 
 @dataclass

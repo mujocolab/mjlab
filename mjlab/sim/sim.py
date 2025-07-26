@@ -22,6 +22,8 @@ class Simulation:
     mujoco.mj_forward(self._mj_model, self._mj_data)
 
     self._wp_model = mjwarp.put_model(self._mj_model)
+    self._wp_model.opt.ls_parallel = cfg.ls_parallel
+
     self._wp_data = mjwarp.put_data(
       self._mj_model,
       self._mj_data,
@@ -64,10 +66,14 @@ class Simulation:
   def model(self) -> WarpBridge:
     return WarpBridge(self.wp_model)
 
+  @property
+  def contact(self) -> WarpBridge:
+    return WarpBridge(self.wp_data.contact)
+
   # Methods.
 
   def reset(self):
-    raise NotImplementedError
+    pass
 
   def forward(self):
     wp.capture_launch(self.forward_graph)
@@ -78,4 +84,4 @@ class Simulation:
   def set_ctrl(self, ctrl: torch.Tensor, ctrl_ids: Sequence[int] | None = None) -> None:
     if ctrl_ids is None:
       ctrl_ids = slice(None)
-    self.data.ctrl[:, ctrl_ids] = ctrl
+    self.data.ctrl[:, ctrl_ids] = ctrl[:, ctrl_ids]

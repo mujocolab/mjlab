@@ -3,3 +3,8 @@ logs/
 onnx/
 __pycache__/
 MUJOCO_LOG.TXT
+debug.py
+typings/
+.vscode/
+*.ipynb_checkpoints/
+*.ipynb

@@ -49,6 +49,9 @@ class RobotData:
   body_names: list[str] = None
   joint_names: list[str] = None
   joint_pos_target: torch.Tensor = None
+  default_joint_pos_limits: torch.Tensor = None
+  joint_pos_limits: torch.Tensor = None
+  soft_joint_pos_limits: torch.Tensor = None
 
   # Root properties.
 
@@ -87,6 +90,7 @@ class RobotData:
 
   @property
   def root_com_vel_w(self) -> torch.Tensor:
+    """Root center-of-mass velocity [lin_vel, ang_vel] in world frame."""
     # if self._root_com_vel_w.timestamp < self._sim_timestamp:
     #   cvel = self.data.cvel[:, self.indexing.root_body_id]
     #   self._root_com_vel_w = cvel
@@ -262,14 +266,14 @@ class RobotData:
 
   @property
   def root_link_ang_vel_b(self) -> torch.Tensor:
-    return math_utils.quat_apply_inverse(
-      self.root_link_quat_w, self.root_link_ang_vel_w
-    )
+    return self.root_link_ang_vel_w
 
   @property
   def root_com_lin_vel_b(self) -> torch.Tensor:
+    """Root center-of-mass linear velocity in base frame."""
     return math_utils.quat_apply_inverse(self.root_link_quat_w, self.root_com_lin_vel_w)
 
   @property
   def root_com_ang_vel_b(self) -> torch.Tensor:
-    return math_utils.quat_apply_inverse(self.root_link_quat_w, self.root_com_ang_vel_w)
+    # return math_utils.quat_apply_inverse(self.root_link_quat_w, self.root_com_ang_vel_w)
+    return self.root_com_ang_vel_w

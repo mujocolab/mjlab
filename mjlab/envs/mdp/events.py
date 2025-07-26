@@ -12,18 +12,7 @@ if TYPE_CHECKING:
 
 
 def reset_scene_to_default(env: ManagerBasedEnv, env_ids: torch.Tensor) -> None:
-  # for robot in env.scene.entities.values():
-  # default_root_state = robot.data.default_root_state[env_ids].clone()
-  # robot.update_root_pose(default_root_state[:, :7], env_ids=env_ids)
-  # robot.update_root_velocity(default_root_state[:, 7:], env_ids=env_ids)
-  # default_joint_pos = robot.data.default_joint_pos[env_ids].clone()
-  # default_joint_vel = robot.data.default_joint_vel[env_ids].clone()
-  # write.
-  # articulation_asset.set_joint_position_target(default_joint_pos, env_ids=env_ids)
-  # articulation_asset.set_joint_velocity_target(default_joint_vel, env_ids=env_ids)
-  # articulation_asset.write_joint_state_to_sim(default_joint_pos, default_joint_vel,
-  #                                             env_ids=env_ids)
-  pass
+  raise NotImplementedError
 
 
 def reset_root_state_uniform(
@@ -62,11 +51,6 @@ def reset_root_state_uniform(
   )
   velocities = root_states[:, 7:13] + rand_samples
 
-  # from ipdb import set_trace; set_trace()
-  # env.sim.data.qpos[:, 0:3] = positions
-  # env.sim.data.qpos[:, 3:7] = orientations
-  # env.sim.data.qvel[:, 0:6] = velocities
-
   asset.write_root_pose_to_sim(
     torch.cat([positions, orientations], dim=-1), env_ids=env_ids
   )
@@ -80,9 +64,11 @@ def reset_joints_by_scale(
   velocity_range: tuple[float, float],
   asset_cfg: SceneEntityCfg = SceneEntityCfg(name="robot"),
 ):
-  asset: Robot = env.scene.entities[asset_cfg.name]
-  joint_pos = asset.data.default_joint_pos[env_ids, asset_cfg.joint_ids].clone()
-  joint_vel = asset.data.default_joint_vel[env_ids, asset_cfg.joint_ids].clone()
+  asset: Robot = env.scene[asset_cfg.name]
+  # joint_pos = asset.data.default_joint_pos[env_ids, asset_cfg.joint_ids].clone()
+  joint_pos = asset.data.default_joint_pos[env_ids][:, asset_cfg.joint_ids].clone()
+  # joint_vel = asset.data.default_joint_vel[env_ids, asset_cfg.joint_ids].clone()
+  joint_vel = asset.data.default_joint_vel[env_ids][:, asset_cfg.joint_ids].clone()
 
   joint_pos *= math_utils.sample_uniform(
     *position_range, joint_pos.shape, joint_pos.device
@@ -91,7 +77,7 @@ def reset_joints_by_scale(
     *velocity_range, joint_vel.shape, joint_vel.device
   )
 
-  joint_pos_limits = env.sim.model.jnt_range[:, 1:]
+  joint_pos_limits = asset.data.soft_joint_pos_limits[env_ids][:, asset_cfg.joint_ids]
   joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
 
   asset.write_joint_state_to_sim(

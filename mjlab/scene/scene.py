@@ -1,3 +1,5 @@
+from typing import Any, Sequence
+
 import mujoco
 import torch
 
@@ -9,6 +11,7 @@ from mjlab.utils.spec_editor.spec_editor_config import OptionCfg
 from mjlab.utils.spec_editor import spec_editor as common_editors
 from mjlab.entities.indexing import EntityIndexing, SceneIndexing
 from mjlab.utils.mujoco import dof_width, qpos_width
+from mjlab.sensors import SensorBase
 
 _BASE_XML = r"""
 <mujoco model="mjlab scene">
@@ -30,9 +33,12 @@ class Scene:
     self._cfg = scene_cfg
     self._spec = mujoco.MjSpec.from_string(_BASE_XML)
     self._entities: dict[str, entity.Entity] = {}
+    self._sensors: dict[str, SensorBase] = {}
     self._indexing: SceneIndexing = SceneIndexing()
+
     self._attach_terrains()
     self._attach_robots()
+    self._attach_sensors()
 
   # Attributes.
 
@@ -45,8 +51,26 @@ class Scene:
     return self._entities
 
   @property
+  def sensors(self) -> dict[str, SensorBase]:
+    return self._sensors
+
+  @property
   def indexing(self) -> SceneIndexing:
     return self._indexing
+
+  def __getitem__(self, key: str) -> Any:
+    all_keys = []
+    for asset_family in [
+      self._entities,
+      self._sensors,
+    ]:
+      out = asset_family.get(key)
+      if out is not None:
+        return out
+      all_keys += list(asset_family.keys())
+    raise KeyError(
+      f"Scene entity with key '{key}' not found. Available Entities: '{all_keys}'"
+    )
 
   # Methods.
 
@@ -60,18 +84,26 @@ class Scene:
   def configure_sim_options(self, cfg: OptionCfg) -> None:
     common_editors.OptionEditor(cfg).edit_spec(self._spec)
 
-  def initialize(self, model: mujoco.MjModel, data, device):
+  def initialize(self, model: mujoco.MjModel, data, device, wp_model):
     self._compute_indexing(model, device)
     for ent_name, ent in self._entities.items():
       ent.initialize(self.indexing.entities[ent_name], data, device)
+    for sens in self._sensors.values():
+      sens.initialize(
+        self.indexing.entities[sens.cfg.entity_name], model, data, device, wp_model
+      )
 
-  def reset(self):
+  def reset(self, env_ids: Sequence[int] | None = None):
     for ent in self._entities.values():
-      ent.reset()
+      ent.reset(env_ids)
+    for sns in self._sensors.values():
+      sns.reset(env_ids)
 
   def update(self, dt: float) -> None:
     for ent in self._entities.values():
       ent.update(dt)
+    for sns in self._sensors.values():
+      sns.update(dt=dt)
 
   def write_data_to_sim(self) -> None:
     for ent in self._entities.values():
@@ -92,6 +124,11 @@ class Scene:
       self._entities[rob_name] = rob
       frame = self._spec.worldbody.add_frame()
       self._spec.attach(rob.spec, prefix=f"{rob_name}/", frame=frame)
+
+  def _attach_sensors(self) -> None:
+    for sns_name, sns_cfg in self._cfg.sensors.items():
+      sns = sns_cfg.class_type(sns_cfg)
+      self._sensors[sns_name] = sns
 
   def _compute_indexing(self, model: mujoco.MjModel, device: str) -> None:
     for ent_name, ent in self._entities.items():

@@ -231,6 +231,7 @@ class SensorEditor(SpecEditor):
     "frameangvel": mujoco.mjtSensor.mjSENS_FRAMEANGVEL,
     "framezaxis": mujoco.mjtSensor.mjSENS_FRAMEZAXIS,
     "accelerometer": mujoco.mjtSensor.mjSENS_ACCELEROMETER,
+    "contact": mujoco.mjtSensor.mjSENS_CONTACT,
   }
 
   SENSOR_OBJECT_TYPE_MAP = {
@@ -240,12 +241,16 @@ class SensorEditor(SpecEditor):
   }
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    spec.add_sensor(
-      name=self.cfg.name,
-      type=self.SENSOR_TYPE_MAP[self.cfg.sensor_type],
-      objtype=self.SENSOR_OBJECT_TYPE_MAP[self.cfg.object_type],
-      objname=self.cfg.object_name,
-    )
+    kwargs = {
+      "type": self.SENSOR_TYPE_MAP[self.cfg.sensor_type],
+      "name": self.cfg.name,
+    }
+    if "objtype" in self.cfg.kwargs:
+      kwargs["objtype"] = self.SENSOR_OBJECT_TYPE_MAP[self.cfg.kwargs.pop("objtype")]
+    if "reftype" in self.cfg.kwargs:
+      kwargs["reftype"] = self.SENSOR_OBJECT_TYPE_MAP[self.cfg.kwargs.pop("reftype")]
+    kwargs.update(self.cfg.kwargs)
+    spec.add_sensor(**kwargs)
 
 
 CAM_LIGHT_MODE_MAP = {

@@ -94,55 +94,62 @@ class UniformVelocityCommand(CommandTerm):
     base_quat_w = self.robot.data.root_link_quat_w.clone()
     base_mat_w = matrix_from_quat(base_quat_w)
 
-    base_pos_w = base_pos_w[0].cpu().numpy()
-    base_mat_w = base_mat_w[0].cpu().numpy()
-    cmd = self.command[0].cpu().numpy()
-    lin_vel_b = self.robot.data.root_link_lin_vel_b[0].cpu().numpy()
-    ang_vel_b = self.robot.data.root_link_lin_vel_b[0].cpu().numpy()
+    base_pos_ws = base_pos_w.cpu().numpy()
+    base_mat_ws = base_mat_w.cpu().numpy()
+    cmds = self.command.cpu().numpy()
+    lin_vel_bs = self.robot.data.root_link_lin_vel_b.cpu().numpy()
+    ang_vel_bs = self.robot.data.root_link_lin_vel_b.cpu().numpy()
 
-    def local_to_world(vec: np.ndarray) -> np.ndarray:
-      return base_pos_w + base_mat_w @ vec
+    for batch in range(self.num_envs):
+      base_pos_w = base_pos_ws[batch]
+      base_mat_w = base_mat_ws[batch]
+      cmd = cmds[batch]
+      lin_vel_b = lin_vel_bs[batch]
+      ang_vel_b = ang_vel_bs[batch]
 
-    def make_arrow(
-      from_local: np.ndarray, to_local: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
-      return local_to_world(from_local), local_to_world(to_local)
+      def local_to_world(vec: np.ndarray) -> np.ndarray:
+        return base_pos_w + base_mat_w @ vec
 
-    def add_arrow(from_w, to_w, rgba, width=0.015, size=(0.005, 0.02, 0.02)):
-      scn.ngeom += 1
-      geom = scn.geoms[scn.ngeom - 1]
-      geom.category = mujoco.mjtCatBit.mjCAT_DECOR
+      def make_arrow(
+        from_local: np.ndarray, to_local: np.ndarray
+      ) -> tuple[np.ndarray, np.ndarray]:
+        return local_to_world(from_local), local_to_world(to_local)
 
-      mujoco.mjv_initGeom(
-        geom=geom,
-        type=mujoco.mjtGeom.mjGEOM_ARROW.value,
-        size=np.array(size, dtype=np.float32),
-        pos=np.zeros(3),
-        mat=np.zeros(9),
-        rgba=np.asarray(rgba, dtype=np.float32),
-      )
+      def add_arrow(from_w, to_w, rgba, width=0.015, size=(0.005, 0.02, 0.02)):
+        scn.ngeom += 1
+        geom = scn.geoms[scn.ngeom - 1]
+        geom.category = mujoco.mjtCatBit.mjCAT_DECOR
 
-      mujoco.mjv_connector(
-        geom=geom,
-        type=mujoco.mjtGeom.mjGEOM_ARROW.value,
-        width=width,
-        from_=from_w,
-        to=to_w,
-      )
+        mujoco.mjv_initGeom(
+          geom=geom,
+          type=mujoco.mjtGeom.mjGEOM_ARROW.value,
+          size=np.array(size, dtype=np.float32),
+          pos=np.zeros(3),
+          mat=np.zeros(9),
+          rgba=np.asarray(rgba, dtype=np.float32),
+        )
 
-    scale = 0.75
-    z_offset = 0.2
-    cmd_lin_from = np.array([0, 0, z_offset]) * scale
-    cmd_lin_to = cmd_lin_from + np.array([cmd[0], cmd[1], 0]) * scale
-    cmd_ang_from = cmd_lin_from
-    cmd_ang_to = cmd_ang_from + np.array([0, 0, cmd[2]]) * scale
-    add_arrow(*make_arrow(cmd_lin_from, cmd_lin_to), rgba=[0.2, 0.2, 0.6, 0.6])
-    add_arrow(*make_arrow(cmd_ang_from, cmd_ang_to), rgba=[0.2, 0.6, 0.2, 0.6])
+        mujoco.mjv_connector(
+          geom=geom,
+          type=mujoco.mjtGeom.mjGEOM_ARROW.value,
+          width=width,
+          from_=from_w,
+          to=to_w,
+        )
 
-    # Actual velocities.
-    act_lin_from = np.array([0, 0, z_offset]) * scale
-    act_lin_to = act_lin_from + np.array([lin_vel_b[0], lin_vel_b[1], 0]) * scale
-    act_ang_from = act_lin_from
-    act_ang_to = act_ang_from + np.array([0, 0, ang_vel_b[2]]) * scale
-    add_arrow(*make_arrow(act_lin_from, act_lin_to), rgba=[0.0, 0.6, 1.0, 0.7])
-    add_arrow(*make_arrow(act_ang_from, act_ang_to), rgba=[0.0, 1.0, 0.4, 0.7])
+      scale = 0.75
+      z_offset = 0.2
+      cmd_lin_from = np.array([0, 0, z_offset]) * scale
+      cmd_lin_to = cmd_lin_from + np.array([cmd[0], cmd[1], 0]) * scale
+      cmd_ang_from = cmd_lin_from
+      cmd_ang_to = cmd_ang_from + np.array([0, 0, cmd[2]]) * scale
+      add_arrow(*make_arrow(cmd_lin_from, cmd_lin_to), rgba=[0.2, 0.2, 0.6, 0.6])
+      add_arrow(*make_arrow(cmd_ang_from, cmd_ang_to), rgba=[0.2, 0.6, 0.2, 0.6])
+
+      # Actual velocities.
+      act_lin_from = np.array([0, 0, z_offset]) * scale
+      act_lin_to = act_lin_from + np.array([lin_vel_b[0], lin_vel_b[1], 0]) * scale
+      act_ang_from = act_lin_from
+      act_ang_to = act_ang_from + np.array([0, 0, ang_vel_b[2]]) * scale
+      add_arrow(*make_arrow(act_lin_from, act_lin_to), rgba=[0.0, 0.6, 1.0, 0.7])
+      add_arrow(*make_arrow(act_ang_from, act_ang_to), rgba=[0.0, 1.0, 0.4, 0.7])

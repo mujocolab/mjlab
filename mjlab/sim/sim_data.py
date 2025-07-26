@@ -1,7 +1,6 @@
 from typing import Any, Dict, Optional, Tuple
 import torch
 import warp as wp
-import mujoco_warp as mjwarp
 
 
 class TorchArray:
@@ -156,7 +155,7 @@ class WarpBridge:
   on access, enabling direct PyTorch operations on simulation data.
   """
 
-  def __init__(self, struct: mjwarp.Data | mjwarp.Model) -> None:
+  def __init__(self, struct: Any) -> None:
     super().__setattr__("struct", struct)
 
   def __getattr__(self, name: str) -> Any:
@@ -172,6 +171,8 @@ class WarpBridge:
     val = getattr(self.struct, name)
     if isinstance(val, wp.array):
       return TorchArray(val)
+    if name in ["contact", "efc"]:
+      return WarpBridge(val)
     return val
 
   def __setattr__(self, name: str, value: Any) -> None:

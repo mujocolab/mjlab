@@ -14,4 +14,5 @@ class SimulationCfg:
   device: str = "cuda:0"
   nconmax: int | None = None
   njmax: int | None = None
+  ls_parallel: bool = False
   mujoco: OptionCfg = field(default_factory=OptionCfg)

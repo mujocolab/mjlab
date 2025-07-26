@@ -49,7 +49,7 @@ class Entity(abc.ABC):
   def update(self, dt: float) -> None:
     pass
 
-  def reset(self):
+  def reset(self, env_ids: Sequence[int] | None = None):
     pass
 
   def write_data_to_sim(self) -> None:

@@ -48,6 +48,8 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
     print("[INFO] Reward Manager:", self.reward_manager)
     # curriculum manager
     # setup gym env spaces
+    if "startup" in self.event_manager.available_modes:
+      self.event_manager.apply(mode="startup")
 
   def step(self, action: torch.Tensor):
     self.action_manager.process_action(action.to(self.device))
@@ -68,10 +70,9 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
       self._reset_idx(reset_env_ids)
       self.scene.write_data_to_sim()
       self.sim.forward()
-      self.sim.data.qacc[:] = 0.0
-      print("after reset: ")
-      print(self.sim.data.qacc.max())
     self.command_manager.compute(dt=self.step_dt)
+    if "interval" in self.event_manager.available_modes:
+      self.event_manager.apply(mode="interval", dt=self.step_dt)
     self.obs_buf = self.observation_manager.compute()
     return (
       self.obs_buf,
@@ -82,7 +83,7 @@ class ManagerBasedRLEnv(ManagerBasedEnv):
     )
 
   def _reset_idx(self, env_ids: Sequence[int]) -> None:
-    # self.scene.reset(env_ids)
+    self.scene.reset(env_ids)
     if "reset" in self.event_manager.available_modes:
       env_step_count = self._sim_step_counter // self.cfg.decimation
       self.event_manager.apply(

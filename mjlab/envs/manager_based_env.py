@@ -32,7 +32,9 @@ class ManagerBasedEnv:
     self.sim = Simulation(cfg=self.cfg.sim, model=mjm)
     if "cuda" in self.device:
       torch.cuda.set_device(self.device)
-    self.scene.initialize(self.sim.mj_model, self.sim.data, self.device)
+    self.scene.initialize(
+      self.sim.mj_model, self.sim.data, self.device, self.sim.wp_model
+    )
 
     print("[INFO]: Base environment:")
     print(f"\tEnvironment device    : {self.device}")
@@ -87,7 +89,6 @@ class ManagerBasedEnv:
       self.seed(seed)
     self._reset_idx(env_ids)
     self.scene.write_data_to_sim()
-    # self.sim.data.qacc[:] = 0.0
     self.sim.forward()
     self.obs_buf = self.observation_manager.compute()
     return self.obs_buf, self.extras
@@ -103,6 +104,8 @@ class ManagerBasedEnv:
       self.scene.write_data_to_sim()
       self.sim.step()
       self.scene.update(dt=self.physics_dt)
+    if "interval" in self.event_manager.available_modes:
+      self.event_manager.apply(mode="interval", dt=self.step_dt)
     self.obs_buf = self.observation_manager.compute()
     return self.obs_buf, self.extras
 
@@ -125,7 +128,7 @@ class ManagerBasedEnv:
   # Private methods.
 
   def _reset_idx(self, env_ids: torch.Tensor) -> None:
-    # self.scene.reset(env_ids)
+    self.scene.reset(env_ids)
     if "reset" in self.event_manager.available_modes:
       env_step_count = self._sim_step_counter // self.cfg.decimation
       self.event_manager.apply(

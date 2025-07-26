@@ -106,9 +106,8 @@ FULL_COLLISION = CollisionCfg(
   priority={".*_foot_collision": 1},
   friction={".*_foot_collision": (0.6,)},
   solimp={".*_foot_collision": (0.9, 0.95, 0.023)},
-  # Circumvent https://github.com/google-deepmind/mujoco_warp/issues/521.
-  contype=0,
-  conaffinity=1,
+  contype=1,
+  conaffinity=0,
 )
 
 ##
@@ -122,19 +121,11 @@ GO1_ROBOT_CFG = RobotCfg(
     GO1_KNEE_ACTUATOR_CFG,
   ],
   sensors=[
-    SensorCfg("body_ang_vel", "gyro", "imu", "site"),
-    SensorCfg("body_lin_vel", "velocimeter", "imu", "site"),
-    SensorCfg("body_zaxis", "framezaxis", "imu", "site"),
+    SensorCfg(name="body_ang_vel", sensor_type="gyro", kwargs={"objname": "imu", "objtype": "site"}),
+    SensorCfg(name="body_lin_vel", sensor_type="velocimeter", kwargs={"objname": "imu", "objtype": "site"}),
+    SensorCfg(name="body_zaxis", sensor_type="framezaxis", kwargs={"objname": "imu", "objtype": "site"}),
   ],
   soft_joint_pos_limit_factor=0.95,
   collisions=[FULL_COLLISION,],
   spec_fn=get_spec,
 )
-
-
-if __name__ == "__main__":
-  from mjlab.entities.robots.robot import Robot
-  import mujoco.viewer
-
-  ent = Robot(GO1_ROBOT_CFG)
-  mujoco.viewer.launch(ent.compile())

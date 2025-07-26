@@ -59,5 +59,3 @@ class JointPositionAction(JointAction):
 
   def apply_actions(self):
     self._env.sim.set_ctrl(self._processed_actions, ctrl_ids=self._actuator_ids)
-    # from ipdb import set_trace; set_trace()
-    # self._asset.set_joint_position_target(self._processed_actions, joint_ids=self._joint_ids)

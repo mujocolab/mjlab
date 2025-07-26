@@ -28,3 +28,13 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
   - [ ] `VecEnv` wrapper
   - [ ] `train.py` and `play.py`
 - [ ] Observation history and modifiers
+- [ ] Add __str__ method for all important classes
+- [ ] Add some form of contact sensor and sensor API 
+
+## Debug
+
+### Reset warp cache
+
+```bash
+rm -r /home/kevin/.cache/warp
+```
