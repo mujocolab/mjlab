@@ -10,13 +10,13 @@ from mjlab.managers.manager_term_config import TerminationTermCfg
 from mjlab.utils.dataclasses import get_terms
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_rl_env import ManagerBasedRLEnv
+  from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
 
 
 class TerminationManager(ManagerBase):
-  _env: ManagerBasedRLEnv
+  _env: ManagerBasedRlEnv
 
-  def __init__(self, cfg: object, env: ManagerBasedRLEnv):
+  def __init__(self, cfg: object, env: ManagerBasedRlEnv):
     self._term_names: list[str] = list()
     self._term_cfgs: list[TerminationTermCfg] = list()
     self._class_term_cfgs: list[TerminationTermCfg] = list()

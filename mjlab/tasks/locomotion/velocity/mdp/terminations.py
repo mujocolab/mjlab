@@ -7,11 +7,11 @@ from mjlab.entities.robots.robot import Robot
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_rl_env import ManagerBasedRLEnv
+  from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
 
 
 def bad_orientation(
-  env: ManagerBasedRLEnv,
+  env: ManagerBasedRlEnv,
   threshold: float,
   asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ):

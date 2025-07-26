@@ -11,10 +11,11 @@ from mjlab.utils import random as random_utils
 from mjlab.managers.observation_manager import ObservationManager
 from mjlab.managers.action_manager import ActionManager
 from mjlab.managers.event_manager import EventManager
+from mjlab.envs import types
 
 
 class ManagerBasedEnv:
-  def __init__(self, cfg: ManagerBasedEnvCfg):
+  def __init__(self, cfg: ManagerBasedEnvCfg) -> None:
     self.cfg = cfg
     if self.cfg.seed is not None:
       self.cfg.seed = self.seed(self.cfg.seed)
@@ -81,7 +82,7 @@ class ManagerBasedEnv:
     seed: int | None = None,
     env_ids: Sequence[int] | None = None,
     options: dict[str, Any] | None = None,
-  ):
+  ) -> tuple[types.VecEnvObs, dict]:
     del options  # Unused.
     if env_ids is None:
       env_ids = torch.arange(self.num_envs, dtype=torch.int64, device=self.device)
@@ -96,7 +97,7 @@ class ManagerBasedEnv:
   def step(
     self,
     action: torch.Tensor,
-  ) -> tuple[Any, dict]:
+  ) -> tuple[types.VecEnvObs, dict]:
     self.action_manager.process_action(action.to(self.device))
     for _ in range(self.cfg.decimation):
       self._sim_step_counter += 1
@@ -109,6 +110,9 @@ class ManagerBasedEnv:
     self.obs_buf = self.observation_manager.compute()
     return self.obs_buf, self.extras
 
+  def close(self) -> None:
+    pass
+
   @staticmethod
   def seed(seed: int = -1) -> int:
     if seed == -1:
@@ -117,17 +121,13 @@ class ManagerBasedEnv:
     random_utils.seed_rng(seed)
     return seed
 
-  def close(self):
-    # TODO: Do i need to do something here?
-    pass
-
-  def update_visualizers(self, scn):
+  def update_visualizers(self, scn) -> None:
     for mod in self.manager_visualizers.values():
       mod.debug_vis(scn)
 
   # Private methods.
 
-  def _reset_idx(self, env_ids: torch.Tensor) -> None:
+  def _reset_idx(self, env_ids: Sequence[int]) -> None:
     self.scene.reset(env_ids)
     if "reset" in self.event_manager.available_modes:
       env_step_count = self._sim_step_counter // self.cfg.decimation

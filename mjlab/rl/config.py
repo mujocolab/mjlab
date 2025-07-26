@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Literal, Tuple
 
 
-@dataclass(frozen=True)
+@dataclass
 class RslRlPpoActorCriticCfg:
   """Config for the PPO actor-critic networks."""
 
@@ -24,7 +24,7 @@ class RslRlPpoActorCriticCfg:
   """Ignore, required by RSL-RL."""
 
 
-@dataclass(frozen=True)
+@dataclass
 class RslRlPpoAlgorithmCfg:
   """Config for the PPO algorithm."""
 
@@ -67,7 +67,7 @@ def _default_obs_groups():
   return {"policy": ["policy"], "critic": ["policy"]}
 
 
-@dataclass(frozen=True)
+@dataclass
 class RslRlBaseRunnerCfg:
   seed: int = 42
   """The seed for the experiment. Default is 42."""
@@ -98,9 +98,10 @@ class RslRlBaseRunnerCfg:
   """The checkpoint file to load. Default is "model_.*.pt" (all). If regex expression,
   the latest (alphabetical order) matching file will be loaded.
   """
+  clip_actions: float | None = None
 
 
-@dataclass(frozen=True)
+@dataclass
 class RslRlOnPolicyRunnerCfg(RslRlBaseRunnerCfg):
   class_name: str = "OnPolicyRunner"
   """The runner class name. Default is OnPolicyRunner."""
@@ -110,13 +111,3 @@ class RslRlOnPolicyRunnerCfg(RslRlBaseRunnerCfg):
 
   algorithm: RslRlPpoAlgorithmCfg = field(default_factory=RslRlPpoAlgorithmCfg)
   """The algorithm configuration."""
-
-
-if __name__ == "__main__":
-  from dataclasses import asdict
-
-  agent_cfg = RslRlOnPolicyRunnerCfg()
-  result = asdict(agent_cfg)
-  print("Keys in result:", list(result.keys()))
-  print("'algorithm' in result:", "algorithm" in result)
-  print("Type of result:", type(result))

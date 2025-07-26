@@ -14,5 +14,5 @@ class SimulationCfg:
   device: str = "cuda:0"
   nconmax: int | None = None
   njmax: int | None = None
-  ls_parallel: bool = False
+  ls_parallel: bool = True  # Boosts perf quite noticeably.
   mujoco: OptionCfg = field(default_factory=OptionCfg)

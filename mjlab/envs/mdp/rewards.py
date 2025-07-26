@@ -1,15 +1,19 @@
 """Useful methods for MPD rewards."""
 
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import torch
 
 from mjlab.managers.scene_entity_config import SceneEntityCfg
-from mjlab.envs.manager_based_rl_env import ManagerBasedRLEnv
 from mjlab.entities.robots.robot import Robot
 from mjlab.sensors import ContactSensor
 
+if TYPE_CHECKING:
+  from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
+
 
 def track_lin_vel_xy_exp(
-  env: ManagerBasedRLEnv,
+  env: ManagerBasedRlEnv,
   std: float,
   command_name: str,
   asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
@@ -27,7 +31,7 @@ def track_lin_vel_xy_exp(
 
 
 def track_ang_vel_z_exp(
-  env: ManagerBasedRLEnv,
+  env: ManagerBasedRlEnv,
   std: float,
   command_name: str,
   asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
@@ -42,7 +46,7 @@ def track_ang_vel_z_exp(
 
 
 def lin_vel_z_l2(
-  env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
   """Penalize z-axis base linear velocity using L2 squared kernel."""
   asset: Robot = env.scene[asset_cfg.name]
@@ -50,7 +54,7 @@ def lin_vel_z_l2(
 
 
 def ang_vel_xy_l2(
-  env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
   """Penalize xy-axis base angular velocity using L2 squared kernel."""
   asset: Robot = env.scene[asset_cfg.name]
@@ -58,7 +62,7 @@ def ang_vel_xy_l2(
 
 
 def flat_orientation_l2(
-  env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
   """Penalize non-flat base orientation using L2 squared kernel.
 
@@ -69,7 +73,7 @@ def flat_orientation_l2(
 
 
 def joint_torques_l2(
-  env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
   """Penalize joint torques applied on the articulation using L2 squared kernel.
 
@@ -80,7 +84,7 @@ def joint_torques_l2(
 
 
 def joint_acc_l2(
-  env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
   """Penalize joint accelerations on the articulation using L2 squared kernel.
 
@@ -90,7 +94,7 @@ def joint_acc_l2(
   return torch.sum(torch.square(asset.data.joint_acc[:, asset_cfg.joint_ids]), dim=1)
 
 
-def action_rate_l2(env: ManagerBasedRLEnv) -> torch.Tensor:
+def action_rate_l2(env: ManagerBasedRlEnv) -> torch.Tensor:
   """Penalize the rate of change of the actions using L2 squared kernel."""
   return torch.sum(
     torch.square(env.action_manager.action - env.action_manager.prev_action), dim=1
@@ -98,7 +102,7 @@ def action_rate_l2(env: ManagerBasedRLEnv) -> torch.Tensor:
 
 
 def joint_pos_limits(
-  env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
   """Penalize joint positions if they cross the soft limits.
 
@@ -115,7 +119,7 @@ def joint_pos_limits(
 
 
 def upright(
-  env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
   asset: Robot = env.scene[asset_cfg.name]
   projected_gravity = asset.data.projected_gravity_b
@@ -125,7 +129,7 @@ def upright(
 
 
 def posture(
-  env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
   asset: Robot = env.scene.entities[asset_cfg.name]
   error = torch.sum(
@@ -135,7 +139,7 @@ def posture(
 
 
 def undesired_contacts(
-  env: ManagerBasedRLEnv, threshold: float, sensor_cfg: SceneEntityCfg
+  env: ManagerBasedRlEnv, threshold: float, sensor_cfg: SceneEntityCfg
 ) -> torch.Tensor:
   """Penalize undesired contacts as the number of violations that are above a threshold."""
   contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]

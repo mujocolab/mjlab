@@ -13,7 +13,6 @@ class TorchArray:
   def __init__(self, wp_array: wp.array) -> None:
     """Initialize the tensor proxy with a Warp array."""
     self._wp_array = wp_array
-    # A torch.Tensor that shares memory with the Warp array.
     self._tensor = wp.to_torch(wp_array)
 
   def __repr__(self) -> str:
@@ -27,6 +26,7 @@ class TorchArray:
   def __setitem__(self, idx: Any, value: Any) -> None:
     """Set item(s) in the tensor using standard indexing."""
     self._tensor[idx] = value
+    # torch.cuda.synchronize()
 
   def __getattr__(self, name: str) -> Any:
     """Delegate attribute access to the underlying tensor."""

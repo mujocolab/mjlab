@@ -10,7 +10,7 @@ from mjlab.managers.manager_term_config import CommandTermCfg
 from mjlab.utils.dataclasses import get_terms
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_rl_env import ManagerBasedRLEnv
+  from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
 
 
 class CommandTerm(ManagerTermBase):
@@ -18,7 +18,7 @@ class CommandTerm(ManagerTermBase):
 
   cfg: CommandTermCfg
 
-  def __init__(self, cfg: CommandTermCfg, env: ManagerBasedRLEnv):
+  def __init__(self, cfg: CommandTermCfg, env: ManagerBasedRlEnv):
     super().__init__(cfg, env)
 
     self.metrics = dict()
@@ -83,9 +83,9 @@ class CommandTerm(ManagerTermBase):
 
 
 class CommandManager(ManagerBase):
-  _env: ManagerBasedRLEnv
+  _env: ManagerBasedRlEnv
 
-  def __init__(self, cfg: object, env: ManagerBasedRLEnv):
+  def __init__(self, cfg: object, env: ManagerBasedRlEnv):
     self._terms: dict[str, CommandTerm] = dict()
 
     super().__init__(cfg, env)

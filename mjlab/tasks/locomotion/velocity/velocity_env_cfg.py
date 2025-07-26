@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 
 from mjlab.scene.scene_config import SceneCfg
-from mjlab.asset_zoo.robots.unitree_go1.go1_constants import GO1_ROBOT_CFG
 from mjlab.asset_zoo.terrains.flat_terrain import FLAT_TERRAIN_CFG
 from mjlab.utils.spec_editor.spec_editor_config import TextureCfg, LightCfg
 
@@ -11,22 +10,13 @@ from mjlab.managers.manager_term_config import ActionTermCfg as ActionTerm
 from mjlab.managers.manager_term_config import RewardTermCfg as RewardTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
-from mjlab.envs.mdp import (
-  observations,
-  actions,
-  terminations,
-  events,
-  commands,
-  rewards,
-)
 from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
 from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 from mjlab.sensors import ContactSensorCfg
 import math
-
-from mjlab.tasks.mdp import rewards as custom_rewards
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
+from mjlab.tasks.locomotion.velocity import mdp
 
 
 ##
@@ -51,7 +41,6 @@ terrain_cfg.lights.append(
 
 SCENE_CFG = SceneCfg(
   terrains={"floor": FLAT_TERRAIN_CFG},
-  robots={"robot": GO1_ROBOT_CFG},
   sensors={
     "contact_forces": ContactSensorCfg(
       entity_name="robot",
@@ -78,10 +67,10 @@ SCENE_CFG = SceneCfg(
 @dataclass
 class ActionCfg:
   joint_pos: ActionTerm = term(
-    actions.JointPositionActionCfg,
+    mdp.JointPositionActionCfg,
     asset_name="robot",
     actuator_names=[".*"],
-    scale=0.25,
+    scale=0.5,
     use_default_offset=True,
   )
 
@@ -91,8 +80,8 @@ class ActionCfg:
 
 @dataclass
 class CommandsCfg:
-  base_velocity: commands.UniformVelocityCommandCfg = term(
-    commands.UniformVelocityCommandCfg,
+  base_velocity: mdp.UniformVelocityCommandCfg = term(
+    mdp.UniformVelocityCommandCfg,
     asset_name="robot",
     resampling_time_range=(10.0, 10.0),
     rel_standing_envs=0.02,
@@ -100,7 +89,7 @@ class CommandsCfg:
     heading_command=True,
     heading_control_stiffness=0.5,
     debug_vis=True,
-    ranges=commands.UniformVelocityCommandCfg.Ranges(
+    ranges=mdp.UniformVelocityCommandCfg.Ranges(
       lin_vel_x=(-1.0, 1.0),
       lin_vel_y=(-1.0, 1.0),
       ang_vel_z=(-1.0, 1.0),
@@ -118,36 +107,36 @@ class ObservationCfg:
   class PolicyCfg(ObsGroup):
     base_lin_vel: ObsTerm = term(
       ObsTerm,
-      func=observations.base_lin_vel,
+      func=mdp.base_lin_vel,
       noise=Unoise(n_min=-0.1, n_max=0.1),
     )
     base_ang_vel: ObsTerm = term(
       ObsTerm,
-      func=observations.base_ang_vel,
+      func=mdp.base_ang_vel,
       noise=Unoise(n_min=-0.2, n_max=0.2),
     )
     projected_gravity: ObsTerm = term(
       ObsTerm,
-      func=observations.projected_gravity,
+      func=mdp.projected_gravity,
       noise=Unoise(n_min=-0.05, n_max=0.05),
     )
     joint_pos: ObsTerm = term(
       ObsTerm,
-      func=observations.joint_pos_rel,
+      func=mdp.joint_pos_rel,
       noise=Unoise(n_min=-0.01, n_max=0.01),
     )
     joint_vel: ObsTerm = term(
       ObsTerm,
-      func=observations.joint_vel,
+      func=mdp.joint_vel,
       noise=Unoise(n_min=-1.5, n_max=1.5),
     )
     actions: ObsTerm = term(
       ObsTerm,
-      func=observations.last_action,
+      func=mdp.last_action,
     )
     velocity_commands: ObsTerm = term(
       ObsTerm,
-      func=observations.generated_commands,
+      func=mdp.generated_commands,
       params={"command_name": "base_velocity"},
     )
 
@@ -165,7 +154,7 @@ class ObservationCfg:
 class EventCfg:
   reset_base: EventTerm = term(
     EventTerm,
-    func=events.reset_root_state_uniform,
+    func=mdp.reset_root_state_uniform,
     mode="reset",
     params={
       "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
@@ -181,7 +170,7 @@ class EventCfg:
   )
   reset_robot_joints: EventTerm = term(
     EventTerm,
-    func=events.reset_joints_by_scale,
+    func=mdp.reset_joints_by_scale,
     mode="reset",
     params={
       "position_range": (1.0, 1.0),
@@ -199,37 +188,33 @@ class RewardCfg:
   # Task.
   track_lin_vel_xy_exp: RewardTerm = term(
     RewardTerm,
-    func=rewards.track_lin_vel_xy_exp,
+    func=mdp.track_lin_vel_xy_exp,
     weight=1.5,
     params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
   )
   track_ang_vel_z_exp: RewardTerm = term(
     RewardTerm,
-    func=rewards.track_ang_vel_z_exp,
+    func=mdp.track_ang_vel_z_exp,
     weight=0.75,
     params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
   )
   # Penalties.
-  lin_vel_z_l2: RewardTerm = term(RewardTerm, func=rewards.lin_vel_z_l2, weight=-2.0)
-  ang_vel_xy_l2: RewardTerm = term(RewardTerm, func=rewards.ang_vel_xy_l2, weight=-0.05)
+  lin_vel_z_l2: RewardTerm = term(RewardTerm, func=mdp.lin_vel_z_l2, weight=-2.0)
+  ang_vel_xy_l2: RewardTerm = term(RewardTerm, func=mdp.ang_vel_xy_l2, weight=-0.05)
   dof_torques_l2: RewardTerm = term(
     RewardTerm,
-    func=rewards.joint_torques_l2,
+    func=mdp.joint_torques_l2,
     weight=-0.0002,
   )
-  dof_acc_l2: RewardTerm = term(RewardTerm, func=rewards.joint_acc_l2, weight=-2.5e-7)
-  action_rate_l2: RewardTerm = term(
-    RewardTerm, func=rewards.action_rate_l2, weight=-0.01
-  )
+  dof_acc_l2: RewardTerm = term(RewardTerm, func=mdp.joint_acc_l2, weight=-2.5e-7)
+  action_rate_l2: RewardTerm = term(RewardTerm, func=mdp.action_rate_l2, weight=-0.01)
   flat_orientation_l2: RewardTerm = term(
-    RewardTerm, func=rewards.flat_orientation_l2, weight=-2.5
+    RewardTerm, func=mdp.flat_orientation_l2, weight=-2.5
   )
-  dof_pos_limits: RewardTerm = term(
-    RewardTerm, func=rewards.joint_pos_limits, weight=0.0
-  )
+  dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=0.0)
   feet_air_time: RewardTerm = term(
     RewardTerm,
-    func=custom_rewards.feet_air_time,
+    func=mdp.feet_air_time,
     weight=0.25,
     params={
       "sensor_cfg": SceneEntityCfg("feet_contact_forces"),
@@ -237,12 +222,15 @@ class RewardCfg:
       "threshold": 0.5,
     },
   )
-  # undesired_contacts: RewardTerm = term(
-  #   RewardTerm,
-  #   func=rewards.undesired_contacts,
-  #   weight=-1.0,
-  #   params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*thigh"), "threshold": 1.0},
-  # )
+  undesired_contacts: RewardTerm = term(
+    RewardTerm,
+    func=mdp.undesired_contacts,
+    weight=-1.0,
+    params={
+      "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*thigh"),
+      "threshold": 1.0,
+    },
+  )
 
 
 # Terminations.
@@ -250,10 +238,10 @@ class RewardCfg:
 
 @dataclass
 class TerminationCfg:
-  time_out: DoneTerm = term(DoneTerm, func=terminations.time_out, time_out=True)
+  time_out: DoneTerm = term(DoneTerm, func=mdp.time_out, time_out=True)
   base_contact: DoneTerm = term(
     DoneTerm,
-    func=terminations.illegal_contact,
+    func=mdp.illegal_contact,
     params={
       "sensor_cfg": SceneEntityCfg("contact_forces", body_names="trunk"),
       "threshold": 1.0,
@@ -273,11 +261,9 @@ class CurriculumCfg:
 # Environment.
 ##
 
-# Put everything together.
-
 
 @dataclass
-class Go1LocomotionFlatEnvCfg(ManagerBasedRlEnvCfg):
+class LocomotionVelocityFlatEnvCfg(ManagerBasedRlEnvCfg):
   scene: SceneCfg = field(default_factory=lambda: SCENE_CFG)
   observations: ObservationCfg = field(default_factory=ObservationCfg)
   actions: ActionCfg = field(default_factory=ActionCfg)
@@ -294,43 +280,6 @@ class Go1LocomotionFlatEnvCfg(ManagerBasedRlEnvCfg):
     self.sim.mujoco.timestep = 0.005
     self.sim.mujoco.iterations = 10
     self.sim.mujoco.ls_iterations = 20
-    self.sim.ls_parallel = False
     self.sim.num_envs = 1
-    self.sim.nconmax = 32768
+    self.sim.nconmax = 40000
     self.sim.njmax = 75
-
-
-# if __name__ == "__main__":
-#   from mjlab.envs import ManagerBasedRLEnv
-#   import torch
-#   import mujoco_warp as mjwarp
-#   import mujoco
-#   from mjlab.scene import Scene
-
-#   env_cfg = Go1LocomotionFlatEnvCfg()
-
-#   # scn = Scene(env_cfg.scene)
-
-#   # mjm = scn.compile()
-#   # mjd = mujoco.MjData(mjm)
-#   # mujoco.mj_resetDataKeyframe(mjm, mjd, 0)
-#   # mujoco.mj_forward(mjm, mjd)
-
-#   # wp_model = mjwarp.put_model(mjm)
-
-#   # from ipdb import set_trace; set_trace()
-
-#   # self._wp_data = mjwarp.put_data(
-#   #   self._mj_model,
-#   #   self._mj_data,
-#   #   nworld=self.cfg.num_envs,
-#   #   nconmax=self.cfg.nconmax,
-#   #   njmax=self.cfg.njmax,
-#   # )
-
-#   env = ManagerBasedRLEnv(cfg=env_cfg)
-
-#   obs, extras = env.reset()
-
-#   action = torch.zeros((env.num_envs, env.action_manager.total_action_dim))
-#   ret = env.step(action)

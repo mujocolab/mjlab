@@ -10,7 +10,7 @@ from mjlab.entities.robots.robot import Robot
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_env import ManagerBasedEnv
-  from mjlab.envs.manager_based_rl_env import ManagerBasedRLEnv
+  from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
 
 ##
 # Root state.
@@ -76,5 +76,5 @@ def last_action(env: ManagerBasedEnv, action_name: str | None = None) -> torch.T
 ##
 
 
-def generated_commands(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
+def generated_commands(env: ManagerBasedRlEnv, command_name: str) -> torch.Tensor:
   return env.command_manager.get_command(command_name)

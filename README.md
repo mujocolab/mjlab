@@ -24,12 +24,14 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 ## TODO
 
 - [ ] Domain randomization
-- [ ] `rsl_rl` integration
-  - [ ] `VecEnv` wrapper
-  - [ ] `train.py` and `play.py`
 - [ ] Observation history and modifiers
+- [ ] Add rendering
+- [ ] `rsl_rl` integration
+  - [x] `VecEnv` wrapper
+  - [ ] `train.py` and `play.py`
 - [ ] Add __str__ method for all important classes
-- [ ] Add some form of contact sensor and sensor API 
+- [x] Add some form of contact sensor and sensor API
+- [x] Inherit from gym
 
 ## Debug
 

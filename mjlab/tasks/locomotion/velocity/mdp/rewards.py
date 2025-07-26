@@ -6,11 +6,11 @@ from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensors import ContactSensor
 
 if TYPE_CHECKING:
-  from mjlab.envs import ManagerBasedRLEnv
+  from mjlab.envs import ManagerBasedRlEnv
 
 
 def feet_air_time(
-  env: ManagerBasedRLEnv,
+  env: ManagerBasedRlEnv,
   command_name: str,
   sensor_cfg: SceneEntityCfg,
   threshold: float,

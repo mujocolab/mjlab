@@ -1,11 +1,13 @@
-import torch
-import mujoco.viewer
-import time
 import onnxruntime as rt
 import numpy as np
+import mujoco
+import mujoco.viewer
+import torch
+import time
 
-from mjlab.tasks.go1_locomotion import Go1LocomotionFlatEnvCfg
-from mjlab.envs import ManagerBasedRLEnv
+from mjlab.tasks.utils.parse_cfg import load_cfg_from_registry
+import gymnasium as gym
+# from mjlab.tasks.locomotion.velocity.config.go1.flat_env_cfg import UnitreeGo1FlatEnvCfg
 
 
 class Controller:
@@ -24,15 +26,16 @@ class Controller:
 
 
 if __name__ == "__main__":
-  env_cfg = Go1LocomotionFlatEnvCfg()
-  env_cfg.observations.policy.enable_corruption = False
+  task_name = "Mjlab-Velocity-Flat-Unitree-Go1-v0"
+
+  env_cfg = load_cfg_from_registry(task_name, "env_cfg_entry_point")
   env_cfg.sim.num_envs = 1
-  env = ManagerBasedRLEnv(cfg=env_cfg)
+  env_cfg.observations.policy.enable_corruption = False
 
-  mjm = env.sim.mj_model
-  mjd = env.sim.mj_data
+  env = gym.make(task_name, cfg=env_cfg)
 
-  # from ipdb import set_trace; set_trace()
+  mjm = env.unwrapped.sim.mj_model
+  mjd = env.unwrapped.sim.mj_data
 
   vd = mujoco.MjData(mjm)
   pert = mujoco.MjvPerturb()
@@ -40,18 +43,20 @@ if __name__ == "__main__":
   catmask = mujoco.mjtCatBit.mjCAT_DYNAMIC
 
   def copy_env_to_viewer():
-    mjd.qpos[:] = env.sim.data.qpos[0].cpu().numpy()
-    mjd.qvel[:] = env.sim.data.qvel[0].cpu().numpy()
+    mjd.qpos[:] = env.unwrapped.sim.data.qpos[0].cpu().numpy()
+    mjd.qvel[:] = env.unwrapped.sim.data.qvel[0].cpu().numpy()
     mujoco.mj_forward(mjm, mjd)
 
   def copy_viewer_to_env():
-    xfrc_applied = torch.tensor(mjd.xfrc_applied, dtype=torch.float, device=env.device)
-    env.sim.data.xfrc_applied[:] = xfrc_applied[None]
+    xfrc_applied = torch.tensor(
+      mjd.xfrc_applied, dtype=torch.float, device=env.unwrapped.device
+    )
+    env.unwrapped.sim.data.xfrc_applied[:] = xfrc_applied[None]
 
   @torch.no_grad()
   def get_zero_action():
     return torch.rand(
-      (env.num_envs, env.action_manager.total_action_dim),
+      (env.unwrapped.num_envs, env.unwrapped.action_manager.total_action_dim),
       device="cuda:0",
     )
 
@@ -63,13 +68,13 @@ if __name__ == "__main__":
   def key_callback(key: int) -> None:
     if key == KEY_ENTER:
       print("RESET KEY DETECTED")
-      env.reset()
+      env.unwrapped.reset()
 
   controller = Controller()
 
   viewer = mujoco.viewer.launch_passive(mjm, mjd, key_callback=key_callback)
   with viewer:
-    obs, extras = env.reset()
+    obs, extras = env.unwrapped.reset()
     copy_env_to_viewer()
 
     last_frame_time = time.perf_counter()
@@ -81,14 +86,15 @@ if __name__ == "__main__":
       copy_viewer_to_env()
 
       action = controller(obs)
-      obs, reward, *_ = env.step(torch.tensor(action, device=env.device))
-      # print(reward)
+      obs, reward, *_ = env.unwrapped.step(
+        torch.tensor(action, device=env.unwrapped.device)
+      )
 
       viewer.user_scn.ngeom = 0
-      env.update_visualizers(viewer.user_scn)
-      for i in range(1, env.num_envs):
-        vd.qpos[:] = env.sim.data.qpos[i].cpu().numpy()
-        vd.qvel[:] = env.sim.data.qvel[i].cpu().numpy()
+      env.unwrapped.update_visualizers(viewer.user_scn)
+      for i in range(1, env.unwrapped.num_envs):
+        vd.qpos[:] = env.unwrapped.sim.data.qpos[i].cpu().numpy()
+        vd.qvel[:] = env.unwrapped.sim.data.qvel[i].cpu().numpy()
         mujoco.mj_forward(mjm, vd)
         mujoco.mjv_addGeoms(mjm, vd, vopt, pert, catmask, viewer.user_scn)
 

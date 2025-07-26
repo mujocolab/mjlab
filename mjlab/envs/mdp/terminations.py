@@ -1,19 +1,23 @@
 """Useful methods for MPD terminations."""
 
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import torch
 
-from mjlab.envs.manager_based_rl_env import ManagerBasedRLEnv
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensors.contact_sensor.contact_sensor import ContactSensor
 
+if TYPE_CHECKING:
+  from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
 
-def time_out(env: ManagerBasedRLEnv) -> torch.Tensor:
+
+def time_out(env: ManagerBasedRlEnv) -> torch.Tensor:
   """Terminate when the episode length exceeds its maximum."""
   return env.episode_length_buf >= env.max_episode_length
 
 
 def illegal_contact(
-  env: ManagerBasedRLEnv, threshold: float, sensor_cfg: SceneEntityCfg
+  env: ManagerBasedRlEnv, threshold: float, sensor_cfg: SceneEntityCfg
 ) -> torch.Tensor:
   """Terminate when the contact force on the sensor exceeds the force threshold."""
   contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
