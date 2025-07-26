@@ -26,10 +26,6 @@ class RslRlVecEnvWrapper(VecEnv):
     """Returns the string representation of the wrapper."""
     return str(self)
 
-  """
-    Properties -- Gym.Wrapper
-    """
-
   @property
   def cfg(self) -> object:
     """Returns the configuration class instance of the environment."""
@@ -48,10 +44,6 @@ class RslRlVecEnvWrapper(VecEnv):
     """
     return self.env
 
-  """
-    Properties
-    """
-
   @property
   def episode_length_buf(self) -> torch.Tensor:
     """The episode length buffer."""
@@ -65,10 +57,6 @@ class RslRlVecEnvWrapper(VecEnv):
         This is needed to perform random initialization of episode lengths in RSL-RL.
     """
     self.unwrapped.episode_length_buf = value
-
-  """
-    Operations - MDP
-    """
 
   def seed(self, seed: int = -1) -> int:  # noqa: D102
     return self.unwrapped.seed(seed)

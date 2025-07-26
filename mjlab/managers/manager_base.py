@@ -81,6 +81,7 @@ class ManagerBase(abc.ABC):
     raise NotImplementedError
 
   def _resolve_common_term_cfg(self, term_name: str, term_cfg: ManagerTermBaseCfg):
+    # TODO: Double check.
     for key, value in term_cfg.params.items():
       if isinstance(value, SceneEntityCfg):
         # value.resolve(self._env.sim.mj_model)

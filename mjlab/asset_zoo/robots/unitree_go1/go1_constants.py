@@ -99,7 +99,6 @@ FEET_ONLY_COLLISION = CollisionCfg(
 
 # This enables all collisions, excluding self collisions.
 # Foot collisions are given custom condim, friction and solimp.
-# NOTE(kevin): mjwarp hangs when I enable self collisions.
 FULL_COLLISION = CollisionCfg(
   geom_names_expr=[".*_collision"],
   condim={".*_foot_collision": 3},

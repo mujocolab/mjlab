@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import torch
 from typing import TYPE_CHECKING, Sequence
-
+from prettytable import PrettyTable
 from mjlab.managers.manager_base import ManagerBase
 from mjlab.managers.manager_term_config import EventTermCfg
 
@@ -16,7 +16,32 @@ class EventManager(ManagerBase):
   _env: ManagerBasedEnv
 
   def __init__(self, cfg: object, env: ManagerBasedEnv):
+    self._mode_term_names: dict[str, list[str]] = dict()
+    self._mode_term_cfgs: dict[str, list[EventTermCfg]] = dict()
+    self._mode_class_term_cfgs: dict[str, list[EventTermCfg]] = dict()
+
     super().__init__(cfg=cfg, env=env)
+
+  def __str__(self) -> str:
+    msg = f"<EventManager> contains {len(self._mode_term_names)} active terms.\n"
+    for mode in self._mode_term_names:
+      table = PrettyTable()
+      table.title = f"Active Event Terms in Mode: '{mode}'"
+      if mode == "interval":
+        table.field_names = ["Index", "Name", "Interval time range (s)"]
+        table.align["Name"] = "l"
+        for index, (name, cfg) in enumerate(
+          zip(self._mode_term_names[mode], self._mode_term_cfgs[mode])
+        ):
+          table.add_row([index, name, cfg.interval_range_s])
+      else:
+        table.field_names = ["Index", "Name"]
+        table.align["Name"] = "l"
+        for index, name in enumerate(self._mode_term_names[mode]):
+          table.add_row([index, name])
+      msg += table.get_string()
+      msg += "\n"
+    return msg
 
   # Properties.
 
@@ -48,7 +73,7 @@ class EventManager(ManagerBase):
 
     for index, term_cfg in enumerate(self._mode_term_cfgs[mode]):
       if mode == "interval":
-        pass
+        del dt
       elif mode == "reset":
         min_step_count = term_cfg.min_step_count_between_reset
         if env_ids is None:
@@ -79,9 +104,6 @@ class EventManager(ManagerBase):
         term_cfg.func(self._env, env_ids, **term_cfg.params)
 
   def _prepare_terms(self):
-    self._mode_term_names: dict[str, list[str]] = dict()
-    self._mode_term_cfgs: dict[str, list[EventTermCfg]] = dict()
-    self._mode_class_term_cfgs: dict[str, list[EventTermCfg]] = dict()
     self._interval_term_time_left: list[torch.Tensor] = list()
     self._reset_term_last_triggered_step_id: list[torch.Tensor] = list()
     self._reset_term_last_triggered_once: list[torch.Tensor] = list()

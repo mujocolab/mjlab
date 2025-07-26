@@ -2,7 +2,7 @@ from __future__ import annotations
 import abc
 
 from typing import TYPE_CHECKING, Sequence
-
+from prettytable import PrettyTable
 import torch
 
 from mjlab.managers.manager_base import ManagerBase, ManagerTermBase
@@ -86,8 +86,23 @@ class CommandManager(ManagerBase):
   _env: ManagerBasedRLEnv
 
   def __init__(self, cfg: object, env: ManagerBasedRLEnv):
+    self._terms: dict[str, CommandTerm] = dict()
+
     super().__init__(cfg, env)
+
     self._commands = dict()
+
+  def __str__(self) -> str:
+    msg = f"<CommandManager> contains {len(self._terms.values())} active terms.\n"
+    table = PrettyTable()
+    table.title = "Active Command Terms"
+    table.field_names = ["Index", "Name", "Type"]
+    table.align["Name"] = "l"
+    for index, (name, term) in enumerate(self._terms.items()):
+      table.add_row([index, name, term.__class__.__name__])
+    msg += table.get_string()
+    msg += "\n"
+    return msg
 
   def debug_vis(self, scn):
     for term in self._terms.values():
@@ -130,7 +145,6 @@ class CommandManager(ManagerBase):
     return self._terms[name]
 
   def _prepare_terms(self):
-    self._terms: dict[str, CommandTerm] = dict()
     cfg_items = get_terms(self.cfg, CommandTermCfg).items()
     for term_name, term_cfg in cfg_items:
       if term_cfg is None:

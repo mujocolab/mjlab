@@ -2,7 +2,7 @@ from __future__ import annotations
 import abc
 
 from typing import TYPE_CHECKING, Sequence
-
+from prettytable import PrettyTable
 import torch
 
 from mjlab.managers.manager_base import ManagerBase, ManagerTermBase
@@ -16,10 +16,11 @@ if TYPE_CHECKING:
 class ActionTerm(ManagerTermBase):
   """Base class for action terms."""
 
+  cfg: ActionTermCfg
+
   def __init__(self, cfg: ActionTermCfg, env: ManagerBasedEnv):
-    self.cfg = cfg
-    self._env = env
-    self._asset = self._env.scene.entities[self.cfg.asset_name]
+    super().__init__(cfg, env)
+    self._asset = self._env.scene[self.cfg.asset_name]
 
   @property
   @abc.abstractmethod
@@ -44,6 +45,19 @@ class ActionManager(ManagerBase):
       (self.num_envs, self.total_action_dim), device=self.device
     )
     self._prev_action = torch.zeros_like(self._action)
+
+  def __str__(self) -> str:
+    msg = f"<ActionManager> contains {len(self._term_names)} active terms.\n"
+    table = PrettyTable()
+    table.title = f"Active Action Terms (shape: {self.total_action_dim})"
+    table.field_names = ["Index", "Name", "Dimension"]
+    table.align["Name"] = "l"
+    table.align["Dimension"] = "r"
+    for index, (name, term) in enumerate(self._terms.items()):
+      table.add_row([index, name, term.action_dim])
+    msg += table.get_string()
+    msg += "\n"
+    return msg
 
   # Properties.
 
@@ -84,11 +98,12 @@ class ActionManager(ManagerBase):
     return {}
 
   def process_action(self, action: torch.Tensor) -> None:
-    # Check if action dimension is valid.
-    # Store the input actions.
+    if self.total_action_dim != action.shape[1]:
+      raise ValueError(
+        f"Invalid action shape, expected: {self.total_action_dim}, received: {action.shape[1]}."
+      )
     self._prev_action[:] = self._action
     self._action[:] = action.to(self.device)
-
     # Split and apply.
     idx = 0
     for term in self._terms.values():

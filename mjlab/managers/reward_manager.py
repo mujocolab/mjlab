@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import torch
 
+from prettytable import PrettyTable
 from typing import TYPE_CHECKING, Sequence
 from mjlab.managers.manager_base import ManagerBase, ManagerTermBase
 from mjlab.managers.manager_term_config import RewardTermCfg
@@ -16,6 +17,10 @@ class RewardManager(ManagerBase):
   _env: ManagerBasedRLEnv
 
   def __init__(self, cfg: object, env: ManagerBasedRLEnv):
+    self._term_names: list[str] = list()
+    self._term_cfgs: list[RewardTermCfg] = list()
+    self._class_term_cfgs: list[RewardTermCfg] = list()
+
     super().__init__(cfg=cfg, env=env)
 
     self._episode_sums = dict()
@@ -27,6 +32,19 @@ class RewardManager(ManagerBase):
     self._step_reward = torch.zeros(
       (self.num_envs, len(self._term_names)), dtype=torch.float, device=self.device
     )
+
+  def __str__(self) -> str:
+    msg = f"<RewardManager> contains {len(self._term_names)} active terms.\n"
+    table = PrettyTable()
+    table.title = "Active Reward Terms"
+    table.field_names = ["Index", "Name", "Weight"]
+    table.align["Name"] = "l"
+    table.align["Weight"] = "r"
+    for index, (name, term_cfg) in enumerate(zip(self._term_names, self._term_cfgs)):
+      table.add_row([index, name, term_cfg.weight])
+    msg += table.get_string()
+    msg += "\n"
+    return msg
 
   # Properties.
 
@@ -69,10 +87,6 @@ class RewardManager(ManagerBase):
     return terms
 
   def _prepare_terms(self):
-    self._term_names: list[str] = list()
-    self._term_cfgs: list[RewardTermCfg] = list()
-    self._class_term_cfgs: list[RewardTermCfg] = list()
-
     cfg_items = get_terms(self.cfg, RewardTermCfg).items()
     for term_name, term_cfg in cfg_items:
       term_cfg: RewardTermCfg
