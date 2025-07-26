@@ -37,7 +37,6 @@ class Robot(entity.Entity):
         continue
       self.actuator_to_joint[actuator.name] = actuator.target
     self.joint_actuators = list(self.actuator_to_joint.values())
-    self.joint_actuators = list(self.actuator_to_joint.values())
 
   # Attributes.
 
@@ -145,6 +144,12 @@ class Robot(entity.Entity):
   def update(self, dt: float) -> None:
     self._data.update(dt)
 
+  def reset(self, env_ids: Sequence[int] | None = None):
+    pass
+
+  def write_data_to_sim(self) -> None:
+    pass
+
   @property
   def data(self) -> RobotData:
     return self._data
@@ -218,20 +223,6 @@ class Robot(entity.Entity):
       env_ids = env_ids[:, None]
     v_slice = self._data.indexing.joint_v_adr[joint_ids]
     self._data.data.qvel[env_ids, v_slice] = velocity
-
-  def set_joint_position_target(
-    self,
-    target: torch.Tensor,
-    joint_ids: Sequence[int] | slice | None = None,
-    env_ids: Sequence[int] | None = None,
-  ):
-    if env_ids is None:
-      env_ids = slice(None)
-    if joint_ids is None:
-      joint_ids = slice(None)
-    if env_ids != slice(None):
-      env_ids = env_ids[:, None]
-    self._data.joint_pos_target[env_ids, joint_ids] = target
 
   # Private methods.
 

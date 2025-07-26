@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 
 class SensorBase(abc.ABC):
   def __init__(self, cfg: SensorBaseCfg):
+    if cfg.history_length < 0:
+      raise ValueError(f"History length must be >= 0, got {cfg.history_length}")
     self.cfg = cfg
 
   def initialize(

@@ -56,7 +56,6 @@ SCENE_CFG = SceneCfg(
     "contact_forces": ContactSensorCfg(
       entity_name="robot",
       history_length=0,
-      track_air_time=False,
       filter_expr=[".*"],
     ),
     "feet_contact_forces": ContactSensorCfg(
@@ -82,7 +81,7 @@ class ActionCfg:
     actions.JointPositionActionCfg,
     asset_name="robot",
     actuator_names=[".*"],
-    scale=0.5,
+    scale=0.25,
     use_default_offset=True,
   )
 
@@ -216,12 +215,14 @@ class RewardCfg:
   dof_torques_l2: RewardTerm = term(
     RewardTerm,
     func=rewards.joint_torques_l2,
-    weight=0.0,
+    weight=-0.0002,
   )
-  dof_acc_l2: RewardTerm = term(RewardTerm, func=rewards.joint_acc_l2, weight=0.0)
-  action_rate_l2: RewardTerm = term(RewardTerm, func=rewards.action_rate_l2, weight=0.0)
+  dof_acc_l2: RewardTerm = term(RewardTerm, func=rewards.joint_acc_l2, weight=-2.5e-7)
+  action_rate_l2: RewardTerm = term(
+    RewardTerm, func=rewards.action_rate_l2, weight=-0.01
+  )
   flat_orientation_l2: RewardTerm = term(
-    RewardTerm, func=rewards.flat_orientation_l2, weight=-5.0
+    RewardTerm, func=rewards.flat_orientation_l2, weight=-2.5
   )
   dof_pos_limits: RewardTerm = term(
     RewardTerm, func=rewards.joint_pos_limits, weight=0.0
@@ -229,13 +230,19 @@ class RewardCfg:
   feet_air_time: RewardTerm = term(
     RewardTerm,
     func=custom_rewards.feet_air_time,
-    weight=0.01,
+    weight=0.25,
     params={
       "sensor_cfg": SceneEntityCfg("feet_contact_forces"),
       "command_name": "base_velocity",
       "threshold": 0.5,
     },
   )
+  # undesired_contacts: RewardTerm = term(
+  #   RewardTerm,
+  #   func=rewards.undesired_contacts,
+  #   weight=-1.0,
+  #   params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*thigh"), "threshold": 1.0},
+  # )
 
 
 # Terminations.
@@ -290,7 +297,7 @@ class Go1LocomotionFlatEnvCfg(ManagerBasedRlEnvCfg):
     self.sim.ls_parallel = False
     self.sim.num_envs = 1
     self.sim.nconmax = 32768
-    self.sim.njmax = 70
+    self.sim.njmax = 75
 
 
 # if __name__ == "__main__":

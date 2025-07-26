@@ -31,19 +31,26 @@ _BASE_XML = r"""
 class Scene:
   def __init__(self, scene_cfg: SceneCfg):
     self._cfg = scene_cfg
-    self._spec = mujoco.MjSpec.from_string(_BASE_XML)
+
     self._entities: dict[str, entity.Entity] = {}
     self._sensors: dict[str, SensorBase] = {}
     self._indexing: SceneIndexing = SceneIndexing()
 
+    self._spec = mujoco.MjSpec.from_string(_BASE_XML)
     self._attach_terrains()
     self._attach_robots()
     self._attach_sensors()
 
+  def compile(self):
+    return self._spec.compile()
+
+  def configure_sim_options(self, cfg: OptionCfg) -> None:
+    common_editors.OptionEditor(cfg).edit_spec(self._spec)
+
   # Attributes.
 
   @property
-  def spec(self):
+  def spec(self) -> mujoco.MjSpec:
     return self._spec
 
   @property
@@ -74,16 +81,6 @@ class Scene:
 
   # Methods.
 
-  def __str__(self) -> str:
-    msg = f"<class {self.__class__.__name__}>\n"
-    return msg
-
-  def compile(self):
-    return self._spec.compile()
-
-  def configure_sim_options(self, cfg: OptionCfg) -> None:
-    common_editors.OptionEditor(cfg).edit_spec(self._spec)
-
   def initialize(self, model: mujoco.MjModel, data, device, wp_model):
     self._compute_indexing(model, device)
     for ent_name, ent in self._entities.items():
@@ -93,7 +90,7 @@ class Scene:
         self.indexing.entities[sens.cfg.entity_name], model, data, device, wp_model
       )
 
-  def reset(self, env_ids: Sequence[int] | None = None):
+  def reset(self, env_ids: Sequence[int] | None = None) -> None:
     for ent in self._entities.values():
       ent.reset(env_ids)
     for sns in self._sensors.values():
@@ -103,7 +100,7 @@ class Scene:
     for ent in self._entities.values():
       ent.update(dt)
     for sns in self._sensors.values():
-      sns.update(dt=dt)
+      sns.update(dt=dt, force_recompute=not self._cfg.lazy_sensor_update)
 
   def write_data_to_sim(self) -> None:
     for ent in self._entities.values():

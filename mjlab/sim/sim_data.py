@@ -46,13 +46,13 @@ class TorchArray:
     by automatically unwrapping them to their underlying tensors.
 
     Args:
-        func: The torch function being called
-        types: Types of all arguments
-        args: Positional arguments to the function
-        kwargs: Keyword arguments to the function
+      func: The torch function being called
+      types: Types of all arguments
+      args: Positional arguments to the function
+      kwargs: Keyword arguments to the function
 
     Returns:
-        Result of the torch function call with unwrapped tensors
+      Result of the torch function call with unwrapped tensors
     """
     if kwargs is None:
       kwargs = {}
@@ -163,10 +163,10 @@ class WarpBridge:
     Get attribute from the wrapped data, wrapping Warp arrays as TorchArray.
 
     Args:
-        name: Name of the attribute to access
+      name: Name of the attribute to access
 
     Returns:
-        TorchArray if the attribute is a Warp array, otherwise the raw value
+      TorchArray if the attribute is a Warp array, otherwise the raw value
     """
     val = getattr(self.struct, name)
     if isinstance(val, wp.array):
@@ -183,11 +183,11 @@ class WarpBridge:
     or other compatible values. Non-array fields are set normally.
 
     Args:
-        name: Name of the attribute to set
-        value: Value to set (TorchArray, torch.Tensor, or other)
+      name: Name of the attribute to set
+      value: Value to set (TorchArray, torch.Tensor, or other)
 
     Raises:
-        TypeError: If trying to set a Warp array field with an incompatible type
+      TypeError: If trying to set a Warp array field with an incompatible type
     """
     # Special case: setting 'data' attribute during initialization
     if name == "struct":

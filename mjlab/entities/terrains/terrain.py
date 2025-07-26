@@ -1,3 +1,4 @@
+from mujoco_warp._src.types import Data as Data
 from mjlab.entities import entity
 from mjlab.entities.terrains.terrain_config import TerrainCfg
 from mjlab.utils.spec_editor import spec_editor as common_editors
@@ -8,6 +9,20 @@ class Terrain(entity.Entity):
 
   def __init__(self, terrain_cfg: TerrainCfg):
     super().__init__(terrain_cfg)
+
+  def reset(self, env_ids: entity.Sequence[int] | None = None):
+    pass
+
+  def write_data_to_sim(self) -> None:
+    pass
+
+  def update(self, dt: float) -> None:
+    pass
+
+  def initialize(
+    self, indexing: entity.EntityIndexing, data: Data, device: str
+  ) -> None:
+    pass
 
   # Private methods.
 

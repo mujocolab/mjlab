@@ -27,33 +27,34 @@ class Entity(abc.ABC):
 
   @property
   def spec(self) -> mujoco.MjSpec:
-    """Returns the underlying mujoco.MjSpec."""
     return self._spec
 
   # Methods.
 
   def compile(self) -> mujoco.MjModel:
-    """Compiles the spec into an MjModel."""
     return self.spec.compile()
 
   def write_xml(self, xml_path: Path) -> None:
-    """Writes the spec to an XML file."""
     with open(xml_path, "w") as f:
       f.write(self.spec.to_xml())
 
+  @abc.abstractmethod
   def initialize(
     self, indexing: EntityIndexing, data: mjwarp.Data, device: str
   ) -> None:
-    pass
+    raise NotImplementedError
 
+  @abc.abstractmethod
   def update(self, dt: float) -> None:
-    pass
+    raise NotImplementedError
 
+  @abc.abstractmethod
   def reset(self, env_ids: Sequence[int] | None = None):
-    pass
+    raise NotImplementedError
 
+  @abc.abstractmethod
   def write_data_to_sim(self) -> None:
-    pass
+    raise NotImplementedError
 
   # Private methods.
 
