@@ -42,11 +42,6 @@ terrain_cfg.lights.append(
 SCENE_CFG = SceneCfg(
   terrains={"floor": FLAT_TERRAIN_CFG},
   sensors={
-    "contact_forces": ContactSensorCfg(
-      entity_name="robot",
-      history_length=0,
-      filter_expr=[".*"],
-    ),
     "feet_contact_forces": ContactSensorCfg(
       entity_name="robot",
       history_length=3,
@@ -141,7 +136,7 @@ class ObservationCfg:
     )
 
     def __post_init__(self):
-      self.enable_corruption = True
+      self.enable_corruption = False
       self.concatenate_terms = True
 
   policy: PolicyCfg = field(default_factory=PolicyCfg)
@@ -206,31 +201,22 @@ class RewardCfg:
     func=mdp.joint_torques_l2,
     weight=-0.0002,
   )
-  dof_acc_l2: RewardTerm = term(RewardTerm, func=mdp.joint_acc_l2, weight=-2.5e-7)
+  dof_acc_l2: RewardTerm = term(RewardTerm, func=mdp.joint_acc_l2, weight=0.0)
   action_rate_l2: RewardTerm = term(RewardTerm, func=mdp.action_rate_l2, weight=-0.01)
   flat_orientation_l2: RewardTerm = term(
     RewardTerm, func=mdp.flat_orientation_l2, weight=-2.5
   )
   dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=0.0)
-  feet_air_time: RewardTerm = term(
-    RewardTerm,
-    func=mdp.feet_air_time,
-    weight=0.25,
-    params={
-      "sensor_cfg": SceneEntityCfg("feet_contact_forces"),
-      "command_name": "base_velocity",
-      "threshold": 0.5,
-    },
-  )
-  undesired_contacts: RewardTerm = term(
-    RewardTerm,
-    func=mdp.undesired_contacts,
-    weight=-1.0,
-    params={
-      "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*thigh"),
-      "threshold": 1.0,
-    },
-  )
+  # feet_air_time: RewardTerm = term(
+  #   RewardTerm,
+  #   func=mdp.feet_air_time,
+  #   weight=0.25,
+  #   params={
+  #     "sensor_cfg": SceneEntityCfg("feet_contact_forces"),
+  #     "command_name": "base_velocity",
+  #     "threshold": 0.5,
+  #   },
+  # )
 
 
 # Terminations.
@@ -239,13 +225,8 @@ class RewardCfg:
 @dataclass
 class TerminationCfg:
   time_out: DoneTerm = term(DoneTerm, func=mdp.time_out, time_out=True)
-  base_contact: DoneTerm = term(
-    DoneTerm,
-    func=mdp.illegal_contact,
-    params={
-      "sensor_cfg": SceneEntityCfg("contact_forces", body_names="trunk"),
-      "threshold": 1.0,
-    },
+  fell_over: DoneTerm = term(
+    DoneTerm, func=mdp.bad_orientation, params={"threshold": 0.0}
   )
 
 
@@ -278,8 +259,6 @@ class LocomotionVelocityFlatEnvCfg(ManagerBasedRlEnvCfg):
     self.sim.mujoco.integrator = "implicitfast"
     self.sim.mujoco.cone = "pyramidal"
     self.sim.mujoco.timestep = 0.005
-    self.sim.mujoco.iterations = 10
-    self.sim.mujoco.ls_iterations = 20
     self.sim.num_envs = 1
     self.sim.nconmax = 40000
-    self.sim.njmax = 75
+    self.sim.njmax = 85

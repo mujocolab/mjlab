@@ -155,13 +155,25 @@ class Scene:
         site_ids.append(site_id)
       site_ids = torch.tensor(site_ids, dtype=torch.int, device=device)
 
+      ctrl_ids = []
+      for actuator in ent.spec.actuators:
+        act = model.actuator(actuator.name)
+        ctrl_ids.append(act.id)
+
+      root_body_id = None
+      for joint in ent.spec.joints:
+        jnt = model.joint(joint.name)
+        if jnt.type[0] == mujoco.mjtJoint.mjJNT_FREE:
+          # TODO: Why is jnt.bodyid an array?
+          root_body_id = model.jnt_bodyid[jnt.id]
+
       sensor_adr = {}
       for sensor in ent.spec.sensors:
         sensor_name = sensor.name
         sns = model.sensor(sensor_name)
         dim = sns.dim[0]
         start_adr = sns.adr[0]
-        sensor_adr[sensor_name] = torch.arange(
+        sensor_adr[sensor_name.split("/")[1]] = torch.arange(
           start_adr, start_adr + dim, dtype=torch.int, device=device
         )
 
@@ -183,29 +195,17 @@ class Scene:
           qdim = qpos_width(jnt_type)
           joint_q_adr.extend(range(qadr, qadr + qdim))
 
-      ctrl_ids = []
-      for actuator in ent.spec.actuators:
-        act = model.actuator(actuator.name)
-        ctrl_ids.append(act.id)
-
-      root_body_id = None
-      for joint in ent.spec.joints:
-        jnt = model.joint(joint.name)
-        if jnt.type[0] == mujoco.mjtJoint.mjJNT_FREE:
-          # TODO: Why is jnt.bodyid an array?
-          root_body_id = model.jnt_bodyid[jnt.id]
-
       indexing = EntityIndexing(
         root_body_id=root_body_id,
         body_ids=body_ids,
         body_root_ids=body_root_ids,
         geom_ids=geom_ids,
         site_ids=site_ids,
+        ctrl_ids=torch.tensor(ctrl_ids, dtype=torch.int, device=device),
         sensor_adr=sensor_adr,
         joint_q_adr=torch.tensor(joint_q_adr, dtype=torch.int, device=device),
         joint_v_adr=torch.tensor(joint_v_adr, dtype=torch.int, device=device),
         free_joint_v_adr=torch.tensor(free_joint_v_adr, dtype=torch.int, device=device),
         free_joint_q_adr=torch.tensor(free_joint_q_adr, dtype=torch.int, device=device),
-        ctrl_ids=torch.tensor(ctrl_ids, dtype=torch.int, device=device),
       )
       self._indexing.entities[ent_name] = indexing

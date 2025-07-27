@@ -21,14 +21,14 @@ def base_lin_vel(
   env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
   asset: Robot = env.scene.entities[asset_cfg.name]
-  return asset.data.root_link_lin_vel_b
+  return asset.data.root_com_lin_vel_b
 
 
 def base_ang_vel(
   env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
   asset: Robot = env.scene.entities[asset_cfg.name]
-  return asset.data.root_link_ang_vel_b
+  return asset.data.root_com_ang_vel_b
 
 
 def projected_gravity(

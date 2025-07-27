@@ -48,7 +48,6 @@ def main(
   log_dir = os.path.join(log_root_path, log_dir)
 
   env = gym.make(task, cfg=env_cfg)
-
   env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
   runner = OnPolicyRunner(

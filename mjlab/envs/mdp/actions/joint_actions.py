@@ -19,9 +19,6 @@ class JointAction(ActionTerm):
   def __init__(self, cfg: actions_config.JointActionCfg, env: ManagerBasedEnv):
     super().__init__(cfg=cfg, env=env)
 
-    # self._joint_ids, self._joint_names = self._asset.find_joints(
-    #   self.cfg.joint_names, preserve_order=self.cfg.preserve_order
-    # )
     self._actuator_ids, self._actuator_names = self._asset.find_actuators(
       self.cfg.actuator_names,
       preserve_order=self.cfg.preserve_order,

@@ -22,7 +22,7 @@ class UniformVelocityCommand(CommandTerm):
   def __init__(self, cfg: UniformVelocityCommandCfg, env: ManagerBasedEnv):
     super().__init__(cfg, env)
 
-    self.robot: Robot = env.scene.entities[cfg.asset_name]
+    self.robot: Robot = env.scene[cfg.asset_name]
 
     self.vel_command_b = torch.zeros(self.num_envs, 3, device=self.device)
     self.heading_target = torch.zeros(self.num_envs, device=self.device)
@@ -55,26 +55,18 @@ class UniformVelocityCommand(CommandTerm):
     )
 
   def _resample_command(self, env_ids: Sequence[int]):
-    # sample velocity commands
     r = torch.empty(len(env_ids), device=self.device)
-    # -- linear velocity - x direction
     self.vel_command_b[env_ids, 0] = r.uniform_(*self.cfg.ranges.lin_vel_x)
-    # -- linear velocity - y direction
     self.vel_command_b[env_ids, 1] = r.uniform_(*self.cfg.ranges.lin_vel_y)
-    # -- ang vel yaw - rotation around z
     self.vel_command_b[env_ids, 2] = r.uniform_(*self.cfg.ranges.ang_vel_z)
-    # heading target
     if self.cfg.heading_command:
       self.heading_target[env_ids] = r.uniform_(*self.cfg.ranges.heading)
-      # update heading envs
       self.is_heading_env[env_ids] = r.uniform_(0.0, 1.0) <= self.cfg.rel_heading_envs
-    # update standing envs
     self.is_standing_env[env_ids] = r.uniform_(0.0, 1.0) <= self.cfg.rel_standing_envs
 
   def _update_command(self):
     if self.cfg.heading_command:
       env_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
-      # compute angular velocity
       heading_error = wrap_to_pi(
         self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]
       )
@@ -83,7 +75,6 @@ class UniformVelocityCommand(CommandTerm):
         min=self.cfg.ranges.ang_vel_z[0],
         max=self.cfg.ranges.ang_vel_z[1],
       )
-    # Enforce standing (i.e., zero velocity command) for standing envs
     standing_env_ids = self.is_standing_env.nonzero(as_tuple=False).flatten()
     self.vel_command_b[standing_env_ids, :] = 0.0
 
@@ -97,8 +88,8 @@ class UniformVelocityCommand(CommandTerm):
     base_pos_ws = base_pos_w.cpu().numpy()
     base_mat_ws = base_mat_w.cpu().numpy()
     cmds = self.command.cpu().numpy()
-    lin_vel_bs = self.robot.data.root_link_lin_vel_b.cpu().numpy()
-    ang_vel_bs = self.robot.data.root_link_lin_vel_b.cpu().numpy()
+    lin_vel_bs = self.robot.data.root_com_lin_vel_b.cpu().numpy()
+    ang_vel_bs = self.robot.data.root_com_ang_vel_b.cpu().numpy()
 
     for batch in range(self.num_envs):
       base_pos_w = base_pos_ws[batch]

@@ -12,4 +12,3 @@ class UnitreeGo1FlatEnvCfg(LocomotionVelocityFlatEnvCfg):
     super().__post_init__()
 
     self.scene.robots = {"robot": GO1_ROBOT_CFG}
-    self.rewards.undesired_contacts = None

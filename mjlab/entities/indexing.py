@@ -6,17 +6,20 @@ import torch
 class EntityIndexing:
   """Stores all indexing information for a single entity."""
 
+  # IDs.
   root_body_id: int | None
   body_ids: torch.Tensor
   body_root_ids: torch.Tensor
   geom_ids: torch.Tensor
   site_ids: torch.Tensor
+  ctrl_ids: torch.Tensor
+
+  # Addresses.
   sensor_adr: dict[str, torch.Tensor]
   joint_q_adr: torch.Tensor
   joint_v_adr: torch.Tensor
   free_joint_q_adr: torch.Tensor
   free_joint_v_adr: torch.Tensor
-  ctrl_ids: torch.Tensor
 
 
 @dataclass

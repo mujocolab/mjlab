@@ -238,18 +238,25 @@ class SensorEditor(SpecEditor):
     "site": mujoco.mjtObj.mjOBJ_SITE,
     "geom": mujoco.mjtObj.mjOBJ_GEOM,
     "body": mujoco.mjtObj.mjOBJ_BODY,
+    "xbody": mujoco.mjtObj.mjOBJ_XBODY,
   }
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
+    kwargs_copy = self.cfg.kwargs.copy()  # Avoid mutating original kwargs.
+
     kwargs = {
       "type": self.SENSOR_TYPE_MAP[self.cfg.sensor_type],
       "name": self.cfg.name,
     }
-    if "objtype" in self.cfg.kwargs:
-      kwargs["objtype"] = self.SENSOR_OBJECT_TYPE_MAP[self.cfg.kwargs.pop("objtype")]
-    if "reftype" in self.cfg.kwargs:
-      kwargs["reftype"] = self.SENSOR_OBJECT_TYPE_MAP[self.cfg.kwargs.pop("reftype")]
-    kwargs.update(self.cfg.kwargs)
+
+    # Handle object type mappings without mutating original
+    if "objtype" in kwargs_copy:
+      kwargs["objtype"] = self.SENSOR_OBJECT_TYPE_MAP[kwargs_copy.pop("objtype")]
+    if "reftype" in kwargs_copy:
+      kwargs["reftype"] = self.SENSOR_OBJECT_TYPE_MAP[kwargs_copy.pop("reftype")]
+
+    # Add remaining kwargs
+    kwargs.update(kwargs_copy)
     spec.add_sensor(**kwargs)
 
 

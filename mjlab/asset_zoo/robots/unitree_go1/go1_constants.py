@@ -9,7 +9,7 @@ from mjlab.utils.os import update_assets
 
 from mjlab.utils.actuator import ElectricActuator, reflected_inertia
 from mjlab.entities.robots.robot_config import RobotCfg
-from mjlab.utils.spec_editor import ActuatorCfg, SensorCfg, CollisionCfg
+from mjlab.utils.spec_editor import ActuatorCfg, CollisionCfg
 
 ##
 # MJCF and assets.
@@ -119,12 +119,7 @@ GO1_ROBOT_CFG = RobotCfg(
     GO1_HIP_ACTUATOR_CFG,
     GO1_KNEE_ACTUATOR_CFG,
   ],
-  sensors=[
-    SensorCfg(name="body_ang_vel", sensor_type="gyro", kwargs={"objname": "imu", "objtype": "site"}),
-    SensorCfg(name="body_lin_vel", sensor_type="velocimeter", kwargs={"objname": "imu", "objtype": "site"}),
-    SensorCfg(name="body_zaxis", sensor_type="framezaxis", kwargs={"objname": "imu", "objtype": "site"}),
-  ],
-  soft_joint_pos_limit_factor=0.95,
-  collisions=[FULL_COLLISION,],
+  soft_joint_pos_limit_factor=0.9,
+  collisions=[FEET_ONLY_COLLISION,],
   spec_fn=get_spec,
 )

@@ -15,6 +15,13 @@ class TorchArray:
     self._wp_array = wp_array
     self._tensor = wp.to_torch(wp_array)
 
+    warp_stream = wp.get_stream(wp_array.device)
+    self._torch_stream = torch.cuda.ExternalStream(warp_stream.cuda_stream)
+
+  @property
+  def wp_array(self) -> wp.array:
+    return self._wp_array
+
   def __repr__(self) -> str:
     """Return string representation of the underlying tensor."""
     return repr(self._tensor)
@@ -25,8 +32,9 @@ class TorchArray:
 
   def __setitem__(self, idx: Any, value: Any) -> None:
     """Set item(s) in the tensor using standard indexing."""
-    self._tensor[idx] = value
-    # torch.cuda.synchronize()
+    with torch.cuda.stream(self._torch_stream):
+      self._tensor[idx] = value
+    # self._tensor[idx] = value
 
   def __getattr__(self, name: str) -> Any:
     """Delegate attribute access to the underlying tensor."""
@@ -171,6 +179,7 @@ class WarpBridge:
     val = getattr(self.struct, name)
     if isinstance(val, wp.array):
       return TorchArray(val)
+    # TODO: Hack, fix.
     if name in ["contact", "efc"]:
       return WarpBridge(val)
     return val
@@ -197,7 +206,7 @@ class WarpBridge:
     # Handle assignments to existing wp.array fields
     if hasattr(self.struct, name) and isinstance(getattr(self.struct, name), wp.array):
       if isinstance(value, TorchArray):
-        new_wp_array = value._wp_array
+        new_wp_array = value.wp_array
       elif isinstance(value, torch.Tensor):
         new_wp_array = wp.from_torch(value)
       else:

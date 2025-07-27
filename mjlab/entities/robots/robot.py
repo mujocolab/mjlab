@@ -23,13 +23,29 @@ class Robot(entity.Entity):
   def __init__(self, robot_cfg: RobotCfg):
     super().__init__(robot_cfg)
 
+    # Check that there is a site called IMU.
+    site_names = [site.name for site in self._spec.sites]
+    if "imu" not in site_names:
+      raise ValueError("A site named 'imu' must be present in the xml.")
+
+    # Joints.
     self._non_root_joints = get_non_root_joints(self._spec)
     self._joint_names = [j.name for j in self._non_root_joints]
     self.num_joints = len(self._joint_names)
 
+    # Bodies.
     self._body_names = [b.name for b in self.spec.bodies if b.name != "world"]
     self.num_bodies = len(self._body_names)
 
+    # Geoms.
+    self._geom_names = [g.name for g in self.spec.geoms]
+    self.num_geoms = len(self._geom_names)
+
+    # Sites.
+    self._site_names = [s.name for s in self._spec.sites]
+    self.num_sites = len(self._site_names)
+
+    # Actuators.
     self._actuator_names = [a.name for a in self._spec.actuators]
     self.actuator_to_joint = {}
     for actuator in self._spec.actuators:
@@ -38,7 +54,15 @@ class Robot(entity.Entity):
       self.actuator_to_joint[actuator.name] = actuator.target
     self.joint_actuators = list(self.actuator_to_joint.values())
 
+    # Sensors.
+    self._sensor_names = [s.name for s in self._spec.sensors]
+    self.num_sensors = len(self._sensor_names)
+
   # Attributes.
+
+  @property
+  def data(self) -> RobotData:
+    return self._data
 
   @property
   def joint_names(self) -> list[str]:
@@ -49,10 +73,22 @@ class Robot(entity.Entity):
     return self._body_names
 
   @property
+  def geom_names(self) -> list[str]:
+    return self._geom_names
+
+  @property
+  def site_names(self) -> list[str]:
+    return self._site_names
+
+  @property
+  def sensor_names(self) -> list[str]:
+    return self._sensor_names
+
+  @property
   def actuator_names(self) -> list[str]:
     return self._actuator_names
 
-  # Public methods.
+  # Find methods.
 
   def find_bodies(
     self, name_keys: str | Sequence[str], preserve_order: bool = False
@@ -83,10 +119,48 @@ class Robot(entity.Entity):
       name_keys, actuator_subset, preserve_order
     )
 
+  def find_geoms(
+    self,
+    name_keys: str | Sequence[str],
+    geom_subset: list[str] | None = None,
+    preserve_order: bool = False,
+  ):
+    if geom_subset is None:
+      geom_subset = self.geom_names
+    return string_utils.resolve_matching_names(name_keys, geom_subset, preserve_order)
+
+  def find_sensors(
+    self,
+    name_keys: str | Sequence[str],
+    sensor_subset: list[str] | None = None,
+    preserve_order: bool = False,
+  ):
+    if sensor_subset is None:
+      sensor_subset = self.sensor_names
+    return string_utils.resolve_matching_names(name_keys, sensor_subset, preserve_order)
+
+  def find_sites(
+    self,
+    name_keys: str | Sequence[str],
+    site_subset: list[str] | None = None,
+    preserve_order: bool = False,
+  ):
+    if site_subset is None:
+      site_subset = self.site_names
+    return string_utils.resolve_matching_names(name_keys, site_subset, preserve_order)
+
+  # ABC implementations.
+
   def initialize(
     self, indexing: EntityIndexing, data: mjwarp.Data, device: str
   ) -> None:
     self._data = RobotData(indexing=indexing, data=data, device=device)
+
+    self._data.body_names = self.body_names
+    self._data.geom_names = self.geom_names
+    self._data.site_names = self.site_names
+    self._data.sensor_names = self.sensor_names
+    self._data.joint_names = self.joint_names
 
     default_root_state = (
       tuple(self.cfg.init_state.pos)
@@ -98,7 +172,6 @@ class Robot(entity.Entity):
       default_root_state, dtype=torch.float, device=device
     )
     self._data.default_root_state = default_root_state.repeat(data.nworld, 1)
-
     self._data.default_joint_pos = torch.tensor(
       resolve_expr(self.cfg.init_state.joint_pos, self.joint_names),
       device=device,
@@ -108,14 +181,6 @@ class Robot(entity.Entity):
       device=device,
     )[None].repeat(data.nworld, 1)
 
-    self._data.joint_pos_target = torch.zeros(
-      data.nworld, self.num_joints, device=device
-    )
-    self._joint_pos_target_sim = torch.zeros_like(self._data.joint_pos_target)
-
-    self._data.joint_names = self.joint_names
-    self._data.body_names = self.body_names
-
     dof_limits = torch.tensor(
       [j.range.tolist() for j in self._non_root_joints],
       dtype=torch.float,
@@ -123,7 +188,6 @@ class Robot(entity.Entity):
     )
     self._data.default_joint_pos_limits = dof_limits[None].repeat(data.nworld, 1, 1)
     self._data.joint_pos_limits = self._data.default_joint_pos_limits.clone()
-
     joint_pos_mean = (
       self._data.joint_pos_limits[..., 0] + self._data.joint_pos_limits[..., 1]
     ) / 2
@@ -150,9 +214,7 @@ class Robot(entity.Entity):
   def write_data_to_sim(self) -> None:
     pass
 
-  @property
-  def data(self) -> RobotData:
-    return self._data
+  # Write methods.
 
   def write_root_pose_to_sim(
     self, root_pose: torch.Tensor, env_ids: Sequence[int] | None = None
