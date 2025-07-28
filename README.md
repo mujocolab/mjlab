@@ -26,6 +26,8 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 - [ ] Domain randomization
 - [ ] Observation history and modifiers
 - [ ] Add rendering
+  - [x] `rgb_array` rendering
+  - [ ] `human` rendering
 - [ ] `rsl_rl` integration
   - [x] `VecEnv` wrapper
   - [ ] `train.py` and `play.py`

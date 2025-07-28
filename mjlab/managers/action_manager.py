@@ -28,11 +28,16 @@ class ActionTerm(ManagerTermBase):
     raise NotImplementedError
 
   @abc.abstractmethod
-  def process_actions(self, actions: torch.Tensor):
+  def process_actions(self, actions: torch.Tensor) -> None:
     raise NotImplementedError
 
   @abc.abstractmethod
-  def apply_actions(self):
+  def apply_actions(self) -> None:
+    raise NotImplementedError
+
+  @property
+  @abc.abstractmethod
+  def raw_action(self) -> torch.Tensor:
     raise NotImplementedError
 
 

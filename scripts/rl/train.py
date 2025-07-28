@@ -11,8 +11,10 @@ from rsl_rl.runners import OnPolicyRunner
 from mjlab.tasks.utils.parse_cfg import load_cfg_from_registry
 import gymnasium as gym
 
+import utils
+
 torch.backends.cuda.matmul.allow_tf32 = True
-torch.backends.cudnn.fp32_precision = "tf32"
+torch.backends.cudnn.allow_tf32 = True
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
@@ -27,35 +29,67 @@ def main(
   seed: int | None = None,
   max_iterations: int | None = None,
   device: str | None = None,
+  video: bool = False,
+  video_length: int = 200,
+  video_interval: int = 2000,
 ):
   env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
-  env_cfg.sim.num_envs = num_envs if num_envs is not None else env_cfg.sim.num_envs
-  agent_cfg.max_iterations = (
-    max_iterations if max_iterations is not None else agent_cfg.max_iterations
-  )
-  agent_cfg.seed = seed if seed is not None else agent_cfg.seed
 
+  env_cfg.sim.num_envs = num_envs or env_cfg.sim.num_envs
+  agent_cfg.max_iterations = max_iterations or agent_cfg.max_iterations
+  agent_cfg.seed = seed or agent_cfg.seed
+
+  # Set the environment seed.
   env_cfg.seed = agent_cfg.seed
-  env_cfg.sim.device = device if device is not None else env_cfg.sim.device
+  env_cfg.sim.device = device or env_cfg.sim.device
 
-  log_root_path = os.path.join("logs", "rsl_rl", agent_cfg.experiment_name)
-  log_root_path = os.path.abspath(log_root_path)
+  # Specify directory for logging experiments.
+  log_root_path = _HERE / "logs" / "rsl_rl" / agent_cfg.experiment_name
+  log_root_path.resolve()
   print(f"[INFO] Logging experiment in directory: {log_root_path}")
   log_dir = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-  print(f"Exact experiment name requested from command line: {log_dir}")
   if agent_cfg.run_name:
     log_dir += f"_{agent_cfg.run_name}"
-  log_dir = os.path.join(log_root_path, log_dir)
+  log_dir = log_root_path / log_dir
 
+  # Create env.
   env = gym.make(task, cfg=env_cfg)
+
+  # Save resume path before creating a new log_dir.
+  if agent_cfg.resume:
+    resume_path = utils.get_checkpoint_path(
+      log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint
+    )
+
+  # Wrap for video recording.
+  if video:
+    video_kwargs = {
+      "video_folder": os.path.join(log_dir, "videos", "train"),
+      "step_trigger": lambda step: step % video_interval == 0,
+      "video_length": video_length,
+      "disable_logger": True,
+    }
+    print("[INFO] Recording videos during training.")
+    env = gym.wrappers.RecordVideo(env, **video_kwargs)
+
   env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
   runner = OnPolicyRunner(
     env, asdict(agent_cfg), log_dir=log_dir, device=agent_cfg.device
   )
+  runner.add_git_repo_to_log(__file__)
+
+  if agent_cfg.resume:
+    print(f"[INFO]: Loading model checkpoint from: {resume_path}")
+    runner.load(resume_path)
+
+  utils.dump_yaml(log_dir / "params" / "env.yaml", asdict(env_cfg))
+  utils.dump_yaml(log_dir / "params" / "agent.yaml", asdict(agent_cfg))
+
   runner.learn(
     num_learning_iterations=agent_cfg.max_iterations, init_at_random_ep_len=True
   )
+
   env.close()
 
 

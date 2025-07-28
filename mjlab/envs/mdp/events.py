@@ -22,7 +22,7 @@ def reset_root_state_uniform(
   velocity_range: dict[str, tuple[float, float]],
   asset_cfg: SceneEntityCfg = SceneEntityCfg(name="robot"),
 ):
-  asset: Robot = env.scene.entities[asset_cfg.name]
+  asset: Robot = env.scene[asset_cfg.name]
   root_states = asset.data.default_root_state[env_ids].clone()
 
   # Positions.
@@ -65,17 +65,11 @@ def reset_joints_by_scale(
   asset_cfg: SceneEntityCfg = SceneEntityCfg(name="robot"),
 ):
   asset: Robot = env.scene[asset_cfg.name]
-  # joint_pos = asset.data.default_joint_pos[env_ids, asset_cfg.joint_ids].clone()
   joint_pos = asset.data.default_joint_pos[env_ids][:, asset_cfg.joint_ids].clone()
-  # joint_vel = asset.data.default_joint_vel[env_ids, asset_cfg.joint_ids].clone()
   joint_vel = asset.data.default_joint_vel[env_ids][:, asset_cfg.joint_ids].clone()
 
-  joint_pos *= math_utils.sample_uniform(
-    *position_range, joint_pos.shape, joint_pos.device
-  )
-  joint_vel *= math_utils.sample_uniform(
-    *velocity_range, joint_vel.shape, joint_vel.device
-  )
+  joint_pos *= math_utils.sample_uniform(*position_range, joint_pos.shape, env.device)
+  joint_vel *= math_utils.sample_uniform(*velocity_range, joint_vel.shape, env.device)
 
   joint_pos_limits = asset.data.soft_joint_pos_limits[env_ids][:, asset_cfg.joint_ids]
   joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])

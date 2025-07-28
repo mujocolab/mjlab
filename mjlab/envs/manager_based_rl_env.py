@@ -1,5 +1,6 @@
 import math
 from typing import Sequence
+import numpy as np
 import torch
 from mjlab.envs.manager_based_env import ManagerBasedEnv
 from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
@@ -96,6 +97,18 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
       self.reset_time_outs,
       self.extras,
     )
+
+  def render(self) -> np.ndarray | None:
+    if self.render_mode == "human" or self.render_mode is None:
+      return None
+    elif self.render_mode == "rgb_array":
+      self.sim.update_render()
+      self.update_visualizers(self.sim.renderer.scene)
+      return self.sim.render()
+    else:
+      raise NotImplementedError(
+        f"Render mode {self.render_mode} is not supported. Please use: {self.metadata['render_modes']}."
+      )
 
   def close(self) -> None:
     super().close()

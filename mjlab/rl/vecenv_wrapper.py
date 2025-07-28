@@ -61,6 +61,10 @@ class RslRlVecEnvWrapper(VecEnv):
     obs_dict = self.unwrapped.observation_manager.compute()
     return TensorDict(obs_dict, batch_size=[self.num_envs])
 
+  def reset(self) -> tuple[TensorDict, dict]:
+    obs_dict, extras = self.env.reset()
+    return TensorDict(obs_dict, batch_size=[self.num_envs]), extras
+
   def step(
     self, actions: torch.Tensor
   ) -> tuple[TensorDict, torch.Tensor, torch.Tensor, dict]:

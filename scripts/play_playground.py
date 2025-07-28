@@ -1,13 +1,18 @@
 import onnxruntime as rt
 import numpy as np
-import mujoco
-import mujoco.viewer
+from mjlab.rl import RslRlVecEnvWrapper
 import torch
 import time
+import mujoco
+import mujoco.viewer as viewer
 
 from mjlab.tasks.utils.parse_cfg import load_cfg_from_registry
 import gymnasium as gym
-# from mjlab.tasks.locomotion.velocity.config.go1.flat_env_cfg import UnitreeGo1FlatEnvCfg
+
+TASK_NAME = "Mjlab-Velocity-Flat-Unitree-Go1-v0"
+FRAME_TIME = 1.0 / 60.0
+KEY_BACKSPACE = 259
+KEY_ENTER = 257
 
 
 class Controller:
@@ -16,6 +21,7 @@ class Controller:
     policy_path = "/home/kevin/dev/mujoco_playground/mujoco_playground/experimental/sim2sim/onnx/go1_policy.onnx"
     self._policy = rt.InferenceSession(policy_path, providers=["CPUExecutionProvider"])
 
+  @torch.inference_mode()
   def __call__(self, obs: dict) -> np.ndarray:
     ret = []
     policy_obs = obs["policy"].cpu().numpy()
@@ -26,13 +32,17 @@ class Controller:
 
 
 if __name__ == "__main__":
-  task_name = "Mjlab-Velocity-Flat-Unitree-Go1-v0"
-
-  env_cfg = load_cfg_from_registry(task_name, "env_cfg_entry_point")
+  env_cfg = load_cfg_from_registry(TASK_NAME, "env_cfg_entry_point")
   env_cfg.sim.num_envs = 1
   env_cfg.observations.policy.enable_corruption = False
 
-  env = gym.make(task_name, cfg=env_cfg)
+  env = gym.make(TASK_NAME, cfg=env_cfg)
+
+  env = RslRlVecEnvWrapper(env)
+
+  policy = Controller()
+
+  obs = env.get_observations()
 
   mjm = env.unwrapped.sim.mj_model
   mjd = env.unwrapped.sim.mj_data
@@ -42,41 +52,24 @@ if __name__ == "__main__":
   vopt = mujoco.MjvOption()
   catmask = mujoco.mjtCatBit.mjCAT_DYNAMIC
 
-  def copy_env_to_viewer():
+  def copy_env_to_viewer() -> None:
     mjd.qpos[:] = env.unwrapped.sim.data.qpos[0].cpu().numpy()
     mjd.qvel[:] = env.unwrapped.sim.data.qvel[0].cpu().numpy()
     mujoco.mj_forward(mjm, mjd)
 
-  def copy_viewer_to_env():
-    xfrc_applied = torch.tensor(
-      mjd.xfrc_applied, dtype=torch.float, device=env.unwrapped.device
-    )
+  def copy_viewer_to_env() -> None:
+    xfrc_applied = torch.tensor(mjd.xfrc_applied, dtype=torch.float, device=env.device)
     env.unwrapped.sim.data.xfrc_applied[:] = xfrc_applied[None]
-
-  @torch.no_grad()
-  def get_zero_action():
-    return torch.rand(
-      (env.unwrapped.num_envs, env.unwrapped.action_manager.total_action_dim),
-      device="cuda:0",
-    )
-
-  FRAME_TIME = 1.0 / 60.0
-
-  KEY_BACKSPACE = 259
-  KEY_ENTER = 257
 
   def key_callback(key: int) -> None:
     if key == KEY_ENTER:
       print("RESET KEY DETECTED")
-      env.unwrapped.reset()
+      env.reset()
 
   controller = Controller()
 
-  viewer = mujoco.viewer.launch_passive(mjm, mjd, key_callback=key_callback)
+  viewer = viewer.launch_passive(mjm, mjd, key_callback=key_callback)
   with viewer:
-    obs, extras = env.unwrapped.reset()
-    copy_env_to_viewer()
-
     last_frame_time = time.perf_counter()
 
     step = 0
@@ -86,9 +79,7 @@ if __name__ == "__main__":
       copy_viewer_to_env()
 
       action = controller(obs)
-      obs, reward, *_ = env.unwrapped.step(
-        torch.tensor(action, device=env.unwrapped.device)
-      )
+      obs, reward, *_ = env.step(torch.tensor(action, device=env.device))
 
       viewer.user_scn.ngeom = 0
       env.unwrapped.update_visualizers(viewer.user_scn)
@@ -108,7 +99,6 @@ if __name__ == "__main__":
       while (time.perf_counter() - frame_start) < FRAME_TIME:
         pass
 
-      # Debug FPS every 60 frames
       step += 1
       current_time = time.perf_counter()
       if step % 60 == 0 and step > 0:

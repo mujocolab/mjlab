@@ -28,6 +28,7 @@ rl = [
     "rsl-rl-lib",
     "tensorboard",
     "wandb",
+    "moviepy >=1.0.0",
 ]
 
 [tool.ruff]

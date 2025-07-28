@@ -34,6 +34,10 @@ class JointAction(ActionTerm):
   # Properties.
 
   @property
+  def raw_action(self) -> torch.Tensor:
+    return self._raw_actions
+
+  @property
   def action_dim(self) -> int:
     return self._action_dim
 

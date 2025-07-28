@@ -20,14 +20,14 @@ if TYPE_CHECKING:
 def base_lin_vel(
   env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
-  asset: Robot = env.scene.entities[asset_cfg.name]
+  asset: Robot = env.scene[asset_cfg.name]
   return asset.data.root_com_lin_vel_b
 
 
 def base_ang_vel(
   env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
-  asset: Robot = env.scene.entities[asset_cfg.name]
+  asset: Robot = env.scene[asset_cfg.name]
   return asset.data.root_com_ang_vel_b
 
 
@@ -35,7 +35,7 @@ def projected_gravity(
   env: ManagerBasedEnv,
   asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
-  asset: Robot = env.scene.entities[asset_cfg.name]
+  asset: Robot = env.scene[asset_cfg.name]
   return asset.data.projected_gravity_b
 
 
@@ -48,7 +48,7 @@ def joint_pos_rel(
   env: ManagerBasedEnv,
   asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
-  asset: Robot = env.scene.entities[asset_cfg.name]
+  asset: Robot = env.scene[asset_cfg.name]
   return asset.data.joint_pos - asset.data.default_joint_pos
 
 
@@ -56,7 +56,7 @@ def joint_vel(
   env: ManagerBasedEnv,
   asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
-  asset: Robot = env.scene.entities[asset_cfg.name]
+  asset: Robot = env.scene[asset_cfg.name]
   return asset.data.joint_vel
 
 
@@ -68,7 +68,7 @@ def joint_vel(
 def last_action(env: ManagerBasedEnv, action_name: str | None = None) -> torch.Tensor:
   if action_name is None:
     return env.action_manager.action
-  return env.action_manager.get_term(action_name).raw_actions
+  return env.action_manager.get_term(action_name).raw_action
 
 
 ##

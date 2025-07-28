@@ -209,7 +209,9 @@ class Robot(entity.Entity):
     self._data.update(dt)
 
   def reset(self, env_ids: Sequence[int] | None = None):
-    pass
+    self._data.data.qvel[env_ids] = 0.0
+    self._data.data.qacc[env_ids] = 0.0
+    self._data.data.qacc_warmstart[env_ids] = 0.0
 
   def write_data_to_sim(self) -> None:
     pass

@@ -54,14 +54,14 @@ KNEE_ACTUATOR = ElectricActuator(
 GO1_HIP_ACTUATOR_CFG = ActuatorCfg(
   joint_names_expr=[".*_hip_joint", ".*_thigh_joint"],
   effort_limit=HIP_ACTUATOR.effort_limit,
-  stiffness=35,
+  stiffness=35.0,
   damping=0.5,
   armature=HIP_ACTUATOR.reflected_inertia,
 )
 GO1_KNEE_ACTUATOR_CFG = ActuatorCfg(
   joint_names_expr=[".*_calf_joint"],
   effort_limit=KNEE_ACTUATOR.effort_limit,
-  stiffness=35,
+  stiffness=35.0,
   damping=0.5,
   armature=KNEE_ACTUATOR.reflected_inertia,
 )
@@ -120,6 +120,6 @@ GO1_ROBOT_CFG = RobotCfg(
     GO1_KNEE_ACTUATOR_CFG,
   ],
   soft_joint_pos_limit_factor=0.9,
-  collisions=[FEET_ONLY_COLLISION,],
+  collisions=[FULL_COLLISION,],
   spec_fn=get_spec,
 )

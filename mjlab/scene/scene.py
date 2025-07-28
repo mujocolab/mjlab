@@ -131,6 +131,7 @@ class Scene:
     for ent_name, ent in self._entities.items():
       body_ids = []
       body_root_ids = []
+      body_iquats = []
       for body in ent.spec.bodies:
         body_name = body.name
         if body_name == "world":
@@ -138,8 +139,10 @@ class Scene:
         body = model.body(body_name)
         body_ids.append(body.id)
         body_root_ids.extend(body.rootid)
+        body_iquats.append(body.iquat)
       body_ids = torch.tensor(body_ids, dtype=torch.int, device=device)
       body_root_ids = torch.tensor(body_root_ids, dtype=torch.int, device=device)
+      body_iquats = torch.tensor(body_iquats, dtype=torch.float, device=device)
 
       geom_ids = []
       for geom in ent.spec.geoms:
@@ -166,6 +169,12 @@ class Scene:
         if jnt.type[0] == mujoco.mjtJoint.mjJNT_FREE:
           # TODO: Why is jnt.bodyid an array?
           root_body_id = model.jnt_bodyid[jnt.id]
+
+      root_body_iquat = None
+      if root_body_id is not None:
+        root_body_iquat = torch.tensor(
+          model.body_iquat[root_body_id], dtype=torch.float, device=device
+        )
 
       sensor_adr = {}
       for sensor in ent.spec.sensors:
@@ -202,6 +211,8 @@ class Scene:
         geom_ids=geom_ids,
         site_ids=site_ids,
         ctrl_ids=torch.tensor(ctrl_ids, dtype=torch.int, device=device),
+        root_body_iquat=root_body_iquat,
+        body_iquats=body_iquats,
         sensor_adr=sensor_adr,
         joint_q_adr=torch.tensor(joint_q_adr, dtype=torch.int, device=device),
         joint_v_adr=torch.tensor(joint_v_adr, dtype=torch.int, device=device),

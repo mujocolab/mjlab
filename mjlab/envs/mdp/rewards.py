@@ -80,7 +80,17 @@ def joint_torques_l2(
   NOTE: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their joint torques contribute to the term.
   """
   asset: Robot = env.scene[asset_cfg.name]
-  return torch.sum(torch.square(asset.data.data.actuator_force), dim=1)
+  return torch.sum(torch.square(asset.data.actuator_force), dim=1)
+
+
+def joint_energy(
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+  asset: Robot = env.scene[asset_cfg.name]
+  frc = asset.data.actuator_force
+  vel = asset.data.joint_vel
+  power = torch.abs(frc) * torch.abs(vel)
+  return torch.sum(power, dim=-1)
 
 
 def joint_acc_l2(
@@ -131,7 +141,7 @@ def upright(
 def posture(
   env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
-  asset: Robot = env.scene.entities[asset_cfg.name]
+  asset: Robot = env.scene[asset_cfg.name]
   error = torch.sum(
     torch.square(asset.data.joint_pos - asset.data.default_joint_pos), dim=1
   )
@@ -142,7 +152,7 @@ def undesired_contacts(
   env: ManagerBasedRlEnv, threshold: float, sensor_cfg: SceneEntityCfg
 ) -> torch.Tensor:
   """Penalize undesired contacts as the number of violations that are above a threshold."""
-  contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+  contact_sensor: ContactSensor = env.scene[sensor_cfg.name]
   net_contact_forces = contact_sensor.data.net_forces_w_history
   is_contact = (
     torch.max(torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[

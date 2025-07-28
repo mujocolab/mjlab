@@ -148,7 +148,6 @@ class ContactSensor(SensorBase):
     valid_body_indices = self.geom_to_body_map[valid_geom_mask]
 
     if len(valid_contact_indices) > 0:
-      # Batch compute forces
       force = wp.zeros(len(valid_contact_indices), dtype=wp.spatial_vector)
       contact_ids = wp.from_torch(valid_contact_indices.int(), dtype=wp.int32)
 

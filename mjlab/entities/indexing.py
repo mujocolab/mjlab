@@ -14,6 +14,9 @@ class EntityIndexing:
   site_ids: torch.Tensor
   ctrl_ids: torch.Tensor
 
+  root_body_iquat: torch.Tensor | None
+  body_iquats: torch.Tensor
+
   # Addresses.
   sensor_adr: dict[str, torch.Tensor]
   joint_q_adr: torch.Tensor

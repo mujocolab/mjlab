@@ -1,4 +1,5 @@
 from typing import Sequence
+import numpy as np
 import torch
 from mjlab.sim.sim_config import SimulationCfg
 from mjlab.sim.sim_data import WarpBridge
@@ -40,6 +41,18 @@ class Simulation:
       mjwarp.forward(self.wp_model, self.wp_data)
     self.forward_graph = capture.graph
 
+    self._mj_model.vis.global_.offheight = self.cfg.render.height
+    self._mj_model.vis.global_.offwidth = self.cfg.render.width
+    if not self.cfg.render.enable_shadows:
+      self._mj_model.light_castshadow[:] = False
+    if not self.cfg.render.enable_reflections:
+      self._mj_model.mat_reflectance[:] = 0.0
+
+    self._camera = self.cfg.render.camera or -1
+    self._renderer = mujoco.Renderer(
+      model=model, height=self.cfg.render.height, width=self.cfg.render.height
+    )
+
   # Properties.
 
   @property
@@ -70,6 +83,10 @@ class Simulation:
   def contact(self) -> WarpBridge:
     return WarpBridge(self.wp_data.contact)
 
+  @property
+  def renderer(self) -> mujoco.Renderer:
+    return self._renderer
+
   # Methods.
 
   def reset(self):
@@ -85,3 +102,17 @@ class Simulation:
     if ctrl_ids is None:
       ctrl_ids = slice(None)
     self.data.ctrl[:, ctrl_ids] = ctrl[:, ctrl_ids]
+
+  def update_render(self) -> None:
+    attrs_to_copy = ["qpos", "qvel", "mocap_pos", "mocap_quat", "xfrc_applied"]
+    for attr in attrs_to_copy:
+      setattr(self._mj_data, attr, getattr(self.data, attr)[0].cpu().numpy())
+
+    mujoco.mj_forward(self._mj_model, self._mj_data)
+    self._renderer.update_scene(data=self._mj_data, camera=self.cfg.render.camera)
+
+  def render(self) -> np.ndarray:
+    return self._renderer.render()
+
+  def close(self) -> None:
+    self._renderer.close()
