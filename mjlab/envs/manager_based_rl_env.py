@@ -69,27 +69,39 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
 
   def step(self, action: torch.Tensor) -> types.VecEnvStepReturn:
     self.action_manager.process_action(action.to(self.device))
+
     for _ in range(self.cfg.decimation):
       self._sim_step_counter += 1
       self.action_manager.apply_action()
       self.scene.write_data_to_sim()
       self.sim.step()
       self.scene.update(dt=self.physics_dt)
+
+    # Update env counters.
     self.episode_length_buf += 1
     self.common_step_counter += 1
+
+    # Check terminations.
     self.reset_buf = self.termination_manager.compute()
     self.reset_terminated = self.termination_manager.terminated
     self.reset_time_outs = self.termination_manager.time_outs
+
     self.reward_buf = self.reward_manager.compute(dt=self.step_dt)
+
+    # Reset envs that terminated/timed-out and log the episode info.
     reset_env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
     if len(reset_env_ids) > 0:
       self._reset_idx(reset_env_ids)
       self.scene.write_data_to_sim()
       self.sim.forward()
+
     self.command_manager.compute(dt=self.step_dt)
+
     if "interval" in self.event_manager.available_modes:
       self.event_manager.apply(mode="interval", dt=self.step_dt)
+
     self.obs_buf = self.observation_manager.compute()
+
     return (
       self.obs_buf,
       self.reward_buf,
@@ -115,7 +127,7 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
 
   # Private methods.
 
-  def _configure_gym_env_spaces(self):
+  def _configure_gym_env_spaces(self) -> None:
     self.single_observation_space = gym.spaces.Dict()
     for group_name, group_term_names in self.observation_manager.active_terms.items():
       has_concatenated_obs = self.observation_manager.group_obs_concatenate[group_name]
@@ -146,12 +158,16 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
     )
 
   def _reset_idx(self, env_ids: Sequence[int]) -> None:
+    # Reset the internal buffers of the scene elements.
     self.scene.reset(env_ids)
+
     if "reset" in self.event_manager.available_modes:
       env_step_count = self._sim_step_counter // self.cfg.decimation
       self.event_manager.apply(
         mode="reset", env_ids=env_ids, global_env_step_count=env_step_count
       )
+
+    # NOTE: This is order sensitive.
     self.extras["log"] = dict()
     # observation manager.
     info = self.observation_manager.reset(env_ids)

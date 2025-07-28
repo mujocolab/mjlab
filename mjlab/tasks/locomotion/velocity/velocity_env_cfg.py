@@ -229,14 +229,6 @@ class TerminationCfg:
   )
 
 
-# Curriculum.
-
-
-@dataclass
-class CurriculumCfg:
-  pass
-
-
 ##
 # Environment.
 ##

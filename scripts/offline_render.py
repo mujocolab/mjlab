@@ -2,6 +2,7 @@ import onnxruntime as rt
 import numpy as np
 from mjlab.rl import RslRlVecEnvWrapper
 import torch
+from pathlib import Path
 
 from mjlab.tasks.utils.parse_cfg import load_cfg_from_registry
 import gymnasium as gym
@@ -12,7 +13,7 @@ TASK_NAME = "Mjlab-Velocity-Flat-Unitree-Go1-v0"
 class Controller:
   def __init__(self):
     self._output_names = ["continuous_actions"]
-    policy_path = "/home/kevin/dev/mujoco_playground/mujoco_playground/experimental/sim2sim/onnx/go1_policy.onnx"
+    policy_path = str(Path(__file__).parent / "go1_policy.onnx")
     self._policy = rt.InferenceSession(policy_path, providers=["CPUExecutionProvider"])
 
   @torch.inference_mode()

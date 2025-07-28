@@ -1,6 +1,6 @@
 # mjlab
 
-This is extremely bad code and very much work in progress. I'm just exploring different design patterns for physics simulation + RL workflows.
+IsaacLab API with [MJWarp](https://github.com/google-deepmind/mujoco_warp) backend.
 
 ## Installation
 
@@ -25,15 +25,29 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 
 - [ ] Domain randomization
 - [ ] Observation history and modifiers
+- [ ] Managers
+  - [x] Action manager
+  - [x] Command manager
+  - [ ] Curriculum manager
+  - [ ] Event manager
+    - [ ] startup
+    - [x] reset
+    - [ ] interval 
+  - [x] Observation manager
+  - [ ] Recorder manager
+  - [x] Reward manager
+  - [x] Termination Manager
 - [ ] Add rendering
   - [x] `rgb_array` rendering
   - [ ] `human` rendering
-- [ ] `rsl_rl` integration
+- [x] `rsl_rl` integration
   - [x] `VecEnv` wrapper
-  - [ ] `train.py` and `play.py`
-- [ ] Add __str__ method for all important classes
+  - [x] `train.py` and `play.py`
+- [x] Add __str__ method for all important classes
 - [x] Add some form of contact sensor and sensor API
 - [x] Inherit from gym
+- [ ] Cosmetic improvements
+  - [ ] Redo dataclass config correctly
 
 ## Debug
 

@@ -2,6 +2,7 @@ import onnxruntime as rt
 import numpy as np
 from mjlab.rl import RslRlVecEnvWrapper
 import torch
+from pathlib import Path
 import time
 import mujoco
 import mujoco.viewer as viewer
@@ -18,7 +19,7 @@ KEY_ENTER = 257
 class Controller:
   def __init__(self):
     self._output_names = ["continuous_actions"]
-    policy_path = "/home/kevin/dev/mujoco_playground/mujoco_playground/experimental/sim2sim/onnx/go1_policy.onnx"
+    policy_path = str(Path(__file__).parent / "go1_policy.onnx")
     self._policy = rt.InferenceSession(policy_path, providers=["CPUExecutionProvider"])
 
   @torch.inference_mode()
