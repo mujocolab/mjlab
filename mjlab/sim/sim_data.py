@@ -14,9 +14,21 @@ class TorchArray:
     """Initialize the tensor proxy with a Warp array."""
     self._wp_array = wp_array
     self._tensor = wp.to_torch(wp_array)
+    self._is_cuda = not self._wp_array.device.is_cpu
+    self._torch_stream = self._setup_stream()
 
-    warp_stream = wp.get_stream(wp_array.device)
-    self._torch_stream = torch.cuda.ExternalStream(warp_stream.cuda_stream)
+  def _setup_stream(self) -> Optional[torch.cuda.Stream]:
+    """Setup appropriate stream for the device."""
+    if not self._is_cuda:
+      return None
+
+    try:
+      warp_stream = wp.get_stream(self._wp_array.device)
+      return torch.cuda.ExternalStream(warp_stream.cuda_stream)
+    except Exception as e:
+      # Fallback to default stream if external stream creation fails.
+      print(f"Warning: Could not create external stream: {e}")
+      return torch.cuda.current_stream(self._tensor.device)
 
   @property
   def wp_array(self) -> wp.array:
@@ -32,9 +44,11 @@ class TorchArray:
 
   def __setitem__(self, idx: Any, value: Any) -> None:
     """Set item(s) in the tensor using standard indexing."""
-    with torch.cuda.stream(self._torch_stream):
+    if self._is_cuda and self._torch_stream is not None:
+      with torch.cuda.stream(self._torch_stream):
+        self._tensor[idx] = value
+    else:
       self._tensor[idx] = value
-    # self._tensor[idx] = value
 
   def __getattr__(self, name: str) -> Any:
     """Delegate attribute access to the underlying tensor."""

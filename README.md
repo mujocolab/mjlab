@@ -23,6 +23,8 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 
 ## TODO
 
+**P0**.
+
 - [ ] Domain randomization
 - [ ] Observation history and modifiers
 - [ ] Managers
@@ -46,8 +48,16 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 - [x] Add __str__ method for all important classes
 - [x] Add some form of contact sensor and sensor API
 - [x] Inherit from gym
-- [ ] Cosmetic improvements
-  - [ ] Redo dataclass config correctly
+
+**P1**
+
+- [ ] Unit test everything
+- [ ] Redo dataclass config correctly
+- [ ] Improve type checking across the board
+
+**P2**
+
+- [ ] Make it possible to seamlessly switch to CPU mujoco
 
 ## Debug
 

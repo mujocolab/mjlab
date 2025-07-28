@@ -78,8 +78,8 @@ class Entity(abc.ABC):
     ) -> None:
       counter: int = 0
       for elem in elem_list:
-        if not elem.name:
-          elem.name = f"{elem_type}_{counter}"
+        if not elem.name:  # type: ignore
+          elem.name = f"{elem_type}_{counter}"  # type: ignore
           counter += 1
 
     _incremental_rename(self._spec.bodies, "body")

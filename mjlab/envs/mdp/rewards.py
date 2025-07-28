@@ -119,12 +119,10 @@ def joint_pos_limits(
   This is computed as a sum of the absolute value of the difference between the joint position and the soft limits.
   """
   asset: Robot = env.scene[asset_cfg.name]
-  out_of_limits = -(
-    asset.data.joint_pos - asset.data.soft_joint_pos_limits[:, :, 0]
-  ).clip(max=0.0)
-  out_of_limits += (
-    asset.data.joint_pos - asset.data.soft_joint_pos_limits[:, :, 1]
-  ).clip(min=0.0)
+  soft_joint_pos_limits = asset.data.soft_joint_pos_limits
+  assert soft_joint_pos_limits is not None
+  out_of_limits = -(asset.data.joint_pos - soft_joint_pos_limits[:, :, 0]).clip(max=0.0)
+  out_of_limits += (asset.data.joint_pos - soft_joint_pos_limits[:, :, 1]).clip(min=0.0)
   return torch.sum(out_of_limits, dim=1)
 
 
@@ -142,9 +140,9 @@ def posture(
   env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
   asset: Robot = env.scene[asset_cfg.name]
-  error = torch.sum(
-    torch.square(asset.data.joint_pos - asset.data.default_joint_pos), dim=1
-  )
+  default_joint_pos = asset.data.default_joint_pos
+  assert default_joint_pos is not None
+  error = torch.sum(torch.square(asset.data.joint_pos - default_joint_pos), dim=1)
   return torch.exp(-0.5 * error)
 
 
@@ -154,6 +152,7 @@ def undesired_contacts(
   """Penalize undesired contacts as the number of violations that are above a threshold."""
   contact_sensor: ContactSensor = env.scene[sensor_cfg.name]
   net_contact_forces = contact_sensor.data.net_forces_w_history
+  assert net_contact_forces is not None
   is_contact = (
     torch.max(torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[
       0
