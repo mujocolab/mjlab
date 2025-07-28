@@ -26,6 +26,7 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 **P0**.
 
 - [ ] Domain randomization
+- [ ] Terrain generation
 - [ ] Observation history and modifiers
 - [ ] Managers
   - [x] Action manager
@@ -51,8 +52,11 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 
 **P1**
 
+aka make Brent proud
+
 - [ ] Unit test everything
 - [ ] Redo dataclass config correctly
+- [ ] Make tyro configure everything in rsl_rl train and eval script
 - [ ] Improve type checking across the board
 
 **P2**
