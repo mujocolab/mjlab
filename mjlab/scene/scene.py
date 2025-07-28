@@ -139,7 +139,7 @@ class Scene:
         body = model.body(body_name)
         body_ids.append(body.id)
         body_root_ids.extend(body.rootid)
-        body_iquats.append(body.iquat)
+        body_iquats.append(body.iquat.tolist())
       body_ids = torch.tensor(body_ids, dtype=torch.int, device=device)
       body_root_ids = torch.tensor(body_root_ids, dtype=torch.int, device=device)
       body_iquats = torch.tensor(body_iquats, dtype=torch.float, device=device)

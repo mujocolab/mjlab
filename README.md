@@ -21,6 +21,14 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 
 3. Install mjlab: `pip install -e .[test]`
 
+## Getting started
+
+Use a policy trained in MuJoCo Playground to partially sanity check the MDP pipeline (namely observations and actions):
+
+```bash
+python scripts/play_playground.py
+```
+
 ## TODO
 
 **P0**.
@@ -40,7 +48,7 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
   - [ ] Event manager
     - [ ] startup
     - [x] reset
-    - [ ] interval 
+    - [x] interval 
   - [x] Observation manager
   - [ ] Recorder manager
   - [x] Reward manager

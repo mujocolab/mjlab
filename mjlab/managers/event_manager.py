@@ -59,6 +59,18 @@ class EventManager(ManagerBase):
     for mode_cfg in self._mode_class_term_cfgs.values():
       for term_cfg in mode_cfg:
         term_cfg.func.reset(env_ids=env_ids)
+    if env_ids is None:
+      num_envs = self._env.num_envs
+    else:
+      num_envs = len(env_ids)
+    if "interval" in self._mode_term_cfgs:
+      for index, term_cfg in enumerate(self._mode_class_term_cfgs["interval"]):
+        if not term_cfg.is_global_time:
+          lower, upper = term_cfg.interval_range_s
+          sampled_interval = (
+            torch.rand(num_envs, device=self.device) * (upper - lower) + lower
+          )
+          self._interval_term_time_left[index][env_ids] = sampled_interval
     return {}
 
   def apply(
@@ -68,12 +80,40 @@ class EventManager(ManagerBase):
     dt: float | None = None,
     global_env_step_count: int | None = None,
   ):
+    if mode == "interval" and dt is None:
+      raise ValueError(
+        f"Event mode '{mode}' requires the time-step of the environment."
+      )
+    if mode == "interval" and env_ids is not None:
+      raise ValueError(
+        f"Event mode '{mode}' does not require environment indices. This is an undefined behavior"
+        " as the environment indices are computed based on the time left for each environment."
+      )
     if mode == "reset" and global_env_step_count is None:
-      raise ValueError
+      raise ValueError(
+        f"Event mode '{mode}' requires the total number of environment steps to be provided."
+      )
 
     for index, term_cfg in enumerate(self._mode_term_cfgs[mode]):
       if mode == "interval":
-        del dt
+        time_left = self._interval_term_time_left[index]
+        time_left -= dt
+        if term_cfg.is_global_time:
+          if time_left < 1e-6:
+            lower, upper = term_cfg.interval_range_s
+            sampled_interval = torch.rand(1) * (upper - lower) + lower
+            self._interval_term_time_left[index][:] = sampled_interval
+            term_cfg.func(self._env, None, **term_cfg.params)
+        else:
+          valid_env_ids = (time_left < 1e-6).nonzero().flatten()
+          if len(valid_env_ids) > 0:
+            lower, upper = term_cfg.interval_range_s
+            sampled_time = (
+              torch.rand(len(valid_env_ids), device=self.device) * (upper - lower)
+              + lower
+            )
+            self._interval_term_time_left[index][valid_env_ids] = sampled_time
+            term_cfg.func(self._env, valid_env_ids, **term_cfg.params)
       elif mode == "reset":
         min_step_count = term_cfg.min_step_count_between_reset
         if env_ids is None:
@@ -103,7 +143,7 @@ class EventManager(ManagerBase):
       else:
         term_cfg.func(self._env, env_ids, **term_cfg.params)
 
-  def _prepare_terms(self):
+  def _prepare_terms(self) -> None:
     self._interval_term_time_left: list[torch.Tensor] = list()
     self._reset_term_last_triggered_step_id: list[torch.Tensor] = list()
     self._reset_term_last_triggered_once: list[torch.Tensor] = list()
@@ -122,7 +162,20 @@ class EventManager(ManagerBase):
       self._mode_term_names[term_cfg.mode].append(term_name)
       self._mode_term_cfgs[term_cfg.mode].append(term_cfg)
       if term_cfg.mode == "interval":
-        pass
+        if term_cfg.interval_range_s is None:
+          raise ValueError(
+            f"Event term '{term_name}' has mode 'interval' but 'interval_range_s' is not specified."
+          )
+        if term_cfg.is_global_time:
+          lower, upper = term_cfg.interval_range_s
+          time_left = torch.rand(1) * (upper - lower) + lower
+          self._interval_term_time_left.append(time_left)
+        else:
+          lower, upper = term_cfg.interval_range_s
+          time_left = (
+            torch.rand(self.num_envs, device=self.device) * (upper - lower) + lower
+          )
+          self._interval_term_time_left.append(time_left)
       elif term_cfg.mode == "reset":
         step_count = torch.zeros(self.num_envs, device=self.device, dtype=torch.int32)
         self._reset_term_last_triggered_step_id.append(step_count)

@@ -21,7 +21,7 @@ def reset_root_state_uniform(
   pose_range: dict[str, tuple[float, float]],
   velocity_range: dict[str, tuple[float, float]],
   asset_cfg: SceneEntityCfg = SceneEntityCfg(name="robot"),
-):
+) -> None:
   asset: Robot = env.scene[asset_cfg.name]
   default_root_state = asset.data.default_root_state
   assert default_root_state is not None
@@ -65,7 +65,7 @@ def reset_joints_by_scale(
   position_range: tuple[float, float],
   velocity_range: tuple[float, float],
   asset_cfg: SceneEntityCfg = SceneEntityCfg(name="robot"),
-):
+) -> None:
   asset: Robot = env.scene[asset_cfg.name]
   default_joint_pos = asset.data.default_joint_pos
   assert default_joint_pos is not None
@@ -89,3 +89,22 @@ def reset_joints_by_scale(
     env_ids=env_ids,
     joint_ids=asset_cfg.joint_ids,
   )
+
+
+def push_by_setting_velocity(
+  env: ManagerBasedEnv,
+  env_ids: torch.Tensor,
+  velocity_range: dict[str, tuple[float, float]],
+  asset_cfg: SceneEntityCfg = SceneEntityCfg(name="robot"),
+) -> None:
+  asset: Robot = env.scene[asset_cfg.name]
+  vel_w = asset.data.root_com_vel_w[env_ids]
+  range_list = [
+    velocity_range.get(key, (0.0, 0.0))
+    for key in ["x", "y", "z", "roll", "pitch", "yaw"]
+  ]
+  ranges = torch.tensor(range_list, device=env.device)
+  vel_w += math_utils.sample_uniform(
+    ranges[:, 0], ranges[:, 1], vel_w.shape, device=env.device
+  )
+  asset.write_root_velocity_to_sim(vel_w, env_ids=env_ids)
