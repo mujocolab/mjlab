@@ -9,7 +9,8 @@ IsaacLab API with [MJWarp](https://github.com/google-deepmind/mujoco_warp) backe
 ```bash
 pip install warp-lang --pre --upgrade -f https://pypi.nvidia.com/warp-lang/
 pip install mujoco --pre --upgrade -f https://py.mujoco.org/
-git clone https://github.com/google-deepmind/mujoco_warp.git
+git clone https://github.com/google-deepmind/mujoco_warp.git && cd mujoco_warp
+git checkout 303de9f  # IMPORTANT!
 pip install -e .[dev,cuda] --config-settings editable_mode=strict
 ```
 
@@ -71,6 +72,7 @@ aka make Brent proud
 - [ ] Redo dataclass config correctly
 - [ ] Make tyro configure everything in rsl_rl train and eval script
 - [ ] Improve type checking across the board
+- [ ] Switch to `uv`
 
 **P2**
 
@@ -81,5 +83,5 @@ aka make Brent proud
 ### Reset warp cache
 
 ```bash
-rm -r /home/kevin/.cache/warp
+python -c "import warp; warp.clear_kernel_cache()"
 ```
