@@ -167,8 +167,10 @@ class Scene:
       for joint in ent.spec.joints:
         jnt = model.joint(joint.name)
         if jnt.type[0] == mujoco.mjtJoint.mjJNT_FREE:
-          # TODO: Why is jnt.bodyid an array?
-          root_body_id = model.jnt_bodyid[jnt.id]
+          # NOTE: `jnt.bodyid` is currently returning an
+          # array when it should only be returning a single
+          # value. So instead, we use model.jnt_bodyid.
+          root_body_id = int(model.jnt_bodyid[jnt.id])
 
       root_body_iquat = None
       if root_body_id is not None:
