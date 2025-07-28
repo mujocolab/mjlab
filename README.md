@@ -28,6 +28,11 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 - [ ] Domain randomization
 - [ ] Terrain generation
 - [ ] Observation history and modifiers
+- [ ] Rename entities to be consistent with isaaclab
+- [ ] Actuation
+  - [x] Joint PD control
+  - [ ] Learned actuator models
+  - [ ] Cleanup to be consistent with isaaclab
 - [ ] Managers
   - [x] Action manager
   - [x] Command manager
