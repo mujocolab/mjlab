@@ -12,9 +12,10 @@ authors = [
 requires-python = ">=3.10"
 dynamic = ["description"]
 dependencies = [
-    "tyro",
-    "tqdm",
     "gymnasium==1.2.0",
+    "prettytable",
+    "tqdm",
+    "tyro",
 ]
 
 [project.optional-dependencies]
