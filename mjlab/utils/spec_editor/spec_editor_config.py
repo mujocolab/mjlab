@@ -43,7 +43,7 @@ class OptionCfg:
   timestep: float = 0.002
   integrator: str = "implicitfast"
   # Friction settings.
-  impratio: int = 1
+  impratio: float = 1.0
   cone: str = "elliptic"
   # Solver settings.
   jacobian: str = "auto"
