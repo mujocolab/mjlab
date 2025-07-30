@@ -142,7 +142,11 @@ def posture(
   asset: Robot = env.scene[asset_cfg.name]
   default_joint_pos = asset.data.default_joint_pos
   assert default_joint_pos is not None
-  error = torch.sum(torch.square(asset.data.joint_pos - default_joint_pos), dim=1)
+  weight = asset.data.joint_pos_weight
+  assert weight is not None
+  error = torch.sum(
+    torch.square(asset.data.joint_pos - default_joint_pos) * weight, dim=1
+  )
   return torch.exp(-0.5 * error)
 
 

@@ -19,3 +19,4 @@ class RobotCfg(EntityCfg):
   actuators: list[ActuatorCfg] = field(default_factory=list)
   collisions: list[CollisionCfg] = field(default_factory=list)
   soft_joint_pos_limit_factor: float = 1.0
+  joint_pos_weight: list[float] | dict[str, float] | None = None

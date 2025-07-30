@@ -11,4 +11,8 @@ class UnitreeGo1FlatEnvCfg(LocomotionVelocityFlatEnvCfg):
   def __post_init__(self):
     super().__post_init__()
 
-    self.scene.robots = {"robot": GO1_ROBOT_CFG}
+    go1_cfg = GO1_ROBOT_CFG
+    go1_cfg.joint_pos_weight = {".*calf_joint": 0.1}
+    self.scene.robots = {"robot": go1_cfg}
+    self.events.push_robot = None
+    self.observations.policy.enable_corruption = False

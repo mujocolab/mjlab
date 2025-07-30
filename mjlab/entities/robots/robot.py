@@ -205,6 +205,16 @@ class Robot(entity.Entity):
       joint_pos_mean + 0.5 * joint_pos_range * soft_limit_factor
     )
 
+    if self.cfg.joint_pos_weight is not None:
+      weight = string_utils.resolve_expr(
+        self.cfg.joint_pos_weight, self.joint_names, 1.0
+      )
+    else:
+      weight = [1.0] * len(self.joint_names)
+    self._data.joint_pos_weight = torch.tensor(weight, device=device).repeat(
+      data.nworld, 1
+    )
+
   def update(self, dt: float) -> None:
     self._data.update(dt)
 

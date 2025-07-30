@@ -1,4 +1,4 @@
-from dataclasses import dataclass, MISSING, field
+from dataclasses import dataclass, field
 
 from mjlab.entities import Robot
 from mjlab.scene import Scene
@@ -8,7 +8,7 @@ from mjlab.scene import Scene
 class SceneEntityCfg:
   """Configuration for a scene entity that is used by the manager's term."""
 
-  name: str = MISSING
+  name: str
 
   joint_names: str | list[str] | None = None
   joint_ids: list[int] | slice = field(default_factory=lambda: slice(None))
@@ -16,11 +16,15 @@ class SceneEntityCfg:
   body_names: str | list[str] | None = None
   body_ids: list[int] | slice = field(default_factory=lambda: slice(None))
 
+  geom_names: str | list[str] | None = None
+  geom_ids: list[int] | slice = field(default_factory=lambda: slice(None))
+
   preserve_order: bool = False
 
   def resolve(self, scene: Scene) -> None:
     self._resolve_joint_names(scene)
     self._resolve_body_names(scene)
+    self._resolve_geom_names(scene)
 
   def _resolve_joint_names(self, scene: Scene) -> None:
     if self.joint_names is not None or self.joint_ids != slice(None):
@@ -81,3 +85,33 @@ class SceneEntityCfg:
         if isinstance(self.body_ids, int):
           self.body_ids = [self.body_ids]
         self.body_names = [entity.body_names[i] for i in self.body_ids]
+
+  def _resolve_geom_names(self, scene: Scene) -> None:
+    if self.geom_names is not None or self.geom_ids != slice(None):
+      entity: Robot = scene[self.name]
+      if self.geom_names is not None and self.geom_ids != slice(None):
+        if isinstance(self.geom_names, str):
+          self.geom_names = [self.geom_names]
+        if isinstance(self.geom_ids, int):
+          self.geom_ids = [self.geom_ids]
+        geom_ids, _ = entity.find_geoms(
+          self.geom_names, preserve_order=self.preserve_order
+        )
+        geom_names = [entity.geom_names[i] for i in self.geom_ids]
+        if geom_ids != self.geom_ids or geom_names != self.geom_names:
+          raise ValueError()
+      elif self.geom_names is not None:
+        if isinstance(self.geom_names, str):
+          self.geom_names = [self.geom_names]
+        self.geom_ids, _ = entity.find_geoms(
+          self.geom_names, preserve_order=self.preserve_order
+        )
+        if (
+          len(self.geom_ids) == entity.num_geoms
+          and self.geom_names == entity.geom_names
+        ):
+          self.geom_ids = slice(None)
+      elif self.geom_ids != slice(None):
+        if isinstance(self.geom_ids, int):
+          self.geom_ids = [self.geom_ids]
+        self.geom_names = [entity.geom_names[i] for i in self.geom_ids]

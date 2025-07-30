@@ -11,6 +11,7 @@ class EntityIndexing:
   body_ids: torch.Tensor
   body_root_ids: torch.Tensor
   geom_ids: torch.Tensor
+  geom_body_ids: torch.Tensor
   site_ids: torch.Tensor
   ctrl_ids: torch.Tensor
 

@@ -192,36 +192,35 @@ class RewardCfg:
   track_lin_vel_xy_exp: RewardTerm = term(
     RewardTerm,
     func=mdp.track_lin_vel_xy_exp,
-    weight=1.5,
+    weight=1.0,
     params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
   )
   track_ang_vel_z_exp: RewardTerm = term(
     RewardTerm,
     func=mdp.track_ang_vel_z_exp,
-    weight=0.75,
+    weight=0.5,
     params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
   )
   # Penalties.
-  lin_vel_z_l2: RewardTerm = term(RewardTerm, func=mdp.lin_vel_z_l2, weight=-2.0)
+  lin_vel_z_l2: RewardTerm = term(RewardTerm, func=mdp.lin_vel_z_l2, weight=-0.5)
   ang_vel_xy_l2: RewardTerm = term(RewardTerm, func=mdp.ang_vel_xy_l2, weight=-0.05)
   dof_torques_l2: RewardTerm = term(
     RewardTerm, func=mdp.joint_torques_l2, weight=-0.0002
   )
-  dof_energy_l2: RewardTerm = term(RewardTerm, func=mdp.joint_energy, weight=-0.001)
-  dof_acc_l2: RewardTerm = term(RewardTerm, func=mdp.joint_acc_l2, weight=-0.00000025)
+  dof_acc_l2: RewardTerm = term(RewardTerm, func=mdp.joint_acc_l2, weight=0.0)
   action_rate_l2: RewardTerm = term(RewardTerm, func=mdp.action_rate_l2, weight=-0.01)
   flat_orientation_l2: RewardTerm = term(
-    RewardTerm, func=mdp.flat_orientation_l2, weight=-2.5
+    RewardTerm, func=mdp.flat_orientation_l2, weight=-5.0
   )
-  dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=0.0)
+  dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
   feet_air_time: RewardTerm = term(
     RewardTerm,
     func=mdp.feet_air_time,
-    weight=0.25,
+    weight=0.1,
     params={
       "sensor_cfg": SceneEntityCfg("feet_contact_forces"),
       "command_name": "base_velocity",
-      "threshold": 0.5,
+      "threshold": 0.1,
     },
   )
 
@@ -233,7 +232,7 @@ class RewardCfg:
 class TerminationCfg:
   time_out: DoneTerm = term(DoneTerm, func=mdp.time_out, time_out=True)
   fell_over: DoneTerm = term(
-    DoneTerm, func=mdp.bad_orientation, params={"threshold": 0.5}
+    DoneTerm, func=mdp.bad_orientation, params={"limit_angle": math.radians(45.0)}
   )
 
 
@@ -261,3 +260,5 @@ class LocomotionVelocityFlatEnvCfg(ManagerBasedRlEnvCfg):
     self.sim.num_envs = 4096
     self.sim.nconmax = 40000
     self.sim.njmax = 85
+    self.sim.mujoco.iterations = 10
+    self.sim.mujoco.ls_iterations = 20

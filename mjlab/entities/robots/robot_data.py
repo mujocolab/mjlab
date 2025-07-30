@@ -20,6 +20,7 @@ class RobotData:
   default_joint_pos_limits: torch.Tensor | None = None
   joint_pos_limits: torch.Tensor | None = None
   soft_joint_pos_limits: torch.Tensor | None = None
+  joint_pos_weight: torch.Tensor | None = None
 
   def __init__(self, indexing: EntityIndexing, data: mjwarp.Data, device: str):
     self.indexing = indexing
@@ -135,7 +136,7 @@ class RobotData:
   def body_link_vel_w(self) -> torch.Tensor:
     """Body link velocity in simulation world frame. Shape (num_envs, num_bodies, 6)."""
     pos = self.data.xpos[:, self.indexing.body_ids].clone()
-    subtree_com = self.data.subtree_com[:, self.indexing.body_ids].clone()
+    subtree_com = self.data.subtree_com[:, self.indexing.body_root_ids].clone()
     cvel = self.data.cvel[:, self.indexing.body_ids].clone()
 
     return self._compute_velocity_from_cvel(pos, subtree_com, cvel)
@@ -152,10 +153,33 @@ class RobotData:
   def body_com_vel_w(self) -> torch.Tensor:
     """Body center-of-mass velocity in simulation world frame. Shape (num_envs, num_bodies, 6)."""
     pos = self.data.xipos[:, self.indexing.body_ids].clone()
-    subtree_com = self.data.subtree_com[:, self.indexing.body_ids].clone()
+    subtree_com = self.data.subtree_com[:, self.indexing.body_root_ids].clone()
     cvel = self.data.cvel[:, self.indexing.body_ids].clone()
 
     return self._compute_velocity_from_cvel(pos, subtree_com, cvel)
+
+  # Geom properties
+
+  @property
+  def geom_pose_w(self) -> torch.Tensor:
+    """Geom pose in simulation world frame. Shape (num_envs, num_geoms, 7)."""
+    pos_w = self.data.geom_xpos[:, self.indexing.geom_ids].clone()
+    xmat = self.data.geom_xmat[:, self.indexing.geom_ids].clone()
+    quat_w = math_utils.quat_from_matrix(xmat)
+    return self._get_pose_components(pos_w, quat_w)
+
+  @property
+  def geom_vel_w(self) -> torch.Tensor:
+    """Geom velocity in simulation world frame. Shape (num_envs, num_geoms, 6)."""
+    pos = self.data.geom_xpos[:, self.indexing.geom_ids].clone()
+    body_ids = self.indexing.geom_body_ids
+    root_body_ids = self.indexing.body_root_ids[body_ids - 1]
+    subtree_com = self.data.subtree_com[:, root_body_ids].clone()
+    cvel = self.data.cvel[:, body_ids].clone()
+
+    return self._compute_velocity_from_cvel(pos, subtree_com, cvel)
+
+  # TODO: Add site properties.
 
   # Joint properties
 
@@ -190,7 +214,7 @@ class RobotData:
   @property
   def root_link_pos_w(self) -> torch.Tensor:
     """Root link position in world frame. Shape (num_envs, 3)."""
-    return self.root_link_pose_w[:, :3]
+    return self.root_link_pose_w[:, 0:3]
 
   @property
   def root_link_quat_w(self) -> torch.Tensor:
@@ -200,7 +224,7 @@ class RobotData:
   @property
   def root_link_lin_vel_w(self) -> torch.Tensor:
     """Root link linear velocity in world frame. Shape (num_envs, 3)."""
-    return self.root_link_vel_w[:, :3]
+    return self.root_link_vel_w[:, 0:3]
 
   @property
   def root_link_ang_vel_w(self) -> torch.Tensor:
@@ -210,7 +234,7 @@ class RobotData:
   @property
   def root_com_pos_w(self) -> torch.Tensor:
     """Root COM position in world frame. Shape (num_envs, 3)."""
-    return self.root_com_pose_w[:, :3]
+    return self.root_com_pose_w[:, 0:3]
 
   @property
   def root_com_quat_w(self) -> torch.Tensor:
@@ -220,7 +244,7 @@ class RobotData:
   @property
   def root_com_lin_vel_w(self) -> torch.Tensor:
     """Root COM linear velocity in world frame. Shape (num_envs, 3)."""
-    return self.root_com_vel_w[:, :3]
+    return self.root_com_vel_w[:, 0:3]
 
   @property
   def root_com_ang_vel_w(self) -> torch.Tensor:
@@ -230,7 +254,7 @@ class RobotData:
   @property
   def body_link_pos_w(self) -> torch.Tensor:
     """Body link positions in world frame. Shape (num_envs, num_bodies, 3)."""
-    return self.body_link_pose_w[..., :3]
+    return self.body_link_pose_w[..., 0:3]
 
   @property
   def body_link_quat_w(self) -> torch.Tensor:
@@ -240,7 +264,7 @@ class RobotData:
   @property
   def body_link_lin_vel_w(self) -> torch.Tensor:
     """Body link linear velocities in world frame. Shape (num_envs, num_bodies, 3)."""
-    return self.body_link_vel_w[..., :3]
+    return self.body_link_vel_w[..., 0:3]
 
   @property
   def body_link_ang_vel_w(self) -> torch.Tensor:
@@ -250,7 +274,7 @@ class RobotData:
   @property
   def body_com_pos_w(self) -> torch.Tensor:
     """Body COM positions in world frame. Shape (num_envs, num_bodies, 3)."""
-    return self.body_com_pose_w[..., :3]
+    return self.body_com_pose_w[..., 0:3]
 
   @property
   def body_com_quat_w(self) -> torch.Tensor:
@@ -260,12 +284,32 @@ class RobotData:
   @property
   def body_com_lin_vel_w(self) -> torch.Tensor:
     """Body COM linear velocities in world frame. Shape (num_envs, num_bodies, 3)."""
-    return self.body_com_vel_w[..., :3]
+    return self.body_com_vel_w[..., 0:3]
 
   @property
   def body_com_ang_vel_w(self) -> torch.Tensor:
     """Body COM angular velocities in world frame. Shape (num_envs, num_bodies, 3)."""
     return self.body_com_vel_w[..., 3:6]
+
+  @property
+  def geom_pos_w(self) -> torch.Tensor:
+    """Geom positions in world frame. Shape (num_envs, num_geoms, 3)."""
+    return self.geom_pose_w[..., 0:3]
+
+  @property
+  def geom_quat_w(self) -> torch.Tensor:
+    """Geom quaternions in world frame. Shape (num_envs, num_geoms, 4)."""
+    return self.geom_pose_w[..., 3:7]
+
+  @property
+  def geom_lin_vel_w(self) -> torch.Tensor:
+    """Geom linear velocities in world frame. Shape (num_envs, num_geoms, 3)."""
+    return self.geom_vel_w[..., 0:3]
+
+  @property
+  def geom_ang_vel_w(self) -> torch.Tensor:
+    """Geom angular velocities in world frame. Shape (num_envs, num_geoms, 3)."""
+    return self.geom_vel_w[..., 3:6]
 
   # Derived properties.
 

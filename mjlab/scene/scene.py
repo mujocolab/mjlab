@@ -132,8 +132,8 @@ class Scene:
       body_ids = []
       body_root_ids = []
       body_iquats = []
-      for body in ent.spec.bodies:
-        body_name = body.name
+      for body_ in ent.spec.bodies:
+        body_name = body_.name
         if body_name == "world":
           continue
         body = model.body(body_name)
@@ -145,11 +145,14 @@ class Scene:
       body_iquats = torch.tensor(body_iquats, dtype=torch.float, device=device)
 
       geom_ids = []
-      for geom in ent.spec.geoms:
-        geom_name = geom.name
-        geom_id = model.geom(geom_name).id
-        geom_ids.append(geom_id)
+      geom_body_ids = []
+      for geom_ in ent.spec.geoms:
+        geom_name = geom_.name
+        geom = model.geom(geom_name)
+        geom_ids.append(geom.id)
+        geom_body_ids.append(geom.bodyid[0])
       geom_ids = torch.tensor(geom_ids, dtype=torch.int, device=device)
+      geom_body_ids = torch.tensor(geom_body_ids, dtype=torch.int, device=device)
 
       site_ids = []
       for site in ent.spec.sites:
@@ -211,6 +214,7 @@ class Scene:
         body_ids=body_ids,
         body_root_ids=body_root_ids,
         geom_ids=geom_ids,
+        geom_body_ids=geom_body_ids,
         site_ids=site_ids,
         ctrl_ids=torch.tensor(ctrl_ids, dtype=torch.int, device=device),
         root_body_iquat=root_body_iquat,
