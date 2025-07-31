@@ -13,6 +13,7 @@ import gymnasium as gym
 
 import utils
 
+# TODO(kevin): Make sure this does not interfere with seed_rng call in env.seed().
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
 torch.backends.cudnn.deterministic = False
