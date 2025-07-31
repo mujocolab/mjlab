@@ -1,6 +1,9 @@
 from dataclasses import dataclass, field
 import mujoco
+import numpy as np
 
+from mjlab.utils.string import resolve_expr
+from mjlab.entities.robots.robot_config import RobotCfg
 from mjlab.utils.spec_editor.spec_editor_config import (
   ActuatorCfg,
   TextureCfg,
@@ -317,3 +320,16 @@ class LightEditor(SpecEditor):
       light.name = self.cfg.name
     if self.cfg.target is not None:
       light.targetbody = self.cfg.target
+
+
+@dataclass
+class KeyframeEditor(SpecEditor):
+  cfg: RobotCfg.InitialStateCfg
+
+  def edit_spec(self, spec: mujoco.MjSpec) -> None:
+    non_root_joints = get_non_root_joints(spec)
+    joint_names = [j.name for j in non_root_joints]
+    joint_pos = resolve_expr(self.cfg.joint_pos, joint_names)
+
+    qpos = np.concatenate((self.cfg.pos, self.cfg.rot, joint_pos))
+    spec.add_key(name="init_state", qpos=qpos, ctrl=joint_pos)

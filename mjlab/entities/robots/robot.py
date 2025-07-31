@@ -10,6 +10,7 @@ from mjlab.entities.robots.robot_config import RobotCfg
 from mjlab.utils.spec_editor.spec_editor import (
   ActuatorEditor,
   CollisionEditor,
+  KeyframeEditor,
 )
 from mjlab.utils.spec import get_non_root_joints
 from mjlab.utils import string as string_utils
@@ -22,11 +23,6 @@ class Robot(entity.Entity):
 
   def __init__(self, robot_cfg: RobotCfg):
     super().__init__(robot_cfg)
-
-    # Check that there is a site called IMU.
-    site_names = [site.name for site in self._spec.sites]
-    if "imu" not in site_names:
-      raise ValueError("A site named 'imu' must be present in the xml.")
 
     # Joints.
     self._non_root_joints = get_non_root_joints(self._spec)
@@ -307,3 +303,4 @@ class Robot(entity.Entity):
     self._actuator_joint_names = editor.jnt_names
     for col in self.cfg.collisions:
       CollisionEditor(col).edit_spec(self._spec)
+    KeyframeEditor(self.cfg.init_state).edit_spec(self._spec)
