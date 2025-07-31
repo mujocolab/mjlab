@@ -1,6 +1,20 @@
 import torch
 
 
+@torch.jit.script
+def normalize(x: torch.Tensor, eps: float = 1e-9) -> torch.Tensor:
+  """Normalizes a given input tensor to unit length.
+
+  Args:
+      x: Input tensor of shape (N, dims).
+      eps: A small value to avoid division by zero. Defaults to 1e-9.
+
+  Returns:
+      Normalized tensor of shape (N, dims).
+  """
+  return x / x.norm(p=2, dim=-1).clamp(min=eps, max=None).unsqueeze(-1)
+
+
 def sample_uniform(
   lower: torch.Tensor | float,
   upper: torch.Tensor | float,
@@ -301,3 +315,194 @@ def matrix_from_quat(quaternions: torch.Tensor) -> torch.Tensor:
     -1,
   )
   return o.reshape(quaternions.shape[:-1] + (3, 3))
+
+
+@torch.jit.script
+def quat_conjugate(q: torch.Tensor) -> torch.Tensor:
+  """Computes the conjugate of a quaternion.
+
+  Args:
+      q: The quaternion orientation in (w, x, y, z). Shape is (..., 4).
+
+  Returns:
+      The conjugate quaternion in (w, x, y, z). Shape is (..., 4).
+  """
+  shape = q.shape
+  q = q.reshape(-1, 4)
+  return torch.cat((q[..., 0:1], -q[..., 1:]), dim=-1).view(shape)
+
+
+@torch.jit.script
+def quat_inv(q: torch.Tensor, eps: float = 1e-9) -> torch.Tensor:
+  """Computes the inverse of a quaternion.
+
+  Args:
+      q: The quaternion orientation in (w, x, y, z). Shape is (N, 4).
+      eps: A small value to avoid division by zero. Defaults to 1e-9.
+
+  Returns:
+      The inverse quaternion in (w, x, y, z). Shape is (N, 4).
+  """
+  return quat_conjugate(q) / q.pow(2).sum(dim=-1, keepdim=True).clamp(min=eps)
+
+
+@torch.jit.script
+def axis_angle_from_quat(quat: torch.Tensor, eps: float = 1.0e-6) -> torch.Tensor:
+  """Convert rotations given as quaternions to axis/angle.
+
+  Args:
+      quat: The quaternion orientation in (w, x, y, z). Shape is (..., 4).
+      eps: The tolerance for Taylor approximation. Defaults to 1.0e-6.
+
+  Returns:
+      Rotations given as a vector in axis angle form. Shape is (..., 3).
+      The vector's magnitude is the angle turned anti-clockwise in radians around the vector's direction.
+
+  Reference:
+      https://github.com/facebookresearch/pytorch3d/blob/main/pytorch3d/transforms/rotation_conversions.py#L526-L554
+  """
+  # Modified to take in quat as [q_w, q_x, q_y, q_z]
+  # Quaternion is [q_w, q_x, q_y, q_z] = [cos(theta/2), n_x * sin(theta/2), n_y * sin(theta/2), n_z * sin(theta/2)]
+  # Axis-angle is [a_x, a_y, a_z] = [theta * n_x, theta * n_y, theta * n_z]
+  # Thus, axis-angle is [q_x, q_y, q_z] / (sin(theta/2) / theta)
+  # When theta = 0, (sin(theta/2) / theta) is undefined
+  # However, as theta --> 0, we can use the Taylor approximation 1/2 - theta^2 / 48
+  quat = quat * (1.0 - 2.0 * (quat[..., 0:1] < 0.0))
+  mag = torch.linalg.norm(quat[..., 1:], dim=-1)
+  half_angle = torch.atan2(mag, quat[..., 0])
+  angle = 2.0 * half_angle
+  # check whether to apply Taylor approximation
+  sin_half_angles_over_angles = torch.where(
+    angle.abs() > eps, torch.sin(half_angle) / angle, 0.5 - angle * angle / 48
+  )
+  return quat[..., 1:4] / sin_half_angles_over_angles.unsqueeze(-1)
+
+
+@torch.jit.script
+def quat_box_minus(q1: torch.Tensor, q2: torch.Tensor) -> torch.Tensor:
+  """The box-minus operator (quaternion difference) between two quaternions.
+
+  Args:
+      q1: The first quaternion in (w, x, y, z). Shape is (N, 4).
+      q2: The second quaternion in (w, x, y, z). Shape is (N, 4).
+
+  Returns:
+      The difference between the two quaternions. Shape is (N, 3).
+
+  Reference:
+      https://github.com/ANYbotics/kindr/blob/master/doc/cheatsheet/cheatsheet_latest.pdf
+  """
+  quat_diff = quat_mul(q1, quat_conjugate(q2))  # q1 * q2^-1
+  return axis_angle_from_quat(quat_diff)  # log(qd)
+
+
+@torch.jit.script
+def quat_error_magnitude(q1: torch.Tensor, q2: torch.Tensor) -> torch.Tensor:
+  """Computes the rotation difference between two quaternions.
+
+  Args:
+      q1: The first quaternion in (w, x, y, z). Shape is (..., 4).
+      q2: The second quaternion in (w, x, y, z). Shape is (..., 4).
+
+  Returns:
+      Angular error between input quaternions in radians.
+  """
+  axis_angle_error = quat_box_minus(q1, q2)
+  return torch.norm(axis_angle_error, dim=-1)
+
+
+@torch.jit.script
+def yaw_quat(quat: torch.Tensor) -> torch.Tensor:
+  """Extract the yaw component of a quaternion.
+
+  Args:
+      quat: The orientation in (w, x, y, z). Shape is (..., 4)
+
+  Returns:
+      A quaternion with only yaw component.
+  """
+  shape = quat.shape
+  quat_yaw = quat.view(-1, 4)
+  qw = quat_yaw[:, 0]
+  qx = quat_yaw[:, 1]
+  qy = quat_yaw[:, 2]
+  qz = quat_yaw[:, 3]
+  yaw = torch.atan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz))
+  quat_yaw = torch.zeros_like(quat_yaw)
+  quat_yaw[:, 3] = torch.sin(yaw / 2)
+  quat_yaw[:, 0] = torch.cos(yaw / 2)
+  quat_yaw = normalize(quat_yaw)
+  return quat_yaw.view(shape)
+
+
+def subtract_frame_transforms(
+  t01: torch.Tensor,
+  q01: torch.Tensor,
+  t02: torch.Tensor | None = None,
+  q02: torch.Tensor | None = None,
+) -> tuple[torch.Tensor, torch.Tensor]:
+  r"""Subtract transformations between two reference frames into a stationary frame.
+
+  It performs the following transformation operation: :math:`T_{12} = T_{01}^{-1} \times T_{02}`,
+  where :math:`T_{AB}` is the homogeneous transformation matrix from frame A to B.
+
+  Args:
+      t01: Position of frame 1 w.r.t. frame 0. Shape is (N, 3).
+      q01: Quaternion orientation of frame 1 w.r.t. frame 0 in (w, x, y, z). Shape is (N, 4).
+      t02: Position of frame 2 w.r.t. frame 0. Shape is (N, 3).
+          Defaults to None, in which case the position is assumed to be zero.
+      q02: Quaternion orientation of frame 2 w.r.t. frame 0 in (w, x, y, z). Shape is (N, 4).
+          Defaults to None, in which case the orientation is assumed to be identity.
+
+  Returns:
+      A tuple containing the position and orientation of frame 2 w.r.t. frame 1.
+      Shape of the tensors are (N, 3) and (N, 4) respectively.
+  """
+  # compute orientation
+  q10 = quat_inv(q01)
+  if q02 is not None:
+    q12 = quat_mul(q10, q02)
+  else:
+    q12 = q10
+  # compute translation
+  if t02 is not None:
+    t12 = quat_apply(q10, t02 - t01)
+  else:
+    t12 = quat_apply(q10, -t01)
+  return t12, q12
+
+
+def quat_slerp(q1: torch.Tensor, q2: torch.Tensor, tau: float) -> torch.Tensor:
+  """Performs spherical linear interpolation (SLERP) between two quaternions.
+
+  This function does not support batch processing.
+
+  Args:
+      q1: First quaternion in (w, x, y, z) format.
+      q2: Second quaternion in (w, x, y, z) format.
+      tau: Interpolation coefficient between 0 (q1) and 1 (q2).
+
+  Returns:
+      Interpolated quaternion in (w, x, y, z) format.
+  """
+  assert isinstance(q1, torch.Tensor), "Input must be a torch tensor"
+  assert isinstance(q2, torch.Tensor), "Input must be a torch tensor"
+  if tau == 0.0:
+    return q1
+  elif tau == 1.0:
+    return q2
+  d = torch.dot(q1, q2)
+  if abs(abs(d) - 1.0) < torch.finfo(q1.dtype).eps * 4.0:
+    return q1
+  if d < 0.0:
+    # Invert rotation
+    d = -d
+    q2 *= -1.0
+  angle = torch.acos(torch.clamp(d, -1, 1))
+  if abs(angle) < torch.finfo(q1.dtype).eps * 4.0:
+    return q1
+  isin = 1.0 / torch.sin(angle)
+  q1 = q1 * torch.sin((1.0 - tau) * angle) * isin
+  q2 = q2 * torch.sin(tau * angle) * isin
+  q1 = q1 + q2
+  return q1

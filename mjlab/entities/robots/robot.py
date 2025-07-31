@@ -224,6 +224,12 @@ class Robot(entity.Entity):
 
   # Write methods.
 
+  def write_root_state_to_sim(
+    self, root_state: torch.Tensor, env_ids: Sequence[int] | None = None
+  ):
+    self.write_root_link_pose_to_sim(root_state[:, :7], env_ids=env_ids)
+    self.write_root_com_velocity_to_sim(root_state[:, 7:], env_ids=env_ids)
+
   def write_root_pose_to_sim(
     self, root_pose: torch.Tensor, env_ids: Sequence[int] | None = None
   ):

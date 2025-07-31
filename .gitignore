@@ -9,3 +9,4 @@ typings/
 .vscode/
 *.ipynb_checkpoints/
 *.ipynb
+motions/

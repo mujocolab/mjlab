@@ -16,7 +16,7 @@
         </default>
       </default>
       <site group="5" rgba="1 0 0 1"/>
-      <joint solimplimit="0 0.99 0.01" solreflimit=".008 1"/>
+      <!-- <joint solimplimit="0 0.99 0.01" solreflimit=".008 1"/> -->
     </default>
   </default>
 

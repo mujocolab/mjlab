@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from mjlab.tasks.locomotion.velocity.velocity_env_cfg import (
   LocomotionVelocityFlatEnvCfg,
@@ -11,7 +11,7 @@ class UnitreeGo1FlatEnvCfg(LocomotionVelocityFlatEnvCfg):
   def __post_init__(self):
     super().__post_init__()
 
-    go1_cfg = GO1_ROBOT_CFG
+    go1_cfg = replace(GO1_ROBOT_CFG)
     go1_cfg.joint_pos_weight = {".*calf_joint": 0.1}
     self.scene.robots = {"robot": go1_cfg}
     self.events.push_robot = None

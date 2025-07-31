@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from mjlab.scene.scene_config import SceneCfg
 from mjlab.asset_zoo.terrains.flat_terrain import FLAT_TERRAIN_CFG
@@ -23,7 +23,7 @@ from mjlab.tasks.locomotion.velocity import mdp
 # Scene.
 ##
 
-terrain_cfg = FLAT_TERRAIN_CFG
+terrain_cfg = replace(FLAT_TERRAIN_CFG)
 terrain_cfg.textures.append(
   TextureCfg(
     name="skybox",
@@ -40,7 +40,7 @@ terrain_cfg.lights.append(
 )
 
 SCENE_CFG = SceneCfg(
-  terrains={"floor": FLAT_TERRAIN_CFG},
+  terrains={"floor": terrain_cfg},
   sensors={
     "feet_contact_forces": ContactSensorCfg(
       entity_name="robot",
