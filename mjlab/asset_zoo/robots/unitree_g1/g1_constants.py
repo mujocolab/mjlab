@@ -2,24 +2,29 @@
 
 # fmt: off
 
+import mujoco
 from typing import Dict
+from mjlab import MJLAB_SRC_PATH
+from mjlab.utils.os import update_assets
+
 from mjlab.utils.actuator import ElectricActuator, reflected_inertia_from_two_stage_planetary
 from mjlab.entities.robots.robot_config import RobotCfg
-from mjlab.entities.robots.robot_config import InitialStateCfg, ActuatorCfg, SensorCfg
-from mjlab.utils.spec_editor.spec_editor_config import CollisionCfg
-from mjlab.utils.os import update_assets
-from mjlab import MJLAB_SRC_PATH
+from mjlab.utils.spec_editor.spec_editor_config import CollisionCfg, ActuatorCfg
 
 ##
 # MJCF and assets.
 ##
 
-G1_XML = MJLAB_SRC_PATH / "entities" / "robots" / "unitree_g1" / "xmls" / "unitree_g1.xml"
+G1_XML = MJLAB_SRC_PATH / "asset_zoo" / "robots" / "unitree_g1" / "xmls" / "g1.xml"
+assert G1_XML.exists()
 
 def get_assets() -> Dict[str, bytes]:
   assets: Dict[str, bytes] = {}
   update_assets(assets, G1_XML.parent / "assets")
   return assets
+
+def get_spec() -> mujoco.MjSpec:
+  return mujoco.MjSpec.from_file(str(G1_XML), assets=get_assets())
 
 ##
 # Actuator config.
@@ -163,7 +168,7 @@ G1_ACTUATOR_ANKLE = ActuatorCfg(
 # Keyframe config.
 ##
 
-HOME_KEYFRAME = InitialStateCfg(
+HOME_KEYFRAME = RobotCfg.InitialStateCfg(
   pos=(0, 0, 0.783675),
   joint_pos={
     ".*_hip_pitch_joint": -0.1,
@@ -174,20 +179,22 @@ HOME_KEYFRAME = InitialStateCfg(
     "left_shoulder_roll_joint": 0.2,
     "right_shoulder_roll_joint": -0.2,
   },
+  joint_vel={".*": 0.0},
 )
 
-KNEES_BENT_KEYFRAME = InitialStateCfg(
-  pos=(0, 0, 0.755),
+KNEES_BENT_KEYFRAME = RobotCfg.InitialStateCfg(
+  pos=(0, 0, 0.76),
   joint_pos={
     ".*_hip_pitch_joint": -0.312,
     ".*_knee_joint": 0.669,
     ".*_ankle_pitch_joint": -0.363,
-    "waist_pitch_joint": 0.073,
-    ".*_shoulder_pitch_joint": 0.2,
-    ".*_elbow_joint": 1.0,
-    "left_shoulder_roll_joint": 0.22,
-    "right_shoulder_roll_joint": -0.22,
+    ".*_elbow_joint": 0.6,
+    "left_shoulder_roll_joint": 0.2,
+    "left_shoulder_pitch_joint": 0.2,
+    "right_shoulder_roll_joint": -0.2,
+    "right_shoulder_pitch_joint": 0.2,
   },
+  joint_vel={".*": 0.0},
 )
 
 ##
@@ -227,22 +234,23 @@ FEET_ONLY_COLLISION = CollisionCfg(
 ##
 
 G1_ROBOT_CFG = RobotCfg(
-  xml_path=G1_XML,
-  asset_fn=get_assets,
-  actuators=(
+  init_state=KNEES_BENT_KEYFRAME,
+  actuators=[
     G1_ACTUATOR_5020,
     G1_ACTUATOR_7520_14,
     G1_ACTUATOR_7520_22,
     G1_ACTUATOR_4010,
     G1_ACTUATOR_WAIST,
     G1_ACTUATOR_ANKLE,
-  ),
-  sensors=(
-    SensorCfg("body_ang_vel", "gyro", "imu_in_pelvis", "site"),
-    SensorCfg("body_lin_vel", "velocimeter", "imu_in_pelvis", "site"),
-    SensorCfg("body_zaxis", "framezaxis", "imu_in_pelvis", "site"),
-  ),
-  soft_joint_pos_limit_factor=0.95,
-  init_state=KNEES_BENT_KEYFRAME,
-  collisions=(FULL_COLLISION_WITHOUT_SELF,)
+  ],
+  soft_joint_pos_limit_factor=0.9,
+  collisions=[FULL_COLLISION_WITHOUT_SELF,],
+  spec_fn=get_spec,
 )
+
+if __name__ == "__main__":
+  from mjlab.entities.robots.robot import Robot
+  import mujoco.viewer as viewer
+
+  robot = Robot(G1_ROBOT_CFG)
+  viewer.launch(robot.spec.compile())
