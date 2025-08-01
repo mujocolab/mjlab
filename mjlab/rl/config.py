@@ -14,9 +14,9 @@ class RslRlPpoActorCriticCfg:
   """Whether to normalize the observation for the actor network. Default is False."""
   critic_obs_normalization: bool = False
   """Whether to normalize the observation for the critic network. Default is False."""
-  actor_hidden_dims: Tuple[int, ...] = (512, 256, 128)
+  actor_hidden_dims: Tuple[int, ...] = (128, 128, 128)
   """The hidden dimensions of the actor network."""
-  critic_hidden_dims: Tuple[int, ...] = (512, 256, 128)
+  critic_hidden_dims: Tuple[int, ...] = (128, 128, 128)
   """The hidden dimensions of the critic network."""
   activation: str = "elu"
   """The activation function to use in the actor and critic networks."""

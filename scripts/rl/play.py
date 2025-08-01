@@ -4,7 +4,7 @@ from dataclasses import asdict
 from pathlib import Path
 import torch
 import tyro
-from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
+from mjlab.rl import RslRlVecEnvWrapper
 from rsl_rl.runners import OnPolicyRunner
 from mjlab.tasks.utils.parse_cfg import load_cfg_from_registry
 import gymnasium as gym
@@ -24,7 +24,6 @@ _TASK = "Tracking-Flat-G1-v0"
 def main(
   task: str = _TASK,
   num_envs: int | None = None,
-  agent_cfg: RslRlOnPolicyRunnerCfg = RslRlOnPolicyRunnerCfg(),
   device: str | None = None,
   video: bool = False,
   video_length: int = 200,
@@ -33,6 +32,7 @@ def main(
   wandb_run_path: Path | None = None,
 ):
   env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
+  agent_cfg = load_cfg_from_registry(task, "rl_cfg_entry_point")
 
   env_cfg.sim.num_envs = num_envs or env_cfg.sim.num_envs
   env_cfg.sim.device = device or env_cfg.sim.device

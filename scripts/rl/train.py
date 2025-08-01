@@ -6,7 +6,7 @@ from datetime import datetime
 import os
 import torch
 import tyro
-from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
+from mjlab.rl import RslRlVecEnvWrapper
 from rsl_rl.runners import OnPolicyRunner
 from mjlab.tasks.utils.parse_cfg import load_cfg_from_registry
 import gymnasium as gym
@@ -21,12 +21,12 @@ torch.backends.cudnn.benchmark = False
 
 _HERE = Path(__file__).parent
 _TASK = "Tracking-Flat-G1-v0"
+# _TASK = "Mjlab-Velocity-Flat-Unitree-Go1-v0"
 
 
 def main(
   task: str = _TASK,
   num_envs: int | None = None,
-  agent_cfg: RslRlOnPolicyRunnerCfg = RslRlOnPolicyRunnerCfg(),
   seed: int | None = None,
   max_iterations: int | None = None,
   device: str | None = None,
@@ -35,6 +35,7 @@ def main(
   video_interval: int = 2000,
 ):
   env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
+  agent_cfg = load_cfg_from_registry(task, "rl_cfg_entry_point")
 
   env_cfg.sim.num_envs = num_envs or env_cfg.sim.num_envs
   agent_cfg.max_iterations = max_iterations or agent_cfg.max_iterations

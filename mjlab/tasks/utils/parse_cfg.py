@@ -15,9 +15,7 @@ import yaml
 from mjlab.envs import ManagerBasedRlEnvCfg
 
 
-def load_cfg_from_registry(
-  task_name: str, entry_point_key: str
-) -> ManagerBasedRlEnvCfg:
+def load_cfg_from_registry(task_name: str, entry_point_key: str) -> object:
   """Load default configuration given its entry point from the gym registry.
 
   This function loads the configuration object from the gym registry for the given task name.

@@ -6,5 +6,6 @@ gym.register(
   disable_env_checker=True,
   kwargs={
     "env_cfg_entry_point": f"{__name__}.flat_env_cfg:UnitreeGo1FlatEnvCfg",
+    "rl_cfg_entry_point": f"{__name__}.rl_cfg:UnitreeGo1FlatPPORunnerCfg",
   },
 )
