@@ -2,25 +2,29 @@
 
 # fmt: off
 
+import mujoco
 from typing import Dict
 from mjlab import MJLAB_SRC_PATH
 from mjlab.utils.os import update_assets
+
 from mjlab.utils.actuator import ElectricActuator, reflected_inertia, rpm_to_rad
 from mjlab.entities.robots.robot_config import RobotCfg
-from mjlab.utils.spec_editor.spec_editor_config import CollisionCfg
-from mjlab.entities.robots.robot_config import KeyframeCfg, ActuatorCfg, SensorCfg
+from mjlab.utils.spec_editor.spec_editor_config import ActuatorCfg, CollisionCfg
 
 ##
 # MJCF and assets
 ##
 
 T1_XML = MJLAB_SRC_PATH / "entities" / "robots" / "booster_t1" / "xmls" / "booster_t1.xml"
-
+assert T1_XML.exists()
 
 def get_assets() -> Dict[str, bytes]:
   assets: Dict[str, bytes] = {}
   update_assets(assets, T1_XML.parent / "assets")
   return assets
+
+def get_spec() -> mujoco.MjSpec:
+  return mujoco.MjSpec.from_file(str(T1_XML), assets=get_assets())
 
 ##
 # Actuator config.
@@ -151,9 +155,8 @@ ACTUATOR_ANKLE = ActuatorCfg(
 # Keyframe config.
 ##
 
-HOME_KEYFRAME = KeyframeCfg(
-  name="home",
-  root_pos=(0, 0, 0.665),
+HOME_KEYFRAME = RobotCfg.InitialStateCfg(
+  pos=(0, 0, 0.665),
   joint_pos={
     "Left_Shoulder_Roll": -1.4,
     "Right_Shoulder_Roll": 1.4,
@@ -163,7 +166,7 @@ HOME_KEYFRAME = KeyframeCfg(
     ".*_Knee_Pitch": 0.4,
     ".*_Ankle_Pitch": -0.2,
   },
-  use_joint_pos_for_ctrl=True,
+  joint_vel={".*": 0.0},
 )
 
 ##
@@ -194,8 +197,7 @@ FULL_COLLISION_WITHOUT_SELF = CollisionCfg(
 ##
 
 T1_ROBOT_CFG = RobotCfg(
-  xml_path=T1_XML,
-  asset_fn=get_assets,
+  init_state=HOME_KEYFRAME,
   actuators=(
     ACTUATOR_ARM,
     ACTUATOR_ANKLE,
@@ -204,12 +206,14 @@ T1_ROBOT_CFG = RobotCfg(
     ACTUATOR_KNEE,
     ACTUATOR_NECK,
   ),
-  sensors=(
-    SensorCfg("body_ang_vel", "gyro", "imu", "site"),
-    SensorCfg("body_lin_vel", "velocimeter", "imu", "site"),
-    SensorCfg("body_zaxis", "framezaxis", "imu", "site"),
-  ),
-  soft_joint_pos_limit_factor=0.95,
-  keyframes=(HOME_KEYFRAME,),
-  collisions=(FULL_COLLISION,)
+  soft_joint_pos_limit_factor=0.9,
+  collisions=(FULL_COLLISION,),
+  spec_fn=get_spec,
 )
+
+if __name__ == "__main__":
+  from mjlab.entities.robots.robot import Robot
+  import mujoco.viewer as viewer
+
+  robot = Robot(T1_ROBOT_CFG)
+  viewer.launch(robot.spec.compile())

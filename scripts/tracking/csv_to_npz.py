@@ -169,12 +169,15 @@ class MotionLoader:
   def get_next_state(
     self,
   ) -> tuple[
-    torch.Tensor,
-    torch.Tensor,
-    torch.Tensor,
-    torch.Tensor,
-    torch.Tensor,
-    torch.Tensor,
+    tuple[
+      torch.Tensor,
+      torch.Tensor,
+      torch.Tensor,
+      torch.Tensor,
+      torch.Tensor,
+      torch.Tensor,
+    ],
+    bool,
   ]:
     """Gets the next state of the motion."""
     state = (
@@ -194,7 +197,7 @@ class MotionLoader:
 
 
 def run_sim(
-  sim,
+  sim: Simulation,
   scene,
   joint_names,
   input_file,
@@ -226,6 +229,8 @@ def run_sim(
   file_saved = False
   # --------------------------------------------------------------------------
 
+  # frames = []
+
   while not file_saved:
     (
       (
@@ -254,6 +259,8 @@ def run_sim(
 
     sim.forward()
     scene.update(sim.mj_model.opt.timestep)
+    # sim.update_render()
+    # frames.append(sim.render())
 
     if not file_saved:
       log["joint_pos"].append(robot.data.joint_pos[0, :].cpu().numpy().copy())
@@ -261,10 +268,10 @@ def run_sim(
       log["body_pos_w"].append(robot.data.body_link_pos_w[0, :].cpu().numpy().copy())
       log["body_quat_w"].append(robot.data.body_link_quat_w[0, :].cpu().numpy().copy())
       log["body_lin_vel_w"].append(
-        robot.data.body_link_lin_vel_w[0, :].cpu().numpy().copy()
+        robot.data.body_com_lin_vel_w[0, :].cpu().numpy().copy()
       )
       log["body_ang_vel_w"].append(
-        robot.data.body_link_ang_vel_w[0, :].cpu().numpy().copy()
+        robot.data.body_com_ang_vel_w[0, :].cpu().numpy().copy()
       )
 
       if reset_flag and not file_saved:
@@ -292,6 +299,10 @@ def run_sim(
         #                   target_path=f"wandb-registry-{REGISTRY}/{COLLECTION}")
         # print(f"[INFO]: Motion saved to wandb registry: {REGISTRY}/{COLLECTION}")
 
+  # import mediapy as media
+  # media.write_video("./motion.mp4", frames, fps=output_fps)
+  # print(f"done")
+
 
 def main(
   input_file: str,
@@ -311,6 +322,10 @@ def main(
   """
   sim_cfg = SimulationCfg(device=device)
   sim_cfg.mujoco.timestep = 1.0 / output_fps
+
+  # sim_cfg.render.camera = "robot/tracking"
+  # sim_cfg.render.height = 480 * 2
+  # sim_cfg.render.width = 640 * 2
 
   scene = Scene(SCENE_CFG)
   model = scene.compile()

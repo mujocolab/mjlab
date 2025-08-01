@@ -26,7 +26,6 @@ class MotionLoader:
     self, motion_file: str, body_indexes: Sequence[int], device: str = "cpu"
   ) -> None:
     data = np.load(motion_file)
-    self.fps = data["fps"]
     self.joint_pos = torch.tensor(data["joint_pos"], dtype=torch.float32, device=device)
     self.joint_vel = torch.tensor(data["joint_vel"], dtype=torch.float32, device=device)
     self._body_pos_w = torch.tensor(
@@ -161,11 +160,11 @@ class MotionCommand(CommandTerm):
 
   @property
   def robot_body_lin_vel_w(self) -> torch.Tensor:
-    return self.robot.data.body_link_lin_vel_w[:, self.body_indexes]
+    return self.robot.data.body_com_lin_vel_w[:, self.body_indexes]
 
   @property
   def robot_body_ang_vel_w(self) -> torch.Tensor:
-    return self.robot.data.body_link_ang_vel_w[:, self.body_indexes]
+    return self.robot.data.body_com_ang_vel_w[:, self.body_indexes]
 
   @property
   def robot_ref_pos_w(self) -> torch.Tensor:
@@ -177,11 +176,11 @@ class MotionCommand(CommandTerm):
 
   @property
   def robot_ref_lin_vel_w(self) -> torch.Tensor:
-    return self.robot.data.body_link_lin_vel_w[:, self.robot_ref_body_index]
+    return self.robot.data.body_com_lin_vel_w[:, self.robot_ref_body_index]
 
   @property
   def robot_ref_ang_vel_w(self) -> torch.Tensor:
-    return self.robot.data.body_link_ang_vel_w[:, self.robot_ref_body_index]
+    return self.robot.data.body_com_ang_vel_w[:, self.robot_ref_body_index]
 
   def _update_metrics(self):
     self.metrics["error_ref_pos"] = torch.norm(

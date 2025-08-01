@@ -115,11 +115,11 @@ FULL_COLLISION = CollisionCfg(
 
 GO1_ROBOT_CFG = RobotCfg(
   init_state=INIT_STATE,
-  actuators=[
+  actuators=(
     GO1_HIP_ACTUATOR_CFG,
     GO1_KNEE_ACTUATOR_CFG,
-  ],
+  ),
   soft_joint_pos_limit_factor=0.9,
-  collisions=[FULL_COLLISION,],
+  collisions=(FULL_COLLISION,),
   spec_fn=get_spec,
 )

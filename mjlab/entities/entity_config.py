@@ -23,8 +23,8 @@ class EntityCfg:
   init_state: InitialStateCfg = field(default_factory=InitialStateCfg)
   debug_vis: bool = False
 
-  lights: list[LightCfg] = field(default_factory=list)
-  cameras: list[CameraCfg] = field(default_factory=list)
-  textures: list[TextureCfg] = field(default_factory=list)
-  materials: list[MaterialCfg] = field(default_factory=list)
-  sensors: list[SensorCfg] = field(default_factory=list)
+  lights: tuple[LightCfg, ...] = field(default_factory=tuple)
+  cameras: tuple[CameraCfg, ...] = field(default_factory=tuple)
+  textures: tuple[TextureCfg, ...] = field(default_factory=tuple)
+  materials: tuple[MaterialCfg, ...] = field(default_factory=tuple)
+  sensors: tuple[SensorCfg, ...] = field(default_factory=tuple)

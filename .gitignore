@@ -10,3 +10,5 @@ typings/
 *.ipynb_checkpoints/
 *.ipynb
 motions/
+*_rerun*
+*.mp4

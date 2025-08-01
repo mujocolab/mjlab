@@ -24,7 +24,7 @@ from mjlab.tasks.locomotion.velocity import mdp
 ##
 
 terrain_cfg = replace(FLAT_TERRAIN_CFG)
-terrain_cfg.textures.append(
+terrain_cfg.textures = terrain_cfg.textures + (
   TextureCfg(
     name="skybox",
     type="skybox",
@@ -35,7 +35,7 @@ terrain_cfg.textures.append(
     height=3072,
   ),
 )
-terrain_cfg.lights.append(
+terrain_cfg.lights = terrain_cfg.lights + (
   LightCfg(pos=(0, 0, 1.5), type="directional"),
 )
 

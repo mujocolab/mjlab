@@ -4,6 +4,7 @@ from typing import Sequence, TYPE_CHECKING
 from mjlab.managers.action_manager import ActionTerm
 import torch
 from mjlab.entities.robots.robot import Robot
+from mjlab.utils.string import resolve_matching_names_values
 
 if TYPE_CHECKING:
   from mjlab.envs.mdp.actions import actions_config
@@ -28,8 +29,32 @@ class JointAction(ActionTerm):
 
     self._raw_actions = torch.zeros(self.num_envs, self.action_dim, device=self.device)
     self._processed_actions = torch.zeros_like(self._raw_actions)
-    self._scale = cfg.scale
-    self._offset = cfg.offset
+
+    if isinstance(cfg.scale, (float, int)):
+      self._scale = float(cfg.scale)
+    elif isinstance(cfg.scale, dict):
+      self._scale = torch.ones(self.num_envs, self.action_dim, device=self.device)
+      index_list, _, value_list = resolve_matching_names_values(
+        self.cfg.scale, self._actuator_names
+      )
+      self._scale[:, index_list] = torch.tensor(value_list, device=self.device)
+    else:
+      raise ValueError(
+        f"Unsupported scale type: {type(cfg.scale)}. Supported types are float and dict."
+      )
+
+    if isinstance(cfg.offset, (float, int)):
+      self._offset = float(cfg.offset)
+    elif isinstance(cfg.offset, dict):
+      self._offset = torch.zeros_like(self._raw_actions)
+      index_list, _, value_list = resolve_matching_names_values(
+        self.cfg.offset, self._actuator_names
+      )
+      self._offset[:, index_list] = torch.tensor(value_list, device=self.device)
+    else:
+      raise ValueError(
+        f"Unsupported offset type: {type(cfg.offset)}. Supported types are float and dict."
+      )
 
   # Properties.
 

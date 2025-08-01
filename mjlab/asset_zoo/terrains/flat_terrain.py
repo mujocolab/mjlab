@@ -29,15 +29,9 @@ geom = spec_editor_config.GeomCfg(
 )
 
 FLAT_TERRAIN_CFG = terrain_config.TerrainCfg(
-  textures=[
-    texture,
-  ],
-  materials=[
-    material,
-  ],
-  geoms=[
-    geom,
-  ],
+  textures=(texture,),
+  materials=(material,),
+  geoms=(geom,),
 )
 
 if __name__ == "__main__":

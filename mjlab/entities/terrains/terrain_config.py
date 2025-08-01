@@ -6,5 +6,5 @@ from mjlab.entities.entity_config import EntityCfg
 
 @dataclass
 class TerrainCfg(EntityCfg):
-  geoms: list[GeomCfg] = field(default_factory=list)
-  collisions: list[CollisionCfg] = field(default_factory=list)
+  geoms: tuple[GeomCfg, ...] = field(default_factory=tuple)
+  collisions: tuple[CollisionCfg, ...] = field(default_factory=tuple)

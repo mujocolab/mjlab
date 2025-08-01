@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field, replace
 
 from mjlab.scene.scene_config import SceneCfg
+from mjlab.utils.spec_editor import TextureCfg, LightCfg
 from mjlab.asset_zoo.terrains.flat_terrain import FLAT_TERRAIN_CFG
 from mjlab.tasks.locomotion.velocity.velocity_env_cfg import TerminationCfg
 
@@ -31,20 +32,20 @@ VELOCITY_RANGE = {
 ##
 
 terrain_cfg = replace(FLAT_TERRAIN_CFG)
-# terrain_cfg.textures.append(
-#   TextureCfg(
-#     name="skybox",
-#     type="skybox",
-#     builtin="gradient",
-#     rgb1=(0.3, 0.5, 0.7),
-#     rgb2=(0.1, 0.2, 0.3),
-#     width=512,
-#     height=3072,
-#   ),
-# )
-# terrain_cfg.lights.append(
-#   LightCfg(pos=(0, 0, 1.5), type="directional"),
-# )
+terrain_cfg.textures = terrain_cfg.textures + (
+  TextureCfg(
+    name="skybox",
+    type="skybox",
+    builtin="gradient",
+    rgb1=(0.3, 0.5, 0.7),
+    rgb2=(0.1, 0.2, 0.3),
+    width=512,
+    height=3072,
+  ),
+)
+terrain_cfg.lights = terrain_cfg.lights + (
+  LightCfg(pos=(0, 0, 1.5), type="directional"),
+)
 
 SCENE_CFG = SceneCfg(
   terrains={"floor": terrain_cfg},
@@ -182,19 +183,21 @@ class EventCfg:
     params={"velocity_range": VELOCITY_RANGE},
   )
 
+  # MISSING: base_com, add_joint_default_pos, physics_material
+
 
 @dataclass
 class RewardCfg:
   motion_global_root_pos: RewTerm = term(
     RewTerm,
     func=mdp.motion_global_ref_position_error_exp,
-    weight=0.5,
+    weight=1.0,
     params={"command_name": "motion", "std": 0.3},
   )
   motion_global_root_ori: RewTerm = term(
     RewTerm,
     func=mdp.motion_global_ref_orientation_error_exp,
-    weight=0.5,
+    weight=1.0,
     params={"command_name": "motion", "std": 0.4},
   )
   motion_body_pos: RewTerm = term(
@@ -229,6 +232,8 @@ class RewardCfg:
     weight=-10.0,
     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*"])},
   )
+
+  # MISSING: undesired_contacts
 
 
 @dataclass
@@ -284,7 +289,7 @@ class TrackingEnvCfg(ManagerBasedRlEnvCfg):
     self.sim.mujoco.cone = "pyramidal"
     self.sim.mujoco.timestep = 0.005
     self.sim.num_envs = 1
-    self.sim.nconmax = 40000
-    self.sim.njmax = 100
-    self.sim.mujoco.iterations = 10
-    self.sim.mujoco.ls_iterations = 20
+    self.sim.nconmax = 50000
+    self.sim.njmax = 250
+    # self.sim.mujoco.iterations = 10
+    # self.sim.mujoco.ls_iterations = 20

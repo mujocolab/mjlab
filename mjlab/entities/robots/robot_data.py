@@ -117,6 +117,7 @@ class RobotData:
   @property
   def root_com_vel_w(self) -> torch.Tensor:
     """Root center-of-mass velocity in world frame. Shape (num_envs, 6)."""
+    # NOTE: Equivalent sensor is framelinvel/frameangvel with objtype="body".
     pos = self.data.xipos[:, self.indexing.root_body_id].clone()
     subtree_com = self.data.subtree_com[:, self.indexing.root_body_id].clone()
     cvel = self.data.cvel[:, self.indexing.root_body_id].clone()
@@ -135,6 +136,7 @@ class RobotData:
   @property
   def body_link_vel_w(self) -> torch.Tensor:
     """Body link velocity in simulation world frame. Shape (num_envs, num_bodies, 6)."""
+    # NOTE: Equivalent sensor is framelinvel/frameangvel with objtype="xbody".
     pos = self.data.xpos[:, self.indexing.body_ids].clone()
     subtree_com = self.data.subtree_com[:, self.indexing.body_root_ids].clone()
     cvel = self.data.cvel[:, self.indexing.body_ids].clone()

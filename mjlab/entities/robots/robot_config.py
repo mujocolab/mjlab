@@ -16,7 +16,7 @@ class RobotCfg(EntityCfg):
     joint_vel: dict[str, float] = field(default_factory=lambda: {".*": 0.0})
 
   init_state: InitialStateCfg = field(default_factory=InitialStateCfg)
-  actuators: list[ActuatorCfg] = field(default_factory=list)
-  collisions: list[CollisionCfg] = field(default_factory=list)
+  actuators: tuple[ActuatorCfg, ...] = field(default_factory=tuple)
+  collisions: tuple[CollisionCfg, ...] = field(default_factory=tuple)
   soft_joint_pos_limit_factor: float = 1.0
   joint_pos_weight: list[float] | dict[str, float] | None = None

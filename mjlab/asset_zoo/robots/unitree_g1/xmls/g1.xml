@@ -289,4 +289,10 @@
       </body>
     </body>
   </worldbody>
+  <contact>
+    <exclude body1="left_elbow_link" body2="left_wrist_pitch_link"/>
+    <exclude body1="right_elbow_link" body2="right_wrist_pitch_link"/>
+    <exclude body1="pelvis" body2="right_hip_roll_link"/>
+    <exclude body1="pelvis" body2="left_hip_roll_link"/>
+  </contact>
 </mujoco>

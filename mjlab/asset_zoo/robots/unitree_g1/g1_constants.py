@@ -235,18 +235,31 @@ FEET_ONLY_COLLISION = CollisionCfg(
 
 G1_ROBOT_CFG = RobotCfg(
   init_state=KNEES_BENT_KEYFRAME,
-  actuators=[
+  actuators=(
     G1_ACTUATOR_5020,
     G1_ACTUATOR_7520_14,
     G1_ACTUATOR_7520_22,
     G1_ACTUATOR_4010,
     G1_ACTUATOR_WAIST,
     G1_ACTUATOR_ANKLE,
-  ],
+  ),
   soft_joint_pos_limit_factor=0.9,
-  collisions=[FULL_COLLISION_WITHOUT_SELF,],
+  collisions=(FULL_COLLISION,),
   spec_fn=get_spec,
 )
+
+G1_ACTION_SCALE = {}
+for a in G1_ROBOT_CFG.actuators:
+  e = a.effort_limit
+  s = a.stiffness
+  names = a.joint_names_expr
+  if not isinstance(e, dict):
+    e = {n: e for n in names}
+  if not isinstance(s, dict):
+    s = {n: s for n in names}
+  for n in names:
+    if n in e and n in s and s[n]:
+      G1_ACTION_SCALE[n] = 0.25 * e[n] / s[n]
 
 if __name__ == "__main__":
   from mjlab.entities.robots.robot import Robot
