@@ -64,7 +64,6 @@ class CommandsCfg:
     asset_name="robot",
     resampling_time_range=(1.0e9, 1.0e9),
     debug_vis=True,
-    # fmt: off
     pose_range={
       "x": (-0.05, 0.05),
       "y": (-0.05, 0.05),
@@ -73,7 +72,6 @@ class CommandsCfg:
       "pitch": (-0.1, 0.1),
       "yaw": (-0.2, 0.2),
     },
-    # fmt: on
     velocity_range=VELOCITY_RANGE,
     joint_position_range=(-0.1, 0.1),
     reference_body="torso_link",
