@@ -14,6 +14,7 @@ from mjlab.utils.spec_editor.spec_editor import (
 )
 from mjlab.utils.spec import get_non_root_joints
 from mjlab.utils import string as string_utils
+from mjlab.utils.math import quat_apply_inverse
 from mjlab.entities.robots.robot_data import RobotData
 from mjlab.entities.indexing import EntityIndexing
 
@@ -228,7 +229,7 @@ class Robot(entity.Entity):
     self, root_state: torch.Tensor, env_ids: Sequence[int] | None = None
   ):
     self.write_root_link_pose_to_sim(root_state[:, :7], env_ids=env_ids)
-    self.write_root_com_velocity_to_sim(root_state[:, 7:], env_ids=env_ids)
+    self.write_root_link_velocity_to_sim(root_state[:, 7:], env_ids=env_ids)
 
   def write_root_pose_to_sim(
     self, root_pose: torch.Tensor, env_ids: Sequence[int] | None = None
@@ -238,6 +239,7 @@ class Robot(entity.Entity):
   def write_root_link_pose_to_sim(
     self, root_pose: torch.Tensor, env_ids: Sequence[int] | None = None
   ):
+    assert root_pose.shape[-1] == 7
     if env_ids is None:
       env_ids = slice(None)
     if env_ids != slice(None):
@@ -248,11 +250,12 @@ class Robot(entity.Entity):
   def write_root_velocity_to_sim(
     self, root_velocity: torch.Tensor, env_ids: Sequence[int] | None = None
   ):
-    self.write_root_com_velocity_to_sim(root_velocity=root_velocity, env_ids=env_ids)
+    self.write_root_link_velocity_to_sim(root_velocity=root_velocity, env_ids=env_ids)
 
-  def write_root_com_velocity_to_sim(
+  def write_root_link_velocity_to_sim(
     self, root_velocity: torch.Tensor, env_ids: Sequence[int] | None = None
   ):
+    assert root_velocity.shape[-1] == 6
     if env_ids is None:
       env_ids = slice(None)
     if env_ids != slice(None):

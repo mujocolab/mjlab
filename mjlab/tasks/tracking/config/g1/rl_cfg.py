@@ -9,10 +9,6 @@ from mjlab.rl import (
 
 @dataclass
 class G1FlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
-  num_steps_per_env = 24
-  max_iterations = 10_000
-  save_interval = 500
-  experiment_name = "g1_flat"
   policy: RslRlPpoActorCriticCfg = field(
     default_factory=lambda: RslRlPpoActorCriticCfg(
       init_noise_std=1.0,
@@ -39,3 +35,9 @@ class G1FlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
       max_grad_norm=1.0,
     )
   )
+
+  def __post_init__(self) -> None:
+    self.num_steps_per_env = 24
+    self.max_iterations = 10_000
+    self.save_interval = 500
+    self.experiment_name = "g1_flat"

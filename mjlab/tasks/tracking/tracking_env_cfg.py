@@ -17,14 +17,12 @@ from mjlab.managers.manager_term_config import RewardTermCfg as RewTerm
 
 from mjlab.tasks.tracking import mdp
 
+# fmt: off
 VELOCITY_RANGE = {
-  "x": (-0.5, 0.5),
-  "y": (-0.5, 0.5),
-  "z": (-0.2, 0.2),
-  "roll": (-0.52, 0.52),
-  "pitch": (-0.52, 0.52),
-  "yaw": (-0.78, 0.78),
+  "x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (-0.2, 0.2),
+  "roll": (-0.52, 0.52), "pitch": (-0.52, 0.52), "yaw": (-0.78, 0.78),
 }
+# fmt: on
 
 ##
 # Scene.
@@ -66,6 +64,7 @@ class CommandsCfg:
     asset_name="robot",
     resampling_time_range=(1.0e9, 1.0e9),
     debug_vis=True,
+    # fmt: off
     pose_range={
       "x": (-0.05, 0.05),
       "y": (-0.05, 0.05),
@@ -74,6 +73,7 @@ class CommandsCfg:
       "pitch": (-0.1, 0.1),
       "yaw": (-0.2, 0.2),
     },
+    # fmt: on
     velocity_range=VELOCITY_RANGE,
     joint_position_range=(-0.1, 0.1),
     reference_body="torso_link",
@@ -137,13 +137,12 @@ class ObservationCfg:
       ObsTerm, func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01)
     )
     joint_vel: ObsTerm = term(
-      ObsTerm, func=mdp.joint_vel, noise=Unoise(n_min=-0.5, n_max=0.5)
+      ObsTerm, func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.5, n_max=0.5)
     )
     actions: ObsTerm = term(ObsTerm, func=mdp.last_action)
 
     def __post_init__(self):
       self.enable_corruption = True
-      self.concatenate_terms = True
 
   @dataclass
   class PrivilegedCfg(ObsGroup):
@@ -165,7 +164,7 @@ class ObservationCfg:
     base_lin_vel: ObsTerm = term(ObsTerm, func=mdp.base_lin_vel)
     base_ang_vel: ObsTerm = term(ObsTerm, func=mdp.base_ang_vel)
     joint_pos: ObsTerm = term(ObsTerm, func=mdp.joint_pos_rel)
-    joint_vel: ObsTerm = term(ObsTerm, func=mdp.joint_vel)
+    joint_vel: ObsTerm = term(ObsTerm, func=mdp.joint_vel_rel)
     actions: ObsTerm = term(ObsTerm, func=mdp.last_action)
 
   policy: PolicyCfg = field(default_factory=PolicyCfg)

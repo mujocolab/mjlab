@@ -20,7 +20,7 @@ pip install -e .[dev,cuda] --config-settings editable_mode=strict
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 ```
 
-3. Install mjlab: `pip install -e .[test]`
+3. Install mjlab: `pip install -e .[test,rl]`
 
 ## Getting started
 
@@ -49,7 +49,7 @@ python scripts/play_playground.py
   - [ ] Event manager
     - [ ] startup
     - [x] reset
-    - [x] interval 
+    - [x] interval
   - [x] Observation manager
   - [ ] Recorder manager
   - [x] Reward manager

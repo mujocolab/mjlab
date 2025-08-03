@@ -98,7 +98,8 @@ def push_by_setting_velocity(
   asset_cfg: SceneEntityCfg = SceneEntityCfg(name="robot"),
 ) -> None:
   asset: Robot = env.scene[asset_cfg.name]
-  vel_w = asset.data.root_com_vel_w[env_ids]
+  vel_w = asset.data.root_link_vel_w[env_ids]
+  quat_w = asset.data.root_link_quat_w[env_ids]
   range_list = [
     velocity_range.get(key, (0.0, 0.0))
     for key in ["x", "y", "z", "roll", "pitch", "yaw"]
@@ -107,4 +108,5 @@ def push_by_setting_velocity(
   vel_w += math_utils.sample_uniform(
     ranges[:, 0], ranges[:, 1], vel_w.shape, device=env.device
   )
+  vel_w[:, 3:] = math_utils.quat_apply_inverse(quat_w, vel_w[:, 3:])
   asset.write_root_velocity_to_sim(vel_w, env_ids=env_ids)

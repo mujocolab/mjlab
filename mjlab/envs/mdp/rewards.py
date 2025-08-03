@@ -121,8 +121,14 @@ def joint_pos_limits(
   asset: Robot = env.scene[asset_cfg.name]
   soft_joint_pos_limits = asset.data.soft_joint_pos_limits
   assert soft_joint_pos_limits is not None
-  out_of_limits = -(asset.data.joint_pos - soft_joint_pos_limits[:, :, 0]).clip(max=0.0)
-  out_of_limits += (asset.data.joint_pos - soft_joint_pos_limits[:, :, 1]).clip(min=0.0)
+  out_of_limits = -(
+    asset.data.joint_pos[:, asset_cfg.joint_ids]
+    - soft_joint_pos_limits[:, asset_cfg.joint_ids, 0]
+  ).clip(max=0.0)
+  out_of_limits += (
+    asset.data.joint_pos[:, asset_cfg.joint_ids]
+    - soft_joint_pos_limits[:, asset_cfg.joint_ids, 1]
+  ).clip(min=0.0)
   return torch.sum(out_of_limits, dim=1)
 
 

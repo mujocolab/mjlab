@@ -3,6 +3,7 @@
 from dataclasses import asdict
 from pathlib import Path
 import torch
+from tqdm import tqdm
 import tyro
 from mjlab.rl import RslRlVecEnvWrapper
 from rsl_rl.runners import OnPolicyRunner
@@ -37,8 +38,8 @@ def main(
   env_cfg.sim.num_envs = num_envs or env_cfg.sim.num_envs
   env_cfg.sim.device = device or env_cfg.sim.device
   env_cfg.sim.render.camera = camera or -1
-  env_cfg.sim.render.height = 480 * 2
-  env_cfg.sim.render.width = 640 * 2
+  env_cfg.sim.render.height = 480  # * 2
+  env_cfg.sim.render.width = 640  # * 2
 
   log_root_path = _HERE / "logs" / "rsl_rl" / agent_cfg.experiment_name
   log_root_path = log_root_path.resolve()
@@ -76,7 +77,7 @@ def main(
   policy = runner.get_inference_policy(device=env.device)
 
   obs = env.get_observations()
-  for _ in range(video_length):
+  for _ in tqdm(range(video_length)):
     actions = policy(obs)
     obs, _, _, _ = env.step(actions)
 

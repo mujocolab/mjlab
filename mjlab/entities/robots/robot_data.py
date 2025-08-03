@@ -41,7 +41,9 @@ class RobotData:
   def _compute_velocity_from_cvel(
     self, pos: torch.Tensor, subtree_com: torch.Tensor, cvel: torch.Tensor
   ) -> torch.Tensor:
-    ang_vel_c, lin_vel_c = torch.split(cvel, 3, dim=-1)  # (num_envs, 3), (num_envs, 3)
+    # ang_vel_c, lin_vel_c = torch.split(cvel, 3, dim=-1)  # (num_envs, 3), (num_envs, 3)
+    ang_vel_c = cvel[..., :3]
+    lin_vel_c = cvel[..., 3:]
     offset = subtree_com - pos
     lin_vel_w = lin_vel_c - torch.cross(ang_vel_c, offset, dim=-1)
     ang_vel_w = ang_vel_c

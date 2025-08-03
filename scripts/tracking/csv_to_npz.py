@@ -10,6 +10,7 @@ from mjlab.utils.math import (
   quat_conjugate,
   axis_angle_from_quat,
   quat_slerp,
+  quat_apply_inverse,
 )
 from mjlab.scene import Scene
 from mjlab.sim.sim import Simulation, SimulationCfg
@@ -230,6 +231,7 @@ def run_sim(
   # --------------------------------------------------------------------------
 
   # frames = []
+  scene.reset()
 
   while not file_saved:
     (
@@ -245,10 +247,11 @@ def run_sim(
     ) = motion.get_next_state()
 
     root_states = robot.data.default_root_state.clone()
-    root_states[:, :3] = motion_base_pos
+    root_states[:, 0:3] = motion_base_pos
     root_states[:, 3:7] = motion_base_rot
     root_states[:, 7:10] = motion_base_lin_vel
-    root_states[:, 10:] = motion_base_ang_vel
+    # root_states[:, 10:] = motion_base_ang_vel
+    root_states[:, 10:] = quat_apply_inverse(motion_base_rot, motion_base_ang_vel)
     robot.write_root_state_to_sim(root_states)
 
     joint_pos = robot.data.default_joint_pos.clone()
@@ -272,6 +275,13 @@ def run_sim(
       )
       log["body_ang_vel_w"].append(
         robot.data.body_link_ang_vel_w[0, :].cpu().numpy().copy()
+      )
+
+      torch.testing.assert_close(
+        robot.data.body_link_lin_vel_w[0, 0], motion_base_lin_vel[0]
+      )
+      torch.testing.assert_close(
+        robot.data.body_link_ang_vel_w[0, 0], motion_base_ang_vel[0]
       )
 
       if reset_flag and not file_saved:

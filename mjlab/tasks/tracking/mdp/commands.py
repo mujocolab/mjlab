@@ -11,6 +11,7 @@ from mjlab.managers import CommandTermCfg, CommandTerm
 from mjlab.utils.math import (
   quat_mul,
   quat_apply,
+  quat_apply_inverse,
   quat_inv,
   quat_error_magnitude,
   yaw_quat,
@@ -270,25 +271,22 @@ class MotionCommand(CommandTerm):
     )
     soft_joint_pos_limits = self.robot.data.soft_joint_pos_limits[env_ids]
     joint_pos[env_ids] = torch.clip(
-      joint_pos[env_ids],
-      soft_joint_pos_limits[:, :, 0],
-      soft_joint_pos_limits[:, :, 1],
+      joint_pos[env_ids], soft_joint_pos_limits[:, :, 0], soft_joint_pos_limits[:, :, 1]
     )
     self.robot.write_joint_state_to_sim(
       joint_pos[env_ids], joint_vel[env_ids], env_ids=env_ids
     )
-    self.robot.write_root_state_to_sim(
-      torch.cat(
-        [
-          root_pos[env_ids],
-          root_ori[env_ids],
-          root_lin_vel[env_ids],
-          root_ang_vel[env_ids],
-        ],
-        dim=-1,
-      ),
-      env_ids=env_ids,
+
+    root_state = torch.cat(
+      [
+        root_pos[env_ids],
+        root_ori[env_ids],
+        root_lin_vel[env_ids],
+        quat_apply_inverse(root_ori[env_ids], root_ang_vel[env_ids]),
+      ],
+      dim=-1,
     )
+    self.robot.write_root_state_to_sim(root_state, env_ids=env_ids)
 
   def _update_command(self):
     self.time_steps += 1
