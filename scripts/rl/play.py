@@ -28,6 +28,8 @@ def main(
   device: str | None = None,
   video: bool = False,
   video_length: int = 200,
+  video_height: int | None = None,
+  video_width: int | None = None,
   camera: int | str | None = -1,
   checkpoint: Path | None = None,
   wandb_run_path: Path | None = None,
@@ -38,8 +40,8 @@ def main(
   env_cfg.sim.num_envs = num_envs or env_cfg.sim.num_envs
   env_cfg.sim.device = device or env_cfg.sim.device
   env_cfg.sim.render.camera = camera or -1
-  env_cfg.sim.render.height = 480  # * 2
-  env_cfg.sim.render.width = 640  # * 2
+  env_cfg.sim.render.height = video_height or env_cfg.sim.render.height
+  env_cfg.sim.render.width = video_width or env_cfg.sim.render.width
 
   log_root_path = _HERE / "logs" / "rsl_rl" / agent_cfg.experiment_name
   log_root_path = log_root_path.resolve()

@@ -1,30 +1,45 @@
+from dataclasses import asdict
+from pathlib import Path
 from mjlab.rl import RslRlVecEnvWrapper
 import torch
-from pathlib import Path
 import time
 import mujoco
-import mujoco.viewer as viewer
+import tyro
+import mujoco.viewer
 
 from mjlab.tasks.utils.parse_cfg import load_cfg_from_registry
+from rsl_rl.runners import OnPolicyRunner
 import gymnasium as gym
 
-_HERE = Path(__file__).parent
-_MOTION_DIR = _HERE.parent / "motions"
+from rl import utils
 
-TASK_NAME = "Tracking-Flat-G1-v0"
+_HERE = Path(__file__).parent
+_TASK_NAME = "Tracking-Flat-G1-Play-v0"
 FRAME_TIME = 1.0 / 60.0
 KEY_BACKSPACE = 259
 KEY_ENTER = 257
 
-if __name__ == "__main__":
-  env_cfg = load_cfg_from_registry(TASK_NAME, "env_cfg_entry_point")
 
-  env_cfg.sim.num_envs = 1
-  env_cfg.observations.policy.enable_corruption = False
+def main(
+  wandb_run_path: Path,
+  task: str = _TASK_NAME,
+) -> None:
+  env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
+  agent_cfg = load_cfg_from_registry(task, "rl_cfg_entry_point")
 
-  env = gym.make(TASK_NAME, cfg=env_cfg)
-
+  env = gym.make(task, cfg=env_cfg)
   env = RslRlVecEnvWrapper(env)
+
+  log_root_path = _HERE / "rl" / "logs" / "rsl_rl" / agent_cfg.experiment_name
+  log_root_path = log_root_path.resolve()
+  resume_path = utils.get_wandb_checkpoint_path(log_root_path, wandb_run_path)
+
+  log_dir = resume_path.parent
+  runner = OnPolicyRunner(
+    env, asdict(agent_cfg), log_dir=log_dir, device=agent_cfg.device
+  )
+  runner.load(resume_path, map_location=agent_cfg.device)
+  policy = runner.get_inference_policy(device=env.device)
 
   obs = env.get_observations()
 
@@ -50,7 +65,7 @@ if __name__ == "__main__":
       print("RESET KEY DETECTED")
       env.reset()
 
-  viewer = viewer.launch_passive(mjm, mjd, key_callback=key_callback)
+  viewer = mujoco.viewer.launch_passive(mjm, mjd, key_callback=key_callback)
   with viewer:
     last_frame_time = time.perf_counter()
 
@@ -60,8 +75,8 @@ if __name__ == "__main__":
 
       copy_viewer_to_env()
 
-      action = torch.zeros((env.action_space.shape), device=env.device)
-      obs, reward, *_ = env.step(action)
+      actions = policy(obs)
+      obs = env.step(actions)[0]
 
       viewer.user_scn.ngeom = 0
       env.unwrapped.update_visualizers(viewer.user_scn)
@@ -87,3 +102,9 @@ if __name__ == "__main__":
         actual_fps = 1.0 / (current_time - last_frame_time)
         print(f"Step {step}: FPS={actual_fps:.1f}")
       last_frame_time = current_time
+
+  env.close()
+
+
+if __name__ == "__main__":
+  tyro.cli(main)
