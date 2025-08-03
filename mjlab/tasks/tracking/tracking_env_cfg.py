@@ -252,20 +252,20 @@ class TerminationsCfg:
     },
   )
 
-  ee_body_pos: DoneTerm = term(
-    DoneTerm,
-    func=mdp.bad_motion_body_pos,
-    params={
-      "command_name": "motion",
-      "threshold": 0.25,
-      "body_names": [
-        "left_ankle_roll_link",
-        "right_ankle_roll_link",
-        "left_wrist_yaw_link",
-        "right_wrist_yaw_link",
-      ],
-    },
-  )
+  # ee_body_pos: DoneTerm = term(
+  #   DoneTerm,
+  #   func=mdp.bad_motion_body_pos,
+  #   params={
+  #     "command_name": "motion",
+  #     "threshold": 0.35,
+  #     "body_names": [
+  #       "left_ankle_roll_link",
+  #       "right_ankle_roll_link",
+  #       "left_wrist_yaw_link",
+  #       "right_wrist_yaw_link",
+  #     ],
+  #   },
+  # )
 
 
 @dataclass
@@ -285,7 +285,7 @@ class TrackingEnvCfg(ManagerBasedRlEnvCfg):
     self.sim.mujoco.cone = "pyramidal"
     self.sim.mujoco.timestep = 0.005
     self.sim.num_envs = 1
-    self.sim.nconmax = 50000
-    self.sim.njmax = 250
+    self.sim.nconmax = 80000
+    self.sim.njmax = 300
     self.sim.mujoco.iterations = 10
     self.sim.mujoco.ls_iterations = 20

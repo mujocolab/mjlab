@@ -221,7 +221,7 @@ FULL_COLLISION_WITHOUT_SELF = CollisionCfg(
 )
 
 FEET_ONLY_COLLISION = CollisionCfg(
-  geom_names_expr=[r"^(left|right)_foot[1-3]_collision$"],
+  geom_names_expr=[r"^(left|right)_foot[1-7]_collision$"],
   contype=0,
   conaffinity=1,
   condim=3,

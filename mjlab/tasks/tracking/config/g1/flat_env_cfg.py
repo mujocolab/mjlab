@@ -11,3 +11,12 @@ class G1FlatEnvCfg(TrackingEnvCfg):
 
     self.scene.robots = {"robot": replace(G1_ROBOT_CFG)}
     self.actions.joint_pos.scale = G1_ACTION_SCALE
+
+
+@dataclass
+class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
+  def __post_init__(self):
+    super().__post_init__()
+
+    self.observations.policy.enable_corruption = False
+    self.events.push_robot = None

@@ -14,7 +14,6 @@ from mjlab.utils.spec_editor.spec_editor import (
 )
 from mjlab.utils.spec import get_non_root_joints
 from mjlab.utils import string as string_utils
-from mjlab.utils.math import quat_apply_inverse
 from mjlab.entities.robots.robot_data import RobotData
 from mjlab.entities.indexing import EntityIndexing
 
@@ -216,9 +215,12 @@ class Robot(entity.Entity):
     self._data.update(dt)
 
   def reset(self, env_ids: Sequence[int] | None = None):
-    # self._data.data.qvel[env_ids] = 0.0
-    self._data.data.qacc[env_ids] = 0.0
+    if env_ids is None:
+      env_ids = slice(None)
     self._data.data.qacc_warmstart[env_ids] = 0.0
+    self._data.data.xfrc_applied[env_ids] = 0.0
+    self._data.data.qfrc_applied[env_ids] = 0.0
+    self._data.data.act[env_ids] = 0.0
 
   def write_data_to_sim(self) -> None:
     pass
@@ -262,6 +264,10 @@ class Robot(entity.Entity):
       env_ids = env_ids[:, None]
     v_slice = self.data.indexing.free_joint_v_adr
     self._data.data.qvel[env_ids, v_slice] = root_velocity
+
+    # TODO(kevin): Is this required?
+    self._data.data.qacc[env_ids, v_slice] = 0.0
+    self._data.data.qacc_warmstart[env_ids, v_slice] = 0.0
 
   def write_joint_state_to_sim(
     self,

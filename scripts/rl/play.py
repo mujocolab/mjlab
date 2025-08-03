@@ -19,7 +19,7 @@ torch.backends.cudnn.benchmark = False
 
 _HERE = Path(__file__).parent
 # _TASK = "Mjlab-Velocity-Flat-Unitree-Go1-v0"
-_TASK = "Tracking-Flat-G1-v0"
+_TASK = "Tracking-Flat-G1-Play-v0"
 
 
 def main(
