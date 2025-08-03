@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Sequence
 from dataclasses import dataclass, MISSING, field
+import mujoco
 import torch
+import copy
 import numpy as np
 
 from mjlab.managers import CommandTermCfg, CommandTerm
@@ -96,6 +98,16 @@ class MotionCommand(CommandTerm):
     self.metrics["error_joint_pos"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["error_joint_vel"] = torch.zeros(self.num_envs, device=self.device)
 
+    self._model_viz: mujoco.MjModel = copy.deepcopy(env.sim.mj_model)
+    self._model_viz.geom_rgba[:, 1] = np.clip(
+      self._model_viz.geom_rgba[:, 1] * 1.5, 0.0, 1.0
+    )
+    self._data_viz = mujoco.MjData(self._model_viz)
+    self._vopt = mujoco.MjvOption()
+    self._vopt.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT] = True
+    self._pert = mujoco.MjvPerturb()
+    self._catmask = mujoco.mjtCatBit.mjCAT_DYNAMIC
+
   @property
   def command(
     self,
@@ -160,11 +172,11 @@ class MotionCommand(CommandTerm):
 
   @property
   def robot_body_lin_vel_w(self) -> torch.Tensor:
-    return self.robot.data.body_com_lin_vel_w[:, self.body_indexes]
+    return self.robot.data.body_link_lin_vel_w[:, self.body_indexes]
 
   @property
   def robot_body_ang_vel_w(self) -> torch.Tensor:
-    return self.robot.data.body_com_ang_vel_w[:, self.body_indexes]
+    return self.robot.data.body_link_ang_vel_w[:, self.body_indexes]
 
   @property
   def robot_ref_pos_w(self) -> torch.Tensor:
@@ -176,11 +188,11 @@ class MotionCommand(CommandTerm):
 
   @property
   def robot_ref_lin_vel_w(self) -> torch.Tensor:
-    return self.robot.data.body_com_lin_vel_w[:, self.robot_ref_body_index]
+    return self.robot.data.body_link_lin_vel_w[:, self.robot_ref_body_index]
 
   @property
   def robot_ref_ang_vel_w(self) -> torch.Tensor:
-    return self.robot.data.body_com_ang_vel_w[:, self.robot_ref_body_index]
+    return self.robot.data.body_link_ang_vel_w[:, self.robot_ref_body_index]
 
   def _update_metrics(self):
     self.metrics["error_ref_pos"] = torch.norm(
@@ -305,6 +317,16 @@ class MotionCommand(CommandTerm):
       robot_ref_pos_w_repeat
       + delta_pos_w
       + quat_apply(delta_ori_w, self.body_pos_w - ref_pos_w_repeat)
+    )
+
+  def _debug_vis_impl(self, scn: mujoco.MjvScene) -> None:
+    self._data_viz.qpos[:3] = self.ref_pos_w.cpu().numpy()[0]
+    self._data_viz.qpos[3:7] = self.ref_quat_w.cpu().numpy()[0]
+    self._data_viz.qpos[7:] = self.joint_pos.cpu().numpy()[0]
+    self._data_viz.qpos[1] += 0.6
+    mujoco.mj_forward(self._model_viz, self._data_viz)
+    mujoco.mjv_addGeoms(
+      self._model_viz, self._data_viz, self._vopt, self._pert, self._catmask.value, scn
     )
 
 

@@ -41,68 +41,34 @@ class RobotData:
   def _compute_velocity_from_cvel(
     self, pos: torch.Tensor, subtree_com: torch.Tensor, cvel: torch.Tensor
   ) -> torch.Tensor:
-    """Transform body velocities from MuJoCo's c-frame to world frame coordinates.
-
-    MuJoCo internally computes velocities with respect to "c-frames" - coordinate frames
-    located at the center of mass of each kinematic subtree but oriented like the world
-    frame. This improves numerical precision for bodies far from the global origin.
-    This function transforms these c-frame velocities to world frame velocities.
-
-    The transformation uses rigid body kinematics: for a body with angular velocity ω,
-    the linear velocity at any point is related to the linear velocity at the center
-    of mass by: v_point = v_com + ω x (r_point - r_com)
-
-    Args:
-      pos (torch.Tensor): Body positions in world coordinates.
-        Shape: (..., 3)
-      subtree_com (torch.Tensor): Center of mass positions of kinematic subtrees
-        (c-frame origins) in world coordinates. Shape: (..., 3)
-      cvel (torch.Tensor): Body velocities in c-frame coordinates, with angular
-        velocity in first 3 components and linear velocity in last 3 components.
-        Shape: (..., 6) where [..., 0:3] = angular velocity, [..., 3:6] = linear velocity
-
-    Returns:
-      torch.Tensor: Body velocities in world frame coordinates.
-        Shape: (..., 6) where [..., 0:3] = linear velocity, [..., 3:6] = angular velocity
-        Note: Output format differs from input (linear first, then angular)
-
-    Mathematical Details:
-      - offset = pos - subtree_com  (vector from c-frame origin to body position)
-      - lin_vel_world = lin_vel_c - offset x ang_vel_c
-      - ang_vel_world = ang_vel_c  (unchanged due to same frame orientation)
-
-      The subtraction (rather than addition) in the cross product accounts for
-      transforming FROM the center of mass TO the body position.
-    """
-    offset = pos - subtree_com
-    lin_vel_c = cvel[..., 3:6]
-    ang_vel_c = cvel[..., 0:3]
-
-    lin_vel_w = lin_vel_c - torch.cross(offset, ang_vel_c, dim=-1)
+    ang_vel_c, lin_vel_c = torch.split(cvel, 3, dim=-1)  # (num_envs, 3), (num_envs, 3)
+    offset = subtree_com - pos
+    lin_vel_w = lin_vel_c - torch.cross(ang_vel_c, offset, dim=-1)
     ang_vel_w = ang_vel_c
-
     return torch.cat([lin_vel_w, ang_vel_w], dim=-1)
-
-  def _get_pose_components(self, pos: torch.Tensor, quat: torch.Tensor) -> torch.Tensor:
-    return torch.cat([pos, quat], dim=-1)
 
   # Root properties
 
   @property
   def root_link_pose_w(self) -> torch.Tensor:
     """Root link pose in simulation world frame. Shape (num_envs, 7)."""
-    pos_w = self.data.xpos[:, self.indexing.root_body_id].clone()
-    quat_w = self.data.xquat[:, self.indexing.root_body_id].clone()
-    return self._get_pose_components(pos_w, quat_w)
+    pos_w = self.data.xpos[:, self.indexing.root_body_id].clone()  # (num_envs, 3)
+    quat_w = self.data.xquat[:, self.indexing.root_body_id].clone()  # (num_envs, 4)
+    return torch.cat([pos_w, quat_w], dim=-1)  # (num_envs, 7)
 
   @property
   def root_link_vel_w(self) -> torch.Tensor:
     """Root link velocity in simulation world frame. Shape (num_envs, 6)."""
-    pos = self.data.xpos[:, self.indexing.root_body_id].clone()
-    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id].clone()
-    cvel = self.data.cvel[:, self.indexing.root_body_id].clone()
-
-    return self._compute_velocity_from_cvel(pos, subtree_com, cvel)
+    # NOTE: Equivalently, can read this from qvel[:6] but the angular part
+    # will be in body frame and needs to be rotated to world frame.
+    # Note also that an extra forward() call might be required to make
+    # both values equal.
+    pos = self.data.xpos[:, self.indexing.root_body_id].clone()  # (num_envs, 3)
+    subtree_com = self.data.subtree_com[
+      :, self.indexing.body_root_ids[0]
+    ].clone()  # (num_envs, 3)
+    cvel = self.data.cvel[:, self.indexing.root_body_id].clone()  # (num_envs, 6)
+    return self._compute_velocity_from_cvel(pos, subtree_com, cvel)  # (num_envs, 6)
 
   @property
   def root_com_pose_w(self) -> torch.Tensor:
@@ -112,17 +78,18 @@ class RobotData:
     body_iquat = self.indexing.root_body_iquat
     assert body_iquat is not None
     quat_w = math_utils.quat_mul(quat, body_iquat[None])
-    return self._get_pose_components(pos_w, quat_w)
+    return torch.cat([pos_w, quat_w], dim=-1)
 
   @property
   def root_com_vel_w(self) -> torch.Tensor:
     """Root center-of-mass velocity in world frame. Shape (num_envs, 6)."""
     # NOTE: Equivalent sensor is framelinvel/frameangvel with objtype="body".
-    pos = self.data.xipos[:, self.indexing.root_body_id].clone()
-    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id].clone()
-    cvel = self.data.cvel[:, self.indexing.root_body_id].clone()
-
-    return self._compute_velocity_from_cvel(pos, subtree_com, cvel)
+    pos = self.data.xipos[:, self.indexing.root_body_id].clone()  # (num_envs, 3)
+    subtree_com = self.data.subtree_com[
+      :, self.indexing.body_root_ids[0]
+    ].clone()  # (num_envs, 3)
+    cvel = self.data.cvel[:, self.indexing.root_body_id].clone()  # (num_envs, 6)
+    return self._compute_velocity_from_cvel(pos, subtree_com, cvel)  # (num_envs, 6)
 
   # Body properties
 
@@ -131,34 +98,47 @@ class RobotData:
     """Body link pose in simulation world frame. Shape (num_envs, num_bodies, 7)."""
     pos_w = self.data.xpos[:, self.indexing.body_ids].clone()
     quat_w = self.data.xquat[:, self.indexing.body_ids].clone()
-    return self._get_pose_components(pos_w, quat_w)
+    return torch.cat([pos_w, quat_w], dim=-1)
 
   @property
   def body_link_vel_w(self) -> torch.Tensor:
     """Body link velocity in simulation world frame. Shape (num_envs, num_bodies, 6)."""
     # NOTE: Equivalent sensor is framelinvel/frameangvel with objtype="xbody".
-    pos = self.data.xpos[:, self.indexing.body_ids].clone()
-    subtree_com = self.data.subtree_com[:, self.indexing.body_root_ids].clone()
-    cvel = self.data.cvel[:, self.indexing.body_ids].clone()
-
-    return self._compute_velocity_from_cvel(pos, subtree_com, cvel)
+    pos = self.data.xpos[:, self.indexing.body_ids].clone()  # (num_envs, num_bodies, 3)
+    subtree_com = self.data.subtree_com[
+      :, self.indexing.body_root_ids
+    ].clone()  # (num_envs, num_bodies, 3)
+    cvel = self.data.cvel[
+      :, self.indexing.body_ids
+    ].clone()  # (num_envs, num_bodies, 6)
+    return self._compute_velocity_from_cvel(
+      pos, subtree_com, cvel
+    )  # (num_envs, num_bodies, 6)
 
   @property
   def body_com_pose_w(self) -> torch.Tensor:
     """Body center-of-mass pose in simulation world frame. Shape (num_envs, num_bodies, 7)."""
     pos_w = self.data.xipos[:, self.indexing.body_ids].clone()
     quat = self.data.xquat[:, self.indexing.body_ids].clone()
-    quat_w = math_utils.quat_mul(quat, self.indexing.body_iquats)
-    return self._get_pose_components(pos_w, quat_w)
+    quat_w = math_utils.quat_mul(quat, self.indexing.body_iquats[None])
+    return torch.cat([pos_w, quat_w], dim=-1)
 
   @property
   def body_com_vel_w(self) -> torch.Tensor:
     """Body center-of-mass velocity in simulation world frame. Shape (num_envs, num_bodies, 6)."""
-    pos = self.data.xipos[:, self.indexing.body_ids].clone()
-    subtree_com = self.data.subtree_com[:, self.indexing.body_root_ids].clone()
-    cvel = self.data.cvel[:, self.indexing.body_ids].clone()
-
-    return self._compute_velocity_from_cvel(pos, subtree_com, cvel)
+    # NOTE: Equivalent sensor is framelinvel/frameangvel with objtype="body".
+    pos = self.data.xipos[
+      :, self.indexing.body_ids
+    ].clone()  # (num_envs, num_bodies, 3)
+    subtree_com = self.data.subtree_com[
+      :, self.indexing.body_root_ids
+    ].clone()  # (num_envs, num_bodies, 3)
+    cvel = self.data.cvel[
+      :, self.indexing.body_ids
+    ].clone()  # (num_envs, num_bodies, 6)
+    return self._compute_velocity_from_cvel(
+      pos, subtree_com, cvel
+    )  # (num_envs, num_bodies, 6)
 
   # Geom properties
 
@@ -168,7 +148,7 @@ class RobotData:
     pos_w = self.data.geom_xpos[:, self.indexing.geom_ids].clone()
     xmat = self.data.geom_xmat[:, self.indexing.geom_ids].clone()
     quat_w = math_utils.quat_from_matrix(xmat)
-    return self._get_pose_components(pos_w, quat_w)
+    return torch.cat([pos_w, quat_w], dim=-1)
 
   @property
   def geom_vel_w(self) -> torch.Tensor:

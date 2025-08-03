@@ -76,26 +76,26 @@ is_npz = np.load("/home/kevin/Downloads/motion.npz")
 
 assert mj_npz["fps"] == is_npz["fps"]
 
-mj_val = mj_npz["joint_pos"][:, robot_joint_indexes]
-is_val = is_npz["joint_pos"]
-np.testing.assert_allclose(mj_val, is_val)
+mj_qpos = mj_npz["joint_pos"][:, robot_joint_indexes]
+is_qpos = is_npz["joint_pos"]
+np.testing.assert_allclose(mj_qpos, is_qpos)
 
-mj_val = mj_npz["joint_vel"][:, robot_joint_indexes]
-is_val = is_npz["joint_vel"]
-np.testing.assert_allclose(mj_val, is_val)
+mj_qvel = mj_npz["joint_vel"][:, robot_joint_indexes]
+is_qvel = is_npz["joint_vel"]
+np.testing.assert_allclose(mj_qvel, is_qvel)
 
-mj_val = mj_npz["body_pos_w"][:, body_indexes]
-is_val = is_npz["body_pos_w"]
-np.testing.assert_allclose(mj_val, is_val, atol=1e-5)
+mj_body_pos = mj_npz["body_pos_w"][:, body_indexes]
+is_body = is_npz["body_pos_w"]
+np.testing.assert_allclose(mj_body_pos, is_body, atol=1e-5)
 
-mj_val = mj_npz["body_quat_w"][:, body_indexes]
-is_val = is_npz["body_quat_w"]
-np.testing.assert_allclose(mj_val, is_val, atol=1e-5)
+mj_body_quat = mj_npz["body_quat_w"][:, body_indexes]
+is_body_quat = is_npz["body_quat_w"]
+np.testing.assert_allclose(mj_body_quat, is_body_quat, atol=1e-5)
 
-mj_val = mj_npz["body_lin_vel_w"][:, body_indexes]
-is_val = is_npz["body_lin_vel_w"]
-np.testing.assert_allclose(mj_val, is_val, atol=1e-5)
+mj_body_lin_vel = mj_npz["body_lin_vel_w"][:, body_indexes]
+is_body_lin_vel = is_npz["body_lin_vel_w"]
+np.testing.assert_allclose(mj_body_lin_vel, is_body_lin_vel, atol=1e-5)
 
-mj_val = mj_npz["body_ang_vel_w"][:, body_indexes]
-is_val = is_npz["body_ang_vel_w"]
-np.testing.assert_allclose(mj_val, is_val, atol=1e-5)
+mj_body_ang_vel = mj_npz["body_ang_vel_w"][:, body_indexes]
+is_body_ang_vel = is_npz["body_ang_vel_w"]
+np.testing.assert_allclose(mj_body_ang_vel, is_body_ang_vel, atol=1e-5)

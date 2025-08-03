@@ -268,10 +268,10 @@ def run_sim(
       log["body_pos_w"].append(robot.data.body_link_pos_w[0, :].cpu().numpy().copy())
       log["body_quat_w"].append(robot.data.body_link_quat_w[0, :].cpu().numpy().copy())
       log["body_lin_vel_w"].append(
-        robot.data.body_com_lin_vel_w[0, :].cpu().numpy().copy()
+        robot.data.body_link_lin_vel_w[0, :].cpu().numpy().copy()
       )
       log["body_ang_vel_w"].append(
-        robot.data.body_com_ang_vel_w[0, :].cpu().numpy().copy()
+        robot.data.body_link_ang_vel_w[0, :].cpu().numpy().copy()
       )
 
       if reset_flag and not file_saved:

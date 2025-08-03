@@ -3,7 +3,6 @@ from dataclasses import dataclass, field, replace
 from mjlab.scene.scene_config import SceneCfg
 from mjlab.utils.spec_editor import TextureCfg, LightCfg
 from mjlab.asset_zoo.terrains.flat_terrain import FLAT_TERRAIN_CFG
-from mjlab.tasks.locomotion.velocity.velocity_env_cfg import TerminationCfg
 
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.managers.manager_term_config import ActionTermCfg as ActionTerm
@@ -191,13 +190,13 @@ class RewardCfg:
   motion_global_root_pos: RewTerm = term(
     RewTerm,
     func=mdp.motion_global_ref_position_error_exp,
-    weight=1.0,
+    weight=0.5,
     params={"command_name": "motion", "std": 0.3},
   )
   motion_global_root_ori: RewTerm = term(
     RewTerm,
     func=mdp.motion_global_ref_orientation_error_exp,
-    weight=1.0,
+    weight=0.5,
     params={"command_name": "motion", "std": 0.4},
   )
   motion_body_pos: RewTerm = term(
@@ -229,7 +228,7 @@ class RewardCfg:
   joint_limit: RewTerm = term(
     RewTerm,
     func=mdp.joint_pos_limits,
-    weight=-10.0,
+    weight=-100.0,
     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*"])},
   )
 
@@ -279,7 +278,7 @@ class TrackingEnvCfg(ManagerBasedRlEnvCfg):
   actions: ActionCfg = field(default_factory=ActionCfg)
   commands: CommandsCfg = field(default_factory=CommandsCfg)
   rewards: RewardCfg = field(default_factory=RewardCfg)
-  terminations: TerminationCfg = field(default_factory=TerminationCfg)
+  terminations: TerminationsCfg = field(default_factory=TerminationsCfg)
   events: EventCfg = field(default_factory=EventCfg)
   decimation: int = 4
   episode_length_s: float = 10.0
@@ -291,5 +290,5 @@ class TrackingEnvCfg(ManagerBasedRlEnvCfg):
     self.sim.num_envs = 1
     self.sim.nconmax = 50000
     self.sim.njmax = 250
-    # self.sim.mujoco.iterations = 10
-    # self.sim.mujoco.ls_iterations = 20
+    self.sim.mujoco.iterations = 10
+    self.sim.mujoco.ls_iterations = 20
