@@ -24,10 +24,11 @@ class T1FlatEnvCfg(TrackingEnvCfg):
       "Trunk",
       "AL2",
       "AL3",
-      # "left_wrist_yaw_link",
+      "left_hand_link",
       "AR2",
       "AR3",
-      # "right_wrist_yaw_link",
+      "right_hand_link",
+      "A2",
     ]
 
 

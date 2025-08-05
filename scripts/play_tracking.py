@@ -14,7 +14,7 @@ import gymnasium as gym
 from rl import utils
 
 _HERE = Path(__file__).parent
-_TASK_NAME = "Tracking-Flat-G1-Play-v0"
+_TASK_NAME = "Tracking-Flat-T1-Play-v0"
 FRAME_TIME = 1.0 / 60.0
 KEY_BACKSPACE = 259
 KEY_ENTER = 257
