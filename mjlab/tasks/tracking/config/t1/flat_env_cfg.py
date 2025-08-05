@@ -28,7 +28,7 @@ class T1FlatEnvCfg(TrackingEnvCfg):
       "AR2",
       "AR3",
       "right_hand_link",
-      "A2",
+      "H2",
     ]
 
 
