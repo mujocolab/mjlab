@@ -15,7 +15,7 @@ from mjlab.utils.spec_editor.spec_editor_config import ActuatorCfg, CollisionCfg
 # MJCF and assets
 ##
 
-T1_XML = MJLAB_SRC_PATH / "entities" / "robots" / "booster_t1" / "xmls" / "booster_t1.xml"
+T1_XML = MJLAB_SRC_PATH / "asset_zoo" / "robots" / "booster_t1" / "xmls" / "t1.xml"
 assert T1_XML.exists()
 
 def get_assets() -> Dict[str, bytes]:
@@ -210,6 +210,19 @@ T1_ROBOT_CFG = RobotCfg(
   collisions=(FULL_COLLISION,),
   spec_fn=get_spec,
 )
+
+T1_ACTION_SCALE = {}
+for a in T1_ROBOT_CFG.actuators:
+  e = a.effort_limit
+  s = a.stiffness
+  names = a.joint_names_expr
+  if not isinstance(e, dict):
+    e = {n: e for n in names}
+  if not isinstance(s, dict):
+    s = {n: s for n in names}
+  for n in names:
+    if n in e and n in s and s[n]:
+      T1_ACTION_SCALE[n] = 0.25 * e[n] / s[n]
 
 if __name__ == "__main__":
   from mjlab.entities.robots.robot import Robot

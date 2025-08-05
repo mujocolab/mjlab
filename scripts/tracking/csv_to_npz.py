@@ -4,6 +4,7 @@ import tyro
 from dataclasses import replace
 
 from mjlab.asset_zoo.robots.unitree_g1 import g1_constants
+from mjlab.asset_zoo.robots.booster_t1 import t1_constants
 from mjlab.entities import Robot
 from mjlab.utils.math import (
   quat_mul,
@@ -36,7 +37,8 @@ terrain_cfg = replace(FLAT_TERRAIN_CFG)
 
 SCENE_CFG = SceneCfg(
   terrains={"floor": terrain_cfg},
-  robots={"robot": replace(g1_constants.G1_ROBOT_CFG)},
+  # robots={"robot": replace(g1_constants.G1_ROBOT_CFG)},
+  robots={"robot": replace(t1_constants.T1_ROBOT_CFG)},
 )
 
 
@@ -296,7 +298,7 @@ def run_sim(
         ):
           log[k] = np.stack(log[k], axis=0)
 
-        np.savez("./motions/motion.npz", **log)
+        np.savez(f"./motions/{output_name}.npz", **log)
 
         # import wandb
         # COLLECTION = output_name
@@ -346,36 +348,61 @@ def main(
   run_sim(
     sim=sim,
     scene=scene,
+    # joint_names=[
+    #   "left_hip_pitch_joint",
+    #   "left_hip_roll_joint",
+    #   "left_hip_yaw_joint",
+    #   "left_knee_joint",
+    #   "left_ankle_pitch_joint",
+    #   "left_ankle_roll_joint",
+    #   "right_hip_pitch_joint",
+    #   "right_hip_roll_joint",
+    #   "right_hip_yaw_joint",
+    #   "right_knee_joint",
+    #   "right_ankle_pitch_joint",
+    #   "right_ankle_roll_joint",
+    #   "waist_yaw_joint",
+    #   "waist_roll_joint",
+    #   "waist_pitch_joint",
+    #   "left_shoulder_pitch_joint",
+    #   "left_shoulder_roll_joint",
+    #   "left_shoulder_yaw_joint",
+    #   "left_elbow_joint",
+    #   "left_wrist_roll_joint",
+    #   "left_wrist_pitch_joint",
+    #   "left_wrist_yaw_joint",
+    #   "right_shoulder_pitch_joint",
+    #   "right_shoulder_roll_joint",
+    #   "right_shoulder_yaw_joint",
+    #   "right_elbow_joint",
+    #   "right_wrist_roll_joint",
+    #   "right_wrist_pitch_joint",
+    #   "right_wrist_yaw_joint",
+    # ],
     joint_names=[
-      "left_hip_pitch_joint",
-      "left_hip_roll_joint",
-      "left_hip_yaw_joint",
-      "left_knee_joint",
-      "left_ankle_pitch_joint",
-      "left_ankle_roll_joint",
-      "right_hip_pitch_joint",
-      "right_hip_roll_joint",
-      "right_hip_yaw_joint",
-      "right_knee_joint",
-      "right_ankle_pitch_joint",
-      "right_ankle_roll_joint",
-      "waist_yaw_joint",
-      "waist_roll_joint",
-      "waist_pitch_joint",
-      "left_shoulder_pitch_joint",
-      "left_shoulder_roll_joint",
-      "left_shoulder_yaw_joint",
-      "left_elbow_joint",
-      "left_wrist_roll_joint",
-      "left_wrist_pitch_joint",
-      "left_wrist_yaw_joint",
-      "right_shoulder_pitch_joint",
-      "right_shoulder_roll_joint",
-      "right_shoulder_yaw_joint",
-      "right_elbow_joint",
-      "right_wrist_roll_joint",
-      "right_wrist_pitch_joint",
-      "right_wrist_yaw_joint",
+      "AAHead_yaw",
+      "Head_pitch",
+      "Left_Shoulder_Pitch",
+      "Left_Shoulder_Roll",
+      "Left_Elbow_Pitch",
+      "Left_Elbow_Yaw",
+      "Right_Shoulder_Pitch",
+      "Right_Shoulder_Roll",
+      "Right_Elbow_Pitch",
+      "Right_Elbow_Yaw",
+      "Waist",
+      "Left_Hip_Pitch",
+      "Left_Hip_Roll",
+      "Left_Hip_Yaw",
+      "Left_Knee_Pitch",
+      "Left_Ankle_Pitch",
+      "Left_Ankle_Roll",
+      "Right_Hip_Pitch",
+      "Right_Hip_Roll",
+      "Right_Hip_Yaw",
+      "Right_Knee_Pitch",
+      "Right_Ankle_Pitch",
+      "Right_Ankle_Roll",
     ],
     input_fps=input_fps,
     input_file=input_file,
