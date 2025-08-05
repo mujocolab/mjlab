@@ -18,8 +18,12 @@ from mjlab.managers.manager_term_config import RewardTermCfg as RewTerm
 from mjlab.tasks.tracking import mdp
 
 VELOCITY_RANGE = {
-  "x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (-0.2, 0.2),
-  "roll": (-0.52, 0.52), "pitch": (-0.52, 0.52), "yaw": (-0.78, 0.78),
+  "x": (-0.5, 0.5),
+  "y": (-0.5, 0.5),
+  "z": (-0.2, 0.2),
+  "roll": (-0.52, 0.52),
+  "pitch": (-0.52, 0.52),
+  "yaw": (-0.78, 0.78),
 }
 
 ##
