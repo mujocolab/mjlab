@@ -48,12 +48,12 @@ class UniformVelocityCommand(CommandTerm):
     max_command_step = max_command_time / self._env.step_dt
     self.metrics["error_vel_xy"] += (
       torch.norm(
-        self.vel_command_b[:, :2] - self.robot.data.root_com_lin_vel_b[:, :2], dim=-1
+        self.vel_command_b[:, :2] - self.robot.data.root_link_lin_vel_b[:, :2], dim=-1
       )
       / max_command_step
     )
     self.metrics["error_vel_yaw"] += (
-      torch.abs(self.vel_command_b[:, 2] - self.robot.data.root_com_ang_vel_b[:, 2])
+      torch.abs(self.vel_command_b[:, 2] - self.robot.data.root_link_ang_vel_b[:, 2])
       / max_command_step
     )
 
@@ -92,8 +92,8 @@ class UniformVelocityCommand(CommandTerm):
     base_quat_w = self.robot.data.root_link_quat_w
     base_mat_ws = matrix_from_quat(base_quat_w).cpu().numpy()
     # Actual linear and angular velocities.
-    lin_vel_bs = self.robot.data.root_com_lin_vel_b.cpu().numpy()
-    ang_vel_bs = self.robot.data.root_com_ang_vel_b.cpu().numpy()
+    lin_vel_bs = self.robot.data.root_link_lin_vel_b.cpu().numpy()
+    ang_vel_bs = self.robot.data.root_link_ang_vel_b.cpu().numpy()
 
     for batch in range(self.num_envs):
       base_pos_w = base_pos_ws[batch]

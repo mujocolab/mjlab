@@ -23,7 +23,7 @@ def track_lin_vel_xy_exp(
   lin_vel_error = torch.sum(
     torch.square(
       env.command_manager.get_command(command_name)[:, :2]
-      - asset.data.root_com_lin_vel_b[:, :2]
+      - asset.data.root_link_lin_vel_b[:, :2]
     ),
     dim=1,
   )
@@ -40,7 +40,7 @@ def track_ang_vel_z_exp(
   asset: Robot = env.scene[asset_cfg.name]
   ang_vel_error = torch.square(
     env.command_manager.get_command(command_name)[:, 2]
-    - asset.data.root_com_ang_vel_b[:, 2]
+    - asset.data.root_link_ang_vel_b[:, 2]
   )
   return torch.exp(-ang_vel_error / std**2)
 
@@ -50,7 +50,7 @@ def lin_vel_z_l2(
 ) -> torch.Tensor:
   """Penalize z-axis base linear velocity using L2 squared kernel."""
   asset: Robot = env.scene[asset_cfg.name]
-  return torch.square(asset.data.root_com_lin_vel_b[:, 2])
+  return torch.square(asset.data.root_link_lin_vel_b[:, 2])
 
 
 def ang_vel_xy_l2(
@@ -58,7 +58,7 @@ def ang_vel_xy_l2(
 ) -> torch.Tensor:
   """Penalize xy-axis base angular velocity using L2 squared kernel."""
   asset: Robot = env.scene[asset_cfg.name]
-  return torch.sum(torch.square(asset.data.root_com_ang_vel_b[:, :2]), dim=1)
+  return torch.sum(torch.square(asset.data.root_link_ang_vel_b[:, :2]), dim=1)
 
 
 def flat_orientation_l2(

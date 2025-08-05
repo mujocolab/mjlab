@@ -122,7 +122,7 @@ class ObservationCfg:
     )
     joint_vel: ObsTerm = term(
       ObsTerm,
-      func=mdp.joint_vel,
+      func=mdp.joint_vel_rel,
       noise=Unoise(n_min=-1.5, n_max=1.5),
     )
 
@@ -138,9 +138,15 @@ class ObservationCfg:
 
     def __post_init__(self):
       self.enable_corruption = True
-      self.concatenate_terms = True
+
+  @dataclass
+  class PrivilegedCfg(PolicyCfg):
+    def __post_init__(self):
+      super().__post_init__()
+      self.enable_corruption = False
 
   policy: PolicyCfg = field(default_factory=PolicyCfg)
+  critic: PrivilegedCfg = field(default_factory=PrivilegedCfg)
 
 
 # Events.
@@ -257,7 +263,7 @@ class LocomotionVelocityFlatEnvCfg(ManagerBasedRlEnvCfg):
     self.sim.mujoco.integrator = "implicitfast"
     self.sim.mujoco.cone = "pyramidal"
     self.sim.mujoco.timestep = 0.005
-    self.sim.num_envs = 4096
+    self.sim.num_envs = 1
     self.sim.nconmax = 40000
     self.sim.njmax = 100
     self.sim.mujoco.iterations = 10

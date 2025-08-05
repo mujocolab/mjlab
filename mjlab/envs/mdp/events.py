@@ -56,6 +56,8 @@ def reset_root_state_uniform(
   asset.write_root_pose_to_sim(
     torch.cat([positions, orientations], dim=-1), env_ids=env_ids
   )
+
+  velocities[:, 3:] = math_utils.quat_apply_inverse(orientations, velocities[:, 3:])
   asset.write_root_velocity_to_sim(velocities, env_ids=env_ids)
 
 
