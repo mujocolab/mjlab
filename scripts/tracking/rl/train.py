@@ -6,8 +6,7 @@ from datetime import datetime
 import os
 import torch
 import tyro
-from mjlab.rl import RslRlVecEnvWrapper
-from rsl_rl.runners import OnPolicyRunner
+from mjlab.rl import RslRlVecEnvWrapper, MotionTrackingOnPolicyRunner
 from mjlab.tasks.utils.parse_cfg import load_cfg_from_registry
 import gymnasium as gym
 
@@ -87,8 +86,12 @@ def main(
 
   env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
-  runner = OnPolicyRunner(
-    env, asdict(agent_cfg), log_dir=log_dir, device=agent_cfg.device
+  runner = MotionTrackingOnPolicyRunner(
+    env,
+    asdict(agent_cfg),
+    log_dir=log_dir,
+    device=agent_cfg.device,
+    registry_name=registry_name,
   )
   runner.add_git_repo_to_log(__file__)
 

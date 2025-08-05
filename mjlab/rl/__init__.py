@@ -5,6 +5,7 @@ from mjlab.rl.config import (
   RslRlOnPolicyRunnerCfg,
 )
 from mjlab.rl.vecenv_wrapper import RslRlVecEnvWrapper
+from mjlab.rl.runners import MotionTrackingOnPolicyRunner
 
 __all__ = (
   "RslRlPpoActorCriticCfg",
@@ -12,4 +13,6 @@ __all__ = (
   "RslRlBaseRunnerCfg",
   "RslRlOnPolicyRunnerCfg",
   "RslRlVecEnvWrapper",
+  # Custom runners.
+  "MotionTrackingOnPolicyRunner",
 )

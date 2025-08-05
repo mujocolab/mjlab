@@ -36,9 +36,9 @@ MUJOCO_GL=egl python scripts/tracking/rl/train.py \
 
 ```bash
 # Play.
-MUJOCO_GL=egl python scripts/tracking/rl/play.py \
+python scripts/tracking/rl/play.py \
   --task Tracking-Flat-G1-v0 \
-  --registry-name gcbc_researchers/csv_to_npz/run1_subject5:v0 \
+  --wandb-run-path gcbc_researchers/mjlab_alpha/7nm9duu4
 ```
 
 ## TODO
