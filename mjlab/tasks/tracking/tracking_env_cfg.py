@@ -89,7 +89,7 @@ class CommandsCfg:
       "right_elbow_link",
       "right_wrist_yaw_link",
     ],
-    motion_file="/home/kevin/dev/mjlab/motions/swallow_balance.npz",
+    motion_file="/home/kevin/dev/mjlab/motions/run1_subject5.npz",
   )
 
 
