@@ -24,10 +24,13 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 
 ## Getting started
 
-Use a policy trained in MuJoCo Playground to partially sanity check the MDP pipeline (namely observations and actions):
+### Motion Mimic
 
 ```bash
-python scripts/play_playground.py
+python scripts/tracking/rl/train.py \
+  --task Tracking-Flat-G1-v0 \
+  --registry-name gcbc_researchers/csv_to_npz/run1_subject5:v0 \
+  --num_envs 4096
 ```
 
 ## TODO

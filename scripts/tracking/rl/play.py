@@ -1,16 +1,15 @@
-"""Script to train RL agent with RSL-RL."""
-
 from dataclasses import asdict
 from pathlib import Path
 import torch
 from tqdm import tqdm
 import tyro
+import wandb
 from mjlab.rl import RslRlVecEnvWrapper
 from rsl_rl.runners import OnPolicyRunner
 from mjlab.tasks.utils.parse_cfg import load_cfg_from_registry
 import gymnasium as gym
 
-import utils
+from mjlab.utils.os import get_wandb_checkpoint_path
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
@@ -18,12 +17,12 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 _HERE = Path(__file__).parent
-# _TASK = "Mjlab-Velocity-Flat-Unitree-Go1-v0"
-_TASK = "Tracking-Flat-G1-Play-v0"
 
 
 def main(
-  task: str = _TASK,
+  task: str,
+  wandb_run_path: str,
+  motion_file: str | None = None,
   num_envs: int | None = None,
   device: str | None = None,
   video: bool = False,
@@ -31,8 +30,6 @@ def main(
   video_height: int | None = None,
   video_width: int | None = None,
   camera: int | str | None = -1,
-  checkpoint: Path | None = None,
-  wandb_run_path: Path | None = None,
 ):
   env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
   agent_cfg = load_cfg_from_registry(task, "rl_cfg_entry_point")
@@ -46,15 +43,20 @@ def main(
   log_root_path = _HERE / "logs" / "rsl_rl" / agent_cfg.experiment_name
   log_root_path = log_root_path.resolve()
   print(f"[INFO]: Loading experiment from: {log_root_path}")
-  if checkpoint is not None:
-    resume_path = checkpoint.resolve()
-  elif wandb_run_path is not None:
-    resume_path = utils.get_wandb_checkpoint_path(log_root_path, wandb_run_path)
-  else:
-    resume_path = utils.get_checkpoint_path(
-      log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint
-    )
+
+  resume_path = get_wandb_checkpoint_path(log_root_path, wandb_run_path, True)
   print(f"[INFO]: Loading checkpoint: {resume_path}")
+
+  if motion_file is not None:
+    print(f"[INFO]: Using motion file from CLI: {motion_file}")
+    env_cfg.commands.motion.motion_file = motion_file
+  else:
+    api = wandb.Api()
+    wandb_run = api.run(str(wandb_run_path))
+    art = next((a for a in wandb_run.used_artifacts() if a.type == "motions"), None)
+    if art is None:
+      raise RuntimeError("No motion artifact found in the run.")
+    env_cfg.commands.motion.motion_file = str(Path(art.download()) / "motion.npz")
 
   log_dir = resume_path.parent
 

@@ -48,7 +48,7 @@ class MotionLoader:
     motion_file: str,
     input_fps: int,
     output_fps: int,
-    device: torch.device,
+    device: torch.device | str,
     line_range: tuple[int, int] | None = None,
   ):
     self.motion_file = motion_file
@@ -298,18 +298,24 @@ def run_sim(
         ):
           log[k] = np.stack(log[k], axis=0)
 
-        np.savez(f"./motions/{output_name}.npz", **log)
+        np.savez("/tmp/motion.npz", **log)
 
-        # import wandb
-        # COLLECTION = output_name
-        # run = wandb.init(project="csv_to_npz", name=COLLECTION, entity="kzakka")
-        # print(f"[INFO]: Logging motion to wandb: {COLLECTION}")
-        # REGISTRY = "motions"
-        # logged_artifact = run.log_artifact(artifact_or_path="/tmp/motion.npz",
-        #                                    name=COLLECTION, type=REGISTRY)
-        # run.link_artifact(artifact=logged_artifact,
-        #                   target_path=f"wandb-registry-{REGISTRY}/{COLLECTION}")
-        # print(f"[INFO]: Motion saved to wandb registry: {REGISTRY}/{COLLECTION}")
+        import wandb
+
+        COLLECTION = output_name
+        run = wandb.init(
+          project="csv_to_npz", name=COLLECTION, entity="gcbc_researchers"
+        )
+        print(f"[INFO]: Logging motion to wandb: {COLLECTION}")
+        REGISTRY = "motions"
+        logged_artifact = run.log_artifact(
+          artifact_or_path="/tmp/motion.npz", name=COLLECTION, type=REGISTRY
+        )
+        run.link_artifact(
+          artifact=logged_artifact,
+          target_path=f"wandb-registry-{REGISTRY}/{COLLECTION}",
+        )
+        print(f"[INFO]: Motion saved to wandb registry: {REGISTRY}/{COLLECTION}")
 
   # import mediapy as media
   # media.write_video("./motion.mp4", frames, fps=output_fps)

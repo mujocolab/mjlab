@@ -76,24 +76,10 @@ class CommandsCfg:
     },
     velocity_range=VELOCITY_RANGE,
     joint_position_range=(-0.1, 0.1),
-    reference_body="torso_link",
-    body_names=[
-      "pelvis",
-      "left_hip_roll_link",
-      "left_knee_link",
-      "left_ankle_roll_link",
-      "right_hip_roll_link",
-      "right_knee_link",
-      "right_ankle_roll_link",
-      "torso_link",
-      "left_shoulder_roll_link",
-      "left_elbow_link",
-      "left_wrist_yaw_link",
-      "right_shoulder_roll_link",
-      "right_elbow_link",
-      "right_wrist_yaw_link",
-    ],
-    motion_file="/home/kevin/dev/mjlab/motions/run1_subject5.npz",
+    # Placeholders.
+    motion_file="",
+    reference_body="",
+    body_names=[],
   )
 
 

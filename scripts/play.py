@@ -11,7 +11,7 @@ from mjlab.tasks.utils.parse_cfg import load_cfg_from_registry
 from rsl_rl.runners import OnPolicyRunner
 import gymnasium as gym
 
-from rl import utils
+from mjlab.utils.os import get_wandb_checkpoint_path
 
 _HERE = Path(__file__).parent
 _TASK_NAME = "Tracking-Flat-T1-Play-v0"
@@ -32,7 +32,7 @@ def main(
 
   log_root_path = _HERE / "rl" / "logs" / "rsl_rl" / agent_cfg.experiment_name
   log_root_path = log_root_path.resolve()
-  resume_path = utils.get_wandb_checkpoint_path(log_root_path, wandb_run_path)
+  resume_path = get_wandb_checkpoint_path(log_root_path, wandb_run_path)
 
   log_dir = resume_path.parent
   runner = OnPolicyRunner(

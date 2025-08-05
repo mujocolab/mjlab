@@ -11,7 +11,7 @@ from rsl_rl.runners import OnPolicyRunner
 from mjlab.tasks.utils.parse_cfg import load_cfg_from_registry
 import gymnasium as gym
 
-import utils
+from mjlab.utils.os import get_checkpoint_path, dump_yaml
 
 # TODO(kevin): Make sure this does not interfere with seed_rng call in env.seed().
 torch.backends.cuda.matmul.allow_tf32 = True
@@ -20,12 +20,11 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 _HERE = Path(__file__).parent
-_TASK = "Tracking-Flat-T1-v0"
-# _TASK = "Mjlab-Velocity-Flat-Unitree-Go1-v0"
 
 
 def main(
-  task: str = _TASK,
+  task: str,
+  registry_name: str,
   num_envs: int | None = None,
   seed: int | None = None,
   max_iterations: int | None = None,
@@ -36,6 +35,18 @@ def main(
 ):
   env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
   agent_cfg = load_cfg_from_registry(task, "rl_cfg_entry_point")
+
+  # Check if the registry name includes alias, if not, append ":latest".
+  if ":" not in registry_name:
+    registry_name += ":latest"
+  import wandb
+  import pathlib
+
+  api = wandb.Api()
+  artifact = api.artifact(registry_name)
+  env_cfg.commands.motion.motion_file = str(
+    pathlib.Path(artifact.download()) / "motion.npz"
+  )
 
   env_cfg.sim.num_envs = num_envs or env_cfg.sim.num_envs
   agent_cfg.max_iterations = max_iterations or agent_cfg.max_iterations
@@ -59,7 +70,7 @@ def main(
 
   # Save resume path before creating a new log_dir.
   if agent_cfg.resume:
-    resume_path = utils.get_checkpoint_path(
+    resume_path = get_checkpoint_path(
       log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint
     )
 
@@ -85,8 +96,8 @@ def main(
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
     runner.load(resume_path)
 
-  utils.dump_yaml(log_dir / "params" / "env.yaml", asdict(env_cfg))
-  utils.dump_yaml(log_dir / "params" / "agent.yaml", asdict(agent_cfg))
+  dump_yaml(log_dir / "params" / "env.yaml", asdict(env_cfg))
+  dump_yaml(log_dir / "params" / "agent.yaml", asdict(agent_cfg))
 
   runner.learn(
     num_learning_iterations=agent_cfg.max_iterations, init_at_random_ep_len=True
