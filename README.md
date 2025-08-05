@@ -27,10 +27,18 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 ### Motion Mimic
 
 ```bash
-python scripts/tracking/rl/train.py \
+# Train.
+MUJOCO_GL=egl python scripts/tracking/rl/train.py \
   --task Tracking-Flat-G1-v0 \
   --registry-name gcbc_researchers/csv_to_npz/run1_subject5:v0 \
   --num_envs 4096
+```
+
+```bash
+# Play.
+MUJOCO_GL=egl python scripts/tracking/rl/play.py \
+  --task Tracking-Flat-G1-v0 \
+  --registry-name gcbc_researchers/csv_to_npz/run1_subject5:v0 \
 ```
 
 ## TODO
