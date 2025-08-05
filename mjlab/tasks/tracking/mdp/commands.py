@@ -330,14 +330,11 @@ class MotionCommand(CommandTerm):
 
 @dataclass(kw_only=True)
 class MotionCommandCfg(CommandTermCfg):
-  class_type: type[CommandTerm] = MotionCommand
-
   motion_file: str = MISSING
   reference_body: str = MISSING
   body_names: list[str] = MISSING
   asset_name: str = MISSING
-
+  class_type: type[CommandTerm] = MotionCommand
   pose_range: dict[str, tuple[float, float]] = field(default_factory=dict)
   velocity_range: dict[str, tuple[float, float]] = field(default_factory=dict)
-
   joint_position_range: tuple[float, float] = (-0.52, 0.52)

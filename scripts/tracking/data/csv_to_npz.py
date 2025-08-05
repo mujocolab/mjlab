@@ -3,6 +3,7 @@ import torch
 import tyro
 from dataclasses import replace
 
+# from mjlab.asset_zoo.robots.booster_t1 import t1_constants
 from mjlab.asset_zoo.robots.unitree_g1 import g1_constants
 from mjlab.entities import Robot
 from mjlab.utils.math import (
@@ -37,6 +38,7 @@ terrain_cfg = replace(FLAT_TERRAIN_CFG)
 SCENE_CFG = SceneCfg(
   terrains={"floor": terrain_cfg},
   robots={"robot": replace(g1_constants.G1_ROBOT_CFG)},
+  # robots={"robot": replace(t1_constants.T1_ROBOT_CFG)},
 )
 
 
@@ -46,7 +48,7 @@ class MotionLoader:
     motion_file: str,
     input_fps: int,
     output_fps: int,
-    device: torch.device,
+    device: torch.device | str,
     line_range: tuple[int, int] | None = None,
   ):
     self.motion_file = motion_file
@@ -296,18 +298,24 @@ def run_sim(
         ):
           log[k] = np.stack(log[k], axis=0)
 
-        np.savez("./motions/motion.npz", **log)
+        np.savez("/tmp/motion.npz", **log)
 
-        # import wandb
-        # COLLECTION = output_name
-        # run = wandb.init(project="csv_to_npz", name=COLLECTION, entity="kzakka")
-        # print(f"[INFO]: Logging motion to wandb: {COLLECTION}")
-        # REGISTRY = "motions"
-        # logged_artifact = run.log_artifact(artifact_or_path="/tmp/motion.npz",
-        #                                    name=COLLECTION, type=REGISTRY)
-        # run.link_artifact(artifact=logged_artifact,
-        #                   target_path=f"wandb-registry-{REGISTRY}/{COLLECTION}")
-        # print(f"[INFO]: Motion saved to wandb registry: {REGISTRY}/{COLLECTION}")
+        import wandb
+
+        COLLECTION = output_name
+        run = wandb.init(
+          project="csv_to_npz", name=COLLECTION, entity="gcbc_researchers"
+        )
+        print(f"[INFO]: Logging motion to wandb: {COLLECTION}")
+        REGISTRY = "motions"
+        logged_artifact = run.log_artifact(
+          artifact_or_path="/tmp/motion.npz", name=COLLECTION, type=REGISTRY
+        )
+        run.link_artifact(
+          artifact=logged_artifact,
+          target_path=f"wandb-registry-{REGISTRY}/{COLLECTION}",
+        )
+        print(f"[INFO]: Motion saved to wandb registry: {REGISTRY}/{COLLECTION}")
 
   # import mediapy as media
   # media.write_video("./motion.mp4", frames, fps=output_fps)
@@ -377,6 +385,31 @@ def main(
       "right_wrist_pitch_joint",
       "right_wrist_yaw_joint",
     ],
+    # joint_names=[
+    #   "AAHead_yaw",
+    #   "Head_pitch",
+    #   "Left_Shoulder_Pitch",
+    #   "Left_Shoulder_Roll",
+    #   "Left_Elbow_Pitch",
+    #   "Left_Elbow_Yaw",
+    #   "Right_Shoulder_Pitch",
+    #   "Right_Shoulder_Roll",
+    #   "Right_Elbow_Pitch",
+    #   "Right_Elbow_Yaw",
+    #   "Waist",
+    #   "Left_Hip_Pitch",
+    #   "Left_Hip_Roll",
+    #   "Left_Hip_Yaw",
+    #   "Left_Knee_Pitch",
+    #   "Left_Ankle_Pitch",
+    #   "Left_Ankle_Roll",
+    #   "Right_Hip_Pitch",
+    #   "Right_Hip_Roll",
+    #   "Right_Hip_Yaw",
+    #   "Right_Knee_Pitch",
+    #   "Right_Ankle_Pitch",
+    #   "Right_Ankle_Roll",
+    # ],
     input_fps=input_fps,
     input_file=input_file,
     output_fps=output_fps,
