@@ -84,7 +84,7 @@ class Scene:
   def initialize(self, model: mujoco.MjModel, data, device, wp_model):
     self._compute_indexing(model, device)
     for ent_name, ent in self._entities.items():
-      ent.initialize(self.indexing.entities[ent_name], data, device)
+      ent.initialize(self.indexing.entities[ent_name], model, data, device, wp_model)
     for sens in self._sensors.values():
       sens.initialize(
         self.indexing.entities[sens.cfg.entity_name], model, data, device, wp_model

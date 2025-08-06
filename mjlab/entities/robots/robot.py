@@ -16,6 +16,7 @@ from mjlab.utils.spec import get_non_root_joints
 from mjlab.utils import string as string_utils
 from mjlab.entities.robots.robot_data import RobotData
 from mjlab.entities.indexing import EntityIndexing
+import warp as wp
 
 
 class Robot(entity.Entity):
@@ -148,7 +149,12 @@ class Robot(entity.Entity):
   # ABC implementations.
 
   def initialize(
-    self, indexing: EntityIndexing, data: mjwarp.Data, device: str
+    self,
+    indexing: EntityIndexing,
+    model: mujoco.MjModel,
+    data: mjwarp.Data,
+    device: str,
+    wp_model,
   ) -> None:
     self._data = RobotData(indexing=indexing, data=data, device=device)
 
@@ -200,6 +206,18 @@ class Robot(entity.Entity):
     self._data.soft_joint_pos_limits[..., 1] = (
       joint_pos_mean + 0.5 * joint_pos_range * soft_limit_factor
     )
+
+    act_ids = string_utils.resolve_matching_names(
+      self._actuator_names, self.joint_actuators, True
+    )[0]
+    self._data.default_joint_stiffness = wp.to_torch(wp_model.actuator_gainprm)[
+      :, act_ids, 0
+    ].repeat(data.nworld, 1)
+    self._data.default_joint_damping = -1.0 * wp.to_torch(wp_model.actuator_biasprm)[
+      :, act_ids, 2
+    ].repeat(data.nworld, 1)
+    self._data.joint_stiffness = self._data.default_joint_stiffness.clone()
+    self._data.joint_damping = self._data.default_joint_damping.clone()
 
     if self.cfg.joint_pos_weight is not None:
       weight = string_utils.resolve_expr(

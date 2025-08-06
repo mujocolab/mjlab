@@ -40,7 +40,12 @@ class Entity(abc.ABC):
 
   @abc.abstractmethod
   def initialize(
-    self, indexing: EntityIndexing, data: mjwarp.Data, device: str
+    self,
+    indexing: EntityIndexing,
+    model: mujoco.MjModel,
+    data: mjwarp.Data,
+    device: str,
+    wp_model,
   ) -> None:
     raise NotImplementedError
 

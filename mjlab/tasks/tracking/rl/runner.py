@@ -1,6 +1,12 @@
 from rsl_rl.runners import OnPolicyRunner
 from rsl_rl.env.vec_env import VecEnv
 import wandb
+import os
+
+from mjlab.tasks.tracking.rl.exporter import (
+  export_motion_policy_as_onnx,
+  attach_onnx_metadata,
+)
 
 
 class MotionTrackingOnPolicyRunner(OnPolicyRunner):
@@ -21,10 +27,21 @@ class MotionTrackingOnPolicyRunner(OnPolicyRunner):
     if self.logger_type in ["wandb"]:
       policy_path = path.split("model")[0]
       filename = policy_path.split("/")[-2] + ".onnx"
-      # export_motion_policy_as_onnx(self.env.unwrapped, self.alg.policy, normalizer=self.obs_normalizer,
-      #                              path=policy_path, filename=filename)
-      # attach_onnx_metadata(self.env.unwrapped, wandb.run.name, path=policy_path, filename=filename)
-      # wandb.save(policy_path + filename, base_path=os.path.dirname(policy_path))
+      if self.alg.policy.actor_obs_normalization:
+        normalizer = self.alg.policy.actor_obs_normalizer
+      else:
+        normalizer = None
+      export_motion_policy_as_onnx(
+        self.env.unwrapped,
+        self.alg.policy,
+        normalizer=normalizer,
+        path=policy_path,
+        filename=filename,
+      )
+      attach_onnx_metadata(
+        self.env.unwrapped, wandb.run.name, path=policy_path, filename=filename
+      )
+      wandb.save(policy_path + filename, base_path=os.path.dirname(policy_path))
 
       # link the artifact registry to this run
       if self.registry_name is not None:

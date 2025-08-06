@@ -22,6 +22,11 @@ class RobotData:
   soft_joint_pos_limits: torch.Tensor | None = None
   joint_pos_weight: torch.Tensor | None = None
 
+  default_joint_stiffness: torch.Tensor = None
+  default_joint_damping: torch.Tensor = None
+  joint_stiffness: torch.Tensor | None = None
+  joint_damping: torch.Tensor | None = None
+
   def __init__(self, indexing: EntityIndexing, data: mjwarp.Data, device: str):
     self.indexing = indexing
     self.data = data

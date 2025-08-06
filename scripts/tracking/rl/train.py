@@ -6,7 +6,8 @@ from datetime import datetime
 import os
 import torch
 import tyro
-from mjlab.rl import RslRlVecEnvWrapper, MotionTrackingOnPolicyRunner
+from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
+from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.tasks.utils.parse_cfg import load_cfg_from_registry
 import gymnasium as gym
 
