@@ -72,6 +72,7 @@ class MotionCommand(CommandTerm):
     self.robot: Robot = env.scene[cfg.asset_name]
     self.robot_ref_body_index = self.robot.body_names.index(self.cfg.reference_body)
     self.motion_ref_body_index = self.cfg.body_names.index(self.cfg.reference_body)
+    self.pelvis_body_index = self.robot.body_names.index("pelvis")
     self.body_indexes = torch.tensor(
       self.robot.find_bodies(self.cfg.body_names, preserve_order=True)[0],
       dtype=torch.long,
@@ -156,6 +157,14 @@ class MotionCommand(CommandTerm):
     return self.motion.body_ang_vel_w[self.time_steps, self.motion_ref_body_index]
 
   @property
+  def root_pos_w(self) -> torch.Tensor:
+    return self.motion.body_pos_w[self.time_steps, self.pelvis_body_index]
+
+  @property
+  def root_quat_w(self) -> torch.Tensor:
+    return self.motion.body_quat_w[self.time_steps, self.pelvis_body_index]
+
+  @property
   def robot_joint_pos(self) -> torch.Tensor:
     return self.robot.data.joint_pos
 
@@ -231,7 +240,7 @@ class MotionCommand(CommandTerm):
     )
 
   def _resample_command(self, env_ids: Sequence[int]):
-    phase = sample_uniform(0.0, 1.0, (len(env_ids),), device=self.device)
+    phase = sample_uniform(0.0, 1.0, (len(env_ids),), device=self.device) * 0.0
     self.time_steps[env_ids] = (phase * (self.motion.time_step_total - 1)).long()
 
     root_pos = self.body_pos_w[:, 0].clone()
@@ -318,10 +327,9 @@ class MotionCommand(CommandTerm):
     )
 
   def _debug_vis_impl(self, scn: mujoco.MjvScene) -> None:
-    self._data_viz.qpos[:3] = self.ref_pos_w.cpu().numpy()[0]
-    self._data_viz.qpos[3:7] = self.ref_quat_w.cpu().numpy()[0]
-    self._data_viz.qpos[7:] = self.joint_pos.cpu().numpy()[0]
-    self._data_viz.qpos[1] += 0.6
+    self._data_viz.qpos[0:3] = self.root_pos_w[0].cpu().numpy().copy()
+    self._data_viz.qpos[3:7] = self.root_quat_w[0].cpu().numpy().copy()
+    self._data_viz.qpos[7:] = self.joint_pos[0].cpu().numpy().copy()
     mujoco.mj_forward(self._model_viz, self._data_viz)
     mujoco.mjv_addGeoms(
       self._model_viz, self._data_viz, self._vopt, self._pert, self._catmask.value, scn
