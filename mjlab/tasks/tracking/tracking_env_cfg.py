@@ -257,6 +257,11 @@ class TerminationsCfg:
 
 
 @dataclass
+class CurriculumCfg:
+  pass
+
+
+@dataclass
 class TrackingEnvCfg(ManagerBasedRlEnvCfg):
   scene: SceneCfg = field(default_factory=lambda: SCENE_CFG)
   observations: ObservationCfg = field(default_factory=ObservationCfg)
@@ -265,6 +270,7 @@ class TrackingEnvCfg(ManagerBasedRlEnvCfg):
   rewards: RewardCfg = field(default_factory=RewardCfg)
   terminations: TerminationsCfg = field(default_factory=TerminationsCfg)
   events: EventCfg = field(default_factory=EventCfg)
+  curriculum: CurriculumCfg = field(default_factory=CurriculumCfg)
   decimation: int = 4
   episode_length_s: float = 10.0
 

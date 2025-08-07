@@ -49,6 +49,16 @@ class CommandTermCfg:
 
 
 ##
+# Curriculum manager.
+##
+
+
+@dataclass(kw_only=True)
+class CurriculumTermCfg(ManagerTermBaseCfg):
+  pass
+
+
+##
 # Event manager.
 ##
 
