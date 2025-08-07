@@ -6,7 +6,8 @@ import time
 import mujoco.viewer
 import tyro
 import wandb
-from mjlab.rl import RslRlVecEnvWrapper, MotionTrackingOnPolicyRunner
+from mjlab.rl import RslRlVecEnvWrapper
+from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 from mjlab.tasks.utils.parse_cfg import load_cfg_from_registry
 import gymnasium as gym
 
