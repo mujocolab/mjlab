@@ -10,3 +10,4 @@ class ManagerBasedRlEnvCfg(ManagerBasedEnvCfg):
   rewards: object = MISSING
   terminations: object = MISSING
   commands: object | None = None
+  curriculum: object | None = None

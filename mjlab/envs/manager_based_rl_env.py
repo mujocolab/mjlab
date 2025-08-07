@@ -8,6 +8,7 @@ from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
 from mjlab.managers.reward_manager import RewardManager
 from mjlab.managers.termination_manager import TerminationManager
 from mjlab.managers.command_manager import CommandManager
+from mjlab.managers.curriculum_manager import CurriculumManager
 from mjlab.envs import types
 
 import mujoco
@@ -62,7 +63,8 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
     print("[INFO] Termination Manager:", self.termination_manager)
     self.reward_manager = RewardManager(self.cfg.rewards, self)
     print("[INFO] Reward Manager:", self.reward_manager)
-    # curriculum manager
+    self.curriculum_manager = CurriculumManager(self.cfg.curriculum, self)
+    print("[INFO] Curriculum Manager:", self.curriculum_manager)
     self._configure_gym_env_spaces()
     if "startup" in self.event_manager.available_modes:
       self.event_manager.apply(mode="startup")
@@ -158,6 +160,7 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
     )
 
   def _reset_idx(self, env_ids: Sequence[int]) -> None:
+    self.curriculum_manager.compute(env_ids=env_ids)
     # Reset the internal buffers of the scene elements.
     self.scene.reset(env_ids)
 
@@ -178,10 +181,13 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
     # rewards manager.
     info = self.reward_manager.reset(env_ids)
     self.extras["log"].update(info)
-    # command manager
+    # curriculum manager.
+    info = self.curriculum_manager.reset(env_ids)
+    self.extras["log"].update(info)
+    # command manager.
     info = self.command_manager.reset(env_ids)
     self.extras["log"].update(info)
-    # event manager
+    # event manager.
     info = self.event_manager.reset(env_ids)
     self.extras["log"].update(info)
     # termination manager.

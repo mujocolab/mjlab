@@ -242,6 +242,14 @@ class TerminationCfg:
   )
 
 
+# Curriculum.
+
+
+@dataclass
+class CurriculumCfg:
+  pass
+
+
 ##
 # Environment.
 ##
@@ -258,6 +266,7 @@ class LocomotionVelocityFlatEnvCfg(ManagerBasedRlEnvCfg):
   events: EventCfg = field(default_factory=EventCfg)
   terminations: TerminationCfg = field(default_factory=TerminationCfg)
   commands: CommandsCfg = field(default_factory=CommandsCfg)
+  curriculum: CurriculumCfg = field(default_factory=CurriculumCfg)
 
   def __post_init__(self):
     self.sim.mujoco.integrator = "implicitfast"

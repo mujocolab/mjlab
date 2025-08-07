@@ -56,7 +56,7 @@ python scripts/tracking/rl/play.py \
 - [ ] Managers
   - [x] Action manager
   - [x] Command manager
-  - [ ] Curriculum manager
+  - [x] Curriculum manager
   - [ ] Event manager
     - [ ] startup
     - [x] reset
