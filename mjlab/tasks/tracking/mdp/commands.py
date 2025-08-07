@@ -240,7 +240,7 @@ class MotionCommand(CommandTerm):
     )
 
   def _resample_command(self, env_ids: Sequence[int]):
-    phase = sample_uniform(0.0, 1.0, (len(env_ids),), device=self.device) * 0.0
+    phase = sample_uniform(0.0, 1.0, (len(env_ids),), device=self.device)
     self.time_steps[env_ids] = (phase * (self.motion.time_step_total - 1)).long()
 
     root_pos = self.body_pos_w[:, 0].clone()
