@@ -77,6 +77,7 @@ class MotionLoader:
         )
       )
     motion = motion.to(torch.float32).to(self.device)
+    # motion[:, 2] -= 0.05
     self.motion_base_poss_input = motion[:, :3]
     self.motion_base_rots_input = motion[:, 3:7]
     self.motion_base_rots_input = self.motion_base_rots_input[
@@ -207,6 +208,7 @@ def run_sim(
   input_fps,
   output_fps,
   output_name,
+  render,
 ):
   # Load motion
   motion = MotionLoader(
@@ -232,7 +234,7 @@ def run_sim(
   file_saved = False
   # --------------------------------------------------------------------------
 
-  # frames = []
+  frames = []
   scene.reset()
 
   while not file_saved:
@@ -264,8 +266,9 @@ def run_sim(
 
     sim.forward()
     scene.update(sim.mj_model.opt.timestep)
-    # sim.update_render()
-    # frames.append(sim.render())
+    if render:
+      sim.update_render()
+      frames.append(sim.render())
 
     if not file_saved:
       log["joint_pos"].append(robot.data.joint_pos[0, :].cpu().numpy().copy())
@@ -317,9 +320,11 @@ def run_sim(
         )
         print(f"[INFO]: Motion saved to wandb registry: {REGISTRY}/{COLLECTION}")
 
-  # import mediapy as media
-  # media.write_video("./motion.mp4", frames, fps=output_fps)
-  # print(f"done")
+  if render:
+    import mediapy as media
+
+    media.write_video("./motion.mp4", frames, fps=output_fps)
+  print("done")
 
 
 def main(
@@ -328,6 +333,7 @@ def main(
   input_fps: float = 30.0,
   output_fps: float = 50.0,
   device: str = "cuda:0",
+  render: bool = False,
 ):
   """Replay motion from CSV file and output to npz file.
 
@@ -337,13 +343,14 @@ def main(
     input_fps: Frame rate of the CSV file.
     output_fps: Desired output frame rate.
     device: Device to use.
+    render: Whether to render the simulation and save a video.
   """
   sim_cfg = SimulationCfg(device=device)
   sim_cfg.mujoco.timestep = 1.0 / output_fps
 
-  # sim_cfg.render.camera = "robot/tracking"
-  # sim_cfg.render.height = 480 * 2
-  # sim_cfg.render.width = 640 * 2
+  sim_cfg.render.camera = "robot/tracking"
+  sim_cfg.render.height = 480
+  sim_cfg.render.width = 640
 
   scene = Scene(SCENE_CFG)
   model = scene.compile()
@@ -414,6 +421,7 @@ def main(
     input_file=input_file,
     output_fps=output_fps,
     output_name=output_name,
+    render=render,
   )
 
 
