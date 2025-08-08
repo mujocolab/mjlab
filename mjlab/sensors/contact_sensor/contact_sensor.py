@@ -31,9 +31,13 @@ class ContactSensor(SensorBase):
   def find_bodies(
     self, name_keys: str | Sequence[str], preserve_order: bool = False
   ) -> tuple[list[int], list[str]]:
-    name_keys = [f"{self.cfg.entity_name}/{n}" for n in name_keys]
+    prefix = f"{self.cfg.entity_name}/"
+    stripped_body_names = [
+      name.removeprefix(prefix) if name.startswith(prefix) else name
+      for name in self.body_names
+    ]
     return string_utils.resolve_matching_names(
-      name_keys, self.body_names, preserve_order
+      name_keys, stripped_body_names, preserve_order
     )
 
   def compute_first_contact(self, dt: float, abs_tol: float = 1.0e-8) -> torch.Tensor:

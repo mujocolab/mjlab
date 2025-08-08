@@ -14,6 +14,7 @@ from mjlab.utils.noise import UniformNoiseCfg as Unoise
 from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 from mjlab.managers.manager_term_config import RewardTermCfg as RewTerm
+from mjlab.sensors import ContactSensorCfg
 
 from mjlab.tasks.tracking import mdp
 
@@ -48,14 +49,14 @@ terrain_cfg.lights = terrain_cfg.lights + (
 
 SCENE_CFG = SceneCfg(
   terrains={"floor": terrain_cfg},
-  # sensors={
-  #   "contact_forces": ContactSensorCfg(
-  #     entity_name="robot",
-  #     history_length=3,
-  #     track_air_time=True,
-  #     force_threshold=10.0,
-  #   ),
-  # },
+  sensors={
+    "contact_forces": ContactSensorCfg(
+      entity_name="robot",
+      history_length=3,
+      track_air_time=True,
+      force_threshold=10.0,
+    ),
+  },
 )
 
 
@@ -213,11 +214,23 @@ class RewardCfg:
   joint_limit: RewTerm = term(
     RewTerm,
     func=mdp.joint_pos_limits,
-    weight=-100.0,
+    weight=-10.0,
     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*"])},
   )
-
-  # MISSING: undesired_contacts
+  undesired_contacts: RewTerm = term(
+    RewTerm,
+    func=mdp.undesired_contacts,
+    weight=-0.1,
+    params={
+      "sensor_cfg": SceneEntityCfg(
+        "contact_forces",
+        body_names=[
+          r"^(?!left_ankle_roll_link$)(?!right_ankle_roll_link$)(?!left_wrist_yaw_link$)(?!right_wrist_yaw_link$).+$"
+        ],
+      ),
+      "threshold": 1.0,
+    },
+  )
 
 
 @dataclass
