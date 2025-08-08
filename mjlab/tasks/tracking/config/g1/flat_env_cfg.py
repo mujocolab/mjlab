@@ -37,4 +37,11 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
     super().__post_init__()
 
     self.observations.policy.enable_corruption = False
+
     self.events.push_robot = None
+
+    self.commands.motion.pose_range = {}
+    self.commands.motion.velocity_range = {}
+    self.commands.motion.start_from_beginning = True
+
+    self.episode_length_s = int(1e9)  # effectively infinite episode length

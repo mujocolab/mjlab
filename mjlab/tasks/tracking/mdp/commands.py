@@ -240,9 +240,14 @@ class MotionCommand(CommandTerm):
     )
 
   def _resample_command(self, env_ids: Sequence[int]):
-    phase = sample_uniform(0.0, 1.0, (len(env_ids),), device=self.device)
+    if self.cfg.start_from_beginning:
+      phase = torch.zeros(len(env_ids), device=self.device)
+    else:
+      phase = sample_uniform(0.0, 1.0, (len(env_ids),), device=self.device)
     self.time_steps[env_ids] = (phase * (self.motion.time_step_total - 1)).long()
+    self._random_state_initialization(env_ids)
 
+  def _random_state_initialization(self, env_ids: Sequence[int]):
     root_pos = self.body_pos_w[:, 0].clone()
     root_ori = self.body_quat_w[:, 0].clone()
     root_lin_vel = self.body_lin_vel_w[:, 0].clone()
@@ -330,6 +335,7 @@ class MotionCommand(CommandTerm):
     self._data_viz.qpos[0:3] = self.root_pos_w[0].cpu().numpy().copy()
     self._data_viz.qpos[3:7] = self.root_quat_w[0].cpu().numpy().copy()
     self._data_viz.qpos[7:] = self.joint_pos[0].cpu().numpy().copy()
+    self._data_viz.qpos[1] += 0.6
     mujoco.mj_forward(self._model_viz, self._data_viz)
     mujoco.mjv_addGeoms(
       self._model_viz, self._data_viz, self._vopt, self._pert, self._catmask.value, scn
@@ -346,3 +352,4 @@ class MotionCommandCfg(CommandTermCfg):
   pose_range: dict[str, tuple[float, float]] = field(default_factory=dict)
   velocity_range: dict[str, tuple[float, float]] = field(default_factory=dict)
   joint_position_range: tuple[float, float] = (-0.52, 0.52)
+  start_from_beginning: bool = False
