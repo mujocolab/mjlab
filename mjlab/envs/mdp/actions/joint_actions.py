@@ -4,7 +4,9 @@ from typing import Sequence, TYPE_CHECKING
 from mjlab.managers.action_manager import ActionTerm
 import torch
 from mjlab.entities.robots.robot import Robot
-from mjlab.utils.string import resolve_matching_names_values
+from mjlab.third_party.isaaclab.isaaclab.utils.string import (
+  resolve_matching_names_values,
+)
 
 if TYPE_CHECKING:
   from mjlab.envs.mdp.actions import actions_config

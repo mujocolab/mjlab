@@ -8,7 +8,9 @@ import tyro
 import wandb
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
-from mjlab.tasks.utils.parse_cfg import load_cfg_from_registry
+from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
+  load_cfg_from_registry,
+)
 import gymnasium as gym
 
 from mjlab.utils.os import get_wandb_checkpoint_path

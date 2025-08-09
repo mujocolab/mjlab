@@ -8,7 +8,9 @@ import torch
 import tyro
 from mjlab.rl import RslRlVecEnvWrapper
 from rsl_rl.runners import OnPolicyRunner
-from mjlab.tasks.utils.parse_cfg import load_cfg_from_registry
+from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
+  load_cfg_from_registry,
+)
 import gymnasium as gym
 
 from mjlab.utils.os import get_checkpoint_path, dump_yaml

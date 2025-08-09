@@ -5,7 +5,7 @@ import torch
 
 from .commands import MotionCommand
 from .rewards import _get_body_indexes
-from mjlab.utils.math import quat_apply_inverse
+from mjlab.third_party.isaaclab.isaaclab.utils.math import quat_apply_inverse
 
 if TYPE_CHECKING:
   from mjlab.managers.scene_entity_config import SceneEntityCfg

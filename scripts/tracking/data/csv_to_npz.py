@@ -6,7 +6,7 @@ from dataclasses import replace
 # from mjlab.asset_zoo.robots.booster_t1 import t1_constants
 from mjlab.asset_zoo.robots.unitree_g1 import g1_constants
 from mjlab.entities import Robot
-from mjlab.utils.math import (
+from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   quat_mul,
   quat_conjugate,
   axis_angle_from_quat,

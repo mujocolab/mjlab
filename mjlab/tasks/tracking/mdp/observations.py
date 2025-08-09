@@ -4,7 +4,10 @@ from typing import TYPE_CHECKING
 import torch
 
 from .commands import MotionCommand
-from mjlab.utils.math import subtract_frame_transforms, matrix_from_quat
+from mjlab.third_party.isaaclab.isaaclab.utils.math import (
+  subtract_frame_transforms,
+  matrix_from_quat,
+)
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv

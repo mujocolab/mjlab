@@ -8,7 +8,7 @@ import copy
 import numpy as np
 
 from mjlab.managers import CommandTermCfg, CommandTerm
-from mjlab.utils.math import (
+from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   quat_mul,
   quat_apply,
   quat_apply_inverse,

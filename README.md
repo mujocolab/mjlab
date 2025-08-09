@@ -96,3 +96,25 @@ aka make Brent proud
 ```bash
 python -c "import warp; warp.clear_kernel_cache()"
 ```
+
+## License
+
+This project, **mjlab**, is licensed under the [Apache License, Version 2.0](LICENSE).
+
+### Third-Party Code
+
+The `third_party/` directory contains selected files from external projects.  
+Each such subdirectory includes its own original `LICENSE` file from the upstream source.  
+These files are used under the terms of their respective licenses.
+
+Currently, `third_party/` contains:
+
+- **isaaclab/** — Selected files from [NVIDIA Isaac Lab](https://github.com/isaac-sim/IsaacLab),  
+  licensed under the [BSD-3-Clause](mjlab/third_party/isaaclab/LICENSE).
+
+When distributing or modifying this project, you must comply with both:
+
+1. The **Apache-2.0 license** of mjlab (applies to all original code in this repository).
+2. The licenses of any code in `third_party/` (applies only to the files from those projects).
+
+See the individual `LICENSE` files for the complete terms.

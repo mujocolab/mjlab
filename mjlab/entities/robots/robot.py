@@ -12,6 +12,7 @@ from mjlab.utils.spec_editor.spec_editor import (
   CollisionEditor,
   KeyframeEditor,
 )
+from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
 from mjlab.utils.spec import get_non_root_joints
 from mjlab.utils import string as string_utils
 from mjlab.entities.robots.robot_data import RobotData
@@ -90,9 +91,7 @@ class Robot(entity.Entity):
   def find_bodies(
     self, name_keys: str | Sequence[str], preserve_order: bool = False
   ) -> tuple[list[int], list[str]]:
-    return string_utils.resolve_matching_names(
-      name_keys, self.body_names, preserve_order
-    )
+    return resolve_matching_names(name_keys, self.body_names, preserve_order)
 
   def find_joints(
     self,
@@ -102,7 +101,7 @@ class Robot(entity.Entity):
   ) -> tuple[list[int], list[str]]:
     if joint_subset is None:
       joint_subset = self.joint_names
-    return string_utils.resolve_matching_names(name_keys, joint_subset, preserve_order)
+    return resolve_matching_names(name_keys, joint_subset, preserve_order)
 
   def find_actuators(
     self,
@@ -112,9 +111,7 @@ class Robot(entity.Entity):
   ):
     if actuator_subset is None:
       actuator_subset = self.actuator_names
-    return string_utils.resolve_matching_names(
-      name_keys, actuator_subset, preserve_order
-    )
+    return resolve_matching_names(name_keys, actuator_subset, preserve_order)
 
   def find_geoms(
     self,
@@ -124,7 +121,7 @@ class Robot(entity.Entity):
   ):
     if geom_subset is None:
       geom_subset = self.geom_names
-    return string_utils.resolve_matching_names(name_keys, geom_subset, preserve_order)
+    return resolve_matching_names(name_keys, geom_subset, preserve_order)
 
   def find_sensors(
     self,
@@ -134,7 +131,7 @@ class Robot(entity.Entity):
   ):
     if sensor_subset is None:
       sensor_subset = self.sensor_names
-    return string_utils.resolve_matching_names(name_keys, sensor_subset, preserve_order)
+    return resolve_matching_names(name_keys, sensor_subset, preserve_order)
 
   def find_sites(
     self,
@@ -144,7 +141,7 @@ class Robot(entity.Entity):
   ):
     if site_subset is None:
       site_subset = self.site_names
-    return string_utils.resolve_matching_names(name_keys, site_subset, preserve_order)
+    return resolve_matching_names(name_keys, site_subset, preserve_order)
 
   # ABC implementations.
 
@@ -207,9 +204,9 @@ class Robot(entity.Entity):
       joint_pos_mean + 0.5 * joint_pos_range * soft_limit_factor
     )
 
-    act_ids = string_utils.resolve_matching_names(
-      self._actuator_names, self.joint_actuators, True
-    )[0]
+    act_ids = resolve_matching_names(self._actuator_names, self.joint_actuators, True)[
+      0
+    ]
     self._data.default_joint_stiffness = wp.to_torch(wp_model.actuator_gainprm)[
       :, act_ids, 0
     ].repeat(data.nworld, 1)

@@ -3,9 +3,14 @@ from __future__ import annotations
 import torch
 from typing import TYPE_CHECKING
 
-from mjlab.utils import math as math_utils
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.entities.robots.robot import Robot
+from mjlab.third_party.isaaclab.isaaclab.utils.math import (
+  sample_uniform,
+  quat_from_euler_xyz,
+  quat_apply_inverse,
+  quat_mul,
+)
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_env import ManagerBasedEnv
@@ -32,15 +37,15 @@ def reset_root_state_uniform(
     pose_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z", "roll", "pitch", "yaw"]
   ]
   ranges = torch.tensor(range_list, device=env.device)
-  rand_samples = math_utils.sample_uniform(
+  rand_samples = sample_uniform(
     ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=env.device
   )
 
   positions = root_states[:, 0:3] + rand_samples[:, 0:3]
-  orientations_delta = math_utils.quat_from_euler_xyz(
+  orientations_delta = quat_from_euler_xyz(
     rand_samples[:, 3], rand_samples[:, 4], rand_samples[:, 5]
   )
-  orientations = math_utils.quat_mul(root_states[:, 3:7], orientations_delta)
+  orientations = quat_mul(root_states[:, 3:7], orientations_delta)
 
   # Velocities.
   range_list = [
@@ -48,7 +53,7 @@ def reset_root_state_uniform(
     for key in ["x", "y", "z", "roll", "pitch", "yaw"]
   ]
   ranges = torch.tensor(range_list, device=env.device)
-  rand_samples = math_utils.sample_uniform(
+  rand_samples = sample_uniform(
     ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=env.device
   )
   velocities = root_states[:, 7:13] + rand_samples
@@ -57,7 +62,7 @@ def reset_root_state_uniform(
     torch.cat([positions, orientations], dim=-1), env_ids=env_ids
   )
 
-  velocities[:, 3:] = math_utils.quat_apply_inverse(orientations, velocities[:, 3:])
+  velocities[:, 3:] = quat_apply_inverse(orientations, velocities[:, 3:])
   asset.write_root_velocity_to_sim(velocities, env_ids=env_ids)
 
 
@@ -79,8 +84,8 @@ def reset_joints_by_scale(
   joint_pos = default_joint_pos[env_ids][:, asset_cfg.joint_ids].clone()
   joint_vel = default_joint_vel[env_ids][:, asset_cfg.joint_ids].clone()
 
-  joint_pos *= math_utils.sample_uniform(*position_range, joint_pos.shape, env.device)
-  joint_vel *= math_utils.sample_uniform(*velocity_range, joint_vel.shape, env.device)
+  joint_pos *= sample_uniform(*position_range, joint_pos.shape, env.device)
+  joint_vel *= sample_uniform(*velocity_range, joint_vel.shape, env.device)
 
   joint_pos_limits = soft_joint_pos_limits[env_ids][:, asset_cfg.joint_ids]
   joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
@@ -107,8 +112,6 @@ def push_by_setting_velocity(
     for key in ["x", "y", "z", "roll", "pitch", "yaw"]
   ]
   ranges = torch.tensor(range_list, device=env.device)
-  vel_w += math_utils.sample_uniform(
-    ranges[:, 0], ranges[:, 1], vel_w.shape, device=env.device
-  )
-  vel_w[:, 3:] = math_utils.quat_apply_inverse(quat_w, vel_w[:, 3:])
+  vel_w += sample_uniform(ranges[:, 0], ranges[:, 1], vel_w.shape, device=env.device)
+  vel_w[:, 3:] = quat_apply_inverse(quat_w, vel_w[:, 3:])
   asset.write_root_velocity_to_sim(vel_w, env_ids=env_ids)

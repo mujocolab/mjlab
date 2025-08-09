@@ -1,7 +1,12 @@
 import torch
 from mjlab.entities.indexing import EntityIndexing
 import mujoco_warp as mjwarp
-from mjlab.utils import math as math_utils
+from mjlab.third_party.isaaclab.isaaclab.utils.math import (
+  quat_apply,
+  quat_apply_inverse,
+  quat_mul,
+  quat_from_matrix,
+)
 
 
 class RobotData:
@@ -83,7 +88,7 @@ class RobotData:
     quat = self.data.xquat[:, self.indexing.root_body_id].clone()
     body_iquat = self.indexing.root_body_iquat
     assert body_iquat is not None
-    quat_w = math_utils.quat_mul(quat, body_iquat[None])
+    quat_w = quat_mul(quat, body_iquat[None])
     return torch.cat([pos_w, quat_w], dim=-1)
 
   @property
@@ -126,7 +131,7 @@ class RobotData:
     """Body center-of-mass pose in simulation world frame. Shape (num_envs, num_bodies, 7)."""
     pos_w = self.data.xipos[:, self.indexing.body_ids].clone()
     quat = self.data.xquat[:, self.indexing.body_ids].clone()
-    quat_w = math_utils.quat_mul(quat, self.indexing.body_iquats[None])
+    quat_w = quat_mul(quat, self.indexing.body_iquats[None])
     return torch.cat([pos_w, quat_w], dim=-1)
 
   @property
@@ -153,7 +158,7 @@ class RobotData:
     """Geom pose in simulation world frame. Shape (num_envs, num_geoms, 7)."""
     pos_w = self.data.geom_xpos[:, self.indexing.geom_ids].clone()
     xmat = self.data.geom_xmat[:, self.indexing.geom_ids].clone()
-    quat_w = math_utils.quat_from_matrix(xmat)
+    quat_w = quat_from_matrix(xmat)
     return torch.cat([pos_w, quat_w], dim=-1)
 
   @property
@@ -304,34 +309,30 @@ class RobotData:
   @property
   def projected_gravity_b(self) -> torch.Tensor:
     """Gravity vector projected into body frame. Shape (num_envs, 3)."""
-    return math_utils.quat_apply_inverse(self.root_link_quat_w, self.GRAVITY_VEC_W)
+    return quat_apply_inverse(self.root_link_quat_w, self.GRAVITY_VEC_W)
 
   @property
   def heading_w(self) -> torch.Tensor:
     """Robot heading angle in world frame. Shape (num_envs,)."""
-    forward_w = math_utils.quat_apply(self.root_link_quat_w, self.FORWARD_VEC_B)
+    forward_w = quat_apply(self.root_link_quat_w, self.FORWARD_VEC_B)
     return torch.atan2(forward_w[:, 1], forward_w[:, 0])
 
   @property
   def root_link_lin_vel_b(self) -> torch.Tensor:
     """Root link linear velocity in body frame. Shape (num_envs, 3)."""
-    return math_utils.quat_apply_inverse(
-      self.root_link_quat_w, self.root_link_lin_vel_w
-    )
+    return quat_apply_inverse(self.root_link_quat_w, self.root_link_lin_vel_w)
 
   @property
   def root_link_ang_vel_b(self) -> torch.Tensor:
     """Root link angular velocity in body frame. Shape (num_envs, 3)."""
-    return math_utils.quat_apply_inverse(
-      self.root_link_quat_w, self.root_link_ang_vel_w
-    )
+    return quat_apply_inverse(self.root_link_quat_w, self.root_link_ang_vel_w)
 
   @property
   def root_com_lin_vel_b(self) -> torch.Tensor:
     """Root COM linear velocity in body frame. Shape (num_envs, 3)."""
-    return math_utils.quat_apply_inverse(self.root_link_quat_w, self.root_com_lin_vel_w)
+    return quat_apply_inverse(self.root_link_quat_w, self.root_com_lin_vel_w)
 
   @property
   def root_com_ang_vel_b(self) -> torch.Tensor:
     """Root COM angular velocity in body frame. Shape (num_envs, 3)."""
-    return math_utils.quat_apply_inverse(self.root_link_quat_w, self.root_com_ang_vel_w)
+    return quat_apply_inverse(self.root_link_quat_w, self.root_com_ang_vel_w)

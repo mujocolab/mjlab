@@ -5,6 +5,7 @@ import torch
 import warp as wp
 
 
+# Reference: https://github.com/isaac-sim/IsaacSim/blob/1791e14867bc9f269cf6c430a2bff5a1fb43ca66/source/extensions/isaacsim.core.utils/python/impl/torch/maths.py#L109-L135
 def seed_rng(seed: int, torch_deterministic: bool = False) -> None:
   random.seed(seed)
   np.random.seed(seed)

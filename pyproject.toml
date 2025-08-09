@@ -34,3 +34,6 @@ rl = [
 
 [tool.ruff]
 indent-width = 2
+exclude = [
+  "mjlab/third_party",
+]

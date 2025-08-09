@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Optional
 import torch
 
 from .commands import MotionCommand
-from mjlab.utils.math import quat_error_magnitude
+from mjlab.third_party.isaaclab.isaaclab.utils.math import quat_error_magnitude
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv

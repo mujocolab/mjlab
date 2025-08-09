@@ -4,7 +4,9 @@ from mjlab.rl import RslRlVecEnvWrapper
 import torch
 from pathlib import Path
 
-from mjlab.tasks.utils.parse_cfg import load_cfg_from_registry
+from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
+  load_cfg_from_registry,
+)
 import gymnasium as gym
 
 TASK_NAME = "Mjlab-Velocity-Flat-Unitree-Go1-v0"

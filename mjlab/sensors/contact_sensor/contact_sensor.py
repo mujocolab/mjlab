@@ -8,7 +8,7 @@ from mjlab.entities.indexing import EntityIndexing
 from typing import TYPE_CHECKING, Sequence
 from mjlab.sensors.sensor_base import SensorBase
 from mjlab.sensors.contact_sensor.contact_sensor_data import ContactSensorData
-from mjlab.utils import string as string_utils
+from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
 
 if TYPE_CHECKING:
   from mjlab.sensors.contact_sensor.contact_sensor_config import ContactSensorCfg
@@ -43,7 +43,7 @@ class ContactSensor(SensorBase):
       name.removeprefix(prefix) if name.startswith(prefix) else name
       for name in self.body_names
     ]
-    ids, stripped_names = string_utils.resolve_matching_names(
+    ids, stripped_names = resolve_matching_names(
       name_keys, stripped_body_names, preserve_order
     )
     names = [f"{prefix}{name}" for name in stripped_names]
@@ -77,9 +77,7 @@ class ContactSensor(SensorBase):
 
     all_body_names = [model.body(i).name for i in indexing.body_ids]
     filter_expr = [f"{self.cfg.entity_name}/{f}" for f in self.cfg.filter_expr]
-    self._body_names = string_utils.resolve_matching_names(filter_expr, all_body_names)[
-      1
-    ]
+    self._body_names = resolve_matching_names(filter_expr, all_body_names)[1]
     self._body_ids = [model.body(n).id for n in self._body_names]
     self._num_bodies = len(self._body_names)
 
@@ -87,9 +85,7 @@ class ContactSensor(SensorBase):
     geom_filter_expr = [
       f"{self.cfg.entity_name}/{f}" for f in self.cfg.geom_filter_expr
     ]
-    subset_geom_names = string_utils.resolve_matching_names(
-      geom_filter_expr, all_geom_names
-    )[1]
+    subset_geom_names = resolve_matching_names(geom_filter_expr, all_geom_names)[1]
     subset_geom_ids = [model.geom(n).id for n in subset_geom_names]
 
     self._body2geom = {}

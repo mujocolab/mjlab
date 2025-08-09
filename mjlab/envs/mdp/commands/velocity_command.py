@@ -9,7 +9,7 @@ from typing import (
 import mujoco
 import numpy as np
 from mjlab.entities.robots.robot import Robot
-from mjlab.utils.math import wrap_to_pi, matrix_from_quat
+from mjlab.third_party.isaaclab.isaaclab.utils.math import wrap_to_pi, matrix_from_quat
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_env import ManagerBasedEnv

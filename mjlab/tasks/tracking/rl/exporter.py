@@ -2,7 +2,7 @@ import os
 
 import onnx
 import torch
-from mjlab.rl.exporter import _OnnxPolicyExporter
+from mjlab.third_party.isaaclab.isaaclab_rl.rsl_rl.exporter import _OnnxPolicyExporter
 from mjlab.tasks.tracking.mdp import MotionCommand
 
 from mjlab.envs import ManagerBasedRlEnv
