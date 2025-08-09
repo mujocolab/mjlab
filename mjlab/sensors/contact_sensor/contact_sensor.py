@@ -27,6 +27,14 @@ class ContactSensor(SensorBase):
     self._update_outdated_buffers()
     return self._data
 
+  @property
+  def num_bodies(self) -> int:
+    return self._num_bodies
+
+  @property
+  def body_names(self) -> list[str]:
+    return self._body_names
+
   def find_bodies(
     self, name_keys: str | Sequence[str], preserve_order: bool = False
   ) -> tuple[list[int], list[str]]:
@@ -139,95 +147,124 @@ class ContactSensor(SensorBase):
       self._data.last_contact_time[env_ids] = 0.0
 
   def _update_buffers_impl(self, env_ids: Sequence[int]):
+    """Update contact force buffers for specified environments."""
     if len(env_ids) == self._num_envs:
       env_ids = slice(None)
+    self._data.net_forces_w[env_ids] = 0.0
+    self._compute_contact_forces(env_ids)
+    self._update_force_history(env_ids)
+    if self.cfg.track_air_time:
+      self._update_contact_timing(env_ids)
 
+  def _compute_contact_forces(self, env_ids):
+    """Compute net contact forces for each body from geom contacts."""
+    body_forces = torch.zeros(
+      (len(self._body_ids), 3), device=self._device, dtype=self._data.net_forces_w.dtype
+    )
     contact = self._wp_data.contact
+    valid_contacts = self._find_valid_contacts(contact)
+    if valid_contacts:
+      contact_forces = self._get_contact_forces(valid_contacts)
+      normal_forces = self._extract_normal_forces(
+        contact_forces, contact.frame[valid_contacts["indices"]]
+      )
+      body_forces.scatter_add_(
+        0, valid_contacts["body_indices"].unsqueeze(1).expand(-1, 3), normal_forces
+      )
+    self._data.net_forces_w[env_ids] = body_forces
 
+  def _find_valid_contacts(self, contact):
+    """Find contacts involving tracked geometries."""
+    # Check which contacts involve our geoms.
     masks = (contact.geom[:, 0][None, :] == self.all_geom_ids[:, None]) | (
       contact.geom[:, 1][None, :] == self.all_geom_ids[:, None]
     )
 
     has_contacts = torch.any(masks, dim=1)
+
+    # Find closest contact for each geom (when multiple contacts exist).
     distances = torch.where(masks, contact.dist[None, :], 1e4)
     contact_indices = distances.argmin(dim=1)
 
-    valid_geom_mask = has_contacts
-    valid_contact_indices = contact_indices[valid_geom_mask]
-    valid_body_indices = self.geom_to_body_map[valid_geom_mask]
+    # Filter to only geometries with contacts.
+    valid_contact_indices = contact_indices[has_contacts]
+    valid_body_indices = self.geom_to_body_map[has_contacts]
 
-    if len(valid_contact_indices) > 0:
-      force = wp.zeros(len(valid_contact_indices), dtype=wp.spatial_vector)
-      contact_ids = wp.from_torch(valid_contact_indices.int(), dtype=wp.int32)
+    if len(valid_contact_indices) == 0:
+      return None
 
-      mjwarp.contact_force(
-        m=self._wp_model,
-        d=self._wp_data.struct,
-        contact_ids=contact_ids,
-        to_world_frame=True,
-        force=force,
-      )
+    return {"indices": valid_contact_indices, "body_indices": valid_body_indices}
 
-      forces_torch = wp.to_torch(force)[:, :3]
-      frames = contact.frame[valid_contact_indices]
-      normals = frames[:, 0]
+  def _get_contact_forces(self, valid_contacts):
+    num_contacts = len(valid_contacts["indices"])
+    force = wp.zeros(num_contacts, dtype=wp.spatial_vector)  # Do I need device here?
+    contact_ids = wp.from_torch(valid_contacts["indices"].int(), dtype=wp.int32)
+    mjwarp.contact_force(
+      m=self._wp_model,
+      d=self._wp_data.struct,
+      contact_ids=contact_ids,
+      to_world_frame=True,
+      force=force,
+    )
+    return wp.to_torch(force)[:, :3]  # (num_valid_contacts, 3)
 
-      normal_force_magnitudes = torch.sum(
-        forces_torch * normals, dim=1, keepdim=True
-      )  # [num_valid_contacts, 1]
-      normal_forces = normal_force_magnitudes * normals
+  def _extract_normal_forces(self, forces, frames):
+    """Extract normal component of contact forces."""
+    normals = frames[:, 0]  # Normal is first axis of contact frame.
+    normal_magnitudes = torch.sum(forces * normals, dim=1, keepdim=True)
+    return normal_magnitudes * normals  # (num_valid_contacts, 3)
 
-      body_forces = torch.zeros(
-        (len(self._body_ids), 3), device=normal_forces.device, dtype=normal_forces.dtype
-      )
-      body_forces.scatter_add_(
-        0, valid_body_indices.unsqueeze(1).expand(-1, 3), normal_forces
-      )
-
-      self._data.net_forces_w[env_ids] += body_forces
-
+  def _update_force_history(self, env_ids):
+    """Update force history buffer if configured."""
     if self.cfg.history_length > 0:
-      self._data.net_forces_w_history[env_ids] = self._data.net_forces_w_history[
-        env_ids
-      ].roll(1, dims=1)
+      history = self._data.net_forces_w_history[env_ids]
+      self._data.net_forces_w_history[env_ids] = history.roll(1, dims=1)
       self._data.net_forces_w_history[env_ids, 0] = self._data.net_forces_w[env_ids]
 
-    if self.cfg.track_air_time:
-      elapsed_time = self._timestamp[env_ids] - self._timestamp_last_update[env_ids]
-      is_contact = (
-        torch.norm(self._data.net_forces_w[env_ids, :, :], dim=-1)
-        > self.cfg.force_threshold
-      )
-      is_first_contact = (self._data.current_air_time[env_ids] > 0) * is_contact
-      is_first_detached = (self._data.current_contact_time[env_ids] > 0) * ~is_contact
-      self._data.last_air_time[env_ids] = torch.where(
-        is_first_contact,
-        self._data.current_air_time[env_ids] + elapsed_time.unsqueeze(-1),
-        self._data.last_air_time[env_ids],
-      )
-      # -- increment time for bodies that are not in contact
-      self._data.current_air_time[env_ids] = torch.where(
-        ~is_contact,
-        self._data.current_air_time[env_ids] + elapsed_time.unsqueeze(-1),
-        0.0,
-      )
-      # -- update the last contact time if body has just detached
-      self._data.last_contact_time[env_ids] = torch.where(
-        is_first_detached,
-        self._data.current_contact_time[env_ids] + elapsed_time.unsqueeze(-1),
-        self._data.last_contact_time[env_ids],
-      )
-      # -- increment time for bodies that are in contact
-      self._data.current_contact_time[env_ids] = torch.where(
-        is_contact,
-        self._data.current_contact_time[env_ids] + elapsed_time.unsqueeze(-1),
-        0.0,
-      )
+  def _update_contact_timing(self, env_ids):
+    """Track air and contact time for each body."""
+    elapsed_time = self._timestamp[env_ids] - self._timestamp_last_update[env_ids]
+    elapsed_time = elapsed_time.unsqueeze(-1)
 
-  @property
-  def num_bodies(self) -> int:
-    return self._num_bodies
+    # Determine contact state.
+    force_magnitudes = torch.norm(self._data.net_forces_w[env_ids], dim=-1)
+    is_contact = force_magnitudes > self.cfg.force_threshold
 
-  @property
-  def body_names(self) -> list[str]:
-    return self._body_names
+    # Detect state transitions.
+    is_first_contact = (self._data.current_air_time[env_ids] > 0) * is_contact
+    is_first_detached = (self._data.current_contact_time[env_ids] > 0) * ~is_contact
+
+    self._update_air_time(env_ids, elapsed_time, is_contact, is_first_contact)
+    self._update_contact_time(env_ids, elapsed_time, is_contact, is_first_detached)
+
+  def _update_air_time(self, env_ids, elapsed_time, is_contact, is_first_contact):
+    """Update air time counters."""
+    # Save total air time when first making contact.
+    self._data.last_air_time[env_ids] = torch.where(
+      is_first_contact,
+      self._data.current_air_time[env_ids] + elapsed_time,
+      self._data.last_air_time[env_ids],
+    )
+
+    # Increment current air time for bodies not in contact.
+    self._data.current_air_time[env_ids] = torch.where(
+      ~is_contact,
+      self._data.current_air_time[env_ids] + elapsed_time,
+      0.0,
+    )
+
+  def _update_contact_time(self, env_ids, elapsed_time, is_contact, is_first_detached):
+    """Update contact time counters."""
+    # Save total contact time when first detaching.
+    self._data.last_contact_time[env_ids] = torch.where(
+      is_first_detached,
+      self._data.current_contact_time[env_ids] + elapsed_time,
+      self._data.last_contact_time[env_ids],
+    )
+
+    # Increment current contact time for bodies in contact.
+    self._data.current_contact_time[env_ids] = torch.where(
+      is_contact,
+      self._data.current_contact_time[env_ids] + elapsed_time,
+      0.0,
+    )
