@@ -73,7 +73,7 @@ class SceneEntityCfg:
       elif self.body_names is not None:
         if isinstance(self.body_names, str):
           self.body_names = [self.body_names]
-        self.body_ids, _ = entity.find_bodies(
+        self.body_ids, self.body_names = entity.find_bodies(
           self.body_names, preserve_order=self.preserve_order
         )
         if (

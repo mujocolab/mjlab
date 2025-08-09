@@ -6,7 +6,6 @@ import warp as wp
 import mujoco_warp as mjwarp
 from mjlab.entities.indexing import EntityIndexing
 from typing import TYPE_CHECKING, Sequence
-from mjlab.utils.string import filter_exp
 from mjlab.sensors.sensor_base import SensorBase
 from mjlab.sensors.contact_sensor.contact_sensor_data import ContactSensorData
 from mjlab.utils import string as string_utils
@@ -36,9 +35,11 @@ class ContactSensor(SensorBase):
       name.removeprefix(prefix) if name.startswith(prefix) else name
       for name in self.body_names
     ]
-    return string_utils.resolve_matching_names(
+    ids, stripped_names = string_utils.resolve_matching_names(
       name_keys, stripped_body_names, preserve_order
     )
+    names = [f"{prefix}{name}" for name in stripped_names]
+    return ids, names
 
   def compute_first_contact(self, dt: float, abs_tol: float = 1.0e-8) -> torch.Tensor:
     if not self.cfg.track_air_time:
@@ -68,7 +69,9 @@ class ContactSensor(SensorBase):
 
     all_body_names = [model.body(i).name for i in indexing.body_ids]
     filter_expr = [f"{self.cfg.entity_name}/{f}" for f in self.cfg.filter_expr]
-    self._body_names = filter_exp(filter_expr, all_body_names)
+    self._body_names = string_utils.resolve_matching_names(filter_expr, all_body_names)[
+      1
+    ]
     self._body_ids = [model.body(n).id for n in self._body_names]
     self._num_bodies = len(self._body_names)
 
@@ -76,7 +79,9 @@ class ContactSensor(SensorBase):
     geom_filter_expr = [
       f"{self.cfg.entity_name}/{f}" for f in self.cfg.geom_filter_expr
     ]
-    subset_geom_names = filter_exp(geom_filter_expr, all_geom_names)
+    subset_geom_names = string_utils.resolve_matching_names(
+      geom_filter_expr, all_geom_names
+    )[1]
     subset_geom_ids = [model.geom(n).id for n in subset_geom_names]
 
     self._body2geom = {}

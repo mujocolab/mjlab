@@ -51,10 +51,7 @@ SCENE_CFG = SceneCfg(
   terrains={"floor": terrain_cfg},
   sensors={
     "contact_forces": ContactSensorCfg(
-      entity_name="robot",
-      history_length=3,
-      track_air_time=True,
-      force_threshold=10.0,
+      entity_name="robot", history_length=3, force_threshold=10.0
     ),
   },
 )
