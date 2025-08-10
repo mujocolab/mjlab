@@ -208,11 +208,11 @@ class Robot(entity.Entity):
       0
     ]
     self._data.default_joint_stiffness = wp.to_torch(wp_model.actuator_gainprm)[
-      :, act_ids, 0
-    ].repeat(data.nworld, 1)
-    self._data.default_joint_damping = -1.0 * wp.to_torch(wp_model.actuator_biasprm)[
-      :, act_ids, 2
-    ].repeat(data.nworld, 1)
+      : data.nworld, act_ids, 0
+    ]
+    self._data.default_joint_damping = (
+      -1.0 * wp.to_torch(wp_model.actuator_biasprm)[: data.nworld, act_ids, 2]
+    )
     self._data.joint_stiffness = self._data.default_joint_stiffness.clone()
     self._data.joint_damping = self._data.default_joint_damping.clone()
 

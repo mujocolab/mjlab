@@ -8,6 +8,8 @@ import mujoco
 import warp as wp
 import mujoco_warp as mjwarp
 
+from mjlab.sim.randomization import expand_model_fields
+
 # TODO: Should this be placed here?
 wp.config.enable_backward = False
 
@@ -101,6 +103,13 @@ class Simulation:
     return self._renderer
 
   # Methods.
+
+  def expand_model_fields(self, fields: list[str]) -> None:
+    for field in fields:
+      if not hasattr(self._mj_model, field):
+        raise ValueError(f"Field '{field}' not found in model.")
+
+    expand_model_fields(self._wp_model, self.num_envs, fields)
 
   def reset(self) -> None:
     pass

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import torch
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.entities.robots.robot import Robot
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   sample_uniform,
+  sample_log_uniform,
+  sample_gaussian,
   quat_from_euler_xyz,
   quat_apply_inverse,
   quat_mul,
@@ -115,3 +117,81 @@ def push_by_setting_velocity(
   vel_w += sample_uniform(ranges[:, 0], ranges[:, 1], vel_w.shape, device=env.device)
   vel_w[:, 3:] = quat_apply_inverse(quat_w, vel_w[:, 3:])
   asset.write_root_velocity_to_sim(vel_w, env_ids=env_ids)
+
+
+##
+# Domain randomization
+##
+
+"""
+Dof: armature, frictionloss, damping, solref/solimp. 
+Jnt: limits, solref/solimp.
+Site: pos, quat.
+Body: pos, quat, inertia, mass.
+Geom: solref/solimp, friction, pos, quat, color.
+Misc: gravity, etc.
+"""
+
+
+def randomize_model_field(
+  env: ManagerBasedEnv,
+  env_ids: torch.Tensor,
+  field: str,
+  distribution_params: dict[str, tuple[float, float]],
+  distribution: Literal["uniform", "log_uniform", "gaussian"] = "uniform",
+  operation: Literal["add", "scale", "abs"] = "abs",
+  asset_cfg: SceneEntityCfg = SceneEntityCfg(name="robot"),
+) -> None:
+  asset: Robot = env.scene[asset_cfg.name]
+
+  # Default to all environments if none specified.
+  if env_ids is None:
+    env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
+
+  model_field = getattr(env.sim.model, field)
+
+  if asset_cfg.body_ids == slice(None):
+    body_ids = torch.arange(asset.num_bodies, dtype=torch.int, device=env.device)
+  else:
+    body_ids = torch.tensor(asset_cfg.body_ids, dtype=torch.int, device=env.device)
+
+  # Extract bounds for randomization.
+  lower_bounds = torch.tensor(
+    [v[0] for v in distribution_params.values()], device=env.device
+  )
+  upper_bounds = torch.tensor(
+    [v[1] for v in distribution_params.values()], device=env.device
+  )
+
+  env_grid, body_grid = torch.meshgrid(env_ids, body_ids, indexing="ij")
+  indexed_data = model_field[env_grid, body_grid]
+
+  random_values = _sample_distribution(
+    distribution, lower_bounds, upper_bounds, indexed_data.shape, env.device
+  )
+
+  if operation == "add":
+    model_field[env_grid, body_grid] = indexed_data + random_values
+  elif operation == "scale":
+    model_field[env_grid, body_grid] = indexed_data * random_values
+  elif operation == "abs":
+    model_field[env_grid, body_grid] = random_values
+  else:
+    raise ValueError(f"Unknown operation: {operation}")
+
+
+def _sample_distribution(
+  distribution: str,
+  lower: torch.Tensor,
+  upper: torch.Tensor,
+  shape: tuple,
+  device: torch.device,
+) -> torch.Tensor:
+  if distribution == "uniform":
+    return sample_uniform(lower, upper, shape, device=device)
+  elif distribution == "log_uniform":
+    return sample_log_uniform(lower, upper, shape, device=device)
+  elif distribution == "gaussian":
+    return sample_gaussian(lower, upper, shape, device=device)
+  else:
+    raise ValueError(f"Unknown distribution: {distribution}")

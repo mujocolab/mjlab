@@ -29,12 +29,19 @@ class ManagerBasedEnv:
     self.scene.configure_sim_options(self.cfg.sim.mujoco)
     print("[INFO]: Scene manager: ", self.scene)
 
-    mjm = self.scene.compile()
-    self.sim = Simulation(cfg=self.cfg.sim, model=mjm)
+    self.sim = Simulation(
+      cfg=self.cfg.sim,
+      model=self.scene.compile(),
+    )
+
     if "cuda" in self.device:
       torch.cuda.set_device(self.device)
+
     self.scene.initialize(
-      self.sim.mj_model, self.sim.data, self.device, self.sim.wp_model
+      model=self.sim.mj_model,
+      data=self.sim.data,
+      device=self.device,
+      wp_model=self.sim.wp_model,
     )
 
     print("[INFO]: Base environment:")
@@ -70,10 +77,23 @@ class ManagerBasedEnv:
   def load_managers(self) -> None:
     self.event_manager = EventManager(self.cfg.events, self)
     print("[INFO] Event manager: ", self.event_manager)
+
+    expanded_model_fields: list[str] = []
+    if "startup" in self.event_manager.available_modes:
+      for event_cfg in self.event_manager._mode_term_cfgs["startup"]:
+        expanded_model_fields.append(event_cfg.params["field"])
+    self.sim.expand_model_fields(expanded_model_fields)
+
     self.action_manager = ActionManager(self.cfg.actions, self)
     print("[INFO] Action Manager:", self.action_manager)
     self.observation_manager = ObservationManager(self.cfg.observations, self)
     print("[INFO] Observation Manager:", self.observation_manager)
+
+    if (
+      self.__class__ == ManagerBasedEnv
+      and "startup" in self.event_manager.available_modes
+    ):
+      self.event_manager.apply(mode="startup")
 
   # MDP operations.
 

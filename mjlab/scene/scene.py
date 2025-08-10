@@ -12,6 +12,7 @@ from mjlab.utils.spec_editor import spec_editor as common_editors
 from mjlab.entities.indexing import EntityIndexing, SceneIndexing
 from mjlab.utils.mujoco import dof_width, qpos_width
 from mjlab.sensors import SensorBase
+from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
 
 _BASE_XML = r"""
 <mujoco model="mjlab scene">
@@ -105,6 +106,14 @@ class Scene:
   def write_data_to_sim(self) -> None:
     for ent in self._entities.values():
       ent.write_data_to_sim()
+
+  def find_bodies(
+    self,
+    entity_name: str,
+    name_keys: str | Sequence[str],
+    preserve_order: bool = False,
+  ) -> tuple[list[int], list[str]]:
+    pass
 
   # Private methods.
 
