@@ -14,6 +14,7 @@ from mjlab.utils.noise import UniformNoiseCfg as Unoise
 from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 from mjlab.managers.manager_term_config import RewardTermCfg as RewTerm
+# from mjlab.sensors import ContactSensorCfg
 
 from mjlab.tasks.tracking import mdp
 

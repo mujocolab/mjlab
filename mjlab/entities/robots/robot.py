@@ -17,7 +17,6 @@ from mjlab.utils.spec import get_non_root_joints
 from mjlab.utils import string as string_utils
 from mjlab.entities.robots.robot_data import RobotData
 from mjlab.entities.indexing import EntityIndexing
-import warp as wp
 
 
 class Robot(entity.Entity):
@@ -148,13 +147,10 @@ class Robot(entity.Entity):
   def initialize(
     self,
     indexing: EntityIndexing,
-    model: mujoco.MjModel,
+    model: mjwarp.Model,
     data: mjwarp.Data,
     device: str,
-    wp_model,
   ) -> None:
-    del model
-
     self._data = RobotData(indexing=indexing, data=data, device=device)
 
     self._data.body_names = self.body_names
@@ -182,12 +178,16 @@ class Robot(entity.Entity):
     self._data.default_joint_vel = torch.tensor(
       resolve_expr(self.cfg.init_state.joint_vel, self.joint_names), device=device
     )[None].repeat(data.nworld, 1)
-    dof_limits = torch.tensor(
-      [j.range.tolist() for j in self._non_root_joints],
-      dtype=torch.float,
+
+    local_joint_ids = range(self.num_joints)
+    self._joint_ids_global = torch.tensor(
+      [indexing.joint_local2global[lid] for lid in local_joint_ids],
+      dtype=torch.int,
       device=device,
     )
-    self._data.default_joint_pos_limits = dof_limits[None].repeat(data.nworld, 1, 1)
+    dof_limits = model.jnt_range[: data.nworld, self._joint_ids_global]
+
+    self._data.default_joint_pos_limits = dof_limits.clone()
     self._data.joint_pos_limits = self._data.default_joint_pos_limits.clone()
     joint_pos_mean = (
       self._data.joint_pos_limits[..., 0] + self._data.joint_pos_limits[..., 1]
@@ -208,11 +208,11 @@ class Robot(entity.Entity):
     act_ids = resolve_matching_names(self._actuator_names, self.joint_actuators, True)[
       0
     ]
-    self._data.default_joint_stiffness = wp.to_torch(wp_model.actuator_gainprm)[
+    self._data.default_joint_stiffness = model.actuator_gainprm[
       : data.nworld, act_ids, 0
     ]
     self._data.default_joint_damping = (
-      -1.0 * wp.to_torch(wp_model.actuator_biasprm)[: data.nworld, act_ids, 2]
+      -1.0 * model.actuator_biasprm[: data.nworld, act_ids, 2]
     )
     self._data.joint_stiffness = self._data.default_joint_stiffness.clone()
     self._data.joint_damping = self._data.default_joint_damping.clone()
@@ -226,17 +226,34 @@ class Robot(entity.Entity):
       data.nworld, 1
     )
 
+    # Global IDs.
+    local_body_ids = range(self.num_bodies)
+    self._body_ids_global = torch.tensor(
+      [indexing.body_local2global[lid] for lid in local_body_ids],
+      dtype=torch.int,
+      device=device,
+    )
+
+    local_actuator_ids = act_ids
+    self._actuator_ids_global = torch.tensor(
+      [indexing.actuator_local2global[lid] for lid in local_actuator_ids],
+      dtype=torch.int,
+      device=device,
+    )
+
   def update(self, dt: float) -> None:
     self._data.update(dt)
 
   def reset(self, env_ids: Sequence[int] | None = None):
     if env_ids is None:
       env_ids = slice(None)
-    # TODO(kevin): This should only be resetting this entity's attributes.
-    self._data.data.qacc_warmstart[env_ids] = 0.0
-    self._data.data.xfrc_applied[env_ids] = 0.0
-    self._data.data.qfrc_applied[env_ids] = 0.0
-    self._data.data.act[env_ids] = 0.0
+    v_slice = self.data.indexing.free_joint_v_adr
+    if env_ids != slice(None):
+      env_ids = env_ids[:, None]
+    self._data.data.qacc_warmstart[env_ids, v_slice] = 0.0
+    self._data.data.qfrc_applied[env_ids, v_slice] = 0.0
+    self._data.data.xfrc_applied[env_ids, self._body_ids_global] = 0.0
+    # TODO(kevin): Reset data.act if it exists.
 
   def write_data_to_sim(self) -> None:
     pass

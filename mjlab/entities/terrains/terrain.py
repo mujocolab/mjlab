@@ -3,7 +3,6 @@ from mjlab.entities import entity
 from mjlab.entities.terrains.terrain_config import TerrainCfg
 from mjlab.utils.spec_editor import spec_editor as common_editors
 from mjlab.entities.indexing import EntityIndexing
-import mujoco
 import mujoco_warp as mjwarp
 
 
@@ -25,10 +24,9 @@ class Terrain(entity.Entity):
   def initialize(
     self,
     indexing: EntityIndexing,
-    model: mujoco.MjModel,
+    model: mjwarp.Model,
     data: mjwarp.Data,
     device: str,
-    wp_model,
   ) -> None:
     pass
 

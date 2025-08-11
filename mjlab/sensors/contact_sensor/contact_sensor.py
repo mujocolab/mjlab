@@ -65,36 +65,37 @@ class ContactSensor(SensorBase):
 
   def initialize(
     self,
+    dt: float,
     indexing: EntityIndexing,
-    model: mujoco.MjModel,
+    mj_model: mujoco.MjModel,
+    model: mjwarp.Model,
     data: mjwarp.Data,
     device: str,
-    wp_model: mjwarp.Model,
   ) -> None:
-    super().initialize(indexing, model, data, device, wp_model)
+    super().initialize(dt, indexing, mj_model, model, data, device)
     self._wp_data = data
-    self._wp_model = wp_model
+    self._wp_model = model
 
-    all_body_names = [model.body(i).name for i in indexing.body_ids]
+    all_body_names = [mj_model.body(i).name for i in indexing.body_ids]
     filter_expr = [f"{self.cfg.entity_name}/{f}" for f in self.cfg.filter_expr]
     self._body_names = resolve_matching_names(filter_expr, all_body_names)[1]
-    self._body_ids = [model.body(n).id for n in self._body_names]
+    self._body_ids = [mj_model.body(n).id for n in self._body_names]
     self._num_bodies = len(self._body_names)
 
-    all_geom_names = [model.geom(i).name for i in indexing.geom_ids]
+    all_geom_names = [mj_model.geom(i).name for i in indexing.geom_ids]
     geom_filter_expr = [
       f"{self.cfg.entity_name}/{f}" for f in self.cfg.geom_filter_expr
     ]
     subset_geom_names = resolve_matching_names(geom_filter_expr, all_geom_names)[1]
-    subset_geom_ids = [model.geom(n).id for n in subset_geom_names]
+    subset_geom_ids = [mj_model.geom(n).id for n in subset_geom_names]
 
     self._body2geom = {}
     all_geom_ids = []
     geom_to_body_map = []
     for i, bid in enumerate(self._body_ids):
       geom_ids = []
-      for geom_id in range(model.ngeom):
-        if model.geom(geom_id).bodyid == bid and geom_id in subset_geom_ids:
+      for geom_id in range(mj_model.ngeom):
+        if mj_model.geom(geom_id).bodyid == bid and geom_id in subset_geom_ids:
           geom_ids.append(geom_id)
       all_geom_ids.extend(geom_ids)
       geom_to_body_map.extend([i] * len(geom_ids))
@@ -196,7 +197,7 @@ class ContactSensor(SensorBase):
     force = wp.zeros(num_contacts, dtype=wp.spatial_vector)  # Do I need device here?
     contact_ids = wp.from_torch(valid_contacts["indices"].int(), dtype=wp.int32)
     mjwarp.contact_force(
-      m=self._wp_model,
+      m=self._wp_model.struct,
       d=self._wp_data.struct,
       contact_ids=contact_ids,
       to_world_frame=True,

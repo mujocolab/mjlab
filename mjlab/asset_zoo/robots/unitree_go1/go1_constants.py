@@ -85,7 +85,7 @@ INIT_STATE = RobotCfg.InitialStateCfg(
 # Collision config.
 ##
 
-_foot_regex = f'^[FR][LR]_foot_collision$'
+_foot_regex = '^[FR][LR]_foot_collision$'
 
 # This disables all collisions except the feet.
 # Furthermore, feet self collisions are disabled.

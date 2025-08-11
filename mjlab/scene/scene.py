@@ -81,13 +81,18 @@ class Scene:
 
   # Methods.
 
-  def initialize(self, model: mujoco.MjModel, data, device, wp_model):
-    self._compute_indexing(model, device)
+  def initialize(self, mj_model: mujoco.MjModel, model, data, device):
+    self._compute_indexing(mj_model, device)
     for ent_name, ent in self._entities.items():
-      ent.initialize(self.indexing.entities[ent_name], model, data, device, wp_model)
+      ent.initialize(self.indexing.entities[ent_name], model, data, device)
     for sens in self._sensors.values():
       sens.initialize(
-        self.indexing.entities[sens.cfg.entity_name], model, data, device, wp_model
+        dt=mj_model.opt.timestep,
+        indexing=self.indexing.entities[sens.cfg.entity_name],
+        mj_model=mj_model,
+        model=model,
+        data=data,
+        device=device,
       )
 
   def reset(self, env_ids: Sequence[int] | None = None) -> None:

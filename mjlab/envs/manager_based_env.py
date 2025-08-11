@@ -44,10 +44,10 @@ class ManagerBasedEnv:
     # new wp_model fields will get randomized *after* initialization and so won't
     # be reflected in the assigned defaults.
     self.scene.initialize(
-      model=self.sim.mj_model,
+      mj_model=self.sim.mj_model,
+      model=self.sim.model,
       data=self.sim.data,
       device=self.device,
-      wp_model=self.sim.wp_model,
     )
 
     print("[INFO]: Base environment:")

@@ -44,6 +44,9 @@ python scripts/tracking/rl/play.py \
 
 **P0**.
 
+- [ ] Contact sensor
+  - [ ] Clean up, super gross right now
+  - [ ] Investiate cause of NaNs
 - [x] Domain randomization
 - [ ] Terrain generation
 - [ ] Observation history and modifiers
