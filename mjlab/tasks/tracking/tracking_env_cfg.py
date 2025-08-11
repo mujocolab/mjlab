@@ -290,20 +290,19 @@ class TerminationsCfg:
     },
   )
 
-  # ee_body_pos: DoneTerm = term(
-  #   DoneTerm,
-  #   func=mdp.bad_motion_body_pos,
-  #   params={
-  #     "command_name": "motion",
-  #     "threshold": 0.35,
-  #     "body_names": [
-  #       "left_ankle_roll_link",
-  #       "right_ankle_roll_link",
-  #       "left_wrist_yaw_link",
-  #       "right_wrist_yaw_link",
-  #     ],
-  #   },
-  # )
+  ee_body_pos = DoneTerm(
+    func=mdp.bad_motion_body_pos_z_only,
+    params={
+      "command_name": "motion",
+      "threshold": 0.25,
+      "body_names": [
+        "left_ankle_roll_link",
+        "right_ankle_roll_link",
+        "left_wrist_yaw_link",
+        "right_wrist_yaw_link",
+      ],
+    },
+  )
 
 
 @dataclass
