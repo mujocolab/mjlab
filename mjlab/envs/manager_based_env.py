@@ -37,6 +37,12 @@ class ManagerBasedEnv:
     if "cuda" in self.device:
       torch.cuda.set_device(self.device)
 
+    # This will call initialize on all the entities (terrain, robot, sensors, etc).
+    # In the robot entity init, we read defaults from the wp_model such as default
+    # joint positions, default joint damping and stiffness.
+    # This is problematic because if we apply domain randomization at startup, the
+    # new wp_model fields will get randomized *after* initialization and so won't
+    # be reflected in the assigned defaults.
     self.scene.initialize(
       model=self.sim.mj_model,
       data=self.sim.data,
@@ -81,7 +87,11 @@ class ManagerBasedEnv:
     expanded_model_fields: list[str] = []
     if "startup" in self.event_manager.available_modes:
       for event_cfg in self.event_manager._mode_term_cfgs["startup"]:
-        expanded_model_fields.append(event_cfg.params["field"])
+        if "field" in event_cfg.params:
+          expanded_model_fields.append(event_cfg.params["field"])
+        # Special handling for actuator gain randomization.
+        if event_cfg.func.__name__ == "randomize_actuator_gains":
+          expanded_model_fields.extend(["actuator_gainprm", "actuator_biasprm"])
     self.sim.expand_model_fields(expanded_model_fields)
 
     self.action_manager = ActionManager(self.cfg.actions, self)

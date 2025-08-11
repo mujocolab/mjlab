@@ -25,6 +25,13 @@ class EntityIndexing:
   free_joint_q_adr: torch.Tensor
   free_joint_v_adr: torch.Tensor
 
+  # Mappings.
+  body_local2global: dict[int, int]
+  geom_local2global: dict[int, int]
+  site_local2global: dict[int, int]
+  actuator_local2global: dict[int, int]
+  joint_local2global: dict[int, int]
+
 
 @dataclass
 class SceneIndexing:

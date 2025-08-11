@@ -153,6 +153,8 @@ class Robot(entity.Entity):
     device: str,
     wp_model,
   ) -> None:
+    del model
+
     self._data = RobotData(indexing=indexing, data=data, device=device)
 
     self._data.body_names = self.body_names
@@ -161,6 +163,7 @@ class Robot(entity.Entity):
     self._data.sensor_names = self.sensor_names
     self._data.joint_names = self.joint_names
 
+    # Default root state.
     default_root_state = (
       tuple(self.cfg.init_state.pos)
       + tuple(self.cfg.init_state.rot)
@@ -171,15 +174,14 @@ class Robot(entity.Entity):
       default_root_state, dtype=torch.float, device=device
     )
     self._data.default_root_state = default_root_state.repeat(data.nworld, 1)
+
+    # Default joint state (pos, vel).
     self._data.default_joint_pos = torch.tensor(
-      resolve_expr(self.cfg.init_state.joint_pos, self.joint_names),
-      device=device,
+      resolve_expr(self.cfg.init_state.joint_pos, self.joint_names), device=device
     )[None].repeat(data.nworld, 1)
     self._data.default_joint_vel = torch.tensor(
-      resolve_expr(self.cfg.init_state.joint_vel, self.joint_names),
-      device=device,
+      resolve_expr(self.cfg.init_state.joint_vel, self.joint_names), device=device
     )[None].repeat(data.nworld, 1)
-
     dof_limits = torch.tensor(
       [j.range.tolist() for j in self._non_root_joints],
       dtype=torch.float,
@@ -203,7 +205,6 @@ class Robot(entity.Entity):
     self._data.soft_joint_pos_limits[..., 1] = (
       joint_pos_mean + 0.5 * joint_pos_range * soft_limit_factor
     )
-
     act_ids = resolve_matching_names(self._actuator_names, self.joint_actuators, True)[
       0
     ]
@@ -215,7 +216,6 @@ class Robot(entity.Entity):
     )
     self._data.joint_stiffness = self._data.default_joint_stiffness.clone()
     self._data.joint_damping = self._data.default_joint_damping.clone()
-
     if self.cfg.joint_pos_weight is not None:
       weight = string_utils.resolve_expr(
         self.cfg.joint_pos_weight, self.joint_names, 1.0
@@ -232,6 +232,7 @@ class Robot(entity.Entity):
   def reset(self, env_ids: Sequence[int] | None = None):
     if env_ids is None:
       env_ids = slice(None)
+    # TODO(kevin): This should only be resetting this entity's attributes.
     self._data.data.qacc_warmstart[env_ids] = 0.0
     self._data.data.xfrc_applied[env_ids] = 0.0
     self._data.data.qfrc_applied[env_ids] = 0.0
@@ -248,11 +249,6 @@ class Robot(entity.Entity):
     self.write_root_link_pose_to_sim(root_state[:, :7], env_ids=env_ids)
     self.write_root_link_velocity_to_sim(root_state[:, 7:], env_ids=env_ids)
 
-  def write_root_pose_to_sim(
-    self, root_pose: torch.Tensor, env_ids: Sequence[int] | None = None
-  ):
-    self.write_root_link_pose_to_sim(root_pose, env_ids=env_ids)
-
   def write_root_link_pose_to_sim(
     self, root_pose: torch.Tensor, env_ids: Sequence[int] | None = None
   ):
@@ -263,11 +259,6 @@ class Robot(entity.Entity):
       env_ids = env_ids[:, None]
     q_slice = self.data.indexing.free_joint_q_adr
     self._data.data.qpos[env_ids, q_slice] = root_pose
-
-  def write_root_velocity_to_sim(
-    self, root_velocity: torch.Tensor, env_ids: Sequence[int] | None = None
-  ):
-    self.write_root_link_velocity_to_sim(root_velocity=root_velocity, env_ids=env_ids)
 
   def write_root_link_velocity_to_sim(
     self, root_velocity: torch.Tensor, env_ids: Sequence[int] | None = None
@@ -323,6 +314,34 @@ class Robot(entity.Entity):
       env_ids = env_ids[:, None]
     v_slice = self._data.indexing.joint_v_adr[joint_ids]
     self._data.data.qvel[env_ids, v_slice] = velocity
+
+  def write_joint_stiffness_to_sim(
+    self,
+    stiffness: torch.Tensor | float,
+    joint_ids: Sequence[int] | slice | None = None,
+    env_ids: Sequence[int] | None = None,
+  ) -> None:
+    if env_ids is None:
+      env_ids = slice(None)
+    if joint_ids is None:
+      joint_ids = slice(None)
+    if env_ids != slice(None):
+      env_ids = env_ids[:, None]
+    self._data.joint_stiffness[env_ids, joint_ids] = stiffness
+
+  def write_joint_damping_to_sim(
+    self,
+    damping: torch.Tensor | float,
+    joint_ids: Sequence[int] | slice | None = None,
+    env_ids: Sequence[int] | None = None,
+  ) -> None:
+    if env_ids is None:
+      env_ids = slice(None)
+    if joint_ids is None:
+      joint_ids = slice(None)
+    if env_ids != slice(None):
+      env_ids = env_ids[:, None]
+    self._data.joint_damping[env_ids, joint_ids] = damping
 
   # Private methods.
 

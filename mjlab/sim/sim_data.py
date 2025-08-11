@@ -170,32 +170,71 @@ class TorchArray:
     return self._tensor >= other
 
 
+def _contains_warp_arrays(obj: Any) -> bool:
+  """Check if an object or its attributes contain any Warp arrays.
+
+  Args:
+    obj: Object to check for Warp arrays
+
+  Returns:
+    True if the object or any of its attributes contain Warp arrays
+  """
+  if isinstance(obj, wp.array):
+    return True
+
+  # Check if it's a struct-like object with attributes
+  if hasattr(obj, "__dict__"):
+    return any(
+      isinstance(getattr(obj, attr), wp.array)
+      for attr in dir(obj)
+      if not attr.startswith("_")
+    )
+
+  return False
+
+
 class WarpBridge:
   """Wraps mjwarp objects to expose Warp arrays as PyTorch tensors.
 
   Automatically converts Warp array attributes to TorchArray objects
   on access, enabling direct PyTorch operations on simulation data.
+  Recursively wraps nested structures that contain Warp arrays.
   """
 
   def __init__(self, struct: Any) -> None:
-    super().__setattr__("struct", struct)
+    super().__setattr__("_struct", struct)
+    super().__setattr__("_wrapped_cache", {})
 
   def __getattr__(self, name: str) -> Any:
-    """
-    Get attribute from the wrapped data, wrapping Warp arrays as TorchArray.
+    """Get attribute from the wrapped data, wrapping Warp arrays as TorchArray.
+    Recursively wraps nested structures containing Warp arrays.
 
     Args:
       name: Name of the attribute to access
 
     Returns:
-      TorchArray if the attribute is a Warp array, otherwise the raw value
+      TorchArray if the attribute is a Warp array,
+      WarpBridge if it's a nested struct with Warp arrays,
+      otherwise the raw value
     """
-    val = getattr(self.struct, name)
+    # Check cache first to avoid recreating wrappers.
+    if name in self._wrapped_cache:
+      return self._wrapped_cache[name]
+
+    val = getattr(self._struct, name)
+
+    # Wrap Warp arrays.
     if isinstance(val, wp.array):
-      return TorchArray(val)
-    # TODO: Hack, fix.
-    if name in ["contact", "efc"]:
-      return WarpBridge(val)
+      wrapped = TorchArray(val)
+      self._wrapped_cache[name] = wrapped
+      return wrapped
+
+    # Recursively wrap nested structures that contain Warp arrays.
+    if _contains_warp_arrays(val):
+      wrapped = WarpBridge(val)
+      self._wrapped_cache[name] = wrapped
+      return wrapped
+
     return val
 
   def __setattr__(self, name: str, value: Any) -> None:
@@ -212,13 +251,19 @@ class WarpBridge:
     Raises:
       TypeError: If trying to set a Warp array field with an incompatible type
     """
-    # Special case: setting 'data' attribute during initialization
-    if name == "struct":
+    # Special case: setting internal attributes during initialization
+    if name in ("_struct", "_wrapped_cache"):
       super().__setattr__(name, value)
       return
 
+    # Clear cache for this attribute since we're modifying it
+    if name in self._wrapped_cache:
+      del self._wrapped_cache[name]
+
     # Handle assignments to existing wp.array fields
-    if hasattr(self.struct, name) and isinstance(getattr(self.struct, name), wp.array):
+    if hasattr(self._struct, name) and isinstance(
+      getattr(self._struct, name), wp.array
+    ):
       if isinstance(value, TorchArray):
         new_wp_array = value.wp_array
       elif isinstance(value, torch.Tensor):
@@ -228,11 +273,16 @@ class WarpBridge:
           f"Cannot set Warp array field '{name}' from {type(value)}. "
           f"Expected TorchArray or torch.Tensor."
         )
-      setattr(self.struct, name, new_wp_array)
+      setattr(self._struct, name, new_wp_array)
     else:
       # For non-array fields, set the attribute on the underlying struct object
-      setattr(self.struct, name, value)
+      setattr(self._struct, name, value)
 
   def __repr__(self) -> str:
     """Return string representation of the wrapped struct."""
-    return f"WarpTensor({repr(self.struct)})"
+    return f"WarpBridge({repr(self._struct)})"
+
+  @property
+  def struct(self) -> Any:
+    """Access the underlying wrapped struct."""
+    return self._struct

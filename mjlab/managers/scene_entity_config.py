@@ -29,17 +29,22 @@ class SceneEntityCfg:
   def _resolve_joint_names(self, scene: Scene) -> None:
     if self.joint_names is not None or self.joint_ids != slice(None):
       entity: Robot = scene[self.name]
+
+      # Joint name regex --> joint indices.
       if self.joint_names is not None and self.joint_ids != slice(None):
         if isinstance(self.joint_names, str):
           self.joint_names = [self.joint_names]
         if isinstance(self.joint_ids, int):
           self.joint_ids = [self.joint_ids]
+
         joint_ids, _ = entity.find_joints(
           self.joint_names, preserve_order=self.preserve_order
         )
         joint_names = [entity.joint_names[i] for i in self.joint_ids]
         if joint_ids != self.joint_ids or joint_names != self.joint_names:
-          raise ValueError()
+          raise ValueError("Inconsistent joint names and indices.")
+
+      # Joint indices --> joint names.
       elif self.joint_names is not None:
         if isinstance(self.joint_names, str):
           self.joint_names = [self.joint_names]
@@ -51,6 +56,8 @@ class SceneEntityCfg:
           and self.joint_names == entity.joint_names
         ):
           self.joint_ids = slice(None)
+
+      # Joint indices --> joint names.
       elif self.joint_ids != slice(None):
         if isinstance(self.joint_ids, int):
           self.joint_ids = [self.joint_ids]
@@ -59,6 +66,8 @@ class SceneEntityCfg:
   def _resolve_body_names(self, scene: Scene) -> None:
     if self.body_names is not None or self.body_ids != slice(None):
       entity: Robot = scene[self.name]
+
+      # Body name regex --> body indices.
       if self.body_names is not None and self.body_ids != slice(None):
         if isinstance(self.body_names, str):
           self.body_names = [self.body_names]
@@ -69,7 +78,9 @@ class SceneEntityCfg:
         )
         body_names = [entity.body_names[i] for i in self.body_ids]
         if body_ids != self.body_ids or body_names != self.body_names:
-          raise ValueError()
+          raise ValueError("Inconsistent body names and indices.")
+
+      # Body indices --> body names.
       elif self.body_names is not None:
         if isinstance(self.body_names, str):
           self.body_names = [self.body_names]
@@ -81,6 +92,8 @@ class SceneEntityCfg:
           and self.body_names == entity.body_names
         ):
           self.body_ids = slice(None)
+
+      # Body indices --> body names.
       elif self.body_ids != slice(None):
         if isinstance(self.body_ids, int):
           self.body_ids = [self.body_ids]
@@ -89,6 +102,8 @@ class SceneEntityCfg:
   def _resolve_geom_names(self, scene: Scene) -> None:
     if self.geom_names is not None or self.geom_ids != slice(None):
       entity: Robot = scene[self.name]
+
+      # Geom name regex --> geom indices.
       if self.geom_names is not None and self.geom_ids != slice(None):
         if isinstance(self.geom_names, str):
           self.geom_names = [self.geom_names]
@@ -99,7 +114,9 @@ class SceneEntityCfg:
         )
         geom_names = [entity.geom_names[i] for i in self.geom_ids]
         if geom_ids != self.geom_ids or geom_names != self.geom_names:
-          raise ValueError()
+          raise ValueError("Inconsistent geom names and indices.")
+
+      # Geom indices --> geom names.
       elif self.geom_names is not None:
         if isinstance(self.geom_names, str):
           self.geom_names = [self.geom_names]
@@ -111,6 +128,8 @@ class SceneEntityCfg:
           and self.geom_names == entity.geom_names
         ):
           self.geom_ids = slice(None)
+
+      # Geom indices --> geom names.
       elif self.geom_ids != slice(None):
         if isinstance(self.geom_ids, int):
           self.geom_ids = [self.geom_ids]

@@ -178,18 +178,18 @@ HOME_KEYFRAME = RobotCfg.InitialStateCfg(
 # are given condim=3 and custom friction and solimp.
 FULL_COLLISION = CollisionCfg(
   geom_names_expr=[".*_collision"],
-  condim={".*_foot_collision": 3},
-  priority={".*_foot_collision": 1},
-  friction={".*_foot_collision": (0.6,)},
+  condim={r'^(left|right)_foot_collision$': 3},
+  priority={r'^(left|right)_foot_collision$': 1},
+  friction={r'^(left|right)_foot_collision$': (0.6,)},
 )
 
 FULL_COLLISION_WITHOUT_SELF = CollisionCfg(
   geom_names_expr=[".*_collision"],
   contype=0,
   conaffinity=1,
-  condim={".*_foot_collision": 3},
-  priority={".*_foot_collision": 1},
-  friction={".*_foot_collision": (0.6,)},
+  condim={r'^(left|right)_foot_collision$': 3},
+  priority={r'^(left|right)_foot_collision$': 1},
+  friction={r'^(left|right)_foot_collision$': (0.6,)},
 )
 
 ##

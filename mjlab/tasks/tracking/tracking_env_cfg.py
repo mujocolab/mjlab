@@ -167,52 +167,44 @@ class EventCfg:
   base_com: EventTerm = term(
     EventTerm,
     mode="startup",
-    func=mdp.randomize_model_field,
+    func=mdp.randomize_field,
     params={
       "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),
       "operation": "add",
       "field": "body_ipos",
-      "distribution_params": {
-        "x": (-0.025, 0.025),
-        "y": (-0.05, 0.05),
-        "z": (-0.05, 0.05),
+      "ranges": {
+        0: (-0.025, 0.025),
+        1: (-0.05, 0.05),
+        2: (-0.05, 0.05),
       },
     },
   )
 
-  # add_joint_default_pos: EventTerm = term(
-  #   EventTerm,
-  #   mode="startup",
-  #   func=mdp.randomize_model_field,
-  #   params={
-  #     "asset_cfg": SceneEntityCfg("robot"),
-  #     "distribution_params": (-0.01, 0.01),
-  #     "operation": "add",
-  #     "field": "qpos0",
-  #   },
-  # )
+  add_joint_default_pos: EventTerm = term(
+    EventTerm,
+    mode="startup",
+    func=mdp.randomize_field,
+    params={
+      "asset_cfg": SceneEntityCfg("robot"),
+      "operation": "add",
+      "field": "qpos0",
+      "ranges": (-0.01, 0.01),
+    },
+  )
 
-  # # NOTE: Foot geom condim=3 hence we only need to randomize friction[0].
-  # foot_friction: EventTerm = term(
-  #   EventTerm,
-  #   mode="startup",
-  #   func=mdp.randomize_model_field,
-  #   params={
-  #     "asset_cfg": SceneEntityCfg(
-  #       "robot", geom_names=[r"^(left|right)_foot[1-7]_collision$"]
-  #     ),
-  #     "distribution_params": {"dim:0": (0.3, 1.5)},
-  #     "operation": "abs",
-  #     "field": "geom_friction",
-  #   },
-  # )
-
-
-@dataclass
-class RandomizationCfg:
-  """Domain randomization config."""
-
-  pass
+  foot_friction: EventTerm = term(
+    EventTerm,
+    mode="startup",
+    func=mdp.randomize_field,
+    params={
+      "asset_cfg": SceneEntityCfg(
+        "robot", geom_names=[r"^(left|right)_foot[1-7]_collision$"]
+      ),
+      "operation": "abs",
+      "field": "geom_friction",
+      "ranges": (0.3, 1.5),
+    },
+  )
 
 
 @dataclass

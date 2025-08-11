@@ -12,7 +12,6 @@ from mjlab.utils.spec_editor import spec_editor as common_editors
 from mjlab.entities.indexing import EntityIndexing, SceneIndexing
 from mjlab.utils.mujoco import dof_width, qpos_width
 from mjlab.sensors import SensorBase
-from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
 
 _BASE_XML = r"""
 <mujoco model="mjlab scene">
@@ -107,14 +106,6 @@ class Scene:
     for ent in self._entities.values():
       ent.write_data_to_sim()
 
-  def find_bodies(
-    self,
-    entity_name: str,
-    name_keys: str | Sequence[str],
-    preserve_order: bool = False,
-  ) -> tuple[list[int], list[str]]:
-    pass
-
   # Private methods.
 
   def _attach_terrains(self) -> None:
@@ -138,42 +129,23 @@ class Scene:
 
   def _compute_indexing(self, model: mujoco.MjModel, device: str) -> None:
     for ent_name, ent in self._entities.items():
+      ##
+      # BODY
+      ##
       body_ids = []
       body_root_ids = []
       body_iquats = []
-      for body_ in ent.spec.bodies:
+      body_local2global = {}
+      for local_id, body_ in enumerate(ent.spec.bodies[1:]):
         body_name = body_.name
-        if body_name == "world":
-          continue
         body = model.body(body_name)
         body_ids.append(body.id)
         body_root_ids.extend(body.rootid)
         body_iquats.append(body.iquat.tolist())
+        body_local2global[local_id] = body.id
       body_ids = torch.tensor(body_ids, dtype=torch.int, device=device)
       body_root_ids = torch.tensor(body_root_ids, dtype=torch.int, device=device)
       body_iquats = torch.tensor(body_iquats, dtype=torch.float, device=device)
-
-      geom_ids = []
-      geom_body_ids = []
-      for geom_ in ent.spec.geoms:
-        geom_name = geom_.name
-        geom = model.geom(geom_name)
-        geom_ids.append(geom.id)
-        geom_body_ids.append(geom.bodyid[0])
-      geom_ids = torch.tensor(geom_ids, dtype=torch.int, device=device)
-      geom_body_ids = torch.tensor(geom_body_ids, dtype=torch.int, device=device)
-
-      site_ids = []
-      for site in ent.spec.sites:
-        site_name = site.name
-        site_id = model.site(site_name).id
-        site_ids.append(site_id)
-      site_ids = torch.tensor(site_ids, dtype=torch.int, device=device)
-
-      ctrl_ids = []
-      for actuator in ent.spec.actuators:
-        act = model.actuator(actuator.name)
-        ctrl_ids.append(act.id)
 
       root_body_id = None
       for joint in ent.spec.joints:
@@ -190,6 +162,46 @@ class Scene:
           model.body_iquat[root_body_id], dtype=torch.float, device=device
         )
 
+      ##
+      # GEOM
+      ##
+      geom_ids = []
+      geom_body_ids = []
+      geom_local2global = {}
+      for local_id, geom_ in enumerate(ent.spec.geoms):
+        geom_name = geom_.name
+        geom = model.geom(geom_name)
+        geom_ids.append(geom.id)
+        geom_body_ids.append(geom.bodyid[0])
+        geom_local2global[local_id] = geom.id
+      geom_ids = torch.tensor(geom_ids, dtype=torch.int, device=device)
+      geom_body_ids = torch.tensor(geom_body_ids, dtype=torch.int, device=device)
+
+      ##
+      # SITE
+      ##
+      site_ids = []
+      site_local2global = {}
+      for local_id, site in enumerate(ent.spec.sites):
+        site_name = site.name
+        site_id = model.site(site_name).id
+        site_ids.append(site_id)
+        site_local2global[local_id] = site_id
+      site_ids = torch.tensor(site_ids, dtype=torch.int, device=device)
+
+      ##
+      # ACTUATOR
+      ##
+      ctrl_ids = []
+      actuator_local2global = {}
+      for local_id, actuator in enumerate(ent.spec.actuators):
+        act = model.actuator(actuator.name)
+        ctrl_ids.append(act.id)
+        actuator_local2global[local_id] = act.id
+
+      ##
+      # SENSOR
+      ##
       sensor_adr = {}
       for sensor in ent.spec.sensors:
         sensor_name = sensor.name
@@ -200,11 +212,15 @@ class Scene:
           start_adr, start_adr + dim, dtype=torch.int, device=device
         )
 
+      ##
+      # JOINT
+      ##
       joint_q_adr = []
       joint_v_adr = []
       free_joint_q_adr = []
       free_joint_v_adr = []
-      for joint in ent.spec.joints:
+      joint_local2global = {}
+      for local_id, joint in enumerate(ent.spec.joints):
         jnt = model.joint(joint.name)
         jnt_type = jnt.type[0]
         vadr = jnt.dofadr[0]
@@ -217,6 +233,9 @@ class Scene:
           joint_v_adr.extend(range(vadr, vadr + vdim))
           qdim = qpos_width(jnt_type)
           joint_q_adr.extend(range(qadr, qadr + qdim))
+          # -1 because for accessing jnt_* fields in model, we want to skip the
+          # freejoint.
+          joint_local2global[local_id - 1] = jnt.id
 
       indexing = EntityIndexing(
         root_body_id=root_body_id,
@@ -233,5 +252,11 @@ class Scene:
         joint_v_adr=torch.tensor(joint_v_adr, dtype=torch.int, device=device),
         free_joint_v_adr=torch.tensor(free_joint_v_adr, dtype=torch.int, device=device),
         free_joint_q_adr=torch.tensor(free_joint_q_adr, dtype=torch.int, device=device),
+        body_local2global=body_local2global,
+        geom_local2global=geom_local2global,
+        site_local2global=site_local2global,
+        actuator_local2global=actuator_local2global,
+        joint_local2global=joint_local2global,
       )
+
       self._indexing.entities[ent_name] = indexing
