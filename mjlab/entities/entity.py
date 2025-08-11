@@ -20,8 +20,8 @@ class Entity(abc.ABC):
   def __init__(self, cfg: EntityCfg):
     self.cfg = cfg
     self._spec = cfg.spec_fn()
-    self._configure_spec()
     self._give_names_to_missing_elems()
+    self._configure_spec()
 
   # Attributes.
 
@@ -42,10 +42,9 @@ class Entity(abc.ABC):
   def initialize(
     self,
     indexing: EntityIndexing,
-    model: mujoco.MjModel,
+    model: mjwarp.Model,
     data: mjwarp.Data,
     device: str,
-    wp_model,
   ) -> None:
     raise NotImplementedError
 

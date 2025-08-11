@@ -85,10 +85,12 @@ INIT_STATE = RobotCfg.InitialStateCfg(
 # Collision config.
 ##
 
+_foot_regex = '^[FR][LR]_foot_collision$'
+
 # This disables all collisions except the feet.
 # Furthermore, feet self collisions are disabled.
 FEET_ONLY_COLLISION = CollisionCfg(
-  geom_names_expr=[".*_foot_collision"],
+  geom_names_expr=[_foot_regex],
   contype=0,
   conaffinity=1,
   condim=3,
@@ -101,10 +103,10 @@ FEET_ONLY_COLLISION = CollisionCfg(
 # Foot collisions are given custom condim, friction and solimp.
 FULL_COLLISION = CollisionCfg(
   geom_names_expr=[".*_collision"],
-  condim={".*_foot_collision": 3},
-  priority={".*_foot_collision": 1},
-  friction={".*_foot_collision": (0.6,)},
-  solimp={".*_foot_collision": (0.9, 0.95, 0.023)},
+  condim={_foot_regex: 3},
+  priority={_foot_regex: 1},
+  friction={_foot_regex: (0.6,)},
+  solimp={_foot_regex: (0.9, 0.95, 0.023)},
   contype=1,
   conaffinity=0,
 )

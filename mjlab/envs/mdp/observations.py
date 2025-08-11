@@ -51,7 +51,8 @@ def joint_pos_rel(
   asset: Robot = env.scene[asset_cfg.name]
   default_joint_pos = asset.data.default_joint_pos
   assert default_joint_pos is not None
-  return asset.data.joint_pos - default_joint_pos
+  jnt_ids = asset_cfg.joint_ids
+  return asset.data.joint_pos[:, jnt_ids] - default_joint_pos[:, jnt_ids]
 
 
 def joint_vel_rel(
@@ -59,9 +60,10 @@ def joint_vel_rel(
   asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
   asset: Robot = env.scene[asset_cfg.name]
-  default_joint_vel = asset.data.default_joint_pos
+  default_joint_vel = asset.data.default_joint_vel
   assert default_joint_vel is not None
-  return asset.data.joint_vel - default_joint_vel
+  jnt_ids = asset_cfg.joint_ids
+  return asset.data.joint_vel[:, jnt_ids] - default_joint_vel[:, jnt_ids]
 
 
 ##

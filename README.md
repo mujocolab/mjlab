@@ -10,7 +10,6 @@ IsaacLab API with [MJWarp](https://github.com/google-deepmind/mujoco_warp) backe
 pip install warp-lang --pre --upgrade -f https://pypi.nvidia.com/warp-lang/
 pip install mujoco --pre --upgrade -f https://py.mujoco.org/
 git clone https://github.com/google-deepmind/mujoco_warp.git && cd mujoco_warp
-git checkout 303de9f  # IMPORTANT!
 pip install -e .[dev,cuda] --config-settings editable_mode=strict
 ```
 
@@ -45,7 +44,10 @@ python scripts/tracking/rl/play.py \
 
 **P0**.
 
-- [ ] Domain randomization
+- [ ] Contact sensor
+  - [ ] Clean up, super gross right now
+  - [ ] Investiate cause of NaNs
+- [x] Domain randomization
 - [ ] Terrain generation
 - [ ] Observation history and modifiers
 - [ ] Rename entities to be consistent with isaaclab
@@ -57,8 +59,8 @@ python scripts/tracking/rl/play.py \
   - [x] Action manager
   - [x] Command manager
   - [x] Curriculum manager
-  - [ ] Event manager
-    - [ ] startup
+  - [x] Event manager
+    - [x] startup
     - [x] reset
     - [x] interval
   - [x] Observation manager

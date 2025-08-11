@@ -19,14 +19,17 @@ class SensorBase(abc.ABC):
 
   def initialize(
     self,
+    dt: float,
     indexing: EntityIndexing,
-    model: mujoco.MjModel,
+    mj_model: mujoco.MjModel,
+    model: mjwarp.Model,
     data: mjwarp.Data,
     device: str,
-    wp_model,
   ) -> None:
+    del indexing, mj_model, model  # Unused.
+
     self._device = device
-    self._sim_physics_dt = model.opt.timestep
+    self._sim_physics_dt = dt
     self._num_envs = data.nworld
 
     self._is_outdated = torch.ones(

@@ -14,6 +14,7 @@ from mjlab.utils.noise import UniformNoiseCfg as Unoise
 from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 from mjlab.managers.manager_term_config import RewardTermCfg as RewTerm
+# from mjlab.sensors import ContactSensorCfg
 
 from mjlab.tasks.tracking import mdp
 
@@ -164,7 +165,47 @@ class EventCfg:
     params={"velocity_range": VELOCITY_RANGE},
   )
 
-  # MISSING: base_com, add_joint_default_pos, physics_material
+  base_com: EventTerm = term(
+    EventTerm,
+    mode="startup",
+    func=mdp.randomize_field,
+    params={
+      "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),
+      "operation": "add",
+      "field": "body_ipos",
+      "ranges": {
+        0: (-0.025, 0.025),
+        1: (-0.05, 0.05),
+        2: (-0.05, 0.05),
+      },
+    },
+  )
+
+  add_joint_default_pos: EventTerm = term(
+    EventTerm,
+    mode="startup",
+    func=mdp.randomize_field,
+    params={
+      "asset_cfg": SceneEntityCfg("robot"),
+      "operation": "add",
+      "field": "qpos0",
+      "ranges": (-0.01, 0.01),
+    },
+  )
+
+  foot_friction: EventTerm = term(
+    EventTerm,
+    mode="startup",
+    func=mdp.randomize_field,
+    params={
+      "asset_cfg": SceneEntityCfg(
+        "robot", geom_names=[r"^(left|right)_foot[1-7]_collision$"]
+      ),
+      "operation": "abs",
+      "field": "geom_friction",
+      "ranges": (0.3, 1.5),
+    },
+  )
 
 
 @dataclass
@@ -249,20 +290,19 @@ class TerminationsCfg:
     },
   )
 
-  # ee_body_pos: DoneTerm = term(
-  #   DoneTerm,
-  #   func=mdp.bad_motion_body_pos,
-  #   params={
-  #     "command_name": "motion",
-  #     "threshold": 0.35,
-  #     "body_names": [
-  #       "left_ankle_roll_link",
-  #       "right_ankle_roll_link",
-  #       "left_wrist_yaw_link",
-  #       "right_wrist_yaw_link",
-  #     ],
-  #   },
-  # )
+  ee_body_pos = DoneTerm(
+    func=mdp.bad_motion_body_pos_z_only,
+    params={
+      "command_name": "motion",
+      "threshold": 0.25,
+      "body_names": [
+        "left_ankle_roll_link",
+        "right_ankle_roll_link",
+        "left_wrist_yaw_link",
+        "right_wrist_yaw_link",
+      ],
+    },
+  )
 
 
 @dataclass
