@@ -26,10 +26,11 @@ test = [
     "pre-commit",
 ]
 rl = [
+    "mediapy",
+    "moviepy >=1.0.0",
     "rsl-rl-lib",
     "tensorboard",
     "wandb",
-    "moviepy >=1.0.0",
 ]
 
 [tool.ruff]
