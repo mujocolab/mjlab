@@ -72,7 +72,6 @@ class MotionCommand(CommandTerm):
     self.robot: Robot = env.scene[cfg.asset_name]
     self.robot_ref_body_index = self.robot.body_names.index(self.cfg.reference_body)
     self.motion_ref_body_index = self.cfg.body_names.index(self.cfg.reference_body)
-    self.pelvis_body_index = self.robot.body_names.index("pelvis")
     self.body_indexes = torch.tensor(
       self.robot.find_bodies(self.cfg.body_names, preserve_order=True)[0],
       dtype=torch.long,
@@ -155,14 +154,6 @@ class MotionCommand(CommandTerm):
   @property
   def ref_ang_vel_w(self) -> torch.Tensor:
     return self.motion.body_ang_vel_w[self.time_steps, self.motion_ref_body_index]
-
-  @property
-  def root_pos_w(self) -> torch.Tensor:
-    return self.motion.body_pos_w[self.time_steps, self.pelvis_body_index]
-
-  @property
-  def root_quat_w(self) -> torch.Tensor:
-    return self.motion.body_quat_w[self.time_steps, self.pelvis_body_index]
 
   @property
   def robot_joint_pos(self) -> torch.Tensor:
@@ -332,8 +323,8 @@ class MotionCommand(CommandTerm):
     )
 
   def _debug_vis_impl(self, scn: mujoco.MjvScene) -> None:
-    self._data_viz.qpos[0:3] = self.root_pos_w[0].cpu().numpy().copy()
-    self._data_viz.qpos[3:7] = self.root_quat_w[0].cpu().numpy().copy()
+    self._data_viz.qpos[0:3] = self.body_pos_w[0, 0].cpu().numpy().copy()
+    self._data_viz.qpos[3:7] = self.body_quat_w[0, 0].cpu().numpy().copy()
     self._data_viz.qpos[7:] = self.joint_pos[0].cpu().numpy().copy()
     self._data_viz.qpos[1] += 0.6
     mujoco.mj_forward(self._model_viz, self._data_viz)
