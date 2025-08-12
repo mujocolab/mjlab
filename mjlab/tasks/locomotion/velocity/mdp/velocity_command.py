@@ -10,10 +10,11 @@ import mujoco
 import numpy as np
 from mjlab.entities.robots.robot import Robot
 from mjlab.third_party.isaaclab.isaaclab.utils.math import wrap_to_pi, matrix_from_quat
+from dataclasses import dataclass, MISSING
+from mjlab.managers.manager_term_config import CommandTermCfg
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_env import ManagerBasedEnv
-  from mjlab.envs.mdp.commands.commands_config import UniformVelocityCommandCfg
 
 
 class UniformVelocityCommand(CommandTerm):
@@ -147,3 +148,29 @@ class UniformVelocityCommand(CommandTerm):
       act_ang_to = act_ang_from + np.array([0, 0, ang_vel_b[2]]) * scale
       add_arrow(*make_arrow(act_lin_from, act_lin_to), rgba=[0.0, 0.6, 1.0, 0.7])
       add_arrow(*make_arrow(act_ang_from, act_ang_to), rgba=[0.0, 1.0, 0.4, 0.7])
+
+
+@dataclass(kw_only=True)
+class UniformVelocityCommandCfg(CommandTermCfg):
+  class_type: type[CommandTerm] = UniformVelocityCommand
+  asset_name: str = MISSING
+  heading_command: bool = False
+  heading_control_stiffness: float = 1.0
+  rel_standing_envs: float = 0.0
+  rel_heading_envs: float = 1.0
+
+  @dataclass
+  class Ranges:
+    lin_vel_x: tuple[float, float] = MISSING
+    lin_vel_y: tuple[float, float] = MISSING
+    ang_vel_z: tuple[float, float] = MISSING
+    heading: tuple[float, float] | None = None
+
+  ranges: Ranges = MISSING
+
+  def __post_init__(self):
+    if self.heading_command and self.ranges.heading is None:
+      raise ValueError(
+        "The velocity command has heading commands active (heading_command=True) but "
+        "the `ranges.heading` parameter is set to None."
+      )
