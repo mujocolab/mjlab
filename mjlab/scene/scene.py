@@ -186,13 +186,16 @@ class Scene:
       # SITE
       ##
       site_ids = []
+      site_body_ids = []
       site_local2global = {}
       for local_id, site in enumerate(ent.spec.sites):
         site_name = site.name
         site_id = model.site(site_name).id
         site_ids.append(site_id)
+        site_body_ids.append(site.bodyid[0])
         site_local2global[local_id] = site_id
       site_ids = torch.tensor(site_ids, dtype=torch.int, device=device)
+      site_body_ids = torch.tensor(site_body_ids, dtype=torch.int, device=device)
 
       ##
       # ACTUATOR
@@ -249,6 +252,7 @@ class Scene:
         geom_ids=geom_ids,
         geom_body_ids=geom_body_ids,
         site_ids=site_ids,
+        site_body_ids=site_body_ids,
         ctrl_ids=torch.tensor(ctrl_ids, dtype=torch.int, device=device),
         root_body_iquat=root_body_iquat,
         body_iquats=body_iquats,

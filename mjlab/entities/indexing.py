@@ -13,6 +13,7 @@ class EntityIndexing:
   geom_ids: torch.Tensor
   geom_body_ids: torch.Tensor
   site_ids: torch.Tensor
+  site_body_ids: torch.Tensor
   ctrl_ids: torch.Tensor
 
   root_body_iquat: torch.Tensor | None

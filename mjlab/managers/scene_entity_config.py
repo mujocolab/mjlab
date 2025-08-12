@@ -19,12 +19,16 @@ class SceneEntityCfg:
   geom_names: str | list[str] | None = None
   geom_ids: list[int] | slice = field(default_factory=lambda: slice(None))
 
+  site_names: str | list[str] | None = None
+  site_ids: list[int] | slice = field(default_factory=lambda: slice(None))
+
   preserve_order: bool = False
 
   def resolve(self, scene: Scene) -> None:
     self._resolve_joint_names(scene)
     self._resolve_body_names(scene)
     self._resolve_geom_names(scene)
+    self._resolve_site_names(scene)
 
   def _resolve_joint_names(self, scene: Scene) -> None:
     if self.joint_names is not None or self.joint_ids != slice(None):
@@ -134,3 +138,39 @@ class SceneEntityCfg:
         if isinstance(self.geom_ids, int):
           self.geom_ids = [self.geom_ids]
         self.geom_names = [entity.geom_names[i] for i in self.geom_ids]
+
+  def _resolve_site_names(self, scene: Scene) -> None:
+    if self.site_names is not None or self.site_ids != slice(None):
+      entity: Robot = scene[self.name]
+
+      # Site name regex --> site indices.
+      if self.site_names is not None and self.site_ids != slice(None):
+        if isinstance(self.site_names, str):
+          self.site_names = [self.site_names]
+        if isinstance(self.site_ids, int):
+          self.site_ids = [self.site_ids]
+        site_ids, _ = entity.find_sites(
+          self.site_names, preserve_order=self.preserve_order
+        )
+        site_names = [entity.site_names[i] for i in self.site_ids]
+        if site_ids != self.site_ids or site_names != self.site_names:
+          raise ValueError("Inconsistent site names and indices.")
+
+      # Site indices --> site names.
+      elif self.site_names is not None:
+        if isinstance(self.site_names, str):
+          self.site_names = [self.site_names]
+        self.site_ids, _ = entity.find_sites(
+          self.site_names, preserve_order=self.preserve_order
+        )
+        if (
+          len(self.site_ids) == entity.num_sites
+          and self.site_names == entity.site_names
+        ):
+          self.site_ids = slice(None)
+
+      # Site indices --> site names.
+      elif self.site_ids != slice(None):
+        if isinstance(self.site_ids, int):
+          self.site_ids = [self.site_ids]
+        self.site_names = [entity.site_names[i] for i in self.site_ids]

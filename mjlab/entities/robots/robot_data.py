@@ -172,7 +172,24 @@ class RobotData:
 
     return self._compute_velocity_from_cvel(pos, subtree_com, cvel)
 
-  # TODO: Add site properties.
+  @property
+  def site_pose_w(self) -> torch.Tensor:
+    """Site pose in simulation world frame. Shape (num_envs, num_sites, 7)."""
+    pos_w = self.data.site_xpos[:, self.indexing.site_ids].clone()
+    mat_w = self.data.site_xmat[:, self.indexing.site_ids].clone()
+    quat_w = quat_from_matrix(mat_w)
+    return torch.cat([pos_w, quat_w], dim=-1)
+
+  @property
+  def site_vel_w(self) -> torch.Tensor:
+    """Site velocity in simulation world frame. Shape (num_envs, num_sites, 6)."""
+    pos = self.data.site_xpos[:, self.indexing.site_ids].clone()
+    body_ids = self.indexing.site_body_ids
+    root_body_ids = self.indexing.body_root_ids[body_ids - 1]
+    subtree_com = self.data.subtree_com[:, root_body_ids].clone()
+    cvel = self.data.cvel[:, body_ids].clone()
+
+    return self._compute_velocity_from_cvel(pos, subtree_com, cvel)
 
   # Joint properties
 
@@ -303,6 +320,26 @@ class RobotData:
   def geom_ang_vel_w(self) -> torch.Tensor:
     """Geom angular velocities in world frame. Shape (num_envs, num_geoms, 3)."""
     return self.geom_vel_w[..., 3:6]
+
+  @property
+  def site_pos_w(self) -> torch.Tensor:
+    """Site positions in world frame. Shape (num_envs, num_sites, 3)."""
+    return self.site_pose_w[..., 0:3]
+
+  @property
+  def site_quat_w(self) -> torch.Tensor:
+    """Site quaternions in world frame. Shape (num_envs, num_sites, 4)."""
+    return self.site_pose_w[..., 3:7]
+
+  @property
+  def site_lin_vel_w(self) -> torch.Tensor:
+    """Site linear velocities in world frame. Shape (num_envs, num_sites, 3)."""
+    return self.site_vel_w[..., 0:3]
+
+  @property
+  def site_ang_vel_w(self) -> torch.Tensor:
+    """Site angular velocities in world frame. Shape (num_envs, num_sites, 3)."""
+    return self.site_vel_w[..., 3:6]
 
   # Derived properties.
 
