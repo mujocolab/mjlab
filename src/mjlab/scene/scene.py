@@ -188,13 +188,12 @@ class Scene:
       site_ids = []
       site_body_ids = []
       site_local2global = {}
-      for local_id, site in enumerate(ent.spec.sites):
-        site_name = site.name
-        site_id = model.site(site_name).id
-        site_ids.append(site_id)
-        # NOTE: site(i).bodyid is not available in the bindings.
-        site_body_ids.append(model.site_bodyid[site_id])
-        site_local2global[local_id] = site_id
+      for local_id, site_ in enumerate(ent.spec.sites):
+        site_name = site_.name
+        site = model.site(site_name)
+        site_ids.append(site.id)
+        site_body_ids.append(site.bodyid[0])
+        site_local2global[local_id] = site.id
       site_ids = torch.tensor(site_ids, dtype=torch.int, device=device)
       site_body_ids = torch.tensor(site_body_ids, dtype=torch.int, device=device)
 
