@@ -4,7 +4,10 @@
 CACHE_DIR="$HOME/.cache/warp"
 
 if [ -d "$CACHE_DIR" ]; then
-    echo "Removing Warp cache from: $CACHE_DIR"
+    echo "Found Warp cache at: $CACHE_DIR"
+    echo -n "Are you sure you want to delete the cache? Press Enter to continue or Ctrl+C to cancel: "
+    read
+    echo "Removing Warp cache..."
     rm -rf "$CACHE_DIR"
     echo "Warp cache cleared."
 else
