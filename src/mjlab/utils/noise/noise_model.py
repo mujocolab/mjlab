@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Sequence
 if TYPE_CHECKING:
   from mjlab.utils.noise import noise_cfg
 
+
 ##
 # Noise as functions.
 ##

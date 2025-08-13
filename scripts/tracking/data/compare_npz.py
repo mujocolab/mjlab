@@ -1,5 +1,5 @@
 import numpy as np
-from mjlab.entities import Robot
+from mjlab import Robot
 from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ROBOT_CFG
 
 robot = Robot(G1_ROBOT_CFG)

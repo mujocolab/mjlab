@@ -1,4 +1,3 @@
-from mujoco_warp._src.types import Data as Data
 from mjlab.entities import entity
 from mjlab.entities.terrains.terrain_config import TerrainCfg
 from mjlab.utils.spec_editor import spec_editor as common_editors

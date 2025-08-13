@@ -7,7 +7,7 @@ from mjlab.managers.manager_base import ManagerBase
 from mjlab.managers.manager_term_config import ObservationGroupCfg, ObservationTermCfg
 
 from mjlab.utils.dataclasses import get_terms
-from mjlab.utils.noise import noise_model, noise_cfg
+from mjlab.utils.noise import noise_cfg, noise_model
 
 
 class ObservationManager(ManagerBase):

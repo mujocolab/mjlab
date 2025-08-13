@@ -192,7 +192,8 @@ class Scene:
         site_name = site.name
         site_id = model.site(site_name).id
         site_ids.append(site_id)
-        site_body_ids.append(site.bodyid[0])
+        # NOTE: site(i).bodyid is not available in the bindings.
+        site_body_ids.append(model.site_bodyid[site_id])
         site_local2global[local_id] = site_id
       site_ids = torch.tensor(site_ids, dtype=torch.int, device=device)
       site_body_ids = torch.tensor(site_body_ids, dtype=torch.int, device=device)

@@ -19,7 +19,7 @@ pip install -e .[dev,cuda] --config-settings editable_mode=strict
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 ```
 
-3. Install mjlab: `pip install -e .[test,rl]`
+3. Install mjlab: `pip install -e ".[test,rl]"`
 
 ## Getting started
 
@@ -112,7 +112,7 @@ These files are used under the terms of their respective licenses.
 Currently, `third_party/` contains:
 
 - **isaaclab/** — Selected files from [NVIDIA Isaac Lab](https://github.com/isaac-sim/IsaacLab),  
-  licensed under the [BSD-3-Clause](mjlab/third_party/isaaclab/LICENSE).
+  licensed under the [BSD-3-Clause](src/mjlab/third_party/isaaclab/LICENSE).
 
 When distributing or modifying this project, you must comply with both:
 
