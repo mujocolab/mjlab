@@ -3,7 +3,7 @@ from __future__ import annotations
 import torch
 
 from prettytable import PrettyTable
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 from mjlab.managers.manager_base import ManagerBase, ManagerTermBase
 from mjlab.managers.manager_term_config import RewardTermCfg
 

@@ -1,14 +1,15 @@
 """Unitree G1 constants."""
 
-# fmt: off
-
 import mujoco
 from pathlib import Path
 from typing import Dict
 from mjlab import MJLAB_SRC_PATH
 from mjlab.utils.os import update_assets
 
-from mjlab.utils.actuator import ElectricActuator, reflected_inertia_from_two_stage_planetary
+from mjlab.utils.actuator import (
+  ElectricActuator,
+  reflected_inertia_from_two_stage_planetary,
+)
 from mjlab.entities.robots.robot_config import RobotCfg
 from mjlab.utils.spec_editor.spec_editor_config import CollisionCfg, ActuatorCfg
 
@@ -16,16 +17,21 @@ from mjlab.utils.spec_editor.spec_editor_config import CollisionCfg, ActuatorCfg
 # MJCF and assets.
 ##
 
-G1_XML: Path = MJLAB_SRC_PATH / "asset_zoo" / "robots" / "unitree_g1" / "xmls" / "g1.xml"
+G1_XML: Path = (
+  MJLAB_SRC_PATH / "asset_zoo" / "robots" / "unitree_g1" / "xmls" / "g1.xml"
+)
 assert G1_XML.exists()
+
 
 def get_assets() -> Dict[str, bytes]:
   assets: Dict[str, bytes] = {}
   update_assets(assets, G1_XML.parent / "assets")
   return assets
 
+
 def get_spec() -> mujoco.MjSpec:
   return mujoco.MjSpec.from_file(str(G1_XML), assets=get_assets())
+
 
 ##
 # Actuator config.
@@ -39,10 +45,12 @@ ROTOR_INERTIAS_5020 = (
 )
 GEARS_5020 = (
   1,
-  1 + (46/18),
-  1 + (56/16),
+  1 + (46 / 18),
+  1 + (56 / 16),
 )
-ARMATURE_5020 = reflected_inertia_from_two_stage_planetary(ROTOR_INERTIAS_5020, GEARS_5020)
+ARMATURE_5020 = reflected_inertia_from_two_stage_planetary(
+  ROTOR_INERTIAS_5020, GEARS_5020
+)
 
 ROTOR_INERTIAS_7520_14 = (
   0.489e-4,
@@ -52,9 +60,11 @@ ROTOR_INERTIAS_7520_14 = (
 GEARS_7520_14 = (
   1,
   4.5,
-  1 + (48/22),
+  1 + (48 / 22),
 )
-ARMATURE_7520_14 = reflected_inertia_from_two_stage_planetary(ROTOR_INERTIAS_7520_14, GEARS_7520_14)
+ARMATURE_7520_14 = reflected_inertia_from_two_stage_planetary(
+  ROTOR_INERTIAS_7520_14, GEARS_7520_14
+)
 
 ROTOR_INERTIAS_7520_22 = (
   0.489e-4,
@@ -66,7 +76,9 @@ GEARS_7520_22 = (
   4.5,
   5,
 )
-ARMATURE_7520_22 = reflected_inertia_from_two_stage_planetary(ROTOR_INERTIAS_7520_22, GEARS_7520_22)
+ARMATURE_7520_22 = reflected_inertia_from_two_stage_planetary(
+  ROTOR_INERTIAS_7520_22, GEARS_7520_22
+)
 
 ROTOR_INERTIAS_4010 = (
   0.068e-4,
@@ -78,7 +90,9 @@ GEARS_4010 = (
   5,
   5,
 )
-ARMATURE_4010 = reflected_inertia_from_two_stage_planetary(ROTOR_INERTIAS_4010, GEARS_4010)
+ARMATURE_4010 = reflected_inertia_from_two_stage_planetary(
+  ROTOR_INERTIAS_4010, GEARS_4010
+)
 
 ACTUATOR_5020 = ElectricActuator(
   reflected_inertia=ARMATURE_5020,
@@ -104,10 +118,10 @@ ACTUATOR_4010 = ElectricActuator(
 NATURAL_FREQ = 10 * 2.0 * 3.1415926535  # 10Hz
 DAMPING_RATIO = 2.0
 
-STIFFNESS_5020 = ARMATURE_5020 * NATURAL_FREQ ** 2
-STIFFNESS_7520_14 = ARMATURE_7520_14 * NATURAL_FREQ ** 2
-STIFFNESS_7520_22 = ARMATURE_7520_22 * NATURAL_FREQ ** 2
-STIFFNESS_4010 = ARMATURE_4010 * NATURAL_FREQ ** 2
+STIFFNESS_5020 = ARMATURE_5020 * NATURAL_FREQ**2
+STIFFNESS_7520_14 = ARMATURE_7520_14 * NATURAL_FREQ**2
+STIFFNESS_7520_22 = ARMATURE_7520_22 * NATURAL_FREQ**2
+STIFFNESS_4010 = ARMATURE_4010 * NATURAL_FREQ**2
 
 DAMPING_5020 = 2.0 * DAMPING_RATIO * ARMATURE_5020 * NATURAL_FREQ
 DAMPING_7520_14 = 2.0 * DAMPING_RATIO * ARMATURE_7520_14 * NATURAL_FREQ

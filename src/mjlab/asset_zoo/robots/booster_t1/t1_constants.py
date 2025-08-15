@@ -1,7 +1,5 @@
 """Booster T1 constants."""
 
-# fmt: off
-
 import mujoco
 from pathlib import Path
 from typing import Dict
@@ -16,16 +14,21 @@ from mjlab.utils.spec_editor.spec_editor_config import ActuatorCfg, CollisionCfg
 # MJCF and assets
 ##
 
-T1_XML: Path = MJLAB_SRC_PATH / "asset_zoo" / "robots" / "booster_t1" / "xmls" / "t1.xml"
+T1_XML: Path = (
+  MJLAB_SRC_PATH / "asset_zoo" / "robots" / "booster_t1" / "xmls" / "t1.xml"
+)
 assert T1_XML.exists()
+
 
 def get_assets() -> Dict[str, bytes]:
   assets: Dict[str, bytes] = {}
   update_assets(assets, T1_XML.parent / "assets")
   return assets
 
+
 def get_spec() -> mujoco.MjSpec:
   return mujoco.MjSpec.from_file(str(T1_XML), assets=get_assets())
+
 
 ##
 # Actuator config.
@@ -89,12 +92,12 @@ ACTUATOR_NECK = ElectricActuator(
 NATURAL_FREQ = 5 * 2.0 * 3.1415926535  # 10Hz
 DAMPING_RATIO = 2.0
 
-STIFFNESS_ARM = ARMATURE_ARM * NATURAL_FREQ ** 2
-STIFFNESS_ANKLE = ARMATURE_ANKLE * NATURAL_FREQ ** 2
-STIFFNESS_HIP_RY = ARMATURE_HIP_RY * NATURAL_FREQ ** 2
-STIFFNESS_HIP_P = ARMATURE_HIP_P * NATURAL_FREQ ** 2
-STIFFNESS_KNEE = ARMATURE_KNEE * NATURAL_FREQ ** 2
-STIFFNESS_NECK = ARMATURE_NECK * NATURAL_FREQ ** 2
+STIFFNESS_ARM = ARMATURE_ARM * NATURAL_FREQ**2
+STIFFNESS_ANKLE = ARMATURE_ANKLE * NATURAL_FREQ**2
+STIFFNESS_HIP_RY = ARMATURE_HIP_RY * NATURAL_FREQ**2
+STIFFNESS_HIP_P = ARMATURE_HIP_P * NATURAL_FREQ**2
+STIFFNESS_KNEE = ARMATURE_KNEE * NATURAL_FREQ**2
+STIFFNESS_NECK = ARMATURE_NECK * NATURAL_FREQ**2
 
 DAMPING_ARM = 2.0 * DAMPING_RATIO * ARMATURE_ARM * NATURAL_FREQ
 DAMPING_ANKLE = 2.0 * DAMPING_RATIO * ARMATURE_ANKLE * NATURAL_FREQ
@@ -179,18 +182,18 @@ HOME_KEYFRAME = RobotCfg.InitialStateCfg(
 # are given condim=3 and custom friction and solimp.
 FULL_COLLISION = CollisionCfg(
   geom_names_expr=[".*_collision"],
-  condim={r'^(left|right)_foot_collision$': 3},
-  priority={r'^(left|right)_foot_collision$': 1},
-  friction={r'^(left|right)_foot_collision$': (0.6,)},
+  condim={r"^(left|right)_foot_collision$": 3},
+  priority={r"^(left|right)_foot_collision$": 1},
+  friction={r"^(left|right)_foot_collision$": (0.6,)},
 )
 
 FULL_COLLISION_WITHOUT_SELF = CollisionCfg(
   geom_names_expr=[".*_collision"],
   contype=0,
   conaffinity=1,
-  condim={r'^(left|right)_foot_collision$': 3},
-  priority={r'^(left|right)_foot_collision$': 1},
-  friction={r'^(left|right)_foot_collision$': (0.6,)},
+  condim={r"^(left|right)_foot_collision$": 3},
+  priority={r"^(left|right)_foot_collision$": 1},
+  friction={r"^(left|right)_foot_collision$": (0.6,)},
 )
 
 ##

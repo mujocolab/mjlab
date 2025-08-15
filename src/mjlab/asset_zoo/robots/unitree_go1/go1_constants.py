@@ -1,7 +1,5 @@
 """Unitree Go1 constants."""
 
-# fmt: off
-
 import mujoco
 from pathlib import Path
 from typing import Dict
@@ -16,13 +14,17 @@ from mjlab.utils.spec_editor import ActuatorCfg, CollisionCfg
 # MJCF and assets.
 ##
 
-GO1_XML: Path = MJLAB_SRC_PATH / "asset_zoo" / "robots" / "unitree_go1" / "xmls" / "go1.xml"
+GO1_XML: Path = (
+  MJLAB_SRC_PATH / "asset_zoo" / "robots" / "unitree_go1" / "xmls" / "go1.xml"
+)
 assert GO1_XML.exists()
+
 
 def get_assets() -> Dict[str, bytes]:
   assets: Dict[str, bytes] = {}
   update_assets(assets, GO1_XML.parent / "assets")
   return assets
+
 
 def get_spec() -> mujoco.MjSpec:
   return mujoco.MjSpec.from_file(str(GO1_XML), assets=get_assets())
@@ -86,7 +88,7 @@ INIT_STATE = RobotCfg.InitialStateCfg(
 # Collision config.
 ##
 
-_foot_regex = '^[FR][LR]_foot_collision$'
+_foot_regex = "^[FR][LR]_foot_collision$"
 
 # This disables all collisions except the feet.
 # Furthermore, feet self collisions are disabled.

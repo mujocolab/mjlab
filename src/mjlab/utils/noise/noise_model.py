@@ -1,6 +1,6 @@
 from __future__ import annotations
 import torch
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
   from mjlab.utils.noise import noise_cfg
