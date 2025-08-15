@@ -4,6 +4,7 @@ from typing import Sequence
 
 import mujoco
 import mujoco_warp as mjwarp
+import torch
 
 from mjlab.entities.indexing import EntityIndexing
 from mjlab.entities.entity_config import EntityCfg
@@ -53,7 +54,7 @@ class Entity(abc.ABC):
     raise NotImplementedError
 
   @abc.abstractmethod
-  def reset(self, env_ids: Sequence[int] | None = None):
+  def reset(self, env_ids: torch.Tensor | slice | None = None):
     raise NotImplementedError
 
   @abc.abstractmethod

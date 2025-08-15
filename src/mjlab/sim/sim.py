@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, cast, TYPE_CHECKING
 import numpy as np
 import torch
 from mjlab.sim.sim_config import SimulationCfg
@@ -9,6 +9,13 @@ import warp as wp
 import mujoco_warp as mjwarp
 
 from mjlab.sim.randomization import expand_model_fields
+
+if TYPE_CHECKING:
+  ModelBridge = mjwarp.Model
+  DataBridge = mjwarp.Data
+else:
+  ModelBridge = WarpBridge
+  DataBridge = WarpBridge
 
 # TODO: Should this be placed here?
 wp.config.enable_backward = False
@@ -25,7 +32,7 @@ class Simulation:
 
     self._mj_model = model
     self._mj_data = mujoco.MjData(model)
-    mujoco.mj_resetDataKeyframe(self._mj_model, self._mj_data, 0)
+    # mujoco.mj_resetDataKeyframe(self._mj_model, self._mj_data, 0)
     mujoco.mj_forward(self._mj_model, self._mj_data)
 
     self._wp_model = mjwarp.put_model(self._mj_model)
@@ -38,6 +45,9 @@ class Simulation:
       nconmax=self.cfg.nconmax,
       njmax=self.cfg.njmax,
     )
+
+    self._model_bridge = WarpBridge(self._wp_model)
+    self._data_bridge = WarpBridge(self._wp_data)
 
     self.use_cuda_graph = self.wp_device.is_cuda and wp.is_mempool_enabled(
       self.wp_device
@@ -87,16 +97,12 @@ class Simulation:
     return self._wp_data
 
   @property
-  def data(self) -> WarpBridge:
-    return WarpBridge(self.wp_data)
+  def data(self) -> "DataBridge":
+    return cast("DataBridge", self._data_bridge)
 
   @property
-  def model(self) -> WarpBridge:
-    return WarpBridge(self.wp_model)
-
-  @property
-  def contact(self) -> WarpBridge:
-    return WarpBridge(self.wp_data.contact)
+  def model(self) -> "ModelBridge":
+    return cast("ModelBridge", self._model_bridge)
 
   @property
   def renderer(self) -> mujoco.Renderer:
@@ -112,6 +118,7 @@ class Simulation:
     expand_model_fields(self._wp_model, self.num_envs, fields)
 
   def reset(self) -> None:
+    # TODO(kevin): Should we be doing anything here?
     pass
 
   def forward(self) -> None:
@@ -128,10 +135,10 @@ class Simulation:
     else:
       mjwarp.step(self.wp_model, self.wp_data)
 
+  # TODO(kevin): Consider moving this.
   def set_ctrl(self, ctrl: torch.Tensor, ctrl_ids: Sequence[int] | None = None) -> None:
-    if ctrl_ids is None:
-      ctrl_ids = slice(None)
-    self.data.ctrl[:, ctrl_ids] = ctrl[:, ctrl_ids]
+    indices = slice(None) if ctrl_ids is None else ctrl_ids
+    self.data.ctrl[:, indices] = ctrl[:, indices]
 
   def update_render(self) -> None:
     attrs_to_copy = ["qpos", "qvel", "mocap_pos", "mocap_quat", "xfrc_applied"]

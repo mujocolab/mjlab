@@ -63,7 +63,7 @@ class CurriculumManager(ManagerBase):
         terms.append((term_name, data))
     return terms
 
-  def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, float]:
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> dict[str, float]:
     extras = {}
     for term_name, term_state in self._curriculum_state.items():
       if term_state is not None:
@@ -80,7 +80,7 @@ class CurriculumManager(ManagerBase):
       term_cfg.func.reset(env_ids=env_ids)
     return extras
 
-  def compute(self, env_ids: Sequence[int] | None = None):
+  def compute(self, env_ids: torch.Tensor | slice | None = None):
     if env_ids is None:
       env_ids = slice(None)
     for name, term_cfg in zip(self._term_names, self._term_cfgs):

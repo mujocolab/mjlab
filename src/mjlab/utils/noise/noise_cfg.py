@@ -1,20 +1,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable, Literal
+from typing import Callable, Literal, TypeVar
 
 import torch
 
 from mjlab.utils.noise import noise_model
 
-FuncType = Callable[[torch.Tensor, "NoiseCfg"], torch.Tensor]
+T = TypeVar("T", bound="NoiseCfg")
 
 
 @dataclass
 class NoiseCfg:
   """Base configuration for a noise term."""
 
-  func: FuncType = field(default_factory=lambda: None)
+  func: Callable[[torch.Tensor, "NoiseCfg"], torch.Tensor] | None = None
   operation: Literal["add", "scale", "abs"] = "add"
 
   def __post_init__(self):
@@ -24,13 +24,17 @@ class NoiseCfg:
 
 @dataclass
 class ConstantNoiseCfg(NoiseCfg):
-  func: FuncType = field(default_factory=lambda: noise_model.constant_noise)
+  func: Callable[[torch.Tensor, "ConstantNoiseCfg"], torch.Tensor] = field(
+    default_factory=lambda: noise_model.constant_noise
+  )
   bias: torch.Tensor | float = 0.0
 
 
 @dataclass
 class UniformNoiseCfg(NoiseCfg):
-  func: FuncType = field(default_factory=lambda: noise_model.uniform_noise)
+  func: Callable[[torch.Tensor, "UniformNoiseCfg"], torch.Tensor] = field(
+    default_factory=lambda: noise_model.uniform_noise
+  )
   n_min: torch.Tensor | float = -1.0
   n_max: torch.Tensor | float = 1.0
 
@@ -43,7 +47,9 @@ class UniformNoiseCfg(NoiseCfg):
 
 @dataclass
 class GaussianNoiseCfg(NoiseCfg):
-  func: FuncType = field(default_factory=lambda: noise_model.gaussian_noise)
+  func: Callable[[torch.Tensor, "GaussianNoiseCfg"], torch.Tensor] = field(
+    default_factory=lambda: noise_model.gaussian_noise
+  )
   mean: torch.Tensor | float = 0.0
   std: torch.Tensor | float = 1.0
 
@@ -63,14 +69,13 @@ class NoiseModelCfg:
   """Configuration for a noise model."""
 
   class_type: type = field(default_factory=lambda: noise_model.NoiseModel)
-  noise_cfg: NoiseCfg = field(default_factory=lambda: None)
+  noise_cfg: Callable[[torch.Tensor, "NoiseCfg"], torch.Tensor] | None = None
   func: Callable[[torch.Tensor], torch.Tensor] | None = None
 
   def __post_init__(self):
     if self.noise_cfg is None:
       raise ValueError("noise_cfg must be specified for NoiseModelCfg")
 
-    # Validate class type.
     if not issubclass(self.class_type, noise_model.NoiseModel):
       raise ValueError(
         f"class_type must be a subclass of NoiseModel, got {self.class_type}"
@@ -84,7 +89,7 @@ class NoiseModelWithAdditiveBiasCfg(NoiseModelCfg):
   class_type: type = field(
     default_factory=lambda: noise_model.NoiseModelWithAdditiveBias
   )
-  bias_noise_cfg: NoiseCfg = field(default_factory=lambda: None)
+  bias_noise_cfg: Callable[[torch.Tensor, "NoiseCfg"], torch.Tensor] | None = None
   sample_bias_per_component: bool = True
 
   def __post_init__(self):
@@ -94,7 +99,6 @@ class NoiseModelWithAdditiveBiasCfg(NoiseModelCfg):
         "bias_noise_cfg must be specified for NoiseModelWithAdditiveBiasCfg"
       )
 
-    # Validate class_type
     if not issubclass(self.class_type, noise_model.NoiseModelWithAdditiveBias):
       raise ValueError(
         f"class_type must be a subclass of NoiseModelWithAdditiveBias, got {self.class_type}"

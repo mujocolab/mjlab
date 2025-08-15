@@ -1,13 +1,11 @@
 """MjSpec utils."""
 
-from typing import Tuple
-
 import mujoco
 
 
-def get_non_root_joints(spec: mujoco.MjSpec) -> Tuple[mujoco.MjsJoint]:
+def get_non_root_joints(spec: mujoco.MjSpec) -> tuple[mujoco.MjsJoint, ...]:
   """Returns all joints except the root joint."""
-  joints = []
+  joints: list[mujoco.MjsJoint] = []
   for jnt in spec.joints:
     if jnt.type == mujoco.mjtJoint.mjJNT_FREE:
       continue
@@ -17,7 +15,7 @@ def get_non_root_joints(spec: mujoco.MjSpec) -> Tuple[mujoco.MjsJoint]:
 
 def get_root_joint(spec: mujoco.MjSpec) -> mujoco.MjsJoint | None:
   """Returns the root joint. None if no root joint exists."""
-  joint = None
+  joint: mujoco.MjsJoint | None = None
   for jnt in spec.joints:
     if jnt.type == mujoco.mjtJoint.mjJNT_FREE:
       joint = jnt

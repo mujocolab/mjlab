@@ -109,7 +109,7 @@ class ObservationManager(ManagerBase):
 
   # Methods.
 
-  def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, float]:
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> dict[str, float]:
     for group_name, group_cfg in self._group_obs_class_term_cfgs.items():
       for term_cfg in group_cfg:
         term_cfg.func.reset(env_ids=env_ids)

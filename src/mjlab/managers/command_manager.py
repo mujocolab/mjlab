@@ -39,7 +39,7 @@ class CommandTerm(ManagerTermBase):
   def command(self):
     raise NotImplementedError
 
-  def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, float]:
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> dict[str, float]:
     if env_ids is None:
       env_ids = slice(None)
     extras = {}
@@ -124,7 +124,9 @@ class CommandManager(ManagerBase):
       idx += term.command.shape[1]
     return terms
 
-  def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, torch.Tensor]:
+  def reset(
+    self, env_ids: torch.Tensor | slice | None = None
+  ) -> dict[str, torch.Tensor]:
     if env_ids is None:
       env_ids = slice(None)
     extras = {}

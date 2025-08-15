@@ -91,7 +91,7 @@ class ActionManager(ManagerBase):
   def get_term(self, name: str) -> ActionTerm:
     return self._terms[name]
 
-  def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, float]:
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> dict[str, float]:
     if env_ids is None:
       env_ids = slice(None)
     # Reset action history.

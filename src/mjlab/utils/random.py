@@ -13,7 +13,7 @@ def seed_rng(seed: int, torch_deterministic: bool = False) -> None:
   os.environ["PYTHONHASHSEED"] = str(seed)
   torch.cuda.manual_seed(seed)
   torch.cuda.manual_seed_all(seed)
-  wp.rand_init(seed)
+  wp.rand_init(seed)  # type: ignore
 
   if torch_deterministic:
     # refer to https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility

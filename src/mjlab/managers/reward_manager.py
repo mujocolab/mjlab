@@ -54,7 +54,9 @@ class RewardManager(ManagerBase):
 
   # Methods.
 
-  def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, torch.Tensor]:
+  def reset(
+    self, env_ids: torch.Tensor | slice | None = None
+  ) -> dict[str, torch.Tensor]:
     if env_ids is None:
       env_ids = slice(None)
     extras = {}

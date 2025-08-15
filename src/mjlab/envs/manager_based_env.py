@@ -1,4 +1,4 @@
-from typing import Any, Sequence
+from typing import Any
 
 import numpy as np
 import torch
@@ -29,20 +29,11 @@ class ManagerBasedEnv:
     self.scene.configure_sim_options(self.cfg.sim.mujoco)
     print("[INFO]: Scene manager: ", self.scene)
 
-    self.sim = Simulation(
-      cfg=self.cfg.sim,
-      model=self.scene.compile(),
-    )
+    self.sim = Simulation(cfg=self.cfg.sim, model=self.scene.compile())
 
     if "cuda" in self.device:
       torch.cuda.set_device(self.device)
 
-    # This will call initialize on all the entities (terrain, robot, sensors, etc).
-    # In the robot entity init, we read defaults from the wp_model such as default
-    # joint positions, default joint damping and stiffness.
-    # This is problematic because if we apply domain randomization at startup, the
-    # new wp_model fields will get randomized *after* initialization and so won't
-    # be reflected in the assigned defaults.
     self.scene.initialize(
       mj_model=self.sim.mj_model,
       model=self.sim.model,
@@ -110,7 +101,7 @@ class ManagerBasedEnv:
   def reset(
     self,
     seed: int | None = None,
-    env_ids: Sequence[int] | None = None,
+    env_ids: torch.Tensor | slice | None = None,
     options: dict[str, Any] | None = None,
   ) -> tuple[types.VecEnvObs, dict]:
     del options  # Unused.
@@ -157,7 +148,7 @@ class ManagerBasedEnv:
 
   # Private methods.
 
-  def _reset_idx(self, env_ids: Sequence[int]) -> None:
+  def _reset_idx(self, env_ids: torch.Tensor | slice | None = None) -> None:
     self.scene.reset(env_ids)
     if "reset" in self.event_manager.available_modes:
       env_step_count = self._sim_step_counter // self.cfg.decimation

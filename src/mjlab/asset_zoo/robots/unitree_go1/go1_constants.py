@@ -3,6 +3,7 @@
 # fmt: off
 
 import mujoco
+from pathlib import Path
 from typing import Dict
 from mjlab import MJLAB_SRC_PATH
 from mjlab.utils.os import update_assets
@@ -15,7 +16,7 @@ from mjlab.utils.spec_editor import ActuatorCfg, CollisionCfg
 # MJCF and assets.
 ##
 
-GO1_XML = MJLAB_SRC_PATH / "asset_zoo" / "robots" / "unitree_go1" / "xmls" / "go1.xml"
+GO1_XML: Path = MJLAB_SRC_PATH / "asset_zoo" / "robots" / "unitree_go1" / "xmls" / "go1.xml"
 assert GO1_XML.exists()
 
 def get_assets() -> Dict[str, bytes]:

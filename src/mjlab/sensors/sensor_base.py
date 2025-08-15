@@ -4,7 +4,7 @@ import abc
 import torch
 import mujoco
 import mujoco_warp as mjwarp
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any
 from mjlab.entities.indexing import EntityIndexing
 
 if TYPE_CHECKING:
@@ -38,7 +38,7 @@ class SensorBase(abc.ABC):
     self._timestamp = torch.zeros(self._num_envs, device=self._device)
     self._timestamp_last_update = torch.zeros_like(self._timestamp)
 
-  def reset(self, env_ids: Sequence[int] | None = None) -> None:
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
     if env_ids is None:
       env_ids = slice(None)
     self._timestamp[env_ids] = 0.0
@@ -74,5 +74,5 @@ class SensorBase(abc.ABC):
     raise NotImplementedError
 
   @abc.abstractmethod
-  def _update_buffers_impl(self, env_ids: Sequence[int]):
+  def _update_buffers_impl(self, env_ids: torch.Tensor | slice | None = None):
     raise NotImplementedError

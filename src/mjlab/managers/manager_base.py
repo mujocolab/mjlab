@@ -2,6 +2,8 @@ from __future__ import annotations
 import abc
 from typing import TYPE_CHECKING, Any, Sequence
 
+import torch
+
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 if TYPE_CHECKING:
@@ -30,7 +32,7 @@ class ManagerTermBase(abc.ABC):
 
   # Methods.
 
-  def reset(self, env_ids: Sequence[int] | None = None) -> None:
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
     """Resets the manager term."""
     del env_ids  # Unused.
     pass
@@ -66,7 +68,7 @@ class ManagerBase(abc.ABC):
 
   # Methods.
 
-  def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, float]:
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> dict[str, float]:
     """Resets the manager and returns logging info for the current step."""
     del env_ids  # Unused.
     return {}

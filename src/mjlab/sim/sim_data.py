@@ -1,6 +1,8 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, TypeVar, Generic
 import torch
 import warp as wp
+
+T = TypeVar("T")
 
 
 class TorchArray:
@@ -62,20 +64,7 @@ class TorchArray:
     args: Tuple[Any, ...] = (),
     kwargs: Optional[Dict[str, Any]] = None,
   ) -> Any:
-    """Intercept torch.* function calls to unwrap TorchArray objects.
-
-    This enables transparent use of TorchArray objects in torch functions
-    by automatically unwrapping them to their underlying tensors.
-
-    Args:
-      func: The torch function being called
-      types: Types of all arguments
-      args: Positional arguments to the function
-      kwargs: Keyword arguments to the function
-
-    Returns:
-      Result of the torch function call with unwrapped tensors
-    """
+    """Intercept torch.* function calls to unwrap TorchArray objects."""
     if kwargs is None:
       kwargs = {}
 
@@ -93,92 +82,70 @@ class TorchArray:
 
     return func(*unwrapped_args, **unwrapped_kwargs)
 
+  # Arithmetic operators.
+
   def __add__(self, other: Any) -> Any:
-    """Addition operation."""
     return self._tensor + other
 
   def __radd__(self, other: Any) -> Any:
-    """Right addition operation."""
     return other + self._tensor
 
   def __sub__(self, other: Any) -> Any:
-    """Subtraction operation."""
     return self._tensor - other
 
   def __rsub__(self, other: Any) -> Any:
-    """Right subtraction operation."""
     return other - self._tensor
 
   def __mul__(self, other: Any) -> Any:
-    """Multiplication operation."""
     return self._tensor * other
 
   def __rmul__(self, other: Any) -> Any:
-    """Right multiplication operation."""
     return other * self._tensor
 
   def __truediv__(self, other: Any) -> Any:
-    """Division operation."""
     return self._tensor / other
 
   def __rtruediv__(self, other: Any) -> Any:
-    """Right division operation."""
     return other / self._tensor
 
   def __pow__(self, other: Any) -> Any:
-    """Power operation."""
     return self._tensor**other
 
   def __rpow__(self, other: Any) -> Any:
-    """Right power operation."""
     return other**self._tensor
 
   def __neg__(self) -> Any:
-    """Unary negation operation."""
     return -self._tensor
 
   def __pos__(self) -> Any:
-    """Unary positive operation."""
     return +self._tensor
 
   def __abs__(self) -> Any:
-    """Absolute value operation."""
     return abs(self._tensor)
 
+  # Comparison operators.
+
   def __eq__(self, other: Any) -> Any:
-    """Equality comparison."""
     return self._tensor == other
 
   def __ne__(self, other: Any) -> Any:
-    """Inequality comparison."""
     return self._tensor != other
 
   def __lt__(self, other: Any) -> Any:
-    """Less than comparison."""
     return self._tensor < other
 
   def __le__(self, other: Any) -> Any:
-    """Less than or equal comparison."""
     return self._tensor <= other
 
   def __gt__(self, other: Any) -> Any:
-    """Greater than comparison."""
     return self._tensor > other
 
   def __ge__(self, other: Any) -> Any:
-    """Greater than or equal comparison."""
     return self._tensor >= other
 
 
 def _contains_warp_arrays(obj: Any) -> bool:
-  """Check if an object or its attributes contain any Warp arrays.
-
-  Args:
-    obj: Object to check for Warp arrays
-
-  Returns:
-    True if the object or any of its attributes contain Warp arrays
-  """
+  """Check if an object or its attributes contain any Warp arrays."""
   if isinstance(obj, wp.array):
     return True
 
@@ -193,7 +160,7 @@ def _contains_warp_arrays(obj: Any) -> bool:
   return False
 
 
-class WarpBridge:
+class WarpBridge(Generic[T]):
   """Wraps mjwarp objects to expose Warp arrays as PyTorch tensors.
 
   Automatically converts Warp array attributes to TorchArray objects
@@ -201,22 +168,12 @@ class WarpBridge:
   Recursively wraps nested structures that contain Warp arrays.
   """
 
-  def __init__(self, struct: Any) -> None:
+  def __init__(self, struct: T) -> None:
     super().__setattr__("_struct", struct)
     super().__setattr__("_wrapped_cache", {})
 
   def __getattr__(self, name: str) -> Any:
-    """Get attribute from the wrapped data, wrapping Warp arrays as TorchArray.
-    Recursively wraps nested structures containing Warp arrays.
-
-    Args:
-      name: Name of the attribute to access
-
-    Returns:
-      TorchArray if the attribute is a Warp array,
-      WarpBridge if it's a nested struct with Warp arrays,
-      otherwise the raw value
-    """
+    """Get attribute from the wrapped data, wrapping Warp arrays as TorchArray."""
     # Check cache first to avoid recreating wrappers.
     if name in self._wrapped_cache:
       return self._wrapped_cache[name]
@@ -238,19 +195,7 @@ class WarpBridge:
     return val
 
   def __setattr__(self, name: str, value: Any) -> None:
-    """
-    Set attribute on the wrapped data, handling tensor conversions.
-
-    For existing Warp array fields, accepts TorchArray objects, PyTorch tensors,
-    or other compatible values. Non-array fields are set normally.
-
-    Args:
-      name: Name of the attribute to set
-      value: Value to set (TorchArray, torch.Tensor, or other)
-
-    Raises:
-      TypeError: If trying to set a Warp array field with an incompatible type
-    """
+    """Set attribute on the wrapped data, handling tensor conversions."""
     # Special case: setting internal attributes during initialization
     if name in ("_struct", "_wrapped_cache"):
       super().__setattr__(name, value)
@@ -283,6 +228,6 @@ class WarpBridge:
     return f"WarpBridge({repr(self._struct)})"
 
   @property
-  def struct(self) -> Any:
+  def struct(self) -> T:
     """Access the underlying wrapped struct."""
     return self._struct

@@ -3,6 +3,7 @@
 # fmt: off
 
 import mujoco
+from pathlib import Path
 from typing import Dict
 from mjlab import MJLAB_SRC_PATH
 from mjlab.utils.os import update_assets
@@ -15,7 +16,7 @@ from mjlab.utils.spec_editor.spec_editor_config import ActuatorCfg, CollisionCfg
 # MJCF and assets
 ##
 
-T1_XML = MJLAB_SRC_PATH / "asset_zoo" / "robots" / "booster_t1" / "xmls" / "t1.xml"
+T1_XML: Path = MJLAB_SRC_PATH / "asset_zoo" / "robots" / "booster_t1" / "xmls" / "t1.xml"
 assert T1_XML.exists()
 
 def get_assets() -> Dict[str, bytes]:
@@ -211,7 +212,7 @@ T1_ROBOT_CFG = RobotCfg(
   spec_fn=get_spec,
 )
 
-T1_ACTION_SCALE = {}
+T1_ACTION_SCALE: dict[str, float] = {}
 for a in T1_ROBOT_CFG.actuators:
   e = a.effort_limit
   s = a.stiffness

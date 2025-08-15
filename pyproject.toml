@@ -11,25 +11,46 @@ packages = ["src/mjlab"]
 [project]
 name = "mjlab"
 version = "0.0.0"
+license = "Apache-2.0"
+license-files = ["LICENSE", "src/mjlab/third_party/**/LICENSE"]
 readme = "README.md"
 authors = [
     {name = "Kevin Zakka", email = "zakka@berkeley.edu"},
 ]
-requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+    "Environment :: GPU :: NVIDIA CUDA",
+    "Environment :: GPU :: NVIDIA CUDA :: 12",
+    "Topic :: Scientific/Engineering",
+]
 dynamic = ["description"]
+requires-python = ">=3.10"
 dependencies = [
     "gymnasium==1.2.0",
     "prettytable",
     "tqdm",
     "tyro",
+    "torch",
+    "warp-lang>=1.9.0.dev20250813",
+    "mujoco-warp>=0.0.1",
+    "mujoco>=3.3.6.dev793087071",
 ]
 
 [project.optional-dependencies]
-test = [
+dev = [
     "absl-py",
     "pytest",
     "pytest-xdist",
     "pre-commit",
+    "ipdb",
 ]
 rl = [
     "mediapy",
@@ -38,6 +59,31 @@ rl = [
     "tensorboard",
     "wandb",
 ]
+cu12 = ["torch>=2.7.0"]
+
+[[tool.uv.index]]
+url = "https://pypi.org/simple"
+
+[[tool.uv.index]]
+name = "nvidia"
+url = "https://pypi.nvidia.com/"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[[tool.uv.index]]
+name = "mujoco"
+url = "https://py.mujoco.org"
+explicit = true
+
+[tool.uv.sources]
+mujoco-warp = { git = "https://github.com/google-deepmind/mujoco_warp" }
+warp-lang = { index = "nvidia", marker = "sys_platform != 'darwin'" }
+mujoco = { index = "mujoco" }
+torch = [{ index = "pytorch-cu128", extra = "cu12" }]
 
 [tool.ruff]
 indent-width = 2
@@ -47,3 +93,10 @@ exclude = [
 
 [tool.ruff.lint.isort]
 required-imports = ["from __future__ import annotations"]
+
+[tool.ty.rules]
+unresolved-attribute = "ignore"
+
+[tool.ty.src]
+include = ["src", "tests"]
+exclude = ["src/mjlab/third_party"]

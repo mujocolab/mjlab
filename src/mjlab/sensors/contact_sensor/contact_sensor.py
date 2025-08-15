@@ -131,7 +131,7 @@ class ContactSensor(SensorBase):
         self._num_envs, self._num_bodies, device=self._device
       )
 
-  def reset(self, env_ids: Sequence[int] | None = None):
+  def reset(self, env_ids: torch.Tensor | slice | None = None):
     super().reset(env_ids)
     if env_ids is None:
       env_ids = slice(None)
@@ -143,9 +143,11 @@ class ContactSensor(SensorBase):
       self._data.current_contact_time[env_ids] = 0.0
       self._data.last_contact_time[env_ids] = 0.0
 
-  def _update_buffers_impl(self, env_ids: Sequence[int]):
+  def _update_buffers_impl(self, env_ids: torch.Tensor | slice | None = None):
     """Update contact force buffers for specified environments."""
-    if len(env_ids) == self._num_envs:
+    # if len(env_ids) == self._num_envs:
+    #   env_ids = slice(None)
+    if env_ids is None:
       env_ids = slice(None)
     self._data.net_forces_w[env_ids] = 0.0
     self._compute_contact_forces(env_ids)

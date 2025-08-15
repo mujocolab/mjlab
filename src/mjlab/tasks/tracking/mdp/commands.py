@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
-from dataclasses import dataclass, MISSING, field
+from typing import TYPE_CHECKING
+from dataclasses import dataclass, field
 import mujoco
 import torch
 import copy
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 class MotionLoader:
   def __init__(
-    self, motion_file: str, body_indexes: Sequence[int], device: str = "cpu"
+    self, motion_file: str, body_indexes: torch.Tensor, device: str = "cpu"
   ) -> None:
     data = np.load(motion_file)
     self.joint_pos = torch.tensor(data["joint_pos"], dtype=torch.float32, device=device)
@@ -230,7 +230,7 @@ class MotionCommand(CommandTerm):
       self.joint_vel - self.robot_joint_vel, dim=-1
     )
 
-  def _resample_command(self, env_ids: Sequence[int]):
+  def _resample_command(self, env_ids: torch.Tensor):
     if self.cfg.start_from_beginning:
       phase = torch.zeros(len(env_ids), device=self.device)
     else:
@@ -238,7 +238,7 @@ class MotionCommand(CommandTerm):
     self.time_steps[env_ids] = (phase * (self.motion.time_step_total - 1)).long()
     self._random_state_initialization(env_ids)
 
-  def _random_state_initialization(self, env_ids: Sequence[int]):
+  def _random_state_initialization(self, env_ids: torch.Tensor):
     root_pos = self.body_pos_w[:, 0].clone()
     root_ori = self.body_quat_w[:, 0].clone()
     root_lin_vel = self.body_lin_vel_w[:, 0].clone()
@@ -272,7 +272,9 @@ class MotionCommand(CommandTerm):
     joint_vel = self.joint_vel.clone()
 
     joint_pos += sample_uniform(
-      *self.cfg.joint_position_range, joint_pos.shape, joint_pos.device
+      *self.cfg.joint_position_range,
+      joint_pos.shape,
+      joint_pos.device,  # type: ignore
     )
     soft_joint_pos_limits = self.robot.data.soft_joint_pos_limits[env_ids]
     joint_pos[env_ids] = torch.clip(
@@ -335,10 +337,10 @@ class MotionCommand(CommandTerm):
 
 @dataclass(kw_only=True)
 class MotionCommandCfg(CommandTermCfg):
-  motion_file: str = MISSING
-  reference_body: str = MISSING
-  body_names: list[str] = MISSING
-  asset_name: str = MISSING
+  motion_file: str
+  reference_body: str
+  body_names: list[str]
+  asset_name: str
   class_type: type[CommandTerm] = MotionCommand
   pose_range: dict[str, tuple[float, float]] = field(default_factory=dict)
   velocity_range: dict[str, tuple[float, float]] = field(default_factory=dict)

@@ -55,7 +55,7 @@ class EventManager(ManagerBase):
 
   # Methods.
 
-  def reset(self, env_ids=None):
+  def reset(self, env_ids: torch.Tensor | slice | None = None):
     for mode_cfg in self._mode_class_term_cfgs.values():
       for term_cfg in mode_cfg:
         term_cfg.func.reset(env_ids=env_ids)

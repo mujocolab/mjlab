@@ -1,3 +1,4 @@
+import torch
 from mjlab.entities import entity
 from mjlab.entities.terrains.terrain_config import TerrainCfg
 from mjlab.utils.spec_editor import spec_editor as common_editors
@@ -11,7 +12,7 @@ class Terrain(entity.Entity):
   def __init__(self, terrain_cfg: TerrainCfg):
     super().__init__(terrain_cfg)
 
-  def reset(self, env_ids: entity.Sequence[int] | None = None):
+  def reset(self, env_ids: torch.Tensor | slice | None = None):
     pass
 
   def write_data_to_sim(self) -> None:

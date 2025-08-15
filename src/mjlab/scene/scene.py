@@ -1,7 +1,8 @@
-from typing import Any, Sequence
+from typing import Any
 
 import mujoco
 import torch
+import mujoco_warp as mjwarp
 
 from mjlab.entities import entity
 from mjlab.scene.scene_config import SceneCfg
@@ -29,6 +30,8 @@ _BASE_XML = r"""
 
 
 class Scene:
+  """Add docstring."""
+
   def __init__(self, scene_cfg: SceneCfg):
     self._cfg = scene_cfg
 
@@ -41,7 +44,7 @@ class Scene:
     self._attach_robots()
     self._attach_sensors()
 
-  def compile(self):
+  def compile(self) -> mujoco.MjModel:
     return self._spec.compile()
 
   def configure_sim_options(self, cfg: OptionCfg) -> None:
@@ -81,10 +84,18 @@ class Scene:
 
   # Methods.
 
-  def initialize(self, mj_model: mujoco.MjModel, model, data, device):
+  def initialize(
+    self,
+    mj_model: mujoco.MjModel,
+    model: mjwarp.Model,
+    data: mjwarp.Data,
+    device: str,
+  ):
     self._compute_indexing(mj_model, device)
+
     for ent_name, ent in self._entities.items():
       ent.initialize(self.indexing.entities[ent_name], model, data, device)
+
     for sens in self._sensors.values():
       sens.initialize(
         dt=mj_model.opt.timestep,
@@ -95,7 +106,7 @@ class Scene:
         device=device,
       )
 
-  def reset(self, env_ids: Sequence[int] | None = None) -> None:
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
     for ent in self._entities.values():
       ent.reset(env_ids)
     for sns in self._sensors.values():

@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import torch
 from mjlab.entities.indexing import EntityIndexing
 import mujoco_warp as mjwarp
+from dataclasses import dataclass
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   quat_apply,
   quat_apply_inverse,
@@ -9,44 +12,37 @@ from mjlab.third_party.isaaclab.isaaclab.utils.math import (
 )
 
 
+@dataclass
 class RobotData:
-  """Robot data interface for MuJoCo simulation data with batched environments."""
+  indexing: EntityIndexing
+  data: mjwarp.Data
+  device: str
 
-  body_names: list[str] | None = None
-  geom_names: list[str] | None = None
-  site_names: list[str] | None = None
-  sensor_names: list[str] | None = None
-  joint_names: list[str] | None = None
+  body_names: list[str]
+  geom_names: list[str]
+  site_names: list[str]
+  sensor_names: list[str]
+  joint_names: list[str]
 
-  default_root_state: torch.Tensor | None = None
-  default_joint_pos: torch.Tensor | None = None
-  default_joint_vel: torch.Tensor | None = None
+  default_root_state: torch.Tensor
+  default_joint_pos: torch.Tensor
+  default_joint_vel: torch.Tensor
 
-  default_joint_pos_limits: torch.Tensor | None = None
-  joint_pos_limits: torch.Tensor | None = None
-  soft_joint_pos_limits: torch.Tensor | None = None
-  joint_pos_weight: torch.Tensor | None = None
+  default_joint_pos_limits: torch.Tensor
+  joint_pos_limits: torch.Tensor
+  soft_joint_pos_limits: torch.Tensor
+  joint_pos_weight: torch.Tensor
 
-  default_joint_stiffness: torch.Tensor = None
-  default_joint_damping: torch.Tensor = None
-  joint_stiffness: torch.Tensor | None = None
-  joint_damping: torch.Tensor | None = None
+  default_joint_stiffness: torch.Tensor
+  default_joint_damping: torch.Tensor
+  joint_stiffness: torch.Tensor
+  joint_damping: torch.Tensor
 
-  def __init__(self, indexing: EntityIndexing, data: mjwarp.Data, device: str):
-    self.indexing = indexing
-    self.data = data
-    self.device = device
-    self._sim_timestamp = 0.0
-
-    self.GRAVITY_VEC_W = torch.tensor([0.0, 0.0, -1.0], device=device).repeat(
-      data.nworld, 1
-    )
-    self.FORWARD_VEC_B = torch.tensor([1.0, 0.0, 0.0], device=device).repeat(
-      data.nworld, 1
-    )
+  FORWARD_VEC_B: torch.Tensor
+  GRAVITY_VEC_W: torch.Tensor
 
   def update(self, dt: float) -> None:
-    self._sim_timestamp += dt
+    del dt  # Unused.
 
   def _compute_velocity_from_cvel(
     self, pos: torch.Tensor, subtree_com: torch.Tensor, cvel: torch.Tensor

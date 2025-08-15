@@ -86,7 +86,7 @@ class NoiseModel:
     if not hasattr(noise_model_cfg, "noise_cfg") or noise_model_cfg.noise_cfg is None:
       raise ValueError("NoiseModelCfg must have a valid noise_cfg")
 
-  def reset(self, env_ids: Sequence[int] | None = None):
+  def reset(self, env_ids: torch.Tensor | slice | None = None):
     """Reset noise model state. Override in subclasses if needed."""
 
   def __call__(self, data: torch.Tensor) -> torch.Tensor:
@@ -121,13 +121,12 @@ class NoiseModelWithAdditiveBias(NoiseModel):
     self._num_components: int | None = None
     self._bias_initialized = False
 
-  def reset(self, env_ids: Sequence[int] | None = None):
+  def reset(self, env_ids: torch.Tensor | slice | None = None):
     """Reset bias values for specified environments."""
-    if env_ids is None:
-      env_ids = slice(None)
+    indices = slice(None) if env_ids is None else env_ids
     # Sample new bias values.
-    self._bias[env_ids] = self._bias_noise_cfg.func(
-      self._bias[env_ids], self._bias_noise_cfg
+    self._bias[indices] = self._bias_noise_cfg.func(
+      self._bias[indices], self._bias_noise_cfg
     )
 
   def _initialize_bias_shape(self, data_shape: torch.Size) -> None:
@@ -144,5 +143,4 @@ class NoiseModelWithAdditiveBias(NoiseModel):
     """Apply noise and additive bias to input data."""
     self._initialize_bias_shape(data.shape)
     noisy_data = super().__call__(data)
-    result = noisy_data + self._bias
-    return result
+    return noisy_data + self._bias
