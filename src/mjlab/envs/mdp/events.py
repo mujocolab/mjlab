@@ -21,7 +21,18 @@ if TYPE_CHECKING:
 
 
 def reset_scene_to_default(env: ManagerBasedEnv, env_ids: torch.Tensor) -> None:
-  raise NotImplementedError
+  for entity in env.scene.entities.values():
+    if not isinstance(entity, Robot):
+      continue
+
+    default_root_state = entity.data.default_root_state[env_ids].clone()
+    entity.write_root_state_to_sim(default_root_state, env_ids=env_ids)
+
+    default_joint_pos = entity.data.default_joint_pos[env_ids].clone()
+    default_joint_vel = entity.data.default_joint_vel[env_ids].clone()
+    entity.write_joint_state_to_sim(
+      default_joint_pos, default_joint_vel, env_ids=env_ids
+    )
 
 
 def reset_root_state_uniform(

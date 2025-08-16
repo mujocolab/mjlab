@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field, MISSING
+from dataclasses import dataclass, field
 from typing import Any, Callable, Type, TYPE_CHECKING
 
 import torch
@@ -29,8 +29,8 @@ class ManagerTermBaseCfg:
 class ActionTermCfg:
   """Configuration for an action term."""
 
-  class_type: type[ActionTerm] = MISSING
-  asset_name: str = MISSING
+  class_type: type[ActionTerm]
+  asset_name: str
   clip: dict[str, tuple] | None = None
 
 
@@ -43,8 +43,8 @@ class ActionTermCfg:
 class CommandTermCfg:
   """Configuration for a command generator term."""
 
-  class_type: type[CommandTerm] = MISSING
-  resampling_time_range: tuple[float, float] = MISSING
+  class_type: type[CommandTerm]
+  resampling_time_range: tuple[float, float]
   debug_vis: bool = False
 
 
@@ -67,7 +67,7 @@ class CurriculumTermCfg(ManagerTermBaseCfg):
 class EventTermCfg(ManagerTermBaseCfg):
   """Configuration for an event term."""
 
-  mode: str = MISSING
+  mode: str
   interval_range_s: tuple[float, float] | None = None
   is_global_time: bool = False
   min_step_count_between_reset: int = 0
@@ -104,8 +104,8 @@ class ObservationGroupCfg:
 class RewardTermCfg(ManagerTermBaseCfg):
   """Configuration for a reward term."""
 
-  func: Callable[..., torch.Tensor] = MISSING
-  weight: float = MISSING
+  func: Callable[..., torch.Tensor]
+  weight: float
 
   # TODO(kevin): Sanity check weight is valid type.
 

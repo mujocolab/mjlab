@@ -61,6 +61,14 @@ class JointAction(ActionTerm):
   # Properties.
 
   @property
+  def scale(self) -> torch.Tensor | float:
+    return self._scale
+
+  @property
+  def offset(self) -> torch.Tensor | float:
+    return self._offset
+
+  @property
   def raw_action(self) -> torch.Tensor:
     return self._raw_actions
 

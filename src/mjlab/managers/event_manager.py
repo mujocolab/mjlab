@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import torch
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 from prettytable import PrettyTable
 from mjlab.managers.manager_base import ManagerBase
 from mjlab.managers.manager_term_config import EventTermCfg
@@ -76,7 +76,7 @@ class EventManager(ManagerBase):
   def apply(
     self,
     mode: str,
-    env_ids: Sequence[int] | None = None,
+    env_ids: torch.Tensor | slice | None = None,
     dt: float | None = None,
     global_env_step_count: int | None = None,
   ):

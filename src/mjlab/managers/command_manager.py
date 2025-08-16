@@ -39,9 +39,7 @@ class CommandTerm(ManagerTermBase):
   def command(self):
     raise NotImplementedError
 
-  def reset(self, env_ids: torch.Tensor | slice | None = None) -> dict[str, float]:
-    if env_ids is None:
-      env_ids = slice(None)
+  def reset(self, env_ids: torch.Tensor) -> dict[str, float]:
     extras = {}
     for metric_name, metric_value in self.metrics.items():
       extras[metric_name] = torch.mean(metric_value[env_ids]).item()
@@ -50,7 +48,7 @@ class CommandTerm(ManagerTermBase):
     self._resample(env_ids)
     return extras
 
-  def compute(self, dt: float):
+  def compute(self, dt: float) -> None:
     self._update_metrics()
     self.time_left -= dt
     resample_env_ids = (self.time_left <= 0.0).nonzero().flatten()
@@ -58,7 +56,7 @@ class CommandTerm(ManagerTermBase):
       self._resample(resample_env_ids)
     self._update_command()
 
-  def _resample(self, env_ids: Sequence[int]):
+  def _resample(self, env_ids: torch.Tensor) -> None:
     if len(env_ids) != 0:
       self.time_left[env_ids] = self.time_left[env_ids].uniform_(
         *self.cfg.resampling_time_range
@@ -72,7 +70,7 @@ class CommandTerm(ManagerTermBase):
     raise NotImplementedError
 
   @abc.abstractmethod
-  def _resample_command(self, env_ids: Sequence[int]):
+  def _resample_command(self, env_ids: torch.Tensor):
     """Resample the command for the specified environments."""
     raise NotImplementedError
 
@@ -124,11 +122,7 @@ class CommandManager(ManagerBase):
       idx += term.command.shape[1]
     return terms
 
-  def reset(
-    self, env_ids: torch.Tensor | slice | None = None
-  ) -> dict[str, torch.Tensor]:
-    if env_ids is None:
-      env_ids = slice(None)
+  def reset(self, env_ids: torch.Tensor) -> dict[str, torch.Tensor]:
     extras = {}
     for name, term in self._terms.items():
       metrics = term.reset(env_ids=env_ids)
