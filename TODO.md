@@ -42,9 +42,12 @@ aka make Brent proud
 
 - [ ] Unit test everything
 - [ ] Redo dataclass config correctly
+  - [ ] Reconsider `term` helper
 - [ ] Make tyro configure everything in rsl_rl train and eval script
 - [ ] Improve type checking across the board
-- [ ] Switch to `uv`
+  - [ ] pylance
+  - [x] ty
+- [x] Switch to `uv`
 
 **P2**
 
