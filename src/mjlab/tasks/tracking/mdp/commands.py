@@ -294,10 +294,13 @@ class MotionCommand(CommandTerm):
     )
     self.robot.write_root_state_to_sim(root_state, env_ids=env_ids)
 
+    self.robot.clear_state(env_ids=env_ids)
+
   def _update_command(self):
     self.time_steps += 1
     env_ids = torch.where(self.time_steps >= self.motion.time_step_total)[0]
-    self._resample_command(env_ids)
+    if env_ids.numel() > 0:
+      self._resample_command(env_ids)
 
     ref_pos_w_repeat = self.ref_pos_w[:, None, :].repeat(1, len(self.cfg.body_names), 1)
     ref_quat_w_repeat = self.ref_quat_w[:, None, :].repeat(

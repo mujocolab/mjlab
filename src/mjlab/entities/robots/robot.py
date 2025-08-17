@@ -256,6 +256,12 @@ class Robot(entity.Entity):
     self._data.update(dt)
 
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
+    self.clear_state(env_ids)
+
+  def write_data_to_sim(self) -> None:
+    pass
+
+  def clear_state(self, env_ids: torch.Tensor | slice | None = None) -> None:
     if env_ids is None:
       env_ids = slice(None)
     if isinstance(env_ids, torch.Tensor):
@@ -265,9 +271,6 @@ class Robot(entity.Entity):
     self._data.data.qfrc_applied[env_ids, v_slice] = 0.0
     self._data.data.xfrc_applied[env_ids, self._body_ids_global] = 0.0
     # TODO(kevin): Reset data.act if it exists.
-
-  def write_data_to_sim(self) -> None:
-    pass
 
   # Write methods.
 
@@ -304,10 +307,6 @@ class Robot(entity.Entity):
       env_ids = env_ids[:, None]
     v_slice = self.data.indexing.free_joint_v_adr
     self._data.data.qvel[env_ids, v_slice] = root_velocity
-
-    # TODO(kevin): Is this required?
-    self._data.data.qacc[env_ids, v_slice] = 0.0
-    self._data.data.qacc_warmstart[env_ids, v_slice] = 0.0
 
   def write_joint_state_to_sim(
     self,

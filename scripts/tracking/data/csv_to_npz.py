@@ -321,9 +321,10 @@ def run_sim(
         print(f"[INFO]: Motion saved to wandb registry: {REGISTRY}/{COLLECTION}")
 
   if render:
-    import mediapy as media
+    from moviepy import ImageSequenceClip
 
-    media.write_video("./motion.mp4", frames, fps=output_fps)
+    clip = ImageSequenceClip(frames, fps=output_fps)
+    clip.write_videofile("./motion.mp4")
   print("done")
 
 
