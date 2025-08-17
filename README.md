@@ -2,23 +2,49 @@
 
 IsaacLab API with [MJWarp](https://github.com/google-deepmind/mujoco_warp) backend.
 
-## Getting started
+## Development Guide
 
-### Motion Mimic
+Clone `mjlab`:
 
 ```bash
-# Train.
-MUJOCO_GL=egl uv run --extra rl scripts/tracking/rl/train.py \
-  --task Tracking-Flat-G1-v0 \
-  --registry-name gcbc_researchers/csv_to_npz/run1_subject5:v0 \
-  --num_envs 4096
+git clone git@github.com:kevinzakka/mjlab.git && cd mjlab
 ```
 
+### Using uv
+
+Install [uv](https://docs.astral.sh/uv/):
+
 ```bash
-# Play.
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Run a pre-trained motion mimic policy on the Unitree G1 huamnoid:
+
+```bash
 uv run --extra rl scripts/tracking/rl/play.py \
   --task Tracking-Flat-G1-Play-v0 \
   --wandb-run-path gcbc_researchers/mjlab_alpha/rfdej55h
+```
+
+To train the same motion mimic policy, run:
+
+```bash
+MUJOCO_GL=egl uv run --extra rl scripts/tracking/rl/train.py \
+  --task Tracking-Flat-G1-v0 \
+  --registry-name gcbc_researchers/csv_to_npz/lafan_cartwheel \
+  --num_envs 4096
+```
+
+### Running tests
+
+```bash
+uv run pytest
+```
+
+### Code formatting and linting
+
+```bash
+uvx pre-commit install
 ```
 
 ## TODO
@@ -71,14 +97,6 @@ aka make Brent proud
 **P2**
 
 - [ ] Make it possible to seamlessly switch to CPU mujoco
-
-## Debug
-
-### Reset warp cache
-
-```bash
-bash scripts/clear_wp_cache.sh
-```
 
 ## License
 
