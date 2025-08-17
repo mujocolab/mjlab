@@ -203,7 +203,7 @@ class EventCfg:
       ),
       "operation": "abs",
       "field": "geom_friction",
-      "ranges": (0.3, 1.5),
+      "ranges": (0.3, 1.2),
     },
   )
 
