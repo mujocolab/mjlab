@@ -39,27 +39,34 @@ dependencies = [
     "tqdm",
     "tyro",
     "torch",
-    "warp-lang>=1.9.0.dev20250813",
-    "mujoco-warp>=0.0.1",
-    "mujoco>=3.3.6.dev793087071",
+    "warp-lang",
+    "mujoco-warp",
+    "mujoco",
+]
+
+[dependency-groups]
+dev = [
+  {include-group = "lint"},
+  {include-group = "test"},
+  "pre-commit",
+  "ty",
+]
+lint = [
+  "ruff"
+]
+test = [
+  "pytest",
+  "absl-py",
 ]
 
 [project.optional-dependencies]
-dev = [
-    "absl-py",
-    "pytest",
-    "pytest-xdist",
-    "pre-commit",
-    "ipdb",
-]
+cu12 = ["torch>=2.7.0"]
 rl = [
-    "mediapy",
     "moviepy >=1.0.0",
     "rsl-rl-lib",
     "tensorboard",
     "wandb",
 ]
-cu12 = ["torch>=2.7.0"]
 
 [[tool.uv.index]]
 url = "https://pypi.org/simple"

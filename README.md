@@ -2,32 +2,13 @@
 
 IsaacLab API with [MJWarp](https://github.com/google-deepmind/mujoco_warp) backend.
 
-## Installation
-
-1. Install `mjwarp`.
-
-```bash
-pip install warp-lang --pre --upgrade -f https://pypi.nvidia.com/warp-lang/
-pip install mujoco --pre --upgrade -f https://py.mujoco.org/
-git clone https://github.com/google-deepmind/mujoco_warp.git && cd mujoco_warp
-pip install -e .[dev,cuda] --config-settings editable_mode=strict
-```
-
-2. [Install](https://pytorch.org/get-started/locally/) `pytorch`. On a 5090, I used the below command:
-
-```bash
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
-```
-
-3. Install mjlab: `pip install -e ".[test,rl]"`
-
 ## Getting started
 
 ### Motion Mimic
 
 ```bash
 # Train.
-MUJOCO_GL=egl python scripts/tracking/rl/train.py \
+MUJOCO_GL=egl uv run --extra rl scripts/tracking/rl/train.py \
   --task Tracking-Flat-G1-v0 \
   --registry-name gcbc_researchers/csv_to_npz/run1_subject5:v0 \
   --num_envs 4096
@@ -35,9 +16,9 @@ MUJOCO_GL=egl python scripts/tracking/rl/train.py \
 
 ```bash
 # Play.
-python scripts/tracking/rl/play.py \
-  --task Tracking-Flat-G1-v0 \
-  --wandb-run-path gcbc_researchers/mjlab_alpha/7nm9duu4
+uv run --extra rl scripts/tracking/rl/play.py \
+  --task Tracking-Flat-G1-Play-v0 \
+  --wandb-run-path gcbc_researchers/mjlab_alpha/rfdej55h
 ```
 
 ## TODO
@@ -96,7 +77,7 @@ aka make Brent proud
 ### Reset warp cache
 
 ```bash
-python -c "import warp; warp.clear_kernel_cache()"
+bash scripts/clear_wp_cache.sh
 ```
 
 ## License
