@@ -110,9 +110,7 @@ class MotionCommand(CommandTerm):
     self._catmask = mujoco.mjtCatBit.mjCAT_DYNAMIC
 
   @property
-  def command(
-    self,
-  ) -> torch.Tensor:  # TODO Consider again if this is the best observation
+  def command(self) -> torch.Tensor:
     return torch.cat([self.joint_pos, self.joint_vel], dim=1)
 
   @property
@@ -272,9 +270,10 @@ class MotionCommand(CommandTerm):
     joint_vel = self.joint_vel.clone()
 
     joint_pos += sample_uniform(
-      *self.cfg.joint_position_range,
-      joint_pos.shape,
-      joint_pos.device,  # type: ignore
+      lower=self.cfg.joint_position_range[0],
+      upper=self.cfg.joint_position_range[1],
+      size=joint_pos.shape,
+      device=joint_pos.device,  # type: ignore
     )
     soft_joint_pos_limits = self.robot.data.soft_joint_pos_limits[env_ids]
     joint_pos[env_ids] = torch.clip(

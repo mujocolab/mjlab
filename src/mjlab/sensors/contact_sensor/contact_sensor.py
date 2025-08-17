@@ -196,7 +196,7 @@ class ContactSensor(SensorBase):
 
   def _get_contact_forces(self, valid_contacts):
     num_contacts = len(valid_contacts["indices"])
-    force = wp.zeros(num_contacts, dtype=wp.spatial_vector)  # Do I need device here?
+    force = wp.zeros(num_contacts, dtype=wp.spatial_vector)  # type: ignore
     contact_ids = wp.from_torch(valid_contacts["indices"].int(), dtype=wp.int32)
     mjwarp.contact_force(
       m=self._wp_model.struct,

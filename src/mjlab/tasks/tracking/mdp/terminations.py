@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, cast
 import torch
 
 from .commands import MotionCommand
@@ -16,14 +16,14 @@ if TYPE_CHECKING:
 def bad_ref_pos(
   env: ManagerBasedRlEnv, command_name: str, threshold: float
 ) -> torch.Tensor:
-  command: MotionCommand = env.command_manager.get_term(command_name)
+  command = cast(MotionCommand, env.command_manager.get_term(command_name))
   return torch.norm(command.ref_pos_w - command.robot_ref_pos_w, dim=1) > threshold
 
 
 def bad_ref_pos_z_only(
   env: ManagerBasedRlEnv, command_name: str, threshold: float
 ) -> torch.Tensor:
-  command: MotionCommand = env.command_manager.get_term(command_name)
+  command = cast(MotionCommand, env.command_manager.get_term(command_name))
   return (
     torch.abs(command.ref_pos_w[:, -1] - command.robot_ref_pos_w[:, -1]) > threshold
   )
@@ -34,7 +34,7 @@ def bad_ref_ori(
 ) -> torch.Tensor:
   asset: Robot = env.scene[asset_cfg.name]
 
-  command: MotionCommand = env.command_manager.get_term(command_name)
+  command = cast(MotionCommand, env.command_manager.get_term(command_name))
   motion_projected_gravity_b = quat_apply_inverse(
     command.ref_quat_w, asset.data.GRAVITY_VEC_W
   )
@@ -54,7 +54,7 @@ def bad_motion_body_pos(
   threshold: float,
   body_names: Optional[list[str]] = None,
 ) -> torch.Tensor:
-  command: MotionCommand = env.command_manager.get_term(command_name)
+  command = cast(MotionCommand, env.command_manager.get_term(command_name))
 
   body_indexes = _get_body_indexes(command, body_names)
   error = torch.norm(
@@ -71,7 +71,7 @@ def bad_motion_body_pos_z_only(
   threshold: float,
   body_names: Optional[list[str]] = None,
 ) -> torch.Tensor:
-  command: MotionCommand = env.command_manager.get_term(command_name)
+  command = cast(MotionCommand, env.command_manager.get_term(command_name))
 
   body_indexes = _get_body_indexes(command, body_names)
   error = torch.abs(

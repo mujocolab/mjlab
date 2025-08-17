@@ -1,5 +1,4 @@
 import math
-from typing import Sequence
 import numpy as np
 import torch
 from mjlab.envs.manager_based_env import ManagerBasedEnv
@@ -159,7 +158,7 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
       self.single_action_space, self.num_envs
     )
 
-  def _reset_idx(self, env_ids: Sequence[int]) -> None:
+  def _reset_idx(self, env_ids: torch.Tensor | slice | None = None) -> None:
     self.curriculum_manager.compute(env_ids=env_ids)
     # Reset the internal buffers of the scene elements.
     self.scene.reset(env_ids)

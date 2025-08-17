@@ -4,7 +4,7 @@ from mjlab.sensors.sensor_base_config import SensorBaseCfg
 from mjlab.sensors.contact_sensor.contact_sensor import ContactSensor
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ContactSensorCfg(SensorBaseCfg):
   class_type: type = ContactSensor
   track_air_time: bool = False

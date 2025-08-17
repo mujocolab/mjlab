@@ -5,9 +5,9 @@ import mujoco_warp as mjwarp
 
 @wp.kernel(module="unique")
 def repeat_array_kernel(
-  src: wp.array(dtype=Any),
+  src: wp.array(dtype=Any),  # type: ignore
   nelems_per_world: int,
-  dst: wp.array(dtype=Any),
+  dst: wp.array(dtype=Any),  # type: ignore
 ):
   tid = wp.tid()
   src_idx = tid % nelems_per_world

@@ -9,9 +9,9 @@ wp.config.quiet = True
 
 @dataclass
 class MockMjwarpData:
-  qpos: wp.array = None
-  qvel: wp.array = None
-  ctrl: wp.array = None
+  qpos: wp.array
+  qvel: wp.array
+  ctrl: wp.array
   non_array_field: float = 1.0
 
 
@@ -53,6 +53,7 @@ class WarpTensorTest(absltest.TestCase):
       self.mock_data = MockMjwarpData(
         qpos=wp.zeros((2, 3), dtype=wp.float32),
         qvel=wp.ones((2, 3), dtype=wp.float32),
+        ctrl=wp.zeros((2, 1), dtype=wp.float32),
         non_array_field=42.0,
       )
     self.warp_tensor = WarpBridge(self.mock_data)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 import torch
 
 from .commands import MotionCommand
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 def motion_ref_pos_b(env: ManagerBasedRlEnv, command_name: str) -> torch.Tensor:
-  command: MotionCommand = env.command_manager.get_term(command_name)
+  command = cast(MotionCommand, env.command_manager.get_term(command_name))
 
   pos, _ = subtract_frame_transforms(
     command.robot_ref_pos_w,
@@ -27,7 +27,7 @@ def motion_ref_pos_b(env: ManagerBasedRlEnv, command_name: str) -> torch.Tensor:
 
 
 def motion_ref_ori_b(env: ManagerBasedRlEnv, command_name: str) -> torch.Tensor:
-  command: MotionCommand = env.command_manager.get_term(command_name)
+  command = cast(MotionCommand, env.command_manager.get_term(command_name))
 
   _, ori = subtract_frame_transforms(
     command.robot_ref_pos_w,
@@ -40,7 +40,7 @@ def motion_ref_ori_b(env: ManagerBasedRlEnv, command_name: str) -> torch.Tensor:
 
 
 def robot_body_pos_b(env: ManagerBasedRlEnv, command_name: str) -> torch.Tensor:
-  command: MotionCommand = env.command_manager.get_term(command_name)
+  command = cast(MotionCommand, env.command_manager.get_term(command_name))
 
   num_bodies = len(command.cfg.body_names)
   pos_b, _ = subtract_frame_transforms(
@@ -54,7 +54,7 @@ def robot_body_pos_b(env: ManagerBasedRlEnv, command_name: str) -> torch.Tensor:
 
 
 def robot_body_ori_b(env: ManagerBasedRlEnv, command_name: str) -> torch.Tensor:
-  command: MotionCommand = env.command_manager.get_term(command_name)
+  command = cast(MotionCommand, env.command_manager.get_term(command_name))
 
   num_bodies = len(command.cfg.body_names)
   _, ori_b = subtract_frame_transforms(

@@ -10,7 +10,7 @@ import mujoco
 import numpy as np
 from mjlab.entities.robots.robot import Robot
 from mjlab.third_party.isaaclab.isaaclab.utils.math import wrap_to_pi, matrix_from_quat
-from dataclasses import dataclass, MISSING
+from dataclasses import dataclass
 from mjlab.managers.manager_term_config import CommandTermCfg
 
 if TYPE_CHECKING:
@@ -152,21 +152,21 @@ class UniformVelocityCommand(CommandTerm):
 
 @dataclass(kw_only=True)
 class UniformVelocityCommandCfg(CommandTermCfg):
-  class_type: type[CommandTerm] = UniformVelocityCommand
-  asset_name: str = MISSING
+  asset_name: str
   heading_command: bool = False
   heading_control_stiffness: float = 1.0
   rel_standing_envs: float = 0.0
   rel_heading_envs: float = 1.0
+  class_type: type[CommandTerm] = UniformVelocityCommand
 
   @dataclass
   class Ranges:
-    lin_vel_x: tuple[float, float] = MISSING
-    lin_vel_y: tuple[float, float] = MISSING
-    ang_vel_z: tuple[float, float] = MISSING
+    lin_vel_x: tuple[float, float]
+    lin_vel_y: tuple[float, float]
+    ang_vel_z: tuple[float, float]
     heading: tuple[float, float] | None = None
 
-  ranges: Ranges = MISSING
+  ranges: Ranges
 
   def __post_init__(self):
     if self.heading_command and self.ranges.heading is None:

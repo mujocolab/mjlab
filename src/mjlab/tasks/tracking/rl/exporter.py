@@ -1,5 +1,7 @@
 import os
 
+from typing import cast
+
 import onnx
 import torch
 from mjlab.third_party.isaaclab.isaaclab_rl.rsl_rl.exporter import _OnnxPolicyExporter
@@ -27,7 +29,7 @@ class _OnnxMotionPolicyExporter(_OnnxPolicyExporter):
     self, env: ManagerBasedRlEnv, actor_critic, normalizer=None, verbose=False
   ):
     super().__init__(actor_critic, normalizer, verbose)
-    cmd: MotionCommand = env.command_manager.get_term("motion")
+    cmd = cast(MotionCommand, env.command_manager.get_term("motion"))
 
     self.joint_pos = cmd.motion.joint_pos.to("cpu")
     self.joint_vel = cmd.motion.joint_vel.to("cpu")

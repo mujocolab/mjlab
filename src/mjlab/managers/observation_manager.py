@@ -47,7 +47,7 @@ class ObservationManager(ManagerBase):
       table = PrettyTable()
       table.title = f"Active Observation Terms in Group: '{group_name}'"
       if self._group_obs_concatenate[group_name]:
-        table.title += f" (shape: {group_dim})"
+        table.title += f" (shape: {group_dim})"  # type: ignore
       table.field_names = ["Index", "Name", "Shape"]
       table.align["Name"] = "l"
       obs_terms = zip(
