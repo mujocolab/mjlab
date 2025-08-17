@@ -6,7 +6,9 @@ import time
 import mujoco.viewer
 import tyro
 import wandb
-from mjlab.rl import RslRlVecEnvWrapper
+from typing import cast
+from mjlab.rl import RslRlVecEnvWrapper, RslRlOnPolicyRunnerCfg
+from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
@@ -14,6 +16,7 @@ from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
 import gymnasium as gym
 
 from mjlab.utils.os import get_wandb_checkpoint_path
+from mjlab.viewer.keys import KEY_ENTER
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
@@ -21,8 +24,6 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 FRAME_TIME = 1.0 / 60.0
-KEY_BACKSPACE = 259
-KEY_ENTER = 257
 
 _HERE = Path(__file__).parent
 
@@ -39,8 +40,10 @@ def main(
   video_width: int | None = None,
   camera: int | str | None = -1,
 ):
-  env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
-  agent_cfg = load_cfg_from_registry(task, "rl_cfg_entry_point")
+  env_cfg = cast(TrackingEnvCfg, load_cfg_from_registry(task, "env_cfg_entry_point"))
+  agent_cfg = cast(
+    RslRlOnPolicyRunnerCfg, load_cfg_from_registry(task, "rl_cfg_entry_point")
+  )
 
   env_cfg.sim.num_envs = num_envs or env_cfg.sim.num_envs
   env_cfg.sim.device = device or env_cfg.sim.device
@@ -52,7 +55,7 @@ def main(
   log_root_path = log_root_path.resolve()
   print(f"[INFO]: Loading experiment from: {log_root_path}")
 
-  resume_path = get_wandb_checkpoint_path(log_root_path, wandb_run_path)
+  resume_path = get_wandb_checkpoint_path(log_root_path, Path(wandb_run_path))
   print(f"[INFO]: Loading checkpoint: {resume_path}")
 
   if motion_file is not None:
@@ -82,9 +85,9 @@ def main(
   env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
   runner = MotionTrackingOnPolicyRunner(
-    env, asdict(agent_cfg), log_dir=log_dir, device=agent_cfg.device
+    env, asdict(agent_cfg), log_dir=str(log_dir), device=agent_cfg.device
   )
-  runner.load(resume_path, map_location=agent_cfg.device)
+  runner.load(str(resume_path), map_location=agent_cfg.device)
 
   policy = runner.get_inference_policy(device=env.device)
 
@@ -113,6 +116,8 @@ def main(
       env.reset()
 
   viewer = mujoco.viewer.launch_passive(mjm, mjd, key_callback=key_callback)
+  user_scn = viewer.user_scn
+  assert user_scn is not None
   with viewer:
     last_frame_time = time.perf_counter()
 
@@ -125,13 +130,13 @@ def main(
       actions = policy(obs)
       obs = env.step(actions)[0]
 
-      viewer.user_scn.ngeom = 0
-      env.unwrapped.update_visualizers(viewer.user_scn)
+      user_scn.ngeom = 0
+      env.unwrapped.update_visualizers(user_scn)
       for i in range(1, env.unwrapped.num_envs):
         vd.qpos[:] = env.unwrapped.sim.data.qpos[i].cpu().numpy()
         vd.qvel[:] = env.unwrapped.sim.data.qvel[i].cpu().numpy()
         mujoco.mj_forward(mjm, vd)
-        mujoco.mjv_addGeoms(mjm, vd, vopt, pert, catmask, viewer.user_scn)
+        mujoco.mjv_addGeoms(mjm, vd, vopt, pert, catmask.value, user_scn)
 
       copy_env_to_viewer()
       viewer.sync(state_only=True)

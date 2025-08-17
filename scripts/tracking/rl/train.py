@@ -4,14 +4,16 @@ from dataclasses import asdict
 from pathlib import Path
 from datetime import datetime
 import os
+from typing import cast
 import torch
 import tyro
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
-from mjlab.rl import RslRlVecEnvWrapper
+from mjlab.rl import RslRlVecEnvWrapper, RslRlOnPolicyRunnerCfg
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
 import gymnasium as gym
+from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
 
 from mjlab.utils.os import get_checkpoint_path, dump_yaml
 
@@ -35,8 +37,10 @@ def main(
   video_length: int = 200,
   video_interval: int = 2000,
 ):
-  env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
-  agent_cfg = load_cfg_from_registry(task, "rl_cfg_entry_point")
+  env_cfg = cast(TrackingEnvCfg, load_cfg_from_registry(task, "env_cfg_entry_point"))
+  agent_cfg = cast(
+    RslRlOnPolicyRunnerCfg, load_cfg_from_registry(task, "rl_cfg_entry_point")
+  )
 
   # Check if the registry name includes alias, if not, append ":latest".
   if ":" not in registry_name:
@@ -92,7 +96,7 @@ def main(
   runner = MotionTrackingOnPolicyRunner(
     env,
     asdict(agent_cfg),
-    log_dir=log_dir,
+    log_dir=str(log_dir),
     device=agent_cfg.device,
     registry_name=registry_name,
   )
@@ -100,7 +104,7 @@ def main(
 
   if agent_cfg.resume:
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
-    runner.load(resume_path)
+    runner.load(str(resume_path))
 
   dump_yaml(log_dir / "params" / "env.yaml", asdict(env_cfg))
   dump_yaml(log_dir / "params" / "agent.yaml", asdict(agent_cfg))
