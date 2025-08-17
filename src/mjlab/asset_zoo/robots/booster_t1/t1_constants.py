@@ -2,7 +2,6 @@
 
 import mujoco
 from pathlib import Path
-from typing import Dict
 from mjlab import MJLAB_SRC_PATH
 from mjlab.utils.os import update_assets
 
@@ -20,14 +19,16 @@ T1_XML: Path = (
 assert T1_XML.exists()
 
 
-def get_assets() -> Dict[str, bytes]:
-  assets: Dict[str, bytes] = {}
-  update_assets(assets, T1_XML.parent / "assets")
+def get_assets(meshdir: str) -> dict[str, bytes]:
+  assets: dict[str, bytes] = {}
+  update_assets(assets, T1_XML.parent / "assets", meshdir)
   return assets
 
 
 def get_spec() -> mujoco.MjSpec:
-  return mujoco.MjSpec.from_file(str(T1_XML), assets=get_assets())
+  spec = mujoco.MjSpec.from_file(str(T1_XML))
+  spec.assets = get_assets(spec.meshdir)
+  return spec
 
 
 ##
