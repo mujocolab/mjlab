@@ -1,1 +1,1 @@
-"""Viser viewer backend."""
+"""Viser based on viser."""

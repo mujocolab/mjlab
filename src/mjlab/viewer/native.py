@@ -1,4 +1,4 @@
-"""Enhanced Native MuJoCo viewer implementation with dm_control-style timing."""
+"""Viewer based on the passive MuJoCo viewer."""
 
 from typing import Any, Callable, Optional
 import torch

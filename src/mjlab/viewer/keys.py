@@ -1,3 +1,5 @@
+"""Key codes for input handling."""
+
 KEY_UNKNOWN = -1
 KEY_SPACE = 32
 KEY_APOSTROPHE = 39

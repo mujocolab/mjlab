@@ -1,4 +1,4 @@
-"""Enhanced Base viewer abstract class with dm_control-style timing."""
+"""Base class for environment viewers."""
 
 import contextlib
 import time
@@ -71,7 +71,7 @@ class PolicyProtocol(Protocol):
 
 
 class BaseViewer(ABC):
-  """Abstract base class for environment viewers with dm_control-style timing."""
+  """Abstract base class for environment viewers."""
 
   # fmt: off
   SPEED_MULTIPLIERS = [
@@ -127,60 +127,6 @@ class BaseViewer(ABC):
     self._last_fps_log_time = 0.0
     self._accumulated_sim_time = 0.0
     self._accumulated_render_time = 0.0
-
-  def increase_speed(self) -> None:
-    """Increase playback speed to next level."""
-    if self._speed_index < len(self.SPEED_MULTIPLIERS) - 1:
-      self._speed_index += 1
-      self._time_multiplier = self.SPEED_MULTIPLIERS[self._speed_index]
-      self._log_speed_change()
-
-  def decrease_speed(self) -> None:
-    """Decrease playback speed to previous level."""
-    if self._speed_index > 0:
-      self._speed_index -= 1
-      self._time_multiplier = self.SPEED_MULTIPLIERS[self._speed_index]
-      self._log_speed_change()
-
-  def reset_speed(self) -> None:
-    """Reset to real-time speed."""
-    self._speed_index = self.SPEED_MULTIPLIERS.index(1.0)
-    self._time_multiplier = 1.0
-    self.log("[INFO] Speed reset to real-time (1.0x)", VerbosityLevel.INFO)
-
-  def set_speed_by_index(self, index: int) -> None:
-    """Set speed by index in the multiplier array.
-
-    Args:
-        index: Index into SPEED_MULTIPLIERS array
-    """
-    if 0 <= index < len(self.SPEED_MULTIPLIERS):
-      self._speed_index = index
-      self._time_multiplier = self.SPEED_MULTIPLIERS[self._speed_index]
-      self._log_speed_change()
-    else:
-      self.log(f"[WARNING] Invalid speed index: {index}", VerbosityLevel.INFO)
-
-  def _log_speed_change(self) -> None:
-    """Log the current speed setting."""
-    speed = self._time_multiplier
-    if speed < 1.0:
-      percent = speed * 100
-      slowdown = 1.0 / speed
-      self.log(
-        f"[INFO] Speed: {percent:.1f}% ({slowdown:.1f}x slower) [{self._speed_index}/{len(self.SPEED_MULTIPLIERS) - 1}]",
-        VerbosityLevel.INFO,
-      )
-    elif speed > 1.0:
-      self.log(
-        f"[INFO] Speed: {speed:.1f}x faster [{self._speed_index}/{len(self.SPEED_MULTIPLIERS) - 1}]",
-        VerbosityLevel.INFO,
-      )
-    else:
-      self.log(
-        f"[INFO] Speed: Real-time (1.0x) [{self._speed_index}/{len(self.SPEED_MULTIPLIERS) - 1}]",
-        VerbosityLevel.INFO,
-      )
 
   def log(self, message: str, level: VerbosityLevel = VerbosityLevel.INFO) -> None:
     """Log a message if verbosity level allows it.
@@ -254,7 +200,7 @@ class BaseViewer(ABC):
   def resume(self) -> None:
     """Resume the simulation."""
     self._is_paused = False
-    # Reset timer to avoid large time jump
+    # Reset timer to avoid large time jump.
     self._timer.tick()
     print("[INFO] Simulation resumed")
 
@@ -265,17 +211,8 @@ class BaseViewer(ABC):
     else:
       self.pause()
 
-  def set_time_multiplier(self, multiplier: float) -> None:
-    """Set time multiplier for slow-mo or fast-forward.
-
-    Args:
-      multiplier: Time multiplier (0.5 for half speed, 2.0 for double speed)
-    """
-    self._time_multiplier = max(0.01, min(10.0, multiplier))
-    print(f"[INFO] Time multiplier set to {self._time_multiplier:.2f}x")
-
   def tick(self) -> bool:
-    """Execute one tick of the viewer loop using dm_control-style timing.
+    """Execute one tick of the viewer loop.
 
     Returns:
       True if a frame was rendered, False otherwise.
@@ -318,7 +255,7 @@ class BaseViewer(ABC):
     return True
 
   def run(self, num_steps: Optional[int] = None) -> None:
-    """Run the viewer loop using dm_control-style ticking.
+    """Run the viewer loop.
 
     Args:
       num_steps: Number of steps to run. If None, run indefinitely.
@@ -348,4 +285,39 @@ class BaseViewer(ABC):
         f"[{status}] Step {self._step_count} | FPS: {self._frame_count:.1f} | "
         f"Speed: {speed} | Sim: {avg_sim_time:.1f}ms | "
         f"Render: {avg_render_time:.1f}ms | Total: {total_time:.1f}ms"
+      )
+
+  def increase_speed(self) -> None:
+    """Increase playback speed to next level."""
+    if self._speed_index < len(self.SPEED_MULTIPLIERS) - 1:
+      self._speed_index += 1
+      self._time_multiplier = self.SPEED_MULTIPLIERS[self._speed_index]
+      self._log_speed_change()
+
+  def decrease_speed(self) -> None:
+    """Decrease playback speed to previous level."""
+    if self._speed_index > 0:
+      self._speed_index -= 1
+      self._time_multiplier = self.SPEED_MULTIPLIERS[self._speed_index]
+      self._log_speed_change()
+
+  def _log_speed_change(self) -> None:
+    """Log the current speed setting."""
+    speed = self._time_multiplier
+    if speed < 1.0:
+      percent = speed * 100
+      slowdown = 1.0 / speed
+      self.log(
+        f"[INFO] Speed: {percent:.1f}% ({slowdown:.1f}x slower) [{self._speed_index}/{len(self.SPEED_MULTIPLIERS) - 1}]",
+        VerbosityLevel.INFO,
+      )
+    elif speed > 1.0:
+      self.log(
+        f"[INFO] Speed: {speed:.1f}x faster [{self._speed_index}/{len(self.SPEED_MULTIPLIERS) - 1}]",
+        VerbosityLevel.INFO,
+      )
+    else:
+      self.log(
+        f"[INFO] Speed: Real-time (1.0x) [{self._speed_index}/{len(self.SPEED_MULTIPLIERS) - 1}]",
+        VerbosityLevel.INFO,
       )
