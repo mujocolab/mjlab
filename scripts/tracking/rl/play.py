@@ -1,19 +1,20 @@
 from dataclasses import asdict
 from pathlib import Path
+from typing import cast
+
+import gymnasium as gym
 import torch
 import tyro
 import wandb
-from typing import cast
-from mjlab.rl import RslRlVecEnvWrapper, RslRlOnPolicyRunnerCfg
-from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
+from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
+from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
-import gymnasium as gym
-
 from mjlab.utils.os import get_wandb_checkpoint_path
 from mjlab.viewer import NativeMujocoViewerBuilder
+from mjlab.viewer.viser import ViserViewer
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
@@ -90,16 +91,19 @@ def main(
 
   policy = runner.get_inference_policy(device=env.device)
 
-  try:
-    viewer = NativeMujocoViewerBuilder(env, policy).with_frame_rate(60.0)
-    if render_all_envs:
-      viewer = viewer.with_all_envs()
-    else:
-      viewer = viewer.with_single_env(env_idx=0)
-    viewer = viewer.build()
-    viewer.run()
-  finally:
-    env.close()
+  viewer = ViserViewer(env, policy, frame_rate=60.0, render_all_envs=render_all_envs)
+  viewer.run()
+
+  # try:
+  #   viewer = NativeMujocoViewerBuilder(env, policy).with_frame_rate(60.0)
+  #   if render_all_envs:
+  #     viewer = viewer.with_all_envs()
+  #   else:
+  #     viewer = viewer.with_single_env(env_idx=0)
+  #   viewer = viewer.build()
+  #   viewer.run()
+  # finally:
+  #   env.close()
 
 
 if __name__ == "__main__":

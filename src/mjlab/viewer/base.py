@@ -3,9 +3,10 @@
 import contextlib
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Protocol
-import torch
 from enum import IntEnum
+from typing import Any, Optional, Protocol
+
+import torch
 
 
 class VerbosityLevel(IntEnum):
@@ -77,7 +78,7 @@ class BaseViewer(ABC):
   SPEED_MULTIPLIERS = [
     0.01, 0.016, 0.025, 0.04, 0.063, 0.1, 0.16, 0.25, 0.4, 0.63,
     1.0,
-    1.6, 2.5, 4.0, 6.3, 10.0, 
+    1.6, 2.5, 4.0, 6.3, 10.0,
   ]
   # fmt: on
 
@@ -139,7 +140,6 @@ class BaseViewer(ABC):
       print(message)
 
   @abstractmethod
-  @abstractmethod
   def setup(self) -> None:
     """Setup the viewer resources."""
     pass
@@ -165,14 +165,13 @@ class BaseViewer(ABC):
     pass
 
   @abstractmethod
-  def is_running(self) -> bool:
-    """Check if the viewer is still running."""
-    return self._is_running
-
-  @abstractmethod
   def close(self) -> None:
     """Close the viewer and cleanup resources."""
     pass
+
+  def is_running(self) -> bool:
+    """Check if the viewer is still running."""
+    return self._is_running
 
   def step_simulation(self) -> None:
     """Execute one simulation step."""

@@ -7,6 +7,7 @@ import os
 import torch
 import tyro
 from mjlab.rl import RslRlVecEnvWrapper
+import mjlab.tasks.locomotion.velocity.config.go1
 from rsl_rl.runners import OnPolicyRunner
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
