@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import torch
 from typing import TYPE_CHECKING
-from prettytable import PrettyTable
-from mjlab.managers.manager_base import ManagerBase
-from mjlab.managers.manager_term_config import EventTermCfg
 
+import torch
+from mjlab.managers.manager_base import ManagerBase
+from mjlab.managers.manager_term_config import EventMode, EventTermCfg
 from mjlab.utils.dataclasses import get_terms
+from prettytable import PrettyTable
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_env import ManagerBasedEnv
@@ -16,9 +16,9 @@ class EventManager(ManagerBase):
   _env: ManagerBasedEnv
 
   def __init__(self, cfg: object, env: ManagerBasedEnv):
-    self._mode_term_names: dict[str, list[str]] = dict()
-    self._mode_term_cfgs: dict[str, list[EventTermCfg]] = dict()
-    self._mode_class_term_cfgs: dict[str, list[EventTermCfg]] = dict()
+    self._mode_term_names: dict[EventMode, list[str]] = dict()
+    self._mode_term_cfgs: dict[EventMode, list[EventTermCfg]] = dict()
+    self._mode_class_term_cfgs: dict[EventMode, list[EventTermCfg]] = dict()
 
     super().__init__(cfg=cfg, env=env)
 
@@ -46,11 +46,11 @@ class EventManager(ManagerBase):
   # Properties.
 
   @property
-  def active_terms(self) -> dict[str, list[str]]:
+  def active_terms(self) -> dict[EventMode, list[str]]:
     return self._mode_term_names
 
   @property
-  def available_modes(self) -> list[str]:
+  def available_modes(self) -> list[EventMode]:
     return list(self._mode_term_names.keys())
 
   # Methods.
@@ -75,7 +75,7 @@ class EventManager(ManagerBase):
 
   def apply(
     self,
-    mode: str,
+    mode: EventMode,
     env_ids: torch.Tensor | slice | None = None,
     dt: float | None = None,
     global_env_step_count: int | None = None,

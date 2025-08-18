@@ -1,9 +1,9 @@
 from __future__ import annotations
 import abc
-from typing import TYPE_CHECKING, Any, Sequence
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any
 
 import torch
-
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 if TYPE_CHECKING:
@@ -63,7 +63,7 @@ class ManagerBase(abc.ABC):
 
   @property
   @abc.abstractmethod
-  def active_terms(self) -> list[str] | dict[str, list[str]]:
+  def active_terms(self) -> list[str] | dict[Any, list[str]]:
     raise NotImplementedError
 
   # Methods.

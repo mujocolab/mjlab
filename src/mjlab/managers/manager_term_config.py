@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, ParamSpec, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Literal, ParamSpec, TypeVar
 
 import torch
 
@@ -66,11 +66,14 @@ class CurriculumTermCfg(ManagerTermBaseCfg):
 ##
 
 
+EventMode = Literal["startup", "reset", "interval"]
+
+
 @dataclass(kw_only=True)
 class EventTermCfg(ManagerTermBaseCfg):
   """Configuration for an event term."""
 
-  mode: str
+  mode: EventMode
   interval_range_s: tuple[float, float] | None = None
   is_global_time: bool = False
   min_step_count_between_reset: int = 0
