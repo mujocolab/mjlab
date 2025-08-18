@@ -1,9 +1,6 @@
 from dataclasses import asdict
 from pathlib import Path
 import torch
-import mujoco
-import time
-import mujoco.viewer
 import tyro
 import wandb
 from typing import cast
@@ -16,6 +13,7 @@ from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
 import gymnasium as gym
 
 from mjlab.utils.os import get_wandb_checkpoint_path
+from mjlab.viewer import NativeMujocoViewerBuilder
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
@@ -39,6 +37,7 @@ def main(
   video_height: int | None = None,
   video_width: int | None = None,
   camera: int | str | None = -1,
+  render_all_envs: bool = False,
 ):
   env_cfg = cast(TrackingEnvCfg, load_cfg_from_registry(task, "env_cfg_entry_point"))
   agent_cfg = cast(
@@ -91,71 +90,16 @@ def main(
 
   policy = runner.get_inference_policy(device=env.device)
 
-  obs = env.get_observations()
-
-  mjm = env.unwrapped.sim.mj_model
-  mjd = env.unwrapped.sim.mj_data
-
-  vd = mujoco.MjData(mjm)
-  pert = mujoco.MjvPerturb()
-  vopt = mujoco.MjvOption()
-  catmask = mujoco.mjtCatBit.mjCAT_DYNAMIC
-
-  def copy_env_to_viewer() -> None:
-    mjd.qpos[:] = env.unwrapped.sim.data.qpos[0].cpu().numpy()
-    mjd.qvel[:] = env.unwrapped.sim.data.qvel[0].cpu().numpy()
-    mujoco.mj_forward(mjm, mjd)
-
-  def copy_viewer_to_env() -> None:
-    xfrc_applied = torch.tensor(mjd.xfrc_applied, dtype=torch.float, device=env.device)
-    env.unwrapped.sim.data.xfrc_applied[:] = xfrc_applied[None]
-
-  def key_callback(key: int) -> None:
-    if key == KEY_ENTER:
-      print("RESET KEY DETECTED")
-      env.reset()
-
-  viewer = mujoco.viewer.launch_passive(mjm, mjd, key_callback=key_callback)
-  user_scn = viewer.user_scn
-  assert user_scn is not None
-  with viewer:
-    last_frame_time = time.perf_counter()
-
-    step = 0
-    while viewer.is_running():
-      frame_start = time.perf_counter()
-
-      copy_viewer_to_env()
-
-      actions = policy(obs)
-      obs = env.step(actions)[0]
-
-      user_scn.ngeom = 0
-      env.unwrapped.update_visualizers(user_scn)
-      for i in range(1, env.unwrapped.num_envs):
-        vd.qpos[:] = env.unwrapped.sim.data.qpos[i].cpu().numpy()
-        vd.qvel[:] = env.unwrapped.sim.data.qvel[i].cpu().numpy()
-        mujoco.mj_forward(mjm, vd)
-        mujoco.mjv_addGeoms(mjm, vd, vopt, pert, catmask.value, user_scn)
-
-      copy_env_to_viewer()
-      viewer.sync(state_only=True)
-
-      elapsed = time.perf_counter() - frame_start
-      remaining_time = FRAME_TIME - elapsed
-      if remaining_time > 0.005:
-        time.sleep(remaining_time - 0.003)
-      while (time.perf_counter() - frame_start) < FRAME_TIME:
-        pass
-
-      step += 1
-      current_time = time.perf_counter()
-      if step % 60 == 0 and step > 0:
-        actual_fps = 1.0 / (current_time - last_frame_time)
-        print(f"Step {step}: FPS={actual_fps:.1f}")
-      last_frame_time = current_time
-
-  env.close()
+  try:
+    viewer = NativeMujocoViewerBuilder(env, policy).with_frame_rate(60.0)
+    if render_all_envs:
+      viewer = viewer.with_all_envs()
+    else:
+      viewer = viewer.with_single_env(env_idx=0)
+    viewer = viewer.build()
+    viewer.run()
+  finally:
+    env.close()
 
 
 if __name__ == "__main__":
