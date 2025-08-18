@@ -63,10 +63,6 @@ class RslRlPpoAlgorithmCfg:
   """Ignore, required by RSL-RL."""
 
 
-def _default_obs_groups():
-  return {"policy": ["policy"], "critic": ["policy", "critic"]}
-
-
 @dataclass
 class RslRlBaseRunnerCfg:
   seed: int = 42
@@ -77,7 +73,9 @@ class RslRlBaseRunnerCfg:
   """The number of steps per environment update."""
   max_iterations: int = 300
   """The maximum number of iterations."""
-  obs_groups: dict[str, list[str]] = field(default_factory=_default_obs_groups)
+  obs_groups: dict[str, list[str]] = field(
+    default_factory=lambda: {"policy": ["policy"], "critic": ["policy", "critic"]},
+  )
   save_interval: int = 50
   """The number of iterations between saves."""
   experiment_name: str = "exp1"
@@ -99,15 +97,14 @@ class RslRlBaseRunnerCfg:
   the latest (alphabetical order) matching file will be loaded.
   """
   clip_actions: float | None = None
+  """The clipping range for action values. If None (default), no clipping is applied."""
 
 
 @dataclass
 class RslRlOnPolicyRunnerCfg(RslRlBaseRunnerCfg):
   class_name: str = "OnPolicyRunner"
   """The runner class name. Default is OnPolicyRunner."""
-
   policy: RslRlPpoActorCriticCfg = field(default_factory=RslRlPpoActorCriticCfg)
   """The policy configuration."""
-
   algorithm: RslRlPpoAlgorithmCfg = field(default_factory=RslRlPpoAlgorithmCfg)
   """The algorithm configuration."""
