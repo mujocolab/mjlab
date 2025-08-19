@@ -16,13 +16,13 @@ from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
 import gymnasium as gym
 
 from mjlab.utils.os import get_wandb_checkpoint_path
-from mjlab.viewer.keys import KEY_ENTER
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
+KEY_ENTER = 257
 FRAME_TIME = 1.0 / 60.0
 
 _HERE = Path(__file__).parent
