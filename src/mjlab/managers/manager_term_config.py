@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Literal, ParamSpec, TypeVar
 
 import torch
 
@@ -9,9 +9,12 @@ if TYPE_CHECKING:
   from mjlab.managers.action_manager import ActionTerm
   from mjlab.managers.command_manager import CommandTerm
 
+P = ParamSpec("P")
+T = TypeVar("T")
 
-def term(term_cls: Type, **kwargs) -> Any:
-  return field(default_factory=lambda: term_cls(**kwargs))
+
+def term(term_cls: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
+  return field(default_factory=lambda: term_cls(*args, **kwargs))
 
 
 @dataclass
@@ -63,11 +66,14 @@ class CurriculumTermCfg(ManagerTermBaseCfg):
 ##
 
 
+EventMode = Literal["startup", "reset", "interval"]
+
+
 @dataclass(kw_only=True)
 class EventTermCfg(ManagerTermBaseCfg):
   """Configuration for an event term."""
 
-  mode: str
+  mode: EventMode
   interval_range_s: tuple[float, float] | None = None
   is_global_time: bool = False
   min_step_count_between_reset: int = 0
