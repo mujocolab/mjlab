@@ -1,5 +1,9 @@
 # mjlab
 
+> **⚠️ EXPERIMENTAL PREVIEW** 
+> 
+> This project is in very early experimental stages. APIs, features, and documentation are subject to significant changes. Use at your own risk and expect frequent breaking changes.
+
 IsaacLab API with [MJWarp](https://github.com/google-deepmind/mujoco_warp) backend.
 
 ## Development Guide
