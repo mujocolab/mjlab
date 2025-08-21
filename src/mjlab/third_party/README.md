@@ -5,7 +5,7 @@ this repository for convenience.
 
 ## Contents
 
-- **isaaclab/** — Selected files from [NVIDIA Isaac Lab](https://github.com/NVIDIA-Omniverse/IsaacLab),
+- **isaaclab/** — Selected files from [NVIDIA Isaac Lab](https://github.com/isaac-sim/IsaacLab),
   used under the terms of the original license (see `isaaclab/LICENSE`).
   Only a small subset of the original project is included.
 
