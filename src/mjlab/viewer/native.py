@@ -4,6 +4,7 @@ from typing import Any, Callable, Optional
 import torch
 import mujoco
 import mujoco.viewer
+import numpy as np
 
 from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
 
@@ -123,6 +124,8 @@ class NativeMujocoViewer(BaseViewer):
     self.vopt = mujoco.MjvOption()
     self.catmask = mujoco.mjtCatBit.mjCAT_DYNAMIC.value
 
+    self._env_origins = compute_env_origins_grid(sim.num_envs, env_spacing=2.0)
+
     self.viewer = mujoco.viewer.launch_passive(
       self.mjm, self.mjd, key_callback=self.key_callback
     )
@@ -201,6 +204,9 @@ class NativeMujocoViewer(BaseViewer):
           continue  # Skip primary environment (already rendered).
         self.vd.qpos[:] = sim_data.qpos[i].cpu().numpy()
         self.vd.qvel[:] = sim_data.qvel[i].cpu().numpy()
+        # Apply offset.
+        # TODO(kevin): Make this less hacky.
+        self.vd.qpos[:3] += self._env_origins[i]
         mujoco.mj_forward(self.mjm, self.vd)
         mujoco.mjv_addGeoms(
           self.mjm, self.vd, self.vopt, self.pert, self.catmask, user_scn
@@ -227,3 +233,14 @@ class NativeMujocoViewer(BaseViewer):
       self.viewer = None
     self._is_running = False
     self.log("[INFO] MuJoCo viewer closed")
+
+
+def compute_env_origins_grid(num_envs: int, env_spacing: float) -> np.ndarray:
+  env_origins = np.zeros((num_envs, 3))
+  num_rows = int(np.ceil(num_envs / np.sqrt(num_envs)))
+  num_cols = int(np.ceil(num_envs / num_rows))
+  ii, jj = np.meshgrid(np.arange(num_rows), np.arange(num_cols), indexing="ij")
+  env_origins[:, 0] = -(ii.flatten()[:num_envs] - (num_rows - 1) / 2) * env_spacing
+  env_origins[:, 1] = (jj.flatten()[:num_envs] - (num_cols - 1) / 2) * env_spacing
+  env_origins[:, 2] = 0.0
+  return env_origins
