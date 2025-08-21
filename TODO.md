@@ -3,10 +3,6 @@
 - [ ] Contact sensor
   - [ ] Clean up, super gross right now
   - [ ] Investiate cause of NaNs
-- [ ] Improve viewer
-  - [ ] Package into class
-  - [ ] 2 backends: mujoco viewer, viser
-- [x] Domain randomization
 - [ ] Terrain generation
 - [ ] Observation history and modifiers
 - [ ] Rename entities to be consistent with isaaclab
@@ -35,20 +31,21 @@
 - [x] Add __str__ method for all important classes
 - [x] Add some form of contact sensor and sensor API
 - [x] Inherit from gym
+- [x] Improve viewer
+  - [x] Package into class
+  - [x] 2 backends: mujoco viewer, viser
+- [x] Domain randomization
 
 **P1**
 
-aka make Brent proud
-
 - [ ] Unit test everything
-- [ ] Redo dataclass config correctly
-  - [ ] Reconsider `term` helper
+- [ ] Improve dataclass configs across the board
+  - [ ] Remove `MISSING` garbage.
 - [ ] Make tyro configure everything in rsl_rl train and eval script
 - [ ] Improve type checking across the board
   - [ ] pylance
   - [x] ty
+- [ ] Ensure mjlab installs and runs on CPU.
+  - [ ] CPU linux
+  - [ ] Mac M series
 - [x] Switch to `uv`
-
-**P2**
-
-- [ ] Make it possible to seamlessly switch to CPU mujoco
