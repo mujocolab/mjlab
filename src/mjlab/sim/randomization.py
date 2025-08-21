@@ -2,6 +2,8 @@ from typing import Any, List
 import warp as wp
 import mujoco_warp as mjwarp
 
+# Ref: https://github.com/newton-physics/newton/blob/main/newton/_src/solvers/mujoco/solver_mujoco.py#L915
+
 
 @wp.kernel(module="unique")
 def repeat_array_kernel(
