@@ -13,8 +13,7 @@ from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
 from mjlab.utils.os import get_wandb_checkpoint_path
-from mjlab.viewer import NativeMujocoViewerBuilder
-from mjlab.viewer.viser import ViserViewer
+from mjlab.viewer import NativeMujocoViewer
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
@@ -91,19 +90,10 @@ def main(
 
   policy = runner.get_inference_policy(device=env.device)
 
-  viewer = ViserViewer(env, policy, frame_rate=60.0, render_all_envs=render_all_envs)
+  viewer = NativeMujocoViewer(env, policy, frame_rate=60.0)
   viewer.run()
 
-  # try:
-  #   viewer = NativeMujocoViewerBuilder(env, policy).with_frame_rate(60.0)
-  #   if render_all_envs:
-  #     viewer = viewer.with_all_envs()
-  #   else:
-  #     viewer = viewer.with_single_env(env_idx=0)
-  #   viewer = viewer.build()
-  #   viewer.run()
-  # finally:
-  #   env.close()
+  env.close()
 
 
 if __name__ == "__main__":
