@@ -42,6 +42,8 @@ dependencies = [
     "warp-lang",
     "mujoco-warp",
     "mujoco",
+    "trimesh",
+    "viser",
 ]
 
 [dependency-groups]
