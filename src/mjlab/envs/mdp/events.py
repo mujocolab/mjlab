@@ -159,6 +159,7 @@ FIELD_SPECS = {
   "dof_damping": FieldSpec("dof", "joint_v_adr"),
   # Joint.
   "jnt_range": FieldSpec("joint", "joint_local2global"),
+  "jnt_stiffness": FieldSpec("joint", "joint_local2global"),
   # Body.
   "body_mass": FieldSpec("body", "body_local2global"),
   "body_ipos": FieldSpec("body", "body_local2global", default_axes=[0, 1, 2]),
