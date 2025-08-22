@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 from mjlab.scene.scene_config import SceneCfg
 from mjlab.sim.sim_config import SimulationCfg
@@ -22,8 +23,8 @@ class DefaultEventManagerCfg:
 class ManagerBasedEnvCfg:
   decimation: int
   scene: SceneCfg
-  observations: object
-  actions: object
-  events: DefaultEventManagerCfg = field(default_factory=DefaultEventManagerCfg)
+  observations: Any
+  actions: Any
+  events: Any = field(default_factory=DefaultEventManagerCfg)
   seed: int | None = None
   sim: SimulationCfg = field(default_factory=SimulationCfg)
