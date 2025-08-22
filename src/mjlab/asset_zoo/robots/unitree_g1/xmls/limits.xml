@@ -1,0 +1,39 @@
+<mujoco>
+  <default>
+    <tendon solreflimit="0.003 1" solimplimit="0.99 0.999 0.0005 0 2"/>
+  <default>
+  <tendon>
+    <fixed limited="true" range="-1e2 0.13708">
+      <joint joint="left_ankle_roll_joint" coef="-0.2618"/>
+      <joint joint="left_ankle_pitch_joint" coef="0.2618"/>
+    </fixed>
+    <fixed limited="true" range="-1e2 0.13708">
+      <joint joint="left_ankle_roll_joint" coef="0.2618"/>
+      <joint joint="left_ankle_pitch_joint" coef="0.2618"/>
+    </fixed>
+  <fixed limited="true" range="-1e2 0.22846">
+      <joint joint="left_ankle_roll_joint" coef="-0.14967"/>
+      <joint joint="left_ankle_pitch_joint" coef="-0.2618 "/>
+    </fixed>
+    <fixed limited="true" range="-1e2 0.22846">
+      <joint joint="left_ankle_roll_joint" coef="0.14967"/>
+      <joint joint="left_ankle_pitch_joint" coef="-0.2618"/>
+    </fixed>
+    <fixed limited="true" range="-1e2 0.13708">
+      <joint joint="right_ankle_roll_joint" coef="-0.2618"/>
+      <joint joint="right_ankle_pitch_joint" coef="0.2618"/>
+    </fixed>
+    <fixed limited="true" range="-1e2 0.13708">
+      <joint joint="right_ankle_roll_joint" coef="0.2618"/>
+      <joint joint="right_ankle_pitch_joint" coef="0.2618"/>
+    </fixed>
+    <fixed limited="true" range="-1e2 0.22846">
+      <joint joint="right_ankle_roll_joint" coef="-0.14967"/>
+      <joint joint="right_ankle_pitch_joint" coef="-0.2618 "/>
+    </fixed>
+    <fixed limited="true" range="-1e2 0.22846">
+      <joint joint="right_ankle_roll_joint" coef="0.14967"/>
+      <joint joint="right_ankle_pitch_joint" coef="-0.2618"/>
+    </fixed>
+  </tendon>
+</mujoco>
