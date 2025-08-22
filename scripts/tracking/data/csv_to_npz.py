@@ -191,6 +191,7 @@ def run_sim(
   output_fps,
   output_name,
   render,
+  line_range,
 ):
   # Load motion
   motion = MotionLoader(
@@ -198,6 +199,7 @@ def run_sim(
     input_fps=input_fps,
     output_fps=output_fps,
     device=sim.device,
+    line_range=line_range,
   )
 
   robot: Robot = scene["robot"]
@@ -317,6 +319,7 @@ def main(
   output_fps: float = 50.0,
   device: str = "cuda:0",
   render: bool = False,
+  line_range: tuple[int, int] | None = None,
 ):
   """Replay motion from CSV file and output to npz file.
 
@@ -327,6 +330,7 @@ def main(
     output_fps: Desired output frame rate.
     device: Device to use.
     render: Whether to render the simulation and save a video.
+    line_range: Range of lines to process from the CSV file.
   """
   sim_cfg = SimulationCfg(device=device)
   sim_cfg.mujoco.timestep = 1.0 / output_fps
@@ -380,6 +384,7 @@ def main(
     output_fps=output_fps,
     output_name=output_name,
     render=render,
+    line_range=line_range,
   )
 
 
