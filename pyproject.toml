@@ -18,6 +18,7 @@ authors = [
     {name = "Kevin Zakka", email = "zakka@berkeley.edu"},
 ]
 classifiers = [
+    "Typing :: Typed",
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
