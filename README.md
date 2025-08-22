@@ -39,6 +39,17 @@ MUJOCO_GL=egl uv run --extra rl scripts/tracking/rl/train.py \
   --num_envs 4096
 ```
 
+To add a new motion to the wandb registry, run:
+
+```bash
+MUJOCO_GL=egl uv run scripts/tracking/data/csv_to_npz.py \
+  --input-file /path/to/motion.csv \
+  --output-name side_kick \
+  --input-fps 30 \
+  --output-fps 50 \
+  --render
+```
+
 ### Running tests
 
 ```bash

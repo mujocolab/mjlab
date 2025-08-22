@@ -3,9 +3,8 @@ import torch
 import tyro
 from dataclasses import replace
 
-# from mjlab.asset_zoo.robots.booster_t1 import t1_constants
 from mjlab.asset_zoo.robots.unitree_g1 import g1_constants
-from mjlab import Robot
+from mjlab.entities import Robot
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   quat_mul,
   quat_conjugate,
@@ -19,26 +18,9 @@ from mjlab.sim.sim import Simulation, SimulationCfg
 from mjlab.scene.scene_config import SceneCfg
 from mjlab.asset_zoo.terrains.flat_terrain import FLAT_TERRAIN_CFG
 
-terrain_cfg = replace(FLAT_TERRAIN_CFG)
-# terrain_cfg.textures.append(
-#   TextureCfg(
-#     name="skybox",
-#     type="skybox",
-#     builtin="gradient",
-#     rgb1=(0.3, 0.5, 0.7),
-#     rgb2=(0.1, 0.2, 0.3),
-#     width=512,
-#     height=3072,
-#   ),
-# )
-# terrain_cfg.lights.append(
-#   LightCfg(pos=(0, 0, 1.5), type="directional"),
-# )
-
 SCENE_CFG = SceneCfg(
-  terrains={"floor": terrain_cfg},
+  terrains={"floor": replace(FLAT_TERRAIN_CFG)},
   robots={"robot": replace(g1_constants.G1_ROBOT_CFG)},
-  # robots={"robot": replace(t1_constants.T1_ROBOT_CFG)},
 )
 
 
@@ -357,7 +339,7 @@ def main(
   model = scene.compile()
 
   sim = Simulation(cfg=sim_cfg, model=model)
-  scene.initialize(sim.mj_model, sim.data, device, sim.wp_model)
+  scene.initialize(sim.mj_model, sim.model, sim.data, device)
 
   run_sim(
     sim=sim,
@@ -393,31 +375,6 @@ def main(
       "right_wrist_pitch_joint",
       "right_wrist_yaw_joint",
     ],
-    # joint_names=[
-    #   "AAHead_yaw",
-    #   "Head_pitch",
-    #   "Left_Shoulder_Pitch",
-    #   "Left_Shoulder_Roll",
-    #   "Left_Elbow_Pitch",
-    #   "Left_Elbow_Yaw",
-    #   "Right_Shoulder_Pitch",
-    #   "Right_Shoulder_Roll",
-    #   "Right_Elbow_Pitch",
-    #   "Right_Elbow_Yaw",
-    #   "Waist",
-    #   "Left_Hip_Pitch",
-    #   "Left_Hip_Roll",
-    #   "Left_Hip_Yaw",
-    #   "Left_Knee_Pitch",
-    #   "Left_Ankle_Pitch",
-    #   "Left_Ankle_Roll",
-    #   "Right_Hip_Pitch",
-    #   "Right_Hip_Roll",
-    #   "Right_Hip_Yaw",
-    #   "Right_Knee_Pitch",
-    #   "Right_Ankle_Pitch",
-    #   "Right_Ankle_Roll",
-    # ],
     input_fps=input_fps,
     input_file=input_file,
     output_fps=output_fps,
