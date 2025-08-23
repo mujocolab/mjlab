@@ -17,7 +17,7 @@ import gymnasium as gym
 class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
   is_vector_env = True
   metadata = {
-    "render_modes": [None, "human", "rgb_array"],
+    "render_modes": [None, "rgb_array"],
     "mujoco_version": mujoco.__version__,
   }
 
@@ -32,6 +32,8 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
     )
     super().__init__(cfg=cfg)
     self.render_mode = render_mode
+    if self.render_mode == "rgb_array":
+      self.sim.initialize_renderer()
     self.metadata["render_fps"] = 1.0 / self.step_dt  # type: ignore
 
     print("[INFO]: Completed setting up the environment...")

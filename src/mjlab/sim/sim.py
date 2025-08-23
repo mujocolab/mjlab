@@ -32,7 +32,6 @@ class Simulation:
 
     self._mj_model = model
     self._mj_data = mujoco.MjData(model)
-    # mujoco.mj_resetDataKeyframe(self._mj_model, self._mj_data, 0)
     mujoco.mj_forward(self._mj_model, self._mj_data)
 
     self._wp_model = mjwarp.put_model(self._mj_model)
@@ -74,8 +73,11 @@ class Simulation:
       self._mj_model.mat_reflectance[:] = 0.0
 
     self._camera = self.cfg.render.camera or -1
+    self._renderer: mujoco.Renderer | None = None
+
+  def initialize_renderer(self) -> None:
     self._renderer = mujoco.Renderer(
-      model=model, height=self.cfg.render.height, width=self.cfg.render.height
+      model=self._mj_model, height=self.cfg.render.height, width=self.cfg.render.height
     )
 
   # Properties.
@@ -106,6 +108,9 @@ class Simulation:
 
   @property
   def renderer(self) -> mujoco.Renderer:
+    if self._renderer is None:
+      raise ValueError("Renderer not initialized. Call 'initialize_renderer()' first.")
+
     return self._renderer
 
   # Methods.
@@ -141,6 +146,9 @@ class Simulation:
     self.data.ctrl[:, indices] = ctrl[:, indices]
 
   def update_render(self) -> None:
+    if self._renderer is None:
+      raise ValueError("Renderer not initialized. Call 'initialize_renderer()' first.")
+
     attrs_to_copy = ["qpos", "qvel", "mocap_pos", "mocap_quat", "xfrc_applied"]
     for attr in attrs_to_copy:
       setattr(self._mj_data, attr, getattr(self.data, attr)[0].cpu().numpy())
@@ -149,7 +157,12 @@ class Simulation:
     self._renderer.update_scene(data=self._mj_data, camera=self.cfg.render.camera)
 
   def render(self) -> np.ndarray:
+    if self._renderer is None:
+      raise ValueError("Renderer not initialized. Call 'initialize_renderer()' first.")
+
     return self._renderer.render()
 
   def close(self) -> None:
-    self._renderer.close()
+    if self._renderer is not None:
+      self._renderer.close()
+      self._renderer = None
