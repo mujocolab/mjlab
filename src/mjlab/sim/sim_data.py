@@ -1,4 +1,7 @@
-from typing import Any, Dict, Optional, Tuple, TypeVar, Generic
+from __future__ import annotations
+
+from typing import Any, Dict, Generic, Optional, Tuple, TypeVar
+
 import torch
 import warp as wp
 

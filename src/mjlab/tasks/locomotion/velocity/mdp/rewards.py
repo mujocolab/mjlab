@@ -1,13 +1,17 @@
 from __future__ import annotations
 
-import torch
 from typing import TYPE_CHECKING
+
+import torch
+
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensors import ContactSensor
 
 if TYPE_CHECKING:
-  from mjlab.envs import ManagerBasedRlEnv
   from mjlab.entities import Robot
+  from mjlab.envs import ManagerBasedRlEnv
+
+_DEFAULT_ROBOT_CFG = SceneEntityCfg("robot")
 
 
 def feet_air_time(
@@ -31,7 +35,7 @@ def feet_air_time(
 def feet_clearance(
   env: ManagerBasedRlEnv,
   max_height: float,
-  asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+  asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG,
 ) -> torch.Tensor:
   asset: Robot = env.scene[asset_cfg.name]
   feet_vel = asset.data.geom_lin_vel_w[:, asset_cfg.geom_ids]  # (num_envs, 4, 3)

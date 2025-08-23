@@ -1,16 +1,19 @@
 """Unitree G1 constants."""
 
-import mujoco
-from pathlib import Path
-from mjlab import MJLAB_SRC_PATH
-from mjlab.utils.os import update_assets
+from __future__ import annotations
 
+from pathlib import Path
+
+import mujoco
+
+from mjlab import MJLAB_SRC_PATH
+from mjlab.entities.robots.robot_config import RobotCfg
 from mjlab.utils.actuator import (
   ElectricActuator,
   reflected_inertia_from_two_stage_planetary,
 )
-from mjlab.entities.robots.robot_config import RobotCfg
-from mjlab.utils.spec_editor.spec_editor_config import CollisionCfg, ActuatorCfg
+from mjlab.utils.os import update_assets
+from mjlab.utils.spec_editor.spec_editor_config import ActuatorCfg, CollisionCfg
 
 ##
 # MJCF and assets.
@@ -278,8 +281,9 @@ for a in G1_ROBOT_CFG.actuators:
       G1_ACTION_SCALE[n] = 0.25 * e[n] / s[n]
 
 if __name__ == "__main__":
-  from mjlab.entities.robots.robot import Robot
   import mujoco.viewer as viewer
+
+  from mjlab.entities.robots.robot import Robot
 
   robot = Robot(G1_ROBOT_CFG)
   viewer.launch(robot.spec.compile())

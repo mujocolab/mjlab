@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from dataclasses import fields, is_dataclass
-from typing import Any, Type, Dict
+from typing import Any, Dict, Type
 
 
 def get_terms(instance: Any, term_type: Type) -> Dict[str, Any]:

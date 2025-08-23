@@ -1,13 +1,14 @@
 from __future__ import annotations
-import abc
 
+import abc
 from typing import TYPE_CHECKING, Sequence
-from prettytable import PrettyTable
+
 import torch
+from prettytable import PrettyTable
 
 from mjlab.managers.manager_base import ManagerBase, ManagerTermBase
-from mjlab.utils.dataclasses import get_terms
 from mjlab.managers.manager_term_config import ActionTermCfg
+from mjlab.utils.dataclasses import get_terms
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_env import ManagerBasedEnv

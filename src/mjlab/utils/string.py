@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import re
-from typing import Dict, List, Pattern, Any, Tuple
+from typing import Any, Dict, List, Pattern, Tuple
 
 
 def resolve_expr(

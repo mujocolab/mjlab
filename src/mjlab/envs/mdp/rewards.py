@@ -1,22 +1,27 @@
 """Useful methods for MPD rewards."""
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
+
 import torch
 
-from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.entities.robots.robot import Robot
+from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensors import ContactSensor
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
 
 
+_DEFAULT_ROBOT_CFG = SceneEntityCfg("robot")
+
+
 def track_lin_vel_xy_exp(
   env: ManagerBasedRlEnv,
   std: float,
   command_name: str,
-  asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+  asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG,
 ) -> torch.Tensor:
   """Reward tracking of linear velocity commands (xy axes) using exponential kernel."""
   asset: Robot = env.scene[asset_cfg.name]
@@ -34,7 +39,7 @@ def track_ang_vel_z_exp(
   env: ManagerBasedRlEnv,
   std: float,
   command_name: str,
-  asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+  asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG,
 ) -> torch.Tensor:
   """Reward tracking of angular velocity commands (yaw) using exponential kernel."""
   asset: Robot = env.scene[asset_cfg.name]
@@ -46,7 +51,7 @@ def track_ang_vel_z_exp(
 
 
 def lin_vel_z_l2(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG
 ) -> torch.Tensor:
   """Penalize z-axis base linear velocity using L2 squared kernel."""
   asset: Robot = env.scene[asset_cfg.name]
@@ -54,7 +59,7 @@ def lin_vel_z_l2(
 
 
 def ang_vel_xy_l2(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG
 ) -> torch.Tensor:
   """Penalize xy-axis base angular velocity using L2 squared kernel."""
   asset: Robot = env.scene[asset_cfg.name]
@@ -62,7 +67,7 @@ def ang_vel_xy_l2(
 
 
 def flat_orientation_l2(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG
 ) -> torch.Tensor:
   """Penalize non-flat base orientation using L2 squared kernel.
 
@@ -73,7 +78,7 @@ def flat_orientation_l2(
 
 
 def joint_torques_l2(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG
 ) -> torch.Tensor:
   """Penalize joint torques applied on the articulation using L2 squared kernel.
 
@@ -84,7 +89,7 @@ def joint_torques_l2(
 
 
 def joint_energy(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG
 ) -> torch.Tensor:
   asset: Robot = env.scene[asset_cfg.name]
   frc = asset.data.actuator_force
@@ -94,7 +99,7 @@ def joint_energy(
 
 
 def joint_acc_l2(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG
 ) -> torch.Tensor:
   """Penalize joint accelerations on the articulation using L2 squared kernel.
 
@@ -112,7 +117,7 @@ def action_rate_l2(env: ManagerBasedRlEnv) -> torch.Tensor:
 
 
 def joint_pos_limits(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG
 ) -> torch.Tensor:
   """Penalize joint positions if they cross the soft limits.
 
@@ -133,7 +138,7 @@ def joint_pos_limits(
 
 
 def upright(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG
 ) -> torch.Tensor:
   asset: Robot = env.scene[asset_cfg.name]
   projected_gravity = asset.data.projected_gravity_b
@@ -143,7 +148,7 @@ def upright(
 
 
 def posture(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG
 ) -> torch.Tensor:
   asset: Robot = env.scene[asset_cfg.name]
   default_joint_pos = asset.data.default_joint_pos

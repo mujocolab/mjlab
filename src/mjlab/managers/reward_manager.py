@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import torch
-
-from prettytable import PrettyTable
 from typing import TYPE_CHECKING
+
+import torch
+from prettytable import PrettyTable
+
 from mjlab.managers.manager_base import ManagerBase, ManagerTermBase
 from mjlab.managers.manager_term_config import RewardTermCfg
-
 from mjlab.utils.dataclasses import get_terms
 
 if TYPE_CHECKING:
@@ -40,7 +40,9 @@ class RewardManager(ManagerBase):
     table.field_names = ["Index", "Name", "Weight"]
     table.align["Name"] = "l"
     table.align["Weight"] = "r"
-    for index, (name, term_cfg) in enumerate(zip(self._term_names, self._term_cfgs)):
+    for index, (name, term_cfg) in enumerate(
+      zip(self._term_names, self._term_cfgs, strict=False)
+    ):
       table.add_row([index, name, term_cfg.weight])
     msg += table.get_string()
     msg += "\n"
@@ -72,7 +74,9 @@ class RewardManager(ManagerBase):
 
   def compute(self, dt: float) -> torch.Tensor:
     self._reward_buf[:] = 0.0
-    for term_idx, (name, term_cfg) in enumerate(zip(self._term_names, self._term_cfgs)):
+    for term_idx, (name, term_cfg) in enumerate(
+      zip(self._term_names, self._term_cfgs, strict=False)
+    ):
       if term_cfg.weight == 0.0:
         self._step_reward[:, term_idx] = 0.0
         continue

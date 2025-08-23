@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import torch
-
-from prettytable import PrettyTable
 from typing import TYPE_CHECKING, Sequence
+
+import torch
+from prettytable import PrettyTable
+
 from mjlab.managers.manager_base import ManagerBase, ManagerTermBase
 from mjlab.managers.manager_term_config import TerminationTermCfg
-
 from mjlab.utils.dataclasses import get_terms
 
 if TYPE_CHECKING:
@@ -39,7 +39,9 @@ class TerminationManager(ManagerBase):
     table.title = "Active Termination Terms"
     table.field_names = ["Index", "Name", "Time Out"]
     table.align["Name"] = "l"
-    for index, (name, term_cfg) in enumerate(zip(self._term_names, self._term_cfgs)):
+    for index, (name, term_cfg) in enumerate(
+      zip(self._term_names, self._term_cfgs, strict=False)
+    ):
       table.add_row([index, name, term_cfg.time_out])
     msg += table.get_string()
     msg += "\n"
@@ -82,7 +84,7 @@ class TerminationManager(ManagerBase):
   def compute(self) -> torch.Tensor:
     self._truncated_buf[:] = False
     self._terminated_buf[:] = False
-    for name, term_cfg in zip(self._term_names, self._term_cfgs):
+    for name, term_cfg in zip(self._term_names, self._term_cfgs, strict=False):
       value = term_cfg.func(self._env, **term_cfg.params)
       if term_cfg.time_out:
         self._truncated_buf |= value

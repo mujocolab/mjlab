@@ -1,15 +1,19 @@
 """Useful methods for MPD terminations."""
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, cast
+
 import torch
 
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensors.contact_sensor.contact_sensor import ContactSensor
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
   from mjlab.entities.robots.robot import Robot
+  from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
+
+_DEFAULT_ROBOT_CFG = SceneEntityCfg("robot")
 
 
 def time_out(env: ManagerBasedRlEnv) -> torch.Tensor:
@@ -38,7 +42,7 @@ def illegal_contact(
 def bad_orientation(
   env: ManagerBasedRlEnv,
   limit_angle: float,
-  asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+  asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG,
 ):
   asset: Robot = env.scene[asset_cfg.name]
   projected_gravity = asset.data.projected_gravity_b

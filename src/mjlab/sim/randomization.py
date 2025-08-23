@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 from typing import Any, List
-import warp as wp
+
 import mujoco_warp as mjwarp
+import warp as wp
 
 # Ref: https://github.com/newton-physics/newton/blob/main/newton/_src/solvers/mujoco/solver_mujoco.py#L915
 

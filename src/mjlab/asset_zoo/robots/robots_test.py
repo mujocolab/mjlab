@@ -1,8 +1,10 @@
-from absl.testing import parameterized, absltest
+from __future__ import annotations
 
 import mujoco
+from absl.testing import absltest, parameterized
+
 from mjlab.asset_zoo import robots
-from mjlab.entities import RobotCfg, Robot
+from mjlab.entities import Robot, RobotCfg
 
 
 @parameterized.parameters(

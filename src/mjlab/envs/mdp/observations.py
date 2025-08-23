@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+
 import torch
 
-from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.entities.robots.robot import Robot
+from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_env import ManagerBasedEnv
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
+
+_DEFAULT_ROBOT_CFG = SceneEntityCfg("robot")
 
 ##
 # Root state.
@@ -18,14 +21,14 @@ if TYPE_CHECKING:
 
 
 def base_lin_vel(
-  env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG
 ) -> torch.Tensor:
   asset: Robot = env.scene[asset_cfg.name]
   return asset.data.root_link_lin_vel_b
 
 
 def base_ang_vel(
-  env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+  env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG
 ) -> torch.Tensor:
   asset: Robot = env.scene[asset_cfg.name]
   return asset.data.root_link_ang_vel_b
@@ -33,7 +36,7 @@ def base_ang_vel(
 
 def projected_gravity(
   env: ManagerBasedEnv,
-  asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+  asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG,
 ) -> torch.Tensor:
   asset: Robot = env.scene[asset_cfg.name]
   return asset.data.projected_gravity_b
@@ -46,7 +49,7 @@ def projected_gravity(
 
 def joint_pos_rel(
   env: ManagerBasedEnv,
-  asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+  asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG,
 ) -> torch.Tensor:
   asset: Robot = env.scene[asset_cfg.name]
   default_joint_pos = asset.data.default_joint_pos
@@ -57,7 +60,7 @@ def joint_pos_rel(
 
 def joint_vel_rel(
   env: ManagerBasedEnv,
-  asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+  asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG,
 ) -> torch.Tensor:
   asset: Robot = env.scene[asset_cfg.name]
   default_joint_vel = asset.data.default_joint_vel

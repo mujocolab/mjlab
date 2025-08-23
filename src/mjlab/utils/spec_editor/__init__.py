@@ -1,15 +1,17 @@
 """Spec editors."""
 
+from __future__ import annotations
+
 from mjlab.utils.spec_editor.spec_editor_config import (
-  TextureCfg,
-  MaterialCfg,
-  CollisionCfg,
-  OptionCfg,
-  GeomCfg,
   ActuatorCfg,
-  SensorCfg,
-  LightCfg,
   CameraCfg,
+  CollisionCfg,
+  GeomCfg,
+  LightCfg,
+  MaterialCfg,
+  OptionCfg,
+  SensorCfg,
+  TextureCfg,
 )
 
 __all__ = (

@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, replace
 
+from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ACTION_SCALE, G1_ROBOT_CFG
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
-from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ROBOT_CFG, G1_ACTION_SCALE
 
 
 @dataclass

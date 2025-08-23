@@ -1,5 +1,7 @@
 """Base class for environment viewers."""
 
+from __future__ import annotations
+
 import contextlib
 import time
 from abc import ABC, abstractmethod

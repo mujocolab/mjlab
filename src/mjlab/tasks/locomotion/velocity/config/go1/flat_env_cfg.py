@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, replace
 
+from mjlab.asset_zoo.robots.unitree_go1.go1_constants import GO1_ROBOT_CFG
 from mjlab.tasks.locomotion.velocity.velocity_env_cfg import (
   LocomotionVelocityFlatEnvCfg,
 )
-from mjlab.asset_zoo.robots.unitree_go1.go1_constants import GO1_ROBOT_CFG
 
 
 @dataclass

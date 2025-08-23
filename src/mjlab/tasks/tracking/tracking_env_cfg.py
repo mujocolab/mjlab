@@ -1,22 +1,23 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field, replace
 
-from mjlab.scene.scene_config import SceneCfg
-from mjlab.utils.spec_editor import TextureCfg, LightCfg
 from mjlab.asset_zoo.terrains.flat_terrain import FLAT_TERRAIN_CFG
-
-from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.managers.manager_term_config import ActionTermCfg as ActionTerm
+from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 from mjlab.managers.manager_term_config import ObservationGroupCfg as ObsGroup
 from mjlab.managers.manager_term_config import ObservationTermCfg as ObsTerm
-from mjlab.managers.manager_term_config import term
-from mjlab.envs import ManagerBasedRlEnvCfg
-from mjlab.utils.noise import UniformNoiseCfg as Unoise
-from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
-from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 from mjlab.managers.manager_term_config import RewardTermCfg as RewTerm
-# from mjlab.sensors import ContactSensorCfg
+from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
+from mjlab.managers.manager_term_config import term
+from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.scene.scene_config import SceneCfg
 
+# from mjlab.sensors import ContactSensorCfg
 from mjlab.tasks.tracking import mdp
+from mjlab.utils.noise import UniformNoiseCfg as Unoise
+from mjlab.utils.spec_editor import LightCfg, TextureCfg
 
 VELOCITY_RANGE = {
   "x": (-0.5, 0.5),

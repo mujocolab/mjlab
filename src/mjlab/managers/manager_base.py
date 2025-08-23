@@ -1,9 +1,11 @@
 from __future__ import annotations
+
 import abc
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 import torch
+
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 if TYPE_CHECKING:
@@ -11,7 +13,7 @@ if TYPE_CHECKING:
   from mjlab.managers.manager_term_config import ManagerTermBaseCfg
 
 
-class ManagerTermBase(abc.ABC):
+class ManagerTermBase:
   def __init__(self, cfg: ManagerTermBaseCfg, env: ManagerBasedEnv):
     self.cfg = cfg
     self._env = env

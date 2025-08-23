@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import asdict
 from pathlib import Path
 from typing import cast
@@ -5,6 +7,7 @@ from typing import cast
 import gymnasium as gym
 import torch
 import tyro
+
 import wandb
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import abc
-import torch
+from typing import TYPE_CHECKING, Any
+
 import mujoco
 import mujoco_warp as mjwarp
-from typing import TYPE_CHECKING, Any
+import torch
+
 from mjlab.entities.indexing import EntityIndexing
 
 if TYPE_CHECKING:

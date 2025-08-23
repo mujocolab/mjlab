@@ -1,13 +1,14 @@
-import os
+from __future__ import annotations
 
+import os
 from typing import cast
 
 import onnx
 import torch
-from mjlab.third_party.isaaclab.isaaclab_rl.rsl_rl.exporter import _OnnxPolicyExporter
-from mjlab.tasks.tracking.mdp import MotionCommand
 
 from mjlab.envs import ManagerBasedRlEnv
+from mjlab.tasks.tracking.mdp import MotionCommand
+from mjlab.third_party.isaaclab.isaaclab_rl.rsl_rl.exporter import _OnnxPolicyExporter
 
 
 def export_motion_policy_as_onnx(

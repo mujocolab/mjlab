@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 from typing import Sequence
 
 import numpy as np
 import torch
 from prettytable import PrettyTable
+
 from mjlab.managers.manager_base import ManagerBase
 from mjlab.managers.manager_term_config import ObservationGroupCfg, ObservationTermCfg
-
 from mjlab.utils.dataclasses import get_terms
 from mjlab.utils.noise import noise_cfg, noise_model
 
@@ -35,7 +37,7 @@ class ObservationManager(ManagerBase):
         except RuntimeError:
           raise RuntimeError(
             f"Unable to concatenate observation terms in group {group_name}."
-          )
+          ) from None
       else:
         self._group_obs_dim[group_name] = group_term_dims
 
@@ -53,6 +55,7 @@ class ObservationManager(ManagerBase):
       obs_terms = zip(
         self._group_obs_term_names[group_name],
         self._group_obs_term_dim[group_name],
+        strict=False,
       )
       for index, (name, dims) in enumerate(obs_terms):
         tab_dims = tuple(dims)
@@ -81,6 +84,7 @@ class ObservationManager(ManagerBase):
       for name, shape in zip(
         self._group_obs_term_names[group_name],
         self._group_obs_term_dim[group_name],
+        strict=False,
       ):
         data_length = np.prod(shape)
         term = data[env_idx, idx : idx + data_length]
@@ -110,7 +114,7 @@ class ObservationManager(ManagerBase):
   # Methods.
 
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> dict[str, float]:
-    for group_name, group_cfg in self._group_obs_class_term_cfgs.items():
+    for _group_name, group_cfg in self._group_obs_class_term_cfgs.items():
       for term_cfg in group_cfg:
         term_cfg.func.reset(env_ids=env_ids)
       # TODO: History.
@@ -128,7 +132,9 @@ class ObservationManager(ManagerBase):
   def compute_group(self, group_name: str) -> torch.Tensor | dict[str, torch.Tensor]:
     group_term_names = self._group_obs_term_names[group_name]
     group_obs = dict.fromkeys(group_term_names, None)
-    obs_terms = zip(group_term_names, self._group_obs_term_cfgs[group_name])
+    obs_terms = zip(
+      group_term_names, self._group_obs_term_cfgs[group_name], strict=False
+    )
     for term_name, term_cfg in obs_terms:
       obs: torch.Tensor = term_cfg.func(self._env, **term_cfg.params).clone()
       if isinstance(term_cfg.noise, noise_cfg.NoiseCfg):

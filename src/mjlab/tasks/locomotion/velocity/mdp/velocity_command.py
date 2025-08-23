@@ -1,17 +1,19 @@
 from __future__ import annotations
 
-from mjlab.managers.command_manager import CommandTerm
-import torch
+from dataclasses import dataclass
 from typing import (
   TYPE_CHECKING,
   Sequence,
 )
+
 import mujoco
 import numpy as np
+import torch
+
 from mjlab.entities.robots.robot import Robot
-from mjlab.third_party.isaaclab.isaaclab.utils.math import wrap_to_pi, matrix_from_quat
-from dataclasses import dataclass
+from mjlab.managers.command_manager import CommandTerm
 from mjlab.managers.manager_term_config import CommandTermCfg
+from mjlab.third_party.isaaclab.isaaclab.utils.math import matrix_from_quat, wrap_to_pi
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_env import ManagerBasedEnv
@@ -103,11 +105,15 @@ class UniformVelocityCommand(CommandTerm):
       lin_vel_b = lin_vel_bs[batch]
       ang_vel_b = ang_vel_bs[batch]
 
-      def local_to_world(vec: np.ndarray) -> np.ndarray:
+      def local_to_world(
+        vec: np.ndarray, base_pos_w=base_pos_w, base_mat_w=base_mat_w
+      ) -> np.ndarray:
         return base_pos_w + base_mat_w @ vec
 
       def make_arrow(
-        from_local: np.ndarray, to_local: np.ndarray
+        from_local: np.ndarray,
+        to_local: np.ndarray,
+        local_to_world=local_to_world,
       ) -> tuple[np.ndarray, np.ndarray]:
         return local_to_world(from_local), local_to_world(to_local)
 

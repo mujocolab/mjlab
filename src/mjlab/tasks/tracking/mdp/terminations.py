@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional, cast
+
 import torch
+
+from mjlab.third_party.isaaclab.isaaclab.utils.math import quat_apply_inverse
 
 from .commands import MotionCommand
 from .rewards import _get_body_indexes
-from mjlab.third_party.isaaclab.isaaclab.utils.math import quat_apply_inverse
 
 if TYPE_CHECKING:
-  from mjlab.managers.scene_entity_config import SceneEntityCfg
-  from mjlab.envs import ManagerBasedRlEnv
   from mjlab.entities import Robot
+  from mjlab.envs import ManagerBasedRlEnv
+  from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 
 def bad_ref_pos(

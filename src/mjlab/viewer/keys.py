@@ -1,5 +1,7 @@
 """Key codes for input handling."""
 
+from __future__ import annotations
+
 KEY_UNKNOWN = -1
 KEY_SPACE = 32
 KEY_APOSTROPHE = 39

@@ -1,23 +1,26 @@
 from __future__ import annotations
-from dataclasses import dataclass
 
-import torch
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple, Union
 
-from mjlab.managers.scene_entity_config import SceneEntityCfg
+import torch
+
 from mjlab.entities.robots.robot import Robot
+from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
-  sample_uniform,
-  sample_log_uniform,
-  sample_gaussian,
-  quat_from_euler_xyz,
   quat_apply_inverse,
+  quat_from_euler_xyz,
   quat_mul,
+  sample_gaussian,
+  sample_log_uniform,
+  sample_uniform,
 )
 from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_env import ManagerBasedEnv
+
+_DEFAULT_ROBOT_CFG = SceneEntityCfg("robot")
 
 
 def reset_scene_to_default(env: ManagerBasedEnv, env_ids: torch.Tensor) -> None:
@@ -40,7 +43,7 @@ def reset_root_state_uniform(
   env_ids: torch.Tensor,
   pose_range: dict[str, tuple[float, float]],
   velocity_range: dict[str, tuple[float, float]],
-  asset_cfg: SceneEntityCfg = SceneEntityCfg(name="robot"),
+  asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG,
 ) -> None:
   asset: Robot = env.scene[asset_cfg.name]
   default_root_state = asset.data.default_root_state
@@ -86,7 +89,7 @@ def reset_joints_by_scale(
   env_ids: torch.Tensor,
   position_range: tuple[float, float],
   velocity_range: tuple[float, float],
-  asset_cfg: SceneEntityCfg = SceneEntityCfg(name="robot"),
+  asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG,
 ) -> None:
   asset: Robot = env.scene[asset_cfg.name]
   default_joint_pos = asset.data.default_joint_pos
@@ -117,7 +120,7 @@ def push_by_setting_velocity(
   env: ManagerBasedEnv,
   env_ids: torch.Tensor,
   velocity_range: dict[str, tuple[float, float]],
-  asset_cfg: SceneEntityCfg = SceneEntityCfg(name="robot"),
+  asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG,
 ) -> None:
   asset: Robot = env.scene[asset_cfg.name]
   vel_w = asset.data.root_link_vel_w[env_ids]

@@ -1,19 +1,21 @@
-from pathlib import Path
+from __future__ import annotations
+
 import abc
+from pathlib import Path
 from typing import Sequence
 
 import mujoco
 import mujoco_warp as mjwarp
 import torch
 
-from mjlab.entities.indexing import EntityIndexing
 from mjlab.entities.entity_config import EntityCfg
+from mjlab.entities.indexing import EntityIndexing
 from mjlab.utils.spec_editor.spec_editor import (
-  TextureEditor,
-  MaterialEditor,
-  LightEditor,
   CameraEditor,
+  LightEditor,
+  MaterialEditor,
   SensorEditor,
+  TextureEditor,
 )
 
 

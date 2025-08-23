@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from mjlab.sensors.contact_sensor.contact_sensor import ContactSensor
 from mjlab.sensors.contact_sensor.contact_sensor_config import ContactSensorCfg
 

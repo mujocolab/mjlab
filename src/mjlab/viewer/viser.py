@@ -1,16 +1,18 @@
 """Viser based on viser."""
 
+from __future__ import annotations
+
 from concurrent.futures import ThreadPoolExecutor
-from typing_extensions import override
 
 import numpy as np
 import trimesh
-from mjlab.sim.sim import Simulation
-from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
-from mujoco import mj_id2name, mjtGeom, mjtObj  # type: ignore
-
 import viser
 import viser.transforms as vtf
+from mujoco import mj_id2name, mjtGeom, mjtObj  # type: ignore
+from typing_extensions import override
+
+from mjlab.sim.sim import Simulation
+from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
 
 
 class ViserViewer(BaseViewer):

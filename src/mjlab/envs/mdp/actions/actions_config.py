@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 
+from mjlab.envs.mdp.actions import joint_actions
 from mjlab.managers.action_manager import ActionTerm
 from mjlab.managers.manager_term_config import ActionTermCfg
-
-from mjlab.envs.mdp.actions import joint_actions
 
 
 @dataclass(kw_only=True)

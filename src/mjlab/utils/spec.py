@@ -1,5 +1,7 @@
 """MjSpec utils."""
 
+from __future__ import annotations
+
 import mujoco
 
 

@@ -1,17 +1,20 @@
+from __future__ import annotations
+
+import time
 from dataclasses import asdict
 from pathlib import Path
-import torch
+
+import gymnasium as gym
 import mujoco
-import time
 import mujoco.viewer
+import torch
 import tyro
-from mjlab.rl import RslRlVecEnvWrapper
 from rsl_rl.runners import OnPolicyRunner
+
+from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
-import gymnasium as gym
-
 from mjlab.utils.os import get_wandb_checkpoint_path
 
 torch.backends.cuda.matmul.allow_tf32 = True

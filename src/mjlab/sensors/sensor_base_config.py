@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from mjlab.sensors.sensor_base import SensorBase

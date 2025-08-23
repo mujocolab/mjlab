@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Sequence
-from prettytable import PrettyTable
+
 import torch
+from prettytable import PrettyTable
 
 from mjlab.managers.manager_base import ManagerBase, ManagerTermBase
 from mjlab.managers.manager_term_config import CurriculumTermCfg
@@ -52,7 +53,7 @@ class CurriculumManager(ManagerBase):
       if term_state is not None:
         data = []
         if isinstance(term_state, dict):
-          for key, value in term_state.items():
+          for _key, value in term_state.items():
             if isinstance(value, torch.Tensor):
               value = value.item()
             terms[term_name].append(value)
@@ -83,7 +84,7 @@ class CurriculumManager(ManagerBase):
   def compute(self, env_ids: torch.Tensor | slice | None = None):
     if env_ids is None:
       env_ids = slice(None)
-    for name, term_cfg in zip(self._term_names, self._term_cfgs):
+    for name, term_cfg in zip(self._term_names, self._term_cfgs, strict=False):
       state = term_cfg.func(self._env, env_ids, **term_cfg.params)
       self._curriculum_state[name] = state
 

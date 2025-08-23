@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from mjlab.entities.terrains import terrain_config
 from mjlab.utils.spec_editor import spec_editor_config
 
@@ -35,8 +37,9 @@ FLAT_TERRAIN_CFG = terrain_config.TerrainCfg(
 )
 
 if __name__ == "__main__":
-  from mjlab.entities.terrains.terrain import Terrain
   import mujoco.viewer
+
+  from mjlab.entities.terrains.terrain import Terrain
 
   terr = Terrain(FLAT_TERRAIN_CFG)
   mujoco.viewer.launch(terr.compile())
