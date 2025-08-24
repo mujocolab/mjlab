@@ -4,6 +4,7 @@ import gymnasium as gym
 import mujoco
 import numpy as np
 import torch
+import warp as wp
 
 from mjlab.envs import types
 from mjlab.envs.manager_based_env import ManagerBasedEnv
@@ -19,6 +20,7 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
   metadata = {
     "render_modes": [None, "rgb_array"],
     "mujoco_version": mujoco.__version__,
+    "warp_version": wp.config.version,
   }
 
   cfg: ManagerBasedRlEnvCfg

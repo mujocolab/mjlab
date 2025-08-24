@@ -20,10 +20,9 @@ class ViserViewer(BaseViewer):
     policy: PolicyProtocol,
     frame_rate: float = 60.0,
     render_all_envs: bool = True,
-    env_idx: int = 0,
     verbosity: VerbosityLevel = VerbosityLevel.SILENT,
   ) -> None:
-    super().__init__(env, policy, frame_rate, render_all_envs, env_idx, verbosity)
+    super().__init__(env, policy, frame_rate, render_all_envs, verbosity)
 
   @override
   def setup(self) -> None:

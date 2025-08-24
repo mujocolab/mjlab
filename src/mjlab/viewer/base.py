@@ -1,12 +1,17 @@
 """Base class for environment viewers."""
 
+from __future__ import annotations
+
 import contextlib
 import time
 from abc import ABC, abstractmethod
 from enum import IntEnum
-from typing import Any, Optional, Protocol
+from typing import TYPE_CHECKING, Any, Optional, Protocol
 
 import torch
+
+if TYPE_CHECKING:
+  from mjlab.envs import ManagerBasedEnvCfg
 
 
 class VerbosityLevel(IntEnum):
@@ -51,6 +56,7 @@ class EnvProtocol(Protocol):
   """Protocol for environment interface."""
 
   device: torch.device
+  cfg: ManagerBasedEnvCfg
 
   def get_observations(self) -> torch.Tensor: ...
 
@@ -88,7 +94,6 @@ class BaseViewer(ABC):
     policy: PolicyProtocol,
     frame_rate: float = 60.0,
     render_all_envs: bool = True,
-    env_idx: int = 0,
     verbosity: int = VerbosityLevel.SILENT,
   ):
     """Initialize the base viewer.
@@ -98,7 +103,6 @@ class BaseViewer(ABC):
       policy: The policy to use for action generation.
       frame_rate: Target frame rate for visualization.
       render_all_envs: Whether to render all environments or just one.
-      env_idx: Index of the primary environment to render (if not rendering all).
       verbosity: Verbosity level (0=silent, 1=info, 2=debug with performance metrics).
     """
     self.env = env
@@ -106,8 +110,8 @@ class BaseViewer(ABC):
     self.frame_rate = frame_rate
     self.frame_time = 1.0 / frame_rate
     self.render_all_envs = render_all_envs
-    self.env_idx = env_idx
     self.verbosity = VerbosityLevel(verbosity)
+    self.cfg = env.cfg.viewer
 
     # State management.
     self._is_running = False

@@ -8,6 +8,7 @@ from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.scene.scene_config import SceneCfg
 from mjlab.sim.sim_config import SimulationCfg
+from mjlab.viewer.viewer_config import ViewerConfig
 
 
 @dataclass
@@ -28,3 +29,4 @@ class ManagerBasedEnvCfg:
   events: Any = field(default_factory=DefaultEventManagerCfg)
   seed: int | None = None
   sim: SimulationCfg = field(default_factory=SimulationCfg)
+  viewer: ViewerConfig = field(default_factory=ViewerConfig)

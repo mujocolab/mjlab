@@ -1,6 +1,8 @@
 """Viewer based on the passive MuJoCo viewer."""
 
-from typing import Any, Callable, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import mujoco
 import mujoco.viewer
@@ -8,6 +10,9 @@ import numpy as np
 import torch
 
 from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
+
+if TYPE_CHECKING:
+  from mjlab.entities import Robot
 
 
 class NativeMujocoViewer(BaseViewer):
@@ -19,7 +24,6 @@ class NativeMujocoViewer(BaseViewer):
     policy: PolicyProtocol,
     frame_rate: float = 60.0,
     render_all_envs: bool = True,
-    env_idx: int = 0,
     key_callback: Optional[Callable[[int], None]] = None,
     enable_perturbations: bool = True,
     verbosity: VerbosityLevel = VerbosityLevel.SILENT,
@@ -31,11 +35,10 @@ class NativeMujocoViewer(BaseViewer):
       policy: The policy to use for action generation.
       frame_rate: Target frame rate for visualization.
       render_all_envs: Whether to render all environments or just one.
-      env_idx: Index of the primary environment to render.
       key_callback: Optional callback for keyboard input.
       enable_perturbations: Whether to enable interactive perturbations.
     """
-    super().__init__(env, policy, frame_rate, render_all_envs, env_idx, verbosity)
+    super().__init__(env, policy, frame_rate, render_all_envs, verbosity)
 
     self.key_callback = key_callback
     self.enable_perturbations = enable_perturbations
@@ -47,6 +50,8 @@ class NativeMujocoViewer(BaseViewer):
     self.pert: Optional[mujoco.MjvPerturb] = None
     self.vopt: Optional[mujoco.MjvOption] = None
     self.catmask: Optional[int] = None
+
+    self.env_idx = 0
 
     self._setup_default_callbacks()
 
@@ -133,7 +138,54 @@ class NativeMujocoViewer(BaseViewer):
     if self.viewer is None:
       raise RuntimeError("Failed to launch MuJoCo viewer")
 
+    # TODO(kevin): Allow below to be configurable.
+
+    # Turn on world frame.
     self.viewer.opt.frame = mujoco.mjtFrame.mjFRAME_WORLD.value
+
+    if self.cfg.origin_type == self.cfg.OriginType.WORLD:
+      self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FREE.value
+      self.viewer.cam.fixedcamid = -1
+      self.viewer.cam.trackbodyid = -1
+
+    elif self.cfg.origin_type == self.cfg.OriginType.ASSET_ROOT:
+      if self.cfg.asset_name is None:
+        raise ValueError("Asset name must be specified for ASSET_ROOT origin type")
+
+      robot: Robot = self.env.unwrapped.scene[self.cfg.asset_name]
+      body_id = self.env.unwrapped.scene.indexing.entities[
+        self.cfg.asset_name
+      ].root_body_id
+
+      self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
+      self.viewer.cam.trackbodyid = body_id
+      self.viewer.cam.fixedcamid = -1
+    else:
+      assert self.cfg.origin_type == self.cfg.OriginType.ASSET_BODY
+      if self.cfg.asset_name is None:
+        raise ValueError("Asset name must be specified for ASSET_BODY origin type")
+      if self.cfg.body_name is None:
+        raise ValueError("Body name must be specified for ASSET_BODY origin type")
+
+      robot: Robot = self.env.unwrapped.scene[self.cfg.asset_name]
+      if self.cfg.body_name not in robot.body_names:
+        raise ValueError(
+          f"Body name '{self.cfg.body_name}' not found in asset '{self.cfg.asset_name}'"
+        )
+
+      body_id_list, _ = robot.find_bodies(self.cfg.body_name)
+      body_id = self.env.unwrapped.scene.indexing.entities[
+        self.cfg.asset_name
+      ].body_local2global[body_id_list[0]]
+
+      self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
+      self.viewer.cam.trackbodyid = body_id
+      self.viewer.cam.fixedcamid = -1
+
+    self.viewer.cam.lookat = self.cfg.lookat
+    self.viewer.cam.elevation = self.cfg.elevation
+    self.viewer.cam.azimuth = self.cfg.azimuth
+    self.viewer.cam.distance = self.cfg.distance
 
     if self.enable_perturbations:
       self.log("[INFO] Interactive perturbations enabled")

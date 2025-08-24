@@ -16,6 +16,7 @@ from mjlab.scene.scene_config import SceneCfg
 from mjlab.tasks.tracking import mdp
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
 from mjlab.utils.spec_editor import LightCfg, TextureCfg
+from mjlab.viewer import ViewerConfig
 
 VELOCITY_RANGE = {
   "x": (-0.5, 0.5),
@@ -53,6 +54,15 @@ SCENE_CFG = SceneCfg(
   #     entity_name="robot", history_length=3, force_threshold=10.0
   #   ),
   # },
+)
+
+VIEWER_CONFIG = ViewerConfig(
+  origin_type=ViewerConfig.OriginType.ASSET_BODY,
+  asset_name="robot",
+  body_name="torso_link",
+  distance=3.0,
+  elevation=-5.0,
+  azimuth=90.0,
 )
 
 
@@ -321,6 +331,7 @@ class TrackingEnvCfg(ManagerBasedRlEnvCfg):
   curriculum: CurriculumCfg = field(default_factory=CurriculumCfg)
   decimation: int = 4
   episode_length_s: float = 10.0
+  viewer: ViewerConfig = field(default_factory=lambda: VIEWER_CONFIG)
 
   def __post_init__(self) -> None:
     self.sim.mujoco.integrator = "implicitfast"
