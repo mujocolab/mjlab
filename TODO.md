@@ -1,5 +1,6 @@
 **P0**.
 
+- [ ] Investigate potential overflow for large `num_envs` (e.g., 16K).
 - [ ] Contact sensor
   - [ ] Clean up, super gross right now
   - [ ] Investiate cause of NaNs
