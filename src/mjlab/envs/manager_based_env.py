@@ -99,6 +99,7 @@ class ManagerBasedEnv:
 
   def reset(
     self,
+    *,
     seed: int | None = None,
     env_ids: torch.Tensor | slice | None = None,
     options: dict[str, Any] | None = None,

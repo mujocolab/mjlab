@@ -68,10 +68,7 @@ def ang_vel_xy_l2(
 def flat_orientation_l2(
   env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
 ) -> torch.Tensor:
-  """Penalize non-flat base orientation using L2 squared kernel.
-
-  This is computed by penalizing the xy-components of the projected gravity vector.
-  """
+  """Penalize non-flat base orientation using L2 squared kernel."""
   asset: Robot = env.scene[asset_cfg.name]
   return torch.sum(torch.square(asset.data.projected_gravity_b[:, :2]), dim=1)
 
@@ -79,31 +76,15 @@ def flat_orientation_l2(
 def joint_torques_l2(
   env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
 ) -> torch.Tensor:
-  """Penalize joint torques applied on the articulation using L2 squared kernel.
-
-  NOTE: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their joint torques contribute to the term.
-  """
+  """Penalize joint torques applied on the articulation using L2 squared kernel."""
   asset: Robot = env.scene[asset_cfg.name]
   return torch.sum(torch.square(asset.data.actuator_force), dim=1)
-
-
-def joint_energy(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
-) -> torch.Tensor:
-  asset: Robot = env.scene[asset_cfg.name]
-  frc = asset.data.actuator_force
-  vel = asset.data.joint_vel
-  power = torch.abs(frc) * torch.abs(vel)
-  return torch.sum(power, dim=-1)
 
 
 def joint_acc_l2(
   env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
 ) -> torch.Tensor:
-  """Penalize joint accelerations on the articulation using L2 squared kernel.
-
-  NOTE: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their joint accelerations contribute to the term.
-  """
+  """Penalize joint accelerations on the articulation using L2 squared kernel."""
   asset: Robot = env.scene[asset_cfg.name]
   return torch.sum(torch.square(asset.data.joint_acc[:, asset_cfg.joint_ids]), dim=1)
 
@@ -118,10 +99,7 @@ def action_rate_l2(env: ManagerBasedRlEnv) -> torch.Tensor:
 def joint_pos_limits(
   env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
 ) -> torch.Tensor:
-  """Penalize joint positions if they cross the soft limits.
-
-  This is computed as a sum of the absolute value of the difference between the joint position and the soft limits.
-  """
+  """Penalize joint positions if they cross the soft limits."""
   asset: Robot = env.scene[asset_cfg.name]
   soft_joint_pos_limits = asset.data.soft_joint_pos_limits
   assert soft_joint_pos_limits is not None
@@ -139,6 +117,7 @@ def joint_pos_limits(
 def upright(
   env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
 ) -> torch.Tensor:
+  """Penalize the deviation of the base orientation from the upright orientation."""
   asset: Robot = env.scene[asset_cfg.name]
   projected_gravity = asset.data.projected_gravity_b
   desired_projected_gravity = torch.tensor([0, 0, -1], device=projected_gravity.device)
@@ -149,6 +128,7 @@ def upright(
 def posture(
   env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
 ) -> torch.Tensor:
+  """Penalize the deviation of the joint positions from the default positions."""
   asset: Robot = env.scene[asset_cfg.name]
   default_joint_pos = asset.data.default_joint_pos
   assert default_joint_pos is not None
@@ -163,7 +143,7 @@ def posture(
 def undesired_contacts(
   env: ManagerBasedRlEnv, threshold: float, sensor_cfg: SceneEntityCfg
 ) -> torch.Tensor:
-  """Penalize undesired contacts as the number of violations that are above a threshold."""
+  """Penalize undesired contacts."""
   contact_sensor: ContactSensor = env.scene[sensor_cfg.name]
   net_contact_forces = contact_sensor.data.net_forces_w_history
   assert net_contact_forces is not None

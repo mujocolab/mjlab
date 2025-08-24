@@ -4,7 +4,6 @@ from pathlib import Path
 import warp as wp
 
 MJLAB_SRC_PATH: Path = Path(__file__).parent
-MJLAB_ROOT_PATH: Path = MJLAB_SRC_PATH.parent
 
 
 def configure_warp() -> None:

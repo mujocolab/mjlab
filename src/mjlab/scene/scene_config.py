@@ -13,4 +13,3 @@ class SceneCfg:
   robots: dict[str, RobotCfg] = field(default_factory=dict)
   sensors: dict[str, SensorBaseCfg] = field(default_factory=dict)
   lazy_sensor_update: bool = True
-  """Whether to update sensors only when they are accessed. Default is True."""
