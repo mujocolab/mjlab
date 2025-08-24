@@ -133,6 +133,8 @@ class NativeMujocoViewer(BaseViewer):
     if self.viewer is None:
       raise RuntimeError("Failed to launch MuJoCo viewer")
 
+    self.viewer.opt.frame = mujoco.mjtFrame.mjFRAME_WORLD.value
+
     if self.enable_perturbations:
       self.log("[INFO] Interactive perturbations enabled")
 

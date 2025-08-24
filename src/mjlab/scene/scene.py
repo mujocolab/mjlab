@@ -21,10 +21,10 @@ _BASE_XML = r"""
     <rgba force="1 0 0 1" haze="0.15 0.25 0.35 1"/>
     <global azimuth="135" elevation="-25" offwidth="1920" offheight="1080"/>
     <map force="0.005"/>
-    <scale forcewidth="0.25" contactwidth="0.4" contactheight="0.15"/>
+    <scale forcewidth="0.25" contactwidth="0.4" contactheight="0.15" framelength="5.0" framewidth="0.3"/>
     <quality shadowsize="8192"/>
   </visual>
-  <statistic meansize="0.02"/>
+  <statistic meansize="0.03"/>
 </mujoco>
 """
 
