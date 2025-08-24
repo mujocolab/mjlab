@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import cast
 
 import gymnasium as gym
-import torch
 import tyro
 
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
@@ -17,12 +16,7 @@ from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
 from mjlab.utils.os import dump_yaml, get_checkpoint_path
-
-# TODO(kevin): Make sure this does not interfere with seed_rng call in env.seed().
-torch.backends.cuda.matmul.allow_tf32 = True
-torch.backends.cudnn.allow_tf32 = True
-torch.backends.cudnn.deterministic = False
-torch.backends.cudnn.benchmark = False
+from mjlab.utils.torch import configure_torch_backends
 
 _HERE = Path(__file__).parent
 
@@ -38,6 +32,8 @@ def main(
   video_length: int = 200,
   video_interval: int = 2000,
 ):
+  configure_torch_backends()
+
   env_cfg = cast(TrackingEnvCfg, load_cfg_from_registry(task, "env_cfg_entry_point"))
   agent_cfg = cast(
     RslRlOnPolicyRunnerCfg, load_cfg_from_registry(task, "rl_cfg_entry_point")

@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import cast
 
 import gymnasium as gym
-import torch
 import tyro
 import wandb
 
@@ -14,12 +13,8 @@ from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
 from mjlab.utils.os import get_wandb_checkpoint_path
+from mjlab.utils.torch import configure_torch_backends
 from mjlab.viewer import NativeMujocoViewer
-
-torch.backends.cuda.matmul.allow_tf32 = True
-torch.backends.cudnn.allow_tf32 = True
-torch.backends.cudnn.deterministic = False
-torch.backends.cudnn.benchmark = False
 
 _HERE = Path(__file__).parent
 
@@ -37,6 +32,8 @@ def main(
   camera: int | str | None = -1,
   render_all_envs: bool = False,
 ):
+  configure_torch_backends()
+
   env_cfg = cast(TrackingEnvCfg, load_cfg_from_registry(task, "env_cfg_entry_point"))
   agent_cfg = cast(
     RslRlOnPolicyRunnerCfg, load_cfg_from_registry(task, "rl_cfg_entry_point")
