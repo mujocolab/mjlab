@@ -1,7 +1,9 @@
+from dataclasses import dataclass
+
 import torch
 import warp as wp
-from dataclasses import dataclass
 from absl.testing import absltest
+
 from mjlab.sim.sim_data import TorchArray, WarpBridge
 
 wp.config.quiet = True

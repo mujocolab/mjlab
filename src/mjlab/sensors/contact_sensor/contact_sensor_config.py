@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 
-from mjlab.sensors.sensor_base_config import SensorBaseCfg
 from mjlab.sensors.contact_sensor.contact_sensor import ContactSensor
+from mjlab.sensors.sensor_base_config import SensorBaseCfg
 
 
 @dataclass(kw_only=True)

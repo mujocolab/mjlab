@@ -3,10 +3,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import torch
+from prettytable import PrettyTable
+
 from mjlab.managers.manager_base import ManagerBase
 from mjlab.managers.manager_term_config import EventMode, EventTermCfg
 from mjlab.utils.dataclasses import get_terms
-from prettytable import PrettyTable
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_env import ManagerBasedEnv
@@ -31,7 +32,7 @@ class EventManager(ManagerBase):
         table.field_names = ["Index", "Name", "Interval time range (s)"]
         table.align["Name"] = "l"
         for index, (name, cfg) in enumerate(
-          zip(self._mode_term_names[mode], self._mode_term_cfgs[mode])
+          zip(self._mode_term_names[mode], self._mode_term_cfgs[mode], strict=False)
         ):
           table.add_row([index, name, cfg.interval_range_s])
       else:

@@ -1,9 +1,11 @@
-import torch
-from tensordict import TensorDict
-from rsl_rl.env import VecEnv
-from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
 from typing import cast
+
 import gymnasium as gym
+import torch
+from rsl_rl.env import VecEnv
+from tensordict import TensorDict
+
+from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
 
 
 class RslRlVecEnvWrapper(VecEnv):

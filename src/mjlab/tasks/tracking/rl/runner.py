@@ -1,12 +1,13 @@
-from rsl_rl.runners import OnPolicyRunner
-from rsl_rl.env.vec_env import VecEnv
-from mjlab.rl import RslRlVecEnvWrapper
-import wandb
 import os
 
+from rsl_rl.env.vec_env import VecEnv
+from rsl_rl.runners import OnPolicyRunner
+
+import wandb
+from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl.exporter import (
-  export_motion_policy_as_onnx,
   attach_onnx_metadata,
+  export_motion_policy_as_onnx,
 )
 
 

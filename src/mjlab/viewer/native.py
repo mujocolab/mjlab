@@ -1,10 +1,11 @@
 """Viewer based on the passive MuJoCo viewer."""
 
 from typing import Any, Callable, Optional
-import torch
+
 import mujoco
 import mujoco.viewer
 import numpy as np
+import torch
 
 from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
 
@@ -52,12 +53,12 @@ class NativeMujocoViewer(BaseViewer):
   def _setup_default_callbacks(self) -> None:
     """Setup default key callbacks with enhanced controls."""
     from mjlab.viewer.keys import (
-      KEY_ENTER,
-      KEY_SPACE,
       KEY_COMMA,
-      KEY_PERIOD,
-      KEY_MINUS,
+      KEY_ENTER,
       KEY_EQUAL,
+      KEY_MINUS,
+      KEY_PERIOD,
+      KEY_SPACE,
     )
 
     self.KEY_ENTER = KEY_ENTER

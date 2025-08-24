@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-import torch
-import mujoco
-import warp as wp
-import mujoco_warp as mjwarp
-from mjlab.entities.indexing import EntityIndexing
 from typing import TYPE_CHECKING, Sequence
-from mjlab.sensors.sensor_base import SensorBase
+
+import mujoco
+import mujoco_warp as mjwarp
+import torch
+import warp as wp
+
+from mjlab.entities.indexing import EntityIndexing
 from mjlab.sensors.contact_sensor.contact_sensor_data import ContactSensorData
+from mjlab.sensors.sensor_base import SensorBase
 from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
 
 if TYPE_CHECKING:

@@ -1,23 +1,21 @@
+import math
 from dataclasses import dataclass, field, replace
 
-from mjlab.scene.scene_config import SceneCfg
 from mjlab.asset_zoo.terrains.flat_terrain import FLAT_TERRAIN_CFG
-from mjlab.utils.spec_editor.spec_editor_config import TextureCfg, LightCfg
-
+from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
+from mjlab.managers.manager_term_config import ActionTermCfg as ActionTerm
+from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 from mjlab.managers.manager_term_config import ObservationGroupCfg as ObsGroup
 from mjlab.managers.manager_term_config import ObservationTermCfg as ObsTerm
-from mjlab.managers.manager_term_config import ActionTermCfg as ActionTerm
 from mjlab.managers.manager_term_config import RewardTermCfg as RewardTerm
+from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
-from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
-from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
-from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
+from mjlab.scene.scene_config import SceneCfg
 from mjlab.sensors import ContactSensorCfg
-import math
-from mjlab.utils.noise import UniformNoiseCfg as Unoise
 from mjlab.tasks.locomotion.velocity import mdp
-
+from mjlab.utils.noise import UniformNoiseCfg as Unoise
+from mjlab.utils.spec_editor.spec_editor_config import LightCfg, TextureCfg
 
 ##
 # Scene.

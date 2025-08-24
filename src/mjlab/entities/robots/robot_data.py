@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-import torch
-from mjlab.entities.indexing import EntityIndexing
-import mujoco_warp as mjwarp
 from dataclasses import dataclass
+
+import mujoco_warp as mjwarp
+import torch
+
+from mjlab.entities.indexing import EntityIndexing
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   quat_apply,
   quat_apply_inverse,
-  quat_mul,
   quat_from_matrix,
+  quat_mul,
 )
 
 

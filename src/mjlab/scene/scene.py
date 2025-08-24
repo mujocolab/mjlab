@@ -1,18 +1,18 @@
 from typing import Any
 
 import mujoco
-import torch
 import mujoco_warp as mjwarp
+import torch
 
 from mjlab.entities import entity
-from mjlab.scene.scene_config import SceneCfg
+from mjlab.entities.indexing import EntityIndexing, SceneIndexing
 from mjlab.entities.robots.robot import Robot
 from mjlab.entities.terrains.terrain import Terrain
-from mjlab.utils.spec_editor.spec_editor_config import OptionCfg
-from mjlab.utils.spec_editor import spec_editor as common_editors
-from mjlab.entities.indexing import EntityIndexing, SceneIndexing
-from mjlab.utils.mujoco import dof_width, qpos_width
+from mjlab.scene.scene_config import SceneCfg
 from mjlab.sensors import SensorBase
+from mjlab.utils.mujoco import dof_width, qpos_width
+from mjlab.utils.spec_editor import spec_editor as common_editors
+from mjlab.utils.spec_editor.spec_editor_config import OptionCfg
 
 _BASE_XML = r"""
 <mujoco model="mjlab scene">

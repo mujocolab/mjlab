@@ -1,22 +1,22 @@
 from typing import Sequence
 
+import mujoco
 import mujoco_warp as mjwarp
 import torch
-import mujoco
 
-from mjlab.utils.string import resolve_expr
 from mjlab.entities import entity
+from mjlab.entities.indexing import EntityIndexing
 from mjlab.entities.robots.robot_config import RobotCfg
+from mjlab.entities.robots.robot_data import RobotData
+from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
+from mjlab.utils import string as string_utils
+from mjlab.utils.spec import get_non_root_joints
 from mjlab.utils.spec_editor.spec_editor import (
   ActuatorEditor,
   CollisionEditor,
   KeyframeEditor,
 )
-from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
-from mjlab.utils.spec import get_non_root_joints
-from mjlab.utils import string as string_utils
-from mjlab.entities.robots.robot_data import RobotData
-from mjlab.entities.indexing import EntityIndexing
+from mjlab.utils.string import resolve_expr
 
 
 class Robot(entity.Entity):

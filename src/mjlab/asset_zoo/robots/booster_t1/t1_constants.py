@@ -1,12 +1,13 @@
 """Booster T1 constants."""
 
-import mujoco
 from pathlib import Path
-from mjlab import MJLAB_SRC_PATH
-from mjlab.utils.os import update_assets
 
-from mjlab.utils.actuator import ElectricActuator, reflected_inertia, rpm_to_rad
+import mujoco
+
+from mjlab import MJLAB_SRC_PATH
 from mjlab.entities.robots.robot_config import RobotCfg
+from mjlab.utils.actuator import ElectricActuator, reflected_inertia, rpm_to_rad
+from mjlab.utils.os import update_assets
 from mjlab.utils.spec_editor.spec_editor_config import ActuatorCfg, CollisionCfg
 
 ##
@@ -230,8 +231,9 @@ for a in T1_ROBOT_CFG.actuators:
       T1_ACTION_SCALE[n] = 0.25 * e[n] / s[n]
 
 if __name__ == "__main__":
-  from mjlab.entities.robots.robot import Robot
   import mujoco.viewer as viewer
+
+  from mjlab.entities.robots.robot import Robot
 
   robot = Robot(T1_ROBOT_CFG)
   viewer.launch(robot.spec.compile())
