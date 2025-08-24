@@ -1,22 +1,22 @@
+from dataclasses import replace
+
 import numpy as np
 import torch
 import tyro
-from dataclasses import replace
 
 from mjlab.asset_zoo.robots.unitree_g1 import g1_constants
-from mjlab.entities import Robot
-from mjlab.third_party.isaaclab.isaaclab.utils.math import (
-  quat_mul,
-  quat_conjugate,
-  axis_angle_from_quat,
-  quat_slerp,
-  quat_apply_inverse,
-)
-from mjlab.scene import Scene
-from mjlab.sim.sim import Simulation, SimulationCfg
-
-from mjlab.scene.scene_config import SceneCfg
 from mjlab.asset_zoo.terrains.flat_terrain import FLAT_TERRAIN_CFG
+from mjlab.entities import Robot
+from mjlab.scene import Scene
+from mjlab.scene.scene_config import SceneCfg
+from mjlab.sim.sim import Simulation, SimulationCfg
+from mjlab.third_party.isaaclab.isaaclab.utils.math import (
+  axis_angle_from_quat,
+  quat_apply_inverse,
+  quat_conjugate,
+  quat_mul,
+  quat_slerp,
+)
 
 SCENE_CFG = SceneCfg(
   terrains={"floor": replace(FLAT_TERRAIN_CFG)},

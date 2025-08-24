@@ -1,4 +1,5 @@
-from typing import Any, Dict, Optional, Tuple, TypeVar, Generic
+from typing import Any, Dict, Generic, Optional, Tuple, TypeVar
+
 import torch
 import warp as wp
 

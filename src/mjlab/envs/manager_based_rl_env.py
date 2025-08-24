@@ -1,17 +1,17 @@
 import math
+
+import gymnasium as gym
+import mujoco
 import numpy as np
 import torch
+
+from mjlab.envs import types
 from mjlab.envs.manager_based_env import ManagerBasedEnv
 from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
-
-from mjlab.managers.reward_manager import RewardManager
-from mjlab.managers.termination_manager import TerminationManager
 from mjlab.managers.command_manager import CommandManager
 from mjlab.managers.curriculum_manager import CurriculumManager
-from mjlab.envs import types
-
-import mujoco
-import gymnasium as gym
+from mjlab.managers.reward_manager import RewardManager
+from mjlab.managers.termination_manager import TerminationManager
 
 
 class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
@@ -141,8 +141,8 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
         )
       else:
         group_term_cfgs = self.observation_manager._group_obs_term_cfgs[group_name]
-        for term_name, term_dim, term_cfg in zip(
-          group_term_names, group_dim, group_term_cfgs
+        for term_name, term_dim, _term_cfg in zip(
+          group_term_names, group_dim, group_term_cfgs, strict=False
         ):
           self.single_observation_space[group_name] = gym.spaces.Dict(
             {term_name: gym.spaces.Box(low=-math.inf, high=math.inf, shape=term_dim)}

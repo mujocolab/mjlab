@@ -1,12 +1,14 @@
 from dataclasses import dataclass, field
-import mujoco
 from typing import Callable
+
+import mujoco
+
 from mjlab.utils.spec_editor.spec_editor_config import (
-  LightCfg,
   CameraCfg,
-  TextureCfg,
+  LightCfg,
   MaterialCfg,
   SensorCfg,
+  TextureCfg,
 )
 
 

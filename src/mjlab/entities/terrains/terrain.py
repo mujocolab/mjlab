@@ -1,9 +1,10 @@
+import mujoco_warp as mjwarp
 import torch
+
 from mjlab.entities import entity
+from mjlab.entities.indexing import EntityIndexing
 from mjlab.entities.terrains.terrain_config import TerrainCfg
 from mjlab.utils.spec_editor import spec_editor as common_editors
-from mjlab.entities.indexing import EntityIndexing
-import mujoco_warp as mjwarp
 
 
 class Terrain(entity.Entity):

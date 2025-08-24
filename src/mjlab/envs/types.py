@@ -1,4 +1,5 @@
 from typing import Dict
+
 import torch
 
 VecEnvObs = Dict[str, torch.Tensor | Dict[str, torch.Tensor]]

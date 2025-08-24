@@ -1,7 +1,7 @@
 from mjlab.utils.noise.noise_cfg import (
-  NoiseCfg,
   ConstantNoiseCfg,
   GaussianNoiseCfg,
+  NoiseCfg,
   NoiseModelCfg,
   NoiseModelWithAdditiveBiasCfg,
   UniformNoiseCfg,

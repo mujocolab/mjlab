@@ -1,8 +1,8 @@
 from mjlab.rl.config import (
-  RslRlPpoActorCriticCfg,
-  RslRlPpoAlgorithmCfg,
   RslRlBaseRunnerCfg,
   RslRlOnPolicyRunnerCfg,
+  RslRlPpoActorCriticCfg,
+  RslRlPpoAlgorithmCfg,
 )
 from mjlab.rl.vecenv_wrapper import RslRlVecEnvWrapper
 

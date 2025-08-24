@@ -1,22 +1,23 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-from dataclasses import dataclass, field
-import mujoco
-import torch
 import copy
-import numpy as np
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
-from mjlab.managers import CommandTermCfg, CommandTerm
+import mujoco
+import numpy as np
+import torch
+
+from mjlab.managers import CommandTerm, CommandTermCfg
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
-  quat_mul,
   quat_apply,
   quat_apply_inverse,
-  quat_inv,
   quat_error_magnitude,
-  yaw_quat,
-  sample_uniform,
   quat_from_euler_xyz,
+  quat_inv,
+  quat_mul,
+  sample_uniform,
+  yaw_quat,
 )
 
 if TYPE_CHECKING:

@@ -1,23 +1,23 @@
 from dataclasses import dataclass
+
 import mujoco
 import numpy as np
 
-from mjlab.utils.string import resolve_expr
 from mjlab.entities.robots.robot_config import RobotCfg
+from mjlab.utils.spec import disable_collision, get_non_root_joints, set_array_field
+from mjlab.utils.spec_editor.spec_editor_base import SpecEditor
 from mjlab.utils.spec_editor.spec_editor_config import (
   ActuatorCfg,
-  TextureCfg,
-  MaterialCfg,
-  CollisionCfg,
-  OptionCfg,
-  GeomCfg,
-  SensorCfg,
-  LightCfg,
   CameraCfg,
+  CollisionCfg,
+  GeomCfg,
+  LightCfg,
+  MaterialCfg,
+  OptionCfg,
+  SensorCfg,
+  TextureCfg,
 )
-from mjlab.utils.spec_editor.spec_editor_base import SpecEditor
-from mjlab.utils.string import filter_exp, resolve_field
-from mjlab.utils.spec import disable_collision, set_array_field, get_non_root_joints
+from mjlab.utils.string import filter_exp, resolve_expr, resolve_field
 
 
 @dataclass

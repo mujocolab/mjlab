@@ -1,6 +1,7 @@
 import os
-import numpy as np
 import random
+
+import numpy as np
 import torch
 import warp as wp
 

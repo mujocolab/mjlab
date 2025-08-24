@@ -1,19 +1,20 @@
 """Script to train RL agent with RSL-RL."""
 
-from dataclasses import asdict
-from pathlib import Path
-from datetime import datetime
 import os
+from dataclasses import asdict
+from datetime import datetime
+from pathlib import Path
+
+import gymnasium as gym
 import torch
 import tyro
-from mjlab.rl import RslRlVecEnvWrapper
 from rsl_rl.runners import OnPolicyRunner
+
+from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
-import gymnasium as gym
-
-from mjlab.utils.os import get_checkpoint_path, dump_yaml
+from mjlab.utils.os import dump_yaml, get_checkpoint_path
 
 # TODO(kevin): Make sure this does not interfere with seed_rng call in env.seed().
 torch.backends.cuda.matmul.allow_tf32 = True

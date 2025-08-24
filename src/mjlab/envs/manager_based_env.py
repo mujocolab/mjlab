@@ -3,15 +3,14 @@ from typing import Any
 import numpy as np
 import torch
 
+from mjlab.envs import types
 from mjlab.envs.manager_based_env_config import ManagerBasedEnvCfg
+from mjlab.managers.action_manager import ActionManager
+from mjlab.managers.event_manager import EventManager
+from mjlab.managers.observation_manager import ObservationManager
 from mjlab.scene import Scene
 from mjlab.sim.sim import Simulation
 from mjlab.utils import random as random_utils
-
-from mjlab.managers.observation_manager import ObservationManager
-from mjlab.managers.action_manager import ActionManager
-from mjlab.managers.event_manager import EventManager
-from mjlab.envs import types
 
 
 class ManagerBasedEnv:

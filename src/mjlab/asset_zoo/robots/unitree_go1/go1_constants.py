@@ -1,12 +1,13 @@
 """Unitree Go1 constants."""
 
-import mujoco
 from pathlib import Path
-from mjlab import MJLAB_SRC_PATH
-from mjlab.utils.os import update_assets
 
-from mjlab.utils.actuator import ElectricActuator, reflected_inertia
+import mujoco
+
+from mjlab import MJLAB_SRC_PATH
 from mjlab.entities.robots.robot_config import RobotCfg
+from mjlab.utils.actuator import ElectricActuator, reflected_inertia
+from mjlab.utils.os import update_assets
 from mjlab.utils.spec_editor import ActuatorCfg, CollisionCfg
 
 ##

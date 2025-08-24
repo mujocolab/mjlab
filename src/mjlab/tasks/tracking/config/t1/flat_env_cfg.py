@@ -1,7 +1,7 @@
 from dataclasses import dataclass, replace
 
+from mjlab.asset_zoo.robots.booster_t1.t1_constants import T1_ACTION_SCALE, T1_ROBOT_CFG
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
-from mjlab.asset_zoo.robots.booster_t1.t1_constants import T1_ROBOT_CFG, T1_ACTION_SCALE
 
 
 @dataclass

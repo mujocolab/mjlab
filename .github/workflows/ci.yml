@@ -19,10 +19,11 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+          version: "0.8.13"
       - name: Run lint
-        run: uvx ruff check --diff
+        run: uvx ruff@0.12.10 check --diff
       - name: Run format
-        run: uvx ruff format --diff
+        run: uvx ruff@0.12.10 format --diff
 
   tests:
     runs-on: ubuntu-latest
@@ -36,6 +37,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
+          version: "0.8.13"
       - name: Install dependencies
         run: uv sync --all-extras --all-packages --group dev
       - name: Test with python ${{ matrix.python-version }}
