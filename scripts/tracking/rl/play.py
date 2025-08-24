@@ -21,9 +21,6 @@ torch.backends.cudnn.allow_tf32 = True
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
-KEY_ENTER = 257
-FRAME_TIME = 1.0 / 60.0
-
 _HERE = Path(__file__).parent
 
 

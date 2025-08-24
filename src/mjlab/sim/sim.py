@@ -17,9 +17,6 @@ else:
   ModelBridge = WarpBridge
   DataBridge = WarpBridge
 
-# TODO: Should this be placed here?
-wp.config.enable_backward = False
-
 
 class Simulation:
   """MjWarp simulation backend."""
