@@ -3,6 +3,8 @@
 import gymnasium as gym
 from prettytable import PrettyTable
 
+import mjlab.tasks  # noqa: F401 to register environments
+
 
 def main():
   """Print all environments registered whose id contains `Mjlab-`."""
