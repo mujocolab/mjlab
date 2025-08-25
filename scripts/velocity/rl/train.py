@@ -10,6 +10,7 @@ import torch
 import tyro
 from rsl_rl.runners import OnPolicyRunner
 
+import mjlab.tasks  # noqa: F401
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
