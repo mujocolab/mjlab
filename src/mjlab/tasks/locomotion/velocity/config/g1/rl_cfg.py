@@ -40,4 +40,4 @@ class UnitreeG1FlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     self.num_steps_per_env = 24
     self.max_iterations = 1500
     self.save_interval = 50
-    self.experiment_name = "H1_flat"
+    self.experiment_name = "G1_flat"
