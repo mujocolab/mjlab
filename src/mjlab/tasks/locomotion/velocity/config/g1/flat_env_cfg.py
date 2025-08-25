@@ -23,6 +23,8 @@ class UnitreeG1FlatEnvCfg(LocomotionVelocityFlatEnvCfg):
         history_length=3,
         track_air_time=True,
         filter_expr=[".*knee.*"],
-        geom_filter_expr=[".*ankle_collision"],
+        geom_filter_expr=[".*_foot3_collision"],
       ),
     }
+    self.sim.njmax = 300
+    self.sim.nconmax = 100000
