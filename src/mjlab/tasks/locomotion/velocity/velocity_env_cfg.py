@@ -270,7 +270,7 @@ class LocomotionVelocityFlatEnvCfg(ManagerBasedRlEnvCfg):
     self.sim.mujoco.integrator = "implicitfast"
     self.sim.mujoco.cone = "pyramidal"
     self.sim.mujoco.timestep = 0.005
-    self.sim.num_envs = 1
+    self.sim.num_envs = 4096
     self.sim.nconmax = 40000
     self.sim.njmax = 100
     self.sim.mujoco.iterations = 10
