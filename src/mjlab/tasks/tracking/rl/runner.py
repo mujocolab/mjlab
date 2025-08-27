@@ -1,9 +1,9 @@
 import os
 
+import wandb
 from rsl_rl.env.vec_env import VecEnv
 from rsl_rl.runners import OnPolicyRunner
 
-import wandb
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl.exporter import (
   attach_onnx_metadata,
