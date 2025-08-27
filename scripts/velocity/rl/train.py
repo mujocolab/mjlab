@@ -60,7 +60,7 @@ def main(
   log_dir = log_root_path / log_dir
 
   # Create env.
-  env = gym.make(task, cfg=env_cfg)
+  env = gym.make(task, cfg=env_cfg, render_mode="rgb_array" if video else None)
 
   # Save resume path before creating a new log_dir.
   resume_path = (
