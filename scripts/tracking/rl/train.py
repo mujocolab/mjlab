@@ -18,7 +18,7 @@ from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
 from mjlab.utils.os import dump_yaml, get_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 
-_HERE = Path(__file__).parent
+_HERE = Path(__file__).resolve().parent
 
 
 def main(

@@ -24,7 +24,7 @@ FRAME_TIME = 1.0 / 60.0
 KEY_BACKSPACE = 259
 KEY_ENTER = 257
 
-_HERE = Path(__file__).parent
+_HERE = Path(__file__).resolve().parent
 
 
 def main(

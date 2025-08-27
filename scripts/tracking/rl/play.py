@@ -16,7 +16,7 @@ from mjlab.utils.os import get_wandb_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.viewer import NativeMujocoViewer
 
-_HERE = Path(__file__).parent
+_HERE = Path(__file__).resolve().parent
 
 
 def main(
