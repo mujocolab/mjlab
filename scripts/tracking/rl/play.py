@@ -4,8 +4,8 @@ from typing import cast
 
 import gymnasium as gym
 import tyro
-import wandb
 
+import wandb
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
@@ -45,7 +45,7 @@ def main(
   env_cfg.sim.render.height = video_height or env_cfg.sim.render.height
   env_cfg.sim.render.width = video_width or env_cfg.sim.render.width
 
-  log_root_path = _HERE / "logs" / "rsl_rl" / agent_cfg.experiment_name
+  log_root_path = _HERE.parent[2] / "logs" / "rsl_rl" / agent_cfg.experiment_name
   log_root_path = log_root_path.resolve()
   print(f"[INFO]: Loading experiment from: {log_root_path}")
 
