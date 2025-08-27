@@ -47,7 +47,7 @@ def main(
   env_cfg.sim.device = device or env_cfg.sim.device
 
   # Specify directory for logging experiments.
-  log_root_path = _HERE.parent[2] / "logs" / "rsl_rl" / agent_cfg.experiment_name
+  log_root_path = _HERE.parents[2] / "logs" / "rsl_rl" / agent_cfg.experiment_name
   log_root_path.resolve()
   print(f"[INFO] Logging experiment in directory: {log_root_path}")
   log_dir = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
