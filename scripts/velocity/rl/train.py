@@ -24,7 +24,7 @@ torch.backends.cudnn.allow_tf32 = True
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
-_HERE = Path(__file__).parent
+_HERE = Path(__file__).resolve().parent
 
 
 def main(
