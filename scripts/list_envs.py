@@ -3,7 +3,7 @@
 import gymnasium as gym
 from prettytable import PrettyTable
 
-import mjlab.tasks  # noqa: F401 to register environments
+import mjlab.tasks  # noqa: F401 to register environments - NEED TO BE REMOVED LATER (see PR #18)
 
 
 def main():

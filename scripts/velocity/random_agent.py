@@ -6,7 +6,7 @@ import mujoco.viewer
 import torch
 import tyro
 
-import mjlab.tasks  # noqa: F401
+import mjlab.tasks  # noqa: F401 - NEED TO BE REMOVED LATER (see PR #18)
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
