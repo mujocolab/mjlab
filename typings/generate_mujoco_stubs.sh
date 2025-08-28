@@ -12,6 +12,7 @@ uv pip install -q pybind11-stubgen
 
 echo "Generating MuJoCo type stubs..."
 pybind11-stubgen mujoco -o "$SCRIPT_DIR" --ignore-all-errors
+pybind11-stubgen mujoco.viewer -o "$SCRIPT_DIR" --ignore-all-errors
 
 echo "MuJoCo stubs generated successfully in $SCRIPT_DIR/mujoco/"
 echo ""

@@ -7,6 +7,8 @@ import mujoco
 import mujoco.viewer
 import torch
 import tyro
+from mjlab.envs.manager_based_env_config import ManagerBasedEnvCfg
+from mjlab.rl.config import RslRlOnPolicyRunnerCfg
 from rsl_rl.runners import OnPolicyRunner
 
 from mjlab.rl import RslRlVecEnvWrapper
@@ -41,6 +43,8 @@ def main(
 ):
   env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
   agent_cfg = load_cfg_from_registry(task, "rl_cfg_entry_point")
+  assert isinstance(env_cfg, ManagerBasedEnvCfg)
+  assert isinstance(agent_cfg, RslRlOnPolicyRunnerCfg)
 
   env_cfg.sim.num_envs = num_envs or env_cfg.sim.num_envs
   env_cfg.sim.device = device or env_cfg.sim.device

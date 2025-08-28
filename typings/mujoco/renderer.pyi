@@ -2,8 +2,8 @@
 Defines a renderer class for the MuJoCo Python native bindings.
 """
 from __future__ import annotations
-import mujoco._enums
 from mujoco import _enums
+import mujoco._enums
 from mujoco import _functions
 from mujoco import _render
 from mujoco import _structs
