@@ -136,7 +136,7 @@ class ObservationManager(ManagerBase):
     for term_name, term_cfg in obs_terms:
       obs: torch.Tensor = term_cfg.func(self._env, **term_cfg.params).clone()
       if isinstance(term_cfg.noise, noise_cfg.NoiseCfg):
-        obs = term_cfg.noise.func(obs, term_cfg.noise)
+        obs = term_cfg.noise.apply(obs)
       elif (
         isinstance(term_cfg.noise, noise_cfg.NoiseModelCfg)
         and term_cfg.noise.func is not None

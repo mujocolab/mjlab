@@ -115,7 +115,9 @@ class MotionLoader:
       slerped_quats[i] = quat_slerp(a[i], b[i], float(blend[i]))
     return slerped_quats
 
-  def _compute_frame_blend(self, times: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+  def _compute_frame_blend(
+    self, times: torch.Tensor
+  ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Computes the frame blend for the motion."""
     phase = times / self.duration
     index_0 = (phase * (self.input_frames - 1)).floor().long()

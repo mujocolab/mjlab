@@ -2,18 +2,17 @@
 
 import os
 import pathlib
-
-from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
-import wandb
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
 import gymnasium as gym
 import tyro
+import wandb
 
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
+from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )

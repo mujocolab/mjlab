@@ -1,62 +1,106 @@
 from __future__ import annotations
 
+import abc
 from dataclasses import dataclass, field
-from typing import Callable, Literal, TypeVar
+from typing import Callable, Literal
 
 import torch
+from typing_extensions import override
 
 from mjlab.utils.noise import noise_model
 
-T = TypeVar("T", bound="NoiseCfg")
+
+def _ensure_tensor_device(
+  value: torch.Tensor | float, device: torch.device
+) -> torch.Tensor | float:
+  """Ensure tensor is on the correct device, leave scalars unchanged."""
+  if isinstance(value, torch.Tensor):
+    return value.to(device=device)
+  return value
 
 
 @dataclass
-class NoiseCfg:
+class NoiseCfg(abc.ABC):
   """Base configuration for a noise term."""
 
-  func: Callable[[torch.Tensor, "NoiseCfg"], torch.Tensor] | None = None
   operation: Literal["add", "scale", "abs"] = "add"
 
-  def __post_init__(self):
-    if self.func is None:
-      raise ValueError("func must be specified for NoiseCfg")
+  @abc.abstractmethod
+  def apply(self, data: torch.Tensor) -> torch.Tensor:
+    """Apply noise to the input data."""
 
 
 @dataclass
 class ConstantNoiseCfg(NoiseCfg):
-  func: Callable[[torch.Tensor, "ConstantNoiseCfg"], torch.Tensor] = field(
-    default_factory=lambda: noise_model.constant_noise
-  )
   bias: torch.Tensor | float = 0.0
+
+  @override
+  def apply(self, data: torch.Tensor) -> torch.Tensor:
+    self.bias = _ensure_tensor_device(self.bias, data.device)
+
+    if self.operation == "add":
+      return data + self.bias
+    elif self.operation == "scale":
+      return data * self.bias
+    elif self.operation == "abs":
+      return torch.zeros_like(data) + self.bias
+    else:
+      raise ValueError(f"Unsupported noise operation: {self.operation}")
 
 
 @dataclass
 class UniformNoiseCfg(NoiseCfg):
-  func: Callable[[torch.Tensor, "UniformNoiseCfg"], torch.Tensor] = field(
-    default_factory=lambda: noise_model.uniform_noise
-  )
   n_min: torch.Tensor | float = -1.0
   n_max: torch.Tensor | float = 1.0
 
   def __post_init__(self):
-    super().__post_init__()
     if isinstance(self.n_min, (int, float)) and isinstance(self.n_max, (int, float)):
       if self.n_min >= self.n_max:
         raise ValueError(f"n_min ({self.n_min}) must be less than n_max ({self.n_max})")
 
+  @override
+  def apply(self, data: torch.Tensor) -> torch.Tensor:
+    self.n_min = _ensure_tensor_device(self.n_min, data.device)
+    self.n_max = _ensure_tensor_device(self.n_max, data.device)
+
+    # Generate uniform noise in [0, 1) and scale to [n_min, n_max).
+    noise = torch.rand_like(data) * (self.n_max - self.n_min) + self.n_min
+
+    if self.operation == "add":
+      return data + noise
+    elif self.operation == "scale":
+      return data * noise
+    elif self.operation == "abs":
+      return noise
+    else:
+      raise ValueError(f"Unsupported noise operation: {self.operation}")
+
 
 @dataclass
 class GaussianNoiseCfg(NoiseCfg):
-  func: Callable[[torch.Tensor, "GaussianNoiseCfg"], torch.Tensor] = field(
-    default_factory=lambda: noise_model.gaussian_noise
-  )
   mean: torch.Tensor | float = 0.0
   std: torch.Tensor | float = 1.0
 
   def __post_init__(self):
-    super().__post_init__()
     if isinstance(self.std, (int, float)) and self.std <= 0:
       raise ValueError(f"std ({self.std}) must be positive")
+
+  @override
+  def apply(self, data: torch.Tensor) -> torch.Tensor:
+    self.mean = _ensure_tensor_device(self.mean, data.device)
+    self.std = _ensure_tensor_device(self.std, data.device)
+
+    # Generate standard normal noise and scale.
+    noise = self.mean + self.std * torch.randn_like(data)
+
+    if self.operation == "add":
+      return data + noise
+    elif self.operation == "scale":
+      return data * noise
+    elif self.operation == "abs":
+      return noise
+    else:
+      raise ValueError(f"Unsupported noise operation: {self.operation}")
 
 
 ##
@@ -69,7 +113,7 @@ class NoiseModelCfg:
   """Configuration for a noise model."""
 
   class_type: type = field(default_factory=lambda: noise_model.NoiseModel)
-  noise_cfg: Callable[[torch.Tensor, "NoiseCfg"], torch.Tensor] | None = None
+  noise_cfg: NoiseCfg | None = None
   func: Callable[[torch.Tensor], torch.Tensor] | None = None
 
   def __post_init__(self):
@@ -89,7 +133,7 @@ class NoiseModelWithAdditiveBiasCfg(NoiseModelCfg):
   class_type: type = field(
     default_factory=lambda: noise_model.NoiseModelWithAdditiveBias
   )
-  bias_noise_cfg: Callable[[torch.Tensor, "NoiseCfg"], torch.Tensor] | None = None
+  bias_noise_cfg: NoiseCfg | None = None
   sample_bias_per_component: bool = True
 
   def __post_init__(self):

@@ -8,72 +8,6 @@ if TYPE_CHECKING:
   from mjlab.utils.noise import noise_cfg
 
 
-##
-# Noise as functions.
-##
-
-
-def _ensure_tensor_device(
-  value: torch.Tensor | float, device: torch.device
-) -> torch.Tensor | float:
-  """Ensure tensor is on the correct device, leave scalars unchanged."""
-  if isinstance(value, torch.Tensor):
-    return value.to(device=device)
-  return value
-
-
-def constant_noise(data: torch.Tensor, cfg: noise_cfg.ConstantNoiseCfg) -> torch.Tensor:
-  cfg.bias = _ensure_tensor_device(cfg.bias, data.device)
-
-  if cfg.operation == "add":
-    return data + cfg.bias
-  elif cfg.operation == "scale":
-    return data * cfg.bias
-  elif cfg.operation == "abs":
-    return torch.zeros_like(data) + cfg.bias
-  else:
-    raise ValueError(f"Unsupported noise operation: {cfg.operation}")
-
-
-def uniform_noise(data: torch.Tensor, cfg: noise_cfg.UniformNoiseCfg) -> torch.Tensor:
-  cfg.n_min = _ensure_tensor_device(cfg.n_min, data.device)
-  cfg.n_max = _ensure_tensor_device(cfg.n_max, data.device)
-
-  # Generate uniform noise in [0, 1) and scale to [n_min, n_max).
-  noise = torch.rand_like(data) * (cfg.n_max - cfg.n_min) + cfg.n_min
-
-  if cfg.operation == "add":
-    return data + noise
-  elif cfg.operation == "scale":
-    return data * noise
-  elif cfg.operation == "abs":
-    return noise
-  else:
-    raise ValueError(f"Unsupported noise operation: {cfg.operation}")
-
-
-def gaussian_noise(data: torch.Tensor, cfg: noise_cfg.GaussianNoiseCfg) -> torch.Tensor:
-  cfg.mean = _ensure_tensor_device(cfg.mean, data.device)
-  cfg.std = _ensure_tensor_device(cfg.std, data.device)
-
-  # Generate standard normal noise and scale.
-  noise = cfg.mean + cfg.std * torch.randn_like(data)
-
-  if cfg.operation == "add":
-    return data + noise
-  elif cfg.operation == "scale":
-    return data * noise
-  elif cfg.operation == "abs":
-    return noise
-  else:
-    raise ValueError(f"Unsupported noise operation: {cfg.operation}")
-
-
-##
-# Noise as classes.
-##
-
-
 class NoiseModel:
   """Base class for noise models."""
 
@@ -93,7 +27,7 @@ class NoiseModel:
 
   def __call__(self, data: torch.Tensor) -> torch.Tensor:
     """Apply noise to input data."""
-    return self._noise_model_cfg.noise_cfg.func(data, self._noise_model_cfg.noise_cfg)
+    return self._noise_model_cfg.noise_cfg.apply(data)
 
 
 class NoiseModelWithAdditiveBias(NoiseModel):
@@ -127,9 +61,7 @@ class NoiseModelWithAdditiveBias(NoiseModel):
     """Reset bias values for specified environments."""
     indices = slice(None) if env_ids is None else env_ids
     # Sample new bias values.
-    self._bias[indices] = self._bias_noise_cfg.func(
-      self._bias[indices], self._bias_noise_cfg
-    )
+    self._bias[indices] = self._bias_noise_cfg.apply(self._bias[indices])
 
   def _initialize_bias_shape(self, data_shape: torch.Size) -> None:
     """Initialize bias tensor shape based on data and configuration."""

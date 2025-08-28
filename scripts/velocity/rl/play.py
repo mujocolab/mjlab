@@ -7,11 +7,11 @@ import mujoco
 import mujoco.viewer
 import torch
 import tyro
-from mjlab.envs.manager_based_env_config import ManagerBasedEnvCfg
-from mjlab.rl.config import RslRlOnPolicyRunnerCfg
 from rsl_rl.runners import OnPolicyRunner
 
+from mjlab.envs.manager_based_env_config import ManagerBasedEnvCfg
 from mjlab.rl import RslRlVecEnvWrapper
+from mjlab.rl.config import RslRlOnPolicyRunnerCfg
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
