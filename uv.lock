@@ -800,14 +800,18 @@ version = "0.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "gymnasium" },
+    { name = "moviepy" },
     { name = "mujoco" },
     { name = "mujoco-warp" },
     { name = "prettytable" },
+    { name = "rsl-rl-lib" },
+    { name = "tensordict" },
     { name = "torch" },
     { name = "tqdm" },
     { name = "trimesh" },
     { name = "tyro" },
     { name = "viser" },
+    { name = "wandb" },
     { name = "warp-lang", version = "1.8.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'darwin'" },
     { name = "warp-lang", version = "1.9.0.dev20250819", source = { registry = "https://pypi.nvidia.com/" }, marker = "sys_platform != 'darwin'" },
 ]
@@ -820,7 +824,6 @@ rl = [
     { name = "moviepy" },
     { name = "rsl-rl-lib" },
     { name = "tensorboard" },
-    { name = "wandb" },
 ]
 
 [package.dev-dependencies]
@@ -842,19 +845,22 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "gymnasium", specifier = "==1.2.0" },
+    { name = "moviepy" },
     { name = "moviepy", marker = "extra == 'rl'", specifier = ">=1.0.0" },
     { name = "mujoco", index = "https://py.mujoco.org/" },
     { name = "mujoco-warp", git = "https://github.com/google-deepmind/mujoco_warp" },
     { name = "prettytable" },
+    { name = "rsl-rl-lib" },
     { name = "rsl-rl-lib", marker = "extra == 'rl'" },
     { name = "tensorboard", marker = "extra == 'rl'" },
+    { name = "tensordict" },
     { name = "torch" },
     { name = "torch", marker = "extra == 'cu12'", specifier = ">=2.7.0", index = "https://download.pytorch.org/whl/cu128", conflict = { package = "mjlab", extra = "cu12" } },
     { name = "tqdm" },
     { name = "trimesh" },
     { name = "tyro" },
     { name = "viser" },
-    { name = "wandb", marker = "extra == 'rl'" },
+    { name = "wandb" },
     { name = "warp-lang", marker = "sys_platform != 'darwin'", index = "https://pypi.nvidia.com/" },
     { name = "warp-lang", marker = "sys_platform == 'darwin'" },
 ]

@@ -12,7 +12,7 @@ def seed_rng(seed: int, torch_deterministic: bool = False) -> None:
   random.seed(seed)
   np.random.seed(seed)
 
-  wp.rand_init(seed)
+  wp.rand_init(wp.int32(seed))
 
   # Ref: https://docs.pytorch.org/docs/stable/notes/randomness.html
   torch.manual_seed(seed)  # Seed RNG for all devices.

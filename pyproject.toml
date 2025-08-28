@@ -45,6 +45,10 @@ dependencies = [
     "mujoco",
     "trimesh",
     "viser",
+    "wandb",
+    "moviepy",
+    "tensordict",
+    "rsl-rl-lib",
 ]
 
 [dependency-groups]
@@ -68,7 +72,6 @@ rl = [
     "moviepy >=1.0.0",
     "rsl-rl-lib",
     "tensorboard",
-    "wandb",
 ]
 
 [[tool.uv.index]]
@@ -106,5 +109,5 @@ select = ["E4", "E7", "E9", "F", "I", "B"]
 
 [tool.pyright]
 pythonVersion = "3.10"
-ignore = ["./typings"]
+ignore = ["./typings", "./src/mjlab/third_party"]
 stubPath = "typings"

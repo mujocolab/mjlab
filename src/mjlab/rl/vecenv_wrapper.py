@@ -9,7 +9,7 @@ from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
 
 
 class RslRlVecEnvWrapper(VecEnv):
-  def __init__(self, env: ManagerBasedRlEnv, clip_actions: float | None = None):
+  def __init__(self, env: gym.Env, clip_actions: float | None = None):
     self.env = env
     self.clip_actions = clip_actions
 

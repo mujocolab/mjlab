@@ -67,14 +67,14 @@ def main(
 
   env = gym.make(task, cfg=env_cfg, render_mode="rgb_array" if video else None)
   if video:
-    video_kwargs = {
-      "video_folder": log_dir / "videos" / "play",
-      "step_trigger": lambda step: step == 0,
-      "video_length": video_length,
-      "disable_logger": True,
-    }
     print("[INFO] Recording videos during training.")
-    env = gym.wrappers.RecordVideo(env, **video_kwargs)
+    env = gym.wrappers.RecordVideo(
+      env,
+      video_folder=str(log_dir / "videos" / "play"),
+      step_trigger=lambda step: step == 0,
+      video_length=video_length,
+      disable_logger=True,
+    )
 
   env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
