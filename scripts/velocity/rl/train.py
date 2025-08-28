@@ -6,6 +6,8 @@ from datetime import datetime
 from pathlib import Path
 
 import gymnasium as gym
+from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
+from mjlab.rl.config import RslRlOnPolicyRunnerCfg
 import torch
 import tyro
 from rsl_rl.runners import OnPolicyRunner
@@ -37,6 +39,8 @@ def main(
 ):
   env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
   agent_cfg = load_cfg_from_registry(task, "rl_cfg_entry_point")
+  assert isinstance(env_cfg, ManagerBasedRlEnvCfg)
+  assert isinstance(agent_cfg, RslRlOnPolicyRunnerCfg)
 
   env_cfg.sim.num_envs = num_envs or env_cfg.sim.num_envs
   agent_cfg.max_iterations = max_iterations or agent_cfg.max_iterations
