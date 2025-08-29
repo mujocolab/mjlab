@@ -69,7 +69,6 @@ def main(
 
   # Create env.
   env = gym.make(task, cfg=env_cfg)
-  # assert isinstance(env, ManagerBasedRlEnv)
 
   # Save resume path before creating a new log_dir.
   resume_path = None

@@ -10,7 +10,6 @@ import torch
 import tyro
 from rsl_rl.runners import OnPolicyRunner
 
-from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
 from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.rl.config import RslRlOnPolicyRunnerCfg
@@ -62,7 +61,6 @@ def main(
 
   # Create env.
   env = gym.make(task, cfg=env_cfg)
-  assert isinstance(env, ManagerBasedRlEnv)
 
   # Save resume path before creating a new log_dir.
   resume_path = (

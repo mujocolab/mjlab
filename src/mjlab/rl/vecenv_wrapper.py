@@ -11,7 +11,7 @@ from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
 class RslRlVecEnvWrapper(VecEnv):
   def __init__(
     self,
-    env: ManagerBasedRlEnv | gym.wrappers.RecordVideo,
+    env: gym.Env,
     clip_actions: float | None = None,
   ):
     self.env = env

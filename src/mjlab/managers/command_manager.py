@@ -18,8 +18,8 @@ class CommandTerm(ManagerTermBase):
   """Base class for command terms."""
 
   def __init__(self, cfg: CommandTermCfg, env: ManagerBasedRlEnv):
-    super().__init__(env)
     self.cfg = cfg
+    super().__init__(env)
     self.metrics = dict()
     self.time_left = torch.zeros(self.num_envs, device=self.device)
     self.command_counter = torch.zeros(

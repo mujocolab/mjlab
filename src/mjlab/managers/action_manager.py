@@ -18,8 +18,8 @@ class ActionTerm(ManagerTermBase):
   """Base class for action terms."""
 
   def __init__(self, cfg: ActionTermCfg, env: ManagerBasedEnv):
-    super().__init__(env)
     self.cfg = cfg
+    super().__init__(env)
     self._asset = self._env.scene[self.cfg.asset_name]
 
   @property

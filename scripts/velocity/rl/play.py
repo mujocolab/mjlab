@@ -10,7 +10,6 @@ import tyro
 from rsl_rl.runners import OnPolicyRunner
 
 from mjlab.envs.manager_based_env_config import ManagerBasedEnvCfg
-from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.rl.config import RslRlOnPolicyRunnerCfg
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
@@ -63,7 +62,6 @@ def main(
   log_dir = resume_path.parent
 
   env = gym.make(task, cfg=env_cfg, render_mode="rgb_array" if video else None)
-  assert isinstance(env, ManagerBasedRlEnv)
   if video:
     video_kwargs = {
       "video_folder": log_dir / "videos" / "play",
