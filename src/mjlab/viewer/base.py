@@ -1,7 +1,6 @@
 """Base class for environment viewers."""
 
 from __future__ import annotations
-from tensordict import TensorDict
 
 import contextlib
 import time

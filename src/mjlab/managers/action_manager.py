@@ -43,8 +43,8 @@ class ActionTerm(ManagerTermBase):
 
 class ActionManager(ManagerBase):
   def __init__(self, cfg: object, env: ManagerBasedEnv):
-    super().__init__(env=env)
     self.cfg = cfg
+    super().__init__(env=env)
 
     # Create buffers to store actions.
     self._action = torch.zeros(

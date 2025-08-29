@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from typing_extensions import override
 
 import torch
+from typing_extensions import override
 
 if TYPE_CHECKING:
   from mjlab.utils.noise import noise_cfg

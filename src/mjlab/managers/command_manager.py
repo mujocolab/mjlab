@@ -86,8 +86,8 @@ class CommandManager(ManagerBase):
   def __init__(self, cfg: object, env: ManagerBasedRlEnv):
     self._terms: dict[str, CommandTerm] = dict()
 
-    super().__init__(env)
     self.cfg = cfg
+    super().__init__(env)
     self._commands = dict()
 
   def __str__(self) -> str:

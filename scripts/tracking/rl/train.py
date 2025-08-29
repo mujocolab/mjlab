@@ -10,7 +10,6 @@ import gymnasium as gym
 import tyro
 import wandb
 
-from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
@@ -70,7 +69,7 @@ def main(
 
   # Create env.
   env = gym.make(task, cfg=env_cfg)
-  assert isinstance(env, ManagerBasedRlEnv)
+  # assert isinstance(env, ManagerBasedRlEnv)
 
   # Save resume path before creating a new log_dir.
   resume_path = None

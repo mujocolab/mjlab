@@ -12,8 +12,8 @@ from mjlab.utils.noise import noise_cfg, noise_model
 
 class ObservationManager(ManagerBase):
   def __init__(self, cfg: object, env):
-    super().__init__(env=env)
     self.cfg = cfg
+    super().__init__(env=env)
 
     self._group_obs_dim: dict[str, tuple[int, ...] | list[tuple[int, ...]]] = dict()
 

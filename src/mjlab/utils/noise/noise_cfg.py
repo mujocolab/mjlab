@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import abc
-from dataclasses import dataclass, field
-from typing import Any, Callable, ClassVar, Literal
+from dataclasses import dataclass
+from typing import ClassVar, Literal
 
 import torch
 from typing_extensions import override

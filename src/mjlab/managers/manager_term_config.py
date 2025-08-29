@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, Literal, ParamSpec, TypeVar
 
-import torch
-
 from mjlab.utils.noise.noise_cfg import NoiseCfg, NoiseModelCfg
 
 if TYPE_CHECKING:
