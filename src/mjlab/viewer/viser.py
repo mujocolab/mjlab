@@ -1,4 +1,7 @@
-"""Viser based on viser."""
+"""Mjlab viewer based on Viser.
+
+Adapted from an MJX visualizer by Chung Min Kim: https://github.com/chungmin99/
+"""
 
 from concurrent.futures import ThreadPoolExecutor
 
