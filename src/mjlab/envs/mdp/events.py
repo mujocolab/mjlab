@@ -108,11 +108,15 @@ def reset_joints_by_scale(
   joint_pos_limits = soft_joint_pos_limits[env_ids][:, asset_cfg.joint_ids]
   joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
 
+  joint_ids = asset_cfg.joint_ids
+  if isinstance(joint_ids, list):
+    joint_ids = torch.tensor(joint_ids, device=env.device)
+
   asset.write_joint_state_to_sim(
     joint_pos.view(len(env_ids), -1),
     joint_vel.view(len(env_ids), -1),
     env_ids=env_ids,
-    joint_ids=asset_cfg.joint_ids,
+    joint_ids=joint_ids,
   )
 
 
@@ -454,6 +458,11 @@ def randomize_actuator_gains(
   )[0]
   act_ids = torch.tensor(
     [indexing.actuator_local2global[lid] for lid in local_act_ids],
+    dtype=torch.int,
+    device=env.device,
+  )
+  local_act_ids = torch.tensor(
+    local_act_ids,
     dtype=torch.int,
     device=env.device,
   )

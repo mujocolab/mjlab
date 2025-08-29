@@ -122,7 +122,7 @@ class CommandManager(ManagerBase):
       idx += term.command.shape[1]
     return terms
 
-  def reset(self, env_ids: torch.Tensor) -> dict[str, torch.Tensor]:
+  def reset(self, env_ids: torch.Tensor | None) -> dict[str, torch.Tensor]:
     extras = {}
     for name, term in self._terms.items():
       metrics = term.reset(env_ids=env_ids)

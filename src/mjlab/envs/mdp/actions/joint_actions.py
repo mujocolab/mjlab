@@ -87,8 +87,7 @@ class JointAction(ActionTerm):
 
 class JointPositionAction(JointAction):
   def __init__(self, cfg: actions_config.JointPositionActionCfg, env: ManagerBasedEnv):
-    super().__init__(env=env)
-    self.cfg = cfg
+    super().__init__(cfg=cfg, env=env)
 
     # TODO: Check that the actuators are PD actuators.
 

@@ -21,7 +21,7 @@ def term(term_cls: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
 
 @dataclass
 class ManagerTermBaseCfg:
-  func: Callable
+  func: Any
   params: dict[str, Any] = field(default_factory=lambda: {})
 
 
@@ -112,7 +112,7 @@ class ObservationGroupCfg:
 class RewardTermCfg(ManagerTermBaseCfg):
   """Configuration for a reward term."""
 
-  func: Callable[..., torch.Tensor]
+  func: Any
   weight: float
 
   # TODO(kevin): Sanity check weight is valid type.

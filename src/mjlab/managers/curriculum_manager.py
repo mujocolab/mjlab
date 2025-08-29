@@ -21,7 +21,8 @@ class CurriculumManager(ManagerBase):
     self._term_cfgs: list[CurriculumTermCfg] = list()
     self._class_term_cfgs: list[CurriculumTermCfg] = list()
 
-    super().__init__(cfg, env)
+    super().__init__(env)
+    self.cfg = cfg
 
     self._curriculum_state = dict()
     for term_name in self._term_names:

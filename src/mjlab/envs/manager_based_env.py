@@ -93,7 +93,7 @@ class ManagerBasedEnv:
     self,
     *,
     seed: int | None = None,
-    env_ids: torch.Tensor | slice | None = None,
+    env_ids: torch.Tensor | None = None,
     options: dict[str, Any] | None = None,
   ) -> tuple[types.VecEnvObs, dict]:
     del options  # Unused.
@@ -140,7 +140,7 @@ class ManagerBasedEnv:
 
   # Private methods.
 
-  def _reset_idx(self, env_ids: torch.Tensor | slice | None = None) -> None:
+  def _reset_idx(self, env_ids: torch.Tensor | None = None) -> None:
     self.scene.reset(env_ids)
     if "reset" in self.event_manager.available_modes:
       env_step_count = self._sim_step_counter // self.cfg.decimation
