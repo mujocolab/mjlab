@@ -6,6 +6,7 @@ import gymnasium as gym
 import tyro
 import wandb
 
+from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
@@ -14,7 +15,7 @@ from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
 )
 from mjlab.utils.os import get_wandb_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
-from mjlab.viewer import ViserViewer
+from mjlab.viewer import NativeMujocoViewer
 
 _HERE = Path(__file__).parent
 
@@ -66,6 +67,7 @@ def main(
   log_dir = resume_path.parent
 
   env = gym.make(task, cfg=env_cfg, render_mode="rgb_array" if video else None)
+  assert isinstance(env, ManagerBasedRlEnv)
   if video:
     print("[INFO] Recording videos during training.")
     env = gym.wrappers.RecordVideo(
@@ -85,8 +87,7 @@ def main(
 
   policy = runner.get_inference_policy(device=env.device)
 
-  # viewer = NativeMujocoViewer(env, policy, 60.0, render_all_envs)
-  viewer = ViserViewer(env, policy, 60.0, render_all_envs=True)
+  viewer = NativeMujocoViewer(env, policy, 60.0, render_all_envs)
   viewer.run()
 
   env.close()
