@@ -218,6 +218,8 @@ def randomize_field(
 
   if env_ids is None:
     env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
+  else:
+    env_ids = env_ids.to(env.device, dtype=torch.int)
 
   model_field = getattr(env.sim.model, field)
 
@@ -444,6 +446,8 @@ def randomize_actuator_gains(
 
   if env_ids is None:
     env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
+  else:
+    env_ids = env_ids.to(env.device, dtype=torch.int)
 
   local_act_ids = resolve_matching_names(
     asset.actuator_names, asset.joint_actuators, True
