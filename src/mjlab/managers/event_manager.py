@@ -20,6 +20,7 @@ class EventManager(ManagerBase):
     self._mode_term_names: dict[EventMode, list[str]] = dict()
     self._mode_term_cfgs: dict[EventMode, list[EventTermCfg]] = dict()
     self._mode_class_term_cfgs: dict[EventMode, list[EventTermCfg]] = dict()
+    self._domain_randomization_fields: list[str] = list()
 
     super().__init__(cfg=cfg, env=env)
 
@@ -42,6 +43,15 @@ class EventManager(ManagerBase):
           table.add_row([index, name])
       msg += table.get_string()
       msg += "\n"
+    if self._domain_randomization_fields:
+      table = PrettyTable()
+      table.title = "Domain Randomization Fields"
+      table.field_names = ["Index", "Field Name"]
+      table.align["Field Name"] = "l"
+      for index, field in enumerate(self._domain_randomization_fields):
+        table.add_row([index, field])
+      msg += table.get_string()
+      msg += "\n"
     return msg
 
   # Properties.
@@ -53,6 +63,10 @@ class EventManager(ManagerBase):
   @property
   def available_modes(self) -> list[EventMode]:
     return list(self._mode_term_names.keys())
+
+  @property
+  def domain_randomization_fields(self) -> list[str]:
+    return self._domain_randomization_fields
 
   # Methods.
 
@@ -182,3 +196,8 @@ class EventManager(ManagerBase):
         self._reset_term_last_triggered_step_id.append(step_count)
         no_trigger = torch.zeros(self.num_envs, device=self.device, dtype=torch.bool)
         self._reset_term_last_triggered_once.append(no_trigger)
+
+      if term_cfg.func.__name__ == "randomize_field":
+        field_name = term_cfg.params["field"]
+        if field_name not in self._domain_randomization_fields:
+          self._domain_randomization_fields.append(field_name)

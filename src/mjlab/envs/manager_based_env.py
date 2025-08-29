@@ -74,15 +74,7 @@ class ManagerBasedEnv:
     self.event_manager = EventManager(self.cfg.events, self)
     print("[INFO] Event manager: ", self.event_manager)
 
-    expanded_model_fields: list[str] = []
-    if "startup" in self.event_manager.available_modes:
-      for event_cfg in self.event_manager._mode_term_cfgs["startup"]:
-        if "field" in event_cfg.params:
-          expanded_model_fields.append(event_cfg.params["field"])
-        # Special handling for actuator gain randomization.
-        if event_cfg.func.__name__ == "randomize_actuator_gains":
-          expanded_model_fields.extend(["actuator_gainprm", "actuator_biasprm"])
-    self.sim.expand_model_fields(expanded_model_fields)
+    self.sim.expand_model_fields(self.event_manager.domain_randomization_fields)
 
     self.action_manager = ActionManager(self.cfg.actions, self)
     print("[INFO] Action Manager:", self.action_manager)
