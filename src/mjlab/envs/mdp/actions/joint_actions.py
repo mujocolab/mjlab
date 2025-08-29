@@ -18,15 +18,14 @@ if TYPE_CHECKING:
 class JointAction(ActionTerm):
   """Base class for joint actions."""
 
-  cfg: actions_config.JointActionCfg
   _asset: Robot
 
   def __init__(self, cfg: actions_config.JointActionCfg, env: ManagerBasedEnv):
     super().__init__(cfg=cfg, env=env)
 
     self._actuator_ids, self._actuator_names = self._asset.find_actuators(
-      self.cfg.actuator_names,
-      preserve_order=self.cfg.preserve_order,
+      cfg.actuator_names,
+      preserve_order=cfg.preserve_order,
     )
     self._num_joints = len(self._actuator_ids)
     self._action_dim = len(self._actuator_ids)
@@ -39,7 +38,7 @@ class JointAction(ActionTerm):
     elif isinstance(cfg.scale, dict):
       self._scale = torch.ones(self.num_envs, self.action_dim, device=self.device)
       index_list, _, value_list = resolve_matching_names_values(
-        self.cfg.scale, self._actuator_names
+        cfg.scale, self._actuator_names
       )
       self._scale[:, index_list] = torch.tensor(value_list, device=self.device)
     else:
@@ -52,7 +51,7 @@ class JointAction(ActionTerm):
     elif isinstance(cfg.offset, dict):
       self._offset = torch.zeros_like(self._raw_actions)
       index_list, _, value_list = resolve_matching_names_values(
-        self.cfg.offset, self._actuator_names
+        cfg.offset, self._actuator_names
       )
       self._offset[:, index_list] = torch.tensor(value_list, device=self.device)
     else:
@@ -82,13 +81,14 @@ class JointAction(ActionTerm):
     self._raw_actions[:] = actions
     self._processed_actions = self._raw_actions * self._scale + self._offset
 
-  def reset(self, env_ids: Sequence[int] | None = None) -> None:
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
     self._raw_actions[env_ids] = 0.0
 
 
 class JointPositionAction(JointAction):
   def __init__(self, cfg: actions_config.JointPositionActionCfg, env: ManagerBasedEnv):
-    super().__init__(cfg=cfg, env=env)
+    super().__init__(env=env)
+    self.cfg = cfg
 
     # TODO: Check that the actuators are PD actuators.
 

@@ -1,6 +1,7 @@
 """Base class for environment viewers."""
 
 from __future__ import annotations
+from tensordict import TensorDict
 
 import contextlib
 import time
@@ -56,13 +57,16 @@ class EnvProtocol(Protocol):
   """Protocol for environment interface."""
 
   device: torch.device
-  cfg: ManagerBasedEnvCfg
 
-  def get_observations(self) -> torch.Tensor: ...
+  # @property is convenient for treating cfg as read-only. This makes typing easier.
+  @property
+  def cfg(self) -> ManagerBasedEnvCfg: ...
 
-  def step(self, actions: torch.Tensor) -> tuple[torch.Tensor, ...]: ...
+  def get_observations(self) -> Any: ...
 
-  def reset(self) -> torch.Tensor: ...
+  def step(self, actions: torch.Tensor) -> tuple[Any, ...]: ...
+
+  def reset(self) -> Any: ...
 
   @property
   def unwrapped(self) -> Any: ...

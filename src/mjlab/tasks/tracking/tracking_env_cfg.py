@@ -2,7 +2,6 @@ from dataclasses import dataclass, field, replace
 
 from mjlab.asset_zoo.terrains.flat_terrain import FLAT_TERRAIN_CFG
 from mjlab.envs import ManagerBasedRlEnvCfg
-from mjlab.managers.manager_term_config import ActionTermCfg as ActionTerm
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 from mjlab.managers.manager_term_config import ObservationGroupCfg as ObsGroup
 from mjlab.managers.manager_term_config import ObservationTermCfg as ObsTerm
@@ -92,7 +91,7 @@ class CommandsCfg:
 
 @dataclass
 class ActionCfg:
-  joint_pos: ActionTerm = term(
+  joint_pos: mdp.JointPositionActionCfg = term(
     mdp.JointPositionActionCfg,
     asset_name="robot",
     actuator_names=[".*"],
@@ -166,7 +165,7 @@ class ObservationCfg:
 
 @dataclass
 class EventCfg:
-  push_robot: EventTerm = term(
+  push_robot: EventTerm | None = term(
     EventTerm,
     func=mdp.push_by_setting_velocity,
     mode="interval",

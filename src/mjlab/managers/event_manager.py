@@ -17,12 +17,13 @@ class EventManager(ManagerBase):
   _env: ManagerBasedEnv
 
   def __init__(self, cfg: object, env: ManagerBasedEnv):
+    self.cfg = cfg
     self._mode_term_names: dict[EventMode, list[str]] = dict()
     self._mode_term_cfgs: dict[EventMode, list[EventTermCfg]] = dict()
     self._mode_class_term_cfgs: dict[EventMode, list[EventTermCfg]] = dict()
     self._domain_randomization_fields: list[str] = list()
 
-    super().__init__(cfg=cfg, env=env)
+    super().__init__(env=env)
 
   def __str__(self) -> str:
     msg = f"<EventManager> contains {len(self._mode_term_names)} active terms.\n"
@@ -70,7 +71,7 @@ class EventManager(ManagerBase):
 
   # Methods.
 
-  def reset(self, env_ids: torch.Tensor | slice | None = None):
+  def reset(self, env_ids: torch.Tensor | None = None):
     for mode_cfg in self._mode_class_term_cfgs.values():
       for term_cfg in mode_cfg:
         term_cfg.func.reset(env_ids=env_ids)
@@ -81,6 +82,7 @@ class EventManager(ManagerBase):
     if "interval" in self._mode_term_cfgs:
       for index, term_cfg in enumerate(self._mode_class_term_cfgs["interval"]):
         if not term_cfg.is_global_time:
+          assert term_cfg.interval_range_s is not None
           lower, upper = term_cfg.interval_range_s
           sampled_interval = (
             torch.rand(num_envs, device=self.device) * (upper - lower) + lower
@@ -112,9 +114,11 @@ class EventManager(ManagerBase):
     for index, term_cfg in enumerate(self._mode_term_cfgs[mode]):
       if mode == "interval":
         time_left = self._interval_term_time_left[index]
+        assert dt is not None
         time_left -= dt
         if term_cfg.is_global_time:
           if time_left < 1e-6:
+            assert term_cfg.interval_range_s is not None
             lower, upper = term_cfg.interval_range_s
             sampled_interval = torch.rand(1) * (upper - lower) + lower
             self._interval_term_time_left[index][:] = sampled_interval
@@ -122,6 +126,7 @@ class EventManager(ManagerBase):
         else:
           valid_env_ids = (time_left < 1e-6).nonzero().flatten()
           if len(valid_env_ids) > 0:
+            assert term_cfg.interval_range_s is not None
             lower, upper = term_cfg.interval_range_s
             sampled_time = (
               torch.rand(len(valid_env_ids), device=self.device) * (upper - lower)
@@ -130,6 +135,7 @@ class EventManager(ManagerBase):
             self._interval_term_time_left[index][valid_env_ids] = sampled_time
             term_cfg.func(self._env, valid_env_ids, **term_cfg.params)
       elif mode == "reset":
+        assert global_env_step_count is not None
         min_step_count = term_cfg.min_step_count_between_reset
         if env_ids is None:
           env_ids = slice(None)
@@ -145,10 +151,10 @@ class EventManager(ManagerBase):
           steps_since_triggered = global_env_step_count - last_triggered_step
           valid_trigger = steps_since_triggered >= min_step_count
           valid_trigger |= (last_triggered_step == 0) & ~triggered_at_least_once
-          if env_ids == slice(None):
-            valid_env_ids = valid_trigger.nonzero().flatten()
-          else:
+          if isinstance(env_ids, torch.Tensor):
             valid_env_ids = env_ids[valid_trigger]
+          else:
+            valid_env_ids = valid_trigger.nonzero().flatten()
           if len(valid_env_ids) > 0:
             self._reset_term_last_triggered_once[index][valid_env_ids] = True
             self._reset_term_last_triggered_step_id[index][valid_env_ids] = (

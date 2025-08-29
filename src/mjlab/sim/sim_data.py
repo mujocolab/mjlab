@@ -17,7 +17,7 @@ class TorchArray:
     """Initialize the tensor proxy with a Warp array."""
     self._wp_array = wp_array
     self._tensor = wp.to_torch(wp_array)
-    self._is_cuda = not self._wp_array.device.is_cpu
+    self._is_cuda = not self._wp_array.device.is_cpu  # type: ignore
     self._torch_stream = self._setup_stream()
 
   def _setup_stream(self) -> Optional[torch.cuda.Stream]:

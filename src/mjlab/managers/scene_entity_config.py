@@ -31,11 +31,11 @@ class SceneEntityCfg:
     self._resolve_site_names(scene)
 
   def _resolve_joint_names(self, scene: Scene) -> None:
-    if self.joint_names is not None or self.joint_ids != slice(None):
+    if self.joint_names is not None or isinstance(self.joint_ids, list):
       entity: Robot = scene[self.name]
 
       # Joint name regex --> joint indices.
-      if self.joint_names is not None and self.joint_ids != slice(None):
+      if self.joint_names is not None and isinstance(self.joint_ids, list):
         if isinstance(self.joint_names, str):
           self.joint_names = [self.joint_names]
         if isinstance(self.joint_ids, int):
@@ -62,17 +62,17 @@ class SceneEntityCfg:
           self.joint_ids = slice(None)
 
       # Joint indices --> joint names.
-      elif self.joint_ids != slice(None):
+      elif isinstance(self.joint_ids, list):
         if isinstance(self.joint_ids, int):
           self.joint_ids = [self.joint_ids]
         self.joint_names = [entity.joint_names[i] for i in self.joint_ids]
 
   def _resolve_body_names(self, scene: Scene) -> None:
-    if self.body_names is not None or self.body_ids != slice(None):
+    if self.body_names is not None or isinstance(self.body_ids, list):
       entity: Robot = scene[self.name]
 
       # Body name regex --> body indices.
-      if self.body_names is not None and self.body_ids != slice(None):
+      if self.body_names is not None and isinstance(self.body_ids, list):
         if isinstance(self.body_names, str):
           self.body_names = [self.body_names]
         if isinstance(self.body_ids, int):
@@ -98,17 +98,17 @@ class SceneEntityCfg:
           self.body_ids = slice(None)
 
       # Body indices --> body names.
-      elif self.body_ids != slice(None):
+      elif isinstance(self.body_ids, list):
         if isinstance(self.body_ids, int):
           self.body_ids = [self.body_ids]
         self.body_names = [entity.body_names[i] for i in self.body_ids]
 
   def _resolve_geom_names(self, scene: Scene) -> None:
-    if self.geom_names is not None or self.geom_ids != slice(None):
+    if self.geom_names is not None or isinstance(self.geom_ids, list):
       entity: Robot = scene[self.name]
 
       # Geom name regex --> geom indices.
-      if self.geom_names is not None and self.geom_ids != slice(None):
+      if self.geom_names is not None and isinstance(self.geom_ids, list):
         if isinstance(self.geom_names, str):
           self.geom_names = [self.geom_names]
         if isinstance(self.geom_ids, int):
@@ -134,17 +134,17 @@ class SceneEntityCfg:
           self.geom_ids = slice(None)
 
       # Geom indices --> geom names.
-      elif self.geom_ids != slice(None):
+      elif isinstance(self.geom_ids, list):
         if isinstance(self.geom_ids, int):
           self.geom_ids = [self.geom_ids]
         self.geom_names = [entity.geom_names[i] for i in self.geom_ids]
 
   def _resolve_site_names(self, scene: Scene) -> None:
-    if self.site_names is not None or self.site_ids != slice(None):
+    if self.site_names is not None or isinstance(self.site_ids, list):
       entity: Robot = scene[self.name]
 
       # Site name regex --> site indices.
-      if self.site_names is not None and self.site_ids != slice(None):
+      if self.site_names is not None and isinstance(self.site_ids, list):
         if isinstance(self.site_names, str):
           self.site_names = [self.site_names]
         if isinstance(self.site_ids, int):
@@ -170,7 +170,7 @@ class SceneEntityCfg:
           self.site_ids = slice(None)
 
       # Site indices --> site names.
-      elif self.site_ids != slice(None):
+      elif isinstance(self.site_ids, list):
         if isinstance(self.site_ids, int):
           self.site_ids = [self.site_ids]
         self.site_names = [entity.site_names[i] for i in self.site_ids]

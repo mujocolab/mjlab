@@ -21,7 +21,8 @@ class TerminationManager(ManagerBase):
     self._term_cfgs: list[TerminationTermCfg] = list()
     self._class_term_cfgs: list[TerminationTermCfg] = list()
 
-    super().__init__(cfg, env)
+    super().__init__(env)
+    self.cfg = cfg
 
     self._term_dones = dict()
     for term_name in self._term_names:

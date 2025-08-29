@@ -5,6 +5,7 @@ import onnx
 import torch
 
 from mjlab.envs import ManagerBasedRlEnv
+from mjlab.envs.mdp.actions.joint_actions import JointAction
 from mjlab.tasks.tracking.mdp import MotionCommand
 from mjlab.third_party.isaaclab.isaaclab_rl.rsl_rl.exporter import _OnnxPolicyExporter
 
@@ -38,7 +39,7 @@ class _OnnxMotionPolicyExporter(_OnnxPolicyExporter):
     self.body_ang_vel_w = cmd.motion.body_ang_vel_w.to("cpu")
     self.time_step_total = self.joint_pos.shape[0]
 
-  def forward(self, x, time_step):
+  def forward(self, x, time_step):  # pyright: ignore [reportIncompatibleMethodOverride]
     time_step_clamped = torch.clamp(
       time_step.long().squeeze(-1), max=self.time_step_total - 1
     )
@@ -91,6 +92,8 @@ def attach_onnx_metadata(
   env: ManagerBasedRlEnv, run_path: str, path: str, filename="policy.onnx"
 ) -> None:
   onnx_path = os.path.join(path, filename)
+  joint_action = env.action_manager.get_term("joint_pos")
+  assert isinstance(joint_action, JointAction)
   metadata = {
     "run_path": run_path,
     "joint_names": env.scene["robot"].data.joint_names,
@@ -99,7 +102,9 @@ def attach_onnx_metadata(
     "default_joint_pos": env.scene["robot"].data.default_joint_pos[0].cpu().tolist(),
     "command_names": env.command_manager.active_terms,
     "observation_names": env.observation_manager.active_terms["policy"],
-    "action_scale": env.action_manager.get_term("joint_pos")._scale[0].cpu().tolist(),
+    "action_scale": joint_action._scale[0].cpu().tolist()
+    if isinstance(joint_action._scale, torch.Tensor)
+    else joint_action._scale,
   }
 
   model = onnx.load(onnx_path)

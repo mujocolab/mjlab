@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass, field
-from typing import Callable, Literal
+from typing import Any, Callable, ClassVar, Literal
 
 import torch
 from typing_extensions import override
@@ -19,7 +19,7 @@ def _ensure_tensor_device(
   return value
 
 
-@dataclass
+@dataclass(kw_only=True)
 class NoiseCfg(abc.ABC):
   """Base configuration for a noise term."""
 
@@ -112,38 +112,25 @@ class GaussianNoiseCfg(NoiseCfg):
 class NoiseModelCfg:
   """Configuration for a noise model."""
 
-  class_type: type = field(default_factory=lambda: noise_model.NoiseModel)
-  noise_cfg: NoiseCfg | None = None
-  func: Callable[[torch.Tensor], torch.Tensor] | None = None
+  noise_cfg: NoiseCfg
 
-  def __post_init__(self):
-    if self.noise_cfg is None:
-      raise ValueError("noise_cfg must be specified for NoiseModelCfg")
+  class_type: ClassVar[type[noise_model.NoiseModel]] = noise_model.NoiseModel
 
-    if not issubclass(self.class_type, noise_model.NoiseModel):
-      raise ValueError(
-        f"class_type must be a subclass of NoiseModel, got {self.class_type}"
-      )
+  def __init_subclass__(cls, class_type: type[noise_model.NoiseModel]):
+    cls.class_type = class_type
 
 
 @dataclass(kw_only=True)
-class NoiseModelWithAdditiveBiasCfg(NoiseModelCfg):
+class NoiseModelWithAdditiveBiasCfg(
+  NoiseModelCfg, class_type=noise_model.NoiseModelWithAdditiveBias
+):
   """Configuration for an additive Gaussian noise with bias model."""
 
-  class_type: type = field(
-    default_factory=lambda: noise_model.NoiseModelWithAdditiveBias
-  )
   bias_noise_cfg: NoiseCfg | None = None
   sample_bias_per_component: bool = True
 
   def __post_init__(self):
-    super().__post_init__()
     if self.bias_noise_cfg is None:
       raise ValueError(
         "bias_noise_cfg must be specified for NoiseModelWithAdditiveBiasCfg"
-      )
-
-    if not issubclass(self.class_type, noise_model.NoiseModelWithAdditiveBias):
-      raise ValueError(
-        f"class_type must be a subclass of NoiseModelWithAdditiveBias, got {self.class_type}"
       )

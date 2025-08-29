@@ -10,6 +10,7 @@ import torch
 import tyro
 from rsl_rl.runners import OnPolicyRunner
 
+from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
 from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.rl.config import RslRlOnPolicyRunnerCfg
@@ -61,12 +62,14 @@ def main(
 
   # Create env.
   env = gym.make(task, cfg=env_cfg)
+  assert isinstance(env, ManagerBasedRlEnv)
 
   # Save resume path before creating a new log_dir.
-  if agent_cfg.resume:
-    resume_path = get_checkpoint_path(
-      log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint
-    )
+  resume_path = (
+    get_checkpoint_path(log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint)
+    if agent_cfg.resume
+    else None
+  )
 
   # Wrap for video recording.
   if video:
@@ -84,14 +87,14 @@ def main(
   runner = OnPolicyRunner(
     env,
     asdict(agent_cfg),
-    log_dir=log_dir,
+    log_dir=str(log_dir),
     device=agent_cfg.device,
   )
   runner.add_git_repo_to_log(__file__)
 
-  if agent_cfg.resume:
+  if resume_path is not None:
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
-    runner.load(resume_path)
+    runner.load(str(resume_path))
 
   dump_yaml(log_dir / "params" / "env.yaml", asdict(env_cfg))
   dump_yaml(log_dir / "params" / "agent.yaml", asdict(agent_cfg))

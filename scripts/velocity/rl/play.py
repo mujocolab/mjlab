@@ -10,6 +10,7 @@ import tyro
 from rsl_rl.runners import OnPolicyRunner
 
 from mjlab.envs.manager_based_env_config import ManagerBasedEnvCfg
+from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.rl.config import RslRlOnPolicyRunnerCfg
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
@@ -31,7 +32,7 @@ _HERE = Path(__file__).parent
 
 def main(
   task: str,
-  wandb_run_path: str,
+  wandb_run_path: Path,
   motion_file: str | None = None,
   num_envs: int | None = None,
   device: str | None = None,
@@ -62,6 +63,7 @@ def main(
   log_dir = resume_path.parent
 
   env = gym.make(task, cfg=env_cfg, render_mode="rgb_array" if video else None)
+  assert isinstance(env, ManagerBasedRlEnv)
   if video:
     video_kwargs = {
       "video_folder": log_dir / "videos" / "play",
@@ -75,9 +77,9 @@ def main(
   env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
   runner = OnPolicyRunner(
-    env, asdict(agent_cfg), log_dir=log_dir, device=agent_cfg.device
+    env, asdict(agent_cfg), log_dir=str(log_dir), device=agent_cfg.device
   )
-  runner.load(resume_path, map_location=agent_cfg.device)
+  runner.load(str(resume_path), map_location=agent_cfg.device)
 
   policy = runner.get_inference_policy(device=env.device)
 

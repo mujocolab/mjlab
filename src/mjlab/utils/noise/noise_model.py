@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from typing_extensions import override
 
 import torch
 
@@ -22,11 +23,12 @@ class NoiseModel:
     if not hasattr(noise_model_cfg, "noise_cfg") or noise_model_cfg.noise_cfg is None:
       raise ValueError("NoiseModelCfg must have a valid noise_cfg")
 
-  def reset(self, env_ids: torch.Tensor | slice | None = None):
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
     """Reset noise model state. Override in subclasses if needed."""
 
   def __call__(self, data: torch.Tensor) -> torch.Tensor:
     """Apply noise to input data."""
+    assert self._noise_model_cfg.noise_cfg is not None
     return self._noise_model_cfg.noise_cfg.apply(data)
 
 
@@ -57,7 +59,8 @@ class NoiseModelWithAdditiveBias(NoiseModel):
     self._num_components: int | None = None
     self._bias_initialized = False
 
-  def reset(self, env_ids: torch.Tensor | slice | None = None):
+  @override
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
     """Reset bias values for specified environments."""
     indices = slice(None) if env_ids is None else env_ids
     # Sample new bias values.
@@ -73,6 +76,7 @@ class NoiseModelWithAdditiveBias(NoiseModel):
       # Resample bias with new shape.
       self.reset()
 
+  @override
   def __call__(self, data: torch.Tensor) -> torch.Tensor:
     """Apply noise and additive bias to input data."""
     self._initialize_bias_shape(data.shape)

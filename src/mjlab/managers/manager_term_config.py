@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Any, Callable, Literal, ParamSpec, TypeVar
 
 import torch
 
+from mjlab.utils.noise.noise_cfg import NoiseCfg, NoiseModelCfg
+
 if TYPE_CHECKING:
   from mjlab.managers.action_manager import ActionTerm
   from mjlab.managers.command_manager import CommandTerm
@@ -88,7 +90,7 @@ class EventTermCfg(ManagerTermBaseCfg):
 class ObservationTermCfg(ManagerTermBaseCfg):
   """Configuration for an observation term."""
 
-  noise: Any | None = None
+  noise: NoiseCfg | NoiseModelCfg | None = None
   clip: tuple[float, float] | None = None
 
 

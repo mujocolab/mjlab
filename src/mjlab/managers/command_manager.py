@@ -17,11 +17,9 @@ if TYPE_CHECKING:
 class CommandTerm(ManagerTermBase):
   """Base class for command terms."""
 
-  cfg: CommandTermCfg
-
   def __init__(self, cfg: CommandTermCfg, env: ManagerBasedRlEnv):
-    super().__init__(cfg, env)
-
+    super().__init__(env)
+    self.cfg = cfg
     self.metrics = dict()
     self.time_left = torch.zeros(self.num_envs, device=self.device)
     self.command_counter = torch.zeros(
@@ -40,7 +38,8 @@ class CommandTerm(ManagerTermBase):
   def command(self):
     raise NotImplementedError
 
-  def reset(self, env_ids: torch.Tensor) -> dict[str, float]:
+  def reset(self, env_ids: torch.Tensor | slice | None) -> dict[str, float]:
+    assert isinstance(env_ids, torch.Tensor)
     extras = {}
     for metric_name, metric_value in self.metrics.items():
       extras[metric_name] = torch.mean(metric_value[env_ids]).item()
@@ -66,17 +65,17 @@ class CommandTerm(ManagerTermBase):
       self.command_counter[env_ids] += 1
 
   @abc.abstractmethod
-  def _update_metrics(self):
+  def _update_metrics(self) -> None:
     """Update the metrics based on the current state."""
     raise NotImplementedError
 
   @abc.abstractmethod
-  def _resample_command(self, env_ids: torch.Tensor):
+  def _resample_command(self, env_ids: torch.Tensor) -> None:
     """Resample the command for the specified environments."""
     raise NotImplementedError
 
   @abc.abstractmethod
-  def _update_command(self):
+  def _update_command(self) -> None:
     """Update the command based on the current state."""
     raise NotImplementedError
 
@@ -87,8 +86,8 @@ class CommandManager(ManagerBase):
   def __init__(self, cfg: object, env: ManagerBasedRlEnv):
     self._terms: dict[str, CommandTerm] = dict()
 
-    super().__init__(cfg, env)
-
+    super().__init__(env)
+    self.cfg = cfg
     self._commands = dict()
 
   def __str__(self) -> str:
