@@ -5,7 +5,6 @@ import mujoco_warp as mjwarp
 import numpy as np
 import torch
 import warp as wp
-from prettytable import PrettyTable
 
 from mjlab.sim.randomization import expand_model_fields
 from mjlab.sim.sim_config import SimulationCfg
@@ -117,17 +116,6 @@ class Simulation:
     for field in fields:
       if not hasattr(self._mj_model, field):
         raise ValueError(f"Field '{field}' not found in model.")
-
-    table = PrettyTable()
-    table.title = "Model Fields to be Randomized"
-    table.field_names = ["Index", "Field Name"]
-    table.align["Field Name"] = "l"
-
-    for index, field in enumerate(fields):
-      table.add_row([index, field])
-
-    print(table.get_string())
-    print()
 
     expand_model_fields(self._wp_model, self.num_envs, fields)
 

@@ -43,6 +43,15 @@ class EventManager(ManagerBase):
           table.add_row([index, name])
       msg += table.get_string()
       msg += "\n"
+    if self._domain_randomization_fields:
+      table = PrettyTable()
+      table.title = "Domain Randomization Fields"
+      table.field_names = ["Index", "Field Name"]
+      table.align["Field Name"] = "l"
+      for index, field in enumerate(self._domain_randomization_fields):
+        table.add_row([index, field])
+      msg += table.get_string()
+      msg += "\n"
     return msg
 
   # Properties.
