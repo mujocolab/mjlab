@@ -10,7 +10,9 @@ import torch
 import tyro
 from rsl_rl.runners import OnPolicyRunner
 
+from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
 from mjlab.rl import RslRlVecEnvWrapper
+from mjlab.rl.config import RslRlOnPolicyRunnerCfg
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
@@ -37,6 +39,8 @@ def main(
 ):
   env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
   agent_cfg = load_cfg_from_registry(task, "rl_cfg_entry_point")
+  assert isinstance(env_cfg, ManagerBasedRlEnvCfg)
+  assert isinstance(agent_cfg, RslRlOnPolicyRunnerCfg)
 
   env_cfg.sim.num_envs = num_envs or env_cfg.sim.num_envs
   agent_cfg.max_iterations = max_iterations or agent_cfg.max_iterations
@@ -59,10 +63,11 @@ def main(
   env = gym.make(task, cfg=env_cfg)
 
   # Save resume path before creating a new log_dir.
-  if agent_cfg.resume:
-    resume_path = get_checkpoint_path(
-      log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint
-    )
+  resume_path = (
+    get_checkpoint_path(log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint)
+    if agent_cfg.resume
+    else None
+  )
 
   # Wrap for video recording.
   if video:
@@ -80,14 +85,14 @@ def main(
   runner = OnPolicyRunner(
     env,
     asdict(agent_cfg),
-    log_dir=log_dir,
+    log_dir=str(log_dir),
     device=agent_cfg.device,
   )
   runner.add_git_repo_to_log(__file__)
 
-  if agent_cfg.resume:
+  if resume_path is not None:
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
-    runner.load(resume_path)
+    runner.load(str(resume_path))
 
   dump_yaml(log_dir / "params" / "env.yaml", asdict(env_cfg))
   dump_yaml(log_dir / "params" / "agent.yaml", asdict(agent_cfg))

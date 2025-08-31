@@ -21,8 +21,8 @@ class RewardManager(ManagerBase):
     self._term_cfgs: list[RewardTermCfg] = list()
     self._class_term_cfgs: list[RewardTermCfg] = list()
 
-    super().__init__(cfg=cfg, env=env)
-
+    self.cfg = cfg
+    super().__init__(env=env)
     self._episode_sums = dict()
     for term_name in self._term_names:
       self._episode_sums[term_name] = torch.zeros(

@@ -49,7 +49,7 @@ class Robot(entity.Entity):
       if actuator.trntype != mujoco.mjtTrn.mjTRN_JOINT:
         continue
       self.actuator_to_joint[actuator.name] = actuator.target
-    self.jnt_actuators = list(self.actuator_to_joint.values())
+    self.joint_actuators = list(self.actuator_to_joint.values())
 
     # Sensors.
     self._sensor_names = [s.name for s in self._spec.sensors]
@@ -166,7 +166,7 @@ class Robot(entity.Entity):
     )
 
     local_act_ids = resolve_matching_names(
-      self._actuator_names, self.jnt_actuators, True
+      self._actuator_names, self.joint_actuators, True
     )[0]
     self._actuator_ids_global = torch.tensor(
       [indexing.actuator_local2global[lid] for lid in local_act_ids],

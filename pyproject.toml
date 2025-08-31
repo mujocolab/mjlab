@@ -45,6 +45,10 @@ dependencies = [
     "mujoco",
     "trimesh",
     "viser",
+    "wandb",
+    "moviepy",
+    "tensordict",
+    "rsl-rl-lib",
 ]
 
 [dependency-groups]
@@ -52,7 +56,7 @@ dev = [
   {include-group = "lint"},
   {include-group = "test"},
   "pre-commit",
-  "ty",
+  "pyright>=1.1.386",
 ]
 lint = [
   "ruff"
@@ -68,7 +72,6 @@ rl = [
     "moviepy >=1.0.0",
     "rsl-rl-lib",
     "tensorboard",
-    "wandb",
 ]
 
 [[tool.uv.index]]
@@ -99,14 +102,13 @@ torch = [{ index = "pytorch-cu128", extra = "cu12" }]
 indent-width = 2
 exclude = [
   "src/mjlab/third_party",
+  "typings",
 ]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "B"]
 
-[tool.ty.rules]
-unresolved-attribute = "ignore"
-
-[tool.ty.src]
-include = ["src", "tests"]
-exclude = ["src/mjlab/third_party"]
+[tool.pyright]
+pythonVersion = "3.10"
+ignore = ["./typings", "./src/mjlab/third_party"]
+stubPath = "typings"

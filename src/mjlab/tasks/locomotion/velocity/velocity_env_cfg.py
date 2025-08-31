@@ -178,7 +178,7 @@ class EventCfg:
       "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
     },
   )
-  push_robot: EventTerm = term(
+  push_robot: EventTerm | None = term(
     EventTerm,
     func=mdp.push_by_setting_velocity,
     mode="interval",

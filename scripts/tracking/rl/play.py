@@ -6,6 +6,7 @@ import gymnasium as gym
 import tyro
 import wandb
 
+from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
@@ -66,15 +67,16 @@ def main(
   log_dir = resume_path.parent
 
   env = gym.make(task, cfg=env_cfg, render_mode="rgb_array" if video else None)
+  assert isinstance(env, ManagerBasedRlEnv)
   if video:
-    video_kwargs = {
-      "video_folder": log_dir / "videos" / "play",
-      "step_trigger": lambda step: step == 0,
-      "video_length": video_length,
-      "disable_logger": True,
-    }
     print("[INFO] Recording videos during training.")
-    env = gym.wrappers.RecordVideo(env, **video_kwargs)
+    env = gym.wrappers.RecordVideo(
+      env,
+      video_folder=str(log_dir / "videos" / "play"),
+      step_trigger=lambda step: step == 0,
+      video_length=video_length,
+      disable_logger=True,
+    )
 
   env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 

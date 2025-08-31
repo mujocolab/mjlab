@@ -123,6 +123,7 @@ class NativeMujocoViewer(BaseViewer):
 
     # Create visualization data for rendering multiple environments.
     if self.render_all_envs and self.env.unwrapped.num_envs > 1:
+      assert self.mjm is not None
       self.vd = mujoco.MjData(self.mjm)
 
     # Setup visualization options.
@@ -132,6 +133,8 @@ class NativeMujocoViewer(BaseViewer):
 
     self._env_origins = compute_env_origins_grid(sim.num_envs, env_spacing=2.0)
 
+    assert self.mjm is not None
+    assert self.mjd is not None
     self.viewer = mujoco.viewer.launch_passive(
       self.mjm, self.mjd, key_callback=self.key_callback
     )
@@ -218,10 +221,12 @@ class NativeMujocoViewer(BaseViewer):
     sim_data = self.env.unwrapped.sim.data
 
     # Copy primary environment state to viewer.
+    assert self.mjd is not None
     self.mjd.qpos[:] = sim_data.qpos[self.env_idx].cpu().numpy()
     self.mjd.qvel[:] = sim_data.qvel[self.env_idx].cpu().numpy()
 
     # Forward dynamics to update derived quantities.
+    assert self.mjm is not None
     mujoco.mj_forward(self.mjm, self.mjd)
 
   def sync_viewer_to_env(self) -> None:
@@ -230,6 +235,7 @@ class NativeMujocoViewer(BaseViewer):
       return
 
     # Copy perturbation forces from viewer to environment.
+    assert self.mjd is not None
     xfrc_applied = torch.tensor(
       self.mjd.xfrc_applied, dtype=torch.float, device=self.env.device
     )
@@ -237,6 +243,7 @@ class NativeMujocoViewer(BaseViewer):
 
   def update_visualizations(self) -> None:
     """Update additional visualizations."""
+    assert self.viewer is not None
     user_scn = self.viewer.user_scn
     if user_scn is None:
       return
@@ -262,6 +269,11 @@ class NativeMujocoViewer(BaseViewer):
         # Apply offset.
         # TODO(kevin): Make this less hacky.
         self.vd.qpos[:3] += self._env_origins[i]
+
+        assert self.mjm is not None
+        assert self.vopt is not None
+        assert self.pert is not None
+        assert self.catmask is not None
         mujoco.mj_forward(self.mjm, self.vd)
         mujoco.mjv_addGeoms(
           self.mjm, self.vd, self.vopt, self.pert, self.catmask, user_scn

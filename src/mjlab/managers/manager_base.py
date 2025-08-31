@@ -14,8 +14,7 @@ if TYPE_CHECKING:
 
 
 class ManagerTermBase:
-  def __init__(self, cfg: ManagerTermBaseCfg, env: ManagerBasedEnv):
-    self.cfg = cfg
+  def __init__(self, env: ManagerBasedEnv):
     self._env = env
 
   # Properties.
@@ -34,7 +33,7 @@ class ManagerTermBase:
 
   # Methods.
 
-  def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
+  def reset(self, env_ids: torch.Tensor | slice | None) -> Any:
     """Resets the manager term."""
     del env_ids  # Unused.
     pass
@@ -47,8 +46,7 @@ class ManagerTermBase:
 class ManagerBase(abc.ABC):
   """Base class for all managers."""
 
-  def __init__(self, cfg, env: ManagerBasedEnv):
-    self.cfg = cfg
+  def __init__(self, env: ManagerBasedEnv):
     self._env = env
 
     self._prepare_terms()
@@ -70,7 +68,7 @@ class ManagerBase(abc.ABC):
 
   # Methods.
 
-  def reset(self, env_ids: torch.Tensor | slice | None = None) -> dict[str, float]:
+  def reset(self, env_ids: torch.Tensor) -> dict[str, Any]:
     """Resets the manager and returns logging info for the current step."""
     del env_ids  # Unused.
     return {}

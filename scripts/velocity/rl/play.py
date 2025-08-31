@@ -9,7 +9,9 @@ import torch
 import tyro
 from rsl_rl.runners import OnPolicyRunner
 
+from mjlab.envs.manager_based_env_config import ManagerBasedEnvCfg
 from mjlab.rl import RslRlVecEnvWrapper
+from mjlab.rl.config import RslRlOnPolicyRunnerCfg
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
@@ -29,7 +31,7 @@ _HERE = Path(__file__).parent
 
 def main(
   task: str,
-  wandb_run_path: str,
+  wandb_run_path: Path,
   motion_file: str | None = None,
   num_envs: int | None = None,
   device: str | None = None,
@@ -41,6 +43,8 @@ def main(
 ):
   env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
   agent_cfg = load_cfg_from_registry(task, "rl_cfg_entry_point")
+  assert isinstance(env_cfg, ManagerBasedEnvCfg)
+  assert isinstance(agent_cfg, RslRlOnPolicyRunnerCfg)
 
   env_cfg.sim.num_envs = num_envs or env_cfg.sim.num_envs
   env_cfg.sim.device = device or env_cfg.sim.device
@@ -71,9 +75,9 @@ def main(
   env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
   runner = OnPolicyRunner(
-    env, asdict(agent_cfg), log_dir=log_dir, device=agent_cfg.device
+    env, asdict(agent_cfg), log_dir=str(log_dir), device=agent_cfg.device
   )
-  runner.load(resume_path, map_location=agent_cfg.device)
+  runner.load(str(resume_path), map_location=agent_cfg.device)
 
   policy = runner.get_inference_policy(device=env.device)
 
