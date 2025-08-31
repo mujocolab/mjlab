@@ -50,3 +50,21 @@ jobs:
         run: uv sync --all-extras --all-packages --group dev
       - name: Test with python ${{ matrix.python-version }}
         run: uv run pytest
+
+  pyright:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          version: "0.8.13"
+      - name: Install dependencies
+        run: uv sync --all-extras --all-packages --group dev
+      - name: Test with python ${{ matrix.python-version }}
+        run: uv run pyright
