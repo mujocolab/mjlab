@@ -1,6 +1,5 @@
 **P0**.
 
-- [ ] Investigate potential overflow for large `num_envs` (e.g., 16K).
 - [ ] Contact sensor
   - [ ] Clean up, super gross right now
   - [ ] Investiate cause of NaNs
@@ -16,9 +15,6 @@
   - [x] Command manager
   - [x] Curriculum manager
   - [x] Event manager
-    - [x] startup
-    - [x] reset
-    - [x] interval
   - [x] Observation manager
   - [ ] Recorder manager
   - [x] Reward manager
@@ -27,26 +23,16 @@
   - [x] `rgb_array` rendering
   - [ ] `human` rendering
 - [x] `rsl_rl` integration
-  - [x] `VecEnv` wrapper
-  - [x] `train.py` and `play.py`
 - [x] Add __str__ method for all important classes
 - [x] Add some form of contact sensor and sensor API
 - [x] Inherit from gym
 - [x] Improve viewer
-  - [x] Package into class
-  - [x] 2 backends: mujoco viewer, viser
 - [x] Domain randomization
 
 **P1**
 
 - [ ] Unit test everything
 - [ ] Improve dataclass configs across the board
-  - [ ] Remove `MISSING` garbage.
 - [ ] Make tyro configure everything in rsl_rl train and eval script
-- [ ] Improve type checking across the board
-  - [ ] pylance
-  - [x] ty
-- [ ] Ensure mjlab installs and runs on CPU.
-  - [ ] CPU linux
-  - [ ] Mac M series
+- [x] Improve type checking across the board
 - [x] Switch to `uv`
