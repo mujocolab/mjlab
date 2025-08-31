@@ -102,6 +102,7 @@ torch = [{ index = "pytorch-cu128", extra = "cu12" }]
 indent-width = 2
 exclude = [
   "src/mjlab/third_party",
+  "typings",
 ]
 
 [tool.ruff.lint]
