@@ -1,5 +1,9 @@
 # mjlab
 
+<p align="left">
+  <img alt="tests" src="https://github.com/mujocolab/mjlab/actions/workflows/ci.yml/badge.svg" />
+</p>
+
 > **⚠️ EXPERIMENTAL PREVIEW** 
 > 
 > This project is in very early experimental stages. APIs, features, and documentation are subject to significant changes. Use at your own risk and expect frequent breaking changes.
