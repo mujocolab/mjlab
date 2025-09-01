@@ -75,7 +75,7 @@ class ViewerAction(Enum):
 
 
 class BaseViewer(ABC):
-  """Abstract base class for environment viewers with a minimal shared API."""
+  """Abstract base class for environment viewers."""
 
   SPEED_MULTIPLIERS = [0.01, 0.016, 0.025, 0.04, 0.063, 0.1, 0.16, 0.25, 0.4, 0.63, 1.0]
 
@@ -115,6 +115,7 @@ class BaseViewer(ABC):
     self._accumulated_sim_time = 0.0
     self._accumulated_render_time = 0.0
 
+    # FPS tracking.
     self._smoothed_fps: float = 0.0
     self._fps_accum_frames: int = 0
     self._fps_accum_time: float = 0.0

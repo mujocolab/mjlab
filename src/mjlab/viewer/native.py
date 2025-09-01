@@ -28,19 +28,17 @@ if TYPE_CHECKING:
 class PlotCfg:
   """Reward plot configuration."""
 
-  history: int = 300  # points kept per series
-  p_lo: float = 2.0  # robust percentile low
-  p_hi: float = 98.0  # robust percentile high
-  pad: float = 0.25  # pad % of span on both sides
-  min_span: float = 1e-6  # minimum vertical span
-  init_yrange: tuple[float, float] = (-0.01, 0.01)
-  grid_size: tuple[int, int] = (3, 4)
-  max_viewports: int = 12  # cap number of plots shown
-  max_rows_per_col: int = 6  # stack up to this many per column
-  plot_strip_fraction: float = 1 / 3  # right-side width reserved for plots
-
-
-_DEFAULT_PLOT_CFG = PlotCfg()
+  history: int = 300  # Points kept per series.
+  p_lo: float = 2.0  # Percentile low.
+  p_hi: float = 98.0  # Percentile high.
+  pad: float = 0.25  # Pad % of span on both sides.
+  min_span: float = 1e-6  # Minimum vertical span.
+  init_yrange: tuple[float, float] = (-0.01, 0.01)  # Initial y-range.
+  grid_size: tuple[int, int] = (3, 4)  # Grid size (rows, columns).
+  max_viewports: int = 12  # Cap number of plots shown.
+  max_rows_per_col: int = 6  # Stack up to this many per column.
+  plot_strip_fraction: float = 1 / 3  # Right-side width reserved for plots.
+  background_alpha: float = 0.5  # Background alpha for plots.
 
 
 class NativeMujocoViewer(BaseViewer):
@@ -68,15 +66,14 @@ class NativeMujocoViewer(BaseViewer):
     self.catmask: int = mujoco.mjtCatBit.mjCAT_DYNAMIC.value
     self._env_origins: Optional[np.ndarray] = None
 
-    self.env_idx = 0
-
     self._term_names: list[str] = []
     self._figures: dict[str, mujoco.MjvFigure] = {}  # Per-term figure.
     self._histories: dict[str, deque[float]] = {}  # Per-term ring buffer.
     self._yrange: dict[str, tuple[float, float]] = {}  # Per-term y-range.
     self._show_plots: bool = True
-    self._plot_cfg = plot_cfg or _DEFAULT_PLOT_CFG
+    self._plot_cfg = plot_cfg or PlotCfg()
 
+    self.env_idx = 0
     self._mj_lock = Lock()
 
   def setup(self) -> None:
@@ -273,6 +270,7 @@ class NativeMujocoViewer(BaseViewer):
     return False
 
   def _setup_camera(self) -> None:
+    # TODO(kevin): This function is gross and has lots of redundant code. Clean it up.
     assert self.viewer is not None
     self.viewer.opt.frame = mujoco.mjtFrame.mjFRAME_WORLD.value
 
@@ -322,7 +320,7 @@ class NativeMujocoViewer(BaseViewer):
   # Reward plotting helpers.
 
   def _init_reward_plots(self, term_names: list[str]) -> None:
-    """Create per-term figures and histories. Assumes fixed term set."""
+    """Create per-term figures and histories."""
     self._figures.clear()
     self._histories.clear()
     self._yrange.clear()
@@ -332,12 +330,13 @@ class NativeMujocoViewer(BaseViewer):
         self._plot_cfg.grid_size,
         self._plot_cfg.init_yrange,
         self._plot_cfg.history,
+        self._plot_cfg.background_alpha,
       )
       self._histories[name] = deque(maxlen=self._plot_cfg.history)
       self._yrange[name] = self._plot_cfg.init_yrange
 
   def _clear_histories(self) -> None:
-    """Clear histories and reset figures; keep the same term set."""
+    """Clear histories and reset figures."""
     for name in self._term_names:
       self._histories[name].clear()
       self._yrange[name] = self._plot_cfg.init_yrange
@@ -353,7 +352,7 @@ class NativeMujocoViewer(BaseViewer):
     self._histories[name].append(float(value))
 
   def _write_history_to_figure(self, name: str) -> None:
-    """Copy history into figure and apply robust autoscaling."""
+    """Copy history into figure and autoscale y-axis."""
     fig = self._figures[name]
     hist = self._histories[name]
     n = min(len(hist), self._plot_cfg.history)
@@ -363,7 +362,7 @@ class NativeMujocoViewer(BaseViewer):
       fig.linedata[0][2 * i] = float(-i)
       fig.linedata[0][2 * i + 1] = float(hist[-1 - i])
 
-    # Compute y-range.
+    # Autoscale y-axis.
     if n >= 5:
       data = np.fromiter(hist, dtype=float, count=n)
       lo = float(np.percentile(data, self._plot_cfg.p_lo))
@@ -398,7 +397,7 @@ def compute_viewports(
   rect: mujoco.MjrRect,
   cfg: PlotCfg,
 ) -> list[mujoco.MjrRect]:
-  """Lay plots in a strip on the right; up to 6 rows per column, then add a column."""
+  """Lay plots in a strip on the right."""
   if num_plots <= 0:
     return []
   cols = 1 if num_plots <= cfg.max_rows_per_col else 2
@@ -424,6 +423,7 @@ def make_empty_figure(
   grid_size: tuple[int, int],
   yrange: tuple[float, float],
   history: int,
+  alpha: float,
 ) -> mujoco.MjvFigure:
   fig = mujoco.MjvFigure()
   mujoco.mjv_defaultFigure(fig)
@@ -432,7 +432,7 @@ def make_empty_figure(
   fig.gridsize[1] = grid_size[1]
   fig.range[1][0] = float(yrange[0])
   fig.range[1][1] = float(yrange[1])
-  fig.figurergba[3] = 0.5  # Background alpha.
+  fig.figurergba[3] = alpha
   fig.title = title
   # Pre-fill x coordinates; y's will be written on update.
   for i in range(history):
