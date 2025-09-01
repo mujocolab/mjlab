@@ -103,10 +103,6 @@ class ViserViewer(BaseViewer):
       self._handles[name] = (handle, is_collision)
 
   @override
-  def render_frame(self) -> None:
-    """Render a single frame."""
-
-  @override
   def sync_env_to_viewer(self) -> None:
     """Synchronize environment state to viewer."""
 
@@ -147,11 +143,6 @@ class ViserViewer(BaseViewer):
   def sync_viewer_to_env(self) -> None:
     """Synchronize viewer state to environment (e.g., perturbations)."""
     # Does nothing for Viser.
-    pass
-
-  @override
-  def update_visualizations(self) -> None:
-    """Update any additional visualizations."""
     pass
 
   @override
