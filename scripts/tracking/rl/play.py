@@ -85,7 +85,7 @@ def main(
 
   policy = runner.get_inference_policy(device=env.device)
 
-  viewer = NativeMujocoViewer(env, policy, 60.0, render_all_envs)
+  viewer = NativeMujocoViewer(env, policy, render_all_envs=render_all_envs)
   viewer.run()
 
   env.close()
