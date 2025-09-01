@@ -48,7 +48,7 @@ class NativeMujocoViewer(BaseViewer):
     self,
     env: EnvProtocol,
     policy: PolicyProtocol,
-    frame_rate: float = 30.0,
+    frame_rate: float = 60.0,
     render_all_envs: bool = True,
     key_callback: Optional[Callable[[int], None]] = None,
     plot_cfg: PlotCfg | None = None,
