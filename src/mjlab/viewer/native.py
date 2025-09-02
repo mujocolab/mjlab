@@ -133,7 +133,7 @@ class NativeMujocoViewer(BaseViewer):
 
       text_1 = "Env\nStep\nStatus\nSpeed\nFPS"
       text_2 = (
-        f"{self.env_idx}/{self.env.num_envs}\n"
+        f"{self.env_idx + 1}/{self.env.num_envs}\n"
         f"{self._step_count}\n"
         f"{'PAUSED' if self._is_paused else 'RUNNING'}\n"
         f"{self._time_multiplier * 100:.1f}%\n"
