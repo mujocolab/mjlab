@@ -71,6 +71,7 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
     self._configure_gym_env_spaces()
     if "startup" in self.event_manager.available_modes:
       self.event_manager.apply(mode="startup")
+      self.sim.create_graph()
 
   def step(self, action: torch.Tensor) -> types.VecEnvStepReturn:  # pyright: ignore[reportIncompatibleMethodOverride]
     self.action_manager.process_action(action.to(self.device))
