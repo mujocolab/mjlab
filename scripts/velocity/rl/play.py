@@ -26,7 +26,7 @@ FRAME_TIME = 1.0 / 60.0
 KEY_BACKSPACE = 259
 KEY_ENTER = 257
 
-_HERE = Path(__file__).parent
+_HERE = Path(__file__).resolve().parent
 
 
 def main(
@@ -52,7 +52,7 @@ def main(
   env_cfg.sim.render.height = video_height or env_cfg.sim.render.height
   env_cfg.sim.render.width = video_width or env_cfg.sim.render.width
 
-  log_root_path = _HERE / "logs" / "rsl_rl" / agent_cfg.experiment_name
+  log_root_path = _HERE.parents[2] / "logs" / "rsl_rl" / agent_cfg.experiment_name
   log_root_path = log_root_path.resolve()
   print(f"[INFO]: Loading experiment from: {log_root_path}")
 

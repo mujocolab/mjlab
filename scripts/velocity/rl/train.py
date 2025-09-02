@@ -24,7 +24,7 @@ torch.backends.cudnn.allow_tf32 = True
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
-_HERE = Path(__file__).parent
+_HERE = Path(__file__).resolve().parent
 
 
 def main(
@@ -51,7 +51,7 @@ def main(
   env_cfg.sim.device = device or env_cfg.sim.device
 
   # Specify directory for logging experiments.
-  log_root_path = _HERE / "logs" / "rsl_rl" / agent_cfg.experiment_name
+  log_root_path = _HERE.parents[2] / "logs" / "rsl_rl" / agent_cfg.experiment_name
   log_root_path.resolve()
   print(f"[INFO] Logging experiment in directory: {log_root_path}")
   log_dir = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -60,7 +60,7 @@ def main(
   log_dir = log_root_path / log_dir
 
   # Create env.
-  env = gym.make(task, cfg=env_cfg)
+  env = gym.make(task, cfg=env_cfg, render_mode="rgb_array" if video else None)
 
   # Save resume path before creating a new log_dir.
   resume_path = (
