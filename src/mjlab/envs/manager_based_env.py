@@ -86,6 +86,7 @@ class ManagerBasedEnv:
       and "startup" in self.event_manager.available_modes
     ):
       self.event_manager.apply(mode="startup")
+      self.sim.create_graph()
 
   # MDP operations.
 
