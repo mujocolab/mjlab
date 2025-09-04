@@ -147,10 +147,6 @@ def undesired_contacts(
   contact_sensor: ContactSensor = env.scene[sensor_cfg.name]
   net_contact_forces = contact_sensor.data.net_forces_w_history
   assert net_contact_forces is not None
-  is_contact = (
-    torch.max(torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[
-      0
-    ]
-    > threshold
-  )
+  net_contact_norm = torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1)
+  is_contact = torch.max(net_contact_norm, dim=1)[0] > threshold
   return torch.sum(is_contact, dim=1)

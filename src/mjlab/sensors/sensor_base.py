@@ -7,6 +7,7 @@ import mujoco
 import mujoco_warp as mjwarp
 import torch
 
+from mjlab.entities import entity
 from mjlab.entities.indexing import EntityIndexing
 
 if TYPE_CHECKING:
@@ -18,6 +19,19 @@ class SensorBase(abc.ABC):
     if cfg.history_length < 0:
       raise ValueError(f"History length must be >= 0, got {cfg.history_length}")
     self.cfg = cfg
+
+  @abc.abstractmethod
+  def edit_spec(self, entity: entity.Entity, spec: mujoco.MjSpec) -> None:
+    raise NotImplementedError
+
+  @property
+  @abc.abstractmethod
+  def data(self) -> Any:
+    raise NotImplementedError
+
+  @abc.abstractmethod
+  def _update_buffers_impl(self, env_ids: torch.Tensor | slice | None = None):
+    raise NotImplementedError
 
   def initialize(
     self,
@@ -69,12 +83,3 @@ class SensorBase(abc.ABC):
   @property
   def num_instances(self) -> int:
     return self._num_envs
-
-  @property
-  @abc.abstractmethod
-  def data(self) -> Any:
-    raise NotImplementedError
-
-  @abc.abstractmethod
-  def _update_buffers_impl(self, env_ids: torch.Tensor | slice | None = None):
-    raise NotImplementedError

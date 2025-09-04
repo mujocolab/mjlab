@@ -10,8 +10,7 @@ from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene.scene_config import SceneCfg
-
-# from mjlab.sensors import ContactSensorCfg
+from mjlab.sensors import ContactSensorCfg
 from mjlab.tasks.tracking import mdp
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
 from mjlab.utils.spec_editor import LightCfg, TextureCfg
@@ -48,11 +47,14 @@ terrain_cfg.lights = terrain_cfg.lights + (
 
 SCENE_CFG = SceneCfg(
   terrains={"floor": terrain_cfg},
-  # sensors={
-  #   "contact_forces": ContactSensorCfg(
-  #     entity_name="robot", history_length=3, force_threshold=10.0
-  #   ),
-  # },
+  sensors={
+    "contact_forces": ContactSensorCfg(
+      entity_name="robot",
+      history_length=0,
+      force_threshold=10.0,
+      filter_expr=[".*"],
+    ),
+  },
 )
 
 VIEWER_CONFIG = ViewerConfig(
@@ -262,20 +264,20 @@ class RewardCfg:
     weight=-10.0,
     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*"])},
   )
-  # undesired_contacts: RewTerm = term(
-  #   RewTerm,
-  #   func=mdp.undesired_contacts,
-  #   weight=-10.0,
-  #   params={
-  #     "sensor_cfg": SceneEntityCfg(
-  #       "contact_forces",
-  #       body_names=[
-  #         r"^(?!left_ankle_roll_link$)(?!right_ankle_roll_link$)(?!left_wrist_yaw_link$)(?!right_wrist_yaw_link$).+$"
-  #       ],
-  #     ),
-  #     "threshold": 1.0,
-  #   },
-  # )
+  undesired_contacts: RewTerm = term(
+    RewTerm,
+    func=mdp.undesired_contacts,
+    weight=-10.0,
+    params={
+      "sensor_cfg": SceneEntityCfg(
+        "contact_forces",
+        body_names=[
+          r"^(?!left_ankle_roll_link$)(?!right_ankle_roll_link$)(?!left_wrist_yaw_link$)(?!right_wrist_yaw_link$).+$"
+        ],
+      ),
+      "threshold": 1.0,
+    },
+  )
 
 
 @dataclass
@@ -333,10 +335,9 @@ class TrackingEnvCfg(ManagerBasedRlEnvCfg):
   viewer: ViewerConfig = field(default_factory=lambda: VIEWER_CONFIG)
 
   def __post_init__(self) -> None:
-    self.sim.mujoco.integrator = "implicitfast"
-    self.sim.mujoco.cone = "pyramidal"
     self.sim.mujoco.timestep = 0.005
     self.sim.num_envs = 1
+    # TODO(kevin): Tune these.
     self.sim.nconmax = 100000
     self.sim.njmax = 300
     self.sim.mujoco.iterations = 10

@@ -5,12 +5,13 @@ from typing import TYPE_CHECKING, Sequence
 import mujoco
 import mujoco_warp as mjwarp
 import torch
-import warp as wp
 
+from mjlab.entities import entity
 from mjlab.entities.indexing import EntityIndexing
 from mjlab.sensors.contact_sensor.contact_sensor_data import ContactSensorData
 from mjlab.sensors.sensor_base import SensorBase
 from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
+from mjlab.utils.spec import construct_contact_sensor_intprm
 
 if TYPE_CHECKING:
   from mjlab.sensors.contact_sensor.contact_sensor_config import ContactSensorCfg
@@ -24,6 +25,23 @@ class ContactSensor(SensorBase):
 
     self._data: ContactSensorData | None = None
 
+  def edit_spec(self, entity: entity.Entity, spec: mujoco.MjSpec) -> None:
+    all_body_names = [b.name for b in entity.spec.bodies if b.name != "world"]
+    filter_expr = [f"{self.cfg.entity_name}/{f}" for f in self.cfg.filter_expr]
+    self._body_names = resolve_matching_names(filter_expr, all_body_names)[1]
+    self._sensor_names: list[str] = []
+    for body_name in self._body_names:
+      sns = spec.add_sensor(
+        name=f"contact_sensor/{body_name}",
+        type=mujoco.mjtSensor.mjSENS_CONTACT,
+        objtype=mujoco.mjtObj.mjOBJ_BODY,
+        objname=body_name,
+      )
+      sns.intprm[0:3] = construct_contact_sensor_intprm(
+        data="found force", reduce="netforce"
+      )
+      self._sensor_names.append(sns.name)
+
   @property
   def data(self) -> ContactSensorData:
     self._update_outdated_buffers()
@@ -32,7 +50,7 @@ class ContactSensor(SensorBase):
 
   @property
   def num_bodies(self) -> int:
-    return self._num_bodies
+    return len(self.body_names)
 
   @property
   def body_names(self) -> list[str]:
@@ -82,40 +100,24 @@ class ContactSensor(SensorBase):
     self._wp_data = data
     self._wp_model = model
 
-    all_body_names = [mj_model.body(i).name for i in indexing.body_ids]
-    filter_expr = [f"{self.cfg.entity_name}/{f}" for f in self.cfg.filter_expr]
-    self._body_names = resolve_matching_names(filter_expr, all_body_names)[1]
-    self._body_ids = [mj_model.body(n).id for n in self._body_names]
-    self._num_bodies = len(self._body_names)
-
-    all_geom_names = [mj_model.geom(i).name for i in indexing.geom_ids]
-    geom_filter_expr = [
-      f"{self.cfg.entity_name}/{f}" for f in self.cfg.geom_filter_expr
-    ]
-    subset_geom_names = resolve_matching_names(geom_filter_expr, all_geom_names)[1]
-    subset_geom_ids = [mj_model.geom(n).id for n in subset_geom_names]
-
-    self._body2geom = {}
-    all_geom_ids = []
-    geom_to_body_map = []
-    for i, bid in enumerate(self._body_ids):
-      geom_ids = []
-      for geom_id in range(mj_model.ngeom):
-        if mj_model.geom(geom_id).bodyid == bid and geom_id in subset_geom_ids:
-          geom_ids.append(geom_id)
-      all_geom_ids.extend(geom_ids)
-      geom_to_body_map.extend([i] * len(geom_ids))
-      self._body2geom[bid] = torch.tensor(geom_ids, dtype=torch.int32, device=device)
-    self.all_geom_ids = torch.tensor(all_geom_ids, device=device)
-    self.geom_to_body_map = torch.tensor(geom_to_body_map, device=device)
+    self._sns_start_indices = []
+    self._sns_end_indices = []
+    for name in self._sensor_names:
+      sns = mj_model.sensor(name)
+      start_idx = int(sns.adr[0])
+      dim = int(sns.dim[0])
+      self._sns_start_indices.append(start_idx)
+      self._sns_end_indices.append(start_idx + dim)
+    self._sns_start_indices = torch.tensor(self._sns_start_indices, device=self._device)
+    self._sns_end_indices = torch.tensor(self._sns_end_indices, device=self._device)
 
     # Prepare data buffers.
-    net_forces_w = torch.zeros(self._num_envs, self._num_bodies, 3, device=self._device)
+    net_forces_w = torch.zeros(self._num_envs, self.num_bodies, 3, device=self._device)
     if self.cfg.history_length > 0:
       net_forces_w_history = torch.zeros(
         self._num_envs,
         self.cfg.history_length,
-        self._num_bodies,
+        self.num_bodies,
         3,
         device=self._device,
       )
@@ -125,17 +127,15 @@ class ContactSensor(SensorBase):
       self._data = ContactSensorData(
         net_forces_w=net_forces_w,
         net_forces_w_history=net_forces_w_history,
-        last_air_time=torch.zeros(
-          self._num_envs, self._num_bodies, device=self._device
-        ),
+        last_air_time=torch.zeros(self._num_envs, self.num_bodies, device=self._device),
         current_air_time=torch.zeros(
-          self._num_envs, self._num_bodies, device=self._device
+          self._num_envs, self.num_bodies, device=self._device
         ),
         last_contact_time=torch.zeros(
-          self._num_envs, self._num_bodies, device=self._device
+          self._num_envs, self.num_bodies, device=self._device
         ),
         current_contact_time=torch.zeros(
-          self._num_envs, self._num_bodies, device=self._device
+          self._num_envs, self.num_bodies, device=self._device
         ),
       )
     else:
@@ -168,8 +168,6 @@ class ContactSensor(SensorBase):
 
   def _update_buffers_impl(self, env_ids: torch.Tensor | slice | None = None):
     """Update contact force buffers for specified environments."""
-    # if len(env_ids) == self._num_envs:
-    #   env_ids = slice(None)
     if env_ids is None:
       env_ids = slice(None)
     assert self._data is not None
@@ -180,63 +178,14 @@ class ContactSensor(SensorBase):
       self._update_contact_timing(env_ids)
 
   def _compute_contact_forces(self, env_ids):
-    """Compute net contact forces for each body from geom contacts."""
+    """Compute net contact forces for each body."""
     assert self._data is not None
-    body_forces = torch.zeros(
-      (len(self._body_ids), 3), device=self._device, dtype=self._data.net_forces_w.dtype
-    )
-    contact = self._wp_data.contact
-    valid_contacts = self._find_valid_contacts(contact)
-    if valid_contacts:
-      contact_forces = self._get_contact_forces(valid_contacts)
-      normal_forces = self._extract_normal_forces(
-        contact_forces, contact.frame[valid_contacts["indices"]]
-      )
-      body_forces.scatter_add_(
-        0, valid_contacts["body_indices"].unsqueeze(1).expand(-1, 3), normal_forces
-      )
-    self._data.net_forces_w[env_ids] = body_forces
-
-  def _find_valid_contacts(self, contact):
-    """Find contacts involving tracked geometries."""
-    # Check which contacts involve our geoms.
-    masks = (contact.geom[:, 0][None, :] == self.all_geom_ids[:, None]) | (
-      contact.geom[:, 1][None, :] == self.all_geom_ids[:, None]
-    )
-
-    has_contacts = torch.any(masks, dim=1)
-
-    # Find closest contact for each geom (when multiple contacts exist).
-    distances = torch.where(masks, contact.dist[None, :], 1e4)
-    contact_indices = distances.argmin(dim=1)
-
-    # Filter to only geometries with contacts.
-    valid_contact_indices = contact_indices[has_contacts]
-    valid_body_indices = self.geom_to_body_map[has_contacts]
-
-    if len(valid_contact_indices) == 0:
-      return None
-
-    return {"indices": valid_contact_indices, "body_indices": valid_body_indices}
-
-  def _get_contact_forces(self, valid_contacts):
-    num_contacts = len(valid_contacts["indices"])
-    force = wp.zeros(num_contacts, dtype=wp.spatial_vector)  # type: ignore
-    contact_ids = wp.from_torch(valid_contacts["indices"].int(), dtype=wp.int32)
-    mjwarp.contact_force(
-      m=self._wp_model.struct,  # type: ignore
-      d=self._wp_data.struct,  # type: ignore
-      contact_ids=contact_ids,
-      to_world_frame=True,
-      force=force,
-    )
-    return wp.to_torch(force)[:, :3]  # (num_valid_contacts, 3)
-
-  def _extract_normal_forces(self, forces, frames):
-    """Extract normal component of contact forces."""
-    normals = frames[:, 0]  # Normal is first axis of contact frame.
-    normal_magnitudes = torch.sum(forces * normals, dim=1, keepdim=True)
-    return normal_magnitudes * normals  # (num_valid_contacts, 3)
+    sensordata = self._wp_data.sensordata[env_ids].clone()
+    for body_idx, (start_idx, end_idx) in enumerate(
+      zip(self._sns_start_indices, self._sns_end_indices, strict=True)
+    ):
+      sensor_values = sensordata[:, start_idx:end_idx]
+      self._data.net_forces_w[env_ids, body_idx] = sensor_values[:, 1:4]
 
   def _update_force_history(self, env_ids):
     """Update force history buffer if configured."""

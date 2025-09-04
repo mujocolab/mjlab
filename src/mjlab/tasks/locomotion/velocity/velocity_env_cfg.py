@@ -12,7 +12,8 @@ from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene.scene_config import SceneCfg
-from mjlab.sensors import ContactSensorCfg
+
+# from mjlab.sensors import ContactSensorCfg
 from mjlab.tasks.locomotion.velocity import mdp
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
 from mjlab.utils.spec_editor.spec_editor_config import LightCfg, TextureCfg
@@ -39,15 +40,15 @@ terrain_cfg.lights = terrain_cfg.lights + (
 
 SCENE_CFG = SceneCfg(
   terrains={"floor": terrain_cfg},
-  sensors={
-    "feet_contact_forces": ContactSensorCfg(
-      entity_name="robot",
-      history_length=3,
-      track_air_time=True,
-      filter_expr=[".*calf"],
-      geom_filter_expr=[".*_foot_collision*"],
-    ),
-  },
+  # sensors={
+  #   "feet_contact_forces": ContactSensorCfg(
+  #     entity_name="robot",
+  #     history_length=3,
+  #     track_air_time=True,
+  #     filter_expr=[".*calf"],
+  #     geom_filter_expr=[".*_foot_collision*"],
+  #   ),
+  # },
 )
 
 ##
@@ -217,16 +218,16 @@ class RewardCfg:
     RewardTerm, func=mdp.flat_orientation_l2, weight=-5.0
   )
   dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
-  feet_air_time: RewardTerm = term(
-    RewardTerm,
-    func=mdp.feet_air_time,
-    weight=0.1,
-    params={
-      "sensor_cfg": SceneEntityCfg("feet_contact_forces"),
-      "command_name": "base_velocity",
-      "threshold": 0.1,
-    },
-  )
+  # feet_air_time: RewardTerm = term(
+  #   RewardTerm,
+  #   func=mdp.feet_air_time,
+  #   weight=0.1,
+  #   params={
+  #     "sensor_cfg": SceneEntityCfg("feet_contact_forces"),
+  #     "command_name": "base_velocity",
+  #     "threshold": 0.1,
+  #   },
+  # )
 
 
 # Terminations.

@@ -30,8 +30,6 @@ _BASE_XML = r"""
 
 
 class Scene:
-  """Add docstring."""
-
   def __init__(self, scene_cfg: SceneCfg):
     self._cfg = scene_cfg
 
@@ -141,6 +139,7 @@ class Scene:
   def _attach_sensors(self) -> None:
     for sns_name, sns_cfg in self._cfg.sensors.items():
       sns = sns_cfg.class_type(sns_cfg)
+      sns.edit_spec(self._entities[sns_cfg.entity_name], self._spec)
       self._sensors[sns_name] = sns
 
   def _compute_indexing(self, model: mujoco.MjModel, device: str) -> None:
