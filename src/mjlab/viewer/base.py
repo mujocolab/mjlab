@@ -96,7 +96,6 @@ class BaseViewer(ABC):
     self.cfg = getattr(env.cfg, "viewer", None)
 
     # Loop state.
-    self._is_running = False
     self._is_paused = False
     self._step_count = 0
 
@@ -256,7 +255,6 @@ class BaseViewer(ABC):
 
   def run(self, num_steps: Optional[int] = None) -> None:
     self.setup()
-    self._is_running = True
     self._last_fps_log_time = time.time()
     self._timer.tick()
     self._fps_last_frame_time = time.time()
@@ -265,7 +263,6 @@ class BaseViewer(ABC):
         if not self.tick():
           time.sleep(0.001)
     finally:
-      self._is_running = False
       self.close()
 
   def log_performance(self) -> None:

@@ -121,8 +121,7 @@ class NativeMujocoViewer(BaseViewer):
   def sync_env_to_viewer(self) -> None:
     """Copy env state to viewer; update reward figures; render other envs."""
     v = self.viewer
-    if not v or not v.is_running():
-      return
+    assert v is not None
     assert self.mjm is not None and self.mjd is not None and self.vopt is not None
 
     with self._mj_lock:

@@ -31,7 +31,6 @@ class ViserViewer(BaseViewer):
   def setup(self) -> None:
     """Setup the viewer resources."""
 
-    self._is_running = True
     self._server = viser.ViserServer()
     self._handles: dict[str, tuple[viser.BatchedMeshHandle, bool]] = {}
     self._threadpool = ThreadPoolExecutor(max_workers=1)
