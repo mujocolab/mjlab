@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Sequence
 
 import mujoco
@@ -8,13 +9,22 @@ import torch
 
 from mjlab.entities import entity
 from mjlab.entities.indexing import EntityIndexing
-from mjlab.sensors.contact_sensor.contact_sensor_data import ContactSensorData
 from mjlab.sensors.sensor_base import SensorBase
 from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
 from mjlab.utils.spec import construct_contact_sensor_intprm
 
 if TYPE_CHECKING:
   from mjlab.sensors.contact_sensor.contact_sensor_config import ContactSensorCfg
+
+
+@dataclass
+class ContactSensorData:
+  net_forces_w: torch.Tensor
+  net_forces_w_history: torch.Tensor
+  last_air_time: torch.Tensor | None
+  current_air_time: torch.Tensor | None
+  last_contact_time: torch.Tensor | None
+  current_contact_time: torch.Tensor | None
 
 
 class ContactSensor(SensorBase):
