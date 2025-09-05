@@ -90,13 +90,13 @@ class NativeMujocoViewer(BaseViewer):
     self.vopt = mujoco.MjvOption()
     self._env_origins = compute_env_origins_grid(sim.num_envs, env_spacing=2.0)
 
-    self._term_names = [
-      name
-      for name, _ in self.env.unwrapped.reward_manager.get_active_iterable_terms(
-        self.env_idx
-      )
-    ]
-    self._init_reward_plots(self._term_names)
+    # self._term_names = [
+    #   name
+    #   for name, _ in self.env.unwrapped.reward_manager.get_active_iterable_terms(
+    #     self.env_idx
+    #   )
+    # ]
+    # self._init_reward_plots(self._term_names)
 
     assert self.mjm is not None
     assert self.mjd is not None
@@ -130,42 +130,42 @@ class NativeMujocoViewer(BaseViewer):
       self.mjd.qvel[:] = sim_data.qvel[self.env_idx].cpu().numpy()
       mujoco.mj_forward(self.mjm, self.mjd)
 
-      text_1 = "Env\nStep\nStatus\nSpeed\nFPS"
-      text_2 = (
-        f"{self.env_idx + 1}/{self.env.num_envs}\n"
-        f"{self._step_count}\n"
-        f"{'PAUSED' if self._is_paused else 'RUNNING'}\n"
-        f"{self._time_multiplier * 100:.1f}%\n"
-        f"{self._smoothed_fps:.1f}"
-      )
-      overlay = (
-        mujoco.mjtFontScale.mjFONTSCALE_150.value,
-        mujoco.mjtGridPos.mjGRID_TOPLEFT.value,
-        text_1,
-        text_2,
-      )
-      v.set_texts(overlay)
+      # text_1 = "Env\nStep\nStatus\nSpeed\nFPS"
+      # text_2 = (
+      #   f"{self.env_idx + 1}/{self.env.num_envs}\n"
+      #   f"{self._step_count}\n"
+      #   f"{'PAUSED' if self._is_paused else 'RUNNING'}\n"
+      #   f"{self._time_multiplier * 100:.1f}%\n"
+      #   f"{self._smoothed_fps:.1f}"
+      # )
+      # overlay = (
+      #   mujoco.mjtFontScale.mjFONTSCALE_150.value,
+      #   mujoco.mjtGridPos.mjGRID_TOPLEFT.value,
+      #   text_1,
+      #   text_2,
+      # )
+      # v.set_texts(overlay)
 
-      if self._show_plots and self._term_names:
-        terms = list(
-          self.env.unwrapped.reward_manager.get_active_iterable_terms(self.env_idx)
-        )
-        if not self._is_paused:
-          for name, arr in terms:
-            if name in self._histories:
-              self._append_point(name, float(arr[0]))
-              self._write_history_to_figure(name)
+      # if self._show_plots and self._term_names:
+      #   terms = list(
+      #     self.env.unwrapped.reward_manager.get_active_iterable_terms(self.env_idx)
+      #   )
+      #   if not self._is_paused:
+      #     for name, arr in terms:
+      #       if name in self._histories:
+      #         self._append_point(name, float(arr[0]))
+      #         self._write_history_to_figure(name)
 
-        viewports = compute_viewports(len(self._term_names), v.viewport, self._plot_cfg)
-        viewport_figs = [
-          (viewports[i], self._figures[self._term_names[i]])
-          for i in range(
-            min(len(viewports), len(self._term_names), self._plot_cfg.max_viewports)
-          )
-        ]
-        v.set_figures(viewport_figs)
-      else:
-        v.set_figures([])
+      #   viewports = compute_viewports(len(self._term_names), v.viewport, self._plot_cfg)
+      #   viewport_figs = [
+      #     (viewports[i], self._figures[self._term_names[i]])
+      #     for i in range(
+      #       min(len(viewports), len(self._term_names), self._plot_cfg.max_viewports)
+      #     )
+      #   ]
+      #   v.set_figures(viewport_figs)
+      # else:
+      #   v.set_figures([])
 
       v.user_scn.ngeom = 0
       if hasattr(self.env.unwrapped, "update_visualizers"):
