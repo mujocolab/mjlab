@@ -19,7 +19,7 @@ IsaacLab API with [MJWarp](https://github.com/google-deepmind/mujoco_warp) backe
 Clone `mjlab`:
 
 ```bash
-git clone git@github.com:kevinzakka/mjlab.git && cd mjlab
+git clone git@github.com:mujocolab/mjlab.git && cd mjlab
 ```
 
 ### Using uv
@@ -61,13 +61,21 @@ MUJOCO_GL=egl uv run scripts/tracking/data/csv_to_npz.py \
 ### Running tests
 
 ```bash
-uv run pytest
+make test
 ```
 
 ### Code formatting and linting
 
+You can install a pre-commit hook:
+
 ```bash
 uvx pre-commit install
+```
+
+or manually format with:
+
+```
+make format
 ```
 
 ## License
