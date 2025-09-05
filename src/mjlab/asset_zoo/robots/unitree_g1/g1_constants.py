@@ -165,7 +165,11 @@ G1_ACTUATOR_4010 = ActuatorCfg(
   damping=DAMPING_4010,
 )
 
-# Waist pitch/roll and ankles are 4 bar linkages with 2 5020 actuators.
+# Waist pitch/roll and ankles are 4-bar linkages with 2 5020 actuators.
+# Due to the parallel linkage, the effective armature at the ankle and waist joints
+# is configuration dependent. Since the exact geometry of the linkage is unknown, we
+# assume a nominal 1:1 gear ratio. Under this assumption, the joint armature in the
+# nominal configuration is approximated as the sum of the 2 actuators' armatures.
 G1_ACTUATOR_WAIST = ActuatorCfg(
   joint_names_expr=["waist_pitch_joint", "waist_roll_joint"],
   effort_limit=ACTUATOR_5020.effort_limit * 2,
