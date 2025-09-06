@@ -80,7 +80,7 @@ class ViserViewer(BaseViewer):
         self._status_html = self._server.gui.add_html("")
 
       # Simulation controls
-      with self._server.gui.add_folder("Simulation Controls"):
+      with self._server.gui.add_folder("Simulation"):
         # Play/Pause button
         self._pause_button = self._server.gui.add_button(
           "Play" if self._is_paused else "Pause",
