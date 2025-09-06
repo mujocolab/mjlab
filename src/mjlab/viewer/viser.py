@@ -343,6 +343,7 @@ class ViserViewer(BaseViewer):
             # Show all environments with offsets
             handle.batched_positions = geom_xpos[..., i, :] + self._env_offsets[:, :]
             handle.batched_wxyzs = geom_xquat[..., i, :]
+        self._server.flush()
 
     self._threadpool.submit(update_mujoco)
 
