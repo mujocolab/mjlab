@@ -299,10 +299,6 @@ class ViserViewer(BaseViewer):
     if self._counter % 10 == 0:
       self._update_status_display()
 
-    # Skip every other frame for position updates to reduce load. 30FPS is fine!
-    if self._counter % 2 == 0:
-      return
-
     # Update reward plots
     if self._reward_plotter and not self._is_paused:
       terms = list(

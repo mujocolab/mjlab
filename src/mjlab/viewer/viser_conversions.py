@@ -26,10 +26,10 @@ def mujoco_mesh_to_trimesh(
   mesh_id = mj_model.geom_dataid[geom_idx]
 
   # Get mesh data ranges from MuJoCo
-  vert_start = mj_model.mesh_vertadr[mesh_id]
-  vert_count = mj_model.mesh_vertnum[mesh_id]
-  face_start = mj_model.mesh_faceadr[mesh_id]
-  face_count = mj_model.mesh_facenum[mesh_id]
+  vert_start = int(mj_model.mesh_vertadr[mesh_id])
+  vert_count = int(mj_model.mesh_vertnum[mesh_id])
+  face_start = int(mj_model.mesh_faceadr[mesh_id])
+  face_count = int(mj_model.mesh_facenum[mesh_id])
 
   # Extract vertices and faces
   # mesh_vert shape: (total_verts_in_model, 3)
@@ -37,18 +37,20 @@ def mujoco_mesh_to_trimesh(
   vertices = mj_model.mesh_vert[
     vert_start : vert_start + vert_count
   ]  # Shape: (vert_count, 3)
-  assert vertices.shape == (vert_count, 3), (
-    f"Expected vertices shape ({vert_count}, 3), got {vertices.shape}"
-  )
+  assert vertices.shape == (
+    vert_count,
+    3,
+  ), f"Expected vertices shape ({vert_count}, 3), got {vertices.shape}"
 
   # mesh_face shape: (total_faces_in_model, 3)
   # Each face has 3 vertex indices
   faces = mj_model.mesh_face[
     face_start : face_start + face_count
   ]  # Shape: (face_count, 3)
-  assert faces.shape == (face_count, 3), (
-    f"Expected faces shape ({face_count}, 3), got {faces.shape}"
-  )
+  assert faces.shape == (
+    face_count,
+    3,
+  ), f"Expected faces shape ({face_count}, 3), got {faces.shape}"
 
   # Check if this mesh has texture coordinates
   texcoord_adr = mj_model.mesh_texcoordadr[mesh_id]
@@ -70,9 +72,10 @@ def mujoco_mesh_to_trimesh(
 
     # Reshape to (N, 2) for easier indexing
     texcoords = texcoords_flat.reshape(-1, 2)  # Shape: (texcoord_num, 2)
-    assert texcoords.shape == (texcoord_num, 2), (
-      f"Expected texcoords shape ({texcoord_num}, 2), got {texcoords.shape}"
-    )
+    assert texcoords.shape == (
+      texcoord_num,
+      2,
+    ), f"Expected texcoords shape ({texcoord_num}, 2), got {texcoords.shape}"
 
     # Get per-face texture coordinate indices
     # For each face vertex, this tells us which texcoord to use
@@ -97,23 +100,26 @@ def mujoco_mesh_to_trimesh(
     # Duplicate vertices for each face reference
     # faces.flatten() gives us vertex indices in order: [v0_f0, v1_f0, v2_f0, v0_f1, v1_f1, v2_f1, ...]
     new_vertices = vertices[faces.flatten()]  # Shape: (face_count * 3, 3)
-    assert new_vertices.shape == (face_count * 3, 3), (
-      f"Expected new_vertices shape ({face_count * 3}, 3), got {new_vertices.shape}"
-    )
+    assert new_vertices.shape == (
+      face_count * 3,
+      3,
+    ), f"Expected new_vertices shape ({face_count * 3}, 3), got {new_vertices.shape}"
 
     # Get UV coordinates for each duplicated vertex
     # face_texcoord_idx.flatten() gives us texcoord indices in the same order
     new_uvs = texcoords[face_texcoord_idx.flatten()]  # Shape: (face_count * 3, 2)
-    assert new_uvs.shape == (face_count * 3, 2), (
-      f"Expected new_uvs shape ({face_count * 3}, 2), got {new_uvs.shape}"
-    )
+    assert new_uvs.shape == (
+      face_count * 3,
+      2,
+    ), f"Expected new_uvs shape ({face_count * 3}, 2), got {new_uvs.shape}"
 
     # Create new faces - now just sequential since vertices are duplicated
     # [[0, 1, 2], [3, 4, 5], [6, 7, 8], ...]
     new_faces = np.arange(face_count * 3).reshape(-1, 3)  # Shape: (face_count, 3)
-    assert new_faces.shape == (face_count, 3), (
-      f"Expected new_faces shape ({face_count}, 3), got {new_faces.shape}"
-    )
+    assert new_faces.shape == (
+      face_count,
+      3,
+    ), f"Expected new_faces shape ({face_count}, 3), got {new_faces.shape}"
 
     # Create the mesh (process=False to preserve all vertices)
     mesh = trimesh.Trimesh(vertices=new_vertices, faces=new_faces, process=False)
