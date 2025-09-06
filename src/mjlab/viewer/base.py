@@ -171,12 +171,14 @@ class BaseViewer(ABC):
   def step_simulation(self) -> None:
     if self._is_paused:
       return
-    with self._sim_timer.measure_time():
-      obs = self.env.get_observations()
-      actions = self.policy(obs)
-      self.env.step(actions)
-      self._step_count += 1
-    self._accumulated_sim_time += self._sim_timer.measured_time
+    # Wrap in inference_mode to prevent gradient accumulation and memory leaks
+    with torch.inference_mode():
+      with self._sim_timer.measure_time():
+        obs = self.env.get_observations()
+        actions = self.policy(obs)
+        self.env.step(actions)
+        self._step_count += 1
+      self._accumulated_sim_time += self._sim_timer.measured_time
 
   def reset_environment(self) -> None:
     self.env.reset()
