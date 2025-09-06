@@ -1,10 +1,11 @@
 from dataclasses import asdict
 from pathlib import Path
-from typing import cast
+from typing import Literal, cast
 
 import gymnasium as gym
 import tyro
 import wandb
+from typing_extensions import assert_never
 
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
@@ -14,7 +15,7 @@ from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
 )
 from mjlab.utils.os import get_wandb_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
-from mjlab.viewer import NativeMujocoViewer
+from mjlab.viewer import NativeMujocoViewer, ViserViewer
 
 
 def main(
@@ -29,6 +30,7 @@ def main(
   video_width: int | None = None,
   camera: int | str | None = -1,
   render_all_envs: bool = False,
+  viewer: Literal["native", "viser"] = "native",
 ):
   configure_torch_backends()
 
@@ -83,8 +85,12 @@ def main(
 
   policy = runner.get_inference_policy(device=env.device)
 
-  viewer = NativeMujocoViewer(env, policy, render_all_envs=render_all_envs)
-  viewer.run()
+  if viewer == "native":
+    NativeMujocoViewer(env, policy, render_all_envs=render_all_envs).run()
+  elif viewer == "viser":
+    ViserViewer(env, policy, render_all_envs=render_all_envs).run()
+  else:
+    assert_never(viewer)
 
   env.close()
 
