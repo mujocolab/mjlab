@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import mujoco_warp as mjwarp
 import torch
 
-from mjlab.entities.indexing import EntityIndexing
+from mjlab.entity.indexing import EntityIndexing
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   quat_apply,
   quat_apply_inverse,
@@ -15,7 +15,9 @@ from mjlab.third_party.isaaclab.isaaclab.utils.math import (
 
 
 @dataclass
-class RobotData:
+class EntityData:
+  """Data container for an entity."""
+
   indexing: EntityIndexing
   data: mjwarp.Data
   device: str
@@ -348,7 +350,7 @@ class RobotData:
 
   @property
   def heading_w(self) -> torch.Tensor:
-    """Robot heading angle in world frame. Shape (num_envs,)."""
+    """Heading angle in world frame. Shape (num_envs,)."""
     forward_w = quat_apply(self.root_link_quat_w, self.FORWARD_VEC_B)
     return torch.atan2(forward_w[:, 1], forward_w[:, 0])
 

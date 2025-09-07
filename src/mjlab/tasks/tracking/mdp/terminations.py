@@ -10,7 +10,7 @@ from .commands import MotionCommand
 from .rewards import _get_body_indexes
 
 if TYPE_CHECKING:
-  from mjlab.entities import Robot
+  from mjlab.entity import Robot
   from mjlab.envs import ManagerBasedRlEnv
   from mjlab.managers.scene_entity_config import SceneEntityCfg
 

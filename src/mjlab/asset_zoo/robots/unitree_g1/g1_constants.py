@@ -5,7 +5,7 @@ from pathlib import Path
 import mujoco
 
 from mjlab import MJLAB_SRC_PATH
-from mjlab.entities.robots.robot_config import RobotCfg
+from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.utils.actuator import (
   ElectricActuator,
   reflected_inertia_from_two_stage_planetary,
@@ -189,7 +189,7 @@ G1_ACTUATOR_ANKLE = ActuatorCfg(
 # Keyframe config.
 ##
 
-HOME_KEYFRAME = RobotCfg.InitialStateCfg(
+HOME_KEYFRAME = EntityCfg.InitialStateCfg(
   pos=(0, 0, 0.783675),
   joint_pos={
     ".*_hip_pitch_joint": -0.1,
@@ -203,7 +203,7 @@ HOME_KEYFRAME = RobotCfg.InitialStateCfg(
   joint_vel={".*": 0.0},
 )
 
-KNEES_BENT_KEYFRAME = RobotCfg.InitialStateCfg(
+KNEES_BENT_KEYFRAME = EntityCfg.InitialStateCfg(
   pos=(0, 0, 0.76),
   joint_pos={
     ".*_hip_pitch_joint": -0.312,
@@ -254,8 +254,7 @@ FEET_ONLY_COLLISION = CollisionCfg(
 # Final config.
 ##
 
-G1_ROBOT_CFG = RobotCfg(
-  init_state=KNEES_BENT_KEYFRAME,
+G1_ARTICULATION = EntityArticulationInfoCfg(
   actuators=(
     G1_ACTUATOR_5020,
     G1_ACTUATOR_7520_14,
@@ -265,12 +264,17 @@ G1_ROBOT_CFG = RobotCfg(
     G1_ACTUATOR_ANKLE,
   ),
   soft_joint_pos_limit_factor=0.9,
+)
+
+G1_ROBOT_CFG = EntityCfg(
+  init_state=KNEES_BENT_KEYFRAME,
   collisions=(FULL_COLLISION,),
   spec_fn=get_spec,
+  articulation=G1_ARTICULATION,
 )
 
 G1_ACTION_SCALE: dict[str, float] = {}
-for a in G1_ROBOT_CFG.actuators:
+for a in G1_ARTICULATION.actuators:
   e = a.effort_limit
   s = a.stiffness
   names = a.joint_names_expr
@@ -285,7 +289,8 @@ for a in G1_ROBOT_CFG.actuators:
 if __name__ == "__main__":
   import mujoco.viewer as viewer
 
-  from mjlab.entities.robots.robot import Robot
+  from mjlab.entity.entity import Entity
 
-  robot = Robot(G1_ROBOT_CFG)
+  robot = Entity(G1_ROBOT_CFG)
+
   viewer.launch(robot.spec.compile())

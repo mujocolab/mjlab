@@ -10,7 +10,7 @@ from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensors.contact_sensor.contact_sensor import ContactSensor
 
 if TYPE_CHECKING:
-  from mjlab.entities.robots.robot import Robot
+  from mjlab.entity.robots.robot import Robot
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
 
 _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")

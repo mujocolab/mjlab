@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from mjlab.entities.robots.robot import Robot
+from mjlab.entity.robots.robot import Robot
 from mjlab.managers.action_manager import ActionTerm
 from mjlab.third_party.isaaclab.isaaclab.utils.string import (
   resolve_matching_names_values,

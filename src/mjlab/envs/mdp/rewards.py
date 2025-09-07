@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from mjlab.entities.robots.robot import Robot
+from mjlab.entity.robots.robot import Robot
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensors import ContactSensor
 

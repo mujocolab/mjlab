@@ -1,9 +1,9 @@
 import numpy as np
 
 from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ROBOT_CFG
-from mjlab.entities import Robot
+from mjlab.entity import Entity
 
-robot = Robot(G1_ROBOT_CFG)
+robot = Entity(G1_ROBOT_CFG)
 
 joint_names = [
   "left_hip_pitch_joint",

@@ -7,9 +7,8 @@ import tyro
 
 from mjlab.asset_zoo.robots.unitree_g1 import g1_constants
 from mjlab.asset_zoo.terrains.flat_terrain import FLAT_TERRAIN_CFG
-from mjlab.entities import Robot
-from mjlab.scene import Scene
-from mjlab.scene.scene_config import SceneCfg
+from mjlab.entity import Entity
+from mjlab.scene import Scene, SceneCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   axis_angle_from_quat,
@@ -205,7 +204,7 @@ def run_sim(
     line_range=line_range,
   )
 
-  robot: Robot = scene["robot"]
+  robot: Entity = scene["robot"]
   robot_joint_indexes = robot.find_joints(joint_names, preserve_order=True)[0]
 
   # ------- data logger -------------------------------------------------------

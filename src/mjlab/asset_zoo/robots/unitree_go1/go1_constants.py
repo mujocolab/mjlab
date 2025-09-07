@@ -5,7 +5,7 @@ from pathlib import Path
 import mujoco
 
 from mjlab import MJLAB_SRC_PATH
-from mjlab.entities.robots.robot_config import RobotCfg
+from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.utils.actuator import ElectricActuator, reflected_inertia
 from mjlab.utils.os import update_assets
 from mjlab.utils.spec_editor import ActuatorCfg, CollisionCfg
@@ -76,7 +76,7 @@ GO1_KNEE_ACTUATOR_CFG = ActuatorCfg(
 ##
 
 
-INIT_STATE = RobotCfg.InitialStateCfg(
+INIT_STATE = EntityCfg.InitialStateCfg(
   pos=(0.0, 0.0, 0.278),
   joint_pos={
     ".*thigh_joint": 0.9,
@@ -120,13 +120,17 @@ FULL_COLLISION = CollisionCfg(
 # Final config.
 ##
 
-GO1_ROBOT_CFG = RobotCfg(
-  init_state=INIT_STATE,
+GO1_ARTICULATION = EntityArticulationInfoCfg(
   actuators=(
     GO1_HIP_ACTUATOR_CFG,
     GO1_KNEE_ACTUATOR_CFG,
   ),
   soft_joint_pos_limit_factor=0.9,
+)
+
+GO1_ROBOT_CFG = EntityCfg(
+  init_state=INIT_STATE,
   collisions=(FULL_COLLISION,),
   spec_fn=get_spec,
+  articulation=GO1_ARTICULATION,
 )

@@ -9,7 +9,7 @@ import mujoco
 import numpy as np
 import torch
 
-from mjlab.entities.robots.robot import Robot
+from mjlab.entity.robots.robot import Robot
 from mjlab.managers.command_manager import CommandTerm
 from mjlab.managers.manager_term_config import CommandTermCfg
 from mjlab.third_party.isaaclab.isaaclab.utils.math import matrix_from_quat, wrap_to_pi

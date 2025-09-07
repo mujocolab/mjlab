@@ -1,14 +1,12 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import torch
 
 
 @dataclass
 class EntityIndexing:
-  """Stores all indexing information for a single entity."""
-
   # IDs.
-  root_body_id: int | None
+  root_body_id: int
   body_ids: torch.Tensor
   body_root_ids: torch.Tensor
   geom_ids: torch.Tensor
@@ -17,7 +15,7 @@ class EntityIndexing:
   site_body_ids: torch.Tensor
   ctrl_ids: torch.Tensor
 
-  root_body_iquat: torch.Tensor | None
+  root_body_iquat: torch.Tensor
   body_iquats: torch.Tensor
 
   # Addresses.
@@ -33,8 +31,3 @@ class EntityIndexing:
   site_local2global: dict[int, int]
   actuator_local2global: dict[int, int]
   joint_local2global: dict[int, int]
-
-
-@dataclass
-class SceneIndexing:
-  entities: dict[str, EntityIndexing] = field(default_factory=dict)

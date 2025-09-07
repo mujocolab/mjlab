@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple, Union
 
 import torch
 
-from mjlab.entities.robots.robot import Robot
+from mjlab.entity.robots.robot import Robot
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   quat_apply_inverse,

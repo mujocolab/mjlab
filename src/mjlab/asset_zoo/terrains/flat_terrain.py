@@ -1,4 +1,4 @@
-from mjlab.entities.terrains import terrain_config
+from mjlab.entity.terrains import terrain_config
 from mjlab.utils.spec_editor import spec_editor_config
 
 texture = spec_editor_config.TextureCfg(
@@ -37,7 +37,7 @@ FLAT_TERRAIN_CFG = terrain_config.TerrainCfg(
 if __name__ == "__main__":
   import mujoco.viewer
 
-  from mjlab.entities.terrains.terrain import Terrain
+  from mjlab.entity.terrains.terrain import Terrain
 
   terr = Terrain(FLAT_TERRAIN_CFG)
   mujoco.viewer.launch(terr.compile())

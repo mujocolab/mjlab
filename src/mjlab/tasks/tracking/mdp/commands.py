@@ -21,7 +21,7 @@ from mjlab.third_party.isaaclab.isaaclab.utils.math import (
 )
 
 if TYPE_CHECKING:
-  from mjlab.entities import Robot
+  from mjlab.entity import Robot
   from mjlab.envs import ManagerBasedRlEnv
 
 

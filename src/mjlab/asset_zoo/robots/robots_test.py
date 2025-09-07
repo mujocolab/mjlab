@@ -2,7 +2,7 @@ import mujoco
 from absl.testing import absltest, parameterized
 
 from mjlab.asset_zoo import robots
-from mjlab.entities import Robot, RobotCfg
+from mjlab.entity import Entity, EntityCfg
 
 
 @parameterized.parameters(
@@ -11,10 +11,10 @@ from mjlab.entities import Robot, RobotCfg
   ("GO1", robots.GO1_ROBOT_CFG),
 )
 class RobotTest(parameterized.TestCase):
-  def test_compiles(self, robot_name: str, robot_cfg: RobotCfg) -> None:
+  def test_compiles(self, robot_name: str, robot_cfg: EntityCfg) -> None:
     """Tests that all robots in the asset zoo compile without errors."""
     with self.subTest(robot=robot_name):
-      self.assertIsInstance(Robot(robot_cfg).compile(), mujoco.MjModel)
+      self.assertIsInstance(Entity(robot_cfg).compile(), mujoco.MjModel)
 
 
 if __name__ == "__main__":

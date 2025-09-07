@@ -21,7 +21,7 @@ from mjlab.viewer.base import (
 )
 
 if TYPE_CHECKING:
-  from mjlab.entities import Robot
+  from mjlab.entity import Entity
 
 
 @dataclass(frozen=True)
@@ -292,7 +292,7 @@ class NativeMujocoViewer(BaseViewer):
       else:  # ASSET_BODY
         if not self.cfg.asset_name or not self.cfg.body_name:
           raise ValueError("asset_name/body_name required for ASSET_BODY origin type")
-        robot: Robot = self.env.unwrapped.scene[self.cfg.asset_name]
+        robot: Entity = self.env.unwrapped.scene[self.cfg.asset_name]
         if self.cfg.body_name not in robot.body_names:
           raise ValueError(
             f"Body '{self.cfg.body_name}' not found in asset '{self.cfg.asset_name}'"
