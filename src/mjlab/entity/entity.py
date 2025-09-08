@@ -42,20 +42,16 @@ class Entity:
     self._geom_names = [g.name for g in self.spec.geoms]
     self._site_names = [s.name for s in self._spec.sites]
     self._sensor_names = [s.name for s in self._spec.sensors]
+    self._actuator_names = [a.name for a in self._spec.actuators]
 
+    self.actuator_to_joint = {}
+    self.joint_actuators = []
     if cfg.articulation:
-      self._actuator_names = [a.name for a in self._spec.actuators]
-      self.actuator_to_joint = {}
       for actuator in self._spec.actuators:
         if actuator.trntype != mujoco.mjtTrn.mjTRN_JOINT:
           continue
         self.actuator_to_joint[actuator.name] = actuator.target
       self.joint_actuators = list(self.actuator_to_joint.values())
-    else:
-      self._actuator_names = []
-      self.actuator_to_joint = {}
-      self.joint_actuators = []
-      self._actuator_joint_names = []
 
     self._configure_spec()
 
@@ -74,7 +70,7 @@ class Entity:
   @property
   def is_actuated(self) -> bool:
     """Entity has actuated joints."""
-    return self.cfg.articulation is not None and len(self._actuator_names) > 0
+    return self.cfg.articulation is not None and len(self.joint_actuators) > 0
 
   @property
   def spec(self) -> mujoco.MjSpec:
@@ -396,16 +392,32 @@ class Entity:
     if isinstance(env_ids, torch.Tensor):
       env_ids = env_ids[:, None]
     v_slice = self.data.indexing.free_joint_v_adr
-    self._data.data.qacc_warmstart[env_ids, v_slice] = 0.0
+    # Reset external wrenches on bodies and DoFs.
     self._data.data.qfrc_applied[env_ids, v_slice] = 0.0
     self._data.data.xfrc_applied[env_ids, self._body_ids_global] = 0.0
     # TODO(kevin): Reset data.act if it exists.
+    # TODO(kevin): Is this needed?
+    self._data.data.qacc_warmstart[env_ids, v_slice] = 0.0
 
   def write_root_state_to_sim(
     self,
     root_state: torch.Tensor,
     env_ids: torch.Tensor | slice | None = None,
   ):
+    """Set the root state into the simulation.
+
+    The root state consists of position (3), orientation as a (w, x, y, z)
+    quaternion (4), linear velocity (3), and angular velocity (3), for a total
+    of 13 values. All of the quantities are in the world frame.
+
+    Args:
+      root_state: Tensor of shape (N, 13) where N is the number of environments.
+      env_ids: Optional tensor or slice specifying which environments to set. If
+        None, all environments are set.
+    """
+    if self.is_fixed_base:
+      raise ValueError("Cannot write root state for fixed-base entity.")
+    assert root_state.shape[-1] == (3 + 4 + 3 + 3)
     self.write_root_link_pose_to_sim(root_state[:, :7], env_ids=env_ids)
     self.write_root_link_velocity_to_sim(root_state[:, 7:], env_ids=env_ids)
 
@@ -414,7 +426,17 @@ class Entity:
     root_pose: torch.Tensor,
     env_ids: torch.Tensor | slice | None = None,
   ):
-    assert root_pose.shape[-1] == 7
+    """Set the root pose into the simulation. Like `write_root_state_to_sim()`
+    but only sets position and orientation.
+
+    Args:
+      root_pose: Tensor of shape (N, 7) where N is the number of environments.
+      env_ids: Optional tensor or slice specifying which environments to set. If
+        None, all environments are set.
+    """
+    if self.is_fixed_base:
+      raise ValueError("Cannot write root pose for fixed-base entity.")
+    assert root_pose.shape[-1] == (3 + 4)
     if env_ids is None:
       env_ids = slice(None)
     if isinstance(env_ids, torch.Tensor):
@@ -427,7 +449,17 @@ class Entity:
     root_velocity: torch.Tensor,
     env_ids: torch.Tensor | slice | None = None,
   ):
-    assert root_velocity.shape[-1] == 6
+    """Set the root velocity into the simulation. Like `write_root_state_to_sim()`
+    but only sets linear and angular velocity.
+
+    Args:
+      root_velocity: Tensor of shape (N, 6) where N is the number of environments.
+      env_ids: Optional tensor or slice specifying which environments to set. If
+        None, all environments are set.
+    """
+    if self.is_fixed_base:
+      raise ValueError("Cannot write root velocity for fixed-base entity.")
+    assert root_velocity.shape[-1] == (3 + 3)
     if env_ids is None:
       env_ids = slice(None)
     if isinstance(env_ids, torch.Tensor):
@@ -442,6 +474,21 @@ class Entity:
     joint_ids: torch.Tensor | slice | None = None,
     env_ids: torch.Tensor | slice | None = None,
   ):
+    """Set the joint state into the simulation.
+
+    The joint state consists of joint positions and velocities. It does not include
+    the root state.
+
+    Args:
+      position: Tensor of shape (N, num_joints) where N is the number of environments.
+      velocity: Tensor of shape (N, num_joints) where N is the number of environments.
+      joint_ids: Optional tensor or slice specifying which joints to set. If None,
+        all joints are set.
+      env_ids: Optional tensor or slice specifying which environments to set. If
+        None, all environments are set.
+    """
+    if not self.is_articulated:
+      raise ValueError("Cannot write joint state for non-articulated entity.")
     self.write_joint_position_to_sim(position, joint_ids=joint_ids, env_ids=env_ids)
     self.write_joint_velocity_to_sim(velocity, joint_ids=joint_ids, env_ids=env_ids)
 
@@ -451,6 +498,18 @@ class Entity:
     joint_ids: torch.Tensor | slice | None = None,
     env_ids: torch.Tensor | slice | None = None,
   ):
+    """Set the joint positions into the simulation. Like `write_joint_state_to_sim()`
+    but only sets joint positions.
+
+    Args:
+      position: Tensor of shape (N, num_joints) where N is the number of environments.
+      joint_ids: Optional tensor or slice specifying which joints to set. If None,
+        all joints are set.
+      env_ids: Optional tensor or slice specifying which environments to set. If
+        None, all environments are set.
+    """
+    if not self.is_articulated:
+      raise ValueError("Cannot write joint position for non-articulated entity.")
     if env_ids is None:
       env_ids = slice(None)
     if isinstance(env_ids, torch.Tensor):
@@ -466,6 +525,18 @@ class Entity:
     joint_ids: torch.Tensor | slice | None = None,
     env_ids: torch.Tensor | slice | None = None,
   ):
+    """Set the joint velocities into the simulation. Like `write_joint_state_to_sim()`
+    but only sets joint velocities.
+
+    Args:
+      velocity: Tensor of shape (N, num_joints) where N is the number of environments.
+      joint_ids: Optional tensor or slice specifying which joints to set. If None,
+        all joints are set.
+      env_ids: Optional tensor or slice specifying which environments to set. If
+        None, all environments are set.
+    """
+    if not self.is_articulated:
+      raise ValueError("Cannot write joint velocity for non-articulated entity.")
     if env_ids is None:
       env_ids = slice(None)
     if isinstance(env_ids, torch.Tensor):
@@ -481,6 +552,8 @@ class Entity:
     joint_ids: torch.Tensor | slice | None = None,
     env_ids: torch.Tensor | slice | None = None,
   ) -> None:
+    if not self.is_articulated:
+      raise ValueError("Cannot write joint stiffness for non-articulated entity.")
     if env_ids is None:
       env_ids = slice(None)
     if isinstance(env_ids, torch.Tensor):
@@ -495,6 +568,8 @@ class Entity:
     joint_ids: torch.Tensor | slice | None = None,
     env_ids: torch.Tensor | slice | None = None,
   ) -> None:
+    if not self.is_articulated:
+      raise ValueError("Cannot write joint damping for non-articulated entity.")
     if env_ids is None:
       env_ids = slice(None)
     if isinstance(env_ids, torch.Tensor):
@@ -521,9 +596,7 @@ class Entity:
     for col in self.cfg.collisions:
       CollisionEditor(col).edit_spec(self._spec)
     if self.cfg.articulation:
-      editor = ActuatorEditor(self.cfg.articulation.actuators)
-      editor.edit_spec(self._spec)
-      self._actuator_joint_names = editor.jnt_names
+      ActuatorEditor(self.cfg.articulation.actuators).edit_spec(self._spec)
 
     if self._root_joint:
       KeyframeEditor(self.cfg.init_state).edit_spec(self._spec)
