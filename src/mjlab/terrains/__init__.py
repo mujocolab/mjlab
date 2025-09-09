@@ -1,20 +1,20 @@
-from mjlab.terrains.mesh_terrains_cfg import (
-  MeshInvertedPyramidStairsTerrainCfg,
-  MeshPyramidStairsTerrainCfg,
-  MeshRandomGridTerrainCfg,
+from mjlab.terrains.box_terrains import (
+  BoxInvertedPyramidStairsTerrainCfg,
+  BoxPyramidStairsTerrainCfg,
+  BoxRandomGridTerrainCfg,
+  BoxRepeatedTerrainCfg,
 )
-from mjlab.terrains.terrain_generator import TerrainGenerator
-from mjlab.terrains.terrain_generator_cfg import TerrainGeneratorCfg
-from mjlab.terrains.terrain_importer import TerrainImporter
-from mjlab.terrains.terrain_importer_cfg import TerrainImporterCfg
+from mjlab.terrains.terrain_generator import TerrainGenerator, TerrainGeneratorCfg
+from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
 
 __all__ = (
   "TerrainGenerator",
   "TerrainGeneratorCfg",
   "TerrainImporter",
   "TerrainImporterCfg",
-  # Mesh Terrains.
-  "MeshPyramidStairsTerrainCfg",
-  "MeshInvertedPyramidStairsTerrainCfg",
-  "MeshRandomGridTerrainCfg",
+  # Box terrains.
+  "BoxPyramidStairsTerrainCfg",
+  "BoxInvertedPyramidStairsTerrainCfg",
+  "BoxRepeatedTerrainCfg",
+  "BoxRandomGridTerrainCfg",
 )

@@ -1,24 +1,38 @@
 from __future__ import annotations
 
-from dataclasses import replace
-from typing import TYPE_CHECKING
+import time
+from dataclasses import dataclass, replace
+from typing import TYPE_CHECKING, Literal
 
+import mujoco
 import numpy as np
 import trimesh
 
-from mjlab.third_party.isaaclab.isaaclab.terrains.trimesh.utils import make_border
+from mjlab.terrains.utils import make_border
 
 if TYPE_CHECKING:
-  from mjlab.terrains.sub_terrain_cfg import SubTerrainBaseCfg
-  from mjlab.terrains.terrain_generator_cfg import TerrainGeneratorCfg
+  from mjlab.terrains.sub_terrain_cfg import SubTerrainCfg
+
+
+@dataclass(kw_only=True)
+class TerrainGeneratorCfg:
+  seed: int | None = None
+  curriculum: bool = False
+  size: tuple[float, float]
+  border_width: float = 0.0
+  border_height: float = 1.0
+  num_rows: int = 1
+  num_cols: int = 1
+  color_scheme: Literal["height", "random", "none"] = "none"
+  horizontal_scale: float = 0.1
+  vertical_scale: float = 0.005
+  slope_threshold: float | None = 0.75
+  sub_terrains: dict[str, SubTerrainCfg]
+  difficulty_range: tuple[float, float] = (0.0, 1.0)
 
 
 class TerrainGenerator:
   """Terrain generator to handle different terrain generation functions."""
-
-  terrain_mesh: trimesh.Trimesh
-  terrain_meshes: list[trimesh.Trimesh]
-  terrain_origins: np.ndarray
 
   def __init__(self, cfg: TerrainGeneratorCfg, device: str = "cpu") -> None:
     if len(cfg.sub_terrains) == 0:
@@ -27,8 +41,8 @@ class TerrainGenerator:
     self.cfg = cfg
     self.device = device
 
-    if self.cfg.use_cache and self.cfg.seed is None:
-      raise ValueError("Seed must be specified if use_cache is True.")
+    for sub_cfg in self.cfg.sub_terrains.values():
+      sub_cfg.size = self.cfg.size
 
     if self.cfg.seed is not None:
       seed = self.cfg.seed
@@ -36,28 +50,23 @@ class TerrainGenerator:
       seed = np.random.randint(0, 10000)
     self.np_rng = np.random.default_rng(seed)
 
+    self.flat_patches = {}
     self.terrain_meshes = list()
     self.terrain_origins = np.zeros((self.cfg.num_rows, self.cfg.num_cols, 3))
 
+  def compile(self, spec: mujoco.MjSpec) -> None:
     if self.cfg.curriculum:
       raise NotImplementedError("Curriculum mode is not implemented yet.")
     else:
-      self._generate_random_terrains()
-    self._add_terrain_border()
-    self.terrain_mesh = trimesh.util.concatenate(self.terrain_meshes)
-
-    # Offset the entire terrain and origins so that it is centered.
-    transform = np.eye(4)
-    transform[:2, -1] = (
-      -self.cfg.size[0] * self.cfg.num_rows * 0.5,
-      -self.cfg.size[1] * self.cfg.num_cols * 0.5,
-    )
-    self.terrain_mesh.apply_transform(transform)
-    self.terrain_origins += transform[:3, -1]
+      tic = time.perf_counter()
+      self._generate_random_terrains(spec)
+      toc = time.perf_counter()
+      print(f"Terrain generation took {toc - tic:.4f} seconds.")
+    # self._add_terrain_border(spec)
 
   # Private methods.
 
-  def _generate_random_terrains(self) -> None:
+  def _generate_random_terrains(self, spec: mujoco.MjSpec) -> None:
     # Normalize the proportions of the sub-terrains.
     proportions = np.array(
       [sub_cfg.proportion for sub_cfg in self.cfg.sub_terrains.values()]
@@ -68,18 +77,29 @@ class TerrainGenerator:
 
     # Randomly sample sub-terrains.
     for index in range(self.cfg.num_rows * self.cfg.num_cols):
+      # rgb = self.np_rng.uniform(0.0, 1.0, size=(3,))
+      # rgba = np.concatenate([rgb, [1.0]])
+
       sub_row, sub_col = np.unravel_index(index, (self.cfg.num_rows, self.cfg.num_cols))
       sub_row = int(sub_row)
       sub_col = int(sub_col)
       sub_index = self.np_rng.choice(len(proportions), p=proportions)
       difficulty = self.np_rng.uniform(*self.cfg.difficulty_range)
-      meshes, origin = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_index])
-      for mesh in meshes:
-        self._add_sub_terrain(
-          mesh, origin, sub_row, sub_col, sub_terrains_cfgs[sub_index]
-        )
+      # Position of the sub-terrain center.
+      pos = (
+        (sub_row + 0.5) * self.cfg.size[0],
+        (sub_col + 0.5) * self.cfg.size[1],
+        0.0,
+      )
+      # Offset entire terrain so that it is centered.
+      pos2 = (
+        -self.cfg.size[0] * self.cfg.num_rows * 0.5,
+        -self.cfg.size[1] * self.cfg.num_cols * 0.5,
+        0.0,
+      )
+      self._get_terrain_mesh(spec, pos, pos2, difficulty, sub_terrains_cfgs[sub_index])
 
-  def _add_terrain_border(self) -> None:
+  def _add_terrain_border(self, spec: mujoco.MjSpec) -> None:
     border_size = (
       self.cfg.num_rows * self.cfg.size[0] + 2 * self.cfg.border_width,
       self.cfg.num_cols * self.cfg.size[1] + 2 * self.cfg.border_width,
@@ -93,16 +113,37 @@ class TerrainGenerator:
       self.cfg.num_cols * self.cfg.size[1] / 2,
       -self.cfg.border_height / 2,
     )
-    border_meshes = make_border(
+    boxes = make_border(
+      spec,
       border_size,
       inner_size,
       height=abs(self.cfg.border_height),
       position=border_center,
     )
-    border = trimesh.util.concatenate(border_meshes)
-    selector = ~(np.asarray(border.triangles)[:, :, 2] < -0.1).any(1)
-    border.update_faces(selector)
-    self.terrain_meshes.append(border)
+    for box in boxes:
+      pos = (
+        -self.cfg.size[0] * self.cfg.num_rows * 0.5,
+        -self.cfg.size[1] * self.cfg.num_cols * 0.5,
+        0.0,
+      )
+      box.pos += np.array(pos)
+
+  def _get_terrain_mesh(
+    self,
+    spec: mujoco.MjSpec,
+    pos: tuple[float, float, float],
+    pos2: tuple[float, float, float],
+    difficulty: float,
+    cfg: SubTerrainCfg,
+  ) -> np.ndarray:
+    cfg = replace(cfg)
+    origin, boxes, colors = cfg.function(difficulty, spec)
+    offset = np.array([-cfg.size[0] * 0.5, -cfg.size[1] * 0.5, 0.0])
+    for box, color in zip(boxes, colors, strict=True):
+      box.pos += offset + np.array(pos) + np.array(pos2)
+      box.rgba = color
+    origin += offset + np.array(pos) + np.array(pos2)
+    return origin
 
   def _add_sub_terrain(
     self,
@@ -110,7 +151,7 @@ class TerrainGenerator:
     origin: np.ndarray,
     row: int,
     col: int,
-    sub_terrain_cfg: SubTerrainBaseCfg,
+    sub_terrain_cfg: SubTerrainCfg,
   ) -> None:
     """Add input sub-terrain to the list of sub-terrains."""
     transform = np.eye(4)
@@ -118,16 +159,3 @@ class TerrainGenerator:
     mesh.apply_transform(transform)
     self.terrain_meshes.append(mesh)
     self.terrain_origins[row, col] = origin + transform[:3, -1]
-
-  def _get_terrain_mesh(
-    self, difficulty: float, cfg: SubTerrainBaseCfg
-  ) -> tuple[list[trimesh.Trimesh], np.ndarray]:
-    cfg = replace(cfg)
-    meshes, origin = cfg.function(difficulty, cfg)
-    # mesh = trimesh.util.concatenate(meshes)
-    transform = np.eye(4)
-    transform[0:2, -1] = -cfg.size[0] * 0.5, -cfg.size[1] * 0.5
-    for mesh in meshes:
-      mesh.apply_transform(transform)
-    origin += transform[0:3, -1]
-    return meshes, origin

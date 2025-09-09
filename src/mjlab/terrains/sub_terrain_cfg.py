@@ -1,18 +1,16 @@
 from __future__ import annotations
 
+import abc
 from dataclasses import dataclass
-from typing import Callable
 
-import numpy as np
-import trimesh
+import mujoco
 
 
 @dataclass
-class SubTerrainBaseCfg:
-  """Base class for terrain configurations."""
-
-  function: Callable[
-    [float, SubTerrainBaseCfg], tuple[list[trimesh.Trimesh], np.ndarray]
-  ]
+class SubTerrainCfg(abc.ABC):
   proportion: float = 1.0
   size: tuple[float, float] = (10.0, 10.0)
+
+  @abc.abstractmethod
+  def function(self, difficulty: float, spec: mujoco.MjSpec):
+    raise NotImplementedError

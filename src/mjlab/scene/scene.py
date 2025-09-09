@@ -7,7 +7,7 @@ import mujoco_warp as mjwarp
 import torch
 
 from mjlab.entity import Entity, EntityCfg
-from mjlab.terrains.terrain_importer_cfg import TerrainImporterCfg
+from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
 from mjlab.utils.spec_editor import spec_editor as common_editors
 from mjlab.utils.spec_editor.spec_editor_config import OptionCfg
 
@@ -17,21 +17,23 @@ _SCENE_XML = Path(__file__).parent / "scene.xml"
 @dataclass(frozen=True, kw_only=True)
 class SceneCfg:
   num_envs: int = 1
-  """Number of environment instances in the scene."""
   env_spacing: float = 2.0
-  """Spacing between environments. Only used when the number of environments is > 1."""
   terrain: TerrainImporterCfg | None = None
-  """Configuration for the terrain."""
   entities: dict[str, EntityCfg] = field(default_factory=dict)
-  """Dictionary of entity configurations."""
+  device: str = "cuda:0"
 
 
 class Scene:
   def __init__(self, scene_cfg: SceneCfg) -> None:
     self._cfg = scene_cfg
+    self._device = scene_cfg.device
     self._entities: dict[str, Entity] = {}
+    self._terrain: TerrainImporter | None = None
+    self._default_env_origins: torch.Tensor | None = None
+
     self._spec = mujoco.MjSpec.from_file(str(_SCENE_XML))
     self._attach_entities()
+    self._attach_terrain()
 
   def compile(self) -> mujoco.MjModel:
     return self._spec.compile()
@@ -46,11 +48,23 @@ class Scene:
     return self._spec
 
   @property
+  def env_origins(self) -> torch.Tensor:
+    if self._terrain is not None:
+      assert self._terrain.env_origins is not None
+      return self._terrain.env_origins
+    assert self._default_env_origins is not None
+    return self._default_env_origins
+
+  @property
   def entities(self) -> dict[str, Entity]:
     return self._entities
 
+  @property
+  def terrain(self) -> TerrainImporter | None:
+    return self._terrain
+
   def __getitem__(self, key: str) -> Any:
-    all_keys = []
+    all_keys = ["terrain"]
     for asset_family in [
       self._entities,
     ]:
@@ -71,6 +85,9 @@ class Scene:
     data: mjwarp.Data,
     device: str,
   ):
+    self._default_env_origins = torch.zeros(
+      (self._cfg.num_envs, 3), device=device, dtype=torch.float32
+    )
     for ent in self._entities.values():
       ent.initialize(mj_model, model, data, device)
 
@@ -94,6 +111,13 @@ class Scene:
       self._entities[ent_name] = ent
       frame = self._spec.worldbody.add_frame()
       self._spec.attach(ent.spec, prefix=f"{ent_name}/", frame=frame)
+
+  def _attach_terrain(self) -> None:
+    if self._cfg.terrain is None:
+      return
+    self._terrain = TerrainImporter(self._cfg.terrain, self._device)
+    frame = self._spec.worldbody.add_frame()
+    self._spec.attach(self._terrain.spec, prefix="terrain/", frame=frame)
 
 
 if __name__ == "__main__":
