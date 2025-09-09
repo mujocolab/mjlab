@@ -171,8 +171,11 @@ class BaseViewer(ABC):
   def step_simulation(self) -> None:
     if self._is_paused:
       return
-    # Wrap in inference_mode to prevent gradient accumulation and memory leaks
-    with torch.inference_mode():
+    # Wrap in no_grad mode to prevent gradient accumulation and memory leaks.
+    # NOTE: Using torch.inference_mode() causes a "RuntimeError: Inplace update to
+    # inference tensor outside InferenceMode is not allowed" inside the command
+    # manager when resetting the env with a key callback.
+    with torch.no_grad():
       with self._sim_timer.measure_time():
         obs = self.env.get_observations()
         actions = self.policy(obs)
