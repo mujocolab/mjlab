@@ -56,6 +56,10 @@ class Scene:
     return self._default_env_origins
 
   @property
+  def env_spacing(self) -> float:
+    return self._cfg.env_spacing
+
+  @property
   def entities(self) -> dict[str, Entity]:
     return self._entities
 

@@ -27,11 +27,11 @@ class ViserViewer(BaseViewer):
     frame_rate: float = 60.0,
     render_all_envs: bool = True,
     verbosity: VerbosityLevel = VerbosityLevel.SILENT,
-    env_spacing: float = 1.0,
+    env_spacing: float | None = None,
   ) -> None:
     super().__init__(env, policy, frame_rate, render_all_envs, verbosity)
     self._reward_plotter: Optional[ViserRewardPlotter] = None
-    self._env_spacing = env_spacing
+    self._env_spacing = env_spacing or env.unwrapped.scene.env_spacing
 
   @override
   def setup(self) -> None:
@@ -44,22 +44,7 @@ class ViserViewer(BaseViewer):
     self._threadpool = ThreadPoolExecutor(max_workers=1)
     self._batch_size = self.env.num_envs
 
-    # Create grid layout for multiple environments
-    # Environments are arranged in a square grid centered at origin
-    cols = int(np.ceil(np.sqrt(self._batch_size)))
-    rows = int(np.ceil(self._batch_size / cols))
-
-    # Use meshgrid to create grid positions centered at origin
-    x = np.arange(cols) * self._env_spacing - (cols - 1) * self._env_spacing / 2.0
-    y = np.arange(rows) * self._env_spacing - (rows - 1) * self._env_spacing / 2.0
-    xx, yy = np.meshgrid(x, y)
-
-    # Flatten and stack to get offsets for all environments
-    grid_positions = np.stack(
-      [xx.flatten(), yy.flatten(), np.zeros(rows * cols)], axis=-1
-    )
-    # Only take the first batch_size positions (in case grid is larger than needed)
-    self._env_offsets = grid_positions[: self._batch_size].astype(np.float32)
+    self._env_offsets = self.env.unwrapped.scene.env_origins.cpu().numpy()
     self._counter = 0
     self._env_idx = 0
     self._show_only_selected_env = (
