@@ -95,44 +95,67 @@ class TerrainImporter:
     )
 
   def configure_env_origins(self, origins: np.ndarray | torch.Tensor | None = None):
-    # if origins is not None:
-    #   if isinstance(origins, np.ndarray):
-    #     origins = torch.from_numpy(origins)
-    #   self.terrain_origins = origins.to(self.device, dtype=torch.float)
-    #   self.env_origins = self._compute_env_origins_curriculum(
-    #     self.cfg.num_envs, self.terrain_origins
-    #   )
-    # else:
-    #   self.terrain_origins = None
-    #   if self.cfg.env_spacing is None:
-    #     raise ValueError(
-    #       "Environment spacing must be specified for configuring grid-like origins."
-    #     )
-    #   self.env_origins = self._compute_env_origins_grid(
-    #     self.cfg.num_envs, self.cfg.env_spacing
-    #   )
-    self.terrain_origins = None
-    env_spacing = self.cfg.env_spacing
-    if env_spacing is None:
-      raise ValueError(
-        "Environment spacing must be specified for configuring grid-like origins."
+    """Configure the origins of the environments based on the added terrain."""
+    if origins is not None:
+      if isinstance(origins, np.ndarray):
+        origins = torch.from_numpy(origins)
+      self.terrain_origins = origins.to(self.device, dtype=torch.float)
+      self.env_origins = self._compute_env_origins_curriculum(
+        self.cfg.num_envs, self.terrain_origins
       )
-    self.env_origins = self._compute_env_origins_grid(self.cfg.num_envs, env_spacing)
+    else:
+      self.terrain_origins = None
+      if self.cfg.env_spacing is None:
+        raise ValueError(
+          "Environment spacing must be specified for configuring grid-like origins."
+        )
+      self.env_origins = self._compute_env_origins_grid(
+        self.cfg.num_envs, self.cfg.env_spacing
+      )
 
   def update_env_origins(
     self, env_ids: torch.Tensor, move_up: torch.Tensor, move_down: torch.Tensor
   ):
+    """Update the environment origins based on the terrain levels."""
     if self.terrain_origins is None:
       return
+    assert self.env_origins is not None
+    self.terrain_levels[env_ids] += 1 * move_up - 1 * move_down
+    self.terrain_levels[env_ids] = torch.where(
+      self.terrain_levels[env_ids] >= self.max_terrain_level,
+      torch.randint_like(self.terrain_levels[env_ids], self.max_terrain_level),
+      torch.clip(self.terrain_levels[env_ids], 0),
+    )
+    self.env_origins[env_ids] = self.terrain_origins[
+      self.terrain_levels[env_ids], self.terrain_types[env_ids]
+    ]
 
   def _compute_env_origins_curriculum(
     self, num_envs: int, origins: torch.Tensor
   ) -> torch.Tensor:
-    raise NotImplementedError("Curriculum-based terrain origins not implemented yet.")
+    """Compute the origins of the environments defined by the sub-terrains origins."""
+    num_rows, num_cols = origins.shape[:2]
+    if self.cfg.max_init_terrain_level is None:
+      max_init_level = num_rows - 1
+    else:
+      max_init_level = min(self.cfg.max_init_terrain_level, num_rows - 1)
+    self.max_terrain_level = num_rows
+    self.terrain_levels = torch.randint(
+      0, max_init_level + 1, (num_envs,), device=self.device
+    )
+    self.terrain_types = torch.div(
+      torch.arange(num_envs, device=self.device),
+      (num_envs / num_cols),
+      rounding_mode="floor",
+    ).to(torch.long)
+    env_origins = torch.zeros(num_envs, 3, device=self.device)
+    env_origins[:] = origins[self.terrain_levels, self.terrain_types]
+    return env_origins
 
   def _compute_env_origins_grid(
     self, num_envs: int, env_spacing: float
   ) -> torch.Tensor:
+    """Compute the origins of the environments in a grid based on configured spacing."""
     env_origins = torch.zeros(num_envs, 3, device=self.device)
     num_rows = np.ceil(num_envs / int(np.sqrt(num_envs)))
     num_cols = np.ceil(num_envs / num_rows)

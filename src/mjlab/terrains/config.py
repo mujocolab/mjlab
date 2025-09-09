@@ -6,7 +6,7 @@ from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
 
 ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
   size=(8.0, 8.0),
-  border_width=0.0,
+  border_width=10.0,
   num_rows=10,
   num_cols=10,
   horizontal_scale=0.1,
@@ -42,11 +42,9 @@ ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
 if __name__ == "__main__":
   import mujoco.viewer
 
-  # terrain_cfg = TerrainImporterCfg(terrain_type="plane")
   terrain_cfg = TerrainImporterCfg(
     terrain_type="generator",
     terrain_generator=ROUGH_TERRAINS_CFG,
   )
   terrain = TerrainImporter(terrain_cfg, device="cuda:0")
-  terrain.spec.worldbody.add_light(pos=(0, 0, 20))
   mujoco.viewer.launch(terrain.spec.compile())
