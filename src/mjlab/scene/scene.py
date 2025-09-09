@@ -119,6 +119,8 @@ class Scene:
   def _attach_terrain(self) -> None:
     if self._cfg.terrain is None:
       return
+    self._cfg.terrain.num_envs = self._cfg.num_envs
+    self._cfg.terrain.env_spacing = self._cfg.env_spacing
     self._terrain = TerrainImporter(self._cfg.terrain, self._device)
     frame = self._spec.worldbody.add_frame()
     self._spec.attach(self._terrain.spec, prefix="terrain/", frame=frame)
