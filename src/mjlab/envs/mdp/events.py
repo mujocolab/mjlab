@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple, Union
 
 import torch
 
-from mjlab.entity.robots.robot import Robot
+from mjlab.entity import Entity
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   quat_apply_inverse,
@@ -25,7 +25,7 @@ _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
 
 def reset_scene_to_default(env: ManagerBasedEnv, env_ids: torch.Tensor) -> None:
   for entity in env.scene.entities.values():
-    if not isinstance(entity, Robot):
+    if not isinstance(entity, Entity):
       continue
 
     default_root_state = entity.data.default_root_state[env_ids].clone()
@@ -45,7 +45,7 @@ def reset_root_state_uniform(
   velocity_range: dict[str, tuple[float, float]],
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> None:
-  asset: Robot = env.scene[asset_cfg.name]
+  asset: Entity = env.scene[asset_cfg.name]
   default_root_state = asset.data.default_root_state
   assert default_root_state is not None
   root_states = default_root_state[env_ids].clone()
@@ -91,7 +91,7 @@ def reset_joints_by_scale(
   velocity_range: tuple[float, float],
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> None:
-  asset: Robot = env.scene[asset_cfg.name]
+  asset: Entity = env.scene[asset_cfg.name]
   default_joint_pos = asset.data.default_joint_pos
   assert default_joint_pos is not None
   default_joint_vel = asset.data.default_joint_vel
@@ -126,7 +126,7 @@ def push_by_setting_velocity(
   velocity_range: dict[str, tuple[float, float]],
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> None:
-  asset: Robot = env.scene[asset_cfg.name]
+  asset: Entity = env.scene[asset_cfg.name]
   vel_w = asset.data.root_link_vel_w[env_ids]
   quat_w = asset.data.root_link_quat_w[env_ids]
   range_list = [
@@ -247,7 +247,8 @@ def randomize_field(
 
 def _get_entity_indices(env, asset, asset_cfg, spec: FieldSpec) -> torch.Tensor:
   """Get the global indices for the entities to randomize."""
-  indexing = env.scene.indexing.entities[asset_cfg.name]
+  # indexing = env.scene.indexing.entities[asset_cfg.name]
+  indexing = asset.indexing
 
   if spec.entity_type == "dof":
     if asset_cfg.joint_ids == slice(None):
@@ -445,8 +446,8 @@ def randomize_actuator_gains(
   operation: Literal["add", "scale", "abs"] = "abs",
   distribution: Literal["uniform", "log_uniform", "gaussian"] = "uniform",
 ) -> None:
-  asset: Robot = env.scene[asset_cfg.name]
-  indexing = env.scene.indexing.entities[asset_cfg.name]
+  asset: Entity = env.scene[asset_cfg.name]
+  indexing = asset.indexing
 
   if env_ids is None:
     env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)

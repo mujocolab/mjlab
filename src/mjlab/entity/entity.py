@@ -36,6 +36,8 @@ class Entity:
     self._root_joint: mujoco.MjsJoint | None = get_root_joint(self._spec)
     self._non_root_joints: tuple[mujoco.MjsJoint, ...] = get_non_root_joints(self._spec)
 
+    self._configure_spec()
+
     self._joint_names = [j.name for j in self._non_root_joints]
     self._tendon_names = [t.name for t in self._spec.tendons]
     self._body_names = [b.name for b in self.spec.bodies if b.name != "world"]
@@ -52,8 +54,6 @@ class Entity:
           continue
         self.actuator_to_joint[actuator.name] = actuator.target
       self.joint_actuators = list(self.actuator_to_joint.values())
-
-    self._configure_spec()
 
   # Attributes.
 
@@ -220,6 +220,7 @@ class Entity:
     device: str,
   ) -> None:
     indexing = self._compute_indexing(mj_model, device)
+    self.indexing = indexing
 
     # Global ID mappings for bodies, joints, actuators
     local_body_ids = range(self.num_bodies)

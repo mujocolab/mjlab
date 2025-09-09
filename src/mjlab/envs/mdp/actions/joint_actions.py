@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from mjlab.entity.robots.robot import Robot
+from mjlab.entity import Entity
 from mjlab.managers.action_manager import ActionTerm
 from mjlab.third_party.isaaclab.isaaclab.utils.string import (
   resolve_matching_names_values,
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 class JointAction(ActionTerm):
   """Base class for joint actions."""
 
-  _asset: Robot
+  _asset: Entity
 
   def __init__(self, cfg: actions_config.JointActionCfg, env: ManagerBasedEnv):
     super().__init__(cfg=cfg, env=env)

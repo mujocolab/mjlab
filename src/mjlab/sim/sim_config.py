@@ -14,7 +14,7 @@ class RenderCfg:
 
 @dataclass(kw_only=True)
 class SimulationCfg:
-  num_envs: int = 1
+  # num_envs: int = 1
   device: str = "cuda:0"
   nconmax: int | None = None
   njmax: int | None = None

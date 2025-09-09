@@ -39,7 +39,7 @@ def main(
     RslRlOnPolicyRunnerCfg, load_cfg_from_registry(task, "rl_cfg_entry_point")
   )
 
-  env_cfg.sim.num_envs = num_envs or env_cfg.sim.num_envs
+  env_cfg.scene.num_envs = num_envs or env_cfg.scene.num_envs
   env_cfg.sim.device = device or env_cfg.sim.device
   env_cfg.sim.render.camera = camera or -1
   env_cfg.sim.render.height = video_height or env_cfg.sim.render.height

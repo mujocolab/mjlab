@@ -28,7 +28,11 @@ class ManagerBasedEnv:
     self.scene.configure_sim_options(self.cfg.sim.mujoco)
     print("[INFO]: Scene manager: ", self.scene)
 
-    self.sim = Simulation(cfg=self.cfg.sim, model=self.scene.compile())
+    self.sim = Simulation(
+      num_envs=self.scene.num_envs,
+      cfg=self.cfg.sim,
+      model=self.scene.compile(),
+    )
 
     if "cuda" in self.device:
       torch.cuda.set_device(self.device)
@@ -51,7 +55,7 @@ class ManagerBasedEnv:
 
   @property
   def num_envs(self) -> int:
-    return self.sim.num_envs
+    return self.scene.num_envs
 
   @property
   def physics_dt(self) -> float:

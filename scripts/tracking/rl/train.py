@@ -48,7 +48,7 @@ def main(
     pathlib.Path(artifact.download()) / "motion.npz"
   )
 
-  env_cfg.sim.num_envs = num_envs or env_cfg.sim.num_envs
+  env_cfg.scene.num_envs = num_envs or env_cfg.scene.num_envs
   agent_cfg.max_iterations = max_iterations or agent_cfg.max_iterations
   agent_cfg.seed = seed or agent_cfg.seed
 

@@ -21,11 +21,11 @@ else:
 class Simulation:
   """MjWarp simulation backend."""
 
-  def __init__(self, cfg: SimulationCfg, model: mujoco.MjModel):
+  def __init__(self, num_envs: int, cfg: SimulationCfg, model: mujoco.MjModel):
     self.cfg = cfg
     self.device = self.cfg.device
     self.wp_device = wp.get_device(self.device)
-    self.num_envs = self.cfg.num_envs
+    self.num_envs = num_envs
 
     self._mj_model = model
     self._mj_data = mujoco.MjData(model)
@@ -37,7 +37,7 @@ class Simulation:
     self._wp_data = mjwarp.put_data(
       self._mj_model,
       self._mj_data,
-      nworld=self.cfg.num_envs,
+      nworld=self.num_envs,
       nconmax=self.cfg.nconmax,
       njmax=self.cfg.njmax,
     )

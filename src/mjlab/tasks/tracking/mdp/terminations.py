@@ -10,7 +10,7 @@ from .commands import MotionCommand
 from .rewards import _get_body_indexes
 
 if TYPE_CHECKING:
-  from mjlab.entity import Robot
+  from mjlab.entity import Entity
   from mjlab.envs import ManagerBasedRlEnv
   from mjlab.managers.scene_entity_config import SceneEntityCfg
 
@@ -34,7 +34,7 @@ def bad_ref_pos_z_only(
 def bad_ref_ori(
   env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg, command_name: str, threshold: float
 ) -> torch.Tensor:
-  asset: Robot = env.scene[asset_cfg.name]
+  asset: Entity = env.scene[asset_cfg.name]
 
   command = cast(MotionCommand, env.command_manager.get_term(command_name))
   motion_projected_gravity_b = quat_apply_inverse(

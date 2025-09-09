@@ -14,7 +14,7 @@ from mjlab.utils.spec_editor.spec_editor_config import OptionCfg
 _SCENE_XML = Path(__file__).parent / "scene.xml"
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(kw_only=True)
 class SceneCfg:
   num_envs: int = 1
   env_spacing: float = 2.0
@@ -62,6 +62,10 @@ class Scene:
   @property
   def terrain(self) -> TerrainImporter | None:
     return self._terrain
+
+  @property
+  def num_envs(self) -> int:
+    return self._cfg.num_envs
 
   def __getitem__(self, key: str) -> Any:
     all_keys = ["terrain"]

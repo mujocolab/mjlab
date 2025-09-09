@@ -88,7 +88,8 @@ class NativeMujocoViewer(BaseViewer):
 
     self.pert = mujoco.MjvPerturb() if self.enable_perturbations else None
     self.vopt = mujoco.MjvOption()
-    self._env_origins = compute_env_origins_grid(sim.num_envs, env_spacing=2.0)
+    # self._env_origins = compute_env_origins_grid(sim.num_envs, env_spacing=2.0)
+    self._env_origins = self.env.unwrapped.scene.env_origins.cpu().numpy()
 
     # self._term_names = [
     #   name
@@ -282,9 +283,8 @@ class NativeMujocoViewer(BaseViewer):
       elif self.cfg.origin_type == self.cfg.OriginType.ASSET_ROOT:
         if not self.cfg.asset_name:
           raise ValueError("Asset name must be specified for ASSET_ROOT origin type")
-        body_id = self.env.unwrapped.scene.indexing.entities[
-          self.cfg.asset_name
-        ].root_body_id
+        indexing = self.env.unwrapped.scene[self.cfg.asset_name].indexing
+        body_id = indexing.root_body_id
         self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
         self.viewer.cam.trackbodyid = body_id
         self.viewer.cam.fixedcamid = -1
@@ -298,9 +298,8 @@ class NativeMujocoViewer(BaseViewer):
             f"Body '{self.cfg.body_name}' not found in asset '{self.cfg.asset_name}'"
           )
         body_id_list, _ = robot.find_bodies(self.cfg.body_name)
-        body_id = self.env.unwrapped.scene.indexing.entities[
-          self.cfg.asset_name
-        ].body_local2global[body_id_list[0]]
+        indexing = self.env.unwrapped.scene[self.cfg.asset_name].indexing
+        body_id = indexing.body_local2global[body_id_list[0]]
         self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
         self.viewer.cam.trackbodyid = body_id
         self.viewer.cam.fixedcamid = -1

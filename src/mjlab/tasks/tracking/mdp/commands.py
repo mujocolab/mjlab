@@ -21,7 +21,7 @@ from mjlab.third_party.isaaclab.isaaclab.utils.math import (
 )
 
 if TYPE_CHECKING:
-  from mjlab.entity import Robot
+  from mjlab.entity import Entity
   from mjlab.envs import ManagerBasedRlEnv
 
 
@@ -70,7 +70,7 @@ class MotionCommand(CommandTerm):
   def __init__(self, cfg: MotionCommandCfg, env: ManagerBasedRlEnv):
     super().__init__(cfg, env)
 
-    self.robot: Robot = env.scene[cfg.asset_name]
+    self.robot: Entity = env.scene[cfg.asset_name]
     self.robot_ref_body_index = self.robot.body_names.index(self.cfg.reference_body)
     self.motion_ref_body_index = self.cfg.body_names.index(self.cfg.reference_body)
     self.body_indexes = torch.tensor(
