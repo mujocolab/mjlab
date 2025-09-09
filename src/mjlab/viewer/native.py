@@ -64,7 +64,6 @@ class NativeMujocoViewer(BaseViewer):
     self.vopt: Optional[mujoco.MjvOption] = None
     self.pert: Optional[mujoco.MjvPerturb] = None
     self.catmask: int = mujoco.mjtCatBit.mjCAT_DYNAMIC.value
-    self._env_origins: Optional[np.ndarray] = None
 
     self._term_names: list[str] = []
     self._figures: dict[str, mujoco.MjvFigure] = {}  # Per-term figure.
@@ -88,8 +87,6 @@ class NativeMujocoViewer(BaseViewer):
 
     self.pert = mujoco.MjvPerturb() if self.enable_perturbations else None
     self.vopt = mujoco.MjvOption()
-    # self._env_origins = compute_env_origins_grid(sim.num_envs, env_spacing=2.0)
-    self._env_origins = self.env.unwrapped.scene.env_origins.cpu().numpy()
 
     # self._term_names = [
     #   name
@@ -172,13 +169,14 @@ class NativeMujocoViewer(BaseViewer):
       if hasattr(self.env.unwrapped, "update_visualizers"):
         self.env.unwrapped.update_visualizers(v.user_scn)
 
-      if self.render_all_envs and self.vd is not None and self._env_origins is not None:
+      if self.render_all_envs and self.vd is not None:
         for i in range(self.env.unwrapped.num_envs):
           if i == self.env_idx:
             continue
           self.vd.qpos[:] = sim_data.qpos[i].cpu().numpy()
           self.vd.qvel[:] = sim_data.qvel[i].cpu().numpy()
-          self.vd.qpos[:3] += self._env_origins[i]
+          env_origin = self.env.unwrapped.scene.env_origins.cpu().numpy()
+          self.vd.qpos[:3] += env_origin[i]
           mujoco.mj_forward(self.mjm, self.vd)
           assert self.pert is not None
           mujoco.mjv_addGeoms(
@@ -377,17 +375,6 @@ class NativeMujocoViewer(BaseViewer):
 
     fig.range[1][0] = float(lo)
     fig.range[1][1] = float(hi)
-
-
-def compute_env_origins_grid(num_envs: int, env_spacing: float) -> np.ndarray:
-  env_origins = np.zeros((num_envs, 3))
-  num_rows = int(np.ceil(num_envs / np.sqrt(num_envs)))
-  num_cols = int(np.ceil(num_envs / num_rows))
-  ii, jj = np.meshgrid(np.arange(num_rows), np.arange(num_cols), indexing="ij")
-  env_origins[:, 0] = -(ii.flatten()[:num_envs] - (num_rows - 1) / 2) * env_spacing
-  env_origins[:, 1] = (jj.flatten()[:num_envs] - (num_cols - 1) / 2) * env_spacing
-  env_origins[:, 2] = 0.0
-  return env_origins
 
 
 def compute_viewports(
