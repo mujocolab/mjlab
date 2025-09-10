@@ -202,7 +202,7 @@ class RewardCfg:
 class TerminationCfg:
   time_out: DoneTerm = term(DoneTerm, func=mdp.time_out, time_out=True)
   fell_over: DoneTerm = term(
-    DoneTerm, func=mdp.bad_orientation, params={"limit_angle": math.radians(45.0)}
+    DoneTerm, func=mdp.bad_orientation, params={"limit_angle": math.radians(135.0)}
   )
 
 
@@ -237,7 +237,7 @@ class LocomotionVelocityEnvCfg(ManagerBasedRlEnvCfg):
     self.sim.mujoco.cone = "pyramidal"
     self.sim.mujoco.timestep = 0.005
     self.scene.num_envs = 1
-    self.sim.nconmax = 40000
-    self.sim.njmax = 100
+    self.sim.nconmax = 100000
+    self.sim.njmax = 300
     self.sim.mujoco.iterations = 10
     self.sim.mujoco.ls_iterations = 20

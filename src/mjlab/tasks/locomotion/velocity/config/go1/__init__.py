@@ -5,7 +5,7 @@ gym.register(
   entry_point="mjlab.envs:ManagerBasedRlEnv",
   disable_env_checker=True,
   kwargs={
-    "env_cfg_entry_point": f"{__name__}.flat_env_cfg:UnitreeGo1EnvCfg",
+    "env_cfg_entry_point": f"{__name__}.rough_env_cfg:UnitreeGo1EnvCfg",
     "rl_cfg_entry_point": f"{__name__}.rl_cfg:UnitreeGo1FlatPPORunnerCfg",
   },
 )

@@ -43,6 +43,7 @@ def bad_orientation(
   limit_angle: float,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ):
+  """Terminate when the asset's orientation exceeds the limit angle."""
   asset: Entity = env.scene[asset_cfg.name]
   projected_gravity = asset.data.projected_gravity_b
   return torch.acos(-projected_gravity[:, 2]).abs() > limit_angle

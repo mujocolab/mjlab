@@ -77,7 +77,7 @@ class TerrainGenerator:
       self._generate_random_terrains(spec)
       toc = time.perf_counter()
       print(f"Terrain generation took {toc - tic:.4f} seconds.")
-    self._add_terrain_border(spec)
+    # self._add_terrain_border(spec)
     self._add_grid_lights(spec)
 
   def _generate_random_terrains(self, spec: mujoco.MjSpec) -> None:

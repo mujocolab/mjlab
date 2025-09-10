@@ -88,8 +88,8 @@ class TerrainImporter:
     if self.env_origins is None:
       return
 
-    origin_site_radius: float = 0.1
-    origin_site_color: tuple[float, float, float, float] = (0.0, 1.0, 0.0, 0.3)
+    origin_site_radius: float = 0.3
+    origin_site_color: tuple[float, float, float, float] = (0.2, 0.6, 0.2, 0.3)
 
     # Convert torch tensor to numpy if needed
     if isinstance(self.env_origins, torch.Tensor):
@@ -104,6 +104,7 @@ class TerrainImporter:
         size=(origin_site_radius,) * 3,
         type=mujoco.mjtGeom.mjGEOM_SPHERE,
         rgba=origin_site_color,
+        group=4,
       )
 
   def _add_terrain_origin_sites(self) -> None:
@@ -118,7 +119,7 @@ class TerrainImporter:
       terrain_origins_np = self.terrain_origins
 
     terrain_origin_site_radius: float = 0.5
-    terrain_origin_site_color: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 0.3)
+    terrain_origin_site_color: tuple[float, float, float, float] = (0.2, 0.2, 0.6, 0.3)
 
     # Iterate through the 2D grid of terrain origins
     num_rows, num_cols = terrain_origins_np.shape[:2]
@@ -131,6 +132,7 @@ class TerrainImporter:
           size=(terrain_origin_site_radius,) * 3,
           type=mujoco.mjtGeom.mjGEOM_SPHERE,
           rgba=terrain_origin_site_color,
+          group=5,
         )
 
   @property

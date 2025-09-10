@@ -124,11 +124,8 @@ class NativeMujocoViewer(BaseViewer):
 
     with self._mj_lock:
       sim_data = self.env.unwrapped.sim.data
-      env_origins = self.env.unwrapped.scene.env_origins.cpu().numpy()
-
       self.mjd.qpos[:] = sim_data.qpos[self.env_idx].cpu().numpy()
       self.mjd.qvel[:] = sim_data.qvel[self.env_idx].cpu().numpy()
-      self.mjd.qpos[:3] += env_origins[self.env_idx]
       mujoco.mj_forward(self.mjm, self.mjd)
 
       # text_1 = "Env\nStep\nStatus\nSpeed\nFPS"
@@ -178,7 +175,6 @@ class NativeMujocoViewer(BaseViewer):
             continue
           self.vd.qpos[:] = sim_data.qpos[i].cpu().numpy()
           self.vd.qvel[:] = sim_data.qvel[i].cpu().numpy()
-          self.vd.qpos[:3] += env_origins[i]
           mujoco.mj_forward(self.mjm, self.vd)
           assert self.pert is not None
           mujoco.mjv_addGeoms(
