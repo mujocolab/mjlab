@@ -45,7 +45,7 @@ class TerrainGeneratorCfg:
   slope_threshold: float | None = 0.75
   sub_terrains: dict[str, SubTerrainCfg]
   difficulty_range: tuple[float, float] = (0.0, 1.0)
-  add_lights: bool = False
+  add_lights: bool = True
 
 
 class TerrainGenerator:
@@ -71,13 +71,16 @@ class TerrainGenerator:
 
   def compile(self, spec: mujoco.MjSpec) -> None:
     if self.cfg.curriculum:
-      raise NotImplementedError("Curriculum mode is not implemented yet.")
+      tic = time.perf_counter()
+      self._generate_curriculum_terrains(spec)
+      toc = time.perf_counter()
+      print(f"Curriculum terrain generation took {toc - tic:.4f} seconds.")
     else:
       tic = time.perf_counter()
       self._generate_random_terrains(spec)
       toc = time.perf_counter()
       print(f"Terrain generation took {toc - tic:.4f} seconds.")
-    # self._add_terrain_border(spec)
+    self._add_terrain_border(spec)
     self._add_grid_lights(spec)
 
   def _generate_random_terrains(self, spec: mujoco.MjSpec) -> None:
@@ -109,6 +112,34 @@ class TerrainGenerator:
 
       # Store the spawn origin for this terrain.
       self.terrain_origins[sub_row, sub_col] = spawn_origin
+
+  def _generate_curriculum_terrains(self, spec: mujoco.MjSpec) -> None:
+    # Normalize the proportions of the sub-terrains.
+    proportions = np.array(
+      [sub_cfg.proportion for sub_cfg in self.cfg.sub_terrains.values()]
+    )
+    proportions /= np.sum(proportions)
+
+    sub_indices = []
+    for index in range(self.cfg.num_cols):
+      sub_index = np.min(
+        np.where(index / self.cfg.num_cols + 0.001 < np.cumsum(proportions))[0]
+      )
+      sub_indices.append(sub_index)
+    sub_indices = np.array(sub_indices, dtype=np.int32)
+
+    sub_terrains_cfgs = list(self.cfg.sub_terrains.values())
+
+    for sub_col in range(self.cfg.num_cols):
+      for sub_row in range(self.cfg.num_rows):
+        lower, upper = self.cfg.difficulty_range
+        difficulty = (sub_row + self.np_rng.uniform()) / self.cfg.num_rows
+        difficulty = lower + (upper - lower) * difficulty
+        world_position = self._get_sub_terrain_position(sub_row, sub_col)
+        spawn_origin = self._create_terrain_mesh(
+          spec, world_position, difficulty, sub_terrains_cfgs[sub_indices[sub_col]]
+        )
+        self.terrain_origins[sub_row, sub_col] = spawn_origin
 
   def _get_sub_terrain_position(self, row: int, col: int) -> np.ndarray:
     """Get the world position for a sub-terrain at the given grid indices.

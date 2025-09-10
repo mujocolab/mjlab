@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 
 from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
 from mjlab.managers.manager_term_config import ActionTermCfg as ActionTerm
+from mjlab.managers.manager_term_config import CurriculumTermCfg as CurrTerm
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 from mjlab.managers.manager_term_config import ObservationGroupCfg as ObsGroup
 from mjlab.managers.manager_term_config import ObservationTermCfg as ObsTerm
@@ -22,7 +23,9 @@ from mjlab.utils.noise import UniformNoiseCfg as Unoise
 
 SCENE_CFG = SceneCfg(
   terrain=TerrainImporterCfg(
-    terrain_type="generator", terrain_generator=ROUGH_TERRAINS_CFG
+    terrain_type="generator",
+    terrain_generator=ROUGH_TERRAINS_CFG,
+    max_init_terrain_level=5,
   ),
 )
 
@@ -161,6 +164,30 @@ class EventCfg:
     interval_range_s=(10.0, 15.0),
     params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
   )
+  apply_external_force: EventTerm | None = term(
+    EventTerm,
+    func=mdp.apply_external_force_torque,
+    mode="interval",
+    interval_range_s=(3.0, 10.0),
+    params={
+      "force_range": (-10.0, 10.0),
+      "torque_range": (-10.0, 10.0),
+      "asset_cfg": SceneEntityCfg("robot", body_names=["trunk"]),
+    },
+  )
+  foot_friction: EventTerm = term(
+    EventTerm,
+    mode="startup",
+    func=mdp.randomize_field,
+    params={
+      "asset_cfg": SceneEntityCfg(
+        "robot", geom_names=[r"^(RR|RL|FR|FL)_foot_collision$"]
+      ),
+      "operation": "abs",
+      "field": "geom_friction",
+      "ranges": (0.3, 1.2),
+    },
+  )
 
 
 # Rewards.
@@ -190,9 +217,21 @@ class RewardCfg:
   dof_acc_l2: RewardTerm = term(RewardTerm, func=mdp.joint_acc_l2, weight=0.0)
   action_rate_l2: RewardTerm = term(RewardTerm, func=mdp.action_rate_l2, weight=-0.01)
   flat_orientation_l2: RewardTerm = term(
-    RewardTerm, func=mdp.flat_orientation_l2, weight=-5.0
+    RewardTerm, func=mdp.flat_orientation_l2, weight=0.0
   )
   dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
+  pose_l2: RewardTerm = term(
+    RewardTerm,
+    func=mdp.posture,
+    weight=1.0,
+    params={
+      "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
+      "std": {
+        r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.1,
+        r".*(FR|FL|RR|RL)_calf_joint.*": 0.5,
+      },
+    },
+  )
 
 
 # Terminations.
@@ -211,7 +250,7 @@ class TerminationCfg:
 
 @dataclass
 class CurriculumCfg:
-  pass
+  terrain_levels: CurrTerm = term(CurrTerm, func=mdp.terrain_levels_vel)
 
 
 ##
@@ -233,11 +272,14 @@ class LocomotionVelocityEnvCfg(ManagerBasedRlEnvCfg):
   curriculum: CurriculumCfg = field(default_factory=CurriculumCfg)
 
   def __post_init__(self):
-    self.sim.mujoco.integrator = "implicitfast"
-    self.sim.mujoco.cone = "pyramidal"
-    self.sim.mujoco.timestep = 0.005
     self.scene.num_envs = 1
     self.sim.nconmax = 100000
     self.sim.njmax = 300
+    self.sim.mujoco.timestep = 0.005
     self.sim.mujoco.iterations = 10
     self.sim.mujoco.ls_iterations = 20
+
+    # Enable curriculum mode for terrain generator.
+    if self.scene.terrain is not None:
+      if self.scene.terrain.terrain_generator is not None:
+        self.scene.terrain.terrain_generator.curriculum = True

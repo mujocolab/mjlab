@@ -142,6 +142,27 @@ def push_by_setting_velocity(
   asset.write_root_link_velocity_to_sim(vel_w, env_ids=env_ids)
 
 
+def apply_external_force_torque(
+  env: ManagerBasedEnv,
+  env_ids: torch.Tensor,
+  force_range: tuple[float, float],
+  torque_range: tuple[float, float],
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> None:
+  asset: Entity = env.scene[asset_cfg.name]
+  num_bodies = (
+    len(asset_cfg.body_ids)
+    if isinstance(asset_cfg.body_ids, list)
+    else asset.num_bodies
+  )
+  size = (len(env_ids), num_bodies, 3)
+  forces = sample_uniform(*force_range, size, env.device)
+  torques = sample_uniform(*torque_range, size, env.device)
+  asset.set_external_force_and_torque(
+    forces, torques, env_ids=env_ids, body_ids=asset_cfg.body_ids
+  )
+
+
 ##
 # Domain randomization
 ##

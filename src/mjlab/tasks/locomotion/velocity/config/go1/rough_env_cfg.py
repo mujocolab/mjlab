@@ -11,7 +11,16 @@ class UnitreeGo1EnvCfg(LocomotionVelocityEnvCfg):
   def __post_init__(self):
     super().__post_init__()
 
-    go1_cfg = replace(GO1_ROBOT_CFG)
-    assert go1_cfg.articulation is not None
-    go1_cfg.articulation.joint_pos_weight = {".*calf_joint": 0.1}
-    self.scene.entities = {"robot": go1_cfg}
+    self.scene.entities = {"robot": replace(GO1_ROBOT_CFG)}
+
+
+@dataclass
+class UnitreeGo1EnvCfg_PLAY(UnitreeGo1EnvCfg):
+  def __post_init__(self):
+    super().__post_init__()
+
+    self.observations.policy.enable_corruption = False
+
+    # Disable perturbations.
+    self.events.push_robot = None
+    self.events.apply_external_force = None

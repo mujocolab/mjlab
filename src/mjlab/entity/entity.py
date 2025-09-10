@@ -579,6 +579,21 @@ class Entity:
       joint_ids = slice(None)
     self._data.joint_damping[env_ids, joint_ids] = damping
 
+  def set_external_force_and_torque(
+    self,
+    forces: torch.Tensor,
+    torques: torch.Tensor,
+    env_ids: torch.Tensor | slice | None = None,
+    body_ids: Sequence[int] | slice | None = None,
+  ) -> None:
+    if env_ids is None:
+      env_ids = slice(None)
+    if isinstance(env_ids, torch.Tensor):
+      env_ids = env_ids[:, None]
+    if body_ids is None:
+      body_ids = slice(None)
+    self._data.set_external_wrench(env_ids, body_ids, forces, torques)
+
   ##
   # Private methods.
   ##

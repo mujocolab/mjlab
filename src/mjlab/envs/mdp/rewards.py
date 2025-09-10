@@ -7,7 +7,12 @@ from typing import TYPE_CHECKING
 import torch
 
 from mjlab.entity import Entity
+from mjlab.managers.manager_base import ManagerTermBase
+from mjlab.managers.manager_term_config import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.third_party.isaaclab.isaaclab.utils.string import (
+  resolve_matching_names_values,
+)
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
@@ -124,19 +129,48 @@ def upright(
   return torch.exp(-2.0 * error)
 
 
-def posture(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
-) -> torch.Tensor:
-  """Penalize the deviation of the joint positions from the default positions."""
-  asset: Entity = env.scene[asset_cfg.name]
-  default_joint_pos = asset.data.default_joint_pos
-  assert default_joint_pos is not None
-  weight = asset.data.joint_pos_weight
-  assert weight is not None
-  error = torch.sum(
-    torch.square(asset.data.joint_pos - default_joint_pos) * weight, dim=1
-  )
-  return torch.exp(-0.5 * error)
+# def posture(
+#   env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
+# ) -> torch.Tensor:
+#   """Penalize the deviation of the joint positions from the default positions."""
+#   asset: Entity = env.scene[asset_cfg.name]
+#   default_joint_pos = asset.data.default_joint_pos
+#   assert default_joint_pos is not None
+#   weight = asset.data.joint_pos_weight
+#   assert weight is not None
+#   error = torch.sum(
+#     torch.square(asset.data.joint_pos - default_joint_pos) * weight, dim=1
+#   )
+#   return torch.exp(-0.5 * error)
+
+
+class posture(ManagerTermBase):
+  def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
+    self.cfg = cfg
+    super().__init__(env)
+
+    self.asset: Entity = env.scene[cfg.params["asset_cfg"].name]
+    default_joint_pos = self.asset.data.default_joint_pos
+    assert default_joint_pos is not None
+    self.default_joint_pos = default_joint_pos
+
+    _, joint_names = self.asset.find_joints(
+      cfg.params["asset_cfg"].joint_names,
+    )
+
+    _, _, std = resolve_matching_names_values(
+      data=cfg.params["std"],
+      list_of_strings=joint_names,
+    )
+    self.std = torch.tensor(std, device=env.device, dtype=torch.float32)
+
+  def __call__(
+    self, env: ManagerBasedRlEnv, std, asset_cfg: SceneEntityCfg
+  ) -> torch.Tensor:
+    current_joint_pos = self.asset.data.joint_pos[:, asset_cfg.joint_ids]
+    desired_joint_pos = self.default_joint_pos[:, asset_cfg.joint_ids]
+    error = torch.square(current_joint_pos - desired_joint_pos)
+    return torch.exp(torch.sum(-error / self.std**2, dim=1))
 
 
 # def undesired_contacts(

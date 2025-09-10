@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Sequence
 
 import mujoco_warp as mjwarp
 import torch
@@ -47,6 +48,26 @@ class EntityData:
 
   def update(self, dt: float) -> None:
     del dt  # Unused.
+
+  def set_external_wrench(
+    self,
+    env_ids: torch.Tensor | slice,
+    body_ids: Sequence[int] | slice,
+    force: torch.Tensor | None,
+    torque: torch.Tensor | None,
+  ) -> None:
+    if isinstance(body_ids, slice):
+      body_ids_global = self.indexing.body_ids[body_ids]
+    else:
+      body_ids_global = torch.tensor(
+        [self.indexing.body_local2global[lid] for lid in body_ids],
+        dtype=torch.int,
+        device=self.device,
+      )
+    if force is not None:
+      self.data.xfrc_applied[env_ids, body_ids_global, 0:3] = force
+    if torque is not None:
+      self.data.xfrc_applied[env_ids, body_ids_global, 3:6] = torque
 
   def _compute_velocity_from_cvel(
     self, pos: torch.Tensor, subtree_com: torch.Tensor, cvel: torch.Tensor
