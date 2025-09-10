@@ -80,6 +80,59 @@ class TerrainImporter:
     else:
       raise ValueError(f"Unknown terrain type: {self.cfg.terrain_type}")
 
+    self._add_env_origin_sites()
+    self._add_terrain_origin_sites()
+
+  def _add_env_origin_sites(self) -> None:
+    """Add transparent sphere sites at each environment origin for visualization."""
+    if self.env_origins is None:
+      return
+
+    origin_site_radius: float = 0.1
+    origin_site_color: tuple[float, float, float, float] = (0.0, 1.0, 0.0, 0.3)
+
+    # Convert torch tensor to numpy if needed
+    if isinstance(self.env_origins, torch.Tensor):
+      env_origins_np = self.env_origins.cpu().numpy()
+    else:
+      env_origins_np = self.env_origins
+
+    for env_id, origin in enumerate(env_origins_np):
+      self._spec.worldbody.add_site(
+        name=f"env_origin_{env_id}",
+        pos=origin,
+        size=(origin_site_radius,) * 3,
+        type=mujoco.mjtGeom.mjGEOM_SPHERE,
+        rgba=origin_site_color,
+      )
+
+  def _add_terrain_origin_sites(self) -> None:
+    """Add transparent sphere sites at each terrain origin for visualization."""
+    if self.terrain_origins is None:
+      return
+
+    # Convert torch tensor to numpy if needed
+    if isinstance(self.terrain_origins, torch.Tensor):
+      terrain_origins_np = self.terrain_origins.cpu().numpy()
+    else:
+      terrain_origins_np = self.terrain_origins
+
+    terrain_origin_site_radius: float = 0.5
+    terrain_origin_site_color: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 0.3)
+
+    # Iterate through the 2D grid of terrain origins
+    num_rows, num_cols = terrain_origins_np.shape[:2]
+    for row in range(num_rows):
+      for col in range(num_cols):
+        origin = terrain_origins_np[row, col]
+        self._spec.worldbody.add_site(
+          name=f"terrain_origin_{row}_{col}",
+          pos=origin,
+          size=(terrain_origin_site_radius,) * 3,
+          type=mujoco.mjtGeom.mjGEOM_SPHERE,
+          rgba=terrain_origin_site_color,
+        )
+
   @property
   def spec(self) -> mujoco.MjSpec:
     return self._spec

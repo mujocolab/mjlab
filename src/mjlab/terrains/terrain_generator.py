@@ -20,6 +20,13 @@ class SubTerrainCfg(abc.ABC):
 
   @abc.abstractmethod
   def function(self, difficulty: float, spec: mujoco.MjSpec):
+    """Generate terrain geometry.
+
+    Returns:
+      origin: The spawn point in local coordinates (relative to terrain corner).
+      boxes: List of box geometries to add to the spec.
+      colors: List of colors for each box.
+    """
     raise NotImplementedError
 
 
@@ -38,7 +45,7 @@ class TerrainGeneratorCfg:
   slope_threshold: float | None = 0.75
   sub_terrains: dict[str, SubTerrainCfg]
   difficulty_range: tuple[float, float] = (0.0, 1.0)
-  add_lights: bool = True
+  add_lights: bool = False
 
 
 class TerrainGenerator:
@@ -73,8 +80,6 @@ class TerrainGenerator:
     self._add_terrain_border(spec)
     self._add_grid_lights(spec)
 
-  # Private methods.
-
   def _generate_random_terrains(self, spec: mujoco.MjSpec) -> None:
     # Normalize the proportions of the sub-terrains.
     proportions = np.array(
@@ -84,36 +89,73 @@ class TerrainGenerator:
 
     sub_terrains_cfgs = list(self.cfg.sub_terrains.values())
 
-    # Calculate the offset to center the entire terrain grid at origin.
-    grid_center_offset = np.array(
-      [
-        -self.cfg.size[0] * self.cfg.num_rows * 0.5,
-        -self.cfg.size[1] * self.cfg.num_cols * 0.5,
-        0.0,
-      ]
-    )
-
-    # Randomly sample sub-terrains.
+    # Randomly sample and place sub-terrains in the grid.
     for index in range(self.cfg.num_rows * self.cfg.num_cols):
       sub_row, sub_col = np.unravel_index(index, (self.cfg.num_rows, self.cfg.num_cols))
       sub_row = int(sub_row)
       sub_col = int(sub_col)
+
+      # Randomly select a sub-terrain type and difficulty.
       sub_index = self.np_rng.choice(len(proportions), p=proportions)
       difficulty = self.np_rng.uniform(*self.cfg.difficulty_range)
 
-      # Calculate the position for this sub-terrain. This positions the sub-terrain's
-      # center in the grid.
-      sub_terrain_center = np.array(
-        [(sub_row + 0.5) * self.cfg.size[0], (sub_col + 0.5) * self.cfg.size[1], 0.0]
+      # Calculate the world position for this sub-terrain.
+      world_position = self._get_sub_terrain_position(sub_row, sub_col)
+
+      # Create the terrain mesh and get the spawn origin in world coordinates.
+      spawn_origin = self._create_terrain_mesh(
+        spec, world_position, difficulty, sub_terrains_cfgs[sub_index]
       )
 
-      final_position = grid_center_offset + sub_terrain_center
-      origin = self._create_terrain_mesh(
-        spec, final_position, difficulty, sub_terrains_cfgs[sub_index]
-      )
-      self.terrain_origins[sub_row, sub_col] = origin + sub_terrain_center
+      # Store the spawn origin for this terrain.
+      self.terrain_origins[sub_row, sub_col] = spawn_origin
 
-    self.terrain_origins += grid_center_offset
+  def _get_sub_terrain_position(self, row: int, col: int) -> np.ndarray:
+    """Get the world position for a sub-terrain at the given grid indices.
+
+    This returns the position of the sub-terrain's corner (not center).
+    The entire grid is centered at the world origin.
+    """
+    # Calculate position relative to grid corner.
+    rel_x = row * self.cfg.size[0]
+    rel_y = col * self.cfg.size[1]
+
+    # Offset to center the entire grid at world origin.
+    grid_offset_x = -self.cfg.num_rows * self.cfg.size[0] * 0.5
+    grid_offset_y = -self.cfg.num_cols * self.cfg.size[1] * 0.5
+
+    return np.array([grid_offset_x + rel_x, grid_offset_y + rel_y, 0.0])
+
+  def _create_terrain_mesh(
+    self,
+    spec: mujoco.MjSpec,
+    world_position: np.ndarray,
+    difficulty: float,
+    cfg: SubTerrainCfg,
+  ) -> np.ndarray:
+    """Create a terrain mesh at the specified world position.
+
+    Args:
+      spec: MuJoCo spec to add geometry to.
+      world_position: World position of the terrain's corner.
+      difficulty: Difficulty parameter for terrain generation.
+      cfg: Sub-terrain configuration.
+
+    Returns:
+      The spawn origin in world coordinates.
+    """
+    cfg = replace(cfg)
+
+    # Generate terrain geometry (origin is in local coordinates).
+    local_origin, boxes, colors = cfg.function(difficulty, spec)
+
+    # Apply transformations to place geometry in world coordinates.
+    for box, color in zip(boxes, colors, strict=True):
+      box.pos += world_position
+      box.rgba = color
+
+    # Convert local origin to world coordinates.
+    return local_origin + world_position
 
   def _add_terrain_border(self, spec: mujoco.MjSpec) -> None:
     border_size = (
@@ -135,26 +177,6 @@ class TerrainGenerator:
     )
     for box in boxes:
       box.rgba = _DARK_GRAY
-
-  def _create_terrain_mesh(
-    self,
-    spec: mujoco.MjSpec,
-    position: np.ndarray,
-    difficulty: float,
-    cfg: SubTerrainCfg,
-  ) -> np.ndarray:
-    cfg = replace(cfg)
-    origin, boxes, colors = cfg.function(difficulty, spec)
-
-    # MuJoCo generates geometry assuming (0,0) is the corner. So we need to offset by
-    # half the size to center it.
-    centering_offset = np.array([-cfg.size[0] * 0.5, -cfg.size[1] * 0.5, 0.0])
-
-    for box, color in zip(boxes, colors, strict=True):
-      box.pos += position + centering_offset
-      box.rgba = color
-
-    return origin + position + centering_offset
 
   def _add_grid_lights(self, spec: mujoco.MjSpec) -> None:
     if not self.cfg.add_lights:

@@ -31,7 +31,7 @@ VELOCITY_RANGE = {
 
 SCENE_CFG = SceneCfg(
   terrain=TerrainImporterCfg(
-    terrain_type="generator", terrain_generator=ROUGH_TERRAINS_CFG
+    terrain_type="plane", terrain_generator=ROUGH_TERRAINS_CFG
   ),
 )
 
