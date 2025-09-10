@@ -4,9 +4,9 @@ from typing import Literal, cast
 
 import gymnasium as gym
 import tyro
-import wandb
 from typing_extensions import assert_never
 
+import wandb
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg

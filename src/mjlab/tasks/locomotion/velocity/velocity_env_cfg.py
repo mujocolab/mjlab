@@ -1,7 +1,6 @@
 import math
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 
-from mjlab.asset_zoo.terrains.flat_terrain import FLAT_TERRAIN_CFG
 from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
 from mjlab.managers.manager_term_config import ActionTermCfg as ActionTerm
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
@@ -11,43 +10,20 @@ from mjlab.managers.manager_term_config import RewardTermCfg as RewardTerm
 from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
-from mjlab.scene.scene_config import SceneCfg
-from mjlab.sensors import ContactSensorCfg
+from mjlab.scene import SceneCfg
 from mjlab.tasks.locomotion.velocity import mdp
+from mjlab.terrains import TerrainImporterCfg
+from mjlab.terrains.config import ROUGH_TERRAINS_CFG
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
-from mjlab.utils.spec_editor.spec_editor_config import LightCfg, TextureCfg
 
 ##
 # Scene.
 ##
 
-terrain_cfg = replace(FLAT_TERRAIN_CFG)
-terrain_cfg.textures = terrain_cfg.textures + (
-  TextureCfg(
-    name="skybox",
-    type="skybox",
-    builtin="gradient",
-    rgb1=(0.3, 0.5, 0.7),
-    rgb2=(0.1, 0.2, 0.3),
-    width=512,
-    height=3072,
-  ),
-)
-terrain_cfg.lights = terrain_cfg.lights + (
-  LightCfg(pos=(0, 0, 1.5), type="directional"),
-)
-
 SCENE_CFG = SceneCfg(
-  terrains={"floor": terrain_cfg},
-  sensors={
-    "feet_contact_forces": ContactSensorCfg(
-      entity_name="robot",
-      history_length=3,
-      track_air_time=True,
-      filter_expr=[".*calf"],
-      geom_filter_expr=[".*_foot_collision*"],
-    ),
-  },
+  terrain=TerrainImporterCfg(
+    terrain_type="generator", terrain_generator=ROUGH_TERRAINS_CFG
+  ),
 )
 
 ##
@@ -217,16 +193,6 @@ class RewardCfg:
     RewardTerm, func=mdp.flat_orientation_l2, weight=-5.0
   )
   dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
-  feet_air_time: RewardTerm = term(
-    RewardTerm,
-    func=mdp.feet_air_time,
-    weight=0.1,
-    params={
-      "sensor_cfg": SceneEntityCfg("feet_contact_forces"),
-      "command_name": "base_velocity",
-      "threshold": 0.1,
-    },
-  )
 
 
 # Terminations.
@@ -254,7 +220,7 @@ class CurriculumCfg:
 
 
 @dataclass
-class LocomotionVelocityFlatEnvCfg(ManagerBasedRlEnvCfg):
+class LocomotionVelocityEnvCfg(ManagerBasedRlEnvCfg):
   scene: SceneCfg = field(default_factory=lambda: SCENE_CFG)
   observations: ObservationCfg = field(default_factory=ObservationCfg)
   actions: ActionCfg = field(default_factory=ActionCfg)
@@ -270,7 +236,7 @@ class LocomotionVelocityFlatEnvCfg(ManagerBasedRlEnvCfg):
     self.sim.mujoco.integrator = "implicitfast"
     self.sim.mujoco.cone = "pyramidal"
     self.sim.mujoco.timestep = 0.005
-    self.sim.num_envs = 1
+    self.scene.num_envs = 1
     self.sim.nconmax = 40000
     self.sim.njmax = 100
     self.sim.mujoco.iterations = 10

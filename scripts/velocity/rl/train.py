@@ -6,7 +6,6 @@ from datetime import datetime
 from pathlib import Path
 
 import gymnasium as gym
-import torch
 import tyro
 from rsl_rl.runners import OnPolicyRunner
 
@@ -17,12 +16,7 @@ from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
 from mjlab.utils.os import dump_yaml, get_checkpoint_path
-
-# TODO(kevin): Make sure this does not interfere with seed_rng call in env.seed().
-torch.backends.cuda.matmul.allow_tf32 = True
-torch.backends.cudnn.allow_tf32 = True
-torch.backends.cudnn.deterministic = False
-torch.backends.cudnn.benchmark = False
+from mjlab.utils.torch import configure_torch_backends
 
 
 def main(
@@ -35,12 +29,14 @@ def main(
   video_length: int = 200,
   video_interval: int = 2000,
 ):
+  configure_torch_backends()
+
   env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
   agent_cfg = load_cfg_from_registry(task, "rl_cfg_entry_point")
   assert isinstance(env_cfg, ManagerBasedRlEnvCfg)
   assert isinstance(agent_cfg, RslRlOnPolicyRunnerCfg)
 
-  env_cfg.sim.num_envs = num_envs or env_cfg.sim.num_envs
+  env_cfg.scene.num_envs = num_envs or env_cfg.scene.num_envs
   agent_cfg.max_iterations = max_iterations or agent_cfg.max_iterations
   agent_cfg.seed = seed or agent_cfg.seed
 

@@ -9,7 +9,7 @@ import mujoco
 import numpy as np
 import torch
 
-from mjlab.entity.robots.robot import Robot
+from mjlab.entity import Entity
 from mjlab.managers.command_manager import CommandTerm
 from mjlab.managers.manager_term_config import CommandTermCfg
 from mjlab.third_party.isaaclab.isaaclab.utils.math import matrix_from_quat, wrap_to_pi
@@ -29,7 +29,7 @@ class UniformVelocityCommand(CommandTerm):
     if self.cfg.ranges.heading and not self.cfg.heading_command:
       raise ValueError("ranges.heading is set but heading_command=False.")
 
-    self.robot: Robot = env.scene[cfg.asset_name]
+    self.robot: Entity = env.scene[cfg.asset_name]
 
     self.vel_command_b = torch.zeros(self.num_envs, 3, device=self.device)
     self.heading_target = torch.zeros(self.num_envs, device=self.device)
