@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, Literal, ParamSpec, TypeVar
 
-import torch
+from mjlab.utils.noise.noise_cfg import NoiseCfg, NoiseModelCfg
 
 if TYPE_CHECKING:
   from mjlab.managers.action_manager import ActionTerm
@@ -19,7 +19,7 @@ def term(term_cls: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
 
 @dataclass
 class ManagerTermBaseCfg:
-  func: Callable
+  func: Any
   params: dict[str, Any] = field(default_factory=lambda: {})
 
 
@@ -88,7 +88,7 @@ class EventTermCfg(ManagerTermBaseCfg):
 class ObservationTermCfg(ManagerTermBaseCfg):
   """Configuration for an observation term."""
 
-  noise: Any | None = None
+  noise: NoiseCfg | NoiseModelCfg | None = None
   clip: tuple[float, float] | None = None
 
 
@@ -110,7 +110,7 @@ class ObservationGroupCfg:
 class RewardTermCfg(ManagerTermBaseCfg):
   """Configuration for a reward term."""
 
-  func: Callable[..., torch.Tensor]
+  func: Any
   weight: float
 
   # TODO(kevin): Sanity check weight is valid type.

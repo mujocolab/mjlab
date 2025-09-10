@@ -1,8 +1,16 @@
 # mjlab
 
+<p align="left">
+  <img alt="tests" src="https://github.com/mujocolab/mjlab/actions/workflows/ci.yml/badge.svg" />
+</p>
+
 > **⚠️ EXPERIMENTAL PREVIEW** 
 > 
 > This project is in very early experimental stages. APIs, features, and documentation are subject to significant changes. Use at your own risk and expect frequent breaking changes.
+>
+> **CUDA Compatibility Notice**
+>
+> Not all CUDA versions are currently supported. See [mujoco_warp#101](https://github.com/google-deepmind/mujoco_warp/issues/101) for details and updates.
 
 IsaacLab API with [MJWarp](https://github.com/google-deepmind/mujoco_warp) backend.
 
@@ -11,7 +19,7 @@ IsaacLab API with [MJWarp](https://github.com/google-deepmind/mujoco_warp) backe
 Clone `mjlab`:
 
 ```bash
-git clone git@github.com:kevinzakka/mjlab.git && cd mjlab
+git clone git@github.com:mujocolab/mjlab.git && cd mjlab
 ```
 
 ### Using uv
@@ -53,13 +61,21 @@ MUJOCO_GL=egl uv run scripts/tracking/data/csv_to_npz.py \
 ### Running tests
 
 ```bash
-uv run pytest
+make test
 ```
 
 ### Code formatting and linting
 
+You can install a pre-commit hook:
+
 ```bash
 uvx pre-commit install
+```
+
+or manually format with:
+
+```
+make format
 ```
 
 ## License

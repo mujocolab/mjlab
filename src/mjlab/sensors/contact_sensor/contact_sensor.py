@@ -22,11 +22,12 @@ class ContactSensor(SensorBase):
   def __init__(self, cfg: ContactSensorCfg):
     super().__init__(cfg)
 
-    self._data = ContactSensorData()
+    self._data: ContactSensorData | None = None
 
   @property
   def data(self) -> ContactSensorData:
     self._update_outdated_buffers()
+    assert self._data is not None
     return self._data
 
   @property
@@ -54,6 +55,8 @@ class ContactSensor(SensorBase):
   def compute_first_contact(self, dt: float, abs_tol: float = 1.0e-8) -> torch.Tensor:
     if not self.cfg.track_air_time:
       raise RuntimeError()
+    assert self.data.current_contact_time is not None
+    assert self.data.current_air_time is not None
     currently_in_contact = self.data.current_contact_time > 0.0
     less_than_dt_in_contact = self.data.current_contact_time < (dt + abs_tol)
     return currently_in_contact * less_than_dt_in_contact
@@ -61,6 +64,7 @@ class ContactSensor(SensorBase):
   def compute_first_air(self, dt: float, abs_tol: float = 1.0e-8) -> torch.Tensor:
     if not self.cfg.track_air_time:
       raise RuntimeError()
+    assert self.data.current_air_time is not None
     currently_detached = self.data.current_air_time > 0.0
     less_than_dt_detached = self.data.current_air_time < (dt + abs_tol)
     return currently_detached * less_than_dt_detached
@@ -106,11 +110,9 @@ class ContactSensor(SensorBase):
     self.geom_to_body_map = torch.tensor(geom_to_body_map, device=device)
 
     # Prepare data buffers.
-    self._data.net_forces_w = torch.zeros(
-      self._num_envs, self._num_bodies, 3, device=self._device
-    )
+    net_forces_w = torch.zeros(self._num_envs, self._num_bodies, 3, device=self._device)
     if self.cfg.history_length > 0:
-      self._data.net_forces_w_history = torch.zeros(
+      net_forces_w_history = torch.zeros(
         self._num_envs,
         self.cfg.history_length,
         self._num_bodies,
@@ -118,28 +120,47 @@ class ContactSensor(SensorBase):
         device=self._device,
       )
     else:
-      self._data.net_forces_w_history = self._data.net_forces_w.unsqueeze(1)
+      net_forces_w_history = net_forces_w.unsqueeze(1)
     if self.cfg.track_air_time:
-      self._data.last_air_time = torch.zeros(
-        self._num_envs, self._num_bodies, device=self._device
+      self._data = ContactSensorData(
+        net_forces_w=net_forces_w,
+        net_forces_w_history=net_forces_w_history,
+        last_air_time=torch.zeros(
+          self._num_envs, self._num_bodies, device=self._device
+        ),
+        current_air_time=torch.zeros(
+          self._num_envs, self._num_bodies, device=self._device
+        ),
+        last_contact_time=torch.zeros(
+          self._num_envs, self._num_bodies, device=self._device
+        ),
+        current_contact_time=torch.zeros(
+          self._num_envs, self._num_bodies, device=self._device
+        ),
       )
-      self._data.current_air_time = torch.zeros(
-        self._num_envs, self._num_bodies, device=self._device
-      )
-      self._data.last_contact_time = torch.zeros(
-        self._num_envs, self._num_bodies, device=self._device
-      )
-      self._data.current_contact_time = torch.zeros(
-        self._num_envs, self._num_bodies, device=self._device
+    else:
+      self._data = ContactSensorData(
+        net_forces_w=net_forces_w,
+        net_forces_w_history=net_forces_w_history,
+        last_air_time=None,
+        current_air_time=None,
+        last_contact_time=None,
+        current_contact_time=None,
       )
 
   def reset(self, env_ids: torch.Tensor | slice | None = None):
     super().reset(env_ids)
     if env_ids is None:
       env_ids = slice(None)
+
+    assert self._data is not None
     self._data.net_forces_w[env_ids] = 0.0
     self._data.net_forces_w_history[env_ids] = 0.0
     if self.cfg.track_air_time:
+      assert self._data.current_air_time is not None
+      assert self._data.last_air_time is not None
+      assert self._data.current_contact_time is not None
+      assert self._data.last_contact_time is not None
       self._data.current_air_time[env_ids] = 0.0
       self._data.last_air_time[env_ids] = 0.0
       self._data.current_contact_time[env_ids] = 0.0
@@ -151,6 +172,7 @@ class ContactSensor(SensorBase):
     #   env_ids = slice(None)
     if env_ids is None:
       env_ids = slice(None)
+    assert self._data is not None
     self._data.net_forces_w[env_ids] = 0.0
     self._compute_contact_forces(env_ids)
     self._update_force_history(env_ids)
@@ -159,6 +181,7 @@ class ContactSensor(SensorBase):
 
   def _compute_contact_forces(self, env_ids):
     """Compute net contact forces for each body from geom contacts."""
+    assert self._data is not None
     body_forces = torch.zeros(
       (len(self._body_ids), 3), device=self._device, dtype=self._data.net_forces_w.dtype
     )
@@ -201,8 +224,8 @@ class ContactSensor(SensorBase):
     force = wp.zeros(num_contacts, dtype=wp.spatial_vector)  # type: ignore
     contact_ids = wp.from_torch(valid_contacts["indices"].int(), dtype=wp.int32)
     mjwarp.contact_force(
-      m=self._wp_model.struct,
-      d=self._wp_data.struct,
+      m=self._wp_model.struct,  # type: ignore
+      d=self._wp_data.struct,  # type: ignore
       contact_ids=contact_ids,
       to_world_frame=True,
       force=force,
@@ -217,6 +240,7 @@ class ContactSensor(SensorBase):
 
   def _update_force_history(self, env_ids):
     """Update force history buffer if configured."""
+    assert self._data is not None
     if self.cfg.history_length > 0:
       history = self._data.net_forces_w_history[env_ids]
       self._data.net_forces_w_history[env_ids] = history.roll(1, dims=1)
@@ -224,6 +248,7 @@ class ContactSensor(SensorBase):
 
   def _update_contact_timing(self, env_ids):
     """Track air and contact time for each body."""
+    assert self._data is not None
     elapsed_time = self._timestamp[env_ids] - self._timestamp_last_update[env_ids]
     elapsed_time = elapsed_time.unsqueeze(-1)
 
@@ -232,6 +257,8 @@ class ContactSensor(SensorBase):
     is_contact = force_magnitudes > self.cfg.force_threshold
 
     # Detect state transitions.
+    assert self._data.current_air_time is not None
+    assert self._data.current_contact_time is not None
     is_first_contact = (self._data.current_air_time[env_ids] > 0) * is_contact
     is_first_detached = (self._data.current_contact_time[env_ids] > 0) * ~is_contact
 
@@ -241,6 +268,9 @@ class ContactSensor(SensorBase):
   def _update_air_time(self, env_ids, elapsed_time, is_contact, is_first_contact):
     """Update air time counters."""
     # Save total air time when first making contact.
+    assert self._data is not None
+    assert self._data.current_air_time is not None
+    assert self._data.last_air_time is not None
     self._data.last_air_time[env_ids] = torch.where(
       is_first_contact,
       self._data.current_air_time[env_ids] + elapsed_time,
@@ -257,6 +287,9 @@ class ContactSensor(SensorBase):
   def _update_contact_time(self, env_ids, elapsed_time, is_contact, is_first_detached):
     """Update contact time counters."""
     # Save total contact time when first detaching.
+    assert self._data is not None
+    assert self._data.current_contact_time is not None
+    assert self._data.last_contact_time is not None
     self._data.last_contact_time[env_ids] = torch.where(
       is_first_detached,
       self._data.current_contact_time[env_ids] + elapsed_time,

@@ -43,7 +43,7 @@ class TensorProxyTest(absltest.TestCase):
 
   def test_torch_func_interception(self):
     """Test that torch functions work with TensorProxy."""
-    result = torch.sum(self.proxy)
+    result = torch.sum(self.proxy)  # type: ignore
     expected = torch.sum(self.proxy._tensor)
     self.assertTrue(torch.allclose(result, expected))
 
@@ -75,7 +75,7 @@ class WarpTensorTest(absltest.TestCase):
     """Test setting array from PyTorch tensor."""
     new_tensor = torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], device=self.device)
     self.warp_tensor.qpos = new_tensor
-    self.assertTrue(torch.allclose(self.warp_tensor.qpos._tensor, new_tensor))
+    self.assertTrue(torch.allclose(self.warp_tensor.qpos._tensor, new_tensor))  # type: ignore
 
   def test_end_to_end_workflow(self):
     """Test a realistic usage workflow."""

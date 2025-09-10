@@ -17,10 +17,9 @@ if TYPE_CHECKING:
 class ActionTerm(ManagerTermBase):
   """Base class for action terms."""
 
-  cfg: ActionTermCfg
-
   def __init__(self, cfg: ActionTermCfg, env: ManagerBasedEnv):
-    super().__init__(cfg, env)
+    self.cfg = cfg
+    super().__init__(env)
     self._asset = self._env.scene[self.cfg.asset_name]
 
   @property
@@ -44,7 +43,8 @@ class ActionTerm(ManagerTermBase):
 
 class ActionManager(ManagerBase):
   def __init__(self, cfg: object, env: ManagerBasedEnv):
-    super().__init__(cfg=cfg, env=env)
+    self.cfg = cfg
+    super().__init__(env=env)
 
     # Create buffers to store actions.
     self._action = torch.zeros(

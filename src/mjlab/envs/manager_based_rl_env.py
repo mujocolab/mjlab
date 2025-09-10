@@ -71,8 +71,9 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
     self._configure_gym_env_spaces()
     if "startup" in self.event_manager.available_modes:
       self.event_manager.apply(mode="startup")
+      self.sim.create_graph()
 
-  def step(self, action: torch.Tensor) -> types.VecEnvStepReturn:
+  def step(self, action: torch.Tensor) -> types.VecEnvStepReturn:  # pyright: ignore[reportIncompatibleMethodOverride]
     self.action_manager.process_action(action.to(self.device))
 
     for _ in range(self.cfg.decimation):
@@ -138,10 +139,12 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
       has_concatenated_obs = self.observation_manager.group_obs_concatenate[group_name]
       group_dim = self.observation_manager.group_obs_dim[group_name]
       if has_concatenated_obs:
+        assert isinstance(group_dim, tuple)
         self.single_observation_space[group_name] = gym.spaces.Box(
           low=-math.inf, high=math.inf, shape=group_dim
         )
       else:
+        assert not isinstance(group_dim, tuple)
         group_term_cfgs = self.observation_manager._group_obs_term_cfgs[group_name]
         for term_name, term_dim, _term_cfg in zip(
           group_term_names, group_dim, group_term_cfgs, strict=False
@@ -162,7 +165,7 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
       self.single_action_space, self.num_envs
     )
 
-  def _reset_idx(self, env_ids: torch.Tensor | slice | None = None) -> None:
+  def _reset_idx(self, env_ids: torch.Tensor | None = None) -> None:
     self.curriculum_manager.compute(env_ids=env_ids)
     # Reset the internal buffers of the scene elements.
     self.scene.reset(env_ids)

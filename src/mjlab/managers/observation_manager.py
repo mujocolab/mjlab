@@ -12,11 +12,14 @@ from mjlab.utils.noise import noise_cfg, noise_model
 
 class ObservationManager(ManagerBase):
   def __init__(self, cfg: object, env):
-    super().__init__(cfg=cfg, env=env)
+    self.cfg = cfg
+    super().__init__(env=env)
 
     self._group_obs_dim: dict[str, tuple[int, ...] | list[tuple[int, ...]]] = dict()
+
     for group_name, group_term_dims in self._group_obs_term_dim.items():
       if self._group_obs_concatenate[group_name]:
+        # All observation terms will be concatenated.
         try:
           term_dims = torch.stack(
             [torch.tensor(dims, device="cpu") for dims in group_term_dims], dim=0
@@ -37,6 +40,8 @@ class ObservationManager(ManagerBase):
             f"Unable to concatenate observation terms in group {group_name}."
           ) from None
       else:
+        # Observation terms will be returned as a dictionary; we will store a
+        # list of their dimensions.
         self._group_obs_dim[group_name] = group_term_dims
 
     self._obs_buffer: dict[str, torch.Tensor | dict[str, torch.Tensor]] | None = None
@@ -69,16 +74,20 @@ class ObservationManager(ManagerBase):
 
     if self._obs_buffer is None:
       self.compute()
+    assert self._obs_buffer is not None
     obs_buffer: dict[str, torch.Tensor | dict[str, torch.Tensor]] = self._obs_buffer
 
     for group_name, _ in self.group_obs_dim.items():
       if not self.group_obs_concatenate[group_name]:
-        for name, term in obs_buffer[group_name].items():
+        buffers = obs_buffer[group_name]
+        assert isinstance(buffers, dict)
+        for name, term in buffers.items():
           terms.append((group_name + "-" + name, term[env_idx].cpu().tolist()))
         continue
 
       idx = 0
       data = obs_buffer[group_name]
+      assert isinstance(data, torch.Tensor)
       for name, shape in zip(
         self._group_obs_term_names[group_name],
         self._group_obs_term_dim[group_name],
@@ -94,7 +103,7 @@ class ObservationManager(ManagerBase):
   # Properties.
 
   @property
-  def active_terms(self) -> list[str] | dict[str, list[str]]:
+  def active_terms(self) -> dict[str, list[str]]:
     return self._group_obs_term_names
 
   @property
@@ -116,12 +125,12 @@ class ObservationManager(ManagerBase):
       for term_cfg in group_cfg:
         term_cfg.func.reset(env_ids=env_ids)
       # TODO: History.
-    for mod in self._group_obs_class_instances:
+    for mod in self._group_obs_class_instances.values():
       mod.reset(env_ids=env_ids)
     return {}
 
   def compute(self) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
-    obs_buffer = dict()
+    obs_buffer: dict[str, torch.Tensor | dict[str, torch.Tensor]] = dict()
     for group_name in self._group_obs_term_names:
       obs_buffer[group_name] = self.compute_group(group_name)
     self._obs_buffer = obs_buffer
@@ -129,19 +138,16 @@ class ObservationManager(ManagerBase):
 
   def compute_group(self, group_name: str) -> torch.Tensor | dict[str, torch.Tensor]:
     group_term_names = self._group_obs_term_names[group_name]
-    group_obs = dict.fromkeys(group_term_names, None)
+    group_obs: dict[str, torch.Tensor] = {}
     obs_terms = zip(
       group_term_names, self._group_obs_term_cfgs[group_name], strict=False
     )
     for term_name, term_cfg in obs_terms:
       obs: torch.Tensor = term_cfg.func(self._env, **term_cfg.params).clone()
       if isinstance(term_cfg.noise, noise_cfg.NoiseCfg):
-        obs = term_cfg.noise.func(obs, term_cfg.noise)
-      elif (
-        isinstance(term_cfg.noise, noise_cfg.NoiseModelCfg)
-        and term_cfg.noise.func is not None
-      ):
-        obs = term_cfg.noise.func(obs)
+        obs = term_cfg.noise.apply(obs)
+      elif isinstance(term_cfg.noise, noise_cfg.NoiseModelCfg):
+        obs = self._group_obs_class_instances[term_name](obs)
       group_obs[term_name] = obs
     if self._group_obs_concatenate[group_name]:
       return torch.cat(
@@ -156,7 +162,7 @@ class ObservationManager(ManagerBase):
     self._group_obs_class_term_cfgs: dict[str, list[ObservationTermCfg]] = dict()
     self._group_obs_concatenate: dict[str, bool] = dict()
     self._group_obs_concatenate_dim: dict[str, int] = dict()
-    self._group_obs_class_instances: list[noise_model.NoiseModel] = list()
+    self._group_obs_class_instances: dict[str, noise_model.NoiseModel] = {}
 
     group_cfg_items = get_terms(self.cfg, ObservationGroupCfg).items()
     for group_name, group_cfg in group_cfg_items:
@@ -198,13 +204,11 @@ class ObservationManager(ManagerBase):
           term_cfg.noise, noise_cfg.NoiseModelCfg
         ):
           noise_model_cls = term_cfg.noise.class_type
-          if not issubclass(noise_model_cls, noise_model.NoiseModel):
-            raise TypeError(
-              f"Class type for observation term '{term_name}' NoiseModelCfg"
-              f" is not a subclass of 'NoiseModel'. Received: '{type(noise_model_cls)}'."
-            )
-          # Initialize func to be the noise model class instance.
-          term_cfg.noise.func = noise_model_cls(
+          assert issubclass(noise_model_cls, noise_model.NoiseModel), (
+            f"Class type for observation term '{term_name}' NoiseModelCfg"
+            f" is not a subclass of 'NoiseModel'. Received: '{type(noise_model_cls)}'."
+          )
+          # Create and store noise model instance.
+          self._group_obs_class_instances[term_name] = noise_model_cls(
             term_cfg.noise, num_envs=self._env.num_envs, device=self._env.device
           )
-          self._group_obs_class_instances.append(term_cfg.noise.func)

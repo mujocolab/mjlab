@@ -108,11 +108,15 @@ def reset_joints_by_scale(
   joint_pos_limits = soft_joint_pos_limits[env_ids][:, asset_cfg.joint_ids]
   joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
 
+  joint_ids = asset_cfg.joint_ids
+  if isinstance(joint_ids, list):
+    joint_ids = torch.tensor(joint_ids, device=env.device)
+
   asset.write_joint_state_to_sim(
     joint_pos.view(len(env_ids), -1),
     joint_vel.view(len(env_ids), -1),
     env_ids=env_ids,
-    joint_ids=asset_cfg.joint_ids,
+    joint_ids=joint_ids,
   )
 
 
@@ -218,6 +222,8 @@ def randomize_field(
 
   if env_ids is None:
     env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
+  else:
+    env_ids = env_ids.to(env.device, dtype=torch.int)
 
   model_field = getattr(env.sim.model, field)
 
@@ -444,12 +450,19 @@ def randomize_actuator_gains(
 
   if env_ids is None:
     env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
+  else:
+    env_ids = env_ids.to(env.device, dtype=torch.int)
 
   local_act_ids = resolve_matching_names(
     asset.actuator_names, asset.joint_actuators, True
   )[0]
   act_ids = torch.tensor(
     [indexing.actuator_local2global[lid] for lid in local_act_ids],
+    dtype=torch.int,
+    device=env.device,
+  )
+  local_act_ids = torch.tensor(
+    local_act_ids,
     dtype=torch.int,
     device=env.device,
   )

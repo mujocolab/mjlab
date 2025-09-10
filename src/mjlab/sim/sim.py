@@ -48,19 +48,7 @@ class Simulation:
     self.use_cuda_graph = self.wp_device.is_cuda and wp.is_mempool_enabled(
       self.wp_device
     )
-    if self.use_cuda_graph:
-      with wp.ScopedCapture() as capture:
-        mjwarp.step(self.wp_model, self.wp_data)
-      self.step_graph = capture.graph
-    else:
-      self.step_graph = None
-
-    if self.use_cuda_graph:
-      with wp.ScopedCapture() as capture:
-        mjwarp.forward(self.wp_model, self.wp_data)
-      self.forward_graph = capture.graph
-    else:
-      self.forward_graph = None
+    self.create_graph()
 
     self._mj_model.vis.global_.offheight = self.cfg.render.height
     self._mj_model.vis.global_.offwidth = self.cfg.render.width
@@ -76,6 +64,17 @@ class Simulation:
     self._renderer = mujoco.Renderer(
       model=self._mj_model, height=self.cfg.render.height, width=self.cfg.render.height
     )
+
+  def create_graph(self) -> None:
+    self.step_graph = None
+    self.forward_graph = None
+    if self.use_cuda_graph:
+      with wp.ScopedCapture() as capture:
+        mjwarp.step(self.wp_model, self.wp_data)
+      self.step_graph = capture.graph
+      with wp.ScopedCapture() as capture:
+        mjwarp.forward(self.wp_model, self.wp_data)
+      self.forward_graph = capture.graph
 
   # Properties.
 
@@ -124,15 +123,13 @@ class Simulation:
     pass
 
   def forward(self) -> None:
-    if self.use_cuda_graph:
-      assert self.forward_graph is not None
+    if self.use_cuda_graph and self.forward_graph is not None:
       wp.capture_launch(self.forward_graph)
     else:
       mjwarp.forward(self.wp_model, self.wp_data)
 
   def step(self) -> None:
-    if self.use_cuda_graph:
-      assert self.step_graph is not None
+    if self.use_cuda_graph and self.step_graph is not None:
       wp.capture_launch(self.step_graph)
     else:
       mjwarp.step(self.wp_model, self.wp_data)

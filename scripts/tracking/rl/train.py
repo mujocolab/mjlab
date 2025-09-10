@@ -1,13 +1,14 @@
 """Script to train RL agent with RSL-RL."""
 
 import os
+import pathlib
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
-from typing import cast
 
 import gymnasium as gym
 import tyro
+import wandb
 
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
@@ -17,8 +18,6 @@ from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
 )
 from mjlab.utils.os import dump_yaml, get_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
-
-_HERE = Path(__file__).parent
 
 
 def main(
@@ -34,17 +33,14 @@ def main(
 ):
   configure_torch_backends()
 
-  env_cfg = cast(TrackingEnvCfg, load_cfg_from_registry(task, "env_cfg_entry_point"))
-  agent_cfg = cast(
-    RslRlOnPolicyRunnerCfg, load_cfg_from_registry(task, "rl_cfg_entry_point")
-  )
+  env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
+  agent_cfg = load_cfg_from_registry(task, "rl_cfg_entry_point")
+  assert isinstance(env_cfg, TrackingEnvCfg)
+  assert isinstance(agent_cfg, RslRlOnPolicyRunnerCfg)
 
   # Check if the registry name includes alias, if not, append ":latest".
   if ":" not in registry_name:
     registry_name += ":latest"
-  import pathlib
-
-  import wandb
 
   api = wandb.Api()
   artifact = api.artifact(registry_name)
@@ -61,7 +57,7 @@ def main(
   env_cfg.sim.device = device or env_cfg.sim.device
 
   # Specify directory for logging experiments.
-  log_root_path = _HERE / "logs" / "rsl_rl" / agent_cfg.experiment_name
+  log_root_path = Path("logs") / "rsl_rl" / agent_cfg.experiment_name
   log_root_path.resolve()
   print(f"[INFO] Logging experiment in directory: {log_root_path}")
   log_dir = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -70,9 +66,10 @@ def main(
   log_dir = log_root_path / log_dir
 
   # Create env.
-  env = gym.make(task, cfg=env_cfg)
+  env = gym.make(task, cfg=env_cfg, render_mode="rgb_array" if video else None)
 
   # Save resume path before creating a new log_dir.
+  resume_path = None
   if agent_cfg.resume:
     resume_path = get_checkpoint_path(
       log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint

@@ -1,23 +1,47 @@
-"""Viewer based on the passive MuJoCo viewer."""
+"""Environment viewer built on MuJoCo's passive viewer."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from collections import deque
+from dataclasses import dataclass
+from threading import Lock
+from typing import TYPE_CHECKING, Callable, Optional
 
 import mujoco
 import mujoco.viewer
 import numpy as np
 import torch
 
-from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
+from mjlab.viewer.base import (
+  BaseViewer,
+  EnvProtocol,
+  PolicyProtocol,
+  VerbosityLevel,
+  ViewerAction,
+)
 
 if TYPE_CHECKING:
   from mjlab.entities import Robot
 
 
-class NativeMujocoViewer(BaseViewer):
-  """Native MuJoCo viewer implementation using mujoco.viewer with enhanced timing."""
+@dataclass(frozen=True)
+class PlotCfg:
+  """Reward plot configuration."""
 
+  history: int = 300  # Points kept per series.
+  p_lo: float = 2.0  # Percentile low.
+  p_hi: float = 98.0  # Percentile high.
+  pad: float = 0.25  # Pad % of span on both sides.
+  min_span: float = 1e-6  # Minimum vertical span.
+  init_yrange: tuple[float, float] = (-0.01, 0.01)  # Initial y-range.
+  grid_size: tuple[int, int] = (3, 4)  # Grid size (rows, columns).
+  max_viewports: int = 12  # Cap number of plots shown.
+  max_rows_per_col: int = 6  # Stack up to this many per column.
+  plot_strip_fraction: float = 1 / 3  # Right-side width reserved for plots.
+  background_alpha: float = 0.5  # Background alpha for plots.
+
+
+class NativeMujocoViewer(BaseViewer):
   def __init__(
     self,
     env: EnvProtocol,
@@ -25,269 +49,335 @@ class NativeMujocoViewer(BaseViewer):
     frame_rate: float = 60.0,
     render_all_envs: bool = True,
     key_callback: Optional[Callable[[int], None]] = None,
+    plot_cfg: PlotCfg | None = None,
     enable_perturbations: bool = True,
     verbosity: VerbosityLevel = VerbosityLevel.SILENT,
   ):
-    """Initialize the native MuJoCo viewer.
-
-    Args:
-      env: The environment to visualize.
-      policy: The policy to use for action generation.
-      frame_rate: Target frame rate for visualization.
-      render_all_envs: Whether to render all environments or just one.
-      key_callback: Optional callback for keyboard input.
-      enable_perturbations: Whether to enable interactive perturbations.
-    """
     super().__init__(env, policy, frame_rate, render_all_envs, verbosity)
-
-    self.key_callback = key_callback
+    self.user_key_callback = key_callback
     self.enable_perturbations = enable_perturbations
 
     self.mjm: Optional[mujoco.MjModel] = None
     self.mjd: Optional[mujoco.MjData] = None
     self.viewer: Optional[mujoco.viewer.Handle] = None
     self.vd: Optional[mujoco.MjData] = None
-    self.pert: Optional[mujoco.MjvPerturb] = None
     self.vopt: Optional[mujoco.MjvOption] = None
-    self.catmask: Optional[int] = None
+    self.pert: Optional[mujoco.MjvPerturb] = None
+    self.catmask: int = mujoco.mjtCatBit.mjCAT_DYNAMIC.value
+    self._env_origins: Optional[np.ndarray] = None
+
+    self._term_names: list[str] = []
+    self._figures: dict[str, mujoco.MjvFigure] = {}  # Per-term figure.
+    self._histories: dict[str, deque[float]] = {}  # Per-term ring buffer.
+    self._yrange: dict[str, tuple[float, float]] = {}  # Per-term y-range.
+    self._show_plots: bool = True
+    self._plot_cfg = plot_cfg or PlotCfg()
 
     self.env_idx = 0
+    self._mj_lock = Lock()
 
-    self._setup_default_callbacks()
+  def setup(self) -> None:
+    """Setup MuJoCo viewer resources."""
+    sim = self.env.unwrapped.sim
+    self.mjm = sim.mj_model
+    self.mjd = sim.mj_data
 
-  def _setup_default_callbacks(self) -> None:
-    """Setup default key callbacks with enhanced controls."""
+    if self.render_all_envs and self.env.unwrapped.num_envs > 1:
+      assert self.mjm is not None
+      self.vd = mujoco.MjData(self.mjm)
+
+    self.pert = mujoco.MjvPerturb() if self.enable_perturbations else None
+    self.vopt = mujoco.MjvOption()
+    self._env_origins = compute_env_origins_grid(sim.num_envs, env_spacing=2.0)
+
+    # self._term_names = [
+    #   name
+    #   for name, _ in self.env.unwrapped.reward_manager.get_active_iterable_terms(
+    #     self.env_idx
+    #   )
+    # ]
+    # self._init_reward_plots(self._term_names)
+
+    assert self.mjm is not None
+    assert self.mjd is not None
+    self.viewer = mujoco.viewer.launch_passive(
+      self.mjm,
+      self.mjd,
+      key_callback=self._safe_key_callback,
+      show_left_ui=False,
+      show_right_ui=False,
+    )
+    if self.viewer is None:
+      raise RuntimeError("Failed to launch MuJoCo viewer")
+
+    self._setup_camera()
+
+    if self.enable_perturbations:
+      self.log("[INFO] Interactive perturbations enabled", VerbosityLevel.INFO)
+
+  def is_running(self) -> bool:
+    return bool(self.viewer and self.viewer.is_running())
+
+  def sync_env_to_viewer(self) -> None:
+    """Copy env state to viewer; update reward figures; render other envs."""
+    v = self.viewer
+    assert v is not None
+    assert self.mjm is not None and self.mjd is not None and self.vopt is not None
+
+    with self._mj_lock:
+      sim_data = self.env.unwrapped.sim.data
+      self.mjd.qpos[:] = sim_data.qpos[self.env_idx].cpu().numpy()
+      self.mjd.qvel[:] = sim_data.qvel[self.env_idx].cpu().numpy()
+      mujoco.mj_forward(self.mjm, self.mjd)
+
+      # text_1 = "Env\nStep\nStatus\nSpeed\nFPS"
+      # text_2 = (
+      #   f"{self.env_idx + 1}/{self.env.num_envs}\n"
+      #   f"{self._step_count}\n"
+      #   f"{'PAUSED' if self._is_paused else 'RUNNING'}\n"
+      #   f"{self._time_multiplier * 100:.1f}%\n"
+      #   f"{self._smoothed_fps:.1f}"
+      # )
+      # overlay = (
+      #   mujoco.mjtFontScale.mjFONTSCALE_150.value,
+      #   mujoco.mjtGridPos.mjGRID_TOPLEFT.value,
+      #   text_1,
+      #   text_2,
+      # )
+      # v.set_texts(overlay)
+
+      # if self._show_plots and self._term_names:
+      #   terms = list(
+      #     self.env.unwrapped.reward_manager.get_active_iterable_terms(self.env_idx)
+      #   )
+      #   if not self._is_paused:
+      #     for name, arr in terms:
+      #       if name in self._histories:
+      #         self._append_point(name, float(arr[0]))
+      #         self._write_history_to_figure(name)
+
+      #   viewports = compute_viewports(len(self._term_names), v.viewport, self._plot_cfg)
+      #   viewport_figs = [
+      #     (viewports[i], self._figures[self._term_names[i]])
+      #     for i in range(
+      #       min(len(viewports), len(self._term_names), self._plot_cfg.max_viewports)
+      #     )
+      #   ]
+      #   v.set_figures(viewport_figs)
+      # else:
+      #   v.set_figures([])
+
+      v.user_scn.ngeom = 0
+      if hasattr(self.env.unwrapped, "update_visualizers"):
+        self.env.unwrapped.update_visualizers(v.user_scn)
+
+      if self.render_all_envs and self.vd is not None and self._env_origins is not None:
+        for i in range(self.env.unwrapped.num_envs):
+          if i == self.env_idx:
+            continue
+          self.vd.qpos[:] = sim_data.qpos[i].cpu().numpy()
+          self.vd.qvel[:] = sim_data.qvel[i].cpu().numpy()
+          self.vd.qpos[:3] += self._env_origins[i]
+          mujoco.mj_forward(self.mjm, self.vd)
+          assert self.pert is not None
+          mujoco.mjv_addGeoms(
+            self.mjm, self.vd, self.vopt, self.pert, self.catmask, v.user_scn
+          )
+
+      v.sync(state_only=True)
+
+  def sync_viewer_to_env(self) -> None:
+    """Copy perturbation forces from viewer to env (when not paused)."""
+    if not (self.enable_perturbations and not self._is_paused and self.mjd):
+      return
+    with self._mj_lock:
+      xfrc = torch.as_tensor(
+        self.mjd.xfrc_applied, dtype=torch.float, device=self.env.device
+      )
+    self.env.unwrapped.sim.data.xfrc_applied[:] = xfrc[None]
+
+  def close(self) -> None:
+    """Close viewer and cleanup."""
+    v = self.viewer
+    self.viewer = None
+    if v:
+      try:
+        if v.is_running():
+          v.close()
+      except Exception as e:
+        self.log(f"[WARN] Error while closing viewer: {e}", VerbosityLevel.INFO)
+    self.log("[INFO] MuJoCo viewer closed", VerbosityLevel.INFO)
+
+  def reset_environment(self) -> None:
+    """Extend BaseViewer.reset_environment to clear reward histories."""
+    super().reset_environment()
+    self._clear_histories()
+
+  def _safe_key_callback(self, key: int) -> None:
+    """Runs on MuJoCo viewer thread; must not touch env/sim directly."""
     from mjlab.viewer.keys import (
       KEY_COMMA,
       KEY_ENTER,
       KEY_EQUAL,
       KEY_MINUS,
+      KEY_P,
       KEY_PERIOD,
       KEY_SPACE,
     )
 
-    self.KEY_ENTER = KEY_ENTER
-    self.KEY_SPACE = KEY_SPACE
-    self.KEY_COMMA = KEY_COMMA
-    self.KEY_PERIOD = KEY_PERIOD
-    self.KEY_MINUS = KEY_MINUS
-    self.KEY_EQUAL = KEY_EQUAL
+    if key == KEY_ENTER:
+      self.request_reset()
+    elif key == KEY_SPACE:
+      self.request_toggle_pause()
+    elif key == KEY_MINUS:
+      self.request_speed_down()
+    elif key == KEY_EQUAL:
+      self.request_speed_up()
+    elif key == KEY_COMMA:
+      self.request_action("PREV_ENV")
+    elif key == KEY_PERIOD:
+      self.request_action("NEXT_ENV")
+    elif key == KEY_P:
+      self.request_action("TOGGLE_PLOTS")
 
-    # Create wrapper callback that includes default handlers.
-    original_callback = self.key_callback
+    if self.user_key_callback:
+      try:
+        self.user_key_callback(key)
+      except Exception as e:
+        self.log(f"[WARN] user key_callback raised: {e}", VerbosityLevel.INFO)
 
-    def combined_callback(key: int) -> None:
-      if key == self.KEY_ENTER:
-        self.log("RESET: Environment reset triggered")
-        self.reset_environment()
+  def _handle_custom_action(self, action, payload) -> bool:
+    if action == ViewerAction.PREV_ENV and self.env.unwrapped.num_envs > 1:
+      self.env_idx = (self.env_idx - 1) % self.env.unwrapped.num_envs
+      self._clear_histories()
+      self.log(f"[INFO] Switched to environment {self.env_idx}", VerbosityLevel.INFO)
+      return True
+    elif action == ViewerAction.NEXT_ENV and self.env.unwrapped.num_envs > 1:
+      self.env_idx = (self.env_idx + 1) % self.env.unwrapped.num_envs
+      self._clear_histories()
+      self.log(f"[INFO] Switched to environment {self.env_idx}", VerbosityLevel.INFO)
+      return True
+    else:
+      if hasattr(action, "value") and action.value == "custom":
+        if payload == "TOGGLE_PLOTS" or payload is None:
+          self._show_plots = not self._show_plots
+          self.log(
+            f"[INFO] Reward plots {'shown' if self._show_plots else 'hidden'}",
+            VerbosityLevel.INFO,
+          )
+          return True
+    return False
 
-      elif key == self.KEY_SPACE:
-        self.toggle_pause()
-
-      elif key == self.KEY_MINUS:
-        # new_multiplier = self._time_multiplier * 0.5
-        # self.set_time_multiplier(new_multiplier)
-        self.decrease_speed()
-
-      elif key == self.KEY_EQUAL:
-        # new_multiplier = self._time_multiplier * 2.0
-        # self.set_time_multiplier(new_multiplier)
-        self.increase_speed()
-
-      elif key == self.KEY_COMMA:
-        # Previous environment (if multiple envs).
-        if self.env.unwrapped.num_envs > 1:
-          self.env_idx = (self.env_idx - 1) % self.env.unwrapped.num_envs
-          self.log(f"[INFO] Switched to environment {self.env_idx}")
-
-      elif key == self.KEY_PERIOD:
-        # Next environment (if multiple envs).
-        if self.env.unwrapped.num_envs > 1:
-          self.env_idx = (self.env_idx + 1) % self.env.unwrapped.num_envs
-          self.log(f"[INFO] Switched to environment {self.env_idx}")
-
-      # User-provided callback.
-      if original_callback:
-        original_callback(key)
-
-    self.key_callback = combined_callback
-
-  def setup(self) -> None:
-    """Setup the MuJoCo viewer resources."""
-    self._is_running = True
-
-    # Get MuJoCo model and data from environment.
-    sim = self.env.unwrapped.sim
-    self.mjm = sim.mj_model
-    self.mjd = sim.mj_data
-
-    # Create visualization data for rendering multiple environments.
-    if self.render_all_envs and self.env.unwrapped.num_envs > 1:
-      self.vd = mujoco.MjData(self.mjm)
-
-    # Setup visualization options.
-    self.pert = mujoco.MjvPerturb() if self.enable_perturbations else None
-    self.vopt = mujoco.MjvOption()
-    self.catmask = mujoco.mjtCatBit.mjCAT_DYNAMIC.value
-
-    self._env_origins = compute_env_origins_grid(sim.num_envs, env_spacing=2.0)
-
-    self.viewer = mujoco.viewer.launch_passive(
-      self.mjm, self.mjd, key_callback=self.key_callback
-    )
-    if self.viewer is None:
-      raise RuntimeError("Failed to launch MuJoCo viewer")
-
-    # TODO(kevin): Allow below to be configurable.
-
-    # Turn on world frame.
+  def _setup_camera(self) -> None:
+    # TODO(kevin): This function is gross and has lots of redundant code. Clean it up.
+    assert self.viewer is not None
     self.viewer.opt.frame = mujoco.mjtFrame.mjFRAME_WORLD.value
 
-    if self.cfg.origin_type == self.cfg.OriginType.WORLD:
+    if self.cfg and hasattr(self.cfg, "origin_type"):
+      if self.cfg.origin_type == self.cfg.OriginType.WORLD:
+        self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FREE.value
+        self.viewer.cam.fixedcamid = -1
+        self.viewer.cam.trackbodyid = -1
+
+      elif self.cfg.origin_type == self.cfg.OriginType.ASSET_ROOT:
+        if not self.cfg.asset_name:
+          raise ValueError("Asset name must be specified for ASSET_ROOT origin type")
+        body_id = self.env.unwrapped.scene.indexing.entities[
+          self.cfg.asset_name
+        ].root_body_id
+        self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
+        self.viewer.cam.trackbodyid = body_id
+        self.viewer.cam.fixedcamid = -1
+
+      else:  # ASSET_BODY
+        if not self.cfg.asset_name or not self.cfg.body_name:
+          raise ValueError("asset_name/body_name required for ASSET_BODY origin type")
+        robot: Robot = self.env.unwrapped.scene[self.cfg.asset_name]
+        if self.cfg.body_name not in robot.body_names:
+          raise ValueError(
+            f"Body '{self.cfg.body_name}' not found in asset '{self.cfg.asset_name}'"
+          )
+        body_id_list, _ = robot.find_bodies(self.cfg.body_name)
+        body_id = self.env.unwrapped.scene.indexing.entities[
+          self.cfg.asset_name
+        ].body_local2global[body_id_list[0]]
+        self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
+        self.viewer.cam.trackbodyid = body_id
+        self.viewer.cam.fixedcamid = -1
+
+      self.viewer.cam.lookat = getattr(self.cfg, "lookat", self.viewer.cam.lookat)
+      self.viewer.cam.elevation = getattr(
+        self.cfg, "elevation", self.viewer.cam.elevation
+      )
+      self.viewer.cam.azimuth = getattr(self.cfg, "azimuth", self.viewer.cam.azimuth)
+      self.viewer.cam.distance = getattr(self.cfg, "distance", self.viewer.cam.distance)
+    else:
       self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FREE.value
       self.viewer.cam.fixedcamid = -1
       self.viewer.cam.trackbodyid = -1
 
-    elif self.cfg.origin_type == self.cfg.OriginType.ASSET_ROOT:
-      if self.cfg.asset_name is None:
-        raise ValueError("Asset name must be specified for ASSET_ROOT origin type")
+  # Reward plotting helpers.
 
-      robot: Robot = self.env.unwrapped.scene[self.cfg.asset_name]
-      body_id = self.env.unwrapped.scene.indexing.entities[
-        self.cfg.asset_name
-      ].root_body_id
+  def _init_reward_plots(self, term_names: list[str]) -> None:
+    """Create per-term figures and histories."""
+    self._figures.clear()
+    self._histories.clear()
+    self._yrange.clear()
+    for name in term_names:
+      self._figures[name] = make_empty_figure(
+        name,
+        self._plot_cfg.grid_size,
+        self._plot_cfg.init_yrange,
+        self._plot_cfg.history,
+        self._plot_cfg.background_alpha,
+      )
+      self._histories[name] = deque(maxlen=self._plot_cfg.history)
+      self._yrange[name] = self._plot_cfg.init_yrange
 
-      self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
-      self.viewer.cam.trackbodyid = body_id
-      self.viewer.cam.fixedcamid = -1
+  def _clear_histories(self) -> None:
+    """Clear histories and reset figures."""
+    for name in self._term_names:
+      self._histories[name].clear()
+      self._yrange[name] = self._plot_cfg.init_yrange
+      fig = self._figures[name]
+      fig.linepnt[0] = 0
+      fig.range[1][0] = float(self._plot_cfg.init_yrange[0])
+      fig.range[1][1] = float(self._plot_cfg.init_yrange[1])
+
+  def _append_point(self, name: str, value: float) -> None:
+    """Append a new point to the ring buffer."""
+    if not np.isfinite(value):
+      return
+    self._histories[name].append(float(value))
+
+  def _write_history_to_figure(self, name: str) -> None:
+    """Copy history into figure and autoscale y-axis."""
+    fig = self._figures[name]
+    hist = self._histories[name]
+    n = min(len(hist), self._plot_cfg.history)
+
+    fig.linepnt[0] = n
+    for i in range(n):
+      fig.linedata[0][2 * i] = float(-i)
+      fig.linedata[0][2 * i + 1] = float(hist[-1 - i])
+
+    # Autoscale y-axis.
+    if n >= 5:
+      data = np.fromiter(hist, dtype=float, count=n)
+      lo = float(np.percentile(data, self._plot_cfg.p_lo))
+      hi = float(np.percentile(data, self._plot_cfg.p_hi))
+      span = max(hi - lo, self._plot_cfg.min_span)
+      lo -= self._plot_cfg.pad * span
+      hi += self._plot_cfg.pad * span
+    elif n >= 1:
+      v = float(hist[-1])
+      span = max(abs(v), 1e-3)
+      lo, hi = v - span, v + span
     else:
-      assert self.cfg.origin_type == self.cfg.OriginType.ASSET_BODY
-      if self.cfg.asset_name is None:
-        raise ValueError("Asset name must be specified for ASSET_BODY origin type")
-      if self.cfg.body_name is None:
-        raise ValueError("Body name must be specified for ASSET_BODY origin type")
+      lo, hi = self._plot_cfg.init_yrange
 
-      robot: Robot = self.env.unwrapped.scene[self.cfg.asset_name]
-      if self.cfg.body_name not in robot.body_names:
-        raise ValueError(
-          f"Body name '{self.cfg.body_name}' not found in asset '{self.cfg.asset_name}'"
-        )
-
-      body_id_list, _ = robot.find_bodies(self.cfg.body_name)
-      body_id = self.env.unwrapped.scene.indexing.entities[
-        self.cfg.asset_name
-      ].body_local2global[body_id_list[0]]
-
-      self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
-      self.viewer.cam.trackbodyid = body_id
-      self.viewer.cam.fixedcamid = -1
-
-    self.viewer.cam.lookat = self.cfg.lookat
-    self.viewer.cam.elevation = self.cfg.elevation
-    self.viewer.cam.azimuth = self.cfg.azimuth
-    self.viewer.cam.distance = self.cfg.distance
-
-    if self.enable_perturbations:
-      self.log("[INFO] Interactive perturbations enabled")
-
-    self._print_controls()
-
-  def _print_controls(self) -> None:
-    """Print control instructions to console."""
-    from prettytable import PrettyTable
-
-    table = PrettyTable()
-    table.field_names = ["Key", "Action"]
-    table.align["Key"] = "l"
-    table.align["Action"] = "l"
-
-    table.add_row(["Space", "Pause/Resume simulation"])
-    table.add_row(["R", "Reset environment"])
-    table.add_row(["- (minus)", "Slow down (0.5x speed)"])
-    table.add_row(["+ (plus)", "Speed up (2x speed)"])
-
-    if self.env.unwrapped.num_envs > 1:
-      table.add_row([",", "Previous environment"])
-      table.add_row([".", "Next environment"])
-
-    self.log("\n" + "VIEWER CONTROLS".center(50), VerbosityLevel.INFO)
-    self.log(str(table), VerbosityLevel.INFO)  # Convert table to string
-
-  def sync_env_to_viewer(self) -> None:
-    """Synchronize environment state to viewer."""
-    sim_data = self.env.unwrapped.sim.data
-
-    # Copy primary environment state to viewer.
-    self.mjd.qpos[:] = sim_data.qpos[self.env_idx].cpu().numpy()
-    self.mjd.qvel[:] = sim_data.qvel[self.env_idx].cpu().numpy()
-
-    # Forward dynamics to update derived quantities.
-    mujoco.mj_forward(self.mjm, self.mjd)
-
-  def sync_viewer_to_env(self) -> None:
-    """Synchronize viewer state to environment (perturbations)."""
-    if not self.enable_perturbations or self._is_paused:
-      return
-
-    # Copy perturbation forces from viewer to environment.
-    xfrc_applied = torch.tensor(
-      self.mjd.xfrc_applied, dtype=torch.float, device=self.env.device
-    )
-    self.env.unwrapped.sim.data.xfrc_applied[:] = xfrc_applied[None]
-
-  def update_visualizations(self) -> None:
-    """Update additional visualizations."""
-    user_scn = self.viewer.user_scn
-    if user_scn is None:
-      return
-
-    user_scn.ngeom = 0
-
-    if self._is_paused:
-      self._add_pause_indicator(user_scn)
-
-    # Update environment-specific visualizers.
-    if hasattr(self.env.unwrapped, "update_visualizers"):
-      self.env.unwrapped.update_visualizers(user_scn)
-
-    # Render additional environments if requested.
-    if self.render_all_envs and self.vd is not None:
-      sim_data = self.env.unwrapped.sim.data
-
-      for i in range(self.env.unwrapped.num_envs):
-        if i == self.env_idx:
-          continue  # Skip primary environment (already rendered).
-        self.vd.qpos[:] = sim_data.qpos[i].cpu().numpy()
-        self.vd.qvel[:] = sim_data.qvel[i].cpu().numpy()
-        # Apply offset.
-        # TODO(kevin): Make this less hacky.
-        self.vd.qpos[:3] += self._env_origins[i]
-        mujoco.mj_forward(self.mjm, self.vd)
-        mujoco.mjv_addGeoms(
-          self.mjm, self.vd, self.vopt, self.pert, self.catmask, user_scn
-        )
-
-  def _add_pause_indicator(self, user_scn: Any) -> None:
-    """Add visual pause indicator to the scene."""
-    # TODO
-    pass
-
-  def render_frame(self) -> None:
-    """Render a single frame."""
-    if self.viewer and self.viewer.is_running():
-      self.viewer.sync(state_only=True)
-
-  def is_running(self) -> bool:
-    """Check if the viewer is still running."""
-    return self.viewer is not None and self.viewer.is_running()
-
-  def close(self) -> None:
-    """Close the viewer and cleanup resources."""
-    if self.viewer:
-      self.viewer.close()
-      self.viewer = None
-    self._is_running = False
-    self.log("[INFO] MuJoCo viewer closed")
+    fig.range[1][0] = float(lo)
+    fig.range[1][1] = float(hi)
 
 
 def compute_env_origins_grid(num_envs: int, env_spacing: float) -> np.ndarray:
@@ -299,3 +389,53 @@ def compute_env_origins_grid(num_envs: int, env_spacing: float) -> np.ndarray:
   env_origins[:, 1] = (jj.flatten()[:num_envs] - (num_cols - 1) / 2) * env_spacing
   env_origins[:, 2] = 0.0
   return env_origins
+
+
+def compute_viewports(
+  num_plots: int,
+  rect: mujoco.MjrRect,
+  cfg: PlotCfg,
+) -> list[mujoco.MjrRect]:
+  """Lay plots in a strip on the right."""
+  if num_plots <= 0:
+    return []
+  cols = 1 if num_plots <= cfg.max_rows_per_col else 2
+  rows = min(cfg.max_rows_per_col, (num_plots + cols - 1) // cols)
+
+  strip_w = int(rect.width * cfg.plot_strip_fraction)
+  vp_w = strip_w // cols
+  vp_h = rect.height // rows
+
+  left0 = rect.left + rect.width - strip_w
+  vps: list[mujoco.MjrRect] = []
+  for idx in range(min(num_plots, cfg.max_viewports)):
+    c = idx // rows
+    r = idx % rows
+    left = left0 + c * vp_w
+    bottom = rect.bottom + rect.height - (r + 1) * vp_h
+    vps.append(mujoco.MjrRect(left=left, bottom=bottom, width=vp_w, height=vp_h))
+  return vps
+
+
+def make_empty_figure(
+  title: str,
+  grid_size: tuple[int, int],
+  yrange: tuple[float, float],
+  history: int,
+  alpha: float,
+) -> mujoco.MjvFigure:
+  fig = mujoco.MjvFigure()
+  mujoco.mjv_defaultFigure(fig)
+  fig.flg_extend = 1
+  fig.gridsize[0] = grid_size[0]
+  fig.gridsize[1] = grid_size[1]
+  fig.range[1][0] = float(yrange[0])
+  fig.range[1][1] = float(yrange[1])
+  fig.figurergba[3] = alpha
+  fig.title = title
+  # Pre-fill x coordinates; y's will be written on update.
+  for i in range(history):
+    fig.linedata[0][2 * i] = -float(i)
+    fig.linedata[0][2 * i + 1] = 0.0
+  fig.linepnt[0] = 0
+  return fig

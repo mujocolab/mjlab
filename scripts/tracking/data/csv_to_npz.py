@@ -1,4 +1,5 @@
 from dataclasses import replace
+from typing import Any
 
 import numpy as np
 import torch
@@ -111,10 +112,12 @@ class MotionLoader:
     """Spherical linear interpolation between two quaternions."""
     slerped_quats = torch.zeros_like(a)
     for i in range(a.shape[0]):
-      slerped_quats[i] = quat_slerp(a[i], b[i], blend[i])
+      slerped_quats[i] = quat_slerp(a[i], b[i], float(blend[i]))
     return slerped_quats
 
-  def _compute_frame_blend(self, times: torch.Tensor) -> torch.Tensor:
+  def _compute_frame_blend(
+    self, times: torch.Tensor
+  ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Computes the frame blend for the motion."""
     phase = times / self.duration
     index_0 = (phase * (self.input_frames - 1)).floor().long()
@@ -206,7 +209,7 @@ def run_sim(
   robot_joint_indexes = robot.find_joints(joint_names, preserve_order=True)[0]
 
   # ------- data logger -------------------------------------------------------
-  log = {
+  log: dict[str, Any] = {
     "fps": [output_fps],
     "joint_pos": [],
     "joint_vel": [],
