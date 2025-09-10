@@ -9,6 +9,7 @@ import gymnasium as gym
 import tyro
 from rsl_rl.runners import OnPolicyRunner
 
+import mjlab.tasks  # noqa: F401
 from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.rl.config import RslRlOnPolicyRunnerCfg
