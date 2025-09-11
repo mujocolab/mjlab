@@ -6,7 +6,7 @@ def make_plane(
   size: tuple[float, float],
   height: float,
   center_zero: bool = True,
-  plane_thickness: float = 0.01,
+  plane_thickness: float = 1.0,
 ):
   if center_zero:
     pos = (0, 0, height - plane_thickness / 2.0)
