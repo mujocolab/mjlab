@@ -48,8 +48,8 @@ class Entity:
   |---------------------------|----------------------------|---------------|----------------|-------------|
   | Fixed Non-articulated     | Table, wall, ground plane  | True          | False          | False       |
   | Fixed Articulated         | Robot arm, door on hinges  | True          | True           | True/False  |
-  | Floating Non-articulated  | Box, ball, mug            | False         | False          | False       |
-  | Floating Articulated      | Humanoid, quadruped       | False         | True           | True/False  |
+  | Floating Non-articulated  | Box, ball, mug             | False         | False          | False       |
+  | Floating Articulated      | Humanoid, quadruped        | False         | True           | True/False  |
 
   Notes:
   - Only one freejoint is allowed per entity
@@ -60,29 +60,12 @@ class Entity:
   def __init__(self, cfg: EntityCfg) -> None:
     self.cfg = cfg
     self._spec = cfg.spec_fn()
-    self._give_names_to_missing_elems()
 
+    self._give_names_to_missing_elems()
     self._validate_and_extract_joints()
     self._handle_xml_actuators()
-
-    # Before configuring the spec, we need to check if there are any actuators defined
-    # in the XML. We currently don't support XML actuators so we need to remove them
-    # and warn the user.
-    if len(self._spec.actuators) > 0:
-      print("WARNING: Entity has XML actuators. These will be ignored.")
-      for actuator in self._spec.actuators:
-        self._spec.delete(actuator)
-
     self._configure_spec()
-
-    self._joint_names = [j.name for j in self._non_root_joints]
-    self._tendon_names = [t.name for t in self._spec.tendons]
-    self._body_names = [b.name for b in self.spec.bodies if b.name != "world"]
-    self._geom_names = [g.name for g in self.spec.geoms]
-    self._site_names = [s.name for s in self._spec.sites]
-    self._sensor_names = [s.name for s in self._spec.sensors]
-    self._actuator_names = [a.name for a in self._spec.actuators]
-
+    self._store_element_names()
     self._build_actuator_mapping()
 
   # Attributes.
@@ -864,6 +847,15 @@ class Entity:
       )
       for actuator in self._spec.actuators:
         self._spec.delete(actuator)
+
+  def _store_element_names(self) -> None:
+    self._joint_names = [j.name for j in self._non_root_joints]
+    self._tendon_names = [t.name for t in self._spec.tendons]
+    self._body_names = [b.name for b in self.spec.bodies if b.name != "world"]
+    self._geom_names = [g.name for g in self.spec.geoms]
+    self._site_names = [s.name for s in self._spec.sites]
+    self._sensor_names = [s.name for s in self._spec.sensors]
+    self._actuator_names = [a.name for a in self._spec.actuators]
 
   def _build_actuator_mapping(self) -> None:
     """Build mapping between actuators and joints."""
