@@ -38,6 +38,13 @@ class Scene:
   def compile(self) -> mujoco.MjModel:
     return self._spec.compile()
 
+  def to_zip(self, path: Path) -> None:
+    # TODO(kevin): This is buggy and the generated zip file is not reloadable.
+    # I had to add assetdir="assets" in the compiler directive to make it work.
+    # Check again in a future MuJoCo release if this has been resolved.
+    with path.open("wb") as f:
+      mujoco.MjSpec.to_zip(self._spec, f)
+
   def configure_sim_options(self, cfg: OptionCfg) -> None:
     common_editors.OptionEditor(cfg).edit_spec(self._spec)
 
