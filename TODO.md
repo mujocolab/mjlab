@@ -1,8 +1,9 @@
 **P0**.
 
-- [ ] Contact sensor
-  - [ ] Clean up, super gross right now
-  - [ ] Investiate cause of NaNs
+- [ ] Sensor API re-design
+  - [ ] Contact sensor
+  - [ ] Arbitrary XML sensors
+- [ ] Think about how to randomize collision geometry
 - [ ] Terrain generation
 - [ ] Observation history and modifiers
 - [ ] Rename entities to be consistent with isaaclab
