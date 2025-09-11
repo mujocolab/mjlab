@@ -9,9 +9,23 @@ from mjlab.entity.config import EntityArticulationInfoCfg
 from mjlab.sim.sim_data import WarpBridge
 from mjlab.utils.spec_editor.spec_editor_config import ActuatorCfg
 
+
+def get_test_device() -> str:
+  """Get device for testing, preferring CUDA if available."""
+  if torch.cuda.is_available():
+    return "cuda"
+  return "cpu"
+
+
 # ============================================================================
 # Fixtures
 # ============================================================================
+
+
+@pytest.fixture
+def device():
+  """Test device fixture."""
+  return get_test_device()
 
 
 @pytest.fixture
@@ -142,7 +156,7 @@ def articulated_entity(articulated_xml, actuator_cfg):
 
 
 @pytest.fixture
-def initialized_floating_entity(floating_base_entity):
+def initialized_floating_entity(floating_base_entity, device):
   """Create an initialized floating-base entity with simulation."""
   import mujoco_warp as mjwarp
 
@@ -157,12 +171,12 @@ def initialized_floating_entity(floating_base_entity):
   wp_model = WarpBridge(wp_model)
   wp_data = WarpBridge(wp_data)
 
-  entity.initialize(model, wp_model, wp_data, "cuda")
+  entity.initialize(model, wp_model, wp_data, device)
   return entity, wp_data
 
 
 @pytest.fixture
-def initialized_articulated_entity(articulated_entity):
+def initialized_articulated_entity(articulated_entity, device):
   """Create an initialized articulated entity with simulation."""
   import mujoco_warp as mjwarp
 
@@ -177,7 +191,7 @@ def initialized_articulated_entity(articulated_entity):
   wp_model = WarpBridge(wp_model)
   wp_data = WarpBridge(wp_data)
 
-  entity.initialize(model, wp_model, wp_data, "cuda")
+  entity.initialize(model, wp_model, wp_data, device)
   return entity, wp_data
 
 
@@ -303,7 +317,7 @@ class TestFindMethods:
 class TestStateManagement:
   """Test reading and writing entity states."""
 
-  def test_floating_base_root_state_write(self, initialized_floating_entity):
+  def test_floating_base_root_state_write(self, initialized_floating_entity, device):
     """Test successful root state write for floating base entity."""
     entity, data = initialized_floating_entity
 
@@ -326,7 +340,7 @@ class TestStateManagement:
           0.1,
         ]  # angular velocity
       ],
-      device="cuda",
+      device=device,
     )
 
     # Write state
@@ -346,13 +360,13 @@ class TestStateManagement:
       "Root velocities should match written values"
     )
 
-  def test_articulated_joint_state_write(self, initialized_articulated_entity):
+  def test_articulated_joint_state_write(self, initialized_articulated_entity, device):
     """Test successful joint state write for articulated entity."""
     entity, data = initialized_articulated_entity
 
     # Create test joint states
-    joint_positions = torch.tensor([[0.5, -0.5]], device="cuda")  # 2 joints
-    joint_velocities = torch.tensor([[0.1, -0.1]], device="cuda")
+    joint_positions = torch.tensor([[0.5, -0.5]], device=device)  # 2 joints
+    joint_velocities = torch.tensor([[0.1, -0.1]], device=device)
 
     # Write state
     entity.write_joint_state_to_sim(joint_positions, joint_velocities)
@@ -371,7 +385,7 @@ class TestStateManagement:
       "Joint velocities should match written values"
     )
 
-  def test_joint_control_parameters(self, initialized_articulated_entity):
+  def test_joint_control_parameters(self, initialized_articulated_entity, device):
     """Test writing joint stiffness and damping."""
     entity, _ = initialized_articulated_entity
 
@@ -387,7 +401,7 @@ class TestStateManagement:
     )
 
     # Test tensor stiffness/damping for specific joints
-    new_stiffness = torch.tensor([[3.0]], device="cuda")
+    new_stiffness = torch.tensor([[3.0]], device=device)
     entity.write_joint_stiffness_to_sim(new_stiffness, joint_ids=slice(0, 1))
     assert entity.data.joint_stiffness[0, 0] == 3.0, (
       "First joint stiffness should be updated to 3.0"
@@ -423,13 +437,13 @@ class TestStateManagement:
 class TestExternalForces:
   """Test application of external forces and torques."""
 
-  def test_external_force_application(self, initialized_floating_entity):
+  def test_external_force_application(self, initialized_floating_entity, device):
     """Test applying external forces and torques."""
     entity, data = initialized_floating_entity
 
     # Apply force and torque to the main body
-    forces = torch.tensor([[1.0, 0.0, 0.0]], device="cuda")
-    torques = torch.tensor([[0.0, 0.0, 1.0]], device="cuda")
+    forces = torch.tensor([[1.0, 0.0, 0.0]], device=device)
+    torques = torch.tensor([[0.0, 0.0, 1.0]], device=device)
 
     entity.set_external_force_and_torque(forces, torques)
 
@@ -442,12 +456,12 @@ class TestExternalForces:
       "External torque should be applied to body"
     )
 
-  def test_clear_state(self, initialized_floating_entity):
+  def test_clear_state(self, initialized_floating_entity, device):
     """Test that clear_state properly resets forces."""
     entity, data = initialized_floating_entity
 
     # Apply some forces
-    forces = torch.tensor([[1.0, 2.0, 3.0]], device="cuda")
+    forces = torch.tensor([[1.0, 2.0, 3.0]], device=device)
     entity.set_external_force_and_torque(forces, torch.zeros_like(forces))
 
     # Clear state
@@ -466,7 +480,7 @@ class TestExternalForces:
 class TestIntegration:
   """Test complete entity workflows."""
 
-  def test_full_entity_lifecycle(self, articulated_xml, actuator_cfg, tmp_path):
+  def test_full_entity_lifecycle(self, articulated_xml, actuator_cfg, tmp_path, device):
     """Test complete entity lifecycle from creation to simulation."""
     import mujoco_warp as mjwarp
 
@@ -507,7 +521,7 @@ class TestIntegration:
     wp_model = WarpBridge(wp_model)
     wp_data = WarpBridge(wp_data)
 
-    entity.initialize(model, wp_model, wp_data, "cuda")  # type: ignore
+    entity.initialize(model, wp_model, wp_data, device)  # type: ignore
 
     # Test state writing
     root_state = torch.tensor(
@@ -515,16 +529,16 @@ class TestIntegration:
         [1.0, 0.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         [0.0, 1.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
       ],
-      device="cuda",
+      device=device,
     )
     entity.write_root_state_to_sim(root_state)
 
-    joint_pos = torch.tensor([[0.2, -0.2], [0.3, -0.3]], device="cuda")
+    joint_pos = torch.tensor([[0.2, -0.2], [0.3, -0.3]], device=device)
     joint_vel = torch.zeros_like(joint_pos)
     entity.write_joint_state_to_sim(joint_pos, joint_vel)
 
     # Apply forces to first environment only
-    forces = torch.tensor([[1.0, 0.0, 0.0]], device="cuda")
+    forces = torch.tensor([[1.0, 0.0, 0.0]], device=device)
     entity.set_external_force_and_torque(
       forces, torch.zeros_like(forces), env_ids=torch.tensor([0])
     )
