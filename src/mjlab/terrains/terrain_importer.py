@@ -33,6 +33,21 @@ _DEFAULT_PLANE_MATERIAL = spec_editor_config.MaterialCfg(
 
 @dataclass
 class TerrainImporterCfg:
+  """Configuration for terrain import and environment placement.
+
+  Attributes:
+    terrain_type: Type of terrain to generate. "generator" uses procedural
+      terrain with sub-terrain grid, "plane" creates a flat ground plane.
+    terrain_generator: Configuration for procedural terrain generation.
+      Required when terrain_type is "generator".
+    env_spacing: Distance between environment origins when using grid layout.
+      Required for "plane" terrain or when no sub-terrain origins exist.
+    max_init_terrain_level: Maximum initial difficulty level (row index) for
+      environment placement in curriculum mode. None uses all available rows.
+    num_envs: Number of parallel environments to create. This will get overriden by
+    the scene configuration if specified there.
+  """
+
   terrain_type: Literal["generator", "plane"] = "plane"
   terrain_generator: TerrainGeneratorCfg | None = None
   env_spacing: float | None = 2.0
@@ -41,11 +56,11 @@ class TerrainImporterCfg:
 
 
 class TerrainImporter:
-  """A class to handle terrain meshes and import them into the simulator.
+  """A class to handle terrain geometry and import it into the simulator.
 
-  We assume that a terrain mesh comprises of sub-terrains that are arranged in a grid
-  with `num_rows` rows and `num_cols` columns. The terrain origins are the positions
-  of the sub-terrains where the robot should be spawned.
+  We assume that a terrain geometry comprises of sub-terrains that are arranged in a
+  grid with `num_rows` rows and `num_cols` columns. The terrain origins are the
+  positions of the sub-terrains where the robot should be spawned.
 
   Based on the configuration, the terrain importer handles computing the environment
   origins from the sub-terrain origins. In a typical setup, the number of sub-terrains
