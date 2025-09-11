@@ -25,7 +25,7 @@ SCENE_CFG = SceneCfg(
   terrain=TerrainImporterCfg(
     terrain_type="generator",
     terrain_generator=ROUGH_TERRAINS_CFG,
-    max_init_terrain_level=5,
+    max_init_terrain_level=2,
   ),
 )
 

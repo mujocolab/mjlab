@@ -10,6 +10,9 @@ ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
   num_rows=5,
   num_cols=5,
   sub_terrains={
+    "flat": terrain_gen.BoxFlatTerrainCfg(
+      proportion=1 / 3,
+    ),
     "pyramid_stairs": terrain_gen.BoxPyramidStairsTerrainCfg(
       proportion=1 / 3,
       step_height_range=(0.05, 0.23),
@@ -32,9 +35,6 @@ ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
     #   grid_height_range=(0.05, 0.2),
     #   platform_width=2.0,
     # ),
-    "flat": terrain_gen.BoxFlatTerrainCfg(
-      proportion=1 / 3,
-    ),
   },
 )
 
