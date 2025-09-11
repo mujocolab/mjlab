@@ -6,7 +6,12 @@ from typing import TYPE_CHECKING
 import mujoco
 import numpy as np
 
-from mjlab.utils.spec import disable_collision, get_non_root_joints, set_array_field
+from mjlab.utils.spec import (
+  disable_collision,
+  get_non_root_joints,
+  is_joint_limited,
+  set_array_field,
+)
 from mjlab.utils.spec_editor.spec_editor_base import SpecEditor
 from mjlab.utils.spec_editor.spec_editor_config import (
   ActuatorCfg,
@@ -211,6 +216,9 @@ class ActuatorEditor(SpecEditor):
       spec.joint(jn).armature = cfg.armature
       spec.joint(jn).frictionloss = cfg.frictionloss
 
+      if not is_joint_limited(spec.joint(jn)):
+        raise ValueError(f"Joint {jn} is not limited.")
+
       act = spec.add_actuator(
         name=jn,
         target=jn,
@@ -345,6 +353,10 @@ class KeyframeEditor(SpecEditor):
     if spec.actuators:
       key = spec.add_key(name="init_state", qpos=qpos)
       if joint_pos is not None:
+        if len(joint_pos) != len(spec.actuators):
+          raise ValueError(
+            f"Expecting one actuator per joint. Got {len(joint_pos)} joint positions and {len(spec.actuators)} actuators."
+          )
         key.ctrl = joint_pos
     else:
       spec.add_key(name="init_state", qpos=qpos)

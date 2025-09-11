@@ -13,7 +13,7 @@ from mjlab.entity.indexing import EntityIndexing
 from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
 from mjlab.utils import string as string_utils
 from mjlab.utils.mujoco import dof_width, qpos_width
-from mjlab.utils.spec import get_non_root_joints, get_root_joint
+from mjlab.utils.spec import is_joint_limited
 from mjlab.utils.spec_editor.spec_editor import (
   ActuatorEditor,
   CameraEditor,
@@ -28,13 +28,50 @@ from mjlab.utils.string import resolve_expr
 
 
 class Entity:
+  """An entity represents a physical object in the simulation.
+
+  Entity Type Matrix
+  ==================
+  MuJoCo entities can be categorized along two dimensions:
+
+  1. Base Type:
+     - Fixed Base: Entity is welded to the world (no freejoint)
+     - Floating Base: Entity has 6 DOF movement (has freejoint)
+
+  2. Articulation:
+     - Non-articulated: No joints other than freejoint
+     - Articulated: Has joints in kinematic tree (may or may not be actuated)
+
+  Supported Combinations:
+  ----------------------
+  | Type                      | Example                    | is_fixed_base | is_articulated | is_actuated |
+  |---------------------------|----------------------------|---------------|----------------|-------------|
+  | Fixed Non-articulated     | Table, wall, ground plane  | True          | False          | False       |
+  | Fixed Articulated         | Robot arm, door on hinges  | True          | True           | True/False  |
+  | Floating Non-articulated  | Box, ball, mug            | False         | False          | False       |
+  | Floating Articulated      | Humanoid, quadruped       | False         | True           | True/False  |
+
+  Notes:
+  - Only one freejoint is allowed per entity
+  - Actuators defined in XML are removed; use ActuatorCfg instead
+  - Joint counts exclude the freejoint (only articulation joints)
+  """
+
   def __init__(self, cfg: EntityCfg) -> None:
     self.cfg = cfg
     self._spec = cfg.spec_fn()
     self._give_names_to_missing_elems()
 
-    self._root_joint: mujoco.MjsJoint | None = get_root_joint(self._spec)
-    self._non_root_joints: tuple[mujoco.MjsJoint, ...] = get_non_root_joints(self._spec)
+    self._validate_and_extract_joints()
+    self._handle_xml_actuators()
+
+    # Before configuring the spec, we need to check if there are any actuators defined
+    # in the XML. We currently don't support XML actuators so we need to remove them
+    # and warn the user.
+    if len(self._spec.actuators) > 0:
+      print("WARNING: Entity has XML actuators. These will be ignored.")
+      for actuator in self._spec.actuators:
+        self._spec.delete(actuator)
 
     self._configure_spec()
 
@@ -46,14 +83,7 @@ class Entity:
     self._sensor_names = [s.name for s in self._spec.sensors]
     self._actuator_names = [a.name for a in self._spec.actuators]
 
-    self.actuator_to_joint = {}
-    self.joint_actuators = []
-    if cfg.articulation:
-      for actuator in self._spec.actuators:
-        if actuator.trntype != mujoco.mjtTrn.mjTRN_JOINT:
-          continue
-        self.actuator_to_joint[actuator.name] = actuator.target
-      self.joint_actuators = list(self.actuator_to_joint.values())
+    self._build_actuator_mapping()
 
   # Attributes.
 
@@ -274,14 +304,20 @@ class Entity:
 
     # Joint state - only for articulated entities
     if self.is_articulated:
-      assert self.cfg.init_state.joint_pos is not None
-      assert self.cfg.init_state.joint_vel is not None
+      if not self.cfg.init_state.joint_pos:
+        joint_pos_dict = {".*": 0.0}
+      else:
+        joint_pos_dict = self.cfg.init_state.joint_pos
+      if not self.cfg.init_state.joint_vel:
+        joint_vel_dict = {".*": 0.0}
+      else:
+        joint_vel_dict = self.cfg.init_state.joint_vel
 
       default_joint_pos = torch.tensor(
-        resolve_expr(self.cfg.init_state.joint_pos, self.joint_names), device=device
+        resolve_expr(joint_pos_dict, self.joint_names), device=device
       )[None].repeat(nworld, 1)
       default_joint_vel = torch.tensor(
-        resolve_expr(self.cfg.init_state.joint_vel, self.joint_names), device=device
+        resolve_expr(joint_vel_dict, self.joint_names), device=device
       )[None].repeat(nworld, 1)
 
       # Joint limits and control parameters
@@ -723,7 +759,7 @@ class Entity:
       sns = model.sensor(sensor_name)
       dim = sns.dim[0]
       start_adr = sns.adr[0]
-      sensor_adr[sensor_name.split("/")[1]] = torch.arange(
+      sensor_adr[sensor_name] = torch.arange(
         start_adr, start_adr + dim, dtype=torch.int, device=device
       )
 
@@ -775,78 +811,81 @@ class Entity:
       joint_local2global=joint_local2global,
     )
 
+  def _validate_and_extract_joints(self) -> None:
+    """Validate joint configuration and extract root/non-root joints.
 
-if __name__ == "__main__":
-  STATIC_OBJECT_XML = r"""
-<mujoco model="mjlab scene">
-  <worldbody>
-    <body name="object" pos="0 0 0.5">
-      <geom name="object_geom" type="box" size="0.1 0.1 0.1" rgba="0.8 0.3 0.3 1"/>
-    </body>
-  </worldbody>
-</mujoco>
-"""
+    Raises:
+      ValueError: If entity has invalid joint configuration.
+    """
+    freejoints = []
+    other_joints = []
 
-  entity_cfg = EntityCfg(
-    spec_fn=lambda: mujoco.MjSpec.from_string(STATIC_OBJECT_XML),
-  )
-  entity = Entity(entity_cfg)
+    for joint in self._spec.joints:
+      if joint.type == mujoco.mjtJoint.mjJNT_FREE:
+        freejoints.append(joint)
+      else:
+        other_joints.append(joint)
 
-  # No joints.
-  assert entity.is_fixed_base
-  assert entity.num_joints == 0
-  assert entity.joint_names == []
+    # Validation: Only one freejoint allowed.
+    if len(freejoints) > 1:
+      joint_names = [j.name for j in freejoints]
+      raise ValueError(
+        f"Entity has multiple freejoints: {joint_names}. "
+        "Only one freejoint is allowed per entity. "
+        "Consider splitting into separate entities or using a different joint type."
+      )
 
-  # 1 body.
-  assert entity.num_bodies == 1
-  assert entity.body_names == ["object"]
+    self._root_joint: mujoco.MjsJoint | None = freejoints[0] if freejoints else None
+    self._non_root_joints: tuple[mujoco.MjsJoint, ...] = tuple(other_joints)
 
-  # 1 geom.
-  assert entity.num_geoms == 1
-  assert entity.geom_names == ["object_geom"]
+    # Additional validation for articulated entities.
+    # Check that articulated joints have reasonable ranges. Even robots with unlimited
+    # joint ranges should use joint limits with a very large range.
+    if self._non_root_joints:
+      for joint in self._non_root_joints:
+        if joint.type in [mujoco.mjtJoint.mjJNT_HINGE, mujoco.mjtJoint.mjJNT_SLIDE]:
+          if not is_joint_limited(joint):
+            import warnings
 
-  # No sites.
-  assert entity.num_sites == 0
-  assert entity.site_names == []
+            warnings.warn(
+              f"Joint '{joint.name}' has no range limits defined.",
+              UserWarning,
+              stacklevel=2,
+            )
 
-  # No sensors.
-  assert entity.num_sensors == 0
-  assert entity.sensor_names == []
+  # TODO(kevin): Remove this once we support XML actuators.
+  def _handle_xml_actuators(self) -> None:
+    """Handle actuators defined in XML (remove them with warning)."""
+    if len(self._spec.actuators) > 0:
+      actuator_names = [a.name for a in self._spec.actuators]
+      print(
+        f"WARNING: Entity has {len(self._spec.actuators)} XML actuator(s): {actuator_names}. "
+        "These will be removed. Use ActuatorCfg in EntityArticulationInfoCfg instead."
+      )
+      for actuator in self._spec.actuators:
+        self._spec.delete(actuator)
 
-  # No actuators.
-  assert entity.num_actuators == 0
-  assert entity.actuator_names == []
+  def _build_actuator_mapping(self) -> None:
+    """Build mapping between actuators and joints."""
+    self.actuator_to_joint = {}
+    self.joint_actuators = []
 
-  mj_model = entity.compile()
-  mj_data = mujoco.MjData(mj_model)
-  mujoco.mj_resetData(mj_model, mj_data)
+    if self.cfg.articulation:
+      for actuator in self._spec.actuators:
+        if actuator.trntype != mujoco.mjtTrn.mjTRN_JOINT:
+          continue
+        self.actuator_to_joint[actuator.name] = actuator.target
+      self.joint_actuators = list(self.actuator_to_joint.values())
 
-  model = mjwarp.put_model(mj_model)
-  data = mjwarp.put_data(mj_model, mj_data, nworld=1)
-  # model = WarpBridge(wp_model)
-  # data = WarpBridge(wp_data)
-  device = "cuda"
+      # Validation: Check for joints without actuators if actuation is configured
+      if self.cfg.articulation.actuators:
+        unactuated_joints = set(self._joint_names) - set(self.joint_actuators)
+        if unactuated_joints:
+          import warnings
 
-  entity.initialize(mj_model, model, data, device)
-
-  MOVING_OBJECT_XML = r"""
-<mujoco model="mjlab scene">
-  <worldbody>
-    <body name="object" pos="0 0 1">
-      <freejoint name="free_joint"/>
-      <geom name="object_geom" type="box" size="0.1 0.1 0.1" rgba="0.3 0.3 0.8 1" mass="0.1"/>
-    </body>
-  </worldbody>
-</mujoco>
-"""
-
-  entity_cfg = EntityCfg(
-    spec_fn=lambda: mujoco.MjSpec.from_string(MOVING_OBJECT_XML),
-  )
-  entity = Entity(entity_cfg)
-
-  assert entity._root_joint is not None
-  assert not entity.is_fixed_base
-  # joint stuff is still 0 because this is specifically for articulation.
-  assert entity.num_joints == 0
-  assert entity.joint_names == []
+          warnings.warn(
+            f"Joints without actuators: {unactuated_joints}. "
+            "These joints will be passive.",
+            UserWarning,
+            stacklevel=2,
+          )
