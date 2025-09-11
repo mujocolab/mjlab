@@ -51,11 +51,13 @@ class NativeMujocoViewer(BaseViewer):
     key_callback: Optional[Callable[[int], None]] = None,
     plot_cfg: PlotCfg | None = None,
     enable_perturbations: bool = True,
+    disable_shadows: bool = False,
     verbosity: VerbosityLevel = VerbosityLevel.SILENT,
   ):
     super().__init__(env, policy, frame_rate, render_all_envs, verbosity)
     self.user_key_callback = key_callback
     self.enable_perturbations = enable_perturbations
+    self.disable_shadows = disable_shadows
 
     self.mjm: Optional[mujoco.MjModel] = None
     self.mjd: Optional[mujoco.MjData] = None
@@ -107,6 +109,9 @@ class NativeMujocoViewer(BaseViewer):
     )
     if self.viewer is None:
       raise RuntimeError("Failed to launch MuJoCo viewer")
+
+    if self.disable_shadows:
+      self.viewer.user_scn.flags[mujoco.mjtRndFlag.mjRND_SHADOW] = 0
 
     self._setup_camera()
 
