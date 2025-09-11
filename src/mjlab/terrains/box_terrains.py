@@ -7,7 +7,7 @@ import mujoco
 import numpy as np
 
 from mjlab.terrains.terrain_generator import SubTerrainCfg
-from mjlab.terrains.utils import make_border
+from mjlab.terrains.utils import make_border, make_plane
 from mjlab.utils.color import (
   HSV,
   brand_ramp,
@@ -36,6 +36,16 @@ def _get_platform_color(
 
 
 @dataclass(kw_only=True)
+class BoxFlatTerrainCfg(SubTerrainCfg):
+  def function(self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator):
+    del difficulty, rng  # Unused.
+    origin = (self.size[0] / 2, self.size[1] / 2, 0.0)
+    boxes = make_plane(spec, self.size, 0.0, center_zero=False)
+    box_colors = [(0.5, 0.5, 0.5, 1.0)]
+    return origin, boxes, box_colors
+
+
+@dataclass(kw_only=True)
 class BoxPyramidStairsTerrainCfg(SubTerrainCfg):
   """Configuration for a pyramid stairs terrain."""
 
@@ -45,7 +55,8 @@ class BoxPyramidStairsTerrainCfg(SubTerrainCfg):
   platform_width: float = 1.0
   holes: bool = False
 
-  def function(self, difficulty: float, spec: mujoco.MjSpec):
+  def function(self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator):
+    del rng  # Unused.
     boxes = []
     box_colors = []
 
@@ -186,7 +197,8 @@ class BoxPyramidStairsTerrainCfg(SubTerrainCfg):
 
 @dataclass(kw_only=True)
 class BoxInvertedPyramidStairsTerrainCfg(BoxPyramidStairsTerrainCfg):
-  def function(self, difficulty: float, spec: mujoco.MjSpec):
+  def function(self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator):
+    del rng  # Unused.
     boxes = []
     box_colors = []
 
@@ -336,11 +348,11 @@ class BoxRandomGridTerrainCfg(SubTerrainCfg):
   grid_height_range: tuple[float, float]
   platform_width: float = 1.0
   holes: bool = False
-  merge_similar_heights: bool = False  # New option to enable merging
-  height_merge_threshold: float = 0.05  # Heights within this range get merged
-  max_merge_distance: int = 3  # Maximum grid cells to merge
+  merge_similar_heights: bool = False
+  height_merge_threshold: float = 0.05
+  max_merge_distance: int = 3
 
-  def function(self, difficulty: float, spec: mujoco.MjSpec):
+  def function(self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator):
     if self.size[0] != self.size[1]:
       raise ValueError(f"The terrain must be square. Received size: {self.size}.")
 
@@ -400,9 +412,7 @@ class BoxRandomGridTerrainCfg(SubTerrainCfg):
       boxes_list.append(box)
       box_colors.append(border_rgba)
 
-    height_map = np.random.uniform(
-      -grid_height, grid_height, (num_boxes_x, num_boxes_y)
-    )
+    height_map = rng.uniform(-grid_height, grid_height, (num_boxes_x, num_boxes_y))
 
     if self.merge_similar_heights and not self.holes:
       box_list_, box_color_ = self._create_merged_boxes(

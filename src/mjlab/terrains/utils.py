@@ -1,6 +1,26 @@
 import mujoco
 
 
+def make_plane(
+  spec: mujoco.MjSpec,
+  size: tuple[float, float],
+  height: float,
+  center_zero: bool = True,
+  plane_thickness: float = 0.01,
+):
+  if center_zero:
+    pos = (0, 0, height - plane_thickness / 2.0)
+  else:
+    pos = (size[0] / 2.0, size[1] / 2.0, height - plane_thickness / 2.0)
+
+  box = spec.worldbody.add_geom(
+    type=mujoco.mjtGeom.mjGEOM_BOX,
+    size=(size[0] / 2.0, size[1] / 2.0, plane_thickness / 2.0),
+    pos=pos,
+  )
+  return [box]
+
+
 def make_border(
   spec: mujoco.MjSpec,
   size: tuple[float, float],

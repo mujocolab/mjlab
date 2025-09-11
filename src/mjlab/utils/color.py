@@ -2,6 +2,8 @@
 
 from typing import NamedTuple, Tuple
 
+import numpy as np
+
 
 class RGB(NamedTuple):
   """RGB color with values in range [0, 1]."""
@@ -13,6 +15,11 @@ class RGB(NamedTuple):
   def to_tuple(self) -> Tuple[float, float, float]:
     """Convert to tuple representation."""
     return (self.r, self.g, self.b)
+
+  @staticmethod
+  def random(rng: np.random.Generator) -> "RGB":
+    """Generate a random RGB color."""
+    return RGB(rng.random(), rng.random(), rng.random())
 
 
 class RGBA(NamedTuple):
@@ -27,6 +34,12 @@ class RGBA(NamedTuple):
   def from_rgb(cls, rgb: RGB, alpha: float = 1.0) -> "RGBA":
     """Create RGBA from RGB with specified alpha."""
     return cls(rgb.r, rgb.g, rgb.b, alpha)
+
+  @staticmethod
+  def random(rng: np.random.Generator, alpha: float = 1.0) -> "RGBA":
+    """Generate a random RGBA color with specified alpha."""
+    rgb = RGB.random(rng)
+    return RGBA(rgb.r, rgb.g, rgb.b, alpha)
 
 
 class HSV(NamedTuple):

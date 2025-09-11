@@ -1,4 +1,5 @@
 from mjlab.terrains.box_terrains import (
+  BoxFlatTerrainCfg,
   BoxInvertedPyramidStairsTerrainCfg,
   BoxPyramidStairsTerrainCfg,
   BoxRandomGridTerrainCfg,
@@ -17,6 +18,7 @@ __all__ = (
   "TerrainImporter",
   "TerrainImporterCfg",
   # Box terrains.
+  "BoxFlatTerrainCfg",
   "BoxPyramidStairsTerrainCfg",
   "BoxInvertedPyramidStairsTerrainCfg",
   "BoxRandomGridTerrainCfg",

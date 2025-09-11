@@ -9,8 +9,10 @@ import mujoco
 import numpy as np
 
 from mjlab.terrains.utils import make_border
+from mjlab.utils.color import RGBA
 
 _DARK_GRAY = (0.2, 0.2, 0.2, 1.0)
+_LIGHT_GRAY = (0.5, 0.5, 0.5, 1.0)
 
 
 @dataclass
@@ -19,7 +21,7 @@ class SubTerrainCfg(abc.ABC):
   size: tuple[float, float] = (10.0, 10.0)
 
   @abc.abstractmethod
-  def function(self, difficulty: float, spec: mujoco.MjSpec):
+  def function(self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator):
     """Generate terrain geometry.
 
     Returns:
@@ -39,17 +41,24 @@ class TerrainGeneratorCfg:
   border_height: float = 1.0
   num_rows: int = 1
   num_cols: int = 1
-  color_scheme: Literal["height", "random", "none"] = "none"
-  horizontal_scale: float = 0.1
-  vertical_scale: float = 0.005
-  slope_threshold: float | None = 0.75
+  color_scheme: Literal["height", "random", "none"] = "height"
   sub_terrains: dict[str, SubTerrainCfg]
   difficulty_range: tuple[float, float] = (0.0, 1.0)
-  add_lights: bool = True
+  add_lights: bool = False
 
 
 class TerrainGenerator:
-  """Terrain generator to handle different terrain generation functions."""
+  """Generates procedural terrain grids with configurable difficulty.
+
+  Creates a grid of terrain patches where each patch can be a different
+  terrain type. Supports two modes: random (patches get random difficulty)
+  or curriculum (difficulty increases along rows for progressive training).
+
+  Terrain types are weighted by proportion and their geometry is generated
+  based on a difficulty value in the configured range. The grid is centered
+  at the world origin. A border can be added around the entire grid along with
+  optional overhead lighting.
+  """
 
   def __init__(self, cfg: TerrainGeneratorCfg, device: str = "cpu") -> None:
     if len(cfg.sub_terrains) == 0:
@@ -107,7 +116,10 @@ class TerrainGenerator:
 
       # Create the terrain mesh and get the spawn origin in world coordinates.
       spawn_origin = self._create_terrain_mesh(
-        spec, world_position, difficulty, sub_terrains_cfgs[sub_index]
+        spec,
+        world_position,
+        difficulty,
+        sub_terrains_cfgs[sub_index],
       )
 
       # Store the spawn origin for this terrain.
@@ -178,12 +190,18 @@ class TerrainGenerator:
     cfg = replace(cfg)
 
     # Generate terrain geometry (origin is in local coordinates).
-    local_origin, boxes, colors = cfg.function(difficulty, spec)
+    local_origin, boxes, colors = cfg.function(difficulty, spec, self.np_rng)
 
     # Apply transformations to place geometry in world coordinates.
     for box, color in zip(boxes, colors, strict=True):
       box.pos += world_position
-      box.rgba = color
+      if self.cfg.color_scheme == "height":
+        box.rgba = color
+      elif self.cfg.color_scheme == "random":
+        box.rgba = RGBA.random(self.np_rng, alpha=1.0)
+      else:
+        assert self.cfg.color_scheme == "none"
+        box.rgba = _LIGHT_GRAY
 
     # Convert local origin to world coordinates.
     return local_origin + world_position
@@ -207,7 +225,10 @@ class TerrainGenerator:
       position=border_center,
     )
     for box in boxes:
-      box.rgba = _DARK_GRAY
+      if self.cfg.color_scheme == "random":
+        box.rgba = RGBA.random(self.np_rng, alpha=1.0)
+      else:
+        box.rgba = _DARK_GRAY
 
   def _add_grid_lights(self, spec: mujoco.MjSpec) -> None:
     if not self.cfg.add_lights:

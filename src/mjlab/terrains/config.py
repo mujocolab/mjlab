@@ -7,14 +7,11 @@ from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
 ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
   size=(8.0, 8.0),
   border_width=10.0,
-  num_rows=5,
-  num_cols=5,
-  horizontal_scale=0.1,
-  vertical_scale=0.005,
-  slope_threshold=0.75,
+  num_rows=10,
+  num_cols=10,
   sub_terrains={
     "pyramid_stairs": terrain_gen.BoxPyramidStairsTerrainCfg(
-      proportion=0.5,
+      proportion=1 / 3,
       step_height_range=(0.05, 0.23),
       step_width=0.3,
       platform_width=3.0,
@@ -22,7 +19,7 @@ ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
       holes=False,
     ),
     "pyramid_stairs_inv": terrain_gen.BoxInvertedPyramidStairsTerrainCfg(
-      proportion=0.5,
+      proportion=1 / 3,
       step_height_range=(0.05, 0.23),
       step_width=0.3,
       platform_width=3.0,
@@ -35,6 +32,9 @@ ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
     #   grid_height_range=(0.05, 0.2),
     #   platform_width=2.0,
     # ),
+    "flat": terrain_gen.BoxFlatTerrainCfg(
+      proportion=1 / 3,
+    ),
   },
 )
 
