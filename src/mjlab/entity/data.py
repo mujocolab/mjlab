@@ -172,6 +172,11 @@ class EntityData:
       pos, subtree_com, cvel
     )  # (num_envs, num_bodies, 6)
 
+  @property
+  def body_external_wrench(self) -> torch.Tensor:
+    """Body external wrench in world frame. Shape (num_envs, num_bodies, 6)."""
+    return self.data.xfrc_applied[:, self.indexing.body_ids].clone()
+
   # Geom properties
 
   @property
@@ -321,6 +326,16 @@ class EntityData:
   def body_com_ang_vel_w(self) -> torch.Tensor:
     """Body COM angular velocities in world frame. Shape (num_envs, num_bodies, 3)."""
     return self.body_com_vel_w[..., 3:6]
+
+  @property
+  def body_external_force(self) -> torch.Tensor:
+    """Body external forces in world frame. Shape (num_envs, num_bodies, 3)."""
+    return self.body_external_wrench[..., 0:3]
+
+  @property
+  def body_external_torque(self) -> torch.Tensor:
+    """Body external torques in world frame. Shape (num_envs, num_bodies, 3)."""
+    return self.body_external_wrench[..., 3:6]
 
   @property
   def geom_pos_w(self) -> torch.Tensor:
