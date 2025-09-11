@@ -19,8 +19,6 @@ class UnitreeGo1EnvCfg_PLAY(UnitreeGo1EnvCfg):
   def __post_init__(self):
     super().__post_init__()
 
-    self.observations.policy.enable_corruption = False
-
-    # Disable perturbations.
-    self.events.push_robot = None
-    self.events.apply_external_force = None
+    if self.scene.terrain is not None:
+      if self.scene.terrain.terrain_generator is not None:
+        self.scene.terrain.terrain_generator.curriculum = False
