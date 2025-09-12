@@ -235,7 +235,7 @@ class Entity:
     indexing = self._compute_indexing(mj_model, device)
     self.indexing = indexing
 
-    # Global ID mappings for bodies, joints, actuators
+    # Global ID mappings for bodies, joints, actuators.
     local_body_ids = range(self.num_bodies)
     self._body_ids_global = torch.tensor(
       [indexing.body_local2global[lid] for lid in local_body_ids],
@@ -243,7 +243,7 @@ class Entity:
       device=device,
     )
 
-    # Joint mappings - only for articulated entities
+    # Joint mappings - only for articulated entities.
     if self.is_articulated:
       local_joint_ids = range(self.num_joints)
       self._joint_ids_global = torch.tensor(
@@ -269,7 +269,7 @@ class Entity:
 
     nworld = data.nworld
 
-    # Root state - only for movable entities
+    # Root state - only for movable entities.
     if not self.is_fixed_base:
       default_root_state = (
         tuple(self.cfg.init_state.pos)
@@ -282,10 +282,10 @@ class Entity:
       )
       default_root_state = default_root_state.repeat(nworld, 1)
     else:
-      # Static entities have no root state
+      # Static entities have no root state.
       default_root_state = torch.empty(nworld, 0, dtype=torch.float, device=device)
 
-    # Joint state - only for articulated entities
+    # Joint state - only for articulated entities.
     if self.is_articulated:
       default_joint_pos = torch.tensor(
         resolve_expr(self.cfg.init_state.joint_pos, self.joint_names), device=device
@@ -294,14 +294,14 @@ class Entity:
         resolve_expr(self.cfg.init_state.joint_vel, self.joint_names), device=device
       )[None].repeat(nworld, 1)
 
-      # Joint limits and control parameters
+      # Joint limits and control parameters.
       dof_limits = model.jnt_range[:nworld, self._joint_ids_global]
       default_joint_pos_limits = dof_limits.clone()
       joint_pos_limits = default_joint_pos_limits.clone()
       joint_pos_mean = (joint_pos_limits[..., 0] + joint_pos_limits[..., 1]) / 2
       joint_pos_range = joint_pos_limits[..., 1] - joint_pos_limits[..., 0]
 
-      # Get soft limit factor from config, with fallback
+      # Get soft limit factor from config, with fallback.
       if self.cfg.articulation:
         soft_limit_factor = self.cfg.articulation.soft_joint_pos_limit_factor
       else:
@@ -315,7 +315,7 @@ class Entity:
         joint_pos_mean + 0.5 * joint_pos_range * soft_limit_factor
       )
 
-      # Joint control parameters - only if we have actuators
+      # Joint control parameters - only if we have actuators.
       if len(self._actuator_ids_global) > 0:
         default_joint_stiffness = model.actuator_gainprm[
           :nworld, self._actuator_ids_global, 0
@@ -326,7 +326,7 @@ class Entity:
         joint_stiffness = default_joint_stiffness.clone()
         joint_damping = default_joint_damping.clone()
       else:
-        # No actuators - create empty tensors
+        # No actuators - create empty tensors.
         default_joint_stiffness = torch.empty(
           nworld, 0, dtype=torch.float, device=device
         )
@@ -334,7 +334,7 @@ class Entity:
         joint_stiffness = torch.empty(nworld, 0, dtype=torch.float, device=device)
         joint_damping = torch.empty(nworld, 0, dtype=torch.float, device=device)
 
-      # Joint position weights
+      # Joint position weights.
       if self.cfg.articulation and self.cfg.articulation.joint_pos_weight is not None:
         weight = string_utils.resolve_expr(
           self.cfg.articulation.joint_pos_weight, self.joint_names, 1.0
@@ -344,7 +344,7 @@ class Entity:
       joint_pos_weight = torch.tensor(weight, device=device).repeat(nworld, 1)
 
     else:
-      # Non-articulated entities - create empty tensors
+      # Non-articulated entities - create empty tensors.
       default_joint_pos = torch.empty(nworld, 0, dtype=torch.float, device=device)
       default_joint_vel = torch.empty(nworld, 0, dtype=torch.float, device=device)
       default_joint_pos_limits = torch.empty(
@@ -360,7 +360,7 @@ class Entity:
       joint_stiffness = torch.empty(nworld, 0, dtype=torch.float, device=device)
       joint_damping = torch.empty(nworld, 0, dtype=torch.float, device=device)
 
-    # Universal constants - all entities need these
+    # Universal constants - all entities need these.
     GRAVITY_VEC_W = torch.tensor([0.0, 0.0, -1.0], device=device).repeat(nworld, 1)
     FORWARD_VEC_B = torch.tensor([1.0, 0.0, 0.0], device=device).repeat(nworld, 1)
 

@@ -139,14 +139,3 @@ class Scene:
     self._terrain = TerrainImporter(self._cfg.terrain, self._device)
     frame = self._spec.worldbody.add_frame()
     self._spec.attach(self._terrain.spec, prefix="terrain/", frame=frame)
-
-
-if __name__ == "__main__":
-  from dataclasses import replace
-
-  from mjlab.asset_zoo.robots.unitree_g1 import g1_constants
-
-  SCENE_CFG = SceneCfg(
-    entities={"robot": replace(g1_constants.G1_ROBOT_CFG)},
-  )
-  scene = Scene(SCENE_CFG)
