@@ -287,20 +287,11 @@ class Entity:
 
     # Joint state - only for articulated entities
     if self.is_articulated:
-      if not self.cfg.init_state.joint_pos:
-        joint_pos_dict = {".*": 0.0}
-      else:
-        joint_pos_dict = self.cfg.init_state.joint_pos
-      if not self.cfg.init_state.joint_vel:
-        joint_vel_dict = {".*": 0.0}
-      else:
-        joint_vel_dict = self.cfg.init_state.joint_vel
-
       default_joint_pos = torch.tensor(
-        resolve_expr(joint_pos_dict, self.joint_names), device=device
+        resolve_expr(self.cfg.init_state.joint_pos, self.joint_names), device=device
       )[None].repeat(nworld, 1)
       default_joint_vel = torch.tensor(
-        resolve_expr(joint_vel_dict, self.joint_names), device=device
+        resolve_expr(self.cfg.init_state.joint_vel, self.joint_names), device=device
       )[None].repeat(nworld, 1)
 
       # Joint limits and control parameters

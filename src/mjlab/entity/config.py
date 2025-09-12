@@ -26,8 +26,8 @@ class EntityCfg:
     lin_vel: tuple[float, float, float] = (0.0, 0.0, 0.0)
     ang_vel: tuple[float, float, float] = (0.0, 0.0, 0.0)
     # Articulation.
-    joint_pos: dict[str, float] = field(default_factory=dict)
-    joint_vel: dict[str, float] = field(default_factory=dict)
+    joint_pos: dict[str, float] = field(default_factory=lambda: {".*": 0.0})
+    joint_vel: dict[str, float] = field(default_factory=lambda: {".*": 0.0})
 
   init_state: InitialStateCfg = field(default_factory=InitialStateCfg)
   spec_fn: Callable[[], mujoco.MjSpec] = field(

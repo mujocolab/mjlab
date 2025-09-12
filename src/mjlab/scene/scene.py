@@ -78,6 +78,10 @@ class Scene:
   def num_envs(self) -> int:
     return self._cfg.num_envs
 
+  @property
+  def device(self) -> str:
+    return self._device
+
   def __getitem__(self, key: str) -> Any:
     all_keys = ["terrain"]
     for asset_family in [
