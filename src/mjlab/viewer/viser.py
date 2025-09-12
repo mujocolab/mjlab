@@ -302,13 +302,15 @@ class ViserViewer(BaseViewer):
           self._server.scene.add_mesh_trimesh(
             "/mujoco_world/visual",
             merge_geoms(body_geoms_visual[body_id]),
-            receive_shadow=0.3,
+            # Need new viser release.
+            # receive_shadow=0.3,
           )
         if body_id in body_geoms_collision:
           self._server.scene.add_mesh_trimesh(
             "/mujoco_world/collision",
             merge_geoms(body_geoms_collision[body_id]),
-            receive_shadow=0.3,
+            # Need new viser release.
+            # receive_shadow=0.3,
           )
         continue
 
