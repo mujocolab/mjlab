@@ -28,3 +28,4 @@ class UnitreeGo1EnvCfg_PLAY(UnitreeGo1EnvCfg):
         self.scene.terrain.terrain_generator.curriculum = False
         self.scene.terrain.terrain_generator.num_cols = 5
         self.scene.terrain.terrain_generator.num_rows = 5
+        self.scene.terrain.terrain_generator.border_width = 10.0
