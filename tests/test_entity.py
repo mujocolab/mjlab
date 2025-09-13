@@ -338,8 +338,8 @@ class TestStateManagement:
     assert deviation < 1.0, f"High stiffness should limit deviation, got {deviation}"
 
     # Now test with low stiffness - should deviate more.
-    entity.write_joint_stiffness_to_sim(1.0)
-    entity.write_joint_damping_to_sim(0.1)
+    entity.write_joint_stiffness_to_sim(0.1)
+    entity.write_joint_damping_to_sim(0.01)
 
     # Reset to same initial position.
     entity.write_joint_state_to_sim(joint_pos, joint_vel)
