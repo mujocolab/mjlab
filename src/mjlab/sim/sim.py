@@ -31,16 +31,17 @@ class Simulation:
     self._mj_data = mujoco.MjData(model)
     mujoco.mj_forward(self._mj_model, self._mj_data)
 
-    self._wp_model = mjwarp.put_model(self._mj_model)
-    self._wp_model.opt.ls_parallel = cfg.ls_parallel
+    with wp.ScopedDevice(self.wp_device):
+      self._wp_model = mjwarp.put_model(self._mj_model)
+      self._wp_model.opt.ls_parallel = cfg.ls_parallel
 
-    self._wp_data = mjwarp.put_data(
-      self._mj_model,
-      self._mj_data,
-      nworld=self.num_envs,
-      nconmax=self.cfg.nconmax,
-      njmax=self.cfg.njmax,
-    )
+      self._wp_data = mjwarp.put_data(
+        self._mj_model,
+        self._mj_data,
+        nworld=self.num_envs,
+        nconmax=self.cfg.nconmax,
+        njmax=self.cfg.njmax,
+      )
 
     self._model_bridge = WarpBridge(self._wp_model)
     self._data_bridge = WarpBridge(self._wp_data)
@@ -123,16 +124,18 @@ class Simulation:
     pass
 
   def forward(self) -> None:
-    if self.use_cuda_graph and self.forward_graph is not None:
-      wp.capture_launch(self.forward_graph)
-    else:
-      mjwarp.forward(self.wp_model, self.wp_data)
+    with wp.ScopedDevice(self.wp_device):
+      if self.use_cuda_graph and self.forward_graph is not None:
+        wp.capture_launch(self.forward_graph)
+      else:
+        mjwarp.forward(self.wp_model, self.wp_data)
 
   def step(self) -> None:
-    if self.use_cuda_graph and self.step_graph is not None:
-      wp.capture_launch(self.step_graph)
-    else:
-      mjwarp.step(self.wp_model, self.wp_data)
+    with wp.ScopedDevice(self.wp_device):
+      if self.use_cuda_graph and self.step_graph is not None:
+        wp.capture_launch(self.step_graph)
+      else:
+        mjwarp.step(self.wp_model, self.wp_data)
 
   # TODO(kevin): Consider moving this.
   def set_ctrl(self, ctrl: torch.Tensor, ctrl_ids: Sequence[int] | None = None) -> None:

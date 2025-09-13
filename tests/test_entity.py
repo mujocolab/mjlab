@@ -304,17 +304,17 @@ class TestStateManagement:
 
     # Set joints to specific positions.
     joint_pos = torch.tensor([[0.5, -0.3]], device=device)
-    joint_vel = torch.tensor([[0.0, 0.0]], device=device)  # Start with zero velocity.
+    joint_vel = torch.tensor([[0.0, 0.0]], device=device)
 
     entity.write_joint_state_to_sim(joint_pos, joint_vel)
 
-    # Verify state was written
+    # Verify state was written.
     q_slice = entity.data.indexing.joint_q_adr
     v_slice = entity.data.indexing.joint_v_adr
     assert torch.allclose(sim.data.qpos[:, q_slice], joint_pos)
     assert torch.allclose(sim.data.qvel[:, v_slice], joint_vel)
 
-    # Test stiffness - high stiffness should resist deviation from current position.
+    # Test stiffness - high stiffness should resist deviation.
     entity.write_joint_stiffness_to_sim(100.0)
     entity.write_joint_damping_to_sim(10.0)
 
@@ -333,32 +333,37 @@ class TestStateManagement:
 
     final_pos = sim.data.qpos[:, q_slice]
 
-    # With high stiffness, joints shouldn't deviate much despite force.
-    deviation = torch.abs(final_pos - initial_pos).max()
-    assert deviation < 1.0, f"High stiffness should limit deviation, got {deviation}"
+    # With high stiffness, joints shouldn't deviate much.
+    deviation_high = torch.abs(final_pos - initial_pos).max()
+    assert deviation_high < 1.0, (
+      f"High stiffness should limit deviation, got {deviation_high}"
+    )
 
-    # Now test with low stiffness - should deviate more.
+    # Now test with very low stiffness.
     entity.write_joint_stiffness_to_sim(0.1)
     entity.write_joint_damping_to_sim(0.01)
 
     # Reset to same initial position.
     entity.write_joint_state_to_sim(joint_pos, joint_vel)
 
-    # Apply same force.
+    # Re-apply force.
     entity.set_external_force_and_torque(
       forces=torch.tensor([[10.0, 0.0, 0.0]], device=device),
       torques=torch.zeros((1, 3), device=device),
       body_ids=body_ids,
     )
 
-    for _ in range(10):
+    for _ in range(20):
       sim.step()
 
     final_pos_low_stiff = sim.data.qpos[:, q_slice]
     deviation_low = torch.abs(final_pos_low_stiff - joint_pos).max()
 
-    # With low stiffness, deviation should be larger.
-    assert deviation_low > deviation, "Lower stiffness should allow more deviation"
+    # With much lower stiffness and more steps, deviation should be clearly larger.
+    assert deviation_low > deviation_high * 1.5, (
+      f"Lower stiffness should allow more deviation: "
+      f"high_stiff={deviation_high:.4f}, low_stiff={deviation_low:.4f}"
+    )
 
   def test_fixed_base_restrictions(self, fixed_base_entity):
     """Test that fixed-base entities reject root state operations."""
