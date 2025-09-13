@@ -1,51 +1,49 @@
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import mujoco
 import mujoco_warp as mjwarp
 import torch
 
-from mjlab.entities import entity
-from mjlab.entities.indexing import EntityIndexing, SceneIndexing
-from mjlab.entities.robots.robot import Robot
-from mjlab.entities.terrains.terrain import Terrain
-from mjlab.scene.scene_config import SceneCfg
-from mjlab.sensors import SensorBase
-from mjlab.utils.mujoco import dof_width, qpos_width
+from mjlab.entity import Entity, EntityCfg
+from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
 from mjlab.utils.spec_editor import spec_editor as common_editors
 from mjlab.utils.spec_editor.spec_editor_config import OptionCfg
 
-_BASE_XML = r"""
-<mujoco model="mjlab scene">
-  <visual>
-    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
-    <rgba force="1 0 0 1" haze="0.15 0.25 0.35 1"/>
-    <global azimuth="135" elevation="-25" offwidth="1920" offheight="1080"/>
-    <map force="0.005"/>
-    <scale forcewidth="0.25" contactwidth="0.4" contactheight="0.15" framelength="5.0" framewidth="0.3"/>
-    <quality shadowsize="8192"/>
-  </visual>
-  <statistic meansize="0.03"/>
-</mujoco>
-"""
+_SCENE_XML = Path(__file__).parent / "scene.xml"
+
+
+@dataclass(kw_only=True)
+class SceneCfg:
+  num_envs: int = 1
+  env_spacing: float = 2.0
+  terrain: TerrainImporterCfg | None = None
+  entities: dict[str, EntityCfg] = field(default_factory=dict)
+  device: str = "cuda:0"
 
 
 class Scene:
-  """Add docstring."""
-
-  def __init__(self, scene_cfg: SceneCfg):
+  def __init__(self, scene_cfg: SceneCfg) -> None:
     self._cfg = scene_cfg
+    self._device = scene_cfg.device
+    self._entities: dict[str, Entity] = {}
+    self._terrain: TerrainImporter | None = None
+    self._default_env_origins: torch.Tensor | None = None
 
-    self._entities: dict[str, entity.Entity] = {}
-    self._sensors: dict[str, SensorBase] = {}
-    self._indexing: SceneIndexing = SceneIndexing()
-
-    self._spec = mujoco.MjSpec.from_string(_BASE_XML)
-    self._attach_terrains()
-    self._attach_robots()
-    self._attach_sensors()
+    self._spec = mujoco.MjSpec.from_file(str(_SCENE_XML))
+    self._attach_entities()
+    self._attach_terrain()
 
   def compile(self) -> mujoco.MjModel:
     return self._spec.compile()
+
+  def to_zip(self, path: Path) -> None:
+    # TODO(kevin): This is buggy and the generated zip file is not reloadable.
+    # I had to add assetdir="assets" in the compiler directive to make it work.
+    # Check again in a future MuJoCo release if this has been resolved.
+    with path.open("wb") as f:
+      mujoco.MjSpec.to_zip(self._spec, f)
 
   def configure_sim_options(self, cfg: OptionCfg) -> None:
     common_editors.OptionEditor(cfg).edit_spec(self._spec)
@@ -57,29 +55,44 @@ class Scene:
     return self._spec
 
   @property
-  def entities(self) -> dict[str, entity.Entity]:
+  def env_origins(self) -> torch.Tensor:
+    if self._terrain is not None:
+      assert self._terrain.env_origins is not None
+      return self._terrain.env_origins
+    assert self._default_env_origins is not None
+    return self._default_env_origins
+
+  @property
+  def env_spacing(self) -> float:
+    return self._cfg.env_spacing
+
+  @property
+  def entities(self) -> dict[str, Entity]:
     return self._entities
 
   @property
-  def sensors(self) -> dict[str, SensorBase]:
-    return self._sensors
+  def terrain(self) -> TerrainImporter | None:
+    return self._terrain
 
   @property
-  def indexing(self) -> SceneIndexing:
-    return self._indexing
+  def num_envs(self) -> int:
+    return self._cfg.num_envs
+
+  @property
+  def device(self) -> str:
+    return self._device
 
   def __getitem__(self, key: str) -> Any:
-    all_keys = []
+    all_keys = ["terrain"]
     for asset_family in [
       self._entities,
-      self._sensors,
     ]:
       out = asset_family.get(key)
       if out is not None:
         return out
       all_keys += list(asset_family.keys())
     raise KeyError(
-      f"Scene entity with key '{key}' not found. Available Entities: '{all_keys}'"
+      f"Scene entity with key '{key}' not found. Available entities: '{all_keys}'"
     )
 
   # Methods.
@@ -91,32 +104,19 @@ class Scene:
     data: mjwarp.Data,
     device: str,
   ):
-    self._compute_indexing(mj_model, device)
-
-    for ent_name, ent in self._entities.items():
-      ent.initialize(self.indexing.entities[ent_name], model, data, device)
-
-    for sens in self._sensors.values():
-      sens.initialize(
-        dt=mj_model.opt.timestep,
-        indexing=self.indexing.entities[sens.cfg.entity_name],
-        mj_model=mj_model,
-        model=model,
-        data=data,
-        device=device,
-      )
+    self._default_env_origins = torch.zeros(
+      (self._cfg.num_envs, 3), device=device, dtype=torch.float32
+    )
+    for ent in self._entities.values():
+      ent.initialize(mj_model, model, data, device)
 
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
     for ent in self._entities.values():
       ent.reset(env_ids)
-    for sns in self._sensors.values():
-      sns.reset(env_ids)
 
   def update(self, dt: float) -> None:
     for ent in self._entities.values():
       ent.update(dt)
-    for sns in self._sensors.values():
-      sns.update(dt=dt, force_recompute=not self._cfg.lazy_sensor_update)
 
   def write_data_to_sim(self) -> None:
     for ent in self._entities.values():
@@ -124,159 +124,18 @@ class Scene:
 
   # Private methods.
 
-  def _attach_terrains(self) -> None:
-    for ter_name, ter_cfg in self._cfg.terrains.items():
-      ter = Terrain(ter_cfg)
-      self._entities[ter_name] = ter
+  def _attach_entities(self) -> None:
+    for ent_name, ent_cfg in self._cfg.entities.items():
+      ent = Entity(ent_cfg)
+      self._entities[ent_name] = ent
       frame = self._spec.worldbody.add_frame()
-      self._spec.attach(ter.spec, prefix=f"{ter_name}/", frame=frame)
+      self._spec.attach(ent.spec, prefix=f"{ent_name}/", frame=frame)
 
-  def _attach_robots(self) -> None:
-    for rob_name, rob_cfg in self._cfg.robots.items():
-      rob = Robot(rob_cfg)
-      self._entities[rob_name] = rob
-      frame = self._spec.worldbody.add_frame()
-      self._spec.attach(rob.spec, prefix=f"{rob_name}/", frame=frame)
-
-  def _attach_sensors(self) -> None:
-    for sns_name, sns_cfg in self._cfg.sensors.items():
-      sns = sns_cfg.class_type(sns_cfg)
-      self._sensors[sns_name] = sns
-
-  def _compute_indexing(self, model: mujoco.MjModel, device: str) -> None:
-    for ent_name, ent in self._entities.items():
-      ##
-      # BODY
-      ##
-      body_ids = []
-      body_root_ids = []
-      body_iquats = []
-      body_local2global = {}
-      for local_id, body_ in enumerate(ent.spec.bodies[1:]):
-        body_name = body_.name
-        body = model.body(body_name)
-        body_ids.append(body.id)
-        body_root_ids.extend(body.rootid)
-        body_iquats.append(body.iquat.tolist())
-        body_local2global[local_id] = body.id
-      body_ids = torch.tensor(body_ids, dtype=torch.int, device=device)
-      body_root_ids = torch.tensor(body_root_ids, dtype=torch.int, device=device)
-      body_iquats = torch.tensor(body_iquats, dtype=torch.float, device=device)
-
-      root_body_id = None
-      for joint in ent.spec.joints:
-        jnt = model.joint(joint.name)
-        if jnt.type[0] == mujoco.mjtJoint.mjJNT_FREE:
-          # NOTE: `jnt.bodyid` is currently returning an
-          # array when it should only be returning a single
-          # value. So instead, we use model.jnt_bodyid.
-          root_body_id = int(model.jnt_bodyid[jnt.id])
-
-      root_body_iquat = None
-      if root_body_id is not None:
-        root_body_iquat = torch.tensor(
-          model.body_iquat[root_body_id], dtype=torch.float, device=device
-        )
-
-      ##
-      # GEOM
-      ##
-      geom_ids = []
-      geom_body_ids = []
-      geom_local2global = {}
-      for local_id, geom_ in enumerate(ent.spec.geoms):
-        geom_name = geom_.name
-        geom = model.geom(geom_name)
-        geom_ids.append(geom.id)
-        geom_body_ids.append(geom.bodyid[0])
-        geom_local2global[local_id] = geom.id
-      geom_ids = torch.tensor(geom_ids, dtype=torch.int, device=device)
-      geom_body_ids = torch.tensor(geom_body_ids, dtype=torch.int, device=device)
-
-      ##
-      # SITE
-      ##
-      site_ids = []
-      site_body_ids = []
-      site_local2global = {}
-      for local_id, site_ in enumerate(ent.spec.sites):
-        site_name = site_.name
-        site = model.site(site_name)
-        site_ids.append(site.id)
-        site_body_ids.append(site.bodyid[0])
-        site_local2global[local_id] = site.id
-      site_ids = torch.tensor(site_ids, dtype=torch.int, device=device)
-      site_body_ids = torch.tensor(site_body_ids, dtype=torch.int, device=device)
-
-      ##
-      # ACTUATOR
-      ##
-      ctrl_ids = []
-      actuator_local2global = {}
-      for local_id, actuator in enumerate(ent.spec.actuators):
-        act = model.actuator(actuator.name)
-        ctrl_ids.append(act.id)
-        actuator_local2global[local_id] = act.id
-
-      ##
-      # SENSOR
-      ##
-      sensor_adr = {}
-      for sensor in ent.spec.sensors:
-        sensor_name = sensor.name
-        sns = model.sensor(sensor_name)
-        dim = sns.dim[0]
-        start_adr = sns.adr[0]
-        sensor_adr[sensor_name.split("/")[1]] = torch.arange(
-          start_adr, start_adr + dim, dtype=torch.int, device=device
-        )
-
-      ##
-      # JOINT
-      ##
-      joint_q_adr = []
-      joint_v_adr = []
-      free_joint_q_adr = []
-      free_joint_v_adr = []
-      joint_local2global = {}
-      for local_id, joint in enumerate(ent.spec.joints):
-        jnt = model.joint(joint.name)
-        jnt_type = jnt.type[0]
-        vadr = jnt.dofadr[0]
-        qadr = jnt.qposadr[0]
-        if jnt_type == mujoco.mjtJoint.mjJNT_FREE:
-          free_joint_v_adr.extend(range(vadr, vadr + 6))
-          free_joint_q_adr.extend(range(qadr, qadr + 7))
-        else:
-          vdim = dof_width(jnt_type)
-          joint_v_adr.extend(range(vadr, vadr + vdim))
-          qdim = qpos_width(jnt_type)
-          joint_q_adr.extend(range(qadr, qadr + qdim))
-          # -1 because for accessing jnt_* fields in model, we want to skip the
-          # freejoint.
-          joint_local2global[local_id - 1] = jnt.id
-
-      indexing = EntityIndexing(
-        root_body_id=root_body_id,
-        body_ids=body_ids,
-        body_root_ids=body_root_ids,
-        geom_ids=geom_ids,
-        geom_body_ids=geom_body_ids,
-        site_ids=site_ids,
-        site_body_ids=site_body_ids,
-        ctrl_ids=torch.tensor(ctrl_ids, dtype=torch.int, device=device),
-        root_body_iquat=root_body_iquat,
-        body_iquats=body_iquats,
-        sensor_adr=sensor_adr,
-        joint_q_adr=torch.tensor(joint_q_adr, dtype=torch.int, device=device),
-        joint_v_adr=torch.tensor(joint_v_adr, dtype=torch.int, device=device),
-        free_joint_v_adr=torch.tensor(free_joint_v_adr, dtype=torch.int, device=device),
-        free_joint_q_adr=torch.tensor(free_joint_q_adr, dtype=torch.int, device=device),
-        body_local2global=body_local2global,
-        geom_local2global=geom_local2global,
-        site_local2global=site_local2global,
-        actuator_local2global=actuator_local2global,
-        joint_local2global=joint_local2global,
-      )
-
-      self._indexing.entities[ent_name] = indexing
+  def _attach_terrain(self) -> None:
+    if self._cfg.terrain is None:
+      return
+    self._cfg.terrain.num_envs = self._cfg.num_envs
+    self._cfg.terrain.env_spacing = self._cfg.env_spacing
+    self._terrain = TerrainImporter(self._cfg.terrain, self._device)
+    frame = self._spec.worldbody.add_frame()
+    self._spec.attach(self._terrain.spec, prefix="terrain/", frame=frame)

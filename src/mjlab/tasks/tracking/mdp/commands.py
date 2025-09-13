@@ -21,7 +21,7 @@ from mjlab.third_party.isaaclab.isaaclab.utils.math import (
 )
 
 if TYPE_CHECKING:
-  from mjlab.entities import Robot
+  from mjlab.entity import Entity
   from mjlab.envs import ManagerBasedRlEnv
 
 
@@ -70,7 +70,7 @@ class MotionCommand(CommandTerm):
   def __init__(self, cfg: MotionCommandCfg, env: ManagerBasedRlEnv):
     super().__init__(cfg, env)
 
-    self.robot: Robot = env.scene[cfg.asset_name]
+    self.robot: Entity = env.scene[cfg.asset_name]
     self.robot_ref_body_index = self.robot.body_names.index(self.cfg.reference_body)
     self.motion_ref_body_index = self.cfg.body_names.index(self.cfg.reference_body)
     self.body_indexes = torch.tensor(
@@ -124,7 +124,9 @@ class MotionCommand(CommandTerm):
 
   @property
   def body_pos_w(self) -> torch.Tensor:
-    return self.motion.body_pos_w[self.time_steps]
+    return (
+      self.motion.body_pos_w[self.time_steps] + self._env.scene.env_origins[:, None, :]
+    )
 
   @property
   def body_quat_w(self) -> torch.Tensor:
@@ -140,7 +142,10 @@ class MotionCommand(CommandTerm):
 
   @property
   def ref_pos_w(self) -> torch.Tensor:
-    return self.motion.body_pos_w[self.time_steps, self.motion_ref_body_index]
+    return (
+      self.motion.body_pos_w[self.time_steps, self.motion_ref_body_index]
+      + self._env.scene.env_origins
+    )
 
   @property
   def ref_quat_w(self) -> torch.Tensor:
@@ -328,14 +333,20 @@ class MotionCommand(CommandTerm):
     )
 
   def _debug_vis_impl(self, scn: mujoco.MjvScene) -> None:
-    self._data_viz.qpos[0:3] = self.body_pos_w[0, 0].cpu().numpy().copy()
-    self._data_viz.qpos[3:7] = self.body_quat_w[0, 0].cpu().numpy().copy()
-    self._data_viz.qpos[7:] = self.joint_pos[0].cpu().numpy().copy()
-    self._data_viz.qpos[1] += 0.6
-    mujoco.mj_forward(self._model_viz, self._data_viz)
-    mujoco.mjv_addGeoms(
-      self._model_viz, self._data_viz, self._vopt, self._pert, self._catmask.value, scn
-    )
+    for i in range(self.num_envs):
+      self._data_viz.qpos[0:3] = self.body_pos_w[i, 0].cpu().numpy().copy()
+      self._data_viz.qpos[0:3] += self._env.scene.env_origins[i].cpu().numpy()
+      self._data_viz.qpos[3:7] = self.body_quat_w[i, 0].cpu().numpy().copy()
+      self._data_viz.qpos[7:] = self.joint_pos[i].cpu().numpy().copy()
+      mujoco.mj_forward(self._model_viz, self._data_viz)
+      mujoco.mjv_addGeoms(
+        self._model_viz,
+        self._data_viz,
+        self._vopt,
+        self._pert,
+        self._catmask.value,
+        scn,
+      )
 
 
 @dataclass(kw_only=True)

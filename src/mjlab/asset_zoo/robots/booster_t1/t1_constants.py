@@ -5,7 +5,7 @@ from pathlib import Path
 import mujoco
 
 from mjlab import MJLAB_SRC_PATH
-from mjlab.entities.robots.robot_config import RobotCfg
+from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.utils.actuator import ElectricActuator, reflected_inertia, rpm_to_rad
 from mjlab.utils.os import update_assets
 from mjlab.utils.spec_editor.spec_editor_config import ActuatorCfg, CollisionCfg
@@ -161,7 +161,7 @@ ACTUATOR_ANKLE = ActuatorCfg(
 # Keyframe config.
 ##
 
-HOME_KEYFRAME = RobotCfg.InitialStateCfg(
+HOME_KEYFRAME = EntityCfg.InitialStateCfg(
   pos=(0, 0, 0.665),
   joint_pos={
     "Left_Shoulder_Roll": -1.4,
@@ -202,8 +202,7 @@ FULL_COLLISION_WITHOUT_SELF = CollisionCfg(
 # Final config.
 ##
 
-T1_ROBOT_CFG = RobotCfg(
-  init_state=HOME_KEYFRAME,
+T1_ARTICULATION = EntityArticulationInfoCfg(
   actuators=(
     ACTUATOR_ARM,
     ACTUATOR_ANKLE,
@@ -213,12 +212,17 @@ T1_ROBOT_CFG = RobotCfg(
     ACTUATOR_NECK,
   ),
   soft_joint_pos_limit_factor=0.9,
+)
+
+T1_ROBOT_CFG = EntityCfg(
+  init_state=HOME_KEYFRAME,
   collisions=(FULL_COLLISION,),
   spec_fn=get_spec,
+  articulation=T1_ARTICULATION,
 )
 
 T1_ACTION_SCALE: dict[str, float] = {}
-for a in T1_ROBOT_CFG.actuators:
+for a in T1_ARTICULATION.actuators:
   e = a.effort_limit
   s = a.stiffness
   names = a.joint_names_expr
@@ -233,7 +237,7 @@ for a in T1_ROBOT_CFG.actuators:
 if __name__ == "__main__":
   import mujoco.viewer as viewer
 
-  from mjlab.entities.robots.robot import Robot
+  from mjlab.entity import Entity
 
-  robot = Robot(T1_ROBOT_CFG)
+  robot = Entity(T1_ROBOT_CFG)
   viewer.launch(robot.spec.compile())

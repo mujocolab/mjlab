@@ -5,7 +5,7 @@ from pathlib import Path
 import mujoco
 
 from mjlab import MJLAB_SRC_PATH
-from mjlab.entities.robots.robot_config import RobotCfg
+from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.utils.actuator import ElectricActuator, reflected_inertia
 from mjlab.utils.os import update_assets
 from mjlab.utils.spec_editor import ActuatorCfg, CollisionCfg
@@ -56,18 +56,27 @@ KNEE_ACTUATOR = ElectricActuator(
   effort_limit=35.55,
 )
 
+NATURAL_FREQ = 10 * 2.0 * 3.1415926535  # 10Hz
+DAMPING_RATIO = 2.0
+
+STIFFNESS_HIP = HIP_ACTUATOR.reflected_inertia * NATURAL_FREQ**2
+DAMPING_HIP = 2 * DAMPING_RATIO * HIP_ACTUATOR.reflected_inertia * NATURAL_FREQ
+
+STIFFNESS_KNEE = KNEE_ACTUATOR.reflected_inertia * NATURAL_FREQ**2
+DAMPING_KNEE = 2 * DAMPING_RATIO * KNEE_ACTUATOR.reflected_inertia * NATURAL_FREQ
+
 GO1_HIP_ACTUATOR_CFG = ActuatorCfg(
   joint_names_expr=[".*_hip_joint", ".*_thigh_joint"],
   effort_limit=HIP_ACTUATOR.effort_limit,
-  stiffness=35.0,
-  damping=0.5,
+  stiffness=STIFFNESS_HIP,
+  damping=DAMPING_HIP,
   armature=HIP_ACTUATOR.reflected_inertia,
 )
 GO1_KNEE_ACTUATOR_CFG = ActuatorCfg(
   joint_names_expr=[".*_calf_joint"],
   effort_limit=KNEE_ACTUATOR.effort_limit,
-  stiffness=35.0,
-  damping=0.5,
+  stiffness=STIFFNESS_KNEE,
+  damping=DAMPING_KNEE,
   armature=KNEE_ACTUATOR.reflected_inertia,
 )
 
@@ -76,7 +85,7 @@ GO1_KNEE_ACTUATOR_CFG = ActuatorCfg(
 ##
 
 
-INIT_STATE = RobotCfg.InitialStateCfg(
+INIT_STATE = EntityCfg.InitialStateCfg(
   pos=(0.0, 0.0, 0.278),
   joint_pos={
     ".*thigh_joint": 0.9,
@@ -84,6 +93,7 @@ INIT_STATE = RobotCfg.InitialStateCfg(
     ".*R_hip_joint": 0.1,
     ".*L_hip_joint": -0.1,
   },
+  joint_vel={".*": 0.0},
 )
 
 ##
@@ -120,13 +130,30 @@ FULL_COLLISION = CollisionCfg(
 # Final config.
 ##
 
-GO1_ROBOT_CFG = RobotCfg(
-  init_state=INIT_STATE,
+GO1_ARTICULATION = EntityArticulationInfoCfg(
   actuators=(
     GO1_HIP_ACTUATOR_CFG,
     GO1_KNEE_ACTUATOR_CFG,
   ),
   soft_joint_pos_limit_factor=0.9,
+)
+
+GO1_ROBOT_CFG = EntityCfg(
+  init_state=INIT_STATE,
   collisions=(FULL_COLLISION,),
   spec_fn=get_spec,
+  articulation=GO1_ARTICULATION,
 )
+
+GO1_ACTION_SCALE: dict[str, float] = {}
+for a in GO1_ARTICULATION.actuators:
+  e = a.effort_limit
+  s = a.stiffness
+  names = a.joint_names_expr
+  if not isinstance(e, dict):
+    e = {n: e for n in names}
+  if not isinstance(s, dict):
+    s = {n: s for n in names}
+  for n in names:
+    if n in e and n in s and s[n]:
+      GO1_ACTION_SCALE[n] = 0.25 * e[n] / s[n]

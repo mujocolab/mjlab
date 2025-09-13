@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import inspect
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
@@ -38,7 +39,7 @@ class ManagerTermBase:
     del env_ids  # Unused.
     pass
 
-  def __call__(self, *args) -> Any:
+  def __call__(self, *args, **kwargs) -> Any:
     """Returns the value of the term required by the manager."""
     raise NotImplementedError
 
@@ -83,10 +84,10 @@ class ManagerBase(abc.ABC):
     raise NotImplementedError
 
   def _resolve_common_term_cfg(self, term_name: str, term_cfg: ManagerTermBaseCfg):
-    # TODO: Double check.
+    # TODO: Add more safety checks.
     for key, value in term_cfg.params.items():
       if isinstance(value, SceneEntityCfg):
-        # value.resolve(self._env.sim.mj_model)
         value.resolve(self._env.scene)
         term_cfg.params[key] = value
-      # TODO: initialize the term if it is a class.
+    if inspect.isclass(term_cfg.func):
+      term_cfg.func = term_cfg.func(cfg=term_cfg, env=self._env)

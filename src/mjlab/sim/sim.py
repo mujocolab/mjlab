@@ -21,26 +21,27 @@ else:
 class Simulation:
   """MjWarp simulation backend."""
 
-  def __init__(self, cfg: SimulationCfg, model: mujoco.MjModel):
+  def __init__(self, num_envs: int, cfg: SimulationCfg, model: mujoco.MjModel):
     self.cfg = cfg
     self.device = self.cfg.device
     self.wp_device = wp.get_device(self.device)
-    self.num_envs = self.cfg.num_envs
+    self.num_envs = num_envs
 
     self._mj_model = model
     self._mj_data = mujoco.MjData(model)
     mujoco.mj_forward(self._mj_model, self._mj_data)
 
-    self._wp_model = mjwarp.put_model(self._mj_model)
-    self._wp_model.opt.ls_parallel = cfg.ls_parallel
+    with wp.ScopedDevice(self.wp_device):
+      self._wp_model = mjwarp.put_model(self._mj_model)
+      self._wp_model.opt.ls_parallel = cfg.ls_parallel
 
-    self._wp_data = mjwarp.put_data(
-      self._mj_model,
-      self._mj_data,
-      nworld=self.cfg.num_envs,
-      nconmax=self.cfg.nconmax,
-      njmax=self.cfg.njmax,
-    )
+      self._wp_data = mjwarp.put_data(
+        self._mj_model,
+        self._mj_data,
+        nworld=self.num_envs,
+        nconmax=self.cfg.nconmax,
+        njmax=self.cfg.njmax,
+      )
 
     self._model_bridge = WarpBridge(self._wp_model)
     self._data_bridge = WarpBridge(self._wp_data)
@@ -123,16 +124,18 @@ class Simulation:
     pass
 
   def forward(self) -> None:
-    if self.use_cuda_graph and self.forward_graph is not None:
-      wp.capture_launch(self.forward_graph)
-    else:
-      mjwarp.forward(self.wp_model, self.wp_data)
+    with wp.ScopedDevice(self.wp_device):
+      if self.use_cuda_graph and self.forward_graph is not None:
+        wp.capture_launch(self.forward_graph)
+      else:
+        mjwarp.forward(self.wp_model, self.wp_data)
 
   def step(self) -> None:
-    if self.use_cuda_graph and self.step_graph is not None:
-      wp.capture_launch(self.step_graph)
-    else:
-      mjwarp.step(self.wp_model, self.wp_data)
+    with wp.ScopedDevice(self.wp_device):
+      if self.use_cuda_graph and self.step_graph is not None:
+        wp.capture_launch(self.step_graph)
+      else:
+        mjwarp.step(self.wp_model, self.wp_data)
 
   # TODO(kevin): Consider moving this.
   def set_ctrl(self, ctrl: torch.Tensor, ctrl_ids: Sequence[int] | None = None) -> None:

@@ -1,4 +1,3 @@
-from mjlab.scene.scene import Scene
-from mjlab.scene.scene_config import SceneCfg
+from mjlab.scene.scene import Scene, SceneCfg
 
-__all__ = ("Scene", "SceneCfg")
+__all__ = ["Scene", "SceneCfg"]

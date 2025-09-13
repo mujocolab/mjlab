@@ -33,3 +33,13 @@ def set_array_field(field, values):
     return
   for i, v in enumerate(values):
     field[i] = v
+
+
+def is_joint_limited(jnt: mujoco.MjsJoint) -> bool:
+  match jnt.limited:
+    case mujoco.mjtLimited.mjLIMITED_TRUE:
+      return True
+    case mujoco.mjtLimited.mjLIMITED_AUTO:
+      return jnt.range[0] < jnt.range[1]
+    case _:
+      return False

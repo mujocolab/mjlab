@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from mjlab.entities import Robot
+from mjlab.entity import Entity
 from mjlab.scene import Scene
 
 
@@ -32,7 +32,7 @@ class SceneEntityCfg:
 
   def _resolve_joint_names(self, scene: Scene) -> None:
     if self.joint_names is not None or isinstance(self.joint_ids, list):
-      entity: Robot = scene[self.name]
+      entity: Entity = scene[self.name]
 
       # Joint name regex --> joint indices.
       if self.joint_names is not None and isinstance(self.joint_ids, list):
@@ -69,7 +69,7 @@ class SceneEntityCfg:
 
   def _resolve_body_names(self, scene: Scene) -> None:
     if self.body_names is not None or isinstance(self.body_ids, list):
-      entity: Robot = scene[self.name]
+      entity: Entity = scene[self.name]
 
       # Body name regex --> body indices.
       if self.body_names is not None and isinstance(self.body_ids, list):
@@ -105,7 +105,7 @@ class SceneEntityCfg:
 
   def _resolve_geom_names(self, scene: Scene) -> None:
     if self.geom_names is not None or isinstance(self.geom_ids, list):
-      entity: Robot = scene[self.name]
+      entity: Entity = scene[self.name]
 
       # Geom name regex --> geom indices.
       if self.geom_names is not None and isinstance(self.geom_ids, list):
@@ -141,7 +141,7 @@ class SceneEntityCfg:
 
   def _resolve_site_names(self, scene: Scene) -> None:
     if self.site_names is not None or isinstance(self.site_ids, list):
-      entity: Robot = scene[self.name]
+      entity: Entity = scene[self.name]
 
       # Site name regex --> site indices.
       if self.site_names is not None and isinstance(self.site_ids, list):

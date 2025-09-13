@@ -1,9 +1,8 @@
 import math
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 
-from mjlab.asset_zoo.terrains.flat_terrain import FLAT_TERRAIN_CFG
 from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
-from mjlab.managers.manager_term_config import ActionTermCfg as ActionTerm
+from mjlab.managers.manager_term_config import CurriculumTermCfg as CurrTerm
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 from mjlab.managers.manager_term_config import ObservationGroupCfg as ObsGroup
 from mjlab.managers.manager_term_config import ObservationTermCfg as ObsTerm
@@ -11,43 +10,22 @@ from mjlab.managers.manager_term_config import RewardTermCfg as RewardTerm
 from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
-from mjlab.scene.scene_config import SceneCfg
-from mjlab.sensors import ContactSensorCfg
+from mjlab.scene import SceneCfg
 from mjlab.tasks.locomotion.velocity import mdp
+from mjlab.terrains import TerrainImporterCfg
+from mjlab.terrains.config import ROUGH_TERRAINS_CFG
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
-from mjlab.utils.spec_editor.spec_editor_config import LightCfg, TextureCfg
 
 ##
 # Scene.
 ##
 
-terrain_cfg = replace(FLAT_TERRAIN_CFG)
-terrain_cfg.textures = terrain_cfg.textures + (
-  TextureCfg(
-    name="skybox",
-    type="skybox",
-    builtin="gradient",
-    rgb1=(0.3, 0.5, 0.7),
-    rgb2=(0.1, 0.2, 0.3),
-    width=512,
-    height=3072,
-  ),
-)
-terrain_cfg.lights = terrain_cfg.lights + (
-  LightCfg(pos=(0, 0, 1.5), type="directional"),
-)
-
 SCENE_CFG = SceneCfg(
-  terrains={"floor": terrain_cfg},
-  sensors={
-    "feet_contact_forces": ContactSensorCfg(
-      entity_name="robot",
-      history_length=3,
-      track_air_time=True,
-      filter_expr=[".*calf"],
-      geom_filter_expr=[".*_foot_collision*"],
-    ),
-  },
+  terrain=TerrainImporterCfg(
+    terrain_type="generator",
+    terrain_generator=ROUGH_TERRAINS_CFG,
+    max_init_terrain_level=5,
+  ),
 )
 
 ##
@@ -59,7 +37,7 @@ SCENE_CFG = SceneCfg(
 
 @dataclass
 class ActionCfg:
-  joint_pos: ActionTerm = term(
+  joint_pos: mdp.JointPositionActionCfg = term(
     mdp.JointPositionActionCfg,
     asset_name="robot",
     actuator_names=[".*"],
@@ -185,6 +163,19 @@ class EventCfg:
     interval_range_s=(10.0, 15.0),
     params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
   )
+  foot_friction: EventTerm = term(
+    EventTerm,
+    mode="startup",
+    func=mdp.randomize_field,
+    params={
+      "asset_cfg": SceneEntityCfg(
+        "robot", geom_names=[r"^(RR|RL|FR|FL)_foot_collision$"]
+      ),
+      "operation": "abs",
+      "field": "geom_friction",
+      "ranges": (0.3, 1.2),
+    },
+  )
 
 
 # Rewards.
@@ -206,27 +197,28 @@ class RewardCfg:
     params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
   )
   # Penalties.
-  lin_vel_z_l2: RewardTerm = term(RewardTerm, func=mdp.lin_vel_z_l2, weight=-0.5)
-  ang_vel_xy_l2: RewardTerm = term(RewardTerm, func=mdp.ang_vel_xy_l2, weight=-0.05)
-  dof_torques_l2: RewardTerm = term(
-    RewardTerm, func=mdp.joint_torques_l2, weight=-0.0002
-  )
+  lin_vel_z_l2: RewardTerm = term(RewardTerm, func=mdp.lin_vel_z_l2, weight=0.0)
+  ang_vel_xy_l2: RewardTerm = term(RewardTerm, func=mdp.ang_vel_xy_l2, weight=0.0)
+  dof_torques_l2: RewardTerm = term(RewardTerm, func=mdp.joint_torques_l2, weight=0.0)
   dof_acc_l2: RewardTerm = term(RewardTerm, func=mdp.joint_acc_l2, weight=0.0)
   action_rate_l2: RewardTerm = term(RewardTerm, func=mdp.action_rate_l2, weight=-0.01)
   flat_orientation_l2: RewardTerm = term(
-    RewardTerm, func=mdp.flat_orientation_l2, weight=-5.0
+    RewardTerm, func=mdp.flat_orientation_l2, weight=0.0
   )
   dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
-  feet_air_time: RewardTerm = term(
+  pose_l2: RewardTerm = term(
     RewardTerm,
-    func=mdp.feet_air_time,
-    weight=0.1,
+    func=mdp.posture,
+    weight=-0.1,
     params={
-      "sensor_cfg": SceneEntityCfg("feet_contact_forces"),
-      "command_name": "base_velocity",
-      "threshold": 0.1,
+      "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
+      "std": {
+        r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.3,
+        r".*(FR|FL|RR|RL)_calf_joint.*": 0.6,
+      },
     },
   )
+  power: RewardTerm = term(RewardTerm, func=mdp.electrical_power_cost, weight=-0.005)
 
 
 # Terminations.
@@ -236,7 +228,7 @@ class RewardCfg:
 class TerminationCfg:
   time_out: DoneTerm = term(DoneTerm, func=mdp.time_out, time_out=True)
   fell_over: DoneTerm = term(
-    DoneTerm, func=mdp.bad_orientation, params={"limit_angle": math.radians(45.0)}
+    DoneTerm, func=mdp.bad_orientation, params={"limit_angle": math.radians(70.0)}
   )
 
 
@@ -245,7 +237,7 @@ class TerminationCfg:
 
 @dataclass
 class CurriculumCfg:
-  pass
+  terrain_levels: CurrTerm = term(CurrTerm, func=mdp.terrain_levels_vel)
 
 
 ##
@@ -254,7 +246,7 @@ class CurriculumCfg:
 
 
 @dataclass
-class LocomotionVelocityFlatEnvCfg(ManagerBasedRlEnvCfg):
+class LocomotionVelocityEnvCfg(ManagerBasedRlEnvCfg):
   scene: SceneCfg = field(default_factory=lambda: SCENE_CFG)
   observations: ObservationCfg = field(default_factory=ObservationCfg)
   actions: ActionCfg = field(default_factory=ActionCfg)
@@ -267,11 +259,14 @@ class LocomotionVelocityFlatEnvCfg(ManagerBasedRlEnvCfg):
   curriculum: CurriculumCfg = field(default_factory=CurriculumCfg)
 
   def __post_init__(self):
-    self.sim.mujoco.integrator = "implicitfast"
-    self.sim.mujoco.cone = "pyramidal"
+    self.scene.num_envs = 1
+    self.sim.nconmax = 140000
+    self.sim.njmax = 300
     self.sim.mujoco.timestep = 0.005
-    self.sim.num_envs = 1
-    self.sim.nconmax = 40000
-    self.sim.njmax = 100
     self.sim.mujoco.iterations = 10
     self.sim.mujoco.ls_iterations = 20
+
+    # Enable curriculum mode for terrain generator.
+    if self.scene.terrain is not None:
+      if self.scene.terrain.terrain_generator is not None:
+        self.scene.terrain.terrain_generator.curriculum = True

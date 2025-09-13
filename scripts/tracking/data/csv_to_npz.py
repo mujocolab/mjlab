@@ -6,11 +6,10 @@ import torch
 import tyro
 
 from mjlab.asset_zoo.robots.unitree_g1 import g1_constants
-from mjlab.asset_zoo.terrains.flat_terrain import FLAT_TERRAIN_CFG
-from mjlab.entities import Robot
-from mjlab.scene import Scene
-from mjlab.scene.scene_config import SceneCfg
+from mjlab.entity import Entity
+from mjlab.scene import Scene, SceneCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
+from mjlab.terrains import TerrainImporterCfg
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   axis_angle_from_quat,
   quat_apply_inverse,
@@ -20,8 +19,8 @@ from mjlab.third_party.isaaclab.isaaclab.utils.math import (
 )
 
 SCENE_CFG = SceneCfg(
-  terrains={"floor": replace(FLAT_TERRAIN_CFG)},
-  robots={"robot": replace(g1_constants.G1_ROBOT_CFG)},
+  terrain=TerrainImporterCfg(terrain_type="plane"),
+  entities={"robot": replace(g1_constants.G1_ROBOT_CFG)},
 )
 
 
@@ -187,7 +186,7 @@ class MotionLoader:
 
 def run_sim(
   sim: Simulation,
-  scene,
+  scene: Scene,
   joint_names,
   input_file,
   input_fps,
@@ -205,7 +204,7 @@ def run_sim(
     line_range=line_range,
   )
 
-  robot: Robot = scene["robot"]
+  robot: Entity = scene["robot"]
   robot_joint_indexes = robot.find_joints(joint_names, preserve_order=True)[0]
 
   # ------- data logger -------------------------------------------------------
@@ -239,6 +238,7 @@ def run_sim(
 
     root_states = robot.data.default_root_state.clone()
     root_states[:, 0:3] = motion_base_pos
+    root_states[:, :2] += scene.env_origins[:, :2]
     root_states[:, 3:7] = motion_base_rot
     root_states[:, 7:10] = motion_base_lin_vel
     # root_states[:, 10:] = motion_base_ang_vel
@@ -345,7 +345,10 @@ def main(
   scene = Scene(SCENE_CFG)
   model = scene.compile()
 
-  sim = Simulation(cfg=sim_cfg, model=model)
+  sim = Simulation(num_envs=1, cfg=sim_cfg, model=model)
+  if render:
+    sim.initialize_renderer()
+
   scene.initialize(sim.mj_model, sim.model, sim.data, device)
 
   run_sim(

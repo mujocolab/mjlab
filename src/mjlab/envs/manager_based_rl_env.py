@@ -30,7 +30,7 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
   ) -> None:
     self.common_step_counter = 0
     self.episode_length_buf = torch.zeros(
-      cfg.sim.num_envs, device=cfg.sim.device, dtype=torch.long
+      cfg.scene.num_envs, device=cfg.sim.device, dtype=torch.long
     )
     super().__init__(cfg=cfg)
     self.render_mode = render_mode
