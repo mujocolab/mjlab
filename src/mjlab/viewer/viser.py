@@ -230,8 +230,8 @@ class ViserViewer(BaseViewer):
     # Get initial geometry positions to find natural center for floor grid
     sim = self.env.unwrapped.sim
     assert isinstance(sim, Simulation)
-    wp_data = sim.wp_data
-    geom_xpos = wp_data.geom_xpos.numpy()  # Shape: (batch_size, ngeom, 3)
+    # wp_data = sim.wp_data
+    # geom_xpos = wp_data.geom_xpos.numpy()  # Shape: (batch_size, ngeom, 3)
 
     # Group geoms by their parent body and type (visual/collision)
     from collections import defaultdict
@@ -384,7 +384,7 @@ class ViserViewer(BaseViewer):
       with self._server.atomic():
         body_xquat = vtf.SO3.from_matrix(body_xmat).wxyz
 
-        for name, data in self._handles.items():
+        for data in self._handles.values():
           handle, body_id = data
 
           # Update position and orientation for this body
