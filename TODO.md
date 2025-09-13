@@ -4,7 +4,9 @@
   - [ ] Contact sensor
   - [ ] Arbitrary XML sensors
 - [ ] Think about how to randomize collision geometry
-- [ ] Terrain generation
+- [x] Terrain generation
+  - [x] Terrain generator using box primitives.
+  - [ ] Terrain generator using meshes and heightfields.
 - [ ] Observation history and modifiers
 - [ ] Rename entities to be consistent with isaaclab
 - [ ] Actuation
