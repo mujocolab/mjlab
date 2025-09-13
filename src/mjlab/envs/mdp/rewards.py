@@ -159,7 +159,8 @@ class posture:
     current_joint_pos = asset.data.joint_pos[:, asset_cfg.joint_ids]
     desired_joint_pos = self.default_joint_pos[:, asset_cfg.joint_ids]
     error = torch.square(current_joint_pos - desired_joint_pos)
-    return torch.exp(torch.sum(-error / self.std**2, dim=1))
+    weighted_error = error / (self.std**2)
+    return -torch.sum(weighted_error, dim=1)
 
 
 # def undesired_contacts(
@@ -176,3 +177,15 @@ class posture:
 #     > threshold
 #   )
 #   return torch.sum(is_contact, dim=1)
+
+
+def electrical_power_cost(
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
+) -> torch.Tensor:
+  """Penalize electrical power consumption of actuators."""
+  asset: Entity = env.scene[asset_cfg.name]
+  torque = asset.data.actuator_force
+  velocity = asset.data.joint_vel
+  mechanical_power = torque * velocity
+  positive_mechanical_power = torch.clamp(mechanical_power, min=0.0)
+  return positive_mechanical_power.sum(dim=-1)

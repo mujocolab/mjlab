@@ -2,7 +2,6 @@ import math
 from dataclasses import dataclass, field
 
 from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
-from mjlab.managers.manager_term_config import ActionTermCfg as ActionTerm
 from mjlab.managers.manager_term_config import CurriculumTermCfg as CurrTerm
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 from mjlab.managers.manager_term_config import ObservationGroupCfg as ObsGroup
@@ -25,7 +24,7 @@ SCENE_CFG = SceneCfg(
   terrain=TerrainImporterCfg(
     terrain_type="generator",
     terrain_generator=ROUGH_TERRAINS_CFG,
-    max_init_terrain_level=2,
+    max_init_terrain_level=5,
   ),
 )
 
@@ -38,7 +37,7 @@ SCENE_CFG = SceneCfg(
 
 @dataclass
 class ActionCfg:
-  joint_pos: ActionTerm = term(
+  joint_pos: mdp.JointPositionActionCfg = term(
     mdp.JointPositionActionCfg,
     asset_name="robot",
     actuator_names=[".*"],
@@ -164,17 +163,6 @@ class EventCfg:
     interval_range_s=(10.0, 15.0),
     params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
   )
-  apply_external_force: EventTerm | None = term(
-    EventTerm,
-    func=mdp.apply_external_force_torque,
-    mode="interval",
-    interval_range_s=(3.0, 10.0),
-    params={
-      "force_range": (-10.0, 10.0),
-      "torque_range": (-10.0, 10.0),
-      "asset_cfg": SceneEntityCfg("robot", body_names=["trunk"]),
-    },
-  )
   foot_friction: EventTerm = term(
     EventTerm,
     mode="startup",
@@ -209,11 +197,9 @@ class RewardCfg:
     params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
   )
   # Penalties.
-  lin_vel_z_l2: RewardTerm = term(RewardTerm, func=mdp.lin_vel_z_l2, weight=-0.5)
-  ang_vel_xy_l2: RewardTerm = term(RewardTerm, func=mdp.ang_vel_xy_l2, weight=-0.05)
-  dof_torques_l2: RewardTerm = term(
-    RewardTerm, func=mdp.joint_torques_l2, weight=-0.0002
-  )
+  lin_vel_z_l2: RewardTerm = term(RewardTerm, func=mdp.lin_vel_z_l2, weight=0.0)
+  ang_vel_xy_l2: RewardTerm = term(RewardTerm, func=mdp.ang_vel_xy_l2, weight=0.0)
+  dof_torques_l2: RewardTerm = term(RewardTerm, func=mdp.joint_torques_l2, weight=0.0)
   dof_acc_l2: RewardTerm = term(RewardTerm, func=mdp.joint_acc_l2, weight=0.0)
   action_rate_l2: RewardTerm = term(RewardTerm, func=mdp.action_rate_l2, weight=-0.01)
   flat_orientation_l2: RewardTerm = term(
@@ -223,15 +209,16 @@ class RewardCfg:
   pose_l2: RewardTerm = term(
     RewardTerm,
     func=mdp.posture,
-    weight=1.0,
+    weight=-0.1,
     params={
       "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
       "std": {
-        r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.1,
-        r".*(FR|FL|RR|RL)_calf_joint.*": 0.5,
+        r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.3,
+        r".*(FR|FL|RR|RL)_calf_joint.*": 0.6,
       },
     },
   )
+  power: RewardTerm = term(RewardTerm, func=mdp.electrical_power_cost, weight=-0.005)
 
 
 # Terminations.
@@ -241,7 +228,7 @@ class RewardCfg:
 class TerminationCfg:
   time_out: DoneTerm = term(DoneTerm, func=mdp.time_out, time_out=True)
   fell_over: DoneTerm = term(
-    DoneTerm, func=mdp.bad_orientation, params={"limit_angle": math.radians(135.0)}
+    DoneTerm, func=mdp.bad_orientation, params={"limit_angle": math.radians(160.0)}
   )
 
 
@@ -273,7 +260,7 @@ class LocomotionVelocityEnvCfg(ManagerBasedRlEnvCfg):
 
   def __post_init__(self):
     self.scene.num_envs = 1
-    self.sim.nconmax = 100000
+    self.sim.nconmax = 140000
     self.sim.njmax = 300
     self.sim.mujoco.timestep = 0.005
     self.sim.mujoco.iterations = 10

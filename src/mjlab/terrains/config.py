@@ -6,9 +6,9 @@ from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
 
 ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
   size=(8.0, 8.0),
-  border_width=10.0,
-  num_rows=5,
-  num_cols=5,
+  border_width=20.0,
+  num_rows=10,
+  num_cols=20,
   sub_terrains={
     "flat": terrain_gen.BoxFlatTerrainCfg(
       proportion=1 / 3,
