@@ -3,6 +3,8 @@
 Adapted from an MJX visualizer by Chung Min Kim: https://github.com/chungmin99/
 """
 
+from __future__ import annotations
+
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
@@ -28,29 +30,9 @@ class ViserViewer(BaseViewer):
     frame_rate: float = 60.0,
     render_all_envs: bool = True,
     verbosity: VerbosityLevel = VerbosityLevel.SILENT,
-    env_spacing: float | None = 0.0,
   ) -> None:
     super().__init__(env, policy, frame_rate, render_all_envs, verbosity)
     self._reward_plotter: Optional[ViserRewardPlotter] = None
-    self._initial_env_spacing = (
-      env.unwrapped.scene.env_spacing if env_spacing is None else env_spacing
-    )
-
-  def _update_env_offsets(self, spacing: float) -> None:
-    # Recalculate grid offsets with new spacing
-    cols = int(np.ceil(np.sqrt(self._batch_size)))
-    rows = int(np.ceil(self._batch_size / cols))
-
-    # Use meshgrid to create grid positions centered at origin
-    x = np.arange(cols) * spacing - (cols - 1) * spacing / 2.0
-    y = np.arange(rows) * spacing - (rows - 1) * spacing / 2.0
-    xx, yy = np.meshgrid(x, y)
-
-    # Flatten and stack to get offsets for all environments
-    grid_positions = np.stack(
-      [xx.flatten(), yy.flatten(), np.zeros(rows * cols)], axis=-1
-    )
-    self._env_offsets = grid_positions[: self._batch_size].astype(np.float32)
 
   @override
   def setup(self) -> None:
@@ -63,7 +45,6 @@ class ViserViewer(BaseViewer):
     self._threadpool = ThreadPoolExecutor(max_workers=1)
     self._batch_size = self.env.num_envs
 
-    self._update_env_offsets(self._initial_env_spacing)
     self._counter = 0
     self._env_idx = 0
     self._show_only_selected_env = (
@@ -71,23 +52,7 @@ class ViserViewer(BaseViewer):
     )
 
     # Set up lighting.
-    self._server.scene.configure_default_lights(enabled=False)
-    self._server.scene.configure_environment_map(
-      hdri="lobby", background_intensity=0.0, environment_intensity=0.05
-    )
-    self._server.scene.add_light_directional(
-      "/lights0",
-      position=(0.6, 0.3, 1.0),
-      intensity=2,
-      cast_shadow=True,
-    )
-    self._server.scene.add_light_point(
-      "/lights1",
-      intensity=3,
-      decay=0.05,
-      position=(0.7, 0.27, 4.4),
-      cast_shadow=False,
-    )
+    self._server.scene.configure_environment_map(environment_intensity=0.8)
 
     sim = self.env.unwrapped.sim
     assert isinstance(sim, Simulation)
@@ -150,19 +115,6 @@ class ViserViewer(BaseViewer):
         )
         cb_visual = self._server.gui.add_checkbox("Visual geom", initial_value=True)
 
-        # Slider to control spacing between environments (only show if multiple envs)
-        if self.env.num_envs > 1:
-          self._spacing_slider = self._server.gui.add_slider(
-            "Environment Spacing",
-            min=0.0,
-            max=5.0,
-            step=0.01,
-            initial_value=self._initial_env_spacing,
-          )
-        self._spacing_slider.on_update(
-          lambda _: self._update_env_offsets(self._spacing_slider.value)
-        )
-
         @cb_collision.on_update
         def _(_) -> None:
           for name, data in self._handles.items():
@@ -223,9 +175,14 @@ class ViserViewer(BaseViewer):
             def _(_) -> None:
               self._show_only_selected_env = self._show_only_selected_cb.value
 
-        # Create reward plotter
-        self._reward_plotter = ViserRewardPlotter(self._server)
-        self._init_reward_plots()
+        # Get reward term names and create reward plotter
+        term_names = [
+          name
+          for name, _ in self.env.unwrapped.reward_manager.get_active_iterable_terms(
+            self._env_idx
+          )
+        ]
+        self._reward_plotter = ViserRewardPlotter(self._server, term_names)
 
     # Get initial geometry positions to find natural center for floor grid
     sim = self.env.unwrapped.sim
@@ -254,33 +211,30 @@ class ViserViewer(BaseViewer):
 
     for body_id in all_bodies:
       # Get body name
-      if body_id == 0:
-        body_name = "world"
-      else:
-        body_name = mj_id2name(mj_model, mjtObj.mjOBJ_BODY, body_id)
-        if not body_name:
-          body_name = f"body_{body_id}"
+      body_name = mj_id2name(mj_model, mjtObj.mjOBJ_BODY, body_id)
+      if not body_name:
+        body_name = f"body_{body_id}"
 
       # Helper function to process a list of geom indices
       def merge_geoms(geom_indices: list[int]) -> trimesh.Trimesh:
         meshes_to_concat = []
-        for geom_idx in geom_indices:
-          geom_name = mj_id2name(mj_model, mjtObj.mjOBJ_GEOM, geom_idx)
+        for geom_id in geom_indices:
+          geom_name = mj_id2name(mj_model, mjtObj.mjOBJ_GEOM, geom_id)
           if not geom_name:
-            geom_name = f"geom_{geom_idx}"
+            geom_name = f"geom_{geom_id}"
 
           # Get geom type
-          geom_type = mj_model.geom_type[geom_idx]
+          geom_type = mj_model.geom_type[geom_id]
 
           # Create or get mesh for this geom
           if geom_type == mjtGeom.mjGEOM_MESH:
-            mesh = mujoco_mesh_to_trimesh(mj_model, geom_idx, verbose=False)
+            mesh = mujoco_mesh_to_trimesh(mj_model, geom_id, verbose=False)
           else:
-            mesh = self._create_mesh(mj_model, geom_idx)
+            mesh = self._create_mesh(mj_model, geom_id)
 
           # Transform mesh to geom's local pose relative to body
-          pos = mj_model.geom_pos[geom_idx]
-          quat = mj_model.geom_quat[geom_idx]  # (w, x, y, z)
+          pos = mj_model.geom_pos[geom_id]
+          quat = mj_model.geom_quat[geom_id]  # (w, x, y, z)
 
           # Apply transformation to mesh
           transform = np.eye(4)
@@ -296,56 +250,75 @@ class ViserViewer(BaseViewer):
           combined_mesh = trimesh.util.concatenate(meshes_to_concat)
         return combined_mesh
 
-      # Handle world geometry separately.
-      if body_name == "world":
-        if body_id in body_geoms_visual:
-          self._server.scene.add_mesh_trimesh(
-            "/mujoco_world/visual",
-            merge_geoms(body_geoms_visual[body_id]),
-            # Need new viser release.
-            # receive_shadow=0.3,
-          )
-        if body_id in body_geoms_collision:
-          self._server.scene.add_mesh_trimesh(
-            "/mujoco_world/collision",
-            merge_geoms(body_geoms_collision[body_id]),
-            # Need new viser release.
-            # receive_shadow=0.3,
-          )
-        continue
+      # Fixed world geometry. We'll assume this is shared between all
+      # environments.
+      if mj_model.body_dofnum[body_id] == 0 and mj_model.body_parentid[body_id] == 0:
+        for body_geoms_dict, visual_or_collision in [
+          (body_geoms_visual, "visual"),
+          (body_geoms_collision, "collision"),
+        ]:
+          if body_id not in body_geoms_dict:
+            continue
 
-      # Process visual geoms
-      if body_id in body_geoms_visual:
-        visual_mesh = merge_geoms(body_geoms_visual[body_id])
-        handle = self._server.scene.add_batched_meshes_trimesh(
-          f"/bodies/{body_name}/visual",
-          visual_mesh,
-          batched_wxyzs=np.array([1.0, 0.0, 0.0, 0.0])[None].repeat(
-            self._batch_size, axis=0
-          ),
-          batched_positions=np.array([0.0, 0.0, 0.0])[None].repeat(
-            self._batch_size, axis=0
-          ),
-          lod="auto",
-        )
-        self._handles[f"{body_name}_visual"] = (handle, body_id)
+          # Iterate over geoms.
+          nonplane_geom_ids: list[int] = []
+          for geom_id in body_geoms_dict[body_id]:
+            geom_type = mj_model.geom_type[geom_id]
+            # Add plane geoms as infinite grids.
+            if geom_type == mjtGeom.mjGEOM_PLANE:
+              geom_id = body_geoms_dict[body_id][0]
+              geom_type = mj_model.geom_type[geom_id]
+              if geom_type == mjtGeom.mjGEOM_PLANE:
+                geom_name = mj_id2name(mj_model, mjtObj.mjOBJ_GEOM, geom_id)
+                self._server.scene.add_grid(
+                  f"/fixed_bodies/{body_name}/{geom_name}/{visual_or_collision}",
+                  # For infinite grids in viser 1.0.10, the width and height
+                  # parameters determined the region of the grid that can
+                  # receive shadows. We'll just make this really big for now.
+                  # In a future release of Viser these two args should ideally be
+                  # unnecessary.
+                  width=2000.0,
+                  height=2000.0,
+                  infinite_grid=True,
+                  fade_distance=50.0,
+                  shadow_opacity=0.2,
+                  position=mj_model.geom_pos[geom_id],
+                  wxyz=mj_model.geom_quat[geom_id],
+                )
+                continue
+            else:
+              nonplane_geom_ids.append(geom_id)
 
-      # Process collision geoms
-      if body_id in body_geoms_collision:
-        collision_mesh = merge_geoms(body_geoms_collision[body_id])
-        handle = self._server.scene.add_batched_meshes_trimesh(
-          f"/bodies/{body_name}/collision",
-          collision_mesh,
-          batched_wxyzs=np.array([1.0, 0.0, 0.0, 0.0])[None].repeat(
-            self._batch_size, axis=0
-          ),
-          batched_positions=np.array([0.0, 0.0, 0.0])[None].repeat(
-            self._batch_size, axis=0
-          ),
-          lod="auto",
-          visible=False,  # Collision geoms are hidden by default
-        )
-        self._handles[f"{body_name}_collision"] = (handle, body_id)
+          # Handle non-plane geoms later.
+          if len(nonplane_geom_ids) > 0:
+            self._server.scene.add_mesh_trimesh(
+              f"/fixed_bodies/{body_name}/{visual_or_collision}",
+              merge_geoms(nonplane_geom_ids),
+              cast_shadow=False,
+              receive_shadow=0.2,
+            )
+      # Dynamic bodies.
+      else:
+        for body_geoms_dict, visual_or_collision in [
+          (body_geoms_visual, "visual"),
+          (body_geoms_collision, "collision"),
+        ]:
+          if body_id not in body_geoms_dict:
+            continue
+          visual_mesh = merge_geoms(body_geoms_dict[body_id])
+          handle = self._server.scene.add_batched_meshes_trimesh(
+            f"/bodies/{body_name}/{visual_or_collision}",
+            visual_mesh,
+            batched_wxyzs=np.array([1.0, 0.0, 0.0, 0.0])[None].repeat(
+              self._batch_size, axis=0
+            ),
+            batched_positions=np.array([0.0, 0.0, 0.0])[None].repeat(
+              self._batch_size, axis=0
+            ),
+            lod="auto",
+            visible=visual_or_collision == "visual",
+          )
+          self._handles[f"{body_name}_{visual_or_collision}"] = (handle, body_id)
 
   @override
   def sync_env_to_viewer(self) -> None:
@@ -354,16 +327,19 @@ class ViserViewer(BaseViewer):
     # Update counter
     self._counter += 1
 
-    # Update status display less frequently (every 10 frames = ~6 updates per second)
+    # Update status display and reward plots less frequently.
     if self._counter % 10 == 0:
       self._update_status_display()
+      if self._reward_plotter is not None and not self._is_paused:
+        terms = list(
+          self.env.unwrapped.reward_manager.get_active_iterable_terms(self._env_idx)
+        )
+        self._reward_plotter.update(terms)
 
-    # Update reward plots
-    if self._reward_plotter and not self._is_paused:
-      terms = list(
-        self.env.unwrapped.reward_manager.get_active_iterable_terms(self._env_idx)
-      )
-      self._reward_plotter.update(terms)
+    # The rest of this method is environment state syncing.
+    # It's fine to do this every other policy step to reduce bandwidth usage.
+    if self._counter % 2 != 0:
+      return
 
     # We'll make a copy of the relevant state, then do the update itself asynchronously.
     sim = self.env.unwrapped.sim
@@ -399,9 +375,7 @@ class ViserViewer(BaseViewer):
             handle.batched_wxyzs = np.tile(single_quat[None, :], (self._batch_size, 1))
           else:
             # Show all environments with offsets
-            handle.batched_positions = (
-              body_xpos[..., body_id, :] + self._env_offsets[:, :]
-            )
+            handle.batched_positions = body_xpos[..., body_id, :]
             handle.batched_wxyzs = body_xquat[..., body_id, :]
         self._server.flush()
 
@@ -432,21 +406,6 @@ class ViserViewer(BaseViewer):
     """Check if viewer is running."""
     return True  # Viser runs until process is killed
 
-  def _init_reward_plots(self) -> None:
-    """Initialize reward plots."""
-    if not self._reward_plotter:
-      return
-
-    # Get reward term names for current environment
-    term_names = [
-      name
-      for name, _ in self.env.unwrapped.reward_manager.get_active_iterable_terms(
-        self._env_idx
-      )
-    ]
-
-    self._reward_plotter.initialize(term_names)
-
   def _update_status_display(self) -> None:
     """Update the HTML status display."""
     self._status_html.content = f"""
@@ -466,11 +425,21 @@ class ViserViewer(BaseViewer):
     geom_type = mj_model.geom_type[idx]
 
     # Get geom RGBA color if available
-    rgba = mj_model.geom_rgba[idx]
+    rgba = mj_model.geom_rgba[idx].copy()
+
+    # Hack: randomize color and roughness slightly to avoid trimesh
+    # deduplication bug when concatenating meshes.
+    #
+    # Not needed after this PR is merged: https://github.com/mikedh/trimesh/pull/2457
+    rgba[:3] += np.random.uniform(-0.01, 0.01, size=3)
+    rgba = np.clip(rgba, 0.0, 1.0)
+    roughness = np.random.uniform(0.5, 0.55)
+    metallic = np.random.uniform(0.5, 0.55)
+
     material = trimesh.visual.material.PBRMaterial(
       baseColorFactor=rgba,
-      metallicFactor=0.00,
-      roughnessFactor=1.0,
+      metallicFactor=metallic,
+      roughnessFactor=roughness,
       emissiveFactor=[0.0, 0.0, 0.0],
     )
     if geom_type == mjtGeom.mjGEOM_PLANE:
