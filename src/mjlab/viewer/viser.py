@@ -71,23 +71,7 @@ class ViserViewer(BaseViewer):
     )
 
     # Set up lighting.
-    self._server.scene.configure_default_lights(enabled=False)
-    self._server.scene.configure_environment_map(
-      hdri="lobby", background_intensity=0.0, environment_intensity=0.05
-    )
-    self._server.scene.add_light_directional(
-      "/lights0",
-      position=(0.6, 0.3, 1.0),
-      intensity=2,
-      cast_shadow=True,
-    )
-    self._server.scene.add_light_point(
-      "/lights1",
-      intensity=3,
-      decay=0.05,
-      position=(0.7, 0.27, 4.4),
-      cast_shadow=False,
-    )
+    self._server.scene.configure_environment_map(environment_intensity=0.8)
 
     sim = self.env.unwrapped.sim
     assert isinstance(sim, Simulation)
@@ -159,9 +143,9 @@ class ViserViewer(BaseViewer):
             step=0.01,
             initial_value=self._initial_env_spacing,
           )
-        self._spacing_slider.on_update(
-          lambda _: self._update_env_offsets(self._spacing_slider.value)
-        )
+          self._spacing_slider.on_update(
+            lambda _: self._update_env_offsets(self._spacing_slider.value)
+          )
 
         @cb_collision.on_update
         def _(_) -> None:
@@ -254,12 +238,9 @@ class ViserViewer(BaseViewer):
 
     for body_id in all_bodies:
       # Get body name
-      if body_id == 0:
-        body_name = "world"
-      else:
-        body_name = mj_id2name(mj_model, mjtObj.mjOBJ_BODY, body_id)
-        if not body_name:
-          body_name = f"body_{body_id}"
+      body_name = mj_id2name(mj_model, mjtObj.mjOBJ_BODY, body_id)
+      if not body_name:
+        body_name = f"body_{body_id}"
 
       # Helper function to process a list of geom indices
       def merge_geoms(geom_indices: list[int]) -> trimesh.Trimesh:
@@ -296,21 +277,22 @@ class ViserViewer(BaseViewer):
           combined_mesh = trimesh.util.concatenate(meshes_to_concat)
         return combined_mesh
 
-      # Handle world geometry separately.
-      if body_name == "world":
+      # Fixed world geometry. We'll assume this is shared between all
+      # environments.
+      if mj_model.body_dofnum[body_id] == 0:
         if body_id in body_geoms_visual:
           self._server.scene.add_mesh_trimesh(
-            "/mujoco_world/visual",
+            f"/fixed_bodies/{body_name}/visual",
             merge_geoms(body_geoms_visual[body_id]),
-            # Need new viser release.
-            # receive_shadow=0.3,
+            cast_shadow=False,
+            receive_shadow=0.2,
           )
         if body_id in body_geoms_collision:
           self._server.scene.add_mesh_trimesh(
-            "/mujoco_world/collision",
+            f"/fixed_bodies/{body_name}/visual",
             merge_geoms(body_geoms_collision[body_id]),
-            # Need new viser release.
-            # receive_shadow=0.3,
+            cast_shadow=False,
+            receive_shadow=0.2,
           )
         continue
 
@@ -466,11 +448,21 @@ class ViserViewer(BaseViewer):
     geom_type = mj_model.geom_type[idx]
 
     # Get geom RGBA color if available
-    rgba = mj_model.geom_rgba[idx]
+    rgba = mj_model.geom_rgba[idx].copy()
+
+    # Hack: randomize color and roughness slightly to avoid trimesh
+    # deduplication bug when concatenating meshes.
+    #
+    # Not needed after this PR is merged: https://github.com/mikedh/trimesh/pull/2457
+    rgba[:3] += np.random.uniform(-0.01, 0.01, size=3)
+    rgba = np.clip(rgba, 0.0, 1.0)
+    roughness = np.random.uniform(0.5, 0.55)
+    metallic = np.random.uniform(0.5, 0.55)
+
     material = trimesh.visual.material.PBRMaterial(
       baseColorFactor=rgba,
-      metallicFactor=0.00,
-      roughnessFactor=1.0,
+      metallicFactor=metallic,
+      roughnessFactor=roughness,
       emissiveFactor=[0.0, 0.0, 0.0],
     )
     if geom_type == mjtGeom.mjGEOM_PLANE:
