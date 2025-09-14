@@ -2815,7 +2815,7 @@ wheels = [
 
 [[package]]
 name = "viser"
-version = "1.0.9"
+version = "1.0.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "imageio" },
@@ -2835,9 +2835,9 @@ dependencies = [
     { name = "websockets" },
     { name = "yourdfpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ad/bf/77e568a21e7de51e572c051c011ef5ff1016a38d416184c1d8923b714d8e/viser-1.0.9.tar.gz", hash = "sha256:8530c6df94c4a70035fd8d3c3a69aeeb060f7f5930cf1b62b7cb805907da7953", size = 28963575, upload-time = "2025-09-14T02:37:41.454Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f2/ac/d3ec7a204a6b96d2663b44097fcf15d1bd3db477c404e8a3b8be00c4ee54/viser-1.0.10.tar.gz", hash = "sha256:8047ec42ec0040963926049b4219a331471aedeea32db8b99cec2f0856d284c2", size = 28965707, upload-time = "2025-09-14T07:01:01.18Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/57/1e/060009da50c5fd8953bb32b885c79563cb50a4b433ddc40193eef00dabbd/viser-1.0.9-py3-none-any.whl", hash = "sha256:4925361220164d3508a615e90ce452b410cc7eab139552430a31250cd8c9beef", size = 29038644, upload-time = "2025-09-14T02:37:38.609Z" },
+    { url = "https://files.pythonhosted.org/packages/49/ea/72f4b699675c580d8910b214169b26e4a464ba7f6b67b8591923143de8ee/viser-1.0.10-py3-none-any.whl", hash = "sha256:f957093409320831b3ad49a082b1ba1a39e9065eb8edbbcee1681cd1dc8fcc3d", size = 29039191, upload-time = "2025-09-14T07:00:57.773Z" },
 ]
 
 [[package]]
