@@ -30,29 +30,9 @@ class ViserViewer(BaseViewer):
     frame_rate: float = 60.0,
     render_all_envs: bool = True,
     verbosity: VerbosityLevel = VerbosityLevel.SILENT,
-    env_spacing: float | None = 0.0,
   ) -> None:
     super().__init__(env, policy, frame_rate, render_all_envs, verbosity)
     self._reward_plotter: Optional[ViserRewardPlotter] = None
-    self._initial_env_spacing = (
-      env.unwrapped.scene.env_spacing if env_spacing is None else env_spacing
-    )
-
-  def _update_env_offsets(self, spacing: float) -> None:
-    # Recalculate grid offsets with new spacing
-    cols = int(np.ceil(np.sqrt(self._batch_size)))
-    rows = int(np.ceil(self._batch_size / cols))
-
-    # Use meshgrid to create grid positions centered at origin
-    x = np.arange(cols) * spacing - (cols - 1) * spacing / 2.0
-    y = np.arange(rows) * spacing - (rows - 1) * spacing / 2.0
-    xx, yy = np.meshgrid(x, y)
-
-    # Flatten and stack to get offsets for all environments
-    grid_positions = np.stack(
-      [xx.flatten(), yy.flatten(), np.zeros(rows * cols)], axis=-1
-    )
-    self._env_offsets = grid_positions[: self._batch_size].astype(np.float32)
 
   @override
   def setup(self) -> None:
@@ -65,7 +45,6 @@ class ViserViewer(BaseViewer):
     self._threadpool = ThreadPoolExecutor(max_workers=1)
     self._batch_size = self.env.num_envs
 
-    self._update_env_offsets(self._initial_env_spacing)
     self._counter = 0
     self._env_idx = 0
     self._show_only_selected_env = (
@@ -135,19 +114,6 @@ class ViserViewer(BaseViewer):
           "Collision geom", initial_value=False
         )
         cb_visual = self._server.gui.add_checkbox("Visual geom", initial_value=True)
-
-        # Slider to control spacing between environments (only show if multiple envs)
-        if self.env.num_envs > 1:
-          self._spacing_slider = self._server.gui.add_slider(
-            "Environment Spacing",
-            min=0.0,
-            max=5.0,
-            step=0.01,
-            initial_value=self._initial_env_spacing,
-          )
-          self._spacing_slider.on_update(
-            lambda _: self._update_env_offsets(self._spacing_slider.value)
-          )
 
         @cb_collision.on_update
         def _(_) -> None:
@@ -409,9 +375,7 @@ class ViserViewer(BaseViewer):
             handle.batched_wxyzs = np.tile(single_quat[None, :], (self._batch_size, 1))
           else:
             # Show all environments with offsets
-            handle.batched_positions = (
-              body_xpos[..., body_id, :] + self._env_offsets[:, :]
-            )
+            handle.batched_positions = body_xpos[..., body_id, :]
             handle.batched_wxyzs = body_xquat[..., body_id, :]
         self._server.flush()
 
