@@ -5,7 +5,7 @@ gym.register(
   entry_point="mjlab.envs:ManagerBasedRlEnv",
   disable_env_checker=True,
   kwargs={
-    "env_cfg_entry_point": f"{__name__}.rough_env_cfg:UnitreeG1EnvCfg",
+    "env_cfg_entry_point": f"{__name__}.rough_env_cfg:UnitreeG1RoughEnvCfg",
     "rl_cfg_entry_point": f"{__name__}.rl_cfg:UnitreeG1PPORunnerCfg",
   },
 )
@@ -15,7 +15,7 @@ gym.register(
   entry_point="mjlab.envs:ManagerBasedRlEnv",
   disable_env_checker=True,
   kwargs={
-    "env_cfg_entry_point": f"{__name__}.rough_env_cfg:UnitreeG1EnvCfg_PLAY",
+    "env_cfg_entry_point": f"{__name__}.rough_env_cfg:UnitreeG1RoughEnvCfg_PLAY",
     "rl_cfg_entry_point": f"{__name__}.rl_cfg:UnitreeG1PPORunnerCfg",
   },
 )
