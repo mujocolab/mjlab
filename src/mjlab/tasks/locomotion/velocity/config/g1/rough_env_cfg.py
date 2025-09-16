@@ -10,7 +10,7 @@ from mjlab.tasks.locomotion.velocity.velocity_env_cfg import (
 
 
 @dataclass
-class UnitreeG1EnvCfg(LocomotionVelocityEnvCfg):
+class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
   def __post_init__(self):
     super().__post_init__()
 
@@ -31,7 +31,7 @@ class UnitreeG1EnvCfg(LocomotionVelocityEnvCfg):
 
 
 @dataclass
-class UnitreeG1EnvCfg_PLAY(UnitreeG1EnvCfg):
+class UnitreeG1RoughEnvCfg_PLAY(UnitreeG1RoughEnvCfg):
   def __post_init__(self):
     super().__post_init__()
 

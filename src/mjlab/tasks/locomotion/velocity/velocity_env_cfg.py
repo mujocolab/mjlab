@@ -237,7 +237,7 @@ class TerminationCfg:
 
 @dataclass
 class CurriculumCfg:
-  terrain_levels: CurrTerm = term(CurrTerm, func=mdp.terrain_levels_vel)
+  terrain_levels: CurrTerm | None = term(CurrTerm, func=mdp.terrain_levels_vel)
 
 
 ##
@@ -260,6 +260,7 @@ class LocomotionVelocityEnvCfg(ManagerBasedRlEnvCfg):
 
   def __post_init__(self):
     self.scene.num_envs = 1
+    # TODO(kevin): Tweak this for flat vs rough.
     self.sim.nconmax = 140000
     self.sim.njmax = 300
     self.sim.mujoco.timestep = 0.005
