@@ -23,7 +23,6 @@ from mjlab.utils.torch import configure_torch_backends
 
 @dataclass(frozen=True)
 class TrainConfig:
-  registry_name: str
   env: ManagerBasedRlEnvCfg
   agent: RslRlOnPolicyRunnerCfg
   device: str = "cuda:0"
@@ -114,7 +113,6 @@ if __name__ == "__main__":
     TrainConfig,
     args=remaining_args,
     default=TrainConfig(
-      registry_name=tyro.MISSING,
       env=env_cfg,
       agent=agent_cfg,
     ),
