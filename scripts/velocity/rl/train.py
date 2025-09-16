@@ -103,6 +103,7 @@ if __name__ == "__main__":
     add_help=False,
     return_unknown_args=True,
   )
+  del task_prefix
 
   # Parse the rest of the arguments + allow overriding env_cfg and agent_cfg.
   env_cfg = load_cfg_from_registry(chosen_task, "env_cfg_entry_point")
