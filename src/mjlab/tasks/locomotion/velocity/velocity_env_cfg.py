@@ -214,7 +214,7 @@ class RewardCfg:
       "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
       "std": {
         r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.3,
-        r".*(FR|FL|RR|RL)_calf_joint.*": 0.6,
+        r".*(FR|FL|RR|RL)_calf_joint.*": 1.2,
       },
     },
   )
