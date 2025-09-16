@@ -15,7 +15,7 @@ ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
     ),
     "pyramid_stairs": terrain_gen.BoxPyramidStairsTerrainCfg(
       proportion=1 / 3,
-      step_height_range=(0.05, 0.23),
+      step_height_range=(0.05, 0.13),
       step_width=0.3,
       platform_width=3.0,
       border_width=1.0,
@@ -23,16 +23,16 @@ ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
     ),
     "pyramid_stairs_inv": terrain_gen.BoxInvertedPyramidStairsTerrainCfg(
       proportion=1 / 3,
-      step_height_range=(0.05, 0.23),
+      step_height_range=(0.05, 0.13),
       step_width=0.3,
       platform_width=3.0,
       border_width=1.0,
       holes=False,
     ),
     # "boxes": terrain_gen.BoxRandomGridTerrainCfg(
-    #   proportion=1 / 3,
+    #   proportion=1 / 4,
     #   grid_width=0.45,
-    #   grid_height_range=(0.05, 0.2),
+    #   grid_height_range=(0.025, 0.1),
     #   platform_width=2.0,
     # ),
   },

@@ -160,7 +160,7 @@ class posture:
     desired_joint_pos = self.default_joint_pos[:, asset_cfg.joint_ids]
     error = torch.square(current_joint_pos - desired_joint_pos)
     weighted_error = error / (self.std**2)
-    return -torch.sum(weighted_error, dim=1)
+    return torch.sum(weighted_error, dim=1)
 
 
 # def undesired_contacts(
