@@ -19,7 +19,7 @@ from mjlab.viewer import NativeMujocoViewer, ViserViewer
 def main(
   task: str,
   num_envs: int | None = None,
-  device: str | None = None,
+  device: str = "cuda:0",
   render_all_envs: bool = False,
   viewer: Literal["native", "viser"] = "native",
 ):
@@ -30,9 +30,8 @@ def main(
   )
 
   env_cfg.scene.num_envs = num_envs or env_cfg.scene.num_envs
-  env_cfg.sim.device = device or env_cfg.sim.device
 
-  env = gym.make(task, cfg=env_cfg)
+  env = gym.make(task, cfg=env_cfg, device=device)
   env = RslRlVecEnvWrapper(env)
 
   action_shape: tuple[int, ...] = env.unwrapped.action_space.shape  # type: ignore

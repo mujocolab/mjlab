@@ -335,14 +335,14 @@ def main(
     render: Whether to render the simulation and save a video.
     line_range: Range of lines to process from the CSV file.
   """
-  sim_cfg = SimulationCfg(device=device)
+  sim_cfg = SimulationCfg()
   sim_cfg.mujoco.timestep = 1.0 / output_fps
 
   sim_cfg.render.camera = "robot/tracking"
   sim_cfg.render.height = 480
   sim_cfg.render.width = 640
 
-  scene = Scene(SCENE_CFG)
+  scene = Scene(SCENE_CFG, device=device)
   model = scene.compile()
 
   sim = Simulation(num_envs=1, cfg=sim_cfg, model=model, device=device)

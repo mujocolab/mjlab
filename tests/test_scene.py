@@ -74,17 +74,16 @@ def robot_entity_cfg(robot_entity_xml):
 
 
 @pytest.fixture
-def minimal_scene_cfg(device):
+def minimal_scene_cfg():
   """Minimal scene configuration."""
   return SceneCfg(
     num_envs=1,
     env_spacing=2.0,
-    device=device,
   )
 
 
 @pytest.fixture
-def scene_with_entities_cfg(simple_entity_cfg, robot_entity_cfg, device):
+def scene_with_entities_cfg(simple_entity_cfg, robot_entity_cfg):
   """Scene configuration with multiple entities."""
   return SceneCfg(
     num_envs=4,
@@ -93,7 +92,6 @@ def scene_with_entities_cfg(simple_entity_cfg, robot_entity_cfg, device):
       "box": simple_entity_cfg,
       "robot": robot_entity_cfg,
     },
-    device=device,
   )
 
 
@@ -105,18 +103,18 @@ def scene_with_entities_cfg(simple_entity_cfg, robot_entity_cfg, device):
 class TestSceneInitialization:
   """Test Scene initialization and configuration."""
 
-  def test_minimal_scene_creation(self, minimal_scene_cfg):
+  def test_minimal_scene_creation(self, minimal_scene_cfg, device):
     """Test creating a minimal scene with no entities."""
-    scene = Scene(minimal_scene_cfg)
+    scene = Scene(minimal_scene_cfg, device)
 
     assert scene.num_envs == 1
     assert scene.env_spacing == 2.0
     assert len(scene.entities) == 0
     assert scene.terrain is None
 
-  def test_scene_with_entities(self, scene_with_entities_cfg):
+  def test_scene_with_entities(self, scene_with_entities_cfg, device):
     """Test creating a scene with multiple entities."""
-    scene = Scene(scene_with_entities_cfg)
+    scene = Scene(scene_with_entities_cfg, device)
 
     assert scene.num_envs == 4
     assert scene.env_spacing == 3.0
@@ -125,12 +123,6 @@ class TestSceneInitialization:
     assert "robot" in scene.entities
     assert isinstance(scene.entities["box"], Entity)
     assert isinstance(scene.entities["robot"], Entity)
-
-  def test_scene_device_configuration(self, simple_entity_cfg):
-    """Test that scene properly sets device."""
-    cfg = SceneCfg(entities={"box": simple_entity_cfg}, device="cpu")
-    scene = Scene(cfg)
-    assert scene.device == "cpu"
 
 
 # ============================================================================
@@ -141,18 +133,18 @@ class TestSceneInitialization:
 class TestSceneCompilation:
   """Test Scene compilation and XML generation."""
 
-  def test_compile_empty_scene(self, minimal_scene_cfg):
+  def test_compile_empty_scene(self, minimal_scene_cfg, device):
     """Test compiling an empty scene."""
-    scene = Scene(minimal_scene_cfg)
+    scene = Scene(minimal_scene_cfg, device=device)
     model = scene.compile()
 
     assert isinstance(model, mujoco.MjModel)
     assert model.nbody == 1
     assert model.nq == model.nv == 0
 
-  def test_compile_scene_with_entities(self, scene_with_entities_cfg):
+  def test_compile_scene_with_entities(self, scene_with_entities_cfg, device):
     """Test compiling a scene with entities."""
-    scene = Scene(scene_with_entities_cfg)
+    scene = Scene(scene_with_entities_cfg, device)
     model = scene.compile()
 
     assert isinstance(model, mujoco.MjModel)
@@ -164,9 +156,9 @@ class TestSceneCompilation:
     assert any("robot/" in name for name in body_names)
 
   # TODO: Test that we can unzip and reload the scene correctly.
-  def test_to_zip(self, minimal_scene_cfg, tmp_path):
+  def test_to_zip(self, minimal_scene_cfg, tmp_path, device):
     """Test exporting scene to zip file."""
-    scene = Scene(minimal_scene_cfg)
+    scene = Scene(minimal_scene_cfg, device)
     zip_path = tmp_path / "scene.zip"
 
     scene.to_zip(zip_path)
@@ -181,9 +173,9 @@ class TestSceneCompilation:
 class TestEntityAccess:
   """Test accessing entities in the scene."""
 
-  def test_entity_dict_access(self, scene_with_entities_cfg):
+  def test_entity_dict_access(self, scene_with_entities_cfg, device):
     """Test accessing entities through dictionary."""
-    scene = Scene(scene_with_entities_cfg)
+    scene = Scene(scene_with_entities_cfg, device)
 
     box = scene.entities["box"]
     robot = scene.entities["robot"]
@@ -193,9 +185,9 @@ class TestEntityAccess:
     assert box.is_fixed_base
     assert not robot.is_fixed_base
 
-  def test_entity_getitem_access(self, scene_with_entities_cfg):
+  def test_entity_getitem_access(self, scene_with_entities_cfg, device):
     """Test accessing entities through __getitem__."""
-    scene = Scene(scene_with_entities_cfg)
+    scene = Scene(scene_with_entities_cfg, device)
 
     box = scene["box"]
     robot = scene["robot"]
@@ -203,9 +195,9 @@ class TestEntityAccess:
     assert isinstance(box, Entity)
     assert isinstance(robot, Entity)
 
-  def test_invalid_entity_access(self, scene_with_entities_cfg):
+  def test_invalid_entity_access(self, scene_with_entities_cfg, device):
     """Test accessing non-existent entity raises KeyError."""
-    scene = Scene(scene_with_entities_cfg)
+    scene = Scene(scene_with_entities_cfg, device)
 
     with pytest.raises(KeyError, match="Scene entity with key 'invalid' not found"):
       _ = scene["invalid"]
@@ -224,7 +216,7 @@ class TestSceneSimulationInitialization:
     """Create an initialized scene with simulation."""
     import mujoco_warp as mjwarp
 
-    scene = Scene(scene_with_entities_cfg)
+    scene = Scene(scene_with_entities_cfg, device)
     model = scene.compile()
     data = mujoco.MjData(model)
     mujoco.mj_resetData(model, data)
@@ -275,9 +267,9 @@ class TestSceneOperations:
     mock_robot = Mock(spec=Entity)
     return {"box": mock_box, "robot": mock_robot}
 
-  def test_scene_reset(self, minimal_scene_cfg, mock_entities):
+  def test_scene_reset(self, minimal_scene_cfg, mock_entities, device):
     """Test that reset calls reset on all entities."""
-    scene = Scene(minimal_scene_cfg)
+    scene = Scene(minimal_scene_cfg, device)
     scene._entities = mock_entities
 
     # Reset all environments
@@ -294,9 +286,9 @@ class TestSceneOperations:
     for entity in mock_entities.values():
       entity.reset.assert_called_once_with(env_ids)
 
-  def test_scene_update(self, minimal_scene_cfg, mock_entities):
+  def test_scene_update(self, minimal_scene_cfg, mock_entities, device):
     """Test that update calls update on all entities."""
-    scene = Scene(minimal_scene_cfg)
+    scene = Scene(minimal_scene_cfg, device)
     scene._entities = mock_entities
 
     dt = 0.01
@@ -305,9 +297,9 @@ class TestSceneOperations:
     for entity in mock_entities.values():
       entity.update.assert_called_once_with(dt)
 
-  def test_scene_write_data_to_sim(self, minimal_scene_cfg, mock_entities):
+  def test_scene_write_data_to_sim(self, minimal_scene_cfg, mock_entities, device):
     """Test that write_data_to_sim calls the method on all entities."""
-    scene = Scene(minimal_scene_cfg)
+    scene = Scene(minimal_scene_cfg, device)
     scene._entities = mock_entities
 
     scene.write_data_to_sim()
@@ -335,10 +327,9 @@ class TestSceneIntegration:
         "robot1": robot_entity_cfg,
         "robot2": robot_entity_cfg,
       },
-      device=device,
     )
 
-    scene = Scene(scene_cfg)
+    scene = Scene(scene_cfg, device)
 
     assert scene.num_envs == 3
     assert len(scene.entities) == 2

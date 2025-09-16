@@ -333,7 +333,7 @@ if __name__ == "__main__":
 
   scene_cfg = replace(SCENE_CFG)
   scene_cfg.entities["robot"] = replace(G1_ROBOT_CFG)
-  scene = Scene(scene_cfg)
+  scene = Scene(scene_cfg, device="cuda:0")
 
   model = scene.compile()
 

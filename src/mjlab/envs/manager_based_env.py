@@ -24,7 +24,7 @@ class ManagerBasedEnv:
     self.extras = {}
     self.obs_buf = {}
 
-    self.scene = Scene(self.cfg.scene)
+    self.scene = Scene(self.cfg.scene, device=device)
     self.scene.configure_sim_options(self.cfg.sim.mujoco)
     print("[INFO]: Scene manager: ", self.scene)
 
