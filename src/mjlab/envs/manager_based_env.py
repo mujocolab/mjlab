@@ -14,7 +14,7 @@ from mjlab.utils import random as random_utils
 
 
 class ManagerBasedEnv:
-  def __init__(self, cfg: ManagerBasedEnvCfg) -> None:
+  def __init__(self, cfg: ManagerBasedEnvCfg, device: str) -> None:
     self.cfg = cfg
     if self.cfg.seed is not None:
       self.cfg.seed = self.seed(self.cfg.seed)
@@ -32,6 +32,7 @@ class ManagerBasedEnv:
       num_envs=self.scene.num_envs,
       cfg=self.cfg.sim,
       model=self.scene.compile(),
+      device=device,
     )
 
     if "cuda" in self.device:

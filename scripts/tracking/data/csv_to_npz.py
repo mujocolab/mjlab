@@ -345,7 +345,7 @@ def main(
   scene = Scene(SCENE_CFG)
   model = scene.compile()
 
-  sim = Simulation(num_envs=1, cfg=sim_cfg, model=model)
+  sim = Simulation(num_envs=1, cfg=sim_cfg, model=model, device=device)
   if render:
     sim.initialize_renderer()
 

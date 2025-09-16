@@ -24,7 +24,7 @@ def main(
   task: str,
   wandb_run_path: Path,
   num_envs: int | None = None,
-  device: str | None = None,
+  device: str = "cuda:0",
   video: bool = False,
   video_length: int = 200,
   video_height: int | None = None,
@@ -43,7 +43,6 @@ def main(
   )
 
   env_cfg.scene.num_envs = num_envs or env_cfg.scene.num_envs
-  env_cfg.sim.device = device or env_cfg.sim.device
   env_cfg.sim.render.camera = camera or -1
   env_cfg.sim.render.height = video_height or env_cfg.sim.render.height
   env_cfg.sim.render.width = video_width or env_cfg.sim.render.width
@@ -57,7 +56,9 @@ def main(
 
   log_dir = resume_path.parent
 
-  env = gym.make(task, cfg=env_cfg, render_mode="rgb_array" if video else None)
+  env = gym.make(
+    task, cfg=env_cfg, device=device, render_mode="rgb_array" if video else None
+  )
   if video:
     video_kwargs = {
       "video_folder": log_dir / "videos" / "play",
@@ -70,12 +71,10 @@ def main(
 
   env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
-  runner = OnPolicyRunner(
-    env, asdict(agent_cfg), log_dir=str(log_dir), device=agent_cfg.device
-  )
-  runner.load(str(resume_path), map_location=agent_cfg.device)
+  runner = OnPolicyRunner(env, asdict(agent_cfg), log_dir=str(log_dir), device=device)
+  runner.load(str(resume_path), map_location=device)
 
-  policy = runner.get_inference_policy(device=env.device)
+  policy = runner.get_inference_policy(device=device)
 
   if viewer == "native":
     NativeMujocoViewer(env, policy, render_all_envs=render_all_envs).run()

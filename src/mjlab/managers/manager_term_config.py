@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, Literal, ParamSpec, TypeVar
+from typing import Any, Callable, Literal, ParamSpec, TypeVar
 
+from mjlab.managers.action_manager import ActionTerm
+from mjlab.managers.command_manager import CommandTerm
 from mjlab.utils.noise.noise_cfg import NoiseCfg, NoiseModelCfg
-
-if TYPE_CHECKING:
-  from mjlab.managers.action_manager import ActionTerm
-  from mjlab.managers.command_manager import CommandTerm
 
 P = ParamSpec("P")
 T = TypeVar("T")

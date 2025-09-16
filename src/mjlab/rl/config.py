@@ -67,8 +67,6 @@ class RslRlPpoAlgorithmCfg:
 class RslRlBaseRunnerCfg:
   seed: int = 42
   """The seed for the experiment. Default is 42."""
-  device: str = "cuda:0"
-  """The device for the rl-agent. Default is cpu."""
   num_steps_per_env: int = 24
   """The number of steps per environment update."""
   max_iterations: int = 300

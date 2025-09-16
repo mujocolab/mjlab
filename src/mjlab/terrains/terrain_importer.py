@@ -33,26 +33,23 @@ _DEFAULT_PLANE_MATERIAL = spec_editor_config.MaterialCfg(
 
 @dataclass
 class TerrainImporterCfg:
-  """Configuration for terrain import and environment placement.
-
-  Attributes:
-    terrain_type: Type of terrain to generate. "generator" uses procedural
-      terrain with sub-terrain grid, "plane" creates a flat ground plane.
-    terrain_generator: Configuration for procedural terrain generation.
-      Required when terrain_type is "generator".
-    env_spacing: Distance between environment origins when using grid layout.
-      Required for "plane" terrain or when no sub-terrain origins exist.
-    max_init_terrain_level: Maximum initial difficulty level (row index) for
-      environment placement in curriculum mode. None uses all available rows.
-    num_envs: Number of parallel environments to create. This will get overriden by
-    the scene configuration if specified there.
-  """
+  """Configuration for terrain import and environment placement."""
 
   terrain_type: Literal["generator", "plane"] = "plane"
+  """Type of terrain to generate. "generator" uses procedural terrain with
+  sub-terrain grid, "plane" creates a flat ground plane."""
   terrain_generator: TerrainGeneratorCfg | None = None
+  """Configuration for procedural terrain generation. Required when
+  terrain_type is "generator"."""
   env_spacing: float | None = 2.0
+  """Distance between environment origins when using grid layout. Required for
+  "plane" terrain or when no sub-terrain origins exist."""
   max_init_terrain_level: int | None = None
+  """Maximum initial difficulty level (row index) for environment placement in
+  curriculum mode. None uses all available rows."""
   num_envs: int = 1
+  """Number of parallel environments to create. This will get overriden by the
+  scene configuration if specified there."""
 
 
 class TerrainImporter:
