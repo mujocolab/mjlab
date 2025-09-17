@@ -157,8 +157,8 @@ def initialized_floating_entity(floating_base_entity, device):
   entity = floating_base_entity
   model = entity.compile()
 
-  sim_cfg = SimulationCfg(device=device)
-  sim = Simulation(num_envs=1, cfg=sim_cfg, model=model)
+  sim_cfg = SimulationCfg()
+  sim = Simulation(num_envs=1, cfg=sim_cfg, model=model, device=device)
 
   entity.initialize(model, sim.model, sim.data, device)
 
@@ -172,8 +172,8 @@ def initialized_articulated_entity(articulated_entity, device):
   entity = articulated_entity
   model = entity.compile()
 
-  sim_cfg = SimulationCfg(device=device)
-  sim = Simulation(num_envs=1, cfg=sim_cfg, model=model)
+  sim_cfg = SimulationCfg()
+  sim = Simulation(num_envs=1, cfg=sim_cfg, model=model, device=device)
 
   entity.initialize(model, sim.model, sim.data, device)
   return entity, sim

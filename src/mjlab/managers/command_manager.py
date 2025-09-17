@@ -7,11 +7,11 @@ import torch
 from prettytable import PrettyTable
 
 from mjlab.managers.manager_base import ManagerBase, ManagerTermBase
-from mjlab.managers.manager_term_config import CommandTermCfg
 from mjlab.utils.dataclasses import get_terms
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
+  from mjlab.managers.manager_term_config import CommandTermCfg
 
 
 class CommandTerm(ManagerTermBase):
@@ -141,6 +141,8 @@ class CommandManager(ManagerBase):
     return self._terms[name]
 
   def _prepare_terms(self):
+    from mjlab.managers.manager_term_config import CommandTermCfg
+
     cfg_items = get_terms(self.cfg, CommandTermCfg).items()
     for term_name, term_cfg in cfg_items:
       if term_cfg is None:

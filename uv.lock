@@ -2734,7 +2734,7 @@ wheels = [
 
 [[package]]
 name = "tyro"
-version = "0.9.28"
+version = "0.9.31"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
@@ -2744,9 +2744,9 @@ dependencies = [
     { name = "typeguard" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/01/e9/fc3faf382e442b5eaa292405ea7bb1de5a529209c56ee8b9783bfeb7c440/tyro-0.9.28.tar.gz", hash = "sha256:4a2283e507727ceff65761f2d630a1c3eb3494d6d2f06d770bfb3bfaf7c302ea", size = 308101, upload-time = "2025-08-09T22:13:38.967Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b0/68/807bb16fdf4fe5cdfd70f6e90b0fd78f0d11bee815996ce5c9ae864b3ee1/tyro-0.9.31.tar.gz", hash = "sha256:e858b21f4d179db9fb52b292d3a544aca0bb439399bd59f1943cf96382f15a68", size = 319632, upload-time = "2025-08-30T21:17:35.674Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bb/d7/c7c4e0ffa27deced376161e28a0c60c88c8372a35bbaee6f2a15ba874838/tyro-0.9.28-py3-none-any.whl", hash = "sha256:0ff8497d01f5e7f3cff51dd5f4397ccc805a6011e63f910b25d2064d8cb420d5", size = 129240, upload-time = "2025-08-09T22:13:37.536Z" },
+    { url = "https://files.pythonhosted.org/packages/9b/c6/c808aed7b41ddb7b25427d53185c12df3daea76a295d061a3c58ac61a313/tyro-0.9.31-py3-none-any.whl", hash = "sha256:565305246fbfe7c288b7c44d5af58782a582b885c662ff223e9933779c1c10a3", size = 131681, upload-time = "2025-08-30T21:17:34.534Z" },
 ]
 
 [[package]]

@@ -20,13 +20,12 @@ class SceneCfg:
   env_spacing: float = 2.0
   terrain: TerrainImporterCfg | None = None
   entities: dict[str, EntityCfg] = field(default_factory=dict)
-  device: str = "cuda:0"
 
 
 class Scene:
-  def __init__(self, scene_cfg: SceneCfg) -> None:
+  def __init__(self, scene_cfg: SceneCfg, device: str) -> None:
     self._cfg = scene_cfg
-    self._device = scene_cfg.device
+    self._device = device
     self._entities: dict[str, Entity] = {}
     self._terrain: TerrainImporter | None = None
     self._default_env_origins: torch.Tensor | None = None

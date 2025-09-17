@@ -42,9 +42,9 @@ You can train this exact motion mimic policy using the following command:
 
 ```bash
 MUJOCO_GL=egl uv run --extra rl scripts/tracking/rl/train.py \
-  --task Mjlab-Tracking-Flat-G1-v0 \
+  Mjlab-Tracking-Flat-G1-v0 \
   --registry-name gcbc_researchers/csv_to_npz/lafan_cartwheel \
-  --num_envs 4096
+  --env.scene.num-envs 4096
 ```
 
 To add a new motion to the wandb registry, run:

@@ -99,6 +99,7 @@ mujoco = { index = "mujoco" }
 torch = [{ index = "pytorch-cu128", extra = "cu12" }]
 
 [tool.ruff]
+src = ["src"]  # Helpful for recognizing first-party imports.
 indent-width = 2
 exclude = [
   "src/mjlab/third_party",

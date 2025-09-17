@@ -26,13 +26,17 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
   cfg: ManagerBasedRlEnvCfg
 
   def __init__(
-    self, cfg: ManagerBasedRlEnvCfg, render_mode: str | None = None, **kwargs
+    self,
+    cfg: ManagerBasedRlEnvCfg,
+    device: str,
+    render_mode: str | None = None,
+    **kwargs,
   ) -> None:
     self.common_step_counter = 0
     self.episode_length_buf = torch.zeros(
-      cfg.scene.num_envs, device=cfg.sim.device, dtype=torch.long
+      cfg.scene.num_envs, device=device, dtype=torch.long
     )
-    super().__init__(cfg=cfg)
+    super().__init__(cfg=cfg, device=device)
     self.render_mode = render_mode
     if self.render_mode == "rgb_array":
       self.sim.initialize_renderer()
