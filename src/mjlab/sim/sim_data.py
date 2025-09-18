@@ -175,8 +175,8 @@ class WarpBridge(Generic[T]):
   """
 
   def __init__(self, struct: T) -> None:
-    super().__setattr__("_struct", struct)
-    super().__setattr__("_wrapped_cache", {})
+    object.__setattr__(self, "_struct", struct)
+    object.__setattr__(self, "_wrapped_cache", {})
 
   def __getattr__(self, name: str) -> Any:
     """Get attribute from the wrapped data, wrapping Warp arrays as TorchArray."""
@@ -202,18 +202,11 @@ class WarpBridge(Generic[T]):
 
   def __setattr__(self, name: str, value: Any) -> None:
     """Prevent attribute setting to maintain CUDA graph safety."""
-    if name in ("_struct", "_wrapped_cache"):
-      super().__setattr__(name, value)
-    else:
-      raise AttributeError(
-        f"Cannot set attribute '{name}' on WarpBridge. "
-        f"This wrapper is read-only to preserve memory addresses for CUDA graphs. "
-        f"Use in-place operations instead: obj.{name}[:] = value"
-      )
-
-  def clear_cache(self) -> None:
-    """Clear the wrapper cache. Useful after modifying underlying struct."""
-    self._wrapped_cache.clear()
+    raise AttributeError(
+      f"Cannot set attribute '{name}' on WarpBridge. "
+      f"This wrapper is read-only to preserve memory addresses for CUDA graphs. "
+      f"Use in-place operations instead: obj.{name}[:] = value"
+    )
 
   def __repr__(self) -> str:
     """Return string representation of the wrapped struct."""
