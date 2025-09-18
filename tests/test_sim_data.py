@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
+import pytest
 import torch
 import warp as wp
-from absl.testing import absltest
 
 from mjlab.sim.sim_data import TorchArray, WarpBridge
 
@@ -10,88 +10,80 @@ wp.config.quiet = True
 
 
 @dataclass
-class MockMjwarpData:
-  qpos: wp.array
-  qvel: wp.array
-  ctrl: wp.array
-  non_array_field: float = 1.0
+class MockData:
+  arr: wp.array
+  val: float = 1.0
 
 
-class TensorProxyTest(absltest.TestCase):
-  def setUp(self):
-    self.num_envs = 4
-    self.pos_dim = 7
-    self.vel_dim = 6
-    self.device = "cpu"
-
-    with wp.ScopedDevice(self.device):
-      self.wp_array = wp.array([[1.0, 2.0], [3.0, 4.0]], dtype=wp.float32)
-    self.proxy = TorchArray(self.wp_array)
-
-  def test_memory_sharing(self):
-    """Test that proxy shares memory with warp array."""
-    self.proxy[0, 0] = 99.0
-    self.assertEqual(self.wp_array.numpy()[0, 0], 99.0)
-
-  def test_arithmetic_ops(self):
-    """Test essential arithmetic operations."""
-    result = self.proxy**2
-    expected = self.proxy._tensor**2
-    self.assertTrue(torch.allclose(result, expected))
-
-    self.assertTrue(torch.allclose(2 * self.proxy + 1, 2 * self.proxy._tensor + 1))
-
-  def test_torch_func_interception(self):
-    """Test that torch functions work with TensorProxy."""
-    result = torch.sum(self.proxy)  # type: ignore
-    expected = torch.sum(self.proxy._tensor)
-    self.assertTrue(torch.allclose(result, expected))
+def get_test_device():
+  """Get device for testing, preferring CUDA if available."""
+  if torch.cuda.is_available():
+    return "cuda:0"
+  return "cpu"
 
 
-class WarpTensorTest(absltest.TestCase):
-  def setUp(self):
-    self.device = "cpu"
-    with wp.ScopedDevice(self.device):
-      self.mock_data = MockMjwarpData(
-        qpos=wp.zeros((2, 3), dtype=wp.float32),
-        qvel=wp.ones((2, 3), dtype=wp.float32),
-        ctrl=wp.zeros((2, 1), dtype=wp.float32),
-        non_array_field=42.0,
-      )
-    self.warp_tensor = WarpBridge(self.mock_data)
-
-  def test_array_wrapping(self):
-    """Test that warp arrays are wrapped as TensorProxy."""
-    qpos = self.warp_tensor.qpos
-    self.assertIsInstance(qpos, TorchArray)
-    self.assertIs(qpos._wp_array, self.mock_data.qpos)
-
-  def test_non_array_passthrough(self):
-    """Test that non-array fields are returned as is."""
-    self.assertEqual(self.warp_tensor.non_array_field, 42.0)
-    self.assertNotIsInstance(self.warp_tensor.non_array_field, TorchArray)
-
-  def test_setting_from_tensor(self):
-    """Test setting array from PyTorch tensor."""
-    new_tensor = torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], device=self.device)
-    self.warp_tensor.qpos = new_tensor
-    self.assertTrue(torch.allclose(self.warp_tensor.qpos._tensor, new_tensor))  # type: ignore
-
-  def test_end_to_end_workflow(self):
-    """Test a realistic usage workflow."""
-    qpos = self.warp_tensor.qpos
-    qvel = self.warp_tensor.qvel
-
-    kinetic_energy = 0.5 * torch.sum(qvel**2, dim=1)
-    potential_energy = torch.sum(qpos**2, dim=1)
-    total_energy = kinetic_energy + potential_energy
-
-    self.assertEqual(kinetic_energy.shape, (2,))
-    self.assertEqual(total_energy.shape, (2,))
-
-    qpos[0, 0] = 100.0
-    self.assertEqual(self.warp_tensor.struct.qpos.numpy()[0, 0], 100.0)
+@pytest.fixture
+def device():
+  """Test device fixture."""
+  return get_test_device()
 
 
-if __name__ == "__main__":
-  absltest.main()
+@pytest.fixture
+def mock_data(device):
+  with wp.ScopedDevice(device):
+    return MockData(arr=wp.array([[1.0, 2.0], [3.0, 4.0]], dtype=wp.float32))
+
+
+def test_torch_array_shares_memory(device):
+  """TorchArray modifications affect underlying warp array."""
+  with wp.ScopedDevice(device):
+    wp_arr = wp.array([1.0, 2.0], dtype=wp.float32)
+  torch_arr = TorchArray(wp_arr)
+  torch_arr[0] = 99.0
+  assert wp_arr.numpy()[0] == 99.0
+
+
+def test_torch_array_ops_work(device):
+  """TorchArray supports PyTorch operations."""
+  with wp.ScopedDevice(device):
+    wp_arr = wp.array([1.0, 2.0], dtype=wp.float32)
+  torch_arr = TorchArray(wp_arr)
+  assert torch.allclose(torch_arr * 2, torch.tensor([2.0, 4.0], device=device))
+  assert torch.sum(torch_arr).item() == 3.0  # type: ignore
+
+
+def test_bridge_wraps_arrays(mock_data):
+  """WarpBridge wraps warp arrays as TorchArray."""
+  bridge = WarpBridge(mock_data)
+  assert isinstance(bridge.arr, TorchArray)
+  assert bridge.val == 1.0  # Non-arrays pass through.
+
+
+def test_bridge_preserves_memory_on_slice_assign(mock_data, device):
+  """Slice assignment preserves memory addresses (CUDA graph safe)."""
+  bridge = WarpBridge(mock_data)
+  initial_ptr = bridge.arr._tensor.data_ptr()
+
+  bridge.arr[:] = torch.zeros((2, 2), device=device)
+
+  assert bridge.arr._tensor.data_ptr() == initial_ptr
+  assert torch.all(bridge.arr._tensor == 0)
+
+
+def test_bridge_raises_on_setattr(mock_data, device):
+  """Direct assignment raises AttributeError with helpful message."""
+  bridge = WarpBridge(mock_data)
+
+  with pytest.raises(AttributeError, match="Cannot set attribute 'arr' on WarpBridge"):
+    bridge.arr = torch.zeros((2, 2), device=device)
+
+  with pytest.raises(AttributeError, match="Use in-place operations instead"):
+    bridge.val = 42.0
+
+
+def test_bridge_caches_wrappers(mock_data):
+  """WarpBridge caches wrapper objects."""
+  bridge = WarpBridge(mock_data)
+  arr1 = bridge.arr
+  arr2 = bridge.arr
+  assert arr1 is arr2  # Same cached object.
