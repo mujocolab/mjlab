@@ -16,6 +16,15 @@ from mjlab.terrains import TerrainImporterCfg
 from mjlab.terrains.config import ROUGH_TERRAINS_CFG
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
 
+VELOCITY_RANGE = {
+  "x": (-0.5, 0.5),
+  "y": (-0.5, 0.5),
+  "z": (-0.2, 0.2),
+  "roll": (-0.52, 0.52),
+  "pitch": (-0.52, 0.52),
+  "yaw": (-0.78, 0.78),
+}
+
 ##
 # Scene.
 ##
@@ -136,14 +145,7 @@ class EventCfg:
     mode="reset",
     params={
       "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
-      "velocity_range": {
-        "x": (0.0, 0.0),
-        "y": (0.0, 0.0),
-        "z": (0.0, 0.0),
-        "roll": (0.0, 0.0),
-        "pitch": (0.0, 0.0),
-        "yaw": (0.0, 0.0),
-      },
+      "velocity_range": {},
     },
   )
   reset_robot_joints: EventTerm = term(
@@ -160,8 +162,8 @@ class EventCfg:
     EventTerm,
     func=mdp.push_by_setting_velocity,
     mode="interval",
-    interval_range_s=(10.0, 15.0),
-    params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (-0.5, 0.5)}},
+    interval_range_s=(1.0, 3.0),
+    params={"velocity_range": VELOCITY_RANGE},
   )
   foot_friction: EventTerm = term(
     EventTerm,
@@ -183,7 +185,6 @@ class EventCfg:
 
 @dataclass
 class RewardCfg:
-  # Task.
   track_lin_vel_xy_exp: RewardTerm = term(
     RewardTerm,
     func=mdp.track_lin_vel_xy_exp,
@@ -193,32 +194,27 @@ class RewardCfg:
   track_ang_vel_z_exp: RewardTerm = term(
     RewardTerm,
     func=mdp.track_ang_vel_z_exp,
-    weight=0.5,
+    weight=1.0,
     params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
   )
-  # Penalties.
-  lin_vel_z_l2: RewardTerm = term(RewardTerm, func=mdp.lin_vel_z_l2, weight=0.0)
-  ang_vel_xy_l2: RewardTerm = term(RewardTerm, func=mdp.ang_vel_xy_l2, weight=0.0)
-  dof_torques_l2: RewardTerm = term(RewardTerm, func=mdp.joint_torques_l2, weight=0.0)
-  dof_acc_l2: RewardTerm = term(RewardTerm, func=mdp.joint_acc_l2, weight=0.0)
+  ang_vel_xy_l2: RewardTerm = term(RewardTerm, func=mdp.ang_vel_xy_l2, weight=-0.1)
   action_rate_l2: RewardTerm = term(RewardTerm, func=mdp.action_rate_l2, weight=-0.01)
-  flat_orientation_l2: RewardTerm = term(
-    RewardTerm, func=mdp.flat_orientation_l2, weight=0.0
-  )
-  dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
+  power: RewardTerm = term(RewardTerm, func=mdp.electrical_power_cost, weight=-0.005)
   pose_l2: RewardTerm = term(
     RewardTerm,
     func=mdp.posture,
-    weight=-0.1,
+    weight=-1.0,
     params={
       "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
       "std": {
-        r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.3,
-        r".*(FR|FL|RR|RL)_calf_joint.*": 1.2,
+        r"^(left|right)_knee_joint$": 5.0,
+        r"^(left|right)_hip_pitch_joint$": 5.0,
+        r"^(left|right)_elbow_joint$": 5.0,
+        r"^(left|right)_shoulder_pitch_joint$": 5.0,
+        r"^(?!.*(knee_joint|hip_pitch|elbow_joint|shoulder_pitch)).*$": 0.3,
       },
     },
   )
-  power: RewardTerm = term(RewardTerm, func=mdp.electrical_power_cost, weight=-0.005)
 
 
 # Terminations.

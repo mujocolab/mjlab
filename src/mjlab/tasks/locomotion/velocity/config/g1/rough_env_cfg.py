@@ -23,12 +23,6 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
       r"^(left|right)_foot[1-7]_collision$"
     ]
 
-    self.rewards.pose_l2.params["std"] = {
-      r"^(left|right)_knee_joint$": 1.2,
-      r"^(left|right)_hip_pitch_joint$": 1.2,
-      r"^(?!.*(knee_joint|hip_pitch)).*$": 0.3,
-    }
-
 
 @dataclass
 class UnitreeG1RoughEnvCfg_PLAY(UnitreeG1RoughEnvCfg):
