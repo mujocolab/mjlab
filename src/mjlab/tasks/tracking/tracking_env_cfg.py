@@ -152,7 +152,6 @@ class EventCfg:
     interval_range_s=(1.0, 3.0),
     params={"velocity_range": VELOCITY_RANGE},
   )
-
   base_com: EventTerm = term(
     EventTerm,
     mode="startup",
@@ -168,7 +167,6 @@ class EventCfg:
       },
     },
   )
-
   add_joint_default_pos: EventTerm = term(
     EventTerm,
     mode="startup",
@@ -180,7 +178,6 @@ class EventCfg:
       "ranges": (-0.01, 0.01),
     },
   )
-
   foot_friction: EventTerm = term(
     EventTerm,
     mode="startup",
@@ -261,36 +258,33 @@ class RewardCfg:
 @dataclass
 class TerminationsCfg:
   time_out: DoneTerm = term(DoneTerm, func=mdp.time_out, time_out=True)
-
-  # ref_pos: DoneTerm = term(
-  #   DoneTerm,
-  #   func=mdp.bad_ref_pos_z_only,
-  #   params={"command_name": "motion", "threshold": 0.25},
-  # )
-
-  # ref_ori: DoneTerm = term(
-  #   DoneTerm,
-  #   func=mdp.bad_ref_ori,
-  #   params={
-  #     "asset_cfg": SceneEntityCfg("robot"),
-  #     "command_name": "motion",
-  #     "threshold": 0.8,
-  #   },
-  # )
-
-  # ee_body_pos = DoneTerm(
-  #   func=mdp.bad_motion_body_pos_z_only,
-  #   params={
-  #     "command_name": "motion",
-  #     "threshold": 0.25,
-  #     "body_names": [
-  #       "left_ankle_roll_link",
-  #       "right_ankle_roll_link",
-  #       "left_wrist_yaw_link",
-  #       "right_wrist_yaw_link",
-  #     ],
-  #   },
-  # )
+  ref_pos: DoneTerm = term(
+    DoneTerm,
+    func=mdp.bad_ref_pos_z_only,
+    params={"command_name": "motion", "threshold": 0.25},
+  )
+  ref_ori: DoneTerm = term(
+    DoneTerm,
+    func=mdp.bad_ref_ori,
+    params={
+      "asset_cfg": SceneEntityCfg("robot"),
+      "command_name": "motion",
+      "threshold": 0.8,
+    },
+  )
+  ee_body_pos = DoneTerm(
+    func=mdp.bad_motion_body_pos_z_only,
+    params={
+      "command_name": "motion",
+      "threshold": 0.25,
+      "body_names": [
+        "left_ankle_roll_link",
+        "right_ankle_roll_link",
+        "left_wrist_yaw_link",
+        "right_wrist_yaw_link",
+      ],
+    },
+  )
 
 
 @dataclass
@@ -313,28 +307,9 @@ class TrackingEnvCfg(ManagerBasedRlEnvCfg):
   viewer: ViewerConfig = field(default_factory=lambda: VIEWER_CONFIG)
 
   def __post_init__(self) -> None:
-    self.sim.mujoco.integrator = "implicitfast"
-    self.sim.mujoco.cone = "pyramidal"
-    self.sim.mujoco.timestep = 0.005
     self.scene.num_envs = 1
-    self.sim.nconmax = 100000
-    self.sim.njmax = 300
+    self.sim.mujoco.timestep = 0.005
     self.sim.mujoco.iterations = 10
     self.sim.mujoco.ls_iterations = 20
-
-
-if __name__ == "__main__":
-  from dataclasses import replace
-
-  import mujoco.viewer
-
-  from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ROBOT_CFG
-  from mjlab.scene import Scene
-
-  scene_cfg = replace(SCENE_CFG)
-  scene_cfg.entities["robot"] = replace(G1_ROBOT_CFG)
-  scene = Scene(scene_cfg, device="cuda:0")
-
-  model = scene.compile()
-
-  mujoco.viewer.launch(model)
+    self.sim.nconmax = 100000
+    self.sim.njmax = 300
