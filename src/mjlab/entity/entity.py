@@ -63,7 +63,6 @@ class Entity:
 
     self._give_names_to_missing_elems()
     self._validate_and_extract_joints()
-    self._handle_xml_actuators()
     self._configure_spec()
     self._store_element_names()
     self._build_actuator_mapping()
@@ -826,18 +825,6 @@ class Entity:
               UserWarning,
               stacklevel=2,
             )
-
-  # TODO(kevin): Remove this once we support XML actuators.
-  def _handle_xml_actuators(self) -> None:
-    """Handle actuators defined in XML (remove them with warning)."""
-    if len(self._spec.actuators) > 0:
-      actuator_names = [a.name for a in self._spec.actuators]
-      print(
-        f"WARNING: Entity has {len(self._spec.actuators)} XML actuator(s): {actuator_names}. "
-        "These will be removed. Use ActuatorCfg in EntityArticulationInfoCfg instead."
-      )
-      for actuator in self._spec.actuators:
-        self._spec.delete(actuator)
 
   def _store_element_names(self) -> None:
     self._joint_names = [j.name for j in self._non_root_joints]
