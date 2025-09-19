@@ -16,6 +16,7 @@ from mjlab.tasks.locomotion.velocity import mdp
 from mjlab.terrains import TerrainImporterCfg
 from mjlab.terrains.config import ROUGH_TERRAINS_CFG
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
+from mjlab.viewer import ViewerConfig
 
 VELOCITY_RANGE = {
   "x": (-0.5, 0.5),
@@ -37,6 +38,15 @@ SCENE_CFG = SceneCfg(
     max_init_terrain_level=5,
   ),
   num_envs=1,
+)
+
+VIEWER_CONFIG = ViewerConfig(
+  origin_type=ViewerConfig.OriginType.ASSET_BODY,
+  asset_name="robot",
+  body_name="torso_link",
+  distance=3.0,
+  elevation=-5.0,
+  azimuth=90.0,
 )
 
 ##
@@ -267,6 +277,7 @@ class LocomotionVelocityEnvCfg(ManagerBasedRlEnvCfg):
   commands: CommandsCfg = field(default_factory=CommandsCfg)
   curriculum: CurriculumCfg = field(default_factory=CurriculumCfg)
   sim: SimulationCfg = field(default_factory=lambda: SIM_CFG)
+  viewer: ViewerConfig = field(default_factory=lambda: VIEWER_CONFIG)
 
   def __post_init__(self):
     # Enable curriculum mode for terrain generator.

@@ -68,11 +68,6 @@ test = [
 
 [project.optional-dependencies]
 cu12 = ["torch>=2.7.0"]
-rl = [
-    "moviepy >=1.0.0",
-    "rsl-rl-lib",
-    "tensorboard",
-]
 
 [[tool.uv.index]]
 url = "https://pypi.org/simple"
