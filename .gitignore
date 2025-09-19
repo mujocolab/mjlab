@@ -13,3 +13,5 @@ motions/
 *.mp4
 artifacts/
 .venv/
+env_mjlab
+uv.lock
