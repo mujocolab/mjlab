@@ -409,8 +409,3 @@ class EntityData:
   def root_com_ang_vel_b(self) -> torch.Tensor:
     """Root COM angular velocity in body frame. Shape (num_envs, 3)."""
     return quat_apply_inverse(self.root_link_quat_w, self.root_com_ang_vel_w)
-
-  @property
-  def site_ang_vel_b(self) -> torch.Tensor:
-    """Site angular velocities in body frame. Shape (num_envs, num_sites, 3)."""
-    return quat_apply_inverse(self.site_quat_w, self.site_ang_vel_w)
