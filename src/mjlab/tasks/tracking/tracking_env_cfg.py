@@ -9,6 +9,7 @@ from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import SceneCfg
+from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.tasks.tracking import mdp
 from mjlab.terrains import TerrainImporterCfg
 from mjlab.terrains.config import ROUGH_TERRAINS_CFG
@@ -33,6 +34,7 @@ SCENE_CFG = SceneCfg(
   terrain=TerrainImporterCfg(
     terrain_type="plane", terrain_generator=ROUGH_TERRAINS_CFG
   ),
+  num_envs=1,
 )
 
 VIEWER_CONFIG = ViewerConfig(
@@ -292,6 +294,17 @@ class CurriculumCfg:
   pass
 
 
+SIM_CFG = SimulationCfg(
+  nconmax=100_000,
+  njmax=300,
+  mujoco=MujocoCfg(
+    timestep=0.005,
+    iterations=10,
+    ls_iterations=20,
+  ),
+)
+
+
 @dataclass
 class TrackingEnvCfg(ManagerBasedRlEnvCfg):
   scene: SceneCfg = field(default_factory=lambda: SCENE_CFG)
@@ -302,14 +315,7 @@ class TrackingEnvCfg(ManagerBasedRlEnvCfg):
   terminations: TerminationsCfg = field(default_factory=TerminationsCfg)
   events: EventCfg = field(default_factory=EventCfg)
   curriculum: CurriculumCfg = field(default_factory=CurriculumCfg)
+  sim: SimulationCfg = field(default_factory=lambda: SIM_CFG)
+  viewer: ViewerConfig = field(default_factory=lambda: VIEWER_CONFIG)
   decimation: int = 4
   episode_length_s: float = 10.0
-  viewer: ViewerConfig = field(default_factory=lambda: VIEWER_CONFIG)
-
-  def __post_init__(self) -> None:
-    self.scene.num_envs = 1
-    self.sim.mujoco.timestep = 0.005
-    self.sim.mujoco.iterations = 10
-    self.sim.mujoco.ls_iterations = 20
-    self.sim.nconmax = 100000
-    self.sim.njmax = 300

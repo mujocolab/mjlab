@@ -180,12 +180,14 @@ class posture:
 
 
 def electrical_power_cost(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
+  env: ManagerBasedRlEnv,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> torch.Tensor:
   """Penalize electrical power consumption of actuators."""
   asset: Entity = env.scene[asset_cfg.name]
-  torque = asset.data.actuator_force
-  velocity = asset.data.joint_vel
-  mechanical_power = torque * velocity
-  positive_mechanical_power = torch.clamp(mechanical_power, min=0.0)
-  return positive_mechanical_power.sum(dim=-1)
+  tau = asset.data.actuator_force
+  qd = asset.data.joint_vel
+  mech = tau * qd
+  mech_pos = torch.clamp(mech, min=0.0)  # Don't penalize regen.
+  # TODO(kevin): Add a cost for current squared (I^2R losses).
+  return torch.sum(mech_pos, dim=1)

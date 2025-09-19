@@ -11,10 +11,21 @@ from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import SceneCfg
+from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.tasks.locomotion.velocity import mdp
 from mjlab.terrains import TerrainImporterCfg
 from mjlab.terrains.config import ROUGH_TERRAINS_CFG
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
+from mjlab.viewer import ViewerConfig
+
+VELOCITY_RANGE = {
+  "x": (-0.5, 0.5),
+  "y": (-0.5, 0.5),
+  "z": (-0.2, 0.2),
+  "roll": (-0.52, 0.52),
+  "pitch": (-0.52, 0.52),
+  "yaw": (-0.78, 0.78),
+}
 
 ##
 # Scene.
@@ -26,6 +37,16 @@ SCENE_CFG = SceneCfg(
     terrain_generator=ROUGH_TERRAINS_CFG,
     max_init_terrain_level=5,
   ),
+  num_envs=1,
+)
+
+VIEWER_CONFIG = ViewerConfig(
+  origin_type=ViewerConfig.OriginType.ASSET_BODY,
+  asset_name="robot",
+  body_name="torso_link",
+  distance=3.0,
+  elevation=-5.0,
+  azimuth=90.0,
 )
 
 ##
@@ -51,18 +72,18 @@ class ActionCfg:
 
 @dataclass
 class CommandsCfg:
-  base_velocity: mdp.UniformVelocityCommandCfg = term(
+  twist: mdp.UniformVelocityCommandCfg = term(
     mdp.UniformVelocityCommandCfg,
     asset_name="robot",
-    resampling_time_range=(10.0, 10.0),
-    rel_standing_envs=0.02,
+    resampling_time_range=(3.0, 8.0),
+    rel_standing_envs=0.1,
     rel_heading_envs=1.0,
     heading_command=True,
     heading_control_stiffness=0.5,
     debug_vis=True,
     ranges=mdp.UniformVelocityCommandCfg.Ranges(
       lin_vel_x=(-1.0, 1.0),
-      lin_vel_y=(-1.0, 1.0),
+      lin_vel_y=(-0.5, 0.5),
       ang_vel_z=(-1.0, 1.0),
       heading=(-math.pi, math.pi),
     ),
@@ -106,10 +127,10 @@ class ObservationCfg:
       ObsTerm,
       func=mdp.last_action,
     )
-    velocity_commands: ObsTerm = term(
+    command: ObsTerm = term(
       ObsTerm,
       func=mdp.generated_commands,
-      params={"command_name": "base_velocity"},
+      params={"command_name": "twist"},
     )
 
     def __post_init__(self):
@@ -136,14 +157,7 @@ class EventCfg:
     mode="reset",
     params={
       "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
-      "velocity_range": {
-        "x": (0.0, 0.0),
-        "y": (0.0, 0.0),
-        "z": (0.0, 0.0),
-        "roll": (0.0, 0.0),
-        "pitch": (0.0, 0.0),
-        "yaw": (0.0, 0.0),
-      },
+      "velocity_range": {},
     },
   )
   reset_robot_joints: EventTerm = term(
@@ -160,8 +174,8 @@ class EventCfg:
     EventTerm,
     func=mdp.push_by_setting_velocity,
     mode="interval",
-    interval_range_s=(10.0, 15.0),
-    params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (-0.5, 0.5)}},
+    interval_range_s=(1.0, 3.0),
+    params={"velocity_range": VELOCITY_RANGE},
   )
   foot_friction: EventTerm = term(
     EventTerm,
@@ -183,42 +197,37 @@ class EventCfg:
 
 @dataclass
 class RewardCfg:
-  # Task.
   track_lin_vel_xy_exp: RewardTerm = term(
     RewardTerm,
     func=mdp.track_lin_vel_xy_exp,
     weight=1.0,
-    params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
+    params={"command_name": "twist", "std": math.sqrt(0.25)},
   )
   track_ang_vel_z_exp: RewardTerm = term(
     RewardTerm,
     func=mdp.track_ang_vel_z_exp,
-    weight=0.5,
-    params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
+    weight=1.0,
+    params={"command_name": "twist", "std": math.sqrt(0.25)},
   )
-  # Penalties.
-  lin_vel_z_l2: RewardTerm = term(RewardTerm, func=mdp.lin_vel_z_l2, weight=0.0)
-  ang_vel_xy_l2: RewardTerm = term(RewardTerm, func=mdp.ang_vel_xy_l2, weight=0.0)
-  dof_torques_l2: RewardTerm = term(RewardTerm, func=mdp.joint_torques_l2, weight=0.0)
-  dof_acc_l2: RewardTerm = term(RewardTerm, func=mdp.joint_acc_l2, weight=0.0)
+  ang_vel_xy_l2: RewardTerm = term(RewardTerm, func=mdp.ang_vel_xy_l2, weight=-0.1)
   action_rate_l2: RewardTerm = term(RewardTerm, func=mdp.action_rate_l2, weight=-0.01)
-  flat_orientation_l2: RewardTerm = term(
-    RewardTerm, func=mdp.flat_orientation_l2, weight=0.0
-  )
-  dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
+  power: RewardTerm = term(RewardTerm, func=mdp.electrical_power_cost, weight=-0.005)
   pose_l2: RewardTerm = term(
     RewardTerm,
     func=mdp.posture,
-    weight=-0.1,
+    weight=-1.0,
     params={
       "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
       "std": {
-        r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.3,
-        r".*(FR|FL|RR|RL)_calf_joint.*": 0.6,
+        r"^(left|right)_knee_joint$": 5.0,
+        r"^(left|right)_hip_pitch_joint$": 5.0,
+        r"^(left|right)_elbow_joint$": 5.0,
+        r"^(left|right)_shoulder_pitch_joint$": 5.0,
+        r"^(?!.*(knee_joint|hip_pitch|elbow_joint|shoulder_pitch)).*$": 0.3,
       },
     },
   )
-  power: RewardTerm = term(RewardTerm, func=mdp.electrical_power_cost, weight=-0.005)
+  dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
 
 
 # Terminations.
@@ -237,12 +246,22 @@ class TerminationCfg:
 
 @dataclass
 class CurriculumCfg:
-  terrain_levels: CurrTerm = term(CurrTerm, func=mdp.terrain_levels_vel)
+  terrain_levels: CurrTerm | None = term(CurrTerm, func=mdp.terrain_levels_vel)
 
 
 ##
 # Environment.
 ##
+
+SIM_CFG = SimulationCfg(
+  nconmax=140_000,
+  njmax=300,
+  mujoco=MujocoCfg(
+    timestep=0.005,
+    iterations=10,
+    ls_iterations=20,
+  ),
+)
 
 
 @dataclass
@@ -257,15 +276,10 @@ class LocomotionVelocityEnvCfg(ManagerBasedRlEnvCfg):
   terminations: TerminationCfg = field(default_factory=TerminationCfg)
   commands: CommandsCfg = field(default_factory=CommandsCfg)
   curriculum: CurriculumCfg = field(default_factory=CurriculumCfg)
+  sim: SimulationCfg = field(default_factory=lambda: SIM_CFG)
+  viewer: ViewerConfig = field(default_factory=lambda: VIEWER_CONFIG)
 
   def __post_init__(self):
-    self.scene.num_envs = 1
-    self.sim.nconmax = 140000
-    self.sim.njmax = 300
-    self.sim.mujoco.timestep = 0.005
-    self.sim.mujoco.iterations = 10
-    self.sim.mujoco.ls_iterations = 20
-
     # Enable curriculum mode for terrain generator.
     if self.scene.terrain is not None:
       if self.scene.terrain.terrain_generator is not None:

@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Sequence, cast
 
 import mujoco
@@ -7,7 +8,6 @@ import torch
 import warp as wp
 
 from mjlab.sim.randomization import expand_model_fields
-from mjlab.sim.sim_config import SimulationCfg
 from mjlab.sim.sim_data import WarpBridge
 
 if TYPE_CHECKING:
@@ -16,6 +16,43 @@ if TYPE_CHECKING:
 else:
   ModelBridge = WarpBridge
   DataBridge = WarpBridge
+
+
+@dataclass(kw_only=True)
+class RenderCfg:
+  enable_reflections: bool = True
+  enable_shadows: bool = True
+  camera: str | int | None = -1
+  height: int = 240
+  width: int = 320
+
+
+@dataclass
+class MujocoCfg:
+  # Integrator settings.
+  timestep: float = 0.002
+  integrator: str = "implicitfast"
+  # Friction settings.
+  impratio: float = 1.0
+  cone: str = "pyramidal"
+  # Solver settings.
+  jacobian: str = "auto"
+  solver: str = "newton"
+  iterations: int = 100
+  tolerance: float = 1e-8
+  ls_iterations: int = 50
+  ls_tolerance: float = 0.01
+  # Other.
+  gravity: tuple[float, float, float] = (0, 0, -9.81)
+
+
+@dataclass(kw_only=True)
+class SimulationCfg:
+  nconmax: int | None = None
+  njmax: int | None = None
+  ls_parallel: bool = True  # Boosts perf quite noticeably.
+  mujoco: MujocoCfg = field(default_factory=MujocoCfg)
+  render: RenderCfg = field(default_factory=RenderCfg)
 
 
 class Simulation:
@@ -115,9 +152,9 @@ class Simulation:
   # Methods.
 
   def expand_model_fields(self, fields: list[str]) -> None:
-    for field in fields:
-      if not hasattr(self._mj_model, field):
-        raise ValueError(f"Field '{field}' not found in model.")
+    for f in fields:
+      if not hasattr(self._mj_model, f):
+        raise ValueError(f"Field '{f}' not found in model.")
 
     expand_model_fields(self._wp_model, self.num_envs, fields)
 

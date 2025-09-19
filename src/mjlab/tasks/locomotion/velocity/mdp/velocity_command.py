@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import (
   TYPE_CHECKING,
 )
@@ -137,8 +137,8 @@ class UniformVelocityCommand(CommandTerm):
           to=to_w,
         )
 
-      scale = 0.75
-      z_offset = 0.2
+      scale = self.cfg.viz.scale
+      z_offset = self.cfg.viz.z_offset
       cmd_lin_from = np.array([0, 0, z_offset]) * scale
       cmd_lin_to = cmd_lin_from + np.array([cmd[0], cmd[1], 0]) * scale
       cmd_ang_from = cmd_lin_from
@@ -171,6 +171,13 @@ class UniformVelocityCommandCfg(CommandTermCfg):
     heading: tuple[float, float] | None = None
 
   ranges: Ranges
+
+  @dataclass
+  class VizCfg:
+    z_offset: float = 0.2
+    scale: float = 0.75
+
+  viz: VizCfg = field(default_factory=VizCfg)
 
   def __post_init__(self):
     if self.heading_command and self.ranges.heading is None:
