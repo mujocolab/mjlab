@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Sequence
 
 import mujoco_warp as mjwarp
 import torch
 
-from mjlab.entities.indexing import EntityIndexing
+from mjlab.entity.indexing import EntityIndexing
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   quat_apply,
   quat_apply_inverse,
@@ -15,7 +16,9 @@ from mjlab.third_party.isaaclab.isaaclab.utils.math import (
 
 
 @dataclass
-class RobotData:
+class EntityData:
+  """Data container for an entity."""
+
   indexing: EntityIndexing
   data: mjwarp.Data
   device: str
@@ -45,6 +48,26 @@ class RobotData:
 
   def update(self, dt: float) -> None:
     del dt  # Unused.
+
+  def set_external_wrench(
+    self,
+    env_ids: torch.Tensor | slice,
+    body_ids: Sequence[int] | slice,
+    force: torch.Tensor | None,
+    torque: torch.Tensor | None,
+  ) -> None:
+    if isinstance(body_ids, slice):
+      body_ids_global = self.indexing.body_ids[body_ids]
+    else:
+      body_ids_global = torch.tensor(
+        [self.indexing.body_local2global[lid] for lid in body_ids],
+        dtype=torch.int,
+        device=self.device,
+      )
+    if force is not None:
+      self.data.xfrc_applied[env_ids, body_ids_global, 0:3] = force
+    if torque is not None:
+      self.data.xfrc_applied[env_ids, body_ids_global, 3:6] = torque
 
   def _compute_velocity_from_cvel(
     self, pos: torch.Tensor, subtree_com: torch.Tensor, cvel: torch.Tensor
@@ -148,6 +171,11 @@ class RobotData:
     return self._compute_velocity_from_cvel(
       pos, subtree_com, cvel
     )  # (num_envs, num_bodies, 6)
+
+  @property
+  def body_external_wrench(self) -> torch.Tensor:
+    """Body external wrench in world frame. Shape (num_envs, num_bodies, 6)."""
+    return self.data.xfrc_applied[:, self.indexing.body_ids].clone()
 
   # Geom properties
 
@@ -300,6 +328,16 @@ class RobotData:
     return self.body_com_vel_w[..., 3:6]
 
   @property
+  def body_external_force(self) -> torch.Tensor:
+    """Body external forces in world frame. Shape (num_envs, num_bodies, 3)."""
+    return self.body_external_wrench[..., 0:3]
+
+  @property
+  def body_external_torque(self) -> torch.Tensor:
+    """Body external torques in world frame. Shape (num_envs, num_bodies, 3)."""
+    return self.body_external_wrench[..., 3:6]
+
+  @property
   def geom_pos_w(self) -> torch.Tensor:
     """Geom positions in world frame. Shape (num_envs, num_geoms, 3)."""
     return self.geom_pose_w[..., 0:3]
@@ -348,7 +386,7 @@ class RobotData:
 
   @property
   def heading_w(self) -> torch.Tensor:
-    """Robot heading angle in world frame. Shape (num_envs,)."""
+    """Heading angle in world frame. Shape (num_envs,)."""
     forward_w = quat_apply(self.root_link_quat_w, self.FORWARD_VEC_B)
     return torch.atan2(forward_w[:, 1], forward_w[:, 0])
 

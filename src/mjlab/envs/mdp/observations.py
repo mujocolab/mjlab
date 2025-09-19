@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from mjlab.entities.robots.robot import Robot
+from mjlab.entity import Entity
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 if TYPE_CHECKING:
@@ -24,14 +24,14 @@ _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
 def base_lin_vel(
   env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
 ) -> torch.Tensor:
-  asset: Robot = env.scene[asset_cfg.name]
+  asset: Entity = env.scene[asset_cfg.name]
   return asset.data.root_link_lin_vel_b
 
 
 def base_ang_vel(
   env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
 ) -> torch.Tensor:
-  asset: Robot = env.scene[asset_cfg.name]
+  asset: Entity = env.scene[asset_cfg.name]
   return asset.data.root_link_ang_vel_b
 
 
@@ -39,7 +39,7 @@ def projected_gravity(
   env: ManagerBasedEnv,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> torch.Tensor:
-  asset: Robot = env.scene[asset_cfg.name]
+  asset: Entity = env.scene[asset_cfg.name]
   return asset.data.projected_gravity_b
 
 
@@ -52,7 +52,7 @@ def joint_pos_rel(
   env: ManagerBasedEnv,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> torch.Tensor:
-  asset: Robot = env.scene[asset_cfg.name]
+  asset: Entity = env.scene[asset_cfg.name]
   default_joint_pos = asset.data.default_joint_pos
   assert default_joint_pos is not None
   jnt_ids = asset_cfg.joint_ids
@@ -63,7 +63,7 @@ def joint_vel_rel(
   env: ManagerBasedEnv,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> torch.Tensor:
-  asset: Robot = env.scene[asset_cfg.name]
+  asset: Entity = env.scene[asset_cfg.name]
   default_joint_vel = asset.data.default_joint_vel
   assert default_joint_vel is not None
   jnt_ids = asset_cfg.joint_ids

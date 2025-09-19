@@ -1,9 +1,12 @@
 **P0**.
 
-- [ ] Contact sensor
-  - [ ] Clean up, super gross right now
-  - [ ] Investiate cause of NaNs
-- [ ] Terrain generation
+- [ ] Sensor API re-design
+  - [ ] Contact sensor
+  - [ ] Arbitrary XML sensors
+- [ ] Think about how to randomize collision geometry
+- [x] Terrain generation
+  - [x] Terrain generator using box primitives.
+  - [ ] Terrain generator using meshes and heightfields.
 - [ ] Observation history and modifiers
 - [ ] Rename entities to be consistent with isaaclab
 - [ ] Actuation

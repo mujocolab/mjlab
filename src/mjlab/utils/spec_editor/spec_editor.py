@@ -1,10 +1,17 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import mujoco
 import numpy as np
 
-from mjlab.entities.robots.robot_config import RobotCfg
-from mjlab.utils.spec import disable_collision, get_non_root_joints, set_array_field
+from mjlab.utils.spec import (
+  disable_collision,
+  get_non_root_joints,
+  is_joint_limited,
+  set_array_field,
+)
 from mjlab.utils.spec_editor.spec_editor_base import SpecEditor
 from mjlab.utils.spec_editor.spec_editor_config import (
   ActuatorCfg,
@@ -18,6 +25,9 @@ from mjlab.utils.spec_editor.spec_editor_config import (
   TextureCfg,
 )
 from mjlab.utils.string import filter_exp, resolve_expr, resolve_field
+
+if TYPE_CHECKING:
+  from mjlab.entity.entity import EntityCfg
 
 
 @dataclass
@@ -206,6 +216,9 @@ class ActuatorEditor(SpecEditor):
       spec.joint(jn).armature = cfg.armature
       spec.joint(jn).frictionloss = cfg.frictionloss
 
+      if not is_joint_limited(spec.joint(jn)):
+        raise ValueError(f"Joint {jn} is not limited.")
+
       act = spec.add_actuator(
         name=jn,
         target=jn,
@@ -322,15 +335,28 @@ class LightEditor(SpecEditor):
 
 @dataclass
 class KeyframeEditor(SpecEditor):
-  cfg: RobotCfg.InitialStateCfg
+  cfg: EntityCfg.InitialStateCfg
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    non_root_joints = get_non_root_joints(spec)
-    joint_names = [j.name for j in non_root_joints]
-    joint_pos = resolve_expr(self.cfg.joint_pos, joint_names)
+    if self.cfg.joint_pos:
+      non_root_joints = get_non_root_joints(spec)
+      joint_names = [j.name for j in non_root_joints]
+      joint_pos = resolve_expr(self.cfg.joint_pos, joint_names)
+    else:
+      joint_pos = None
 
-    qpos = np.concatenate((self.cfg.pos, self.cfg.rot, joint_pos))
+    state = [self.cfg.pos, self.cfg.rot]
+    if joint_pos is not None:
+      state.append(joint_pos)
+    qpos = np.concatenate(state, axis=0)
+
     if spec.actuators:
-      spec.add_key(name="init_state", qpos=qpos, ctrl=joint_pos)
+      key = spec.add_key(name="init_state", qpos=qpos)
+      if joint_pos is not None:
+        if len(joint_pos) != len(spec.actuators):
+          raise ValueError(
+            f"Expecting one actuator per joint. Got {len(joint_pos)} joint positions and {len(spec.actuators)} actuators."
+          )
+        key.ctrl = joint_pos
     else:
       spec.add_key(name="init_state", qpos=qpos)

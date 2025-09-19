@@ -1,6 +1,5 @@
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 
-from mjlab.asset_zoo.terrains.flat_terrain import FLAT_TERRAIN_CFG
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 from mjlab.managers.manager_term_config import ObservationGroupCfg as ObsGroup
@@ -9,12 +8,11 @@ from mjlab.managers.manager_term_config import RewardTermCfg as RewTerm
 from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
-from mjlab.scene.scene_config import SceneCfg
-
-# from mjlab.sensors import ContactSensorCfg
+from mjlab.scene import SceneCfg
 from mjlab.tasks.tracking import mdp
+from mjlab.terrains import TerrainImporterCfg
+from mjlab.terrains.config import ROUGH_TERRAINS_CFG
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
-from mjlab.utils.spec_editor import LightCfg, TextureCfg
 from mjlab.viewer import ViewerConfig
 
 VELOCITY_RANGE = {
@@ -30,29 +28,11 @@ VELOCITY_RANGE = {
 # Scene.
 ##
 
-terrain_cfg = replace(FLAT_TERRAIN_CFG)
-terrain_cfg.textures = terrain_cfg.textures + (
-  TextureCfg(
-    name="skybox",
-    type="skybox",
-    builtin="gradient",
-    rgb1=(0.3, 0.5, 0.7),
-    rgb2=(0.1, 0.2, 0.3),
-    width=512,
-    height=3072,
-  ),
-)
-terrain_cfg.lights = terrain_cfg.lights + (
-  LightCfg(pos=(0, 0, 1.5), type="directional"),
-)
 
 SCENE_CFG = SceneCfg(
-  terrains={"floor": terrain_cfg},
-  # sensors={
-  #   "contact_forces": ContactSensorCfg(
-  #     entity_name="robot", history_length=3, force_threshold=10.0
-  #   ),
-  # },
+  terrain=TerrainImporterCfg(
+    terrain_type="plane", terrain_generator=ROUGH_TERRAINS_CFG
+  ),
 )
 
 VIEWER_CONFIG = ViewerConfig(
@@ -172,7 +152,6 @@ class EventCfg:
     interval_range_s=(1.0, 3.0),
     params={"velocity_range": VELOCITY_RANGE},
   )
-
   base_com: EventTerm = term(
     EventTerm,
     mode="startup",
@@ -188,7 +167,6 @@ class EventCfg:
       },
     },
   )
-
   add_joint_default_pos: EventTerm = term(
     EventTerm,
     mode="startup",
@@ -200,7 +178,6 @@ class EventCfg:
       "ranges": (-0.01, 0.01),
     },
   )
-
   foot_friction: EventTerm = term(
     EventTerm,
     mode="startup",
@@ -281,13 +258,11 @@ class RewardCfg:
 @dataclass
 class TerminationsCfg:
   time_out: DoneTerm = term(DoneTerm, func=mdp.time_out, time_out=True)
-
   ref_pos: DoneTerm = term(
     DoneTerm,
     func=mdp.bad_ref_pos_z_only,
     params={"command_name": "motion", "threshold": 0.25},
   )
-
   ref_ori: DoneTerm = term(
     DoneTerm,
     func=mdp.bad_ref_ori,
@@ -297,7 +272,6 @@ class TerminationsCfg:
       "threshold": 0.8,
     },
   )
-
   ee_body_pos = DoneTerm(
     func=mdp.bad_motion_body_pos_z_only,
     params={
@@ -333,11 +307,9 @@ class TrackingEnvCfg(ManagerBasedRlEnvCfg):
   viewer: ViewerConfig = field(default_factory=lambda: VIEWER_CONFIG)
 
   def __post_init__(self) -> None:
-    self.sim.mujoco.integrator = "implicitfast"
-    self.sim.mujoco.cone = "pyramidal"
+    self.scene.num_envs = 1
     self.sim.mujoco.timestep = 0.005
-    self.sim.num_envs = 1
-    self.sim.nconmax = 100000
-    self.sim.njmax = 300
     self.sim.mujoco.iterations = 10
     self.sim.mujoco.ls_iterations = 20
+    self.sim.nconmax = 100000
+    self.sim.njmax = 300

@@ -13,51 +13,41 @@ class ViserRewardPlotter:
   def __init__(
     self,
     server: viser.ViserServer,
+    term_names: list[str],
     history_length: int = 150,
-    update_interval: int = 5,
     max_terms: int = 12,
   ):
     """Initialize the reward plotter.
 
     Args:
         server: The Viser server instance
+        term_names: List of reward term names to plot
         history_length: Number of points to keep in history
-        update_interval: Update plots every N frames
         max_terms: Maximum number of reward terms to plot
     """
     self._server = server
     self._history_length = history_length
-    self._update_interval = update_interval
     self._max_terms = max_terms
 
     # State
-    self._term_names: list[str] = []
+    self._term_names = term_names[: self._max_terms]
     self._histories: dict[str, deque[float]] = {}
     self._plot_handles: dict[str, viser.GuiUplotHandle] = {}
 
     # Pre-allocated x-axis array (reused for all plots)
     self._x_array = np.arange(-history_length + 1, 1, dtype=np.float64)
-
-    self._update_counter = 0
-    self._visible = True
     self._folder_handle = None
 
-  def initialize(self, term_names: list[str]) -> None:
-    """Initialize individual plots for each reward term.
+    # Add checkbox to enable/disable reward plots
+    self._enabled_checkbox = self._server.gui.add_checkbox(
+      "Enable reward plots", initial_value=False
+    )
 
-    Args:
-        term_names: List of reward term names to plot
-    """
-    # Clean up existing plots
-    for handle in self._plot_handles.values():
-      handle.remove()
-    self._plot_handles.clear()
-    self._histories.clear()
-
-    self._term_names = term_names[: self._max_terms]
-
-    if not self._term_names:
-      return
+    @self._enabled_checkbox.on_update
+    def _(_) -> None:
+      # Show/hide plots based on checkbox state
+      for handle in self._plot_handles.values():
+        handle.visible = self._enabled_checkbox.value
 
     # Create individual plot for each reward term
     for name in self._term_names:
@@ -91,7 +81,7 @@ class ViserRewardPlotter:
         legend=viser.uplot.Legend(show=False),  # No legend needed for single series
         title=name,  # Add title to the plot
         aspect=2.0,  # Wider aspect ratio for individual plots
-        visible=self._visible,
+        visible=False,
       )
 
       self._plot_handles[name] = plot_handle
@@ -102,12 +92,11 @@ class ViserRewardPlotter:
     Args:
         reward_terms: List of (name, value_array) tuples
     """
-    if not self._plot_handles or not self._term_names:
+    # Early return if plots are disabled
+    if not self._enabled_checkbox.value:
       return
 
-    # Only update at specified interval
-    self._update_counter += 1
-    if self._update_counter % self._update_interval != 0:
+    if not self._plot_handles or not self._term_names:
       return
 
     # Update each term's plot individually
@@ -150,7 +139,6 @@ class ViserRewardPlotter:
     Args:
         visible: Whether plots should be visible
     """
-    self._visible = visible
     for handle in self._plot_handles.values():
       handle.visible = visible
 

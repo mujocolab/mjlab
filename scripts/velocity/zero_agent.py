@@ -20,10 +20,10 @@ FRAME_TIME = 1.0 / 60.0
 KEY_BACKSPACE = 259
 KEY_ENTER = 257
 
-
 def main(
   task: str,
   num_envs: int | None = None,
+
   device: str | None = None,
 ):
   env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
@@ -99,7 +99,7 @@ def main(
         actual_fps = 1.0 / (current_time - last_frame_time)
         print(f"Step {step}: FPS={actual_fps:.1f}")
       last_frame_time = current_time
-
+      
   env.close()
 
 

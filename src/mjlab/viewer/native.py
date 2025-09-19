@@ -21,7 +21,7 @@ from mjlab.viewer.base import (
 )
 
 if TYPE_CHECKING:
-  from mjlab.entities import Robot
+  from mjlab.entity import Entity
 
 
 @dataclass(frozen=True)
@@ -51,11 +51,13 @@ class NativeMujocoViewer(BaseViewer):
     key_callback: Optional[Callable[[int], None]] = None,
     plot_cfg: PlotCfg | None = None,
     enable_perturbations: bool = True,
+    disable_shadows: bool = False,
     verbosity: VerbosityLevel = VerbosityLevel.SILENT,
   ):
     super().__init__(env, policy, frame_rate, render_all_envs, verbosity)
     self.user_key_callback = key_callback
     self.enable_perturbations = enable_perturbations
+    self.disable_shadows = disable_shadows
 
     self.mjm: Optional[mujoco.MjModel] = None
     self.mjd: Optional[mujoco.MjData] = None
@@ -64,7 +66,6 @@ class NativeMujocoViewer(BaseViewer):
     self.vopt: Optional[mujoco.MjvOption] = None
     self.pert: Optional[mujoco.MjvPerturb] = None
     self.catmask: int = mujoco.mjtCatBit.mjCAT_DYNAMIC.value
-    self._env_origins: Optional[np.ndarray] = None
 
     self._term_names: list[str] = []
     self._figures: dict[str, mujoco.MjvFigure] = {}  # Per-term figure.
@@ -88,7 +89,6 @@ class NativeMujocoViewer(BaseViewer):
 
     self.pert = mujoco.MjvPerturb() if self.enable_perturbations else None
     self.vopt = mujoco.MjvOption()
-    self._env_origins = compute_env_origins_grid(sim.num_envs, env_spacing=2.0)
 
     # self._term_names = [
     #   name
@@ -109,6 +109,9 @@ class NativeMujocoViewer(BaseViewer):
     )
     if self.viewer is None:
       raise RuntimeError("Failed to launch MuJoCo viewer")
+
+    if self.disable_shadows:
+      self.viewer.user_scn.flags[mujoco.mjtRndFlag.mjRND_SHADOW] = 0
 
     self._setup_camera()
 
@@ -171,13 +174,12 @@ class NativeMujocoViewer(BaseViewer):
       if hasattr(self.env.unwrapped, "update_visualizers"):
         self.env.unwrapped.update_visualizers(v.user_scn)
 
-      if self.render_all_envs and self.vd is not None and self._env_origins is not None:
+      if self.render_all_envs and self.vd is not None:
         for i in range(self.env.unwrapped.num_envs):
           if i == self.env_idx:
             continue
           self.vd.qpos[:] = sim_data.qpos[i].cpu().numpy()
           self.vd.qvel[:] = sim_data.qvel[i].cpu().numpy()
-          self.vd.qpos[:3] += self._env_origins[i]
           mujoco.mj_forward(self.mjm, self.vd)
           assert self.pert is not None
           mujoco.mjv_addGeoms(
@@ -282,9 +284,8 @@ class NativeMujocoViewer(BaseViewer):
       elif self.cfg.origin_type == self.cfg.OriginType.ASSET_ROOT:
         if not self.cfg.asset_name:
           raise ValueError("Asset name must be specified for ASSET_ROOT origin type")
-        body_id = self.env.unwrapped.scene.indexing.entities[
-          self.cfg.asset_name
-        ].root_body_id
+        indexing = self.env.unwrapped.scene[self.cfg.asset_name].indexing
+        body_id = indexing.root_body_id
         self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
         self.viewer.cam.trackbodyid = body_id
         self.viewer.cam.fixedcamid = -1
@@ -292,15 +293,14 @@ class NativeMujocoViewer(BaseViewer):
       else:  # ASSET_BODY
         if not self.cfg.asset_name or not self.cfg.body_name:
           raise ValueError("asset_name/body_name required for ASSET_BODY origin type")
-        robot: Robot = self.env.unwrapped.scene[self.cfg.asset_name]
+        robot: Entity = self.env.unwrapped.scene[self.cfg.asset_name]
         if self.cfg.body_name not in robot.body_names:
           raise ValueError(
             f"Body '{self.cfg.body_name}' not found in asset '{self.cfg.asset_name}'"
           )
         body_id_list, _ = robot.find_bodies(self.cfg.body_name)
-        body_id = self.env.unwrapped.scene.indexing.entities[
-          self.cfg.asset_name
-        ].body_local2global[body_id_list[0]]
+        indexing = self.env.unwrapped.scene[self.cfg.asset_name].indexing
+        body_id = indexing.body_local2global[body_id_list[0]]
         self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
         self.viewer.cam.trackbodyid = body_id
         self.viewer.cam.fixedcamid = -1
@@ -378,17 +378,6 @@ class NativeMujocoViewer(BaseViewer):
 
     fig.range[1][0] = float(lo)
     fig.range[1][1] = float(hi)
-
-
-def compute_env_origins_grid(num_envs: int, env_spacing: float) -> np.ndarray:
-  env_origins = np.zeros((num_envs, 3))
-  num_rows = int(np.ceil(num_envs / np.sqrt(num_envs)))
-  num_cols = int(np.ceil(num_envs / num_rows))
-  ii, jj = np.meshgrid(np.arange(num_rows), np.arange(num_cols), indexing="ij")
-  env_origins[:, 0] = -(ii.flatten()[:num_envs] - (num_rows - 1) / 2) * env_spacing
-  env_origins[:, 1] = (jj.flatten()[:num_envs] - (num_cols - 1) / 2) * env_spacing
-  env_origins[:, 2] = 0.0
-  return env_origins
 
 
 def compute_viewports(

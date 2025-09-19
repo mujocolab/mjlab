@@ -167,11 +167,16 @@ class WarpBridge(Generic[T]):
   Automatically converts Warp array attributes to TorchArray objects
   on access, enabling direct PyTorch operations on simulation data.
   Recursively wraps nested structures that contain Warp arrays.
+
+  IMPORTANT: This wrapper is read-only. To modify array data, use
+  in-place operations like `obj.field[:] = value`. Direct assignment
+  like `obj.field = new_array` will raise an AttributeError to prevent
+  accidental memory address changes that break CUDA graphs.
   """
 
   def __init__(self, struct: T) -> None:
-    super().__setattr__("_struct", struct)
-    super().__setattr__("_wrapped_cache", {})
+    object.__setattr__(self, "_struct", struct)
+    object.__setattr__(self, "_wrapped_cache", {})
 
   def __getattr__(self, name: str) -> Any:
     """Get attribute from the wrapped data, wrapping Warp arrays as TorchArray."""
@@ -196,33 +201,12 @@ class WarpBridge(Generic[T]):
     return val
 
   def __setattr__(self, name: str, value: Any) -> None:
-    """Set attribute on the wrapped data, handling tensor conversions."""
-    # Special case: setting internal attributes during initialization
-    if name in ("_struct", "_wrapped_cache"):
-      super().__setattr__(name, value)
-      return
-
-    # Clear cache for this attribute since we're modifying it
-    if name in self._wrapped_cache:
-      del self._wrapped_cache[name]
-
-    # Handle assignments to existing wp.array fields
-    if hasattr(self._struct, name) and isinstance(
-      getattr(self._struct, name), wp.array
-    ):
-      if isinstance(value, TorchArray):
-        new_wp_array = value.wp_array
-      elif isinstance(value, torch.Tensor):
-        new_wp_array = wp.from_torch(value)
-      else:
-        raise TypeError(
-          f"Cannot set Warp array field '{name}' from {type(value)}. "
-          f"Expected TorchArray or torch.Tensor."
-        )
-      setattr(self._struct, name, new_wp_array)
-    else:
-      # For non-array fields, set the attribute on the underlying struct object
-      setattr(self._struct, name, value)
+    """Prevent attribute setting to maintain CUDA graph safety."""
+    raise AttributeError(
+      f"Cannot set attribute '{name}' on WarpBridge. "
+      f"This wrapper is read-only to preserve memory addresses for CUDA graphs. "
+      f"Use in-place operations instead: obj.{name}[:] = value"
+    )
 
   def __repr__(self) -> str:
     """Return string representation of the wrapped struct."""

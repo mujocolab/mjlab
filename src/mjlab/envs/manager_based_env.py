@@ -14,7 +14,7 @@ from mjlab.utils import random as random_utils
 
 
 class ManagerBasedEnv:
-  def __init__(self, cfg: ManagerBasedEnvCfg) -> None:
+  def __init__(self, cfg: ManagerBasedEnvCfg, device: str) -> None:
     self.cfg = cfg
     if self.cfg.seed is not None:
       self.cfg.seed = self.seed(self.cfg.seed)
@@ -24,11 +24,16 @@ class ManagerBasedEnv:
     self.extras = {}
     self.obs_buf = {}
 
-    self.scene = Scene(self.cfg.scene)
+    self.scene = Scene(self.cfg.scene, device=device)
     self.scene.configure_sim_options(self.cfg.sim.mujoco)
     print("[INFO]: Scene manager: ", self.scene)
 
-    self.sim = Simulation(cfg=self.cfg.sim, model=self.scene.compile())
+    self.sim = Simulation(
+      num_envs=self.scene.num_envs,
+      cfg=self.cfg.sim,
+      model=self.scene.compile(),
+      device=device,
+    )
 
     if "cuda" in self.device:
       torch.cuda.set_device(self.device)
@@ -51,7 +56,7 @@ class ManagerBasedEnv:
 
   @property
   def num_envs(self) -> int:
-    return self.sim.num_envs
+    return self.scene.num_envs
 
   @property
   def physics_dt(self) -> float:

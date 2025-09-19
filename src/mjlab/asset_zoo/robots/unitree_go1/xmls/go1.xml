@@ -8,24 +8,6 @@
       </default>
       <default class="collision">
         <geom group="3" type="capsule" contype="1" conaffinity="1"/>
-        <default class="hip_left1">
-          <geom size="0.046 0.02" pos="0 0.045 0" quat="1 1 0 0" type="cylinder"/>
-        </default>
-        <default class="hip_left2">
-          <geom size="0.031 0.02" pos="0 0.065 0" quat="1 1 0 0" type="cylinder"/>
-        </default>
-        <default class="hip_left3">
-          <geom size="0.046 0.02" quat="1 1 0 0" type="cylinder"/>
-        </default>
-        <default class="hip_right1">
-          <geom size="0.046 0.02" pos="0 -0.045 0" quat="1 1 0 0" type="cylinder"/>
-        </default>
-        <default class="hip_right2">
-          <geom size="0.031 0.02" pos="0 -0.065 0" quat="1 1 0 0" type="cylinder"/>
-        </default>
-        <default class="hip_right3">
-          <geom size="0.046 0.02" quat="1 1 0 0" type="cylinder"/>
-        </default>
         <default class="thigh1">
           <geom size="0.015" fromto="-0.02 0 0 -0.02 0 -0.16"/>
         </default>
@@ -70,8 +52,7 @@
         diaginertia="0.0716565 0.0630105 0.0168101"/>
       <freejoint name="floating_base_joint"/>
       <geom class="visual" mesh="trunk"/>
-      <geom name="trunk_collision1" class="collision" quat="1 0 1 0" pos="0 -0.04 0" size="0.058 0.125" type="cylinder"/>
-      <geom name="trunk_collision2" class="collision" quat="1 0 1 0" pos="0 +0.04 0" size="0.058 0.125" type="cylinder"/>
+      <geom name="trunk_collision" class="collision" type="box" size="0.13 0.09 0.05" pos="0 0 0"/>
       <geom name="head_collision" class="collision" type="sphere" size="0.06" pos="0.24 0 0"/>
       <site name="imu" pos="-0.01592 -0.06659 -0.00617" group="5"/>
       <body name="FR_hip" pos="0.1881 -0.04675 0">
@@ -79,8 +60,7 @@
           diaginertia="0.000734064 0.000468438 0.000398719"/>
         <joint name="FR_hip_joint" axis="1 0 0" range="-0.863 0.863"/>
         <geom class="visual" mesh="hip" quat="1 0 0 0"/>
-        <geom name="FR_hip_collision1" class="hip_right1"/>
-        <geom name="FR_hip_collision2" class="hip_right2"/>
+        <geom name="FR_hip_collision" class="collision" type="capsule" fromto="0 -0.02 0 0 -0.04 0" size="0.05"/>
         <body name="FR_thigh" pos="0 -0.08 0">
           <inertial pos="-0.00304722 0.019315 -0.0305004" quat="0.65243 -0.0272313 0.0775126 0.753383" mass="1.009"
             diaginertia="0.00478717 0.00460903 0.000709268"/>
@@ -106,8 +86,7 @@
           diaginertia="0.000734064 0.000468438 0.000398719"/>
         <joint name="FL_hip_joint" axis="1 0 0" range="-0.863 0.863"/>
         <geom class="visual" mesh="hip"/>
-        <geom name="FL_hip_collision1" class="hip_left1"/>
-        <geom name="FL_hip_collision2" class="hip_left2"/>
+        <geom name="FL_hip_collision" class="collision" type="capsule" fromto="0 0.02 0 0 0.04 0" size="0.05"/>
         <body name="FL_thigh" pos="0 0.08 0">
           <inertial pos="-0.00304722 -0.019315 -0.0305004" quat="0.753383 0.0775126 -0.0272313 0.65243" mass="1.009"
             diaginertia="0.00478717 0.00460903 0.000709268"/>
@@ -133,9 +112,7 @@
           diaginertia="0.000734064 0.000468438 0.000398719"/>
         <joint name="RR_hip_joint" axis="1 0 0" range="-0.863 0.863"/>
         <geom class="visual" quat="0 0 0 -1" mesh="hip"/>
-        <geom name="RR_hip_collision1" class="hip_right1"/>
-        <geom name="RR_hip_collision2" class="hip_right2"/>
-        <geom name="RR_hip_collision3" class="hip_right3"/>
+        <geom name="RR_hip_collision" class="collision" type="capsule" fromto="0 -0.02 0 0 -0.04 0" size="0.05"/>
         <body name="RR_thigh" pos="0 -0.08 0">
           <inertial pos="-0.00304722 0.019315 -0.0305004" quat="0.65243 -0.0272313 0.0775126 0.753383" mass="1.009"
             diaginertia="0.00478717 0.00460903 0.000709268"/>
@@ -161,9 +138,7 @@
           diaginertia="0.000734064 0.000468438 0.000398719"/>
         <joint name="RL_hip_joint" axis="1 0 0" range="-0.863 0.863"/>
         <geom class="visual" quat="0 0 1 0" mesh="hip"/>
-        <geom name="RL_hip_collision1" class="hip_left1"/>
-        <geom name="RL_hip_collision2" class="hip_left2"/>
-        <geom name="RL_hip_collision3" class="hip_left3"/>
+        <geom name="RL_hip_collision" class="collision" type="capsule" fromto="0 0.02 0 0 0.04 0" size="0.05"/>
         <body name="RL_thigh" pos="0 0.08 0">
           <inertial pos="-0.00304722 -0.019315 -0.0305004" quat="0.753383 0.0775126 -0.0272313 0.65243" mass="1.009"
             diaginertia="0.00478717 0.00460903 0.000709268"/>

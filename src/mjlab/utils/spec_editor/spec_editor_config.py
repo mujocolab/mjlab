@@ -44,7 +44,7 @@ class OptionCfg:
   integrator: str = "implicitfast"
   # Friction settings.
   impratio: float = 1.0
-  cone: str = "elliptic"
+  cone: str = "pyramidal"
   # Solver settings.
   jacobian: str = "auto"
   solver: str = "newton"
