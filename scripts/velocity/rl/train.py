@@ -8,12 +8,12 @@ from pathlib import Path
 
 import gymnasium as gym
 import tyro
-from rsl_rl.runners import OnPolicyRunner
 
 import mjlab.tasks  # noqa: F401
 from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.rl.config import RslRlOnPolicyRunnerCfg
+from mjlab.tasks.locomotion.velocity.rl import VelocityOnPolicyRunner
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
@@ -71,7 +71,7 @@ def main(task: str, cfg: TrainConfig) -> None:
 
   env = RslRlVecEnvWrapper(env, clip_actions=cfg.agent.clip_actions)
 
-  runner = OnPolicyRunner(
+  runner = VelocityOnPolicyRunner(
     env,
     asdict(cfg.agent),
     log_dir=str(log_dir),

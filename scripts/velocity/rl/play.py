@@ -9,6 +9,10 @@ from typing_extensions import assert_never
 
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.rl.config import RslRlOnPolicyRunnerCfg
+from mjlab.tasks.locomotion.velocity.rl import (
+  attach_onnx_metadata,
+  export_velocity_policy_as_onnx,
+)
 from mjlab.tasks.locomotion.velocity.velocity_env_cfg import (
   LocomotionVelocityEnvCfg,
 )
@@ -73,6 +77,15 @@ def main(
 
   runner = OnPolicyRunner(env, asdict(agent_cfg), log_dir=str(log_dir), device=device)
   runner.load(str(resume_path), map_location=device)
+
+  export_model_dir = log_dir / "exported"
+  export_velocity_policy_as_onnx(
+    runner.alg.policy,
+    normalizer=runner.alg.policy.actor_obs_normalizer,
+    path=str(export_model_dir),
+    filename="policy.onnx",
+  )
+  attach_onnx_metadata(env.unwrapped, str(wandb_run_path), str(export_model_dir))
 
   policy = runner.get_inference_policy(device=device)
 

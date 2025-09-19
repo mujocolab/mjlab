@@ -62,7 +62,7 @@ class ActionCfg:
 
 @dataclass
 class CommandsCfg:
-  base_velocity: mdp.UniformVelocityCommandCfg = term(
+  twist: mdp.UniformVelocityCommandCfg = term(
     mdp.UniformVelocityCommandCfg,
     asset_name="robot",
     resampling_time_range=(3.0, 8.0),
@@ -117,10 +117,10 @@ class ObservationCfg:
       ObsTerm,
       func=mdp.last_action,
     )
-    velocity_commands: ObsTerm = term(
+    command: ObsTerm = term(
       ObsTerm,
       func=mdp.generated_commands,
-      params={"command_name": "base_velocity"},
+      params={"command_name": "twist"},
     )
 
     def __post_init__(self):
@@ -191,13 +191,13 @@ class RewardCfg:
     RewardTerm,
     func=mdp.track_lin_vel_xy_exp,
     weight=1.0,
-    params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
+    params={"command_name": "twist", "std": math.sqrt(0.25)},
   )
   track_ang_vel_z_exp: RewardTerm = term(
     RewardTerm,
     func=mdp.track_ang_vel_z_exp,
     weight=1.0,
-    params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
+    params={"command_name": "twist", "std": math.sqrt(0.25)},
   )
   ang_vel_xy_l2: RewardTerm = term(RewardTerm, func=mdp.ang_vel_xy_l2, weight=-0.1)
   action_rate_l2: RewardTerm = term(RewardTerm, func=mdp.action_rate_l2, weight=-0.01)
@@ -217,6 +217,7 @@ class RewardCfg:
       },
     },
   )
+  dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
 
 
 # Terminations.

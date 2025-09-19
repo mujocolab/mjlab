@@ -14,7 +14,7 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
   def __post_init__(self):
     super().__post_init__()
 
-    self.commands.base_velocity.viz.z_offset = 0.75
+    self.commands.twist.viz.z_offset = 0.75
 
     self.scene.entities = {"robot": replace(G1_ROBOT_CFG)}
     self.actions.joint_pos.scale = G1_ACTION_SCALE
