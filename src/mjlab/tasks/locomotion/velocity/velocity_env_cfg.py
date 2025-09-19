@@ -11,6 +11,7 @@ from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import SceneCfg
+from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.tasks.locomotion.velocity import mdp
 from mjlab.terrains import TerrainImporterCfg
 from mjlab.terrains.config import ROUGH_TERRAINS_CFG
@@ -35,6 +36,7 @@ SCENE_CFG = SceneCfg(
     terrain_generator=ROUGH_TERRAINS_CFG,
     max_init_terrain_level=5,
   ),
+  num_envs=1,
 )
 
 ##
@@ -240,6 +242,16 @@ class CurriculumCfg:
 # Environment.
 ##
 
+SIM_CFG = SimulationCfg(
+  nconmax=140_000,
+  njmax=300,
+  mujoco=MujocoCfg(
+    timestep=0.005,
+    iterations=10,
+    ls_iterations=20,
+  ),
+)
+
 
 @dataclass
 class LocomotionVelocityEnvCfg(ManagerBasedRlEnvCfg):
@@ -253,16 +265,9 @@ class LocomotionVelocityEnvCfg(ManagerBasedRlEnvCfg):
   terminations: TerminationCfg = field(default_factory=TerminationCfg)
   commands: CommandsCfg = field(default_factory=CommandsCfg)
   curriculum: CurriculumCfg = field(default_factory=CurriculumCfg)
+  sim: SimulationCfg = field(default_factory=lambda: SIM_CFG)
 
   def __post_init__(self):
-    self.scene.num_envs = 1
-    # TODO(kevin): Tweak this for flat vs rough.
-    self.sim.nconmax = 140000
-    self.sim.njmax = 300
-    self.sim.mujoco.timestep = 0.005
-    self.sim.mujoco.iterations = 10
-    self.sim.mujoco.ls_iterations = 20
-
     # Enable curriculum mode for terrain generator.
     if self.scene.terrain is not None:
       if self.scene.terrain.terrain_generator is not None:

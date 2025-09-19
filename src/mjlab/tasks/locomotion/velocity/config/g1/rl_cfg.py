@@ -35,9 +35,7 @@ class UnitreeG1PPORunnerCfg(RslRlOnPolicyRunnerCfg):
       max_grad_norm=1.0,
     )
   )
-
-  def __post_init__(self) -> None:
-    self.num_steps_per_env = 24
-    self.max_iterations = 30_000
-    self.save_interval = 50
-    self.experiment_name = "g1_velocity"
+  experiment_name: str = field(default="g1_velocity")
+  save_interval: int = field(default=50)
+  num_steps_per_env: int = field(default=24)
+  max_iterations: int = field(default=30_000)

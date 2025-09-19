@@ -37,25 +37,6 @@ class CollisionCfg:
   disable_other_geoms: bool = True
 
 
-@dataclass
-class OptionCfg:
-  # Integrator settings.
-  timestep: float = 0.002
-  integrator: str = "implicitfast"
-  # Friction settings.
-  impratio: float = 1.0
-  cone: str = "pyramidal"
-  # Solver settings.
-  jacobian: str = "auto"
-  solver: str = "newton"
-  iterations: int = 100
-  tolerance: float = 1e-8
-  ls_iterations: int = 50
-  ls_tolerance: float = 0.01
-  # Other.
-  gravity: tuple[float, float, float] = (0, 0, -9.81)
-
-
 @dataclass(frozen=True)
 class GeomCfg:
   name: str

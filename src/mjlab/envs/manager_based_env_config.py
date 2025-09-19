@@ -7,7 +7,7 @@ from mjlab.envs.mdp.events import reset_scene_to_default
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.scene.scene import SceneCfg
-from mjlab.sim.sim_config import SimulationCfg
+from mjlab.sim import SimulationCfg
 from mjlab.viewer.viewer_config import ViewerConfig
 
 

@@ -7,9 +7,9 @@ import mujoco_warp as mjwarp
 import torch
 
 from mjlab.entity import Entity, EntityCfg
+from mjlab.sim import MujocoCfg
 from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
 from mjlab.utils.spec_editor import spec_editor as common_editors
-from mjlab.utils.spec_editor.spec_editor_config import OptionCfg
 
 _SCENE_XML = Path(__file__).parent / "scene.xml"
 
@@ -44,7 +44,7 @@ class Scene:
     with path.open("wb") as f:
       mujoco.MjSpec.to_zip(self._spec, f)
 
-  def configure_sim_options(self, cfg: OptionCfg) -> None:
+  def configure_sim_options(self, cfg: MujocoCfg) -> None:
     common_editors.OptionEditor(cfg).edit_spec(self._spec)
 
   # Attributes.

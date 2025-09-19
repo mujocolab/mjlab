@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import mujoco
 import numpy as np
 
+from mjlab.sim import MujocoCfg
 from mjlab.utils.spec import (
   disable_collision,
   get_non_root_joints,
@@ -20,7 +21,6 @@ from mjlab.utils.spec_editor.spec_editor_config import (
   GeomCfg,
   LightCfg,
   MaterialCfg,
-  OptionCfg,
   SensorCfg,
   TextureCfg,
 )
@@ -125,7 +125,7 @@ class CollisionEditor(SpecEditor):
 
 @dataclass
 class OptionEditor(SpecEditor):
-  cfg: OptionCfg
+  cfg: MujocoCfg
 
   JACOBIAN_MAP = {
     "auto": mujoco.mjtJacobian.mjJAC_AUTO,
