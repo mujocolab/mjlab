@@ -14,4 +14,3 @@ motions/
 artifacts/
 .venv/
 env_mjlab
-uv.lock
