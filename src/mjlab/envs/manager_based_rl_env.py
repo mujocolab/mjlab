@@ -77,21 +77,31 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
   # Methods.
 
   def setup_manager_visualizers(self) -> None:
-    self.manager_visualizers = {
-      "command_manager": self.command_manager,
-    }
+    self.manager_visualizers = {}
+    if getattr(self.command_manager, "active_terms", None):
+        self.manager_visualizers["command_manager"] = self.command_manager
+
 
   def load_managers(self) -> None:
     # NOTE: Order is important.
-    self.command_manager = CommandManager(self.cfg.commands, self)
-    print("[INFO] Command Manager:", self.command_manager)
+    if self.cfg.commands is not None:
+      self.command_manager = CommandManager(self.cfg.commands, self)
+      print("[INFO] Command Manager:", self.command_manager)
+    else:
+      self.command_manager = NoOpManager()
+
     super().load_managers()
     self.termination_manager = TerminationManager(self.cfg.terminations, self)
     print("[INFO] Termination Manager:", self.termination_manager)
     self.reward_manager = RewardManager(self.cfg.rewards, self)
     print("[INFO] Reward Manager:", self.reward_manager)
-    self.curriculum_manager = CurriculumManager(self.cfg.curriculum, self)
-    print("[INFO] Curriculum Manager:", self.curriculum_manager)
+    
+    if self.cfg.curriculum is not None:
+      self.curriculum_manager = CurriculumManager(self.cfg.curriculum, self)
+      print("[INFO] Curriculum Manager:", self.curriculum_manager)
+    else:
+        self.curriculum_manager = NoOpManager()
+
     self._configure_gym_env_spaces()
     if "startup" in self.event_manager.available_modes:
       self.event_manager.apply(mode="startup")
