@@ -62,6 +62,7 @@ EOF
 
 # TODO LOUIS: add format
 # TODO LOUIS: add test
+# TODO LOUIS: add ext project generator
 # TODO LOUIS: add docs (in the future) if using sphinx
 # print the usage description
 print_help () {
