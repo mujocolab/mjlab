@@ -60,7 +60,9 @@ EOF
 }
 
 
-# TODO LOUIS: add format/test and docs in the future if using sphinx
+# TODO LOUIS: add format
+# TODO LOUIS: add test
+# TODO LOUIS: add docs (in the future) if using sphinx
 # print the usage description
 print_help () {
     echo -e "\nusage: $(basename "$0") [-h] [-u] -- Utility to manage Mjlab."

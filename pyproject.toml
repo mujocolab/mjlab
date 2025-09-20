@@ -49,6 +49,7 @@ dependencies = [
     "moviepy",
     "tensordict",
     "rsl-rl-lib",
+    "tensorboard>=2.20.0",
 ]
 
 [dependency-groups]
