@@ -1,4 +1,5 @@
 import math
+from typing import Any, Dict, Set
 
 import gymnasium as gym
 import mujoco
@@ -17,14 +18,18 @@ from mjlab.managers.termination_manager import TerminationManager
 
 class NoOpManager:
   def __init__(self):
-    self.active_terms: dict[str, object] = {}
-    self.available_modes: set[str] = set()
+    self.active_terms: Dict[str, Any] = {}
+    self.available_modes: Set[str] = set()
 
   def compute(self, *args, **kwargs) -> dict:
     return {}
 
   def reset(self, *args, **kwargs) -> dict:
     return {}
+
+  # satisfy call sites and Pyright
+  def get_command(self, name: str):
+    raise KeyError(name)
 
   def get_term(self, name: str):
     raise KeyError(name)
