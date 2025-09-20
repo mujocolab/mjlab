@@ -24,11 +24,18 @@ git clone git@github.com:mujocolab/mjlab.git && cd mjlab
 
 ### Using uv
 
-Install [uv](https://docs.astral.sh/uv/):
+Setup the environment and the aliases:
 
 ```bash
-./mjlab.sh --install
+./mjlab.sh --uv
+source ~/.bashrc
 mjlab_env
+```
+
+Test if it works:
+
+```bash
+mjlab scripts/list_envs.py
 ```
 
 Run a pre-trained motion mimic policy on the Unitree G1 humanoid:
