@@ -8,7 +8,7 @@ from mjlab.rl import (
 
 
 @dataclass
-class UnitreeGo1FlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
+class UnitreeGo1PPORunnerCfg(RslRlOnPolicyRunnerCfg):
   policy: RslRlPpoActorCriticCfg = field(
     default_factory=lambda: RslRlPpoActorCriticCfg(
       init_noise_std=1.0,
@@ -35,9 +35,7 @@ class UnitreeGo1FlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
       max_grad_norm=1.0,
     )
   )
-
-  def __post_init__(self) -> None:
-    self.num_steps_per_env = 24
-    self.max_iterations = 1500
-    self.save_interval = 50
-    self.experiment_name = "go1_flat"
+  experiment_name: str = field(default="go1_velocity")
+  save_interval: int = field(default=50)
+  num_steps_per_env: int = field(default=24)
+  max_iterations: int = field(default=10_000)
