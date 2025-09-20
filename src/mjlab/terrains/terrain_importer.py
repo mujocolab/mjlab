@@ -160,6 +160,9 @@ class TerrainImporter:
       size=(0, 0, 0.01),
       material=_DEFAULT_PLANE_MATERIAL.name,
     )
+    spec_editor.LightEditor(
+      spec_editor_config.LightCfg(pos=(0, 0, 1.5), type="directional")
+    ).edit_spec(self._spec)
 
   def configure_env_origins(self, origins: np.ndarray | torch.Tensor | None = None):
     """Configure the origins of the environments based on the added terrain."""

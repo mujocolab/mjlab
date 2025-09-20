@@ -43,7 +43,6 @@ SCENE_CFG = SceneCfg(
 VIEWER_CONFIG = ViewerConfig(
   origin_type=ViewerConfig.OriginType.ASSET_BODY,
   asset_name="robot",
-  body_name="torso_link",
   distance=3.0,
   elevation=-5.0,
   azimuth=90.0,
@@ -182,9 +181,7 @@ class EventCfg:
     mode="startup",
     func=mdp.randomize_field,
     params={
-      "asset_cfg": SceneEntityCfg(
-        "robot", geom_names=[r"^(RR|RL|FR|FL)_foot_collision$"]
-      ),
+      "asset_cfg": SceneEntityCfg("robot"),
       "operation": "abs",
       "field": "geom_friction",
       "ranges": (0.3, 1.2),
@@ -218,13 +215,6 @@ class RewardCfg:
     weight=-1.0,
     params={
       "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
-      "std": {
-        r"^(left|right)_knee_joint$": 5.0,
-        r"^(left|right)_hip_pitch_joint$": 5.0,
-        r"^(left|right)_elbow_joint$": 5.0,
-        r"^(left|right)_shoulder_pitch_joint$": 5.0,
-        r"^(?!.*(knee_joint|hip_pitch|elbow_joint|shoulder_pitch)).*$": 0.3,
-      },
     },
   )
   dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
