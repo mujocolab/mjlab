@@ -14,6 +14,26 @@ from mjlab.managers.curriculum_manager import CurriculumManager
 from mjlab.managers.reward_manager import RewardManager
 from mjlab.managers.termination_manager import TerminationManager
 
+class NoOpManager:
+    def __init__(self):
+        self.active_terms: dict[str, object] = {}
+        self.available_modes: set[str] = set()
+
+    def compute(self, *args, **kwargs) -> dict:
+        return {}
+
+    def reset(self, *args, **kwargs) -> dict:
+        return {}
+
+    def get_term(self, name: str):
+        raise KeyError(name)
+
+    def __len__(self) -> int:
+        return 0
+
+    def __repr__(self):
+        return "<NoOpManager>"
+
 
 class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
   is_vector_env = True
