@@ -52,11 +52,18 @@ def write_or_copy(
     path.write_text(content or "", encoding="utf-8")
 
 
+def batch_replace(edits: dict[Path, list[tuple[int, str | None]]]) -> None:
+  """Apply multiple line edits across files."""
+  for p, changes in edits.items():
+    for ln, content in changes:
+      replace_line(p, ln, content)
+
+
 def main():
   project_name = resolve_name(input("Name of project: "))
   print(f"[INFO] creating {project_name}")
 
-  # TODO add the name in majuscule
+  # TODO add the name in/with majuscule for task id and project variable
   # TODO propose manager based env/direct (when available)
   # TODO propose path of project
 
@@ -103,79 +110,40 @@ def main():
   )
   copy_dir(mjlab_root / "scripts" / "velocity" / "rl", project_root / "scripts" / "rl")
 
-  # modifying scriptsss
-  replace_line(
-    project_root / "scripts" / "list_envs.py",
-    6,
-    f"import {project_name}.tasks  # noqa: F401 to register environments",
-  )
-  replace_line(
-    project_root / "scripts" / "rl" / "train.py",
-    12,
-    f"import {project_name}.tasks  # noqa: F401",
-  )
-
-  # modifying core
-  replace_line(
-    project_content / "__init__.py",
-    3,
-    f"{project_name}_SRC_PATH: Path = Path(__file__).parent",
-  )
-
-  # modifying robots
-  replace_line(
-    project_content / "robots" / "unitree_go1" / "go1_constants.py",
-    7,
-    f"from {project_name} import {project_name}_SRC_PATH",
-  )
-  replace_line(
-    project_content / "robots" / "unitree_go1" / "go1_constants.py",
-    18,
-    f'  {project_name}_SRC_PATH / "robots" / "unitree_go1" / "xmls" / "go1.xml"',
-  )
-
-  # modifying tasks
-  replace_line(
-    project_content / "tasks" / "go1_locomotion" / "rough_env_cfg.py",
-    3,
-    f"from {project_name}.robots.unitree_go1.go1_constants import (",
-  )
-  replace_line(
-    project_content / "tasks" / "go1_locomotion" / "flat_env_cfg.py",
-    3,
-    f"from {project_name}.tasks.go1_locomotion.rough_env_cfg import (",
-  )
-
-  # replaces Mjlab by template in task id to not get override by mjlab task
-  replace_line(
-    project_root / "scripts" / "list_envs.py",
-    11,
-    f'  prefix_substring = "{project_name}-"',
-  )
-  replace_line(
-    project_root / "scripts" / "rl" / "train.py",
-    98,
-    f'  task_prefix = "{project_name}-Velocity-"',
-  )
-  replace_line(
-    project_content / "tasks" / "go1_locomotion" / "__init__.py",
-    4,
-    f'  id="{project_name}-Velocity-Rough-Unitree-Go1",',
-  )
-  replace_line(
-    project_content / "tasks" / "go1_locomotion" / "__init__.py",
-    14,
-    f'  id="{project_name}-Velocity-Rough-Unitree-Go1-Play",',
-  )
-  replace_line(
-    project_content / "tasks" / "go1_locomotion" / "__init__.py",
-    24,
-    f'  id="{project_name}-Velocity-Flat-Unitree-Go1",',
-  )
-  replace_line(
-    project_content / "tasks" / "go1_locomotion" / "__init__.py",
-    34,
-    f'  id="{project_name}-Velocity-Flat-Unitree-Go1-Play",',
+  # Line edits in batch
+  batch_replace(
+    {
+      project_root / "scripts" / "list_envs.py": [
+        (6, f"import {project_name}.tasks  # noqa: F401 to register environments"),
+        (11, f'  prefix_substring = "{project_name}-"'),
+      ],
+      project_root / "scripts" / "rl" / "train.py": [
+        (12, f"import {project_name}.tasks  # noqa: F401"),
+        (98, f'  task_prefix = "{project_name}-Velocity-"'),
+      ],
+      project_content / "__init__.py": [
+        (3, f"{project_name}_SRC_PATH: Path = Path(__file__).parent"),
+      ],
+      project_content / "robots" / "unitree_go1" / "go1_constants.py": [
+        (7, f"from {project_name} import {project_name}_SRC_PATH"),
+        (
+          18,
+          f'  {project_name}_SRC_PATH / "robots" / "unitree_go1" / "xmls" / "go1.xml"',
+        ),
+      ],
+      project_content / "tasks" / "go1_locomotion" / "rough_env_cfg.py": [
+        (3, f"from {project_name}.robots.unitree_go1.go1_constants import ("),
+      ],
+      project_content / "tasks" / "go1_locomotion" / "flat_env_cfg.py": [
+        (3, f"from {project_name}.tasks.go1_locomotion.rough_env_cfg import ("),
+      ],
+      project_content / "tasks" / "go1_locomotion" / "__init__.py": [
+        (4, f'  id="{project_name}-Velocity-Rough-Unitree-Go1",'),
+        (14, f'  id="{project_name}-Velocity-Rough-Unitree-Go1-Play",'),
+        (24, f'  id="{project_name}-Velocity-Flat-Unitree-Go1",'),
+        (34, f'  id="{project_name}-Velocity-Flat-Unitree-Go1-Play",'),
+      ],
+    }
   )
 
   print("[INFO] project has been successfully created")
