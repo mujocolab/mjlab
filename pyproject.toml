@@ -13,20 +13,19 @@ authors = [
 ]
 keywords = ["mujoco",  "mujoco-warp", "simulation", "reinforcement-learning", "robotics"]
 classifiers = [
-    "Typing :: Typed",
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "Natural Language :: English",
+    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.11", 
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3 :: Only",
+    "Typing :: Typed",
     "Environment :: GPU :: NVIDIA CUDA",
-    "Environment :: GPU :: NVIDIA CUDA :: 12",
     "Topic :: Scientific/Engineering",
-    "License :: OSI Approved :: Apache Software License",
+    "Natural Language :: English",
 ]
 description = "IsaacLab-style manager API, powered by MuJoCo-Warp for RL and robotics research."
 requires-python = ">=3.10"
