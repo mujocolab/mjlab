@@ -2,6 +2,13 @@ import re
 import shutil
 from pathlib import Path
 
+import subprocess
+
+def sh(cmd: list[str], cwd: Path | None = None) -> None:
+    """Run a shell command, print it, and fail fast on error."""
+    print(f"[cmd] {' '.join(cmd)} (cwd={cwd or Path.cwd()})")
+    subprocess.run(cmd, cwd=str(cwd) if cwd else None, check=True)
+
 
 def copy_dir(src: Path, dst: Path, *, overwrite: bool = True):
   """Copy a directory and all its contents to dst.
@@ -81,6 +88,8 @@ def main():
   project_name = "example-pkg"
   import_name = to_import_name(project_name)
   # TODO add the name in majuscule
+  # TODO propose manager based env/direct (when available)
+  # TODO propose path of project
 
   # path vars
   mjlab_root = Path(__file__).resolve().parent.parent.parent
@@ -91,6 +100,9 @@ def main():
 
   project_root = mjlab_root.parent / project_name
   project_content = project_root / "src" / import_name
+
+  sh(["uv", "init", "--package", "example-pkg"], cwd=mjlab_root.parent)
+  sh(["uv", "add", "../mjlab"], cwd=project_root)
 
   # copy/modify core files
   write_or_copy(path=project_root / "README.md", content="aaa")
