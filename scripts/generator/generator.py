@@ -54,7 +54,7 @@ def write_or_copy(
 
 def main():
   project_name = resolve_name(input("Name of project: "))
-  print(f"[INFO] Creating {project_name}")
+  print(f"[INFO] creating {project_name}")
 
   # TODO add the name in majuscule
   # TODO propose manager based env/direct (when available)
@@ -177,6 +177,8 @@ def main():
     34,
     f'  id="{project_name}-Velocity-Flat-Unitree-Go1-Play",',
   )
+
+  print("[INFO] project has been successfully created")
 
 
 if __name__ == "__main__":
