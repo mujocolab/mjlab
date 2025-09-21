@@ -16,6 +16,7 @@ _DEFAULT_SCENE_CFG = SceneEntityCfg("robot")
 def terrain_levels_vel(
   env: ManagerBasedRlEnv,
   env_ids: torch.Tensor,
+  command_name: str,
   asset_cfg: SceneEntityCfg = _DEFAULT_SCENE_CFG,
 ) -> torch.Tensor:
   asset: Entity = env.scene[asset_cfg.name]
@@ -25,7 +26,7 @@ def terrain_levels_vel(
   terrain_generator = terrain.cfg.terrain_generator
   assert terrain_generator is not None
 
-  command = env.command_manager.get_command("base_velocity")
+  command = env.command_manager.get_command(command_name)
 
   # Compute the distance the robot walked.
   distance = torch.norm(

@@ -23,6 +23,16 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
       r"^(left|right)_foot[1-7]_collision$"
     ]
 
+    self.rewards.pose_l2.params["std"] = {
+      r"^(left|right)_knee_joint$": 5.0,
+      r"^(left|right)_hip_pitch_joint$": 5.0,
+      r"^(left|right)_elbow_joint$": 5.0,
+      r"^(left|right)_shoulder_pitch_joint$": 5.0,
+      r"^(?!.*(knee_joint|hip_pitch|elbow_joint|shoulder_pitch)).*$": 0.3,
+    }
+
+    self.viewer.body_name = "torso_link"
+
 
 @dataclass
 class UnitreeG1RoughEnvCfg_PLAY(UnitreeG1RoughEnvCfg):
