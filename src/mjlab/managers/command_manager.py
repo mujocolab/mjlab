@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
 import torch
 from prettytable import PrettyTable
@@ -154,3 +154,38 @@ class CommandManager(ManagerBase):
           f"Returned object for the term {term_name} is not of type CommandType."
         )
       self._terms[term_name] = term
+
+
+class NullCommandManager:
+  """Placeholder for absent command manager that safely no-ops all operations."""
+
+  def __init__(self):
+    self.active_terms: list[str] = []
+    self._terms: dict[str, Any] = {}
+    self.cfg = None
+
+  def __str__(self) -> str:
+    return "<NullCommandManager> (inactive)"
+
+  def __repr__(self) -> str:
+    return "NullCommandManager()"
+
+  def debug_vis(self, scn) -> None:
+    pass
+
+  def get_active_iterable_terms(
+    self, env_idx: int
+  ) -> Sequence[tuple[str, Sequence[float]]]:
+    return []
+
+  def reset(self, env_ids: torch.Tensor | None = None) -> dict[str, torch.Tensor]:
+    return {}
+
+  def compute(self, dt: float) -> None:
+    pass
+
+  def get_command(self, name: str) -> None:
+    return None
+
+  def get_term(self, name: str) -> None:
+    return None

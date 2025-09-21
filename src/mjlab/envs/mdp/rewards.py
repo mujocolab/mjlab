@@ -27,11 +27,10 @@ def track_lin_vel_xy_exp(
 ) -> torch.Tensor:
   """Reward tracking of linear velocity commands (xy axes) using exponential kernel."""
   asset: Entity = env.scene[asset_cfg.name]
+  command = env.command_manager.get_command(command_name)
+  assert command is not None, f"Command '{command_name}' not found."
   lin_vel_error = torch.sum(
-    torch.square(
-      env.command_manager.get_command(command_name)[:, :2]
-      - asset.data.root_link_lin_vel_b[:, :2]
-    ),
+    torch.square(command[:, :2] - asset.data.root_link_lin_vel_b[:, :2]),
     dim=1,
   )
   return torch.exp(-lin_vel_error / std**2)
@@ -45,10 +44,9 @@ def track_ang_vel_z_exp(
 ) -> torch.Tensor:
   """Reward tracking of angular velocity commands (yaw) using exponential kernel."""
   asset: Entity = env.scene[asset_cfg.name]
-  ang_vel_error = torch.square(
-    env.command_manager.get_command(command_name)[:, 2]
-    - asset.data.root_link_ang_vel_b[:, 2]
-  )
+  command = env.command_manager.get_command(command_name)
+  assert command is not None, f"Command '{command_name}' not found."
+  ang_vel_error = torch.square(command[:, 2] - asset.data.root_link_ang_vel_b[:, 2])
   return torch.exp(-ang_vel_error / std**2)
 
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
 import torch
 from prettytable import PrettyTable
@@ -100,3 +100,29 @@ class CurriculumManager(ManagerBase):
       self._term_cfgs.append(term_cfg)
       if isinstance(term_cfg.func, ManagerTermBase):
         self._class_term_cfgs.append(term_cfg)
+
+
+class NullCurriculumManager:
+  """Placeholder for absent curriculum manager that safely no-ops all operations."""
+
+  def __init__(self):
+    self.active_terms: list[str] = []
+    self._curriculum_state: dict[str, Any] = {}
+    self.cfg = None
+
+  def __str__(self) -> str:
+    return "<NullCurriculumManager> (inactive)"
+
+  def __repr__(self) -> str:
+    return "NullCurriculumManager()"
+
+  def get_active_iterable_terms(
+    self, env_idx: int
+  ) -> Sequence[tuple[str, Sequence[float]]]:
+    return []
+
+  def reset(self, env_ids: torch.Tensor | None = None) -> dict[str, float]:
+    return {}
+
+  def compute(self, env_ids: torch.Tensor | None = None) -> None:
+    pass
