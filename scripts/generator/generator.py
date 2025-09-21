@@ -41,7 +41,7 @@ def replace_line(path: Path, line_no: int, new: str | None) -> None:
 def write_or_copy(
   path: Path, *, content: str | None = None, src: Path | None = None, force: bool = True
 ) -> None:
-  """Write `content` to `path` or copy from `src`."""
+  """Write content to path or copy from src."""
   path.parent.mkdir(parents=True, exist_ok=True)
   if path.exists() and not force:
     print(f"[skip] {path} exists")
