@@ -36,7 +36,7 @@ dependencies = [
     "tyro",
     "torch",
     "warp-lang",
-    "mujoco-warp",
+    "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp",
     "mujoco",
     "trimesh",
     "viser",
