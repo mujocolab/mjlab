@@ -110,7 +110,10 @@ def main():
     )
 
     # task files
-    write_or_copy(path = project_content / "tasks" / "__init__.py")
+    write_or_copy(
+        path = project_content / "tasks" / "__init__.py",
+        src = mjlab_content / "tasks" / "__init__.py"
+    )
     copy_dir(
         src = mjlab_content / "tasks" / "locomotion" / "velocity" / "config" / "go1", 
         dst = project_content / "tasks" / "go1_locomotion"
