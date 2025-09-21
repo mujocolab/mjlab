@@ -5,140 +5,103 @@ from pathlib import Path
 
 
 def sh(cmd: list[str], cwd: Path | None = None) -> None:
-  """Run a shell command, print it, and fail fast on error."""
-  print(f"[cmd] {' '.join(cmd)} (cwd={cwd or Path.cwd()})")
+  """Run a shell command."""
   subprocess.run(cmd, cwd=str(cwd) if cwd else None, check=True)
 
 
-def copy_dir(src: Path, dst: Path, *, overwrite: bool = True):
-  """Copy a directory and all its contents to dst.
-
-  Args:
-      src: Path to source directory.
-      dst: Path to target directory.
-      overwrite: If True, delete dst first if it exists.
-  """
+def copy_dir(src: Path, dst: Path, *, overwrite: bool = True) -> None:
+  """Copy entire directory src to dst."""
   if not src.is_dir():
     raise ValueError(f"Source is not a directory: {src}")
-
   if dst.exists():
-    if overwrite:
-      shutil.rmtree(dst)
-    else:
+    if not overwrite:
       raise FileExistsError(f"Destination already exists: {dst}")
-
+    shutil.rmtree(dst)
   shutil.copytree(src, dst)
-  print(f"[ok] copied {src} -> {dst}")
 
 
 def resolve_name(dist_name: str) -> str:
-  name = dist_name.lower()
-  name = re.sub(r"[^a-z0-9_]", "_", name)
-  if name[0].isdigit():
-    name = "_" + name
-  return name
+  """Make a safe name from a given string."""
+  name = re.sub(r"[^a-z0-9_]", "_", dist_name.lower())
+  return f"_{name}" if name and name[0].isdigit() else name
 
 
-# TODO: sh function uv make + uv add mjlab
+def replace_line(path: Path, line_no: int, new: str | None) -> None:
+  """Replace line in file."""
+  lines = path.read_text(encoding="utf-8").splitlines()
+  if not (1 <= line_no <= len(lines)):
+    raise IndexError(f"Line {line_no} out of range (file has {len(lines)} lines)")
+  if new is None:
+    del lines[line_no - 1]
+  else:
+    lines[line_no - 1] = new
+  path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def write_or_copy(
-  path: Path, content: str | None = None, src: Path | None = None, *, force=True
-):
+  path: Path, *, content: str | None = None, src: Path | None = None, force: bool = True
+) -> None:
+  """Write `content` to `path` or copy from `src`."""
   path.parent.mkdir(parents=True, exist_ok=True)
   if path.exists() and not force:
     print(f"[skip] {path} exists")
     return
-
   if src is not None:
     shutil.copy(src, path)
-    print(f"[ok] copied {src} -> {path}")
   else:
     path.write_text(content or "", encoding="utf-8")
-    print(f"[ok] wrote {path}")
-
-
-# TODO: instead of line number maybe line content would be more robust
-def replace_line(path: Path, line_no: int, new_content: str | None = None):
-  """Replace or remove a specific line in a file.
-
-  Args:
-      path: Path to the file.
-      line_no: Line number (1-based).
-      new_content: Replacement string. If None, the line is removed.
-  """
-  lines = path.read_text(encoding="utf-8").splitlines()
-
-  if not (1 <= line_no <= len(lines)):
-    raise IndexError(f"Line {line_no} out of range (file has {len(lines)} lines)")
-
-  if new_content is None:
-    print(f"[ok] removed line {line_no}: {lines[line_no - 1]!r}")
-    del lines[line_no - 1]
-  else:
-    print(f"[ok] replaced line {line_no}: {lines[line_no - 1]!r} -> {new_content!r}")
-    lines[line_no - 1] = new_content
-
-  path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main():
-  print("Name of project:")
-  x = input()
-  project_name = resolve_name(x)
+  project_name = resolve_name(input("Name of project: "))
   print(f"[INFO] Creating {project_name}")
 
   # TODO add the name in majuscule
   # TODO propose manager based env/direct (when available)
   # TODO propose path of project
 
-  # path vars
-  mjlab_root = Path(__file__).resolve().parent.parent.parent
+  # Roots
+  mjlab_root = Path(__file__).resolve().parents[2]
   mjlab_content = mjlab_root / "src" / "mjlab"
-
   templates = mjlab_root / "scripts" / "generator" / "templates"
   core = templates / "core"
 
   project_root = mjlab_root.parent / project_name
   project_content = project_root / "src" / project_name
 
+  # Init project + add local mjlab
   sh(["uv", "init", "--package", project_name], cwd=mjlab_root.parent)
   sh(["uv", "add", "../mjlab"], cwd=project_root)
 
-  # copy/modify core files
-  write_or_copy(path=project_root / "README.md", content="aaa")
-  write_or_copy(path=project_content / "__init__.py", src=core / "__init__.py")
+  # Core files
+  write_or_copy(project_root / "README.md", content=f"###{project_name}")
+  write_or_copy(project_content / "__init__.py", src=core / "__init__.py")
 
-  # robots files
+  # Robots
   write_or_copy(
-    path=project_content / "robots" / "__init__.py",
-    src=templates / "robots" / "__init__.py",
+    project_content / "robots" / "__init__.py", src=templates / "robots" / "__init__.py"
   )
   copy_dir(
-    src=mjlab_content / "asset_zoo" / "robots" / "unitree_go1",
-    dst=project_content / "robots" / "unitree_go1",
+    mjlab_content / "asset_zoo" / "robots" / "unitree_go1",
+    project_content / "robots" / "unitree_go1",
   )
 
-  # task files
-  # TODO: modify play
+  # Tasks
   write_or_copy(
-    path=project_content / "tasks" / "__init__.py",
+    project_content / "tasks" / "__init__.py",
     src=mjlab_content / "tasks" / "__init__.py",
   )
   copy_dir(
-    src=mjlab_content / "tasks" / "locomotion" / "velocity" / "config" / "go1",
-    dst=project_content / "tasks" / "go1_locomotion",
+    mjlab_content / "tasks" / "locomotion" / "velocity" / "config" / "go1",
+    project_content / "tasks" / "go1_locomotion",
   )
 
-  # scripts
-  # TOOD: add dummy agents
+  # Scripts
   write_or_copy(
-    path=project_root / "scripts" / "list_envs.py",
+    project_root / "scripts" / "list_envs.py",
     src=mjlab_root / "scripts" / "list_envs.py",
   )
-  copy_dir(
-    src=mjlab_root / "scripts" / "velocity" / "rl", dst=project_root / "scripts" / "rl"
-  )
+  copy_dir(mjlab_root / "scripts" / "velocity" / "rl", project_root / "scripts" / "rl")
 
   # modifying scriptsss
   replace_line(
