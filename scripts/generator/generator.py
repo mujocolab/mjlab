@@ -31,7 +31,7 @@ def copy_dir(src: Path, dst: Path, *, overwrite: bool = True):
   print(f"[ok] copied {src} -> {dst}")
 
 
-def to_import_name(dist_name: str) -> str:
+def resolve_name(dist_name: str) -> str:
   name = dist_name.lower()
   name = re.sub(r"[^a-z0-9_]", "_", name)
   if name[0].isdigit():
@@ -83,10 +83,12 @@ def replace_line(path: Path, line_no: int, new_content: str | None = None):
 
 
 def main():
-  # TODO: add arguments
 
-  project_name = "example-pkg"
-  import_name = to_import_name(project_name)
+  print('Name of project:')
+  x = input()
+  project_name = resolve_name(x)
+  print(f"[INFO] Creating {project_name}") 
+
   # TODO add the name in majuscule
   # TODO propose manager based env/direct (when available)
   # TODO propose path of project
@@ -99,9 +101,9 @@ def main():
   core = templates / "core"
 
   project_root = mjlab_root.parent / project_name
-  project_content = project_root / "src" / import_name
+  project_content = project_root / "src" / project_name
 
-  sh(["uv", "init", "--package", "example-pkg"], cwd=mjlab_root.parent)
+  sh(["uv", "init", "--package", project_name], cwd=mjlab_root.parent)
   sh(["uv", "add", "../mjlab"], cwd=project_root)
 
   # copy/modify core files
@@ -143,75 +145,75 @@ def main():
   replace_line(
     project_root / "scripts" / "list_envs.py",
     6,
-    f"import {import_name}.tasks  # noqa: F401 to register environments",
+    f"import {project_name}.tasks  # noqa: F401 to register environments",
   )
   replace_line(
     project_root / "scripts" / "rl" / "train.py",
     12,
-    f"import {import_name}.tasks  # noqa: F401",
+    f"import {project_name}.tasks  # noqa: F401",
   )
 
   # modifying core
   replace_line(
     project_content / "__init__.py",
     3,
-    f"{import_name}_SRC_PATH: Path = Path(__file__).parent",
+    f"{project_name}_SRC_PATH: Path = Path(__file__).parent",
   )
 
   # modifying robots
   replace_line(
     project_content / "robots" / "unitree_go1" / "go1_constants.py",
     7,
-    f"from {import_name} import {import_name}_SRC_PATH",
+    f"from {project_name} import {project_name}_SRC_PATH",
   )
   replace_line(
     project_content / "robots" / "unitree_go1" / "go1_constants.py",
     18,
-    f'  {import_name}_SRC_PATH / "robots" / "unitree_go1" / "xmls" / "go1.xml"',
+    f'  {project_name}_SRC_PATH / "robots" / "unitree_go1" / "xmls" / "go1.xml"',
   )
 
   # modifying tasks
   replace_line(
     project_content / "tasks" / "go1_locomotion" / "rough_env_cfg.py",
     3,
-    f"from {import_name}.robots.unitree_go1.go1_constants import (",
+    f"from {project_name}.robots.unitree_go1.go1_constants import (",
   )
   replace_line(
     project_content / "tasks" / "go1_locomotion" / "flat_env_cfg.py",
     3,
-    f"from {import_name}.tasks.go1_locomotion.rough_env_cfg import (",
+    f"from {project_name}.tasks.go1_locomotion.rough_env_cfg import (",
   )
 
   # replaces Mjlab by template in task id to not get override by mjlab task
   replace_line(
     project_root / "scripts" / "list_envs.py",
     11,
-    f'  prefix_substring = "{import_name}-"',
+    f'  prefix_substring = "{project_name}-"',
   )
   replace_line(
     project_root / "scripts" / "rl" / "train.py",
     98,
-    f'  task_prefix = "{import_name}-Velocity-"',
+    f'  task_prefix = "{project_name}-Velocity-"',
   )
   replace_line(
     project_content / "tasks" / "go1_locomotion" / "__init__.py",
     4,
-    f'  id="{import_name}-Velocity-Rough-Unitree-Go1",',
+    f'  id="{project_name}-Velocity-Rough-Unitree-Go1",',
   )
   replace_line(
     project_content / "tasks" / "go1_locomotion" / "__init__.py",
     14,
-    f'  id="{import_name}-Velocity-Rough-Unitree-Go1-Play",',
+    f'  id="{project_name}-Velocity-Rough-Unitree-Go1-Play",',
   )
   replace_line(
     project_content / "tasks" / "go1_locomotion" / "__init__.py",
     24,
-    f'  id="{import_name}-Velocity-Flat-Unitree-Go1",',
+    f'  id="{project_name}-Velocity-Flat-Unitree-Go1",',
   )
   replace_line(
     project_content / "tasks" / "go1_locomotion" / "__init__.py",
     34,
-    f'  id="{import_name}-Velocity-Flat-Unitree-Go1-Play",',
+    f'  id="{project_name}-Velocity-Flat-Unitree-Go1-Play",',
   )
 
 if __name__ == "__main__":
