@@ -10,16 +10,29 @@ from mjlab.tasks.locomotion.velocity.velocity_env_cfg import (
 
 
 @dataclass
-class UnitreeGo1EnvCfg(LocomotionVelocityEnvCfg):
+class UnitreeGo1RoughEnvCfg(LocomotionVelocityEnvCfg):
   def __post_init__(self):
     super().__post_init__()
 
     self.scene.entities = {"robot": replace(GO1_ROBOT_CFG)}
     self.actions.joint_pos.scale = GO1_ACTION_SCALE
 
+    self.events.foot_friction.params["asset_cfg"].geom_names = [
+      r"^(RR|RL|FR|FL)_foot_collision$"
+    ]
+
+    self.rewards.pose_l2.params["std"] = {
+      r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.3,
+      r".*(FR|FL|RR|RL)_calf_joint.*": 0.6,
+    }
+
+    self.viewer.body_name = "trunk"
+    self.viewer.distance = 1.5
+    self.viewer.elevation = -10.0
+
 
 @dataclass
-class UnitreeGo1EnvCfg_PLAY(UnitreeGo1EnvCfg):
+class UnitreeGo1RoughEnvCfg_PLAY(UnitreeGo1RoughEnvCfg):
   def __post_init__(self):
     super().__post_init__()
 

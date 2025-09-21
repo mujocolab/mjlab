@@ -35,9 +35,7 @@ class G1FlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
       max_grad_norm=1.0,
     )
   )
-
-  def __post_init__(self) -> None:
-    self.num_steps_per_env = 24
-    self.max_iterations = 10_000
-    self.save_interval = 500
-    self.experiment_name = "g1_flat"
+  experiment_name: str = field(default="g1_tracking")
+  save_interval: int = field(default=500)
+  num_steps_per_env: int = field(default=24)
+  max_iterations: int = field(default=10_000)

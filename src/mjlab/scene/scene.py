@@ -20,6 +20,7 @@ class SceneCfg:
   env_spacing: float = 2.0
   terrain: TerrainImporterCfg | None = None
   entities: dict[str, EntityCfg] = field(default_factory=dict)
+  extent: float | None = None
 
 
 class Scene:
@@ -31,6 +32,8 @@ class Scene:
     self._default_env_origins: torch.Tensor | None = None
 
     self._spec = mujoco.MjSpec.from_file(str(_SCENE_XML))
+    if self._cfg.extent is not None:
+      self._spec.stat.extent = self._cfg.extent
     self._attach_entities()
     self._attach_terrain()
 
