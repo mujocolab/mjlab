@@ -38,6 +38,7 @@ SCENE_CFG = SceneCfg(
     max_init_terrain_level=5,
   ),
   num_envs=1,
+  extent=2.0,
 )
 
 VIEWER_CONFIG = ViewerConfig(
@@ -236,7 +237,9 @@ class TerminationCfg:
 
 @dataclass
 class CurriculumCfg:
-  terrain_levels: CurrTerm | None = term(CurrTerm, func=mdp.terrain_levels_vel)
+  terrain_levels: CurrTerm | None = term(
+    CurrTerm, func=mdp.terrain_levels_vel, params={"command_name": "twist"}
+  )
 
 
 ##

@@ -27,6 +27,8 @@ class UnitreeGo1RoughEnvCfg(LocomotionVelocityEnvCfg):
     }
 
     self.viewer.body_name = "trunk"
+    self.viewer.distance = 1.5
+    self.viewer.elevation = -10.0
 
 
 @dataclass
