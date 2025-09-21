@@ -53,17 +53,10 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  {include-group = "lint"},
-  {include-group = "test"},
   "pre-commit",
   "pyright>=1.1.386",
-]
-lint = [
-  "ruff"
-]
-test = [
-  "pytest",
-  "absl-py",
+  "pytest>=8.4.2",
+  "ruff>=0.13.1",
 ]
 
 [project.optional-dependencies]
