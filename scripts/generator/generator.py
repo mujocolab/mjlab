@@ -164,6 +164,11 @@ def main():
     3,
     f"from {import_name}.robots.unitree_go1.go1_constants import (",
   )
+  replace_line(
+    project_content / "tasks" / "go1_locomotion" / "flat_env_cfg.py",
+    3,
+    f"from {import_name}.tasks.go1_locomotion.rough_env_cfg import (",
+  )
 
   # replaces Mjlab by template in task id to not get override by mjlab task
   replace_line(
@@ -179,14 +184,23 @@ def main():
   replace_line(
     project_content / "tasks" / "go1_locomotion" / "__init__.py",
     4,
-    f'  id="{import_name}-Velocity-Unitree-Go1",',
+    f'  id="{import_name}-Velocity-Rough-Unitree-Go1",',
   )
   replace_line(
     project_content / "tasks" / "go1_locomotion" / "__init__.py",
     14,
-    f'  id="{import_name}-Velocity-Unitree-Go1-Play",',
+    f'  id="{import_name}-Velocity-Rough-Unitree-Go1-Play",',
   )
-
+  replace_line(
+    project_content / "tasks" / "go1_locomotion" / "__init__.py",
+    24,
+    f'  id="{import_name}-Velocity-Flat-Unitree-Go1",',
+  )
+  replace_line(
+    project_content / "tasks" / "go1_locomotion" / "__init__.py",
+    34,
+    f'  id="{import_name}-Velocity-Flat-Unitree-Go1-Play",',
+  )
 
 if __name__ == "__main__":
   main()
