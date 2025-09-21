@@ -1,5 +1,4 @@
 import math
-from typing import Any, Dict, Set
 
 import gymnasium as gym
 import mujoco
@@ -10,35 +9,10 @@ import warp as wp
 from mjlab.envs import types
 from mjlab.envs.manager_based_env import ManagerBasedEnv
 from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
-from mjlab.managers.command_manager import CommandManager
-from mjlab.managers.curriculum_manager import CurriculumManager
+from mjlab.managers.command_manager import CommandManager, NullCommandManager
+from mjlab.managers.curriculum_manager import CurriculumManager, NullCurriculumManager
 from mjlab.managers.reward_manager import RewardManager
 from mjlab.managers.termination_manager import TerminationManager
-
-
-class NoOpManager:
-  def __init__(self):
-    self.active_terms: Dict[str, Any] = {}
-    self.available_modes: Set[str] = set()
-
-  def compute(self, *args, **kwargs) -> dict:
-    return {}
-
-  def reset(self, *args, **kwargs) -> dict:
-    return {}
-
-  # satisfy call sites and Pyright
-  def get_command(self, name: str):
-    raise KeyError(name)
-
-  def get_term(self, name: str):
-    raise KeyError(name)
-
-  def __len__(self) -> int:
-    return 0
-
-  def __repr__(self):
-    return "<NoOpManager>"
 
 
 class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
@@ -91,22 +65,19 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
     # NOTE: Order is important.
     if self.cfg.commands is not None:
       self.command_manager = CommandManager(self.cfg.commands, self)
-      print("[INFO] Command Manager:", self.command_manager)
     else:
-      self.command_manager = NoOpManager()
-
+      self.command_manager = NullCommandManager()
+    print("[INFO] Command Manager:", self.command_manager)
     super().load_managers()
     self.termination_manager = TerminationManager(self.cfg.terminations, self)
     print("[INFO] Termination Manager:", self.termination_manager)
     self.reward_manager = RewardManager(self.cfg.rewards, self)
     print("[INFO] Reward Manager:", self.reward_manager)
-
     if self.cfg.curriculum is not None:
       self.curriculum_manager = CurriculumManager(self.cfg.curriculum, self)
-      print("[INFO] Curriculum Manager:", self.curriculum_manager)
     else:
-      self.curriculum_manager = NoOpManager()
-
+      self.curriculum_manager = NullCurriculumManager()
+    print("[INFO] Curriculum Manager:", self.curriculum_manager)
     self._configure_gym_env_spaces()
     if "startup" in self.event_manager.available_modes:
       self.event_manager.apply(mode="startup")

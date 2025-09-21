@@ -27,6 +27,7 @@ def terrain_levels_vel(
   assert terrain_generator is not None
 
   command = env.command_manager.get_command(command_name)
+  assert command is not None
 
   # Compute the distance the robot walked.
   distance = torch.norm(
