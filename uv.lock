@@ -849,8 +849,7 @@ requires-dist = [
     { name = "tyro" },
     { name = "viser" },
     { name = "wandb" },
-    { name = "warp-lang", marker = "sys_platform != 'darwin'", index = "https://pypi.nvidia.com/" },
-    { name = "warp-lang", marker = "sys_platform == 'darwin'" },
+    { name = "warp-lang", specifier = "==1.9.*", index = "https://pypi.nvidia.com/" },
 ]
 provides-extras = ["cu12"]
 
@@ -2854,7 +2853,7 @@ wheels = [
 
 [[package]]
 name = "warp-lang"
-version = "1.10.0.dev20250911"
+version = "1.9.0.dev20250825"
 source = { registry = "https://pypi.nvidia.com/" }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
