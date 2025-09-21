@@ -1,13 +1,13 @@
 import re
 import shutil
+import subprocess
 from pathlib import Path
 
-import subprocess
 
 def sh(cmd: list[str], cwd: Path | None = None) -> None:
-    """Run a shell command, print it, and fail fast on error."""
-    print(f"[cmd] {' '.join(cmd)} (cwd={cwd or Path.cwd()})")
-    subprocess.run(cmd, cwd=str(cwd) if cwd else None, check=True)
+  """Run a shell command, print it, and fail fast on error."""
+  print(f"[cmd] {' '.join(cmd)} (cwd={cwd or Path.cwd()})")
+  subprocess.run(cmd, cwd=str(cwd) if cwd else None, check=True)
 
 
 def copy_dir(src: Path, dst: Path, *, overwrite: bool = True):
@@ -83,11 +83,10 @@ def replace_line(path: Path, line_no: int, new_content: str | None = None):
 
 
 def main():
-
-  print('Name of project:')
+  print("Name of project:")
   x = input()
   project_name = resolve_name(x)
-  print(f"[INFO] Creating {project_name}") 
+  print(f"[INFO] Creating {project_name}")
 
   # TODO add the name in majuscule
   # TODO propose manager based env/direct (when available)
@@ -215,6 +214,7 @@ def main():
     34,
     f'  id="{project_name}-Velocity-Flat-Unitree-Go1-Play",',
   )
+
 
 if __name__ == "__main__":
   main()
