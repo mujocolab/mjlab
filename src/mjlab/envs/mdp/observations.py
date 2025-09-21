@@ -87,4 +87,6 @@ def last_action(env: ManagerBasedEnv, action_name: str | None = None) -> torch.T
 
 
 def generated_commands(env: ManagerBasedRlEnv, command_name: str) -> torch.Tensor:
-  return env.command_manager.get_command(command_name)
+  command = env.command_manager.get_command(command_name)
+  assert command is not None
+  return command
