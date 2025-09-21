@@ -75,8 +75,9 @@ def main():
     )
 
     # robots files
-    write_or_copy(path = project_content / "tasks" / "__init__.py"
-        dst = templates / robots / "__init__.py"
+    write_or_copy(
+        path = project_content / "robots" / "__init__.py",
+        src = templates / "robots" / "__init__.py"
     )
     copy_dir(
         src = mjlab_content / "asset_zoo" / "robots" / "unitree_go1", 
@@ -93,7 +94,7 @@ def main():
     # scripts
     write_or_copy(path = project_root / "scripts" / "list_envs.py")
     copy_dir(
-        src = mjlab_root / "scripts" / "velocity" / "locomotion" / "rl", 
+        src = mjlab_root / "scripts" / "velocity" / "rl", 
         dst = project_root / "scripts" / "rl"
     )
 
