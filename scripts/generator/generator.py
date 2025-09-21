@@ -46,7 +46,32 @@ def write_or_copy(path: Path, content: str | None = None, src: Path | None = Non
         print(f"[ok] wrote {path}")
 
 
-# TODO modify files function
+from typing import Callable
+
+
+def replace_line(path: Path, line_no: int, new_content: str | None = None):
+    """Replace or remove a specific line in a file.
+    
+    Args:
+        path: Path to the file.
+        line_no: Line number (1-based).
+        new_content: Replacement string. If None, the line is removed.
+    """
+    lines = path.read_text(encoding="utf-8").splitlines()
+    
+    if not (1 <= line_no <= len(lines)):
+        raise IndexError(f"Line {line_no} out of range (file has {len(lines)} lines)")
+    
+    if new_content is None:
+        print(f"[ok] removed line {line_no}: {lines[line_no-1]!r}")
+        del lines[line_no-1]
+    else:
+        print(f"[ok] replaced line {line_no}: {lines[line_no-1]!r} -> {new_content!r}")
+        lines[line_no-1] = new_content
+    
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 
 def main():
     # TODO: add arguments
@@ -92,13 +117,28 @@ def main():
     )
 
     # scripts
-    write_or_copy(path = project_root / "scripts" / "list_envs.py")
+    write_or_copy(
+        path = project_root / "scripts" / "list_envs.py",
+        src = mjlab_root / "scripts" / "list_envs.py"
+    )
     copy_dir(
         src = mjlab_root / "scripts" / "velocity" / "rl", 
         dst = project_root / "scripts" / "rl"
     )
 
+    #modifying scriptsss
+    replace_line(
+        project_root / "scripts" / "list_envs.py", 
+        6, 
+        f"import {import_name}.tasks  # noqa: F401 to register environments"
+    )
 
+    # modifying core
+    replace_line(
+        project_content / "__init__.py", 
+        3, 
+        f"{import_name}_SRC_PATH: Path = Path(__file__).parent"
+    )
 
 
 if __name__ == "__main__":
