@@ -7,6 +7,11 @@ import warp as wp
 
 
 def seed_rng(seed: int, torch_deterministic: bool = False) -> None:
+  """Seed all random number generators for reproducibility.
+
+  Note: MuJoCo Warp is not fully deterministic yet.
+  See: https://github.com/google-deepmind/mujoco_warp/issues/562
+  """
   os.environ["PYTHONHASHSEED"] = str(seed)
 
   random.seed(seed)

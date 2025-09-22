@@ -1,3 +1,5 @@
+"""Curriculum manager for updating environment quantities subject to a training curriculum."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Sequence

@@ -1,3 +1,9 @@
+"""Velocity tracking task configuration.
+
+This module defines the base configuration for velocity tracking tasks.
+Robot-specific configurations are located in the config/ directory.
+"""
+
 import math
 from dataclasses import dataclass, field
 

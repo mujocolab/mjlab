@@ -1,3 +1,5 @@
+"""Event manager for orchestrating operations based on different simulation events."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

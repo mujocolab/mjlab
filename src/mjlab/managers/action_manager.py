@@ -1,3 +1,5 @@
+"""Action manager for processing actions sent to the environment."""
+
 from __future__ import annotations
 
 import abc

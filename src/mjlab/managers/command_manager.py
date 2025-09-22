@@ -1,3 +1,5 @@
+"""Command manager for generating and updating commands."""
+
 from __future__ import annotations
 
 import abc
