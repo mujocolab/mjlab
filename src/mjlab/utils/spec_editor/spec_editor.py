@@ -11,7 +11,6 @@ from mjlab.utils.spec import (
   disable_collision,
   get_non_root_joints,
   is_joint_limited,
-  set_array_field,
 )
 from mjlab.utils.spec_editor.spec_editor_base import SpecEditor
 from mjlab.utils.spec_editor.spec_editor_config import (
@@ -94,6 +93,13 @@ class CollisionEditor(SpecEditor):
     "solimp": None,
   }
 
+  @staticmethod
+  def set_array_field(field, values):
+    if values is None:
+      return
+    for i, v in enumerate(values):
+      field[i] = v
+
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
     all_geoms: list[mujoco.MjsGeom] = spec.geoms
     all_geom_names = [g.name for g in all_geoms]
@@ -112,9 +118,9 @@ class CollisionEditor(SpecEditor):
       geom.conaffinity = resolved_fields["conaffinity"][i]
       geom.priority = resolved_fields["priority"][i]
 
-      set_array_field(geom.friction, resolved_fields["friction"][i])
-      set_array_field(geom.solref, resolved_fields["solref"][i])
-      set_array_field(geom.solimp, resolved_fields["solimp"][i])
+      CollisionEditor.set_array_field(geom.friction, resolved_fields["friction"][i])
+      CollisionEditor.set_array_field(geom.solref, resolved_fields["solref"][i])
+      CollisionEditor.set_array_field(geom.solimp, resolved_fields["solimp"][i])
 
     if self.cfg.disable_other_geoms:
       other_geoms = set(all_geom_names).difference(geom_subset)
