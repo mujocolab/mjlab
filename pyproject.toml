@@ -27,7 +27,7 @@ classifiers = [
     "Topic :: Scientific/Engineering",
     "Natural Language :: English",
 ]
-description = "IsaacLab-style manager API, powered by MuJoCo-Warp for RL and robotics research."
+description = "IsaacLab-style manager API, powered by MuJoCo-Warp, for RL and robotics research."
 requires-python = ">=3.10"
 dependencies = [
     "gymnasium==1.2.0",
@@ -36,7 +36,7 @@ dependencies = [
     "tyro",
     "torch",
     "warp-lang==1.9.*",
-    "mujoco-warp",
+    "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp",
     "mujoco",
     "trimesh",
     "viser",

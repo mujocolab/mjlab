@@ -11,3 +11,10 @@ format:
 test:
 	uv run pytest
 	uv run pyright
+
+.PHONY: build
+build:
+	uv build
+	uv run --isolated --no-project --with dist/*.whl tests/smoke_test.py
+	uv run --isolated --no-project --with dist/*.tar.gz tests/smoke_test.py
+	@echo "Build and import test successful"
