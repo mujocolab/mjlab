@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from mjlab.tasks.locomotion.velocity.config.g1.rough_env_cfg import (
+from mjlab.tasks.velocity.config.g1.rough_env_cfg import (
   UnitreeG1RoughEnvCfg,
 )
 

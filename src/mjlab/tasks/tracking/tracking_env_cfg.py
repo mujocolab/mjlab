@@ -40,7 +40,7 @@ SCENE_CFG = SceneCfg(
 VIEWER_CONFIG = ViewerConfig(
   origin_type=ViewerConfig.OriginType.ASSET_BODY,
   asset_name="robot",
-  body_name="",  # Override in robot specific cfg.
+  body_name="",  # Override in robot cfg.
   distance=3.0,
   elevation=-5.0,
   azimuth=90.0,
@@ -64,7 +64,7 @@ class CommandsCfg:
     },
     velocity_range=VELOCITY_RANGE,
     joint_position_range=(-0.1, 0.1),
-    # Override in robot specific cfg.
+    # Override in robot cfg.
     motion_file="",
     reference_body="",
     body_names=[],

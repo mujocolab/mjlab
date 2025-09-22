@@ -4,7 +4,7 @@ import wandb
 from rsl_rl.runners import OnPolicyRunner
 
 from mjlab.rl import RslRlVecEnvWrapper
-from mjlab.tasks.locomotion.velocity.rl.exporter import (
+from mjlab.tasks.velocity.rl.exporter import (
   attach_onnx_metadata,
   export_velocity_policy_as_onnx,
 )

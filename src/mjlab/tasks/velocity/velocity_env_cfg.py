@@ -12,7 +12,7 @@ from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import SceneCfg
 from mjlab.sim import MujocoCfg, SimulationCfg
-from mjlab.tasks.locomotion.velocity import mdp
+from mjlab.tasks.velocity import mdp
 from mjlab.terrains import TerrainImporterCfg
 from mjlab.terrains.config import ROUGH_TERRAINS_CFG
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
@@ -44,6 +44,7 @@ SCENE_CFG = SceneCfg(
 VIEWER_CONFIG = ViewerConfig(
   origin_type=ViewerConfig.OriginType.ASSET_BODY,
   asset_name="robot",
+  body_name="",  # Override in robot cfg.
   distance=3.0,
   elevation=-5.0,
   azimuth=90.0,
@@ -123,14 +124,9 @@ class ObservationCfg:
       noise=Unoise(n_min=-1.5, n_max=1.5),
     )
 
-    actions: ObsTerm = term(
-      ObsTerm,
-      func=mdp.last_action,
-    )
+    actions: ObsTerm = term(ObsTerm, func=mdp.last_action)
     command: ObsTerm = term(
-      ObsTerm,
-      func=mdp.generated_commands,
-      params={"command_name": "twist"},
+      ObsTerm, func=mdp.generated_commands, params={"command_name": "twist"}
     )
 
     def __post_init__(self):
@@ -182,7 +178,7 @@ class EventCfg:
     mode="startup",
     func=mdp.randomize_field,
     params={
-      "asset_cfg": SceneEntityCfg("robot"),
+      "asset_cfg": SceneEntityCfg("robot", geom_names=[]),  # Override in robot cfg.
       "operation": "abs",
       "field": "geom_friction",
       "ranges": (0.3, 1.2),
@@ -216,6 +212,7 @@ class RewardCfg:
     weight=-1.0,
     params={
       "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
+      "std": [],  # Override in robot cfg.
     },
   )
   dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
@@ -262,15 +259,15 @@ class LocomotionVelocityEnvCfg(ManagerBasedRlEnvCfg):
   scene: SceneCfg = field(default_factory=lambda: SCENE_CFG)
   observations: ObservationCfg = field(default_factory=ObservationCfg)
   actions: ActionCfg = field(default_factory=ActionCfg)
-  decimation: int = 4
   rewards: RewardCfg = field(default_factory=RewardCfg)
-  episode_length_s: float = 20.0
   events: EventCfg = field(default_factory=EventCfg)
   terminations: TerminationCfg = field(default_factory=TerminationCfg)
   commands: CommandsCfg = field(default_factory=CommandsCfg)
   curriculum: CurriculumCfg = field(default_factory=CurriculumCfg)
   sim: SimulationCfg = field(default_factory=lambda: SIM_CFG)
   viewer: ViewerConfig = field(default_factory=lambda: VIEWER_CONFIG)
+  decimation: int = 4  # 50 Hz control frequency.
+  episode_length_s: float = 20.0
 
   def __post_init__(self):
     # Enable curriculum mode for terrain generator.
