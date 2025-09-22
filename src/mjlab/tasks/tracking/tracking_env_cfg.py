@@ -1,3 +1,9 @@
+"""Motion mimic task configuration.
+
+This module defines the base configuration for motion mimic tasks.
+Robot-specific configurations are located in the config/ directory.
+"""
+
 from dataclasses import dataclass, field
 
 from mjlab.envs import ManagerBasedRlEnvCfg

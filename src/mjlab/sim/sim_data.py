@@ -1,3 +1,9 @@
+"""Bridge for seamless PyTorch-Warp interoperability with zero-copy memory sharing.
+
+Provides automatic wrapping of Warp arrays as PyTorch-compatible objects while
+preserving shared memory and CUDA graph compatibility.
+"""
+
 from typing import Any, Dict, Generic, Optional, Tuple, TypeVar
 
 import torch

@@ -1,3 +1,10 @@
+"""Utility functions for terrain generation.
+
+References:
+  IsaacLab terrain utilities:
+  https://github.com/isaac-sim/IsaacLab/blob/main/source/isaaclab/isaaclab/terrains/trimesh/utils.py
+"""
+
 import mujoco
 
 
@@ -8,6 +15,11 @@ def make_plane(
   center_zero: bool = True,
   plane_thickness: float = 1.0,
 ):
+  """Create finite plane using box geometry.
+
+  Uses box instead of MuJoCo plane to avoid infinite extent in terrain grids.
+  Thickness prevents penetration issues.
+  """
   if center_zero:
     pos = (0, 0, height - plane_thickness / 2.0)
   else:
@@ -28,6 +40,10 @@ def make_border(
   height: float,
   position: tuple[float, float, float],
 ):
+  """Create rectangular border using four box geometries.
+
+  Returns top, bottom, left, right boxes forming a hollow rectangle.
+  """
   boxes = []
 
   thickness_x = (size[0] - inner_size[0]) / 2.0
