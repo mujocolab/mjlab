@@ -1,4 +1,6 @@
 import math
+from dataclasses import dataclass
+from typing import Any
 
 import gymnasium as gym
 import mujoco
@@ -7,12 +9,23 @@ import torch
 import warp as wp
 
 from mjlab.envs import types
-from mjlab.envs.manager_based_env import ManagerBasedEnv
-from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
+from mjlab.envs.manager_based_env import ManagerBasedEnv, ManagerBasedEnvCfg
 from mjlab.managers.command_manager import CommandManager, NullCommandManager
 from mjlab.managers.curriculum_manager import CurriculumManager, NullCurriculumManager
 from mjlab.managers.reward_manager import RewardManager
 from mjlab.managers.termination_manager import TerminationManager
+
+
+@dataclass(kw_only=True)
+class ManagerBasedRlEnvCfg(ManagerBasedEnvCfg):
+  """Configuration for a manager-based RL environment."""
+
+  episode_length_s: float
+  rewards: Any
+  terminations: Any
+  commands: Any | None = None
+  curriculum: Any | None = None
+  is_finite_horizon: bool = False
 
 
 class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
