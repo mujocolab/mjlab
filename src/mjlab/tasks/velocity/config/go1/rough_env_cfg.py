@@ -4,7 +4,7 @@ from mjlab.asset_zoo.robots.unitree_go1.go1_constants import (
   GO1_ACTION_SCALE,
   GO1_ROBOT_CFG,
 )
-from mjlab.tasks.locomotion.velocity.velocity_env_cfg import (
+from mjlab.tasks.velocity.velocity_env_cfg import (
   LocomotionVelocityEnvCfg,
 )
 

@@ -6,7 +6,7 @@ import tyro
 from typing_extensions import assert_never
 
 from mjlab.rl import RslRlVecEnvWrapper
-from mjlab.tasks.locomotion.velocity.velocity_env_cfg import (
+from mjlab.tasks.velocity.velocity_env_cfg import (
   LocomotionVelocityEnvCfg,
 )
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (

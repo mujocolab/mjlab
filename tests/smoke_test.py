@@ -9,7 +9,7 @@ from contextlib import redirect_stderr, redirect_stdout
 def test_basic_functionality() -> None:
   """Test that mjlab can create and close an environment."""
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
-  from mjlab.tasks.locomotion.velocity.config.go1.flat_env_cfg import (
+  from mjlab.tasks.velocity.config.go1.flat_env_cfg import (
     UnitreeGo1FlatEnvCfg,
   )
 
