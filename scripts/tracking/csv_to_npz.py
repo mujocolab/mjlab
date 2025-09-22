@@ -1,26 +1,20 @@
-from dataclasses import replace
 from typing import Any
 
 import numpy as np
 import torch
 import tyro
+from tqdm import tqdm
 
-from mjlab.asset_zoo.robots.unitree_g1 import g1_constants
 from mjlab.entity import Entity
-from mjlab.scene import Scene, SceneCfg
+from mjlab.scene import Scene
 from mjlab.sim.sim import Simulation, SimulationCfg
-from mjlab.terrains import TerrainImporterCfg
+from mjlab.tasks.tracking.config.g1.flat_env_cfg import G1FlatEnvCfg
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   axis_angle_from_quat,
   quat_apply_inverse,
   quat_conjugate,
   quat_mul,
   quat_slerp,
-)
-
-SCENE_CFG = SceneCfg(
-  terrain=TerrainImporterCfg(terrain_type="plane"),
-  entities={"robot": replace(g1_constants.G1_ROBOT_CFG)},
 )
 
 
@@ -69,9 +63,6 @@ class MotionLoader:
 
     self.input_frames = motion.shape[0]
     self.duration = (self.input_frames - 1) * self.input_dt
-    print(
-      f"Motion loaded ({self.motion_file}), duration: {self.duration} sec, frames: {self.input_frames}"
-    )
 
   def _interpolate_motion(self):
     """Interpolates the motion to the output fps."""
@@ -96,7 +87,10 @@ class MotionLoader:
       blend.unsqueeze(1),
     )
     print(
-      f"Motion interpolated, input frames: {self.input_frames}, input fps: {self.input_fps}, output frames: {self.output_frames}, output fps: {self.output_fps}"
+      f"Motion interpolated, input frames: {self.input_frames}, "
+      f"input fps: {self.input_fps}, "
+      f"output frames: {self.output_frames}, "
+      f"output fps: {self.output_fps}"
     )
 
   def _lerp(
@@ -195,7 +189,6 @@ def run_sim(
   render,
   line_range,
 ):
-  # Load motion
   motion = MotionLoader(
     motion_file=input_file,
     input_fps=input_fps,
@@ -207,7 +200,6 @@ def run_sim(
   robot: Entity = scene["robot"]
   robot_joint_indexes = robot.find_joints(joint_names, preserve_order=True)[0]
 
-  # ------- data logger -------------------------------------------------------
   log: dict[str, Any] = {
     "fps": [output_fps],
     "joint_pos": [],
@@ -218,11 +210,24 @@ def run_sim(
     "body_ang_vel_w": [],
   }
   file_saved = False
-  # --------------------------------------------------------------------------
 
   frames = []
   scene.reset()
 
+  print(f"\nStarting simulation with {motion.output_frames} frames...")
+  if render:
+    print("Rendering enabled - generating video frames...")
+
+  # Create progress bar
+  pbar = tqdm(
+    total=motion.output_frames,
+    desc="Processing frames",
+    unit="frame",
+    ncols=100,
+    bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",
+  )
+
+  frame_count = 0
   while not file_saved:
     (
       (
@@ -241,7 +246,6 @@ def run_sim(
     root_states[:, :2] += scene.env_origins[:, :2]
     root_states[:, 3:7] = motion_base_rot
     root_states[:, 7:10] = motion_base_lin_vel
-    # root_states[:, 10:] = motion_base_ang_vel
     root_states[:, 10:] = quat_apply_inverse(motion_base_rot, motion_base_ang_vel)
     robot.write_root_state_to_sim(root_states)
 
@@ -276,8 +280,18 @@ def run_sim(
         robot.data.body_link_ang_vel_w[0, 0], motion_base_ang_vel[0]
       )
 
+      frame_count += 1
+      pbar.update(1)
+
+      if frame_count % 100 == 0:  # Update every 100 frames to avoid spam
+        elapsed_time = frame_count / output_fps
+        pbar.set_description(f"Processing frames (t={elapsed_time:.1f}s)")
+
       if reset_flag and not file_saved:
         file_saved = True
+        pbar.close()
+
+        print("\nStacking arrays and saving data...")
         for k in (
           "joint_pos",
           "joint_vel",
@@ -288,8 +302,10 @@ def run_sim(
         ):
           log[k] = np.stack(log[k], axis=0)
 
+        print("Saving to /tmp/motion.npz...")
         np.savez("/tmp/motion.npz", **log)
 
+        print("Uploading to Weights & Biases...")
         import wandb
 
         COLLECTION = output_name
@@ -306,13 +322,13 @@ def run_sim(
           target_path=f"wandb-registry-{REGISTRY}/{COLLECTION}",
         )
         print(f"[INFO]: Motion saved to wandb registry: {REGISTRY}/{COLLECTION}")
+        wandb.finish()
 
   if render:
     from moviepy import ImageSequenceClip
 
     clip = ImageSequenceClip(frames, fps=output_fps)
     clip.write_videofile("./motion.mp4")
-  print("done")
 
 
 def main(
@@ -342,7 +358,7 @@ def main(
   sim_cfg.render.height = 480
   sim_cfg.render.width = 640
 
-  scene = Scene(SCENE_CFG, device=device)
+  scene = Scene(G1FlatEnvCfg().scene, device=device)
   model = scene.compile()
 
   sim = Simulation(num_envs=1, cfg=sim_cfg, model=model, device=device)
