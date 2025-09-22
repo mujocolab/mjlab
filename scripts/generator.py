@@ -69,8 +69,6 @@ def main():
   # Roots
   mjlab_root = Path(__file__).resolve().parents[1]
   mjlab_content = mjlab_root / "src" / "mjlab"
-  templates = mjlab_root / "scripts" / "generator" / "templates"
-  core = templates / "core"
 
   project_root = mjlab_root.parent / project_name
   project_content = project_root / "src" / project_name
@@ -85,8 +83,8 @@ def main():
 
   # Robots
   write_or_copy(
-    project_content / "robots" / "__init__.py", 
-    content=f"from {project_name}.robots.unitree_go1.go1_constants import GO1_ROBOT_CFG"
+    project_content / "robots" / "__init__.py",
+    content=f"from {project_name}.robots.unitree_go1.go1_constants import GO1_ROBOT_CFG",
   )
   copy_dir(
     mjlab_content / "asset_zoo" / "robots" / "unitree_go1",
