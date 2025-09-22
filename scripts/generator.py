@@ -59,12 +59,13 @@ def batch_replace(edits: dict[Path, list[tuple[int, str | None]]]) -> None:
       replace_line(p, ln, content)
 
 
-def main():
+def main() -> None:
   project_name = resolve_name(input("Name of project: "))
   print(f"[INFO] creating {project_name}")
 
   # TODO propose manager based env/direct (when available)
   # TODO propose path of project
+  # TODO choice to force overwrite existing dir (now always does)
 
   # Roots
   mjlab_root = Path(__file__).resolve().parents[1]
