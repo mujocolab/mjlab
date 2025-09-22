@@ -1,7 +1,7 @@
 import math
 from dataclasses import dataclass, field
 
-from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
+from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.managers.manager_term_config import CurriculumTermCfg as CurrTerm
 from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
 from mjlab.managers.manager_term_config import ObservationGroupCfg as ObsGroup
