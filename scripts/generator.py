@@ -63,12 +63,11 @@ def main():
   project_name = resolve_name(input("Name of project: "))
   print(f"[INFO] creating {project_name}")
 
-  # TODO add the name in/with majuscule for task id and project variable
   # TODO propose manager based env/direct (when available)
   # TODO propose path of project
 
   # Roots
-  mjlab_root = Path(__file__).resolve().parents[2]
+  mjlab_root = Path(__file__).resolve().parents[1]
   mjlab_content = mjlab_root / "src" / "mjlab"
   templates = mjlab_root / "scripts" / "generator" / "templates"
   core = templates / "core"
@@ -82,11 +81,12 @@ def main():
 
   # Core files
   write_or_copy(project_root / "README.md", content=f"###{project_name}")
-  write_or_copy(project_content / "__init__.py", src=core / "__init__.py")
+  write_or_copy(project_content / "__init__.py", src=mjlab_content / "__init__.py")
 
   # Robots
   write_or_copy(
-    project_content / "robots" / "__init__.py", src=templates / "robots" / "__init__.py"
+    project_content / "robots" / "__init__.py", 
+    content=f"from {project_name}.robots.unitree_go1.go1_constants import GO1_ROBOT_CFG"
   )
   copy_dir(
     mjlab_content / "asset_zoo" / "robots" / "unitree_go1",
@@ -123,6 +123,7 @@ def main():
       ],
       project_content / "__init__.py": [
         (3, f"{project_name}_SRC_PATH: Path = Path(__file__).parent"),
+        *[(ln, None) for ln in range(17, 6, -1)],
       ],
       project_content / "robots" / "unitree_go1" / "go1_constants.py": [
         (7, f"from {project_name} import {project_name}_SRC_PATH"),
