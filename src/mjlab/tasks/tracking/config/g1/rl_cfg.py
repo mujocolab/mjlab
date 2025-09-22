@@ -35,7 +35,7 @@ class G1FlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
       max_grad_norm=1.0,
     )
   )
-  experiment_name: str = field(default="g1_tracking")
-  save_interval: int = field(default=500)
-  num_steps_per_env: int = field(default=24)
-  max_iterations: int = field(default=10_000)
+  experiment_name: str = "g1_tracking"
+  save_interval: int = 500
+  num_steps_per_env: int = 24
+  max_iterations: int = 10_000
