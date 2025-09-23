@@ -223,7 +223,7 @@ class TestSceneSimulationInitialization:
 
     wp_model = mjwarp.put_model(model)
     wp_data = mjwarp.put_data(model, data, nworld=scene.num_envs)
-    wp_model = WarpBridge(wp_model)
+    wp_model = WarpBridge(wp_model, nworld=scene.num_envs)
     wp_data = WarpBridge(wp_data)
 
     scene.initialize(model, wp_model, wp_data, device)  # type: ignore
@@ -340,7 +340,7 @@ class TestSceneIntegration:
 
     wp_model = mjwarp.put_model(model)
     wp_data = mjwarp.put_data(model, data, nworld=scene.num_envs)
-    wp_model = WarpBridge(wp_model)
+    wp_model = WarpBridge(wp_model, nworld=scene.num_envs)
     wp_data = WarpBridge(wp_data)
 
     scene.initialize(model, wp_model, wp_data, device)  # type: ignore

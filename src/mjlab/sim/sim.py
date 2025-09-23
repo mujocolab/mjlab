@@ -1,10 +1,9 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Sequence, cast
+from typing import TYPE_CHECKING, cast
 
 import mujoco
 import mujoco_warp as mjwarp
 import numpy as np
-import torch
 import warp as wp
 
 from mjlab.sim.randomization import expand_model_fields
@@ -82,7 +81,7 @@ class Simulation:
         njmax=self.cfg.njmax,
       )
 
-    self._model_bridge = WarpBridge(self._wp_model)
+    self._model_bridge = WarpBridge(self._wp_model, nworld=self.num_envs)
     self._data_bridge = WarpBridge(self._wp_data)
 
     self.use_cuda_graph = self.wp_device.is_cuda and wp.is_mempool_enabled(
@@ -175,11 +174,6 @@ class Simulation:
         wp.capture_launch(self.step_graph)
       else:
         mjwarp.step(self.wp_model, self.wp_data)
-
-  # TODO(kevin): Consider moving this.
-  def set_ctrl(self, ctrl: torch.Tensor, ctrl_ids: Sequence[int] | None = None) -> None:
-    indices = slice(None) if ctrl_ids is None else ctrl_ids
-    self.data.ctrl[:, indices] = ctrl[:, indices]
 
   def update_render(self) -> None:
     if self._renderer is None:

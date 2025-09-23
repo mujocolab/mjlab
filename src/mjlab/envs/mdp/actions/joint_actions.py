@@ -23,10 +23,13 @@ class JointAction(ActionTerm):
   def __init__(self, cfg: actions_config.JointActionCfg, env: ManagerBasedEnv):
     super().__init__(cfg=cfg, env=env)
 
-    self._actuator_ids, self._actuator_names = self._asset.find_actuators(
-      cfg.actuator_names,
-      preserve_order=cfg.preserve_order,
+    actuator_ids, self._actuator_names = self._asset.find_actuators(
+      cfg.actuator_names, preserve_order=cfg.preserve_order
     )
+    self._actuator_ids = torch.tensor(
+      actuator_ids, device=self.device, dtype=torch.long
+    )
+
     self._num_joints = len(self._actuator_ids)
     self._action_dim = len(self._actuator_ids)
 
@@ -43,7 +46,8 @@ class JointAction(ActionTerm):
       self._scale[:, index_list] = torch.tensor(value_list, device=self.device)
     else:
       raise ValueError(
-        f"Unsupported scale type: {type(cfg.scale)}. Supported types are float and dict."
+        f"Unsupported scale type: {type(cfg.scale)}."
+        " Supported types are float and dict."
       )
 
     if isinstance(cfg.offset, (float, int)):
@@ -56,7 +60,8 @@ class JointAction(ActionTerm):
       self._offset[:, index_list] = torch.tensor(value_list, device=self.device)
     else:
       raise ValueError(
-        f"Unsupported offset type: {type(cfg.offset)}. Supported types are float and dict."
+        f"Unsupported offset type: {type(cfg.offset)}."
+        " Supported types are float and dict."
       )
 
   # Properties.
@@ -89,10 +94,10 @@ class JointPositionAction(JointAction):
   def __init__(self, cfg: actions_config.JointPositionActionCfg, env: ManagerBasedEnv):
     super().__init__(cfg=cfg, env=env)
 
-    # TODO: Check that the actuators are PD actuators.
-
     if cfg.use_default_offset:
       self._offset = self._asset.data.default_joint_pos[:, self._actuator_ids].clone()
 
   def apply_actions(self):
-    self._env.sim.set_ctrl(self._processed_actions, ctrl_ids=self._actuator_ids)
+    self._asset.write_joint_position_target_to_sim(
+      self._processed_actions, self._actuator_ids
+    )
