@@ -24,15 +24,9 @@ def get_root_joint(spec: mujoco.MjSpec) -> mujoco.MjsJoint | None:
 
 
 def disable_collision(geom: mujoco.MjsGeom) -> None:
+  """Disables collision for a geom."""
   geom.contype = 0
   geom.conaffinity = 0
-
-
-def set_array_field(field, values):
-  if values is None:
-    return
-  for i, v in enumerate(values):
-    field[i] = v
 
 
 def is_joint_limited(jnt: mujoco.MjsJoint) -> bool:

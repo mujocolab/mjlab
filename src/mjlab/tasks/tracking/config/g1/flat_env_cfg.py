@@ -28,18 +28,32 @@ class G1FlatEnvCfg(TrackingEnvCfg):
       "right_wrist_yaw_link",
     ]
 
+    self.events.foot_friction.params["asset_cfg"].geom_names = [
+      r"^(left|right)_foot[1-7]_collision$"
+    ]
+    self.events.base_com.params["asset_cfg"].body_names = "torso_link"
+
+    self.terminations.ee_body_pos.params["body_names"] = [
+      "left_ankle_roll_link",
+      "right_ankle_roll_link",
+      "left_wrist_yaw_link",
+      "right_wrist_yaw_link",
+    ]
+
+    self.viewer.body_name = "torso_link"
+
 
 @dataclass
 class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
   def __post_init__(self):
     super().__post_init__()
 
-    self.observations.policy.enable_corruption = False
-
-    self.events.push_robot = None
-
+    # Disable RSI randomization.
     self.commands.motion.pose_range = {}
     self.commands.motion.velocity_range = {}
+
+    # Always start from beginning of motion.
     self.commands.motion.start_from_beginning = True
 
-    self.episode_length_s = int(1e9)  # effectively infinite episode length
+    # Effectively infinite episode length.
+    self.episode_length_s = int(1e9)

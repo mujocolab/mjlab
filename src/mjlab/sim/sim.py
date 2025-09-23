@@ -185,10 +185,7 @@ class Simulation:
     if self._renderer is None:
       raise ValueError("Renderer not initialized. Call 'initialize_renderer()' first.")
 
-    attrs_to_copy = ["qpos", "qvel", "mocap_pos", "mocap_quat", "xfrc_applied"]
-    for attr in attrs_to_copy:
-      setattr(self._mj_data, attr, getattr(self.data, attr)[0].cpu().numpy())
-
+    mjwarp.get_data_into(self._mj_data, self._mj_model, self._wp_data)
     mujoco.mj_forward(self._mj_model, self._mj_data)
     self._renderer.update_scene(data=self._mj_data, camera=self.cfg.render.camera)
 

@@ -1,3 +1,13 @@
+"""Terrains composed of primitive box geometries.
+
+This module provides terrain generation functionality using primitive box geometries,
+adapted from the IsaacLab terrain generation system.
+
+References:
+  IsaacLab mesh terrain implementation:
+  https://github.com/isaac-sim/IsaacLab/blob/main/source/isaaclab/isaaclab/terrains/trimesh/mesh_terrains.py
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

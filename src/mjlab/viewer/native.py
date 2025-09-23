@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Callable, Optional
 
 import mujoco
 import mujoco.viewer
+import mujoco_warp as mjwarp
 import numpy as np
 import torch
 
@@ -129,8 +130,7 @@ class NativeMujocoViewer(BaseViewer):
 
     with self._mj_lock:
       sim_data = self.env.unwrapped.sim.data
-      self.mjd.qpos[:] = sim_data.qpos[self.env_idx].cpu().numpy()
-      self.mjd.qvel[:] = sim_data.qvel[self.env_idx].cpu().numpy()
+      mjwarp.get_data_into(self.mjd, self.mjm, sim_data.struct)
       mujoco.mj_forward(self.mjm, self.mjd)
 
       # text_1 = "Env\nStep\nStatus\nSpeed\nFPS"

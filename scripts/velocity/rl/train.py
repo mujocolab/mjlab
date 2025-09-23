@@ -10,10 +10,10 @@ import gymnasium as gym
 import tyro
 
 import mjlab.tasks  # noqa: F401
-from mjlab.envs.manager_based_rl_env_config import ManagerBasedRlEnvCfg
+from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.rl.config import RslRlOnPolicyRunnerCfg
-from mjlab.tasks.locomotion.velocity.rl import VelocityOnPolicyRunner
+from mjlab.tasks.velocity.rl import VelocityOnPolicyRunner
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )

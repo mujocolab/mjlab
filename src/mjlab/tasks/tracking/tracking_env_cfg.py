@@ -1,3 +1,9 @@
+"""Motion mimic task configuration.
+
+This module defines the base configuration for motion mimic tasks.
+Robot-specific configurations are located in the config/ directory.
+"""
+
 from dataclasses import dataclass, field
 
 from mjlab.envs import ManagerBasedRlEnvCfg
@@ -40,7 +46,7 @@ SCENE_CFG = SceneCfg(
 VIEWER_CONFIG = ViewerConfig(
   origin_type=ViewerConfig.OriginType.ASSET_BODY,
   asset_name="robot",
-  body_name="torso_link",
+  body_name="",  # Override in robot cfg.
   distance=3.0,
   elevation=-5.0,
   azimuth=90.0,
@@ -64,7 +70,7 @@ class CommandsCfg:
     },
     velocity_range=VELOCITY_RANGE,
     joint_position_range=(-0.1, 0.1),
-    # Placeholders.
+    # Override in robot cfg.
     motion_file="",
     reference_body="",
     body_names=[],
@@ -159,7 +165,7 @@ class EventCfg:
     mode="startup",
     func=mdp.randomize_field,
     params={
-      "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),
+      "asset_cfg": SceneEntityCfg("robot", body_names=[]),  # Override in robot cfg.
       "operation": "add",
       "field": "body_ipos",
       "ranges": {
@@ -185,9 +191,7 @@ class EventCfg:
     mode="startup",
     func=mdp.randomize_field,
     params={
-      "asset_cfg": SceneEntityCfg(
-        "robot", geom_names=[r"^(left|right)_foot[1-7]_collision$"]
-      ),
+      "asset_cfg": SceneEntityCfg("robot", geom_names=[]),  # Override in robot cfg.
       "operation": "abs",
       "field": "geom_friction",
       "ranges": (0.3, 1.2),
@@ -279,19 +283,9 @@ class TerminationsCfg:
     params={
       "command_name": "motion",
       "threshold": 0.25,
-      "body_names": [
-        "left_ankle_roll_link",
-        "right_ankle_roll_link",
-        "left_wrist_yaw_link",
-        "right_wrist_yaw_link",
-      ],
+      "body_names": [],  # Override in robot cfg.
     },
   )
-
-
-@dataclass
-class CurriculumCfg:
-  pass
 
 
 SIM_CFG = SimulationCfg(
@@ -314,8 +308,7 @@ class TrackingEnvCfg(ManagerBasedRlEnvCfg):
   rewards: RewardCfg = field(default_factory=RewardCfg)
   terminations: TerminationsCfg = field(default_factory=TerminationsCfg)
   events: EventCfg = field(default_factory=EventCfg)
-  curriculum: CurriculumCfg = field(default_factory=CurriculumCfg)
   sim: SimulationCfg = field(default_factory=lambda: SIM_CFG)
   viewer: ViewerConfig = field(default_factory=lambda: VIEWER_CONFIG)
-  decimation: int = 4
+  decimation: int = 4  # 50 Hz control frequency.
   episode_length_s: float = 10.0

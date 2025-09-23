@@ -1,3 +1,5 @@
+"""Termination manager for computing done signals."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Sequence

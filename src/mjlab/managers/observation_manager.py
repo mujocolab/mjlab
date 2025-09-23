@@ -1,3 +1,5 @@
+"""Observation manager for computing observations."""
+
 from typing import Sequence
 
 import numpy as np
