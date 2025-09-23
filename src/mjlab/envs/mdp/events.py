@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple, Union
 
 import torch
 
-from mjlab.entity import Entity
+from mjlab.entity import Entity, EntityIndexing
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   quat_apply_inverse,
@@ -17,7 +17,6 @@ from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   sample_log_uniform,
   sample_uniform,
 )
-from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_env import ManagerBasedEnv
@@ -160,7 +159,7 @@ def apply_external_force_torque(
   size = (len(env_ids), num_bodies, 3)
   forces = sample_uniform(*force_range, size, env.device)
   torques = sample_uniform(*torque_range, size, env.device)
-  asset.set_external_force_and_torque(
+  asset.write_external_wrench_to_sim(
     forces, torques, env_ids=env_ids, body_ids=asset_cfg.body_ids
   )
 
@@ -180,44 +179,42 @@ class FieldSpec:
   """Specification for how to handle a particular field."""
 
   entity_type: Literal["dof", "joint", "body", "geom", "site", "actuator"]
-  indexing_attr: str  # e.g., "joint_v_adr", "joint_local2global", etc.
-  default_axes: Optional[List[int]] = None  # Which axes to randomize by default
-  valid_axes: Optional[List[int]] = None  # Which axes are valid for this field
+  use_address: bool = False  # True for fields that need address (q_adr, v_adr)
+  default_axes: Optional[List[int]] = None
+  valid_axes: Optional[List[int]] = None
 
 
 FIELD_SPECS = {
-  # Dof.
-  "dof_armature": FieldSpec("dof", "joint_v_adr"),
-  "dof_frictionloss": FieldSpec("dof", "joint_v_adr"),
-  "dof_damping": FieldSpec("dof", "joint_v_adr"),
-  # Joint.
-  "jnt_range": FieldSpec("joint", "joint_local2global"),
-  "jnt_stiffness": FieldSpec("joint", "joint_local2global"),
-  # Body.
-  "body_mass": FieldSpec("body", "body_local2global"),
-  "body_ipos": FieldSpec("body", "body_local2global", default_axes=[0, 1, 2]),
-  "body_iquat": FieldSpec("body", "body_local2global", default_axes=[0, 1, 2, 3]),
-  "body_inertia": FieldSpec("body", "body_local2global"),
-  "body_pos": FieldSpec("body", "body_local2global", default_axes=[0, 1, 2]),
-  "body_quat": FieldSpec("body", "body_local2global", default_axes=[0, 1, 2, 3]),
-  # Geom.
-  "geom_friction": FieldSpec(
-    "geom", "geom_local2global", default_axes=[0], valid_axes=[0, 1, 2]
-  ),
-  "geom_pos": FieldSpec("geom", "geom_local2global", default_axes=[0, 1, 2]),
-  "geom_quat": FieldSpec("geom", "geom_local2global", default_axes=[0, 1, 2, 3]),
-  "geom_rgba": FieldSpec("geom", "geom_local2global", default_axes=[0, 1, 2, 3]),
-  # Site.
-  "site_pos": FieldSpec("site", "site_local2global", default_axes=[0, 1, 2]),
-  "site_quat": FieldSpec("site", "site_local2global", default_axes=[0, 1, 2, 3]),
-  # Other.
-  "qpos0": FieldSpec("joint", "joint_q_adr"),
+  # Dof - uses addresses.
+  "dof_armature": FieldSpec("dof", use_address=True),
+  "dof_frictionloss": FieldSpec("dof", use_address=True),
+  "dof_damping": FieldSpec("dof", use_address=True),
+  # Joint - uses IDs directly.
+  "jnt_range": FieldSpec("joint"),
+  "jnt_stiffness": FieldSpec("joint"),
+  # Body - uses IDs directly.
+  "body_mass": FieldSpec("body"),
+  "body_ipos": FieldSpec("body", default_axes=[0, 1, 2]),
+  "body_iquat": FieldSpec("body", default_axes=[0, 1, 2, 3]),
+  "body_inertia": FieldSpec("body"),
+  "body_pos": FieldSpec("body", default_axes=[0, 1, 2]),
+  "body_quat": FieldSpec("body", default_axes=[0, 1, 2, 3]),
+  # Geom - uses IDs directly.
+  "geom_friction": FieldSpec("geom", default_axes=[0], valid_axes=[0, 1, 2]),
+  "geom_pos": FieldSpec("geom", default_axes=[0, 1, 2]),
+  "geom_quat": FieldSpec("geom", default_axes=[0, 1, 2, 3]),
+  "geom_rgba": FieldSpec("geom", default_axes=[0, 1, 2, 3]),
+  # Site - uses IDs directly.
+  "site_pos": FieldSpec("site", default_axes=[0, 1, 2]),
+  "site_quat": FieldSpec("site", default_axes=[0, 1, 2, 3]),
+  # Special case - uses address.
+  "qpos0": FieldSpec("joint", use_address=True),
 }
 
 
 def randomize_field(
-  env: ManagerBasedEnv,
-  env_ids: torch.Tensor,
+  env: "ManagerBasedEnv",
+  env_ids: torch.Tensor | None,
   field: str,
   ranges: Union[Tuple[float, float], Dict[int, Tuple[float, float]]],
   distribution: Literal["uniform", "log_uniform", "gaussian"] = "uniform",
@@ -253,7 +250,7 @@ def randomize_field(
 
   model_field = getattr(env.sim.model, field)
 
-  entity_indices = _get_entity_indices(env, asset, asset_cfg, spec)
+  entity_indices = _get_entity_indices(asset.indexing, asset_cfg, spec)
 
   target_axes = _determine_target_axes(model_field, spec, axes, ranges)
 
@@ -271,68 +268,27 @@ def randomize_field(
   )
 
 
-def _get_entity_indices(env, asset, asset_cfg, spec: FieldSpec) -> torch.Tensor:
-  """Get the global indices for the entities to randomize."""
-  # indexing = env.scene.indexing.entities[asset_cfg.name]
-  indexing = asset.indexing
-
-  if spec.entity_type == "dof":
-    if asset_cfg.joint_ids == slice(None):
-      local_ids = list(range(asset.num_joints))
-    else:
-      local_ids = asset_cfg.joint_ids
-    return indexing.joint_v_adr[local_ids]
-
-  elif spec.entity_type == "joint":
-    if asset_cfg.joint_ids == slice(None):
-      local_ids = list(range(asset.num_joints))
-    else:
-      local_ids = asset_cfg.joint_ids
-
-    if spec.indexing_attr == "joint_q_adr":  # qpos0.
-      return indexing.joint_q_adr[local_ids]
-    else:
-      return torch.tensor(
-        [indexing.joint_local2global[lid] for lid in local_ids],
-        dtype=torch.int,
-        device=env.device,
-      )
-
-  elif spec.entity_type == "body":
-    if asset_cfg.body_ids == slice(None):
-      local_ids = list(range(asset.num_bodies))
-    else:
-      local_ids = asset_cfg.body_ids
-    return torch.tensor(
-      [indexing.body_local2global[lid] for lid in local_ids],
-      dtype=torch.int,
-      device=env.device,
-    )
-
-  elif spec.entity_type == "geom":
-    if asset_cfg.geom_ids == slice(None):
-      local_ids = list(range(asset.num_geoms))
-    else:
-      local_ids = asset_cfg.geom_ids
-    return torch.tensor(
-      [indexing.geom_local2global[lid] for lid in local_ids],
-      dtype=torch.int,
-      device=env.device,
-    )
-
-  elif spec.entity_type == "site":
-    if asset_cfg.site_ids == slice(None):
-      local_ids = list(range(asset.num_sites))
-    else:
-      local_ids = asset_cfg.site_ids
-    return torch.tensor(
-      [indexing.site_local2global[lid] for lid in local_ids],
-      dtype=torch.int,
-      device=env.device,
-    )
-
-  else:
-    raise ValueError(f"Unknown entity type: {spec.entity_type}")
+def _get_entity_indices(
+  indexing: EntityIndexing, asset_cfg, spec: FieldSpec
+) -> torch.Tensor:
+  match spec.entity_type:
+    case "dof":
+      return indexing.joint_v_adr[asset_cfg.joint_ids]
+    case "joint" if spec.use_address:
+      return indexing.joint_q_adr[asset_cfg.joint_ids]
+    case "joint":
+      return indexing.joint_ids[asset_cfg.joint_ids]
+    case "body":
+      return indexing.body_ids[asset_cfg.body_ids]
+    case "geom":
+      return indexing.geom_ids[asset_cfg.geom_ids]
+    case "site":
+      return indexing.site_ids[asset_cfg.site_ids]
+    case "actuator":
+      assert indexing.ctrl_ids is not None
+      return indexing.ctrl_ids[asset_cfg.actuator_ids]
+    case _:
+      raise ValueError(f"Unknown entity type: {spec.entity_type}")
 
 
 def _determine_target_axes(
@@ -342,7 +298,7 @@ def _determine_target_axes(
   ranges: Union[Tuple[float, float], Dict[int, Tuple[float, float]]],
 ) -> List[int]:
   """Determine which axes to randomize."""
-  field_ndim = len(model_field.shape) - 1  # Subtract env dimension.
+  field_ndim = len(model_field.shape) - 1  # Subtract env dimension
 
   if axes is not None:
     # User specified axes explicitly.
@@ -356,17 +312,16 @@ def _determine_target_axes(
   else:
     # Randomize all axes.
     if field_ndim > 1:
-      target_axes = list(range(model_field.shape[-1]))  # Last dimension.
+      target_axes = list(range(model_field.shape[-1]))  # Last dimension
     else:
       target_axes = [0]  # Scalar field.
 
-  # Validate axes.
+  # Validate axes
   if spec.valid_axes is not None:
     invalid_axes = set(target_axes) - set(spec.valid_axes)
     if invalid_axes:
       raise ValueError(
-        f"Invalid axes {invalid_axes} for field '{model_field.name}'. "
-        f"Valid axes: {spec.valid_axes}"
+        f"Invalid axes {invalid_axes} for field. Valid axes: {spec.valid_axes}"
       )
 
   return target_axes
@@ -461,98 +416,3 @@ def _sample_distribution(
     return sample_gaussian(lower, upper, shape, device=device)
   else:
     raise ValueError(f"Unknown distribution: {distribution}")
-
-
-def randomize_actuator_gains(
-  env: ManagerBasedEnv,
-  env_ids: torch.Tensor | None,
-  asset_cfg: SceneEntityCfg,
-  stiffness_distribution_params: tuple[float, float] | None = None,
-  damping_distribution_params: tuple[float, float] | None = None,
-  operation: Literal["add", "scale", "abs"] = "abs",
-  distribution: Literal["uniform", "log_uniform", "gaussian"] = "uniform",
-) -> None:
-  asset: Entity = env.scene[asset_cfg.name]
-  indexing = asset.indexing
-
-  if env_ids is None:
-    env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
-  else:
-    env_ids = env_ids.to(env.device, dtype=torch.int)
-
-  local_act_ids = resolve_matching_names(
-    asset.actuator_names, asset.joint_actuators, True
-  )[0]
-  act_ids = torch.tensor(
-    [indexing.actuator_local2global[lid] for lid in local_act_ids],
-    dtype=torch.int,
-    device=env.device,
-  )
-  local_act_ids = torch.tensor(
-    local_act_ids,
-    dtype=torch.int,
-    device=env.device,
-  )
-
-  env_grid, act_grid = torch.meshgrid(env_ids, act_ids, indexing="ij")
-
-  if stiffness_distribution_params is not None:
-    stiffness_field = env.sim.model.actuator_gainprm
-    stiffness_lower, stiffness_upper = stiffness_distribution_params
-
-    current_stiffness = stiffness_field[env_grid, act_grid, 0]
-
-    stiffness_random_values = _sample_distribution(
-      distribution,
-      torch.tensor([stiffness_lower], device=env.device),
-      torch.tensor([stiffness_upper], device=env.device),
-      current_stiffness.shape,
-      env.device,
-    )
-
-    if operation == "add":
-      new_val = current_stiffness + stiffness_random_values
-    elif operation == "scale":
-      new_val = current_stiffness * stiffness_random_values
-    elif operation == "abs":
-      new_val = stiffness_random_values
-    else:
-      raise ValueError(f"Unknown operation: {operation}")
-
-    env.sim.model.actuator_gainprm[env_grid, act_grid, 0] = new_val
-    env.sim.model.actuator_biasprm[env_grid, act_grid, 1] = -new_val
-    asset.write_joint_stiffness_to_sim(
-      stiffness=new_val,
-      joint_ids=local_act_ids,
-      env_ids=env_ids,
-    )
-
-  if damping_distribution_params is not None:
-    damping_field = env.sim.model.actuator_biasprm
-    damping_lower, damping_upper = damping_distribution_params
-
-    current_damping = damping_field[env_grid, act_grid, 1]
-
-    damping_random_values = _sample_distribution(
-      distribution,
-      torch.tensor([damping_lower], device=env.device),
-      torch.tensor([damping_upper], device=env.device),
-      current_damping.shape,
-      env.device,
-    )
-
-    if operation == "add":
-      new_val = current_damping + damping_random_values
-    elif operation == "scale":
-      new_val = current_damping * damping_random_values
-    elif operation == "abs":
-      new_val = damping_random_values
-    else:
-      raise ValueError(f"Unknown operation: {operation}")
-
-    env.sim.model.actuator_biasprm[env_grid, act_grid, 1] = -new_val
-    asset.write_joint_damping_to_sim(
-      damping=new_val,
-      joint_ids=local_act_ids,
-      env_ids=env_ids,
-    )

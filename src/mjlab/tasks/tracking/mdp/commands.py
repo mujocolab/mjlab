@@ -334,10 +334,22 @@ class MotionCommand(CommandTerm):
 
   def _debug_vis_impl(self, scn: mujoco.MjvScene) -> None:
     for i in range(self.num_envs):
-      self._data_viz.qpos[0:3] = self.body_pos_w[i, 0].cpu().numpy().copy()
-      self._data_viz.qpos[0:3] += self._env.scene.env_origins[i].cpu().numpy()
-      self._data_viz.qpos[3:7] = self.body_quat_w[i, 0].cpu().numpy().copy()
-      self._data_viz.qpos[7:] = self.joint_pos[i].cpu().numpy().copy()
+      entity: Entity = self._env.scene[self.cfg.asset_name]
+      indexing = entity.indexing
+
+      free_joint_q_adr = indexing.free_joint_q_adr.cpu().numpy()
+      free_joint_pos_adr = free_joint_q_adr[:3]
+      free_joint_ori_adr = free_joint_q_adr[3:7]
+      joint_q_adr = indexing.joint_q_adr.cpu().numpy()
+
+      self._data_viz.qpos[free_joint_pos_adr] = (
+        self.body_pos_w[i, 0].cpu().numpy().copy()
+      )
+      self._data_viz.qpos[free_joint_ori_adr] = (
+        self.body_quat_w[i, 0].cpu().numpy().copy()
+      )
+      self._data_viz.qpos[joint_q_adr] = self.joint_pos[i].cpu().numpy().copy()
+
       mujoco.mj_forward(self._model_viz, self._data_viz)
       mujoco.mjv_addGeoms(
         self._model_viz,

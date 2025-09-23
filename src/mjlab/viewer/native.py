@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Callable, Optional
 
 import mujoco
 import mujoco.viewer
-import mujoco_warp as mjwarp
 import numpy as np
 import torch
 
@@ -130,7 +129,8 @@ class NativeMujocoViewer(BaseViewer):
 
     with self._mj_lock:
       sim_data = self.env.unwrapped.sim.data
-      mjwarp.get_data_into(self.mjd, self.mjm, sim_data.struct)
+      self.mjd.qpos[:] = sim_data.qpos[self.env_idx].cpu().numpy()
+      self.mjd.qvel[:] = sim_data.qvel[self.env_idx].cpu().numpy()
       mujoco.mj_forward(self.mjm, self.mjd)
 
       # text_1 = "Env\nStep\nStatus\nSpeed\nFPS"
@@ -284,8 +284,8 @@ class NativeMujocoViewer(BaseViewer):
       elif self.cfg.origin_type == self.cfg.OriginType.ASSET_ROOT:
         if not self.cfg.asset_name:
           raise ValueError("Asset name must be specified for ASSET_ROOT origin type")
-        indexing = self.env.unwrapped.scene[self.cfg.asset_name].indexing
-        body_id = indexing.root_body_id
+        robot: Entity = self.env.unwrapped.scene[self.cfg.asset_name]
+        body_id = robot.indexing.root_body_id
         self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
         self.viewer.cam.trackbodyid = body_id
         self.viewer.cam.fixedcamid = -1
@@ -299,8 +299,8 @@ class NativeMujocoViewer(BaseViewer):
             f"Body '{self.cfg.body_name}' not found in asset '{self.cfg.asset_name}'"
           )
         body_id_list, _ = robot.find_bodies(self.cfg.body_name)
-        indexing = self.env.unwrapped.scene[self.cfg.asset_name].indexing
-        body_id = indexing.body_local2global[body_id_list[0]]
+        body_id = robot.indexing.bodies[body_id_list[0]].id
+
         self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
         self.viewer.cam.trackbodyid = body_id
         self.viewer.cam.fixedcamid = -1

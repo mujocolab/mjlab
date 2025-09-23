@@ -19,8 +19,16 @@ class TorchArray:
   maintaining zero-copy performance through memory sharing.
   """
 
-  def __init__(self, wp_array: wp.array) -> None:
+  def __init__(self, wp_array: wp.array, nworld: int | None = None) -> None:
     """Initialize the tensor proxy with a Warp array."""
+    if (
+      nworld is not None
+      and len(wp_array.shape) > 0
+      and wp_array.strides[0] == 0
+      and wp_array.shape[0] > nworld
+    ):
+      wp_array = wp_array[:nworld]  # type: ignore
+
     self._wp_array = wp_array
     self._tensor = wp.to_torch(wp_array)
     self._is_cuda = not self._wp_array.device.is_cpu  # type: ignore
@@ -180,9 +188,10 @@ class WarpBridge(Generic[T]):
   accidental memory address changes that break CUDA graphs.
   """
 
-  def __init__(self, struct: T) -> None:
+  def __init__(self, struct: T, nworld: int | None = None) -> None:
     object.__setattr__(self, "_struct", struct)
     object.__setattr__(self, "_wrapped_cache", {})
+    object.__setattr__(self, "_nworld", nworld)
 
   def __getattr__(self, name: str) -> Any:
     """Get attribute from the wrapped data, wrapping Warp arrays as TorchArray."""
@@ -194,13 +203,13 @@ class WarpBridge(Generic[T]):
 
     # Wrap Warp arrays.
     if isinstance(val, wp.array):
-      wrapped = TorchArray(val)
+      wrapped = TorchArray(val, nworld=self._nworld)
       self._wrapped_cache[name] = wrapped
       return wrapped
 
     # Recursively wrap nested structures that contain Warp arrays.
     if _contains_warp_arrays(val):
-      wrapped = WarpBridge(val)
+      wrapped = WarpBridge(val, nworld=self._nworld)
       self._wrapped_cache[name] = wrapped
       return wrapped
 
