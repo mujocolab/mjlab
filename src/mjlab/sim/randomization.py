@@ -3,7 +3,7 @@ from typing import Any, List
 import mujoco_warp as mjwarp
 import warp as wp
 
-# Ref: https://github.com/newton-physics/newton/blob/main/newton/_src/solvers/mujoco/solver_mujoco.py#L915
+# Ref: https://github.com/newton-physics/newton/blob/640095cbe1914d43e9158ec71264a0eb7272fc15/newton/_src/solvers/mujoco/solver_mujoco.py#L2587-L2612
 
 
 @wp.kernel(module="unique")
