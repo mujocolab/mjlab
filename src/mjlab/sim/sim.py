@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 import mujoco
 import mujoco_warp as mjwarp
@@ -9,6 +9,8 @@ import warp as wp
 from mjlab.sim.randomization import expand_model_fields
 from mjlab.sim.sim_data import WarpBridge
 
+# Type aliases for better IDE support while maintaining runtime compatibility
+# At runtime, WarpBridge wraps the actual MJWarp objects.
 if TYPE_CHECKING:
   ModelBridge = mjwarp.Model
   DataBridge = mjwarp.Data
@@ -30,13 +32,13 @@ class RenderCfg:
 class MujocoCfg:
   # Integrator settings.
   timestep: float = 0.002
-  integrator: str = "implicitfast"
+  integrator: Literal["euler", "implicitfast"] = "implicitfast"
   # Friction settings.
   impratio: float = 1.0
-  cone: str = "pyramidal"
+  cone: Literal["pyramidal", "elliptic"] = "pyramidal"
   # Solver settings.
-  jacobian: str = "auto"
-  solver: str = "newton"
+  jacobian: Literal["auto", "dense", "sparse"] = "auto"
+  solver: Literal["newton", "cg", "pgs"] = "newton"
   iterations: int = 100
   tolerance: float = 1e-8
   ls_iterations: int = 50
@@ -55,7 +57,7 @@ class SimulationCfg:
 
 
 class Simulation:
-  """MjWarp simulation backend."""
+  """GPU-accelerated MuJoCo simulation powered by MJWarp."""
 
   def __init__(
     self, num_envs: int, cfg: SimulationCfg, model: mujoco.MjModel, device: str
@@ -100,8 +102,12 @@ class Simulation:
     self._renderer: mujoco.Renderer | None = None
 
   def initialize_renderer(self) -> None:
+    if self._renderer is not None:
+      raise RuntimeError(
+        "Renderer is already initialized. Call 'close()' first to reinitialize."
+      )
     self._renderer = mujoco.Renderer(
-      model=self._mj_model, height=self.cfg.render.height, width=self.cfg.render.height
+      model=self._mj_model, height=self.cfg.render.height, width=self.cfg.render.width
     )
 
   def create_graph(self) -> None:
@@ -151,9 +157,10 @@ class Simulation:
   # Methods.
 
   def expand_model_fields(self, fields: list[str]) -> None:
-    for f in fields:
-      if not hasattr(self._mj_model, f):
-        raise ValueError(f"Field '{f}' not found in model.")
+    """Expand model fields to support per-environment parameters."""
+    invalid_fields = [f for f in fields if not hasattr(self._mj_model, f)]
+    if invalid_fields:
+      raise ValueError(f"Fields not found in model: {invalid_fields}")
 
     expand_model_fields(self._wp_model, self.num_envs, fields)
 
