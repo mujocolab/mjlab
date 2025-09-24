@@ -438,7 +438,7 @@ class Entity:
     )
 
   def update(self, dt: float) -> None:
-    self._data.update(dt)
+    del dt  # Unused.
 
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
     self.clear_state(env_ids)

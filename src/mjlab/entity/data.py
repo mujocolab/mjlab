@@ -17,6 +17,20 @@ if TYPE_CHECKING:
   from mjlab.entity.entity import EntityIndexing
 
 
+def compute_velocity_from_cvel(
+  pos: torch.Tensor,
+  subtree_com: torch.Tensor,
+  cvel: torch.Tensor,
+) -> torch.Tensor:
+  """Convert cvel quantities to world-frame velocities."""
+  lin_vel_c = cvel[..., 3:6]
+  ang_vel_c = cvel[..., 0:3]
+  offset = subtree_com - pos
+  lin_vel_w = lin_vel_c - torch.cross(ang_vel_c, offset, dim=-1)
+  ang_vel_w = ang_vel_c
+  return torch.cat([lin_vel_w, ang_vel_w], dim=-1)
+
+
 @dataclass
 class EntityData:
   """Data container for an entity."""
@@ -173,19 +187,6 @@ class EntityData:
       return env_ids[:, None]
     return env_ids
 
-  def update(self, dt: float) -> None:
-    del dt  # Unused.
-
-  def _compute_velocity_from_cvel(
-    self, pos: torch.Tensor, subtree_com: torch.Tensor, cvel: torch.Tensor
-  ) -> torch.Tensor:
-    lin_vel_c = cvel[..., 3:6]
-    ang_vel_c = cvel[..., 0:3]
-    offset = subtree_com - pos
-    lin_vel_w = lin_vel_c - torch.cross(ang_vel_c, offset, dim=-1)
-    ang_vel_w = ang_vel_c
-    return torch.cat([lin_vel_w, ang_vel_w], dim=-1)
-
   # Root properties
 
   @property
@@ -205,7 +206,7 @@ class EntityData:
     pos = self.data.xpos[:, self.indexing.root_body_id].clone()  # (num_envs, 3)
     subtree_com = self.data.subtree_com[:, self.indexing.root_body_id].clone()
     cvel = self.data.cvel[:, self.indexing.root_body_id].clone()  # (num_envs, 6)
-    return self._compute_velocity_from_cvel(pos, subtree_com, cvel)  # (num_envs, 6)
+    return compute_velocity_from_cvel(pos, subtree_com, cvel)  # (num_envs, 6)
 
   @property
   def root_com_pose_w(self) -> torch.Tensor:
@@ -224,7 +225,7 @@ class EntityData:
     pos = self.data.xipos[:, self.indexing.root_body_id].clone()  # (num_envs, 3)
     subtree_com = self.data.subtree_com[:, self.indexing.root_body_id].clone()
     cvel = self.data.cvel[:, self.indexing.root_body_id].clone()  # (num_envs, 6)
-    return self._compute_velocity_from_cvel(pos, subtree_com, cvel)  # (num_envs, 6)
+    return compute_velocity_from_cvel(pos, subtree_com, cvel)  # (num_envs, 6)
 
   # Body properties
 
@@ -242,7 +243,7 @@ class EntityData:
     pos = self.data.xpos[:, self.indexing.body_ids].clone()  # (num_envs, num_bodies, 3)
     subtree_com = self.data.subtree_com[:, self.indexing.root_body_id].clone()
     cvel = self.data.cvel[:, self.indexing.body_ids].clone()
-    return self._compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
+    return compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
 
   @property
   def body_com_pose_w(self) -> torch.Tensor:
@@ -260,7 +261,7 @@ class EntityData:
     pos = self.data.xipos[:, self.indexing.body_ids].clone()
     subtree_com = self.data.subtree_com[:, self.indexing.root_body_id].clone()
     cvel = self.data.cvel[:, self.indexing.body_ids].clone()
-    return self._compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
+    return compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
 
   @property
   def body_external_wrench(self) -> torch.Tensor:
@@ -284,7 +285,7 @@ class EntityData:
     body_ids = self.model.geom_bodyid[self.indexing.geom_ids].clone()  # (num_geoms,)
     subtree_com = self.data.subtree_com[:, self.indexing.root_body_id].clone()
     cvel = self.data.cvel[:, body_ids].clone()
-    return self._compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
+    return compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
 
   @property
   def site_pose_w(self) -> torch.Tensor:
@@ -301,7 +302,7 @@ class EntityData:
     body_ids = self.model.site_bodyid[self.indexing.site_ids].clone()  # (num_sites,)
     subtree_com = self.data.subtree_com[:, self.indexing.root_body_id].clone()
     cvel = self.data.cvel[:, body_ids].clone()
-    return self._compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
+    return compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
 
   # Joint properties
 
@@ -323,13 +324,21 @@ class EntityData:
   @property
   def joint_torques(self) -> torch.Tensor:
     """Joint torques. Shape (num_envs, nv)."""
-    # TODO: Implement this. I think I need a sensor?
-    raise NotImplementedError
+    raise NotImplementedError(
+      "Joint torques are not currently available. "
+      "Consider using 'actuator_force' property for actuation forces, "
+      "or 'generalized_force' property for generalized forces applied to the DoFs."
+    )
 
   @property
   def actuator_force(self) -> torch.Tensor:
     """Scalar actuation force in actuation space. Shape (num_envs, nu)."""
-    return self.data.actuator_force.clone()
+    return self.data.actuator_force[:, self.indexing.ctrl_ids].clone()
+
+  @property
+  def generalized_force(self) -> torch.Tensor:
+    """Generalized forces applied to the DoFs. Shape (num_envs, nv)."""
+    return self.data.qfrc_applied[:, self.indexing.free_joint_v_adr].clone()
 
   # Pose and velocity component accessors.
 
