@@ -365,7 +365,7 @@ def main(
   if render:
     sim.initialize_renderer()
 
-  scene.initialize(sim.mj_model, sim.model, sim.data, device)
+  scene.initialize(sim.mj_model, sim.model, sim.data)
 
   run_sim(
     sim=sim,

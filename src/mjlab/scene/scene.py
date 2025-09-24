@@ -41,9 +41,17 @@ class Scene:
     return self._spec.compile()
 
   def to_zip(self, path: Path) -> None:
-    # TODO(kevin): This is buggy and the generated zip file is not reloadable.
-    # I had to add assetdir="assets" in the compiler directive to make it work.
-    # Check again in a future MuJoCo release if this has been resolved.
+    """Export the scene to a zip file.
+
+    Warning: The generated zip may require manual adjustment of asset paths
+    to be reloadable. Specifically, you may need to add assetdir="assets"
+    to the compiler directive in the XML.
+
+    Args:
+      path: Output path for the zip file.
+
+    TODO: Verify if this is fixed in future MuJoCo releases.
+    """
     with path.open("wb") as f:
       mujoco.MjSpec.to_zip(self._spec, f)
 
@@ -85,17 +93,19 @@ class Scene:
     return self._device
 
   def __getitem__(self, key: str) -> Any:
-    all_keys = ["terrain"]
-    for asset_family in [
-      self._entities,
-    ]:
-      out = asset_family.get(key)
-      if out is not None:
-        return out
-      all_keys += list(asset_family.keys())
-    raise KeyError(
-      f"Scene entity with key '{key}' not found. Available entities: '{all_keys}'"
-    )
+    if key == "terrain":
+      if self._terrain is None:
+        raise KeyError("No terrain configured in this scene.")
+      return self._terrain
+
+    if key in self._entities:
+      return self._entities[key]
+
+    # Not found, raise helpful error.
+    available = list(self._entities.keys())
+    if self._terrain is not None:
+      available.append("terrain")
+    raise KeyError(f"Scene element '{key}' not found. Available: {available}")
 
   # Methods.
 
@@ -104,13 +114,12 @@ class Scene:
     mj_model: mujoco.MjModel,
     model: mjwarp.Model,
     data: mjwarp.Data,
-    device: str,
   ):
     self._default_env_origins = torch.zeros(
-      (self._cfg.num_envs, 3), device=device, dtype=torch.float32
+      (self._cfg.num_envs, 3), device=self._device, dtype=torch.float32
     )
     for ent in self._entities.values():
-      ent.initialize(mj_model, model, data, device)
+      ent.initialize(mj_model, model, data, self._device)
 
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
     for ent in self._entities.values():
