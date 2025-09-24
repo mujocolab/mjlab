@@ -4,6 +4,7 @@ from mjlab.entity import Entity
 from mjlab.scene import Scene
 
 
+# TODO: The four _resolve_*_names methods are nearly identical. Refactor.
 @dataclass
 class SceneEntityCfg:
   """Configuration for a scene entity that is used by the manager's term."""
