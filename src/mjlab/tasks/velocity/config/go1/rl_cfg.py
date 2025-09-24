@@ -35,7 +35,7 @@ class UnitreeGo1PPORunnerCfg(RslRlOnPolicyRunnerCfg):
       max_grad_norm=1.0,
     )
   )
-  experiment_name: str = field(default="go1_velocity")
-  save_interval: int = field(default=50)
-  num_steps_per_env: int = field(default=24)
-  max_iterations: int = field(default=10_000)
+  experiment_name: str = "go1_velocity"
+  save_interval: int = 50
+  num_steps_per_env: int = 24
+  max_iterations: int = 10_000
