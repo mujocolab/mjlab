@@ -133,18 +133,6 @@ class Entity:
     self.cfg = cfg
     self._spec = cfg.spec_fn()
 
-    def _incremental_rename(elem_list, elem_type: str) -> None:
-      counter: int = 0
-      for elem in elem_list:
-        if not elem.name:
-          elem.name = f"{elem_type}_{counter}"
-          counter += 1
-
-    _incremental_rename(self._spec.bodies, "body")
-    _incremental_rename(self._spec.geoms, "geom")
-    _incremental_rename(self._spec.sites, "site")
-    _incremental_rename(self._spec.sensors, "sensor")
-
     freejoints = []
     other_joints = []
     for joint in self._spec.joints:
