@@ -578,6 +578,22 @@ class Entity:
     env_ids: torch.Tensor | slice | None = None,
     body_ids: Sequence[int] | slice | None = None,
   ) -> None:
+    """Apply external wrenches to bodies in the simulation.
+
+    Underneath the hood, this sets the `xfrc_applied` field in the MuJoCo data
+    structure. The wrenches are specified in the world frame and persist until
+    the next call to this function or until the simulation is reset.
+
+    Args:
+      forces: Tensor of shape (N, num_bodies, 3) where N is the number of
+        environments.
+      torques: Tensor of shape (N, num_bodies, 3) where N is the number of
+        environments.
+      env_ids: Optional tensor or slice specifying which environments to set. If
+        None, all environments are set.
+      body_ids: Optional list of body indices or slice specifying which bodies to
+        apply the wrenches to. If None, wrenches are applied to all bodies.
+    """
     self._data.write_external_wrench(forces, torques, body_ids, env_ids)
 
   ##
