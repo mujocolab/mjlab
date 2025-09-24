@@ -6,6 +6,7 @@ from typing import Callable, Sequence
 
 import mujoco
 import mujoco_warp as mjwarp
+import numpy as np
 import torch
 
 from mjlab.entity.data import EntityData
@@ -15,7 +16,6 @@ from mjlab.utils.spec_editor.spec_editor import (
   ActuatorEditor,
   CameraEditor,
   CollisionEditor,
-  KeyframeEditor,
   LightEditor,
   MaterialEditor,
   SensorEditor,
@@ -66,12 +66,13 @@ class EntityIndexing:
 class EntityCfg:
   @dataclass
   class InitialStateCfg:
-    # Freejoint.
+    # Root position and orientation.
     pos: tuple[float, float, float] = (0.0, 0.0, 0.0)
     rot: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)
+    # Root linear and angular velocity (only for floating base entities).
     lin_vel: tuple[float, float, float] = (0.0, 0.0, 0.0)
     ang_vel: tuple[float, float, float] = (0.0, 0.0, 0.0)
-    # Articulation.
+    # Articulation (only for articulated entities).
     joint_pos: dict[str, float] = field(default_factory=lambda: {".*": 0.0})
     joint_vel: dict[str, float] = field(default_factory=lambda: {".*": 0.0})
 
@@ -122,62 +123,69 @@ class Entity:
   | Fixed Articulated         | Robot arm, door on hinges  | True          | True           | True/False  |
   | Floating Non-articulated  | Box, ball, mug             | False         | False          | False       |
   | Floating Articulated      | Humanoid, quadruped        | False         | True           | True/False  |
-
-  Notes:
-  - Only one freejoint is allowed per entity
-  - Actuators defined in XML are removed; use ActuatorCfg instead
-  - Joint counts exclude the freejoint (only articulation joints)
   """
 
   def __init__(self, cfg: EntityCfg) -> None:
     self.cfg = cfg
     self._spec = cfg.spec_fn()
 
-    freejoints = []
-    other_joints = []
-    for joint in self._spec.joints:
-      if joint.type == mujoco.mjtJoint.mjJNT_FREE:
-        freejoints.append(joint)
-      else:
-        other_joints.append(joint)
-    if len(freejoints) > 1:
-      joint_names = [j.name for j in freejoints]
-      raise ValueError(
-        f"Entity has multiple freejoints: {joint_names}. "
-        "Only one freejoint is allowed per entity. "
-        "Consider splitting into separate entities or using a different joint type."
-      )
-    self._root_joint: mujoco.MjsJoint | None = freejoints[0] if freejoints else None
-    self._non_root_joints: tuple[mujoco.MjsJoint, ...] = tuple(other_joints)
+    # Identify free joint and articulated joints.
+    all_joints = self._spec.joints
+    self._free_joint = None
+    self._non_free_joints = tuple(all_joints)
+    if all_joints and all_joints[0].type == mujoco.mjtJoint.mjJNT_FREE:
+      self._free_joint = all_joints[0]
+      self._non_free_joints = tuple(all_joints[1:])
 
-    for light in self.cfg.lights:
-      LightEditor(light).edit_spec(self._spec)
-    for camera in self.cfg.cameras:
-      CameraEditor(camera).edit_spec(self._spec)
-    for tex in self.cfg.textures:
-      TextureEditor(tex).edit_spec(self._spec)
-    for mat in self.cfg.materials:
-      MaterialEditor(mat).edit_spec(self._spec)
-    for sns in self.cfg.sensors:
-      SensorEditor(sns).edit_spec(self._spec)
-    for col in self.cfg.collisions:
-      CollisionEditor(col).edit_spec(self._spec)
+    self._apply_spec_editors()
+    self._add_initial_state_keyframe()
+    # TODO: Should init_state.pos/rot be applied to root body if fixed base?
+
+  def _apply_spec_editors(self) -> None:
+    editors = [
+      (self.cfg.lights, LightEditor),
+      (self.cfg.cameras, CameraEditor),
+      (self.cfg.textures, TextureEditor),
+      (self.cfg.materials, MaterialEditor),
+      (self.cfg.sensors, SensorEditor),
+      (self.cfg.collisions, CollisionEditor),
+    ]
+
+    for configs, editor_class in editors:
+      for config in configs:
+        editor_class(config).edit_spec(self._spec)
+
     if self.cfg.articulation:
       ActuatorEditor(self.cfg.articulation.actuators).edit_spec(self._spec)
-    if self._root_joint:
-      KeyframeEditor(self.cfg.init_state).edit_spec(self._spec)
+
+  def _add_initial_state_keyframe(self) -> None:
+    qpos_components = []
+
+    if self._free_joint is not None:
+      qpos_components.extend([self.cfg.init_state.pos, self.cfg.init_state.rot])
+
+    joint_pos = None
+    if self._non_free_joints:
+      joint_pos = resolve_expr(self.cfg.init_state.joint_pos, self.joint_names)
+      qpos_components.append(joint_pos)
+
+    key_qpos = np.hstack(qpos_components) if qpos_components else np.array([])
+    key = self._spec.add_key(name="init_state", qpos=key_qpos)
+
+    if self.is_actuated and joint_pos is not None:
+      key.ctrl = joint_pos
 
   # Attributes.
 
   @property
   def is_fixed_base(self) -> bool:
     """Entity is welded to the world."""
-    return self._root_joint is None
+    return self._free_joint is None
 
   @property
   def is_articulated(self) -> bool:
     """Entity is articulated (has fixed or actuated joints)."""
-    return len(self._non_root_joints) > 0
+    return len(self._non_free_joints) > 0
 
   @property
   def is_actuated(self) -> bool:
@@ -194,7 +202,7 @@ class Entity:
 
   @property
   def joint_names(self) -> list[str]:
-    return [j.name.split("/")[-1] for j in self._non_root_joints]
+    return [j.name.split("/")[-1] for j in self._non_free_joints]
 
   @property
   def tendon_names(self) -> list[str]:
@@ -375,7 +383,7 @@ class Entity:
         default_joint_damping = torch.empty(nworld, 0, dtype=torch.float, device=device)
 
       # Joint limits and control parameters.
-      joint_ids_global = [j.id for j in self._non_root_joints]
+      joint_ids_global = [j.id for j in self._non_free_joints]
       dof_limits = model.jnt_range[:, joint_ids_global]
       default_joint_pos_limits = dof_limits.clone()
       joint_pos_limits = default_joint_pos_limits.clone()
@@ -578,7 +586,7 @@ class Entity:
 
   def _compute_indexing(self, model: mujoco.MjModel, device: str) -> EntityIndexing:
     bodies = tuple([b for b in self.spec.bodies[1:]])
-    joints = self._non_root_joints
+    joints = self._non_free_joints
     geoms = tuple(self.spec.geoms)
     sites = tuple(self.spec.sites)
 

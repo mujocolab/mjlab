@@ -3,8 +3,8 @@
 import mujoco
 
 
-def get_non_root_joints(spec: mujoco.MjSpec) -> tuple[mujoco.MjsJoint, ...]:
-  """Returns all joints except the root joint."""
+def get_non_free_joints(spec: mujoco.MjSpec) -> tuple[mujoco.MjsJoint, ...]:
+  """Returns all joints except the free joint."""
   joints: list[mujoco.MjsJoint] = []
   for jnt in spec.joints:
     if jnt.type == mujoco.mjtJoint.mjJNT_FREE:
@@ -13,8 +13,8 @@ def get_non_root_joints(spec: mujoco.MjSpec) -> tuple[mujoco.MjsJoint, ...]:
   return tuple(joints)
 
 
-def get_root_joint(spec: mujoco.MjSpec) -> mujoco.MjsJoint | None:
-  """Returns the root joint. None if no root joint exists."""
+def get_free_joint(spec: mujoco.MjSpec) -> mujoco.MjsJoint | None:
+  """Returns the free joint. None if no free joint exists."""
   joint: mujoco.MjsJoint | None = None
   for jnt in spec.joints:
     if jnt.type == mujoco.mjtJoint.mjJNT_FREE:
@@ -30,6 +30,7 @@ def disable_collision(geom: mujoco.MjsGeom) -> None:
 
 
 def is_joint_limited(jnt: mujoco.MjsJoint) -> bool:
+  """Returns True if a joint is limited."""
   match jnt.limited:
     case mujoco.mjtLimited.mjLIMITED_TRUE:
       return True
