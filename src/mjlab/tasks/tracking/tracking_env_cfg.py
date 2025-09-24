@@ -18,7 +18,6 @@ from mjlab.scene import SceneCfg
 from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.tasks.tracking import mdp
 from mjlab.terrains import TerrainImporterCfg
-from mjlab.terrains.config import ROUGH_TERRAINS_CFG
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
 from mjlab.viewer import ViewerConfig
 
@@ -36,12 +35,7 @@ VELOCITY_RANGE = {
 ##
 
 
-SCENE_CFG = SceneCfg(
-  terrain=TerrainImporterCfg(
-    terrain_type="plane", terrain_generator=ROUGH_TERRAINS_CFG
-  ),
-  num_envs=1,
-)
+SCENE_CFG = SceneCfg(terrain=TerrainImporterCfg(terrain_type="plane"), num_envs=1)
 
 VIEWER_CONFIG = ViewerConfig(
   origin_type=ViewerConfig.OriginType.ASSET_BODY,
