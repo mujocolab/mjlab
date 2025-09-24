@@ -23,6 +23,9 @@ class SceneEntityCfg:
   site_names: str | list[str] | None = None
   site_ids: list[int] | slice = field(default_factory=lambda: slice(None))
 
+  sensor_names: str | list[str] | None = None
+  sensor_ids: list[int] | slice = field(default_factory=lambda: slice(None))
+
   preserve_order: bool = False
 
   def resolve(self, scene: Scene) -> None:
@@ -30,6 +33,7 @@ class SceneEntityCfg:
     self._resolve_body_names(scene)
     self._resolve_geom_names(scene)
     self._resolve_site_names(scene)
+    self._resolve_sensor_names(scene)
 
   def _resolve_joint_names(self, scene: Scene) -> None:
     if self.joint_names is not None or isinstance(self.joint_ids, list):
@@ -175,3 +179,39 @@ class SceneEntityCfg:
         if isinstance(self.site_ids, int):
           self.site_ids = [self.site_ids]
         self.site_names = [entity.site_names[i] for i in self.site_ids]
+
+  def _resolve_sensor_names(self, scene: Scene) -> None:
+    if self.sensor_names is not None or isinstance(self.sensor_ids, list):
+      entity: Entity = scene[self.name]
+
+      # Sensor name regex --> sensor indices.
+      if self.sensor_names is not None and isinstance(self.sensor_ids, list):
+        if isinstance(self.sensor_names, str):
+          self.sensor_names = [self.sensor_names]
+        if isinstance(self.sensor_ids, int):
+          self.sensor_ids = [self.sensor_ids]
+        sensor_ids, _ = entity.find_sensors(
+          self.sensor_names, preserve_order=self.preserve_order
+        )
+        sensor_names = [entity.sensor_names[i] for i in self.sensor_ids]
+        if sensor_ids != self.sensor_ids or sensor_names != self.sensor_names:
+          raise ValueError("Inconsistent sensor names and indices.")
+
+      # Sensor indices --> sensor names.
+      elif self.sensor_names is not None:
+        if isinstance(self.sensor_names, str):
+          self.sensor_names = [self.sensor_names]
+        self.sensor_ids, _ = entity.find_sensors(
+          self.sensor_names, preserve_order=self.preserve_order
+        )
+        if (
+          len(self.sensor_ids) == entity.num_sensors
+          and self.sensor_names == entity.sensor_names
+        ):
+          self.sensor_ids = slice(None)
+
+      # Sensor indices --> sensor names.
+      elif isinstance(self.sensor_ids, list):
+        if isinstance(self.sensor_ids, int):
+          self.sensor_ids = [self.sensor_ids]
+        self.sensor_names = [entity.sensor_names[i] for i in self.sensor_ids]

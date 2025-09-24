@@ -249,6 +249,7 @@ class SensorEditor(SpecEditor):
     "framezaxis": mujoco.mjtSensor.mjSENS_FRAMEZAXIS,
     "accelerometer": mujoco.mjtSensor.mjSENS_ACCELEROMETER,
     "contact": mujoco.mjtSensor.mjSENS_CONTACT,
+    "subtreeangmom": mujoco.mjtSensor.mjSENS_SUBTREEANGMOM,
   }
 
   SENSOR_OBJECT_TYPE_MAP = {
