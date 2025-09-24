@@ -13,11 +13,7 @@ T = TypeVar("T")
 
 
 class TorchArray:
-  """Warp array that behaves like a torch.Tensor with shared memory.
-
-  Enables seamless use of Warp arrays in PyTorch operations while
-  maintaining zero-copy performance through memory sharing.
-  """
+  """Warp array that behaves like a torch.Tensor with shared memory."""
 
   def __init__(self, wp_array: wp.array, nworld: int | None = None) -> None:
     """Initialize the tensor proxy with a Warp array."""
