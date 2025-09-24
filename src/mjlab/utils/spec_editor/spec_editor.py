@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 import mujoco
-import numpy as np
 
 from mjlab.sim import MujocoCfg
 from mjlab.utils.spec import (
   disable_collision,
-  get_non_root_joints,
+  get_non_free_joints,
   is_joint_limited,
 )
 from mjlab.utils.spec_editor.spec_editor_base import SpecEditor
@@ -23,10 +21,7 @@ from mjlab.utils.spec_editor.spec_editor_config import (
   SensorCfg,
   TextureCfg,
 )
-from mjlab.utils.string import filter_exp, resolve_expr, resolve_field
-
-if TYPE_CHECKING:
-  from mjlab.entity.entity import EntityCfg
+from mjlab.utils.string import filter_exp, resolve_field
 
 
 @dataclass
@@ -203,7 +198,7 @@ class ActuatorEditor(SpecEditor):
   jnt_names: tuple[str, ...] | None = None
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    jnts = get_non_root_joints(spec)
+    jnts = get_non_free_joints(spec)
     joint_names = [j.name for j in jnts]
 
     # Build a list of (cfg, joint_name) by resolving the config regex.
@@ -337,32 +332,3 @@ class LightEditor(SpecEditor):
       light.name = self.cfg.name
     if self.cfg.target is not None:
       light.targetbody = self.cfg.target
-
-
-@dataclass
-class KeyframeEditor(SpecEditor):
-  cfg: EntityCfg.InitialStateCfg
-
-  def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    if self.cfg.joint_pos:
-      non_root_joints = get_non_root_joints(spec)
-      joint_names = [j.name for j in non_root_joints]
-      joint_pos = resolve_expr(self.cfg.joint_pos, joint_names)
-    else:
-      joint_pos = None
-
-    state = [self.cfg.pos, self.cfg.rot]
-    if joint_pos is not None:
-      state.append(joint_pos)
-    qpos = np.concatenate(state, axis=0)
-
-    if spec.actuators:
-      key = spec.add_key(name="init_state", qpos=qpos)
-      if joint_pos is not None:
-        if len(joint_pos) != len(spec.actuators):
-          raise ValueError(
-            f"Expecting one actuator per joint. Got {len(joint_pos)} joint positions and {len(spec.actuators)} actuators."
-          )
-        key.ctrl = joint_pos
-    else:
-      spec.add_key(name="init_state", qpos=qpos)
