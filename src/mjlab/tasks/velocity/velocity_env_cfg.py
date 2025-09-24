@@ -222,6 +222,12 @@ class RewardCfg:
     },
   )
   dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
+  ang_mom_l2: RewardTerm = term(
+    RewardTerm,
+    func=mdp.subtree_angmom_l2,
+    weight=-0.01,
+    params={"sensor_name": "root_angmom", "asset_name": "robot"},
+  )
 
 
 # Terminations.

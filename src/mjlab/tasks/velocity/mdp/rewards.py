@@ -4,19 +4,19 @@ from typing import TYPE_CHECKING
 
 import torch
 
-# from mjlab.entity import Entity
-from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.entity import Entity
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
 
-_DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
-
 
 def subtree_angmom_l2(
   env: ManagerBasedRlEnv,
-  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+  sensor_name: str,
+  asset_name: str = "robot",
 ) -> torch.Tensor:
-  # asset: Entity = env.scene[asset_cfg.name]
-  # angmom_w = asset.data.data.sensordata[asset_cfg.sensor_ids]
-  raise NotImplementedError
+  asset: Entity = env.scene[asset_name]
+  sensor_slice = asset.indexing.sensor_adr[sensor_name]
+  angmom_w = env.sim.data.sensordata[:, sensor_slice]
+  angmom_xy_w = angmom_w[:, :2]
+  return torch.sum(torch.square(angmom_xy_w), dim=1)

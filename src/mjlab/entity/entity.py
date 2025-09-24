@@ -57,6 +57,8 @@ class EntityIndexing:
   free_joint_q_adr: torch.Tensor
   free_joint_v_adr: torch.Tensor
 
+  sensor_adr: dict[str, torch.Tensor]
+
   @property
   def root_body_id(self) -> int:
     return self.bodies[0].id
@@ -638,6 +640,16 @@ class Entity:
     free_joint_v_adr = torch.tensor(free_joint_v_adr, dtype=torch.int, device=device)
     free_joint_q_adr = torch.tensor(free_joint_q_adr, dtype=torch.int, device=device)
 
+    sensor_adr = {}
+    for sensor in self.spec.sensors:
+      sensor_name = sensor.name
+      sns = model.sensor(sensor_name)
+      dim = sns.dim[0]
+      start_adr = sns.adr[0]
+      sensor_adr[sensor_name.split("/")[-1]] = torch.arange(
+        start_adr, start_adr + dim, dtype=torch.int, device=device
+      )
+
     return EntityIndexing(
       bodies=bodies,
       joints=joints,
@@ -653,4 +665,5 @@ class Entity:
       joint_v_adr=joint_v_adr,
       free_joint_q_adr=free_joint_q_adr,
       free_joint_v_adr=free_joint_v_adr,
+      sensor_adr=sensor_adr,
     )

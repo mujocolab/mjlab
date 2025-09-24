@@ -2,24 +2,12 @@ from dataclasses import dataclass, replace
 
 from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ACTION_SCALE, G1_ROBOT_CFG
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
-from mjlab.utils.spec_editor.spec_editor_config import SensorCfg
 
 
 @dataclass
 class G1FlatEnvCfg(TrackingEnvCfg):
   def __post_init__(self):
-    angmom_sensor = SensorCfg(
-      name="root_angmom",
-      sensor_type="angmom",
-      kwargs={
-        "objtype": "body",
-        "objname": "pelvis",
-      },
-    )
-
-    g1_cfg = replace(G1_ROBOT_CFG, sensors=(angmom_sensor,))
-
-    self.scene.entities = {"robot": g1_cfg}
+    self.scene.entities = {"robot": replace(G1_ROBOT_CFG)}
     self.actions.joint_pos.scale = G1_ACTION_SCALE
 
     self.commands.motion.reference_body = "torso_link"
