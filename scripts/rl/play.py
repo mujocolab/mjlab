@@ -42,7 +42,7 @@ def main(
     RslRlOnPolicyRunnerCfg, load_cfg_from_registry(task, "rl_cfg_entry_point")
   )
 
-  # Detect task type by config class instead of substring
+  # Detect task type by config class
   is_tracking = isinstance(env_cfg, TrackingEnvCfg)
   is_velocity = isinstance(env_cfg, LocomotionVelocityEnvCfg)
 

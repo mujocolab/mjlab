@@ -19,12 +19,13 @@ from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
 )
 from mjlab.utils.os import dump_yaml, get_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
-
+from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
+from mjlab.tasks.velocity.velocity_env_cfg import LocomotionVelocityEnvCfg
 
 @dataclass(frozen=True)
 class TrainConfig:
-  registry_name: Optional[str] = None  # only for Tracking (W&B artifact)
-  env: Any = None  # supports both Velocity/Tracking cfgs
+  registry_name: Optional[str] = None
+  env: Any = None
   agent: RslRlOnPolicyRunnerCfg = None
   device: str = "cuda:0"
   video: bool = False
@@ -35,14 +36,24 @@ class TrainConfig:
 def main(task: str, cfg: TrainConfig) -> None:
   configure_torch_backends()
 
+  # Detect task type by config class
+  is_tracking = isinstance(cfg.env, TrackingEnvCfg)
+  is_velocity = isinstance(cfg.env, LocomotionVelocityEnvCfg)
+
+  if not (is_tracking or is_velocity):
+    raise RuntimeError(
+      f"Unsupported env cfg type: {type(env_cfg).__name__}. "
+      "Expected TrackingEnvCfg or LocomotionVelocityEnvCfg."
+    )
+
   # Require registry_name if this is a tracking task (replace tyro check).
-  if "Tracking" in task and cfg.registry_name is None:
+  if is_tracking and cfg.registry_name is None:
     raise ValueError(
       f"Task '{task}' requires --registry-name pointing to a W&B artifact."
     )
 
   # If tracking registry provided, download motion and wire into env cfg.
-  if "Tracking" in task:
+  if is_tracking:
     # Check if the registry name includes alias, if not, append ":latest".
     registry_name = cfg.registry_name
     if ":" not in registry_name:
@@ -88,7 +99,7 @@ def main(task: str, cfg: TrainConfig) -> None:
   env = RslRlVecEnvWrapper(env, clip_actions=cfg.agent.clip_actions)
 
   # Check if task is tracking
-  if "Velocity" in task:
+  if is_velocity:
     runner = VelocityOnPolicyRunner(
       env,
       asdict(cfg.agent),
