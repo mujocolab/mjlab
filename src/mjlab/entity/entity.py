@@ -16,6 +16,7 @@ from mjlab.utils.spec_editor.spec_editor import (
   ActuatorEditor,
   CameraEditor,
   CollisionEditor,
+  ContactSensorEditor,
   LightEditor,
   MaterialEditor,
   SensorEditor,
@@ -25,6 +26,7 @@ from mjlab.utils.spec_editor.spec_editor_config import (
   ActuatorCfg,
   CameraCfg,
   CollisionCfg,
+  ContactSensorCfg,
   LightCfg,
   MaterialCfg,
   SensorCfg,
@@ -90,6 +92,7 @@ class EntityCfg:
   textures: tuple[TextureCfg, ...] = field(default_factory=tuple)
   materials: tuple[MaterialCfg, ...] = field(default_factory=tuple)
   sensors: tuple[SensorCfg, ...] = field(default_factory=tuple)
+  contact_sensors: tuple[ContactSensorCfg, ...] = field(default_factory=tuple)
   collisions: tuple[CollisionCfg, ...] = field(default_factory=tuple)
 
   # Misc.
@@ -150,6 +153,7 @@ class Entity:
       (self.cfg.textures, TextureEditor),
       (self.cfg.materials, MaterialEditor),
       (self.cfg.sensors, SensorEditor),
+      (self.cfg.contact_sensors, ContactSensorEditor),
       (self.cfg.collisions, CollisionEditor),
     ]
 

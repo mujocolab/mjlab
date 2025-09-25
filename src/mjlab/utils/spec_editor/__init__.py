@@ -4,6 +4,7 @@ from mjlab.utils.spec_editor.spec_editor_config import (
   ActuatorCfg,
   CameraCfg,
   CollisionCfg,
+  ContactSensorCfg,
   GeomCfg,
   LightCfg,
   MaterialCfg,
@@ -20,4 +21,5 @@ __all__ = (
   "SensorCfg",
   "LightCfg",
   "CameraCfg",
+  "ContactSensorCfg",
 )

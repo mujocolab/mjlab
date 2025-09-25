@@ -38,37 +38,3 @@ def is_joint_limited(jnt: mujoco.MjsJoint) -> bool:
       return jnt.range[0] < jnt.range[1]
     case _:
       return False
-
-
-def construct_contact_sensor_intprm(
-  data: str,
-  reduce: str,
-  num: int = 1,
-) -> list[int]:
-  if num <= 0:
-    raise ValueError("'num' must be positive")
-
-  condata_map = {
-    "found": 0,
-    "force": 1,
-    "torque": 2,
-    "dist": 3,
-    "pos": 4,
-    "normal": 5,
-    "tangent": 6,
-  }
-  reduce_map = {"none": 0, "mindist": 1, "maxforce": 2, "netforce": 3}
-
-  if data:
-    data_keys = data.split()
-    values = [condata_map[k] for k in data_keys]
-    for i in range(1, len(values)):
-      if values[i] <= values[i - 1]:
-        raise ValueError(
-          f"Data attributes must be in order: {', '.join(condata_map.keys())}"
-        )
-    dataspec = sum(1 << v for v in values)
-  else:
-    dataspec = 1
-
-  return [dataspec, reduce_map.get(reduce, 0), num]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 import mujoco
 
@@ -15,6 +16,7 @@ from mjlab.utils.spec_editor.spec_editor_config import (
   ActuatorCfg,
   CameraCfg,
   CollisionCfg,
+  ContactSensorCfg,
   GeomCfg,
   LightCfg,
   MaterialCfg,
@@ -269,6 +271,85 @@ class SensorEditor(SpecEditor):
     if self.cfg.reftype is not None and self.cfg.refname is not None:
       sns.reftype = self.SENSOR_OBJECT_TYPE_MAP[self.cfg.reftype]
       sns.refname = self.cfg.refname
+
+
+@dataclass
+class ContactSensorEditor(SpecEditor):
+  cfg: ContactSensorCfg
+
+  @staticmethod
+  def construct_contact_sensor_intprm(
+    data: tuple[
+      Literal["found", "force", "torque", "dist", "pos", "normal", "tangent"], ...
+    ]
+    | None,
+    reduce: Literal["none", "mindist", "maxforce", "netforce"],
+    num: int = 1,
+  ) -> list[int]:
+    print("construct_contact_sensor_intprm")
+    print(f"data: {data}, reduce: {reduce}, num: {num}")
+    if num <= 0:
+      raise ValueError("'num' must be positive")
+    condata_map = {
+      "found": 0,
+      "force": 1,
+      "torque": 2,
+      "dist": 3,
+      "pos": 4,
+      "normal": 5,
+      "tangent": 6,
+    }
+    reduce_map = {"none": 0, "mindist": 1, "maxforce": 2, "netforce": 3}
+    if data:
+      values = [condata_map[k] for k in data]
+      for i in range(1, len(values)):
+        if values[i] <= values[i - 1]:
+          raise ValueError(
+            f"Data attributes must be in order: {', '.join(condata_map.keys())}"
+          )
+      dataspec = sum(1 << v for v in values)
+    else:
+      dataspec = 1
+    return [dataspec, reduce_map.get(reduce, 0), num]
+
+  def edit_spec(self, spec: mujoco.MjSpec) -> None:
+    if self.cfg.geom1 is not None:
+      objtype = mujoco.mjtObj.mjOBJ_GEOM
+      objname = self.cfg.geom1
+    elif self.cfg.body1 is not None:
+      objtype = mujoco.mjtObj.mjOBJ_BODY
+      objname = self.cfg.body1
+    elif self.cfg.subtree1 is not None:
+      objtype = mujoco.mjtObj.mjOBJ_XBODY
+      objname = self.cfg.subtree1
+    else:
+      raise ValueError("One of geom1, body1, subtree1 must be non-None.")
+
+    if self.cfg.geom2 is not None:
+      reftype = mujoco.mjtObj.mjOBJ_GEOM
+      refname = self.cfg.geom2
+    elif self.cfg.body2 is not None:
+      reftype = mujoco.mjtObj.mjOBJ_BODY
+      refname = self.cfg.body2
+    elif self.cfg.subtree2 is not None:
+      reftype = mujoco.mjtObj.mjOBJ_XBODY
+      refname = self.cfg.subtree2
+    else:
+      raise ValueError("One of geom2, body2, subtree2 must be non-None.")
+
+    spec.add_sensor(
+      name=self.cfg.name,
+      type=mujoco.mjtSensor.mjSENS_CONTACT,
+      objtype=objtype,
+      objname=objname,
+      reftype=reftype,
+      refname=refname,
+      intprm=self.construct_contact_sensor_intprm(
+        data=self.cfg.data,
+        reduce=self.cfg.reduce,
+        num=self.cfg.num,
+      ),
+    )
 
 
 CAM_LIGHT_MODE_MAP = {

@@ -81,6 +81,28 @@ class SensorCfg:
 
 
 @dataclass
+class ContactSensorCfg:
+  """Configuration for a contact sensor.
+
+  Ref: https://mujoco.readthedocs.io/en/stable/XMLreference.html#sensor-contact
+  """
+
+  name: str
+  geom1: str | None = None
+  geom2: str | None = None
+  body1: str | None = None
+  body2: str | None = None
+  subtree1: str | None = None
+  subtree2: str | None = None
+  site: str | None = None
+  num: int = 1
+  data: tuple[
+    Literal["found", "force", "torque", "dist", "pos", "normal", "tangent"], ...
+  ] = ("found",)
+  reduce: Literal["none", "mindist", "maxforce", "netforce"] = "none"
+
+
+@dataclass
 class LightCfg:
   name: str | None = None
   body: str = "world"

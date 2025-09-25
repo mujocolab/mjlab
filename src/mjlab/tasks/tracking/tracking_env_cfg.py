@@ -239,20 +239,12 @@ class RewardCfg:
     weight=-10.0,
     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*"])},
   )
-  # undesired_contacts: RewTerm = term(
-  #   RewTerm,
-  #   func=mdp.undesired_contacts,
-  #   weight=-10.0,
-  #   params={
-  #     "sensor_cfg": SceneEntityCfg(
-  #       "contact_forces",
-  #       body_names=[
-  #         r"^(?!left_ankle_roll_link$)(?!right_ankle_roll_link$)(?!left_wrist_yaw_link$)(?!right_wrist_yaw_link$).+$"
-  #       ],
-  #     ),
-  #     "threshold": 1.0,
-  #   },
-  # )
+  self_collisions: RewTerm = term(
+    RewTerm,
+    func=mdp.collision_count_cost,
+    weight=-10.0,
+    params={"sensor_name": "self_collision"},
+  )
 
 
 @dataclass
