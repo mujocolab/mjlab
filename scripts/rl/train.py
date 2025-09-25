@@ -11,51 +11,48 @@ import gymnasium as gym
 import tyro
 
 import mjlab.tasks  # noqa: F401 (really needed ?)
-
-from mjlab.envs import ManagerBasedRlEnvCfg
-from mjlab.rl import RslRlVecEnvWrapper, RslRlOnPolicyRunnerCfg
-
-
-from mjlab.tasks.velocity.rl import VelocityOnPolicyRunner
+from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
-
-
+from mjlab.tasks.velocity.rl import VelocityOnPolicyRunner
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
 from mjlab.utils.os import dump_yaml, get_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 
+
 @dataclass(frozen=True)
 class TrainConfig:
-  registry_name: Optional[str] = None       # only for Tracking (W&B artifact)
-  env: Any = None                           # supports both Velocity/Tracking cfgs
+  registry_name: Optional[str] = None  # only for Tracking (W&B artifact)
+  env: Any = None  # supports both Velocity/Tracking cfgs
   agent: RslRlOnPolicyRunnerCfg = None
   device: str = "cuda:0"
   video: bool = False
   video_length: int = 200
   video_interval: int = 2000
 
+
 def main(task: str, cfg: TrainConfig) -> None:
   configure_torch_backends()
 
   # Require registry_name if this is a tracking task (replace tyro check).
   if "Tracking" in task and cfg.registry_name is None:
-      raise ValueError(
-        f"Task '{task}' requires --registry-name pointing to a W&B artifact."
-  )
+    raise ValueError(
+      f"Task '{task}' requires --registry-name pointing to a W&B artifact."
+    )
 
   # If tracking registry provided, download motion and wire into env cfg.
   if "Tracking" in task:
     # Check if the registry name includes alias, if not, append ":latest".
     registry_name = cfg.registry_name
     if ":" not in registry_name:
-        registry_name += ":latest"
+      registry_name += ":latest"
     import wandb
+
     api = wandb.Api()
     artifact = api.artifact(registry_name)
     cfg.env.commands.motion.motion_file = str(Path(artifact.download()) / "motion.npz")
-  
+
   # Specify directory for logging experiments.
   log_root_path = Path("logs") / "rsl_rl" / cfg.agent.experiment_name
   log_root_path.resolve()
@@ -67,18 +64,12 @@ def main(task: str, cfg: TrainConfig) -> None:
 
   # Create environment
   env = gym.make(
-    task, 
-    cfg=cfg.env, 
-    device=cfg.device, 
-    render_mode="rgb_array" if cfg.video else None
+    task, cfg=cfg.env, device=cfg.device, render_mode="rgb_array" if cfg.video else None
   )
 
   # Save resume path before creating a new log_dir.
   resume_path = (
-    get_checkpoint_path(
-      log_root_path, 
-      cfg.agent.load_run, 
-      cfg.agent.load_checkpoint)
+    get_checkpoint_path(log_root_path, cfg.agent.load_run, cfg.agent.load_checkpoint)
     if cfg.agent.resume
     else None
   )
@@ -158,4 +149,3 @@ if __name__ == "__main__":
   del env_cfg, agent_cfg, remaining_args
 
   main(chosen_task, args)
-  

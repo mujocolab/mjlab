@@ -1,33 +1,29 @@
 from dataclasses import asdict
 from pathlib import Path
-from typing import Literal, cast, Optional
+from typing import Literal, Optional, cast
 
 import gymnasium as gym
 import tyro
-
-from rsl_rl.runners import OnPolicyRunner 
-
+from rsl_rl.runners import OnPolicyRunner
 from typing_extensions import assert_never
-from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 
+from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
-
 from mjlab.tasks.velocity.rl import attach_onnx_metadata, export_velocity_policy_as_onnx
 from mjlab.tasks.velocity.velocity_env_cfg import LocomotionVelocityEnvCfg
-
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
-
 from mjlab.utils.os import get_wandb_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.viewer import NativeMujocoViewer, ViserViewer
 
+
 def main(
   task: str,
   wandb_run_path: Path,
-  motion_file: Optional[str] = None, 
+  motion_file: Optional[str] = None,
   num_envs: int | None = None,
   device: str = "cuda:0",
   video: bool = False,
@@ -42,7 +38,9 @@ def main(
 
   # Load configs
   env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
-  agent_cfg = cast(RslRlOnPolicyRunnerCfg, load_cfg_from_registry(task, "rl_cfg_entry_point"))
+  agent_cfg = cast(
+    RslRlOnPolicyRunnerCfg, load_cfg_from_registry(task, "rl_cfg_entry_point")
+  )
 
   # Detect task type by config class instead of substring
   is_tracking = isinstance(env_cfg, TrackingEnvCfg)
@@ -72,11 +70,12 @@ def main(
   # Check if tracking and resolves motion file
   if is_tracking:
     env_cfg = cast(TrackingEnvCfg, env_cfg)
-    elif motion_file is not None:
+    if motion_file is not None:
       print(f"[INFO]: Using motion file from CLI: {motion_file}")
       env_cfg.commands.motion.motion_file = motion_file
     else:
       import wandb
+
       api = wandb.Api()
       wandb_run = api.run(str(wandb_run_path))
       art = next((a for a in wandb_run.used_artifacts() if a.type == "motions"), None)
@@ -84,9 +83,9 @@ def main(
         raise RuntimeError("No motion artifact found in the run.")
       env_cfg.commands.motion.motion_file = str(Path(art.download()) / "motion.npz")
 
-  
-
-  env = gym.make(task, cfg=env_cfg, device=device, render_mode="rgb_array" if video else None)
+  env = gym.make(
+    task, cfg=env_cfg, device=device, render_mode="rgb_array" if video else None
+  )
   if video:
     print("[INFO] Recording videos during play")
     env = gym.wrappers.RecordVideo(
@@ -103,7 +102,9 @@ def main(
     runner = OnPolicyRunner(env, asdict(agent_cfg), log_dir=str(log_dir), device=device)
 
   else:
-    runner = MotionTrackingOnPolicyRunner(env, asdict(agent_cfg), log_dir=str(log_dir), device=device)
+    runner = MotionTrackingOnPolicyRunner(
+      env, asdict(agent_cfg), log_dir=str(log_dir), device=device
+    )
 
   runner.load(str(resume_path), map_location=device)
 
