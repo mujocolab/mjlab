@@ -1,4 +1,4 @@
-from typing import Literal, cast
+from typing import Literal
 
 import gymnasium as gym
 import torch
@@ -32,8 +32,7 @@ def main(
 
   if not is_velocity:
     raise RuntimeError(
-      f"Unsupported env cfg type: {type(env_cfg).__name__}. "
-      "Expected a Velocity task."
+      f"Unsupported env cfg type: {type(env_cfg).__name__}. Expected a Velocity task."
     )
 
   env_cfg.scene.num_envs = num_envs or env_cfg.scene.num_envs

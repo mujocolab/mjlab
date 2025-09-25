@@ -13,14 +13,15 @@ import tyro
 import mjlab.tasks  # noqa: F401 (really needed ?)
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
+from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
 from mjlab.tasks.velocity.rl import VelocityOnPolicyRunner
+from mjlab.tasks.velocity.velocity_env_cfg import LocomotionVelocityEnvCfg
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
 from mjlab.utils.os import dump_yaml, get_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
-from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
-from mjlab.tasks.velocity.velocity_env_cfg import LocomotionVelocityEnvCfg
+
 
 @dataclass(frozen=True)
 class TrainConfig:
