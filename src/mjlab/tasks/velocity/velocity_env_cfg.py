@@ -228,7 +228,7 @@ class RewardCfg:
     weight=2.0,
     params={
       "asset_name": "robot",
-      "threshold": 0.1,
+      "threshold_min": 0.1,
       "command_name": "twist",
       "command_threshold": 0.1,
       "sensor_names": [],  # Override in robot cfg.

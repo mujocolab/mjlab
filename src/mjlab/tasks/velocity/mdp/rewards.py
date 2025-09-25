@@ -35,7 +35,8 @@ class feet_air_time:
   """
 
   def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
-    self.threshold = cfg.params["threshold"]
+    self.threshold_min = cfg.params["threshold_min"]
+    self.threshold_max = cfg.params.get("threshold_max", self.threshold_min + 0.3)
     self.asset_name = cfg.params["asset_name"]
     self.sensor_names = cfg.params["sensor_names"]
     self.num_feet = len(self.sensor_names)
@@ -93,17 +94,21 @@ class feet_air_time:
 
     if self.reward_mode == "continuous":
       # Give constant reward of 1.0 for each foot that's in air and above threshold.
-      exceeds_threshold = self.current_air_time > self.threshold
+      exceeds_min = self.current_air_time > self.threshold_min
+      below_max = self.current_air_time <= self.threshold_max
       reward_per_foot = torch.where(
-        in_air & exceeds_threshold,
+        in_air & exceeds_min & below_max,
         torch.ones_like(self.current_air_time),
         torch.zeros_like(self.current_air_time),
       )
       reward = torch.sum(reward_per_foot, dim=1)
     else:
       # This mode gives (air_time - threshold) as reward on landing.
-      air_time_over_threshold = (self.last_air_time - self.threshold).clamp(min=0.0)
-      reward = torch.sum(air_time_over_threshold * first_contact, dim=1) / env.step_dt
+      air_time_over_min = (self.last_air_time - self.threshold_min).clamp(min=0.0)
+      air_time_clamped = air_time_over_min.clamp(
+        max=self.threshold_max - self.threshold_min
+      )
+      reward = torch.sum(air_time_clamped * first_contact, dim=1) / env.step_dt
 
     command = env.command_manager.get_command(self.command_name)
     assert command is not None
