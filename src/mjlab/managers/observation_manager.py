@@ -126,7 +126,7 @@ class ObservationManager(ManagerBase):
     for _group_name, group_cfg in self._group_obs_class_term_cfgs.items():
       for term_cfg in group_cfg:
         term_cfg.func.reset(env_ids=env_ids)
-      # TODO: History.
+      # TODO: https://github.com/mujocolab/mjlab/issues/58
     for mod in self._group_obs_class_instances.values():
       mod.reset(env_ids=env_ids)
     return {}

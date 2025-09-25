@@ -168,10 +168,7 @@ def apply_external_force_torque(
 # Domain randomization
 ##
 
-# TODO: Clean this up and figure out how to support general fields such as
-# model.opt.gravity and model.opt.impratio.
-# TODO: Need to write other things back to asset.data when changing certain fields such
-# as joint limits, armature, etc.
+# TODO: https://github.com/mujocolab/mjlab/issues/38
 
 
 @dataclass

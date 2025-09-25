@@ -187,5 +187,4 @@ def electrical_power_cost(
   qd = asset.data.joint_vel
   mech = tau * qd
   mech_pos = torch.clamp(mech, min=0.0)  # Don't penalize regen.
-  # TODO(kevin): Add a cost for current squared (I^2R losses).
   return torch.sum(mech_pos, dim=1)
