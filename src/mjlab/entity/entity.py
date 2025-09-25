@@ -11,27 +11,8 @@ import torch
 
 from mjlab.entity.data import EntityData
 from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
+from mjlab.utils import spec_config as spec_cfg
 from mjlab.utils.mujoco import dof_width, qpos_width
-from mjlab.utils.spec_editor.spec_editor import (
-  ActuatorEditor,
-  CameraEditor,
-  CollisionEditor,
-  ContactSensorEditor,
-  LightEditor,
-  MaterialEditor,
-  SensorEditor,
-  TextureEditor,
-)
-from mjlab.utils.spec_editor.spec_editor_config import (
-  ActuatorCfg,
-  CameraCfg,
-  CollisionCfg,
-  ContactSensorCfg,
-  LightCfg,
-  MaterialCfg,
-  SensorCfg,
-  TextureCfg,
-)
 from mjlab.utils.string import resolve_expr
 
 
@@ -87,13 +68,14 @@ class EntityCfg:
   articulation: EntityArticulationInfoCfg | None = None
 
   # Editors.
-  lights: tuple[LightCfg, ...] = field(default_factory=tuple)
-  cameras: tuple[CameraCfg, ...] = field(default_factory=tuple)
-  textures: tuple[TextureCfg, ...] = field(default_factory=tuple)
-  materials: tuple[MaterialCfg, ...] = field(default_factory=tuple)
-  sensors: tuple[SensorCfg, ...] = field(default_factory=tuple)
-  contact_sensors: tuple[ContactSensorCfg, ...] = field(default_factory=tuple)
-  collisions: tuple[CollisionCfg, ...] = field(default_factory=tuple)
+  lights: tuple[spec_cfg.LightCfg, ...] = field(default_factory=tuple)
+  cameras: tuple[spec_cfg.CameraCfg, ...] = field(default_factory=tuple)
+  textures: tuple[spec_cfg.TextureCfg, ...] = field(default_factory=tuple)
+  materials: tuple[spec_cfg.MaterialCfg, ...] = field(default_factory=tuple)
+  sensors: tuple[spec_cfg.SensorCfg | spec_cfg.ContactSensorCfg, ...] = field(
+    default_factory=tuple
+  )
+  collisions: tuple[spec_cfg.CollisionCfg, ...] = field(default_factory=tuple)
 
   # Misc.
   debug_vis: bool = False
@@ -101,7 +83,7 @@ class EntityCfg:
 
 @dataclass
 class EntityArticulationInfoCfg:
-  actuators: tuple[ActuatorCfg, ...] = field(default_factory=tuple)
+  actuators: tuple[spec_cfg.ActuatorCfg, ...] = field(default_factory=tuple)
   soft_joint_pos_limit_factor: float = 1.0
 
 
@@ -147,22 +129,19 @@ class Entity:
     # TODO: Should init_state.pos/rot be applied to root body if fixed base?
 
   def _apply_spec_editors(self) -> None:
-    editors = [
-      (self.cfg.lights, LightEditor),
-      (self.cfg.cameras, CameraEditor),
-      (self.cfg.textures, TextureEditor),
-      (self.cfg.materials, MaterialEditor),
-      (self.cfg.sensors, SensorEditor),
-      (self.cfg.contact_sensors, ContactSensorEditor),
-      (self.cfg.collisions, CollisionEditor),
-    ]
-
-    for configs, editor_class in editors:
-      for config in configs:
-        editor_class(config).edit_spec(self._spec)
+    for cfg_list in [
+      self.cfg.lights,
+      self.cfg.cameras,
+      self.cfg.textures,
+      self.cfg.materials,
+      self.cfg.sensors,
+      self.cfg.collisions,
+    ]:
+      for cfg in cfg_list:
+        cfg.edit_spec(self._spec)
 
     if self.cfg.articulation:
-      ActuatorEditor(self.cfg.articulation.actuators).edit_spec(self._spec)
+      spec_cfg.ActuatorSetCfg(self.cfg.articulation.actuators).edit_spec(self._spec)
 
   def _add_initial_state_keyframe(self) -> None:
     qpos_components = []

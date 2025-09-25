@@ -8,7 +8,7 @@ from mjlab import MJLAB_SRC_PATH
 from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.utils.actuator import ElectricActuator, reflected_inertia
 from mjlab.utils.os import update_assets
-from mjlab.utils.spec_editor import ActuatorCfg, CollisionCfg
+from mjlab.utils.spec_config import ActuatorCfg, CollisionCfg
 
 ##
 # MJCF and assets.

@@ -96,6 +96,9 @@ exclude = [
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "B"]
+ignore = [
+  "B027",  # Allow empty method in ABC.
+]
 
 [tool.pyright]
 pythonVersion = "3.10"

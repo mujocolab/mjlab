@@ -2,7 +2,7 @@ from dataclasses import dataclass, replace
 
 from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ACTION_SCALE, G1_ROBOT_CFG
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
-from mjlab.utils.spec_editor.spec_editor_config import ContactSensorCfg
+from mjlab.utils.spec_config import ContactSensorCfg
 
 
 @dataclass
@@ -16,7 +16,7 @@ class G1FlatEnvCfg(TrackingEnvCfg):
       reduce="netforce",
       num=10,  # Report up to 10 contacts.
     )
-    g1_cfg = replace(G1_ROBOT_CFG, contact_sensors=(self_collision_sensor,))
+    g1_cfg = replace(G1_ROBOT_CFG, sensors=(self_collision_sensor,))
 
     self.scene.entities = {"robot": g1_cfg}
     self.actions.joint_pos.scale = G1_ACTION_SCALE

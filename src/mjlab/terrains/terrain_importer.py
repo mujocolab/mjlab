@@ -8,9 +8,9 @@ import numpy as np
 import torch
 
 from mjlab.terrains.terrain_generator import TerrainGenerator, TerrainGeneratorCfg
-from mjlab.utils.spec_editor import spec_editor, spec_editor_config
+from mjlab.utils import spec_config as spec_cfg
 
-_DEFAULT_PLANE_TEXTURE = spec_editor_config.TextureCfg(
+_DEFAULT_PLANE_TEXTURE = spec_cfg.TextureCfg(
   name="groundplane",
   type="2d",
   builtin="checker",
@@ -22,7 +22,7 @@ _DEFAULT_PLANE_TEXTURE = spec_editor_config.TextureCfg(
   height=300,
 )
 
-_DEFAULT_PLANE_MATERIAL = spec_editor_config.MaterialCfg(
+_DEFAULT_PLANE_MATERIAL = spec_cfg.MaterialCfg(
   name="groundplane",
   texuniform=True,
   texrepeat=(4, 4),
@@ -152,17 +152,15 @@ class TerrainImporter:
     return self._spec
 
   def import_ground_plane(self, name: str) -> None:
-    spec_editor.TextureEditor(_DEFAULT_PLANE_TEXTURE).edit_spec(self._spec)
-    spec_editor.MaterialEditor(_DEFAULT_PLANE_MATERIAL).edit_spec(self._spec)
+    _DEFAULT_PLANE_TEXTURE.edit_spec(self._spec)
+    _DEFAULT_PLANE_MATERIAL.edit_spec(self._spec)
     self._spec.worldbody.add_body(name=name).add_geom(
       name=name,
       type=mujoco.mjtGeom.mjGEOM_PLANE,
       size=(0, 0, 0.01),
       material=_DEFAULT_PLANE_MATERIAL.name,
     )
-    spec_editor.LightEditor(
-      spec_editor_config.LightCfg(pos=(0, 0, 1.5), type="directional")
-    ).edit_spec(self._spec)
+    spec_cfg.LightCfg(pos=(0, 0, 1.5), type="directional").edit_spec(self._spec)
 
   def configure_env_origins(self, origins: np.ndarray | torch.Tensor | None = None):
     """Configure the origins of the environments based on the added terrain."""
