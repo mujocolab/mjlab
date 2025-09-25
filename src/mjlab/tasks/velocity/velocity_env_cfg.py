@@ -222,6 +222,16 @@ class RewardCfg:
     },
   )
   dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
+  air_time: RewardTerm = term(
+    RewardTerm,
+    func=mdp.feet_air_time,
+    weight=0.1,
+    params={
+      "asset_name": "robot",
+      "threshold": 0.4,
+      "sensor_names": [],  # Override in robot cfg.
+    },
+  )
 
 
 # Terminations.

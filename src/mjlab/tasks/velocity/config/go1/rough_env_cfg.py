@@ -7,6 +7,7 @@ from mjlab.asset_zoo.robots.unitree_go1.go1_constants import (
 from mjlab.tasks.velocity.velocity_env_cfg import (
   LocomotionVelocityEnvCfg,
 )
+from mjlab.utils.spec_config import ContactSensorCfg
 
 
 @dataclass
@@ -14,7 +15,27 @@ class UnitreeGo1RoughEnvCfg(LocomotionVelocityEnvCfg):
   def __post_init__(self):
     super().__post_init__()
 
-    self.scene.entities = {"robot": replace(GO1_ROBOT_CFG)}
+    foot_contact_sensors = [
+      ContactSensorCfg(
+        name=f"{leg}_foot_ground_contact",
+        geom1=f"{leg}_foot_collision",
+        geom2="terrain",
+        num=1,
+        data=("found",),
+        reduce="netforce",
+      )
+      for leg in ["FR", "FL", "RR", "RL"]
+    ]
+    go1_cfg = replace(GO1_ROBOT_CFG, sensors=tuple(foot_contact_sensors))
+    self.scene.entities = {"robot": go1_cfg}
+
+    self.rewards.air_time.params["sensor_names"] = [
+      "FR_foot_ground_contact",
+      "FL_foot_ground_contact",
+      "RR_foot_ground_contact",
+      "RL_foot_ground_contact",
+    ]
+
     self.actions.joint_pos.scale = GO1_ACTION_SCALE
 
     self.events.foot_friction.params["asset_cfg"].geom_names = [

@@ -32,8 +32,8 @@ class Scene:
     self._spec = mujoco.MjSpec.from_file(str(_SCENE_XML))
     if self._cfg.extent is not None:
       self._spec.stat.extent = self._cfg.extent
-    self._attach_entities()
     self._attach_terrain()
+    self._attach_entities()
 
   def compile(self) -> mujoco.MjModel:
     return self._spec.compile()
@@ -144,4 +144,4 @@ class Scene:
     self._cfg.terrain.env_spacing = self._cfg.env_spacing
     self._terrain = TerrainImporter(self._cfg.terrain, self._device)
     frame = self._spec.worldbody.add_frame()
-    self._spec.attach(self._terrain.spec, prefix="terrain/", frame=frame)
+    self._spec.attach(self._terrain.spec, frame=frame)
