@@ -71,7 +71,7 @@ class LightCfg:
   body: str = "world"
   mode: str = "fixed"
   target: str | None = None
-  type: str = "spot"
+  type: Literal["spot", "directional"] = "spot"
   castshadow: bool = True
   pos: tuple[float, float, float] = (0, 0, 0)
   dir: tuple[float, float, float] = (0, 0, -1)
