@@ -12,7 +12,7 @@ class G1FlatEnvCfg(TrackingEnvCfg):
       name="self_collision",
       subtree1="pelvis",
       subtree2="pelvis",
-      data=("found", "force"),
+      data=("found",),
       reduce="netforce",
       num=10,  # Report up to 10 contacts.
     )

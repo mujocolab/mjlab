@@ -277,6 +277,23 @@ class SensorEditor(SpecEditor):
 class ContactSensorEditor(SpecEditor):
   cfg: ContactSensorCfg
 
+  CONDATA_MAP = {
+    "found": 0,
+    "force": 1,
+    "torque": 2,
+    "dist": 3,
+    "pos": 4,
+    "normal": 5,
+    "tangent": 6,
+  }
+
+  REDUCE_MAP = {
+    "none": 0,
+    "mindist": 1,
+    "maxforce": 2,
+    "netforce": 3,
+  }
+
   @staticmethod
   def construct_contact_sensor_intprm(
     data: tuple[
@@ -286,31 +303,20 @@ class ContactSensorEditor(SpecEditor):
     reduce: Literal["none", "mindist", "maxforce", "netforce"],
     num: int = 1,
   ) -> list[int]:
-    print("construct_contact_sensor_intprm")
-    print(f"data: {data}, reduce: {reduce}, num: {num}")
     if num <= 0:
       raise ValueError("'num' must be positive")
-    condata_map = {
-      "found": 0,
-      "force": 1,
-      "torque": 2,
-      "dist": 3,
-      "pos": 4,
-      "normal": 5,
-      "tangent": 6,
-    }
-    reduce_map = {"none": 0, "mindist": 1, "maxforce": 2, "netforce": 3}
     if data:
-      values = [condata_map[k] for k in data]
+      values = [ContactSensorEditor.CONDATA_MAP[k] for k in data]
       for i in range(1, len(values)):
         if values[i] <= values[i - 1]:
           raise ValueError(
-            f"Data attributes must be in order: {', '.join(condata_map.keys())}"
+            "Data attributes must be in order: "
+            f"{', '.join(ContactSensorEditor.CONDATA_MAP.keys())}"
           )
       dataspec = sum(1 << v for v in values)
     else:
       dataspec = 1
-    return [dataspec, reduce_map.get(reduce, 0), num]
+    return [dataspec, ContactSensorEditor.REDUCE_MAP.get(reduce, 0), num]
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
     if self.cfg.geom1 is not None:

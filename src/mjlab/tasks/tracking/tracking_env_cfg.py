@@ -241,7 +241,7 @@ class RewardCfg:
   )
   self_collisions: RewTerm = term(
     RewTerm,
-    func=mdp.collision_count_cost,
+    func=mdp.self_collision_cost,
     weight=-10.0,
     params={"sensor_name": "self_collision"},
   )

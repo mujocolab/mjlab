@@ -161,22 +161,6 @@ class posture:
     return torch.sum(weighted_error, dim=1)
 
 
-def collision_count_cost(
-  env: ManagerBasedRlEnv,
-  sensor_name: str,
-  asset_name: str = "robot",
-) -> torch.Tensor:
-  """Penalize the number of contacts detected by a contact sensor."""
-  asset: Entity = env.scene[asset_name]
-  if sensor_name not in asset.sensor_names:
-    raise ValueError(
-      f"Sensor '{sensor_name}' not found in asset '{asset_name}'. "
-      f"Available sensors: {asset.sensor_names}"
-    )
-  contact_data = asset.data.sensor_data[sensor_name]  # (num_envs, 4)
-  return contact_data[..., 0]  # (num_envs,)
-
-
 def electrical_power_cost(
   env: ManagerBasedRlEnv,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
