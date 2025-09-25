@@ -30,7 +30,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 Run a pre-trained motion mimic policy on the Unitree G1 humanoid:
 
 ```bash
-uv run scripts/tracking/rl/play.py \
+uv run scripts/rl/play.py \
   --task Mjlab-Tracking-Flat-G1-Play \
   --wandb-run-path gcbc_researchers/mjlab_alpha/rfdej55h
 ```
@@ -38,7 +38,7 @@ uv run scripts/tracking/rl/play.py \
 You can train this exact motion mimic policy using the following command:
 
 ```bash
-MUJOCO_GL=egl uv run scripts/tracking/rl/train.py \
+MUJOCO_GL=egl uv run scripts/rl/train.py \
   Mjlab-Tracking-Flat-G1 \
   --registry-name gcbc_researchers/csv_to_npz/lafan_cartwheel \
   --env.scene.num-envs 4096
@@ -47,7 +47,7 @@ MUJOCO_GL=egl uv run scripts/tracking/rl/train.py \
 To add a new motion to the wandb registry, run:
 
 ```bash
-MUJOCO_GL=egl uv run scripts/tracking/csv_to_npz.py \
+MUJOCO_GL=egl uv run scripts/csv_to_npz.py \
   --input-file /path/to/motion.csv \
   --output-name side_kick \
   --input-fps 30 \
