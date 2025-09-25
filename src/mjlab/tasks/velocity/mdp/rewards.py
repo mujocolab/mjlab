@@ -31,16 +31,19 @@ class feet_air_time:
   """Reward long steps taken by the feet.
 
   This rewards the agent for lifting feet off the ground for longer than a threshold.
-  Tracks air time internally and rewards when foot makes contact after being in air.
+  Provides continuous reward signal during flight phase and smooth command scaling.
   """
 
   def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
     self.threshold = cfg.params["threshold"]
     self.asset_name = cfg.params["asset_name"]
     self.sensor_names = cfg.params["sensor_names"]
+    self.num_feet = len(self.sensor_names)
     self.command_name = cfg.params["command_name"]
     self.command_threshold = cfg.params["command_threshold"]
-    self.num_feet = len(self.sensor_names)
+    self.reward_mode = cfg.params.get("reward_mode", "continuous")
+    self.command_scale_type = cfg.params.get("command_scale_type", "smooth")
+    self.command_scale_width = cfg.params.get("command_scale_width", 0.2)
 
     asset: Entity = env.scene[self.asset_name]
     for sensor_name in self.sensor_names:
@@ -64,9 +67,10 @@ class feet_air_time:
       foot_contact = sensor_data[:, 0] > 0
       contact_list.append(foot_contact)
 
-    in_contact = torch.stack(contact_list, dim=1)  # (num_envs, num_feet)
+    in_contact = torch.stack(contact_list, dim=1)
+    in_air = ~in_contact
 
-    # Detect first contact.
+    # Detect first contact (landing).
     first_contact = (self.current_air_time > 0) & in_contact
 
     # Save air time when landing.
@@ -74,6 +78,7 @@ class feet_air_time:
       first_contact, self.current_air_time, self.last_air_time
     )
 
+    # Update air time and contact time.
     self.current_air_time = torch.where(
       in_contact,
       torch.zeros_like(self.current_air_time),  # Reset when in contact.
@@ -86,15 +91,31 @@ class feet_air_time:
       torch.zeros_like(self.current_contact_time),  # Reset when in air.
     )
 
-    air_time_over_threshold = (self.last_air_time - self.threshold).clamp(min=0.0)
-    reward = torch.sum(air_time_over_threshold * first_contact, dim=1)
+    if self.reward_mode == "continuous":
+      # Give constant reward of 1.0 for each foot that's in air and above threshold.
+      exceeds_threshold = self.current_air_time > self.threshold
+      reward_per_foot = torch.where(
+        in_air & exceeds_threshold,
+        torch.ones_like(self.current_air_time),
+        torch.zeros_like(self.current_air_time),
+      )
+      reward = torch.sum(reward_per_foot, dim=1)
+    else:
+      # This mode gives (air_time - threshold) as reward on landing.
+      air_time_over_threshold = (self.last_air_time - self.threshold).clamp(min=0.0)
+      reward = torch.sum(air_time_over_threshold * first_contact, dim=1) / env.step_dt
 
-    # Only reward if command is above threshold.
     command = env.command_manager.get_command(self.command_name)
     assert command is not None
     command_norm = torch.norm(command[:, :2], dim=1)
-    reward *= command_norm > self.command_threshold
-
+    if self.command_scale_type == "smooth":
+      scale = 0.5 * (
+        1.0
+        + torch.tanh((command_norm - self.command_threshold) / self.command_scale_width)
+      )
+      reward *= scale
+    else:
+      reward *= command_norm > self.command_threshold
     return reward
 
   def reset(self, env_ids: torch.Tensor | slice | None = None):

@@ -225,10 +225,10 @@ class RewardCfg:
   air_time: RewardTerm = term(
     RewardTerm,
     func=mdp.feet_air_time,
-    weight=0.1,
+    weight=2.0,
     params={
       "asset_name": "robot",
-      "threshold": 0.4,
+      "threshold": 0.1,
       "command_name": "twist",
       "command_threshold": 0.1,
       "sensor_names": [],  # Override in robot cfg.
