@@ -8,7 +8,6 @@ from mjlab.entity import Entity, EntityCfg
 @pytest.mark.parametrize(
   "robot_name,robot_cfg",
   [
-    ("T1", robots.T1_ROBOT_CFG),
     ("G1", robots.G1_ROBOT_CFG),
     ("GO1", robots.GO1_ROBOT_CFG),
   ],
