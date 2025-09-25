@@ -38,6 +38,8 @@ class feet_air_time:
     self.threshold = cfg.params["threshold"]
     self.asset_name = cfg.params["asset_name"]
     self.sensor_names = cfg.params["sensor_names"]
+    self.command_name = cfg.params["command_name"]
+    self.command_threshold = cfg.params["command_threshold"]
     self.num_feet = len(self.sensor_names)
 
     asset: Entity = env.scene[self.asset_name]
@@ -85,7 +87,15 @@ class feet_air_time:
     )
 
     air_time_over_threshold = (self.last_air_time - self.threshold).clamp(min=0.0)
-    return torch.sum(air_time_over_threshold * first_contact, dim=1)
+    reward = torch.sum(air_time_over_threshold * first_contact, dim=1)
+
+    # Only reward if command is above threshold.
+    command = env.command_manager.get_command(self.command_name)
+    assert command is not None
+    command_norm = torch.norm(command[:, :2], dim=1)
+    reward *= command_norm > self.command_threshold
+
+    return reward
 
   def reset(self, env_ids: torch.Tensor | slice | None = None):
     if env_ids is None:
