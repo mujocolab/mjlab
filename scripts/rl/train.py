@@ -5,7 +5,7 @@ import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, cast
 
 import gymnasium as gym
 import tyro
@@ -25,9 +25,9 @@ from mjlab.utils.torch import configure_torch_backends
 
 @dataclass(frozen=True)
 class TrainConfig:
-  registry_name: Optional[str] = None
-  env: Any = None
-  agent: RslRlOnPolicyRunnerCfg = None
+  env: Any
+  agent: RslRlOnPolicyRunnerCfg
+  registry_name: str | None = None
   device: str = "cuda:0"
   video: bool = False
   video_length: int = 200
@@ -53,12 +53,14 @@ def main(task: str, cfg: TrainConfig) -> None:
       f"Task '{task}' requires --registry-name pointing to a W&B artifact."
     )
 
+  registry_name: str | None = None
+
   # If tracking registry provided, download motion and wire into env cfg.
   if is_tracking:
     # Check if the registry name includes alias, if not, append ":latest".
-    registry_name = cfg.registry_name
+    registry_name = cast(str, cfg.registry_name)
     if ":" not in registry_name:
-      registry_name += ":latest"
+      registry_name = registry_name + ":latest"
     import wandb
 
     api = wandb.Api()

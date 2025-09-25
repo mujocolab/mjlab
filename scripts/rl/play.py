@@ -1,3 +1,5 @@
+"""Script to play RL agent with RSL-RL."""
+
 from dataclasses import asdict
 from pathlib import Path
 from typing import Literal, Optional, cast
