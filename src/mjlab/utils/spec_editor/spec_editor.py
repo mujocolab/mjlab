@@ -260,20 +260,15 @@ class SensorEditor(SpecEditor):
   }
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    kwargs_copy = self.cfg.kwargs.copy()
-
-    kwargs = {
-      "type": self.SENSOR_TYPE_MAP[self.cfg.sensor_type],
-      "name": self.cfg.name,
-    }
-
-    if "objtype" in kwargs_copy:
-      kwargs["objtype"] = self.SENSOR_OBJECT_TYPE_MAP[kwargs_copy.pop("objtype")]
-    if "reftype" in kwargs_copy:
-      kwargs["reftype"] = self.SENSOR_OBJECT_TYPE_MAP[kwargs_copy.pop("reftype")]
-
-    kwargs.update(kwargs_copy)
-    spec.add_sensor(**kwargs)
+    sns = spec.add_sensor(
+      name=self.cfg.name,
+      type=self.SENSOR_TYPE_MAP[self.cfg.sensor_type],
+      objtype=self.SENSOR_OBJECT_TYPE_MAP[self.cfg.objtype],
+      objname=self.cfg.objname,
+    )
+    if self.cfg.reftype is not None and self.cfg.refname is not None:
+      sns.reftype = self.SENSOR_OBJECT_TYPE_MAP[self.cfg.reftype]
+      sns.refname = self.cfg.refname
 
 
 CAM_LIGHT_MODE_MAP = {

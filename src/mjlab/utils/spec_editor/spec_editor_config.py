@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Literal
 
 
 @dataclass
@@ -61,8 +61,23 @@ class ActuatorCfg:
 @dataclass
 class SensorCfg:
   name: str
-  sensor_type: str
-  kwargs: dict[str, Any]
+  sensor_type: Literal[
+    "gyro",
+    "upvector",
+    "velocimeter",
+    "framequat",
+    "framepos",
+    "framelinvel",
+    "frameangvel",
+    "framezaxis",
+    "accelerometer",
+    "contact",
+    "subtreeangmom",
+  ]
+  objtype: Literal["xbody", "body", "geom", "site"]
+  objname: str
+  reftype: Literal["xbody", "body", "geom", "site"] | None = None
+  refname: str | None = None
 
 
 @dataclass

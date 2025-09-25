@@ -7,7 +7,6 @@ from mjlab.asset_zoo.robots.unitree_g1.g1_constants import (
 from mjlab.tasks.velocity.velocity_env_cfg import (
   LocomotionVelocityEnvCfg,
 )
-from mjlab.utils.spec_editor.spec_editor_config import SensorCfg
 
 
 @dataclass
@@ -17,17 +16,7 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
 
     self.commands.twist.viz.z_offset = 0.75
 
-    angmom_sensor = SensorCfg(
-      name="root_angmom",
-      sensor_type="subtreeangmom",
-      kwargs={
-        "objtype": "body",
-        "objname": "pelvis",
-      },
-    )
-    g1_cfg = replace(G1_ROBOT_CFG, sensors=(angmom_sensor,))
-
-    self.scene.entities = {"robot": g1_cfg}
+    self.scene.entities = {"robot": replace(G1_ROBOT_CFG)}
     self.actions.joint_pos.scale = G1_ACTION_SCALE
 
     self.events.foot_friction.params["asset_cfg"].geom_names = [
