@@ -93,7 +93,8 @@ class SpecCfg(ABC):
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
     raise NotImplementedError
 
-  def validate(self) -> None:
+  def validate(self) -> None:  # noqa: B027
+    """Optional validation method to be overridden by subclasses."""
     pass
 
 
