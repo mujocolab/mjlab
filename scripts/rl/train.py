@@ -5,15 +5,17 @@ import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Any, cast
 
 import gymnasium as gym
 import tyro
 
-import mjlab.tasks  # noqa: F401
-from mjlab.envs import ManagerBasedRlEnvCfg
-from mjlab.rl import RslRlVecEnvWrapper
-from mjlab.rl.config import RslRlOnPolicyRunnerCfg
+import mjlab.tasks  # noqa: F401 (really needed ?)
+from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
+from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
+from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
 from mjlab.tasks.velocity.rl import VelocityOnPolicyRunner
+from mjlab.tasks.velocity.velocity_env_cfg import LocomotionVelocityEnvCfg
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
@@ -23,8 +25,9 @@ from mjlab.utils.torch import configure_torch_backends
 
 @dataclass(frozen=True)
 class TrainConfig:
-  env: ManagerBasedRlEnvCfg
+  env: Any
   agent: RslRlOnPolicyRunnerCfg
+  registry_name: str | None = None
   device: str = "cuda:0"
   video: bool = False
   video_length: int = 200
@@ -33,6 +36,36 @@ class TrainConfig:
 
 def main(task: str, cfg: TrainConfig) -> None:
   configure_torch_backends()
+
+  # Detect task type by config class
+  is_tracking = isinstance(cfg.env, TrackingEnvCfg)
+  is_velocity = isinstance(cfg.env, LocomotionVelocityEnvCfg)
+
+  if not (is_tracking or is_velocity):
+    raise RuntimeError(
+      f"Unsupported env cfg type: {type(env_cfg).__name__}. "
+      "Expected TrackingEnvCfg or LocomotionVelocityEnvCfg."
+    )
+
+  # Require registry_name if this is a tracking task (replace tyro check).
+  if is_tracking and cfg.registry_name is None:
+    raise ValueError(
+      f"Task '{task}' requires --registry-name pointing to a W&B artifact."
+    )
+
+  registry_name: str | None = None
+
+  # If tracking registry provided, download motion and wire into env cfg.
+  if is_tracking:
+    # Check if the registry name includes alias, if not, append ":latest".
+    registry_name = cast(str, cfg.registry_name)
+    if ":" not in registry_name:
+      registry_name = registry_name + ":latest"
+    import wandb
+
+    api = wandb.Api()
+    artifact = api.artifact(registry_name)
+    cfg.env.commands.motion.motion_file = str(Path(artifact.download()) / "motion.npz")
 
   # Specify directory for logging experiments.
   log_root_path = Path("logs") / "rsl_rl" / cfg.agent.experiment_name
@@ -43,12 +76,9 @@ def main(task: str, cfg: TrainConfig) -> None:
     log_dir += f"_{cfg.agent.run_name}"
   log_dir = log_root_path / log_dir
 
-  # Create env.
+  # Create environment
   env = gym.make(
-    task,
-    cfg=cfg.env,
-    device=cfg.device,
-    render_mode="rgb_array" if cfg.video else None,
+    task, cfg=cfg.env, device=cfg.device, render_mode="rgb_array" if cfg.video else None
   )
 
   # Save resume path before creating a new log_dir.
@@ -71,14 +101,24 @@ def main(task: str, cfg: TrainConfig) -> None:
 
   env = RslRlVecEnvWrapper(env, clip_actions=cfg.agent.clip_actions)
 
-  runner = VelocityOnPolicyRunner(
-    env,
-    asdict(cfg.agent),
-    log_dir=str(log_dir),
-    device=cfg.device,
-  )
-  runner.add_git_repo_to_log(__file__)
+  # Check if task is tracking
+  if is_velocity:
+    runner = VelocityOnPolicyRunner(
+      env,
+      asdict(cfg.agent),
+      log_dir=str(log_dir),
+      device=cfg.device,
+    )
+  else:
+    runner = MotionTrackingOnPolicyRunner(
+      env,
+      asdict(cfg.agent),
+      log_dir=str(log_dir),
+      device=cfg.device,
+      registry_name=registry_name,
+    )
 
+  runner.add_git_repo_to_log(__file__)
   if resume_path is not None:
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
     runner.load(str(resume_path))
@@ -95,7 +135,7 @@ def main(task: str, cfg: TrainConfig) -> None:
 
 if __name__ == "__main__":
   # Parse first argument to choose the task.
-  task_prefix = "Mjlab-Velocity-"
+  task_prefix = "Mjlab-"
   chosen_task, remaining_args = tyro.cli(
     tyro.extras.literal_type_from_choices(
       [k for k in gym.registry.keys() if k.startswith(task_prefix)]
@@ -108,15 +148,12 @@ if __name__ == "__main__":
   # Parse the rest of the arguments + allow overriding env_cfg and agent_cfg.
   env_cfg = load_cfg_from_registry(chosen_task, "env_cfg_entry_point")
   agent_cfg = load_cfg_from_registry(chosen_task, "rl_cfg_entry_point")
-  assert isinstance(env_cfg, ManagerBasedRlEnvCfg)
   assert isinstance(agent_cfg, RslRlOnPolicyRunnerCfg)
+
   args = tyro.cli(
     TrainConfig,
     args=remaining_args,
-    default=TrainConfig(
-      env=env_cfg,
-      agent=agent_cfg,
-    ),
+    default=TrainConfig(env=env_cfg, agent=agent_cfg),
     prog=sys.argv[0] + f" {chosen_task}",
     config=(
       tyro.conf.AvoidSubcommands,

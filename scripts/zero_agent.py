@@ -1,4 +1,4 @@
-from typing import Literal, cast
+from typing import Literal
 
 import gymnasium as gym
 import torch
@@ -25,9 +25,15 @@ def main(
 ):
   configure_torch_backends()
 
-  env_cfg = cast(
-    LocomotionVelocityEnvCfg, load_cfg_from_registry(task, "env_cfg_entry_point")
-  )
+  env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
+
+  # Detect task type by config class
+  is_velocity = isinstance(env_cfg, LocomotionVelocityEnvCfg)
+
+  if not is_velocity:
+    raise RuntimeError(
+      f"Unsupported env cfg type: {type(env_cfg).__name__}. Expected a Velocity task."
+    )
 
   env_cfg.scene.num_envs = num_envs or env_cfg.scene.num_envs
 
