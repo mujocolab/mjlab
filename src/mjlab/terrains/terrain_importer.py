@@ -84,7 +84,7 @@ class TerrainImporter:
           "terrain_generator must be specified for terrain_type 'generator'"
         )
       terrain_generator = TerrainGenerator(self.cfg.terrain_generator, device=device)
-      terrain_generator.compile(self._spec)
+      terrain_generator.compile(self._spec.worldbody.add_body(name="terrain"))
       self.configure_env_origins(terrain_generator.terrain_origins)
     elif self.cfg.terrain_type == "plane":
       self.import_ground_plane("terrain")
