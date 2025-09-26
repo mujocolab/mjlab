@@ -62,6 +62,9 @@ dev = [
 [project.optional-dependencies]
 cu12 = ["torch>=2.7.0"]
 
+[project.scripts]
+mjlab = "mjlab.cli:main"
+
 [[tool.uv.index]]
 url = "https://pypi.org/simple"
 

@@ -20,7 +20,8 @@ from mjlab.viewer import NativeMujocoViewer, ViserViewer
 
 def main(
   task: str,
-  wandb_run_path: str,
+  wandb_run_path: str | None = None,
+  checkpoint_file: str | None = None,
   motion_file: str | None = None,
   num_envs: int | None = None,
   device: str = "cuda:0",
@@ -33,6 +34,9 @@ def main(
   viewer: Literal["native", "viser"] = "native",
 ):
   configure_torch_backends()
+
+  if checkpoint_file is not None and motion_file is None:
+    raise ValueError("Must provide `motion_file` if using `checkpoint_file`.")
 
   env_cfg = cast(TrackingEnvCfg, load_cfg_from_registry(task, "env_cfg_entry_point"))
   agent_cfg = cast(
@@ -48,10 +52,18 @@ def main(
   log_root_path = log_root_path.resolve()
   print(f"[INFO]: Loading experiment from: {log_root_path}")
 
-  resume_path = get_wandb_checkpoint_path(log_root_path, Path(wandb_run_path))
+  if checkpoint_file is not None:
+    resume_path = Path(checkpoint_file)
+    if not resume_path.exists():
+      raise FileNotFoundError(f"Checkpoint file not found: {resume_path}")
+  else:
+    assert wandb_run_path is not None
+    resume_path = get_wandb_checkpoint_path(log_root_path, Path(wandb_run_path))
   print(f"[INFO]: Loading checkpoint: {resume_path}")
 
   if motion_file is not None:
+    if not Path(motion_file).exists():
+      raise FileNotFoundError(f"Motion file not found: {motion_file}")
     print(f"[INFO]: Using motion file from CLI: {motion_file}")
     env_cfg.commands.motion.motion_file = motion_file
   else:
