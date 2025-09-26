@@ -161,22 +161,6 @@ class posture:
     return torch.sum(weighted_error, dim=1)
 
 
-# def undesired_contacts(
-#   env: ManagerBasedRlEnv, threshold: float, sensor_cfg: SceneEntityCfg
-# ) -> torch.Tensor:
-#   """Penalize undesired contacts."""
-#   contact_sensor: ContactSensor = env.scene[sensor_cfg.name]
-#   net_contact_forces = contact_sensor.data.net_forces_w_history
-#   assert net_contact_forces is not None
-#   is_contact = (
-#     torch.max(torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[
-#       0
-#     ]
-#     > threshold
-#   )
-#   return torch.sum(is_contact, dim=1)
-
-
 def electrical_power_cost(
   env: ManagerBasedRlEnv,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,

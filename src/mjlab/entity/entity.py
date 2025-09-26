@@ -11,25 +11,8 @@ import torch
 
 from mjlab.entity.data import EntityData
 from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
+from mjlab.utils import spec_config as spec_cfg
 from mjlab.utils.mujoco import dof_width, qpos_width
-from mjlab.utils.spec_editor.spec_editor import (
-  ActuatorEditor,
-  CameraEditor,
-  CollisionEditor,
-  LightEditor,
-  MaterialEditor,
-  SensorEditor,
-  TextureEditor,
-)
-from mjlab.utils.spec_editor.spec_editor_config import (
-  ActuatorCfg,
-  CameraCfg,
-  CollisionCfg,
-  LightCfg,
-  MaterialCfg,
-  SensorCfg,
-  TextureCfg,
-)
 from mjlab.utils.string import resolve_expr
 
 
@@ -57,6 +40,8 @@ class EntityIndexing:
   free_joint_q_adr: torch.Tensor
   free_joint_v_adr: torch.Tensor
 
+  sensor_adr: dict[str, torch.Tensor]
+
   @property
   def root_body_id(self) -> int:
     return self.bodies[0].id
@@ -83,12 +68,14 @@ class EntityCfg:
   articulation: EntityArticulationInfoCfg | None = None
 
   # Editors.
-  lights: tuple[LightCfg, ...] = field(default_factory=tuple)
-  cameras: tuple[CameraCfg, ...] = field(default_factory=tuple)
-  textures: tuple[TextureCfg, ...] = field(default_factory=tuple)
-  materials: tuple[MaterialCfg, ...] = field(default_factory=tuple)
-  sensors: tuple[SensorCfg, ...] = field(default_factory=tuple)
-  collisions: tuple[CollisionCfg, ...] = field(default_factory=tuple)
+  lights: tuple[spec_cfg.LightCfg, ...] = field(default_factory=tuple)
+  cameras: tuple[spec_cfg.CameraCfg, ...] = field(default_factory=tuple)
+  textures: tuple[spec_cfg.TextureCfg, ...] = field(default_factory=tuple)
+  materials: tuple[spec_cfg.MaterialCfg, ...] = field(default_factory=tuple)
+  sensors: tuple[spec_cfg.SensorCfg | spec_cfg.ContactSensorCfg, ...] = field(
+    default_factory=tuple
+  )
+  collisions: tuple[spec_cfg.CollisionCfg, ...] = field(default_factory=tuple)
 
   # Misc.
   debug_vis: bool = False
@@ -96,7 +83,7 @@ class EntityCfg:
 
 @dataclass
 class EntityArticulationInfoCfg:
-  actuators: tuple[ActuatorCfg, ...] = field(default_factory=tuple)
+  actuators: tuple[spec_cfg.ActuatorCfg, ...] = field(default_factory=tuple)
   soft_joint_pos_limit_factor: float = 1.0
 
 
@@ -142,21 +129,19 @@ class Entity:
     # TODO: Should init_state.pos/rot be applied to root body if fixed base?
 
   def _apply_spec_editors(self) -> None:
-    editors = [
-      (self.cfg.lights, LightEditor),
-      (self.cfg.cameras, CameraEditor),
-      (self.cfg.textures, TextureEditor),
-      (self.cfg.materials, MaterialEditor),
-      (self.cfg.sensors, SensorEditor),
-      (self.cfg.collisions, CollisionEditor),
-    ]
-
-    for configs, editor_class in editors:
-      for config in configs:
-        editor_class(config).edit_spec(self._spec)
+    for cfg_list in [
+      self.cfg.lights,
+      self.cfg.cameras,
+      self.cfg.textures,
+      self.cfg.materials,
+      self.cfg.sensors,
+      self.cfg.collisions,
+    ]:
+      for cfg in cfg_list:
+        cfg.edit_spec(self._spec)
 
     if self.cfg.articulation:
-      ActuatorEditor(self.cfg.articulation.actuators).edit_spec(self._spec)
+      spec_cfg.ActuatorSetCfg(self.cfg.articulation.actuators).edit_spec(self._spec)
 
   def _add_initial_state_keyframe(self) -> None:
     qpos_components = []
@@ -638,6 +623,16 @@ class Entity:
     free_joint_v_adr = torch.tensor(free_joint_v_adr, dtype=torch.int, device=device)
     free_joint_q_adr = torch.tensor(free_joint_q_adr, dtype=torch.int, device=device)
 
+    sensor_adr = {}
+    for sensor in self.spec.sensors:
+      sensor_name = sensor.name
+      sns = model.sensor(sensor_name)
+      dim = sns.dim[0]
+      start_adr = sns.adr[0]
+      sensor_adr[sensor_name.split("/")[-1]] = torch.arange(
+        start_adr, start_adr + dim, dtype=torch.int, device=device
+      )
+
     return EntityIndexing(
       bodies=bodies,
       joints=joints,
@@ -653,4 +648,5 @@ class Entity:
       joint_v_adr=joint_v_adr,
       free_joint_q_adr=free_joint_q_adr,
       free_joint_v_adr=free_joint_v_adr,
+      sensor_adr=sensor_adr,
     )

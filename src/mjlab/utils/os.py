@@ -89,12 +89,20 @@ def get_wandb_checkpoint_path(log_path: Path, run_path: Path) -> Path:
 
   api = wandb.Api()
   wandb_run = api.run(str(run_path))
+  run_id = wandb_run.id  # Get the unique run ID
+
   files = [file.name for file in wandb_run.files() if "model" in file.name]
   checkpoint_file = max(files, key=lambda x: int(x.split("_")[1].split(".")[0]))
+
+  # Use run-specific directory.
+  download_dir = log_path / "wandb_checkpoints" / run_id
+  checkpoint_path = download_dir / checkpoint_file
+
   # If it exists, don't download it again.
-  if (log_path / "temp" / checkpoint_file).exists():
-    print(f"[INFO]: Checkpoint {checkpoint_file} already exists in {log_path / 'temp'}")
-    return log_path / "temp" / checkpoint_file
+  if checkpoint_path.exists():
+    print(f"[INFO]: Using cached checkpoint {checkpoint_file} for run {run_id}")
+    return checkpoint_path
+
   wandb_file = wandb_run.file(str(checkpoint_file))
-  wandb_file.download(f"{log_path}/temp", replace=True)
-  return log_path / "temp" / checkpoint_file
+  wandb_file.download(str(download_dir), replace=True)
+  return checkpoint_path
