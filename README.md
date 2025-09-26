@@ -39,16 +39,16 @@ uv run scripts/list_envs.py
 Train a Unitree G1 to follow velocity commands (headless, large batch):
 
 ```bash
-MUJOCO_GL=egl uv run scripts/velocity/rl/train.py \
-  Mjlab-Velocity-Flat-G1 \
+MUJOCO_GL=egl uv run scripts/rl/train.py \
+  Mjlab-Velocity-Flat-Unitree-G1 \
   --env.scene.num-envs 4096
 ```
 
 Play the trained policy:
 
 ```bash
-uv run scripts/velocity/rl/play.py \
-  --task Mjlab-Velocity-Flat-G1-Play
+uv run scripts/rl/play.py \
+  --task Mjlab-Velocity-Flat-Unitree-G1-Play
 ```
 
 ### Motion mimicking
@@ -57,7 +57,7 @@ Run a pre-trained motion-mimic policy on the G1:
 
 ```bash
 uv run scripts/rl/play.py \
-  --task Mjlab-Tracking-Flat-G1-Play \
+  --task Mjlab-Tracking-Flat-Unitree-G1-Play \
   --wandb-run-path gcbc_researchers/mjlab_alpha/rfdej55h
 ```
 
@@ -65,7 +65,7 @@ Train the same motion-mimic policy (headless, large batch):
 
 ```bash
 MUJOCO_GL=egl uv run scripts/rl/train.py \
-  Mjlab-Tracking-Flat-G1 \
+  Mjlab-Tracking-Flat-Unitree-G1 \
   --registry-name gcbc_researchers/csv_to_npz/lafan_cartwheel \
   --env.scene.num-envs 4096
 ```
@@ -86,11 +86,11 @@ MUJOCO_GL=egl uv run scripts/csv_to_npz.py \
 Use dummy agents for quick environment checks (velocity envs only):
 
 ```bash
-uv run scripts/velocity/random_agent.py --task Mjlab-Velocity-Flat-G1
+uv run scripts/velocity/random_agent.py --task Mjlab-Velocity-Flat-Unitree-G1
 ```
 
 ```bash
-uv run scripts/velocity/zero_agent.py --task Mjlab-Velocity-Flat-G1
+uv run scripts/velocity/zero_agent.py --task Mjlab-Velocity-Flat-Unitree-G1
 ```
 
 ## Running tests
