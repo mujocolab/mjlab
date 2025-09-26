@@ -31,7 +31,7 @@ Run a pre-trained motion mimic policy on the Unitree G1 humanoid:
 
 ```bash
 uv run scripts/tracking/rl/play.py \
-  --task Mjlab-Tracking-Flat-G1-Play \
+  --task Mjlab-Tracking-Flat-Unitree-G1-Play \
   --wandb-run-path gcbc_researchers/mjlab_alpha/rfdej55h
 ```
 
@@ -39,7 +39,7 @@ You can train this exact motion mimic policy using the following command:
 
 ```bash
 MUJOCO_GL=egl uv run scripts/tracking/rl/train.py \
-  Mjlab-Tracking-Flat-G1 \
+  Mjlab-Tracking-Flat-Unitree-G1 \
   --registry-name gcbc_researchers/csv_to_npz/lafan_cartwheel \
   --env.scene.num-envs 4096
 ```
