@@ -2,7 +2,6 @@
 
 <p align="left">
   <img alt="tests" src="https://github.com/mujocolab/mjlab/actions/workflows/ci.yml/badge.svg" />
-  <img alt="license" src="https://img.shields.io/github/license/mujocolab/mjlab" />
 </p>
 
 > **⚠️ EXPERIMENTAL PREVIEW** 

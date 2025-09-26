@@ -8,6 +8,7 @@ import warp as wp
 
 from mjlab.sim.randomization import expand_model_fields
 from mjlab.sim.sim_data import WarpBridge
+from mjlab.utils.spec_config import SpecCfg
 
 # Type aliases for better IDE support while maintaining runtime compatibility
 # At runtime, WarpBridge wraps the actual MJWarp objects.
@@ -18,6 +19,68 @@ else:
   ModelBridge = WarpBridge
   DataBridge = WarpBridge
 
+_JACOBIAN_MAP = {
+  "auto": mujoco.mjtJacobian.mjJAC_AUTO,
+  "dense": mujoco.mjtJacobian.mjJAC_DENSE,
+  "sparse": mujoco.mjtJacobian.mjJAC_SPARSE,
+}
+_CONE_MAP = {
+  "elliptic": mujoco.mjtCone.mjCONE_ELLIPTIC,
+  "pyramidal": mujoco.mjtCone.mjCONE_PYRAMIDAL,
+}
+_INTEGRATOR_MAP = {
+  "euler": mujoco.mjtIntegrator.mjINT_EULER,
+  "implicitfast": mujoco.mjtIntegrator.mjINT_IMPLICITFAST,
+}
+_SOLVER_MAP = {
+  "newton": mujoco.mjtSolver.mjSOL_NEWTON,
+  "cg": mujoco.mjtSolver.mjSOL_CG,
+  "pgs": mujoco.mjtSolver.mjSOL_PGS,
+}
+
+
+@dataclass
+class MujocoCfg(SpecCfg):
+  """Configuration for MuJoCo simulation parameters."""
+
+  # Integrator settings.
+  timestep: float = 0.002
+  integrator: Literal["euler", "implicitfast"] = "implicitfast"
+
+  # Friction settings.
+  impratio: float = 1.0
+  cone: Literal["pyramidal", "elliptic"] = "pyramidal"
+
+  # Solver settings.
+  jacobian: Literal["auto", "dense", "sparse"] = "auto"
+  solver: Literal["newton", "cg", "pgs"] = "newton"
+  iterations: int = 100
+  tolerance: float = 1e-8
+  ls_iterations: int = 50
+  ls_tolerance: float = 0.01
+
+  # Other.
+  gravity: tuple[float, float, float] = (0, 0, -9.81)
+
+  def edit_spec(self, spec: mujoco.MjSpec) -> None:
+    self.validate()
+
+    attrs = {
+      "jacobian": _JACOBIAN_MAP[self.jacobian],
+      "cone": _CONE_MAP[self.cone],
+      "integrator": _INTEGRATOR_MAP[self.integrator],
+      "solver": _SOLVER_MAP[self.solver],
+      "timestep": self.timestep,
+      "impratio": self.impratio,
+      "gravity": self.gravity,
+      "iterations": self.iterations,
+      "tolerance": self.tolerance,
+      "ls_iterations": self.ls_iterations,
+      "ls_tolerance": self.ls_tolerance,
+    }
+    for k, v in attrs.items():
+      setattr(spec.option, k, v)
+
 
 @dataclass(kw_only=True)
 class RenderCfg:
@@ -26,25 +89,6 @@ class RenderCfg:
   camera: str | int | None = -1
   height: int = 240
   width: int = 320
-
-
-@dataclass
-class MujocoCfg:
-  # Integrator settings.
-  timestep: float = 0.002
-  integrator: Literal["euler", "implicitfast"] = "implicitfast"
-  # Friction settings.
-  impratio: float = 1.0
-  cone: Literal["pyramidal", "elliptic"] = "pyramidal"
-  # Solver settings.
-  jacobian: Literal["auto", "dense", "sparse"] = "auto"
-  solver: Literal["newton", "cg", "pgs"] = "newton"
-  iterations: int = 100
-  tolerance: float = 1e-8
-  ls_iterations: int = 50
-  ls_tolerance: float = 0.01
-  # Other.
-  gravity: tuple[float, float, float] = (0, 0, -9.81)
 
 
 @dataclass(kw_only=True)
