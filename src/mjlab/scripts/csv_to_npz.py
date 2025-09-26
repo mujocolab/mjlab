@@ -134,10 +134,10 @@ class MotionLoader:
     """Computes the derivative of a sequence of SO3 rotations.
 
     Args:
-        rotations: shape (B, 4).
-        dt: time step.
+      rotations: shape (B, 4).
+      dt: time step.
     Returns:
-        shape (B, 3).
+      shape (B, 3).
     """
     q_prev, q_next = rotations[:-2], rotations[2:]
     q_rel = quat_mul(q_next, quat_conjugate(q_prev))  # shape (B−2, 4)
