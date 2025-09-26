@@ -21,12 +21,12 @@ class SubTerrainCfg(abc.ABC):
   size: tuple[float, float] = (10.0, 10.0)
 
   @abc.abstractmethod
-  def function(self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator):
+  def function(self, difficulty: float, body: mujoco.MjsBody, rng: np.random.Generator):
     """Generate terrain geometry.
 
     Returns:
       origin: The spawn point in local coordinates (relative to terrain corner).
-      boxes: List of box geometries to add to the spec.
+      boxes: List of box geometries to add to the body.
       colors: List of colors for each box.
     """
     raise NotImplementedError
@@ -78,21 +78,26 @@ class TerrainGenerator:
 
     self.terrain_origins = np.zeros((self.cfg.num_rows, self.cfg.num_cols, 3))
 
-  def compile(self, spec: mujoco.MjSpec) -> None:
+  def compile(self, body: mujoco.MjsBody) -> None:
     if self.cfg.curriculum:
       tic = time.perf_counter()
-      self._generate_curriculum_terrains(spec)
+      self._generate_curriculum_terrains(body)
       toc = time.perf_counter()
       print(f"Curriculum terrain generation took {toc - tic:.4f} seconds.")
     else:
       tic = time.perf_counter()
-      self._generate_random_terrains(spec)
+      self._generate_random_terrains(body)
       toc = time.perf_counter()
       print(f"Terrain generation took {toc - tic:.4f} seconds.")
-    self._add_terrain_border(spec)
-    self._add_grid_lights(spec)
+    self._add_terrain_border(body)
+    self._add_grid_lights(body)
 
-  def _generate_random_terrains(self, spec: mujoco.MjSpec) -> None:
+    counter = 0
+    for geom in body.geoms:
+      geom.name = f"terrain_{counter}"
+      counter += 1
+
+  def _generate_random_terrains(self, body: mujoco.MjsBody) -> None:
     # Normalize the proportions of the sub-terrains.
     proportions = np.array(
       [sub_cfg.proportion for sub_cfg in self.cfg.sub_terrains.values()]
@@ -116,7 +121,7 @@ class TerrainGenerator:
 
       # Create the terrain mesh and get the spawn origin in world coordinates.
       spawn_origin = self._create_terrain_mesh(
-        spec,
+        body,
         world_position,
         difficulty,
         sub_terrains_cfgs[sub_index],
@@ -125,7 +130,7 @@ class TerrainGenerator:
       # Store the spawn origin for this terrain.
       self.terrain_origins[sub_row, sub_col] = spawn_origin
 
-  def _generate_curriculum_terrains(self, spec: mujoco.MjSpec) -> None:
+  def _generate_curriculum_terrains(self, body: mujoco.MjsBody) -> None:
     # Normalize the proportions of the sub-terrains.
     proportions = np.array(
       [sub_cfg.proportion for sub_cfg in self.cfg.sub_terrains.values()]
@@ -149,7 +154,7 @@ class TerrainGenerator:
         difficulty = lower + (upper - lower) * difficulty
         world_position = self._get_sub_terrain_position(sub_row, sub_col)
         spawn_origin = self._create_terrain_mesh(
-          spec, world_position, difficulty, sub_terrains_cfgs[sub_indices[sub_col]]
+          body, world_position, difficulty, sub_terrains_cfgs[sub_indices[sub_col]]
         )
         self.terrain_origins[sub_row, sub_col] = spawn_origin
 
@@ -171,7 +176,7 @@ class TerrainGenerator:
 
   def _create_terrain_mesh(
     self,
-    spec: mujoco.MjSpec,
+    body: mujoco.MjsBody,
     world_position: np.ndarray,
     difficulty: float,
     cfg: SubTerrainCfg,
@@ -190,7 +195,7 @@ class TerrainGenerator:
     cfg = replace(cfg)
 
     # Generate terrain geometry (origin is in local coordinates).
-    local_origin, boxes, colors = cfg.function(difficulty, spec, self.np_rng)
+    local_origin, boxes, colors = cfg.function(difficulty, body, self.np_rng)
 
     # Apply transformations to place geometry in world coordinates.
     for box, color in zip(boxes, colors, strict=True):
@@ -206,7 +211,7 @@ class TerrainGenerator:
     # Convert local origin to world coordinates.
     return local_origin + world_position
 
-  def _add_terrain_border(self, spec: mujoco.MjSpec) -> None:
+  def _add_terrain_border(self, body: mujoco.MjsBody) -> None:
     border_size = (
       self.cfg.num_rows * self.cfg.size[0] + 2 * self.cfg.border_width,
       self.cfg.num_cols * self.cfg.size[1] + 2 * self.cfg.border_width,
@@ -218,7 +223,7 @@ class TerrainGenerator:
     # Border should be centered at origin since the terrain grid is centered.
     border_center = (0, 0, -self.cfg.border_height / 2)
     boxes = make_border(
-      spec,
+      body,
       border_size,
       inner_size,
       height=abs(self.cfg.border_height),
@@ -230,7 +235,7 @@ class TerrainGenerator:
       else:
         box.rgba = _DARK_GRAY
 
-  def _add_grid_lights(self, spec: mujoco.MjSpec) -> None:
+  def _add_grid_lights(self, body: mujoco.MjsBody) -> None:
     if not self.cfg.add_lights:
       return
 
@@ -250,7 +255,7 @@ class TerrainGenerator:
     for i, (x, y) in enumerate(positions):
       intensity = 0.4 if i == 0 else 0.2
 
-      spec.worldbody.add_light(
+      body.add_light(
         pos=(x, y, light_height),
         type=mujoco.mjtLightType.mjLIGHT_SPOT,
         diffuse=(intensity, intensity, intensity * 0.95),

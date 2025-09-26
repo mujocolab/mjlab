@@ -11,7 +11,7 @@ from mjlab.utils.actuator import (
   reflected_inertia_from_two_stage_planetary,
 )
 from mjlab.utils.os import update_assets
-from mjlab.utils.spec_editor.spec_editor_config import ActuatorCfg, CollisionCfg
+from mjlab.utils.spec_config import ActuatorCfg, CollisionCfg
 
 ##
 # MJCF and assets.

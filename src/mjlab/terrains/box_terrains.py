@@ -47,10 +47,10 @@ def _get_platform_color(
 
 @dataclass(kw_only=True)
 class BoxFlatTerrainCfg(SubTerrainCfg):
-  def function(self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator):
+  def function(self, difficulty: float, body: mujoco.MjsBody, rng: np.random.Generator):
     del difficulty, rng  # Unused.
     origin = (self.size[0] / 2, self.size[1] / 2, 0.0)
-    boxes = make_plane(spec, self.size, 0.0, center_zero=False)
+    boxes = make_plane(body, self.size, 0.0, center_zero=False)
     box_colors = [(0.5, 0.5, 0.5, 1.0)]
     return origin, boxes, box_colors
 
@@ -65,7 +65,7 @@ class BoxPyramidStairsTerrainCfg(SubTerrainCfg):
   platform_width: float = 1.0
   holes: bool = False
 
-  def function(self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator):
+  def function(self, difficulty: float, body: mujoco.MjsBody, rng: np.random.Generator):
     del rng  # Unused.
     boxes = []
     box_colors = []
@@ -93,7 +93,7 @@ class BoxPyramidStairsTerrainCfg(SubTerrainCfg):
         self.size[1] - 2 * self.border_width,
       )
       border_boxes = make_border(
-        spec, self.size, border_inner_size, step_height, border_center
+        body, self.size, border_inner_size, step_height, border_center
       )
       boxes.extend(border_boxes)
       for _ in range(len(border_boxes)):
@@ -129,7 +129,7 @@ class BoxPyramidStairsTerrainCfg(SubTerrainCfg):
         terrain_center[1] + terrain_size[1] / 2.0 - box_offset,
         box_z,
       )
-      box = spec.worldbody.add_geom(
+      box = body.add_geom(
         type=mujoco.mjtGeom.mjGEOM_BOX,
         size=(box_dims[0] / 2.0, box_dims[1] / 2.0, box_dims[2] / 2.0),
         pos=box_pos,
@@ -142,7 +142,7 @@ class BoxPyramidStairsTerrainCfg(SubTerrainCfg):
         terrain_center[1] - terrain_size[1] / 2.0 + box_offset,
         box_z,
       )
-      box = spec.worldbody.add_geom(
+      box = body.add_geom(
         type=mujoco.mjtGeom.mjGEOM_BOX,
         size=(box_dims[0] / 2.0, box_dims[1] / 2.0, box_dims[2] / 2.0),
         pos=box_pos,
@@ -160,7 +160,7 @@ class BoxPyramidStairsTerrainCfg(SubTerrainCfg):
         terrain_center[1],
         box_z,
       )
-      box = spec.worldbody.add_geom(
+      box = body.add_geom(
         type=mujoco.mjtGeom.mjGEOM_BOX,
         size=(box_dims[0] / 2.0, box_dims[1] / 2.0, box_dims[2] / 2.0),
         pos=box_pos,
@@ -173,7 +173,7 @@ class BoxPyramidStairsTerrainCfg(SubTerrainCfg):
         terrain_center[1],
         box_z,
       )
-      box = spec.worldbody.add_geom(
+      box = body.add_geom(
         type=mujoco.mjtGeom.mjGEOM_BOX,
         size=(box_dims[0] / 2.0, box_dims[1] / 2.0, box_dims[2] / 2.0),
         pos=box_pos,
@@ -191,7 +191,7 @@ class BoxPyramidStairsTerrainCfg(SubTerrainCfg):
       terrain_center[1],
       terrain_center[2] + num_steps * step_height / 2,
     )
-    box = spec.worldbody.add_geom(
+    box = body.add_geom(
       type=mujoco.mjtGeom.mjGEOM_BOX,
       size=(box_dims[0] / 2.0, box_dims[1] / 2.0, box_dims[2] / 2.0),
       pos=box_pos,
@@ -207,7 +207,7 @@ class BoxPyramidStairsTerrainCfg(SubTerrainCfg):
 
 @dataclass(kw_only=True)
 class BoxInvertedPyramidStairsTerrainCfg(BoxPyramidStairsTerrainCfg):
-  def function(self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator):
+  def function(self, difficulty: float, body: mujoco.MjsBody, rng: np.random.Generator):
     del rng  # Unused.
     boxes = []
     box_colors = []
@@ -236,7 +236,7 @@ class BoxInvertedPyramidStairsTerrainCfg(BoxPyramidStairsTerrainCfg):
         self.size[1] - 2 * self.border_width,
       )
       border_boxes = make_border(
-        spec, self.size, border_inner_size, step_height, border_center
+        body, self.size, border_inner_size, step_height, border_center
       )
       boxes.extend(border_boxes)
       for _ in range(len(border_boxes)):
@@ -274,7 +274,7 @@ class BoxInvertedPyramidStairsTerrainCfg(BoxPyramidStairsTerrainCfg):
         terrain_center[1] + terrain_size[1] / 2.0 - box_offset,
         box_z,
       )
-      box = spec.worldbody.add_geom(
+      box = body.add_geom(
         type=mujoco.mjtGeom.mjGEOM_BOX,
         size=(box_dims[0] / 2.0, box_dims[1] / 2.0, box_dims[2] / 2.0),
         pos=box_pos,
@@ -287,7 +287,7 @@ class BoxInvertedPyramidStairsTerrainCfg(BoxPyramidStairsTerrainCfg):
         terrain_center[1] - terrain_size[1] / 2.0 + box_offset,
         box_z,
       )
-      box = spec.worldbody.add_geom(
+      box = body.add_geom(
         type=mujoco.mjtGeom.mjGEOM_BOX,
         size=(box_dims[0] / 2.0, box_dims[1] / 2.0, box_dims[2] / 2.0),
         pos=box_pos,
@@ -305,7 +305,7 @@ class BoxInvertedPyramidStairsTerrainCfg(BoxPyramidStairsTerrainCfg):
         terrain_center[1],
         box_z,
       )
-      box = spec.worldbody.add_geom(
+      box = body.add_geom(
         type=mujoco.mjtGeom.mjGEOM_BOX,
         size=(box_dims[0] / 2.0, box_dims[1] / 2.0, box_dims[2] / 2.0),
         pos=box_pos,
@@ -318,7 +318,7 @@ class BoxInvertedPyramidStairsTerrainCfg(BoxPyramidStairsTerrainCfg):
         terrain_center[1],
         box_z,
       )
-      box = spec.worldbody.add_geom(
+      box = body.add_geom(
         type=mujoco.mjtGeom.mjGEOM_BOX,
         size=(box_dims[0] / 2.0, box_dims[1] / 2.0, box_dims[2] / 2.0),
         pos=box_pos,
@@ -336,7 +336,7 @@ class BoxInvertedPyramidStairsTerrainCfg(BoxPyramidStairsTerrainCfg):
       terrain_center[1],
       terrain_center[2] - total_height - step_height / 2,
     )
-    box = spec.worldbody.add_geom(
+    box = body.add_geom(
       type=mujoco.mjtGeom.mjGEOM_BOX,
       size=(box_dims[0] / 2.0, box_dims[1] / 2.0, box_dims[2] / 2.0),
       pos=box_pos,
@@ -362,7 +362,7 @@ class BoxRandomGridTerrainCfg(SubTerrainCfg):
   height_merge_threshold: float = 0.05
   max_merge_distance: int = 3
 
-  def function(self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator):
+  def function(self, difficulty: float, body: mujoco.MjsBody, rng: np.random.Generator):
     if self.size[0] != self.size[1]:
       raise ValueError(f"The terrain must be square. Received size: {self.size}.")
 
@@ -414,7 +414,7 @@ class BoxRandomGridTerrainCfg(SubTerrainCfg):
     ]
 
     for size, pos in border_specs:
-      box = spec.worldbody.add_geom(
+      box = body.add_geom(
         type=mujoco.mjtGeom.mjGEOM_BOX,
         size=size,
         pos=pos,
@@ -426,7 +426,7 @@ class BoxRandomGridTerrainCfg(SubTerrainCfg):
 
     if self.merge_similar_heights and not self.holes:
       box_list_, box_color_ = self._create_merged_boxes(
-        spec,
+        body,
         height_map,
         num_boxes_x,
         num_boxes_y,
@@ -438,7 +438,7 @@ class BoxRandomGridTerrainCfg(SubTerrainCfg):
       box_colors.extend(box_color_)
     else:
       box_list_, box_color_ = self._create_individual_boxes(
-        spec,
+        body,
         height_map,
         num_boxes_x,
         num_boxes_y,
@@ -454,7 +454,7 @@ class BoxRandomGridTerrainCfg(SubTerrainCfg):
     platform_center_z = -terrain_height / 2 + grid_height / 2
     half_platform = self.platform_width / 2
 
-    box = spec.worldbody.add_geom(
+    box = body.add_geom(
       type=mujoco.mjtGeom.mjGEOM_BOX,
       size=(half_platform, half_platform, platform_height / 2),
       pos=(self.size[0] / 2, self.size[1] / 2, platform_center_z),
@@ -469,7 +469,7 @@ class BoxRandomGridTerrainCfg(SubTerrainCfg):
 
   def _create_merged_boxes(
     self,
-    spec,
+    body,
     height_map,
     num_boxes_x,
     num_boxes_y,
@@ -536,7 +536,7 @@ class BoxRandomGridTerrainCfg(SubTerrainCfg):
         box_height = terrain_height + height
         box_center_z = neg_half_terrain + height / 2
 
-        box = spec.worldbody.add_geom(
+        box = body.add_geom(
           type=mujoco.mjtGeom.mjGEOM_BOX,
           size=(width_x / 2, width_y / 2, box_height / 2),
           pos=(box_center_x, box_center_y, box_center_z),
@@ -548,7 +548,7 @@ class BoxRandomGridTerrainCfg(SubTerrainCfg):
 
   def _create_individual_boxes(
     self,
-    spec,
+    body,
     height_map,
     num_boxes_x,
     num_boxes_y,
@@ -597,7 +597,7 @@ class BoxRandomGridTerrainCfg(SubTerrainCfg):
         rgba = brand_ramp(_MUJOCO_GREEN, t)
         box_colors.append(rgba)
 
-        box = spec.worldbody.add_geom(
+        box = body.add_geom(
           type=mujoco.mjtGeom.mjGEOM_BOX,
           size=(half_grid, half_grid, box_height / 2),
           pos=(box_center_x, box_center_y, box_center_z),

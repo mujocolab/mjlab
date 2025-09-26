@@ -2,14 +2,13 @@
 
 <p align="left">
   <img alt="tests" src="https://github.com/mujocolab/mjlab/actions/workflows/ci.yml/badge.svg" />
-  <img alt="license" src="https://img.shields.io/github/license/mujocolab/mjlab" />
 </p>
 
 > **⚠️ EXPERIMENTAL PREVIEW** 
 > 
 > This project is in very early experimental stages. APIs, features, and documentation are subject to significant changes. Use at your own risk and expect frequent breaking changes.
 
-IsaacLab API with [MJWarp](https://github.com/google-deepmind/mujoco_warp) backend.
+[Isaac Lab](https://github.com/isaac-sim/IsaacLab) API with [MJWarp](https://github.com/google-deepmind/mujoco_warp) backend.
 
 ## Development Guide
 
@@ -27,27 +26,54 @@ Install [uv](https://docs.astral.sh/uv/):
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-Run a pre-trained motion mimic policy on the Unitree G1 humanoid:
+Once installed, you can verify it works by running:
 
 ```bash
-uv run scripts/tracking/rl/play.py \
+uv run scripts/list_envs.py
+```
+
+## Reinforcement Learning
+
+### Velocity training
+
+Train a Unitree G1 to follow velocity commands (headless, large batch):
+
+```bash
+MUJOCO_GL=egl uv run scripts/rl/train.py \
+  Mjlab-Velocity-Flat-Unitree-G1 \
+  --env.scene.num-envs 4096
+```
+
+Play the trained policy:
+
+```bash
+uv run scripts/rl/play.py \
+  --task Mjlab-Velocity-Flat-Unitree-G1-Play
+```
+
+### Motion mimicking
+
+Run a pre-trained motion-mimic policy on the G1:
+
+```bash
+uv run scripts/rl/play.py \
   --task Mjlab-Tracking-Flat-Unitree-G1-Play \
   --wandb-run-path gcbc_researchers/mjlab_alpha/rfdej55h
 ```
 
-You can train this exact motion mimic policy using the following command:
+Train the same motion-mimic policy (headless, large batch):
 
 ```bash
-MUJOCO_GL=egl uv run scripts/tracking/rl/train.py \
+MUJOCO_GL=egl uv run scripts/rl/train.py \
   Mjlab-Tracking-Flat-Unitree-G1 \
   --registry-name gcbc_researchers/csv_to_npz/lafan_cartwheel \
   --env.scene.num-envs 4096
 ```
 
-To add a new motion to the wandb registry, run:
+Add a new motion to the WandB registry from a CSV:
 
 ```bash
-MUJOCO_GL=egl uv run scripts/tracking/csv_to_npz.py \
+MUJOCO_GL=egl uv run scripts/csv_to_npz.py \
   --input-file /path/to/motion.csv \
   --output-name side_kick \
   --input-fps 30 \
@@ -55,13 +81,25 @@ MUJOCO_GL=egl uv run scripts/tracking/csv_to_npz.py \
   --render
 ```
 
-### Running tests
+### Debugging
+
+Use dummy agents for quick environment checks (velocity envs only):
+
+```bash
+uv run scripts/velocity/random_agent.py --task Mjlab-Velocity-Flat-Unitree-G1
+```
+
+```bash
+uv run scripts/velocity/zero_agent.py --task Mjlab-Velocity-Flat-Unitree-G1
+```
+
+## Running tests
 
 ```bash
 make test
 ```
 
-### Code formatting and linting
+## Code formatting and linting
 
 You can install a pre-commit hook:
 
