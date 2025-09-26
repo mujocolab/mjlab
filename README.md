@@ -2,15 +2,12 @@
 
 <p align="left">
   <img alt="tests" src="https://github.com/mujocolab/mjlab/actions/workflows/ci.yml/badge.svg" />
+  <img alt="license" src="https://img.shields.io/github/license/mujocolab/mjlab" />
 </p>
 
 > **⚠️ EXPERIMENTAL PREVIEW** 
 > 
 > This project is in very early experimental stages. APIs, features, and documentation are subject to significant changes. Use at your own risk and expect frequent breaking changes.
->
-> **CUDA Compatibility Notice**
->
-> Not all CUDA versions are currently supported. See [mujoco_warp#101](https://github.com/google-deepmind/mujoco_warp/issues/101) for details and updates.
 
 IsaacLab API with [MJWarp](https://github.com/google-deepmind/mujoco_warp) backend.
 
@@ -77,6 +74,10 @@ or manually format with:
 ```
 make format
 ```
+
+## Troubleshooting
+
+**CUDA Compatibility**: Not all CUDA versions are supported. Check [mujoco_warp#101](https://github.com/google-deepmind/mujoco_warp/issues/101) for your CUDA version compatibility.
 
 ## License
 

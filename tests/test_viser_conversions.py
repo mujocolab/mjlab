@@ -13,7 +13,6 @@ def load_robot_model(robot_name: str) -> mujoco.MjModel:
 
   # Map robot names to their XML files
   robot_paths = {
-    "booster_t1": base_path / "booster_t1/xmls/t1.xml",
     "unitree_g1": base_path / "unitree_g1/xmls/g1.xml",
     "unitree_go1": base_path / "unitree_go1/xmls/go1.xml",
   }
@@ -26,31 +25,6 @@ def load_robot_model(robot_name: str) -> mujoco.MjModel:
     raise FileNotFoundError(f"Robot XML not found: {xml_path}")
 
   return mujoco.MjModel.from_xml_path(str(xml_path))
-
-
-def test_booster_t1_conversion():
-  """Test conversion with Booster T1 robot."""
-  model = load_robot_model("booster_t1")
-
-  # Count mesh geometries
-  mesh_geom_count = 0
-  for geom_idx in range(model.ngeom):
-    if model.geom_type[geom_idx] == mujoco.mjtGeom.mjGEOM_MESH:
-      mesh_geom_count += 1
-
-      # Convert to trimesh (with verbose=False to avoid output during tests)
-      mesh = mujoco_mesh_to_trimesh(model, geom_idx, verbose=False)
-
-      # Basic checks
-      assert mesh is not None, f"Failed to convert geom {geom_idx}"
-      assert len(mesh.vertices) > 0, f"Mesh {geom_idx} has no vertices"
-      assert len(mesh.faces) > 0, f"Mesh {geom_idx} has no faces"
-      assert mesh.vertices.shape[1] == 3, "Vertices should be Nx3"
-      assert mesh.faces.shape[1] == 3, "Faces should be Nx3"
-      assert mesh.visual is not None, f"Mesh {geom_idx} has no visual"
-
-  assert mesh_geom_count > 0, "No mesh geometries found in Booster T1"
-  print(f"✓ Booster T1: Successfully converted {mesh_geom_count} mesh geometries")
 
 
 def test_unitree_g1_conversion():
@@ -206,7 +180,7 @@ def test_performance():
   """Test conversion performance with a complex model."""
   import time
 
-  model = load_robot_model("booster_t1")
+  model = load_robot_model("unitree_g1")
 
   mesh_geoms = []
   for geom_idx in range(model.ngeom):
@@ -272,7 +246,6 @@ if __name__ == "__main__":
   print("=" * 60)
 
   tests = [
-    test_booster_t1_conversion,
     test_unitree_g1_conversion,
     test_unitree_go1_conversion,
     test_texture_extraction,

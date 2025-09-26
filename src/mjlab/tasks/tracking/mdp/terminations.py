@@ -38,11 +38,11 @@ def bad_ref_ori(
 
   command = cast(MotionCommand, env.command_manager.get_term(command_name))
   motion_projected_gravity_b = quat_apply_inverse(
-    command.ref_quat_w, asset.data.GRAVITY_VEC_W
+    command.ref_quat_w, asset.data.gravity_vec_w
   )
 
   robot_projected_gravity_b = quat_apply_inverse(
-    command.robot_ref_quat_w, asset.data.GRAVITY_VEC_W
+    command.robot_ref_quat_w, asset.data.gravity_vec_w
   )
 
   return (

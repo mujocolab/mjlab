@@ -199,7 +199,7 @@ class TestEntityAccess:
     """Test accessing non-existent entity raises KeyError."""
     scene = Scene(scene_with_entities_cfg, device)
 
-    with pytest.raises(KeyError, match="Scene entity with key 'invalid' not found"):
+    with pytest.raises(KeyError, match="Scene element 'invalid' not found"):
       _ = scene["invalid"]
 
 
@@ -223,10 +223,10 @@ class TestSceneSimulationInitialization:
 
     wp_model = mjwarp.put_model(model)
     wp_data = mjwarp.put_data(model, data, nworld=scene.num_envs)
-    wp_model = WarpBridge(wp_model)
+    wp_model = WarpBridge(wp_model, nworld=scene.num_envs)
     wp_data = WarpBridge(wp_data)
 
-    scene.initialize(model, wp_model, wp_data, device)  # type: ignore
+    scene.initialize(model, wp_model, wp_data)  # type: ignore
     return scene, wp_data
 
   def test_scene_initialize(self, initialized_scene, device):
@@ -340,10 +340,10 @@ class TestSceneIntegration:
 
     wp_model = mjwarp.put_model(model)
     wp_data = mjwarp.put_data(model, data, nworld=scene.num_envs)
-    wp_model = WarpBridge(wp_model)
+    wp_model = WarpBridge(wp_model, nworld=scene.num_envs)
     wp_data = WarpBridge(wp_data)
 
-    scene.initialize(model, wp_model, wp_data, device)  # type: ignore
+    scene.initialize(model, wp_model, wp_data)  # type: ignore
 
     scene.reset()
     scene.update(0.01)

@@ -76,7 +76,6 @@ class ManagerBasedEnv:
       mj_model=self.sim.mj_model,
       model=self.sim.model,
       data=self.sim.data,
-      device=self.device,
     )
 
     print("[INFO]: Base environment:")

@@ -13,3 +13,4 @@ motions/
 *.mp4
 artifacts/
 .venv/
+render_robots.py

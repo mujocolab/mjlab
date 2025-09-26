@@ -84,7 +84,7 @@ class ManagerBase(abc.ABC):
     raise NotImplementedError
 
   def _resolve_common_term_cfg(self, term_name: str, term_cfg: ManagerTermBaseCfg):
-    # TODO: Add more safety checks.
+    del term_name  # Unused.
     for key, value in term_cfg.params.items():
       if isinstance(value, SceneEntityCfg):
         value.resolve(self._env.scene)

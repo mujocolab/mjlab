@@ -1,17 +1,17 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 
 @dataclass
 class TextureCfg:
   name: str
-  type: str
-  builtin: str
+  type: Literal["2d", "cube", "skybox"]
+  builtin: Literal["checker", "gradient", "flat", "none"]
   rgb1: tuple[float, float, float]
   rgb2: tuple[float, float, float]
   width: int
   height: int
-  mark: str = "none"
+  mark: Literal["edge", "cross", "random", "none"] = "none"
   markrgb: tuple[float, float, float] = (0.0, 0.0, 0.0)
 
 
@@ -71,7 +71,7 @@ class LightCfg:
   body: str = "world"
   mode: str = "fixed"
   target: str | None = None
-  type: str = "spot"
+  type: Literal["spot", "directional"] = "spot"
   castshadow: bool = True
   pos: tuple[float, float, float] = (0, 0, 0)
   dir: tuple[float, float, float] = (0, 0, -1)

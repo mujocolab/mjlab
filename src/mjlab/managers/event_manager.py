@@ -173,7 +173,7 @@ class EventManager(ManagerBase):
 
     cfg_items = get_terms(self.cfg, EventTermCfg).items()
     for term_name, term_cfg in cfg_items:
-      term_cfg: EventTermCfg
+      term_cfg: EventTermCfg | None
       if term_cfg is None:
         print(f"term: {term_name} set to None, skipping...")
         continue

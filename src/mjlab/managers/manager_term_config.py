@@ -111,8 +111,6 @@ class RewardTermCfg(ManagerTermBaseCfg):
   func: Any
   weight: float
 
-  # TODO(kevin): Sanity check weight is valid type.
-
 
 ##
 # Termination manager.
