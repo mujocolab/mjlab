@@ -4,13 +4,28 @@
   <img alt="tests" src="https://github.com/mujocolab/mjlab/actions/workflows/ci.yml/badge.svg" />
 </p>
 
+```python
+mjlab = isaaclab - isaacsim + mjwarp
+```
+**Keep the API, ditch the complexity, add the speed**
+
+mjlab combines [Isaac Lab](https://github.com/isaac-sim/IsaacLab)'s proven API with best-in-class [MuJoCo](https://github.com/google-deepmind/mujoco_warp) physics to provide lightweight, modular abstractions for RL robotics research and sim-to-real deployment.
+
 > **⚠️ EXPERIMENTAL PREVIEW** 
 > 
 > This project is in very early experimental stages. APIs, features, and documentation are subject to significant changes. Use at your own risk and expect frequent breaking changes.
 
-[Isaac Lab](https://github.com/isaac-sim/IsaacLab) API with [MJWarp](https://github.com/google-deepmind/mujoco_warp) backend.
+## Documentation
 
-## Development Guide
+- **[Getting Started](docs/getting_started.md)** - Install and run your first training in minutes
+- **[Why mjlab?](docs/motivation.md)** - Comparison with Isaac Lab, Newton, and MuJoCo
+- **[Migration Guide](docs/migration_guide.md)** - Moving from Isaac Lab (mostly copy-paste configs!)
+- **[Architecture](docs/architecture.md)** - Understanding mjlab's design and MuJoCo integration
+- **[FAQ & Troubleshooting](docs/faq.md)** - Common questions and answers
+
+## Quick Start
+
+### Installation
 
 Clone `mjlab`:
 
@@ -34,7 +49,7 @@ uv run scripts/list_envs.py
 
 ## Reinforcement Learning
 
-### Velocity training
+### Velocity tracking
 
 Train a Unitree G1 to follow velocity commands (headless, large batch):
 
@@ -51,34 +66,42 @@ uv run scripts/velocity/rl/play.py \
   --task Mjlab-Velocity-Flat-G1-Play
 ```
 
-### Motion mimicking
+### Motion imitation
+
+Before running motion mimicking, you'll need to set up a WandB registry for reference motions. Follow the detailed instructions here: [Motion Preprocessing & Registry Setup](https://github.com/HybridRobotics/whole_body_tracking/blob/main/README.md#motion-preprocessing--registry-setup)
+
+**Quick setup summary:**
+1. Create a WandB registry collection named "Motions"
+2. Process and upload your motion files:
+   ```bash
+   MUJOCO_GL=egl uv run scripts/tracking/csv_to_npz.py \
+     --input-file /path/to/motion.csv \
+     --output-name motion_name \
+     --input-fps 30 \
+     --output-fps 50 \ 
+     --render
+   ```
+3. Set your WandB entity: `export WANDB_ENTITY=your-organization-name`
+
+The `--render` flag will output a video of the motion which you can inspect for quick debugging.
+
+#### Training and Playing
 
 Run a pre-trained motion-mimic policy on the G1:
 
 ```bash
 uv run scripts/tracking/rl/play.py \
   --task Mjlab-Tracking-Flat-G1-Play \
-  --wandb-run-path gcbc_researchers/mjlab_alpha/rfdej55h
+  --wandb-run-path your-org/mjlab/run-id
 ```
 
-Train the same motion-mimic policy (headless, large batch):
+Train a motion-mimic policy (headless, large batch):
 
 ```bash
 MUJOCO_GL=egl uv run scripts/tracking/rl/train.py \
   Mjlab-Tracking-Flat-G1 \
-  --registry-name gcbc_researchers/csv_to_npz/lafan_cartwheel \
+  --registry-name your-org/motions/motion-name \
   --env.scene.num-envs 4096
-```
-
-Add a new motion to the WandB registry from a CSV:
-
-```bash
-MUJOCO_GL=egl uv run scripts/tracking/csv_to_npz.py \
-  --input-file /path/to/motion.csv \
-  --output-name side_kick \
-  --input-fps 30 \
-  --output-fps 50 \
-  --render
 ```
 
 ### Debugging
@@ -93,29 +116,21 @@ uv run scripts/velocity/random_agent.py --task Mjlab-Velocity-Flat-G1
 uv run scripts/velocity/zero_agent.py --task Mjlab-Velocity-Flat-G1
 ```
 
-## Running tests
+## 🛠️ Development
 
+### Running Tests
 ```bash
 make test
 ```
 
-## Code formatting and linting
-
-You can install a pre-commit hook:
-
+### Code Formatting
 ```bash
+# Install pre-commit hook.
 uvx pre-commit install
-```
 
-or manually format with:
-
-```
+# Manual formatting.
 make format
 ```
-
-## Troubleshooting
-
-**CUDA Compatibility**: Not all CUDA versions are supported. Check [mujoco_warp#101](https://github.com/google-deepmind/mujoco_warp/issues/101) for your CUDA version compatibility.
 
 ## License
 
