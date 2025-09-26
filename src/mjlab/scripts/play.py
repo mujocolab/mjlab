@@ -9,11 +9,10 @@ import tyro
 from rsl_rl.runners import OnPolicyRunner
 from typing_extensions import assert_never
 
+from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
-from mjlab.tasks.velocity.rl import attach_onnx_metadata, export_velocity_policy_as_onnx
-from mjlab.tasks.velocity.velocity_env_cfg import LocomotionVelocityEnvCfg
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
@@ -22,7 +21,7 @@ from mjlab.utils.torch import configure_torch_backends
 from mjlab.viewer import NativeMujocoViewer, ViserViewer
 
 
-def main(
+def run_play(
   task: str,
   wandb_run_path: Path,
   motion_file: Optional[str] = None,
@@ -38,21 +37,12 @@ def main(
 ):
   configure_torch_backends()
 
-  # Load configs
-  env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
+  env_cfg = cast(
+    ManagerBasedRlEnvCfg, load_cfg_from_registry(task, "env_cfg_entry_point")
+  )
   agent_cfg = cast(
     RslRlOnPolicyRunnerCfg, load_cfg_from_registry(task, "rl_cfg_entry_point")
   )
-
-  # Detect task type by config class
-  is_tracking = isinstance(env_cfg, TrackingEnvCfg)
-  is_velocity = isinstance(env_cfg, LocomotionVelocityEnvCfg)
-
-  if not (is_tracking or is_velocity):
-    raise RuntimeError(
-      f"Unsupported env cfg type: {type(env_cfg).__name__}. "
-      "Expected TrackingEnvCfg or LocomotionVelocityEnvCfg."
-    )
 
   if num_envs is not None:
     env_cfg.scene.num_envs = num_envs
@@ -69,9 +59,7 @@ def main(
   print(f"[INFO]: Loading checkpoint: {resume_path}")
   log_dir = resume_path.parent
 
-  # Check if tracking and resolves motion file
-  if is_tracking:
-    env_cfg = cast(TrackingEnvCfg, env_cfg)
+  if isinstance(env_cfg, TrackingEnvCfg):
     if motion_file is not None:
       print(f"[INFO]: Using motion file from CLI: {motion_file}")
       env_cfg.commands.motion.motion_file = motion_file
@@ -100,25 +88,13 @@ def main(
 
   env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
-  if is_velocity:
-    runner = OnPolicyRunner(env, asdict(agent_cfg), log_dir=str(log_dir), device=device)
-
-  else:
+  if isinstance(env_cfg, TrackingEnvCfg):
     runner = MotionTrackingOnPolicyRunner(
       env, asdict(agent_cfg), log_dir=str(log_dir), device=device
     )
-
+  else:
+    runner = OnPolicyRunner(env, asdict(agent_cfg), log_dir=str(log_dir), device=device)
   runner.load(str(resume_path), map_location=device)
-
-  if is_velocity:
-    export_model_dir = log_dir / "exported"
-    export_velocity_policy_as_onnx(
-      runner.alg.policy,
-      normalizer=runner.alg.policy.actor_obs_normalizer,
-      path=str(export_model_dir),
-      filename="policy.onnx",
-    )
-    attach_onnx_metadata(env.unwrapped, str(wandb_run_path), str(export_model_dir))
 
   policy = runner.get_inference_policy(device=device)
 
@@ -132,5 +108,10 @@ def main(
   env.close()
 
 
+def main():
+  """Entry point for the CLI."""
+  tyro.cli(run_play)
+
+
 if __name__ == "__main__":
-  tyro.cli(main)
+  main()

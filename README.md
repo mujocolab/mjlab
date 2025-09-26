@@ -39,7 +39,7 @@ uv run scripts/list_envs.py
 Train a Unitree G1 to follow velocity commands (headless, large batch):
 
 ```bash
-MUJOCO_GL=egl uv run scripts/rl/train.py \
+MUJOCO_GL=egl uv run train \
   Mjlab-Velocity-Flat-Unitree-G1 \
   --env.scene.num-envs 4096
 ```
@@ -47,8 +47,7 @@ MUJOCO_GL=egl uv run scripts/rl/train.py \
 Play the trained policy:
 
 ```bash
-uv run scripts/rl/play.py \
-  --task Mjlab-Velocity-Flat-Unitree-G1-Play
+uv run play --task Mjlab-Velocity-Flat-Unitree-G1-Play
 ```
 
 ### Motion mimicking
@@ -56,7 +55,7 @@ uv run scripts/rl/play.py \
 Run a pre-trained motion-mimic policy on the G1:
 
 ```bash
-uv run scripts/rl/play.py \
+uv run play \
   --task Mjlab-Tracking-Flat-Unitree-G1-Play \
   --wandb-run-path gcbc_researchers/mjlab_alpha/rfdej55h
 ```
@@ -64,7 +63,7 @@ uv run scripts/rl/play.py \
 Train the same motion-mimic policy (headless, large batch):
 
 ```bash
-MUJOCO_GL=egl uv run scripts/rl/train.py \
+MUJOCO_GL=egl uv run train \
   Mjlab-Tracking-Flat-Unitree-G1 \
   --registry-name gcbc_researchers/csv_to_npz/lafan_cartwheel \
   --env.scene.num-envs 4096
@@ -73,24 +72,12 @@ MUJOCO_GL=egl uv run scripts/rl/train.py \
 Add a new motion to the WandB registry from a CSV:
 
 ```bash
-MUJOCO_GL=egl uv run scripts/csv_to_npz.py \
+MUJOCO_GL=egl uv run src/mjlab/scripts/csv_to_npz.py \
   --input-file /path/to/motion.csv \
   --output-name side_kick \
   --input-fps 30 \
   --output-fps 50 \
   --render
-```
-
-### Debugging
-
-Use dummy agents for quick environment checks (velocity envs only):
-
-```bash
-uv run scripts/velocity/random_agent.py --task Mjlab-Velocity-Flat-Unitree-G1
-```
-
-```bash
-uv run scripts/velocity/zero_agent.py --task Mjlab-Velocity-Flat-Unitree-G1
 ```
 
 ## Running tests

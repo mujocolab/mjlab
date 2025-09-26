@@ -62,6 +62,10 @@ dev = [
 [project.optional-dependencies]
 cu12 = ["torch>=2.7.0"]
 
+[project.scripts]
+train = "mjlab.scripts.train:main"
+play = "mjlab.scripts.play:main"
+
 [[tool.uv.index]]
 url = "https://pypi.org/simple"
 

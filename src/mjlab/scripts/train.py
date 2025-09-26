@@ -10,12 +10,10 @@ from typing import Any, cast
 import gymnasium as gym
 import tyro
 
-import mjlab.tasks  # noqa: F401 (really needed ?)
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
 from mjlab.tasks.velocity.rl import VelocityOnPolicyRunner
-from mjlab.tasks.velocity.velocity_env_cfg import LocomotionVelocityEnvCfg
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
@@ -34,29 +32,15 @@ class TrainConfig:
   video_interval: int = 2000
 
 
-def main(task: str, cfg: TrainConfig) -> None:
+def run_train(task: str, cfg: TrainConfig) -> None:
   configure_torch_backends()
-
-  # Detect task type by config class
-  is_tracking = isinstance(cfg.env, TrackingEnvCfg)
-  is_velocity = isinstance(cfg.env, LocomotionVelocityEnvCfg)
-
-  if not (is_tracking or is_velocity):
-    raise RuntimeError(
-      f"Unsupported env cfg type: {type(env_cfg).__name__}. "
-      "Expected TrackingEnvCfg or LocomotionVelocityEnvCfg."
-    )
-
-  # Require registry_name if this is a tracking task (replace tyro check).
-  if is_tracking and cfg.registry_name is None:
-    raise ValueError(
-      f"Task '{task}' requires --registry-name pointing to a W&B artifact."
-    )
 
   registry_name: str | None = None
 
-  # If tracking registry provided, download motion and wire into env cfg.
-  if is_tracking:
+  if isinstance(cfg.env, TrackingEnvCfg):
+    if not cfg.registry_name:
+      raise ValueError("Must provide --registry-name for tracking tasks.")
+
     # Check if the registry name includes alias, if not, append ":latest".
     registry_name = cast(str, cfg.registry_name)
     if ":" not in registry_name:
@@ -76,19 +60,16 @@ def main(task: str, cfg: TrainConfig) -> None:
     log_dir += f"_{cfg.agent.run_name}"
   log_dir = log_root_path / log_dir
 
-  # Create environment
   env = gym.make(
     task, cfg=cfg.env, device=cfg.device, render_mode="rgb_array" if cfg.video else None
   )
 
-  # Save resume path before creating a new log_dir.
   resume_path = (
     get_checkpoint_path(log_root_path, cfg.agent.load_run, cfg.agent.load_checkpoint)
     if cfg.agent.resume
     else None
   )
 
-  # Wrap for video recording.
   if cfg.video:
     video_kwargs = {
       "video_folder": os.path.join(log_dir, "videos", "train"),
@@ -101,30 +82,23 @@ def main(task: str, cfg: TrainConfig) -> None:
 
   env = RslRlVecEnvWrapper(env, clip_actions=cfg.agent.clip_actions)
 
-  # Check if task is tracking
-  if is_velocity:
-    runner = VelocityOnPolicyRunner(
-      env,
-      asdict(cfg.agent),
-      log_dir=str(log_dir),
-      device=cfg.device,
+  agent_cfg = asdict(cfg.agent)
+  env_cfg = asdict(cfg.env)
+
+  if isinstance(cfg.env, TrackingEnvCfg):
+    runner = MotionTrackingOnPolicyRunner(
+      env, agent_cfg, str(log_dir), cfg.device, registry_name
     )
   else:
-    runner = MotionTrackingOnPolicyRunner(
-      env,
-      asdict(cfg.agent),
-      log_dir=str(log_dir),
-      device=cfg.device,
-      registry_name=registry_name,
-    )
+    runner = VelocityOnPolicyRunner(env, agent_cfg, str(log_dir), cfg.device)
 
   runner.add_git_repo_to_log(__file__)
   if resume_path is not None:
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
     runner.load(str(resume_path))
 
-  dump_yaml(log_dir / "params" / "env.yaml", asdict(cfg.env))
-  dump_yaml(log_dir / "params" / "agent.yaml", asdict(cfg.agent))
+  dump_yaml(log_dir / "params" / "env.yaml", env_cfg)
+  dump_yaml(log_dir / "params" / "agent.yaml", agent_cfg)
 
   runner.learn(
     num_learning_iterations=cfg.agent.max_iterations, init_at_random_ep_len=True
@@ -133,7 +107,7 @@ def main(task: str, cfg: TrainConfig) -> None:
   env.close()
 
 
-if __name__ == "__main__":
+def main():
   # Parse first argument to choose the task.
   task_prefix = "Mjlab-"
   chosen_task, remaining_args = tyro.cli(
@@ -162,4 +136,8 @@ if __name__ == "__main__":
   )
   del env_cfg, agent_cfg, remaining_args
 
-  main(chosen_task, args)
+  run_train(chosen_task, args)
+
+
+if __name__ == "__main__":
+  main()
