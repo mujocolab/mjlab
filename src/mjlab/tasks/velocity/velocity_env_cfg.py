@@ -60,8 +60,6 @@ VIEWER_CONFIG = ViewerConfig(
 # MDP.
 ##
 
-# Actions.
-
 
 @dataclass
 class ActionCfg:
@@ -72,9 +70,6 @@ class ActionCfg:
     scale=0.5,
     use_default_offset=True,
   )
-
-
-# Commands.
 
 
 @dataclass
@@ -95,9 +90,6 @@ class CommandsCfg:
       heading=(-math.pi, math.pi),
     ),
   )
-
-
-# Observations.
 
 
 @dataclass
@@ -148,9 +140,6 @@ class ObservationCfg:
   critic: PrivilegedCfg = field(default_factory=PrivilegedCfg)
 
 
-# Events.
-
-
 @dataclass
 class EventCfg:
   reset_base: EventTerm = term(
@@ -192,51 +181,69 @@ class EventCfg:
   )
 
 
-# Rewards.
-
-
 @dataclass
 class RewardCfg:
+  # Primary task rewards.
   track_lin_vel_xy_exp: RewardTerm = term(
     RewardTerm,
     func=mdp.track_lin_vel_xy_exp,
-    weight=1.0,
+    weight=5.0,
     params={"command_name": "twist", "std": math.sqrt(0.25)},
   )
   track_ang_vel_z_exp: RewardTerm = term(
     RewardTerm,
     func=mdp.track_ang_vel_z_exp,
-    weight=1.0,
+    weight=2.0,
     params={"command_name": "twist", "std": math.sqrt(0.25)},
   )
-  ang_vel_xy_l2: RewardTerm = term(RewardTerm, func=mdp.ang_vel_xy_l2, weight=-0.1)
+
+  # Stability penalties.
+  ang_vel_xy_l2: RewardTerm = term(RewardTerm, func=mdp.ang_vel_xy_l2, weight=-0.05)
+
+  # Smoothness penalties.
   action_rate_l2: RewardTerm = term(RewardTerm, func=mdp.action_rate_l2, weight=-0.01)
-  power: RewardTerm = term(RewardTerm, func=mdp.electrical_power_cost, weight=-0.005)
+  smoothness: RewardTerm = term(RewardTerm, func=mdp.gait_smoothness, weight=-0.0001)
+
+  # Efficiency penalties.
+  cost_of_transport: RewardTerm = term(
+    RewardTerm,
+    func=mdp.cost_of_transport,
+    weight=-0.1,
+    params={
+      "asset_name": "robot",
+      "min_velocity": 0.1,
+      "normalize_by_mass": False,
+      "power_scale": 0.001,
+    },
+  )
+
+  # Posture and limits.
   pose_l2: RewardTerm = term(
     RewardTerm,
     func=mdp.posture,
-    weight=-1.0,
+    weight=-0.5,
     params={
       "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
-      "std": [],  # Override in robot cfg.
+      "std": [],
     },
   )
   dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
+
+  # Gait shaping.
   air_time: RewardTerm = term(
     RewardTerm,
     func=mdp.feet_air_time,
-    weight=2.0,
+    weight=0.1,
     params={
       "asset_name": "robot",
-      "threshold_min": 0.1,
+      "threshold_min": 0.02,
+      "threshold_max": 0.1,
       "command_name": "twist",
       "command_threshold": 0.1,
-      "sensor_names": [],  # Override in robot cfg.
+      "sensor_names": [],
+      "reward_mode": "on_landing",
     },
   )
-
-
-# Terminations.
 
 
 @dataclass
@@ -245,9 +252,6 @@ class TerminationCfg:
   fell_over: DoneTerm = term(
     DoneTerm, func=mdp.bad_orientation, params={"limit_angle": math.radians(70.0)}
   )
-
-
-# Curriculum.
 
 
 @dataclass

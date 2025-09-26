@@ -129,3 +129,84 @@ class feet_air_time:
     self.current_air_time[env_ids] = 0.0
     self.current_contact_time[env_ids] = 0.0
     self.last_air_time[env_ids] = 0.0
+
+
+class gait_smoothness:
+  """Penalize jerky, non-smooth gait patterns via joint jerk."""
+
+  def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
+    self.asset_name = cfg.params.get("asset_name", "robot")
+    self.smoothness_weight = cfg.params.get("smoothness_weight", 1.0)
+
+    asset = env.scene[self.asset_name]
+    num_joints = asset.data.joint_pos.shape[1]
+    self.last_joint_acc = torch.zeros(env.num_envs, num_joints, device=env.device)
+
+    self.dt = env.step_dt
+
+  def __call__(self, env: ManagerBasedRlEnv, **kwargs) -> torch.Tensor:
+    asset = env.scene[self.asset_name]
+
+    current_joint_acc = asset.data.joint_acc
+    joint_jerk = torch.abs(current_joint_acc - self.last_joint_acc) / self.dt
+    total_jerk = torch.sum(joint_jerk, dim=1) * self.smoothness_weight
+    self.last_joint_acc = current_joint_acc.clone()
+    return total_jerk
+
+  def reset(self, env_ids: torch.Tensor | slice | None = None):
+    if env_ids is None:
+      env_ids = slice(None)
+    self.last_joint_acc[env_ids] = 0.0
+
+
+class cost_of_transport:
+  """Penalize energy expenditure per unit distance traveled."""
+
+  def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
+    self.command_name = cfg.params.get("command_name", "twist")
+    self.asset_name = cfg.params.get("asset_name", "robot")
+    self.min_velocity = cfg.params.get("min_velocity", 0.1)  # Avoid division by zero.
+    self.normalize_by_mass = cfg.params.get("normalize_by_mass", True)
+    self.power_scale = cfg.params.get("power_scale", 0.001)
+
+    if self.normalize_by_mass:
+      asset: Entity = env.scene[self.asset_name]
+      self.robot_mass = asset.data.model.body_subtreemass[asset.indexing.root_body_id]
+    else:
+      self.robot_mass = 1.0
+
+  def __call__(self, env: ManagerBasedRlEnv, **kwargs) -> torch.Tensor:
+    asset: Entity = env.scene[self.asset_name]
+
+    # Compute electrical power (W).
+    tau = asset.data.actuator_force
+    qd = asset.data.joint_vel
+    mech = tau * qd
+    mech_pos = torch.clamp(mech, min=0.0)  # Don't penalize regen.
+    total_power = torch.sum(mech_pos, dim=1)  # Watts.
+
+    # Get forward velocity (m/s).
+    forward_vel = asset.data.root_link_lin_vel_b[:, 0]
+    vel_magnitude = torch.abs(forward_vel)
+    vel_clamped = torch.clamp(vel_magnitude, min=self.min_velocity)
+
+    if self.normalize_by_mass:
+      # Dimensionless CoT: power / (mass * g * velocity).
+      cost = total_power / (self.robot_mass * 9.81 * vel_clamped)
+    else:
+      # Energy per meter (J/m).
+      cost = total_power / vel_clamped
+
+    cost_scaled = cost * self.power_scale
+
+    command = env.command_manager.get_command(self.command_name)
+    if command is not None:
+      is_moving_command = torch.norm(command[:, :2], dim=1) > 0.1
+      cost_scaled = torch.where(
+        is_moving_command, cost_scaled, torch.zeros_like(cost_scaled)
+      )
+
+    return cost_scaled
+
+  def reset(self, env_ids: torch.Tensor | slice | None = None):
+    del env_ids  # Unused.
