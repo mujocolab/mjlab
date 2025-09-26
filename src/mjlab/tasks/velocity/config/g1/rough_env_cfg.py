@@ -19,7 +19,7 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
       ContactSensorCfg(
         name=f"{side}_foot_ground_contact",
         body1=f"{side}_ankle_roll_link",
-        geom2="terrain",
+        body2="terrain",
         num=1,
         data=("found",),
         reduce="netforce",
