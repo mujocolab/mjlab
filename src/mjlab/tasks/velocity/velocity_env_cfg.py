@@ -233,15 +233,26 @@ class RewardCfg:
   air_time: RewardTerm = term(
     RewardTerm,
     func=mdp.feet_air_time,
-    weight=0.1,
+    weight=0.3,
     params={
       "asset_name": "robot",
-      "threshold_min": 0.02,
-      "threshold_max": 0.1,
+      "threshold_min": 0.05,
+      "threshold_max": 0.15,
       "command_name": "twist",
-      "command_threshold": 0.1,
+      "command_threshold": 0.05,
       "sensor_names": [],
       "reward_mode": "on_landing",
+    },
+  )
+  foot_clearance: RewardTerm = term(
+    RewardTerm,
+    func=mdp.foot_clearance_reward,
+    weight=0.5,
+    params={
+      "std": 0.05,
+      "tanh_mult": 2.0,
+      "target_height": 0.1,
+      "asset_cfg": SceneEntityCfg("robot", geom_names=[]),  # Override in robot cfg.
     },
   )
 

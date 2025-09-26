@@ -35,6 +35,9 @@ class UnitreeGo1RoughEnvCfg(LocomotionVelocityEnvCfg):
       "RR_foot_ground_contact",
       "RL_foot_ground_contact",
     ]
+    self.rewards.foot_clearance.params["asset_cfg"].geom_names = [
+      r"^(RR|RL|FR|FL)_foot_collision$"
+    ]
 
     self.actions.joint_pos.scale = GO1_ACTION_SCALE
 

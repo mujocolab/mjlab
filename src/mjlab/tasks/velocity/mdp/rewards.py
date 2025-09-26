@@ -6,9 +6,13 @@ import torch
 
 from mjlab.entity import Entity
 from mjlab.managers.manager_term_config import RewardTermCfg
+from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
+
+
+_DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
 
 
 def subtree_angmom_l2(
@@ -210,3 +214,21 @@ class cost_of_transport:
 
   def reset(self, env_ids: torch.Tensor | slice | None = None):
     del env_ids  # Unused.
+
+
+def foot_clearance_reward(
+  env: ManagerBasedRlEnv,
+  target_height: float,
+  std: float,
+  tanh_mult: float,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  asset: Entity = env.scene[asset_cfg.name]
+  foot_z_target_error = torch.square(
+    asset.data.geom_pos_w[:, asset_cfg.geom_ids, 2] - target_height
+  )
+  foot_velocity_tanh = torch.tanh(
+    tanh_mult * torch.norm(asset.data.geom_lin_vel_w[:, asset_cfg.geom_ids, :2], dim=2)
+  )
+  reward = foot_z_target_error * foot_velocity_tanh
+  return torch.exp(-torch.sum(reward, dim=1) / std)

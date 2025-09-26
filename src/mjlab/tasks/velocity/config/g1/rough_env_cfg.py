@@ -32,6 +32,9 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
       "left_foot_ground_contact",
       "right_foot_ground_contact",
     ]
+    self.rewards.foot_clearance.params["asset_cfg"].geom_names = [
+      r"^(left|right)_foot[1-7]_collision$"
+    ]
 
     self.scene.entities = {"robot": g1_cfg}
 
