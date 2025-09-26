@@ -928,7 +928,7 @@ wheels = [
 
 [[package]]
 name = "mujoco"
-version = "3.3.6.dev805770746"
+version = "3.3.7.dev811775910"
 source = { registry = "https://py.mujoco.org/" }
 dependencies = [
     { name = "absl-py" },
@@ -939,24 +939,28 @@ dependencies = [
     { name = "pyopengl" },
 ]
 wheels = [
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.6.dev805770746-cp310-cp310-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.6.dev805770746-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.6.dev805770746-cp310-cp310-win_amd64.whl" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.6.dev805770746-cp311-cp311-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.6.dev805770746-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.6.dev805770746-cp311-cp311-win_amd64.whl" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.6.dev805770746-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.6.dev805770746-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.6.dev805770746-cp312-cp312-win_amd64.whl" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.6.dev805770746-cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.6.dev805770746-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.6.dev805770746-cp313-cp313-win_amd64.whl" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.7.dev811775910-cp310-cp310-macosx_11_0_universal2.whl" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.7.dev811775910-cp310-cp310-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.7.dev811775910-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.7.dev811775910-cp310-cp310-win_amd64.whl" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.7.dev811775910-cp311-cp311-macosx_11_0_universal2.whl" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.7.dev811775910-cp311-cp311-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.7.dev811775910-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.7.dev811775910-cp311-cp311-win_amd64.whl" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.7.dev811775910-cp312-cp312-macosx_11_0_universal2.whl" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.7.dev811775910-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.7.dev811775910-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.7.dev811775910-cp312-cp312-win_amd64.whl" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.7.dev811775910-cp313-cp313-macosx_11_0_universal2.whl" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.7.dev811775910-cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.7.dev811775910-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.3.7.dev811775910-cp313-cp313-win_amd64.whl" },
 ]
 
 [[package]]
 name = "mujoco-warp"
 version = "0.0.1"
-source = { git = "https://github.com/google-deepmind/mujoco_warp#e02b6cf69239fa0f159f0a49e8f7946b85851c81" }
+source = { git = "https://github.com/google-deepmind/mujoco_warp#486642c3fa262a989b482e0e506716d5793d61a9" }
 dependencies = [
     { name = "absl-py" },
     { name = "etils", extra = ["epath"] },
@@ -2854,17 +2858,17 @@ wheels = [
 
 [[package]]
 name = "warp-lang"
-version = "1.10.0.dev20250911"
+version = "1.10.0.dev20250926"
 source = { registry = "https://pypi.nvidia.com/" }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.3.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
 wheels = [
-    { url = "https://pypi.nvidia.com/warp-lang/warp_lang-1.10.0.dev20250911-py3-none-macosx_10_13_universal2.whl", hash = "sha256:ceb0f3345178d495eb235731a486e43192d9e8fb668839e5dfd73a3469461a34" },
-    { url = "https://pypi.nvidia.com/warp-lang/warp_lang-1.10.0.dev20250911-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:965a9cfefc3aa844923f3e4aa350b517a4efd499e9986c10fa7e0de093d9791b" },
-    { url = "https://pypi.nvidia.com/warp-lang/warp_lang-1.10.0.dev20250911-py3-none-manylinux_2_34_aarch64.whl", hash = "sha256:a57d9476b830d86f3bccd468ef035da82879953af327b9f7e4ee8f1884b26a6e" },
-    { url = "https://pypi.nvidia.com/warp-lang/warp_lang-1.10.0.dev20250911-py3-none-win_amd64.whl", hash = "sha256:f3e163cb9efa5a68fe18c63872b0d658de5ad16eb8789fbb96376611688ccef5" },
+    { url = "https://pypi.nvidia.com/warp-lang/warp_lang-1.10.0.dev20250926-py3-none-macosx_10_13_universal2.whl", hash = "sha256:249963d48860f9113304129f3593bf0aeb8e22fe7e94a9582dcf9c249c62d692" },
+    { url = "https://pypi.nvidia.com/warp-lang/warp_lang-1.10.0.dev20250926-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:a35ecad6364ea3ce31f449341552dfac0c24b9c1a6051a7f2528535faf141bd0" },
+    { url = "https://pypi.nvidia.com/warp-lang/warp_lang-1.10.0.dev20250926-py3-none-manylinux_2_34_aarch64.whl", hash = "sha256:af82340c555f54a7dd4052d43ee9839dd838f394428f5f8178165ffda6e567f8" },
+    { url = "https://pypi.nvidia.com/warp-lang/warp_lang-1.10.0.dev20250926-py3-none-win_amd64.whl", hash = "sha256:d79ebe48924627e3df4e6aabcd86eb0a19cf97809a3eefa0a81223aff17d3237" },
 ]
 
 [[package]]
