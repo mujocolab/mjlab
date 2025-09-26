@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import inspect
 from typing import TYPE_CHECKING
 
 import torch
 from prettytable import PrettyTable
 
-from mjlab.managers.manager_base import ManagerBase, ManagerTermBase
+from mjlab.managers.manager_base import ManagerBase
 from mjlab.managers.manager_term_config import RewardTermCfg
 from mjlab.utils.dataclasses import get_terms
 
@@ -97,12 +98,12 @@ class RewardManager(ManagerBase):
   def _prepare_terms(self):
     cfg_items = get_terms(self.cfg, RewardTermCfg).items()
     for term_name, term_cfg in cfg_items:
-      term_cfg: RewardTermCfg
+      term_cfg: RewardTermCfg | None
       if term_cfg is None:
         print(f"term: {term_name} set to None, skipping...")
         continue
       self._resolve_common_term_cfg(term_name, term_cfg)
       self._term_names.append(term_name)
       self._term_cfgs.append(term_cfg)
-      if isinstance(term_cfg.func, ManagerTermBase):
+      if inspect.isclass(term_cfg.func):
         self._class_term_cfgs.append(term_cfg)

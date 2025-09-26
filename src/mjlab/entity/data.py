@@ -340,6 +340,14 @@ class EntityData:
     """Generalized forces applied to the DoFs. Shape (num_envs, nv)."""
     return self.data.qfrc_applied[:, self.indexing.free_joint_v_adr].clone()
 
+  @property
+  def sensor_data(self) -> dict[str, torch.Tensor]:
+    """Sensor data. The number of keys is equal to model.nsensor."""
+    sensor_data = {}
+    for name, indices in self.indexing.sensor_adr.items():
+      sensor_data[name] = self.data.sensordata[:, indices].clone()
+    return sensor_data
+
   # Pose and velocity component accessors.
 
   @property

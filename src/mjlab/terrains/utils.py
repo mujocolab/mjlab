@@ -9,7 +9,7 @@ import mujoco
 
 
 def make_plane(
-  spec: mujoco.MjSpec,
+  body: mujoco.MjsBody,
   size: tuple[float, float],
   height: float,
   center_zero: bool = True,
@@ -25,7 +25,7 @@ def make_plane(
   else:
     pos = (size[0] / 2.0, size[1] / 2.0, height - plane_thickness / 2.0)
 
-  box = spec.worldbody.add_geom(
+  box = body.add_geom(
     type=mujoco.mjtGeom.mjGEOM_BOX,
     size=(size[0] / 2.0, size[1] / 2.0, plane_thickness / 2.0),
     pos=pos,
@@ -34,7 +34,7 @@ def make_plane(
 
 
 def make_border(
-  spec: mujoco.MjSpec,
+  body: mujoco.MjsBody,
   size: tuple[float, float],
   inner_size: tuple[float, float],
   height: float,
@@ -57,7 +57,7 @@ def make_border(
     position[1] + inner_size[1] / 2.0 + thickness_y / 2.0,
     position[2],
   )
-  box = spec.worldbody.add_geom(
+  box = body.add_geom(
     type=mujoco.mjtGeom.mjGEOM_BOX,
     size=(box_dims[0] / 2.0, box_dims[1] / 2.0, box_dims[2] / 2.0),
     pos=box_pos,
@@ -70,7 +70,7 @@ def make_border(
     position[1] - inner_size[1] / 2.0 - thickness_y / 2.0,
     position[2],
   )
-  box = spec.worldbody.add_geom(
+  box = body.add_geom(
     type=mujoco.mjtGeom.mjGEOM_BOX,
     size=(box_dims[0] / 2.0, box_dims[1] / 2.0, box_dims[2] / 2.0),
     pos=box_pos,
@@ -85,7 +85,7 @@ def make_border(
     position[1],
     position[2],
   )
-  box = spec.worldbody.add_geom(
+  box = body.add_geom(
     type=mujoco.mjtGeom.mjGEOM_BOX,
     size=(box_dims[0] / 2.0, box_dims[1] / 2.0, box_dims[2] / 2.0),
     pos=box_pos,
@@ -98,7 +98,7 @@ def make_border(
     position[1],
     position[2],
   )
-  box = spec.worldbody.add_geom(
+  box = body.add_geom(
     type=mujoco.mjtGeom.mjGEOM_BOX,
     size=(box_dims[0] / 2.0, box_dims[1] / 2.0, box_dims[2] / 2.0),
     pos=box_pos,

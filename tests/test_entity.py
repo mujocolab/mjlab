@@ -6,7 +6,7 @@ import torch
 
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
-from mjlab.utils.spec_editor.spec_editor_config import ActuatorCfg
+from mjlab.utils.spec_config import ActuatorCfg
 
 
 def get_test_device() -> str:

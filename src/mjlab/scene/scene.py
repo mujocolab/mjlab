@@ -7,9 +7,7 @@ import mujoco_warp as mjwarp
 import torch
 
 from mjlab.entity import Entity, EntityCfg
-from mjlab.sim import MujocoCfg
 from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
-from mjlab.utils.spec_editor import spec_editor as common_editors
 
 _SCENE_XML = Path(__file__).parent / "scene.xml"
 
@@ -34,8 +32,8 @@ class Scene:
     self._spec = mujoco.MjSpec.from_file(str(_SCENE_XML))
     if self._cfg.extent is not None:
       self._spec.stat.extent = self._cfg.extent
-    self._attach_entities()
     self._attach_terrain()
+    self._attach_entities()
 
   def compile(self) -> mujoco.MjModel:
     return self._spec.compile()
@@ -54,9 +52,6 @@ class Scene:
     """
     with path.open("wb") as f:
       mujoco.MjSpec.to_zip(self._spec, f)
-
-  def configure_sim_options(self, cfg: MujocoCfg) -> None:
-    common_editors.OptionEditor(cfg).edit_spec(self._spec)
 
   # Attributes.
 
@@ -149,4 +144,4 @@ class Scene:
     self._cfg.terrain.env_spacing = self._cfg.env_spacing
     self._terrain = TerrainImporter(self._cfg.terrain, self._device)
     frame = self._spec.worldbody.add_frame()
-    self._spec.attach(self._terrain.spec, prefix="terrain/", frame=frame)
+    self._spec.attach(self._terrain.spec, frame=frame)
