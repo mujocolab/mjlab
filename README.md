@@ -27,7 +27,34 @@ Install [uv](https://docs.astral.sh/uv/):
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-Run a pre-trained motion mimic policy on the Unitree G1 humanoid:
+Once installed, you can verify it works by running:
+
+```bash
+uv run scripts/list_envs.py
+```
+
+## Reinforcement Learning
+
+### Velocity training
+
+Train a Unitree G1 to follow velocity commands (headless, large batch):
+
+```bash
+MUJOCO_GL=egl uv run scripts/velocity/rl/train.py \
+  Mjlab-Velocity-Flat-G1 \
+  --env.scene.num-envs 4096
+```
+
+Play the trained policy:
+
+```bash
+uv run scripts/velocity/rl/play.py \
+  --task Mjlab-Velocity-Flat-G1-Play
+```
+
+### Motion mimicking
+
+Run a pre-trained motion-mimic policy on the G1:
 
 ```bash
 uv run scripts/tracking/rl/play.py \
@@ -35,7 +62,7 @@ uv run scripts/tracking/rl/play.py \
   --wandb-run-path gcbc_researchers/mjlab_alpha/rfdej55h
 ```
 
-You can train this exact motion mimic policy using the following command:
+Train the same motion-mimic policy (headless, large batch):
 
 ```bash
 MUJOCO_GL=egl uv run scripts/tracking/rl/train.py \
@@ -44,7 +71,7 @@ MUJOCO_GL=egl uv run scripts/tracking/rl/train.py \
   --env.scene.num-envs 4096
 ```
 
-To add a new motion to the wandb registry, run:
+Add a new motion to the WandB registry from a CSV:
 
 ```bash
 MUJOCO_GL=egl uv run scripts/tracking/csv_to_npz.py \
@@ -55,13 +82,25 @@ MUJOCO_GL=egl uv run scripts/tracking/csv_to_npz.py \
   --render
 ```
 
-### Running tests
+### Debugging
+
+Use dummy agents for quick environment checks (velocity envs only):
+
+```bash
+uv run scripts/velocity/random_agent.py --task Mjlab-Velocity-Flat-G1
+```
+
+```bash
+uv run scripts/velocity/zero_agent.py --task Mjlab-Velocity-Flat-G1
+```
+
+## Running tests
 
 ```bash
 make test
 ```
 
-### Code formatting and linting
+## Code formatting and linting
 
 You can install a pre-commit hook:
 
