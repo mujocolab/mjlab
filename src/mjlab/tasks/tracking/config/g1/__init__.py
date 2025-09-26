@@ -1,7 +1,7 @@
 import gymnasium as gym
 
 gym.register(
-  id="Mjlab-Tracking-Flat-G1",
+  id="Mjlab-Tracking-Flat-Unitree-G1",
   entry_point="mjlab.envs:ManagerBasedRlEnv",
   disable_env_checker=True,
   kwargs={
@@ -11,7 +11,7 @@ gym.register(
 )
 
 gym.register(
-  id="Mjlab-Tracking-Flat-G1-Play",
+  id="Mjlab-Tracking-Flat-Unitree-G1-Play",
   entry_point="mjlab.envs:ManagerBasedRlEnv",
   disable_env_checker=True,
   kwargs={
