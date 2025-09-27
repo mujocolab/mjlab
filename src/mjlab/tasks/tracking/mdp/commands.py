@@ -281,12 +281,6 @@ class MotionCommand(CommandTerm):
     sampled_bins = torch.multinomial(
       sampling_probabilities, len(env_ids), replacement=True
     )
-
-    self.time_steps[env_ids] = (
-      (sampled_bins + sample_uniform(0.0, 1.0, (len(env_ids),), device=self.device))
-      / self.bin_count
-      * (self.motion.time_step_total - 1)
-    ).long()
     self.time_steps[env_ids] = (
       sampled_bins / self.bin_count * (self.motion.time_step_total - 1)
     ).long()
