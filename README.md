@@ -38,7 +38,7 @@ uv run scripts/list_envs.py
 
 ## Reinforcement Learning
 
-### Velocity training
+### Velocity Tracking
 
 Train a Unitree G1 to follow velocity commands (headless, large batch):
 
@@ -54,7 +54,7 @@ Play the trained policy:
 uv run play --task Mjlab-Velocity-Flat-Unitree-G1-Play
 ```
 
-### Motion mimicking
+### Motion Imitation
 
 Run a pre-trained motion-mimic policy on the G1:
 
@@ -100,7 +100,7 @@ uvx pre-commit install
 
 or manually format with:
 
-```
+```bash
 make format
 ```
 
