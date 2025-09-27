@@ -63,8 +63,5 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
     self.commands.motion.pose_range = {}
     self.commands.motion.velocity_range = {}
 
-    # Always start from beginning of motion.
-    self.commands.motion.start_from_beginning = True
-
     # Effectively infinite episode length.
     self.episode_length_s = int(1e9)
