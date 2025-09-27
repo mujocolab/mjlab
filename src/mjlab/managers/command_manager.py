@@ -147,6 +147,7 @@ class CommandManager(ManagerBase):
 
     cfg_items = get_terms(self.cfg, CommandTermCfg).items()
     for term_name, term_cfg in cfg_items:
+      term_cfg: CommandTermCfg | None
       if term_cfg is None:
         print(f"term: {term_name} set to None, skipping...")
         continue

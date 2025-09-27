@@ -142,6 +142,7 @@ class ActionManager(ManagerBase):
 
     cfg_items = get_terms(self.cfg, ActionTermCfg).items()
     for term_name, term_cfg in cfg_items:
+      term_cfg: ActionTermCfg | None
       if term_cfg is None:
         print(f"term: {term_name} set to None, skipping...")
         continue
