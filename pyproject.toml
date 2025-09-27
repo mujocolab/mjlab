@@ -4,9 +4,9 @@ build-backend = "uv_build"
 
 [project]
 name = "mjlab"
-version = "0.0.0"
+version = "0.0.4"
 license = "Apache-2.0"
-license-files = ["LICENSE", "src/mjlab/third_party/**/LICENSE"]
+license-files = ["LICENSE", "src/mjlab/third_party/isaaclab/LICENSE"]
 readme = { file = "README.md", content-type = "text/markdown" }
 authors = [
     {name = "The MjLab Developers"},
@@ -36,7 +36,6 @@ dependencies = [
     "tyro",
     "torch",
     "warp-lang",
-    "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp",
     "mujoco",
     "trimesh",
     "viser",

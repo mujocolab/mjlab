@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Literal, cast
 
 import gymnasium as gym
+import torch
 import tyro
 from rsl_rl.runners import OnPolicyRunner
 from typing_extensions import assert_never
@@ -27,7 +28,7 @@ def run_play(
   checkpoint_file: str | None = None,
   motion_file: str | None = None,
   num_envs: int | None = None,
-  device: str = "cuda:0",
+  device: str | None = None,
   video: bool = False,
   video_length: int = 200,
   video_height: int | None = None,
@@ -37,6 +38,10 @@ def run_play(
   viewer: Literal["native", "viser"] = "native",
 ):
   configure_torch_backends()
+
+  if device is None:
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+  print(f"[INFO]: Using device: {device}")
 
   if checkpoint_file is not None and motion_file is None:
     raise ValueError("Must provide `motion_file` if using `checkpoint_file`.")
