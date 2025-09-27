@@ -59,6 +59,9 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
   def __post_init__(self):
     super().__post_init__()
 
+    self.observations.policy.enable_corruption = False
+    self.events.push_robot = None
+
     # Disable RSI randomization.
     self.commands.motion.pose_range = {}
     self.commands.motion.velocity_range = {}

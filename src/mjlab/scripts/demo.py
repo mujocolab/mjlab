@@ -32,6 +32,7 @@ def main() -> None:
       task=_TASK_NAME,
       checkpoint_file=checkpoint_path,
       motion_file=motion_path,
+      num_envs=8,
       render_all_envs=True,
       viewer="viser",
     )

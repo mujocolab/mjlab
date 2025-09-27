@@ -8,19 +8,15 @@ from tqdm import tqdm
 CACHE_DIR = Path(tempfile.gettempdir()) / "mjlab_cache"
 
 ASSETS = {
-  "model_4000.pt": {
-    "url": "https://storage.googleapis.com/mjlab_beta/model_4000.pt",
-    "sha256": "74f4b65330395f657018066248bcc418809ad301eb33c0903f988d98741eba83",
-    "path": CACHE_DIR
-    / "checkpoints"
-    / "wandb_checkpoints"
-    / "inu9glgw"
-    / "model_4000.pt",
+  "demo_ckpt.pt": {
+    "url": "https://storage.googleapis.com/mjlab_beta/model_6000.pt",
+    "sha256": "4bc6338750464d6ad6b7b3d1eebd6b914fe40abbd184ffa1bccb9192068231de",
+    "path": CACHE_DIR / "demo_ckpt.pt",
   },
-  "lafan_cartwheel_motion.npz": {
-    "url": "https://storage.googleapis.com/mjlab_beta/lafan_cartwheel_motion.npz",
-    "sha256": "8e96e46320ee8ca6a56ab6cab955fbbbbb98c80946522933c72723e0bd9dc00c",
-    "path": CACHE_DIR / "data" / "lafan_cartwheel_motion.npz",
+  "demo_motion.npz": {
+    "url": "https://storage.googleapis.com/mjlab_beta/lafan_dance1_subject1.npz",
+    "sha256": "f08d15d4b5bb605e17b6928ccdb44ae6ce7bf2038111e8b145f12a176cd096d4",
+    "path": CACHE_DIR / "demo_motion.npz",
   },
 }
 
@@ -93,11 +89,11 @@ def ensure_asset_downloaded(asset_name: str, force_download: bool = False) -> Pa
 
 def ensure_default_checkpoint() -> str:
   """Ensure default checkpoint is available and return its absolute path."""
-  checkpoint_path = ensure_asset_downloaded("model_4000.pt")
+  checkpoint_path = ensure_asset_downloaded("demo_ckpt.pt")
   return str(checkpoint_path.resolve())
 
 
 def ensure_default_motion() -> str:
   """Ensure default motion file is available and return its absolute path."""
-  motion_path = ensure_asset_downloaded("lafan_cartwheel_motion.npz")
+  motion_path = ensure_asset_downloaded("demo_motion.npz")
   return str(motion_path.resolve())
