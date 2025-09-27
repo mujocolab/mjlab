@@ -10,6 +10,10 @@
 
 [Isaac Lab](https://github.com/isaac-sim/IsaacLab) API with [MJWarp](https://github.com/google-deepmind/mujoco_warp) backend.
 
+```bash
+uv run demo
+```
+
 ## Development Guide
 
 Clone `mjlab`:
