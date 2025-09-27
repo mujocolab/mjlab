@@ -21,6 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11", 
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3 :: Only",
     "Typing :: Typed",
     "Environment :: GPU :: NVIDIA CUDA",
@@ -28,7 +29,7 @@ classifiers = [
     "Natural Language :: English",
 ]
 description = "IsaacLab-style manager API, powered by MuJoCo-Warp, for RL and robotics research."
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.14"
 dependencies = [
     "gymnasium==1.2.0",
     "prettytable",
@@ -36,6 +37,7 @@ dependencies = [
     "tyro",
     "torch",
     "warp-lang",
+    "mujoco-warp",
     "mujoco",
     "trimesh",
     "viser",
