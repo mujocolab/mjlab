@@ -28,6 +28,6 @@ def create_unitree_go1_flat_env_cfg_play():
   return create_unitree_go1_flat_env_cfg()
 
 
-# Create config instances
+# Create config instances.
 UNITREE_GO1_FLAT_ENV_CFG = create_unitree_go1_flat_env_cfg()
 UNITREE_GO1_FLAT_ENV_CFG_PLAY = create_unitree_go1_flat_env_cfg_play()

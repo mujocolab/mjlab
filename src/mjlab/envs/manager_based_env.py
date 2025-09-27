@@ -22,19 +22,6 @@ from mjlab.utils import random as random_utils
 from mjlab.viewer.viewer_config import ViewerConfig
 
 
-def default_events() -> dict[str, EventTermCfg]:
-  """Default event manager configuration.
-
-  Resets the scene to the default state specified by the scene configuration.
-  """
-  return {
-    "reset_scene_to_default": EventTermCfg(
-      func=reset_scene_to_default,
-      mode="reset",
-    )
-  }
-
-
 @dataclass(kw_only=True)
 class ManagerBasedEnvCfg:
   """Configuration for a manager-based environment."""
@@ -43,7 +30,14 @@ class ManagerBasedEnvCfg:
   scene: SceneCfg
   observations: dict[str, ObservationGroupCfg]
   actions: dict[str, ActionTermCfg]
-  events: dict[str, EventTermCfg] = field(default_factory=default_events)
+  events: dict[str, EventTermCfg] = field(
+    default_factory=lambda: {
+      "reset_scene_to_default": EventTermCfg(
+        func=reset_scene_to_default,
+        mode="reset",
+      )
+    }
+  )
   seed: int | None = None
   sim: SimulationCfg = field(default_factory=SimulationCfg)
   viewer: ViewerConfig = field(default_factory=ViewerConfig)

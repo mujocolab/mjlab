@@ -12,7 +12,7 @@ from mjlab.utils.spec_config import ContactSensorCfg
 
 def create_g1_flat_env_cfg():
   """Create configuration for Unitree G1 robot tracking on flat terrain."""
-  # Configure self collision sensor
+  # Configure self collision sensor.
   self_collision_sensor = ContactSensorCfg(
     name="self_collision",
     subtree1="pelvis",
@@ -23,14 +23,14 @@ def create_g1_flat_env_cfg():
   )
   g1_cfg = replace(G1_ROBOT_CFG, sensors=(self_collision_sensor,))
 
-  # Create configuration with G1-specific parameters
-  # Matching the original which always had motion command configured
+  # Create configuration with G1-specific parameters.
+  # Matching the original which always had motion command configured.
   cfg = create_tracking_env_cfg(
     robot_cfg=g1_cfg,
     action_scale=G1_ACTION_SCALE,
     viewer_body_name="torso_link",
     # Motion command parameters (matching original with empty file)
-    motion_file="",  # Empty file - needs actual motion data to work
+    motion_file="",  # Empty file - needs actual motion data to work.
     reference_body="torso_link",
     body_names=[
       "pelvis",
@@ -75,7 +75,7 @@ def create_g1_flat_env_cfg():
   )
 
   # Add base_com event with body ipos randomization (matching original)
-  # Note: Using randomize_field since randomize_com doesn't exist
+  # Note: Using randomize_field since randomize_com doesn't exist.
   from mjlab.envs import mdp as envs_mdp
   from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
   from mjlab.managers.scene_entity_config import SceneEntityCfg
@@ -83,16 +83,16 @@ def create_g1_flat_env_cfg():
   cfg.events["base_com"] = EventTerm(
     mode="startup",
     func=envs_mdp.randomize_field,
-    params=dict(
-      asset_cfg=SceneEntityCfg("robot", body_names=["torso_link"]),
-      operation="add",
-      field="body_ipos",
-      ranges={
+    params={
+      "asset_cfg": SceneEntityCfg("robot", body_names=["torso_link"]),
+      "operation": "add",
+      "field": "body_ipos",
+      "ranges": {
         0: (-0.025, 0.025),
         1: (-0.05, 0.05),
         2: (-0.05, 0.05),
       },
-    ),
+    },
   )
 
   return cfg
@@ -102,17 +102,17 @@ def create_g1_flat_env_cfg_play():
   """Create play configuration for Unitree G1 robot tracking on flat terrain."""
   cfg = create_g1_flat_env_cfg()
 
-  # Disable corruption for play mode
+  # Disable corruption for play mode.
   assert "policy" in cfg.observations, "Policy observations must be configured"
   cfg.observations["policy"].enable_corruption = False
 
-  # Remove push robot event
+  # Remove push robot event.
   assert "push_robot" in cfg.events, (
     "Push robot event should be configured in base tracking config"
   )
   del cfg.events["push_robot"]
 
-  # Update motion command randomization ranges for play mode
+  # Update motion command randomization ranges for play mode.
   from mjlab.tasks.tracking.mdp.commands import MotionCommandCfg
 
   assert cfg.commands is not None, "Commands must be configured for tracking"
@@ -123,16 +123,16 @@ def create_g1_flat_env_cfg_play():
     f"Expected MotionCommandCfg, got {type(motion_cmd)}"
   )
 
-  # Set empty ranges to disable randomization in play mode
+  # Set empty ranges to disable randomization in play mode.
   motion_cmd.pose_range = {}
   motion_cmd.velocity_range = {}
 
-  # Effectively infinite episode length
+  # Effectively infinite episode length.
   cfg.episode_length_s = int(1e9)
 
   return cfg
 
 
-# Create config instances
+# Create config instances.
 G1_FLAT_ENV_CFG = create_g1_flat_env_cfg()
 G1_FLAT_ENV_CFG_PLAY = create_g1_flat_env_cfg_play()

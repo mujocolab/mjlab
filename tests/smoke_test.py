@@ -28,7 +28,7 @@ def test_basic_functionality() -> None:
   with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-      for config_name, cfg in configs:
+      for _config_name, cfg in configs:
         env = ManagerBasedRlEnv(cfg, device="cpu")
         assert env.sim.data.time == 0.0
         env.close()
