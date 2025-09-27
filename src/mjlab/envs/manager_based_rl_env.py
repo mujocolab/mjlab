@@ -1,6 +1,5 @@
 import math
 from dataclasses import dataclass
-from typing import Any
 
 import gymnasium as gym
 import mujoco
@@ -12,6 +11,12 @@ from mjlab.envs import types
 from mjlab.envs.manager_based_env import ManagerBasedEnv, ManagerBasedEnvCfg
 from mjlab.managers.command_manager import CommandManager, NullCommandManager
 from mjlab.managers.curriculum_manager import CurriculumManager, NullCurriculumManager
+from mjlab.managers.manager_term_config import (
+  CommandTermCfg,
+  CurriculumTermCfg,
+  RewardTermCfg,
+  TerminationTermCfg,
+)
 from mjlab.managers.reward_manager import RewardManager
 from mjlab.managers.termination_manager import TerminationManager
 
@@ -21,10 +26,10 @@ class ManagerBasedRlEnvCfg(ManagerBasedEnvCfg):
   """Configuration for a manager-based RL environment."""
 
   episode_length_s: float
-  rewards: Any
-  terminations: Any
-  commands: Any | None = None
-  curriculum: Any | None = None
+  rewards: dict[str, RewardTermCfg]
+  terminations: dict[str, TerminationTermCfg]
+  commands: dict[str, CommandTermCfg] | None = None
+  curriculum: dict[str, CurriculumTermCfg] | None = None
   is_finite_horizon: bool = False
 
 

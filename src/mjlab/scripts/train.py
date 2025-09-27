@@ -5,14 +5,14 @@ import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 import gymnasium as gym
+import torch
 import tyro
-
+from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
-from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
 from mjlab.tasks.velocity.rl import VelocityOnPolicyRunner
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
@@ -23,10 +23,10 @@ from mjlab.utils.torch import configure_torch_backends
 
 @dataclass(frozen=True)
 class TrainConfig:
-  env: Any
+  env: ManagerBasedRlEnvCfg
   agent: RslRlOnPolicyRunnerCfg
   registry_name: str | None = None
-  device: str = "cuda:0"
+  device: str | None = None
   video: bool = False
   video_length: int = 200
   video_interval: int = 2000
@@ -37,7 +37,23 @@ def run_train(task: str, cfg: TrainConfig) -> None:
 
   registry_name: str | None = None
 
-  if isinstance(cfg.env, TrackingEnvCfg):
+  # Determine training device.
+  device = cfg.device
+  if device is None:
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
+  # Check if this is a tracking task (has motion command).
+  from mjlab.tasks.tracking.mdp.commands import MotionCommandCfg
+
+  motion_cmds = [
+    cmd
+    for cmd in (cfg.env.commands.values() if cfg.env.commands else [])
+    if isinstance(cmd, MotionCommandCfg)
+  ]
+  assert len(motion_cmds) <= 1, "Expected at most one motion command"
+  is_tracking_task = len(motion_cmds) == 1
+
+  if is_tracking_task:
     if not cfg.registry_name:
       raise ValueError("Must provide --registry-name for tracking tasks.")
 
@@ -49,7 +65,7 @@ def run_train(task: str, cfg: TrainConfig) -> None:
 
     api = wandb.Api()
     artifact = api.artifact(registry_name)
-    cfg.env.commands.motion.motion_file = str(Path(artifact.download()) / "motion.npz")
+    motion_cmds[0].motion_file = str(Path(artifact.download()) / "motion.npz")
 
   # Specify directory for logging experiments.
   log_root_path = Path("logs") / "rsl_rl" / cfg.agent.experiment_name
@@ -61,7 +77,7 @@ def run_train(task: str, cfg: TrainConfig) -> None:
   log_dir = log_root_path / log_dir
 
   env = gym.make(
-    task, cfg=cfg.env, device=cfg.device, render_mode="rgb_array" if cfg.video else None
+    task, cfg=cfg.env, device=device, render_mode="rgb_array" if cfg.video else None
   )
 
   resume_path = (
@@ -85,12 +101,13 @@ def run_train(task: str, cfg: TrainConfig) -> None:
   agent_cfg = asdict(cfg.agent)
   env_cfg = asdict(cfg.env)
 
-  if isinstance(cfg.env, TrackingEnvCfg):
+  # Use appropriate runner based on task type
+  if is_tracking_task:
     runner = MotionTrackingOnPolicyRunner(
-      env, agent_cfg, str(log_dir), cfg.device, registry_name
+      env, agent_cfg, str(log_dir), device, registry_name
     )
   else:
-    runner = VelocityOnPolicyRunner(env, agent_cfg, str(log_dir), cfg.device)
+    runner = VelocityOnPolicyRunner(env, agent_cfg, str(log_dir), device)
 
   runner.add_git_repo_to_log(__file__)
   if resume_path is not None:
@@ -122,6 +139,7 @@ def main():
   # Parse the rest of the arguments + allow overriding env_cfg and agent_cfg.
   env_cfg = load_cfg_from_registry(chosen_task, "env_cfg_entry_point")
   agent_cfg = load_cfg_from_registry(chosen_task, "rl_cfg_entry_point")
+  assert isinstance(env_cfg, ManagerBasedRlEnvCfg)
   assert isinstance(agent_cfg, RslRlOnPolicyRunnerCfg)
 
   args = tyro.cli(

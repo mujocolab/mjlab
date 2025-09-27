@@ -9,7 +9,6 @@ from prettytable import PrettyTable
 
 from mjlab.managers.manager_base import ManagerBase, ManagerTermBase
 from mjlab.managers.manager_term_config import TerminationTermCfg
-from mjlab.utils.dataclasses import get_terms
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
@@ -18,7 +17,7 @@ if TYPE_CHECKING:
 class TerminationManager(ManagerBase):
   _env: ManagerBasedRlEnv
 
-  def __init__(self, cfg: object, env: ManagerBasedRlEnv):
+  def __init__(self, cfg: dict[str, TerminationTermCfg], env: ManagerBasedRlEnv):
     self._term_names: list[str] = list()
     self._term_cfgs: list[TerminationTermCfg] = list()
     self._class_term_cfgs: list[TerminationTermCfg] = list()
@@ -108,8 +107,7 @@ class TerminationManager(ManagerBase):
     return terms
 
   def _prepare_terms(self):
-    cfg_items = get_terms(self.cfg, TerminationTermCfg).items()
-    for term_name, term_cfg in cfg_items:
+    for term_name, term_cfg in self.cfg.items():
       term_cfg: TerminationTermCfg
       if term_cfg is None:
         print(f"term: {term_name} set to None, skipping...")

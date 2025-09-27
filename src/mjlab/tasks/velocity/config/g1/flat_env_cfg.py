@@ -1,21 +1,33 @@
-from dataclasses import dataclass
-
 from mjlab.tasks.velocity.config.g1.rough_env_cfg import (
-  UnitreeG1RoughEnvCfg,
+  create_unitree_g1_rough_env_cfg,
 )
 
 
-@dataclass
-class UnitreeG1FlatEnvCfg(UnitreeG1RoughEnvCfg):
-  def __post_init__(self):
-    super().__post_init__()
+def create_unitree_g1_flat_env_cfg():
+  """Create configuration for Unitree G1 robot on flat terrain."""
+  cfg = create_unitree_g1_rough_env_cfg()
 
-    assert self.scene.terrain is not None
-    self.scene.terrain.terrain_type = "plane"
-    self.scene.terrain.terrain_generator = None
-    self.curriculum.terrain_levels = None
+  assert cfg.scene.terrain is not None, "Scene terrain must be configured"
+  cfg.scene.terrain.terrain_type = "plane"
+  cfg.scene.terrain.terrain_generator = None
+
+  # Remove terrain curriculum for flat terrain
+  assert cfg.curriculum is not None, (
+    "Curriculum must be configured in base velocity config"
+  )
+  assert "terrain_levels" in cfg.curriculum, (
+    "Terrain levels curriculum should be present in rough config"
+  )
+  del cfg.curriculum["terrain_levels"]
+
+  return cfg
 
 
-@dataclass
-class UnitreeG1FlatEnvCfg_PLAY(UnitreeG1FlatEnvCfg):
-  pass
+def create_unitree_g1_flat_env_cfg_play():
+  """Create play configuration for Unitree G1 robot on flat terrain."""
+  return create_unitree_g1_flat_env_cfg()
+
+
+# Create config instances
+UNITREE_G1_FLAT_ENV_CFG = create_unitree_g1_flat_env_cfg()
+UNITREE_G1_FLAT_ENV_CFG_PLAY = create_unitree_g1_flat_env_cfg_play()
