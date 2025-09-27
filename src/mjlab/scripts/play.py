@@ -2,7 +2,7 @@
 
 from dataclasses import asdict
 from pathlib import Path
-from typing import Literal, Optional, cast
+from typing import Literal, cast
 
 import gymnasium as gym
 import tyro
@@ -23,8 +23,9 @@ from mjlab.viewer import NativeMujocoViewer, ViserViewer
 
 def run_play(
   task: str,
-  wandb_run_path: Path,
-  motion_file: Optional[str] = None,
+  wandb_run_path: str | None = None,
+  checkpoint_file: str | None = None,
+  motion_file: str | None = None,
   num_envs: int | None = None,
   device: str = "cuda:0",
   video: bool = False,
@@ -36,6 +37,9 @@ def run_play(
   viewer: Literal["native", "viser"] = "native",
 ):
   configure_torch_backends()
+
+  if checkpoint_file is not None and motion_file is None:
+    raise ValueError("Must provide `motion_file` if using `checkpoint_file`.")
 
   env_cfg = cast(
     ManagerBasedRlEnvCfg, load_cfg_from_registry(task, "env_cfg_entry_point")
@@ -55,7 +59,14 @@ def run_play(
 
   log_root_path = (Path("logs") / "rsl_rl" / agent_cfg.experiment_name).resolve()
   print(f"[INFO]: Loading experiment from: {log_root_path}")
-  resume_path = get_wandb_checkpoint_path(log_root_path, wandb_run_path)
+
+  if checkpoint_file is not None:
+    resume_path = Path(checkpoint_file)
+    if not resume_path.exists():
+      raise FileNotFoundError(f"Checkpoint file not found: {resume_path}")
+  else:
+    assert wandb_run_path is not None
+    resume_path = get_wandb_checkpoint_path(log_root_path, Path(wandb_run_path))
   print(f"[INFO]: Loading checkpoint: {resume_path}")
   log_dir = resume_path.parent
 
