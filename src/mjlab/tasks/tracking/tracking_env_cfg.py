@@ -264,7 +264,7 @@ class TerminationsCfg:
       "threshold": 0.8,
     },
   )
-  ee_body_pos = DoneTerm(
+  ee_body_pos: DoneTerm = DoneTerm(
     func=mdp.bad_motion_body_pos_z_only,
     params={
       "command_name": "motion",
