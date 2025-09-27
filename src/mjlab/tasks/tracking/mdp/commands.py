@@ -263,7 +263,7 @@ class MotionCommand(CommandTerm):
       fail_bins = current_bin_index[env_ids][episode_failed]
       self._current_bin_failed[:] = torch.bincount(fail_bins, minlength=self.bin_count)
 
-    # Sample
+    # Sample.
     sampling_probabilities = (
       self.bin_failed_count + self.cfg.adaptive_uniform_ratio / float(self.bin_count)
     )
@@ -291,7 +291,7 @@ class MotionCommand(CommandTerm):
       sampled_bins / self.bin_count * (self.motion.time_step_total - 1)
     ).long()
 
-    # Metrics
+    # Update metrics.
     H = -(sampling_probabilities * (sampling_probabilities + 1e-12).log()).sum()
     H_norm = H / math.log(self.bin_count)
     pmax, imax = sampling_probabilities.max(dim=0)
@@ -300,6 +300,8 @@ class MotionCommand(CommandTerm):
     self.metrics["sampling_top1_bin"][:] = imax.float() / self.bin_count
 
   def _resample_command(self, env_ids: torch.Tensor):
+    self._adaptive_sampling(env_ids)
+
     root_pos = self.body_pos_w[:, 0].clone()
     root_ori = self.body_quat_w[:, 0].clone()
     root_lin_vel = self.body_lin_vel_w[:, 0].clone()
