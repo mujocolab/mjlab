@@ -5,7 +5,6 @@ Robot-specific configurations are located in the config/ directory.
 """
 
 import math
-from copy import deepcopy
 
 from mjlab.entity import EntityCfg
 from mjlab.envs import ManagerBasedRlEnvCfg
@@ -25,34 +24,6 @@ from mjlab.terrains import TerrainImporterCfg
 from mjlab.terrains.config import ROUGH_TERRAINS_CFG
 from mjlab.utils.noise import UniformNoiseCfg
 from mjlab.viewer import ViewerConfig
-
-VELOCITY_RANGE = {
-  "x": (-0.5, 0.5),
-  "y": (-0.5, 0.5),
-  "z": (-0.2, 0.2),
-  "roll": (-0.52, 0.52),
-  "pitch": (-0.52, 0.52),
-  "yaw": (-0.78, 0.78),
-}
-
-##
-# Scene.
-##
-
-SCENE_CFG = SceneCfg(
-  terrain=TerrainImporterCfg(
-    terrain_type="generator",
-    terrain_generator=ROUGH_TERRAINS_CFG,
-    max_init_terrain_level=5,
-  ),
-  num_envs=1,
-  extent=2.0,
-)
-
-
-##
-# MDP.
-##
 
 
 def create_locomotion_velocity_env_cfg(
@@ -81,6 +52,19 @@ def create_locomotion_velocity_env_cfg(
     viewer_elevation: Elevation angle for viewer.
     command_viz_z_offset: Z offset for command visualization.
   """
+
+  # Create scene with robot entity.
+  scene = SceneCfg(
+    terrain=TerrainImporterCfg(
+      terrain_type="generator",
+      terrain_generator=ROUGH_TERRAINS_CFG,
+      max_init_terrain_level=5,
+    ),
+    num_envs=1,
+    extent=2.0,
+    entities={"robot": robot_cfg},
+  )
+
   # Build policy observation terms.
   policy_obs_terms = dict(
     base_lin_vel=ObservationTermCfg(
@@ -108,14 +92,6 @@ def create_locomotion_velocity_env_cfg(
       func=mdp.generated_commands, params={"command_name": "twist"}
     ),
   )
-
-  # Create scene with robot entity.
-  scene = deepcopy(SCENE_CFG)
-  scene.entities = {"robot": robot_cfg}
-  # Enable curriculum mode for terrain generator.
-  if scene.terrain is not None:
-    if scene.terrain.terrain_generator is not None:
-      scene.terrain.terrain_generator.curriculum = True
 
   cfg = ManagerBasedRlEnvCfg(
     decimation=4,  # 50 Hz control frequency
@@ -203,7 +179,16 @@ def create_locomotion_velocity_env_cfg(
         func=mdp.push_by_setting_velocity,
         mode="interval",
         interval_range_s=(1.0, 3.0),
-        params={"velocity_range": VELOCITY_RANGE},
+        params={
+          "velocity_range": {
+            "x": (-0.5, 0.5),
+            "y": (-0.5, 0.5),
+            "z": (-0.2, 0.2),
+            "roll": (-0.52, 0.52),
+            "pitch": (-0.52, 0.52),
+            "yaw": (-0.78, 0.78),
+          }
+        },
       ),
       foot_friction=EventTermCfg(
         mode="startup",

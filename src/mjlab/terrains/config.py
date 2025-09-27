@@ -6,6 +6,7 @@ from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
 
 ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
   size=(8.0, 8.0),
+  curriculum=True,
   border_width=20.0,
   num_rows=10,
   num_cols=20,

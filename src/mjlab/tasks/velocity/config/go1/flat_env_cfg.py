@@ -11,7 +11,7 @@ def create_unitree_go1_flat_env_cfg():
   cfg.scene.terrain.terrain_type = "plane"
   cfg.scene.terrain.terrain_generator = None
 
-  # Remove terrain curriculum for flat terrain
+  # Remove terrain curriculum for flat terrain.
   assert cfg.curriculum is not None, (
     "Curriculum must be configured in base velocity config"
   )

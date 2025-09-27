@@ -4,11 +4,9 @@ This module defines the base configuration for motion mimic tasks.
 Robot-specific configurations are located in the config/ directory.
 """
 
-from copy import deepcopy
-
 from mjlab.entity import EntityCfg
 from mjlab.envs import ManagerBasedRlEnvCfg
-from mjlab.envs import mdp as envs_mdp  # For general mdp functions
+from mjlab.envs import mdp as envs_mdp  # For general mdp functions.
 from mjlab.managers.manager_term_config import (
   EventTermCfg,
   ObservationGroupCfg,
@@ -24,27 +22,6 @@ from mjlab.terrains import TerrainImporterCfg
 from mjlab.utils.noise import UniformNoiseCfg
 from mjlab.viewer import ViewerConfig
 
-VELOCITY_RANGE = {
-  "x": (-0.5, 0.5),
-  "y": (-0.5, 0.5),
-  "z": (-0.2, 0.2),
-  "roll": (-0.52, 0.52),
-  "pitch": (-0.52, 0.52),
-  "yaw": (-0.78, 0.78),
-}
-
-##
-# Scene.
-##
-
-
-SCENE_CFG = SceneCfg(terrain=TerrainImporterCfg(terrain_type="plane"), num_envs=1)
-
-
-##
-# MDP.
-##
-
 
 def create_tracking_env_cfg(
   robot_cfg: EntityCfg,
@@ -55,6 +32,7 @@ def create_tracking_env_cfg(
   body_names: list[str],
   foot_friction_geom_names: list[str],
   ee_body_names: list[str],
+  base_com_body_name: str,
   viewer_distance: float = 3.0,
   viewer_elevation: float = -5.0,
   viewer_azimuth: float = 90.0,
@@ -73,6 +51,7 @@ def create_tracking_env_cfg(
     body_names: Body names to track in motion.
     foot_friction_geom_names: Geometry names for foot friction event.
     ee_body_names: End-effector body names for termination.
+    base_com_body_name: Body name for base center of mass randomization.
     viewer_distance: Distance from viewer to tracked body.
     viewer_elevation: Elevation angle for viewer.
     viewer_azimuth: Azimuth angle for viewer.
@@ -92,7 +71,14 @@ def create_tracking_env_cfg(
       "yaw": (-0.2, 0.2),
     }
   if velocity_range is None:
-    velocity_range = VELOCITY_RANGE
+    velocity_range = {
+      "x": (-0.5, 0.5),
+      "y": (-0.5, 0.5),
+      "z": (-0.2, 0.2),
+      "roll": (-0.52, 0.52),
+      "pitch": (-0.52, 0.52),
+      "yaw": (-0.78, 0.78),
+    }
 
   # Build policy observation terms.
   policy_obs_terms = dict(
@@ -143,9 +129,11 @@ def create_tracking_env_cfg(
   )
 
   # Create scene with robot entity.
-  scene = deepcopy(SCENE_CFG)
-  scene.entities = {"robot": robot_cfg}
-
+  scene = SceneCfg(
+    terrain=TerrainImporterCfg(terrain_type="plane"),
+    num_envs=1,
+    entities={"robot": robot_cfg},
+  )
   cfg = ManagerBasedRlEnvCfg(
     decimation=4,  # 50 Hz control frequency
     episode_length_s=10.0,
@@ -178,7 +166,7 @@ def create_tracking_env_cfg(
     commands=dict(
       motion=mdp.MotionCommandCfg(
         class_type=mdp.MotionCommand,
-        resampling_time_range=(1e9, 1e9),  # No resampling by default
+        resampling_time_range=(1e9, 1e9),  # No resampling by default.
         debug_vis=True,
         motion_file=motion_file,
         reference_body=reference_body,
@@ -208,7 +196,16 @@ def create_tracking_env_cfg(
         func=envs_mdp.push_by_setting_velocity,
         mode="interval",
         interval_range_s=(1.0, 3.0),
-        params={"velocity_range": VELOCITY_RANGE},
+        params={
+          "velocity_range": {
+            "x": (-0.5, 0.5),
+            "y": (-0.5, 0.5),
+            "z": (-0.2, 0.2),
+            "roll": (-0.52, 0.52),
+            "pitch": (-0.52, 0.52),
+            "yaw": (-0.78, 0.78),
+          }
+        },
       ),
       add_joint_default_pos=EventTermCfg(
         mode="startup",
@@ -228,6 +225,20 @@ def create_tracking_env_cfg(
           "operation": "abs",
           "field": "geom_friction",
           "ranges": (0.3, 1.2),
+        },
+      ),
+      base_com=EventTermCfg(
+        mode="startup",
+        func=envs_mdp.randomize_field,
+        params={
+          "asset_cfg": SceneEntityCfg("robot", body_names=[base_com_body_name]),
+          "operation": "add",
+          "field": "body_ipos",
+          "ranges": {
+            0: (-0.025, 0.025),
+            1: (-0.05, 0.05),
+            2: (-0.05, 0.05),
+          },
         },
       ),
     ),

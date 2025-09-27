@@ -1,12 +1,7 @@
 from dataclasses import replace
 
-from mjlab.asset_zoo.robots.unitree_g1.g1_constants import (
-  G1_ACTION_SCALE,
-  G1_ROBOT_CFG,
-)
-from mjlab.tasks.tracking.tracking_env_cfg import (
-  create_tracking_env_cfg,
-)
+from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ACTION_SCALE, G1_ROBOT_CFG
+from mjlab.tasks.tracking.tracking_env_cfg import create_tracking_env_cfg
 from mjlab.utils.spec_config import ContactSensorCfg
 
 
@@ -25,11 +20,11 @@ def create_g1_flat_env_cfg():
 
   # Create configuration with G1-specific parameters.
   # Matching the original which always had motion command configured.
-  cfg = create_tracking_env_cfg(
+  return create_tracking_env_cfg(
     robot_cfg=g1_cfg,
     action_scale=G1_ACTION_SCALE,
     viewer_body_name="torso_link",
-    # Motion command parameters (matching original with empty file)
+    # Motion command parameters (matching original with empty file).
     motion_file="",  # Empty file - needs actual motion data to work.
     reference_body="torso_link",
     body_names=[
@@ -48,6 +43,7 @@ def create_g1_flat_env_cfg():
       "right_elbow_link",
       "right_wrist_yaw_link",
     ],
+    base_com_body_name="torso_link",
     pose_range={
       "x": (-0.05, 0.05),
       "y": (-0.05, 0.05),
@@ -73,29 +69,6 @@ def create_g1_flat_env_cfg():
       "right_wrist_yaw_link",
     ],
   )
-
-  # Add base_com event with body ipos randomization (matching original)
-  # Note: Using randomize_field since randomize_com doesn't exist.
-  from mjlab.envs import mdp as envs_mdp
-  from mjlab.managers.manager_term_config import EventTermCfg
-  from mjlab.managers.scene_entity_config import SceneEntityCfg
-
-  cfg.events["base_com"] = EventTermCfg(
-    mode="startup",
-    func=envs_mdp.randomize_field,
-    params={
-      "asset_cfg": SceneEntityCfg("robot", body_names=["torso_link"]),
-      "operation": "add",
-      "field": "body_ipos",
-      "ranges": {
-        0: (-0.025, 0.025),
-        1: (-0.05, 0.05),
-        2: (-0.05, 0.05),
-      },
-    },
-  )
-
-  return cfg
 
 
 def create_g1_flat_env_cfg_play():
@@ -133,6 +106,5 @@ def create_g1_flat_env_cfg_play():
   return cfg
 
 
-# Create config instances.
 G1_FLAT_ENV_CFG = create_g1_flat_env_cfg()
 G1_FLAT_ENV_CFG_PLAY = create_g1_flat_env_cfg_play()

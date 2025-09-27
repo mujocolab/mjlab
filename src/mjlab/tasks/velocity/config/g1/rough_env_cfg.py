@@ -12,7 +12,7 @@ from mjlab.utils.spec_config import ContactSensorCfg
 
 def create_unitree_g1_rough_env_cfg():
   """Create configuration for Unitree G1 robot on rough terrain."""
-  # Configure foot contact sensors
+  # Configure foot contact sensors.
   foot_contact_sensors = [
     ContactSensorCfg(
       name=f"{side}_foot_ground_contact",
@@ -26,7 +26,7 @@ def create_unitree_g1_rough_env_cfg():
   ]
   g1_cfg = replace(G1_ROBOT_CFG, sensors=tuple(foot_contact_sensors))
 
-  # Create configuration with all G1-specific parameters
+  # Create configuration with all G1-specific parameters.
   cfg = create_locomotion_velocity_env_cfg(
     robot_cfg=g1_cfg,
     action_scale=G1_ACTION_SCALE,
@@ -54,7 +54,7 @@ def create_unitree_g1_rough_env_cfg_play():
   """Create play configuration for Unitree G1 robot on rough terrain."""
   cfg = create_unitree_g1_rough_env_cfg()
 
-  # Rough terrain should have terrain generator configured
+  # Rough terrain should have terrain generator configured.
   assert cfg.scene.terrain is not None, "Scene terrain must be configured"
   assert cfg.scene.terrain.terrain_generator is not None, (
     "Terrain generator must be configured for rough terrain"
@@ -68,6 +68,6 @@ def create_unitree_g1_rough_env_cfg_play():
   return cfg
 
 
-# Create config instances
+# Create config instances.
 UNITREE_G1_ROUGH_ENV_CFG = create_unitree_g1_rough_env_cfg()
 UNITREE_G1_ROUGH_ENV_CFG_PLAY = create_unitree_g1_rough_env_cfg_play()
