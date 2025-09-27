@@ -18,4 +18,8 @@ class UnitreeGo1FlatEnvCfg(UnitreeGo1RoughEnvCfg):
 
 @dataclass
 class UnitreeGo1FlatEnvCfg_PLAY(UnitreeGo1FlatEnvCfg):
-  pass
+  def __post_init__(self):
+    super().__post_init__()
+
+    # Effectively infinite episode length.
+    self.episode_length_s = int(1e9)
