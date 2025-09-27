@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import math
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -66,6 +67,7 @@ class MotionLoader:
 
 class MotionCommand(CommandTerm):
   cfg: MotionCommandCfg
+  _env: ManagerBasedRlEnv
 
   def __init__(self, cfg: MotionCommandCfg, env: ManagerBasedRlEnv):
     super().__init__(cfg, env)
@@ -91,6 +93,19 @@ class MotionCommand(CommandTerm):
     )
     self.body_quat_relative_w[:, :, 0] = 1.0
 
+    self.bin_count = int(self.motion.time_step_total // (1 / env.step_dt)) + 1
+    self.bin_failed_count = torch.zeros(
+      self.bin_count, dtype=torch.float, device=self.device
+    )
+    self._current_bin_failed = torch.zeros(
+      self.bin_count, dtype=torch.float, device=self.device
+    )
+    self.kernel = torch.tensor(
+      [self.cfg.adaptive_lambda**i for i in range(self.cfg.adaptive_kernel_size)],
+      device=self.device,
+    )
+    self.kernel = self.kernel / self.kernel.sum()
+
     self.metrics["error_ref_pos"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["error_ref_rot"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["error_ref_lin_vel"] = torch.zeros(self.num_envs, device=self.device)
@@ -99,6 +114,9 @@ class MotionCommand(CommandTerm):
     self.metrics["error_body_rot"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["error_joint_pos"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["error_joint_vel"] = torch.zeros(self.num_envs, device=self.device)
+    self.metrics["sampling_entropy"] = torch.zeros(self.num_envs, device=self.device)
+    self.metrics["sampling_top1_prob"] = torch.zeros(self.num_envs, device=self.device)
+    self.metrics["sampling_top1_bin"] = torch.zeros(self.num_envs, device=self.device)
 
     self._model_viz: mujoco.MjModel = copy.deepcopy(env.sim.mj_model)
     self._model_viz.geom_rgba[:, 1] = np.clip(
@@ -234,15 +252,50 @@ class MotionCommand(CommandTerm):
       self.joint_vel - self.robot_joint_vel, dim=-1
     )
 
-  def _resample_command(self, env_ids: torch.Tensor):
-    if self.cfg.start_from_beginning:
-      phase = torch.zeros(len(env_ids), device=self.device)
-    else:
-      phase = sample_uniform(0.0, 1.0, (len(env_ids),), device=self.device)
-    self.time_steps[env_ids] = (phase * (self.motion.time_step_total - 1)).long()
-    self._random_state_initialization(env_ids)
+  def _adaptive_sampling(self, env_ids: torch.Tensor):
+    episode_failed = self._env.termination_manager.terminated[env_ids]
+    if torch.any(episode_failed):
+      current_bin_index = torch.clamp(
+        (self.time_steps * self.bin_count) // max(self.motion.time_step_total, 1),
+        0,
+        self.bin_count - 1,
+      )
+      fail_bins = current_bin_index[env_ids][episode_failed]
+      self._current_bin_failed[:] = torch.bincount(fail_bins, minlength=self.bin_count)
 
-  def _random_state_initialization(self, env_ids: torch.Tensor):
+    # Sample.
+    sampling_probabilities = (
+      self.bin_failed_count + self.cfg.adaptive_uniform_ratio / float(self.bin_count)
+    )
+    sampling_probabilities = torch.nn.functional.pad(
+      sampling_probabilities.unsqueeze(0).unsqueeze(0),
+      (0, self.cfg.adaptive_kernel_size - 1),  # Non-causal kernel
+      mode="replicate",
+    )
+    sampling_probabilities = torch.nn.functional.conv1d(
+      sampling_probabilities, self.kernel.view(1, 1, -1)
+    ).view(-1)
+
+    sampling_probabilities = sampling_probabilities / sampling_probabilities.sum()
+
+    sampled_bins = torch.multinomial(
+      sampling_probabilities, len(env_ids), replacement=True
+    )
+    self.time_steps[env_ids] = (
+      sampled_bins / self.bin_count * (self.motion.time_step_total - 1)
+    ).long()
+
+    # Update metrics.
+    H = -(sampling_probabilities * (sampling_probabilities + 1e-12).log()).sum()
+    H_norm = H / math.log(self.bin_count)
+    pmax, imax = sampling_probabilities.max(dim=0)
+    self.metrics["sampling_entropy"][:] = H_norm
+    self.metrics["sampling_top1_prob"][:] = pmax
+    self.metrics["sampling_top1_bin"][:] = imax.float() / self.bin_count
+
+  def _resample_command(self, env_ids: torch.Tensor):
+    self._adaptive_sampling(env_ids)
+
     root_pos = self.body_pos_w[:, 0].clone()
     root_ori = self.body_quat_w[:, 0].clone()
     root_lin_vel = self.body_lin_vel_w[:, 0].clone()
@@ -332,6 +385,12 @@ class MotionCommand(CommandTerm):
       + quat_apply(delta_ori_w, self.body_pos_w - ref_pos_w_repeat)
     )
 
+    self.bin_failed_count = (
+      self.cfg.adaptive_alpha * self._current_bin_failed
+      + (1 - self.cfg.adaptive_alpha) * self.bin_failed_count
+    )
+    self._current_bin_failed.zero_()
+
   def _debug_vis_impl(self, scn: mujoco.MjvScene) -> None:
     for i in range(self.num_envs):
       entity: Entity = self._env.scene[self.cfg.asset_name]
@@ -371,4 +430,7 @@ class MotionCommandCfg(CommandTermCfg):
   pose_range: dict[str, tuple[float, float]] = field(default_factory=dict)
   velocity_range: dict[str, tuple[float, float]] = field(default_factory=dict)
   joint_position_range: tuple[float, float] = (-0.52, 0.52)
-  start_from_beginning: bool = False
+  adaptive_kernel_size: int = 3
+  adaptive_lambda: float = 0.8
+  adaptive_uniform_ratio: float = 0.1
+  adaptive_alpha: float = 0.001
