@@ -33,6 +33,7 @@ def main() -> None:
       checkpoint_file=checkpoint_path,
       motion_file=motion_path,
       render_all_envs=True,
+      viewer="viser",
     )
   )
 
