@@ -275,8 +275,8 @@ class TerminationsCfg:
 
 
 SIM_CFG = SimulationCfg(
-  nconmax=75_000,
-  njmax=200,
+  nconmax=100_000,
+  njmax=250,
   mujoco=MujocoCfg(
     timestep=0.005,
     iterations=10,
