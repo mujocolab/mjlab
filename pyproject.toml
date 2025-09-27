@@ -82,6 +82,11 @@ url = "https://download.pytorch.org/whl/cu128"
 explicit = true
 
 [[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
 name = "mujoco"
 url = "https://py.mujoco.org"
 explicit = true
@@ -90,7 +95,10 @@ explicit = true
 mujoco-warp = { git = "https://github.com/google-deepmind/mujoco_warp" }
 warp-lang = { index = "nvidia", marker = "sys_platform != 'darwin'" }
 mujoco = { index = "mujoco" }
-torch = [{ index = "pytorch-cu128", extra = "cu12" }]
+torch = [
+    { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },
+    { index = "pytorch-cu128", extra = "cu12", marker = "sys_platform != 'darwin'" }
+]
 
 [tool.ruff]
 src = ["src"]  # Helpful for recognizing first-party imports.
