@@ -9,19 +9,21 @@ from copy import deepcopy
 
 from mjlab.entity import EntityCfg
 from mjlab.envs import ManagerBasedRlEnvCfg
-from mjlab.managers.manager_term_config import CurriculumTermCfg as CurrTerm
-from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
-from mjlab.managers.manager_term_config import ObservationGroupCfg as ObsGroup
-from mjlab.managers.manager_term_config import ObservationTermCfg as ObsTerm
-from mjlab.managers.manager_term_config import RewardTermCfg as RewardTerm
-from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
+from mjlab.managers.manager_term_config import (
+  CurriculumTermCfg,
+  EventTermCfg,
+  ObservationGroupCfg,
+  ObservationTermCfg,
+  RewardTermCfg,
+  TerminationTermCfg,
+)
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import SceneCfg
 from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.tasks.velocity import mdp
 from mjlab.terrains import TerrainImporterCfg
 from mjlab.terrains.config import ROUGH_TERRAINS_CFG
-from mjlab.utils.noise import UniformNoiseCfg as Unoise
+from mjlab.utils.noise import UniformNoiseCfg
 from mjlab.viewer import ViewerConfig
 
 VELOCITY_RANGE = {
@@ -75,34 +77,36 @@ def create_locomotion_velocity_env_cfg(
     foot_friction_geom_names: Geometry names for foot friction event.
     foot_clearance_geom_names: Geometry names for foot clearance reward.
     pose_l2_std: Standard deviation dict for pose L2 reward.
-    viewer_distance: Distance from viewer to tracked body (default: 3.0).
-    viewer_elevation: Elevation angle for viewer (default: -5.0).
-    command_viz_z_offset: Z offset for command visualization (optional).
+    viewer_distance: Distance from viewer to tracked body.
+    viewer_elevation: Elevation angle for viewer.
+    command_viz_z_offset: Z offset for command visualization.
   """
   # Build policy observation terms.
   policy_obs_terms = dict(
-    base_lin_vel=ObsTerm(
+    base_lin_vel=ObservationTermCfg(
       func=mdp.base_lin_vel,
-      noise=Unoise(n_min=-0.1, n_max=0.1),
+      noise=UniformNoiseCfg(n_min=-0.1, n_max=0.1),
     ),
-    base_ang_vel=ObsTerm(
+    base_ang_vel=ObservationTermCfg(
       func=mdp.base_ang_vel,
-      noise=Unoise(n_min=-0.2, n_max=0.2),
+      noise=UniformNoiseCfg(n_min=-0.2, n_max=0.2),
     ),
-    projected_gravity=ObsTerm(
+    projected_gravity=ObservationTermCfg(
       func=mdp.projected_gravity,
-      noise=Unoise(n_min=-0.05, n_max=0.05),
+      noise=UniformNoiseCfg(n_min=-0.05, n_max=0.05),
     ),
-    joint_pos=ObsTerm(
+    joint_pos=ObservationTermCfg(
       func=mdp.joint_pos_rel,
-      noise=Unoise(n_min=-0.01, n_max=0.01),
+      noise=UniformNoiseCfg(n_min=-0.01, n_max=0.01),
     ),
-    joint_vel=ObsTerm(
+    joint_vel=ObservationTermCfg(
       func=mdp.joint_vel_rel,
-      noise=Unoise(n_min=-1.5, n_max=1.5),
+      noise=UniformNoiseCfg(n_min=-1.5, n_max=1.5),
     ),
-    actions=ObsTerm(func=mdp.last_action),
-    command=ObsTerm(func=mdp.generated_commands, params={"command_name": "twist"}),
+    actions=ObservationTermCfg(func=mdp.last_action),
+    command=ObservationTermCfg(
+      func=mdp.generated_commands, params={"command_name": "twist"}
+    ),
   )
 
   # Create scene with robot entity.
@@ -164,13 +168,13 @@ def create_locomotion_velocity_env_cfg(
       ),
     ),
     observations=dict(
-      policy=ObsGroup(
+      policy=ObservationGroupCfg(
         concatenate_terms=True,
         concatenate_dim=-1,
         enable_corruption=True,
         terms=policy_obs_terms,
       ),
-      critic=ObsGroup(
+      critic=ObservationGroupCfg(
         concatenate_terms=True,
         concatenate_dim=-1,
         enable_corruption=False,
@@ -178,7 +182,7 @@ def create_locomotion_velocity_env_cfg(
       ),
     ),
     events=dict(
-      reset_base=EventTerm(
+      reset_base=EventTermCfg(
         func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
@@ -186,7 +190,7 @@ def create_locomotion_velocity_env_cfg(
           "velocity_range": {},
         },
       ),
-      reset_robot_joints=EventTerm(
+      reset_robot_joints=EventTermCfg(
         func=mdp.reset_joints_by_scale,
         mode="reset",
         params={
@@ -195,13 +199,13 @@ def create_locomotion_velocity_env_cfg(
           "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
         },
       ),
-      push_robot=EventTerm(
+      push_robot=EventTermCfg(
         func=mdp.push_by_setting_velocity,
         mode="interval",
         interval_range_s=(1.0, 3.0),
         params={"velocity_range": VELOCITY_RANGE},
       ),
-      foot_friction=EventTerm(
+      foot_friction=EventTermCfg(
         mode="startup",
         func=mdp.randomize_field,
         params={
@@ -214,23 +218,23 @@ def create_locomotion_velocity_env_cfg(
     ),
     rewards=dict(
       # Primary task rewards.
-      track_lin_vel_xy_exp=RewardTerm(
+      track_lin_vel_xy_exp=RewardTermCfg(
         func=mdp.track_lin_vel_xy_exp,
         weight=5.0,
         params={"command_name": "twist", "std": math.sqrt(0.25)},
       ),
-      track_ang_vel_z_exp=RewardTerm(
+      track_ang_vel_z_exp=RewardTermCfg(
         func=mdp.track_ang_vel_z_exp,
         weight=2.0,
         params={"command_name": "twist", "std": math.sqrt(0.25)},
       ),
       # Stability penalties.
-      ang_vel_xy_l2=RewardTerm(func=mdp.ang_vel_xy_l2, weight=-0.05),
+      ang_vel_xy_l2=RewardTermCfg(func=mdp.ang_vel_xy_l2, weight=-0.05),
       # Smoothness penalties.
-      action_rate_l2=RewardTerm(func=mdp.action_rate_l2, weight=-0.01),
-      smoothness=RewardTerm(func=mdp.gait_smoothness, weight=-0.0001),
+      action_rate_l2=RewardTermCfg(func=mdp.action_rate_l2, weight=-0.01),
+      smoothness=RewardTermCfg(func=mdp.gait_smoothness, weight=-0.0001),
       # Efficiency penalties.
-      cost_of_transport=RewardTerm(
+      cost_of_transport=RewardTermCfg(
         func=mdp.cost_of_transport,
         weight=-0.1,
         params={
@@ -241,7 +245,7 @@ def create_locomotion_velocity_env_cfg(
         },
       ),
       # Posture and limits.
-      pose_l2=RewardTerm(
+      pose_l2=RewardTermCfg(
         func=mdp.posture,
         weight=-0.5,
         params={
@@ -249,9 +253,9 @@ def create_locomotion_velocity_env_cfg(
           "std": pose_l2_std,
         },
       ),
-      dof_pos_limits=RewardTerm(func=mdp.joint_pos_limits, weight=-1.0),
+      dof_pos_limits=RewardTermCfg(func=mdp.joint_pos_limits, weight=-1.0),
       # Gait shaping.
-      air_time=RewardTerm(
+      air_time=RewardTermCfg(
         func=mdp.feet_air_time,
         weight=0.3,
         params={
@@ -264,7 +268,7 @@ def create_locomotion_velocity_env_cfg(
           "reward_mode": "on_landing",
         },
       ),
-      foot_clearance=RewardTerm(
+      foot_clearance=RewardTermCfg(
         func=mdp.foot_clearance_reward,
         weight=0.5,
         params={
@@ -276,14 +280,14 @@ def create_locomotion_velocity_env_cfg(
       ),
     ),
     terminations=dict(
-      time_out=DoneTerm(func=mdp.time_out, time_out=True),
-      fell_over=DoneTerm(
+      time_out=TerminationTermCfg(func=mdp.time_out, time_out=True),
+      fell_over=TerminationTermCfg(
         func=mdp.bad_orientation,
         params={"limit_angle": math.radians(70.0)},
       ),
     ),
     curriculum=dict(
-      terrain_levels=CurrTerm(
+      terrain_levels=CurriculumTermCfg(
         func=mdp.terrain_levels_vel,
         params={"command_name": "twist"},
       ),

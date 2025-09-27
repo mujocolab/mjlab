@@ -77,10 +77,10 @@ def create_g1_flat_env_cfg():
   # Add base_com event with body ipos randomization (matching original)
   # Note: Using randomize_field since randomize_com doesn't exist.
   from mjlab.envs import mdp as envs_mdp
-  from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
+  from mjlab.managers.manager_term_config import EventTermCfg
   from mjlab.managers.scene_entity_config import SceneEntityCfg
 
-  cfg.events["base_com"] = EventTerm(
+  cfg.events["base_com"] = EventTermCfg(
     mode="startup",
     func=envs_mdp.randomize_field,
     params={

@@ -9,17 +9,19 @@ from copy import deepcopy
 from mjlab.entity import EntityCfg
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs import mdp as envs_mdp  # For general mdp functions
-from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
-from mjlab.managers.manager_term_config import ObservationGroupCfg as ObsGroup
-from mjlab.managers.manager_term_config import ObservationTermCfg as ObsTerm
-from mjlab.managers.manager_term_config import RewardTermCfg as RewTerm
-from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
+from mjlab.managers.manager_term_config import (
+  EventTermCfg,
+  ObservationGroupCfg,
+  ObservationTermCfg,
+  RewardTermCfg,
+  TerminationTermCfg,
+)
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import SceneCfg
 from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.tasks.tracking import mdp
 from mjlab.terrains import TerrainImporterCfg
-from mjlab.utils.noise import UniformNoiseCfg as Unoise
+from mjlab.utils.noise import UniformNoiseCfg
 from mjlab.viewer import ViewerConfig
 
 VELOCITY_RANGE = {
@@ -63,20 +65,20 @@ def create_tracking_env_cfg(
   """Create the base configuration for motion tracking.
 
   Args:
-    robot_cfg: Robot configuration to add to scene entities (required).
-    action_scale: Scale factor for joint position actions (required).
-    viewer_body_name: Body name for viewer to track (required).
-    motion_file: Path to motion NPZ file, empty string if no data yet (required).
-    reference_body: Reference body for motion tracking (required).
-    body_names: Body names to track in motion (required).
-    foot_friction_geom_names: Geometry names for foot friction event (required).
-    ee_body_names: End-effector body names for termination (required).
-    viewer_distance: Distance from viewer to tracked body (default: 3.0).
-    viewer_elevation: Elevation angle for viewer (default: -5.0).
-    viewer_azimuth: Azimuth angle for viewer (default: 90.0).
-    pose_range: Pose randomization ranges (optional, defaults set if None).
-    velocity_range: Velocity randomization ranges (optional, defaults set if None).
-    joint_position_range: Joint position randomization range (default: (-0.1, 0.1)).
+    robot_cfg: Robot configuration to add to scene entities.
+    action_scale: Scale factor for joint position actions.
+    viewer_body_name: Body name for viewer to track.
+    motion_file: Path to motion NPZ file, empty string if no data yet.
+    reference_body: Reference body for motion tracking.
+    body_names: Body names to track in motion.
+    foot_friction_geom_names: Geometry names for foot friction event.
+    ee_body_names: End-effector body names for termination.
+    viewer_distance: Distance from viewer to tracked body.
+    viewer_elevation: Elevation angle for viewer.
+    viewer_azimuth: Azimuth angle for viewer.
+    pose_range: Pose randomization ranges.
+    velocity_range: Velocity randomization ranges.
+    joint_position_range: Joint position randomization range.
   """
 
   # Default pose and velocity ranges.
@@ -94,34 +96,36 @@ def create_tracking_env_cfg(
 
   # Build policy observation terms.
   policy_obs_terms = dict(
-    base_lin_vel=ObsTerm(
+    command=ObservationTermCfg(
+      func=mdp.generated_commands, params={"command_name": "motion"}
+    ),
+    motion_ref_pos_b=ObservationTermCfg(
+      func=mdp.motion_ref_pos_b,
+      params={"command_name": "motion"},
+      noise=UniformNoiseCfg(n_min=-0.25, n_max=0.25),
+    ),
+    motion_ref_ori_b=ObservationTermCfg(
+      func=mdp.motion_ref_ori_b,
+      params={"command_name": "motion"},
+      noise=UniformNoiseCfg(n_min=-0.05, n_max=0.05),
+    ),
+    base_lin_vel=ObservationTermCfg(
       func=mdp.base_lin_vel,
-      noise=Unoise(n_min=-0.1, n_max=0.1),
+      noise=UniformNoiseCfg(n_min=-0.5, n_max=0.5),
     ),
-    base_ang_vel=ObsTerm(
+    base_ang_vel=ObservationTermCfg(
       func=mdp.base_ang_vel,
-      noise=Unoise(n_min=-0.2, n_max=0.2),
+      noise=UniformNoiseCfg(n_min=-0.2, n_max=0.2),
     ),
-    projected_gravity=ObsTerm(
-      func=mdp.projected_gravity,
-      noise=Unoise(n_min=-0.05, n_max=0.05),
-    ),
-    joint_pos=ObsTerm(
+    joint_pos=ObservationTermCfg(
       func=mdp.joint_pos_rel,
-      noise=Unoise(n_min=-0.01, n_max=0.01),
+      noise=UniformNoiseCfg(n_min=-0.01, n_max=0.01),
     ),
-    joint_vel=ObsTerm(
+    joint_vel=ObservationTermCfg(
       func=mdp.joint_vel_rel,
-      noise=Unoise(n_min=-1.5, n_max=1.5),
+      noise=UniformNoiseCfg(n_min=-0.5, n_max=0.5),
     ),
-    actions=ObsTerm(func=mdp.last_action),
-    # Motion-specific observations.
-    motion_ref_pos=ObsTerm(
-      func=mdp.motion_ref_pos_b, params={"command_name": "motion"}
-    ),
-    motion_ref_ori=ObsTerm(
-      func=mdp.motion_ref_ori_b, params={"command_name": "motion"}
-    ),
+    actions=ObservationTermCfg(func=mdp.last_action),
   )
 
   # Build privileged observation terms for critic.
@@ -129,8 +133,12 @@ def create_tracking_env_cfg(
   privileged_obs_terms.update(
     dict(
       # Additional privileged observations for critic.
-      body_pos=ObsTerm(func=mdp.robot_body_pos_b, params={"command_name": "motion"}),
-      body_ori=ObsTerm(func=mdp.robot_body_ori_b, params={"command_name": "motion"}),
+      body_pos=ObservationTermCfg(
+        func=mdp.robot_body_pos_b, params={"command_name": "motion"}
+      ),
+      body_ori=ObservationTermCfg(
+        func=mdp.robot_body_ori_b, params={"command_name": "motion"}
+      ),
     )
   )
 
@@ -140,11 +148,11 @@ def create_tracking_env_cfg(
 
   cfg = ManagerBasedRlEnvCfg(
     decimation=4,  # 50 Hz control frequency
-    episode_length_s=5.0,
+    episode_length_s=10.0,
     scene=scene,
     sim=SimulationCfg(
-      nconmax=140_000,
-      njmax=300,
+      nconmax=150_000,
+      njmax=250,
       mujoco=MujocoCfg(
         timestep=0.005,
         iterations=10,
@@ -182,13 +190,13 @@ def create_tracking_env_cfg(
       ),
     ),
     observations=dict(
-      policy=ObsGroup(
+      policy=ObservationGroupCfg(
         concatenate_terms=True,
         concatenate_dim=-1,
         enable_corruption=True,
         terms=policy_obs_terms,
       ),
-      critic=ObsGroup(
+      critic=ObservationGroupCfg(
         concatenate_terms=True,
         concatenate_dim=-1,
         enable_corruption=False,
@@ -196,13 +204,13 @@ def create_tracking_env_cfg(
       ),
     ),
     events=dict(
-      push_robot=EventTerm(
+      push_robot=EventTermCfg(
         func=envs_mdp.push_by_setting_velocity,
         mode="interval",
         interval_range_s=(1.0, 3.0),
         params={"velocity_range": VELOCITY_RANGE},
       ),
-      add_joint_default_pos=EventTerm(
+      add_joint_default_pos=EventTermCfg(
         mode="startup",
         func=envs_mdp.randomize_field,
         params={
@@ -212,7 +220,7 @@ def create_tracking_env_cfg(
           "ranges": (-0.01, 0.01),
         },
       ),
-      foot_friction=EventTerm(
+      foot_friction=EventTermCfg(
         mode="startup",
         func=envs_mdp.randomize_field,
         params={
@@ -225,56 +233,56 @@ def create_tracking_env_cfg(
     ),
     rewards=dict(
       # Motion tracking rewards.
-      motion_global_root_pos=RewTerm(
+      motion_global_root_pos=RewardTermCfg(
         func=mdp.motion_global_ref_position_error_exp,
         weight=0.5,
         params={"command_name": "motion", "std": 0.3},
       ),
-      motion_global_root_ori=RewTerm(
+      motion_global_root_ori=RewardTermCfg(
         func=mdp.motion_global_ref_orientation_error_exp,
         weight=0.5,
         params={"command_name": "motion", "std": 0.4},
       ),
-      motion_body_pos=RewTerm(
+      motion_body_pos=RewardTermCfg(
         func=mdp.motion_relative_body_position_error_exp,
         weight=1.0,
         params={"command_name": "motion", "std": 0.3},
       ),
-      motion_body_ori=RewTerm(
+      motion_body_ori=RewardTermCfg(
         func=mdp.motion_relative_body_orientation_error_exp,
         weight=1.0,
         params={"command_name": "motion", "std": 0.4},
       ),
-      motion_body_lin_vel=RewTerm(
+      motion_body_lin_vel=RewardTermCfg(
         func=mdp.motion_global_body_linear_velocity_error_exp,
         weight=1.0,
         params={"command_name": "motion", "std": 1.0},
       ),
-      motion_body_ang_vel=RewTerm(
+      motion_body_ang_vel=RewardTermCfg(
         func=mdp.motion_global_body_angular_velocity_error_exp,
         weight=1.0,
         params={"command_name": "motion", "std": 3.14},
       ),
       # Non-motion rewards.
-      action_rate_l2=RewTerm(func=mdp.action_rate_l2, weight=-0.1),
-      joint_limit=RewTerm(
+      action_rate_l2=RewardTermCfg(func=mdp.action_rate_l2, weight=-0.1),
+      joint_limit=RewardTermCfg(
         func=envs_mdp.joint_pos_limits,
         weight=-10.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*"])},
       ),
-      self_collisions=RewTerm(
+      self_collisions=RewardTermCfg(
         func=mdp.self_collision_cost,
         weight=-10.0,
         params={"sensor_name": "self_collision"},
       ),
     ),
     terminations=dict(
-      time_out=DoneTerm(func=mdp.time_out, time_out=True),
-      ref_pos=DoneTerm(
+      time_out=TerminationTermCfg(func=mdp.time_out, time_out=True),
+      ref_pos=TerminationTermCfg(
         func=mdp.bad_ref_pos_z_only,
         params={"command_name": "motion", "threshold": 0.25},
       ),
-      ref_ori=DoneTerm(
+      ref_ori=TerminationTermCfg(
         func=mdp.bad_ref_ori,
         params={
           "asset_cfg": SceneEntityCfg("robot"),
@@ -282,7 +290,7 @@ def create_tracking_env_cfg(
           "threshold": 0.8,
         },
       ),
-      ee_body_pos=DoneTerm(
+      ee_body_pos=TerminationTermCfg(
         func=mdp.bad_motion_body_pos_z_only,
         params={
           "command_name": "motion",
