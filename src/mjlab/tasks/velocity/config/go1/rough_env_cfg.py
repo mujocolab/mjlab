@@ -29,23 +29,22 @@ class UnitreeGo1RoughEnvCfg(LocomotionVelocityEnvCfg):
     go1_cfg = replace(GO1_ROBOT_CFG, sensors=tuple(foot_contact_sensors))
     self.scene.entities = {"robot": go1_cfg}
 
+    self.actions.joint_pos.scale = GO1_ACTION_SCALE
+
     foot_names = ["FR", "FL", "RR", "RL"]
     sensor_names = [f"{name}_foot_ground_contact" for name in foot_names]
     geom_names = [f"{name}_foot_collision" for name in foot_names]
 
     self.rewards.air_time.params["sensor_names"] = sensor_names
     self.rewards.feet_slide.params["sensor_names"] = sensor_names
-
     self.rewards.foot_clearance.params["asset_cfg"].geom_names = geom_names
     self.rewards.feet_slide.params["asset_cfg"].geom_names = geom_names
-    self.events.foot_friction.params["asset_cfg"].geom_names = geom_names
-
-    self.actions.joint_pos.scale = GO1_ACTION_SCALE
-
     self.rewards.pose.params["std"] = {
       r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.3,
       r".*(FR|FL|RR|RL)_calf_joint.*": 0.6,
     }
+
+    self.events.foot_friction.params["asset_cfg"].geom_names = geom_names
 
     self.viewer.body_name = "trunk"
     self.viewer.distance = 1.5

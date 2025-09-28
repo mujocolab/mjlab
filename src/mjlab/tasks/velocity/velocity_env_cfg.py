@@ -211,7 +211,7 @@ class RewardCfg:
   cost_of_transport: RewardTerm = term(
     RewardTerm,
     func=mdp.cost_of_transport,
-    weight=-0.001,
+    weight=0.0,
     params={
       "asset_name": "robot",
       "min_velocity": 0.1,
@@ -233,7 +233,7 @@ class RewardCfg:
   air_time: RewardTerm = term(
     RewardTerm,
     func=mdp.feet_air_time,
-    weight=0.2,
+    weight=0.0,
     params={
       "asset_name": "robot",
       "threshold_min": 0.05,
