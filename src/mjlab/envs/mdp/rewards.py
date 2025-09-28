@@ -115,3 +115,12 @@ def electrical_power_cost(
   mech = tau * qd
   mech_pos = torch.clamp(mech, min=0.0)  # Don't penalize regen.
   return torch.sum(mech_pos, dim=1)
+
+
+def flat_orientation_l2(
+  env: ManagerBasedRlEnv,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Penalize non-flat base orientation."""
+  asset: Entity = env.scene[asset_cfg.name]
+  return torch.sum(torch.square(asset.data.projected_gravity_b[:, :2]), dim=1)

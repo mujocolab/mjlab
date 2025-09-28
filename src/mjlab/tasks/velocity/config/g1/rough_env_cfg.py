@@ -27,6 +27,7 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
       for side in ["left", "right"]
     ]
     g1_cfg = replace(G1_ROBOT_CFG, sensors=tuple(foot_contact_sensors))
+    self.scene.entities = {"robot": g1_cfg}
 
     sensor_names = ["left_foot_ground_contact", "right_foot_ground_contact"]
     geom_names = []
@@ -35,23 +36,39 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
     for i in range(1, 8):
       geom_names.append(f"right_foot{i}_collision")
 
-    self.rewards.air_time.params["sensor_names"] = sensor_names
-    self.rewards.feet_slide.params["sensor_names"] = sensor_names
-
-    self.rewards.foot_clearance.params["asset_cfg"].geom_names = geom_names
-    self.rewards.feet_slide.params["asset_cfg"].geom_names = geom_names
     self.events.foot_friction.params["asset_cfg"].geom_names = geom_names
-
-    self.scene.entities = {"robot": g1_cfg}
 
     self.actions.joint_pos.scale = G1_ACTION_SCALE
 
+    self.rewards.air_time.params["sensor_names"] = sensor_names
+    self.rewards.feet_slide.params["sensor_names"] = sensor_names
+    self.rewards.foot_clearance.params["asset_cfg"].geom_names = geom_names
+    self.rewards.feet_slide.params["asset_cfg"].geom_names = geom_names
+    # self.rewards.pose.params["std"] = {
+    #   r"^(left|right)_knee_joint$": 0.6,
+    #   r"^(left|right)_hip_pitch_joint$": 0.6,
+    #   r"^(left|right)_elbow_joint$": 0.6,
+    #   r"^(left|right)_shoulder_pitch_joint$": 0.6,
+    #   r"^(?!.*(knee_joint|hip_pitch|elbow_joint|shoulder_pitch)).*$": 0.3,
+    # }
     self.rewards.pose.params["std"] = {
-      r"^(left|right)_knee_joint$": 0.6,
-      r"^(left|right)_hip_pitch_joint$": 0.6,
-      r"^(left|right)_elbow_joint$": 0.6,
-      r"^(left|right)_shoulder_pitch_joint$": 0.6,
-      r"^(?!.*(knee_joint|hip_pitch|elbow_joint|shoulder_pitch)).*$": 0.3,
+      # Lower body.
+      r".*hip_pitch.*": 0.3,  # Hip flexion/extension for walking
+      r".*hip_roll.*": 0.15,  # Keep stance relatively narrow
+      r".*hip_yaw.*": 0.15,  # Minimal rotation
+      r".*knee.*": 0.35,  # Knees need to bend for walking
+      r".*ankle_pitch.*": 0.25,  # Ankle flexion for push-off
+      r".*ankle_roll.*": 0.1,  # Keep stable base
+      # Waist.
+      r".*waist_yaw.*": 0.15,  # Some rotation for natural gait
+      r".*waist_roll.*": 0.08,  # Very minimal side bend
+      r".*waist_pitch.*": 0.1,  # Slight forward lean okay
+      # Arms.
+      r".*shoulder_pitch.*": 0.35,  # Forward/back swing
+      r".*shoulder_roll.*": 0.15,  # Arms not too wide
+      r".*shoulder_yaw.*": 0.1,  # Minimal rotation
+      r".*elbow.*": 0.25,  # Natural arm bend
+      r".*wrist.*": 0.3,  # Wrists don't affect locomotion much
     }
 
     self.viewer.body_name = "torso_link"

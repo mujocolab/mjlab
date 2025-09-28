@@ -224,8 +224,8 @@ class cost_of_transport:
     total_power = torch.sum(mech_pos, dim=1)  # Watts.
 
     # Get forward velocity (m/s).
-    forward_vel = asset.data.root_link_lin_vel_b[:, 0]
-    vel_magnitude = torch.abs(forward_vel)
+    linvel = asset.data.root_link_lin_vel_b[:, :2]  # x,y in body frame
+    vel_magnitude = torch.norm(linvel, dim=1)  # planar speed
     vel_clamped = torch.clamp(vel_magnitude, min=self.min_velocity)
 
     if self.normalize_by_mass:
@@ -282,3 +282,33 @@ def feet_slide(
   contacts = torch.stack(contact_list, dim=1)
   geom_vel = asset.data.geom_lin_vel_w[:, asset_cfg.geom_ids, :2]
   return torch.sum(geom_vel.norm(dim=-1) * contacts, dim=1)
+
+
+def base_uprightness_exp(
+  env: ManagerBasedRlEnv,
+  std: float,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Reward for maintaining upright posture using exponential kernel."""
+  asset: Entity = env.scene[asset_cfg.name]
+  gravity_b = asset.data.projected_gravity_b
+  cos_angle = -gravity_b[:, 2] / torch.norm(gravity_b, dim=1)
+  cos_angle = torch.clamp(cos_angle, -1.0, 1.0)
+  angle = torch.acos(cos_angle)
+  return torch.exp(-(angle**2) / std**2)
+
+
+def base_orientation_rpy(
+  env: ManagerBasedRlEnv,
+  roll_std: float,
+  pitch_std: float,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Reward for maintaining upright posture with separate roll/pitch control."""
+  asset: Entity = env.scene[asset_cfg.name]
+  gravity_b = asset.data.projected_gravity_b
+  roll = torch.atan2(gravity_b[:, 0], -gravity_b[:, 2])
+  pitch = torch.atan2(gravity_b[:, 1], -gravity_b[:, 2])
+  roll_reward = torch.exp(-(roll**2) / roll_std**2)
+  pitch_reward = torch.exp(-(pitch**2) / pitch_std**2)
+  return 0.6 * roll_reward + 0.4 * pitch_reward
