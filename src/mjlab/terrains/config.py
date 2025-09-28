@@ -53,7 +53,7 @@ ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
     #   border_width=0.25,
     # ),
   },
-  add_lights=True,
+  add_lights=False,
 )
 
 

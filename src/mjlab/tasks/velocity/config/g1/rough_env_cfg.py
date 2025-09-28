@@ -28,23 +28,25 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
     ]
     g1_cfg = replace(G1_ROBOT_CFG, sensors=tuple(foot_contact_sensors))
 
-    self.rewards.air_time.params["sensor_names"] = [
-      "left_foot_ground_contact",
-      "right_foot_ground_contact",
-    ]
-    self.rewards.foot_clearance.params["asset_cfg"].geom_names = [
-      r"^(left|right)_foot[1-7]_collision$"
-    ]
+    sensor_names = ["left_foot_ground_contact", "right_foot_ground_contact"]
+    geom_names = []
+    for i in range(1, 8):
+      geom_names.append(f"left_foot{i}_collision")
+    for i in range(1, 8):
+      geom_names.append(f"right_foot{i}_collision")
+
+    self.rewards.air_time.params["sensor_names"] = sensor_names
+    self.rewards.feet_slide.params["sensor_names"] = sensor_names
+
+    self.rewards.foot_clearance.params["asset_cfg"].geom_names = geom_names
+    self.rewards.feet_slide.params["asset_cfg"].geom_names = geom_names
+    self.events.foot_friction.params["asset_cfg"].geom_names = geom_names
 
     self.scene.entities = {"robot": g1_cfg}
 
     self.actions.joint_pos.scale = G1_ACTION_SCALE
 
-    self.events.foot_friction.params["asset_cfg"].geom_names = [
-      r"^(left|right)_foot[1-7]_collision$"
-    ]
-
-    self.rewards.pose_l2.params["std"] = {
+    self.rewards.pose.params["std"] = {
       r"^(left|right)_knee_joint$": 5.0,
       r"^(left|right)_hip_pitch_joint$": 5.0,
       r"^(left|right)_elbow_joint$": 5.0,

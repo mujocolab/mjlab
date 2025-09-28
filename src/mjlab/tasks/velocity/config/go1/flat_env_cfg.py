@@ -23,3 +23,7 @@ class UnitreeGo1FlatEnvCfg_PLAY(UnitreeGo1FlatEnvCfg):
 
     # Effectively infinite episode length.
     self.episode_length_s = int(1e9)
+
+    self.curriculum.command_vel = None
+    self.commands.twist.ranges.lin_vel_x = (-3.0, 3.0)
+    self.commands.twist.ranges.ang_vel_z = (-3.0, 3.0)

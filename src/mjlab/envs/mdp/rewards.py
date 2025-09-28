@@ -100,9 +100,8 @@ class posture:
     asset: Entity = env.scene[asset_cfg.name]
     current_joint_pos = asset.data.joint_pos[:, asset_cfg.joint_ids]
     desired_joint_pos = self.default_joint_pos[:, asset_cfg.joint_ids]
-    error = torch.square(current_joint_pos - desired_joint_pos)
-    weighted_error = error / (self.std**2)
-    return torch.sum(weighted_error, dim=1)
+    error_squared = torch.square(current_joint_pos - desired_joint_pos)
+    return torch.exp(-torch.mean(error_squared / (self.std**2), dim=1))
 
 
 def electrical_power_cost(

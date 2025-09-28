@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
 
 
-def track_lin_vel_xy_exp(
+def track_lin_vel_exp(
   env: ManagerBasedRlEnv,
   std: float,
   command_name: str,
@@ -25,14 +25,14 @@ def track_lin_vel_xy_exp(
   asset: Entity = env.scene[asset_cfg.name]
   command = env.command_manager.get_command(command_name)
   assert command is not None, f"Command '{command_name}' not found."
-  lin_vel_error = torch.sum(
-    torch.square(command[:, :2] - asset.data.root_link_lin_vel_b[:, :2]),
-    dim=1,
-  )
+  actual = asset.data.root_link_lin_vel_b
+  desired = torch.zeros_like(actual)
+  desired[:, :2] = command[:, :2]
+  lin_vel_error = torch.sum(torch.square(desired - actual), dim=1)
   return torch.exp(-lin_vel_error / std**2)
 
 
-def track_ang_vel_z_exp(
+def track_ang_vel_exp(
   env: ManagerBasedRlEnv,
   std: float,
   command_name: str,
@@ -42,32 +42,11 @@ def track_ang_vel_z_exp(
   asset: Entity = env.scene[asset_cfg.name]
   command = env.command_manager.get_command(command_name)
   assert command is not None, f"Command '{command_name}' not found."
-  ang_vel_error = torch.square(command[:, 2] - asset.data.root_link_ang_vel_b[:, 2])
+  actual = asset.data.root_link_ang_vel_b
+  desired = torch.zeros_like(actual)
+  desired[:, 2] = command[:, 2]
+  ang_vel_error = torch.sum(torch.square(desired - actual), dim=1)
   return torch.exp(-ang_vel_error / std**2)
-
-
-def lin_vel_z_l2(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
-) -> torch.Tensor:
-  """Penalize z-axis base linear velocity using L2 squared kernel."""
-  asset: Entity = env.scene[asset_cfg.name]
-  return torch.square(asset.data.root_link_lin_vel_b[:, 2])
-
-
-def ang_vel_xy_l2(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
-) -> torch.Tensor:
-  """Penalize xy-axis base angular velocity using L2 squared kernel."""
-  asset: Entity = env.scene[asset_cfg.name]
-  return torch.sum(torch.square(asset.data.root_link_ang_vel_b[:, :2]), dim=1)
-
-
-def flat_orientation_l2(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
-) -> torch.Tensor:
-  """Penalize non-flat base orientation using L2 squared kernel."""
-  asset: Entity = env.scene[asset_cfg.name]
-  return torch.sum(torch.square(asset.data.projected_gravity_b[:, :2]), dim=1)
 
 
 def subtree_angmom_l2(
@@ -287,3 +266,19 @@ def foot_clearance_reward(
   )
   reward = foot_z_target_error * foot_velocity_tanh
   return torch.exp(-torch.sum(reward, dim=1) / std)
+
+
+def feet_slide(
+  env: ManagerBasedRlEnv,
+  sensor_names: list[str],
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  asset: Entity = env.scene[asset_cfg.name]
+  contact_list = []
+  for sensor_name in sensor_names:
+    sensor_data = asset.data.sensor_data[sensor_name]
+    foot_contact = sensor_data[:, 0] > 0
+    contact_list.append(foot_contact)
+  contacts = torch.stack(contact_list, dim=1)
+  geom_vel = asset.data.geom_lin_vel_w[:, asset_cfg.geom_ids, :2]
+  return torch.sum(geom_vel.norm(dim=-1) * contacts, dim=1)
