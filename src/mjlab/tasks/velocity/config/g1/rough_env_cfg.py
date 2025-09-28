@@ -47,15 +47,17 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
     self.actions.joint_pos.scale = G1_ACTION_SCALE
 
     self.rewards.pose.params["std"] = {
-      r"^(left|right)_knee_joint$": 5.0,
-      r"^(left|right)_hip_pitch_joint$": 5.0,
-      r"^(left|right)_elbow_joint$": 5.0,
-      r"^(left|right)_shoulder_pitch_joint$": 5.0,
+      r"^(left|right)_knee_joint$": 0.6,
+      r"^(left|right)_hip_pitch_joint$": 0.6,
+      r"^(left|right)_elbow_joint$": 0.6,
+      r"^(left|right)_shoulder_pitch_joint$": 0.6,
       r"^(?!.*(knee_joint|hip_pitch|elbow_joint|shoulder_pitch)).*$": 0.3,
     }
 
     self.viewer.body_name = "torso_link"
     self.commands.twist.viz.z_offset = 0.75
+
+    self.curriculum.command_vel = None
 
 
 @dataclass
@@ -72,3 +74,5 @@ class UnitreeG1RoughEnvCfg_PLAY(UnitreeG1RoughEnvCfg):
         self.scene.terrain.terrain_generator.num_cols = 5
         self.scene.terrain.terrain_generator.num_rows = 5
         self.scene.terrain.terrain_generator.border_width = 10.0
+
+    self.curriculum.command_vel = None

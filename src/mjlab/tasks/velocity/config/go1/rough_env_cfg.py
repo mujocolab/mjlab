@@ -68,6 +68,5 @@ class UnitreeGo1RoughEnvCfg_PLAY(UnitreeGo1RoughEnvCfg):
         self.scene.terrain.terrain_generator.border_width = 10.0
 
     self.curriculum.command_vel = None
-
     self.commands.twist.ranges.lin_vel_x = (-3.0, 3.0)
     self.commands.twist.ranges.ang_vel_z = (-3.0, 3.0)

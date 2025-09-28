@@ -195,9 +195,9 @@ class RewardCfg:
       "std": [],
     },
   )
-
   dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
   action_rate_l2: RewardTerm = term(RewardTerm, func=mdp.action_rate_l2, weight=-0.1)
+
   feet_slide: RewardTerm = term(
     RewardTerm,
     func=mdp.feet_slide,
@@ -207,8 +207,6 @@ class RewardCfg:
       "sensor_names": [],  # Override in robot cfg.
     },
   )
-
-  # Efficiency penalties.
   cost_of_transport: RewardTerm = term(
     RewardTerm,
     func=mdp.cost_of_transport,
@@ -220,8 +218,6 @@ class RewardCfg:
       "power_scale": 0.001,
     },
   )
-
-  # Gait shaping.
   air_time: RewardTerm = term(
     RewardTerm,
     func=mdp.feet_air_time,
