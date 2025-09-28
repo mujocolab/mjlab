@@ -1,3 +1,13 @@
+"""Terrains composed of heightfields.
+
+This module provides terrain generation functionality using heightfields,
+adapted from the IsaacLab terrain generation system.
+
+References:
+  IsaacLab mesh terrain implementation:
+  https://github.com/isaac-sim/IsaacLab/blob/main/source/isaaclab/isaaclab/terrains/height_field/hf_terrains.py
+"""
+
 import uuid
 from dataclasses import dataclass
 
@@ -49,38 +59,30 @@ def color_by_height(
   g = np.zeros_like(hue)
   b = np.zeros_like(hue)
 
-  # Assign RGB values based on hue sector.
-  # Sector 0: R=C, G=X, B=0.
   mask = hue_sector == 0
   r[mask] = c[mask]
   g[mask] = x[mask]
 
-  # Sector 1: R=X, G=C, B=0.
   mask = hue_sector == 1
   r[mask] = x[mask]
   g[mask] = c[mask]
 
-  # Sector 2: R=0, G=C, B=X.
   mask = hue_sector == 2
   g[mask] = c[mask]
   b[mask] = x[mask]
 
-  # Sector 3: R=0, G=X, B=C.
   mask = hue_sector == 3
   g[mask] = x[mask]
   b[mask] = c[mask]
 
-  # Sector 4: R=X, G=0, B=C.
   mask = hue_sector == 4
   r[mask] = x[mask]
   b[mask] = c[mask]
 
-  # Sector 5: R=C, G=0, B=X.
   mask = hue_sector == 5
   r[mask] = c[mask]
   b[mask] = x[mask]
 
-  # Add the minimum value.
   r += m
   g += m
   b += m
@@ -122,56 +124,86 @@ class HfPyramidSlopedTerrainCfg(SubTerrainCfg):
         self.slope_range[1] - self.slope_range[0]
       )
 
-    # Switch parameters to discrete units.
+    if self.border_width > 0 and self.border_width < self.horizontal_scale:
+      raise ValueError(
+        f"Border width ({self.border_width}) must be >= horizontal scale "
+        f"({self.horizontal_scale})"
+      )
+
+    border_pixels = int(self.border_width / self.horizontal_scale)
     width_pixels = int(self.size[0] / self.horizontal_scale)
     length_pixels = int(self.size[1] / self.horizontal_scale)
 
-    # Height is 1/2 of the width since terrain is a pyramid.
-    height_max = int(slope * self.size[0] / 2 / self.vertical_scale)
+    inner_width_pixels = width_pixels - 2 * border_pixels
+    inner_length_pixels = length_pixels - 2 * border_pixels
 
-    center_x = int(width_pixels / 2)
-    center_y = int(length_pixels / 2)
+    noise = np.zeros((width_pixels, length_pixels), dtype=np.int16)
 
-    x = np.arange(0, width_pixels)
-    y = np.arange(0, length_pixels)
-    xx, yy = np.meshgrid(x, y, sparse=True)
+    if border_pixels > 0:
+      height_max = int(
+        slope * (inner_width_pixels * self.horizontal_scale) / 2 / self.vertical_scale
+      )
 
-    # Offset meshgrid to center of terrain.
-    xx = (center_x - np.abs(center_x - xx)) / center_x
-    yy = (center_y - np.abs(center_y - yy)) / center_y
+      center_x = int(inner_width_pixels / 2)
+      center_y = int(inner_length_pixels / 2)
 
-    xx = xx.reshape(width_pixels, 1)
-    yy = yy.reshape(1, length_pixels)
+      x = np.arange(0, inner_width_pixels)
+      y = np.arange(0, inner_length_pixels)
+      xx, yy = np.meshgrid(x, y, sparse=True)
 
-    # Create sloped surface.
-    hf_raw = height_max * xx * yy
+      xx = (center_x - np.abs(center_x - xx)) / center_x
+      yy = (center_y - np.abs(center_y - yy)) / center_y
 
-    # Create flat platform at center.
-    platform_width = int(self.platform_width / self.horizontal_scale / 2)
+      xx = xx.reshape(inner_width_pixels, 1)
+      yy = yy.reshape(1, inner_length_pixels)
 
-    # Get platform height at corner.
-    x_pf = width_pixels // 2 - platform_width
-    y_pf = length_pixels // 2 - platform_width
-    z_pf = hf_raw[x_pf, y_pf]
-    hf_raw = np.clip(hf_raw, min(0, z_pf), max(0, z_pf))
+      hf_raw = height_max * xx * yy
 
-    # Round heights to nearest vertical step.
-    noise = np.rint(hf_raw).astype(np.int16)
+      platform_width = int(self.platform_width / self.horizontal_scale / 2)
+      x_pf = inner_width_pixels // 2 - platform_width
+      y_pf = inner_length_pixels // 2 - platform_width
+      z_pf = hf_raw[x_pf, y_pf] if x_pf >= 0 and y_pf >= 0 else 0
+      hf_raw = np.clip(hf_raw, min(0, z_pf), max(0, z_pf))
 
-    # Calculate elevation range for scaling.
+      noise[
+        border_pixels : -border_pixels if border_pixels else width_pixels,
+        border_pixels : -border_pixels if border_pixels else length_pixels,
+      ] = np.rint(hf_raw).astype(np.int16)
+    else:
+      height_max = int(slope * self.size[0] / 2 / self.vertical_scale)
+
+      center_x = int(width_pixels / 2)
+      center_y = int(length_pixels / 2)
+
+      x = np.arange(0, width_pixels)
+      y = np.arange(0, length_pixels)
+      xx, yy = np.meshgrid(x, y, sparse=True)
+
+      xx = (center_x - np.abs(center_x - xx)) / center_x
+      yy = (center_y - np.abs(center_y - yy)) / center_y
+
+      xx = xx.reshape(width_pixels, 1)
+      yy = yy.reshape(1, length_pixels)
+
+      hf_raw = height_max * xx * yy
+
+      platform_width = int(self.platform_width / self.horizontal_scale / 2)
+      x_pf = width_pixels // 2 - platform_width
+      y_pf = length_pixels // 2 - platform_width
+      z_pf = hf_raw[x_pf, y_pf]
+      hf_raw = np.clip(hf_raw, min(0, z_pf), max(0, z_pf))
+
+      noise = np.rint(hf_raw).astype(np.int16)
+
     elevation_min = np.min(noise)
     elevation_max = np.max(noise)
     elevation_range = (
       elevation_max - elevation_min if elevation_max != elevation_min else 1
     )
 
-    # Convert to physical height units.
     max_physical_height = elevation_range * self.vertical_scale
-
-    # Calculate base thickness.
     base_thickness = max_physical_height * self.base_thickness_ratio
 
-    # Normalize elevation data to [0, 1] range.
     if elevation_range > 0:
       normalized_elevation = (noise - elevation_min) / elevation_range
     else:
@@ -181,23 +213,19 @@ class HfPyramidSlopedTerrainCfg(SubTerrainCfg):
     field = spec.add_hfield(
       name=f"hfield_{unique_id}",
       size=[
-        self.size[0] / 2,  # radius_x.
-        self.size[1] / 2,  # radius_y.
-        max_physical_height,  # elevation_z.
-        base_thickness,  # base_z.
+        self.size[0] / 2,
+        self.size[1] / 2,
+        max_physical_height,
+        base_thickness,
       ],
       nrow=noise.shape[0],
       ncol=noise.shape[1],
       userdata=normalized_elevation.flatten().astype(np.float32),
     )
 
-    # Calculate z offset for proper alignment.
     if self.inverted:
-      # For inverted pyramid, edges (max in data) should be at z=0
-      # Accounting for the base thickness that extends below.
       hfield_z_offset = -max_physical_height
     else:
-      # For normal pyramid, terrain surface starts at z=0 at the edges.
       hfield_z_offset = 0
 
     material_name = color_by_height(spec, noise, unique_id, normalized_elevation)
@@ -214,10 +242,8 @@ class HfPyramidSlopedTerrainCfg(SubTerrainCfg):
     )
 
     if self.inverted:
-      # Platform is at the bottom (min in data = -base_thickness).
       spawn_height = hfield_z_offset - base_thickness
     else:
-      # Platform is at the top (max in data = elevation - base).
       spawn_height = max_physical_height - base_thickness
 
     origin = np.array([self.size[0] / 2, self.size[1] / 2, spawn_height])
@@ -243,6 +269,12 @@ class HfRandomUniformTerrainCfg(SubTerrainCfg):
 
     body = spec.body("terrain")
 
+    if self.border_width > 0 and self.border_width < self.horizontal_scale:
+      raise ValueError(
+        f"Border width ({self.border_width}) must be >= horizontal scale "
+        f"({self.horizontal_scale})"
+      )
+
     if self.downsampled_scale is None:
       downsampled_scale = self.horizontal_scale
     elif self.downsampled_scale < self.horizontal_scale:
@@ -253,46 +285,74 @@ class HfRandomUniformTerrainCfg(SubTerrainCfg):
     else:
       downsampled_scale = self.downsampled_scale
 
-    # Switch parameters to discrete units.
+    border_pixels = int(self.border_width / self.horizontal_scale)
     width_pixels = int(self.size[0] / self.horizontal_scale)
     length_pixels = int(self.size[1] / self.horizontal_scale)
-    width_downsampled = int(self.size[0] / downsampled_scale)
-    length_downsampled = int(self.size[1] / downsampled_scale)
-    height_min = int(self.noise_range[0] / self.vertical_scale)
-    height_max = int(self.noise_range[1] / self.vertical_scale)
-    height_step = int(self.noise_step / self.vertical_scale)
 
-    # Create range of heights possible.
-    height_range = np.arange(height_min, height_max + height_step, height_step)
-    # Sample heights randomly from the range along a grid.
-    height_field_downsampled = rng.choice(
-      height_range, size=(width_downsampled, length_downsampled)
-    )
+    noise = np.zeros((width_pixels, length_pixels), dtype=np.int16)
 
-    # Create interpolation function for the sampled heights.
-    x = np.linspace(0, self.size[0], width_downsampled)
-    y = np.linspace(0, self.size[1], length_downsampled)
-    func = interpolate.RectBivariateSpline(x, y, height_field_downsampled)
+    if border_pixels > 0:
+      inner_width_pixels = width_pixels - 2 * border_pixels
+      inner_length_pixels = length_pixels - 2 * border_pixels
+      inner_size = (
+        inner_width_pixels * self.horizontal_scale,
+        inner_length_pixels * self.horizontal_scale,
+      )
 
-    # Interpolate the sampled heights to obtain the height field.
-    x_upsampled = np.linspace(0, self.size[0], width_pixels)
-    y_upsampled = np.linspace(0, self.size[1], length_pixels)
-    z_upsampled = func(x_upsampled, y_upsampled)
-    # Round off the interpolated heights to the nearest vertical step.
-    noise = np.rint(z_upsampled).astype(np.int16)
+      width_downsampled = int(inner_size[0] / downsampled_scale)
+      length_downsampled = int(inner_size[1] / downsampled_scale)
 
-    # Calculate elevation range for scaling.
+      height_min = int(self.noise_range[0] / self.vertical_scale)
+      height_max = int(self.noise_range[1] / self.vertical_scale)
+      height_step = int(self.noise_step / self.vertical_scale)
+
+      height_range = np.arange(height_min, height_max + height_step, height_step)
+      height_field_downsampled = rng.choice(
+        height_range, size=(width_downsampled, length_downsampled)
+      )
+
+      x = np.linspace(0, inner_size[0], width_downsampled)
+      y = np.linspace(0, inner_size[1], length_downsampled)
+      func = interpolate.RectBivariateSpline(x, y, height_field_downsampled)
+
+      x_upsampled = np.linspace(0, inner_size[0], inner_width_pixels)
+      y_upsampled = np.linspace(0, inner_size[1], inner_length_pixels)
+      z_upsampled = func(x_upsampled, y_upsampled)
+
+      noise[
+        border_pixels : -border_pixels if border_pixels else width_pixels,
+        border_pixels : -border_pixels if border_pixels else length_pixels,
+      ] = np.rint(z_upsampled).astype(np.int16)
+    else:
+      width_downsampled = int(self.size[0] / downsampled_scale)
+      length_downsampled = int(self.size[1] / downsampled_scale)
+      height_min = int(self.noise_range[0] / self.vertical_scale)
+      height_max = int(self.noise_range[1] / self.vertical_scale)
+      height_step = int(self.noise_step / self.vertical_scale)
+
+      height_range = np.arange(height_min, height_max + height_step, height_step)
+      height_field_downsampled = rng.choice(
+        height_range, size=(width_downsampled, length_downsampled)
+      )
+
+      x = np.linspace(0, self.size[0], width_downsampled)
+      y = np.linspace(0, self.size[1], length_downsampled)
+      func = interpolate.RectBivariateSpline(x, y, height_field_downsampled)
+
+      x_upsampled = np.linspace(0, self.size[0], width_pixels)
+      y_upsampled = np.linspace(0, self.size[1], length_pixels)
+      z_upsampled = func(x_upsampled, y_upsampled)
+      noise = np.rint(z_upsampled).astype(np.int16)
+
     elevation_min = np.min(noise)
     elevation_max = np.max(noise)
     elevation_range = (
       elevation_max - elevation_min if elevation_max != elevation_min else 1
     )
 
-    # Convert to physical height units.
     max_physical_height = elevation_range * self.vertical_scale
     base_thickness = max_physical_height * self.base_thickness_ratio
 
-    # Normalize elevation data to [0, 1] range.
     if elevation_range > 0:
       normalized_elevation = (noise - elevation_min) / elevation_range
     else:
@@ -302,10 +362,10 @@ class HfRandomUniformTerrainCfg(SubTerrainCfg):
     field = spec.add_hfield(
       name=f"hfield_{unique_id}",
       size=[
-        self.size[0] / 2,  # radius_x
-        self.size[1] / 2,  # radius_y
-        max_physical_height,  # elevation_z
-        base_thickness,  # base_z
+        self.size[0] / 2,
+        self.size[1] / 2,
+        max_physical_height,
+        base_thickness,
       ],
       nrow=noise.shape[0],
       ncol=noise.shape[1],
@@ -335,35 +395,65 @@ class HfWaveTerrainCfg(SubTerrainCfg):
   horizontal_scale: float = 0.1
   vertical_scale: float = 0.005
   base_thickness_ratio: float = 0.25
+  border_width: float = 0.0
 
   def function(
     self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
   ) -> TerrainOutput:
     body = spec.body("terrain")
 
-    # Check number of waves
     if self.num_waves <= 0:
       raise ValueError(f"Number of waves must be positive. Got: {self.num_waves}")
+
+    if self.border_width > 0 and self.border_width < self.horizontal_scale:
+      raise ValueError(
+        f"Border width ({self.border_width}) must be >= horizontal scale "
+        f"({self.horizontal_scale})"
+      )
 
     amplitude = self.amplitude_range[0] + difficulty * (
       self.amplitude_range[1] - self.amplitude_range[0]
     )
 
+    border_pixels = int(self.border_width / self.horizontal_scale)
     width_pixels = int(self.size[0] / self.horizontal_scale)
     length_pixels = int(self.size[1] / self.horizontal_scale)
-    amplitude_pixels = int(0.5 * amplitude / self.vertical_scale)
 
-    wave_length = length_pixels / self.num_waves
-    wave_number = 2 * np.pi / wave_length
+    noise = np.zeros((width_pixels, length_pixels), dtype=np.int16)
 
-    x = np.arange(0, width_pixels)
-    y = np.arange(0, length_pixels)
-    xx, yy = np.meshgrid(x, y, sparse=True)
-    xx = xx.reshape(width_pixels, 1)
-    yy = yy.reshape(1, length_pixels)
+    if border_pixels > 0:
+      inner_width_pixels = width_pixels - 2 * border_pixels
+      inner_length_pixels = length_pixels - 2 * border_pixels
 
-    hf_raw = amplitude_pixels * (np.cos(yy * wave_number) + np.sin(xx * wave_number))
-    noise = np.rint(hf_raw).astype(np.int16)
+      amplitude_pixels = int(0.5 * amplitude / self.vertical_scale)
+      wave_length = inner_length_pixels / self.num_waves
+      wave_number = 2 * np.pi / wave_length
+
+      x = np.arange(0, inner_width_pixels)
+      y = np.arange(0, inner_length_pixels)
+      xx, yy = np.meshgrid(x, y, sparse=True)
+      xx = xx.reshape(inner_width_pixels, 1)
+      yy = yy.reshape(1, inner_length_pixels)
+
+      hf_raw = amplitude_pixels * (np.cos(yy * wave_number) + np.sin(xx * wave_number))
+
+      noise[
+        border_pixels : -border_pixels if border_pixels else width_pixels,
+        border_pixels : -border_pixels if border_pixels else length_pixels,
+      ] = np.rint(hf_raw).astype(np.int16)
+    else:
+      amplitude_pixels = int(0.5 * amplitude / self.vertical_scale)
+      wave_length = length_pixels / self.num_waves
+      wave_number = 2 * np.pi / wave_length
+
+      x = np.arange(0, width_pixels)
+      y = np.arange(0, length_pixels)
+      xx, yy = np.meshgrid(x, y, sparse=True)
+      xx = xx.reshape(width_pixels, 1)
+      yy = yy.reshape(1, length_pixels)
+
+      hf_raw = amplitude_pixels * (np.cos(yy * wave_number) + np.sin(xx * wave_number))
+      noise = np.rint(hf_raw).astype(np.int16)
 
     elevation_min = np.min(noise)
     elevation_max = np.max(noise)
