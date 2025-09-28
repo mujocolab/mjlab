@@ -1,6 +1,6 @@
-"""Terrains composed of primitive box geometries.
+"""Terrains composed of primitive geometries.
 
-This module provides terrain generation functionality using primitive box geometries,
+This module provides terrain generation functionality using primitive geometries,
 adapted from the IsaacLab terrain generation system.
 
 References:
@@ -16,7 +16,11 @@ from typing import Tuple
 import mujoco
 import numpy as np
 
-from mjlab.terrains.terrain_generator import SubTerrainCfg
+from mjlab.terrains.terrain_generator import (
+  SubTerrainCfg,
+  TerrainGeometry,
+  TerrainOutput,
+)
 from mjlab.terrains.utils import make_border, make_plane
 from mjlab.utils.color import (
   HSV,
@@ -47,12 +51,16 @@ def _get_platform_color(
 
 @dataclass(kw_only=True)
 class BoxFlatTerrainCfg(SubTerrainCfg):
-  def function(self, difficulty: float, body: mujoco.MjsBody, rng: np.random.Generator):
+  def function(
+    self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
+  ) -> TerrainOutput:
     del difficulty, rng  # Unused.
+    body = spec.body("terrain")
     origin = (self.size[0] / 2, self.size[1] / 2, 0.0)
     boxes = make_plane(body, self.size, 0.0, center_zero=False)
     box_colors = [(0.5, 0.5, 0.5, 1.0)]
-    return origin, boxes, box_colors
+    geometry = TerrainGeometry(geom=boxes[0], color=box_colors[0])
+    return TerrainOutput(origin=np.array(origin), geometries=[geometry])
 
 
 @dataclass(kw_only=True)
@@ -65,10 +73,14 @@ class BoxPyramidStairsTerrainCfg(SubTerrainCfg):
   platform_width: float = 1.0
   holes: bool = False
 
-  def function(self, difficulty: float, body: mujoco.MjsBody, rng: np.random.Generator):
+  def function(
+    self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
+  ) -> TerrainOutput:
     del rng  # Unused.
     boxes = []
     box_colors = []
+
+    body = spec.body("terrain")
 
     step_height = self.step_height_range[0] + difficulty * (
       self.step_height_range[1] - self.step_height_range[0]
@@ -202,15 +214,24 @@ class BoxPyramidStairsTerrainCfg(SubTerrainCfg):
     )
     platform_rgba = _get_platform_color(_MUJOCO_BLUE)
     box_colors.append(platform_rgba)
-    return origin, boxes, box_colors
+
+    geometries = [
+      TerrainGeometry(geom=box, color=color)
+      for box, color in zip(boxes, box_colors, strict=True)
+    ]
+    return TerrainOutput(origin=origin, geometries=geometries)
 
 
 @dataclass(kw_only=True)
 class BoxInvertedPyramidStairsTerrainCfg(BoxPyramidStairsTerrainCfg):
-  def function(self, difficulty: float, body: mujoco.MjsBody, rng: np.random.Generator):
+  def function(
+    self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
+  ) -> TerrainOutput:
     del rng  # Unused.
     boxes = []
     box_colors = []
+
+    body = spec.body("terrain")
 
     step_height = self.step_height_range[0] + difficulty * (
       self.step_height_range[1] - self.step_height_range[0]
@@ -345,11 +366,14 @@ class BoxInvertedPyramidStairsTerrainCfg(BoxPyramidStairsTerrainCfg):
     origin = np.array(
       [terrain_center[0], terrain_center[1], -(num_steps + 1) * step_height]
     )
-    # box_colors.append((0.5, 0.7, 1.0, 1.0))
-    # platform_rgba = (0.72, 0.72, 0.72, 1.0)
     platform_rgba = _get_platform_color(_MUJOCO_RED)
     box_colors.append(platform_rgba)
-    return origin, boxes, box_colors
+
+    geometries = [
+      TerrainGeometry(geom=box, color=color)
+      for box, color in zip(boxes, box_colors, strict=True)
+    ]
+    return TerrainOutput(origin=origin, geometries=geometries)
 
 
 @dataclass(kw_only=True)
@@ -362,13 +386,17 @@ class BoxRandomGridTerrainCfg(SubTerrainCfg):
   height_merge_threshold: float = 0.05
   max_merge_distance: int = 3
 
-  def function(self, difficulty: float, body: mujoco.MjsBody, rng: np.random.Generator):
+  def function(
+    self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
+  ) -> TerrainOutput:
     if self.size[0] != self.size[1]:
       raise ValueError(f"The terrain must be square. Received size: {self.size}.")
 
     grid_height = self.grid_height_range[0] + difficulty * (
       self.grid_height_range[1] - self.grid_height_range[0]
     )
+
+    body = spec.body("terrain")
 
     boxes_list = []
     box_colors = []
@@ -465,7 +493,11 @@ class BoxRandomGridTerrainCfg(SubTerrainCfg):
 
     origin = np.array([self.size[0] / 2, self.size[1] / 2, grid_height])
 
-    return origin, boxes_list, box_colors
+    geometries = [
+      TerrainGeometry(geom=box, color=color)
+      for box, color in zip(boxes_list, box_colors, strict=True)
+    ]
+    return TerrainOutput(origin=origin, geometries=geometries)
 
   def _create_merged_boxes(
     self,

@@ -1,4 +1,9 @@
-from mjlab.terrains.box_terrains import (
+from mjlab.terrains.heightfield_terrains import (
+  HfPyramidSlopedTerrainCfg,
+  HfRandomUniformTerrainCfg,
+  HfWaveTerrainCfg,
+)
+from mjlab.terrains.primitive_terrains import (
   BoxFlatTerrainCfg,
   BoxInvertedPyramidStairsTerrainCfg,
   BoxPyramidStairsTerrainCfg,
@@ -22,4 +27,8 @@ __all__ = (
   "BoxPyramidStairsTerrainCfg",
   "BoxInvertedPyramidStairsTerrainCfg",
   "BoxRandomGridTerrainCfg",
+  # Heightfield terrains.
+  "HfPyramidSlopedTerrainCfg",
+  "HfRandomUniformTerrainCfg",
+  "HfWaveTerrainCfg",
 )
