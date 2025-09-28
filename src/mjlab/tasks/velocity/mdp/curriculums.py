@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict, cast
 
 import torch
 
 from mjlab.entity import Entity
 from mjlab.managers.scene_entity_config import SceneEntityCfg
+
+from .velocity_command import UniformVelocityCommandCfg
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
@@ -48,3 +50,25 @@ def terrain_levels_vel(
   terrain.update_env_origins(env_ids, move_up, move_down)
 
   return torch.mean(terrain.terrain_levels.float())
+
+
+class VelocityStage(TypedDict):
+  step: int
+  range: tuple[float, float]
+
+
+def commands_vel(
+  env: ManagerBasedRlEnv,
+  env_ids: torch.Tensor,
+  command_name: str,
+  velocity_stages: list[VelocityStage],
+) -> torch.Tensor:
+  del env_ids  # Unused.
+  command_term = env.command_manager.get_term(command_name)
+  assert command_term is not None
+  cfg = cast(UniformVelocityCommandCfg, command_term.cfg)
+  for stage in velocity_stages:
+    if env.common_step_counter > stage["step"]:
+      cfg.ranges.lin_vel_x = stage["range"]
+      cfg.ranges.ang_vel_z = stage["range"]
+  return torch.tensor([cfg.ranges.lin_vel_x[1]])

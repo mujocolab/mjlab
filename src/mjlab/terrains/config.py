@@ -10,32 +10,50 @@ ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
   num_rows=10,
   num_cols=20,
   sub_terrains={
-    "flat": terrain_gen.BoxFlatTerrainCfg(
-      proportion=1 / 3,
-    ),
+    "flat": terrain_gen.BoxFlatTerrainCfg(proportion=0.4),
     "pyramid_stairs": terrain_gen.BoxPyramidStairsTerrainCfg(
-      proportion=1 / 3,
-      step_height_range=(0.05, 0.13),
+      proportion=0.3,
+      step_height_range=(0.0, 0.1),
       step_width=0.3,
       platform_width=3.0,
       border_width=1.0,
-      holes=False,
     ),
     "pyramid_stairs_inv": terrain_gen.BoxInvertedPyramidStairsTerrainCfg(
-      proportion=1 / 3,
-      step_height_range=(0.05, 0.13),
+      proportion=0.3,
+      step_height_range=(0.0, 0.1),
       step_width=0.3,
       platform_width=3.0,
       border_width=1.0,
-      holes=False,
     ),
-    # "boxes": terrain_gen.BoxRandomGridTerrainCfg(
-    #   proportion=1 / 4,
-    #   grid_width=0.45,
-    #   grid_height_range=(0.025, 0.1),
+    # NOTE: Heightfield terrains are currently disabled due to compilation issues
+    # in mujoco-warp.
+    # "hf_pyramid_slope": terrain_gen.HfPyramidSlopedTerrainCfg(
+    #   proportion=0.1,
+    #   slope_range=(0.0, 1.0),
     #   platform_width=2.0,
+    #   border_width=0.25,
+    # ),
+    # "hf_pyramid_slope_inv": terrain_gen.HfPyramidSlopedTerrainCfg(
+    #   proportion=0.1,
+    #   slope_range=(0.0, 1.0),
+    #   platform_width=2.0,
+    #   border_width=0.25,
+    #   inverted=True,
+    # ),
+    # "random_rough": terrain_gen.HfRandomUniformTerrainCfg(
+    #   proportion=0.2,
+    #   noise_range=(0.02, 0.10),
+    #   noise_step=0.02,
+    #   border_width=0.25,
+    # ),
+    # "wave_terrain": terrain_gen.HfWaveTerrainCfg(
+    #   proportion=0.2,
+    #   amplitude_range=(0.0, 0.2),
+    #   num_waves=4,
+    #   border_width=0.25,
     # ),
   },
+  add_lights=False,
 )
 
 

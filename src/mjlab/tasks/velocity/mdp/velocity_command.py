@@ -12,7 +12,11 @@ import torch
 from mjlab.entity import Entity
 from mjlab.managers.command_manager import CommandTerm
 from mjlab.managers.manager_term_config import CommandTermCfg
-from mjlab.third_party.isaaclab.isaaclab.utils.math import matrix_from_quat, wrap_to_pi
+from mjlab.third_party.isaaclab.isaaclab.utils.math import (
+  matrix_from_quat,
+  quat_apply,
+  wrap_to_pi,
+)
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
@@ -69,6 +73,21 @@ class UniformVelocityCommand(CommandTerm):
       self.heading_target[env_ids] = r.uniform_(*self.cfg.ranges.heading)
       self.is_heading_env[env_ids] = r.uniform_(0.0, 1.0) <= self.cfg.rel_heading_envs
     self.is_standing_env[env_ids] = r.uniform_(0.0, 1.0) <= self.cfg.rel_standing_envs
+
+    init_vel_mask = r.uniform_(0.0, 1.0) < self.cfg.init_velocity_prob
+    init_vel_env_ids = env_ids[init_vel_mask]
+    if len(init_vel_env_ids) > 0:
+      root_pos = self.robot.data.root_link_pos_w[init_vel_env_ids]
+      root_quat = self.robot.data.root_link_quat_w[init_vel_env_ids]
+      lin_vel_b = self.robot.data.root_link_lin_vel_b[init_vel_env_ids]
+      lin_vel_b[:, :2] = self.vel_command_b[init_vel_env_ids, :2]
+      root_lin_vel_w = quat_apply(root_quat, lin_vel_b)
+      root_ang_vel_b = self.robot.data.root_link_ang_vel_b[init_vel_env_ids]
+      root_ang_vel_b[:, 2] = self.vel_command_b[init_vel_env_ids, 2]
+      root_state = torch.cat(
+        [root_pos, root_quat, root_lin_vel_w, root_ang_vel_b], dim=-1
+      )
+      self.robot.write_root_state_to_sim(root_state, init_vel_env_ids)
 
   def _update_command(self) -> None:
     if self.cfg.heading_command:
@@ -161,6 +180,7 @@ class UniformVelocityCommandCfg(CommandTermCfg):
   heading_control_stiffness: float = 1.0
   rel_standing_envs: float = 0.0
   rel_heading_envs: float = 1.0
+  init_velocity_prob: float = 0.0
   class_type: type[CommandTerm] = UniformVelocityCommand
 
   @dataclass

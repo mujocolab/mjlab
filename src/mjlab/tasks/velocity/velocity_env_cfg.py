@@ -24,15 +24,6 @@ from mjlab.terrains.config import ROUGH_TERRAINS_CFG
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
 from mjlab.viewer import ViewerConfig
 
-VELOCITY_RANGE = {
-  "x": (-0.5, 0.5),
-  "y": (-0.5, 0.5),
-  "z": (-0.2, 0.2),
-  "roll": (-0.52, 0.52),
-  "pitch": (-0.52, 0.52),
-  "yaw": (-0.78, 0.78),
-}
-
 ##
 # Scene.
 ##
@@ -166,7 +157,7 @@ class EventCfg:
     func=mdp.push_by_setting_velocity,
     mode="interval",
     interval_range_s=(1.0, 3.0),
-    params={"velocity_range": VELOCITY_RANGE},
+    params={"velocity_range": {"x": (-1.0, 1.0), "y": (-1.0, 1.0)}},
   )
   foot_friction: EventTerm = term(
     EventTerm,
@@ -183,57 +174,35 @@ class EventCfg:
 
 @dataclass
 class RewardCfg:
-  # Primary task rewards.
-  track_lin_vel_xy_exp: RewardTerm = term(
+  track_lin_vel_exp: RewardTerm = term(
     RewardTerm,
-    func=mdp.track_lin_vel_xy_exp,
-    weight=5.0,
+    func=mdp.track_lin_vel_exp,
+    weight=1.0,
     params={"command_name": "twist", "std": math.sqrt(0.25)},
   )
-  track_ang_vel_z_exp: RewardTerm = term(
+  track_ang_vel_exp: RewardTerm = term(
     RewardTerm,
-    func=mdp.track_ang_vel_z_exp,
-    weight=2.0,
+    func=mdp.track_ang_vel_exp,
+    weight=1.0,
     params={"command_name": "twist", "std": math.sqrt(0.25)},
   )
-
-  # Stability penalties.
-  ang_vel_xy_l2: RewardTerm = term(RewardTerm, func=mdp.ang_vel_xy_l2, weight=-0.05)
-
-  # Smoothness penalties.
-  action_rate_l2: RewardTerm = term(RewardTerm, func=mdp.action_rate_l2, weight=-0.01)
-  smoothness: RewardTerm = term(RewardTerm, func=mdp.gait_smoothness, weight=-0.0001)
-
-  # Efficiency penalties.
-  cost_of_transport: RewardTerm = term(
-    RewardTerm,
-    func=mdp.cost_of_transport,
-    weight=-0.1,
-    params={
-      "asset_name": "robot",
-      "min_velocity": 0.1,
-      "normalize_by_mass": False,
-      "power_scale": 0.001,
-    },
-  )
-
-  # Posture and limits.
-  pose_l2: RewardTerm = term(
+  pose: RewardTerm = term(
     RewardTerm,
     func=mdp.posture,
-    weight=-0.5,
+    weight=1.0,
     params={
       "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
       "std": [],
     },
   )
   dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
+  action_rate_l2: RewardTerm = term(RewardTerm, func=mdp.action_rate_l2, weight=-0.1)
 
-  # Gait shaping.
+  # Unused, only here as an example.
   air_time: RewardTerm = term(
     RewardTerm,
     func=mdp.feet_air_time,
-    weight=0.3,
+    weight=0.0,
     params={
       "asset_name": "robot",
       "threshold_min": 0.05,
@@ -242,17 +211,6 @@ class RewardCfg:
       "command_threshold": 0.05,
       "sensor_names": [],
       "reward_mode": "on_landing",
-    },
-  )
-  foot_clearance: RewardTerm = term(
-    RewardTerm,
-    func=mdp.foot_clearance_reward,
-    weight=0.5,
-    params={
-      "std": 0.05,
-      "tanh_mult": 2.0,
-      "target_height": 0.1,
-      "asset_cfg": SceneEntityCfg("robot", geom_names=[]),  # Override in robot cfg.
     },
   )
 
@@ -269,6 +227,17 @@ class TerminationCfg:
 class CurriculumCfg:
   terrain_levels: CurrTerm | None = term(
     CurrTerm, func=mdp.terrain_levels_vel, params={"command_name": "twist"}
+  )
+
+  command_vel: CurrTerm | None = term(
+    CurrTerm,
+    func=mdp.commands_vel,
+    params={
+      "command_name": "twist",
+      "velocity_stages": [
+        {"step": 500 * 24, "range": (-3.0, 3.0)},
+      ],
+    },
   )
 
 

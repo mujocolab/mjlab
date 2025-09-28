@@ -19,59 +19,14 @@ if TYPE_CHECKING:
 _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
 
 
-def track_lin_vel_xy_exp(
-  env: ManagerBasedRlEnv,
-  std: float,
-  command_name: str,
-  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-) -> torch.Tensor:
-  """Reward tracking of linear velocity commands (xy axes) using exponential kernel."""
-  asset: Entity = env.scene[asset_cfg.name]
-  command = env.command_manager.get_command(command_name)
-  assert command is not None, f"Command '{command_name}' not found."
-  lin_vel_error = torch.sum(
-    torch.square(command[:, :2] - asset.data.root_link_lin_vel_b[:, :2]),
-    dim=1,
-  )
-  return torch.exp(-lin_vel_error / std**2)
+def is_alive(env: ManagerBasedRlEnv) -> torch.Tensor:
+  """Reward for being alive."""
+  return (~env.termination_manager.terminated).float()
 
 
-def track_ang_vel_z_exp(
-  env: ManagerBasedRlEnv,
-  std: float,
-  command_name: str,
-  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-) -> torch.Tensor:
-  """Reward tracking of angular velocity commands (yaw) using exponential kernel."""
-  asset: Entity = env.scene[asset_cfg.name]
-  command = env.command_manager.get_command(command_name)
-  assert command is not None, f"Command '{command_name}' not found."
-  ang_vel_error = torch.square(command[:, 2] - asset.data.root_link_ang_vel_b[:, 2])
-  return torch.exp(-ang_vel_error / std**2)
-
-
-def lin_vel_z_l2(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
-) -> torch.Tensor:
-  """Penalize z-axis base linear velocity using L2 squared kernel."""
-  asset: Entity = env.scene[asset_cfg.name]
-  return torch.square(asset.data.root_link_lin_vel_b[:, 2])
-
-
-def ang_vel_xy_l2(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
-) -> torch.Tensor:
-  """Penalize xy-axis base angular velocity using L2 squared kernel."""
-  asset: Entity = env.scene[asset_cfg.name]
-  return torch.sum(torch.square(asset.data.root_link_ang_vel_b[:, :2]), dim=1)
-
-
-def flat_orientation_l2(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
-) -> torch.Tensor:
-  """Penalize non-flat base orientation using L2 squared kernel."""
-  asset: Entity = env.scene[asset_cfg.name]
-  return torch.sum(torch.square(asset.data.projected_gravity_b[:, :2]), dim=1)
+def is_terminated(env: ManagerBasedRlEnv) -> torch.Tensor:
+  """Penalize terminated episodes that don't correspond to episodic timeouts."""
+  return env.termination_manager.terminated.float()
 
 
 def joint_torques_l2(
@@ -115,17 +70,6 @@ def joint_pos_limits(
   return torch.sum(out_of_limits, dim=1)
 
 
-def upright(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
-) -> torch.Tensor:
-  """Penalize the deviation of the base orientation from the upright orientation."""
-  asset: Entity = env.scene[asset_cfg.name]
-  projected_gravity = asset.data.projected_gravity_b
-  desired_projected_gravity = torch.tensor([0, 0, -1], device=projected_gravity.device)
-  error = torch.sum(torch.square(projected_gravity - desired_projected_gravity), dim=1)
-  return torch.exp(-2.0 * error)
-
-
 class posture:
   """Penalize the deviation of the joint positions from the default positions.
 
@@ -156,9 +100,8 @@ class posture:
     asset: Entity = env.scene[asset_cfg.name]
     current_joint_pos = asset.data.joint_pos[:, asset_cfg.joint_ids]
     desired_joint_pos = self.default_joint_pos[:, asset_cfg.joint_ids]
-    error = torch.square(current_joint_pos - desired_joint_pos)
-    weighted_error = error / (self.std**2)
-    return torch.sum(weighted_error, dim=1)
+    error_squared = torch.square(current_joint_pos - desired_joint_pos)
+    return torch.exp(-torch.mean(error_squared / (self.std**2), dim=1))
 
 
 def electrical_power_cost(
@@ -172,3 +115,12 @@ def electrical_power_cost(
   mech = tau * qd
   mech_pos = torch.clamp(mech, min=0.0)  # Don't penalize regen.
   return torch.sum(mech_pos, dim=1)
+
+
+def flat_orientation_l2(
+  env: ManagerBasedRlEnv,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Penalize non-flat base orientation."""
+  asset: Entity = env.scene[asset_cfg.name]
+  return torch.sum(torch.square(asset.data.projected_gravity_b[:, :2]), dim=1)

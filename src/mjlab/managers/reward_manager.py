@@ -95,6 +95,11 @@ class RewardManager(ManagerBase):
       terms.append((name, [self._step_reward[env_idx, idx].cpu().item()]))
     return terms
 
+  def get_term_cfg(self, term_name: str) -> RewardTermCfg:
+    if term_name not in self._term_names:
+      raise ValueError(f"Term '{term_name}' not found in active terms.")
+    return self._term_cfgs[self._term_names.index(term_name)]
+
   def _prepare_terms(self):
     cfg_items = get_terms(self.cfg, RewardTermCfg).items()
     for term_name, term_cfg in cfg_items:
