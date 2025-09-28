@@ -49,22 +49,6 @@ def track_ang_vel_exp(
   return torch.exp(-ang_vel_error / std**2)
 
 
-def subtree_angmom_l2(
-  env: ManagerBasedRlEnv,
-  sensor_name: str,
-  asset_name: str = "robot",
-) -> torch.Tensor:
-  asset: Entity = env.scene[asset_name]
-  if sensor_name not in asset.sensor_names:
-    raise ValueError(
-      f"Sensor '{sensor_name}' not found in asset '{asset_name}'. "
-      f"Available sensors: {asset.sensor_names}"
-    )
-  angmom_w = asset.data.sensor_data[sensor_name]
-  angmom_xy_w = angmom_w[:, :2]
-  return torch.sum(torch.square(angmom_xy_w), dim=1)
-
-
 class feet_air_time:
   """Reward long steps taken by the feet.
 
@@ -169,87 +153,6 @@ class feet_air_time:
     self.last_air_time[env_ids] = 0.0
 
 
-class gait_smoothness:
-  """Penalize jerky, non-smooth gait patterns via joint jerk."""
-
-  def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
-    self.asset_name = cfg.params.get("asset_name", "robot")
-    self.smoothness_weight = cfg.params.get("smoothness_weight", 1.0)
-
-    asset = env.scene[self.asset_name]
-    num_joints = asset.data.joint_pos.shape[1]
-    self.last_joint_acc = torch.zeros(env.num_envs, num_joints, device=env.device)
-
-    self.dt = env.step_dt
-
-  def __call__(self, env: ManagerBasedRlEnv, **kwargs) -> torch.Tensor:
-    asset = env.scene[self.asset_name]
-
-    current_joint_acc = asset.data.joint_acc
-    joint_jerk = torch.abs(current_joint_acc - self.last_joint_acc) / self.dt
-    total_jerk = torch.sum(joint_jerk, dim=1) * self.smoothness_weight
-    self.last_joint_acc = current_joint_acc.clone()
-    return total_jerk
-
-  def reset(self, env_ids: torch.Tensor | slice | None = None):
-    if env_ids is None:
-      env_ids = slice(None)
-    self.last_joint_acc[env_ids] = 0.0
-
-
-class cost_of_transport:
-  """Penalize energy expenditure per unit distance traveled."""
-
-  def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
-    self.command_name = cfg.params.get("command_name", "twist")
-    self.asset_name = cfg.params.get("asset_name", "robot")
-    self.min_velocity = cfg.params.get("min_velocity", 0.1)  # Avoid division by zero.
-    self.normalize_by_mass = cfg.params.get("normalize_by_mass", True)
-    self.power_scale = cfg.params.get("power_scale", 0.001)
-
-    if self.normalize_by_mass:
-      asset: Entity = env.scene[self.asset_name]
-      self.robot_mass = asset.data.model.body_subtreemass[asset.indexing.root_body_id]
-    else:
-      self.robot_mass = 1.0
-
-  def __call__(self, env: ManagerBasedRlEnv, **kwargs) -> torch.Tensor:
-    asset: Entity = env.scene[self.asset_name]
-
-    # Compute electrical power (W).
-    tau = asset.data.actuator_force
-    qd = asset.data.joint_vel
-    mech = tau * qd
-    mech_pos = torch.clamp(mech, min=0.0)  # Don't penalize regen.
-    total_power = torch.sum(mech_pos, dim=1)  # Watts.
-
-    # Get forward velocity (m/s).
-    linvel = asset.data.root_link_lin_vel_b[:, :2]  # x,y in body frame
-    vel_magnitude = torch.norm(linvel, dim=1)  # planar speed
-    vel_clamped = torch.clamp(vel_magnitude, min=self.min_velocity)
-
-    if self.normalize_by_mass:
-      # Dimensionless CoT: power / (mass * g * velocity).
-      cost = total_power / (self.robot_mass * 9.81 * vel_clamped)
-    else:
-      # Energy per meter (J/m).
-      cost = total_power / vel_clamped
-
-    cost_scaled = cost * self.power_scale
-
-    command = env.command_manager.get_command(self.command_name)
-    if command is not None:
-      is_moving_command = torch.norm(command[:, :2], dim=1) > 0.1
-      cost_scaled = torch.where(
-        is_moving_command, cost_scaled, torch.zeros_like(cost_scaled)
-      )
-
-    return cost_scaled
-
-  def reset(self, env_ids: torch.Tensor | slice | None = None):
-    del env_ids  # Unused.
-
-
 def foot_clearance_reward(
   env: ManagerBasedRlEnv,
   target_height: float,
@@ -282,33 +185,3 @@ def feet_slide(
   contacts = torch.stack(contact_list, dim=1)
   geom_vel = asset.data.geom_lin_vel_w[:, asset_cfg.geom_ids, :2]
   return torch.sum(geom_vel.norm(dim=-1) * contacts, dim=1)
-
-
-def base_uprightness_exp(
-  env: ManagerBasedRlEnv,
-  std: float,
-  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-) -> torch.Tensor:
-  """Reward for maintaining upright posture using exponential kernel."""
-  asset: Entity = env.scene[asset_cfg.name]
-  gravity_b = asset.data.projected_gravity_b
-  cos_angle = -gravity_b[:, 2] / torch.norm(gravity_b, dim=1)
-  cos_angle = torch.clamp(cos_angle, -1.0, 1.0)
-  angle = torch.acos(cos_angle)
-  return torch.exp(-(angle**2) / std**2)
-
-
-def base_orientation_rpy(
-  env: ManagerBasedRlEnv,
-  roll_std: float,
-  pitch_std: float,
-  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-) -> torch.Tensor:
-  """Reward for maintaining upright posture with separate roll/pitch control."""
-  asset: Entity = env.scene[asset_cfg.name]
-  gravity_b = asset.data.projected_gravity_b
-  roll = torch.atan2(gravity_b[:, 0], -gravity_b[:, 2])
-  pitch = torch.atan2(gravity_b[:, 1], -gravity_b[:, 2])
-  roll_reward = torch.exp(-(roll**2) / roll_std**2)
-  pitch_reward = torch.exp(-(pitch**2) / pitch_std**2)
-  return 0.6 * roll_reward + 0.4 * pitch_reward

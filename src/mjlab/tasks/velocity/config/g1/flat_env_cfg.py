@@ -31,5 +31,3 @@ class UnitreeG1FlatEnvCfg_PLAY(UnitreeG1FlatEnvCfg):
 
     # Effectively infinite episode length.
     self.episode_length_s = int(1e9)
-
-    self.curriculum.command_vel = None

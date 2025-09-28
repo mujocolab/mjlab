@@ -36,9 +36,6 @@ class UnitreeGo1RoughEnvCfg(LocomotionVelocityEnvCfg):
     geom_names = [f"{name}_foot_collision" for name in foot_names]
 
     self.rewards.air_time.params["sensor_names"] = sensor_names
-    self.rewards.feet_slide.params["sensor_names"] = sensor_names
-    self.rewards.foot_clearance.params["asset_cfg"].geom_names = geom_names
-    self.rewards.feet_slide.params["asset_cfg"].geom_names = geom_names
     self.rewards.pose.params["std"] = {
       r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.3,
       r".*(FR|FL|RR|RL)_calf_joint.*": 0.6,

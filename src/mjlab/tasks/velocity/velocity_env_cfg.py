@@ -198,38 +198,7 @@ class RewardCfg:
   dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
   action_rate_l2: RewardTerm = term(RewardTerm, func=mdp.action_rate_l2, weight=-0.1)
 
-  # Unused terms (default weight=0.0).
-  feet_slide: RewardTerm = term(
-    RewardTerm,
-    func=mdp.feet_slide,
-    weight=0.0,
-    params={
-      "asset_cfg": SceneEntityCfg("robot", geom_names=[], preserve_order=True),
-      "sensor_names": [],  # Override in robot cfg.
-    },
-  )
-  cost_of_transport: RewardTerm = term(
-    RewardTerm,
-    func=mdp.cost_of_transport,
-    weight=0.0,
-    params={
-      "asset_name": "robot",
-      "min_velocity": 0.1,
-      "normalize_by_mass": False,
-      "power_scale": 1.0,
-    },
-  )
-  foot_clearance: RewardTerm = term(
-    RewardTerm,
-    func=mdp.foot_clearance_reward,
-    weight=0.0,
-    params={
-      "std": 0.05,
-      "tanh_mult": 2.0,
-      "target_height": 0.1,
-      "asset_cfg": SceneEntityCfg("robot", geom_names=[]),  # Override in robot cfg.
-    },
-  )
+  # Unused, only here as an example.
   air_time: RewardTerm = term(
     RewardTerm,
     func=mdp.feet_air_time,

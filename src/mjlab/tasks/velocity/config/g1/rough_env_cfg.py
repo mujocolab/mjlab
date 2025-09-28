@@ -41,9 +41,6 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
     self.actions.joint_pos.scale = G1_ACTION_SCALE
 
     self.rewards.air_time.params["sensor_names"] = sensor_names
-    self.rewards.feet_slide.params["sensor_names"] = sensor_names
-    self.rewards.foot_clearance.params["asset_cfg"].geom_names = geom_names
-    self.rewards.feet_slide.params["asset_cfg"].geom_names = geom_names
     # self.rewards.pose.params["std"] = {
     #   r"^(left|right)_knee_joint$": 0.6,
     #   r"^(left|right)_hip_pitch_joint$": 0.6,
@@ -53,22 +50,22 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
     # }
     self.rewards.pose.params["std"] = {
       # Lower body.
-      r".*hip_pitch.*": 0.3,  # Hip flexion/extension for walking
-      r".*hip_roll.*": 0.15,  # Keep stance relatively narrow
-      r".*hip_yaw.*": 0.15,  # Minimal rotation
-      r".*knee.*": 0.35,  # Knees need to bend for walking
-      r".*ankle_pitch.*": 0.25,  # Ankle flexion for push-off
-      r".*ankle_roll.*": 0.1,  # Keep stable base
+      r".*hip_pitch.*": 0.3,
+      r".*hip_roll.*": 0.15,
+      r".*hip_yaw.*": 0.15,
+      r".*knee.*": 0.35,
+      r".*ankle_pitch.*": 0.25,
+      r".*ankle_roll.*": 0.1,
       # Waist.
-      r".*waist_yaw.*": 0.15,  # Some rotation for natural gait
-      r".*waist_roll.*": 0.08,  # Very minimal side bend
-      r".*waist_pitch.*": 0.1,  # Slight forward lean okay
+      r".*waist_yaw.*": 0.15,
+      r".*waist_roll.*": 0.08,
+      r".*waist_pitch.*": 0.1,
       # Arms.
-      r".*shoulder_pitch.*": 0.35,  # Forward/back swing
-      r".*shoulder_roll.*": 0.15,  # Arms not too wide
-      r".*shoulder_yaw.*": 0.1,  # Minimal rotation
-      r".*elbow.*": 0.25,  # Natural arm bend
-      r".*wrist.*": 0.3,  # Wrists don't affect locomotion much
+      r".*shoulder_pitch.*": 0.35,
+      r".*shoulder_roll.*": 0.15,
+      r".*shoulder_yaw.*": 0.1,
+      r".*elbow.*": 0.25,
+      r".*wrist.*": 0.3,
     }
 
     self.viewer.body_name = "torso_link"
@@ -91,5 +88,3 @@ class UnitreeG1RoughEnvCfg_PLAY(UnitreeG1RoughEnvCfg):
         self.scene.terrain.terrain_generator.num_cols = 5
         self.scene.terrain.terrain_generator.num_rows = 5
         self.scene.terrain.terrain_generator.border_width = 10.0
-
-    self.curriculum.command_vel = None
