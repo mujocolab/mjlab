@@ -25,7 +25,7 @@ uvx --from mjlab --with "mujoco-warp @ git+https://github.com/google-deepmind/mu
 
 ## Documentation
 
-- **[Getting Started](docs/getting_started.md)** - Install and launch your first training in minutes
+- **[Why mjlab?](docs/motivation.md)** - When to use mjlab (and when to use Isaac Lab, Newton, etc.)
 - **[Migration Guide](docs/migration_guide.md)** - Moving from Isaac Lab
 - **[FAQ & Troubleshooting](docs/faq.md)** - Common questions and answers
 
