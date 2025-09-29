@@ -6,7 +6,7 @@ Adapted from an MJX visualizer by Chung Min Kim: https://github.com/chungmin99/
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
+from typing import Literal, Optional
 
 import numpy as np
 import trimesh
@@ -14,7 +14,7 @@ import trimesh.visual
 import viser
 import viser.transforms as vtf
 from mujoco import mj_id2name, mjtGeom, mjtObj  # type: ignore
-from typing_extensions import override
+from typing_extensions import assert_never, override
 
 from mjlab.sim.sim import Simulation
 from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
@@ -39,9 +39,9 @@ class ViserViewer(BaseViewer):
     """Setup the viewer resources."""
 
     self._server = viser.ViserServer(label="mjlab")
-    self._handles: dict[
-      str, tuple[viser.BatchedMeshHandle | viser.BatchedGlbHandle, int]
-    ] = {}
+    # Separate handle storage for visual and collision meshes
+    self._mesh_visual_handles: dict[int, viser.BatchedGlbHandle] | None = None
+    self._mesh_collision_handles: dict[int, viser.BatchedGlbHandle] | None = None
     self._threadpool = ThreadPoolExecutor(max_workers=1)
     self._batch_size = self.env.num_envs
 
@@ -117,16 +117,20 @@ class ViserViewer(BaseViewer):
 
         @cb_collision.on_update
         def _(_) -> None:
-          for name, data in self._handles.items():
-            if name.endswith("_collision"):
-              handle, _ = data
+          if cb_collision.value:
+            self._ensure_collision_handles_exist()
+
+          if self._mesh_collision_handles is not None:
+            for handle in self._mesh_collision_handles.values():
               handle.visible = cb_collision.value
 
         @cb_visual.on_update
         def _(_) -> None:
-          for name, data in self._handles.items():
-            if name.endswith("_visual"):
-              handle, _ = data
+          if cb_visual.value:
+            self._ensure_visual_handles_exist()
+
+          if self._mesh_visual_handles is not None:
+            for handle in self._mesh_visual_handles.values():
               handle.visible = cb_visual.value
 
     # Reward plots tab
@@ -191,10 +195,8 @@ class ViserViewer(BaseViewer):
     # geom_xpos = wp_data.geom_xpos.numpy()  # Shape: (batch_size, ngeom, 3)
 
     # Group geoms by their parent body and type (visual/collision)
-    from collections import defaultdict
-
-    body_geoms_visual = defaultdict(list)
-    body_geoms_collision = defaultdict(list)
+    body_geoms_visual: dict[int, list[int]] = {}
+    body_geoms_collision: dict[int, list[int]] = {}
 
     for i in range(mj_model.ngeom):
       body_id = mj_model.geom_bodyid[i]
@@ -202,8 +204,12 @@ class ViserViewer(BaseViewer):
       is_collision = mj_model.geom_contype[i] != 0 or mj_model.geom_conaffinity[i] != 0
 
       if is_collision:
+        if body_id not in body_geoms_collision:
+          body_geoms_collision[body_id] = []
         body_geoms_collision[body_id].append(i)
       else:
+        if body_id not in body_geoms_visual:
+          body_geoms_visual[body_id] = []
         body_geoms_visual[body_id].append(i)
 
     # Process visual and collision geoms separately for each body
@@ -214,41 +220,6 @@ class ViserViewer(BaseViewer):
       body_name = mj_id2name(mj_model, mjtObj.mjOBJ_BODY, body_id)
       if not body_name:
         body_name = f"body_{body_id}"
-
-      # Helper function to process a list of geom indices
-      def merge_geoms(geom_indices: list[int]) -> trimesh.Trimesh:
-        meshes_to_concat = []
-        for geom_id in geom_indices:
-          geom_name = mj_id2name(mj_model, mjtObj.mjOBJ_GEOM, geom_id)
-          if not geom_name:
-            geom_name = f"geom_{geom_id}"
-
-          # Get geom type
-          geom_type = mj_model.geom_type[geom_id]
-
-          # Create or get mesh for this geom
-          if geom_type == mjtGeom.mjGEOM_MESH:
-            mesh = mujoco_mesh_to_trimesh(mj_model, geom_id, verbose=False)
-          else:
-            mesh = self._create_mesh(mj_model, geom_id)
-
-          # Transform mesh to geom's local pose relative to body
-          pos = mj_model.geom_pos[geom_id]
-          quat = mj_model.geom_quat[geom_id]  # (w, x, y, z)
-
-          # Apply transformation to mesh
-          transform = np.eye(4)
-          transform[:3, :3] = vtf.SO3(quat).as_matrix()
-          transform[:3, 3] = pos
-          mesh.apply_transform(transform)
-
-          meshes_to_concat.append(mesh)
-
-        if len(meshes_to_concat) == 1:
-          combined_mesh = meshes_to_concat[0]
-        else:
-          combined_mesh = trimesh.util.concatenate(meshes_to_concat)
-        return combined_mesh
 
       # Fixed world geometry. We'll assume this is shared between all
       # environments.
@@ -293,32 +264,136 @@ class ViserViewer(BaseViewer):
           if len(nonplane_geom_ids) > 0:
             self._server.scene.add_mesh_trimesh(
               f"/fixed_bodies/{body_name}/{visual_or_collision}",
-              merge_geoms(nonplane_geom_ids),
+              self._merge_geoms(mj_model, nonplane_geom_ids),
               cast_shadow=False,
               receive_shadow=0.2,
             )
-      # Dynamic bodies.
+      # Dynamic bodies - skip creation, will be handled lazily
       else:
-        for body_geoms_dict, visual_or_collision in [
-          (body_geoms_visual, "visual"),
-          (body_geoms_collision, "collision"),
-        ]:
-          if body_id not in body_geoms_dict:
-            continue
-          visual_mesh = merge_geoms(body_geoms_dict[body_id])
-          handle = self._server.scene.add_batched_meshes_trimesh(
-            f"/bodies/{body_name}/{visual_or_collision}",
-            visual_mesh,
-            batched_wxyzs=np.array([1.0, 0.0, 0.0, 0.0])[None].repeat(
-              self._batch_size, axis=0
-            ),
-            batched_positions=np.array([0.0, 0.0, 0.0])[None].repeat(
-              self._batch_size, axis=0
-            ),
-            lod="auto",
-            visible=visual_or_collision == "visual",
-          )
-          self._handles[f"{body_name}_{visual_or_collision}"] = (handle, body_id)
+        pass
+
+    # Create visual handles by default on startup
+    self._ensure_visual_handles_exist()
+
+  def _merge_geoms(self, mj_model, geom_indices: list[int]) -> trimesh.Trimesh:
+    """Merge multiple geoms into a single trimesh."""
+    meshes_to_concat = []
+    for geom_id in geom_indices:
+      geom_name = mj_id2name(mj_model, mjtObj.mjOBJ_GEOM, geom_id)
+      if not geom_name:
+        geom_name = f"geom_{geom_id}"
+
+      # Get geom type
+      geom_type = mj_model.geom_type[geom_id]
+
+      # Create or get mesh for this geom
+      if geom_type == mjtGeom.mjGEOM_MESH:
+        mesh = mujoco_mesh_to_trimesh(mj_model, geom_id, verbose=False)
+      else:
+        mesh = self._create_mesh(mj_model, geom_id)
+
+      # Transform mesh to geom's local pose relative to body
+      pos = mj_model.geom_pos[geom_id]
+      quat = mj_model.geom_quat[geom_id]  # (w, x, y, z)
+
+      # Apply transformation to mesh
+      transform = np.eye(4)
+      transform[:3, :3] = vtf.SO3(quat).as_matrix()
+      transform[:3, 3] = pos
+      mesh.apply_transform(transform)
+
+      meshes_to_concat.append(mesh)
+
+    if len(meshes_to_concat) == 1:
+      combined_mesh = meshes_to_concat[0]
+    else:
+      combined_mesh = trimesh.util.concatenate(meshes_to_concat)
+    return combined_mesh
+
+  def _create_mesh_handles(
+    self, mesh_type: Literal["visual", "collision"], visible: bool
+  ) -> dict[int, viser.BatchedGlbHandle]:
+    """Create mesh handles for either visual or collision geometry.
+
+    Args:
+      mesh_type: Either "visual" or "collision"
+      visible: Whether the meshes should be initially visible
+
+    Returns:
+      Dictionary mapping body_id to handles
+    """
+    sim = self.env.unwrapped.sim
+    assert isinstance(sim, Simulation)
+    mj_model = sim.mj_model
+
+    # Group geoms by body
+    body_geoms: dict[int, list[int]] = {}
+
+    for i in range(mj_model.ngeom):
+      body_id = mj_model.geom_bodyid[i]
+      is_collision = mj_model.geom_contype[i] != 0 or mj_model.geom_conaffinity[i] != 0
+
+      # Determine if this geom should be included based on mesh_type
+      should_include: bool
+      if mesh_type == "collision":
+        should_include = is_collision
+      elif mesh_type == "visual":
+        should_include = not is_collision
+      else:
+        assert_never(mesh_type)
+
+      # Add geom to body's list if it matches the type we're looking for
+      if should_include:
+        if body_id not in body_geoms:
+          body_geoms[body_id] = []
+        body_geoms[body_id].append(i)
+
+    handles = {}
+    with self._server.atomic():
+      for body_id, geom_indices in body_geoms.items():
+        # Skip fixed world geometry
+        if mj_model.body_dofnum[body_id] == 0 and mj_model.body_parentid[body_id] == 0:
+          continue
+
+        # Get body name
+        body_name = mj_id2name(mj_model, mjtObj.mjOBJ_BODY, body_id)
+        if not body_name:
+          body_name = f"body_{body_id}"
+
+        # Merge geoms into a single mesh
+        mesh = self._merge_geoms(mj_model, geom_indices)
+        lod_ratio = 1000.0 / mesh.vertices.shape[0]
+
+        # Create handle
+        handle = self._server.scene.add_batched_meshes_trimesh(
+          f"/bodies/{body_name}/{mesh_type}",
+          mesh,
+          batched_wxyzs=np.array([1.0, 0.0, 0.0, 0.0])[None].repeat(
+            self._batch_size, axis=0
+          ),
+          batched_positions=np.array([0.0, 0.0, 0.0])[None].repeat(
+            self._batch_size, axis=0
+          ),
+          lod=((2.0, lod_ratio),) if lod_ratio < 0.5 else "off",
+          visible=visible,
+        )
+        handles[body_id] = handle
+
+    return handles
+
+  def _ensure_visual_handles_exist(self) -> None:
+    """Create visual mesh handles if they don't exist yet."""
+    if self._mesh_visual_handles is not None:
+      return  # Already created
+
+    self._mesh_visual_handles = self._create_mesh_handles("visual", visible=True)
+
+  def _ensure_collision_handles_exist(self) -> None:
+    """Create collision mesh handles if they don't exist yet."""
+    if self._mesh_collision_handles is not None:
+      return  # Already created
+
+    self._mesh_collision_handles = self._create_mesh_handles("collision", visible=True)
 
   @override
   def sync_env_to_viewer(self) -> None:
@@ -360,23 +435,32 @@ class ViserViewer(BaseViewer):
       with self._server.atomic():
         body_xquat = vtf.SO3.from_matrix(body_xmat).wxyz
 
-        for data in self._handles.values():
-          handle, body_id = data
+        # Update both visual and collision handles symmetrically
+        for handles_dict in [self._mesh_visual_handles, self._mesh_collision_handles]:
+          if handles_dict is None:
+            continue  # Handles not created yet
 
-          # Update position and orientation for this body
-          if self._show_only_selected_env and self.env.num_envs > 1:
-            # Show only the selected environment at the origin (0,0,0)
-            single_pos = body_xpos[self._env_idx, body_id, :]
-            single_quat = body_xquat[self._env_idx, body_id, :]
-            # Replicate single environment data for all batch slots
-            handle.batched_positions = np.tile(
-              single_pos[None, :], (self._batch_size, 1)
-            )
-            handle.batched_wxyzs = np.tile(single_quat[None, :], (self._batch_size, 1))
-          else:
-            # Show all environments with offsets
-            handle.batched_positions = body_xpos[..., body_id, :]
-            handle.batched_wxyzs = body_xquat[..., body_id, :]
+          for body_id, handle in handles_dict.items():
+            # Skip if handle is not visible
+            if not handle.visible:
+              continue
+
+            # Update position and orientation for this body
+            if self._show_only_selected_env and self.env.num_envs > 1:
+              # Show only the selected environment at the origin (0,0,0)
+              single_pos = body_xpos[self._env_idx, body_id, :]
+              single_quat = body_xquat[self._env_idx, body_id, :]
+              # Replicate single environment data for all batch slots
+              handle.batched_positions = np.tile(
+                single_pos[None, :], (self._batch_size, 1)
+              )
+              handle.batched_wxyzs = np.tile(
+                single_quat[None, :], (self._batch_size, 1)
+              )
+            else:
+              # Show all environments with offsets
+              handle.batched_positions = body_xpos[..., body_id, :]
+              handle.batched_wxyzs = body_xquat[..., body_id, :]
         self._server.flush()
 
     self._threadpool.submit(update_mujoco)
@@ -426,20 +510,10 @@ class ViserViewer(BaseViewer):
 
     # Get geom RGBA color if available
     rgba = mj_model.geom_rgba[idx].copy()
-
-    # Hack: randomize color and roughness slightly to avoid trimesh
-    # deduplication bug when concatenating meshes.
-    #
-    # Not needed after this PR is merged: https://github.com/mikedh/trimesh/pull/2457
-    rgba[:3] += np.random.uniform(-0.01, 0.01, size=3)
-    rgba = np.clip(rgba, 0.0, 1.0)
-    roughness = np.random.uniform(0.5, 0.55)
-    metallic = np.random.uniform(0.5, 0.55)
-
     material = trimesh.visual.material.PBRMaterial(
       baseColorFactor=rgba,
-      metallicFactor=metallic,
-      roughnessFactor=roughness,
+      metallicFactor=0.5,
+      roughnessFactor=0.5,
       emissiveFactor=[0.0, 0.0, 0.0],
     )
     if geom_type == mjtGeom.mjGEOM_PLANE:
