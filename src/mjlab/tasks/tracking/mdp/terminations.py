@@ -15,34 +15,37 @@ if TYPE_CHECKING:
   from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 
-def bad_ref_pos(
-  env: ManagerBasedRlEnv, command_name: str, threshold: float
-) -> torch.Tensor:
-  command = cast(MotionCommand, env.command_manager.get_term(command_name))
-  return torch.norm(command.ref_pos_w - command.robot_ref_pos_w, dim=1) > threshold
-
-
-def bad_ref_pos_z_only(
+def bad_anchor_pos(
   env: ManagerBasedRlEnv, command_name: str, threshold: float
 ) -> torch.Tensor:
   command = cast(MotionCommand, env.command_manager.get_term(command_name))
   return (
-    torch.abs(command.ref_pos_w[:, -1] - command.robot_ref_pos_w[:, -1]) > threshold
+    torch.norm(command.anchor_pos_w - command.robot_anchor_pos_w, dim=1) > threshold
   )
 
 
-def bad_ref_ori(
+def bad_anchor_pos_z_only(
+  env: ManagerBasedRlEnv, command_name: str, threshold: float
+) -> torch.Tensor:
+  command = cast(MotionCommand, env.command_manager.get_term(command_name))
+  return (
+    torch.abs(command.anchor_pos_w[:, -1] - command.robot_anchor_pos_w[:, -1])
+    > threshold
+  )
+
+
+def bad_anchor_ori(
   env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg, command_name: str, threshold: float
 ) -> torch.Tensor:
   asset: Entity = env.scene[asset_cfg.name]
 
   command = cast(MotionCommand, env.command_manager.get_term(command_name))
   motion_projected_gravity_b = quat_apply_inverse(
-    command.ref_quat_w, asset.data.gravity_vec_w
+    command.anchor_quat_w, asset.data.gravity_vec_w
   )
 
   robot_projected_gravity_b = quat_apply_inverse(
-    command.robot_ref_quat_w, asset.data.gravity_vec_w
+    command.robot_anchor_quat_w, asset.data.gravity_vec_w
   )
 
   return (

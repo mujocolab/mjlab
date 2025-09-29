@@ -2,6 +2,11 @@
 
 This module defines the base configuration for motion mimic tasks.
 Robot-specific configurations are located in the config/ directory.
+
+This is a re-implementation of BeyondMimic (https://beyondmimic.github.io/).
+
+Based on https://github.com/HybridRobotics/whole_body_tracking
+Commit: d763c6af1eb25c1341b8104e1c53eaae5ad9ae00
 """
 
 from dataclasses import dataclass, field
@@ -66,7 +71,7 @@ class CommandsCfg:
     joint_position_range=(-0.1, 0.1),
     # Override in robot cfg.
     motion_file="",
-    reference_body="",
+    anchor_body_name="",
     body_names=[],
   )
 
@@ -89,15 +94,15 @@ class ObservationCfg:
     command: ObsTerm = term(
       ObsTerm, func=mdp.generated_commands, params={"command_name": "motion"}
     )
-    motion_ref_pos_b: ObsTerm = term(
+    motion_anchor_pos_b: ObsTerm = term(
       ObsTerm,
-      func=mdp.motion_ref_pos_b,
+      func=mdp.motion_anchor_pos_b,
       params={"command_name": "motion"},
       noise=Unoise(n_min=-0.25, n_max=0.25),
     )
-    motion_ref_ori_b: ObsTerm = term(
+    motion_anchor_ori_b: ObsTerm = term(
       ObsTerm,
-      func=mdp.motion_ref_ori_b,
+      func=mdp.motion_anchor_ori_b,
       params={"command_name": "motion"},
       noise=Unoise(n_min=-0.05, n_max=0.05),
     )
@@ -123,11 +128,11 @@ class ObservationCfg:
     command: ObsTerm = term(
       ObsTerm, func=mdp.generated_commands, params={"command_name": "motion"}
     )
-    motion_ref_pos_b: ObsTerm = term(
-      ObsTerm, func=mdp.motion_ref_pos_b, params={"command_name": "motion"}
+    motion_anchor_pos_b: ObsTerm = term(
+      ObsTerm, func=mdp.motion_anchor_pos_b, params={"command_name": "motion"}
     )
-    motion_ref_ori_b: ObsTerm = term(
-      ObsTerm, func=mdp.motion_ref_ori_b, params={"command_name": "motion"}
+    motion_anchor_ori_b: ObsTerm = term(
+      ObsTerm, func=mdp.motion_anchor_ori_b, params={"command_name": "motion"}
     )
     body_pos: ObsTerm = term(
       ObsTerm, func=mdp.robot_body_pos_b, params={"command_name": "motion"}
@@ -197,13 +202,13 @@ class EventCfg:
 class RewardCfg:
   motion_global_root_pos: RewTerm = term(
     RewTerm,
-    func=mdp.motion_global_ref_position_error_exp,
+    func=mdp.motion_global_anchor_position_error_exp,
     weight=0.5,
     params={"command_name": "motion", "std": 0.3},
   )
   motion_global_root_ori: RewTerm = term(
     RewTerm,
-    func=mdp.motion_global_ref_orientation_error_exp,
+    func=mdp.motion_global_anchor_orientation_error_exp,
     weight=0.5,
     params={"command_name": "motion", "std": 0.4},
   )
@@ -250,14 +255,14 @@ class RewardCfg:
 @dataclass
 class TerminationsCfg:
   time_out: DoneTerm = term(DoneTerm, func=mdp.time_out, time_out=True)
-  ref_pos: DoneTerm = term(
+  anchor_pos: DoneTerm = term(
     DoneTerm,
-    func=mdp.bad_ref_pos_z_only,
+    func=mdp.bad_anchor_pos_z_only,
     params={"command_name": "motion", "threshold": 0.25},
   )
-  ref_ori: DoneTerm = term(
+  anchor_ori: DoneTerm = term(
     DoneTerm,
-    func=mdp.bad_ref_ori,
+    func=mdp.bad_anchor_ori,
     params={
       "asset_cfg": SceneEntityCfg("robot"),
       "command_name": "motion",

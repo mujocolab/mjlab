@@ -21,7 +21,7 @@ class G1FlatEnvCfg(TrackingEnvCfg):
     self.scene.entities = {"robot": g1_cfg}
     self.actions.joint_pos.scale = G1_ACTION_SCALE
 
-    self.commands.motion.reference_body = "torso_link"
+    self.commands.motion.anchor_body_name = "torso_link"
     self.commands.motion.body_names = [
       "pelvis",
       "left_hip_roll_link",
