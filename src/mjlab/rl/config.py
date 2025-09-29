@@ -84,7 +84,7 @@ class RslRlBaseRunnerCfg:
   """The run name. Default is empty string."""
   logger: Literal["wandb", "tensorboard"] = "wandb"
   """The logger to use. Default is wandb."""
-  wandb_project: str = "mjlab_alpha"
+  wandb_project: str = "mjlab"
   """The wandb project name."""
   resume: bool = False
   """Whether to resume the experiment. Default is False."""
