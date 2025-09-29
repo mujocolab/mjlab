@@ -14,6 +14,7 @@ from mjlab.managers.command_manager import CommandManager, NullCommandManager
 from mjlab.managers.curriculum_manager import CurriculumManager, NullCurriculumManager
 from mjlab.managers.reward_manager import RewardManager
 from mjlab.managers.termination_manager import TerminationManager
+from mjlab.utils.logging import print_info
 
 
 @dataclass(kw_only=True)
@@ -55,7 +56,7 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
       self.sim.initialize_renderer()
     self.metadata["render_fps"] = 1.0 / self.step_dt  # type: ignore
 
-    print("[INFO]: Completed setting up the environment...")
+    print_info("[INFO]: Completed setting up the environment...")
 
   # Properties.
 
@@ -80,17 +81,17 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
       self.command_manager = CommandManager(self.cfg.commands, self)
     else:
       self.command_manager = NullCommandManager()
-    print("[INFO] Command Manager:", self.command_manager)
+    print_info(f"[INFO] Command Manager: {self.command_manager}")
     super().load_managers()
     self.termination_manager = TerminationManager(self.cfg.terminations, self)
-    print("[INFO] Termination Manager:", self.termination_manager)
+    print_info(f"[INFO] Termination Manager: {self.termination_manager}")
     self.reward_manager = RewardManager(self.cfg.rewards, self)
-    print("[INFO] Reward Manager:", self.reward_manager)
+    print_info(f"[INFO] Reward Manager: {self.reward_manager}")
     if self.cfg.curriculum is not None:
       self.curriculum_manager = CurriculumManager(self.cfg.curriculum, self)
     else:
       self.curriculum_manager = NullCurriculumManager()
-    print("[INFO] Curriculum Manager:", self.curriculum_manager)
+    print_info(f"[INFO] Curriculum Manager: {self.curriculum_manager}")
     self._configure_gym_env_spaces()
     if "startup" in self.event_manager.available_modes:
       self.event_manager.apply(mode="startup")

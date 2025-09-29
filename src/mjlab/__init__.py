@@ -10,7 +10,10 @@ def configure_warp() -> None:
   """Configure Warp globally for mjlab."""
   wp.config.enable_backward = False
 
-  quiet = os.environ.get("MJLAB_WARP_VERBOSE", "").lower() not in ("1", "true", "yes")
+  # By default, we want to keep warp verbose especially when it is compiling kernels
+  # so that users get feedback that something is happening.
+  # However, we allow overriding this behavior with an environment variable.
+  quiet = os.environ.get("MJLAB_WARP_QUIET", "").lower() in ("1", "true", "yes")
   wp.config.quiet = quiet
 
 
