@@ -16,6 +16,7 @@ from mjlab.scene.scene import SceneCfg
 from mjlab.sim import SimulationCfg
 from mjlab.sim.sim import Simulation
 from mjlab.utils import random as random_utils
+from mjlab.utils.logging import print_info
 from mjlab.viewer.viewer_config import ViewerConfig
 
 
@@ -53,14 +54,14 @@ class ManagerBasedEnv:
     if self.cfg.seed is not None:
       self.cfg.seed = self.seed(self.cfg.seed)
     else:
-      print("No seed set for the environment.")
+      print_info("No seed set for the environment.")
     self._sim_step_counter = 0
     self.extras = {}
     self.obs_buf = {}
 
     self.scene = Scene(self.cfg.scene, device=device)
     self.cfg.sim.mujoco.edit_spec(self.scene.spec)
-    print("[INFO]: Scene manager: ", self.scene)
+    print_info(f"[INFO]: Scene manager: {self.scene}")
 
     self.sim = Simulation(
       num_envs=self.scene.num_envs,
@@ -78,11 +79,11 @@ class ManagerBasedEnv:
       data=self.sim.data,
     )
 
-    print("[INFO]: Base environment:")
-    print(f"\tEnvironment device    : {self.device}")
-    print(f"\tEnvironment seed      : {self.cfg.seed}")
-    print(f"\tPhysics step-size     : {self.physics_dt}")
-    print(f"\tEnvironment step-size : {self.step_dt}")
+    print_info("[INFO]: Base environment:")
+    print_info(f"\tEnvironment device    : {self.device}")
+    print_info(f"\tEnvironment seed      : {self.cfg.seed}")
+    print_info(f"\tPhysics step-size     : {self.physics_dt}")
+    print_info(f"\tEnvironment step-size : {self.step_dt}")
 
     self.load_managers()
     self.setup_manager_visualizers()
@@ -110,14 +111,14 @@ class ManagerBasedEnv:
 
   def load_managers(self) -> None:
     self.event_manager = EventManager(self.cfg.events, self)
-    print("[INFO] Event manager: ", self.event_manager)
+    print_info(f"[INFO] Event manager: {self.event_manager}")
 
     self.sim.expand_model_fields(self.event_manager.domain_randomization_fields)
 
     self.action_manager = ActionManager(self.cfg.actions, self)
-    print("[INFO] Action Manager:", self.action_manager)
+    print_info(f"[INFO] Action Manager: {self.action_manager}")
     self.observation_manager = ObservationManager(self.cfg.observations, self)
-    print("[INFO] Observation Manager:", self.observation_manager)
+    print_info(f"[INFO] Observation Manager: {self.observation_manager}")
 
     if (
       self.__class__ == ManagerBasedEnv
@@ -169,7 +170,7 @@ class ManagerBasedEnv:
   def seed(seed: int = -1) -> int:
     if seed == -1:
       seed = np.random.randint(0, 10_000)
-    print(f"Setting seed: {seed}")
+    print_info(f"Setting seed: {seed}")
     random_utils.seed_rng(seed)
     return seed
 
