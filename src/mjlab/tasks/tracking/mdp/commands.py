@@ -73,8 +73,10 @@ class MotionCommand(CommandTerm):
     super().__init__(cfg, env)
 
     self.robot: Entity = env.scene[cfg.asset_name]
-    self.robot_ref_body_index = self.robot.body_names.index(self.cfg.reference_body)
-    self.motion_ref_body_index = self.cfg.body_names.index(self.cfg.reference_body)
+    self.robot_anchor_body_index = self.robot.body_names.index(
+      self.cfg.anchor_body_name
+    )
+    self.motion_anchor_body_index = self.cfg.body_names.index(self.cfg.anchor_body_name)
     self.body_indexes = torch.tensor(
       self.robot.find_bodies(self.cfg.body_names, preserve_order=True)[0],
       dtype=torch.long,
@@ -106,10 +108,14 @@ class MotionCommand(CommandTerm):
     )
     self.kernel = self.kernel / self.kernel.sum()
 
-    self.metrics["error_ref_pos"] = torch.zeros(self.num_envs, device=self.device)
-    self.metrics["error_ref_rot"] = torch.zeros(self.num_envs, device=self.device)
-    self.metrics["error_ref_lin_vel"] = torch.zeros(self.num_envs, device=self.device)
-    self.metrics["error_ref_ang_vel"] = torch.zeros(self.num_envs, device=self.device)
+    self.metrics["error_anchor_pos"] = torch.zeros(self.num_envs, device=self.device)
+    self.metrics["error_anchor_rot"] = torch.zeros(self.num_envs, device=self.device)
+    self.metrics["error_anchor_lin_vel"] = torch.zeros(
+      self.num_envs, device=self.device
+    )
+    self.metrics["error_anchor_ang_vel"] = torch.zeros(
+      self.num_envs, device=self.device
+    )
     self.metrics["error_body_pos"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["error_body_rot"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["error_joint_pos"] = torch.zeros(self.num_envs, device=self.device)
@@ -159,23 +165,23 @@ class MotionCommand(CommandTerm):
     return self.motion.body_ang_vel_w[self.time_steps]
 
   @property
-  def ref_pos_w(self) -> torch.Tensor:
+  def anchor_pos_w(self) -> torch.Tensor:
     return (
-      self.motion.body_pos_w[self.time_steps, self.motion_ref_body_index]
+      self.motion.body_pos_w[self.time_steps, self.motion_anchor_body_index]
       + self._env.scene.env_origins
     )
 
   @property
-  def ref_quat_w(self) -> torch.Tensor:
-    return self.motion.body_quat_w[self.time_steps, self.motion_ref_body_index]
+  def anchor_quat_w(self) -> torch.Tensor:
+    return self.motion.body_quat_w[self.time_steps, self.motion_anchor_body_index]
 
   @property
-  def ref_lin_vel_w(self) -> torch.Tensor:
-    return self.motion.body_lin_vel_w[self.time_steps, self.motion_ref_body_index]
+  def anchor_lin_vel_w(self) -> torch.Tensor:
+    return self.motion.body_lin_vel_w[self.time_steps, self.motion_anchor_body_index]
 
   @property
-  def ref_ang_vel_w(self) -> torch.Tensor:
-    return self.motion.body_ang_vel_w[self.time_steps, self.motion_ref_body_index]
+  def anchor_ang_vel_w(self) -> torch.Tensor:
+    return self.motion.body_ang_vel_w[self.time_steps, self.motion_anchor_body_index]
 
   @property
   def robot_joint_pos(self) -> torch.Tensor:
@@ -202,33 +208,33 @@ class MotionCommand(CommandTerm):
     return self.robot.data.body_link_ang_vel_w[:, self.body_indexes]
 
   @property
-  def robot_ref_pos_w(self) -> torch.Tensor:
-    return self.robot.data.body_link_pos_w[:, self.robot_ref_body_index]
+  def robot_anchor_pos_w(self) -> torch.Tensor:
+    return self.robot.data.body_link_pos_w[:, self.robot_anchor_body_index]
 
   @property
-  def robot_ref_quat_w(self) -> torch.Tensor:
-    return self.robot.data.body_link_quat_w[:, self.robot_ref_body_index]
+  def robot_anchor_quat_w(self) -> torch.Tensor:
+    return self.robot.data.body_link_quat_w[:, self.robot_anchor_body_index]
 
   @property
-  def robot_ref_lin_vel_w(self) -> torch.Tensor:
-    return self.robot.data.body_link_lin_vel_w[:, self.robot_ref_body_index]
+  def robot_anchor_lin_vel_w(self) -> torch.Tensor:
+    return self.robot.data.body_link_lin_vel_w[:, self.robot_anchor_body_index]
 
   @property
-  def robot_ref_ang_vel_w(self) -> torch.Tensor:
-    return self.robot.data.body_link_ang_vel_w[:, self.robot_ref_body_index]
+  def robot_anchor_ang_vel_w(self) -> torch.Tensor:
+    return self.robot.data.body_link_ang_vel_w[:, self.robot_anchor_body_index]
 
   def _update_metrics(self):
-    self.metrics["error_ref_pos"] = torch.norm(
-      self.ref_pos_w - self.robot_ref_pos_w, dim=-1
+    self.metrics["error_anchor_pos"] = torch.norm(
+      self.anchor_pos_w - self.robot_anchor_pos_w, dim=-1
     )
-    self.metrics["error_ref_rot"] = quat_error_magnitude(
-      self.ref_quat_w, self.robot_ref_quat_w
+    self.metrics["error_anchor_rot"] = quat_error_magnitude(
+      self.anchor_quat_w, self.robot_anchor_quat_w
     )
-    self.metrics["error_ref_lin_vel"] = torch.norm(
-      self.ref_lin_vel_w - self.robot_ref_lin_vel_w, dim=-1
+    self.metrics["error_anchor_lin_vel"] = torch.norm(
+      self.anchor_lin_vel_w - self.robot_anchor_lin_vel_w, dim=-1
     )
-    self.metrics["error_ref_ang_vel"] = torch.norm(
-      self.ref_ang_vel_w - self.robot_ref_ang_vel_w, dim=-1
+    self.metrics["error_anchor_ang_vel"] = torch.norm(
+      self.anchor_ang_vel_w - self.robot_anchor_ang_vel_w, dim=-1
     )
 
     self.metrics["error_body_pos"] = torch.norm(
@@ -361,28 +367,28 @@ class MotionCommand(CommandTerm):
     if env_ids.numel() > 0:
       self._resample_command(env_ids)
 
-    ref_pos_w_repeat = self.ref_pos_w[:, None, :].repeat(1, len(self.cfg.body_names), 1)
-    ref_quat_w_repeat = self.ref_quat_w[:, None, :].repeat(
+    anchor_pos_w_repeat = self.anchor_pos_w[:, None, :].repeat(
       1, len(self.cfg.body_names), 1
     )
-    robot_ref_pos_w_repeat = self.robot_ref_pos_w[:, None, :].repeat(
+    anchor_quat_w_repeat = self.anchor_quat_w[:, None, :].repeat(
       1, len(self.cfg.body_names), 1
     )
-    robot_ref_quat_w_repeat = self.robot_ref_quat_w[:, None, :].repeat(
+    robot_anchor_pos_w_repeat = self.robot_anchor_pos_w[:, None, :].repeat(
+      1, len(self.cfg.body_names), 1
+    )
+    robot_anchor_quat_w_repeat = self.robot_anchor_quat_w[:, None, :].repeat(
       1, len(self.cfg.body_names), 1
     )
 
-    delta_pos_w = ref_pos_w_repeat - robot_ref_pos_w_repeat
-    delta_pos_w[..., :2] = 0.0
+    delta_pos_w = robot_anchor_pos_w_repeat
+    delta_pos_w[..., 2] = anchor_pos_w_repeat[..., 2]
     delta_ori_w = yaw_quat(
-      quat_mul(robot_ref_quat_w_repeat, quat_inv(ref_quat_w_repeat))
+      quat_mul(robot_anchor_quat_w_repeat, quat_inv(anchor_quat_w_repeat))
     )
 
     self.body_quat_relative_w = quat_mul(delta_ori_w, self.body_quat_w)
-    self.body_pos_relative_w = (
-      robot_ref_pos_w_repeat
-      + delta_pos_w
-      + quat_apply(delta_ori_w, self.body_pos_w - ref_pos_w_repeat)
+    self.body_pos_relative_w = delta_pos_w + quat_apply(
+      delta_ori_w, self.body_pos_w - anchor_pos_w_repeat
     )
 
     self.bin_failed_count = (
@@ -423,7 +429,7 @@ class MotionCommand(CommandTerm):
 @dataclass(kw_only=True)
 class MotionCommandCfg(CommandTermCfg):
   motion_file: str
-  reference_body: str
+  anchor_body_name: str
   body_names: list[str]
   asset_name: str
   class_type: type[CommandTerm] = MotionCommand

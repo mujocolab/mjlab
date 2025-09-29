@@ -99,6 +99,9 @@ def attach_onnx_metadata(
   ctrl_ids = robot.indexing.ctrl_ids.cpu().numpy()
   joint_stiffness = env.sim.mj_model.actuator_gainprm[ctrl_ids, 0]
   joint_damping = -env.sim.mj_model.actuator_biasprm[ctrl_ids, 2]
+  motion_term = env.command_manager.get_term("motion")
+  assert isinstance(motion_term, MotionCommand)
+  motion_term_cfg = motion_term.cfg
   metadata = {
     "run_path": run_path,
     "joint_names": robot.joint_names,
@@ -110,6 +113,8 @@ def attach_onnx_metadata(
     "action_scale": joint_action._scale[0].cpu().tolist()
     if isinstance(joint_action._scale, torch.Tensor)
     else joint_action._scale,
+    "anchor_body_name": motion_term_cfg.anchor_body_name,
+    "body_names": motion_term_cfg.body_names,
   }
 
   model = onnx.load(onnx_path)
