@@ -11,8 +11,6 @@ import tyro
 from mjlab.scripts.gcs import ensure_default_checkpoint, ensure_default_motion
 from mjlab.scripts.play import run_play
 
-_TASK_NAME = "Mjlab-Tracking-Flat-Unitree-G1-Play"
-
 
 def main() -> None:
   """Run demo with pretrained tracking policy."""
@@ -29,7 +27,7 @@ def main() -> None:
   tyro.cli(
     partial(
       run_play,
-      task=_TASK_NAME,
+      task="Mjlab-Tracking-Flat-Unitree-G1-Play",
       checkpoint_file=checkpoint_path,
       motion_file=motion_path,
       num_envs=8,
