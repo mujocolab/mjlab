@@ -144,7 +144,7 @@ SCENE_CFG = SceneCfg(
 Everything else—rewards, observations, commands, terminations—works almost identically!
 
 **Isaac Lab implementation** (Beyond Mimic):  
-https://github.com/qiayuanl/whole_body_tracking/blob/main/source/whole_body_tracking/whole_body_tracking/tasks/tracking/tracking_env_cfg.py
+https://github.com/HybridRobotics/whole_body_tracking/blob/main/source/whole_body_tracking/whole_body_tracking/tasks/tracking/tracking_env_cfg.py
 
 **mjlab implementation**:  
 https://github.com/mujocolab/mjlab/blob/main/src/mjlab/tasks/tracking/tracking_env_cfg.py
