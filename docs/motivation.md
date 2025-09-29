@@ -16,7 +16,7 @@ GPU-accelerated robotics simulation has great tools, but each has tradeoffs:
 
 We took Isaac Lab's proven manager-based architecture and RL abstractions, then built them directly on MuJoCo Warp. No translation layers, no Omniverse overhead. Just fast, transparent physics.
 
-### Why Not Just Add MuJoCo Warp to Isaac Lab?
+### Why Not Add MuJoCo Warp to Isaac Lab?
 
 We explored this first! But:
 - Isaac Lab is deeply integrated with Omniverse/Isaac Sim's architecture
@@ -25,7 +25,7 @@ We explored this first! But:
 - Supporting multiple backends adds complexity and maintenance burden
 - Starting fresh let us write lean, performant code
 
-Isaac Lab recently added experimental Newton support, but maintaining compatibility across multiple simulators and backends inherently limits how deeply you can optimize for any single one. We chose focus over flexibility.
+Isaac Lab recently added experimental Newton support, which will be a great way for existing Isaac users to try MuJoCo Warp. With mjlab, we chose to focus on a smaller codebase that we can support.
 
 ## Philosophy
 
