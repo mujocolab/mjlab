@@ -1,0 +1,35 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: >-
+  MJLab: IsaacLab-style manager API, powered by MuJoCo-Warp,
+  for RL and robotics research.
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Kevin
+    family-names: Zakka
+    email: zakka@berkeley.edu
+  - given-names: Brent
+    family-names: Yi
+    email: brentyi@berkeley.edu
+  - given-names: Qiayuan
+    family-names: Liao
+    email: qiayuanl@berkeley.edu
+  - given-names: Louis
+    family-names: Le Lay
+    email: le.lay.louis@gmail.com
+repository-code: 'https://github.com/mujocolab/mjlab'
+keywords:
+  - mujoco
+  - mujoco-warp
+  - simulation
+  - reinforcement-learning
+  - robotics
+license: Apache-2.0
+commit: e93f948f308cf13adee5d16599503b41a9ff4c67
+version: 0.1.0
+date-released: '2025-09-29'
