@@ -4,128 +4,151 @@
   <img alt="tests" src="https://github.com/mujocolab/mjlab/actions/workflows/ci.yml/badge.svg" />
 </p>
 
-> **⚠️ EXPERIMENTAL PREVIEW** 
+mjlab combines [Isaac Lab](https://github.com/isaac-sim/IsaacLab)'s proven API with best-in-class [MuJoCo](https://github.com/google-deepmind/mujoco_warp) physics to provide lightweight, modular abstractions for RL robotics research and sim-to-real deployment.
+
+```bash
+uvx --from mjlab --with "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp" demo
+```
+
+> **⚠️ BETA PREVIEW** 
 > 
-> This project is in very early experimental stages. APIs, features, and documentation are subject to significant changes. Use at your own risk and expect frequent breaking changes.
+> This project is in beta. There might be breaking changes and missing features.
 
-[Isaac Lab](https://github.com/isaac-sim/IsaacLab) API with [MJWarp](https://github.com/google-deepmind/mujoco_warp) backend.
+## Why mjlab?
 
-```bash
-uv run demo
-```
+- **Familiar APIs**: If you know Isaac Lab or MuJoCo, you already know mjlab
+- **Instant Feedback**: Fast startup and kernel caching. Drop a breakpoint anywhere and debug immediately
+- **Massively Parallel**: MuJoCo Warp enables efficient GPU-accelerated simulation at scale
+- **Zero Friction**: Pure Python, minimal dependencies. Just `uv run` and go
 
-## Development Guide
+**[Read the full comparison →](docs/motivation.md)**
 
-Clone `mjlab`:
+## Documentation
 
-```bash
-git clone git@github.com:mujocolab/mjlab.git && cd mjlab
-```
+- **[Getting Started](docs/getting_started.md)** - Install and launch your first training in minutes
+- **[Migration Guide](docs/migration_guide.md)** - Moving from Isaac Lab
+- **[FAQ & Troubleshooting](docs/faq.md)** - Common questions and answers
 
-### Using uv
+## Quick Start
 
-Install [uv](https://docs.astral.sh/uv/):
+### Option 1: Install from PyPI
+
+Install [uv](https://docs.astral.sh/uv/) if you haven't already:
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-Once installed, you can verify it works by running:
+Run the demo directly:
 
 ```bash
-uv run scripts/list_envs.py
+uvx --from mjlab --with "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp" demo
 ```
 
-## Reinforcement Learning
+### Option 2: Install from Source (Recommended)
 
-### Velocity Tracking
+Clone the repository:
 
-Train a Unitree G1 to follow velocity commands (headless, large batch):
+```bash
+git clone git@github.com:mujocolab/mjlab.git && cd mjlab
+```
+
+Then either:
+
+- **Run commands directly** (recommended for development):
+  ```bash
+  uv run demo
+  ```
+
+- **Install as editable package** (if you need to import mjlab elsewhere):
+  ```bash
+  uv pip install -e . "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp"
+  ```
+
+## Training Examples
+
+### 1. Velocity Tracking
+
+Train a Unitree G1 humanoid to follow velocity commands on flat terrain:
 
 ```bash
 MUJOCO_GL=egl uv run train \
   Mjlab-Velocity-Flat-Unitree-G1 \
   --env.scene.num-envs 4096
-```
 
-Play the trained policy:
-
-```bash
-uv run play --task Mjlab-Velocity-Flat-Unitree-G1-Play
-```
-
-### Motion Imitation
-
-Run a pre-trained motion-mimic policy on the G1:
-
-```bash
+# NOTE: You can evaluate a policy while your training is still
+# in progress. This will grab the latest checkpoint from wandb.
 uv run play \
-  --task Mjlab-Tracking-Flat-Unitree-G1-Play \
-  --wandb-run-path gcbc_researchers/mjlab_alpha/rfdej55h
+  --task Mjlab-Velocity-Flat-Unitree-G1-Play \
+  --wandb-run-path your-org/mjlab/run-id
 ```
 
-Train the same motion-mimic policy (headless, large batch):
+### 2. Motion Imitation
+
+Train a Unitree G1 to mimic reference motions. mjlab uses [WandB](https://wandb.ai) to manage reference motion datasets:
+
+1. **Create a registry collection** in your WandB workspace named `Motions`
+
+2. **Set your WandB entity**:
+   ```bash
+   export WANDB_ENTITY=your-organization-name
+   ```
+
+3. **Process and upload motion files**:
+   ```bash
+   MUJOCO_GL=egl uv run scripts/tracking/csv_to_npz.py \
+     --input-file /path/to/motion.csv \
+     --output-name motion_name \
+     --input-fps 30 \
+     --output-fps 50 \
+     --render  # Optional: generates preview video
+   ```
+
+> **Note**: For detailed motion preprocessing instructions, see the [BeyondMimic documentation](https://github.com/HybridRobotics/whole_body_tracking/blob/main/README.md#motion-preprocessing--registry-setup).
+
+#### Train and Play
 
 ```bash
 MUJOCO_GL=egl uv run train \
   Mjlab-Tracking-Flat-Unitree-G1 \
-  --registry-name gcbc_researchers/csv_to_npz/lafan_cartwheel \
+  --registry-name your-org/motions/motion-name \
   --env.scene.num-envs 4096
+
+uv run play \
+  --task Mjlab-Tracking-Flat-Unitree-G1-Play \
+  --wandb-run-path your-org/mjlab/run-id
 ```
 
-Add a new motion to the WandB registry from a CSV:
+## Development
 
-```bash
-MUJOCO_GL=egl uv run src/mjlab/scripts/csv_to_npz.py \
-  --input-file /path/to/motion.csv \
-  --output-name side_kick \
-  --input-fps 30 \
-  --output-fps 50 \
-  --render
-```
-
-## Running tests
+### Running Tests
 
 ```bash
 make test
 ```
 
-## Code formatting and linting
-
-You can install a pre-commit hook:
+### Code Formatting
 
 ```bash
+# Install pre-commit hook.
 uvx pre-commit install
-```
 
-or manually format with:
-
-```bash
+# Format manually.
 make format
 ```
 
-## Troubleshooting
-
-**CUDA Compatibility**: Not all CUDA versions are supported. Check [mujoco_warp#101](https://github.com/google-deepmind/mujoco_warp/issues/101) for your CUDA version compatibility.
-
 ## License
 
-This project, **mjlab**, is licensed under the [Apache License, Version 2.0](LICENSE).
+mjlab is licensed under the [Apache License, Version 2.0](LICENSE).
 
 ### Third-Party Code
 
-The `third_party/` directory contains selected files from external projects.  
-Each such subdirectory includes its own original `LICENSE` file from the upstream source.  
-These files are used under the terms of their respective licenses.
+The `third_party/` directory contains files from external projects, each with its own license:
 
-Currently, `third_party/` contains:
+- **isaaclab/** — Selected files from [NVIDIA Isaac Lab](https://github.com/isaac-sim/IsaacLab) ([BSD-3-Clause](src/mjlab/third_party/isaaclab/LICENSE))
 
-- **isaaclab/** — Selected files from [NVIDIA Isaac Lab](https://github.com/isaac-sim/IsaacLab),  
-  licensed under the [BSD-3-Clause](src/mjlab/third_party/isaaclab/LICENSE).
+When distributing or modifying mjlab, comply with:
+1. The Apache-2.0 license for mjlab's original code
+2. The respective licenses in `third_party/` for those files
 
-When distributing or modifying this project, you must comply with both:
-
-1. The **Apache-2.0 license** of mjlab (applies to all original code in this repository).
-2. The licenses of any code in `third_party/` (applies only to the files from those projects).
-
-See the individual `LICENSE` files for the complete terms.
+See individual `LICENSE` files for complete terms.
