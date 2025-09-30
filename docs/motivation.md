@@ -8,7 +8,7 @@ GPU-accelerated robotics simulation has great tools, but each has tradeoffs:
 
 **MJX**: Fast and lightweight, but JAX's learning curve and poor collision scaling limit adoption.
 
-**Newton**: Promising generic simulator supporting multiple solvers (MuJoCo, VBD, etc.), but the generic API requires everything to be converted into Newton's format, adding a translation layer. It's also brand new, so it doesn't yet have the vibrant ecosystem and community resources that MuJoCo and ISAAC have built over the years.
+**Newton**: Brand new generic simulator supporting multiple solvers (MuJoCo, VBD, etc.) with USD-based format instead of MJCF/XML. Doesn't yet have the ecosystem and community resources that MuJoCo has built over the years.
 
 ## Our Solution
 
@@ -16,38 +16,47 @@ GPU-accelerated robotics simulation has great tools, but each has tradeoffs:
 
 We took Isaac Lab's proven manager-based architecture and RL abstractions, then built them directly on MuJoCo Warp. No translation layers, no Omniverse overhead. Just fast, transparent physics.
 
+### Why Not Use Isaac Lab with Newton?
+
+Isaac Lab recently added [experimental Newton support](https://github.com/isaac-sim/IsaacLab/tree/dev/newton), which is great for existing Isaac users who want to try MuJoCo via Newton's backend.
+
+If you want a comprehensive platform (RL, imitation learning, photorealistic rendering, etc.), use Isaac Lab. If you want a focused tool for RL and sim2real with MuJoCo, use mjlab.
+
 ### Why Not Add MuJoCo Warp to Isaac Lab?
 
-We explored this first! But:
-- Isaac Lab is deeply integrated with Omniverse/Isaac Sim's architecture
-- Omniverse has high overhead
-- Heavy dependency stack from trying to support many use cases
-- Supporting multiple backends adds complexity and maintenance burden
-- Starting fresh let us write lean, performant code
+This would be fantastic for the ecosystem! NVIDIA's team is exploring this with their recent [experimental Newton integration](https://github.com/isaac-sim/IsaacLab/tree/dev/newton), which is exciting.
 
-Isaac Lab recently added experimental Newton support, which will be a great way for existing Isaac users to try MuJoCo Warp. With mjlab, we chose to focus on a smaller codebase that we can support.
+But for us, we wanted to start with something more focused that we could realistically maintain. Isaac Lab is architected around Omniverse/Isaac Sim's powerful capabilities, which makes sense given everything it supports. Integrating MuJoCo Warp there would mean working within that broader framework and supporting use cases beyond our scope.
+
+Maintaining multi-backend compatibility naturally involves tradeoffs in complexity and dependency management. By starting fresh, we could:
+- Write a lean codebase optimized specifically for MuJoCo Warp
+- Keep dependencies minimal and installation fast
+- Maintain direct access to native mjModel/mjData structures
+- Iterate quickly without navigating a larger platform's constraints
+
+Think of mjlab as a love letter to Isaac Lab's brilliant API design. We're bringing those manager-based abstractions to researchers who want something smaller and MuJoCo-specific. It's complementary, not competitive.
 
 ## Philosophy
 
 **Bare Metal Performance**
-- Direct MuJoCo Warp integration—no translation layers
+- Direct MuJoCo Warp integration, no translation layers
 - Native mjModel/mjData structures MuJoCo users know and love
 - GPU-accelerated with minimal overhead
 
 **Developer Experience First**
 - One-line installation: `uvx --from mjlab demo`
-- Instant startup (no compilation, no Omniverse loading)
+- Blazing fast startup
 - Standard Python debugging (pdb anywhere!)
 - Fast iteration cycles
 
 **Focused Scope**
-- Rigid-body robotics and RL—not trying to do everything
+- Rigid-body robotics and RL, not trying to do everything
 - Clean, maintainable codebase over feature bloat
-- Direct MuJoCo integration over generic abstractions
+- MuJoCo-native implementation, not a generic wrapper
 
-## When to Use `mjlab`
+## When to Use mjlab
 
-**Use `mjlab` if you want:**
+**Use mjlab if you want:**
 - Fast iteration and debugging
 - Direct MuJoCo physics control
 - Proven RL abstractions (Isaac Lab-style)
@@ -60,9 +69,8 @@ Isaac Lab recently added experimental Newton support, which will be a great way 
 - Omniverse ecosystem features
 
 **Use Newton if you need:**
-- Deformable object simulation
-- Multi-physics solver support
-- Generic simulator abstraction
+- Multi-physics solver support (e.g., deformables)
+- Differentiable simulation
 
 ## The Bottom Line
 
