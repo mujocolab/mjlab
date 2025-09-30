@@ -1,3 +1,5 @@
+from dataclasses import field
+
 import mujoco
 
 import mjlab.terrains as terrain_gen

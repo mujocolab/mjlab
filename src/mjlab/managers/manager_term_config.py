@@ -1,18 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Literal, ParamSpec, TypeVar
+from typing import Any, Literal
 
 from mjlab.managers.action_manager import ActionTerm
 from mjlab.managers.command_manager import CommandTerm
 from mjlab.utils.noise.noise_cfg import NoiseCfg, NoiseModelCfg
-
-P = ParamSpec("P")
-T = TypeVar("T")
-
-
-def term(term_cls: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
-  return field(default_factory=lambda: term_cls(*args, **kwargs))
 
 
 @dataclass
@@ -97,6 +90,7 @@ class ObservationGroupCfg:
   concatenate_terms: bool = True
   concatenate_dim: int = -1
   enable_corruption: bool = False
+  terms: dict[str, ObservationTermCfg] = field(default_factory=dict)
 
 
 ##

@@ -1,68 +1,87 @@
-from dataclasses import dataclass, replace
+from dataclasses import replace
 
 from mjlab.asset_zoo.robots.unitree_go1.go1_constants import (
   GO1_ACTION_SCALE,
   GO1_ROBOT_CFG,
 )
-from mjlab.tasks.velocity.velocity_env_cfg import (
-  LocomotionVelocityEnvCfg,
-)
+from mjlab.tasks.velocity.velocity_env_cfg import create_velocity_env_cfg
 from mjlab.utils.spec_config import ContactSensorCfg
 
 
-@dataclass
-class UnitreeGo1RoughEnvCfg(LocomotionVelocityEnvCfg):
-  def __post_init__(self):
-    super().__post_init__()
+def create_go1_rough_env_cfg():
+  """Create configuration for Unitree Go1 robot velocity tracking on rough terrain."""
+  # Configure foot contact sensors
+  foot_contact_sensors = [
+    ContactSensorCfg(
+      name=f"{leg}_foot_ground_contact",
+      geom1=f"{leg}_foot_collision",
+      body2="terrain",
+      num=1,
+      data=("found",),
+      reduce="netforce",
+    )
+    for leg in ["FR", "FL", "RR", "RL"]
+  ]
+  go1_cfg = replace(GO1_ROBOT_CFG, sensors=tuple(foot_contact_sensors))
 
-    foot_contact_sensors = [
-      ContactSensorCfg(
-        name=f"{leg}_foot_ground_contact",
-        geom1=f"{leg}_foot_collision",
-        body2="terrain",
-        num=1,
-        data=("found",),
-        reduce="netforce",
-      )
-      for leg in ["FR", "FL", "RR", "RL"]
-    ]
-    go1_cfg = replace(GO1_ROBOT_CFG, sensors=tuple(foot_contact_sensors))
-    self.scene.entities = {"robot": go1_cfg}
+  foot_names = ["FR", "FL", "RR", "RL"]
+  sensor_names = [f"{name}_foot_ground_contact" for name in foot_names]
+  geom_names = [f"{name}_foot_collision" for name in foot_names]
 
-    self.actions.joint_pos.scale = GO1_ACTION_SCALE
+  posture_std_dict = {
+    r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.3,
+    r".*(FR|FL|RR|RL)_calf_joint.*": 0.6,
+  }
 
-    foot_names = ["FR", "FL", "RR", "RL"]
-    sensor_names = [f"{name}_foot_ground_contact" for name in foot_names]
-    geom_names = [f"{name}_foot_collision" for name in foot_names]
+  # Create the base velocity config
+  cfg = create_velocity_env_cfg(
+    robot_cfg=go1_cfg,
+    action_scale=GO1_ACTION_SCALE,
+    viewer_body_name="trunk",
+    foot_friction_geom_names=geom_names,
+    feet_sensor_names=sensor_names,
+    use_rough_terrain=True,
+    posture_std=[posture_std_dict],
+  )
 
-    self.rewards.air_time.params["sensor_names"] = sensor_names
-    self.rewards.pose.params["std"] = {
-      r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.3,
-      r".*(FR|FL|RR|RL)_calf_joint.*": 0.6,
-    }
+  # Update viewer settings
+  cfg.viewer.distance = 1.5
+  cfg.viewer.elevation = -10.0
 
-    self.events.foot_friction.params["asset_cfg"].geom_names = geom_names
-
-    self.viewer.body_name = "trunk"
-    self.viewer.distance = 1.5
-    self.viewer.elevation = -10.0
+  return cfg
 
 
-@dataclass
-class UnitreeGo1RoughEnvCfg_PLAY(UnitreeGo1RoughEnvCfg):
-  def __post_init__(self):
-    super().__post_init__()
+def create_go1_rough_env_cfg_play():
+  """Create play configuration for Unitree Go1 robot velocity tracking on rough terrain."""
+  cfg = create_go1_rough_env_cfg()
 
-    # Effectively infinite episode length.
-    self.episode_length_s = int(1e9)
+  # Effectively infinite episode length
+  cfg.episode_length_s = int(1e9)
 
-    if self.scene.terrain is not None:
-      if self.scene.terrain.terrain_generator is not None:
-        self.scene.terrain.terrain_generator.curriculum = False
-        self.scene.terrain.terrain_generator.num_cols = 5
-        self.scene.terrain.terrain_generator.num_rows = 5
-        self.scene.terrain.terrain_generator.border_width = 10.0
+  # Disable curriculum for terrain generator
+  if cfg.scene.terrain is not None:
+    if cfg.scene.terrain.terrain_generator is not None:
+      cfg.scene.terrain.terrain_generator.curriculum = False
+      cfg.scene.terrain.terrain_generator.num_cols = 5
+      cfg.scene.terrain.terrain_generator.num_rows = 5
+      cfg.scene.terrain.terrain_generator.border_width = 10.0
 
-    self.curriculum.command_vel = None
-    self.commands.twist.ranges.lin_vel_x = (-3.0, 3.0)
-    self.commands.twist.ranges.ang_vel_z = (-3.0, 3.0)
+  # Update command velocity curriculum and ranges
+  assert cfg.curriculum is not None
+  if "command_vel" in cfg.curriculum:
+    del cfg.curriculum["command_vel"]
+
+  assert cfg.commands is not None
+  assert "twist" in cfg.commands
+  from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
+
+  twist_cmd = cfg.commands["twist"]
+  assert isinstance(twist_cmd, UniformVelocityCommandCfg)
+  twist_cmd.ranges.lin_vel_x = (-3.0, 3.0)
+  twist_cmd.ranges.ang_vel_z = (-3.0, 3.0)
+
+  return cfg
+
+
+UNITREE_GO1_ROUGH_ENV_CFG = create_go1_rough_env_cfg()
+UNITREE_GO1_ROUGH_ENV_CFG_PLAY = create_go1_rough_env_cfg_play()

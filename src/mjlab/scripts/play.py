@@ -13,7 +13,6 @@ from typing_extensions import assert_never
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
-from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
@@ -75,10 +74,21 @@ def run_play(
   print(f"[INFO]: Loading checkpoint: {resume_path}")
   log_dir = resume_path.parent
 
-  if isinstance(env_cfg, TrackingEnvCfg):
+  # Check if this is a tracking task (has motion command)
+  from mjlab.tasks.tracking.mdp.commands import MotionCommandCfg
+
+  motion_cmds = [
+    cmd
+    for cmd in (env_cfg.commands.values() if env_cfg.commands else [])
+    if isinstance(cmd, MotionCommandCfg)
+  ]
+  assert len(motion_cmds) <= 1, "Expected at most one motion command"
+  is_tracking_task = len(motion_cmds) == 1
+
+  if is_tracking_task:
     if motion_file is not None:
       print(f"[INFO]: Using motion file from CLI: {motion_file}")
-      env_cfg.commands.motion.motion_file = motion_file
+      motion_cmds[0].motion_file = motion_file
     else:
       import wandb
 
@@ -87,7 +97,7 @@ def run_play(
       art = next((a for a in wandb_run.used_artifacts() if a.type == "motions"), None)
       if art is None:
         raise RuntimeError("No motion artifact found in the run.")
-      env_cfg.commands.motion.motion_file = str(Path(art.download()) / "motion.npz")
+      motion_cmds[0].motion_file = str(Path(art.download()) / "motion.npz")
 
   env = gym.make(
     task, cfg=env_cfg, device=device, render_mode="rgb_array" if video else None
@@ -104,7 +114,7 @@ def run_play(
 
   env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
-  if isinstance(env_cfg, TrackingEnvCfg):
+  if is_tracking_task:
     runner = MotionTrackingOnPolicyRunner(
       env, asdict(agent_cfg), log_dir=str(log_dir), device=device
     )
