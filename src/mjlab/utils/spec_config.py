@@ -329,13 +329,12 @@ class ActuatorSetCfg(SpecCfg):
     from mjlab.utils.string import filter_exp
 
     # Get all non-free joints in spec order.
-    # TODO LOUIS: what if we don't want to actuate all joints...
     jnts = get_non_free_joints(spec)
     joint_names = [j.name for j in jnts]
 
     last_cfg_for_joint: dict[str, ActuatorCfg] = {}
     for cfg in self.cfgs:
-      # TODO: check if already added and raise error instead of using last
+      # TODO Louis: check if already added and raise error instead of using last
       matched = filter_exp(cfg.joint_names_expr, joint_names)
       for jn in matched:
         last_cfg_for_joint[jn] = cfg
