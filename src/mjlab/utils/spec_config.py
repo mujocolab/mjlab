@@ -332,16 +332,21 @@ class ActuatorSetCfg(SpecCfg):
     jnts = get_non_free_joints(spec)
     joint_names = [j.name for j in jnts]
 
-    last_cfg_for_joint: dict[str, ActuatorCfg] = {}
+    cfg_for_joint: dict[str, ActuatorCfg] = {}
     for cfg in self.cfgs:
-      # TODO Louis: check if already added and raise error instead of using last
       matched = filter_exp(cfg.joint_names_expr, joint_names)
       for jn in matched:
-        last_cfg_for_joint[jn] = cfg
+        prev = cfg_for_joint.get(jn)
+        if prev is not None and prev is not cfg:
+          raise ValueError(
+            f"Duplicate actuator config for joint: {jn}"
+            f"(prev={prev.joint_names_expr}, new={cfg.joint_names_expr})."
+          )
+        cfg_for_joint[jn] = cfg
 
     for jn in joint_names:
       # non actuated joints
-      cfg = last_cfg_for_joint.get(jn)
+      cfg = cfg_for_joint.get(jn)
       if cfg is None:
         continue
 
@@ -349,15 +354,11 @@ class ActuatorSetCfg(SpecCfg):
       if not is_joint_limited(joint):
         raise ValueError(f"Joint {jn} must be limited for position control")
 
-      joint_armature = self._resolve_per_joints(jn, last_cfg_for_joint[jn].armature)
-      joint_frictionloss = self._resolve_per_joints(
-        jn, last_cfg_for_joint[jn].frictionloss
-      )
-      joint_effort_limit = self._resolve_per_joints(
-        jn, last_cfg_for_joint[jn].effort_limit
-      )
-      joint_stiffness = self._resolve_per_joints(jn, last_cfg_for_joint[jn].stiffness)
-      joint_damping = self._resolve_per_joints(jn, last_cfg_for_joint[jn].damping)
+      joint_armature = self._resolve_per_joints(jn, cfg_for_joint[jn].armature)
+      joint_frictionloss = self._resolve_per_joints(jn, cfg_for_joint[jn].frictionloss)
+      joint_effort_limit = self._resolve_per_joints(jn, cfg_for_joint[jn].effort_limit)
+      joint_stiffness = self._resolve_per_joints(jn, cfg_for_joint[jn].stiffness)
+      joint_damping = self._resolve_per_joints(jn, cfg_for_joint[jn].damping)
 
       self._validate(
         jn,
