@@ -51,6 +51,6 @@ def illegal_contacts(
   asset: Entity = env.scene[asset_cfg.name]
   terminate = torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)
   for sensor_name in sensor_names:
-      contact_force = asset.data.sensor_data[sensor_name]
-      terminate |= (contact_force.abs() > threshold).any(dim=1)
+    contact_force = asset.data.sensor_data[sensor_name]
+    terminate |= (contact_force.abs() > threshold).any(dim=1)
   return terminate
