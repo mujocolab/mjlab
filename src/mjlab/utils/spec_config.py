@@ -1,3 +1,4 @@
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Literal
@@ -287,15 +288,15 @@ class ActuatorCfg:
 
   joint_names_expr: list[str]
   """List of regex patterns to match joint names."""
-  effort_limit: float
+  effort_limit: dict[str, float] | float
   """Maximum force/torque the actuator can apply."""
-  stiffness: float
+  stiffness: dict[str, float] | float
   """Position gain (P-gain) for PD control."""
-  damping: float
+  damping: dict[str, float] | float
   """Velocity gain (D-gain) for PD control."""
-  frictionloss: float = 0.0
+  frictionloss: dict[str, float] | float = 0.0
   """Joint friction loss coefficient."""
-  armature: float = 0.0
+  armature: dict[str, float] | float = 0.0
   """Rotor inertia or reflected inertia for the joint."""
 
 
@@ -311,63 +312,110 @@ class ActuatorSetCfg(SpecCfg):
 
   cfgs: tuple[ActuatorCfg, ...]
 
+  def _resolve_per_joints(self, joint_name, field) -> float:
+    if isinstance(field, float):
+      return field
+    if joint_name in field:
+      return field[joint_name]
+
+    for j_expr, v in field.items():
+      if re.fullmatch(j_expr, joint_name):
+        return v
+
+    raise ValueError(f"No value provided for joint: {joint_name}")
+
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
     from mjlab.utils.spec import get_non_free_joints, is_joint_limited
     from mjlab.utils.string import filter_exp
 
-    self.validate()
-
     # Get all non-free joints in spec order.
+    # TODO LOUIS: what if we don't want to actuate all joints...
     jnts = get_non_free_joints(spec)
     joint_names = [j.name for j in jnts]
 
-    # Build list of (cfg, joint_name) by resolving each config's regex.
-    cfg_joint_pairs: list[tuple[ActuatorCfg, str]] = []
-
+    last_cfg_for_joint: dict[str, ActuatorCfg] = {}
     for cfg in self.cfgs:
+      # TODO: check if already added and raise error instead of using last
       matched = filter_exp(cfg.joint_names_expr, joint_names)
-      for joint_name in matched:
-        cfg_joint_pairs.append((cfg, joint_name))
+      for jn in matched:
+        last_cfg_for_joint[jn] = cfg
 
-    # Sort by joint order in spec (maintains deterministic ordering).
-    cfg_joint_pairs.sort(key=lambda pair: joint_names.index(pair[1]))
+    for jn in joint_names:
+      # non actuated joints
+      cfg = last_cfg_for_joint.get(jn)
+      if cfg is None:
+        continue
 
-    for cfg, joint_name in cfg_joint_pairs:
-      joint = spec.joint(joint_name)
-
+      joint = spec.joint(jn)
       if not is_joint_limited(joint):
-        raise ValueError(f"Joint {joint_name} must be limited for position control")
+        raise ValueError(f"Joint {jn} must be limited for position control")
 
-      joint.armature = cfg.armature
-      joint.frictionloss = cfg.frictionloss
+      joint_armature = self._resolve_per_joints(jn, last_cfg_for_joint[jn].armature)
+      joint_frictionloss = self._resolve_per_joints(
+        jn, last_cfg_for_joint[jn].frictionloss
+      )
+      joint_effort_limit = self._resolve_per_joints(
+        jn, last_cfg_for_joint[jn].effort_limit
+      )
+      joint_stiffness = self._resolve_per_joints(jn, last_cfg_for_joint[jn].stiffness)
+      joint_damping = self._resolve_per_joints(jn, last_cfg_for_joint[jn].damping)
+
+      self._validate(
+        jn,
+        joint_armature,
+        joint_frictionloss,
+        joint_effort_limit,
+        joint_stiffness,
+        joint_damping,
+      )
+
+      joint.armature = joint_armature
+      joint.frictionloss = joint_frictionloss
 
       act = spec.add_actuator(
-        name=joint_name,
-        target=joint_name,
+        name=jn,
+        target=jn,
         trntype=mujoco.mjtTrn.mjTRN_JOINT,
         gaintype=mujoco.mjtGain.mjGAIN_FIXED,
         biastype=mujoco.mjtBias.mjBIAS_AFFINE,
         inheritrange=1.0,
-        forcerange=(-cfg.effort_limit, cfg.effort_limit),
+        forcerange=(-joint_effort_limit, joint_effort_limit),
       )
 
-      act.gainprm[0] = cfg.stiffness
-      act.biasprm[1] = -cfg.stiffness
-      act.biasprm[2] = -cfg.damping
+      act.gainprm[0] = joint_stiffness
+      act.biasprm[1] = -joint_stiffness
+      act.biasprm[2] = -joint_damping
 
-  def validate(self) -> None:
-    """Validate all actuator configurations."""
-    for cfg in self.cfgs:
-      if cfg.effort_limit <= 0:
-        raise ValueError(f"effort_limit must be positive, got {cfg.effort_limit}")
-      if cfg.stiffness < 0:
-        raise ValueError(f"stiffness must be non-negative, got {cfg.stiffness}")
-      if cfg.damping < 0:
-        raise ValueError(f"damping must be non-negative, got {cfg.damping}")
-      if cfg.frictionloss < 0:
-        raise ValueError(f"frictionloss must be non-negative, got {cfg.frictionloss}")
-      if cfg.armature < 0:
-        raise ValueError(f"armature must be non-negative, got {cfg.armature}")
+  def _validate(
+    self,
+    joint_name,
+    joint_armature,
+    joint_frictionloss,
+    joint_effort_limit,
+    joint_stiffness,
+    joint_damping,
+  ) -> None:
+    """Validate joint configuration."""
+    if joint_effort_limit <= 0:
+      raise ValueError(
+        f"effort_limit must be positive, got {joint_effort_limit} for {joint_name}"
+      )
+    if joint_stiffness < 0:
+      raise ValueError(
+        f"stiffness must be non-negative, got {joint_stiffness} for {joint_name}"
+      )
+    if joint_damping < 0:
+      raise ValueError(
+        f"damping must be non-negative, got {joint_damping} for {joint_name}"
+      )
+    if joint_frictionloss < 0:
+      raise ValueError(
+        f"frictionloss must be non-negative, got {joint_frictionloss} for {joint_name}"
+      )
+    if joint_armature < 0:
+      raise ValueError(
+        f"armature must be non-negative, got {joint_armature} for {joint_name}"
+      )
 
 
 @dataclass
