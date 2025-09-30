@@ -39,3 +39,18 @@ def root_height_below_minimum(
   """Terminate when the asset's root height is below the minimum height."""
   asset: Entity = env.scene[asset_cfg.name]
   return asset.data.root_link_pos_w[:, 2] < minimum_height
+
+
+def illegal_contacts(
+  env: ManagerBasedRlEnv,
+  sensor_names: list[str],
+  threshold: float = 1.0,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Terminate when the asset's designed sensors touch the ground."""
+  asset: Entity = env.scene[asset_cfg.name]
+  terminate = torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)
+  for sensor_name in sensor_names:
+      contact_force = asset.data.sensor_data[sensor_name]
+      terminate |= (contact_force.abs() > threshold).any(dim=1)
+  return terminate
