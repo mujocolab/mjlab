@@ -33,7 +33,7 @@ def create_velocity_env_cfg(
   viewer_body_name: str,
   foot_friction_geom_names: list[str],
   feet_sensor_names: list[str] | None,
-  posture_std: list[float | dict[str, float]] | None,
+  posture_std: float | dict[str, float] | None,
 ) -> ManagerBasedRlEnvCfg:
   """Create the base configuration for velocity tracking.
 
@@ -195,7 +195,7 @@ def create_velocity_env_cfg(
         weight=1.0,
         params={
           "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
-          "std": posture_std or [],
+          "std": posture_std or {},
         },
       ),
       "dof_pos_limits": RewardTermCfg(func=mdp.joint_pos_limits, weight=-1.0),

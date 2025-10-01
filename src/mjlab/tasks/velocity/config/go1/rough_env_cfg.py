@@ -41,7 +41,7 @@ def create_go1_rough_env_cfg() -> ManagerBasedRlEnvCfg:
     viewer_body_name="trunk",
     foot_friction_geom_names=geom_names,
     feet_sensor_names=sensor_names,
-    posture_std=[posture_std_dict],
+    posture_std=posture_std_dict,
   )
 
   # Update viewer settings.
