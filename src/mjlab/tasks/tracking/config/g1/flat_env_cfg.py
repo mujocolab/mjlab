@@ -1,11 +1,12 @@
 from dataclasses import replace
 
 from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ACTION_SCALE, G1_ROBOT_CFG
+from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.tasks.tracking.tracking_env_cfg import create_tracking_env_cfg
 from mjlab.utils.spec_config import ContactSensorCfg
 
 
-def create_g1_flat_env_cfg():
+def create_g1_flat_env_cfg() -> ManagerBasedRlEnvCfg:
   """Create configuration for Unitree G1 robot tracking on flat terrain."""
   # Configure self collision sensor.
   self_collision_sensor = ContactSensorCfg(
@@ -71,7 +72,7 @@ def create_g1_flat_env_cfg():
   )
 
 
-def create_g1_flat_env_cfg_play():
+def create_g1_flat_env_cfg_play() -> ManagerBasedRlEnvCfg:
   """Create play configuration for Unitree G1 robot tracking on flat terrain."""
   cfg = create_g1_flat_env_cfg()
 

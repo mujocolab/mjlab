@@ -4,11 +4,12 @@ from mjlab.asset_zoo.robots.unitree_go1.go1_constants import (
   GO1_ACTION_SCALE,
   GO1_ROBOT_CFG,
 )
+from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.tasks.velocity.velocity_env_cfg import create_velocity_env_cfg
 from mjlab.utils.spec_config import ContactSensorCfg
 
 
-def create_go1_rough_env_cfg():
+def create_go1_rough_env_cfg() -> ManagerBasedRlEnvCfg:
   """Create configuration for Unitree Go1 robot velocity tracking on rough terrain."""
   # Configure foot contact sensors
   foot_contact_sensors = [
@@ -41,6 +42,7 @@ def create_go1_rough_env_cfg():
     foot_friction_geom_names=geom_names,
     feet_sensor_names=sensor_names,
     use_rough_terrain=True,
+    posture_joint_names=None,
     posture_std=[posture_std_dict],
   )
 
@@ -51,7 +53,7 @@ def create_go1_rough_env_cfg():
   return cfg
 
 
-def create_go1_rough_env_cfg_play():
+def create_go1_rough_env_cfg_play() -> ManagerBasedRlEnvCfg:
   """Create play configuration for Unitree Go1 robot velocity tracking on rough terrain."""
   cfg = create_go1_rough_env_cfg()
 

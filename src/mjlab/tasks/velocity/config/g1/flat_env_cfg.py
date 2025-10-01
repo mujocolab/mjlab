@@ -1,7 +1,8 @@
+from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.tasks.velocity.config.g1.rough_env_cfg import create_g1_rough_env_cfg
 
 
-def create_g1_flat_env_cfg():
+def create_g1_flat_env_cfg() -> ManagerBasedRlEnvCfg:
   """Create configuration for Unitree G1 robot velocity tracking on flat terrain."""
   # Start with rough config and modify for flat terrain
   cfg = create_g1_rough_env_cfg()
@@ -28,7 +29,7 @@ def create_g1_flat_env_cfg():
   return cfg
 
 
-def create_g1_flat_env_cfg_play():
+def create_g1_flat_env_cfg_play() -> ManagerBasedRlEnvCfg:
   """Create play configuration for Unitree G1 robot velocity tracking on flat terrain."""
   cfg = create_g1_flat_env_cfg()
 
