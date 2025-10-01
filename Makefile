@@ -11,6 +11,7 @@ format:
 test:
 	uv run pytest
 	uv run pyright
+	uv run ty check
 
 .PHONY: build
 build:
