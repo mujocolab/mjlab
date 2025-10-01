@@ -14,6 +14,8 @@ from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
+from mjlab.tasks.velocity.rl import VelocityOnPolicyRunner
+from mjlab.tasks.velocity.rl.exporter import export_velocity_policy_as_onnx, attach_onnx_metadata
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
@@ -36,6 +38,10 @@ def run_play(
   camera: int | str | None = None,
   render_all_envs: bool = False,
   viewer: Literal["native", "viser"] = "native",
+  export: bool = False,
+  export_format: Literal["jit", "onnx", "both"] = "both",
+  output_dir: str | None = None,
+  verbose: bool = False,
 ):
   configure_torch_backends()
 
@@ -113,6 +119,73 @@ def run_play(
   runner.load(str(resume_path), map_location=device)
 
   policy = runner.get_inference_policy(device=device)
+
+  # Export policy if requested
+  if export:
+    print("[INFO]: Exporting policy...")
+    
+    # Extract the neural network module
+    try:
+      # version 2.3 onwards
+      policy_nn = runner.alg.policy
+    except AttributeError:
+      # version 2.2 and below
+      policy_nn = runner.alg.actor_critic
+
+    # Extract the normalizer
+    if hasattr(policy_nn, "actor_obs_normalizer"):
+      normalizer = policy_nn.actor_obs_normalizer
+    elif hasattr(policy_nn, "student_obs_normalizer"):
+      normalizer = policy_nn.student_obs_normalizer
+    else:
+      normalizer = None
+
+    # Determine output directory
+    if output_dir is None:
+      export_model_dir = str(log_dir / "exported")
+    else:
+      export_model_dir = output_dir
+
+    print(f"[INFO]: Exporting models to: {export_model_dir}")
+
+    try:
+      if isinstance(env_cfg, TrackingEnvCfg):
+        from mjlab.tasks.tracking.rl.exporter import (
+          attach_onnx_metadata as attach_tracking_metadata,
+        )
+        from mjlab.tasks.tracking.rl.exporter import export_motion_policy_as_onnx
+        # Export tracking policy
+        print("[INFO]: Exporting motion tracking policy as ONNX...")
+        export_motion_policy_as_onnx(
+          env.unwrapped, policy_nn, normalizer=normalizer, 
+          path=export_model_dir, filename="motion_policy.onnx", verbose=verbose
+        )
+        attach_tracking_metadata(env.unwrapped, str(resume_path), export_model_dir, "motion_policy.onnx")
+        print("[INFO]: Motion tracking policy export completed.")
+        
+      elif "Velocity" in task:
+        from mjlab.tasks.velocity.rl.exporter import (
+          attach_onnx_metadata,
+          export_velocity_policy_as_onnx,
+        )
+        # Export velocity policy
+        print("[INFO]: Exporting velocity policy as ONNX...")
+        export_velocity_policy_as_onnx(
+          policy_nn, normalizer=normalizer, 
+          path=export_model_dir, filename="velocity_policy.onnx", verbose=verbose
+        )
+        attach_onnx_metadata(env.unwrapped, str(resume_path), export_model_dir, "velocity_policy.onnx")
+        print("[INFO]: Velocity policy export completed.")
+        
+      else:
+        print("[WARNING]: No specialized exporter available for this task type.")
+        
+    except Exception as e:
+      print(f"[ERROR]: Export failed: {e}")
+      if not export:  # Only return if export was the main purpose
+        return
+
+    print(f"[INFO]: Export completed. Models saved to: {export_model_dir}")
 
   if viewer == "native":
     NativeMujocoViewer(env, policy, render_all_envs=render_all_envs).run()
