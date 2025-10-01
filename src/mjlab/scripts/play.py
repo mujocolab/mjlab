@@ -140,6 +140,10 @@ def run_play(
 
     print(f"[INFO]: Exporting models to: {export_model_dir}")
 
+    log_dir_name = log_dir.name
+    model_filename = resume_path.stem
+    export_filename = f"{log_dir_name}_{model_filename}.onnx"
+    
     try:
       if isinstance(env_cfg, TrackingEnvCfg):
         from mjlab.tasks.tracking.rl.exporter import (
@@ -147,12 +151,12 @@ def run_play(
         )
         from mjlab.tasks.tracking.rl.exporter import export_motion_policy_as_onnx
         # Export tracking policy
-        print("[INFO]: Exporting motion tracking policy as ONNX...")
+        print(f"[INFO]: Exporting motion tracking policy as ONNX: {export_filename}")
         export_motion_policy_as_onnx(
           env.unwrapped, policy_nn, normalizer=normalizer, 
-          path=export_model_dir, filename="motion_policy.onnx", verbose=verbose
+          path=export_model_dir, filename=export_filename, verbose=verbose
         )
-        attach_tracking_metadata(env.unwrapped, str(resume_path), export_model_dir, "motion_policy.onnx")
+        attach_tracking_metadata(env.unwrapped, str(resume_path), export_model_dir, export_filename)
         print("[INFO]: Motion tracking policy export completed.")
         
       elif "Velocity" in task:
@@ -161,12 +165,12 @@ def run_play(
           export_velocity_policy_as_onnx,
         )
         # Export velocity policy
-        print("[INFO]: Exporting velocity policy as ONNX...")
+        print(f"[INFO]: Exporting velocity policy as ONNX: {export_filename}")
         export_velocity_policy_as_onnx(
           policy_nn, normalizer=normalizer, 
-          path=export_model_dir, filename="velocity_policy.onnx", verbose=verbose
+          path=export_model_dir, filename=export_filename, verbose=verbose
         )
-        attach_onnx_metadata(env.unwrapped, str(resume_path), export_model_dir, "velocity_policy.onnx")
+        attach_onnx_metadata(env.unwrapped, str(resume_path), export_model_dir, export_filename)
         print("[INFO]: Velocity policy export completed.")
         
       else:
