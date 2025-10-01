@@ -14,8 +14,6 @@ from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
-from mjlab.tasks.velocity.rl import VelocityOnPolicyRunner
-from mjlab.tasks.velocity.rl.exporter import export_velocity_policy_as_onnx, attach_onnx_metadata
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
@@ -120,19 +118,14 @@ def run_play(
 
   policy = runner.get_inference_policy(device=device)
 
-  # Export policy if requested
   if export:
     print("[INFO]: Exporting policy...")
     
-    # Extract the neural network module
     try:
-      # version 2.3 onwards
       policy_nn = runner.alg.policy
     except AttributeError:
-      # version 2.2 and below
       policy_nn = runner.alg.actor_critic
 
-    # Extract the normalizer
     if hasattr(policy_nn, "actor_obs_normalizer"):
       normalizer = policy_nn.actor_obs_normalizer
     elif hasattr(policy_nn, "student_obs_normalizer"):
@@ -140,7 +133,6 @@ def run_play(
     else:
       normalizer = None
 
-    # Determine output directory
     if output_dir is None:
       export_model_dir = str(log_dir / "exported")
     else:
