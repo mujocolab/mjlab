@@ -11,7 +11,7 @@ from mjlab.utils.spec_config import ContactSensorCfg
 
 def create_g1_rough_env_cfg() -> ManagerBasedRlEnvCfg:
   """Create configuration for Unitree G1 robot velocity tracking on rough terrain."""
-  # Configure foot contact sensors
+  # Configure foot contact sensors.
   foot_contact_sensors = [
     ContactSensorCfg(
       name=f"{side}_foot_ground_contact",
@@ -52,24 +52,22 @@ def create_g1_rough_env_cfg() -> ManagerBasedRlEnvCfg:
     r".*wrist.*": 0.3,
   }
 
-  # Create the base velocity config
+  # Create the base velocity config.
   cfg = create_velocity_env_cfg(
     robot_cfg=g1_cfg,
     action_scale=G1_ACTION_SCALE,
     viewer_body_name="torso_link",
     foot_friction_geom_names=geom_names,
     feet_sensor_names=sensor_names,
-    use_rough_terrain=True,
-    posture_joint_names=None,
     posture_std=[posture_std_dict],
   )
 
-  # Disable command velocity curriculum (set in base config)
+  # Disable command velocity curriculum (set in base config).
   assert cfg.curriculum is not None
   assert "command_vel" in cfg.curriculum
   del cfg.curriculum["command_vel"]
 
-  # Update twist command visualization
+  # Update twist command visualization.
   from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 
   assert cfg.commands is not None
@@ -85,16 +83,16 @@ def create_g1_rough_env_cfg_play() -> ManagerBasedRlEnvCfg:
   """Create play configuration for Unitree G1 robot velocity tracking on rough terrain."""
   cfg = create_g1_rough_env_cfg()
 
-  # Effectively infinite episode length
+  # Effectively infinite episode length.
   cfg.episode_length_s = int(1e9)
 
-  # Disable curriculum for terrain generator
-  if cfg.scene.terrain is not None:
-    if cfg.scene.terrain.terrain_generator is not None:
-      cfg.scene.terrain.terrain_generator.curriculum = False
-      cfg.scene.terrain.terrain_generator.num_cols = 5
-      cfg.scene.terrain.terrain_generator.num_rows = 5
-      cfg.scene.terrain.terrain_generator.border_width = 10.0
+  # Disable curriculum for terrain generator.
+  assert cfg.scene.terrain is not None
+  assert cfg.scene.terrain.terrain_generator is not None
+  cfg.scene.terrain.terrain_generator.curriculum = False
+  cfg.scene.terrain.terrain_generator.num_cols = 5
+  cfg.scene.terrain.terrain_generator.num_rows = 5
+  cfg.scene.terrain.terrain_generator.border_width = 10.0
 
   return cfg
 

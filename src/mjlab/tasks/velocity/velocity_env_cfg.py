@@ -33,8 +33,6 @@ def create_velocity_env_cfg(
   viewer_body_name: str,
   foot_friction_geom_names: list[str],
   feet_sensor_names: list[str] | None,
-  use_rough_terrain: bool,
-  posture_joint_names: list[str] | None,
   posture_std: list[float | dict[str, float]] | None,
 ) -> ManagerBasedRlEnvCfg:
   """Create the base configuration for velocity tracking.
@@ -44,25 +42,20 @@ def create_velocity_env_cfg(
     action_scale: Scale factor for joint position actions.
     viewer_body_name: Body name for viewer to track.
     foot_friction_geom_names: Geometry names for foot friction randomization.
-    feet_sensor_names: Sensor names for feet air time reward (optional).
-    use_rough_terrain: Whether to use rough terrain generator.
-    posture_joint_names: Joint names for posture reward (optional).
-    posture_std: Standard deviations for posture reward (optional).
+    feet_sensor_names: Sensor names for feet air time reward.
+    posture_std: Standard deviations for posture reward.
   """
-  # Scene configuration
-  if use_rough_terrain:
-    terrain_cfg = TerrainImporterCfg(
-      terrain_type="generator",
-      terrain_generator=ROUGH_TERRAINS_CFG,
-      max_init_terrain_level=5,
-    )
-    # Enable curriculum mode for terrain generator
-    if ROUGH_TERRAINS_CFG is not None:
-      ROUGH_TERRAINS_CFG.curriculum = True
-  else:
-    terrain_cfg = TerrainImporterCfg(terrain_type="plane")
+  # Scene configuration.
+  terrain_cfg = TerrainImporterCfg(
+    terrain_type="generator",
+    terrain_generator=ROUGH_TERRAINS_CFG,
+    max_init_terrain_level=5,
+  )
+  # Enable curriculum mode for terrain generator.
+  if ROUGH_TERRAINS_CFG is not None:
+    ROUGH_TERRAINS_CFG.curriculum = True
 
-  # Scene configuration
+  # Scene configuration.
   scene_cfg = SceneCfg(
     terrain=terrain_cfg,
     num_envs=1,
@@ -70,7 +63,7 @@ def create_velocity_env_cfg(
     entities={"robot": robot_cfg},
   )
 
-  # Observation configuration
+  # Observation configuration.
   policy_obs_terms = {
     "base_lin_vel": ObservationTermCfg(
       func=mdp.base_lin_vel,
@@ -111,7 +104,7 @@ def create_velocity_env_cfg(
     ),
   }
 
-  # Simulation configuration
+  # Simulation configuration.
   sim_cfg = SimulationCfg(
     nconmax=140_000,
     njmax=300,
@@ -122,7 +115,7 @@ def create_velocity_env_cfg(
     ),
   )
 
-  # Viewer configuration
+  # Viewer configuration.
   viewer_cfg = ViewerConfig(
     origin_type=ViewerConfig.OriginType.ASSET_BODY,
     asset_name="robot",
@@ -201,9 +194,7 @@ def create_velocity_env_cfg(
         func=mdp.posture,
         weight=1.0,
         params={
-          "asset_cfg": SceneEntityCfg(
-            "robot", joint_names=posture_joint_names or [".*"]
-          ),
+          "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
           "std": posture_std or [],
         },
       ),

@@ -54,14 +54,14 @@ def create_tracking_env_cfg(
     ee_body_names: End-effector body names for termination.
   """
 
-  # Scene configuration
+  # Scene configuration.
   scene_cfg = SceneCfg(
     terrain=TerrainImporterCfg(terrain_type="plane"),
     num_envs=1,
     entities={"robot": robot_cfg},
   )
 
-  # Observation configuration
+  # Observation configuration.
   policy_obs_terms = {
     "command": ObservationTermCfg(
       func=mdp.generated_commands, params={"command_name": "motion"}
@@ -127,7 +127,7 @@ def create_tracking_env_cfg(
     ),
   }
 
-  # Simulation configuration
+  # Simulation configuration.
   sim_cfg = SimulationCfg(
     nconmax=150_000,
     njmax=250,
@@ -138,7 +138,7 @@ def create_tracking_env_cfg(
     ),
   )
 
-  # Viewer configuration
+  # Viewer configuration.
   viewer_cfg = ViewerConfig(
     origin_type=ViewerConfig.OriginType.ASSET_BODY,
     asset_name="robot",
