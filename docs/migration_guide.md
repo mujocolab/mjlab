@@ -23,9 +23,9 @@ from mjlab.envs import ManagerBasedRlEnvCfg
 
 **Note:** We use consistent `CamelCase` naming conventions (e.g., `RlEnv` instead of `RLEnv`).
 
-### 2. Configuration Classes
+### 2. Configuration Structure
 
-Isaac Lab uses `@configclass`, mjlab uses Python's standard `@dataclass` with a `term()` helper.
+Isaac Lab uses nested `@configclass` classes for organizing manager terms. mjlab uses dictionaries instead, which provides more flexibility for creating config variants.
 
 **Isaac Lab:**
 ```python
@@ -43,25 +43,35 @@ class RewardsCfg:
         weight=0.5,
         params={"command_name": "motion", "std": 0.4},
     )
+
+@configclass
+class MyEnvCfg(ManagerBasedRLEnvCfg):
+    rewards: RewardsCfg = RewardsCfg()
 ```
 
 **mjlab:**
 ```python
-@dataclass
-class RewardCfg:
-    motion_global_root_pos: RewTerm = term(
-        RewTerm,
+rewards = dict(
+    motion_global_anchor_pos=RewTerm(
         func=mdp.motion_global_anchor_position_error_exp,
         weight=0.5,
         params={"command_name": "motion", "std": 0.3},
-    )
-    motion_global_root_ori: RewTerm = term(
-        RewTerm,
+    ),
+    motion_global_anchor_ori=RewTerm(
         func=mdp.motion_global_anchor_orientation_error_exp,
         weight=0.5,
         params={"command_name": "motion", "std": 0.4},
-    )
+    ),
+)
+
+cfg = ManagerBasedRlEnvCfg(
+    scene=scene,
+    rewards=rewards,
+    # ... other managers
+)
 ```
+
+This applies to all manager configs: `rewards`, `observations`, `actions`, `commands`, `terminations`, `events`, and `curriculum`.
 
 ### 3. Scene Configuration
 
