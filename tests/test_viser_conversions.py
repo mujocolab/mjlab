@@ -259,11 +259,12 @@ if __name__ == "__main__":
     try:
       test()
     except Exception as e:
-      print(f"✗ {test.__name__}: {e}")
+      test_name = test.__name__ if hasattr(test, "__name__") else str(test)
+      print(f"✗ {test_name}: {e}")
       import traceback
 
       traceback.print_exc()
-      failed.append(test.__name__)
+      failed.append(test_name)
 
   print("\n" + "=" * 60)
   if failed:

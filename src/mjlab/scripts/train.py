@@ -71,14 +71,14 @@ def run_train(task: str, cfg: TrainConfig) -> None:
   )
 
   if cfg.video:
-    video_kwargs = {
-      "video_folder": os.path.join(log_dir, "videos", "train"),
-      "step_trigger": lambda step: step % cfg.video_interval == 0,
-      "video_length": cfg.video_length,
-      "disable_logger": True,
-    }
+    env = gym.wrappers.RecordVideo(
+      env,
+      video_folder=os.path.join(log_dir, "videos", "train"),
+      step_trigger=lambda step: step % cfg.video_interval == 0,
+      video_length=cfg.video_length,
+      disable_logger=True,
+    )
     print("[INFO] Recording videos during training.")
-    env = gym.wrappers.RecordVideo(env, **video_kwargs)
 
   env = RslRlVecEnvWrapper(env, clip_actions=cfg.agent.clip_actions)
 
