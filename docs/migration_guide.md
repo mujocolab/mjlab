@@ -52,12 +52,12 @@ class MyEnvCfg(ManagerBasedRLEnvCfg):
 **mjlab:**
 ```python
 rewards = dict(
-    motion_global_anchor_pos=RewTerm(
+    motion_global_anchor_pos=RewardTermCfg(
         func=mdp.motion_global_anchor_position_error_exp,
         weight=0.5,
         params={"command_name": "motion", "std": 0.3},
     ),
-    motion_global_anchor_ori=RewTerm(
+    motion_global_anchor_ori=RewardTermCfg(
         func=mdp.motion_global_anchor_orientation_error_exp,
         weight=0.5,
         params={"command_name": "motion", "std": 0.4},
