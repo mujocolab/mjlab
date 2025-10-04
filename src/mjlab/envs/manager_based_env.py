@@ -8,8 +8,11 @@ from mjlab.envs import types
 from mjlab.envs.mdp.events import reset_scene_to_default
 from mjlab.managers.action_manager import ActionManager
 from mjlab.managers.event_manager import EventManager
-from mjlab.managers.manager_term_config import EventTermCfg as EventTerm
-from mjlab.managers.manager_term_config import term
+from mjlab.managers.manager_term_config import (
+  ActionTermCfg,
+  EventTermCfg,
+  ObservationGroupCfg,
+)
 from mjlab.managers.observation_manager import ObservationManager
 from mjlab.scene import Scene
 from mjlab.scene.scene import SceneCfg
@@ -20,29 +23,22 @@ from mjlab.utils.logging import print_info
 from mjlab.viewer.viewer_config import ViewerConfig
 
 
-@dataclass
-class DefaultEventManagerCfg:
-  """Default event manager configuration.
-
-  Resets the scene to the default state specified by the scene configuration.
-  """
-
-  reset_scene_to_default: EventTerm = term(
-    EventTerm,
-    func=reset_scene_to_default,
-    mode="reset",
-  )
-
-
 @dataclass(kw_only=True)
 class ManagerBasedEnvCfg:
   """Configuration for a manager-based environment."""
 
   decimation: int
   scene: SceneCfg
-  observations: Any
-  actions: Any
-  events: Any = field(default_factory=DefaultEventManagerCfg)
+  observations: dict[str, ObservationGroupCfg]
+  actions: dict[str, ActionTermCfg]
+  events: dict[str, EventTermCfg] = field(
+    default_factory=lambda: {
+      "reset_scene_to_default": EventTermCfg(
+        func=reset_scene_to_default,
+        mode="reset",
+      )
+    }
+  )
   seed: int | None = None
   sim: SimulationCfg = field(default_factory=SimulationCfg)
   viewer: ViewerConfig = field(default_factory=ViewerConfig)

@@ -1,28 +1,34 @@
-from dataclasses import dataclass, replace
+from dataclasses import replace
 
 from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ACTION_SCALE, G1_ROBOT_CFG
-from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
+from mjlab.envs import ManagerBasedRlEnvCfg
+from mjlab.tasks.tracking.tracking_env_cfg import create_tracking_env_cfg
 from mjlab.utils.spec_config import ContactSensorCfg
 
 
-@dataclass
-class G1FlatEnvCfg(TrackingEnvCfg):
-  def __post_init__(self):
-    self_collision_sensor = ContactSensorCfg(
-      name="self_collision",
-      subtree1="pelvis",
-      subtree2="pelvis",
-      data=("found",),
-      reduce="netforce",
-      num=10,  # Report up to 10 contacts.
-    )
-    g1_cfg = replace(G1_ROBOT_CFG, sensors=(self_collision_sensor,))
+def create_g1_flat_env_cfg() -> ManagerBasedRlEnvCfg:
+  """Create configuration for Unitree G1 robot tracking on flat terrain."""
+  # Configure self collision sensor.
+  self_collision_sensor = ContactSensorCfg(
+    name="self_collision",
+    subtree1="pelvis",
+    subtree2="pelvis",
+    data=("found",),
+    reduce="netforce",
+    num=10,  # Report up to 10 contacts.
+  )
+  g1_cfg = replace(G1_ROBOT_CFG, sensors=(self_collision_sensor,))
 
-    self.scene.entities = {"robot": g1_cfg}
-    self.actions.joint_pos.scale = G1_ACTION_SCALE
-
-    self.commands.motion.anchor_body_name = "torso_link"
-    self.commands.motion.body_names = [
+  # Create configuration with G1-specific parameters.
+  # Matching the original which always had motion command configured.
+  return create_tracking_env_cfg(
+    robot_cfg=g1_cfg,
+    action_scale=G1_ACTION_SCALE,
+    viewer_body_name="torso_link",
+    # Motion command parameters (matching original with empty file).
+    motion_file="",  # Empty file - needs actual motion data to work.
+    anchor_body_name="torso_link",
+    body_names=[
       "pelvis",
       "left_hip_roll_link",
       "left_knee_link",
@@ -37,34 +43,69 @@ class G1FlatEnvCfg(TrackingEnvCfg):
       "right_shoulder_roll_link",
       "right_elbow_link",
       "right_wrist_yaw_link",
-    ]
-
-    self.events.foot_friction.params["asset_cfg"].geom_names = [
-      r"^(left|right)_foot[1-7]_collision$"
-    ]
-    self.events.base_com.params["asset_cfg"].body_names = "torso_link"
-
-    self.terminations.ee_body_pos.params["body_names"] = [
+    ],
+    base_com_body_name="torso_link",
+    pose_range={
+      "x": (-0.05, 0.05),
+      "y": (-0.05, 0.05),
+      "z": (-0.01, 0.01),
+      "roll": (-0.1, 0.1),
+      "pitch": (-0.1, 0.1),
+      "yaw": (-0.2, 0.2),
+    },
+    velocity_range={
+      "x": (-0.5, 0.5),
+      "y": (-0.5, 0.5),
+      "z": (-0.2, 0.2),
+      "roll": (-0.52, 0.52),
+      "pitch": (-0.52, 0.52),
+      "yaw": (-0.78, 0.78),
+    },
+    joint_position_range=(-0.1, 0.1),
+    foot_friction_geom_names=[r"^(left|right)_foot[1-7]_collision$"],
+    ee_body_names=[
       "left_ankle_roll_link",
       "right_ankle_roll_link",
       "left_wrist_yaw_link",
       "right_wrist_yaw_link",
-    ]
+    ],
+  )
 
-    self.viewer.body_name = "torso_link"
+
+def create_g1_flat_env_cfg_play() -> ManagerBasedRlEnvCfg:
+  """Create play configuration for Unitree G1 robot tracking on flat terrain."""
+  cfg = create_g1_flat_env_cfg()
+
+  # Disable corruption for play mode.
+  assert "policy" in cfg.observations, "Policy observations must be configured"
+  cfg.observations["policy"].enable_corruption = False
+
+  # Remove push robot event.
+  assert "push_robot" in cfg.events, (
+    "Push robot event should be configured in base tracking config"
+  )
+  del cfg.events["push_robot"]
+
+  # Update motion command randomization ranges for play mode.
+  from mjlab.tasks.tracking.mdp.commands import MotionCommandCfg
+
+  assert cfg.commands is not None, "Commands must be configured for tracking"
+  assert "motion" in cfg.commands, "Motion command must be configured for tracking"
+
+  motion_cmd = cfg.commands["motion"]
+  assert isinstance(motion_cmd, MotionCommandCfg), (
+    f"Expected MotionCommandCfg, got {type(motion_cmd)}"
+  )
+
+  # Set empty ranges to disable randomization in play mode.
+  motion_cmd.pose_range = {}
+  motion_cmd.velocity_range = {}
+
+  # Effectively infinite episode length.
+  cfg.episode_length_s = int(1e9)
+
+  return cfg
 
 
-@dataclass
-class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
-  def __post_init__(self):
-    super().__post_init__()
-
-    self.observations.policy.enable_corruption = False
-    self.events.push_robot = None
-
-    # Disable RSI randomization.
-    self.commands.motion.pose_range = {}
-    self.commands.motion.velocity_range = {}
-
-    # Effectively infinite episode length.
-    self.episode_length_s = int(1e9)
+G1_FLAT_ENV_CFG = create_g1_flat_env_cfg()
+G1_FLAT_ENV_CFG_PLAY = create_g1_flat_env_cfg_play()

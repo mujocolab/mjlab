@@ -8,12 +8,11 @@ from prettytable import PrettyTable
 
 from mjlab.managers.manager_base import ManagerBase
 from mjlab.managers.manager_term_config import ObservationGroupCfg, ObservationTermCfg
-from mjlab.utils.dataclasses import get_terms
 from mjlab.utils.noise import noise_cfg, noise_model
 
 
 class ObservationManager(ManagerBase):
-  def __init__(self, cfg: object, env):
+  def __init__(self, cfg: dict[str, ObservationGroupCfg], env):
     self.cfg = cfg
     super().__init__(env=env)
 
@@ -166,12 +165,10 @@ class ObservationManager(ManagerBase):
     self._group_obs_concatenate_dim: dict[str, int] = dict()
     self._group_obs_class_instances: dict[str, noise_model.NoiseModel] = {}
 
-    group_cfg_items = get_terms(self.cfg, ObservationGroupCfg).items()
-    for group_name, group_cfg in group_cfg_items:
+    for group_name, group_cfg in self.cfg.items():
       if group_cfg is None:
         print(f"group: {group_name} set to None, skipping...")
         continue
-      group_cfg: ObservationGroupCfg
 
       self._group_obs_term_names[group_name] = list()
       self._group_obs_term_dim[group_name] = list()
@@ -185,8 +182,7 @@ class ObservationManager(ManagerBase):
         else group_cfg.concatenate_dim
       )
 
-      group_cfg_items = get_terms(group_cfg, ObservationTermCfg).items()
-      for term_name, term_cfg in group_cfg_items:
+      for term_name, term_cfg in group_cfg.terms.items():
         if term_cfg is None:
           print(f"term: {term_name} set to None, skipping...")
           continue
