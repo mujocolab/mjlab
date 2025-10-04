@@ -167,6 +167,8 @@ class TerrainImporter:
     if origins is not None:
       if isinstance(origins, np.ndarray):
         origins = torch.from_numpy(origins)
+      else:
+        assert isinstance(origins, torch.Tensor)
       self.terrain_origins = origins.to(self.device, dtype=torch.float)
       self.env_origins = self._compute_env_origins_curriculum(
         self.cfg.num_envs, self.terrain_origins

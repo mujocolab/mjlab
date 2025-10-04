@@ -1,4 +1,4 @@
-"""Useful methods for MPD rewards."""
+"""Useful methods for MDP rewards."""
 
 from __future__ import annotations
 

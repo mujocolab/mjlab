@@ -116,4 +116,4 @@ class TerminationTermCfg(ManagerTermBaseCfg):
   """Configuration for a termination term."""
 
   time_out: bool = False
-  """Whethher the term contributes towards episodic timeouts. Defaults to False."""
+  """Whether the term contributes towards episodic timeouts. Defaults to False."""

@@ -175,7 +175,7 @@ class Entity:
   @property
   def is_actuated(self) -> bool:
     """Entity has actuated joints."""
-    return self.cfg.articulation is not None and self.num_actuators > 0
+    return self.num_actuators > 0
 
   @property
   def spec(self) -> mujoco.MjSpec:

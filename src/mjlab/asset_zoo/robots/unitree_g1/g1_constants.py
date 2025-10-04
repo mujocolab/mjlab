@@ -227,7 +227,7 @@ KNEES_BENT_KEYFRAME = EntityCfg.InitialStateCfg(
 # are given condim=3 and custom friction and solimp.
 FULL_COLLISION = CollisionCfg(
   geom_names_expr=[".*_collision"],
-  condim={r"^(left|right)_foot[1-7]_collision$": 3},
+  condim={r"^(left|right)_foot[1-7]_collision$": 3, ".*_collision": 1},
   priority={r"^(left|right)_foot[1-7]_collision$": 1},
   friction={r"^(left|right)_foot[1-7]_collision$": (0.6,)},
 )
@@ -236,11 +236,13 @@ FULL_COLLISION_WITHOUT_SELF = CollisionCfg(
   geom_names_expr=[".*_collision"],
   contype=0,
   conaffinity=1,
-  condim={r"^(left|right)_foot[1-7]_collision$": 3},
+  condim={r"^(left|right)_foot[1-7]_collision$": 3, ".*_collision": 1},
   priority={r"^(left|right)_foot[1-7]_collision$": 1},
   friction={r"^(left|right)_foot[1-7]_collision$": (0.6,)},
 )
 
+# This disables all collisions except the feet.
+# Feet get condim=3, all other geoms are disabled.
 FEET_ONLY_COLLISION = CollisionCfg(
   geom_names_expr=[r"^(left|right)_foot[1-7]_collision$"],
   contype=0,

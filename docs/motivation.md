@@ -6,7 +6,7 @@ GPU-accelerated robotics simulation has great tools, but each has tradeoffs:
 
 **Isaac Lab**: Excellent API and RL abstractions, but heavy installation, slow startup, and Omniverse overhead make rapid iteration painful.
 
-**MJX**: Fast and lightweight, but JAX's learning curve and poor collision scaling limit adoption.
+**MJX**: Fast and lightweight, but JAX's learning curve and poor collision scaling (if using the `'jax'` [implementation](https://github.com/google-deepmind/mujoco/blob/32e08f9507c9bdc5a1a5411c6fa9f0346542b038/mjx/mujoco/mjx/_src/types.py#L28-L33) rather than the `'warp'` one) limit adoption.
 
 **Newton**: Brand new generic simulator supporting multiple solvers (MuJoCo, VBD, etc.) with USD-based format instead of MJCF/XML. Doesn't yet have the ecosystem and community resources that MuJoCo has built over the years.
 
