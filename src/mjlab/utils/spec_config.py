@@ -382,6 +382,8 @@ class ActuatorCfg:
   """Joint friction loss coefficient (must be non-negative)."""
   armature: float = 0.0
   """Rotor inertia or reflected inertia for the joint (must be non-negative)."""
+  velocity_limit: float | dict[str, float] | None = None
+  """Optional joint velocity limit to apply to matched joints."""
 
 
 @dataclass
@@ -465,6 +467,17 @@ class ActuatorSetCfg(SpecCfg):
         raise ValueError(f"frictionloss must be non-negative, got {cfg.frictionloss}")
       if cfg.armature < 0:
         raise ValueError(f"armature must be non-negative, got {cfg.armature}")
+      if cfg.velocity_limit is not None:
+        values = (
+          cfg.velocity_limit.values()
+          if isinstance(cfg.velocity_limit, dict)
+          else [cfg.velocity_limit]
+        )
+        for val in values:
+          if val is None:
+            continue
+          if val <= 0:
+            raise ValueError(f"velocity_limit must be positive, got {val}")
 
 
 @dataclass

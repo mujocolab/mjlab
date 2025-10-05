@@ -71,6 +71,7 @@ GO1_HIP_ACTUATOR_CFG = ActuatorCfg(
   stiffness=STIFFNESS_HIP,
   damping=DAMPING_HIP,
   armature=HIP_ACTUATOR.reflected_inertia,
+  velocity_limit=HIP_ACTUATOR.velocity_limit,
 )
 GO1_KNEE_ACTUATOR_CFG = ActuatorCfg(
   joint_names_expr=[".*_calf_joint"],
@@ -78,6 +79,7 @@ GO1_KNEE_ACTUATOR_CFG = ActuatorCfg(
   stiffness=STIFFNESS_KNEE,
   damping=DAMPING_KNEE,
   armature=KNEE_ACTUATOR.reflected_inertia,
+  velocity_limit=KNEE_ACTUATOR.velocity_limit,
 )
 
 ##
