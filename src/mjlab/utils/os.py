@@ -1,7 +1,11 @@
 import re
+from dataclasses import asdict, is_dataclass
+from inspect import isclass
 from pathlib import Path
 from typing import Any, Dict, Union
 
+import numpy as np
+import torch
 import yaml
 
 
@@ -34,19 +38,68 @@ def update_assets(
       update_assets(assets, f, meshdir, glob, recursive)
 
 
+def _to_yaml_friendly(x: Any) -> Any:
+  # Dataclass instances → dict.
+  if is_dataclass(x) and not isclass(x):
+    x = asdict(x)
+
+  # Mappings.
+  if isinstance(x, dict):
+    return {k: _to_yaml_friendly(v) for k, v in x.items()}
+
+  # Sequences (normalize tuples/sets to lists).
+  if isinstance(x, (list, tuple, set)):
+    return [_to_yaml_friendly(v) for v in x]
+
+  # NumPy arrays & scalars.
+  if isinstance(x, np.ndarray):
+    return x.tolist()
+  if isinstance(x, (np.floating, np.integer, np.bool_)):
+    return x.item()
+
+  # Torch tensors (handle scalars cleanly).
+  if torch.is_tensor(x):
+    x = x.detach().cpu()
+    return x.item() if x.dim() == 0 else x.tolist()
+
+  # Bytes → str (fallback to hex).
+  if isinstance(x, (bytes, bytearray)):
+    try:
+      return x.decode("utf-8")
+    except Exception:
+      return x.hex()
+
+  # For anything else, try to use it as-is if it's a basic type,
+  # otherwise convert to string representation.
+  if isinstance(x, (str, int, float, bool, type(None))):
+    return x
+
+  # Fallback: convert to string for anything we can't serialize
+  # (enums, slices, functions, custom objects, etc).
+  return str(x)
+
+
 def dump_yaml(filename: Path, data: Dict, sort_keys: bool = False) -> None:
-  """Saves data to a YAML file.
+  """Write a human-readable YAML file.
+
+  - Appends ".yaml" if no suffix is provided.
+  - Recursively converts NumPy arrays, Torch tensors, and dataclass instances
+    into plain Python types (lists/scalars/dicts) before dumping.
+  - Uses yaml.safe_dump to avoid PyYAML’s opaque binary/object tags.
 
   Args:
-      filename: The path to the YAML file.
-      data: The data to save. Must be a dictionary.
-      sort_keys: Whether to sort the keys in the YAML file.
+    filename: Destination path (".yaml" added if missing).
+    data: Mapping to serialize.
+    sort_keys: Whether to sort mapping keys in the output.
   """
   if not filename.suffix:
     filename = filename.with_suffix(".yaml")
   filename.parent.mkdir(parents=True, exist_ok=True)
+  safe = _to_yaml_friendly(data)
   with open(filename, "w") as f:
-    yaml.dump(data, f, sort_keys=sort_keys)
+    yaml.safe_dump(
+      safe, f, sort_keys=sort_keys, allow_unicode=True, default_flow_style=False
+    )
 
 
 def get_checkpoint_path(
