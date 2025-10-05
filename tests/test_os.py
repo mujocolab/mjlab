@@ -20,7 +20,6 @@ def test_dump_yaml_torch_scalars(tmp_path):
   dump_yaml(out, data)
   text = out.read_text(encoding="utf-8")
 
-  # Must not have binary tags.
   assert "!!binary" not in text
   assert "42.5" in text
   assert "100" in text
@@ -66,10 +65,8 @@ def test_dump_yaml_velocity_env_config(tmp_path):
 
   text = out.read_text(encoding="utf-8")
 
-  # Critical: no binary or python object tags.
   assert "!!binary" not in text, "Config should not contain binary data"
   assert "!!python" not in text, "Config should not contain Python object tags"
 
-  # Verify it's valid YAML and can be loaded.
   loaded = yaml.safe_load(text)
   assert isinstance(loaded, dict)

@@ -82,11 +82,6 @@ def _to_yaml_friendly(x: Any) -> Any:
 def dump_yaml(filename: Path, data: Dict, sort_keys: bool = False) -> None:
   """Write a human-readable YAML file.
 
-  - Appends ".yaml" if no suffix is provided.
-  - Recursively converts NumPy arrays, Torch tensors, and dataclass instances
-    into plain Python types (lists/scalars/dicts) before dumping.
-  - Uses yaml.safe_dump to avoid PyYAML’s opaque binary/object tags.
-
   Args:
     filename: Destination path (".yaml" added if missing).
     data: Mapping to serialize.
