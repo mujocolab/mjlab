@@ -49,12 +49,6 @@ def run_play(
     RslRlOnPolicyRunnerCfg, load_cfg_from_registry(task, "rl_cfg_entry_point")
   )
 
-  if isinstance(env_cfg, TrackingEnvCfg):
-    if checkpoint_file is not None and motion_file is None:
-      raise ValueError(
-        "Tracking tasks require `motion_file` when using `checkpoint_file`."
-      )
-
   if num_envs is not None:
     env_cfg.scene.num_envs = num_envs
   if camera is not None:
@@ -63,6 +57,23 @@ def run_play(
     env_cfg.sim.render.height = video_height
   if video_width is not None:
     env_cfg.sim.render.width = video_width
+
+  # Check if this is a tracking task (has motion command).
+  from mjlab.tasks.tracking.mdp.commands import MotionCommandCfg
+
+  motion_cmds = [
+    cmd
+    for cmd in (env_cfg.commands.values() if env_cfg.commands else [])
+    if isinstance(cmd, MotionCommandCfg)
+  ]
+  assert len(motion_cmds) <= 1, "Expected at most one motion command"
+  is_tracking_task = len(motion_cmds) == 1
+
+  if is_tracking_task:
+    if checkpoint_file is not None and motion_file is None:
+      raise ValueError(
+        "Tracking tasks require `motion_file` when using `checkpoint_file`."
+      )
 
   log_root_path = (Path("logs") / "rsl_rl" / agent_cfg.experiment_name).resolve()
   print(f"[INFO]: Loading experiment from: {log_root_path}")
@@ -76,17 +87,6 @@ def run_play(
     resume_path = get_wandb_checkpoint_path(log_root_path, Path(wandb_run_path))
   print(f"[INFO]: Loading checkpoint: {resume_path}")
   log_dir = resume_path.parent
-
-  # Check if this is a tracking task (has motion command)
-  from mjlab.tasks.tracking.mdp.commands import MotionCommandCfg
-
-  motion_cmds = [
-    cmd
-    for cmd in (env_cfg.commands.values() if env_cfg.commands else [])
-    if isinstance(cmd, MotionCommandCfg)
-  ]
-  assert len(motion_cmds) <= 1, "Expected at most one motion command"
-  is_tracking_task = len(motion_cmds) == 1
 
   if is_tracking_task:
     if motion_file is not None:
