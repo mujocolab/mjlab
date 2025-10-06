@@ -4,14 +4,20 @@ from __future__ import annotations
 
 import cProfile
 import json
+import os
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 import torch
 import tyro
 from prettytable import PrettyTable
+from rsl_rl.runners import OnPolicyRunner
 
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
+from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
+from mjlab.scripts.gcs import ensure_default_checkpoint, ensure_default_motion
+from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
@@ -27,6 +33,142 @@ GROUP_LABEL_OVERRIDES: dict[str, str] = {
   "event_manager": "Event Manager Steps",
   "reset": "Reset Operations",
 }
+
+
+# ANSI color codes for better table readability
+class Colors:
+  RESET = "\033[0m"
+  BOLD = "\033[1m"
+  DIM = "\033[2m"
+
+  # Component type colors
+  MANAGER = "\033[94m"  # Blue
+  COMPUTE = "\033[92m"  # Green
+  STEP = "\033[93m"  # Yellow
+  RESET_OP = "\033[95m"  # Magenta
+
+  # Performance colors
+  HIGH = "\033[91m"  # Red (high time)
+  MEDIUM = "\033[93m"  # Yellow (medium time)
+  LOW = "\033[92m"  # Green (low time)
+
+  # Tree structure colors
+  TREE = "\033[90m"  # Gray for tree symbols
+
+
+def _get_component_color(component_name: str) -> str:
+  """Get color code based on component type."""
+  if "manager" in component_name.lower():
+    return Colors.MANAGER
+  elif "compute" in component_name.lower():
+    return Colors.COMPUTE
+  elif "step" in component_name.lower():
+    return Colors.STEP
+  elif "reset" in component_name.lower():
+    return Colors.RESET_OP
+  return Colors.RESET
+
+
+def _get_performance_color(percent: float) -> str:
+  """Get color code based on performance impact."""
+  if percent >= 20.0:
+    return Colors.HIGH
+  elif percent >= 5.0:
+    return Colors.MEDIUM
+  else:
+    return Colors.LOW
+
+
+def _supports_color() -> bool:
+  """Check if terminal supports color output."""
+  return (
+    hasattr(os, "getenv")
+    and os.getenv("TERM") != "dumb"
+    and os.getenv("NO_COLOR") is None
+  )
+
+
+def _print_performance_summary(
+  average_timings: dict[str, float], total_step: float
+) -> None:
+  """Print a compact performance summary table showing only top-level components."""
+  if not total_step or total_step <= 0:
+    return
+
+  # Extract only top-level manager operations (no sub-components)
+  key_metrics = {}
+  for key, value in average_timings.items():
+    # Only include top-level manager compute operations
+    if key in [
+      "reward_manager.compute",
+      "termination_manager.compute",
+      "observation_manager.compute",
+      "command_manager.compute",
+      "action_manager.apply_action",
+      "sim",
+      "scene",
+    ]:
+      key_metrics[key] = value
+
+  if not key_metrics:
+    return
+
+  _print_section("Top Performance Bottlenecks")
+
+  table = PrettyTable()
+  table.field_names = ["Component", "Time (ms)", "Percent", "Impact"]
+  table.align["Component"] = "l"
+  table.align["Time (ms)"] = "r"
+  table.align["Percent"] = "r"
+  table.align["Impact"] = "c"
+  table.border = True
+
+  use_color = _supports_color()
+
+  # Sort by time descending
+  sorted_metrics = sorted(key_metrics.items(), key=lambda x: x[1], reverse=True)
+
+  for key, value in sorted_metrics:
+    percent = (value / total_step) * 100.0
+
+    # Clean up component names for readability
+    component = (
+      key.replace("_manager.compute", "").replace("_manager.", " ").replace("_", " ")
+    )
+
+    # Determine impact level
+    if percent >= 20.0:
+      impact = "🔴 Critical"
+      if use_color:
+        impact = f"{Colors.HIGH}🔴 Critical{Colors.RESET}"
+    elif percent >= 10.0:
+      impact = "🟠 High"
+      if use_color:
+        impact = f"{Colors.MEDIUM}🟠 High{Colors.RESET}"
+    elif percent >= 5.0:
+      impact = "🟡 Medium"
+      if use_color:
+        impact = f"{Colors.MEDIUM}🟡 Medium{Colors.RESET}"
+    else:
+      impact = "🟢 Low"
+      if use_color:
+        impact = f"{Colors.LOW}🟢 Low{Colors.RESET}"
+
+    # Apply colors
+    if use_color:
+      perf_color = _get_performance_color(percent)
+      component_color = _get_component_color(component)
+      time_str = f"{perf_color}{value * 1e3:.3f}{Colors.RESET}"
+      percent_str = f"{perf_color}{percent:5.1f}%{Colors.RESET}"
+      component_str = f"{component_color}{component}{Colors.RESET}"
+    else:
+      time_str = f"{value * 1e3:.3f}"
+      percent_str = f"{percent:5.1f}%"
+      component_str = component
+
+    table.add_row([component_str, time_str, percent_str, impact])
+
+  print_info(table.get_string())
 
 
 def _format_seconds(value: float) -> str:
@@ -45,6 +187,23 @@ def _print_section(title: str) -> None:
   print_info("-" * 72)
 
 
+def _format_tree_symbols(depth: int, is_last: bool, is_leaf: bool) -> str:
+  """Generate tree symbols for hierarchical display."""
+  if depth == 0:
+    return ""
+
+  symbols = []
+  for _i in range(depth - 1):
+    symbols.append("│   ")
+
+  if is_last:
+    symbols.append("└── ")
+  else:
+    symbols.append("├── ")
+
+  return "".join(symbols)
+
+
 def _print_table(
   rows: list[tuple[str, float]],
   total: float | None = None,
@@ -58,31 +217,56 @@ def _print_table(
     total = sum(value for _, value in rows) or 1.0
 
   tree_rows = _build_timing_tree_rows(dict(rows))
+  use_color = _supports_color()
 
+  # Create table with better formatting
   table = PrettyTable()
-  table.field_names = ["Component", "Time (ms)", "Percent"]
+  table.field_names = ["Component", "Time (ms)", "Percent", "Bar"]
   table.align["Component"] = "l"
   table.align["Time (ms)"] = "r"
   table.align["Percent"] = "r"
+  table.align["Bar"] = "l"
+
+  # Set column widths for better readability
+  table._max_width = {"Component": 50, "Time (ms)": 12, "Percent": 8, "Bar": 20}
   table.float_format = "0.3"
 
-  for idx, (depth, name, value) in enumerate(tree_rows):
+  for _idx, (depth, name, value, is_leaf, is_last) in enumerate(tree_rows):
     percent = (value / total) * 100.0 if total > 0 else 0.0
-    display_name = ("  " * depth) + name
-    row = [display_name, value * 1e3, f"{percent:0.1f}%"]
-    if idx < highlight_top:
-      table.add_row([f"*{row[0]}", row[1], row[2]])
+
+    # Create tree structure with symbols
+    tree_symbols = _format_tree_symbols(depth, is_last, is_leaf)
+
+    # Apply colors if supported
+    if use_color:
+      component_color = _get_component_color(name)
+      perf_color = _get_performance_color(percent)
+      tree_color = Colors.TREE
+
+      display_name = f"{tree_color}{tree_symbols}{component_color}{name}{Colors.RESET}"
+      time_str = f"{perf_color}{value * 1e3:.3f}{Colors.RESET}"
+      percent_str = f"{perf_color}{percent:5.1f}%{Colors.RESET}"
     else:
-      table.add_row(row)
+      display_name = f"{tree_symbols}{name}"
+      time_str = f"{value * 1e3:.3f}"
+      percent_str = f"{percent:5.1f}%"
+
+    # Create visual bar
+    bar_length = min(20, int(percent * 0.2))  # Scale to 20 chars max
+    if use_color:
+      bar_color = _get_performance_color(percent)
+      bar = f"{bar_color}{'█' * bar_length}{'░' * (20 - bar_length)}{Colors.RESET}"
+    else:
+      bar = f"{'█' * bar_length}{'░' * (20 - bar_length)}"
+
+    # No highlighting
+
+    table.add_row([display_name, time_str, percent_str, bar])
+
+  # Print table with custom border
+  table.border = True
 
   print_info(table.get_string())
-
-  if highlight_top > 0 and tree_rows:
-    summary = ", ".join(
-      f"{name} ({value * 1e3:.2f} ms, {(value / total) * 100.0 if total > 0 else 0.0:0.1f}%)"
-      for _, name, value in tree_rows[:highlight_top]
-    )
-    print_info(f"Top contributors: {summary}")
 
 
 def _format_timings(timings: dict[str, float]) -> list[tuple[str, float]]:
@@ -100,7 +284,14 @@ def _filter_timings(
   }
 
 
-def _build_timing_tree_rows(timings: dict[str, float]) -> list[tuple[int, str, float]]:
+def _build_timing_tree_rows(
+  timings: dict[str, float],
+) -> list[tuple[int, str, float, bool, bool]]:
+  """Build tree rows with enhanced structure information.
+
+  Returns:
+    List of tuples: (depth, name, value, is_leaf, is_last_sibling)
+  """
   if not timings:
     return []
 
@@ -127,20 +318,22 @@ def _build_timing_tree_rows(timings: dict[str, float]) -> list[tuple[int, str, f
 
   compute_totals(root)
 
-  rows: list[tuple[int, str, float]] = []
+  rows: list[tuple[int, str, float, bool, bool]] = []
 
-  def traverse(node: dict[str, Any], depth: int) -> None:
+  def traverse(node: dict[str, Any], depth: int, is_last: bool = True) -> None:
     sorted_children = sorted(  # type: ignore[call-arg]
       node["children"].values(),
       key=lambda child: child["total"],
       reverse=True,
     )
-    for child in sorted_children:
+    for i, child in enumerate(sorted_children):
+      is_last_sibling = i == len(sorted_children) - 1
+      is_leaf = len(child["children"]) == 0
       value = (
         float(child["value"]) if child["value"] is not None else float(child["total"])
       )
-      rows.append((depth, child["label"], value))
-      traverse(child, depth + 1)
+      rows.append((depth, child["label"], value, is_leaf, is_last_sibling))
+      traverse(child, depth + 1, is_last_sibling)
 
   traverse(root, 0)
   return rows
@@ -167,6 +360,7 @@ def _group_timings_by_root(timings: dict[str, float]) -> dict[str, dict[str, flo
 def run_tracking_timing(
   task: str = "Mjlab-Tracking-Flat-Unitree-G1-Play",
   motion_file: str | None = None,
+  pretrained: bool = False,
   num_steps: int = 200,
   device: str | None = None,
   num_envs: int | None = None,
@@ -189,39 +383,85 @@ def run_tracking_timing(
     if motion_file is not None:
       env_cfg.commands.motion.motion_file = motion_file
     else:
-      from mjlab.scripts.gcs import ensure_default_motion
-
       default_motion = ensure_default_motion()
       env_cfg.commands.motion.motion_file = default_motion
   if num_envs is not None:
     env_cfg.scene.num_envs = num_envs
 
+  # Create environment
   env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
 
-  action_dim = env.single_action_space.shape
-  if not isinstance(action_dim, tuple) or len(action_dim) != 1:
-    raise RuntimeError(
-      f"Expected single-action space to be a flat Box; received shape: {action_dim}"
-    )
-  batched_action_shape = (env.num_envs, action_dim[0])
+  # Load policy if requested
+  policy = None
+  wrapped_env = None
+  if pretrained:
+    print_info("[INFO]: Using default pretrained checkpoint")
+    checkpoint_file = ensure_default_checkpoint()
 
-  zero_action = torch.zeros(
-    batched_action_shape,
-    device=env.device,
-    dtype=torch.float32,
-  )
+    # Load agent config
+    agent_cfg = load_cfg_from_registry(task, "rl_cfg_entry_point")
+    assert isinstance(agent_cfg, RslRlOnPolicyRunnerCfg)
+
+    # Wrap environment for RL
+    wrapped_env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
+
+    # Create runner and load checkpoint
+    if isinstance(env_cfg, TrackingEnvCfg):
+      runner = MotionTrackingOnPolicyRunner(
+        wrapped_env, asdict(agent_cfg), log_dir="", device=device
+      )
+    else:
+      runner = OnPolicyRunner(wrapped_env, asdict(agent_cfg), log_dir="", device=device)
+
+    runner.load(checkpoint_file, map_location=device)
+    policy = runner.get_inference_policy(device=device)
+    print_info("[INFO]: Pretrained policy loaded successfully")
+  else:
+    print_info("[INFO]: Using zero-action policy")
 
   def run_rollout() -> tuple[float, dict[str, float]]:
-    env.reset()
-    if reset_stats:
+    if pretrained and wrapped_env is not None:
+      # Use wrapped environment for pretrained policy
+      current_env = wrapped_env
+    else:
+      # Use original environment for zero actions
+      current_env = env
+
+    obs, _ = current_env.reset()
+    if reset_stats and hasattr(env, "reset_timing_stats"):
       env.reset_timing_stats()
 
     reward_sum = 0.0
     for step in range(num_steps):
-      _, reward, _, _, _ = env.step(zero_action)
-      reward_sum += reward.mean().item()
+      if policy is not None:
+        # Use pretrained policy
+        with torch.no_grad():
+          action = policy(obs)
+      else:
+        # Use zero actions
+        action_dim = env.single_action_space.shape
+        if not isinstance(action_dim, tuple) or len(action_dim) != 1:
+          raise RuntimeError(
+            f"Expected single-action space to be a flat Box; received shape: {action_dim}"
+          )
+        batched_action_shape = (env.num_envs, action_dim[0])
+        action = torch.zeros(
+          batched_action_shape,
+          device=env.device,
+          dtype=torch.float32,
+        )
 
-      if step == 0 and reset_stats:
+      step_result = current_env.step(action)
+      # Handle both 4 and 5 tuple returns
+      obs, reward, terminated, truncated = step_result[:4]
+
+      # Handle different reward types
+      if hasattr(reward, "mean"):
+        reward_sum += reward.mean().item()
+      else:
+        reward_sum += float(reward)
+
+      if step == 0 and reset_stats and hasattr(env, "reset_timing_stats"):
         env.reset_timing_stats()
 
     average_timings = (
@@ -235,6 +475,9 @@ def run_tracking_timing(
   print_info(f"Num envs            : {env.num_envs}")
   print_info(f"Control decimation  : {env.cfg.decimation}")
   print_info(f"Steps to simulate   : {num_steps}")
+  print_info(
+    f"Policy              : {'Pretrained' if policy is not None else 'Zero-action'}"
+  )
   if isinstance(env_cfg, TrackingEnvCfg):
     print_info(f"Motion file         : {env_cfg.commands.motion.motion_file}")
 
@@ -250,10 +493,6 @@ def run_tracking_timing(
   else:
     reward_sum, average_timings = run_rollout()
 
-  prefixes_to_exclude = set(GROUP_LABEL_OVERRIDES.keys())
-
-  filtered_average_timings = _filter_timings(average_timings, prefixes_to_exclude)
-
   total_step_avg = average_timings.get("total_step")
   throughput: dict[str, float] | None = None
   if total_step_avg and total_step_avg > 0.0:
@@ -268,24 +507,46 @@ def run_tracking_timing(
       "physics_steps_per_sec": physics_steps_per_sec,
     }
 
-  _print_section("Average Step Timing")
-  avg_rows = _format_timings(filtered_average_timings)
-  avg_rows_dict = dict(avg_rows)
-  avg_total = average_timings.get("total_step", sum(avg_rows_dict.values()))
-  _print_table(avg_rows, total=avg_total)
+  # Show manager-level breakdown
+  total_step_avg = average_timings.get("total_step")
+  if total_step_avg:
+    _print_section("Manager Performance (from total step)")
 
-  grouped_timings = _group_timings_by_root(average_timings)
-  for root, timings in sorted(
-    grouped_timings.items(), key=lambda item: sum(item[1].values()), reverse=True
-  ):
-    if root == "total_step":
-      continue
-    label = GROUP_LABEL_OVERRIDES.get(root, f"Average {root}")
-    section_title = label if label.startswith("Average") else f"Average {label}"
-    _print_section(section_title)
-    rows = _format_timings(timings)
-    total = sum(timings.values())
-    _print_table(rows, total=total)
+    # Extract manager-level timings
+    manager_timings = {}
+    for key, value in average_timings.items():
+      if key.endswith("_manager.compute") or key in ["sim", "scene"]:
+        manager_name = key.replace("_manager.compute", "").replace("_", " ").title()
+        manager_timings[manager_name] = value
+
+    if manager_timings:
+      rows = _format_timings(manager_timings)
+      _print_table(rows, total=total_step_avg)
+
+    # Show sub-term breakdown for each manager
+    _print_section("Sub-term Breakdown by Manager")
+
+    # Group by manager
+    manager_groups = {}
+    for key, value in average_timings.items():
+      if "." in key and not key.startswith("total_step"):
+        parts = key.split(".")
+        if len(parts) >= 2:
+          manager = parts[0]
+          if manager not in manager_groups:
+            manager_groups[manager] = {}
+          manager_groups[manager][key] = value
+
+    # Show each manager's sub-terms
+    for manager, timings in sorted(
+      manager_groups.items(), key=lambda x: sum(x[1].values()), reverse=True
+    ):
+      manager_total = sum(timings.values())
+      if manager_total > 0:
+        manager_display = manager.replace("_", " ").title()
+        _print_section(f"{manager_display} Sub-terms")
+        rows = _format_timings(timings)
+        _print_table(rows, total=manager_total)
 
   _print_section("Summary")
   print_info(
@@ -309,6 +570,7 @@ def run_tracking_timing(
     "num_envs": env.num_envs,
     "decimation": env.cfg.decimation,
     "num_steps": num_steps,
+    "policy_type": "pretrained" if policy is not None else "zero_action",
     "motion_file": (
       env_cfg.commands.motion.motion_file
       if isinstance(env_cfg, TrackingEnvCfg)
@@ -356,37 +618,64 @@ def run_tracking_timing(
     md_lines.append("")
 
     def _md_table(rows: list[tuple[str, float]], total: float) -> list[str]:
-      lines = ["| Component | Time (ms) | Percent |", "| --- | ---: | ---: |"]
+      lines = [
+        "| Component | Time (ms) | Percent | Bar |",
+        "| --- | ---: | ---: | --- |",
+      ]
       tree_rows = _build_timing_tree_rows(dict(rows))
-      for depth, name, value in tree_rows:
+      for depth, name, value, is_leaf, is_last in tree_rows:
         percent = (value / total) * 100.0 if total > 0 else 0.0
-        display_name = "&nbsp;&nbsp;" * depth + name
-        lines.append(f"| {display_name} | {_format_seconds(value)} | {percent:0.1f}% |")
-      if tree_rows:
-        top_summary = ", ".join(
-          f"{name} ({value * 1e3:.2f} ms, {(value / total) * 100.0 if total > 0 else 0.0:0.1f}%)"
-          for _, name, value in tree_rows[:3]
+
+        # Create tree structure with symbols
+        tree_symbols = _format_tree_symbols(depth, is_last, is_leaf)
+        display_name = tree_symbols + name
+
+        # Create visual bar
+        bar_length = min(20, int(percent * 0.2))
+        bar = "█" * bar_length + "░" * (20 - bar_length)
+
+        lines.append(
+          f"| `{display_name}` | {_format_seconds(value)} | {percent:0.1f}% | `{bar}` |"
         )
-        lines.append("")
-        lines.append(f"Top contributors: {top_summary}")
       return lines
 
-    md_lines.append("## Average Step Timing")
-    md_lines.extend(_md_table(avg_rows, avg_total))
+    md_lines.append("## Manager Performance (from total step)")
+    # Extract manager-level timings
+    manager_timings = {}
+    for key, value in average_timings.items():
+      if key.endswith("_manager.compute") or key in ["sim", "scene"]:
+        manager_name = key.replace("_manager.compute", "").replace("_", " ").title()
+        manager_timings[manager_name] = value
+
+    if manager_timings:
+      rows = _format_timings(manager_timings)
+      total_step_avg = average_timings.get("total_step", 0.0)
+      md_lines.extend(_md_table(rows, total_step_avg))
     md_lines.append("")
 
-    grouped_timings = _group_timings_by_root(average_timings)
-    for root, timings in sorted(
-      grouped_timings.items(), key=lambda item: sum(item[1].values()), reverse=True
+    md_lines.append("## Sub-term Breakdown by Manager")
+    # Group by manager
+    manager_groups = {}
+    for key, value in average_timings.items():
+      if "." in key and not key.startswith("total_step"):
+        parts = key.split(".")
+        if len(parts) >= 2:
+          manager = parts[0]
+          if manager not in manager_groups:
+            manager_groups[manager] = {}
+          manager_groups[manager][key] = value
+
+    # Show each manager's sub-terms
+    for manager, timings in sorted(
+      manager_groups.items(), key=lambda x: sum(x[1].values()), reverse=True
     ):
-      if root == "total_step":
-        continue
-      label = GROUP_LABEL_OVERRIDES.get(root, root)
-      md_lines.append(f"## Average {label}")
-      rows = _format_timings(timings)
-      total = sum(timings.values())
-      md_lines.extend(_md_table(rows, total))
-      md_lines.append("")
+      manager_total = sum(timings.values())
+      if manager_total > 0:
+        manager_display = manager.replace("_", " ").title()
+        md_lines.append(f"### {manager_display} Sub-terms")
+        rows = _format_timings(timings)
+        md_lines.extend(_md_table(rows, manager_total))
+        md_lines.append("")
 
     md_lines.append("## Summary")
     md_lines.append(
