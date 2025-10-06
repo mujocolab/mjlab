@@ -1,6 +1,9 @@
 import math
+from collections import defaultdict
+from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any
+from time import perf_counter
+from typing import Any, Iterator
 
 import gymnasium as gym
 import mujoco
@@ -27,6 +30,7 @@ class ManagerBasedRlEnvCfg(ManagerBasedEnvCfg):
   commands: Any | None = None
   curriculum: Any | None = None
   is_finite_horizon: bool = False
+  enable_timing: bool = False
 
 
 class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
@@ -46,6 +50,14 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
     render_mode: str | None = None,
     **kwargs,
   ) -> None:
+    enable_timing = kwargs.pop("enable_timing", cfg.enable_timing)
+    self._timing_enabled = bool(enable_timing)
+    self._aggregate_timings: dict[str, float] = defaultdict(float)
+    self._timed_keys: set[str] = set()
+    self._timing_step_count: int = 0
+    self._last_step_timing: dict[str, float] = {}
+    self._current_timing: dict[str, float] | None = None
+    self._step_total_start: float = 0.0
     self.common_step_counter = 0
     self.episode_length_buf = torch.zeros(
       cfg.scene.num_envs, device=device, dtype=torch.long
@@ -57,6 +69,68 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
     self.metadata["render_fps"] = 1.0 / self.step_dt  # type: ignore
 
     print_info("[INFO]: Completed setting up the environment...")
+
+  # Timing helpers.
+
+  @contextmanager
+  def _timing_block(self, key: str) -> Iterator[None]:
+    if not self._timing_enabled or self._current_timing is None:
+      yield
+      return
+    start = perf_counter()
+    try:
+      yield
+    finally:
+      duration = perf_counter() - start
+      self._current_timing[key] = self._current_timing.get(key, 0.0) + duration
+
+  def _begin_step_timing(self) -> None:
+    if not self._timing_enabled:
+      self._current_timing = None
+      return
+    self._current_timing = {}
+    self._step_total_start = perf_counter()
+
+  def _end_step_timing(self) -> None:
+    if not self._timing_enabled or self._current_timing is None:
+      return
+    total_duration = perf_counter() - self._step_total_start
+    self._current_timing["total_step"] = (
+      self._current_timing.get("total_step", 0.0) + total_duration
+    )
+    self._last_step_timing = dict(self._current_timing)
+    for key, value in self._current_timing.items():
+      self._aggregate_timings[key] += value
+      self._timed_keys.add(key)
+    self._timing_step_count += 1
+    self._current_timing = None
+
+  def reset_timing_stats(self) -> None:
+    if not self._timing_enabled:
+      return
+    self._aggregate_timings.clear()
+    self._timed_keys.clear()
+    self._timing_step_count = 0
+    self._last_step_timing = {}
+    self._current_timing = None
+
+  def get_last_step_timings(self) -> dict[str, float]:
+    if not self._timing_enabled:
+      return {}
+    return dict(self._last_step_timing)
+
+  def get_average_step_timings(self) -> dict[str, float]:
+    if not self._timing_enabled or self._timing_step_count == 0:
+      return {}
+    return {
+      key: self._aggregate_timings[key] / float(self._timing_step_count)
+      for key in sorted(self._timed_keys)
+    }
+
+  def timing_context(self, key: str):  # type: ignore[override]
+    if not self._timing_enabled:
+      return super().timing_context(key)
+    return self._timing_block(key)
 
   # Properties.
 
@@ -98,47 +172,64 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
       self.sim.create_graph()
 
   def step(self, action: torch.Tensor) -> types.VecEnvStepReturn:  # pyright: ignore[reportIncompatibleMethodOverride]
-    self.action_manager.process_action(action.to(self.device))
+    self._begin_step_timing()
+
+    with self._timing_block("action_manager.process_action"):
+      self.action_manager.process_action(action.to(self.device))
 
     for _ in range(self.cfg.decimation):
       self._sim_step_counter += 1
-      self.action_manager.apply_action()
-      self.scene.write_data_to_sim()
-      self.sim.step()
-      self.scene.update(dt=self.physics_dt)
+      with self._timing_block("action_manager.apply_action"):
+        self.action_manager.apply_action()
+      with self._timing_block("scene.write_data_to_sim"):
+        self.scene.write_data_to_sim()
+      with self._timing_block("sim.step"):
+        self.sim.step()
+      with self._timing_block("scene.update"):
+        self.scene.update(dt=self.physics_dt)
 
     # Update env counters.
     self.episode_length_buf += 1
     self.common_step_counter += 1
 
     # Check terminations.
-    self.reset_buf = self.termination_manager.compute()
+    with self._timing_block("termination_manager.compute"):
+      self.reset_buf = self.termination_manager.compute()
     self.reset_terminated = self.termination_manager.terminated
     self.reset_time_outs = self.termination_manager.time_outs
 
-    self.reward_buf = self.reward_manager.compute(dt=self.step_dt)
+    with self._timing_block("reward_manager.compute"):
+      self.reward_buf = self.reward_manager.compute(dt=self.step_dt)
 
     # Reset envs that terminated/timed-out and log the episode info.
     reset_env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
     if len(reset_env_ids) > 0:
-      self._reset_idx(reset_env_ids)
-      self.scene.write_data_to_sim()
-      self.sim.forward()
+      with self._timing_block("reset.total"):
+        self._reset_idx(reset_env_ids)
+      with self._timing_block("scene.write_data_to_sim_post_reset"):
+        self.scene.write_data_to_sim()
+      with self._timing_block("sim.forward"):
+        self.sim.forward()
 
-    self.command_manager.compute(dt=self.step_dt)
+    with self._timing_block("command_manager.compute"):
+      self.command_manager.compute(dt=self.step_dt)
 
     if "interval" in self.event_manager.available_modes:
-      self.event_manager.apply(mode="interval", dt=self.step_dt)
+      with self._timing_block("event_manager.interval"):
+        self.event_manager.apply(mode="interval", dt=self.step_dt)
 
-    self.obs_buf = self.observation_manager.compute()
+    with self._timing_block("observation_manager.compute"):
+      self.obs_buf = self.observation_manager.compute()
 
-    return (
+    result = (
       self.obs_buf,
       self.reward_buf,
       self.reset_terminated,
       self.reset_time_outs,
       self.extras,
     )
+    self._end_step_timing()
+    return result
 
   def render(self) -> np.ndarray | None:
     if self.render_mode == "human" or self.render_mode is None:
@@ -190,38 +281,49 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
     )
 
   def _reset_idx(self, env_ids: torch.Tensor | None = None) -> None:
-    self.curriculum_manager.compute(env_ids=env_ids)
+    with self._timing_block("reset.curriculum_manager.compute"):
+      self.curriculum_manager.compute(env_ids=env_ids)
     # Reset the internal buffers of the scene elements.
-    self.scene.reset(env_ids)
+    with self._timing_block("reset.scene.reset"):
+      self.scene.reset(env_ids)
 
     if "reset" in self.event_manager.available_modes:
       env_step_count = self._sim_step_counter // self.cfg.decimation
-      self.event_manager.apply(
-        mode="reset", env_ids=env_ids, global_env_step_count=env_step_count
-      )
+      with self._timing_block("reset.event_manager.apply"):
+        self.event_manager.apply(
+          mode="reset", env_ids=env_ids, global_env_step_count=env_step_count
+        )
 
     # NOTE: This is order sensitive.
     self.extras["log"] = dict()
     # observation manager.
-    info = self.observation_manager.reset(env_ids)
+    with self._timing_block("reset.observation_manager.reset"):
+      info = self.observation_manager.reset(env_ids)
     self.extras["log"].update(info)
     # action manager.
-    info = self.action_manager.reset(env_ids)
+    with self._timing_block("reset.action_manager.reset"):
+      info = self.action_manager.reset(env_ids)
     self.extras["log"].update(info)
     # rewards manager.
-    info = self.reward_manager.reset(env_ids)
+    with self._timing_block("reset.reward_manager.reset"):
+      info = self.reward_manager.reset(env_ids)
     self.extras["log"].update(info)
     # curriculum manager.
-    info = self.curriculum_manager.reset(env_ids)
+    with self._timing_block("reset.curriculum_manager.reset"):
+      info = self.curriculum_manager.reset(env_ids)
     self.extras["log"].update(info)
     # command manager.
-    info = self.command_manager.reset(env_ids)
+    with self._timing_block("reset.command_manager.reset"):
+      info = self.command_manager.reset(env_ids)
     self.extras["log"].update(info)
     # event manager.
-    info = self.event_manager.reset(env_ids)
+    with self._timing_block("reset.event_manager.reset"):
+      info = self.event_manager.reset(env_ids)
     self.extras["log"].update(info)
     # termination manager.
-    info = self.termination_manager.reset(env_ids)
+    with self._timing_block("reset.termination_manager.reset"):
+      info = self.termination_manager.reset(env_ids)
     self.extras["log"].update(info)
+
     # reset the episode length buffer.
     self.episode_length_buf[env_ids] = 0

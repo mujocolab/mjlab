@@ -83,7 +83,8 @@ class RewardManager(ManagerBase):
       if term_cfg.weight == 0.0:
         self._step_reward[:, term_idx] = 0.0
         continue
-      value = term_cfg.func(self._env, **term_cfg.params) * term_cfg.weight * dt
+      with self._env.timing_context(f"reward_manager.compute.{name}"):
+        value = term_cfg.func(self._env, **term_cfg.params) * term_cfg.weight * dt
       self._reward_buf += value
       self._episode_sums[name] += value
       self._step_reward[:, term_idx] = value / dt

@@ -74,9 +74,12 @@ class EventManager(ManagerBase):
   # Methods.
 
   def reset(self, env_ids: torch.Tensor | None = None):
-    for mode_cfg in self._mode_class_term_cfgs.values():
-      for term_cfg in mode_cfg:
-        term_cfg.func.reset(env_ids=env_ids)
+    for mode, mode_cfg in self._mode_class_term_cfgs.items():
+      for index, term_cfg in enumerate(mode_cfg):
+        term_name = self._mode_term_names[mode][index]
+        key = f"event_manager.reset.{mode}.{term_name}"
+        with self._env.timing_context(key):
+          term_cfg.func.reset(env_ids=env_ids)
     if env_ids is None:
       num_envs = self._env.num_envs
     else:
@@ -114,6 +117,8 @@ class EventManager(ManagerBase):
       )
 
     for index, term_cfg in enumerate(self._mode_term_cfgs[mode]):
+      term_name = self._mode_term_names[mode][index]
+      key = f"event_manager.{mode}.{term_name}"
       if mode == "interval":
         time_left = self._interval_term_time_left[index]
         assert dt is not None
@@ -124,7 +129,8 @@ class EventManager(ManagerBase):
             lower, upper = term_cfg.interval_range_s
             sampled_interval = torch.rand(1) * (upper - lower) + lower
             self._interval_term_time_left[index][:] = sampled_interval
-            term_cfg.func(self._env, None, **term_cfg.params)
+            with self._env.timing_context(key):
+              term_cfg.func(self._env, None, **term_cfg.params)
         else:
           valid_env_ids = (time_left < 1e-6).nonzero().flatten()
           if len(valid_env_ids) > 0:
@@ -135,7 +141,8 @@ class EventManager(ManagerBase):
               + lower
             )
             self._interval_term_time_left[index][valid_env_ids] = sampled_time
-            term_cfg.func(self._env, valid_env_ids, **term_cfg.params)
+            with self._env.timing_context(key):
+              term_cfg.func(self._env, valid_env_ids, **term_cfg.params)
       elif mode == "reset":
         assert global_env_step_count is not None
         min_step_count = term_cfg.min_step_count_between_reset
@@ -146,7 +153,8 @@ class EventManager(ManagerBase):
             global_env_step_count
           )
           self._reset_term_last_triggered_once[index][env_ids] = True
-          term_cfg.func(self._env, env_ids, **term_cfg.params)
+          with self._env.timing_context(key):
+            term_cfg.func(self._env, env_ids, **term_cfg.params)
         else:
           last_triggered_step = self._reset_term_last_triggered_step_id[index][env_ids]
           triggered_at_least_once = self._reset_term_last_triggered_once[index][env_ids]
@@ -162,9 +170,11 @@ class EventManager(ManagerBase):
             self._reset_term_last_triggered_step_id[index][valid_env_ids] = (
               global_env_step_count
             )
-            term_cfg.func(self._env, valid_env_ids, **term_cfg.params)
+            with self._env.timing_context(key):
+              term_cfg.func(self._env, valid_env_ids, **term_cfg.params)
       else:
-        term_cfg.func(self._env, env_ids, **term_cfg.params)
+        with self._env.timing_context(key):
+          term_cfg.func(self._env, env_ids, **term_cfg.params)
 
   def _prepare_terms(self) -> None:
     self._interval_term_time_left: list[torch.Tensor] = list()

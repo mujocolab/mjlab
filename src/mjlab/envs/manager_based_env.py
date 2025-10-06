@@ -1,5 +1,6 @@
+from contextlib import nullcontext
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ContextManager
 
 import numpy as np
 import torch
@@ -177,6 +178,10 @@ class ManagerBasedEnv:
   def update_visualizers(self, scn) -> None:
     for mod in self.manager_visualizers.values():
       mod.debug_vis(scn)
+
+  def timing_context(self, key: str) -> ContextManager[None]:
+    del key  # Unused in base implementation.
+    return nullcontext()
 
   # Private methods.
 

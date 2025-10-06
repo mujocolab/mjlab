@@ -134,7 +134,8 @@ class ObservationManager(ManagerBase):
   def compute(self) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
     obs_buffer: dict[str, torch.Tensor | dict[str, torch.Tensor]] = dict()
     for group_name in self._group_obs_term_names:
-      obs_buffer[group_name] = self.compute_group(group_name)
+      with self._env.timing_context(f"observation_manager.compute.{group_name}"):
+        obs_buffer[group_name] = self.compute_group(group_name)
     self._obs_buffer = obs_buffer
     return obs_buffer
 
@@ -145,7 +146,10 @@ class ObservationManager(ManagerBase):
       group_term_names, self._group_obs_term_cfgs[group_name], strict=False
     )
     for term_name, term_cfg in obs_terms:
-      obs: torch.Tensor = term_cfg.func(self._env, **term_cfg.params).clone()
+      with self._env.timing_context(
+        f"observation_manager.compute.{group_name}.{term_name}"
+      ):
+        obs: torch.Tensor = term_cfg.func(self._env, **term_cfg.params).clone()
       if isinstance(term_cfg.noise, noise_cfg.NoiseCfg):
         obs = term_cfg.noise.apply(obs)
       elif isinstance(term_cfg.noise, noise_cfg.NoiseModelCfg):

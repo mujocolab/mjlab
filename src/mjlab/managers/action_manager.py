@@ -101,8 +101,9 @@ class ActionManager(ManagerBase):
     self._prev_action[env_ids] = 0.0
     self._action[env_ids] = 0.0
     # Reset action terms.
-    for term in self._terms.values():
-      term.reset(env_ids=env_ids)
+    for name, term in self._terms.items():
+      with self._env.timing_context(f"action_manager.reset.{name}"):
+        term.reset(env_ids=env_ids)
     return {}
 
   def process_action(self, action: torch.Tensor) -> None:
@@ -114,14 +115,16 @@ class ActionManager(ManagerBase):
     self._action[:] = action.to(self.device)
     # Split and apply.
     idx = 0
-    for term in self._terms.values():
+    for name, term in self._terms.items():
       term_actions = action[:, idx : idx + term.action_dim]
-      term.process_actions(term_actions)
+      with self._env.timing_context(f"action_manager.process_actions.{name}"):
+        term.process_actions(term_actions)
       idx += term.action_dim
 
   def apply_action(self) -> None:
-    for term in self._terms.values():
-      term.apply_actions()
+    for name, term in self._terms.items():
+      with self._env.timing_context(f"action_manager.apply_actions.{name}"):
+        term.apply_actions()
 
   def get_active_iterable_terms(
     self, env_idx: int

@@ -88,7 +88,8 @@ class TerminationManager(ManagerBase):
     self._truncated_buf[:] = False
     self._terminated_buf[:] = False
     for name, term_cfg in zip(self._term_names, self._term_cfgs, strict=False):
-      value = term_cfg.func(self._env, **term_cfg.params)
+      with self._env.timing_context(f"termination_manager.compute.{name}"):
+        value = term_cfg.func(self._env, **term_cfg.params)
       if term_cfg.time_out:
         self._truncated_buf |= value
       else:

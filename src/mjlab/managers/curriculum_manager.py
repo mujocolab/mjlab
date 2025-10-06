@@ -88,7 +88,8 @@ class CurriculumManager(ManagerBase):
     if env_ids is None:
       env_ids = slice(None)
     for name, term_cfg in zip(self._term_names, self._term_cfgs, strict=False):
-      state = term_cfg.func(self._env, env_ids, **term_cfg.params)
+      with self._env.timing_context(f"curriculum_manager.compute.{name}"):
+        state = term_cfg.func(self._env, env_ids, **term_cfg.params)
       self._curriculum_state[name] = state
 
   def _prepare_terms(self):

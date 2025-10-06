@@ -127,14 +127,16 @@ class CommandManager(ManagerBase):
   def reset(self, env_ids: torch.Tensor | None) -> dict[str, torch.Tensor]:
     extras = {}
     for name, term in self._terms.items():
-      metrics = term.reset(env_ids=env_ids)
+      with self._env.timing_context(f"command_manager.reset.{name}"):
+        metrics = term.reset(env_ids=env_ids)
       for metric_name, metric_value in metrics.items():
         extras[f"Metrics/{name}/{metric_name}"] = metric_value
     return extras
 
   def compute(self, dt: float):
-    for term in self._terms.values():
-      term.compute(dt)
+    for name, term in self._terms.items():
+      with self._env.timing_context(f"command_manager.compute.{name}"):
+        term.compute(dt)
 
   def get_command(self, name: str) -> torch.Tensor:
     return self._terms[name].command
