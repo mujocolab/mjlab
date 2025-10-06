@@ -189,13 +189,10 @@ def run_tracking_timing(
     if motion_file is not None:
       env_cfg.commands.motion.motion_file = motion_file
     else:
-      default_motion = Path("artifacts/lafan_cartwheel:v0/motion.npz").resolve()
-      if not default_motion.exists():
-        raise FileNotFoundError(
-          "Motion file not provided and default motion file missing at "
-          f"{default_motion}"
-        )
-      env_cfg.commands.motion.motion_file = str(default_motion)
+      from mjlab.scripts.gcs import ensure_default_motion
+
+      default_motion = ensure_default_motion()
+      env_cfg.commands.motion.motion_file = default_motion
   if num_envs is not None:
     env_cfg.scene.num_envs = num_envs
 
