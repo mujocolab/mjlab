@@ -100,16 +100,6 @@ def _filter_timings(
   }
 
 
-def _extract_prefixed_timings(
-  timings: dict[str, float], prefix: str
-) -> dict[str, float]:
-  return {
-    key.removeprefix(prefix): value
-    for key, value in timings.items()
-    if key.startswith(prefix)
-  }
-
-
 def _build_timing_tree_rows(timings: dict[str, float]) -> list[tuple[int, str, float]]:
   if not timings:
     return []
@@ -177,7 +167,7 @@ def _group_timings_by_root(timings: dict[str, float]) -> dict[str, dict[str, flo
 def run_tracking_timing(
   task: str = "Mjlab-Tracking-Flat-Unitree-G1-Play",
   motion_file: str | None = None,
-  num_steps: int = 1_000,
+  num_steps: int = 200,
   device: str | None = None,
   num_envs: int | None = None,
   reset_stats: bool = True,
