@@ -114,24 +114,55 @@ class ViserViewer(BaseViewer):
           "Collision geom", initial_value=False
         )
         cb_visual = self._server.gui.add_checkbox("Visual geom", initial_value=True)
+        slider_fov = self._server.gui.add_slider(
+          "FOV (°)",
+          min=20,
+          max=150,
+          step=1,
+          initial_value=90,
+          hint="Vertical FOV of viewer camera, in degrees.",
+        )
 
         @cb_collision.on_update
         def _(_) -> None:
-          if cb_collision.value:
+          visibility = cb_collision.value
+          if visibility:
             self._ensure_collision_handles_exist()
 
           if self._mesh_collision_handles is not None:
             for handle in self._mesh_collision_handles.values():
-              handle.visible = cb_collision.value
+              handle.visible = visibility
+
+              # If showing meshes: throw them off the screen, because the
+              # current positions will be outdated.
+              if visibility:
+                handle.batched_positions = handle.batched_positions - 2000.0
 
         @cb_visual.on_update
         def _(_) -> None:
-          if cb_visual.value:
+          visibility = cb_visual.value
+          if visibility:
             self._ensure_visual_handles_exist()
 
           if self._mesh_visual_handles is not None:
             for handle in self._mesh_visual_handles.values():
-              handle.visible = cb_visual.value
+              handle.visible = visibility
+
+              # If showing meshes: throw them off the screen, because the
+              # current positions will be outdated.
+              if visibility:
+                handle.batched_positions = handle.batched_positions - 2000.0
+
+        # Update FOV when a new client connects.
+        @slider_fov.on_update
+        def _(_) -> None:
+          for client in self._server.get_clients().values():
+            client.camera.fov = np.radians(slider_fov.value)
+
+        # Set initial FOV when clients connect.
+        @self._server.on_client_connect
+        def _(client: viser.ClientHandle) -> None:
+          client.camera.fov = np.radians(slider_fov.value)
 
     # Reward plots tab
     if hasattr(self.env.unwrapped, "reward_manager"):
@@ -274,23 +305,6 @@ class ViserViewer(BaseViewer):
 
     # Create visual handles by default on startup
     self._ensure_visual_handles_exist()
-
-    # Set up per-client camera controls
-    @self._server.on_client_connect
-    def _(client: viser.ClientHandle) -> None:
-      """Set up camera controls for each connected client."""
-      with client.gui.add_folder("Camera"):
-        fov_slider = client.gui.add_slider(
-          "Field of View (degrees)",
-          min=20,
-          max=120,
-          step=1,
-          initial_value=90,
-        )
-
-        @fov_slider.on_update
-        def _(_) -> None:
-          client.camera.fov = np.radians(fov_slider.value)
 
   def _merge_geoms(self, mj_model, geom_indices: list[int]) -> trimesh.Trimesh:
     """Merge multiple geoms into a single trimesh."""
