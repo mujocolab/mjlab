@@ -275,6 +275,23 @@ class ViserViewer(BaseViewer):
     # Create visual handles by default on startup
     self._ensure_visual_handles_exist()
 
+    # Set up per-client camera controls
+    @self._server.on_client_connect
+    def _(client: viser.ClientHandle) -> None:
+      """Set up camera controls for each connected client."""
+      with client.gui.add_folder("Camera"):
+        fov_slider = client.gui.add_slider(
+          "Field of View (degrees)",
+          min=20,
+          max=120,
+          step=1,
+          initial_value=90,
+        )
+
+        @fov_slider.on_update
+        def _(_) -> None:
+          client.camera.fov = np.radians(fov_slider.value)
+
   def _merge_geoms(self, mj_model, geom_indices: list[int]) -> trimesh.Trimesh:
     """Merge multiple geoms into a single trimesh."""
     meshes_to_concat = []
