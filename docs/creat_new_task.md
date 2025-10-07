@@ -1,25 +1,113 @@
-# Migrating from Isaac Lab
+# Create New Task
 
 > **🚧 Work in Progress**  
-> This guide is actively being improved as more users onboard and find issues. If something isn't covered here, please [open an issue](https://github.com/mujocolab/mjlab/issues) or [start a discussion](https://github.com/mujocolab/mjlab/discussions). Your questions help us improve the docs!
+> This guide walks you step by step through creating a new task, training it, and performing inference.
 
-## TL;DR
+## 1. Prepare Your Robot 
+For a minimal demonstration, we’ll create a simple CartPole environment without requiring any .stl files.
 
-Most Isaac Lab task configs work in mjlab with only minor tweaks! The manager-based API is nearly identical; just a few syntax changes.
+First, navigate to the directory `mjlab\src\mjlab\asset_zoo\robots`, and create the following structure:
 
-## Key Differences
-
-### 1. Import Paths
-
-Isaac Lab:
-```python
-from isaaclab.envs import ManagerBasedRLEnv
+```
+cartpole
+ │ cartpole_constants.py  # Defines the CartPole robot configuration and loads the MuJoCo model.
+ │ __init__.py            # Marks the folder as a Python package.
+ │
+ └─xmls
+      cartpole.xml        # Describes the CartPole's physical structure and actuator setup.
 ```
 
-mjlab:
-```python
-from mjlab.envs import ManagerBasedRlEnvCfg
+### 1) cartpole.xml
+
+```xml
+<mujoco model="inverted_pendulum">
+  <compiler angle="degree" coordinate="local" inertiafromgeom="true"/>
+  <option timestep="0.02" gravity="0 0 -9.81"/>
+
+  <worldbody>
+    <geom name="ground" type="plane" pos="0 0 0" size="5 5 0.1" rgba="0.8 0.9 0.8 1"/>
+
+    <body name="cart" pos="0 0 0.1">
+      <geom type="box" size="0.2 0.1 0.1" rgba="0.2 0.2 0.8 1"/>
+      <joint name="slide" type="slide" axis="1 0 0" limited="true" range="-2 2"/>
+
+      <body name="pole" pos="0 0 0.1">
+        <geom type="capsule" size="0.05 0.5" fromto="0 0 0 0 0 1" rgba="0.8 0.2 0.2 1"/>
+        <joint name="hinge" type="hinge" axis="0 1 0" range="-90 90"/>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <velocity name="slide_velocity" joint="slide" ctrlrange="-20 20" kv="40"/>
+  </actuator>
+
+  <keyframe>
+    <key name="pendulum_init" qpos="0 0" qvel="0 0" ctrl="0 0"/>
+  </keyframe>
+</mujoco>
+
 ```
+
+### 2) cartpole_constants.py
+
+```python
+from pathlib import Path
+import mujoco
+
+from mjlab import MJLAB_SRC_PATH
+from mjlab.entity import Entity, EntityCfg, EntityArticulationInfoCfg
+from mjlab.utils.spec_config import ActuatorCfg
+
+# Path to the MuJoCo XML file
+CARTPOLE_XML: Path = (
+    MJLAB_SRC_PATH / "asset_zoo" / "robots" / "inverted_pendulum" / "xmls" / "cartpole.xml"
+)
+assert CARTPOLE_XML.exists(), f"XML not found: {CARTPOLE_XML}"
+
+
+def get_spec() -> mujoco.MjSpec:
+    """Load the MuJoCo model specification."""
+    return mujoco.MjSpec.from_file(str(CARTPOLE_XML))
+
+
+# Actuator configuration: controls the slide joint (the cart)
+CARTPOLE_ACTUATOR = ActuatorCfg(
+    joint_names_expr=["slide"],   # Joint to control
+    effort_limit=5.0,             # Maximum force/effort
+    stiffness=0.0,                # No position stiffness (velocity control)
+    damping=0.1,                  # Damping factor
+)
+
+# Articulation configuration
+CARTPOLE_ARTICULATION = EntityArticulationInfoCfg(
+    actuators=(CARTPOLE_ACTUATOR,),
+)
+
+# Entity configuration
+CARTPOLE_ROBOT_CFG = EntityCfg(
+    spec_fn=get_spec,
+    articulation=CARTPOLE_ARTICULATION,
+)
+
+if __name__ == "__main__":
+    import mujoco.viewer as viewer
+
+    # Initialize the entity and launch the MuJoCo viewer
+    robot = Entity(CARTPOLE_ROBOT_CFG)
+    viewer.launch(robot.spec.compile())
+
+```
+
+### 3) __init__.py
+It’s just an empty file used to mark the folder as a Python package.
+
+## 2. Create the Task
+
+## 3. Train
+
+## 4. Inference
+
 
 **Note:** We use consistent `CamelCase` naming conventions (e.g., `RlEnv` instead of `RLEnv`).
 
