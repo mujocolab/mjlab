@@ -96,13 +96,26 @@ if __name__ == "__main__":
     # Initialize the entity and launch the MuJoCo viewer
     robot = Entity(CARTPOLE_ROBOT_CFG)
     viewer.launch(robot.spec.compile())
-
 ```
 
 ### 3) __init__.py
 It’s just an empty file used to mark the folder as a Python package.
 
-## 2. Create the Task
+## 2. Register Robot
+
+Open file `mjlab\src\mjlab\asset_zoo\robots\__init__.py`, add cartpole robot item.
+
+```python
+from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ROBOT_CFG
+from mjlab.asset_zoo.robots.unitree_go1.go1_constants import GO1_ROBOT_CFG
+from mjlab.asset_zoo.robots.cartpole.cartpole_constants import CARTPOLE_ROBOT_CFG # New robot item
+
+__all__ = (
+  "G1_ROBOT_CFG",
+  "GO1_ROBOT_CFG",
+  "CARTPOLE_ROBOT_CFG", # New robot item
+)
+```
 
 ## 3. Train
 
