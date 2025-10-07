@@ -52,22 +52,48 @@ def action_rate_l2(env: ManagerBasedRlEnv) -> torch.Tensor:
   )
 
 
-def joint_pos_limits(
-  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
-) -> torch.Tensor:
-  """Penalize joint positions if they cross the soft limits."""
-  asset: Entity = env.scene[asset_cfg.name]
-  soft_joint_pos_limits = asset.data.soft_joint_pos_limits
-  assert soft_joint_pos_limits is not None
-  out_of_limits = -(
-    asset.data.joint_pos[:, asset_cfg.joint_ids]
-    - soft_joint_pos_limits[:, asset_cfg.joint_ids, 0]
-  ).clip(max=0.0)
-  out_of_limits += (
-    asset.data.joint_pos[:, asset_cfg.joint_ids]
-    - soft_joint_pos_limits[:, asset_cfg.joint_ids, 1]
-  ).clip(min=0.0)
-  return torch.sum(out_of_limits, dim=1)
+class joint_pos_limits:
+  """Penalize joint positions if they cross the soft limits.
+
+  Implemented as a class to pre-compute joint indexing and avoid runtime overhead.
+  """
+
+  def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
+    asset_cfg: SceneEntityCfg = cfg.params.get("asset_cfg", _DEFAULT_ASSET_CFG)
+    asset: Entity = env.scene[asset_cfg.name]
+
+    # Pre-compute whether we're using all joints or a subset
+    self.use_all_joints = isinstance(
+      asset_cfg.joint_ids, slice
+    ) and asset_cfg.joint_ids == slice(None)
+
+    if not self.use_all_joints:
+      # Convert joint_ids to tensor for efficient indexing
+      if isinstance(asset_cfg.joint_ids, slice):
+        indices = list(range(*asset_cfg.joint_ids.indices(asset.num_joints)))
+      else:
+        indices = asset_cfg.joint_ids
+      self.joint_ids = torch.tensor(indices, dtype=torch.long, device=env.device)
+
+    self.asset_name = asset_cfg.name
+
+  def __call__(self, env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    asset: Entity = env.scene[self.asset_name]
+    soft_joint_pos_limits = asset.data.soft_joint_pos_limits
+    assert soft_joint_pos_limits is not None
+
+    # Use pre-computed indexing decision
+    if self.use_all_joints:
+      joint_pos = asset.data.joint_pos
+      soft_limits = soft_joint_pos_limits
+    else:
+      joint_pos = torch.index_select(asset.data.joint_pos, 1, self.joint_ids)
+      soft_limits = torch.index_select(soft_joint_pos_limits, 1, self.joint_ids)
+
+    # Compute violations
+    out_of_limits = -(joint_pos - soft_limits[:, :, 0]).clip(max=0.0)
+    out_of_limits += (joint_pos - soft_limits[:, :, 1]).clip(min=0.0)
+    return torch.sum(out_of_limits, dim=1)
 
 
 class posture:

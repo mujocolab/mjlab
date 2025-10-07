@@ -124,6 +124,32 @@ class MotionCommand(CommandTerm):
     self.metrics["sampling_top1_prob"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["sampling_top1_bin"] = torch.zeros(self.num_envs, device=self.device)
 
+    # Cache for body indexes (used by rewards/terminations)
+    self._body_indexes_cache: dict[tuple[str, ...], torch.Tensor] = {}
+    self._all_body_indexes = torch.arange(
+      len(cfg.body_names), dtype=torch.long, device=self.device
+    )
+
+    # Pre-allocate buffers for _update_command to avoid repeated allocations
+    self._anchor_pos_w_repeat = torch.zeros(
+      self.num_envs, len(cfg.body_names), 3, device=self.device
+    )
+    self._anchor_quat_w_repeat = torch.zeros(
+      self.num_envs, len(cfg.body_names), 4, device=self.device
+    )
+    self._robot_anchor_pos_w_repeat = torch.zeros(
+      self.num_envs, len(cfg.body_names), 3, device=self.device
+    )
+    self._robot_anchor_quat_w_repeat = torch.zeros(
+      self.num_envs, len(cfg.body_names), 4, device=self.device
+    )
+    self._delta_pos_w = torch.zeros(
+      self.num_envs, len(cfg.body_names), 3, device=self.device
+    )
+    self._delta_ori_w = torch.zeros(
+      self.num_envs, len(cfg.body_names), 4, device=self.device
+    )
+
     self._model_viz: mujoco.MjModel = copy.deepcopy(env.sim.mj_model)
     self._model_viz.geom_rgba[:, 1] = np.clip(
       self._model_viz.geom_rgba[:, 1] * 1.5, 0.0, 1.0
@@ -166,22 +192,23 @@ class MotionCommand(CommandTerm):
 
   @property
   def anchor_pos_w(self) -> torch.Tensor:
+    # Optimized: use advanced indexing instead of double indexing
     return (
-      self.motion.body_pos_w[self.time_steps, self.motion_anchor_body_index]
+      self.motion._body_pos_w[self.time_steps, self.motion_anchor_body_index]
       + self._env.scene.env_origins
     )
 
   @property
   def anchor_quat_w(self) -> torch.Tensor:
-    return self.motion.body_quat_w[self.time_steps, self.motion_anchor_body_index]
+    return self.motion._body_quat_w[self.time_steps, self.motion_anchor_body_index]
 
   @property
   def anchor_lin_vel_w(self) -> torch.Tensor:
-    return self.motion.body_lin_vel_w[self.time_steps, self.motion_anchor_body_index]
+    return self.motion._body_lin_vel_w[self.time_steps, self.motion_anchor_body_index]
 
   @property
   def anchor_ang_vel_w(self) -> torch.Tensor:
-    return self.motion.body_ang_vel_w[self.time_steps, self.motion_anchor_body_index]
+    return self.motion._body_ang_vel_w[self.time_steps, self.motion_anchor_body_index]
 
   @property
   def robot_joint_pos(self) -> torch.Tensor:
@@ -367,28 +394,47 @@ class MotionCommand(CommandTerm):
     if env_ids.numel() > 0:
       self._resample_command(env_ids)
 
-    anchor_pos_w_repeat = self.anchor_pos_w[:, None, :].repeat(
-      1, len(self.cfg.body_names), 1
+    # Inline property accesses to avoid repeated overhead
+    # Motion anchor data
+    anchor_pos_w = (
+      self.motion._body_pos_w[self.time_steps, self.motion_anchor_body_index]
+      + self._env.scene.env_origins
     )
-    anchor_quat_w_repeat = self.anchor_quat_w[:, None, :].repeat(
-      1, len(self.cfg.body_names), 1
+    anchor_quat_w = self.motion._body_quat_w[
+      self.time_steps, self.motion_anchor_body_index
+    ]
+
+    # Robot anchor data
+    robot_anchor_pos_w = self.robot.data.body_link_pos_w[
+      :, self.robot_anchor_body_index
+    ]
+    robot_anchor_quat_w = self.robot.data.body_link_quat_w[
+      :, self.robot_anchor_body_index
+    ]
+
+    # Motion body data
+    body_pos_w = (
+      self.motion.body_pos_w[self.time_steps] + self._env.scene.env_origins[:, None, :]
     )
-    robot_anchor_pos_w_repeat = self.robot_anchor_pos_w[:, None, :].repeat(
-      1, len(self.cfg.body_names), 1
-    )
-    robot_anchor_quat_w_repeat = self.robot_anchor_quat_w[:, None, :].repeat(
-      1, len(self.cfg.body_names), 1
+    body_quat_w = self.motion.body_quat_w[self.time_steps]
+
+    # Broadcast anchor data to match body count (reuse buffers)
+    self._anchor_pos_w_repeat[:] = anchor_pos_w[:, None, :]
+    self._anchor_quat_w_repeat[:] = anchor_quat_w[:, None, :]
+    self._robot_anchor_pos_w_repeat[:] = robot_anchor_pos_w[:, None, :]
+    self._robot_anchor_quat_w_repeat[:] = robot_anchor_quat_w[:, None, :]
+
+    # Compute delta transforms
+    self._delta_pos_w[:] = self._robot_anchor_pos_w_repeat
+    self._delta_pos_w[..., 2] = self._anchor_pos_w_repeat[..., 2]
+    self._delta_ori_w[:] = yaw_quat(
+      quat_mul(self._robot_anchor_quat_w_repeat, quat_inv(self._anchor_quat_w_repeat))
     )
 
-    delta_pos_w = robot_anchor_pos_w_repeat
-    delta_pos_w[..., 2] = anchor_pos_w_repeat[..., 2]
-    delta_ori_w = yaw_quat(
-      quat_mul(robot_anchor_quat_w_repeat, quat_inv(anchor_quat_w_repeat))
-    )
-
-    self.body_quat_relative_w = quat_mul(delta_ori_w, self.body_quat_w)
-    self.body_pos_relative_w = delta_pos_w + quat_apply(
-      delta_ori_w, self.body_pos_w - anchor_pos_w_repeat
+    # Update relative body positions and orientations
+    self.body_quat_relative_w[:] = quat_mul(self._delta_ori_w, body_quat_w)
+    self.body_pos_relative_w[:] = self._delta_pos_w + quat_apply(
+      self._delta_ori_w, body_pos_w - self._anchor_pos_w_repeat
     )
 
     self.bin_failed_count = (
