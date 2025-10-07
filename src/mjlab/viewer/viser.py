@@ -131,12 +131,11 @@ class ViserViewer(BaseViewer):
 
           if self._mesh_collision_handles is not None:
             for handle in self._mesh_collision_handles.values():
-              handle.visible = visibility
-
               # If showing meshes: throw them off the screen, because the
               # current positions will be outdated.
               if visibility:
                 handle.batched_positions = handle.batched_positions - 2000.0
+              handle.visible = visibility
 
         @cb_visual.on_update
         def _(_) -> None:
@@ -146,12 +145,11 @@ class ViserViewer(BaseViewer):
 
           if self._mesh_visual_handles is not None:
             for handle in self._mesh_visual_handles.values():
-              handle.visible = visibility
-
               # If showing meshes: throw them off the screen, because the
               # current positions will be outdated.
               if visibility:
                 handle.batched_positions = handle.batched_positions - 2000.0
+              handle.visible = visibility
 
         # Update FOV when a new client connects.
         @slider_fov.on_update
