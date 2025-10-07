@@ -1,13 +1,51 @@
+"""Configuration for scene entities used by manager terms."""
+
 from dataclasses import dataclass, field
+from typing import NamedTuple
 
 from mjlab.entity import Entity
 from mjlab.scene import Scene
 
 
-# TODO: The four _resolve_*_names methods are nearly identical. Refactor.
+class _FieldConfig(NamedTuple):
+  """Configuration for a resolvable entity field."""
+
+  names_attr: str
+  ids_attr: str
+  find_method: str
+  num_attr: str
+  kind_label: str
+
+
+_FIELD_CONFIGS = [
+  _FieldConfig("joint_names", "joint_ids", "find_joints", "num_joints", "joint"),
+  _FieldConfig("body_names", "body_ids", "find_bodies", "num_bodies", "body"),
+  _FieldConfig("geom_names", "geom_ids", "find_geoms", "num_geoms", "geom"),
+  _FieldConfig("site_names", "site_ids", "find_sites", "num_sites", "site"),
+]
+
+
 @dataclass
 class SceneEntityCfg:
-  """Configuration for a scene entity that is used by the manager's term."""
+  """Configuration for a scene entity that is used by the manager's term.
+
+  This configuration allows flexible specification of entity components either by name
+  or by ID. During resolution, it ensures consistency between names and IDs, and can
+  optimize to slice(None) when all components are selected.
+
+  Attributes:
+    name: The name of the entity in the scene.
+    joint_names: Names of joints to include. Can be a single string or list.
+    joint_ids: IDs of joints to include. Can be a list or slice.
+    body_names: Names of bodies to include. Can be a single string or list.
+    body_ids: IDs of bodies to include. Can be a list or slice.
+    geom_names: Names of geometries to include. Can be a single string or list.
+    geom_ids: IDs of geometries to include. Can be a list or slice.
+    site_names: Names of sites to include. Can be a single string or list.
+    site_ids: IDs of sites to include. Can be a list or slice.
+    preserve_order: If True, maintains the order of components as specified. If False,
+      allows reordering for optimization.
+  """
 
   name: str
 
@@ -26,152 +64,117 @@ class SceneEntityCfg:
   preserve_order: bool = False
 
   def resolve(self, scene: Scene) -> None:
-    self._resolve_joint_names(scene)
-    self._resolve_body_names(scene)
-    self._resolve_geom_names(scene)
-    self._resolve_site_names(scene)
+    """Resolve names and IDs for all configured fields.
 
-  def _resolve_joint_names(self, scene: Scene) -> None:
-    if self.joint_names is not None or isinstance(self.joint_ids, list):
-      entity: Entity = scene[self.name]
+    This method ensures consistency between names and IDs for each field type.
+    It handles three cases:
+    1. Both names and IDs provided: Validates they match
+    2. Only names provided: Computes IDs (optimizes to slice(None) if all selected)
+    3. Only IDs provided: Computes names
 
-      # Joint name regex --> joint indices.
-      if self.joint_names is not None and isinstance(self.joint_ids, list):
-        if isinstance(self.joint_names, str):
-          self.joint_names = [self.joint_names]
-        if isinstance(self.joint_ids, int):
-          self.joint_ids = [self.joint_ids]
+    Args:
+      scene: The scene containing the entity to resolve against.
 
-        joint_ids, _ = entity.find_joints(
-          self.joint_names, preserve_order=self.preserve_order
-        )
-        joint_names = [entity.joint_names[i] for i in self.joint_ids]
-        if joint_ids != self.joint_ids or joint_names != self.joint_names:
-          raise ValueError("Inconsistent joint names and indices.")
+    Raises:
+      ValueError: If provided names and IDs are inconsistent.
+      KeyError: If the entity name is not found in the scene.
+    """
+    entity = scene[self.name]
 
-      # Joint indices --> joint names.
-      elif self.joint_names is not None:
-        if isinstance(self.joint_names, str):
-          self.joint_names = [self.joint_names]
-        self.joint_ids, _ = entity.find_joints(
-          self.joint_names, preserve_order=self.preserve_order
-        )
-        if (
-          len(self.joint_ids) == entity.num_joints
-          and self.joint_names == entity.joint_names
-        ):
-          self.joint_ids = slice(None)
+    for config in _FIELD_CONFIGS:
+      self._resolve_field(entity, config)
 
-      # Joint indices --> joint names.
-      elif isinstance(self.joint_ids, list):
-        if isinstance(self.joint_ids, int):
-          self.joint_ids = [self.joint_ids]
-        self.joint_names = [entity.joint_names[i] for i in self.joint_ids]
+  def _resolve_field(self, entity: Entity, config: _FieldConfig) -> None:
+    """Resolve a single field's names and IDs.
 
-  def _resolve_body_names(self, scene: Scene) -> None:
-    if self.body_names is not None or isinstance(self.body_ids, list):
-      entity: Entity = scene[self.name]
+    Args:
+      entity: The entity to resolve against.
+      config: Field configuration specifying attribute names and methods.
+    """
+    names = getattr(self, config.names_attr)
+    ids = getattr(self, config.ids_attr)
 
-      # Body name regex --> body indices.
-      if self.body_names is not None and isinstance(self.body_ids, list):
-        if isinstance(self.body_names, str):
-          self.body_names = [self.body_names]
-        if isinstance(self.body_ids, int):
-          self.body_ids = [self.body_ids]
-        body_ids, _ = entity.find_bodies(
-          self.body_names, preserve_order=self.preserve_order
-        )
-        body_names = [entity.body_names[i] for i in self.body_ids]
-        if body_ids != self.body_ids or body_names != self.body_names:
-          raise ValueError("Inconsistent body names and indices.")
+    # Early return if nothing to resolve.
+    if names is None and not isinstance(ids, list):
+      return
 
-      # Body indices --> body names.
-      elif self.body_names is not None:
-        if isinstance(self.body_names, str):
-          self.body_names = [self.body_names]
-        self.body_ids, self.body_names = entity.find_bodies(
-          self.body_names, preserve_order=self.preserve_order
-        )
-        if (
-          len(self.body_ids) == entity.num_bodies
-          and self.body_names == entity.body_names
-        ):
-          self.body_ids = slice(None)
+    # Get entity metadata.
+    entity_all_names = getattr(entity, config.names_attr)
+    entity_count = getattr(entity, config.num_attr)
+    find_method = getattr(entity, config.find_method)
 
-      # Body indices --> body names.
-      elif isinstance(self.body_ids, list):
-        if isinstance(self.body_ids, int):
-          self.body_ids = [self.body_ids]
-        self.body_names = [entity.body_names[i] for i in self.body_ids]
+    # Normalize single values to lists for uniform processing.
+    names = self._normalize_to_list(names)
+    if names is not None:
+      setattr(self, config.names_attr, names)
 
-  def _resolve_geom_names(self, scene: Scene) -> None:
-    if self.geom_names is not None or isinstance(self.geom_ids, list):
-      entity: Entity = scene[self.name]
+    if isinstance(ids, (int, list)):
+      ids = self._normalize_to_list(ids)
+      setattr(self, config.ids_attr, ids)
 
-      # Geom name regex --> geom indices.
-      if self.geom_names is not None and isinstance(self.geom_ids, list):
-        if isinstance(self.geom_names, str):
-          self.geom_names = [self.geom_names]
-        if isinstance(self.geom_ids, int):
-          self.geom_ids = [self.geom_ids]
-        geom_ids, _ = entity.find_geoms(
-          self.geom_names, preserve_order=self.preserve_order
-        )
-        geom_names = [entity.geom_names[i] for i in self.geom_ids]
-        if geom_ids != self.geom_ids or geom_names != self.geom_names:
-          raise ValueError("Inconsistent geom names and indices.")
+    # Handle three resolution cases.
+    if names is not None and isinstance(ids, list):
+      self._validate_consistency(
+        names, ids, entity_all_names, find_method, config.kind_label
+      )
+    elif names is not None:
+      self._resolve_names_to_ids(
+        names, entity_all_names, entity_count, find_method, config.ids_attr
+      )
+    elif isinstance(ids, list):
+      self._resolve_ids_to_names(ids, entity_all_names, config.names_attr)
 
-      # Geom indices --> geom names.
-      elif self.geom_names is not None:
-        if isinstance(self.geom_names, str):
-          self.geom_names = [self.geom_names]
-        self.geom_ids, _ = entity.find_geoms(
-          self.geom_names, preserve_order=self.preserve_order
-        )
-        if (
-          len(self.geom_ids) == entity.num_geoms
-          and self.geom_names == entity.geom_names
-        ):
-          self.geom_ids = slice(None)
+  def _normalize_to_list(self, value: str | int | list | None) -> list | None:
+    """Convert single values to lists for uniform processing."""
+    if value is None:
+      return None
+    if isinstance(value, (str, int)):
+      return [value]
+    return value
 
-      # Geom indices --> geom names.
-      elif isinstance(self.geom_ids, list):
-        if isinstance(self.geom_ids, int):
-          self.geom_ids = [self.geom_ids]
-        self.geom_names = [entity.geom_names[i] for i in self.geom_ids]
+  def _validate_consistency(
+    self,
+    names: list[str],
+    ids: list[int],
+    entity_all_names: list[str],
+    find_method,
+    kind_label: str,
+  ) -> None:
+    """Validate that provided names and IDs are consistent.
 
-  def _resolve_site_names(self, scene: Scene) -> None:
-    if self.site_names is not None or isinstance(self.site_ids, list):
-      entity: Entity = scene[self.name]
+    Raises:
+      ValueError: If names and IDs don't match.
+    """
+    found_ids, _ = find_method(names, preserve_order=self.preserve_order)
+    computed_names = [entity_all_names[i] for i in ids]
 
-      # Site name regex --> site indices.
-      if self.site_names is not None and isinstance(self.site_ids, list):
-        if isinstance(self.site_names, str):
-          self.site_names = [self.site_names]
-        if isinstance(self.site_ids, int):
-          self.site_ids = [self.site_ids]
-        site_ids, _ = entity.find_sites(
-          self.site_names, preserve_order=self.preserve_order
-        )
-        site_names = [entity.site_names[i] for i in self.site_ids]
-        if site_ids != self.site_ids or site_names != self.site_names:
-          raise ValueError("Inconsistent site names and indices.")
+    if found_ids != ids or computed_names != names:
+      raise ValueError(
+        f"Inconsistent {kind_label} names and indices. "
+        f"Names {names} resolved to indices {found_ids}, "
+        f"but indices {ids} (mapping to names {computed_names}) were provided."
+      )
 
-      # Site indices --> site names.
-      elif self.site_names is not None:
-        if isinstance(self.site_names, str):
-          self.site_names = [self.site_names]
-        self.site_ids, _ = entity.find_sites(
-          self.site_names, preserve_order=self.preserve_order
-        )
-        if (
-          len(self.site_ids) == entity.num_sites
-          and self.site_names == entity.site_names
-        ):
-          self.site_ids = slice(None)
+  def _resolve_names_to_ids(
+    self,
+    names: list[str],
+    entity_all_names: list[str],
+    entity_count: int,
+    find_method,
+    ids_attr: str,
+  ) -> None:
+    """Resolve names to IDs, optimizing to slice(None) when all are selected."""
+    found_ids, _ = find_method(names, preserve_order=self.preserve_order)
 
-      # Site indices --> site names.
-      elif isinstance(self.site_ids, list):
-        if isinstance(self.site_ids, int):
-          self.site_ids = [self.site_ids]
-        self.site_names = [entity.site_names[i] for i in self.site_ids]
+    # Optimize to slice(None) if all components are selected in order.
+    if len(found_ids) == entity_count and names == entity_all_names:
+      setattr(self, ids_attr, slice(None))
+    else:
+      setattr(self, ids_attr, found_ids)
+
+  def _resolve_ids_to_names(
+    self, ids: list[int], entity_all_names: list[str], names_attr: str
+  ) -> None:
+    """Resolve IDs to their corresponding names."""
+    resolved_names = [entity_all_names[i] for i in ids]
+    setattr(self, names_attr, resolved_names)

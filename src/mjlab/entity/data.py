@@ -290,6 +290,8 @@ class EntityData:
     cvel = self.data.cvel[:, body_ids]
     return compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
 
+  # Site properties
+
   @property
   def site_pose_w(self) -> torch.Tensor:
     """Site pose in simulation world frame. Shape (num_envs, num_sites, 7)."""

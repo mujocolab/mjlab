@@ -817,8 +817,8 @@ def rigid_body_twist_transform(
         - The transformed linear velocity in frame 1. Shape is (N, 3).
         - The transformed angular velocity in frame 1. Shape is (N, 3).
     """
-    w1 = quat_rotate_inverse(q01, w0)
-    v1 = quat_rotate_inverse(q01, v0 + torch.cross(w0, t01, dim=-1))
+    w1 = quat_apply_inverse(q01, w0)
+    v1 = quat_apply_inverse(q01, v0 + torch.cross(w0, t01, dim=-1))
     return v1, w1
 
 
