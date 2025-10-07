@@ -98,7 +98,7 @@ if __name__ == "__main__":
     viewer.launch(robot.spec.compile())
 ```
 
-### 3) __init__.py
+### 3) \_\_init\_\_.py
 It’s just an empty file used to mark the folder as a Python package.
 
 ## 2. Register Robot
@@ -117,7 +117,265 @@ __all__ = (
 )
 ```
 
-## 3. Train
+## 3. Creat Task
+
+### 1) Create file structure
+
+Navigate to the directory `mjlab\src\mjlab\tasks`, and create the following structure:
+
+```
+cartpole
+ │ cartpole_env_cfg.py  # Defines the task settings.
+ └─init__.py            # Marks the folder as a Python package.
+```
+
+### 2) cartpole_env_cfg.py
+
+```python
+"""CartPole task environment configuration. """
+
+import math
+from dataclasses import dataclass, field
+import torch
+from mjlab.envs import ManagerBasedRlEnvCfg
+from mjlab.managers.manager_term_config import (
+    ObservationGroupCfg as ObsGroup,
+    ObservationTermCfg as ObsTerm,
+    RewardTermCfg as RewardTerm,
+    TerminationTermCfg as DoneTerm,
+    EventTermCfg as EventTerm,
+    term,
+)
+from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.scene import SceneCfg
+from mjlab.sim import MujocoCfg, SimulationCfg
+from mjlab.viewer import ViewerConfig
+from mjlab.asset_zoo.robots import CARTPOLE_ROBOT_CFG
+from mjlab.rl import RslRlOnPolicyRunnerCfg
+from mjlab.envs import mdp
+
+
+# ==========================================================
+# Scene configuration
+# ==========================================================
+
+SCENE_CFG = SceneCfg(
+    num_envs=64,               # Number of parallel simulated environments
+    extent=1.0,                # Spacing between environments in visualization
+    entities={"robot": CARTPOLE_ROBOT_CFG},  # Use CartPole robot configuration
+)
+
+# Viewer visualization setup
+VIEWER_CONFIG = ViewerConfig(
+    origin_type=ViewerConfig.OriginType.ASSET_BODY,  # Camera follows the robot body
+    asset_name="robot",
+    body_name="pole",
+    distance=3.0,    # Camera distance
+    elevation=10.0,  # Camera tilt angle
+    azimuth=90.0,    # Camera rotation angle
+)
+
+
+# ==========================================================
+# Action configuration
+# ==========================================================
+
+@dataclass
+class ActionCfg:
+    # Define action as direct control over the slide joint (cart position)
+    joint_pos: mdp.JointPositionActionCfg = term(
+        mdp.JointPositionActionCfg,
+        asset_name="robot",
+        actuator_names=[".*"],    # Match all actuators
+        scale=20.0,               # Scale of control signal
+        use_default_offset=False, # No offset in joint control
+    )
+
+
+# ==========================================================
+# Observation configuration
+# ==========================================================
+
+@dataclass
+class ObservationCfg:
+
+    # Policy network observation terms
+    @dataclass
+    class PolicyCfg(ObsGroup):
+        angle: ObsTerm = term(
+            ObsTerm,
+            func=lambda env: env.sim.data.qpos[:, 1:2] / math.pi,  # Normalize angle to [-1, 1]
+        )
+        ang_vel: ObsTerm = term(
+            ObsTerm,
+            func=lambda env: env.sim.data.qvel[:, 1:2] / 10.0,     # Normalize angular velocity
+        )
+        cart_pos: ObsTerm = term(
+            ObsTerm,
+            func=lambda env: env.sim.data.qpos[:, 0:1] / 2.0,      # Normalize cart position
+        )
+        cart_vel: ObsTerm = term(
+            ObsTerm,
+            func=lambda env: env.sim.data.qvel[:, 0:1] / 5.0,      # Normalize cart velocity
+        )
+
+    # Critic network (value function) observation terms
+    @dataclass
+    class CriticCfg(ObsGroup):
+        angle: ObsTerm = term(
+            ObsTerm,
+            func=lambda env: env.sim.data.qpos[:, 1:2] / math.pi,
+        )
+        ang_vel: ObsTerm = term(
+            ObsTerm,
+            func=lambda env: env.sim.data.qvel[:, 1:2] / 10.0,
+        )
+        cart_pos: ObsTerm = term(
+            ObsTerm,
+            func=lambda env: env.sim.data.qpos[:, 0:1] / 2.0,
+        )
+        cart_vel: ObsTerm = term(
+            ObsTerm,
+            func=lambda env: env.sim.data.qvel[:, 0:1] / 5.0,
+        )
+
+    policy: PolicyCfg = field(default_factory=PolicyCfg)
+    critic: CriticCfg = field(default_factory=CriticCfg)
+
+
+# ==========================================================
+# Reward configuration
+# ==========================================================
+
+@dataclass
+class RewardCfg:
+    # Reward for keeping the pole upright
+    upright: RewardTerm = term(
+        RewardTerm,
+        func=lambda env: (env.sim.data.qpos[:, 1].cos()),  # Max reward when pole is vertical
+        weight=3.0,
+    )
+
+    # Penalty for using too much control effort
+    effort: RewardTerm = term(
+        RewardTerm,
+        func=lambda env: -0.01 * (env.sim.data.ctrl[:, 0] ** 2),
+        weight=1.0,
+    )
+
+
+# ==========================================================
+# Event configuration (random resets or disturbances)
+# ==========================================================
+
+def random_push_cart(env, env_ids, force_range=(-5.0, 5.0)):
+    """
+    Apply a random external force to the cart (slide joint).
+
+    Args:
+        env: The environment object.
+        env_ids: IDs of environments to apply the force to.
+        force_range: Tuple of (min_force, max_force) range.
+    """
+    n = len(env_ids)
+    random_forces = (
+        torch.rand(n, device=env.device) * (force_range[1] - force_range[0]) + force_range[0]
+    )
+    # Apply to the 0th DOF (the sliding joint)
+    env.sim.data.qfrc_applied[env_ids, 0] = random_forces
+
+
+@dataclass
+class EventCfg:
+    """Defines events such as resets or periodic disturbances."""
+
+    # Reset robot joints within a small random range
+    reset_robot_joints: EventTerm = term(
+        EventTerm,
+        func=mdp.reset_joints_by_scale,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "position_range": (-0.1, 0.1),
+            "velocity_range": (-0.1, 0.1),
+        },
+    )
+
+    # Randomly push the cart at intervals to increase robustness
+    random_push: EventTerm = term(
+        EventTerm,
+        func=random_push_cart,                # Use the helper function defined above
+        mode="interval",
+        interval_range_s=(1.0, 2.0),          # Apply every 1–2 seconds
+        params={"force_range": (-100.0, 100.0)},
+    )
+
+
+# ==========================================================
+# Termination (episode end) conditions
+# ==========================================================
+
+@dataclass
+class TerminationCfg:
+    # End the episode after the max time limit
+    timeout: DoneTerm = term(
+        DoneTerm,
+        func=lambda env: False,
+        time_out=True,
+    )
+
+    # End the episode if the pole falls beyond ±45 degrees
+    tipped: DoneTerm = term(
+        DoneTerm,
+        func=lambda env: (env.sim.data.qpos[:, 1].abs() > math.radians(45)).any(dim=-1),
+        time_out=False,
+    )
+
+
+# ==========================================================
+# Simulation configuration
+# ==========================================================
+
+SIM_CFG = SimulationCfg(
+    mujoco=MujocoCfg(
+        timestep=0.02,   # 50 Hz simulation
+        iterations=1,    # Physics solver iterations
+    ),
+)
+
+
+# ==========================================================
+# Full environment configuration
+# ==========================================================
+
+@dataclass
+class CartPoleEnvCfg(ManagerBasedRlEnvCfg):
+    """Main configuration class for the CartPole (Inverted Pendulum) environment."""
+
+    scene: SceneCfg = field(default_factory=lambda: SCENE_CFG)
+    observations: ObservationCfg = field(default_factory=ObservationCfg)
+    actions: ActionCfg = field(default_factory=ActionCfg)
+    rewards: RewardCfg = field(default_factory=RewardCfg)
+    events: EventCfg = field(default_factory=EventCfg)
+    terminations: TerminationCfg = field(default_factory=TerminationCfg)
+    sim: SimulationCfg = field(default_factory=lambda: SIM_CFG)
+    viewer: ViewerConfig = field(default_factory=lambda: VIEWER_CONFIG)
+
+    decimation: int = 1              # Control frequency multiplier
+    episode_length_s: float = 10.0   # Maximum episode duration (in seconds)
+
+
+# ==========================================================
+# Entry points for training and inference
+# ==========================================================
+
+env_cfg_entry_point = CartPoleEnvCfg
+rl_cfg_entry_point = RslRlOnPolicyRunnerCfg
+
+```
+
+### 3) \_\_init\_\_.py
+It’s just an empty file used to mark the folder as a Python package.
 
 ## 4. Inference
 
