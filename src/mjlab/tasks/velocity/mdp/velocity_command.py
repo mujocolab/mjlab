@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import (
-  TYPE_CHECKING,
-)
+from typing import TYPE_CHECKING
 
-import mujoco
 import numpy as np
 import torch
 
@@ -20,6 +17,7 @@ from mjlab.third_party.isaaclab.isaaclab.utils.math import (
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
+  from mjlab.viewer.debug_visualizer import DebugVisualizer
 
 
 class UniformVelocityCommand(CommandTerm):
@@ -105,72 +103,81 @@ class UniformVelocityCommand(CommandTerm):
 
   # Visualization.
 
-  def _debug_vis_impl(self, scn: mujoco.MjvScene) -> None:
-    # Command.
+  def _debug_vis_impl(self, visualizer: "DebugVisualizer") -> None:
+    """Draw velocity command and actual velocity arrows.
+
+    Note: For Viser viewer, only the selected environment is visualized.
+    For native viewer, all environments are shown.
+    """
+    # Get data
     cmds = self.command.cpu().numpy()
-    # Base pose.
     base_pos_ws = self.robot.data.root_link_pos_w.cpu().numpy()
     base_quat_w = self.robot.data.root_link_quat_w
     base_mat_ws = matrix_from_quat(base_quat_w).cpu().numpy()
-    # Actual linear and angular velocities.
     lin_vel_bs = self.robot.data.root_link_lin_vel_b.cpu().numpy()
     ang_vel_bs = self.robot.data.root_link_ang_vel_b.cpu().numpy()
 
-    for batch in range(self.num_envs):
+    # Determine which environments to visualize
+    from mjlab.viewer.viser_visualizer import ViserDebugVisualizer
+
+    if isinstance(visualizer, ViserDebugVisualizer):
+      # Only visualize the selected environment for Viser to reduce clutter
+      envs_to_visualize = [visualizer.env_idx]
+    else:
+      # Visualize all environments for native viewer
+      envs_to_visualize = range(self.num_envs)
+
+    for batch in envs_to_visualize:
       base_pos_w = base_pos_ws[batch]
       base_mat_w = base_mat_ws[batch]
       cmd = cmds[batch]
       lin_vel_b = lin_vel_bs[batch]
       ang_vel_b = ang_vel_bs[batch]
 
+      # Helper to transform local to world coordinates
       def local_to_world(
-        vec: np.ndarray, base_pos_w=base_pos_w, base_mat_w=base_mat_w
+        vec: np.ndarray, pos: np.ndarray = base_pos_w, mat: np.ndarray = base_mat_w
       ) -> np.ndarray:
-        return base_pos_w + base_mat_w @ vec
-
-      def make_arrow(
-        from_local: np.ndarray,
-        to_local: np.ndarray,
-      ) -> tuple[np.ndarray, np.ndarray]:
-        return local_to_world(from_local), local_to_world(to_local)
-
-      def add_arrow(from_w, to_w, rgba, width=0.015, size=(0.005, 0.02, 0.02)):
-        scn.ngeom += 1
-        geom = scn.geoms[scn.ngeom - 1]
-        geom.category = mujoco.mjtCatBit.mjCAT_DECOR
-
-        mujoco.mjv_initGeom(
-          geom=geom,
-          type=mujoco.mjtGeom.mjGEOM_ARROW.value,
-          size=np.array(size),
-          pos=np.zeros(3),
-          mat=np.zeros(9),
-          rgba=np.asarray(rgba),
-        )
-
-        mujoco.mjv_connector(
-          geom=geom,
-          type=mujoco.mjtGeom.mjGEOM_ARROW.value,
-          width=width,
-          from_=from_w,
-          to=to_w,
-        )
+        return pos + mat @ vec
 
       scale = self.cfg.viz.scale
       z_offset = self.cfg.viz.z_offset
-      cmd_lin_from = np.array([0, 0, z_offset]) * scale
-      cmd_lin_to = cmd_lin_from + np.array([cmd[0], cmd[1], 0]) * scale
-      cmd_ang_from = cmd_lin_from
-      cmd_ang_to = cmd_ang_from + np.array([0, 0, cmd[2]]) * scale
-      add_arrow(*make_arrow(cmd_lin_from, cmd_lin_to), rgba=[0.2, 0.2, 0.6, 0.6])
-      add_arrow(*make_arrow(cmd_ang_from, cmd_ang_to), rgba=[0.2, 0.6, 0.2, 0.6])
 
-      act_lin_from = np.array([0, 0, z_offset]) * scale
-      act_lin_to = act_lin_from + np.array([lin_vel_b[0], lin_vel_b[1], 0]) * scale
+      # Command linear velocity arrow (blue)
+      cmd_lin_from = local_to_world(np.array([0, 0, z_offset]) * scale)
+      cmd_lin_to = local_to_world(
+        (np.array([0, 0, z_offset]) + np.array([cmd[0], cmd[1], 0])) * scale
+      )
+      visualizer.add_arrow(
+        cmd_lin_from, cmd_lin_to, color=(0.2, 0.2, 0.6, 0.6), width=0.015
+      )
+
+      # Command angular velocity arrow (green)
+      cmd_ang_from = cmd_lin_from
+      cmd_ang_to = local_to_world(
+        (np.array([0, 0, z_offset]) + np.array([0, 0, cmd[2]])) * scale
+      )
+      visualizer.add_arrow(
+        cmd_ang_from, cmd_ang_to, color=(0.2, 0.6, 0.2, 0.6), width=0.015
+      )
+
+      # Actual linear velocity arrow (cyan)
+      act_lin_from = local_to_world(np.array([0, 0, z_offset]) * scale)
+      act_lin_to = local_to_world(
+        (np.array([0, 0, z_offset]) + np.array([lin_vel_b[0], lin_vel_b[1], 0])) * scale
+      )
+      visualizer.add_arrow(
+        act_lin_from, act_lin_to, color=(0.0, 0.6, 1.0, 0.7), width=0.015
+      )
+
+      # Actual angular velocity arrow (light green)
       act_ang_from = act_lin_from
-      act_ang_to = act_ang_from + np.array([0, 0, ang_vel_b[2]]) * scale
-      add_arrow(*make_arrow(act_lin_from, act_lin_to), rgba=[0.0, 0.6, 1.0, 0.7])
-      add_arrow(*make_arrow(act_ang_from, act_ang_to), rgba=[0.0, 1.0, 0.4, 0.7])
+      act_ang_to = local_to_world(
+        (np.array([0, 0, z_offset]) + np.array([0, 0, ang_vel_b[2]])) * scale
+      )
+      visualizer.add_arrow(
+        act_ang_from, act_ang_to, color=(0.0, 1.0, 0.4, 0.7), width=0.015
+      )
 
 
 @dataclass(kw_only=True)

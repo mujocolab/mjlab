@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import copy
 import math
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-import mujoco
 import numpy as np
 import torch
 
@@ -24,6 +22,7 @@ from mjlab.third_party.isaaclab.isaaclab.utils.math import (
 if TYPE_CHECKING:
   from mjlab.entity import Entity
   from mjlab.envs import ManagerBasedRlEnv
+  from mjlab.viewer.debug_visualizer import DebugVisualizer
 
 
 class MotionLoader:
@@ -123,16 +122,6 @@ class MotionCommand(CommandTerm):
     self.metrics["sampling_entropy"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["sampling_top1_prob"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["sampling_top1_bin"] = torch.zeros(self.num_envs, device=self.device)
-
-    self._model_viz: mujoco.MjModel = copy.deepcopy(env.sim.mj_model)
-    self._model_viz.geom_rgba[:, 1] = np.clip(
-      self._model_viz.geom_rgba[:, 1] * 1.5, 0.0, 1.0
-    )
-    self._data_viz = mujoco.MjData(self._model_viz)
-    self._vopt = mujoco.MjvOption()
-    self._vopt.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT] = True
-    self._pert = mujoco.MjvPerturb()
-    self._catmask = mujoco.mjtCatBit.mjCAT_DYNAMIC
 
   @property
   def command(self) -> torch.Tensor:
@@ -397,33 +386,43 @@ class MotionCommand(CommandTerm):
     )
     self._current_bin_failed.zero_()
 
-  def _debug_vis_impl(self, scn: mujoco.MjvScene) -> None:
-    for i in range(self.num_envs):
-      entity: Entity = self._env.scene[self.cfg.asset_name]
-      indexing = entity.indexing
+  def _debug_vis_impl(self, visualizer: "DebugVisualizer") -> None:
+    """Draw ghost robot at target pose.
+
+    Note: For Viser viewer, only the selected environment is visualized.
+    For native viewer, all environments are shown.
+    """
+    entity: Entity = self._env.scene[self.cfg.asset_name]
+    indexing = entity.indexing
+
+    # Determine which environments to visualize
+    # For Viser, we typically only want the selected env to avoid lag
+    # For Native, we want all envs
+    from mjlab.viewer.viser_visualizer import ViserDebugVisualizer
+
+    if isinstance(visualizer, ViserDebugVisualizer):
+      # Only visualize the selected environment for Viser to reduce lag
+      envs_to_visualize = [visualizer.env_idx]
+    else:
+      # Visualize all environments for native viewer
+      envs_to_visualize = range(self.num_envs)
+
+    for i in envs_to_visualize:
+      # Build full qpos for the ghost pose
+      qpos = np.zeros(self._env.sim.mj_model.nq)
 
       free_joint_q_adr = indexing.free_joint_q_adr.cpu().numpy()
-      free_joint_pos_adr = free_joint_q_adr[:3]
-      free_joint_ori_adr = free_joint_q_adr[3:7]
       joint_q_adr = indexing.joint_q_adr.cpu().numpy()
 
-      self._data_viz.qpos[free_joint_pos_adr] = (
-        self.body_pos_w[i, 0].cpu().numpy().copy()
-      )
-      self._data_viz.qpos[free_joint_ori_adr] = (
-        self.body_quat_w[i, 0].cpu().numpy().copy()
-      )
-      self._data_viz.qpos[joint_q_adr] = self.joint_pos[i].cpu().numpy().copy()
+      # Set root pose
+      qpos[free_joint_q_adr[:3]] = self.body_pos_w[i, 0].cpu().numpy()
+      qpos[free_joint_q_adr[3:7]] = self.body_quat_w[i, 0].cpu().numpy()
 
-      mujoco.mj_forward(self._model_viz, self._data_viz)
-      mujoco.mjv_addGeoms(
-        self._model_viz,
-        self._data_viz,
-        self._vopt,
-        self._pert,
-        self._catmask.value,
-        scn,
-      )
+      # Set joint positions
+      qpos[joint_q_adr] = self.joint_pos[i].cpu().numpy()
+
+      # Let visualizer handle the rendering
+      visualizer.add_ghost_mesh(qpos, alpha=0.5)
 
 
 @dataclass(kw_only=True)

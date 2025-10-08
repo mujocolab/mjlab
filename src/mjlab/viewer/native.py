@@ -19,6 +19,7 @@ from mjlab.viewer.base import (
   VerbosityLevel,
   ViewerAction,
 )
+from mjlab.viewer.mujoco_native_visualizer import MujocoNativeDebugVisualizer
 
 if TYPE_CHECKING:
   from mjlab.entity import Entity
@@ -172,7 +173,8 @@ class NativeMujocoViewer(BaseViewer):
 
       v.user_scn.ngeom = 0
       if hasattr(self.env.unwrapped, "update_visualizers"):
-        self.env.unwrapped.update_visualizers(v.user_scn)
+        visualizer = MujocoNativeDebugVisualizer(v.user_scn, self.mjm)
+        self.env.unwrapped.update_visualizers(visualizer)
 
       if self.render_all_envs and self.vd is not None:
         for i in range(self.env.unwrapped.num_envs):

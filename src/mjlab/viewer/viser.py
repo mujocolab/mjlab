@@ -21,6 +21,7 @@ from mjlab.sim.sim import Simulation
 from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
 from mjlab.viewer.viser_conversions import mujoco_mesh_to_trimesh
 from mjlab.viewer.viser_reward_plotter import ViserRewardPlotter
+from mjlab.viewer.viser_visualizer import ViserDebugVisualizer
 
 
 class ViserViewer(BaseViewer):
@@ -34,6 +35,7 @@ class ViserViewer(BaseViewer):
   ) -> None:
     super().__init__(env, policy, frame_rate, render_all_envs, verbosity)
     self._reward_plotter: Optional[ViserRewardPlotter] = None
+    self._debug_visualizer: Optional[ViserDebugVisualizer] = None
 
   @override
   def setup(self) -> None:
@@ -545,6 +547,44 @@ class ViserViewer(BaseViewer):
           self.env.unwrapped.reward_manager.get_active_iterable_terms(self._env_idx)
         )
         self._reward_plotter.update(terms)
+
+    # Update debug visualizations
+    # Now that we reuse meshes and just update poses, this is very cheap!
+    # Update every frame for smooth 60fps visualization
+    if hasattr(self.env.unwrapped, "update_visualizers"):
+      # Create or update visualizer
+      sim = self.env.unwrapped.sim
+      assert isinstance(sim, Simulation)
+      # Get environment origin from sim data
+      env_origin = (
+        sim.data.xpos.numpy()[self._env_idx, 0, :]
+        if self._show_only_selected_env
+        else np.zeros(3)
+      )
+
+      # Only recreate if environment changed or doesn't exist
+      if (
+        self._debug_visualizer is None
+        or self._debug_visualizer.env_idx != self._env_idx
+      ):
+        # Clear old visualizer if it exists (removes arrows, keeps ghosts)
+        if self._debug_visualizer:
+          self._debug_visualizer.clear()
+
+        self._debug_visualizer = ViserDebugVisualizer(
+          self._server,
+          sim.mj_model,
+          self._env_idx,
+          env_origin,
+        )
+      else:
+        # Just clear arrows and reuse existing visualizer
+        # Ghost meshes are kept and their poses will be updated
+        self._debug_visualizer.clear()
+        self._debug_visualizer.env_origin = env_origin
+
+      # Update visualizations (this now just updates poses for ghosts!)
+      self.env.unwrapped.update_visualizers(self._debug_visualizer)
 
     # The rest of this method is environment state syncing.
     # It's fine to do this every other policy step to reduce bandwidth usage.
