@@ -402,11 +402,16 @@ class ViserViewer(BaseViewer):
 
           # Handle non-plane geoms later.
           if len(nonplane_geom_ids) > 0:
+            # geom is visible if it is a terrain or a visual geom
+            visible = (body_name == "terrain") or (visual_or_collision == "visual")
             self._server.scene.add_mesh_trimesh(
               f"/fixed_bodies/{body_name}/{visual_or_collision}",
               self._merge_geoms(mj_model, nonplane_geom_ids),
               cast_shadow=False,
               receive_shadow=0.2,
+              position=mj_model.body(body_id).pos,
+              wxyz=mj_model.body(body_id).quat,
+              visible=visible,
             )
 
     # Create visual handles by default on startup
