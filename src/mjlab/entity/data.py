@@ -49,6 +49,9 @@ class EntityData:
   default_joint_pos_limits: torch.Tensor
   joint_pos_limits: torch.Tensor
   soft_joint_pos_limits: torch.Tensor
+  joint_effort_limits: torch.Tensor
+  joint_vel_limits: torch.Tensor
+  soft_joint_vel_limits: torch.Tensor
 
   gravity_vec_w: torch.Tensor
   forward_vec_b: torch.Tensor
@@ -347,7 +350,7 @@ class EntityData:
     """Sensor data. The number of keys is equal to model.nsensor."""
     sensor_data = {}
     for name, indices in self.indexing.sensor_adr.items():
-      sensor_data[name] = self.data.sensordata[:, indices]
+      sensor_data[name] = self.data.sensordata[:, indices[0]:indices[1]].clone()
     return sensor_data
 
   # Pose and velocity component accessors.

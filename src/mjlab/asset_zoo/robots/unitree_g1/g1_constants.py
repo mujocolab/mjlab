@@ -142,6 +142,7 @@ G1_ACTUATOR_5020 = ActuatorCfg(
   armature=ACTUATOR_5020.reflected_inertia,
   stiffness=STIFFNESS_5020,
   damping=DAMPING_5020,
+  velocity_limit=ACTUATOR_5020.velocity_limit,
 )
 G1_ACTUATOR_7520_14 = ActuatorCfg(
   joint_names_expr=[".*_hip_pitch_joint", ".*_hip_yaw_joint", "waist_yaw_joint"],
@@ -149,6 +150,7 @@ G1_ACTUATOR_7520_14 = ActuatorCfg(
   armature=ACTUATOR_7520_14.reflected_inertia,
   stiffness=STIFFNESS_7520_14,
   damping=DAMPING_7520_14,
+  velocity_limit=ACTUATOR_7520_14.velocity_limit,
 )
 G1_ACTUATOR_7520_22 = ActuatorCfg(
   joint_names_expr=[".*_hip_roll_joint", ".*_knee_joint"],
@@ -156,6 +158,7 @@ G1_ACTUATOR_7520_22 = ActuatorCfg(
   armature=ACTUATOR_7520_22.reflected_inertia,
   stiffness=STIFFNESS_7520_22,
   damping=DAMPING_7520_22,
+  velocity_limit=ACTUATOR_7520_22.velocity_limit,
 )
 G1_ACTUATOR_4010 = ActuatorCfg(
   joint_names_expr=[".*_wrist_pitch_joint", ".*_wrist_yaw_joint"],
@@ -163,6 +166,7 @@ G1_ACTUATOR_4010 = ActuatorCfg(
   armature=ACTUATOR_4010.reflected_inertia,
   stiffness=STIFFNESS_4010,
   damping=DAMPING_4010,
+  velocity_limit=ACTUATOR_4010.velocity_limit,
 )
 
 # Waist pitch/roll and ankles are 4-bar linkages with 2 5020 actuators.
@@ -176,6 +180,7 @@ G1_ACTUATOR_WAIST = ActuatorCfg(
   armature=ACTUATOR_5020.reflected_inertia * 2,
   stiffness=STIFFNESS_5020 * 2,
   damping=DAMPING_5020 * 2,
+  velocity_limit=ACTUATOR_5020.velocity_limit,
 )
 G1_ACTUATOR_ANKLE = ActuatorCfg(
   joint_names_expr=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"],
@@ -183,6 +188,7 @@ G1_ACTUATOR_ANKLE = ActuatorCfg(
   armature=ACTUATOR_5020.reflected_inertia * 2,
   stiffness=STIFFNESS_5020 * 2,
   damping=DAMPING_5020 * 2,
+  velocity_limit=ACTUATOR_5020.velocity_limit,
 )
 
 ##

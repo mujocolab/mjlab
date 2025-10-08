@@ -13,7 +13,7 @@ from mjlab.entity.data import EntityData
 from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
 from mjlab.utils import spec_config as spec_cfg
 from mjlab.utils.mujoco import dof_width, qpos_width
-from mjlab.utils.string import resolve_expr
+from mjlab.utils.string import resolve_expr, filter_exp
 
 
 @dataclass(frozen=True)
@@ -40,7 +40,7 @@ class EntityIndexing:
   free_joint_q_adr: torch.Tensor
   free_joint_v_adr: torch.Tensor
 
-  sensor_adr: dict[str, torch.Tensor]
+  sensor_adr: dict[str, tuple[int, int]]
 
   @property
   def root_body_id(self) -> int:
@@ -49,6 +49,8 @@ class EntityIndexing:
 
 @dataclass
 class EntityCfg:
+
+  class_type: type = None
   @dataclass
   class InitialStateCfg:
     # Root position and orientation.
@@ -85,6 +87,7 @@ class EntityCfg:
 class EntityArticulationInfoCfg:
   actuators: tuple[spec_cfg.ActuatorCfg, ...] = field(default_factory=tuple)
   soft_joint_pos_limit_factor: float = 1.0
+  soft_joint_vel_limit_factor: float | None = None
 
 
 class Entity:
@@ -137,6 +140,7 @@ class Entity:
       self.cfg.sensors,
       self.cfg.collisions,
     ]:
+      cfg_list: Sequence[spec_cfg.SpecCfg]
       for cfg in cfg_list:
         cfg.edit_spec(self._spec)
 
@@ -367,6 +371,43 @@ class Entity:
         )
         default_joint_damping = torch.empty(nworld, 0, dtype=torch.float, device=device)
 
+      joint_effort_limits = torch.zeros(nworld, self.num_joints, dtype=torch.float, device=device)
+      joint_vel_limits = torch.full(
+        (nworld, self.num_joints), float("inf"), dtype=torch.float, device=device
+      )
+      soft_joint_vel_limits = torch.full(
+        (nworld, self.num_joints), float("inf"), dtype=torch.float, device=device
+      )
+      if self.is_actuated and self.cfg.articulation and self.cfg.articulation.actuators:
+        joint_name_to_idx = {name: idx for idx, name in enumerate(self.joint_names)}
+        effort_per_joint = torch.zeros(self.num_joints, dtype=torch.float, device=device)
+        vel_per_joint = torch.full(
+          (self.num_joints,), float("inf"), dtype=torch.float, device=device
+        )
+        for actuator_cfg in self.cfg.articulation.actuators:
+          matched_joints = filter_exp(list(actuator_cfg.joint_names_expr), self.joint_names)
+          for joint_name in matched_joints:
+            effort_per_joint[joint_name_to_idx[joint_name]] = actuator_cfg.effort_limit
+          if actuator_cfg.velocity_limit is not None:
+            if isinstance(actuator_cfg.velocity_limit, dict):
+              resolved = resolve_expr(
+                actuator_cfg.velocity_limit,
+                self.joint_names,
+                default_val=float("inf"),
+              )
+              for joint_name in matched_joints:
+                idx = joint_name_to_idx[joint_name]
+                val = resolved[idx]
+                if val != float("inf"):
+                  vel_per_joint[idx] = float(val)
+            else:
+              for joint_name in matched_joints:
+                vel_per_joint[joint_name_to_idx[joint_name]] = float(
+                  actuator_cfg.velocity_limit
+                )
+        joint_effort_limits[:] = effort_per_joint.unsqueeze(0)
+        joint_vel_limits[:] = vel_per_joint.unsqueeze(0)
+
       # Joint limits and control parameters.
       joint_ids_global = [j.id for j in self._non_free_joints]
       dof_limits = model.jnt_range[:, joint_ids_global]
@@ -388,6 +429,18 @@ class Entity:
       soft_joint_pos_limits[..., 1] = (
         joint_pos_mean + 0.5 * joint_pos_range * soft_limit_factor
       )
+
+      vel_soft_factor = (
+        self.cfg.articulation.soft_joint_vel_limit_factor
+        if self.cfg.articulation
+        else None
+      )
+      if vel_soft_factor is None:
+        vel_soft_factor = soft_limit_factor
+      finite_mask = torch.isfinite(joint_vel_limits)
+      soft_joint_vel_limits[finite_mask] = (
+        joint_vel_limits[finite_mask] * vel_soft_factor
+      )
     else:
       # Non-articulated entities - create empty tensors.
       default_joint_pos = torch.empty(nworld, 0, dtype=torch.float, device=device)
@@ -401,6 +454,9 @@ class Entity:
       )
       default_joint_stiffness = torch.empty(nworld, 0, dtype=torch.float, device=device)
       default_joint_damping = torch.empty(nworld, 0, dtype=torch.float, device=device)
+      joint_effort_limits = torch.empty(nworld, 0, dtype=torch.float, device=device)
+      joint_vel_limits = torch.empty(nworld, 0, dtype=torch.float, device=device)
+      soft_joint_vel_limits = torch.empty(nworld, 0, dtype=torch.float, device=device)
 
     self._data = EntityData(
       indexing=indexing,
@@ -415,6 +471,9 @@ class Entity:
       default_joint_pos_limits=default_joint_pos_limits,
       joint_pos_limits=joint_pos_limits,
       soft_joint_pos_limits=soft_joint_pos_limits,
+      joint_effort_limits=joint_effort_limits,
+      joint_vel_limits=joint_vel_limits,
+      soft_joint_vel_limits=soft_joint_vel_limits,
       gravity_vec_w=torch.tensor([0.0, 0.0, -1.0], device=device).repeat(nworld, 1),
       forward_vec_b=torch.tensor([1.0, 0.0, 0.0], device=device).repeat(nworld, 1),
       is_fixed_base=self.is_fixed_base,
@@ -478,6 +537,36 @@ class Entity:
       env_ids: Optional tensor or slice specifying which environments to set. If
         None, all environments are set.
     """
+    self._data.write_root_velocity(root_velocity, env_ids)
+  
+  def write_root_com_velocity_to_sim(
+    self,
+    root_com_velocity: torch.Tensor,
+    env_ids: torch.Tensor | slice | None = None,
+  ):
+    """Set the root center of mass velocity into the simulation.
+
+    Args:
+      root_com_velocity: Tensor of shape (N, 6) where N is the number of environments.
+      env_ids: Optional tensor or slice specifying which environments to set. If
+        None, all environments are set.
+    """
+    assert root_com_velocity.shape[-1] == 6
+
+    root_body_id = self.indexing.root_body_id
+    data = self._data.data
+    offset = data.xipos[:, root_body_id] - data.xpos[:, root_body_id]
+
+    if env_ids is None:
+      offset_env = offset
+    else:
+      offset_env = offset[env_ids]
+
+    com_lin_vel = root_com_velocity[:, 0:3]
+    ang_vel = root_com_velocity[:, 3:6]
+    link_lin_vel = com_lin_vel - torch.cross(ang_vel, offset_env, dim=-1)
+
+    root_velocity = torch.cat([link_lin_vel, ang_vel], dim=-1)
     self._data.write_root_velocity(root_velocity, env_ids)
 
   def write_joint_state_to_sim(
@@ -629,8 +718,8 @@ class Entity:
       sns = model.sensor(sensor_name)
       dim = sns.dim[0]
       start_adr = sns.adr[0]
-      sensor_adr[sensor_name.split("/")[-1]] = torch.arange(
-        start_adr, start_adr + dim, dtype=torch.int, device=device
+      sensor_adr[sensor_name.split("/")[-1]] = (
+        start_adr, start_adr + dim,
       )
 
     return EntityIndexing(

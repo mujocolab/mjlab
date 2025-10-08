@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 import mujoco
 import mujoco_warp as mjwarp
@@ -11,6 +11,8 @@ from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
 
 _SCENE_XML = Path(__file__).parent / "scene.xml"
 
+from mjlab.utils import spec_config as spec_cfg
+
 
 @dataclass(kw_only=True)
 class SceneCfg:
@@ -19,6 +21,10 @@ class SceneCfg:
   terrain: TerrainImporterCfg | None = None
   entities: dict[str, EntityCfg] = field(default_factory=dict)
   extent: float | None = None
+  
+  sensors: tuple[spec_cfg.SensorCfg | spec_cfg.ContactSensorCfg, ...] = field(
+    default_factory=tuple
+  )
 
 
 class Scene:
@@ -28,12 +34,16 @@ class Scene:
     self._entities: dict[str, Entity] = {}
     self._terrain: TerrainImporter | None = None
     self._default_env_origins: torch.Tensor | None = None
+    # Runtime handles
+    self._data: mjwarp.Data | None = None
+    self._sensor_adr: dict[str, torch.Tensor] | None = None
 
     self._spec = mujoco.MjSpec.from_file(str(_SCENE_XML))
     if self._cfg.extent is not None:
       self._spec.stat.extent = self._cfg.extent
     self._attach_terrain()
     self._attach_entities()
+    self._apply_spec_editors()
 
   def compile(self) -> mujoco.MjModel:
     return self._spec.compile()
@@ -113,8 +123,22 @@ class Scene:
     self._default_env_origins = torch.zeros(
       (self._cfg.num_envs, 3), device=self._device, dtype=torch.float32
     )
+    # Keep runtime data handle for sensor access.
+    self._data = data
     for ent in self._entities.values():
       ent.initialize(mj_model, model, data, self._device)
+
+    # Build scene-wide sensor address map (indices into sensordata).
+    sensor_adr: dict[str, torch.Tensor] = {}
+    for sensor in self._spec.sensors:
+      sensor_name = sensor.name
+      sns = mj_model.sensor(sensor_name)
+      dim = sns.dim[0]
+      start_adr = sns.adr[0]
+      sensor_adr[sensor_name] = (
+        start_adr, start_adr + dim,
+      )
+    self._sensor_adr = sensor_adr
 
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
     for ent in self._entities.values():
@@ -128,11 +152,29 @@ class Scene:
     for ent in self._entities.values():
       ent.write_data_to_sim()
 
+  @property
+  def sensor_data(self) -> dict[str, torch.Tensor]:
+    """All sensor data in the scene keyed by full sensor name.
+
+    Returns a dict mapping each sensor's full name (including entity prefix
+    if applicable) to a tensor of shape (num_envs, sensor_dim).
+    """
+    return {
+      name: self._data.sensordata[:, indices[0]:indices[1]].clone()
+      for name, indices in self._sensor_adr.items()
+    }
+
   # Private methods.
 
   def _attach_entities(self) -> None:
     for ent_name, ent_cfg in self._cfg.entities.items():
-      ent = Entity(ent_cfg)
+      ent_cls = ent_cfg.class_type
+      if ent_cls is None:
+        ent_cls = Entity
+      if not issubclass(ent_cls, Entity):
+        raise TypeError(f"Entity class for '{ent_name}' must inherit from Entity, got {ent_cls!r}")
+
+      ent = ent_cls(ent_cfg)
       self._entities[ent_name] = ent
       frame = self._spec.worldbody.add_frame()
       self._spec.attach(ent.spec, prefix=f"{ent_name}/", frame=frame)
@@ -145,3 +187,16 @@ class Scene:
     self._terrain = TerrainImporter(self._cfg.terrain, self._device)
     frame = self._spec.worldbody.add_frame()
     self._spec.attach(self._terrain.spec, frame=frame)
+
+  def _apply_spec_editors(self) -> None:
+    for cfg_list in [
+      # self.cfg.lights,
+      # self.cfg.cameras,
+      # self.cfg.textures,
+      # self.cfg.materials,
+      self._cfg.sensors,
+      # self.cfg.collisions,
+    ]:
+      cfg_list: Sequence[spec_cfg.SpecCfg]
+      for cfg in cfg_list:
+        cfg.edit_spec(self._spec)
