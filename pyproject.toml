@@ -40,7 +40,7 @@ dependencies = [
     "mujoco-warp",
     "mujoco",
     "trimesh>=4.8.3",
-    "viser>=1.0.11",
+    "viser>=1.0.13",
     "wandb",
     "moviepy",
     "tensordict",

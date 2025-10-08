@@ -1,3 +1,5 @@
+![Project banner](docs/mjlab-banner.jpg)
+
 # mjlab
 
 <p align="left">
