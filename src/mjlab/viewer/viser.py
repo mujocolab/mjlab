@@ -548,7 +548,7 @@ class ViserViewer(BaseViewer):
       assert isinstance(sim, Simulation)
       # Get environment origin from sim data
       env_origin = (
-        sim.data.xpos.numpy()[self._env_idx, 0, :]
+        sim.data.xpos.cpu().numpy()[self._env_idx, 0, :]
         if self._show_only_selected_env
         else np.zeros(3)
       )
