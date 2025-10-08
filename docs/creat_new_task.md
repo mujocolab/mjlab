@@ -119,7 +119,7 @@ __all__ = (
 )
 ```
 
-## 3. Creat Task
+## 3. Create Task
 
 ### 1) Create file structure
 
@@ -128,7 +128,7 @@ Navigate to the directory `mjlab\src\mjlab\tasks`, and create the following stru
 ```
 cartpole
  │ cartpole_env_cfg.py  # Defines the task settings.
- └─init__.py            # Marks the folder as a Python package.
+ └─__init__.py            # Marks the folder as a Python package.
 ```
 
 ### 2) cartpole_env_cfg.py
