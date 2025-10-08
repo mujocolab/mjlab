@@ -1,4 +1,4 @@
-"""Useful methods for MPD terminations."""
+"""Useful methods for MDP terminations."""
 
 from __future__ import annotations
 

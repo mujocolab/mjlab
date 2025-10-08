@@ -1,3 +1,5 @@
+![Project banner](docs/mjlab-banner.jpg)
+
 # mjlab
 
 <p align="left">
@@ -6,52 +8,53 @@
 
 mjlab combines [Isaac Lab](https://github.com/isaac-sim/IsaacLab)'s proven API with best-in-class [MuJoCo](https://github.com/google-deepmind/mujoco_warp) physics to provide lightweight, modular abstractions for RL robotics research and sim-to-real deployment.
 
-> **⚠️ BETA PREVIEW**
->
-> This project is in beta. There might be breaking changes and missing features.
+> ⚠️ **BETA PREVIEW**
+> mjlab is in active development. Expect **breaking changes** and **missing features** during the beta phase.
+> There is **no stable release yet**. The PyPI package is only a snapshot — for the latest fixes and improvements, install from source or Git.
 
-## Why mjlab?
-
-- **Already familiar**: Know Isaac Lab or MuJoCo? You already know mjlab
-- **PyTorch-native**: PyTorch interface to MuJoCo Warp for intuitive development and debugging
-- **Optimized Performance**: JIT-compiled kernels with caching make subsequent runs blazingly fast
-- **Massively Parallel**: MuJoCo Warp enables efficient GPU-accelerated simulation at scale
-- **Zero Setup Friction**: Pure Python with minimal dependencies. Just `uv run` and start training
-
-**[Read the full comparison →](docs/motivation.md)**
+---
 
 ## Quick Start
+
+mjlab requires an **NVIDIA GPU** for training (via MuJoCo Warp).
+macOS is supported only for evaluation, which is significantly slower.
 
 ```bash
 # Install uv if you haven't already
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-The fastest way to see mjlab in action is to run the demo:
+Run the demo (no installation needed):
 
 ```bash
-# Run the interactive demo (no installation needed)
 uvx --from mjlab --with "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@486642c3fa262a989b482e0e506716d5793d61a9" demo
 ```
 
-This launches an interactive viewer where you can see a pre-trained Unitree G1 agent tracking a reference dance motion in the MuJoCo Warp sim live.
+This launches an interactive viewer with a pre-trained Unitree G1 agent tracking a reference dance motion in MuJoCo Warp.
 
-### Installation
+> ❓ Having issues? See the [FAQ](docs/faq.md).
 
-**Install from source** (recommended during beta):
+---
+
+## Installation
+
+**From source (recommended during beta):**
 
 ```bash
-git clone https://github.com/mujocolab/mjlab.git && cd mjlab
+git clone https://github.com/mujocolab/mjlab.git
+cd mjlab
 uv run demo
 ```
 
-**Install from PyPI** (stable releases):
+**From PyPI (beta snapshot):**
 
 ```bash
 uv add mjlab "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@486642c3fa262a989b482e0e506716d5793d61a9"
 ```
 
-For detailed installation instructions and troubleshooting, see the [Installation Guide](docs/installation_guide.md).
+For full setup instructions, see the [Installation Guide](docs/installation_guide.md).
+
+---
 
 ## Training Examples
 
@@ -60,16 +63,16 @@ For detailed installation instructions and troubleshooting, see the [Installatio
 Train a Unitree G1 humanoid to follow velocity commands on flat terrain:
 
 ```bash
-MUJOCO_GL=egl uv run train \
-  Mjlab-Velocity-Flat-Unitree-G1 \
-  --env.scene.num-envs 4096
-
-# NOTE: You can evaluate a policy while your training is still
-# in progress. This will grab the latest checkpoint from wandb.
-uv run play \
-  --task Mjlab-Velocity-Flat-Unitree-G1-Play \
-  --wandb-run-path your-org/mjlab/run-id
+MUJOCO_GL=egl uv run train Mjlab-Velocity-Flat-Unitree-G1 --env.scene.num-envs 4096
 ```
+
+Evaluate a policy while training (fetches latest checkpoint from Weights & Biases):
+
+```bash
+uv run play --task Mjlab-Velocity-Flat-Unitree-G1-Play --wandb-run-path your-org/mjlab/run-id
+```
+
+---
 
 ### 2. Motion Imitation
 
@@ -97,40 +100,38 @@ Train a Unitree G1 to mimic reference motions. mjlab uses [WandB](https://wandb.
 #### Train and Play
 
 ```bash
-MUJOCO_GL=egl uv run train \
-  Mjlab-Tracking-Flat-Unitree-G1 \
-  --registry-name your-org/motions/motion-name \
-  --env.scene.num-envs 4096
+MUJOCO_GL=egl uv run train Mjlab-Tracking-Flat-Unitree-G1 --registry-name your-org/motions/motion-name --env.scene.num-envs 4096
 
-uv run play \
-  --task Mjlab-Tracking-Flat-Unitree-G1-Play \
-  --wandb-run-path your-org/mjlab/run-id
+uv run play --task Mjlab-Tracking-Flat-Unitree-G1-Play --wandb-run-path your-org/mjlab/run-id
 ```
+
+---
 
 ## Documentation
 
-- **[Installation Guide](docs/installation.md)** - Detailed setup instructions
-- **[Why mjlab?](docs/motivation.md)** - When to use mjlab (and when to use Isaac Lab, Newton, etc.)
-- **[Migration Guide](docs/migration.md)** - Moving from Isaac Lab
-- **[FAQ & Troubleshooting](docs/faq.md)** - Common questions and answers
+- **[Installation Guide](docs/installation_guide.md)**
+- **[Why mjlab?](docs/motivation.md)**
+- **[Migration Guide](docs/migration_guide.md)**
+- **[FAQ & Troubleshooting](docs/faq.md)**
+
+---
 
 ## Development
 
-### Running Tests
+Run tests:
 
 ```bash
 make test
 ```
 
-### Code Formatting
+Format code:
 
 ```bash
-# Install pre-commit hook
 uvx pre-commit install
-
-# Format manually
 make format
 ```
+
+---
 
 ## License
 
@@ -140,13 +141,13 @@ mjlab is licensed under the [Apache License, Version 2.0](LICENSE).
 
 The `third_party/` directory contains files from external projects, each with its own license:
 
-- **isaaclab/** — Selected files from [NVIDIA Isaac Lab](https://github.com/isaac-sim/IsaacLab) ([BSD-3-Clause](src/mjlab/third_party/isaaclab/LICENSE))
+- **isaaclab/** — [NVIDIA Isaac Lab](https://github.com/isaac-sim/IsaacLab) ([BSD-3-Clause](src/mjlab/third_party/isaaclab/LICENSE))
 
 When distributing or modifying mjlab, comply with:
-1. The Apache-2.0 license for mjlab's original code
-2. The respective licenses in `third_party/` for those files
+1. The Apache-2.0 license for mjlab’s original code
+2. The respective licenses in `third_party/`
 
-See individual `LICENSE` files for complete terms.
+---
 
 ## Acknowledgments
 

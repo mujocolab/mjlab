@@ -43,15 +43,18 @@ def run_play(
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
   print(f"[INFO]: Using device: {device}")
 
-  if checkpoint_file is not None and motion_file is None:
-    raise ValueError("Must provide `motion_file` if using `checkpoint_file`.")
-
   env_cfg = cast(
     ManagerBasedRlEnvCfg, load_cfg_from_registry(task, "env_cfg_entry_point")
   )
   agent_cfg = cast(
     RslRlOnPolicyRunnerCfg, load_cfg_from_registry(task, "rl_cfg_entry_point")
   )
+
+  if isinstance(env_cfg, TrackingEnvCfg):
+    if checkpoint_file is not None and motion_file is None:
+      raise ValueError(
+        "Tracking tasks require `motion_file` when using `checkpoint_file`."
+      )
 
   if num_envs is not None:
     env_cfg.scene.num_envs = num_envs

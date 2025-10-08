@@ -192,8 +192,8 @@ class EntityData:
   @property
   def root_link_pose_w(self) -> torch.Tensor:
     """Root link pose in simulation world frame. Shape (num_envs, 7)."""
-    pos_w = self.data.xpos[:, self.indexing.root_body_id].clone()  # (num_envs, 3)
-    quat_w = self.data.xquat[:, self.indexing.root_body_id].clone()  # (num_envs, 4)
+    pos_w = self.data.xpos[:, self.indexing.root_body_id]  # (num_envs, 3)
+    quat_w = self.data.xquat[:, self.indexing.root_body_id]  # (num_envs, 4)
     return torch.cat([pos_w, quat_w], dim=-1)  # (num_envs, 7)
 
   @property
@@ -203,17 +203,17 @@ class EntityData:
     # will be in body frame and needs to be rotated to world frame.
     # Note also that an extra forward() call might be required to make
     # both values equal.
-    pos = self.data.xpos[:, self.indexing.root_body_id].clone()  # (num_envs, 3)
-    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id].clone()
-    cvel = self.data.cvel[:, self.indexing.root_body_id].clone()  # (num_envs, 6)
+    pos = self.data.xpos[:, self.indexing.root_body_id]  # (num_envs, 3)
+    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
+    cvel = self.data.cvel[:, self.indexing.root_body_id]  # (num_envs, 6)
     return compute_velocity_from_cvel(pos, subtree_com, cvel)  # (num_envs, 6)
 
   @property
   def root_com_pose_w(self) -> torch.Tensor:
     """Root center-of-mass pose in simulation world frame. Shape (num_envs, 7)."""
-    pos_w = self.data.xipos[:, self.indexing.root_body_id].clone()
-    quat = self.data.xquat[:, self.indexing.root_body_id].clone()
-    body_iquat = self.model.body_iquat[:, self.indexing.root_body_id].clone()
+    pos_w = self.data.xipos[:, self.indexing.root_body_id]
+    quat = self.data.xquat[:, self.indexing.root_body_id]
+    body_iquat = self.model.body_iquat[:, self.indexing.root_body_id]
     assert body_iquat is not None
     quat_w = quat_mul(quat, body_iquat[None])
     return torch.cat([pos_w, quat_w], dim=-1)
@@ -222,9 +222,9 @@ class EntityData:
   def root_com_vel_w(self) -> torch.Tensor:
     """Root center-of-mass velocity in world frame. Shape (num_envs, 6)."""
     # NOTE: Equivalent sensor is framelinvel/frameangvel with objtype="body".
-    pos = self.data.xipos[:, self.indexing.root_body_id].clone()  # (num_envs, 3)
-    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id].clone()
-    cvel = self.data.cvel[:, self.indexing.root_body_id].clone()  # (num_envs, 6)
+    pos = self.data.xipos[:, self.indexing.root_body_id]  # (num_envs, 3)
+    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
+    cvel = self.data.cvel[:, self.indexing.root_body_id]  # (num_envs, 6)
     return compute_velocity_from_cvel(pos, subtree_com, cvel)  # (num_envs, 6)
 
   # Body properties
@@ -232,25 +232,25 @@ class EntityData:
   @property
   def body_link_pose_w(self) -> torch.Tensor:
     """Body link pose in simulation world frame. Shape (num_envs, num_bodies, 7)."""
-    pos_w = self.data.xpos[:, self.indexing.body_ids].clone()
-    quat_w = self.data.xquat[:, self.indexing.body_ids].clone()
+    pos_w = self.data.xpos[:, self.indexing.body_ids]
+    quat_w = self.data.xquat[:, self.indexing.body_ids]
     return torch.cat([pos_w, quat_w], dim=-1)
 
   @property
   def body_link_vel_w(self) -> torch.Tensor:
     """Body link velocity in simulation world frame. Shape (num_envs, num_bodies, 6)."""
     # NOTE: Equivalent sensor is framelinvel/frameangvel with objtype="xbody".
-    pos = self.data.xpos[:, self.indexing.body_ids].clone()  # (num_envs, num_bodies, 3)
-    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id].clone()
-    cvel = self.data.cvel[:, self.indexing.body_ids].clone()
+    pos = self.data.xpos[:, self.indexing.body_ids]  # (num_envs, num_bodies, 3)
+    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
+    cvel = self.data.cvel[:, self.indexing.body_ids]
     return compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
 
   @property
   def body_com_pose_w(self) -> torch.Tensor:
     """Body center-of-mass pose in simulation world frame. Shape (num_envs, num_bodies, 7)."""
-    pos_w = self.data.xipos[:, self.indexing.body_ids].clone()
-    quat = self.data.xquat[:, self.indexing.body_ids].clone()
-    body_iquat = self.model.body_iquat[:, self.indexing.body_ids].clone()
+    pos_w = self.data.xipos[:, self.indexing.body_ids]
+    quat = self.data.xquat[:, self.indexing.body_ids]
+    body_iquat = self.model.body_iquat[:, self.indexing.body_ids]
     quat_w = quat_mul(quat, body_iquat)
     return torch.cat([pos_w, quat_w], dim=-1)
 
@@ -258,50 +258,52 @@ class EntityData:
   def body_com_vel_w(self) -> torch.Tensor:
     """Body center-of-mass velocity in simulation world frame. Shape (num_envs, num_bodies, 6)."""
     # NOTE: Equivalent sensor is framelinvel/frameangvel with objtype="body".
-    pos = self.data.xipos[:, self.indexing.body_ids].clone()
-    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id].clone()
-    cvel = self.data.cvel[:, self.indexing.body_ids].clone()
+    pos = self.data.xipos[:, self.indexing.body_ids]
+    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
+    cvel = self.data.cvel[:, self.indexing.body_ids]
     return compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
 
   @property
   def body_external_wrench(self) -> torch.Tensor:
     """Body external wrench in world frame. Shape (num_envs, num_bodies, 6)."""
-    return self.data.xfrc_applied[:, self.indexing.body_ids].clone()
+    return self.data.xfrc_applied[:, self.indexing.body_ids]
 
   # Geom properties
 
   @property
   def geom_pose_w(self) -> torch.Tensor:
     """Geom pose in simulation world frame. Shape (num_envs, num_geoms, 7)."""
-    pos_w = self.data.geom_xpos[:, self.indexing.geom_ids].clone()
-    xmat = self.data.geom_xmat[:, self.indexing.geom_ids].clone()
+    pos_w = self.data.geom_xpos[:, self.indexing.geom_ids]
+    xmat = self.data.geom_xmat[:, self.indexing.geom_ids]
     quat_w = quat_from_matrix(xmat)
     return torch.cat([pos_w, quat_w], dim=-1)
 
   @property
   def geom_vel_w(self) -> torch.Tensor:
     """Geom velocity in simulation world frame. Shape (num_envs, num_geoms, 6)."""
-    pos = self.data.geom_xpos[:, self.indexing.geom_ids].clone()
-    body_ids = self.model.geom_bodyid[self.indexing.geom_ids].clone()  # (num_geoms,)
-    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id].clone()
-    cvel = self.data.cvel[:, body_ids].clone()
+    pos = self.data.geom_xpos[:, self.indexing.geom_ids]
+    body_ids = self.model.geom_bodyid[self.indexing.geom_ids]  # (num_geoms,)
+    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
+    cvel = self.data.cvel[:, body_ids]
     return compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
+
+  # Site properties
 
   @property
   def site_pose_w(self) -> torch.Tensor:
     """Site pose in simulation world frame. Shape (num_envs, num_sites, 7)."""
-    pos_w = self.data.site_xpos[:, self.indexing.site_ids].clone()
-    mat_w = self.data.site_xmat[:, self.indexing.site_ids].clone()
+    pos_w = self.data.site_xpos[:, self.indexing.site_ids]
+    mat_w = self.data.site_xmat[:, self.indexing.site_ids]
     quat_w = quat_from_matrix(mat_w)
     return torch.cat([pos_w, quat_w], dim=-1)
 
   @property
   def site_vel_w(self) -> torch.Tensor:
     """Site velocity in simulation world frame. Shape (num_envs, num_sites, 6)."""
-    pos = self.data.site_xpos[:, self.indexing.site_ids].clone()
-    body_ids = self.model.site_bodyid[self.indexing.site_ids].clone()  # (num_sites,)
-    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id].clone()
-    cvel = self.data.cvel[:, body_ids].clone()
+    pos = self.data.site_xpos[:, self.indexing.site_ids]
+    body_ids = self.model.site_bodyid[self.indexing.site_ids]  # (num_sites,)
+    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
+    cvel = self.data.cvel[:, body_ids]
     return compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
 
   # Joint properties
@@ -309,17 +311,17 @@ class EntityData:
   @property
   def joint_pos(self) -> torch.Tensor:
     """Joint positions. Shape (num_envs, nv)"""
-    return self.data.qpos[:, self.indexing.joint_q_adr].clone()
+    return self.data.qpos[:, self.indexing.joint_q_adr]
 
   @property
   def joint_vel(self) -> torch.Tensor:
     """Joint velocities. Shape (num_envs, nv)."""
-    return self.data.qvel[:, self.indexing.joint_v_adr].clone()
+    return self.data.qvel[:, self.indexing.joint_v_adr]
 
   @property
   def joint_acc(self) -> torch.Tensor:
     """Joint accelerations. Shape (num_envs, nv)."""
-    return self.data.qacc[:, self.indexing.joint_v_adr].clone()
+    return self.data.qacc[:, self.indexing.joint_v_adr]
 
   @property
   def joint_torques(self) -> torch.Tensor:
@@ -333,19 +335,19 @@ class EntityData:
   @property
   def actuator_force(self) -> torch.Tensor:
     """Scalar actuation force in actuation space. Shape (num_envs, nu)."""
-    return self.data.actuator_force[:, self.indexing.ctrl_ids].clone()
+    return self.data.actuator_force[:, self.indexing.ctrl_ids]
 
   @property
   def generalized_force(self) -> torch.Tensor:
     """Generalized forces applied to the DoFs. Shape (num_envs, nv)."""
-    return self.data.qfrc_applied[:, self.indexing.free_joint_v_adr].clone()
+    return self.data.qfrc_applied[:, self.indexing.free_joint_v_adr]
 
   @property
   def sensor_data(self) -> dict[str, torch.Tensor]:
     """Sensor data. The number of keys is equal to model.nsensor."""
     sensor_data = {}
     for name, indices in self.indexing.sensor_adr.items():
-      sensor_data[name] = self.data.sensordata[:, indices].clone()
+      sensor_data[name] = self.data.sensordata[:, indices]
     return sensor_data
 
   # Pose and velocity component accessors.

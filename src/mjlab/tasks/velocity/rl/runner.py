@@ -18,7 +18,7 @@ class VelocityOnPolicyRunner(OnPolicyRunner):
     super().save(path, infos)
     if self.logger_type in ["wandb"]:
       policy_path = path.split("model")[0]
-      filename = policy_path.split("/")[-2] + ".onnx"
+      filename = os.path.basename(os.path.dirname(policy_path)) + ".onnx"
       if self.alg.policy.actor_obs_normalization:
         normalizer = self.alg.policy.actor_obs_normalizer
       else:

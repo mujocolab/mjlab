@@ -4,7 +4,10 @@
 
 ### Does it work on macOS?
 
-Yes, but with limited performance. mjlab runs on macOS using CPU-only execution through MuJoCo Warp. The macOS wheels for Warp are relatively new, and CPU performance is significantly slower than GPU execution. For serious training, we recommend Linux with CUDA support.
+Yes, but only with limited performance. mjlab runs on macOS using CPU-only execution through MuJoCo Warp.
+- **Training is not recommended on macOS** as it lacks GPU acceleration.
+- **Evaluation works**, but is significantly slower than on Linux with CUDA.
+We recommend Linux with an NVIDIA GPU for serious training workloads.
 
 ### Does it work on Windows?
 
@@ -12,29 +15,45 @@ We have not tested on Windows. Community contributions for Windows support are w
 
 ### CUDA Compatibility
 
-Not all CUDA versions are supported by MuJoCo Warp. Check [mujoco_warp#101](https://github.com/google-deepmind/mujoco_warp/issues/101) for compatibility with your CUDA version.
+Not all CUDA versions are supported by MuJoCo Warp.
+- See [mujoco_warp#101](https://github.com/google-deepmind/mujoco_warp/issues/101) for details.
+- **Recommended**: CUDA 12.4+ (for conditional execution in CUDA graphs).
+
+---
 
 ## Performance
 
 ### Is it faster than Isaac Lab?
 
-On par or faster based on our experience over the last few months. We're planning to release a side-by-side performance comparison for both velocity tracking and motion imitation tasks in the near future.
+On par or faster based on our experience over the last few months.
 
 ### What GPU do you recommend?
 
-Linux with CUDA support is strongly recommended for training. RTX 40-series GPUs (or newer) provide significantly faster training speeds due to their improved RT cores, which MuJoCo Warp leverages for physics simulation.
+- RTX 40-series GPUs (or newer)
+- L40s, H100
+
+---
 
 ## Rendering & Visualization
 
 ### What visualization options are available?
 
-We currently support two visualizers for monitoring training:
+We currently support two visualizers for policy evaluation and debugging:
 - **Native MuJoCo visualizer** - The built-in visualizer that ships with MuJoCo
 - **[Viser](https://github.com/nerfstudio-project/viser)** - Web-based 3D visualization
 
+We’re exploring options for **training-time visualization** (e.g. live rollout
+viewers), but this is not yet available. As a current alternative, mjlab
+supports **video logging to Weights & Biases (W&B)**, so you can monitor rollout
+videos directly in your experiment dashboard.
+
 ### What about camera/pixel rendering for vision-based RL?
 
-Camera rendering for pixel-based agents is not yet available. The MuJoCo Warp team is actively developing camera support, which will integrate with mjlab once available.
+Camera rendering for pixel-based agents is not yet available. The MuJoCo Warp
+team is actively developing camera support, which will integrate with mjlab once
+available.
+
+---
 
 ## Assets & Compatibility
 
@@ -49,6 +68,8 @@ These serve as examples for robot integration and support our reference tasks fo
 ### Can I use USD or URDF models?
 
 No, mjlab requires MJCF (MuJoCo XML) format. You'll need to convert USD/URDF models to MJCF. Fortunately, [MuJoCo Menagerie](https://github.com/google-deepmind/mujoco_menagerie) provides a large collection of pre-converted robot assets you can use.
+
+---
 
 ## Getting Help
 
@@ -65,25 +86,31 @@ No, mjlab requires MJCF (MuJoCo XML) format. You'll need to convert USD/URDF mod
 
 ### Discussions
 
-**For usage questions:**
-- Task configuration help
-- Performance optimization tips
-- Asset conversion guidance
-- Sharing examples and best practices
-
+**For usage questions** (config, performance tips, asset conversion, best practices):
 [Start a discussion →](https://github.com/mujocolab/mjlab/discussions)
 
 ### Contributing
 
 **Want to help improve mjlab?**
 - Bug fixes and performance optimizations
-- Feature implementations (check issues tagged `enhancement`) especially reaching feature parity with IsaacLab
+- Feature implementations (check issues tagged `enhancement`)
 - Documentation improvements
+
+Before contributing:
+- Run `make test` to ensure changes don’t break existing functionality
+- Run `make format` or use `pre-commit` hooks for code style consistency
+
+---
 
 ## Known Limitations
 
-We're tracking missing features for the stable release in [issue #100](https://github.com/mujocolab/mjlab/issues/100). Check our [open issues](https://github.com/mujocolab/mjlab/issues) to see what's actively being worked on.
+We're tracking missing features for the stable release in
+[issue #100](https://github.com/mujocolab/mjlab/issues/100). Check our
+[open issues](https://github.com/mujocolab/mjlab/issues) to see what's actively
+being worked on.
 
-If something isn't working or if we've missed something, please [file a bug report](https://github.com/mujocolab/mjlab/issues/new).
+If something isn't working or if we've missed something, please
+[file a bug report](https://github.com/mujocolab/mjlab/issues/new).
 
-**Remember:** mjlab is in beta! We're actively addressing limitations and welcome feedback on priorities.
+> **Reminder**: mjlab is in **beta**. Breaking changes and missing features are
+> expected — feedback and contributions are welcome!
