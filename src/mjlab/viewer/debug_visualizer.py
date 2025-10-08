@@ -3,18 +3,24 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 import numpy as np
 import torch
+
+if TYPE_CHECKING:
+  import mujoco
 
 
 class DebugVisualizer(Protocol):
   """Protocol for viewer-agnostic debug visualization.
 
-  This allows command terms and other components to draw debug visualizations
-  without knowing the underlying viewer implementation (MuJoCo native vs Viser).
+  This allows manager terms to draw debug visualizations without knowing the underlying
+  viewer implementation.
   """
+
+  env_idx: int
+  """Index of the environment being visualized."""
 
   @abstractmethod
   def add_arrow(
@@ -40,7 +46,7 @@ class DebugVisualizer(Protocol):
   def add_ghost_mesh(
     self,
     qpos: np.ndarray | torch.Tensor,
-    model: object | None = None,
+    model: "mujoco.MjModel",
     alpha: float = 0.5,
     label: str | None = None,
   ) -> None:
@@ -48,8 +54,8 @@ class DebugVisualizer(Protocol):
 
     Args:
       qpos: Joint positions for the ghost pose
-      model: Model defining the robot geometry (optional, visualizer may use its own)
-      alpha: Transparency (0=transparent, 1=opaque)
+      model: MuJoCo model with pre-configured appearance (geom_rgba for colors)
+      alpha: Transparency override (0=transparent, 1=opaque) - may not be used by all implementations
       label: Optional label for this ghost
     """
     pass
@@ -62,6 +68,9 @@ class DebugVisualizer(Protocol):
 
 class NullDebugVisualizer:
   """No-op visualizer when visualization is disabled."""
+
+  def __init__(self, env_idx: int = 0):
+    self.env_idx = env_idx
 
   def add_arrow(self, start, end, color, width=0.015, label=None) -> None:
     pass

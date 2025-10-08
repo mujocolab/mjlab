@@ -173,7 +173,7 @@ class NativeMujocoViewer(BaseViewer):
 
       v.user_scn.ngeom = 0
       if hasattr(self.env.unwrapped, "update_visualizers"):
-        visualizer = MujocoNativeDebugVisualizer(v.user_scn, self.mjm)
+        visualizer = MujocoNativeDebugVisualizer(v.user_scn, self.mjm, self.env_idx)
         self.env.unwrapped.update_visualizers(visualizer)
 
       if self.render_all_envs and self.vd is not None:

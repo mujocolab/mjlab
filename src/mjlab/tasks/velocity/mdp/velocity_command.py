@@ -106,10 +106,16 @@ class UniformVelocityCommand(CommandTerm):
   def _debug_vis_impl(self, visualizer: "DebugVisualizer") -> None:
     """Draw velocity command and actual velocity arrows.
 
-    Note: For Viser viewer, only the selected environment is visualized.
-    For native viewer, all environments are shown.
+    Note: Only visualizes the selected environment (visualizer.env_idx).
     """
-    # Get data
+    # Only visualize the selected environment
+    batch = visualizer.env_idx
+
+    if batch >= self.num_envs:
+      # Safety check
+      return
+
+    # Get data for the selected environment
     cmds = self.command.cpu().numpy()
     base_pos_ws = self.robot.data.root_link_pos_w.cpu().numpy()
     base_quat_w = self.robot.data.root_link_quat_w
@@ -117,67 +123,56 @@ class UniformVelocityCommand(CommandTerm):
     lin_vel_bs = self.robot.data.root_link_lin_vel_b.cpu().numpy()
     ang_vel_bs = self.robot.data.root_link_ang_vel_b.cpu().numpy()
 
-    # Determine which environments to visualize
-    from mjlab.viewer.viser_visualizer import ViserDebugVisualizer
+    base_pos_w = base_pos_ws[batch]
+    base_mat_w = base_mat_ws[batch]
+    cmd = cmds[batch]
+    lin_vel_b = lin_vel_bs[batch]
+    ang_vel_b = ang_vel_bs[batch]
 
-    if isinstance(visualizer, ViserDebugVisualizer):
-      # Only visualize the selected environment for Viser to reduce clutter
-      envs_to_visualize = [visualizer.env_idx]
-    else:
-      # Visualize all environments for native viewer
-      envs_to_visualize = range(self.num_envs)
+    # Helper to transform local to world coordinates
+    def local_to_world(
+      vec: np.ndarray, pos: np.ndarray = base_pos_w, mat: np.ndarray = base_mat_w
+    ) -> np.ndarray:
+      return pos + mat @ vec
 
-    for batch in envs_to_visualize:
-      base_pos_w = base_pos_ws[batch]
-      base_mat_w = base_mat_ws[batch]
-      cmd = cmds[batch]
-      lin_vel_b = lin_vel_bs[batch]
-      ang_vel_b = ang_vel_bs[batch]
+    scale = self.cfg.viz.scale
+    z_offset = self.cfg.viz.z_offset
 
-      # Helper to transform local to world coordinates
-      def local_to_world(
-        vec: np.ndarray, pos: np.ndarray = base_pos_w, mat: np.ndarray = base_mat_w
-      ) -> np.ndarray:
-        return pos + mat @ vec
+    # Command linear velocity arrow (blue)
+    cmd_lin_from = local_to_world(np.array([0, 0, z_offset]) * scale)
+    cmd_lin_to = local_to_world(
+      (np.array([0, 0, z_offset]) + np.array([cmd[0], cmd[1], 0])) * scale
+    )
+    visualizer.add_arrow(
+      cmd_lin_from, cmd_lin_to, color=(0.2, 0.2, 0.6, 0.6), width=0.015
+    )
 
-      scale = self.cfg.viz.scale
-      z_offset = self.cfg.viz.z_offset
+    # Command angular velocity arrow (green)
+    cmd_ang_from = cmd_lin_from
+    cmd_ang_to = local_to_world(
+      (np.array([0, 0, z_offset]) + np.array([0, 0, cmd[2]])) * scale
+    )
+    visualizer.add_arrow(
+      cmd_ang_from, cmd_ang_to, color=(0.2, 0.6, 0.2, 0.6), width=0.015
+    )
 
-      # Command linear velocity arrow (blue)
-      cmd_lin_from = local_to_world(np.array([0, 0, z_offset]) * scale)
-      cmd_lin_to = local_to_world(
-        (np.array([0, 0, z_offset]) + np.array([cmd[0], cmd[1], 0])) * scale
-      )
-      visualizer.add_arrow(
-        cmd_lin_from, cmd_lin_to, color=(0.2, 0.2, 0.6, 0.6), width=0.015
-      )
+    # Actual linear velocity arrow (cyan)
+    act_lin_from = local_to_world(np.array([0, 0, z_offset]) * scale)
+    act_lin_to = local_to_world(
+      (np.array([0, 0, z_offset]) + np.array([lin_vel_b[0], lin_vel_b[1], 0])) * scale
+    )
+    visualizer.add_arrow(
+      act_lin_from, act_lin_to, color=(0.0, 0.6, 1.0, 0.7), width=0.015
+    )
 
-      # Command angular velocity arrow (green)
-      cmd_ang_from = cmd_lin_from
-      cmd_ang_to = local_to_world(
-        (np.array([0, 0, z_offset]) + np.array([0, 0, cmd[2]])) * scale
-      )
-      visualizer.add_arrow(
-        cmd_ang_from, cmd_ang_to, color=(0.2, 0.6, 0.2, 0.6), width=0.015
-      )
-
-      # Actual linear velocity arrow (cyan)
-      act_lin_from = local_to_world(np.array([0, 0, z_offset]) * scale)
-      act_lin_to = local_to_world(
-        (np.array([0, 0, z_offset]) + np.array([lin_vel_b[0], lin_vel_b[1], 0])) * scale
-      )
-      visualizer.add_arrow(
-        act_lin_from, act_lin_to, color=(0.0, 0.6, 1.0, 0.7), width=0.015
-      )
-
-      # Actual angular velocity arrow (light green)
-      act_ang_from = act_lin_from
-      act_ang_to = local_to_world(
-        (np.array([0, 0, z_offset]) + np.array([0, 0, ang_vel_b[2]])) * scale
-      )
-      visualizer.add_arrow(
-        act_ang_from, act_ang_to, color=(0.0, 1.0, 0.4, 0.7), width=0.015
-      )
+    # Actual angular velocity arrow (light green)
+    act_ang_from = act_lin_from
+    act_ang_to = local_to_world(
+      (np.array([0, 0, z_offset]) + np.array([0, 0, ang_vel_b[2]])) * scale
+    )
+    visualizer.add_arrow(
+      act_ang_from, act_ang_to, color=(0.0, 1.0, 0.4, 0.7), width=0.015
+    )
 
 
 @dataclass(kw_only=True)

@@ -145,7 +145,6 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
       return None
     elif self.render_mode == "rgb_array":
       self.sim.update_render()
-      self.update_visualizers(self.sim.renderer.scene)
       return self.sim.render()
     else:
       raise NotImplementedError(
