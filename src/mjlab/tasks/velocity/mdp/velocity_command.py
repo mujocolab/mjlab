@@ -108,14 +108,11 @@ class UniformVelocityCommand(CommandTerm):
 
     Note: Only visualizes the selected environment (visualizer.env_idx).
     """
-    # Only visualize the selected environment
     batch = visualizer.env_idx
 
     if batch >= self.num_envs:
-      # Safety check
       return
 
-    # Get data for the selected environment
     cmds = self.command.cpu().numpy()
     base_pos_ws = self.robot.data.root_link_pos_w.cpu().numpy()
     base_quat_w = self.robot.data.root_link_quat_w
@@ -128,6 +125,10 @@ class UniformVelocityCommand(CommandTerm):
     cmd = cmds[batch]
     lin_vel_b = lin_vel_bs[batch]
     ang_vel_b = ang_vel_bs[batch]
+
+    # Skip if robot appears uninitialized (at origin)
+    if np.linalg.norm(base_pos_w) < 1e-6:
+      return
 
     # Helper to transform local to world coordinates
     def local_to_world(

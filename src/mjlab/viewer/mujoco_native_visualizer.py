@@ -19,21 +19,18 @@ class MujocoNativeDebugVisualizer:
 
     Args:
       scn: MuJoCo scene to add visualizations to
-      mj_model: MuJoCo model (not used for ghost rendering, kept for compatibility)
+      mj_model: MuJoCo model for creating visualization data
       env_idx: Index of the environment being visualized
     """
     self.scn = scn
     self.mj_model = mj_model
     self.env_idx = env_idx
-    # Store the initial geom count to know where debug vis starts.
     self._initial_geom_count = scn.ngeom
 
-    # Create shared visualization options (reused across all ghost renders)
     self._vopt = mujoco.MjvOption()
     self._vopt.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT] = True
     self._pert = mujoco.MjvPerturb()
-
-    self._viz_data = mujoco.MjData(self.mj_model)
+    self._viz_data = mujoco.MjData(mj_model)
 
   def add_arrow(
     self,
@@ -93,11 +90,9 @@ class MujocoNativeDebugVisualizer:
     if isinstance(qpos, torch.Tensor):
       qpos = qpos.cpu().numpy()
 
-    # Set the pose and compute forward kinematics
     self._viz_data.qpos[:] = qpos
     mujoco.mj_forward(model, self._viz_data)
 
-    # Add to scene
     mujoco.mjv_addGeoms(
       model,
       self._viz_data,

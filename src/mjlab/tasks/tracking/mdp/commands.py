@@ -5,6 +5,7 @@ import math
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+import mujoco
 import numpy as np
 import torch
 
@@ -124,9 +125,9 @@ class MotionCommand(CommandTerm):
     self.metrics["sampling_top1_prob"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["sampling_top1_bin"] = torch.zeros(self.num_envs, device=self.device)
 
-    # Create ghost visualization model with custom appearance
-    self._ghost_model = copy.deepcopy(env.sim.mj_model)
-    self._ghost_model.geom_rgba[:] = cfg.viz.ghost_color
+    # Ghost model created lazily on first visualization
+    self._ghost_model: mujoco.MjModel | None = None
+    self._ghost_color = np.array(cfg.viz.ghost_color, dtype=np.float32)
 
   @property
   def command(self) -> torch.Tensor:
@@ -393,16 +394,18 @@ class MotionCommand(CommandTerm):
 
   def _debug_vis_impl(self, visualizer: DebugVisualizer) -> None:
     """Draw ghost robot at target pose."""
+    if self._ghost_model is None:
+      self._ghost_model = copy.deepcopy(self._env.sim.mj_model)
+      self._ghost_model.geom_rgba[:] = self._ghost_color
+
     entity: Entity = self._env.scene[self.cfg.asset_name]
     indexing = entity.indexing
     free_joint_q_adr = indexing.free_joint_q_adr.cpu().numpy()
     joint_q_adr = indexing.joint_q_adr.cpu().numpy()
 
     qpos = np.zeros(self._env.sim.mj_model.nq)
-    # Root pose.
     qpos[free_joint_q_adr[:3]] = self.body_pos_w[visualizer.env_idx, 0].cpu().numpy()
     qpos[free_joint_q_adr[3:7]] = self.body_quat_w[visualizer.env_idx, 0].cpu().numpy()
-    # Joint positions.
     qpos[joint_q_adr] = self.joint_pos[visualizer.env_idx].cpu().numpy()
 
     visualizer.add_ghost_mesh(qpos, model=self._ghost_model)
