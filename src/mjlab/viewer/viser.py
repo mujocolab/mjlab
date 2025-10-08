@@ -239,6 +239,9 @@ class ViserViewer(BaseViewer):
             @cb_contact_points.on_update
             def _(_) -> None:
               self._show_contact_points = cb_contact_points.value
+              # Immediately hide if disabled
+              if not cb_contact_points.value and self._contact_point_handle is not None:
+                self._contact_point_handle.visible = False
 
             @contact_point_color.on_update
             def _(_) -> None:
@@ -251,6 +254,12 @@ class ViserViewer(BaseViewer):
             @cb_contact_forces.on_update
             def _(_) -> None:
               self._show_contact_forces = cb_contact_forces.value
+              # Immediately hide if disabled
+              if not cb_contact_forces.value:
+                if self._contact_force_shaft_handle is not None:
+                  self._contact_force_shaft_handle.visible = False
+                if self._contact_force_head_handle is not None:
+                  self._contact_force_head_handle.visible = False
 
             @contact_force_color.on_update
             def _(_) -> None:
