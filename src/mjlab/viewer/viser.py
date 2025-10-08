@@ -64,6 +64,7 @@ class ViserViewer(BaseViewer):
     self._counter = 0
     self._env_idx = 0
     self._show_only_selected_env = False
+    self._show_debug_vis = True
 
     # Set up lighting.
     self._server.scene.configure_environment_map(environment_intensity=0.8)
@@ -126,6 +127,9 @@ class ViserViewer(BaseViewer):
         cb_collision = self._server.gui.add_checkbox(
           "Collision geom", initial_value=False
         )
+        cb_debug_vis = self._server.gui.add_checkbox(
+          "Debug visualization", initial_value=True
+        )
         slider_fov = self._server.gui.add_slider(
           "FOV (°)",
           min=20,
@@ -157,6 +161,13 @@ class ViserViewer(BaseViewer):
               if not visibility:
                 handle.batched_positions = handle.batched_positions - 2000.0
               handle.visible = visibility
+
+        @cb_debug_vis.on_update
+        def _(_) -> None:
+          self._show_debug_vis = cb_debug_vis.value
+          # Clear visualizer if hiding
+          if not self._show_debug_vis and self._debug_visualizer is not None:
+            self._debug_visualizer.clear_all()
 
         # Update FOV when a new client connects.
         @slider_fov.on_update
@@ -542,7 +553,7 @@ class ViserViewer(BaseViewer):
         self._reward_plotter.update(terms)
 
     # Update debug visualizations every frame
-    if hasattr(self.env.unwrapped, "update_visualizers"):
+    if self._show_debug_vis and hasattr(self.env.unwrapped, "update_visualizers"):
       # Create or update visualizer
       sim = self.env.unwrapped.sim
       assert isinstance(sim, Simulation)
@@ -576,6 +587,9 @@ class ViserViewer(BaseViewer):
 
       # Update visualizations (this now just updates poses for ghosts!)
       self.env.unwrapped.update_visualizers(self._debug_visualizer)
+    elif not self._show_debug_vis and self._debug_visualizer is not None:
+      # Clear visualizer if debug vis is disabled
+      self._debug_visualizer.clear_all()
 
     # The rest of this method is environment state syncing.
     # It's fine to do this every other policy step to reduce bandwidth usage.
