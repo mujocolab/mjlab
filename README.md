@@ -87,7 +87,7 @@ Train a Unitree G1 to mimic reference motions. mjlab uses [WandB](https://wandb.
 
 3. **Process and upload motion files**:
    ```bash
-   MUJOCO_GL=egl uv run scripts/tracking/csv_to_npz.py \
+   MUJOCO_GL=egl uv run src/mjlab/scripts/csv_to_npz.py \
      --input-file /path/to/motion.csv \
      --output-name motion_name \
      --input-fps 30 \

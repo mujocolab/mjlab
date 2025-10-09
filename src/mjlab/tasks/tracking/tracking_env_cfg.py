@@ -6,7 +6,7 @@ Robot-specific configurations are located in the config/ directory.
 This is a re-implementation of BeyondMimic (https://beyondmimic.github.io/).
 
 Based on https://github.com/HybridRobotics/whole_body_tracking
-Commit: d763c6af1eb25c1341b8104e1c53eaae5ad9ae00
+Commit: f8e20c880d9c8ec7172a13d3a88a65e3a5a88448
 """
 
 from dataclasses import dataclass, field
