@@ -43,11 +43,7 @@ def root_height_below_minimum(
 
 
 class illegal_contacts:
-  """Penalize the deviation of the joint positions from the default positions.
-
-  Note: This is implemented as a class so that we can resolve the standard deviation
-  dictionary into a tensor and thereafter use it in the __call__ method.
-  """
+  """Terminate when the asset's selected contact sensors touche the ground."""
 
   def __init__(self, cfg: TerminationTermCfg, env: ManagerBasedRlEnv):
     self.asset_cfg: SceneEntityCfg = cfg.params.get("asset_cfg", _DEFAULT_ASSET_CFG)
