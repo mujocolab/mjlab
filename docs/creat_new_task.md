@@ -223,23 +223,12 @@ class ObservationCfg:
 
     # Critic network (value function) observation terms
     @dataclass
-    class CriticCfg(ObsGroup):
-        angle: ObsTerm = term(
-            ObsTerm,
-            func=lambda env: env.sim.data.qpos[:, 1:2] / math.pi,
-        )
-        ang_vel: ObsTerm = term(
-            ObsTerm,
-            func=lambda env: env.sim.data.qvel[:, 1:2] / 10.0,
-        )
-        cart_pos: ObsTerm = term(
-            ObsTerm,
-            func=lambda env: env.sim.data.qpos[:, 0:1] / 2.0,
-        )
-        cart_vel: ObsTerm = term(
-            ObsTerm,
-            func=lambda env: env.sim.data.qvel[:, 0:1] / 5.0,
-        )
+    class CriticCfg(PolicyCfg):
+        """
+        The critic uses the same observation inputs as the policy.
+        Inheriting directly from PolicyCfg avoids redundancy and ensures consistency.
+        """
+        pass
 
     policy: PolicyCfg = field(default_factory=PolicyCfg)
     critic: CriticCfg = field(default_factory=CriticCfg)
