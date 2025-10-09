@@ -10,7 +10,6 @@ from prettytable import PrettyTable
 
 from mjlab.managers.manager_base import ManagerBase
 from mjlab.managers.manager_term_config import RewardTermCfg
-from mjlab.utils.dataclasses import get_terms
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
@@ -19,7 +18,7 @@ if TYPE_CHECKING:
 class RewardManager(ManagerBase):
   _env: ManagerBasedRlEnv
 
-  def __init__(self, cfg: object, env: ManagerBasedRlEnv):
+  def __init__(self, cfg: dict[str, RewardTermCfg], env: ManagerBasedRlEnv):
     self._term_names: list[str] = list()
     self._term_cfgs: list[RewardTermCfg] = list()
     self._class_term_cfgs: list[RewardTermCfg] = list()
@@ -101,9 +100,7 @@ class RewardManager(ManagerBase):
     return self._term_cfgs[self._term_names.index(term_name)]
 
   def _prepare_terms(self):
-    cfg_items = get_terms(self.cfg, RewardTermCfg).items()
-    for term_name, term_cfg in cfg_items:
-      term_cfg: RewardTermCfg | None
+    for term_name, term_cfg in self.cfg.items():
       if term_cfg is None:
         print(f"term: {term_name} set to None, skipping...")
         continue

@@ -1,11 +1,14 @@
 import gymnasium as gym
 
+from .flat_env_cfg import UNITREE_G1_FLAT_ENV_CFG, UNITREE_G1_FLAT_ENV_CFG_PLAY
+from .rough_env_cfg import UNITREE_G1_ROUGH_ENV_CFG, UNITREE_G1_ROUGH_ENV_CFG_PLAY
+
 gym.register(
   id="Mjlab-Velocity-Rough-Unitree-G1",
   entry_point="mjlab.envs:ManagerBasedRlEnv",
   disable_env_checker=True,
   kwargs={
-    "env_cfg_entry_point": f"{__name__}.rough_env_cfg:UnitreeG1RoughEnvCfg",
+    "env_cfg_entry_point": UNITREE_G1_ROUGH_ENV_CFG,
     "rl_cfg_entry_point": f"{__name__}.rl_cfg:UnitreeG1PPORunnerCfg",
   },
 )
@@ -15,7 +18,7 @@ gym.register(
   entry_point="mjlab.envs:ManagerBasedRlEnv",
   disable_env_checker=True,
   kwargs={
-    "env_cfg_entry_point": f"{__name__}.rough_env_cfg:UnitreeG1RoughEnvCfg_PLAY",
+    "env_cfg_entry_point": UNITREE_G1_ROUGH_ENV_CFG_PLAY,
     "rl_cfg_entry_point": f"{__name__}.rl_cfg:UnitreeG1PPORunnerCfg",
   },
 )
@@ -25,7 +28,7 @@ gym.register(
   entry_point="mjlab.envs:ManagerBasedRlEnv",
   disable_env_checker=True,
   kwargs={
-    "env_cfg_entry_point": f"{__name__}.flat_env_cfg:UnitreeG1FlatEnvCfg",
+    "env_cfg_entry_point": UNITREE_G1_FLAT_ENV_CFG,
     "rl_cfg_entry_point": f"{__name__}.rl_cfg:UnitreeG1PPORunnerCfg",
   },
 )
@@ -35,7 +38,7 @@ gym.register(
   entry_point="mjlab.envs:ManagerBasedRlEnv",
   disable_env_checker=True,
   kwargs={
-    "env_cfg_entry_point": f"{__name__}.flat_env_cfg:UnitreeG1FlatEnvCfg_PLAY",
+    "env_cfg_entry_point": UNITREE_G1_FLAT_ENV_CFG_PLAY,
     "rl_cfg_entry_point": f"{__name__}.rl_cfg:UnitreeG1PPORunnerCfg",
   },
 )

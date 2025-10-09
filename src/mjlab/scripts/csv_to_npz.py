@@ -8,7 +8,7 @@ from tqdm import tqdm
 from mjlab.entity import Entity
 from mjlab.scene import Scene
 from mjlab.sim.sim import Simulation, SimulationCfg
-from mjlab.tasks.tracking.config.g1.flat_env_cfg import G1FlatEnvCfg
+from mjlab.tasks.tracking.config.g1.flat_env_cfg import G1_FLAT_ENV_CFG
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   axis_angle_from_quat,
   quat_apply_inverse,
@@ -358,7 +358,7 @@ def main(
   sim_cfg.render.height = 480
   sim_cfg.render.width = 640
 
-  scene = Scene(G1FlatEnvCfg().scene, device=device)
+  scene = Scene(G1_FLAT_ENV_CFG.scene, device=device)
   model = scene.compile()
 
   sim = Simulation(num_envs=1, cfg=sim_cfg, model=model, device=device)
