@@ -75,6 +75,9 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
     self.commands.motion.pose_range = {}
     self.commands.motion.velocity_range = {}
 
+    # Disable adaptive sampling to play through motion from start to finish.
+    self.commands.motion.disable_adaptive_sampling = True
+
     # Effectively infinite episode length.
     self.episode_length_s = int(1e9)
 
@@ -90,6 +93,9 @@ class G1FlatNoStateEstimationEnvCfg_PLAY(G1FlatNoStateEstimationEnvCfg):
     # Disable RSI randomization.
     self.commands.motion.pose_range = {}
     self.commands.motion.velocity_range = {}
+
+    # Disable adaptive sampling to play through motion from start to finish.
+    self.commands.motion.disable_adaptive_sampling = True
 
     # Effectively infinite episode length.
     self.episode_length_s = int(1e9)
