@@ -226,7 +226,6 @@ class ObservationCfg:
     class CriticCfg(PolicyCfg):
         """
         The critic uses the same observation inputs as the policy.
-        Inheriting directly from PolicyCfg avoids redundancy and ensures consistency.
         """
         pass
 
