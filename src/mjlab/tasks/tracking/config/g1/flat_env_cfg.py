@@ -55,7 +55,32 @@ class G1FlatEnvCfg(TrackingEnvCfg):
 
 
 @dataclass
+class G1FlatNoStateEstimationEnvCfg(G1FlatEnvCfg):
+  def __post_init__(self):
+    super().__post_init__()
+
+    self.observations.policy.motion_anchor_pos_b = None
+    self.observations.policy.base_lin_vel = None
+
+
+@dataclass
 class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
+  def __post_init__(self):
+    super().__post_init__()
+
+    self.observations.policy.enable_corruption = False
+    self.events.push_robot = None
+
+    # Disable RSI randomization.
+    self.commands.motion.pose_range = {}
+    self.commands.motion.velocity_range = {}
+
+    # Effectively infinite episode length.
+    self.episode_length_s = int(1e9)
+
+
+@dataclass
+class G1FlatNoStateEstimationEnvCfg_PLAY(G1FlatNoStateEstimationEnvCfg):
   def __post_init__(self):
     super().__post_init__()
 
