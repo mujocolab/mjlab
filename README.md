@@ -107,6 +107,27 @@ uv run play --task Mjlab-Tracking-Flat-Unitree-G1-Play --wandb-run-path your-org
 
 ---
 
+### 3. Debug with Dummy Agents
+
+Before training, you can spawn **dummy agents** to verify observations, action scaling, and terminations without an RL policy:
+
+#### Zero Agent
+
+```bash
+uv run zero_agent Mjlab-Your-Task-Id
+```
+
+#### Random Agent
+
+```bash
+uv run random_agent Mjlab-Your-Task-Id
+```
+
+> [!NOTE]
+> When running motion-tracking tasks, add `--registry-name your-org/motions/motion-name` to the command.
+
+---
+
 ## Documentation
 
 - **[Installation Guide](docs/installation_guide.md)**
