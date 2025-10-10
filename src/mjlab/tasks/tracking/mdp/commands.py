@@ -302,7 +302,10 @@ class MotionCommand(CommandTerm):
     self.metrics["sampling_top1_bin"][:] = imax.float() / self.bin_count
 
   def _resample_command(self, env_ids: torch.Tensor):
-    self._adaptive_sampling(env_ids)
+    if self.cfg.disable_adaptive_sampling:
+      self.time_steps[env_ids] = 0
+    else:
+      self._adaptive_sampling(env_ids)
 
     root_pos = self.body_pos_w[:, 0].clone()
     root_ori = self.body_quat_w[:, 0].clone()
@@ -442,3 +445,4 @@ class MotionCommandCfg(CommandTermCfg):
   adaptive_lambda: float = 0.8
   adaptive_uniform_ratio: float = 0.1
   adaptive_alpha: float = 0.001
+  disable_adaptive_sampling: bool = False
