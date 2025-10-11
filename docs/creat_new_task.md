@@ -99,6 +99,23 @@ if __name__ == "__main__":
     robot = Entity(CARTPOLE_ROBOT_CFG)
     viewer.launch(robot.spec.compile())
 ```
+
+> **💡 Note — Motor-Type Actuators Support**  
+> In **mjlab**, you can skip actuator injection and rely on the actuators defined directly in your XML file, by leaving the `EntityArticulationInfoCfg`’s `actuators` field **empty**. This way, control commands will be automatically forwarded to your MuJoCo-defined actuators (e.g., motor-type).  
+>
+> For motor-type actuators, depending on what you want your policy to output, a few small changes are needed:
+> - **Effort Output:** If your policy outputs torque or effort, feed those values directly to the motor actuators.  
+> - **Position Output:** If your policy outputs positions, add a light impedance layer to convert positions into torques:
+>
+>   ```
+>   τ = Kp * (q* - q) + Kd * (-q̇)
+>   ```
+>
+> Currently, the public examples mainly target **Unitree G1** and **Go1**, which use impedance via position actuators. Actuator configuration support for motor-driven systems will be expanded soon, making this workflow even more plug-and-play.
+> 
+> **Reference:** This note is based on the discussion in [Issue #130](https://github.com/mujocolab/mjlab/discussions/130).
+
+
 You can test whether the environment has been successfully set up by running `uv run cartpole.py`. If the setup is successful, you should see an interface similar to the one below:
 
 ![Cartpole env](cartpole-env.jpg)
