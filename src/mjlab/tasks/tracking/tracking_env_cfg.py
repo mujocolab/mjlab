@@ -6,7 +6,7 @@ Robot-specific configurations are located in the config/ directory.
 This is a re-implementation of BeyondMimic (https://beyondmimic.github.io/).
 
 Based on https://github.com/HybridRobotics/whole_body_tracking
-Commit: d763c6af1eb25c1341b8104e1c53eaae5ad9ae00
+Commit: f8e20c880d9c8ec7172a13d3a88a65e3a5a88448
 """
 
 from dataclasses import dataclass, field
@@ -94,7 +94,7 @@ class ObservationCfg:
     command: ObsTerm = term(
       ObsTerm, func=mdp.generated_commands, params={"command_name": "motion"}
     )
-    motion_anchor_pos_b: ObsTerm = term(
+    motion_anchor_pos_b: ObsTerm | None = term(
       ObsTerm,
       func=mdp.motion_anchor_pos_b,
       params={"command_name": "motion"},
@@ -106,7 +106,7 @@ class ObservationCfg:
       params={"command_name": "motion"},
       noise=Unoise(n_min=-0.05, n_max=0.05),
     )
-    base_lin_vel: ObsTerm = term(
+    base_lin_vel: ObsTerm | None = term(
       ObsTerm, func=mdp.base_lin_vel, noise=Unoise(n_min=-0.5, n_max=0.5)
     )
     base_ang_vel: ObsTerm = term(

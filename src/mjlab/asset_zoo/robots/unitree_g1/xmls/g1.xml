@@ -102,7 +102,8 @@
                     diaginertia="0.00167218 0.0016161 0.000217621"/>
                   <joint name="left_ankle_roll_joint" axis="1 0 0" range="-0.2618 0.2618"/>
                   <geom class="visual" material="black" mesh="left_ankle_roll_link"/>
-                  <!-- <geom name="left_foot1_collision" class="foot_capsule" fromto="0.1 -0.026 -0.025 0.05 -0.027 -0.025"/>
+                  <!-- <geom name="left_foot1_collision" class="foot_capsule" fromto="0.1 -0.026 -0.025 0.05 -0.027
+                  -0.025"/>
                   <geom name="left_foot2_collision" class="foot_capsule" fromto="-0.045 0 -0.015 0.12 0 -0.015"
                     size="0.02"/>
                   <geom name="left_foot3_collision" class="foot_capsule" fromto="0.1 0.026 -0.025 0.05 0.026 -0.025"/> -->
@@ -155,7 +156,8 @@
                     diaginertia="0.00167218 0.0016161 0.000217621"/>
                   <joint name="right_ankle_roll_joint" axis="1 0 0" range="-0.2618 0.2618"/>
                   <geom class="visual" material="black" mesh="right_ankle_roll_link"/>
-                  <!-- <geom name="right_foot1_collision" class="foot_capsule" fromto="0.1 -0.026 -0.025 0.05 -0.026 -0.025"/>
+                  <!-- <geom name="right_foot1_collision" class="foot_capsule" fromto="0.1 -0.026 -0.025 0.05 -0.026
+                  -0.025"/>
                   <geom name="right_foot2_collision" class="foot_capsule" fromto="-0.045 0 -0.015 0.12 0 -0.015"
                     size="0.02"/>
                   <geom name="right_foot3_collision" class="foot_capsule" fromto="0.1 0.026 -0.025 0.05 0.026 -0.025"/> -->
@@ -233,7 +235,8 @@
                             mass="0.254576" diaginertia="0.000646113 0.000559993 0.000147566"/>
                           <joint name="left_wrist_yaw_joint" axis="0 0 1" range="-1.61443 1.61443"/>
                           <geom class="visual" mesh="left_wrist_yaw_link"/>
-                          <geom pos="0.0415 0.003 0" quat="1 0 0 0" class="visual" mesh="left_rubber_hand"/>
+                          <geom pos="0.0415 0.003 0" quat="1 0 0 0" class="visual" mesh="left_rubber_hand"
+                            material="black"/>
                           <site name="left_palm" pos="0.08 0 0" size="0.01"/>
                           <geom name="left_hand_collision" class="collision" size="0.035" rgba=".2 .6 .2 .2"
                             fromto="0.07 0 0 0.15 -0.02 0"/>
@@ -284,7 +287,8 @@
                             mass="0.254576" diaginertia="0.000646113 0.000559993 0.000147566"/>
                           <joint name="right_wrist_yaw_joint" axis="0 0 1" range="-1.61443 1.61443"/>
                           <geom class="visual" mesh="right_wrist_yaw_link"/>
-                          <geom pos="0.0415 -0.003 0" quat="1 0 0 0" class="visual" mesh="right_rubber_hand"/>
+                          <geom pos="0.0415 -0.003 0" quat="1 0 0 0" class="visual" mesh="right_rubber_hand"
+                            material="black"/>
                           <site name="right_palm" pos="0.08 0 0" size="0.01"/>
                           <geom name="right_hand_collision" class="collision" size="0.035" rgba=".2 .6 .2 .2"
                             fromto="0.07 0 0 0.15 0.02 0"/>
