@@ -6,6 +6,7 @@ import mujoco
 import numpy as np
 import torch
 import trimesh
+import trimesh.visual
 import viser
 import viser.transforms as vtf
 
@@ -92,8 +93,8 @@ class ViserDebugVisualizer:
     assert self._arrow_mesh_cache is not None
     arrow_mesh = self._arrow_mesh_cache.copy()
     arrow_mesh.apply_scale([width, width, length])
-    arrow_mesh.visual = trimesh.visual.TextureVisuals(  # type: ignore
-      material=trimesh.visual.material.PBRMaterial(baseColorFactor=color)  # type: ignore
+    arrow_mesh.visual = trimesh.visual.TextureVisuals(
+      material=trimesh.visual.material.PBRMaterial(baseColorFactor=color)
     )
 
     z_axis = np.array([0, 0, 1])
@@ -188,8 +189,10 @@ class ViserDebugVisualizer:
           # Apply alpha to geom colors
           rgba = model.geom_rgba[geom_indices[0]].copy()
           rgba[3] = alpha
-          combined_mesh.visual = trimesh.visual.TextureVisuals(  # type: ignore
-            material=trimesh.visual.material.PBRMaterial(baseColorFactor=rgba)  # type: ignore
+          combined_mesh.visual = trimesh.visual.TextureVisuals(
+            material=trimesh.visual.material.PBRMaterial(
+              baseColorFactor=rgba, alphaMode="BLEND"
+            )
           )
 
           self._ghost_meshes[model_hash][body_id] = combined_mesh
@@ -226,7 +229,7 @@ class ViserDebugVisualizer:
     size = mj_model.geom_size[geom_id]
     rgba = mj_model.geom_rgba[geom_id].copy()
 
-    material = trimesh.visual.material.PBRMaterial(  # type: ignore
+    material = trimesh.visual.material.PBRMaterial(
       baseColorFactor=rgba,
       metallicFactor=0.5,
       roughnessFactor=0.5,
@@ -246,7 +249,7 @@ class ViserDebugVisualizer:
     else:
       return None
 
-    mesh.visual = trimesh.visual.TextureVisuals(material=material)  # type: ignore
+    mesh.visual = trimesh.visual.TextureVisuals(material=material)
     return mesh
 
   def clear(self) -> None:
