@@ -123,7 +123,7 @@ You can test whether the environment has been successfully set up by running `uv
 ### 3) \_\_init\_\_.py
 It’s just an empty file used to mark the folder as a Python package.
 
-## 2. Register Robot
+### 4) Expose robot configuration entries
 
 Open file `mjlab\src\mjlab\asset_zoo\robots\__init__.py`, add cartpole robot item.
 
@@ -139,7 +139,7 @@ __all__ = (
 )
 ```
 
-## 3. Create Task
+## 2. Create Task
 
 ### 1) Create file structure
 
@@ -374,23 +374,38 @@ class CartPoleEnvCfg(ManagerBasedRlEnvCfg):
     decimation: int = 1              # Control frequency multiplier
     episode_length_s: float = 10.0   # Maximum episode duration (in seconds)
 
+```
 
-# ==========================================================
-# Entry points for training and inference
-# ==========================================================
+### 3) Register robot in \_\_init\_\_.py
+```
+import gymnasium as gym
 
-env_cfg_entry_point = CartPoleEnvCfg
-rl_cfg_entry_point = RslRlOnPolicyRunnerCfg
+gym.register(
+    id="Mjlab-Cartpole",
+    entry_point="mjlab.envs:ManagerBasedRlEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.cartpole_env_cfg:CartPoleEnvCfg",
+        "rl_cfg_entry_point": f"{__name__}.cartpole_env_cfg:RslRlOnPolicyRunnerCfg",
+    },
+)
+
+gym.register(
+    id="Mjlab-Cartpole-Play",
+    entry_point="mjlab.envs:ManagerBasedRlEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.cartpole_env_cfg:CartPoleEnvCfg",
+        "rl_cfg_entry_point": f"{__name__}.cartpole_env_cfg:RslRlOnPolicyRunnerCfg",
+    },
+)
 
 ```
 
-### 3) \_\_init\_\_.py
-It’s just an empty file used to mark the folder as a Python package.
-
 ## 4. Train
 
-run `uv run play --task Mjlab-cartpole --env.scene.num-envs 64`
+run `uv run play --task Mjlab-Cartpole --env.scene.num-envs 64`
 
 ## 5. Inference
 
-run `uv run play --task Mjlab-cartpole-Play --checkpoint_file Your File Name`
+run `uv run play --task Mjlab-Cartpole-Play --checkpoint_file Your File Name`
