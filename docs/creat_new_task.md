@@ -75,7 +75,7 @@ def get_spec() -> mujoco.MjSpec:
 # Actuator configuration: controls the slide joint (the cart)
 CARTPOLE_ACTUATOR = ActuatorCfg(
     joint_names_expr=["slide"],   # Joint to control
-    effort_limit=5.0,             # Maximum force/effort
+    effort_limit=20.0,             # Maximum force/effort
     stiffness=0.0,                # No position stiffness (velocity control)
     damping=0.1,                  # Damping factor
 )
