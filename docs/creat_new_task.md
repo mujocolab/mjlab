@@ -101,7 +101,7 @@ if __name__ == "__main__":
 ```
 You can test whether the environment has been successfully set up by running `uv run cartpole.py`. If the setup is successful, you should see an interface similar to the one below:
 
-![Project banner](docs/cartpole_env.jpg)
+![Cartpole env](docs/cartpole_env.jpg)
 
 ### 3) \_\_init\_\_.py
 It’s just an empty file used to mark the folder as a Python package.
