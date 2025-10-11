@@ -22,7 +22,7 @@ cartpole
 ### 1) cartpole.xml
 
 ```xml
-<mujoco model="inverted_pendulum">
+<mujoco model="cartpole">
   <compiler angle="degree" coordinate="local" inertiafromgeom="true"/>
   <option timestep="0.02" gravity="0 0 -9.81"/>
 
@@ -45,7 +45,7 @@ cartpole
   </actuator>
 
   <keyframe>
-    <key name="pendulum_init" qpos="0 0" qvel="0 0" ctrl="0 0"/>
+    <key name="cartpole_init" qpos="0 0" qvel="0 0" ctrl="0 0"/>
   </keyframe>
 </mujoco>
 
@@ -63,7 +63,7 @@ from mjlab.utils.spec_config import ActuatorCfg
 
 # Path to the MuJoCo XML file
 CARTPOLE_XML: Path = (
-    MJLAB_SRC_PATH / "asset_zoo" / "robots" / "inverted_pendulum" / "xmls" / "cartpole.xml"
+    MJLAB_SRC_PATH / "asset_zoo" / "robots" / "cartpole" / "xmls" / "cartpole.xml"
 )
 assert CARTPOLE_XML.exists(), f"XML not found: {CARTPOLE_XML}"
 
