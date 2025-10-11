@@ -372,7 +372,7 @@ gym.register(
 
 ## 4. Train
 
-run `uv run play --task Mjlab-Cartpole --env.scene.num-envs 64`
+run `uv run train Mjlab-Cartpole`
 
 ## 5. Inference
 
