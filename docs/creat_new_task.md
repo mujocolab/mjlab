@@ -155,8 +155,6 @@ cartpole
 ```python
 """CartPole task environment configuration. """
 
-"""CartPole task environment configuration."""
-
 import math
 from dataclasses import dataclass, field
 import torch
