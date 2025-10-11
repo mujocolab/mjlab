@@ -377,3 +377,6 @@ run `uv run train Mjlab-Cartpole`
 ## 5. Inference
 
 run `uv run play --task Mjlab-Cartpole-Play --checkpoint_file Your File Name`
+
+The performance of the trained model is as follows:
+![Demo Animation](cartpole_trained.gif)
