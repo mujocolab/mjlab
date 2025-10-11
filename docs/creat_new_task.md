@@ -30,25 +30,24 @@ cartpole
     <geom name="ground" type="plane" pos="0 0 0" size="5 5 0.1" rgba="0.8 0.9 0.8 1"/>
 
     <body name="cart" pos="0 0 0.1">
-      <geom type="box" size="0.2 0.1 0.1" rgba="0.2 0.2 0.8 1"/>
+      <geom type="box" size="0.2 0.1 0.1" rgba="0.2 0.2 0.8 1" mass="1.0"/>
       <joint name="slide" type="slide" axis="1 0 0" limited="true" range="-2 2"/>
 
       <body name="pole" pos="0 0 0.1">
-        <geom type="capsule" size="0.05 0.5" fromto="0 0 0 0 0 1" rgba="0.8 0.2 0.2 1"/>
+        <geom type="capsule" size="0.05 0.5" fromto="0 0 0 0 0 1" rgba="0.8 0.2 0.2 1" mass="2.0"/>
         <joint name="hinge" type="hinge" axis="0 1 0" range="-90 90"/>
       </body>
     </body>
   </worldbody>
 
   <actuator>
-    <velocity name="slide_velocity" joint="slide" ctrlrange="-20 20" kv="40"/>
+    <velocity name="slide_velocity" joint="slide" ctrlrange="-20 20" kv="20"/>
   </actuator>
 
   <keyframe>
     <key name="cartpole_init" qpos="0 0" qvel="0 0" ctrl="0 0"/>
   </keyframe>
 </mujoco>
-
 ```
 
 ### 2) cartpole_constants.py
