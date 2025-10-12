@@ -3,29 +3,28 @@ from unittest.mock import Mock
 import pytest
 import torch
 
+from mjlab.managers.manager_term_config import RewardTermCfg
+from mjlab.managers.reward_manager import RewardManager
 from mjlab.tasks.velocity.mdp.rewards import feet_air_time
 
 
+@pytest.fixture
+def mock_env():
+  env = Mock()
+  env.num_envs = 4
+  env.device = "cpu"
+  env.step_dt = 0.01
+  robot = Mock()
+  robot.sensor_names = ["FL_foot", "FR_foot", "RL_foot", "RR_foot"]
+  robot.data.sensor_data = {name: torch.ones((4, 1)) for name in robot.sensor_names}
+  env.scene = {"robot": robot}
+  env.command_manager.get_command = Mock(
+    return_value=torch.tensor([[1.0, 0.0, 0.0]] * 4)
+  )
+  return env
+
+
 class TestFeetAirTime:
-  @pytest.fixture
-  def mock_env(self):
-    """Create basic mock environment."""
-    env = Mock()
-    env.num_envs = 4
-    env.device = "cpu"
-    env.step_dt = 0.01
-
-    # Setup robot with foot sensors.
-    robot = Mock()
-    robot.sensor_names = ["FL_foot", "FR_foot", "RL_foot", "RR_foot"]
-    robot.data.sensor_data = {name: torch.ones((4, 1)) for name in robot.sensor_names}
-    env.scene = {"robot": robot}
-
-    env.command_manager.get_command = Mock(
-      return_value=torch.tensor([[1.0, 0.0, 0.0]] * 4)
-    )
-    return env
-
   @pytest.fixture
   def base_cfg(self):
     """Create base config."""
@@ -205,6 +204,59 @@ class TestFeetAirTime:
     assert reward_term.current_air_time[2, 0] == 0
     assert reward_term.current_air_time[1, 0] > 0
     assert reward_term.current_air_time[3, 0] > 0
+
+
+class TestRewardManagerClassReset:
+  """Test RewardManager correctly handles class-based vs function-based terms."""
+
+  def test_class_based_reward_reset(self, mock_env):
+    """Test that class-based reward terms are tracked and have reset called."""
+    from dataclasses import dataclass, field
+
+    @dataclass
+    class Cfg:
+      term: RewardTermCfg = field(
+        default_factory=lambda: RewardTermCfg(
+          func=feet_air_time,
+          weight=1.0,
+          params={
+            "threshold_min": 0.1,
+            "asset_name": "robot",
+            "sensor_names": ["FL_foot", "FR_foot", "RL_foot", "RR_foot"],
+            "command_name": "base_velocity",
+            "command_threshold": 0.5,
+          },
+        )
+      )
+
+    mock_env.max_episode_length_s = 10.0
+    manager = RewardManager(Cfg(), mock_env)
+    term = manager._class_term_cfgs[0].func
+
+    mock_env.scene["robot"].data.sensor_data["FL_foot"] = torch.zeros((4, 1))
+    for _ in range(10):
+      manager.compute(dt=0.01)
+
+    assert (term.current_air_time > 0).any()
+    manager.reset(env_ids=torch.tensor([0, 2]))
+    assert term.current_air_time[0, 0] == 0
+    assert term.current_air_time[1, 0] > 0
+
+  def test_function_based_reward_not_tracked(self, mock_env):
+    """Test that function-based reward terms are not tracked as class terms."""
+    from dataclasses import dataclass, field
+
+    @dataclass
+    class Cfg:
+      term: RewardTermCfg = field(
+        default_factory=lambda: RewardTermCfg(
+          func=lambda env: torch.ones(env.num_envs), weight=1.0, params={}
+        )
+      )
+
+    mock_env.max_episode_length_s = 10.0
+    manager = RewardManager(Cfg(), mock_env)
+    assert len(manager._class_term_cfgs) == 0
 
 
 if __name__ == "__main__":
