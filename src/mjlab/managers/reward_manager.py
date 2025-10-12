@@ -107,8 +107,9 @@ class RewardManager(ManagerBase):
       if term_cfg is None:
         print(f"term: {term_name} set to None, skipping...")
         continue
+      is_class_term = inspect.isclass(term_cfg.func)
       self._resolve_common_term_cfg(term_name, term_cfg)
       self._term_names.append(term_name)
       self._term_cfgs.append(term_cfg)
-      if inspect.isclass(term_cfg.func):
+      if is_class_term:
         self._class_term_cfgs.append(term_cfg)

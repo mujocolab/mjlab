@@ -1,5 +1,6 @@
 """Observation manager for computing observations."""
 
+import inspect
 from typing import Sequence
 
 import numpy as np
@@ -191,12 +192,15 @@ class ObservationManager(ManagerBase):
           print(f"term: {term_name} set to None, skipping...")
           continue
 
+        is_class_term = inspect.isclass(term_cfg.func)
         self._resolve_common_term_cfg(term_name, term_cfg)
 
         if not group_cfg.enable_corruption:
           term_cfg.noise = None
         self._group_obs_term_names[group_name].append(term_name)
         self._group_obs_term_cfgs[group_name].append(term_cfg)
+        if is_class_term:
+          self._group_obs_class_term_cfgs[group_name].append(term_cfg)
 
         obs_dims = tuple(term_cfg.func(self._env, **term_cfg.params).shape)
         self._group_obs_term_dim[group_name].append(obs_dims[1:])

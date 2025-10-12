@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import inspect
 from typing import TYPE_CHECKING, Sequence
 
 import torch
 from prettytable import PrettyTable
 
-from mjlab.managers.manager_base import ManagerBase, ManagerTermBase
+from mjlab.managers.manager_base import ManagerBase
 from mjlab.managers.manager_term_config import TerminationTermCfg
 from mjlab.utils.dataclasses import get_terms
 
@@ -114,8 +115,9 @@ class TerminationManager(ManagerBase):
       if term_cfg is None:
         print(f"term: {term_name} set to None, skipping...")
         continue
+      is_class_term = inspect.isclass(term_cfg.func)
       self._resolve_common_term_cfg(term_name, term_cfg)
       self._term_names.append(term_name)
       self._term_cfgs.append(term_cfg)
-      if isinstance(term_cfg.func, ManagerTermBase):
+      if is_class_term:
         self._class_term_cfgs.append(term_cfg)
