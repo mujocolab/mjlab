@@ -9,9 +9,12 @@ import trimesh
 import trimesh.visual
 import viser
 import viser.transforms as vtf
+from typing_extensions import override
+
+from mjlab.viewer.debug_visualizer import DebugVisualizer
 
 
-class ViserDebugVisualizer:
+class ViserDebugVisualizer(DebugVisualizer):
   """Debug visualizer for Viser viewer.
 
   This implementation uses Viser's scene graph to add visualization primitives
@@ -38,20 +41,29 @@ class ViserDebugVisualizer:
     self.env_idx = env_idx
     self.env_origin = env_origin if env_origin is not None else np.zeros(3)
 
-    # Track handles - we'll reuse them instead of recreating
-    self._arrow_handles: list[viser.SceneNodeHandle] = []
+    # Queued arrows for batched rendering
+    self._queued_arrows: list[
+      tuple[np.ndarray, np.ndarray, tuple[float, float, float, float], float]
+    ] = []
+
+    # Batched arrow mesh handles
+    self._arrow_shaft_handle: viser.BatchedMeshHandle | None = None
+    self._arrow_head_handle: viser.BatchedMeshHandle | None = None
+
+    # Ghost mesh handles
     self._ghost_handles: dict[int, viser.SceneNodeHandle] = {}
-    self._arrow_counter = 0
 
     # Cache ghost meshes by model hash to handle deepcopy'd models
     self._ghost_meshes: dict[int, dict[int, trimesh.Trimesh]] = {}
 
-    # Cache arrow mesh for reuse
-    self._arrow_mesh_cache: trimesh.Trimesh | None = None
+    # Cache arrow mesh components for batched rendering
+    self._arrow_shaft_mesh: trimesh.Trimesh | None = None
+    self._arrow_head_mesh: trimesh.Trimesh | None = None
 
     # Reusable MjData for ghost rendering
     self._viz_data = mujoco.MjData(mj_model)
 
+  @override
   def add_arrow(
     self,
     start: np.ndarray | torch.Tensor,
@@ -60,7 +72,11 @@ class ViserDebugVisualizer:
     width: float = 0.015,
     label: str | None = None,
   ) -> None:
-    """Add an arrow visualization using Viser's scene primitives."""
+    """Queue an arrow for batched rendering.
+
+    Arrows are not rendered immediately but queued and rendered together
+    in the next _synchronize() call for efficiency.
+    """
     if isinstance(start, torch.Tensor):
       start = start.cpu().numpy()
     if isinstance(end, torch.Tensor):
@@ -75,41 +91,10 @@ class ViserDebugVisualizer:
     if length < 1e-6:
       return
 
-    direction = direction / length
+    # Queue the arrow for batched rendering
+    self._queued_arrows.append((start, end, color, width))
 
-    if self._arrow_mesh_cache is None:
-      shaft_length = 0.8
-      head_length = 0.2
-      head_width = 3.0
-
-      shaft_mesh = trimesh.creation.cylinder(radius=1.0, height=shaft_length)
-      shaft_mesh.apply_translation(np.array([0, 0, shaft_length / 2]))
-
-      head_mesh = trimesh.creation.cone(radius=head_width, height=head_length)
-      head_mesh.apply_translation(np.array([0, 0, shaft_length + head_length / 2]))
-
-      self._arrow_mesh_cache = trimesh.util.concatenate([shaft_mesh, head_mesh])
-
-    assert self._arrow_mesh_cache is not None
-    arrow_mesh = self._arrow_mesh_cache.copy()
-    arrow_mesh.apply_scale([width, width, length])
-    arrow_mesh.visual = trimesh.visual.TextureVisuals(
-      material=trimesh.visual.material.PBRMaterial(baseColorFactor=color)
-    )
-
-    z_axis = np.array([0, 0, 1])
-    rotation_quat = self._rotation_quat_from_vectors(z_axis, direction)
-
-    arrow_name = f"/debug/env_{self.env_idx}/arrow_{self._arrow_counter}"
-    arrow_handle = self.server.scene.add_mesh_trimesh(
-      arrow_name,
-      arrow_mesh,
-      wxyz=rotation_quat,
-      position=start,
-    )
-    self._arrow_handles.append(arrow_handle)
-    self._arrow_counter += 1
-
+  @override
   def add_ghost_mesh(
     self,
     qpos: np.ndarray | torch.Tensor,
@@ -252,16 +237,142 @@ class ViserDebugVisualizer:
     mesh.visual = trimesh.visual.TextureVisuals(material=material)
     return mesh
 
+  def _synchronize(self) -> None:
+    """Render all queued arrows using batched meshes.
+
+    This should be called by the main visualizer after all debug visualizations
+    have been queued for the current frame.
+    """
+    if not self._queued_arrows:
+      # Remove arrow meshes if no arrows to render
+      if self._arrow_shaft_handle is not None:
+        self._arrow_shaft_handle.remove()
+        self._arrow_shaft_handle = None
+      if self._arrow_head_handle is not None:
+        self._arrow_head_handle.remove()
+        self._arrow_head_handle = None
+      return
+
+    # Create arrow mesh components if needed (unit-sized base meshes)
+    if self._arrow_shaft_mesh is None:
+      # Unit cylinder: radius=1.0, height=1.0
+      self._arrow_shaft_mesh = trimesh.creation.cylinder(radius=1.0, height=1.0)
+      self._arrow_shaft_mesh.apply_translation(np.array([0, 0, 0.5]))  # Center at z=0.5
+
+    if self._arrow_head_mesh is None:
+      # Unit cone: radius=3.0, height=1.0 (base at z=0, tip at z=1.0 by default)
+      head_width = 3.0
+      self._arrow_head_mesh = trimesh.creation.cone(radius=head_width, height=1.0)
+      # No translation needed - cone already has base at z=0
+
+    # Prepare batched data
+    num_arrows = len(self._queued_arrows)
+    shaft_positions = np.zeros((num_arrows, 3), dtype=np.float32)
+    shaft_wxyzs = np.zeros((num_arrows, 4), dtype=np.float32)
+    shaft_scales = np.zeros((num_arrows, 3), dtype=np.float32)
+    shaft_colors = np.zeros((num_arrows, 3), dtype=np.uint8)
+
+    head_positions = np.zeros((num_arrows, 3), dtype=np.float32)
+    head_wxyzs = np.zeros((num_arrows, 4), dtype=np.float32)
+    head_scales = np.zeros((num_arrows, 3), dtype=np.float32)
+    head_colors = np.zeros((num_arrows, 3), dtype=np.uint8)
+
+    z_axis = np.array([0, 0, 1])
+    shaft_length_ratio = 0.8
+    head_length_ratio = 0.2
+
+    for i, (start, end, color, width) in enumerate(self._queued_arrows):
+      direction = end - start
+      length = np.linalg.norm(direction)
+      direction = direction / length
+
+      rotation_quat = self._rotation_quat_from_vectors(z_axis, direction)
+
+      # Shaft: scale width in XY, length in Z
+      shaft_length = shaft_length_ratio * length
+      shaft_positions[i] = start
+      shaft_wxyzs[i] = rotation_quat
+      shaft_scales[i] = [width, width, shaft_length]  # Per-axis scale
+      shaft_colors[i] = (np.array(color[:3]) * 255).astype(
+        np.uint8
+      )  # Convert 0-1 to 0-255
+
+      # Head: position at end of shaft
+      # The cone has its base at z=0, so after scaling by head_length,
+      # the base is still at z=0 in local coords
+      # We want the base at the end of the shaft (at shaft_length)
+      head_length = head_length_ratio * length
+      head_position = start + direction * shaft_length
+      head_positions[i] = head_position
+      head_wxyzs[i] = rotation_quat
+      head_scales[i] = [width, width, head_length]  # Per-axis scale
+      head_colors[i] = (np.array(color[:3]) * 255).astype(
+        np.uint8
+      )  # Convert 0-1 to 0-255
+
+    # Check if we need to recreate handles (number of arrows changed)
+    needs_recreation = (
+      self._arrow_shaft_handle is None
+      or self._arrow_head_handle is None
+      or len(shaft_positions) != len(self._arrow_shaft_handle.batched_positions)
+    )
+
+    if needs_recreation:
+      # Remove old handles
+      if self._arrow_shaft_handle is not None:
+        self._arrow_shaft_handle.remove()
+      if self._arrow_head_handle is not None:
+        self._arrow_head_handle.remove()
+
+      # Create new batched meshes
+      self._arrow_shaft_handle = self.server.scene.add_batched_meshes_simple(
+        f"/debug/env_{self.env_idx}/arrow_shafts",
+        self._arrow_shaft_mesh.vertices,
+        self._arrow_shaft_mesh.faces,
+        batched_wxyzs=shaft_wxyzs,
+        batched_positions=shaft_positions,
+        batched_scales=shaft_scales,
+        batched_colors=shaft_colors,
+        opacity=0.5,
+        cast_shadow=False,
+        receive_shadow=False,
+      )
+
+      self._arrow_head_handle = self.server.scene.add_batched_meshes_simple(
+        f"/debug/env_{self.env_idx}/arrow_heads",
+        self._arrow_head_mesh.vertices,
+        self._arrow_head_mesh.faces,
+        batched_wxyzs=head_wxyzs,
+        batched_positions=head_positions,
+        batched_scales=head_scales,
+        batched_colors=head_colors,
+        opacity=0.5,
+        cast_shadow=False,
+        receive_shadow=False,
+      )
+    else:
+      # Update existing handles (guaranteed to exist by needs_recreation check)
+      assert self._arrow_shaft_handle is not None
+      assert self._arrow_head_handle is not None
+
+      self._arrow_shaft_handle.batched_positions = shaft_positions
+      self._arrow_shaft_handle.batched_wxyzs = shaft_wxyzs
+      self._arrow_shaft_handle.batched_scales = shaft_scales
+      self._arrow_shaft_handle.batched_colors = shaft_colors
+
+      self._arrow_head_handle.batched_positions = head_positions
+      self._arrow_head_handle.batched_wxyzs = head_wxyzs
+      self._arrow_head_handle.batched_scales = head_scales
+      self._arrow_head_handle.batched_colors = head_colors
+
+  @override
   def clear(self) -> None:
     """Clear all debug visualizations.
 
-    Removes arrows every frame. Ghost meshes are kept and pose-updated for efficiency
+    Clears the arrow queue. Ghost meshes are kept and pose-updated for efficiency
     within the same environment, but removed when switching environments.
     """
-    for handle in self._arrow_handles:
-      handle.remove()
-    self._arrow_handles.clear()
-    self._arrow_counter = 0
+    self._queued_arrows.clear()
 
   def clear_all(self) -> None:
     """Clear all debug visualizations including ghosts.
@@ -269,6 +380,16 @@ class ViserDebugVisualizer:
     Called when switching to a different environment.
     """
     self.clear()
+
+    # Remove arrow meshes
+    if self._arrow_shaft_handle is not None:
+      self._arrow_shaft_handle.remove()
+      self._arrow_shaft_handle = None
+    if self._arrow_head_handle is not None:
+      self._arrow_head_handle.remove()
+      self._arrow_head_handle = None
+
+    # Remove ghost meshes
     for handle in self._ghost_handles.values():
       handle.remove()
     self._ghost_handles.clear()

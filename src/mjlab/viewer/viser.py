@@ -585,8 +585,11 @@ class ViserViewer(BaseViewer):
         self._debug_visualizer.clear()
         self._debug_visualizer.env_origin = env_origin
 
-      # Update visualizations (this now just updates poses for ghosts!)
+      # Update visualizations (queues arrows and updates ghost poses)
       self.env.unwrapped.update_visualizers(self._debug_visualizer)
+
+      # Synchronize queued arrows to the scene
+      self._debug_visualizer._synchronize()
     elif not self._show_debug_vis and self._debug_visualizer is not None:
       # Clear visualizer if debug vis is disabled
       self._debug_visualizer.clear_all()

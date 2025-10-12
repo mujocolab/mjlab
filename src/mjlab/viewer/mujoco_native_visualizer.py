@@ -5,9 +5,12 @@ from __future__ import annotations
 import mujoco
 import numpy as np
 import torch
+from typing_extensions import override
+
+from mjlab.viewer.debug_visualizer import DebugVisualizer
 
 
-class MujocoNativeDebugVisualizer:
+class MujocoNativeDebugVisualizer(DebugVisualizer):
   """Debug visualizer for MuJoCo's native viewer.
 
   This implementation directly adds geometry to the MuJoCo scene using mjv_addGeoms
@@ -32,6 +35,7 @@ class MujocoNativeDebugVisualizer:
     self._pert = mujoco.MjvPerturb()
     self._viz_data = mujoco.MjData(mj_model)
 
+  @override
   def add_arrow(
     self,
     start: np.ndarray | torch.Tensor,
@@ -70,6 +74,7 @@ class MujocoNativeDebugVisualizer:
       to=end,
     )
 
+  @override
   def add_ghost_mesh(
     self,
     qpos: np.ndarray | torch.Tensor,
@@ -102,6 +107,7 @@ class MujocoNativeDebugVisualizer:
       self.scn,
     )
 
+  @override
   def clear(self) -> None:
     """Clear debug visualizations by resetting geom count."""
     # Reset to the initial geom count (before any debug vis was added)

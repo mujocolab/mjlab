@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from abc import abstractmethod
-from typing import TYPE_CHECKING, Protocol
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -12,8 +12,8 @@ if TYPE_CHECKING:
   import mujoco
 
 
-class DebugVisualizer(Protocol):
-  """Protocol for viewer-agnostic debug visualization.
+class DebugVisualizer(ABC):
+  """Abstract base class for viewer-agnostic debug visualization.
 
   This allows manager terms to draw debug visualizations without knowing the underlying
   viewer implementation.
@@ -40,13 +40,13 @@ class DebugVisualizer(Protocol):
       width: Arrow shaft width
       label: Optional label for this arrow
     """
-    pass
+    ...
 
   @abstractmethod
   def add_ghost_mesh(
     self,
     qpos: np.ndarray | torch.Tensor,
-    model: "mujoco.MjModel",
+    model: mujoco.MjModel,
     alpha: float = 0.5,
     label: str | None = None,
   ) -> None:
@@ -58,12 +58,12 @@ class DebugVisualizer(Protocol):
       alpha: Transparency override (0=transparent, 1=opaque) - may not be used by all implementations
       label: Optional label for this ghost
     """
-    pass
+    ...
 
   @abstractmethod
   def clear(self) -> None:
     """Clear all debug visualizations."""
-    pass
+    ...
 
 
 class NullDebugVisualizer:
