@@ -49,16 +49,8 @@ def projected_gravity(
 # IMU state.
 ###
 
-# TODO: Make them class based rewards ?
-
 
 class imu_orientation:
-  """Penalize the deviation of the joint positions from the default positions.
-
-  Note: This is implemented as a class so that we can resolve the standard deviation
-  dictionary into a tensor and thereafter use it in the __call__ method.
-  """
-
   def __init__(self, cfg: ObservationTermCfg, env: ManagerBasedRlEnv):
     self.asset_cfg: SceneEntityCfg = cfg.params.get("asset_cfg", _DEFAULT_ASSET_CFG)
 
@@ -84,12 +76,6 @@ class imu_orientation:
 
 
 class imu_ang_vel:
-  """Penalize the deviation of the joint positions from the default positions.
-
-  Note: This is implemented as a class so that we can resolve the standard deviation
-  dictionary into a tensor and thereafter use it in the __call__ method.
-  """
-
   def __init__(self, cfg: ObservationTermCfg, env: ManagerBasedRlEnv):
     self.asset_cfg: SceneEntityCfg = cfg.params.get("asset_cfg", _DEFAULT_ASSET_CFG)
 
@@ -120,12 +106,6 @@ class imu_ang_vel:
 
 
 class imu_lin_acc:
-  """Penalize the deviation of the joint positions from the default positions.
-
-  Note: This is implemented as a class so that we can resolve the standard deviation
-  dictionary into a tensor and thereafter use it in the __call__ method.
-  """
-
   def __init__(self, cfg: ObservationTermCfg, env: ManagerBasedRlEnv):
     self.asset_cfg: SceneEntityCfg = cfg.params.get("asset_cfg", _DEFAULT_ASSET_CFG)
 
@@ -156,12 +136,6 @@ class imu_lin_acc:
 
 
 class imu_projected_gravity:
-  """Penalize the deviation of the joint positions from the default positions.
-
-  Note: This is implemented as a class so that we can resolve the standard deviation
-  dictionary into a tensor and thereafter use it in the __call__ method.
-  """
-
   def __init__(self, cfg: ObservationTermCfg, env: ManagerBasedRlEnv):
     self.asset_cfg: SceneEntityCfg = cfg.params.get("asset_cfg", _DEFAULT_ASSET_CFG)
 

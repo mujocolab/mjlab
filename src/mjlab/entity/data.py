@@ -37,7 +37,7 @@ def compute_acceleration_from_cacc(
   cvel: torch.Tensor,
   cacc: torch.Tensor,
 ) -> torch.Tensor:
-  """Convert cacc quantities to world-frame accelerations at `pos`."""
+  """Convert cacc quantities to world-frame accelerations."""
   ang_vel_c = cvel[..., 0:3]
   ang_acc_c = cacc[..., 0:3]
   lin_acc_c = cacc[..., 3:6]
