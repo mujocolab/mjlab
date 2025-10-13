@@ -43,7 +43,9 @@ class ViserViewer(BaseViewer):
 
     self._server = viser.ViserServer(label="mjlab")
     # Frame for fixed world geometry (floor, terrain, etc.)
-    self._fixed_bodies_frame = self._server.scene.add_frame("/fixed_bodies", show_axes=False)
+    self._fixed_bodies_frame = self._server.scene.add_frame(
+      "/fixed_bodies", show_axes=False
+    )
     # Separate handle storage for visual and collision meshes
     self._mesh_visual_handles: dict[int, viser.BatchedGlbHandle] | None = None
     self._mesh_collision_handles: dict[int, viser.BatchedGlbHandle] | None = None
@@ -243,11 +245,13 @@ class ViserViewer(BaseViewer):
               elevation_rad = np.deg2rad(elevation)
 
               # Calculate forward vector from spherical coordinates
-              forward = np.array([
-                np.cos(elevation_rad) * np.cos(azimuth_rad),
-                np.cos(elevation_rad) * np.sin(azimuth_rad),
-                np.sin(elevation_rad),
-              ])
+              forward = np.array(
+                [
+                  np.cos(elevation_rad) * np.cos(azimuth_rad),
+                  np.cos(elevation_rad) * np.sin(azimuth_rad),
+                  np.sin(elevation_rad),
+                ]
+              )
 
               # Camera position is origin - forward * distance
               camera_pos = -forward * distance

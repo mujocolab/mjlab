@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import mujoco
 import numpy as np
 import torch
+
 from mjlab.managers import CommandTerm, CommandTermCfg
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   quat_apply,
