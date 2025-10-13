@@ -30,10 +30,9 @@ class ViserViewer(BaseViewer):
     env: EnvProtocol,
     policy: PolicyProtocol,
     frame_rate: float = 60.0,
-    render_all_envs: bool = True,
     verbosity: VerbosityLevel = VerbosityLevel.SILENT,
   ) -> None:
-    super().__init__(env, policy, frame_rate, render_all_envs, verbosity)
+    super().__init__(env, policy, frame_rate, verbosity)
     self._reward_plotter: Optional[ViserRewardPlotter] = None
     self._debug_visualizer: Optional[ViserDebugVisualizer] = None
 

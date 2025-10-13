@@ -48,14 +48,13 @@ class NativeMujocoViewer(BaseViewer):
     env: EnvProtocol,
     policy: PolicyProtocol,
     frame_rate: float = 60.0,
-    render_all_envs: bool = True,
     key_callback: Optional[Callable[[int], None]] = None,
     plot_cfg: PlotCfg | None = None,
     enable_perturbations: bool = True,
     disable_shadows: bool = False,
     verbosity: VerbosityLevel = VerbosityLevel.SILENT,
   ):
-    super().__init__(env, policy, frame_rate, render_all_envs, verbosity)
+    super().__init__(env, policy, frame_rate, verbosity)
     self.user_key_callback = key_callback
     self.enable_perturbations = enable_perturbations
     self.disable_shadows = disable_shadows
@@ -85,7 +84,7 @@ class NativeMujocoViewer(BaseViewer):
     self.mjm = sim.mj_model
     self.mjd = sim.mj_data
 
-    if self.render_all_envs and self.env.unwrapped.num_envs > 1:
+    if self.env.unwrapped.num_envs > 1:
       assert self.mjm is not None
       self.vd = mujoco.MjData(self.mjm)
 
@@ -177,7 +176,7 @@ class NativeMujocoViewer(BaseViewer):
         visualizer = MujocoNativeDebugVisualizer(v.user_scn, self.mjm, self.env_idx)
         self.env.unwrapped.update_visualizers(visualizer)
 
-      if self.render_all_envs and self.vd is not None:
+      if self.vd is not None:
         for i in range(self.env.unwrapped.num_envs):
           if i == self.env_idx:
             continue

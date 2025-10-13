@@ -37,7 +37,6 @@ class PlayConfig:
   video_height: int | None = None
   video_width: int | None = None
   camera: int | str | None = None
-  render_all_envs: bool = False
   viewer: Literal["native", "viser"] = "native"
 
 
@@ -172,9 +171,9 @@ def run_play(task: str, cfg: PlayConfig):
     policy = runner.get_inference_policy(device=device)
 
   if cfg.viewer == "native":
-    NativeMujocoViewer(env, policy, render_all_envs=cfg.render_all_envs).run()
+    NativeMujocoViewer(env, policy).run()
   elif cfg.viewer == "viser":
-    ViserViewer(env, policy, render_all_envs=cfg.render_all_envs).run()
+    ViserViewer(env, policy).run()
   else:
     assert_never(cfg.viewer)
 
