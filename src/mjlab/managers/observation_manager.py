@@ -197,6 +197,8 @@ class ObservationManager(ManagerBase):
           term_cfg.noise = None
         self._group_obs_term_names[group_name].append(term_name)
         self._group_obs_term_cfgs[group_name].append(term_cfg)
+        if hasattr(term_cfg.func, "reset") and callable(term_cfg.func.reset):
+          self._group_obs_class_term_cfgs[group_name].append(term_cfg)
 
         obs_dims = tuple(term_cfg.func(self._env, **term_cfg.params).shape)
         self._group_obs_term_dim[group_name].append(obs_dims[1:])
