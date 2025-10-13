@@ -171,26 +171,27 @@ class ViserDebugVisualizer(DebugVisualizer):
             meshes[0] if len(meshes) == 1 else trimesh.util.concatenate(meshes)
           )
 
-          # Apply alpha to geom colors
-          rgba = model.geom_rgba[geom_indices[0]].copy()
-          rgba[3] = alpha
-          combined_mesh.visual = trimesh.visual.TextureVisuals(
-            material=trimesh.visual.material.PBRMaterial(
-              baseColorFactor=rgba, alphaMode="BLEND"
-            )
-          )
-
           self._ghost_meshes[model_hash][body_id] = combined_mesh
         else:
           combined_mesh = self._ghost_meshes[model_hash][body_id]
 
         body_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, body_id)
         handle_name = f"/debug/env_{self.env_idx}/ghost/body_{body_name or body_id}"
-        handle = self.server.scene.add_mesh_trimesh(
+
+        # Extract color from geom (convert RGBA 0-1 to RGB 0-255)
+        rgba = model.geom_rgba[geom_indices[0]].copy()
+        color_uint8 = (rgba[:3] * 255).astype(np.uint8)
+
+        handle = self.server.scene.add_mesh_simple(
           handle_name,
-          combined_mesh,
+          combined_mesh.vertices,
+          combined_mesh.faces,
+          color=tuple(color_uint8),
+          opacity=alpha,
           wxyz=body_quat,
           position=body_pos,
+          cast_shadow=False,
+          receive_shadow=False,
         )
         self._ghost_handles[body_id] = handle
 
@@ -237,7 +238,7 @@ class ViserDebugVisualizer(DebugVisualizer):
     mesh.visual = trimesh.visual.TextureVisuals(material=material)
     return mesh
 
-  def _synchronize(self) -> None:
+  def _sync_arrows(self) -> None:
     """Render all queued arrows using batched meshes.
 
     This should be called by the main visualizer after all debug visualizations

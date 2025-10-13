@@ -46,9 +46,9 @@ class ViserViewer(BaseViewer):
     self._mesh_visual_handles: dict[int, viser.BatchedGlbHandle] | None = None
     self._mesh_collision_handles: dict[int, viser.BatchedGlbHandle] | None = None
     # Contact visualization handles
-    self._contact_point_handle: viser.BatchedGlbHandle | None = None
-    self._contact_force_shaft_handle: viser.BatchedGlbHandle | None = None
-    self._contact_force_head_handle: viser.BatchedGlbHandle | None = None
+    self._contact_point_handle: viser.BatchedMeshHandle | None = None
+    self._contact_force_shaft_handle: viser.BatchedMeshHandle | None = None
+    self._contact_force_head_handle: viser.BatchedMeshHandle | None = None
     self._threadpool = ThreadPoolExecutor(max_workers=1)
     self._batch_size = self.env.num_envs
     self._show_contact_points = False
@@ -589,7 +589,7 @@ class ViserViewer(BaseViewer):
       self.env.unwrapped.update_visualizers(self._debug_visualizer)
 
       # Synchronize queued arrows to the scene
-      self._debug_visualizer._synchronize()
+      self._debug_visualizer._sync_arrows()
     elif not self._show_debug_vis and self._debug_visualizer is not None:
       # Clear visualizer if debug vis is disabled
       self._debug_visualizer.clear_all()
@@ -859,29 +859,29 @@ class ViserViewer(BaseViewer):
 
     # Update or create contact point handle
     if self._show_contact_points and len(all_positions) > 0:
-      positions_arr = np.array(all_positions)
-      orientations_arr = np.array(all_orientations)
-      scales_arr = np.array(all_scales)
+      positions_arr = np.array(all_positions, dtype=np.float32)
+      orientations_arr = np.array(all_orientations, dtype=np.float32)
+      scales_arr = np.array(all_scales, dtype=np.float32)
+
+      # Convert color to uint8 array
+      color_uint8 = np.array(self._contact_point_color, dtype=np.uint8)
 
       if self._contact_point_handle is None:
         # Create cylinder mesh for contact points
         cylinder_mesh = trimesh.creation.cylinder(radius=1.0, height=1.0)
-        # Convert RGB 0-255 to 0-1 range
-        color_01 = [c / 255.0 for c in self._contact_point_color]
-        cylinder_mesh.visual = trimesh.visual.TextureVisuals(
-          material=trimesh.visual.material.PBRMaterial(
-            baseColorFactor=color_01 + [1.0],  # Add alpha channel
-          )
-        )
-        self._contact_point_handle = self._server.scene.add_batched_meshes_trimesh(
+        self._contact_point_handle = self._server.scene.add_batched_meshes_simple(
           "/contacts/points",
-          cylinder_mesh,
+          cylinder_mesh.vertices,
+          cylinder_mesh.faces,
           batched_wxyzs=orientations_arr,
           batched_positions=positions_arr,
           batched_scales=scales_arr,
+          batched_colors=color_uint8,
+          opacity=0.8,
           lod="off",
           visible=True,
           cast_shadow=False,
+          receive_shadow=False,
         )
       else:
         self._contact_point_handle.batched_positions = positions_arr
@@ -893,55 +893,52 @@ class ViserViewer(BaseViewer):
 
     # Update or create contact force handles (shaft and head separately)
     if self._show_contact_forces and len(force_shaft_positions) > 0:
-      shaft_positions_arr = np.array(force_shaft_positions)
-      shaft_orientations_arr = np.array(force_shaft_orientations)
-      shaft_scales_arr = np.array(force_shaft_scales)
-      head_positions_arr = np.array(force_head_positions)
-      head_orientations_arr = np.array(force_head_orientations)
-      head_scales_arr = np.array(force_head_scales)
+      shaft_positions_arr = np.array(force_shaft_positions, dtype=np.float32)
+      shaft_orientations_arr = np.array(force_shaft_orientations, dtype=np.float32)
+      shaft_scales_arr = np.array(force_shaft_scales, dtype=np.float32)
+      head_positions_arr = np.array(force_head_positions, dtype=np.float32)
+      head_orientations_arr = np.array(force_head_orientations, dtype=np.float32)
+      head_scales_arr = np.array(force_head_scales, dtype=np.float32)
+
+      # Convert color to uint8 array
+      color_uint8 = np.array(self._contact_force_color, dtype=np.uint8)
 
       if self._contact_force_shaft_handle is None:
         # Create shaft mesh (cylinder) - unit height, will be stretched
         shaft_mesh = trimesh.creation.cylinder(radius=0.4, height=1.0)
         shaft_mesh.apply_translation([0, 0, 0.5])  # Center at z=0.5
-        # Convert RGB 0-255 to 0-1 range
-        color_01 = [c / 255.0 for c in self._contact_force_color]
-        shaft_mesh.visual = trimesh.visual.TextureVisuals(
-          material=trimesh.visual.material.PBRMaterial(
-            baseColorFactor=color_01 + [1.0],  # Add alpha channel
-          )
-        )
-        self._contact_force_shaft_handle = (
-          self._server.scene.add_batched_meshes_trimesh(
-            "/contacts/forces/shaft",
-            shaft_mesh,
-            batched_wxyzs=shaft_orientations_arr,
-            batched_positions=shaft_positions_arr,
-            batched_scales=shaft_scales_arr,
-            lod="off",
-            visible=True,
-            cast_shadow=False,
-          )
-        )
 
-        # Create head mesh (cone) - fixed size
-        head_mesh = trimesh.creation.cone(radius=1.0, height=1.5, sections=8)
-        head_mesh.apply_translation([0, 0, 0.75])  # Center at z=0.75
-        # Convert RGB 0-255 to 0-1 range (reuse same color as shaft)
-        head_mesh.visual = trimesh.visual.TextureVisuals(
-          material=trimesh.visual.material.PBRMaterial(
-            baseColorFactor=color_01 + [1.0],  # Add alpha channel
-          )
-        )
-        self._contact_force_head_handle = self._server.scene.add_batched_meshes_trimesh(
-          "/contacts/forces/head",
-          head_mesh,
-          batched_wxyzs=head_orientations_arr,
-          batched_positions=head_positions_arr,
-          batched_scales=head_scales_arr,
+        self._contact_force_shaft_handle = self._server.scene.add_batched_meshes_simple(
+          "/contacts/forces/shaft",
+          shaft_mesh.vertices,
+          shaft_mesh.faces,
+          batched_wxyzs=shaft_orientations_arr,
+          batched_positions=shaft_positions_arr,
+          batched_scales=shaft_scales_arr,
+          batched_colors=color_uint8,
+          opacity=0.8,
           lod="off",
           visible=True,
           cast_shadow=False,
+          receive_shadow=False,
+        )
+
+        # Create head mesh (cone) - base at z=0 by default, no translation needed
+        head_mesh = trimesh.creation.cone(radius=1.0, height=1.0, sections=8)
+
+        self._contact_force_head_handle = self._server.scene.add_batched_meshes_simple(
+          "/contacts/forces/head",
+          head_mesh.vertices,
+          head_mesh.faces,
+          batched_wxyzs=head_orientations_arr,
+          batched_positions=head_positions_arr,
+          batched_scales=head_scales_arr,
+          batched_colors=color_uint8,
+          opacity=0.8,
+          lod="off",
+          visible=True,
+          cast_shadow=False,
+          receive_shadow=False,
         )
       else:
         assert self._contact_force_head_handle is not None
