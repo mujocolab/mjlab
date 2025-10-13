@@ -22,3 +22,8 @@ class ViewerConfig:
   origin_type: OriginType = OriginType.WORLD
   asset_name: str | None = None
   body_name: str | None = None
+  env_idx: int = 0
+  enable_reflections: bool = True
+  enable_shadows: bool = True
+  height: int = 240
+  width: int = 320

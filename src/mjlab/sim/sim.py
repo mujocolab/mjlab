@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, Literal, cast
 
 import mujoco
 import mujoco_warp as mjwarp
-import numpy as np
 import warp as wp
 
 from mjlab.sim.randomization import expand_model_fields
@@ -83,21 +82,11 @@ class MujocoCfg(SpecCfg):
 
 
 @dataclass(kw_only=True)
-class RenderCfg:
-  enable_reflections: bool = True
-  enable_shadows: bool = True
-  camera: str | int | None = -1
-  height: int = 240
-  width: int = 320
-
-
-@dataclass(kw_only=True)
 class SimulationCfg:
   nconmax: int | None = None
   njmax: int | None = None
   ls_parallel: bool = True  # Boosts perf quite noticeably.
   mujoco: MujocoCfg = field(default_factory=MujocoCfg)
-  render: RenderCfg = field(default_factory=RenderCfg)
 
 
 class Simulation:
@@ -134,25 +123,6 @@ class Simulation:
       self.wp_device
     )
     self.create_graph()
-
-    self._mj_model.vis.global_.offheight = self.cfg.render.height
-    self._mj_model.vis.global_.offwidth = self.cfg.render.width
-    if not self.cfg.render.enable_shadows:
-      self._mj_model.light_castshadow[:] = False
-    if not self.cfg.render.enable_reflections:
-      self._mj_model.mat_reflectance[:] = 0.0
-
-    self._camera = self.cfg.render.camera or -1
-    self._renderer: mujoco.Renderer | None = None
-
-  def initialize_renderer(self) -> None:
-    if self._renderer is not None:
-      raise RuntimeError(
-        "Renderer is already initialized. Call 'close()' first to reinitialize."
-      )
-    self._renderer = mujoco.Renderer(
-      model=self._mj_model, height=self.cfg.render.height, width=self.cfg.render.width
-    )
 
   def create_graph(self) -> None:
     self.step_graph = None
@@ -191,13 +161,6 @@ class Simulation:
   def model(self) -> "ModelBridge":
     return cast("ModelBridge", self._model_bridge)
 
-  @property
-  def renderer(self) -> mujoco.Renderer:
-    if self._renderer is None:
-      raise ValueError("Renderer not initialized. Call 'initialize_renderer()' first.")
-
-    return self._renderer
-
   # Methods.
 
   def expand_model_fields(self, fields: list[str]) -> None:
@@ -226,21 +189,5 @@ class Simulation:
       else:
         mjwarp.step(self.wp_model, self.wp_data)
 
-  def update_render(self) -> None:
-    if self._renderer is None:
-      raise ValueError("Renderer not initialized. Call 'initialize_renderer()' first.")
-
-    mjwarp.get_data_into(self._mj_data, self._mj_model, self._wp_data)
-    mujoco.mj_forward(self._mj_model, self._mj_data)
-    self._renderer.update_scene(data=self._mj_data, camera=self.cfg.render.camera)
-
-  def render(self) -> np.ndarray:
-    if self._renderer is None:
-      raise ValueError("Renderer not initialized. Call 'initialize_renderer()' first.")
-
-    return self._renderer.render()
-
   def close(self) -> None:
-    if self._renderer is not None:
-      self._renderer.close()
-      self._renderer = None
+    pass
