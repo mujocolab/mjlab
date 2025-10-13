@@ -55,10 +55,12 @@ def imu_orientation(
 ) -> torch.Tensor:
   asset: Entity = env.scene[asset_cfg.name]
 
-  # to modify
-  ori = asset.data.root_link_ang_vel_b
+  # find a way to get the imu id from the name
+  # site_id = site_name_to_id(site_name)
+  print(asset.data.site_pose_w)
+  quat_w = asset.data.site_pose_w[:, 0, 3:7]
 
-  return torch.zeros_like(ori)
+  return quat_w
 
 
 def imu_angular_velocity(
@@ -67,9 +69,11 @@ def imu_angular_velocity(
   asset: Entity = env.scene[asset_cfg.name]
 
   # to modify
-  ang_vel = asset.data.root_link_ang_vel_b
+  ang_vel_w = asset.data.site_vel_w[:, 0, 3:7]
 
-  return torch.zeros_like(ang_vel)
+  # ang_vel_b = ...  # should i do it here or do a derived property in data
+
+  return ang_vel_w
 
 
 def imu_lin_acceleration(
@@ -78,20 +82,11 @@ def imu_lin_acceleration(
   asset: Entity = env.scene[asset_cfg.name]
 
   # to modify
-  lin_acc = asset.data.root_link_ang_vel_b
+  lin_acc_w = asset.data.site_acc_w[:, 0, 3:7]
 
-  return torch.zeros_like(lin_acc)
+  # lin_acc_b = ...  # should i do it here or do a derived property in data
 
-
-def imu_projected_gravity(
-  env: ManagerBasedEnv, site_name: str, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
-) -> torch.Tensor:
-  asset: Entity = env.scene[asset_cfg.name]
-
-  # to modify
-  proj_grav = asset.data.root_link_ang_vel_b
-
-  return torch.zeros_like(proj_grav)
+  return lin_acc_w
 
 
 ##
