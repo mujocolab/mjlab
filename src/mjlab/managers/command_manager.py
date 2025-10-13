@@ -14,6 +14,7 @@ from mjlab.utils.dataclasses import get_terms
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
   from mjlab.managers.manager_term_config import CommandTermCfg
+  from mjlab.viewer.debug_visualizer import DebugVisualizer
 
 
 class CommandTerm(ManagerTermBase):
@@ -28,11 +29,11 @@ class CommandTerm(ManagerTermBase):
       self.num_envs, device=self.device, dtype=torch.long
     )
 
-  def debug_vis(self, scn):
+  def debug_vis(self, visualizer: "DebugVisualizer") -> None:
     if self.cfg.debug_vis:
-      self._debug_vis_impl(scn)
+      self._debug_vis_impl(visualizer)
 
-  def _debug_vis_impl(self, scn):
+  def _debug_vis_impl(self, visualizer: "DebugVisualizer") -> None:
     pass
 
   @property
@@ -104,9 +105,9 @@ class CommandManager(ManagerBase):
     msg += "\n"
     return msg
 
-  def debug_vis(self, scn):
+  def debug_vis(self, visualizer: "DebugVisualizer") -> None:
     for term in self._terms.values():
-      term.debug_vis(scn)
+      term.debug_vis(visualizer)
 
   # Properties.
 
@@ -173,7 +174,7 @@ class NullCommandManager:
   def __repr__(self) -> str:
     return "NullCommandManager()"
 
-  def debug_vis(self, scn) -> None:
+  def debug_vis(self, visualizer: "DebugVisualizer") -> None:
     pass
 
   def get_active_iterable_terms(
