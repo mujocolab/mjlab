@@ -69,8 +69,7 @@ cu12 = ["torch>=2.7.0"]
 train = "mjlab.scripts.train:main"
 play = "mjlab.scripts.play:main"
 demo = "mjlab.scripts.demo:main"
-zero_agent = "mjlab.scripts.zero_agent:main"
-random_agent = "mjlab.scripts.random_agent:main"
+list_envs = "mjlab.scripts.list_envs:main"
 
 [[tool.uv.index]]
 url = "https://pypi.org/simple"
