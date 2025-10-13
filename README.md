@@ -107,20 +107,13 @@ uv run play Mjlab-Tracking-Flat-Unitree-G1-Play --wandb-run-path your-org/mjlab/
 
 ---
 
-### 3. Debug with Dummy Agents
+### 3. Sanity-check with Dummy Agents
 
-Before training, you can spawn **dummy agents** to verify observations, action scaling, and terminations without an RL policy:
-
-#### Zero Agent
+Use built-in agents to sanity check your MDP **before** training.
 
 ```bash
-uv run play Mjlab-Your-Task-Id --agent zero
-```
-
-#### Random Agent
-
-```bash
-uv run play Mjlab-Your-Task-Id --agent random
+uv run play Mjlab-Your-Task-Id --agent zero  # Sends zero actions.
+uv run play Mjlab-Your-Task-Id --agent random  # Sends uniform random actions.
 ```
 
 > [!NOTE]
