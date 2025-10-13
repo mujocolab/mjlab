@@ -177,7 +177,7 @@ class ViserViewer(BaseViewer):
         env_nav_buttons = self._server.gui.add_button_group(
           "Navigate",
           options=["Previous", "Next"],
-          disabled=self.env.num_envs <= 1,
+          visible=self.env.num_envs > 1,
         )
 
         @env_nav_buttons.on_click
@@ -194,7 +194,7 @@ class ViserViewer(BaseViewer):
           max=max(0, self.env.num_envs - 1),
           step=1,
           initial_value=0,
-          disabled=self.env.num_envs <= 1,
+          visible=self.env.num_envs > 1,
         )
 
         @self._env_slider.on_update
@@ -208,7 +208,7 @@ class ViserViewer(BaseViewer):
           "Hide others",
           initial_value=False,
           hint="Show only the selected environment.",
-          disabled=self.env.num_envs <= 1,
+          visible=self.env.num_envs > 1,
         )
 
         @self._show_only_selected_cb.on_update
