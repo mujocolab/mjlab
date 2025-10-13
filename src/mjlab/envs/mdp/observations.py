@@ -43,6 +43,57 @@ def projected_gravity(
   return asset.data.projected_gravity_b
 
 
+###
+# IMU state.
+###
+
+# TODO: Make them class based rewards ?
+
+
+def imu_orientation(
+  env: ManagerBasedEnv, site_name: str, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
+) -> torch.Tensor:
+  asset: Entity = env.scene[asset_cfg.name]
+
+  # to modify
+  ori = asset.data.root_link_ang_vel_b
+
+  return torch.zeros_like(ori)
+
+
+def imu_angular_velocity(
+  env: ManagerBasedEnv, site_name: str, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
+) -> torch.Tensor:
+  asset: Entity = env.scene[asset_cfg.name]
+
+  # to modify
+  ang_vel = asset.data.root_link_ang_vel_b
+
+  return torch.zeros_like(ang_vel)
+
+
+def imu_lin_acceleration(
+  env: ManagerBasedEnv, site_name: str, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
+) -> torch.Tensor:
+  asset: Entity = env.scene[asset_cfg.name]
+
+  # to modify
+  lin_acc = asset.data.root_link_ang_vel_b
+
+  return torch.zeros_like(lin_acc)
+
+
+def imu_projected_gravity(
+  env: ManagerBasedEnv, site_name: str, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
+) -> torch.Tensor:
+  asset: Entity = env.scene[asset_cfg.name]
+
+  # to modify
+  proj_grav = asset.data.root_link_ang_vel_b
+
+  return torch.zeros_like(proj_grav)
+
+
 ##
 # Joint state.
 ##
