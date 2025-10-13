@@ -171,160 +171,160 @@ class ViserViewer(BaseViewer):
         def _(client: viser.ClientHandle) -> None:
           client.camera.fov = np.radians(slider_fov.value)
 
-      # Environment selection if multiple environments
-      if self.env.num_envs > 1:
-        with self._server.gui.add_folder("Environment"):
-          # Navigation buttons
-          env_nav_buttons = self._server.gui.add_button_group(
-            "Navigate",
-            options=["Previous", "Next"],
-          )
+      # Environment controls
+      with self._server.gui.add_folder("Environment"):
+        # Navigation buttons
+        env_nav_buttons = self._server.gui.add_button_group(
+          "Navigate",
+          options=["Previous", "Next"],
+          disabled=self.env.num_envs <= 1,
+        )
 
-          @env_nav_buttons.on_click
-          def _(event) -> None:
-            if event.target.value == "Previous":
-              new_idx = (self._env_idx - 1) % self.env.num_envs
-            else:
-              new_idx = (self._env_idx + 1) % self.env.num_envs
-            self._env_slider.value = new_idx
+        @env_nav_buttons.on_click
+        def _(event) -> None:
+          if event.target.value == "Previous":
+            new_idx = (self._env_idx - 1) % self.env.num_envs
+          else:
+            new_idx = (self._env_idx + 1) % self.env.num_envs
+          self._env_slider.value = new_idx
 
-          self._env_slider = self._server.gui.add_slider(
-            "Select",
-            min=0,
-            max=self.env.num_envs - 1,
-            step=1,
-            initial_value=0,
-          )
+        self._env_slider = self._server.gui.add_slider(
+          "Select",
+          min=0,
+          max=max(0, self.env.num_envs - 1),
+          step=1,
+          initial_value=0,
+          disabled=self.env.num_envs <= 1,
+        )
 
-          @self._env_slider.on_update
-          def _(_) -> None:
-            self._env_idx = int(self._env_slider.value)
-            self._update_status_display()
-            if self._reward_plotter:
-              self._reward_plotter.clear_histories()
+        @self._env_slider.on_update
+        def _(_) -> None:
+          self._env_idx = int(self._env_slider.value)
+          self._update_status_display()
+          if self._reward_plotter:
+            self._reward_plotter.clear_histories()
 
-          self._show_only_selected_cb = self._server.gui.add_checkbox(
-            "Hide others",
+        self._show_only_selected_cb = self._server.gui.add_checkbox(
+          "Hide others",
+          initial_value=False,
+          hint="Show only the selected environment.",
+          disabled=self.env.num_envs <= 1,
+        )
+
+        @self._show_only_selected_cb.on_update
+        def _(_) -> None:
+          self._show_only_selected_env = self._show_only_selected_cb.value
+
+        # Camera tracking controls
+        cb_camera_tracking = self._server.gui.add_checkbox(
+          "Track camera",
+          initial_value=False,
+          hint="Keep tracked body centered. Use Viser camera controls to adjust view.",
+        )
+
+        @cb_camera_tracking.on_update
+        def _(_) -> None:
+          self._camera_tracking = cb_camera_tracking.value
+          # When enabling tracking, set all camera look-ats and positions to config defaults
+          if self._camera_tracking:
+            # Get camera parameters from config
+            distance = self.cfg.distance
+            azimuth = self.cfg.azimuth
+            elevation = self.cfg.elevation
+
+            # Convert to radians and calculate camera position
+            azimuth_rad = np.deg2rad(azimuth)
+            elevation_rad = np.deg2rad(elevation)
+
+            # Calculate forward vector from spherical coordinates
+            forward = np.array(
+              [
+                np.cos(elevation_rad) * np.cos(azimuth_rad),
+                np.cos(elevation_rad) * np.sin(azimuth_rad),
+                np.sin(elevation_rad),
+              ]
+            )
+
+            # Camera position is origin - forward * distance
+            camera_pos = -forward * distance
+
+            for client in self._server.get_clients().values():
+              client.camera.position = camera_pos
+              client.camera.look_at = np.zeros(3)
+
+        # Debug visualization controls
+        cb_debug_vis = self._server.gui.add_checkbox(
+          "Debug visualization",
+          initial_value=True,
+          hint="Show debug arrows and ghost meshes.",
+        )
+
+        @cb_debug_vis.on_update
+        def _(_) -> None:
+          self._show_debug_vis = cb_debug_vis.value
+          # Clear visualizer if hiding
+          if not self._show_debug_vis and self._debug_visualizer is not None:
+            self._debug_visualizer.clear_all()
+
+        # Contact visualization settings
+        with self._server.gui.add_folder("Contacts"):
+          cb_contact_points = self._server.gui.add_checkbox(
+            "Points",
             initial_value=False,
-            hint="Show only the selected environment.",
+            hint="Toggle contact point visualization.",
           )
-
-          @self._show_only_selected_cb.on_update
-          def _(_) -> None:
-            self._show_only_selected_env = self._show_only_selected_cb.value
-
-          # Camera tracking controls
-          cb_camera_tracking = self._server.gui.add_checkbox(
-            "Track camera",
+          contact_point_color = self._server.gui.add_rgb(
+            "Points Color", initial_value=self._contact_point_color
+          )
+          cb_contact_forces = self._server.gui.add_checkbox(
+            "Forces",
             initial_value=False,
-            hint="Keep tracked body centered. Use Viser camera controls to adjust view.",
+            hint="Toggle contact force visualization.",
+          )
+          contact_force_color = self._server.gui.add_rgb(
+            "Forces Color", initial_value=self._contact_force_color
+          )
+          meansize_input = self._server.gui.add_number(
+            "Scale",
+            step=mj_model.stat.meansize * 0.01,
+            initial_value=mj_model.stat.meansize,
           )
 
-          @cb_camera_tracking.on_update
+          @cb_contact_points.on_update
           def _(_) -> None:
-            self._camera_tracking = cb_camera_tracking.value
-            # When enabling tracking, set all camera look-ats and positions to config defaults
-            if self._camera_tracking:
-              # Get camera parameters from config
-              distance = self.cfg.distance
-              azimuth = self.cfg.azimuth
-              elevation = self.cfg.elevation
+            self._show_contact_points = cb_contact_points.value
+            if not cb_contact_points.value and self._contact_point_handle is not None:
+              self._contact_point_handle.visible = False
 
-              # Convert to radians and calculate camera position
-              azimuth_rad = np.deg2rad(azimuth)
-              elevation_rad = np.deg2rad(elevation)
-
-              # Calculate forward vector from spherical coordinates
-              forward = np.array(
-                [
-                  np.cos(elevation_rad) * np.cos(azimuth_rad),
-                  np.cos(elevation_rad) * np.sin(azimuth_rad),
-                  np.sin(elevation_rad),
-                ]
-              )
-
-              # Camera position is origin - forward * distance
-              camera_pos = -forward * distance
-
-              for client in self._server.get_clients().values():
-                client.camera.position = camera_pos
-                client.camera.look_at = np.zeros(3)
-
-          # Debug visualization controls
-          cb_debug_vis = self._server.gui.add_checkbox(
-            "Debug visualization",
-            initial_value=True,
-            hint="Show debug arrows and ghost meshes.",
-          )
-
-          @cb_debug_vis.on_update
+          @contact_point_color.on_update
           def _(_) -> None:
-            self._show_debug_vis = cb_debug_vis.value
-            # Clear visualizer if hiding
-            if not self._show_debug_vis and self._debug_visualizer is not None:
-              self._debug_visualizer.clear_all()
+            self._contact_point_color = contact_point_color.value
+            if self._contact_point_handle is not None:
+              self._contact_point_handle.remove()
+              self._contact_point_handle = None
 
-          # Contact visualization settings
-          with self._server.gui.add_folder("Contacts"):
-            cb_contact_points = self._server.gui.add_checkbox(
-              "Points",
-              initial_value=False,
-              hint="Toggle contact point visualization.",
-            )
-            contact_point_color = self._server.gui.add_rgb(
-              "Points Color", initial_value=self._contact_point_color
-            )
-            cb_contact_forces = self._server.gui.add_checkbox(
-              "Forces",
-              initial_value=False,
-              hint="Toggle contact force visualization.",
-            )
-            contact_force_color = self._server.gui.add_rgb(
-              "Forces Color", initial_value=self._contact_force_color
-            )
-            meansize_input = self._server.gui.add_number(
-              "Scale",
-              min=mj_model.stat.meansize * 0.1,
-              max=mj_model.stat.meansize * 10.0,
-              step=mj_model.stat.meansize * 0.01,
-              initial_value=mj_model.stat.meansize,
-            )
-
-            @cb_contact_points.on_update
-            def _(_) -> None:
-              self._show_contact_points = cb_contact_points.value
-              if not cb_contact_points.value and self._contact_point_handle is not None:
-                self._contact_point_handle.visible = False
-
-            @contact_point_color.on_update
-            def _(_) -> None:
-              self._contact_point_color = contact_point_color.value
-              if self._contact_point_handle is not None:
-                self._contact_point_handle.remove()
-                self._contact_point_handle = None
-
-            @cb_contact_forces.on_update
-            def _(_) -> None:
-              self._show_contact_forces = cb_contact_forces.value
-              if not cb_contact_forces.value:
-                if self._contact_force_shaft_handle is not None:
-                  self._contact_force_shaft_handle.visible = False
-                if self._contact_force_head_handle is not None:
-                  self._contact_force_head_handle.visible = False
-
-            @contact_force_color.on_update
-            def _(_) -> None:
-              self._contact_force_color = contact_force_color.value
+          @cb_contact_forces.on_update
+          def _(_) -> None:
+            self._show_contact_forces = cb_contact_forces.value
+            if not cb_contact_forces.value:
               if self._contact_force_shaft_handle is not None:
-                self._contact_force_shaft_handle.remove()
-                self._contact_force_shaft_handle = None
+                self._contact_force_shaft_handle.visible = False
               if self._contact_force_head_handle is not None:
-                self._contact_force_head_handle.remove()
-                self._contact_force_head_handle = None
+                self._contact_force_head_handle.visible = False
 
-            @meansize_input.on_update
-            def _(_) -> None:
-              self._meansize_override = meansize_input.value
+          @contact_force_color.on_update
+          def _(_) -> None:
+            self._contact_force_color = contact_force_color.value
+            if self._contact_force_shaft_handle is not None:
+              self._contact_force_shaft_handle.remove()
+              self._contact_force_shaft_handle = None
+            if self._contact_force_head_handle is not None:
+              self._contact_force_head_handle.remove()
+              self._contact_force_head_handle = None
+
+          @meansize_input.on_update
+          def _(_) -> None:
+            self._meansize_override = meansize_input.value
 
     # Reward plots tab
     if hasattr(self.env.unwrapped, "reward_manager"):
