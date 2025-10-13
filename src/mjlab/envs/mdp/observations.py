@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING
 import torch
 
 from mjlab.entity import Entity
+from mjlab.managers.manager_term_config import ObservationTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.third_party.isaaclab.isaaclab.utils.math import quat_apply_inverse
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_env import ManagerBasedEnv
@@ -50,43 +52,142 @@ def projected_gravity(
 # TODO: Make them class based rewards ?
 
 
-def imu_orientation(
-  env: ManagerBasedEnv, site_name: str, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
-) -> torch.Tensor:
-  asset: Entity = env.scene[asset_cfg.name]
+class imu_orientation:
+  """Penalize the deviation of the joint positions from the default positions.
 
-  # find a way to get the imu id from the name
-  # site_id = site_name_to_id(site_name)
-  print(asset.data.site_pose_w)
-  quat_w = asset.data.site_pose_w[:, 0, 3:7]
+  Note: This is implemented as a class so that we can resolve the standard deviation
+  dictionary into a tensor and thereafter use it in the __call__ method.
+  """
 
-  return quat_w
+  def __init__(self, cfg: ObservationTermCfg, env: ManagerBasedRlEnv):
+    self.asset_cfg: SceneEntityCfg = cfg.params.get("asset_cfg", _DEFAULT_ASSET_CFG)
+
+    asset: Entity = env.scene[self.asset_cfg.name]
+
+    site_name = cfg.params.get("site_name", "imu")
+
+    idxs, _ = asset.find_sites(site_name, preserve_order=True)
+    self.site_id = int(asset.indexing.site_ids[idxs[0]].item())
+
+  def __call__(
+    self,
+    env: ManagerBasedEnv,
+    site_name: str = "imu",
+    asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+  ) -> torch.Tensor:
+    del site_name  # Unused.
+    del asset_cfg  # Unused.
+
+    asset: Entity = env.scene[self.asset_cfg.name]
+
+    return asset.data.site_quat_w[:, self.site_id, :]
 
 
-def imu_angular_velocity(
-  env: ManagerBasedEnv, site_name: str, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
-) -> torch.Tensor:
-  asset: Entity = env.scene[asset_cfg.name]
+class imu_ang_vel:
+  """Penalize the deviation of the joint positions from the default positions.
 
-  # to modify
-  ang_vel_w = asset.data.site_vel_w[:, 0, 3:7]
+  Note: This is implemented as a class so that we can resolve the standard deviation
+  dictionary into a tensor and thereafter use it in the __call__ method.
+  """
 
-  # ang_vel_b = ...  # should i do it here or do a derived property in data
+  def __init__(self, cfg: ObservationTermCfg, env: ManagerBasedRlEnv):
+    self.asset_cfg: SceneEntityCfg = cfg.params.get("asset_cfg", _DEFAULT_ASSET_CFG)
 
-  return ang_vel_w
+    asset: Entity = env.scene[self.asset_cfg.name]
+
+    site_name = cfg.params.get("site_name", "imu")
+
+    idxs, _ = asset.find_sites(site_name, preserve_order=True)
+    self.site_id = int(asset.indexing.site_ids[idxs[0]].item())
+
+  def __call__(
+    self,
+    env: ManagerBasedEnv,
+    site_name: str = "imu",
+    asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+  ) -> torch.Tensor:
+    del site_name  # Unused.
+    del asset_cfg  # Unused.
+
+    asset: Entity = env.scene[self.asset_cfg.name]
+
+    ang_vel_w = asset.data.site_ang_vel_w[:, self.site_id, :]
+    quat_w = asset.data.site_quat_w[:, self.site_id, :]
+
+    ang_vel_b = quat_apply_inverse(quat_w, ang_vel_w)
+
+    return ang_vel_b
 
 
-def imu_lin_acceleration(
-  env: ManagerBasedEnv, site_name: str, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
-) -> torch.Tensor:
-  asset: Entity = env.scene[asset_cfg.name]
+class imu_lin_acc:
+  """Penalize the deviation of the joint positions from the default positions.
 
-  # to modify
-  lin_acc_w = asset.data.site_acc_w[:, 0, 3:7]
+  Note: This is implemented as a class so that we can resolve the standard deviation
+  dictionary into a tensor and thereafter use it in the __call__ method.
+  """
 
-  # lin_acc_b = ...  # should i do it here or do a derived property in data
+  def __init__(self, cfg: ObservationTermCfg, env: ManagerBasedRlEnv):
+    self.asset_cfg: SceneEntityCfg = cfg.params.get("asset_cfg", _DEFAULT_ASSET_CFG)
 
-  return lin_acc_w
+    asset: Entity = env.scene[self.asset_cfg.name]
+
+    site_name = cfg.params.get("site_name", "imu")
+
+    idxs, _ = asset.find_sites(site_name, preserve_order=True)
+    self.site_id = int(asset.indexing.site_ids[idxs[0]].item())
+
+  def __call__(
+    self,
+    env: ManagerBasedEnv,
+    site_name: str = "imu",
+    asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+  ) -> torch.Tensor:
+    del site_name  # Unused.
+    del asset_cfg  # Unused.
+
+    asset: Entity = env.scene[self.asset_cfg.name]
+
+    lin_acc_w = asset.data.site_lin_acc_w[:, self.site_id, :]
+    quat_w = asset.data.site_quat_w[:, self.site_id, :]
+
+    lin_acc_b = quat_apply_inverse(quat_w, lin_acc_w)
+
+    return lin_acc_b
+
+
+class imu_projected_gravity:
+  """Penalize the deviation of the joint positions from the default positions.
+
+  Note: This is implemented as a class so that we can resolve the standard deviation
+  dictionary into a tensor and thereafter use it in the __call__ method.
+  """
+
+  def __init__(self, cfg: ObservationTermCfg, env: ManagerBasedRlEnv):
+    self.asset_cfg: SceneEntityCfg = cfg.params.get("asset_cfg", _DEFAULT_ASSET_CFG)
+
+    asset: Entity = env.scene[self.asset_cfg.name]
+
+    site_name = cfg.params.get("site_name", "imu")
+
+    idxs, _ = asset.find_sites(site_name, preserve_order=True)
+    self.site_id = int(asset.indexing.site_ids[idxs[0]].item())
+
+  def __call__(
+    self,
+    env: ManagerBasedEnv,
+    site_name: str = "imu",
+    asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+  ) -> torch.Tensor:
+    del site_name  # Unused.
+    del asset_cfg  # Unused.
+
+    asset: Entity = env.scene[self.asset_cfg.name]
+
+    quat_w = asset.data.site_quat_w[:, self.site_id, :]
+
+    projected_gravity_b = quat_apply_inverse(quat_w, asset.data.gravity_vec_w)
+
+    return projected_gravity_b
 
 
 ##
