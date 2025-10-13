@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import inspect
 from typing import TYPE_CHECKING
 
 import torch
@@ -178,7 +177,6 @@ class EventManager(ManagerBase):
       if term_cfg is None:
         print(f"term: {term_name} set to None, skipping...")
         continue
-      is_class_term = inspect.isclass(term_cfg.func)
       self._resolve_common_term_cfg(term_name, term_cfg)
       if term_cfg.mode not in self._mode_term_names:
         self._mode_term_names[term_cfg.mode] = list()
@@ -186,7 +184,7 @@ class EventManager(ManagerBase):
         self._mode_class_term_cfgs[term_cfg.mode] = list()
       self._mode_term_names[term_cfg.mode].append(term_name)
       self._mode_term_cfgs[term_cfg.mode].append(term_cfg)
-      if is_class_term:
+      if hasattr(term_cfg.func, "reset") and callable(term_cfg.func.reset):
         self._mode_class_term_cfgs[term_cfg.mode].append(term_cfg)
       if term_cfg.mode == "interval":
         if term_cfg.interval_range_s is None:

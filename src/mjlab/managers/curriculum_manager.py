@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import inspect
 from typing import TYPE_CHECKING, Any, Sequence
 
 import torch
@@ -99,11 +98,10 @@ class CurriculumManager(ManagerBase):
       if term_cfg is None:
         print(f"term: {term_name} set to None, skipping...")
         continue
-      is_class_term = inspect.isclass(term_cfg.func)
       self._resolve_common_term_cfg(term_name, term_cfg)
       self._term_names.append(term_name)
       self._term_cfgs.append(term_cfg)
-      if is_class_term:
+      if hasattr(term_cfg.func, "reset") and callable(term_cfg.func.reset):
         self._class_term_cfgs.append(term_cfg)
 
 
