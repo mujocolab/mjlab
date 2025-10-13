@@ -60,7 +60,7 @@ class ViserViewer(BaseViewer):
     self._meansize_override: float | None = None
     self._camera_tracking = False
     self._contact_point_color = (230, 153, 51)  # RGB 0-255, MuJoCo default
-    self._contact_force_color = (179, 230, 230)  # RGB 0-255, MuJoCo default
+    self._contact_force_color = (255, 0, 0)  # RGB 0-255, red
 
     self._counter = 0
     self._env_idx = 0
@@ -128,9 +128,6 @@ class ViserViewer(BaseViewer):
         cb_collision = self._server.gui.add_checkbox(
           "Collision geom", initial_value=False
         )
-        cb_debug_vis = self._server.gui.add_checkbox(
-          "Debug visualization", initial_value=True
-        )
         slider_fov = self._server.gui.add_slider(
           "FOV (°)",
           min=20,
@@ -162,13 +159,6 @@ class ViserViewer(BaseViewer):
               if not visibility:
                 handle.batched_positions = handle.batched_positions - 2000.0
               handle.visible = visibility
-
-        @cb_debug_vis.on_update
-        def _(_) -> None:
-          self._show_debug_vis = cb_debug_vis.value
-          # Clear visualizer if hiding
-          if not self._show_debug_vis and self._debug_visualizer is not None:
-            self._debug_visualizer.clear_all()
 
         # Update FOV when a new client connects.
         @slider_fov.on_update
@@ -260,6 +250,20 @@ class ViserViewer(BaseViewer):
                 client.camera.position = camera_pos
                 client.camera.look_at = np.zeros(3)
 
+          # Debug visualization controls
+          cb_debug_vis = self._server.gui.add_checkbox(
+            "Debug visualization",
+            initial_value=True,
+            hint="Show debug arrows and ghost meshes.",
+          )
+
+          @cb_debug_vis.on_update
+          def _(_) -> None:
+            self._show_debug_vis = cb_debug_vis.value
+            # Clear visualizer if hiding
+            if not self._show_debug_vis and self._debug_visualizer is not None:
+              self._debug_visualizer.clear_all()
+
           # Contact visualization settings
           with self._server.gui.add_folder("Contacts"):
             cb_contact_points = self._server.gui.add_checkbox(
@@ -280,9 +284,9 @@ class ViserViewer(BaseViewer):
             )
             meansize_input = self._server.gui.add_number(
               "Scale",
-              min=0.001,
-              max=1.0,
-              step=0.001,
+              min=mj_model.stat.meansize * 0.1,
+              max=mj_model.stat.meansize * 10.0,
+              step=mj_model.stat.meansize * 0.01,
               initial_value=mj_model.stat.meansize,
             )
 
@@ -636,7 +640,9 @@ class ViserViewer(BaseViewer):
     if self._counter % 2 != 0:
       return
 
-    # Update contacts (after early return so it syncs with mesh updates)
+    # Get simulation for updating meshes and contacts
+    sim = self.env.unwrapped.sim
+    assert isinstance(sim, Simulation)
     wp_data = sim.wp_data
     mj_model = sim.mj_model
 
