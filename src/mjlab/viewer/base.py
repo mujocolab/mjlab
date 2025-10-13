@@ -84,14 +84,12 @@ class BaseViewer(ABC):
     env: EnvProtocol,
     policy: PolicyProtocol,
     frame_rate: float = 30.0,
-    render_all_envs: bool = True,
     verbosity: int = VerbosityLevel.SILENT,
   ):
     self.env = env
     self.policy = policy
     self.frame_rate = frame_rate
     self.frame_time = 1.0 / frame_rate
-    self.render_all_envs = render_all_envs
     self.verbosity = VerbosityLevel(verbosity)
     self.cfg = env.cfg.viewer
 
