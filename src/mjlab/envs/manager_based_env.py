@@ -17,6 +17,7 @@ from mjlab.sim import SimulationCfg
 from mjlab.sim.sim import Simulation
 from mjlab.utils import random as random_utils
 from mjlab.utils.logging import print_info
+from mjlab.viewer.debug_visualizer import DebugVisualizer
 from mjlab.viewer.viewer_config import ViewerConfig
 
 
@@ -174,9 +175,9 @@ class ManagerBasedEnv:
     random_utils.seed_rng(seed)
     return seed
 
-  def update_visualizers(self, scn) -> None:
+  def update_visualizers(self, visualizer: DebugVisualizer) -> None:
     for mod in self.manager_visualizers.values():
-      mod.debug_vis(scn)
+      mod.debug_vis(visualizer)
 
   # Private methods.
 

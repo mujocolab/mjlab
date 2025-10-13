@@ -93,7 +93,7 @@ class BaseViewer(ABC):
     self.frame_time = 1.0 / frame_rate
     self.render_all_envs = render_all_envs
     self.verbosity = VerbosityLevel(verbosity)
-    self.cfg = getattr(env.cfg, "viewer", None)
+    self.cfg = env.cfg.viewer
 
     # Loop state.
     self._is_paused = False

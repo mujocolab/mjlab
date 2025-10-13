@@ -19,6 +19,7 @@ from mjlab.viewer.base import (
   VerbosityLevel,
   ViewerAction,
 )
+from mjlab.viewer.mujoco_native_visualizer import MujocoNativeDebugVisualizer
 
 if TYPE_CHECKING:
   from mjlab.entity import Entity
@@ -72,6 +73,7 @@ class NativeMujocoViewer(BaseViewer):
     self._histories: dict[str, deque[float]] = {}  # Per-term ring buffer.
     self._yrange: dict[str, tuple[float, float]] = {}  # Per-term y-range.
     self._show_plots: bool = True
+    self._show_debug_vis: bool = True
     self._plot_cfg = plot_cfg or PlotCfg()
 
     self.env_idx = 0
@@ -171,8 +173,9 @@ class NativeMujocoViewer(BaseViewer):
       #   v.set_figures([])
 
       v.user_scn.ngeom = 0
-      if hasattr(self.env.unwrapped, "update_visualizers"):
-        self.env.unwrapped.update_visualizers(v.user_scn)
+      if self._show_debug_vis and hasattr(self.env.unwrapped, "update_visualizers"):
+        visualizer = MujocoNativeDebugVisualizer(v.user_scn, self.mjm, self.env_idx)
+        self.env.unwrapped.update_visualizers(visualizer)
 
       if self.render_all_envs and self.vd is not None:
         for i in range(self.env.unwrapped.num_envs):
@@ -224,6 +227,7 @@ class NativeMujocoViewer(BaseViewer):
       KEY_MINUS,
       KEY_P,
       KEY_PERIOD,
+      KEY_R,
       KEY_SPACE,
     )
 
@@ -240,7 +244,9 @@ class NativeMujocoViewer(BaseViewer):
     elif key == KEY_PERIOD:
       self.request_action("NEXT_ENV")
     elif key == KEY_P:
-      self.request_action("TOGGLE_PLOTS")
+      self.request_action("TOGGLE_PLOTS", "TOGGLE_PLOTS")
+    elif key == KEY_R:
+      self.request_action("TOGGLE_DEBUG_VIS", "TOGGLE_DEBUG_VIS")
 
     if self.user_key_callback:
       try:
@@ -261,10 +267,17 @@ class NativeMujocoViewer(BaseViewer):
       return True
     else:
       if hasattr(action, "value") and action.value == "custom":
-        if payload == "TOGGLE_PLOTS" or payload is None:
+        if payload == "TOGGLE_PLOTS":
           self._show_plots = not self._show_plots
           self.log(
             f"[INFO] Reward plots {'shown' if self._show_plots else 'hidden'}",
+            VerbosityLevel.INFO,
+          )
+          return True
+        elif payload == "TOGGLE_DEBUG_VIS":
+          self._show_debug_vis = not self._show_debug_vis
+          self.log(
+            f"[INFO] Debug visualization {'shown' if self._show_debug_vis else 'hidden'}",
             VerbosityLevel.INFO,
           )
           return True
