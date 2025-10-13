@@ -114,13 +114,13 @@ Before training, you can spawn **dummy agents** to verify observations, action s
 #### Zero Agent
 
 ```bash
-uv run zero_agent Mjlab-Your-Task-Id
+uv run play Mjlab-Your-Task-Id --agent zero
 ```
 
 #### Random Agent
 
 ```bash
-uv run random_agent Mjlab-Your-Task-Id
+uv run play Mjlab-Your-Task-Id --agent random
 ```
 
 > [!NOTE]
