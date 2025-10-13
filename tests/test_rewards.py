@@ -258,6 +258,31 @@ class TestRewardManagerClassReset:
     manager = RewardManager(Cfg(), mock_env)
     assert len(manager._class_term_cfgs) == 0
 
+  def test_stateless_class_reward_no_reset(self, mock_env):
+    """Test that stateless class-based rewards without reset don't break reset."""
+    from dataclasses import dataclass, field
+
+    class StatelessReward:
+      def __init__(self, cfg: RewardTermCfg, env):
+        pass
+
+      def __call__(self, env, **kwargs):
+        return torch.ones(env.num_envs)
+
+    @dataclass
+    class Cfg:
+      term: RewardTermCfg = field(
+        default_factory=lambda: RewardTermCfg(
+          func=StatelessReward, weight=1.0, params={}
+        )
+      )
+
+    mock_env.max_episode_length_s = 10.0
+    manager = RewardManager(Cfg(), mock_env)
+
+    assert len(manager._class_term_cfgs) == 0
+    manager.reset(env_ids=torch.tensor([0, 2]))  # Should not raise
+
 
 if __name__ == "__main__":
   pytest.main([__file__, "-v"])
