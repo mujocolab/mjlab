@@ -25,7 +25,7 @@ from mjlab.viewer import NativeMujocoViewer, ViserViewer
 
 @dataclass(frozen=True)
 class PlayConfig:
-  agent: str | None = None
+  agent: Literal["zero", "random", "trained"] = "trained"
   registry_name: str | None = None
   wandb_run_path: str | None = None
   checkpoint_file: str | None = None
@@ -44,9 +44,6 @@ class PlayConfig:
 def run_play(task: str, cfg: PlayConfig):
   configure_torch_backends()
 
-  if cfg.agent is not None and cfg.agent not in {"zero", "random"}:
-    raise ValueError("Choose only between `zero` or `random` when using dummy agents.")
-
   device = cfg.device or ("cuda:0" if torch.cuda.is_available() else "cpu")
   print(f"[INFO]: Using device: {device}")
 
@@ -62,7 +59,6 @@ def run_play(task: str, cfg: PlayConfig):
 
   if isinstance(env_cfg, TrackingEnvCfg):
     if DUMMY_MODE:
-      # Dummy tracking requires a motion artifact in the registry.
       if not cfg.registry_name:
         raise ValueError(
           "Tracking tasks require `registry_name` when using dummy agents."
