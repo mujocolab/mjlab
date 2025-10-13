@@ -212,110 +212,111 @@ class ViserViewer(BaseViewer):
               self._reward_plotter.clear_histories()
 
           self._show_only_selected_cb = self._server.gui.add_checkbox(
-            "Show only this environment", initial_value=False
+            "Hide others",
+            initial_value=False,
+            hint="Show only the selected environment.",
           )
 
           @self._show_only_selected_cb.on_update
           def _(_) -> None:
             self._show_only_selected_env = self._show_only_selected_cb.value
 
-      # Contact visualization settings
-      with self._server.gui.add_folder("Contacts"):
-        cb_contact_points = self._server.gui.add_checkbox(
-          "Points",
-          initial_value=False,
-          hint="Toggle contact point visualization.",
-        )
-        contact_point_color = self._server.gui.add_rgb(
-          "Points Color", initial_value=self._contact_point_color
-        )
-        cb_contact_forces = self._server.gui.add_checkbox(
-          "Forces",
-          initial_value=False,
-          hint="Toggle contact force visualization.",
-        )
-        contact_force_color = self._server.gui.add_rgb(
-          "Forces Color", initial_value=self._contact_force_color
-        )
-        meansize_input = self._server.gui.add_number(
-          "Scale",
-          min=0.001,
-          max=1.0,
-          step=0.001,
-          initial_value=mj_model.stat.meansize,
-        )
+          # Camera tracking controls
+          cb_camera_tracking = self._server.gui.add_checkbox(
+            "Track camera",
+            initial_value=False,
+            hint="Keep tracked body centered. Use Viser camera controls to adjust view.",
+          )
 
-        @cb_contact_points.on_update
-        def _(_) -> None:
-          self._show_contact_points = cb_contact_points.value
-          if not cb_contact_points.value and self._contact_point_handle is not None:
-            self._contact_point_handle.visible = False
+          @cb_camera_tracking.on_update
+          def _(_) -> None:
+            self._camera_tracking = cb_camera_tracking.value
+            # When enabling tracking, set all camera look-ats and positions to config defaults
+            if self._camera_tracking:
+              # Get camera parameters from config
+              distance = self.cfg.distance
+              azimuth = self.cfg.azimuth
+              elevation = self.cfg.elevation
 
-        @contact_point_color.on_update
-        def _(_) -> None:
-          self._contact_point_color = contact_point_color.value
-          if self._contact_point_handle is not None:
-            self._contact_point_handle.remove()
-            self._contact_point_handle = None
+              # Convert to radians and calculate camera position
+              azimuth_rad = np.deg2rad(azimuth)
+              elevation_rad = np.deg2rad(elevation)
 
-        @cb_contact_forces.on_update
-        def _(_) -> None:
-          self._show_contact_forces = cb_contact_forces.value
-          if not cb_contact_forces.value:
-            if self._contact_force_shaft_handle is not None:
-              self._contact_force_shaft_handle.visible = False
-            if self._contact_force_head_handle is not None:
-              self._contact_force_head_handle.visible = False
+              # Calculate forward vector from spherical coordinates
+              forward = np.array([
+                np.cos(elevation_rad) * np.cos(azimuth_rad),
+                np.cos(elevation_rad) * np.sin(azimuth_rad),
+                np.sin(elevation_rad),
+              ])
 
-        @contact_force_color.on_update
-        def _(_) -> None:
-          self._contact_force_color = contact_force_color.value
-          if self._contact_force_shaft_handle is not None:
-            self._contact_force_shaft_handle.remove()
-            self._contact_force_shaft_handle = None
-          if self._contact_force_head_handle is not None:
-            self._contact_force_head_handle.remove()
-            self._contact_force_head_handle = None
+              # Camera position is origin - forward * distance
+              camera_pos = -forward * distance
 
-        @meansize_input.on_update
-        def _(_) -> None:
-          self._meansize_override = meansize_input.value
+              for client in self._server.get_clients().values():
+                client.camera.position = camera_pos
+                client.camera.look_at = np.zeros(3)
 
-      # Camera tracking controls
-      with self._server.gui.add_folder("Camera"):
-        cb_camera_tracking = self._server.gui.add_checkbox(
-          "Enable tracking",
-          initial_value=False,
-          hint="Keep tracked body centered. Use Viser camera controls to adjust view.",
-        )
+          # Contact visualization settings
+          with self._server.gui.add_folder("Contacts"):
+            cb_contact_points = self._server.gui.add_checkbox(
+              "Points",
+              initial_value=False,
+              hint="Toggle contact point visualization.",
+            )
+            contact_point_color = self._server.gui.add_rgb(
+              "Points Color", initial_value=self._contact_point_color
+            )
+            cb_contact_forces = self._server.gui.add_checkbox(
+              "Forces",
+              initial_value=False,
+              hint="Toggle contact force visualization.",
+            )
+            contact_force_color = self._server.gui.add_rgb(
+              "Forces Color", initial_value=self._contact_force_color
+            )
+            meansize_input = self._server.gui.add_number(
+              "Scale",
+              min=0.001,
+              max=1.0,
+              step=0.001,
+              initial_value=mj_model.stat.meansize,
+            )
 
-        @cb_camera_tracking.on_update
-        def _(_) -> None:
-          self._camera_tracking = cb_camera_tracking.value
-          # When enabling tracking, set all camera look-ats and positions to config defaults
-          if self._camera_tracking:
-            # Get camera parameters from config
-            distance = self.cfg.distance
-            azimuth = self.cfg.azimuth
-            elevation = self.cfg.elevation
+            @cb_contact_points.on_update
+            def _(_) -> None:
+              self._show_contact_points = cb_contact_points.value
+              if not cb_contact_points.value and self._contact_point_handle is not None:
+                self._contact_point_handle.visible = False
 
-            # Convert to radians and calculate camera position
-            azimuth_rad = np.deg2rad(azimuth)
-            elevation_rad = np.deg2rad(elevation)
+            @contact_point_color.on_update
+            def _(_) -> None:
+              self._contact_point_color = contact_point_color.value
+              if self._contact_point_handle is not None:
+                self._contact_point_handle.remove()
+                self._contact_point_handle = None
 
-            # Calculate forward vector from spherical coordinates
-            forward = np.array([
-              np.cos(elevation_rad) * np.cos(azimuth_rad),
-              np.cos(elevation_rad) * np.sin(azimuth_rad),
-              np.sin(elevation_rad),
-            ])
+            @cb_contact_forces.on_update
+            def _(_) -> None:
+              self._show_contact_forces = cb_contact_forces.value
+              if not cb_contact_forces.value:
+                if self._contact_force_shaft_handle is not None:
+                  self._contact_force_shaft_handle.visible = False
+                if self._contact_force_head_handle is not None:
+                  self._contact_force_head_handle.visible = False
 
-            # Camera position is origin - forward * distance
-            camera_pos = -forward * distance
+            @contact_force_color.on_update
+            def _(_) -> None:
+              self._contact_force_color = contact_force_color.value
+              if self._contact_force_shaft_handle is not None:
+                self._contact_force_shaft_handle.remove()
+                self._contact_force_shaft_handle = None
+              if self._contact_force_head_handle is not None:
+                self._contact_force_head_handle.remove()
+                self._contact_force_head_handle = None
 
-            for client in self._server.get_clients().values():
-              client.camera.position = camera_pos
-              client.camera.look_at = np.zeros(3)
+            @meansize_input.on_update
+            def _(_) -> None:
+              self._meansize_override = meansize_input.value
 
     # Reward plots tab
     if hasattr(self.env.unwrapped, "reward_manager"):
