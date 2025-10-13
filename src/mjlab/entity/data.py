@@ -513,6 +513,16 @@ class EntityData:
     """Site angular velocities in world frame. Shape (num_envs, num_sites, 3)."""
     return self.site_vel_w[..., 3:6]
 
+  @property
+  def site_lin_acc_w(self) -> torch.Tensor:
+    """Site linear accelerations in world frame. Shape (num_envs, num_sites, 3)."""
+    return self.site_acc_w[..., 0:3]
+
+  @property
+  def site_ang_acc_w(self) -> torch.Tensor:
+    """Site angular accelerations in world frame. Shape (num_envs, num_sites, 3)."""
+    return self.site_acc_w[..., 3:6]
+
   # Derived properties.
 
   @property
