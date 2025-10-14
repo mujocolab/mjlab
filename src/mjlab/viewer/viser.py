@@ -62,7 +62,7 @@ class ViserViewer(BaseViewer):
     self._contact_force_color = (255, 0, 0)  # RGB 0-255, red
 
     self._counter = 0
-    self._env_idx = 0
+    self._env_idx = self.cfg.env_idx
     self._show_only_selected_env = False
     self._show_debug_vis = True
 
@@ -192,7 +192,7 @@ class ViserViewer(BaseViewer):
           min=0,
           max=max(0, self.env.num_envs - 1),
           step=1,
-          initial_value=0,
+          initial_value=self.cfg.env_idx,
           visible=self.env.num_envs > 1,
         )
 

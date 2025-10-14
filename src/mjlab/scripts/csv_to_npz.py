@@ -16,6 +16,8 @@ from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   quat_mul,
   quat_slerp,
 )
+from mjlab.viewer.offscreen_renderer import OffscreenRenderer
+from mjlab.viewer.viewer_config import ViewerConfig
 
 
 class MotionLoader:
@@ -188,6 +190,7 @@ def run_sim(
   output_name,
   render,
   line_range,
+  renderer: OffscreenRenderer | None = None,
 ):
   motion = MotionLoader(
     motion_file=input_file,
@@ -257,9 +260,9 @@ def run_sim(
 
     sim.forward()
     scene.update(sim.mj_model.opt.timestep)
-    if render:
-      sim.update_render()
-      frames.append(sim.render())
+    if render and renderer is not None:
+      renderer.update(sim.data)
+      frames.append(renderer.render())
 
     if not file_saved:
       log["joint_pos"].append(robot.data.joint_pos[0, :].cpu().numpy().copy())
@@ -322,13 +325,18 @@ def run_sim(
           target_path=f"wandb-registry-{REGISTRY}/{COLLECTION}",
         )
         print(f"[INFO]: Motion saved to wandb registry: {REGISTRY}/{COLLECTION}")
+
+        if render:
+          from moviepy import ImageSequenceClip
+
+          print("Creating video...")
+          clip = ImageSequenceClip(frames, fps=output_fps)
+          clip.write_videofile("./motion.mp4")
+
+          print("Logging video to wandb...")
+          wandb.log({"motion_video": wandb.Video("./motion.mp4", fps=output_fps)})
+
         wandb.finish()
-
-  if render:
-    from moviepy import ImageSequenceClip
-
-    clip = ImageSequenceClip(frames, fps=output_fps)
-    clip.write_videofile("./motion.mp4")
 
 
 def main(
@@ -354,18 +362,29 @@ def main(
   sim_cfg = SimulationCfg()
   sim_cfg.mujoco.timestep = 1.0 / output_fps
 
-  sim_cfg.render.camera = "robot/tracking"
-  sim_cfg.render.height = 480
-  sim_cfg.render.width = 640
-
   scene = Scene(G1FlatEnvCfg().scene, device=device)
   model = scene.compile()
 
   sim = Simulation(num_envs=1, cfg=sim_cfg, model=model, device=device)
-  if render:
-    sim.initialize_renderer()
 
   scene.initialize(sim.mj_model, sim.model, sim.data)
+
+  renderer = None
+  if render:
+    viewer_cfg = ViewerConfig(
+      height=480,
+      width=640,
+      origin_type=ViewerConfig.OriginType.ASSET_ROOT,
+      distance=2.0,
+      elevation=-5.0,
+      azimuth=20,
+    )
+    renderer = OffscreenRenderer(
+      model=sim.mj_model,
+      cfg=viewer_cfg,
+      scene=scene,
+    )
+    renderer.initialize()
 
   run_sim(
     sim=sim,
@@ -407,6 +426,7 @@ def main(
     output_name=output_name,
     render=render,
     line_range=line_range,
+    renderer=renderer,
   )
 
 

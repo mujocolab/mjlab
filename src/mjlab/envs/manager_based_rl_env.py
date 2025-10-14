@@ -15,6 +15,7 @@ from mjlab.managers.curriculum_manager import CurriculumManager, NullCurriculumM
 from mjlab.managers.reward_manager import RewardManager
 from mjlab.managers.termination_manager import TerminationManager
 from mjlab.utils.logging import print_info
+from mjlab.viewer.offscreen_renderer import OffscreenRenderer
 
 
 @dataclass(kw_only=True)
@@ -52,8 +53,13 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
     )
     super().__init__(cfg=cfg, device=device)
     self.render_mode = render_mode
+    self._offline_renderer: OffscreenRenderer | None = None
     if self.render_mode == "rgb_array":
-      self.sim.initialize_renderer()
+      renderer = OffscreenRenderer(
+        model=self.sim.mj_model, cfg=self.cfg.viewer, scene=self.scene
+      )
+      renderer.initialize()
+      self._offline_renderer = renderer
     self.metadata["render_fps"] = 1.0 / self.step_dt  # type: ignore
 
     print_info("[INFO]: Completed setting up the environment...")
@@ -144,14 +150,22 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
     if self.render_mode == "human" or self.render_mode is None:
       return None
     elif self.render_mode == "rgb_array":
-      self.sim.update_render()
-      return self.sim.render()
+      if self._offline_renderer is None:
+        raise ValueError("Offline renderer not initialized")
+      debug_callback = (
+        self.update_visualizers if hasattr(self, "update_visualizers") else None
+      )
+      self._offline_renderer.update(self.sim.data, debug_vis_callback=debug_callback)
+      return self._offline_renderer.render()
     else:
       raise NotImplementedError(
-        f"Render mode {self.render_mode} is not supported. Please use: {self.metadata['render_modes']}."
+        f"Render mode {self.render_mode} is not supported. "
+        f"Please use: {self.metadata['render_modes']}."
       )
 
   def close(self) -> None:
+    if self._offline_renderer is not None:
+      self._offline_renderer.close()
     super().close()
 
   # Private methods.
