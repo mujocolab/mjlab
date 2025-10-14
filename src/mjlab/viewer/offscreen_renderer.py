@@ -1,17 +1,17 @@
-from typing import TYPE_CHECKING, Any, Callable
+from typing import Any, Callable
 
 import mujoco
 import numpy as np
 
+from mjlab.scene import Scene
 from mjlab.viewer.mujoco_native_visualizer import MujocoNativeDebugVisualizer
 from mjlab.viewer.viewer_config import ViewerConfig
 
-if TYPE_CHECKING:
-  from mjlab.scene import Scene
+_MAX_ENVS = 32  # Max number of envs to visualize (for performance).
 
 
 class OffscreenRenderer:
-  def __init__(self, model: mujoco.MjModel, cfg: ViewerConfig, scene: "Scene"):
+  def __init__(self, model: mujoco.MjModel, cfg: ViewerConfig, scene: Scene) -> None:
     self._cfg = cfg
     self._model = model
     self._data = mujoco.MjData(model)
@@ -57,24 +57,22 @@ class OffscreenRenderer:
     if self._renderer is None:
       raise ValueError("Renderer not initialized. Call 'initialize()' first.")
 
-    # Copy selected environment's data for initial scene update
     env_idx = self._cfg.env_idx
     self._data.qpos[:] = data.qpos[env_idx].cpu().numpy()
     self._data.qvel[:] = data.qvel[env_idx].cpu().numpy()
     mujoco.mj_forward(self._model, self._data)
     self._renderer.update_scene(self._data, camera=self._cam)
 
-    # Add debug visualizations if callback provided
-    # Note: update_scene() resets the scene each frame, so no need to manually clear
+    # Note: update_scene() resets the scene each frame, so no need to manually clear.
     if debug_vis_callback is not None:
       visualizer = MujocoNativeDebugVisualizer(
         self._renderer.scene, self._model, env_idx=self._cfg.env_idx
       )
       debug_vis_callback(visualizer)
 
-    # Add additional environments as geoms (up to 32 for performance)
+    # Add additional environments as geoms.
     nworld = data.qpos.shape[0]
-    for i in range(min(nworld, 32)):
+    for i in range(min(nworld, _MAX_ENVS)):
       self._data.qpos[:] = data.qpos[i].cpu().numpy()
       self._data.qvel[:] = data.qvel[i].cpu().numpy()
       mujoco.mj_forward(self._model, self._data)
@@ -99,7 +97,7 @@ class OffscreenRenderer:
     mujoco.mjv_defaultFreeCamera(self._model, camera)
 
     if self._cfg.origin_type == self._cfg.OriginType.WORLD:
-      # Free camera, no tracking (default behavior)
+      # Free camera, no tracking.
       camera.type = mujoco.mjtCamera.mjCAMERA_FREE.value
       camera.fixedcamid = -1
       camera.trackbodyid = -1
@@ -107,11 +105,10 @@ class OffscreenRenderer:
     elif self._cfg.origin_type == self._cfg.OriginType.ASSET_ROOT:
       from mjlab.entity import Entity
 
-      # Get entity from scene
       if self._cfg.asset_name:
         robot: Entity = self._scene[self._cfg.asset_name]
       else:
-        # Auto-detect if only one entity
+        # Auto-detect if only one entity.
         if len(self._scene.entities) == 1:
           robot = list(self._scene.entities.values())[0]
         else:
@@ -143,7 +140,6 @@ class OffscreenRenderer:
       camera.trackbodyid = body_id
       camera.fixedcamid = -1
 
-    # Apply camera parameters from config
     camera.lookat[:] = self._cfg.lookat
     camera.elevation = self._cfg.elevation
     camera.azimuth = self._cfg.azimuth
