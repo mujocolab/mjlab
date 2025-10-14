@@ -1,56 +1,51 @@
-# Create New Task
+# Creating a New Task
 
-This guide walks you step by step through creating a new task, training it, and performing inference.
+This guide demonstrates how to create a custom task using a CartPole example.
+You'll define the robot entity, configure the MDP, and train a policy.
 
-> **🚧 Work in Progress**  
-> Some parameters still need to be tuned to ensure training convergence.
+> **Note**: Parameters may need tuning for optimal convergence.
 
-## 1. Prepare Your Robot 
-For a minimal demonstration, we’ll create a simple CartPole environment without requiring any .stl files.
+## 1. Define the Robot
 
-First, navigate to the directory `mjlab\src\mjlab\asset_zoo\robots`, and create the following structure:
+Define the robot model and entity configuration. This example uses a simple
+CartPole with a sliding base and a hinged pole.
+
+Create the following structure in `mjlab/src/mjlab/asset_zoo/robots`:
 
 ```
-cartpole
- │ cartpole_constants.py  # Defines the CartPole robot configuration and loads the MuJoCo model.
- │ __init__.py            # Marks the folder as a Python package.
- │
- └─xmls
-      cartpole.xml        # Describes the CartPole's physical structure and actuator setup.
+cartpole/
+  cartpole_constants.py
+  __init__.py
+  xmls/
+    cartpole.xml
 ```
 
-### 1) cartpole.xml
+### cartpole.xml
 
 ```xml
 <mujoco model="cartpole">
   <compiler angle="degree" coordinate="local" inertiafromgeom="true"/>
-  <option timestep="0.02" gravity="0 0 -9.81"/>
-
   <worldbody>
     <geom name="ground" type="plane" pos="0 0 0" size="5 5 0.1" rgba="0.8 0.9 0.8 1"/>
-
     <body name="cart" pos="0 0 0.1">
       <geom type="box" size="0.2 0.1 0.1" rgba="0.2 0.2 0.8 1" mass="1.0"/>
       <joint name="slide" type="slide" axis="1 0 0" limited="true" range="-2 2"/>
-
       <body name="pole" pos="0 0 0.1">
         <geom type="capsule" size="0.05 0.5" fromto="0 0 0 0 0 1" rgba="0.8 0.2 0.2 1" mass="2.0"/>
         <joint name="hinge" type="hinge" axis="0 1 0" range="-90 90"/>
       </body>
     </body>
   </worldbody>
-
   <actuator>
     <velocity name="slide_velocity" joint="slide" ctrlrange="-20 20" kv="20"/>
   </actuator>
-
   <keyframe>
     <key name="cartpole_init" qpos="0 0" qvel="0 0" ctrl="0 0"/>
   </keyframe>
 </mujoco>
 ```
 
-### 2) cartpole_constants.py
+### cartpole_constants.py
 
 ```python
 from pathlib import Path
@@ -60,100 +55,95 @@ from mjlab import MJLAB_SRC_PATH
 from mjlab.entity import Entity, EntityCfg, EntityArticulationInfoCfg
 from mjlab.utils.spec_config import ActuatorCfg
 
-# Path to the MuJoCo XML file
 CARTPOLE_XML: Path = (
-    MJLAB_SRC_PATH / "asset_zoo" / "robots" / "cartpole" / "xmls" / "cartpole.xml"
+  MJLAB_SRC_PATH / "asset_zoo" / "robots" / "cartpole" / "xmls" / "cartpole.xml"
 )
 assert CARTPOLE_XML.exists(), f"XML not found: {CARTPOLE_XML}"
 
-
 def get_spec() -> mujoco.MjSpec:
-    """Load the MuJoCo model specification."""
-    return mujoco.MjSpec.from_file(str(CARTPOLE_XML))
+  return mujoco.MjSpec.from_file(str(CARTPOLE_XML))
 
-
-# Actuator configuration: controls the slide joint (the cart)
 CARTPOLE_ACTUATOR = ActuatorCfg(
-    joint_names_expr=["slide"],   # Joint to control
-    effort_limit=20.0,             # Maximum force/effort
-    stiffness=0.0,                # No position stiffness (velocity control)
-    damping=0.1,                  # Damping factor
+  joint_names_expr=["slide"],
+  effort_limit=20.0,
+  stiffness=0.0,
+  damping=0.1,
 )
 
-# Articulation configuration
 CARTPOLE_ARTICULATION = EntityArticulationInfoCfg(
-    actuators=(CARTPOLE_ACTUATOR,),
+  actuators=(CARTPOLE_ACTUATOR,),
 )
 
-# Entity configuration
 CARTPOLE_ROBOT_CFG = EntityCfg(
-    spec_fn=get_spec,
-    articulation=CARTPOLE_ARTICULATION,
+  spec_fn=get_spec,
+  articulation=CARTPOLE_ARTICULATION,
 )
 
 if __name__ == "__main__":
-    import mujoco.viewer as viewer
-
-    # Initialize the entity and launch the MuJoCo viewer
-    robot = Entity(CARTPOLE_ROBOT_CFG)
-    viewer.launch(robot.spec.compile())
+  import mujoco.viewer as viewer
+  robot = Entity(CARTPOLE_ROBOT_CFG)
+  viewer.launch(robot.spec.compile())
 ```
 
-> **💡 Note — Motor-Type Actuators Support**  
-> In **mjlab**, you can skip actuator injection and rely on the actuators defined directly in your XML file, by leaving the `EntityArticulationInfoCfg`’s `actuators` field **empty**. This way, control commands will be automatically forwarded to your MuJoCo-defined actuators (e.g., motor-type).  
->
-> For motor-type actuators, depending on what you want your policy to output, a few small changes are needed:
-> - **Effort Output:** If your policy outputs torque or effort, feed those values directly to the motor actuators.  
-> - **Position Output:** If your policy outputs positions, add a light impedance layer to convert positions into torques:
->
->   ```
->   τ = Kp * (q* - q) + Kd * (-q̇)
->   ```
->
-> Currently, the public examples mainly target **Unitree G1** and **Go1**, which use impedance via position actuators. Actuator configuration support for motor-driven systems will be expanded soon, making this workflow even more plug-and-play.
-> 
-> **Reference:** This note is based on the discussion in [Issue #130](https://github.com/mujocolab/mjlab/discussions/130).
+**Note on Motor-Type Actuators**: You can use XML-defined actuators by leaving
+the `actuators` field empty in `EntityArticulationInfoCfg`. For position control
+with motor-type actuators, implement impedance control:
+`τ = Kp * (q* - q) + Kd * (-q̇)`. See
+[#130](https://github.com/mujocolab/mjlab/discussions/130) for details.
 
+### __init__.py
 
-You can test whether the environment has been successfully set up by running `uv run cartpole.py`. If the setup is successful, you should see an interface similar to the one below:
+Create an empty `__init__.py` file to mark the directory as a Python package.
 
-![Cartpole env](cartpole-env.jpg)
+### Verify the Setup
 
-### 3) \_\_init\_\_.py
-It’s just an empty file used to mark the folder as a Python package.
+Verify the entity configuration by running the test script. This instantiates
+the `Entity`, compiles the `MjSpec` into a `MjModel`, and launches the MuJoCo
+viewer to confirm the XML is valid and loadable:
 
-### 4) Expose robot configuration entries
+```bash
+uv run python mjlab/src/mjlab/asset_zoo/robots/cartpole/cartpole_constants.py
+```
 
-Open file `mjlab\src\mjlab\asset_zoo\robots\__init__.py`, add cartpole robot item.
+![CartPole Environment](cartpole-env.jpg)
+
+### Register the Robot
+
+Add the CartPole configuration to `mjlab/src/mjlab/asset_zoo/robots/__init__.py`:
 
 ```python
 from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ROBOT_CFG
 from mjlab.asset_zoo.robots.unitree_go1.go1_constants import GO1_ROBOT_CFG
-from mjlab.asset_zoo.robots.cartpole.cartpole_constants import CARTPOLE_ROBOT_CFG # New robot item
+from mjlab.asset_zoo.robots.cartpole.cartpole_constants import CARTPOLE_ROBOT_CFG
 
 __all__ = (
-  "G1_ROBOT_CFG",
-  "GO1_ROBOT_CFG",
-  "CARTPOLE_ROBOT_CFG", # New robot item
+    "G1_ROBOT_CFG",
+    "GO1_ROBOT_CFG",
+    "CARTPOLE_ROBOT_CFG",
 )
 ```
 
-## 2. Create Task
+---
 
-### 1) Create file structure
+## 2. Define the Task
 
-Navigate to the directory `mjlab\src\mjlab\tasks`, and create the following structure:
+The task configuration defines the MDP: observations, actions, rewards, events,
+and terminations. This section builds `cartpole_env_cfg.py` incrementally.
+
+Create the following structure in `mjlab/src/mjlab/tasks`:
 
 ```
-cartpole
- │ cartpole_env_cfg.py  # Defines the task settings.
- └─__init__.py            # Marks the folder as a Python package.
+cartpole/
+  cartpole_env_cfg.py
+  __init__.py
 ```
 
-### 2) cartpole_env_cfg.py
+### Imports and Scene Setup
+
+Start `cartpole_env_cfg.py` with the necessary imports and scene configuration:
 
 ```python
-"""CartPole task environment configuration. """
+"""CartPole task environment configuration."""
 
 import math
 from dataclasses import dataclass, field
@@ -176,10 +166,6 @@ from mjlab.asset_zoo.robots.cartpole.cartpole_constants import CARTPOLE_ROBOT_CF
 from mjlab.rl import RslRlOnPolicyRunnerCfg
 from mjlab.envs import mdp
 
-# ==========================================================
-# Scene configuration
-# ==========================================================
-
 SCENE_CFG = SceneCfg(
     num_envs=64,
     extent=1.0,
@@ -194,35 +180,13 @@ VIEWER_CONFIG = ViewerConfig(
     elevation=10.0,
     azimuth=90.0,
 )
+```
 
-# ==========================================================
-# Helper functions (recommended MDP-style encapsulation)
-# ==========================================================
+### Actions
 
-def compute_upright_reward(env):
-    """Reward for keeping the pole upright (cosine of pole angle)."""
-    return env.sim.data.qpos[:, 1].cos()
+The policy outputs position commands for the cart's slide joint, scaled by 20.0:
 
-def compute_effort_penalty(env):
-    """Penalty for large control efforts."""
-    return -0.01 * (env.sim.data.ctrl[:, 0] ** 2)
-
-def random_push_cart(env, env_ids, force_range=(-5, 5)):
-    """Apply a random external force to the cart (slide joint)."""
-    n = len(env_ids)
-    random_forces = (
-        torch.rand(n, device=env.device) * (force_range[1] - force_range[0]) + force_range[0]
-    )
-    env.sim.data.qfrc_applied[env_ids, 0] = random_forces
-
-def check_pole_tipped(env):
-    """Termination condition: pole tipped beyond ±30°."""
-    return env.sim.data.qpos[:, 1].abs() > math.radians(30)
-
-# ==========================================================
-# Action configuration
-# ==========================================================
-
+```python
 @dataclass
 class ActionCfg:
     joint_pos: mdp.JointPositionActionCfg = term(
@@ -232,149 +196,172 @@ class ActionCfg:
         scale=20.0,
         use_default_offset=False,
     )
+```
 
-# ==========================================================
-# Observation configuration
-# ==========================================================
+### Observations
 
+The policy observes normalized pole angle, angular velocity, cart position, and
+cart velocity:
+
+```python
 @dataclass
 class ObservationCfg:
-    @dataclass
-    class PolicyCfg(ObsGroup):
-        angle: ObsTerm = term(
-            ObsTerm, func=lambda env: env.sim.data.qpos[:, 1:2] / math.pi
-        )
-        ang_vel: ObsTerm = term(
-            ObsTerm, func=lambda env: env.sim.data.qvel[:, 1:2] / 5.0
-        )
-        cart_pos: ObsTerm = term(
-            ObsTerm, func=lambda env: env.sim.data.qpos[:, 0:1] / 2.0
-        )
-        cart_vel: ObsTerm = term(
-            ObsTerm, func=lambda env: env.sim.data.qvel[:, 0:1] / 20.0
-        )
+  @dataclass
+  class PolicyCfg(ObsGroup):
+    angle: ObsTerm = term(ObsTerm, func=lambda env: env.sim.data.qpos[:, 1:2] / math.pi)
+    ang_vel: ObsTerm = term(ObsTerm, func=lambda env: env.sim.data.qvel[:, 1:2] / 5.0)
+    cart_pos: ObsTerm = term(ObsTerm, func=lambda env: env.sim.data.qpos[:, 0:1] / 2.0)
+    cart_vel: ObsTerm = term(ObsTerm, func=lambda env: env.sim.data.qvel[:, 0:1] / 20.0)
 
-    @dataclass
-    class CriticCfg(PolicyCfg):
-        """The critic uses the same inputs as the policy."""
-        pass
+  @dataclass
+  class CriticCfg(PolicyCfg):
+    pass
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-    critic: CriticCfg = field(default_factory=CriticCfg)
+  policy: PolicyCfg = field(default_factory=PolicyCfg)
+  critic: CriticCfg = field(default_factory=CriticCfg)
+```
 
-# ==========================================================
-# Reward configuration
-# ==========================================================
+### Rewards
+
+Two reward terms: keeping the pole upright (cosine of angle) and penalizing
+control effort:
+
+```python
+def compute_upright_reward(env):
+  return env.sim.data.qpos[:, 1].cos()
+
+def compute_effort_penalty(env):
+  return -0.01 * (env.sim.data.ctrl[:, 0] ** 2)
 
 @dataclass
 class RewardCfg:
-    upright: RewardTerm = term(
-        RewardTerm,
-        func=compute_upright_reward,   
-        weight=5.0,
-    )
-    effort: RewardTerm = term(
-        RewardTerm,
-        func=compute_effort_penalty,  
-        weight=1.0,
-    )
+  upright: RewardTerm = term(RewardTerm, func=compute_upright_reward, weight=5.0)
+  effort: RewardTerm = term(RewardTerm, func=compute_effort_penalty, weight=1.0)
+```
 
-# ==========================================================
-# Event configuration
-# ==========================================================
+### Events
+
+Reset joints at episode start and apply random external forces periodically for
+robustness:
+
+```python
+def random_push_cart(env, env_ids, force_range=(-5, 5)):
+  n = len(env_ids)
+  random_forces = (
+    torch.rand(n, device=env.device) *
+    (force_range[1] - force_range[0]) +
+    force_range[0]
+  )
+  env.sim.data.qfrc_applied[env_ids, 0] = random_forces
 
 @dataclass
 class EventCfg:
-    reset_robot_joints: EventTerm = term(
-        EventTerm,
-        func=mdp.reset_joints_by_scale,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot"),
-            "position_range": (-0.1, 0.1),
-            "velocity_range": (-0.1, 0.1),
-        },
-    )
-    random_push: EventTerm = term(
-        EventTerm,
-        func=random_push_cart,  # external helper function
-        mode="interval",
-        interval_range_s=(1.0, 2.0),
-        params={"force_range": (-20.0, 20.0)},
-    )
+  reset_robot_joints: EventTerm = term(
+    EventTerm,
+    func=mdp.reset_joints_by_scale,
+    mode="reset",
+    params={
+      "asset_cfg": SceneEntityCfg("robot"),
+      "position_range": (-0.1, 0.1),
+      "velocity_range": (-0.1, 0.1),
+    },
+  )
+  random_push: EventTerm = term(
+    EventTerm,
+    func=random_push_cart,
+    mode="interval",
+    interval_range_s=(1.0, 2.0),
+    params={"force_range": (-20.0, 20.0)},
+  )
+```
 
-# ==========================================================
-# Termination configuration
-# ==========================================================
+### Terminations
+
+Episode terminates if the pole tips beyond ±30° or reaches the maximum episode
+length (10 seconds):
+
+```python
+def check_pole_tipped(env):
+  return env.sim.data.qpos[:, 1].abs() > math.radians(30)
 
 @dataclass
 class TerminationCfg:
-    timeout: DoneTerm = term(DoneTerm, func=lambda env: False, time_out=True)
-    tipped: DoneTerm = term(DoneTerm, func=check_pole_tipped, time_out=False)
+  timeout: DoneTerm = term(DoneTerm, func=lambda env: False, time_out=True)
+  tipped: DoneTerm = term(DoneTerm, func=check_pole_tipped, time_out=False)
+```
 
-# ==========================================================
-# Simulation configuration
-# ==========================================================
+### Environment Configuration
 
+Combine all MDP components into the final environment configuration:
+
+```python
 SIM_CFG = SimulationCfg(
-    mujoco=MujocoCfg(
-        timestep=0.02,
-        iterations=1,
-    ),
+  mujoco=MujocoCfg(
+    timestep=0.02,
+    iterations=1,
+  ),
 )
-
-# ==========================================================
-# Final environment configuration
-# ==========================================================
 
 @dataclass
 class CartPoleEnvCfg(ManagerBasedRlEnvCfg):
-    scene: SceneCfg = field(default_factory=lambda: SCENE_CFG)
-    observations: ObservationCfg = field(default_factory=ObservationCfg)
-    actions: ActionCfg = field(default_factory=ActionCfg)
-    rewards: RewardCfg = field(default_factory=RewardCfg)
-    events: EventCfg = field(default_factory=EventCfg)
-    terminations: TerminationCfg = field(default_factory=TerminationCfg)
-    sim: SimulationCfg = field(default_factory=lambda: SIM_CFG)
-    viewer: ViewerConfig = field(default_factory=lambda: VIEWER_CONFIG)
-    decimation: int = 1
-    episode_length_s: float = 10.0
-
+  scene: SceneCfg = field(default_factory=lambda: SCENE_CFG)
+  observations: ObservationCfg = field(default_factory=ObservationCfg)
+  actions: ActionCfg = field(default_factory=ActionCfg)
+  rewards: RewardCfg = field(default_factory=RewardCfg)
+  events: EventCfg = field(default_factory=EventCfg)
+  terminations: TerminationCfg = field(default_factory=TerminationCfg)
+  sim: SimulationCfg = field(default_factory=lambda: SIM_CFG)
+  viewer: ViewerConfig = field(default_factory=lambda: VIEWER_CONFIG)
+  decimation: int = 1
+  episode_length_s: float = 10.0
 ```
 
-### 3) Register robot in \_\_init\_\_.py
-```
+### Register the Task
+
+Register the task environments in `mjlab/src/mjlab/tasks/cartpole/__init__.py`:
+
+```python
 import gymnasium as gym
 
 gym.register(
-    id="Mjlab-Cartpole",
-    entry_point="mjlab.envs:ManagerBasedRlEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": f"{__name__}.cartpole_env_cfg:CartPoleEnvCfg",
-        "rl_cfg_entry_point": f"{__name__}.cartpole_env_cfg:RslRlOnPolicyRunnerCfg",
-    },
+  id="Mjlab-Cartpole",
+  entry_point="mjlab.envs:ManagerBasedRlEnv",
+  disable_env_checker=True,
+  kwargs={
+    "env_cfg_entry_point": f"{__name__}.cartpole_env_cfg:CartPoleEnvCfg",
+    "rl_cfg_entry_point": f"{__name__}.cartpole_env_cfg:RslRlOnPolicyRunnerCfg",
+  },
 )
 
 gym.register(
-    id="Mjlab-Cartpole-Play",
-    entry_point="mjlab.envs:ManagerBasedRlEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": f"{__name__}.cartpole_env_cfg:CartPoleEnvCfg",
-        "rl_cfg_entry_point": f"{__name__}.cartpole_env_cfg:RslRlOnPolicyRunnerCfg",
-    },
+  id="Mjlab-Cartpole-Play",
+  entry_point="mjlab.envs:ManagerBasedRlEnv",
+  disable_env_checker=True,
+  kwargs={
+    "env_cfg_entry_point": f"{__name__}.cartpole_env_cfg:CartPoleEnvCfg",
+    "rl_cfg_entry_point": f"{__name__}.cartpole_env_cfg:RslRlOnPolicyRunnerCfg",
+  },
 )
-
 ```
 
-## 4. Train
+---
 
-run `uv run train Mjlab-Cartpole`
+## 3. Training
 
-## 5. Inference
+Train the CartPole task:
 
-run `uv run play --task Mjlab-Cartpole-Play --checkpoint_file Your File Name`
+```bash
+uv run train Mjlab-Cartpole
+```
 
-The performance of the trained model is as follows:
-![Demo Animation](cartpole_trained.gif)
+---
+
+## 4. Evaluation
+
+Run inference with a trained checkpoint:
+
+```bash
+uv run play --task Mjlab-Cartpole-Play --checkpoint_file <checkpoint_path>
+```
+
+![Trained CartPole](cartpole_trained.gif)
