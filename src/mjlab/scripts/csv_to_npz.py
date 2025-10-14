@@ -325,13 +325,18 @@ def run_sim(
           target_path=f"wandb-registry-{REGISTRY}/{COLLECTION}",
         )
         print(f"[INFO]: Motion saved to wandb registry: {REGISTRY}/{COLLECTION}")
+
+        if render:
+          from moviepy import ImageSequenceClip
+
+          print("Creating video...")
+          clip = ImageSequenceClip(frames, fps=output_fps)
+          clip.write_videofile("./motion.mp4")
+
+          print("Logging video to wandb...")
+          wandb.log({"motion_video": wandb.Video("./motion.mp4", fps=output_fps)})
+
         wandb.finish()
-
-  if render:
-    from moviepy import ImageSequenceClip
-
-    clip = ImageSequenceClip(frames, fps=output_fps)
-    clip.write_videofile("./motion.mp4")
 
 
 def main(
