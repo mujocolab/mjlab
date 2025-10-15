@@ -145,7 +145,7 @@ class ManagerBasedEnv:
     self._reset_idx(env_ids)
     self.scene.write_data_to_sim()
     self.sim.forward()
-    self.obs_buf = self.observation_manager.compute()
+    self.obs_buf = self.observation_manager.compute(update_history=True)
     return self.obs_buf, self.extras
 
   def step(
@@ -161,7 +161,7 @@ class ManagerBasedEnv:
       self.scene.update(dt=self.physics_dt)
     if "interval" in self.event_manager.available_modes:
       self.event_manager.apply(mode="interval", dt=self.step_dt)
-    self.obs_buf = self.observation_manager.compute()
+    self.obs_buf = self.observation_manager.compute(update_history=True)
     return self.obs_buf, self.extras
 
   def close(self) -> None:
