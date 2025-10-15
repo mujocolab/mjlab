@@ -136,7 +136,7 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
     if "interval" in self.event_manager.available_modes:
       self.event_manager.apply(mode="interval", dt=self.step_dt)
 
-    self.obs_buf = self.observation_manager.compute()
+    self.obs_buf = self.observation_manager.compute(update_history=True)
 
     return (
       self.obs_buf,
