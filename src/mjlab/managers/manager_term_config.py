@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable, Literal, ParamSpec, TypeVar
 
+import torch
+
 from mjlab.managers.action_manager import ActionTerm
 from mjlab.managers.command_manager import CommandTerm
 from mjlab.utils.noise.noise_cfg import NoiseCfg, NoiseModelCfg
@@ -87,7 +89,15 @@ class ObservationTermCfg(ManagerTermBaseCfg):
   """Configuration for an observation term."""
 
   noise: NoiseCfg | NoiseModelCfg | None = None
+  """Noise model to apply to the observation. Defaults to None."""
   clip: tuple[float, float] | None = None
+  """Range (min, max) to clip the observation values. Defaults to None."""
+  scale: tuple[float, ...] | float | torch.Tensor | None = None
+  """Scaling factor(s) to multiply the observation by. Defaults to None."""
+  history_length: int = 0
+  """Number of past observations to keep in history. 0 means no history. Defaults to 0."""
+  flatten_history_dim: bool = True
+  """Whether to flatten the history dimension into the observation. Defaults to True."""
 
 
 @dataclass
@@ -97,6 +107,8 @@ class ObservationGroupCfg:
   concatenate_terms: bool = True
   concatenate_dim: int = -1
   enable_corruption: bool = False
+  history_length: int | None = None
+  flatten_history_dim: bool = True
 
 
 ##
