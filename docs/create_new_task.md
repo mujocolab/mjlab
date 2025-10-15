@@ -107,7 +107,7 @@ viewer to confirm the XML is valid and loadable:
 uv run python mjlab/src/mjlab/asset_zoo/robots/cartpole/cartpole_constants.py
 ```
 
-![CartPole Environment](cartpole-env.jpg)
+![CartPole Environment](static/cartpole-env.jpg)
 
 ### Register the Robot
 
@@ -366,4 +366,4 @@ Run inference with a trained checkpoint:
 uv run play --task Mjlab-Cartpole-Play --checkpoint_file <checkpoint_path>
 ```
 
-![Trained CartPole](cartpole_trained.gif)
+![Trained CartPole](static/cartpole_trained.gif)
