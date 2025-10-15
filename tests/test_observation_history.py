@@ -514,3 +514,67 @@ def test_mixed_terms_concatenated(mock_env, simple_obs_func, device):
   policy_obs = obs["policy"]
   assert isinstance(policy_obs, torch.Tensor)
   assert policy_obs.shape == (4, 8)
+
+
+def test_no_double_append_on_first_call(mock_env, simple_obs_func):
+  """Test that first call with update_history=True only appends once, not twice."""
+
+  @dataclass
+  class ObsCfg:
+    @dataclass
+    class PolicyCfg(ObservationGroupCfg):
+      obs1: ObservationTermCfg = field(
+        default_factory=lambda: ObservationTermCfg(
+          func=simple_obs_func, params={}, history_length=3, flatten_history_dim=False
+        )
+      )
+
+    policy: PolicyCfg = field(default_factory=PolicyCfg)
+
+  manager = ObservationManager(ObsCfg(), mock_env)
+  device = mock_env.device
+  # Counter is at 1 after _prepare_terms.
+
+  # First call with update_history=True (value=2).
+  # This should initialize the buffer AND append once (not twice).
+  obs = manager.compute(update_history=True)
+  policy_obs = obs["policy"]
+  assert isinstance(policy_obs, torch.Tensor)
+
+  # Verify buffer was initialized and backfilled correctly.
+  # All slots should be filled with value 2.
+  expected_first = torch.stack(
+    [
+      torch.full((3,), 2.0, device=device),
+      torch.full((3,), 2.0, device=device),
+      torch.full((3,), 2.0, device=device),
+    ]
+  )
+  assert torch.allclose(policy_obs[0], expected_first)
+
+  # Get the circular buffer and check pointer position.
+  circular_buffer = manager._group_obs_term_history_buffer["policy"]["obs1"]
+  # After one append, pointer should be at 0 (not 1 which would indicate double-append).
+  assert circular_buffer._pointer == 0
+  # And we should have exactly 1 push recorded.
+  assert torch.all(circular_buffer._num_pushes == 1)
+
+  # Second call with update_history=True (value=3).
+  obs = manager.compute(update_history=True)
+  policy_obs = obs["policy"]
+  assert isinstance(policy_obs, torch.Tensor)
+
+  # History should be [2, 2, 3] (oldest to newest).
+  expected_second = torch.stack(
+    [
+      torch.full((3,), 2.0, device=device),
+      torch.full((3,), 2.0, device=device),
+      torch.full((3,), 3.0, device=device),
+    ]
+  )
+  assert torch.allclose(policy_obs[0], expected_second)
+
+  # Pointer should now be at 1.
+  assert circular_buffer._pointer == 1
+  # And we should have exactly 2 pushes.
+  assert torch.all(circular_buffer._num_pushes == 2)

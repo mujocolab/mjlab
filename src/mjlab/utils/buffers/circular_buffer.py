@@ -154,6 +154,11 @@ class CircularBuffer:
     return torch.minimum(self._num_pushes, self._max_len_tensor)
 
   @property
+  def is_initialized(self) -> bool:
+    """Check if the buffer has been initialized with at least one append."""
+    return self._buffer is not None
+
+  @property
   def buffer(self) -> torch.Tensor:
     """History in chronological order (oldest to newest).
 

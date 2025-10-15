@@ -172,9 +172,7 @@ class ObservationManager(ManagerBase):
         obs = obs.mul_(scale)
       if term_cfg.history_length > 0:
         circular_buffer = self._group_obs_term_history_buffer[group_name][term_name]
-        if circular_buffer._buffer is None:
-          circular_buffer.append(obs)
-        if update_history:
+        if update_history or not circular_buffer.is_initialized:
           circular_buffer.append(obs)
 
         if term_cfg.flatten_history_dim:
