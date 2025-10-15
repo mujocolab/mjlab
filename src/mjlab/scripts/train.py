@@ -30,6 +30,7 @@ class TrainConfig:
   video: bool = False
   video_length: int = 200
   video_interval: int = 2000
+  enable_nan_guard: bool = False
 
 
 def run_train(task: str, cfg: TrainConfig) -> None:
@@ -50,6 +51,11 @@ def run_train(task: str, cfg: TrainConfig) -> None:
     api = wandb.Api()
     artifact = api.artifact(registry_name)
     cfg.env.commands.motion.motion_file = str(Path(artifact.download()) / "motion.npz")
+
+  # Enable NaN guard if requested
+  if cfg.enable_nan_guard:
+    cfg.env.sim.nan_guard.enabled = True
+    print(f"[INFO] NaN guard enabled, output dir: {cfg.env.sim.nan_guard.output_dir}")
 
   # Specify directory for logging experiments.
   log_root_path = Path("logs") / "rsl_rl" / cfg.agent.experiment_name

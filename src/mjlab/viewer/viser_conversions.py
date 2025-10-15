@@ -5,6 +5,8 @@ import numpy as np
 import trimesh
 import trimesh.visual
 import trimesh.visual.material
+import viser.transforms as vtf
+from mujoco import mj_id2name, mjtGeom, mjtObj
 from PIL import Image
 
 
@@ -261,3 +263,168 @@ def mujoco_mesh_to_trimesh(
     print(f"Created mesh: {len(mesh.vertices)} vertices, {len(mesh.faces)} faces")
 
   return mesh
+
+
+def create_primitive_mesh(mj_model: mujoco.MjModel, geom_id: int) -> trimesh.Trimesh:
+  """Create a mesh for primitive geom types (sphere, box, capsule, cylinder, plane).
+
+  Args:
+    mj_model: MuJoCo model containing geom definition
+    geom_id: Index of the geom to create mesh for
+
+  Returns:
+    Trimesh representation of the primitive geom
+  """
+  size = mj_model.geom_size[geom_id]
+  geom_type = mj_model.geom_type[geom_id]
+  rgba = mj_model.geom_rgba[geom_id].copy()
+
+  material = trimesh.visual.material.PBRMaterial(  # type: ignore
+    baseColorFactor=rgba,
+    metallicFactor=0.5,
+    roughnessFactor=0.5,
+  )
+
+  if geom_type == mjtGeom.mjGEOM_SPHERE:
+    mesh = trimesh.creation.icosphere(radius=size[0], subdivisions=2)
+  elif geom_type == mjtGeom.mjGEOM_BOX:
+    mesh = trimesh.creation.box(extents=2.0 * size)
+  elif geom_type == mjtGeom.mjGEOM_CAPSULE:
+    mesh = trimesh.creation.capsule(radius=size[0], height=2.0 * size[1])
+  elif geom_type == mjtGeom.mjGEOM_CYLINDER:
+    mesh = trimesh.creation.cylinder(radius=size[0], height=2.0 * size[1])
+  elif geom_type == mjtGeom.mjGEOM_PLANE:
+    mesh = trimesh.creation.box((20, 20, 0.01))
+  else:
+    raise ValueError(f"Unsupported primitive geom type: {geom_type}")
+
+  mesh.visual = trimesh.visual.TextureVisuals(material=material)  # type: ignore
+  return mesh
+
+
+def merge_geoms(mj_model: mujoco.MjModel, geom_ids: list[int]) -> trimesh.Trimesh:
+  """Merge multiple geoms into a single trimesh.
+
+  Args:
+    mj_model: MuJoCo model containing geom definitions
+    geom_ids: List of geom indices to merge
+
+  Returns:
+    Single merged trimesh with all geoms transformed to their local poses
+  """
+  meshes = []
+  for geom_id in geom_ids:
+    geom_type = mj_model.geom_type[geom_id]
+
+    if geom_type == mjtGeom.mjGEOM_MESH:
+      mesh = mujoco_mesh_to_trimesh(mj_model, geom_id, verbose=False)
+    else:
+      mesh = create_primitive_mesh(mj_model, geom_id)
+
+    pos = mj_model.geom_pos[geom_id]
+    quat = mj_model.geom_quat[geom_id]
+    transform = np.eye(4)
+    transform[:3, :3] = vtf.SO3(quat).as_matrix()
+    transform[:3, 3] = pos
+    mesh.apply_transform(transform)
+    meshes.append(mesh)
+
+  if len(meshes) == 1:
+    return meshes[0]
+  return trimesh.util.concatenate(meshes)
+
+
+def rotation_quat_from_vectors(from_vec: np.ndarray, to_vec: np.ndarray) -> np.ndarray:
+  """Compute quaternion (wxyz format) that rotates from_vec to to_vec.
+
+  Args:
+    from_vec: Source vector (3D)
+    to_vec: Target vector (3D)
+
+  Returns:
+    Quaternion in wxyz format that rotates from_vec to to_vec.
+  """
+  from_vec = from_vec / np.linalg.norm(from_vec)
+  to_vec = to_vec / np.linalg.norm(to_vec)
+
+  if np.allclose(from_vec, to_vec):
+    return np.array([1.0, 0.0, 0.0, 0.0])
+
+  if np.allclose(from_vec, -to_vec):
+    # 180 degree rotation - pick arbitrary perpendicular axis.
+    perp = np.array([1.0, 0.0, 0.0])
+    if abs(from_vec[0]) > 0.9:
+      perp = np.array([0.0, 1.0, 0.0])
+    axis = np.cross(from_vec, perp)
+    axis = axis / np.linalg.norm(axis)
+    return np.array([0.0, axis[0], axis[1], axis[2]])  # wxyz for 180 deg.
+
+  # Standard quaternion from two vectors.
+  cross = np.cross(from_vec, to_vec)
+  dot = np.dot(from_vec, to_vec)
+  w = 1.0 + dot
+  quat = np.array([w, cross[0], cross[1], cross[2]])
+  quat = quat / np.linalg.norm(quat)
+  return quat
+
+
+def rotation_matrix_from_vectors(
+  from_vec: np.ndarray, to_vec: np.ndarray
+) -> np.ndarray:
+  """Create rotation matrix that rotates from_vec to to_vec using Rodrigues formula.
+
+  Args:
+    from_vec: Source vector (3D)
+    to_vec: Target vector (3D)
+
+  Returns:
+    3x3 rotation matrix that rotates from_vec to to_vec.
+  """
+  from_vec = from_vec / np.linalg.norm(from_vec)
+  to_vec = to_vec / np.linalg.norm(to_vec)
+
+  if np.allclose(from_vec, to_vec):
+    return np.eye(3)
+
+  if np.allclose(from_vec, -to_vec):
+    return np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]])
+
+  # Rodrigues rotation formula.
+  v = np.cross(from_vec, to_vec)
+  s = np.linalg.norm(v)
+  c = np.dot(from_vec, to_vec)
+  vx = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+  return np.eye(3) + vx + vx @ vx * ((1 - c) / (s * s))
+
+
+def is_fixed_body(mj_model: mujoco.MjModel, body_id: int) -> bool:
+  """Check if a body is fixed (welded to world).
+
+  A body is considered fixed if it has:
+  - No degrees of freedom (body_dofnum == 0)
+  - World as parent (body_parentid == 0)
+
+  Args:
+    mj_model: MuJoCo model
+    body_id: Body index
+
+  Returns:
+    True if body is fixed to world, False if movable.
+  """
+  return mj_model.body_dofnum[body_id] == 0 and mj_model.body_parentid[body_id] == 0
+
+
+def get_body_name(mj_model: mujoco.MjModel, body_id: int) -> str:
+  """Get body name with fallback to ID-based name.
+
+  Args:
+    mj_model: MuJoCo model
+    body_id: Body index
+
+  Returns:
+    Body name or "body_{body_id}" if name not found.
+  """
+  body_name = mj_id2name(mj_model, mjtObj.mjOBJ_BODY, body_id)
+  if not body_name:
+    body_name = f"body_{body_id}"
+  return body_name

@@ -14,12 +14,17 @@ import trimesh
 import trimesh.visual
 import viser
 import viser.transforms as vtf
-from mujoco import mj_id2name, mjtGeom, mjtObj  # type: ignore
+from mujoco import mj_id2name, mjtGeom, mjtObj
 from typing_extensions import override
 
 from mjlab.sim.sim import Simulation
 from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
-from mjlab.viewer.viser_conversions import mujoco_mesh_to_trimesh
+from mjlab.viewer.viser_conversions import (
+  get_body_name,
+  is_fixed_body,
+  merge_geoms,
+  rotation_matrix_from_vectors,
+)
 from mjlab.viewer.viser_reward_plotter import ViserRewardPlotter
 from mjlab.viewer.viser_visualizer import ViserDebugVisualizer
 
@@ -363,13 +368,11 @@ class ViserViewer(BaseViewer):
 
     for body_id in all_bodies:
       # Get body name
-      body_name = mj_id2name(mj_model, mjtObj.mjOBJ_BODY, body_id)
-      if not body_name:
-        body_name = f"body_{body_id}"
+      body_name = get_body_name(mj_model, body_id)
 
       # Fixed world geometry. We'll assume this is shared between all
       # environments.
-      if mj_model.body_dofnum[body_id] == 0 and mj_model.body_parentid[body_id] == 0:
+      if is_fixed_body(mj_model, body_id):
         for body_geoms_dict, visual_or_collision in [
           (body_geoms_visual, "visual"),
           (body_geoms_collision, "collision"),
@@ -412,7 +415,7 @@ class ViserViewer(BaseViewer):
             visible = (body_name == "terrain") or (visual_or_collision == "visual")
             self._server.scene.add_mesh_trimesh(
               f"/fixed_bodies/{body_name}/{visual_or_collision}",
-              self._merge_geoms(mj_model, nonplane_geom_ids),
+              merge_geoms(mj_model, nonplane_geom_ids),
               cast_shadow=False,
               receive_shadow=0.2,
               position=mj_model.body(body_id).pos,
@@ -422,41 +425,6 @@ class ViserViewer(BaseViewer):
 
     # Create visual handles by default on startup
     self._ensure_visual_handles_exist()
-
-  def _merge_geoms(self, mj_model, geom_indices: list[int]) -> trimesh.Trimesh:
-    """Merge multiple geoms into a single trimesh."""
-    meshes_to_concat = []
-    for geom_id in geom_indices:
-      geom_name = mj_id2name(mj_model, mjtObj.mjOBJ_GEOM, geom_id)
-      if not geom_name:
-        geom_name = f"geom_{geom_id}"
-
-      # Get geom type
-      geom_type = mj_model.geom_type[geom_id]
-
-      # Create or get mesh for this geom
-      if geom_type == mjtGeom.mjGEOM_MESH:
-        mesh = mujoco_mesh_to_trimesh(mj_model, geom_id, verbose=False)
-      else:
-        mesh = self._create_mesh(mj_model, geom_id)
-
-      # Transform mesh to geom's local pose relative to body
-      pos = mj_model.geom_pos[geom_id]
-      quat = mj_model.geom_quat[geom_id]  # (w, x, y, z)
-
-      # Apply transformation to mesh
-      transform = np.eye(4)
-      transform[:3, :3] = vtf.SO3(quat).as_matrix()
-      transform[:3, 3] = pos
-      mesh.apply_transform(transform)
-
-      meshes_to_concat.append(mesh)
-
-    if len(meshes_to_concat) == 1:
-      combined_mesh = meshes_to_concat[0]
-    else:
-      combined_mesh = trimesh.util.concatenate(meshes_to_concat)
-    return combined_mesh
 
   def _create_mesh_handles(
     self, mesh_type: Literal["visual", "collision"], visible: bool
@@ -493,16 +461,14 @@ class ViserViewer(BaseViewer):
     with self._server.atomic():
       for body_id, geom_indices in body_geoms.items():
         # Skip fixed world geometry
-        if mj_model.body_dofnum[body_id] == 0 and mj_model.body_parentid[body_id] == 0:
+        if is_fixed_body(mj_model, body_id):
           continue
 
         # Get body name
-        body_name = mj_id2name(mj_model, mjtObj.mjOBJ_BODY, body_id)
-        if not body_name:
-          body_name = f"body_{body_id}"
+        body_name = get_body_name(mj_model, body_id)
 
         # Merge geoms into a single mesh
-        mesh = self._merge_geoms(mj_model, geom_indices)
+        mesh = merge_geoms(mj_model, geom_indices)
         lod_ratio = 1000.0 / mesh.vertices.shape[0]
 
         # Create handle
@@ -818,7 +784,7 @@ class ViserViewer(BaseViewer):
         all_positions.append(display_pos)
         # Contact frame: first row is normal, need to align cylinder z-axis with normal
         normal = frame[0, :]  # Contact normal (first row of contact frame)
-        contact_rot = self._rotation_matrix_from_vectors(np.array([0, 0, 1]), normal)
+        contact_rot = rotation_matrix_from_vectors(np.array([0, 0, 1]), normal)
         quat = vtf.SO3.from_matrix(contact_rot).wxyz
         all_orientations.append(quat)
         # Use MuJoCo's contact visualization scale
@@ -835,7 +801,7 @@ class ViserViewer(BaseViewer):
 
         # Compute arrow orientation (arrow points in direction of force)
         force_dir = force_world / force_mag
-        force_rot = self._rotation_matrix_from_vectors(np.array([0, 0, 1]), force_dir)
+        force_rot = rotation_matrix_from_vectors(np.array([0, 0, 1]), force_dir)
         force_quat = vtf.SO3.from_matrix(force_rot).wxyz
 
         # Scale arrow by force magnitude
@@ -971,80 +937,3 @@ class ViserViewer(BaseViewer):
     sim = self.env.unwrapped.sim
     assert isinstance(sim, Simulation)
     return sim.mj_model.stat.meansize
-
-  @staticmethod
-  def _rotation_matrix_from_vectors(
-    from_vec: np.ndarray, to_vec: np.ndarray
-  ) -> np.ndarray:
-    """Create rotation matrix that rotates from_vec to to_vec using Rodrigues formula."""
-    if np.allclose(from_vec, to_vec):
-      return np.eye(3)
-    if np.allclose(from_vec, -to_vec):
-      return np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]])
-
-    # Rodrigues rotation formula
-    v = np.cross(from_vec, to_vec)
-    s = np.linalg.norm(v)
-    c = np.dot(from_vec, to_vec)
-    vx = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
-    return np.eye(3) + vx + vx @ vx * ((1 - c) / (s * s))
-
-  @staticmethod
-  def _create_mesh(mj_model, idx: int) -> trimesh.Trimesh:
-    """
-    Create a trimesh object from a geom in the MuJoCo model.
-    """
-    size = mj_model.geom_size[idx]
-    geom_type = mj_model.geom_type[idx]
-
-    # Get geom RGBA color if available
-    rgba = mj_model.geom_rgba[idx].copy()
-    material = trimesh.visual.material.PBRMaterial(
-      baseColorFactor=rgba,
-      metallicFactor=0.5,
-      roughnessFactor=0.5,
-      emissiveFactor=[0.0, 0.0, 0.0],
-    )
-    if geom_type == mjtGeom.mjGEOM_PLANE:
-      # Create a plane mesh
-      out = trimesh.creation.box((20, 20, 0.01))
-      out.visual = trimesh.visual.TextureVisuals(material=material)
-      return out
-    elif geom_type == mjtGeom.mjGEOM_SPHERE:
-      radius = size[0]
-      out = trimesh.creation.icosphere(radius=radius, subdivisions=2)
-      out.visual = trimesh.visual.TextureVisuals(material=material)
-      return out
-    elif geom_type == mjtGeom.mjGEOM_BOX:
-      dims = 2.0 * size
-      out = trimesh.creation.box(extents=dims)
-      out.visual = trimesh.visual.TextureVisuals(material=material)
-      return out
-    elif geom_type == mjtGeom.mjGEOM_MESH:
-      mesh_id = mj_model.geom_dataid[idx]
-      vert_start = mj_model.mesh_vertadr[mesh_id]
-      vert_count = mj_model.mesh_vertnum[mesh_id]
-      face_start = mj_model.mesh_faceadr[mesh_id]
-      face_count = mj_model.mesh_facenum[mesh_id]
-
-      verts = mj_model.mesh_vert[vert_start : (vert_start + vert_count), :]
-      faces = mj_model.mesh_face[face_start : (face_start + face_count), :]
-
-      mesh = trimesh.Trimesh(vertices=verts, faces=faces)
-      mesh.fill_holes()
-      mesh.fix_normals()
-      mesh.visual = trimesh.visual.TextureVisuals(material=material)
-      return mesh
-
-    elif geom_type == mjtGeom.mjGEOM_CAPSULE:
-      r, half_len = size[0], size[1]
-      out = trimesh.creation.capsule(radius=r, height=2.0 * half_len)
-      out.visual = trimesh.visual.TextureVisuals(material=material)
-      return out
-    elif geom_type == mjtGeom.mjGEOM_CYLINDER:
-      r, half_len = size[0], size[1]
-      out = trimesh.creation.cylinder(radius=r, height=2.0 * half_len)
-      out.visual = trimesh.visual.TextureVisuals(material=material)
-      return out
-    else:
-      raise ValueError(f"Unsupported geom type {geom_type}")

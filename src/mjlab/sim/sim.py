@@ -7,6 +7,7 @@ import warp as wp
 
 from mjlab.sim.randomization import expand_model_fields
 from mjlab.sim.sim_data import WarpBridge
+from mjlab.utils.nan_guard import NanGuard, NanGuardCfg
 from mjlab.utils.spec_config import SpecCfg
 
 # Type aliases for better IDE support while maintaining runtime compatibility
@@ -87,6 +88,7 @@ class SimulationCfg:
   njmax: int | None = None
   ls_parallel: bool = True  # Boosts perf quite noticeably.
   mujoco: MujocoCfg = field(default_factory=MujocoCfg)
+  nan_guard: NanGuardCfg = field(default_factory=NanGuardCfg)
 
 
 class Simulation:
@@ -123,6 +125,8 @@ class Simulation:
       self.wp_device
     )
     self.create_graph()
+
+    self.nan_guard = NanGuard(cfg.nan_guard, self.num_envs, self._mj_model)
 
   def create_graph(self) -> None:
     self.step_graph = None
@@ -184,10 +188,11 @@ class Simulation:
 
   def step(self) -> None:
     with wp.ScopedDevice(self.wp_device):
-      if self.use_cuda_graph and self.step_graph is not None:
-        wp.capture_launch(self.step_graph)
-      else:
-        mjwarp.step(self.wp_model, self.wp_data)
+      with self.nan_guard.watch(self.data):
+        if self.use_cuda_graph and self.step_graph is not None:
+          wp.capture_launch(self.step_graph)
+        else:
+          mjwarp.step(self.wp_model, self.wp_data)
 
   def close(self) -> None:
     pass
