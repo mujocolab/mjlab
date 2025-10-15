@@ -1,4 +1,4 @@
-![Project banner](docs/mjlab-banner.jpg)
+![Project banner](docs/static/mjlab-banner.jpg)
 
 # mjlab
 
