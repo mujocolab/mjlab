@@ -31,7 +31,7 @@ classifiers = [
 description = "Isaac Lab API, powered by MuJoCo-Warp, for RL and robotics research."
 requires-python = ">=3.10,<3.14"
 dependencies = [
-    "gymnasium==1.2.0",
+    "gymnasium==1.2.1",
     "prettytable",
     "tqdm",
     "tyro",
