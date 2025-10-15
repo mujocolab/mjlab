@@ -3,7 +3,8 @@
 This guide demonstrates how to create a custom task using a CartPole example.
 You'll define the robot entity, configure the MDP, and train a policy.
 
-> **Note**: Parameters may need tuning for optimal convergence.
+> [!NOTE]
+> Parameters may need tuning for optimal convergence.
 
 ## 1. Define the Robot
 
@@ -85,11 +86,12 @@ if __name__ == "__main__":
   viewer.launch(robot.spec.compile())
 ```
 
-**Note on Motor-Type Actuators**: You can use XML-defined actuators by leaving
-the `actuators` field empty in `EntityArticulationInfoCfg`. For position control
-with motor-type actuators, implement impedance control:
-`τ = Kp * (q* - q) + Kd * (-q̇)`. See
-[#130](https://github.com/mujocolab/mjlab/discussions/130) for details.
+> [!NOTE]
+> **On Motor-Type Actuators**: You can use XML-defined actuators by leaving
+> the `actuators` field empty in `EntityArticulationInfoCfg`. For position control
+> with motor-type actuators, implement impedance control:
+> `τ = Kp * (q* - q) + Kd * (-q̇)`. See
+> [#130](https://github.com/mujocolab/mjlab/discussions/130) for details.
 
 ### __init__.py
 
