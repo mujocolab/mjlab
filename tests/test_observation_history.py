@@ -351,6 +351,64 @@ def test_reset_partial_envs(mock_env, simple_obs_func):
   assert torch.allclose(policy_obs_after[3], policy_obs_before[3])
 
 
+def test_reset_partial_envs_with_backfill(mock_env, simple_obs_func):
+  """Test that reset envs get backfilled on next update."""
+
+  @dataclass
+  class ObsCfg:
+    @dataclass
+    class PolicyCfg(ObservationGroupCfg):
+      obs1: ObservationTermCfg = field(
+        default_factory=lambda: ObservationTermCfg(
+          func=simple_obs_func, params={}, history_length=3, flatten_history_dim=False
+        )
+      )
+
+    policy: PolicyCfg = field(default_factory=PolicyCfg)
+
+  manager = ObservationManager(ObsCfg(), mock_env)
+  device = mock_env.device
+
+  # Build history: [2, 3, 4] for all envs (counter starts at 1 after _prepare_terms).
+  manager.compute(update_history=True)  # value=2
+  manager.compute(update_history=True)  # value=3
+  manager.compute(update_history=True)  # value=4
+
+  # Reset only envs 0 and 2.
+  manager.reset(env_ids=torch.tensor([0, 2], device=device))
+
+  # Next update with value=5.
+  obs = manager.compute(update_history=True)
+  policy_obs = obs["policy"]
+  assert isinstance(policy_obs, torch.Tensor)
+
+  # Env 0: [5, 5, 5] (backfilled after reset).
+  expected_env0 = torch.stack(
+    [
+      torch.full((3,), 5.0, device=device),
+      torch.full((3,), 5.0, device=device),
+      torch.full((3,), 5.0, device=device),
+    ]
+  )
+  assert torch.allclose(policy_obs[0], expected_env0)
+
+  # Env 1: [3, 4, 5] (continues normally).
+  expected_env1 = torch.stack(
+    [
+      torch.full((3,), 3.0, device=device),
+      torch.full((3,), 4.0, device=device),
+      torch.full((3,), 5.0, device=device),
+    ]
+  )
+  assert torch.allclose(policy_obs[1], expected_env1)
+
+  # Env 2: [5, 5, 5] (backfilled after reset).
+  assert torch.allclose(policy_obs[2], expected_env0)
+
+  # Env 3: [3, 4, 5] (continues normally).
+  assert torch.allclose(policy_obs[3], expected_env1)
+
+
 # History with other features tests.
 
 
