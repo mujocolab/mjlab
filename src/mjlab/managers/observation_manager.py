@@ -53,7 +53,7 @@ class ObservationManager(ManagerBase):
       table.title = f"Active Observation Terms in Group: '{group_name}'"
       if self._group_obs_concatenate[group_name]:
         table.title += f" (shape: {group_dim})"  # type: ignore
-      table.field_names = ["Index", "Name", "Shape", "History"]
+      table.field_names = ["Index", "Name", "Shape"]
       table.align["Name"] = "l"
       obs_terms = zip(
         self._group_obs_term_names[group_name],
@@ -62,14 +62,14 @@ class ObservationManager(ManagerBase):
         strict=False,
       )
       for index, (name, dims, term_cfg) in enumerate(obs_terms):
-        tab_dims = tuple(dims)
-        if term_cfg.history_length > 0:
-          history_str = f"{term_cfg.history_length}"
-          if term_cfg.flatten_history_dim:
-            history_str += " (flat)"
+        if term_cfg.history_length > 0 and term_cfg.flatten_history_dim:
+          # Flattened history: show (9,) ← 3×(3,)
+          original_size = int(np.prod(dims)) // term_cfg.history_length
+          original_shape = (original_size,) if len(dims) == 1 else dims[1:]
+          shape_str = f"{dims}  ← {term_cfg.history_length}×{original_shape}"
         else:
-          history_str = "-"
-        table.add_row([index, name, tab_dims, history_str])
+          shape_str = str(tuple(dims))
+        table.add_row([index, name, shape_str])
       msg += table.get_string()
       msg += "\n"
     return msg
