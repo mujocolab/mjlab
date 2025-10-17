@@ -1,13 +1,10 @@
 <mujoco model="go2">
   <compiler angle="radian" meshdir="assets" autolimits="true"/>
 
-  <option cone="elliptic" impratio="100"/>
-
   <default>
     <default class="go2">
       <geom friction="0.6" margin="0.001" condim="1"/>
-      <joint axis="0 1 0" damping="2" armature="0.01" frictionloss="0.2"/>
-      <motor ctrlrange="-23.7 23.7"/>
+      <joint axis="0 1 0"/>
       <default class="abduction">
         <joint axis="1 0 0" range="-1.0472 1.0472"/>
       </default>
@@ -21,7 +18,6 @@
       </default>
       <default class="knee">
         <joint range="-2.7227 -0.83776"/>
-        <motor ctrlrange="-45.43 45.43"/>
       </default>
       <default class="visual">
         <geom type="mesh" contype="0" conaffinity="0" group="2"/>
