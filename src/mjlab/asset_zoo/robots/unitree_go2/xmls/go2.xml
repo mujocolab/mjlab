@@ -64,7 +64,7 @@
     <body name="base" pos="0 0 0.445" childclass="go2">
       <inertial pos="0.021112 0 -0.005366" quat="-0.000543471 0.713435 -0.00173769 0.700719" mass="6.921"
         diaginertia="0.107027 0.0980771 0.0244531"/>
-      <freejoint/>
+      <freejoint name="floating_base_joint"/>
       <geom mesh="base_0" material="black" class="visual"/>
       <geom mesh="base_1" material="black" class="visual"/>
       <geom mesh="base_2" material="black" class="visual"/>
@@ -97,7 +97,7 @@
             <geom size="0.012 0.06" pos="0.008 0 -0.06" quat="0.994493 0 -0.104807 0" type="cylinder" class="collision"/>
             <geom size="0.011 0.0325" pos="0.02 0 -0.148" quat="0.999688 0 0.0249974 0" type="cylinder" class="collision"/>
             <geom pos="0 0 -0.213" mesh="foot" class="visual" material="black"/>
-            <geom name="FL" class="foot"/>
+            <geom name="FL_foot_collision" class="foot"/>
           </body>
         </body>
       </body>
@@ -124,7 +124,7 @@
             <geom size="0.013 0.06" pos="0.01 0 -0.06" quat="0.995004 0 -0.0998334 0" type="cylinder" class="collision"/>
             <geom size="0.011 0.0325" pos="0.02 0 -0.148" quat="0.999688 0 0.0249974 0" type="cylinder" class="collision"/>
             <geom pos="0 0 -0.213" mesh="foot" class="visual" material="black"/>
-            <geom name="FR" class="foot"/>
+            <geom name="FR_foot_collision" class="foot"/>
           </body>
         </body>
       </body>
@@ -151,7 +151,7 @@
             <geom size="0.013 0.06" pos="0.01 0 -0.06" quat="0.995004 0 -0.0998334 0" type="cylinder" class="collision"/>
             <geom size="0.011 0.0325" pos="0.02 0 -0.148" quat="0.999688 0 0.0249974 0" type="cylinder" class="collision"/>
             <geom pos="0 0 -0.213" mesh="foot" class="visual" material="black"/>
-            <geom name="RL" class="foot"/>
+            <geom name="RL_foot_collision" class="foot"/>
           </body>
         </body>
       </body>
@@ -178,30 +178,10 @@
             <geom size="0.013 0.06" pos="0.01 0 -0.06" quat="0.995004 0 -0.0998334 0" type="cylinder" class="collision"/>
             <geom size="0.011 0.0325" pos="0.02 0 -0.148" quat="0.999688 0 0.0249974 0" type="cylinder" class="collision"/>
             <geom pos="0 0 -0.213" mesh="foot" class="visual" material="black"/>
-            <geom name="RR" class="foot"/>
+            <geom name="RR_foot_collision" class="foot"/>
           </body>
         </body>
       </body>
     </body>
   </worldbody>
-
-  <actuator>
-    <motor class="abduction" name="FL_hip" joint="FL_hip_joint"/>
-    <motor class="hip" name="FL_thigh" joint="FL_thigh_joint"/>
-    <motor class="knee" name="FL_calf" joint="FL_calf_joint"/>
-    <motor class="abduction" name="FR_hip" joint="FR_hip_joint"/>
-    <motor class="hip" name="FR_thigh" joint="FR_thigh_joint"/>
-    <motor class="knee" name="FR_calf" joint="FR_calf_joint"/>
-    <motor class="abduction" name="RL_hip" joint="RL_hip_joint"/>
-    <motor class="hip" name="RL_thigh" joint="RL_thigh_joint"/>
-    <motor class="knee" name="RL_calf" joint="RL_calf_joint"/>
-    <motor class="abduction" name="RR_hip" joint="RR_hip_joint"/>
-    <motor class="hip" name="RR_thigh" joint="RR_thigh_joint"/>
-    <motor class="knee" name="RR_calf" joint="RR_calf_joint"/>
-  </actuator>
-
-  <keyframe>
-    <key name="home" qpos="0 0 0.27 1 0 0 0 0 0.9 -1.8 0 0.9 -1.8 0 0.9 -1.8 0 0.9 -1.8"
-      ctrl="0 0.9 -1.8 0 0.9 -1.8 0 0.9 -1.8 0 0.9 -1.8"/>
-  </keyframe>
 </mujoco>
