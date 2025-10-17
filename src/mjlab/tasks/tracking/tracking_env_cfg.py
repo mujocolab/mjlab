@@ -20,6 +20,7 @@ from mjlab.managers.manager_term_config import TerminationTermCfg as DoneTerm
 from mjlab.managers.manager_term_config import term
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import SceneCfg
+from mjlab.sensor import SelfCollisionSensorCfg
 from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.tasks.tracking import mdp
 from mjlab.terrains import TerrainImporterCfg
@@ -40,7 +41,11 @@ VELOCITY_RANGE = {
 ##
 
 
-SCENE_CFG = SceneCfg(terrain=TerrainImporterCfg(terrain_type="plane"), num_envs=1)
+SCENE_CFG = SceneCfg(
+  terrain=TerrainImporterCfg(terrain_type="plane"),
+  num_envs=1,
+  sensors=(SelfCollisionSensorCfg(name="self_collision", entity_name="robot"),),
+)
 
 VIEWER_CONFIG = ViewerConfig(
   origin_type=ViewerConfig.OriginType.ASSET_BODY,

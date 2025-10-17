@@ -7,6 +7,7 @@ import mujoco_warp as mjwarp
 import torch
 
 from mjlab.entity import Entity, EntityCfg
+from mjlab.sensor import Sensor, SensorCfg
 from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
 
 _SCENE_XML = Path(__file__).parent / "scene.xml"
@@ -18,6 +19,7 @@ class SceneCfg:
   env_spacing: float = 2.0
   terrain: TerrainImporterCfg | None = None
   entities: dict[str, EntityCfg] = field(default_factory=dict)
+  sensors: tuple[SensorCfg, ...] = field(default_factory=tuple)
   extent: float | None = None
 
 
@@ -26,14 +28,16 @@ class Scene:
     self._cfg = scene_cfg
     self._device = device
     self._entities: dict[str, Entity] = {}
+    self._sensors: dict[str, Sensor] = {}
     self._terrain: TerrainImporter | None = None
     self._default_env_origins: torch.Tensor | None = None
 
     self._spec = mujoco.MjSpec.from_file(str(_SCENE_XML))
     if self._cfg.extent is not None:
       self._spec.stat.extent = self._cfg.extent
-    self._attach_terrain()
-    self._attach_entities()
+    self._add_terrain()
+    self._add_entities()
+    self._add_sensors()
 
   def compile(self) -> mujoco.MjModel:
     return self._spec.compile()
@@ -76,6 +80,10 @@ class Scene:
     return self._entities
 
   @property
+  def sensors(self) -> dict[str, Sensor]:
+    return self._sensors
+
+  @property
   def terrain(self) -> TerrainImporter | None:
     return self._terrain
 
@@ -93,11 +101,13 @@ class Scene:
         raise KeyError("No terrain configured in this scene.")
       return self._terrain
 
+    if key in self._sensors:
+      return self._sensors[key]
     if key in self._entities:
       return self._entities[key]
 
     # Not found, raise helpful error.
-    available = list(self._entities.keys())
+    available = list(self._entities.keys()) + list(self._sensors.keys())
     if self._terrain is not None:
       available.append("terrain")
     raise KeyError(f"Scene element '{key}' not found. Available: {available}")
@@ -115,14 +125,20 @@ class Scene:
     )
     for ent in self._entities.values():
       ent.initialize(mj_model, model, data, self._device)
+    for sensor in self._sensors.values():
+      sensor.initialize(mj_model, model, data, self._device)
 
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
     for ent in self._entities.values():
       ent.reset(env_ids)
+    for sensor in self._sensors.values():
+      sensor.reset(env_ids)
 
   def update(self, dt: float) -> None:
     for ent in self._entities.values():
       ent.update(dt)
+    for sensor in self._sensors.values():
+      sensor.update(dt)
 
   def write_data_to_sim(self) -> None:
     for ent in self._entities.values():
@@ -130,14 +146,14 @@ class Scene:
 
   # Private methods.
 
-  def _attach_entities(self) -> None:
+  def _add_entities(self) -> None:
     for ent_name, ent_cfg in self._cfg.entities.items():
       ent = Entity(ent_cfg)
       self._entities[ent_name] = ent
       frame = self._spec.worldbody.add_frame()
       self._spec.attach(ent.spec, prefix=f"{ent_name}/", frame=frame)
 
-  def _attach_terrain(self) -> None:
+  def _add_terrain(self) -> None:
     if self._cfg.terrain is None:
       return
     self._cfg.terrain.num_envs = self._cfg.num_envs
@@ -145,3 +161,9 @@ class Scene:
     self._terrain = TerrainImporter(self._cfg.terrain, self._device)
     frame = self._spec.worldbody.add_frame()
     self._spec.attach(self._terrain.spec, frame=frame)
+
+  def _add_sensors(self) -> None:
+    for sensor_cfg in self._cfg.sensors:
+      sns = sensor_cfg.build()
+      sns.edit_spec(self._spec, self._entities)
+      self._sensors[sensor_cfg.name] = sns

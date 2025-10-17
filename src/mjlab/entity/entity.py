@@ -40,8 +40,6 @@ class EntityIndexing:
   free_joint_q_adr: torch.Tensor
   free_joint_v_adr: torch.Tensor
 
-  sensor_adr: dict[str, torch.Tensor]
-
   @property
   def root_body_id(self) -> int:
     return self.bodies[0].id
@@ -72,9 +70,6 @@ class EntityCfg:
   cameras: tuple[spec_cfg.CameraCfg, ...] = field(default_factory=tuple)
   textures: tuple[spec_cfg.TextureCfg, ...] = field(default_factory=tuple)
   materials: tuple[spec_cfg.MaterialCfg, ...] = field(default_factory=tuple)
-  sensors: tuple[spec_cfg.SensorCfg | spec_cfg.ContactSensorCfg, ...] = field(
-    default_factory=tuple
-  )
   collisions: tuple[spec_cfg.CollisionCfg, ...] = field(default_factory=tuple)
 
   # Misc.
@@ -134,7 +129,6 @@ class Entity:
       self.cfg.cameras,
       self.cfg.textures,
       self.cfg.materials,
-      self.cfg.sensors,
       self.cfg.collisions,
     ]:
       for cfg in cfg_list:
@@ -206,10 +200,6 @@ class Entity:
     return [s.name.split("/")[-1] for s in self.spec.sites]
 
   @property
-  def sensor_names(self) -> list[str]:
-    return [s.name.split("/")[-1] for s in self.spec.sensors]
-
-  @property
   def actuator_names(self) -> list[str]:
     return [a.name.split("/")[-1] for a in self.spec.actuators]
 
@@ -232,10 +222,6 @@ class Entity:
   @property
   def num_sites(self) -> int:
     return len(self.site_names)
-
-  @property
-  def num_sensors(self) -> int:
-    return len(self.sensor_names)
 
   @property
   def num_actuators(self) -> int:
@@ -287,16 +273,6 @@ class Entity:
     if geom_subset is None:
       geom_subset = self.geom_names
     return resolve_matching_names(name_keys, geom_subset, preserve_order)
-
-  def find_sensors(
-    self,
-    name_keys: str | Sequence[str],
-    sensor_subset: list[str] | None = None,
-    preserve_order: bool = False,
-  ):
-    if sensor_subset is None:
-      sensor_subset = self.sensor_names
-    return resolve_matching_names(name_keys, sensor_subset, preserve_order)
 
   def find_sites(
     self,
@@ -623,16 +599,6 @@ class Entity:
     free_joint_v_adr = torch.tensor(free_joint_v_adr, dtype=torch.int, device=device)
     free_joint_q_adr = torch.tensor(free_joint_q_adr, dtype=torch.int, device=device)
 
-    sensor_adr = {}
-    for sensor in self.spec.sensors:
-      sensor_name = sensor.name
-      sns = model.sensor(sensor_name)
-      dim = sns.dim[0]
-      start_adr = sns.adr[0]
-      sensor_adr[sensor_name.split("/")[-1]] = torch.arange(
-        start_adr, start_adr + dim, dtype=torch.int, device=device
-      )
-
     return EntityIndexing(
       bodies=bodies,
       joints=joints,
@@ -648,5 +614,4 @@ class Entity:
       joint_v_adr=joint_v_adr,
       free_joint_q_adr=free_joint_q_adr,
       free_joint_v_adr=free_joint_v_adr,
-      sensor_adr=sensor_adr,
     )

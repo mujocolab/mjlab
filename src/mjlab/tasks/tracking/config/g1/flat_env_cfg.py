@@ -1,24 +1,13 @@
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 
 from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ACTION_SCALE, G1_ROBOT_CFG
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
-from mjlab.utils.spec_config import ContactSensorCfg
 
 
 @dataclass
 class G1FlatEnvCfg(TrackingEnvCfg):
   def __post_init__(self):
-    self_collision_sensor = ContactSensorCfg(
-      name="self_collision",
-      subtree1="pelvis",
-      subtree2="pelvis",
-      data=("found",),
-      reduce="netforce",
-      num=10,  # Report up to 10 contacts.
-    )
-    g1_cfg = replace(G1_ROBOT_CFG, sensors=(self_collision_sensor,))
-
-    self.scene.entities = {"robot": g1_cfg}
+    self.scene.entities = {"robot": G1_ROBOT_CFG}
     self.actions.joint_pos.scale = G1_ACTION_SCALE
 
     self.commands.motion.anchor_body_name = "torso_link"

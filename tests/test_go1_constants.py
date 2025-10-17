@@ -92,7 +92,3 @@ def test_go1_entity_creation(go1_entity) -> None:
   assert go1_entity.num_joints == 12
   assert go1_entity.is_actuated
   assert not go1_entity.is_fixed_base
-
-
-if __name__ == "__main__":
-  pytest.main([__file__, "-v"])

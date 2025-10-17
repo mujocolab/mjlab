@@ -1,13 +1,11 @@
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 
 from mjlab.asset_zoo.robots.unitree_g1.g1_constants import (
   G1_ACTION_SCALE,
   G1_ROBOT_CFG,
 )
-from mjlab.tasks.velocity.velocity_env_cfg import (
-  LocomotionVelocityEnvCfg,
-)
-from mjlab.utils.spec_config import ContactSensorCfg
+from mjlab.sensor import ContactSensorCfg
+from mjlab.tasks.velocity.velocity_env_cfg import LocomotionVelocityEnvCfg
 
 
 @dataclass
@@ -15,21 +13,22 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
   def __post_init__(self):
     super().__post_init__()
 
-    foot_contact_sensors = [
-      ContactSensorCfg(
-        name=f"{side}_foot_ground_contact",
-        body1=f"{side}_ankle_roll_link",
-        body2="terrain",
-        num=1,
-        data=("found",),
-        reduce="netforce",
-      )
-      for side in ["left", "right"]
-    ]
-    g1_cfg = replace(G1_ROBOT_CFG, sensors=tuple(foot_contact_sensors))
-    self.scene.entities = {"robot": g1_cfg}
+    self.scene.entities = {"robot": G1_ROBOT_CFG}
 
-    sensor_names = ["left_foot_ground_contact", "right_foot_ground_contact"]
+    # One sensor for both feet using regex pattern matching.
+    self.scene.sensors = (
+      ContactSensorCfg(
+        name="feet_ground_contact",
+        entity_name="robot",
+        body1=r"(left|right)_ankle_roll_link",  # Regex matches both feet.
+        body2="terrain",
+        secondary_entity="",
+        track_air_time=True,  # Enable air time tracking for locomotion rewards.
+        data=("found", "force"),
+        reduce="netforce",
+      ),
+    )
+
     geom_names = []
     for i in range(1, 8):
       geom_names.append(f"left_foot{i}_collision")
@@ -40,7 +39,8 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
 
     self.actions.joint_pos.scale = G1_ACTION_SCALE
 
-    self.rewards.air_time.params["sensor_names"] = sensor_names
+    # Update rewards to use the single sensor.
+    self.rewards.air_time.params["sensor_name"] = "feet_ground_contact"
     # self.rewards.pose.params["std"] = {
     #   r"^(left|right)_knee_joint$": 0.6,
     #   r"^(left|right)_hip_pitch_joint$": 0.6,

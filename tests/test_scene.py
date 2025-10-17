@@ -359,7 +359,3 @@ class TestSceneIntegration:
       assert entity.data is not None
       if not entity.is_fixed_base:
         assert entity.data.root_link_pose_w.shape == (3, 7)
-
-
-if __name__ == "__main__":
-  pytest.main([__file__, "-v"])

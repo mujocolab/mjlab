@@ -199,17 +199,17 @@ class RewardCfg:
   action_rate_l2: RewardTerm = term(RewardTerm, func=mdp.action_rate_l2, weight=-0.1)
 
   # Unused, only here as an example.
+  # To enable: set weight > 0, provide sensor_name, and add track_air_time=True to sensors.
   air_time: RewardTerm = term(
     RewardTerm,
     func=mdp.feet_air_time,
     weight=0.0,
     params={
-      "asset_name": "robot",
       "threshold_min": 0.05,
       "threshold_max": 0.15,
       "command_name": "twist",
       "command_threshold": 0.05,
-      "sensor_names": [],
+      "sensor_name": "",  # e.g., "feet_ground_contact"
       "reward_mode": "on_landing",
     },
   )

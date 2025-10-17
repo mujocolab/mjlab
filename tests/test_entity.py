@@ -386,7 +386,3 @@ class TestExternalForces:
 
     sim.step()
     assert not torch.any(torch.isnan(sim.data.qpos)), "Should not produce NaN"
-
-
-if __name__ == "__main__":
-  pytest.main([__file__, "-v"])
