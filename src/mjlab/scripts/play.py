@@ -1,5 +1,6 @@
 """Script to play RL agent with RSL-RL."""
 
+import os
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -9,7 +10,6 @@ import gymnasium as gym
 import torch
 import tyro
 from rsl_rl.runners import OnPolicyRunner
-from typing_extensions import assert_never
 
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
@@ -21,6 +21,9 @@ from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
 from mjlab.utils.os import get_wandb_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.viewer import NativeMujocoViewer, ViserViewer
+
+ViewerChoice = Literal["auto", "native", "viser"]
+ResolvedViewer = Literal["native", "viser"]
 
 
 @dataclass(frozen=True)
@@ -37,7 +40,18 @@ class PlayConfig:
   video_height: int | None = None
   video_width: int | None = None
   camera: int | str | None = None
-  viewer: Literal["native", "viser"] = "native"
+  viewer: ViewerChoice = "auto"
+
+
+def _resolve_viewer_choice(choice: ViewerChoice) -> ResolvedViewer:
+  """Resolve viewer choice, defaulting to web viewer when no display is present."""
+  if choice != "auto":
+    return cast(ResolvedViewer, choice)
+
+  has_display = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+  resolved: ResolvedViewer = "native" if has_display else "viser"
+  print(f"[INFO]: Auto-selected viewer: {resolved} (display detected: {has_display})")
+  return resolved
 
 
 def run_play(task: str, cfg: PlayConfig):
@@ -168,12 +182,14 @@ def run_play(task: str, cfg: PlayConfig):
     runner.load(str(resume_path), map_location=device)
     policy = runner.get_inference_policy(device=device)
 
-  if cfg.viewer == "native":
+  resolved_viewer = _resolve_viewer_choice(cfg.viewer)
+
+  if resolved_viewer == "native":
     NativeMujocoViewer(env, policy).run()
-  elif cfg.viewer == "viser":
+  elif resolved_viewer == "viser":
     ViserViewer(env, policy).run()
   else:
-    assert_never(cfg.viewer)
+    raise RuntimeError(f"Unsupported viewer backend: {resolved_viewer}")
 
   env.close()
 
