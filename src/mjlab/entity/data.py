@@ -31,6 +31,27 @@ def compute_velocity_from_cvel(
   return torch.cat([lin_vel_w, ang_vel_w], dim=-1)
 
 
+def compute_acceleration_from_cacc(
+  pos: torch.Tensor,
+  subtree_com: torch.Tensor,
+  cvel: torch.Tensor,
+  cacc: torch.Tensor,
+) -> torch.Tensor:
+  """Convert cacc quantities to world-frame accelerations."""
+  ang_vel_c = cvel[..., 0:3]
+  ang_acc_c = cacc[..., 0:3]
+  lin_acc_c = cacc[..., 3:6]
+
+  offset = subtree_com - pos
+  lin_acc_w = (
+    lin_acc_c
+    - torch.cross(ang_acc_c, offset, dim=-1)
+    - torch.cross(ang_vel_c, torch.cross(ang_vel_c, offset, dim=-1), dim=-1)
+  )
+  ang_acc_w = ang_acc_c
+  return torch.cat([lin_acc_w, ang_acc_w], dim=-1)
+
+
 @dataclass
 class EntityData:
   """Data container for an entity."""
@@ -306,6 +327,16 @@ class EntityData:
     cvel = self.data.cvel[:, body_ids]
     return compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
 
+  @property
+  def site_acc_w(self) -> torch.Tensor:
+    """Site velocity in simulation world frame. Shape (num_envs, num_sites, 6)."""
+    pos = self.data.site_xpos[:, self.indexing.site_ids]
+    body_ids = self.model.site_bodyid[self.indexing.site_ids]  # (num_sites,)
+    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
+    cvel = self.data.cvel[:, body_ids]
+    cacc = self.data.cacc[:, body_ids]
+    return compute_acceleration_from_cacc(pos, subtree_com.unsqueeze(1), cvel, cacc)
+
   # Joint properties
 
   @property
@@ -481,6 +512,16 @@ class EntityData:
   def site_ang_vel_w(self) -> torch.Tensor:
     """Site angular velocities in world frame. Shape (num_envs, num_sites, 3)."""
     return self.site_vel_w[..., 3:6]
+
+  @property
+  def site_lin_acc_w(self) -> torch.Tensor:
+    """Site linear accelerations in world frame. Shape (num_envs, num_sites, 3)."""
+    return self.site_acc_w[..., 0:3]
+
+  @property
+  def site_ang_acc_w(self) -> torch.Tensor:
+    """Site angular accelerations in world frame. Shape (num_envs, num_sites, 3)."""
+    return self.site_acc_w[..., 3:6]
 
   # Derived properties.
 
