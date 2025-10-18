@@ -363,7 +363,7 @@ class CameraCfg(SpecCfg):
 
 @dataclass
 class ActuatorCfg:
-  """Configuration for PD-controlled actuators applied to joints.
+  """Configuration for actuators applied to joints.
 
   Configures position-controlled actuators with PD control parameters,
   effort limits, and joint properties. Supports regex pattern matching
@@ -374,19 +374,21 @@ class ActuatorCfg:
   """List of regex patterns to match joint names."""
   effort_limit: float
   """Maximum force/torque the actuator can apply (must be positive)."""
-  stiffness: float
-  """Position gain (P-gain) for PD control (must be non-negative)."""
-  damping: float
-  """Velocity gain (D-gain) for PD control (must be non-negative)."""
+  stiffness: float = -1.0
+  """Position gain (P-gain) for PD control (must be set to non-negative value if using position control)."""
+  damping: float = -1.0
+  """Velocity gain (D-gain) for PD control (must be set to non-negative value if using position control)."""
   frictionloss: float = 0.0
   """Joint friction loss coefficient (must be non-negative)."""
   armature: float = 0.0
   """Rotor inertia or reflected inertia for the joint (must be non-negative)."""
+  control_mode: Literal["position", "effort"] = "position"
+  """The control mode of the actuator"""
 
 
 @dataclass
 class ActuatorSetCfg(SpecCfg):
-  """Configuration for a set of position-controlled actuators applied to joints.
+  """Configuration for a set of actuators applied to joints.
 
   Applies multiple actuator configurations to joints matched by regex patterns.
   When multiple patterns match the same joint, the last matching configuration
@@ -432,7 +434,7 @@ class ActuatorSetCfg(SpecCfg):
     for cfg, joint_name in cfg_joint_pairs:
       joint = spec.joint(joint_name)
 
-      if not is_joint_limited(joint):
+      if cfg.control_mode == "position" and not is_joint_limited(joint):
         raise ValueError(f"Joint {joint_name} must be limited for position control")
 
       joint.armature = cfg.armature
@@ -442,24 +444,31 @@ class ActuatorSetCfg(SpecCfg):
         name=joint_name,
         target=joint_name,
         trntype=mujoco.mjtTrn.mjTRN_JOINT,
-        gaintype=mujoco.mjtGain.mjGAIN_FIXED,
-        biastype=mujoco.mjtBias.mjBIAS_AFFINE,
         inheritrange=1.0,
         forcerange=(-cfg.effort_limit, cfg.effort_limit),
       )
 
-      act.gainprm[0] = cfg.stiffness
-      act.biasprm[1] = -cfg.stiffness
-      act.biasprm[2] = -cfg.damping
+      if cfg.control_mode == "position":
+        act.gaintype=mujoco.mjtGain.mjGAIN_FIXED
+        act.biastype=mujoco.mjtBias.mjBIAS_AFFINE
+        act.gainprm[0] = cfg.stiffness
+        act.biasprm[1] = -cfg.stiffness
+        act.biasprm[2] = -cfg.damping
+      elif cfg.control_mode == "effort":
+        act.gaintype=mujoco.mjtGain.mjGAIN_FIXED
+        act.biastype=mujoco.mjtBias.mjBIAS_NONE
+        act.gainprm[0] = 1.0
+      else:
+        raise ValueError(f"Invalid control_mode '{cfg.control_mode}'. Expected 'position' or 'effort'.")
 
   def validate(self) -> None:
     """Validate all actuator configurations."""
     for cfg in self.cfgs:
       if cfg.effort_limit <= 0:
         raise ValueError(f"effort_limit must be positive, got {cfg.effort_limit}")
-      if cfg.stiffness < 0:
+      if cfg.control_mode == "position" and cfg.stiffness < 0:
         raise ValueError(f"stiffness must be non-negative, got {cfg.stiffness}")
-      if cfg.damping < 0:
+      if cfg.control_mode == "position" and cfg.damping < 0:
         raise ValueError(f"damping must be non-negative, got {cfg.damping}")
       if cfg.frictionloss < 0:
         raise ValueError(f"frictionloss must be non-negative, got {cfg.frictionloss}")
