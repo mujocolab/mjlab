@@ -10,7 +10,6 @@ import gymnasium as gym
 import torch
 import tyro
 from rsl_rl.runners import OnPolicyRunner
-from typing_extensions import assert_never
 
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
@@ -42,6 +41,7 @@ class PlayConfig:
   video_width: int | None = None
   camera: int | str | None = None
   viewer: ViewerChoice = "auto"
+
 
 def _resolve_viewer_choice(choice: ViewerChoice) -> ResolvedViewer:
   """Resolve viewer choice, defaulting to web viewer when no display is present."""
@@ -189,7 +189,7 @@ def run_play(task: str, cfg: PlayConfig):
   elif resolved_viewer == "viser":
     ViserViewer(env, policy).run()
   else:
-    assert_never(resolved_viewer)
+    raise RuntimeError(f"Unsupported viewer backend: {resolved_viewer}")
 
   env.close()
 
