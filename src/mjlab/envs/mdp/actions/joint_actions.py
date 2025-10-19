@@ -98,6 +98,6 @@ class JointPositionAction(JointAction):
       self._offset = self._asset.data.default_joint_pos[:, self._actuator_ids].clone()
 
   def apply_actions(self):
-    self._asset.write_joint_position_target_to_sim(
+    self._asset.write_ctrl_target_to_sim(
       self._processed_actions, self._actuator_ids
     )

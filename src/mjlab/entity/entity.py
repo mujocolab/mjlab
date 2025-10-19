@@ -538,23 +538,23 @@ class Entity:
     """
     self._data.write_joint_velocity(velocity, joint_ids, env_ids)
 
-  def write_joint_position_target_to_sim(
+  def write_ctrl_target_to_sim(
     self,
-    position_target: torch.Tensor,
+    ctrl_target: torch.Tensor,
     joint_ids: torch.Tensor | slice | None = None,
     env_ids: torch.Tensor | slice | None = None,
   ) -> None:
     """Set the joint position targets for PD control.
 
     Args:
-      position_target: Tensor of shape (N, num_joints) where N is the number of
+      ctrl_target: Tensor of shape (N, num_joints) where N is the number of
         environments.
       joint_ids: Optional tensor or slice specifying which joints to set. If None,
         all joints are set.
       env_ids: Optional tensor or slice specifying which environments to set. If
         None, all environments are set.
     """
-    self._data.write_ctrl(position_target, joint_ids, env_ids)
+    self._data.write_ctrl(ctrl_target, joint_ids, env_ids)
 
   def write_external_wrench_to_sim(
     self,
