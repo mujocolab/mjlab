@@ -290,3 +290,34 @@ def test_builtin_sensor_errors_on_duplicate_name(robot_with_xml_sensors, device)
 
   with pytest.raises(ValueError, match="already exists"):
     Scene(scene_cfg, device)
+
+
+def test_cutoff_parameter(articulated_robot_xml, device):
+  """Verify cutoff parameter propagates to MuJoCo model."""
+  entity_cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(articulated_robot_xml)
+  )
+
+  sensor_cfg = BuiltinSensorCfg(
+    name="joint1_pos",
+    sensor_type="jointpos",
+    objtype="joint",
+    objname="joint1",
+    obj_entity="robot",
+    cutoff=0.01,
+  )
+
+  scene_cfg = SceneCfg(
+    num_envs=1,
+    env_spacing=3.0,
+    entities={"robot": entity_cfg},
+    sensors=(sensor_cfg,),
+  )
+
+  scene = Scene(scene_cfg, device)
+  model = scene.compile()
+  sim_cfg = SimulationCfg(njmax=20)
+  sim = Simulation(num_envs=1, cfg=sim_cfg, model=model, device=device)
+
+  sensor = sim.mj_model.sensor("joint1_pos")
+  assert sensor.cutoff[0] == 0.01

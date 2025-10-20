@@ -110,6 +110,8 @@ class BuiltinSensorCfg(SensorCfg):
   reftype: ObjRefType | None = None
   refname: str | None = None
   ref_entity: str | None = None
+  cutoff: float | None = None
+  """When this value is positive, it limits the absolute value of the sensor output."""
 
   def build(self) -> BuiltinSensor:
     return BuiltinSensor(self)
@@ -176,6 +178,8 @@ class BuiltinSensor(Sensor[torch.Tensor]):
       ref_name = _prefix_name(self.cfg.refname, self.cfg.ref_entity)
       kwargs["reftype"] = _OBJECT_TYPE_MAP[self.cfg.reftype]
       kwargs["refname"] = ref_name
+    if self.cfg.cutoff is not None:
+      kwargs["cutoff"] = self.cfg.cutoff
 
     scene_spec.add_sensor(**kwargs)
 
