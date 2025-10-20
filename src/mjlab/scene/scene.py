@@ -7,7 +7,7 @@ import mujoco_warp as mjwarp
 import torch
 
 from mjlab.entity import Entity, EntityCfg
-from mjlab.sensor import Sensor, SensorCfg
+from mjlab.sensor import BuiltinSensor, Sensor, SensorCfg
 from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
 
 _SCENE_XML = Path(__file__).parent / "scene.xml"
@@ -167,3 +167,7 @@ class Scene:
       sns = sensor_cfg.build()
       sns.edit_spec(self._spec, self._entities)
       self._sensors[sensor_cfg.name] = sns
+
+    for sns in self._spec.sensors:
+      if sns.name not in self._sensors:
+        self._sensors[sns.name] = BuiltinSensor.from_existing(sns.name)

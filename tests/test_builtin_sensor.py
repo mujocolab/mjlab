@@ -202,3 +202,91 @@ def test_error_on_mismatched_ref_params(articulated_robot_xml, device):
 
   with pytest.raises(ValueError, match="Provide both reftype and refname"):
     Scene(scene_cfg, device)
+
+
+@pytest.fixture
+def robot_with_xml_sensors():
+  """XML for robot with sensors already defined in the XML."""
+  return """
+    <mujoco>
+      <worldbody>
+        <body name="base" pos="0 0 1">
+          <freejoint name="free_joint"/>
+          <geom name="base_geom" type="box" size="0.2 0.2 0.1" mass="5.0"/>
+          <site name="base_site" pos="0 0 0"/>
+          <body name="link1" pos="0.3 0 0">
+            <joint name="joint1" type="hinge" axis="0 0 1" range="-1.57 1.57"/>
+            <geom name="link1_geom" type="box" size="0.1 0.1 0.1" mass="1.0"/>
+            <site name="link1_site" pos="0 0 0"/>
+          </body>
+        </body>
+      </worldbody>
+      <sensor>
+        <jointpos name="xml_joint_sensor" joint="joint1"/>
+        <accelerometer name="xml_accel_sensor" site="base_site"/>
+        <gyro name="xml_gyro_sensor" site="link1_site"/>
+      </sensor>
+    </mujoco>
+  """
+
+
+def test_xml_sensors_auto_discovered(robot_with_xml_sensors, device):
+  """Verify sensors defined in entity XML are automatically discovered and exposed."""
+  entity_cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(robot_with_xml_sensors)
+  )
+
+  scene_cfg = SceneCfg(
+    num_envs=2,
+    env_spacing=3.0,
+    entities={"robot": entity_cfg},
+    sensors=(),
+  )
+
+  scene = Scene(scene_cfg, device)
+  model = scene.compile()
+  sim_cfg = SimulationCfg(njmax=20)
+  sim = Simulation(num_envs=2, cfg=sim_cfg, model=model, device=device)
+  scene.initialize(sim.mj_model, sim.model, sim.data)
+
+  joint_sensor = scene["robot/xml_joint_sensor"]
+  accel_sensor = scene["robot/xml_accel_sensor"]
+  gyro_sensor = scene["robot/xml_gyro_sensor"]
+
+  sim.step()
+
+  joint_data = joint_sensor.data
+  accel_data = accel_sensor.data
+  gyro_data = gyro_sensor.data
+
+  assert isinstance(joint_data, torch.Tensor)
+  assert joint_data.shape == (2, 1)
+  assert isinstance(accel_data, torch.Tensor)
+  assert accel_data.shape == (2, 3)
+  assert isinstance(gyro_data, torch.Tensor)
+  assert gyro_data.shape == (2, 3)
+
+
+def test_builtin_sensor_errors_on_duplicate_name(robot_with_xml_sensors, device):
+  """Verify BuiltinSensorCfg throws error when name conflicts with XML sensor."""
+  entity_cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(robot_with_xml_sensors)
+  )
+
+  duplicate_sensor_cfg = BuiltinSensorCfg(
+    name="robot/xml_joint_sensor",
+    sensor_type="jointpos",
+    objtype="joint",
+    objname="joint1",
+    obj_entity="robot",
+  )
+
+  scene_cfg = SceneCfg(
+    num_envs=2,
+    env_spacing=3.0,
+    entities={"robot": entity_cfg},
+    sensors=(duplicate_sensor_cfg,),
+  )
+
+  with pytest.raises(ValueError, match="already exists"):
+    Scene(scene_cfg, device)

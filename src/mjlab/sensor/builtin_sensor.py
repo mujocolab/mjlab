@@ -116,21 +116,42 @@ class BuiltinSensorCfg(SensorCfg):
 
 
 class BuiltinSensor(Sensor[torch.Tensor]):
-  """Thin wrapper over MuJoCo builtin sensors.
+  """Wrapper over MuJoCo builtin sensors.
 
-  Adds a sensor to `MjSpec` in `edit_spec`, caches its `sensordata` slice in
-  `initialize`, and exposes it as a `torch.Tensor` via `data`. No processing or
-  unit/frame changes; this simply returns MuJoCo's raw values. Shape depends on the
-  sensor type (e.g., accelerometer: (N, 3), framequat: (N, 4)).
+  Can add a new sensor to the spec, or wrap an existing sensor from entity XML.
+  Returns raw MuJoCo sensordata as torch.Tensor with shape depending on sensor type
+  (e.g., accelerometer: (N, 3), framequat: (N, 4)).
   """
 
-  def __init__(self, cfg: BuiltinSensorCfg) -> None:
-    self.cfg: BuiltinSensorCfg = cfg
+  def __init__(
+    self, cfg: BuiltinSensorCfg | None = None, name: str | None = None
+  ) -> None:
+    if cfg is not None:
+      self._name = cfg.name
+      self.cfg: BuiltinSensorCfg | None = cfg
+    else:
+      assert name is not None, "Must provide either cfg or name"
+      self._name = name
+      self.cfg = None
     self._data: mjwarp.Data | None = None
     self._data_slice: slice | None = None
 
+  @classmethod
+  def from_existing(cls, name: str) -> BuiltinSensor:
+    """Wrap an existing sensor already defined in entity XML."""
+    return cls(cfg=None, name=name)
+
   def edit_spec(self, scene_spec: mujoco.MjSpec, entities: dict[str, Entity]) -> None:
-    del entities  # Unused.
+    del entities
+    if self.cfg is None:
+      return
+
+    for sensor in scene_spec.sensors:
+      if sensor.name == self.cfg.name:
+        raise ValueError(
+          f"Sensor '{self.cfg.name}' already exists (likely defined in entity XML). "
+          "Remove the BuiltinSensorCfg to use the XML sensor, or rename one of them."
+        )
 
     if (self.cfg.reftype is None) ^ (self.cfg.refname is None):
       raise ValueError(
@@ -155,16 +176,15 @@ class BuiltinSensor(Sensor[torch.Tensor]):
       ref_name = _prefix_name(self.cfg.refname, self.cfg.ref_entity)
       kwargs["reftype"] = _OBJECT_TYPE_MAP[self.cfg.reftype]
       kwargs["refname"] = ref_name
-    # TODO(kevin): Figure out how to fail fast if any of the names are invalid.
 
     scene_spec.add_sensor(**kwargs)
 
   def initialize(
     self, mj_model: mujoco.MjModel, model: mjwarp.Model, data: mjwarp.Data, device: str
   ) -> None:
-    del model, device  # Unused.
+    del model, device
     self._data = data
-    sensor = mj_model.sensor(self.cfg.name)
+    sensor = mj_model.sensor(self._name)
     start = sensor.adr[0]
     dim = sensor.dim[0]
     self._data_slice = slice(start, start + dim)
@@ -172,9 +192,5 @@ class BuiltinSensor(Sensor[torch.Tensor]):
   @property
   def data(self) -> torch.Tensor:
     if self._data is None or self._data_slice is None:
-      raise RuntimeError(
-        f"Sensor '{self.cfg.name}' not initialized. "
-        "Call initialize() before accessing data."
-      )
-    # TODO(kevin): Should we `clone()`?
+      raise RuntimeError(f"Sensor '{self._name}' not initialized.")
     return self._data.sensordata[:, self._data_slice]
