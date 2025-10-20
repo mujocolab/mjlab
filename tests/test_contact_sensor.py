@@ -493,7 +493,3 @@ def test_global_frame_transformation(falling_box_xml, device):
   # Verify that normal and tangent are unchanged (already in global frame).
   assert torch.allclose(data_contact.normal, data_global.normal)
   assert torch.allclose(data_contact.tangent, data_global.tangent)
-
-
-if __name__ == "__main__":
-  pytest.main([__file__, "-v"])

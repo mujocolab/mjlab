@@ -31,6 +31,7 @@ def articulated_robot_xml():
   return """
     <mujoco>
       <worldbody>
+        <geom name="floor" type="plane" size="5 5 0.1" pos="0 0 0"/>
         <body name="base" pos="0 0 1">
           <freejoint name="free_joint"/>
           <geom name="base_geom" type="box" size="0.2 0.2 0.1" mass="5.0"/>
@@ -47,12 +48,11 @@ def articulated_robot_xml():
 
 
 def test_jointpos_sensor(articulated_robot_xml, device):
-  """Test joint position sensor."""
+  """Verify joint pos sensor returns correctly shaped tensor for scalar joint values."""
   entity_cfg = EntityCfg(
     spec_fn=lambda: mujoco.MjSpec.from_string(articulated_robot_xml)
   )
 
-  # Create a joint position sensor for joint1.
   jointpos_sensor_cfg = BuiltinSensorCfg(
     name="joint1_pos",
     sensor_type="jointpos",
@@ -70,30 +70,24 @@ def test_jointpos_sensor(articulated_robot_xml, device):
 
   scene = Scene(scene_cfg, device)
   model = scene.compile()
-  sim_cfg = SimulationCfg(njmax=16)
+  sim_cfg = SimulationCfg(njmax=20)
   sim = Simulation(num_envs=2, cfg=sim_cfg, model=model, device=device)
   scene.initialize(sim.mj_model, sim.model, sim.data)
 
   sensor = scene["joint1_pos"]
-
-  # Step simulation.
   sim.step()
-
-  # Get sensor data.
   data = sensor.data
 
-  # Should be a tensor with shape [num_envs, 1] (1D joint position).
   assert isinstance(data, torch.Tensor)
-  assert data.shape == (2, 1)  # 2 envs, 1 joint position value
+  assert data.shape == (2, 1)
 
 
 def test_accelerometer_sensor(articulated_robot_xml, device):
-  """Test accelerometer sensor."""
+  """Verify accelerometer reads non-zero acceleration when robot is on floor."""
   entity_cfg = EntityCfg(
     spec_fn=lambda: mujoco.MjSpec.from_string(articulated_robot_xml)
   )
 
-  # Create an accelerometer sensor at base_site.
   accel_sensor_cfg = BuiltinSensorCfg(
     name="base_accel",
     sensor_type="accelerometer",
@@ -111,33 +105,29 @@ def test_accelerometer_sensor(articulated_robot_xml, device):
 
   scene = Scene(scene_cfg, device)
   model = scene.compile()
-  sim_cfg = SimulationCfg(njmax=16)
+  sim_cfg = SimulationCfg(njmax=20)
   sim = Simulation(num_envs=2, cfg=sim_cfg, model=model, device=device)
   scene.initialize(sim.mj_model, sim.model, sim.data)
 
   sensor = scene["base_accel"]
 
-  # Step simulation.
-  sim.step()
+  # Step simulation multiple times to let robot fall and land on floor.
+  for _ in range(100):
+    sim.step()
 
-  # Get sensor data.
   data = sensor.data
 
-  # Accelerometer should return 3D acceleration.
   assert isinstance(data, torch.Tensor)
-  assert data.shape == (2, 3)  # 2 envs, 3D acceleration
-
-  # Due to gravity, there should be some acceleration.
+  assert data.shape == (2, 3)
   assert torch.any(torch.abs(data) > 0)
 
 
 def test_multiple_sensors(articulated_robot_xml, device):
-  """Test creating multiple different sensor types."""
+  """Verify multiple sensors can be registered and return correctly shaped data."""
   entity_cfg = EntityCfg(
     spec_fn=lambda: mujoco.MjSpec.from_string(articulated_robot_xml)
   )
 
-  # Create multiple sensors.
   jointpos_cfg = BuiltinSensorCfg(
     name="joint1_pos",
     sensor_type="jointpos",
@@ -169,42 +159,38 @@ def test_multiple_sensors(articulated_robot_xml, device):
 
   scene = Scene(scene_cfg, device)
   model = scene.compile()
-  sim_cfg = SimulationCfg(njmax=16)
+  sim_cfg = SimulationCfg(njmax=20)
   sim = Simulation(num_envs=1, cfg=sim_cfg, model=model, device=device)
   scene.initialize(sim.mj_model, sim.model, sim.data)
 
-  # Access all sensors.
   jointpos_sensor = scene["joint1_pos"]
   jointvel_sensor = scene["joint1_vel"]
   gyro_sensor = scene["base_gyro"]
 
   sim.step()
 
-  # Verify each sensor returns data.
   pos_data = jointpos_sensor.data
   vel_data = jointvel_sensor.data
   gyro_data = gyro_sensor.data
 
-  assert pos_data.shape == (1, 1)  # Joint position scalar
-  assert vel_data.shape == (1, 1)  # Joint velocity scalar
-  assert gyro_data.shape == (1, 3)  # Gyro 3D angular velocity
+  assert pos_data.shape == (1, 1)
+  assert vel_data.shape == (1, 1)
+  assert gyro_data.shape == (1, 3)
 
 
 def test_error_on_mismatched_ref_params(articulated_robot_xml, device):
-  """Test that providing only reftype or refname raises an error."""
+  """Verify ValueError is raised when reftype is provided without refname."""
   entity_cfg = EntityCfg(
     spec_fn=lambda: mujoco.MjSpec.from_string(articulated_robot_xml)
   )
 
-  # Provide reftype but not refname - should fail.
   invalid_sensor_cfg = BuiltinSensorCfg(
     name="invalid_sensor",
     sensor_type="jointpos",
     objtype="joint",
     objname="joint1",
     obj_entity="robot",
-    reftype="body",  # Only reftype provided
-    # refname missing
+    reftype="body",
   )
 
   scene_cfg = SceneCfg(
@@ -214,10 +200,5 @@ def test_error_on_mismatched_ref_params(articulated_robot_xml, device):
     sensors=(invalid_sensor_cfg,),
   )
 
-  # Error should be raised during Scene construction.
   with pytest.raises(ValueError, match="Provide both reftype and refname"):
     Scene(scene_cfg, device)
-
-
-if __name__ == "__main__":
-  pytest.main([__file__, "-v"])

@@ -443,7 +443,6 @@ class ContactSensor(Sensor[ContactData]):
       )
     ent = entities[match.entity]
 
-    # Convert string to list for uniform handling
     patterns = [match.pattern] if isinstance(match.pattern, str) else match.pattern
 
     if match.mode == "geom":
