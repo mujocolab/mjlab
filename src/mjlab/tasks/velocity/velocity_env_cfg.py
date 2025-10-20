@@ -198,19 +198,17 @@ class RewardCfg:
   dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
   action_rate_l2: RewardTerm = term(RewardTerm, func=mdp.action_rate_l2, weight=-0.1)
 
-  # Unused, only here as an example.
+  # Example air time reward (disabled by default).
   air_time: RewardTerm = term(
     RewardTerm,
     func=mdp.feet_air_time,
     weight=0.0,
     params={
-      "asset_name": "robot",
+      "sensor_name": "feet_ground_contact",
       "threshold_min": 0.05,
-      "threshold_max": 0.15,
+      "threshold_max": 0.5,
       "command_name": "twist",
-      "command_threshold": 0.05,
-      "sensor_names": [],
-      "reward_mode": "on_landing",
+      "command_threshold": 0.5,
     },
   )
 
