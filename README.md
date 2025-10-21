@@ -1,4 +1,4 @@
-![Project banner](docs/mjlab-banner.jpg)
+![Project banner](docs/static/mjlab-banner.jpg)
 
 # mjlab
 
@@ -69,7 +69,7 @@ MUJOCO_GL=egl uv run train Mjlab-Velocity-Flat-Unitree-G1 --env.scene.num-envs 4
 Evaluate a policy while training (fetches latest checkpoint from Weights & Biases):
 
 ```bash
-uv run play --task Mjlab-Velocity-Flat-Unitree-G1-Play --wandb-run-path your-org/mjlab/run-id
+uv run play Mjlab-Velocity-Flat-Unitree-G1-Play --wandb-run-path your-org/mjlab/run-id
 ```
 
 ---
@@ -102,8 +102,22 @@ Train a Unitree G1 to mimic reference motions. mjlab uses [WandB](https://wandb.
 ```bash
 MUJOCO_GL=egl uv run train Mjlab-Tracking-Flat-Unitree-G1 --registry-name your-org/motions/motion-name --env.scene.num-envs 4096
 
-uv run play --task Mjlab-Tracking-Flat-Unitree-G1-Play --wandb-run-path your-org/mjlab/run-id
+uv run play Mjlab-Tracking-Flat-Unitree-G1-Play --wandb-run-path your-org/mjlab/run-id
 ```
+
+---
+
+### 3. Sanity-check with Dummy Agents
+
+Use built-in agents to sanity check your MDP **before** training.
+
+```bash
+uv run play Mjlab-Your-Task-Id --agent zero  # Sends zero actions.
+uv run play Mjlab-Your-Task-Id --agent random  # Sends uniform random actions.
+```
+
+> [!NOTE]
+> When running motion-tracking tasks, add `--registry-name your-org/motions/motion-name` to the command.
 
 ---
 

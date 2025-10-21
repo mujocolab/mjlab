@@ -17,6 +17,7 @@ from mjlab.sim import SimulationCfg
 from mjlab.sim.sim import Simulation
 from mjlab.utils import random as random_utils
 from mjlab.utils.logging import print_info
+from mjlab.viewer.debug_visualizer import DebugVisualizer
 from mjlab.viewer.viewer_config import ViewerConfig
 
 
@@ -144,7 +145,7 @@ class ManagerBasedEnv:
     self._reset_idx(env_ids)
     self.scene.write_data_to_sim()
     self.sim.forward()
-    self.obs_buf = self.observation_manager.compute()
+    self.obs_buf = self.observation_manager.compute(update_history=True)
     return self.obs_buf, self.extras
 
   def step(
@@ -160,7 +161,7 @@ class ManagerBasedEnv:
       self.scene.update(dt=self.physics_dt)
     if "interval" in self.event_manager.available_modes:
       self.event_manager.apply(mode="interval", dt=self.step_dt)
-    self.obs_buf = self.observation_manager.compute()
+    self.obs_buf = self.observation_manager.compute(update_history=True)
     return self.obs_buf, self.extras
 
   def close(self) -> None:
@@ -174,9 +175,9 @@ class ManagerBasedEnv:
     random_utils.seed_rng(seed)
     return seed
 
-  def update_visualizers(self, scn) -> None:
+  def update_visualizers(self, visualizer: DebugVisualizer) -> None:
     for mod in self.manager_visualizers.values():
-      mod.debug_vis(scn)
+      mod.debug_vis(visualizer)
 
   # Private methods.
 

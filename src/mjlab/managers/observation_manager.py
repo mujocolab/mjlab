@@ -8,6 +8,7 @@ from prettytable import PrettyTable
 
 from mjlab.managers.manager_base import ManagerBase
 from mjlab.managers.manager_term_config import ObservationGroupCfg, ObservationTermCfg
+from mjlab.utils.buffers import CircularBuffer
 from mjlab.utils.dataclasses import get_terms
 from mjlab.utils.noise import noise_cfg, noise_model
 
@@ -21,7 +22,6 @@ class ObservationManager(ManagerBase):
 
     for group_name, group_term_dims in self._group_obs_term_dim.items():
       if self._group_obs_concatenate[group_name]:
-        # All observation terms will be concatenated.
         try:
           term_dims = torch.stack(
             [torch.tensor(dims, device="cpu") for dims in group_term_dims], dim=0
@@ -42,8 +42,6 @@ class ObservationManager(ManagerBase):
             f"Unable to concatenate observation terms in group {group_name}."
           ) from None
       else:
-        # Observation terms will be returned as a dictionary; we will store a
-        # list of their dimensions.
         self._group_obs_dim[group_name] = group_term_dims
 
     self._obs_buffer: dict[str, torch.Tensor | dict[str, torch.Tensor]] | None = None
@@ -60,11 +58,18 @@ class ObservationManager(ManagerBase):
       obs_terms = zip(
         self._group_obs_term_names[group_name],
         self._group_obs_term_dim[group_name],
+        self._group_obs_term_cfgs[group_name],
         strict=False,
       )
-      for index, (name, dims) in enumerate(obs_terms):
-        tab_dims = tuple(dims)
-        table.add_row([index, name, tab_dims])
+      for index, (name, dims, term_cfg) in enumerate(obs_terms):
+        if term_cfg.history_length > 0 and term_cfg.flatten_history_dim:
+          # Flattened history: show (9,) ← 3×(3,)
+          original_size = int(np.prod(dims)) // term_cfg.history_length
+          original_shape = (original_size,) if len(dims) == 1 else dims[1:]
+          shape_str = f"{dims}  ← {term_cfg.history_length}×{original_shape}"
+        else:
+          shape_str = str(tuple(dims))
+        table.add_row([index, name, shape_str])
       msg += table.get_string()
       msg += "\n"
     return msg
@@ -123,22 +128,31 @@ class ObservationManager(ManagerBase):
   # Methods.
 
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> dict[str, float]:
-    for _group_name, group_cfg in self._group_obs_class_term_cfgs.items():
+    for group_name, group_cfg in self._group_obs_class_term_cfgs.items():
       for term_cfg in group_cfg:
         term_cfg.func.reset(env_ids=env_ids)
-      # TODO: https://github.com/mujocolab/mjlab/issues/58
+      for term_name in self._group_obs_term_names[group_name]:
+        if term_name in self._group_obs_term_history_buffer[group_name]:
+          batch_ids = None if isinstance(env_ids, slice) else env_ids
+          self._group_obs_term_history_buffer[group_name][term_name].reset(
+            batch_ids=batch_ids
+          )
     for mod in self._group_obs_class_instances.values():
       mod.reset(env_ids=env_ids)
     return {}
 
-  def compute(self) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
+  def compute(
+    self, update_history: bool = False
+  ) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
     obs_buffer: dict[str, torch.Tensor | dict[str, torch.Tensor]] = dict()
     for group_name in self._group_obs_term_names:
-      obs_buffer[group_name] = self.compute_group(group_name)
+      obs_buffer[group_name] = self.compute_group(group_name, update_history)
     self._obs_buffer = obs_buffer
     return obs_buffer
 
-  def compute_group(self, group_name: str) -> torch.Tensor | dict[str, torch.Tensor]:
+  def compute_group(
+    self, group_name: str, update_history: bool = False
+  ) -> torch.Tensor | dict[str, torch.Tensor]:
     group_term_names = self._group_obs_term_names[group_name]
     group_obs: dict[str, torch.Tensor] = {}
     obs_terms = zip(
@@ -150,7 +164,23 @@ class ObservationManager(ManagerBase):
         obs = term_cfg.noise.apply(obs)
       elif isinstance(term_cfg.noise, noise_cfg.NoiseModelCfg):
         obs = self._group_obs_class_instances[term_name](obs)
-      group_obs[term_name] = obs
+      if term_cfg.clip:
+        obs = obs.clip_(min=term_cfg.clip[0], max=term_cfg.clip[1])
+      if term_cfg.scale is not None:
+        scale = term_cfg.scale
+        assert isinstance(scale, torch.Tensor)
+        obs = obs.mul_(scale)
+      if term_cfg.history_length > 0:
+        circular_buffer = self._group_obs_term_history_buffer[group_name][term_name]
+        if update_history or not circular_buffer.is_initialized:
+          circular_buffer.append(obs)
+
+        if term_cfg.flatten_history_dim:
+          group_obs[term_name] = circular_buffer.buffer.reshape(self._env.num_envs, -1)
+        else:
+          group_obs[term_name] = circular_buffer.buffer
+      else:
+        group_obs[term_name] = obs
     if self._group_obs_concatenate[group_name]:
       return torch.cat(
         list(group_obs.values()), dim=self._group_obs_concatenate_dim[group_name]
@@ -165,18 +195,20 @@ class ObservationManager(ManagerBase):
     self._group_obs_concatenate: dict[str, bool] = dict()
     self._group_obs_concatenate_dim: dict[str, int] = dict()
     self._group_obs_class_instances: dict[str, noise_model.NoiseModel] = {}
+    self._group_obs_term_history_buffer: dict[str, dict[str, CircularBuffer]] = dict()
 
     group_cfg_items = get_terms(self.cfg, ObservationGroupCfg).items()
     for group_name, group_cfg in group_cfg_items:
+      group_cfg: ObservationGroupCfg | None
       if group_cfg is None:
         print(f"group: {group_name} set to None, skipping...")
         continue
-      group_cfg: ObservationGroupCfg
 
       self._group_obs_term_names[group_name] = list()
       self._group_obs_term_dim[group_name] = list()
       self._group_obs_term_cfgs[group_name] = list()
       self._group_obs_class_term_cfgs[group_name] = list()
+      group_entry_history_buffer: dict[str, CircularBuffer] = dict()
 
       self._group_obs_concatenate[group_name] = group_cfg.concatenate_terms
       self._group_obs_concatenate_dim[group_name] = (
@@ -187,6 +219,7 @@ class ObservationManager(ManagerBase):
 
       group_cfg_items = get_terms(group_cfg, ObservationTermCfg).items()
       for term_name, term_cfg in group_cfg_items:
+        term_cfg: ObservationTermCfg | None
         if term_cfg is None:
           print(f"term: {term_name} set to None, skipping...")
           continue
@@ -195,15 +228,21 @@ class ObservationManager(ManagerBase):
 
         if not group_cfg.enable_corruption:
           term_cfg.noise = None
+        if group_cfg.history_length is not None:
+          term_cfg.history_length = group_cfg.history_length
+          term_cfg.flatten_history_dim = group_cfg.flatten_history_dim
         self._group_obs_term_names[group_name].append(term_name)
         self._group_obs_term_cfgs[group_name].append(term_cfg)
         if hasattr(term_cfg.func, "reset") and callable(term_cfg.func.reset):
           self._group_obs_class_term_cfgs[group_name].append(term_cfg)
 
         obs_dims = tuple(term_cfg.func(self._env, **term_cfg.params).shape)
-        self._group_obs_term_dim[group_name].append(obs_dims[1:])
 
-        # Prepare noise model classes.
+        if term_cfg.scale is not None:
+          term_cfg.scale = torch.tensor(
+            term_cfg.scale, dtype=torch.float, device=self._env.device
+          )
+
         if term_cfg.noise is not None and isinstance(
           term_cfg.noise, noise_cfg.NoiseModelCfg
         ):
@@ -212,7 +251,21 @@ class ObservationManager(ManagerBase):
             f"Class type for observation term '{term_name}' NoiseModelCfg"
             f" is not a subclass of 'NoiseModel'. Received: '{type(noise_model_cls)}'."
           )
-          # Create and store noise model instance.
           self._group_obs_class_instances[term_name] = noise_model_cls(
             term_cfg.noise, num_envs=self._env.num_envs, device=self._env.device
           )
+
+        if term_cfg.history_length > 0:
+          group_entry_history_buffer[term_name] = CircularBuffer(
+            max_len=term_cfg.history_length,
+            batch_size=self._env.num_envs,
+            device=self._env.device,
+          )
+          old_dims = list(obs_dims)
+          old_dims.insert(1, term_cfg.history_length)
+          obs_dims = tuple(old_dims)
+          if term_cfg.flatten_history_dim:
+            obs_dims = (obs_dims[0], int(np.prod(obs_dims[1:])))
+
+        self._group_obs_term_dim[group_name].append(obs_dims[1:])
+      self._group_obs_term_history_buffer[group_name] = group_entry_history_buffer
