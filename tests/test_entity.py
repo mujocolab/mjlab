@@ -11,13 +11,13 @@ from mjlab.sim.sim import Simulation, SimulationCfg
 from mjlab.utils.spec_config import ActuatorCfg
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def device():
   """Test device fixture."""
   return get_test_device()
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def fixed_base_xml():
   """XML for a simple fixed-base entity."""
   return """
@@ -31,7 +31,7 @@ def fixed_base_xml():
     """
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def floating_base_xml():
   """XML for a floating-base entity with freejoint."""
   return """
@@ -46,7 +46,7 @@ def floating_base_xml():
     """
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def articulated_xml():
   """XML for an articulated entity with joints."""
   return """
@@ -73,7 +73,7 @@ def articulated_xml():
     """
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def fixed_articulated_xml():
   """XML for a fixed-base articulated entity (e.g., robot arm bolted to ground)."""
   return """
@@ -95,7 +95,7 @@ def fixed_articulated_xml():
     """
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def fixed_articulated_entity(fixed_articulated_xml, actuator_cfg):
   """Create a fixed-base articulated entity."""
   cfg = EntityCfg(
@@ -105,7 +105,7 @@ def fixed_articulated_entity(fixed_articulated_xml, actuator_cfg):
   return Entity(cfg)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def actuator_cfg():
   """Standard actuator configuration."""
   return EntityArticulationInfoCfg(
@@ -120,21 +120,21 @@ def actuator_cfg():
   )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def fixed_base_entity(fixed_base_xml):
   """Create a fixed-base entity."""
   cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(fixed_base_xml))
   return Entity(cfg)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def floating_base_entity(floating_base_xml):
   """Create a floating-base entity."""
   cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(floating_base_xml))
   return Entity(cfg)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def articulated_entity(articulated_xml, actuator_cfg):
   """Create an articulated entity with actuators."""
   cfg = EntityCfg(
@@ -144,7 +144,7 @@ def articulated_entity(articulated_xml, actuator_cfg):
   return Entity(cfg)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def initialized_floating_entity(floating_base_entity, device):
   """Create an initialized floating-base entity with simulation."""
 
@@ -159,7 +159,7 @@ def initialized_floating_entity(floating_base_entity, device):
   return entity, sim
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def initialized_articulated_entity(articulated_entity, device):
   """Create an initialized articulated entity with simulation."""
 
@@ -173,295 +173,282 @@ def initialized_articulated_entity(articulated_entity, device):
   return entity, sim
 
 
-class TestEntityProperties:
-  """Test entity property detection and element counts."""
-
-  @pytest.mark.parametrize(
-    "entity_fixture,expected",
-    [
-      (
-        "fixed_base_entity",
-        {
-          "is_fixed_base": True,
-          "is_articulated": False,
-          "is_actuated": False,
-          "num_bodies": 1,
-          "num_joints": 0,
-          "num_actuators": 0,
-        },
-      ),
-      (
-        "floating_base_entity",
-        {
-          "is_fixed_base": False,
-          "is_articulated": False,
-          "is_actuated": False,
-          "num_bodies": 1,
-          "num_joints": 0,
-          "num_actuators": 0,
-        },
-      ),
-      (
-        "articulated_entity",
-        {
-          "is_fixed_base": False,
-          "is_articulated": True,
-          "is_actuated": True,
-          "num_bodies": 3,
-          "num_joints": 2,
-          "num_actuators": 2,
-        },
-      ),
-      (
-        "fixed_articulated_entity",
-        {
-          "is_fixed_base": True,
-          "is_articulated": True,
-          "is_actuated": True,
-          "num_bodies": 3,
-          "num_joints": 2,
-          "num_actuators": 2,
-        },
-      ),
-    ],
+@pytest.fixture(scope="module")
+def articulated_entity_with_init(articulated_xml):
+  """Articulated entity with non-zero per-joint init positions."""
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(articulated_xml),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        ActuatorCfg(
+          joint_names_expr=["joint1", "joint2"],
+          effort_limit=1.0,
+          stiffness=1.0,
+          damping=1.0,
+        ),
+      )
+    ),
   )
-  def test_entity_properties(self, entity_fixture, expected, request):
-    """Test entity type properties and element counts."""
-    entity = request.getfixturevalue(entity_fixture)
-
-    for prop, value in expected.items():
-      assert getattr(entity, prop) == value
+  # Non-zero initial joint positions so we can verify mapping.
+  cfg.init_state.joint_pos = {"joint1": 0.5, "joint2": -0.25}
+  return Entity(cfg)
 
 
-class TestFindMethods:
-  """Test entity element finding methods."""
-
-  def test_find_methods(self, articulated_entity):
-    """Test find methods with exact and regex matches."""
-    # Test exact matches.
-    assert articulated_entity.find_bodies("base")[1] == ["base"]
-    assert articulated_entity.find_joints("joint1")[1] == ["joint1"]
-    assert articulated_entity.find_sites("site1")[1] == ["site1"]
-
-    # Test regex matches.
-    assert articulated_entity.find_bodies("link.*")[1] == ["link1", "link2"]
-    assert articulated_entity.find_joints("joint.*")[1] == ["joint1", "joint2"]
-
-    # Test subset filtering.
-    _, names = articulated_entity.find_joints(
-      "joint1", joint_subset=["joint1", "joint2"]
-    )
-    assert names == ["joint1"]
-
-    # Test error on invalid subset.
-    with pytest.raises(ValueError, match="Not all regular expressions are matched"):
-      articulated_entity.find_joints("joint1", joint_subset=["joint2"])
+@pytest.fixture(scope="module")
+def articulated_entity_subset_with_init(articulated_xml):
+  """Same model but with ONLY joint1 actuated (nu=1)."""
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(articulated_xml),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        ActuatorCfg(
+          joint_names_expr=["joint1"],  # subset!
+          effort_limit=1.0,
+          stiffness=1.0,
+          damping=1.0,
+        ),
+      )
+    ),
+  )
+  cfg.init_state.joint_pos = {"joint1": 0.42, "joint2": -0.99}
+  return Entity(cfg)
 
 
-class TestStateManagement:
-  """Test reading and writing entity states."""
+@pytest.mark.parametrize(
+  "entity_fixture,expected",
+  [
+    (
+      "fixed_base_entity",
+      {
+        "is_fixed_base": True,
+        "is_articulated": False,
+        "is_actuated": False,
+        "num_bodies": 1,
+        "num_joints": 0,
+        "num_actuators": 0,
+      },
+    ),
+    (
+      "floating_base_entity",
+      {
+        "is_fixed_base": False,
+        "is_articulated": False,
+        "is_actuated": False,
+        "num_bodies": 1,
+        "num_joints": 0,
+        "num_actuators": 0,
+      },
+    ),
+    (
+      "articulated_entity",
+      {
+        "is_fixed_base": False,
+        "is_articulated": True,
+        "is_actuated": True,
+        "num_bodies": 3,
+        "num_joints": 2,
+        "num_actuators": 2,
+      },
+    ),
+    (
+      "fixed_articulated_entity",
+      {
+        "is_fixed_base": True,
+        "is_articulated": True,
+        "is_actuated": True,
+        "num_bodies": 3,
+        "num_joints": 2,
+        "num_actuators": 2,
+      },
+    ),
+  ],
+)
+def test_entity_properties(entity_fixture, expected, request):
+  """Test entity type properties and element counts."""
+  entity = request.getfixturevalue(entity_fixture)
 
-  def test_root_state_floating_base(self, initialized_floating_entity, device):
-    """Test root state operations affect simulation correctly."""
-    entity, sim = initialized_floating_entity
+  for prop, value in expected.items():
+    assert getattr(entity, prop) == value
 
-    # Set entity with specific state.
-    # fmt: off
-    root_state = torch.tensor([
-        1.0, 2.0, 3.0,           # position
-        1.0, 0.0, 0.0, 0.0,      # quaternion (identity)
-        0.5, 0.0, 0.0,           # linear velocity in X
-        0.0, 0.0, 0.2            # angular velocity around Z
-    ], device=device).unsqueeze(0)
-    # fmt: on
 
-    entity.write_root_state_to_sim(root_state)
+def test_find_methods(articulated_entity):
+  """Test find methods with exact and regex matches."""
+  # Test exact matches.
+  assert articulated_entity.find_bodies("base")[1] == ["base"]
+  assert articulated_entity.find_joints("joint1")[1] == ["joint1"]
+  assert articulated_entity.find_sites("site1")[1] == ["site1"]
 
-    # Verify the state was actually written.
-    q_slice = entity.data.indexing.free_joint_q_adr
-    v_slice = entity.data.indexing.free_joint_v_adr
+  # Test regex matches.
+  assert articulated_entity.find_bodies("link.*")[1] == ["link1", "link2"]
+  assert articulated_entity.find_joints("joint.*")[1] == ["joint1", "joint2"]
 
-    assert torch.allclose(sim.data.qpos[:, q_slice], root_state[:, :7])
-    assert torch.allclose(sim.data.qvel[:, v_slice], root_state[:, 7:])
+  # Test subset filtering.
+  _, names = articulated_entity.find_joints("joint1", joint_subset=["joint1", "joint2"])
+  assert names == ["joint1"]
 
-    # Step once and verify physics is working (gravity should affect Z velocity).
-    initial_z_vel = sim.data.qvel[0, v_slice[2]].item()
+  # Test error on invalid subset.
+  with pytest.raises(ValueError, match="Not all regular expressions are matched"):
+    articulated_entity.find_joints("joint1", joint_subset=["joint2"])
+
+
+def test_root_state_floating_base(initialized_floating_entity, device):
+  """Test root state operations affect simulation correctly."""
+  entity, sim = initialized_floating_entity
+
+  # Set entity with specific state.
+  # fmt: off
+  root_state = torch.tensor([
+      1.0, 2.0, 3.0,           # position
+      1.0, 0.0, 0.0, 0.0,      # quaternion (identity)
+      0.5, 0.0, 0.0,           # linear velocity in X
+      0.0, 0.0, 0.2            # angular velocity around Z
+  ], device=device).unsqueeze(0)
+  # fmt: on
+
+  entity.write_root_state_to_sim(root_state)
+
+  # Verify the state was actually written.
+  q_slice = entity.data.indexing.free_joint_q_adr
+  v_slice = entity.data.indexing.free_joint_v_adr
+
+  assert torch.allclose(sim.data.qpos[:, q_slice], root_state[:, :7])
+  assert torch.allclose(sim.data.qvel[:, v_slice], root_state[:, 7:])
+
+  # Step once and verify physics is working (gravity should affect Z velocity).
+  initial_z_vel = sim.data.qvel[0, v_slice[2]].item()
+  sim.step()
+  final_z_vel = sim.data.qvel[0, v_slice[2]].item()
+
+  # Z velocity should decrease (become more negative) due to gravity.
+  assert final_z_vel < initial_z_vel, "Gravity should affect Z velocity"
+
+
+def test_force_and_torque_basic(initialized_floating_entity):
+  """Test forces translate, torques rotate, and forces can be cleared."""
+  entity, sim = initialized_floating_entity
+
+  # Apply force in X, torque around Z.
+  entity.write_external_wrench_to_sim(
+    forces=torch.tensor([[5.0, 0.0, 0.0]], device=sim.device),
+    torques=torch.tensor([[0.0, 0.0, 3.0]], device=sim.device),
+  )
+
+  initial_pos = sim.data.qpos[0, :3].clone()
+  initial_quat = sim.data.qpos[0, 3:7].clone()
+
+  for _ in range(10):
     sim.step()
-    final_z_vel = sim.data.qvel[0, v_slice[2]].item()
 
-    # Z velocity should decrease (become more negative) due to gravity.
-    assert final_z_vel < initial_z_vel, "Gravity should affect Z velocity"
+  # Verify X translation and rotation occurred.
+  assert sim.data.qpos[0, 0] > initial_pos[0], "Force should cause X translation"
+  assert not torch.allclose(sim.data.qpos[0, 3:7], initial_quat), (
+    "Torque should cause rotation"
+  )
+
+  # Verify angular velocity is primarily around Z (relative comparison).
+  angular_vel = sim.data.qvel[0, 3:6]
+  z_rotation = abs(angular_vel[2])
+  xy_rotation = abs(angular_vel[0]) + abs(angular_vel[1])
+  assert z_rotation > xy_rotation * 5, "Rotation should be primarily around Z axis"
+
+  # Test force clearing.
+  entity.write_external_wrench_to_sim(
+    forces=torch.zeros((1, 3), device=sim.device),
+    torques=torch.zeros((1, 3), device=sim.device),
+  )
+
+  # Verify forces are cleared.
+  body_id = entity.indexing.body_ids[0]
+  assert torch.allclose(
+    sim.data.xfrc_applied[:, body_id, :], torch.zeros(6, device=sim.device)
+  )
+
+  # Verify gravity still works after clearing.
+  initial_z = sim.data.qpos[0, 2].clone()
+  sim.step()
+  assert sim.data.qpos[0, 2] < initial_z, "Should fall due to gravity"
 
 
-class TestExternalForces:
-  """Test external force and torque application."""
+def test_force_on_specific_body(initialized_articulated_entity):
+  """Test applying force to specific body in articulated system."""
+  entity, sim = initialized_articulated_entity
 
-  def test_force_and_torque_basic(self, initialized_floating_entity):
-    """Test forces translate, torques rotate, and forces can be cleared."""
-    entity, sim = initialized_floating_entity
+  # Apply force only to link1.
+  body_ids = entity.find_bodies("link1")[0]
+  entity.write_external_wrench_to_sim(
+    forces=torch.tensor([[3.0, 0.0, 0.0]], device=sim.device),
+    torques=torch.zeros((1, 3), device=sim.device),
+    body_ids=body_ids,
+  )
 
-    # Apply force in X, torque around Z.
-    entity.write_external_wrench_to_sim(
-      forces=torch.tensor([[5.0, 0.0, 0.0]], device=sim.device),
-      torques=torch.tensor([[0.0, 0.0, 3.0]], device=sim.device),
-    )
+  # Verify force applied only to link1.
+  link1_id = sim.mj_model.body("link1").id
+  base_id = sim.mj_model.body("base").id
+  assert torch.allclose(
+    sim.data.xfrc_applied[0, link1_id, :3],
+    torch.tensor([3.0, 0.0, 0.0], device=sim.device),
+  )
+  assert torch.allclose(
+    sim.data.xfrc_applied[0, base_id, :3], torch.zeros(3, device=sim.device)
+  )
 
-    initial_pos = sim.data.qpos[0, :3].clone()
-    initial_quat = sim.data.qpos[0, 3:7].clone()
-
-    for _ in range(10):
-      sim.step()
-
-    # Verify X translation and rotation occurred.
-    assert sim.data.qpos[0, 0] > initial_pos[0], "Force should cause X translation"
-    assert not torch.allclose(sim.data.qpos[0, 3:7], initial_quat), (
-      "Torque should cause rotation"
-    )
-
-    # Verify angular velocity is primarily around Z (relative comparison).
-    angular_vel = sim.data.qvel[0, 3:6]
-    z_rotation = abs(angular_vel[2])
-    xy_rotation = abs(angular_vel[0]) + abs(angular_vel[1])
-    assert z_rotation > xy_rotation * 5, "Rotation should be primarily around Z axis"
-
-    # Test force clearing.
-    entity.write_external_wrench_to_sim(
-      forces=torch.zeros((1, 3), device=sim.device),
-      torques=torch.zeros((1, 3), device=sim.device),
-    )
-
-    # Verify forces are cleared.
-    body_id = entity.indexing.body_ids[0]
-    assert torch.allclose(
-      sim.data.xfrc_applied[:, body_id, :], torch.zeros(6, device=sim.device)
-    )
-
-    # Verify gravity still works after clearing.
-    initial_z = sim.data.qpos[0, 2].clone()
+  # Verify motion occurs.
+  initial_pos = sim.data.xpos[0, link1_id, :].clone()
+  for _ in range(10):
     sim.step()
-    assert sim.data.qpos[0, 2] < initial_z, "Should fall due to gravity"
-
-  def test_force_on_specific_body(self, initialized_articulated_entity):
-    """Test applying force to specific body in articulated system."""
-    entity, sim = initialized_articulated_entity
-
-    # Apply force only to link1.
-    body_ids = entity.find_bodies("link1")[0]
-    entity.write_external_wrench_to_sim(
-      forces=torch.tensor([[3.0, 0.0, 0.0]], device=sim.device),
-      torques=torch.zeros((1, 3), device=sim.device),
-      body_ids=body_ids,
-    )
-
-    # Verify force applied only to link1.
-    link1_id = sim.mj_model.body("link1").id
-    base_id = sim.mj_model.body("base").id
-    assert torch.allclose(
-      sim.data.xfrc_applied[0, link1_id, :3],
-      torch.tensor([3.0, 0.0, 0.0], device=sim.device),
-    )
-    assert torch.allclose(
-      sim.data.xfrc_applied[0, base_id, :3], torch.zeros(3, device=sim.device)
-    )
-
-    # Verify motion occurs.
-    initial_pos = sim.data.xpos[0, link1_id, :].clone()
-    for _ in range(10):
-      sim.step()
-    assert not torch.allclose(sim.data.xpos[0, link1_id, :], initial_pos)
-
-  def test_large_force_stability(self, initialized_floating_entity):
-    """Test system handles large forces without numerical issues."""
-    entity, sim = initialized_floating_entity
-
-    entity.write_external_wrench_to_sim(
-      forces=torch.tensor([[1e6, 0.0, 0.0]], device=sim.device),
-      torques=torch.zeros((1, 3), device=sim.device),
-    )
-
-    sim.step()
-    assert not torch.any(torch.isnan(sim.data.qpos)), "Should not produce NaN"
+  assert not torch.allclose(sim.data.xpos[0, link1_id, :], initial_pos)
 
 
-class TestInitStateKeyframe:
-  """Tests for keyframe 'init_state' ctrl construction."""
+def test_large_force_stability(initialized_floating_entity):
+  """Test system handles large forces without numerical issues."""
+  entity, sim = initialized_floating_entity
 
-  @pytest.fixture
-  def articulated_entity_with_init(self, articulated_xml):
-    """Articulated entity with non-zero per-joint init positions."""
-    cfg = EntityCfg(
-      spec_fn=lambda: mujoco.MjSpec.from_string(articulated_xml),
-      articulation=EntityArticulationInfoCfg(
-        actuators=(
-          ActuatorCfg(
-            joint_names_expr=["joint1", "joint2"],
-            effort_limit=1.0,
-            stiffness=1.0,
-            damping=1.0,
-          ),
-        )
-      ),
-    )
-    # Non-zero initial joint positions so we can verify mapping
-    cfg.init_state.joint_pos = {"joint1": 0.5, "joint2": -0.25}
-    return Entity(cfg)
+  entity.write_external_wrench_to_sim(
+    forces=torch.tensor([[1e6, 0.0, 0.0]], device=sim.device),
+    torques=torch.zeros((1, 3), device=sim.device),
+  )
 
-  @pytest.fixture
-  def articulated_entity_subset_with_init(self, articulated_xml):
-    """Same model but with ONLY joint1 actuated (nu=1)."""
-    cfg = EntityCfg(
-      spec_fn=lambda: mujoco.MjSpec.from_string(articulated_xml),
-      articulation=EntityArticulationInfoCfg(
-        actuators=(
-          ActuatorCfg(
-            joint_names_expr=["joint1"],  # subset!
-            effort_limit=1.0,
-            stiffness=1.0,
-            damping=1.0,
-          ),
-        )
-      ),
-    )
-    cfg.init_state.joint_pos = {"joint1": 0.42, "joint2": -0.99}
-    return Entity(cfg)
+  sim.step()
+  assert not torch.any(torch.isnan(sim.data.qpos)), "Should not produce NaN"
 
-  def test_keyframe_ctrl_matches_nu_and_maps_values(self, articulated_entity_with_init):
-    """key.ctrl length == nu and values follow actuator->joint mapping by name."""
-    ent = articulated_entity_with_init
 
-    # Compile to check MuJoCo accepts the keyframe and expose key_ctrl.
-    mj_model = ent.compile()
+def test_keyframe_ctrl_matches_nu_and_maps_values(articulated_entity_with_init):
+  """key.ctrl length == nu and values follow actuator->joint mapping by name."""
+  ent = articulated_entity_with_init
 
-    # Sanity: exactly one keyframe (the 'init_state' we add).
-    assert mj_model.nkey == 1
+  # Compile to check MuJoCo accepts the keyframe and expose key_ctrl.
+  mj_model = ent.compile()
 
-    # key_ctrl is (nkey, nu)
-    assert mj_model.key_ctrl.shape == (1, mj_model.nu)
-    assert mj_model.nu == len(ent.spec.actuators) == ent.num_actuators == 2
+  # Sanity: exactly one keyframe (the 'init_state' we add).
+  assert mj_model.nkey == 1
 
-    # Build expected ctrl
-    joint_pos_vec = np.array([0.5, -0.25])  # ["joint1", "joint2"] order.
-    expected = np.zeros(mj_model.nu)
-    for i, act in enumerate(ent.spec.actuators):
-      jidx = ent.joint_names.index(act.name)
-      expected[i] = joint_pos_vec[jidx]
+  # key_ctrl is (nkey, nu).
+  assert mj_model.key_ctrl.shape == (1, mj_model.nu)
+  assert mj_model.nu == len(ent.spec.actuators) == ent.num_actuators == 2
 
-    # Compare against compiled model keyframe ctrl row 0.
-    np.testing.assert_allclose(mj_model.key("init_state").ctrl, expected, atol=1e-8)
+  # Build expected ctrl
+  joint_pos_vec = np.array([0.5, -0.25])  # ["joint1", "joint2"] order.
+  expected = np.zeros(mj_model.nu)
+  for i, act in enumerate(ent.spec.actuators):
+    jidx = ent.joint_names.index(act.name)
+    expected[i] = joint_pos_vec[jidx]
 
-  def test_keyframe_ctrl_handles_subset_actuators(
-    self, articulated_entity_subset_with_init
-  ):
-    """When only a subset of joints are actuated, ctrl has that size and values map correctly."""
-    ent = articulated_entity_subset_with_init
-    mj_model = ent.compile()
+  # Compare against compiled model keyframe ctrl row 0.
+  np.testing.assert_allclose(mj_model.key("init_state").ctrl, expected, atol=1e-8)
 
-    # nu == number of actuators (1) and ctrl has matching width.
-    assert mj_model.nu == 1
-    assert mj_model.key_ctrl.shape == (1, 1)
 
-    expected = np.array([0.42], dtype=float)
-    np.testing.assert_allclose(mj_model.key_ctrl[0], expected, atol=1e-8)
+def test_keyframe_ctrl_handles_subset_actuators(articulated_entity_subset_with_init):
+  """When only a subset of joints are actuated, ctrl has that size and values map correctly."""
+  ent = articulated_entity_subset_with_init
+  mj_model = ent.compile()
 
-  def test_keyframe_ctrl_nonzero_does_not_raise(self, articulated_entity_with_init):
-    articulated_entity_with_init.compile()
+  # nu == number of actuators (1) and ctrl has matching width.
+  assert mj_model.nu == 1
+  assert mj_model.key_ctrl.shape == (1, 1)
+
+  expected = np.array([0.42], dtype=float)
+  np.testing.assert_allclose(mj_model.key_ctrl[0], expected, atol=1e-8)
+
+
+def test_keyframe_ctrl_nonzero_does_not_raise(articulated_entity_with_init):
+  articulated_entity_with_init.compile()

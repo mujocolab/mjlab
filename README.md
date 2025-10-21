@@ -136,9 +136,7 @@ Run tests:
 
 ```bash
 make test          # Run all tests
-make test-fast     # Skip slow integration tests for faster iteration
-make test-cpu      # Force CPU-only testing (useful on GPU machines)
-make test-cpu-fast # CPU-only, skip slow tests
+make test-fast     # Skip slow integration tests
 ```
 
 Format code:
