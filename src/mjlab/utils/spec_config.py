@@ -449,17 +449,19 @@ class ActuatorSetCfg(SpecCfg):
       )
 
       if cfg.control_mode == "position":
-        act.gaintype=mujoco.mjtGain.mjGAIN_FIXED
-        act.biastype=mujoco.mjtBias.mjBIAS_AFFINE
+        act.gaintype = mujoco.mjtGain.mjGAIN_FIXED
+        act.biastype = mujoco.mjtBias.mjBIAS_AFFINE
         act.gainprm[0] = cfg.stiffness
         act.biasprm[1] = -cfg.stiffness
         act.biasprm[2] = -cfg.damping
       elif cfg.control_mode == "effort":
-        act.gaintype=mujoco.mjtGain.mjGAIN_FIXED
-        act.biastype=mujoco.mjtBias.mjBIAS_NONE
+        act.gaintype = mujoco.mjtGain.mjGAIN_FIXED
+        act.biastype = mujoco.mjtBias.mjBIAS_NONE
         act.gainprm[0] = 1.0
       else:
-        raise ValueError(f"Invalid control_mode '{cfg.control_mode}'. Expected 'position' or 'effort'.")
+        raise ValueError(
+          f"Invalid control_mode '{cfg.control_mode}'. Expected 'position' or 'effort'."
+        )
 
   def validate(self) -> None:
     """Validate all actuator configurations."""
