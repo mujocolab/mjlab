@@ -32,11 +32,7 @@ class SensorCfg(ABC):
 class Sensor(ABC, Generic[T]):
   """Base sensor interface with typed data.
 
-  The implementation is based on lazy evaluation. The sensor data is only
-  computed when accessed through the `data` property.
-
-  Type parameter T specifies the type of data returned by the sensor.
-  For example:
+  Type parameter T specifies the type of data returned by the sensor. For example:
   - Sensor[torch.Tensor] for sensors returning raw tensors
   - Sensor[ContactData] for sensors returning structured contact data
   """
@@ -96,7 +92,7 @@ class Sensor(ABC, Generic[T]):
     """Reset sensor state for specified environments.
 
     Base implementation does nothing. Override in subclasses that maintain
-    internal state (e.g., for air time tracking).
+    internal state.
 
     Args:
       env_ids: Environment indices to reset. If None, reset all environments.
@@ -107,7 +103,7 @@ class Sensor(ABC, Generic[T]):
     """Update sensor state after a simulation step.
 
     Base implementation does nothing. Override in subclasses that need
-    per-step updates (e.g., for time-based tracking).
+    per-step updates.
 
     Args:
       dt: Time step in seconds.

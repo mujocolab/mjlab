@@ -1,3 +1,5 @@
+"""Sensors that wrap MuJoCo builtin sensors."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -43,9 +45,6 @@ SensorType = Literal[
   "e_potential",
   "e_kinetic",
   "clock",
-]
-ObjRefType = Literal[
-  "body", "xbody", "joint", "geom", "site", "actuator", "tendon", "camera"
 ]
 
 _SENSOR_TYPE_MAP = {
@@ -94,24 +93,146 @@ _OBJECT_TYPE_MAP = {
   "camera": mujoco.mjtObj.mjOBJ_CAMERA,
 }
 
+_SENSORS_REQUIRING_SITE = {
+  "accelerometer",
+  "velocimeter",
+  "gyro",
+  "force",
+  "torque",
+  "magnetometer",
+  "rangefinder",
+}
 
-def _prefix_name(name: str, entity: str | None) -> str:
-  if not entity:
-    return name
-  return f"{entity}/{name}"
+_SENSORS_REQUIRING_SPATIAL_FRAME = {
+  "framepos",
+  "framequat",
+  "framexaxis",
+  "frameyaxis",
+  "framezaxis",
+  "framelinvel",
+  "frameangvel",
+  "framelinacc",
+  "frameangacc",
+}
+
+_SENSORS_REQUIRING_BODY = {
+  "subtreecom",
+  "subtreelinvel",
+  "subtreeangmom",
+}
+
+_SENSOR_OBJECT_REQUIREMENTS = {
+  "jointpos": "joint",
+  "jointvel": "joint",
+  "jointlimitpos": "joint",
+  "jointlimitvel": "joint",
+  "jointlimitfrc": "joint",
+  "tendonpos": "tendon",
+  "tendonvel": "tendon",
+  "actuatorpos": "actuator",
+  "actuatorvel": "actuator",
+  "actuatorfrc": "actuator",
+}
+
+_SPATIAL_FRAME_TYPES = {"body", "xbody", "geom", "site", "camera"}
+_SENSORS_ALLOWING_REF = {
+  "framepos",
+  "framequat",
+  "framexaxis",
+  "frameyaxis",
+  "framezaxis",
+  "framelinvel",
+  "frameangvel",
+  "framelinacc",
+  "frameangacc",
+}
+
+
+@dataclass
+class ObjRef:
+  """Reference to a MuJoCo object (body, joint, site, etc.).
+
+  Used to specify which object a sensor is attached to and its frame of reference.
+  The entity field allows scoping objects to specific entity namespaces.
+  """
+
+  type: Literal[
+    "body", "xbody", "joint", "geom", "site", "actuator", "tendon", "camera"
+  ]
+  """Type of the object."""
+  name: str
+  """Name of the object."""
+  entity: str | None = None
+  """Optional entity prefix for the object name."""
+
+  def prefixed_name(self) -> str:
+    """Get the full name with entity prefix if applicable."""
+    if self.entity:
+      return f"{self.entity}/{self.name}"
+    return self.name
 
 
 @dataclass
 class BuiltinSensorCfg(SensorCfg):
   sensor_type: SensorType
-  objtype: ObjRefType | None = None
-  objname: str | None = None
-  obj_entity: str | None = None
-  reftype: ObjRefType | None = None
-  refname: str | None = None
-  ref_entity: str | None = None
-  cutoff: float | None = None
+  """Which builtin sensor to use."""
+  obj: ObjRef | None = None
+  """The type and name of the object the sensor is attached to."""
+  ref: ObjRef | None = None
+  """The type and name of object to which the frame-of-reference is attached to."""
+  cutoff: float = 0.0
   """When this value is positive, it limits the absolute value of the sensor output."""
+
+  def __post_init__(self) -> None:
+    if self.sensor_type in _SENSORS_REQUIRING_SITE:
+      if self.obj is None:
+        raise ValueError(
+          f"Sensor type '{self.sensor_type}' requires obj with type='site'"
+        )
+      if self.obj.type != "site":
+        raise ValueError(
+          f"Sensor type '{self.sensor_type}' requires obj.type='site', got "
+          f"'{self.obj.type}'"
+        )
+
+    elif self.sensor_type in _SENSORS_REQUIRING_SPATIAL_FRAME:
+      if self.obj is None:
+        raise ValueError(
+          f"Sensor type '{self.sensor_type}' requires obj with spatial frame"
+        )
+      if self.obj.type not in _SPATIAL_FRAME_TYPES:
+        raise ValueError(
+          f"Sensor type '{self.sensor_type}' requires obj.type in "
+          f"{_SPATIAL_FRAME_TYPES}, got '{self.obj.type}'"
+        )
+
+    elif self.sensor_type in _SENSORS_REQUIRING_BODY:
+      if self.obj is None:
+        raise ValueError(
+          f"Sensor type '{self.sensor_type}' requires obj with type='body'"
+        )
+      if self.obj.type != "body":
+        raise ValueError(
+          f"Sensor type '{self.sensor_type}' requires obj.type='body', "
+          f"got '{self.obj.type}'"
+        )
+
+    elif self.sensor_type in _SENSOR_OBJECT_REQUIREMENTS:
+      required_type = _SENSOR_OBJECT_REQUIREMENTS[self.sensor_type]
+      if self.obj is None:
+        raise ValueError(
+          f"Sensor type '{self.sensor_type}' requires obj with type='{required_type}'"
+        )
+      if self.obj.type != required_type:
+        raise ValueError(
+          f"Sensor type '{self.sensor_type}' requires obj.type='{required_type}', "
+          f"got '{self.obj.type}'"
+        )
+
+    if self.ref is not None and self.sensor_type not in _SENSORS_ALLOWING_REF:
+      raise ValueError(
+        f"Sensor type '{self.sensor_type}' does not support ref specification"
+      )
 
   def build(self) -> BuiltinSensor:
     return BuiltinSensor(self)
@@ -136,7 +257,7 @@ class BuiltinSensor(Sensor[torch.Tensor]):
       self._name = name
       self.cfg = None
     self._data: mjwarp.Data | None = None
-    self._data_slice: slice | None = None
+    self._data_view: torch.Tensor | None = None
 
   @classmethod
   def from_existing(cls, name: str) -> BuiltinSensor:
@@ -147,40 +268,24 @@ class BuiltinSensor(Sensor[torch.Tensor]):
     del entities
     if self.cfg is None:
       return
-
     for sensor in scene_spec.sensors:
       if sensor.name == self.cfg.name:
         raise ValueError(
           f"Sensor '{self.cfg.name}' already exists (likely defined in entity XML). "
           "Remove the BuiltinSensorCfg to use the XML sensor, or rename one of them."
         )
-
-    if (self.cfg.reftype is None) ^ (self.cfg.refname is None):
-      raise ValueError(
-        f"Provide both reftype and refname (or neither) for sensor '{self.cfg.name}'."
-      )
-    if (self.cfg.objtype is None) ^ (self.cfg.objname is None):
-      raise ValueError(
-        f"Provide both objtype and objname (or neither) for sensor '{self.cfg.name}'."
-      )
-
     kwargs = {
       "name": self.cfg.name,
       "type": _SENSOR_TYPE_MAP[self.cfg.sensor_type],
     }
-    if self.cfg.objtype is not None:
-      assert self.cfg.objname is not None
-      obj_name = _prefix_name(self.cfg.objname, self.cfg.obj_entity)
-      kwargs["objtype"] = _OBJECT_TYPE_MAP[self.cfg.objtype]
-      kwargs["objname"] = obj_name
-    if self.cfg.reftype is not None:
-      assert self.cfg.refname is not None
-      ref_name = _prefix_name(self.cfg.refname, self.cfg.ref_entity)
-      kwargs["reftype"] = _OBJECT_TYPE_MAP[self.cfg.reftype]
-      kwargs["refname"] = ref_name
-    if self.cfg.cutoff is not None:
+    if self.cfg.obj is not None:
+      kwargs["objtype"] = _OBJECT_TYPE_MAP[self.cfg.obj.type]
+      kwargs["objname"] = self.cfg.obj.prefixed_name()
+    if self.cfg.ref is not None:
+      kwargs["reftype"] = _OBJECT_TYPE_MAP[self.cfg.ref.type]
+      kwargs["refname"] = self.cfg.ref.prefixed_name()
+    if self.cfg.cutoff > 0:
       kwargs["cutoff"] = self.cfg.cutoff
-
     scene_spec.add_sensor(**kwargs)
 
   def initialize(
@@ -191,10 +296,9 @@ class BuiltinSensor(Sensor[torch.Tensor]):
     sensor = mj_model.sensor(self._name)
     start = sensor.adr[0]
     dim = sensor.dim[0]
-    self._data_slice = slice(start, start + dim)
+    self._data_view = self._data.sensordata[:, start : start + dim]
 
   @property
   def data(self) -> torch.Tensor:
-    if self._data is None or self._data_slice is None:
-      raise RuntimeError(f"Sensor '{self._name}' not initialized.")
-    return self._data.sensordata[:, self._data_slice]
+    assert self._data_view is not None
+    return self._data_view

@@ -1,7 +1,7 @@
 from dataclasses import dataclass, replace
 
 from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ACTION_SCALE, G1_ROBOT_CFG
-from mjlab.sensor import BuiltinSensorCfg, ContactMatch, ContactSensorCfg
+from mjlab.sensor import BuiltinSensorCfg, ContactMatch, ContactSensorCfg, ObjRef
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
 
 
@@ -21,16 +21,12 @@ class G1FlatEnvCfg(TrackingEnvCfg):
     gyro_cfg = BuiltinSensorCfg(
       name="imu_ang_vel",
       sensor_type="gyro",
-      objtype="site",
-      objname="imu_in_pelvis",
-      obj_entity="robot",
+      obj=ObjRef(type="site", name="imu_in_pelvis", entity="robot"),
     )
     velo_cfg = BuiltinSensorCfg(
       name="imu_lin_vel",
       sensor_type="velocimeter",
-      objtype="site",
-      objname="imu_in_pelvis",
-      obj_entity="robot",
+      obj=ObjRef(type="site", name="imu_in_pelvis", entity="robot"),
     )
     self.scene.sensors = (self_collision_cfg, gyro_cfg, velo_cfg)
 

@@ -1,34 +1,25 @@
-"""Tests for ContactSensor functionality."""
+"""Tests for contact_sensor.py."""
 
 from __future__ import annotations
 
 import mujoco
 import pytest
 import torch
-import warp as wp
+from conftest import get_test_device
 
 from mjlab.entity import EntityCfg
 from mjlab.scene import Scene, SceneCfg
 from mjlab.sensor.contact_sensor import ContactMatch, ContactSensorCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
 
-wp.config.quiet = True
 
-
-def get_test_device() -> str:
-  """Get device for testing, preferring CUDA if available."""
-  if torch.cuda.is_available():
-    return "cuda"
-  return "cpu"
-
-
-@pytest.fixture
+@pytest.fixture(scope="module")
 def device():
   """Test device fixture."""
   return get_test_device()
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def falling_box_xml():
   """XML for a simple box that can fall and make contact with ground."""
   return """
@@ -46,7 +37,7 @@ def falling_box_xml():
   """
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def biped_xml():
   """XML for a simple biped with two feet that can make contact with ground."""
   return """

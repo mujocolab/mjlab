@@ -1,31 +1,25 @@
-"""Tests for BuiltinSensor functionality."""
+"""Tests for builtin_sensor.py."""
 
 from __future__ import annotations
 
 import mujoco
 import pytest
 import torch
+from conftest import get_test_device
 
 from mjlab.entity import EntityCfg
 from mjlab.scene import Scene, SceneCfg
-from mjlab.sensor.builtin_sensor import BuiltinSensorCfg
+from mjlab.sensor.builtin_sensor import BuiltinSensorCfg, ObjRef
 from mjlab.sim.sim import Simulation, SimulationCfg
 
 
-def get_test_device() -> str:
-  """Get device for testing, preferring CUDA if available."""
-  if torch.cuda.is_available():
-    return "cuda"
-  return "cpu"
-
-
-@pytest.fixture
+@pytest.fixture(scope="module")
 def device():
   """Test device fixture."""
   return get_test_device()
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def articulated_robot_xml():
   """XML for a simple articulated robot with joints."""
   return """
@@ -47,6 +41,32 @@ def articulated_robot_xml():
   """
 
 
+@pytest.fixture(scope="module")
+def robot_with_xml_sensors():
+  """XML for robot with sensors already defined in the XML."""
+  return """
+    <mujoco>
+      <worldbody>
+        <body name="base" pos="0 0 1">
+          <freejoint name="free_joint"/>
+          <geom name="base_geom" type="box" size="0.2 0.2 0.1" mass="5.0"/>
+          <site name="base_site" pos="0 0 0"/>
+          <body name="link1" pos="0.3 0 0">
+            <joint name="joint1" type="hinge" axis="0 0 1" range="-1.57 1.57"/>
+            <geom name="link1_geom" type="box" size="0.1 0.1 0.1" mass="1.0"/>
+            <site name="link1_site" pos="0 0 0"/>
+          </body>
+        </body>
+      </worldbody>
+      <sensor>
+        <jointpos name="xml_joint_sensor" joint="joint1"/>
+        <accelerometer name="xml_accel_sensor" site="base_site"/>
+        <gyro name="xml_gyro_sensor" site="link1_site"/>
+      </sensor>
+    </mujoco>
+  """
+
+
 def test_jointpos_sensor(articulated_robot_xml, device):
   """Verify joint pos sensor returns correctly shaped tensor for scalar joint values."""
   entity_cfg = EntityCfg(
@@ -56,9 +76,7 @@ def test_jointpos_sensor(articulated_robot_xml, device):
   jointpos_sensor_cfg = BuiltinSensorCfg(
     name="joint1_pos",
     sensor_type="jointpos",
-    objtype="joint",
-    objname="joint1",
-    obj_entity="robot",
+    obj=ObjRef(type="joint", name="joint1", entity="robot"),
   )
 
   scene_cfg = SceneCfg(
@@ -91,9 +109,7 @@ def test_accelerometer_sensor(articulated_robot_xml, device):
   accel_sensor_cfg = BuiltinSensorCfg(
     name="base_accel",
     sensor_type="accelerometer",
-    objtype="site",
-    objname="base_site",
-    obj_entity="robot",
+    obj=ObjRef(type="site", name="base_site", entity="robot"),
   )
 
   scene_cfg = SceneCfg(
@@ -111,7 +127,7 @@ def test_accelerometer_sensor(articulated_robot_xml, device):
 
   sensor = scene["base_accel"]
 
-  # Step simulation multiple times to let robot fall and land on floor.
+  # Step to make robot fall.
   for _ in range(100):
     sim.step()
 
@@ -131,23 +147,17 @@ def test_multiple_sensors(articulated_robot_xml, device):
   jointpos_cfg = BuiltinSensorCfg(
     name="joint1_pos",
     sensor_type="jointpos",
-    objtype="joint",
-    objname="joint1",
-    obj_entity="robot",
+    obj=ObjRef(type="joint", name="joint1", entity="robot"),
   )
   jointvel_cfg = BuiltinSensorCfg(
     name="joint1_vel",
     sensor_type="jointvel",
-    objtype="joint",
-    objname="joint1",
-    obj_entity="robot",
+    obj=ObjRef(type="joint", name="joint1", entity="robot"),
   )
   gyro_cfg = BuiltinSensorCfg(
     name="base_gyro",
     sensor_type="gyro",
-    objtype="site",
-    objname="base_site",
-    obj_entity="robot",
+    obj=ObjRef(type="site", name="base_site", entity="robot"),
   )
 
   scene_cfg = SceneCfg(
@@ -178,56 +188,83 @@ def test_multiple_sensors(articulated_robot_xml, device):
   assert gyro_data.shape == (1, 3)
 
 
-def test_error_on_mismatched_ref_params(articulated_robot_xml, device):
-  """Verify ValueError is raised when reftype is provided without refname."""
-  entity_cfg = EntityCfg(
-    spec_fn=lambda: mujoco.MjSpec.from_string(articulated_robot_xml)
+def test_error_on_invalid_ref():
+  """Verify ValueError is raised when ref provided for unsupported sensor type."""
+  with pytest.raises(ValueError, match="does not support ref specification"):
+    BuiltinSensorCfg(
+      name="invalid_sensor",
+      sensor_type="jointpos",
+      obj=ObjRef(type="joint", name="joint1", entity="robot"),
+      ref=ObjRef(type="body", name="base"),
+    )
+
+
+def test_error_on_missing_obj():
+  """Verify ValueError is raised when obj is not provided for required sensor type."""
+  with pytest.raises(ValueError, match="requires obj with type='joint'"):
+    BuiltinSensorCfg(
+      name="invalid_sensor",
+      sensor_type="jointpos",
+    )
+
+
+def test_error_on_wrong_obj_type_for_site_sensor():
+  """Verify ValueError is raised when wrong obj type is used for site sensor."""
+  with pytest.raises(ValueError, match="requires obj.type='site'"):
+    BuiltinSensorCfg(
+      name="invalid_sensor",
+      sensor_type="accelerometer",
+      obj=ObjRef(type="body", name="base"),
+    )
+
+
+def test_error_on_wrong_obj_type_for_body_sensor():
+  """Verify ValueError is raised when wrong obj type is used for body sensor."""
+  with pytest.raises(ValueError, match="requires obj.type='body'"):
+    BuiltinSensorCfg(
+      name="invalid_sensor",
+      sensor_type="subtreecom",
+      obj=ObjRef(type="site", name="base"),
+    )
+
+
+def test_error_on_wrong_obj_type_for_joint_sensor():
+  """Verify ValueError is raised when wrong obj type is used for joint sensor."""
+  with pytest.raises(ValueError, match="requires obj.type='joint'"):
+    BuiltinSensorCfg(
+      name="invalid_sensor",
+      sensor_type="jointvel",
+      obj=ObjRef(type="body", name="base"),
+    )
+
+
+def test_spatial_frame_sensor_accepts_multiple_types():
+  """Verify spatial frame sensors accept body, xbody, geom, site, camera."""
+  BuiltinSensorCfg(
+    name="frame_sensor_body",
+    sensor_type="framepos",
+    obj=ObjRef(type="body", name="test"),
   )
-
-  invalid_sensor_cfg = BuiltinSensorCfg(
-    name="invalid_sensor",
-    sensor_type="jointpos",
-    objtype="joint",
-    objname="joint1",
-    obj_entity="robot",
-    reftype="body",
+  BuiltinSensorCfg(
+    name="frame_sensor_xbody",
+    sensor_type="framepos",
+    obj=ObjRef(type="xbody", name="test"),
   )
-
-  scene_cfg = SceneCfg(
-    num_envs=1,
-    env_spacing=3.0,
-    entities={"robot": entity_cfg},
-    sensors=(invalid_sensor_cfg,),
+  BuiltinSensorCfg(
+    name="frame_sensor_geom",
+    sensor_type="framepos",
+    obj=ObjRef(type="geom", name="test"),
   )
-
-  with pytest.raises(ValueError, match="Provide both reftype and refname"):
-    Scene(scene_cfg, device)
-
-
-@pytest.fixture
-def robot_with_xml_sensors():
-  """XML for robot with sensors already defined in the XML."""
-  return """
-    <mujoco>
-      <worldbody>
-        <body name="base" pos="0 0 1">
-          <freejoint name="free_joint"/>
-          <geom name="base_geom" type="box" size="0.2 0.2 0.1" mass="5.0"/>
-          <site name="base_site" pos="0 0 0"/>
-          <body name="link1" pos="0.3 0 0">
-            <joint name="joint1" type="hinge" axis="0 0 1" range="-1.57 1.57"/>
-            <geom name="link1_geom" type="box" size="0.1 0.1 0.1" mass="1.0"/>
-            <site name="link1_site" pos="0 0 0"/>
-          </body>
-        </body>
-      </worldbody>
-      <sensor>
-        <jointpos name="xml_joint_sensor" joint="joint1"/>
-        <accelerometer name="xml_accel_sensor" site="base_site"/>
-        <gyro name="xml_gyro_sensor" site="link1_site"/>
-      </sensor>
-    </mujoco>
-  """
+  BuiltinSensorCfg(
+    name="frame_sensor_site",
+    sensor_type="framepos",
+    obj=ObjRef(type="site", name="test"),
+  )
+  BuiltinSensorCfg(
+    name="frame_sensor_camera",
+    sensor_type="framepos",
+    obj=ObjRef(type="camera", name="test"),
+  )
 
 
 def test_xml_sensors_auto_discovered(robot_with_xml_sensors, device):
@@ -276,9 +313,7 @@ def test_builtin_sensor_errors_on_duplicate_name(robot_with_xml_sensors, device)
   duplicate_sensor_cfg = BuiltinSensorCfg(
     name="robot/xml_joint_sensor",
     sensor_type="jointpos",
-    objtype="joint",
-    objname="joint1",
-    obj_entity="robot",
+    obj=ObjRef(type="joint", name="joint1", entity="robot"),
   )
 
   scene_cfg = SceneCfg(
@@ -301,9 +336,7 @@ def test_cutoff_parameter(articulated_robot_xml, device):
   sensor_cfg = BuiltinSensorCfg(
     name="joint1_pos",
     sensor_type="jointpos",
-    objtype="joint",
-    objname="joint1",
-    obj_entity="robot",
+    obj=ObjRef(type="joint", name="joint1", entity="robot"),
     cutoff=0.01,
   )
 
