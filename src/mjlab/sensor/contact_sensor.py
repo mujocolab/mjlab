@@ -102,12 +102,12 @@ class ContactSensorCfg(SensorCfg):
 
 @dataclass
 class _ContactSlot:
-  """Maps one MuJoCo sensor (one primary, one field) to sensordata buffer location."""
+  """Maps one MuJoCo sensor (one primary, one field) to its sensordata view."""
 
   primary_name: str
   field_name: str
   sensor_name: str
-  data_slice: slice | None = None
+  data_view: torch.Tensor | None = None
 
 
 @dataclass
@@ -123,30 +123,31 @@ class _AirTimeState:
 
 @dataclass
 class ContactData:
-  """Contact sensor output (only requested fields populated).
-
-  Standard fields:
-    found [B, N]: 0=no contact, >0=match count
-    force, torque [B, N, 3]: contact frame (global if reduce="netforce" or global_frame=True)
-    dist [B, N]: penetration depth
-    pos, normal, tangent [B, N, 3]: global frame (normal: primary→secondary)
-
-  Air time fields (if track_air_time=True):
-    current_air_time, last_air_time, current_contact_time, last_contact_time [B, N]
-  """
+  """Contact sensor output (only requested fields are populated)."""
 
   found: torch.Tensor | None = None
+  """[B, N] 0=no contact, >0=match count"""
   force: torch.Tensor | None = None
-  normal: torch.Tensor | None = None
-  pos: torch.Tensor | None = None
+  """[B, N, 3] contact frame (global if reduce="netforce" or global_frame=True)"""
   torque: torch.Tensor | None = None
+  """[B, N, 3] contact frame (global if reduce="netforce" or global_frame=True)"""
   dist: torch.Tensor | None = None
+  """[B, N] penetration depth"""
+  pos: torch.Tensor | None = None
+  """[B, N, 3] global frame"""
+  normal: torch.Tensor | None = None
+  """[B, N, 3] global frame, primary→secondary"""
   tangent: torch.Tensor | None = None
+  """[B, N, 3] global frame"""
 
   current_air_time: torch.Tensor | None = None
+  """[B, N] time in air (if track_air_time=True)"""
   last_air_time: torch.Tensor | None = None
+  """[B, N] duration of last air phase (if track_air_time=True)"""
   current_contact_time: torch.Tensor | None = None
+  """[B, N] time in contact (if track_air_time=True)"""
   last_contact_time: torch.Tensor | None = None
+  """[B, N] duration of last contact phase (if track_air_time=True)"""
 
 
 class ContactSensor(Sensor[ContactData]):
@@ -210,7 +211,7 @@ class ContactSensor(Sensor[ContactData]):
       sensor = mj_model.sensor(slot.sensor_name)
       start = sensor.adr[0]
       dim = sensor.dim[0]
-      slot.data_slice = slice(start, start + dim)
+      slot.data_view = data.sensordata[:, start : start + dim]
 
     self._data = data
     self._device = device
@@ -279,16 +280,15 @@ class ContactSensor(Sensor[ContactData]):
     return is_in_air & within_dt
 
   def _extract_sensor_data(self) -> ContactData:
-    if not self._slots or self._data is None:
+    if not self._slots:
       raise RuntimeError(f"Sensor '{self.cfg.name}' not initialized")
 
     field_chunks: dict[str, list[torch.Tensor]] = {f: [] for f in self.cfg.fields}
 
     for slot in self._slots:
-      assert slot.data_slice is not None
-      raw = self._data.sensordata[:, slot.data_slice]
+      assert slot.data_view is not None
       field_dim = _CONTACT_DATA_DIMS[slot.field_name]
-      raw = raw.view(raw.size(0), self.cfg.num_slots, field_dim)
+      raw = slot.data_view.view(slot.data_view.size(0), self.cfg.num_slots, field_dim)
       field_chunks[slot.field_name].append(raw)
 
     out = ContactData()
