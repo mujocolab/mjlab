@@ -13,6 +13,7 @@ from mjlab.entity import Entity
 from mjlab.sensor.sensor import Sensor, SensorCfg
 
 SensorType = Literal[
+  # Site sensors.
   "accelerometer",
   "velocimeter",
   "gyro",
@@ -20,16 +21,22 @@ SensorType = Literal[
   "torque",
   "magnetometer",
   "rangefinder",
+  # Joint sensors.
   "jointpos",
   "jointvel",
-  "tendonpos",
-  "tendonvel",
-  "actuatorpos",
-  "actuatorvel",
-  "actuatorfrc",
   "jointlimitpos",
   "jointlimitvel",
   "jointlimitfrc",
+  "jointactuatorfrc",
+  # Tendon sensors.
+  "tendonpos",
+  "tendonvel",
+  "tendonactuatorfrc",
+  # Actuator sensors.
+  "actuatorpos",
+  "actuatorvel",
+  "actuatorfrc",
+  # Frame sensors.
   "framepos",
   "framequat",
   "framexaxis",
@@ -39,15 +46,18 @@ SensorType = Literal[
   "frameangvel",
   "framelinacc",
   "frameangacc",
+  # Subtree sensors.
   "subtreecom",
   "subtreelinvel",
   "subtreeangmom",
+  # Misc.
   "e_potential",
   "e_kinetic",
   "clock",
 ]
 
 _SENSOR_TYPE_MAP = {
+  # Site sensors.
   "accelerometer": mujoco.mjtSensor.mjSENS_ACCELEROMETER,
   "velocimeter": mujoco.mjtSensor.mjSENS_VELOCIMETER,
   "gyro": mujoco.mjtSensor.mjSENS_GYRO,
@@ -55,16 +65,22 @@ _SENSOR_TYPE_MAP = {
   "torque": mujoco.mjtSensor.mjSENS_TORQUE,
   "magnetometer": mujoco.mjtSensor.mjSENS_MAGNETOMETER,
   "rangefinder": mujoco.mjtSensor.mjSENS_RANGEFINDER,
+  # Joint sensors.
   "jointpos": mujoco.mjtSensor.mjSENS_JOINTPOS,
   "jointvel": mujoco.mjtSensor.mjSENS_JOINTVEL,
-  "tendonpos": mujoco.mjtSensor.mjSENS_TENDONPOS,
-  "tendonvel": mujoco.mjtSensor.mjSENS_TENDONVEL,
-  "actuatorpos": mujoco.mjtSensor.mjSENS_ACTUATORPOS,
-  "actuatorvel": mujoco.mjtSensor.mjSENS_ACTUATORVEL,
-  "actuatorfrc": mujoco.mjtSensor.mjSENS_ACTUATORFRC,
   "jointlimitpos": mujoco.mjtSensor.mjSENS_JOINTLIMITPOS,
   "jointlimitvel": mujoco.mjtSensor.mjSENS_JOINTLIMITVEL,
   "jointlimitfrc": mujoco.mjtSensor.mjSENS_JOINTLIMITFRC,
+  "jointactuatorfrc": mujoco.mjtSensor.mjSENS_JOINTACTFRC,
+  # Tendon sensors.
+  "tendonpos": mujoco.mjtSensor.mjSENS_TENDONPOS,
+  "tendonvel": mujoco.mjtSensor.mjSENS_TENDONVEL,
+  "tendonactuatorfrc": mujoco.mjtSensor.mjSENS_TENDONACTFRC,
+  # Actuator sensors.
+  "actuatorpos": mujoco.mjtSensor.mjSENS_ACTUATORPOS,
+  "actuatorvel": mujoco.mjtSensor.mjSENS_ACTUATORVEL,
+  "actuatorfrc": mujoco.mjtSensor.mjSENS_ACTUATORFRC,
+  # Frame sensors.
   "framepos": mujoco.mjtSensor.mjSENS_FRAMEPOS,
   "framequat": mujoco.mjtSensor.mjSENS_FRAMEQUAT,
   "framexaxis": mujoco.mjtSensor.mjSENS_FRAMEXAXIS,
@@ -74,9 +90,11 @@ _SENSOR_TYPE_MAP = {
   "frameangvel": mujoco.mjtSensor.mjSENS_FRAMEANGVEL,
   "framelinacc": mujoco.mjtSensor.mjSENS_FRAMELINACC,
   "frameangacc": mujoco.mjtSensor.mjSENS_FRAMEANGACC,
+  # Subtree sensors.
   "subtreecom": mujoco.mjtSensor.mjSENS_SUBTREECOM,
   "subtreelinvel": mujoco.mjtSensor.mjSENS_SUBTREELINVEL,
   "subtreeangmom": mujoco.mjtSensor.mjSENS_SUBTREEANGMOM,
+  # Misc.
   "clock": mujoco.mjtSensor.mjSENS_CLOCK,
   "e_potential": mujoco.mjtSensor.mjSENS_E_POTENTIAL,
   "e_kinetic": mujoco.mjtSensor.mjSENS_E_KINETIC,
@@ -127,8 +145,10 @@ _SENSOR_OBJECT_REQUIREMENTS = {
   "jointlimitpos": "joint",
   "jointlimitvel": "joint",
   "jointlimitfrc": "joint",
+  "jointactuatorfrc": "joint",
   "tendonpos": "tendon",
   "tendonvel": "tendon",
+  "tendonactuatorfrc": "tendon",
   "actuatorpos": "actuator",
   "actuatorvel": "actuator",
   "actuatorfrc": "actuator",
