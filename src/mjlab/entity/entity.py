@@ -635,6 +635,11 @@ class Entity:
     free_joint_v_adr = torch.tensor(free_joint_v_adr, dtype=torch.int, device=device)
     free_joint_q_adr = torch.tensor(free_joint_q_adr, dtype=torch.int, device=device)
 
+    if self.is_fixed_base and self.is_mocap:
+      mocap_id = int(model.body_mocapid[self.root_body.id])
+    else:
+      mocap_id = None
+
     return EntityIndexing(
       bodies=bodies,
       joints=joints,
@@ -646,6 +651,7 @@ class Entity:
       site_ids=site_ids,
       ctrl_ids=ctrl_ids,
       joint_ids=joint_ids,
+      mocap_id=mocap_id,
       joint_q_adr=joint_q_adr,
       joint_v_adr=joint_v_adr,
       free_joint_q_adr=free_joint_q_adr,

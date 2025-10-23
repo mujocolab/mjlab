@@ -484,3 +484,74 @@ def test_global_frame_transformation(falling_box_xml, device):
   # Verify that normal and tangent are unchanged (already in global frame).
   assert torch.allclose(data_contact.normal, data_global.normal)
   assert torch.allclose(data_contact.tangent, data_global.tangent)
+
+
+def test_num_slots_shapes(biped_xml, device):
+  """Test that num_slots correctly affects output shape."""
+  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(biped_xml))
+
+  sensor_cfg_1 = ContactSensorCfg(
+    name="feet_contact_single",
+    primary=ContactMatch(
+      mode="geom",
+      pattern=["left_foot_geom", "right_foot_geom"],
+      entity="biped",
+    ),
+    secondary=None,
+    fields=("found", "force", "normal"),
+    num_slots=1,
+  )
+  sensor_cfg_3 = ContactSensorCfg(
+    name="feet_contact_triple",
+    primary=ContactMatch(
+      mode="geom",
+      pattern=["left_foot_geom", "right_foot_geom"],
+      entity="biped",
+    ),
+    secondary=None,
+    fields=("found", "force", "normal"),
+    num_slots=3,
+  )
+
+  scene_cfg = SceneCfg(
+    num_envs=2,
+    env_spacing=3.0,
+    entities={"biped": entity_cfg},
+    sensors=(sensor_cfg_1, sensor_cfg_3),
+  )
+
+  scene = Scene(scene_cfg, device)
+  model = scene.compile()
+  sim_cfg = SimulationCfg(njmax=40)
+  sim = Simulation(num_envs=2, cfg=sim_cfg, model=model, device=device)
+  scene.initialize(sim.mj_model, sim.model, sim.data)
+
+  sensor_1 = scene["feet_contact_single"]
+  sensor_3 = scene["feet_contact_triple"]
+  biped_entity = scene["biped"]
+
+  # Place biped on ground.
+  root_state = torch.zeros((2, 13), device=sim.device)
+  root_state[:, 2] = 0.25
+  root_state[:, 3] = 1.0
+  biped_entity.write_root_state_to_sim(root_state)
+  for _ in range(20):
+    sim.step()
+
+  # 2 primaries × 1 slot = 2 total slots.
+  data_1 = sensor_1.data
+  assert data_1.found is not None
+  assert data_1.force is not None
+  assert data_1.normal is not None
+  assert data_1.found.shape == (2, 2)
+  assert data_1.force.shape == (2, 2, 3)
+  assert data_1.normal.shape == (2, 2, 3)
+
+  # 2 primaries × 3 slots = 6 total slots.
+  data_3 = sensor_3.data
+  assert data_3.found is not None
+  assert data_3.force is not None
+  assert data_3.normal is not None
+  assert data_3.found.shape == (2, 6)
+  assert data_3.force.shape == (2, 6, 3)
+  assert data_3.normal.shape == (2, 6, 3)
