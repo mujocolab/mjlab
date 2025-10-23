@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Optional, cast
 
 import torch
 
-from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import ContactSensor
 from mjlab.third_party.isaaclab.isaaclab.utils.math import quat_error_magnitude
 
@@ -12,8 +11,6 @@ from .commands import MotionCommand
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
-
-_DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
 
 
 def _get_body_indexes(
@@ -120,4 +117,4 @@ def self_collision_cost(env: ManagerBasedRlEnv, sensor_name: str) -> torch.Tenso
   """Cost that returns the number of self-collisions detected by a sensor."""
   sensor: ContactSensor = env.scene[sensor_name]
   assert sensor.data.found is not None
-  return sensor.data.found[..., 0]  # (num_envs,)
+  return sensor.data.found.squeeze(-1)

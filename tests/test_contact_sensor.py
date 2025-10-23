@@ -200,8 +200,8 @@ def test_multi_slot_pattern_matching(biped_xml, device):
   sensor = scene["feet_contact"]
   biped_entity = scene["biped"]
 
-  # Verify sensor created 2 slots (one per foot).
-  assert len(sensor._slots) == 2
+  # Verify sensor created 4 slots (2 feet × 2 fields).
+  assert len(sensor._slots) == 4
 
   # Place biped on ground.
   root_state = torch.zeros((2, 13), device=sim.device)
