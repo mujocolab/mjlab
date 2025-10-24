@@ -204,6 +204,10 @@ class BuiltinSensorCfg(SensorCfg):
   """When this value is positive, it limits the absolute value of the sensor output."""
 
   def __post_init__(self) -> None:
+    # Auto-prefix sensor name if it references an entity.
+    if self.obj is not None and self.obj.entity is not None:
+      self.name = f"{self.obj.entity}/{self.name}"
+
     if self.sensor_type in _SENSORS_REQUIRING_SITE:
       if self.obj is None:
         raise ValueError(
@@ -288,12 +292,24 @@ class BuiltinSensor(Sensor[torch.Tensor]):
     del entities
     if self.cfg is None:
       return
+
+    # Check for duplicate sensors.
     for sensor in scene_spec.sensors:
       if sensor.name == self.cfg.name:
-        raise ValueError(
-          f"Sensor '{self.cfg.name}' already exists (likely defined in entity XML). "
-          "Remove the BuiltinSensorCfg to use the XML sensor, or rename one of them."
-        )
+        is_entity_scoped = self.cfg.obj is not None and self.cfg.obj.entity is not None
+        if is_entity_scoped:
+          raise ValueError(
+            f"Sensor '{self.cfg.name}' is defined in both entity XML and scene config. "
+            f"Remove the sensor definition from the entity XML file, or remove the "
+            f"BuiltinSensorCfg from scene.sensors."
+          )
+        else:
+          raise ValueError(
+            f"Sensor '{self.cfg.name}' already exists in the scene. "
+            f"Rename this sensor to avoid conflicts."
+          )
+
+    # Add sensor to spec.
     kwargs = {
       "name": self.cfg.name,
       "type": _SENSOR_TYPE_MAP[self.cfg.sensor_type],

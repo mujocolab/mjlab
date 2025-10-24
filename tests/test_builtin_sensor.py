@@ -92,7 +92,7 @@ def test_jointpos_sensor(articulated_robot_xml, device):
   sim = Simulation(num_envs=2, cfg=sim_cfg, model=model, device=device)
   scene.initialize(sim.mj_model, sim.model, sim.data)
 
-  sensor = scene["joint1_pos"]
+  sensor = scene["robot/joint1_pos"]
   sim.step()
   data = sensor.data
 
@@ -125,7 +125,7 @@ def test_accelerometer_sensor(articulated_robot_xml, device):
   sim = Simulation(num_envs=2, cfg=sim_cfg, model=model, device=device)
   scene.initialize(sim.mj_model, sim.model, sim.data)
 
-  sensor = scene["base_accel"]
+  sensor = scene["robot/base_accel"]
 
   # Step to make robot fall.
   for _ in range(100):
@@ -173,9 +173,9 @@ def test_multiple_sensors(articulated_robot_xml, device):
   sim = Simulation(num_envs=1, cfg=sim_cfg, model=model, device=device)
   scene.initialize(sim.mj_model, sim.model, sim.data)
 
-  jointpos_sensor = scene["joint1_pos"]
-  jointvel_sensor = scene["joint1_vel"]
-  gyro_sensor = scene["base_gyro"]
+  jointpos_sensor = scene["robot/joint1_pos"]
+  jointvel_sensor = scene["robot/joint1_vel"]
+  gyro_sensor = scene["robot/base_gyro"]
 
   sim.step()
 
@@ -311,7 +311,7 @@ def test_builtin_sensor_errors_on_duplicate_name(robot_with_xml_sensors, device)
   )
 
   duplicate_sensor_cfg = BuiltinSensorCfg(
-    name="robot/xml_joint_sensor",
+    name="xml_joint_sensor",
     sensor_type="jointpos",
     obj=ObjRef(type="joint", name="joint1", entity="robot"),
   )
@@ -323,7 +323,7 @@ def test_builtin_sensor_errors_on_duplicate_name(robot_with_xml_sensors, device)
     sensors=(duplicate_sensor_cfg,),
   )
 
-  with pytest.raises(ValueError, match="already exists"):
+  with pytest.raises(ValueError, match="defined in both entity XML and scene config"):
     Scene(scene_cfg, device)
 
 
@@ -352,5 +352,5 @@ def test_cutoff_parameter(articulated_robot_xml, device):
   sim_cfg = SimulationCfg(njmax=20)
   sim = Simulation(num_envs=1, cfg=sim_cfg, model=model, device=device)
 
-  sensor = sim.mj_model.sensor("joint1_pos")
+  sensor = sim.mj_model.sensor("robot/joint1_pos")
   assert sensor.cutoff[0] == 0.01

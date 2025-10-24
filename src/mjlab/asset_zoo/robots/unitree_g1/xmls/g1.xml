@@ -310,4 +310,8 @@
     <exclude body1="pelvis" body2="right_hip_roll_link"/>
     <exclude body1="pelvis" body2="left_hip_roll_link"/>
   </contact>
+  <sensor>
+    <gyro name="imu_ang_vel" site="imu_in_pelvis"/>
+    <velocimeter name="imu_lin_vel" site="imu_in_pelvis"/>
+  </sensor>
 </mujoco>
