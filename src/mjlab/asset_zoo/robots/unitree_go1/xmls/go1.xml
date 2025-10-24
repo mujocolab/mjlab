@@ -161,4 +161,8 @@
       </body>
     </body>
   </worldbody>
+  <sensor>
+    <gyro name="imu_ang_vel" site="imu"/>
+    <velocimeter name="imu_lin_vel" site="imu"/>
+  </sensor>
 </mujoco>

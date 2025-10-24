@@ -89,12 +89,14 @@ class ObservationCfg:
   class PolicyCfg(ObsGroup):
     base_lin_vel: ObsTerm = term(
       ObsTerm,
-      func=mdp.base_lin_vel,
-      noise=Unoise(n_min=-0.1, n_max=0.1),
+      func=mdp.builtin_sensor,
+      params={"sensor_name": "robot/imu_lin_vel"},
+      noise=Unoise(n_min=-0.5, n_max=0.5),
     )
     base_ang_vel: ObsTerm = term(
       ObsTerm,
-      func=mdp.base_ang_vel,
+      func=mdp.builtin_sensor,
+      params={"sensor_name": "robot/imu_ang_vel"},
       noise=Unoise(n_min=-0.2, n_max=0.2),
     )
     projected_gravity: ObsTerm = term(

@@ -27,7 +27,7 @@ class UnitreeGo1RoughEnvCfg(LocomotionVelocityEnvCfg):
       fields=("found", "force"),
       reduce="netforce",
       num_slots=1,
-      track_air_time=True,  # Enable air time tracking
+      track_air_time=True,
     )
     self.scene.sensors = (feet_ground_cfg,)
 
