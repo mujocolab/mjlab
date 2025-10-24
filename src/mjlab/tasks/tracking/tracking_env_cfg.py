@@ -109,13 +109,13 @@ class ObservationCfg:
     base_lin_vel: ObsTerm | None = term(
       ObsTerm,
       func=mdp.builtin_sensor,
-      params={"sensor_name": "imu_lin_vel"},
+      params={"sensor_name": "robot/imu_lin_vel"},
       noise=Unoise(n_min=-0.5, n_max=0.5),
     )
     base_ang_vel: ObsTerm = term(
       ObsTerm,
       func=mdp.builtin_sensor,
-      params={"sensor_name": "imu_ang_vel"},
+      params={"sensor_name": "robot/imu_ang_vel"},
       noise=Unoise(n_min=-0.2, n_max=0.2),
     )
     joint_pos: ObsTerm = term(
