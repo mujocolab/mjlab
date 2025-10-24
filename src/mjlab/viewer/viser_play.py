@@ -6,13 +6,11 @@ Adapted from an MJX visualizer by Chung Min Kim: https://github.com/chungmin99/
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
 
 import numpy as np
 import viser
 from typing_extensions import override
 
-from mjlab.entity.entity import Entity
 from mjlab.sim.sim import Simulation
 from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
 from mjlab.viewer.viser_reward_plotter import ViserRewardPlotter
@@ -31,8 +29,8 @@ class ViserPlayViewer(BaseViewer):
     verbosity: VerbosityLevel = VerbosityLevel.SILENT,
   ) -> None:
     super().__init__(env, policy, frame_rate, verbosity)
-    self._reward_plotter: Optional[ViserRewardPlotter] = None
-    self._debug_visualizer: Optional[ViserDebugVisualizer] = None
+    self._reward_plotter: ViserRewardPlotter | None = None
+    self._debug_visualizer: ViserDebugVisualizer | None = None
 
   @override
   def setup(self) -> None:
@@ -54,22 +52,7 @@ class ViserPlayViewer(BaseViewer):
       num_envs=self.env.num_envs,
     )
 
-    # Set initial environment index from config.
     self._scene.current_env_idx = self.cfg.env_idx
-
-    # Setup camera tracking body if configured.
-    if self.cfg and self.cfg.asset_name and self.cfg.body_name:
-      robot: Entity = self.env.unwrapped.scene[self.cfg.asset_name]
-      if self.cfg.body_name not in robot.body_names:
-        raise ValueError(
-          f"Body '{self.cfg.body_name}' not found in asset '{self.cfg.asset_name}'"
-        )
-      body_indices_and_names = robot.find_bodies(self.cfg.body_name)
-      body_id_list = body_indices_and_names[0]
-      self._tracked_body_id = robot.indexing.bodies[body_id_list[0]].id
-    else:
-      # Fallback: use body 1 (first body after world).
-      self._tracked_body_id = 1
 
     # Create tabs.
     tabs = self._server.gui.add_folder("Controls")
@@ -177,15 +160,7 @@ class ViserPlayViewer(BaseViewer):
 
     # Add standard visualization options from ViserMujocoScene.
     self._scene.create_options_gui()
-
-    # Store previous env idx to detect changes (for clearing reward histories).
     self._prev_env_idx = self._scene.current_env_idx
-
-    # Setup environment slider callback to clear reward histories on change.
-    # We do this after create_options_gui() so we can access the slider GUI state.
-    if self.env.num_envs > 1:
-      # Note: ViserScene already created the slider, we just need to react to changes.
-      pass
 
     # Reward plots tab.
     if hasattr(self.env.unwrapped, "reward_manager"):
@@ -204,15 +179,9 @@ class ViserPlayViewer(BaseViewer):
     """Synchronize environment state to viewer."""
     sim = self.env.unwrapped.sim
     assert isinstance(sim, Simulation)
-
-    # Update counter.
     self._counter += 1
-
-    # Update status display and reward plots less frequently.
     if self._counter % 10 == 0:
       self._update_status_display()
-
-      # Check if environment changed.
       if self._scene.current_env_idx != self._prev_env_idx:
         self._prev_env_idx = self._scene.current_env_idx
         if self._reward_plotter:
@@ -226,31 +195,21 @@ class ViserPlayViewer(BaseViewer):
         )
         self._reward_plotter.update(terms)
 
-    # Enable camera tracking if requested.
-    if self._camera_tracking:
-      self._scene.camera_tracking_body_id = self._tracked_body_id
-    else:
-      self._scene.camera_tracking_body_id = None
-
-    # Compute scene offset for debug visualizer.
+    self._scene.camera_tracking_enabled = self._camera_tracking
     scene_offset = np.zeros(3)
-    if self._camera_tracking:
+    if self._camera_tracking and self._scene._tracked_body_id is not None:
       tracked_pos = sim.wp_data.xpos.numpy()[
-        self._scene.current_env_idx, self._tracked_body_id, :
+        self._scene.current_env_idx, self._scene._tracked_body_id, :
       ].copy()
       scene_offset = -tracked_pos
 
-    # Update debug visualizations every frame.
     if self._show_debug_vis and hasattr(self.env.unwrapped, "update_visualizers"):
-      # Only recreate if environment changed or doesn't exist.
       if (
         self._debug_visualizer is None
         or self._debug_visualizer.env_idx != self._scene.current_env_idx
       ):
-        # Clear old visualizer completely when switching envs.
         if self._debug_visualizer:
           self._debug_visualizer.clear_all()
-
         self._debug_visualizer = ViserDebugVisualizer(
           self._server,
           sim.mj_model,
@@ -258,48 +217,30 @@ class ViserPlayViewer(BaseViewer):
           scene_offset,
         )
       else:
-        # Just clear arrows and reuse existing visualizer.
-        # Ghost meshes kept and poses updated for efficiency.
         self._debug_visualizer.clear()
         self._debug_visualizer.env_origin = scene_offset
-
-      # Update visualizations (queues arrows and updates ghost poses).
       self.env.unwrapped.update_visualizers(self._debug_visualizer)
-
-      # Synchronize queued arrows to the scene.
       self._debug_visualizer._sync_arrows()
     elif not self._show_debug_vis and self._debug_visualizer is not None:
-      # Clear visualizer if debug vis is disabled.
       self._debug_visualizer.clear_all()
 
-    # The rest of this method is environment state syncing.
-    # It's fine to do this every other policy step to reduce bandwidth usage.
     if self._counter % 2 != 0:
       return
-
-    # Skip scene updates when paused unless UI interaction requires it.
     if self._is_paused and not self._needs_update and not self._scene.needs_update:
       return
 
-    # Update scene asynchronously.
-    wp_data = sim.wp_data
-
     def update_scene() -> None:
       with self._server.atomic():
-        # ViserScene handles all mesh and contact visualization.
-        self._scene.update(wp_data)
+        self._scene.update(sim.wp_data)
         self._server.flush()
 
     self._threadpool.submit(update_scene)
-
-    # Clear update flags after syncing.
     self._needs_update = False
     self._scene.needs_update = False
 
   @override
   def sync_viewer_to_env(self) -> None:
     """Synchronize viewer state to environment (e.g., perturbations)."""
-    # Does nothing for Viser.
     pass
 
   def reset_environment(self) -> None:

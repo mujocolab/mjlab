@@ -16,7 +16,6 @@ import numpy as np
 import tyro
 import viser
 
-from mjlab.viewer.viser_conversions import is_fixed_body
 from mjlab.viewer.viser_scene import ViserMujocoScene
 
 
@@ -55,19 +54,8 @@ class NanDumpViewer:
     self.server = viser.ViserServer(label="NaN Dump Viewer")
     self.current_step = 0
     self.current_env = 0
-
-    # Create ViserMujocoScene for visualization.
     self.scene = ViserMujocoScene.create(self.server, self.model, num_envs=1)
-
-    # Find first non-fixed body for camera tracking.
-    self.robot_body_id: int | None = None
-    for body_id in range(self.model.nbody):
-      if not is_fixed_body(self.model, body_id):
-        self.robot_body_id = body_id
-        break
-
-    if self.robot_body_id is not None:
-      self.scene.camera_tracking_body_id = self.robot_body_id
+    self.scene.camera_tracking_enabled = True
 
   def setup(self) -> None:
     """Setup the viewer GUI and scene."""

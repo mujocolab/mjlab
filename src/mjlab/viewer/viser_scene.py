@@ -76,7 +76,7 @@ class ViserMujocoScene:
 
   # Visualization settings (set directly or automatically updated by create_options_gui).
   current_env_idx: int = 0
-  camera_tracking_body_id: int | None = None
+  camera_tracking_enabled: bool = False
   show_only_selected: bool = False
   show_visual: bool = True
   show_collision: bool = False
@@ -86,6 +86,7 @@ class ViserMujocoScene:
   contact_force_color: tuple[int, int, int] = (255, 0, 0)
   meansize_override: float | None = None
   needs_update: bool = False
+  _tracked_body_id: int | None = field(init=False, default=None)
 
   @staticmethod
   def create(
@@ -126,6 +127,12 @@ class ViserMujocoScene:
 
     # Create visual mesh handles immediately.
     scene.mesh_visual_handles = scene._create_mesh_handles("visual")
+
+    # Find first non-fixed body for camera tracking.
+    for body_id in range(mj_model.nbody):
+      if not is_fixed_body(mj_model, body_id):
+        scene._tracked_body_id = body_id
+        break
 
     return scene
 
@@ -299,17 +306,13 @@ class ViserMujocoScene:
     if env_idx is None:
       env_idx = self.current_env_idx
 
-    # Get body positions and orientations from batched data.
-    body_xpos = wp_data.xpos.numpy()  # Shape: (num_envs, nbody, 3).
-    body_xmat = wp_data.xmat.numpy()  # Shape: (num_envs, nbody, 3, 3).
-
-    # Compute scene offset for camera tracking.
+    body_xpos = wp_data.xpos.numpy()
+    body_xmat = wp_data.xmat.numpy()
     scene_offset = np.zeros(3)
-    if self.camera_tracking_body_id is not None:
-      tracked_pos = body_xpos[env_idx, self.camera_tracking_body_id, :].copy()
+    if self.camera_tracking_enabled and self._tracked_body_id is not None:
+      tracked_pos = body_xpos[env_idx, self._tracked_body_id, :].copy()
       scene_offset = -tracked_pos
 
-    # Get contact data if contact visualization is enabled.
     contacts = None
     if self.show_contact_points or self.show_contact_forces:
       self.mj_data.qpos[:] = wp_data.qpos.numpy()[env_idx]
@@ -317,7 +320,6 @@ class ViserMujocoScene:
       mujoco.mj_forward(self.mj_model, self.mj_data)
       contacts = self._extract_contacts_from_mjdata(self.mj_data)
 
-    # Update visualization.
     self._update_visualization(body_xpos, body_xmat, env_idx, scene_offset, contacts)
 
   def update_from_mjdata(self, mj_data: mujoco.MjData) -> None:
@@ -326,23 +328,18 @@ class ViserMujocoScene:
     Args:
       mj_data: Single environment MuJoCo data.
     """
-    # Add batch dimension for compatibility with internal update logic.
-    body_xpos = mj_data.xpos[None, ...]  # (1, nbody, 3)
-    body_xmat = mj_data.xmat.reshape(-1, 3, 3)[None, ...]  # (1, nbody, 3, 3)
+    body_xpos = mj_data.xpos[None, ...]
+    body_xmat = mj_data.xmat.reshape(-1, 3, 3)[None, ...]
     env_idx = 0
-
-    # Compute scene offset for camera tracking.
     scene_offset = np.zeros(3)
-    if self.camera_tracking_body_id is not None:
-      tracked_pos = mj_data.xpos[self.camera_tracking_body_id, :].copy()
+    if self.camera_tracking_enabled and self._tracked_body_id is not None:
+      tracked_pos = mj_data.xpos[self._tracked_body_id, :].copy()
       scene_offset = -tracked_pos
 
-    # Get contact data if contact visualization is enabled.
     contacts = None
     if self.show_contact_points or self.show_contact_forces:
       contacts = self._extract_contacts_from_mjdata(mj_data)
 
-    # Update visualization.
     self._update_visualization(body_xpos, body_xmat, env_idx, scene_offset, contacts)
 
   def _update_visualization(
@@ -354,37 +351,23 @@ class ViserMujocoScene:
     contacts: list[_Contact] | None,
   ) -> None:
     """Shared visualization update logic."""
-    # Apply scene_offset to all scene elements.
     self.fixed_bodies_frame.position = scene_offset
-
-    # Update meshes and contacts.
     with self.server.atomic():
       body_xquat = vtf.SO3.from_matrix(body_xmat).wxyz
-
-      # Update both visual and collision handles symmetrically.
       for handles_dict in [self.mesh_visual_handles, self.mesh_collision_handles]:
         if handles_dict is None:
-          continue  # Handles not created yet.
-
+          continue
         for body_id, handle in handles_dict.items():
-          # Skip if handle is not visible.
           if not handle.visible:
             continue
-
-          # Update position and orientation for this body.
           if self.show_only_selected and self.num_envs > 1:
-            # Show only the selected environment at the origin (0,0,0).
             single_pos = body_xpos[env_idx, body_id, :] + scene_offset
             single_quat = body_xquat[env_idx, body_id, :]
-            # Replicate single environment data for all batch slots.
             handle.batched_positions = np.tile(single_pos[None, :], (self.num_envs, 1))
             handle.batched_wxyzs = np.tile(single_quat[None, :], (self.num_envs, 1))
           else:
-            # Show all environments - apply scene_offset to all of them.
             handle.batched_positions = body_xpos[..., body_id, :] + scene_offset
             handle.batched_wxyzs = body_xquat[..., body_id, :]
-
-      # Update contact visualization.
       if contacts is not None:
         self._update_contact_visualization(contacts, scene_offset)
 
