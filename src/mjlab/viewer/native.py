@@ -130,8 +130,9 @@ class NativeMujocoViewer(BaseViewer):
       sim_data = self.env.unwrapped.sim.data
       self.mjd.qpos[:] = sim_data.qpos[self.env_idx].cpu().numpy()
       self.mjd.qvel[:] = sim_data.qvel[self.env_idx].cpu().numpy()
-      self.mjd.mocap_pos[:] = sim_data.mocap_pos[self.env_idx].cpu().numpy()
-      self.mjd.mocap_quat[:] = sim_data.mocap_quat[self.env_idx].cpu().numpy()
+      if self.mjm.nmocap > 0:
+        self.mjd.mocap_pos[:] = sim_data.mocap_pos[self.env_idx].cpu().numpy()
+        self.mjd.mocap_quat[:] = sim_data.mocap_quat[self.env_idx].cpu().numpy()
       mujoco.mj_forward(self.mjm, self.mjd)
 
       # text_1 = "Env\nStep\nStatus\nSpeed\nFPS"
@@ -182,8 +183,9 @@ class NativeMujocoViewer(BaseViewer):
             continue
           self.vd.qpos[:] = sim_data.qpos[i].cpu().numpy()
           self.vd.qvel[:] = sim_data.qvel[i].cpu().numpy()
-          self.vd.mocap_pos[:] = sim_data.mocap_pos[i].cpu().numpy()
-          self.vd.mocap_quat[:] = sim_data.mocap_quat[i].cpu().numpy()
+          if self.mjm.nmocap > 0:
+            self.vd.mocap_pos[:] = sim_data.mocap_pos[i].cpu().numpy()
+            self.vd.mocap_quat[:] = sim_data.mocap_quat[i].cpu().numpy()
           mujoco.mj_forward(self.mjm, self.vd)
           assert self.pert is not None
           mujoco.mjv_addGeoms(
