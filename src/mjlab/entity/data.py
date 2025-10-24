@@ -166,6 +166,17 @@ class EntityData:
     global_ctrl_ids = self.indexing.ctrl_ids[local_ctrl_ids]
     self.data.ctrl[env_ids, global_ctrl_ids] = ctrl
 
+  def write_mocap_pose(
+    self, pose: torch.Tensor, env_ids: torch.Tensor | slice | None = None
+  ) -> None:
+    if self.indexing.mocap_id is None:
+      raise ValueError("Cannot write mocap pose for non-mocap entity.")
+    assert pose.shape[-1] == self.ROOT_POSE_DIM
+
+    env_ids = self._resolve_env_ids(env_ids)
+    self.data.mocap_pos[env_ids, self.indexing.mocap_id] = pose[:, 0:3]
+    self.data.mocap_quat[env_ids, self.indexing.mocap_id] = pose[:, 3:7]
+
   def clear_state(self, env_ids: torch.Tensor | slice | None = None) -> None:
     # Reset external wrenches on bodies and DoFs.
     env_ids = self._resolve_env_ids(env_ids)

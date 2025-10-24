@@ -1,6 +1,7 @@
 """Tests for entity module."""
 
 import mujoco
+import numpy as np
 import pytest
 import torch
 from conftest import get_test_device
@@ -8,6 +9,68 @@ from conftest import get_test_device
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
 from mjlab.utils.spec_config import ActuatorCfg
+
+FIXED_BASE_XML = """
+<mujoco>
+  <worldbody>
+    <body name="object" pos="0 0 0.5">
+      <geom name="object_geom" type="box" size="0.1 0.1 0.1" rgba="0.8 0.3 0.3 1"/>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+FLOATING_BASE_XML = """
+<mujoco>
+  <worldbody>
+    <body name="object" pos="0 0 1">
+      <freejoint name="free_joint"/>
+      <geom name="object_geom" type="box" size="0.1 0.1 0.1" rgba="0.3 0.3 0.8 1" mass="0.1"/>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+FIXED_BASE_ARTICULATED_XML = """
+<mujoco>
+  <worldbody>
+    <body name="base" pos="0 0 0.5">
+      <geom name="base_geom" type="cylinder" size="0.1 0.05" mass="5.0"/>
+      <body name="link1" pos="0 0 0.1">
+        <joint name="joint1" type="hinge" axis="0 0 1" range="-3.14 3.14"/>
+        <geom name="link1_geom" type="box" size="0.05 0.05 0.2" mass="1.0"/>
+        <body name="link2" pos="0 0 0.4">
+          <joint name="joint2" type="hinge" axis="0 1 0" range="-1.57 1.57"/>
+          <geom name="link2_geom" type="box" size="0.05 0.05 0.15" mass="0.5"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+FLOATING_BASE_ARTICULATED_XML = """
+<mujoco>
+  <worldbody>
+    <body name="base" pos="0 0 1">
+      <freejoint name="free_joint"/>
+      <geom name="base_geom" type="box" size="0.2 0.2 0.1" mass="1.0"/>
+      <body name="link1" pos="0 0 0">
+        <joint name="joint1" type="hinge" axis="0 0 1" range="0 1.57"/>
+        <geom name="link1_geom" type="box" size="0.1 0.1 0.1" mass="0.1"/>
+        <site name="site1" pos="0 0 0"/>
+      </body>
+      <body name="link2" pos="0 0 0">
+        <joint name="joint2" type="hinge" axis="0 0 1" range="0 1.57"/>
+        <geom name="link2_geom" type="box" size="0.1 0.1 0.1" mass="0.1"/>
+      </body>
+    </body>
+  </worldbody>
+  <sensor>
+    <jointpos name="joint1_pos" joint="joint1"/>
+  </sensor>
+</mujoco>
+"""
 
 
 @pytest.fixture(scope="module")
@@ -18,111 +81,48 @@ def device():
 
 def create_fixed_base_entity():
   """Create a simple fixed-base entity."""
-  xml = """
-    <mujoco>
-      <worldbody>
-        <body name="object" pos="0 0 0.5">
-          <geom name="object_geom" type="box" size="0.1 0.1 0.1" rgba="0.8 0.3 0.3 1"/>
-        </body>
-      </worldbody>
-    </mujoco>
-  """
-  cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(xml))
+  cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(FIXED_BASE_XML))
   return Entity(cfg)
 
 
 def create_floating_base_entity():
-  """Create a floating-base entity with freejoint."""
-  xml = """
-    <mujoco>
-      <worldbody>
-        <body name="object" pos="0 0 1">
-          <freejoint name="free_joint"/>
-          <geom name="object_geom" type="box" size="0.1 0.1 0.1" rgba="0.3 0.3 0.8 1"
-            mass="0.1"/>
-        </body>
-      </worldbody>
-    </mujoco>
-  """
-  cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(xml))
-  return Entity(cfg)
-
-
-ARTICULATED_XML = """
-  <mujoco>
-    <worldbody>
-      <body name="base" pos="0 0 1">
-        <freejoint name="free_joint"/>
-        <geom name="base_geom" type="box" size="0.2 0.2 0.1" mass="1.0"/>
-        <body name="link1" pos="0 0 0">
-          <joint name="joint1" type="hinge" axis="0 0 1" range="0 1.57"/>
-          <geom name="link1_geom" type="box" size="0.1 0.1 0.1" mass="0.1"/>
-          <site name="site1" pos="0 0 0"/>
-        </body>
-        <body name="link2" pos="0 0 0">
-          <joint name="joint2" type="hinge" axis="0 0 1" range="0 1.57"/>
-          <geom name="link2_geom" type="box" size="0.1 0.1 0.1" mass="0.1"/>
-        </body>
-      </body>
-    </worldbody>
-    <sensor>
-      <jointpos name="joint1_pos" joint="joint1"/>
-    </sensor>
-  </mujoco>
-"""
-
-
-def create_articulated_entity():
-  """Create an articulated entity with joints and actuators."""
-  actuator_cfg = EntityArticulationInfoCfg(
-    actuators=(
-      ActuatorCfg(
-        joint_names_expr=["joint1", "joint2"],
-        effort_limit=1.0,
-        stiffness=1.0,
-        damping=1.0,
-      ),
-    )
-  )
-  cfg = EntityCfg(
-    spec_fn=lambda: mujoco.MjSpec.from_string(ARTICULATED_XML),
-    articulation=actuator_cfg,
-  )
+  """Create a floating-base entity."""
+  cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(FLOATING_BASE_XML))
   return Entity(cfg)
 
 
 def create_fixed_articulated_entity():
-  """Create a fixed-base articulated entity (e.g., robot arm bolted to ground)."""
-  xml = """
-    <mujoco>
-      <worldbody>
-        <body name="base" pos="0 0 0.5">
-          <geom name="base_geom" type="cylinder" size="0.1 0.05" mass="5.0"/>
-          <body name="link1" pos="0 0 0.1">
-            <joint name="joint1" type="hinge" axis="0 0 1" range="-3.14 3.14"/>
-            <geom name="link1_geom" type="box" size="0.05 0.05 0.2" mass="1.0"/>
-            <body name="link2" pos="0 0 0.4">
-              <joint name="joint2" type="hinge" axis="0 1 0" range="-1.57 1.57"/>
-              <geom name="link2_geom" type="box" size="0.05 0.05 0.15" mass="0.5"/>
-            </body>
-          </body>
-        </body>
-      </worldbody>
-    </mujoco>
-  """
-  actuator_cfg = EntityArticulationInfoCfg(
-    actuators=(
-      ActuatorCfg(
-        joint_names_expr=["joint1", "joint2"],
-        effort_limit=1.0,
-        stiffness=1.0,
-        damping=1.0,
-      ),
-    )
-  )
+  """Create a fixed-base articulated entity (e.g., robot arm)."""
   cfg = EntityCfg(
-    spec_fn=lambda: mujoco.MjSpec.from_string(xml),
-    articulation=actuator_cfg,
+    spec_fn=lambda: mujoco.MjSpec.from_string(FIXED_BASE_ARTICULATED_XML),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        ActuatorCfg(
+          joint_names_expr=["joint1", "joint2"],
+          effort_limit=1.0,
+          stiffness=1.0,
+          damping=1.0,
+        ),
+      )
+    ),
+  )
+  return Entity(cfg)
+
+
+def create_floating_articulated_entity():
+  """Create a floating-base articulated entity."""
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(FLOATING_BASE_ARTICULATED_XML),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        ActuatorCfg(
+          joint_names_expr=["joint1", "joint2"],
+          effort_limit=1.0,
+          stiffness=1.0,
+          damping=1.0,
+        ),
+      )
+    ),
   )
   return Entity(cfg)
 
@@ -162,9 +162,9 @@ def initialize_entity_with_sim(entity, device, num_envs=1):
       },
     ),
     (
-      create_articulated_entity,
+      create_fixed_articulated_entity,
       {
-        "is_fixed_base": False,
+        "is_fixed_base": True,
         "is_articulated": True,
         "is_actuated": True,
         "num_bodies": 3,
@@ -173,9 +173,9 @@ def initialize_entity_with_sim(entity, device, num_envs=1):
       },
     ),
     (
-      create_fixed_articulated_entity,
+      create_floating_articulated_entity,
       {
-        "is_fixed_base": True,
+        "is_fixed_base": False,
         "is_articulated": True,
         "is_actuated": True,
         "num_bodies": 3,
@@ -188,14 +188,13 @@ def initialize_entity_with_sim(entity, device, num_envs=1):
 def test_entity_properties(entity_fn, expected):
   """Test entity type properties and element counts."""
   entity = entity_fn()
-
   for prop, value in expected.items():
     assert getattr(entity, prop) == value
 
 
 def test_find_methods():
   """Test find methods with exact and regex matches."""
-  entity = create_articulated_entity()
+  entity = create_floating_articulated_entity()
 
   # Test exact matches.
   assert entity.find_bodies("base")[1] == ["base"]
@@ -206,6 +205,11 @@ def test_find_methods():
   assert entity.find_bodies("link.*")[1] == ["link1", "link2"]
   assert entity.find_joints("joint.*")[1] == ["joint1", "joint2"]
 
+
+def test_find_with_subset_filtering():
+  """Test find methods with subset filtering."""
+  entity = create_floating_articulated_entity()
+
   # Test subset filtering.
   _, names = entity.find_joints("joint1", joint_subset=["joint1", "joint2"])
   assert names == ["joint1"]
@@ -215,12 +219,11 @@ def test_find_methods():
     entity.find_joints("joint1", joint_subset=["joint2"])
 
 
-def test_root_state_floating_base(device):
-  """Test root state operations affect simulation correctly."""
+def test_root_state_read_write(device):
+  """Test root state can be written and read from simulation."""
   entity = create_floating_base_entity()
   entity, sim = initialize_entity_with_sim(entity, device)
 
-  # Set entity with specific state.
   # fmt: off
   root_state = torch.tensor([
       1.0, 2.0, 3.0,           # position
@@ -239,7 +242,7 @@ def test_root_state_floating_base(device):
   assert torch.allclose(sim.data.qvel[:, v_slice], root_state[:, 7:])
 
 
-def test_force_and_torque_basic(device):
+def test_external_force_and_torque(device):
   """Test forces translate, torques rotate, and forces can be cleared."""
   entity = create_floating_base_entity()
   entity, sim = initialize_entity_with_sim(entity, device)
@@ -268,20 +271,33 @@ def test_force_and_torque_basic(device):
   xy_rotation = abs(angular_vel[0]) + abs(angular_vel[1])
   assert z_rotation > xy_rotation * 5, "Rotation should be primarily around Z axis"
 
-  # Verify forces are cleared.
+
+def test_external_force_clearing(device):
+  """Test external forces can be cleared."""
+  entity = create_floating_base_entity()
+  entity, sim = initialize_entity_with_sim(entity, device)
+
+  # Apply force.
+  entity.write_external_wrench_to_sim(
+    forces=torch.tensor([[5.0, 0.0, 0.0]], device=sim.device),
+    torques=torch.tensor([[0.0, 0.0, 3.0]], device=sim.device),
+  )
+
+  # Clear forces.
   entity.write_external_wrench_to_sim(
     forces=torch.zeros((1, 3), device=sim.device),
     torques=torch.zeros((1, 3), device=sim.device),
   )
+
   body_id = entity.indexing.body_ids[0]
   assert torch.allclose(
     sim.data.xfrc_applied[:, body_id, :], torch.zeros(6, device=sim.device)
   )
 
 
-def test_force_on_specific_body(device):
+def test_external_force_on_specific_body(device):
   """Test applying force to specific body in articulated system."""
-  entity = create_articulated_entity()
+  entity = create_floating_articulated_entity()
   entity, sim = initialize_entity_with_sim(entity, device)
 
   # Apply force only to link1.
@@ -310,10 +326,24 @@ def test_force_on_specific_body(device):
   assert not torch.allclose(sim.data.xpos[0, link1_id, :], initial_pos)
 
 
-def test_keyframe_ctrl_maps_joint_pos_to_actuators():
-  """Keyframe ctrl values match init_state joint positions in actuator order."""
+def test_fixed_base_initial_position():
+  """Test fixed-base entity's initial pos/rot are applied to the body."""
   cfg = EntityCfg(
-    spec_fn=lambda: mujoco.MjSpec.from_string(ARTICULATED_XML),
+    spec_fn=lambda: mujoco.MjSpec.from_string(FIXED_BASE_XML),
+    init_state=EntityCfg.InitialStateCfg((1.0, 2.0, 3.0), (0.7071, 0.7071, 0.0, 0.0)),
+  )
+  entity = Entity(cfg)
+  model = entity.compile()
+
+  body = model.body("object")
+  np.testing.assert_allclose(body.pos, [1.0, 2.0, 3.0], rtol=1e-6)
+  np.testing.assert_allclose(body.quat, [0.7071, 0.7071, 0.0, 0.0], atol=1e-4)
+
+
+def test_keyframe_ctrl_maps_joint_pos_to_actuators():
+  """Test keyframe ctrl values match init_state joint positions."""
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(FLOATING_BASE_ARTICULATED_XML),
     articulation=EntityArticulationInfoCfg(
       actuators=(
         ActuatorCfg(
@@ -334,22 +364,52 @@ def test_keyframe_ctrl_maps_joint_pos_to_actuators():
 
 
 def test_keyframe_ctrl_underactuated():
-  """ctrl is correctly constructed for an underactuated system."""
+  """Test ctrl is correctly constructed for an underactuated system."""
   cfg = EntityCfg(
-    spec_fn=lambda: mujoco.MjSpec.from_string(ARTICULATED_XML),
+    spec_fn=lambda: mujoco.MjSpec.from_string(FLOATING_BASE_ARTICULATED_XML),
     articulation=EntityArticulationInfoCfg(
       actuators=(
         ActuatorCfg(
-          joint_names_expr=["joint1"],  # subset!
+          joint_names_expr=["joint1"],  # Only one actuator.
           effort_limit=1.0,
           stiffness=1.0,
           damping=1.0,
         ),
       )
     ),
+    init_state=EntityCfg.InitialStateCfg(joint_pos={"joint1": 0.42, "joint2": -0.99}),
   )
-  cfg.init_state.joint_pos = {"joint1": 0.42, "joint2": -0.99}
   model = Entity(cfg).compile()
 
   assert model.nu == 1
   assert model.key_ctrl[0, 0] == 0.42
+
+
+def test_fixed_base_mocap_runtime_pose_change(device):
+  """Test fixed-base mocap entity can have its pose changed at runtime."""
+
+  def spec_fn():
+    spec = mujoco.MjSpec.from_string(FIXED_BASE_ARTICULATED_XML)
+    spec.worldbody.first_body().mocap = True
+    return spec
+
+  cfg = EntityCfg(
+    spec_fn=spec_fn,
+    init_state=EntityCfg.InitialStateCfg((1.0, 2.0, 3.0), (1.0, 0.0, 0.0, 0.0)),
+  )
+  entity = Entity(cfg)
+  entity, sim = initialize_entity_with_sim(entity, device)
+
+  assert entity.indexing.mocap_id is not None
+  assert entity.is_mocap is True
+
+  # fmt: off
+  new_pose = torch.tensor([
+    5.0, 6.0, 7.0,
+    1.0, 0.0, 0.0, 0.0,
+  ], device=device).unsqueeze(0)
+  # fmt: on
+  entity.write_mocap_pose_to_sim(new_pose)
+
+  sim.forward()
+  assert torch.allclose(entity.data.root_link_pose_w, new_pose, atol=1e-5)
