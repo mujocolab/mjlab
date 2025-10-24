@@ -401,20 +401,10 @@ def rotation_matrix_from_vectors(
 
 
 def is_fixed_body(mj_model: mujoco.MjModel, body_id: int) -> bool:
-  """Check if a body is fixed (welded to world).
-
-  A body is considered fixed if it has:
-  - No degrees of freedom (body_dofnum == 0)
-  - World as parent (body_parentid == 0)
-
-  Args:
-    mj_model: MuJoCo model
-    body_id: Body index
-
-  Returns:
-    True if body is fixed to world, False if movable.
-  """
-  return mj_model.body_dofnum[body_id] == 0 and mj_model.body_parentid[body_id] == 0
+  """Check if a body is fixed (welded to world)."""
+  if mj_model.body_mocapid[body_id] >= 0:
+    return False
+  return mj_model.body_weldid[body_id] == 0
 
 
 def get_body_name(mj_model: mujoco.MjModel, body_id: int) -> str:
