@@ -176,15 +176,15 @@ class EventCfg:
 
 @dataclass
 class RewardCfg:
-  track_lin_vel_exp: RewardTerm = term(
+  track_linear_velocity: RewardTerm = term(
     RewardTerm,
-    func=mdp.track_lin_vel_exp,
+    func=mdp.track_linear_velocity,
     weight=1.0,
     params={"command_name": "twist", "std": math.sqrt(0.25)},
   )
-  track_ang_vel_exp: RewardTerm = term(
+  track_angular_velocity: RewardTerm = term(
     RewardTerm,
-    func=mdp.track_ang_vel_exp,
+    func=mdp.track_angular_velocity,
     weight=1.0,
     params={"command_name": "twist", "std": math.sqrt(0.25)},
   )
@@ -220,6 +220,11 @@ class TerminationCfg:
   time_out: DoneTerm = term(DoneTerm, func=mdp.time_out, time_out=True)
   fell_over: DoneTerm = term(
     DoneTerm, func=mdp.bad_orientation, params={"limit_angle": math.radians(70.0)}
+  )
+  illegal_contact: DoneTerm | None = term(
+    DoneTerm,
+    func=mdp.illegal_contact,
+    params={"sensor_name": "nonfoot_ground_touch"},
   )
 
 

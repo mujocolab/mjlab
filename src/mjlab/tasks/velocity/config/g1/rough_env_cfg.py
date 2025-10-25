@@ -61,6 +61,8 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
       r".*wrist.*": 0.3,
     }
 
+    self.terminations.illegal_contact = None
+
     self.viewer.body_name = "torso_link"
     self.commands.twist.viz.z_offset = 0.75
 

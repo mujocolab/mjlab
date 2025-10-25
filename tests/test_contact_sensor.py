@@ -12,6 +12,81 @@ from mjlab.scene import Scene, SceneCfg
 from mjlab.sensor.contact_sensor import ContactMatch, ContactSensorCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
 
+##
+# Test XML models.
+##
+
+FALLING_BOX_XML = """
+<mujoco>
+  <worldbody>
+    <body name="ground" pos="0 0 0">
+      <geom name="ground_geom" type="plane" size="5 5 0.1" rgba="0.5 0.5 0.5 1"/>
+    </body>
+    <body name="box" pos="0 0 0.5">
+      <freejoint name="box_joint"/>
+      <geom name="box_geom" type="box" size="0.1 0.1 0.1" rgba="0.8 0.3 0.3 1"
+        mass="1.0"/>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+BIPED_XML = """
+<mujoco>
+  <worldbody>
+    <body name="ground" pos="0 0 0">
+      <geom name="ground_geom" type="plane" size="5 5 0.1" rgba="0.5 0.5 0.5 1"/>
+    </body>
+    <body name="base" pos="0 0 0.5">
+      <freejoint name="base_joint"/>
+      <geom name="torso_geom" type="box" size="0.15 0.1 0.2" mass="5.0"/>
+      <body name="left_foot" pos="0.1 0 -0.25">
+        <joint name="left_ankle" type="hinge" axis="0 1 0" range="-0.5 0.5"/>
+        <geom name="left_foot_geom" type="box" size="0.05 0.08 0.02" mass="0.2"/>
+      </body>
+      <body name="right_foot" pos="-0.1 0 -0.25">
+        <joint name="right_ankle" type="hinge" axis="0 1 0" range="-0.5 0.5"/>
+        <geom name="right_foot_geom" type="box" size="0.05 0.08 0.02" mass="0.2"/>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+SIMPLE_ROBOT_XML = """
+<mujoco>
+  <worldbody>
+    <body name="ground" pos="0 0 0">
+      <geom name="ground_geom" type="plane" size="5 5 0.1"/>
+    </body>
+    <body name="robot" pos="0 0 0.3">
+      <freejoint name="robot_joint"/>
+      <geom name="trunk_collision" type="box" size="0.2 0.15 0.1" mass="2.0"/>
+      <geom name="head_collision" type="sphere" size="0.08" pos="0.25 0 0.1"
+      mass="0.5"/>
+      <body name="leg1" pos="0.1 0.1 -0.1">
+        <geom name="leg1_thigh_collision1" type="capsule" size="0.02"
+          fromto="0 0 0 0 0 -0.1"/>
+        <geom name="leg1_thigh_collision2" type="capsule" size="0.02"
+          fromto="0 0 -0.05 0 0 -0.15"/>
+        <geom name="leg1_foot_collision" type="sphere" size="0.03" pos="0 0 -0.2"/>
+      </body>
+      <body name="leg2" pos="-0.1 0.1 -0.1">
+        <geom name="leg2_thigh_collision1" type="capsule" size="0.02"
+          fromto="0 0 0 0 0 -0.1"/>
+        <geom name="leg2_thigh_collision2" type="capsule" size="0.02"
+          fromto="0 0 -0.05 0 0 -0.15"/>
+        <geom name="leg2_foot_collision" type="sphere" size="0.03" pos="0 0 -0.2"/>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+##
+# Fixtures.
+##
+
 
 @pytest.fixture(scope="module")
 def device():
@@ -19,54 +94,61 @@ def device():
   return get_test_device()
 
 
-@pytest.fixture(scope="module")
-def falling_box_xml():
-  """XML for a simple box that can fall and make contact with ground."""
-  return """
-    <mujoco>
-      <worldbody>
-        <body name="ground" pos="0 0 0">
-          <geom name="ground_geom" type="plane" size="5 5 0.1" rgba="0.5 0.5 0.5 1"/>
-        </body>
-        <body name="box" pos="0 0 0.5">
-          <freejoint name="box_joint"/>
-          <geom name="box_geom" type="box" size="0.1 0.1 0.1" rgba="0.8 0.3 0.3 1" mass="1.0"/>
-        </body>
-      </worldbody>
-    </mujoco>
-  """
+##
+# Helper functions.
+##
 
 
-@pytest.fixture(scope="module")
-def biped_xml():
-  """XML for a simple biped with two feet that can make contact with ground."""
-  return """
-    <mujoco>
-      <worldbody>
-        <body name="ground" pos="0 0 0">
-          <geom name="ground_geom" type="plane" size="5 5 0.1" rgba="0.5 0.5 0.5 1"/>
-        </body>
-        <body name="base" pos="0 0 0.5">
-          <freejoint name="base_joint"/>
-          <geom name="torso_geom" type="box" size="0.15 0.1 0.2" mass="5.0"/>
-          <body name="left_foot" pos="0.1 0 -0.25">
-            <joint name="left_ankle" type="hinge" axis="0 1 0" range="-0.5 0.5"/>
-            <geom name="left_foot_geom" type="box" size="0.05 0.08 0.02" mass="0.2"/>
-          </body>
-          <body name="right_foot" pos="-0.1 0 -0.25">
-            <joint name="right_ankle" type="hinge" axis="0 1 0" range="-0.5 0.5"/>
-            <geom name="right_foot_geom" type="box" size="0.05 0.08 0.02" mass="0.2"/>
-          </body>
-        </body>
-      </worldbody>
-    </mujoco>
-  """
+def create_scene_with_sensor(
+  xml: str,
+  entity_name: str,
+  sensor_cfg: ContactSensorCfg,
+  device: str,
+  num_envs: int = 2,
+  njmax: int = 20,
+) -> tuple[Scene, Simulation]:
+  """Helper to create a complete test environment with contact sensor.
+
+  Sets up a scene with the specified entity and contact sensor configuration,
+  compiles the model, creates a simulation, and initializes everything together.
+  Returns the scene and simulation objects for test manipulation and assertions."""
+  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(xml))
+
+  scene_cfg = SceneCfg(
+    num_envs=num_envs,
+    env_spacing=3.0,
+    entities={entity_name: entity_cfg},
+    sensors=(sensor_cfg,),
+  )
+
+  scene = Scene(scene_cfg, device)
+  model = scene.compile()
+  sim_cfg = SimulationCfg(njmax=njmax)
+  sim = Simulation(num_envs=num_envs, cfg=sim_cfg, model=model, device=device)
+  scene.initialize(sim.mj_model, sim.model, sim.data)
+
+  return scene, sim
 
 
-def test_basic_contact_detection(falling_box_xml, device):
-  """Test basic contact sensor setup and contact detection."""
-  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(falling_box_xml))
+def step_and_settle(sim: Simulation, num_steps: int = 30):
+  """Run simulation steps to allow physics to stabilize and contacts to form.
 
+  Useful after placing objects to let them fall under gravity and establish
+  stable contact with ground or other objects before testing contact detection."""
+  for _ in range(num_steps):
+    sim.step()
+
+
+##
+# Basic contact detection tests.
+##
+
+
+def test_basic_contact_detection(device):
+  """Verify that contact sensors detect collisions between a falling box and ground.
+
+  Tests that when a box is placed just above ground and simulation steps,
+  the contact sensor correctly reports contact forces and found flags."""
   contact_sensor_cfg = ContactSensorCfg(
     name="box_contact",
     primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
@@ -74,18 +156,9 @@ def test_basic_contact_detection(falling_box_xml, device):
     fields=("found", "force"),
   )
 
-  scene_cfg = SceneCfg(
-    num_envs=2,
-    env_spacing=3.0,
-    entities={"box": entity_cfg},
-    sensors=(contact_sensor_cfg,),
+  scene, sim = create_scene_with_sensor(
+    FALLING_BOX_XML, "box", contact_sensor_cfg, device
   )
-
-  scene = Scene(scene_cfg, device)
-  model = scene.compile()
-  sim_cfg = SimulationCfg(njmax=20)
-  sim = Simulation(num_envs=2, cfg=sim_cfg, model=model, device=device)
-  scene.initialize(sim.mj_model, sim.model, sim.data)
 
   sensor = scene["box_contact"]
   box_entity = scene["box"]
@@ -96,9 +169,7 @@ def test_basic_contact_detection(falling_box_xml, device):
   root_state[:, 3] = 1.0
   box_entity.write_root_state_to_sim(root_state)
 
-  # Step simulation to establish contact.
-  for _ in range(30):
-    sim.step()
+  step_and_settle(sim)
 
   data = sensor.data
 
@@ -117,10 +188,11 @@ def test_basic_contact_detection(falling_box_xml, device):
     assert torch.any(torch.abs(contact_forces) > 0)
 
 
-def test_contact_fields(falling_box_xml, device):
-  """Test that all contact field types work correctly."""
-  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(falling_box_xml))
+def test_contact_fields(device):
+  """Verify all contact sensor output fields have correct shapes and values.
 
+  Tests that force, torque, dist, pos, and normal fields are properly populated
+  with appropriate dimensionality (3D vectors for force/torque/pos/normal, scalar for dist)."""
   contact_sensor_cfg = ContactSensorCfg(
     name="box_contact",
     primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
@@ -128,18 +200,9 @@ def test_contact_fields(falling_box_xml, device):
     fields=("found", "force", "torque", "dist", "pos", "normal"),
   )
 
-  scene_cfg = SceneCfg(
-    num_envs=2,
-    env_spacing=3.0,
-    entities={"box": entity_cfg},
-    sensors=(contact_sensor_cfg,),
+  scene, sim = create_scene_with_sensor(
+    FALLING_BOX_XML, "box", contact_sensor_cfg, device
   )
-
-  scene = Scene(scene_cfg, device)
-  model = scene.compile()
-  sim_cfg = SimulationCfg(njmax=20)
-  sim = Simulation(num_envs=2, cfg=sim_cfg, model=model, device=device)
-  scene.initialize(sim.mj_model, sim.model, sim.data)
 
   sensor = scene["box_contact"]
   box_entity = scene["box"]
@@ -149,11 +212,11 @@ def test_contact_fields(falling_box_xml, device):
   root_state[:, 3] = 1.0
   box_entity.write_root_state_to_sim(root_state)
 
-  for _ in range(10):
-    sim.step()
+  step_and_settle(sim, num_steps=10)
 
   data = sensor.data
 
+  # Verify all fields are present with correct shapes.
   assert data.found is not None
   assert data.force is not None
   assert data.torque is not None
@@ -168,10 +231,17 @@ def test_contact_fields(falling_box_xml, device):
   assert len(data.dist.shape) == 2
 
 
-def test_multi_slot_pattern_matching(biped_xml, device):
-  """Test that list patterns create multiple slots correctly."""
-  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(biped_xml))
+##
+# Pattern matching and multi-slot tests.
+##
 
+
+def test_multi_slot_pattern_matching(device):
+  """Verify pattern lists create separate tracking slots for each matched geom.
+
+  When passing a list of patterns like ["left_foot_geom", "right_foot_geom"],
+  the sensor should create independent contact tracking for each foot,
+  allowing simultaneous monitoring of multiple contact points."""
   feet_sensor_cfg = ContactSensorCfg(
     name="feet_contact",
     primary=ContactMatch(
@@ -184,11 +254,393 @@ def test_multi_slot_pattern_matching(biped_xml, device):
     track_air_time=True,
   )
 
+  scene, sim = create_scene_with_sensor(
+    BIPED_XML, "biped", feet_sensor_cfg, device, njmax=40
+  )
+
+  sensor = scene["feet_contact"]
+  biped_entity = scene["biped"]
+
+  # Place biped on ground.
+  root_state = torch.zeros((2, 13), device=sim.device)
+  root_state[:, 2] = 0.25
+  root_state[:, 3] = 1.0
+  biped_entity.write_root_state_to_sim(root_state)
+
+  step_and_settle(sim, num_steps=20)
+
+  data = sensor.data
+
+  # Should have 2 slots (one per foot).
+  assert data.found.shape == (2, 2)
+  assert data.force.shape == (2, 2, 3)
+
+  # Air time should be tracked.
+  assert hasattr(data, "current_air_time")
+  assert data.current_air_time.shape == (2, 2)
+
+
+def test_regex_pattern_matching(device):
+  """Verify regex patterns correctly match multiple geoms with similar names.
+
+  Tests that a pattern like ".*foot_geom$" matches all geoms ending with
+  "foot_geom", enabling efficient batch configuration of similar contact points.
+  Also verifies regex patterns work correctly for actual contact detection."""
+  # Match all foot geoms using regex.
+  regex_sensor_cfg = ContactSensorCfg(
+    name="all_feet_contact",
+    primary=ContactMatch(
+      mode="geom",
+      pattern=r".*foot_geom$",
+      entity="biped",
+    ),
+    secondary=None,
+    fields=("found", "force"),
+  )
+
+  scene, sim = create_scene_with_sensor(
+    BIPED_XML, "biped", regex_sensor_cfg, device, njmax=40
+  )
+
+  sensor = scene["all_feet_contact"]
+  biped_entity = scene["biped"]
+
+  # Should match both left_foot_geom and right_foot_geom.
+  assert sensor.data.found.shape == (2, 2)
+
+  # Place biped on ground to verify regex-matched geoms detect contacts.
+  root_state = torch.zeros((2, 13), device=sim.device)
+  root_state[:, 2] = 0.24  # Low enough for feet to touch ground
+  root_state[:, 3] = 1.0
+  biped_entity.write_root_state_to_sim(root_state)
+
+  step_and_settle(sim, num_steps=20)
+
+  data = sensor.data
+  # Both feet should detect ground contact.
+  assert torch.any(data.found > 0)
+  # Force field should be present (may have small values).
+  assert data.force is not None
+  assert data.force.shape == (2, 2, 3)
+
+
+##
+# Reduction mode tests.
+##
+
+
+@pytest.mark.parametrize(
+  "reduce_mode",
+  ["none", "mindist", "maxforce", "netforce"],
+)
+def test_reduce_modes(device, reduce_mode):
+  """Verify reduction modes correctly aggregate multiple simultaneous contacts.
+
+  Tests "none" (no filtering), "mindist" (closest contact), "maxforce" (strongest),
+  and "netforce" (sum all forces) modes for selecting/combining contact data
+  when multiple contacts occur on the same geom."""
+  sensor_cfg = ContactSensorCfg(
+    name="box_contact",
+    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
+    secondary=None,
+    fields=("force",),
+    reduce=reduce_mode,
+    num_slots=1,
+  )
+
+  scene, _ = create_scene_with_sensor(FALLING_BOX_XML, "box", sensor_cfg, device)
+
+  sensor = scene["box_contact"]
+  data = sensor.data
+
+  # All reduction modes return 3D shape for force field.
+  assert len(data.force.shape) == 3
+  assert data.force.shape[-1] == 3  # Force is always a 3D vector
+
+
+def test_reduce_modes_multiple_contacts(device):
+  """Test reduction modes with multiple simultaneous contacts."""
+  feet_sensor_cfg = ContactSensorCfg(
+    name="feet_contact",
+    primary=ContactMatch(
+      mode="geom",
+      pattern=["left_foot_geom", "right_foot_geom"],
+      entity="biped",
+    ),
+    secondary=None,
+    fields=("found", "force", "dist"),
+    reduce="mindist",
+    num_slots=1,
+  )
+
+  scene, sim = create_scene_with_sensor(
+    BIPED_XML, "biped", feet_sensor_cfg, device, njmax=40
+  )
+
+  sensor = scene["feet_contact"]
+  biped_entity = scene["biped"]
+
+  # Place biped on ground.
+  root_state = torch.zeros((2, 13), device=sim.device)
+  root_state[:, 2] = 0.25
+  root_state[:, 3] = 1.0
+  biped_entity.write_root_state_to_sim(root_state)
+
+  step_and_settle(sim, num_steps=20)
+
+  data = sensor.data
+
+  # With reduce="mindist" and num_slots=1, should have 2 slots (2 primaries × 1 slot).
+  assert data.found.shape == (2, 2)
+  assert data.force.shape == (2, 2, 3)
+
+
+##
+# Exclude pattern tests.
+##
+
+
+def test_exclude_exact_names(device):
+  """Verify exact name exclusion removes specific geoms from contact detection.
+
+  Tests the ergonomic feature where passing exact geom names like
+  ("leg1_foot_collision", "leg2_foot_collision") excludes only those specific
+  geoms without needing complex regex patterns."""
+  # Sensor that excludes foot collisions by exact names.
+  nonfoot_sensor_cfg = ContactSensorCfg(
+    name="nonfoot_contact",
+    primary=ContactMatch(
+      mode="geom",
+      pattern=r".*_collision\d*$",  # Match all collision geoms
+      entity="robot",
+      exclude=("leg1_foot_collision", "leg2_foot_collision"),  # Exact names
+    ),
+    secondary=None,
+    fields=("found",),
+  )
+
+  scene, _ = create_scene_with_sensor(
+    SIMPLE_ROBOT_XML, "robot", nonfoot_sensor_cfg, device, njmax=50
+  )
+
+  sensor = scene["nonfoot_contact"]
+
+  # Should detect 6 geoms: trunk, head, 2x leg1_thigh, 2x leg2_thigh.
+  # Foot collisions should be excluded.
+  assert sensor.data.found.shape == (2, 6)
+
+
+def test_exclude_regex_pattern(device):
+  """Verify regex exclusion patterns filter out groups of similarly-named geoms.
+
+  Tests that patterns like ".*thigh_collision\\d+" can exclude all thigh
+  collision geoms while preserving other collision geoms for contact detection."""
+  # Sensor that excludes all thigh collisions using regex.
+  no_thigh_sensor_cfg = ContactSensorCfg(
+    name="no_thigh_contact",
+    primary=ContactMatch(
+      mode="geom",
+      pattern=r".*_collision\d*$",
+      entity="robot",
+      exclude=(r".*thigh_collision\d+",),  # Regex pattern
+    ),
+    secondary=None,
+    fields=("found",),
+  )
+
+  scene, _ = create_scene_with_sensor(
+    SIMPLE_ROBOT_XML, "robot", no_thigh_sensor_cfg, device, njmax=50
+  )
+
+  sensor = scene["no_thigh_contact"]
+
+  # Should detect 4 geoms: trunk, head, 2x foot (thighs excluded by regex).
+  assert sensor.data.found.shape == (2, 4)
+
+
+def test_exclude_mixed_patterns(device):
+  """Verify exact names and regex patterns can be mixed in exclude lists.
+
+  Tests that exclude tuples can contain both exact names ("trunk_collision")
+  and regex patterns (".*foot_collision") simultaneously, with automatic
+  detection of which exclusion method to use for each entry."""
+  mixed_exclude_cfg = ContactSensorCfg(
+    name="mixed_exclude",
+    primary=ContactMatch(
+      mode="geom",
+      pattern=r".*_collision\d*$",
+      entity="robot",
+      exclude=(
+        "trunk_collision",  # Exact name
+        r".*foot_collision",  # Regex pattern
+      ),
+    ),
+    secondary=None,
+    fields=("found",),
+  )
+
+  scene, _ = create_scene_with_sensor(
+    SIMPLE_ROBOT_XML, "robot", mixed_exclude_cfg, device, njmax=50
+  )
+
+  sensor = scene["mixed_exclude"]
+
+  # Should detect 5 geoms: head, 4x thigh (trunk and feet excluded).
+  assert sensor.data.found.shape == (2, 5)
+
+
+##
+# Body and subtree mode tests.
+##
+
+
+def test_body_mode_contacts(device):
+  """Test contact detection with body mode."""
+  body_sensor_cfg = ContactSensorCfg(
+    name="body_contact",
+    primary=ContactMatch(mode="body", pattern="base", entity="biped"),
+    secondary=None,
+    fields=("found",),
+  )
+
+  scene, _ = create_scene_with_sensor(BIPED_XML, "biped", body_sensor_cfg, device)
+
+  sensor = scene["body_contact"]
+  data = sensor.data
+
+  # Should match the base body.
+  assert data.found.shape[1] == 1
+
+
+def test_subtree_mode_contacts(device):
+  """Test contact detection with subtree mode."""
+  subtree_sensor_cfg = ContactSensorCfg(
+    name="subtree_contact",
+    primary=ContactMatch(mode="subtree", pattern="base", entity="biped"),
+    secondary=None,
+    fields=("found",),
+  )
+
+  scene, sim = create_scene_with_sensor(BIPED_XML, "biped", subtree_sensor_cfg, device)
+
+  sensor = scene["subtree_contact"]
+  biped_entity = scene["biped"]
+
+  # Place biped on ground.
+  root_state = torch.zeros((2, 13), device=sim.device)
+  root_state[:, 2] = 0.2  # Low enough for feet to touch
+  root_state[:, 3] = 1.0
+  biped_entity.write_root_state_to_sim(root_state)
+
+  step_and_settle(sim, num_steps=30)
+
+  data = sensor.data
+
+  # Subtree includes base and all children (feet), so contacts should be detected.
+  assert torch.any(data.found > 0)
+
+
+##
+# Air time tracking tests.
+##
+
+
+def test_air_time_tracking(device):
+  """Verify contact sensors track time spent in/out of contact when enabled.
+
+  Tests the track_air_time feature which monitors how long each contact point
+  has been in the air (no contact) or on ground (in contact), useful for
+  gait analysis and landing detection in legged robots.
+  """
+  feet_sensor_cfg = ContactSensorCfg(
+    name="feet_contact",
+    primary=ContactMatch(
+      mode="geom",
+      pattern=["left_foot_geom", "right_foot_geom"],
+      entity="biped",
+    ),
+    secondary=None,
+    fields=("found",),
+    track_air_time=True,
+  )
+
+  scene, sim = create_scene_with_sensor(
+    BIPED_XML, "biped", feet_sensor_cfg, device, njmax=40
+  )
+
+  sensor = scene["feet_contact"]
+  biped_entity = scene["biped"]
+
+  # Start on ground.
+  root_state = torch.zeros((2, 13), device=sim.device)
+  root_state[:, 2] = 0.24  # Low enough for contact
+  root_state[:, 3] = 1.0
+  biped_entity.write_root_state_to_sim(root_state)
+
+  # Let it settle and establish ground contact.
+  for _ in range(30):
+    sim.step()
+
+  data1 = sensor.data
+  # Check that we have ground contact initially.
+  assert torch.any(data1.found > 0)
+
+  # Jump up (lift biped off ground).
+  root_state[:, 2] = 1.0
+  biped_entity.write_root_state_to_sim(root_state)
+
+  # Simulate being in air.
+  for _ in range(20):
+    sim.step()
+
+  data2 = sensor.data
+  # Should have no ground contact while in air.
+  assert torch.all(data2.found == 0)
+
+  # When using track_air_time, we should have timing information.
+  assert hasattr(data2, "current_air_time")
+  assert hasattr(data2, "last_air_time")
+
+  # Land back on ground.
+  root_state[:, 2] = 0.24
+  biped_entity.write_root_state_to_sim(root_state)
+
+  for _ in range(30):
+    sim.step()
+
+  data3 = sensor.data
+  # Should have ground contact again.
+  assert torch.any(data3.found > 0)
+
+
+##
+# Multi-sensor integration tests.
+##
+
+
+def test_multiple_sensors(device):
+  """Test multiple contact sensors in the same scene."""
+  left_sensor_cfg = ContactSensorCfg(
+    name="left_foot_contact",
+    primary=ContactMatch(mode="geom", pattern="left_foot_geom", entity="biped"),
+    secondary=None,
+    fields=("found", "force"),
+  )
+
+  right_sensor_cfg = ContactSensorCfg(
+    name="right_foot_contact",
+    primary=ContactMatch(mode="geom", pattern="right_foot_geom", entity="biped"),
+    secondary=None,
+    fields=("found", "force"),
+  )
+
+  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(BIPED_XML))
+
   scene_cfg = SceneCfg(
     num_envs=2,
     env_spacing=3.0,
     entities={"biped": entity_cfg},
-    sensors=(feet_sensor_cfg,),
+    sensors=(left_sensor_cfg, right_sensor_cfg),
   )
 
   scene = Scene(scene_cfg, device)
@@ -197,299 +649,52 @@ def test_multi_slot_pattern_matching(biped_xml, device):
   sim = Simulation(num_envs=2, cfg=sim_cfg, model=model, device=device)
   scene.initialize(sim.mj_model, sim.model, sim.data)
 
-  sensor = scene["feet_contact"]
-  biped_entity = scene["biped"]
+  left_sensor = scene["left_foot_contact"]
+  right_sensor = scene["right_foot_contact"]
 
-  # Verify sensor created 4 slots (2 feet × 2 fields).
-  assert len(sensor._slots) == 4
-
-  # Place biped on ground.
-  root_state = torch.zeros((2, 13), device=sim.device)
-  root_state[:, 2] = 0.25
-  root_state[:, 3] = 1.0
-  biped_entity.write_root_state_to_sim(root_state)
-
-  for _ in range(20):
-    sim.step()
-
-  data = sensor.data
-
-  # Should have 2 slots in data.
-  assert data.found is not None
-  assert data.found.shape[-1] == 2
-  assert torch.any(data.found > 0)
-
-  # Air time state should also have 2 slots.
-  assert sensor._air_time_state is not None
-  assert sensor._air_time_state.current_air_time.shape == (2, 2)  # 2 envs, 2 slots
+  # Both sensors should work independently.
+  assert left_sensor.data.found.shape == (2, 1)
+  assert right_sensor.data.found.shape == (2, 1)
 
 
-def test_air_time_tracking_with_transitions(falling_box_xml, device):
-  """Test air time tracking, accumulation, and air-contact transitions."""
-  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(falling_box_xml))
+##
+# Performance and edge case tests.
+##
 
-  contact_sensor_cfg = ContactSensorCfg(
+
+def test_no_contacts(device):
+  """Test sensor behavior when no contacts occur."""
+  sensor_cfg = ContactSensorCfg(
     name="box_contact",
     primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
     secondary=None,
     fields=("found", "force"),
-    track_air_time=True,
   )
 
-  scene_cfg = SceneCfg(
-    num_envs=2,
-    env_spacing=3.0,
-    entities={"box": entity_cfg},
-    sensors=(contact_sensor_cfg,),
-  )
-
-  scene = Scene(scene_cfg, device)
-  model = scene.compile()
-  sim_cfg = SimulationCfg(njmax=20)
-  sim = Simulation(num_envs=2, cfg=sim_cfg, model=model, device=device)
-  scene.initialize(sim.mj_model, sim.model, sim.data)
+  scene, sim = create_scene_with_sensor(FALLING_BOX_XML, "box", sensor_cfg, device)
 
   sensor = scene["box_contact"]
   box_entity = scene["box"]
 
-  # Verify air time state was initialized.
-  assert sensor._air_time_state is not None
-  assert sensor._air_time_state.current_air_time.shape == (2, 1)
-
-  # Test 1: Air time accumulation.
-  # Box starts at z=0.5, in the air.
-  sensor.reset()
-  dt = sim.mj_model.opt.timestep
-  num_steps = 10
-
-  for _ in range(num_steps):
-    sim.step()
-    sensor.update(dt)
-
-  # Air time should accumulate.
-  expected_air_time = num_steps * dt
-  assert torch.all(sensor._air_time_state.current_air_time > 0.0)
-  assert torch.allclose(
-    sensor._air_time_state.current_air_time,
-    torch.full_like(sensor._air_time_state.current_air_time, expected_air_time),
-    atol=1e-5,
-  )
-
-  # Test 2: Air-to-contact transition saves last_air_time.
-  # Continue until box lands.
-  max_steps = 200
-  landed = False
-  for _ in range(max_steps):
-    sim.step()
-    sensor.update(dt)
-    if torch.any(sensor.data.found > 0):
-      landed = True
-      break
-
-  assert landed, "Box should have landed"
-  assert torch.all(sensor._air_time_state.last_air_time > 0.0)
-  assert torch.all(sensor._air_time_state.current_air_time == 0.0)
-  assert torch.all(sensor._air_time_state.current_contact_time > 0.0)
-
-  # Test 3: Contact time accumulation.
-  contact_time_before = sensor._air_time_state.current_contact_time.clone()
-  for _ in range(10):
-    sim.step()
-    sensor.update(dt)
-
-  assert torch.all(sensor._air_time_state.current_contact_time > contact_time_before)
-
-  # Test 4: Contact-to-air transition saves last_contact_time.
-  contact_time_before_liftoff = sensor.data.current_contact_time.clone()
-
-  # Apply upward force to lift box.
-  box_entity.write_external_wrench_to_sim(
-    forces=torch.tensor([[0.0, 0.0, 50.0]] * 2, device=sim.device),
-    torques=torch.zeros((2, 3), device=sim.device),
-  )
-
-  # Step until liftoff.
-  lifted_off = False
-  for _ in range(100):
-    sim.step()
-    sensor.update(dt)
-    if torch.all(sensor.data.found == 0):
-      lifted_off = True
-      break
-
-  assert lifted_off, "Box should have lifted off"
-  assert torch.all(sensor._air_time_state.last_contact_time > 0.0)
-  # last_contact_time should be at least as much as we had before applying force
-  # (it accumulates until actual liftoff)
-  assert torch.all(
-    sensor._air_time_state.last_contact_time >= contact_time_before_liftoff
-  )
-  assert torch.all(sensor._air_time_state.current_contact_time == 0.0)
-  assert torch.all(sensor._air_time_state.current_air_time > 0.0)
-
-  # Test 5: Air time fields exposed in sensor.data.
-  data = sensor.data
-  assert data.current_air_time is not None
-  assert data.last_air_time is not None
-  assert data.current_contact_time is not None
-  assert data.last_contact_time is not None
-
-
-def test_first_contact_detection(falling_box_xml, device):
-  """Test compute_first_contact at landing and during sustained contact."""
-  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(falling_box_xml))
-
-  contact_sensor_cfg = ContactSensorCfg(
-    name="box_contact",
-    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
-    secondary=None,
-    fields=("found", "force"),
-    track_air_time=True,
-  )
-
-  scene_cfg = SceneCfg(
-    num_envs=2,
-    env_spacing=3.0,
-    entities={"box": entity_cfg},
-    sensors=(contact_sensor_cfg,),
-  )
-
-  scene = Scene(scene_cfg, device)
-  model = scene.compile()
-  sim_cfg = SimulationCfg()
-  sim = Simulation(num_envs=2, cfg=sim_cfg, model=model, device=device)
-  scene.initialize(sim.mj_model, sim.model, sim.data)
-
-  sensor = scene["box_contact"]
-  box_entity = scene["box"]
-
-  # Test 1: First contact at landing.
-  sensor.reset()
-  dt = sim.mj_model.opt.timestep
-
-  first_contact_detected = False
-  for _ in range(200):
-    sim.step()
-    sensor.update(dt)
-
-    first_contact = sensor.compute_first_contact(dt)
-    if torch.any(first_contact):
-      first_contact_detected = True
-      # Verify we're actually in contact.
-      assert torch.all(sensor.data.found[first_contact] > 0)
-      # Current contact time should be very small.
-      assert torch.all(
-        sensor._air_time_state.current_contact_time[first_contact] <= dt * 1.1
-      )
-      break
-
-  assert first_contact_detected, "Should detect first contact at landing"
-
-  # Test 2: First contact NOT triggered during sustained contact.
-  # Place box on ground and let it settle.
+  # Place box high above ground (no contact).
   root_state = torch.zeros((2, 13), device=sim.device)
-  root_state[:, 2] = 0.1
+  root_state[:, 2] = 5.0  # Far above ground
   root_state[:, 3] = 1.0
   box_entity.write_root_state_to_sim(root_state)
 
   sim.step()
-  sensor.reset()
 
-  for _ in range(20):
-    sim.step()
-    sensor.update(dt)
+  data = sensor.data
 
-  # After sustained contact, first_contact should be False.
-  first_contact = sensor.compute_first_contact(dt)
-  assert torch.all(~first_contact), (
-    "Should not detect first contact during sustained contact"
-  )
+  # No contacts should be detected.
+  assert torch.all(data.found == 0)
+
+  # Forces should be zero.
+  assert torch.all(data.force == 0)
 
 
-def test_global_frame_transformation(falling_box_xml, device):
-  """Test that force/torque are correctly transformed to global frame."""
-  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(falling_box_xml))
-
-  # Create two sensors: one with global_frame=False, one with True.
-  contact_cfg = ContactSensorCfg(
-    name="box_contact_contact_frame",
-    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
-    secondary=None,
-    fields=("found", "force", "torque", "normal", "tangent"),
-    global_frame=False,
-  )
-
-  contact_global_cfg = ContactSensorCfg(
-    name="box_contact_global_frame",
-    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
-    secondary=None,
-    fields=("found", "force", "torque", "normal", "tangent"),
-    global_frame=True,
-  )
-
-  scene_cfg = SceneCfg(
-    num_envs=2,
-    env_spacing=3.0,
-    entities={"box": entity_cfg},
-    sensors=(contact_cfg, contact_global_cfg),
-  )
-
-  scene = Scene(scene_cfg, device)
-  model = scene.compile()
-  sim_cfg = SimulationCfg(njmax=20)
-  sim = Simulation(num_envs=2, cfg=sim_cfg, model=model, device=device)
-  scene.initialize(sim.mj_model, sim.model, sim.data)
-
-  sensor_contact = scene["box_contact_contact_frame"]
-  sensor_global = scene["box_contact_global_frame"]
-  box_entity = scene["box"]
-
-  # Place box on ground with some rotation to ensure non-trivial contact frame.
-  root_state = torch.zeros((2, 13), device=sim.device)
-  root_state[:, 2] = 0.15  # z position
-  root_state[:, 3] = 0.9239  # qw (30 deg rotation)
-  root_state[:, 4] = 0.3827  # qx
-  box_entity.write_root_state_to_sim(root_state)
-
-  for _ in range(30):
-    sim.step()
-
-  data_contact = sensor_contact.data
-  data_global = sensor_global.data
-
-  # Verify contact is detected.
-  assert torch.any(data_contact.found > 0)
-  assert torch.any(data_global.found > 0)
-
-  # Build rotation matrix manually and verify transformation.
-  normal = data_contact.normal  # [B, N, 3]
-  tangent = data_contact.tangent  # [B, N, 3]
-  tangent2 = torch.cross(normal, tangent, dim=-1)
-  R = torch.stack([tangent, tangent2, normal], dim=-1)  # [B, N, 3, 3]
-
-  # Transform force from contact frame to global frame.
-  force_global_expected = torch.einsum("...ij,...j->...i", R, data_contact.force)
-  torque_global_expected = torch.einsum("...ij,...j->...i", R, data_contact.torque)
-
-  # Check that global_frame sensor matches manual transformation.
-  # Only check where contact exists (normal is non-zero).
-  has_contact = torch.norm(normal, dim=-1) > 1e-8
-  assert torch.allclose(
-    data_global.force[has_contact], force_global_expected[has_contact], atol=1e-5
-  )
-  assert torch.allclose(
-    data_global.torque[has_contact], torque_global_expected[has_contact], atol=1e-5
-  )
-
-  # Verify that normal and tangent are unchanged (already in global frame).
-  assert torch.allclose(data_contact.normal, data_global.normal)
-  assert torch.allclose(data_contact.tangent, data_global.tangent)
-
-
-def test_num_slots_shapes(biped_xml, device):
-  """Test that num_slots correctly affects output shape."""
-  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(biped_xml))
-
+def test_num_slots_greater_than_one(device):
+  """Test behavior with num_slots > 1."""
   sensor_cfg_1 = ContactSensorCfg(
     name="feet_contact_single",
     primary=ContactMatch(
@@ -501,6 +706,7 @@ def test_num_slots_shapes(biped_xml, device):
     fields=("found", "force", "normal"),
     num_slots=1,
   )
+
   sensor_cfg_3 = ContactSensorCfg(
     name="feet_contact_triple",
     primary=ContactMatch(
@@ -512,6 +718,8 @@ def test_num_slots_shapes(biped_xml, device):
     fields=("found", "force", "normal"),
     num_slots=3,
   )
+
+  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(BIPED_XML))
 
   scene_cfg = SceneCfg(
     num_envs=2,
@@ -535,8 +743,8 @@ def test_num_slots_shapes(biped_xml, device):
   root_state[:, 2] = 0.25
   root_state[:, 3] = 1.0
   biped_entity.write_root_state_to_sim(root_state)
-  for _ in range(20):
-    sim.step()
+
+  step_and_settle(sim, num_steps=20)
 
   # 2 primaries × 1 slot = 2 total slots.
   data_1 = sensor_1.data

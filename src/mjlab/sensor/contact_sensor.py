@@ -54,7 +54,7 @@ class ContactMatch:
   mode: "geom", "body", or "subtree"
   pattern: Regex or list of regexes (expands within entity if specified)
   entity: Entity name to search within (None = treat pattern as literal MuJoCo name)
-  exclude: Filter out matches using these regex patterns
+  exclude: Filter out matches using these regex patterns or exact names.
   """
 
   mode: Literal["geom", "body", "subtree"]
@@ -396,8 +396,17 @@ class ContactSensor(Sensor[ContactData]):
 
     excludes = match.exclude
     if excludes:
-      compiled = [re.compile(p) for p in excludes]
-      names = [n for n in names if not any(rx.search(n) for rx in compiled)]
+      exclude_patterns = []
+      exclude_exact = set()
+      for exc in excludes:
+        if any(c in exc for c in r".*+?[]{}()\|^$"):
+          exclude_patterns.append(re.compile(exc))
+        else:
+          exclude_exact.add(exc)
+      if exclude_exact:
+        names = [n for n in names if n not in exclude_exact]
+      if exclude_patterns:
+        names = [n for n in names if not any(rx.search(n) for rx in exclude_patterns)]
 
     if not names:
       raise ValueError(

@@ -29,7 +29,22 @@ class UnitreeGo1RoughEnvCfg(LocomotionVelocityEnvCfg):
       num_slots=1,
       track_air_time=True,
     )
-    self.scene.sensors = (feet_ground_cfg,)
+    nonfoot_ground_cfg = ContactSensorCfg(
+      name="nonfoot_ground_touch",
+      primary=ContactMatch(
+        mode="geom",
+        entity="robot",
+        # Grab all collision geoms...
+        pattern=r".*_collision\d*$",
+        # Except for the foot geoms.
+        exclude=tuple(geom_names),
+      ),
+      secondary=ContactMatch(mode="body", pattern="terrain"),
+      fields=("found",),
+      reduce="none",
+      num_slots=1,
+    )
+    self.scene.sensors = (feet_ground_cfg, nonfoot_ground_cfg)
 
     self.actions.joint_pos.scale = GO1_ACTION_SCALE
 
