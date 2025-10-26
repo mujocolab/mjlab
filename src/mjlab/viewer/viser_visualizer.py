@@ -57,6 +57,9 @@ class ViserDebugVisualizer(DebugVisualizer):
     # Cache ghost meshes by model hash to handle deepcopy'd models
     self._ghost_meshes: dict[int, dict[int, trimesh.Trimesh]] = {}
 
+    # Frame visualization handles - store by label for persistence
+    self._frame_handles: dict[str, viser.FrameHandle] = {}
+
     # Cache arrow mesh components for batched rendering
     self._arrow_shaft_mesh: trimesh.Trimesh | None = None
     self._arrow_head_mesh: trimesh.Trimesh | None = None
@@ -78,6 +81,8 @@ class ViserDebugVisualizer(DebugVisualizer):
     Arrows are not rendered immediately but queued and rendered together
     in the next _synchronize() call for efficiency.
     """
+    del label  # Unused.
+
     if isinstance(start, torch.Tensor):
       start = start.cpu().numpy()
     if isinstance(end, torch.Tensor):
@@ -113,6 +118,8 @@ class ViserDebugVisualizer(DebugVisualizer):
       alpha: Transparency override
       label: Optional label for this ghost
     """
+    del label  # Unused.
+
     if isinstance(qpos, torch.Tensor):
       qpos = qpos.cpu().numpy()
 
@@ -229,7 +236,7 @@ class ViserDebugVisualizer(DebugVisualizer):
     have been queued for the current frame.
     """
     if not self._queued_arrows:
-      # Remove arrow meshes if no arrows to render
+      # Remove arrow meshes if no arrows to render.
       if self._arrow_shaft_handle is not None:
         self._arrow_shaft_handle.remove()
         self._arrow_shaft_handle = None
@@ -238,19 +245,19 @@ class ViserDebugVisualizer(DebugVisualizer):
         self._arrow_head_handle = None
       return
 
-    # Create arrow mesh components if needed (unit-sized base meshes)
+    # Create arrow mesh components if needed (unit-sized base meshes).
     if self._arrow_shaft_mesh is None:
-      # Unit cylinder: radius=1.0, height=1.0
+      # Unit cylinder: radius=1.0, height=1.0.
       self._arrow_shaft_mesh = trimesh.creation.cylinder(radius=1.0, height=1.0)
-      self._arrow_shaft_mesh.apply_translation(np.array([0, 0, 0.5]))  # Center at z=0.5
+      self._arrow_shaft_mesh.apply_translation(np.array([0, 0, 0.5]))
 
     if self._arrow_head_mesh is None:
-      # Unit cone: radius=3.0, height=1.0 (base at z=0, tip at z=1.0 by default)
+      # Unit cone: radius=3.0, height=1.0 (base at z=0, tip at z=1.0 by default).
       head_width = 3.0
       self._arrow_head_mesh = trimesh.creation.cone(radius=head_width, height=1.0)
-      # No translation needed - cone already has base at z=0
+      # No translation needed - cone already has base at z=0.
 
-    # Prepare batched data
+    # Prepare batched data.
     num_arrows = len(self._queued_arrows)
     shaft_positions = np.zeros((num_arrows, 3), dtype=np.float32)
     shaft_wxyzs = np.zeros((num_arrows, 4), dtype=np.float32)
@@ -273,29 +280,24 @@ class ViserDebugVisualizer(DebugVisualizer):
 
       rotation_quat = rotation_quat_from_vectors(z_axis, direction)
 
-      # Shaft: scale width in XY, length in Z
+      # Shaft: scale width in XY, length in Z.
       shaft_length = shaft_length_ratio * length
       shaft_positions[i] = start
       shaft_wxyzs[i] = rotation_quat
       shaft_scales[i] = [width, width, shaft_length]  # Per-axis scale
-      shaft_colors[i] = (np.array(color[:3]) * 255).astype(
-        np.uint8
-      )  # Convert 0-1 to 0-255
+      shaft_colors[i] = (np.array(color[:3]) * 255).astype(np.uint8)
 
-      # Head: position at end of shaft
-      # The cone has its base at z=0, so after scaling by head_length,
-      # the base is still at z=0 in local coords
-      # We want the base at the end of the shaft (at shaft_length)
+      # Head: position at end of shaft.
+      # The cone has its base at z=0, so after scaling by head_length, the base is
+      # still at z=0 in local coords. We want the base at the end of the shaft.
       head_length = head_length_ratio * length
       head_position = start + direction * shaft_length
       head_positions[i] = head_position
       head_wxyzs[i] = rotation_quat
-      head_scales[i] = [width, width, head_length]  # Per-axis scale
-      head_colors[i] = (np.array(color[:3]) * 255).astype(
-        np.uint8
-      )  # Convert 0-1 to 0-255
+      head_scales[i] = [width, width, head_length]  # Per-axis scale.
+      head_colors[i] = (np.array(color[:3]) * 255).astype(np.uint8)
 
-    # Check if we need to recreate handles (number of arrows changed)
+    # Check if we need to recreate handles (number of arrows changed).
     needs_recreation = (
       self._arrow_shaft_handle is None
       or self._arrow_head_handle is None
@@ -303,13 +305,13 @@ class ViserDebugVisualizer(DebugVisualizer):
     )
 
     if needs_recreation:
-      # Remove old handles
+      # Remove old handles.
       if self._arrow_shaft_handle is not None:
         self._arrow_shaft_handle.remove()
       if self._arrow_head_handle is not None:
         self._arrow_head_handle.remove()
 
-      # Create new batched meshes
+      # Create new batched meshes.
       self._arrow_shaft_handle = self.server.scene.add_batched_meshes_simple(
         f"/debug/env_{self.env_idx}/arrow_shafts",
         self._arrow_shaft_mesh.vertices,
@@ -336,7 +338,7 @@ class ViserDebugVisualizer(DebugVisualizer):
         receive_shadow=False,
       )
     else:
-      # Update existing handles (guaranteed to exist by needs_recreation check)
+      # Update existing handles (guaranteed to exist by needs_recreation check).
       assert self._arrow_shaft_handle is not None
       assert self._arrow_head_handle is not None
 
@@ -349,6 +351,65 @@ class ViserDebugVisualizer(DebugVisualizer):
       self._arrow_head_handle.batched_wxyzs = head_wxyzs
       self._arrow_head_handle.batched_scales = head_scales
       self._arrow_head_handle.batched_colors = head_colors
+
+    # Clear the queued arrows after syncing to prevent accumulation.
+    self._queued_arrows.clear()
+
+  @override
+  def visualize_frame(
+    self,
+    position: np.ndarray | torch.Tensor,
+    rotation_matrix: np.ndarray | torch.Tensor,
+    scale: float = 0.3,
+    label: str | None = None,
+    axis_colors: tuple[tuple[float, float, float, float], ...] | None = None,
+    axis_radius: float = 0.01,
+  ) -> None:
+    """Visualize a coordinate frame using Viser's built-in frames.
+
+    Note: Custom colors are ignored in Viser - always uses RGB for XYZ axes.
+    Creates frame once and updates position/orientation on subsequent calls.
+
+    Args:
+      position: Position of the frame origin (3D vector)
+      rotation_matrix: Rotation matrix (3x3)
+      scale: Scale/length of the axis arrows
+      label: Optional label for this frame (used as unique identifier)
+      axis_colors: Ignored in Viser implementation
+      axis_radius: Radius of the axis arrows
+    """
+    del axis_colors  # Unused.
+
+    if isinstance(position, torch.Tensor):
+      position = position.cpu().numpy()
+    if isinstance(rotation_matrix, torch.Tensor):
+      rotation_matrix = rotation_matrix.cpu().numpy()
+
+    position = position + self.env_origin
+
+    # Generate a unique key for this frame.
+    if label is None:
+      label = f"frame_{len(self._frame_handles)}"
+
+    wxyz = vtf.SO3.from_matrix(rotation_matrix).wxyz
+
+    # Update existing frame or create new one.
+    if label in self._frame_handles:
+      handle = self._frame_handles[label]
+      handle.wxyz = wxyz
+      handle.position = position
+    else:
+      # Should only happen once per label.
+      frame_name = f"/debug_frame_{label}_{id(self)}"
+      handle = self.server.scene.add_frame(
+        name=frame_name,
+        wxyz=wxyz,
+        position=position,
+        axes_length=scale,
+        axes_radius=axis_radius,
+        show_axes=True,
+      )
+      self._frame_handles[label] = handle
 
   @override
   def clear(self) -> None:
@@ -366,7 +427,7 @@ class ViserDebugVisualizer(DebugVisualizer):
     """
     self.clear()
 
-    # Remove arrow meshes
+    # Remove arrow meshes.
     if self._arrow_shaft_handle is not None:
       self._arrow_shaft_handle.remove()
       self._arrow_shaft_handle = None
@@ -374,10 +435,15 @@ class ViserDebugVisualizer(DebugVisualizer):
       self._arrow_head_handle.remove()
       self._arrow_head_handle = None
 
-    # Remove ghost meshes
+    # Remove ghost meshes.
     for handle in self._ghost_handles.values():
       handle.remove()
     self._ghost_handles.clear()
+
+    # Remove frame handles.
+    for handle in self._frame_handles.values():
+      handle.remove()
+    self._frame_handles.clear()
 
   @staticmethod
   def _mat_to_quat(mat: np.ndarray) -> np.ndarray:

@@ -45,6 +45,8 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
     label: str | None = None,
   ) -> None:
     """Add an arrow visualization using MuJoCo's arrow geometry."""
+    del label  # Unused.
+
     if isinstance(start, torch.Tensor):
       start = start.cpu().numpy()
     if isinstance(end, torch.Tensor):
@@ -92,6 +94,8 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
       alpha: Transparency override (not used in MuJoCo implementation)
       label: Optional label (not used in MuJoCo implementation)
     """
+    del alpha, label  # Unused.
+
     if isinstance(qpos, torch.Tensor):
       qpos = qpos.cpu().numpy()
 
@@ -108,7 +112,66 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
     )
 
   @override
+  def visualize_frame(
+    self,
+    position: np.ndarray | torch.Tensor,
+    rotation_matrix: np.ndarray | torch.Tensor,
+    scale: float = 0.3,
+    label: str | None = None,
+    axis_colors: tuple[tuple[float, float, float, float], ...] | None = None,
+    axis_radius: float = 0.01,
+  ) -> None:
+    """Visualize a coordinate frame with colored axes.
+
+    Args:
+      position: Position of the frame origin (3D vector)
+      rotation_matrix: Rotation matrix (3x3)
+      scale: Scale/length of the axis arrows
+      label: Optional label for this frame.
+      axis_colors: Optional tuple of 3 RGBA colors for X, Y, Z axes. If None, uses
+        default RGB coloring.
+      axis_radius: Radius of the axis arrows.
+    """
+    del label  # Unused.
+
+    if isinstance(position, torch.Tensor):
+      position = position.cpu().numpy()
+    if isinstance(rotation_matrix, torch.Tensor):
+      rotation_matrix = rotation_matrix.cpu().numpy()
+
+    # Draw three axis arrows.
+    for axis_idx in range(3):
+      self.scn.ngeom += 1
+      geom = self.scn.geoms[self.scn.ngeom - 1]
+      geom.category = mujoco.mjtCatBit.mjCAT_DECOR
+
+      axis_direction = rotation_matrix[:, axis_idx]
+      rgba = (
+        np.array(axis_colors[axis_idx])
+        if axis_colors
+        else np.array([0.6 if i == axis_idx else 0.2 for i in range(3)] + [1.0])
+      )
+
+      mujoco.mjv_initGeom(
+        geom=geom,
+        type=mujoco.mjtGeom.mjGEOM_ARROW.value,
+        size=np.array([axis_radius, axis_radius, scale]),
+        pos=position,
+        mat=np.zeros(9),
+        rgba=rgba,
+      )
+
+      # Set arrow endpoints.
+      end_position = position + axis_direction * scale
+      mujoco.mjv_connector(
+        geom=geom,
+        type=mujoco.mjtGeom.mjGEOM_ARROW.value,
+        width=axis_radius,
+        from_=position,
+        to=end_position,
+      )
+
+  @override
   def clear(self) -> None:
     """Clear debug visualizations by resetting geom count."""
-    # Reset to the initial geom count (before any debug vis was added)
     self.scn.ngeom = self._initial_geom_count

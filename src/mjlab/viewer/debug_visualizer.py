@@ -34,11 +34,11 @@ class DebugVisualizer(ABC):
     """Add an arrow from start to end position.
 
     Args:
-      start: Start position (3D vector)
-      end: End position (3D vector)
-      color: RGBA color (values 0-1)
-      width: Arrow shaft width
-      label: Optional label for this arrow
+      start: Start position (3D vector).
+      end: End position (3D vector).
+      color: RGBA color (values 0-1).
+      width: Arrow shaft width.
+      label: Optional label for this arrow.
     """
     ...
 
@@ -53,10 +53,35 @@ class DebugVisualizer(ABC):
     """Add a ghost/transparent rendering of a robot at a target pose.
 
     Args:
-      qpos: Joint positions for the ghost pose
-      model: MuJoCo model with pre-configured appearance (geom_rgba for colors)
-      alpha: Transparency override (0=transparent, 1=opaque) - may not be used by all implementations
-      label: Optional label for this ghost
+      qpos: Joint positions for the ghost pose.
+      model: MuJoCo model with pre-configured appearance (geom_rgba for colors).
+      alpha: Transparency override (0=transparent, 1=opaque). May not be supported by
+        all implementations.
+      label: Optional label for this ghost.
+    """
+    ...
+
+  @abstractmethod
+  def visualize_frame(
+    self,
+    position: np.ndarray | torch.Tensor,
+    rotation_matrix: np.ndarray | torch.Tensor,
+    scale: float = 0.3,
+    label: str | None = None,
+    axis_colors: tuple[tuple[float, float, float, float], ...] | None = None,
+    axis_radius: float = 0.01,
+  ) -> None:
+    """Visualize a coordinate frame.
+
+    Args:
+      position: Position of the frame origin (3D vector).
+      rotation_matrix: Rotation matrix (3x3).
+      scale: Scale/length of the axis arrows.
+      label: Optional label for this frame.
+      axis_colors: Optional tuple of 3 RGBA colors for X, Y, Z axes. If None, uses
+        default RGB coloring (X=red, Y=green, Z=blue). May not be supported by all
+        implementations.
+      axis_radius: Radius/thickness of the axis arrows.
     """
     ...
 
@@ -76,6 +101,17 @@ class NullDebugVisualizer:
     pass
 
   def add_ghost_mesh(self, qpos, model, alpha=0.5, label=None) -> None:
+    pass
+
+  def visualize_frame(
+    self,
+    position,
+    rotation_matrix,
+    scale=0.3,
+    label=None,
+    axis_colors=None,
+    axis_radius=0.01,
+  ) -> None:
     pass
 
   def clear(self) -> None:
