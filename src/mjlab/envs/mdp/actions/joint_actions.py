@@ -106,3 +106,81 @@ class JointPositionAction(JointAction):
     self._asset.write_joint_position_target_to_sim(
       self._processed_actions, self._actuator_ids
     )
+
+
+class BinaryJointAction(ActionTerm):
+  """Base class for binary joint actions."""
+
+  _asset: Entity
+
+  def __init__(self, cfg: actions_config.BinaryJointActionCfg, env: ManagerBasedEnv):
+    super().__init__(cfg=cfg, env=env)
+
+    actuator_ids, self._actuator_names = self._asset.find_actuators(
+      cfg.actuator_names
+    )
+    self._actuator_ids = torch.tensor(
+      actuator_ids, device=self.device, dtype=torch.long
+    )
+
+    self._num_joints = len(self._actuator_ids)
+    self._action_dim = len(self._actuator_ids)
+
+    self._raw_actions = torch.zeros(self.num_envs, self.action_dim, device=self.device)
+    self._processed_actions = torch.zeros_like(self._raw_actions)
+
+    self._open_command = torch.zeros(self.num_envs, self._num_joints, device=self.device)
+    self._close_command = torch.zeros(self.num_envs, self._num_joints, device=self.device)
+
+    index_list, _, value_list = resolve_matching_names_values(
+      cfg.open_command_expr, cfg.actuator_names)
+    self._open_command[:, index_list] = torch.tensor(value_list, device=self.device)
+
+    index_list, _, value_list = resolve_matching_names_values(
+      cfg.close_command_expr, cfg.actuator_names)
+    self._close_command[:, index_list] = torch.tensor(value_list, device=self.device)
+
+  
+  # Properties.
+
+  @property
+  def open_command(self) -> torch.Tensor:
+    return self._open_command
+
+  @property
+  def close_command(self) -> torch.Tensor:
+    return self._close_command
+  
+  @property
+  def raw_action(self) -> torch.Tensor:
+    return self._raw_actions
+
+  @property
+  def action_dim(self) -> int:
+    return 1
+
+  def process_actions(self, actions: torch.Tensor):
+    self._raw_actions[:] = actions
+    
+    if actions.dtype == torch.bool:
+      binary_mask = actions == 0
+    else:
+      binary_mask = actions < 0
+
+    self._processed_actions = torch.where(binary_mask, self._open_command, self._close_command)
+
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
+    self._raw_actions[env_ids] = 0.0
+
+
+class BinaryJointPositionAction(BinaryJointAction):
+  def __init__(self, cfg: actions_config.BinaryJointPositionActionCfg, env: ManagerBasedEnv):
+    super().__init__(cfg=cfg, env=env)
+
+    if cfg.use_default_offset:
+      self._offset = self._asset.data.default_joint_pos[:, self._actuator_ids].clone()
+
+  def apply_actions(self):
+    self._asset.write_joint_position_target_to_sim(
+      self._processed_actions, self._actuator_ids
+    )

@@ -21,3 +21,19 @@ class JointActionCfg(ActionTermCfg):
 class JointPositionActionCfg(JointActionCfg):
   class_type: type[ActionTerm] = joint_actions.JointPositionAction
   use_default_offset: bool = True
+
+
+@dataclass(kw_only=True)
+class BinaryJointActionCfg(ActionTermCfg):
+  actuator_names: list[str]
+  """List of actuator names or regex expressions that the action will be mapped to."""
+  open_command_expr: dict[str, float]
+  """Dictionary of open command expressions for the binary joint action."""
+  close_command_expr: dict[str, float]
+  """Dictionary of close command expressions for the binary joint action."""
+
+
+@dataclass(kw_only=True)
+class BinaryJointPositionActionCfg(BinaryJointActionCfg):
+  class_type: type[ActionTerm] = joint_actions.BinaryJointPositionAction
+  use_default_offset: bool = True
