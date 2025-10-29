@@ -76,7 +76,7 @@ class CommandsCfg:
     debug_vis=True,
     ranges=mdp.UniformVelocityCommandCfg.Ranges(
       lin_vel_x=(-1.0, 1.0),
-      lin_vel_y=(-0.5, 0.5),
+      lin_vel_y=(-1.0, 1.0),
       ang_vel_z=(-1.0, 1.0),
       heading=(-math.pi, math.pi),
     ),
@@ -125,6 +125,26 @@ class ObservationCfg:
 
   @dataclass
   class PrivilegedCfg(PolicyCfg):
+    foot_height: ObsTerm = term(
+      ObsTerm,
+      func=mdp.foot_height,
+      params={
+        "asset_cfg": SceneEntityCfg("robot", geom_names=[])  # Override in robot cfg.
+      },
+    )
+    foot_air_time: ObsTerm = term(
+      ObsTerm,
+      func=mdp.foot_air_time,
+      params={
+        "sensor_name": "feet_ground_contact",
+      },
+    )
+    foot_contact: ObsTerm = term(
+      ObsTerm,
+      func=mdp.foot_contact,
+      params={"sensor_name": "feet_ground_contact"},
+    )
+
     def __post_init__(self):
       super().__post_init__()
       self.enable_corruption = False
@@ -179,28 +199,38 @@ class RewardCfg:
   track_linear_velocity: RewardTerm = term(
     RewardTerm,
     func=mdp.track_linear_velocity,
-    weight=1.0,
+    weight=2.0,
     params={"command_name": "twist", "std": math.sqrt(0.25)},
   )
   track_angular_velocity: RewardTerm = term(
     RewardTerm,
     func=mdp.track_angular_velocity,
-    weight=1.0,
+    weight=2.0,
     params={"command_name": "twist", "std": math.sqrt(0.25)},
+  )
+  upright: RewardTerm = term(
+    RewardTerm,
+    func=mdp.flat_orientation,
+    weight=1.0,
+    params={"std": math.sqrt(0.1)},
   )
   pose: RewardTerm = term(
     RewardTerm,
-    func=mdp.posture,
+    func=mdp.variable_posture,
     weight=1.0,
     params={
       "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
-      "std": [],
+      "std_standing": {},  # Override in robot cfg.
+      "std_moving": {},  # Override in robot cfg.
+      "command_name": "twist",
+      "command_threshold": 0.05,
     },
   )
   dof_pos_limits: RewardTerm = term(RewardTerm, func=mdp.joint_pos_limits, weight=-1.0)
   action_rate_l2: RewardTerm = term(RewardTerm, func=mdp.action_rate_l2, weight=-0.1)
 
-  # Example air time reward (disabled by default).
+  # Rewards feet being airborne for 0.05-0.5 seconds.
+  # Lift your feet off the ground and keep them up for a reasonable amount of time.
   air_time: RewardTerm = term(
     RewardTerm,
     func=mdp.feet_air_time,
@@ -211,6 +241,47 @@ class RewardCfg:
       "threshold_max": 0.5,
       "command_name": "twist",
       "command_threshold": 0.5,
+    },
+  )
+  # Guide the foot height during the swing phase.
+  # Large penalty when foot is moving fast and far from target height.
+  # This is a dense reward.
+  foot_clearance: RewardTerm = term(
+    RewardTerm,
+    func=mdp.feet_clearance,
+    weight=-2.0,
+    params={
+      "target_height": 0.1,
+      "command_name": "twist",
+      "command_threshold": 0.05,
+      "asset_cfg": SceneEntityCfg("robot", geom_names=[]),
+    },
+  )
+  # Tracks peak height during swing. Did you actually reach 0.1m at some point?
+  # This is a sparse reward, only evaluated at landing.
+  foot_swing_height: RewardTerm = term(
+    RewardTerm,
+    func=mdp.feet_swing_height,
+    weight=-0.25,
+    params={
+      "sensor_name": "feet_ground_contact",
+      "target_height": 0.1,
+      "command_name": "twist",
+      "command_threshold": 0.05,
+      "num_feet": 4,
+      "asset_cfg": SceneEntityCfg("robot", geom_names=[]),  # Override in robot cfg.
+    },
+  )
+  # Don't slide when foot is on ground.
+  foot_slip: RewardTerm = term(
+    RewardTerm,
+    func=mdp.feet_slip,
+    weight=-0.1,
+    params={
+      "sensor_name": "feet_ground_contact",
+      "command_name": "twist",
+      "command_threshold": 0.05,
+      "asset_cfg": SceneEntityCfg("robot", geom_names=[]),  # Override in robot cfg.
     },
   )
 
@@ -232,17 +303,6 @@ class TerminationCfg:
 class CurriculumCfg:
   terrain_levels: CurrTerm | None = term(
     CurrTerm, func=mdp.terrain_levels_vel, params={"command_name": "twist"}
-  )
-
-  command_vel: CurrTerm | None = term(
-    CurrTerm,
-    func=mdp.commands_vel,
-    params={
-      "command_name": "twist",
-      "velocity_stages": [
-        {"step": 500 * 24, "range": (-3.0, 3.0)},
-      ],
-    },
   )
 
 

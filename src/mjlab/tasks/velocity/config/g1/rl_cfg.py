@@ -39,3 +39,6 @@ class UnitreeG1PPORunnerCfg(RslRlOnPolicyRunnerCfg):
   save_interval: int = 50
   num_steps_per_env: int = 24
   max_iterations: int = 30_000
+  obs_groups: dict[str, list[str]] = field(
+    default_factory=lambda: {"policy": ["policy"], "critic": ["critic"]},
+  )

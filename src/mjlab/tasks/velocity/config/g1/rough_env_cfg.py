@@ -34,6 +34,7 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
 
     self.actions.joint_pos.scale = G1_ACTION_SCALE
 
+    # Use all foot geoms for friction randomization
     geom_names = []
     for i in range(1, 8):
       geom_names.append(f"left_foot{i}_collision")
@@ -41,7 +42,45 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
       geom_names.append(f"right_foot{i}_collision")
     self.events.foot_friction.params["asset_cfg"].geom_names = geom_names
 
-    self.rewards.pose.params["std"] = {
+    # self.rewards.pose.params["std"] = {
+    #   # Lower body.
+    #   r".*hip_pitch.*": 0.3,
+    #   r".*hip_roll.*": 0.15,
+    #   r".*hip_yaw.*": 0.15,
+    #   r".*knee.*": 0.35,
+    #   r".*ankle_pitch.*": 0.25,
+    #   r".*ankle_roll.*": 0.1,
+    #   # Waist.
+    #   r".*waist_yaw.*": 0.15,
+    #   r".*waist_roll.*": 0.08,
+    #   r".*waist_pitch.*": 0.1,
+    #   # Arms.
+    #   r".*shoulder_pitch.*": 0.35,
+    #   r".*shoulder_roll.*": 0.15,
+    #   r".*shoulder_yaw.*": 0.1,
+    #   r".*elbow.*": 0.25,
+    #   r".*wrist.*": 0.3,
+    # }
+    self.rewards.pose.params["std_standing"] = {
+      # Lower body.
+      r".*hip_pitch.*": 0.05,  # Very tight!
+      r".*hip_roll.*": 0.05,
+      r".*hip_yaw.*": 0.05,
+      r".*knee.*": 0.1,  # Tight!
+      r".*ankle_pitch.*": 0.05,
+      r".*ankle_roll.*": 0.05,
+      # Waist.
+      r".*waist_yaw.*": 0.05,
+      r".*waist_roll.*": 0.05,
+      r".*waist_pitch.*": 0.05,
+      # Arms.
+      r".*shoulder_pitch.*": 0.1,
+      r".*shoulder_roll.*": 0.05,
+      r".*shoulder_yaw.*": 0.05,
+      r".*elbow.*": 0.05,
+      r".*wrist.*": 0.1,
+    }
+    self.rewards.pose.params["std_moving"] = {
       # Lower body.
       r".*hip_pitch.*": 0.3,
       r".*hip_roll.*": 0.15,
@@ -60,13 +99,17 @@ class UnitreeG1RoughEnvCfg(LocomotionVelocityEnvCfg):
       r".*elbow.*": 0.25,
       r".*wrist.*": 0.3,
     }
+    self.rewards.foot_clearance.params["asset_cfg"].geom_names = geom_names
+    self.rewards.foot_swing_height.params["asset_cfg"].geom_names = geom_names
+    self.rewards.foot_slip.params["asset_cfg"].geom_names = geom_names
+    self.rewards.foot_swing_height.params["num_feet"] = 2
+
+    self.observations.critic.foot_height.params["asset_cfg"].geom_names = geom_names
 
     self.terminations.illegal_contact = None
 
     self.viewer.body_name = "torso_link"
     self.commands.twist.viz.z_offset = 0.75
-
-    self.curriculum.command_vel = None
 
 
 @dataclass

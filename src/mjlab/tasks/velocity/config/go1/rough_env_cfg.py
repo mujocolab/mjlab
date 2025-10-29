@@ -52,10 +52,19 @@ class UnitreeGo1RoughEnvCfg(LocomotionVelocityEnvCfg):
     geom_names = [f"{name}_foot_collision" for name in foot_names]
     self.events.foot_friction.params["asset_cfg"].geom_names = geom_names
 
-    self.rewards.pose.params["std"] = {
+    self.rewards.pose.params["std_standing"] = {
+      r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.05,
+      r".*(FR|FL|RR|RL)_calf_joint.*": 0.1,
+    }
+    self.rewards.pose.params["std_moving"] = {
       r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.3,
       r".*(FR|FL|RR|RL)_calf_joint.*": 0.6,
     }
+    self.rewards.foot_clearance.params["asset_cfg"].geom_names = geom_names
+    self.rewards.foot_swing_height.params["asset_cfg"].geom_names = geom_names
+    self.rewards.foot_slip.params["asset_cfg"].geom_names = geom_names
+
+    self.observations.critic.foot_height.params["asset_cfg"].geom_names = geom_names
 
     self.viewer.body_name = "trunk"
     self.viewer.distance = 1.5
@@ -76,7 +85,3 @@ class UnitreeGo1RoughEnvCfg_PLAY(UnitreeGo1RoughEnvCfg):
         self.scene.terrain.terrain_generator.num_cols = 5
         self.scene.terrain.terrain_generator.num_rows = 5
         self.scene.terrain.terrain_generator.border_width = 10.0
-
-    self.curriculum.command_vel = None
-    self.commands.twist.ranges.lin_vel_x = (-3.0, 3.0)
-    self.commands.twist.ranges.ang_vel_z = (-3.0, 3.0)
