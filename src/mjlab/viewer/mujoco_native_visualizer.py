@@ -45,27 +45,25 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
     label: str | None = None,
   ) -> None:
     """Add an arrow visualization using MuJoCo's arrow geometry."""
+    del label  # Unused.
+
     if isinstance(start, torch.Tensor):
       start = start.cpu().numpy()
     if isinstance(end, torch.Tensor):
       end = end.cpu().numpy()
 
-    # Add new geom to scene.
     self.scn.ngeom += 1
     geom = self.scn.geoms[self.scn.ngeom - 1]
     geom.category = mujoco.mjtCatBit.mjCAT_DECOR
 
-    # Initialize as arrow.
     mujoco.mjv_initGeom(
       geom=geom,
       type=mujoco.mjtGeom.mjGEOM_ARROW.value,
-      size=np.array([0.005, 0.02, 0.02]),  # Arrow dimensions.
+      size=np.zeros(3),
       pos=np.zeros(3),
       mat=np.zeros(9),
       rgba=np.asarray(color, dtype=np.float32),
     )
-
-    # Set arrow endpoints.
     mujoco.mjv_connector(
       geom=geom,
       type=mujoco.mjtGeom.mjGEOM_ARROW.value,
@@ -92,6 +90,8 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
       alpha: Transparency override (not used in MuJoCo implementation)
       label: Optional label (not used in MuJoCo implementation)
     """
+    del alpha, label  # Unused.
+
     if isinstance(qpos, torch.Tensor):
       qpos = qpos.cpu().numpy()
 
@@ -108,7 +108,53 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
     )
 
   @override
+  def add_frame(
+    self,
+    position: np.ndarray | torch.Tensor,
+    rotation_matrix: np.ndarray | torch.Tensor,
+    scale: float = 0.3,
+    label: str | None = None,
+    axis_radius: float = 0.01,
+    alpha: float = 1.0,
+    axis_colors: tuple[tuple[float, float, float], ...] | None = None,
+  ) -> None:
+    """Add a coordinate frame visualization with RGB-colored axes.
+
+    This implementation reuses add_arrow to draw the three axis arrows.
+
+    Args:
+      position: Position of the frame origin (3D vector)
+      rotation_matrix: Rotation matrix (3x3)
+      scale: Scale/length of the axis arrows
+      label: Optional label for this frame.
+      axis_radius: Radius of the axis arrows.
+      alpha: Opacity for all axes (0=transparent, 1=opaque).
+      axis_colors: Optional tuple of 3 RGB colors for X, Y, Z axes. If None, uses
+        default RGB coloring (X=red, Y=green, Z=blue).
+    """
+    del label  # Unused.
+
+    if isinstance(position, torch.Tensor):
+      position = position.cpu().numpy()
+    if isinstance(rotation_matrix, torch.Tensor):
+      rotation_matrix = rotation_matrix.cpu().numpy()
+
+    default_colors = [(0.9, 0, 0), (0, 0.9, 0.0), (0.0, 0.0, 0.9)]
+    colors = axis_colors if axis_colors is not None else default_colors
+
+    for axis_idx in range(3):
+      axis_direction = rotation_matrix[:, axis_idx]
+      end_position = position + axis_direction * scale
+      rgb = colors[axis_idx]
+      color_rgba = (rgb[0], rgb[1], rgb[2], alpha)
+      self.add_arrow(
+        start=position,
+        end=end_position,
+        color=color_rgba,
+        width=axis_radius,
+      )
+
+  @override
   def clear(self) -> None:
     """Clear debug visualizations by resetting geom count."""
-    # Reset to the initial geom count (before any debug vis was added)
     self.scn.ngeom = self._initial_geom_count

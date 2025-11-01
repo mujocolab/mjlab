@@ -16,6 +16,33 @@ pytestmark = pytest.mark.filterwarnings(
   "ignore:Use of index_put_ on expanded tensors is deprecated:UserWarning"
 )
 
+ROBOT_XML = """
+<mujoco>
+  <worldbody>
+    <body name="base" pos="0 0 1">
+      <freejoint name="free_joint"/>
+      <geom name="base_geom" type="box" size="0.1 0.1 0.1" mass="1.0"
+        friction="0.5 0.01 0.005"/>
+      <body name="foot1" pos="0.2 0 0">
+        <joint name="joint1" type="hinge" axis="0 0 1" range="0 1.57"/>
+        <geom name="foot1_geom" type="box" size="0.05 0.05 0.05" mass="0.1"
+          friction="0.5 0.01 0.005"/>
+      </body>
+      <body name="foot2" pos="-0.2 0 0">
+        <joint name="joint2" type="hinge" axis="0 0 1" range="0 1.57"/>
+        <geom name="foot2_geom" type="box" size="0.05 0.05 0.05" mass="0.1"
+          friction="0.5 0.01 0.005"/>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+FRICTION_RANGE = (0.3, 1.2)
+MASS_SCALE_RANGE = (0.8, 1.2)
+DAMPING_RANGE = (0.1, 0.5)
+NUM_ENVS = 4
+
 
 @pytest.fixture(scope="module")
 def device():
@@ -23,165 +50,95 @@ def device():
   return get_test_device()
 
 
-@pytest.fixture(scope="module")
-def robot_xml():
-  """Simple robot with geoms and joints."""
-  return """
-    <mujoco>
-      <worldbody>
-        <body name="base" pos="0 0 1">
-          <freejoint name="free_joint"/>
-          <geom name="base_geom" type="box" size="0.1 0.1 0.1" mass="1.0" friction="0.5 0.01 0.005"/>
-          <body name="foot1" pos="0.2 0 0">
-            <joint name="joint1" type="hinge" axis="0 0 1" range="0 1.57"/>
-            <geom name="foot1_geom" type="box" size="0.05 0.05 0.05" mass="0.1" friction="0.5 0.01 0.005"/>
-          </body>
-          <body name="foot2" pos="-0.2 0 0">
-            <joint name="joint2" type="hinge" axis="0 0 1" range="0 1.57"/>
-            <geom name="foot2_geom" type="box" size="0.05 0.05 0.05" mass="0.1" friction="0.5 0.01 0.005"/>
-          </body>
-        </body>
-      </worldbody>
-    </mujoco>
-    """
-
-
-@pytest.fixture(scope="module")
-def initialized_env(robot_xml, device):
-  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(robot_xml))
-  scene_cfg = SceneCfg(num_envs=4, entities={"robot": entity_cfg})
-
+def create_test_env(device, num_envs=NUM_ENVS):
+  """Create a test environment with a robot for domain randomization testing."""
+  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML))
+  scene_cfg = SceneCfg(num_envs=num_envs, entities={"robot": entity_cfg})
   scene = Scene(scene_cfg, device)
   model = scene.compile()
 
   sim_cfg = SimulationCfg()
-  sim = Simulation(num_envs=4, cfg=sim_cfg, model=model, device=device)
-
+  sim = Simulation(num_envs=num_envs, cfg=sim_cfg, model=model, device=device)
   scene.initialize(model, sim.model, sim.data)
+  sim.expand_model_fields(["geom_friction", "body_mass", "dof_damping"])
 
-  class MockEnv:
+  class Env:
     def __init__(self, scene, sim):
       self.scene = scene
       self.sim = sim
       self.num_envs = scene.num_envs
       self.device = device
 
-  return MockEnv(scene, sim)
+  return Env(scene, sim)
 
 
-def test_randomize_geom_friction_changes_values(initialized_env):
-  """Test that randomizing geom friction changes values."""
-  env = initialized_env
-  robot = env.scene["robot"]
-  geom_indices = robot.indexing.geom_ids
-  initial_friction = env.sim.model.geom_friction[0, geom_indices[0], 0].clone()
-
-  randomize_field(
-    env,
-    env_ids=None,
-    field="geom_friction",
-    ranges=(0.3, 1.2),
-    operation="abs",
-    asset_cfg=SceneEntityCfg("robot", geom_names=[".*"]),
-    axes=[0],
-  )
-
-  new_friction = env.sim.model.geom_friction[0, geom_indices[0], 0]
-  assert new_friction != initial_friction
-  assert 0.3 <= new_friction <= 1.2
+def assert_values_in_range(values, min_val, max_val):
+  """Assert all values are within the specified range."""
+  assert torch.all((values >= min_val) & (values <= max_val))
 
 
-def test_randomize_multiple_geoms(initialized_env):
-  """Test that randomization works across multiple geoms."""
-  env = initialized_env
-  robot = env.scene["robot"]
-  geom_indices = robot.indexing.geom_ids
-
-  initial_frictions = []
-  for geom_idx in geom_indices:
-    initial_frictions.append(env.sim.model.geom_friction[0, geom_idx, 0].item())
-
-  randomize_field(
-    env,
-    env_ids=None,
-    field="geom_friction",
-    ranges=(0.3, 1.2),
-    operation="abs",
-    asset_cfg=SceneEntityCfg("robot"),
-    axes=[0],
-  )
-
-  for i, geom_idx in enumerate(geom_indices):
-    new_friction = env.sim.model.geom_friction[0, geom_idx, 0].item()
-    if new_friction != initial_frictions[i]:
-      return
-
-  pytest.fail("No geom friction values changed after randomization")
+def assert_values_changed(old_values, new_values):
+  """Assert that values changed after randomization."""
+  assert not torch.all(new_values == old_values)
 
 
-def test_randomize_respects_range(initialized_env):
-  """Test that randomization produces values within specified range."""
-  env = initialized_env
+def assert_has_diversity(values, min_unique=2):
+  """Assert that values have sufficient diversity across environments."""
+  unique_values = torch.unique(values)
+  assert len(unique_values) >= min_unique
+
+
+@pytest.mark.parametrize(
+  "field,ranges,operation,asset_names,axes,seed",
+  [
+    ("geom_friction", FRICTION_RANGE, "abs", {"geom_names": [".*"]}, [0], 123),
+    ("body_mass", MASS_SCALE_RANGE, "scale", {"body_names": [".*"]}, None, 456),
+    ("dof_damping", DAMPING_RANGE, "abs", {"joint_names": [".*"]}, None, 789),
+  ],
+)
+def test_randomize_field(device, field, ranges, operation, asset_names, axes, seed):
+  """Test that randomization changes values, respects ranges, and creates diversity."""
+  torch.manual_seed(seed)
+  env = create_test_env(device)
   robot = env.scene["robot"]
 
+  # Get the appropriate indices and initial values based on field type.
+  model_field: torch.Tensor
+  initial_values: torch.Tensor
+  if field == "geom_friction":
+    indices = robot.indexing.geom_ids
+    model_field = env.sim.model.geom_friction[:, indices[0], 0]
+    initial_values = model_field.clone()
+  elif field == "body_mass":
+    indices = robot.indexing.body_ids
+    model_field = env.sim.model.body_mass[:, indices[0]]
+    initial_values = model_field.clone()
+  else:
+    assert field == "dof_damping"
+    indices = robot.indexing.joint_v_adr
+    env.sim.model.dof_damping[:, indices] = 0.0
+    model_field = env.sim.model.dof_damping[:, indices[0]]
+    initial_values = model_field.clone()
+
   randomize_field(
-    env,
+    env,  # type: ignore[arg-type]
     env_ids=None,
-    field="geom_friction",
-    ranges=(0.8, 1.5),
-    operation="abs",
-    asset_cfg=SceneEntityCfg("robot"),
+    field=field,
+    ranges=ranges,
+    operation=operation,
+    asset_cfg=SceneEntityCfg("robot", **asset_names),
+    axes=axes,
   )
 
-  geom_indices = robot.indexing.geom_ids
-  for geom_idx in geom_indices:
-    friction_values = env.sim.model.geom_friction[:, geom_idx, 0]
-    assert torch.all((friction_values >= 0.8) & (friction_values <= 1.5)), (
-      f"Friction out of range: {friction_values}"
+  new_values = model_field
+
+  assert_values_changed(initial_values, new_values)
+
+  if operation == "abs":
+    assert_values_in_range(new_values, ranges[0], ranges[1])
+  elif operation == "scale":
+    assert_values_in_range(
+      new_values, ranges[0] * initial_values, ranges[1] * initial_values
     )
 
-
-def test_randomize_body_mass_scale(initialized_env):
-  """Test that scaling body mass works correctly."""
-  env = initialized_env
-  robot = env.scene["robot"]
-  body_indices = robot.indexing.body_ids
-  initial_mass = env.sim.model.body_mass[0, body_indices[0]].clone()
-
-  randomize_field(
-    env,
-    env_ids=None,
-    field="body_mass",
-    ranges=(0.8, 1.2),
-    operation="scale",
-    asset_cfg=SceneEntityCfg("robot", body_names=[".*"]),
-  )
-
-  new_mass = env.sim.model.body_mass[0, body_indices[0]]
-  assert new_mass != initial_mass
-  assert 0.8 * initial_mass <= new_mass <= 1.2 * initial_mass
-
-
-def test_randomize_dof_damping(initialized_env):
-  """Test that DOF damping randomization works."""
-  env = initialized_env
-  robot = env.scene["robot"]
-  joint_ids = robot.indexing.joint_ids
-
-  if len(joint_ids) == 0:
-    pytest.skip("No joints in robot")
-
-  dof_indices = robot.indexing.joint_v_adr
-  env.sim.model.dof_damping[:, dof_indices] = 0.0
-
-  randomize_field(
-    env,
-    env_ids=None,
-    field="dof_damping",
-    ranges=(0.1, 0.5),
-    operation="abs",
-    asset_cfg=SceneEntityCfg("robot", joint_names=[".*"]),
-  )
-
-  damping_values = env.sim.model.dof_damping[:, dof_indices]
-  assert torch.all((damping_values >= 0.1) & (damping_values <= 0.5))
+  assert_has_diversity(new_values)

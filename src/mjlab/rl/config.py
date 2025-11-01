@@ -74,7 +74,7 @@ class RslRlBaseRunnerCfg:
   max_iterations: int = 300
   """The maximum number of iterations."""
   obs_groups: dict[str, list[str]] = field(
-    default_factory=lambda: {"policy": ["policy"], "critic": ["policy", "critic"]},
+    default_factory=lambda: {"policy": ["policy"], "critic": ["critic"]},
   )
   save_interval: int = 50
   """The number of iterations between saves."""

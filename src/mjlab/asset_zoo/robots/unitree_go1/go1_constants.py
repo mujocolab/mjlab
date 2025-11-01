@@ -157,3 +157,13 @@ for a in GO1_ARTICULATION.actuators:
   for n in names:
     if n in e and n in s and s[n]:
       GO1_ACTION_SCALE[n] = 0.25 * e[n] / s[n]
+
+
+if __name__ == "__main__":
+  import mujoco.viewer as viewer
+
+  from mjlab.entity.entity import Entity
+
+  robot = Entity(GO1_ROBOT_CFG)
+
+  viewer.launch(robot.spec.compile())

@@ -107,10 +107,16 @@ class ObservationCfg:
       noise=Unoise(n_min=-0.05, n_max=0.05),
     )
     base_lin_vel: ObsTerm | None = term(
-      ObsTerm, func=mdp.base_lin_vel, noise=Unoise(n_min=-0.5, n_max=0.5)
+      ObsTerm,
+      func=mdp.builtin_sensor,
+      params={"sensor_name": "robot/imu_lin_vel"},
+      noise=Unoise(n_min=-0.5, n_max=0.5),
     )
     base_ang_vel: ObsTerm = term(
-      ObsTerm, func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2)
+      ObsTerm,
+      func=mdp.builtin_sensor,
+      params={"sensor_name": "robot/imu_ang_vel"},
+      noise=Unoise(n_min=-0.2, n_max=0.2),
     )
     joint_pos: ObsTerm = term(
       ObsTerm, func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01)
@@ -140,8 +146,12 @@ class ObservationCfg:
     body_ori: ObsTerm = term(
       ObsTerm, func=mdp.robot_body_ori_b, params={"command_name": "motion"}
     )
-    base_lin_vel: ObsTerm = term(ObsTerm, func=mdp.base_lin_vel)
-    base_ang_vel: ObsTerm = term(ObsTerm, func=mdp.base_ang_vel)
+    base_lin_vel: ObsTerm = term(
+      ObsTerm, func=mdp.builtin_sensor, params={"sensor_name": "robot/imu_lin_vel"}
+    )
+    base_ang_vel: ObsTerm = term(
+      ObsTerm, func=mdp.builtin_sensor, params={"sensor_name": "robot/imu_ang_vel"}
+    )
     joint_pos: ObsTerm = term(ObsTerm, func=mdp.joint_pos_rel)
     joint_vel: ObsTerm = term(ObsTerm, func=mdp.joint_vel_rel)
     actions: ObsTerm = term(ObsTerm, func=mdp.last_action)
@@ -281,7 +291,7 @@ class TerminationsCfg:
 
 
 SIM_CFG = SimulationCfg(
-  nconmax=150_000,
+  nconmax=35,
   njmax=250,
   mujoco=MujocoCfg(
     timestep=0.005,

@@ -5,7 +5,8 @@
 
 ## TL;DR
 
-Most Isaac Lab task configs work in mjlab with only minor tweaks! The manager-based API is nearly identical; just a few syntax changes.
+Most Isaac Lab task configs work in mjlab with only minor tweaks! The
+manager-based API is nearly identical; just a few syntax changes.
 
 ## Key Differences
 
@@ -21,11 +22,13 @@ mjlab:
 from mjlab.envs import ManagerBasedRlEnvCfg
 ```
 
-**Note:** We use consistent `CamelCase` naming conventions (e.g., `RlEnv` instead of `RLEnv`).
+**Note:** We use consistent `CamelCase` naming conventions (e.g., `RlEnv`
+instead of `RLEnv`).
 
 ### 2. Configuration Classes
 
-Isaac Lab uses `@configclass`, mjlab uses Python's standard `@dataclass` with a `term()` helper.
+Isaac Lab uses `@configclass`, mjlab uses Python's standard `@dataclass` with a
+`term()` helper.
 
 **Isaac Lab:**
 ```python
@@ -65,7 +68,9 @@ class RewardCfg:
 
 ### 3. Scene Configuration
 
-Scene setup is more streamlined in mjlab—no Omniverse/USD scene graphs. Instead, you configure materials, lights, and textures directly through MuJoCo's MjSpec modifiers.
+Scene setup is more streamlined in mjlab—no Omniverse/USD scene graphs. Instead,
+you configure materials, lights, and textures directly through MuJoCo's MjSpec
+modifiers.
 
 **Isaac Lab:**
 ```python
@@ -137,7 +142,9 @@ SCENE_CFG = SceneCfg(
 
 **Key changes:**
 - No USD scene graph or `prim_path` management
-- Materials, lights, and textures configured via MuJoCo's MjSpec. See our [`spec_config.py`](https://github.com/mujocolab/mjlab/blob/main/src/mjlab/utils/spec_config.py) for dataclass-based modifiers that handle MjSpec changes for you.
+- Materials, lights, and textures configured via MuJoCo's MjSpec. See our
+  [`spec_config.py`](https://github.com/mujocolab/mjlab/blob/main/src/mjlab/utils/spec_config.py)
+  for dataclass-based modifiers that handle MjSpec changes for you.
 
 ## Complete Example Comparison
 
@@ -154,9 +161,15 @@ Compare these to see how similar the APIs are in practice.
 ## Tips for Migration
 
 1. **Check the examples** - Look at our reference tasks in `src/mjlab/tasks/`
-2. **Ask questions** - [Open a discussion](https://github.com/mujocolab/mjlab/discussions) if you get stuck
-3. **MuJoCo differences** - Some Isaac Sim features (fancy rendering, USD workflows) don't have direct equivalents
+2. **Ask questions** -
+   [Open a discussion](https://github.com/mujocolab/mjlab/discussions) if you
+   get stuck
+3. **MuJoCo differences** - Some Isaac Sim features (fancy rendering, USD
+   workflows) don't have direct equivalents
 
 ## Need Help?
 
-If something in your Isaac Lab config doesn't translate cleanly, please [open an issue](https://github.com/mujocolab/mjlab/issues) or [start a discussion](https://github.com/mujocolab/mjlab/discussions). We're actively improving migration support!
+If something in your Isaac Lab config doesn't translate cleanly, please
+[open an issue](https://github.com/mujocolab/mjlab/issues) or
+[start a discussion](https://github.com/mujocolab/mjlab/discussions). We're
+actively improving migration support!

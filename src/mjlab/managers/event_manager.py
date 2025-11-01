@@ -73,6 +73,14 @@ class EventManager(ManagerBase):
 
   # Methods.
 
+  def get_term_cfg(self, term_name: str) -> EventTermCfg:
+    """Get the configuration of a specific event term by name."""
+    for mode in self._mode_term_names:
+      if term_name in self._mode_term_names[mode]:
+        index = self._mode_term_names[mode].index(term_name)
+        return self._mode_term_cfgs[mode][index]
+    raise ValueError(f"Event term '{term_name}' not found in active terms.")
+
   def reset(self, env_ids: torch.Tensor | None = None):
     for mode_cfg in self._mode_class_term_cfgs.values():
       for term_cfg in mode_cfg:

@@ -3,6 +3,7 @@ from typing import Any
 
 import numpy as np
 import torch
+from prettytable import PrettyTable
 
 from mjlab.envs import types
 from mjlab.envs.mdp.events import reset_scene_to_default
@@ -54,15 +55,12 @@ class ManagerBasedEnv:
     self.cfg = cfg
     if self.cfg.seed is not None:
       self.cfg.seed = self.seed(self.cfg.seed)
-    else:
-      print_info("No seed set for the environment.")
     self._sim_step_counter = 0
     self.extras = {}
     self.obs_buf = {}
 
     self.scene = Scene(self.cfg.scene, device=device)
     self.cfg.sim.mujoco.edit_spec(self.scene.spec)
-    print_info(f"[INFO]: Scene manager: {self.scene}")
 
     self.sim = Simulation(
       num_envs=self.scene.num_envs,
@@ -80,11 +78,19 @@ class ManagerBasedEnv:
       data=self.sim.data,
     )
 
-    print_info("[INFO]: Base environment:")
-    print_info(f"\tEnvironment device    : {self.device}")
-    print_info(f"\tEnvironment seed      : {self.cfg.seed}")
-    print_info(f"\tPhysics step-size     : {self.physics_dt}")
-    print_info(f"\tEnvironment step-size : {self.step_dt}")
+    print_info("")
+    table = PrettyTable()
+    table.title = "Base Environment"
+    table.field_names = ["Property", "Value"]
+    table.align["Property"] = "l"
+    table.align["Value"] = "l"
+    table.add_row(["Number of environments", self.num_envs])
+    table.add_row(["Environment device", self.device])
+    table.add_row(["Environment seed", self.cfg.seed])
+    table.add_row(["Physics step-size", self.physics_dt])
+    table.add_row(["Environment step-size", self.step_dt])
+    print_info(table.get_string())
+    print_info("")
 
     self.load_managers()
     self.setup_manager_visualizers()
@@ -112,14 +118,14 @@ class ManagerBasedEnv:
 
   def load_managers(self) -> None:
     self.event_manager = EventManager(self.cfg.events, self)
-    print_info(f"[INFO] Event manager: {self.event_manager}")
+    print_info(f"[INFO] {self.event_manager}")
 
     self.sim.expand_model_fields(self.event_manager.domain_randomization_fields)
 
     self.action_manager = ActionManager(self.cfg.actions, self)
-    print_info(f"[INFO] Action Manager: {self.action_manager}")
+    print_info(f"[INFO] {self.action_manager}")
     self.observation_manager = ObservationManager(self.cfg.observations, self)
-    print_info(f"[INFO] Observation Manager: {self.observation_manager}")
+    print_info(f"[INFO] {self.observation_manager}")
 
     if (
       self.__class__ == ManagerBasedEnv
@@ -165,7 +171,7 @@ class ManagerBasedEnv:
     return self.obs_buf, self.extras
 
   def close(self) -> None:
-    self.sim.close()
+    pass
 
   @staticmethod
   def seed(seed: int = -1) -> int:

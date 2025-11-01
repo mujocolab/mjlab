@@ -17,16 +17,19 @@ class TorchArray:
 
   def __init__(self, wp_array: wp.array, nworld: int | None = None) -> None:
     """Initialize the tensor proxy with a Warp array."""
-    if (
-      nworld is not None
-      and len(wp_array.shape) > 0
-      and wp_array.strides[0] == 0
-      and wp_array.shape[0] > nworld
-    ):
-      wp_array = wp_array[:nworld]  # type: ignore
-
     self._wp_array = wp_array
     self._tensor = wp.to_torch(wp_array)
+
+    if (
+      nworld is not None
+      and nworld > 1
+      and len(self._tensor.shape) > 0
+      and self._tensor.stride(0) == 0
+      and self._tensor.shape[0] == 1
+    ):
+      new_shape = (nworld,) + self._tensor.shape[1:]
+      self._tensor = self._tensor.expand(new_shape)
+
     self._is_cuda = not self._wp_array.device.is_cpu  # type: ignore
     self._torch_stream = self._setup_stream()
 
@@ -227,3 +230,11 @@ class WarpBridge(Generic[T]):
   def struct(self) -> T:
     """Access the underlying wrapped struct."""
     return self._struct
+
+  def clear_cache(self) -> None:
+    """Clear the wrapped cache to force re-wrapping of arrays.
+
+    This should be called after operations that modify the underlying warp arrays,
+    such as expand_model_fields(), to ensure the cache reflects the updated arrays.
+    """
+    object.__setattr__(self, "_wrapped_cache", {})

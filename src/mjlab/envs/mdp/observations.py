@@ -8,6 +8,7 @@ import torch
 
 from mjlab.entity import Entity
 from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.sensor import BuiltinSensor
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_env import ManagerBasedEnv
@@ -90,3 +91,15 @@ def generated_commands(env: ManagerBasedRlEnv, command_name: str) -> torch.Tenso
   command = env.command_manager.get_command(command_name)
   assert command is not None
   return command
+
+
+##
+# Sensors.
+##
+
+
+def builtin_sensor(env: ManagerBasedRlEnv, sensor_name: str) -> torch.Tensor:
+  """Get observation from a built-in sensor by name."""
+  sensor = env.scene[sensor_name]
+  assert isinstance(sensor, BuiltinSensor)
+  return sensor.data

@@ -35,6 +35,7 @@ class UniformVelocityCommand(CommandTerm):
 
     self.vel_command_b = torch.zeros(self.num_envs, 3, device=self.device)
     self.heading_target = torch.zeros(self.num_envs, device=self.device)
+    self.heading_error = torch.zeros(self.num_envs, device=self.device)
     self.is_heading_env = torch.zeros(
       self.num_envs, dtype=torch.bool, device=self.device
     )
@@ -89,12 +90,10 @@ class UniformVelocityCommand(CommandTerm):
 
   def _update_command(self) -> None:
     if self.cfg.heading_command:
+      self.heading_error = wrap_to_pi(self.heading_target - self.robot.data.heading_w)
       env_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
-      heading_error = wrap_to_pi(
-        self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]
-      )
       self.vel_command_b[env_ids, 2] = torch.clip(
-        self.cfg.heading_control_stiffness * heading_error,
+        self.cfg.heading_control_stiffness * self.heading_error[env_ids],
         min=self.cfg.ranges.ang_vel_z[0],
         max=self.cfg.ranges.ang_vel_z[1],
       )
@@ -126,11 +125,11 @@ class UniformVelocityCommand(CommandTerm):
     lin_vel_b = lin_vel_bs[batch]
     ang_vel_b = ang_vel_bs[batch]
 
-    # Skip if robot appears uninitialized (at origin)
+    # Skip if robot appears uninitialized (at origin).
     if np.linalg.norm(base_pos_w) < 1e-6:
       return
 
-    # Helper to transform local to world coordinates
+    # Helper to transform local to world coordinates.
     def local_to_world(
       vec: np.ndarray, pos: np.ndarray = base_pos_w, mat: np.ndarray = base_mat_w
     ) -> np.ndarray:
@@ -139,7 +138,7 @@ class UniformVelocityCommand(CommandTerm):
     scale = self.cfg.viz.scale
     z_offset = self.cfg.viz.z_offset
 
-    # Command linear velocity arrow (blue)
+    # Command linear velocity arrow (blue).
     cmd_lin_from = local_to_world(np.array([0, 0, z_offset]) * scale)
     cmd_lin_to = local_to_world(
       (np.array([0, 0, z_offset]) + np.array([cmd[0], cmd[1], 0])) * scale
@@ -148,7 +147,7 @@ class UniformVelocityCommand(CommandTerm):
       cmd_lin_from, cmd_lin_to, color=(0.2, 0.2, 0.6, 0.6), width=0.015
     )
 
-    # Command angular velocity arrow (green)
+    # Command angular velocity arrow (green).
     cmd_ang_from = cmd_lin_from
     cmd_ang_to = local_to_world(
       (np.array([0, 0, z_offset]) + np.array([0, 0, cmd[2]])) * scale
@@ -157,7 +156,7 @@ class UniformVelocityCommand(CommandTerm):
       cmd_ang_from, cmd_ang_to, color=(0.2, 0.6, 0.2, 0.6), width=0.015
     )
 
-    # Actual linear velocity arrow (cyan)
+    # Actual linear velocity arrow (cyan).
     act_lin_from = local_to_world(np.array([0, 0, z_offset]) * scale)
     act_lin_to = local_to_world(
       (np.array([0, 0, z_offset]) + np.array([lin_vel_b[0], lin_vel_b[1], 0])) * scale
@@ -166,7 +165,7 @@ class UniformVelocityCommand(CommandTerm):
       act_lin_from, act_lin_to, color=(0.0, 0.6, 1.0, 0.7), width=0.015
     )
 
-    # Actual angular velocity arrow (light green)
+    # Actual angular velocity arrow (light green).
     act_ang_from = act_lin_from
     act_ang_to = local_to_world(
       (np.array([0, 0, z_offset]) + np.array([0, 0, ang_vel_b[2]])) * scale
@@ -198,7 +197,7 @@ class UniformVelocityCommandCfg(CommandTermCfg):
   @dataclass
   class VizCfg:
     z_offset: float = 0.2
-    scale: float = 0.75
+    scale: float = 0.5
 
   viz: VizCfg = field(default_factory=VizCfg)
 

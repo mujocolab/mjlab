@@ -224,7 +224,7 @@ KNEES_BENT_KEYFRAME = EntityCfg.InitialStateCfg(
 
 # This enables all collisions, including self collisions.
 # Self-collisions are given condim=1 while foot collisions
-# are given condim=3 and custom friction and solimp.
+# are given condim=3.
 FULL_COLLISION = CollisionCfg(
   geom_names_expr=[".*_collision"],
   condim={r"^(left|right)_foot[1-7]_collision$": 3, ".*_collision": 1},

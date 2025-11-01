@@ -2,6 +2,11 @@
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
+#
+# Modified by MjLab developers:
+#   - 2025-10-27: Added dynamo=False parameter to torch.onnx.export() calls for PyTorch 2.9
+#     compatibility (lines 187, 200, 216). PyTorch 2.9 changed the default behavior and
+#     requires explicit dynamo=False to use the legacy ONNX exporter.
 
 import copy
 import os
@@ -184,6 +189,7 @@ class _OnnxPolicyExporter(torch.nn.Module):
                     input_names=["obs", "h_in", "c_in"],
                     output_names=["actions", "h_out", "c_out"],
                     dynamic_axes={},
+                    dynamo=False,
                 )
             elif self.rnn_type == "gru":
                 torch.onnx.export(
@@ -196,6 +202,7 @@ class _OnnxPolicyExporter(torch.nn.Module):
                     input_names=["obs", "h_in"],
                     output_names=["actions", "h_out"],
                     dynamic_axes={},
+                    dynamo=False,
                 )
             else:
                 raise NotImplementedError(f"Unsupported RNN type: {self.rnn_type}")
@@ -211,4 +218,5 @@ class _OnnxPolicyExporter(torch.nn.Module):
                 input_names=["obs"],
                 output_names=["actions"],
                 dynamic_axes={},
+                dynamo=False,
             )

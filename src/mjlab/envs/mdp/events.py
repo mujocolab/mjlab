@@ -24,7 +24,10 @@ if TYPE_CHECKING:
 _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
 
 
-def reset_scene_to_default(env: ManagerBasedEnv, env_ids: torch.Tensor) -> None:
+def reset_scene_to_default(env: ManagerBasedEnv, env_ids: torch.Tensor | None) -> None:
+  if env_ids is None:
+    env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
+
   for entity in env.scene.entities.values():
     if not isinstance(entity, Entity):
       continue
@@ -42,7 +45,7 @@ def reset_scene_to_default(env: ManagerBasedEnv, env_ids: torch.Tensor) -> None:
 
 def reset_root_state_uniform(
   env: ManagerBasedEnv,
-  env_ids: torch.Tensor,
+  env_ids: torch.Tensor | None,
   pose_range: dict[str, tuple[float, float]],
   velocity_range: dict[str, tuple[float, float]] | None = None,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
@@ -54,11 +57,14 @@ def reset_root_state_uniform(
 
   Args:
     env: The environment.
-    env_ids: Environment IDs to reset.
+    env_ids: Environment IDs to reset. If None, resets all environments.
     pose_range: Dictionary with keys {"x", "y", "z", "roll", "pitch", "yaw"}.
     velocity_range: Velocity range (only used for floating-base entities).
     asset_cfg: Asset configuration.
   """
+  if env_ids is None:
+    env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
+
   asset: Entity = env.scene[asset_cfg.name]
 
   # Pose.
@@ -130,11 +136,14 @@ def reset_root_state_uniform(
 
 def reset_joints_by_scale(
   env: ManagerBasedEnv,
-  env_ids: torch.Tensor,
+  env_ids: torch.Tensor | None,
   position_range: tuple[float, float],
   velocity_range: tuple[float, float],
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> None:
+  if env_ids is None:
+    env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
+
   asset: Entity = env.scene[asset_cfg.name]
   default_joint_pos = asset.data.default_joint_pos
   assert default_joint_pos is not None

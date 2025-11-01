@@ -78,6 +78,7 @@ class ViserDebugVisualizer(DebugVisualizer):
     Arrows are not rendered immediately but queued and rendered together
     in the next _synchronize() call for efficiency.
     """
+    del label  # Unused.
     if isinstance(start, torch.Tensor):
       start = start.cpu().numpy()
     if isinstance(end, torch.Tensor):
@@ -245,8 +246,8 @@ class ViserDebugVisualizer(DebugVisualizer):
       self._arrow_shaft_mesh.apply_translation(np.array([0, 0, 0.5]))  # Center at z=0.5
 
     if self._arrow_head_mesh is None:
-      # Unit cone: radius=3.0, height=1.0 (base at z=0, tip at z=1.0 by default)
-      head_width = 3.0
+      # Unit cone: radius=2.0, height=1.0 (base at z=0, tip at z=1.0 by default)
+      head_width = 2.0
       self._arrow_head_mesh = trimesh.creation.cone(radius=head_width, height=1.0)
       # No translation needed - cone already has base at z=0
 
@@ -278,9 +279,7 @@ class ViserDebugVisualizer(DebugVisualizer):
       shaft_positions[i] = start
       shaft_wxyzs[i] = rotation_quat
       shaft_scales[i] = [width, width, shaft_length]  # Per-axis scale
-      shaft_colors[i] = (np.array(color[:3]) * 255).astype(
-        np.uint8
-      )  # Convert 0-1 to 0-255
+      shaft_colors[i] = (np.array(color[:3]) * 255).astype(np.uint8)
 
       # Head: position at end of shaft
       # The cone has its base at z=0, so after scaling by head_length,
@@ -291,9 +290,7 @@ class ViserDebugVisualizer(DebugVisualizer):
       head_positions[i] = head_position
       head_wxyzs[i] = rotation_quat
       head_scales[i] = [width, width, head_length]  # Per-axis scale
-      head_colors[i] = (np.array(color[:3]) * 255).astype(
-        np.uint8
-      )  # Convert 0-1 to 0-255
+      head_colors[i] = (np.array(color[:3]) * 255).astype(np.uint8)
 
     # Check if we need to recreate handles (number of arrows changed)
     needs_recreation = (
@@ -318,7 +315,6 @@ class ViserDebugVisualizer(DebugVisualizer):
         batched_positions=shaft_positions,
         batched_scales=shaft_scales,
         batched_colors=shaft_colors,
-        opacity=0.5,
         cast_shadow=False,
         receive_shadow=False,
       )
@@ -331,7 +327,6 @@ class ViserDebugVisualizer(DebugVisualizer):
         batched_positions=head_positions,
         batched_scales=head_scales,
         batched_colors=head_colors,
-        opacity=0.5,
         cast_shadow=False,
         receive_shadow=False,
       )
@@ -349,6 +344,55 @@ class ViserDebugVisualizer(DebugVisualizer):
       self._arrow_head_handle.batched_wxyzs = head_wxyzs
       self._arrow_head_handle.batched_scales = head_scales
       self._arrow_head_handle.batched_colors = head_colors
+
+  @override
+  def add_frame(
+    self,
+    position: np.ndarray | torch.Tensor,
+    rotation_matrix: np.ndarray | torch.Tensor,
+    scale: float = 0.3,
+    label: str | None = None,
+    axis_radius: float = 0.01,
+    alpha: float = 1.0,
+    axis_colors: tuple[tuple[float, float, float], ...] | None = None,
+  ) -> None:
+    """Add a coordinate frame visualization with RGB-colored axes.
+
+    This implementation reuses add_arrow to draw the three axis arrows.
+
+    Args:
+      position: Position of the frame origin (3D vector)
+      rotation_matrix: Rotation matrix (3x3)
+      scale: Scale/length of the axis arrows
+      label: Optional label for this frame.
+      axis_radius: Radius of the axis arrows.
+      alpha: Opacity for all axes (0=transparent, 1=opaque). Note: This implementation
+        does not support per-arrow transparency. All arrows in the scene will share
+        the same alpha value.
+      axis_colors: Optional tuple of 3 RGB colors for X, Y, Z axes. If None, uses
+        default RGB coloring (X=red, Y=green, Z=blue).
+    """
+    del label  # Unused.
+
+    if isinstance(position, torch.Tensor):
+      position = position.cpu().numpy()
+    if isinstance(rotation_matrix, torch.Tensor):
+      rotation_matrix = rotation_matrix.cpu().numpy()
+
+    default_colors = [(0.9, 0, 0), (0, 0.9, 0.0), (0.0, 0.0, 0.9)]
+    colors = axis_colors if axis_colors is not None else default_colors
+
+    for axis_idx in range(3):
+      axis_direction = rotation_matrix[:, axis_idx]
+      end_position = position + axis_direction * scale
+      rgb = colors[axis_idx]
+      color_rgba = (rgb[0], rgb[1], rgb[2], alpha)
+      self.add_arrow(
+        start=position,
+        end=end_position,
+        color=color_rgba,
+        width=axis_radius,
+      )
 
   @override
   def clear(self) -> None:

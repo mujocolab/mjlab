@@ -76,6 +76,7 @@ class _OnnxMotionPolicyExporter(_OnnxPolicyExporter):
         "body_ang_vel_w",
       ],
       dynamic_axes={},
+      dynamo=False,
     )
 
 

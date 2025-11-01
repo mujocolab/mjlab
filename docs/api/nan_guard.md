@@ -93,3 +93,37 @@ environments against clean ones.
 When disabled (`enabled=False`), all operations are no-ops with
 negligible overhead. When enabled, overhead scales with `buffer_size` and
 `max_envs_to_capture`.
+
+## Related Features
+
+### NaN Detection Termination
+
+While `nan_guard` helps **debug** NaN issues by capturing states, you can also
+**prevent** training crashes using the `nan_detection` termination:
+
+```python
+from mjlab.envs.mdp.terminations import nan_detection
+from mjlab.managers.manager_term_config import TerminationTermCfg
+
+# In your termination config:
+nan_term: TerminationTermCfg = field(
+  default_factory=lambda: TerminationTermCfg(
+    func=nan_detection,
+    time_out=False
+  )
+)
+```
+
+This marks NaN environments as terminated, allowing them to reset while training
+continues. Terminations are logged as `Episode_Termination/nan_term` in your
+metrics.
+
+> **⚠️ Warning**: `nan_detection` is a band-aid, not a cure. If NaNs occur
+> during your task objective (e.g., your task is to grasp objects but NaNs
+> happen when grasping), the policy will never learn to complete the task since
+> it resets before receiving rewards. Monitor your `Episode_Termination/nan_term`
+> metrics carefully.
+
+**When to use which:**
+- **`nan_guard`**: Debug and understand why NaNs occur (always do this first)
+- **`nan_detection`**: Keep training stable while working on a permanent fix

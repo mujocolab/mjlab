@@ -34,11 +34,11 @@ class DebugVisualizer(ABC):
     """Add an arrow from start to end position.
 
     Args:
-      start: Start position (3D vector)
-      end: End position (3D vector)
-      color: RGBA color (values 0-1)
-      width: Arrow shaft width
-      label: Optional label for this arrow
+      start: Start position (3D vector).
+      end: End position (3D vector).
+      color: RGBA color (values 0-1).
+      width: Arrow shaft width.
+      label: Optional label for this arrow.
     """
     ...
 
@@ -53,10 +53,39 @@ class DebugVisualizer(ABC):
     """Add a ghost/transparent rendering of a robot at a target pose.
 
     Args:
-      qpos: Joint positions for the ghost pose
-      model: MuJoCo model with pre-configured appearance (geom_rgba for colors)
-      alpha: Transparency override (0=transparent, 1=opaque) - may not be used by all implementations
-      label: Optional label for this ghost
+      qpos: Joint positions for the ghost pose.
+      model: MuJoCo model with pre-configured appearance (geom_rgba for colors).
+      alpha: Transparency override (0=transparent, 1=opaque). May not be supported by
+        all implementations.
+      label: Optional label for this ghost.
+    """
+    ...
+
+  @abstractmethod
+  def add_frame(
+    self,
+    position: np.ndarray | torch.Tensor,
+    rotation_matrix: np.ndarray | torch.Tensor,
+    scale: float = 0.3,
+    label: str | None = None,
+    axis_radius: float = 0.01,
+    alpha: float = 1.0,
+    axis_colors: tuple[tuple[float, float, float], ...] | None = None,
+  ) -> None:
+    """Add a coordinate frame visualization.
+
+    Args:
+      position: Position of the frame origin (3D vector).
+      rotation_matrix: Rotation matrix (3x3).
+      scale: Scale/length of the axis arrows.
+      label: Optional label for this frame.
+      axis_radius: Radius/thickness of the axis arrows.
+      alpha: Transparency override (0=transparent, 1=opaque). Note: The Viser
+        implementation does not support per-arrow transparency. All arrows in the
+        scene will share the same alpha value.
+      axis_colors: Optional tuple of 3 RGB colors for X, Y, Z axes. Each color is a
+        tuple of 3 floats (R, G, B) with values 0-1. If None, uses default RGB coloring
+        (X=red, Y=green, Z=blue).
     """
     ...
 
@@ -76,6 +105,18 @@ class NullDebugVisualizer:
     pass
 
   def add_ghost_mesh(self, qpos, model, alpha=0.5, label=None) -> None:
+    pass
+
+  def add_frame(
+    self,
+    position,
+    rotation_matrix,
+    scale=0.3,
+    label=None,
+    axis_radius=0.01,
+    alpha=1.0,
+    axis_colors=None,
+  ) -> None:
     pass
 
   def clear(self) -> None:

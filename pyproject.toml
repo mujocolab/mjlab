@@ -41,11 +41,12 @@ dependencies = [
     "mujoco",
     "trimesh>=4.8.3",
     "viser>=1.0.15",
-    "wandb",
     "moviepy",
     "tensordict",
     "rsl-rl-lib",
     "tensorboard>=2.20.0",
+    "onnxscript>=0.5.4",
+    "wandb>=0.22.3",
 ]
 
 [project.urls]
@@ -104,7 +105,7 @@ url = "https://py.mujoco.org"
 explicit = true
 
 [tool.uv.sources]
-mujoco-warp = { git = "https://github.com/google-deepmind/mujoco_warp", rev = "486642c3fa262a989b482e0e506716d5793d61a9"}
+mujoco-warp = { git = "https://github.com/google-deepmind/mujoco_warp", rev = "3f66dceed99d3c3df5574008c556830736e62c7c"}
 warp-lang = { index = "nvidia", marker = "sys_platform != 'darwin'" }
 mujoco = { index = "mujoco" }
 torch = [
