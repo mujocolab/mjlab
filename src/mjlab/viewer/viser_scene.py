@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import mujoco
@@ -12,6 +11,7 @@ import trimesh
 import trimesh.visual
 import viser
 import viser.transforms as vtf
+from mujoco import mj_id2name, mjtGeom, mjtObj
 from typing_extensions import override
 
 from mjlab.viewer.debug_visualizer import DebugVisualizer
@@ -24,7 +24,6 @@ from mjlab.viewer.viser_conversions import (
   rotation_matrix_from_vectors,
   rotation_quat_from_vectors,
 )
-from mujoco import mj_id2name, mjtGeom, mjtObj
 
 try:
   import mujoco_warp as mjwarp
@@ -108,20 +107,19 @@ class ViserMujocoScene(DebugVisualizer):
   _last_mocap_pos: np.ndarray | None = None
   _last_mocap_quat: np.ndarray | None = None
   _last_env_idx: int = 0
-  _last_scene_offset: np.ndarray = field(default_factory=lambda: np.zeros(3), init=False)
   _last_contacts: list[_Contact] | None = None
 
   # Debug visualization (arrows, ghosts, frames).
   debug_visualization_enabled: bool = False
-  _current_scene_offset: np.ndarray = field(
-    default_factory=lambda: np.zeros(3), init=False
-  )
+  _scene_offset: np.ndarray = field(default_factory=lambda: np.zeros(3), init=False)
   _queued_arrows: list[
     tuple[np.ndarray, np.ndarray, tuple[float, float, float, float], float]
   ] = field(default_factory=list, init=False)
   _arrow_shaft_handle: viser.BatchedMeshHandle | None = field(default=None, init=False)
   _arrow_head_handle: viser.BatchedMeshHandle | None = field(default=None, init=False)
-  _ghost_handles: dict[int, viser.SceneNodeHandle] = field(default_factory=dict, init=False)
+  _ghost_handles: dict[int, viser.SceneNodeHandle] = field(
+    default_factory=dict, init=False
+  )
   _ghost_meshes: dict[int, dict[int, trimesh.Trimesh]] = field(
     default_factory=dict, init=False
   )
@@ -209,6 +207,7 @@ class ViserMujocoScene(DebugVisualizer):
     camera_distance: float = 3.0,
     camera_azimuth: float = 45.0,
     camera_elevation: float = 30.0,
+    show_debug_viz_control: bool = True,
   ) -> None:
     """Add standard GUI controls that automatically update this scene's settings.
 
@@ -216,6 +215,7 @@ class ViserMujocoScene(DebugVisualizer):
       camera_distance: Default camera distance from tracked body when tracking is enabled.
       camera_azimuth: Default camera azimuth angle in degrees.
       camera_elevation: Default camera elevation angle in degrees.
+      show_debug_viz_control: Whether to show the debug visualization checkbox.
     """
     with self.server.gui.add_folder("Visualization"):
       slider_fov = self.server.gui.add_slider(
@@ -238,6 +238,33 @@ class ViserMujocoScene(DebugVisualizer):
 
     # Environment selection (only if multiple environments).
     with self.server.gui.add_folder("Environment"):
+      # Environment selection slider (if multiple envs).
+      if self.num_envs > 1:
+        env_slider = self.server.gui.add_slider(
+          "Select",
+          min=0,
+          max=self.num_envs - 1,
+          step=1,
+          initial_value=self.env_idx,
+          hint=f"Select environment (0-{self.num_envs - 1})",
+        )
+
+        @env_slider.on_update
+        def _(_) -> None:
+          self.env_idx = int(env_slider.value)
+          self._request_update()
+
+        show_only_cb = self.server.gui.add_checkbox(
+          "Hide others",
+          initial_value=self.show_only_selected,
+          hint="Show only the selected environment.",
+        )
+
+        @show_only_cb.on_update
+        def _(_) -> None:
+          self.show_only_selected = show_only_cb.value
+          self._request_update()
+
       # Camera tracking controls.
       cb_camera_tracking = self.server.gui.add_checkbox(
         "Track camera",
@@ -273,45 +300,20 @@ class ViserMujocoScene(DebugVisualizer):
 
         self._request_update()
 
-      # Debug visualization controls.
-      cb_debug_vis = self.server.gui.add_checkbox(
-        "Debug visualization",
-        initial_value=self.debug_visualization_enabled,
-        hint="Show debug arrows and ghost meshes.",
-      )
-
-      @cb_debug_vis.on_update
-      def _(_) -> None:
-        self.debug_visualization_enabled = cb_debug_vis.value
-        # Clear visualizer if hiding.
-        if not self.debug_visualization_enabled:
-          self.clear_debug_all()
-        self._request_update()
-
-      if self.num_envs > 1:
-        env_slider = self.server.gui.add_slider(
-          "Select",
-          min=0,
-          max=self.num_envs - 1,
-          step=1,
-          initial_value=self.env_idx,
-          hint=f"Select environment (0-{self.num_envs - 1})",
+      # Debug visualization controls (only show if requested).
+      if show_debug_viz_control:
+        cb_debug_vis = self.server.gui.add_checkbox(
+          "Debug visualization",
+          initial_value=self.debug_visualization_enabled,
+          hint="Show debug arrows and ghost meshes.",
         )
 
-        @env_slider.on_update
+        @cb_debug_vis.on_update
         def _(_) -> None:
-          self.env_idx = int(env_slider.value)
-          self._request_update()
-
-        show_only_cb = self.server.gui.add_checkbox(
-          "Hide others",
-          initial_value=self.show_only_selected,
-          hint="Show only the selected environment.",
-        )
-
-        @show_only_cb.on_update
-        def _(_) -> None:
-          self.show_only_selected = show_only_cb.value
+          self.debug_visualization_enabled = cb_debug_vis.value
+          # Clear visualizer if hiding.
+          if not self.debug_visualization_enabled:
+            self.clear_debug_all()
           self._request_update()
 
       # Contact visualization settings.
@@ -428,7 +430,7 @@ class ViserMujocoScene(DebugVisualizer):
 
     # Update scene offset for debug visualizations and sync arrows
     if self.debug_visualization_enabled:
-      self._current_scene_offset = scene_offset
+      self._scene_offset = scene_offset
       self._sync_arrows()
 
   def update_from_mjdata(self, mj_data: mujoco.MjData) -> None:
@@ -458,7 +460,7 @@ class ViserMujocoScene(DebugVisualizer):
 
     # Update scene offset for debug visualizations and sync arrows
     if self.debug_visualization_enabled:
-      self._current_scene_offset = scene_offset
+      self._scene_offset = scene_offset
       self._sync_arrows()
 
   def _update_visualization(
@@ -478,7 +480,7 @@ class ViserMujocoScene(DebugVisualizer):
     self._last_mocap_pos = mocap_pos
     self._last_mocap_quat = mocap_quat
     self._last_env_idx = env_idx
-    self._last_scene_offset = scene_offset
+    self._scene_offset = scene_offset
     # Only update cached contacts if we have new contact data (don't overwrite with None)
     if contacts is not None:
       self._last_contacts = contacts
@@ -534,13 +536,13 @@ class ViserMujocoScene(DebugVisualizer):
     For static viewers (nan_viz), this provides the only update mechanism.
     """
     self.needs_update = True
-    self._rerender_from_cache()
+    self.refresh_visualization()
 
-  def _rerender_from_cache(self) -> None:
+  def refresh_visualization(self) -> None:
     """Re-render the scene using cached visualization data.
 
     This is useful when visualization settings change (e.g., toggling contacts)
-    but the underlying simulation data hasn't changed.
+    but the underlying simulation data hasn't changed. Clears the needs_update flag.
     """
     if (
       self._last_body_xpos is None
@@ -552,7 +554,19 @@ class ViserMujocoScene(DebugVisualizer):
 
     # Use cached contacts (don't recompute - the data might be stale).
     # The next regular update will refresh contacts if needed.
-    contacts = self._last_contacts if (self.show_contact_points or self.show_contact_forces) else None
+    contacts = (
+      self._last_contacts
+      if (self.show_contact_points or self.show_contact_forces)
+      else None
+    )
+
+    # Recalculate scene offset based on current camera tracking state.
+    scene_offset = np.zeros(3)
+    if self.camera_tracking_enabled and self._tracked_body_id is not None:
+      tracked_pos = self._last_body_xpos[
+        self._last_env_idx, self._tracked_body_id, :
+      ].copy()
+      scene_offset = -tracked_pos
 
     # Re-render with cached data (_update_visualization has its own atomic block and flush)
     self._update_visualization(
@@ -561,9 +575,10 @@ class ViserMujocoScene(DebugVisualizer):
       self._last_mocap_pos,
       self._last_mocap_quat,
       self._last_env_idx,
-      self._last_scene_offset,
+      scene_offset,
       contacts,
     )
+    self.needs_update = False
 
   def _add_fixed_geometry(self) -> None:
     """Add fixed world geometry to the scene."""
@@ -912,7 +927,7 @@ class ViserMujocoScene(DebugVisualizer):
     mujoco.mj_forward(model, self._viz_data)
 
     # Use current scene offset
-    scene_offset = self._current_scene_offset
+    scene_offset = self._scene_offset
 
     # Group geoms by body
     body_geoms: dict[int, list[int]] = {}
@@ -1138,8 +1153,8 @@ class ViserMujocoScene(DebugVisualizer):
     # Apply scene offset to all arrows
     for i, (start, end, color, width) in enumerate(self._queued_arrows):
       # Apply scene offset
-      start_offset = start + self._current_scene_offset
-      end_offset = end + self._current_scene_offset
+      start_offset = start + self._scene_offset
+      end_offset = end + self._scene_offset
 
       direction = end_offset - start_offset
       length = np.linalg.norm(direction)

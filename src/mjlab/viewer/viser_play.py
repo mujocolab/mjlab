@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 
-import numpy as np
 import viser
 from typing_extensions import override
 
@@ -49,7 +48,9 @@ class ViserPlayViewer(BaseViewer):
     )
 
     self._scene.env_idx = self.cfg.env_idx
-    self._scene.debug_visualization_enabled = True  # Enable debug visualization by default
+    self._scene.debug_visualization_enabled = (
+      True  # Enable debug visualization by default
+    )
 
     # Create tab group.
     tabs = self._server.gui.add_tab_group()
@@ -150,7 +151,9 @@ class ViserPlayViewer(BaseViewer):
         self._reward_plotter.update(terms)
 
     # Update debug visualizations if enabled
-    if self._scene.debug_visualization_enabled and hasattr(self.env.unwrapped, "update_visualizers"):
+    if self._scene.debug_visualization_enabled and hasattr(
+      self.env.unwrapped, "update_visualizers"
+    ):
       self._scene.clear()  # Clear queued arrows from previous frame
       self.env.unwrapped.update_visualizers(self._scene)
 

@@ -15,6 +15,7 @@ import mujoco
 import numpy as np
 import tyro
 import viser
+
 from mjlab.viewer.viser_scene import ViserMujocoScene
 
 
@@ -89,8 +90,8 @@ class NanDumpViewer:
           self.current_env = int(self.env_slider.value)
           self._update_state()
 
-    # Add standard visualization options.
-    self.scene.create_visualization_gui()
+    # Add standard visualization options (hide debug viz control since no env).
+    self.scene.create_visualization_gui(show_debug_viz_control=False)
 
     # Initial state update.
     self._update_state()
@@ -142,6 +143,10 @@ class NanDumpViewer:
     try:
       while True:
         import time
+
+        # Check if visualization settings changed and need a refresh.
+        if self.scene.needs_update:
+          self.scene.refresh_visualization()
 
         time.sleep(0.1)
     except KeyboardInterrupt:
