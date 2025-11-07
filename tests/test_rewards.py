@@ -1,6 +1,5 @@
 """Tests for reward manager functionality."""
 
-from dataclasses import dataclass, field
 from unittest.mock import Mock
 
 import pytest
@@ -56,52 +55,37 @@ def mock_env():
 @pytest.fixture
 def class_reward_config():
   """Config with a class-based reward."""
-
-  @dataclass
-  class Cfg:
-    term: RewardTermCfg = field(
-      default_factory=lambda: RewardTermCfg(
-        func=SimpleTestReward,
-        weight=1.0,
-        params={},
-      )
+  return {
+    "term": RewardTermCfg(
+      func=SimpleTestReward,
+      weight=1.0,
+      params={},
     )
-
-  return Cfg()
+  }
 
 
 @pytest.fixture
 def function_reward_config():
   """Config with a function-based reward."""
-
-  @dataclass
-  class Cfg:
-    term: RewardTermCfg = field(
-      default_factory=lambda: RewardTermCfg(
-        func=lambda env: torch.ones(env.num_envs),
-        weight=1.0,
-        params={},
-      )
+  return {
+    "term": RewardTermCfg(
+      func=lambda env: torch.ones(env.num_envs),
+      weight=1.0,
+      params={},
     )
-
-  return Cfg()
+  }
 
 
 @pytest.fixture
 def stateless_reward_config():
   """Config with a stateless class-based reward."""
-
-  @dataclass
-  class Cfg:
-    term: RewardTermCfg = field(
-      default_factory=lambda: RewardTermCfg(
-        func=StatelessReward,
-        weight=1.0,
-        params={},
-      )
+  return {
+    "term": RewardTermCfg(
+      func=StatelessReward,
+      weight=1.0,
+      params={},
     )
-
-  return Cfg()
+  }
 
 
 def test_class_based_reward_reset(mock_env, class_reward_config):
