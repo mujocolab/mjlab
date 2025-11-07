@@ -4,7 +4,6 @@ This module provides factory functions that create complete ManagerBasedRlEnvCfg
 instances for the Go1 robot on flat terrain.
 """
 
-
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.tasks.velocity.config.go1.rough_env_cfg import (
   create_unitree_go1_rough_env_cfg,

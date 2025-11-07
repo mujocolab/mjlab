@@ -137,7 +137,6 @@ class ActionManager(ManagerBase):
     self._term_names: list[str] = list()
     self._terms: dict[str, ActionTerm] = dict()
 
-
     for term_name, term_cfg in self.cfg.items():
       term_cfg: ActionTermCfg | None
       if term_cfg is None:

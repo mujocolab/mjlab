@@ -138,7 +138,9 @@ def create_unitree_g1_rough_env_cfg() -> ManagerBasedRlEnvCfg:
   rewards["body_ang_vel"].params["asset_cfg"].body_names = ["torso_link"]
 
   # Customize observations.
-  observations["critic"].terms["foot_height"].params["asset_cfg"].site_names = site_names
+  observations["critic"].terms["foot_height"].params[
+    "asset_cfg"
+  ].site_names = site_names
 
   # Customize terminations - G1 doesn't use illegal_contact.
   assert "illegal_contact" in terminations

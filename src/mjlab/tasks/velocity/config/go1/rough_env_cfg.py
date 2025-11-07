@@ -106,7 +106,9 @@ def create_unitree_go1_rough_env_cfg() -> ManagerBasedRlEnvCfg:
   rewards["angular_momentum"].weight = 0.0
 
   # Customize observations.
-  observations["critic"].terms["foot_height"].params["asset_cfg"].site_names = site_names
+  observations["critic"].terms["foot_height"].params[
+    "asset_cfg"
+  ].site_names = site_names
 
   # Customize viewer.
   viewer = deepcopy(VIEWER_CONFIG)
@@ -134,7 +136,7 @@ def create_unitree_go1_rough_env_cfg() -> ManagerBasedRlEnvCfg:
 def create_unitree_go1_rough_env_cfg_play() -> ManagerBasedRlEnvCfg:
   """Create Unitree Go1 rough terrain PLAY configuration.
 
-      (infinite episodes, no curriculum).
+  (infinite episodes, no curriculum).
   """
   cfg = create_unitree_go1_rough_env_cfg()
 
