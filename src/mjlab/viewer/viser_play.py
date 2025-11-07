@@ -54,13 +54,14 @@ class ViserPlayViewer(BaseViewer):
 
     self._scene.current_env_idx = self.cfg.env_idx
 
-    # Create tabs.
-    tabs = self._server.gui.add_folder("Controls")
+    # Create tab group.
+    tabs = self._server.gui.add_tab_group()
 
     # Main tab with simulation controls and display settings.
-    with tabs:
+    with tabs.add_tab("Controls", icon=viser.Icon.SETTINGS):
       # Status display.
-      self._status_html = self._server.gui.add_html("")
+      with self._server.gui.add_folder("Info"):
+        self._status_html = self._server.gui.add_html("")
 
       # Simulation controls.
       with self._server.gui.add_folder("Simulation"):
@@ -103,68 +104,67 @@ class ViserPlayViewer(BaseViewer):
             self.increase_speed()
           self._update_status_display()
 
+      # Add standard visualization options from ViserMujocoScene (Environment, Visualization, Contacts).
+      self._scene.create_options_gui(include_geom_groups=False)
+
       # Camera tracking controls.
-      with self._server.gui.add_folder("Camera"):
-        cb_camera_tracking = self._server.gui.add_checkbox(
-          "Track",
-          initial_value=False,
-          hint="Keep tracked body centered. Use Viser camera controls to adjust view.",
-        )
+      cb_camera_tracking = self._server.gui.add_checkbox(
+        "Track camera",
+        initial_value=False,
+        hint="Keep tracked body centered. Use Viser camera controls to adjust view.",
+      )
 
-        @cb_camera_tracking.on_update
-        def _(_) -> None:
-          self._camera_tracking = cb_camera_tracking.value
-          self._needs_update = True
-          # When enabling tracking, set all camera look-ats and positions to config defaults.
-          if self._camera_tracking:
-            # Get camera parameters from config.
-            distance = self.cfg.distance
-            azimuth = self.cfg.azimuth
-            elevation = self.cfg.elevation
+      @cb_camera_tracking.on_update
+      def _(_) -> None:
+        self._camera_tracking = cb_camera_tracking.value
+        self._needs_update = True
+        # When enabling tracking, set all camera look-ats and positions to config defaults.
+        if self._camera_tracking:
+          # Get camera parameters from config.
+          distance = self.cfg.distance
+          azimuth = self.cfg.azimuth
+          elevation = self.cfg.elevation
 
-            # Convert to radians and calculate camera position.
-            azimuth_rad = np.deg2rad(azimuth)
-            elevation_rad = np.deg2rad(elevation)
+          # Convert to radians and calculate camera position.
+          azimuth_rad = np.deg2rad(azimuth)
+          elevation_rad = np.deg2rad(elevation)
 
-            # Calculate forward vector from spherical coordinates.
-            forward = np.array(
-              [
-                np.cos(elevation_rad) * np.cos(azimuth_rad),
-                np.cos(elevation_rad) * np.sin(azimuth_rad),
-                np.sin(elevation_rad),
-              ]
-            )
+          # Calculate forward vector from spherical coordinates.
+          forward = np.array(
+            [
+              np.cos(elevation_rad) * np.cos(azimuth_rad),
+              np.cos(elevation_rad) * np.sin(azimuth_rad),
+              np.sin(elevation_rad),
+            ]
+          )
 
-            # Camera position is origin - forward * distance.
-            camera_pos = -forward * distance
+          # Camera position is origin - forward * distance.
+          camera_pos = -forward * distance
 
-            for client in self._server.get_clients().values():
-              client.camera.position = camera_pos
-              client.camera.look_at = np.zeros(3)
+          for client in self._server.get_clients().values():
+            client.camera.position = camera_pos
+            client.camera.look_at = np.zeros(3)
 
       # Debug visualization controls.
-      with self._server.gui.add_folder("Debug"):
-        cb_debug_vis = self._server.gui.add_checkbox(
-          "Show",
-          initial_value=True,
-          hint="Show debug arrows and ghost meshes.",
-        )
+      cb_debug_vis = self._server.gui.add_checkbox(
+        "Debug visualization",
+        initial_value=True,
+        hint="Show debug arrows and ghost meshes.",
+      )
 
-        @cb_debug_vis.on_update
-        def _(_) -> None:
-          self._show_debug_vis = cb_debug_vis.value
-          self._needs_update = True
-          # Clear visualizer if hiding.
-          if not self._show_debug_vis and self._debug_visualizer is not None:
-            self._debug_visualizer.clear_all()
+      @cb_debug_vis.on_update
+      def _(_) -> None:
+        self._show_debug_vis = cb_debug_vis.value
+        self._needs_update = True
+        # Clear visualizer if hiding.
+        if not self._show_debug_vis and self._debug_visualizer is not None:
+          self._debug_visualizer.clear_all()
 
-    # Add standard visualization options from ViserMujocoScene.
-    self._scene.create_options_gui()
     self._prev_env_idx = self._scene.current_env_idx
 
     # Reward plots tab.
     if hasattr(self.env.unwrapped, "reward_manager"):
-      with self._server.gui.add_folder("Rewards"):
+      with tabs.add_tab("Rewards", icon=viser.Icon.CHART_LINE):
         # Get reward term names and create reward plotter.
         term_names = [
           name
@@ -173,6 +173,9 @@ class ViserPlayViewer(BaseViewer):
           )
         ]
         self._reward_plotter = ViserRewardPlotter(self._server, term_names)
+
+    # Geom groups tab.
+    self._scene.create_geom_groups_gui(tabs)
 
   @override
   def sync_env_to_viewer(self) -> None:

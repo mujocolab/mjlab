@@ -162,8 +162,13 @@ class ViserMujocoScene:
       if self.contact_force_head_handle is not None:
         self.contact_force_head_handle.visible = False
 
-  def create_options_gui(self) -> None:
-    """Add standard GUI controls that automatically update this scene's settings."""
+  def create_options_gui(self, include_geom_groups: bool = True) -> None:
+    """Add standard GUI controls that automatically update this scene's settings.
+
+    Args:
+      include_geom_groups: Whether to include geom group controls. Set to False if using
+        create_geom_groups_gui() to add them in a separate tab.
+    """
     # Environment selection (only if multiple environments).
     if self.num_envs > 1:
       with self.server.gui.add_folder("Environment"):
@@ -210,21 +215,6 @@ class ViserMujocoScene:
       @self.server.on_client_connect
       def _(client: viser.ClientHandle) -> None:
         client.camera.fov = np.radians(slider_fov.value)
-
-    # Geom group visibility controls.
-    with self.server.gui.add_folder("Geom Groups"):
-      for i in range(6):
-        cb = self.server.gui.add_checkbox(
-          f"Group {i}",
-          initial_value=self.geom_groups_visible[i],
-          hint=f"Show/hide geoms in group {i}",
-        )
-
-        @cb.on_update
-        def _(event, group_idx=i) -> None:
-          self.geom_groups_visible[group_idx] = event.target.value
-          self._sync_visibilities()
-          self.needs_update = True
 
     # Contact visualization settings.
     with self.server.gui.add_folder("Contacts"):
@@ -285,6 +275,42 @@ class ViserMujocoScene:
       def _(_) -> None:
         self.meansize_override = meansize_input.value
         self.needs_update = True
+
+    # Geom group visibility controls (if not using separate tab).
+    if include_geom_groups:
+      with self.server.gui.add_folder("Geom Groups"):
+        for i in range(6):
+          cb = self.server.gui.add_checkbox(
+            f"Group {i}",
+            initial_value=self.geom_groups_visible[i],
+            hint=f"Show/hide geoms in group {i}",
+          )
+
+          @cb.on_update
+          def _(event, group_idx=i) -> None:
+            self.geom_groups_visible[group_idx] = event.target.value
+            self._sync_visibilities()
+            self.needs_update = True
+
+  def create_geom_groups_gui(self, tabs) -> None:
+    """Add geom groups tab to the given tab group.
+
+    Args:
+      tabs: The viser tab group to add the geom groups tab to.
+    """
+    with tabs.add_tab("Group enable", icon=viser.Icon.EYE):
+      for i in range(6):
+        cb = self.server.gui.add_checkbox(
+          f"Group {i}",
+          initial_value=self.geom_groups_visible[i],
+          hint=f"Show/hide geoms in group {i}",
+        )
+
+        @cb.on_update
+        def _(event, group_idx=i) -> None:
+          self.geom_groups_visible[group_idx] = event.target.value
+          self._sync_visibilities()
+          self.needs_update = True
 
   def update(self, wp_data, env_idx: int | None = None) -> None:
     """Update scene from batched simulation data.
