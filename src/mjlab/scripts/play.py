@@ -13,8 +13,8 @@ from rsl_rl.runners import OnPolicyRunner
 
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
+from mjlab.tasks.tracking.mdp import MotionCommandCfg
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
-from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
 )
@@ -70,7 +70,18 @@ def run_play(task: str, cfg: PlayConfig):
   DUMMY_MODE = cfg.agent in {"zero", "random"}
   TRAINED_MODE = not DUMMY_MODE
 
-  if isinstance(env_cfg, TrackingEnvCfg):
+  # Check if this is a tracking task by checking for motion command
+  is_tracking_task = (
+    env_cfg.commands is not None
+    and "motion" in env_cfg.commands
+    and isinstance(env_cfg.commands["motion"], MotionCommandCfg)
+  )
+
+  if is_tracking_task:
+    assert env_cfg.commands is not None
+    motion_cmd = env_cfg.commands["motion"]
+    assert isinstance(motion_cmd, MotionCommandCfg)
+
     if DUMMY_MODE:
       if not cfg.registry_name:
         raise ValueError(
@@ -84,13 +95,11 @@ def run_play(task: str, cfg: PlayConfig):
 
       api = wandb.Api()
       artifact = api.artifact(registry_name)
-      env_cfg.commands.motion.motion_file = str(
-        Path(artifact.download()) / "motion.npz"
-      )
+      motion_cmd.motion_file = str(Path(artifact.download()) / "motion.npz")
     else:
       if cfg.motion_file is not None:
         print(f"[INFO]: Using motion file from CLI: {cfg.motion_file}")
-        env_cfg.commands.motion.motion_file = cfg.motion_file
+        motion_cmd.motion_file = cfg.motion_file
       else:
         import wandb
 
@@ -107,7 +116,7 @@ def run_play(task: str, cfg: PlayConfig):
           )
           if art is None:
             raise RuntimeError("No motion artifact found in the run.")
-          env_cfg.commands.motion.motion_file = str(Path(art.download()) / "motion.npz")
+          motion_cmd.motion_file = str(Path(art.download()) / "motion.npz")
 
   log_dir: Optional[Path] = None
   resume_path: Optional[Path] = None
@@ -179,7 +188,7 @@ def run_play(task: str, cfg: PlayConfig):
 
       policy = PolicyRandom()
   else:
-    if isinstance(env_cfg, TrackingEnvCfg):
+    if is_tracking_task:
       runner = MotionTrackingOnPolicyRunner(
         env, asdict(agent_cfg), log_dir=str(log_dir), device=device
       )

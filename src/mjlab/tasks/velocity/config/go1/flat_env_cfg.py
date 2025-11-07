@@ -1,28 +1,45 @@
-from dataclasses import dataclass
+"""Unitree Go1 flat terrain velocity tracking configuration.
 
-from mjlab.tasks.velocity.config.go1.rough_env_cfg import (
-  UnitreeGo1RoughEnvCfg,
-)
+This module provides factory functions that create complete ManagerBasedRlEnvCfg
+instances for the Go1 robot on flat terrain.
+"""
 
+from copy import deepcopy
 
-@dataclass
-class UnitreeGo1FlatEnvCfg(UnitreeGo1RoughEnvCfg):
-  def __post_init__(self):
-    super().__post_init__()
-
-    assert self.scene.terrain is not None
-    self.scene.terrain.terrain_type = "plane"
-    self.scene.terrain.terrain_generator = None
-    self.curriculum.terrain_levels = None
+from mjlab.envs import ManagerBasedRlEnvCfg
+from mjlab.tasks.velocity.config.go1.rough_env_cfg import create_unitree_go1_rough_env_cfg
 
 
-@dataclass
-class UnitreeGo1FlatEnvCfg_PLAY(UnitreeGo1FlatEnvCfg):
-  def __post_init__(self):
-    super().__post_init__()
+def create_unitree_go1_flat_env_cfg() -> ManagerBasedRlEnvCfg:
+  """Create Unitree Go1 flat terrain velocity tracking configuration."""
+  # Start with rough terrain config.
+  cfg = create_unitree_go1_rough_env_cfg()
 
-    # Effectively infinite episode length.
-    self.episode_length_s = int(1e9)
+  # Change to flat terrain.
+  assert cfg.scene.terrain is not None
+  cfg.scene.terrain.terrain_type = "plane"
+  cfg.scene.terrain.terrain_generator = None
 
-    self.observations.policy.enable_corruption = False
-    self.events.push_robot = None
+  # Disable terrain curriculum.
+  assert cfg.curriculum is not None
+  assert "terrain_levels" in cfg.curriculum
+  del cfg.curriculum["terrain_levels"]
+
+  return cfg
+
+
+def create_unitree_go1_flat_env_cfg_play() -> ManagerBasedRlEnvCfg:
+  """Create Unitree Go1 flat terrain PLAY configuration."""
+  cfg = create_unitree_go1_flat_env_cfg()
+
+  # PLAY mode customizations.
+  cfg.episode_length_s = int(1e9)
+  cfg.observations["policy"].enable_corruption = False
+  cfg.events["push_robot"] = None
+
+  return cfg
+
+
+# Module-level constants for gymnasium registration.
+UNITREE_GO1_FLAT_ENV_CFG = create_unitree_go1_flat_env_cfg()
+UNITREE_GO1_FLAT_ENV_CFG_PLAY = create_unitree_go1_flat_env_cfg_play()

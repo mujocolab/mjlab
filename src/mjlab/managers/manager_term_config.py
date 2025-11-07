@@ -126,8 +126,12 @@ class ObservationTermCfg(ManagerTermBaseCfg):
 
 @dataclass
 class ObservationGroupCfg:
-  """Configuration for an observation group."""
+  """Configuration for an observation group.
 
+  The `terms` field contains a dictionary mapping term names to their configurations.
+  """
+
+  terms: dict[str, ObservationTermCfg]
   concatenate_terms: bool = True
   concatenate_dim: int = -1
   enable_corruption: bool = False

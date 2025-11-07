@@ -11,8 +11,8 @@ import gymnasium as gym
 import tyro
 
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
+from mjlab.tasks.tracking.mdp import MotionCommandCfg
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
-from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
 from mjlab.tasks.velocity.rl import VelocityOnPolicyRunner
 from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
   load_cfg_from_registry,
@@ -38,7 +38,14 @@ def run_train(task: str, cfg: TrainConfig) -> None:
 
   registry_name: str | None = None
 
-  if isinstance(cfg.env, TrackingEnvCfg):
+  # Check if this is a tracking task by checking for motion command
+  is_tracking_task = (
+    cfg.env.commands is not None
+    and "motion" in cfg.env.commands
+    and isinstance(cfg.env.commands["motion"], MotionCommandCfg)
+  )
+
+  if is_tracking_task:
     if not cfg.registry_name:
       raise ValueError("Must provide --registry-name for tracking tasks.")
 
@@ -50,7 +57,11 @@ def run_train(task: str, cfg: TrainConfig) -> None:
 
     api = wandb.Api()
     artifact = api.artifact(registry_name)
-    cfg.env.commands.motion.motion_file = str(Path(artifact.download()) / "motion.npz")
+
+    assert cfg.env.commands is not None
+    motion_cmd = cfg.env.commands["motion"]
+    assert isinstance(motion_cmd, MotionCommandCfg)
+    motion_cmd.motion_file = str(Path(artifact.download()) / "motion.npz")
 
   # Enable NaN guard if requested
   if cfg.enable_nan_guard:
@@ -91,7 +102,7 @@ def run_train(task: str, cfg: TrainConfig) -> None:
   agent_cfg = asdict(cfg.agent)
   env_cfg = asdict(cfg.env)
 
-  if isinstance(cfg.env, TrackingEnvCfg):
+  if is_tracking_task:
     runner = MotionTrackingOnPolicyRunner(
       env, agent_cfg, str(log_dir), cfg.device, registry_name
     )
