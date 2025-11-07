@@ -1,6 +1,5 @@
 """Tests for MDP events functionality."""
 
-from dataclasses import dataclass
 from unittest.mock import Mock
 
 import pytest
@@ -9,7 +8,7 @@ from conftest import get_test_device
 
 from mjlab.envs.mdp import events
 from mjlab.managers.event_manager import EventManager
-from mjlab.managers.manager_term_config import EventTermCfg, term
+from mjlab.managers.manager_term_config import EventTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 
@@ -87,33 +86,29 @@ def test_class_based_event_with_domain_randomization(device):
   env.sim = Mock()
 
   # Create event manager config with both DR and non-DR terms.
-  @dataclass
-  class EventCfg:
+  cfg = {
     # Class-based DR term should be tracked.
-    custom_dr: EventTermCfg = term(
-      EventTermCfg,
+    "custom_dr": EventTermCfg(
       mode="startup",
       func=CustomRandomizer,
       domain_randomization=True,
       params={"field": "geom_friction", "ranges": (0.3, 1.2)},
-    )
+    ),
     # Regular function-based DR term should be tracked.
-    standard_dr: EventTermCfg = term(
-      EventTermCfg,
+    "standard_dr": EventTermCfg(
       mode="reset",
       func=events.randomize_field,
       domain_randomization=True,
       params={"field": "body_mass", "ranges": (0.8, 1.2)},
-    )
+    ),
     # Non-DR term should not be tracked.
-    regular_event: EventTermCfg = term(
-      EventTermCfg,
+    "regular_event": EventTermCfg(
       mode="reset",
       func=events.reset_joints_by_offset,
       params={"position_range": (-0.1, 0.1), "velocity_range": (0.0, 0.0)},
-    )
+    ),
+  }
 
-  cfg = EventCfg()
   manager = EventManager(cfg, env)
 
   # Verify that DR fields are tracked.

@@ -1,6 +1,5 @@
 """Tests for observation delay functionality."""
 
-from dataclasses import dataclass, field
 from unittest.mock import Mock
 
 import pytest
@@ -47,17 +46,15 @@ def simple_obs_func(device):
 def test_no_delay_by_default(mock_env, simple_obs_func):
   """Test that observations work without delay (default behavior)."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(func=simple_obs_func, params={})
-      )
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(func=simple_obs_func, params={}),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
   assert manager.group_obs_dim["policy"] == (3,)
 
   obs = manager.compute()
@@ -69,19 +66,17 @@ def test_no_delay_by_default(mock_env, simple_obs_func):
 def test_constant_delay(mock_env, simple_obs_func, device):
   """Test observation with constant delay (min_lag = max_lag = 2)."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, delay_min_lag=2, delay_max_lag=2
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
   # Note: counter is incremented during _prepare_terms (value=1).
 
   # First compute uses value=2.
@@ -123,19 +118,17 @@ def test_constant_delay(mock_env, simple_obs_func, device):
 def test_zero_delay_returns_current(mock_env, simple_obs_func, device):
   """Test that delay with min_lag=max_lag=0 returns current observation."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, delay_min_lag=0, delay_max_lag=0
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
 
   # First compute uses value=2 (counter at 1 after _prepare_terms).
   obs1 = manager.compute()
@@ -153,19 +146,17 @@ def test_zero_delay_returns_current(mock_env, simple_obs_func, device):
 def test_lag_one_delay(mock_env, simple_obs_func, device):
   """Test lag=1 returns previous observation."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, delay_min_lag=1, delay_max_lag=1
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
 
   # Build sequence: 2, 3, 4, 5, 6
   # Expected with lag=1: 2, 2, 3, 4, 5
@@ -199,24 +190,22 @@ def test_lag_one_delay(mock_env, simple_obs_func, device):
 def test_delay_with_history(mock_env, simple_obs_func, device):
   """Test that delay is applied before history."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func,
           params={},
           delay_min_lag=1,
           delay_max_lag=1,
           history_length=2,
           flatten_history_dim=False,
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
   assert manager.group_obs_dim["policy"] == (2, 3)
 
   # First compute: value=2, delay gives 2, history [2, 2].
@@ -256,23 +245,21 @@ def test_delay_with_history(mock_env, simple_obs_func, device):
 def test_delay_with_scale(mock_env, simple_obs_func, device):
   """Test that scaling is applied before delay."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func,
           params={},
           scale=2.0,
           delay_min_lag=1,
           delay_max_lag=1,
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
 
   # First compute: value=2, scaled to 4.
   obs1 = manager.compute()
@@ -298,19 +285,17 @@ def test_delay_with_scale(mock_env, simple_obs_func, device):
 def test_reset_clears_delay_buffer(mock_env, simple_obs_func, device):
   """Test that reset clears delay buffer and restarts lag constraint."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, delay_min_lag=2, delay_max_lag=2
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
 
   # Build up delay buffer with several steps.
   obs = manager.compute()
@@ -345,19 +330,17 @@ def test_reset_partial_envs_with_verification(mock_env, device):
     # Return different values per env so we can track them.
     return counters.unsqueeze(1).repeat(1, 3).float()
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=per_env_obs_func, params={}, delay_min_lag=1, delay_max_lag=1
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
 
   # Build up some history.
   for _ in range(3):
@@ -399,23 +382,21 @@ def test_shared_delay_actual_verification(mock_env, device):
     # Return env index as the observation value.
     return torch.arange(env.num_envs, device=device).unsqueeze(1).repeat(1, 3).float()
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=unique_obs_func,
           params={},
           delay_min_lag=0,
           delay_max_lag=2,
           delay_per_env=False,  # Same lag for all envs.
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
 
   # Run several steps and track the delay buffer.
   delay_buffer = manager._group_obs_term_delay_buffer["policy"]["obs1"]
@@ -436,24 +417,22 @@ def test_shared_delay_actual_verification(mock_env, device):
 def test_update_period_actual_verification(mock_env, device):
   """Verify that update_period controls lag update frequency."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=lambda env: torch.zeros((env.num_envs, 3), device=device),
           params={},
           delay_min_lag=0,
           delay_max_lag=3,
           delay_update_period=3,
           delay_per_env_phase=False,  # All envs update together.
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
   delay_buffer = manager._group_obs_term_delay_buffer["policy"]["obs1"]
 
   # Track lag changes over time.
@@ -474,19 +453,17 @@ def test_update_period_actual_verification(mock_env, device):
 def test_delay_preserves_dimensions(mock_env, simple_obs_func):
   """Test that delay preserves observation dimensions."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, delay_min_lag=1, delay_max_lag=3
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
   assert manager.group_obs_dim["policy"] == (3,)
 
   obs = manager.compute()
@@ -504,22 +481,18 @@ def test_mixed_delay_and_no_delay_terms(mock_env, simple_obs_func, device):
     counter["value"] += 1
     return torch.full((env.num_envs, 2), float(counter["value"]) * 10, device=device)
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs_with_delay: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs_with_delay": ObservationTermCfg(
           func=simple_obs_func, params={}, delay_min_lag=1, delay_max_lag=1
-        )
-      )
-      obs_no_delay: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(func=obs_func2, params={})
-      )
+        ),
+        "obs_no_delay": ObservationTermCfg(func=obs_func2, params={}),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
 
   # Should concatenate: 3 + 2 = 5.
   assert manager.group_obs_dim["policy"] == (5,)

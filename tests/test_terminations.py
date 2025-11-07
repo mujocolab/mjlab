@@ -1,6 +1,5 @@
 """Tests for MDP termination functions."""
 
-from dataclasses import dataclass, field
 from unittest.mock import Mock
 
 import mujoco
@@ -66,15 +65,11 @@ def test_nan_detection_with_termination_manager(mock_env_with_sim):
   """Test that nan_detection is properly logged by termination manager."""
   env = mock_env_with_sim
 
-  @dataclass
-  class TestTerminationsCfg:
-    nan_term: TerminationTermCfg = field(
-      default_factory=lambda: TerminationTermCfg(
-        func=nan_detection, params={}, time_out=False
-      )
-    )
+  cfg = {
+    "nan_term": TerminationTermCfg(func=nan_detection, params={}, time_out=False),
+  }
 
-  manager = TerminationManager(TestTerminationsCfg(), env)
+  manager = TerminationManager(cfg, env)
 
   # No terminations initially.
   result = manager.compute()

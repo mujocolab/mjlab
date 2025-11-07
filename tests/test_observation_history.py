@@ -1,6 +1,5 @@
 """Tests for observation history functionality."""
 
-from dataclasses import dataclass, field
 from unittest.mock import Mock
 
 import pytest
@@ -45,17 +44,15 @@ def simple_obs_func(device):
 def test_no_history_by_default(mock_env, simple_obs_func):
   """Test that observations work without history (default behavior)."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(func=simple_obs_func, params={})
-      )
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(func=simple_obs_func, params={}),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
   assert manager.group_obs_dim["policy"] == (3,)
 
   obs = manager.compute()
@@ -67,19 +64,15 @@ def test_no_history_by_default(mock_env, simple_obs_func):
 def test_single_step_history(mock_env, simple_obs_func):
   """Test observation with history_length=1."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
-          func=simple_obs_func, params={}, history_length=1
-        )
-      )
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(func=simple_obs_func, params={}, history_length=1),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
   assert manager.group_obs_dim["policy"] == (3,)
 
   obs = manager.compute()
@@ -91,19 +84,17 @@ def test_single_step_history(mock_env, simple_obs_func):
 def test_multi_step_history_flattened(mock_env, simple_obs_func):
   """Test observation with history_length=3 and flattened."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=3, flatten_history_dim=True
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
   assert manager.group_obs_dim["policy"] == (9,)
 
   obs = manager.compute()
@@ -115,19 +106,17 @@ def test_multi_step_history_flattened(mock_env, simple_obs_func):
 def test_multi_step_history_not_flattened(mock_env, simple_obs_func):
   """Test observation with history_length=3 and not flattened."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=3, flatten_history_dim=False
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
   assert manager.group_obs_dim["policy"] == (3, 3)
 
   obs = manager.compute()
@@ -142,19 +131,17 @@ def test_multi_step_history_not_flattened(mock_env, simple_obs_func):
 def test_history_accumulates_correctly(mock_env, simple_obs_func):
   """Test that history buffer accumulates observations in correct order."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=3, flatten_history_dim=False
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
   device = mock_env.device
   # Note: counter is incremented during _prepare_terms (value=1).
 
@@ -210,19 +197,17 @@ def test_history_accumulates_correctly(mock_env, simple_obs_func):
 def test_update_history_false_doesnt_modify_buffer(mock_env, simple_obs_func):
   """Test that update_history=False doesn't modify the buffer."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=2, flatten_history_dim=False
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
 
   # Initialize (value=1).
   obs1 = manager.compute(update_history=False)
@@ -244,23 +229,21 @@ def test_update_history_false_doesnt_modify_buffer(mock_env, simple_obs_func):
 def test_group_history_overrides_term(mock_env, simple_obs_func):
   """Test group history_length overrides term history_length."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      history_length: int | None = 5  # Group level.
-      flatten_history_dim: bool = False
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      history_length=5,  # Group level.
+      flatten_history_dim=False,
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func,
           params={},
           history_length=2,  # Overridden.
-        )
-      )
+        ),
+      },
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
   assert manager.group_obs_dim["policy"] == (5, 3)
 
   obs = manager.compute()
@@ -275,19 +258,17 @@ def test_group_history_overrides_term(mock_env, simple_obs_func):
 def test_reset_clears_all_envs(mock_env, simple_obs_func):
   """Test that reset without env_ids clears all environments."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=2, flatten_history_dim=False
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
 
   # Build up history.
   manager.compute(update_history=True)
@@ -306,19 +287,17 @@ def test_reset_clears_all_envs(mock_env, simple_obs_func):
 def test_reset_partial_envs(mock_env, simple_obs_func):
   """Test that reset with specific env_ids only resets those envs."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=3, flatten_history_dim=False
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
 
   # Build up history.
   manager.compute(update_history=True)
@@ -348,19 +327,17 @@ def test_reset_partial_envs(mock_env, simple_obs_func):
 def test_reset_partial_envs_with_backfill(mock_env, simple_obs_func):
   """Test that reset envs get backfilled on next update."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=3, flatten_history_dim=False
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
   device = mock_env.device
 
   # Build history: [2, 3, 4] for all envs (counter starts at 1 after _prepare_terms).
@@ -409,23 +386,21 @@ def test_reset_partial_envs_with_backfill(mock_env, simple_obs_func):
 def test_history_with_clip(mock_env, simple_obs_func):
   """Test that clipping is applied before history."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func,
           params={},
           history_length=2,
           flatten_history_dim=False,
           clip=(-0.5, 0.5),
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
 
   obs = manager.compute(update_history=True)
   policy_obs = obs["policy"]
@@ -438,23 +413,21 @@ def test_history_with_clip(mock_env, simple_obs_func):
 def test_history_with_scale(mock_env, simple_obs_func):
   """Test that scaling is applied before history."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func,
           params={},
           history_length=2,
           flatten_history_dim=False,
           scale=2.0,
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
   device = mock_env.device
   # Counter at 1 after _prepare_terms.
 
@@ -484,22 +457,18 @@ def test_mixed_terms_concatenated(mock_env, simple_obs_func, device):
     counter["value"] += 1
     return torch.full((env.num_envs, 2), float(counter["value"]) * 10, device=device)
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs_with_history: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs_with_history": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=2, flatten_history_dim=True
-        )
-      )
-      obs_no_history: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(func=obs_func2, params={})
-      )
+        ),
+        "obs_no_history": ObservationTermCfg(func=obs_func2, params={}),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
 
   # Should concatenate: (3*2) + 2 = 8.
   assert manager.group_obs_dim["policy"] == (8,)
@@ -513,19 +482,17 @@ def test_mixed_terms_concatenated(mock_env, simple_obs_func, device):
 def test_no_double_append_on_first_call(mock_env, simple_obs_func):
   """Test that first call with update_history=True only appends once, not twice."""
 
-  @dataclass
-  class ObsCfg:
-    @dataclass
-    class PolicyCfg(ObservationGroupCfg):
-      obs1: ObservationTermCfg = field(
-        default_factory=lambda: ObservationTermCfg(
+  cfg = {
+    "policy": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=3, flatten_history_dim=False
-        )
-      )
+        ),
+      }
+    ),
+  }
 
-    policy: PolicyCfg = field(default_factory=PolicyCfg)
-
-  manager = ObservationManager(ObsCfg(), mock_env)
+  manager = ObservationManager(cfg, mock_env)
   device = mock_env.device
   # Counter is at 1 after _prepare_terms.
 
