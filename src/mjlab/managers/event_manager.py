@@ -73,6 +73,14 @@ class EventManager(ManagerBase):
 
   # Methods.
 
+  def get_term_cfg(self, term_name: str) -> EventTermCfg:
+    """Get the configuration of a specific event term by name."""
+    for mode in self._mode_term_names:
+      if term_name in self._mode_term_names[mode]:
+        index = self._mode_term_names[mode].index(term_name)
+        return self._mode_term_cfgs[mode][index]
+    raise ValueError(f"Event term '{term_name}' not found in active terms.")
+
   def reset(self, env_ids: torch.Tensor | None = None):
     for mode_cfg in self._mode_class_term_cfgs.values():
       for term_cfg in mode_cfg:
@@ -207,7 +215,7 @@ class EventManager(ManagerBase):
         no_trigger = torch.zeros(self.num_envs, device=self.device, dtype=torch.bool)
         self._reset_term_last_triggered_once.append(no_trigger)
 
-      if term_cfg.func.__name__ == "randomize_field":
+      if term_cfg.domain_randomization:
         field_name = term_cfg.params["field"]
         if field_name not in self._domain_randomization_fields:
           self._domain_randomization_fields.append(field_name)

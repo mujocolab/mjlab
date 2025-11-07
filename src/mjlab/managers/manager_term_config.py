@@ -77,6 +77,9 @@ class EventTermCfg(ManagerTermBaseCfg):
   interval_range_s: tuple[float, float] | None = None
   is_global_time: bool = False
   min_step_count_between_reset: int = 0
+  domain_randomization: bool = False
+  """Whether this event term performs domain randomization. If True, the field
+  name (from params["field"]) will be tracked for domain randomization purposes."""
 
 
 ##

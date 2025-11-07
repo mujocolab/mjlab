@@ -1,24 +1,25 @@
 from dataclasses import dataclass, replace
 
 from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ACTION_SCALE, G1_ROBOT_CFG
+from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.tasks.tracking.tracking_env_cfg import TrackingEnvCfg
-from mjlab.utils.spec_config import ContactSensorCfg
 
 
 @dataclass
 class G1FlatEnvCfg(TrackingEnvCfg):
   def __post_init__(self):
-    self_collision_sensor = ContactSensorCfg(
-      name="self_collision",
-      subtree1="pelvis",
-      subtree2="pelvis",
-      data=("found",),
-      reduce="netforce",
-      num=10,  # Report up to 10 contacts.
-    )
-    g1_cfg = replace(G1_ROBOT_CFG, sensors=(self_collision_sensor,))
+    self.scene.entities = {"robot": replace(G1_ROBOT_CFG)}
 
-    self.scene.entities = {"robot": g1_cfg}
+    self_collision_cfg = ContactSensorCfg(
+      name="self_collision",
+      primary=ContactMatch(mode="subtree", pattern="pelvis", entity="robot"),
+      secondary=ContactMatch(mode="subtree", pattern="pelvis", entity="robot"),
+      fields=("found",),
+      reduce="none",
+      num_slots=1,
+    )
+    self.scene.sensors = (self_collision_cfg,)
+
     self.actions.joint_pos.scale = G1_ACTION_SCALE
 
     self.commands.motion.anchor_body_name = "torso_link"
@@ -75,11 +76,20 @@ class G1FlatEnvCfg_PLAY(G1FlatEnvCfg):
     self.commands.motion.pose_range = {}
     self.commands.motion.velocity_range = {}
 
-    # Disable adaptive sampling to play through motion from start to finish.
-    self.commands.motion.disable_adaptive_sampling = True
+    self.commands.motion.sampling_mode = "start"
 
     # Effectively infinite episode length.
     self.episode_length_s = int(1e9)
+
+
+@dataclass
+class G1FlatEnvCfg_DEMO(G1FlatEnvCfg_PLAY):
+  def __post_init__(self):
+    super().__post_init__()
+
+    # The demo uses a long motion, so we use uniform sampling to see more diversity
+    # with num_envs > 1.
+    self.commands.motion.sampling_mode = "uniform"
 
 
 @dataclass
@@ -94,8 +104,7 @@ class G1FlatNoStateEstimationEnvCfg_PLAY(G1FlatNoStateEstimationEnvCfg):
     self.commands.motion.pose_range = {}
     self.commands.motion.velocity_range = {}
 
-    # Disable adaptive sampling to play through motion from start to finish.
-    self.commands.motion.disable_adaptive_sampling = True
+    self.commands.motion.sampling_mode = "start"
 
     # Effectively infinite episode length.
     self.episode_length_s = int(1e9)

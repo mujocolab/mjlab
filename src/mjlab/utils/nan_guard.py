@@ -82,6 +82,27 @@ class NanGuard:
     yield
     self.check_and_dump(wp_data)
 
+  @staticmethod
+  def detect_nans(data: mjwarp.Data) -> torch.Tensor:
+    """Detect NaN/Inf values in physics state (qpos, qvel, qacc, qacc_warmstart).
+
+    Args:
+      data: MuJoCo simulation data containing physics state.
+
+    Returns:
+      Boolean tensor where True indicates environments with NaN/Inf values.
+    """
+    tensors_to_check = [data.qpos, data.qvel, data.qacc, data.qacc_warmstart]
+
+    # Build per-env NaN mask (True if env has NaN/Inf in any tensor).
+    nan_mask = torch.zeros(
+      data.qpos.shape[0], dtype=torch.bool, device=data.qpos.device
+    )
+    for t in tensors_to_check:
+      nan_mask |= torch.isnan(t).any(dim=-1) | torch.isinf(t).any(dim=-1)
+
+    return nan_mask
+
   def check_and_dump(self, data: mjwarp.Data) -> bool:
     """Check for NaN/Inf and dump buffer if detected.
 
@@ -91,14 +112,7 @@ class NanGuard:
     if not self.enabled or self._dumped:
       return False
 
-    tensors_to_check = [data.qpos, data.qvel, data.qacc, data.qacc_warmstart]
-
-    # Build per-env NaN mask (True if env has NaN/Inf in any tensor).
-    nan_mask = torch.zeros(
-      data.qpos.shape[0], dtype=torch.bool, device=data.qpos.device
-    )
-    for t in tensors_to_check:
-      nan_mask |= torch.isnan(t).any(dim=-1) | torch.isinf(t).any(dim=-1)
+    nan_mask = self.detect_nans(data)
 
     if nan_mask.any():
       nan_env_ids = torch.where(nan_mask)[0].cpu().numpy().tolist()

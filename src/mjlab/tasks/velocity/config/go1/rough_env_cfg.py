@@ -4,10 +4,10 @@ from mjlab.asset_zoo.robots.unitree_go1.go1_constants import (
   GO1_ACTION_SCALE,
   GO1_ROBOT_CFG,
 )
+from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.tasks.velocity.velocity_env_cfg import (
   LocomotionVelocityEnvCfg,
 )
-from mjlab.utils.spec_config import ContactSensorCfg
 
 
 @dataclass
@@ -15,33 +15,68 @@ class UnitreeGo1RoughEnvCfg(LocomotionVelocityEnvCfg):
   def __post_init__(self):
     super().__post_init__()
 
-    foot_contact_sensors = [
-      ContactSensorCfg(
-        name=f"{leg}_foot_ground_contact",
-        geom1=f"{leg}_foot_collision",
-        body2="terrain",
-        num=1,
-        data=("found",),
-        reduce="netforce",
-      )
-      for leg in ["FR", "FL", "RR", "RL"]
-    ]
-    go1_cfg = replace(GO1_ROBOT_CFG, sensors=tuple(foot_contact_sensors))
-    self.scene.entities = {"robot": go1_cfg}
-
-    self.actions.joint_pos.scale = GO1_ACTION_SCALE
+    self.scene.entities = {"robot": replace(GO1_ROBOT_CFG)}
 
     foot_names = ["FR", "FL", "RR", "RL"]
-    sensor_names = [f"{name}_foot_ground_contact" for name in foot_names]
+    site_names = ["FR", "FL", "RR", "RL"]
     geom_names = [f"{name}_foot_collision" for name in foot_names]
 
-    self.rewards.air_time.params["sensor_names"] = sensor_names
-    self.rewards.pose.params["std"] = {
+    # Sensors.
+    feet_ground_cfg = ContactSensorCfg(
+      name="feet_ground_contact",
+      primary=ContactMatch(mode="geom", pattern=geom_names, entity="robot"),
+      secondary=ContactMatch(mode="body", pattern="terrain"),
+      fields=("found", "force"),
+      reduce="netforce",
+      num_slots=1,
+      track_air_time=True,
+    )
+    nonfoot_ground_cfg = ContactSensorCfg(
+      name="nonfoot_ground_touch",
+      primary=ContactMatch(
+        mode="geom",
+        entity="robot",
+        # Grab all collision geoms...
+        pattern=r".*_collision\d*$",
+        # Except for the foot geoms.
+        exclude=tuple(geom_names),
+      ),
+      secondary=ContactMatch(mode="body", pattern="terrain"),
+      fields=("found",),
+      reduce="none",
+      num_slots=1,
+    )
+    self.scene.sensors = (feet_ground_cfg, nonfoot_ground_cfg)
+
+    # Actions.
+    self.actions.joint_pos.scale = GO1_ACTION_SCALE
+
+    # Events.
+    self.events.foot_friction.params["asset_cfg"].geom_names = geom_names
+
+    # Rewards.
+    self.rewards.pose.params["std_standing"] = {
+      r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.05,
+      r".*(FR|FL|RR|RL)_calf_joint.*": 0.1,
+    }
+    self.rewards.pose.params["std_walking"] = {
       r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.3,
       r".*(FR|FL|RR|RL)_calf_joint.*": 0.6,
     }
+    self.rewards.pose.params["std_running"] = {
+      r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.3,
+      r".*(FR|FL|RR|RL)_calf_joint.*": 0.6,
+    }
+    self.rewards.foot_clearance.params["asset_cfg"].site_names = site_names
+    self.rewards.foot_swing_height.params["asset_cfg"].site_names = site_names
+    self.rewards.foot_slip.params["asset_cfg"].site_names = site_names
+    # Disable G1-specific rewards.
+    self.rewards.self_collisions.weight = 0.0
+    self.rewards.body_ang_vel.weight = 0.0
+    self.rewards.angular_momentum.weight = 0.0
 
-    self.events.foot_friction.params["asset_cfg"].geom_names = geom_names
+    # Observations.
+    self.observations.critic.foot_height.params["asset_cfg"].site_names = site_names
 
     self.viewer.body_name = "trunk"
     self.viewer.distance = 1.5
@@ -62,7 +97,3 @@ class UnitreeGo1RoughEnvCfg_PLAY(UnitreeGo1RoughEnvCfg):
         self.scene.terrain.terrain_generator.num_cols = 5
         self.scene.terrain.terrain_generator.num_rows = 5
         self.scene.terrain.terrain_generator.border_width = 10.0
-
-    self.curriculum.command_vel = None
-    self.commands.twist.ranges.lin_vel_x = (-3.0, 3.0)
-    self.commands.twist.ranges.ang_vel_z = (-3.0, 3.0)

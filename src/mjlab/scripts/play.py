@@ -59,7 +59,6 @@ def run_play(task: str, cfg: PlayConfig):
   configure_torch_backends()
 
   device = cfg.device or ("cuda:0" if torch.cuda.is_available() else "cpu")
-  print(f"[INFO]: Using device: {device}")
 
   env_cfg = cast(
     ManagerBasedRlEnvCfg, load_cfg_from_registry(task, "env_cfg_entry_point")
@@ -114,18 +113,26 @@ def run_play(task: str, cfg: PlayConfig):
   resume_path: Optional[Path] = None
   if TRAINED_MODE:
     log_root_path = (Path("logs") / "rsl_rl" / agent_cfg.experiment_name).resolve()
-    print(f"[INFO]: Loading experiment from: {log_root_path}")
     if cfg.checkpoint_file is not None:
       resume_path = Path(cfg.checkpoint_file)
       if not resume_path.exists():
         raise FileNotFoundError(f"Checkpoint file not found: {resume_path}")
+      print(f"[INFO]: Loading checkpoint: {resume_path.name}")
     else:
       if cfg.wandb_run_path is None:
         raise ValueError(
           "`wandb_run_path` is required when `checkpoint_file` is not provided."
         )
-      resume_path = get_wandb_checkpoint_path(log_root_path, Path(cfg.wandb_run_path))
-    print(f"[INFO]: Loading checkpoint: {resume_path}")
+      resume_path, was_cached = get_wandb_checkpoint_path(
+        log_root_path, Path(cfg.wandb_run_path)
+      )
+      # Extract run_id and checkpoint name from path for display
+      run_id = resume_path.parent.name
+      checkpoint_name = resume_path.name
+      cached_str = "cached" if was_cached else "downloaded"
+      print(
+        f"[INFO]: Loading checkpoint: {checkpoint_name} (run: {run_id}, {cached_str})"
+      )
     log_dir = resume_path.parent
 
   if cfg.num_envs is not None:

@@ -31,7 +31,7 @@ def main() -> None:
 
   args = tyro.cli(PlayConfig, default=play_config)
 
-  run_play("Mjlab-Tracking-Flat-Unitree-G1-Play", args)
+  run_play("Mjlab-Tracking-Flat-Unitree-G1-Demo", args)
 
 
 if __name__ == "__main__":

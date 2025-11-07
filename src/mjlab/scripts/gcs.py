@@ -17,14 +17,14 @@ class AssetInfo(TypedDict):
 
 ASSETS: dict[str, AssetInfo] = {
   "demo_ckpt.pt": {
-    "url": "https://storage.googleapis.com/mjlab_beta/model_6000.pt",
-    "sha256": "4bc6338750464d6ad6b7b3d1eebd6b914fe40abbd184ffa1bccb9192068231de",
+    "url": "https://storage.googleapis.com/mjlab_beta/model_49999.pt",
+    "sha256": "f1bc404f5165b833a3933ac98ff223450392b78df3eb76b0c36cd1360ff22319",
     "path": CACHE_DIR / "demo_ckpt.pt",
   },
   "demo_motion.npz": {
     "url": "https://storage.googleapis.com/mjlab_beta/lafan_dance1_subject1.npz",
     "sha256": "f08d15d4b5bb605e17b6928ccdb44ae6ce7bf2038111e8b145f12a176cd096d4",
-    "path": CACHE_DIR / "demo_motion.npz",
+    "path": CACHE_DIR / "lafan1_dance1_subject1_demo_motion.npz",
   },
 }
 

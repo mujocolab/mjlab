@@ -312,9 +312,7 @@ def run_sim(
         import wandb
 
         COLLECTION = output_name
-        run = wandb.init(
-          project="csv_to_npz", name=COLLECTION, entity="gcbc_researchers"
-        )
+        run = wandb.init(project="csv_to_npz", name=COLLECTION)
         print(f"[INFO]: Logging motion to wandb: {COLLECTION}")
         REGISTRY = "motions"
         logged_artifact = run.log_artifact(

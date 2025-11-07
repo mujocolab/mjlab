@@ -15,6 +15,18 @@ if TYPE_CHECKING:
 _DEFAULT_SCENE_CFG = SceneEntityCfg("robot")
 
 
+class VelocityStage(TypedDict):
+  step: int
+  lin_vel_x: tuple[float, float] | None
+  lin_vel_y: tuple[float, float] | None
+  ang_vel_z: tuple[float, float] | None
+
+
+class RewardWeightStage(TypedDict):
+  step: int
+  weight: float
+
+
 def terrain_levels_vel(
   env: ManagerBasedRlEnv,
   env_ids: torch.Tensor,
@@ -52,23 +64,44 @@ def terrain_levels_vel(
   return torch.mean(terrain.terrain_levels.float())
 
 
-class VelocityStage(TypedDict):
-  step: int
-  range: tuple[float, float]
-
-
 def commands_vel(
   env: ManagerBasedRlEnv,
   env_ids: torch.Tensor,
   command_name: str,
   velocity_stages: list[VelocityStage],
-) -> torch.Tensor:
+) -> dict[str, torch.Tensor]:
   del env_ids  # Unused.
   command_term = env.command_manager.get_term(command_name)
   assert command_term is not None
   cfg = cast(UniformVelocityCommandCfg, command_term.cfg)
   for stage in velocity_stages:
     if env.common_step_counter > stage["step"]:
-      cfg.ranges.lin_vel_x = stage["range"]
-      cfg.ranges.ang_vel_z = stage["range"]
-  return torch.tensor([cfg.ranges.lin_vel_x[1]])
+      if "lin_vel_x" in stage and stage["lin_vel_x"] is not None:
+        cfg.ranges.lin_vel_x = stage["lin_vel_x"]
+      if "lin_vel_y" in stage and stage["lin_vel_y"] is not None:
+        cfg.ranges.lin_vel_y = stage["lin_vel_y"]
+      if "ang_vel_z" in stage and stage["ang_vel_z"] is not None:
+        cfg.ranges.ang_vel_z = stage["ang_vel_z"]
+  return {
+    "lin_vel_x_min": torch.tensor(cfg.ranges.lin_vel_x[0]),
+    "lin_vel_x_max": torch.tensor(cfg.ranges.lin_vel_x[1]),
+    "lin_vel_y_min": torch.tensor(cfg.ranges.lin_vel_y[0]),
+    "lin_vel_y_max": torch.tensor(cfg.ranges.lin_vel_y[1]),
+    "ang_vel_z_min": torch.tensor(cfg.ranges.ang_vel_z[0]),
+    "ang_vel_z_max": torch.tensor(cfg.ranges.ang_vel_z[1]),
+  }
+
+
+def reward_weight(
+  env: ManagerBasedRlEnv,
+  env_ids: torch.Tensor,
+  reward_name: str,
+  weight_stages: list[RewardWeightStage],
+) -> torch.Tensor:
+  """Update a reward term's weight based on training step stages."""
+  del env_ids  # Unused.
+  reward_term_cfg = env.reward_manager.get_term_cfg(reward_name)
+  for stage in weight_stages:
+    if env.common_step_counter > stage["step"]:
+      reward_term_cfg.weight = stage["weight"]
+  return torch.tensor([reward_term_cfg.weight])

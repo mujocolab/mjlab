@@ -6,7 +6,7 @@
 - **Operating System**:
   - Linux (recommended)
   - macOS (limited support – see note below)
-  - Windows (untested)
+  - Windows (compatible - see note below)
 - **GPU**: NVIDIA GPU strongly recommended
   - **CUDA Compatibility**: Not all CUDA versions are supported by MuJoCo Warp
     - Check
@@ -22,6 +22,10 @@
 > slower on macOS. We are working on improving this with a C-based MuJoCo
 > backend for evaluation — stay tuned for updates.
 
+> **Note on Windows**: Since warp/mujoco-warp are supported on Windows, Windows
+> compatibility is available with mjlab. Core functionality (e.g. the demo and train
+> scripts) has been tested, but support for Windows should be considered
+> experimental. Windows users may also consider WSL as an option.
 ---
 
 ## ⚠️ Beta Status
@@ -71,7 +75,7 @@ uv add --editable /path/to/cloned/mjlab
 Install directly from GitHub without cloning:
 
 ```bash
-uv add "mjlab @ git+https://github.com/mujocolab/mjlab" "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@486642c3fa262a989b482e0e506716d5793d61a9"
+uv add "mjlab @ git+https://github.com/mujocolab/mjlab" "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@fb9bf88399796f161a4a2b129d846484da8a4ad0"
 ```
 
 > **Note**: `mujoco-warp` must be installed from Git since it's not available on PyPI.
@@ -113,7 +117,7 @@ also use it with any pip-based virtual environment (venv, conda, virtualenv, etc
 
    **From Source (Recommended)**:
    ```bash
-   pip install git+https://github.com/google-deepmind/mujoco_warp@486642c3fa262a989b482e0e506716d5793d61a9
+   pip install git+https://github.com/google-deepmind/mujoco_warp@fb9bf88399796f161a4a2b129d846484da8a4ad0
    git clone https://github.com/mujocolab/mjlab.git && cd mjlab
    pip install -e .
    ```
@@ -130,6 +134,16 @@ also use it with any pip-based virtual environment (venv, conda, virtualenv, etc
    ```
 
 ---
+
+### Method 4: Docker
+
+- Install [Docker](https://docs.docker.com/engine/install/)
+- Install an appropriate NVIDIA driver for your system and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+  - Be sure to register the container runtime with Docker and restart, as described in [the Docker section of the install guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html#configuring-docker)
+- `make docker-build`
+- Use the included helper script to run an `mjlab` docker container with many useful arguments included: `./scripts/run_docker.sh`
+  - Demo with viewer: `./scripts/run_docker.sh uv run demo`
+  - Training example:`./scripts/run_docker.sh uv run train Mjlab-Velocity-Flat-Unitree-G1 --env.scene.num-envs 4096`
 
 ## Verification
 

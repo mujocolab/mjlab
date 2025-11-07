@@ -89,7 +89,7 @@ class ObservationManager(ManagerBase):
         buffers = obs_buffer[group_name]
         assert isinstance(buffers, dict)
         for name, term in buffers.items():
-          terms.append((group_name + "-" + name, term[env_idx].cpu().tolist()))
+          terms.append((group_name + "-" + name, term[env_idx].cpu().tolist()))  # type: ignore[unsupported-operator]
         continue
 
       idx = 0

@@ -62,8 +62,6 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
       self._offline_renderer = renderer
     self.metadata["render_fps"] = 1.0 / self.step_dt  # type: ignore
 
-    print_info("[INFO]: Completed setting up the environment...")
-
   # Properties.
 
   @property
@@ -87,17 +85,17 @@ class ManagerBasedRlEnv(ManagerBasedEnv, gym.Env):
       self.command_manager = CommandManager(self.cfg.commands, self)
     else:
       self.command_manager = NullCommandManager()
-    print_info(f"[INFO] Command Manager: {self.command_manager}")
+    print_info(f"[INFO] {self.command_manager}")
     super().load_managers()
     self.termination_manager = TerminationManager(self.cfg.terminations, self)
-    print_info(f"[INFO] Termination Manager: {self.termination_manager}")
+    print_info(f"[INFO] {self.termination_manager}")
     self.reward_manager = RewardManager(self.cfg.rewards, self)
-    print_info(f"[INFO] Reward Manager: {self.reward_manager}")
+    print_info(f"[INFO] {self.reward_manager}")
     if self.cfg.curriculum is not None:
       self.curriculum_manager = CurriculumManager(self.cfg.curriculum, self)
     else:
       self.curriculum_manager = NullCurriculumManager()
-    print_info(f"[INFO] Curriculum Manager: {self.curriculum_manager}")
+    print_info(f"[INFO] {self.curriculum_manager}")
     self._configure_gym_env_spaces()
     if "startup" in self.event_manager.available_modes:
       self.event_manager.apply(mode="startup")

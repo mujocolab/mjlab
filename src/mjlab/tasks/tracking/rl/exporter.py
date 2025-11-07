@@ -38,7 +38,7 @@ class _OnnxMotionPolicyExporter(_OnnxPolicyExporter):
     self.body_quat_w = cmd.motion.body_quat_w.to("cpu")
     self.body_lin_vel_w = cmd.motion.body_lin_vel_w.to("cpu")
     self.body_ang_vel_w = cmd.motion.body_ang_vel_w.to("cpu")
-    self.time_step_total = self.joint_pos.shape[0]
+    self.time_step_total: int = self.joint_pos.shape[0]
 
   def forward(self, x, time_step):  # pyright: ignore [reportIncompatibleMethodOverride]
     time_step_clamped = torch.clamp(
@@ -76,6 +76,7 @@ class _OnnxMotionPolicyExporter(_OnnxPolicyExporter):
         "body_ang_vel_w",
       ],
       dynamic_axes={},
+      dynamo=False,
     )
 
 

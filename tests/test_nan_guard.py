@@ -37,7 +37,6 @@ def test_nan_guard_disabled_by_default(simple_model):
 
   assert not sim.nan_guard.enabled
   sim.step()  # Should not trigger any capture.
-  sim.close()
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Likely bug on CPU MjWarp")
@@ -89,8 +88,6 @@ def test_nan_guard_captures_and_dumps_on_nan(simple_model):
     state = dump["states_step_000000"]
     assert state.shape[0] == 1
 
-    sim.close()
-
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Likely bug on CPU MjWarp")
 def test_nan_guard_detects_correct_env_ids(simple_model):
@@ -126,8 +123,6 @@ def test_nan_guard_detects_correct_env_ids(simple_model):
     nan_env_ids = set(metadata["nan_env_ids"])
     assert nan_env_ids == {2, 5, 7}, f"Expected {{2, 5, 7}}, got {nan_env_ids}"
 
-    sim.close()
-
 
 def test_nan_guard_saves_model(simple_model):
   """NaN guard should save model file alongside state dump."""
@@ -161,8 +156,6 @@ def test_nan_guard_saves_model(simple_model):
     loaded_model = mujoco.MjModel.from_binary_path(str(model_path))
     assert loaded_model.nq == simple_model.nq
     assert loaded_model.nv == simple_model.nv
-
-    sim.close()
 
 
 @pytest.mark.slow
@@ -220,8 +213,6 @@ def test_nan_guard_with_complex_model():
     # Data should be valid (no NaN in derived quantities after forward).
     assert not np.isnan(loaded_data.qpos).any()
 
-    sim.close()
-
 
 def test_nan_guard_only_dumps_once(simple_model):
   """NaN guard should only dump once per training run."""
@@ -250,8 +241,6 @@ def test_nan_guard_only_dumps_once(simple_model):
       f for f in Path(tmpdir).glob("nan_dump_*.npz") if "latest" not in f.name
     ]
     assert len(dump_files) == 1
-
-    sim.close()
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Likely bug on CPU MjWarp")
@@ -285,8 +274,6 @@ def test_nan_guard_respects_buffer_size(simple_model):
     assert "states_step_000008" in dump
     assert "states_step_000009" in dump
     assert "states_step_000010" in dump
-
-    sim.close()
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Likely bug on CPU MjWarp")
@@ -322,8 +309,6 @@ def test_nan_guard_captures_high_indexed_envs(simple_model):
     state = dump["states_step_000000"]
     assert state.shape[0] == 1
 
-    sim.close()
-
 
 def test_nan_guard_creates_latest_symlinks(simple_model):
   """NaN guard should create latest symlinks that work correctly."""
@@ -357,5 +342,3 @@ def test_nan_guard_creates_latest_symlinks(simple_model):
     # Loading via symlink should work.
     loaded_model = mujoco.MjModel.from_binary_path(str(latest_model))
     assert loaded_model.nq == simple_model.nq
-
-    sim.close()

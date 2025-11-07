@@ -26,7 +26,7 @@ def expand_model_fields(
     return
 
   def tile(x: wp.array) -> wp.array:
-    # Create new array with same shape but first dim multiplied by nworld
+    # Create new array with same shape but first dim multiplied by nworld.
     new_shape = list(x.shape)
     new_shape[0] = nworld
     wp_array = {1: wp.array, 2: wp.array2d, 3: wp.array3d, 4: wp.array4d}[
@@ -34,11 +34,10 @@ def expand_model_fields(
     ]
     dst = wp_array(shape=new_shape, dtype=x.dtype, device=x.device)
 
-    # Flatten arrays for kernel
     src_flat = x.flatten()
     dst_flat = dst.flatten()
 
-    # Launch kernel to repeat data - one thread per destination element
+    # Launch kernel to repeat data, one thread per destination element.
     n_elems_per_world = dst_flat.shape[0] // nworld
     wp.launch(
       repeat_array_kernel,

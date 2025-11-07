@@ -2,6 +2,10 @@
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
+#
+# Modified by MjLab developers:
+#   - 2025-11-01: Removed verbose print statements from load_cfg_from_registry()
+#     (lines 91, 108) to reduce startup output noise during configuration parsing.
 
 """Sub-module with utilities for parsing and loading configurations."""
 
@@ -88,7 +92,6 @@ def load_cfg_from_registry(task_name: str, entry_point_key: str) -> object:
       # obtain the configuration file path
       config_file = os.path.join(mod_path, file_name)
     # load the configuration
-    print(f"[INFO]: Parsing configuration from: {config_file}")
     with open(config_file, encoding="utf-8") as f:
       cfg = yaml.full_load(f)
   else:
@@ -105,7 +108,6 @@ def load_cfg_from_registry(task_name: str, entry_point_key: str) -> object:
     else:
       cfg_cls = cfg_entry_point
     # load the configuration
-    print(f"[INFO]: Parsing configuration from: {cfg_entry_point}")
     if callable(cfg_cls):
       cfg = cfg_cls()
     else:

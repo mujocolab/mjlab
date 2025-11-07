@@ -143,6 +143,12 @@ class CommandManager(ManagerBase):
   def get_term(self, name: str) -> CommandTerm:
     return self._terms[name]
 
+  def get_term_cfg(self, name: str) -> CommandTermCfg:
+    from mjlab.managers.manager_term_config import CommandTermCfg
+
+    cfg_items = get_terms(self.cfg, CommandTermCfg)
+    return cfg_items[name]
+
   def _prepare_terms(self):
     from mjlab.managers.manager_term_config import CommandTermCfg
 
@@ -192,4 +198,7 @@ class NullCommandManager:
     return None
 
   def get_term(self, name: str) -> None:
+    return None
+
+  def get_term_cfg(self, name: str) -> None:
     return None

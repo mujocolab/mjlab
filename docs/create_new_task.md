@@ -40,9 +40,6 @@ cartpole/
   <actuator>
     <velocity name="slide_velocity" joint="slide" ctrlrange="-20 20" kv="20"/>
   </actuator>
-  <keyframe>
-    <key name="cartpole_init" qpos="0 0" qvel="0 0" ctrl="0 0"/>
-  </keyframe>
 </mujoco>
 ```
 
@@ -64,34 +61,13 @@ assert CARTPOLE_XML.exists(), f"XML not found: {CARTPOLE_XML}"
 def get_spec() -> mujoco.MjSpec:
   return mujoco.MjSpec.from_file(str(CARTPOLE_XML))
 
-CARTPOLE_ACTUATOR = ActuatorCfg(
-  joint_names_expr=["slide"],
-  effort_limit=20.0,
-  stiffness=0.0,
-  damping=0.1,
-)
-
-CARTPOLE_ARTICULATION = EntityArticulationInfoCfg(
-  actuators=(CARTPOLE_ACTUATOR,),
-)
-
-CARTPOLE_ROBOT_CFG = EntityCfg(
-  spec_fn=get_spec,
-  articulation=CARTPOLE_ARTICULATION,
-)
+CARTPOLE_ROBOT_CFG = EntityCfg(spec_fn=get_spec)
 
 if __name__ == "__main__":
   import mujoco.viewer as viewer
   robot = Entity(CARTPOLE_ROBOT_CFG)
   viewer.launch(robot.spec.compile())
 ```
-
-> [!NOTE]
-> **On Motor-Type Actuators**: You can use XML-defined actuators by leaving
-> the `actuators` field empty in `EntityArticulationInfoCfg`. For position control
-> with motor-type actuators, implement impedance control:
-> `τ = Kp * (q* - q) + Kd * (-q̇)`. See
-> [#130](https://github.com/mujocolab/mjlab/discussions/130) for details.
 
 ### __init__.py
 
@@ -119,9 +95,9 @@ from mjlab.asset_zoo.robots.unitree_go1.go1_constants import GO1_ROBOT_CFG
 from mjlab.asset_zoo.robots.cartpole.cartpole_constants import CARTPOLE_ROBOT_CFG
 
 __all__ = (
-    "G1_ROBOT_CFG",
-    "GO1_ROBOT_CFG",
-    "CARTPOLE_ROBOT_CFG",
+  "G1_ROBOT_CFG",
+  "GO1_ROBOT_CFG",
+  "CARTPOLE_ROBOT_CFG",
 )
 ```
 
@@ -153,12 +129,12 @@ import torch
 
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.managers.manager_term_config import (
-    ObservationGroupCfg as ObsGroup,
-    ObservationTermCfg as ObsTerm,
-    RewardTermCfg as RewardTerm,
-    TerminationTermCfg as DoneTerm,
-    EventTermCfg as EventTerm,
-    term,
+  ObservationGroupCfg as ObsGroup,
+  ObservationTermCfg as ObsTerm,
+  RewardTermCfg as RewardTerm,
+  TerminationTermCfg as DoneTerm,
+  EventTermCfg as EventTerm,
+  term,
 )
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import SceneCfg
@@ -169,18 +145,18 @@ from mjlab.rl import RslRlOnPolicyRunnerCfg
 from mjlab.envs import mdp
 
 SCENE_CFG = SceneCfg(
-    num_envs=64,
-    extent=1.0,
-    entities={"robot": CARTPOLE_ROBOT_CFG},
+  num_envs=64,
+  extent=1.0,
+  entities={"robot": CARTPOLE_ROBOT_CFG},
 )
 
 VIEWER_CONFIG = ViewerConfig(
-    origin_type=ViewerConfig.OriginType.ASSET_BODY,
-    asset_name="robot",
-    body_name="pole",
-    distance=3.0,
-    elevation=10.0,
-    azimuth=90.0,
+  origin_type=ViewerConfig.OriginType.ASSET_BODY,
+  asset_name="robot",
+  body_name="pole",
+  distance=3.0,
+  elevation=10.0,
+  azimuth=90.0,
 )
 ```
 
@@ -191,13 +167,13 @@ The policy outputs position commands for the cart's slide joint, scaled by 20.0:
 ```python
 @dataclass
 class ActionCfg:
-    joint_pos: mdp.JointPositionActionCfg = term(
-        mdp.JointPositionActionCfg,
-        asset_name="robot",
-        actuator_names=[".*"],
-        scale=20.0,
-        use_default_offset=False,
-    )
+  joint_pos: mdp.JointPositionActionCfg = term(
+    mdp.JointPositionActionCfg,
+    asset_name="robot",
+    actuator_names=[".*"],
+    scale=20.0,
+    use_default_offset=False,
+  )
 ```
 
 ### Observations
@@ -260,7 +236,7 @@ def random_push_cart(env, env_ids, force_range=(-5, 5)):
 class EventCfg:
   reset_robot_joints: EventTerm = term(
     EventTerm,
-    func=mdp.reset_joints_by_scale,
+    func=mdp.reset_joints_by_offset,
     mode="reset",
     params={
       "asset_cfg": SceneEntityCfg("robot"),
@@ -288,7 +264,7 @@ def check_pole_tipped(env):
 
 @dataclass
 class TerminationCfg:
-  timeout: DoneTerm = term(DoneTerm, func=lambda env: False, time_out=True)
+  timeout: DoneTerm = term(DoneTerm, func=mdp.time_out, time_out=True)
   tipped: DoneTerm = term(DoneTerm, func=check_pole_tipped, time_out=False)
 ```
 
@@ -334,16 +310,6 @@ gym.register(
     "rl_cfg_entry_point": f"{__name__}.cartpole_env_cfg:RslRlOnPolicyRunnerCfg",
   },
 )
-
-gym.register(
-  id="Mjlab-Cartpole-Play",
-  entry_point="mjlab.envs:ManagerBasedRlEnv",
-  disable_env_checker=True,
-  kwargs={
-    "env_cfg_entry_point": f"{__name__}.cartpole_env_cfg:CartPoleEnvCfg",
-    "rl_cfg_entry_point": f"{__name__}.cartpole_env_cfg:RslRlOnPolicyRunnerCfg",
-  },
-)
 ```
 
 ---
@@ -363,7 +329,41 @@ uv run train Mjlab-Cartpole
 Run inference with a trained checkpoint:
 
 ```bash
-uv run play --task Mjlab-Cartpole-Play --checkpoint_file <checkpoint_path>
+uv run play Mjlab-Cartpole --checkpoint_file <checkpoint_path>
 ```
 
 ![Trained CartPole](static/cartpole_trained.gif)
+
+---
+
+## 5. External Package Registration (Optional)
+
+To develop your task in a separate repository outside of mjlab, add an entry
+point to your package's `pyproject.toml`:
+
+> [!NOTE]
+> The `[build-system]` section is required for the plugin system to work.
+
+```toml
+[build-system]
+requires = ["uv_build>=0.8.19,<0.9.0"]
+build-backend = "uv_build"
+
+[project.entry-points."mjlab.tasks"]
+your_package_name = "your_package_name"
+```
+
+The entry point references a Python module that will be imported when mjlab runs.
+This module should contain your `gym.register()` calls (commonly placed in
+`your_package_name/__init__.py`, but can be any module).
+
+mjlab will auto-import your package when running `train` or `play`, making your
+registered tasks available:
+
+```bash
+# Works from any external package!
+uv run train Mjlab-YourTask
+```
+
+See [g1_spinkick_example](https://github.com/mujocolab/g1_spinkick_example) for
+a complete working example.

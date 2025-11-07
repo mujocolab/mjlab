@@ -24,7 +24,10 @@ if TYPE_CHECKING:
 _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
 
 
-def reset_scene_to_default(env: ManagerBasedEnv, env_ids: torch.Tensor) -> None:
+def reset_scene_to_default(env: ManagerBasedEnv, env_ids: torch.Tensor | None) -> None:
+  if env_ids is None:
+    env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
+
   for entity in env.scene.entities.values():
     if not isinstance(entity, Entity):
       continue
@@ -42,7 +45,7 @@ def reset_scene_to_default(env: ManagerBasedEnv, env_ids: torch.Tensor) -> None:
 
 def reset_root_state_uniform(
   env: ManagerBasedEnv,
-  env_ids: torch.Tensor,
+  env_ids: torch.Tensor | None,
   pose_range: dict[str, tuple[float, float]],
   velocity_range: dict[str, tuple[float, float]] | None = None,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
@@ -54,11 +57,14 @@ def reset_root_state_uniform(
 
   Args:
     env: The environment.
-    env_ids: Environment IDs to reset.
+    env_ids: Environment IDs to reset. If None, resets all environments.
     pose_range: Dictionary with keys {"x", "y", "z", "roll", "pitch", "yaw"}.
     velocity_range: Velocity range (only used for floating-base entities).
     asset_cfg: Asset configuration.
   """
+  if env_ids is None:
+    env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
+
   asset: Entity = env.scene[asset_cfg.name]
 
   # Pose.
@@ -128,13 +134,16 @@ def reset_root_state_uniform(
   asset.write_root_link_velocity_to_sim(velocities, env_ids=env_ids)
 
 
-def reset_joints_by_scale(
+def reset_joints_by_offset(
   env: ManagerBasedEnv,
-  env_ids: torch.Tensor,
+  env_ids: torch.Tensor | None,
   position_range: tuple[float, float],
   velocity_range: tuple[float, float],
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> None:
+  if env_ids is None:
+    env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
+
   asset: Entity = env.scene[asset_cfg.name]
   default_joint_pos = asset.data.default_joint_pos
   assert default_joint_pos is not None
@@ -144,13 +153,12 @@ def reset_joints_by_scale(
   assert soft_joint_pos_limits is not None
 
   joint_pos = default_joint_pos[env_ids][:, asset_cfg.joint_ids].clone()
-  joint_vel = default_joint_vel[env_ids][:, asset_cfg.joint_ids].clone()
-
-  joint_pos *= sample_uniform(*position_range, joint_pos.shape, env.device)
-  joint_vel *= sample_uniform(*velocity_range, joint_vel.shape, env.device)
-
+  joint_pos += sample_uniform(*position_range, joint_pos.shape, env.device)
   joint_pos_limits = soft_joint_pos_limits[env_ids][:, asset_cfg.joint_ids]
   joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
+
+  joint_vel = default_joint_vel[env_ids][:, asset_cfg.joint_ids].clone()
+  joint_vel += sample_uniform(*velocity_range, joint_vel.shape, env.device)
 
   joint_ids = asset_cfg.joint_ids
   if isinstance(joint_ids, list):
