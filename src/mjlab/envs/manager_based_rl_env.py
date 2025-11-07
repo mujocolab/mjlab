@@ -1,6 +1,5 @@
 import math
 from dataclasses import dataclass
-from typing import Any
 
 import gymnasium as gym
 import mujoco

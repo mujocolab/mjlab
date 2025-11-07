@@ -9,7 +9,6 @@ from dataclasses import replace
 
 from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ACTION_SCALE, G1_ROBOT_CFG
 from mjlab.envs import ManagerBasedRlEnvCfg
-from mjlab.scene import SceneCfg
 from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.tasks.velocity.velocity_env_cfg import (
   SCENE_CFG,

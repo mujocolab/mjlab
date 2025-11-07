@@ -124,17 +124,16 @@ Start `cartpole_env_cfg.py` with the necessary imports and scene configuration:
 """CartPole task environment configuration."""
 
 import math
-from dataclasses import dataclass, field
 import torch
 
 from mjlab.envs import ManagerBasedRlEnvCfg
+from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.manager_term_config import (
-  ObservationGroupCfg as ObsGroup,
-  ObservationTermCfg as ObsTerm,
-  RewardTermCfg as RewardTerm,
-  TerminationTermCfg as DoneTerm,
-  EventTermCfg as EventTerm,
-  term,
+  ObservationGroupCfg,
+  ObservationTermCfg,
+  RewardTermCfg,
+  TerminationTermCfg,
+  EventTermCfg,
 )
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import SceneCfg
@@ -158,6 +157,13 @@ VIEWER_CONFIG = ViewerConfig(
   elevation=10.0,
   azimuth=90.0,
 )
+
+SIM_CFG = SimulationCfg(
+  mujoco=MujocoCfg(
+    timestep=0.02,
+    iterations=1,
+  ),
+)
 ```
 
 ### Actions
@@ -165,15 +171,16 @@ VIEWER_CONFIG = ViewerConfig(
 The policy outputs position commands for the cart's slide joint, scaled by 20.0:
 
 ```python
-@dataclass
-class ActionCfg:
-  joint_pos: mdp.JointPositionActionCfg = term(
-    mdp.JointPositionActionCfg,
-    asset_name="robot",
-    actuator_names=[".*"],
-    scale=20.0,
-    use_default_offset=False,
-  )
+def create_cartpole_actions() -> dict[str, JointPositionActionCfg]:
+  """Create CartPole actions."""
+  return {
+    "joint_pos": JointPositionActionCfg(
+      asset_name="robot",
+      actuator_names=[".*"],
+      scale=20.0,
+      use_default_offset=False,
+    ),
+  }
 ```
 
 ### Observations
@@ -182,21 +189,25 @@ The policy observes normalized pole angle, angular velocity, cart position, and
 cart velocity:
 
 ```python
-@dataclass
-class ObservationCfg:
-  @dataclass
-  class PolicyCfg(ObsGroup):
-    angle: ObsTerm = term(ObsTerm, func=lambda env: env.sim.data.qpos[:, 1:2] / math.pi)
-    ang_vel: ObsTerm = term(ObsTerm, func=lambda env: env.sim.data.qvel[:, 1:2] / 5.0)
-    cart_pos: ObsTerm = term(ObsTerm, func=lambda env: env.sim.data.qpos[:, 0:1] / 2.0)
-    cart_vel: ObsTerm = term(ObsTerm, func=lambda env: env.sim.data.qvel[:, 0:1] / 20.0)
+def create_cartpole_observations() -> dict[str, ObservationGroupCfg]:
+  """Create CartPole observations."""
+  policy_terms = {
+    "angle": ObservationTermCfg(func=lambda env: env.sim.data.qpos[:, 1:2] / math.pi),
+    "ang_vel": ObservationTermCfg(func=lambda env: env.sim.data.qvel[:, 1:2] / 5.0),
+    "cart_pos": ObservationTermCfg(func=lambda env: env.sim.data.qpos[:, 0:1] / 2.0),
+    "cart_vel": ObservationTermCfg(func=lambda env: env.sim.data.qvel[:, 0:1] / 20.0),
+  }
 
-  @dataclass
-  class CriticCfg(PolicyCfg):
-    pass
-
-  policy: PolicyCfg = field(default_factory=PolicyCfg)
-  critic: CriticCfg = field(default_factory=CriticCfg)
+  return {
+    "policy": ObservationGroupCfg(
+      terms=policy_terms,
+      concatenate_terms=True,
+    ),
+    "critic": ObservationGroupCfg(
+      terms=policy_terms,  # Same observations for critic
+      concatenate_terms=True,
+    ),
+  }
 ```
 
 ### Rewards
@@ -211,10 +222,12 @@ def compute_upright_reward(env):
 def compute_effort_penalty(env):
   return -0.01 * (env.sim.data.ctrl[:, 0] ** 2)
 
-@dataclass
-class RewardCfg:
-  upright: RewardTerm = term(RewardTerm, func=compute_upright_reward, weight=5.0)
-  effort: RewardTerm = term(RewardTerm, func=compute_effort_penalty, weight=1.0)
+def create_cartpole_rewards() -> dict[str, RewardTermCfg]:
+  """Create CartPole rewards."""
+  return {
+    "upright": RewardTermCfg(func=compute_upright_reward, weight=5.0),
+    "effort": RewardTermCfg(func=compute_effort_penalty, weight=1.0),
+  }
 ```
 
 ### Events
@@ -232,25 +245,25 @@ def random_push_cart(env, env_ids, force_range=(-5, 5)):
   )
   env.sim.data.qfrc_applied[env_ids, 0] = random_forces
 
-@dataclass
-class EventCfg:
-  reset_robot_joints: EventTerm = term(
-    EventTerm,
-    func=mdp.reset_joints_by_offset,
-    mode="reset",
-    params={
-      "asset_cfg": SceneEntityCfg("robot"),
-      "position_range": (-0.1, 0.1),
-      "velocity_range": (-0.1, 0.1),
-    },
-  )
-  random_push: EventTerm = term(
-    EventTerm,
-    func=random_push_cart,
-    mode="interval",
-    interval_range_s=(1.0, 2.0),
-    params={"force_range": (-20.0, 20.0)},
-  )
+def create_cartpole_events() -> dict[str, EventTermCfg]:
+  """Create CartPole events."""
+  return {
+    "reset_robot_joints": EventTermCfg(
+      func=mdp.reset_joints_by_offset,
+      mode="reset",
+      params={
+        "asset_cfg": SceneEntityCfg("robot"),
+        "position_range": (-0.1, 0.1),
+        "velocity_range": (-0.1, 0.1),
+      },
+    ),
+    "random_push": EventTermCfg(
+      func=random_push_cart,
+      mode="interval",
+      interval_range_s=(1.0, 2.0),
+      params={"force_range": (-20.0, 20.0)},
+    ),
+  }
 ```
 
 ### Terminations
@@ -262,10 +275,12 @@ length (10 seconds):
 def check_pole_tipped(env):
   return env.sim.data.qpos[:, 1].abs() > math.radians(30)
 
-@dataclass
-class TerminationCfg:
-  timeout: DoneTerm = term(DoneTerm, func=mdp.time_out, time_out=True)
-  tipped: DoneTerm = term(DoneTerm, func=check_pole_tipped, time_out=False)
+def create_cartpole_terminations() -> dict[str, TerminationTermCfg]:
+  """Create CartPole terminations."""
+  return {
+    "timeout": TerminationTermCfg(func=mdp.time_out, time_out=True),
+    "tipped": TerminationTermCfg(func=check_pole_tipped, time_out=False),
+  }
 ```
 
 ### Environment Configuration
@@ -273,25 +288,23 @@ class TerminationCfg:
 Combine all MDP components into the final environment configuration:
 
 ```python
-SIM_CFG = SimulationCfg(
-  mujoco=MujocoCfg(
-    timestep=0.02,
-    iterations=1,
-  ),
-)
+def create_cartpole_env_cfg() -> ManagerBasedRlEnvCfg:
+  """Create CartPole environment configuration."""
+  return ManagerBasedRlEnvCfg(
+    scene=SCENE_CFG,
+    observations=create_cartpole_observations(),
+    actions=create_cartpole_actions(),
+    rewards=create_cartpole_rewards(),
+    events=create_cartpole_events(),
+    terminations=create_cartpole_terminations(),
+    sim=SIM_CFG,
+    viewer=VIEWER_CONFIG,
+    decimation=1,
+    episode_length_s=10.0,
+  )
 
-@dataclass
-class CartPoleEnvCfg(ManagerBasedRlEnvCfg):
-  scene: SceneCfg = field(default_factory=lambda: SCENE_CFG)
-  observations: ObservationCfg = field(default_factory=ObservationCfg)
-  actions: ActionCfg = field(default_factory=ActionCfg)
-  rewards: RewardCfg = field(default_factory=RewardCfg)
-  events: EventCfg = field(default_factory=EventCfg)
-  terminations: TerminationCfg = field(default_factory=TerminationCfg)
-  sim: SimulationCfg = field(default_factory=lambda: SIM_CFG)
-  viewer: ViewerConfig = field(default_factory=lambda: VIEWER_CONFIG)
-  decimation: int = 1
-  episode_length_s: float = 10.0
+# Module-level constant for gymnasium registration
+CARTPOLE_ENV_CFG = create_cartpole_env_cfg()
 ```
 
 ### Register the Task
@@ -301,12 +314,14 @@ Register the task environments in `mjlab/src/mjlab/tasks/cartpole/__init__.py`:
 ```python
 import gymnasium as gym
 
+from .cartpole_env_cfg import CARTPOLE_ENV_CFG
+
 gym.register(
   id="Mjlab-Cartpole",
   entry_point="mjlab.envs:ManagerBasedRlEnv",
   disable_env_checker=True,
   kwargs={
-    "env_cfg_entry_point": f"{__name__}.cartpole_env_cfg:CartPoleEnvCfg",
+    "env_cfg_entry_point": CARTPOLE_ENV_CFG,
     "rl_cfg_entry_point": f"{__name__}.cartpole_env_cfg:RslRlOnPolicyRunnerCfg",
   },
 )

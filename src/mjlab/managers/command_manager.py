@@ -146,7 +146,6 @@ class CommandManager(ManagerBase):
     return self.cfg[name]
 
   def _prepare_terms(self):
-    from mjlab.managers.manager_term_config import CommandTermCfg
 
     for term_name, term_cfg in self.cfg.items():
       term_cfg: CommandTermCfg | None

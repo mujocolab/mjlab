@@ -7,9 +7,11 @@ instances for the Go1 robot on rough terrain.
 from copy import deepcopy
 from dataclasses import replace
 
-from mjlab.asset_zoo.robots.unitree_go1.go1_constants import GO1_ACTION_SCALE, GO1_ROBOT_CFG
+from mjlab.asset_zoo.robots.unitree_go1.go1_constants import (
+  GO1_ACTION_SCALE,
+  GO1_ROBOT_CFG,
+)
 from mjlab.envs import ManagerBasedRlEnvCfg
-from mjlab.scene import SceneCfg
 from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.tasks.velocity.velocity_env_cfg import (
   SCENE_CFG,
