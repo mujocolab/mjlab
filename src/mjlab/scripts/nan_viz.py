@@ -15,7 +15,6 @@ import mujoco
 import numpy as np
 import tyro
 import viser
-
 from mjlab.viewer.viser_scene import ViserMujocoScene
 
 
@@ -55,7 +54,6 @@ class NanDumpViewer:
     self.current_step = 0
     self.current_env = 0
     self.scene = ViserMujocoScene.create(self.server, self.model, num_envs=1)
-    self.scene.camera_tracking_enabled = True
 
   def setup(self) -> None:
     """Setup the viewer GUI and scene."""
@@ -92,7 +90,7 @@ class NanDumpViewer:
           self._update_state()
 
     # Add standard visualization options.
-    self.scene.create_options_gui()
+    self.scene.create_visualization_gui()
 
     # Initial state update.
     self._update_state()
@@ -112,7 +110,7 @@ class NanDumpViewer:
     nan_indicator = "⚠️ NaN Detected" if is_nan_env else "✓ Clean"
 
     return f"""
-      <div style="font-size: 0.85em; line-height: 1.25;">
+      <div style="font-size: 0.85em; line-height: 1.25; padding: 0 1em 0.5em 1em;">
         <strong>Step:</strong> {step_num}<br/>
         <strong>Environment:</strong> {actual_env_id}<br/>
         <strong>Status:</strong> {nan_indicator}<br/>

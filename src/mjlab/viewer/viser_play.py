@@ -15,7 +15,6 @@ from mjlab.sim.sim import Simulation
 from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
 from mjlab.viewer.viser_reward_plotter import ViserRewardPlotter
 from mjlab.viewer.viser_scene import ViserMujocoScene
-from mjlab.viewer.viser_visualizer import ViserDebugVisualizer
 
 
 class ViserPlayViewer(BaseViewer):
@@ -30,7 +29,6 @@ class ViserPlayViewer(BaseViewer):
   ) -> None:
     super().__init__(env, policy, frame_rate, verbosity)
     self._reward_plotter: ViserRewardPlotter | None = None
-    self._debug_visualizer: ViserDebugVisualizer | None = None
 
   @override
   def setup(self) -> None:
@@ -41,18 +39,17 @@ class ViserPlayViewer(BaseViewer):
     self._server = viser.ViserServer(label="mjlab")
     self._threadpool = ThreadPoolExecutor(max_workers=1)
     self._counter = 0
-    self._show_debug_vis = True
-    self._camera_tracking = False
     self._needs_update = False
 
-    # Create ViserMujocoScene for all 3D visualization.
+    # Create ViserMujocoScene for all 3D visualization (with debug visualization enabled).
     self._scene = ViserMujocoScene.create(
       server=self._server,
       mj_model=sim.mj_model,
       num_envs=self.env.num_envs,
     )
 
-    self._scene.current_env_idx = self.cfg.env_idx
+    self._scene.env_idx = self.cfg.env_idx
+    self._scene.debug_visualization_enabled = True  # Enable debug visualization by default
 
     # Create tab group.
     tabs = self._server.gui.add_tab_group()
@@ -104,63 +101,14 @@ class ViserPlayViewer(BaseViewer):
             self.increase_speed()
           self._update_status_display()
 
-      # Add standard visualization options from ViserMujocoScene (Environment, Visualization, Contacts).
-      self._scene.create_options_gui(include_geom_groups=False)
-
-      # Camera tracking controls.
-      cb_camera_tracking = self._server.gui.add_checkbox(
-        "Track camera",
-        initial_value=False,
-        hint="Keep tracked body centered. Use Viser camera controls to adjust view.",
+      # Add standard visualization options from ViserMujocoScene (Environment, Visualization, Contacts, Camera Tracking, Debug Visualization).
+      self._scene.create_visualization_gui(
+        camera_distance=self.cfg.distance,
+        camera_azimuth=self.cfg.azimuth,
+        camera_elevation=self.cfg.elevation,
       )
 
-      @cb_camera_tracking.on_update
-      def _(_) -> None:
-        self._camera_tracking = cb_camera_tracking.value
-        self._needs_update = True
-        # When enabling tracking, set all camera look-ats and positions to config defaults.
-        if self._camera_tracking:
-          # Get camera parameters from config.
-          distance = self.cfg.distance
-          azimuth = self.cfg.azimuth
-          elevation = self.cfg.elevation
-
-          # Convert to radians and calculate camera position.
-          azimuth_rad = np.deg2rad(azimuth)
-          elevation_rad = np.deg2rad(elevation)
-
-          # Calculate forward vector from spherical coordinates.
-          forward = np.array(
-            [
-              np.cos(elevation_rad) * np.cos(azimuth_rad),
-              np.cos(elevation_rad) * np.sin(azimuth_rad),
-              np.sin(elevation_rad),
-            ]
-          )
-
-          # Camera position is origin - forward * distance.
-          camera_pos = -forward * distance
-
-          for client in self._server.get_clients().values():
-            client.camera.position = camera_pos
-            client.camera.look_at = np.zeros(3)
-
-      # Debug visualization controls.
-      cb_debug_vis = self._server.gui.add_checkbox(
-        "Debug visualization",
-        initial_value=True,
-        hint="Show debug arrows and ghost meshes.",
-      )
-
-      @cb_debug_vis.on_update
-      def _(_) -> None:
-        self._show_debug_vis = cb_debug_vis.value
-        self._needs_update = True
-        # Clear visualizer if hiding.
-        if not self._show_debug_vis and self._debug_visualizer is not None:
-          self._debug_visualizer.clear_all()
-
-    self._prev_env_idx = self._scene.current_env_idx
+    self._prev_env_idx = self._scene.env_idx
 
     # Reward plots tab.
     if hasattr(self.env.unwrapped, "reward_manager"):
@@ -169,7 +117,7 @@ class ViserPlayViewer(BaseViewer):
         term_names = [
           name
           for name, _ in self.env.unwrapped.reward_manager.get_active_iterable_terms(
-            self._scene.current_env_idx
+            self._scene.env_idx
           )
         ]
         self._reward_plotter = ViserRewardPlotter(self._server, term_names)
@@ -185,47 +133,26 @@ class ViserPlayViewer(BaseViewer):
     self._counter += 1
     if self._counter % 10 == 0:
       self._update_status_display()
-      if self._scene.current_env_idx != self._prev_env_idx:
-        self._prev_env_idx = self._scene.current_env_idx
+      if self._scene.env_idx != self._prev_env_idx:
+        self._prev_env_idx = self._scene.env_idx
         if self._reward_plotter:
           self._reward_plotter.clear_histories()
+        # Clear debug visualizations when switching environments
+        if self._scene.debug_visualization_enabled:
+          self._scene.clear_debug_all()
 
       if self._reward_plotter is not None and not self._is_paused:
         terms = list(
           self.env.unwrapped.reward_manager.get_active_iterable_terms(
-            self._scene.current_env_idx
+            self._scene.env_idx
           )
         )
         self._reward_plotter.update(terms)
 
-    self._scene.camera_tracking_enabled = self._camera_tracking
-    scene_offset = np.zeros(3)
-    if self._camera_tracking and self._scene._tracked_body_id is not None:
-      tracked_pos = sim.wp_data.xpos.numpy()[
-        self._scene.current_env_idx, self._scene._tracked_body_id, :
-      ].copy()
-      scene_offset = -tracked_pos
-
-    if self._show_debug_vis and hasattr(self.env.unwrapped, "update_visualizers"):
-      if (
-        self._debug_visualizer is None
-        or self._debug_visualizer.env_idx != self._scene.current_env_idx
-      ):
-        if self._debug_visualizer:
-          self._debug_visualizer.clear_all()
-        self._debug_visualizer = ViserDebugVisualizer(
-          self._server,
-          sim.mj_model,
-          self._scene.current_env_idx,
-          scene_offset,
-        )
-      else:
-        self._debug_visualizer.clear()
-        self._debug_visualizer.env_origin = scene_offset
-      self.env.unwrapped.update_visualizers(self._debug_visualizer)
-      self._debug_visualizer._sync_arrows()
-    elif not self._show_debug_vis and self._debug_visualizer is not None:
-      self._debug_visualizer.clear_all()
+    # Update debug visualizations if enabled
+    if self._scene.debug_visualization_enabled and hasattr(self.env.unwrapped, "update_visualizers"):
+      self._scene.clear()  # Clear queued arrows from previous frame
+      self.env.unwrapped.update_visualizers(self._scene)
 
     if self._counter % 2 != 0:
       return
