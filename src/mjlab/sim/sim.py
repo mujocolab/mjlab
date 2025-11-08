@@ -8,7 +8,6 @@ import warp as wp
 from mjlab.sim.randomization import expand_model_fields
 from mjlab.sim.sim_data import WarpBridge
 from mjlab.utils.nan_guard import NanGuard, NanGuardCfg
-from mjlab.utils.spec_config import SpecCfg
 
 # Type aliases for better IDE support while maintaining runtime compatibility
 # At runtime, WarpBridge wraps the actual MJWarp objects.
@@ -40,7 +39,7 @@ _SOLVER_MAP = {
 
 
 @dataclass
-class MujocoCfg(SpecCfg):
+class MujocoCfg:
   """Configuration for MuJoCo simulation parameters."""
 
   # Integrator settings.
@@ -62,24 +61,19 @@ class MujocoCfg(SpecCfg):
   # Other.
   gravity: tuple[float, float, float] = (0, 0, -9.81)
 
-  def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    self.validate()
-
-    attrs = {
-      "jacobian": _JACOBIAN_MAP[self.jacobian],
-      "cone": _CONE_MAP[self.cone],
-      "integrator": _INTEGRATOR_MAP[self.integrator],
-      "solver": _SOLVER_MAP[self.solver],
-      "timestep": self.timestep,
-      "impratio": self.impratio,
-      "gravity": self.gravity,
-      "iterations": self.iterations,
-      "tolerance": self.tolerance,
-      "ls_iterations": self.ls_iterations,
-      "ls_tolerance": self.ls_tolerance,
-    }
-    for k, v in attrs.items():
-      setattr(spec.option, k, v)
+  def apply(self, model: mujoco.MjModel) -> None:
+    """Apply configuration settings to a compiled MjModel."""
+    model.opt.jacobian = _JACOBIAN_MAP[self.jacobian]
+    model.opt.cone = _CONE_MAP[self.cone]
+    model.opt.integrator = _INTEGRATOR_MAP[self.integrator]
+    model.opt.solver = _SOLVER_MAP[self.solver]
+    model.opt.timestep = self.timestep
+    model.opt.impratio = self.impratio
+    model.opt.gravity[:] = self.gravity
+    model.opt.iterations = self.iterations
+    model.opt.tolerance = self.tolerance
+    model.opt.ls_iterations = self.ls_iterations
+    model.opt.ls_tolerance = self.ls_tolerance
 
 
 @dataclass(kw_only=True)
@@ -111,10 +105,13 @@ class Simulation:
     self.wp_device = wp.get_device(self.device)
     self.num_envs = num_envs
 
+    # MuJoCo model and data.
     self._mj_model = model
+    cfg.mujoco.apply(self._mj_model)
     self._mj_data = mujoco.MjData(model)
     mujoco.mj_forward(self._mj_model, self._mj_data)
 
+    # MJWarp model and data.
     with wp.ScopedDevice(self.wp_device):
       self._wp_model = mjwarp.put_model(self._mj_model)
       self._wp_model.opt.ls_parallel = cfg.ls_parallel
