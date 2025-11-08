@@ -94,7 +94,13 @@ class EntityData:
     assert velocity.shape[-1] == self.ROOT_VEL_DIM
 
     env_ids = self._resolve_env_ids(env_ids)
-    self.data.qvel[env_ids, self.indexing.free_joint_v_adr] = velocity
+    lin_vel_w = velocity[:, :3]
+    ang_vel_w = velocity[:, 3:]
+    qpos_free = self.data.qpos[env_ids, self.indexing.free_joint_q_adr]
+    quat_w = qpos_free[:, 3:7]
+    ang_vel_b = quat_apply_inverse(quat_w, ang_vel_w)
+    velocity_qvel = torch.cat([lin_vel_w, ang_vel_b], dim=-1)
+    self.data.qvel[env_ids, self.indexing.free_joint_v_adr] = velocity_qvel
 
   def write_joint_state(
     self,
