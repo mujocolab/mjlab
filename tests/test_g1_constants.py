@@ -13,7 +13,7 @@ from mjlab.utils.string import resolve_expr
 
 @pytest.fixture(scope="module")
 def g1_entity() -> Entity:
-  return Entity(g1_constants.G1_ROBOT_CFG)
+  return Entity(g1_constants.get_g1_robot_cfg())
 
 
 @pytest.fixture(scope="module")

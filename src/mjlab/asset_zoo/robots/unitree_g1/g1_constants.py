@@ -268,12 +268,20 @@ G1_ARTICULATION = EntityArticulationInfoCfg(
   soft_joint_pos_limit_factor=0.9,
 )
 
-G1_ROBOT_CFG = EntityCfg(
-  init_state=KNEES_BENT_KEYFRAME,
-  collisions=(FULL_COLLISION,),
-  spec_fn=get_spec,
-  articulation=G1_ARTICULATION,
-)
+
+def get_g1_robot_cfg() -> EntityCfg:
+  """Get a fresh G1 robot configuration instance.
+
+  Returns a new EntityCfg instance each time to avoid mutation issues when
+  the config is shared across multiple places.
+  """
+  return EntityCfg(
+    init_state=KNEES_BENT_KEYFRAME,
+    collisions=(FULL_COLLISION,),
+    spec_fn=get_spec,
+    articulation=G1_ARTICULATION,
+  )
+
 
 G1_ACTION_SCALE: dict[str, float] = {}
 for a in G1_ARTICULATION.actuators:
@@ -293,6 +301,6 @@ if __name__ == "__main__":
 
   from mjlab.entity.entity import Entity
 
-  robot = Entity(G1_ROBOT_CFG)
+  robot = Entity(get_g1_robot_cfg())
 
   viewer.launch(robot.spec.compile())

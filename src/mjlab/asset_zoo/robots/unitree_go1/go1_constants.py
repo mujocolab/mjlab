@@ -138,12 +138,20 @@ GO1_ARTICULATION = EntityArticulationInfoCfg(
   soft_joint_pos_limit_factor=0.9,
 )
 
-GO1_ROBOT_CFG = EntityCfg(
-  init_state=INIT_STATE,
-  collisions=(FULL_COLLISION,),
-  spec_fn=get_spec,
-  articulation=GO1_ARTICULATION,
-)
+
+def get_go1_robot_cfg() -> EntityCfg:
+  """Get a fresh GO1 robot configuration instance.
+
+  Returns a new EntityCfg instance each time to avoid mutation issues when
+  the config is shared across multiple places.
+  """
+  return EntityCfg(
+    init_state=INIT_STATE,
+    collisions=(FULL_COLLISION,),
+    spec_fn=get_spec,
+    articulation=GO1_ARTICULATION,
+  )
+
 
 GO1_ACTION_SCALE: dict[str, float] = {}
 for a in GO1_ARTICULATION.actuators:
@@ -164,6 +172,6 @@ if __name__ == "__main__":
 
   from mjlab.entity.entity import Entity
 
-  robot = Entity(GO1_ROBOT_CFG)
+  robot = Entity(get_go1_robot_cfg())
 
   viewer.launch(robot.spec.compile())

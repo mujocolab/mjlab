@@ -1,7 +1,17 @@
 import gymnasium as gym
 
-from .flat_env_cfg import UNITREE_GO1_FLAT_ENV_CFG, UNITREE_GO1_FLAT_ENV_CFG_PLAY
-from .rough_env_cfg import UNITREE_GO1_ROUGH_ENV_CFG, UNITREE_GO1_ROUGH_ENV_CFG_PLAY
+from .flat_env_cfg import (
+  UNITREE_GO1_FLAT_ENV_CFG as UNITREE_GO1_FLAT_ENV_CFG,
+)
+from .flat_env_cfg import (
+  UNITREE_GO1_FLAT_ENV_CFG_PLAY as UNITREE_GO1_FLAT_ENV_CFG_PLAY,
+)
+from .rough_env_cfg import (
+  UNITREE_GO1_ROUGH_ENV_CFG as UNITREE_GO1_ROUGH_ENV_CFG,
+)
+from .rough_env_cfg import (
+  UNITREE_GO1_ROUGH_ENV_CFG_PLAY as UNITREE_GO1_ROUGH_ENV_CFG_PLAY,
+)
 
 gym.register(
   id="Mjlab-Velocity-Rough-Unitree-Go1",
