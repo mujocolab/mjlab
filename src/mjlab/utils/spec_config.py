@@ -210,8 +210,8 @@ class CollisionCfg(SpecCfg):
     self.validate()
 
     all_geoms: list[mujoco.MjsGeom] = spec.geoms
-    all_geom_names = [g.name for g in all_geoms]
-    geom_subset = filter_exp(list(self.geom_names_expr), all_geom_names)
+    all_geom_names = tuple(g.name for g in all_geoms)
+    geom_subset = filter_exp(self.geom_names_expr, all_geom_names)
 
     resolved_fields = {
       name: resolve_field(getattr(self, name), geom_subset, default)
@@ -366,13 +366,13 @@ class ActuatorSetCfg(SpecCfg):
 
     # Get all non-free joints in spec order.
     jnts = get_non_free_joints(spec)
-    joint_names = [j.name for j in jnts]
+    joint_names = tuple(j.name for j in jnts)
 
     # Build list of (cfg, joint_name) by resolving each config's regex.
     cfg_joint_pairs: list[tuple[ActuatorCfg, str]] = []
 
     for cfg in self.cfgs:
-      matched = filter_exp(list(cfg.joint_names_expr), joint_names)
+      matched = filter_exp(cfg.joint_names_expr, joint_names)
       for joint_name in matched:
         cfg_joint_pairs.append((cfg, joint_name))
 

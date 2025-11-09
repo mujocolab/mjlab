@@ -67,8 +67,8 @@ class EventManager(ManagerBase):
     return list(self._mode_term_names.keys())
 
   @property
-  def domain_randomization_fields(self) -> list[str]:
-    return self._domain_randomization_fields
+  def domain_randomization_fields(self) -> tuple[str, ...]:
+    return tuple(self._domain_randomization_fields)
 
   # Methods.
 

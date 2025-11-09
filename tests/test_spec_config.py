@@ -70,7 +70,7 @@ def test_existing_actuators_parsed(robot_with_actuators_xml):
   entity = Entity(cfg)
 
   assert entity.num_actuators == 1
-  assert entity.actuator_names == ["joint1"]
+  assert entity.actuator_names == ("joint1",)
   assert entity.is_actuated
 
   act = entity.spec.actuator("joint1")
@@ -231,7 +231,7 @@ def test_actuator_ordering_preserved(simple_robot_xml):
   entity = Entity(cfg)
 
   # Actuators should be in spec order (joint1, joint2), not config order
-  assert entity.actuator_names == ["joint1", "joint2"]
+  assert entity.actuator_names == ("joint1", "joint2")
 
 
 # Collision Tests

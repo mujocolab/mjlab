@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional, cast
+from typing import TYPE_CHECKING, cast
 
 import torch
 
@@ -57,7 +57,7 @@ def bad_motion_body_pos(
   env: ManagerBasedRlEnv,
   command_name: str,
   threshold: float,
-  body_names: Optional[list[str]] = None,
+  body_names: tuple[str, ...] | None = None,
 ) -> torch.Tensor:
   command = cast(MotionCommand, env.command_manager.get_term(command_name))
 
@@ -74,7 +74,7 @@ def bad_motion_body_pos_z_only(
   env: ManagerBasedRlEnv,
   command_name: str,
   threshold: float,
-  body_names: Optional[list[str]] = None,
+  body_names: tuple[str, ...] | None = None,
 ) -> torch.Tensor:
   command = cast(MotionCommand, env.command_manager.get_term(command_name))
 

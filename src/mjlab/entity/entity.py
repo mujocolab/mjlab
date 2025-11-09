@@ -196,28 +196,28 @@ class Entity:
     return self._data
 
   @property
-  def joint_names(self) -> list[str]:
-    return [j.name.split("/")[-1] for j in self._non_free_joints]
+  def joint_names(self) -> tuple[str, ...]:
+    return tuple(j.name.split("/")[-1] for j in self._non_free_joints)
 
   @property
-  def tendon_names(self) -> list[str]:
-    return [t.name.split("/")[-1] for t in self._spec.tendons]
+  def tendon_names(self) -> tuple[str, ...]:
+    return tuple(t.name.split("/")[-1] for t in self._spec.tendons)
 
   @property
-  def body_names(self) -> list[str]:
-    return [b.name.split("/")[-1] for b in self.spec.bodies[1:]]
+  def body_names(self) -> tuple[str, ...]:
+    return tuple(b.name.split("/")[-1] for b in self.spec.bodies[1:])
 
   @property
-  def geom_names(self) -> list[str]:
-    return [g.name.split("/")[-1] for g in self.spec.geoms]
+  def geom_names(self) -> tuple[str, ...]:
+    return tuple(g.name.split("/")[-1] for g in self.spec.geoms)
 
   @property
-  def site_names(self) -> list[str]:
-    return [s.name.split("/")[-1] for s in self.spec.sites]
+  def site_names(self) -> tuple[str, ...]:
+    return tuple(s.name.split("/")[-1] for s in self.spec.sites)
 
   @property
-  def actuator_names(self) -> list[str]:
-    return [a.name.split("/")[-1] for a in self.spec.actuators]
+  def actuator_names(self) -> tuple[str, ...]:
+    return tuple(a.name.split("/")[-1] for a in self.spec.actuators)
 
   @property
   def num_joints(self) -> int:
@@ -257,7 +257,7 @@ class Entity:
   def find_joints(
     self,
     name_keys: str | Sequence[str],
-    joint_subset: list[str] | None = None,
+    joint_subset: Sequence[str] | None = None,
     preserve_order: bool = False,
   ) -> tuple[list[int], list[str]]:
     if joint_subset is None:
@@ -267,7 +267,7 @@ class Entity:
   def find_tendons(
     self,
     name_keys: str | Sequence[str],
-    tendon_subset: list[str] | None = None,
+    tendon_subset: Sequence[str] | None = None,
     preserve_order: bool = False,
   ) -> tuple[list[int], list[str]]:
     if tendon_subset is None:
@@ -277,7 +277,7 @@ class Entity:
   def find_actuators(
     self,
     name_keys: str | Sequence[str],
-    actuator_subset: list[str] | None = None,
+    actuator_subset: Sequence[str] | None = None,
     preserve_order: bool = False,
   ):
     if actuator_subset is None:
@@ -287,7 +287,7 @@ class Entity:
   def find_geoms(
     self,
     name_keys: str | Sequence[str],
-    geom_subset: list[str] | None = None,
+    geom_subset: Sequence[str] | None = None,
     preserve_order: bool = False,
   ):
     if geom_subset is None:
@@ -297,7 +297,7 @@ class Entity:
   def find_sites(
     self,
     name_keys: str | Sequence[str],
-    site_subset: list[str] | None = None,
+    site_subset: Sequence[str] | None = None,
     preserve_order: bool = False,
   ):
     if site_subset is None:

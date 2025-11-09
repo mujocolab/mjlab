@@ -246,7 +246,7 @@ def test_multi_slot_pattern_matching(device):
     name="feet_contact",
     primary=ContactMatch(
       mode="geom",
-      pattern=["left_foot_geom", "right_foot_geom"],
+      pattern=("left_foot_geom", "right_foot_geom"),
       entity="biped",
     ),
     secondary=None,
@@ -360,7 +360,7 @@ def test_reduce_modes_multiple_contacts(device):
     name="feet_contact",
     primary=ContactMatch(
       mode="geom",
-      pattern=["left_foot_geom", "right_foot_geom"],
+      pattern=("left_foot_geom", "right_foot_geom"),
       entity="biped",
     ),
     secondary=None,
@@ -550,7 +550,7 @@ def test_air_time_tracking(device):
     name="feet_contact",
     primary=ContactMatch(
       mode="geom",
-      pattern=["left_foot_geom", "right_foot_geom"],
+      pattern=("left_foot_geom", "right_foot_geom"),
       entity="biped",
     ),
     secondary=None,
@@ -691,7 +691,7 @@ def test_num_slots_greater_than_one(device):
     name="feet_contact_single",
     primary=ContactMatch(
       mode="geom",
-      pattern=["left_foot_geom", "right_foot_geom"],
+      pattern=("left_foot_geom", "right_foot_geom"),
       entity="biped",
     ),
     secondary=None,
@@ -703,7 +703,7 @@ def test_num_slots_greater_than_one(device):
     name="feet_contact_triple",
     primary=ContactMatch(
       mode="geom",
-      pattern=["left_foot_geom", "right_foot_geom"],
+      pattern=("left_foot_geom", "right_foot_geom"),
       entity="biped",
     ),
     secondary=None,

@@ -1,7 +1,6 @@
 """Unit tests for SceneEntityCfg resolution logic."""
 
 from dataclasses import dataclass
-from typing import List, Tuple
 
 import pytest
 
@@ -12,10 +11,10 @@ from mjlab.managers.scene_entity_config import SceneEntityCfg
 class _FakeEntity:
   name: str
 
-  joint_names: List[str]
-  body_names: List[str]
-  geom_names: List[str]
-  site_names: List[str]
+  joint_names: tuple[str, ...]
+  body_names: tuple[str, ...]
+  geom_names: tuple[str, ...]
+  site_names: tuple[str, ...]
 
   @property
   def num_joints(self) -> int:
@@ -35,35 +34,35 @@ class _FakeEntity:
 
   # find_* helpers return (ids, names) similar to Entity API.
   def _find(
-    self, query_names: List[str], pool: List[str]
-  ) -> Tuple[List[int], List[str]]:
+    self, query_names: tuple[str, ...], pool: tuple[str, ...]
+  ) -> tuple[list[int], list[str]]:
     # Treat query as exact names (no regex) to keep tests minimal.
-    indices = [pool.index(n) for n in query_names]
-    names = [pool[i] for i in indices]
+    indices = [list(pool).index(n) for n in query_names]
+    names = [list(pool)[i] for i in indices]
     return indices, names
 
-  def find_joints(self, query_names: List[str], preserve_order: bool = False):
+  def find_joints(self, query_names: tuple[str, ...], preserve_order: bool = False):
     return self._find(query_names, self.joint_names)
 
-  def find_bodies(self, query_names: List[str], preserve_order: bool = False):
+  def find_bodies(self, query_names: tuple[str, ...], preserve_order: bool = False):
     return self._find(query_names, self.body_names)
 
-  def find_geoms(self, query_names: List[str], preserve_order: bool = False):
+  def find_geoms(self, query_names: tuple[str, ...], preserve_order: bool = False):
     return self._find(query_names, self.geom_names)
 
-  def find_sites(self, query_names: List[str], preserve_order: bool = False):
+  def find_sites(self, query_names: tuple[str, ...], preserve_order: bool = False):
     return self._find(query_names, self.site_names)
 
 
 @pytest.fixture
 def fake_entity() -> _FakeEntity:
-  names = ["a", "b", "c"]
+  names = ("a", "b", "c")
   return _FakeEntity(
     name="robot",
-    joint_names=names.copy(),
-    body_names=names.copy(),
-    geom_names=names.copy(),
-    site_names=names.copy(),
+    joint_names=names,
+    body_names=names,
+    geom_names=names,
+    site_names=names,
   )
 
 
@@ -87,7 +86,7 @@ def test_names_to_ids_sets_slice_when_all(fake_scene, fake_entity, field_names):
   names_attr, ids_attr = field_names
 
   cfg = SceneEntityCfg(name=fake_entity.name)
-  setattr(cfg, names_attr, getattr(fake_entity, names_attr).copy())
+  setattr(cfg, names_attr, getattr(fake_entity, names_attr))
 
   cfg.resolve(fake_scene)
 

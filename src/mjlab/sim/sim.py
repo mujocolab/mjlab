@@ -174,13 +174,13 @@ class Simulation:
 
   # Methods.
 
-  def expand_model_fields(self, fields: list[str]) -> None:
+  def expand_model_fields(self, fields: tuple[str, ...]) -> None:
     """Expand model fields to support per-environment parameters."""
     invalid_fields = [f for f in fields if not hasattr(self._mj_model, f)]
     if invalid_fields:
       raise ValueError(f"Fields not found in model: {invalid_fields}")
 
-    expand_model_fields(self._wp_model, self.num_envs, fields)
+    expand_model_fields(self._wp_model, self.num_envs, list(fields))
     self._model_bridge.clear_cache()
 
   def forward(self) -> None:

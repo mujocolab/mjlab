@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any
 
 import mujoco_warp as mjwarp
 import warp as wp
@@ -20,7 +20,7 @@ def repeat_array_kernel(
 def expand_model_fields(
   model: mjwarp.Model,
   nworld: int,
-  fields_to_expand: List[str],
+  fields_to_expand: list[str],
 ) -> None:
   if nworld == 1:
     return

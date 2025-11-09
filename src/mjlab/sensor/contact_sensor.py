@@ -370,7 +370,10 @@ class ContactSensor(Sensor[ContactData]):
     self, entities: dict[str, Entity], match: ContactMatch
   ) -> list[str]:
     if match.entity in (None, ""):
-      return [match.pattern] if isinstance(match.pattern, str) else match.pattern
+      result = (
+        [match.pattern] if isinstance(match.pattern, str) else list(match.pattern)
+      )
+      return result
 
     if match.entity not in entities:
       raise ValueError(
@@ -424,7 +427,7 @@ class ContactSensor(Sensor[ContactData]):
     if policy == "any":
       return None
 
-    if isinstance(match.pattern, list):
+    if isinstance(match.pattern, tuple):
       raise ValueError(
         "Secondary must specify a single name (string). "
         "Use a single exact name or a regex that resolves to one name, "

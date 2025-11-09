@@ -60,7 +60,7 @@ def create_test_env(device, num_envs=NUM_ENVS):
   sim_cfg = SimulationCfg()
   sim = Simulation(num_envs=num_envs, cfg=sim_cfg, model=model, device=device)
   scene.initialize(model, sim.model, sim.data)
-  sim.expand_model_fields(["geom_friction", "body_mass", "dof_damping"])
+  sim.expand_model_fields(("geom_friction", "body_mass", "dof_damping"))
 
   class Env:
     def __init__(self, scene, sim):
