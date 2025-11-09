@@ -13,7 +13,6 @@ from mjlab.managers import CommandTerm, CommandTermCfg
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   matrix_from_quat,
   quat_apply,
-  quat_apply_inverse,
   quat_error_magnitude,
   quat_from_euler_xyz,
   quat_inv,
@@ -367,7 +366,7 @@ class MotionCommand(CommandTerm):
         root_pos[env_ids],
         root_ori[env_ids],
         root_lin_vel[env_ids],
-        quat_apply_inverse(root_ori[env_ids], root_ang_vel[env_ids]),
+        root_ang_vel[env_ids],
       ],
       dim=-1,
     )

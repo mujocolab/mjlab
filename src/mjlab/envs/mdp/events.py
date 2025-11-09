@@ -10,7 +10,6 @@ import torch
 from mjlab.entity import Entity, EntityIndexing
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
-  quat_apply_inverse,
   quat_from_euler_xyz,
   quat_mul,
   sample_gaussian,
@@ -130,7 +129,6 @@ def reset_root_state_uniform(
     torch.cat([positions, orientations], dim=-1), env_ids=env_ids
   )
 
-  velocities[:, 3:] = quat_apply_inverse(orientations, velocities[:, 3:])
   asset.write_root_link_velocity_to_sim(velocities, env_ids=env_ids)
 
 
@@ -180,14 +178,12 @@ def push_by_setting_velocity(
 ) -> None:
   asset: Entity = env.scene[asset_cfg.name]
   vel_w = asset.data.root_link_vel_w[env_ids]
-  quat_w = asset.data.root_link_quat_w[env_ids]
   range_list = [
     velocity_range.get(key, (0.0, 0.0))
     for key in ["x", "y", "z", "roll", "pitch", "yaw"]
   ]
   ranges = torch.tensor(range_list, device=env.device)
   vel_w += sample_uniform(ranges[:, 0], ranges[:, 1], vel_w.shape, device=env.device)
-  vel_w[:, 3:] = quat_apply_inverse(quat_w, vel_w[:, 3:])
   asset.write_root_link_velocity_to_sim(vel_w, env_ids=env_ids)
 
 

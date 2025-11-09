@@ -60,7 +60,6 @@ class ManagerBasedEnv:
     self.obs_buf = {}
 
     self.scene = Scene(self.cfg.scene, device=device)
-    self.cfg.sim.mujoco.edit_spec(self.scene.spec)
 
     self.sim = Simulation(
       num_envs=self.scene.num_envs,
