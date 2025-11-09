@@ -13,13 +13,21 @@ from mjlab.asset_zoo.robots.unitree_g1.g1_constants import (
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.tasks.tracking.tracking_env_cfg import create_tracking_env_cfg
-from mjlab.utils.immediately import immediately
+from mjlab.utils.retval import retval
 
 
-@immediately
+@retval
 def G1_FLAT_TRACKING_ENV_CFG() -> ManagerBasedRlEnvCfg:
   """Create Unitree G1 flat terrain tracking configuration."""
-  cfg = create_tracking_env_cfg(
+  self_collision_cfg = ContactSensorCfg(
+    name="self_collision",
+    primary=ContactMatch(mode="subtree", pattern="pelvis", entity="robot"),
+    secondary=ContactMatch(mode="subtree", pattern="pelvis", entity="robot"),
+    fields=("found",),
+    reduce="none",
+    num_slots=1,
+  )
+  return create_tracking_env_cfg(
     robot_cfg=get_g1_robot_cfg(),
     action_scale=G1_ACTION_SCALE,
     viewer_body_name="torso_link",
@@ -49,21 +57,28 @@ def G1_FLAT_TRACKING_ENV_CFG() -> ManagerBasedRlEnvCfg:
       "right_wrist_yaw_link",
     ),
     base_com_body_name="torso_link",
+    sensors=(self_collision_cfg,),
+    pose_range={
+      "x": (-0.05, 0.05),
+      "y": (-0.05, 0.05),
+      "z": (-0.01, 0.01),
+      "roll": (-0.1, 0.1),
+      "pitch": (-0.1, 0.1),
+      "yaw": (-0.2, 0.2),
+    },
+    velocity_range={
+      "x": (-0.5, 0.5),
+      "y": (-0.5, 0.5),
+      "z": (-0.2, 0.2),
+      "roll": (-0.52, 0.52),
+      "pitch": (-0.52, 0.52),
+      "yaw": (-0.78, 0.78),
+    },
+    joint_position_range=(-0.1, 0.1),
   )
-  cfg.scene.sensors = (
-    ContactSensorCfg(
-      name="self_collision",
-      primary=ContactMatch(mode="subtree", pattern="pelvis", entity="robot"),
-      secondary=ContactMatch(mode="subtree", pattern="pelvis", entity="robot"),
-      fields=("found",),
-      reduce="none",
-      num_slots=1,
-    ),
-  )
-  return cfg
 
 
-@immediately
+@retval
 def G1_FLAT_TRACKING_NO_STATE_ESTIMATION_ENV_CFG() -> ManagerBasedRlEnvCfg:
   """Create Unitree G1 flat terrain tracking config without state estimation.
 

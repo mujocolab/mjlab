@@ -10,10 +10,10 @@ from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.velocity_env_cfg import create_velocity_env_cfg
-from mjlab.utils.immediately import immediately
+from mjlab.utils.retval import retval
 
 
-@immediately
+@retval
 def UNITREE_G1_ROUGH_ENV_CFG() -> ManagerBasedRlEnvCfg:
   """Create Unitree G1 rough terrain velocity tracking configuration."""
   site_names = ("left_foot", "right_foot")
@@ -85,6 +85,7 @@ def UNITREE_G1_ROUGH_ENV_CFG() -> ManagerBasedRlEnvCfg:
     body_ang_vel_weight=-0.05,
     angular_momentum_weight=-0.02,
     self_collision_weight=-1.0,
+    air_time_weight=0.0,
   )
   assert cfg.commands is not None
   twist_cmd = cfg.commands["twist"]
@@ -93,7 +94,7 @@ def UNITREE_G1_ROUGH_ENV_CFG() -> ManagerBasedRlEnvCfg:
   return cfg
 
 
-@immediately
+@retval
 def UNITREE_G1_FLAT_ENV_CFG() -> ManagerBasedRlEnvCfg:
   """Create Unitree G1 flat terrain velocity tracking configuration."""
   # Start with rough terrain config.

@@ -11,10 +11,10 @@ from mjlab.managers.manager_term_config import TerminationTermCfg
 from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.tasks.velocity import mdp
 from mjlab.tasks.velocity.velocity_env_cfg import VIEWER_CONFIG, create_velocity_env_cfg
-from mjlab.utils.immediately import immediately
+from mjlab.utils.retval import retval
 
 
-@immediately
+@retval
 def UNITREE_GO1_ROUGH_ENV_CFG() -> ManagerBasedRlEnvCfg:
   """Create Unitree Go1 rough terrain velocity tracking configuration."""
   foot_names = ("FR", "FL", "RR", "RL")
@@ -66,6 +66,10 @@ def UNITREE_GO1_ROUGH_ENV_CFG() -> ManagerBasedRlEnvCfg:
       r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.3,
       r".*(FR|FL|RR|RL)_calf_joint.*": 0.6,
     },
+    body_ang_vel_weight=0.0,
+    angular_momentum_weight=0.0,
+    self_collision_weight=0.0,
+    air_time_weight=0.0,
   )
 
   cfg.viewer = deepcopy(VIEWER_CONFIG)
@@ -81,7 +85,7 @@ def UNITREE_GO1_ROUGH_ENV_CFG() -> ManagerBasedRlEnvCfg:
   return cfg
 
 
-@immediately
+@retval
 def UNITREE_GO1_FLAT_ENV_CFG() -> ManagerBasedRlEnvCfg:
   """Create Unitree Go1 flat terrain velocity tracking configuration."""
   # Start with rough terrain config.

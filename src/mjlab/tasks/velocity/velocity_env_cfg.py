@@ -68,14 +68,14 @@ def create_velocity_env_cfg(
   site_names: tuple[str, ...],
   feet_sensor_cfg: ContactSensorCfg,
   self_collision_sensor_cfg: ContactSensorCfg,
-  foot_friction_geom_names: tuple[str, ...] | str = ".*",
-  posture_std_standing: dict[str, float] | None = None,
-  posture_std_walking: dict[str, float] | None = None,
-  posture_std_running: dict[str, float] | None = None,
-  body_ang_vel_weight: float = 0.0,
-  angular_momentum_weight: float = 0.0,
-  self_collision_weight: float = 0.0,
-  air_time_weight: float = 0.0,
+  foot_friction_geom_names: tuple[str, ...] | str,
+  posture_std_standing: dict[str, float],
+  posture_std_walking: dict[str, float],
+  posture_std_running: dict[str, float],
+  body_ang_vel_weight: float,
+  angular_momentum_weight: float,
+  self_collision_weight: float,
+  air_time_weight: float,
 ) -> ManagerBasedRlEnvCfg:
   """Create a velocity locomotion task configuration.
 
@@ -98,13 +98,6 @@ def create_velocity_env_cfg(
   Returns:
     Complete ManagerBasedRlEnvCfg for velocity task.
   """
-  if posture_std_standing is None:
-    posture_std_standing = {".*": 0.05}
-  if posture_std_walking is None:
-    posture_std_walking = {".*": 0.3}
-  if posture_std_running is None:
-    posture_std_running = {".*": 0.3}
-
   scene = deepcopy(SCENE_CFG)
   scene.entities = {"robot": robot_cfg}
   scene.sensors = (feet_sensor_cfg, self_collision_sensor_cfg)

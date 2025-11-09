@@ -25,6 +25,7 @@ from mjlab.managers.manager_term_config import (
 )
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import SceneCfg
+from mjlab.sensor import ContactSensorCfg
 from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.tasks.tracking import mdp
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
@@ -73,14 +74,15 @@ def create_tracking_env_cfg(
   foot_friction_geom_names: tuple[str, ...],
   ee_body_names: tuple[str, ...],
   base_com_body_name: str,
-  pose_range: dict[str, tuple[float, float]] | None = None,
-  velocity_range: dict[str, tuple[float, float]] | None = None,
-  joint_position_range: tuple[float, float] = (-0.1, 0.1),
+  sensors: tuple[ContactSensorCfg, ...],
+  pose_range: dict[str, tuple[float, float]],
+  velocity_range: dict[str, tuple[float, float]],
+  joint_position_range: tuple[float, float],
 ) -> ManagerBasedRlEnvCfg:
   """Create a tracking task configuration for motion imitation.
 
   Args:
-    robot_cfg: Robot configuration (sensors added separately to scene).
+    robot_cfg: Robot configuration.
     action_scale: Action scaling factor(s).
     viewer_body_name: Body for camera tracking.
     motion_file: Path to motion capture data file.
@@ -89,6 +91,7 @@ def create_tracking_env_cfg(
     foot_friction_geom_names: Geometry names for friction randomization.
     ee_body_names: End-effector body names for termination.
     base_com_body_name: Body for COM randomization.
+    sensors: Sensor configurations to add to the scene.
     pose_range: Position/orientation randomization ranges.
     velocity_range: Velocity randomization ranges.
     joint_position_range: Joint position randomization range.
@@ -96,20 +99,10 @@ def create_tracking_env_cfg(
   Returns:
     Complete ManagerBasedRlEnvCfg for tracking task.
   """
-  if pose_range is None:
-    pose_range = {
-      "x": (-0.05, 0.05),
-      "y": (-0.05, 0.05),
-      "z": (-0.01, 0.01),
-      "roll": (-0.1, 0.1),
-      "pitch": (-0.1, 0.1),
-      "yaw": (-0.2, 0.2),
-    }
-  if velocity_range is None:
-    velocity_range = VELOCITY_RANGE
 
   scene = deepcopy(SCENE_CFG)
   scene.entities = {"robot": robot_cfg}
+  scene.sensors = sensors
 
   viewer = deepcopy(VIEWER_CONFIG)
   viewer.body_name = viewer_body_name
