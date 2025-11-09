@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Literal, Tuple, Union
 
 import torch
 
@@ -221,8 +221,8 @@ class FieldSpec:
 
   entity_type: Literal["dof", "joint", "body", "geom", "site", "actuator"]
   use_address: bool = False  # True for fields that need address (q_adr, v_adr)
-  default_axes: Optional[List[int]] = None
-  valid_axes: Optional[List[int]] = None
+  default_axes: list[int] | None = None
+  valid_axes: list[int] | None = None
 
 
 FIELD_SPECS = {
@@ -261,7 +261,7 @@ def randomize_field(
   distribution: Literal["uniform", "log_uniform", "gaussian"] = "uniform",
   operation: Literal["add", "scale", "abs"] = "abs",
   asset_cfg=None,
-  axes: Optional[List[int]] = None,
+  axes: list[int] | None = None,
 ):
   """Unified model randomization function.
 
@@ -335,9 +335,9 @@ def _get_entity_indices(
 def _determine_target_axes(
   model_field,
   spec: FieldSpec,
-  axes: Optional[List[int]],
+  axes: list[int] | None,
   ranges: Union[Tuple[float, float], Dict[int, Tuple[float, float]]],
-) -> List[int]:
+) -> list[int]:
   """Determine which axes to randomize."""
   field_ndim = len(model_field.shape) - 1  # Subtract env dimension
 
@@ -370,7 +370,7 @@ def _determine_target_axes(
 
 def _prepare_axis_ranges(
   ranges: Union[Tuple[float, float], Dict[int, Tuple[float, float]]],
-  target_axes: List[int],
+  target_axes: list[int],
   field: str,
 ) -> Dict[int, Tuple[float, float]]:
   """Convert ranges to a consistent dictionary format."""
@@ -394,7 +394,7 @@ def _generate_random_values(
   distribution: str,
   axis_ranges: Dict[int, Tuple[float, float]],
   indexed_data: torch.Tensor,
-  target_axes: List[int],
+  target_axes: list[int],
   device,
 ) -> torch.Tensor:
   """Generate random values for the specified axes."""
