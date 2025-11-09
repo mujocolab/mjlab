@@ -12,6 +12,7 @@ from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ACTION_SCALE, G1_R
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.manager_term_config import (
+  CommandTermCfg,
   CurriculumTermCfg,
   EventTermCfg,
   ObservationGroupCfg,
@@ -85,7 +86,7 @@ def create_unitree_g1_rough_env_cfg() -> ManagerBasedRlEnvCfg:
   }
 
   # Commands
-  commands = {
+  commands: dict[str, CommandTermCfg] = {
     "twist": UniformVelocityCommandCfg(
       asset_name="robot",
       resampling_time_range=(3.0, 8.0),

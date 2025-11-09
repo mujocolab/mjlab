@@ -11,6 +11,7 @@ from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ACTION_SCALE, G1_R
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.manager_term_config import (
+  CommandTermCfg,
   EventTermCfg,
   ObservationGroupCfg,
   ObservationTermCfg,
@@ -58,7 +59,7 @@ def create_g1_flat_tracking_env_cfg() -> ManagerBasedRlEnvCfg:
   }
 
   # Commands
-  commands = {
+  commands: dict[str, CommandTermCfg] = {
     "motion": MotionCommandCfg(
       asset_name="robot",
       resampling_time_range=(1.0e9, 1.0e9),
