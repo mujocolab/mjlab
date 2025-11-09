@@ -131,34 +131,34 @@ DAMPING_7520_22 = 2.0 * DAMPING_RATIO * ARMATURE_7520_22 * NATURAL_FREQ
 DAMPING_4010 = 2.0 * DAMPING_RATIO * ARMATURE_4010 * NATURAL_FREQ
 
 G1_ACTUATOR_5020 = ActuatorCfg(
-  joint_names_expr=[
+  joint_names_expr=(
     ".*_elbow_joint",
     ".*_shoulder_pitch_joint",
     ".*_shoulder_roll_joint",
     ".*_shoulder_yaw_joint",
     ".*_wrist_roll_joint",
-  ],
+  ),
   effort_limit=ACTUATOR_5020.effort_limit,
   armature=ACTUATOR_5020.reflected_inertia,
   stiffness=STIFFNESS_5020,
   damping=DAMPING_5020,
 )
 G1_ACTUATOR_7520_14 = ActuatorCfg(
-  joint_names_expr=[".*_hip_pitch_joint", ".*_hip_yaw_joint", "waist_yaw_joint"],
+  joint_names_expr=(".*_hip_pitch_joint", ".*_hip_yaw_joint", "waist_yaw_joint"),
   effort_limit=ACTUATOR_7520_14.effort_limit,
   armature=ACTUATOR_7520_14.reflected_inertia,
   stiffness=STIFFNESS_7520_14,
   damping=DAMPING_7520_14,
 )
 G1_ACTUATOR_7520_22 = ActuatorCfg(
-  joint_names_expr=[".*_hip_roll_joint", ".*_knee_joint"],
+  joint_names_expr=(".*_hip_roll_joint", ".*_knee_joint"),
   effort_limit=ACTUATOR_7520_22.effort_limit,
   armature=ACTUATOR_7520_22.reflected_inertia,
   stiffness=STIFFNESS_7520_22,
   damping=DAMPING_7520_22,
 )
 G1_ACTUATOR_4010 = ActuatorCfg(
-  joint_names_expr=[".*_wrist_pitch_joint", ".*_wrist_yaw_joint"],
+  joint_names_expr=(".*_wrist_pitch_joint", ".*_wrist_yaw_joint"),
   effort_limit=ACTUATOR_4010.effort_limit,
   armature=ACTUATOR_4010.reflected_inertia,
   stiffness=STIFFNESS_4010,
@@ -171,14 +171,14 @@ G1_ACTUATOR_4010 = ActuatorCfg(
 # assume a nominal 1:1 gear ratio. Under this assumption, the joint armature in the
 # nominal configuration is approximated as the sum of the 2 actuators' armatures.
 G1_ACTUATOR_WAIST = ActuatorCfg(
-  joint_names_expr=["waist_pitch_joint", "waist_roll_joint"],
+  joint_names_expr=("waist_pitch_joint", "waist_roll_joint"),
   effort_limit=ACTUATOR_5020.effort_limit * 2,
   armature=ACTUATOR_5020.reflected_inertia * 2,
   stiffness=STIFFNESS_5020 * 2,
   damping=DAMPING_5020 * 2,
 )
 G1_ACTUATOR_ANKLE = ActuatorCfg(
-  joint_names_expr=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"],
+  joint_names_expr=(".*_ankle_pitch_joint", ".*_ankle_roll_joint"),
   effort_limit=ACTUATOR_5020.effort_limit * 2,
   armature=ACTUATOR_5020.reflected_inertia * 2,
   stiffness=STIFFNESS_5020 * 2,
@@ -226,14 +226,14 @@ KNEES_BENT_KEYFRAME = EntityCfg.InitialStateCfg(
 # Self-collisions are given condim=1 while foot collisions
 # are given condim=3.
 FULL_COLLISION = CollisionCfg(
-  geom_names_expr=[".*_collision"],
+  geom_names_expr=(".*_collision",),
   condim={r"^(left|right)_foot[1-7]_collision$": 3, ".*_collision": 1},
   priority={r"^(left|right)_foot[1-7]_collision$": 1},
   friction={r"^(left|right)_foot[1-7]_collision$": (0.6,)},
 )
 
 FULL_COLLISION_WITHOUT_SELF = CollisionCfg(
-  geom_names_expr=[".*_collision"],
+  geom_names_expr=(".*_collision",),
   contype=0,
   conaffinity=1,
   condim={r"^(left|right)_foot[1-7]_collision$": 3, ".*_collision": 1},
@@ -244,7 +244,7 @@ FULL_COLLISION_WITHOUT_SELF = CollisionCfg(
 # This disables all collisions except the feet.
 # Feet get condim=3, all other geoms are disabled.
 FEET_ONLY_COLLISION = CollisionCfg(
-  geom_names_expr=[r"^(left|right)_foot[1-7]_collision$"],
+  geom_names_expr=(r"^(left|right)_foot[1-7]_collision$",),
   contype=0,
   conaffinity=1,
   condim=3,

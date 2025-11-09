@@ -31,7 +31,7 @@ def create_g1_flat_tracking_env_cfg() -> ManagerBasedRlEnvCfg:
     viewer_body_name="torso_link",
     motion_file="",
     anchor_body_name="torso_link",
-    body_names=[
+    body_names=(
       "pelvis",
       "left_hip_roll_link",
       "left_knee_link",
@@ -46,14 +46,14 @@ def create_g1_flat_tracking_env_cfg() -> ManagerBasedRlEnvCfg:
       "right_shoulder_roll_link",
       "right_elbow_link",
       "right_wrist_yaw_link",
-    ],
-    foot_friction_geom_names=[r"^(left|right)_foot[1-7]_collision$"],
-    ee_body_names=[
+    ),
+    foot_friction_geom_names=(r"^(left|right)_foot[1-7]_collision$",),
+    ee_body_names=(
       "left_ankle_roll_link",
       "right_ankle_roll_link",
       "left_wrist_yaw_link",
       "right_wrist_yaw_link",
-    ],
+    ),
     base_com_body_name="torso_link",
   )
 

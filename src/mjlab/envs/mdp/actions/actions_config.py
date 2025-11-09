@@ -7,8 +7,8 @@ from mjlab.managers.manager_term_config import ActionTermCfg
 
 @dataclass(kw_only=True)
 class JointActionCfg(ActionTermCfg):
-  actuator_names: list[str]
-  """List of actuator names or regex expressions that the action will be mapped to."""
+  actuator_names: tuple[str, ...]
+  """Tuple of actuator names or regex expressions that the action will be mapped to."""
   scale: float | dict[str, float] = 1.0
   """Scale factor for the action (float or dict of regex expressions). Defaults to 1.0."""
   offset: float | dict[str, float] = 0.0

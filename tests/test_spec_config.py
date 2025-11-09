@@ -81,7 +81,7 @@ def test_existing_actuators_parsed(robot_with_actuators_xml):
 def test_actuator_cfg_creates_actuators(simple_robot_xml):
   """ActuatorCfg should create actuators for matched joints."""
   actuator_cfg = ActuatorCfg(
-    joint_names_expr=["joint1", "joint2"],
+    joint_names_expr=("joint1", "joint2"),
     effort_limit=2.0,
     stiffness=15.0,
     damping=2.0,
@@ -113,7 +113,7 @@ def test_actuator_cfg_creates_actuators(simple_robot_xml):
 def test_actuator_cfg_regex_matching(simple_robot_xml):
   """ActuatorCfg should support regex pattern matching."""
   actuator_cfg = ActuatorCfg(
-    joint_names_expr=["joint.*"],
+    joint_names_expr=("joint.*",),
     effort_limit=1.5,
     stiffness=8.0,
     damping=1.5,
@@ -133,10 +133,10 @@ def test_multiple_actuator_configs(simple_robot_xml):
   """Multiple ActuatorCfg instances should apply different parameters."""
   actuator_cfgs = (
     ActuatorCfg(
-      joint_names_expr=["joint1"], effort_limit=3.0, stiffness=20.0, damping=3.0
+      joint_names_expr=("joint1",), effort_limit=3.0, stiffness=20.0, damping=3.0
     ),
     ActuatorCfg(
-      joint_names_expr=["joint2"], effort_limit=1.0, stiffness=10.0, damping=1.0
+      joint_names_expr=("joint2",), effort_limit=1.0, stiffness=10.0, damping=1.0
     ),
   )
 
@@ -158,7 +158,7 @@ def test_multiple_actuator_configs(simple_robot_xml):
 def test_no_matching_joints_raises_error(simple_robot_xml):
   """ActuatorCfg should raise error when no joints match."""
   actuator_cfg = ActuatorCfg(
-    joint_names_expr=["nonexistent.*"],
+    joint_names_expr=("nonexistent.*",),
     effort_limit=1.0,
     stiffness=1.0,
     damping=1.0,
@@ -190,7 +190,7 @@ def test_no_matching_joints_raises_error(simple_robot_xml):
 def test_actuator_validation(simple_robot_xml, param, value, expected_error):
   """ActuatorCfg should validate parameters."""
   with pytest.raises(ValueError, match=expected_error):
-    joint_names_expr = ["joint1"]
+    joint_names_expr = ("joint1",)
     effort_limit = value if param == "effort_limit" else 1.0
     stiffness = value if param == "stiffness" else 1.0
     damping = value if param == "damping" else 1.0
@@ -217,10 +217,10 @@ def test_actuator_ordering_preserved(simple_robot_xml):
   # Match joint2 first in config, then joint1.
   actuator_cfgs = (
     ActuatorCfg(
-      joint_names_expr=["joint2"], effort_limit=1.0, stiffness=1.0, damping=1.0
+      joint_names_expr=("joint2",), effort_limit=1.0, stiffness=1.0, damping=1.0
     ),
     ActuatorCfg(
-      joint_names_expr=["joint1"], effort_limit=2.0, stiffness=2.0, damping=2.0
+      joint_names_expr=("joint1",), effort_limit=2.0, stiffness=2.0, damping=2.0
     ),
   )
 
@@ -257,7 +257,7 @@ def multi_geom_spec():
 def test_collision_basic_properties(multi_geom_spec):
   """CollisionCfg should set basic collision properties."""
   collision_cfg = CollisionCfg(
-    geom_names_expr=["arm_collision"], contype=2, conaffinity=3, condim=4, priority=1
+    geom_names_expr=("arm_collision",), contype=2, conaffinity=3, condim=4, priority=1
   )
   collision_cfg.edit_spec(multi_geom_spec)
 
@@ -271,7 +271,7 @@ def test_collision_basic_properties(multi_geom_spec):
 def test_collision_regex_matching(multi_geom_spec):
   """CollisionCfg should support regex pattern matching."""
   collision_cfg = CollisionCfg(
-    geom_names_expr=[r"^(left|right)_foot\d_collision$"],
+    geom_names_expr=(r"^(left|right)_foot\d_collision$",),
     condim=3,
     priority=1,
     friction=(0.6,),
@@ -294,7 +294,7 @@ def test_collision_regex_matching(multi_geom_spec):
 def test_collision_dict_field_resolution(multi_geom_spec):
   """CollisionCfg should support dict-based field resolution."""
   collision_cfg = CollisionCfg(
-    geom_names_expr=[r".*_foot\d_collision$", "arm_collision"],
+    geom_names_expr=(r".*_foot\d_collision$", "arm_collision"),
     condim={r".*_foot\d_collision$": 3, "arm_collision": 1},
     priority={r".*_foot\d_collision$": 2, "arm_collision": 0},
   )
@@ -312,7 +312,7 @@ def test_collision_dict_field_resolution(multi_geom_spec):
 def test_collision_disable_other_geoms(multi_geom_spec):
   """CollisionCfg should disable non-matching geoms when requested."""
   collision_cfg = CollisionCfg(
-    geom_names_expr=["left_foot1_collision"], contype=2, disable_other_geoms=True
+    geom_names_expr=("left_foot1_collision",), contype=2, disable_other_geoms=True
   )
   collision_cfg.edit_spec(multi_geom_spec)
 
@@ -342,7 +342,7 @@ def test_collision_disable_other_geoms(multi_geom_spec):
 def test_collision_validation(param, value, expected_error):
   """CollisionCfg should validate parameters."""
   with pytest.raises(ValueError, match=expected_error):
-    geom_names_expr = ["test"]
+    geom_names_expr = ("test",)
     contype = value if param == "contype" else 1
     conaffinity = value if param == "conaffinity" else 1
     condim = value if param == "condim" else 3

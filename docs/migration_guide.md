@@ -124,7 +124,7 @@ class MySceneCfg(InteractiveSceneCfg):
 **mjlab:**
 ```python
 from mjlab.scene import SceneCfg
-from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ROBOT_CFG
+from mjlab.asset_zoo.robots.unitree_g1.g1_constants import get_g1_robot_cfg
 from mjlab.utils.spec_config import ContactSensorCfg
 from mjlab.terrains import TerrainImporterCfg
 
@@ -139,7 +139,7 @@ self_collision_sensor = ContactSensorCfg(
 )
 
 # Add sensor to robot config
-g1_cfg = replace(G1_ROBOT_CFG, sensors=(self_collision_sensor,))
+g1_cfg = replace(get_g1_robot_cfg(), sensors=(self_collision_sensor,))
 
 # Create scene
 SCENE_CFG = SceneCfg(

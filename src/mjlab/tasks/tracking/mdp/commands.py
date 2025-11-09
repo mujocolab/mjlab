@@ -482,7 +482,7 @@ class MotionCommand(CommandTerm):
 class MotionCommandCfg(CommandTermCfg):
   motion_file: str
   anchor_body_name: str
-  body_names: list[str]
+  body_names: tuple[str, ...]
   asset_name: str
   class_type: type[CommandTerm] = MotionCommand
   pose_range: dict[str, tuple[float, float]] = field(default_factory=dict)

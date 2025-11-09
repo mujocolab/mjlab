@@ -64,10 +64,10 @@ def create_velocity_env_cfg(
   robot_cfg: EntityCfg,
   action_scale: float | dict[str, float],
   viewer_body_name: str,
-  site_names: list[str],
+  site_names: tuple[str, ...],
   feet_sensor_cfg: ContactSensorCfg,
   self_collision_sensor_cfg: ContactSensorCfg,
-  foot_friction_geom_names: list[str] | str = ".*",
+  foot_friction_geom_names: tuple[str, ...] | str = ".*",
   posture_std_standing: dict[str, float] | None = None,
   posture_std_walking: dict[str, float] | None = None,
   posture_std_running: dict[str, float] | None = None,
@@ -118,7 +118,7 @@ def create_velocity_env_cfg(
   actions = {
     "joint_pos": JointPositionActionCfg(
       asset_name="robot",
-      actuator_names=[".*"],
+      actuator_names=(".*",),
       scale=action_scale,
       use_default_offset=True,
     )
@@ -220,7 +220,7 @@ def create_velocity_env_cfg(
       params={
         "position_range": (0.0, 0.0),
         "velocity_range": (0.0, 0.0),
-        "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
+        "asset_cfg": SceneEntityCfg("robot", joint_names=(".*",)),
       },
     ),
     "push_robot": EventTermCfg(
@@ -258,14 +258,14 @@ def create_velocity_env_cfg(
       weight=1.0,
       params={
         "std": math.sqrt(0.2),
-        "asset_cfg": SceneEntityCfg("robot", body_names=[viewer_body_name]),
+        "asset_cfg": SceneEntityCfg("robot", body_names=(viewer_body_name,)),
       },
     ),
     "pose": RewardTermCfg(
       func=mdp.variable_posture,
       weight=1.0,
       params={
-        "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
+        "asset_cfg": SceneEntityCfg("robot", joint_names=(".*",)),
         "command_name": "twist",
         "std_standing": posture_std_standing,
         "std_walking": posture_std_walking,
@@ -277,7 +277,7 @@ def create_velocity_env_cfg(
     "body_ang_vel": RewardTermCfg(
       func=mdp.body_angular_velocity_penalty,
       weight=body_ang_vel_weight,
-      params={"asset_cfg": SceneEntityCfg("robot", body_names=[viewer_body_name])},
+      params={"asset_cfg": SceneEntityCfg("robot", body_names=(viewer_body_name,))},
     ),
     "angular_momentum": RewardTermCfg(
       func=mdp.angular_momentum_penalty,

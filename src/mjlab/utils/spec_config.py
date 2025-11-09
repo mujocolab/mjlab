@@ -141,8 +141,8 @@ class CollisionCfg(SpecCfg):
   for fine-grained control over collision properties.
   """
 
-  geom_names_expr: list[str]
-  """List of regex patterns to match geom names."""
+  geom_names_expr: tuple[str, ...]
+  """Tuple of regex patterns to match geom names."""
   contype: int | dict[str, int] = 1
   """Collision type (int or dict mapping patterns to values). Must be non-negative."""
   conaffinity: int | dict[str, int] = 1
@@ -331,8 +331,8 @@ class ActuatorCfg:
   for joint names.
   """
 
-  joint_names_expr: list[str]
-  """List of regex patterns to match joint names."""
+  joint_names_expr: tuple[str, ...]
+  """Tuple of regex patterns to match joint names."""
   effort_limit: float
   """Maximum force/torque the actuator can apply (must be positive)."""
   stiffness: float

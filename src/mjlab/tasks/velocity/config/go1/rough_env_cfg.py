@@ -19,9 +19,9 @@ from mjlab.tasks.velocity.velocity_env_cfg import VIEWER_CONFIG, create_velocity
 
 def create_unitree_go1_rough_env_cfg() -> ManagerBasedRlEnvCfg:
   """Create Unitree Go1 rough terrain velocity tracking configuration."""
-  foot_names = ["FR", "FL", "RR", "RL"]
-  site_names = ["FR", "FL", "RR", "RL"]
-  geom_names = [f"{name}_foot_collision" for name in foot_names]
+  foot_names = ("FR", "FL", "RR", "RL")
+  site_names = ("FR", "FL", "RR", "RL")
+  geom_names = tuple(f"{name}_foot_collision" for name in foot_names)
 
   feet_ground_cfg = ContactSensorCfg(
     name="feet_ground_contact",

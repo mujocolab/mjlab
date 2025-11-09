@@ -68,9 +68,9 @@ def create_tracking_env_cfg(
   viewer_body_name: str,
   motion_file: str,
   anchor_body_name: str,
-  body_names: list[str],
-  foot_friction_geom_names: list[str],
-  ee_body_names: list[str],
+  body_names: tuple[str, ...],
+  foot_friction_geom_names: tuple[str, ...],
+  ee_body_names: tuple[str, ...],
   base_com_body_name: str,
   pose_range: dict[str, tuple[float, float]] | None = None,
   velocity_range: dict[str, tuple[float, float]] | None = None,
@@ -116,7 +116,7 @@ def create_tracking_env_cfg(
   actions = {
     "joint_pos": JointPositionActionCfg(
       asset_name="robot",
-      actuator_names=[".*"],
+      actuator_names=(".*",),
       scale=action_scale,
       use_default_offset=True,
     )
@@ -221,7 +221,7 @@ def create_tracking_env_cfg(
       func=mdp.randomize_field,
       domain_randomization=True,
       params={
-        "asset_cfg": SceneEntityCfg("robot", body_names=[base_com_body_name]),
+        "asset_cfg": SceneEntityCfg("robot", body_names=(base_com_body_name,)),
         "operation": "add",
         "field": "body_ipos",
         "ranges": {
@@ -290,7 +290,7 @@ def create_tracking_env_cfg(
     "joint_limit": RewardTermCfg(
       func=mdp.joint_pos_limits,
       weight=-10.0,
-      params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*"])},
+      params={"asset_cfg": SceneEntityCfg("robot", joint_names=(".*",))},
     ),
     "self_collisions": RewardTermCfg(
       func=mdp.self_collision_cost,

@@ -52,13 +52,13 @@ class ContactMatch:
   """Specifies what to match on one side of a contact.
 
   mode: "geom", "body", or "subtree"
-  pattern: Regex or list of regexes (expands within entity if specified)
+  pattern: Regex or tuple of regexes (expands within entity if specified)
   entity: Entity name to search within (None = treat pattern as literal MuJoCo name)
   exclude: Filter out matches using these regex patterns or exact names.
   """
 
   mode: Literal["geom", "body", "subtree"]
-  pattern: str | list[str]
+  pattern: str | tuple[str, ...]
   entity: str | None = None
   exclude: tuple[str, ...] = ()
 

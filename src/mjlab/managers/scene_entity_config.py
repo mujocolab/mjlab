@@ -35,13 +35,13 @@ class SceneEntityCfg:
 
   Attributes:
     name: The name of the entity in the scene.
-    joint_names: Names of joints to include. Can be a single string or list.
+    joint_names: Names of joints to include. Can be a single string or tuple.
     joint_ids: IDs of joints to include. Can be a list or slice.
-    body_names: Names of bodies to include. Can be a single string or list.
+    body_names: Names of bodies to include. Can be a single string or tuple.
     body_ids: IDs of bodies to include. Can be a list or slice.
-    geom_names: Names of geometries to include. Can be a single string or list.
+    geom_names: Names of geometries to include. Can be a single string or tuple.
     geom_ids: IDs of geometries to include. Can be a list or slice.
-    site_names: Names of sites to include. Can be a single string or list.
+    site_names: Names of sites to include. Can be a single string or tuple.
     site_ids: IDs of sites to include. Can be a list or slice.
     preserve_order: If True, maintains the order of components as specified. If False,
       allows reordering for optimization.
@@ -49,16 +49,16 @@ class SceneEntityCfg:
 
   name: str
 
-  joint_names: str | list[str] | None = None
+  joint_names: str | tuple[str, ...] | None = None
   joint_ids: list[int] | slice = field(default_factory=lambda: slice(None))
 
-  body_names: str | list[str] | None = None
+  body_names: str | tuple[str, ...] | None = None
   body_ids: list[int] | slice = field(default_factory=lambda: slice(None))
 
-  geom_names: str | list[str] | None = None
+  geom_names: str | tuple[str, ...] | None = None
   geom_ids: list[int] | slice = field(default_factory=lambda: slice(None))
 
-  site_names: str | list[str] | None = None
+  site_names: str | tuple[str, ...] | None = None
   site_ids: list[int] | slice = field(default_factory=lambda: slice(None))
 
   preserve_order: bool = False

@@ -61,11 +61,13 @@ assert CARTPOLE_XML.exists(), f"XML not found: {CARTPOLE_XML}"
 def get_spec() -> mujoco.MjSpec:
   return mujoco.MjSpec.from_file(str(CARTPOLE_XML))
 
-CARTPOLE_ROBOT_CFG = EntityCfg(spec_fn=get_spec)
+def get_cartpole_robot_cfg() -> EntityCfg:
+  """Get a fresh CartPole robot configuration instance."""
+  return EntityCfg(spec_fn=get_spec)
 
 if __name__ == "__main__":
   import mujoco.viewer as viewer
-  robot = Entity(CARTPOLE_ROBOT_CFG)
+  robot = Entity(get_cartpole_robot_cfg())
   viewer.launch(robot.spec.compile())
 ```
 
@@ -90,14 +92,14 @@ uv run python mjlab/src/mjlab/asset_zoo/robots/cartpole/cartpole_constants.py
 Add the CartPole configuration to `mjlab/src/mjlab/asset_zoo/robots/__init__.py`:
 
 ```python
-from mjlab.asset_zoo.robots.unitree_g1.g1_constants import G1_ROBOT_CFG
-from mjlab.asset_zoo.robots.unitree_go1.go1_constants import GO1_ROBOT_CFG
-from mjlab.asset_zoo.robots.cartpole.cartpole_constants import CARTPOLE_ROBOT_CFG
+from mjlab.asset_zoo.robots.unitree_g1.g1_constants import get_g1_robot_cfg as get_g1_robot_cfg
+from mjlab.asset_zoo.robots.unitree_go1.go1_constants import get_go1_robot_cfg as get_go1_robot_cfg
+from mjlab.asset_zoo.robots.cartpole.cartpole_constants import get_cartpole_robot_cfg as get_cartpole_robot_cfg
 
 __all__ = (
-  "G1_ROBOT_CFG",
-  "GO1_ROBOT_CFG",
-  "CARTPOLE_ROBOT_CFG",
+  "get_g1_robot_cfg",
+  "get_go1_robot_cfg",
+  "get_cartpole_robot_cfg",
 )
 ```
 
@@ -139,14 +141,14 @@ from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import SceneCfg
 from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.viewer import ViewerConfig
-from mjlab.asset_zoo.robots.cartpole.cartpole_constants import CARTPOLE_ROBOT_CFG
+from mjlab.asset_zoo.robots.cartpole.cartpole_constants import get_cartpole_robot_cfg
 from mjlab.rl import RslRlOnPolicyRunnerCfg
 from mjlab.envs import mdp
 
 SCENE_CFG = SceneCfg(
   num_envs=64,
   extent=1.0,
-  entities={"robot": CARTPOLE_ROBOT_CFG},
+  entities={"robot": get_cartpole_robot_cfg()},
 )
 
 VIEWER_CONFIG = ViewerConfig(
@@ -176,7 +178,7 @@ def create_cartpole_actions() -> dict[str, JointPositionActionCfg]:
   return {
     "joint_pos": JointPositionActionCfg(
       asset_name="robot",
-      actuator_names=[".*"],
+      actuator_names=(".*",),
       scale=20.0,
       use_default_offset=False,
     ),

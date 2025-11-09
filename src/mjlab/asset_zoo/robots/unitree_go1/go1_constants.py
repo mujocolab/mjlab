@@ -66,14 +66,14 @@ STIFFNESS_KNEE = KNEE_ACTUATOR.reflected_inertia * NATURAL_FREQ**2
 DAMPING_KNEE = 2 * DAMPING_RATIO * KNEE_ACTUATOR.reflected_inertia * NATURAL_FREQ
 
 GO1_HIP_ACTUATOR_CFG = ActuatorCfg(
-  joint_names_expr=[".*_hip_joint", ".*_thigh_joint"],
+  joint_names_expr=(".*_hip_joint", ".*_thigh_joint"),
   effort_limit=HIP_ACTUATOR.effort_limit,
   stiffness=STIFFNESS_HIP,
   damping=DAMPING_HIP,
   armature=HIP_ACTUATOR.reflected_inertia,
 )
 GO1_KNEE_ACTUATOR_CFG = ActuatorCfg(
-  joint_names_expr=[".*_calf_joint"],
+  joint_names_expr=(".*_calf_joint",),
   effort_limit=KNEE_ACTUATOR.effort_limit,
   stiffness=STIFFNESS_KNEE,
   damping=DAMPING_KNEE,
@@ -105,7 +105,7 @@ _foot_regex = "^[FR][LR]_foot_collision$"
 # This disables all collisions except the feet.
 # Furthermore, feet self collisions are disabled.
 FEET_ONLY_COLLISION = CollisionCfg(
-  geom_names_expr=[_foot_regex],
+  geom_names_expr=(_foot_regex,),
   contype=0,
   conaffinity=1,
   condim=3,
@@ -117,7 +117,7 @@ FEET_ONLY_COLLISION = CollisionCfg(
 # This enables all collisions, excluding self collisions.
 # Foot collisions are given custom condim, friction and solimp.
 FULL_COLLISION = CollisionCfg(
-  geom_names_expr=[".*_collision"],
+  geom_names_expr=(".*_collision",),
   condim={_foot_regex: 3, ".*_collision": 1},
   priority={_foot_regex: 1},
   friction={_foot_regex: (0.6,)},
