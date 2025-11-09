@@ -57,8 +57,8 @@ def create_g1_flat_tracking_env_cfg() -> ManagerBasedRlEnvCfg:
     base_com_body_name="torso_link",
   )
 
-  if cfg.scene is not None:
-    cfg.scene.sensors = (self_collision_cfg,)
+  assert cfg.scene is not None
+  cfg.scene.sensors = (self_collision_cfg,)
 
   return cfg
 
@@ -71,10 +71,10 @@ def create_g1_flat_tracking_no_state_estimation_env_cfg() -> ManagerBasedRlEnvCf
   """
   cfg = create_g1_flat_tracking_env_cfg()
 
-  if "policy" in cfg.observations:
-    policy_terms = cfg.observations["policy"].terms
-    policy_terms.pop("motion_anchor_pos_b", None)
-    policy_terms.pop("base_lin_vel", None)
+  assert "policy" in cfg.observations
+  policy_terms = cfg.observations["policy"].terms
+  policy_terms.pop("motion_anchor_pos_b", None)
+  policy_terms.pop("base_lin_vel", None)
 
   return cfg
 
@@ -83,19 +83,19 @@ def create_g1_flat_tracking_env_cfg_play() -> ManagerBasedRlEnvCfg:
   """Create Unitree G1 flat terrain tracking PLAY configuration."""
   cfg = create_g1_flat_tracking_env_cfg()
 
-  if "policy" in cfg.observations:
-    cfg.observations["policy"].enable_corruption = False
+  assert "policy" in cfg.observations
+  cfg.observations["policy"].enable_corruption = False
 
-  if cfg.events is not None:
-    cfg.events.pop("push_robot", None)
+  assert cfg.events is not None
+  cfg.events.pop("push_robot", None)
 
   # Disable RSI randomization.
-  if cfg.commands is not None and "motion" in cfg.commands:
-    motion_cmd = cfg.commands["motion"]
-    if isinstance(motion_cmd, MotionCommandCfg):
-      motion_cmd.pose_range = {}
-      motion_cmd.velocity_range = {}
-      motion_cmd.sampling_mode = "start"
+  assert cfg.commands is not None and "motion" in cfg.commands
+  motion_cmd = cfg.commands["motion"]
+  assert isinstance(motion_cmd, MotionCommandCfg)
+  motion_cmd.pose_range = {}
+  motion_cmd.velocity_range = {}
+  motion_cmd.sampling_mode = "start"
 
   cfg.episode_length_s = int(1e9)
 
@@ -110,10 +110,10 @@ def create_g1_flat_tracking_env_cfg_demo() -> ManagerBasedRlEnvCfg:
   """
   cfg = create_g1_flat_tracking_env_cfg_play()
 
-  if cfg.commands is not None and "motion" in cfg.commands:
-    motion_cmd = cfg.commands["motion"]
-    if isinstance(motion_cmd, MotionCommandCfg):
-      motion_cmd.sampling_mode = "uniform"
+  assert cfg.commands is not None and "motion" in cfg.commands
+  motion_cmd = cfg.commands["motion"]
+  assert isinstance(motion_cmd, MotionCommandCfg)
+  motion_cmd.sampling_mode = "uniform"
 
   return cfg
 
@@ -122,19 +122,19 @@ def create_g1_flat_tracking_no_state_estimation_env_cfg_play() -> ManagerBasedRl
   """Create Unitree G1 flat tracking PLAY config without state estimation."""
   cfg = create_g1_flat_tracking_no_state_estimation_env_cfg()
 
-  if "policy" in cfg.observations:
-    cfg.observations["policy"].enable_corruption = False
+  assert "policy" in cfg.observations
+  cfg.observations["policy"].enable_corruption = False
 
-  if cfg.events is not None:
-    cfg.events.pop("push_robot", None)
+  assert cfg.events is not None
+  cfg.events.pop("push_robot", None)
 
   # Disable RSI randomization.
-  if cfg.commands is not None and "motion" in cfg.commands:
-    motion_cmd = cfg.commands["motion"]
-    if isinstance(motion_cmd, MotionCommandCfg):
-      motion_cmd.pose_range = {}
-      motion_cmd.velocity_range = {}
-      motion_cmd.sampling_mode = "start"
+  assert cfg.commands is not None and "motion" in cfg.commands
+  motion_cmd = cfg.commands["motion"]
+  assert isinstance(motion_cmd, MotionCommandCfg)
+  motion_cmd.pose_range = {}
+  motion_cmd.velocity_range = {}
+  motion_cmd.sampling_mode = "start"
 
   cfg.episode_length_s = int(1e9)
 

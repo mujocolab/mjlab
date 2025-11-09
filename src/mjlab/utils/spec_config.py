@@ -211,7 +211,7 @@ class CollisionCfg(SpecCfg):
 
     all_geoms: list[mujoco.MjsGeom] = spec.geoms
     all_geom_names = [g.name for g in all_geoms]
-    geom_subset = filter_exp(self.geom_names_expr, all_geom_names)
+    geom_subset = filter_exp(list(self.geom_names_expr), all_geom_names)
 
     resolved_fields = {
       name: resolve_field(getattr(self, name), geom_subset, default)
@@ -372,7 +372,7 @@ class ActuatorSetCfg(SpecCfg):
     cfg_joint_pairs: list[tuple[ActuatorCfg, str]] = []
 
     for cfg in self.cfgs:
-      matched = filter_exp(cfg.joint_names_expr, joint_names)
+      matched = filter_exp(list(cfg.joint_names_expr), joint_names)
       for joint_name in matched:
         cfg_joint_pairs.append((cfg, joint_name))
 

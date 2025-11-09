@@ -75,11 +75,11 @@ def create_unitree_go1_rough_env_cfg() -> ManagerBasedRlEnvCfg:
   cfg.viewer.distance = 1.5
   cfg.viewer.elevation = -10.0
 
-  if cfg.terminations is not None:
-    cfg.terminations["illegal_contact"] = TerminationTermCfg(
-      func=mdp.illegal_contact,
-      params={"sensor_name": "nonfoot_ground_touch"},
-    )
+  assert cfg.terminations is not None
+  cfg.terminations["illegal_contact"] = TerminationTermCfg(
+    func=mdp.illegal_contact,
+    params={"sensor_name": "nonfoot_ground_touch"},
+  )
 
   return cfg
 
@@ -90,11 +90,13 @@ def create_unitree_go1_rough_env_cfg_play() -> ManagerBasedRlEnvCfg:
 
   cfg.episode_length_s = int(1e9)
 
-  if cfg.scene.terrain is not None and cfg.scene.terrain.terrain_generator is not None:
-    cfg.scene.terrain.terrain_generator.curriculum = False
-    cfg.scene.terrain.terrain_generator.num_cols = 5
-    cfg.scene.terrain.terrain_generator.num_rows = 5
-    cfg.scene.terrain.terrain_generator.border_width = 10.0
+  assert (
+    cfg.scene.terrain is not None and cfg.scene.terrain.terrain_generator is not None
+  )
+  cfg.scene.terrain.terrain_generator.curriculum = False
+  cfg.scene.terrain.terrain_generator.num_cols = 5
+  cfg.scene.terrain.terrain_generator.num_rows = 5
+  cfg.scene.terrain.terrain_generator.border_width = 10.0
 
   return cfg
 
