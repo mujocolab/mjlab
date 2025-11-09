@@ -33,7 +33,13 @@ def compute_velocity_from_cvel(
 
 @dataclass
 class EntityData:
-  """Data container for an entity."""
+  """Data container for an entity.
+
+  Note: Write methods (write_*) modify state directly. Read properties (e.g.,
+  root_link_pose_w) require sim.forward() to be current. If you write then read,
+  call sim.forward() in between. Event order matters when mixing reads and writes.
+  All inputs/outputs use world frame.
+  """
 
   indexing: EntityIndexing
   data: mjwarp.Data
@@ -94,7 +100,10 @@ class EntityData:
     assert velocity.shape[-1] == self.ROOT_VEL_DIM
 
     env_ids = self._resolve_env_ids(env_ids)
-    self.data.qvel[env_ids, self.indexing.free_joint_v_adr] = velocity
+    quat_w = self.data.qpos[env_ids, self.indexing.free_joint_q_adr[3:7]]
+    ang_vel_b = quat_apply_inverse(quat_w, velocity[:, 3:])
+    velocity_qvel = torch.cat([velocity[:, :3], ang_vel_b], dim=-1)
+    self.data.qvel[env_ids, self.indexing.free_joint_v_adr] = velocity_qvel
 
   def write_joint_state(
     self,

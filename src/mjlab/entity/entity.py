@@ -472,6 +472,7 @@ class Entity:
 
     Args:
       root_velocity: Tensor of shape (N, 6) where N is the number of environments.
+        Contains linear velocity (3) and angular velocity (3), both in world frame.
       env_ids: Optional tensor or slice specifying which environments to set. If
         None, all environments are set.
     """
