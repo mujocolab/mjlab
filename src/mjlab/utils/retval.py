@@ -4,10 +4,7 @@ T = TypeVar("T")
 
 
 def retval(func: Callable[[], T]) -> T:
-  """Invoke a function at module load time and use its return value as a constant.
-
-  Useful as a decorator for factory functions that should be evaluated once
-  at import time to create module-level constants.
+  """Invoke a function immediately and get its return value.
 
   ```python
   # This:
