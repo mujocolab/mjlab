@@ -15,6 +15,7 @@ from mjlab.entity.entity import EntityCfg
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.manager_term_config import (
+  ActionTermCfg,
   CommandTermCfg,
   EventTermCfg,
   ObservationGroupCfg,
@@ -113,7 +114,7 @@ def create_tracking_env_cfg(
   viewer = deepcopy(VIEWER_CONFIG)
   viewer.body_name = viewer_body_name
 
-  actions = {
+  actions: dict[str, ActionTermCfg] = {
     "joint_pos": JointPositionActionCfg(
       asset_name="robot",
       actuator_names=(".*",),

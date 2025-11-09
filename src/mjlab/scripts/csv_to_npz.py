@@ -8,7 +8,7 @@ from tqdm import tqdm
 from mjlab.entity import Entity
 from mjlab.scene import Scene
 from mjlab.sim.sim import Simulation, SimulationCfg
-from mjlab.tasks.tracking.config.g1.flat_env_cfg import G1_FLAT_TRACKING_ENV_CFG
+from mjlab.tasks.tracking.config.g1.env_cfgs import G1_FLAT_TRACKING_ENV_CFG
 from mjlab.third_party.isaaclab.isaaclab.utils.math import (
   axis_angle_from_quat,
   quat_conjugate,

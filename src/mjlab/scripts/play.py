@@ -4,7 +4,7 @@ import os
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Literal, Optional, cast
+from typing import Literal, cast
 
 import gymnasium as gym
 import torch
@@ -23,9 +23,6 @@ from mjlab.utils.torch import configure_torch_backends
 from mjlab.viewer import NativeMujocoViewer, ViserViewer
 from mjlab.viewer.base import EnvProtocol
 
-ViewerChoice = Literal["auto", "native", "viser"]
-ResolvedViewer = Literal["native", "viser"]
-
 
 @dataclass(frozen=True)
 class PlayConfig:
@@ -41,18 +38,57 @@ class PlayConfig:
   video_height: int | None = None
   video_width: int | None = None
   camera: int | str | None = None
-  viewer: ViewerChoice = "auto"
+  viewer: Literal["auto", "native", "viser"] = "auto"
+
+  motion_command_sampling_mode: Literal["start", "uniform"] = "start"
+  """Motion command sampling mode for tracking tasks."""
 
 
-def _resolve_viewer_choice(choice: ViewerChoice) -> ResolvedViewer:
-  """Resolve viewer choice, defaulting to web viewer when no display is present."""
-  if choice != "auto":
-    return cast(ResolvedViewer, choice)
+def _apply_play_env_overrides(
+  cfg: ManagerBasedRlEnvCfg, motion_command_sampling_mode: Literal["start", "uniform"]
+) -> None:
+  """Apply PLAY mode overrides to an environment configuration.
 
-  has_display = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
-  resolved: ResolvedViewer = "native" if has_display else "viser"
-  print(f"[INFO]: Auto-selected viewer: {resolved} (display detected: {has_display})")
-  return resolved
+  PLAY mode is used for inference/evaluation with trained agents. This function
+  applies common overrides:
+  - Sets infinite episode length.
+  - Disables observation corruption.
+  - Removes stochastic training events (e.g., push_robot).
+  - Disables terrain curriculum if present.
+  - Disables RSI randomization for tracking tasks.
+
+  Args:
+    cfg: The environment configuration to modify in-place.
+  """
+  # Infinite episodes for continuous inference.
+  cfg.episode_length_s = int(1e9)
+
+  # Disable observation corruption for clean state information.
+  assert "policy" in cfg.observations
+  cfg.observations["policy"].enable_corruption = False
+
+  # Remove stochastic training events.
+  assert cfg.events is not None
+  cfg.events.pop("push_robot", None)
+
+  # Disable terrain curriculum for rough terrain environments.
+  assert cfg.scene.terrain is not None
+  terrain_gen = cfg.scene.terrain.terrain_generator
+  if terrain_gen is not None:
+    terrain_gen.curriculum = False
+    terrain_gen.num_cols = 5
+    terrain_gen.num_rows = 5
+    terrain_gen.border_width = 10.0
+
+  # Disable RSI randomization for tracking tasks.
+  if cfg.commands is not None and "motion" in cfg.commands:
+    from mjlab.tasks.tracking.mdp import MotionCommandCfg
+
+    motion_cmd = cfg.commands["motion"]
+    assert isinstance(motion_cmd, MotionCommandCfg)
+    motion_cmd.pose_range = {}
+    motion_cmd.velocity_range = {}
+    motion_cmd.sampling_mode = motion_command_sampling_mode
 
 
 def run_play(task: str, cfg: PlayConfig):
@@ -60,12 +96,12 @@ def run_play(task: str, cfg: PlayConfig):
 
   device = cfg.device or ("cuda:0" if torch.cuda.is_available() else "cpu")
 
-  env_cfg = cast(
-    ManagerBasedRlEnvCfg, load_cfg_from_registry(task, "env_cfg_entry_point")
-  )
-  agent_cfg = cast(
-    RslRlOnPolicyRunnerCfg, load_cfg_from_registry(task, "rl_cfg_entry_point")
-  )
+  env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
+  assert isinstance(env_cfg, ManagerBasedRlEnvCfg)
+  _apply_play_env_overrides(env_cfg, cfg.motion_command_sampling_mode)
+
+  agent_cfg = load_cfg_from_registry(task, "rl_cfg_entry_point")
+  assert isinstance(agent_cfg, RslRlOnPolicyRunnerCfg)
 
   DUMMY_MODE = cfg.agent in {"zero", "random"}
   TRAINED_MODE = not DUMMY_MODE
@@ -118,8 +154,8 @@ def run_play(task: str, cfg: PlayConfig):
             raise RuntimeError("No motion artifact found in the run.")
           motion_cmd.motion_file = str(Path(art.download()) / "motion.npz")
 
-  log_dir: Optional[Path] = None
-  resume_path: Optional[Path] = None
+  log_dir: Path | None = None
+  resume_path: Path | None = None
   if TRAINED_MODE:
     log_root_path = (Path("logs") / "rsl_rl" / agent_cfg.experiment_name).resolve()
     if cfg.checkpoint_file is not None:
@@ -199,7 +235,13 @@ def run_play(task: str, cfg: PlayConfig):
     runner.load(str(resume_path), map_location=device)
     policy = runner.get_inference_policy(device=device)
 
-  resolved_viewer = _resolve_viewer_choice(cfg.viewer)
+  # Handle "auto" viewer selection.
+  if cfg.viewer == "auto":
+    has_display = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+    resolved_viewer = "native" if has_display else "viser"
+    del has_display
+  else:
+    resolved_viewer = cfg.viewer
 
   if resolved_viewer == "native":
     NativeMujocoViewer(cast(EnvProtocol, env), policy).run()
@@ -224,7 +266,6 @@ def main():
   del task_prefix
 
   # Parse the rest of the arguments + allow overriding env_cfg and agent_cfg.
-  env_cfg = load_cfg_from_registry(chosen_task, "env_cfg_entry_point")
   agent_cfg = load_cfg_from_registry(chosen_task, "rl_cfg_entry_point")
   assert isinstance(agent_cfg, RslRlOnPolicyRunnerCfg)
 
@@ -238,7 +279,7 @@ def main():
       tyro.conf.FlagConversionOff,
     ),
   )
-  del env_cfg, agent_cfg, remaining_args
+  del remaining_args, agent_cfg
 
   run_play(chosen_task, args)
 

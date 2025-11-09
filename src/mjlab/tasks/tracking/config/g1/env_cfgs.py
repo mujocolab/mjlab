@@ -1,0 +1,77 @@
+"""Unitree G1 flat terrain tracking configuration.
+
+This module provides factory functions that create complete ManagerBasedRlEnvCfg
+instances for the G1 robot tracking task on flat terrain.
+"""
+
+from copy import deepcopy
+
+from mjlab.asset_zoo.robots.unitree_g1.g1_constants import (
+  G1_ACTION_SCALE,
+  get_g1_robot_cfg,
+)
+from mjlab.envs import ManagerBasedRlEnvCfg
+from mjlab.sensor import ContactMatch, ContactSensorCfg
+from mjlab.tasks.tracking.tracking_env_cfg import create_tracking_env_cfg
+from mjlab.utils.immediately import immediately
+
+
+@immediately
+def G1_FLAT_TRACKING_ENV_CFG() -> ManagerBasedRlEnvCfg:
+  """Create Unitree G1 flat terrain tracking configuration."""
+  cfg = create_tracking_env_cfg(
+    robot_cfg=get_g1_robot_cfg(),
+    action_scale=G1_ACTION_SCALE,
+    viewer_body_name="torso_link",
+    motion_file="",
+    anchor_body_name="torso_link",
+    body_names=(
+      "pelvis",
+      "left_hip_roll_link",
+      "left_knee_link",
+      "left_ankle_roll_link",
+      "right_hip_roll_link",
+      "right_knee_link",
+      "right_ankle_roll_link",
+      "torso_link",
+      "left_shoulder_roll_link",
+      "left_elbow_link",
+      "left_wrist_yaw_link",
+      "right_shoulder_roll_link",
+      "right_elbow_link",
+      "right_wrist_yaw_link",
+    ),
+    foot_friction_geom_names=(r"^(left|right)_foot[1-7]_collision$",),
+    ee_body_names=(
+      "left_ankle_roll_link",
+      "right_ankle_roll_link",
+      "left_wrist_yaw_link",
+      "right_wrist_yaw_link",
+    ),
+    base_com_body_name="torso_link",
+  )
+  cfg.scene.sensors = (
+    ContactSensorCfg(
+      name="self_collision",
+      primary=ContactMatch(mode="subtree", pattern="pelvis", entity="robot"),
+      secondary=ContactMatch(mode="subtree", pattern="pelvis", entity="robot"),
+      fields=("found",),
+      reduce="none",
+      num_slots=1,
+    ),
+  )
+  return cfg
+
+
+@immediately
+def G1_FLAT_TRACKING_NO_STATE_ESTIMATION_ENV_CFG() -> ManagerBasedRlEnvCfg:
+  """Create Unitree G1 flat terrain tracking config without state estimation.
+
+  This variant disables motion_anchor_pos_b and base_lin_vel observations,
+  simulating the lack of state estimation.
+  """
+  cfg = deepcopy(G1_FLAT_TRACKING_ENV_CFG)
+  assert "policy" in cfg.observations
+  cfg.observations["policy"].terms.pop("motion_anchor_pos_b")
+  cfg.observations["policy"].terms.pop("base_lin_vel")
+  return cfg

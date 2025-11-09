@@ -162,7 +162,7 @@ def test_nan_guard_saves_model(simple_model):
 def test_nan_guard_with_complex_model():
   """NaN guard should work with complex robot model."""
   from mjlab.scene import Scene
-  from mjlab.tasks.velocity.config.go1.rough_env_cfg import UNITREE_GO1_ROUGH_ENV_CFG
+  from mjlab.tasks.velocity.config.go1.env_cfgs import UNITREE_GO1_ROUGH_ENV_CFG
 
   scene = Scene(UNITREE_GO1_ROUGH_ENV_CFG.scene, device=get_test_device())
   model = scene.compile()

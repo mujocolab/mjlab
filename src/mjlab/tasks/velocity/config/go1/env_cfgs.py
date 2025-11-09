@@ -1,8 +1,4 @@
-"""Unitree Go1 rough terrain velocity tracking configuration.
-
-This module provides factory functions that create complete ManagerBasedRlEnvCfg
-instances for the Go1 robot on rough terrain.
-"""
+"""Unitree Go1 velocity tracking environment configurations."""
 
 from copy import deepcopy
 
@@ -15,9 +11,11 @@ from mjlab.managers.manager_term_config import TerminationTermCfg
 from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.tasks.velocity import mdp
 from mjlab.tasks.velocity.velocity_env_cfg import VIEWER_CONFIG, create_velocity_env_cfg
+from mjlab.utils.immediately import immediately
 
 
-def create_unitree_go1_rough_env_cfg() -> ManagerBasedRlEnvCfg:
+@immediately
+def UNITREE_GO1_ROUGH_ENV_CFG() -> ManagerBasedRlEnvCfg:
   """Create Unitree Go1 rough terrain velocity tracking configuration."""
   foot_names = ("FR", "FL", "RR", "RL")
   site_names = ("FR", "FL", "RR", "RL")
@@ -80,26 +78,22 @@ def create_unitree_go1_rough_env_cfg() -> ManagerBasedRlEnvCfg:
     func=mdp.illegal_contact,
     params={"sensor_name": "nonfoot_ground_touch"},
   )
-
   return cfg
 
 
-def create_unitree_go1_rough_env_cfg_play() -> ManagerBasedRlEnvCfg:
-  """Create Unitree Go1 rough terrain PLAY configuration (infinite episodes, no curriculum)."""
-  cfg = create_unitree_go1_rough_env_cfg()
+@immediately
+def UNITREE_GO1_FLAT_ENV_CFG() -> ManagerBasedRlEnvCfg:
+  """Create Unitree Go1 flat terrain velocity tracking configuration."""
+  # Start with rough terrain config.
+  cfg = deepcopy(UNITREE_GO1_ROUGH_ENV_CFG)
 
-  cfg.episode_length_s = int(1e9)
+  # Change to flat terrain.
+  assert cfg.scene.terrain is not None
+  cfg.scene.terrain.terrain_type = "plane"
+  cfg.scene.terrain.terrain_generator = None
 
-  assert (
-    cfg.scene.terrain is not None and cfg.scene.terrain.terrain_generator is not None
-  )
-  cfg.scene.terrain.terrain_generator.curriculum = False
-  cfg.scene.terrain.terrain_generator.num_cols = 5
-  cfg.scene.terrain.terrain_generator.num_rows = 5
-  cfg.scene.terrain.terrain_generator.border_width = 10.0
+  # Disable terrain curriculum.
+  assert cfg.curriculum is not None
+  del cfg.curriculum["terrain_levels"]
 
   return cfg
-
-
-UNITREE_GO1_ROUGH_ENV_CFG = create_unitree_go1_rough_env_cfg()
-UNITREE_GO1_ROUGH_ENV_CFG_PLAY = create_unitree_go1_rough_env_cfg_play()

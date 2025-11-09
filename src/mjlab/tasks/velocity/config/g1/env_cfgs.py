@@ -1,8 +1,6 @@
-"""Unitree G1 rough terrain velocity tracking configuration.
+"""Unitree G1 velocity tracking environment configurations."""
 
-This module provides factory functions that create complete ManagerBasedRlEnvCfg
-instances for the G1 robot on rough terrain.
-"""
+from copy import deepcopy
 
 from mjlab.asset_zoo.robots.unitree_g1.g1_constants import (
   G1_ACTION_SCALE,
@@ -12,15 +10,16 @@ from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.velocity_env_cfg import create_velocity_env_cfg
+from mjlab.utils.immediately import immediately
 
 
-def create_unitree_g1_rough_env_cfg() -> ManagerBasedRlEnvCfg:
+@immediately
+def UNITREE_G1_ROUGH_ENV_CFG() -> ManagerBasedRlEnvCfg:
   """Create Unitree G1 rough terrain velocity tracking configuration."""
   site_names = ("left_foot", "right_foot")
   geom_names = tuple(
     f"{side}_foot{i}_collision" for side in ("left", "right") for i in range(1, 8)
   )
-
   feet_ground_cfg = ContactSensorCfg(
     name="feet_ground_contact",
     primary=ContactMatch(
@@ -42,7 +41,6 @@ def create_unitree_g1_rough_env_cfg() -> ManagerBasedRlEnvCfg:
     reduce="none",
     num_slots=1,
   )
-
   cfg = create_velocity_env_cfg(
     robot_cfg=get_g1_robot_cfg(),
     action_scale=G1_ACTION_SCALE,
@@ -88,31 +86,27 @@ def create_unitree_g1_rough_env_cfg() -> ManagerBasedRlEnvCfg:
     angular_momentum_weight=-0.02,
     self_collision_weight=-1.0,
   )
-
   assert cfg.commands is not None
   twist_cmd = cfg.commands["twist"]
-  if isinstance(twist_cmd, UniformVelocityCommandCfg):
-    twist_cmd.viz.z_offset = 1.15
-
+  assert isinstance(twist_cmd, UniformVelocityCommandCfg)
+  twist_cmd.viz.z_offset = 1.15
   return cfg
 
 
-def create_unitree_g1_rough_env_cfg_play() -> ManagerBasedRlEnvCfg:
-  """Create Unitree G1 rough terrain PLAY configuration."""
-  cfg = create_unitree_g1_rough_env_cfg()
+@immediately
+def UNITREE_G1_FLAT_ENV_CFG() -> ManagerBasedRlEnvCfg:
+  """Create Unitree G1 flat terrain velocity tracking configuration."""
+  # Start with rough terrain config.
+  cfg = deepcopy(UNITREE_G1_ROUGH_ENV_CFG)
 
-  cfg.episode_length_s = int(1e9)
+  # Change to flat terrain.
+  assert cfg.scene.terrain is not None
+  cfg.scene.terrain.terrain_type = "plane"
+  cfg.scene.terrain.terrain_generator = None
 
-  assert (
-    cfg.scene.terrain is not None and cfg.scene.terrain.terrain_generator is not None
-  )
-  cfg.scene.terrain.terrain_generator.curriculum = False
-  cfg.scene.terrain.terrain_generator.num_cols = 5
-  cfg.scene.terrain.terrain_generator.num_rows = 5
-  cfg.scene.terrain.terrain_generator.border_width = 10.0
+  # Disable terrain curriculum.
+  assert cfg.curriculum is not None
+  assert "terrain_levels" in cfg.curriculum
+  del cfg.curriculum["terrain_levels"]
 
   return cfg
-
-
-UNITREE_G1_ROUGH_ENV_CFG = create_unitree_g1_rough_env_cfg()
-UNITREE_G1_ROUGH_ENV_CFG_PLAY = create_unitree_g1_rough_env_cfg_play()

@@ -22,16 +22,17 @@ def main() -> None:
     print("Please check your internet connection and try again.")
     return
 
-  play_config = PlayConfig(
-    checkpoint_file=checkpoint_path,
-    motion_file=motion_path,
-    num_envs=8,
-    viewer="viser",
+  args = tyro.cli(
+    PlayConfig,
+    default=PlayConfig(
+      checkpoint_file=checkpoint_path,
+      motion_file=motion_path,
+      num_envs=8,
+      viewer="viser",
+      motion_command_sampling_mode="uniform",
+    ),
   )
-
-  args = tyro.cli(PlayConfig, default=play_config)
-
-  run_play("Mjlab-Tracking-Flat-Unitree-G1-Demo", args)
+  run_play("Mjlab-Tracking-Flat-Unitree-G1", args)
 
 
 if __name__ == "__main__":
