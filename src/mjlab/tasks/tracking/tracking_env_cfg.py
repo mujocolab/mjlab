@@ -63,7 +63,7 @@ SIM_CFG = SimulationCfg(
 
 
 def create_tracking_env_cfg(
-  robot_cfg: "EntityCfg",
+  robot_cfg: EntityCfg,
   action_scale: float | dict[str, float],
   viewer_body_name: str,
   motion_file: str,
@@ -79,7 +79,7 @@ def create_tracking_env_cfg(
   """Create a tracking task configuration for motion imitation.
 
   Args:
-    robot_cfg: Robot configuration (with sensors).
+    robot_cfg: Robot configuration (sensors added separately to scene).
     action_scale: Action scaling factor(s).
     viewer_body_name: Body for camera tracking.
     motion_file: Path to motion capture data file.
