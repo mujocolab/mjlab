@@ -77,12 +77,9 @@ class VideoRecorder(ManagerBasedRlEnv):
         Tuple of (obs, reward, terminated, truncated, info) from env.step().
     """
     # Check if we should start recording.
-    should_record = False
-    if self.step_trigger is not None and self.step_trigger(self.step_count):
-      should_record = True
-    elif self.episode_trigger is not None and self.episode_trigger(self.episode_count):
-      should_record = True
-
+    should_record = (
+      self.step_trigger is not None and self.step_trigger(self.step_count)
+    ) or (self.episode_trigger is not None and self.episode_trigger(self.episode_count))
     if should_record and not self.is_recording:
       self._start_recording()
 
@@ -94,16 +91,14 @@ class VideoRecorder(ManagerBasedRlEnv):
       self._record_frame()
 
       # Check if we should stop recording.
-      should_stop = False
-      if (
-        self.video_length is not None
-        and len(self.current_video_frames) >= self.video_length
-      ):
-        should_stop = True
-      # Also stop if any environment was reset.
-      if terminated.any() or truncated.any():
-        should_stop = True
-
+      should_stop = (
+        (
+          self.video_length is not None
+          and len(self.current_video_frames) >= self.video_length
+        )
+        or terminated.any()
+        or truncated.any()
+      )
       if should_stop:
         self._finish_recording()
 
@@ -151,21 +146,16 @@ class VideoRecorder(ManagerBasedRlEnv):
     if self.current_video_frames:
       from moviepy import ImageSequenceClip
 
-      # Convert frames to proper format.
+      # Convert frames to uint8 format.
       video_frames = []
       for frame in self.current_video_frames:
-        # Convert to numpy if needed.
-        if not isinstance(frame, np.ndarray):
-          frame = np.asarray(frame)
-
-        # Ensure uint8.
+        frame = np.asarray(frame) if not isinstance(frame, np.ndarray) else frame
         if frame.dtype != np.uint8:
           frame = (np.clip(frame, 0, 1) * 255).astype(np.uint8)
-
         video_frames.append(frame)
 
       # Write video using moviepy.
-      fps = self.env.metadata.get("render_fps", 30)
+      fps = self._wrapped_env.metadata.get("render_fps", 30)
       clip = ImageSequenceClip(video_frames, fps=fps)
       clip.write_videofile(str(self.current_video_path), verbose=False, logger=None)
 

@@ -7,16 +7,12 @@ focusing only on what mjlab needs (shape and dtype information for batching).
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
 class Space:
-  """Base space class with shape and dtype information.
-
-  This is a lightweight replacement for gymnasium.Space that only tracks
-  shape and dtype for batching purposes.
-  """
+  """Base space class with shape and dtype information."""
 
   shape: tuple[int, ...] = ()
   dtype: str = "float32"
@@ -27,16 +23,7 @@ class Space:
 
 @dataclass
 class Box(Space):
-  """Continuous space with optional bounds.
-
-  Represents a box in R^n with optional low/high bounds.
-
-  Attributes:
-      shape: Dimensions of the space
-      low: Minimum values (scalar or per-element)
-      high: Maximum values (scalar or per-element)
-      dtype: Data type
-  """
+  """Continuous space with optional bounds."""
 
   low: float | tuple[float, ...] = -math.inf
   high: float | tuple[float, ...] = math.inf
@@ -49,17 +36,9 @@ class Box(Space):
 
 @dataclass
 class Dict(Space):
-  """Dictionary space containing multiple named subspaces.
+  """Dictionary space containing multiple named subspaces."""
 
-  Represents a dictionary of named spaces (like observation dicts with multiple keys).
-
-  Attributes:
-      spaces: Dictionary mapping space names to Space objects
-  """
-
-  def __init__(self, spaces: dict[str, Space] | None = None) -> None:
-    super().__init__()
-    self.spaces: dict[str, Space] = spaces if spaces is not None else {}
+  spaces: dict[str, Space] = field(default_factory=dict)
 
   def __setitem__(self, key: str, space: Space) -> None:
     """Add or update a subspace."""
