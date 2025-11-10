@@ -6,79 +6,61 @@
 # Modified by MjLab developers:
 #   - 2025-11-01: Removed verbose print statements from load_cfg_from_registry()
 #     (lines 91, 108) to reduce startup output noise during configuration parsing.
+#   - 2025-11-09: Replaced gymnasium registry with mjlab custom registry.
 
 """Sub-module with utilities for parsing and loading configurations."""
 
 import collections
-import gymnasium as gym
 import importlib
 import inspect
 import os
 import yaml
 
 from mjlab.envs import ManagerBasedRlEnvCfg
+from mjlab.tasks.registry import get_rl_cfg_entry_point
 
 
 def load_cfg_from_registry(task_name: str, entry_point_key: str) -> object:
-  """Load default configuration given its entry point from the gym registry.
+  """Load default configuration given its entry point from mjlab registry.
 
-  This function loads the configuration object from the gym registry for the given task name.
+  This function loads the configuration object from the mjlab registry for the given task name.
   It supports both YAML and Python configuration files.
-
-  It expects the configuration to be registered in the gym registry as:
-
-  .. code-block:: python
-
-      gym.register(
-          id="My-Awesome-Task-v0",
-          ...
-          kwargs={"env_entry_point_cfg": "path.to.config:ConfigClass"},
-      )
-
-  The parsed configuration object for above example can be obtained as:
-
-  .. code-block:: python
-
-      from isaaclab_tasks.utils.parse_cfg import load_cfg_from_registry
-
-      cfg = load_cfg_from_registry("My-Awesome-Task-v0", "env_entry_point_cfg")
 
   Args:
       task_name: The name of the environment.
       entry_point_key: The entry point key to resolve the configuration file.
+          - "env_cfg_entry_point" for environment config
+          - "rl_cfg_entry_point" for RL config
 
   Returns:
       The parsed configuration object. If the entry point is a YAML file, it is parsed into a dictionary.
       If the entry point is a Python class, it is instantiated and returned.
 
   Raises:
-      ValueError: If the entry point key is not available in the gym registry for the task.
+      ValueError: If the entry point key is not available in the mjlab registry for the task.
   """
-  # obtain the configuration entry point
-  cfg_entry_point = gym.spec(task_name.split(":")[-1]).kwargs.get(entry_point_key)
+  # Handle task name with version suffix (e.g., "Mjlab-Velocity-Rough-Unitree-Go1:v1")
+  task_id = task_name.split(":")[0]
+
+  # Get the entry point string from mjlab registry
+  if entry_point_key == "env_cfg_entry_point":
+    # This is handled directly in mjlab.tasks.registry.make_env()
+    raise ValueError(
+      f"Use mjlab.tasks.registry.make_env() for environment creation, not load_cfg_from_registry()"
+    )
+  elif entry_point_key == "rl_cfg_entry_point":
+    cfg_entry_point = get_rl_cfg_entry_point(task_id)
+  else:
+    raise ValueError(
+      f"Unknown entry_point_key: '{entry_point_key}'. "
+      f"Valid options: 'env_cfg_entry_point', 'rl_cfg_entry_point'"
+    )
+
   # check if entry point exists
   if cfg_entry_point is None:
-    # get existing agents and algorithms
-    agents = collections.defaultdict(list)
-    for k in gym.spec(task_name.split(":")[-1]).kwargs:
-      if k.endswith("_cfg_entry_point") and k != "env_cfg_entry_point":
-        spec = (
-          k.replace("_cfg_entry_point", "")
-          .replace("rl_games", "rl-games")
-          .replace("rsl_rl", "rsl-rl")
-          .split("_")
-        )
-        agent = spec[0].replace("-", "_")
-        algorithms = [item.upper() for item in (spec[1:] if len(spec) > 1 else ["PPO"])]
-        agents[agent].extend(algorithms)
-    msg = "\nExisting RL library (and algorithms) config entry points: "
-    for agent, algorithms in agents.items():
-      msg += f"\n  |-- {agent}: {', '.join(algorithms)}"
-    # raise error
     raise ValueError(
       f"Could not find configuration for the environment: '{task_name}'."
-      f"\nPlease check that the gym registry has the entry point: '{entry_point_key}'."
-      f"{msg if agents else ''}"
+      f"\nPlease check that the task is registered in mjlab.tasks.registry"
     )
   # parse the default config file
   if isinstance(cfg_entry_point, str) and cfg_entry_point.endswith(".yaml"):

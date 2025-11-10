@@ -1,45 +1,40 @@
 """Script to list MJLab environments."""
 
-import gymnasium as gym
 import tyro
 from prettytable import PrettyTable
 
 import mjlab.tasks  # noqa: F401
+from mjlab.tasks.registry import list_tasks
 
 
 def list_environments(keyword: str | None = None):
-  """List all environments registered whose id contains `Mjlab-`.
+  """List all registered environments.
 
   Args:
     keyword: Optional filter to only show environments containing this keyword.
   """
-  prefix_substring = "Mjlab-"
-
-  table = PrettyTable(["#", "Task ID", "Env Cfg Entry Point"])
+  table = PrettyTable(["#", "Task ID"])
   table.title = "Available Environments in Mjlab"
   table.align["Task ID"] = "l"
-  table.align["Env Cfg Entry Point"] = "l"
 
+  all_tasks = list_tasks()
   idx = 0
-  for spec in gym.registry.values():
+  for task_id in all_tasks:
     try:
-      # Check if prefix matches and optionally filter by keyword.
-      if prefix_substring not in spec.id:
-        continue
-      if keyword and keyword.lower() not in spec.id.lower():
+      # Optionally filter by keyword.
+      if keyword and keyword.lower() not in task_id.lower():
         continue
 
-      env_cfg_ep = spec.kwargs.get("env_cfg_entry_point", "")
-      table.add_row([idx + 1, spec.id, env_cfg_ep])
+      table.add_row([idx + 1, task_id])
       idx += 1
     except Exception:
       continue
 
   print(table)
   if idx == 0:
-    msg = f"[INFO] No tasks matched filter: '{prefix_substring}'"
+    msg = "[INFO] No tasks matched"
     if keyword:
-      msg += f" and keyword '{keyword}'"
+      msg += f" keyword '{keyword}'"
     print(msg)
   return idx
 

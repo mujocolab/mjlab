@@ -11,7 +11,7 @@ from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import BuiltinSensor
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_env import ManagerBasedEnv
+  from mjlab.envs import ManagerBasedEnv
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
 
 _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")

@@ -11,7 +11,7 @@ from prettytable import PrettyTable
 from mjlab.managers.manager_base import ManagerBase, ManagerTermBase
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_env import ManagerBasedEnv
+  from mjlab.envs import ManagerBasedEnv
   from mjlab.managers.manager_term_config import ActionTermCfg
 
 

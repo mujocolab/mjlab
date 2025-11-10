@@ -11,7 +11,7 @@ from mjlab.third_party.isaaclab.isaaclab.utils.string import (
 )
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_env import ManagerBasedEnv
+  from mjlab.envs import ManagerBasedEnv
   from mjlab.envs.mdp.actions import actions_config
 
 

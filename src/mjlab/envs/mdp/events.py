@@ -18,7 +18,7 @@ from mjlab.third_party.isaaclab.isaaclab.utils.math import (
 )
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_env import ManagerBasedEnv
+  from mjlab.envs import ManagerBasedEnv
 
 _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
 

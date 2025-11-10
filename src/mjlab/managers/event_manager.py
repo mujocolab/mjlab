@@ -11,7 +11,7 @@ from mjlab.managers.manager_base import ManagerBase
 from mjlab.managers.manager_term_config import EventMode, EventTermCfg
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_env import ManagerBasedEnv
+  from mjlab.envs import ManagerBasedEnv
 
 
 class EventManager(ManagerBase):

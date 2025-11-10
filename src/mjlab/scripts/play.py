@@ -6,18 +6,16 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal, cast
 
-import gymnasium as gym
 import torch
 import tyro
 from rsl_rl.runners import OnPolicyRunner
 
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
+from mjlab.tasks.registry import list_tasks, make_env, load_cfg_from_registry
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
-from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
-  load_cfg_from_registry,
-)
+from mjlab.wrappers import VideoRecorder
 from mjlab.utils.os import get_wandb_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.viewer import NativeMujocoViewer, ViserViewer
@@ -192,13 +190,14 @@ def run_play(task: str, cfg: PlayConfig):
     print(
       "[WARN] Video recording with dummy agents is disabled (no checkpoint/log_dir)."
     )
-  env = gym.make(task, cfg=env_cfg, device=device, render_mode=render_mode)
+  env = make_env(task, cfg=env_cfg, device=device, render_mode=render_mode)
 
   if TRAINED_MODE and cfg.video:
     print("[INFO] Recording videos during play")
-    env = gym.wrappers.RecordVideo(
+    assert log_dir is not None  # log_dir is set in TRAINED_MODE block
+    env = VideoRecorder(
       env,
-      video_folder=str(Path(log_dir) / "videos" / "play"),  # type: ignore[arg-type]
+      video_folder=log_dir / "videos" / "play",
       step_trigger=lambda step: step == 0,
       video_length=cfg.video_length,
       disable_logger=True,
@@ -255,15 +254,15 @@ def run_play(task: str, cfg: PlayConfig):
 
 def main():
   # Parse first argument to choose the task.
-  task_prefix = "Mjlab-"
+  # Import tasks to populate the registry
+  import mjlab.tasks  # noqa: F401
+
+  all_tasks = list_tasks()
   chosen_task, remaining_args = tyro.cli(
-    tyro.extras.literal_type_from_choices(
-      [k for k in gym.registry.keys() if k.startswith(task_prefix)]
-    ),
+    tyro.extras.literal_type_from_choices(all_tasks),
     add_help=False,
     return_unknown_args=True,
   )
-  del task_prefix
 
   # Parse the rest of the arguments + allow overriding env_cfg and agent_cfg.
   agent_cfg = load_cfg_from_registry(chosen_task, "rl_cfg_entry_point")

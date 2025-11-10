@@ -10,7 +10,7 @@ import torch
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_env import ManagerBasedEnv
+  from mjlab.envs import ManagerBasedEnv
   from mjlab.managers.manager_term_config import ManagerTermBaseCfg
 
 
