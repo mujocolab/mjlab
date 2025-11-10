@@ -102,7 +102,7 @@ def run_play(task: str, cfg: PlayConfig):
   DUMMY_MODE = cfg.agent in {"zero", "random"}
   TRAINED_MODE = not DUMMY_MODE
 
-  # Check if this is a tracking task by checking for motion command
+  # Check if this is a tracking task by checking for motion command.
   is_tracking_task = (
     env_cfg.commands is not None
     and "motion" in env_cfg.commands
@@ -167,7 +167,7 @@ def run_play(task: str, cfg: PlayConfig):
       resume_path, was_cached = get_wandb_checkpoint_path(
         log_root_path, Path(cfg.wandb_run_path)
       )
-      # Extract run_id and checkpoint name from path for display
+      # Extract run_id and checkpoint name from path for display.
       run_id = resume_path.parent.name
       checkpoint_name = resume_path.name
       cached_str = "cached" if was_cached else "downloaded"
@@ -252,7 +252,7 @@ def run_play(task: str, cfg: PlayConfig):
 
 def main():
   # Parse first argument to choose the task.
-  # Import tasks to populate the registry
+  # Import tasks to populate the registry.
   import mjlab.tasks  # noqa: F401
 
   all_tasks = list_tasks()

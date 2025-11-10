@@ -103,14 +103,14 @@ def batch_space(space: Space, batch_size: int) -> Space:
       New space with batched shape
   """
   if isinstance(space, Dict):
-    # For Dict spaces, batch each subspace
+    # For Dict spaces, batch each subspace.
     batched_dict = Dict()
     for key, subspace in space.spaces.items():
       batched_dict[key] = batch_space(subspace, batch_size)
     return batched_dict
 
   elif isinstance(space, Box):
-    # For Box spaces, prepend batch dimension
+    # For Box spaces, prepend batch dimension.
     batched_shape = (batch_size,) + space.shape
     return Box(
       shape=batched_shape,
@@ -120,7 +120,7 @@ def batch_space(space: Space, batch_size: int) -> Space:
     )
 
   elif isinstance(space, Space):
-    # For generic Space, prepend batch dimension
+    # For generic Space, prepend batch dimension.
     batched_shape = (batch_size,) + space.shape
     return Space(shape=batched_shape, dtype=space.dtype)
 

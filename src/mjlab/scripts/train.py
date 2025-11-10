@@ -36,7 +36,7 @@ def run_train(task: str, cfg: TrainConfig) -> None:
 
   registry_name: str | None = None
 
-  # Check if this is a tracking task by checking for motion command
+  # Check if this is a tracking task by checking for motion command.
   is_tracking_task = (
     cfg.env.commands is not None
     and "motion" in cfg.env.commands
@@ -61,7 +61,7 @@ def run_train(task: str, cfg: TrainConfig) -> None:
     assert isinstance(motion_cmd, MotionCommandCfg)
     motion_cmd.motion_file = str(Path(artifact.download()) / "motion.npz")
 
-  # Enable NaN guard if requested
+  # Enable NaN guard if requested.
   if cfg.enable_nan_guard:
     cfg.env.sim.nan_guard.enabled = True
     print(f"[INFO] NaN guard enabled, output dir: {cfg.env.sim.nan_guard.output_dir}")
@@ -124,7 +124,7 @@ def run_train(task: str, cfg: TrainConfig) -> None:
 
 def main():
   # Parse first argument to choose the task.
-  # Import tasks to populate the registry
+  # Import tasks to populate the registry.
   import mjlab.tasks  # noqa: F401
 
   all_tasks = list_tasks()

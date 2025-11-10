@@ -103,7 +103,7 @@ class ManagerBasedRlEnv:
         render_mode: Rendering mode ("rgb_array" or None)
         **kwargs: Additional arguments (unused, for compatibility)
     """
-    # Initialize base environment state
+    # Initialize base environment state.
     self.cfg = cfg
     if self.cfg.seed is not None:
       self.cfg.seed = self.seed(self.cfg.seed)
@@ -111,7 +111,7 @@ class ManagerBasedRlEnv:
     self.extras = {}
     self.obs_buf = {}
 
-    # Initialize scene and simulation
+    # Initialize scene and simulation.
     self.scene = Scene(self.cfg.scene, device=device)
     self.sim = Simulation(
       num_envs=self.scene.num_envs,
@@ -129,7 +129,7 @@ class ManagerBasedRlEnv:
       data=self.sim.data,
     )
 
-    # Print environment info
+    # Print environment info.
     print_info("")
     table = PrettyTable()
     table.title = "Base Environment"
@@ -144,7 +144,7 @@ class ManagerBasedRlEnv:
     print_info(table.get_string())
     print_info("")
 
-    # Initialize RL-specific state
+    # Initialize RL-specific state.
     self.common_step_counter = 0
     self.episode_length_buf = torch.zeros(
       cfg.scene.num_envs, device=device, dtype=torch.long
@@ -159,7 +159,7 @@ class ManagerBasedRlEnv:
       self._offline_renderer = renderer
     self.metadata["render_fps"] = 1.0 / self.step_dt  # type: ignore
 
-    # Load all managers
+    # Load all managers.
     self.load_managers()
     self.setup_manager_visualizers()
 
@@ -213,26 +213,26 @@ class ManagerBasedRlEnv:
     Order is important! Event and command managers must be loaded first,
     then action and observation managers, then other RL managers.
     """
-    # Event manager (required before everything else for domain randomization)
+    # Event manager (required before everything else for domain randomization).
     self.event_manager = EventManager(self.cfg.events, self)
     print_info(f"[INFO] {self.event_manager}")
 
     self.sim.expand_model_fields(self.event_manager.domain_randomization_fields)
 
-    # Command manager (must be before observation manager since observations may reference commands)
+    # Command manager (must be before observation manager since observations may reference commands).
     if self.cfg.commands is not None:
       self.command_manager = CommandManager(self.cfg.commands, self)
     else:
       self.command_manager = NullCommandManager()
     print_info(f"[INFO] {self.command_manager}")
 
-    # Action and observation managers
+    # Action and observation managers.
     self.action_manager = ActionManager(self.cfg.actions, self)
     print_info(f"[INFO] {self.action_manager}")
     self.observation_manager = ObservationManager(self.cfg.observations, self)
     print_info(f"[INFO] {self.observation_manager}")
 
-    # Other RL-specific managers
+    # Other RL-specific managers.
 
     self.termination_manager = TerminationManager(self.cfg.terminations, self)
     print_info(f"[INFO] {self.termination_manager}")
@@ -244,10 +244,10 @@ class ManagerBasedRlEnv:
       self.curriculum_manager = NullCurriculumManager()
     print_info(f"[INFO] {self.curriculum_manager}")
 
-    # Configure spaces for the environment
+    # Configure spaces for the environment.
     self._configure_gym_env_spaces()
 
-    # Initialize startup events if defined
+    # Initialize startup events if defined.
     if "startup" in self.event_manager.available_modes:
       self.event_manager.apply(mode="startup")
       self.sim.create_graph()
@@ -399,7 +399,7 @@ class ManagerBasedRlEnv:
       else:
         assert not isinstance(group_dim, tuple)
         group_term_cfgs = self.observation_manager._group_obs_term_cfgs[group_name]
-        # Create a nested dict for this group
+        # Create a nested dict for this group.
         group_space = DictSpace()
         for term_name, term_dim, _term_cfg in zip(
           group_term_names, group_dim, group_term_cfgs, strict=False
