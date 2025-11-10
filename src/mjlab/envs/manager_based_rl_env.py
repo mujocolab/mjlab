@@ -9,6 +9,7 @@ import warp as wp
 from prettytable import PrettyTable
 
 from mjlab.envs import types
+from mjlab.envs.mdp.events import reset_scene_to_default
 from mjlab.managers.action_manager import ActionManager
 from mjlab.managers.command_manager import CommandManager, NullCommandManager
 from mjlab.managers.curriculum_manager import CurriculumManager, NullCurriculumManager
@@ -29,19 +30,24 @@ from mjlab.scene import Scene
 from mjlab.scene.scene import SceneCfg
 from mjlab.sim import SimulationCfg
 from mjlab.sim.sim import Simulation
-from mjlab.spaces import Box, Dict as DictSpace
+from mjlab.spaces import Box
+from mjlab.spaces import Dict as DictSpace
 from mjlab.utils import random as random_utils
 from mjlab.utils.logging import print_info
 from mjlab.viewer.debug_visualizer import DebugVisualizer
 from mjlab.viewer.offscreen_renderer import OffscreenRenderer
 from mjlab.viewer.viewer_config import ViewerConfig
-from mjlab.envs.mdp.events import reset_scene_to_default
 
 
 @dataclass(kw_only=True)
-class ManagerBasedEnvCfg:
-  """Configuration for a manager-based environment."""
+class ManagerBasedRlEnvCfg:
+  """Configuration for a manager-based RL environment.
 
+  Combines base environment settings with RL-specific configuration
+  (rewards, terminations, commands, curriculum).
+  """
+
+  # Base environment configuration.
   decimation: int
   scene: SceneCfg
   observations: dict[str, ObservationGroupCfg]
@@ -58,17 +64,12 @@ class ManagerBasedEnvCfg:
   sim: SimulationCfg = field(default_factory=SimulationCfg)
   viewer: ViewerConfig = field(default_factory=ViewerConfig)
 
-
-@dataclass(kw_only=True)
-class ManagerBasedRlEnvCfg(ManagerBasedEnvCfg):
-  """Configuration for a manager-based RL environment."""
-
-  episode_length_s: float
-  rewards: dict[str, RewardTermCfg]
-  terminations: dict[str, TerminationTermCfg]
+  # RL-specific configuration.
+  episode_length_s: float = 0.0
+  rewards: dict[str, RewardTermCfg] = field(default_factory=dict)
+  terminations: dict[str, TerminationTermCfg] = field(default_factory=dict)
   commands: dict[str, CommandTermCfg] | None = None
   curriculum: dict[str, CurriculumTermCfg] | None = None
-  observations: dict[str, ObservationGroupCfg]
   is_finite_horizon: bool = False
 
 
@@ -85,7 +86,6 @@ class ManagerBasedRlEnv:
     "mujoco_version": mujoco.__version__,
     "warp_version": wp.config.version,
   }
-
   cfg: ManagerBasedRlEnvCfg
 
   def __init__(
@@ -194,6 +194,11 @@ class ManagerBasedRlEnv:
   def max_episode_length(self) -> int:
     """Maximum episode length in steps."""
     return math.ceil(self.max_episode_length_s / self.step_dt)
+
+  @property
+  def unwrapped(self) -> "ManagerBasedRlEnv":
+    """Get the unwrapped environment (base case for wrapper chains)."""
+    return self
 
   # Methods.
 
@@ -399,22 +404,14 @@ class ManagerBasedRlEnv:
         for term_name, term_dim, _term_cfg in zip(
           group_term_names, group_dim, group_term_cfgs, strict=False
         ):
-          group_space[term_name] = Box(
-            shape=term_dim, low=-math.inf, high=math.inf
-          )
+          group_space[term_name] = Box(shape=term_dim, low=-math.inf, high=math.inf)
         self.single_observation_space[group_name] = group_space
 
     action_dim = sum(self.action_manager.action_term_dim)
-    self.single_action_space = Box(
-      shape=(action_dim,), low=-math.inf, high=math.inf
-    )
+    self.single_action_space = Box(shape=(action_dim,), low=-math.inf, high=math.inf)
 
-    self.observation_space = batch_space(
-      self.single_observation_space, self.num_envs
-    )
-    self.action_space = batch_space(
-      self.single_action_space, self.num_envs
-    )
+    self.observation_space = batch_space(self.single_observation_space, self.num_envs)
+    self.action_space = batch_space(self.single_action_space, self.num_envs)
 
   def _reset_idx(self, env_ids: torch.Tensor | None = None) -> None:
     self.curriculum_manager.compute(env_ids=env_ids)

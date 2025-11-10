@@ -11,7 +11,7 @@ from mjlab.third_party.isaaclab.isaaclab.utils.string import (
 )
 
 if TYPE_CHECKING:
-  from mjlab.envs import ManagerBasedEnv
+  from mjlab.envs import ManagerBasedRlEnv
   from mjlab.envs.mdp.actions import actions_config
 
 
@@ -20,7 +20,7 @@ class JointAction(ActionTerm):
 
   _asset: Entity
 
-  def __init__(self, cfg: actions_config.JointActionCfg, env: ManagerBasedEnv):
+  def __init__(self, cfg: actions_config.JointActionCfg, env: ManagerBasedRlEnv):
     super().__init__(cfg=cfg, env=env)
 
     actuator_ids, self._actuator_names = self._asset.find_actuators(
@@ -96,7 +96,9 @@ class JointAction(ActionTerm):
 
 
 class JointPositionAction(JointAction):
-  def __init__(self, cfg: actions_config.JointPositionActionCfg, env: ManagerBasedEnv):
+  def __init__(
+    self, cfg: actions_config.JointPositionActionCfg, env: ManagerBasedRlEnv
+  ):
     super().__init__(cfg=cfg, env=env)
 
     if cfg.use_default_offset:

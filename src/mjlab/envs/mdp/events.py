@@ -18,12 +18,14 @@ from mjlab.third_party.isaaclab.isaaclab.utils.math import (
 )
 
 if TYPE_CHECKING:
-  from mjlab.envs import ManagerBasedEnv
+  from mjlab.envs import ManagerBasedRlEnv
 
 _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
 
 
-def reset_scene_to_default(env: ManagerBasedEnv, env_ids: torch.Tensor | None) -> None:
+def reset_scene_to_default(
+  env: ManagerBasedRlEnv, env_ids: torch.Tensor | None
+) -> None:
   if env_ids is None:
     env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
 
@@ -43,7 +45,7 @@ def reset_scene_to_default(env: ManagerBasedEnv, env_ids: torch.Tensor | None) -
 
 
 def reset_root_state_uniform(
-  env: ManagerBasedEnv,
+  env: ManagerBasedRlEnv,
   env_ids: torch.Tensor | None,
   pose_range: dict[str, tuple[float, float]],
   velocity_range: dict[str, tuple[float, float]] | None = None,
@@ -133,7 +135,7 @@ def reset_root_state_uniform(
 
 
 def reset_joints_by_offset(
-  env: ManagerBasedEnv,
+  env: ManagerBasedRlEnv,
   env_ids: torch.Tensor | None,
   position_range: tuple[float, float],
   velocity_range: tuple[float, float],
@@ -171,7 +173,7 @@ def reset_joints_by_offset(
 
 
 def push_by_setting_velocity(
-  env: ManagerBasedEnv,
+  env: ManagerBasedRlEnv,
   env_ids: torch.Tensor,
   velocity_range: dict[str, tuple[float, float]],
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
@@ -188,7 +190,7 @@ def push_by_setting_velocity(
 
 
 def apply_external_force_torque(
-  env: ManagerBasedEnv,
+  env: ManagerBasedRlEnv,
   env_ids: torch.Tensor,
   force_range: tuple[float, float],
   torque_range: tuple[float, float],
@@ -254,7 +256,7 @@ FIELD_SPECS = {
 
 
 def randomize_field(
-  env: "ManagerBasedEnv",
+  env: "ManagerBasedRlEnv",
   env_ids: torch.Tensor | None,
   field: str,
   ranges: Union[Tuple[float, float], Dict[int, Tuple[float, float]]],

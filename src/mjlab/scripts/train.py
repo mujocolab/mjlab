@@ -1,6 +1,5 @@
 """Script to train RL agent with RSL-RL."""
 
-import os
 import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -9,14 +8,15 @@ from typing import Any, cast
 
 import tyro
 
+from mjlab.envs import ManagerBasedRlEnv
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
-from mjlab.tasks.registry import list_tasks, make_env, load_cfg_from_registry
+from mjlab.tasks.registry import list_tasks, load_env_cfg, load_rl_cfg
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 from mjlab.tasks.velocity.rl import VelocityOnPolicyRunner
-from mjlab.wrappers import VideoRecorder
 from mjlab.utils.os import dump_yaml, get_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
+from mjlab.wrappers import VideoRecorder
 
 
 @dataclass(frozen=True)
@@ -75,8 +75,8 @@ def run_train(task: str, cfg: TrainConfig) -> None:
     log_dir += f"_{cfg.agent.run_name}"
   log_dir = log_root_path / log_dir
 
-  env = make_env(
-    task, cfg=cfg.env, device=cfg.device, render_mode="rgb_array" if cfg.video else None
+  env = ManagerBasedRlEnv(
+    cfg=cfg.env, device=cfg.device, render_mode="rgb_array" if cfg.video else None
   )
 
   resume_path = (
@@ -135,8 +135,8 @@ def main():
   )
 
   # Parse the rest of the arguments + allow overriding env_cfg and agent_cfg.
-  env_cfg = load_cfg_from_registry(chosen_task, "env_cfg_entry_point")
-  agent_cfg = load_cfg_from_registry(chosen_task, "rl_cfg_entry_point")
+  env_cfg = load_env_cfg(chosen_task)
+  agent_cfg = load_rl_cfg(chosen_task)
   assert isinstance(agent_cfg, RslRlOnPolicyRunnerCfg)
 
   args = tyro.cli(

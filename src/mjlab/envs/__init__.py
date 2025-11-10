@@ -1,18 +1,4 @@
-from mjlab.envs.manager_based_rl_env import (
-  ManagerBasedEnvCfg,
-  ManagerBasedRlEnv,
-  ManagerBasedRlEnvCfg,
-)
-from mjlab.envs.types import VecEnvObs, VecEnvStepReturn
-
-# Backwards compatibility: ManagerBasedEnv is now just ManagerBasedRlEnv
-ManagerBasedEnv = ManagerBasedRlEnv
-
-__all__ = (
-  "ManagerBasedRlEnvCfg",
-  "ManagerBasedRlEnv",
-  "ManagerBasedEnvCfg",
-  "ManagerBasedEnv",
-  "VecEnvStepReturn",
-  "VecEnvObs",
-)
+from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv as ManagerBasedRlEnv
+from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnvCfg as ManagerBasedRlEnvCfg
+from mjlab.envs.types import VecEnvObs as VecEnvObs
+from mjlab.envs.types import VecEnvStepReturn as VecEnvStepReturn

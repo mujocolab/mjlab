@@ -10,16 +10,16 @@ import torch
 import tyro
 from rsl_rl.runners import OnPolicyRunner
 
-from mjlab.envs import ManagerBasedRlEnvCfg
-from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
-from mjlab.tasks.registry import list_tasks, make_env, load_cfg_from_registry
+from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
+from mjlab.rl import RslRlVecEnvWrapper
+from mjlab.tasks.registry import list_tasks, load_env_cfg, load_rl_cfg
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
-from mjlab.wrappers import VideoRecorder
 from mjlab.utils.os import get_wandb_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.viewer import NativeMujocoViewer, ViserViewer
 from mjlab.viewer.base import EnvProtocol
+from mjlab.wrappers import VideoRecorder
 
 
 @dataclass(frozen=True)
@@ -94,12 +94,10 @@ def run_play(task: str, cfg: PlayConfig):
 
   device = cfg.device or ("cuda:0" if torch.cuda.is_available() else "cpu")
 
-  env_cfg = load_cfg_from_registry(task, "env_cfg_entry_point")
-  assert isinstance(env_cfg, ManagerBasedRlEnvCfg)
+  env_cfg = load_env_cfg(task)
   _apply_play_env_overrides(env_cfg, cfg.motion_command_sampling_mode)
 
-  agent_cfg = load_cfg_from_registry(task, "rl_cfg_entry_point")
-  assert isinstance(agent_cfg, RslRlOnPolicyRunnerCfg)
+  agent_cfg = load_rl_cfg(task)
 
   DUMMY_MODE = cfg.agent in {"zero", "random"}
   TRAINED_MODE = not DUMMY_MODE
@@ -190,7 +188,7 @@ def run_play(task: str, cfg: PlayConfig):
     print(
       "[WARN] Video recording with dummy agents is disabled (no checkpoint/log_dir)."
     )
-  env = make_env(task, cfg=env_cfg, device=device, render_mode=render_mode)
+  env = ManagerBasedRlEnv(cfg=env_cfg, device=device, render_mode=render_mode)
 
   if TRAINED_MODE and cfg.video:
     print("[INFO] Recording videos during play")
@@ -265,8 +263,7 @@ def main():
   )
 
   # Parse the rest of the arguments + allow overriding env_cfg and agent_cfg.
-  agent_cfg = load_cfg_from_registry(chosen_task, "rl_cfg_entry_point")
-  assert isinstance(agent_cfg, RslRlOnPolicyRunnerCfg)
+  agent_cfg = load_rl_cfg(chosen_task)
 
   args = tyro.cli(
     PlayConfig,
