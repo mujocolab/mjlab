@@ -95,7 +95,6 @@ def run_play(task: str, cfg: PlayConfig):
   device = cfg.device or ("cuda:0" if torch.cuda.is_available() else "cpu")
 
   env_cfg = load_env_cfg(task)
-  breakpoint()
   _apply_play_env_overrides(env_cfg, cfg.motion_command_sampling_mode)
 
   agent_cfg = load_rl_cfg(task)
