@@ -18,7 +18,6 @@ from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 from mjlab.utils.os import get_wandb_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.viewer import NativeMujocoViewer, ViserPlayViewer
-from mjlab.viewer.base import EnvProtocol
 from mjlab.wrappers import VideoRecorder
 
 
@@ -241,9 +240,9 @@ def run_play(task: str, cfg: PlayConfig):
     resolved_viewer = cfg.viewer
 
   if resolved_viewer == "native":
-    NativeMujocoViewer(cast(EnvProtocol, env), policy).run()
+    NativeMujocoViewer(env, policy).run()
   elif resolved_viewer == "viser":
-    ViserPlayViewer(cast(EnvProtocol, env), policy).run()
+    ViserPlayViewer(env, policy).run()
   else:
     raise RuntimeError(f"Unsupported viewer backend: {resolved_viewer}")
 

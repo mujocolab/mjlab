@@ -44,6 +44,10 @@ class Timer:
 
 
 class EnvProtocol(Protocol):
+  """Interface we expect from RL environments, which can be either vanilla
+  `ManagerBasedRlEnv` objects or wrapped with `VideoRecorder`,
+  `RslRlVecEnvWrapper`, etc."""
+
   device: torch.device
 
   @property
