@@ -1,34 +1,22 @@
 from mjlab.terrains.heightfield_terrains import (
-  HfPyramidSlopedTerrainCfg,
-  HfRandomUniformTerrainCfg,
-  HfWaveTerrainCfg,
+  HfPyramidSlopedTerrainCfg as HfPyramidSlopedTerrainCfg,
+)
+from mjlab.terrains.heightfield_terrains import (
+  HfRandomUniformTerrainCfg as HfRandomUniformTerrainCfg,
+)
+from mjlab.terrains.heightfield_terrains import HfWaveTerrainCfg as HfWaveTerrainCfg
+from mjlab.terrains.primitive_terrains import BoxFlatTerrainCfg as BoxFlatTerrainCfg
+from mjlab.terrains.primitive_terrains import (
+  BoxInvertedPyramidStairsTerrainCfg as BoxInvertedPyramidStairsTerrainCfg,
 )
 from mjlab.terrains.primitive_terrains import (
-  BoxFlatTerrainCfg,
-  BoxInvertedPyramidStairsTerrainCfg,
-  BoxPyramidStairsTerrainCfg,
-  BoxRandomGridTerrainCfg,
+  BoxPyramidStairsTerrainCfg as BoxPyramidStairsTerrainCfg,
 )
-from mjlab.terrains.terrain_generator import (
-  SubTerrainCfg,
-  TerrainGenerator,
-  TerrainGeneratorCfg,
+from mjlab.terrains.primitive_terrains import (
+  BoxRandomGridTerrainCfg as BoxRandomGridTerrainCfg,
 )
-from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
-
-__all__ = (
-  "TerrainGenerator",
-  "TerrainGeneratorCfg",
-  "SubTerrainCfg",
-  "TerrainImporter",
-  "TerrainImporterCfg",
-  # Box terrains.
-  "BoxFlatTerrainCfg",
-  "BoxPyramidStairsTerrainCfg",
-  "BoxInvertedPyramidStairsTerrainCfg",
-  "BoxRandomGridTerrainCfg",
-  # Heightfield terrains.
-  "HfPyramidSlopedTerrainCfg",
-  "HfRandomUniformTerrainCfg",
-  "HfWaveTerrainCfg",
-)
+from mjlab.terrains.terrain_generator import SubTerrainCfg as SubTerrainCfg
+from mjlab.terrains.terrain_generator import TerrainGenerator as TerrainGenerator
+from mjlab.terrains.terrain_generator import TerrainGeneratorCfg as TerrainGeneratorCfg
+from mjlab.terrains.terrain_importer import TerrainImporter as TerrainImporter
+from mjlab.terrains.terrain_importer import TerrainImporterCfg as TerrainImporterCfg

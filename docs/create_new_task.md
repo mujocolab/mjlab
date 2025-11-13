@@ -92,15 +92,9 @@ uv run python mjlab/src/mjlab/asset_zoo/robots/cartpole/cartpole_constants.py
 Add the CartPole configuration to `mjlab/src/mjlab/asset_zoo/robots/__init__.py`:
 
 ```python
-from mjlab.asset_zoo.robots.unitree_g1.g1_constants import get_g1_robot_cfg as get_g1_robot_cfg
-from mjlab.asset_zoo.robots.unitree_go1.go1_constants import get_go1_robot_cfg as get_go1_robot_cfg
+# Import X as X pattern can be used to export a name:
+# https://typing.python.org/en/latest/spec/distributing.html#import-conventions
 from mjlab.asset_zoo.robots.cartpole.cartpole_constants import get_cartpole_robot_cfg as get_cartpole_robot_cfg
-
-__all__ = (
-  "get_g1_robot_cfg",
-  "get_go1_robot_cfg",
-  "get_cartpole_robot_cfg",
-)
 ```
 
 ---

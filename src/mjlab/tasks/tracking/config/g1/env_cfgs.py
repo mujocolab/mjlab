@@ -6,7 +6,7 @@ instances for the G1 robot tracking task on flat terrain.
 
 from copy import deepcopy
 
-from mjlab.asset_zoo.robots.unitree_g1.g1_constants import (
+from mjlab.asset_zoo.robots import (
   G1_ACTION_SCALE,
   get_g1_robot_cfg,
 )
@@ -17,7 +17,7 @@ from mjlab.utils.retval import retval
 
 
 @retval
-def G1_FLAT_TRACKING_ENV_CFG() -> ManagerBasedRlEnvCfg:
+def UNITREE_G1_FLAT_TRACKING_ENV_CFG() -> ManagerBasedRlEnvCfg:
   """Create Unitree G1 flat terrain tracking configuration."""
   self_collision_cfg = ContactSensorCfg(
     name="self_collision",
@@ -79,13 +79,13 @@ def G1_FLAT_TRACKING_ENV_CFG() -> ManagerBasedRlEnvCfg:
 
 
 @retval
-def G1_FLAT_TRACKING_NO_STATE_ESTIMATION_ENV_CFG() -> ManagerBasedRlEnvCfg:
+def UNITREE_G1_FLAT_TRACKING_NO_STATE_ESTIMATION_ENV_CFG() -> ManagerBasedRlEnvCfg:
   """Create Unitree G1 flat terrain tracking config without state estimation.
 
   This variant disables motion_anchor_pos_b and base_lin_vel observations,
   simulating the lack of state estimation.
   """
-  cfg = deepcopy(G1_FLAT_TRACKING_ENV_CFG)
+  cfg = deepcopy(UNITREE_G1_FLAT_TRACKING_ENV_CFG)
   assert "policy" in cfg.observations
   cfg.observations["policy"].terms.pop("motion_anchor_pos_b")
   cfg.observations["policy"].terms.pop("base_lin_vel")
