@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 
 import numpy as np
 import torch
+from typing_extensions import assert_never
 
 from mjlab.envs import ManagerBasedRlEnv
 
@@ -17,12 +18,20 @@ class VideoRecorder(ManagerBasedRlEnv):
   A minimal wrapper that records frames as the environment steps.
   Delegates all attribute access and method calls to the wrapped environment.
 
+  Note: Unlike gymnasium's RecordVideo, this wrapper allows both episode_trigger
+  and step_trigger to be used simultaneously. If both are provided, recording will
+  start when either trigger fires. The filename will reflect which trigger started
+  the recording (e.g., "rl-video-step-1000.mp4" or "rl-video-episode-5.mp4").
+
   Args:
       env: The environment to wrap and record.
       video_folder: Directory to save videos to.
       episode_trigger: Callable that returns True if should record this episode.
+          Receives the actual episode count (increments when episodes end).
       step_trigger: Callable that returns True if should record this step.
-      video_length: Maximum frames per video (None = unlimited).
+          Receives the global step count.
+      video_length: Maximum frames per video. If None, records until episode ends.
+          If set, records exactly that many frames regardless of episode boundaries.
       name_prefix: Prefix for video filenames.
       disable_logger: Whether to disable logging.
   """
@@ -48,11 +57,13 @@ class VideoRecorder(ManagerBasedRlEnv):
     self.name_prefix = name_prefix
     self.disable_logger = disable_logger
 
-    self.step_count = 0
-    self.episode_count = 0
-    self.is_recording = False
-    self.current_video_frames = []
-    self.current_video_path = None
+    self.step_count: int = 0
+    self.episode_count: int = 0  # Tracks actual episodes
+    self.video_count: int = 0  # Tracks completed videos
+    self.is_recording: bool = False
+    self.current_video_frames: list[np.ndarray] = []
+    self.current_video_path: Path | None = None
+    self.trigger_type: Literal["step", "episode"] | None = None
 
   def __getattr__(self, name: str) -> Any:
     """Delegate attribute access to wrapped environment."""
@@ -77,28 +88,40 @@ class VideoRecorder(ManagerBasedRlEnv):
         Tuple of (obs, reward, terminated, truncated, info) from env.step().
     """
     # Check if we should start recording.
-    should_record = (
-      self.step_trigger is not None and self.step_trigger(self.step_count)
-    ) or (self.episode_trigger is not None and self.episode_trigger(self.episode_count))
-    if should_record and not self.is_recording:
+    step_triggered = self.step_trigger is not None and self.step_trigger(
+      self.step_count
+    )
+    episode_triggered = self.episode_trigger is not None and self.episode_trigger(
+      self.episode_count
+    )
+
+    if (step_triggered or episode_triggered) and not self.is_recording:
+      # Track which trigger started the recording for filename generation
+      if step_triggered:
+        self.trigger_type = "step"
+      else:
+        self.trigger_type = "episode"
       self._start_recording()
 
     # Step the environment.
     obs, reward, terminated, truncated, info = self._wrapped_env.step(action)
+
+    # Track episode boundaries (when any environment terminates/truncates)
+    if terminated.any() or truncated.any():
+      self.episode_count += 1
 
     # Record frame if recording.
     if self.is_recording:
       self._record_frame()
 
       # Check if we should stop recording.
-      should_stop = (
-        (
-          self.video_length is not None
-          and len(self.current_video_frames) >= self.video_length
-        )
-        or terminated.any()
-        or truncated.any()
-      )
+      # If video_length is set, stop only when reaching that length.
+      # If video_length is None, stop on termination/truncation.
+      if self.video_length is not None:
+        should_stop = len(self.current_video_frames) >= self.video_length
+      else:
+        should_stop = terminated.any() or truncated.any()
+
       if should_stop:
         self._finish_recording()
 
@@ -106,7 +129,7 @@ class VideoRecorder(ManagerBasedRlEnv):
 
     return obs, reward, terminated, truncated, info
 
-  def render(self) -> Any:
+  def render(self) -> np.ndarray | None:
     """Render the environment."""
     return self._wrapped_env.render()
 
@@ -121,8 +144,16 @@ class VideoRecorder(ManagerBasedRlEnv):
     self.is_recording = True
     self.current_video_frames = []
 
-    # Generate video filename.
-    video_filename = f"{self.name_prefix}-episode-{self.episode_count}.mp4"
+    # Generate video filename based on which trigger started recording.
+    assert self.trigger_type is not None, "trigger_type must be set before recording"
+
+    if self.trigger_type == "step":
+      video_filename = f"{self.name_prefix}-step-{self.step_count}.mp4"
+    elif self.trigger_type == "episode":
+      video_filename = f"{self.name_prefix}-episode-{self.episode_count}.mp4"
+    else:
+      assert_never(self.trigger_type)
+
     self.current_video_path = self.video_folder / video_filename
 
     if not self.disable_logger:
@@ -157,7 +188,7 @@ class VideoRecorder(ManagerBasedRlEnv):
       # Write video using moviepy.
       fps = self._wrapped_env.metadata.get("render_fps", 30)
       clip = ImageSequenceClip(video_frames, fps=fps)
-      clip.write_videofile(str(self.current_video_path), verbose=False, logger=None)
+      clip.write_videofile(str(self.current_video_path))
 
       if not self.disable_logger:
         print(f"[INFO] Saved video to {self.current_video_path}")
@@ -165,4 +196,5 @@ class VideoRecorder(ManagerBasedRlEnv):
     self.is_recording = False
     self.current_video_frames = []
     self.current_video_path = None
-    self.episode_count += 1
+    self.video_count += 1
+    self.trigger_type = None  # Reset trigger type after recording
