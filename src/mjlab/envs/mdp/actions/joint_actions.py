@@ -23,20 +23,14 @@ class JointAction(ActionTerm):
   def __init__(self, cfg: actions_config.JointActionCfg, env: ManagerBasedRlEnv):
     super().__init__(cfg=cfg, env=env)
 
-    actuator_ids, self._actuator_names = self._asset.find_actuators(
+    joint_ids, joint_names = self._asset.find_joints(
       cfg.actuator_names, preserve_order=cfg.preserve_order
     )
-    joint_ids, _ = self._asset.find_joints(
-      self._actuator_names, preserve_order=cfg.preserve_order
-    )
-
-    self._actuator_ids = torch.tensor(
-      actuator_ids, device=self.device, dtype=torch.long
-    )
     self._joint_ids = torch.tensor(joint_ids, device=self.device, dtype=torch.long)
+    self._joint_names = joint_names
 
-    self._num_joints = len(self._actuator_ids)
-    self._action_dim = len(self._actuator_ids)
+    self._num_joints = len(joint_ids)
+    self._action_dim = len(joint_ids)
 
     self._raw_actions = torch.zeros(self.num_envs, self.action_dim, device=self.device)
     self._processed_actions = torch.zeros_like(self._raw_actions)
@@ -46,7 +40,7 @@ class JointAction(ActionTerm):
     elif isinstance(cfg.scale, dict):
       self._scale = torch.ones(self.num_envs, self.action_dim, device=self.device)
       index_list, _, value_list = resolve_matching_names_values(
-        cfg.scale, self._actuator_names
+        cfg.scale, self._joint_names
       )
       self._scale[:, index_list] = torch.tensor(value_list, device=self.device)
     else:
@@ -60,7 +54,7 @@ class JointAction(ActionTerm):
     elif isinstance(cfg.offset, dict):
       self._offset = torch.zeros_like(self._raw_actions)
       index_list, _, value_list = resolve_matching_names_values(
-        cfg.offset, self._actuator_names
+        cfg.offset, self._joint_names
       )
       self._offset[:, index_list] = torch.tensor(value_list, device=self.device)
     else:
@@ -104,7 +98,30 @@ class JointPositionAction(JointAction):
     if cfg.use_default_offset:
       self._offset = self._asset.data.default_joint_pos[:, self._joint_ids].clone()
 
-  def apply_actions(self):
-    self._asset.write_joint_position_target_to_sim(
-      self._processed_actions, self._actuator_ids
+  def apply_actions(self) -> None:
+    self._asset.set_joint_position_target(
+      self._processed_actions, joint_ids=self._joint_ids
+    )
+
+
+class JointVelocityAction(JointAction):
+  def __init__(self, cfg: actions_config.JointVelocityActionCfg, env: ManagerBasedEnv):
+    super().__init__(cfg=cfg, env=env)
+
+    if cfg.use_default_offset:
+      self._offset = self._asset.data.default_joint_vel[:, self._joint_ids].clone()
+
+  def apply_actions(self) -> None:
+    self._asset.set_joint_velocity_target(
+      self._processed_actions, joint_ids=self._joint_ids
+    )
+
+
+class JointEffortAction(JointAction):
+  def __init__(self, cfg: actions_config.JointEffortActionCfg, env: ManagerBasedEnv):
+    super().__init__(cfg=cfg, env=env)
+
+  def apply_actions(self) -> None:
+    self._asset.set_joint_effort_target(
+      self._processed_actions, joint_ids=self._joint_ids
     )

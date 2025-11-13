@@ -7,7 +7,6 @@ MUJOCO_LOG.TXT
 debug.py
 .vscode/
 *.ipynb_checkpoints/
-*.ipynb
 motions/
 *_rerun*
 *.mp4
