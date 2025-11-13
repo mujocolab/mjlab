@@ -34,7 +34,7 @@ dependencies = [
     "gymnasium==1.2.1",
     "prettytable",
     "tqdm",
-    "tyro",
+    "tyro>=0.10.0a5",
     "torch>=2.7.0",
     "warp-lang",
     "mujoco-warp",
