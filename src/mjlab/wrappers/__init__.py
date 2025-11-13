@@ -1,5 +1,3 @@
 """Environment wrappers for MjLab."""
 
-from mjlab.wrappers.video_recorder import VideoRecorder
-
-__all__ = ("VideoRecorder",)
+from mjlab.wrappers.video_recorder import VideoRecorder as VideoRecorder

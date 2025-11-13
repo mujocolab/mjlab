@@ -18,6 +18,9 @@ class VideoRecorder(ManagerBasedRlEnv):
   A minimal wrapper that records frames as the environment steps.
   Delegates all attribute access and method calls to the wrapped environment.
 
+  For vectorized environments, only records the first environment (index 0) and
+  tracks its episode boundaries. This matches gymnasium's RecordVideo behavior.
+
   Note: Unlike gymnasium's RecordVideo, this wrapper allows both episode_trigger
   and step_trigger to be used simultaneously. If both are provided, recording will
   start when either trigger fires. The filename will reflect which trigger started
@@ -27,10 +30,10 @@ class VideoRecorder(ManagerBasedRlEnv):
       env: The environment to wrap and record.
       video_folder: Directory to save videos to.
       episode_trigger: Callable that returns True if should record this episode.
-          Receives the actual episode count (increments when episodes end).
+          Receives the actual episode count (increments when env[0] episodes end).
       step_trigger: Callable that returns True if should record this step.
           Receives the global step count.
-      video_length: Maximum frames per video. If None, records until episode ends.
+      video_length: Maximum frames per video. If None, records until env[0] episode ends.
           If set, records exactly that many frames regardless of episode boundaries.
       name_prefix: Prefix for video filenames.
       disable_logger: Whether to disable logging.
@@ -106,8 +109,9 @@ class VideoRecorder(ManagerBasedRlEnv):
     # Step the environment.
     obs, reward, terminated, truncated, info = self._wrapped_env.step(action)
 
-    # Track episode boundaries (when any environment terminates/truncates)
-    if terminated.any() or truncated.any():
+    # Track episode boundaries (only for the first environment, which we're recording)
+    # This matches gymnasium's behavior for vectorized environments.
+    if terminated[0] or truncated[0]:
       self.episode_count += 1
 
     # Record frame if recording.
@@ -116,11 +120,11 @@ class VideoRecorder(ManagerBasedRlEnv):
 
       # Check if we should stop recording.
       # If video_length is set, stop only when reaching that length.
-      # If video_length is None, stop on termination/truncation.
+      # If video_length is None, stop when the first environment (being recorded) terminates.
       if self.video_length is not None:
         should_stop = len(self.current_video_frames) >= self.video_length
       else:
-        should_stop = terminated.any() or truncated.any()
+        should_stop = terminated[0] or truncated[0]
 
       if should_stop:
         self._finish_recording()
@@ -160,13 +164,15 @@ class VideoRecorder(ManagerBasedRlEnv):
       print(f"[INFO] Recording video to {self.current_video_path}")
 
   def _record_frame(self) -> None:
-    """Record a frame from the environment."""
-    # Get the current frame from rendering.
+    """Record a frame from the environment.
+
+    For vectorized environments, only records env[0].
+    """
     if self._wrapped_env.render_mode == "rgb_array":
       frame = self._wrapped_env.render()
       if frame is not None:
-        # Frame shape: (num_envs, height, width, 3).
-        # Record the first environment.
+        # For vectorized envs: frame shape is (num_envs, height, width, 3).
+        # Extract the first environment's frame.
         rgb_frame = (
           frame[0] if isinstance(frame, np.ndarray) and frame.ndim == 4 else frame
         )
