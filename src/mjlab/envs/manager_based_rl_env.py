@@ -393,7 +393,7 @@ class ManagerBasedRlEnv:
       group_dim = self.observation_manager.group_obs_dim[group_name]
       if has_concatenated_obs:
         assert isinstance(group_dim, tuple)
-        self.single_observation_space[group_name] = Box(
+        self.single_observation_space.spaces[group_name] = Box(
           shape=group_dim, low=-math.inf, high=math.inf
         )
       else:
@@ -404,8 +404,10 @@ class ManagerBasedRlEnv:
         for term_name, term_dim, _term_cfg in zip(
           group_term_names, group_dim, group_term_cfgs, strict=False
         ):
-          group_space[term_name] = Box(shape=term_dim, low=-math.inf, high=math.inf)
-        self.single_observation_space[group_name] = group_space
+          group_space.spaces[term_name] = Box(
+            shape=term_dim, low=-math.inf, high=math.inf
+          )
+        self.single_observation_space.spaces[group_name] = group_space
 
     action_dim = sum(self.action_manager.action_term_dim)
     self.single_action_space = Box(shape=(action_dim,), low=-math.inf, high=math.inf)

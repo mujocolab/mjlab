@@ -8,6 +8,9 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from typing import Literal, TypeVar
+
+from typing_extensions import assert_never
 
 
 @dataclass
@@ -15,10 +18,7 @@ class Space:
   """Base space class with shape and dtype information."""
 
   shape: tuple[int, ...] = ()
-  dtype: str = "float32"
-
-  def __repr__(self) -> str:
-    return f"{self.__class__.__name__}(shape={self.shape}, dtype={self.dtype})"
+  dtype: Literal["float32", "int32", "int64", "uint8"] = "float32"
 
 
 @dataclass
@@ -28,11 +28,6 @@ class Box(Space):
   low: float | tuple[float, ...] = -math.inf
   high: float | tuple[float, ...] = math.inf
 
-  def __repr__(self) -> str:
-    return (
-      f"Box(shape={self.shape}, low={self.low}, high={self.high}, dtype={self.dtype})"
-    )
-
 
 @dataclass
 class Dict(Space):
@@ -40,36 +35,11 @@ class Dict(Space):
 
   spaces: dict[str, Space] = field(default_factory=dict)
 
-  def __setitem__(self, key: str, space: Space) -> None:
-    """Add or update a subspace."""
-    self.spaces[key] = space
 
-  def __getitem__(self, key: str) -> Space:
-    """Get a subspace."""
-    return self.spaces[key]
-
-  def __repr__(self) -> str:
-    spaces_repr = ", ".join(f"{k}: {v}" for k, v in self.spaces.items())
-    return f"Dict({{{spaces_repr}}})"
-
-  def __iter__(self):
-    """Iterate over space keys."""
-    return iter(self.spaces)
-
-  def keys(self):
-    """Get all space keys."""
-    return self.spaces.keys()
-
-  def values(self):
-    """Get all spaces."""
-    return self.spaces.values()
-
-  def items(self):
-    """Get all space key-value pairs."""
-    return self.spaces.items()
+T = TypeVar("T", Dict, Box, Space)
 
 
-def batch_space(space: Space, batch_size: int) -> Space:
+def batch_space(space: T, batch_size: int) -> T:
   """Create a batched version of a space.
 
   Prepends batch_size dimension to the space's shape.
@@ -83,10 +53,13 @@ def batch_space(space: Space, batch_size: int) -> Space:
   """
   if isinstance(space, Dict):
     # For Dict spaces, batch each subspace.
-    batched_dict = Dict()
-    for key, subspace in space.spaces.items():
-      batched_dict[key] = batch_space(subspace, batch_size)
-    return batched_dict
+    return Dict(
+      spaces={
+        key: batch_space(subspace, batch_size) for key, subspace in space.spaces.items()
+      },
+      shape=(batch_size,),
+      dtype=space.dtype,
+    )
 
   elif isinstance(space, Box):
     # For Box spaces, prepend batch dimension.
@@ -103,5 +76,4 @@ def batch_space(space: Space, batch_size: int) -> Space:
     batched_shape = (batch_size,) + space.shape
     return Space(shape=batched_shape, dtype=space.dtype)
 
-  else:
-    raise TypeError(f"Unknown space type: {type(space)}")
+  assert_never(space)
