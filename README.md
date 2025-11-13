@@ -34,6 +34,12 @@ This launches an interactive viewer with a pre-trained Unitree G1 agent tracking
 
 > ❓ Having issues? See the [FAQ](docs/faq.md).
 
+**Try in Google Colab (no local setup required):**
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mujocolab/mjlab/blob/main/notebooks/demo.ipynb)
+
+Launch the demo directly in your browser with an interactive Viser viewer.
+
 ---
 
 ## Installation
