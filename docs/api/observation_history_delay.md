@@ -104,6 +104,35 @@ buffer = [obs_0, obs_0, obs_0]  # Backfilled
 buffer = [obs_0, obs_1, obs_2]  # Normal accumulation
 ```
 
+### History Flattening Order (Term-Major vs Time-Major)
+
+When `flatten_history_dim=True` and `concatenate_terms=True`, mjlab uses
+**term-major** ordering, where each term's full history is flattened before
+concatenating terms:
+
+```python
+# Term A: shape (num_envs, obs_dim_A) with history_length=3
+# Term B: shape (num_envs, obs_dim_B) with history_length=3
+
+# mjlab output (TERM-MAJOR):
+# [A_t0, A_t1, A_t2, B_t0, B_t1, B_t2, ...]
+#  └─ all A history ─┘  └─ all B history ─┘
+```
+
+An alternative approach is **time-major** (or frame-major) ordering, where
+complete observation frames are built at each timestep before concatenating
+across time:
+
+```python
+# TIME-MAJOR (alternative approach):
+# [A_t0, B_t0, ..., A_t1, B_t1, ..., A_t2, B_t2, ...]
+#  └─ frame t0 ──┘     └─ frame t1 ──┘     └─ frame t2 ──┘
+```
+
+**Sim2sim compatibility:** If you need to transfer policies to/from frameworks
+that use time-major ordering, you will need to reorder observations. This
+affects policies trained with history but not those without.
+
 ## Observation Delay
 
 Real robots have sensors with communication delays (WiFi, USB) and varying refresh

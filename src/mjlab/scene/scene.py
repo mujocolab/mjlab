@@ -160,7 +160,7 @@ class Scene:
     self._cfg.terrain.env_spacing = self._cfg.env_spacing
     self._terrain = TerrainImporter(self._cfg.terrain, self._device)
     frame = self._spec.worldbody.add_frame()
-    self._spec.attach(self._terrain.spec, frame=frame)
+    self._spec.attach(self._terrain.spec, prefix="", frame=frame)
 
   def _add_sensors(self) -> None:
     for sensor_cfg in self._cfg.sensors:

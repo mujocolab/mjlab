@@ -539,3 +539,71 @@ def test_no_double_append_on_first_call(mock_env, simple_obs_func):
   assert circular_buffer._pointer == 1
   # And we should have exactly 2 pushes.
   assert torch.all(circular_buffer._num_pushes == 2)
+
+
+def test_term_major_ordering(mock_env, device):
+  """Test that history flattening uses term-major ordering.
+
+  Term-major: [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1]
+  Time-major: [A_t0, B_t0, ..., A_t1, B_t1, ..., A_tH-1, B_tH-1]
+
+  This test verifies mjlab uses term-major ordering.
+  """
+
+  # Create observation functions with distinct values per term.
+  def obs_A(env):
+    # Returns [100, 101] for easy identification.
+    return torch.tensor([[100.0, 101.0]] * env.num_envs, device=device)
+
+  def obs_B(env):
+    # Returns [200, 201, 202] for easy identification.
+    return torch.tensor([[200.0, 201.0, 202.0]] * env.num_envs, device=device)
+
+  cfg = {
+    "policy": ObservationGroupCfg(
+      concatenate_terms=True,
+      terms={
+        "term_A": ObservationTermCfg(
+          func=obs_A, params={}, history_length=3, flatten_history_dim=True
+        ),
+        "term_B": ObservationTermCfg(
+          func=obs_B, params={}, history_length=3, flatten_history_dim=True
+        ),
+      },
+    ),
+  }
+
+  manager = ObservationManager(cfg, mock_env)
+
+  # Compute observations (history will be backfilled with same values).
+  obs = manager.compute(update_history=False)
+  policy_obs = obs["policy"]
+  assert isinstance(policy_obs, torch.Tensor)
+
+  # Expected shape: (4 envs, 2*3 + 3*3) = (4, 15).
+  assert policy_obs.shape == (4, 15)
+
+  # Check ordering for first environment.
+  result = policy_obs[0].cpu().tolist()
+
+  # Term-major: all A history, then all B history.
+  # A has 2 dims, B has 3 dims, history_length=3.
+  # fmt: off
+  expected_term_major = [
+    100.0, 101.0, 100.0, 101.0, 100.0, 101.0,  # All A history
+    200.0, 201.0, 202.0, 200.0, 201.0, 202.0, 200.0, 201.0, 202.0,  # All B
+  ]
+  # fmt: on
+
+  # Time-major would interleave: [A_t0, B_t0, A_t1, B_t1, A_t2, B_t2].
+  # fmt: off
+  expected_time_major = [
+    100.0, 101.0, 200.0, 201.0, 202.0,  # Frame t0
+    100.0, 101.0, 200.0, 201.0, 202.0,  # Frame t1
+    100.0, 101.0, 200.0, 201.0, 202.0,  # Frame t2
+  ]
+  # fmt: on
+
+  # Verify term-major ordering.
+  assert result == expected_term_major, f"Expected term-major ordering, got {result}"
+  assert result != expected_time_major, "Should not match time-major"
