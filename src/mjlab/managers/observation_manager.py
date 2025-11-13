@@ -21,25 +21,20 @@ class ObservationManager(ManagerBase):
 
     for group_name, group_term_dims in self._group_obs_term_dim.items():
       if self._group_obs_concatenate[group_name]:
-        try:
-          term_dims = torch.stack(
-            [torch.tensor(dims, device="cpu") for dims in group_term_dims], dim=0
-          )
-          if len(term_dims.shape) > 1:
-            if self._group_obs_concatenate_dim[group_name] >= 0:
-              dim = self._group_obs_concatenate_dim[group_name] - 1
-            else:
-              dim = self._group_obs_concatenate_dim[group_name]
-            dim_sum = torch.sum(term_dims[:, dim], dim=0)
-            term_dims[0, dim] = dim_sum
-            term_dims = term_dims[0]
+        term_dims = torch.stack(
+          [torch.tensor(dims, device="cpu") for dims in group_term_dims], dim=0
+        )
+        if len(term_dims.shape) > 1:
+          if self._group_obs_concatenate_dim[group_name] >= 0:
+            dim = self._group_obs_concatenate_dim[group_name] - 1
           else:
-            term_dims = torch.sum(term_dims, dim=0)
-          self._group_obs_dim[group_name] = tuple(term_dims.tolist())
-        except RuntimeError:
-          raise RuntimeError(
-            f"Unable to concatenate observation terms in group {group_name}."
-          ) from None
+            dim = self._group_obs_concatenate_dim[group_name]
+          dim_sum = torch.sum(term_dims[:, dim], dim=0)
+          term_dims[0, dim] = dim_sum
+          term_dims = term_dims[0]
+        else:
+          term_dims = torch.sum(term_dims, dim=0)
+        self._group_obs_dim[group_name] = tuple(term_dims.tolist())
       else:
         self._group_obs_dim[group_name] = group_term_dims
 
