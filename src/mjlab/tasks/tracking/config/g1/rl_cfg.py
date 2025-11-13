@@ -8,7 +8,7 @@ from mjlab.rl import (
 
 
 @dataclass
-class G1FlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
+class UnitreeG1FlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
   policy: RslRlPpoActorCriticCfg = field(
     default_factory=lambda: RslRlPpoActorCriticCfg(
       init_noise_std=1.0,

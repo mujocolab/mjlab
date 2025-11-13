@@ -1,3 +1,3 @@
-from mjlab.tasks.tracking.rl.runner import MotionTrackingOnPolicyRunner
-
-__all__ = ["MotionTrackingOnPolicyRunner"]
+from mjlab.tasks.tracking.rl.runner import (
+  MotionTrackingOnPolicyRunner as MotionTrackingOnPolicyRunner,
+)

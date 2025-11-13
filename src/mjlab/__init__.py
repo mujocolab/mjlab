@@ -4,8 +4,6 @@ from pathlib import Path
 
 import warp as wp
 
-__all__ = ["MJLAB_SRC_PATH"]
-
 MJLAB_SRC_PATH: Path = Path(__file__).parent
 
 

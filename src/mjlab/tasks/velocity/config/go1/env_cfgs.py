@@ -2,7 +2,7 @@
 
 from copy import deepcopy
 
-from mjlab.asset_zoo.robots.unitree_go1.go1_constants import (
+from mjlab.asset_zoo.robots import (
   GO1_ACTION_SCALE,
   get_go1_robot_cfg,
 )
