@@ -44,7 +44,7 @@ cartpole/
 ```
 
 > [!NOTE]
-> Actuator names must match their joint names. The framework uses actuator names to look up the corresponding joints.
+> Actuator names must match their joint names. Actuator names are used look up the corresponding joints.
 
 ### cartpole_constants.py
 
@@ -131,17 +131,15 @@ Start `cartpole_env_cfg.py` with the necessary imports and scene configuration:
 """CartPole task environment configuration."""
 
 import math
-from dataclasses import dataclass, field
 import torch
 
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.managers.manager_term_config import (
-  ObservationGroupCfg as ObsGroup,
-  ObservationTermCfg as ObsTerm,
-  RewardTermCfg as RewardTerm,
-  TerminationTermCfg as DoneTerm,
-  EventTermCfg as EventTerm,
-  term,
+  ObservationGroupCfg,
+  ObservationTermCfg,
+  RewardTermCfg
+  TerminationTermCfg,
+  EventTermCfg,
 )
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import SceneCfg
