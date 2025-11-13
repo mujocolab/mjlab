@@ -121,7 +121,11 @@ class ObservationTermCfg(ManagerTermBaseCfg):
   history_length: int = 0
   """Number of past observations to keep in history. 0 = no history."""
   flatten_history_dim: bool = True
-  """Whether to flatten the history dimension into observation."""
+  """Whether to flatten the history dimension into observation.
+
+  When True and concatenate_terms=True, uses term-major ordering:
+  [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]
+  See docs/api/observation_history_delay.md for details on ordering."""
 
 
 @dataclass

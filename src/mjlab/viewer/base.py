@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Optional, Protocol
 import torch
 
 if TYPE_CHECKING:
-  from mjlab.envs import ManagerBasedEnvCfg
+  from mjlab.envs import ManagerBasedRlEnvCfg
 
 
 class VerbosityLevel(IntEnum):
@@ -44,10 +44,14 @@ class Timer:
 
 
 class EnvProtocol(Protocol):
+  """Interface we expect from RL environments, which can be either vanilla
+  `ManagerBasedRlEnv` objects or wrapped with `VideoRecorder`,
+  `RslRlVecEnvWrapper`, etc."""
+
   device: torch.device
 
   @property
-  def cfg(self) -> ManagerBasedEnvCfg: ...
+  def cfg(self) -> ManagerBasedRlEnvCfg: ...
 
   def get_observations(self) -> Any: ...
   def step(self, actions: torch.Tensor) -> tuple[Any, ...]: ...

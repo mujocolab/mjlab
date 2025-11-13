@@ -21,3 +21,14 @@ class JointActionCfg(ActionTermCfg):
 class JointPositionActionCfg(JointActionCfg):
   class_type: type[ActionTerm] = joint_actions.JointPositionAction
   use_default_offset: bool = True
+
+
+@dataclass(kw_only=True)
+class JointVelocityActionCfg(JointActionCfg):
+  class_type: type[ActionTerm] = joint_actions.JointVelocityAction
+  use_default_offset: bool = True
+
+
+@dataclass(kw_only=True)
+class JointEffortActionCfg(JointActionCfg):
+  class_type: type[ActionTerm] = joint_actions.JointEffortAction
