@@ -11,14 +11,14 @@ from prettytable import PrettyTable
 from mjlab.managers.manager_base import ManagerBase, ManagerTermBase
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_env import ManagerBasedEnv
+  from mjlab.envs import ManagerBasedRlEnv
   from mjlab.managers.manager_term_config import ActionTermCfg
 
 
 class ActionTerm(ManagerTermBase):
   """Base class for action terms."""
 
-  def __init__(self, cfg: ActionTermCfg, env: ManagerBasedEnv):
+  def __init__(self, cfg: ActionTermCfg, env: ManagerBasedRlEnv):
     self.cfg = cfg
     super().__init__(env)
     self._asset = self._env.scene[self.cfg.asset_name]
@@ -43,7 +43,7 @@ class ActionTerm(ManagerTermBase):
 
 
 class ActionManager(ManagerBase):
-  def __init__(self, cfg: dict[str, ActionTermCfg], env: ManagerBasedEnv):
+  def __init__(self, cfg: dict[str, ActionTermCfg], env: ManagerBasedRlEnv):
     self.cfg = cfg
     super().__init__(env=env)
 

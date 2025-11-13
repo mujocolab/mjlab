@@ -1,17 +1,17 @@
 from typing import Any, cast
 
-import gymnasium as gym
 import torch
 from rsl_rl.env import VecEnv
 from tensordict import TensorDict
 
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
+from mjlab.spaces import Space
 
 
 class RslRlVecEnvWrapper(VecEnv):
   def __init__(
     self,
-    env: gym.Env,
+    env: ManagerBasedRlEnv,
     clip_actions: float | None = None,
   ):
     self.env = env
@@ -35,11 +35,11 @@ class RslRlVecEnvWrapper(VecEnv):
     return self.env.render_mode
 
   @property
-  def observation_space(self) -> gym.Space:
+  def observation_space(self) -> Space:
     return self.env.observation_space
 
   @property
-  def action_space(self) -> gym.Space:
+  def action_space(self) -> Space:
     return self.env.action_space
 
   @classmethod
@@ -48,9 +48,7 @@ class RslRlVecEnvWrapper(VecEnv):
 
   @property
   def unwrapped(self) -> ManagerBasedRlEnv:
-    out = self.env.unwrapped
-    assert isinstance(out, ManagerBasedRlEnv)
-    return out
+    return self.env
 
   # Properties.
 
@@ -103,9 +101,11 @@ class RslRlVecEnvWrapper(VecEnv):
     if self.clip_actions is None:
       return
 
-    self.unwrapped.single_action_space = gym.spaces.Box(
-      low=-self.clip_actions, high=self.clip_actions, shape=(self.num_actions,)
+    from mjlab.spaces import Box, batch_space
+
+    self.unwrapped.single_action_space = Box(
+      shape=(self.num_actions,), low=-self.clip_actions, high=self.clip_actions
     )
-    self.unwrapped.action_space = gym.vector.utils.batch_space(
+    self.unwrapped.action_space = batch_space(
       self.unwrapped.single_action_space, self.num_envs
     )

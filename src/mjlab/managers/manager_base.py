@@ -10,12 +10,12 @@ import torch
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_env import ManagerBasedEnv
+  from mjlab.envs import ManagerBasedRlEnv
   from mjlab.managers.manager_term_config import ManagerTermBaseCfg
 
 
 class ManagerTermBase:
-  def __init__(self, env: ManagerBasedEnv):
+  def __init__(self, env: ManagerBasedRlEnv):
     self._env = env
 
   # Properties.
@@ -47,7 +47,7 @@ class ManagerTermBase:
 class ManagerBase(abc.ABC):
   """Base class for all managers."""
 
-  def __init__(self, env: ManagerBasedEnv):
+  def __init__(self, env: ManagerBasedRlEnv):
     self._env = env
 
     self._prepare_terms()
