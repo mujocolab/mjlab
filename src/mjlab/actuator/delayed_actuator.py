@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal
 
 import mujoco
@@ -26,8 +26,13 @@ class DelayedActuatorCfg(ActuatorCfg):
   steps).
   """
 
+  joint_names_expr: tuple[str, ...] = field(init=False, default=())
+
   base_cfg: ActuatorCfg
   """Configuration for the underlying actuator."""
+
+  def __post_init__(self):
+    object.__setattr__(self, "joint_names_expr", self.base_cfg.joint_names_expr)
 
   delay_target: (
     Literal["position", "velocity", "effort"]

@@ -10,6 +10,7 @@ import numpy as np
 import torch
 
 from mjlab import actuator
+from mjlab.actuator import BuiltinActuatorGroup
 from mjlab.entity.data import EntityData
 from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
 from mjlab.utils import spec_config as spec_cfg
@@ -335,6 +336,11 @@ class Entity:
 
     for act in self._actuators:
       act.initialize(mj_model, model, data, device)
+
+    # Vectorize built-in actuators; we'll loop through custom ones.
+    builtin_group, custom_actuators = BuiltinActuatorGroup.process(self._actuators)
+    self._builtin_group = builtin_group
+    self._custom_actuators = custom_actuators
 
     # Root state.
     root_state_components = [self.cfg.init_state.pos, self.cfg.init_state.rot]
@@ -714,7 +720,8 @@ class Entity:
     )
 
   def _apply_actuator_controls(self) -> None:
-    for act in self._actuators:
+    self._builtin_group.apply_controls(self._data)
+    for act in self._custom_actuators:
       command = actuator.ActuatorCmd(
         position_target=self._data.joint_pos_target[:, act.joint_ids],
         velocity_target=self._data.joint_vel_target[:, act.joint_ids],

@@ -5,7 +5,7 @@ from pathlib import Path
 import mujoco
 
 from mjlab import MJLAB_SRC_PATH
-from mjlab.actuator import BuiltinPositionActuatorCfg
+from mjlab.actuator import BuiltinPositionActuatorCfg, LearnedMlpActuatorCfg
 from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.utils.actuator import ElectricActuator, reflected_inertia
 from mjlab.utils.os import update_assets
@@ -81,6 +81,29 @@ GO1_KNEE_ACTUATOR_CFG = BuiltinPositionActuatorCfg(
   armature=KNEE_ACTUATOR.reflected_inertia,
 )
 
+# Learned actuator network trained from walk-these-ways.
+# Model architecture: MLP with 32 hidden units, 2 layers, softsign activation.
+GO1_LEARNED_ACTUATOR_PATH = (
+  MJLAB_SRC_PATH / "third_party" / "walk_these_ways" / "unitree_go1.pt"
+)
+
+GO1_LEARNED_ACTUATOR_CFG = LearnedMlpActuatorCfg(
+  joint_names_expr=(".*_hip_joint", ".*_thigh_joint", ".*_calf_joint"),
+  network_file=str(GO1_LEARNED_ACTUATOR_PATH),
+  # NOTE: Network was trained with negative position error (current - target).
+  pos_scale=-1.0,
+  vel_scale=1.0,
+  torque_scale=1.0,
+  input_order="pos_vel",
+  history_length=3,
+  saturation_effort=23.7,
+  velocity_limit=30.0,
+  effort_limit=23.7,
+  # NOTE: This is technically wrong since the calf actuator has different armature,
+  # but we don't currently support dict-based fields for the actuator parameters.
+  armature=HIP_ACTUATOR.reflected_inertia,
+)
+
 ##
 # Keyframes.
 ##
@@ -139,9 +162,14 @@ GO1_ARTICULATION = EntityArticulationInfoCfg(
   soft_joint_pos_limit_factor=0.9,
 )
 
+GO1_ARTICULATION_LEARNED = EntityArticulationInfoCfg(
+  actuators=(GO1_LEARNED_ACTUATOR_CFG,),
+  soft_joint_pos_limit_factor=0.9,
+)
+
 
 def get_go1_robot_cfg() -> EntityCfg:
-  """Get a fresh GO1 robot configuration instance.
+  """Get a fresh Go1 robot configuration instance.
 
   Returns a new EntityCfg instance each time to avoid mutation issues when
   the config is shared across multiple places.
@@ -151,6 +179,16 @@ def get_go1_robot_cfg() -> EntityCfg:
     collisions=(FULL_COLLISION,),
     spec_fn=get_spec,
     articulation=GO1_ARTICULATION,
+  )
+
+
+def get_go1_robot_cfg_learned() -> EntityCfg:
+  """Get a Go1 robot with learned actuator network."""
+  return EntityCfg(
+    init_state=INIT_STATE,
+    collisions=(FULL_COLLISION,),
+    spec_fn=get_spec,
+    articulation=GO1_ARTICULATION_LEARNED,
   )
 
 

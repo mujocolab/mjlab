@@ -16,7 +16,7 @@ from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 from mjlab.tasks.velocity.rl import VelocityOnPolicyRunner
 from mjlab.utils.os import dump_yaml, get_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
-from mjlab.wrappers import VideoRecorder
+from mjlab.utils.wrappers import VideoRecorder
 
 
 @dataclass(frozen=True)
@@ -31,7 +31,7 @@ class TrainConfig:
   enable_nan_guard: bool = False
 
 
-def run_train(task: str, cfg: TrainConfig) -> None:
+def run_train(cfg: TrainConfig) -> None:
   configure_torch_backends()
 
   registry_name: str | None = None
@@ -151,7 +151,7 @@ def main():
   )
   del env_cfg, agent_cfg, remaining_args
 
-  run_train(chosen_task, args)
+  run_train(args)
 
 
 if __name__ == "__main__":

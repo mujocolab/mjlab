@@ -5,7 +5,7 @@ from rsl_rl.env import VecEnv
 from tensordict import TensorDict
 
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
-from mjlab.spaces import Space
+from mjlab.utils.spaces import Space
 
 
 class RslRlVecEnvWrapper(VecEnv):
@@ -101,7 +101,7 @@ class RslRlVecEnvWrapper(VecEnv):
     if self.clip_actions is None:
       return
 
-    from mjlab.spaces import Box, batch_space
+    from mjlab.utils.spaces import Box, batch_space
 
     self.unwrapped.single_action_space = Box(
       shape=(self.num_actions,), low=-self.clip_actions, high=self.clip_actions

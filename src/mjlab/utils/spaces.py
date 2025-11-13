@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Literal, TypeVar
+from typing import Literal, overload
 
 from typing_extensions import assert_never
 
@@ -36,10 +36,19 @@ class Dict(Space):
   spaces: dict[str, Space] = field(default_factory=dict)
 
 
-T = TypeVar("T", Dict, Box, Space)
+@overload
+def batch_space(space: Dict, batch_size: int) -> Dict: ...
 
 
-def batch_space(space: T, batch_size: int) -> T:
+@overload
+def batch_space(space: Box, batch_size: int) -> Box: ...
+
+
+@overload
+def batch_space(space: Space, batch_size: int) -> Space: ...
+
+
+def batch_space(space: Space, batch_size: int) -> Space:
   """Create a batched version of a space.
 
   Prepends batch_size dimension to the space's shape.
@@ -60,7 +69,6 @@ def batch_space(space: T, batch_size: int) -> T:
       shape=(batch_size,),
       dtype=space.dtype,
     )
-
   elif isinstance(space, Box):
     # For Box spaces, prepend batch dimension.
     batched_shape = (batch_size,) + space.shape
@@ -70,10 +78,9 @@ def batch_space(space: T, batch_size: int) -> T:
       high=space.high,
       dtype=space.dtype,
     )
-
   elif isinstance(space, Space):
     # For generic Space, prepend batch dimension.
     batched_shape = (batch_size,) + space.shape
     return Space(shape=batched_shape, dtype=space.dtype)
-
-  assert_never(space)
+  else:
+    assert_never(space)

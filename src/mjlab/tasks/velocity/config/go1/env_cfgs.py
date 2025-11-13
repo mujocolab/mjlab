@@ -5,6 +5,7 @@ from copy import deepcopy
 from mjlab.asset_zoo.robots import (
   GO1_ACTION_SCALE,
   get_go1_robot_cfg,
+  get_go1_robot_cfg_learned,
 )
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.managers.manager_term_config import TerminationTermCfg
@@ -99,5 +100,21 @@ def UNITREE_GO1_FLAT_ENV_CFG() -> ManagerBasedRlEnvCfg:
   # Disable terrain curriculum.
   assert cfg.curriculum is not None
   del cfg.curriculum["terrain_levels"]
+
+  return cfg
+
+
+@retval
+def UNITREE_GO1_FLAT_ENV_CFG_LEARNED() -> ManagerBasedRlEnvCfg:
+  """Create Unitree Go1 flat terrain velocity tracking with learned actuators.
+
+  Uses a neural network trained on real hardware data to model actuator dynamics.
+  Better captures delays and nonlinearities than analytical models.
+  """
+  # Start with flat terrain config and swap in learned actuator.
+  cfg = deepcopy(UNITREE_GO1_FLAT_ENV_CFG)
+
+  # Replace robot with learned actuator variant.
+  cfg.scene.entities["robot"] = get_go1_robot_cfg_learned()
 
   return cfg

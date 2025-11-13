@@ -9,6 +9,10 @@ this repository for convenience.
   used under the terms of the original license (see `isaaclab/LICENSE`).
   Only a small subset of the original project is included.
 
+- **walk_these_ways/** — Pretrained actuator network from
+  [walk-these-ways](https://github.com/Improbable-AI/walk-these-ways), used
+  under the MIT License (see `walk_these_ways/LICENSE`).
+
 ## Licensing
 
 Each subdirectory contains its own `LICENSE` file from the upstream source.
