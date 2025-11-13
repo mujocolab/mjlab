@@ -19,7 +19,7 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11", 
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3 :: Only",
@@ -69,16 +69,14 @@ dev = [
   "ruff>=0.14.3",
   "ty>=0.0.1a23",
 ]
-cpu = ["torch>=2.7.0"]
+
+[project.optional-dependencies]
 cu128 = ["torch>=2.7.0"]
 
 [tool.uv]
-default-groups = ["dev", "cu128"]
-conflicts = [
-  [
-    { group = "cpu" },
-    { group = "cu128" },
-  ],
+required-environments = [
+  "sys_platform == 'darwin' and platform_machine == 'arm64'",
+  "sys_platform == 'linux' and platform_machine == 'x86_64'",
 ]
 
 [[tool.uv.index]]
@@ -108,10 +106,7 @@ explicit = true
 mujoco-warp = { git = "https://github.com/google-deepmind/mujoco_warp", rev = "e605c406363805d949b75d50dd5ffb3d79bc3f70"}
 warp-lang = { index = "nvidia", marker = "sys_platform != 'darwin'" }
 mujoco = { index = "mujoco" }
-torch = [
-  { index = "pytorch-cpu", group = "cpu" },
-  { index = "pytorch-cu128", group = "cu128" },
-]
+torch = { index = "pytorch-cu128", extra = "cu128", marker = "sys_platform != 'darwin'" }
 
 [tool.ruff]
 src = ["src"]  # Helpful for recognizing first-party imports.

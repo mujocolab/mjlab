@@ -20,7 +20,7 @@ from mjlab.third_party.isaaclab.isaaclab_tasks.utils.parse_cfg import (
 )
 from mjlab.utils.os import get_wandb_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
-from mjlab.viewer import NativeMujocoViewer, ViserViewer
+from mjlab.viewer import NativeMujocoViewer, ViserPlayViewer
 from mjlab.viewer.base import EnvProtocol
 
 
@@ -246,7 +246,7 @@ def run_play(task: str, cfg: PlayConfig):
   if resolved_viewer == "native":
     NativeMujocoViewer(cast(EnvProtocol, env), policy).run()
   elif resolved_viewer == "viser":
-    ViserViewer(cast(EnvProtocol, env), policy).run()
+    ViserPlayViewer(cast(EnvProtocol, env), policy).run()
   else:
     raise RuntimeError(f"Unsupported viewer backend: {resolved_viewer}")
 
