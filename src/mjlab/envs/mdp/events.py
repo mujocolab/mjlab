@@ -462,7 +462,7 @@ def _sample_distribution(
 
 
 def randomize_pd_gains(
-  env: ManagerBasedEnv,
+  env: ManagerBasedRlEnv,
   env_ids: torch.Tensor | None,
   kp_range: Tuple[float, float],
   kd_range: Tuple[float, float],
@@ -547,7 +547,7 @@ def randomize_pd_gains(
 
 
 def randomize_effort_limits(
-  env: ManagerBasedEnv,
+  env: ManagerBasedRlEnv,
   env_ids: torch.Tensor | None,
   effort_limit_range: Tuple[float, float],
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,

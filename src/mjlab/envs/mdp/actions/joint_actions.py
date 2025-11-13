@@ -105,7 +105,9 @@ class JointPositionAction(JointAction):
 
 
 class JointVelocityAction(JointAction):
-  def __init__(self, cfg: actions_config.JointVelocityActionCfg, env: ManagerBasedEnv):
+  def __init__(
+    self, cfg: actions_config.JointVelocityActionCfg, env: ManagerBasedRlEnv
+  ):
     super().__init__(cfg=cfg, env=env)
 
     if cfg.use_default_offset:
@@ -118,7 +120,7 @@ class JointVelocityAction(JointAction):
 
 
 class JointEffortAction(JointAction):
-  def __init__(self, cfg: actions_config.JointEffortActionCfg, env: ManagerBasedEnv):
+  def __init__(self, cfg: actions_config.JointEffortActionCfg, env: ManagerBasedRlEnv):
     super().__init__(cfg=cfg, env=env)
 
   def apply_actions(self) -> None:
