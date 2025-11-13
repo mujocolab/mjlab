@@ -38,10 +38,13 @@ cartpole/
     </body>
   </worldbody>
   <actuator>
-    <velocity name="slide_velocity" joint="slide" ctrlrange="-20 20" kv="20"/>
+    <velocity name="slide" joint="slide" ctrlrange="-20 20" kv="20"/>
   </actuator>
 </mujoco>
 ```
+
+> [!NOTE]
+> Actuator names must match their joint names. The framework uses actuator names to look up the corresponding joints.
 
 ### cartpole_constants.py
 
@@ -50,8 +53,7 @@ from pathlib import Path
 import mujoco
 
 from mjlab import MJLAB_SRC_PATH
-from mjlab.entity import Entity, EntityCfg, EntityArticulationInfoCfg
-from mjlab.utils.spec_config import ActuatorCfg
+from mjlab.entity import Entity, EntityCfg
 
 CARTPOLE_XML: Path = (
   MJLAB_SRC_PATH / "asset_zoo" / "robots" / "cartpole" / "xmls" / "cartpole.xml"
@@ -63,7 +65,10 @@ def get_spec() -> mujoco.MjSpec:
 
 def get_cartpole_robot_cfg() -> EntityCfg:
   """Get a fresh CartPole robot configuration instance."""
-  return EntityCfg(spec_fn=get_spec)
+  INIT_STATE = EntityCfg.InitialStateCfg(
+    pos=(0.0, 0.0, 0.1),  # Cart start position
+  )
+  return EntityCfg(spec_fn=get_spec, init_state=INIT_STATE)
 
 if __name__ == "__main__":
   import mujoco.viewer as viewer
@@ -92,9 +97,9 @@ uv run python mjlab/src/mjlab/asset_zoo/robots/cartpole/cartpole_constants.py
 Add the CartPole configuration to `mjlab/src/mjlab/asset_zoo/robots/__init__.py`:
 
 ```python
-from mjlab.asset_zoo.robots.unitree_g1.g1_constants import get_g1_robot_cfg as get_g1_robot_cfg
-from mjlab.asset_zoo.robots.unitree_go1.go1_constants import get_go1_robot_cfg as get_go1_robot_cfg
-from mjlab.asset_zoo.robots.cartpole.cartpole_constants import get_cartpole_robot_cfg as get_cartpole_robot_cfg
+from mjlab.asset_zoo.robots.unitree_g1.g1_constants import get_g1_robot_cfg
+from mjlab.asset_zoo.robots.unitree_go1.go1_constants import get_go1_robot_cfg
+from mjlab.asset_zoo.robots.cartpole.cartpole_constants import get_cartpole_robot_cfg
 
 __all__ = (
   "get_g1_robot_cfg",
@@ -126,16 +131,17 @@ Start `cartpole_env_cfg.py` with the necessary imports and scene configuration:
 """CartPole task environment configuration."""
 
 import math
+from dataclasses import dataclass, field
 import torch
 
 from mjlab.envs import ManagerBasedRlEnvCfg
-from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.manager_term_config import (
-  ObservationGroupCfg,
-  ObservationTermCfg,
-  RewardTermCfg,
-  TerminationTermCfg,
-  EventTermCfg,
+  ObservationGroupCfg as ObsGroup,
+  ObservationTermCfg as ObsTerm,
+  RewardTermCfg as RewardTerm,
+  TerminationTermCfg as DoneTerm,
+  EventTermCfg as EventTerm,
+  term,
 )
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import SceneCfg
