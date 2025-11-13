@@ -8,7 +8,7 @@ EnvRlCfgPair = tuple[ManagerBasedRlEnvCfg, RslRlOnPolicyRunnerCfg]
 _REGISTRY: dict[str, EnvRlCfgPair] = {}
 
 
-def register(
+def register_mjlab_task(
   task_id: str,
   env_cfg: ManagerBasedRlEnvCfg,
   rl_cfg: RslRlOnPolicyRunnerCfg,
