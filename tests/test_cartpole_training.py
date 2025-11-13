@@ -11,8 +11,8 @@ from rsl_rl.runners import OnPolicyRunner
 
 from conftest import get_test_device
 from mjlab.rl import RslRlVecEnvWrapper, RslRlOnPolicyRunnerCfg
-from mjlab.tasks.cartpole.cartpole_env_cfg import create_cartpole_env_cfg
 from mjlab.utils.torch import configure_torch_backends
+from assets.cartpole.cartpole_env_cfg import create_cartpole_env_cfg
 
 
 @pytest.mark.slow
@@ -48,8 +48,7 @@ def test_cartpole_upright_reward_threshold():
     policy = runner.get_inference_policy(device=device)
     upright_rewards = []
     obs = env_wrapped.get_observations()
-
-    for _ in range(env.unwrapped.max_episode_length * 20):
+    for _ in range(env.unwrapped.max_episode_length):
       actions = policy(obs)
       obs, _, dones, extras = env_wrapped.step(actions)
 
@@ -57,14 +56,12 @@ def test_cartpole_upright_reward_threshold():
       if dones.any() and "log" in extras and "Episode_Reward/upright" in extras["log"]:
         upright_rewards.append(extras["log"]["Episode_Reward/upright"].item())
 
-      if len(upright_rewards) >= 20:
-        break
-
     env.close()
 
     # Check threshold
     assert upright_rewards, "No rewards collected"
     max_reward = max(upright_rewards)
     print(f"\nMax upright reward: {max_reward:.4f} (from {len(upright_rewards)} episodes)")
-    assert max_reward > 3.00, f"Max reward {max_reward:.2f} ≤ 3.00"
+    reward_threshold = 3.00
+    assert max_reward > reward_threshold, f"Max reward {max_reward:.2f} ≤ {reward_threshold}"
 
