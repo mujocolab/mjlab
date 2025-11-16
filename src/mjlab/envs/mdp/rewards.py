@@ -104,17 +104,30 @@ class posture:
     return torch.exp(-torch.mean(error_squared / (self.std**2), dim=1))
 
 
-def electrical_power_cost(
-  env: ManagerBasedRlEnv,
-  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-) -> torch.Tensor:
+class electrical_power_cost:
   """Penalize electrical power consumption of actuators."""
-  asset: Entity = env.scene[asset_cfg.name]
-  tau = asset.data.actuator_force
-  qd = asset.data.joint_vel
-  mech = tau * qd
-  mech_pos = torch.clamp(mech, min=0.0)  # Don't penalize regen.
-  return torch.sum(mech_pos, dim=1)
+
+  def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
+    asset: Entity = env.scene[cfg.params["asset_cfg"].name]
+
+    joint_ids, _ = asset.find_joints(
+      cfg.params["asset_cfg"].joint_names,
+    )
+    actuator_ids, _ = asset.find_actuators(
+      cfg.params["asset_cfg"].joint_names,
+    )
+    self._joint_ids = torch.tensor(joint_ids, device=env.device, dtype=torch.long)
+    self._actuator_ids = torch.tensor(actuator_ids, device=env.device, dtype=torch.long)
+
+  def __call__(
+    self, env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg
+  ) -> torch.Tensor:
+    asset: Entity = env.scene[asset_cfg.name]
+    tau = asset.data.actuator_force[:, self._actuator_ids]
+    qd = asset.data.joint_vel[:, self._joint_ids]
+    mech = tau * qd
+    mech_pos = torch.clamp(mech, min=0.0)  # Don't penalize regen.
+    return torch.sum(mech_pos, dim=1)
 
 
 def flat_orientation_l2(

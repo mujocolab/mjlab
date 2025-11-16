@@ -235,6 +235,13 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
         "command_threshold": 0.5,
       },
     ),
+    "electrical_power_cost": RewardTermCfg(
+      func=mdp.electrical_power_cost,
+      weight=0.1,
+      params={
+        "asset_cfg": SceneEntityCfg("robot", joint_names=(".*",)),
+      },
+    ),
     "foot_clearance": RewardTermCfg(
       func=mdp.feet_clearance,
       weight=-2.0,
