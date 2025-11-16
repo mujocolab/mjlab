@@ -119,9 +119,7 @@ class electrical_power_cost:
     self._joint_ids = torch.tensor(joint_ids, device=env.device, dtype=torch.long)
     self._actuator_ids = torch.tensor(actuator_ids, device=env.device, dtype=torch.long)
 
-  def __call__(
-    self, env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg
-  ) -> torch.Tensor:
+  def __call__(self, env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     asset: Entity = env.scene[asset_cfg.name]
     tau = asset.data.actuator_force[:, self._actuator_ids]
     qd = asset.data.joint_vel[:, self._joint_ids]
