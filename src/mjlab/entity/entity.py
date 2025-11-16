@@ -284,7 +284,7 @@ class Entity:
     name_keys: str | Sequence[str],
     actuator_subset: Sequence[str] | None = None,
     preserve_order: bool = False,
-  ):
+  ) -> tuple[list[int], list[str]]:
     if actuator_subset is None:
       actuator_subset = self.actuator_names
     return resolve_matching_names(name_keys, actuator_subset, preserve_order)
@@ -312,7 +312,7 @@ class Entity:
     name_keys: str | Sequence[str],
     geom_subset: Sequence[str] | None = None,
     preserve_order: bool = False,
-  ):
+  ) -> tuple[list[int], list[str]]:
     if geom_subset is None:
       geom_subset = self.geom_names
     return resolve_matching_names(name_keys, geom_subset, preserve_order)
@@ -322,7 +322,7 @@ class Entity:
     name_keys: str | Sequence[str],
     site_subset: Sequence[str] | None = None,
     preserve_order: bool = False,
-  ):
+  ) -> tuple[list[int], list[str]]:
     if site_subset is None:
       site_subset = self.site_names
     return resolve_matching_names(name_keys, site_subset, preserve_order)
