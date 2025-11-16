@@ -1,11 +1,12 @@
 """Script to train RL agent with RSL-RL."""
 
+import logging
 import os
 import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import Annotated, Any, cast
 
 import tyro
 from rsl_rl.runners import OnPolicyRunner
@@ -18,18 +19,22 @@ from mjlab.utils.os import dump_yaml, get_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.utils.wrappers import VideoRecorder
 
+# Mutual exclusion group: only one of `--device` and `--num-gpus` can be specified.
+DeviceMutex = tyro.conf.create_mutex_group(required=False)
+
 
 @dataclass(frozen=True)
 class TrainConfig:
   env: Any
   agent: RslRlOnPolicyRunnerCfg
   registry_name: str | None = None
-  device: str = "cuda:0"
   video: bool = False
   video_length: int = 200
   video_interval: int = 2000
   enable_nan_guard: bool = False
-  num_gpus: int = 1
+
+  device: Annotated[str, DeviceMutex] = "cuda:0"
+  num_gpus: Annotated[int, DeviceMutex] = 1
 
 
 def run_train(task_id: str, cfg: TrainConfig) -> None:
@@ -181,11 +186,16 @@ def main():
 
   # Launch multi-GPU training with torchrunx.
   if args.num_gpus > 1:
-    import torchrunx as tx
+    import torchrunx
 
-    launcher = tx.Launcher(
+    # torchrunx redirects stdout to logging.
+    logging.basicConfig(level=logging.INFO)
+
+    print(f"[INFO] Launching multi-GPU training with {args.num_gpus} GPUs", flush=True)
+    launcher = torchrunx.Launcher(
+      hostnames=["localhost"],
       workers_per_host=args.num_gpus,
-      backend=None,  # Let rsl_rl handle process group initialization
+      backend=None,  # Let rsl_rl handle process group initialization.
     )
     launcher.run(run_train, chosen_task, args)
   else:
