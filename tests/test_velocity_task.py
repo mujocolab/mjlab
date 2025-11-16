@@ -15,18 +15,6 @@ def velocity_task_ids() -> list[str]:
 
 
 @pytest.fixture(scope="module")
-def velocity_play_task_pairs(velocity_task_ids: list[str]) -> list[tuple[str, str]]:
-  """Get pairs of (training_task, play_task) for velocity tasks."""
-  pairs = []
-  for task_id in velocity_task_ids:
-    if task_id.endswith("-Play"):
-      training_id = task_id[: -len("-Play")]
-      if training_id in velocity_task_ids:
-        pairs.append((training_id, task_id))
-  return pairs
-
-
-@pytest.fixture(scope="module")
 def g1_velocity_task_ids(velocity_task_ids: list[str]) -> list[str]:
   """Get all G1 velocity task IDs."""
   return [t for t in velocity_task_ids if "G1" in t]
@@ -151,20 +139,22 @@ def test_rough_velocity_training_has_curriculum_enabled() -> None:
 
 def test_rough_velocity_play_has_curriculum_disabled() -> None:
   """Rough velocity play tasks should have terrain curriculum disabled."""
-  rough_play_tasks = [
-    "Mjlab-Velocity-Rough-Unitree-G1-Play",
-    "Mjlab-Velocity-Rough-Unitree-Go1-Play",
+  rough_training_tasks = [
+    "Mjlab-Velocity-Rough-Unitree-G1",
+    "Mjlab-Velocity-Rough-Unitree-Go1",
   ]
 
-  for task_id in rough_play_tasks:
-    cfg = load_env_cfg(task_id)
+  for task_id in rough_training_tasks:
+    cfg = load_env_cfg(task_id, play=True)
 
-    assert cfg.scene.terrain is not None, f"Task {task_id} has no terrain config"
+    assert cfg.scene.terrain is not None, (
+      f"Task {task_id} (play mode) has no terrain config"
+    )
     assert cfg.scene.terrain.terrain_generator is not None, (
-      f"Task {task_id} has no terrain_generator"
+      f"Task {task_id} (play mode) has no terrain_generator"
     )
     assert cfg.scene.terrain.terrain_generator.curriculum is False, (
-      f"Task {task_id} curriculum={cfg.scene.terrain.terrain_generator.curriculum}, "
+      f"Task {task_id} (play mode) curriculum={cfg.scene.terrain.terrain_generator.curriculum}, "
       "expected False"
     )
 
