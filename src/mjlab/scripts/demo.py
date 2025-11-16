@@ -32,7 +32,7 @@ def main() -> None:
       _demo_mode=True,
     ),
   )
-  run_play("Mjlab-Tracking-Flat-Unitree-G1-Play", args)
+  run_play("Mjlab-Tracking-Flat-Unitree-G1", args)
 
 
 if __name__ == "__main__":
