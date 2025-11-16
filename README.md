@@ -75,15 +75,12 @@ Train a Unitree G1 humanoid to follow velocity commands on flat terrain:
 MUJOCO_GL=egl uv run train Mjlab-Velocity-Flat-Unitree-G1 --env.scene.num-envs 4096
 ```
 
-**Multi-GPU Training:** Scale to N GPUs using `torchrun`:
+**Multi-GPU Training:** Scale to N GPUs using `--num-gpus`:
 
 ```bash
-MUJOCO_GL=egl uv run torchrun \
-  --nproc_per_node=N \
-  --no_python \
-  train Mjlab-Velocity-Flat-Unitree-G1 \
-    --distributed True \
-    --env.scene.num-envs 4096
+MUJOCO_GL=egl uv run train Mjlab-Velocity-Flat-Unitree-G1 \
+  --num-gpus N \
+  --env.scene.num-envs 4096
 ```
 
 See the [Distributed Training guide](docs/api/distributed_training.md) for details.
