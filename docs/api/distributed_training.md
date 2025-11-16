@@ -20,6 +20,9 @@ uv run train <task-name> \
   use `--num-gpus 4`, for 2 GPUs, use `--num-gpus 2`, etc.
 - Devices are automatically assigned (`cuda:0`, `cuda:1`, ..., `cuda:N-1`)
 - Do not specify `--device` with `--num-gpus` (single-GPU only)
+- Use `CUDA_VISIBLE_DEVICES` to select specific GPUs (e.g.,
+  `CUDA_VISIBLE_DEVICES=2,3 uv run train ... --num-gpus 2` uses physical GPUs 2
+  and 3)
 - Each GPU runs the full `num-envs` count (e.g., 2 GPUs × 4096 envs = 8192
   total)
 
