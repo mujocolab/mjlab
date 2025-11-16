@@ -13,12 +13,6 @@ def all_task_ids() -> list[str]:
   return list_tasks()
 
 
-@pytest.fixture(scope="module")
-def training_task_ids(all_task_ids: list[str]) -> list[str]:
-  """Get all training task IDs (non-Demo tasks)."""
-  return [t for t in all_task_ids if not t.endswith("-Demo")]
-
-
 def test_all_tasks_loadable(all_task_ids: list[str]) -> None:
   """All registered tasks should be loadable without errors."""
   for task_id in all_task_ids:
@@ -31,9 +25,9 @@ def test_all_tasks_loadable(all_task_ids: list[str]) -> None:
       pytest.fail(f"Failed to load task '{task_id}': {e}")
 
 
-def test_all_tasks_have_play_config(training_task_ids: list[str]) -> None:
+def test_all_tasks_have_play_config(all_task_ids: list[str]) -> None:
   """All tasks should be loadable in play mode."""
-  for task_id in training_task_ids:
+  for task_id in all_task_ids:
     try:
       cfg = load_env_cfg(task_id, play=True)
       assert isinstance(cfg, ManagerBasedRlEnvCfg), (
@@ -43,20 +37,18 @@ def test_all_tasks_have_play_config(training_task_ids: list[str]) -> None:
       pytest.fail(f"Failed to load task '{task_id}' in play mode: {e}")
 
 
-def test_play_mode_episode_length(training_task_ids: list[str]) -> None:
+def test_play_mode_episode_length(all_task_ids: list[str]) -> None:
   """Play mode tasks should have infinite episode length."""
-  for task_id in training_task_ids:
+  for task_id in all_task_ids:
     cfg = load_env_cfg(task_id, play=True)
     assert cfg.episode_length_s >= 1e9, (
       f"{task_id} (play mode) episode_length_s={cfg.episode_length_s}, expected >= 1e9"
     )
 
 
-def test_play_mode_observation_corruption_disabled(
-  training_task_ids: list[str],
-) -> None:
+def test_play_mode_observation_corruption_disabled(all_task_ids: list[str]) -> None:
   """Play mode tasks should have observation corruption disabled for policy."""
-  for task_id in training_task_ids:
+  for task_id in all_task_ids:
     cfg = load_env_cfg(task_id, play=True)
 
     assert "policy" in cfg.observations, (
@@ -73,11 +65,9 @@ def test_play_mode_observation_corruption_disabled(
     )
 
 
-def test_training_mode_observation_corruption_enabled(
-  training_task_ids: list[str],
-) -> None:
+def test_training_mode_observation_corruption_enabled(all_task_ids: list[str]) -> None:
   """Training mode tasks should have observation corruption enabled for policy."""
-  for task_id in training_task_ids:
+  for task_id in all_task_ids:
     cfg = load_env_cfg(task_id)
 
     assert "policy" in cfg.observations, (
@@ -112,11 +102,9 @@ def test_critic_observation_corruption_always_disabled(all_task_ids: list[str]) 
     )
 
 
-def test_play_training_observation_structure_match(
-  training_task_ids: list[str],
-) -> None:
+def test_play_training_observation_structure_match(all_task_ids: list[str]) -> None:
   """Play and training configs should have matching observation structure."""
-  for task_id in training_task_ids:
+  for task_id in all_task_ids:
     training_cfg = load_env_cfg(task_id)
     play_cfg = load_env_cfg(task_id, play=True)
 
@@ -136,9 +124,9 @@ def test_play_training_observation_structure_match(
       )
 
 
-def test_play_training_action_structure_match(training_task_ids: list[str]) -> None:
+def test_play_training_action_structure_match(all_task_ids: list[str]) -> None:
   """Play and training configs should have matching action structure."""
-  for task_id in training_task_ids:
+  for task_id in all_task_ids:
     training_cfg = load_env_cfg(task_id)
     play_cfg = load_env_cfg(task_id, play=True)
 
@@ -147,9 +135,9 @@ def test_play_training_action_structure_match(training_task_ids: list[str]) -> N
     )
 
 
-def test_play_mode_disables_push_robot(training_task_ids: list[str]) -> None:
+def test_play_mode_disables_push_robot(all_task_ids: list[str]) -> None:
   """Play mode tasks should disable push_robot event."""
-  for task_id in training_task_ids:
+  for task_id in all_task_ids:
     cfg = load_env_cfg(task_id, play=True)
     assert "push_robot" not in cfg.events, (
       f"Play mode task {task_id} has push_robot event, expected it to be removed"
