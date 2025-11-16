@@ -10,9 +10,9 @@ from mjlab.rl import RslRlOnPolicyRunnerCfg
 @dataclass
 class _TaskCfg:
   env_cfg: ManagerBasedRlEnvCfg
+  play_env_cfg: ManagerBasedRlEnvCfg
   rl_cfg: RslRlOnPolicyRunnerCfg
   runner_cls: type | None
-  play_env_cfg: ManagerBasedRlEnvCfg
 
 
 # Private module-level registry: task_id -> task config.
@@ -37,12 +37,7 @@ def register_mjlab_task(
   """
   if task_id in _REGISTRY:
     raise ValueError(f"Task '{task_id}' is already registered")
-  _REGISTRY[task_id] = _TaskCfg(
-    env_cfg,
-    rl_cfg,
-    runner_cls,
-    play_env_cfg,
-  )
+  _REGISTRY[task_id] = _TaskCfg(env_cfg, play_env_cfg, rl_cfg, runner_cls)
 
 
 def list_tasks() -> list[str]:
