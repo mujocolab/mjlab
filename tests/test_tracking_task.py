@@ -51,71 +51,72 @@ def test_tracking_tasks_have_self_collision_sensor(
 
 def test_tracking_no_state_estimation_observations() -> None:
   """No-state-estimation tasks remove observations that depend on state estimation."""
-  no_state_est_tasks = [
-    "Mjlab-Tracking-Flat-Unitree-G1-No-State-Estimation",
-    "Mjlab-Tracking-Flat-Unitree-G1-No-State-Estimation-Play",
-  ]
+  task_id = "Mjlab-Tracking-Flat-Unitree-G1-No-State-Estimation"
 
-  for task_id in no_state_est_tasks:
-    cfg = load_env_cfg(task_id)
+  # Test both training and play modes
+  for play_mode in [False, True]:
+    cfg = load_env_cfg(task_id, play=play_mode)
+    mode_str = "play mode" if play_mode else "training mode"
 
-    assert "policy" in cfg.observations, f"Task {task_id} missing policy observations"
+    assert "policy" in cfg.observations, (
+      f"Task {task_id} ({mode_str}) missing policy observations"
+    )
     policy_terms = cfg.observations["policy"].terms
 
     assert "motion_anchor_pos_b" not in policy_terms, (
-      f"Task {task_id} has motion_anchor_pos_b in policy, "
+      f"Task {task_id} ({mode_str}) has motion_anchor_pos_b in policy, "
       "expected it to be removed for no-state-estimation variant"
     )
     assert "base_lin_vel" not in policy_terms, (
-      f"Task {task_id} has base_lin_vel in policy, "
+      f"Task {task_id} ({mode_str}) has base_lin_vel in policy, "
       "expected it to be removed for no-state-estimation variant"
     )
 
 
 def test_tracking_play_disables_rsi_randomization() -> None:
   """Tracking play tasks should disable RSI randomization."""
-  play_tasks = [
-    "Mjlab-Tracking-Flat-Unitree-G1-Play",
-    "Mjlab-Tracking-Flat-Unitree-G1-No-State-Estimation-Play",
+  tracking_tasks = [
+    "Mjlab-Tracking-Flat-Unitree-G1",
+    "Mjlab-Tracking-Flat-Unitree-G1-No-State-Estimation",
   ]
 
-  for task_id in play_tasks:
-    cfg = load_env_cfg(task_id)
+  for task_id in tracking_tasks:
+    cfg = load_env_cfg(task_id, play=True)
 
-    assert cfg.commands is not None, f"Task {task_id} has no commands"
+    assert cfg.commands is not None, f"Task {task_id} (play mode) has no commands"
     motion_cmd = cfg.commands["motion"]
     assert isinstance(motion_cmd, MotionCommandCfg), (
-      f"Task {task_id} motion command is not MotionCommandCfg"
+      f"Task {task_id} (play mode) motion command is not MotionCommandCfg"
     )
 
     assert motion_cmd.pose_range == {}, (
-      f"Task {task_id} has non-empty pose_range={motion_cmd.pose_range}, "
+      f"Task {task_id} (play mode) has non-empty pose_range={motion_cmd.pose_range}, "
       "expected empty dict for disabled RSI"
     )
     assert motion_cmd.velocity_range == {}, (
-      f"Task {task_id} has non-empty velocity_range={motion_cmd.velocity_range}, "
+      f"Task {task_id} (play mode) has non-empty velocity_range={motion_cmd.velocity_range}, "
       "expected empty dict for disabled RSI"
     )
 
 
 def test_tracking_play_uses_start_sampling_mode() -> None:
   """Tracking play tasks should use sampling_mode='start'."""
-  play_tasks = [
-    "Mjlab-Tracking-Flat-Unitree-G1-Play",
-    "Mjlab-Tracking-Flat-Unitree-G1-No-State-Estimation-Play",
+  tracking_tasks = [
+    "Mjlab-Tracking-Flat-Unitree-G1",
+    "Mjlab-Tracking-Flat-Unitree-G1-No-State-Estimation",
   ]
 
-  for task_id in play_tasks:
-    cfg = load_env_cfg(task_id)
+  for task_id in tracking_tasks:
+    cfg = load_env_cfg(task_id, play=True)
 
-    assert cfg.commands is not None, f"Task {task_id} has no commands"
+    assert cfg.commands is not None, f"Task {task_id} (play mode) has no commands"
     motion_cmd = cfg.commands["motion"]
     assert isinstance(motion_cmd, MotionCommandCfg), (
-      f"Task {task_id} motion command is not MotionCommandCfg"
+      f"Task {task_id} (play mode) motion command is not MotionCommandCfg"
     )
 
     assert motion_cmd.sampling_mode == "start", (
-      f"Task {task_id} sampling_mode={motion_cmd.sampling_mode}, expected 'start'"
+      f"Task {task_id} (play mode) sampling_mode={motion_cmd.sampling_mode}, expected 'start'"
     )
 
 
