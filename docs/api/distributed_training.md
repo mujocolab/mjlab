@@ -1,30 +1,25 @@
 # Distributed Training
 
-mjlab supports multi-GPU distributed training using `torchrun`. Distributed
+mjlab supports multi-GPU distributed training using `torchrunx`. Distributed
 training parallelizes RL workloads across multiple GPUs by running independent
 rollouts on each device and synchronizing gradients during policy updates.
 Throughput scales nearly linearly with GPU count.
 
 ## TL;DR
 
-Launch distributed training using `torchrun`:
+Launch distributed training using `--num-gpus`:
 
 ```bash
-uv run torchrun \
-  --nproc_per_node=N \
-  --no_python \
-  train <task-name> \
-    --distributed True \
-    <task-specific CLI args>
+uv run train <task-name> \
+  --num-gpus N \
+  <task-specific CLI args>
 ```
 
 **Key points:**
-- `--nproc_per_node=N` spawns N processes (one per GPU). So for 4 GPUs, use
-  `--nproc_per_node=4`, for 2 GPUs, use `--nproc_per_node=2`, etc.
-- `--no_python` is required when using `torchrun` to launch a console script
-  (like `train`). Without it, torchrun tries to execute `python train`, which
-  fails because `train` is not a Python file.
-- `--distributed True` enables gradient synchronization in the training script
+- `--num-gpus N` automatically spawns N processes (one per GPU). So for 4 GPUs,
+  use `--num-gpus 4`, for 2 GPUs, use `--num-gpus 2`, etc.
+- Devices are automatically assigned (`cuda:0`, `cuda:1`, ..., `cuda:N-1`)
+- Do not specify `--device` with `--num-gpus` (single-GPU only)
 - Each GPU runs the full `num-envs` count (e.g., 2 GPUs × 4096 envs = 8192
   total)
 
@@ -32,9 +27,9 @@ uv run torchrun \
 
 mjlab's role is simple: **isolate mjwarp simulations on each GPU** using
 `wp.ScopedDevice`. This ensures each process's environments stay on their
-assigned device. `torchrun` handles the rest.
+assigned device. `torchrunx` handles the rest.
 
-**Process spawning.** `torchrun` spawns N independent processes (one per GPU)
+**Process spawning.** `torchrunx` spawns N independent processes (one per GPU)
 and sets environment variables (`RANK`, `LOCAL_RANK`, `WORLD_SIZE`) to
 coordinate them. Each process executes the full training script with its
 assigned GPU.

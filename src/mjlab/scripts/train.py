@@ -29,7 +29,7 @@ class TrainConfig:
   video_length: int = 200
   video_interval: int = 2000
   enable_nan_guard: bool = False
-  distributed: bool = False
+  num_gpus: int = 1
 
 
 def run_train(task_id: str, cfg: TrainConfig) -> None:
@@ -37,7 +37,8 @@ def run_train(task_id: str, cfg: TrainConfig) -> None:
 
   # Multi-GPU training configuration.
   device = cfg.device
-  if cfg.distributed:
+  is_distributed = os.environ.get("LOCAL_RANK") is not None
+  if is_distributed:
     local_rank = int(os.environ.get("LOCAL_RANK", 0))
     device = f"cuda:{local_rank}"
 
@@ -170,7 +171,25 @@ def main():
   )
   del env_cfg, agent_cfg, remaining_args
 
-  run_train(chosen_task, args)
+  # Validate device and num_gpus flags.
+  if args.num_gpus > 1 and args.device != "cuda:0":
+    raise ValueError(
+      "Cannot specify both --device and --num-gpus. "
+      "For multi-GPU training, omit --device (devices assigned automatically). "
+      "For single-GPU training, omit --num-gpus and use --device to choose GPU."
+    )
+
+  # Launch multi-GPU training with torchrunx.
+  if args.num_gpus > 1:
+    import torchrunx as tx
+
+    launcher = tx.Launcher(
+      workers_per_host=args.num_gpus,
+      backend=None,  # Let rsl_rl handle process group initialization
+    )
+    launcher.run(run_train, chosen_task, args)
+  else:
+    run_train(chosen_task, args)
 
 
 if __name__ == "__main__":
