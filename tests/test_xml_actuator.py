@@ -117,6 +117,6 @@ def test_joint_action_underactuated_with_wildcard(device):
   # Wildcard should resolve to only actuated joint (joint2), not all joints
   assert action_term.action_dim == 1
   assert action_term._joint_names == ["joint2"]  # type: ignore[attr-defined]
-  assert action_term._joint_ids.tolist() == [1]
+  assert action_term._joint_ids.tolist() == [1]  # type: ignore[attr-defined]
 
   env.close()
