@@ -305,9 +305,7 @@ class Entity:
     _, actuator_names = self.find_joints(
       actuator_name_keys, joint_subset=actuated_in_natural_order, preserve_order=False
     )
-    actuator_joint_ids, _ = self.find_joints(
-      actuator_names, preserve_order=False
-    )
+    actuator_joint_ids, _ = self.find_joints(actuator_names, preserve_order=False)
     # Find joints matching the pattern within actuated joints.
     return actuator_joint_ids, actuator_names
 

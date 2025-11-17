@@ -4,7 +4,6 @@ import mujoco
 import pytest
 from conftest import get_test_device
 
-import torch
 from mjlab.actuator import XmlMotorActuatorCfg
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg, mdp
