@@ -3,10 +3,10 @@
 import logging
 import os
 import sys
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Annotated, Any, cast
+from typing import Any, Literal, cast
 
 import tyro
 from rsl_rl.runners import OnPolicyRunner
@@ -19,9 +19,6 @@ from mjlab.utils.os import dump_yaml, get_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.utils.wrappers import VideoRecorder
 
-# Mutual exclusion group: only one of `--device` and `--num-gpus` can be specified.
-DeviceMutex = tyro.conf.create_mutex_group(required=False)
-
 
 @dataclass(frozen=True)
 class TrainConfig:
@@ -32,29 +29,27 @@ class TrainConfig:
   video_length: int = 200
   video_interval: int = 2000
   enable_nan_guard: bool = False
+  gpus: list[int] | Literal["all"] = field(default_factory=lambda: [0])
 
-  device: Annotated[str, DeviceMutex] = "cuda:0"
-  num_gpus: Annotated[int, DeviceMutex] = 1
+  @staticmethod
+  def from_task(task_id: str) -> "TrainConfig":
+    env_cfg = load_env_cfg(task_id)
+    agent_cfg = load_rl_cfg(task_id)
+    assert isinstance(agent_cfg, RslRlOnPolicyRunnerCfg)
+    return TrainConfig(env=env_cfg, agent=agent_cfg)
 
 
-def run_train(task_id: str, cfg: TrainConfig) -> None:
+def run_train_on_gpu(task_id: str, cfg: TrainConfig) -> None:
   configure_torch_backends()
 
-  # Multi-GPU training configuration.
-  device = cfg.device
-  is_distributed = os.environ.get("LOCAL_RANK") is not None
-  if is_distributed:
-    local_rank = int(os.environ.get("LOCAL_RANK", 0))
-    device = f"cuda:{local_rank}"
+  local_rank = int(os.environ.get("LOCAL_RANK", "0"))
+  device = f"cuda:{local_rank}"
+  # Set seed to have diversity in different processes.
+  seed = cfg.agent.seed + local_rank
+  cfg.agent.seed = seed
+  cfg.env.seed = seed
 
-    # Set seed to have diversity in different processes.
-    seed = cfg.agent.seed + local_rank
-    cfg.env.seed = seed
-    cfg.agent.seed = seed
-
-    print(
-      f"[INFO] Multi-GPU training enabled: local_rank={local_rank}, device={device}, seed={seed}"
-    )
+  print(f"[INFO] Training with: local_rank={local_rank}, device={device}, seed={seed}")
 
   registry_name: str | None = None
 
@@ -147,6 +142,34 @@ def run_train(task_id: str, cfg: TrainConfig) -> None:
   env.close()
 
 
+def launch_training(task_id: str, args: TrainConfig | None = None):
+  args = args or TrainConfig.from_task(task_id)
+
+  import torchrunx
+
+  # torchrunx redirects stdout to logging.
+  logging.basicConfig(level=logging.INFO)
+
+  env_vars = {"MUJOCO_GL": "egl"}
+
+  if args.gpus == "all":
+    import torch.cuda
+
+    num_gpus = torch.cuda.device_count()
+  else:
+    num_gpus = len(args.gpus)
+    env_vars["CUDA_VISIBLE_DEVICES"] = ",".join(map(str, args.gpus))
+
+  print(f"[INFO] Launching training with {num_gpus} GPUs", flush=True)
+  launcher = torchrunx.Launcher(
+    hostnames=["localhost"],
+    workers_per_host=num_gpus,
+    backend=None,  # Let rsl_rl handle process group initialization.
+    extra_env_vars=env_vars,
+  )
+  launcher.run(run_train_on_gpu, task_id, args)
+
+
 def main():
   # Parse first argument to choose the task.
   # Import tasks to populate the registry.
@@ -159,47 +182,19 @@ def main():
     return_unknown_args=True,
   )
 
-  # Parse the rest of the arguments + allow overriding env_cfg and agent_cfg.
-  env_cfg = load_env_cfg(chosen_task)
-  agent_cfg = load_rl_cfg(chosen_task)
-  assert isinstance(agent_cfg, RslRlOnPolicyRunnerCfg)
-
   args = tyro.cli(
     TrainConfig,
     args=remaining_args,
-    default=TrainConfig(env=env_cfg, agent=agent_cfg),
+    default=TrainConfig.from_task(chosen_task),
     prog=sys.argv[0] + f" {chosen_task}",
     config=(
       tyro.conf.AvoidSubcommands,
       tyro.conf.FlagConversionOff,
     ),
   )
-  del env_cfg, agent_cfg, remaining_args
+  del remaining_args
 
-  # Validate device and num_gpus flags.
-  if args.num_gpus > 1 and args.device != "cuda:0":
-    raise ValueError(
-      "Cannot specify both --device and --num-gpus. "
-      "For multi-GPU training, omit --device (devices assigned automatically). "
-      "For single-GPU training, omit --num-gpus and use --device to choose GPU."
-    )
-
-  # Launch multi-GPU training with torchrunx.
-  if args.num_gpus > 1:
-    import torchrunx
-
-    # torchrunx redirects stdout to logging.
-    logging.basicConfig(level=logging.INFO)
-
-    print(f"[INFO] Launching multi-GPU training with {args.num_gpus} GPUs", flush=True)
-    launcher = torchrunx.Launcher(
-      hostnames=["localhost"],
-      workers_per_host=args.num_gpus,
-      backend=None,  # Let rsl_rl handle process group initialization.
-    )
-    launcher.run(run_train, chosen_task, args)
-  else:
-    run_train(chosen_task, args)
+  launch_training(task_id=chosen_task, args=args)
 
 
 if __name__ == "__main__":
