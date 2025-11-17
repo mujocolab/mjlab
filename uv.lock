@@ -984,8 +984,8 @@ requires-dist = [
     { name = "torch", marker = "sys_platform != 'darwin' and extra == 'cu128'", specifier = ">=2.7.0", index = "https://download.pytorch.org/whl/cu128", conflict = { package = "mjlab", extra = "cu128" } },
     { name = "tqdm" },
     { name = "trimesh", specifier = ">=4.8.3" },
-    { name = "tyro", specifier = ">=0.10.0a5" },
-    { name = "viser", specifier = ">=1.0.15" },
+    { name = "tyro", specifier = ">=0.10.0a6" },
+    { name = "viser", specifier = ">=1.0.16" },
     { name = "wandb", specifier = ">=0.22.3" },
     { name = "warp-lang", marker = "sys_platform != 'darwin'", index = "https://pypi.nvidia.com/" },
     { name = "warp-lang", marker = "sys_platform == 'darwin'" },
@@ -2951,16 +2951,16 @@ wheels = [
 
 [[package]]
 name = "tyro"
-version = "0.10.0a5"
+version = "0.10.0a6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docstring-parser" },
     { name = "typeguard" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/16/7e/be537cac7cf4292730f9eafef4fffbc717793a2b648b057af3ebc72f7c56/tyro-0.10.0a5.tar.gz", hash = "sha256:b7de775a442f88a28f68a0d1806d41748aef4afe92ba06cd5e0e0545140c59c9", size = 408271, upload-time = "2025-11-12T08:18:07.474Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/96/bd/c58407e6122ef8c8786f87525d7de79d9f133852c939c10a1a617ae95b44/tyro-0.10.0a6.tar.gz", hash = "sha256:dcf54d1f81d733991f7ae834059292b0e1d3336f34c800345078aa2f8db3611b", size = 411424, upload-time = "2025-11-17T08:13:30.636Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9f/b0/dd4e87eb032c61333d5c8f40042e8c41ea5056d7bfc14620526ce073d565/tyro-0.10.0a5-py3-none-any.whl", hash = "sha256:4f556e9b76e4d0215e0081c32a6a468c61c8956cafbb774799376670aceee817", size = 170869, upload-time = "2025-11-12T08:18:06.237Z" },
+    { url = "https://files.pythonhosted.org/packages/0a/78/67ab458dc61a8d29ad233a74c3dcf9f8124d3a3f660414371310e70a1bdf/tyro-0.10.0a6-py3-none-any.whl", hash = "sha256:e3285bf58443f2ba89b7391da05043e0e530764cbcbbc02ecc0451bb457fb545", size = 172474, upload-time = "2025-11-17T08:13:29.172Z" },
 ]
 
 [[package]]
@@ -3029,7 +3029,7 @@ wheels = [
 
 [[package]]
 name = "viser"
-version = "1.0.15"
+version = "1.0.16"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "imageio" },
@@ -3045,9 +3045,9 @@ dependencies = [
     { name = "websockets" },
     { name = "yourdfpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1d/c3/c4fb54179f57dcc563ca9ed864dd218e749909a4a3344846fb2b7289ee2e/viser-1.0.15.tar.gz", hash = "sha256:08c5f5cebf7bc6505fd3c3d0efd12df87d47f8cf2444fad618c426f3b1da8d74", size = 28968812, upload-time = "2025-10-13T08:48:33.796Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3a/df/e4211e520f0e342e18d6d23720fdd12ca22faa625833f973264d48ab2970/viser-1.0.16.tar.gz", hash = "sha256:84054bd58a7d97abbc6e1b575fd7781a0ec40fa7865f311149d6e1731c1f7b8e", size = 29025550, upload-time = "2025-11-17T09:01:09.989Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e2/31/9b5be058df0913bc71cbf16e42663aa8adfd88bddfebececf764e7d533c1/viser-1.0.15-py3-none-any.whl", hash = "sha256:242035f40c1068d2e864b1979f8ceecb46c3e8ac0c921882280af3e5575bbbaa", size = 29042265, upload-time = "2025-10-13T08:48:30.988Z" },
+    { url = "https://files.pythonhosted.org/packages/68/39/469aaf786830ea3b0cb660417e98d7f1e3f5887f13875b51be4545f00f09/viser-1.0.16-py3-none-any.whl", hash = "sha256:f908e71fd26030432edbc0c78e5359eb37ebcf55b40405e5054a4e79dabbae80", size = 29101684, upload-time = "2025-11-17T09:01:07.258Z" },
 ]
 
 [[package]]
