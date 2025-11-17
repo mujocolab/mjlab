@@ -44,7 +44,7 @@ def device():
   return get_test_device()
 
 
-def test_xml_actuator_underactuated_with_wildcard(device):
+def test_xml_actuator_underactuated_with_wildcard():
   """XmlActuator filters to joints with XML actuators when using wildcard."""
   cfg = EntityCfg(
     spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML_UNDERACTUATED),
@@ -61,7 +61,7 @@ def test_xml_actuator_underactuated_with_wildcard(device):
   assert actuator._joint_names == ["joint2"]
 
 
-def test_xml_actuator_no_matching_actuators_raises_error(device):
+def test_xml_actuator_no_matching_actuators_raises_error():
   """XmlActuator raises error when no joints have matching XML actuators."""
   with pytest.raises(
     ValueError, match="No XML actuators found for any joints matching the patterns"
@@ -113,10 +113,11 @@ def test_joint_action_underactuated_with_wildcard(device):
 
   env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
   action_term = env.action_manager._terms["joint_effort"]
+  assert isinstance(action_term, mdp.JointEffortAction)
 
-  # Wildcard should resolve to only actuated joint (joint2), not all joints
+  # Wildcard should resolve to only actuated joint (joint2), not all joints.
   assert action_term.action_dim == 1
-  assert action_term._joint_names == ["joint2"]  # type: ignore[attr-defined]
-  assert action_term._joint_ids.tolist() == [1]  # type: ignore[attr-defined]
+  assert action_term._joint_names == ["joint2"]
+  assert action_term._joint_ids.tolist() == [1]
 
   env.close()
