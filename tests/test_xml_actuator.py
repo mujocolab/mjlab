@@ -4,6 +4,7 @@ import mujoco
 import pytest
 from conftest import get_test_device
 
+import torch
 from mjlab.actuator import XmlMotorActuatorCfg
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg, mdp
@@ -33,7 +34,7 @@ ROBOT_XML_UNDERACTUATED = """
     </body>
   </worldbody>
   <actuator>
-    <motor name="actuator1" joint="joint1" gear="1.0"/>
+    <motor name="actuator1" joint="joint2" gear="1.0"/>
   </actuator>
 </mujoco>
 """
@@ -55,10 +56,10 @@ def test_xml_actuator_underactuated_with_wildcard(device):
   entity = Entity(cfg)
   entity.compile()
 
-  # Should only control joint1 (which has an XML actuator), not joint2.
+  # Should only control joint2 (which has an XML actuator), not joint1.
   assert len(entity._actuators) == 1
   actuator = entity._actuators[0]
-  assert actuator._joint_names == ["joint1"]
+  assert actuator._joint_names == ["joint2"]
 
 
 def test_xml_actuator_no_matching_actuators_raises_error(device):
@@ -69,7 +70,7 @@ def test_xml_actuator_no_matching_actuators_raises_error(device):
     cfg = EntityCfg(
       spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML_UNDERACTUATED),
       articulation=EntityArticulationInfoCfg(
-        actuators=(XmlMotorActuatorCfg(joint_names_expr=("joint2",)),)
+        actuators=(XmlMotorActuatorCfg(joint_names_expr=("joint1",)),)
       ),
     )
     entity = Entity(cfg)
@@ -114,8 +115,9 @@ def test_joint_action_underactuated_with_wildcard(device):
   env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
   action_term = env.action_manager._terms["joint_effort"]
 
-  # Wildcard should resolve to only actuated joint (joint1), not all joints
+  # Wildcard should resolve to only actuated joint (joint2), not all joints
   assert action_term.action_dim == 1
-  assert action_term._joint_names == ["joint1"]  # type: ignore[attr-defined]
+  assert action_term._joint_names == ["joint2"]  # type: ignore[attr-defined]
+  assert action_term._joint_ids.tolist() == [1]
 
   env.close()
