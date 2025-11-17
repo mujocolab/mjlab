@@ -302,12 +302,13 @@ class Entity:
     actuated_in_natural_order = [
       name for name in self.joint_names if name in actuated_joint_names_set
     ]
-    _, actuator_names = self.find_joints(
+    # Find joints matching the pattern within actuated joints.
+    _, matched_joint_names = self.find_joints(
       actuator_name_keys, joint_subset=actuated_in_natural_order, preserve_order=False
     )
-    actuator_joint_ids, _ = self.find_joints(actuator_names, preserve_order=False)
-    # Find joints matching the pattern within actuated joints.
-    return actuator_joint_ids, actuator_names
+    name_to_global_idx = {name: i for i, name in enumerate(self.joint_names)}
+    joint_ids = [name_to_global_idx[name] for name in matched_joint_names]
+    return joint_ids, matched_joint_names
 
   def find_geoms(
     self,
