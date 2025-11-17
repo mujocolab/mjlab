@@ -2,11 +2,46 @@
 
 from unittest.mock import Mock
 
+import mujoco
 import pytest
 import torch
+from conftest import get_test_device
 
+from mjlab.actuator import BuiltinPositionActuatorCfg
+from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
+from mjlab.envs.mdp.rewards import electrical_power_cost
 from mjlab.managers.manager_term_config import RewardTermCfg
 from mjlab.managers.reward_manager import RewardManager
+from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.sim.sim import Simulation, SimulationCfg
+
+PARTIALLY_ACTUATED_ROBOT_XML = """
+<mujoco>
+  <worldbody>
+    <body name="base" pos="0 0 0.5">
+      <geom name="base_geom" type="cylinder" size="0.1 0.05" mass="1.0"/>
+      <body name="link1" pos="0 0 0.1">
+        <joint name="actuated_joint1" type="hinge" axis="0 0 1" range="-3.14 3.14"/>
+        <geom name="link1_geom" type="box" size="0.05 0.05 0.2" mass="0.5"/>
+        <body name="link2" pos="0 0 0.4">
+          <joint name="passive_joint" type="hinge" axis="0 1 0" range="-1.57 1.57"/>
+          <geom name="link2_geom" type="box" size="0.05 0.05 0.15" mass="0.3"/>
+          <body name="link3" pos="0 0 0.3">
+            <joint name="actuated_joint2" type="hinge" axis="1 0 0" range="-1.57 1.57"/>
+            <geom name="link3_geom" type="box" size="0.05 0.05 0.1" mass="0.2"/>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+
+@pytest.fixture(scope="module")
+def device():
+  """Test device fixture."""
+  return get_test_device()
 
 
 class SimpleTestReward:
@@ -121,3 +156,77 @@ def test_stateless_class_reward_no_reset(mock_env, stateless_reward_config):
 
   # Reset should work without errors.
   manager.reset(env_ids=torch.tensor([0, 2]))
+
+
+def test_electrical_power_cost_partially_actuated(device):
+  """Test electrical_power_cost on robots with passive joints.
+
+  This test verifies that:
+  1. The reward correctly identifies and uses only actuated joints (ignoring passive joints)
+  2. Power cost is computed as sum of max(0, force*velocity) for each actuator,
+     meaning only positive work is penalized (not regenerative braking)
+  """
+  entity_cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(PARTIALLY_ACTUATED_ROBOT_XML),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        BuiltinPositionActuatorCfg(
+          joint_names_expr=("actuated_joint1", "actuated_joint2"),
+          effort_limit=10.0,
+          stiffness=100.0,
+          damping=10.0,
+        ),
+      )
+    ),
+  )
+  entity = Entity(entity_cfg)
+  model = entity.compile()
+
+  num_envs = 2
+  sim_cfg = SimulationCfg()
+  sim = Simulation(num_envs=num_envs, cfg=sim_cfg, model=model, device=device)
+  entity.initialize(model, sim.model, sim.data, device)
+
+  env = Mock()
+  env.num_envs = num_envs
+  env.device = device
+  env.scene = {"robot": entity}
+
+  asset_cfg = SceneEntityCfg(name="robot", joint_names=("actuated.*",))
+
+  reward_cfg = RewardTermCfg(
+    func=electrical_power_cost, weight=1.0, params={"asset_cfg": asset_cfg}
+  )
+
+  reward = electrical_power_cost(reward_cfg, env)
+
+  assert len(reward._joint_ids) == 2
+  assert len(reward._actuator_ids) == 2
+
+  # Test case 1: All forces and velocities aligned (all positive work).
+  # actuated_joint1 (qvel[:, 0]), actuated_joint2 (qvel[:, 2]).
+  # Note: qvel[:, 1] is the passive joint, not used in power calculation.
+  sim.data.actuator_force[:] = torch.tensor(
+    [[2.0, 3.0], [1.0, 4.0]], device=device, dtype=torch.float32
+  )
+  sim.data.qvel[:] = 0.0
+  sim.data.qvel[:, 0] = torch.tensor([1.0, 2.0], device=device)
+  sim.data.qvel[:, 2] = torch.tensor([2.0, 1.0], device=device)
+
+  power_cost = reward(env, asset_cfg)
+
+  # Expected: env0 = 2.0*1.0 + 3.0*2.0 = 8.0, env1 = 1.0*2.0 + 4.0*1.0 = 6.0.
+  expected = torch.tensor([8.0, 6.0], device=device)
+  assert torch.allclose(power_cost, expected)
+
+  # Test case 2: Some negative forces (regenerative braking, not penalized).
+  sim.data.actuator_force[:] = torch.tensor(
+    [[-2.0, 3.0], [1.0, -4.0]], device=device, dtype=torch.float32
+  )
+
+  power_cost = reward(env, asset_cfg)
+
+  # Expected: env0 = max(0,-2.0*1.0) + max(0,3.0*2.0) = 0 + 6.0 = 6.0.
+  #           env1 = max(0,1.0*2.0) + max(0,-4.0*1.0) = 2.0 + 0 = 2.0.
+  expected = torch.tensor([6.0, 2.0], device=device)
+  assert torch.allclose(power_cost, expected)
