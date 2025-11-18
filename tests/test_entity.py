@@ -99,6 +99,31 @@ ACTUATOR_ORDER_TEST_XML = """
 </mujoco>
 """
 
+UNDERACTUATED_XML = """
+<mujoco>
+  <worldbody>
+    <body name="base" pos="0 0 0">
+      <inertial pos="0 0 0" mass="1" diaginertia="0.01 0.01 0.01"/>
+      <geom type="box" size="0.1 0.1 0.1" rgba="0.5 0.5 0.5 1"/>
+      <joint name="joint_a" axis="1 0 0" range="-1 1"/>
+      <body name="link1" pos="0.2 0 0">
+        <inertial pos="0 0 0" mass="1" diaginertia="0.01 0.01 0.01"/>
+        <geom type="box" size="0.1 0.1 0.1" rgba="0.5 0.5 0.5 1"/>
+        <joint name="joint_b" axis="0 1 0" range="-1 1"/>
+        <body name="link2" pos="0.2 0 0">
+          <inertial pos="0 0 0" mass="1" diaginertia="0.01 0.01 0.01"/>
+          <geom type="box" size="0.1 0.1 0.1" rgba="0.5 0.5 0.5 1"/>
+          <joint name="joint_c" axis="0 0 1" range="-1 1"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <position name="act_c" joint="joint_c" kp="10"/>
+  </actuator>
+</mujoco>
+"""
+
 
 @pytest.fixture(scope="module")
 def device():
@@ -474,3 +499,26 @@ def test_find_joints_by_actuator_names_preserves_natural_order(device):
 
   # Verify this differs from actuator order (which is reverse).
   assert list(robot.actuator_names) == ["act_c", "act_b", "act_a"]
+
+
+def test_find_joints_by_actuator_names_returns_entity_local_indices():
+  """Test that find_joints_by_actuator_names returns entity-local indices."""
+  robot_cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(UNDERACTUATED_XML),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(XmlMotorActuatorCfg(joint_names_expr=(".*",)),)
+    ),
+  )
+
+  robot = Entity(robot_cfg)
+  robot.compile()
+
+  # Natural joint order: joint_a (0), joint_b (1), joint_c (2).
+  assert list(robot.joint_names) == ["joint_a", "joint_b", "joint_c"]
+
+  # Only joint_c has an actuator.
+  joint_ids, joint_names = robot.find_joints_by_actuator_names(".*")
+
+  # Should return entity-local index [2], not subset-local [0].
+  assert joint_names == ["joint_c"]
+  assert joint_ids == [2]  # Index of joint_c in self.joint_names.
