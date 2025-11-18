@@ -15,6 +15,7 @@ from mjlab.envs import ManagerBasedRlEnv
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.registry import list_tasks, load_env_cfg, load_rl_cfg, load_runner_cls
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
+from mjlab.utils.gpu import select_gpus
 from mjlab.utils.os import dump_yaml, get_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.utils.wrappers import VideoRecorder
@@ -145,29 +146,34 @@ def run_train_on_gpu(task_id: str, cfg: TrainConfig) -> None:
 def launch_training(task_id: str, args: TrainConfig | None = None):
   args = args or TrainConfig.from_task(task_id)
 
-  import torchrunx
+  # Select GPUs based on CUDA_VISIBLE_DEVICES and user specification.
+  selected_gpus, num_gpus = select_gpus(args.gpus)
 
-  # torchrunx redirects stdout to logging.
-  logging.basicConfig(level=logging.INFO)
-
-  env_vars = {"MUJOCO_GL": "egl"}
-
-  if args.gpus == "all":
-    import torch.cuda
-
-    num_gpus = torch.cuda.device_count()
+  # Single GPU: run directly without torchrunx.
+  if num_gpus == 1:
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(selected_gpus[0])
+    os.environ["MUJOCO_GL"] = "egl"
+    run_train_on_gpu(task_id, args)
   else:
-    num_gpus = len(args.gpus)
-    env_vars["CUDA_VISIBLE_DEVICES"] = ",".join(map(str, args.gpus))
+    # Multi-GPU: use torchrunx.
+    import torchrunx
 
-  print(f"[INFO] Launching training with {num_gpus} GPUs", flush=True)
-  launcher = torchrunx.Launcher(
-    hostnames=["localhost"],
-    workers_per_host=num_gpus,
-    backend=None,  # Let rsl_rl handle process group initialization.
-    extra_env_vars=env_vars,
-  )
-  launcher.run(run_train_on_gpu, task_id, args)
+    # torchrunx redirects stdout to logging.
+    logging.basicConfig(level=logging.INFO)
+
+    env_vars = {
+      "MUJOCO_GL": "egl",
+      "CUDA_VISIBLE_DEVICES": ",".join(map(str, selected_gpus)),
+    }
+
+    print(f"[INFO] Launching training with {num_gpus} GPUs", flush=True)
+    launcher = torchrunx.Launcher(
+      hostnames=["localhost"],
+      workers_per_host=num_gpus,
+      backend=None,  # Let rsl_rl handle process group initialization.
+      extra_env_vars=env_vars,
+    )
+    launcher.run(run_train_on_gpu, task_id, args)
 
 
 def main():
