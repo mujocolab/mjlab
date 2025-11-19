@@ -94,3 +94,22 @@ def test_select_gpus_respects_user_order():
   selected, num = select_gpus([3, 2, 1, 0])
   assert selected == [3, 2, 1, 0]
   assert num == 4
+
+
+def test_select_gpus_cpu_mode_explicit():
+  """Selects CPU mode when None is specified."""
+  os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+
+  selected, num = select_gpus(None)
+  assert selected is None
+  assert num == 0
+
+
+def test_select_gpus_cpu_mode_empty_cuda_visible_devices():
+  """Selects CPU mode when CUDA_VISIBLE_DEVICES is empty."""
+  os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
+  # Should return CPU mode (None, 0) since no GPUs are visible.
+  selected, num = select_gpus([0])
+  assert selected is None
+  assert num == 0

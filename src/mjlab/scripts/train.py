@@ -30,7 +30,7 @@ class TrainConfig:
   video_length: int = 200
   video_interval: int = 2000
   enable_nan_guard: bool = False
-  gpus: list[int] | Literal["all"] = field(default_factory=lambda: [0])
+  gpu_ids: list[int] | Literal["all"] | None = field(default_factory=lambda: [0])
 
   @staticmethod
   def from_task(task_id: str) -> "TrainConfig":
@@ -40,17 +40,24 @@ class TrainConfig:
     return TrainConfig(env=env_cfg, agent=agent_cfg)
 
 
-def run_train_on_gpu(task_id: str, cfg: TrainConfig) -> None:
+def run_train(task_id: str, cfg: TrainConfig) -> None:
   configure_torch_backends()
 
-  local_rank = int(os.environ.get("LOCAL_RANK", "0"))
-  device = f"cuda:{local_rank}"
-  # Set seed to have diversity in different processes.
-  seed = cfg.agent.seed + local_rank
+  # Check if running in CPU mode (empty CUDA_VISIBLE_DEVICES).
+  cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
+  if cuda_visible == "":
+    device = "cpu"
+    seed = cfg.agent.seed
+  else:
+    local_rank = int(os.environ.get("LOCAL_RANK", "0"))
+    device = f"cuda:{local_rank}"
+    # Set seed to have diversity in different processes.
+    seed = cfg.agent.seed + local_rank
+
   cfg.agent.seed = seed
   cfg.env.seed = seed
 
-  print(f"[INFO] Training with: local_rank={local_rank}, device={device}, seed={seed}")
+  print(f"[INFO] Training with: device={device}, seed={seed}")
 
   registry_name: str | None = None
 
@@ -147,13 +154,18 @@ def launch_training(task_id: str, args: TrainConfig | None = None):
   args = args or TrainConfig.from_task(task_id)
 
   # Select GPUs based on CUDA_VISIBLE_DEVICES and user specification.
-  selected_gpus, num_gpus = select_gpus(args.gpus)
+  selected_gpus, num_gpus = select_gpus(args.gpu_ids)
 
-  # Single GPU: run directly without torchrunx.
-  if num_gpus == 1:
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(selected_gpus[0])
-    os.environ["MUJOCO_GL"] = "egl"
-    run_train_on_gpu(task_id, args)
+  # Set environment variables for all modes.
+  if selected_gpus is None:
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+  else:
+    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(map(str, selected_gpus))
+  os.environ["MUJOCO_GL"] = "egl"
+
+  if num_gpus <= 1:
+    # CPU or single GPU: run directly without torchrunx.
+    run_train(task_id, args)
   else:
     # Multi-GPU: use torchrunx.
     import torchrunx
@@ -161,19 +173,14 @@ def launch_training(task_id: str, args: TrainConfig | None = None):
     # torchrunx redirects stdout to logging.
     logging.basicConfig(level=logging.INFO)
 
-    env_vars = {
-      "MUJOCO_GL": "egl",
-      "CUDA_VISIBLE_DEVICES": ",".join(map(str, selected_gpus)),
-    }
-
     print(f"[INFO] Launching training with {num_gpus} GPUs", flush=True)
     launcher = torchrunx.Launcher(
       hostnames=["localhost"],
       workers_per_host=num_gpus,
       backend=None,  # Let rsl_rl handle process group initialization.
-      extra_env_vars=env_vars,
+      copy_env_vars=torchrunx.DEFAULT_ENV_VARS_FOR_COPY + ("MUJOCO*",),
     )
-    launcher.run(run_train_on_gpu, task_id, args)
+    launcher.run(run_train, task_id, args)
 
 
 def main():
