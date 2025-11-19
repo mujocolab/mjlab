@@ -7,24 +7,40 @@ Throughput scales nearly linearly with GPU count.
 
 ## TL;DR
 
-Launch distributed training using `--num-gpus`:
+**Single GPU (default):**
+```bash
+uv run train <task-name> <task-specific CLI args>
+# or explicitly: --gpu-ids 0
+```
 
+**Multi-GPU:**
 ```bash
 uv run train <task-name> \
-  --num-gpus N \
+  --gpu-ids 0 1 \
   <task-specific CLI args>
 ```
 
+**All GPUs:**
+```bash
+uv run train <task-name> \
+  --gpu-ids all \
+  <task-specific CLI args>
+```
+
+**CPU mode:**
+```bash
+uv run train <task-name> \
+  --gpu-ids None \
+  <task-specific CLI args>
+# or: CUDA_VISIBLE_DEVICES="" uv run train <task-name> ...
+```
+
 **Key points:**
-- `--num-gpus N` automatically spawns N processes (one per GPU). So for 4 GPUs,
-  use `--num-gpus 4`, for 2 GPUs, use `--num-gpus 2`, etc.
-- Devices are automatically assigned (`cuda:0`, `cuda:1`, ..., `cuda:N-1`)
-- Do not specify `--device` with `--num-gpus` (single-GPU only)
-- Use `CUDA_VISIBLE_DEVICES` to select specific GPUs (e.g.,
-  `CUDA_VISIBLE_DEVICES=2,3 uv run train ... --num-gpus 2` uses physical GPUs 2
-  and 3)
-- Each GPU runs the full `num-envs` count (e.g., 2 GPUs × 4096 envs = 8192
-  total)
+- `--gpu-ids` specifies GPU indices (e.g., `--gpu-ids 0 1` for 2 GPUs)
+- GPU indices are relative to `CUDA_VISIBLE_DEVICES` if set
+- `CUDA_VISIBLE_DEVICES=2,3 uv run train ... --gpu-ids 0 1` uses physical GPUs 2 and 3
+- Each GPU runs the full `num-envs` count (e.g., 2 GPUs × 4096 envs = 8192 total)
+- Single-GPU and CPU modes run directly; multi-GPU uses `torchrunx` for process spawning
 
 ## How It Works
 
@@ -32,10 +48,10 @@ mjlab's role is simple: **isolate mjwarp simulations on each GPU** using
 `wp.ScopedDevice`. This ensures each process's environments stay on their
 assigned device. `torchrunx` handles the rest.
 
-**Process spawning.** `torchrunx` spawns N independent processes (one per GPU)
-and sets environment variables (`RANK`, `LOCAL_RANK`, `WORLD_SIZE`) to
-coordinate them. Each process executes the full training script with its
-assigned GPU.
+**Process spawning.** Multi-GPU training uses `torchrunx.Launcher(...).run(...)`
+to spawn N independent processes (one per GPU) and sets environment variables
+(`RANK`, `LOCAL_RANK`, `WORLD_SIZE`) to coordinate them. Each process executes
+the training function with its assigned GPU.
 
 **Independent rollouts.** Each process maintains its own:
 - Environment instances (with `num-envs` parallel environments), isolated on

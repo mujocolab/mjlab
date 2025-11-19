@@ -75,11 +75,11 @@ Train a Unitree G1 humanoid to follow velocity commands on flat terrain:
 MUJOCO_GL=egl uv run train Mjlab-Velocity-Flat-Unitree-G1 --env.scene.num-envs 4096
 ```
 
-**Multi-GPU Training:** Scale to N GPUs using `--num-gpus`:
+**Multi-GPU Training:** Scale to multiple GPUs using `--gpu-ids`:
 
 ```bash
 MUJOCO_GL=egl uv run train Mjlab-Velocity-Flat-Unitree-G1 \
-  --num-gpus N \
+  --gpu-ids 0 1 \
   --env.scene.num-envs 4096
 ```
 

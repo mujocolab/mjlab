@@ -174,13 +174,12 @@ def launch_training(task_id: str, args: TrainConfig | None = None):
     logging.basicConfig(level=logging.INFO)
 
     print(f"[INFO] Launching training with {num_gpus} GPUs", flush=True)
-    launcher = torchrunx.Launcher(
+    torchrunx.Launcher(
       hostnames=["localhost"],
       workers_per_host=num_gpus,
       backend=None,  # Let rsl_rl handle process group initialization.
       copy_env_vars=torchrunx.DEFAULT_ENV_VARS_FOR_COPY + ("MUJOCO*",),
-    )
-    launcher.run(run_train, task_id, args)
+    ).run(run_train, task_id, args)
 
 
 def main():
