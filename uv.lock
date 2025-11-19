@@ -1186,7 +1186,7 @@ requires-dist = [
     { name = "torch", specifier = ">=2.7.0" },
     { name = "torch", marker = "sys_platform == 'darwin' and extra == 'cu128'", specifier = ">=2.7.0" },
     { name = "torch", marker = "sys_platform != 'darwin' and extra == 'cu128'", specifier = ">=2.7.0", index = "https://download.pytorch.org/whl/cu128", conflict = { package = "mjlab", extra = "cu128" } },
-    { name = "torchrunx", specifier = ">=0.3.3" },
+    { name = "torchrunx", specifier = ">=0.3.4" },
     { name = "tqdm" },
     { name = "trimesh", specifier = ">=4.8.3" },
     { name = "tyro", specifier = ">=0.10.0a6" },
@@ -3039,7 +3039,7 @@ wheels = [
 
 [[package]]
 name = "torchrunx"
-version = "0.3.3"
+version = "0.3.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cloudpickle" },
@@ -3050,9 +3050,9 @@ dependencies = [
     { name = "torch", version = "2.9.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "sys_platform != 'darwin'" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fa/f5/3b1901e3646813c5ad9beba15686f5ada46a9c0a680b892010bb6a6a3a86/torchrunx-0.3.3.tar.gz", hash = "sha256:33df33bea7d8b71be11d7e75f76042b83db66f06c6a169fb1ed694b1a9144786", size = 428282, upload-time = "2025-11-14T08:15:16.039Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/65/60/ce6ccaf618e56775905e75e3fe7f2c8adfb61916d2946e854850c1d19a0d/torchrunx-0.3.4.tar.gz", hash = "sha256:6f2333fa17f7ef1f43f6c65d2b008b8479b29d972a8ed209da613d830dffdc45", size = 41312, upload-time = "2025-11-19T02:36:13.54Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fb/98/cd663f168ef160df0ce9defbf9383f3873a6d9caf155cbc6d2722db3668a/torchrunx-0.3.3-py3-none-any.whl", hash = "sha256:ebf342af585fa048f34e66b8a913f073219970fe21596a9ba6be3e7079b9cbb2", size = 45937, upload-time = "2025-11-14T08:15:14.709Z" },
+    { url = "https://files.pythonhosted.org/packages/2c/0d/9f5e24043f2562fd4dc15d04614cb5f3b4a1ffe327cb040b9f95b03fa84d/torchrunx-0.3.4-py3-none-any.whl", hash = "sha256:a157ec139f5a0bdfaa5ece50d987ff0a3212a4657d791367f11fdd383ccdbd5b", size = 34172, upload-time = "2025-11-19T02:36:12.354Z" },
 ]
 
 [[package]]
