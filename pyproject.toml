@@ -35,7 +35,7 @@ dependencies = [
     "tqdm",
     "tyro>=0.10.0a6",
     "torch>=2.7.0",
-    "torchrunx",
+    "torchrunx>=0.3.3",
     "warp-lang",
     "mujoco-warp",
     "mujoco<=3.3.8",
