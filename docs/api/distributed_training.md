@@ -41,7 +41,35 @@ uv run train <task-name> \
 - GPU indices are relative to `CUDA_VISIBLE_DEVICES` if set
 - `CUDA_VISIBLE_DEVICES=2,3 uv run train ... --gpu-ids 0 1` uses physical GPUs 2 and 3
 - Each GPU runs the full `num-envs` count (e.g., 2 GPUs × 4096 envs = 8192 total)
-- Single-GPU and CPU modes run directly; multi-GPU uses `torchrunx` for process spawning
+- Single-GPU and CPU modes run directly; multi-GPU uses `torchrunx` for process
+  spawning
+
+## Configuration
+
+**torchrunx Logging:**
+
+By default, torchrunx process logs are saved to `{log_dir}/torchrunx/`. You can
+customize this:
+
+```bash
+# Disable torchrunx file logging.
+uv run train <task-name> --gpu-ids 0 1 --torchrunx-log-dir ""
+
+# Custom log directory.
+uv run train <task-name> --gpu-ids 0 1 --torchrunx-log-dir /path/to/logs
+
+# Or use environment variable (takes precedence over flag).
+TORCHRUNX_LOG_DIR=/tmp/logs uv run train <task-name> --gpu-ids 0 1
+```
+
+The priority is `TORCHRUNX_LOG_DIR` env var, `--torchrunx-log-dir` flag, default
+`{log_dir}/torchrunx`.
+
+**Single-Writer Operations:**
+
+Only rank 0 performs file I/O operations (config files, videos, wandb logging)
+to avoid race conditions. All workers participate in training, but logging
+artifacts are written once by the main process.
 
 ## How It Works
 
