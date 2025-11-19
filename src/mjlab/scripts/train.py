@@ -41,18 +41,19 @@ class TrainConfig:
 
 
 def run_train(task_id: str, cfg: TrainConfig) -> None:
-  configure_torch_backends()
-
-  # Check if running in CPU mode (empty CUDA_VISIBLE_DEVICES).
   cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
   if cuda_visible == "":
     device = "cpu"
     seed = cfg.agent.seed
   else:
     local_rank = int(os.environ.get("LOCAL_RANK", "0"))
+    # Set EGL device to match the CUDA device.
+    os.environ["MUJOCO_EGL_DEVICE_ID"] = str(local_rank)
     device = f"cuda:{local_rank}"
     # Set seed to have diversity in different processes.
     seed = cfg.agent.seed + local_rank
+
+  configure_torch_backends()
 
   cfg.agent.seed = seed
   cfg.env.seed = seed

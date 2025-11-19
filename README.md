@@ -72,13 +72,13 @@ For full setup instructions, see the [Installation Guide](docs/installation_guid
 Train a Unitree G1 humanoid to follow velocity commands on flat terrain:
 
 ```bash
-MUJOCO_GL=egl uv run train Mjlab-Velocity-Flat-Unitree-G1 --env.scene.num-envs 4096
+uv run train Mjlab-Velocity-Flat-Unitree-G1 --env.scene.num-envs 4096
 ```
 
 **Multi-GPU Training:** Scale to multiple GPUs using `--gpu-ids`:
 
 ```bash
-MUJOCO_GL=egl uv run train Mjlab-Velocity-Flat-Unitree-G1 \
+uv run train Mjlab-Velocity-Flat-Unitree-G1 \
   --gpu-ids 0 1 \
   --env.scene.num-envs 4096
 ```
@@ -121,7 +121,7 @@ Train a Unitree G1 to mimic reference motions. mjlab uses
 #### Train and Play
 
 ```bash
-MUJOCO_GL=egl uv run train Mjlab-Tracking-Flat-Unitree-G1 --registry-name your-org/motions/motion-name --env.scene.num-envs 4096
+uv run train Mjlab-Tracking-Flat-Unitree-G1 --registry-name your-org/motions/motion-name --env.scene.num-envs 4096
 
 uv run play Mjlab-Tracking-Flat-Unitree-G1 --wandb-run-path your-org/mjlab/run-id
 ```
