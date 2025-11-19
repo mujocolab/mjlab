@@ -40,9 +40,10 @@ On par or faster based on our experience over the last few months.
 
 ### Does mjlab support multi-GPU training?
 
-Yes. mjlab supports multi-GPU distributed training with `torchrunx`. Use
-`--gpu-ids 0 1` (or `--gpu-ids all`) when running the `train` command. See the
-[Distributed Training guide](api/distributed_training.md) for details.
+Yes. mjlab supports multi-GPU distributed training with
+[torchrunx](https://github.com/apoorvkh/torchrunx). Use `--gpu-ids 0 1` (or
+`--gpu-ids all`) when running the `train` command. See the [Distributed Training
+guide](api/distributed_training.md) for details.
 
 ---
 

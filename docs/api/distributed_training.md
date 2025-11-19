@@ -1,9 +1,10 @@
 # Distributed Training
 
-mjlab supports multi-GPU distributed training using `torchrunx`. Distributed
-training parallelizes RL workloads across multiple GPUs by running independent
-rollouts on each device and synchronizing gradients during policy updates.
-Throughput scales nearly linearly with GPU count.
+mjlab supports multi-GPU distributed training using
+[torchrunx](https://github.com/apoorvkh/torchrunx). Distributed training
+parallelizes RL workloads across multiple GPUs by running independent rollouts
+on each device and synchronizing gradients during policy updates. Throughput
+scales nearly linearly with GPU count.
 
 ## TL;DR
 
