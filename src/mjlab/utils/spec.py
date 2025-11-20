@@ -146,3 +146,43 @@ def create_velocity_actuator(
   spec.joint(joint_name).frictionloss = frictionloss
 
   return actuator
+
+
+def create_muscle_actuator(
+  spec: mujoco.MjSpec,
+  tendon_name: str,
+  *,
+  length_range: tuple[float, float] = (0.0, 0.0),
+  gear: float = 1,
+  timeconst: tuple[float, float] = (0.01, 0.04),
+  tausmooth: float = 0.0,
+  range: tuple[float, float] = (0.75, 1.05),
+  force: float = -1,
+  scale: float = 200.0,
+  lmin: float = 0.5,
+  lmax: float = 1.6,
+  vmax: float = 1.5,
+  fpmax: float = 1.3,
+  fvmax: float = 1.2,
+) -> mujoco.MjsActuator:
+  """Create a MuJoCo <muscle> actuator for muscle actuation."""
+  actuator = spec.add_actuator(name=tendon_name, target=tendon_name)
+
+  actuator.trntype = mujoco.mjtTrn.mjTRN_TENDON
+  actuator.dyntype = mujoco.mjtDyn.mjDYN_MUSCLE
+  actuator.gaintype = mujoco.mjtGain.mjGAIN_MUSCLE
+  actuator.biastype = mujoco.mjtBias.mjBIAS_MUSCLE
+
+  # Setting muscle parameters
+  actuator.gear[0] = gear
+  actuator.dynprm[0:3] = np.array([*timeconst, tausmooth])
+  actuator.gainprm[0:9] = np.array(
+    [*range, force, scale, lmin, lmax, vmax, fpmax, fvmax]
+  )
+  actuator.biasprm[:] = actuator.gainprm[:]
+  actuator.lengthrange[0:2] = length_range
+
+  actuator.ctrllimited = True
+  actuator.ctrlrange = np.array([0.0, 1.0])
+
+  return actuator

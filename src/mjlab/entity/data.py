@@ -65,6 +65,8 @@ class EntityData:
   joint_vel_target: torch.Tensor
   joint_effort_target: torch.Tensor
 
+  excitation: torch.Tensor
+
   # State dimensions.
   POS_DIM = 3
   QUAT_DIM = 4

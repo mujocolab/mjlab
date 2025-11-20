@@ -9,7 +9,7 @@ import mujoco
 import mujoco_warp as mjwarp
 import torch
 
-from mjlab.actuator.actuator import Actuator, ActuatorCfg, ActuatorCmd
+from mjlab.actuator.actuator import ActuatedType, Actuator, ActuatorCfg, ActuatorCmd
 from mjlab.utils.buffers import DelayBuffer
 
 if TYPE_CHECKING:
@@ -26,13 +26,16 @@ class DelayedActuatorCfg(ActuatorCfg):
   steps).
   """
 
-  joint_names_expr: tuple[str, ...] = field(init=False, default=())
+  actuated_names_expr: tuple[str, ...] = field(init=False, default=())
 
   base_cfg: ActuatorCfg
   """Configuration for the underlying actuator."""
 
+  actuated_type: ActuatedType = ActuatedType.JOINT
+  """Type of elements being actuated: 'joint'."""
+
   def __post_init__(self):
-    object.__setattr__(self, "joint_names_expr", self.base_cfg.joint_names_expr)
+    object.__setattr__(self, "actuated_names_expr", self.base_cfg.actuated_names_expr)
 
   delay_target: (
     Literal["position", "velocity", "effort"]
@@ -60,9 +63,9 @@ class DelayedActuatorCfg(ActuatorCfg):
   """Whether each environment has a different phase offset."""
 
   def build(
-    self, entity: Entity, joint_ids: list[int], joint_names: list[str]
+    self, entity: Entity, actuated_ids: list[int], actuated_names: list[str]
   ) -> DelayedActuator:
-    base_actuator = self.base_cfg.build(entity, joint_ids, joint_names)
+    base_actuator = self.base_cfg.build(entity, actuated_ids, actuated_names)
     return DelayedActuator(self, base_actuator)
 
 
@@ -76,15 +79,15 @@ class DelayedActuator(Actuator):
   def __init__(self, cfg: DelayedActuatorCfg, base_actuator: Actuator) -> None:
     super().__init__(
       base_actuator.entity,
-      base_actuator._joint_ids_list,
-      base_actuator._joint_names,
+      base_actuator._actuated_ids_list,
+      base_actuator._actuated_names,
     )
     self.cfg = cfg
     self._base_actuator = base_actuator
     self._delay_buffers: dict[str, DelayBuffer] = {}
 
-  def edit_spec(self, spec: mujoco.MjSpec, joint_names: list[str]) -> None:
-    self._base_actuator.edit_spec(spec, joint_names)
+  def edit_spec(self, spec: mujoco.MjSpec, actuated_names: list[str]) -> None:
+    self._base_actuator.edit_spec(spec, actuated_names)
     self._mjs_actuators = self._base_actuator._mjs_actuators
 
   def initialize(
@@ -96,7 +99,7 @@ class DelayedActuator(Actuator):
   ) -> None:
     self._base_actuator.initialize(mj_model, model, data, device)
 
-    self._joint_ids = self._base_actuator._joint_ids
+    self._actuated_ids = self._base_actuator._actuated_ids
     self._ctrl_ids = self._base_actuator._ctrl_ids
 
     targets = (
@@ -140,6 +143,7 @@ class DelayedActuator(Actuator):
       effort_target=effort_target,
       joint_pos=cmd.joint_pos,
       joint_vel=cmd.joint_vel,
+      excitation=None,
     )
 
     return self._base_actuator.compute(delayed_cmd)

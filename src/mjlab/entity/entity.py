@@ -10,7 +10,7 @@ import numpy as np
 import torch
 
 from mjlab import actuator
-from mjlab.actuator import BuiltinActuatorGroup
+from mjlab.actuator import ActuatedType, BuiltinActuatorGroup
 from mjlab.entity.data import EntityData
 from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
 from mjlab.utils import spec_config as spec_cfg
@@ -148,14 +148,23 @@ class Entity:
       return
 
     for actuator_cfg in self.cfg.articulation.actuators:
-      joint_ids, joint_names = self.find_joints(actuator_cfg.joint_names_expr)
-      if len(joint_names) == 0:
+      if actuator_cfg.actuated_type == ActuatedType.JOINT:
+        actuated_ids, actuated_names = self.find_joints(
+          actuator_cfg.actuated_names_expr
+        )
+      elif actuator_cfg.actuated_type == ActuatedType.TENDON:
+        actuated_ids, actuated_names = self.find_tendons(
+          actuator_cfg.actuated_names_expr
+        )
+      else:
+        raise ValueError(f"Unsupported actuated_type: {actuator_cfg.actuated_type}")
+      if len(actuated_names) == 0:
         raise ValueError(
           "No joints found for actuator with expressions: "
-          f"{actuator_cfg.joint_names_expr}"
+          f"{actuator_cfg.actuated_names_expr}"
         )
-      actuator_instance = actuator_cfg.build(self, joint_ids, joint_names)
-      actuator_instance.edit_spec(self._spec, joint_names)
+      actuator_instance = actuator_cfg.build(self, actuated_ids, actuated_names)
+      actuator_instance.edit_spec(self._spec, actuated_names)
       self._actuators.append(actuator_instance)
 
   def _add_initial_state_keyframe(self) -> None:
@@ -223,6 +232,10 @@ class Entity:
     return tuple(j.name.split("/")[-1] for j in self._non_free_joints)
 
   @property
+  def tendon_names(self) -> tuple[str, ...]:
+    return tuple(t.name.split("/")[-1] for t in self.spec.tendons)
+
+  @property
   def body_names(self) -> tuple[str, ...]:
     return tuple(b.name.split("/")[-1] for b in self.spec.bodies[1:])
 
@@ -241,6 +254,10 @@ class Entity:
   @property
   def num_joints(self) -> int:
     return len(self.joint_names)
+
+  @property
+  def num_tendons(self) -> int:
+    return len(self.tendon_names)
 
   @property
   def num_bodies(self) -> int:
@@ -279,6 +296,16 @@ class Entity:
       joint_subset = self.joint_names
     return resolve_matching_names(name_keys, joint_subset, preserve_order)
 
+  def find_tendons(
+    self,
+    name_keys: str | Sequence[str],
+    tendon_subset: Sequence[str] | None = None,
+    preserve_order: bool = False,
+  ) -> tuple[list[int], list[str]]:
+    if tendon_subset is None:
+      tendon_subset = self.tendon_names
+    return resolve_matching_names(name_keys, tendon_subset, preserve_order)
+
   def find_actuators(
     self,
     name_keys: str | Sequence[str],
@@ -296,7 +323,7 @@ class Entity:
     # Collect all actuated joint names.
     actuated_joint_names_set = set()
     for act in self._actuators:
-      actuated_joint_names_set.update(act.joint_names)
+      actuated_joint_names_set.update(act.actuated_names)
 
     # Filter self.joint_names to only actuated joints, preserving natural order.
     actuated_in_natural_order = [
@@ -434,10 +461,14 @@ class Entity:
       joint_effort_target = torch.zeros(
         (nworld, self.num_joints), dtype=torch.float, device=device
       )
+      excitation = torch.zeros(
+        (nworld, self.num_tendons), dtype=torch.float, device=device
+      )
     else:
       joint_pos_target = torch.empty(nworld, 0, dtype=torch.float, device=device)
       joint_vel_target = torch.empty(nworld, 0, dtype=torch.float, device=device)
       joint_effort_target = torch.empty(nworld, 0, dtype=torch.float, device=device)
+      excitation = torch.empty(nworld, 0, dtype=torch.float, device=device)
 
     self._data = EntityData(
       indexing=indexing,
@@ -458,6 +489,7 @@ class Entity:
       joint_pos_target=joint_pos_target,
       joint_vel_target=joint_vel_target,
       joint_effort_target=joint_effort_target,
+      excitation=excitation,
     )
 
   def update(self, dt: float) -> None:
@@ -746,11 +778,25 @@ class Entity:
   def _apply_actuator_controls(self) -> None:
     self._builtin_group.apply_controls(self._data)
     for act in self._custom_actuators:
-      command = actuator.ActuatorCmd(
-        position_target=self._data.joint_pos_target[:, act.joint_ids],
-        velocity_target=self._data.joint_vel_target[:, act.joint_ids],
-        effort_target=self._data.joint_effort_target[:, act.joint_ids],
-        joint_pos=self._data.joint_pos[:, act.joint_ids],
-        joint_vel=self._data.joint_vel[:, act.joint_ids],
-      )
+      if act.actuated_type == ActuatedType.JOINT:
+        command = actuator.ActuatorCmd(
+          position_target=self._data.joint_pos_target[:, act.actuated_ids],
+          velocity_target=self._data.joint_vel_target[:, act.actuated_ids],
+          effort_target=self._data.joint_effort_target[:, act.actuated_ids],
+          joint_pos=self._data.joint_pos[:, act.actuated_ids],
+          joint_vel=self._data.joint_vel[:, act.actuated_ids],
+          excitation=None,
+        )
+      elif act.actuated_type == ActuatedType.TENDON:
+        command = actuator.ActuatorCmd(
+          excitation=self._data.excitation[:, act.actuated_ids],
+          position_target=None,
+          velocity_target=None,
+          effort_target=None,
+          joint_pos=None,
+          joint_vel=None,
+        )
+      else:
+        raise ValueError(f"Unsupported actuated type: {act.actuated_type}")
+
       self._data.write_ctrl(act.compute(command), act.ctrl_ids)

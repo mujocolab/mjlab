@@ -62,9 +62,9 @@ class LearnedMlpActuatorCfg(DcMotorActuatorCfg):
   damping: float = 0.0
 
   def build(
-    self, entity: Entity, joint_ids: list[int], joint_names: list[str]
+    self, entity: Entity, actuated_ids: list[int], actuated_names: list[str]
   ) -> LearnedMlpActuator:
-    return LearnedMlpActuator(self, entity, joint_ids, joint_names)
+    return LearnedMlpActuator(self, entity, actuated_ids, actuated_names)
 
 
 class LearnedMlpActuator(DcMotorActuator[LearnedMlpActuatorCfg]):

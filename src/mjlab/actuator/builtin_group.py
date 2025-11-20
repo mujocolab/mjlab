@@ -58,7 +58,7 @@ class BuiltinActuatorGroup:
     # Return stacked indices for each builtin actuator type.
     index_groups = {
       k: (
-        torch.cat([act.joint_ids for act in v], dim=0),
+        torch.cat([act.actuated_ids for act in v], dim=0),
         torch.cat([act.ctrl_ids for act in v], dim=0),
       )
       for k, v in builtin_groups.items()

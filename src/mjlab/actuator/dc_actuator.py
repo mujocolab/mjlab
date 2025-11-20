@@ -65,9 +65,9 @@ class DcMotorActuatorCfg(IdealPdActuatorCfg):
       )
 
   def build(
-    self, entity: Entity, joint_ids: list[int], joint_names: list[str]
+    self, entity: Entity, actuated_ids: list[int], actuated_names: list[str]
   ) -> DcMotorActuator:
-    return DcMotorActuator(self, entity, joint_ids, joint_names)
+    return DcMotorActuator(self, entity, actuated_ids, actuated_names)
 
 
 class DcMotorActuator(IdealPdActuator[DcMotorCfgT], Generic[DcMotorCfgT]):
@@ -106,7 +106,7 @@ class DcMotorActuator(IdealPdActuator[DcMotorCfgT], Generic[DcMotorCfgT]):
     super().initialize(mj_model, model, data, device)
 
     num_envs = data.nworld
-    num_joints = len(self._joint_names)
+    num_joints = len(self._actuated_names)
 
     self.saturation_effort = torch.full(
       (num_envs, num_joints),

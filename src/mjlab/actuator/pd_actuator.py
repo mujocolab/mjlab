@@ -9,7 +9,7 @@ import mujoco
 import mujoco_warp as mjwarp
 import torch
 
-from mjlab.actuator.actuator import Actuator, ActuatorCfg, ActuatorCmd
+from mjlab.actuator.actuator import ActuatedType, Actuator, ActuatorCfg, ActuatorCmd
 from mjlab.utils.spec import create_motor_actuator
 
 if TYPE_CHECKING:
@@ -29,10 +29,13 @@ class IdealPdActuatorCfg(ActuatorCfg):
   effort_limit: float = float("inf")
   """Maximum force/torque limit."""
 
+  actuated_type: ActuatedType = ActuatedType.JOINT
+  """Type of elements being actuated: 'joint'."""
+
   def build(
-    self, entity: Entity, joint_ids: list[int], joint_names: list[str]
+    self, entity: Entity, actuated_ids: list[int], actuated_names: list[str]
   ) -> IdealPdActuator:
-    return IdealPdActuator(self, entity, joint_ids, joint_names)
+    return IdealPdActuator(self, entity, actuated_ids, actuated_names)
 
 
 class IdealPdActuator(Actuator, Generic[IdealPdCfgT]):
@@ -51,9 +54,9 @@ class IdealPdActuator(Actuator, Generic[IdealPdCfgT]):
     self.damping: torch.Tensor | None = None
     self.force_limit: torch.Tensor | None = None
 
-  def edit_spec(self, spec: mujoco.MjSpec, joint_names: list[str]) -> None:
+  def edit_spec(self, spec: mujoco.MjSpec, actuated_names: list[str]) -> None:
     # Add <motor> actuator to spec, one per joint.
-    for joint_name in joint_names:
+    for joint_name in actuated_names:
       actuator = create_motor_actuator(
         spec,
         joint_name,
@@ -73,7 +76,7 @@ class IdealPdActuator(Actuator, Generic[IdealPdCfgT]):
     super().initialize(mj_model, model, data, device)
 
     num_envs = data.nworld
-    num_joints = len(self._joint_names)
+    num_joints = len(self._actuated_names)
     self.stiffness = torch.full(
       (num_envs, num_joints), self.cfg.stiffness, dtype=torch.float, device=device
     )
