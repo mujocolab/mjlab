@@ -39,7 +39,7 @@ def test_actuator_parameters(g1_model, actuator_config, stiffness, damping):
     actuator = g1_model.actuator(i)
     actuator_name = actuator.name
     matches = any(
-      re.match(pattern, actuator_name) for pattern in actuator_config.joint_names_expr
+      re.match(pattern, actuator_name) for pattern in actuator_config.actuated_names_expr
     )
     if matches:
       assert actuator.gainprm[0] == stiffness

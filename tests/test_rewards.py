@@ -171,7 +171,7 @@ def test_electrical_power_cost_partially_actuated(device):
     articulation=EntityArticulationInfoCfg(
       actuators=(
         BuiltinPositionActuatorCfg(
-          joint_names_expr=("actuated_joint1", "actuated_joint2"),
+          actuated_names_expr=("actuated_joint1", "actuated_joint2"),
           effort_limit=10.0,
           stiffness=100.0,
           damping=10.0,

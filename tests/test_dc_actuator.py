@@ -55,7 +55,7 @@ def test_dc_motor_stall_torque(device):
 
   entity = create_entity_with_actuator(
     DcMotorActuatorCfg(
-      joint_names_expr=("joint.*",),
+      actuated_names_expr=("joint.*",),
       effort_limit=saturation_effort,  # Set to saturation to not constrain.
       stiffness=kp,
       damping=kd,
@@ -91,7 +91,7 @@ def test_dc_motor_zero_torque_at_max_velocity(device):
 
   entity = create_entity_with_actuator(
     DcMotorActuatorCfg(
-      joint_names_expr=("joint.*",),
+      actuated_names_expr=("joint.*",),
       effort_limit=saturation_effort,  # Set to saturation to not constrain.
       stiffness=kp,
       damping=kd,
@@ -127,7 +127,7 @@ def test_dc_motor_linear_torque_speed_curve(device):
 
   entity = create_entity_with_actuator(
     DcMotorActuatorCfg(
-      joint_names_expr=("joint.*",),
+      actuated_names_expr=("joint.*",),
       effort_limit=saturation_effort,  # Set to saturation to not constrain.
       stiffness=kp,
       damping=kd,
@@ -165,7 +165,7 @@ def test_dc_motor_effort_limit_constrains_output(device):
 
   entity = create_entity_with_actuator(
     DcMotorActuatorCfg(
-      joint_names_expr=("joint.*",),
+      actuated_names_expr=("joint.*",),
       effort_limit=effort_limit,
       stiffness=kp,
       damping=kd,
@@ -201,7 +201,7 @@ def test_dc_motor_negative_velocity_behavior(device):
 
   entity = create_entity_with_actuator(
     DcMotorActuatorCfg(
-      joint_names_expr=("joint.*",),
+      actuated_names_expr=("joint.*",),
       effort_limit=saturation_effort,  # Set to saturation to not constrain
       stiffness=kp,
       damping=kd,
@@ -239,7 +239,7 @@ def test_dc_motor_corner_velocity_transition(device):
 
   entity = create_entity_with_actuator(
     DcMotorActuatorCfg(
-      joint_names_expr=("joint.*",),
+      actuated_names_expr=("joint.*",),
       effort_limit=effort_limit,
       stiffness=kp,
       damping=kd,
@@ -277,7 +277,7 @@ def test_dc_motor_warns_when_effort_limit_is_inf():
   with warnings.catch_warnings(record=True) as w:
     warnings.simplefilter("always")
     DcMotorActuatorCfg(
-      joint_names_expr=("joint.*",),
+      actuated_names_expr=("joint.*",),
       stiffness=100.0,
       damping=10.0,
       saturation_effort=20.0,
@@ -293,7 +293,7 @@ def test_dc_motor_warns_when_effort_limit_exceeds_saturation():
   """DcMotorActuatorCfg warns when effort_limit > saturation_effort."""
   with pytest.warns(UserWarning, match="effort_limit.*exceeds saturation_effort"):
     DcMotorActuatorCfg(
-      joint_names_expr=("joint.*",),
+      actuated_names_expr=("joint.*",),
       stiffness=100.0,
       damping=10.0,
       saturation_effort=20.0,

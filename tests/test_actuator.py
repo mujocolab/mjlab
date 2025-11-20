@@ -56,7 +56,7 @@ def initialize_entity(entity, device, num_envs=1):
 def test_builtin_pd_actuator_compute(device):
   """BuiltinPositionActuator writes position targets to ctrl."""
   actuator_cfg = BuiltinPositionActuatorCfg(
-    joint_names_expr=("joint.*",), stiffness=50.0, damping=5.0
+    actuated_names_expr=("joint.*",), stiffness=50.0, damping=5.0
   )
   entity = create_entity_with_actuator(actuator_cfg)
   entity, sim = initialize_entity(entity, device)
@@ -71,7 +71,7 @@ def test_builtin_pd_actuator_compute(device):
 def test_ideal_pd_actuator_compute(device):
   """IdealPdActuator computes torques via explicit PD control."""
   actuator_cfg = IdealPdActuatorCfg(
-    joint_names_expr=("joint.*",), effort_limit=100.0, stiffness=50.0, damping=5.0
+    actuated_names_expr=("joint.*",), effort_limit=100.0, stiffness=50.0, damping=5.0
   )
   entity = create_entity_with_actuator(actuator_cfg)
   entity, sim = initialize_entity(entity, device)
@@ -93,7 +93,7 @@ def test_ideal_pd_actuator_compute(device):
 def test_targets_cleared_on_reset(device):
   """Entity.reset() zeros all targets."""
   actuator_cfg = BuiltinPositionActuatorCfg(
-    joint_names_expr=("joint.*",), stiffness=50.0, damping=5.0
+    actuated_names_expr=("joint.*",), stiffness=50.0, damping=5.0
   )
   entity = create_entity_with_actuator(actuator_cfg)
   entity, sim = initialize_entity(entity, device)

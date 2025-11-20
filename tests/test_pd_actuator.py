@@ -56,12 +56,12 @@ def test_ideal_pd_matches_builtin_at_rest(device):
 
   ideal_entity = create_entity_with_actuator(
     IdealPdActuatorCfg(
-      joint_names_expr=("joint.*",), effort_limit=100.0, stiffness=kp, damping=kv
+      actuated_names_expr=("joint.*",), effort_limit=100.0, stiffness=kp, damping=kv
     )
   )
   builtin_entity = create_entity_with_actuator(
     BuiltinPositionActuatorCfg(
-      joint_names_expr=("joint.*",), effort_limit=100.0, stiffness=kp, damping=kv
+      actuated_names_expr=("joint.*",), effort_limit=100.0, stiffness=kp, damping=kv
     )
   )
 
@@ -96,12 +96,12 @@ def test_ideal_pd_matches_builtin_with_velocity(device):
 
   ideal_entity = create_entity_with_actuator(
     IdealPdActuatorCfg(
-      joint_names_expr=("joint.*",), effort_limit=100.0, stiffness=kp, damping=kv
+      actuated_names_expr=("joint.*",), effort_limit=100.0, stiffness=kp, damping=kv
     )
   )
   builtin_entity = create_entity_with_actuator(
     BuiltinPositionActuatorCfg(
-      joint_names_expr=("joint.*",), effort_limit=100.0, stiffness=kp, damping=kv
+      actuated_names_expr=("joint.*",), effort_limit=100.0, stiffness=kp, damping=kv
     )
   )
 
@@ -136,7 +136,7 @@ def test_ideal_pd_with_feedforward_effort(device):
 
   ideal_entity = create_entity_with_actuator(
     IdealPdActuatorCfg(
-      joint_names_expr=("joint.*",), effort_limit=100.0, stiffness=kp, damping=kv
+      actuated_names_expr=("joint.*",), effort_limit=100.0, stiffness=kp, damping=kv
     )
   )
 
@@ -162,7 +162,10 @@ def test_ideal_pd_effort_clamping(device):
 
   ideal_entity = create_entity_with_actuator(
     IdealPdActuatorCfg(
-      joint_names_expr=("joint.*",), effort_limit=effort_limit, stiffness=kp, damping=kv
+      actuated_names_expr=("joint.*",),
+      effort_limit=effort_limit,
+      stiffness=kp,
+      damping=kv,
     )
   )
 
