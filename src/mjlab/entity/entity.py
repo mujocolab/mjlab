@@ -113,6 +113,18 @@ class Entity:
   | Fixed Articulated         | Robot arm, door     | True          | True           | True/False  |
   | Floating Non-articulated  | Box, ball, mug      | False         | False          | False       |
   | Floating Articulated      | Humanoid, quadruped | False         | True           | True/False  |
+
+  Position and Orientation
+  ========================
+  Entity pose is controlled by `init_state.pos` and `init_state.rot` in EntityCfg
+  (not `body.pos`/`body.quat` in spec_fn, which are ignored). Per-env positioning
+  requires reset events (e.g., `reset_root_state_uniform`).
+
+  Fixed-base: static vs mocap
+  ---------------------------
+  - Static (no mocap): Use for terrain, walls, and geometry identical across all envs.
+  - Mocap (`body.mocap = True`): Use for props that need per-env positioning (tables,
+    obstacles) or that you want to reposition with events at "startup" or "reset".
   """
 
   def __init__(self, cfg: EntityCfg) -> None:
@@ -161,9 +173,11 @@ class Entity:
   def _add_initial_state_keyframe(self) -> None:
     qpos_components = []
 
+    # Free joint pose.
     if self._free_joint is not None:
       qpos_components.extend([self.cfg.init_state.pos, self.cfg.init_state.rot])
 
+    # Articulated joint positions.
     joint_pos = None
     if self._non_free_joints:
       joint_pos = resolve_expr(self.cfg.init_state.joint_pos, self.joint_names, 0.0)
@@ -172,6 +186,7 @@ class Entity:
     key_qpos = np.hstack(qpos_components) if qpos_components else np.array([])
     key = self._spec.add_key(name="init_state", qpos=key_qpos)
 
+    # Actuator controls.
     if self.is_actuated and joint_pos is not None:
       name_to_pos = {name: joint_pos[i] for i, name in enumerate(self.joint_names)}
       ctrl = []

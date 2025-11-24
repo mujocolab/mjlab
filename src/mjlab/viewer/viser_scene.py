@@ -19,6 +19,7 @@ from mjlab.viewer.viser_conversions import (
   create_primitive_mesh,
   get_body_name,
   is_fixed_body,
+  is_fixed_world_geometry,
   merge_geoms,
   mujoco_mesh_to_trimesh,
   rotation_matrix_from_vectors,
@@ -598,7 +599,7 @@ class ViserMujocoScene(DebugVisualizer):
       body_name = get_body_name(self.mj_model, body_id)
 
       # Fixed world geometry. We'll assume this is shared between all environments.
-      if is_fixed_body(self.mj_model, body_id):
+      if is_fixed_world_geometry(self.mj_model, body_id):
         # Create both visual and collision geoms for fixed bodies (terrain, floor, etc.)
         # but show them all since they're static.
         all_geoms = []
@@ -656,7 +657,7 @@ class ViserMujocoScene(DebugVisualizer):
       body_id = self.mj_model.geom_bodyid[i]
 
       # Skip fixed world geometry.
-      if is_fixed_body(self.mj_model, body_id):
+      if is_fixed_world_geometry(self.mj_model, body_id):
         continue
 
       geom_group = self.mj_model.geom_group[i]

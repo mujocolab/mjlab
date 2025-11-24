@@ -80,12 +80,12 @@ class MujocoCfg:
 class SimulationCfg:
   nconmax: int | None = None
   """Number of contacts to allocate per world.
-  
+
   Contacts exist in large heterogenous arrays: one world may have more than nconmax
   contacts. If None, a heuristic value is used."""
   njmax: int | None = None
   """Number of constraints to allocate per world.
-  
+
   Constraint arrays are batched by world: no world may have more than njmax
   constraints. If None, a heuristic value is used."""
   ls_parallel: bool = True  # Boosts perf quite noticeably.
