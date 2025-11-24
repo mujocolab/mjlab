@@ -371,6 +371,72 @@ def merge_geoms(mj_model: mujoco.MjModel, geom_ids: list[int]) -> trimesh.Trimes
   return trimesh.util.concatenate(meshes)
 
 
+def create_site_mesh(mj_model: mujoco.MjModel, site_id: int) -> trimesh.Trimesh:
+  """Create a mesh for a site.
+
+  Args:
+    mj_model: MuJoCo model containing site definition
+    site_id: Index of the site to create mesh for
+
+  Returns:
+    Trimesh representation of the site
+  """
+  size = mj_model.site_size[site_id]
+  site_type = mj_model.site_type[site_id]
+  rgba = mj_model.site_rgba[site_id].copy()
+
+  material = trimesh.visual.material.PBRMaterial(  # type: ignore
+    baseColorFactor=rgba,
+    metallicFactor=0.0,
+    roughnessFactor=1.0,
+  )
+
+  if site_type == mjtGeom.mjGEOM_SPHERE:
+    mesh = trimesh.creation.icosphere(radius=size[0], subdivisions=2)
+  elif site_type == mjtGeom.mjGEOM_BOX:
+    mesh = trimesh.creation.box(extents=2.0 * size)
+  elif site_type == mjtGeom.mjGEOM_CAPSULE:
+    mesh = trimesh.creation.capsule(radius=size[0], height=2.0 * size[1])
+  elif site_type == mjtGeom.mjGEOM_CYLINDER:
+    mesh = trimesh.creation.cylinder(radius=size[0], height=2.0 * size[1])
+  elif site_type == mjtGeom.mjGEOM_ELLIPSOID:
+    mesh = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
+    mesh.apply_scale(size)
+  else:
+    # Default to small sphere for unknown types
+    mesh = trimesh.creation.icosphere(radius=0.01, subdivisions=2)
+
+  mesh.visual = trimesh.visual.TextureVisuals(material=material)  # type: ignore
+  return mesh
+
+
+def merge_sites(mj_model: mujoco.MjModel, site_ids: list[int]) -> trimesh.Trimesh:
+  """Merge multiple sites into a single trimesh.
+
+  Args:
+    mj_model: MuJoCo model containing site definitions
+    site_ids: List of site indices to merge
+
+  Returns:
+    Single merged trimesh with all sites transformed to their local poses
+  """
+  meshes = []
+  for site_id in site_ids:
+    mesh = create_site_mesh(mj_model, site_id)
+
+    pos = mj_model.site_pos[site_id]
+    quat = mj_model.site_quat[site_id]
+    transform = np.eye(4)
+    transform[:3, :3] = vtf.SO3(quat).as_matrix()
+    transform[:3, 3] = pos
+    mesh.apply_transform(transform)
+    meshes.append(mesh)
+
+  if len(meshes) == 1:
+    return meshes[0]
+  return trimesh.util.concatenate(meshes)
+
+
 def rotation_quat_from_vectors(from_vec: np.ndarray, to_vec: np.ndarray) -> np.ndarray:
   """Compute quaternion (wxyz format) that rotates from_vec to to_vec.
 

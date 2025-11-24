@@ -21,6 +21,7 @@ from mjlab.viewer.viser_conversions import (
   is_fixed_body,
   is_fixed_world_geometry,
   merge_geoms,
+  merge_sites,
   mujoco_mesh_to_trimesh,
   rotation_matrix_from_vectors,
   rotation_quat_from_vectors,
@@ -83,6 +84,9 @@ class ViserMujocoScene(DebugVisualizer):
   mesh_handles_by_group: dict[tuple[int, int], viser.BatchedGlbHandle] = field(
     default_factory=dict
   )
+  site_handles_by_group: dict[tuple[int, int], viser.SceneNodeHandle] = field(
+    default_factory=dict
+  )
   contact_point_handle: viser.BatchedMeshHandle | None = None
   contact_force_shaft_handle: viser.BatchedMeshHandle | None = None
   contact_force_head_handle: viser.BatchedMeshHandle | None = None
@@ -92,6 +96,9 @@ class ViserMujocoScene(DebugVisualizer):
   camera_tracking_enabled: bool = False
   show_only_selected: bool = False
   geom_groups_visible: list[bool] = field(
+    default_factory=lambda: [True, True, True, False, False, False]
+  )
+  site_groups_visible: list[bool] = field(
     default_factory=lambda: [True, True, True, False, False, False]
   )
   show_contact_points: bool = False
@@ -397,6 +404,30 @@ class ViserMujocoScene(DebugVisualizer):
           self._sync_visibilities()
           self._request_update()
 
+  def create_site_groups_gui(self, tabs) -> None:
+    """Add site groups tab to the given tab group.
+
+    Args:
+      tabs: The viser tab group to add the site groups tab to.
+    """
+    with tabs.add_tab("Sites", icon=viser.Icon.MAP_PIN):
+      for i in range(6):
+        cb = self.server.gui.add_checkbox(
+          f"Group {i}",
+          initial_value=self.site_groups_visible[i],
+          hint=f"Show/hide sites in group {i}",
+        )
+
+        @cb.on_update
+        def _(event, group_idx=i) -> None:
+          self.site_groups_visible[group_idx] = event.target.value
+          self._sync_site_visibilities()
+
+  def _sync_site_visibilities(self) -> None:
+    """Sync site visibility based on site_groups_visible."""
+    for (_body_id, group_id), handle in self.site_handles_by_group.items():
+      handle.visible = group_id < 6 and self.site_groups_visible[group_id]
+
   def update(self, wp_data, env_idx: int | None = None) -> None:
     """Update scene from batched simulation data.
 
@@ -647,6 +678,29 @@ class ViserMujocoScene(DebugVisualizer):
             wxyz=self.mj_model.body(body_id).quat,
             visible=True,
           )
+
+    # Add sites attached to fixed world bodies, grouped by site_group.
+    body_group_sites: dict[tuple[int, int], list[int]] = {}
+    for i in range(self.mj_model.nsite):
+      body_id = self.mj_model.site_bodyid[i]
+      if is_fixed_world_geometry(self.mj_model, body_id):
+        site_group = self.mj_model.site_group[i]
+        key = (body_id, site_group)
+        body_group_sites.setdefault(key, []).append(i)
+
+    for (body_id, group_id), site_ids in body_group_sites.items():
+      body_name = get_body_name(self.mj_model, body_id)
+      visible = group_id < 6 and self.site_groups_visible[group_id]
+      handle = self.server.scene.add_mesh_trimesh(
+        f"/fixed_bodies/{body_name}/sites_group{group_id}",
+        merge_sites(self.mj_model, site_ids),
+        cast_shadow=False,
+        receive_shadow=0.2,
+        position=self.mj_model.body(body_id).pos,
+        wxyz=self.mj_model.body(body_id).quat,
+        visible=visible,
+      )
+      self.site_handles_by_group[(body_id, group_id)] = handle
 
   def _create_mesh_handles_by_group(self) -> None:
     """Create mesh handles for each geom group separately to allow independent toggling."""
