@@ -19,7 +19,7 @@ from mjlab.viewer.base import (
   VerbosityLevel,
   ViewerAction,
 )
-from mjlab.viewer.mujoco_native_visualizer import MujocoNativeDebugVisualizer
+from mjlab.viewer.native.visualizer import MujocoNativeDebugVisualizer
 
 if TYPE_CHECKING:
   from mjlab.entity import Entity
@@ -223,7 +223,7 @@ class NativeMujocoViewer(BaseViewer):
 
   def _safe_key_callback(self, key: int) -> None:
     """Runs on MuJoCo viewer thread; must not touch env/sim directly."""
-    from mjlab.viewer.keys import (
+    from mjlab.viewer.native.keys import (
       KEY_COMMA,
       KEY_ENTER,
       KEY_EQUAL,

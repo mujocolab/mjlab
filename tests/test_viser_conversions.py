@@ -4,7 +4,7 @@ from pathlib import Path
 
 import mujoco
 
-from mjlab.viewer.viser_conversions import mujoco_mesh_to_trimesh
+from mjlab.viewer.viser import mujoco_mesh_to_trimesh
 
 
 def load_robot_model(robot_name: str) -> mujoco.MjModel:

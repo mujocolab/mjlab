@@ -12,8 +12,8 @@ from typing_extensions import override
 
 from mjlab.sim.sim import Simulation
 from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
-from mjlab.viewer.viser_reward_plotter import ViserRewardPlotter
-from mjlab.viewer.viser_scene import ViserMujocoScene
+from mjlab.viewer.viser.reward_plotter import ViserRewardPlotter
+from mjlab.viewer.viser.scene import ViserMujocoScene
 
 
 class ViserPlayViewer(BaseViewer):

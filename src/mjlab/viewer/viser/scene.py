@@ -1,4 +1,4 @@
-"""ViserMujocoScene manages all Viser visualization handles and state for MuJoCo models."""
+"""Manages all Viser visualization handles and state for MuJoCo models."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from mujoco import mj_id2name, mjtGeom, mjtObj
 from typing_extensions import override
 
 from mjlab.viewer.debug_visualizer import DebugVisualizer
-from mjlab.viewer.viser_conversions import (
+from mjlab.viewer.viser.conversions import (
   create_primitive_mesh,
   get_body_name,
   is_fixed_body,
@@ -29,6 +29,15 @@ try:
   import mujoco_warp as mjwarp
 except ImportError:
   mjwarp = None  # type: ignore
+
+
+# Viser visualization defaults.
+_DEFAULT_FOV_DEGREES = 60
+_DEFAULT_FOV_MIN = 20
+_DEFAULT_FOV_MAX = 150
+_DEFAULT_ENVIRONMENT_INTENSITY = 0.8
+_DEFAULT_CONTACT_POINT_COLOR = (230, 153, 51)
+_DEFAULT_CONTACT_FORCE_COLOR = (255, 0, 0)
 
 
 @dataclass
@@ -95,8 +104,8 @@ class ViserMujocoScene(DebugVisualizer):
   )
   show_contact_points: bool = False
   show_contact_forces: bool = False
-  contact_point_color: tuple[int, int, int] = (230, 153, 51)
-  contact_force_color: tuple[int, int, int] = (255, 0, 0)
+  contact_point_color: tuple[int, int, int] = _DEFAULT_CONTACT_POINT_COLOR
+  contact_force_color: tuple[int, int, int] = _DEFAULT_CONTACT_FORCE_COLOR
   meansize_override: float | None = None
   needs_update: bool = False
   _tracked_body_id: int | None = field(init=False, default=None)
@@ -159,7 +168,9 @@ class ViserMujocoScene(DebugVisualizer):
     scene._viz_data = mujoco.MjData(mj_model)
 
     # Configure environment lighting.
-    server.scene.configure_environment_map(environment_intensity=0.8)
+    server.scene.configure_environment_map(
+      environment_intensity=_DEFAULT_ENVIRONMENT_INTENSITY
+    )
 
     # Create frame for fixed world geometry.
     scene.fixed_bodies_frame = server.scene.add_frame("/fixed_bodies", show_axes=False)
@@ -220,10 +231,10 @@ class ViserMujocoScene(DebugVisualizer):
     with self.server.gui.add_folder("Visualization"):
       slider_fov = self.server.gui.add_slider(
         "FOV (°)",
-        min=20,
-        max=150,
+        min=_DEFAULT_FOV_MIN,
+        max=_DEFAULT_FOV_MAX,
         step=1,
-        initial_value=90,
+        initial_value=_DEFAULT_FOV_DEGREES,
         hint="Vertical FOV of viewer camera, in degrees.",
       )
 

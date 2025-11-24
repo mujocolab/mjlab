@@ -16,7 +16,7 @@ import numpy as np
 import tyro
 import viser
 
-from mjlab.viewer.viser_scene import ViserMujocoScene
+from mjlab.viewer.viser import ViserMujocoScene
 
 
 class NanDumpViewer:

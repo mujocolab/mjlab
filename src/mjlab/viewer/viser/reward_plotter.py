@@ -20,10 +20,10 @@ class ViserRewardPlotter:
     """Initialize the reward plotter.
 
     Args:
-        server: The Viser server instance
-        term_names: List of reward term names to plot
-        history_length: Number of points to keep in history
-        max_terms: Maximum number of reward terms to plot
+      server: The Viser server instance
+      term_names: List of reward term names to plot
+      history_length: Number of points to keep in history
+      max_terms: Maximum number of reward terms to plot
     """
     self._server = server
     self._history_length = history_length
@@ -90,7 +90,7 @@ class ViserRewardPlotter:
     """Update the plots with new reward data.
 
     Args:
-        reward_terms: List of (name, value_array) tuples
+      reward_terms: List of (name, value_array) tuples
     """
     # Early return if plots are disabled
     if not self._enabled_checkbox.value:
@@ -137,7 +137,7 @@ class ViserRewardPlotter:
     """Set visibility of all plots.
 
     Args:
-        visible: Whether plots should be visible
+      visible: Whether plots should be visible
     """
     for handle in self._plot_handles.values():
       handle.visible = visible

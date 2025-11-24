@@ -15,7 +15,7 @@ from mjlab.utils.lab_api.math import (
   quat_mul,
   quat_slerp,
 )
-from mjlab.viewer.offscreen_renderer import OffscreenRenderer
+from mjlab.viewer.native import OffscreenRenderer
 from mjlab.viewer.viewer_config import ViewerConfig
 
 

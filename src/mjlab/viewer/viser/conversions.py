@@ -16,12 +16,12 @@ def mujoco_mesh_to_trimesh(
   """Convert a MuJoCo mesh geometry to a trimesh with textures if available.
 
   Args:
-      mj_model: MuJoCo model object
-      geom_idx: Index of the geometry in the model
-      verbose: If True, print debug information during conversion
+    mj_model: MuJoCo model object
+    geom_idx: Index of the geometry in the model
+    verbose: If True, print debug information during conversion
 
   Returns:
-      A trimesh object with texture/material applied if available
+    A trimesh object with texture/material applied if available
   """
 
   # Get the mesh ID for this geometry.
