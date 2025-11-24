@@ -1,3 +1,5 @@
+"""MuJoCo offscreen renderer for headless visualization."""
+
 from typing import Any, Callable
 
 import mujoco

@@ -35,7 +35,7 @@ from mjlab.utils.logging import print_info
 from mjlab.utils.spaces import Box
 from mjlab.utils.spaces import Dict as DictSpace
 from mjlab.viewer.debug_visualizer import DebugVisualizer
-from mjlab.viewer.native import OffscreenRenderer
+from mjlab.viewer.offscreen_renderer import OffscreenRenderer
 from mjlab.viewer.viewer_config import ViewerConfig
 
 
