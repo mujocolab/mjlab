@@ -65,6 +65,16 @@ class Scene:
 
   @property
   def env_origins(self) -> torch.Tensor:
+    """Per-environment position offsets. Shape: (num_envs, 3).
+
+    Defines where each parallel environment is located in world coordinates. Used for:
+    - Terrain curriculum: places each env at a different sub-terrain.
+    - Spatial separation: keeps envs separated for easier visualization.
+
+    Only affects entities with per-world position storage (floating-base via `qpos`,
+    fixed-base mocap via `mocap_pos`). Static fixed-base entity positions are identical
+    across envs.
+    """
     if self._terrain is not None:
       assert self._terrain.env_origins is not None
       return self._terrain.env_origins
