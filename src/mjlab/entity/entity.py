@@ -196,11 +196,9 @@ class Entity:
   def _add_initial_state_keyframe(self) -> None:
     qpos_components = []
 
-    # Free joint pose.
     if self._free_joint is not None:
       qpos_components.extend([self.cfg.init_state.pos, self.cfg.init_state.rot])
 
-    # Articulated joint positions.
     joint_pos = None
     if self._non_free_joints:
       joint_pos = resolve_expr(self.cfg.init_state.joint_pos, self.joint_names, 0.0)
@@ -209,7 +207,6 @@ class Entity:
     key_qpos = np.hstack(qpos_components) if qpos_components else np.array([])
     key = self._spec.add_key(name="init_state", qpos=key_qpos)
 
-    # Actuator controls.
     if self.is_actuated and joint_pos is not None:
       name_to_pos = {name: joint_pos[i] for i, name in enumerate(self.joint_names)}
       ctrl = []
