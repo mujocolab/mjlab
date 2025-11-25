@@ -434,30 +434,19 @@ def rotation_matrix_from_vectors(
   return np.eye(3) + vx + vx @ vx * ((1 - c) / (s * s))
 
 
-def is_fixed_world_geometry(mj_model: mujoco.MjModel, body_id: int) -> bool:
-  """Check if a body is truly static world geometry (not per-env positioned).
-
-  This distinguishes between:
-  - Fixed world geometry (terrain, floor): rendered once, shared across envs
-  - Fixed-base mocap entities (tables, obstacles): need per-env batched rendering
-
-  A body is considered fixed world geometry if it's welded to world AND is NOT
-  a mocap body. Mocap bodies can be positioned per-environment at runtime.
-  """
-  # Worldbody itself is fixed.
-  if body_id == 0:
-    return True
-
-  # Welded to world AND not mocap = truly static
-  is_welded = mj_model.body_weldid[body_id] == 0
-  is_mocap = mj_model.body_mocapid[body_id] >= 0
-
-  return is_welded and not is_mocap
-
-
-def is_fixed_body(mj_model: mujoco.MjModel, body_id: int) -> bool:
-  """Check if a body is fixed (welded to world), regardless of mocap status."""
+def is_kinematically_fixed(mj_model: mujoco.MjModel, body_id: int) -> bool:
+  """Check if body is welded to the world (i.e., has no DoFs between it and world)."""
   return mj_model.body_weldid[body_id] == 0
+
+
+def is_static_body(mj_model: mujoco.MjModel, body_id: int) -> bool:
+  """Check if body is truly static (no joints to world AND not mocap).
+
+  Mocap bodies have body_weldid==0 but can be moved at runtime.
+  """
+  is_welded_to_world = mj_model.body_weldid[body_id] == 0
+  is_mocap = mj_model.body_mocapid[body_id] >= 0
+  return is_welded_to_world and not is_mocap
 
 
 def get_body_name(mj_model: mujoco.MjModel, body_id: int) -> str:

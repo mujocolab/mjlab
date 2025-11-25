@@ -18,8 +18,8 @@ from mjlab.viewer.debug_visualizer import DebugVisualizer
 from mjlab.viewer.viser_conversions import (
   create_primitive_mesh,
   get_body_name,
-  is_fixed_body,
-  is_fixed_world_geometry,
+  is_kinematically_fixed,
+  is_static_body,
   merge_geoms,
   mujoco_mesh_to_trimesh,
   rotation_matrix_from_vectors,
@@ -173,7 +173,7 @@ class ViserMujocoScene(DebugVisualizer):
 
     # Find first non-fixed body for camera tracking.
     for body_id in range(mj_model.nbody):
-      if not is_fixed_body(mj_model, body_id):
+      if not is_kinematically_fixed(mj_model, body_id):
         scene._tracked_body_id = body_id
         break
 
@@ -599,7 +599,7 @@ class ViserMujocoScene(DebugVisualizer):
       body_name = get_body_name(self.mj_model, body_id)
 
       # Fixed world geometry. We'll assume this is shared between all environments.
-      if is_fixed_world_geometry(self.mj_model, body_id):
+      if is_static_body(self.mj_model, body_id):
         # Create both visual and collision geoms for fixed bodies (terrain, floor, etc.)
         # but show them all since they're static.
         all_geoms = []
@@ -657,7 +657,7 @@ class ViserMujocoScene(DebugVisualizer):
       body_id = self.mj_model.geom_bodyid[i]
 
       # Skip fixed world geometry.
-      if is_fixed_world_geometry(self.mj_model, body_id):
+      if is_static_body(self.mj_model, body_id):
         continue
 
       geom_group = self.mj_model.geom_group[i]
