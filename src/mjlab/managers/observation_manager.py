@@ -236,6 +236,7 @@ class ObservationManager(ManagerBase):
           continue
 
         from copy import copy
+
         term_cfg = copy(term_cfg)
 
         self._resolve_common_term_cfg(term_name, term_cfg)
