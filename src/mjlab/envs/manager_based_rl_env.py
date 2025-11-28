@@ -41,14 +41,11 @@ from mjlab.viewer.viewer_config import ViewerConfig
 
 @dataclass(kw_only=True)
 class ManagerBasedRlEnvCfg:
-  """Configuration for a manager-based RL environment.
-
-  Combines base environment settings with RL-specific configuration
-  (rewards, terminations, commands, curriculum).
-  """
+  """Configuration for a manager-based RL environment."""
 
   # Base environment configuration.
   decimation: int
+  """Number of simulation steps per environment step."""
   scene: SceneCfg
   observations: dict[str, ObservationGroupCfg]
   actions: dict[str, ActionTermCfg]
@@ -66,19 +63,32 @@ class ManagerBasedRlEnvCfg:
 
   # RL-specific configuration.
   episode_length_s: float = 0.0
+  """Duration of an episode (in seconds).
+
+  Episode length in steps is computed as:
+    ceil(episode_length_s / (sim.mujoco.timestep * decimation))
+  """
   rewards: dict[str, RewardTermCfg] = field(default_factory=dict)
+  """Reward terms configuration."""
   terminations: dict[str, TerminationTermCfg] = field(default_factory=dict)
+  """Termination terms configuration."""
   commands: dict[str, CommandTermCfg] | None = None
+  """Command terms configuration. If None, no commands are used."""
   curriculum: dict[str, CurriculumTermCfg] | None = None
+  """Curriculum terms configuration. If None, no curriculum is used."""
   is_finite_horizon: bool = False
+  """Whether the task has a finite or infinite horizon. Defaults to False (infinite).
+
+  - **Finite horizon (True)**: The time limit defines the task boundary. When reached,
+    no future value exists beyond it, so the agent receives a terminal done signal.
+  - **Infinite horizon (False)**: The time limit is an artificial cutoff. The agent
+    receives a truncated done signal to bootstrap the value of continuing beyond the
+    limit.
+  """
 
 
 class ManagerBasedRlEnv:
-  """Manager-based environment with RL support.
-
-  Combines base environment management (scene, simulation, managers) with
-  RL-specific features (rewards, terminations, commands, curriculum).
-  """
+  """Manager-based RL environment."""
 
   is_vector_env = True
   metadata = {
@@ -95,14 +105,6 @@ class ManagerBasedRlEnv:
     render_mode: str | None = None,
     **kwargs,
   ) -> None:
-    """Initialize the environment.
-
-    Args:
-        cfg: Environment configuration
-        device: Device for computation (e.g., "cuda:0")
-        render_mode: Rendering mode ("rgb_array" or None)
-        **kwargs: Additional arguments (unused, for compatibility)
-    """
     # Initialize base environment state.
     self.cfg = cfg
     if self.cfg.seed is not None:
@@ -216,7 +218,8 @@ class ManagerBasedRlEnv:
 
     self.sim.expand_model_fields(self.event_manager.domain_randomization_fields)
 
-    # Command manager (must be before observation manager since observations may reference commands).
+    # Command manager (must be before observation manager since observations
+    # may reference commands).
     if self.cfg.commands is not None:
       self.command_manager = CommandManager(self.cfg.commands, self)
     else:
@@ -256,16 +259,6 @@ class ManagerBasedRlEnv:
     env_ids: torch.Tensor | None = None,
     options: dict[str, Any] | None = None,
   ) -> tuple[types.VecEnvObs, dict]:
-    """Reset the environment.
-
-    Args:
-        seed: Seed for random number generation
-        env_ids: Environment indices to reset (default: all)
-        options: Additional reset options (unused)
-
-    Returns:
-        Observation and extras dict
-    """
     del options  # Unused.
     if env_ids is None:
       env_ids = torch.arange(self.num_envs, dtype=torch.int64, device=self.device)
@@ -278,14 +271,6 @@ class ManagerBasedRlEnv:
     return self.obs_buf, self.extras
 
   def step(self, action: torch.Tensor) -> types.VecEnvStepReturn:
-    """Step the environment.
-
-    Args:
-        action: Action tensor to apply
-
-    Returns:
-        Tuple of (observations, rewards, terminated, truncated, extras)
-    """
     self.action_manager.process_action(action.to(self.device))
 
     for _ in range(self.cfg.decimation):
@@ -346,20 +331,11 @@ class ManagerBasedRlEnv:
       )
 
   def close(self) -> None:
-    """Close the environment and free resources."""
     if self._offline_renderer is not None:
       self._offline_renderer.close()
 
   @staticmethod
   def seed(seed: int = -1) -> int:
-    """Set the random seed.
-
-    Args:
-        seed: Seed value (-1 = random)
-
-    Returns:
-        The actual seed used
-    """
     if seed == -1:
       seed = np.random.randint(0, 10_000)
     print_info(f"Setting seed: {seed}")
@@ -367,21 +343,12 @@ class ManagerBasedRlEnv:
     return seed
 
   def update_visualizers(self, visualizer: DebugVisualizer) -> None:
-    """Update debug visualizers.
-
-    Args:
-        visualizer: Debug visualizer instance
-    """
     for mod in self.manager_visualizers.values():
       mod.debug_vis(visualizer)
 
   # Private methods.
 
   def _configure_gym_env_spaces(self) -> None:
-    """Configure observation and action spaces.
-
-    Uses mjlab.spaces instead of gymnasium.spaces.
-    """
     from mjlab.utils.spaces import batch_space
 
     self.single_observation_space = DictSpace()
