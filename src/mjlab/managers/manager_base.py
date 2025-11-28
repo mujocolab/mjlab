@@ -85,9 +85,8 @@ class ManagerBase(abc.ABC):
 
   def _resolve_common_term_cfg(self, term_name: str, term_cfg: ManagerTermBaseCfg):
     del term_name  # Unused.
-    for key, value in term_cfg.params.items():
+    for value in term_cfg.params.values():
       if isinstance(value, SceneEntityCfg):
         value.resolve(self._env.scene)
-        term_cfg.params[key] = value
     if inspect.isclass(term_cfg.func):
       term_cfg.func = term_cfg.func(cfg=term_cfg, env=self._env)

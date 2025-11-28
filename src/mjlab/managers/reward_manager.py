@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import TYPE_CHECKING
 
 import torch
@@ -22,7 +23,7 @@ class RewardManager(ManagerBase):
     self._term_cfgs: list[RewardTermCfg] = list()
     self._class_term_cfgs: list[RewardTermCfg] = list()
 
-    self.cfg = cfg
+    self.cfg = deepcopy(cfg)
     super().__init__(env=env)
     self._episode_sums = dict()
     for term_name in self._term_names:

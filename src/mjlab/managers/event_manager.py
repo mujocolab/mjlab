@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import TYPE_CHECKING
 
 import torch
@@ -18,7 +19,7 @@ class EventManager(ManagerBase):
   _env: ManagerBasedRlEnv
 
   def __init__(self, cfg: dict[str, EventTermCfg], env: ManagerBasedRlEnv):
-    self.cfg = cfg
+    self.cfg = deepcopy(cfg)
     self._mode_term_names: dict[EventMode, list[str]] = dict()
     self._mode_term_cfgs: dict[EventMode, list[EventTermCfg]] = dict()
     self._mode_class_term_cfgs: dict[EventMode, list[EventTermCfg]] = dict()

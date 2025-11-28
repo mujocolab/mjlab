@@ -1,5 +1,6 @@
 """Observation manager for computing observations."""
 
+from copy import deepcopy
 from typing import Sequence
 
 import numpy as np
@@ -14,7 +15,7 @@ from mjlab.utils.noise import noise_cfg, noise_model
 
 class ObservationManager(ManagerBase):
   def __init__(self, cfg: dict[str, ObservationGroupCfg], env):
-    self.cfg = cfg
+    self.cfg = deepcopy(cfg)
     super().__init__(env=env)
 
     self._group_obs_dim: dict[str, tuple[int, ...] | list[tuple[int, ...]]] = dict()
@@ -235,6 +236,9 @@ class ObservationManager(ManagerBase):
           print(f"term: {term_name} set to None, skipping...")
           continue
 
+        # NOTE: This deepcopy is important to avoid cross-group contamination of term
+        # configs.
+        term_cfg = deepcopy(term_cfg)
         self._resolve_common_term_cfg(term_name, term_cfg)
 
         if not group_cfg.enable_corruption:

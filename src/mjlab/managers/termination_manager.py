@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import TYPE_CHECKING, Sequence
 
 import torch
@@ -22,7 +23,7 @@ class TerminationManager(ManagerBase):
     self._term_cfgs: list[TerminationTermCfg] = list()
     self._class_term_cfgs: list[TerminationTermCfg] = list()
 
-    self.cfg = cfg
+    self.cfg = deepcopy(cfg)
     super().__init__(env)
 
     self._term_dones = dict()
