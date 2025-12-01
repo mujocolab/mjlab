@@ -43,7 +43,7 @@ dependencies = [
     "viser>=1.0.16",
     "moviepy",
     "tensordict",
-    "rsl-rl-lib",
+    "rsl-rl-lib>=3.2.0",
     "tensorboard>=2.20.0",
     "onnxscript>=0.5.4",
     "wandb>=0.22.3",

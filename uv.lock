@@ -1180,7 +1180,7 @@ requires-dist = [
     { name = "mujoco-warp", git = "https://github.com/google-deepmind/mujoco_warp?rev=e605c406363805d949b75d50dd5ffb3d79bc3f70" },
     { name = "onnxscript", specifier = ">=0.5.4" },
     { name = "prettytable" },
-    { name = "rsl-rl-lib" },
+    { name = "rsl-rl-lib", specifier = ">=3.2.0" },
     { name = "tensorboard", specifier = ">=2.20.0" },
     { name = "tensordict" },
     { name = "torch", specifier = ">=2.7.0" },
@@ -2523,21 +2523,22 @@ wheels = [
 
 [[package]]
 name = "rsl-rl-lib"
-version = "3.1.1"
+version = "3.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "gitpython" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.3.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "onnx" },
+    { name = "onnxscript" },
     { name = "tensordict" },
     { name = "torch", version = "2.9.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'darwin'" },
     { name = "torch", version = "2.9.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "sys_platform != 'darwin'" },
     { name = "torchvision" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/bb/f8/98ca5bcb4c5d6741faf6de246ff4398d7313de0b31d42f1fc6f60c862358/rsl_rl_lib-3.1.1.tar.gz", hash = "sha256:d3f80d1b93943d405b2e762bd91bf4cc7ae270a5f5f8907aac4d9bb9c22a1ad8", size = 51957, upload-time = "2025-10-10T13:41:13.46Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e7/90/4a06e879f888bdabc2d9e782e15350b20d35c7928cfdda9e45a2d0acfab8/rsl_rl_lib-3.2.0.tar.gz", hash = "sha256:d1f23097921e230274e02c837a6b6f8af2ee81e087762e8b77ffa3fbd32dd0de", size = 38869, upload-time = "2025-11-28T16:23:35.16Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d4/35/a3a65f5fb2cb9e63cba3b5e13d456507f043e4cb436bb25c56301dffcd0a/rsl_rl_lib-3.1.1-py3-none-any.whl", hash = "sha256:2cddcdb7192ca109aeaa60a5ebfc3b825a415426418425cb991d5b171eb36392", size = 49422, upload-time = "2025-10-10T13:41:11.809Z" },
+    { url = "https://files.pythonhosted.org/packages/d8/fd/11d5b88be193493c53b4633732eb628e49b9f802efbaf3350c3265c61abf/rsl_rl_lib-3.2.0-py3-none-any.whl", hash = "sha256:5e822900d1cccf3f7fc02875bdb5612388785b8de5f9c2a5a0074f3d8363859a", size = 55196, upload-time = "2025-11-28T16:23:34.123Z" },
 ]
 
 [[package]]
