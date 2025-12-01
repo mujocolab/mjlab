@@ -19,7 +19,7 @@ from mjlab.utils.spec import auto_wrap_fixed_base_mocap
 from mjlab.utils.string import resolve_expr
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class EntityIndexing:
   """Maps entity elements to global indices and addresses in the simulation."""
 
@@ -128,12 +128,12 @@ class Entity:
     self._spec = auto_wrap_fixed_base_mocap(cfg.spec_fn)()
 
     # Identify free joint and articulated joints.
-    all_joints = self._spec.joints
+    self._all_joints = self._spec.joints
     self._free_joint = None
-    self._non_free_joints = tuple(all_joints)
-    if all_joints and all_joints[0].type == mujoco.mjtJoint.mjJNT_FREE:
-      self._free_joint = all_joints[0]
-      self._non_free_joints = tuple(all_joints[1:])
+    self._non_free_joints = tuple(self._all_joints)
+    if self._all_joints and self._all_joints[0].type == mujoco.mjtJoint.mjJNT_FREE:
+      self._free_joint = self._all_joints[0]
+      self._non_free_joints = tuple(self._all_joints[1:])
     self._actuators: list[actuator.Actuator] = []
 
     self._apply_spec_editors()
@@ -227,6 +227,10 @@ class Entity:
     return self._actuators
 
   @property
+  def all_joint_names(self) -> tuple[str, ...]:
+    return tuple(j.name.split("/")[-1] for j in self._all_joints)
+
+  @property
   def joint_names(self) -> tuple[str, ...]:
     return tuple(j.name.split("/")[-1] for j in self._non_free_joints)
 
@@ -237,6 +241,10 @@ class Entity:
   @property
   def geom_names(self) -> tuple[str, ...]:
     return tuple(g.name.split("/")[-1] for g in self.spec.geoms)
+
+  @property
+  def tendon_names(self) -> list[str]:
+    return [t.name.split("/")[-1] for t in self._spec.tendons]
 
   @property
   def site_names(self) -> tuple[str, ...]:
@@ -483,6 +491,15 @@ class Entity:
 
   def clear_state(self, env_ids: torch.Tensor | slice | None = None) -> None:
     self._data.clear_state(env_ids)
+
+  def write_ctrl_to_sim(self, ctrl, ctrl_ids) -> None:
+    """Write control inputs to the simulation.
+
+    Args:
+      ctrl: A tensor of control inputs.
+      ctrl_ids: A tensor of control indices.
+    """
+    self._data.write_ctrl(ctrl, ctrl_ids)
 
   def write_root_state_to_sim(
     self, root_state: torch.Tensor, env_ids: torch.Tensor | slice | None = None
