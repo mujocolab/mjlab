@@ -37,6 +37,14 @@ def joint_torques_l2(
   return torch.sum(torch.square(asset.data.actuator_force), dim=1)
 
 
+def joint_vel_l2(
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
+) -> torch.Tensor:
+  """Penalize joint accelerations on the articulation using L2 squared kernel."""
+  asset: Entity = env.scene[asset_cfg.name]
+  return torch.sum(torch.square(asset.data.joint_vel[:, asset_cfg.joint_ids]), dim=1)
+
+
 def joint_acc_l2(
   env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
 ) -> torch.Tensor:
