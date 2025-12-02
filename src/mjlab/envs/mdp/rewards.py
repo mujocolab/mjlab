@@ -63,7 +63,9 @@ def action_rate_l2(env: ManagerBasedRlEnv) -> torch.Tensor:
 def action_acc_l2(env: ManagerBasedRlEnv) -> torch.Tensor:
   """Penalize the acceleration of the actions using L2 squared kernel."""
   action_acc = (
-    env.action_manager.action - 2 * env.action_manager.prev_action + env.action_manager.prev_prev_action
+    env.action_manager.action
+    - 2 * env.action_manager.prev_action
+    + env.action_manager.prev_prev_action
   )
   return torch.sum(torch.square(action_acc), dim=1)
 

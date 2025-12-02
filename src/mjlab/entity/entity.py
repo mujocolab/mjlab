@@ -243,8 +243,8 @@ class Entity:
     return tuple(g.name.split("/")[-1] for g in self.spec.geoms)
 
   @property
-  def tendon_names(self) -> list[str]:
-    return [t.name.split("/")[-1] for t in self._spec.tendons]
+  def tendon_names(self) -> tuple[str, ...]:
+    return tuple(t.name.split("/")[-1] for t in self._spec.tendons)
 
   @property
   def site_names(self) -> tuple[str, ...]:
@@ -504,7 +504,7 @@ class Entity:
 
   def write_ctrl_to_sim(
     self, ctrl: torch.Tensor, ctrl_ids: torch.Tensor | slice | None = None
-    ) -> None:
+  ) -> None:
     """Write control inputs to the simulation.
 
     Args:
