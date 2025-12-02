@@ -40,7 +40,7 @@ def joint_torques_l2(
 def joint_vel_l2(
   env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
 ) -> torch.Tensor:
-  """Penalize joint accelerations on the articulation using L2 squared kernel."""
+  """Penalize joint velocities on the articulation using L2 squared kernel."""
   asset: Entity = env.scene[asset_cfg.name]
   return torch.sum(torch.square(asset.data.joint_vel[:, asset_cfg.joint_ids]), dim=1)
 
@@ -58,6 +58,14 @@ def action_rate_l2(env: ManagerBasedRlEnv) -> torch.Tensor:
   return torch.sum(
     torch.square(env.action_manager.action - env.action_manager.prev_action), dim=1
   )
+
+
+def action_acc_l2(env: ManagerBasedRlEnv) -> torch.Tensor:
+  """Penalize the acceleration of the actions using L2 squared kernel."""
+  action_acc = (
+    env.action_manager.action - 2 * env.action_manager.prev_action + env.action_manager.prev_prev_action
+  )
+  return torch.sum(torch.square(action_acc), dim=1)
 
 
 def joint_pos_limits(

@@ -305,6 +305,16 @@ class Entity:
       actuator_subset = self.actuator_names
     return resolve_matching_names(name_keys, actuator_subset, preserve_order)
 
+  def find_tendons(
+    self,
+    name_keys: str | Sequence[str],
+    tendon_subset: Sequence[str] | None = None,
+    preserve_order: bool = False,
+  ) -> tuple[list[int], list[str]]:
+    if tendon_subset is None:
+      tendon_subset = self.tendon_names
+    return resolve_matching_names(name_keys, tendon_subset, preserve_order)
+
   def find_joints_by_actuator_names(
     self,
     actuator_name_keys: str | Sequence[str],
@@ -492,7 +502,9 @@ class Entity:
   def clear_state(self, env_ids: torch.Tensor | slice | None = None) -> None:
     self._data.clear_state(env_ids)
 
-  def write_ctrl_to_sim(self, ctrl, ctrl_ids) -> None:
+  def write_ctrl_to_sim(
+    self, ctrl: torch.Tensor, ctrl_ids: torch.Tensor | slice | None = None
+    ) -> None:
     """Write control inputs to the simulation.
 
     Args:

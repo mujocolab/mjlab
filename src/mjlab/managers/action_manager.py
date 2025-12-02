@@ -52,7 +52,7 @@ class ActionManager(ManagerBase):
       (self.num_envs, self.total_action_dim), device=self.device
     )
     self._prev_action = torch.zeros_like(self._action)
-    self._prev2_action = torch.zeros_like(self._action)
+    self._prev_prev_action = torch.zeros_like(self._action)
 
   def __str__(self) -> str:
     msg = f"<ActionManager> contains {len(self._term_names)} active terms.\n"
@@ -86,8 +86,8 @@ class ActionManager(ManagerBase):
     return self._prev_action
 
   @property
-  def prev2_action(self) -> torch.Tensor:
-    return self._prev2_action
+  def prev_prev_action(self) -> torch.Tensor:
+    return self._prev_prev_action
 
   @property
   def active_terms(self) -> list[str]:
@@ -103,7 +103,7 @@ class ActionManager(ManagerBase):
       env_ids = slice(None)
     # Reset action history.
     self._prev_action[env_ids] = 0.0
-    self._prev2_action[env_ids] = 0.0
+    self._prev_prev_action[env_ids] = 0.0
     self._action[env_ids] = 0.0
     # Reset action terms.
     for term in self._terms.values():
@@ -115,7 +115,7 @@ class ActionManager(ManagerBase):
       raise ValueError(
         f"Invalid action shape, expected: {self.total_action_dim}, received: {action.shape[1]}."
       )
-    self._prev2_action[:] = self._prev_action
+    self._prev_prev_action[:] = self._prev_action
     self._prev_action[:] = self._action
     self._action[:] = action.to(self.device)
     # Split and apply.
