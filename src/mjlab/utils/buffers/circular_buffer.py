@@ -184,6 +184,8 @@ class CircularBuffer:
       slice(None) if batch_ids is None else batch_ids
     )
     self._num_pushes[ids] = 0
+    if self._buffer is not None:
+      self._buffer[:, ids] = 0.0
 
   def append(self, data: torch.Tensor) -> None:
     """Append a new frame for all batch elements.
