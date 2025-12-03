@@ -134,6 +134,9 @@ class ObservationGroupCfg:
   enable_corruption: bool = False
   history_length: int | None = None
   flatten_history_dim: bool = True
+  time_major: bool = False
+  """When True with history, concatenates as [A_t0, B_t0, ..., A_t1, B_t1, ...] (time-major).
+  When False (default), concatenates as [A_t0, A_t1, ..., B_t0, B_t1, ...] (term-major)."""
 
 
 ##

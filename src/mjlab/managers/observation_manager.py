@@ -163,6 +163,8 @@ class ObservationManager(ManagerBase):
   ) -> torch.Tensor | dict[str, torch.Tensor]:
     group_term_names = self._group_obs_term_names[group_name]
     group_obs: dict[str, torch.Tensor] = {}
+    # Keep unflattened history per term for time-major concatenation.
+    per_term_history: dict[str, torch.Tensor] = {}
     obs_terms = zip(
       group_term_names, self._group_obs_term_cfgs[group_name], strict=False
     )
@@ -186,7 +188,9 @@ class ObservationManager(ManagerBase):
         circular_buffer = self._group_obs_term_history_buffer[group_name][term_name]
         if update_history or not circular_buffer.is_initialized:
           circular_buffer.append(obs)
-
+        # Store unflattened (batch, history, dim) for time-major concatenation.
+        per_term_history[term_name] = circular_buffer.buffer
+        # Preserve original per-term output shape behavior when not concatenating.
         if term_cfg.flatten_history_dim:
           group_obs[term_name] = circular_buffer.buffer.reshape(self._env.num_envs, -1)
         else:
@@ -194,6 +198,40 @@ class ObservationManager(ManagerBase):
       else:
         group_obs[term_name] = obs
     if self._group_obs_concatenate[group_name]:
+      # If any term has history and time_major is enabled, build time-major frames.
+      if len(per_term_history) > 0 and self._group_obs_time_major[group_name]:
+        # Determine common history length (assume consistent across terms in the group).
+        # Prepare list of per-term tensors with shape (B, H, D_term).
+        hist_tensors: list[torch.Tensor] = []
+        B = self._env.num_envs
+        # Use history length from the first term that has history.
+        first_hist_name = next(iter(per_term_history.keys()))
+        H = per_term_history[first_hist_name].shape[1]
+        for name in group_term_names:
+          if name in per_term_history:
+            t = per_term_history[name]
+            # Safety: ensure same H.
+            if t.shape[1] != H:
+              raise RuntimeError(
+                f"Mismatched history length in group '{group_name}' for term '{name}':"
+                f" expected {H}, got {t.shape[1]}"
+              )
+            # t: (B, H, D)
+            hist_tensors.append(t)
+          else:
+            # No history for this term: expand to (B, H, D)
+            t2d = group_obs[name]
+            # Ensure 2D: (B, D)
+            if t2d.dim() == 1:
+              t2d = t2d.view(B, -1)
+            t3d = t2d.unsqueeze(1).expand(B, H, t2d.shape[-1])
+            hist_tensors.append(t3d)
+        # Concatenate across terms per time step by concatenating last dim directly.
+        # Result: (B, H, sum(D_i))
+        time_major = torch.cat(hist_tensors, dim=-1)
+        # Flatten time dimension at the end: (B, H * sum(D_i))
+        return time_major.reshape(B, -1)
+      # No history: regular concatenation across terms.
       return torch.cat(
         list(group_obs.values()), dim=self._group_obs_concatenate_dim[group_name]
       )
@@ -206,6 +244,7 @@ class ObservationManager(ManagerBase):
     self._group_obs_class_term_cfgs: dict[str, list[ObservationTermCfg]] = dict()
     self._group_obs_concatenate: dict[str, bool] = dict()
     self._group_obs_concatenate_dim: dict[str, int] = dict()
+    self._group_obs_time_major: dict[str, bool] = dict()
     self._group_obs_class_instances: dict[str, noise_model.NoiseModel] = {}
     self._group_obs_term_delay_buffer: dict[str, dict[str, DelayBuffer]] = dict()
     self._group_obs_term_history_buffer: dict[str, dict[str, CircularBuffer]] = dict()
@@ -229,6 +268,7 @@ class ObservationManager(ManagerBase):
         if group_cfg.concatenate_dim >= 0
         else group_cfg.concatenate_dim
       )
+      self._group_obs_time_major[group_name] = group_cfg.time_major
 
       for term_name, term_cfg in group_cfg.terms.items():
         term_cfg: ObservationTermCfg | None
