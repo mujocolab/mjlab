@@ -1,0 +1,13 @@
+uv run train Mjlab-Velocity-Flat-Unitree-G1 --env.scene.num-envs 4096 --agent.resume True --wandb-run-path valeriospagnoli-sapienza-universit-di-roma/mjlab/runs/7uhlofca
+
+uv run play Mjlab-Velocity-Flat-Unitree-G1 --wandb-run-path valeriospagnoli-sapienza-universit-di-roma/mjlab/runs/nz46fgv3 --viewer viser --num_envs 10
+
+
+# Train on flat terrain
+uv run python src/mjlab/scripts/train.py Mjlab-Velocity-Flat-Booster-T1 --env.num_envs 4096
+
+# Train on rough terrain  
+uv run python src/mjlab/scripts/train.py Mjlab-Velocity-Rough-Booster-T1 --env.num_envs 4096
+
+# View the robot model
+uv run python src/mjlab/asset_zoo/robots/booster_t1/t1_constants.py
