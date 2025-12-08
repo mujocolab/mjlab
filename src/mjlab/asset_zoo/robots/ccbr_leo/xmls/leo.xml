@@ -13,9 +13,6 @@
       </default>
     </default>
     <mesh maxhullvert="64" />
-    <default class="floor">
-      <geom contype="1" conaffinity="1" group="0" type="plane" size="0 0 0.05" material="groundplane" rgba="1 1 1 0.3" />
-    </default>
   </default>
 
   <compiler angle="radian" />
@@ -25,6 +22,7 @@
     <material name="Chassis_Plate_material" rgba="0.796078 0.823529 0.937255 1" />
     <material name="Actuator_Mount_material" rgba="0.615686 0.811765 0.929412 1" />
     <material name="WCP_0783_Rev1_material" rgba="0.647059 0.619608 0.584314 1" />
+    <material name="Ball_End_Effector_material" rgba="0 0 0 1" />
     <material name="default_material" rgba="0.7 0.7 0.7 1" />
     <material name="collision_material" rgba="0.0 0.0 0.0 0.0" />
     <mesh name="Chassis_Plate_collision.stl" file="Chassis_Plate_collision.stl" />
@@ -35,30 +33,38 @@
     <mesh name="Actuator_Mount.stl" file="Actuator_Mount.stl" />
     <mesh name="WCP_0783_Rev1_collision.stl" file="WCP_0783_Rev1_collision.stl" />
     <mesh name="WCP_0783_Rev1.stl" file="WCP_0783_Rev1.stl" />
+    <mesh name="Ball_End_Effector_collision.stl" file="Ball_End_Effector_collision.stl" />
+    <mesh name="Ball_End_Effector.stl" file="Ball_End_Effector.stl" />
     <mesh name="Crescent_Mount_1_2_collision.stl" file="Crescent_Mount_1_2_collision.stl" />
     <mesh name="Crescent_Mount_1_2.stl" file="Crescent_Mount_1_2.stl" />
     <mesh name="Actuator_Mount_2_collision.stl" file="Actuator_Mount_2_collision.stl" />
     <mesh name="Actuator_Mount_2.stl" file="Actuator_Mount_2.stl" />
     <mesh name="WCP_0783_Rev1_2_collision.stl" file="WCP_0783_Rev1_2_collision.stl" />
     <mesh name="WCP_0783_Rev1_2.stl" file="WCP_0783_Rev1_2.stl" />
+    <mesh name="Ball_End_Effector_2_collision.stl" file="Ball_End_Effector_2_collision.stl" />
+    <mesh name="Ball_End_Effector_2.stl" file="Ball_End_Effector_2.stl" />
     <mesh name="Crescent_Mount_1_3_collision.stl" file="Crescent_Mount_1_3_collision.stl" />
     <mesh name="Crescent_Mount_1_3.stl" file="Crescent_Mount_1_3.stl" />
     <mesh name="Actuator_Mount_4_collision.stl" file="Actuator_Mount_4_collision.stl" />
     <mesh name="Actuator_Mount_4.stl" file="Actuator_Mount_4.stl" />
     <mesh name="WCP_0783_Rev1_4_collision.stl" file="WCP_0783_Rev1_4_collision.stl" />
     <mesh name="WCP_0783_Rev1_4.stl" file="WCP_0783_Rev1_4.stl" />
+    <mesh name="Ball_End_Effector_4_collision.stl" file="Ball_End_Effector_4_collision.stl" />
+    <mesh name="Ball_End_Effector_4.stl" file="Ball_End_Effector_4.stl" />
     <mesh name="Crescent_Mount_1_4_collision.stl" file="Crescent_Mount_1_4_collision.stl" />
     <mesh name="Crescent_Mount_1_4.stl" file="Crescent_Mount_1_4.stl" />
     <mesh name="Actuator_Mount_3_collision.stl" file="Actuator_Mount_3_collision.stl" />
     <mesh name="Actuator_Mount_3.stl" file="Actuator_Mount_3.stl" />
     <mesh name="WCP_0783_Rev1_3_collision.stl" file="WCP_0783_Rev1_3_collision.stl" />
     <mesh name="WCP_0783_Rev1_3.stl" file="WCP_0783_Rev1_3.stl" />
+    <mesh name="Ball_End_Effector_3_collision.stl" file="Ball_End_Effector_3_collision.stl" />
+    <mesh name="Ball_End_Effector_3.stl" file="Ball_End_Effector_3.stl" />
     <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300" />
     <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2" />
   </asset>
 
   <worldbody>
-    <body name="base" pos="0.00000000 0.00000000 0.28767268" quat="1 0 0 0" childclass="robot">
+    <body name="base" pos="0.00000000 0.00000000 0.31813934" quat="1 0 0 0" childclass="robot">
       <freejoint name="floating_base" />
       <geom name="base_visual" pos="0 0 0" quat="0.7071054825112363 0.7071080798594735 0.0 0.0" material="base_material" type="sphere" size="0.01" class="visual" />
       <body name="Chassis_Plate" pos="0 0 0" quat="0.7071054825112363 0.7071080798594735 0.0 0.0">
@@ -77,9 +83,14 @@
             <geom name="Actuator_Mount_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="Actuator_Mount_material" type="mesh" mesh="Actuator_Mount.stl" class="visual" />
             <body name="WCP_0783_Rev1" pos="0 0.117305 -0.063082" quat="1.0 0.0 0.0 0.0">
               <joint name="back_left_knee_pitch" type="hinge" ref="0.0" class="GO-M8010-6" range="0 1.658063" axis="0 0 -1" />
-              <inertial pos="0 -0.099065 -0.018054" quat="1.0 0.0 0.0 0.0" mass="0.235776" diaginertia="0.002127 7.6e-05 0.002104" />
+              <inertial pos="0 -0.072388 -0.017794" quat="1.0 0.0 0.0 0.0" mass="0.202993" diaginertia="0.001082 7e-05 0.001058" />
               <geom name="WCP_0783_Rev1_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="WCP_0783_Rev1_collision.stl" class="collision" />
               <geom name="WCP_0783_Rev1_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="WCP_0783_Rev1_material" type="mesh" mesh="WCP_0783_Rev1.stl" class="visual" />
+              <body name="Ball_End_Effector" pos="0 -0.265760 -0.019662" quat="0.7071068967259818 -0.7071066656470943 0.0 0.0">
+                <inertial pos="0 0 0.000516" quat="1.0 0.0 0.0 0.0" mass="0.032783" diaginertia="6e-06 6e-06 6e-06" />
+                <geom name="Ball_End_Effector_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="Ball_End_Effector_collision.stl" class="collision" />
+                <geom name="Ball_End_Effector_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="Ball_End_Effector_material" type="mesh" mesh="Ball_End_Effector.stl" class="visual" />
+              </body>
             </body>
           </body>
         </body>
@@ -95,9 +106,14 @@
             <geom name="Actuator_Mount_2_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="Actuator_Mount_material" type="mesh" mesh="Actuator_Mount_2.stl" class="visual" />
             <body name="WCP_0783_Rev1_2" pos="-0.098600 -0.064361 0.063082" quat="-1.6376864583171541e-07 -0.945518594442835 -0.32556809973155476 -5.6390056348347284e-08">
               <joint name="back_right_knee_pitch" type="hinge" ref="0.0" class="GO-M8010-6" range="0 1.658063" axis="0 0 -1" />
-              <inertial pos="0.098688 -0.008634 -0.018372" quat="1.0 0.0 0.0 0.0" mass="0.235776" diaginertia="9.1e-05 0.002111 0.002104" />
+              <inertial pos="0.072113 -0.006309 -0.018113" quat="1.0 0.0 0.0 0.0" mass="0.202993" diaginertia="7.8e-05 0.001074 0.001058" />
               <geom name="WCP_0783_Rev1_2_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="WCP_0783_Rev1_2_collision.stl" class="collision" />
               <geom name="WCP_0783_Rev1_2_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="WCP_0783_Rev1_material" type="mesh" mesh="WCP_0783_Rev1_2.stl" class="visual" />
+              <body name="Ball_End_Effector_2" pos="0.264749 -0.023162 -0.019975" quat="0.5213338572202366 -0.5213336868510204 -0.47771437445075254 0.47771453056539764">
+                <inertial pos="0 0 0.000516" quat="1.0 0.0 0.0 0.0" mass="0.032783" diaginertia="6e-06 6e-06 6e-06" />
+                <geom name="Ball_End_Effector_2_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="Ball_End_Effector_2_collision.stl" class="collision" />
+                <geom name="Ball_End_Effector_2_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="Ball_End_Effector_material" type="mesh" mesh="Ball_End_Effector_2.stl" class="visual" />
+              </body>
             </body>
           </body>
         </body>
@@ -113,9 +129,14 @@
             <geom name="Actuator_Mount_4_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="Actuator_Mount_material" type="mesh" mesh="Actuator_Mount_4.stl" class="visual" />
             <body name="WCP_0783_Rev1_4" pos="0.100786 0.060880 0.063082" quat="-5.3523330555371526e-08 -0.3090170528039717 0.9510564973103951 1.6472783887001024e-07">
               <joint name="front_right_knee_pitch" type="hinge" ref="0.0" class="GO-M8010-6" range="0 1.658063" axis="0 0 -1" />
-              <inertial pos="0.098688 -0.008634 -0.018372" quat="1.0 0.0 0.0 0.0" mass="0.235776" diaginertia="9.1e-05 0.002111 0.002104" />
+              <inertial pos="0.072113 -0.006309 -0.018113" quat="1.0 0.0 0.0 0.0" mass="0.202993" diaginertia="7.8e-05 0.001074 0.001058" />
               <geom name="WCP_0783_Rev1_4_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="WCP_0783_Rev1_4_collision.stl" class="collision" />
               <geom name="WCP_0783_Rev1_4_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="WCP_0783_Rev1_material" type="mesh" mesh="WCP_0783_Rev1_4.stl" class="visual" />
+              <body name="Ball_End_Effector_4" pos="0.264749 -0.023162 -0.019975" quat="0.5213338572202366 -0.5213336868510204 -0.47771437445075254 0.47771453056539764">
+                <inertial pos="0 0 0.000516" quat="1.0 0.0 0.0 0.0" mass="0.032783" diaginertia="6e-06 6e-06 6e-06" />
+                <geom name="Ball_End_Effector_4_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="Ball_End_Effector_4_collision.stl" class="collision" />
+                <geom name="Ball_End_Effector_4_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="Ball_End_Effector_material" type="mesh" mesh="Ball_End_Effector_4.stl" class="visual" />
+              </body>
             </body>
           </body>
         </body>
@@ -131,20 +152,24 @@
             <geom name="Actuator_Mount_3_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="Actuator_Mount_material" type="mesh" mesh="Actuator_Mount_3.stl" class="visual" />
             <body name="WCP_0783_Rev1_3" pos="-0.117305 0 -0.063082" quat="0.7071068967259818 0.0 0.0 0.7071066656470943">
               <joint name="front_left_knee_pitch" type="hinge" ref="0.0" class="GO-M8010-6" range="0 1.658063" axis="0 0 -1" />
-              <inertial pos="0 -0.099065 -0.018054" quat="1.0 0.0 0.0 0.0" mass="0.235776" diaginertia="0.002127 7.6e-05 0.002104" />
+              <inertial pos="0 -0.072388 -0.017794" quat="1.0 0.0 0.0 0.0" mass="0.202993" diaginertia="0.001082 7e-05 0.001058" />
               <geom name="WCP_0783_Rev1_3_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="WCP_0783_Rev1_3_collision.stl" class="collision" />
               <geom name="WCP_0783_Rev1_3_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="WCP_0783_Rev1_material" type="mesh" mesh="WCP_0783_Rev1_3.stl" class="visual" />
+              <body name="Ball_End_Effector_3" pos="0 -0.265760 -0.019662" quat="0.7071068967259818 -0.7071066656470943 0.0 0.0">
+                <inertial pos="0 0 0.000516" quat="1.0 0.0 0.0 0.0" mass="0.032783" diaginertia="6e-06 6e-06 6e-06" />
+                <geom name="Ball_End_Effector_3_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="Ball_End_Effector_3_collision.stl" class="collision" />
+                <geom name="Ball_End_Effector_3_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="Ball_End_Effector_material" type="mesh" mesh="Ball_End_Effector_3.stl" class="visual" />
+              </body>
             </body>
           </body>
         </body>
         <site name="Chassis_Plate_site" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" />
-        <site name="imu" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" group="5"/>
+        <site name="imu" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" group="5" />
       </body>
       <site name="base_site" pos="0 0 0" quat="1 0 0 0" />
       <camera name="front_camera" mode="track" fovy="90.0" quat="4.329780281177467e-17 4.329780281177466e-17 0.7071067811865475 0.7071067811865476" pos="0.0 2.0 0.5" />
       <camera name="side_camera" mode="track" fovy="90.0" quat="-0.5 -0.4999999999999999 0.5 0.5000000000000001" pos="-2.0 0.0 0.5" />
     </body>
-    <geom name="floor" class="floor" size="0 0 0.05" />
   </worldbody>
 
   <!-- <actuator>
@@ -160,20 +185,37 @@
     <motor name="front_left_hip_roll_ctrl" joint="front_left_hip_roll" class="GO-M8010-6" />
     <motor name="front_left_hip_pitch_ctrl" joint="front_left_hip_pitch" class="GO-M8010-6" />
     <motor name="front_left_knee_pitch_ctrl" joint="front_left_knee_pitch" class="GO-M8010-6" />
-  </actuator> -->
+  </actuator>
+
+  <contact>
+    <exclude body1="Chassis_Plate" body2="Crescent_Mount_1" />
+    <exclude body1="Chassis_Plate" body2="Crescent_Mount_1_2" />
+    <exclude body1="Crescent_Mount_1" body2="Actuator_Mount" />
+    <exclude body1="Chassis_Plate" body2="Crescent_Mount_1_3" />
+    <exclude body1="Chassis_Plate" body2="Crescent_Mount_1_4" />
+    <exclude body1="Crescent_Mount_1_2" body2="Actuator_Mount_2" />
+    <exclude body1="Crescent_Mount_1_4" body2="Actuator_Mount_3" />
+    <exclude body1="Crescent_Mount_1_3" body2="Actuator_Mount_4" />
+    <exclude body1="Actuator_Mount" body2="WCP_0783_Rev1" />
+    <exclude body1="Actuator_Mount_2" body2="WCP_0783_Rev1_2" />
+    <exclude body1="Actuator_Mount_3" body2="WCP_0783_Rev1_3" />
+    <exclude body1="Actuator_Mount_4" body2="WCP_0783_Rev1_4" />
+    <exclude body1="WCP_0783_Rev1" body2="Ball_End_Effector" />
+    <exclude body1="WCP_0783_Rev1_2" body2="Ball_End_Effector_2" />
+    <exclude body1="WCP_0783_Rev1_3" body2="Ball_End_Effector_3" />
+    <exclude body1="WCP_0783_Rev1_4" body2="Ball_End_Effector_4" />
+  </contact> -->
 
   <sensor>
-    <gyro name="imu_ang_vel" site="imu"/>
-    <velocimeter name="imu_lin_vel" site="imu"/>
-    <accelerometer name="imu_lin_acc" site="imu"/>
     <framepos name="base_site_pos" objtype="site" objname="base_site" />
     <framequat name="base_site_quat" objtype="site" objname="base_site" />
     <framelinvel name="base_site_linvel" objtype="site" objname="base_site" />
     <frameangvel name="base_site_angvel" objtype="site" objname="base_site" />
     <velocimeter name="base_site_vel" site="base_site" />
-    <accelerometer name="Chassis_Plate_acc" site="Chassis_Plate_site" noise="0.01" />
-    <gyro name="Chassis_Plate_gyro" site="Chassis_Plate_site" noise="0.01" />
-    <magnetometer name="Chassis_Plate_mag" site="Chassis_Plate_site" noise="0.05" />
+    <gyro name="imu_ang_vel" site="imu" />
+    <velocimeter name="imu_lin_vel" site="imu" />
+    <accelerometer name="imu_lin_acc" site="imu" />
+    <subtreeangmom name="root_angmom" body="Chassis_Plate" />
     <framepos name="Chassis_Plate_site_pos" objtype="site" objname="Chassis_Plate_site" />
     <framequat name="Chassis_Plate_site_quat" objtype="site" objname="Chassis_Plate_site" />
     <framelinvel name="Chassis_Plate_site_linvel" objtype="site" objname="Chassis_Plate_site" />

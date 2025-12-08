@@ -19,13 +19,13 @@ def ccbr_leo_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   cfg.scene.entities = {"robot": get_leo_robot_cfg()}
 
-  # Leo robot uses WCP_0783_Rev1 collision geoms as foot contacts
+  # Leo robot uses Ball_End_Effector collision geoms as foot contacts
   # Mapping: back_left, back_right, front_right, front_left
   geom_names = (
-    "WCP_0783_Rev1_collision",      # back_left
-    "WCP_0783_Rev1_2_collision",    # back_right
-    "WCP_0783_Rev1_4_collision",    # front_right
-    "WCP_0783_Rev1_3_collision",    # front_left
+    "Ball_End_Effector_collision",      # back_left
+    "Ball_End_Effector_2_collision",    # back_right
+    "Ball_End_Effector_4_collision",    # front_right
+    "Ball_End_Effector_3_collision",    # front_left
   )
   # Leo robot doesn't have foot sites, so we'll use collision geoms for contact only
   site_names = ()  # No foot sites available
@@ -86,6 +86,7 @@ def ccbr_leo_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     r"^(back|front)_(left|right)_hip_(roll|pitch)$": 0.3,
     r"^(back|front)_(left|right)_knee_pitch$": 0.6,
   }
+  cfg.rewards["pose"].weight = 0.1
 
   cfg.rewards["upright"].params["asset_cfg"].body_names = ("base",)
   cfg.rewards["body_ang_vel"].params["asset_cfg"].body_names = ("base",)
@@ -132,6 +133,10 @@ def ccbr_leo_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.scene.terrain.terrain_generator = None
 
   # Disable terrain curriculum.
+  if cfg.curriculum is not None and "command_vel" in cfg.curriculum:
+    cfg.curriculum["command_vel"].params["velocity_stages"][1]["step"] = 500 * 24
+    cfg.curriculum["command_vel"].params["velocity_stages"][2]["step"] = 1000 * 24
+  
   assert cfg.curriculum is not None
   del cfg.curriculum["terrain_levels"]
 

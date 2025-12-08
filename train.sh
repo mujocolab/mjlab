@@ -1,7 +1,7 @@
-MUJOCO_GL=glfw MJLAB_WARP_QUIET=1 uv run train \
+MUJOCO_GL=egl MJLAB_WARP_QUIET=1 uv run train \
   Mjlab-Velocity-Flat-CCBR-Leo \
-  --env.scene.num-envs 1024 \
-  --gpu-ids None \
+  --env.scene.num-envs 4096 \
+  --gpu-ids 0 \
   --agent.logger tensorboard \
   --video True \
-  --video-interval 50
+  --video-interval 2000 \
