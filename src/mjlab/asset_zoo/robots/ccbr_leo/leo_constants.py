@@ -67,14 +67,14 @@ STIFFNESS_KNEE = KNEE_ACTUATOR.reflected_inertia * NATURAL_FREQ**2
 DAMPING_KNEE = 2 * DAMPING_RATIO * KNEE_ACTUATOR.reflected_inertia * NATURAL_FREQ
 
 LEO_HIP_ACTUATOR_CFG = BuiltinPositionActuatorCfg(
-  joint_names_expr=(".*_hip_joint", ".*_thigh_joint"),
+  joint_names_expr=(".*_hip_roll", ".*_hip_pitch"),
   stiffness=STIFFNESS_HIP,
   damping=DAMPING_HIP,
   effort_limit=HIP_ACTUATOR.effort_limit,
   armature=HIP_ACTUATOR.reflected_inertia,
 )
 LEO_KNEE_ACTUATOR_CFG = BuiltinPositionActuatorCfg(
-  joint_names_expr=(".*_calf_joint",),
+  joint_names_expr=(".*_knee_pitch",),
   stiffness=STIFFNESS_KNEE,
   damping=DAMPING_KNEE,
   effort_limit=KNEE_ACTUATOR.effort_limit,
@@ -88,7 +88,7 @@ LEO_LEARNED_ACTUATOR_PATH = (
 )
 
 LEO_LEARNED_ACTUATOR_CFG = LearnedMlpActuatorCfg(
-  joint_names_expr=(".*_hip_joint", ".*_thigh_joint", ".*_calf_joint"),
+  joint_names_expr=(".*_hip_roll", ".*_hip_pitch", ".*_knee_pitch"),
   network_file=str(LEO_LEARNED_ACTUATOR_PATH),
   # NOTE: Network was trained with negative position error (current - target).
   pos_scale=-1.0,
@@ -110,12 +110,12 @@ LEO_LEARNED_ACTUATOR_CFG = LearnedMlpActuatorCfg(
 
 
 INIT_STATE = EntityCfg.InitialStateCfg(
-  pos=(0.0, 0.0, 0.278),
+  pos=(0.0, 0.0, 0.28767268),
   joint_pos={
-    ".*thigh_joint": 0.9,
-    ".*calf_joint": -1.8,
-    ".*R_hip_joint": 0.1,
-    ".*L_hip_joint": -0.1,
+    ".*_hip_pitch": 0.5,
+    ".*_knee_pitch": 1.0,
+    ".*_right_hip_roll": 0.0,
+    ".*_left_hip_roll": 0.0,
   },
   joint_vel={".*": 0.0},
 )
@@ -124,28 +124,14 @@ INIT_STATE = EntityCfg.InitialStateCfg(
 # Collision config.
 ##
 
-_foot_regex = "^[FR][LR]_foot_collision$"
-
-# This disables all collisions except the feet.
-# Furthermore, feet self collisions are disabled.
-FEET_ONLY_COLLISION = CollisionCfg(
-  geom_names_expr=(_foot_regex,),
-  contype=0,
-  conaffinity=1,
-  condim=3,
-  priority=1,
-  friction=(0.6,),
-  solimp=(0.9, 0.95, 0.023),
-)
-
 # This enables all collisions, excluding self collisions.
-# Foot collisions are given custom condim, friction and solimp.
+# The XML already defines collision exclusions in the <contact> section.
 FULL_COLLISION = CollisionCfg(
   geom_names_expr=(".*_collision",),
-  condim={_foot_regex: 3, ".*_collision": 1},
-  priority={_foot_regex: 1},
-  friction={_foot_regex: (0.6,)},
-  solimp={_foot_regex: (0.9, 0.95, 0.023)},
+  condim=3,
+  priority=1,
+  friction=(0.64,),
+  solimp=(0.99, 0.999, 1e-05),
   contype=1,
   conaffinity=0,
 )

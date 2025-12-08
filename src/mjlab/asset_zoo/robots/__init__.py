@@ -19,3 +19,12 @@ from mjlab.asset_zoo.robots.unitree_go1.go1_constants import (
 from mjlab.asset_zoo.robots.unitree_go1.go1_constants import (
   get_go1_robot_cfg_learned as get_go1_robot_cfg_learned,
 )
+from mjlab.asset_zoo.robots.ccbr_leo.leo_constants import (
+  LEO_ACTION_SCALE as LEO_ACTION_SCALE,
+)
+from mjlab.asset_zoo.robots.ccbr_leo.leo_constants import (
+  get_leo_robot_cfg as get_leo_robot_cfg,
+)
+from mjlab.asset_zoo.robots.ccbr_leo.leo_constants import (
+  get_leo_robot_cfg_learned as get_leo_robot_cfg_learned,
+)

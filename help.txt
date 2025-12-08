@@ -1,0 +1,2341 @@
+usage: /Users/wesleymaa/Columbia/CCBR/mjlab/.venv/bin/train Mjlab-Velocity-Flat-Unitree-Go1 [-h] [OPTIONS]
+
+╭─ options ────────────────────────────────────────────────────────────────────╮
+│ -h, --help                                                                   │
+│       show this help message and exit                                        │
+│ --registry-name {None}|STR                                                   │
+│       (default: None)                                                        │
+│ --video {True,False}                                                         │
+│       (default: False)                                                       │
+│ --video-length INT                                                           │
+│       (default: 200)                                                         │
+│ --video-interval INT                                                         │
+│       (default: 2000)                                                        │
+│ --enable-nan-guard {True,False}                                              │
+│       (default: False)                                                       │
+│ --torchrunx-log-dir {None}|STR                                               │
+│       (default: None)                                                        │
+│ --wandb-run-path {None}|STR                                                  │
+│       (default: None)                                                        │
+│ --gpu-ids {None}|{[INT [INT ...]]}|{all}                                     │
+│       (default: 0)                                                           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env options ────────────────────────────────────────────────────────────────╮
+│ Configuration for a manager-based RL environment.                            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.decimation INT                                                         │
+│       Number of simulation steps per environment step. (default: 4)          │
+│ --env.seed {None}|INT                                                        │
+│       Base environment configuration. (default: None)                        │
+│ --env.episode-length-s FLOAT                                                 │
+│       Duration of an episode (in seconds).                                   │
+│                                                                              │
+│                                                                              │
+│       Episode length in steps is computed as:                                │
+│         ceil(episode_length_s / (sim.mujoco.timestep * decimation))          │
+│       (default: 20.0)                                                        │
+│ --env.commands {fixed}                                                       │
+│       Command terms configuration. If None, no commands are used. (fixed to: │
+│       {'twist': UniformVelocityCommandCfg(class_type=<class                  │
+│       'mjlab.tasks.velocity.mdp.velocity_command.UniformVelocityCommand'>,   │
+│       resampling_time_range=(3.0, 8.0), debug_vis=True, asset_name='robot',  │
+│       heading_command=True, heading_control_stiffness=0.5,                   │
+│       rel_standing_envs=0.1, rel_heading_envs=0.3, init_velocity_prob=0.0,   │
+│       ranges=UniformVelocityCommandCfg.Ranges(lin_vel_x=(-1.0, 1.0),         │
+│       lin_vel_y=(-1.0, 1.0), ang_vel_z=(-0.5, 0.5),                          │
+│       heading=(-3.141592653589793, 3.141592653589793)),                      │
+│       viz=UniformVelocityCommandCfg.VizCfg(z_offset=0.2, scale=0.5))})       │
+│ --env.curriculum {fixed}                                                     │
+│       Curriculum terms configuration. If None, no curriculum is used. (fixed │
+│       to: {'command_vel': CurriculumTermCfg(func=<function commands_vel at   │
+│       0x16a092fc0>, params={'command_name': 'twist', 'velocity_stages':      │
+│       [{'step': 0, 'lin_vel_x': (-1.0, 1.0), 'ang_vel_z': (-0.5, 0.5)},      │
+│       {'step': 120000, 'lin_vel_x': (-1.5, 2.0), 'ang_vel_z': (-0.7, 0.7)},  │
+│       {'step': 240000, 'lin_vel_x': (-2.0, 3.0)}]})})                        │
+│ --env.is-finite-horizon {True,False}                                         │
+│       Whether the task has a finite or infinite horizon. Defaults to False   │
+│       (infinite).                                                            │
+│                                                                              │
+│                                                                              │
+│       - **Finite horizon (True)**: The time limit defines the task boundary. │
+│       When reached,                                                          │
+│         no future value exists beyond it, so the agent receives a terminal   │
+│       done signal.                                                           │
+│       - **Infinite horizon (False)**: The time limit is an artificial        │
+│       cutoff. The agent                                                      │
+│         receives a truncated done signal to bootstrap the value of           │
+│       continuing beyond the                                                  │
+│         limit. (default: False)                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.scene options ──────────────────────────────────────────────────────────╮
+│ Base environment configuration.                                              │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.scene.num-envs INT                                                     │
+│       (default: 1)                                                           │
+│ --env.scene.env-spacing FLOAT                                                │
+│       (default: 2.0)                                                         │
+│ --env.scene.extent {None}|FLOAT                                              │
+│       (default: 2.0)                                                         │
+│ --env.scene.spec-fn {fixed}                                                  │
+│       (fixed to: None)                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.scene.terrain options ──────────────────────────────────────────────────╮
+│ Configuration for terrain import and environment placement.                  │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.scene.terrain.terrain-type {generator,plane}                           │
+│       Type of terrain to generate. "generator" uses procedural terrain with  │
+│       sub-terrain grid, "plane" creates a flat ground plane. (default:       │
+│       plane)                                                                 │
+│ --env.scene.terrain.env-spacing {None}|FLOAT                                 │
+│       Distance between environment origins when using grid layout. Required  │
+│       for                                                                    │
+│       "plane" terrain or when no sub-terrain origins exist. (default: 2.0)   │
+│ --env.scene.terrain.max-init-terrain-level {None}|INT                        │
+│       Maximum initial difficulty level (row index) for environment placement │
+│       in                                                                     │
+│       curriculum mode. None uses all available rows. (default: 5)            │
+│ --env.scene.terrain.num-envs INT                                             │
+│       Number of parallel environments to create. This will get overriden by  │
+│       the                                                                    │
+│       scene configuration if specified there. (default: 1)                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.scene.entities.robot options ───────────────────────────────────────────╮
+│ --env.scene.entities.robot.spec-fn {fixed}                                   │
+│       (fixed to: <function get_spec at 0x16a090180>)                         │
+│ --env.scene.entities.robot.debug-vis {True,False}                            │
+│       Misc. (default: False)                                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.scene.entities.robot.init-state options ────────────────────────────────╮
+│ --env.scene.entities.robot.init-state.pos FLOAT FLOAT FLOAT                  │
+│       Root position and orientation. (default: 0.0 0.0 0.278)                │
+│ --env.scene.entities.robot.init-state.rot FLOAT FLOAT FLOAT FLOAT            │
+│       Root position and orientation. (default: 1.0 0.0 0.0 0.0)              │
+│ --env.scene.entities.robot.init-state.lin-vel FLOAT FLOAT FLOAT              │
+│       Root linear and angular velocity (only for floating base entities).    │
+│       (default: 0.0 0.0 0.0)                                                 │
+│ --env.scene.entities.robot.init-state.ang-vel FLOAT FLOAT FLOAT              │
+│       Root linear and angular velocity (only for floating base entities).    │
+│       (default: 0.0 0.0 0.0)                                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.scene.entities.robot.init-state.joint-pos options ──────────────────────╮
+│ Articulation (only for articulated entities).                                │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.scene.entities.robot.init-state.joint-pos.*thigh-joint FLOAT           │
+│       (default: 0.9)                                                         │
+│ --env.scene.entities.robot.init-state.joint-pos.*calf-joint FLOAT            │
+│       (default: -1.8)                                                        │
+│ --env.scene.entities.robot.init-state.joint-pos.*R-hip-joint FLOAT           │
+│       (default: 0.1)                                                         │
+│ --env.scene.entities.robot.init-state.joint-pos.*L-hip-joint FLOAT           │
+│       (default: -0.1)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.scene.entities.robot.init-state.joint-vel options ──────────────────────╮
+│ Articulation (only for articulated entities).                                │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.scene.entities.robot.init-state.joint-vel.* FLOAT                      │
+│       (default: 0.0)                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.scene.entities.robot.articulation options ──────────────────────────────╮
+│ --env.scene.entities.robot.articulation.soft-joint-pos-limit-factor FLOAT    │
+│       (default: 0.9)                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.scene.entities.robot.articulation.actuators.0 options ──────────────────╮
+│ --env.scene.entities.robot.articulation.actuators.0.joint-names-expr [STR    │
+│ [STR ...]]                                                                   │
+│       Joints that are part of this actuator group.                           │
+│                                                                              │
+│                                                                              │
+│       Can be a tuple of joint names or tuple of regex expressions. (default: │
+│       '.*_hip_joint' '.*_thigh_joint')                                       │
+│ --env.scene.entities.robot.articulation.actuators.0.armature FLOAT           │
+│       Reflected rotor inertia. (default: 0.004026312)                        │
+│ --env.scene.entities.robot.articulation.actuators.0.frictionloss FLOAT       │
+│       Friction loss force limit.                                             │
+│                                                                              │
+│                                                                              │
+│       Applies a constant friction force opposing motion, independent of load │
+│       or velocity.                                                           │
+│       Also known as dry friction or load-independent friction. (default:     │
+│       0.0)                                                                   │
+│ --env.scene.entities.robot.articulation.actuators.0.stiffness FLOAT          │
+│       PD proportional gain. (default: 15.89524265323492)                     │
+│ --env.scene.entities.robot.articulation.actuators.0.damping FLOAT            │
+│       PD derivative gain. (default: 1.0119225759919113)                      │
+│ --env.scene.entities.robot.articulation.actuators.0.effort-limit             │
+│ {None}|FLOAT                                                                 │
+│       Maximum actuator force/torque. If None, no limit is applied. (default: │
+│       23.7)                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.scene.entities.robot.articulation.actuators.1 options ──────────────────╮
+│ --env.scene.entities.robot.articulation.actuators.1.joint-names-expr [STR    │
+│ [STR ...]]                                                                   │
+│       Joints that are part of this actuator group.                           │
+│                                                                              │
+│                                                                              │
+│       Can be a tuple of joint names or tuple of regex expressions. (default: │
+│       '.*_calf_joint')                                                       │
+│ --env.scene.entities.robot.articulation.actuators.1.armature FLOAT           │
+│       Reflected rotor inertia. (default: 0.009059202)                        │
+│ --env.scene.entities.robot.articulation.actuators.1.frictionloss FLOAT       │
+│       Friction loss force limit.                                             │
+│                                                                              │
+│                                                                              │
+│       Applies a constant friction force opposing motion, independent of load │
+│       or velocity.                                                           │
+│       Also known as dry friction or load-independent friction. (default:     │
+│       0.0)                                                                   │
+│ --env.scene.entities.robot.articulation.actuators.1.stiffness FLOAT          │
+│       PD proportional gain. (default: 35.76429596977857)                     │
+│ --env.scene.entities.robot.articulation.actuators.1.damping FLOAT            │
+│       PD derivative gain. (default: 2.2768257959818006)                      │
+│ --env.scene.entities.robot.articulation.actuators.1.effort-limit             │
+│ {None}|FLOAT                                                                 │
+│       Maximum actuator force/torque. If None, no limit is applied. (default: │
+│       35.55)                                                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.scene.entities.robot.collisions.0 options ──────────────────────────────╮
+│ --env.scene.entities.robot.collisions.0.geom-names-expr [STR [STR ...]]      │
+│       Tuple of regex patterns to match geom names. (default: '.*_collision') │
+│ --env.scene.entities.robot.collisions.0.contype INT|{[STR INT [STR INT       │
+│ ...]]}                                                                       │
+│       Collision type (int or dict mapping patterns to values). Must be       │
+│       non-negative. (default: 1)                                             │
+│ --env.scene.entities.robot.collisions.0.conaffinity INT|{[STR INT [STR INT   │
+│ ...]]}                                                                       │
+│       Collision affinity (int or dict mapping patterns to values). Must be   │
+│       non-negative. (default: 0)                                             │
+│ --env.scene.entities.robot.collisions.0.condim INT|{[STR INT [STR INT ...]]} │
+│       Contact dimension (int or dict mapping patterns to values). Must be    │
+│       one                                                                    │
+│       of {1, 3, 4, 6}. (default: '^[FR][LR]_foot_collision$' 3               │
+│       '.*_collision' 1)                                                      │
+│ --env.scene.entities.robot.collisions.0.priority INT|{[STR INT [STR INT      │
+│ ...]]}                                                                       │
+│       Collision priority (int or dict mapping patterns to values). Must be   │
+│       non-negative. (default: '^[FR][LR]_foot_collision$' 1)                 │
+│ --env.scene.entities.robot.collisions.0.friction {None}|{[FLOAT [FLOAT       │
+│ ...]]}|{[STR [FLOAT [FLOAT ...]] [STR [FLOAT [FLOAT ...]] ...]]}             │
+│       Friction coefficients as tuple or dict mapping patterns to tuples.     │
+│       (default: '^[FR][LR]_foot_collision$' 0.6)                             │
+│ --env.scene.entities.robot.collisions.0.solref {None}|{[FLOAT [FLOAT         │
+│ ...]]}|{[STR [FLOAT [FLOAT ...]] [STR [FLOAT [FLOAT ...]] ...]]}             │
+│       Solver reference parameters as tuple or dict mapping patterns to       │
+│       tuples. (default: None)                                                │
+│ --env.scene.entities.robot.collisions.0.solimp {None}|{[FLOAT [FLOAT         │
+│ ...]]}|{[STR [FLOAT [FLOAT ...]] [STR [FLOAT [FLOAT ...]] ...]]}             │
+│       Solver impedance parameters as tuple or dict mapping patterns to       │
+│       tuples. (default: '^[FR][LR]_foot_collision$' 0.9 0.95 0.023)          │
+│ --env.scene.entities.robot.collisions.0.disable-other-geoms {True,False}     │
+│       Whether to disable collision for non-matching geoms. (default: True)   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.scene.sensors.0 options ────────────────────────────────────────────────╮
+│ --env.scene.sensors.0.name STR                                               │
+│       (default: feet_ground_contact)                                         │
+│ --env.scene.sensors.0.fields [STR [STR ...]]                                 │
+│       (default: found force)                                                 │
+│ --env.scene.sensors.0.reduce {none,mindist,maxforce,netforce}                │
+│       (default: netforce)                                                    │
+│ --env.scene.sensors.0.num-slots INT                                          │
+│       (default: 1)                                                           │
+│ --env.scene.sensors.0.secondary-policy {first,any,error}                     │
+│       (default: first)                                                       │
+│ --env.scene.sensors.0.track-air-time {True,False}                            │
+│       (default: True)                                                        │
+│ --env.scene.sensors.0.global-frame {True,False}                              │
+│       (default: False)                                                       │
+│ --env.scene.sensors.0.debug {True,False}                                     │
+│       (default: False)                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.scene.sensors.0.primary options ────────────────────────────────────────╮
+│ Specifies what to match on one side of a contact. mode: "geom", "body", or   │
+│ "subtree" pattern: Regex or tuple of regexes (expands within entity if       │
+│ specified) entity: Entity name to search within (None = treat pattern as     │
+│ literal MuJoCo name) exclude: Filter out matches using these regex patterns  │
+│ or exact names.                                                              │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.scene.sensors.0.primary.mode {geom,body,subtree}                       │
+│       (default: geom)                                                        │
+│ --env.scene.sensors.0.primary.pattern STR|{[STR [STR ...]]}                  │
+│       (default: FR_foot_collision FL_foot_collision RR_foot_collision        │
+│       RL_foot_collision)                                                     │
+│ --env.scene.sensors.0.primary.entity {None}|STR                              │
+│       (default: robot)                                                       │
+│ --env.scene.sensors.0.primary.exclude [STR [STR ...]]                        │
+│       (default: )                                                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.scene.sensors.0.secondary options ──────────────────────────────────────╮
+│ Specifies what to match on one side of a contact. mode: "geom", "body", or   │
+│ "subtree" pattern: Regex or tuple of regexes (expands within entity if       │
+│ specified) entity: Entity name to search within (None = treat pattern as     │
+│ literal MuJoCo name) exclude: Filter out matches using these regex patterns  │
+│ or exact names.                                                              │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.scene.sensors.0.secondary.mode {geom,body,subtree}                     │
+│       (default: body)                                                        │
+│ --env.scene.sensors.0.secondary.pattern STR|{[STR [STR ...]]}                │
+│       (default: terrain)                                                     │
+│ --env.scene.sensors.0.secondary.entity {None}|STR                            │
+│       (default: None)                                                        │
+│ --env.scene.sensors.0.secondary.exclude [STR [STR ...]]                      │
+│       (default: )                                                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.scene.sensors.1 options ────────────────────────────────────────────────╮
+│ --env.scene.sensors.1.name STR                                               │
+│       (default: nonfoot_ground_touch)                                        │
+│ --env.scene.sensors.1.fields [STR [STR ...]]                                 │
+│       (default: found)                                                       │
+│ --env.scene.sensors.1.reduce {none,mindist,maxforce,netforce}                │
+│       (default: none)                                                        │
+│ --env.scene.sensors.1.num-slots INT                                          │
+│       (default: 1)                                                           │
+│ --env.scene.sensors.1.secondary-policy {first,any,error}                     │
+│       (default: first)                                                       │
+│ --env.scene.sensors.1.track-air-time {True,False}                            │
+│       (default: False)                                                       │
+│ --env.scene.sensors.1.global-frame {True,False}                              │
+│       (default: False)                                                       │
+│ --env.scene.sensors.1.debug {True,False}                                     │
+│       (default: False)                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.scene.sensors.1.primary options ────────────────────────────────────────╮
+│ Specifies what to match on one side of a contact. mode: "geom", "body", or   │
+│ "subtree" pattern: Regex or tuple of regexes (expands within entity if       │
+│ specified) entity: Entity name to search within (None = treat pattern as     │
+│ literal MuJoCo name) exclude: Filter out matches using these regex patterns  │
+│ or exact names.                                                              │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.scene.sensors.1.primary.mode {geom,body,subtree}                       │
+│       (default: geom)                                                        │
+│ --env.scene.sensors.1.primary.pattern STR|{[STR [STR ...]]}                  │
+│       (default: '.*_collision\d*$')                                          │
+│ --env.scene.sensors.1.primary.entity {None}|STR                              │
+│       (default: robot)                                                       │
+│ --env.scene.sensors.1.primary.exclude [STR [STR ...]]                        │
+│       (default: FR_foot_collision FL_foot_collision RR_foot_collision        │
+│       RL_foot_collision)                                                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.scene.sensors.1.secondary options ──────────────────────────────────────╮
+│ Specifies what to match on one side of a contact. mode: "geom", "body", or   │
+│ "subtree" pattern: Regex or tuple of regexes (expands within entity if       │
+│ specified) entity: Entity name to search within (None = treat pattern as     │
+│ literal MuJoCo name) exclude: Filter out matches using these regex patterns  │
+│ or exact names.                                                              │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.scene.sensors.1.secondary.mode {geom,body,subtree}                     │
+│       (default: body)                                                        │
+│ --env.scene.sensors.1.secondary.pattern STR|{[STR [STR ...]]}                │
+│       (default: terrain)                                                     │
+│ --env.scene.sensors.1.secondary.entity {None}|STR                            │
+│       (default: None)                                                        │
+│ --env.scene.sensors.1.secondary.exclude [STR [STR ...]]                      │
+│       (default: )                                                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.policy options ────────────────────────────────────────────╮
+│ Configuration for an observation group. The `terms` field contains a         │
+│ dictionary mapping term names to their configurations.                       │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.policy.concatenate-terms {True,False}                     │
+│       (default: True)                                                        │
+│ --env.observations.policy.concatenate-dim INT                                │
+│       (default: -1)                                                          │
+│ --env.observations.policy.enable-corruption {True,False}                     │
+│       (default: True)                                                        │
+│ --env.observations.policy.history-length {None}|INT                          │
+│       (default: None)                                                        │
+│ --env.observations.policy.flatten-history-dim {True,False}                   │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.policy.terms.base-lin-vel options ─────────────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.policy.terms.base-lin-vel.func {fixed}                    │
+│       (fixed to: <function builtin_sensor at 0x12f1a5e40>)                   │
+│ --env.observations.policy.terms.base-lin-vel.clip {None}|{FLOAT FLOAT}       │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.policy.terms.base-lin-vel.scale {fixed}                   │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.policy.terms.base-lin-vel.delay-min-lag INT               │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.policy.terms.base-lin-vel.delay-max-lag INT               │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.policy.terms.base-lin-vel.delay-per-env {True,False}      │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.policy.terms.base-lin-vel.delay-hold-prob FLOAT           │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.policy.terms.base-lin-vel.delay-update-period INT         │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.policy.terms.base-lin-vel.delay-per-env-phase {True,      │
+│ False}                                                                       │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.policy.terms.base-lin-vel.history-length INT              │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.policy.terms.base-lin-vel.flatten-history-dim {True,      │
+│ False}                                                                       │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.policy.terms.base-lin-vel.params options ──────────────────╮
+│ --env.observations.policy.terms.base-lin-vel.params.sensor-name STR          │
+│       (default: robot/imu_lin_vel)                                           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.policy.terms.base-lin-vel.noise options ───────────────────╮
+│ --env.observations.policy.terms.base-lin-vel.noise.operation {add,scale,abs} │
+│       (default: add)                                                         │
+│ --env.observations.policy.terms.base-lin-vel.noise.n-min {fixed}             │
+│       (fixed to: -0.5)                                                       │
+│ --env.observations.policy.terms.base-lin-vel.noise.n-max {fixed}             │
+│       (fixed to: 0.5)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.policy.terms.base-ang-vel options ─────────────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.policy.terms.base-ang-vel.func {fixed}                    │
+│       (fixed to: <function builtin_sensor at 0x12f1a5e40>)                   │
+│ --env.observations.policy.terms.base-ang-vel.clip {None}|{FLOAT FLOAT}       │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.policy.terms.base-ang-vel.scale {fixed}                   │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.policy.terms.base-ang-vel.delay-min-lag INT               │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.policy.terms.base-ang-vel.delay-max-lag INT               │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.policy.terms.base-ang-vel.delay-per-env {True,False}      │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.policy.terms.base-ang-vel.delay-hold-prob FLOAT           │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.policy.terms.base-ang-vel.delay-update-period INT         │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.policy.terms.base-ang-vel.delay-per-env-phase {True,      │
+│ False}                                                                       │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.policy.terms.base-ang-vel.history-length INT              │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.policy.terms.base-ang-vel.flatten-history-dim {True,      │
+│ False}                                                                       │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.policy.terms.base-ang-vel.params options ──────────────────╮
+│ --env.observations.policy.terms.base-ang-vel.params.sensor-name STR          │
+│       (default: robot/imu_ang_vel)                                           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.policy.terms.base-ang-vel.noise options ───────────────────╮
+│ --env.observations.policy.terms.base-ang-vel.noise.operation {add,scale,abs} │
+│       (default: add)                                                         │
+│ --env.observations.policy.terms.base-ang-vel.noise.n-min {fixed}             │
+│       (fixed to: -0.2)                                                       │
+│ --env.observations.policy.terms.base-ang-vel.noise.n-max {fixed}             │
+│       (fixed to: 0.2)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.policy.terms.projected-gravity options ────────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.policy.terms.projected-gravity.func {fixed}               │
+│       (fixed to: <function projected_gravity at 0x12f1a5b20>)                │
+│ --env.observations.policy.terms.projected-gravity.params {fixed}             │
+│       (fixed to: {})                                                         │
+│ --env.observations.policy.terms.projected-gravity.clip {None}|{FLOAT FLOAT}  │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.policy.terms.projected-gravity.scale {fixed}              │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.policy.terms.projected-gravity.delay-min-lag INT          │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.policy.terms.projected-gravity.delay-max-lag INT          │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.policy.terms.projected-gravity.delay-per-env {True,False} │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.policy.terms.projected-gravity.delay-hold-prob FLOAT      │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.policy.terms.projected-gravity.delay-update-period INT    │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.policy.terms.projected-gravity.delay-per-env-phase {True, │
+│ False}                                                                       │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.policy.terms.projected-gravity.history-length INT         │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.policy.terms.projected-gravity.flatten-history-dim {True, │
+│ False}                                                                       │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.policy.terms.projected-gravity.noise options ──────────────╮
+│ --env.observations.policy.terms.projected-gravity.noise.operation {add,      │
+│ scale,abs}                                                                   │
+│       (default: add)                                                         │
+│ --env.observations.policy.terms.projected-gravity.noise.n-min {fixed}        │
+│       (fixed to: -0.05)                                                      │
+│ --env.observations.policy.terms.projected-gravity.noise.n-max {fixed}        │
+│       (fixed to: 0.05)                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.policy.terms.joint-pos options ────────────────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.policy.terms.joint-pos.func {fixed}                       │
+│       (fixed to: <function joint_pos_rel at 0x12f1a5bc0>)                    │
+│ --env.observations.policy.terms.joint-pos.params {fixed}                     │
+│       (fixed to: {})                                                         │
+│ --env.observations.policy.terms.joint-pos.clip {None}|{FLOAT FLOAT}          │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.policy.terms.joint-pos.scale {fixed}                      │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.policy.terms.joint-pos.delay-min-lag INT                  │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.policy.terms.joint-pos.delay-max-lag INT                  │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.policy.terms.joint-pos.delay-per-env {True,False}         │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.policy.terms.joint-pos.delay-hold-prob FLOAT              │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.policy.terms.joint-pos.delay-update-period INT            │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.policy.terms.joint-pos.delay-per-env-phase {True,False}   │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.policy.terms.joint-pos.history-length INT                 │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.policy.terms.joint-pos.flatten-history-dim {True,False}   │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.policy.terms.joint-pos.noise options ──────────────────────╮
+│ --env.observations.policy.terms.joint-pos.noise.operation {add,scale,abs}    │
+│       (default: add)                                                         │
+│ --env.observations.policy.terms.joint-pos.noise.n-min {fixed}                │
+│       (fixed to: -0.01)                                                      │
+│ --env.observations.policy.terms.joint-pos.noise.n-max {fixed}                │
+│       (fixed to: 0.01)                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.policy.terms.joint-vel options ────────────────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.policy.terms.joint-vel.func {fixed}                       │
+│       (fixed to: <function joint_vel_rel at 0x12f1a5c60>)                    │
+│ --env.observations.policy.terms.joint-vel.params {fixed}                     │
+│       (fixed to: {})                                                         │
+│ --env.observations.policy.terms.joint-vel.clip {None}|{FLOAT FLOAT}          │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.policy.terms.joint-vel.scale {fixed}                      │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.policy.terms.joint-vel.delay-min-lag INT                  │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.policy.terms.joint-vel.delay-max-lag INT                  │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.policy.terms.joint-vel.delay-per-env {True,False}         │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.policy.terms.joint-vel.delay-hold-prob FLOAT              │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.policy.terms.joint-vel.delay-update-period INT            │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.policy.terms.joint-vel.delay-per-env-phase {True,False}   │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.policy.terms.joint-vel.history-length INT                 │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.policy.terms.joint-vel.flatten-history-dim {True,False}   │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.policy.terms.joint-vel.noise options ──────────────────────╮
+│ --env.observations.policy.terms.joint-vel.noise.operation {add,scale,abs}    │
+│       (default: add)                                                         │
+│ --env.observations.policy.terms.joint-vel.noise.n-min {fixed}                │
+│       (fixed to: -1.5)                                                       │
+│ --env.observations.policy.terms.joint-vel.noise.n-max {fixed}                │
+│       (fixed to: 1.5)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.policy.terms.actions options ──────────────────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.policy.terms.actions.func {fixed}                         │
+│       (fixed to: <function last_action at 0x12f1a5d00>)                      │
+│ --env.observations.policy.terms.actions.params {fixed}                       │
+│       (fixed to: {})                                                         │
+│ --env.observations.policy.terms.actions.clip {None}|{FLOAT FLOAT}            │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.policy.terms.actions.scale {fixed}                        │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.policy.terms.actions.delay-min-lag INT                    │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.policy.terms.actions.delay-max-lag INT                    │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.policy.terms.actions.delay-per-env {True,False}           │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.policy.terms.actions.delay-hold-prob FLOAT                │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.policy.terms.actions.delay-update-period INT              │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.policy.terms.actions.delay-per-env-phase {True,False}     │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.policy.terms.actions.history-length INT                   │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.policy.terms.actions.flatten-history-dim {True,False}     │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.policy.terms.command options ──────────────────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.policy.terms.command.func {fixed}                         │
+│       (fixed to: <function generated_commands at 0x12f1a5da0>)               │
+│ --env.observations.policy.terms.command.clip {None}|{FLOAT FLOAT}            │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.policy.terms.command.scale {fixed}                        │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.policy.terms.command.delay-min-lag INT                    │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.policy.terms.command.delay-max-lag INT                    │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.policy.terms.command.delay-per-env {True,False}           │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.policy.terms.command.delay-hold-prob FLOAT                │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.policy.terms.command.delay-update-period INT              │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.policy.terms.command.delay-per-env-phase {True,False}     │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.policy.terms.command.history-length INT                   │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.policy.terms.command.flatten-history-dim {True,False}     │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.policy.terms.command.params options ───────────────────────╮
+│ --env.observations.policy.terms.command.params.command-name STR              │
+│       (default: twist)                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic options ────────────────────────────────────────────╮
+│ Configuration for an observation group. The `terms` field contains a         │
+│ dictionary mapping term names to their configurations.                       │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.critic.concatenate-terms {True,False}                     │
+│       (default: True)                                                        │
+│ --env.observations.critic.concatenate-dim INT                                │
+│       (default: -1)                                                          │
+│ --env.observations.critic.enable-corruption {True,False}                     │
+│       (default: False)                                                       │
+│ --env.observations.critic.history-length {None}|INT                          │
+│       (default: None)                                                        │
+│ --env.observations.critic.flatten-history-dim {True,False}                   │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.base-lin-vel options ─────────────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.critic.terms.base-lin-vel.func {fixed}                    │
+│       (fixed to: <function builtin_sensor at 0x12f1a5e40>)                   │
+│ --env.observations.critic.terms.base-lin-vel.clip {None}|{FLOAT FLOAT}       │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.critic.terms.base-lin-vel.scale {fixed}                   │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.critic.terms.base-lin-vel.delay-min-lag INT               │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.base-lin-vel.delay-max-lag INT               │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.critic.terms.base-lin-vel.delay-per-env {True,False}      │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.critic.terms.base-lin-vel.delay-hold-prob FLOAT           │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.critic.terms.base-lin-vel.delay-update-period INT         │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.critic.terms.base-lin-vel.delay-per-env-phase {True,      │
+│ False}                                                                       │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.critic.terms.base-lin-vel.history-length INT              │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.base-lin-vel.flatten-history-dim {True,      │
+│ False}                                                                       │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.base-lin-vel.params options ──────────────────╮
+│ --env.observations.critic.terms.base-lin-vel.params.sensor-name STR          │
+│       (default: robot/imu_lin_vel)                                           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.base-lin-vel.noise options ───────────────────╮
+│ --env.observations.critic.terms.base-lin-vel.noise.operation {add,scale,abs} │
+│       (default: add)                                                         │
+│ --env.observations.critic.terms.base-lin-vel.noise.n-min {fixed}             │
+│       (fixed to: -0.5)                                                       │
+│ --env.observations.critic.terms.base-lin-vel.noise.n-max {fixed}             │
+│       (fixed to: 0.5)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.base-ang-vel options ─────────────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.critic.terms.base-ang-vel.func {fixed}                    │
+│       (fixed to: <function builtin_sensor at 0x12f1a5e40>)                   │
+│ --env.observations.critic.terms.base-ang-vel.clip {None}|{FLOAT FLOAT}       │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.critic.terms.base-ang-vel.scale {fixed}                   │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.critic.terms.base-ang-vel.delay-min-lag INT               │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.base-ang-vel.delay-max-lag INT               │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.critic.terms.base-ang-vel.delay-per-env {True,False}      │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.critic.terms.base-ang-vel.delay-hold-prob FLOAT           │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.critic.terms.base-ang-vel.delay-update-period INT         │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.critic.terms.base-ang-vel.delay-per-env-phase {True,      │
+│ False}                                                                       │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.critic.terms.base-ang-vel.history-length INT              │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.base-ang-vel.flatten-history-dim {True,      │
+│ False}                                                                       │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.base-ang-vel.params options ──────────────────╮
+│ --env.observations.critic.terms.base-ang-vel.params.sensor-name STR          │
+│       (default: robot/imu_ang_vel)                                           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.base-ang-vel.noise options ───────────────────╮
+│ --env.observations.critic.terms.base-ang-vel.noise.operation {add,scale,abs} │
+│       (default: add)                                                         │
+│ --env.observations.critic.terms.base-ang-vel.noise.n-min {fixed}             │
+│       (fixed to: -0.2)                                                       │
+│ --env.observations.critic.terms.base-ang-vel.noise.n-max {fixed}             │
+│       (fixed to: 0.2)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.projected-gravity options ────────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.critic.terms.projected-gravity.func {fixed}               │
+│       (fixed to: <function projected_gravity at 0x12f1a5b20>)                │
+│ --env.observations.critic.terms.projected-gravity.params {fixed}             │
+│       (fixed to: {})                                                         │
+│ --env.observations.critic.terms.projected-gravity.clip {None}|{FLOAT FLOAT}  │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.critic.terms.projected-gravity.scale {fixed}              │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.critic.terms.projected-gravity.delay-min-lag INT          │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.projected-gravity.delay-max-lag INT          │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.critic.terms.projected-gravity.delay-per-env {True,False} │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.critic.terms.projected-gravity.delay-hold-prob FLOAT      │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.critic.terms.projected-gravity.delay-update-period INT    │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.critic.terms.projected-gravity.delay-per-env-phase {True, │
+│ False}                                                                       │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.critic.terms.projected-gravity.history-length INT         │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.projected-gravity.flatten-history-dim {True, │
+│ False}                                                                       │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.projected-gravity.noise options ──────────────╮
+│ --env.observations.critic.terms.projected-gravity.noise.operation {add,      │
+│ scale,abs}                                                                   │
+│       (default: add)                                                         │
+│ --env.observations.critic.terms.projected-gravity.noise.n-min {fixed}        │
+│       (fixed to: -0.05)                                                      │
+│ --env.observations.critic.terms.projected-gravity.noise.n-max {fixed}        │
+│       (fixed to: 0.05)                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.joint-pos options ────────────────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.critic.terms.joint-pos.func {fixed}                       │
+│       (fixed to: <function joint_pos_rel at 0x12f1a5bc0>)                    │
+│ --env.observations.critic.terms.joint-pos.params {fixed}                     │
+│       (fixed to: {})                                                         │
+│ --env.observations.critic.terms.joint-pos.clip {None}|{FLOAT FLOAT}          │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.critic.terms.joint-pos.scale {fixed}                      │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.critic.terms.joint-pos.delay-min-lag INT                  │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.joint-pos.delay-max-lag INT                  │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.critic.terms.joint-pos.delay-per-env {True,False}         │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.critic.terms.joint-pos.delay-hold-prob FLOAT              │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.critic.terms.joint-pos.delay-update-period INT            │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.critic.terms.joint-pos.delay-per-env-phase {True,False}   │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.critic.terms.joint-pos.history-length INT                 │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.joint-pos.flatten-history-dim {True,False}   │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.joint-pos.noise options ──────────────────────╮
+│ --env.observations.critic.terms.joint-pos.noise.operation {add,scale,abs}    │
+│       (default: add)                                                         │
+│ --env.observations.critic.terms.joint-pos.noise.n-min {fixed}                │
+│       (fixed to: -0.01)                                                      │
+│ --env.observations.critic.terms.joint-pos.noise.n-max {fixed}                │
+│       (fixed to: 0.01)                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.joint-vel options ────────────────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.critic.terms.joint-vel.func {fixed}                       │
+│       (fixed to: <function joint_vel_rel at 0x12f1a5c60>)                    │
+│ --env.observations.critic.terms.joint-vel.params {fixed}                     │
+│       (fixed to: {})                                                         │
+│ --env.observations.critic.terms.joint-vel.clip {None}|{FLOAT FLOAT}          │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.critic.terms.joint-vel.scale {fixed}                      │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.critic.terms.joint-vel.delay-min-lag INT                  │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.joint-vel.delay-max-lag INT                  │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.critic.terms.joint-vel.delay-per-env {True,False}         │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.critic.terms.joint-vel.delay-hold-prob FLOAT              │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.critic.terms.joint-vel.delay-update-period INT            │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.critic.terms.joint-vel.delay-per-env-phase {True,False}   │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.critic.terms.joint-vel.history-length INT                 │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.joint-vel.flatten-history-dim {True,False}   │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.joint-vel.noise options ──────────────────────╮
+│ --env.observations.critic.terms.joint-vel.noise.operation {add,scale,abs}    │
+│       (default: add)                                                         │
+│ --env.observations.critic.terms.joint-vel.noise.n-min {fixed}                │
+│       (fixed to: -1.5)                                                       │
+│ --env.observations.critic.terms.joint-vel.noise.n-max {fixed}                │
+│       (fixed to: 1.5)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.actions options ──────────────────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.critic.terms.actions.func {fixed}                         │
+│       (fixed to: <function last_action at 0x12f1a5d00>)                      │
+│ --env.observations.critic.terms.actions.params {fixed}                       │
+│       (fixed to: {})                                                         │
+│ --env.observations.critic.terms.actions.clip {None}|{FLOAT FLOAT}            │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.critic.terms.actions.scale {fixed}                        │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.critic.terms.actions.delay-min-lag INT                    │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.actions.delay-max-lag INT                    │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.critic.terms.actions.delay-per-env {True,False}           │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.critic.terms.actions.delay-hold-prob FLOAT                │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.critic.terms.actions.delay-update-period INT              │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.critic.terms.actions.delay-per-env-phase {True,False}     │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.critic.terms.actions.history-length INT                   │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.actions.flatten-history-dim {True,False}     │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.command options ──────────────────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.critic.terms.command.func {fixed}                         │
+│       (fixed to: <function generated_commands at 0x12f1a5da0>)               │
+│ --env.observations.critic.terms.command.clip {None}|{FLOAT FLOAT}            │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.critic.terms.command.scale {fixed}                        │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.critic.terms.command.delay-min-lag INT                    │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.command.delay-max-lag INT                    │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.critic.terms.command.delay-per-env {True,False}           │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.critic.terms.command.delay-hold-prob FLOAT                │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.critic.terms.command.delay-update-period INT              │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.critic.terms.command.delay-per-env-phase {True,False}     │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.critic.terms.command.history-length INT                   │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.command.flatten-history-dim {True,False}     │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.command.params options ───────────────────────╮
+│ --env.observations.critic.terms.command.params.command-name STR              │
+│       (default: twist)                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.foot-height options ──────────────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.critic.terms.foot-height.func {fixed}                     │
+│       (fixed to: <function foot_height at 0x16a0cc0e0>)                      │
+│ --env.observations.critic.terms.foot-height.clip {None}|{FLOAT FLOAT}        │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.critic.terms.foot-height.scale {fixed}                    │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.critic.terms.foot-height.delay-min-lag INT                │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.foot-height.delay-max-lag INT                │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.critic.terms.foot-height.delay-per-env {True,False}       │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.critic.terms.foot-height.delay-hold-prob FLOAT            │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.critic.terms.foot-height.delay-update-period INT          │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.critic.terms.foot-height.delay-per-env-phase {True,False} │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.critic.terms.foot-height.history-length INT               │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.foot-height.flatten-history-dim {True,False} │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.foot-height.params.asset-cfg options ─────────╮
+│ Configuration for a scene entity that is used by the manager's term. This    │
+│ configuration allows flexible specification of entity components either by   │
+│ name or by ID. During resolution, it ensures consistency between names and   │
+│ IDs, and can optimize to slice(None) when all components are selected.       │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.critic.terms.foot-height.params.asset-cfg.name STR        │
+│       The name of the entity in the scene. (default: robot)                  │
+│ --env.observations.critic.terms.foot-height.params.asset-cfg.joint-names     │
+│ {None}|STR|{[STR [STR ...]]}                                                 │
+│       Names of joints to include. Can be a single string or tuple. (default: │
+│       None)                                                                  │
+│ --env.observations.critic.terms.foot-height.params.asset-cfg.joint-ids       │
+│ {fixed}                                                                      │
+│       IDs of joints to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.observations.critic.terms.foot-height.params.asset-cfg.body-names      │
+│ {None}|STR|{[STR [STR ...]]}                                                 │
+│       Names of bodies to include. Can be a single string or tuple. (default: │
+│       None)                                                                  │
+│ --env.observations.critic.terms.foot-height.params.asset-cfg.body-ids        │
+│ {fixed}                                                                      │
+│       IDs of bodies to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.observations.critic.terms.foot-height.params.asset-cfg.geom-names      │
+│ {None}|STR|{[STR [STR ...]]}                                                 │
+│       Names of geometries to include. Can be a single string or tuple.       │
+│       (default: None)                                                        │
+│ --env.observations.critic.terms.foot-height.params.asset-cfg.geom-ids        │
+│ {fixed}                                                                      │
+│       IDs of geometries to include. Can be a list or slice. (fixed to:       │
+│       slice(None, None, None))                                               │
+│ --env.observations.critic.terms.foot-height.params.asset-cfg.site-names      │
+│ {None}|STR|{[STR [STR ...]]}                                                 │
+│       Names of sites to include. Can be a single string or tuple. (default:  │
+│       FR FL RR RL)                                                           │
+│ --env.observations.critic.terms.foot-height.params.asset-cfg.site-ids        │
+│ {fixed}                                                                      │
+│       IDs of sites to include. Can be a list or slice. (fixed to:            │
+│       slice(None, None, None))                                               │
+│ --env.observations.critic.terms.foot-height.params.asset-cfg.actuator-names  │
+│ {None}|STR|{[STR [STR ...]]}                                                 │
+│       Names of actuators to include. Can be a single string or list.         │
+│       (default: None)                                                        │
+│ --env.observations.critic.terms.foot-height.params.asset-cfg.actuator-ids    │
+│ {fixed}                                                                      │
+│       IDs of actuators to include. Can be a list or slice. (fixed to:        │
+│       slice(None, None, None))                                               │
+│ --env.observations.critic.terms.foot-height.params.asset-cfg.preserve-order  │
+│ {True,False}                                                                 │
+│       If True, maintains the order of components as specified. If False,     │
+│       allows reordering for optimization. (default: False)                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.foot-air-time options ────────────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.critic.terms.foot-air-time.func {fixed}                   │
+│       (fixed to: <function foot_air_time at 0x16a0cc180>)                    │
+│ --env.observations.critic.terms.foot-air-time.clip {None}|{FLOAT FLOAT}      │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.critic.terms.foot-air-time.scale {fixed}                  │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.critic.terms.foot-air-time.delay-min-lag INT              │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.foot-air-time.delay-max-lag INT              │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.critic.terms.foot-air-time.delay-per-env {True,False}     │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.critic.terms.foot-air-time.delay-hold-prob FLOAT          │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.critic.terms.foot-air-time.delay-update-period INT        │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.critic.terms.foot-air-time.delay-per-env-phase {True,     │
+│ False}                                                                       │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.critic.terms.foot-air-time.history-length INT             │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.foot-air-time.flatten-history-dim {True,     │
+│ False}                                                                       │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.foot-air-time.params options ─────────────────╮
+│ --env.observations.critic.terms.foot-air-time.params.sensor-name STR         │
+│       (default: feet_ground_contact)                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.foot-contact options ─────────────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.critic.terms.foot-contact.func {fixed}                    │
+│       (fixed to: <function foot_contact at 0x16a0cc220>)                     │
+│ --env.observations.critic.terms.foot-contact.clip {None}|{FLOAT FLOAT}       │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.critic.terms.foot-contact.scale {fixed}                   │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.critic.terms.foot-contact.delay-min-lag INT               │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.foot-contact.delay-max-lag INT               │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.critic.terms.foot-contact.delay-per-env {True,False}      │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.critic.terms.foot-contact.delay-hold-prob FLOAT           │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.critic.terms.foot-contact.delay-update-period INT         │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.critic.terms.foot-contact.delay-per-env-phase {True,      │
+│ False}                                                                       │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.critic.terms.foot-contact.history-length INT              │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.foot-contact.flatten-history-dim {True,      │
+│ False}                                                                       │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.foot-contact.params options ──────────────────╮
+│ --env.observations.critic.terms.foot-contact.params.sensor-name STR          │
+│       (default: feet_ground_contact)                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.foot-contact-forces options ──────────────────╮
+│ Configuration for an observation term. Processing pipeline: compute → noise  │
+│ → clip → scale → delay → history. Delay models sensor latency. History       │
+│ provides temporal context. Both are optional and can be combined.            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.observations.critic.terms.foot-contact-forces.func {fixed}             │
+│       (fixed to: <function foot_contact_forces at 0x16a0cc2c0>)              │
+│ --env.observations.critic.terms.foot-contact-forces.clip {None}|{FLOAT       │
+│ FLOAT}                                                                       │
+│       Range (min, max) to clip the observation values. (default: None)       │
+│ --env.observations.critic.terms.foot-contact-forces.scale {fixed}            │
+│       Scaling factor(s) to multiply the observation by. (fixed to: None)     │
+│ --env.observations.critic.terms.foot-contact-forces.delay-min-lag INT        │
+│       Minimum lag (in steps) for delayed observations. Lag sampled uniformly │
+│       from                                                                   │
+│       [min_lag, max_lag]. Convert to ms: lag * (1000 / control_hz).          │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.foot-contact-forces.delay-max-lag INT        │
+│       Maximum lag (in steps) for delayed observations. Use min=max for       │
+│       constant delay. (default: 0)                                           │
+│ --env.observations.critic.terms.foot-contact-forces.delay-per-env {True,     │
+│ False}                                                                       │
+│       If True, each environment samples its own lag. If False, all           │
+│       environments share                                                     │
+│       the same lag at each step. (default: True)                             │
+│ --env.observations.critic.terms.foot-contact-forces.delay-hold-prob FLOAT    │
+│       Probability of reusing the previous lag instead of resampling. Useful  │
+│       for                                                                    │
+│       temporally correlated latency patterns. (default: 0.0)                 │
+│ --env.observations.critic.terms.foot-contact-forces.delay-update-period INT  │
+│       Resample lag every N steps (models multi-rate sensors). If 0, update   │
+│       every step. (default: 0)                                               │
+│ --env.observations.critic.terms.foot-contact-forces.delay-per-env-phase      │
+│ {True,False}                                                                 │
+│       If True and update_period > 0, stagger update timing across envs to    │
+│       avoid                                                                  │
+│       synchronized resampling. (default: True)                               │
+│ --env.observations.critic.terms.foot-contact-forces.history-length INT       │
+│       Number of past observations to keep in history. 0 = no history.        │
+│       (default: 0)                                                           │
+│ --env.observations.critic.terms.foot-contact-forces.flatten-history-dim      │
+│ {True,False}                                                                 │
+│       Whether to flatten the history dimension into observation.             │
+│                                                                              │
+│                                                                              │
+│       When True and concatenate_terms=True, uses term-major ordering:        │
+│       [A_t0, A_t1, ..., A_tH-1, B_t0, B_t1, ..., B_tH-1, ...]                │
+│       See docs/api/observation_history_delay.md for details on ordering.     │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.observations.critic.terms.foot-contact-forces.params options ───────────╮
+│ --env.observations.critic.terms.foot-contact-forces.params.sensor-name STR   │
+│       (default: feet_ground_contact)                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.actions.joint-pos options ──────────────────────────────────────────────╮
+│ --env.actions.joint-pos.class-type {fixed}                                   │
+│       (fixed to: <class                                                      │
+│       'mjlab.envs.mdp.actions.joint_actions.JointPositionAction'>)           │
+│ --env.actions.joint-pos.asset-name STR                                       │
+│       (default: robot)                                                       │
+│ --env.actions.joint-pos.clip {None}|{[STR [STR [STR ...]] [STR [STR [STR     │
+│ ...]] ...]]}                                                                 │
+│       (default: None)                                                        │
+│ --env.actions.joint-pos.actuator-names [STR [STR ...]]                       │
+│       Tuple of actuator names or regex expressions that the action will be   │
+│       mapped to. (default: '.*')                                             │
+│ --env.actions.joint-pos.scale FLOAT|{[STR FLOAT [STR FLOAT ...]]}            │
+│       Scale factor for the action (float or dict of regex expressions).      │
+│       Defaults to 1.0. (default: '.*_hip_joint' 0.3727530387083568           │
+│       '.*_thigh_joint' 0.3727530387083568 '.*_calf_joint'                    │
+│       0.24850202580557115)                                                   │
+│ --env.actions.joint-pos.offset FLOAT|{[STR FLOAT [STR FLOAT ...]]}           │
+│       Offset factor for the action (float or dict of regex expressions).     │
+│       Defaults to 0.0. (default: 0.0)                                        │
+│ --env.actions.joint-pos.preserve-order {True,False}                          │
+│       Whether to preserve the order of the joint names in the action output. │
+│       Defaults to False. (default: False)                                    │
+│ --env.actions.joint-pos.use-default-offset {True,False}                      │
+│       (default: True)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.events.reset-base options ──────────────────────────────────────────────╮
+│ Configuration for an event term.                                             │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.events.reset-base.func {fixed}                                         │
+│       (fixed to: <function reset_root_state_uniform at 0x12f1a4ae0>)         │
+│ --env.events.reset-base.mode {startup,reset,interval}                        │
+│       (default: reset)                                                       │
+│ --env.events.reset-base.interval-range-s {None}|{FLOAT FLOAT}                │
+│       (default: None)                                                        │
+│ --env.events.reset-base.is-global-time {True,False}                          │
+│       (default: False)                                                       │
+│ --env.events.reset-base.min-step-count-between-reset INT                     │
+│       (default: 0)                                                           │
+│ --env.events.reset-base.domain-randomization {True,False}                    │
+│       Whether this event term performs domain randomization. If True, the    │
+│       field                                                                  │
+│       name (from params["field"]) will be tracked for domain randomization   │
+│       purposes. (default: False)                                             │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.events.reset-base.params options ───────────────────────────────────────╮
+│ --env.events.reset-base.params.velocity-range [STR STR [STR STR ...]]        │
+│       (default: )                                                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.events.reset-base.params.pose-range options ────────────────────────────╮
+│ --env.events.reset-base.params.pose-range.x [FLOAT [FLOAT ...]]              │
+│       (default: -0.5 0.5)                                                    │
+│ --env.events.reset-base.params.pose-range.y [FLOAT [FLOAT ...]]              │
+│       (default: -0.5 0.5)                                                    │
+│ --env.events.reset-base.params.pose-range.yaw [FLOAT [FLOAT ...]]            │
+│       (default: -3.14 3.14)                                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.events.reset-robot-joints options ──────────────────────────────────────╮
+│ Configuration for an event term.                                             │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.events.reset-robot-joints.func {fixed}                                 │
+│       (fixed to: <function reset_joints_by_offset at 0x12f1a4d60>)           │
+│ --env.events.reset-robot-joints.mode {startup,reset,interval}                │
+│       (default: reset)                                                       │
+│ --env.events.reset-robot-joints.interval-range-s {None}|{FLOAT FLOAT}        │
+│       (default: None)                                                        │
+│ --env.events.reset-robot-joints.is-global-time {True,False}                  │
+│       (default: False)                                                       │
+│ --env.events.reset-robot-joints.min-step-count-between-reset INT             │
+│       (default: 0)                                                           │
+│ --env.events.reset-robot-joints.domain-randomization {True,False}            │
+│       Whether this event term performs domain randomization. If True, the    │
+│       field                                                                  │
+│       name (from params["field"]) will be tracked for domain randomization   │
+│       purposes. (default: False)                                             │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.events.reset-robot-joints.params options ───────────────────────────────╮
+│ --env.events.reset-robot-joints.params.position-range [FLOAT [FLOAT ...]]    │
+│       (default: 0.0 0.0)                                                     │
+│ --env.events.reset-robot-joints.params.velocity-range [FLOAT [FLOAT ...]]    │
+│       (default: 0.0 0.0)                                                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.events.reset-robot-joints.params.asset-cfg options ─────────────────────╮
+│ Configuration for a scene entity that is used by the manager's term. This    │
+│ configuration allows flexible specification of entity components either by   │
+│ name or by ID. During resolution, it ensures consistency between names and   │
+│ IDs, and can optimize to slice(None) when all components are selected.       │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.events.reset-robot-joints.params.asset-cfg.name STR                    │
+│       The name of the entity in the scene. (default: robot)                  │
+│ --env.events.reset-robot-joints.params.asset-cfg.joint-names                 │
+│ {None}|STR|{[STR [STR ...]]}                                                 │
+│       Names of joints to include. Can be a single string or tuple. (default: │
+│       '.*')                                                                  │
+│ --env.events.reset-robot-joints.params.asset-cfg.joint-ids {fixed}           │
+│       IDs of joints to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.events.reset-robot-joints.params.asset-cfg.body-names {None}|STR|{[STR │
+│ [STR ...]]}                                                                  │
+│       Names of bodies to include. Can be a single string or tuple. (default: │
+│       None)                                                                  │
+│ --env.events.reset-robot-joints.params.asset-cfg.body-ids {fixed}            │
+│       IDs of bodies to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.events.reset-robot-joints.params.asset-cfg.geom-names {None}|STR|{[STR │
+│ [STR ...]]}                                                                  │
+│       Names of geometries to include. Can be a single string or tuple.       │
+│       (default: None)                                                        │
+│ --env.events.reset-robot-joints.params.asset-cfg.geom-ids {fixed}            │
+│       IDs of geometries to include. Can be a list or slice. (fixed to:       │
+│       slice(None, None, None))                                               │
+│ --env.events.reset-robot-joints.params.asset-cfg.site-names {None}|STR|{[STR │
+│ [STR ...]]}                                                                  │
+│       Names of sites to include. Can be a single string or tuple. (default:  │
+│       None)                                                                  │
+│ --env.events.reset-robot-joints.params.asset-cfg.site-ids {fixed}            │
+│       IDs of sites to include. Can be a list or slice. (fixed to:            │
+│       slice(None, None, None))                                               │
+│ --env.events.reset-robot-joints.params.asset-cfg.actuator-names              │
+│ {None}|STR|{[STR [STR ...]]}                                                 │
+│       Names of actuators to include. Can be a single string or list.         │
+│       (default: None)                                                        │
+│ --env.events.reset-robot-joints.params.asset-cfg.actuator-ids {fixed}        │
+│       IDs of actuators to include. Can be a list or slice. (fixed to:        │
+│       slice(None, None, None))                                               │
+│ --env.events.reset-robot-joints.params.asset-cfg.preserve-order {True,False} │
+│       If True, maintains the order of components as specified. If False,     │
+│       allows reordering for optimization. (default: False)                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.events.push-robot options ──────────────────────────────────────────────╮
+│ Configuration for an event term.                                             │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.events.push-robot.func {fixed}                                         │
+│       (fixed to: <function push_by_setting_velocity at 0x12f1a4e00>)         │
+│ --env.events.push-robot.mode {startup,reset,interval}                        │
+│       (default: interval)                                                    │
+│ --env.events.push-robot.interval-range-s {None}|{FLOAT FLOAT}                │
+│       (default: 1.0 3.0)                                                     │
+│ --env.events.push-robot.is-global-time {True,False}                          │
+│       (default: False)                                                       │
+│ --env.events.push-robot.min-step-count-between-reset INT                     │
+│       (default: 0)                                                           │
+│ --env.events.push-robot.domain-randomization {True,False}                    │
+│       Whether this event term performs domain randomization. If True, the    │
+│       field                                                                  │
+│       name (from params["field"]) will be tracked for domain randomization   │
+│       purposes. (default: False)                                             │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.events.push-robot.params.velocity-range options ────────────────────────╮
+│ --env.events.push-robot.params.velocity-range.x [FLOAT [FLOAT ...]]          │
+│       (default: -0.5 0.5)                                                    │
+│ --env.events.push-robot.params.velocity-range.y [FLOAT [FLOAT ...]]          │
+│       (default: -0.5 0.5)                                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.events.foot-friction options ───────────────────────────────────────────╮
+│ Configuration for an event term.                                             │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.events.foot-friction.func {fixed}                                      │
+│       (fixed to: <function randomize_field at 0x12f1a4f40>)                  │
+│ --env.events.foot-friction.mode {startup,reset,interval}                     │
+│       (default: startup)                                                     │
+│ --env.events.foot-friction.interval-range-s {None}|{FLOAT FLOAT}             │
+│       (default: None)                                                        │
+│ --env.events.foot-friction.is-global-time {True,False}                       │
+│       (default: False)                                                       │
+│ --env.events.foot-friction.min-step-count-between-reset INT                  │
+│       (default: 0)                                                           │
+│ --env.events.foot-friction.domain-randomization {True,False}                 │
+│       Whether this event term performs domain randomization. If True, the    │
+│       field                                                                  │
+│       name (from params["field"]) will be tracked for domain randomization   │
+│       purposes. (default: True)                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.events.foot-friction.params options ────────────────────────────────────╮
+│ --env.events.foot-friction.params.operation STR                              │
+│       (default: abs)                                                         │
+│ --env.events.foot-friction.params.field STR                                  │
+│       (default: geom_friction)                                               │
+│ --env.events.foot-friction.params.ranges [FLOAT [FLOAT ...]]                 │
+│       (default: 0.3 1.2)                                                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.events.foot-friction.params.asset-cfg options ──────────────────────────╮
+│ Configuration for a scene entity that is used by the manager's term. This    │
+│ configuration allows flexible specification of entity components either by   │
+│ name or by ID. During resolution, it ensures consistency between names and   │
+│ IDs, and can optimize to slice(None) when all components are selected.       │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.events.foot-friction.params.asset-cfg.name STR                         │
+│       The name of the entity in the scene. (default: robot)                  │
+│ --env.events.foot-friction.params.asset-cfg.joint-names {None}|STR|{[STR     │
+│ [STR ...]]}                                                                  │
+│       Names of joints to include. Can be a single string or tuple. (default: │
+│       None)                                                                  │
+│ --env.events.foot-friction.params.asset-cfg.joint-ids {fixed}                │
+│       IDs of joints to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.events.foot-friction.params.asset-cfg.body-names {None}|STR|{[STR [STR │
+│ ...]]}                                                                       │
+│       Names of bodies to include. Can be a single string or tuple. (default: │
+│       None)                                                                  │
+│ --env.events.foot-friction.params.asset-cfg.body-ids {fixed}                 │
+│       IDs of bodies to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.events.foot-friction.params.asset-cfg.geom-names {None}|STR|{[STR [STR │
+│ ...]]}                                                                       │
+│       Names of geometries to include. Can be a single string or tuple.       │
+│       (default: FR_foot_collision FL_foot_collision RR_foot_collision        │
+│       RL_foot_collision)                                                     │
+│ --env.events.foot-friction.params.asset-cfg.geom-ids {fixed}                 │
+│       IDs of geometries to include. Can be a list or slice. (fixed to:       │
+│       slice(None, None, None))                                               │
+│ --env.events.foot-friction.params.asset-cfg.site-names {None}|STR|{[STR [STR │
+│ ...]]}                                                                       │
+│       Names of sites to include. Can be a single string or tuple. (default:  │
+│       None)                                                                  │
+│ --env.events.foot-friction.params.asset-cfg.site-ids {fixed}                 │
+│       IDs of sites to include. Can be a list or slice. (fixed to:            │
+│       slice(None, None, None))                                               │
+│ --env.events.foot-friction.params.asset-cfg.actuator-names {None}|STR|{[STR  │
+│ [STR ...]]}                                                                  │
+│       Names of actuators to include. Can be a single string or list.         │
+│       (default: None)                                                        │
+│ --env.events.foot-friction.params.asset-cfg.actuator-ids {fixed}             │
+│       IDs of actuators to include. Can be a list or slice. (fixed to:        │
+│       slice(None, None, None))                                               │
+│ --env.events.foot-friction.params.asset-cfg.preserve-order {True,False}      │
+│       If True, maintains the order of components as specified. If False,     │
+│       allows reordering for optimization. (default: False)                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.sim options ────────────────────────────────────────────────────────────╮
+│ Base environment configuration.                                              │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.sim.nconmax {None}|INT                                                 │
+│       Number of contacts to allocate per world.                              │
+│                                                                              │
+│                                                                              │
+│       Contacts exist in large heterogenous arrays: one world may have more   │
+│       than nconmax                                                           │
+│       contacts. If None, a heuristic value is used. (default: 35)            │
+│ --env.sim.njmax {None}|INT                                                   │
+│       Number of constraints to allocate per world.                           │
+│                                                                              │
+│                                                                              │
+│       Constraint arrays are batched by world: no world may have more than    │
+│       njmax                                                                  │
+│       constraints. If None, a heuristic value is used. (default: 300)        │
+│ --env.sim.ls-parallel {True,False}                                           │
+│       Boosts perf quite noticeably. (default: True)                          │
+│ --env.sim.contact-sensor-maxmatch INT                                        │
+│       (default: 64)                                                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.sim.mujoco options ─────────────────────────────────────────────────────╮
+│ Configuration for MuJoCo simulation parameters.                              │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.sim.mujoco.timestep FLOAT                                              │
+│       Integrator settings. (default: 0.005)                                  │
+│ --env.sim.mujoco.integrator {euler,implicitfast}                             │
+│       Integrator settings. (default: implicitfast)                           │
+│ --env.sim.mujoco.impratio FLOAT                                              │
+│       Friction settings. (default: 1.0)                                      │
+│ --env.sim.mujoco.cone {pyramidal,elliptic}                                   │
+│       Friction settings. (default: pyramidal)                                │
+│ --env.sim.mujoco.jacobian {auto,dense,sparse}                                │
+│       Solver settings. (default: auto)                                       │
+│ --env.sim.mujoco.solver {newton,cg,pgs}                                      │
+│       Solver settings. (default: newton)                                     │
+│ --env.sim.mujoco.iterations INT                                              │
+│       Solver settings. (default: 10)                                         │
+│ --env.sim.mujoco.tolerance FLOAT                                             │
+│       Solver settings. (default: 1e-08)                                      │
+│ --env.sim.mujoco.ls-iterations INT                                           │
+│       Solver settings. (default: 20)                                         │
+│ --env.sim.mujoco.ls-tolerance FLOAT                                          │
+│       Solver settings. (default: 0.01)                                       │
+│ --env.sim.mujoco.gravity FLOAT FLOAT FLOAT                                   │
+│       Other. (default: 0 0 -9.81)                                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.sim.nan-guard options ──────────────────────────────────────────────────╮
+│ Configuration for NaN guard.                                                 │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.sim.nan-guard.enabled {True,False}                                     │
+│       (default: False)                                                       │
+│ --env.sim.nan-guard.buffer-size INT                                          │
+│       (default: 100)                                                         │
+│ --env.sim.nan-guard.output-dir STR                                           │
+│       (default: /tmp/mjlab/nan_dumps)                                        │
+│ --env.sim.nan-guard.max-envs-to-dump INT                                     │
+│       (default: 5)                                                           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.viewer options ─────────────────────────────────────────────────────────╮
+│ Base environment configuration.                                              │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.viewer.lookat FLOAT FLOAT FLOAT                                        │
+│       (default: 0.0 0.0 0.0)                                                 │
+│ --env.viewer.distance FLOAT                                                  │
+│       (default: 1.5)                                                         │
+│ --env.viewer.elevation FLOAT                                                 │
+│       (default: -10.0)                                                       │
+│ --env.viewer.azimuth FLOAT                                                   │
+│       (default: 90.0)                                                        │
+│ --env.viewer.origin-type {WORLD,ASSET_ROOT,ASSET_BODY}                       │
+│       (default: ASSET_BODY)                                                  │
+│ --env.viewer.asset-name {None}|STR                                           │
+│       (default: robot)                                                       │
+│ --env.viewer.body-name {None}|STR                                            │
+│       (default: trunk)                                                       │
+│ --env.viewer.env-idx INT                                                     │
+│       (default: 0)                                                           │
+│ --env.viewer.enable-reflections {True,False}                                 │
+│       (default: True)                                                        │
+│ --env.viewer.enable-shadows {True,False}                                     │
+│       (default: True)                                                        │
+│ --env.viewer.height INT                                                      │
+│       (default: 240)                                                         │
+│ --env.viewer.width INT                                                       │
+│       (default: 320)                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.track-linear-velocity options ──────────────────────────────────╮
+│ Configuration for a reward term.                                             │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.track-linear-velocity.func {fixed}                             │
+│       (fixed to: <function track_linear_velocity at 0x16a0cc680>)            │
+│ --env.rewards.track-linear-velocity.weight FLOAT                             │
+│       (default: 2.0)                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.track-linear-velocity.params options ───────────────────────────╮
+│ --env.rewards.track-linear-velocity.params.command-name STR                  │
+│       (default: twist)                                                       │
+│ --env.rewards.track-linear-velocity.params.std FLOAT                         │
+│       (default: 0.5)                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.track-angular-velocity options ─────────────────────────────────╮
+│ Configuration for a reward term.                                             │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.track-angular-velocity.func {fixed}                            │
+│       (fixed to: <function track_angular_velocity at 0x16a0cc720>)           │
+│ --env.rewards.track-angular-velocity.weight FLOAT                            │
+│       (default: 2.0)                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.track-angular-velocity.params options ──────────────────────────╮
+│ --env.rewards.track-angular-velocity.params.command-name STR                 │
+│       (default: twist)                                                       │
+│ --env.rewards.track-angular-velocity.params.std FLOAT                        │
+│       (default: 0.7071067811865476)                                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.upright options ────────────────────────────────────────────────╮
+│ Configuration for a reward term.                                             │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.upright.func {fixed}                                           │
+│       (fixed to: <function flat_orientation at 0x16a0cc7c0>)                 │
+│ --env.rewards.upright.weight FLOAT                                           │
+│       (default: 1.0)                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.upright.params options ─────────────────────────────────────────╮
+│ --env.rewards.upright.params.std FLOAT                                       │
+│       (default: 0.4472135954999579)                                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.upright.params.asset-cfg options ───────────────────────────────╮
+│ Configuration for a scene entity that is used by the manager's term. This    │
+│ configuration allows flexible specification of entity components either by   │
+│ name or by ID. During resolution, it ensures consistency between names and   │
+│ IDs, and can optimize to slice(None) when all components are selected.       │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.upright.params.asset-cfg.name STR                              │
+│       The name of the entity in the scene. (default: robot)                  │
+│ --env.rewards.upright.params.asset-cfg.joint-names {None}|STR|{[STR [STR     │
+│ ...]]}                                                                       │
+│       Names of joints to include. Can be a single string or tuple. (default: │
+│       None)                                                                  │
+│ --env.rewards.upright.params.asset-cfg.joint-ids {fixed}                     │
+│       IDs of joints to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.rewards.upright.params.asset-cfg.body-names {None}|STR|{[STR [STR      │
+│ ...]]}                                                                       │
+│       Names of bodies to include. Can be a single string or tuple. (default: │
+│       trunk)                                                                 │
+│ --env.rewards.upright.params.asset-cfg.body-ids {fixed}                      │
+│       IDs of bodies to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.rewards.upright.params.asset-cfg.geom-names {None}|STR|{[STR [STR      │
+│ ...]]}                                                                       │
+│       Names of geometries to include. Can be a single string or tuple.       │
+│       (default: None)                                                        │
+│ --env.rewards.upright.params.asset-cfg.geom-ids {fixed}                      │
+│       IDs of geometries to include. Can be a list or slice. (fixed to:       │
+│       slice(None, None, None))                                               │
+│ --env.rewards.upright.params.asset-cfg.site-names {None}|STR|{[STR [STR      │
+│ ...]]}                                                                       │
+│       Names of sites to include. Can be a single string or tuple. (default:  │
+│       None)                                                                  │
+│ --env.rewards.upright.params.asset-cfg.site-ids {fixed}                      │
+│       IDs of sites to include. Can be a list or slice. (fixed to:            │
+│       slice(None, None, None))                                               │
+│ --env.rewards.upright.params.asset-cfg.actuator-names {None}|STR|{[STR [STR  │
+│ ...]]}                                                                       │
+│       Names of actuators to include. Can be a single string or list.         │
+│       (default: None)                                                        │
+│ --env.rewards.upright.params.asset-cfg.actuator-ids {fixed}                  │
+│       IDs of actuators to include. Can be a list or slice. (fixed to:        │
+│       slice(None, None, None))                                               │
+│ --env.rewards.upright.params.asset-cfg.preserve-order {True,False}           │
+│       If True, maintains the order of components as specified. If False,     │
+│       allows reordering for optimization. (default: False)                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.pose options ───────────────────────────────────────────────────╮
+│ Configuration for a reward term.                                             │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.pose.func {fixed}                                              │
+│       (fixed to: <class                                                      │
+│       'mjlab.tasks.velocity.mdp.rewards.variable_posture'>)                  │
+│ --env.rewards.pose.weight FLOAT                                              │
+│       (default: 1.0)                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.pose.params options ────────────────────────────────────────────╮
+│ --env.rewards.pose.params.command-name STR                                   │
+│       (default: twist)                                                       │
+│ --env.rewards.pose.params.walking-threshold FLOAT                            │
+│       (default: 0.05)                                                        │
+│ --env.rewards.pose.params.running-threshold FLOAT                            │
+│       (default: 1.5)                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.pose.params.asset-cfg options ──────────────────────────────────╮
+│ Configuration for a scene entity that is used by the manager's term. This    │
+│ configuration allows flexible specification of entity components either by   │
+│ name or by ID. During resolution, it ensures consistency between names and   │
+│ IDs, and can optimize to slice(None) when all components are selected.       │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.pose.params.asset-cfg.name STR                                 │
+│       The name of the entity in the scene. (default: robot)                  │
+│ --env.rewards.pose.params.asset-cfg.joint-names {None}|STR|{[STR [STR ...]]} │
+│       Names of joints to include. Can be a single string or tuple. (default: │
+│       '.*')                                                                  │
+│ --env.rewards.pose.params.asset-cfg.joint-ids {fixed}                        │
+│       IDs of joints to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.rewards.pose.params.asset-cfg.body-names {None}|STR|{[STR [STR ...]]}  │
+│       Names of bodies to include. Can be a single string or tuple. (default: │
+│       None)                                                                  │
+│ --env.rewards.pose.params.asset-cfg.body-ids {fixed}                         │
+│       IDs of bodies to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.rewards.pose.params.asset-cfg.geom-names {None}|STR|{[STR [STR ...]]}  │
+│       Names of geometries to include. Can be a single string or tuple.       │
+│       (default: None)                                                        │
+│ --env.rewards.pose.params.asset-cfg.geom-ids {fixed}                         │
+│       IDs of geometries to include. Can be a list or slice. (fixed to:       │
+│       slice(None, None, None))                                               │
+│ --env.rewards.pose.params.asset-cfg.site-names {None}|STR|{[STR [STR ...]]}  │
+│       Names of sites to include. Can be a single string or tuple. (default:  │
+│       None)                                                                  │
+│ --env.rewards.pose.params.asset-cfg.site-ids {fixed}                         │
+│       IDs of sites to include. Can be a list or slice. (fixed to:            │
+│       slice(None, None, None))                                               │
+│ --env.rewards.pose.params.asset-cfg.actuator-names {None}|STR|{[STR [STR     │
+│ ...]]}                                                                       │
+│       Names of actuators to include. Can be a single string or list.         │
+│       (default: None)                                                        │
+│ --env.rewards.pose.params.asset-cfg.actuator-ids {fixed}                     │
+│       IDs of actuators to include. Can be a list or slice. (fixed to:        │
+│       slice(None, None, None))                                               │
+│ --env.rewards.pose.params.asset-cfg.preserve-order {True,False}              │
+│       If True, maintains the order of components as specified. If False,     │
+│       allows reordering for optimization. (default: False)                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.pose.params.std-standing options ───────────────────────────────╮
+│ --env.rewards.pose.params.std-standing.*(FR|FL|RR|RL)-(hip|thigh)-joint.*    │
+│ FLOAT                                                                        │
+│       (default: 0.05)                                                        │
+│ --env.rewards.pose.params.std-standing.*(FR|FL|RR|RL)-calf-joint.* FLOAT     │
+│       (default: 0.1)                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.pose.params.std-walking options ────────────────────────────────╮
+│ --env.rewards.pose.params.std-walking.*(FR|FL|RR|RL)-(hip|thigh)-joint.*     │
+│ FLOAT                                                                        │
+│       (default: 0.3)                                                         │
+│ --env.rewards.pose.params.std-walking.*(FR|FL|RR|RL)-calf-joint.* FLOAT      │
+│       (default: 0.6)                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.pose.params.std-running options ────────────────────────────────╮
+│ --env.rewards.pose.params.std-running.*(FR|FL|RR|RL)-(hip|thigh)-joint.*     │
+│ FLOAT                                                                        │
+│       (default: 0.3)                                                         │
+│ --env.rewards.pose.params.std-running.*(FR|FL|RR|RL)-calf-joint.* FLOAT      │
+│       (default: 0.6)                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.body-ang-vel options ───────────────────────────────────────────╮
+│ Configuration for a reward term.                                             │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.body-ang-vel.func {fixed}                                      │
+│       (fixed to: <function body_angular_velocity_penalty at 0x16a0cc900>)    │
+│ --env.rewards.body-ang-vel.weight FLOAT                                      │
+│       (default: 0.0)                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.body-ang-vel.params.asset-cfg options ──────────────────────────╮
+│ Configuration for a scene entity that is used by the manager's term. This    │
+│ configuration allows flexible specification of entity components either by   │
+│ name or by ID. During resolution, it ensures consistency between names and   │
+│ IDs, and can optimize to slice(None) when all components are selected.       │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.body-ang-vel.params.asset-cfg.name STR                         │
+│       The name of the entity in the scene. (default: robot)                  │
+│ --env.rewards.body-ang-vel.params.asset-cfg.joint-names {None}|STR|{[STR     │
+│ [STR ...]]}                                                                  │
+│       Names of joints to include. Can be a single string or tuple. (default: │
+│       None)                                                                  │
+│ --env.rewards.body-ang-vel.params.asset-cfg.joint-ids {fixed}                │
+│       IDs of joints to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.rewards.body-ang-vel.params.asset-cfg.body-names {None}|STR|{[STR [STR │
+│ ...]]}                                                                       │
+│       Names of bodies to include. Can be a single string or tuple. (default: │
+│       trunk)                                                                 │
+│ --env.rewards.body-ang-vel.params.asset-cfg.body-ids {fixed}                 │
+│       IDs of bodies to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.rewards.body-ang-vel.params.asset-cfg.geom-names {None}|STR|{[STR [STR │
+│ ...]]}                                                                       │
+│       Names of geometries to include. Can be a single string or tuple.       │
+│       (default: None)                                                        │
+│ --env.rewards.body-ang-vel.params.asset-cfg.geom-ids {fixed}                 │
+│       IDs of geometries to include. Can be a list or slice. (fixed to:       │
+│       slice(None, None, None))                                               │
+│ --env.rewards.body-ang-vel.params.asset-cfg.site-names {None}|STR|{[STR [STR │
+│ ...]]}                                                                       │
+│       Names of sites to include. Can be a single string or tuple. (default:  │
+│       None)                                                                  │
+│ --env.rewards.body-ang-vel.params.asset-cfg.site-ids {fixed}                 │
+│       IDs of sites to include. Can be a list or slice. (fixed to:            │
+│       slice(None, None, None))                                               │
+│ --env.rewards.body-ang-vel.params.asset-cfg.actuator-names {None}|STR|{[STR  │
+│ [STR ...]]}                                                                  │
+│       Names of actuators to include. Can be a single string or list.         │
+│       (default: None)                                                        │
+│ --env.rewards.body-ang-vel.params.asset-cfg.actuator-ids {fixed}             │
+│       IDs of actuators to include. Can be a list or slice. (fixed to:        │
+│       slice(None, None, None))                                               │
+│ --env.rewards.body-ang-vel.params.asset-cfg.preserve-order {True,False}      │
+│       If True, maintains the order of components as specified. If False,     │
+│       allows reordering for optimization. (default: False)                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.angular-momentum options ───────────────────────────────────────╮
+│ Configuration for a reward term.                                             │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.angular-momentum.func {fixed}                                  │
+│       (fixed to: <function angular_momentum_penalty at 0x16a0cc9a0>)         │
+│ --env.rewards.angular-momentum.weight FLOAT                                  │
+│       (default: 0.0)                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.angular-momentum.params options ────────────────────────────────╮
+│ --env.rewards.angular-momentum.params.sensor-name STR                        │
+│       (default: robot/root_angmom)                                           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.dof-pos-limits options ─────────────────────────────────────────╮
+│ Configuration for a reward term.                                             │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.dof-pos-limits.func {fixed}                                    │
+│       (fixed to: <function joint_pos_limits at 0x12f1a6480>)                 │
+│ --env.rewards.dof-pos-limits.params {fixed}                                  │
+│       (fixed to: {})                                                         │
+│ --env.rewards.dof-pos-limits.weight FLOAT                                    │
+│       (default: -1.0)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.action-rate-l2 options ─────────────────────────────────────────╮
+│ Configuration for a reward term.                                             │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.action-rate-l2.func {fixed}                                    │
+│       (fixed to: <function action_rate_l2 at 0x12f1a6340>)                   │
+│ --env.rewards.action-rate-l2.params {fixed}                                  │
+│       (fixed to: {})                                                         │
+│ --env.rewards.action-rate-l2.weight FLOAT                                    │
+│       (default: -0.1)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.air-time options ───────────────────────────────────────────────╮
+│ Configuration for a reward term.                                             │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.air-time.func {fixed}                                          │
+│       (fixed to: <function feet_air_time at 0x16a0cca40>)                    │
+│ --env.rewards.air-time.weight FLOAT                                          │
+│       (default: 0.0)                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.air-time.params options ────────────────────────────────────────╮
+│ --env.rewards.air-time.params.sensor-name STR                                │
+│       (default: feet_ground_contact)                                         │
+│ --env.rewards.air-time.params.threshold-min FLOAT                            │
+│       (default: 0.05)                                                        │
+│ --env.rewards.air-time.params.threshold-max FLOAT                            │
+│       (default: 0.5)                                                         │
+│ --env.rewards.air-time.params.command-name STR                               │
+│       (default: twist)                                                       │
+│ --env.rewards.air-time.params.command-threshold FLOAT                        │
+│       (default: 0.5)                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.foot-clearance options ─────────────────────────────────────────╮
+│ Configuration for a reward term.                                             │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.foot-clearance.func {fixed}                                    │
+│       (fixed to: <function feet_clearance at 0x16a0ccae0>)                   │
+│ --env.rewards.foot-clearance.weight FLOAT                                    │
+│       (default: -2.0)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.foot-clearance.params options ──────────────────────────────────╮
+│ --env.rewards.foot-clearance.params.target-height FLOAT                      │
+│       (default: 0.1)                                                         │
+│ --env.rewards.foot-clearance.params.command-name STR                         │
+│       (default: twist)                                                       │
+│ --env.rewards.foot-clearance.params.command-threshold FLOAT                  │
+│       (default: 0.05)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.foot-clearance.params.asset-cfg options ────────────────────────╮
+│ Configuration for a scene entity that is used by the manager's term. This    │
+│ configuration allows flexible specification of entity components either by   │
+│ name or by ID. During resolution, it ensures consistency between names and   │
+│ IDs, and can optimize to slice(None) when all components are selected.       │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.foot-clearance.params.asset-cfg.name STR                       │
+│       The name of the entity in the scene. (default: robot)                  │
+│ --env.rewards.foot-clearance.params.asset-cfg.joint-names {None}|STR|{[STR   │
+│ [STR ...]]}                                                                  │
+│       Names of joints to include. Can be a single string or tuple. (default: │
+│       None)                                                                  │
+│ --env.rewards.foot-clearance.params.asset-cfg.joint-ids {fixed}              │
+│       IDs of joints to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.rewards.foot-clearance.params.asset-cfg.body-names {None}|STR|{[STR    │
+│ [STR ...]]}                                                                  │
+│       Names of bodies to include. Can be a single string or tuple. (default: │
+│       None)                                                                  │
+│ --env.rewards.foot-clearance.params.asset-cfg.body-ids {fixed}               │
+│       IDs of bodies to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.rewards.foot-clearance.params.asset-cfg.geom-names {None}|STR|{[STR    │
+│ [STR ...]]}                                                                  │
+│       Names of geometries to include. Can be a single string or tuple.       │
+│       (default: None)                                                        │
+│ --env.rewards.foot-clearance.params.asset-cfg.geom-ids {fixed}               │
+│       IDs of geometries to include. Can be a list or slice. (fixed to:       │
+│       slice(None, None, None))                                               │
+│ --env.rewards.foot-clearance.params.asset-cfg.site-names {None}|STR|{[STR    │
+│ [STR ...]]}                                                                  │
+│       Names of sites to include. Can be a single string or tuple. (default:  │
+│       FR FL RR RL)                                                           │
+│ --env.rewards.foot-clearance.params.asset-cfg.site-ids {fixed}               │
+│       IDs of sites to include. Can be a list or slice. (fixed to:            │
+│       slice(None, None, None))                                               │
+│ --env.rewards.foot-clearance.params.asset-cfg.actuator-names                 │
+│ {None}|STR|{[STR [STR ...]]}                                                 │
+│       Names of actuators to include. Can be a single string or list.         │
+│       (default: None)                                                        │
+│ --env.rewards.foot-clearance.params.asset-cfg.actuator-ids {fixed}           │
+│       IDs of actuators to include. Can be a list or slice. (fixed to:        │
+│       slice(None, None, None))                                               │
+│ --env.rewards.foot-clearance.params.asset-cfg.preserve-order {True,False}    │
+│       If True, maintains the order of components as specified. If False,     │
+│       allows reordering for optimization. (default: False)                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.foot-swing-height options ──────────────────────────────────────╮
+│ Configuration for a reward term.                                             │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.foot-swing-height.func {fixed}                                 │
+│       (fixed to: <class                                                      │
+│       'mjlab.tasks.velocity.mdp.rewards.feet_swing_height'>)                 │
+│ --env.rewards.foot-swing-height.weight FLOAT                                 │
+│       (default: -0.25)                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.foot-swing-height.params options ───────────────────────────────╮
+│ --env.rewards.foot-swing-height.params.sensor-name STR                       │
+│       (default: feet_ground_contact)                                         │
+│ --env.rewards.foot-swing-height.params.target-height FLOAT                   │
+│       (default: 0.1)                                                         │
+│ --env.rewards.foot-swing-height.params.command-name STR                      │
+│       (default: twist)                                                       │
+│ --env.rewards.foot-swing-height.params.command-threshold FLOAT               │
+│       (default: 0.05)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.foot-swing-height.params.asset-cfg options ─────────────────────╮
+│ Configuration for a scene entity that is used by the manager's term. This    │
+│ configuration allows flexible specification of entity components either by   │
+│ name or by ID. During resolution, it ensures consistency between names and   │
+│ IDs, and can optimize to slice(None) when all components are selected.       │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.foot-swing-height.params.asset-cfg.name STR                    │
+│       The name of the entity in the scene. (default: robot)                  │
+│ --env.rewards.foot-swing-height.params.asset-cfg.joint-names                 │
+│ {None}|STR|{[STR [STR ...]]}                                                 │
+│       Names of joints to include. Can be a single string or tuple. (default: │
+│       None)                                                                  │
+│ --env.rewards.foot-swing-height.params.asset-cfg.joint-ids {fixed}           │
+│       IDs of joints to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.rewards.foot-swing-height.params.asset-cfg.body-names {None}|STR|{[STR │
+│ [STR ...]]}                                                                  │
+│       Names of bodies to include. Can be a single string or tuple. (default: │
+│       None)                                                                  │
+│ --env.rewards.foot-swing-height.params.asset-cfg.body-ids {fixed}            │
+│       IDs of bodies to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.rewards.foot-swing-height.params.asset-cfg.geom-names {None}|STR|{[STR │
+│ [STR ...]]}                                                                  │
+│       Names of geometries to include. Can be a single string or tuple.       │
+│       (default: None)                                                        │
+│ --env.rewards.foot-swing-height.params.asset-cfg.geom-ids {fixed}            │
+│       IDs of geometries to include. Can be a list or slice. (fixed to:       │
+│       slice(None, None, None))                                               │
+│ --env.rewards.foot-swing-height.params.asset-cfg.site-names {None}|STR|{[STR │
+│ [STR ...]]}                                                                  │
+│       Names of sites to include. Can be a single string or tuple. (default:  │
+│       FR FL RR RL)                                                           │
+│ --env.rewards.foot-swing-height.params.asset-cfg.site-ids {fixed}            │
+│       IDs of sites to include. Can be a list or slice. (fixed to:            │
+│       slice(None, None, None))                                               │
+│ --env.rewards.foot-swing-height.params.asset-cfg.actuator-names              │
+│ {None}|STR|{[STR [STR ...]]}                                                 │
+│       Names of actuators to include. Can be a single string or list.         │
+│       (default: None)                                                        │
+│ --env.rewards.foot-swing-height.params.asset-cfg.actuator-ids {fixed}        │
+│       IDs of actuators to include. Can be a list or slice. (fixed to:        │
+│       slice(None, None, None))                                               │
+│ --env.rewards.foot-swing-height.params.asset-cfg.preserve-order {True,False} │
+│       If True, maintains the order of components as specified. If False,     │
+│       allows reordering for optimization. (default: False)                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.foot-slip options ──────────────────────────────────────────────╮
+│ Configuration for a reward term.                                             │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.foot-slip.func {fixed}                                         │
+│       (fixed to: <function feet_slip at 0x16a0ccb80>)                        │
+│ --env.rewards.foot-slip.weight FLOAT                                         │
+│       (default: -0.1)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.foot-slip.params options ───────────────────────────────────────╮
+│ --env.rewards.foot-slip.params.sensor-name STR                               │
+│       (default: feet_ground_contact)                                         │
+│ --env.rewards.foot-slip.params.command-name STR                              │
+│       (default: twist)                                                       │
+│ --env.rewards.foot-slip.params.command-threshold FLOAT                       │
+│       (default: 0.05)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.foot-slip.params.asset-cfg options ─────────────────────────────╮
+│ Configuration for a scene entity that is used by the manager's term. This    │
+│ configuration allows flexible specification of entity components either by   │
+│ name or by ID. During resolution, it ensures consistency between names and   │
+│ IDs, and can optimize to slice(None) when all components are selected.       │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.foot-slip.params.asset-cfg.name STR                            │
+│       The name of the entity in the scene. (default: robot)                  │
+│ --env.rewards.foot-slip.params.asset-cfg.joint-names {None}|STR|{[STR [STR   │
+│ ...]]}                                                                       │
+│       Names of joints to include. Can be a single string or tuple. (default: │
+│       None)                                                                  │
+│ --env.rewards.foot-slip.params.asset-cfg.joint-ids {fixed}                   │
+│       IDs of joints to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.rewards.foot-slip.params.asset-cfg.body-names {None}|STR|{[STR [STR    │
+│ ...]]}                                                                       │
+│       Names of bodies to include. Can be a single string or tuple. (default: │
+│       None)                                                                  │
+│ --env.rewards.foot-slip.params.asset-cfg.body-ids {fixed}                    │
+│       IDs of bodies to include. Can be a list or slice. (fixed to:           │
+│       slice(None, None, None))                                               │
+│ --env.rewards.foot-slip.params.asset-cfg.geom-names {None}|STR|{[STR [STR    │
+│ ...]]}                                                                       │
+│       Names of geometries to include. Can be a single string or tuple.       │
+│       (default: None)                                                        │
+│ --env.rewards.foot-slip.params.asset-cfg.geom-ids {fixed}                    │
+│       IDs of geometries to include. Can be a list or slice. (fixed to:       │
+│       slice(None, None, None))                                               │
+│ --env.rewards.foot-slip.params.asset-cfg.site-names {None}|STR|{[STR [STR    │
+│ ...]]}                                                                       │
+│       Names of sites to include. Can be a single string or tuple. (default:  │
+│       FR FL RR RL)                                                           │
+│ --env.rewards.foot-slip.params.asset-cfg.site-ids {fixed}                    │
+│       IDs of sites to include. Can be a list or slice. (fixed to:            │
+│       slice(None, None, None))                                               │
+│ --env.rewards.foot-slip.params.asset-cfg.actuator-names {None}|STR|{[STR     │
+│ [STR ...]]}                                                                  │
+│       Names of actuators to include. Can be a single string or list.         │
+│       (default: None)                                                        │
+│ --env.rewards.foot-slip.params.asset-cfg.actuator-ids {fixed}                │
+│       IDs of actuators to include. Can be a list or slice. (fixed to:        │
+│       slice(None, None, None))                                               │
+│ --env.rewards.foot-slip.params.asset-cfg.preserve-order {True,False}         │
+│       If True, maintains the order of components as specified. If False,     │
+│       allows reordering for optimization. (default: False)                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.soft-landing options ───────────────────────────────────────────╮
+│ Configuration for a reward term.                                             │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.rewards.soft-landing.func {fixed}                                      │
+│       (fixed to: <function soft_landing at 0x16a0ccd60>)                     │
+│ --env.rewards.soft-landing.weight FLOAT                                      │
+│       (default: -1e-05)                                                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.rewards.soft-landing.params options ────────────────────────────────────╮
+│ --env.rewards.soft-landing.params.sensor-name STR                            │
+│       (default: feet_ground_contact)                                         │
+│ --env.rewards.soft-landing.params.command-name STR                           │
+│       (default: twist)                                                       │
+│ --env.rewards.soft-landing.params.command-threshold FLOAT                    │
+│       (default: 0.05)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.terminations.time-out options ──────────────────────────────────────────╮
+│ Configuration for a termination term.                                        │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.terminations.time-out.func {fixed}                                     │
+│       (fixed to: <function time_out at 0x12f1a68e0>)                         │
+│ --env.terminations.time-out.params {fixed}                                   │
+│       (fixed to: {})                                                         │
+│ --env.terminations.time-out.time-out {True,False}                            │
+│       Whether the term contributes towards episodic timeouts. (default:      │
+│       True)                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.terminations.fell-over options ─────────────────────────────────────────╮
+│ Configuration for a termination term.                                        │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.terminations.fell-over.func {fixed}                                    │
+│       (fixed to: <function bad_orientation at 0x12f1a6b60>)                  │
+│ --env.terminations.fell-over.time-out {True,False}                           │
+│       Whether the term contributes towards episodic timeouts. (default:      │
+│       False)                                                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.terminations.fell-over.params options ──────────────────────────────────╮
+│ --env.terminations.fell-over.params.limit-angle FLOAT                        │
+│       (default: 1.2217304763960306)                                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.terminations.illegal-contact options ───────────────────────────────────╮
+│ Configuration for a termination term.                                        │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --env.terminations.illegal-contact.func {fixed}                              │
+│       (fixed to: <function illegal_contact at 0x16a0cd080>)                  │
+│ --env.terminations.illegal-contact.time-out {True,False}                     │
+│       Whether the term contributes towards episodic timeouts. (default:      │
+│       False)                                                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ env.terminations.illegal-contact.params options ────────────────────────────╮
+│ --env.terminations.illegal-contact.params.sensor-name STR                    │
+│       (default: nonfoot_ground_touch)                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ agent options ──────────────────────────────────────────────────────────────╮
+│ --agent.seed INT                                                             │
+│       The seed for the experiment. Default is 42. (default: 42)              │
+│ --agent.num-steps-per-env INT                                                │
+│       The number of steps per environment update. (default: 24)              │
+│ --agent.max-iterations INT                                                   │
+│       The maximum number of iterations. (default: 10000)                     │
+│ --agent.save-interval INT                                                    │
+│       The number of iterations between saves. (default: 50)                  │
+│ --agent.experiment-name STR                                                  │
+│       The experiment name. (default: go1_velocity)                           │
+│ --agent.run-name STR                                                         │
+│       The run name. Default is empty string. (default: '')                   │
+│ --agent.logger {wandb,tensorboard}                                           │
+│       The logger to use. Default is wandb. (default: wandb)                  │
+│ --agent.wandb-project STR                                                    │
+│       The wandb project name. (default: mjlab)                               │
+│ --agent.wandb-tags [STR [STR ...]]                                           │
+│       Tags for the wandb run. Default is empty tuple. (default: )            │
+│ --agent.resume {True,False}                                                  │
+│       Whether to resume the experiment. Default is False. (default: False)   │
+│ --agent.load-run STR                                                         │
+│       The run directory to load. Default is ".*" which means all runs. If    │
+│       regex                                                                  │
+│       expression, the latest (alphabetical order) matching run will be       │
+│       loaded. (default: '.*')                                                │
+│ --agent.load-checkpoint STR                                                  │
+│       The checkpoint file to load. Default is "model_.*.pt" (all). If regex  │
+│       expression,                                                            │
+│       the latest (alphabetical order) matching file will be loaded.          │
+│       (default: 'model_.*.pt')                                               │
+│ --agent.clip-actions {None}|FLOAT                                            │
+│       The clipping range for action values. If None (default), no clipping   │
+│       is applied. (default: None)                                            │
+│ --agent.class-name STR                                                       │
+│       The runner class name. Default is OnPolicyRunner. (default:            │
+│       OnPolicyRunner)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ agent.obs-groups options ───────────────────────────────────────────────────╮
+│ --agent.obs-groups.policy [STR [STR ...]]                                    │
+│       (default: policy)                                                      │
+│ --agent.obs-groups.critic [STR [STR ...]]                                    │
+│       (default: critic)                                                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ agent.policy options ───────────────────────────────────────────────────────╮
+│ The policy configuration.                                                    │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --agent.policy.init-noise-std FLOAT                                          │
+│       The initial noise standard deviation of the policy. (default: 1.0)     │
+│ --agent.policy.noise-std-type {scalar,log}                                   │
+│       The type of noise standard deviation for the policy. Default is        │
+│       scalar. (default: scalar)                                              │
+│ --agent.policy.actor-obs-normalization {True,False}                          │
+│       Whether to normalize the observation for the actor network. Default is │
+│       False. (default: False)                                                │
+│ --agent.policy.critic-obs-normalization {True,False}                         │
+│       Whether to normalize the observation for the critic network. Default   │
+│       is False. (default: False)                                             │
+│ --agent.policy.actor-hidden-dims [INT [INT ...]]                             │
+│       The hidden dimensions of the actor network. (default: 512 256 128)     │
+│ --agent.policy.critic-hidden-dims [INT [INT ...]]                            │
+│       The hidden dimensions of the critic network. (default: 512 256 128)    │
+│ --agent.policy.activation STR                                                │
+│       The activation function to use in the actor and critic networks.       │
+│       (default: elu)                                                         │
+│ --agent.policy.class-name STR                                                │
+│       Ignore, required by RSL-RL. (default: ActorCritic)                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ agent.algorithm options ────────────────────────────────────────────────────╮
+│ The algorithm configuration.                                                 │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ --agent.algorithm.num-learning-epochs INT                                    │
+│       The number of learning epochs per update. (default: 5)                 │
+│ --agent.algorithm.num-mini-batches INT                                       │
+│       The number of mini-batches per update.                                 │
+│       mini batch size = num_envs * num_steps / num_mini_batches (default: 4) │
+│ --agent.algorithm.learning-rate FLOAT                                        │
+│       The learning rate. (default: 0.001)                                    │
+│ --agent.algorithm.schedule {adaptive,fixed}                                  │
+│       The learning rate schedule. (default: adaptive)                        │
+│ --agent.algorithm.gamma FLOAT                                                │
+│       The discount factor. (default: 0.99)                                   │
+│ --agent.algorithm.lam FLOAT                                                  │
+│       The lambda parameter for Generalized Advantage Estimation (GAE).       │
+│       (default: 0.95)                                                        │
+│ --agent.algorithm.entropy-coef FLOAT                                         │
+│       The coefficient for the entropy loss. (default: 0.01)                  │
+│ --agent.algorithm.desired-kl FLOAT                                           │
+│       The desired KL divergence between the new and old policies. (default:  │
+│       0.01)                                                                  │
+│ --agent.algorithm.max-grad-norm FLOAT                                        │
+│       The maximum gradient norm for the policy. (default: 1.0)               │
+│ --agent.algorithm.value-loss-coef FLOAT                                      │
+│       The coefficient for the value loss. (default: 1.0)                     │
+│ --agent.algorithm.use-clipped-value-loss {True,False}                        │
+│       Whether to use clipped value loss. (default: True)                     │
+│ --agent.algorithm.clip-param FLOAT                                           │
+│       The clipping parameter for the policy. (default: 0.2)                  │
+│ --agent.algorithm.normalize-advantage-per-mini-batch {True,False}            │
+│       Whether to normalize the advantage per mini-batch. Default is False.   │
+│       If True, the                                                           │
+│       advantage is normalized over the mini-batches only. Otherwise, the     │
+│       advantage is                                                           │
+│       normalized over the entire collected trajectories. (default: False)    │
+│ --agent.algorithm.class-name STR                                             │
+│       Ignore, required by RSL-RL. (default: PPO)                             │
+╰──────────────────────────────────────────────────────────────────────────────╯

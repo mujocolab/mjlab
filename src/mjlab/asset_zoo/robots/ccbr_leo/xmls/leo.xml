@@ -1,170 +1,183 @@
-<mujoco model="leo">
-  <compiler angle="radian" meshdir="assets" autolimits="true"/>
-
+<mujoco model="quadruped_assembly">
   <default>
-    <default class="leo">
+    <default class="robot">
+      <default class="GO-M8010-6">
+        <joint armature="0.002" frictionloss="0.0" damping="0.01" actuatorfrcrange="-23.7 23.7" />
+        <motor ctrlrange="-23.7 23.7" />
+      </default>
       <default class="visual">
-        <geom type="mesh" contype="0" conaffinity="0" group="2" material="dark"/>
+        <geom material="visualgeom" contype="0" conaffinity="0" group="2" />
       </default>
       <default class="collision">
-        <geom group="3" type="capsule" contype="1" conaffinity="1"/>
-        <default class="thigh1">
-          <geom size="0.015" fromto="-0.02 0 0 -0.02 0 -0.16"/>
-        </default>
-        <default class="thigh2">
-          <geom size="0.015" fromto="0 0 0 -0.02 0 -0.1"/>
-        </default>
-        <default class="thigh3">
-          <geom size="0.015" fromto="-0.02 0 -0.16 0 0 -0.2"/>
-        </default>
-        <default class="calf1">
-          <geom size="0.01" fromto="0 0 0 0.02 0 -0.13"/>
-        </default>
-        <default class="calf2">
-          <geom size="0.01" fromto="0.02 0 -0.13 0 0 -0.2"/>
-        </default>
-        <default class="foot">
-          <geom type="sphere" size="0.023" pos="0 0 -0.213"/>
-        </default>
+        <geom material="collision_material" condim="3" contype="0" conaffinity="1" priority="1" group="1" solref="0.005 1" solimp="0.99 0.999 1e-05" friction="0.64" />
       </default>
+    </default>
+    <mesh maxhullvert="64" />
+    <default class="floor">
+      <geom contype="1" conaffinity="1" group="0" type="plane" size="0 0 0.05" material="groundplane" rgba="1 1 1 0.3" />
     </default>
   </default>
 
-  <asset>
-    <material name="dark" rgba="0.2 0.2 0.2 1"/>
+  <compiler angle="radian" />
 
-    <mesh class="leo" file="trunk.stl"/>
-    <mesh class="leo" file="hip.stl"/>
-    <mesh class="leo" file="thigh_mirror.stl"/>
-    <mesh class="leo" file="calf.stl"/>
-    <mesh class="leo" file="thigh.stl"/>
+  <asset>
+    <material name="base_material" rgba="1 0 0 1" />
+    <material name="Chassis_Plate_material" rgba="0.796078 0.823529 0.937255 1" />
+    <material name="Actuator_Mount_material" rgba="0.615686 0.811765 0.929412 1" />
+    <material name="WCP_0783_Rev1_material" rgba="0.647059 0.619608 0.584314 1" />
+    <material name="default_material" rgba="0.7 0.7 0.7 1" />
+    <material name="collision_material" rgba="0.0 0.0 0.0 0.0" />
+    <mesh name="Chassis_Plate_collision.stl" file="Chassis_Plate_collision.stl" />
+    <mesh name="Chassis_Plate.stl" file="Chassis_Plate.stl" />
+    <mesh name="Crescent_Mount_1_collision.stl" file="Crescent_Mount_1_collision.stl" />
+    <mesh name="Crescent_Mount_1.stl" file="Crescent_Mount_1.stl" />
+    <mesh name="Actuator_Mount_collision.stl" file="Actuator_Mount_collision.stl" />
+    <mesh name="Actuator_Mount.stl" file="Actuator_Mount.stl" />
+    <mesh name="WCP_0783_Rev1_collision.stl" file="WCP_0783_Rev1_collision.stl" />
+    <mesh name="WCP_0783_Rev1.stl" file="WCP_0783_Rev1.stl" />
+    <mesh name="Crescent_Mount_1_2_collision.stl" file="Crescent_Mount_1_2_collision.stl" />
+    <mesh name="Crescent_Mount_1_2.stl" file="Crescent_Mount_1_2.stl" />
+    <mesh name="Actuator_Mount_2_collision.stl" file="Actuator_Mount_2_collision.stl" />
+    <mesh name="Actuator_Mount_2.stl" file="Actuator_Mount_2.stl" />
+    <mesh name="WCP_0783_Rev1_2_collision.stl" file="WCP_0783_Rev1_2_collision.stl" />
+    <mesh name="WCP_0783_Rev1_2.stl" file="WCP_0783_Rev1_2.stl" />
+    <mesh name="Crescent_Mount_1_3_collision.stl" file="Crescent_Mount_1_3_collision.stl" />
+    <mesh name="Crescent_Mount_1_3.stl" file="Crescent_Mount_1_3.stl" />
+    <mesh name="Actuator_Mount_4_collision.stl" file="Actuator_Mount_4_collision.stl" />
+    <mesh name="Actuator_Mount_4.stl" file="Actuator_Mount_4.stl" />
+    <mesh name="WCP_0783_Rev1_4_collision.stl" file="WCP_0783_Rev1_4_collision.stl" />
+    <mesh name="WCP_0783_Rev1_4.stl" file="WCP_0783_Rev1_4.stl" />
+    <mesh name="Crescent_Mount_1_4_collision.stl" file="Crescent_Mount_1_4_collision.stl" />
+    <mesh name="Crescent_Mount_1_4.stl" file="Crescent_Mount_1_4.stl" />
+    <mesh name="Actuator_Mount_3_collision.stl" file="Actuator_Mount_3_collision.stl" />
+    <mesh name="Actuator_Mount_3.stl" file="Actuator_Mount_3.stl" />
+    <mesh name="WCP_0783_Rev1_3_collision.stl" file="WCP_0783_Rev1_3_collision.stl" />
+    <mesh name="WCP_0783_Rev1_3.stl" file="WCP_0783_Rev1_3.stl" />
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300" />
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2" />
   </asset>
 
   <worldbody>
-    <body name="trunk" pos="0 0 0.445" childclass="leo">
-      <light pos="0 0 2" mode="trackcom"/>
-      <camera name="tracking" pos="0.846 -1.3 0.316" xyaxes="0.866 0.500 0.000 -0.171 0.296 0.940" mode="trackcom"/>
-      <camera name="top" pos="-1 0 1" xyaxes="0 -1 0 0.7 0 0.7" mode="trackcom"/>
-      <camera name="side" pos="0 -1 .3" xyaxes="1 0 0 0 1 2" mode="trackcom"/>
-      <camera name="back" pos="-1 0 .3" xyaxes="0 -1 0 1 0 2" mode="trackcom"/>
-      <site name="head" pos="0.3 0 0" rgba="1 0 0 1" size="0.02" group="5"/>
-      <inertial pos="0.0223 0.002 -0.0005" quat="-0.00342088 0.705204 0.000106698 0.708996" mass="5.204"
-        diaginertia="0.0716565 0.0630105 0.0168101"/>
-      <freejoint name="floating_base_joint"/>
-      <geom class="visual" mesh="trunk"/>
-      <geom name="trunk_collision" class="collision" type="box" size="0.13 0.09 0.05" pos="0 0 0"/>
-      <geom name="head_collision" class="collision" type="sphere" size="0.06" pos="0.24 0 0"/>
-      <site name="imu" pos="-0.01592 -0.06659 -0.00617" group="5"/>
-      <body name="FR_hip" pos="0.1881 -0.04675 0">
-        <inertial pos="-0.0049166 0.00762615 -8.865e-05" quat="0.507341 0.514169 0.495027 0.482891" mass="0.68"
-          diaginertia="0.000734064 0.000468438 0.000398719"/>
-        <joint name="FR_hip_joint" axis="1 0 0" range="-0.863 0.863"/>
-        <geom class="visual" mesh="hip" quat="1 0 0 0"/>
-        <geom name="FR_hip_collision" class="collision" type="capsule" fromto="0 -0.02 0 0 -0.04 0" size="0.05"/>
-        <body name="FR_thigh" pos="0 -0.08 0">
-          <inertial pos="-0.00304722 0.019315 -0.0305004" quat="0.65243 -0.0272313 0.0775126 0.753383" mass="1.009"
-            diaginertia="0.00478717 0.00460903 0.000709268"/>
-          <joint name="FR_thigh_joint" axis="0 1 0" range="-0.686 4.501"/>
-          <geom class="visual" mesh="thigh_mirror"/>
-          <geom name="FR_thigh_collision1" class="thigh1"/>
-          <geom name="FR_thigh_collision2" class="thigh2"/>
-          <geom name="FR_thigh_collision3" class="thigh3"/>
-          <body name="FR_calf" pos="0 0 -0.213">
-            <inertial pos="0.00429862 0.000976676 -0.146197" quat="0.691246 0.00357467 0.00511118 0.722592"
-              mass="0.195862" diaginertia="0.00149767 0.00148468 3.58427e-05"/>
-            <joint name="FR_calf_joint" axis="0 1 0" range="-2.818 -0.888"/>
-            <geom class="visual" mesh="calf"/>
-            <geom name="FR_calf_collision1" class="calf1"/>
-            <geom name="FR_calf_collision2" class="calf2"/>
-            <geom name="FR_foot_collision" class="foot"/>
-            <site name="FR" pos="0 0 -0.213" type="sphere" size="0.023" group="5"/>
+    <body name="base" pos="0.00000000 0.00000000 0.28767268" quat="1 0 0 0" childclass="robot">
+      <freejoint name="floating_base" />
+      <geom name="base_visual" pos="0 0 0" quat="0.7071054825112363 0.7071080798594735 0.0 0.0" material="base_material" type="sphere" size="0.01" class="visual" />
+      <body name="Chassis_Plate" pos="0 0 0" quat="0.7071054825112363 0.7071080798594735 0.0 0.0">
+        <inertial pos="0.000071 -0.000104 0.112886" quat="1.0 0.0 0.0 0.0" mass="3.288213" diaginertia="0.052958 0.060712 0.017463" />
+        <geom name="Chassis_Plate_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="Chassis_Plate_collision.stl" class="collision" />
+        <geom name="Chassis_Plate_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="Chassis_Plate_material" type="mesh" mesh="Chassis_Plate.stl" class="visual" />
+        <body name="Crescent_Mount_1" pos="0.060325 0 -0.035300" quat="0.7071068967259818 0.0 0.0 -0.7071066656470943">
+          <joint name="back_left_hip_roll" type="hinge" ref="0.0" class="GO-M8010-6" range="-0.261799 0.261799" axis="0 0 1" />
+          <inertial pos="-0.000056 0.001013 -0.049787" quat="1.0 0.0 0.0 0.0" mass="0.604632" diaginertia="0.000452 0.000751 0.000416" />
+          <geom name="Crescent_Mount_1_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="Crescent_Mount_1_collision.stl" class="collision" />
+          <geom name="Crescent_Mount_1_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="Chassis_Plate_material" type="mesh" mesh="Crescent_Mount_1.stl" class="visual" />
+          <body name="Actuator_Mount" pos="0 0.021602 -0.054632" quat="-0.2896577398129747 -0.2896576110173236 -0.6450568655703911 0.6450569760313257">
+            <joint name="back_left_hip_pitch" type="hinge" ref="0.0" class="GO-M8010-6" range="-0.994838 0.994838" axis="0 0 1" />
+            <inertial pos="-0.000537 0.009647 -0.054717" quat="1.0 0.0 0.0 0.0" mass="0.980836" diaginertia="0.002077 0.001236 0.002032" />
+            <geom name="Actuator_Mount_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="Actuator_Mount_collision.stl" class="collision" />
+            <geom name="Actuator_Mount_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="Actuator_Mount_material" type="mesh" mesh="Actuator_Mount.stl" class="visual" />
+            <body name="WCP_0783_Rev1" pos="0 0.117305 -0.063082" quat="1.0 0.0 0.0 0.0">
+              <joint name="back_left_knee_pitch" type="hinge" ref="0.0" class="GO-M8010-6" range="0 1.658063" axis="0 0 -1" />
+              <inertial pos="0 -0.099065 -0.018054" quat="1.0 0.0 0.0 0.0" mass="0.235776" diaginertia="0.002127 7.6e-05 0.002104" />
+              <geom name="WCP_0783_Rev1_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="WCP_0783_Rev1_collision.stl" class="collision" />
+              <geom name="WCP_0783_Rev1_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="WCP_0783_Rev1_material" type="mesh" mesh="WCP_0783_Rev1.stl" class="visual" />
+            </body>
           </body>
         </body>
-      </body>
-      <body name="FL_hip" pos="0.1881 0.04675 0">
-        <inertial pos="-0.0049166 -0.00762615 -8.865e-05" quat="0.482891 0.495027 0.514169 0.507341" mass="0.68"
-          diaginertia="0.000734064 0.000468438 0.000398719"/>
-        <joint name="FL_hip_joint" axis="1 0 0" range="-0.863 0.863"/>
-        <geom class="visual" mesh="hip"/>
-        <geom name="FL_hip_collision" class="collision" type="capsule" fromto="0 0.02 0 0 0.04 0" size="0.05"/>
-        <body name="FL_thigh" pos="0 0.08 0">
-          <inertial pos="-0.00304722 -0.019315 -0.0305004" quat="0.753383 0.0775126 -0.0272313 0.65243" mass="1.009"
-            diaginertia="0.00478717 0.00460903 0.000709268"/>
-          <joint name="FL_thigh_joint" axis="0 1 0" range="-0.686 4.501"/>
-          <geom class="visual" mesh="thigh"/>
-          <geom name="FL_thigh_collision1" class="thigh1"/>
-          <geom name="FL_thigh_collision2" class="thigh2"/>
-          <geom name="FL_thigh_collision3" class="thigh3"/>
-          <body name="FL_calf" pos="0 0 -0.213">
-            <inertial pos="0.00429862 0.000976676 -0.146197" quat="0.691246 0.00357467 0.00511118 0.722592"
-              mass="0.195862" diaginertia="0.00149767 0.00148468 3.58427e-05"/>
-            <joint name="FL_calf_joint" axis="0 1 0" range="-2.818 -0.888"/>
-            <geom class="visual" mesh="calf"/>
-            <geom name="FL_calf_collision1" class="calf1"/>
-            <geom name="FL_calf_collision2" class="calf2"/>
-            <geom name="FL_foot_collision" class="foot"/>
-            <site name="FL" pos="0 0 -0.213" type="sphere" size="0.023" group="5"/>
+        <body name="Crescent_Mount_1_2" pos="-0.059884 -0.000276 -0.038538" quat="0.7071068967259818 0.0 0.0 0.7071066656470943">
+          <joint name="back_right_hip_roll" type="hinge" ref="0.0" class="GO-M8010-6" range="-0.261799 0.261799" axis="0 0 1" />
+          <inertial pos="-0.000294 0.000971 -0.049959" quat="1.0 0.0 0.0 0.0" mass="0.604632" diaginertia="0.000488 0.000717 0.000416" />
+          <geom name="Crescent_Mount_1_2_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="Crescent_Mount_1_2_collision.stl" class="collision" />
+          <geom name="Crescent_Mount_1_2_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="Chassis_Plate_material" type="mesh" mesh="Crescent_Mount_1_2.stl" class="visual" />
+          <body name="Actuator_Mount_2" pos="-0.007388 0.020299 -0.054632" quat="0.47936884868577667 -0.6282457768309448 0.3245107095326985 0.5198129954150245">
+            <joint name="back_right_hip_pitch" type="hinge" ref="0.0" class="GO-M8010-6" range="-0.837758 1.169371" axis="0 0 -1" />
+            <inertial pos="-0.007950 -0.006073 0.054717" quat="1.0 0.0 0.0 0.0" mass="0.980836" diaginertia="0.001523 0.001793 0.002035" />
+            <geom name="Actuator_Mount_2_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="Actuator_Mount_2_collision.stl" class="collision" />
+            <geom name="Actuator_Mount_2_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="Actuator_Mount_material" type="mesh" mesh="Actuator_Mount_2.stl" class="visual" />
+            <body name="WCP_0783_Rev1_2" pos="-0.098600 -0.064361 0.063082" quat="-1.6376864583171541e-07 -0.945518594442835 -0.32556809973155476 -5.6390056348347284e-08">
+              <joint name="back_right_knee_pitch" type="hinge" ref="0.0" class="GO-M8010-6" range="0 1.658063" axis="0 0 -1" />
+              <inertial pos="0.098688 -0.008634 -0.018372" quat="1.0 0.0 0.0 0.0" mass="0.235776" diaginertia="9.1e-05 0.002111 0.002104" />
+              <geom name="WCP_0783_Rev1_2_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="WCP_0783_Rev1_2_collision.stl" class="collision" />
+              <geom name="WCP_0783_Rev1_2_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="WCP_0783_Rev1_material" type="mesh" mesh="WCP_0783_Rev1_2.stl" class="visual" />
+            </body>
           </body>
         </body>
-      </body>
-      <body name="RR_hip" pos="-0.1881 -0.04675 0">
-        <inertial pos="0.0049166 0.00762615 -8.865e-05" quat="0.495027 0.482891 0.507341 0.514169" mass="0.68"
-          diaginertia="0.000734064 0.000468438 0.000398719"/>
-        <joint name="RR_hip_joint" axis="1 0 0" range="-0.863 0.863"/>
-        <geom class="visual" quat="0 0 0 -1" mesh="hip"/>
-        <geom name="RR_hip_collision" class="collision" type="capsule" fromto="0 -0.02 0 0 -0.04 0" size="0.05"/>
-        <body name="RR_thigh" pos="0 -0.08 0">
-          <inertial pos="-0.00304722 0.019315 -0.0305004" quat="0.65243 -0.0272313 0.0775126 0.753383" mass="1.009"
-            diaginertia="0.00478717 0.00460903 0.000709268"/>
-          <joint name="RR_thigh_joint" axis="0 1 0" range="-0.686 4.501"/>
-          <geom class="visual" mesh="thigh_mirror"/>
-          <geom name="RR_thigh_collision1" class="thigh1"/>
-          <geom name="RR_thigh_collision2" class="thigh2"/>
-          <geom name="RR_thigh_collision3" class="thigh3"/>
-          <body name="RR_calf" pos="0 0 -0.213">
-            <inertial pos="0.00429862 0.000976676 -0.146197" quat="0.691246 0.00357467 0.00511118 0.722592"
-              mass="0.195862" diaginertia="0.00149767 0.00148468 3.58427e-05"/>
-            <joint name="RR_calf_joint" axis="0 1 0" range="-2.818 -0.888"/>
-            <geom class="visual" mesh="calf"/>
-            <geom name="RR_calf_collision1" class="calf1"/>
-            <geom name="RR_calf_collision2" class="calf2"/>
-            <geom name="RR_foot_collision" class="foot"/>
-            <site name="RR" pos="0 0 -0.213" type="sphere" size="0.023" group="5"/>
+        <body name="Crescent_Mount_1_3" pos="-0.060325 0 0.264300" quat="-1.2247452309842457e-07 0.7071068967259713 0.7071066656470838 -1.22474483074382e-07">
+          <joint name="front_right_hip_roll" type="hinge" ref="0.0" class="GO-M8010-6" range="-0.261799 0.261799" axis="0 0 1" />
+          <inertial pos="-0.000056 -0.001013 -0.049959" quat="1.0 0.0 0.0 0.0" mass="0.604632" diaginertia="0.000453 0.000752 0.000416" />
+          <geom name="Crescent_Mount_1_3_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="Crescent_Mount_1_3_collision.stl" class="collision" />
+          <geom name="Crescent_Mount_1_3_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="Chassis_Plate_material" type="mesh" mesh="Crescent_Mount_1_3.stl" class="visual" />
+          <body name="Actuator_Mount_4" pos="0 -0.021602 -0.054632" quat="0.5733794805853147 0.5733792932078573 -0.4138068808528477 0.413806745622893">
+            <joint name="front_right_hip_pitch" type="hinge" ref="0.0" class="GO-M8010-6" range="-2.094395 1.221731" axis="0 0 -1" />
+            <inertial pos="0.008157 0.005791 0.054717" quat="1.0 0.0 0.0 0.0" mass="0.980836" diaginertia="0.001497 0.001819 0.002035" />
+            <geom name="Actuator_Mount_4_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="Actuator_Mount_4_collision.stl" class="collision" />
+            <geom name="Actuator_Mount_4_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="Actuator_Mount_material" type="mesh" mesh="Actuator_Mount_4.stl" class="visual" />
+            <body name="WCP_0783_Rev1_4" pos="0.100786 0.060880 0.063082" quat="-5.3523330555371526e-08 -0.3090170528039717 0.9510564973103951 1.6472783887001024e-07">
+              <joint name="front_right_knee_pitch" type="hinge" ref="0.0" class="GO-M8010-6" range="0 1.658063" axis="0 0 -1" />
+              <inertial pos="0.098688 -0.008634 -0.018372" quat="1.0 0.0 0.0 0.0" mass="0.235776" diaginertia="9.1e-05 0.002111 0.002104" />
+              <geom name="WCP_0783_Rev1_4_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="WCP_0783_Rev1_4_collision.stl" class="collision" />
+              <geom name="WCP_0783_Rev1_4_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="WCP_0783_Rev1_material" type="mesh" mesh="WCP_0783_Rev1_4.stl" class="visual" />
+            </body>
           </body>
         </body>
-      </body>
-      <body name="RL_hip" pos="-0.1881 0.04675 0">
-        <inertial pos="0.0049166 -0.00762615 -8.865e-05" quat="0.514169 0.507341 0.482891 0.495027" mass="0.68"
-          diaginertia="0.000734064 0.000468438 0.000398719"/>
-        <joint name="RL_hip_joint" axis="1 0 0" range="-0.863 0.863"/>
-        <geom class="visual" quat="0 0 1 0" mesh="hip"/>
-        <geom name="RL_hip_collision" class="collision" type="capsule" fromto="0 0.02 0 0 0.04 0" size="0.05"/>
-        <body name="RL_thigh" pos="0 0.08 0">
-          <inertial pos="-0.00304722 -0.019315 -0.0305004" quat="0.753383 0.0775126 -0.0272313 0.65243" mass="1.009"
-            diaginertia="0.00478717 0.00460903 0.000709268"/>
-          <joint name="RL_thigh_joint" axis="0 1 0" range="-0.686 4.501"/>
-          <geom class="visual" mesh="thigh"/>
-          <geom name="RL_thigh_collision1" class="thigh1"/>
-          <geom name="RL_thigh_collision2" class="thigh2"/>
-          <geom name="RL_thigh_collision3" class="thigh3"/>
-          <body name="RL_calf" pos="0 0 -0.213">
-            <inertial pos="0.00429862 0.000976676 -0.146197" quat="0.691246 0.00357467 0.00511118 0.722592"
-              mass="0.195862" diaginertia="0.00149767 0.00148468 3.58427e-05"/>
-            <joint name="RL_calf_joint" axis="0 1 0" range="-2.818 -0.888"/>
-            <geom class="visual" mesh="calf"/>
-            <geom name="RL_calf_collision1" class="calf1"/>
-            <geom name="RL_calf_collision2" class="calf2"/>
-            <geom name="RL_foot_collision" class="foot"/>
-            <site name="RL" pos="0 0 -0.213" type="sphere" size="0.023" group="5"/>
+        <body name="Crescent_Mount_1_4" pos="0.060325 0 0.262775" quat="-1.2247452309842457e-07 -0.7071068967259713 -0.7071066656470838 -1.22474483074382e-07">
+          <joint name="front_left_hip_roll" type="hinge" ref="0.0" class="GO-M8010-6" range="-0.261799 0.261799" axis="0 0 1" />
+          <inertial pos="-0.000056 0.001013 -0.049787" quat="1.0 0.0 0.0 0.0" mass="0.604632" diaginertia="0.000452 0.000751 0.000416" />
+          <geom name="Crescent_Mount_1_4_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="Crescent_Mount_1_4_collision.stl" class="collision" />
+          <geom name="Crescent_Mount_1_4_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="Chassis_Plate_material" type="mesh" mesh="Crescent_Mount_1_4.stl" class="visual" />
+          <body name="Actuator_Mount_3" pos="0 0.021602 -0.054632" quat="0.6609431785174092 0.6609429625245868 0.2513051495070333 -0.25130506738180636">
+            <joint name="front_left_hip_pitch" type="hinge" ref="0.0" class="GO-M8010-6" range="-0.994838 0.994838" axis="0 0 1" />
+            <inertial pos="-0.009647 -0.000537 -0.054717" quat="1.0 0.0 0.0 0.0" mass="0.980836" diaginertia="0.001236 0.002077 0.002032" />
+            <geom name="Actuator_Mount_3_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="Actuator_Mount_3_collision.stl" class="collision" />
+            <geom name="Actuator_Mount_3_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="Actuator_Mount_material" type="mesh" mesh="Actuator_Mount_3.stl" class="visual" />
+            <body name="WCP_0783_Rev1_3" pos="-0.117305 0 -0.063082" quat="0.7071068967259818 0.0 0.0 0.7071066656470943">
+              <joint name="front_left_knee_pitch" type="hinge" ref="0.0" class="GO-M8010-6" range="0 1.658063" axis="0 0 -1" />
+              <inertial pos="0 -0.099065 -0.018054" quat="1.0 0.0 0.0 0.0" mass="0.235776" diaginertia="0.002127 7.6e-05 0.002104" />
+              <geom name="WCP_0783_Rev1_3_collision" pos="0 0 0" quat="1.0 0.0 0.0 0.0" type="mesh" mesh="WCP_0783_Rev1_3_collision.stl" class="collision" />
+              <geom name="WCP_0783_Rev1_3_visual" pos="0 0 0" quat="1.0 0.0 0.0 0.0" material="WCP_0783_Rev1_material" type="mesh" mesh="WCP_0783_Rev1_3.stl" class="visual" />
+            </body>
           </body>
         </body>
+        <site name="Chassis_Plate_site" quat="1.0 0.0 0.0 0.0" pos="0.0 0.0 0.0" />
+        <site name="imu" pos="0.0 0.0 0.0" quat="1.0 0.0 0.0 0.0" group="5"/>
       </body>
+      <site name="base_site" pos="0 0 0" quat="1 0 0 0" />
+      <camera name="front_camera" mode="track" fovy="90.0" quat="4.329780281177467e-17 4.329780281177466e-17 0.7071067811865475 0.7071067811865476" pos="0.0 2.0 0.5" />
+      <camera name="side_camera" mode="track" fovy="90.0" quat="-0.5 -0.4999999999999999 0.5 0.5000000000000001" pos="-2.0 0.0 0.5" />
     </body>
+    <geom name="floor" class="floor" size="0 0 0.05" />
   </worldbody>
+
+  <!-- <actuator>
+    <motor name="back_left_hip_roll_ctrl" joint="back_left_hip_roll" class="GO-M8010-6" />
+    <motor name="back_left_hip_pitch_ctrl" joint="back_left_hip_pitch" class="GO-M8010-6" />
+    <motor name="back_left_knee_pitch_ctrl" joint="back_left_knee_pitch" class="GO-M8010-6" />
+    <motor name="back_right_hip_roll_ctrl" joint="back_right_hip_roll" class="GO-M8010-6" />
+    <motor name="back_right_hip_pitch_ctrl" joint="back_right_hip_pitch" class="GO-M8010-6" />
+    <motor name="back_right_knee_pitch_ctrl" joint="back_right_knee_pitch" class="GO-M8010-6" />
+    <motor name="front_right_hip_roll_ctrl" joint="front_right_hip_roll" class="GO-M8010-6" />
+    <motor name="front_right_hip_pitch_ctrl" joint="front_right_hip_pitch" class="GO-M8010-6" />
+    <motor name="front_right_knee_pitch_ctrl" joint="front_right_knee_pitch" class="GO-M8010-6" />
+    <motor name="front_left_hip_roll_ctrl" joint="front_left_hip_roll" class="GO-M8010-6" />
+    <motor name="front_left_hip_pitch_ctrl" joint="front_left_hip_pitch" class="GO-M8010-6" />
+    <motor name="front_left_knee_pitch_ctrl" joint="front_left_knee_pitch" class="GO-M8010-6" />
+  </actuator> -->
+
   <sensor>
     <gyro name="imu_ang_vel" site="imu"/>
     <velocimeter name="imu_lin_vel" site="imu"/>
     <accelerometer name="imu_lin_acc" site="imu"/>
-    <subtreeangmom name="root_angmom" body="trunk"/>
+    <framepos name="base_site_pos" objtype="site" objname="base_site" />
+    <framequat name="base_site_quat" objtype="site" objname="base_site" />
+    <framelinvel name="base_site_linvel" objtype="site" objname="base_site" />
+    <frameangvel name="base_site_angvel" objtype="site" objname="base_site" />
+    <velocimeter name="base_site_vel" site="base_site" />
+    <accelerometer name="Chassis_Plate_acc" site="Chassis_Plate_site" noise="0.01" />
+    <gyro name="Chassis_Plate_gyro" site="Chassis_Plate_site" noise="0.01" />
+    <magnetometer name="Chassis_Plate_mag" site="Chassis_Plate_site" noise="0.05" />
+    <framepos name="Chassis_Plate_site_pos" objtype="site" objname="Chassis_Plate_site" />
+    <framequat name="Chassis_Plate_site_quat" objtype="site" objname="Chassis_Plate_site" />
+    <framelinvel name="Chassis_Plate_site_linvel" objtype="site" objname="Chassis_Plate_site" />
+    <frameangvel name="Chassis_Plate_site_angvel" objtype="site" objname="Chassis_Plate_site" />
+    <velocimeter name="Chassis_Plate_site_vel" site="Chassis_Plate_site" />
   </sensor>
 </mujoco>
