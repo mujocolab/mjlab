@@ -23,7 +23,7 @@ You can try mjlab *without installing anything* by using `uvx`:
 
    # Run the mjlab demo (no local installation needed)
    uvx --from mjlab \
-       --with "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@9fc294d86955a303619a254cefae809a41adb274" \
+       --with "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@f2f795796fc433adf8e235f01fae3747585ae5db" \
        demo
 
 If this runs, your setup is compatible with mjlab *for evaluation*.
@@ -44,7 +44,7 @@ If you use mjlab in your research, we would appreciate a citation:
         month = sep,
         title = {{mjlab: Isaac Lab API, powered by MuJoCo-Warp, for RL and robotics research.}},
         url = {https://github.com/mujocolab/mjlab},
-        version = {0.1.0},
+        version = {1.0.0},
         year = {2025}
     }
 
@@ -73,6 +73,7 @@ Table of Contents
    :caption: About the Project
 
    source/motivation
+   source/changelog
    source/faq
 
 .. toctree::

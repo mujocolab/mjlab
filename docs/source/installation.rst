@@ -3,9 +3,8 @@
 Installation Guide
 ==================
 
-``mjlab`` is in active **beta** and tightly coupled to MuJoCo Warp.
-This guide presents different installation paths so you can
-choose the one that best fits your use case.
+``mjlab`` is tightly coupled to MuJoCo Warp. This guide presents different
+installation paths so you can choose the one that best fits your use case.
 
 .. contents::
    :local:
@@ -92,7 +91,7 @@ install. These options are interchangeable: you can switch at any time.
 
       .. code:: bash
 
-         uv add mjlab "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@9fc294d86955a303619a254cefae809a41adb274"
+         uv add mjlab "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@f2f795796fc433adf8e235f01fae3747585ae5db"
 
       .. note::
 
@@ -104,7 +103,7 @@ install. These options are interchangeable: you can switch at any time.
 
       .. code:: bash
 
-         uv add "mjlab @ git+https://github.com/mujocolab/mjlab" "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@9fc294d86955a303619a254cefae809a41adb274"
+         uv add "mjlab @ git+https://github.com/mujocolab/mjlab" "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@f2f795796fc433adf8e235f01fae3747585ae5db"
 
       .. note::
 
@@ -201,7 +200,7 @@ Install mjlab and dependencies via pip
 
       .. code:: bash
 
-         pip install git+https://github.com/google-deepmind/mujoco_warp@9fc294d86955a303619a254cefae809a41adb274
+         pip install git+https://github.com/google-deepmind/mujoco_warp@f2f795796fc433adf8e235f01fae3747585ae5db
          pip install mjlab
 
    .. tab-item:: Source
@@ -210,7 +209,7 @@ Install mjlab and dependencies via pip
 
       .. code:: bash
 
-         pip install git+https://github.com/google-deepmind/mujoco_warp@9fc294d86955a303619a254cefae809a41adb274
+         pip install git+https://github.com/google-deepmind/mujoco_warp@f2f795796fc433adf8e235f01fae3747585ae5db
          git clone https://github.com/mujocolab/mjlab.git
          cd mjlab
          pip install -e .

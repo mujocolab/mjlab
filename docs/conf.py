@@ -146,7 +146,7 @@ html_theme_options = {
     {
       "name": "mjlab",
       "url": "https://github.com/mujocolab/mjlab",
-      "icon": "https://img.shields.io/badge/mjlab-0.1.0-silver.svg",
+      "icon": "https://img.shields.io/badge/mjlab-1.0.0-silver.svg",
       "type": "url",
     },
     {

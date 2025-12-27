@@ -45,6 +45,9 @@ Launch the demo directly in your browser with an interactive Viser viewer.
 
 ## Installation
 
+> **Note:** `mujoco-warp` is not yet on PyPI, so it must be installed from GitHub.
+> Once it becomes available on PyPI, the installation commands below will simplify.
+
 **From source:**
 
 ```bash
@@ -169,7 +172,7 @@ make format
 Compile documentation locally:
 
 ```bash
-uv pip install -r docs/requirements.txt
+uv sync --extra docs
 make docs
 ```
 
