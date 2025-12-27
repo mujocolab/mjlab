@@ -3,7 +3,7 @@
 import mujoco
 import pytest
 import torch
-from conftest import get_test_device
+from conftest import get_test_device, load_fixture_xml
 
 from mjlab.actuator import (
   BuiltinPositionActuatorCfg,
@@ -14,24 +14,7 @@ from mjlab.actuator import (
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
 
-ROBOT_XML = """
-<mujoco>
-  <worldbody>
-    <body name="base" pos="0 0 1">
-      <freejoint name="free_joint"/>
-      <geom name="base_geom" type="box" size="0.2 0.2 0.1" mass="1.0"/>
-      <body name="link1" pos="0 0 0">
-        <joint name="joint1" type="hinge" axis="0 0 1" range="-1.57 1.57"/>
-        <geom name="link1_geom" type="box" size="0.1 0.1 0.1" mass="0.1"/>
-      </body>
-      <body name="link2" pos="0 0 0">
-        <joint name="joint2" type="hinge" axis="0 0 1" range="-1.57 1.57"/>
-        <geom name="link2_geom" type="box" size="0.1 0.1 0.1" mass="0.1"/>
-      </body>
-    </body>
-  </worldbody>
-</mujoco>
-"""
+ROBOT_XML = load_fixture_xml("floating_base_articulated")
 
 
 @pytest.fixture(scope="module")
@@ -46,7 +29,7 @@ def create_entity_with_delayed_builtin(delay_min_lag=0, delay_max_lag=3):
       actuators=(
         DelayedActuatorCfg(
           base_cfg=BuiltinPositionActuatorCfg(
-            joint_names_expr=("joint.*",),
+            target_names_expr=("joint.*",),
             effort_limit=100.0,
             stiffness=80.0,
             damping=10.0,
@@ -68,7 +51,7 @@ def create_entity_with_delayed_ideal(delay_min_lag=0, delay_max_lag=3):
       actuators=(
         DelayedActuatorCfg(
           base_cfg=IdealPdActuatorCfg(
-            joint_names_expr=("joint.*",),
+            target_names_expr=("joint.*",),
             effort_limit=100.0,
             stiffness=80.0,
             damping=10.0,
@@ -180,7 +163,7 @@ def test_delayed_actuator_multi_target(device):
       actuators=(
         DelayedActuatorCfg(
           base_cfg=IdealPdActuatorCfg(
-            joint_names_expr=("joint.*",),
+            target_names_expr=("joint.*",),
             effort_limit=100.0,
             stiffness=80.0,
             damping=10.0,
@@ -242,3 +225,194 @@ def test_delayed_actuator_multi_target(device):
   # [80*0.1 + 10*0.01, 80*0.2 + 10*0.02]
   expected = torch.tensor([8.1, 16.2], device=device)
   assert torch.allclose(ctrl, expected, atol=1e-4)
+
+
+def test_delayed_actuator_set_lags(device):
+  """Test that set_lags sets lag values on all delay buffers."""
+  entity = create_entity_with_delayed_builtin(delay_min_lag=0, delay_max_lag=5)
+  entity, _ = initialize_entity(entity, device, num_envs=4)
+
+  actuator = entity.actuators[0]
+  assert isinstance(actuator, DelayedActuator)
+
+  # Set lags for all environments.
+  lags = torch.tensor([1, 2, 3, 4], device=device)
+  actuator.set_lags(lags)
+
+  # Check that lags were set.
+  buffer = actuator._delay_buffers["position"]
+  assert torch.equal(buffer.current_lags, lags)
+
+
+def test_delayed_actuator_set_lags_subset(device):
+  """Test that set_lags can set lag values for a subset of environments."""
+  entity = create_entity_with_delayed_builtin(delay_min_lag=0, delay_max_lag=5)
+  entity, _ = initialize_entity(entity, device, num_envs=4)
+
+  actuator = entity.actuators[0]
+  assert isinstance(actuator, DelayedActuator)
+
+  # Set lags for envs 1 and 3 only.
+  env_ids = torch.tensor([1, 3], device=device)
+  lags = torch.tensor([4, 5], device=device)
+  actuator.set_lags(lags, env_ids)
+
+  # Check that only specified envs were updated.
+  buffer = actuator._delay_buffers["position"]
+  assert buffer.current_lags[0] == 0  # Unchanged (initial value)
+  assert buffer.current_lags[1] == 4
+  assert buffer.current_lags[2] == 0  # Unchanged
+  assert buffer.current_lags[3] == 5
+
+
+def test_delayed_actuator_set_lags_clamps_to_range(device):
+  """Test that set_lags clamps values to the configured lag range."""
+  entity = create_entity_with_delayed_builtin(delay_min_lag=1, delay_max_lag=3)
+  entity, _ = initialize_entity(entity, device, num_envs=2)
+
+  actuator = entity.actuators[0]
+  assert isinstance(actuator, DelayedActuator)
+
+  # Try to set lags outside the valid range.
+  lags = torch.tensor([0, 10], device=device)  # 0 < min_lag, 10 > max_lag
+  actuator.set_lags(lags)
+
+  # Lags should be clamped to [1, 3].
+  buffer = actuator._delay_buffers["position"]
+  assert buffer.current_lags[0] == 1  # Clamped from 0
+  assert buffer.current_lags[1] == 3  # Clamped from 10
+
+
+def test_delayed_actuator_set_lags_affects_delay(device):
+  """Test that setting lags actually changes the delay behavior."""
+  # Use hold_prob=1.0 to prevent automatic lag resampling.
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        DelayedActuatorCfg(
+          base_cfg=BuiltinPositionActuatorCfg(
+            target_names_expr=("joint.*",),
+            effort_limit=100.0,
+            stiffness=80.0,
+            damping=10.0,
+          ),
+          delay_target="position",
+          delay_min_lag=0,
+          delay_max_lag=5,
+          delay_hold_prob=1.0,  # Prevent automatic resampling
+        ),
+      )
+    ),
+  )
+  entity = Entity(cfg)
+  entity, sim = initialize_entity(entity, device, num_envs=1)
+
+  actuator = entity.actuators[0]
+  assert isinstance(actuator, DelayedActuator)
+
+  # Set lag to 1.
+  actuator.set_lags(torch.tensor([1], device=device))
+
+  # Fill the buffer with known targets.
+  targets = [
+    torch.tensor([[0.1, 0.2]], device=device),
+    torch.tensor([[0.3, 0.4]], device=device),
+    torch.tensor([[0.5, 0.6]], device=device),
+  ]
+
+  for target in targets:
+    entity.set_joint_position_target(target)
+    entity.set_joint_velocity_target(torch.zeros(1, 2, device=device))
+    entity.set_joint_effort_target(torch.zeros(1, 2, device=device))
+    entity.write_data_to_sim()
+
+  # With lag=1, after 3 steps, ctrl should use target from step 1 (index 1).
+  ctrl = sim.data.ctrl[0]
+  assert torch.allclose(ctrl, targets[1][0], atol=1e-5)
+
+
+def test_delayed_actuator_set_lags_overwritten_without_hold_prob(device):
+  """Test that set_lags gets overwritten when delay_hold_prob < 1.0."""
+  # Use min_lag=max_lag=2 so resampling always produces 2.
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        DelayedActuatorCfg(
+          base_cfg=BuiltinPositionActuatorCfg(
+            target_names_expr=("joint.*",),
+            effort_limit=100.0,
+            stiffness=80.0,
+            damping=10.0,
+          ),
+          delay_target="position",
+          delay_min_lag=2,
+          delay_max_lag=2,
+          delay_hold_prob=0.0,  # Always resample
+        ),
+      )
+    ),
+  )
+  entity = Entity(cfg)
+  entity, sim = initialize_entity(entity, device, num_envs=1)
+
+  actuator = entity.actuators[0]
+  assert isinstance(actuator, DelayedActuator)
+  buffer = actuator._delay_buffers["position"]
+
+  # Set lag to 2 (the only valid value, so set_lags won't clamp it).
+  actuator.set_lags(torch.tensor([2], device=device))
+  assert buffer.current_lags[0] == 2
+
+  # Now manually set _current_lags to 0 to simulate "we want 0".
+  # This bypasses clamping to test the resampling behavior.
+  buffer._current_lags[0] = 0
+  assert buffer.current_lags[0] == 0
+
+  # After compute, with hold_prob=0.0, it resamples to [min_lag, max_lag] = 2.
+  entity.set_joint_position_target(torch.zeros(1, 2, device=device))
+  entity.set_joint_velocity_target(torch.zeros(1, 2, device=device))
+  entity.set_joint_effort_target(torch.zeros(1, 2, device=device))
+  entity.write_data_to_sim()
+
+  # Lag should have been resampled back to 2.
+  assert buffer.current_lags[0] == 2
+
+
+def test_delayed_actuator_set_lags_multi_target(device):
+  """Test that set_lags sets lags on all delay buffers for multi-target actuator."""
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        DelayedActuatorCfg(
+          base_cfg=IdealPdActuatorCfg(
+            target_names_expr=("joint.*",),
+            stiffness=80.0,
+            damping=10.0,
+          ),
+          delay_target=("position", "velocity"),
+          delay_min_lag=0,
+          delay_max_lag=5,
+        ),
+      )
+    ),
+  )
+
+  entity = Entity(cfg)
+  model = entity.compile()
+  sim_cfg = SimulationCfg()
+  sim = Simulation(num_envs=2, cfg=sim_cfg, model=model, device=device)
+  entity.initialize(model, sim.model, sim.data, device)
+
+  actuator = entity.actuators[0]
+  assert isinstance(actuator, DelayedActuator)
+
+  # Set lags - should apply to both position and velocity buffers.
+  lags = torch.tensor([2, 3], device=device)
+  actuator.set_lags(lags)
+
+  # Both buffers should have the same lags.
+  assert torch.equal(actuator._delay_buffers["position"].current_lags, lags)
+  assert torch.equal(actuator._delay_buffers["velocity"].current_lags, lags)

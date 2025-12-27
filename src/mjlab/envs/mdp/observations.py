@@ -50,13 +50,15 @@ def projected_gravity(
 
 def joint_pos_rel(
   env: ManagerBasedRlEnv,
+  biased: bool = False,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> torch.Tensor:
   asset: Entity = env.scene[asset_cfg.name]
   default_joint_pos = asset.data.default_joint_pos
   assert default_joint_pos is not None
   jnt_ids = asset_cfg.joint_ids
-  return asset.data.joint_pos[:, jnt_ids] - default_joint_pos[:, jnt_ids]
+  joint_pos = asset.data.joint_pos_biased if biased else asset.data.joint_pos
+  return joint_pos[:, jnt_ids] - default_joint_pos[:, jnt_ids]
 
 
 def joint_vel_rel(

@@ -26,13 +26,14 @@ class DelayedActuatorCfg(ActuatorCfg):
   steps).
   """
 
-  joint_names_expr: tuple[str, ...] = field(init=False, default=())
+  target_names_expr: tuple[str, ...] = field(init=False, default=())
 
   base_cfg: ActuatorCfg
   """Configuration for the underlying actuator."""
 
   def __post_init__(self):
-    object.__setattr__(self, "joint_names_expr", self.base_cfg.joint_names_expr)
+    object.__setattr__(self, "target_names_expr", self.base_cfg.target_names_expr)
+    object.__setattr__(self, "transmission_type", self.base_cfg.transmission_type)
 
   delay_target: (
     Literal["position", "velocity", "effort"]
@@ -60,13 +61,13 @@ class DelayedActuatorCfg(ActuatorCfg):
   """Whether each environment has a different phase offset."""
 
   def build(
-    self, entity: Entity, joint_ids: list[int], joint_names: list[str]
+    self, entity: Entity, target_ids: list[int], target_names: list[str]
   ) -> DelayedActuator:
-    base_actuator = self.base_cfg.build(entity, joint_ids, joint_names)
+    base_actuator = self.base_cfg.build(entity, target_ids, target_names)
     return DelayedActuator(self, base_actuator)
 
 
-class DelayedActuator(Actuator):
+class DelayedActuator(Actuator[DelayedActuatorCfg]):
   """Generic wrapper that adds delay to any actuator.
 
   Delays the specified command target(s) (position, velocity, and/or effort)
@@ -75,16 +76,21 @@ class DelayedActuator(Actuator):
 
   def __init__(self, cfg: DelayedActuatorCfg, base_actuator: Actuator) -> None:
     super().__init__(
+      cfg,
       base_actuator.entity,
-      base_actuator._joint_ids_list,
-      base_actuator._joint_names,
+      base_actuator._target_ids_list,
+      base_actuator._target_names,
     )
-    self.cfg = cfg
     self._base_actuator = base_actuator
     self._delay_buffers: dict[str, DelayBuffer] = {}
 
-  def edit_spec(self, spec: mujoco.MjSpec, joint_names: list[str]) -> None:
-    self._base_actuator.edit_spec(spec, joint_names)
+  @property
+  def base_actuator(self) -> Actuator:
+    """The underlying actuator being wrapped."""
+    return self._base_actuator
+
+  def edit_spec(self, spec: mujoco.MjSpec, target_names: list[str]) -> None:
+    self._base_actuator.edit_spec(spec, target_names)
     self._mjs_actuators = self._base_actuator._mjs_actuators
 
   def initialize(
@@ -96,7 +102,7 @@ class DelayedActuator(Actuator):
   ) -> None:
     self._base_actuator.initialize(mj_model, model, data, device)
 
-    self._joint_ids = self._base_actuator._joint_ids
+    self._target_ids = self._base_actuator._target_ids
     self._ctrl_ids = self._base_actuator._ctrl_ids
 
     targets = (
@@ -138,8 +144,8 @@ class DelayedActuator(Actuator):
       position_target=position_target,
       velocity_target=velocity_target,
       effort_target=effort_target,
-      joint_pos=cmd.joint_pos,
-      joint_vel=cmd.joint_vel,
+      pos=cmd.pos,
+      vel=cmd.vel,
     )
 
     return self._base_actuator.compute(delayed_cmd)
@@ -148,6 +154,20 @@ class DelayedActuator(Actuator):
     for buffer in self._delay_buffers.values():
       buffer.reset(env_ids)
     self._base_actuator.reset(env_ids)
+
+  def set_lags(
+    self,
+    lags: torch.Tensor,
+    env_ids: torch.Tensor | slice | None = None,
+  ) -> None:
+    """Set delay lag values for specified environments.
+
+    Args:
+      lags: Lag values in physics timesteps. Shape: (num_env_ids,) or scalar.
+      env_ids: Environment indices to set. If None, sets all environments.
+    """
+    for buffer in self._delay_buffers.values():
+      buffer.set_lags(lags, env_ids)
 
   def update(self, dt: float) -> None:
     self._base_actuator.update(dt)

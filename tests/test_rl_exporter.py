@@ -133,7 +133,7 @@ def test_get_base_metadata_skips_non_actuated_joints(device):
   robot_cfg = EntityCfg(
     spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML_UNDERACTUATED),
     articulation=EntityArticulationInfoCfg(
-      actuators=(XmlMotorActuatorCfg(joint_names_expr=(".*",)),)
+      actuators=(XmlMotorActuatorCfg(target_names_expr=(".*",)),)
     ),
   )
 
@@ -155,7 +155,7 @@ def test_get_base_metadata_skips_non_actuated_joints(device):
     },
     actions={
       "joint_pos": mdp.JointPositionActionCfg(
-        asset_name="robot", actuator_names=(".*",), scale=1.0
+        entity_name="robot", actuator_names=(".*",), scale=1.0
       )
     },
     sim=SimulationCfg(mujoco=MujocoCfg(timestep=0.01, iterations=1)),

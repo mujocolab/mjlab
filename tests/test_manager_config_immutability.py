@@ -97,6 +97,32 @@ def test_observation_shared_terms_between_groups(mock_env):
   assert critic_obs.shape[1] == 3  # 3 features, no history
 
 
+def test_get_term_cfg_returns_resolved_config(mock_env):
+  """get_term_cfg should return resolved config with func as instance."""
+  term_cfg = ObservationTermCfg(func=ClassObsTerm, params={})
+
+  # Original config has func as a class.
+  assert inspect.isclass(term_cfg.func), "precondition: func should be a class"
+
+  cfg = {"policy": ObservationGroupCfg(terms={"obs1": term_cfg})}
+  manager = ObservationManager(cfg, mock_env)
+
+  # Original config should remain unchanged.
+  assert inspect.isclass(term_cfg.func), "original config should not be mutated"
+  assert inspect.isclass(manager.cfg["policy"].terms["obs1"].func), (
+    "manager.cfg should preserve original class"
+  )
+
+  # Resolved config should have func as an instance.
+  resolved_cfg = manager.get_term_cfg("policy", "obs1")
+  assert not inspect.isclass(resolved_cfg.func), (
+    "get_term_cfg should return resolved config with func as instance"
+  )
+  assert isinstance(resolved_cfg.func, ClassObsTerm), (
+    f"Expected ClassObsTerm instance, got {type(resolved_cfg.func)}"
+  )
+
+
 def test_scene_entity_cfg_in_params_not_mutated(device):
   """SceneEntityCfg in params should not be mutated when resolved."""
   # NOTE: 2 joints so selecting one won't optimize to slice(None).

@@ -7,12 +7,14 @@ on:
       - '**.md'
       - 'Makefile'
       - 'LICENSE'
+      - 'scripts/benchmarks/**'
   pull_request:
     branches: [main]
     paths-ignore:
       - '**.md'
       - 'Makefile'
       - 'LICENSE'
+      - 'scripts/benchmarks/**'
 
 env:
   UV_FROZEN: "1"

@@ -50,23 +50,18 @@ class NanGuard:
     self.mj_data = mujoco.MjData(mj_model)
 
   def capture(self, wp_data: mjwarp.Data) -> None:
-    """Capture current simulation state to buffer (mjSTATE_PHYSICS)."""
+    """Capture current simulation state to buffer."""
     if not self.enabled:
       return
 
-    states = np.empty((self.num_envs, self.state_size))
+    state = {
+      "step": self.step_counter,
+      "qpos": wp_data.qpos.clone(),
+      "qvel": wp_data.qvel.clone(),
+    }
+    if self.mj_model.na > 0:
+      state["act"] = wp_data.act.clone()
 
-    for i in range(self.num_envs):
-      self.mj_data.qpos[:] = wp_data.qpos[i].cpu().numpy()
-      self.mj_data.qvel[:] = wp_data.qvel[i].cpu().numpy()
-      if self.mj_model.na > 0:
-        self.mj_data.act[:] = wp_data.act[i].cpu().numpy()
-
-      mujoco.mj_getState(
-        self.mj_model, self.mj_data, states[i], mujoco.mjtState.mjSTATE_PHYSICS
-      )
-
-    state = {"step": self.step_counter, "states": states.copy()}
     self.buffer.append(state)
     self.step_counter += 1
 
@@ -133,7 +128,22 @@ class NanGuard:
     data = {}
     for item in self.buffer:
       step = item["step"]
-      data[f"states_step_{step:06d}"] = item["states"][envs_to_dump]
+      qpos = item["qpos"]
+      qvel = item["qvel"]
+      act = item.get("act", None)
+
+      states = np.empty((len(envs_to_dump), self.state_size))
+      for idx, env_id in enumerate(envs_to_dump):
+        self.mj_data.qpos[:] = qpos[env_id].cpu().numpy()
+        self.mj_data.qvel[:] = qvel[env_id].cpu().numpy()
+        if act is not None:
+          self.mj_data.act[:] = act[env_id].cpu().numpy()
+
+        mujoco.mj_getState(
+          self.mj_model, self.mj_data, states[idx], mujoco.mjtState.mjSTATE_PHYSICS
+        )
+
+      data[f"states_step_{step:06d}"] = states
 
     data["_metadata"] = np.array(
       {

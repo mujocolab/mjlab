@@ -1,0 +1,15 @@
+<mujoco>
+  <worldbody>
+    <body name="base" pos="0 0 0.5">
+      <geom name="base_geom" type="cylinder" size="0.1 0.05" mass="5.0"/>
+      <body name="link1" pos="0 0 0.1">
+        <joint name="joint1" type="hinge" axis="0 0 1" range="-3.14 3.14"/>
+        <geom name="link1_geom" type="box" size="0.05 0.05 0.2" mass="1.0"/>
+        <body name="link2" pos="0 0 0.4">
+          <joint name="joint2" type="hinge" axis="0 1 0" range="-1.57 1.57"/>
+          <geom name="link2_geom" type="box" size="0.05 0.05 0.15" mass="0.5"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>

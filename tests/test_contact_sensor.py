@@ -5,7 +5,7 @@ from __future__ import annotations
 import mujoco
 import pytest
 import torch
-from conftest import get_test_device
+from conftest import get_test_device, load_fixture_xml
 
 from mjlab.entity import EntityCfg
 from mjlab.scene import Scene, SceneCfg
@@ -31,27 +31,7 @@ FALLING_BOX_XML = """
 </mujoco>
 """
 
-BIPED_XML = """
-<mujoco>
-  <worldbody>
-    <body name="ground" pos="0 0 0">
-      <geom name="ground_geom" type="plane" size="5 5 0.1" rgba="0.5 0.5 0.5 1"/>
-    </body>
-    <body name="base" pos="0 0 0.5">
-      <freejoint name="base_joint"/>
-      <geom name="torso_geom" type="box" size="0.15 0.1 0.2" mass="5.0"/>
-      <body name="left_foot" pos="0.1 0 -0.25">
-        <joint name="left_ankle" type="hinge" axis="0 1 0" range="-0.5 0.5"/>
-        <geom name="left_foot_geom" type="box" size="0.05 0.08 0.02" mass="0.2"/>
-      </body>
-      <body name="right_foot" pos="-0.1 0 -0.25">
-        <joint name="right_ankle" type="hinge" axis="0 1 0" range="-0.5 0.5"/>
-        <geom name="right_foot_geom" type="box" size="0.05 0.08 0.02" mass="0.2"/>
-      </body>
-    </body>
-  </worldbody>
-</mujoco>
-"""
+BIPED_XML = load_fixture_xml("biped")
 
 SIMPLE_ROBOT_XML = """
 <mujoco>

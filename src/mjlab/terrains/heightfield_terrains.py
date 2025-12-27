@@ -242,9 +242,9 @@ class HfPyramidSlopedTerrainCfg(SubTerrainCfg):
     )
 
     if self.inverted:
-      spawn_height = hfield_z_offset - base_thickness
+      spawn_height = hfield_z_offset
     else:
-      spawn_height = max_physical_height - base_thickness
+      spawn_height = max_physical_height
 
     origin = np.array([self.size[0] / 2, self.size[1] / 2, spawn_height])
 

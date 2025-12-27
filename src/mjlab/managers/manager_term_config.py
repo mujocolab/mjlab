@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import abc
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import torch
 
-from mjlab.managers.action_manager import ActionTerm
 from mjlab.managers.command_manager import CommandTerm
 from mjlab.utils.noise.noise_cfg import NoiseCfg, NoiseModelCfg
+
+if TYPE_CHECKING:
+  from mjlab.envs import ManagerBasedRlEnv
+  from mjlab.managers.action_manager import ActionTerm
 
 
 @dataclass
@@ -22,12 +26,16 @@ class ManagerTermBaseCfg:
 
 
 @dataclass(kw_only=True)
-class ActionTermCfg:
+class ActionTermCfg(abc.ABC):
   """Configuration for an action term."""
 
-  class_type: type[ActionTerm]
-  asset_name: str
+  entity_name: str
   clip: dict[str, tuple] | None = None
+
+  @abc.abstractmethod
+  def build(self, env: ManagerBasedRlEnv) -> ActionTerm:
+    """Build the action term from this config."""
+    raise NotImplementedError
 
 
 ##

@@ -75,7 +75,7 @@ class MotionCommand(CommandTerm):
   def __init__(self, cfg: MotionCommandCfg, env: ManagerBasedRlEnv):
     super().__init__(cfg, env)
 
-    self.robot: Entity = env.scene[cfg.asset_name]
+    self.robot: Entity = env.scene[cfg.entity_name]
     self.robot_anchor_body_index = self.robot.body_names.index(
       self.cfg.anchor_body_name
     )
@@ -418,7 +418,7 @@ class MotionCommand(CommandTerm):
         self._ghost_model = copy.deepcopy(self._env.sim.mj_model)
         self._ghost_model.geom_rgba[:] = self._ghost_color
 
-      entity: Entity = self._env.scene[self.cfg.asset_name]
+      entity: Entity = self._env.scene[self.cfg.entity_name]
       indexing = entity.indexing
       free_joint_q_adr = indexing.free_joint_q_adr.cpu().numpy()
       joint_q_adr = indexing.joint_q_adr.cpu().numpy()
@@ -483,7 +483,7 @@ class MotionCommandCfg(CommandTermCfg):
   motion_file: str
   anchor_body_name: str
   body_names: tuple[str, ...]
-  asset_name: str
+  entity_name: str
   class_type: type[CommandTerm] = MotionCommand
   pose_range: dict[str, tuple[float, float]] = field(default_factory=dict)
   velocity_range: dict[str, tuple[float, float]] = field(default_factory=dict)

@@ -1,0 +1,43 @@
+<mujoco model="quadcopter">
+  <compiler angle="radian" autolimits="true"/>
+
+  <option timestep="0.002" integrator="implicitfast" gravity="0 0 -9.81"/>
+
+  <default>
+    <geom rgba="0.5 0.5 0.5 1"/>
+    <site size="0.01" rgba="1 0 0 1"/>
+  </default>
+
+  <worldbody>
+    <light pos="0 0 3" dir="0 0 -1" diffuse="0.8 0.8 0.8"/>
+    <geom type="plane" size="5 5 0.1" rgba="0.9 0.9 0.9 1"/>
+
+    <body name="base" pos="0 0 0.5">
+      <freejoint name="root"/>
+      <inertial pos="0 0 0" mass="1.0" diaginertia="0.01 0.01 0.02"/>
+
+      <!-- Central body -->
+      <geom type="box" size="0.1 0.1 0.02" rgba="0.3 0.3 0.8 1"/>
+
+      <!-- Rotor sites at corners -->
+      <site name="rotor_fl" pos="0.1 0.1 0"/>
+      <site name="rotor_fr" pos="0.1 -0.1 0"/>
+      <site name="rotor_rl" pos="-0.1 0.1 0"/>
+      <site name="rotor_rr" pos="-0.1 -0.1 0"/>
+
+      <!-- Visual rotor geoms (non-collision) -->
+      <geom name="rotor_fl_vis" type="cylinder" size="0.05 0.005" pos="0.1 0.1 0" rgba="1 0 0 0.5" contype="0" conaffinity="0"/>
+      <geom name="rotor_fr_vis" type="cylinder" size="0.05 0.005" pos="0.1 -0.1 0" rgba="1 0 0 0.5" contype="0" conaffinity="0"/>
+      <geom name="rotor_rl_vis" type="cylinder" size="0.05 0.005" pos="-0.1 0.1 0" rgba="1 0 0 0.5" contype="0" conaffinity="0"/>
+      <geom name="rotor_rr_vis" type="cylinder" size="0.05 0.005" pos="-0.1 -0.1 0" rgba="1 0 0 0.5" contype="0" conaffinity="0"/>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <!-- Site actuators applying vertical thrust forces -->
+    <motor name="thrust_fl" site="rotor_fl" gear="0 0 1 0 0 0" ctrlrange="0 20"/>
+    <motor name="thrust_fr" site="rotor_fr" gear="0 0 1 0 0 0" ctrlrange="0 20"/>
+    <motor name="thrust_rl" site="rotor_rl" gear="0 0 1 0 0 0" ctrlrange="0 20"/>
+    <motor name="thrust_rr" site="rotor_rr" gear="0 0 1 0 0 0" ctrlrange="0 20"/>
+  </actuator>
+</mujoco>

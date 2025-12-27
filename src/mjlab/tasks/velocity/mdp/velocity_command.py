@@ -31,7 +31,7 @@ class UniformVelocityCommand(CommandTerm):
     if self.cfg.ranges.heading and not self.cfg.heading_command:
       raise ValueError("ranges.heading is set but heading_command=False.")
 
-    self.robot: Entity = env.scene[cfg.asset_name]
+    self.robot: Entity = env.scene[cfg.entity_name]
 
     self.vel_command_b = torch.zeros(self.num_envs, 3, device=self.device)
     self.heading_target = torch.zeros(self.num_envs, device=self.device)
@@ -177,7 +177,7 @@ class UniformVelocityCommand(CommandTerm):
 
 @dataclass(kw_only=True)
 class UniformVelocityCommandCfg(CommandTermCfg):
-  asset_name: str
+  entity_name: str
   heading_command: bool = False
   heading_control_stiffness: float = 1.0
   rel_standing_envs: float = 0.0

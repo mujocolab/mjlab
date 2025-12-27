@@ -3,7 +3,6 @@
 from mjlab.asset_zoo.robots import (
   GO1_ACTION_SCALE,
   get_go1_robot_cfg,
-  get_go1_robot_cfg_learned,
 )
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs.mdp.actions import JointPositionActionCfg
@@ -125,10 +124,4 @@ def unitree_go1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   assert cfg.curriculum is not None
   del cfg.curriculum["terrain_levels"]
 
-  return cfg
-
-
-def unitree_go1_flat_env_cfg_learned(play: bool = False) -> ManagerBasedRlEnvCfg:
-  cfg = unitree_go1_flat_env_cfg(play=play)
-  cfg.scene.entities["robot"] = get_go1_robot_cfg_learned()
   return cfg

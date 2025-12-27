@@ -122,6 +122,14 @@ class ObservationManager(ManagerBase):
 
   # Methods.
 
+  def get_term_cfg(self, group_name: str, term_name: str) -> ObservationTermCfg:
+    if group_name not in self._group_obs_term_names:
+      raise ValueError(f"Group '{group_name}' not found in active groups.")
+    if term_name not in self._group_obs_term_names[group_name]:
+      raise ValueError(f"Term '{term_name}' not found in group '{group_name}'.")
+    index = self._group_obs_term_names[group_name].index(term_name)
+    return self._group_obs_term_cfgs[group_name][index]
+
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> dict[str, float]:
     # Invalidate cache since reset envs will have different observations.
     self._obs_buffer = None

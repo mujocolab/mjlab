@@ -298,21 +298,21 @@ class NativeMujocoViewer(BaseViewer):
         self.viewer.cam.trackbodyid = -1
 
       elif self.cfg.origin_type == self.cfg.OriginType.ASSET_ROOT:
-        if not self.cfg.asset_name:
+        if not self.cfg.entity_name:
           raise ValueError("Asset name must be specified for ASSET_ROOT origin type")
-        robot: Entity = self.env.unwrapped.scene[self.cfg.asset_name]
+        robot: Entity = self.env.unwrapped.scene[self.cfg.entity_name]
         body_id = robot.indexing.root_body_id
         self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
         self.viewer.cam.trackbodyid = body_id
         self.viewer.cam.fixedcamid = -1
 
       else:  # ASSET_BODY
-        if not self.cfg.asset_name or not self.cfg.body_name:
-          raise ValueError("asset_name/body_name required for ASSET_BODY origin type")
-        robot: Entity = self.env.unwrapped.scene[self.cfg.asset_name]
+        if not self.cfg.entity_name or not self.cfg.body_name:
+          raise ValueError("entity_name/body_name required for ASSET_BODY origin type")
+        robot: Entity = self.env.unwrapped.scene[self.cfg.entity_name]
         if self.cfg.body_name not in robot.body_names:
           raise ValueError(
-            f"Body '{self.cfg.body_name}' not found in asset '{self.cfg.asset_name}'"
+            f"Body '{self.cfg.body_name}' not found in asset '{self.cfg.entity_name}'"
           )
         body_id_list, _ = robot.find_bodies(self.cfg.body_name)
         body_id = robot.indexing.bodies[body_id_list[0]].id

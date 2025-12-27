@@ -1,0 +1,45 @@
+<mujoco model="tendon_finger">
+  <compiler angle="radian" autolimits="true"/>
+
+  <option timestep="0.002" integrator="implicitfast"/>
+
+  <default>
+    <geom type="capsule" size="0.01" rgba="0.8 0.6 0.4 1"/>
+    <joint type="hinge" axis="0 1 0" range="-1.57 1.57" damping="0.1"/>
+    <site size="0.005" rgba="1 0 0 1"/>
+  </default>
+
+  <worldbody>
+    <light pos="0 0 1" dir="0 0 -1" diffuse="0.8 0.8 0.8"/>
+    <geom type="plane" size="1 1 0.1" rgba="0.9 0.9 0.9 1"/>
+
+    <body name="proximal_link" pos="0 0 0.5">
+      <joint name="proximal_joint"/>
+      <geom fromto="0 0 0 0 0 0.15" size="0.015"/>
+      <site name="tendon_p1" pos="0 0.02 0.05"/>
+      <site name="tendon_p2" pos="0 0.02 0.15"/>
+
+      <body name="distal_link" pos="0 0 0.15">
+        <joint name="distal_joint"/>
+        <geom fromto="0 0 0 0 0 0.15" size="0.012"/>
+        <site name="tendon_p3" pos="0 0.02 0.05"/>
+        <site name="fingertip" pos="0 0 0.15"/>
+      </body>
+    </body>
+  </worldbody>
+
+  <tendon>
+    <spatial name="finger_tendon" width="0.003" rgba="0.2 0.2 0.8 1">
+      <site site="tendon_p1"/>
+      <site site="tendon_p2"/>
+      <site site="tendon_p3"/>
+    </spatial>
+  </tendon>
+
+  <actuator>
+    <!-- Tendon actuators for testing different control modes -->
+    <position name="tendon_position" tendon="finger_tendon" kp="100" ctrlrange="-0.1 0.1"/>
+    <velocity name="tendon_velocity" tendon="finger_tendon" kv="10" ctrlrange="-1 1"/>
+    <motor name="tendon_effort" tendon="finger_tendon" ctrlrange="-10 10"/>
+  </actuator>
+</mujoco>

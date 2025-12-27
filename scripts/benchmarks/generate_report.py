@@ -82,6 +82,7 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
   metrics_json = json.dumps(METRICS)
   throughput_json = json.dumps(throughput_data, default=str)
   timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+  github_repo = "https://github.com/mujocolab/mjlab"
 
   return f"""<!DOCTYPE html>
 <html lang="en">
@@ -343,11 +344,11 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
         <details class="info-box">
             <summary>What is this?</summary>
             <p>
-                Measures simulation throughput (steps per second) for different tasks.
-                <strong>Physics FPS</strong> is raw MuJoCo stepping speed (just <code>mj_step</code>).
-                <strong>Env FPS</strong> is the full environment step including observations, rewards,
-                terminations, and resets. <strong>Overhead</strong> is the percentage slowdown from
-                environment logic on top of physics.
+                Measures simulation throughput in <strong>env steps per second</strong> for different tasks.
+                <strong>Physics SPS</strong> is the theoretical max if only physics ran (no managers).
+                <strong>Env SPS</strong> is the actual throughput including observations, rewards, terminations, and resets.
+                <strong>Overhead</strong> is the percentage of time spent on non-physics work.
+                Benchmarks run on NVIDIA RTX 5090 with 4096 parallel environments.
             </p>
             <p>
                 Note: These benchmarks use zero actions, which causes frequent terminations and resets.
@@ -364,8 +365,8 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                         <th>Date</th>
                         <th>Commit</th>
                         <th>Task</th>
-                        <th>Physics FPS</th>
-                        <th>Env FPS</th>
+                        <th>Physics SPS</th>
+                        <th>Env SPS</th>
                         <th>Overhead</th>
                     </tr>
                 </thead>
@@ -435,6 +436,7 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
 
         const runs = {runs_json};
         const METRICS = {metrics_json};
+        const GITHUB_REPO = '{github_repo}';
 
         // Sort by date ascending for charts.
         runs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
@@ -527,6 +529,14 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                 options: {{
                     responsive: true,
                     maintainAspectRatio: false,
+                    onClick: (event, elements) => {{
+                        if (elements.length > 0) {{
+                            const d = data[elements[0].index];
+                            if (d?.commit && d.commit !== 'unknown') {{
+                                window.open(`${{GITHUB_REPO}}/commit/${{d.commit}}`, '_blank');
+                            }}
+                        }}
+                    }},
                     plugins: {{
                         legend: {{ display: false }},
                         tooltip: {{
@@ -538,6 +548,10 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                                 label: (item) => {{
                                     const d = item.raw;
                                     return `${{label}}: ${{d.y?.toFixed(4)}} ${{unit}}`;
+                                }},
+                                footer: (items) => {{
+                                    const d = items[0]?.raw;
+                                    return d?.commit && d.commit !== 'unknown' ? 'Click to view commit' : '';
                                 }}
                             }}
                         }}
@@ -572,10 +586,13 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
         // Table
         const tbody = document.getElementById('table-body');
         [...runs].reverse().forEach(run => {{
+            const commitLink = run.commit && run.commit !== 'unknown'
+                ? `<a href="${{GITHUB_REPO}}/commit/${{run.commit}}" target="_blank"><code>${{run.commit}}</code></a>`
+                : `<code>${{run.commit}}</code>`;
             tbody.innerHTML += `
                 <tr>
                     <td>${{new Date(run.created_at).toLocaleDateString()}}</td>
-                    <td><code>${{run.commit}}</code></td>
+                    <td>${{commitLink}}</td>
                     <td><a href="${{run.url}}" target="_blank">${{run.name}}</a></td>
                     <td>${{(run.metrics.success_rate * 100).toFixed(1)}}%</td>
                     <td>${{run.metrics.mpkpe.toFixed(4)}}</td>
@@ -620,8 +637,8 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                     const taskShort = r.task.replace('Mjlab-', '').replace('-Unitree-', '-');
                     summaryHtml += `
                         <div class="stat">
-                            <div class="stat-label">${{taskShort}} Env FPS</div>
-                            <div class="stat-value">${{(r.env_fps / 1000).toFixed(0)}}K</div>
+                            <div class="stat-label">${{taskShort}} Env SPS</div>
+                            <div class="stat-value">${{(r.env_sps / 1000).toFixed(0)}}K</div>
                         </div>`;
                 }});
                 throughputSummary.innerHTML = summaryHtml;
@@ -629,8 +646,8 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
 
             // Create charts for each metric type
             const throughputMetrics = [
-                ['physics_fps', 'Physics FPS', true],
-                ['env_fps', 'Env FPS', true],
+                ['physics_sps', 'Physics SPS', true],
+                ['env_sps', 'Env SPS', true],
                 ['overhead_pct', 'Overhead %', false]
             ];
 
@@ -657,9 +674,10 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                     const data = throughputData.map(run => {{
                         const result = run.results.find(r => r.task === task);
                         if (!result) return null;
+                        const value = result[key];
                         return {{
                             x: new Date(run.created_at),
-                            y: key === 'physics_fps' || key === 'env_fps' ? result[key] / 1000 : result[key],
+                            y: key.includes('_sps') ? value / 1000 : value,
                             commit: run.commit
                         }};
                     }}).filter(d => d !== null);
@@ -682,6 +700,16 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                     options: {{
                         responsive: true,
                         maintainAspectRatio: false,
+                        onClick: (event, elements) => {{
+                            if (elements.length > 0) {{
+                                const datasetIndex = elements[0].datasetIndex;
+                                const index = elements[0].index;
+                                const d = datasets[datasetIndex].data[index];
+                                if (d?.commit && d.commit !== 'unknown') {{
+                                    window.open(`${{GITHUB_REPO}}/commit/${{d.commit}}`, '_blank');
+                                }}
+                            }}
+                        }},
                         plugins: {{
                             legend: {{ display: true, position: 'bottom' }},
                             tooltip: {{
@@ -689,6 +717,10 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                                     title: (items) => {{
                                         const d = items[0]?.raw;
                                         return d ? `Commit: ${{d.commit}}` : '';
+                                    }},
+                                    footer: (items) => {{
+                                        const d = items[0]?.raw;
+                                        return d?.commit && d.commit !== 'unknown' ? 'Click to view commit' : '';
                                     }}
                                 }}
                             }}
@@ -704,7 +736,7 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                                 ticks: {{ maxTicksLimit: 5 }},
                                 title: {{
                                     display: true,
-                                    text: key.includes('fps') ? 'K steps/sec' : '%',
+                                    text: key.includes('_sps') ? 'K env steps/sec' : '%',
                                     font: {{ size: 11 }}
                                 }}
                             }}
@@ -717,13 +749,16 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
             [...throughputData].reverse().forEach(run => {{
                 run.results.forEach((r, i) => {{
                     const taskShort = r.task.replace('Mjlab-', '').replace('-Unitree-', '-');
+                    const commitLink = run.commit && run.commit !== 'unknown'
+                        ? `<a href="${{GITHUB_REPO}}/commit/${{run.commit}}" target="_blank"><code>${{run.commit}}</code></a>`
+                        : `<code>${{run.commit}}</code>`;
                     throughputTbody.innerHTML += `
                         <tr>
                             <td>${{i === 0 ? new Date(run.created_at).toLocaleDateString() : ''}}</td>
-                            <td>${{i === 0 ? `<code>${{run.commit}}</code>` : ''}}</td>
+                            <td>${{i === 0 ? commitLink : ''}}</td>
                             <td>${{taskShort}}</td>
-                            <td>${{(r.physics_fps / 1000).toFixed(0)}}K</td>
-                            <td>${{(r.env_fps / 1000).toFixed(0)}}K</td>
+                            <td>${{(r.physics_sps / 1000).toFixed(0)}}K</td>
+                            <td>${{(r.env_sps / 1000).toFixed(0)}}K</td>
                             <td>${{r.overhead_pct.toFixed(1)}}%</td>
                         </tr>
                     `;
@@ -755,7 +790,7 @@ def main(
   entity: str = "gcbc_researchers",
   project: str = "mjlab",
   tag: str = "nightly",
-  limit: int = 30,
+  eval_limit: int = 10,
   num_envs: int = 1024,
   output_dir: Path = Path("benchmark_results"),
 ) -> None:
@@ -766,7 +801,7 @@ def main(
     entity: WandB entity.
     project: WandB project name.
     tag: Filter runs by tag.
-    limit: Maximum number of runs to evaluate.
+    eval_limit: Maximum number of NEW runs to evaluate per invocation (0 = no limit).
     num_envs: Number of envs for evaluation.
     output_dir: Output directory for generated report.
   """
@@ -774,37 +809,41 @@ def main(
   cached = load_cached_results(output_dir)
   print(f"Loaded {len(cached)} cached evaluation results")
 
-  eval_results = []
+  # Start with all cached results (preserves historical data).
+  eval_results_by_id: dict[str, dict] = dict(cached)
+  new_evals = 0
 
   if run_paths:
     for run_path in run_paths:
       run_id = run_path.split("/")[-1]
-      if run_id in cached:
+      if run_id in eval_results_by_id:
         print(f"Using cached result for {run_id}")
-        eval_results.append(cached[run_id])
       else:
         result = evaluate_run(run_path, num_envs)
-        eval_results.append(result)
+        eval_results_by_id[run_id] = result
+        new_evals += 1
   else:
     api = wandb.Api()
     print(f"Fetching runs from {entity}/{project} with tag '{tag}'...")
     runs = api.runs(f"{entity}/{project}", filters={"tags": tag}, order="-created_at")
 
-    for i, run in enumerate(runs):
-      if i >= limit:
-        break
+    for run in runs:
       if run.state != "finished":
         continue
 
-      if run.id in cached:
+      if run.id in eval_results_by_id:
         print(f"Using cached result for {run.name} ({run.id})")
-        eval_results.append(cached[run.id])
       else:
+        if eval_limit > 0 and new_evals >= eval_limit:
+          print(f"Reached eval limit ({eval_limit}), skipping remaining new runs")
+          break
         run_path = f"{entity}/{project}/{run.id}"
         result = evaluate_run(run_path, num_envs)
-        eval_results.append(result)
+        eval_results_by_id[run.id] = result
+        new_evals += 1
 
-  print(f"Total runs: {len(eval_results)}")
+  eval_results = list(eval_results_by_id.values())
+  print(f"Total runs: {len(eval_results)} ({new_evals} newly evaluated)")
   generate_html_report(eval_results, output_dir)
 
 

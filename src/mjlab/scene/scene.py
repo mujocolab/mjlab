@@ -1,9 +1,11 @@
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
 import mujoco
 import mujoco_warp as mjwarp
+import numpy as np
 import torch
 
 from mjlab.entity import Entity, EntityCfg
@@ -150,11 +152,31 @@ class Scene:
   # Private methods.
 
   def _add_entities(self) -> None:
+    # Collect keyframes from each entity to merge into a single scene keyframe.
+    # Order matters: qpos/ctrl are concatenated in entity iteration order.
+    key_qpos: list[np.ndarray] = []
+    key_ctrl: list[np.ndarray] = []
     for ent_name, ent_cfg in self._cfg.entities.items():
       ent = ent_cfg.build()
       self._entities[ent_name] = ent
+      # Extract keyframe before attach (must delete before attach to avoid corruption).
+      if ent.spec.keys:
+        if len(ent.spec.keys) > 1:
+          warnings.warn(
+            f"Entity '{ent_name}' has {len(ent.spec.keys)} keyframes; only the "
+            "first one will be used.",
+            stacklevel=2,
+          )
+        key_qpos.append(np.array(ent.spec.keys[0].qpos))
+        key_ctrl.append(np.array(ent.spec.keys[0].ctrl))
+        ent.spec.delete(ent.spec.keys[0])
       frame = self._spec.worldbody.add_frame()
       self._spec.attach(ent.spec, prefix=f"{ent_name}/", frame=frame)
+    # Add merged keyframe to scene spec.
+    if key_qpos:
+      combined_qpos = np.concatenate(key_qpos)
+      combined_ctrl = np.concatenate(key_ctrl)
+      self._spec.add_key(name="init_state", qpos=combined_qpos, ctrl=combined_ctrl)
 
   def _add_terrain(self) -> None:
     if self._cfg.terrain is None:

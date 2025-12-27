@@ -5,7 +5,7 @@ import torch
 
 from mjlab.entity import Entity
 from mjlab.envs import ManagerBasedRlEnv
-from mjlab.envs.mdp.actions.joint_actions import JointAction
+from mjlab.envs.mdp.actions import JointPositionAction
 
 
 def list_to_csv_str(arr, *, decimals: int = 3, delimiter: str = ",") -> str:
@@ -33,7 +33,7 @@ def get_base_metadata(
   """
   robot: Entity = env.scene["robot"]
   joint_action = env.action_manager.get_term("joint_pos")
-  assert isinstance(joint_action, JointAction)
+  assert isinstance(joint_action, JointPositionAction)
   # Build mapping from joint name to actuator ID for natural joint order.
   # Each spec actuator controls exactly one joint (via its target field).
   joint_name_to_ctrl_id = {}

@@ -1,7 +1,6 @@
 """Tests for go1_constants.py."""
 
 import re
-from pathlib import Path
 
 import mujoco
 import numpy as np
@@ -36,7 +35,7 @@ def test_actuator_parameters(go1_model, actuator_config, stiffness, damping):
     actuator = go1_model.actuator(i)
     actuator_name = actuator.name
     matches = any(
-      re.match(pattern, actuator_name) for pattern in actuator_config.joint_names_expr
+      re.match(pattern, actuator_name) for pattern in actuator_config.target_names_expr
     )
     if matches:
       assert actuator.gainprm[0] == stiffness
@@ -50,6 +49,7 @@ def test_keyframe_joint_positions(go1_entity, go1_model) -> None:
   """Test that keyframe joint positions match the configuration."""
   key = go1_model.key("init_state")
   expected_joint_pos = go1_constants.INIT_STATE.joint_pos
+  assert expected_joint_pos is not None
   expected_values = resolve_expr(expected_joint_pos, go1_entity.joint_names, 0.0)
   for joint_name, expected_value in zip(
     go1_entity.joint_names, expected_values, strict=True
@@ -93,20 +93,3 @@ def test_go1_entity_creation(go1_entity) -> None:
   assert go1_entity.num_joints == 12
   assert go1_entity.is_actuated
   assert not go1_entity.is_fixed_base
-
-
-def test_go1_learned_actuator_network_exists() -> None:
-  """Verify the learned actuator network file exists."""
-  cfg = go1_constants.GO1_LEARNED_ACTUATOR_CFG
-  assert Path(cfg.network_file).exists(), f"Network file not found: {cfg.network_file}"
-
-
-def test_go1_learned_entity_creation() -> None:
-  """Test that Go1 with learned actuators can be created and compiled."""
-  entity = Entity(go1_constants.get_go1_robot_cfg_learned())
-  assert entity.num_actuators == 12
-  assert entity.num_joints == 12
-  assert entity.is_actuated
-  assert not entity.is_fixed_base
-  model = entity.compile()
-  assert model.nu == 12

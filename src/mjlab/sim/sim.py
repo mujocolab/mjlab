@@ -3,10 +3,11 @@ from typing import TYPE_CHECKING, Literal, cast
 
 import mujoco
 import mujoco_warp as mjwarp
+import torch
 import warp as wp
 
 from mjlab.sim.randomization import expand_model_fields
-from mjlab.sim.sim_data import WarpBridge
+from mjlab.sim.sim_data import TorchArray, WarpBridge
 from mjlab.utils.nan_guard import NanGuard, NanGuardCfg
 
 # Type aliases for better IDE support while maintaining runtime compatibility
@@ -57,6 +58,7 @@ class MujocoCfg:
   tolerance: float = 1e-8
   ls_iterations: int = 50
   ls_tolerance: float = 0.01
+  ccd_iterations: int = 50
 
   # Other.
   gravity: tuple[float, float, float] = (0, 0, -9.81)
@@ -74,18 +76,19 @@ class MujocoCfg:
     model.opt.tolerance = self.tolerance
     model.opt.ls_iterations = self.ls_iterations
     model.opt.ls_tolerance = self.ls_tolerance
+    model.opt.ccd_iterations = self.ccd_iterations
 
 
 @dataclass(kw_only=True)
 class SimulationCfg:
   nconmax: int | None = None
   """Number of contacts to allocate per world.
-  
+
   Contacts exist in large heterogenous arrays: one world may have more than nconmax
   contacts. If None, a heuristic value is used."""
   njmax: int | None = None
   """Number of constraints to allocate per world.
-  
+
   Constraint arrays are batched by world: no world may have more than njmax
   constraints. If None, a heuristic value is used."""
   ls_parallel: bool = True  # Boosts perf quite noticeably.
@@ -95,7 +98,26 @@ class SimulationCfg:
 
 
 class Simulation:
-  """GPU-accelerated MuJoCo simulation powered by MJWarp."""
+  """GPU-accelerated MuJoCo simulation powered by MJWarp.
+
+  CUDA Graph Capture
+  ------------------
+  On CUDA devices with memory pools enabled, the simulation captures CUDA graphs
+  for ``step()``, ``forward()``, and ``reset()`` operations. Graph capture records
+  a sequence of GPU kernels and their memory addresses, then replays the entire
+  sequence with a single kernel launch, eliminating CPU overhead from repeated
+  kernel dispatches.
+
+  **Important:** A captured graph holds pointers to the GPU arrays that existed
+  at capture time. If those arrays are later replaced (e.g., via
+  ``expand_model_fields()``), the graph will still read from the old arrays,
+  silently ignoring any new values. The ``expand_model_fields()`` method handles
+  this automatically by calling ``create_graph()`` after replacing arrays.
+
+  If you write code that replaces model or data arrays after simulation
+  initialization, you **must** call ``create_graph()`` afterward to re-capture
+  the graphs with the new memory addresses.
+  """
 
   def __init__(
     self, num_envs: int, cfg: SimulationCfg, model: mujoco.MjModel, device: str
@@ -104,6 +126,7 @@ class Simulation:
     self.device = device
     self.wp_device = wp.get_device(self.device)
     self.num_envs = num_envs
+    self._default_model_fields: dict[str, torch.Tensor] = {}
 
     # MuJoCo model and data.
     self._mj_model = model
@@ -125,6 +148,9 @@ class Simulation:
         njmax=self.cfg.njmax,
       )
 
+      self._reset_mask_wp = wp.zeros(num_envs, dtype=bool)
+      self._reset_mask = TorchArray(self._reset_mask_wp)
+
     self._model_bridge = WarpBridge(self._wp_model, nworld=self.num_envs)
     self._data_bridge = WarpBridge(self._wp_data)
 
@@ -136,8 +162,22 @@ class Simulation:
     self.nan_guard = NanGuard(cfg.nan_guard, self.num_envs, self._mj_model)
 
   def create_graph(self) -> None:
+    """Capture CUDA graphs for step, forward, and reset operations.
+
+    This method must be called whenever GPU arrays in the model or data are
+    replaced after initialization. The captured graphs hold pointers to the
+    arrays that existed at capture time. If those arrays are replaced, the
+    graphs will silently read from the old arrays, ignoring any new values.
+
+    Called automatically by:
+    - ``__init__()`` during simulation initialization
+    - ``expand_model_fields()`` after replacing model arrays
+
+    On CPU devices or when memory pools are disabled, this is a no-op.
+    """
     self.step_graph = None
     self.forward_graph = None
+    self.reset_graph = None
     if self.use_cuda_graph:
       with wp.ScopedDevice(self.wp_device):
         with wp.ScopedCapture() as capture:
@@ -146,6 +186,9 @@ class Simulation:
         with wp.ScopedCapture() as capture:
           mjwarp.forward(self.wp_model, self.wp_data)
         self.forward_graph = capture.graph
+        with wp.ScopedCapture() as capture:
+          mjwarp.reset_data(self.wp_model, self.wp_data, reset=self._reset_mask_wp)
+        self.reset_graph = capture.graph
 
   # Properties.
 
@@ -173,16 +216,46 @@ class Simulation:
   def model(self) -> "ModelBridge":
     return cast("ModelBridge", self._model_bridge)
 
+  @property
+  def default_model_fields(self) -> dict[str, torch.Tensor]:
+    """Default values for expanded model fields, used in domain randomization."""
+    return self._default_model_fields
+
   # Methods.
 
   def expand_model_fields(self, fields: tuple[str, ...]) -> None:
     """Expand model fields to support per-environment parameters."""
+    if not fields:
+      return
+
     invalid_fields = [f for f in fields if not hasattr(self._mj_model, f)]
     if invalid_fields:
       raise ValueError(f"Fields not found in model: {invalid_fields}")
 
     expand_model_fields(self._wp_model, self.num_envs, list(fields))
     self._model_bridge.clear_cache()
+
+    # Field expansion allocates new arrays and replaces them via setattr. The
+    # CUDA graph captured the old memory addresses, so we must recreate it.
+    self.create_graph()
+
+  def get_default_field(self, field: str) -> torch.Tensor:
+    """Get the default value for a model field, caching for reuse.
+
+    Returns the original values from the C MuJoCo model (mj_model), obtained
+    from the final compiled scene spec before any randomization is applied.
+    Not to be confused with the GPU Warp model (wp_model) which may have
+    randomized values.
+    """
+    if field not in self._default_model_fields:
+      if not hasattr(self._mj_model, field):
+        raise ValueError(f"Field '{field}' not found in model")
+      model_field = getattr(self.model, field)
+      default_value = getattr(self._mj_model, field)
+      self._default_model_fields[field] = torch.as_tensor(
+        default_value, dtype=model_field.dtype, device=self.device
+      ).clone()
+    return self._default_model_fields[field]
 
   def forward(self) -> None:
     with wp.ScopedDevice(self.wp_device):
@@ -198,3 +271,16 @@ class Simulation:
           wp.capture_launch(self.step_graph)
         else:
           mjwarp.step(self.wp_model, self.wp_data)
+
+  def reset(self, env_ids: torch.Tensor | None = None) -> None:
+    with wp.ScopedDevice(self.wp_device):
+      if env_ids is None:
+        self._reset_mask.fill_(True)
+      else:
+        self._reset_mask.fill_(False)
+        self._reset_mask[env_ids] = True
+
+      if self.use_cuda_graph and self.reset_graph is not None:
+        wp.capture_launch(self.reset_graph)
+      else:
+        mjwarp.reset_data(self.wp_model, self.wp_data, reset=self._reset_mask_wp)

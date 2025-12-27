@@ -65,9 +65,9 @@ class DcMotorActuatorCfg(IdealPdActuatorCfg):
       )
 
   def build(
-    self, entity: Entity, joint_ids: list[int], joint_names: list[str]
+    self, entity: Entity, target_ids: list[int], target_names: list[str]
   ) -> DcMotorActuator:
-    return DcMotorActuator(self, entity, joint_ids, joint_names)
+    return DcMotorActuator(self, entity, target_ids, target_names)
 
 
 class DcMotorActuator(IdealPdActuator[DcMotorCfgT], Generic[DcMotorCfgT]):
@@ -87,10 +87,10 @@ class DcMotorActuator(IdealPdActuator[DcMotorCfgT], Generic[DcMotorCfgT]):
     self,
     cfg: DcMotorCfgT,
     entity: Entity,
-    joint_ids: list[int],
-    joint_names: list[str],
+    target_ids: list[int],
+    target_names: list[str],
   ) -> None:
-    super().__init__(cfg, entity, joint_ids, joint_names)
+    super().__init__(cfg, entity, target_ids, target_names)
     self.saturation_effort: torch.Tensor | None = None
     self.velocity_limit_motor: torch.Tensor | None = None
     self._vel_at_effort_lim: torch.Tensor | None = None
@@ -106,7 +106,7 @@ class DcMotorActuator(IdealPdActuator[DcMotorCfgT], Generic[DcMotorCfgT]):
     super().initialize(mj_model, model, data, device)
 
     num_envs = data.nworld
-    num_joints = len(self._joint_names)
+    num_joints = len(self._target_names)
 
     self.saturation_effort = torch.full(
       (num_envs, num_joints),
@@ -130,7 +130,7 @@ class DcMotorActuator(IdealPdActuator[DcMotorCfgT], Generic[DcMotorCfgT]):
 
   def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
     assert self._joint_vel_clipped is not None
-    self._joint_vel_clipped[:] = cmd.joint_vel
+    self._joint_vel_clipped[:] = cmd.vel
     return super().compute(cmd)
 
   def _clip_effort(self, effort: torch.Tensor) -> torch.Tensor:

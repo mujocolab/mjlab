@@ -6,7 +6,7 @@ This module provides wrappers for actuators already defined in robot XML/MJCF fi
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 import mujoco
 import torch
@@ -16,38 +16,49 @@ from mjlab.actuator.actuator import Actuator, ActuatorCfg, ActuatorCmd
 if TYPE_CHECKING:
   from mjlab.entity import Entity
 
+XmlActuatorCfgT = TypeVar("XmlActuatorCfgT", bound=ActuatorCfg)
 
-class XmlActuator(Actuator):
+
+class XmlActuator(Actuator[XmlActuatorCfgT], Generic[XmlActuatorCfgT]):
   """Base class for XML-defined actuators."""
 
-  def edit_spec(self, spec: mujoco.MjSpec, joint_names: list[str]) -> None:
-    # Filter to only joints that have corresponding XML actuators.
-    filtered_joint_ids = []
-    filtered_joint_names = []
-    for i, joint_name in enumerate(joint_names):
-      actuator = self._find_actuator_for_joint(spec, joint_name)
+  def __init__(
+    self,
+    cfg: XmlActuatorCfgT,
+    entity: Entity,
+    target_ids: list[int],
+    target_names: list[str],
+  ) -> None:
+    super().__init__(cfg, entity, target_ids, target_names)
+
+  def edit_spec(self, spec: mujoco.MjSpec, target_names: list[str]) -> None:
+    # Filter to only targets that have corresponding XML actuators.
+    filtered_target_ids = []
+    filtered_target_names = []
+    for i, target_name in enumerate(target_names):
+      actuator = self._find_actuator_for_target(spec, target_name)
       if actuator is not None:
         self._mjs_actuators.append(actuator)
-        filtered_joint_ids.append(self._joint_ids_list[i])
-        filtered_joint_names.append(joint_name)
+        filtered_target_ids.append(self._target_ids_list[i])
+        filtered_target_names.append(target_name)
 
-    if len(filtered_joint_names) == 0:
+    if len(filtered_target_names) == 0:
       raise ValueError(
-        f"No XML actuators found for any joints matching the patterns. "
-        f"Searched joints: {joint_names}. "
+        f"No XML actuators found for any targets matching the patterns. "
+        f"Searched targets: {target_names}. "
         f"XML actuator config expects actuators to already exist in the XML."
       )
 
-    # Update joint IDs and names to only include those with actuators.
-    self._joint_ids_list = filtered_joint_ids
-    self._joint_names = filtered_joint_names
+    # Update target IDs and names to only include those with actuators.
+    self._target_ids_list = filtered_target_ids
+    self._target_names = filtered_target_names
 
-  def _find_actuator_for_joint(
-    self, spec: mujoco.MjSpec, joint_name: str
+  def _find_actuator_for_target(
+    self, spec: mujoco.MjSpec, target_name: str
   ) -> mujoco.MjsActuator | None:
-    """Find an actuator that targets the given joint."""
+    """Find an actuator that targets the given target (joint, tendon, or site)."""
     for actuator in spec.actuators:
-      if actuator.target == joint_name:
+      if actuator.target == target_name:
         return actuator
     return None
 
@@ -57,12 +68,12 @@ class XmlPositionActuatorCfg(ActuatorCfg):
   """Wrap existing XML-defined <position> actuators."""
 
   def build(
-    self, entity: Entity, joint_ids: list[int], joint_names: list[str]
+    self, entity: Entity, target_ids: list[int], target_names: list[str]
   ) -> XmlPositionActuator:
-    return XmlPositionActuator(entity, joint_ids, joint_names)
+    return XmlPositionActuator(self, entity, target_ids, target_names)
 
 
-class XmlPositionActuator(XmlActuator):
+class XmlPositionActuator(XmlActuator[XmlPositionActuatorCfg]):
   """Wrapper for XML-defined <position> actuators."""
 
   def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
@@ -74,12 +85,12 @@ class XmlMotorActuatorCfg(ActuatorCfg):
   """Wrap existing XML-defined <motor> actuators."""
 
   def build(
-    self, entity: Entity, joint_ids: list[int], joint_names: list[str]
+    self, entity: Entity, target_ids: list[int], target_names: list[str]
   ) -> XmlMotorActuator:
-    return XmlMotorActuator(entity, joint_ids, joint_names)
+    return XmlMotorActuator(self, entity, target_ids, target_names)
 
 
-class XmlMotorActuator(XmlActuator):
+class XmlMotorActuator(XmlActuator[XmlMotorActuatorCfg]):
   """Wrapper for XML-defined <motor> actuators."""
 
   def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
@@ -91,13 +102,30 @@ class XmlVelocityActuatorCfg(ActuatorCfg):
   """Wrap existing XML-defined <velocity> actuators."""
 
   def build(
-    self, entity: Entity, joint_ids: list[int], joint_names: list[str]
+    self, entity: Entity, target_ids: list[int], target_names: list[str]
   ) -> XmlVelocityActuator:
-    return XmlVelocityActuator(entity, joint_ids, joint_names)
+    return XmlVelocityActuator(self, entity, target_ids, target_names)
 
 
-class XmlVelocityActuator(XmlActuator):
+class XmlVelocityActuator(XmlActuator[XmlVelocityActuatorCfg]):
   """Wrapper for XML-defined <velocity> actuators."""
 
   def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
     return cmd.velocity_target
+
+
+@dataclass(kw_only=True)
+class XmlMuscleActuatorCfg(ActuatorCfg):
+  """Wrap existing XML-defined <muscle> actuators."""
+
+  def build(
+    self, entity: Entity, target_ids: list[int], target_names: list[str]
+  ) -> XmlMuscleActuator:
+    return XmlMuscleActuator(self, entity, target_ids, target_names)
+
+
+class XmlMuscleActuator(XmlActuator[XmlMuscleActuatorCfg]):
+  """Wrapper for XML-defined <muscle> actuators."""
+
+  def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
+    return cmd.effort_target

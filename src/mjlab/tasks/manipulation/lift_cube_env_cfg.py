@@ -62,7 +62,7 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
 
   actions: dict[str, ActionTermCfg] = {
     "joint_pos": JointPositionActionCfg(
-      asset_name="robot",
+      entity_name="robot",
       actuator_names=(".*",),
       scale=0.5,  # Override per-robot.
       use_default_offset=True,
@@ -71,7 +71,7 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
 
   commands: dict[str, CommandTermCfg] = {
     "lift_height": LiftingCommandCfg(
-      asset_name="cube",
+      entity_name="cube",
       resampling_time_range=(8.0, 12.0),
       debug_vis=True,
       difficulty="dynamic",
@@ -88,7 +88,7 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
     # For positioning the base of the robot at env_origins.
     "reset_base": EventTermCfg(
       func=mdp.reset_root_state_uniform,
-      mode="startup",
+      mode="reset",
       params={
         "pose_range": {},
         "velocity_range": {},
@@ -233,7 +233,7 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
     curriculum=curriculum,
     viewer=ViewerConfig(
       origin_type=ViewerConfig.OriginType.ASSET_BODY,
-      asset_name="robot",
+      entity_name="robot",
       body_name="",  # Set per-robot.
       distance=1.5,
       elevation=-5.0,

@@ -15,12 +15,12 @@ class ViewerConfig:
     WORLD = enum.auto()
     """The origin of the world."""
     ASSET_ROOT = enum.auto()
-    """The center of the asset defined by asset_name."""
+    """The center of the asset defined by entity_name."""
     ASSET_BODY = enum.auto()
-    """The center of the body defined by body_name in asset defined by asset_name."""
+    """The center of the body defined by body_name in asset defined by entity_name."""
 
   origin_type: OriginType = OriginType.WORLD
-  asset_name: str | None = None
+  entity_name: str | None = None
   body_name: str | None = None
   env_idx: int = 0
   enable_reflections: bool = True

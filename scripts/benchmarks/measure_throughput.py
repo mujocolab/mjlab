@@ -30,15 +30,16 @@ class BenchmarkResult:
   task: str
   num_envs: int
   num_steps: int
-  physics_fps: float
-  env_fps: float
+  decimation: int
+  physics_sps: float
+  env_sps: float
   overhead_pct: float
 
   def __str__(self) -> str:
     return (
-      f"{self.task}:\n"
-      f"  Physics FPS: {self.physics_fps:,.0f}\n"
-      f"  Env FPS:     {self.env_fps:,.0f}\n"
+      f"{self.task} (dec={self.decimation}):\n"
+      f"  Physics SPS: {self.physics_sps:,.0f}\n"
+      f"  Env SPS:     {self.env_sps:,.0f}\n"
       f"  Overhead:    {self.overhead_pct:.1f}%"
     )
 
@@ -78,8 +79,12 @@ class ThroughputConfig:
   """Output directory for JSON results. If None, results are only printed."""
 
 
-def measure_physics_fps(env: ManagerBasedRlEnv, num_steps: int) -> float:
-  """Measure raw physics stepping FPS (sim.step only)."""
+def measure_physics_sps(env: ManagerBasedRlEnv, num_steps: int) -> float:
+  """Measure raw physics stepping in env steps per second.
+
+  Runs num_steps worth of physics (i.e., num_steps * decimation sim.step calls)
+  and reports throughput in env steps/sec for direct comparison with env.step().
+  """
   decimation = env.cfg.decimation
   total_physics_steps = num_steps * decimation
 
@@ -92,11 +97,12 @@ def measure_physics_fps(env: ManagerBasedRlEnv, num_steps: int) -> float:
   torch.cuda.synchronize()
   elapsed = time.perf_counter() - start
 
-  return (total_physics_steps * env.num_envs) / elapsed
+  # Report in env steps/sec (not physics steps/sec) for fair comparison.
+  return (num_steps * env.num_envs) / elapsed
 
 
-def measure_env_fps(env: ManagerBasedRlEnv, num_steps: int) -> float:
-  """Measure full environment step FPS."""
+def measure_env_sps(env: ManagerBasedRlEnv, num_steps: int) -> float:
+  """Measure full environment step throughput in env steps per second."""
   action_dim = sum(env.action_manager.action_term_dim)
   action = torch.zeros(env.num_envs, action_dim, device=env.device)
 
@@ -138,18 +144,15 @@ def benchmark_task(task: str, cfg: ThroughputConfig) -> BenchmarkResult:
     env.step(action)
   torch.cuda.synchronize()
 
-  physics_fps = measure_physics_fps(env, cfg.num_steps)
+  decimation = env.cfg.decimation
+  physics_sps = measure_physics_sps(env, cfg.num_steps)
 
-  # Reset env state before measuring env FPS.
   env.reset()
   torch.cuda.synchronize()
 
-  env_fps = measure_env_fps(env, cfg.num_steps)
+  env_sps = measure_env_sps(env, cfg.num_steps)
 
-  # Calculate overhead (env step includes physics, so overhead is the difference).
-  decimation = env.cfg.decimation
-  physics_via_env = env_fps * decimation
-  overhead_pct = 100 * (1 - physics_via_env / physics_fps)
+  overhead_pct = 100 * (1 - env_sps / physics_sps)
 
   env.close()
 
@@ -157,8 +160,9 @@ def benchmark_task(task: str, cfg: ThroughputConfig) -> BenchmarkResult:
     task=task,
     num_envs=cfg.num_envs,
     num_steps=cfg.num_steps,
-    physics_fps=physics_fps,
-    env_fps=env_fps,
+    decimation=decimation,
+    physics_sps=physics_sps,
+    env_sps=env_sps,
     overhead_pct=overhead_pct,
   )
 
@@ -216,15 +220,18 @@ def main(cfg: ThroughputConfig) -> list[BenchmarkResult]:
     results.append(result)
     print(result)
 
-  print("\n" + "=" * 50)
-  print("Summary:")
-  print("=" * 50)
-  print(f"{'Task':<40} {'Physics FPS':>12} {'Env FPS':>12} {'Overhead':>10}")
-  print("-" * 50)
+  print("\n" + "=" * 74)
+  print("Summary (all values in env steps per second):")
+  print("  Physics SPS: sim.step() only (×decimation per env step)")
+  print("  Env SPS: full env.step() including managers")
+  print("  Overhead: time spent on non-physics work (observations, rewards, etc.)")
+  print("=" * 74)
+  print(f"{'Task':<35} {'Dec':>4} {'Physics SPS':>12} {'Env SPS':>12} {'Overhead':>8}")
+  print("-" * 74)
   for r in results:
     task_short = r.task.replace("Mjlab-", "").replace("-Unitree-", "-")
     print(
-      f"{task_short:<40} {r.physics_fps:>12,.0f} {r.env_fps:>12,.0f} {r.overhead_pct:>9.1f}%"
+      f"{task_short:<35} {r.decimation:>4} {r.physics_sps:>12,.0f} {r.env_sps:>12,.0f} {r.overhead_pct:>7.1f}%"
     )
 
   if cfg.output_dir:

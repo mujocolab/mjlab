@@ -107,8 +107,8 @@ class OffscreenRenderer:
     elif self._cfg.origin_type == self._cfg.OriginType.ASSET_ROOT:
       from mjlab.entity import Entity
 
-      if self._cfg.asset_name:
-        robot: Entity = self._scene[self._cfg.asset_name]
+      if self._cfg.entity_name:
+        robot: Entity = self._scene[self._cfg.entity_name]
       else:
         # Auto-detect if only one entity.
         if len(self._scene.entities) == 1:
@@ -116,7 +116,7 @@ class OffscreenRenderer:
         else:
           raise ValueError(
             f"Multiple entities in scene ({len(self._scene.entities)}). "
-            "Specify asset_name to choose which one."
+            "Specify entity_name to choose which one."
           )
 
       body_id = robot.indexing.root_body_id
@@ -125,15 +125,15 @@ class OffscreenRenderer:
       camera.fixedcamid = -1
 
     elif self._cfg.origin_type == self._cfg.OriginType.ASSET_BODY:
-      if not self._cfg.asset_name or not self._cfg.body_name:
-        raise ValueError("asset_name/body_name required for ASSET_BODY origin type")
+      if not self._cfg.entity_name or not self._cfg.body_name:
+        raise ValueError("entity_name/body_name required for ASSET_BODY origin type")
 
       from mjlab.entity import Entity
 
-      robot: Entity = self._scene[self._cfg.asset_name]
+      robot: Entity = self._scene[self._cfg.entity_name]
       if self._cfg.body_name not in robot.body_names:
         raise ValueError(
-          f"Body '{self._cfg.body_name}' not found in asset '{self._cfg.asset_name}'"
+          f"Body '{self._cfg.body_name}' not found in asset '{self._cfg.entity_name}'"
         )
       body_id_list, _ = robot.find_bodies(self._cfg.body_name)
       body_id = robot.indexing.bodies[body_id_list[0]].id

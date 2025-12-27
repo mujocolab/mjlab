@@ -171,7 +171,7 @@ def test_electrical_power_cost_partially_actuated(device):
     articulation=EntityArticulationInfoCfg(
       actuators=(
         BuiltinPositionActuatorCfg(
-          joint_names_expr=("actuated_joint1", "actuated_joint2"),
+          target_names_expr=("actuated_joint1", "actuated_joint2"),
           effort_limit=10.0,
           stiffness=100.0,
           damping=10.0,
@@ -230,3 +230,44 @@ def test_electrical_power_cost_partially_actuated(device):
   #           env1 = max(0,1.0*2.0) + max(0,-4.0*1.0) = 2.0 + 0 = 2.0.
   expected = torch.tensor([6.0, 2.0], device=device)
   assert torch.allclose(power_cost, expected)
+
+
+def test_reward_manager_handles_nan_values(mock_env):
+  """Test that RewardManager converts NaN/Inf reward values to zero."""
+
+  def nan_reward(env):
+    """Reward function that returns NaN for some environments."""
+    r = torch.ones(env.num_envs, device=env.device)
+    r[1] = float("nan")
+    r[3] = float("inf")
+    return r
+
+  cfg = {"nan_term": RewardTermCfg(func=nan_reward, weight=1.0, params={})}
+  manager = RewardManager(cfg, mock_env)
+
+  rewards = manager.compute(dt=0.01)
+
+  # NaN and Inf should be converted to 0.
+  assert not torch.isnan(rewards).any(), "Reward buffer contains NaN"
+  assert not torch.isinf(rewards).any(), "Reward buffer contains Inf"
+  assert rewards[0] == pytest.approx(0.01)
+  assert rewards[1] == 0.0
+  assert rewards[2] == pytest.approx(0.01)
+  assert rewards[3] == 0.0
+
+
+def test_reward_manager_handles_neginf_values(mock_env):
+  """Test that RewardManager converts negative infinity to zero."""
+
+  def neginf_reward(env):
+    r = torch.ones(env.num_envs, device=env.device)
+    r[2] = float("-inf")
+    return r
+
+  cfg = {"neginf_term": RewardTermCfg(func=neginf_reward, weight=1.0, params={})}
+  manager = RewardManager(cfg, mock_env)
+
+  rewards = manager.compute(dt=0.01)
+
+  assert not torch.isinf(rewards).any()
+  assert rewards[2] == 0.0

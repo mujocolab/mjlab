@@ -6,7 +6,7 @@ import mujoco
 import mujoco_warp as mjwarp
 import pytest
 import torch
-from conftest import get_test_device
+from conftest import get_test_device, load_fixture_xml
 
 from mjlab.entity import Entity, EntityCfg
 from mjlab.scene import Scene, SceneCfg
@@ -26,15 +26,7 @@ def device():
 @pytest.fixture
 def simple_entity_xml():
   """Simple entity XML for testing."""
-  return """
-    <mujoco>
-      <worldbody>
-        <body name="box" pos="0 0 0.5">
-          <geom name="box_geom" type="box" size="0.1 0.1 0.1" mass="1.0"/>
-        </body>
-      </worldbody>
-    </mujoco>
-    """
+  return load_fixture_xml("fixed_base_box")
 
 
 @pytest.fixture
@@ -411,3 +403,74 @@ def test_scene_spec_fn_cross_entity_tendon(entity_with_site_xml, device):
   # Verify sites are referenced correctly (2 wraps per tendon).
   assert model.ntendon == 2
   assert model.nwrap == 4
+
+
+# ============================================================================
+# Keyframe Merging Tests
+# ============================================================================
+
+
+@pytest.fixture
+def floating_box_cfg():
+  """Entity config for a floating box with initial position."""
+  xml = """
+    <mujoco>
+      <worldbody>
+        <body name="box">
+          <freejoint name="box_joint"/>
+          <geom type="box" size="0.1 0.1 0.1"/>
+        </body>
+      </worldbody>
+    </mujoco>
+  """
+  return EntityCfg(
+    init_state=EntityCfg.InitialStateCfg(pos=(1.0, 2.0, 3.0)),
+    spec_fn=lambda: mujoco.MjSpec.from_string(xml),
+  )
+
+
+@pytest.fixture
+def floating_sphere_cfg():
+  """Entity config for a floating sphere with initial position."""
+  xml = """
+    <mujoco>
+      <worldbody>
+        <body name="sphere">
+          <freejoint name="sphere_joint"/>
+          <geom type="sphere" size="0.1"/>
+        </body>
+      </worldbody>
+    </mujoco>
+  """
+  return EntityCfg(
+    init_state=EntityCfg.InitialStateCfg(pos=(4.0, 5.0, 6.0)),
+    spec_fn=lambda: mujoco.MjSpec.from_string(xml),
+  )
+
+
+def test_single_entity_keyframe(floating_box_cfg, device):
+  """Test that a single entity produces one merged keyframe."""
+  cfg = SceneCfg(entities={"box": floating_box_cfg})
+  scene = Scene(cfg, device)
+  model = scene.compile()
+
+  assert model.nkey == 1
+  assert model.key(0).name == "init_state"
+  # qpos: [x, y, z, qw, qx, qy, qz]
+  assert tuple(model.key(0).qpos[:3]) == (1.0, 2.0, 3.0)
+
+
+def test_multiple_entities_merged_keyframe(
+  floating_box_cfg, floating_sphere_cfg, device
+):
+  """Test that multiple entities produce a single merged keyframe."""
+  cfg = SceneCfg(entities={"box": floating_box_cfg, "sphere": floating_sphere_cfg})
+  scene = Scene(cfg, device)
+  model = scene.compile()
+
+  assert model.nkey == 1
+  assert model.key(0).name == "init_state"
+  # Box qpos (0-6), sphere qpos (7-13).
+  qpos = model.key(0).qpos
+  assert tuple(qpos[:3]) == (1.0, 2.0, 3.0)  # box position
+  assert tuple(qpos[7:10]) == (4.0, 5.0, 6.0)  # sphere position

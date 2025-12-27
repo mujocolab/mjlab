@@ -1,13 +1,13 @@
 import re
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Any, Dict
 
 import yaml
 
 
 def update_assets(
   assets: Dict[str, Any],
-  path: Union[str, Path],
+  path: str | Path,
   meshdir: str | None = None,
   glob: str = "*",
   recursive: bool = False,

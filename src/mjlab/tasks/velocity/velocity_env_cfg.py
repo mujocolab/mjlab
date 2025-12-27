@@ -106,7 +106,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
 
   actions: dict[str, ActionTermCfg] = {
     "joint_pos": JointPositionActionCfg(
-      asset_name="robot",
+      entity_name="robot",
       actuator_names=(".*",),
       scale=0.5,  # Override per-robot.
       use_default_offset=True,
@@ -119,7 +119,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
 
   commands: dict[str, CommandTermCfg] = {
     "twist": UniformVelocityCommandCfg(
-      asset_name="robot",
+      entity_name="robot",
       resampling_time_range=(3.0, 8.0),
       rel_standing_envs=0.1,
       rel_heading_envs=0.3,
@@ -334,7 +334,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     curriculum=curriculum,
     viewer=ViewerConfig(
       origin_type=ViewerConfig.OriginType.ASSET_BODY,
-      asset_name="robot",
+      entity_name="robot",
       body_name="",  # Set per-robot.
       distance=3.0,
       elevation=-5.0,

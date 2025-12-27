@@ -25,7 +25,7 @@ class LiftingCommand(CommandTerm):
   def __init__(self, cfg: LiftingCommandCfg, env: ManagerBasedRlEnv):
     super().__init__(cfg, env)
 
-    self.object: Entity = env.scene[cfg.asset_name]
+    self.object: Entity = env.scene[cfg.entity_name]
     self.target_pos = torch.zeros(self.num_envs, 3, device=self.device)
     self.episode_success = torch.zeros(self.num_envs, device=self.device)
 
@@ -117,7 +117,7 @@ class LiftingCommand(CommandTerm):
 
 @dataclass(kw_only=True)
 class LiftingCommandCfg(CommandTermCfg):
-  asset_name: str
+  entity_name: str
   class_type: type[CommandTerm] = LiftingCommand
   success_threshold: float = 0.05
   difficulty: Literal["fixed", "dynamic"] = "fixed"

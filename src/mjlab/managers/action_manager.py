@@ -16,12 +16,16 @@ if TYPE_CHECKING:
 
 
 class ActionTerm(ManagerTermBase):
-  """Base class for action terms."""
+  """Base class for action terms.
+
+  The action term is responsible for processing the raw actions sent to the environment
+  and applying them to the entity managed by the term.
+  """
 
   def __init__(self, cfg: ActionTermCfg, env: ManagerBasedRlEnv):
     self.cfg = cfg
     super().__init__(env)
-    self._asset = self._env.scene[self.cfg.asset_name]
+    self._entity = self._env.scene[self.cfg.entity_name]
 
   @property
   @abc.abstractmethod
@@ -149,6 +153,6 @@ class ActionManager(ManagerBase):
       if term_cfg is None:
         print(f"term: {term_name} set to None, skipping...")
         continue
-      term = term_cfg.class_type(term_cfg, self._env)
+      term = term_cfg.build(self._env)
       self._term_names.append(term_name)
       self._terms[term_name] = term

@@ -62,9 +62,9 @@ class LearnedMlpActuatorCfg(DcMotorActuatorCfg):
   damping: float = 0.0
 
   def build(
-    self, entity: Entity, joint_ids: list[int], joint_names: list[str]
+    self, entity: Entity, target_ids: list[int], target_names: list[str]
   ) -> LearnedMlpActuator:
-    return LearnedMlpActuator(self, entity, joint_ids, joint_names)
+    return LearnedMlpActuator(self, entity, target_ids, target_names)
 
 
 class LearnedMlpActuator(DcMotorActuator[LearnedMlpActuatorCfg]):
@@ -83,10 +83,10 @@ class LearnedMlpActuator(DcMotorActuator[LearnedMlpActuatorCfg]):
     self,
     cfg: LearnedMlpActuatorCfg,
     entity: Entity,
-    joint_ids: list[int],
-    joint_names: list[str],
+    target_ids: list[int],
+    target_names: list[str],
   ) -> None:
-    super().__init__(cfg, entity, joint_ids, joint_names)
+    super().__init__(cfg, entity, target_ids, target_names)
     self.network: torch.jit.ScriptModule | None = None
     self._pos_error_history: CircularBuffer | None = None
     self._vel_history: CircularBuffer | None = None
@@ -156,15 +156,15 @@ class LearnedMlpActuator(DcMotorActuator[LearnedMlpActuatorCfg]):
     assert self._joint_vel_clipped is not None
 
     # Update history buffers with current state.
-    pos_error = cmd.position_target - cmd.joint_pos
+    pos_error = cmd.position_target - cmd.pos
     self._pos_error_history.append(pos_error)
-    self._vel_history.append(cmd.joint_vel)
+    self._vel_history.append(cmd.vel)
 
     # Save velocity for DC motor clipping in parent class.
-    self._joint_vel_clipped[:] = cmd.joint_vel
+    self._joint_vel_clipped[:] = cmd.vel
 
-    num_envs = cmd.joint_pos.shape[0]
-    num_joints = cmd.joint_pos.shape[1]
+    num_envs = cmd.pos.shape[0]
+    num_joints = cmd.pos.shape[1]
 
     # Extract history from current to history_length-1 steps back.
     # Each returns shape: (num_envs, num_joints).

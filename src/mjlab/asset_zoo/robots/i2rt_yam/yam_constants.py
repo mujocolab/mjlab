@@ -66,14 +66,14 @@ DAMPING_DM_4340 = 2.0 * DAMPING_RATIO * ARMATURE_DM_4340 * NATURAL_FREQ
 DAMPING_DM_4310 = 2.0 * DAMPING_RATIO * ARMATURE_DM_4310 * NATURAL_FREQ
 
 ACTUATOR_DM_4340 = BuiltinPositionActuatorCfg(
-  joint_names_expr=("joint1", "joint2", "joint3"),
+  target_names_expr=("joint1", "joint2", "joint3"),
   stiffness=STIFFNESS_DM_4340,
   damping=DAMPING_DM_4340,
   effort_limit=DM_4340.effort_limit,
   armature=DM_4340.reflected_inertia,
 )
 ACTUATOR_DM_4310 = BuiltinPositionActuatorCfg(
-  joint_names_expr=("joint4", "joint5", "joint6"),
+  target_names_expr=("joint4", "joint5", "joint6"),
   stiffness=STIFFNESS_DM_4310,
   damping=DAMPING_DM_4310,
   effort_limit=DM_4310.effort_limit,
@@ -121,7 +121,7 @@ EFFORT_LIMIT_DM_4310_LINEAR_CRANK_SAFE = EFFORT_LIMIT_DM_4310_LINEAR_CRANK * 0.1
 
 # Only actuate left_finger; right_finger is coupled via equality constraint.
 ACTUATOR_DM_4310_LINEAR_CRANK = BuiltinPositionActuatorCfg(
-  joint_names_expr=("left_finger",),
+  target_names_expr=("left_finger",),
   stiffness=STIFFNESS_DM_4310_LINEAR_CRANK,
   damping=DAMPING_DM_4310_LINEAR_CRANK,
   effort_limit=EFFORT_LIMIT_DM_4310_LINEAR_CRANK_SAFE,
@@ -215,7 +215,7 @@ for a in ARTICULATION.actuators:
   assert isinstance(a, BuiltinPositionActuatorCfg)
   e = a.effort_limit
   s = a.stiffness
-  names = a.joint_names_expr
+  names = a.target_names_expr
   assert e is not None
   for n in names:
     YAM_ACTION_SCALE[n] = 0.25 * e / s

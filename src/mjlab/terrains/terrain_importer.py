@@ -200,6 +200,27 @@ class TerrainImporter:
       self.terrain_levels[env_ids], self.terrain_types[env_ids]
     ]
 
+  def randomize_env_origins(self, env_ids: torch.Tensor) -> None:
+    """Randomize the environment origins to random sub-terrains.
+
+    This randomizes both the terrain level (row) and terrain type (column),
+    useful for play/evaluation mode where you want to test on varied terrains.
+    """
+    if self.terrain_origins is None:
+      return
+    assert self.env_origins is not None
+    num_rows, num_cols = self.terrain_origins.shape[:2]
+    num_envs = len(env_ids)
+    self.terrain_levels[env_ids] = torch.randint(
+      0, num_rows, (num_envs,), device=self.device
+    )
+    self.terrain_types[env_ids] = torch.randint(
+      0, num_cols, (num_envs,), device=self.device
+    )
+    self.env_origins[env_ids] = self.terrain_origins[
+      self.terrain_levels[env_ids], self.terrain_types[env_ids]
+    ]
+
   def _compute_env_origins_curriculum(
     self, num_envs: int, origins: torch.Tensor
   ) -> torch.Tensor:

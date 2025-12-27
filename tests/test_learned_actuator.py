@@ -124,7 +124,7 @@ def test_learned_mlp_network_loads(device, identity_network_file):
   """Verify network loads from TorchScript file and initializes."""
   entity = create_entity_with_actuator(
     LearnedMlpActuatorCfg(
-      joint_names_expr=("joint.*",),
+      target_names_expr=("joint.*",),
       network_file=identity_network_file,
       pos_scale=1.0,
       vel_scale=1.0,
@@ -151,7 +151,7 @@ def test_learned_mlp_history_indexing(device, identity_network_file):
   """Test that history_length uses consecutive timesteps."""
   entity = create_entity_with_actuator(
     LearnedMlpActuatorCfg(
-      joint_names_expr=("joint.*",),
+      target_names_expr=("joint.*",),
       network_file=identity_network_file,
       pos_scale=1.0,
       vel_scale=0.0,  # Zero out velocity contribution.
@@ -198,7 +198,7 @@ def test_learned_mlp_input_order_pos_vel(device, subtract_network_file):
   """Verify input_order='pos_vel' concatenates position then velocity."""
   entity = create_entity_with_actuator(
     LearnedMlpActuatorCfg(
-      joint_names_expr=("joint.*",),
+      target_names_expr=("joint.*",),
       network_file=subtract_network_file,
       pos_scale=1.0,
       vel_scale=1.0,
@@ -233,7 +233,7 @@ def test_learned_mlp_input_order_vel_pos(device, subtract_network_file):
   """Verify input_order='vel_pos' concatenates velocity then position."""
   entity = create_entity_with_actuator(
     LearnedMlpActuatorCfg(
-      joint_names_expr=("joint.*",),
+      target_names_expr=("joint.*",),
       network_file=subtract_network_file,
       pos_scale=1.0,
       vel_scale=1.0,
@@ -268,7 +268,7 @@ def test_learned_mlp_scaling_applied(device, identity_network_file):
   """Test pos_scale, vel_scale, torque_scale are applied correctly."""
   entity = create_entity_with_actuator(
     LearnedMlpActuatorCfg(
-      joint_names_expr=("joint.*",),
+      target_names_expr=("joint.*",),
       network_file=identity_network_file,
       pos_scale=2.0,
       vel_scale=3.0,
@@ -304,7 +304,7 @@ def test_learned_mlp_reset_clears_history(device, identity_network_file):
   """Test reset zeroes history buffers for specified environments."""
   entity = create_entity_with_actuator(
     LearnedMlpActuatorCfg(
-      joint_names_expr=("joint.*",),
+      target_names_expr=("joint.*",),
       network_file=identity_network_file,
       pos_scale=1.0,
       vel_scale=1.0,
@@ -350,7 +350,7 @@ def test_learned_mlp_inherits_dc_motor_limits(device, constant_network_file):
 
   entity = create_entity_with_actuator(
     LearnedMlpActuatorCfg(
-      joint_names_expr=("joint.*",),
+      target_names_expr=("joint.*",),
       network_file=constant_network_file,  # Always outputs 10.0.
       pos_scale=1.0,
       vel_scale=1.0,
@@ -390,7 +390,7 @@ def test_learned_mlp_dc_motor_zero_torque_at_max_velocity(
 
   entity = create_entity_with_actuator(
     LearnedMlpActuatorCfg(
-      joint_names_expr=("joint.*",),
+      target_names_expr=("joint.*",),
       network_file=constant_network_file,  # Always outputs 10.0.
       pos_scale=1.0,
       vel_scale=1.0,
@@ -427,7 +427,7 @@ def test_learned_mlp_multi_joint_reshaping(device, identity_network_file):
     articulation=EntityArticulationInfoCfg(
       actuators=(
         LearnedMlpActuatorCfg(
-          joint_names_expr=("joint.*",),
+          target_names_expr=("joint.*",),
           network_file=identity_network_file,
           pos_scale=1.0,
           vel_scale=1.0,

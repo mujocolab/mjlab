@@ -18,7 +18,7 @@ def device():
 def _make_mock_action_term(action_dim: int):
   """Create a mock action term factory."""
 
-  def factory(cfg, env):
+  def factory(env):
     term = Mock()
     term.action_dim = action_dim
     term.raw_action = torch.zeros(env.num_envs, action_dim, device=env.device)
@@ -43,8 +43,8 @@ def mock_env(device):
 def action_term_cfg():
   """Create a simple action term config."""
   cfg = Mock()
-  cfg.class_type = _make_mock_action_term(action_dim=3)
-  cfg.asset_name = "robot"
+  cfg.build = _make_mock_action_term(action_dim=3)
+  cfg.entity_name = "robot"
   return cfg
 
 

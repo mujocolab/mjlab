@@ -6,7 +6,7 @@ import mujoco
 import numpy as np
 import pytest
 import torch
-from conftest import get_test_device
+from conftest import get_test_device, load_fixture_xml
 
 from mjlab.actuator import BuiltinPositionActuatorCfg, XmlMotorActuatorCfg
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
@@ -52,28 +52,7 @@ FIXED_BASE_ARTICULATED_XML = """
 </mujoco>
 """
 
-FLOATING_BASE_ARTICULATED_XML = """
-<mujoco>
-  <worldbody>
-    <body name="base" pos="0 0 1">
-      <freejoint name="free_joint"/>
-      <geom name="base_geom" type="box" size="0.2 0.2 0.1" mass="1.0"/>
-      <body name="link1" pos="0 0 0">
-        <joint name="joint1" type="hinge" axis="0 0 1" range="0 1.57"/>
-        <geom name="link1_geom" type="box" size="0.1 0.1 0.1" mass="0.1"/>
-        <site name="site1" pos="0 0 0"/>
-      </body>
-      <body name="link2" pos="0 0 0">
-        <joint name="joint2" type="hinge" axis="0 0 1" range="0 1.57"/>
-        <geom name="link2_geom" type="box" size="0.1 0.1 0.1" mass="0.1"/>
-      </body>
-    </body>
-  </worldbody>
-  <sensor>
-    <jointpos name="joint1_pos" joint="joint1"/>
-  </sensor>
-</mujoco>
-"""
+FLOATING_BASE_ARTICULATED_XML = load_fixture_xml("floating_base_articulated")
 
 ACTUATOR_ORDER_TEST_XML = """
 <mujoco>
@@ -153,7 +132,7 @@ def create_fixed_articulated_entity():
     articulation=EntityArticulationInfoCfg(
       actuators=(
         BuiltinPositionActuatorCfg(
-          joint_names_expr=("joint1", "joint2"),
+          target_names_expr=("joint1", "joint2"),
           effort_limit=1.0,
           stiffness=1.0,
           damping=1.0,
@@ -171,7 +150,7 @@ def create_floating_articulated_entity():
     articulation=EntityArticulationInfoCfg(
       actuators=(
         BuiltinPositionActuatorCfg(
-          joint_names_expr=("joint1", "joint2"),
+          target_names_expr=("joint1", "joint2"),
           effort_limit=1.0,
           stiffness=1.0,
           damping=1.0,
@@ -403,7 +382,7 @@ def test_keyframe_ctrl_maps_joint_pos_to_actuators():
     articulation=EntityArticulationInfoCfg(
       actuators=(
         BuiltinPositionActuatorCfg(
-          joint_names_expr=(
+          target_names_expr=(
             "joint1",
             "joint2",
           ),
@@ -429,7 +408,7 @@ def test_keyframe_ctrl_underactuated():
     articulation=EntityArticulationInfoCfg(
       actuators=(
         BuiltinPositionActuatorCfg(
-          joint_names_expr=("joint1",),  # Only one actuator.
+          target_names_expr=("joint1",),  # Only one actuator.
           effort_limit=1.0,
           stiffness=1.0,
           damping=1.0,
@@ -483,7 +462,7 @@ def test_find_joints_by_actuator_names_preserves_natural_order(device):
   robot_cfg = EntityCfg(
     spec_fn=lambda: mujoco.MjSpec.from_string(ACTUATOR_ORDER_TEST_XML),
     articulation=EntityArticulationInfoCfg(
-      actuators=(XmlMotorActuatorCfg(joint_names_expr=(".*",)),)
+      actuators=(XmlMotorActuatorCfg(target_names_expr=(".*",)),)
     ),
   )
 
@@ -514,7 +493,7 @@ def test_ctrl_ids_follow_natural_joint_order(device):
   robot_cfg = EntityCfg(
     spec_fn=lambda: mujoco.MjSpec.from_string(ACTUATOR_ORDER_TEST_XML),
     articulation=EntityArticulationInfoCfg(
-      actuators=(XmlMotorActuatorCfg(joint_names_expr=(".*",)),)
+      actuators=(XmlMotorActuatorCfg(target_names_expr=(".*",)),)
     ),
   )
 
@@ -554,7 +533,7 @@ def test_find_joints_by_actuator_names_returns_entity_local_indices():
   robot_cfg = EntityCfg(
     spec_fn=lambda: mujoco.MjSpec.from_string(UNDERACTUATED_XML),
     articulation=EntityArticulationInfoCfg(
-      actuators=(XmlMotorActuatorCfg(joint_names_expr=(".*",)),)
+      actuators=(XmlMotorActuatorCfg(target_names_expr=(".*",)),)
     ),
   )
 
@@ -611,3 +590,160 @@ def test_custom_entity_subclass(device):
   assert isinstance(custom_entity, CustomEntity)
   assert custom_entity.cfg.custom_threshold == 0.9
   assert custom_entity.custom_value == 1.8
+
+
+# ============================================================================
+# Keyframe Fallback Tests
+# ============================================================================
+
+XML_WITH_KEYFRAME = """
+<mujoco>
+  <worldbody>
+    <body name="robot">
+      <freejoint name="root"/>
+      <geom type="box" size="0.1 0.1 0.1"/>
+      <body name="link" pos="0.2 0 0">
+        <joint name="joint1" type="hinge" axis="0 1 0"/>
+        <geom type="box" size="0.05 0.05 0.05"/>
+      </body>
+    </body>
+  </worldbody>
+  <keyframe>
+    <key name="home" qpos="0 0 1 1 0 0 0 0.5"/>
+  </keyframe>
+</mujoco>
+"""
+
+XML_WITHOUT_KEYFRAME = """
+<mujoco>
+  <worldbody>
+    <body name="robot">
+      <freejoint name="root"/>
+      <geom type="box" size="0.1 0.1 0.1"/>
+      <body name="link" pos="0.2 0 0">
+        <joint name="joint1" type="hinge" axis="0 1 0"/>
+        <geom type="box" size="0.05 0.05 0.05"/>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+
+def test_joint_pos_none_uses_model_keyframe():
+  """Test that joint_pos=None uses the model's existing keyframe."""
+  cfg = EntityCfg(
+    init_state=EntityCfg.InitialStateCfg(joint_pos=None),
+    spec_fn=lambda: mujoco.MjSpec.from_string(XML_WITH_KEYFRAME),
+  )
+  entity = Entity(cfg)
+  model = entity.spec.compile()
+
+  assert model.nkey == 1
+  # Keyframe: qpos="0 0 1 1 0 0 0 0.5" (root pos/quat + joint1)
+  assert model.key(0).qpos[7] == 0.5  # joint1 position
+
+
+def test_joint_pos_none_errors_without_keyframe():
+  """Test that joint_pos=None raises error if model has no keyframe."""
+  cfg = EntityCfg(
+    init_state=EntityCfg.InitialStateCfg(joint_pos=None),
+    spec_fn=lambda: mujoco.MjSpec.from_string(XML_WITHOUT_KEYFRAME),
+  )
+  with pytest.raises(ValueError, match="requires the model to have a keyframe"):
+    Entity(cfg)
+
+
+XML_FIXED_BASE_WITH_KEYFRAME = """
+<mujoco>
+  <worldbody>
+    <body name="arm">
+      <joint name="joint1" type="hinge" axis="0 0 1"/>
+      <geom type="box" size="0.1 0.1 0.1"/>
+    </body>
+  </worldbody>
+  <keyframe>
+    <key name="home" qpos="0.5"/>
+  </keyframe>
+</mujoco>
+"""
+
+
+def test_joint_pos_none_fixed_base_uses_keyframe():
+  """Test that joint_pos=None works for fixed-base entities with keyframes."""
+  cfg = EntityCfg(
+    init_state=EntityCfg.InitialStateCfg(joint_pos=None),
+    spec_fn=lambda: mujoco.MjSpec.from_string(XML_FIXED_BASE_WITH_KEYFRAME),
+  )
+  entity = Entity(cfg)
+  model = entity.spec.compile()
+
+  assert model.nkey == 1
+  assert model.key(0).qpos[0] == 0.5
+
+
+XML_WITH_SITES_AND_TENDONS = """
+<mujoco>
+  <worldbody>
+    <body name="base">
+      <joint name="joint1" type="hinge" axis="0 0 1" range="-3.14 3.14"/>
+      <geom type="box" size="0.1 0.1 0.1" mass="1.0"/>
+      <site name="site1" pos="0.1 0 0"/>
+      <site name="site2" pos="0 0.1 0"/>
+      <body name="link1" pos="0 0 0.2">
+        <joint name="joint2" type="hinge" axis="0 1 0" range="-1.57 1.57"/>
+        <geom type="box" size="0.05 0.05 0.1" mass="0.5"/>
+        <site name="site3" pos="0 0 0.1"/>
+      </body>
+    </body>
+  </worldbody>
+  <tendon>
+    <fixed name="tendon1">
+      <joint joint="joint1" coef="1.0"/>
+    </fixed>
+    <fixed name="tendon2">
+      <joint joint="joint2" coef="1.0"/>
+    </fixed>
+  </tendon>
+</mujoco>
+"""
+
+
+def test_tendon_and_site_targets_only_allocated_when_needed(device):
+  """Test that tendon/site targets are only allocated when actuators use them."""
+  from mjlab.actuator import BuiltinMotorActuatorCfg
+  from mjlab.actuator.actuator import TransmissionType
+
+  # Entity with sites and tendons but NO site/tendon actuators.
+  # Should allocate empty tensors for site and tendon targets.
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(XML_WITH_SITES_AND_TENDONS),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        # Only joint actuators, no tendon or site actuators.
+        BuiltinMotorActuatorCfg(
+          target_names_expr=("joint1",),
+          effort_limit=10.0,
+          transmission_type=TransmissionType.JOINT,
+        ),
+      )
+    ),
+  )
+
+  entity = Entity(cfg)
+  model = entity.compile()
+  sim = Simulation(num_envs=4, cfg=SimulationCfg(), model=model, device=device)
+  entity.initialize(model, sim.model, sim.data, device)
+
+  # Verify the entity has sites and tendons.
+  assert len(entity.site_names) == 3
+  assert len(entity.tendon_names) == 2
+
+  # Verify tendon and site targets are empty (not allocated).
+  assert entity.data.site_effort_target.shape == (4, 0)
+  assert entity.data.tendon_len_target.shape == (4, 0)
+  assert entity.data.tendon_vel_target.shape == (4, 0)
+  assert entity.data.tendon_effort_target.shape == (4, 0)
+
+  # Joint targets should still be allocated (2 joints).
+  assert entity.data.joint_pos_target.shape == (4, 2)

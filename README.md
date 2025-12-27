@@ -120,7 +120,8 @@ Train a Unitree G1 to mimic reference motions. mjlab uses
      --render  # Optional: generates preview video
    ```
 
-> **Note**: For detailed motion preprocessing instructions, see the
+> [!NOTE]
+> For detailed motion preprocessing instructions, see the
 > [BeyondMimic documentation](https://github.com/HybridRobotics/whole_body_tracking/blob/main/README.md#motion-preprocessing--registry-setup).
 
 #### Train and Play
@@ -142,7 +143,8 @@ uv run play Mjlab-Your-Task-Id --agent zero  # Sends zero actions.
 uv run play Mjlab-Your-Task-Id --agent random  # Sends uniform random actions.
 ```
 
-> [!NOTE] When running motion-tracking tasks, add
+> [!NOTE]
+> When running motion-tracking tasks, add
 > `--registry-name your-org/motions/motion-name` to the command.
 
 ---
@@ -192,10 +194,8 @@ Some portions of mjlab are forked from external projects:
 - **`src/mjlab/utils/lab_api/`** — Utilities forked from [NVIDIA Isaac
   Lab](https://github.com/isaac-sim/IsaacLab) (BSD-3-Clause license, see file
   headers)
-- **`src/mjlab/asset_zoo/robots/unitree_go1/assets/walk_these_ways/`** — Actuator network from [walk-these-ways](https://github.com/Improbable-AI/walk-these-ways) (MIT license, see asset README)
 
-Forked components retain their original licenses (BSD-3-Clause for lab_api, MIT
-for walk-these-ways). See file headers and asset READMEs for details.
+Forked components retain their original licenses. See file headers for details.
 
 ---
 

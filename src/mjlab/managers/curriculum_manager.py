@@ -48,6 +48,13 @@ class CurriculumManager(ManagerBase):
   def active_terms(self) -> list[str]:
     return self._term_names
 
+  # Methods.
+
+  def get_term_cfg(self, term_name: str) -> CurriculumTermCfg:
+    if term_name not in self._term_names:
+      raise ValueError(f"Term '{term_name}' not found in active terms.")
+    return self._term_cfgs[self._term_names.index(term_name)]
+
   def get_active_iterable_terms(
     self, env_idx: int
   ) -> Sequence[tuple[str, Sequence[float]]]:

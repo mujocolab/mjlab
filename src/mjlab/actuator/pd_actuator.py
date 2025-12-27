@@ -30,9 +30,9 @@ class IdealPdActuatorCfg(ActuatorCfg):
   """Maximum force/torque limit."""
 
   def build(
-    self, entity: Entity, joint_ids: list[int], joint_names: list[str]
+    self, entity: Entity, target_ids: list[int], target_names: list[str]
   ) -> IdealPdActuator:
-    return IdealPdActuator(self, entity, joint_ids, joint_names)
+    return IdealPdActuator(self, entity, target_ids, target_names)
 
 
 class IdealPdActuator(Actuator, Generic[IdealPdCfgT]):
@@ -42,24 +42,27 @@ class IdealPdActuator(Actuator, Generic[IdealPdCfgT]):
     self,
     cfg: IdealPdCfgT,
     entity: Entity,
-    joint_ids: list[int],
-    joint_names: list[str],
+    target_ids: list[int],
+    target_names: list[str],
   ) -> None:
-    super().__init__(entity, joint_ids, joint_names)
-    self.cfg = cfg
+    super().__init__(cfg, entity, target_ids, target_names)
     self.stiffness: torch.Tensor | None = None
     self.damping: torch.Tensor | None = None
     self.force_limit: torch.Tensor | None = None
+    self.default_stiffness: torch.Tensor | None = None
+    self.default_damping: torch.Tensor | None = None
+    self.default_force_limit: torch.Tensor | None = None
 
-  def edit_spec(self, spec: mujoco.MjSpec, joint_names: list[str]) -> None:
-    # Add <motor> actuator to spec, one per joint.
-    for joint_name in joint_names:
+  def edit_spec(self, spec: mujoco.MjSpec, target_names: list[str]) -> None:
+    # Add <motor> actuator to spec, one per target.
+    for target_name in target_names:
       actuator = create_motor_actuator(
         spec,
-        joint_name,
+        target_name,
         effort_limit=self.cfg.effort_limit,
         armature=self.cfg.armature,
         frictionloss=self.cfg.frictionloss,
+        transmission_type=self.cfg.transmission_type,
       )
       self._mjs_actuators.append(actuator)
 
@@ -73,7 +76,7 @@ class IdealPdActuator(Actuator, Generic[IdealPdCfgT]):
     super().initialize(mj_model, model, data, device)
 
     num_envs = data.nworld
-    num_joints = len(self._joint_names)
+    num_joints = len(self._target_names)
     self.stiffness = torch.full(
       (num_envs, num_joints), self.cfg.stiffness, dtype=torch.float, device=device
     )
@@ -84,12 +87,16 @@ class IdealPdActuator(Actuator, Generic[IdealPdCfgT]):
       (num_envs, num_joints), self.cfg.effort_limit, dtype=torch.float, device=device
     )
 
+    self.default_stiffness = self.stiffness.clone()
+    self.default_damping = self.damping.clone()
+    self.default_force_limit = self.force_limit.clone()
+
   def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
     assert self.stiffness is not None
     assert self.damping is not None
 
-    pos_error = cmd.position_target - cmd.joint_pos
-    vel_error = cmd.velocity_target - cmd.joint_vel
+    pos_error = cmd.position_target - cmd.pos
+    vel_error = cmd.velocity_target - cmd.vel
 
     computed_torques = self.stiffness * pos_error
     computed_torques += self.damping * vel_error
