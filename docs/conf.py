@@ -18,7 +18,6 @@ extensions = [
   "myst_parser",
   "sphinx.ext.napoleon",
   "sphinxemoji.sphinxemoji",
-  "sphinx.ext.githubpages",
   "sphinx.ext.intersphinx",
   "sphinx.ext.mathjax",
   "sphinx.ext.todo",
