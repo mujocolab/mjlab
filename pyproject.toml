@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "mjlab"
-version = "0.1.0"
+version = "1.0.0"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -13,7 +13,7 @@ authors = [
 ]
 keywords = ["mujoco", "mujoco-warp", "simulation", "reinforcement-learning", "robotics"]
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
   "License :: OSI Approved :: Apache Software License",

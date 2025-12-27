@@ -13,11 +13,6 @@ with best-in-class [MuJoCo](https://github.com/google-deepmind/mujoco_warp)
 physics to provide lightweight, modular abstractions for RL robotics research
 and sim-to-real deployment.
 
-> ⚠️ **BETA PREVIEW** mjlab is in active development. Expect **breaking
-> changes** and **missing features** during the beta phase. There is **no stable
-> release yet**. The PyPI package is only a snapshot — for the latest fixes and
-> improvements, install from source or Git.
-
 ---
 
 ## Quick Start
@@ -33,7 +28,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 Run the demo (no installation needed):
 
 ```bash
-uvx --from mjlab --with "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@486642c3fa262a989b482e0e506716d5793d61a9" demo
+uvx --from mjlab --with "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@f2f795796fc433adf8e235f01fae3747585ae5db" demo
 ```
 
 This launches an interactive viewer with a pre-trained Unitree G1 agent tracking a reference dance motion in MuJoCo Warp.
@@ -50,7 +45,7 @@ Launch the demo directly in your browser with an interactive Viser viewer.
 
 ## Installation
 
-**From source (recommended during beta):**
+**From source:**
 
 ```bash
 git clone https://github.com/mujocolab/mjlab.git
@@ -58,10 +53,10 @@ cd mjlab
 uv run demo
 ```
 
-**From PyPI (beta snapshot):**
+**From PyPI:**
 
 ```bash
-uv add mjlab "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@486642c3fa262a989b482e0e506716d5793d61a9"
+uv add mjlab "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@f2f795796fc433adf8e235f01fae3747585ae5db"
 ```
 
 A Dockerfile is also provided.
