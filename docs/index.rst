@@ -76,18 +76,10 @@ Table of Contents
    source/faq
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Tutorials
+   :maxdepth: 2
+   :caption: API Reference
 
-   source/ext_project
-   source/new_robot
-   source/new_task
-
-.. toctree::
-   :maxdepth: 1
-   :caption: How-to
-
-   source/new_object
+   source/api/index
 
 .. toctree::
    :maxdepth: 1

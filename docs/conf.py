@@ -63,7 +63,7 @@ autodoc_class_signature = "separated"
 autodoc_member_order = "bysource"
 autodoc_inherit_docstrings = True
 bibtex_bibfiles = ["source/_static/refs.bib"]
-autosummary_generate = False
+autosummary_generate = True
 autosummary_generate_overwrite = False
 autodoc_default_options = {
   "members": True,
@@ -87,7 +87,6 @@ exclude_patterns = [
 ]
 
 autodoc_mock_imports = [
-  "torch",
   "matplotlib",
   "scipy",
   "carb",

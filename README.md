@@ -38,7 +38,7 @@ uvx --from mjlab --with "mujoco-warp @ git+https://github.com/google-deepmind/mu
 
 This launches an interactive viewer with a pre-trained Unitree G1 agent tracking a reference dance motion in MuJoCo Warp.
 
-> ❓ Having issues? See the [FAQ](docs/faq.md).
+> ❓ Having issues? See the [FAQ](https://mujocolab.github.io/mjlab/source/faq.html).
 
 **Try in Google Colab (no local setup required):**
 
@@ -66,7 +66,7 @@ uv add mjlab "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@4
 
 A Dockerfile is also provided.
 
-For full setup instructions, see the [Installation Guide](docs/installation_guide.md).
+For full setup instructions, see the [Installation Guide](https://mujocolab.github.io/mjlab/source/installation.html).
 
 ---
 
@@ -88,7 +88,7 @@ uv run train Mjlab-Velocity-Flat-Unitree-G1 \
   --env.scene.num-envs 4096
 ```
 
-See the [Distributed Training guide](docs/api/distributed_training.md) for details.
+See the [Distributed Training guide](https://mujocolab.github.io/mjlab/source/distributed_training.html) for details.
 
 Evaluate a policy while training (fetches latest checkpoint from Weights & Biases):
 
@@ -151,10 +151,7 @@ uv run play Mjlab-Your-Task-Id --agent random  # Sends uniform random actions.
 
 ## Documentation
 
-- **[Installation Guide](docs/installation_guide.md)**
-- **[Why mjlab?](docs/motivation.md)**
-- **[Migration Guide](docs/migration_guide.md)**
-- **[FAQ & Troubleshooting](docs/faq.md)**
+Full documentation is available at **[mujocolab.github.io/mjlab](https://mujocolab.github.io/mjlab/)**.
 
 ---
 

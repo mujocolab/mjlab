@@ -166,7 +166,7 @@ Can I develop custom tasks in my own repository?
    - Your tasks appear as regular entries for the ``train`` and ``play`` commands.
    - You can version and maintain your task repositories independently.
 
-   For a complete guide (with a working example), see :doc:`new_task`.
+   A complete guide will be available in a future release.
 
 Assets & Compatibility
 ----------------------

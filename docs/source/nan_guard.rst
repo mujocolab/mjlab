@@ -85,7 +85,7 @@ Use the interactive viewer to scrub through captured states:
     uv run viz-nan /tmp/mjlab/nan_dumps/nan_dump_20251014_123456.npz
 
 
-.. figure:: ../_static/content/nan_debug.gif
+.. figure:: _static/content/nan_debug.gif
    :alt: NaN Debug Viewer
 
    NaN debug viewer.

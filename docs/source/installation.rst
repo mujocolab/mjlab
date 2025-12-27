@@ -63,8 +63,7 @@ Method 1 - Use mjlab as a dependency (uv)
 
 This is our recommended way to use ``mjlab``. You have
 your own project and want to use ``mjlab`` as a dependency
-using ``uv``. If you do not know how to get your own
-project started, we advise you to take a look at :ref:`ext-project`.
+using ``uv``.
 
 Install uv
 ^^^^^^^^^^
