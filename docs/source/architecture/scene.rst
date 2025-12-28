@@ -1,0 +1,5 @@
+.. _scene-architecture:
+
+Scene
+=====
+

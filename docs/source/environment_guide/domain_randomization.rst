@@ -1,3 +1,5 @@
+.. _domain-randomization:
+
 Domain Randomization
 ====================
 
@@ -172,7 +174,7 @@ Center of Mass (COM) (startup)
             "ranges": {0: (-0.02, 0.02), 1: (-0.02, 0.02)},
             "operation": "add",
         },
-    ) 
+    )
 
 Custom Class-Based Event Terms
 ------------------------------

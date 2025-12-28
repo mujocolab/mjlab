@@ -122,11 +122,9 @@ html_show_sphinx = False
 html_last_updated_fmt = ""
 
 html_static_path = ["source/_static"]
-html_css_files = ["custom.css"]
 
 html_theme_options = {
   "path_to_docs": "docs/",
-  "collapse_navigation": True,
   "repository_url": "https://github.com/mujocolab/mjlab",
   "use_repository_button": True,
   "use_issues_button": True,

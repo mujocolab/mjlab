@@ -62,33 +62,63 @@ Table of Contents
 =================
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Getting Started
+   :titlesonly:
 
-   source/installation
-   source/migration_isaac_lab
-
-.. toctree::
-   :maxdepth: 1
-   :caption: About the Project
-
-   source/motivation
-   source/changelog
-   source/faq
+   source/getting_started/installation
+   source/getting_started/motivation
+   source/getting_started/walkthrough/index
 
 .. toctree::
    :maxdepth: 2
-   :caption: API Reference
+   :caption: Architecture
+   :titlesonly:
+
+   source/architecture/manager_based_env
+   source/architecture/scene
+   source/architecture/control_flow
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Components
+   :titlesonly:
+
+   source/components/entities
+   source/components/actuators
+   source/components/sensors
+   source/components/terrains
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Environment Guide
+   :titlesonly:
+
+   source/environment_guide/observations
+   source/environment_guide/domain_randomization
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Features
+   :titlesonly:
+
+   source/features/configuration
+   source/features/distributed_training
+   source/features/nan_guard
+
+.. toctree::
+   :maxdepth: 1
+   :caption: API
+   :titlesonly:
 
    source/api/index
 
 .. toctree::
    :maxdepth: 1
-   :caption: Core Concepts
+   :caption: References
+   :titlesonly:
 
-   source/randomization
-   source/nan_guard
-   source/observation
-   source/actuators
-   source/sensors
-   source/distributed_training
+   source/references/changelog
+   source/references/contributing
+   source/references/faq
+   source/references/migration_isaac_lab

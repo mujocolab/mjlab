@@ -45,6 +45,10 @@ build:
 docs:
 	uv run --extra docs sphinx-build docs docs/_build
 
+.PHONY: docs-watch
+docs-watch:
+	uv run --extra docs sphinx-autobuild docs docs/_build
+
 .PHONY: docker-build
 docker-build:
 	docker build -t mjlab:latest .

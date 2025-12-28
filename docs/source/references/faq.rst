@@ -53,7 +53,7 @@ Does mjlab support multi-GPU training?
 
    - Use ``--gpu-ids 0 1`` (or ``--gpu-ids all``) when running the ``train``
      command.
-   - See the :doc:`distributed_training` for configuration details and examples.
+   - See the :doc:`../features/distributed_training` for configuration details and examples.
 
 Training & Debugging
 --------------------
@@ -113,7 +113,7 @@ My training crashes with NaN errors
 
       uv run train.py --enable-nan-guard True
 
-   See the :doc:`NaN Guard documentation <nan_guard>` for details.
+   See the :doc:`NaN Guard documentation <../features/nan_guard>` for details.
 
    The ``nan_guard`` tool makes it easier to:
 
