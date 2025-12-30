@@ -23,7 +23,6 @@ from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationT
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import SceneCfg
 from mjlab.sim import MujocoCfg, SimulationCfg
-from mjlab.terrains import TerrainImporterCfg
 
 # =============================================================================
 # Test fixtures and helpers
@@ -67,7 +66,6 @@ def _make_env_cfg(
     obs_func = partial(mdp.joint_pos_rel, biased=True)
   return ManagerBasedRlEnvCfg(
     scene=SceneCfg(
-      terrain=TerrainImporterCfg(terrain_type="plane"),
       num_envs=num_envs,
       extent=1.0,
       entities={"robot": _make_robot_cfg()},
@@ -267,7 +265,6 @@ def test_randomize_encoder_bias_event(device):
   """randomize_encoder_bias should sample values within specified range."""
   env_cfg = ManagerBasedRlEnvCfg(
     scene=SceneCfg(
-      terrain=TerrainImporterCfg(terrain_type="plane"),
       num_envs=100,
       extent=10.0,
       entities={"robot": _make_robot_cfg()},

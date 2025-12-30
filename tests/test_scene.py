@@ -135,7 +135,7 @@ def test_minimal_scene_creation(minimal_scene_cfg, device):
   assert scene.num_envs == 1
   assert scene.env_spacing == 2.0
   assert len(scene.entities) == 0
-  assert scene.terrain is None
+  assert scene.terrain is not None  # Default plane terrain is always present
 
 
 def test_scene_with_entities(scene_with_entities_cfg, device):
@@ -157,12 +157,12 @@ def test_scene_with_entities(scene_with_entities_cfg, device):
 
 
 def test_compile_empty_scene(minimal_scene_cfg, device):
-  """Test compiling an empty scene."""
+  """Test compiling an empty scene (no entities, default terrain)."""
   scene = Scene(minimal_scene_cfg, device=device)
   model = scene.compile()
 
   assert isinstance(model, mujoco.MjModel)
-  assert model.nbody == 1
+  assert model.nbody == 2  # world + terrain body
   assert model.nq == model.nv == 0
 
 
@@ -236,10 +236,9 @@ def test_scene_initialize(initialized_scene, device):
   """Test that scene initialization sets up entities."""
   scene, _ = initialized_scene
 
-  # Check default env origins are set.
-  assert scene._default_env_origins is not None
-  assert scene._default_env_origins.shape == (4, 3)  # 4 envs, 3D positions.
-  assert scene._default_env_origins.device.type == device.split(":")[0]
+  # Check env origins are available from terrain.
+  assert scene.env_origins.shape == (4, 3)  # 4 envs, 3D positions.
+  assert scene.env_origins.device.type == device.split(":")[0]
 
   # Check entities are initialized.
   for entity in scene.entities.values():
@@ -247,13 +246,15 @@ def test_scene_initialize(initialized_scene, device):
     assert entity.data is not None
 
 
-def test_env_origins_without_terrain(initialized_scene):
-  """Test env_origins property without terrain."""
+def test_env_origins_with_default_terrain(initialized_scene):
+  """Test env_origins property with default plane terrain."""
   scene, _ = initialized_scene
 
   origins = scene.env_origins
   assert origins.shape == (4, 3)
-  assert torch.all(origins == 0)  # Default origins should be zeros.
+  # Default plane terrain computes a grid based on env_spacing.
+  # Z values should all be 0 (flat terrain).
+  assert torch.all(origins[:, 2] == 0)
 
 
 # ============================================================================

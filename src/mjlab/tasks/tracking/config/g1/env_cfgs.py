@@ -19,7 +19,7 @@ def unitree_g1_flat_tracking_env_cfg(
   """Create Unitree G1 flat terrain tracking configuration."""
   cfg = make_tracking_env_cfg()
 
-  cfg.scene.entities = {"robot": get_g1_robot_cfg()}
+  cfg.scene.entities["robot"] = get_g1_robot_cfg()
 
   self_collision_cfg = ContactSensorCfg(
     name="self_collision",

@@ -16,7 +16,7 @@ from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.rl.runner import MjlabOnPolicyRunner
 from mjlab.scene import SceneCfg
 from mjlab.sim import MujocoCfg, SimulationCfg
-from mjlab.terrains import TerrainImporterCfg
+from mjlab.terrains import TerrainEntityCfg
 
 
 @pytest.fixture(scope="module")
@@ -52,10 +52,12 @@ def env(device):
 
   env_cfg = ManagerBasedRlEnvCfg(
     scene=SceneCfg(
-      terrain=TerrainImporterCfg(terrain_type="plane"),
       num_envs=2,
       extent=1.0,
-      entities={"robot": robot_cfg},
+      entities={
+        "terrain": TerrainEntityCfg(terrain_type="plane"),
+        "robot": robot_cfg,
+      },
     ),
     observations={
       "policy": ObservationGroupCfg(

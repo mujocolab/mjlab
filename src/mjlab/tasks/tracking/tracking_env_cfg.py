@@ -22,7 +22,6 @@ from mjlab.scene import SceneCfg
 from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.tasks.tracking import mdp
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
-from mjlab.terrains import TerrainImporterCfg
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
 from mjlab.viewer import ViewerConfig
 
@@ -286,7 +285,7 @@ def make_tracking_env_cfg() -> ManagerBasedRlEnvCfg:
   ##
 
   return ManagerBasedRlEnvCfg(
-    scene=SceneCfg(terrain=TerrainImporterCfg(terrain_type="plane"), num_envs=1),
+    scene=SceneCfg(num_envs=1),
     observations=observations,
     actions=actions,
     commands=commands,

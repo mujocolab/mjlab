@@ -31,10 +31,8 @@ def yam_lift_cube_env_cfg(
 ) -> ManagerBasedRlEnvCfg:
   cfg = make_lift_cube_env_cfg()
 
-  cfg.scene.entities = {
-    "robot": get_yam_robot_cfg(),
-    "cube": EntityCfg(spec_fn=get_cube_spec),
-  }
+  cfg.scene.entities["robot"] = get_yam_robot_cfg()
+  cfg.scene.entities["cube"] = EntityCfg(spec_fn=get_cube_spec)
 
   joint_pos_action = cfg.actions["joint_pos"]
   assert isinstance(joint_pos_action, JointPositionActionCfg)

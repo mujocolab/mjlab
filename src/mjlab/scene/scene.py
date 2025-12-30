@@ -10,20 +10,33 @@ import torch
 
 from mjlab.entity import Entity, EntityCfg
 from mjlab.sensor import BuiltinSensor, Sensor, SensorCfg
-from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
+from mjlab.terrains.terrain_entity import TerrainEntity, TerrainEntityCfg
+
+SceneElementCfgType = EntityCfg | TerrainEntityCfg
 
 _SCENE_XML = Path(__file__).parent / "scene.xml"
+
+
+def _default_entities() -> dict[str, SceneElementCfgType]:
+  return {"terrain": TerrainEntityCfg(terrain_type="plane")}
 
 
 @dataclass(kw_only=True)
 class SceneCfg:
   num_envs: int = 1
   env_spacing: float = 2.0
-  terrain: TerrainImporterCfg | None = None
-  entities: dict[str, EntityCfg] = field(default_factory=dict)
+  entities: dict[str, SceneElementCfgType] = field(default_factory=_default_entities)
   sensors: tuple[SensorCfg, ...] = field(default_factory=tuple)
   extent: float | None = None
   spec_fn: Callable[[mujoco.MjSpec], None] | None = None
+
+  @property
+  def terrain(self) -> TerrainEntityCfg | None:
+    """Helper to get terrain config from entities dict."""
+    for cfg in self.entities.values():
+      if isinstance(cfg, TerrainEntityCfg):
+        return cfg
+    return None
 
 
 class Scene:
@@ -31,14 +44,12 @@ class Scene:
     self._cfg = scene_cfg
     self._device = device
     self._entities: dict[str, Entity] = {}
+    self._terrain: TerrainEntity | None = None
     self._sensors: dict[str, Sensor] = {}
-    self._terrain: TerrainImporter | None = None
-    self._default_env_origins: torch.Tensor | None = None
 
     self._spec = mujoco.MjSpec.from_file(str(_SCENE_XML))
     if self._cfg.extent is not None:
       self._spec.stat.extent = self._cfg.extent
-    self._add_terrain()
     self._add_entities()
     self._add_sensors()
     if self._cfg.spec_fn is not None:
@@ -70,11 +81,7 @@ class Scene:
 
   @property
   def env_origins(self) -> torch.Tensor:
-    if self._terrain is not None:
-      assert self._terrain.env_origins is not None
-      return self._terrain.env_origins
-    assert self._default_env_origins is not None
-    return self._default_env_origins
+    return self._env_origins
 
   @property
   def env_spacing(self) -> float:
@@ -89,7 +96,7 @@ class Scene:
     return self._sensors
 
   @property
-  def terrain(self) -> TerrainImporter | None:
+  def terrain(self) -> TerrainEntity | None:
     return self._terrain
 
   @property
@@ -101,20 +108,16 @@ class Scene:
     return self._device
 
   def __getitem__(self, key: str) -> Any:
-    if key == "terrain":
-      if self._terrain is None:
-        raise KeyError("No terrain configured in this scene.")
-      return self._terrain
-
     if key in self._sensors:
       return self._sensors[key]
     if key in self._entities:
       return self._entities[key]
+    if self._terrain is not None and key in self._cfg.entities:
+      if isinstance(self._cfg.entities[key], TerrainEntityCfg):
+        return self._terrain
 
     # Not found, raise helpful error.
-    available = list(self._entities.keys()) + list(self._sensors.keys())
-    if self._terrain is not None:
-      available.append("terrain")
+    available = list(self._cfg.entities.keys()) + list(self._sensors.keys())
     raise KeyError(f"Scene element '{key}' not found. Available: {available}")
 
   # Methods.
@@ -125,9 +128,15 @@ class Scene:
     model: mjwarp.Model,
     data: mjwarp.Data,
   ):
-    self._default_env_origins = torch.zeros(
-      (self._cfg.num_envs, 3), device=self._device, dtype=torch.float32
-    )
+    self._env_origins = self._compute_env_origins()
+
+    # Initialize terrain if present.
+    if self._terrain is not None:
+      self._terrain.initialize(mj_model, model, data, self._device)
+      # If terrain has curriculum (sub-terrain grid), use its env_origins.
+      if self._terrain.terrain_origins is not None:
+        self._env_origins = self._terrain.env_origins
+
     for ent in self._entities.values():
       ent.initialize(mj_model, model, data, self._device)
     for sensor in self._sensors.values():
@@ -156,7 +165,17 @@ class Scene:
     # Order matters: qpos/ctrl are concatenated in entity iteration order.
     key_qpos: list[np.ndarray] = []
     key_ctrl: list[np.ndarray] = []
+
     for ent_name, ent_cfg in self._cfg.entities.items():
+      if isinstance(ent_cfg, TerrainEntityCfg):
+        ent_cfg.num_envs = self._cfg.num_envs
+        ent_cfg.env_spacing = self._cfg.env_spacing
+        self._terrain = ent_cfg.build()
+        frame = self._spec.worldbody.add_frame()
+        self._spec.attach(self._terrain.spec, prefix="", frame=frame)
+        continue
+
+      # Regular entity.
       ent = ent_cfg.build()
       self._entities[ent_name] = ent
       # Extract keyframe before attach (must delete before attach to avoid corruption).
@@ -172,20 +191,12 @@ class Scene:
         ent.spec.delete(ent.spec.keys[0])
       frame = self._spec.worldbody.add_frame()
       self._spec.attach(ent.spec, prefix=f"{ent_name}/", frame=frame)
+
     # Add merged keyframe to scene spec.
     if key_qpos:
       combined_qpos = np.concatenate(key_qpos)
       combined_ctrl = np.concatenate(key_ctrl)
       self._spec.add_key(name="init_state", qpos=combined_qpos, ctrl=combined_ctrl)
-
-  def _add_terrain(self) -> None:
-    if self._cfg.terrain is None:
-      return
-    self._cfg.terrain.num_envs = self._cfg.num_envs
-    self._cfg.terrain.env_spacing = self._cfg.env_spacing
-    self._terrain = TerrainImporter(self._cfg.terrain, self._device)
-    frame = self._spec.worldbody.add_frame()
-    self._spec.attach(self._terrain.spec, prefix="", frame=frame)
 
   def _add_sensors(self) -> None:
     for sensor_cfg in self._cfg.sensors:
@@ -196,3 +207,17 @@ class Scene:
     for sns in self._spec.sensors:
       if sns.name not in self._sensors:
         self._sensors[sns.name] = BuiltinSensor.from_existing(sns.name)
+
+  def _compute_env_origins(self) -> torch.Tensor:
+    """Compute environment origins in a grid layout."""
+    num_envs = self._cfg.num_envs
+    spacing = self._cfg.env_spacing
+
+    env_origins = np.zeros((num_envs, 3), dtype=np.float32)
+    num_rows = int(np.ceil(num_envs / int(np.sqrt(num_envs))))
+    num_cols = int(np.ceil(num_envs / num_rows))
+    ii, jj = np.meshgrid(np.arange(num_rows), np.arange(num_cols), indexing="ij")
+    env_origins[:, 0] = -(ii.flatten()[:num_envs] - (num_rows - 1) / 2) * spacing
+    env_origins[:, 1] = (jj.flatten()[:num_envs] - (num_cols - 1) / 2) * spacing
+
+    return torch.from_numpy(env_origins).to(self._device, dtype=torch.float)

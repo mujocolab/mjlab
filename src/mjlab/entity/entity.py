@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Sequence
@@ -21,21 +22,40 @@ from mjlab.utils.string import resolve_expr
 
 
 @dataclass(frozen=False)
-class EntityIndexing:
-  """Maps entity elements to global indices and addresses in the simulation."""
+class GeometryIndexing:
+  """Maps geometry elements (bodies, geoms, sites) to global indices.
 
-  # Elements.
+  This is the base indexing class for scene elements that contribute static
+  geometry without articulation. Used by TerrainEntity.
+  """
+
   bodies: tuple[mujoco.MjsBody, ...]
-  joints: tuple[mujoco.MjsJoint, ...]
   geoms: tuple[mujoco.MjsGeom, ...]
   sites: tuple[mujoco.MjsSite, ...]
-  tendons: tuple[mujoco.MjsTendon, ...]
-  actuators: tuple[mujoco.MjsActuator, ...] | None
 
-  # Indices.
   body_ids: torch.Tensor
   geom_ids: torch.Tensor
   site_ids: torch.Tensor
+
+  @property
+  def root_body_id(self) -> int:
+    return self.bodies[0].id
+
+
+@dataclass(frozen=False)
+class EntityIndexing(GeometryIndexing):
+  """Maps entity elements to global indices and addresses in the simulation.
+
+  Extends GeometryIndexing with articulation-specific indices (joints, tendons,
+  actuators) for dynamic entities.
+  """
+
+  # Articulation elements (extending base geometry).
+  joints: tuple[mujoco.MjsJoint, ...]
+  tendons: tuple[mujoco.MjsTendon, ...]
+  actuators: tuple[mujoco.MjsActuator, ...] | None
+
+  # Articulation indices.
   tendon_ids: torch.Tensor
   ctrl_ids: torch.Tensor
   joint_ids: torch.Tensor
@@ -47,13 +67,86 @@ class EntityIndexing:
   free_joint_q_adr: torch.Tensor
   free_joint_v_adr: torch.Tensor
 
+
+@dataclass
+class SceneElementCfg:
+  """Base configuration for scene elements with spec editing support.
+
+  SceneElementCfg provides the foundation for any object that contributes
+  geometry to a scene's MjSpec. It includes editors for lights, cameras,
+  textures, materials, and collision properties.
+  """
+
+  lights: tuple[spec_cfg.LightCfg, ...] = field(default_factory=tuple)
+  cameras: tuple[spec_cfg.CameraCfg, ...] = field(default_factory=tuple)
+  textures: tuple[spec_cfg.TextureCfg, ...] = field(default_factory=tuple)
+  materials: tuple[spec_cfg.MaterialCfg, ...] = field(default_factory=tuple)
+  collisions: tuple[spec_cfg.CollisionCfg, ...] = field(default_factory=tuple)
+
+
+class SceneElement(ABC):
+  """Base class for elements that contribute to a scene's MjSpec.
+
+  SceneElement is the foundation for anything that holds geometry in a scene.
+  It provides:
+  - A MjSpec containing the element's geometry
+  - Editor support for lights, cameras, textures, materials, collisions
+
+  Subclasses:
+  - Entity: Dynamic objects with joints, actuators, and simulation state
+  - TerrainEntity: Static terrain with environment origins
+
+  Note: Subclasses should override the `cfg` property to return their specific
+  config type for proper type narrowing.
+  """
+
+  _cfg: SceneElementCfg
+
+  def __init__(self, cfg: SceneElementCfg, spec: mujoco.MjSpec) -> None:
+    self._cfg = cfg
+    self._spec = spec
+
   @property
-  def root_body_id(self) -> int:
-    return self.bodies[0].id
+  def cfg(self) -> SceneElementCfg:
+    return self._cfg
+
+  @property
+  def spec(self) -> mujoco.MjSpec:
+    return self._spec
+
+  @abstractmethod
+  def initialize(
+    self,
+    mj_model: mujoco.MjModel,
+    model: mjwarp.Model,
+    data: mjwarp.Data,
+    device: str,
+  ) -> None:
+    """Initialize runtime state after scene compilation.
+
+    This method is called by Scene after the MjSpec has been compiled into
+    an MjModel. Subclasses should override this to set up any runtime state
+    that depends on the compiled model.
+    """
+    ...
+
+  def _apply_spec_editors(self) -> None:
+    """Apply editor configurations to the spec."""
+    for cfg_list in [
+      self.cfg.lights,
+      self.cfg.cameras,
+      self.cfg.textures,
+      self.cfg.materials,
+      self.cfg.collisions,
+    ]:
+      for cfg in cfg_list:
+        cfg.edit_spec(self._spec)
 
 
 @dataclass
-class EntityCfg:
+class EntityCfg(SceneElementCfg):
+  """Configuration for dynamic entities with joints and actuators."""
+
   @dataclass
   class InitialStateCfg:
     # Root position and orientation.
@@ -73,13 +166,6 @@ class EntityCfg:
   )
   articulation: EntityArticulationInfoCfg | None = None
 
-  # Editors.
-  lights: tuple[spec_cfg.LightCfg, ...] = field(default_factory=tuple)
-  cameras: tuple[spec_cfg.CameraCfg, ...] = field(default_factory=tuple)
-  textures: tuple[spec_cfg.TextureCfg, ...] = field(default_factory=tuple)
-  materials: tuple[spec_cfg.MaterialCfg, ...] = field(default_factory=tuple)
-  collisions: tuple[spec_cfg.CollisionCfg, ...] = field(default_factory=tuple)
-
   def build(self) -> Entity:
     """Build entity instance from this config.
 
@@ -94,7 +180,7 @@ class EntityArticulationInfoCfg:
   soft_joint_pos_limit_factor: float = 1.0
 
 
-class Entity:
+class Entity(SceneElement):
   """An entity represents a physical object in the simulation.
 
   Entity Type Matrix
@@ -124,9 +210,14 @@ class Entity:
   | Floating Articulated      | Humanoid, quadruped | False         | True           | True/False  |
   """
 
+  @property
+  def cfg(self) -> EntityCfg:
+    # Type narrowing - base class stores as SceneElementCfg
+    return self._cfg  # type: ignore[return-value]
+
   def __init__(self, cfg: EntityCfg) -> None:
-    self.cfg = cfg
-    self._spec = auto_wrap_fixed_base_mocap(cfg.spec_fn)()
+    spec = auto_wrap_fixed_base_mocap(cfg.spec_fn)()
+    super().__init__(cfg, spec)
 
     # Identify free joint and articulated joints.
     self._all_joints = self._spec.joints
@@ -140,17 +231,6 @@ class Entity:
     self._apply_spec_editors()
     self._add_actuators()
     self._add_initial_state_keyframe()
-
-  def _apply_spec_editors(self) -> None:
-    for cfg_list in [
-      self.cfg.lights,
-      self.cfg.cameras,
-      self.cfg.textures,
-      self.cfg.materials,
-      self.cfg.collisions,
-    ]:
-      for cfg in cfg_list:
-        cfg.edit_spec(self._spec)
 
   def _add_actuators(self) -> None:
     if self.cfg.articulation is None:
@@ -259,10 +339,6 @@ class Entity:
   def is_mocap(self) -> bool:
     """Entity root body is a mocap body (only for fixed-base entities)."""
     return bool(self.root_body.mocap) if self.is_fixed_base else False
-
-  @property
-  def spec(self) -> mujoco.MjSpec:
-    return self._spec
 
   @property
   def data(self) -> EntityData:

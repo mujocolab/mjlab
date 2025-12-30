@@ -23,7 +23,7 @@ def unitree_g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.sim.contact_sensor_maxmatch = 500
   cfg.sim.nconmax = 45
 
-  cfg.scene.entities = {"robot": get_g1_robot_cfg()}
+  cfg.scene.entities["robot"] = get_g1_robot_cfg()
 
   site_names = ("left_foot", "right_foot")
   geom_names = tuple(

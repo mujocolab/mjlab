@@ -19,7 +19,7 @@ def unitree_go1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.sim.mujoco.ccd_iterations = 500
   cfg.sim.contact_sensor_maxmatch = 500
 
-  cfg.scene.entities = {"robot": get_go1_robot_cfg()}
+  cfg.scene.entities["robot"] = get_go1_robot_cfg()
 
   foot_names = ("FR", "FL", "RR", "RL")
   site_names = ("FR", "FL", "RR", "RL")

@@ -180,7 +180,7 @@ def test_raycast_miss_returns_negative_one(device):
   scene_cfg = SceneCfg(
     num_envs=1,
     env_spacing=5.0,
-    entities={"robot": entity_cfg},
+    entities={"robot": entity_cfg},  # No terrain, so rays will miss
     sensors=(raycast_cfg,),
   )
 

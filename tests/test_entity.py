@@ -564,7 +564,13 @@ class CustomEntityCfg(EntityCfg):
 class CustomEntity(Entity):
   """Custom entity with additional properties."""
 
-  cfg: CustomEntityCfg
+  @property
+  def cfg(self) -> CustomEntityCfg:
+    # Type narrowing - base class stores as SceneElementCfg
+    return self._cfg  # type: ignore[return-value]
+
+  def __init__(self, cfg: CustomEntityCfg) -> None:
+    super().__init__(cfg)
 
   @property
   def custom_value(self) -> float:

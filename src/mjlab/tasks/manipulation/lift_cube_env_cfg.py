@@ -14,7 +14,6 @@ from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.tasks.manipulation import mdp as manipulation_mdp
 from mjlab.tasks.manipulation.mdp import LiftingCommandCfg
 from mjlab.tasks.velocity import mdp
-from mjlab.terrains import TerrainImporterCfg
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
 from mjlab.viewer import ViewerConfig
 
@@ -216,7 +215,6 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
 
   return ManagerBasedRlEnvCfg(
     scene=SceneCfg(
-      terrain=TerrainImporterCfg(terrain_type="plane"),
       num_envs=1,
       env_spacing=1.0,
       sensors=(ee_ground_collision_cfg,),
