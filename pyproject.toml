@@ -117,10 +117,10 @@ url = "https://py.mujoco.org"
 explicit = true
 
 [tool.uv.sources]
-mujoco-warp = { git = "https://github.com/google-deepmind/mujoco_warp", rev = "9491175b7cbea87e28d3e3e67733095317c33398"}
 warp-lang = { index = "nvidia", marker = "sys_platform != 'darwin'" }
 mujoco = { index = "mujoco" }
 torch = { index = "pytorch-cu128", extra = "cu128", marker = "sys_platform != 'darwin'" }
+mujoco-warp = { git = "https://github.com/google-deepmind/mujoco_warp", rev = "4ce1c3e9fd635f6589f8b91b2cfba1739cba01a3" }
 
 [tool.ruff]
 src = ["src"]  # Helpful for recognizing first-party imports.
