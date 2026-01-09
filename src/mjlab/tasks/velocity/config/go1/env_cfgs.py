@@ -15,7 +15,7 @@ from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 def unitree_go1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Unitree Go1 rough terrain velocity configuration."""
   cfg = make_velocity_env_cfg()
-  
+
   cfg.sim.mujoco.ccd_iterations = 500
   cfg.sim.contact_sensor_maxmatch = 500
 
@@ -122,7 +122,7 @@ def unitree_go1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.sim.njmax = 300
   cfg.sim.mujoco.ccd_iterations = 50
   cfg.sim.contact_sensor_maxmatch = 64
-  
+
   # Switch to flat terrain.
   assert cfg.scene.terrain is not None
   cfg.scene.terrain.terrain_type = "plane"

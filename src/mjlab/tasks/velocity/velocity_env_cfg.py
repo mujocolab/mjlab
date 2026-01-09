@@ -141,7 +141,12 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
       func=mdp.reset_root_state_uniform,
       mode="reset",
       params={
-        "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (0.01, 0.05), "yaw": (-3.14, 3.14)},
+        "pose_range": {
+          "x": (-0.5, 0.5),
+          "y": (-0.5, 0.5),
+          "z": (0.01, 0.05),
+          "yaw": (-3.14, 3.14),
+        },
         "velocity_range": {},
       },
     ),

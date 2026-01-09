@@ -18,7 +18,7 @@ from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 def unitree_g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Unitree G1 rough terrain velocity configuration."""
   cfg = make_velocity_env_cfg()
-  
+
   cfg.sim.mujoco.ccd_iterations = 500
   cfg.sim.contact_sensor_maxmatch = 500
 
