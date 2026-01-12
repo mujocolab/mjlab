@@ -41,15 +41,66 @@ class EntityIndexing:
   joint_ids: torch.Tensor
   mocap_id: int | None
 
-  # Addresses.
-  joint_q_adr: torch.Tensor
-  joint_v_adr: torch.Tensor
+  # Per-joint addresses and widths (length = num_joints).
+  joint_q_adr: torch.Tensor  # Starting qpos address for each joint
+  joint_v_adr: torch.Tensor  # Starting qvel address for each joint
+  joint_q_width: torch.Tensor  # Number of qpos DOFs per joint (1 for hinge, 4 for ball)
+  joint_v_width: torch.Tensor  # Number of qvel DOFs per joint (1 for hinge, 3 for ball)
+
+  # Flat DOF indices for all joints (for indexing into qpos/qvel).
+  all_q_dof_ids: torch.Tensor
+  all_v_dof_ids: torch.Tensor
+
+  # Free joint addresses (flat, for root state).
   free_joint_q_adr: torch.Tensor
   free_joint_v_adr: torch.Tensor
 
   @property
   def root_body_id(self) -> int:
     return self.bodies[0].id
+
+  def get_q_dof_ids(
+    self, joint_ids: torch.Tensor | list[int] | slice
+  ) -> torch.Tensor | slice:
+    """Get qpos DOF indices for specified joints.
+
+    Args:
+      joint_ids: Local joint indices (0, 1, 2, ...) or slice.
+
+    Returns:
+      Global qpos indices that can be used to index into qpos directly.
+    """
+    if isinstance(joint_ids, slice):
+      return self.all_q_dof_ids
+    return self._expand_dof_ids(
+      self.joint_q_adr[joint_ids], self.joint_q_width[joint_ids]
+    )
+
+  def get_v_dof_ids(
+    self, joint_ids: torch.Tensor | list[int] | slice
+  ) -> torch.Tensor | slice:
+    """Get qvel DOF indices for specified joints.
+
+    Args:
+      joint_ids: Local joint indices (0, 1, 2, ...) or slice.
+
+    Returns:
+      Global qvel indices that can be used to index into qvel directly.
+    """
+    if isinstance(joint_ids, slice):
+      return self.all_v_dof_ids
+    return self._expand_dof_ids(
+      self.joint_v_adr[joint_ids], self.joint_v_width[joint_ids]
+    )
+
+  def _expand_dof_ids(
+    self, addresses: torch.Tensor, widths: torch.Tensor
+  ) -> torch.Tensor:
+    """Expand per-joint addresses and widths into flat DOF indices."""
+    indices = []
+    for adr, w in zip(addresses.tolist(), widths.tolist(), strict=True):
+      indices.extend(range(adr, adr + w))
+    return torch.tensor(indices, device=addresses.device, dtype=torch.int)
 
 
 @dataclass
@@ -889,6 +940,16 @@ class Entity:
   # Private methods.
   ##
 
+  @staticmethod
+  def _expand_dof_ids(
+    addresses: list[int], widths: list[int], device: str
+  ) -> torch.Tensor:
+    """Expand per-joint addresses and widths into flat DOF indices."""
+    indices = []
+    for adr, w in zip(addresses, widths, strict=True):
+      indices.extend(range(adr, adr + w))
+    return torch.tensor(indices, device=device, dtype=torch.int)
+
   def _compute_indexing(self, model: mujoco.MjModel, device: str) -> EntityIndexing:
     bodies = tuple([b for b in self.spec.bodies[1:]])
     joints = self._non_free_joints
@@ -909,8 +970,10 @@ class Entity:
       actuators = None
       ctrl_ids = torch.empty(0, dtype=torch.int, device=device)
 
-    joint_q_adr = []
-    joint_v_adr = []
+    joint_q_adr_list = []
+    joint_v_adr_list = []
+    joint_q_width_list = []
+    joint_v_width_list = []
     free_joint_q_adr = []
     free_joint_v_adr = []
     for joint in self.spec.joints:
@@ -922,12 +985,20 @@ class Entity:
         free_joint_v_adr.extend(range(vadr, vadr + 6))
         free_joint_q_adr.extend(range(qadr, qadr + 7))
       else:
-        joint_v_adr.extend(range(vadr, vadr + dof_width(jnt_type)))
-        joint_q_adr.extend(range(qadr, qadr + qpos_width(jnt_type)))
-    joint_q_adr = torch.tensor(joint_q_adr, dtype=torch.int, device=device)
-    joint_v_adr = torch.tensor(joint_v_adr, dtype=torch.int, device=device)
-    free_joint_v_adr = torch.tensor(free_joint_v_adr, dtype=torch.int, device=device)
+        joint_q_adr_list.append(qadr)
+        joint_v_adr_list.append(vadr)
+        joint_q_width_list.append(qpos_width(jnt_type))
+        joint_v_width_list.append(dof_width(jnt_type))
+    joint_q_adr = torch.tensor(joint_q_adr_list, dtype=torch.int, device=device)
+    joint_v_adr = torch.tensor(joint_v_adr_list, dtype=torch.int, device=device)
+    joint_q_width = torch.tensor(joint_q_width_list, dtype=torch.int, device=device)
+    joint_v_width = torch.tensor(joint_v_width_list, dtype=torch.int, device=device)
     free_joint_q_adr = torch.tensor(free_joint_q_adr, dtype=torch.int, device=device)
+    free_joint_v_adr = torch.tensor(free_joint_v_adr, dtype=torch.int, device=device)
+
+    # Compute flat DOF indices for all joints.
+    all_q_dof_ids = self._expand_dof_ids(joint_q_adr_list, joint_q_width_list, device)
+    all_v_dof_ids = self._expand_dof_ids(joint_v_adr_list, joint_v_width_list, device)
 
     if self.is_fixed_base and self.is_mocap:
       mocap_id = int(model.body_mocapid[self.root_body.id])
@@ -950,6 +1021,10 @@ class Entity:
       mocap_id=mocap_id,
       joint_q_adr=joint_q_adr,
       joint_v_adr=joint_v_adr,
+      joint_q_width=joint_q_width,
+      joint_v_width=joint_v_width,
+      all_q_dof_ids=all_q_dof_ids,
+      all_v_dof_ids=all_v_dof_ids,
       free_joint_q_adr=free_joint_q_adr,
       free_joint_v_adr=free_joint_v_adr,
     )

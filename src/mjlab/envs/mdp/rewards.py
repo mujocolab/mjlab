@@ -42,7 +42,7 @@ def joint_vel_l2(
 ) -> torch.Tensor:
   """Penalize joint velocities on the articulation using L2 squared kernel."""
   asset: Entity = env.scene[asset_cfg.name]
-  return torch.sum(torch.square(asset.data.joint_vel[:, asset_cfg.joint_ids]), dim=1)
+  return torch.sum(torch.square(asset.data.joint_vel[:, asset_cfg.joint_v_ids]), dim=1)
 
 
 def joint_acc_l2(
@@ -50,7 +50,7 @@ def joint_acc_l2(
 ) -> torch.Tensor:
   """Penalize joint accelerations on the articulation using L2 squared kernel."""
   asset: Entity = env.scene[asset_cfg.name]
-  return torch.sum(torch.square(asset.data.joint_acc[:, asset_cfg.joint_ids]), dim=1)
+  return torch.sum(torch.square(asset.data.joint_acc[:, asset_cfg.joint_v_ids]), dim=1)
 
 
 def action_rate_l2(env: ManagerBasedRlEnv) -> torch.Tensor:
@@ -77,13 +77,12 @@ def joint_pos_limits(
   asset: Entity = env.scene[asset_cfg.name]
   soft_joint_pos_limits = asset.data.soft_joint_pos_limits
   assert soft_joint_pos_limits is not None
+  q_ids = asset_cfg.joint_q_ids
   out_of_limits = -(
-    asset.data.joint_pos[:, asset_cfg.joint_ids]
-    - soft_joint_pos_limits[:, asset_cfg.joint_ids, 0]
+    asset.data.joint_pos[:, q_ids] - soft_joint_pos_limits[:, q_ids, 0]
   ).clip(max=0.0)
   out_of_limits += (
-    asset.data.joint_pos[:, asset_cfg.joint_ids]
-    - soft_joint_pos_limits[:, asset_cfg.joint_ids, 1]
+    asset.data.joint_pos[:, q_ids] - soft_joint_pos_limits[:, q_ids, 1]
   ).clip(min=0.0)
   return torch.sum(out_of_limits, dim=1)
 
@@ -116,8 +115,9 @@ class posture:
   ) -> torch.Tensor:
     del std  # Unused.
     asset: Entity = env.scene[asset_cfg.name]
-    current_joint_pos = asset.data.joint_pos[:, asset_cfg.joint_ids]
-    desired_joint_pos = self.default_joint_pos[:, asset_cfg.joint_ids]
+    q_ids = asset_cfg.joint_q_ids
+    current_joint_pos = asset.data.joint_pos[:, q_ids]
+    desired_joint_pos = self.default_joint_pos[:, q_ids]
     error_squared = torch.square(current_joint_pos - desired_joint_pos)
     return torch.exp(-torch.mean(error_squared / (self.std**2), dim=1))
 

@@ -56,9 +56,9 @@ def joint_pos_rel(
   asset: Entity = env.scene[asset_cfg.name]
   default_joint_pos = asset.data.default_joint_pos
   assert default_joint_pos is not None
-  jnt_ids = asset_cfg.joint_ids
+  q_ids = asset_cfg.joint_q_ids
   joint_pos = asset.data.joint_pos_biased if biased else asset.data.joint_pos
-  return joint_pos[:, jnt_ids] - default_joint_pos[:, jnt_ids]
+  return joint_pos[:, q_ids] - default_joint_pos[:, q_ids]
 
 
 def joint_vel_rel(
@@ -68,8 +68,8 @@ def joint_vel_rel(
   asset: Entity = env.scene[asset_cfg.name]
   default_joint_vel = asset.data.default_joint_vel
   assert default_joint_vel is not None
-  jnt_ids = asset_cfg.joint_ids
-  return asset.data.joint_vel[:, jnt_ids] - default_joint_vel[:, jnt_ids]
+  v_ids = asset_cfg.joint_v_ids
+  return asset.data.joint_vel[:, v_ids] - default_joint_vel[:, v_ids]
 
 
 ##

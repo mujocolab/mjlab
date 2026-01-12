@@ -1,0 +1,16 @@
+<mujoco>
+  <worldbody>
+    <body name="base">
+      <joint name="hinge0" type="hinge" axis="0 0 1"/>
+      <geom type="sphere" size="0.1"/>
+      <body name="link1" pos="0.2 0 0">
+        <joint name="ball0" type="ball"/>
+        <geom type="sphere" size="0.1"/>
+        <body name="link2" pos="0.2 0 0">
+          <joint name="hinge1" type="hinge" axis="0 1 0"/>
+          <geom type="sphere" size="0.1"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>

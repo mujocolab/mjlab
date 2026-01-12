@@ -282,3 +282,173 @@ def test_entity_data_reset_partial_envs(device):
   assert torch.all(entity.data.tendon_effort_target[1] == 0.0)
   assert torch.all(entity.data.tendon_effort_target[2] == 9.0)
   assert torch.all(entity.data.tendon_effort_target[3] == 0.0)
+
+
+# ============================================================================
+# Ball Joint Read/Write Tests
+# ============================================================================
+
+MIXED_JOINTS_XML = """
+<mujoco>
+  <worldbody>
+    <body name="base">
+      <joint name="hinge0" type="hinge" axis="0 0 1"/>
+      <geom type="sphere" size="0.1"/>
+      <body name="link1" pos="0.2 0 0">
+        <joint name="ball0" type="ball"/>
+        <geom type="sphere" size="0.1"/>
+        <body name="link2" pos="0.2 0 0">
+          <joint name="hinge1" type="hinge" axis="0 1 0"/>
+          <geom type="sphere" size="0.1"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+
+def create_mixed_joints_entity():
+  """Create an entity with mixed joint types (hinge + ball + hinge)."""
+  cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(MIXED_JOINTS_XML))
+  return Entity(cfg)
+
+
+def test_joint_pos_shape_with_ball_joint(device):
+  """Test joint_pos property has correct shape with ball joints.
+
+  Model has: hinge0 (1 qpos), ball0 (4 qpos), hinge1 (1 qpos) = 6 total
+  """
+  entity = create_mixed_joints_entity()
+  entity, sim = initialize_entity_with_sim(entity, device, num_envs=4)
+
+  sim.forward()
+
+  assert entity.data.joint_pos.shape == (4, 6)
+
+
+def test_joint_vel_shape_with_ball_joint(device):
+  """Test joint_vel property has correct shape with ball joints.
+
+  Model has: hinge0 (1 qvel), ball0 (3 qvel), hinge1 (1 qvel) = 5 total
+  """
+  entity = create_mixed_joints_entity()
+  entity, sim = initialize_entity_with_sim(entity, device, num_envs=4)
+
+  sim.forward()
+
+  assert entity.data.joint_vel.shape == (4, 5)
+
+
+def test_write_joint_position_ball_joint(device):
+  """Test writing position to a ball joint (4 qpos values)."""
+  entity = create_mixed_joints_entity()
+  entity, sim = initialize_entity_with_sim(entity, device, num_envs=2)
+
+  sim.forward()
+
+  # Write to ball joint (index 1) which has 4 qpos DOFs.
+  # Ball joint qpos is a quaternion [w, x, y, z].
+  ball_quat = torch.tensor(
+    [[1.0, 0.0, 0.0, 0.0], [0.707, 0.707, 0.0, 0.0]], device=device
+  )
+  entity.data.write_joint_position(ball_quat, joint_ids=torch.tensor([1]))
+
+  # Read back and verify.
+  q_dof_ids = entity.data.indexing.get_q_dof_ids([1])
+  written_qpos = sim.data.qpos[:, entity.data.indexing.all_q_dof_ids[q_dof_ids]]
+
+  assert torch.allclose(written_qpos, ball_quat, atol=1e-5)
+
+
+def test_write_joint_velocity_ball_joint(device):
+  """Test writing velocity to a ball joint (3 qvel values)."""
+  entity = create_mixed_joints_entity()
+  entity, sim = initialize_entity_with_sim(entity, device, num_envs=2)
+
+  sim.forward()
+
+  # Write to ball joint (index 1) which has 3 qvel DOFs.
+  ball_angvel = torch.tensor([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]], device=device)
+  entity.data.write_joint_velocity(ball_angvel, joint_ids=torch.tensor([1]))
+
+  # Read back and verify.
+  v_dof_ids = entity.data.indexing.get_v_dof_ids([1])
+  written_qvel = sim.data.qvel[:, entity.data.indexing.all_v_dof_ids[v_dof_ids]]
+
+  assert torch.allclose(written_qvel, ball_angvel, atol=1e-5)
+
+
+def test_write_joint_position_all_joints_mixed(device):
+  """Test writing position to all joints with mixed types."""
+  entity = create_mixed_joints_entity()
+  entity, sim = initialize_entity_with_sim(entity, device, num_envs=1)
+
+  sim.forward()
+
+  # Write to all 3 joints: hinge0 (1), ball0 (4), hinge1 (1) = 6 total DOFs.
+  # fmt: off
+  all_positions = torch.tensor([[
+    0.5,                      # hinge0
+    1.0, 0.0, 0.0, 0.0,       # ball0 (quaternion)
+    -0.3,                     # hinge1
+  ]], device=device)
+  # fmt: on
+
+  entity.data.write_joint_position(all_positions)
+
+  # Verify the positions were written.
+  sim.forward()
+  joint_pos = entity.data.joint_pos
+
+  assert torch.allclose(joint_pos, all_positions, atol=1e-5)
+
+
+def test_write_joint_position_selective_hinges_only(device):
+  """Test writing to selected joints (hinges only, skip ball)."""
+  entity = create_mixed_joints_entity()
+  entity, sim = initialize_entity_with_sim(entity, device, num_envs=1)
+
+  sim.forward()
+
+  # Get initial ball joint position to verify it's unchanged.
+  initial_ball_pos = entity.data.joint_pos[:, 1:5].clone()
+
+  # Write only to hinges (indices 0 and 2), which have 1 DOF each.
+  hinge_positions = torch.tensor([[0.7, -0.4]], device=device)
+  entity.data.write_joint_position(hinge_positions, joint_ids=torch.tensor([0, 2]))
+
+  sim.forward()
+
+  # Verify hinges changed.
+  assert torch.allclose(
+    entity.data.joint_pos[:, 0:1], hinge_positions[:, 0:1], atol=1e-5
+  )
+  assert torch.allclose(
+    entity.data.joint_pos[:, 5:6], hinge_positions[:, 1:2], atol=1e-5
+  )
+
+  # Verify ball joint unchanged.
+  assert torch.allclose(entity.data.joint_pos[:, 1:5], initial_ball_pos, atol=1e-5)
+
+
+def test_joint_pos_roundtrip_with_ball_joint(device):
+  """Test full roundtrip: write all joints → forward → read → verify."""
+  entity = create_mixed_joints_entity()
+  entity, sim = initialize_entity_with_sim(entity, device, num_envs=2)
+
+  sim.forward()
+
+  # fmt: off
+  positions = torch.tensor([
+    [0.1, 1.0, 0.0, 0.0, 0.0, 0.2],   # env 0
+    [0.3, 0.707, 0.707, 0.0, 0.0, 0.4],  # env 1
+  ], device=device)
+  # fmt: on
+
+  entity.data.write_joint_position(positions)
+  sim.forward()
+
+  read_positions = entity.data.joint_pos
+
+  assert torch.allclose(read_positions, positions, atol=1e-4)

@@ -2,9 +2,46 @@
 
 from dataclasses import dataclass
 
+import mujoco
 import pytest
+import torch
+from conftest import get_test_device
 
+from mjlab.entity import Entity, EntityCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.sim.sim import Simulation, SimulationCfg
+
+
+@dataclass
+class _FakeIndexing:
+  """Fake indexing for testing. Assumes all joints are 1-DOF (hinge-like)."""
+
+  num_joints: int
+
+  def get_q_dof_ids(
+    self, joint_ids: torch.Tensor | list[int] | slice
+  ) -> torch.Tensor | slice:
+    if isinstance(joint_ids, slice):
+      return torch.arange(self.num_joints)
+    if isinstance(joint_ids, list):
+      return torch.tensor(joint_ids)
+    return joint_ids
+
+  def get_v_dof_ids(
+    self, joint_ids: torch.Tensor | list[int] | slice
+  ) -> torch.Tensor | slice:
+    if isinstance(joint_ids, slice):
+      return torch.arange(self.num_joints)
+    if isinstance(joint_ids, list):
+      return torch.tensor(joint_ids)
+    return joint_ids
+
+
+@dataclass
+class _FakeData:
+  """Fake data for testing."""
+
+  indexing: _FakeIndexing
 
 
 @dataclass
@@ -31,6 +68,10 @@ class _FakeEntity:
   @property
   def num_sites(self) -> int:
     return len(self.site_names)
+
+  @property
+  def data(self) -> _FakeData:
+    return _FakeData(indexing=_FakeIndexing(num_joints=self.num_joints))
 
   # find_* helpers return (ids, names) similar to Entity API.
   def _find(
@@ -139,3 +180,106 @@ def test_inconsistent_names_and_ids_raise(
 
   with pytest.raises(ValueError):
     cfg.resolve(fake_scene)
+
+
+# ============================================================================
+# Ball Joint DOF Resolution Tests (using real Entity)
+# ============================================================================
+
+
+MIXED_JOINTS_XML = """
+<mujoco>
+  <worldbody>
+    <body name="base">
+      <joint name="hinge0" type="hinge" axis="0 0 1"/>
+      <geom type="sphere" size="0.1"/>
+      <body name="link1" pos="0.2 0 0">
+        <joint name="ball0" type="ball"/>
+        <geom type="sphere" size="0.1"/>
+        <body name="link2" pos="0.2 0 0">
+          <joint name="hinge1" type="hinge" axis="0 1 0"/>
+          <geom type="sphere" size="0.1"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+
+@pytest.fixture(scope="module")
+def mixed_joint_scene():
+  """Create a real scene with mixed joint types."""
+  device = get_test_device()
+  cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(MIXED_JOINTS_XML))
+  entity = Entity(cfg)
+  model = entity.compile()
+  sim = Simulation(num_envs=1, cfg=SimulationCfg(), model=model, device=device)
+  entity.initialize(model, sim.model, sim.data, device)
+  return {"robot": entity}
+
+
+def test_joint_q_ids_expands_for_ball_joint(mixed_joint_scene):
+  """Test joint_q_ids correctly expands to 4 indices for a ball joint."""
+  cfg = SceneEntityCfg(name="robot", joint_names=("ball0",))
+  cfg.resolve(mixed_joint_scene)
+
+  # Ball joint should expand to 4 qpos DOFs.
+  assert cfg.joint_q_ids == [1, 2, 3, 4]
+
+
+def test_joint_v_ids_expands_for_ball_joint(mixed_joint_scene):
+  """Test joint_v_ids correctly expands to 3 indices for a ball joint."""
+  cfg = SceneEntityCfg(name="robot", joint_names=("ball0",))
+  cfg.resolve(mixed_joint_scene)
+
+  # Ball joint should expand to 3 qvel DOFs.
+  assert cfg.joint_v_ids == [1, 2, 3]
+
+
+def test_joint_q_ids_mixed_selection(mixed_joint_scene):
+  """Test joint_q_ids for selecting hinge + ball (1 + 4 = 5 DOFs)."""
+  cfg = SceneEntityCfg(name="robot", joint_names=("hinge0", "ball0"))
+  cfg.resolve(mixed_joint_scene)
+
+  # hinge0: 1 DOF at index 0, ball0: 4 DOFs at indices 1-4.
+  assert cfg.joint_q_ids == [0, 1, 2, 3, 4]
+
+
+def test_joint_v_ids_mixed_selection(mixed_joint_scene):
+  """Test joint_v_ids for selecting hinge + ball (1 + 3 = 4 DOFs)."""
+  cfg = SceneEntityCfg(name="robot", joint_names=("hinge0", "ball0"))
+  cfg.resolve(mixed_joint_scene)
+
+  # hinge0: 1 DOF at index 0, ball0: 3 DOFs at indices 1-3.
+  assert cfg.joint_v_ids == [0, 1, 2, 3]
+
+
+def test_joint_q_ids_hinges_only(mixed_joint_scene):
+  """Test joint_q_ids for selecting only hinges (skip ball)."""
+  cfg = SceneEntityCfg(name="robot", joint_names=("hinge0", "hinge1"))
+  cfg.resolve(mixed_joint_scene)
+
+  # hinge0: index 0, hinge1: index 5.
+  assert cfg.joint_q_ids == [0, 5]
+
+
+def test_joint_v_ids_hinges_only(mixed_joint_scene):
+  """Test joint_v_ids for selecting only hinges (skip ball)."""
+  cfg = SceneEntityCfg(name="robot", joint_names=("hinge0", "hinge1"))
+  cfg.resolve(mixed_joint_scene)
+
+  # hinge0: index 0, hinge1: index 4.
+  assert cfg.joint_v_ids == [0, 4]
+
+
+def test_joint_dof_ids_slice_when_all_joints(mixed_joint_scene):
+  """Test joint_q_ids/joint_v_ids remain slice(None) when all joints selected."""
+  cfg = SceneEntityCfg(name="robot", joint_names=("hinge0", "ball0", "hinge1"))
+  cfg.resolve(mixed_joint_scene)
+
+  # When all joints are selected and joint_ids becomes slice(None),
+  # joint_q_ids and joint_v_ids should also be slice(None).
+  assert cfg.joint_ids == slice(None)
+  assert cfg.joint_q_ids == slice(None)
+  assert cfg.joint_v_ids == slice(None)

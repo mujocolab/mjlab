@@ -44,7 +44,13 @@ class SceneEntityCfg:
   """Names of joints to include. Can be a single string or tuple."""
 
   joint_ids: list[int] | slice = field(default_factory=lambda: slice(None))
-  """IDs of joints to include. Can be a list or slice."""
+  """Joint indices (into the entity's joint list). Can be a list or slice."""
+
+  joint_q_ids: list[int] | slice = field(default_factory=lambda: slice(None))
+  """Expanded qpos DOF indices for the selected joints. Set during resolve()."""
+
+  joint_v_ids: list[int] | slice = field(default_factory=lambda: slice(None))
+  """Expanded qvel DOF indices for the selected joints. Set during resolve()."""
 
   body_names: str | tuple[str, ...] | None = None
   """Names of bodies to include. Can be a single string or tuple."""
@@ -93,6 +99,8 @@ class SceneEntityCfg:
 
     for config in _FIELD_CONFIGS:
       self._resolve_field(entity, config)
+
+    self._resolve_joint_dof_ids(entity)
 
   def _resolve_field(self, entity: Entity, config: _FieldConfig) -> None:
     """Resolve a single field's names and IDs.
@@ -188,3 +196,25 @@ class SceneEntityCfg:
     """Resolve IDs to their corresponding names."""
     resolved_names = [entity_all_names[i] for i in ids]
     setattr(self, names_attr, resolved_names)
+
+  def _resolve_joint_dof_ids(self, entity: Entity) -> None:
+    """Compute expanded DOF indices for the selected joints.
+
+    This converts joint_ids (joint indices) into joint_q_ids and joint_v_ids
+    (expanded DOF indices) that can be used to index into qpos and qvel arrays.
+    """
+    indexing = entity.data.indexing
+
+    if isinstance(self.joint_ids, slice):
+      # All joints selected, use all DOF indices.
+      self.joint_q_ids = slice(None)
+      self.joint_v_ids = slice(None)
+    else:
+      # Expand joint indices to DOF indices.
+      # Since joint_ids is not a slice, get_*_dof_ids returns a tensor.
+      q_dof_ids = indexing.get_q_dof_ids(self.joint_ids)
+      v_dof_ids = indexing.get_v_dof_ids(self.joint_ids)
+      assert not isinstance(q_dof_ids, slice)
+      assert not isinstance(v_dof_ids, slice)
+      self.joint_q_ids = q_dof_ids.tolist()
+      self.joint_v_ids = v_dof_ids.tolist()

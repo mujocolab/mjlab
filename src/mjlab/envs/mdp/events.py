@@ -359,9 +359,17 @@ def _get_entity_indices(
 ) -> torch.Tensor:
   match spec.entity_type:
     case "dof":
-      return indexing.joint_v_adr[asset_cfg.joint_ids]
+      # joint_v_ids are global qvel addresses.
+      v_ids = asset_cfg.joint_v_ids
+      if isinstance(v_ids, slice):
+        return indexing.all_v_dof_ids
+      return torch.tensor(v_ids, device=indexing.joint_v_adr.device, dtype=torch.int)
     case "joint" if spec.use_address:
-      return indexing.joint_q_adr[asset_cfg.joint_ids]
+      # joint_q_ids are global qpos addresses.
+      q_ids = asset_cfg.joint_q_ids
+      if isinstance(q_ids, slice):
+        return indexing.all_q_dof_ids
+      return torch.tensor(q_ids, device=indexing.joint_q_adr.device, dtype=torch.int)
     case "joint":
       return indexing.joint_ids[asset_cfg.joint_ids]
     case "body":

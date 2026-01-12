@@ -54,6 +54,8 @@ FIXED_BASE_ARTICULATED_XML = """
 
 FLOATING_BASE_ARTICULATED_XML = load_fixture_xml("floating_base_articulated")
 
+MIXED_JOINTS_XML = load_fixture_xml("mixed_joints")
+
 ACTUATOR_ORDER_TEST_XML = """
 <mujoco>
   <worldbody>
@@ -747,3 +749,106 @@ def test_tendon_and_site_targets_only_allocated_when_needed(device):
 
   # Joint targets should still be allocated (2 joints).
   assert entity.data.joint_pos_target.shape == (4, 2)
+
+
+# ============================================================================
+# Ball Joint Indexing Tests
+# ============================================================================
+
+
+def create_mixed_joints_entity():
+  """Create an entity with mixed joint types (hinge + ball + hinge)."""
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(MIXED_JOINTS_XML),
+  )
+  return Entity(cfg)
+
+
+def test_mixed_joints_indexing_widths(device):
+  """Test EntityIndexing correctly computes widths for mixed joint types.
+
+  Model has: hinge0 (1 qpos, 1 qvel), ball0 (4 qpos, 3 qvel), hinge1 (1 qpos, 1 qvel)
+  """
+  entity = create_mixed_joints_entity()
+  entity, sim = initialize_entity_with_sim(entity, device)
+
+  indexing = entity.data.indexing
+
+  # Verify per-joint widths.
+  assert indexing.joint_q_width.tolist() == [1, 4, 1]
+  assert indexing.joint_v_width.tolist() == [1, 3, 1]
+
+  # Verify total DOF counts.
+  assert len(indexing.all_q_dof_ids) == 6  # 1 + 4 + 1
+  assert len(indexing.all_v_dof_ids) == 5  # 1 + 3 + 1
+
+
+def test_mixed_joints_get_q_dof_ids(device):
+  """Test get_q_dof_ids correctly expands joint indices to qpos DOF indices."""
+  entity = create_mixed_joints_entity()
+  entity, sim = initialize_entity_with_sim(entity, device)
+
+  indexing = entity.data.indexing
+
+  # Single hinge joint (1 qpos DOF).
+  q_ids_0 = indexing.get_q_dof_ids([0])
+  assert isinstance(q_ids_0, torch.Tensor) and len(q_ids_0) == 1
+
+  # Ball joint (4 qpos DOFs).
+  q_ids_1 = indexing.get_q_dof_ids([1])
+  assert isinstance(q_ids_1, torch.Tensor) and len(q_ids_1) == 4
+
+  # Second hinge joint (1 qpos DOF).
+  q_ids_2 = indexing.get_q_dof_ids([2])
+  assert isinstance(q_ids_2, torch.Tensor) and len(q_ids_2) == 1
+
+  # Both hinges (skip ball).
+  q_ids_0_2 = indexing.get_q_dof_ids([0, 2])
+  assert isinstance(q_ids_0_2, torch.Tensor) and len(q_ids_0_2) == 2
+
+  # All joints.
+  q_ids_all = indexing.get_q_dof_ids([0, 1, 2])
+  assert isinstance(q_ids_all, torch.Tensor) and len(q_ids_all) == 6
+
+
+def test_mixed_joints_get_v_dof_ids(device):
+  """Test get_v_dof_ids correctly expands joint indices to qvel DOF indices."""
+  entity = create_mixed_joints_entity()
+  entity, sim = initialize_entity_with_sim(entity, device)
+
+  indexing = entity.data.indexing
+
+  # Single hinge joint (1 qvel DOF).
+  v_ids_0 = indexing.get_v_dof_ids([0])
+  assert isinstance(v_ids_0, torch.Tensor) and len(v_ids_0) == 1
+
+  # Ball joint (3 qvel DOFs).
+  v_ids_1 = indexing.get_v_dof_ids([1])
+  assert isinstance(v_ids_1, torch.Tensor) and len(v_ids_1) == 3
+
+  # Second hinge joint (1 qvel DOF).
+  v_ids_2 = indexing.get_v_dof_ids([2])
+  assert isinstance(v_ids_2, torch.Tensor) and len(v_ids_2) == 1
+
+  # Both hinges (skip ball).
+  v_ids_0_2 = indexing.get_v_dof_ids([0, 2])
+  assert isinstance(v_ids_0_2, torch.Tensor) and len(v_ids_0_2) == 2
+
+  # All joints.
+  v_ids_all = indexing.get_v_dof_ids([0, 1, 2])
+  assert isinstance(v_ids_all, torch.Tensor) and len(v_ids_all) == 5
+
+
+def test_mixed_joints_slice_returns_all_dofs(device):
+  """Test that slice(None) returns all DOF indices."""
+  entity = create_mixed_joints_entity()
+  entity, sim = initialize_entity_with_sim(entity, device)
+
+  indexing = entity.data.indexing
+
+  # Slice should return all DOF indices as a tensor.
+  q_ids = indexing.get_q_dof_ids(slice(None))
+  v_ids = indexing.get_v_dof_ids(slice(None))
+
+  assert isinstance(q_ids, torch.Tensor) and len(q_ids) == 6
+  assert isinstance(v_ids, torch.Tensor) and len(v_ids) == 5

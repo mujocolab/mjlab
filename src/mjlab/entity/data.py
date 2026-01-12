@@ -139,8 +139,8 @@ class EntityData:
 
     env_ids = self._resolve_env_ids(env_ids)
     joint_ids = joint_ids if joint_ids is not None else slice(None)
-    q_slice = self.indexing.joint_q_adr[joint_ids]
-    self.data.qpos[env_ids, q_slice] = position
+    q_dof_ids = self.indexing.get_q_dof_ids(joint_ids)
+    self.data.qpos[env_ids, q_dof_ids] = position
 
   def write_joint_velocity(
     self,
@@ -153,8 +153,8 @@ class EntityData:
 
     env_ids = self._resolve_env_ids(env_ids)
     joint_ids = joint_ids if joint_ids is not None else slice(None)
-    v_slice = self.indexing.joint_v_adr[joint_ids]
-    self.data.qvel[env_ids, v_slice] = velocity
+    v_dof_ids = self.indexing.get_v_dof_ids(joint_ids)
+    self.data.qvel[env_ids, v_dof_ids] = velocity
 
   def write_external_wrench(
     self,
@@ -340,23 +340,23 @@ class EntityData:
 
   @property
   def joint_pos(self) -> torch.Tensor:
-    """Joint positions. Shape (num_envs, num_joints)."""
-    return self.data.qpos[:, self.indexing.joint_q_adr]
+    """Joint positions. Shape (num_envs, num_q_dofs)."""
+    return self.data.qpos[:, self.indexing.all_q_dof_ids]
 
   @property
   def joint_pos_biased(self) -> torch.Tensor:
-    """Joint positions with encoder bias applied. Shape (num_envs, num_joints)."""
+    """Joint positions with encoder bias applied. Shape (num_envs, num_q_dofs)."""
     return self.joint_pos + self.encoder_bias
 
   @property
   def joint_vel(self) -> torch.Tensor:
-    """Joint velocities. Shape (num_envs, nv)."""
-    return self.data.qvel[:, self.indexing.joint_v_adr]
+    """Joint velocities. Shape (num_envs, num_v_dofs)."""
+    return self.data.qvel[:, self.indexing.all_v_dof_ids]
 
   @property
   def joint_acc(self) -> torch.Tensor:
-    """Joint accelerations. Shape (num_envs, nv)."""
-    return self.data.qacc[:, self.indexing.joint_v_adr]
+    """Joint accelerations. Shape (num_envs, num_v_dofs)."""
+    return self.data.qacc[:, self.indexing.all_v_dof_ids]
 
   # Tendon properties
 
