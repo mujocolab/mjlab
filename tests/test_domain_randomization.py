@@ -316,7 +316,7 @@ def test_randomize_field_shared_random(device):
     field="geom_friction",
     ranges=FRICTION_RANGE,
     operation="abs",
-    asset_cfg=SceneEntityCfg("robot", geom_names=[".*"]),
+    asset_cfg=SceneEntityCfg("robot", geom_names=(".*",)),
     axes=[0],
     shared_random=True,
   )
@@ -356,7 +356,6 @@ def test_g1_foot_friction_shared_across_geoms(device):
   from mjlab.tasks.velocity.config.g1.env_cfgs import unitree_g1_flat_env_cfg
 
   cfg = unitree_g1_flat_env_cfg()
-  cfg.sim.device = str(device)
 
   with warnings.catch_warnings():
     warnings.simplefilter("ignore")
