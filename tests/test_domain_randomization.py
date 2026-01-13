@@ -299,3 +299,95 @@ def test_randomize_field_single_env_without_expand(device):
   assert abs(final_mass_2 - original_mass * 2.0) < 1e-5, (
     f"Expected mass {original_mass * 2.0} (no accumulation), got {final_mass_2}"
   )
+
+
+def test_randomize_field_shared_random(device):
+  """Verify shared_random broadcasts a single value to all entities per environment."""
+  torch.manual_seed(42)
+  env = create_test_env(device, num_envs=4)
+  robot = env.scene["robot"]
+
+  # Get all geom indices (base_geom, foot1_geom, foot2_geom).
+  geom_ids = robot.indexing.geom_ids
+
+  randomize_field(
+    env,  # type: ignore[arg-type]
+    env_ids=None,
+    field="geom_friction",
+    ranges=FRICTION_RANGE,
+    operation="abs",
+    asset_cfg=SceneEntityCfg("robot", geom_names=[".*"]),
+    axes=[0],
+    shared_random=True,
+  )
+
+  friction = env.sim.model.geom_friction[:, geom_ids, 0]
+
+  # All geoms within the same env should have the same friction.
+  for env_idx in range(env.num_envs):
+    env_friction = friction[env_idx]
+    assert torch.allclose(env_friction, env_friction[0].expand_as(env_friction)), (
+      f"Env {env_idx} has different friction values: {env_friction}"
+    )
+
+  # Different envs should have different friction values.
+  env_frictions = friction[:, 0]
+  assert len(torch.unique(env_frictions)) > 1, "All envs have the same friction"
+
+  # All values should be in range.
+  assert_values_in_range(friction, FRICTION_RANGE[0], FRICTION_RANGE[1])
+
+
+@pytest.mark.slow
+def test_g1_foot_friction_shared_across_geoms(device):
+  """Verify G1 velocity env has uniform foot friction across all collision geoms.
+
+  The G1 robot has 7 collision geometries per foot (14 total). This test ensures
+  that the shared_random parameter in foot_friction event config correctly
+  broadcasts the same friction value to all foot geoms within each environment.
+
+  Regression test for issue #481.
+  """
+  import io
+  import warnings
+  from contextlib import redirect_stderr, redirect_stdout
+
+  from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
+  from mjlab.tasks.velocity.config.g1.env_cfgs import unitree_g1_flat_env_cfg
+
+  cfg = unitree_g1_flat_env_cfg()
+  cfg.sim.device = str(device)
+
+  with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+      env = ManagerBasedRlEnv(cfg, device=device)
+
+  try:
+    robot = env.scene["robot"]
+
+    # Get the foot collision geom indices (7 per foot, 14 total).
+    foot_geom_names = [
+      f"{side}_foot{i}_collision" for side in ("left", "right") for i in range(1, 8)
+    ]
+    foot_geom_ids, _ = robot.find_geoms(foot_geom_names)
+    foot_geom_indices = robot.indexing.geom_ids[foot_geom_ids]
+
+    # Get friction values for all foot geoms.
+    friction = env.sim.model.geom_friction[:, foot_geom_indices, 0]
+
+    # All foot geoms within each env should have the same friction.
+    for env_idx in range(env.num_envs):
+      env_friction = friction[env_idx]
+      assert torch.allclose(env_friction, env_friction[0].expand_as(env_friction)), (
+        f"Env {env_idx} has different friction values across foot geoms: {env_friction}"
+      )
+
+    # Different envs should have different friction values (with high probability).
+    if env.num_envs > 1:
+      env_frictions = friction[:, 0]
+      assert len(torch.unique(env_frictions)) > 1, (
+        "All envs have the same friction - shared_random may not be working"
+      )
+  finally:
+    env.close()

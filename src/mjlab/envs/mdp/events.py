@@ -298,6 +298,7 @@ def randomize_field(
   operation: Literal["add", "scale", "abs"] = "abs",
   asset_cfg=None,
   axes: list[int] | None = None,
+  shared_random: bool = False,
 ):
   """Unified model randomization function.
 
@@ -312,6 +313,9 @@ def randomize_field(
       accumulation when randomizing on reset.
     asset_cfg: Asset configuration.
     axes: Specific axes to randomize (overrides default_axes from field spec).
+    shared_random: If True, sample a single random value per environment and apply
+      it to all entities. Useful when multiple geometries should share the same
+      randomized value (e.g., all foot collision geoms sharing friction).
   """
   if field not in FIELD_SPECS:
     raise ValueError(
@@ -345,9 +349,22 @@ def randomize_field(
   else:
     base_values = indexed_data
 
-  random_values = _generate_random_values(
-    distribution, axis_ranges, base_values, target_axes, env.device, operation
-  )
+  if shared_random:
+    # Generate a single random value per environment and broadcast to all entities.
+    single_entity_values = base_values[:, :1]  # (num_envs, 1, ...)
+    random_values = _generate_random_values(
+      distribution,
+      axis_ranges,
+      single_entity_values,
+      target_axes,
+      env.device,
+      operation,
+    )
+    random_values = random_values.expand_as(base_values)
+  else:
+    random_values = _generate_random_values(
+      distribution, axis_ranges, base_values, target_axes, env.device, operation
+    )
 
   _apply_operation(
     model_field, env_grid, entity_grid, base_values, random_values, operation

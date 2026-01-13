@@ -183,6 +183,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
         "operation": "abs",
         "field": "geom_friction",
         "ranges": (0.3, 1.2),
+        "shared_random": True,  # All foot geoms share the same friction.
       },
     ),
     "encoder_bias": EventTermCfg(
