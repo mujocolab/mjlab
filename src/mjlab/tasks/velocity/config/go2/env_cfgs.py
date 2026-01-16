@@ -66,6 +66,9 @@ def unitree_go2_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     "asset_cfg"
   ].site_names = site_names
 
+  # base linear velocity not available from the low-level interface
+  cfg.observations["policy"].terms["base_lin_vel"] = None
+
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = geom_names
   cfg.events["base_com"].params["asset_cfg"].body_names = ("base_link",)
 
