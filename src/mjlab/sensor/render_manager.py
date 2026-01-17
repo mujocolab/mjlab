@@ -112,8 +112,13 @@ class RenderManager:
 
     self._model = model
     self._data = data
+    self._camera_resolutions = camera_resolutions
     self._render_rgb = render_rgb
     self._render_depth = render_depth
+    self._use_shadows = use_shadows
+    self._use_textures = use_textures
+    self._enabled_geom_groups = enabled_geom_groups
+    self._cam_active = cam_active
     self._rgb_adr = self._ctx.rgb_adr.numpy()
     self._depth_adr = self._ctx.depth_adr.numpy()
     self._rgb_size = self._ctx.rgb_size.numpy()
@@ -146,6 +151,21 @@ class RenderManager:
         with wp.ScopedCapture() as capture:
           mjwarp.render(self._model, self._data, self._ctx)
         self.render_graph = capture.graph
+  
+  def recreate_render_context(self, mj_model: mujoco.MjModel) -> None:
+    with wp.ScopedDevice(self.wp_device):
+      self._ctx = mjwarp.create_render_context(
+        mjm=mj_model,
+        m=self._model.struct,  # type: ignore
+        d=self._data.struct,  # type: ignore
+        cam_res=self._camera_resolutions,
+        render_rgb=self._render_rgb,
+        render_depth=self._render_depth,
+        use_textures=self._use_textures,
+        use_shadows=self._use_shadows,
+        enabled_geom_groups=self._enabled_geom_groups,
+        cam_active=self._cam_active,
+      )
 
   def invalidate(self) -> None:
     """Mark that rendering is needed on next data access."""
