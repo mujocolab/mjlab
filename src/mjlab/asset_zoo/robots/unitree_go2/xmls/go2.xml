@@ -229,9 +229,4 @@
     <accelerometer name="imu_lin_acc" site="imu"/>
     <subtreeangmom name="root_angmom" body="base_link"/>
   </sensor>
-
-  <keyframe>
-    <key name="home" qpos="0 0 0.27 1 0 0 0 0 0.9 -1.8 0 0.9 -1.8 0 0.9 -1.8 0 0.9 -1.8"
-      ctrl="0 0.9 -1.8 0 0.9 -1.8 0 0.9 -1.8 0 0.9 -1.8" />
-  </keyframe>
 </mujoco>
