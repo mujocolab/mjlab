@@ -3,12 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from dataclasses import field
 import mujoco
 import numpy as np
 import torch
 
 from mjlab.terrains.terrain_generator import TerrainGenerator, TerrainGeneratorCfg
 from mjlab.utils import spec_config as spec_cfg
+from mjlab.terrains.contact import GroundContactCfg
 
 _DEFAULT_PLANE_TEXTURE = spec_cfg.TextureCfg(
   name="groundplane",
@@ -50,6 +52,9 @@ class TerrainImporterCfg:
   num_envs: int = 1
   """Number of parallel environments to create. This will get overriden by the
   scene configuration if specified there."""
+  contact: GroundContactCfg = field(default_factory=GroundContactCfg)
+  """Contact solver parameters for ground geometry. Controls stiffness,
+  damping, and impedance of ground contacts."""
 
 
 class TerrainImporter:
@@ -159,6 +164,8 @@ class TerrainImporter:
       type=mujoco.mjtGeom.mjGEOM_PLANE,
       size=(0, 0, 0.01),
       material=_DEFAULT_PLANE_MATERIAL.name,
+      solref=self.cfg.contact.solref,
+      solimp=self.cfg.contact.solimp,
     )
     spec_cfg.LightCfg(pos=(0, 0, 1.5), type="directional").edit_spec(self._spec)
 
