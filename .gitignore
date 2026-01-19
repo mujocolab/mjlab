@@ -13,6 +13,7 @@ artifacts/
 .venv/
 render_robots.py
 benchmark_results/
+MJMODEL.TXT
 
 # Documentation outputs.
 **/_build/*
