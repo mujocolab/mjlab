@@ -21,9 +21,6 @@ def unitree_go1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   cfg.scene.entities = {"robot": get_go1_robot_cfg()}
 
-  assert cfg.scene.terrain is not None
-  cfg.scene.terrain.contact.solref = (0.005, 1)
-
   foot_names = ("FR", "FL", "RR", "RL")
   site_names = ("FR", "FL", "RR", "RL")
   geom_names = tuple(f"{name}_foot_collision" for name in foot_names)
