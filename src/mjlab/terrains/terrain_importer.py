@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
-from dataclasses import field
 import mujoco
 import numpy as np
 import torch
 
+from mjlab.terrains.contact import GroundContactCfg
 from mjlab.terrains.terrain_generator import TerrainGenerator, TerrainGeneratorCfg
 from mjlab.utils import spec_config as spec_cfg
-from mjlab.terrains.contact import GroundContactCfg
 
 _DEFAULT_PLANE_TEXTURE = spec_cfg.TextureCfg(
   name="groundplane",

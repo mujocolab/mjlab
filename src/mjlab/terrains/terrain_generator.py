@@ -8,9 +8,9 @@ from typing import Literal
 import mujoco
 import numpy as np
 
+from mjlab.terrains.contact import GroundContactCfg
 from mjlab.terrains.utils import make_border
 from mjlab.utils.color import RGBA
-from mjlab.terrains.contact import GroundContactCfg
 
 _DARK_GRAY = (0.2, 0.2, 0.2, 1.0)
 
@@ -59,6 +59,7 @@ class TerrainGeneratorCfg:
   difficulty_range: tuple[float, float] = (0.0, 1.0)
   add_lights: bool = False
 
+
 class TerrainGenerator:
   """Generates procedural terrain grids with configurable difficulty.
 
@@ -79,7 +80,7 @@ class TerrainGenerator:
     self.cfg = cfg
     self.device = device
     self.contact_cfg = None
-    
+
     for sub_cfg in self.cfg.sub_terrains.values():
       sub_cfg.size = self.cfg.size
 
