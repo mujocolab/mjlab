@@ -58,9 +58,6 @@ class TerrainGeneratorCfg:
   sub_terrains: dict[str, SubTerrainCfg] = field(default_factory=dict)
   difficulty_range: tuple[float, float] = (0.0, 1.0)
   add_lights: bool = False
-  contact: GroundContactCfg = field(default_factory=GroundContactCfg)
-  """Contact solver parameters for ground geometry. Controls stiffness,
-  damping, and impedance of ground contacts."""
 
 class TerrainGenerator:
   """Generates procedural terrain grids with configurable difficulty.
@@ -81,7 +78,8 @@ class TerrainGenerator:
 
     self.cfg = cfg
     self.device = device
-
+    self.contact_cfg = None
+    
     for sub_cfg in self.cfg.sub_terrains.values():
       sub_cfg.size = self.cfg.size
 
@@ -93,7 +91,8 @@ class TerrainGenerator:
 
     self.terrain_origins = np.zeros((self.cfg.num_rows, self.cfg.num_cols, 3))
 
-  def compile(self, spec: mujoco.MjSpec) -> None:
+  def compile(self, spec: mujoco.MjSpec, contact_cfg: GroundContactCfg) -> None:
+    self.contact_cfg = contact_cfg
     body = spec.worldbody.add_body(name="terrain")
 
     if self.cfg.curriculum:
@@ -214,9 +213,9 @@ class TerrainGenerator:
     output = cfg.function(difficulty, spec, self.np_rng)
     for terrain_geom in output.geometries:
       if terrain_geom.geom is not None:
-        # Apply contact solver parameters.
-        terrain_geom.geom.solref = self.cfg.contact.solref
-        terrain_geom.geom.solimp = self.cfg.contact.solimp
+        assert self.contact_cfg is not None
+        terrain_geom.geom.solref[:] = self.contact_cfg.solref
+        terrain_geom.geom.solimp[:] = self.contact_cfg.solimp
         terrain_geom.geom.pos = np.array(terrain_geom.geom.pos) + world_position
         if terrain_geom.geom.material is not None:
           if self.cfg.color_scheme == "height" and terrain_geom.color:
