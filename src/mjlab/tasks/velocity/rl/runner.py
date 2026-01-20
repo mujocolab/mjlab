@@ -29,12 +29,14 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
       filename=filename,
     )
     # Attach metadata (use "local" for run_path if not using wandb)
-    run_name = wandb.run.name if self.logger_type == "wandb" and wandb.run else "local"
+    run_name = (
+      wandb.run.name if self.logger.logger_type == "wandb" and wandb.run else "local"
+    )
     attach_onnx_metadata(
       self.env.unwrapped,
       run_name,  # type: ignore
       path=policy_path,
       filename=filename,
     )
-    if self.logger_type in ["wandb"]:
+    if self.logger.logger_type in ["wandb"]:
       wandb.save(policy_path + filename, base_path=os.path.dirname(policy_path))
