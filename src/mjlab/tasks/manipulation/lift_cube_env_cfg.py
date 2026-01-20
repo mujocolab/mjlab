@@ -207,8 +207,8 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
         "reward_name": "joint_vel_hinge",
         "weight_stages": [
           {"step": 0, "weight": -0.01},
-          {"step": 1000 * 24, "weight": -0.1},
-          {"step": 1500 * 24, "weight": -1.0},
+          {"step": 500 * 24, "weight": -0.1},
+          {"step": 1000 * 24, "weight": -1.0},
         ],
       },
     ),
