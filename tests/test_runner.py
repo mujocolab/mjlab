@@ -99,7 +99,7 @@ def test_runner_persists_common_step_counter(env, device):
     runner = MjlabOnPolicyRunner(
       wrapped_env, asdict(agent_cfg), log_dir=tmpdir, device=device
     )
-    runner.logger_type = "tensorboard"  # Normally set in learn().
+    runner.logger.logger_type = "tensorboard"  # Normally set in learn().
 
     wrapped_env.unwrapped.common_step_counter = 12345
     checkpoint_path = str(Path(tmpdir) / "test_checkpoint.pt")
