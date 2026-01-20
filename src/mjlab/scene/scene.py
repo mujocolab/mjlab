@@ -159,9 +159,17 @@ class Scene:
     if self._render_manager is not None:
       self._render_manager.ensure_rendered()
 
-  def recreate_render_graph(self) -> None:
+  def recreate_render_context(self, mj_model: mujoco.MjModel) -> None:
+    """Recreate the render context after model fields have been expanded.
+
+    This method should be called after expand_model_fields() if any camera-related
+    fields were expanded (e.g., cam_fovy, cam_intrinsic).
+
+    Args:
+      mj_model: The MuJoCo model (needed for camera count and other metadata).
+    """
     if self._render_manager is not None:
-      self._render_manager.create_graph()
+      self._render_manager.recreate_render_context(mj_model)
 
   def write_data_to_sim(self) -> None:
     for ent in self._entities.values():
