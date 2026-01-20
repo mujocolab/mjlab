@@ -161,8 +161,8 @@ class Scene:
 
   def recreate_render_graph(self, mj_model: mujoco.MjModel) -> None:
     if self._render_manager is not None:
-      self._render_manager.create_graph()
       self._render_manager.recreate_render_context(mj_model)
+      self._render_manager.create_graph()
 
   def write_data_to_sim(self) -> None:
     for ent in self._entities.values():
