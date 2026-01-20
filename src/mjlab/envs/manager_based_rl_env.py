@@ -263,6 +263,7 @@ class ManagerBasedRlEnv:
     print_info(f"[INFO] {self.event_manager}")
 
     self.sim.expand_model_fields(self.event_manager.domain_randomization_fields)
+    self.scene.recreate_render_context(self.sim.mj_model)
 
     # Command manager (must be before observation manager since observations
     # may reference commands).

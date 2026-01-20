@@ -53,20 +53,35 @@ class RenderManager:
 
     # Sort sensors by camera index to match mujoco_warp ordering.
     self.camera_sensors = sorted(camera_sensors, key=lambda s: s.camera_idx)
-    camera_resolutions = [(s.cfg.width, s.cfg.height) for s in self.camera_sensors]
-    render_rgb = ["rgb" in s.cfg.type for s in self.camera_sensors]
-    render_depth = ["depth" in s.cfg.type for s in self.camera_sensors]
+    self._render_rgb = ["rgb" in s.cfg.type for s in self.camera_sensors]
+    self._render_depth = ["depth" in s.cfg.type for s in self.camera_sensors]
 
     # Create mapping from MuJoCo camera ID to sorted list index.
     self._cam_idx_to_list_idx = {
       s.camera_idx: idx for idx, s in enumerate(self.camera_sensors)
     }
 
-    # Validate that all sensors have consistent rendering settings.
+    self._validate_sensor_settings()
+
+    self._model = model
+    self._data = data
+    self._create_context(mj_model)
+
+    for sensor in self.camera_sensors:
+      sensor.set_render_manager(self)
+
+    self.use_cuda_graph = self.wp_device.is_cuda and wp.is_mempool_enabled(
+      self.wp_device
+    )
+    self.create_graph()
+    self._needs_render = True
+
+  def _validate_sensor_settings(self) -> None:
+    """Validate that all sensors have consistent rendering settings."""
     first_sensor = self.camera_sensors[0]
     use_textures = first_sensor.cfg.use_textures
     use_shadows = first_sensor.cfg.use_shadows
-    enabled_geom_groups = list(first_sensor.cfg.enabled_geom_groups)
+    enabled_geom_groups = tuple(first_sensor.cfg.enabled_geom_groups)
 
     for sensor in self.camera_sensors[1:]:
       if sensor.cfg.use_textures != use_textures:
@@ -83,13 +98,26 @@ class RenderManager:
           f"but '{first_sensor.cfg.name}' has use_shadows={use_shadows}. "
           "All camera sensors must have the same use_shadows setting."
         )
-      if tuple(sensor.cfg.enabled_geom_groups) != tuple(enabled_geom_groups):
+      if tuple(sensor.cfg.enabled_geom_groups) != enabled_geom_groups:
         raise ValueError(
           f"Camera sensor '{sensor.cfg.name}' has enabled_geom_groups="
           f"{sensor.cfg.enabled_geom_groups}, but '{first_sensor.cfg.name}' has "
-          f"enabled_geom_groups={tuple(enabled_geom_groups)}. "
+          f"enabled_geom_groups={enabled_geom_groups}. "
           "All camera sensors must have the same enabled_geom_groups setting."
         )
+
+  def _create_context(self, mj_model: mujoco.MjModel) -> None:
+    """Create render context and update all cached arrays.
+
+    This method creates a new render context and updates all cached arrays to
+    point to the new context's data. This is necessary after model fields are
+    expanded (e.g., for camera domain randomization).
+    """
+    camera_resolutions = [(s.cfg.width, s.cfg.height) for s in self.camera_sensors]
+    first_sensor = self.camera_sensors[0]
+    use_textures = first_sensor.cfg.use_textures
+    use_shadows = first_sensor.cfg.use_shadows
+    enabled_geom_groups = list(first_sensor.cfg.enabled_geom_groups)
 
     # Build cam_active list: mark only cameras with sensors as active.
     cam_active = [False] * mj_model.ncam
@@ -99,21 +127,18 @@ class RenderManager:
     with wp.ScopedDevice(self.wp_device):
       self._ctx = mjwarp.create_render_context(
         mjm=mj_model,
-        m=model.struct,  # type: ignore[attr-defined]
-        d=data.struct,  # type: ignore[attr-defined]
+        m=self._model.struct,  # type: ignore[attr-defined]
+        d=self._data.struct,  # type: ignore[attr-defined]
         cam_res=camera_resolutions,
-        render_rgb=render_rgb,
-        render_depth=render_depth,
+        render_rgb=self._render_rgb,
+        render_depth=self._render_depth,
         use_textures=use_textures,
         use_shadows=use_shadows,
         enabled_geom_groups=enabled_geom_groups,
         cam_active=cam_active,
       )
 
-    self._model = model
-    self._data = data
-    self._render_rgb = render_rgb
-    self._render_depth = render_depth
+    # Update cached arrays to point to new context.
     self._rgb_adr = self._ctx.rgb_adr.numpy()
     self._depth_adr = self._ctx.depth_adr.numpy()
     self._rgb_size = self._ctx.rgb_size.numpy()
@@ -121,23 +146,32 @@ class RenderManager:
     self._render_rgb_torch = wp.to_torch(self._ctx.render_rgb)
     self._render_depth_torch = wp.to_torch(self._ctx.render_depth)
 
-    if any(render_rgb):
+    if any(self._render_rgb):
       self._rgb_unpacked = wp.array3d(
-        shape=(data.nworld, self._ctx.rgb_data.shape[1], 3),
+        shape=(self._data.nworld, self._ctx.rgb_data.shape[1], 3),
         dtype=wp.uint8,
         device=self.wp_device,
       )
     else:
       self._rgb_unpacked = None
 
-    for sensor in self.camera_sensors:
-      sensor.set_render_manager(self)
+  def recreate_render_context(self, mj_model: mujoco.MjModel) -> None:
+    """Recreate the render context after model fields have been expanded.
 
-    self.use_cuda_graph = self.wp_device.is_cuda and wp.is_mempool_enabled(
-      self.wp_device
-    )
+    This method must be called after expand_model_fields() if any camera-related
+    fields were expanded (e.g., cam_fovy, cam_intrinsic). The render context
+    pre-calculates rays when there's no camera DR. If camera fields are expanded,
+    the context must be recreated to detect expanded fields and switch to dynamic
+    ray calculation.
+
+    This follows the same pattern as Simulation.expand_model_fields(), which
+    internally calls create_graph() after expanding fields.
+
+    Args:
+      mj_model: The MuJoCo model (needed for camera count and other metadata).
+    """
+    self._create_context(mj_model)
     self.create_graph()
-    self._needs_render = True
 
   def create_graph(self) -> None:
     self.render_graph = None
