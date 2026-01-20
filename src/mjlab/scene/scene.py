@@ -9,7 +9,7 @@ import numpy as np
 import torch
 
 from mjlab.entity import Entity, EntityCfg
-from mjlab.sensor import BuiltinSensor, Sensor, SensorCfg
+from mjlab.sensor import BuiltinSensor, CameraSensor, RenderManager, Sensor, SensorCfg
 from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
 
 _SCENE_XML = Path(__file__).parent / "scene.xml"
@@ -34,6 +34,7 @@ class Scene:
     self._sensors: dict[str, Sensor] = {}
     self._terrain: TerrainImporter | None = None
     self._default_env_origins: torch.Tensor | None = None
+    self._render_manager: RenderManager | None = None
 
     self._spec = mujoco.MjSpec.from_file(str(_SCENE_XML))
     if self._cfg.extent is not None:
@@ -133,6 +134,12 @@ class Scene:
     for sensor in self._sensors.values():
       sensor.initialize(mj_model, model, data, self._device)
 
+    camera_sensors = [s for s in self._sensors.values() if isinstance(s, CameraSensor)]
+    if camera_sensors:
+      self._render_manager = RenderManager(
+        mj_model, model, data, camera_sensors, self._device
+      )
+
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
     for ent in self._entities.values():
       ent.reset(env_ids)
@@ -144,6 +151,17 @@ class Scene:
       ent.update(dt)
     for sensor in self._sensors.values():
       sensor.update(dt)
+
+    if self._render_manager is not None:
+      self._render_manager.invalidate()
+
+  def render(self) -> None:
+    if self._render_manager is not None:
+      self._render_manager.ensure_rendered()
+
+  def recreate_render_graph(self) -> None:
+    if self._render_manager is not None:
+      self._render_manager.create_graph()
 
   def write_data_to_sim(self) -> None:
     for ent in self._entities.values():

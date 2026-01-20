@@ -120,7 +120,8 @@ explicit = true
 warp-lang = { index = "nvidia", marker = "sys_platform != 'darwin'" }
 mujoco = { index = "mujoco" }
 torch = { index = "pytorch-cu128", extra = "cu128", marker = "sys_platform != 'darwin'" }
-mujoco-warp = { git = "https://github.com/google-deepmind/mujoco_warp", rev = "1dc288cf1fa819fc3346ec5c9546e2cc2b7be667" }
+mujoco-warp = { git = "https://github.com/google-deepmind/mujoco_warp", rev = "render"}
+rsl-rl-lib = { git = "https://github.com/kevinzakka/rsl_rl", rev = "spatial-softmax"}
 
 [tool.ruff]
 src = ["src"]  # Helpful for recognizing first-party imports.

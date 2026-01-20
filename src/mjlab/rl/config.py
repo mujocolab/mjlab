@@ -1,7 +1,7 @@
 """RSL-RL configuration."""
 
 from dataclasses import dataclass, field
-from typing import Literal, Tuple
+from typing import Any, Literal, Tuple
 
 
 @dataclass
@@ -24,6 +24,11 @@ class RslRlPpoActorCriticCfg:
   """The activation function to use in the actor and critic networks."""
   class_name: str = "ActorCritic"
   """Ignore, required by RSL-RL."""
+  actor_cnn_cfg: dict[str, Any] | None = None
+  """CNN config for actor. Dict with keys: output_channels, kernel_size,
+  stride, activation, flatten, etc. See rsl_rl.networks.cnn.CNNCfg."""
+  critic_cnn_cfg: dict[str, Any] | None = None
+  """CNN config for critic. Same structure as actor_cnn_cfg."""
 
 
 @dataclass

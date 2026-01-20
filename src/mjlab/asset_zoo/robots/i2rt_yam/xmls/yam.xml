@@ -11,7 +11,7 @@
       <default class="collision">
         <geom group="3" type="capsule"/>
         <default class="sphere_collision">
-          <geom size="0.0006 0 0" type="sphere" rgba="1 0 0 1"/>
+          <geom size="0.0006 0 0" type="sphere" rgba="1 0 0 1" group="4"/>
         </default>
       </default>
       <default class="finger">
@@ -41,10 +41,13 @@
     <mesh file="model2__15.stl"/>
     <mesh file="model2__16.stl"/>
     <mesh file="model2__17.stl"/>
+
+    <mesh name="camera_d405" file="d405.stl"/>
   </asset>
 
   <worldbody>
-    <light name="spotlight" mode="targetbodycom" target="link_6" pos="0 0 1"/>
+    <!-- <light name="spotlight" mode="targetbodycom" target="link_6" pos="0 0 1"/> -->
+    <camera name="front_cam" pos="1.1 0 .5" xyaxes="0 1 0 -0.3 0 0.7"/>
     <body name="arm" childclass="yam">
       <geom class="visual" pos="0 0 -0.0006" quat="1 0 0 1" mesh="model2"/>
       <geom name="base_collision" class="collision" size="0.033 0.01" pos="0.0 0.0 0.026" quat="1 0 0 0"/>
@@ -125,6 +128,14 @@
                         <geom name="lf_down10_collision" class="sphere_collision" pos="0.003  -0.0004 0.06"/>
                         <geom name="lf_down11_collision" class="sphere_collision" pos="-0.003 -0.0004 0.06"/>
                       </body>
+                    </body>
+                  </body>
+                  <body name="camera_d405" pos="-0.0107 0.079729 0.066021" quat="0.953717 0.3007058 0 0">
+                    <geom class="visual" mesh="camera_d405"/>
+                    <geom class="collision" type="box" size=".018 .018 .01" pos="0 0 -0.01" group="4"/>
+                    <body name="camera_frame" pos="0.009 0 0" quat="0 0 0 1">
+                      <camera name="camera_d405" pos="0 0 0" quat="0 1 0 0" resolution="1280 720"
+                        sensorsize="0.003896 0.00214" focal="0.00193 0.00193"/>
                     </body>
                   </body>
                   <body name="link_right_finger" pos="0.037 -0.0392 0.0605" quat="1 0 1 0">

@@ -40,7 +40,7 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
       noise=Unoise(n_min=-0.01, n_max=0.01),
     ),
     "cube_to_goal": ObservationTermCfg(
-      func=manipulation_mdp.object_position_error,
+      func=manipulation_mdp.object_to_goal_distance,
       params={
         "object_name": "cube",
         "command_name": "lift_height",
