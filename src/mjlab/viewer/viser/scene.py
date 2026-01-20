@@ -127,7 +127,10 @@ class ViserMujocoScene(DebugVisualizer):
   ] = field(default_factory=list, init=False)
   _arrow_shaft_handle: viser.BatchedMeshHandle | None = field(default=None, init=False)
   _arrow_head_handle: viser.BatchedMeshHandle | None = field(default=None, init=False)
-  _ghost_handles: dict[tuple[str, int], viser.SceneNodeHandle] = field(
+  _queued_ghosts: list[tuple[np.ndarray, mujoco.MjModel, float, str]] = field(
+    default_factory=list, init=False
+  )
+  _ghost_handles_batched: dict[tuple[int, int], viser.BatchedMeshHandle] = field(
     default_factory=dict, init=False
   )
   _ghost_meshes: dict[int, dict[int, trimesh.Trimesh]] = field(
@@ -465,12 +468,7 @@ class ViserMujocoScene(DebugVisualizer):
       body_xpos, body_xmat, mocap_pos, mocap_quat, env_idx, scene_offset, contacts
     )
 
-    # Update scene offset for debug visualizations and sync arrows, spheres, cylinders
-    if self.debug_visualization_enabled:
-      self._scene_offset = scene_offset
-      self._sync_arrows()
-      self._sync_spheres()
-      self._sync_cylinders()
+    self._sync_debug_visualizations(scene_offset)
 
   def update_from_mjdata(self, mj_data: mujoco.MjData) -> None:
     """Update scene from single-environment MuJoCo data.
@@ -497,12 +495,17 @@ class ViserMujocoScene(DebugVisualizer):
       body_xpos, body_xmat, mocap_pos, mocap_quat, env_idx, scene_offset, contacts
     )
 
-    # Update scene offset for debug visualizations and sync arrows, spheres, cylinders
-    if self.debug_visualization_enabled:
-      self._scene_offset = scene_offset
-      self._sync_arrows()
-      self._sync_spheres()
-      self._sync_cylinders()
+    self._sync_debug_visualizations(scene_offset)
+
+  def _sync_debug_visualizations(self, scene_offset: np.ndarray) -> None:
+    """Sync all debug visualizations (arrows, spheres, cylinders, ghosts)."""
+    if not self.debug_visualization_enabled:
+      return
+    self._scene_offset = scene_offset
+    self._sync_arrows()
+    self._sync_spheres()
+    self._sync_cylinders()
+    self._sync_ghosts()
 
   def _update_visualization(
     self,
@@ -941,9 +944,10 @@ class ViserMujocoScene(DebugVisualizer):
     alpha: float = 0.5,
     label: str | None = None,
   ) -> None:
-    """Add a ghost mesh by rendering the robot at a different pose.
+    """Queue a ghost mesh for batched rendering.
 
-    For Viser, we create meshes once and update their poses for efficiency.
+    Ghosts are not rendered immediately but queued and rendered together
+    in the next update() call for efficiency.
 
     Args:
       qpos: Joint positions for the ghost pose
@@ -958,93 +962,10 @@ class ViserMujocoScene(DebugVisualizer):
       qpos = qpos.cpu().numpy()
 
     # Use label to differentiate ghosts (e.g., for different environments)
-    ghost_prefix = label if label else f"env_{self.env_idx}"
+    ghost_label = label if label else f"env_{self.env_idx}"
 
-    # Use model hash to support models with same structure but different colors
-    model_hash = hash((model.ngeom, model.nbody, model.nq))
-
-    self._viz_data.qpos[:] = qpos
-    mujoco.mj_forward(model, self._viz_data)
-
-    # Use current scene offset
-    scene_offset = self._scene_offset
-
-    # Group geoms by body
-    body_geoms: dict[int, list[int]] = {}
-    for i in range(model.ngeom):
-      body_id = model.geom_bodyid[i]
-      is_collision = model.geom_contype[i] != 0 or model.geom_conaffinity[i] != 0
-      if is_collision:
-        continue
-
-      if model.body_dofnum[body_id] == 0 and model.body_parentid[body_id] == 0:
-        continue
-
-      if body_id not in body_geoms:
-        body_geoms[body_id] = []
-      body_geoms[body_id].append(i)
-
-    # Update or create mesh for each body
-    for body_id, geom_indices in body_geoms.items():
-      body_pos = self._viz_data.xpos[body_id] + scene_offset
-      body_quat = self._mat_to_quat(self._viz_data.xmat[body_id].reshape(3, 3))
-
-      # Key includes ghost_prefix to support multiple ghosts (e.g., for show_all_envs)
-      handle_key = (ghost_prefix, body_id)
-
-      # Check if we already have a handle for this body
-      if handle_key in self._ghost_handles:
-        handle = self._ghost_handles[handle_key]
-        handle.wxyz = body_quat
-        handle.position = body_pos
-      else:
-        # Create mesh if not cached
-        if model_hash not in self._ghost_meshes:
-          self._ghost_meshes[model_hash] = {}
-
-        if body_id not in self._ghost_meshes[model_hash]:
-          meshes = []
-          for geom_id in geom_indices:
-            mesh = self._create_geom_mesh_from_model(model, geom_id)
-            if mesh is not None:
-              geom_pos = model.geom_pos[geom_id]
-              geom_quat = model.geom_quat[geom_id]
-              transform = np.eye(4)
-              transform[:3, :3] = vtf.SO3(geom_quat).as_matrix()
-              transform[:3, 3] = geom_pos
-              mesh.apply_transform(transform)
-              meshes.append(mesh)
-
-          if not meshes:
-            continue
-
-          combined_mesh = (
-            meshes[0] if len(meshes) == 1 else trimesh.util.concatenate(meshes)
-          )
-
-          self._ghost_meshes[model_hash][body_id] = combined_mesh
-        else:
-          combined_mesh = self._ghost_meshes[model_hash][body_id]
-
-        body_name = get_body_name(model, body_id)
-        handle_name = f"/debug/{ghost_prefix}/ghost/body_{body_name}"
-
-        # Extract color from geom (convert RGBA 0-1 to RGB 0-255)
-        rgba = model.geom_rgba[geom_indices[0]].copy()
-        color_uint8 = (rgba[:3] * 255).astype(np.uint8)
-
-        handle = self.server.scene.add_mesh_simple(
-          handle_name,
-          combined_mesh.vertices,
-          combined_mesh.faces,
-          color=tuple(color_uint8),
-          opacity=alpha,
-          wxyz=body_quat,
-          position=body_pos,
-          cast_shadow=False,
-          receive_shadow=False,
-        )
-        self._ghost_handles[handle_key] = handle
+    # Queue the ghost for batched rendering
+    self._queued_ghosts.append((qpos.copy(), model, alpha, ghost_label))
 
   @override
   def add_frame(
@@ -1164,13 +1085,13 @@ class ViserMujocoScene(DebugVisualizer):
   def clear(self) -> None:
     """Clear all debug visualizations.
 
-    Clears the arrow, sphere, and cylinder queues. Ghost meshes are kept and
-    pose-updated for efficiency within the same environment, but removed when
-    switching environments.
+    Clears the arrow, sphere, cylinder, and ghost queues. Batched mesh handles
+    are kept and updated in sync methods for efficiency.
     """
     self._queued_arrows.clear()
     self._queued_spheres.clear()
     self._queued_cylinders.clear()
+    self._queued_ghosts.clear()
 
   def clear_debug_all(self) -> None:
     """Clear all debug visualizations including ghosts.
@@ -1198,9 +1119,9 @@ class ViserMujocoScene(DebugVisualizer):
       self._cylinder_handle = None
 
     # Remove ghost meshes
-    for handle in self._ghost_handles.values():
+    for handle in self._ghost_handles_batched.values():
       handle.remove()
-    self._ghost_handles.clear()
+    self._ghost_handles_batched.clear()
 
   def _create_geom_mesh_from_model(
     self, mj_model: mujoco.MjModel, geom_id: int
@@ -1505,6 +1426,139 @@ class ViserMujocoScene(DebugVisualizer):
       self._cylinder_handle.batched_wxyzs = wxyzs
       self._cylinder_handle.batched_scales = scales
       self._cylinder_handle.batched_colors = colors
+
+  def _sync_ghosts(self) -> None:
+    """Render all queued ghosts using batched meshes.
+
+    This should be called after all debug visualizations have been queued
+    for the current frame. Creates one batched mesh handle per (model_hash, body_id)
+    combination, significantly reducing scene node count for multi-env rendering.
+    """
+    if not self.debug_visualization_enabled:
+      return
+
+    if not self._queued_ghosts:
+      # Remove all ghost meshes if no ghosts to render
+      for handle in self._ghost_handles_batched.values():
+        handle.remove()
+      self._ghost_handles_batched.clear()
+      return
+
+    # Group ghosts by (model_hash, body_id) -> list of (qpos, model, alpha, label)
+    # First, compute body transforms for each ghost
+    body_data: dict[
+      tuple[int, int], list[tuple[np.ndarray, np.ndarray, np.ndarray]]
+    ] = {}  # (model_hash, body_id) -> [(position, wxyz, color_uint8), ...]
+    alpha_by_model: dict[int, float] = {}  # model_hash -> alpha
+
+    for qpos, model, alpha, _label in self._queued_ghosts:
+      model_hash = hash((model.ngeom, model.nbody, model.nq))
+      alpha_by_model[model_hash] = alpha
+
+      # Forward kinematics
+      self._viz_data.qpos[:] = qpos
+      mujoco.mj_forward(model, self._viz_data)
+
+      # Group geoms by body (to get color and determine which bodies have visual geoms)
+      body_geoms: dict[int, list[int]] = {}
+      for i in range(model.ngeom):
+        body_id = model.geom_bodyid[i]
+        is_collision = model.geom_contype[i] != 0 or model.geom_conaffinity[i] != 0
+        if is_collision:
+          continue
+        if model.body_dofnum[body_id] == 0 and model.body_parentid[body_id] == 0:
+          continue
+        if body_id not in body_geoms:
+          body_geoms[body_id] = []
+        body_geoms[body_id].append(i)
+
+      # Collect body transforms
+      for body_id, geom_indices in body_geoms.items():
+        key = (model_hash, body_id)
+        if key not in body_data:
+          body_data[key] = []
+
+        body_pos = self._viz_data.xpos[body_id] + self._scene_offset
+        body_quat = self._mat_to_quat(self._viz_data.xmat[body_id].reshape(3, 3))
+
+        # Extract color from first geom (convert RGBA 0-1 to RGB 0-255)
+        rgba = model.geom_rgba[geom_indices[0]].copy()
+        color_uint8 = (rgba[:3] * 255).astype(np.uint8)
+
+        body_data[key].append((body_pos.copy(), body_quat.copy(), color_uint8))
+
+        # Cache mesh if not already cached
+        if model_hash not in self._ghost_meshes:
+          self._ghost_meshes[model_hash] = {}
+        if body_id not in self._ghost_meshes[model_hash]:
+          meshes = []
+          for geom_id in geom_indices:
+            mesh = self._create_geom_mesh_from_model(model, geom_id)
+            if mesh is not None:
+              geom_pos = model.geom_pos[geom_id]
+              geom_quat = model.geom_quat[geom_id]
+              transform = np.eye(4)
+              transform[:3, :3] = vtf.SO3(geom_quat).as_matrix()
+              transform[:3, 3] = geom_pos
+              mesh.apply_transform(transform)
+              meshes.append(mesh)
+          if meshes:
+            combined_mesh = (
+              meshes[0] if len(meshes) == 1 else trimesh.util.concatenate(meshes)
+            )
+            self._ghost_meshes[model_hash][body_id] = combined_mesh
+
+    # Remove handles for bodies that are no longer present
+    keys_to_remove = set(self._ghost_handles_batched.keys()) - set(body_data.keys())
+    for key in keys_to_remove:
+      self._ghost_handles_batched[key].remove()
+      del self._ghost_handles_batched[key]
+
+    # Create/update batched mesh handles for each (model_hash, body_id)
+    for (model_hash, body_id), transforms in body_data.items():
+      if model_hash not in self._ghost_meshes:
+        continue
+      if body_id not in self._ghost_meshes[model_hash]:
+        continue
+
+      combined_mesh = self._ghost_meshes[model_hash][body_id]
+
+      # Prepare batched arrays
+      positions = np.array([t[0] for t in transforms], dtype=np.float32)
+      wxyzs = np.array([t[1] for t in transforms], dtype=np.float32)
+      colors = np.array([t[2] for t in transforms], dtype=np.uint8)
+      alpha = alpha_by_model.get(model_hash, 0.5)
+
+      key = (model_hash, body_id)
+
+      # Check if we need to recreate handle (number of instances changed)
+      needs_recreation = key not in self._ghost_handles_batched or len(
+        positions
+      ) != len(self._ghost_handles_batched[key].batched_positions)
+
+      if needs_recreation:
+        # Remove old handle if exists
+        if key in self._ghost_handles_batched:
+          self._ghost_handles_batched[key].remove()
+
+        # Create new batched mesh
+        self._ghost_handles_batched[key] = self.server.scene.add_batched_meshes_simple(
+          f"/debug/ghosts/body_{body_id}_{model_hash}",
+          combined_mesh.vertices,
+          combined_mesh.faces,
+          batched_wxyzs=wxyzs,
+          batched_positions=positions,
+          batched_colors=colors,
+          opacity=alpha,
+          cast_shadow=False,
+          receive_shadow=False,
+        )
+      else:
+        # Update existing handle
+        handle = self._ghost_handles_batched[key]
+        handle.batched_positions = positions
+        handle.batched_wxyzs = wxyzs
+        handle.batched_colors = colors
 
   @staticmethod
   def _mat_to_quat(mat: np.ndarray) -> np.ndarray:
