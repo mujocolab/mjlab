@@ -33,21 +33,6 @@ def get_cube_spec(cube_size: float = 0.02, mass: float = 0.05) -> mujoco.MjSpec:
   return spec
 
 
-def get_goal_spec(radius: float = 0.02) -> mujoco.MjSpec:
-  spec = mujoco.MjSpec()
-  body = spec.worldbody.add_body(name="goal", mocap=True)
-  body.add_geom(
-    name="goal_geom",
-    type=mujoco.mjtGeom.mjGEOM_SPHERE,
-    size=(radius,) * 3,
-    rgba=(1.0, 0.5, 0.0, 0.3),
-    contype=0,
-    conaffinity=0,
-    group=4,  # Won't show up in camera obs.
-  )
-  return spec
-
-
 def yam_lift_cube_env_cfg(
   play: bool = False,
 ) -> ManagerBasedRlEnvCfg:
@@ -56,7 +41,6 @@ def yam_lift_cube_env_cfg(
   cfg.scene.entities = {
     "robot": get_yam_robot_cfg(),
     "cube": EntityCfg(spec_fn=get_cube_spec),
-    "goal": EntityCfg(spec_fn=get_goal_spec),
   }
 
   joint_pos_action = cfg.actions["joint_pos"]
