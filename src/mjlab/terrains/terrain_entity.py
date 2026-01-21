@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
@@ -36,27 +37,6 @@ _DEFAULT_PLANE_MATERIAL = spec_cfg.MaterialCfg(
 
 
 @dataclass
-class TerrainEntityData:
-  """Lightweight data container for curriculum terrain state.
-
-  For plane terrain, Scene owns env_origins and this data is minimal.
-  For curriculum terrain (generator), this holds the sub-terrain grid
-  and per-environment curriculum tracking.
-  """
-
-  device: str
-
-  # Sub-terrain grid origins - shape (num_rows, num_cols, 3) or None
-  terrain_origins: torch.Tensor | None
-
-  # Curriculum tracking - only present for curriculum terrain
-  env_origins: torch.Tensor | None  # (num_envs, 3) - current positions
-  terrain_levels: torch.Tensor | None  # (num_envs,) - row indices
-  terrain_types: torch.Tensor | None  # (num_envs,) - column indices
-  max_terrain_level: int | None
-
-
-@dataclass
 class TerrainEntityCfg(SceneElementCfg):
   """Configuration for terrain entity.
 
@@ -85,12 +65,12 @@ class TerrainEntityCfg(SceneElementCfg):
   """Number of parallel environments to create. This will get overriden by the
   scene configuration if specified there."""
 
-  def build(self) -> TerrainEntity:
+  def build(self, device: str) -> TerrainEntity:
     """Build TerrainEntity from this config."""
-    return TerrainEntity(self)
+    return TerrainEntity(self, device)
 
 
-class TerrainEntity(SceneElement):
+class TerrainEntity(SceneElement[TerrainEntityCfg]):
   """Scene element representing terrain geometry.
 
   TerrainEntity is a specialized scene element for static terrain. Unlike
@@ -104,22 +84,14 @@ class TerrainEntity(SceneElement):
   collisions) for randomization.
   """
 
-  @property
-  def cfg(self) -> TerrainEntityCfg:
-    # Type narrowing - base class stores as SceneElementCfg
-    return self._cfg  # type: ignore[return-value]
-
-  def __init__(self, cfg: TerrainEntityCfg) -> None:
+  def __init__(self, cfg: TerrainEntityCfg, device: str) -> None:
     spec = mujoco.MjSpec()
     super().__init__(cfg, spec)
+    self._device = device
 
     self._terrain_generator: TerrainGenerator | None = None
-    self._terrain_origins_np: np.ndarray | None = None
-    self._env_origins_np: np.ndarray | None = None
-    self._terrain_levels_np: np.ndarray | None = None
-    self._terrain_types_np: np.ndarray | None = None
 
-    # Generate terrain geometry
+    # Generate terrain geometry and compute origins in torch
     if self.cfg.terrain_type == "generator":
       if self.cfg.terrain_generator is None:
         raise ValueError(
@@ -129,25 +101,36 @@ class TerrainEntity(SceneElement):
         self.cfg.terrain_generator, device="cpu"
       )
       self._terrain_generator.compile(self._spec)
-      self._terrain_origins_np = self._terrain_generator.terrain_origins
-      # Compute env_origins from sub-terrain grid for curriculum learning.
-      self._env_origins_np, self._terrain_levels_np, self._terrain_types_np = (
-        self._compute_env_origins_curriculum_np(
-          self.cfg.num_envs, self._terrain_origins_np
-        )
+
+      terrain_origins = torch.from_numpy(self._terrain_generator.terrain_origins).to(
+        device, dtype=torch.float
       )
+
+      env_origins, terrain_levels, terrain_types = self._compute_curriculum(
+        terrain_origins, cfg.num_envs
+      )
+      self._terrain_origins: torch.Tensor | None = terrain_origins
+      self._terrain_levels: torch.Tensor | None = terrain_levels
+      self._terrain_types: torch.Tensor | None = terrain_types
+      self._max_terrain_level: int | None = terrain_origins.shape[0]
+
     elif self.cfg.terrain_type == "plane":
       self._import_ground_plane()
-      # Plane terrain: Scene owns env_origins, no curriculum state needed.
-      self._terrain_origins_np = None
-      self._terrain_levels_np = None
-      self._terrain_types_np = None
+      env_origins = self._compute_grid(cfg.num_envs, cfg.env_spacing or 2.0)
+      self._terrain_origins = None
+      self._terrain_levels = None
+      self._terrain_types = None
+      self._max_terrain_level = None
+
     else:
       raise ValueError(f"Unknown terrain type: {self.cfg.terrain_type}")
 
-    # Add visualization sites before spec is attached
-    self._add_env_origin_sites()
-    self._add_terrain_origin_sites()
+    self._env_origins = env_origins
+
+    # Add visualization sites (convert torch -> numpy for pos=)
+    self._add_env_origin_sites(env_origins.cpu().numpy())
+    if self._terrain_origins is not None:
+      self._add_terrain_origin_sites(self._terrain_origins.cpu().numpy())
 
     # Apply editors (textures, materials, lights, cameras, collisions)
     self._apply_spec_editors()
@@ -168,38 +151,35 @@ class TerrainEntity(SceneElement):
 
   @property
   def env_origins(self) -> torch.Tensor:
-    """Environment spawn positions for curriculum terrain. Shape: (num_envs, 3).
+    """Environment spawn positions. Shape: (num_envs, 3).
 
-    Only available for curriculum terrain (generator). For plane terrain,
-    use Scene.env_origins instead.
+    For plane terrain, returns a grid layout based on env_spacing.
+    For curriculum terrain (generator), returns positions on sub-terrain grid.
     """
-    assert self._data.env_origins is not None, (
-      "env_origins only available for curriculum terrain"
-    )
-    return self._data.env_origins
+    return self._env_origins
 
   @property
   def terrain_origins(self) -> torch.Tensor | None:
     """Sub-terrain grid origins. Shape: (num_rows, num_cols, 3) or None."""
-    return self._data.terrain_origins
+    return self._terrain_origins
 
   @property
   def terrain_levels(self) -> torch.Tensor:
     """Current terrain level (row) for each environment. Shape: (num_envs,)."""
-    assert self._data.terrain_levels is not None
-    return self._data.terrain_levels
+    assert self._terrain_levels is not None
+    return self._terrain_levels
 
   @property
   def terrain_types(self) -> torch.Tensor:
     """Current terrain type (column) for each environment. Shape: (num_envs,)."""
-    assert self._data.terrain_types is not None
-    return self._data.terrain_types
+    assert self._terrain_types is not None
+    return self._terrain_types
 
   @property
   def max_terrain_level(self) -> int:
     """Maximum terrain level (number of rows)."""
-    assert self._data.max_terrain_level is not None
-    return self._data.max_terrain_level
+    assert self._max_terrain_level is not None
+    return self._max_terrain_level
 
   @property
   def terrain_generator(self) -> TerrainGenerator | None:
@@ -215,45 +195,15 @@ class TerrainEntity(SceneElement):
     data: mjwarp.Data,
     device: str,
   ) -> None:
-    """Initialize terrain data structures."""
-    del model, data  # Unused - terrain is static
+    """Initialize terrain indexing for domain randomization."""
+    del (
+      model,
+      data,
+      device,
+    )  # Unused - terrain is static, device already set in __init__
 
     # Compute indexing for domain randomization support
-    self.indexing = self._compute_indexing(mj_model, device)
-
-    # For curriculum terrain, convert pre-computed numpy arrays to tensors.
-    # For plane terrain, Scene owns env_origins so we don't store them here.
-    if self._terrain_origins_np is not None:
-      terrain_origins = torch.from_numpy(self._terrain_origins_np).to(
-        device, dtype=torch.float
-      )
-      assert self._env_origins_np is not None
-      assert self._terrain_levels_np is not None
-      assert self._terrain_types_np is not None
-      env_origins = torch.from_numpy(self._env_origins_np).to(device, dtype=torch.float)
-      terrain_levels = torch.from_numpy(self._terrain_levels_np).to(
-        device, dtype=torch.long
-      )
-      terrain_types = torch.from_numpy(self._terrain_types_np).to(
-        device, dtype=torch.long
-      )
-      max_level = terrain_origins.shape[0]  # num_rows
-    else:
-      # Plane terrain: no curriculum state needed.
-      terrain_origins = None
-      env_origins = None
-      terrain_levels = None
-      terrain_types = None
-      max_level = None
-
-    self._data = TerrainEntityData(
-      device=device,
-      terrain_origins=terrain_origins,
-      env_origins=env_origins,
-      terrain_levels=terrain_levels,
-      terrain_types=terrain_types,
-      max_terrain_level=max_level,
-    )
+    self.indexing = self._compute_indexing(mj_model, self._device)
 
   def _compute_indexing(
     self, mj_model: mujoco.MjModel, device: str
@@ -290,23 +240,20 @@ class TerrainEntity(SceneElement):
       move_up: Boolean tensor indicating which envs should move to harder terrain.
       move_down: Boolean tensor indicating which envs should move to easier terrain.
     """
-    if self._data.terrain_origins is None:
+    if self._terrain_origins is None:
       return
-    assert self._data.env_origins is not None
-    assert self._data.terrain_levels is not None
-    assert self._data.terrain_types is not None
-    assert self._data.max_terrain_level is not None
+    assert self._terrain_levels is not None
+    assert self._terrain_types is not None
+    assert self._max_terrain_level is not None
 
-    self._data.terrain_levels[env_ids] += 1 * move_up - 1 * move_down
-    self._data.terrain_levels[env_ids] = torch.where(
-      self._data.terrain_levels[env_ids] >= self._data.max_terrain_level,
-      torch.randint_like(
-        self._data.terrain_levels[env_ids], self._data.max_terrain_level
-      ),
-      torch.clip(self._data.terrain_levels[env_ids], 0),
+    self._terrain_levels[env_ids] += 1 * move_up - 1 * move_down
+    self._terrain_levels[env_ids] = torch.where(
+      self._terrain_levels[env_ids] >= self._max_terrain_level,
+      torch.randint_like(self._terrain_levels[env_ids], self._max_terrain_level),
+      torch.clip(self._terrain_levels[env_ids], 0),
     )
-    self._data.env_origins[env_ids] = self._data.terrain_origins[
-      self._data.terrain_levels[env_ids], self._data.terrain_types[env_ids]
+    self._env_origins[env_ids] = self._terrain_origins[
+      self._terrain_levels[env_ids], self._terrain_types[env_ids]
     ]
 
   def randomize_env_origins(self, env_ids: torch.Tensor) -> None:
@@ -318,55 +265,67 @@ class TerrainEntity(SceneElement):
     Args:
       env_ids: Indices of environments to randomize.
     """
-    if self._data.terrain_origins is None:
+    if self._terrain_origins is None:
       return
-    assert self._data.env_origins is not None
-    assert self._data.terrain_levels is not None
-    assert self._data.terrain_types is not None
+    assert self._terrain_levels is not None
+    assert self._terrain_types is not None
 
-    num_rows, num_cols = self._data.terrain_origins.shape[:2]
+    num_rows, num_cols = self._terrain_origins.shape[:2]
     num_envs = len(env_ids)
-    self._data.terrain_levels[env_ids] = torch.randint(
-      0, num_rows, (num_envs,), device=self._data.device
+    self._terrain_levels[env_ids] = torch.randint(
+      0, num_rows, (num_envs,), device=self._device
     )
-    self._data.terrain_types[env_ids] = torch.randint(
-      0, num_cols, (num_envs,), device=self._data.device
+    self._terrain_types[env_ids] = torch.randint(
+      0, num_cols, (num_envs,), device=self._device
     )
-    self._data.env_origins[env_ids] = self._data.terrain_origins[
-      self._data.terrain_levels[env_ids], self._data.terrain_types[env_ids]
+    self._env_origins[env_ids] = self._terrain_origins[
+      self._terrain_levels[env_ids], self._terrain_types[env_ids]
     ]
 
   # Private helpers
 
-  def _compute_env_origins_curriculum_np(
-    self, num_envs: int, origins: np.ndarray
-  ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Compute environment origins from sub-terrain grid for curriculum (numpy)."""
+  def _compute_curriculum(
+    self, origins: torch.Tensor, num_envs: int
+  ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Compute environment origins from sub-terrain grid for curriculum."""
     num_rows, num_cols = origins.shape[:2]
     if self.cfg.max_init_terrain_level is None:
       max_init_level = num_rows - 1
     else:
       max_init_level = min(self.cfg.max_init_terrain_level, num_rows - 1)
 
-    rng = np.random.default_rng()
-    terrain_levels = rng.integers(0, max_init_level + 1, size=(num_envs,))
-    terrain_types = np.floor(np.arange(num_envs) / (num_envs / num_cols)).astype(
-      np.int64
+    terrain_levels = torch.randint(
+      0, max_init_level + 1, (num_envs,), device=self._device, dtype=torch.long
     )
+    terrain_types = torch.floor(
+      torch.arange(num_envs, device=self._device) / (num_envs / num_cols)
+    ).long()
 
     env_origins = origins[terrain_levels, terrain_types]
 
     return env_origins, terrain_levels, terrain_types
 
-  def _add_env_origin_sites(self) -> None:
-    """Add transparent sphere sites at each environment origin for visualization."""
-    if self._env_origins_np is None:
-      return
+  def _compute_grid(self, num_envs: int, env_spacing: float) -> torch.Tensor:
+    """Compute environment origins in a grid layout."""
 
+    num_rows = math.ceil(num_envs / int(math.sqrt(num_envs)))
+    num_cols = math.ceil(num_envs / num_rows)
+
+    ii = torch.arange(num_rows, device=self._device).repeat_interleave(num_cols)
+    jj = torch.arange(num_cols, device=self._device).repeat(num_rows)
+
+    env_origins = torch.zeros((num_envs, 3), dtype=torch.float, device=self._device)
+    env_origins[:, 0] = -(ii[:num_envs] - (num_rows - 1) / 2) * env_spacing
+    env_origins[:, 1] = (jj[:num_envs] - (num_cols - 1) / 2) * env_spacing
+
+    return env_origins
+
+  def _add_env_origin_sites(self, env_origins: np.ndarray) -> None:
+    """Add transparent sphere sites at each environment origin for visualization."""
     origin_site_radius: float = 0.3
     origin_site_color: tuple[float, float, float, float] = (0.2, 0.6, 0.2, 0.3)
 
-    for env_id, origin in enumerate(self._env_origins_np):
+    for env_id, origin in enumerate(env_origins):
       self._spec.worldbody.add_site(
         name=f"env_origin_{env_id}",
         pos=origin,
@@ -376,18 +335,15 @@ class TerrainEntity(SceneElement):
         group=4,
       )
 
-  def _add_terrain_origin_sites(self) -> None:
+  def _add_terrain_origin_sites(self, terrain_origins: np.ndarray) -> None:
     """Add transparent sphere sites at each terrain origin for visualization."""
-    if self._terrain_origins_np is None:
-      return
-
     terrain_origin_site_radius: float = 0.5
     terrain_origin_site_color: tuple[float, float, float, float] = (0.2, 0.2, 0.6, 0.3)
 
-    num_rows, num_cols = self._terrain_origins_np.shape[:2]
+    num_rows, num_cols = terrain_origins.shape[:2]
     for row in range(num_rows):
       for col in range(num_cols):
-        origin = self._terrain_origins_np[row, col]
+        origin = terrain_origins[row, col]
         self._spec.worldbody.add_site(
           name=f"terrain_origin_{row}_{col}",
           pos=origin,

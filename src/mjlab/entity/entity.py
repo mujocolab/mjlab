@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Sequence
+from typing import Callable, Generic, Sequence, TypeVar
 
 import mujoco
 import mujoco_warp as mjwarp
@@ -26,7 +26,7 @@ class GeometryIndexing:
   """Maps geometry elements (bodies, geoms, sites) to global indices.
 
   This is the base indexing class for scene elements that contribute static
-  geometry without articulation. Used by TerrainEntity.
+  geometry without articulation.
   """
 
   bodies: tuple[mujoco.MjsBody, ...]
@@ -50,7 +50,7 @@ class EntityIndexing(GeometryIndexing):
   actuators) for dynamic entities.
   """
 
-  # Articulation elements (extending base geometry).
+  # Articulation elements.
   joints: tuple[mujoco.MjsJoint, ...]
   tendons: tuple[mujoco.MjsTendon, ...]
   actuators: tuple[mujoco.MjsActuator, ...] | None
@@ -84,30 +84,20 @@ class SceneElementCfg:
   collisions: tuple[spec_cfg.CollisionCfg, ...] = field(default_factory=tuple)
 
 
-class SceneElement(ABC):
-  """Base class for elements that contribute to a scene's MjSpec.
+TCfg = TypeVar("TCfg", bound=SceneElementCfg)
 
-  SceneElement is the foundation for anything that holds geometry in a scene.
-  It provides:
-  - A MjSpec containing the element's geometry
-  - Editor support for lights, cameras, textures, materials, collisions
 
-  Subclasses:
-  - Entity: Dynamic objects with joints, actuators, and simulation state
-  - TerrainEntity: Static terrain with environment origins
+class SceneElement(ABC, Generic[TCfg]):
+  """Base class for elements that contribute to a scene's MjSpec."""
 
-  Note: Subclasses should override the `cfg` property to return their specific
-  config type for proper type narrowing.
-  """
+  _cfg: TCfg
 
-  _cfg: SceneElementCfg
-
-  def __init__(self, cfg: SceneElementCfg, spec: mujoco.MjSpec) -> None:
+  def __init__(self, cfg: TCfg, spec: mujoco.MjSpec) -> None:
     self._cfg = cfg
     self._spec = spec
 
   @property
-  def cfg(self) -> SceneElementCfg:
+  def cfg(self) -> TCfg:
     return self._cfg
 
   @property
@@ -180,7 +170,7 @@ class EntityArticulationInfoCfg:
   soft_joint_pos_limit_factor: float = 1.0
 
 
-class Entity(SceneElement):
+class Entity(SceneElement[EntityCfg]):
   """An entity represents a physical object in the simulation.
 
   Entity Type Matrix
@@ -209,11 +199,6 @@ class Entity(SceneElement):
   | Floating Non-articulated  | Box, ball, mug      | False         | False          | False       |
   | Floating Articulated      | Humanoid, quadruped | False         | True           | True/False  |
   """
-
-  @property
-  def cfg(self) -> EntityCfg:
-    # Type narrowing - base class stores as SceneElementCfg
-    return self._cfg  # type: ignore[return-value]
 
   def __init__(self, cfg: EntityCfg) -> None:
     spec = auto_wrap_fixed_base_mocap(cfg.spec_fn)()

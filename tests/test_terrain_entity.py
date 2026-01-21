@@ -27,7 +27,7 @@ def test_terrain_entity_plane_creation():
     num_envs=4,
     env_spacing=2.0,
   )
-  terrain = cfg.build()
+  terrain = cfg.build(device="cpu")
 
   assert isinstance(terrain, TerrainEntity)
   assert terrain.spec is not None
@@ -51,7 +51,7 @@ def test_terrain_entity_generator_creation():
     ),
     num_envs=4,
   )
-  terrain = cfg.build()
+  terrain = cfg.build(device="cpu")
 
   assert isinstance(terrain, TerrainEntity)
   assert terrain.terrain_generator is not None
@@ -75,7 +75,7 @@ def test_terrain_entity_with_editors():
     num_envs=2,
     textures=(custom_texture,),
   )
-  terrain = cfg.build()
+  terrain = cfg.build(device="cpu")
 
   # Verify the texture was added to the spec
   texture_names = [t.name for t in terrain.spec.textures]
@@ -141,7 +141,7 @@ def test_terrain_entity_curriculum(device):
 
   # Build terrain entity directly without scene compilation
   # This tests curriculum setup without relying on MuJoCo compilation
-  terrain = cfg.build()
+  terrain = cfg.build(device=device)
 
   # Check curriculum properties are set up correctly from the generator
   assert terrain.terrain_generator is not None
@@ -149,18 +149,18 @@ def test_terrain_entity_curriculum(device):
   assert cfg.terrain_generator is not None
   assert cfg.terrain_generator.curriculum is True
 
-  # Check terrain origins are computed (numpy before initialize)
-  assert terrain._terrain_origins_np is not None
-  assert terrain._terrain_origins_np.shape == (3, 2, 3)  # num_rows x num_cols x 3
+  # Check terrain origins are computed (torch tensors)
+  assert terrain._terrain_origins is not None
+  assert terrain._terrain_origins.shape == (3, 2, 3)  # num_rows x num_cols x 3
 
-  # Check terrain levels/types are initialized (numpy before initialize)
-  assert terrain._terrain_levels_np is not None
-  assert terrain._terrain_levels_np.shape == (4,)  # num_envs
-  assert terrain._terrain_types_np is not None
-  assert terrain._terrain_types_np.shape == (4,)  # num_envs
+  # Check terrain levels/types are initialized (torch tensors)
+  assert terrain._terrain_levels is not None
+  assert terrain._terrain_levels.shape == (4,)  # num_envs
+  assert terrain._terrain_types is not None
+  assert terrain._terrain_types.shape == (4,)  # num_envs
 
   # All initial levels should be <= max_init_terrain_level
-  assert (terrain._terrain_levels_np <= 1).all()
+  assert (terrain._terrain_levels <= 1).all()
 
 
 def test_terrain_entity_max_init_level():
@@ -180,11 +180,11 @@ def test_terrain_entity_max_init_level():
     max_init_terrain_level=2,  # Limit initial level to 0, 1, or 2
   )
 
-  terrain = cfg.build()
+  terrain = cfg.build(device="cpu")
 
   # All initial levels should be <= max_init_terrain_level
-  assert terrain._terrain_levels_np is not None
-  assert (terrain._terrain_levels_np <= 2).all()
+  assert terrain._terrain_levels is not None
+  assert (terrain._terrain_levels <= 2).all()
 
 
 def test_terrain_entity_has_curriculum_state():
@@ -202,15 +202,15 @@ def test_terrain_entity_has_curriculum_state():
     num_envs=4,
   )
 
-  terrain = cfg.build()
+  terrain = cfg.build(device="cpu")
 
-  # Generator terrain should have curriculum state
-  assert terrain._terrain_origins_np is not None
-  assert terrain._terrain_origins_np.shape == (3, 2, 3)
-  assert terrain._terrain_levels_np is not None
-  assert terrain._terrain_levels_np.shape == (4,)
-  assert terrain._terrain_types_np is not None
-  assert terrain._terrain_types_np.shape == (4,)
+  # Generator terrain should have curriculum state (torch tensors)
+  assert terrain._terrain_origins is not None
+  assert terrain._terrain_origins.shape == (3, 2, 3)
+  assert terrain._terrain_levels is not None
+  assert terrain._terrain_levels.shape == (4,)
+  assert terrain._terrain_types is not None
+  assert terrain._terrain_types.shape == (4,)
 
 
 def test_scene_terrain_getitem_access(device):

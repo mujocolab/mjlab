@@ -65,5 +65,5 @@ if __name__ == "__main__":
     terrain_type="generator",
     terrain_generator=ROUGH_TERRAINS_CFG,
   )
-  terrain = terrain_cfg.build()
+  terrain = terrain_cfg.build(device)
   mujoco.viewer.launch(terrain.spec.compile())

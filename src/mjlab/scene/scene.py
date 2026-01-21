@@ -128,14 +128,11 @@ class Scene:
     model: mjwarp.Model,
     data: mjwarp.Data,
   ):
-    self._env_origins = self._compute_env_origins()
-
-    # Initialize terrain if present.
     if self._terrain is not None:
       self._terrain.initialize(mj_model, model, data, self._device)
-      # If terrain has curriculum (sub-terrain grid), use its env_origins.
-      if self._terrain.terrain_origins is not None:
-        self._env_origins = self._terrain.env_origins
+      self._env_origins = self._terrain.env_origins
+    else:
+      self._env_origins = self._compute_env_origins()
 
     for ent in self._entities.values():
       ent.initialize(mj_model, model, data, self._device)
@@ -167,10 +164,11 @@ class Scene:
     key_ctrl: list[np.ndarray] = []
 
     for ent_name, ent_cfg in self._cfg.entities.items():
+      # Terrain entity.
       if isinstance(ent_cfg, TerrainEntityCfg):
         ent_cfg.num_envs = self._cfg.num_envs
         ent_cfg.env_spacing = self._cfg.env_spacing
-        self._terrain = ent_cfg.build()
+        self._terrain = ent_cfg.build(self._device)
         frame = self._spec.worldbody.add_frame()
         self._spec.attach(self._terrain.spec, prefix="", frame=frame)
         continue
