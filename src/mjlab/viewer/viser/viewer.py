@@ -6,6 +6,7 @@ Adapted from an MJX visualizer by Chung Min Kim: https://github.com/chungmin99/
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 
 import viser
 from typing_extensions import override
@@ -28,6 +29,7 @@ class ViserPlayViewer(BaseViewer):
   ) -> None:
     super().__init__(env, policy, frame_rate, verbosity)
     self._reward_plotter: ViserRewardPlotter | None = None
+    self._sim_lock = Lock()
 
   @override
   def setup(self) -> None:
@@ -71,12 +73,7 @@ class ViserPlayViewer(BaseViewer):
 
         @self._pause_button.on_click
         def _(_) -> None:
-          self.toggle_pause()
-          self._pause_button.label = "Play" if self._is_paused else "Pause"
-          self._pause_button.icon = (
-            viser.Icon.PLAYER_PLAY if self._is_paused else viser.Icon.PLAYER_PAUSE
-          )
-          self._update_status_display()
+          self.request_toggle_pause()
           self._needs_update = True
 
         # Reset button.
@@ -84,8 +81,7 @@ class ViserPlayViewer(BaseViewer):
 
         @reset_button.on_click
         def _(_) -> None:
-          self.reset_environment()
-          self._update_status_display()
+          self.request_reset()
           self._needs_update = True
 
         # Speed controls.
@@ -97,10 +93,9 @@ class ViserPlayViewer(BaseViewer):
         @speed_buttons.on_click
         def _(event) -> None:
           if event.target.value == "Slower":
-            self.decrease_speed()
+            self.request_speed_down()
           else:
-            self.increase_speed()
-          self._update_status_display()
+            self.request_speed_up()
 
       # Add standard visualization options from ViserMujocoScene (Environment, Visualization, Contacts, Camera Tracking, Debug Visualization).
       self._scene.create_visualization_gui(
@@ -125,6 +120,22 @@ class ViserPlayViewer(BaseViewer):
 
     # Geom groups tab.
     self._scene.create_geom_groups_gui(tabs)
+
+  @override
+  def _process_actions(self) -> None:
+    """Process queued actions and sync UI state."""
+    had_actions = bool(self._actions)
+    super()._process_actions()
+    if had_actions:
+      self._sync_ui_state()
+
+  def _sync_ui_state(self) -> None:
+    """Sync UI elements to current state after action processing."""
+    self._pause_button.label = "Play" if self._is_paused else "Pause"
+    self._pause_button.icon = (
+      viser.Icon.PLAYER_PLAY if self._is_paused else viser.Icon.PLAYER_PAUSE
+    )
+    self._update_status_display()
 
   @override
   def sync_env_to_viewer(self) -> None:
@@ -163,9 +174,10 @@ class ViserPlayViewer(BaseViewer):
       return
 
     def update_scene() -> None:
-      with self._server.atomic():
-        self._scene.update(sim.wp_data)
-        self._server.flush()
+      with self._sim_lock:
+        with self._server.atomic():
+          self._scene.update(sim.wp_data)
+          self._server.flush()
 
     self._threadpool.submit(update_scene)
     self._needs_update = False
@@ -176,9 +188,11 @@ class ViserPlayViewer(BaseViewer):
     """Synchronize viewer state to environment (e.g., perturbations)."""
     pass
 
+  @override
   def reset_environment(self) -> None:
     """Extend BaseViewer.reset_environment to clear reward histories."""
-    super().reset_environment()
+    with self._sim_lock:
+      super().reset_environment()
     if self._reward_plotter:
       self._reward_plotter.clear_histories()
 
