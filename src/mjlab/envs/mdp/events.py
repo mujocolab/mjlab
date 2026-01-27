@@ -849,7 +849,7 @@ def randomize_encoder_bias(
     for joint_name, (min_val, max_val) in bias_range.items():
       joint_ids, _ = asset.find_joints(joint_name)
       joint_ids_tensor = torch.tensor(joint_ids, device=env.device)
-      
+
       bias_samples = sample_uniform(
         torch.tensor(min_val, device=env.device),
         torch.tensor(max_val, device=env.device),
@@ -860,8 +860,6 @@ def randomize_encoder_bias(
       asset.data.encoder_bias[env_ids[:, None], joint_ids_tensor] = bias_samples
 
   else:
-    global_bias_range = cast(Tuple[float, float], bias_range)
-
     joint_ids = asset_cfg.joint_ids
     if isinstance(joint_ids, slice):
       num_joints = asset.num_joints
@@ -871,8 +869,8 @@ def randomize_encoder_bias(
 
     num_joints = len(joint_ids_tensor)
     bias_samples = sample_uniform(
-      torch.tensor(global_bias_range[0], device=env.device),
-      torch.tensor(global_bias_range[1], device=env.device),
+      torch.tensor(bias_range[0], device=env.device),
+      torch.tensor(bias_range[1], device=env.device),
       (len(env_ids), num_joints),
       env.device,
     )
@@ -881,6 +879,7 @@ def randomize_encoder_bias(
       asset.data.encoder_bias[env_ids] = bias_samples
     else:
       asset.data.encoder_bias[env_ids[:, None], joint_ids_tensor] = bias_samples
+
 
 def sync_actuator_delays(
   env: ManagerBasedRlEnv,
