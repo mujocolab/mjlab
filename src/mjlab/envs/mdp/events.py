@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, Literal, Tuple
-
+from typing import TYPE_CHECKING, Dict, Literal, Tuple, Union, cast
+from mjlab.utils.lab_api.string import (
+  resolve_matching_names_values,
+)
 import torch
 
 from mjlab.entity import Entity, EntityIndexing
@@ -167,7 +169,7 @@ def reset_root_state_uniform(
 
   asset.write_root_link_velocity_to_sim(velocities, env_ids=env_ids)
 
-
+# TODO Louis: tuples or dict of tuples
 def reset_joints_by_offset(
   env: ManagerBasedRlEnv,
   env_ids: torch.Tensor | None,
@@ -288,12 +290,24 @@ FIELD_SPECS = {
   "qpos0": FieldSpec("joint", use_address=True),
 }
 
+AssetWideRanges = Union[
+  Tuple[float, float], 
+  Dict[int, Tuple[float, float]]
+]
+
+RangesType = Union[
+    AssetWideRanges,
+    Dict[str, Tuple[float, float]],
+    Dict[str, Dict[int, Tuple[float, float]]],
+]
+
+
 
 def randomize_field(
   env: ManagerBasedRlEnv,
   env_ids: torch.Tensor | None,
   field: str,
-  ranges: Tuple[float, float] | Dict[int, Tuple[float, float]],
+  ranges: RangesType,
   distribution: Literal["uniform", "log_uniform", "gaussian"] = "uniform",
   operation: Literal["add", "scale", "abs"] = "abs",
   asset_cfg=None,
@@ -306,7 +320,13 @@ def randomize_field(
     env: The environment.
     env_ids: Environment IDs to randomize.
     field: Field name (e.g., "geom_friction", "body_mass").
-    ranges: Either (min, max) for all axes, or {axis: (min, max)} for specific axes.
+    ranges: Randomization ranges in one of four formats:
+      - (min, max): Apply this range to all components (joints/bodies) of the asset.
+      - {axis: (min, max)}: Apply specific ranges to specific axes for all components.
+      - {comp_name: (min, max)}: Target specific components by name (e.g. {"knee": (0.5, 1.5)}).
+        When using component names, 'asset_cfg' is bypassed for selection.
+      - {comp_name: {axis: (min, max)}}: Target specific components by name with 
+        axis-specific ranges.
     distribution: Distribution type.
     operation: How to apply randomization. For "scale" and "add" operations,
       values are computed from stored defaults (not current values) to prevent
@@ -333,11 +353,69 @@ def randomize_field(
 
   model_field = getattr(env.sim.model, field)
 
-  entity_indices = _get_entity_indices(asset.indexing, asset_cfg, spec)
+  # Check if we are targeting specific components by name (Dictionary keys are strings).
+  if isinstance(ranges, dict) and isinstance(next(iter(ranges.keys())), str):
+    # --- Per-Component Randomization Mode ---
+    # User provided a map of component names (e.g., "joint_1", "site_alpha").
+    for component_name, component_ranges in ranges.items():
+      # Resolve the specific component indices within the asset.
+      entity_indices = _get_entity_indices_by_names(asset.indexing, asset, component_name, spec)
 
-  target_axes = _determine_target_axes(model_field, spec, axes, ranges)
+      target_axes = _determine_target_axes(model_field, spec, axes, component_ranges)
+      axis_ranges = _prepare_axis_ranges(component_ranges, target_axes, field)
 
-  axis_ranges = _prepare_axis_ranges(ranges, target_axes, field)
+      _randomize_field_core(
+        env,
+        env_ids,
+        field,
+        entity_indices,
+        axis_ranges,
+        target_axes,
+        distribution,
+        operation,
+        shared_random,
+      )
+  else:
+    # --- Asset-Wide Randomization Mode ---
+    # Apply randomization to all relevant components defined in the asset_cfg.
+    asset_ranges = cast(AssetWideRanges, ranges)
+
+    entity_indices = _get_entity_indices_from_asset(asset.indexing, asset_cfg, spec)
+
+    target_axes = _determine_target_axes(model_field, spec, axes, asset_ranges)
+    axis_ranges = _prepare_axis_ranges(asset_ranges, target_axes, field)
+
+    _randomize_field_core(
+      env,
+      env_ids,
+      field,
+      entity_indices,
+      axis_ranges,
+      target_axes,
+      distribution,
+      operation,
+      shared_random,
+    )
+
+
+def _randomize_field_core(
+  env: ManagerBasedRlEnv,
+  env_ids: torch.Tensor,
+  field: str,
+  entity_indices: torch.Tensor,
+  axis_ranges: Dict[int, Tuple[float, float]],
+  target_axes: list[int],
+  distribution: str,
+  operation: str,
+  shared_random: bool,
+) -> None:
+  """Core randomization logic for a set of entities with given ranges.
+
+  This is the internal implementation that applies randomization to specific
+  entity indices with specific axis ranges. Called by randomize_field for both
+  uniform and per-entity range modes.
+  """
+  model_field = getattr(env.sim.model, field)
 
   env_grid, entity_grid = torch.meshgrid(env_ids, entity_indices, indexing="ij")
   indexed_data = model_field[env_grid, entity_grid]
@@ -371,8 +449,43 @@ def randomize_field(
   )
 
 
-def _get_entity_indices(
-  indexing: EntityIndexing, asset_cfg, spec: FieldSpec
+def _get_entity_indices_by_names(
+  indexing: EntityIndexing, 
+  asset, 
+  names,
+  spec: FieldSpec
+) -> torch.Tensor:
+  match spec.entity_type:
+    case "dof":
+      joint_ids, _ = asset.find_joints(names)
+      return indexing.joint_v_adr[joint_ids]
+    case "joint" if spec.use_address:
+      joint_ids, _ = asset.find_joints(names)
+      return indexing.joint_q_adr[joint_ids]
+    case "joint":
+      joint_ids, _ = asset.find_joints(names)
+      return indexing.joint_ids[joint_ids]
+    case "body":
+      body_ids, _ = asset.find_bodies(names)
+      return indexing.body_ids[body_ids]
+    case "geom":
+      geom_ids, _ = asset.find_geoms(names)
+      return indexing.geom_ids[geom_ids]
+    case "site":
+      site_ids, _ = asset.find_sites(names)
+      return indexing.site_ids[site_ids]
+    case "actuator":
+      actuator_ids, _ = asset.actuator_ids(names)
+      assert indexing.ctrl_ids is not None
+      return indexing.ctrl_ids[actuator_ids]
+    case _:
+      raise ValueError(f"Unknown entity type: {spec.entity_type}")
+
+
+def _get_entity_indices_from_asset(
+  indexing: EntityIndexing, 
+  asset_cfg, 
+  spec: FieldSpec
 ) -> torch.Tensor:
   match spec.entity_type:
     case "dof":
@@ -398,7 +511,7 @@ def _determine_target_axes(
   model_field,
   spec: FieldSpec,
   axes: list[int] | None,
-  ranges: Tuple[float, float] | Dict[int, Tuple[float, float]],
+  ranges: AssetWideRanges,
 ) -> list[int]:
   """Determine which axes to randomize."""
   field_ndim = len(model_field.shape) - 1  # Subtract env dimension
@@ -431,7 +544,7 @@ def _determine_target_axes(
 
 
 def _prepare_axis_ranges(
-  ranges: Tuple[float, float] | Dict[int, Tuple[float, float]],
+  ranges: AssetWideRanges,
   target_axes: list[int],
   field: str,
 ) -> Dict[int, Tuple[float, float]]:
