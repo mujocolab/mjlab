@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, Literal, Tuple, Union, cast
-from mjlab.utils.lab_api.string import (
-  resolve_matching_names_values,
-)
+
 import torch
 
 from mjlab.entity import Entity, EntityIndexing
@@ -169,6 +167,7 @@ def reset_root_state_uniform(
 
   asset.write_root_link_velocity_to_sim(velocities, env_ids=env_ids)
 
+
 # TODO Louis: tuples or dict of tuples
 def reset_joints_by_offset(
   env: ManagerBasedRlEnv,
@@ -290,17 +289,13 @@ FIELD_SPECS = {
   "qpos0": FieldSpec("joint", use_address=True),
 }
 
-AssetWideRanges = Union[
-  Tuple[float, float], 
-  Dict[int, Tuple[float, float]]
-]
+AssetWideRanges = Union[Tuple[float, float], Dict[int, Tuple[float, float]]]
 
 RangesType = Union[
-    AssetWideRanges,
-    Dict[str, Tuple[float, float]],
-    Dict[str, Dict[int, Tuple[float, float]]],
+  AssetWideRanges,
+  Dict[str, Tuple[float, float]],
+  Dict[str, Dict[int, Tuple[float, float]]],
 ]
-
 
 
 def randomize_field(
@@ -325,7 +320,7 @@ def randomize_field(
       - {axis: (min, max)}: Apply specific ranges to specific axes for all components.
       - {comp_name: (min, max)}: Target specific components by name (e.g. {"knee": (0.5, 1.5)}).
         When using component names, 'asset_cfg' is bypassed for selection.
-      - {comp_name: {axis: (min, max)}}: Target specific components by name with 
+      - {comp_name: {axis: (min, max)}}: Target specific components by name with
         axis-specific ranges.
     distribution: Distribution type.
     operation: How to apply randomization. For "scale" and "add" operations,
@@ -359,7 +354,9 @@ def randomize_field(
     # User provided a map of component names (e.g., "joint_1", "site_alpha").
     for component_name, component_ranges in ranges.items():
       # Resolve the specific component indices within the asset.
-      entity_indices = _get_entity_indices_by_names(asset.indexing, asset, component_name, spec)
+      entity_indices = _get_entity_indices_by_names(
+        asset.indexing, asset, component_name, spec
+      )
 
       target_axes = _determine_target_axes(model_field, spec, axes, component_ranges)
       axis_ranges = _prepare_axis_ranges(component_ranges, target_axes, field)
@@ -450,10 +447,7 @@ def _randomize_field_core(
 
 
 def _get_entity_indices_by_names(
-  indexing: EntityIndexing, 
-  asset, 
-  names,
-  spec: FieldSpec
+  indexing: EntityIndexing, asset, names, spec: FieldSpec
 ) -> torch.Tensor:
   match spec.entity_type:
     case "dof":
@@ -483,9 +477,7 @@ def _get_entity_indices_by_names(
 
 
 def _get_entity_indices_from_asset(
-  indexing: EntityIndexing, 
-  asset_cfg, 
-  spec: FieldSpec
+  indexing: EntityIndexing, asset_cfg, spec: FieldSpec
 ) -> torch.Tensor:
   match spec.entity_type:
     case "dof":
