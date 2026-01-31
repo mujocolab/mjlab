@@ -4,6 +4,12 @@ from mjlab.viewer.viser.conversions import (
   create_primitive_mesh as create_primitive_mesh,
 )
 from mjlab.viewer.viser.conversions import get_body_name as get_body_name
+from mjlab.viewer.viser.conversions import (
+  get_geom_texture_id as get_geom_texture_id,
+)
+from mjlab.viewer.viser.conversions import (
+  group_geoms_by_visual_compat as group_geoms_by_visual_compat,
+)
 from mjlab.viewer.viser.conversions import is_fixed_body as is_fixed_body
 from mjlab.viewer.viser.conversions import merge_geoms as merge_geoms
 from mjlab.viewer.viser.conversions import (

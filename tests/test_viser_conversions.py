@@ -4,7 +4,12 @@ from pathlib import Path
 
 import mujoco
 
-from mjlab.viewer.viser import mujoco_mesh_to_trimesh
+from mjlab.viewer.viser import (
+  get_geom_texture_id,
+  group_geoms_by_visual_compat,
+  merge_geoms,
+  mujoco_mesh_to_trimesh,
+)
 
 
 def load_robot_model(robot_name: str) -> mujoco.MjModel:
@@ -283,6 +288,148 @@ def test_mesh_with_texture_coordinates():
   )
 
 
+def _make_mixed_visual_model() -> mujoco.MjModel:
+  """Create a model with both textured and color-only geoms on the same body."""
+  xml = """
+    <mujoco>
+      <asset>
+        <texture name="checker" type="2d" builtin="checker" width="64" height="64"
+                 rgb1="1 0 0" rgb2="0 0 1"/>
+        <material name="tex_mat" texture="checker"/>
+        <material name="color_mat" rgba="0 1 0 1"/>
+        <mesh name="textured_tetra"
+              vertex="0 0 0  1 0 0  0.5 0.866 0  0.5 0.289 0.816"
+              texcoord="0 0  1 0  0.5 1  0.5 0.5"
+              face="0 1 2  0 1 3  0 2 3  1 2 3"/>
+        <mesh name="plain_tetra"
+              vertex="2 0 0  3 0 0  2.5 0.866 0  2.5 0.289 0.816"
+              face="0 1 2  0 1 3  0 2 3  1 2 3"/>
+      </asset>
+      <worldbody>
+        <body name="mixed">
+          <geom name="tex_geom" type="mesh" mesh="textured_tetra" material="tex_mat"/>
+          <geom name="color_geom" type="mesh" mesh="plain_tetra" material="color_mat"/>
+        </body>
+      </worldbody>
+    </mujoco>
+  """
+  return mujoco.MjModel.from_xml_string(xml)
+
+
+def test_get_geom_texture_id():
+  """Verify correct texture ID detection for textured vs untextured geoms."""
+  model = _make_mixed_visual_model()
+
+  # Find geom indices by name.
+  tex_geom_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "tex_geom")
+  color_geom_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "color_geom")
+
+  tex_id = get_geom_texture_id(model, tex_geom_id)
+  assert tex_id >= 0, "Textured geom should have a non-negative texture ID"
+
+  color_id = get_geom_texture_id(model, color_geom_id)
+  assert color_id == -1, "Color-only geom should have texture ID -1"
+
+
+def test_get_geom_texture_id_primitive():
+  """Primitive (non-mesh) geoms should always return -1."""
+  xml = """
+    <mujoco>
+      <worldbody>
+        <geom name="sphere" type="sphere" size="0.1"/>
+      </worldbody>
+    </mujoco>
+  """
+  model = mujoco.MjModel.from_xml_string(xml)
+  geom_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "sphere")
+  assert get_geom_texture_id(model, geom_id) == -1
+
+
+def test_group_geoms_by_visual_compat():
+  """Verify geoms are correctly partitioned by visual compatibility."""
+  model = _make_mixed_visual_model()
+
+  tex_geom_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "tex_geom")
+  color_geom_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "color_geom")
+
+  groups = group_geoms_by_visual_compat(model, [tex_geom_id, color_geom_id])
+
+  # Should produce two groups: one textured, one untextured.
+  assert len(groups) == 2, f"Expected 2 groups, got {len(groups)}"
+
+  # Each group should have exactly one geom.
+  assert all(len(g) == 1 for g in groups)
+
+  # Flatten to a set and verify all geoms are present.
+  all_ids = {gid for g in groups for gid in g}
+  assert all_ids == {tex_geom_id, color_geom_id}
+
+
+def test_group_geoms_single_type():
+  """All untextured geoms should land in a single group."""
+  xml = """
+    <mujoco>
+      <asset>
+        <material name="red" rgba="1 0 0 1"/>
+        <material name="blue" rgba="0 0 1 1"/>
+        <mesh name="t1"
+              vertex="0 0 0  1 0 0  0.5 0.866 0  0.5 0.289 0.816"
+              face="0 1 2  0 1 3  0 2 3  1 2 3"/>
+        <mesh name="t2"
+              vertex="2 0 0  3 0 0  2.5 0.866 0  2.5 0.289 0.816"
+              face="0 1 2  0 1 3  0 2 3  1 2 3"/>
+      </asset>
+      <worldbody>
+        <body name="b">
+          <geom name="g1" type="mesh" mesh="t1" material="red"/>
+          <geom name="g2" type="mesh" mesh="t2" material="blue"/>
+        </body>
+      </worldbody>
+    </mujoco>
+  """
+  model = mujoco.MjModel.from_xml_string(xml)
+  g1 = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "g1")
+  g2 = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "g2")
+
+  groups = group_geoms_by_visual_compat(model, [g1, g2])
+  assert len(groups) == 1, "Two untextured geoms should form a single group"
+  assert set(groups[0]) == {g1, g2}
+
+
+def test_merge_mixed_visual_geoms():
+  """Regression: merging each visual-compat subgroup must preserve visuals."""
+  import trimesh.visual
+
+  model = _make_mixed_visual_model()
+
+  tex_geom_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "tex_geom")
+  color_geom_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "color_geom")
+
+  groups = group_geoms_by_visual_compat(model, [tex_geom_id, color_geom_id])
+
+  for group in groups:
+    mesh = merge_geoms(model, group)
+    assert len(mesh.vertices) > 0
+    assert len(mesh.faces) > 0
+
+    tex_id = get_geom_texture_id(model, group[0])
+    if tex_id >= 0:
+      # Textured group should have TextureVisuals, not default gray.
+      assert isinstance(mesh.visual, trimesh.visual.TextureVisuals), (
+        f"Expected TextureVisuals for textured group, got {type(mesh.visual)}"
+      )
+    else:
+      # Color group should have ColorVisuals.
+      assert isinstance(mesh.visual, trimesh.visual.ColorVisuals), (
+        f"Expected ColorVisuals for color group, got {type(mesh.visual)}"
+      )
+      # Verify the color is green (not default gray).
+      vertex_colors = mesh.visual.vertex_colors
+      assert vertex_colors[0][1] == 255, (
+        f"Expected green channel 255, got {vertex_colors[0][1]}"
+      )
+
+
 if __name__ == "__main__":
   # Run all tests
   print("=" * 60)
@@ -297,6 +444,11 @@ if __name__ == "__main__":
     test_performance,
     test_verbose_mode,
     test_mesh_with_texture_coordinates,
+    test_get_geom_texture_id,
+    test_get_geom_texture_id_primitive,
+    test_group_geoms_by_visual_compat,
+    test_group_geoms_single_type,
+    test_merge_mixed_visual_geoms,
   ]
 
   failed = []

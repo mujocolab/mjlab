@@ -18,6 +18,7 @@ from mjlab.viewer.debug_visualizer import DebugVisualizer
 from mjlab.viewer.viser.conversions import (
   create_primitive_mesh,
   get_body_name,
+  group_geoms_by_visual_compat,
   is_fixed_body,
   merge_geoms,
   mujoco_mesh_to_trimesh,
@@ -88,7 +89,7 @@ class ViserMujocoScene(DebugVisualizer):
 
   # Handles (created once).
   fixed_bodies_frame: viser.SceneNodeHandle = field(init=False)
-  mesh_handles_by_group: dict[tuple[int, int], viser.BatchedGlbHandle] = field(
+  mesh_handles_by_group: dict[tuple[int, int, int], viser.BatchedGlbHandle] = field(
     default_factory=dict
   )
   contact_point_handle: viser.BatchedMeshHandle | None = None
@@ -213,7 +214,7 @@ class ViserMujocoScene(DebugVisualizer):
   def _sync_visibilities(self) -> None:
     """Synchronize all handle visibilities based on current flags."""
     # Geom group meshes.
-    for (_body_id, group_id), handle in self.mesh_handles_by_group.items():
+    for (_body_id, group_id, _sub_idx), handle in self.mesh_handles_by_group.items():
       handle.visible = group_id < 6 and self.geom_groups_visible[group_id]
 
     # Contact points.
@@ -532,7 +533,7 @@ class ViserMujocoScene(DebugVisualizer):
     self.fixed_bodies_frame.position = scene_offset
     with self.server.atomic():
       body_xquat = vtf.SO3.from_matrix(body_xmat).wxyz
-      for (body_id, _group_id), handle in self.mesh_handles_by_group.items():
+      for (body_id, _group_id, _sub_idx), handle in self.mesh_handles_by_group.items():
         if not handle.visible:
           continue
         # Check if this is a mocap body.
@@ -670,17 +671,21 @@ class ViserMujocoScene(DebugVisualizer):
           else:
             nonplane_geom_ids.append(geom_id)
 
-        # Handle non-plane geoms.
+        # Handle non-plane geoms — split by visual compatibility to avoid
+        # gray fallback when mixing TextureVisuals and ColorVisuals.
         if len(nonplane_geom_ids) > 0:
-          self.server.scene.add_mesh_trimesh(
-            f"/fixed_bodies/{body_name}",
-            merge_geoms(self.mj_model, nonplane_geom_ids),
-            cast_shadow=False,
-            receive_shadow=0.2,
-            position=self.mj_model.body(body_id).pos,
-            wxyz=self.mj_model.body(body_id).quat,
-            visible=True,
-          )
+          subgroups = group_geoms_by_visual_compat(self.mj_model, nonplane_geom_ids)
+          for sub_idx, sub_geom_ids in enumerate(subgroups):
+            suffix = f"/sub{sub_idx}" if len(subgroups) > 1 else ""
+            self.server.scene.add_mesh_trimesh(
+              f"/fixed_bodies/{body_name}{suffix}",
+              merge_geoms(self.mj_model, sub_geom_ids),
+              cast_shadow=False,
+              receive_shadow=0.2,
+              position=self.mj_model.body(body_id).pos,
+              wxyz=self.mj_model.body(body_id).quat,
+              visible=True,
+            )
 
   def _create_mesh_handles_by_group(self) -> None:
     """Create mesh handles for each geom group separately to allow independent toggling."""
@@ -701,33 +706,33 @@ class ViserMujocoScene(DebugVisualizer):
         body_group_geoms[key] = []
       body_group_geoms[key].append(i)
 
-    # Create handles for each (body, group) combination.
+    # Create handles for each (body, group, sub) combination.
+    # Within each (body, group), split geoms by visual compatibility so that
+    # textured and color-only meshes are never concatenated together.
     with self.server.atomic():
       for (body_id, group_id), geom_indices in body_group_geoms.items():
-        # Get body name.
         body_name = get_body_name(self.mj_model, body_id)
-
-        # Merge geoms into a single mesh.
-        mesh = merge_geoms(self.mj_model, geom_indices)
-        lod_ratio = 1000.0 / mesh.vertices.shape[0]
-
-        # Check if this group should be visible.
+        subgroups = group_geoms_by_visual_compat(self.mj_model, geom_indices)
         visible = group_id < 6 and self.geom_groups_visible[group_id]
 
-        # Create handle.
-        handle = self.server.scene.add_batched_meshes_trimesh(
-          f"/bodies/{body_name}/group{group_id}",
-          mesh,
-          batched_wxyzs=np.array([1.0, 0.0, 0.0, 0.0])[None].repeat(
-            self.num_envs, axis=0
-          ),
-          batched_positions=np.array([0.0, 0.0, 0.0])[None].repeat(
-            self.num_envs, axis=0
-          ),
-          lod=((2.0, lod_ratio),) if lod_ratio < 0.5 else "off",
-          visible=visible,
-        )
-        self.mesh_handles_by_group[(body_id, group_id)] = handle
+        for sub_idx, sub_geom_ids in enumerate(subgroups):
+          mesh = merge_geoms(self.mj_model, sub_geom_ids)
+          lod_ratio = 1000.0 / mesh.vertices.shape[0]
+
+          suffix = f"/sub{sub_idx}" if len(subgroups) > 1 else ""
+          handle = self.server.scene.add_batched_meshes_trimesh(
+            f"/bodies/{body_name}/group{group_id}{suffix}",
+            mesh,
+            batched_wxyzs=np.array([1.0, 0.0, 0.0, 0.0])[None].repeat(
+              self.num_envs, axis=0
+            ),
+            batched_positions=np.array([0.0, 0.0, 0.0])[None].repeat(
+              self.num_envs, axis=0
+            ),
+            lod=((2.0, lod_ratio),) if lod_ratio < 0.5 else "off",
+            visible=visible,
+          )
+          self.mesh_handles_by_group[(body_id, group_id, sub_idx)] = handle
 
   def _extract_contacts_from_mjdata(self, mj_data: mujoco.MjData) -> list[_Contact]:
     """Extract contact data from given MuJoCo data."""
