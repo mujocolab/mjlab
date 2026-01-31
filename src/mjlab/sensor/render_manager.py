@@ -178,6 +178,7 @@ class RenderManager:
     if self.use_cuda_graph:
       with wp.ScopedDevice(self.wp_device):
         with wp.ScopedCapture() as capture:
+          mjwarp.refit_bvh(self._model, self._data, self._ctx)
           mjwarp.render(self._model, self._data, self._ctx)
         self.render_graph = capture.graph
 
@@ -216,6 +217,7 @@ class RenderManager:
       if self.use_cuda_graph and self.render_graph is not None:
         wp.capture_launch(self.render_graph)
       else:
+        mjwarp.refit_bvh(self._model, self._data, self._ctx)
         mjwarp.render(self._model, self._data, self._ctx)
 
     if any_rgb_rendered and self._rgb_unpacked is not None:
