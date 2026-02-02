@@ -48,21 +48,16 @@ class TerrainImporterCfg:
   """Maximum initial difficulty level (row index) for environment placement in
   curriculum mode. None uses all available rows."""
   num_envs: int = 1
-  """Number of parallel environments to create. This will get overriden by the
+  """Number of parallel environments to create. This will get overridden by the
   scene configuration if specified there."""
 
 
 class TerrainImporter:
-  """A class to handle terrain geometry and import it into the simulator.
+  """Builds a MuJoCo spec with terrain geometry and maps environments to spawn origins.
 
-  We assume that a terrain geometry comprises of sub-terrains that are arranged in a
-  grid with `num_rows` rows and `num_cols` columns. The terrain origins are the
-  positions of the sub-terrains where the robot should be spawned.
-
-  Based on the configuration, the terrain importer handles computing the environment
-  origins from the sub-terrain origins. In a typical setup, the number of sub-terrains
-  `num_rows x num_cols` is smaller than the number of environments `num_envs`. In this
-  case, the environment origins are computed by sampling the sub-terrain origins.
+  The terrain is a grid of sub-terrain patches (num_rows x num_cols), each with
+  a spawn origin. When num_envs exceeds the number of patches, environment
+  origins are sampled from the sub-terrain origins.
   """
 
   def __init__(self, cfg: TerrainImporterCfg, device: str) -> None:

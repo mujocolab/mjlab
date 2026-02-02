@@ -45,6 +45,14 @@ build:
 docs:
 	uv run --extra docs sphinx-build docs docs/_build
 
+.PHONY: publish-test
+publish-test: build
+	uv publish --publish-url https://test.pypi.org/legacy/
+
+.PHONY: publish
+publish: build
+	uv publish
+
 .PHONY: docker-build
 docker-build:
 	docker build -t mjlab:latest .

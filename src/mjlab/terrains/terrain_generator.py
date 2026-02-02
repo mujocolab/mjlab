@@ -40,22 +40,31 @@ class FlatPatchSamplingCfg:
 @dataclass
 class TerrainGeometry:
   geom: mujoco.MjsGeom | None = None
+  """MuJoCo geometry spec element, or None."""
   hfield: mujoco.MjsHField | None = None
+  """MuJoCo heightfield spec element, or None."""
   color: tuple[float, float, float, float] | None = None
+  """RGBA color override for this geometry, or None to use default."""
 
 
 @dataclass
 class TerrainOutput:
   origin: np.ndarray
+  """Spawn origin position (x, y, z) in the sub-terrain's local frame."""
   geometries: list[TerrainGeometry]
+  """List of geometry elements comprising this terrain."""
   flat_patches: dict[str, np.ndarray] | None = None
+  """Named sets of flat patch positions, each an (N, 3) array. None if not configured."""
 
 
 @dataclass
 class SubTerrainCfg(abc.ABC):
   proportion: float = 1.0
+  """Relative weight for randomly selecting this terrain type."""
   size: tuple[float, float] = (10.0, 10.0)
+  """Width and length of the terrain patch, in meters."""
   flat_patch_sampling: dict[str, FlatPatchSamplingCfg] | None = None
+  """Named flat-patch sampling configurations, or None to disable."""
 
   @abc.abstractmethod
   def function(
@@ -72,16 +81,28 @@ class SubTerrainCfg(abc.ABC):
 @dataclass(kw_only=True)
 class TerrainGeneratorCfg:
   seed: int | None = None
+  """Random seed for terrain generation. None uses a random seed."""
   curriculum: bool = False
+  """If True, difficulty increases along rows. If False, difficulty is random."""
   size: tuple[float, float]
+  """Width and length of each sub-terrain patch, in meters."""
   border_width: float = 0.0
+  """Width of the flat border around the entire terrain grid, in meters."""
   border_height: float = 1.0
+  """Height of the border wall around the terrain grid, in meters."""
   num_rows: int = 1
+  """Number of sub-terrain rows in the grid."""
   num_cols: int = 1
+  """Number of sub-terrain columns in the grid."""
   color_scheme: Literal["height", "random", "none"] = "height"
+  """Coloring strategy for terrain geometry. "height" colors by elevation,
+  "random" assigns random colors, "none" uses uniform gray."""
   sub_terrains: dict[str, SubTerrainCfg] = field(default_factory=dict)
+  """Named sub-terrain configurations to populate the grid."""
   difficulty_range: tuple[float, float] = (0.0, 1.0)
+  """Min and max difficulty values used when generating sub-terrains."""
   add_lights: bool = False
+  """If True, adds a directional light above the terrain grid."""
 
 
 class TerrainGenerator:

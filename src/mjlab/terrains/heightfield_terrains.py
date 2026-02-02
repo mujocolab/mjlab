@@ -129,12 +129,20 @@ def _compute_flat_patches(
 @dataclass(kw_only=True)
 class HfPyramidSlopedTerrainCfg(SubTerrainCfg):
   slope_range: tuple[float, float]
+  """Range of slope gradients (rise / run), interpolated by difficulty."""
   platform_width: float = 1.0
+  """Side length of the flat square platform at the terrain center, in meters."""
   inverted: bool = False
+  """If True, the pyramid is inverted so the platform is at the bottom."""
   border_width: float = 0.0
+  """Width of the flat border around the terrain edges, in meters. Must be >=
+  horizontal_scale if non-zero."""
   horizontal_scale: float = 0.1
+  """Heightfield grid resolution along x and y, in meters per cell."""
   vertical_scale: float = 0.005
+  """Heightfield height resolution, in meters per integer unit of the noise array."""
   base_thickness_ratio: float = 1.0
+  """Ratio of the heightfield base thickness to its maximum surface height."""
 
   def function(
     self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
@@ -290,12 +298,22 @@ class HfPyramidSlopedTerrainCfg(SubTerrainCfg):
 @dataclass(kw_only=True)
 class HfRandomUniformTerrainCfg(SubTerrainCfg):
   noise_range: tuple[float, float]
+  """Min and max height noise, in meters."""
   noise_step: float = 0.005
+  """Height quantization step, in meters. Sampled heights are multiples of this
+  value within noise_range."""
   downsampled_scale: float | None = None
+  """Spacing between randomly sampled height points before interpolation, in
+  meters. If None, uses horizontal_scale. Must be >= horizontal_scale."""
   horizontal_scale: float = 0.1
+  """Heightfield grid resolution along x and y, in meters per cell."""
   vertical_scale: float = 0.005
+  """Heightfield height resolution, in meters per integer unit of the noise array."""
   base_thickness_ratio: float = 1.0
+  """Ratio of the heightfield base thickness to its maximum surface height."""
   border_width: float = 0.0
+  """Width of the flat border around the terrain edges, in meters. Must be >=
+  horizontal_scale if non-zero."""
 
   def function(
     self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
@@ -435,11 +453,18 @@ class HfRandomUniformTerrainCfg(SubTerrainCfg):
 @dataclass(kw_only=True)
 class HfWaveTerrainCfg(SubTerrainCfg):
   amplitude_range: tuple[float, float]
+  """Min and max wave amplitude, in meters. Interpolated by difficulty."""
   num_waves: int = 1
+  """Number of complete wave cycles along the terrain length."""
   horizontal_scale: float = 0.1
+  """Heightfield grid resolution along x and y, in meters per cell."""
   vertical_scale: float = 0.005
+  """Heightfield height resolution, in meters per integer unit of the noise array."""
   base_thickness_ratio: float = 0.25
+  """Ratio of the heightfield base thickness to its maximum surface height."""
   border_width: float = 0.0
+  """Width of the flat border around the terrain edges, in meters. Must be >=
+  horizontal_scale if non-zero."""
 
   def function(
     self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
@@ -555,15 +580,28 @@ class HfWaveTerrainCfg(SubTerrainCfg):
 @dataclass(kw_only=True)
 class HfDiscreteObstaclesTerrainCfg(SubTerrainCfg):
   obstacle_height_mode: Literal["choice", "fixed"] = "choice"
+  """How obstacle heights are chosen. "choice" randomly picks from [-h, -h/2,
+  h/2, h] (mix of pits and bumps); "fixed" uses h for all obstacles."""
   obstacle_width_range: tuple[float, float]
+  """Min and max obstacle width, in meters."""
   obstacle_height_range: tuple[float, float]
+  """Min and max obstacle height, in meters. Interpolated by difficulty."""
   num_obstacles: int
+  """Number of obstacles to place on the terrain."""
   platform_width: float = 1.0
+  """Side length of the obstacle-free flat square at the terrain center, in meters."""
   horizontal_scale: float = 0.1
+  """Heightfield grid resolution along x and y, in meters per cell."""
   vertical_scale: float = 0.005
+  """Heightfield height resolution, in meters per integer unit of the noise array."""
   base_thickness_ratio: float = 1.0
+  """Ratio of the heightfield base thickness to its maximum surface height."""
   border_width: float = 0.0
+  """Width of the flat border around the terrain edges, in meters. Must be >=
+  horizontal_scale if non-zero."""
   square_obstacles: bool = False
+  """If True, obstacles have equal width and length. If False, each dimension
+  is sampled independently."""
   origin_z_offset: float = 0.0
   """Vertical offset added to spawn origin height (meters).
 
