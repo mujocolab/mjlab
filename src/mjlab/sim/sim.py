@@ -261,6 +261,15 @@ class Simulation:
       ).clone()
     return self._default_model_fields[field]
 
+  def recompute_constants(self) -> None:
+    """Recompute derived model constants after runtime parameter changes.
+
+    Call this after modifying fields like body_mass, body_inertia, dof_armature,
+    etc. to update derived quantities (body_subtreemass, dof_invweight0, etc.).
+    """
+    with wp.ScopedDevice(self.wp_device):
+      mjwarp.set_const(self.wp_model, self.wp_data)
+
   def forward(self) -> None:
     with wp.ScopedDevice(self.wp_device):
       if self.use_cuda_graph and self.forward_graph is not None:

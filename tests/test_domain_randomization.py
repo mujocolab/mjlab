@@ -338,6 +338,43 @@ def test_randomize_field_shared_random(device):
   assert_values_in_range(friction, FRICTION_RANGE[0], FRICTION_RANGE[1])
 
 
+def test_body_mass_randomization_updates_subtreemass(device):
+  """Verify set_const is called after body_mass randomization.
+
+  When body_mass is randomized, MuJoCo/mjwarp needs to recompute derived
+  quantities like body_subtreemass. This test verifies that the recomputation
+  happens automatically.
+  """
+  env = create_test_env(device, num_envs=2)
+  robot = env.scene["robot"]
+  env.sim.expand_model_fields(("body_mass",))
+
+  body_idx = robot.indexing.body_ids[0]
+
+  # Get subtreemass before randomization.
+  original_subtreemass = env.sim.model.body_subtreemass[0, body_idx].item()
+
+  # Randomize body_mass with a fixed scale factor.
+  randomize_field(
+    env,  # pyright: ignore[reportArgumentType]
+    env_ids=None,
+    field="body_mass",
+    ranges=(2.0, 2.0),
+    operation="scale",
+    asset_cfg=SceneEntityCfg("robot", body_ids=[0]),
+  )
+
+  # Subtreemass should have been recomputed.
+  new_subtreemass = env.sim.model.body_subtreemass[0, body_idx].item()
+  assert new_subtreemass != original_subtreemass, (
+    "body_subtreemass was not updated after body_mass randomization"
+  )
+  # The subtreemass should approximately double since we scaled mass by 2.0.
+  assert abs(new_subtreemass - original_subtreemass * 2.0) < 1e-4, (
+    f"Expected subtreemass ~{original_subtreemass * 2.0}, got {new_subtreemass}"
+  )
+
+
 @pytest.mark.slow
 def test_g1_foot_friction_shared_across_geoms(device):
   """Verify G1 velocity env has uniform foot friction across all collision geoms.

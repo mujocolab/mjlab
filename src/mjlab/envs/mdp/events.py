@@ -363,23 +363,24 @@ class FieldSpec:
   use_address: bool = False  # True for fields that need address (q_adr, v_adr)
   default_axes: list[int] | None = None
   valid_axes: list[int] | None = None
+  requires_recompute: bool = False  # Requires set_const after modification
 
 
 FIELD_SPECS = {
   # Dof - uses addresses.
-  "dof_armature": FieldSpec("dof", use_address=True),
+  "dof_armature": FieldSpec("dof", use_address=True, requires_recompute=True),
   "dof_frictionloss": FieldSpec("dof", use_address=True),
   "dof_damping": FieldSpec("dof", use_address=True),
   # Joint - uses IDs directly.
   "jnt_range": FieldSpec("joint"),
   "jnt_stiffness": FieldSpec("joint"),
   # Body - uses IDs directly.
-  "body_mass": FieldSpec("body"),
-  "body_ipos": FieldSpec("body", default_axes=[0, 1, 2]),
-  "body_iquat": FieldSpec("body", default_axes=[0, 1, 2, 3]),
-  "body_inertia": FieldSpec("body"),
-  "body_pos": FieldSpec("body", default_axes=[0, 1, 2]),
-  "body_quat": FieldSpec("body", default_axes=[0, 1, 2, 3]),
+  "body_mass": FieldSpec("body", requires_recompute=True),
+  "body_ipos": FieldSpec("body", default_axes=[0, 1, 2], requires_recompute=True),
+  "body_iquat": FieldSpec("body", default_axes=[0, 1, 2, 3], requires_recompute=True),
+  "body_inertia": FieldSpec("body", requires_recompute=True),
+  "body_pos": FieldSpec("body", default_axes=[0, 1, 2], requires_recompute=True),
+  "body_quat": FieldSpec("body", default_axes=[0, 1, 2, 3], requires_recompute=True),
   # Geom - uses IDs directly.
   "geom_friction": FieldSpec("geom", default_axes=[0], valid_axes=[0, 1, 2]),
   "geom_pos": FieldSpec("geom", default_axes=[0, 1, 2]),
@@ -389,7 +390,7 @@ FIELD_SPECS = {
   "site_pos": FieldSpec("site", default_axes=[0, 1, 2]),
   "site_quat": FieldSpec("site", default_axes=[0, 1, 2, 3]),
   # Special case - uses address.
-  "qpos0": FieldSpec("joint", use_address=True),
+  "qpos0": FieldSpec("joint", use_address=True, requires_recompute=True),
 }
 
 
@@ -473,6 +474,10 @@ def randomize_field(
   _apply_operation(
     model_field, env_grid, entity_grid, base_values, random_values, operation
   )
+
+  # Recompute derived physics quantities if needed.
+  if spec.requires_recompute:
+    env.sim.recompute_constants()
 
 
 def _get_entity_indices(
