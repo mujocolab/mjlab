@@ -1,16 +1,16 @@
 import re
-from pathlib import Path
 from typing import Any, Dict
 
+from etils.epath import Path
 import yaml
 
 
 def update_assets(
-  assets: Dict[str, Any],
-  path: str | Path,
-  meshdir: str | None = None,
-  glob: str = "*",
-  recursive: bool = False,
+    assets: Dict[str, Any],
+    path: str | Path,
+    meshdir: str | None = None,
+    glob: str = "*",
+    recursive: bool = False,
 ):
   """Update assets dictionary with files from a directory.
 
@@ -45,7 +45,7 @@ def dump_yaml(filename: Path, data: Dict, sort_keys: bool = False) -> None:
   if not filename.suffix:
     filename = filename.with_suffix(".yaml")
   filename.parent.mkdir(parents=True, exist_ok=True)
-  with open(filename, "w") as f:
+  with filename.open("w") as f:
     yaml.dump(data, f, sort_keys=sort_keys)
 
 

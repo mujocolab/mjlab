@@ -1,11 +1,9 @@
-"""Shared utilities for ONNX policy export across RL tasks."""
-
-import onnx
-import torch
-
+from etils.epath import Path
 from mjlab.entity import Entity
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.envs.mdp.actions import JointPositionAction
+import onnx
+import torch
 
 
 def list_to_csv_str(arr, *, decimals: int = 3, delimiter: str = ",") -> str:
@@ -63,7 +61,7 @@ def get_base_metadata(
 
 
 def attach_metadata_to_onnx(
-  onnx_path: str, metadata: dict[str, list | str | float]
+    onnx_path: str | Path, metadata: dict[str, list | str | float]
 ) -> None:
   """Attach metadata to an ONNX model file.
 
@@ -71,7 +69,9 @@ def attach_metadata_to_onnx(
     onnx_path: Path to the ONNX model file.
     metadata: Dictionary of metadata key-value pairs to attach.
   """
-  model = onnx.load(onnx_path)
+  onnx_path = Path(onnx_path)
+  with onnx_path.open("rb") as f:
+    model = onnx.load(f)
 
   for k, v in metadata.items():
     entry = onnx.StringStringEntryProto()
@@ -79,4 +79,5 @@ def attach_metadata_to_onnx(
     entry.value = list_to_csv_str(v) if isinstance(v, list) else str(v)
     model.metadata_props.append(entry)
 
-  onnx.save(model, onnx_path)
+  with onnx_path.open("wb") as f:
+    onnx.save(model, f)

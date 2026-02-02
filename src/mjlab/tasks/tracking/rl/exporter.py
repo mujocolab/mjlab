@@ -1,8 +1,6 @@
-import os
 from typing import cast
 
-import torch
-
+from etils.epath import Path
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.rl.exporter_utils import (
   attach_metadata_to_onnx,
@@ -10,6 +8,7 @@ from mjlab.rl.exporter_utils import (
 )
 from mjlab.tasks.tracking.mdp import MotionCommand
 from mjlab.utils.lab_api.rl.exporter import _OnnxPolicyExporter
+import torch
 
 
 def export_motion_policy_as_onnx(
@@ -20,8 +19,8 @@ def export_motion_policy_as_onnx(
   filename="policy.onnx",
   verbose=False,
 ):
-  if not os.path.exists(path):
-    os.makedirs(path, exist_ok=True)
+  path = Path(path)
+  path.mkdir(parents=True, exist_ok=True)
   policy_exporter = _OnnxMotionPolicyExporter(env, actor_critic, normalizer, verbose)
   policy_exporter.export(path, filename)
 
@@ -59,26 +58,27 @@ class _OnnxMotionPolicyExporter(_OnnxPolicyExporter):
     self.to("cpu")
     obs = torch.zeros(1, self.actor[0].in_features)
     time_step = torch.zeros(1, 1)
-    torch.onnx.export(
-      self,
-      (obs, time_step),
-      os.path.join(path, filename),
-      export_params=True,
-      opset_version=11,
-      verbose=self.verbose,
-      input_names=["obs", "time_step"],
-      output_names=[
-        "actions",
-        "joint_pos",
-        "joint_vel",
-        "body_pos_w",
-        "body_quat_w",
-        "body_lin_vel_w",
-        "body_ang_vel_w",
-      ],
-      dynamic_axes={},
-      dynamo=False,
-    )
+    with (Path(path) / filename).open("wb") as f:
+      torch.onnx.export(
+          self,
+          (obs, time_step),
+          f,
+          export_params=True,
+          opset_version=11,
+          verbose=self.verbose,
+          input_names=["obs", "time_step"],
+          output_names=[
+              "actions",
+              "joint_pos",
+              "joint_vel",
+              "body_pos_w",
+              "body_quat_w",
+              "body_lin_vel_w",
+              "body_ang_vel_w",
+          ],
+          dynamic_axes={},
+          dynamo=False,
+      )
 
 
 def attach_onnx_metadata(
@@ -92,7 +92,7 @@ def attach_onnx_metadata(
     path: Directory containing the ONNX file.
     filename: Name of the ONNX file.
   """
-  onnx_path = os.path.join(path, filename)
+  onnx_path = Path(path) / filename
 
   # Get base metadata common to all tasks.
   metadata = get_base_metadata(env, run_path)

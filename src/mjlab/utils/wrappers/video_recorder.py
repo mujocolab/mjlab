@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+import tempfile
 from typing import Any, Callable, Literal
 
+from etils.epath import Path
+import mediapy as media
+from mjlab.envs import ManagerBasedRlEnv
 import numpy as np
 import torch
 from typing_extensions import assert_never
-
-from mjlab.envs import ManagerBasedRlEnv
 
 
 class VideoRecorder(ManagerBasedRlEnv):
@@ -40,18 +41,21 @@ class VideoRecorder(ManagerBasedRlEnv):
   """
 
   def __init__(
-    self,
-    env: ManagerBasedRlEnv,
-    video_folder: Path,
-    episode_trigger: Callable[[int], bool] | None = None,
-    step_trigger: Callable[[int], bool] | None = None,
-    video_length: int | None = None,
-    name_prefix: str = "rl-video",
-    disable_logger: bool = False,
+      self,
+      env: ManagerBasedRlEnv,
+      video_folder: Path,
+      episode_trigger: Callable[[int], bool] | None = None,
+      step_trigger: Callable[[int], bool] | None = None,
+      video_length: int | None = None,
+      name_prefix: str = "rl-video",
+      disable_logger: bool = False,
+      on_save_callback: (
+          Callable[[Path, list[np.ndarray], int, int], None] | None
+      ) = None,
   ):
     # Don't call super().__init__() - we're wrapping an existing env.
     self._wrapped_env = env
-    self.video_folder = video_folder
+    self.video_folder = Path(video_folder)
     self.video_folder.mkdir(parents=True, exist_ok=True)
 
     self.episode_trigger = episode_trigger
@@ -59,6 +63,7 @@ class VideoRecorder(ManagerBasedRlEnv):
     self.video_length = video_length
     self.name_prefix = name_prefix
     self.disable_logger = disable_logger
+    self.on_save_callback = on_save_callback
 
     self.step_count: int = 0
     self.episode_count: int = 0  # Tracks actual episodes
@@ -181,8 +186,6 @@ class VideoRecorder(ManagerBasedRlEnv):
   def _finish_recording(self) -> None:
     """Finish recording and save the video."""
     if self.current_video_frames:
-      from moviepy import ImageSequenceClip
-
       # Convert frames to uint8 format.
       video_frames = []
       for frame in self.current_video_frames:
@@ -191,13 +194,30 @@ class VideoRecorder(ManagerBasedRlEnv):
           frame = (np.clip(frame, 0, 1) * 255).astype(np.uint8)
         video_frames.append(frame)
 
-      # Write video using moviepy.
+      # Write video using mediapy.
       fps = self._wrapped_env.metadata.get("render_fps", 30)
-      clip = ImageSequenceClip(video_frames, fps=fps)
-      clip.write_videofile(str(self.current_video_path))
+      # mediapy does not support file-like objects passed as path argument nor
+      # cloud storage paths directly. Write to tmp file and copy to destination.
+      try:
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as tmp:
+          media.write_video(tmp.name, video_frames, fps=fps)
+          Path(tmp.name).copy(self.current_video_path, overwrite=True)
+      except Exception as e:
+        if not self.disable_logger:
+          print(
+              f"[ERROR] Failed to save video to {self.current_video_path}: {e}"
+          )
+      else:
+        if not self.disable_logger:
+          print(f"[INFO] Saved video to {self.current_video_path}")
 
-      if not self.disable_logger:
-        print(f"[INFO] Saved video to {self.current_video_path}")
+      if self.on_save_callback:
+        self.on_save_callback(
+            self.current_video_path,
+            video_frames,
+            self.step_count,
+            self.episode_count,
+        )
 
     self.is_recording = False
     self.current_video_frames = []
