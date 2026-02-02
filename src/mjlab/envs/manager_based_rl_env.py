@@ -262,7 +262,28 @@ class ManagerBasedRlEnv:
     self.event_manager = EventManager(self.cfg.events, self)
     print_info(f"[INFO] {self.event_manager}")
 
-    self.sim.expand_model_fields(self.event_manager.domain_randomization_fields)
+    # Expand per-env model fields that may be modified by domain randomization.
+    # Also expand derived model fields, since set_const recomputes them with
+    # per-env values; without expansion, it writes to a shared array with wrong
+    # memory layout.
+    derived_model_fields = {
+      "body_subtreemass",
+      "tendon_length0",
+      "dof_invweight0",
+      "body_invweight0",
+      "tendon_invweight0",
+      "cam_pos0",
+      "cam_poscom0",
+      "cam_mat0",
+      "light_pos0",
+      "light_poscom0",
+      "light_dir0",
+      "actuator_acc0",
+    }
+    fields_to_expand = (
+      set(self.event_manager.domain_randomization_fields) | derived_model_fields
+    )
+    self.sim.expand_model_fields(tuple(fields_to_expand))
 
     # Command manager (must be before observation manager since observations
     # may reference commands).
