@@ -1,3 +1,5 @@
+"""Shared utilities for ONNX policy export across RL tasks."""
+
 import onnx
 import torch
 from etils.epath import Path
