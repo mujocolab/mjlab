@@ -3,11 +3,11 @@
 import os
 import sys
 from dataclasses import asdict, dataclass
-from pathlib import Path
 from typing import Literal
 
 import torch
 import tyro
+from etils.epath import Path
 from rsl_rl.runners import OnPolicyRunner
 
 from mjlab.envs import ManagerBasedRlEnv

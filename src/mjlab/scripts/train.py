@@ -5,10 +5,10 @@ import os
 import sys
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from pathlib import Path
 from typing import Literal, cast
 
 import tyro
+from etils.epath import Path
 
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
 from mjlab.rl import MjlabOnPolicyRunner, RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
@@ -134,7 +134,7 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
   if cfg.video and rank == 0:
     env = VideoRecorder(
       env,
-      video_folder=Path(log_dir) / "videos" / "train",
+      video_folder=log_dir / "videos" / "train",
       step_trigger=lambda step: step % cfg.video_interval == 0,
       video_length=cfg.video_length,
       disable_logger=True,

@@ -1,13 +1,16 @@
+import os
 import re
 from typing import Any, Dict
 
 import yaml
 from etils.epath import Path
 
+PathLike = str | os.PathLike[str]
+
 
 def update_assets(
   assets: Dict[str, Any],
-  path: str | Path,
+  path: PathLike,
   meshdir: str | None = None,
   glob: str = "*",
   recursive: bool = False,
@@ -34,7 +37,7 @@ def update_assets(
       update_assets(assets, f, meshdir, glob, recursive)
 
 
-def dump_yaml(filename: Path, data: Dict, sort_keys: bool = False) -> None:
+def dump_yaml(filename: PathLike, data: Dict, sort_keys: bool = False) -> None:
   """Saves data to a YAML file.
 
   Args:
@@ -42,6 +45,7 @@ def dump_yaml(filename: Path, data: Dict, sort_keys: bool = False) -> None:
       data: The data to save. Must be a dictionary.
       sort_keys: Whether to sort the keys in the YAML file.
   """
+  filename = Path(filename)
   if not filename.suffix:
     filename = filename.with_suffix(".yaml")
   filename.parent.mkdir(parents=True, exist_ok=True)
@@ -50,7 +54,7 @@ def dump_yaml(filename: Path, data: Dict, sort_keys: bool = False) -> None:
 
 
 def get_checkpoint_path(
-  log_path: Path,
+  log_path: PathLike,
   run_dir: str = ".*",
   checkpoint: str = ".*",
   sort_alpha: bool = True,
@@ -63,6 +67,7 @@ def get_checkpoint_path(
   (highest alphabetical order) run and checkpoint are selected. To disable this
   behavior, set `sort_alpha` to `False`.
   """
+  log_path = Path(log_path)
   if not log_path.exists():
     raise ValueError(f"Log path does not exist: {log_path}")
   # Exclude wandb_checkpoints directory which is used for caching downloaded checkpoints.
@@ -76,7 +81,7 @@ def get_checkpoint_path(
   if sort_alpha:
     runs.sort()
   else:
-    runs = sorted(runs, key=lambda p: p.stat().st_mtime)
+    runs = sorted(runs, key=lambda p: p.stat().st_mtime)  # pyright: ignore[reportAttributeAccessIssue]
   run_path = runs[-1]
 
   model_checkpoints = [
@@ -89,7 +94,9 @@ def get_checkpoint_path(
   return run_path / checkpoint_file
 
 
-def get_wandb_checkpoint_path(log_path: Path, run_path: Path) -> tuple[Path, bool]:
+def get_wandb_checkpoint_path(
+  log_path: PathLike, run_path: PathLike
+) -> tuple[Path, bool]:
   """Get checkpoint path from wandb, downloading if needed.
 
   Returns:
@@ -97,6 +104,7 @@ def get_wandb_checkpoint_path(log_path: Path, run_path: Path) -> tuple[Path, boo
   """
   import wandb
 
+  log_path = Path(log_path)
   # Extract run_id from path (e.g., "entity/project/run_id" -> "run_id").
   run_id = str(run_path).split("/")[-1]
   download_dir = log_path / "wandb_checkpoints" / run_id

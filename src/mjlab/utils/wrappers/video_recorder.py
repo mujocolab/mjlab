@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+import os
 import tempfile
 from typing import Any, Callable, Literal
 
-import mediapy as media
+import mediapy as media  # type: ignore[import-untyped]
 import numpy as np
 import torch
 from etils.epath import Path
 from typing_extensions import assert_never
 
 from mjlab.envs import ManagerBasedRlEnv
+
+PathLike = str | os.PathLike[str]
 
 
 class VideoRecorder(ManagerBasedRlEnv):
@@ -44,7 +47,7 @@ class VideoRecorder(ManagerBasedRlEnv):
   def __init__(
     self,
     env: ManagerBasedRlEnv,
-    video_folder: Path,
+    video_folder: PathLike,
     episode_trigger: Callable[[int], bool] | None = None,
     step_trigger: Callable[[int], bool] | None = None,
     video_length: int | None = None,
@@ -202,7 +205,8 @@ class VideoRecorder(ManagerBasedRlEnv):
       try:
         with tempfile.NamedTemporaryFile(suffix=".mp4") as tmp:
           media.write_video(tmp.name, video_frames, fps=fps)
-          Path(tmp.name).copy(self.current_video_path, overwrite=True)
+          if self.current_video_path is not None:
+            Path(tmp.name).copy(self.current_video_path, overwrite=True)
       except Exception as e:
         if not self.disable_logger:
           print(f"[ERROR] Failed to save video to {self.current_video_path}: {e}")
@@ -210,7 +214,7 @@ class VideoRecorder(ManagerBasedRlEnv):
         if not self.disable_logger:
           print(f"[INFO] Saved video to {self.current_video_path}")
 
-      if self.on_save_callback:
+      if self.on_save_callback and self.current_video_path is not None:
         self.on_save_callback(
           self.current_video_path,
           video_frames,

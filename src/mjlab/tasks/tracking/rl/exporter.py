@@ -15,15 +15,15 @@ from mjlab.utils.lab_api.rl.exporter import _OnnxPolicyExporter
 def export_motion_policy_as_onnx(
   env: ManagerBasedRlEnv,
   actor_critic: object,
-  path: str,
+  path: str | Path,
   normalizer: object | None = None,
   filename="policy.onnx",
   verbose=False,
 ):
-  path = Path(path)
-  path.mkdir(parents=True, exist_ok=True)
+  export_path = Path(path)
+  export_path.mkdir(parents=True, exist_ok=True)
   policy_exporter = _OnnxMotionPolicyExporter(env, actor_critic, normalizer, verbose)
-  policy_exporter.export(path, filename)
+  policy_exporter.export(export_path, filename)
 
 
 class _OnnxMotionPolicyExporter(_OnnxPolicyExporter):
