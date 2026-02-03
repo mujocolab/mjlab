@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
@@ -14,8 +15,29 @@ from mjlab.managers.manager_base import ManagerBase, ManagerTermBaseCfg
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
 
+F = Callable[..., None]
 
 EventMode = Literal["startup", "reset", "interval"]
+
+
+def requires_model_fields(*fields: str) -> Callable[[F], F]:
+  """Mark an event function as requiring specific model fields expanded per-world.
+
+  Fields listed here are registered in ``EventManager.domain_randomization_fields``
+  so that ``sim.expand_model_fields()`` allocates real per-world memory for them.
+
+  Example::
+
+    @requires_model_fields("actuator_gainprm", "actuator_biasprm")
+    def randomize_pd_gains(env, env_ids, ...):
+      ...
+  """
+
+  def decorator(func: F) -> F:
+    func.model_fields = fields  # type: ignore[attr-defined]
+    return func
+
+  return decorator
 
 
 @dataclass(kw_only=True)
@@ -273,3 +295,9 @@ class EventManager(ManagerBase):
         field_name = term_cfg.params["field"]
         if field_name not in self._domain_randomization_fields:
           self._domain_randomization_fields.append(field_name)
+
+      func = term_cfg.func
+      if hasattr(func, "model_fields"):
+        for field in func.model_fields:
+          if field not in self._domain_randomization_fields:
+            self._domain_randomization_fields.append(field)

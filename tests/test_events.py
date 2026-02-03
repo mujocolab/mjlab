@@ -358,3 +358,116 @@ def test_randomize_effort_limits(device):
     ideal_actuator.force_limit[1],
     torch.tensor([150.0, 150.0], device=device),
   )
+
+
+def test_randomize_pd_gains_multi_env(device):
+  """Test that randomize_pd_gains writes independent values per environment."""
+  env = Mock()
+  env.num_envs = 2
+  env.device = device
+
+  mock_actuator = Mock(spec=actuator.BuiltinPositionActuator)
+  mock_actuator.ctrl_ids = torch.tensor([0, 1], device=device)
+
+  mock_entity = Mock()
+  mock_entity.actuators = [mock_actuator]
+  env.scene = {"robot": mock_entity}
+
+  env.sim = Mock()
+  env.sim.model = Mock()
+  env.sim.model.actuator_gainprm = torch.ones((2, 2, 10), device=device) * 50.0
+  env.sim.model.actuator_biasprm = torch.zeros((2, 2, 10), device=device)
+  env.sim.model.actuator_biasprm[:, :, 1] = -50.0
+  env.sim.model.actuator_biasprm[:, :, 2] = -5.0
+
+  default_gainprm = torch.ones((2, 10), device=device) * 50.0
+  default_biasprm = torch.zeros((2, 10), device=device)
+  default_biasprm[:, 1] = -50.0
+  default_biasprm[:, 2] = -5.0
+  defaults = {"actuator_gainprm": default_gainprm, "actuator_biasprm": default_biasprm}
+  env.sim.get_default_field = lambda f: defaults[f]
+
+  torch.manual_seed(42)
+  events.randomize_pd_gains(
+    env,
+    torch.tensor([0, 1], device=device),
+    kp_range=(0.5, 2.0),
+    kd_range=(0.5, 2.0),
+    asset_cfg=SceneEntityCfg("robot"),
+    operation="scale",
+  )
+
+  original_kp = 50.0
+  gains = env.sim.model.actuator_gainprm[:, :, 0]
+  # Both envs should be modified from the original.
+  assert (gains != original_kp).all()
+  # The two envs should get different samples.
+  assert not torch.allclose(gains[0], gains[1])
+
+
+def test_randomize_effort_limits_multi_env(device):
+  """Test that randomize_effort_limits writes independent values per environment."""
+  env = Mock()
+  env.num_envs = 2
+  env.device = device
+
+  mock_actuator = Mock(spec=actuator.BuiltinPositionActuator)
+  mock_actuator.ctrl_ids = torch.tensor([0, 1], device=device)
+
+  mock_entity = Mock()
+  mock_entity.actuators = [mock_actuator]
+  env.scene = {"robot": mock_entity}
+
+  env.sim = Mock()
+  env.sim.model = Mock()
+  env.sim.model.actuator_forcerange = torch.zeros((2, 2, 2), device=device)
+  env.sim.model.actuator_forcerange[:, :, 0] = -100.0
+  env.sim.model.actuator_forcerange[:, :, 1] = 100.0
+
+  torch.manual_seed(42)
+  events.randomize_effort_limits(
+    env,
+    torch.tensor([0, 1], device=device),
+    effort_limit_range=(0.5, 2.0),
+    asset_cfg=SceneEntityCfg("robot"),
+    operation="scale",
+  )
+
+  upper = env.sim.model.actuator_forcerange[:, :, 1]
+  # Both envs should be modified from the original.
+  assert (upper != 100.0).all()
+  # The two envs should get different samples.
+  assert not torch.allclose(upper[0], upper[1])
+
+
+def test_model_fields_registered_in_event_manager(device):
+  """Test that @requires_model_fields fields are registered in EventManager."""
+  env = Mock()
+  env.num_envs = 2
+  env.device = device
+  env.scene = {}
+  env.sim = Mock()
+
+  cfg = {
+    "pd_gains": EventTermCfg(
+      mode="reset",
+      func=events.randomize_pd_gains,
+      params={
+        "kp_range": (0.8, 1.2),
+        "kd_range": (0.8, 1.2),
+      },
+    ),
+    "effort_limits": EventTermCfg(
+      mode="reset",
+      func=events.randomize_effort_limits,
+      params={
+        "effort_limit_range": (0.8, 1.2),
+      },
+    ),
+  }
+
+  manager = EventManager(cfg, env)
+
+  assert "actuator_gainprm" in manager.domain_randomization_fields
+  assert "actuator_biasprm" in manager.domain_randomization_fields
+  assert "actuator_forcerange" in manager.domain_randomization_fields

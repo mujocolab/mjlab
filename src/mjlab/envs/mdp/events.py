@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Dict, Literal, Tuple
 import torch
 
 from mjlab.entity import Entity, EntityIndexing
+from mjlab.managers.event_manager import requires_model_fields
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.utils.lab_api.math import (
   quat_from_euler_xyz,
@@ -637,6 +638,7 @@ def _sample_distribution(
     raise ValueError(f"Unknown distribution: {distribution}")
 
 
+@requires_model_fields("actuator_gainprm", "actuator_biasprm")
 def randomize_pd_gains(
   env: ManagerBasedRlEnv,
   env_ids: torch.Tensor | None,
@@ -745,6 +747,7 @@ def randomize_pd_gains(
       )
 
 
+@requires_model_fields("actuator_forcerange")
 def randomize_effort_limits(
   env: ManagerBasedRlEnv,
   env_ids: torch.Tensor | None,

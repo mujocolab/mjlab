@@ -7,6 +7,7 @@ dashboard for tracking policy performance over time.
 from __future__ import annotations
 
 import json
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -67,6 +68,14 @@ def generate_html_report(runs: list[dict], output_dir: Path) -> None:
   with open(output_dir / "data.json", "w") as f:
     json.dump(runs, f, indent=2, default=str)
 
+  # Copy task images for the throughput dashboard.
+  images_src = Path(__file__).parent / "nightly_images"
+  if images_src.is_dir():
+    images_dst = output_dir / "images"
+    if images_dst.exists():
+      shutil.rmtree(images_dst)
+    shutil.copytree(images_src, images_dst)
+
   # Load throughput data if available.
   throughput_data = load_throughput_data(output_dir)
 
@@ -90,7 +99,7 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MJLab Nightly Tracking Benchmark</title>
+    <title>MJLab Nightly Benchmark</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
@@ -132,7 +141,7 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
             background: var(--bg);
             color: var(--text);
             padding: 2rem;
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }}
         header {{
@@ -144,26 +153,15 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
             border-bottom: 1px solid var(--border);
         }}
         h1 {{ font-size: 1.5rem; }}
+        .subtitle {{
+            font-size: 0.875rem;
+            color: var(--text-dim);
+            margin-top: 0.25rem;
+        }}
         .timestamp {{ color: var(--text-dim); font-size: 0.875rem; }}
-        .summary {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }}
-        .stat {{
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-        }}
-        .stat-label {{ font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; }}
-        .stat-value {{ font-size: 1.5rem; font-weight: 600; margin-top: 0.25rem; }}
-        .stat-value.good {{ color: var(--green); }}
-        .stat-value.bad {{ color: var(--red); }}
         .charts {{
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            grid-template-columns: 1fr;
             gap: 1.5rem;
             margin-bottom: 2rem;
         }}
@@ -181,25 +179,7 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
             justify-content: space-between;
         }}
         .chart-value {{ color: var(--text-dim); }}
-        .chart-container {{ height: 180px; }}
-        table {{
-            width: 100%;
-            border-collapse: collapse;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            overflow: hidden;
-        }}
-        th, td {{
-            padding: 0.75rem 1rem;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-        }}
-        th {{
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-        }}
+        .chart-container {{ height: 350px; }}
         a {{ color: var(--accent); text-decoration: none; }}
         a:hover {{ text-decoration: underline; }}
         .theme-toggle {{
@@ -237,69 +217,77 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
         }}
         .tab-content {{ display: none; }}
         .tab-content.active {{ display: block; }}
+        .tab-description {{
+            font-size: 0.875rem;
+            color: var(--text-dim);
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }}
+        .task-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }}
+        .task-card {{
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            text-align: center;
+        }}
+        .task-card:hover {{ border-color: var(--accent); }}
+        .task-card.active {{
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent);
+        }}
+        .task-card img {{
+            width: 100%;
+            aspect-ratio: 16/10;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            background: var(--border);
+        }}
+        .task-card .task-name {{
+            font-size: 0.85rem;
+            font-weight: 600;
+        }}
+        .task-card .task-stat {{
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-top: 0.2rem;
+        }}
+        .task-chart-area {{
+            display: none;
+        }}
+        .task-chart-area.active {{
+            display: block;
+        }}
+        footer {{
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }}
         @media (max-width: 600px) {{
             body {{ padding: 1rem; }}
             h1 {{ font-size: 1.25rem; }}
-            .charts {{ grid-template-columns: 1fr; }}
-            .summary {{ grid-template-columns: repeat(2, 1fr); }}
-            table {{ display: block; overflow-x: auto; }}
             .tabs {{ flex-wrap: wrap; }}
-        }}
-        .section-title {{
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin: 1.5rem 0 1rem 0;
-            color: var(--text-dim);
-        }}
-        .runs-details {{
-            margin-top: 1.5rem;
-        }}
-        .runs-details summary {{
-            cursor: pointer;
-            padding: 0.75rem 1rem;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-weight: 500;
-            color: var(--text-dim);
-        }}
-        .runs-details summary:hover {{
-            border-color: var(--accent);
-        }}
-        .runs-details[open] summary {{
-            border-radius: 8px 8px 0 0;
-            border-bottom: none;
-        }}
-        .runs-details table {{
-            border-radius: 0 0 8px 8px;
-        }}
-        .info-box {{
-            margin-bottom: 1.5rem;
-        }}
-        .info-box summary {{
-            cursor: pointer;
-            font-size: 0.8rem;
-            color: var(--accent);
-            font-weight: 500;
-        }}
-        .info-box summary:hover {{
-            text-decoration: underline;
-        }}
-        .info-box p {{
-            margin-top: 0.75rem;
-            padding: 1rem;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 0.875rem;
-            line-height: 1.5;
-            color: var(--text-dim);
+            .task-grid {{ grid-template-columns: 1fr; }}
         }}
     </style>
 </head>
 <body>
     <header>
-        <h1>MJLab Nightly Benchmark</h1>
+        <div>
+            <h1><a href="{github_repo}" style="color:inherit;text-decoration:none">MJLab</a> Nightly Benchmark</h1>
+            <div class="subtitle">Performance tracking over time</div>
+        </div>
         <div class="header-right">
             <span class="timestamp">Updated: {timestamp}</span>
             <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
@@ -314,67 +302,20 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
     </div>
 
     <div id="tracking" class="tab-content active">
-        <details class="info-box">
-            <summary>What is this?</summary>
-            <p>
-              Every night, we train a policy to imitate a reference motion on the Unitree G1 using the latest MJLab commit.
-              The trained policy is then evaluated across 1024 trials, with the results logged here to catch regressions over time.
-            </p>
-        </details>
-        <div class="summary" id="summary"></div>
+        <p class="tab-description">Nightly motion imitation training and evaluation on Unitree G1 (1024 trials per run).</p>
         <div class="charts" id="charts"></div>
-        <details class="runs-details">
-            <summary>All Runs</summary>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Commit</th>
-                        <th>Run</th>
-                        <th>Success Rate</th>
-                        <th>MPKPE (m)</th>
-                        <th>EE Pos Error (m)</th>
-                    </tr>
-                </thead>
-                <tbody id="table-body"></tbody>
-            </table>
-        </details>
     </div>
 
     <div id="throughput" class="tab-content">
-        <details class="info-box">
-            <summary>What is this?</summary>
-            <p>
-                Measures simulation throughput in <strong>env steps per second</strong> for different tasks.
-                <strong>Physics SPS</strong> is the theoretical max if only physics ran (no managers).
-                <strong>Env SPS</strong> is the actual throughput including observations, rewards, terminations, and resets.
-                <strong>Overhead</strong> is the percentage of time spent on non-physics work.
-                Benchmarks run on NVIDIA RTX 5090 with 4096 parallel environments.
-            </p>
-            <p>
-                Note: These benchmarks use zero actions, which causes frequent terminations and resets.
-                This represents a worst-case scenario for overhead since resets are expensive.
-            </p>
-        </details>
-        <div class="summary" id="throughput-summary"></div>
-        <div class="charts" id="throughput-charts"></div>
-        <details class="runs-details">
-            <summary>All Runs</summary>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Commit</th>
-                        <th>Task</th>
-                        <th>Physics SPS</th>
-                        <th>Env SPS</th>
-                        <th>Overhead</th>
-                    </tr>
-                </thead>
-                <tbody id="throughput-table-body"></tbody>
-            </table>
-        </details>
+        <p class="tab-description">Physics simulation throughput across tasks (4096 parallel envs, NVIDIA RTX 5090).</p>
+        <div class="task-grid" id="task-grid"></div>
+        <div id="task-chart-panels"></div>
     </div>
+
+    <footer>
+        These benchmarks run nightly using the latest commit.<br>
+        GPU: NVIDIA RTX 5090
+    </footer>
 
     <script>
         // Theme toggle logic
@@ -457,39 +398,30 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
             const style = getComputedStyle(root);
             const textDim = style.getPropertyValue('--text-dim').trim();
             const border = style.getPropertyValue('--border').trim();
+            const isDark = getEffectiveTheme() === 'dark';
+            const gridColor = isDark ? '#3a424b' : '#d0d7de';
             Chart.defaults.color = textDim;
-            Chart.defaults.borderColor = border;
+            Chart.defaults.borderColor = gridColor;
             charts.forEach(c => c.update());
         }}
 
-        // Summary cards
-        const summary = document.getElementById('summary');
-        const latest = runs[runs.length - 1];
-        if (latest) {{
-            summary.innerHTML = `
-                <div class="stat">
-                    <div class="stat-label">Total Runs</div>
-                    <div class="stat-value">${{runs.length}}</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-label">Success Rate</div>
-                    <div class="stat-value ${{latest.metrics.success_rate >= 0.95 ? 'good' : latest.metrics.success_rate < 0.8 ? 'bad' : ''}}">
-                        ${{(latest.metrics.success_rate * 100).toFixed(1)}}%
-                    </div>
-                </div>
-                <div class="stat">
-                    <div class="stat-label">MPKPE</div>
-                    <div class="stat-value">${{(latest.metrics.mpkpe * 100).toFixed(1)}} cm</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-label">EE Position Error</div>
-                    <div class="stat-value">${{(latest.metrics.ee_pos_error * 100).toFixed(1)}} cm</div>
-                </div>
-            `;
-        }}
+        // Initialize theme before creating charts so grid colors are correct.
+        applyTheme();
 
         // Charts
         const chartsContainer = document.getElementById('charts');
+
+        // Compute a rolling average over the last `window` points.
+        function rollingAvg(data, window) {{
+            return data.map((d, i) => {{
+                const start = Math.max(0, i - window + 1);
+                const slice = data.slice(start, i + 1);
+                const avg = slice.reduce((s, p) => s + p.y, 0) / slice.length;
+                return {{ x: d.x, y: avg }};
+            }});
+        }}
+
+        const AVG_WINDOW = 7;
 
         METRICS.forEach(([key, label, unit, scale, higherIsBetter]) => {{
             const data = runs.map(r => ({{
@@ -499,8 +431,11 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                 name: r.name
             }}));
 
+            const avgData = rollingAvg(data, AVG_WINDOW);
+            const color = colors[key] || '#58a6ff';
+
             const latestVal = data[data.length - 1]?.y;
-            const arrow = higherIsBetter ? '↑' : '↓';
+            const arrow = higherIsBetter ? '\u2191' : '\u2193';
             const tooltip = higherIsBetter ? 'Higher is better' : 'Lower is better';
 
             const card = document.createElement('div');
@@ -517,21 +452,34 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
             charts.push(new Chart(card.querySelector('canvas'), {{
                 type: 'line',
                 data: {{
-                    datasets: [{{
-                        data: data,
-                        borderColor: colors[key] || '#58a6ff',
-                        backgroundColor: (colors[key] || '#58a6ff') + '20',
-                        borderWidth: 2,
-                        pointRadius: 4,
-                        tension: 0.1,
-                        fill: true
-                    }}]
+                    datasets: [
+                        {{
+                            label: label,
+                            data: data,
+                            borderColor: color,
+                            backgroundColor: color + '20',
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            tension: 0.1,
+                            fill: true
+                        }},
+                        {{
+                            label: `${{AVG_WINDOW}}-run avg`,
+                            data: avgData,
+                            borderColor: color,
+                            borderWidth: 2,
+                            borderDash: [6, 4],
+                            pointRadius: 0,
+                            tension: 0.3,
+                            fill: false
+                        }}
+                    ]
                 }},
                 options: {{
                     responsive: true,
                     maintainAspectRatio: false,
                     onClick: (event, elements) => {{
-                        if (elements.length > 0) {{
+                        if (elements.length > 0 && elements[0].datasetIndex === 0) {{
                             const d = data[elements[0].index];
                             if (d?.commit && d.commit !== 'unknown') {{
                                 window.open(`${{GITHUB_REPO}}/commit/${{d.commit}}`, '_blank');
@@ -539,8 +487,13 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                         }}
                     }},
                     plugins: {{
-                        legend: {{ display: false }},
+                        legend: {{
+                            display: true,
+                            position: 'bottom',
+                            labels: {{ usePointStyle: true, pointStyle: 'line', boxHeight: 1 }}
+                        }},
                         tooltip: {{
+                            filter: (item) => item.datasetIndex === 0,
                             callbacks: {{
                                 title: (items) => {{
                                     const d = items[0]?.raw;
@@ -572,34 +525,13 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                             ticks: {{ maxTicksLimit: 5 }},
                             title: {{
                                 display: true,
-                                text: `${{unit}} (${{higherIsBetter ? 'higher is better' : 'lower is better'}})`,
+                                text: unit,
                                 font: {{ size: 11 }}
                             }}
                         }}
                     }}
                 }}
             }}));
-        }});
-
-        // Initialize theme
-        applyTheme();
-
-        // Table
-        const tbody = document.getElementById('table-body');
-        [...runs].reverse().forEach(run => {{
-            const commitLink = run.commit && run.commit !== 'unknown'
-                ? `<a href="${{GITHUB_REPO}}/commit/${{run.commit}}" target="_blank"><code>${{run.commit}}</code></a>`
-                : `<code>${{run.commit}}</code>`;
-            tbody.innerHTML += `
-                <tr>
-                    <td>${{new Date(run.created_at).toLocaleDateString()}}</td>
-                    <td>${{commitLink}}</td>
-                    <td><a href="${{run.url}}" target="_blank">${{run.name}}</a></td>
-                    <td>${{(run.metrics.success_rate * 100).toFixed(1)}}%</td>
-                    <td>${{run.metrics.mpkpe.toFixed(4)}}</td>
-                    <td>${{run.metrics.ee_pos_error.toFixed(4)}}</td>
-                </tr>
-            `;
         }});
 
         // Tab switching
@@ -620,92 +552,99 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
             if (tab) tab.click();
         }}
 
-        // Throughput data and charts
+        // Throughput data and task cards
         const throughputData = {throughput_json};
-        const throughputChartsContainer = document.getElementById('throughput-charts');
-        const throughputSummary = document.getElementById('throughput-summary');
-        const throughputTbody = document.getElementById('throughput-table-body');
+        const taskGrid = document.getElementById('task-grid');
+        const taskChartPanels = document.getElementById('task-chart-panels');
+
+        // Task metadata: display name and image path (relative to nightly/)
+        const taskMeta = {{
+            'Mjlab-Velocity-Flat-Unitree-Go1': {{ name: 'Velocity \u2014 Go1', img: 'images/velocity_go1.png' }},
+            'Mjlab-Tracking-Flat-Unitree-G1': {{ name: 'Tracking \u2014 G1', img: 'images/tracking_g1.png' }},
+            'Mjlab-Lift-Cube-Yam': {{ name: 'Lift Cube \u2014 Yam', img: 'images/lift_cube_yam.png' }}
+        }};
+
+        const throughputChartInstances = {{}};
 
         if (throughputData.length > 0) {{
-            // Get unique tasks from the data
             const tasks = [...new Set(throughputData.flatMap(d => d.results.map(r => r.task)))];
-
-            // Throughput summary (latest values)
             const latestRun = throughputData[throughputData.length - 1];
-            if (latestRun) {{
-                let summaryHtml = `<div class="stat"><div class="stat-label">Total Runs</div><div class="stat-value">${{throughputData.length}}</div></div>`;
-                latestRun.results.forEach(r => {{
-                    const taskShort = r.task.replace('Mjlab-', '').replace('-Unitree-', '-');
-                    summaryHtml += `
-                        <div class="stat">
-                            <div class="stat-label">${{taskShort}} Env SPS</div>
-                            <div class="stat-value">${{(r.env_sps / 1000).toFixed(0)}}K</div>
-                        </div>`;
-                }});
-                throughputSummary.innerHTML = summaryHtml;
-            }}
 
-            // Create charts for each metric type
-            const throughputMetrics = [
-                ['physics_sps', 'Physics SPS', true],
-                ['env_sps', 'Env SPS', true],
-                ['overhead_pct', 'Overhead %', false]
-            ];
+            tasks.forEach((task, i) => {{
+                const meta = taskMeta[task] || {{ name: task, img: '' }};
+                const latestResult = latestRun?.results.find(r => r.task === task);
+                const latestSps = latestResult ? `${{(latestResult.env_sps / 1000).toFixed(0)}}K env steps/s` : '';
 
-            const taskColors = {{
-                'Mjlab-Velocity-Flat-Unitree-Go1': '#3fb950',
-                'Mjlab-Tracking-Flat-Unitree-G1': '#58a6ff',
-                'Mjlab-Lift-Cube-Yam': '#f0883e'
-            }};
-
-            throughputMetrics.forEach(([key, label, higherIsBetter]) => {{
+                // Card
                 const card = document.createElement('div');
-                card.className = 'chart-card';
-                const arrow = higherIsBetter ? '↑' : '↓';
-                const tooltip = higherIsBetter ? 'Higher is better' : 'Lower is better';
+                card.className = 'task-card' + (i === 0 ? ' active' : '');
+                card.dataset.task = task;
                 card.innerHTML = `
-                    <div class="chart-title">
-                        <span>${{label}} <span title="${{tooltip}}" style="cursor:help;opacity:0.6">${{arrow}}</span></span>
-                    </div>
-                    <div class="chart-container"><canvas></canvas></div>
+                    <img src="${{meta.img}}" alt="${{meta.name}}" onerror="this.style.display='none'">
+                    <div class="task-name">${{meta.name}}</div>
+                    <div class="task-stat">${{latestSps}}</div>
                 `;
-                throughputChartsContainer.appendChild(card);
+                taskGrid.appendChild(card);
 
-                const datasets = tasks.map(task => {{
-                    const data = throughputData.map(run => {{
-                        const result = run.results.find(r => r.task === task);
-                        if (!result) return null;
-                        const value = result[key];
-                        return {{
-                            x: new Date(run.created_at),
-                            y: key.includes('_sps') ? value / 1000 : value,
-                            commit: run.commit
-                        }};
-                    }}).filter(d => d !== null);
+                // Chart panel
+                const panel = document.createElement('div');
+                panel.className = 'task-chart-area' + (i === 0 ? ' active' : '');
+                panel.id = `task-panel-${{i}}`;
+                panel.innerHTML = `
+                    <div class="chart-card">
+                        <div class="chart-title">
+                            <span>${{meta.name}} \u2014 Throughput</span>
+                        </div>
+                        <div class="chart-container"><canvas></canvas></div>
+                    </div>
+                `;
+                taskChartPanels.appendChild(panel);
 
-                    const taskShort = task.replace('Mjlab-', '').replace('-Unitree-', '-');
-                    return {{
-                        label: taskShort,
-                        data: data,
-                        borderColor: taskColors[task] || '#58a6ff',
-                        backgroundColor: (taskColors[task] || '#58a6ff') + '20',
-                        borderWidth: 2,
-                        pointRadius: 4,
-                        tension: 0.1
-                    }};
+                // Build datasets
+                const envData = [];
+                const physicsData = [];
+                throughputData.forEach(run => {{
+                    const result = run.results.find(r => r.task === task);
+                    if (!result) return;
+                    const point = {{ x: new Date(run.created_at), commit: run.commit }};
+                    envData.push({{ ...point, y: result.env_sps / 1000 }});
+                    physicsData.push({{ ...point, y: result.physics_sps / 1000 }});
                 }});
 
-                charts.push(new Chart(card.querySelector('canvas'), {{
+                const chart = new Chart(panel.querySelector('canvas'), {{
                     type: 'line',
-                    data: {{ datasets }},
+                    data: {{
+                        datasets: [
+                            {{
+                                label: 'Env SPS',
+                                data: envData,
+                                borderColor: '#58a6ff',
+                                backgroundColor: '#58a6ff20',
+                                borderWidth: 2,
+                                pointRadius: 4,
+                                tension: 0.1,
+                                fill: true
+                            }},
+                            {{
+                                label: 'Physics SPS',
+                                data: physicsData,
+                                borderColor: '#3fb950',
+                                backgroundColor: '#3fb95020',
+                                borderWidth: 2,
+                                pointRadius: 4,
+                                tension: 0.1,
+                                fill: true
+                            }}
+                        ]
+                    }},
                     options: {{
                         responsive: true,
                         maintainAspectRatio: false,
                         onClick: (event, elements) => {{
                             if (elements.length > 0) {{
-                                const datasetIndex = elements[0].datasetIndex;
-                                const index = elements[0].index;
-                                const d = datasets[datasetIndex].data[index];
+                                const di = elements[0].datasetIndex;
+                                const idx = elements[0].index;
+                                const d = di === 0 ? envData[idx] : physicsData[idx];
                                 if (d?.commit && d.commit !== 'unknown') {{
                                     window.open(`${{GITHUB_REPO}}/commit/${{d.commit}}`, '_blank');
                                 }}
@@ -714,10 +653,23 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                         plugins: {{
                             legend: {{ display: true, position: 'bottom' }},
                             tooltip: {{
+                                mode: 'index',
                                 callbacks: {{
                                     title: (items) => {{
                                         const d = items[0]?.raw;
                                         return d ? `Commit: ${{d.commit}}` : '';
+                                    }},
+                                    label: (item) => {{
+                                        return `${{item.dataset.label}}: ${{item.raw.y?.toFixed(0)}}K steps/s`;
+                                    }},
+                                    afterBody: (items) => {{
+                                        if (items.length >= 2) {{
+                                            const envY = items[0]?.raw?.y || 0;
+                                            const physY = items[1]?.raw?.y || 0;
+                                            const overhead = physY > 0 ? ((1 - envY / physY) * 100).toFixed(1) : '?';
+                                            return `Overhead: ${{overhead}}%`;
+                                        }}
+                                        return '';
                                     }},
                                     footer: (items) => {{
                                         const d = items[0]?.raw;
@@ -737,36 +689,28 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                                 ticks: {{ maxTicksLimit: 5 }},
                                 title: {{
                                     display: true,
-                                    text: key.includes('_sps') ? 'K env steps/sec' : '%',
+                                    text: 'K steps/s',
                                     font: {{ size: 11 }}
                                 }}
                             }}
                         }}
                     }}
-                }}));
-            }});
+                }});
+                charts.push(chart);
+                throughputChartInstances[task] = {{ chart, panelId: `task-panel-${{i}}` }};
 
-            // Throughput table
-            [...throughputData].reverse().forEach(run => {{
-                run.results.forEach((r, i) => {{
-                    const taskShort = r.task.replace('Mjlab-', '').replace('-Unitree-', '-');
-                    const commitLink = run.commit && run.commit !== 'unknown'
-                        ? `<a href="${{GITHUB_REPO}}/commit/${{run.commit}}" target="_blank"><code>${{run.commit}}</code></a>`
-                        : `<code>${{run.commit}}</code>`;
-                    throughputTbody.innerHTML += `
-                        <tr>
-                            <td>${{i === 0 ? new Date(run.created_at).toLocaleDateString() : ''}}</td>
-                            <td>${{i === 0 ? commitLink : ''}}</td>
-                            <td>${{taskShort}}</td>
-                            <td>${{(r.physics_sps / 1000).toFixed(0)}}K</td>
-                            <td>${{(r.env_sps / 1000).toFixed(0)}}K</td>
-                            <td>${{r.overhead_pct.toFixed(1)}}%</td>
-                        </tr>
-                    `;
+                // Card click handler
+                card.addEventListener('click', () => {{
+                    document.querySelectorAll('.task-card').forEach(c => c.classList.remove('active'));
+                    document.querySelectorAll('.task-chart-area').forEach(p => p.classList.remove('active'));
+                    card.classList.add('active');
+                    panel.classList.add('active');
+                    // Trigger resize so chart renders at correct size
+                    throughputChartInstances[task].chart.resize();
                 }});
             }});
         }} else {{
-            throughputSummary.innerHTML = '<p style="color: var(--text-dim)">No throughput data available. Run measure_throughput.py to generate data.</p>';
+            taskGrid.innerHTML = '<p style="color: var(--text-dim)">No throughput data available. Run measure_throughput.py to generate data.</p>';
         }}
     </script>
 </body>
