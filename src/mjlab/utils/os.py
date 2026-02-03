@@ -1,16 +1,16 @@
 import re
 from typing import Any, Dict
 
-from etils.epath import Path
 import yaml
+from etils.epath import Path
 
 
 def update_assets(
-    assets: Dict[str, Any],
-    path: str | Path,
-    meshdir: str | None = None,
-    glob: str = "*",
-    recursive: bool = False,
+  assets: Dict[str, Any],
+  path: str | Path,
+  meshdir: str | None = None,
+  glob: str = "*",
+  recursive: bool = False,
 ):
   """Update assets dictionary with files from a directory.
 

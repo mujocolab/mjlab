@@ -1,6 +1,8 @@
 from typing import cast
 
+import torch
 from etils.epath import Path
+
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.rl.exporter_utils import (
   attach_metadata_to_onnx,
@@ -8,7 +10,6 @@ from mjlab.rl.exporter_utils import (
 )
 from mjlab.tasks.tracking.mdp import MotionCommand
 from mjlab.utils.lab_api.rl.exporter import _OnnxPolicyExporter
-import torch
 
 
 def export_motion_policy_as_onnx(
@@ -60,24 +61,24 @@ class _OnnxMotionPolicyExporter(_OnnxPolicyExporter):
     time_step = torch.zeros(1, 1)
     with (Path(path) / filename).open("wb") as f:
       torch.onnx.export(
-          self,
-          (obs, time_step),
-          f,
-          export_params=True,
-          opset_version=11,
-          verbose=self.verbose,
-          input_names=["obs", "time_step"],
-          output_names=[
-              "actions",
-              "joint_pos",
-              "joint_vel",
-              "body_pos_w",
-              "body_quat_w",
-              "body_lin_vel_w",
-              "body_ang_vel_w",
-          ],
-          dynamic_axes={},
-          dynamo=False,
+        self,
+        (obs, time_step),
+        f,
+        export_params=True,
+        opset_version=11,
+        verbose=self.verbose,
+        input_names=["obs", "time_step"],
+        output_names=[
+          "actions",
+          "joint_pos",
+          "joint_vel",
+          "body_pos_w",
+          "body_quat_w",
+          "body_lin_vel_w",
+          "body_ang_vel_w",
+        ],
+        dynamic_axes={},
+        dynamo=False,
       )
 
 

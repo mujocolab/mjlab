@@ -5,12 +5,13 @@ from __future__ import annotations
 import tempfile
 from typing import Any, Callable, Literal
 
-from etils.epath import Path
 import mediapy as media
-from mjlab.envs import ManagerBasedRlEnv
 import numpy as np
 import torch
+from etils.epath import Path
 from typing_extensions import assert_never
+
+from mjlab.envs import ManagerBasedRlEnv
 
 
 class VideoRecorder(ManagerBasedRlEnv):
@@ -41,17 +42,17 @@ class VideoRecorder(ManagerBasedRlEnv):
   """
 
   def __init__(
-      self,
-      env: ManagerBasedRlEnv,
-      video_folder: Path,
-      episode_trigger: Callable[[int], bool] | None = None,
-      step_trigger: Callable[[int], bool] | None = None,
-      video_length: int | None = None,
-      name_prefix: str = "rl-video",
-      disable_logger: bool = False,
-      on_save_callback: (
-          Callable[[Path, list[np.ndarray], int, int], None] | None
-      ) = None,
+    self,
+    env: ManagerBasedRlEnv,
+    video_folder: Path,
+    episode_trigger: Callable[[int], bool] | None = None,
+    step_trigger: Callable[[int], bool] | None = None,
+    video_length: int | None = None,
+    name_prefix: str = "rl-video",
+    disable_logger: bool = False,
+    on_save_callback: (
+      Callable[[Path, list[np.ndarray], int, int], None] | None
+    ) = None,
   ):
     # Don't call super().__init__() - we're wrapping an existing env.
     self._wrapped_env = env
@@ -204,19 +205,17 @@ class VideoRecorder(ManagerBasedRlEnv):
           Path(tmp.name).copy(self.current_video_path, overwrite=True)
       except Exception as e:
         if not self.disable_logger:
-          print(
-              f"[ERROR] Failed to save video to {self.current_video_path}: {e}"
-          )
+          print(f"[ERROR] Failed to save video to {self.current_video_path}: {e}")
       else:
         if not self.disable_logger:
           print(f"[INFO] Saved video to {self.current_video_path}")
 
       if self.on_save_callback:
         self.on_save_callback(
-            self.current_video_path,
-            video_frames,
-            self.step_count,
-            self.episode_count,
+          self.current_video_path,
+          video_frames,
+          self.step_count,
+          self.episode_count,
         )
 
     self.is_recording = False

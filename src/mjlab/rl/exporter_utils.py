@@ -1,9 +1,10 @@
+import onnx
+import torch
 from etils.epath import Path
+
 from mjlab.entity import Entity
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.envs.mdp.actions import JointPositionAction
-import onnx
-import torch
 
 
 def list_to_csv_str(arr, *, decimals: int = 3, delimiter: str = ",") -> str:
@@ -61,7 +62,7 @@ def get_base_metadata(
 
 
 def attach_metadata_to_onnx(
-    onnx_path: str | Path, metadata: dict[str, list | str | float]
+  onnx_path: str | Path, metadata: dict[str, list | str | float]
 ) -> None:
   """Attach metadata to an ONNX model file.
 
