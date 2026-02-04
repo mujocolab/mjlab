@@ -17,7 +17,7 @@ set -euo pipefail
 
 # Configuration
 CUDA_DEVICE="${CUDA_DEVICE:-0}"
-WANDB_TAGS="${WANDB_TAGS:-nightly}"
+WANDB_TAGS="${WANDB_TAGS:-(\"nightly\",)}"
 SKIP_TRAINING="${SKIP_TRAINING:-0}"
 SKIP_THROUGHPUT="${SKIP_THROUGHPUT:-0}"
 

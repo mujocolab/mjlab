@@ -101,17 +101,18 @@ class LiftingCommand(CommandTerm):
     pass
 
   def _debug_vis_impl(self, visualizer: DebugVisualizer) -> None:
-    batch = visualizer.env_idx
-    if batch >= self.num_envs:
+    env_indices = visualizer.get_env_indices(self.num_envs)
+    if not env_indices:
       return
 
-    target_pos = self.target_pos[batch].cpu().numpy()
-    visualizer.add_sphere(
-      center=target_pos,
-      radius=0.03,
-      color=self.cfg.viz.target_color,
-      label="target_position",
-    )
+    for batch in env_indices:
+      target_pos = self.target_pos[batch].cpu().numpy()
+      visualizer.add_sphere(
+        center=target_pos,
+        radius=0.03,
+        color=self.cfg.viz.target_color,
+        label=f"target_position_{batch}",
+      )
 
 
 @dataclass(kw_only=True)

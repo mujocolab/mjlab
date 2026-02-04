@@ -15,22 +15,56 @@ _DARK_GRAY = (0.2, 0.2, 0.2, 1.0)
 
 
 @dataclass
+class FlatPatchSamplingCfg:
+  """Configuration for sampling flat patches on a heightfield surface."""
+
+  num_patches: int = 10
+  """Number of flat patches to sample per sub-terrain."""
+  patch_radius: float = 0.5
+  """Radius of the circular footprint used to test flatness, in meters."""
+  max_height_diff: float = 0.05
+  """Maximum allowed height variation within the patch footprint, in meters."""
+  x_range: tuple[float, float] = (-1e6, 1e6)
+  """Allowed range of x coordinates for sampled patches, in meters."""
+  y_range: tuple[float, float] = (-1e6, 1e6)
+  """Allowed range of y coordinates for sampled patches, in meters."""
+  z_range: tuple[float, float] = (-1e6, 1e6)
+  """Allowed range of z coordinates (world height) for sampled patches, in meters."""
+  grid_resolution: float | None = None
+  """Resolution of the grid used for flat-patch detection, in meters. When
+  ``None`` (default), the terrain's own ``horizontal_scale`` is used. Set to a
+  smaller value (e.g. 0.025) for finer boundary precision at the cost of a
+  larger intermediate grid."""
+
+
+@dataclass
 class TerrainGeometry:
   geom: mujoco.MjsGeom | None = None
+  """MuJoCo geometry spec element, or None."""
   hfield: mujoco.MjsHField | None = None
+  """MuJoCo heightfield spec element, or None."""
   color: tuple[float, float, float, float] | None = None
+  """RGBA color override for this geometry, or None to use default."""
 
 
 @dataclass
 class TerrainOutput:
   origin: np.ndarray
+  """Spawn origin position (x, y, z) in the sub-terrain's local frame."""
   geometries: list[TerrainGeometry]
+  """List of geometry elements comprising this terrain."""
+  flat_patches: dict[str, np.ndarray] | None = None
+  """Named sets of flat patch positions, each an (N, 3) array. None if not configured."""
 
 
 @dataclass
 class SubTerrainCfg(abc.ABC):
   proportion: float = 1.0
+  """Relative weight for randomly selecting this terrain type."""
   size: tuple[float, float] = (10.0, 10.0)
+  """Width and length of the terrain patch, in meters."""
+  flat_patch_sampling: dict[str, FlatPatchSamplingCfg] | None = None
+  """Named flat-patch sampling configurations, or None to disable."""
 
   @abc.abstractmethod
   def function(
@@ -47,16 +81,28 @@ class SubTerrainCfg(abc.ABC):
 @dataclass(kw_only=True)
 class TerrainGeneratorCfg:
   seed: int | None = None
+  """Random seed for terrain generation. None uses a random seed."""
   curriculum: bool = False
+  """If True, difficulty increases along rows. If False, difficulty is random."""
   size: tuple[float, float]
+  """Width and length of each sub-terrain patch, in meters."""
   border_width: float = 0.0
+  """Width of the flat border around the entire terrain grid, in meters."""
   border_height: float = 1.0
+  """Height of the border wall around the terrain grid, in meters."""
   num_rows: int = 1
+  """Number of sub-terrain rows in the grid."""
   num_cols: int = 1
+  """Number of sub-terrain columns in the grid."""
   color_scheme: Literal["height", "random", "none"] = "height"
+  """Coloring strategy for terrain geometry. "height" colors by elevation,
+  "random" assigns random colors, "none" uses uniform gray."""
   sub_terrains: dict[str, SubTerrainCfg] = field(default_factory=dict)
+  """Named sub-terrain configurations to populate the grid."""
   difficulty_range: tuple[float, float] = (0.0, 1.0)
+  """Min and max difficulty values used when generating sub-terrains."""
   add_lights: bool = False
+  """If True, adds a directional light above the terrain grid."""
 
 
 class TerrainGenerator:
@@ -89,6 +135,25 @@ class TerrainGenerator:
     self.np_rng = np.random.default_rng(seed)
 
     self.terrain_origins = np.zeros((self.cfg.num_rows, self.cfg.num_cols, 3))
+
+    # Pre-allocate flat patch storage by scanning all sub-terrain configs.
+    self.flat_patches: dict[str, np.ndarray] = {}
+    self.flat_patch_radii: dict[str, float] = {}
+    patch_names: dict[str, int] = {}
+    for sub_cfg in self.cfg.sub_terrains.values():
+      if sub_cfg.flat_patch_sampling is not None:
+        for name, patch_cfg in sub_cfg.flat_patch_sampling.items():
+          if name in patch_names:
+            patch_names[name] = max(patch_names[name], patch_cfg.num_patches)
+          else:
+            patch_names[name] = patch_cfg.num_patches
+          self.flat_patch_radii[name] = max(
+            self.flat_patch_radii.get(name, 0.0), patch_cfg.patch_radius
+          )
+    for name, max_num_patches in patch_names.items():
+      self.flat_patches[name] = np.zeros(
+        (self.cfg.num_rows, self.cfg.num_cols, max_num_patches, 3)
+      )
 
   def compile(self, spec: mujoco.MjSpec) -> None:
     body = spec.worldbody.add_body(name="terrain")
@@ -141,6 +206,8 @@ class TerrainGenerator:
         world_position,
         difficulty,
         sub_terrains_cfgs[sub_index],
+        sub_row,
+        sub_col,
       )
 
       # Store the spawn origin for this terrain.
@@ -170,7 +237,12 @@ class TerrainGenerator:
         difficulty = lower + (upper - lower) * difficulty
         world_position = self._get_sub_terrain_position(sub_row, sub_col)
         spawn_origin = self._create_terrain_geom(
-          spec, world_position, difficulty, sub_terrains_cfgs[sub_indices[sub_col]]
+          spec,
+          world_position,
+          difficulty,
+          sub_terrains_cfgs[sub_indices[sub_col]],
+          sub_row,
+          sub_col,
         )
         self.terrain_origins[sub_row, sub_col] = spawn_origin
 
@@ -196,6 +268,8 @@ class TerrainGenerator:
     world_position: np.ndarray,
     difficulty: float,
     cfg: SubTerrainCfg,
+    sub_row: int,
+    sub_col: int,
   ) -> np.ndarray:
     """Create a terrain geometry at the specified world position.
 
@@ -204,6 +278,8 @@ class TerrainGenerator:
       world_position: World position of the terrain's corner.
       difficulty: Difficulty parameter for terrain generation.
       cfg: Sub-terrain configuration.
+      sub_row: Row index in the terrain grid.
+      sub_col: Column index in the terrain grid.
 
     Returns:
       The spawn origin in world coordinates.
@@ -220,9 +296,23 @@ class TerrainGenerator:
             terrain_geom.geom.rgba[3] = 1.0
           elif self.cfg.color_scheme == "none":
             terrain_geom.geom.rgba[:] = (0.5, 0.5, 0.5, 1.0)
-    return output.origin + world_position
+
+    # Collect flat patches into pre-allocated arrays.
+    spawn_origin = output.origin + world_position
+    for name, arr in self.flat_patches.items():
+      if output.flat_patches is not None and name in output.flat_patches:
+        patches = output.flat_patches[name]
+        arr[sub_row, sub_col, : len(patches)] = patches + world_position
+        arr[sub_row, sub_col, len(patches) :] = spawn_origin
+      elif cfg.flat_patch_sampling is not None and name in cfg.flat_patch_sampling:
+        # Terrain didn't produce patches (primitive fallback): fill with spawn origin.
+        arr[sub_row, sub_col] = spawn_origin
+
+    return spawn_origin
 
   def _add_terrain_border(self, spec: mujoco.MjSpec) -> None:
+    if self.cfg.border_width <= 0.0:
+      return
     body = spec.body("terrain")
     border_size = (
       self.cfg.num_rows * self.cfg.size[0] + 2 * self.cfg.border_width,

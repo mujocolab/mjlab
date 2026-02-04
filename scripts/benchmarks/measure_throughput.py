@@ -17,6 +17,7 @@ import torch
 import tyro
 import wandb
 
+import mjlab
 import mjlab.tasks  # noqa: F401 - registers tasks
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.tasks.registry import load_env_cfg
@@ -241,5 +242,5 @@ def main(cfg: ThroughputConfig) -> list[BenchmarkResult]:
 
 
 if __name__ == "__main__":
-  cfg = tyro.cli(ThroughputConfig)
+  cfg = tyro.cli(ThroughputConfig, config=mjlab.TYRO_FLAGS)
   main(cfg)

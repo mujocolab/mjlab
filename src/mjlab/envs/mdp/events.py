@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Dict, Literal, Tuple
 import torch
 
 from mjlab.entity import Entity, EntityIndexing
+from mjlab.managers.event_manager import requires_model_fields
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.utils.lab_api.math import (
   quat_from_euler_xyz,
@@ -165,6 +166,110 @@ def reset_root_state_uniform(
     torch.cat([positions, orientations], dim=-1), env_ids=env_ids
   )
 
+  asset.write_root_link_velocity_to_sim(velocities, env_ids=env_ids)
+
+
+def reset_root_state_from_flat_patches(
+  env: ManagerBasedRlEnv,
+  env_ids: torch.Tensor | None,
+  patch_name: str = "spawn",
+  pose_range: dict[str, tuple[float, float]] | None = None,
+  velocity_range: dict[str, tuple[float, float]] | None = None,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> None:
+  """Reset root state by placing the asset on a randomly chosen flat patch.
+
+  Selects a random flat patch from the terrain for each environment and positions
+  the asset there. Falls back to ``reset_root_state_uniform`` if the terrain has
+  no flat patches.
+
+  Args:
+    env: The environment.
+    env_ids: Environment IDs to reset. If None, resets all environments.
+    patch_name: Key into ``terrain.flat_patches`` to use.
+    pose_range: Optional random offset applied on top of the patch position.
+      Keys: ``{"x", "y", "z", "roll", "pitch", "yaw"}``.
+    velocity_range: Optional velocity range (floating-base only).
+    asset_cfg: Asset configuration.
+  """
+  if env_ids is None:
+    env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
+
+  terrain = env.scene.terrain
+  if terrain is None or patch_name not in terrain.flat_patches:
+    reset_root_state_uniform(
+      env,
+      env_ids,
+      pose_range=pose_range or {},
+      velocity_range=velocity_range,
+      asset_cfg=asset_cfg,
+    )
+    return
+
+  patches = terrain.flat_patches[patch_name]  # (num_rows, num_cols, num_patches, 3)
+  num_patches = patches.shape[2]
+
+  # Look up terrain level (row) and type (col) for each env.
+  levels = terrain.terrain_levels[env_ids]
+  types = terrain.terrain_types[env_ids]
+
+  # Randomly select a patch index for each env.
+  patch_ids = torch.randint(0, num_patches, (len(env_ids),), device=env.device)
+  positions = patches[levels, types, patch_ids]
+
+  asset: Entity = env.scene[asset_cfg.name]
+  default_root_state = asset.data.default_root_state
+  assert default_root_state is not None
+  root_states = default_root_state[env_ids].clone()
+
+  # Apply optional pose range offset.
+  if pose_range is None:
+    pose_range = {}
+  range_list = [
+    pose_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z", "roll", "pitch", "yaw"]
+  ]
+  ranges = torch.tensor(range_list, device=env.device)
+  pose_samples = sample_uniform(
+    ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=env.device
+  )
+
+  # Position: flat patch position + optional offset. Use patch z instead of default.
+  final_positions = positions.clone()
+  final_positions[:, 0] += pose_samples[:, 0]
+  final_positions[:, 1] += pose_samples[:, 1]
+  final_positions[:, 2] += root_states[:, 2] + pose_samples[:, 2]
+
+  orientations_delta = quat_from_euler_xyz(
+    pose_samples[:, 3], pose_samples[:, 4], pose_samples[:, 5]
+  )
+  orientations = quat_mul(root_states[:, 3:7], orientations_delta)
+
+  if asset.is_fixed_base:
+    if not asset.is_mocap:
+      raise ValueError(
+        f"Cannot reset root state for fixed-base non-mocap entity '{asset_cfg.name}'."
+      )
+    asset.write_mocap_pose_to_sim(
+      torch.cat([final_positions, orientations], dim=-1), env_ids=env_ids
+    )
+    return
+
+  # Velocities.
+  if velocity_range is None:
+    velocity_range = {}
+  vel_range_list = [
+    velocity_range.get(key, (0.0, 0.0))
+    for key in ["x", "y", "z", "roll", "pitch", "yaw"]
+  ]
+  vel_ranges = torch.tensor(vel_range_list, device=env.device)
+  vel_samples = sample_uniform(
+    vel_ranges[:, 0], vel_ranges[:, 1], (len(env_ids), 6), device=env.device
+  )
+  velocities = root_states[:, 7:13] + vel_samples
+
+  asset.write_root_link_pose_to_sim(
+    torch.cat([final_positions, orientations], dim=-1), env_ids=env_ids
+  )
   asset.write_root_link_velocity_to_sim(velocities, env_ids=env_ids)
 
 
@@ -533,6 +638,7 @@ def _sample_distribution(
     raise ValueError(f"Unknown distribution: {distribution}")
 
 
+@requires_model_fields("actuator_gainprm", "actuator_biasprm")
 def randomize_pd_gains(
   env: ManagerBasedRlEnv,
   env_ids: torch.Tensor | None,
@@ -582,7 +688,7 @@ def randomize_pd_gains(
   ]
 
   for actuator in actuators:
-    ctrl_ids = actuator.ctrl_ids
+    ctrl_ids = actuator.global_ctrl_ids
 
     kp_samples = _sample_distribution(
       distribution,
@@ -641,6 +747,7 @@ def randomize_pd_gains(
       )
 
 
+@requires_model_fields("actuator_forcerange")
 def randomize_effort_limits(
   env: ManagerBasedRlEnv,
   env_ids: torch.Tensor | None,
@@ -681,7 +788,7 @@ def randomize_effort_limits(
     actuators = [actuators]
 
   for actuator in actuators:
-    ctrl_ids = actuator.ctrl_ids
+    ctrl_ids = actuator.global_ctrl_ids
     num_actuators = len(ctrl_ids)
 
     effort_samples = _sample_distribution(

@@ -8,8 +8,10 @@ import pytest
 import torch
 from conftest import get_test_device, load_fixture_xml
 
-from mjlab.entity import Entity, EntityCfg
+from mjlab.actuator import BuiltinPositionActuatorCfg
+from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.scene import Scene, SceneCfg
+from mjlab.sim.sim import Simulation, SimulationCfg
 from mjlab.sim.sim_data import WarpBridge
 
 # ============================================================================
@@ -474,3 +476,73 @@ def test_multiple_entities_merged_keyframe(
   qpos = model.key(0).qpos
   assert tuple(qpos[:3]) == (1.0, 2.0, 3.0)  # box position
   assert tuple(qpos[7:10]) == (4.0, 5.0, 6.0)  # sphere position
+
+
+# ============================================================================
+# Multi-Entity Actuator Tests
+# ============================================================================
+
+
+def test_two_actuated_entities_write_ctrl(device):
+  """Test that two identical actuated entities write controls to the correct global positions."""
+
+  robot_xml = load_fixture_xml("floating_base_articulated")
+
+  entity_cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(robot_xml),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        BuiltinPositionActuatorCfg(
+          target_names_expr=("joint.*",),
+          effort_limit=100.0,
+          stiffness=80.0,
+          damping=10.0,
+        ),
+      )
+    ),
+  )
+
+  num_envs = 2
+  scene_cfg = SceneCfg(
+    num_envs=num_envs,
+    env_spacing=3.0,
+    entities={"robot_a": entity_cfg, "robot_b": entity_cfg},
+  )
+
+  scene = Scene(scene_cfg, device)
+  model = scene.compile()
+  sim = Simulation(num_envs=num_envs, cfg=SimulationCfg(), model=model, device=device)
+  scene.initialize(model, sim.model, sim.data)  # type: ignore
+
+  robot_a = scene["robot_a"]
+  robot_b = scene["robot_b"]
+  assert isinstance(robot_a, Entity)
+  assert isinstance(robot_b, Entity)
+
+  # Set different position targets for each entity.
+  target_a = torch.tensor([[0.1, 0.2]], device=device).expand(num_envs, -1)
+  target_b = torch.tensor([[0.5, 0.6]], device=device).expand(num_envs, -1)
+
+  robot_a.set_joint_position_target(target_a)
+  robot_a.set_joint_velocity_target(torch.zeros(num_envs, 2, device=device))
+  robot_a.set_joint_effort_target(torch.zeros(num_envs, 2, device=device))
+
+  robot_b.set_joint_position_target(target_b)
+  robot_b.set_joint_velocity_target(torch.zeros(num_envs, 2, device=device))
+  robot_b.set_joint_effort_target(torch.zeros(num_envs, 2, device=device))
+
+  scene.write_data_to_sim()
+
+  # Verify that each entity's controls landed in the correct global ctrl positions.
+  global_ctrl_a = robot_a.indexing.ctrl_ids
+  global_ctrl_b = robot_b.indexing.ctrl_ids
+
+  # The two entities should have different global ctrl ranges.
+  assert not torch.equal(global_ctrl_a, global_ctrl_b)
+
+  # Check that the ctrl values in global positions match each entity's expected output.
+  ctrl_a = sim.data.ctrl[0, global_ctrl_a]
+  ctrl_b = sim.data.ctrl[0, global_ctrl_b]
+
+  # Controls should differ since targets differ.
+  assert not torch.allclose(ctrl_a, ctrl_b)

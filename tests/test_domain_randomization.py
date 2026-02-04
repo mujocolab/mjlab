@@ -121,7 +121,7 @@ def test_randomize_field(device, field, ranges, operation, entity_names, axes, s
     initial_values = model_field.clone()
 
   randomize_field(
-    env,  # type: ignore[arg-type]
+    env,  # pyright: ignore[reportArgumentType]
     env_ids=None,
     field=field,
     ranges=ranges,
@@ -191,7 +191,7 @@ def test_randomize_field_scale_uses_defaults(device):
   # Randomize 3 times with scale operation.
   for _ in range(3):
     randomize_field(
-      env,  # type: ignore[arg-type]
+      env,  # pyright: ignore[reportArgumentType]
       env_ids=None,
       field="body_mass",
       ranges=(2.0, 2.0),
@@ -215,7 +215,7 @@ def test_randomize_field_scale_partial_axes(device):
 
   # Randomize only axis 0 (sliding friction) with scale operation.
   randomize_field(
-    env,  # type: ignore[arg-type]
+    env,  # pyright: ignore[reportArgumentType]
     env_ids=None,
     field="geom_friction",
     ranges=(2.0, 2.0),  # Scale by 2.0
@@ -311,7 +311,7 @@ def test_randomize_field_shared_random(device):
   geom_ids = robot.indexing.geom_ids
 
   randomize_field(
-    env,  # type: ignore[arg-type]
+    env,  # pyright: ignore[reportArgumentType]
     env_ids=None,
     field="geom_friction",
     ranges=FRICTION_RANGE,

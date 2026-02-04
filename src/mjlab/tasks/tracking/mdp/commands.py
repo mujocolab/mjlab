@@ -401,6 +401,10 @@ class MotionCommand(CommandTerm):
 
   def _debug_vis_impl(self, visualizer: DebugVisualizer) -> None:
     """Draw ghost robot or frames based on visualization mode."""
+    env_indices = visualizer.get_env_indices(self.num_envs)
+    if not env_indices:
+      return
+
     if self.cfg.viz.mode == "ghost":
       if self._ghost_model is None:
         self._ghost_model = copy.deepcopy(self._env.sim.mj_model)
@@ -411,59 +415,59 @@ class MotionCommand(CommandTerm):
       free_joint_q_adr = indexing.free_joint_q_adr.cpu().numpy()
       joint_q_adr = indexing.joint_q_adr.cpu().numpy()
 
-      qpos = np.zeros(self._env.sim.mj_model.nq)
-      qpos[free_joint_q_adr[0:3]] = self.body_pos_w[visualizer.env_idx, 0].cpu().numpy()
-      qpos[free_joint_q_adr[3:7]] = (
-        self.body_quat_w[visualizer.env_idx, 0].cpu().numpy()
-      )
-      qpos[joint_q_adr] = self.joint_pos[visualizer.env_idx].cpu().numpy()
+      for batch in env_indices:
+        qpos = np.zeros(self._env.sim.mj_model.nq)
+        qpos[free_joint_q_adr[0:3]] = self.body_pos_w[batch, 0].cpu().numpy()
+        qpos[free_joint_q_adr[3:7]] = self.body_quat_w[batch, 0].cpu().numpy()
+        qpos[joint_q_adr] = self.joint_pos[batch].cpu().numpy()
 
-      visualizer.add_ghost_mesh(qpos, model=self._ghost_model)
+        visualizer.add_ghost_mesh(qpos, model=self._ghost_model, label=f"ghost_{batch}")
 
     elif self.cfg.viz.mode == "frames":
-      desired_body_pos = self.body_pos_w[visualizer.env_idx].cpu().numpy()
-      desired_body_quat = self.body_quat_w[visualizer.env_idx]
-      desired_body_rotm = matrix_from_quat(desired_body_quat).cpu().numpy()
+      for batch in env_indices:
+        desired_body_pos = self.body_pos_w[batch].cpu().numpy()
+        desired_body_quat = self.body_quat_w[batch]
+        desired_body_rotm = matrix_from_quat(desired_body_quat).cpu().numpy()
 
-      current_body_pos = self.robot_body_pos_w[visualizer.env_idx].cpu().numpy()
-      current_body_quat = self.robot_body_quat_w[visualizer.env_idx]
-      current_body_rotm = matrix_from_quat(current_body_quat).cpu().numpy()
+        current_body_pos = self.robot_body_pos_w[batch].cpu().numpy()
+        current_body_quat = self.robot_body_quat_w[batch]
+        current_body_rotm = matrix_from_quat(current_body_quat).cpu().numpy()
 
-      for i, body_name in enumerate(self.cfg.body_names):
+        for i, body_name in enumerate(self.cfg.body_names):
+          visualizer.add_frame(
+            position=desired_body_pos[i],
+            rotation_matrix=desired_body_rotm[i],
+            scale=0.08,
+            label=f"desired_{body_name}_{batch}",
+            axis_colors=_DESIRED_FRAME_COLORS,
+          )
+          visualizer.add_frame(
+            position=current_body_pos[i],
+            rotation_matrix=current_body_rotm[i],
+            scale=0.12,
+            label=f"current_{body_name}_{batch}",
+          )
+
+        desired_anchor_pos = self.anchor_pos_w[batch].cpu().numpy()
+        desired_anchor_quat = self.anchor_quat_w[batch]
+        desired_rotation_matrix = matrix_from_quat(desired_anchor_quat).cpu().numpy()
         visualizer.add_frame(
-          position=desired_body_pos[i],
-          rotation_matrix=desired_body_rotm[i],
-          scale=0.08,
-          label=f"desired_{body_name}",
+          position=desired_anchor_pos,
+          rotation_matrix=desired_rotation_matrix,
+          scale=0.1,
+          label=f"desired_anchor_{batch}",
           axis_colors=_DESIRED_FRAME_COLORS,
         )
+
+        current_anchor_pos = self.robot_anchor_pos_w[batch].cpu().numpy()
+        current_anchor_quat = self.robot_anchor_quat_w[batch]
+        current_rotation_matrix = matrix_from_quat(current_anchor_quat).cpu().numpy()
         visualizer.add_frame(
-          position=current_body_pos[i],
-          rotation_matrix=current_body_rotm[i],
-          scale=0.12,
-          label=f"current_{body_name}",
+          position=current_anchor_pos,
+          rotation_matrix=current_rotation_matrix,
+          scale=0.15,
+          label=f"current_anchor_{batch}",
         )
-
-      desired_anchor_pos = self.anchor_pos_w[visualizer.env_idx].cpu().numpy()
-      desired_anchor_quat = self.anchor_quat_w[visualizer.env_idx]
-      desired_rotation_matrix = matrix_from_quat(desired_anchor_quat).cpu().numpy()
-      visualizer.add_frame(
-        position=desired_anchor_pos,
-        rotation_matrix=desired_rotation_matrix,
-        scale=0.1,
-        label="desired_anchor",
-        axis_colors=_DESIRED_FRAME_COLORS,
-      )
-
-      current_anchor_pos = self.robot_anchor_pos_w[visualizer.env_idx].cpu().numpy()
-      current_anchor_quat = self.robot_anchor_quat_w[visualizer.env_idx]
-      current_rotation_matrix = matrix_from_quat(current_anchor_quat).cpu().numpy()
-      visualizer.add_frame(
-        position=current_anchor_pos,
-        rotation_matrix=current_rotation_matrix,
-        scale=0.15,
-        label="current_anchor",
-      )
 
 
 @dataclass(kw_only=True)

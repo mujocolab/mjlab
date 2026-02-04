@@ -5,10 +5,13 @@ import sys
 import warnings
 from contextlib import redirect_stderr, redirect_stdout
 
-import pytest
+try:
+  import pytest
+except ModuleNotFoundError:
+  pytest = None  # type: ignore[assignment]
 
 
-@pytest.mark.slow
+@pytest.mark.slow if pytest else lambda f: f
 def test_basic_functionality() -> None:
   """Test that mjlab can create and close an environment."""
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv

@@ -48,21 +48,16 @@ class TerrainImporterCfg:
   """Maximum initial difficulty level (row index) for environment placement in
   curriculum mode. None uses all available rows."""
   num_envs: int = 1
-  """Number of parallel environments to create. This will get overriden by the
+  """Number of parallel environments to create. This will get overridden by the
   scene configuration if specified there."""
 
 
 class TerrainImporter:
-  """A class to handle terrain geometry and import it into the simulator.
+  """Builds a MuJoCo spec with terrain geometry and maps environments to spawn origins.
 
-  We assume that a terrain geometry comprises of sub-terrains that are arranged in a
-  grid with `num_rows` rows and `num_cols` columns. The terrain origins are the
-  positions of the sub-terrains where the robot should be spawned.
-
-  Based on the configuration, the terrain importer handles computing the environment
-  origins from the sub-terrain origins. In a typical setup, the number of sub-terrains
-  `num_rows x num_cols` is smaller than the number of environments `num_envs`. In this
-  case, the environment origins are computed by sampling the sub-terrain origins.
+  The terrain is a grid of sub-terrain patches (num_rows x num_cols), each with
+  a spawn origin. When num_envs exceeds the number of patches, environment
+  origins are sampled from the sub-terrain origins.
   """
 
   def __init__(self, cfg: TerrainImporterCfg, device: str) -> None:
@@ -86,14 +81,24 @@ class TerrainImporter:
       terrain_generator = TerrainGenerator(self.cfg.terrain_generator, device=device)
       terrain_generator.compile(self._spec)
       self.configure_env_origins(terrain_generator.terrain_origins)
+      self._flat_patches: dict[str, torch.Tensor] = {
+        name: torch.from_numpy(arr).to(device=device, dtype=torch.float)
+        for name, arr in terrain_generator.flat_patches.items()
+      }
+      self._flat_patch_radii: dict[str, float] = dict(
+        terrain_generator.flat_patch_radii
+      )
     elif self.cfg.terrain_type == "plane":
       self.import_ground_plane("terrain")
       self.configure_env_origins()
+      self._flat_patches: dict[str, torch.Tensor] = {}
+      self._flat_patch_radii: dict[str, float] = {}
     else:
       raise ValueError(f"Unknown terrain type: {self.cfg.terrain_type}")
 
     self._add_env_origin_sites()
     self._add_terrain_origin_sites()
+    self._add_flat_patch_sites()
 
   def _add_env_origin_sites(self) -> None:
     """Add transparent sphere sites at each environment origin for visualization."""
@@ -147,9 +152,36 @@ class TerrainImporter:
           group=5,
         )
 
+  def _add_flat_patch_sites(self) -> None:
+    """Add transparent box sites at each flat patch location for visualization."""
+    if not self._flat_patches:
+      return
+    site_thickness = 0.02
+    site_color = (0.9, 0.6, 0.1, 0.1)
+    for name, patches_tensor in self._flat_patches.items():
+      radius = self._flat_patch_radii.get(name, 0.5)
+      patches_np = patches_tensor.cpu().numpy()
+      num_rows, num_cols, num_patches, _ = patches_np.shape
+      for row in range(num_rows):
+        for col in range(num_cols):
+          for p in range(num_patches):
+            pos = patches_np[row, col, p]
+            self._spec.worldbody.add_site(
+              name=f"flat_patch_{name}_{row}_{col}_{p}",
+              pos=pos,
+              size=(radius, radius, site_thickness),
+              type=mujoco.mjtGeom.mjGEOM_BOX,
+              rgba=site_color,
+              group=3,
+            )
+
   @property
   def spec(self) -> mujoco.MjSpec:
     return self._spec
+
+  @property
+  def flat_patches(self) -> dict[str, torch.Tensor]:
+    return self._flat_patches
 
   def import_ground_plane(self, name: str) -> None:
     _DEFAULT_PLANE_TEXTURE.edit_spec(self._spec)

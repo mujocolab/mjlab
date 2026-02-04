@@ -31,12 +31,20 @@ class SensorCfg(ABC):
 
 
 class Sensor(ABC, Generic[T]):
-  """Base sensor interface with typed data.
+  """Base sensor interface with typed data and per-step caching.
 
   Type parameter T specifies the type of data returned by the sensor. For example:
   - Sensor[torch.Tensor] for sensors returning raw tensors
   - Sensor[ContactData] for sensors returning structured contact data
+
+  Subclasses should not forget to:
+  - Call `super().__init__()` in their `__init__` method
+  - If overriding `reset()` or `update()`, call `super()` FIRST to invalidate cache
   """
+
+  def __init__(self) -> None:
+    self._cached_data: T | None = None
+    self._cache_valid: bool = False
 
   @abstractmethod
   def edit_spec(
@@ -77,39 +85,62 @@ class Sensor(ABC, Generic[T]):
     raise NotImplementedError
 
   @property
-  @abstractmethod
   def data(self) -> T:
-    """Get the current sensor data.
+    """Get the current sensor data, using cached value if available.
 
     This property returns the sensor's current data in its specific type.
-    The data type is specified by the type parameter T.
+    The data type is specified by the type parameter T. The data is cached
+    per-step and recomputed only when the cache is invalidated (after
+    `reset()` or `update()` is called).
 
     Returns:
       The sensor data in the format specified by type parameter T.
     """
+    if not self._cache_valid:
+      self._cached_data = self._compute_data()
+      self._cache_valid = True
+    assert self._cached_data is not None
+    return self._cached_data
+
+  @abstractmethod
+  def _compute_data(self) -> T:
+    """Compute and return the sensor data.
+
+    Subclasses must implement this method to compute the sensor's data.
+    This is called by the `data` property when the cache is invalid.
+
+    Returns:
+      The computed sensor data.
+    """
     raise NotImplementedError
+
+  def _invalidate_cache(self) -> None:
+    """Invalidate the cached data, forcing recomputation on next access."""
+    self._cache_valid = False
 
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
     """Reset sensor state for specified environments.
 
-    Base implementation does nothing. Override in subclasses that maintain
-    internal state.
+    Invalidates the data cache. Override in subclasses that maintain
+    internal state, but call `super().reset(env_ids)` FIRST.
 
     Args:
       env_ids: Environment indices to reset. If None, reset all environments.
     """
     del env_ids  # Unused.
+    self._invalidate_cache()
 
   def update(self, dt: float) -> None:
     """Update sensor state after a simulation step.
 
-    Base implementation does nothing. Override in subclasses that need
-    per-step updates.
+    Invalidates the data cache. Override in subclasses that need
+    per-step updates, but call `super().update(dt)` FIRST.
 
     Args:
       dt: Time step in seconds.
     """
     del dt  # Unused.
+    self._invalidate_cache()
 
   def debug_vis(self, visualizer: DebugVisualizer) -> None:
     """Visualize sensor data for debugging.

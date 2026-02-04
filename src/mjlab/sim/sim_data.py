@@ -18,7 +18,13 @@ class TorchArray:
   def __init__(self, wp_array: wp.array, nworld: int | None = None) -> None:
     """Initialize the tensor proxy with a Warp array."""
     self._wp_array = wp_array
-    self._tensor = wp.to_torch(wp_array)
+    # Workaround for Warp bug: wp.to_torch fails on empty CPU arrays.
+    if wp_array.device.is_cpu and wp_array.size == 0:  # type: ignore[union-attr]
+      self._tensor = torch.zeros(
+        wp_array.shape, dtype=wp.dtype_to_torch(wp_array.dtype)
+      )
+    else:
+      self._tensor = wp.to_torch(wp_array)
 
     if (
       nworld is not None

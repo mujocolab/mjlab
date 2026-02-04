@@ -104,6 +104,7 @@ class DelayedActuator(Actuator[DelayedActuatorCfg]):
 
     self._target_ids = self._base_actuator._target_ids
     self._ctrl_ids = self._base_actuator._ctrl_ids
+    self._global_ctrl_ids = self._base_actuator._global_ctrl_ids
 
     targets = (
       (self.cfg.delay_target,)

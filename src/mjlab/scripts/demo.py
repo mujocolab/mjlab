@@ -6,6 +6,7 @@ and launches an interactive viewer with a humanoid robot performing a cartwheel.
 
 import tyro
 
+import mjlab
 from mjlab.scripts.gcs import ensure_default_checkpoint, ensure_default_motion
 from mjlab.scripts.play import PlayConfig, run_play
 
@@ -31,6 +32,7 @@ def main() -> None:
       viewer="viser",
       _demo_mode=True,
     ),
+    config=mjlab.TYRO_FLAGS,
   )
   run_play("Mjlab-Tracking-Flat-Unitree-G1", args)
 

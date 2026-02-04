@@ -2,9 +2,23 @@ import os
 from importlib.metadata import entry_points
 from pathlib import Path
 
+import tyro
 import warp as wp
 
 MJLAB_SRC_PATH: Path = Path(__file__).parent
+
+TYRO_FLAGS = (
+  # Don't let users switch between types in unions. This produces a simpler CLI
+  # with flatter helptext, at the cost of some flexibility. Type changes can
+  # just be done in code.
+  tyro.conf.AvoidSubcommands,
+  # Disable automatic flag conversion (e.g., use `--flag False` instead of
+  # `--no-flag` for booleans).
+  tyro.conf.FlagConversionOff,
+  # Use Python syntax for collections: --tuple (1,2,3) instead of --tuple 1 2 3.
+  # Helps with wandb sweep compatibility: https://brentyi.github.io/tyro/wandb_sweeps/
+  tyro.conf.UsePythonSyntaxForLiteralCollections,
+)
 
 
 def _configure_warp() -> None:

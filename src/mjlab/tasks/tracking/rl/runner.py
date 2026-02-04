@@ -28,28 +28,30 @@ class MotionTrackingOnPolicyRunner(MjlabOnPolicyRunner):
   def save(self, path: str, infos=None):
     """Save the model and training information."""
     super().save(path, infos)
-    if self.logger_type in ["wandb"]:
-      policy_path = path.split("model")[0]
-      filename = policy_path.split("/")[-2] + ".onnx"
-      if self.alg.policy.actor_obs_normalization:
-        normalizer = self.alg.policy.actor_obs_normalizer
-      else:
-        normalizer = None
-      export_motion_policy_as_onnx(
-        self.env.unwrapped,
-        self.alg.policy,
-        normalizer=normalizer,
-        path=policy_path,
-        filename=filename,
-      )
-      attach_onnx_metadata(
-        self.env.unwrapped,
-        wandb.run.name,  # type: ignore
-        path=policy_path,
-        filename=filename,
-      )
-      wandb.save(policy_path + filename, base_path=os.path.dirname(policy_path))
 
+    policy_path = path.split("model")[0]
+    filename = policy_path.split("/")[-2] + ".onnx"
+    if self.alg.policy.actor_obs_normalization:
+      normalizer = self.alg.policy.actor_obs_normalizer
+    else:
+      normalizer = None
+    export_motion_policy_as_onnx(
+      self.env.unwrapped,
+      self.alg.policy,
+      normalizer=normalizer,
+      path=policy_path,
+      filename=filename,
+    )
+    # Attach metadata (use "local" for run_path if not using wandb)
+    run_name = wandb.run.name if self.logger_type == "wandb" and wandb.run else "local"
+    attach_onnx_metadata(
+      self.env.unwrapped,
+      run_name,  # type: ignore
+      path=policy_path,
+      filename=filename,
+    )
+    if self.logger_type in ["wandb"]:
+      wandb.save(policy_path + filename, base_path=os.path.dirname(policy_path))
       # link the artifact registry to this run
       if self.registry_name is not None:
         wandb.run.use_artifact(self.registry_name)  # type: ignore

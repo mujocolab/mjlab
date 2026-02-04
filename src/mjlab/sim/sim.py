@@ -65,6 +65,7 @@ class MujocoCfg:
 
   # Other.
   gravity: tuple[float, float, float] = (0, 0, -9.81)
+  multiccd: bool = False
 
   def apply(self, model: mujoco.MjModel) -> None:
     """Apply configuration settings to a compiled MjModel."""
@@ -80,6 +81,8 @@ class MujocoCfg:
     model.opt.ls_iterations = self.ls_iterations
     model.opt.ls_tolerance = self.ls_tolerance
     model.opt.ccd_iterations = self.ccd_iterations
+    if self.multiccd:
+      model.opt.enableflags |= mujoco.mjtEnableBit.mjENBL_MULTICCD
 
 
 @dataclass(kw_only=True)

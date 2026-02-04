@@ -17,17 +17,25 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
   and other MuJoCo visualization primitives.
   """
 
-  def __init__(self, scn: mujoco.MjvScene, mj_model: mujoco.MjModel, env_idx: int):
+  def __init__(
+    self,
+    scn: mujoco.MjvScene,
+    mj_model: mujoco.MjModel,
+    env_idx: int,
+    show_all_envs: bool = False,
+  ):
     """Initialize the MuJoCo native visualizer.
 
     Args:
       scn: MuJoCo scene to add visualizations to
       mj_model: MuJoCo model for creating visualization data
       env_idx: Index of the environment being visualized
+      show_all_envs: If True, visualize all environments instead of just env_idx
     """
     self.scn = scn
     self.mj_model = mj_model
     self.env_idx = env_idx
+    self.show_all_envs = show_all_envs
     self._initial_geom_count = scn.ngeom
     self._meansize: float = mj_model.stat.meansize
 

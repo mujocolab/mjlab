@@ -290,7 +290,10 @@ def test_regex_pattern_matching(device):
   root_state[:, 3] = 1.0
   biped_entity.write_root_state_to_sim(root_state)
 
-  step_and_settle(sim, num_steps=20)
+  # Run simulation and update scene to invalidate cache.
+  for _ in range(20):
+    sim.step()
+    scene.update(dt=sim.cfg.mujoco.timestep)
 
   data = sensor.data
   # Both feet should detect ground contact.
@@ -552,6 +555,7 @@ def test_air_time_tracking(device):
   # Let it settle and establish ground contact.
   for _ in range(30):
     sim.step()
+    scene.update(dt=sim.cfg.mujoco.timestep)
 
   data1 = sensor.data
   # Check that we have ground contact initially.
@@ -564,6 +568,7 @@ def test_air_time_tracking(device):
   # Simulate being in air.
   for _ in range(20):
     sim.step()
+    scene.update(dt=sim.cfg.mujoco.timestep)
 
   data2 = sensor.data
   # Should have no ground contact while in air.
@@ -579,6 +584,7 @@ def test_air_time_tracking(device):
 
   for _ in range(30):
     sim.step()
+    scene.update(dt=sim.cfg.mujoco.timestep)
 
   data3 = sensor.data
   # Should have ground contact again.

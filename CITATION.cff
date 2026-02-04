@@ -3,7 +3,7 @@
 
 cff-version: 1.2.0
 title: >-
-  mjlab: Isaac Lab API, powered by MuJoCo-Warp, for RL and robotics research.
+  mjlab: A Lightweight Framework for GPU-Accelerated Robot Learning
 message: >-
   If you use this software, please cite it using the
   metadata from this file.
@@ -21,6 +21,10 @@ authors:
   - given-names: Louis
     family-names: Le Lay
     email: le.lay.louis@gmail.com
+  - given-names: Koushil
+    family-names: Sreenath
+  - given-names: Pieter
+    family-names: Abbeel
 repository-code: 'https://github.com/mujocolab/mjlab'
 keywords:
   - mujoco
@@ -29,6 +33,28 @@ keywords:
   - reinforcement-learning
   - robotics
 license: Apache-2.0
-commit: 7700a1ff5f79014f66b1dd91df1d0a7ea606380b
+commit: 20233215611f55fba8cff34a1ce3f9937ab63a25
 version: 1.0.0
-date-released: '2025-12-27'
+date-released: '2026-01-28'
+preferred-citation:
+  type: article
+  title: >-
+    mjlab: A Lightweight Framework for GPU-Accelerated Robot Learning
+  authors:
+    - given-names: Kevin
+      family-names: Zakka
+    - given-names: Qiayuan
+      family-names: Liao
+    - given-names: Brent
+      family-names: Yi
+    - given-names: Louis
+      family-names: Le Lay
+    - given-names: Koushil
+      family-names: Sreenath
+    - given-names: Pieter
+      family-names: Abbeel
+  year: 2026
+  url: https://arxiv.org/abs/2601.22074
+  identifiers:
+    - type: arxiv
+      value: 2601.22074

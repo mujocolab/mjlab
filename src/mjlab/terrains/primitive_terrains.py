@@ -68,10 +68,16 @@ class BoxPyramidStairsTerrainCfg(SubTerrainCfg):
   """Configuration for a pyramid stairs terrain."""
 
   border_width: float = 0.0
+  """Width of the flat border frame around the staircase, in meters. Ignored
+  when holes is True."""
   step_height_range: tuple[float, float]
+  """Min and max step height, in meters. Interpolated by difficulty."""
   step_width: float
+  """Depth (run) of each step, in meters."""
   platform_width: float = 1.0
+  """Side length of the flat square platform at the top of the staircase, in meters."""
   holes: bool = False
+  """If True, steps form a cross pattern with empty gaps in the corners."""
 
   def function(
     self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
@@ -379,12 +385,22 @@ class BoxInvertedPyramidStairsTerrainCfg(BoxPyramidStairsTerrainCfg):
 @dataclass(kw_only=True)
 class BoxRandomGridTerrainCfg(SubTerrainCfg):
   grid_width: float
+  """Side length of each square grid cell, in meters."""
   grid_height_range: tuple[float, float]
+  """Min and max grid cell height bound, in meters. Interpolated by difficulty.
+  At a given difficulty, cell heights are sampled uniformly from
+  [-bound, +bound]."""
   platform_width: float = 1.0
+  """Side length of the flat square platform at the grid center, in meters."""
   holes: bool = False
+  """If True, only the cross-shaped region around the center platform has grid cells."""
   merge_similar_heights: bool = False
+  """If True, adjacent cells with similar heights are merged into larger boxes
+  to reduce geom count."""
   height_merge_threshold: float = 0.05
+  """Maximum height difference between cells that can be merged, in meters."""
   max_merge_distance: int = 3
+  """Maximum number of grid cells that can be merged in each direction."""
 
   def function(
     self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator

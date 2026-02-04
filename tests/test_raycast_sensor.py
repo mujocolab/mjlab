@@ -651,6 +651,7 @@ def test_raycast_body_rotation_affects_rays(device):
 
   # First, verify baseline: unrotated body, rays hit floor at ~2m.
   sim.step()
+  scene.update(dt=sim.cfg.mujoco.timestep)
   data_unrotated = sensor.data
   assert torch.allclose(
     data_unrotated.distances, torch.full_like(data_unrotated.distances, 2.0), atol=0.1
@@ -663,6 +664,7 @@ def test_raycast_body_rotation_affects_rays(device):
   quat = [math.cos(angle / 2), math.sin(angle / 2), 0, 0]  # w, x, y, z
   sim.data.qpos[0, 3:7] = torch.tensor(quat, device=device)
   sim.step()
+  scene.update(dt=sim.cfg.mujoco.timestep)
   data_rotated = sensor.data
 
   expected_distance = 2.0 / math.cos(angle)  # ~2.83m
@@ -911,6 +913,7 @@ def test_ray_alignment_yaw(device):
 
   # Baseline: unrotated.
   sim.step()
+  scene.update(dt=sim.cfg.mujoco.timestep)
   data_unrotated = sensor.data
   baseline_dist = data_unrotated.distances.clone()
 
@@ -919,6 +922,7 @@ def test_ray_alignment_yaw(device):
   quat = [math.cos(angle / 2), math.sin(angle / 2), 0, 0]  # w, x, y, z
   sim.data.qpos[0, 3:7] = torch.tensor(quat, device=device)
   sim.step()
+  scene.update(dt=sim.cfg.mujoco.timestep)
   data_tilted = sensor.data
 
   # With yaw alignment, distance should remain ~2m (not change due to tilt).
@@ -971,6 +975,7 @@ def test_ray_alignment_world(device):
 
   # Baseline: unrotated.
   sim.step()
+  scene.update(dt=sim.cfg.mujoco.timestep)
   data_unrotated = sensor.data
   baseline_dist = data_unrotated.distances.clone()
 
@@ -989,6 +994,7 @@ def test_ray_alignment_world(device):
   qz = cp * sy
   sim.data.qpos[0, 3:7] = torch.tensor([qw, qx, qy, qz], device=device)
   sim.step()
+  scene.update(dt=sim.cfg.mujoco.timestep)
   data_rotated = sensor.data
 
   # With world alignment, distance should remain ~2m.
@@ -1049,6 +1055,7 @@ def test_ray_alignment_yaw_singularity(device):
 
   # Baseline: no rotation. Ray at 45° from height 2m hits floor at x=2, z=0.
   sim.step()
+  scene.update(dt=sim.cfg.mujoco.timestep)
   baseline_hit_pos = sensor.data.hit_pos_w.clone()
   # Ray goes diagonally +X and -Z, starting from (0,0,2), should hit floor at (2, 0, 0).
   assert torch.allclose(
@@ -1063,6 +1070,7 @@ def test_ray_alignment_yaw_singularity(device):
   quat = [math.cos(angle / 2), 0, math.sin(angle / 2), 0]  # w, x, y, z
   sim.data.qpos[0, 3:7] = torch.tensor(quat, device=device)
   sim.step()
+  scene.update(dt=sim.cfg.mujoco.timestep)
 
   singularity_hit_pos = sensor.data.hit_pos_w
 

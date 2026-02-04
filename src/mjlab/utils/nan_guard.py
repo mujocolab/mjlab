@@ -87,7 +87,13 @@ class NanGuard:
     Returns:
       Boolean tensor where True indicates environments with NaN/Inf values.
     """
-    tensors_to_check = [data.qpos, data.qvel, data.qacc, data.qacc_warmstart]
+    tensors_to_check = [
+      data.qpos,
+      data.qvel,
+      data.qacc,
+      data.qacc_warmstart,
+      data.sensordata,
+    ]
 
     # Build per-env NaN mask (True if env has NaN/Inf in any tensor).
     nan_mask = torch.zeros(

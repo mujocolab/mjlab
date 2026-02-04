@@ -443,6 +443,7 @@ class RayCastSensor(Sensor[RayCastData]):
   """Raycast sensor for terrain and obstacle detection."""
 
   def __init__(self, cfg: RayCastSensorCfg) -> None:
+    super().__init__()
     self.cfg = cfg
     self._data: mjwarp.Data | None = None
     self._model: mjwarp.Model | None = None
@@ -541,7 +542,7 @@ class RayCastSensor(Sensor[RayCastData]):
     self._ray_bodyexclude = wp.full(
       (self._num_rays,),
       body_exclude,
-      dtype=int,  # type: ignore
+      dtype=int,  # pyright: ignore[reportArgumentType]
       device=device,
     )
 
@@ -562,8 +563,7 @@ class RayCastSensor(Sensor[RayCastData]):
     if self._use_cuda_graph:
       self._create_graph()
 
-  @property
-  def data(self) -> RayCastData:
+  def _compute_data(self) -> RayCastData:
     self._perform_raycast()
     assert self._distances is not None and self._normals_w is not None
     assert self._hit_pos_w is not None
@@ -671,7 +671,7 @@ class RayCastSensor(Sensor[RayCastData]):
       d=self._data.struct,  # type: ignore[attr-defined]
       pnt=self._ray_pnt,
       vec=self._ray_vec,
-      geomgroup=self._geomgroup,  # type: ignore[arg-type]
+      geomgroup=self._geomgroup,  # pyright: ignore[reportArgumentType]
       flg_static=True,
       bodyexclude=self._ray_bodyexclude,
       dist=self._ray_dist,
@@ -705,6 +705,7 @@ class RayCastSensor(Sensor[RayCastData]):
     # Transform ray directions (per-ray).
     world_rays = torch.einsum("bij,nj->bni", rot_mat, self._local_directions)
 
+    assert self._ray_pnt is not None and self._ray_vec is not None
     pnt_torch = wp.to_torch(self._ray_pnt).view(num_envs, self._num_rays, 3)
     vec_torch = wp.to_torch(self._ray_vec).view(num_envs, self._num_rays, 3)
     pnt_torch.copy_(world_origins)
@@ -716,6 +717,7 @@ class RayCastSensor(Sensor[RayCastData]):
     else:
       self._raycast_direct()
 
+    assert self._ray_dist is not None and self._ray_normal is not None
     self._distances = wp.to_torch(self._ray_dist)
     self._normals_w = wp.to_torch(self._ray_normal).view(num_envs, self._num_rays, 3)
     self._distances[self._distances > self.cfg.max_distance] = -1.0

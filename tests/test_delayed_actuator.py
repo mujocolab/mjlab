@@ -220,7 +220,7 @@ def test_delayed_actuator_multi_target(device):
   # After 3 steps with lag=2, the delayed targets should be from step 0.
   # Position: [0.1, 0.2], Velocity: [0.01, 0.02]
   # Expected torque: Kp*(0.1 - 0) + Kd*(0.01 - 0) = 80*0.1 + 10*0.01 = 8.1.
-  ctrl_ids = actuator.ctrl_ids
+  ctrl_ids = actuator.global_ctrl_ids
   ctrl = sim.data.ctrl[0, ctrl_ids]
   # [80*0.1 + 10*0.01, 80*0.2 + 10*0.02]
   expected = torch.tensor([8.1, 16.2], device=device)

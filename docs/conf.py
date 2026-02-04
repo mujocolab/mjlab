@@ -116,7 +116,7 @@ language = "en"
 html_title = "mjlab Documentation"
 html_theme_path = [sphinx_book_theme.get_html_theme_path()]
 html_theme = "sphinx_book_theme"
-# html_favicon = "source/_static/favicon.ico"
+html_favicon = "source/_static/favicon.ico"
 html_show_copyright = True
 html_show_sphinx = False
 html_last_updated_fmt = ""
@@ -146,7 +146,7 @@ html_theme_options = {
     {
       "name": "mjlab",
       "url": "https://github.com/mujocolab/mjlab",
-      "icon": "https://img.shields.io/badge/mjlab-0.1.0-silver.svg",
+      "icon": "https://img.shields.io/badge/mjlab-1.0.0-silver.svg",
       "type": "url",
     },
     {

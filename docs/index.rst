@@ -23,7 +23,7 @@ You can try mjlab *without installing anything* by using `uvx`:
 
    # Run the mjlab demo (no local installation needed)
    uvx --from mjlab \
-       --with "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@9491175b7cbea87e28d3e3e67733095317c33398" \
+       --with "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@1dc288cf1fa819fc3346ec5c9546e2cc2b7be667" \
        demo
 
 If this runs, your setup is compatible with mjlab *for evaluation*.
@@ -38,14 +38,11 @@ If you use mjlab in your research, we would appreciate a citation:
 
 .. code-block:: bibtex
 
-    @software{Zakka_Mjlab_Isaac_Lab_2025,
-        author = {Zakka, Kevin and Yi, Brent and Liao, Qiayuan and Le Lay, Louis},
-        license = {Apache-2.0},
-        month = sep,
-        title = {{mjlab: Isaac Lab API, powered by MuJoCo-Warp, for RL and robotics research.}},
-        url = {https://github.com/mujocolab/mjlab},
-        version = {0.1.0},
-        year = {2025}
+    @article{Zakka_mjlab_A_Lightweight_2026,
+        author = {Zakka, Kevin and Liao, Qiayuan and Yi, Brent and Le Lay, Louis and Sreenath, Koushil and Abbeel, Pieter},
+        title = {{mjlab: A Lightweight Framework for GPU-Accelerated Robot Learning}},
+        url = {https://arxiv.org/abs/2601.22074},
+        year = {2026}
     }
 
 Acknowledgments

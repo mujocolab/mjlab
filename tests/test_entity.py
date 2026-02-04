@@ -226,6 +226,23 @@ def test_entity_properties(entity_fn, expected):
     assert getattr(entity, prop) == value
 
 
+def test_unnamed_freejoint_gets_default_name():
+  """Test that an unnamed freejoint is auto-named during entity init."""
+  xml = """
+  <mujoco>
+    <worldbody>
+      <body name="object" pos="0 0 1">
+        <freejoint/>
+        <geom name="object_geom" type="box" size="0.1 0.1 0.1" mass="0.1"/>
+      </body>
+    </worldbody>
+  </mujoco>
+  """
+  cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(xml))
+  entity = Entity(cfg)
+  assert "floating_base_joint" in entity.all_joint_names
+
+
 def test_find_methods():
   """Test find methods with exact and regex matches."""
   entity = create_floating_articulated_entity()

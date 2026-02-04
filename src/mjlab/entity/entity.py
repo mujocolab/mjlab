@@ -134,6 +134,8 @@ class Entity:
     self._non_free_joints = tuple(self._all_joints)
     if self._all_joints and self._all_joints[0].type == mujoco.mjtJoint.mjJNT_FREE:
       self._free_joint = self._all_joints[0]
+      if not self._free_joint.name:
+        self._free_joint.name = "floating_base_joint"
       self._non_free_joints = tuple(self._all_joints[1:])
     self._actuators: list[actuator.Actuator] = []
 
@@ -597,15 +599,20 @@ class Entity:
     self._data.clear_state(env_ids)
 
   def write_ctrl_to_sim(
-    self, ctrl: torch.Tensor, ctrl_ids: torch.Tensor | slice | None = None
+    self,
+    ctrl: torch.Tensor,
+    ctrl_ids: torch.Tensor | slice | None = None,
+    env_ids: torch.Tensor | slice | None = None,
   ) -> None:
     """Write control inputs to the simulation.
 
     Args:
       ctrl: A tensor of control inputs.
       ctrl_ids: A tensor of control indices.
+      env_ids: Optional tensor or slice specifying which environments to set.
+        If None, all environments are set.
     """
-    self._data.write_ctrl(ctrl, ctrl_ids)
+    self._data.write_ctrl(ctrl, ctrl_ids, env_ids)
 
   def write_root_state_to_sim(
     self, root_state: torch.Tensor, env_ids: torch.Tensor | slice | None = None

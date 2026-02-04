@@ -2,7 +2,7 @@
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Literal, Sequence
 
 import numpy as np
 import torch
@@ -96,6 +96,20 @@ class ObservationGroupCfg:
   """Whether to flatten history into the observation dimension. If True,
   observations have shape ``(num_envs, obs_dim * history_length)``. If False,
   shape is ``(num_envs, history_length, obs_dim)``."""
+
+  nan_policy: Literal["disabled", "warn", "sanitize", "error"] = "disabled"
+  """NaN/Inf handling policy for observations in this group.
+
+  - 'disabled': No checks (default, fastest)
+  - 'warn': Log warning with term name and env IDs, then sanitize (debugging)
+  - 'sanitize': Silent sanitization to 0.0 like reward manager (safe for production)
+  - 'error': Raise ValueError on NaN/Inf (strict development mode)
+  """
+
+  nan_check_per_term: bool = True
+  """If True, check each observation term individually to identify NaN source.
+  If False, check only the final concatenated output (faster but less informative).
+  Only applies when nan_policy != 'disabled'."""
 
 
 class ObservationManager(ManagerBase):
@@ -243,6 +257,50 @@ class ObservationManager(ManagerBase):
       mod.reset(env_ids=env_ids)
     return {}
 
+  def _check_and_handle_nans(
+    self, tensor: torch.Tensor, context: str, policy: str
+  ) -> torch.Tensor:
+    """Check for NaN/Inf and handle according to policy.
+
+    Args:
+      tensor: Observation tensor to check.
+      context: Context string for error/warning messages (e.g., "policy/base_lin_vel").
+      policy: NaN handling policy ("disabled", "warn", "sanitize", "error").
+
+    Returns:
+      The tensor, potentially sanitized depending on policy.
+
+    Raises:
+      ValueError: If policy is "error" and NaN/Inf detected.
+    """
+    if policy == "disabled":
+      return tensor
+
+    has_nan = torch.isnan(tensor).any()
+    has_inf = torch.isinf(tensor).any()
+
+    if not (has_nan or has_inf):
+      return tensor
+
+    if policy == "error":
+      nan_mask = torch.isnan(tensor).any(dim=-1) | torch.isinf(tensor).any(dim=-1)
+      nan_env_ids = torch.where(nan_mask)[0].cpu().tolist()
+      raise ValueError(
+        f"NaN/Inf detected in observation '{context}' "
+        f"for environments: {nan_env_ids[:10]}"
+      )
+
+    if policy == "warn":
+      nan_mask = torch.isnan(tensor).any(dim=-1) | torch.isinf(tensor).any(dim=-1)
+      nan_env_ids = torch.where(nan_mask)[0].cpu().tolist()
+      print(
+        f"[ObservationManager] NaN/Inf in '{context}' "
+        f"(envs: {nan_env_ids[:5]}). Sanitizing to 0."
+      )
+
+    # Sanitize (applies to both "warn" and "sanitize" policies).
+    return torch.nan_to_num(tensor, nan=0.0, posinf=0.0, neginf=0.0)
+
   def compute(
     self, update_history: bool = False
   ) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
@@ -261,6 +319,7 @@ class ObservationManager(ManagerBase):
   def compute_group(
     self, group_name: str, update_history: bool = False
   ) -> torch.Tensor | dict[str, torch.Tensor]:
+    group_cfg = self.cfg[group_name]
     group_term_names = self._group_obs_term_names[group_name]
     group_obs: dict[str, torch.Tensor] = {}
     obs_terms = zip(
@@ -278,6 +337,13 @@ class ObservationManager(ManagerBase):
         scale = term_cfg.scale
         assert isinstance(scale, torch.Tensor)
         obs = obs.mul_(scale)
+
+      # Check for NaN/Inf before delay/history buffers (per-term checking).
+      if group_cfg.nan_check_per_term and group_cfg.nan_policy != "disabled":
+        obs = self._check_and_handle_nans(
+          obs, context=f"{group_name}/{term_name}", policy=group_cfg.nan_policy
+        )
+
       if term_cfg.delay_max_lag > 0:
         delay_buffer = self._group_obs_term_delay_buffer[group_name][term_name]
         delay_buffer.append(obs)
@@ -293,10 +359,30 @@ class ObservationManager(ManagerBase):
           group_obs[term_name] = circular_buffer.buffer
       else:
         group_obs[term_name] = obs
+
+    # Final NaN check for non-per-term checking.
+    if not group_cfg.nan_check_per_term and group_cfg.nan_policy != "disabled":
+      if self._group_obs_concatenate[group_name]:
+        # Will check after concatenation below.
+        pass
+      else:
+        for term_name in group_obs:
+          group_obs[term_name] = self._check_and_handle_nans(
+            group_obs[term_name],
+            context=f"{group_name}/{term_name}",
+            policy=group_cfg.nan_policy,
+          )
+
     if self._group_obs_concatenate[group_name]:
-      return torch.cat(
+      result = torch.cat(
         list(group_obs.values()), dim=self._group_obs_concatenate_dim[group_name]
       )
+      # Final check for concatenated result (non-per-term checking).
+      if not group_cfg.nan_check_per_term and group_cfg.nan_policy != "disabled":
+        result = self._check_and_handle_nans(
+          result, context=group_name, policy=group_cfg.nan_policy
+        )
+      return result
     return group_obs
 
   def _prepare_terms(self) -> None:

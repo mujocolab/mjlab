@@ -136,3 +136,39 @@ def floating_base_articulated_xml() -> str:
 def biped_xml() -> str:
   """Load biped robot XML fixture with ground plane."""
   return load_fixture_xml("biped")
+
+
+@pytest.fixture
+def robot_with_floor_xml() -> str:
+  """XML for a floating body above a ground plane."""
+  return """
+    <mujoco>
+      <worldbody>
+        <geom name="floor" type="plane" size="10 10 0.1" pos="0 0 0"/>
+        <body name="base" pos="0 0 2">
+          <freejoint name="free_joint"/>
+          <geom name="base_geom" type="box" size="0.2 0.2 0.1" mass="5.0"/>
+          <site name="base_site" pos="0 0 -0.1"/>
+        </body>
+      </worldbody>
+    </mujoco>
+  """
+
+
+@pytest.fixture
+def falling_box_xml() -> str:
+  """XML for a box that can fall onto a ground plane."""
+  return """
+    <mujoco>
+      <worldbody>
+        <body name="ground" pos="0 0 0">
+          <geom name="ground_geom" type="plane" size="5 5 0.1" rgba="0.5 0.5 0.5 1"/>
+        </body>
+        <body name="box" pos="0 0 0.5">
+          <freejoint name="box_joint"/>
+          <geom name="box_geom" type="box" size="0.1 0.1 0.1" rgba="0.8 0.3 0.3 1"
+            mass="1.0"/>
+        </body>
+      </worldbody>
+    </mujoco>
+  """

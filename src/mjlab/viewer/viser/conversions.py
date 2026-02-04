@@ -294,7 +294,10 @@ def create_primitive_mesh(mj_model: mujoco.MjModel, geom_id: int) -> trimesh.Tri
   elif geom_type == mjtGeom.mjGEOM_CYLINDER:
     mesh = trimesh.creation.cylinder(radius=size[0], height=2.0 * size[1])
   elif geom_type == mjtGeom.mjGEOM_PLANE:
-    mesh = trimesh.creation.box((20, 20, 0.01))
+    # size[0], size[1] are half-lengths in x, y (0 means infinite).
+    plane_x = 2.0 * size[0] if size[0] > 0 else 20.0
+    plane_y = 2.0 * size[1] if size[1] > 0 else 20.0
+    mesh = trimesh.creation.box((plane_x, plane_y, 0.001))
   elif geom_type == mjtGeom.mjGEOM_ELLIPSOID:
     mesh = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
     mesh.apply_scale(size)
@@ -396,6 +399,67 @@ def create_primitive_mesh(mj_model: mujoco.MjModel, geom_id: int) -> trimesh.Tri
   vertex_colors = np.tile(rgba_uint8, (len(mesh.vertices), 1))
   mesh.visual = trimesh.visual.ColorVisuals(mesh=mesh, vertex_colors=vertex_colors)
   return mesh
+
+
+def get_geom_texture_id(mj_model: mujoco.MjModel, geom_idx: int) -> int:
+  """Return the texture ID that the trimesh conversion will use, or -1.
+
+  Returns -1 (untextured) when any of these hold:
+    - The geom is a primitive (``create_primitive_mesh`` always emits
+      ``ColorVisuals``, even if the material references a texture).
+    - The material has no texture (neither mjTEXROLE_RGB nor mjTEXROLE_RGBA).
+    - The mesh has no UV coordinates (mesh_texcoordnum == 0).
+
+  Args:
+    mj_model: MuJoCo model containing geom definitions.
+    geom_idx: Index of the geometry in the model.
+
+  Returns:
+    Texture ID (>= 0) if conversion will produce TextureVisuals, -1 otherwise.
+  """
+  if mj_model.geom_type[geom_idx] != mjtGeom.mjGEOM_MESH:
+    return -1
+
+  matid = mj_model.geom_matid[geom_idx]
+  if matid < 0 or matid >= mj_model.nmat:
+    return -1
+
+  texid = int(mj_model.mat_texid[matid, int(mujoco.mjtTextureRole.mjTEXROLE_RGB)])
+  if texid < 0:
+    texid = int(mj_model.mat_texid[matid, int(mujoco.mjtTextureRole.mjTEXROLE_RGBA)])
+
+  if texid < 0:
+    return -1
+
+  mesh_id = mj_model.geom_dataid[geom_idx]
+  if mj_model.mesh_texcoordnum[mesh_id] <= 0:
+    return -1
+
+  return texid
+
+
+def group_geoms_by_visual_compat(
+  mj_model: mujoco.MjModel, geom_ids: list[int]
+) -> list[list[int]]:
+  """Partition geom IDs into groups that can be safely merged.
+
+  Geoms sharing the same texture ID are grouped together. All untextured
+  geoms (texture ID = -1) form a single group. This prevents trimesh
+  concatenation from producing gray meshes when mixing TextureVisuals
+  and ColorVisuals, or when combining different texture images.
+
+  Args:
+    mj_model: MuJoCo model containing geom definitions.
+    geom_ids: List of geom indices to partition.
+
+  Returns:
+    List of geom ID lists, each safe to pass to ``merge_geoms``.
+  """
+  groups: dict[int, list[int]] = {}
+  for gid in geom_ids:
+    tex_id = get_geom_texture_id(mj_model, gid)
+    groups.setdefault(tex_id, []).append(gid)
+  return list(groups.values())
 
 
 def merge_geoms(mj_model: mujoco.MjModel, geom_ids: list[int]) -> trimesh.Trimesh:
@@ -519,3 +583,91 @@ def get_body_name(mj_model: mujoco.MjModel, body_id: int) -> str:
   if not body_name:
     body_name = f"body_{body_id}"
   return body_name
+
+
+def create_site_mesh(mj_model: mujoco.MjModel, site_id: int) -> trimesh.Trimesh:
+  """Create a mesh for a single site.
+
+  Reads site_type, site_size, and site_rgba from the model. Supports sphere,
+  capsule, ellipsoid, cylinder, and box site types. When site_rgba is all-zero,
+  falls back to [0.5, 0.5, 0.5, 1.0].
+
+  Args:
+    mj_model: MuJoCo model containing site definition
+    site_id: Index of the site to create mesh for
+
+  Returns:
+    Trimesh representation of the site
+  """
+  size = mj_model.site_size[site_id]
+  site_type = mj_model.site_type[site_id]
+  rgba = mj_model.site_rgba[site_id].copy()
+
+  # Fall back to gray when RGBA is all-zero (MuJoCo default when unset).
+  if np.all(rgba == 0):
+    rgba = np.array([0.5, 0.5, 0.5, 1.0])
+
+  rgba_uint8 = (np.clip(rgba, 0, 1) * 255).astype(np.uint8)
+
+  # Site types reuse mjtGeom enum values.
+  if site_type == mjtGeom.mjGEOM_SPHERE:
+    mesh = trimesh.creation.icosphere(radius=size[0], subdivisions=2)
+  elif site_type == mjtGeom.mjGEOM_BOX:
+    mesh = trimesh.creation.box(extents=2.0 * size)
+  elif site_type == mjtGeom.mjGEOM_CAPSULE:
+    mesh = trimesh.creation.capsule(radius=size[0], height=2.0 * size[1])
+  elif site_type == mjtGeom.mjGEOM_CYLINDER:
+    mesh = trimesh.creation.cylinder(radius=size[0], height=2.0 * size[1])
+  elif site_type == mjtGeom.mjGEOM_ELLIPSOID:
+    mesh = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
+    mesh.apply_scale(size)
+  else:
+    raise ValueError(f"Unsupported site type: {site_type}")
+
+  vertex_colors = np.tile(rgba_uint8, (len(mesh.vertices), 1))
+  mesh.visual = trimesh.visual.ColorVisuals(mesh=mesh, vertex_colors=vertex_colors)
+  return mesh
+
+
+def merge_sites(mj_model: mujoco.MjModel, site_ids: list[int]) -> trimesh.Trimesh:
+  """Merge multiple sites into a single trimesh.
+
+  Each site's mesh is transformed by its site_pos/site_quat before merging.
+
+  Args:
+    mj_model: MuJoCo model containing site definitions
+    site_ids: List of site indices to merge
+
+  Returns:
+    Single merged trimesh with all sites transformed to their local poses
+  """
+  meshes = []
+  for site_id in site_ids:
+    mesh = create_site_mesh(mj_model, site_id)
+    pos = mj_model.site_pos[site_id]
+    quat = mj_model.site_quat[site_id]
+    transform = np.eye(4)
+    transform[:3, :3] = vtf.SO3(quat).as_matrix()
+    transform[:3, 3] = pos
+    mesh.apply_transform(transform)
+    meshes.append(mesh)
+
+  if len(meshes) == 1:
+    return meshes[0]
+  return trimesh.util.concatenate(meshes)
+
+
+def get_site_name(mj_model: mujoco.MjModel, site_id: int) -> str:
+  """Get site name with fallback to ID-based name.
+
+  Args:
+    mj_model: MuJoCo model
+    site_id: Site index
+
+  Returns:
+    Site name or "site_{site_id}" if name not found.
+  """
+  site_name = mj_id2name(mj_model, mjtObj.mjOBJ_SITE, site_id)
+  if not site_name:
+    site_name = f"site_{site_id}"
+  return site_name

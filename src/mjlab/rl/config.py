@@ -79,9 +79,12 @@ class RslRlBaseRunnerCfg:
   save_interval: int = 50
   """The number of iterations between saves."""
   experiment_name: str = "exp1"
-  """The experiment name."""
+  """Directory name used to group runs under
+  ``logs/rsl_rl/{experiment_name}/``."""
   run_name: str = ""
-  """The run name. Default is empty string."""
+  """Optional label appended to the timestamped run directory
+  (e.g. ``2025-01-27_14-30-00_{run_name}``). Also becomes the
+  display name for the run in wandb."""
   logger: Literal["wandb", "tensorboard"] = "wandb"
   """The logger to use. Default is wandb."""
   wandb_project: str = "mjlab"

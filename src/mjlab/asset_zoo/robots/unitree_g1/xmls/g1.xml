@@ -238,8 +238,7 @@
                           <geom pos="0.0415 0.003 0" quat="1 0 0 0" class="visual" mesh="left_rubber_hand"
                             material="black"/>
                           <site name="left_palm" pos="0.08 0 0" size="0.01"/>
-                          <geom name="left_hand_collision" class="collision" size="0.035" rgba=".2 .6 .2 .2"
-                            fromto="0.07 0 0 0.15 -0.02 0"/>
+                          <geom name="left_hand_collision" class="collision" size="0.035" fromto="0.07 0 0 0.15 -0.02 0"/>
                         </body>
                       </body>
                     </body>
@@ -290,8 +289,7 @@
                           <geom pos="0.0415 -0.003 0" quat="1 0 0 0" class="visual" mesh="right_rubber_hand"
                             material="black"/>
                           <site name="right_palm" pos="0.08 0 0" size="0.01"/>
-                          <geom name="right_hand_collision" class="collision" size="0.035" rgba=".2 .6 .2 .2"
-                            fromto="0.07 0 0 0.15 0.02 0"/>
+                          <geom name="right_hand_collision" class="collision" size="0.035" fromto="0.07 0 0 0.15 0.02 0"/>
                         </body>
                       </body>
                     </body>

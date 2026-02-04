@@ -1,4 +1,7 @@
 from mjlab.terrains.heightfield_terrains import (
+  HfDiscreteObstaclesTerrainCfg as HfDiscreteObstaclesTerrainCfg,
+)
+from mjlab.terrains.heightfield_terrains import (
   HfPyramidSlopedTerrainCfg as HfPyramidSlopedTerrainCfg,
 )
 from mjlab.terrains.heightfield_terrains import (
@@ -14,6 +17,9 @@ from mjlab.terrains.primitive_terrains import (
 )
 from mjlab.terrains.primitive_terrains import (
   BoxRandomGridTerrainCfg as BoxRandomGridTerrainCfg,
+)
+from mjlab.terrains.terrain_generator import (
+  FlatPatchSamplingCfg as FlatPatchSamplingCfg,
 )
 from mjlab.terrains.terrain_generator import SubTerrainCfg as SubTerrainCfg
 from mjlab.terrains.terrain_generator import TerrainGenerator as TerrainGenerator

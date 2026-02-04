@@ -13,7 +13,7 @@ def repeat_array_kernel(
   dst: wp.array(dtype=Any),  # type: ignore
 ):
   tid = wp.tid()
-  src_idx = tid % nelems_per_world
+  src_idx = tid % nelems_per_world  # type: ignore[operator]
   dst[tid] = src[src_idx]
 
 

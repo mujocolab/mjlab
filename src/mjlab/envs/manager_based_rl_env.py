@@ -202,7 +202,7 @@ class ManagerBasedRlEnv:
       )
       renderer.initialize()
       self._offline_renderer = renderer
-    self.metadata["render_fps"] = 1.0 / self.step_dt  # type: ignore
+    self.metadata["render_fps"] = 1.0 / self.step_dt
 
     # Load all managers.
     self.load_managers()
