@@ -10,6 +10,7 @@ from mjlab.managers.termination_manager import TerminationTermCfg
 from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.tasks.velocity import mdp
 from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
+from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 
 
 def unitree_go1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
@@ -122,6 +123,7 @@ def unitree_go1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.sim.njmax = 300
   cfg.sim.mujoco.ccd_iterations = 50
   cfg.sim.contact_sensor_maxmatch = 64
+  cfg.sim.nconmax = None
 
   # Switch to flat terrain.
   assert cfg.scene.terrain is not None
@@ -129,6 +131,17 @@ def unitree_go1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.scene.terrain.terrain_generator = None
 
   # Disable terrain curriculum.
+  assert "terrain_levels" in cfg.curriculum
   del cfg.curriculum["terrain_levels"]
+
+  if play:
+    # Disable command curriculum.
+    assert "command_vel" in cfg.curriculum
+    del cfg.curriculum["command_vel"]
+
+    twist_cmd = cfg.commands["twist"]
+    assert isinstance(twist_cmd, UniformVelocityCommandCfg)
+    twist_cmd.ranges.lin_vel_x = (-1.5, 2.0)
+    twist_cmd.ranges.ang_vel_z = (-0.7, 0.7)
 
   return cfg
