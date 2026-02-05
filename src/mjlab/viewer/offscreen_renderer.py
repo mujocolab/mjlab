@@ -9,7 +9,9 @@ from mjlab.scene import Scene
 from mjlab.viewer.native.visualizer import MujocoNativeDebugVisualizer
 from mjlab.viewer.viewer_config import ViewerConfig
 
-_MAX_ENVS = 32  # Max number of envs to visualize (for performance).
+# Max number of envs to visualize (performance/memory limit).
+# See FAQ: "How many environments can I visualize at once?"
+_MAX_ENVS = 32
 
 
 class OffscreenRenderer:

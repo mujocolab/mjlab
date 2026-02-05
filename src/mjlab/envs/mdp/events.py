@@ -91,6 +91,14 @@ def reset_root_state_uniform(
   For floating-base entities: Resets pose and velocity via write_root_state_to_sim().
   For fixed-base mocap entities: Resets pose only via write_mocap_pose_to_sim().
 
+  .. note::
+    This function applies the env_origins offset to position entities in a grid.
+    For fixed-base robots, this is the ONLY way to position them per-environment.
+    Without calling this function in a reset event, fixed-base robots will stack
+    at (0,0,0).
+
+  See FAQ: "Why are my fixed-base robots all stacked at the origin?"
+
   Args:
     env: The environment.
     env_ids: Environment IDs to reset. If None, resets all environments.

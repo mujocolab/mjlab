@@ -512,7 +512,7 @@ def test_two_actuated_entities_write_ctrl(device):
   scene = Scene(scene_cfg, device)
   model = scene.compile()
   sim = Simulation(num_envs=num_envs, cfg=SimulationCfg(), model=model, device=device)
-  scene.initialize(model, sim.model, sim.data)  # type: ignore
+  scene.initialize(model, sim.model, sim.data)
 
   robot_a = scene["robot_a"]
   robot_b = scene["robot_b"]

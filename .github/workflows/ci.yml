@@ -66,3 +66,19 @@ jobs:
           version: "0.9.27"
       - name: Test with python ${{ matrix.python-version }}
         run: uv run pyright
+
+  ty-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          version: "0.9.27"
+      - name: Type check with python ${{ matrix.python-version }}
+        run: uv run ty check

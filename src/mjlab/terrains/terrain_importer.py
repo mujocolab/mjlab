@@ -58,6 +58,14 @@ class TerrainImporter:
   The terrain is a grid of sub-terrain patches (num_rows x num_cols), each with
   a spawn origin. When num_envs exceeds the number of patches, environment
   origins are sampled from the sub-terrain origins.
+
+  .. note::
+    Environment allocation for procedural terrain: Columns (terrain types) are
+    evenly distributed across environments, but rows (difficulty levels) are
+    randomly sampled. This means multiple environments can spawn on the same
+    (row, col) patch, leaving others unoccupied, even when num_envs > num_patches.
+
+  See FAQ: "How does env_origins determine robot layout?"
   """
 
   def __init__(self, cfg: TerrainImporterCfg, device: str) -> None:
@@ -256,7 +264,27 @@ class TerrainImporter:
   def _compute_env_origins_curriculum(
     self, num_envs: int, origins: torch.Tensor
   ) -> torch.Tensor:
-    """Compute the origins of the environments defined by the sub-terrains origins."""
+    """Compute the origins of the environments defined by the sub-terrains origins.
+
+    Allocation strategy:
+      - Columns (terrain_types): Evenly distributed across environments using
+        integer division. Each column gets floor(num_envs / num_cols) or
+        ceil(num_envs / num_cols) envs.
+      - Rows (terrain_levels): Randomly sampled from [0, max_init_terrain_level].
+        Supports curriculum learning where rows represent difficulty levels.
+
+    .. note::
+      Multiple environments can be assigned to the same (row, col) patch, leaving
+      other patches unoccupied, even when num_envs > num_patches. This is because
+      row assignment is random while column assignment is deterministic.
+
+    Example: 5x5 terrain grid (25 patches), 100 environments:
+      - Each of 5 columns gets exactly 20 environments
+      - Those 20 are randomly distributed across 5 rows
+      - Result: Some patches get 0 envs, others might get 5+
+
+    See FAQ: "How does env_origins determine robot layout?"
+    """
     num_rows, num_cols = origins.shape[:2]
     if self.cfg.max_init_terrain_level is None:
       max_init_level = num_rows - 1
@@ -278,7 +306,19 @@ class TerrainImporter:
   def _compute_env_origins_grid(
     self, num_envs: int, env_spacing: float
   ) -> torch.Tensor:
-    """Compute the origins of the environments in a grid based on configured spacing."""
+    """Compute the origins of the environments in a grid based on configured spacing.
+
+    Creates an approximately square grid centered at the world origin where:
+      - num_rows ≈ ceil(sqrt(num_envs))
+      - num_cols = ceil(num_envs / num_rows)
+
+    Examples:
+      - 32 envs → 7 rows x 5 cols
+      - 64 envs → 8 rows x 8 cols
+      - 4096 envs → 64 rows x 64 cols
+
+    See FAQ: "How does env_origins determine robot layout?"
+    """
     env_origins = torch.zeros(num_envs, 3, device=self.device)
     num_rows = np.ceil(num_envs / int(np.sqrt(num_envs)))
     num_cols = np.ceil(num_envs / num_rows)

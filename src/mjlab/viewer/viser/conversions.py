@@ -157,13 +157,13 @@ def mujoco_mesh_to_trimesh(
           tex_array = tex_data.reshape(tex_height, tex_width, 3)
           # Flip vertically for GLTF convention.
           tex_array = np.flipud(tex_array)
-          image = Image.fromarray(tex_array.astype(np.uint8), mode="RGB")
+          image = Image.fromarray(tex_array.astype(np.uint8))
         elif tex_nchannel == 4:
           # RGBA.
           tex_array = tex_data.reshape(tex_height, tex_width, 4)
           # Flip vertically for GLTF convention.
           tex_array = np.flipud(tex_array)
-          image = Image.fromarray(tex_array.astype(np.uint8), mode="RGBA")
+          image = Image.fromarray(tex_array.astype(np.uint8))
         else:
           if verbose:
             print(f"Unsupported number of texture channels: {tex_nchannel}")
