@@ -9,8 +9,8 @@ from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.termination_manager import TerminationTermCfg
 from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.tasks.velocity import mdp
-from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
+from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 
 
 def unitree_go1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
