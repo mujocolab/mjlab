@@ -5,25 +5,23 @@ from typing import Literal, Tuple
 
 
 @dataclass
-class RslRlPpoActorCriticCfg:
-  """Config for the PPO actor-critic networks."""
+class RslRlMLPModelCfg:
+  """Config for an MLP model (actor or critic)."""
 
-  init_noise_std: float = 1.0
-  """The initial noise standard deviation of the policy."""
-  noise_std_type: Literal["scalar", "log"] = "scalar"
-  """The type of noise standard deviation for the policy. Default is scalar."""
-  actor_obs_normalization: bool = False
-  """Whether to normalize the observation for the actor network. Default is False."""
-  critic_obs_normalization: bool = False
-  """Whether to normalize the observation for the critic network. Default is False."""
-  actor_hidden_dims: Tuple[int, ...] = (128, 128, 128)
-  """The hidden dimensions of the actor network."""
-  critic_hidden_dims: Tuple[int, ...] = (128, 128, 128)
-  """The hidden dimensions of the critic network."""
+  hidden_dims: Tuple[int, ...] = (128, 128, 128)
+  """The hidden dimensions of the MLP network."""
   activation: str = "elu"
-  """The activation function to use in the actor and critic networks."""
-  class_name: str = "ActorCritic"
-  """Ignore, required by RSL-RL."""
+  """The activation function to use in the network."""
+  obs_normalization: bool = False
+  """Whether to normalize observations before feeding them to the network. Default is False."""
+  stochastic: bool = False
+  """Whether the model outputs stochastic (True for actor) or deterministic (True for critic) values."""
+  init_noise_std: float = 1.0
+  """The initial noise standard deviation (only used when stochastic=True)."""
+  noise_std_type: Literal["scalar", "log"] = "scalar"
+  """The type of noise standard deviation. Default is scalar."""
+  class_name: str = "MLPModel"
+  """The model class name used by RSL-RL."""
 
 
 @dataclass
@@ -61,6 +59,8 @@ class RslRlPpoAlgorithmCfg:
   advantage is normalized over the mini-batches only. Otherwise, the advantage is
   normalized over the entire collected trajectories.
   """
+  rnd_cfg: dict | None = None
+  """Optional Random Network Distillation config. Default is None (disabled)."""
   class_name: str = "PPO"
   """Ignore, required by RSL-RL."""
 
@@ -74,7 +74,7 @@ class RslRlBaseRunnerCfg:
   max_iterations: int = 300
   """The maximum number of iterations."""
   obs_groups: dict[str, tuple[str, ...]] = field(
-    default_factory=lambda: {"policy": ("policy",), "critic": ("critic",)},
+    default_factory=lambda: {"actor": ("policy",), "critic": ("critic",)},
   )
   save_interval: int = 50
   """The number of iterations between saves."""
@@ -109,7 +109,11 @@ class RslRlBaseRunnerCfg:
 class RslRlOnPolicyRunnerCfg(RslRlBaseRunnerCfg):
   class_name: str = "OnPolicyRunner"
   """The runner class name. Default is OnPolicyRunner."""
-  policy: RslRlPpoActorCriticCfg = field(default_factory=RslRlPpoActorCriticCfg)
-  """The policy configuration."""
+  actor: RslRlMLPModelCfg = field(
+    default_factory=lambda: RslRlMLPModelCfg(stochastic=True)
+  )
+  """The actor model configuration."""
+  critic: RslRlMLPModelCfg = field(default_factory=RslRlMLPModelCfg)
+  """The critic model configuration."""
   algorithm: RslRlPpoAlgorithmCfg = field(default_factory=RslRlPpoAlgorithmCfg)
   """The algorithm configuration."""

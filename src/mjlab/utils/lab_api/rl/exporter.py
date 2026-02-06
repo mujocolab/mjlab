@@ -56,7 +56,9 @@ class _TorchPolicyExporter(torch.nn.Module):
         super().__init__()
         self.is_recurrent = policy.is_recurrent
         # copy policy parameters
-        if hasattr(policy, "actor"):
+        if hasattr(policy, "mlp"):
+            self.actor = copy.deepcopy(policy.mlp)
+        elif hasattr(policy, "actor"):
             self.actor = copy.deepcopy(policy.actor)
             if self.is_recurrent:
                 self.rnn = copy.deepcopy(policy.memory_a.rnn)
@@ -65,7 +67,7 @@ class _TorchPolicyExporter(torch.nn.Module):
             if self.is_recurrent:
                 self.rnn = copy.deepcopy(policy.memory_s.rnn)
         else:
-            raise ValueError("Policy does not have an actor/student module.")
+            raise ValueError("Policy does not have an actor/student/mlp module.")
         # set up recurrent network
         if self.is_recurrent:
             self.rnn.cpu()
@@ -129,7 +131,9 @@ class _OnnxPolicyExporter(torch.nn.Module):
         self.verbose = verbose
         self.is_recurrent = policy.is_recurrent
         # copy policy parameters
-        if hasattr(policy, "actor"):
+        if hasattr(policy, "mlp"):
+            self.actor = copy.deepcopy(policy.mlp)
+        elif hasattr(policy, "actor"):
             self.actor = copy.deepcopy(policy.actor)
             if self.is_recurrent:
                 self.rnn = copy.deepcopy(policy.memory_a.rnn)
@@ -138,7 +142,7 @@ class _OnnxPolicyExporter(torch.nn.Module):
             if self.is_recurrent:
                 self.rnn = copy.deepcopy(policy.memory_s.rnn)
         else:
-            raise ValueError("Policy does not have an actor/student module.")
+            raise ValueError("Policy does not have an actor/student/mlp module.")
         # set up recurrent network
         if self.is_recurrent:
             self.rnn.cpu()
