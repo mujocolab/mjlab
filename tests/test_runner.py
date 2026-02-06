@@ -6,6 +6,7 @@ from pathlib import Path
 
 import mujoco
 import pytest
+import torch
 from conftest import get_test_device
 
 from mjlab.actuator import XmlMotorActuatorCfg
@@ -114,7 +115,6 @@ def test_runner_persists_common_step_counter(env, device, monkeypatch):
 
 def test_runner_handles_old_checkpoints_without_env_state(env, device):
   """Old checkpoints without env_state should load without crashing."""
-  import torch
 
   wrapped_env = RslRlVecEnvWrapper(env)
   agent_cfg = RslRlOnPolicyRunnerCfg(
