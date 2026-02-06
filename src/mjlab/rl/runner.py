@@ -8,7 +8,7 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
 
   env: RslRlVecEnvWrapper
 
-  def save(self, path: str, infos=None):
+  def save(self, path: str, infos=None) -> None:
     env_state = {"common_step_counter": self.env.unwrapped.common_step_counter}
     infos = {**(infos or {}), "env_state": env_state}
     super().save(path, infos)
@@ -19,7 +19,7 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     load_cfg: dict | None = None,
     strict: bool = True,
     map_location: str | None = None,
-  ):
+  ) -> dict:
     loaded_dict = torch.load(path, map_location=map_location, weights_only=False)
 
     if "model_state_dict" in loaded_dict:
