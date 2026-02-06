@@ -264,7 +264,7 @@ class ObservationManager(ManagerBase):
 
     Args:
       tensor: Observation tensor to check.
-      context: Context string for error/warning messages (e.g., "policy/base_lin_vel").
+      context: Context string for error/warning messages (e.g., "actor/base_lin_vel").
       policy: NaN handling policy ("disabled", "warn", "sanitize", "error").
 
     Returns:

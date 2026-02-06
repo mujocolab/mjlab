@@ -51,11 +51,11 @@ def test_play_mode_observation_corruption_disabled(all_task_ids: list[str]) -> N
   for task_id in all_task_ids:
     cfg = load_env_cfg(task_id, play=True)
 
-    assert "policy" in cfg.observations, (
+    assert "actor" in cfg.observations, (
       f"Play mode task {task_id} missing 'policy' observation group"
     )
 
-    policy_obs = cfg.observations["policy"]
+    policy_obs = cfg.observations["actor"]
     assert isinstance(policy_obs, ObservationGroupCfg), (
       f"Play mode task {task_id} policy observation is not ObservationGroupCfg"
     )
@@ -70,11 +70,11 @@ def test_training_mode_observation_corruption_enabled(all_task_ids: list[str]) -
   for task_id in all_task_ids:
     cfg = load_env_cfg(task_id)
 
-    assert "policy" in cfg.observations, (
+    assert "actor" in cfg.observations, (
       f"Training task {task_id} missing 'policy' observation group"
     )
 
-    policy_obs = cfg.observations["policy"]
+    policy_obs = cfg.observations["actor"]
     assert isinstance(policy_obs, ObservationGroupCfg), (
       f"Training task {task_id} policy observation is not ObservationGroupCfg"
     )

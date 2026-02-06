@@ -38,7 +38,7 @@ def test_nan_disabled_policy_no_check(mock_env, device):
     return obs
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={"obs1": ObservationTermCfg(func=obs_with_nan, params={})},
       nan_policy="disabled",
     ),
@@ -47,7 +47,7 @@ def test_nan_disabled_policy_no_check(mock_env, device):
   manager = ObservationManager(cfg, mock_env)
   obs = manager.compute()
 
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   assert torch.isnan(policy_obs[1, 1])  # NaN should pass through.
 
@@ -62,7 +62,7 @@ def test_nan_sanitize_policy_silently_fixes(mock_env, device):
     return obs
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={"obs1": ObservationTermCfg(func=obs_with_nan, params={})},
       nan_policy="sanitize",
       nan_check_per_term=True,
@@ -72,7 +72,7 @@ def test_nan_sanitize_policy_silently_fixes(mock_env, device):
   manager = ObservationManager(cfg, mock_env)
   obs = manager.compute()
 
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   assert not torch.isnan(policy_obs).any()
   assert not torch.isinf(policy_obs).any()
@@ -89,7 +89,7 @@ def test_nan_warn_policy_logs_and_sanitizes(mock_env, device, capsys):
     return obs
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={"obs1": ObservationTermCfg(func=obs_with_nan, params={})},
       nan_policy="warn",
       nan_check_per_term=True,
@@ -102,10 +102,10 @@ def test_nan_warn_policy_logs_and_sanitizes(mock_env, device, capsys):
   captured = capsys.readouterr()
   assert "ObservationManager" in captured.out
   assert "NaN/Inf" in captured.out
-  assert "policy/obs1" in captured.out
+  assert "actor/obs1" in captured.out
   assert "Sanitizing" in captured.out
 
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   assert not torch.isnan(policy_obs).any()
   assert policy_obs[1, 1] == 0.0
@@ -120,7 +120,7 @@ def test_nan_error_policy_raises(mock_env, device):
     return obs
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={"obs1": ObservationTermCfg(func=obs_with_nan, params={})},
       nan_policy="error",
       nan_check_per_term=True,
@@ -133,7 +133,7 @@ def test_nan_error_policy_raises(mock_env, device):
     manager.compute()
 
   assert "NaN/Inf detected" in str(excinfo.value)
-  assert "policy/obs1" in str(excinfo.value)
+  assert "actor/obs1" in str(excinfo.value)
   assert "1" in str(excinfo.value)  # Environment ID.
 
 
@@ -149,7 +149,7 @@ def test_nan_check_per_term_identifies_source(mock_env, device, capsys):
     return obs
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "clean": ObservationTermCfg(func=clean_obs, params={}),
         "problematic": ObservationTermCfg(func=obs_with_nan, params={}),
@@ -164,11 +164,11 @@ def test_nan_check_per_term_identifies_source(mock_env, device, capsys):
 
   # Check that only problematic term is logged.
   captured = capsys.readouterr()
-  assert "policy/problematic" in captured.out
-  assert "policy/clean" not in captured.out
+  assert "actor/problematic" in captured.out
+  assert "actor/clean" not in captured.out
 
   # Both terms should be sanitized in output.
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   assert not torch.isnan(policy_obs).any()
 
@@ -182,7 +182,7 @@ def test_nan_check_final_only(mock_env, device, capsys):
     return obs
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={"obs1": ObservationTermCfg(func=obs_with_nan, params={})},
       nan_policy="warn",
       nan_check_per_term=False,  # Check only final result.
@@ -195,10 +195,10 @@ def test_nan_check_final_only(mock_env, device, capsys):
 
   # Should log group name, not term name.
   captured = capsys.readouterr()
-  assert "policy" in captured.out
-  assert "policy/obs1" not in captured.out  # Should not show term.
+  assert "actor" in captured.out
+  assert "actor/obs1" not in captured.out  # Should not show term.
 
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   assert not torch.isnan(policy_obs).any()
 
@@ -212,7 +212,7 @@ def test_nan_check_dict_output(mock_env, device):
     return obs
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={"obs1": ObservationTermCfg(func=obs_with_nan, params={})},
       nan_policy="sanitize",
       concatenate_terms=False,
@@ -223,7 +223,7 @@ def test_nan_check_dict_output(mock_env, device):
   manager = ObservationManager(cfg, mock_env)
   obs = manager.compute()
 
-  policy: dict[str, torch.Tensor] = obs["policy"]  # type: ignore[assignment]
+  policy: dict[str, torch.Tensor] = obs["actor"]  # type: ignore[assignment]
   policy_obs = policy["obs1"]
   assert not torch.isnan(policy_obs).any()
   assert policy_obs[1, 1] == 0.0
@@ -243,7 +243,7 @@ def test_nan_before_delay_buffer(mock_env, device):
     return obs
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=obs_with_nan,
@@ -262,13 +262,13 @@ def test_nan_before_delay_buffer(mock_env, device):
   # First compute: NaN should be sanitized before entering delay buffer.
   obs1 = manager.compute(update_history=True)
   # First output comes from buffer initialization (zeros).
-  obs1_policy = obs1["policy"]
+  obs1_policy = obs1["actor"]
   assert isinstance(obs1_policy, torch.Tensor)
   assert not torch.isnan(obs1_policy).any()
 
   # Second compute: should get sanitized value from buffer.
   obs2 = manager.compute(update_history=True)
-  obs2_policy = obs2["policy"]
+  obs2_policy = obs2["actor"]
   assert isinstance(obs2_policy, torch.Tensor)
   assert not torch.isnan(obs2_policy).any()
 
@@ -287,7 +287,7 @@ def test_nan_before_history_buffer(mock_env, device):
     return obs
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=obs_with_nan, params={}, history_length=3, flatten_history_dim=True
@@ -302,14 +302,14 @@ def test_nan_before_history_buffer(mock_env, device):
 
   # First compute: NaN should be sanitized.
   obs1 = manager.compute(update_history=True)
-  obs1_policy = obs1["policy"]
+  obs1_policy = obs1["actor"]
   assert isinstance(obs1_policy, torch.Tensor)
   assert not torch.isnan(obs1_policy).any()
 
   # Subsequent computes should also have no NaN from history.
   for _ in range(3):
     obs = manager.compute(update_history=True)
-    obs_policy = obs["policy"]
+    obs_policy = obs["actor"]
     assert isinstance(obs_policy, torch.Tensor)
     assert not torch.isnan(obs_policy).any()
 
@@ -326,7 +326,7 @@ def test_nan_handling_with_multiple_groups(mock_env, device):
     return torch.ones((env.num_envs, 3), device=device)
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={"obs1": ObservationTermCfg(func=obs_with_nan, params={})},
       nan_policy="sanitize",
     ),
@@ -339,7 +339,7 @@ def test_nan_handling_with_multiple_groups(mock_env, device):
   manager = ObservationManager(cfg, mock_env)
   obs = manager.compute()
 
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   assert not torch.isnan(policy_obs).any()
 
@@ -357,7 +357,7 @@ def test_nan_handling_with_scaling(mock_env, device):
     return obs
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={"obs1": ObservationTermCfg(func=obs_with_nan, params={}, scale=0.5)},
       nan_policy="sanitize",
       nan_check_per_term=True,
@@ -367,7 +367,7 @@ def test_nan_handling_with_scaling(mock_env, device):
   manager = ObservationManager(cfg, mock_env)
   obs = manager.compute()
 
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   # NaN should be sanitized to 0, other values scaled: 2.0 * 0.5 = 1.0.
   assert not torch.isnan(policy_obs).any()
@@ -384,7 +384,7 @@ def test_nan_handling_with_clipping(mock_env, device):
     return obs
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(func=obs_with_nan, params={}, clip=(-1.0, 1.0))
       },
@@ -396,7 +396,7 @@ def test_nan_handling_with_clipping(mock_env, device):
   manager = ObservationManager(cfg, mock_env)
   obs = manager.compute()
 
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   # NaN should be sanitized to 0, other values clipped to 1.0.
   assert not torch.isnan(policy_obs).any()
@@ -413,7 +413,7 @@ def test_negative_inf_handling(mock_env, device):
     return obs
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={"obs1": ObservationTermCfg(func=obs_with_neginf, params={})},
       nan_policy="sanitize",
     ),
@@ -422,7 +422,7 @@ def test_negative_inf_handling(mock_env, device):
   manager = ObservationManager(cfg, mock_env)
   obs = manager.compute()
 
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   assert not torch.isinf(policy_obs).any()
   assert policy_obs[1, 1] == 0.0

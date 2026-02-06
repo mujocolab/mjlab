@@ -48,7 +48,7 @@ def test_no_history_by_default(mock_env, simple_obs_func):
   """Test that observations work without history (default behavior)."""
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(func=simple_obs_func, params={}),
       }
@@ -56,10 +56,10 @@ def test_no_history_by_default(mock_env, simple_obs_func):
   }
 
   manager = ObservationManager(cfg, mock_env)
-  assert manager.group_obs_dim["policy"] == (3,)
+  assert manager.group_obs_dim["actor"] == (3,)
 
   obs = manager.compute()
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   assert policy_obs.shape == (4, 3)
 
@@ -68,7 +68,7 @@ def test_single_step_history(mock_env, simple_obs_func):
   """Test observation with history_length=1."""
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(func=simple_obs_func, params={}, history_length=1),
       }
@@ -76,10 +76,10 @@ def test_single_step_history(mock_env, simple_obs_func):
   }
 
   manager = ObservationManager(cfg, mock_env)
-  assert manager.group_obs_dim["policy"] == (3,)
+  assert manager.group_obs_dim["actor"] == (3,)
 
   obs = manager.compute()
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   assert policy_obs.shape == (4, 3)
 
@@ -88,7 +88,7 @@ def test_multi_step_history_flattened(mock_env, simple_obs_func):
   """Test observation with history_length=3 and flattened."""
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=3, flatten_history_dim=True
@@ -98,10 +98,10 @@ def test_multi_step_history_flattened(mock_env, simple_obs_func):
   }
 
   manager = ObservationManager(cfg, mock_env)
-  assert manager.group_obs_dim["policy"] == (9,)
+  assert manager.group_obs_dim["actor"] == (9,)
 
   obs = manager.compute()
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   assert policy_obs.shape == (4, 9)
 
@@ -110,7 +110,7 @@ def test_multi_step_history_not_flattened(mock_env, simple_obs_func):
   """Test observation with history_length=3 and not flattened."""
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=3, flatten_history_dim=False
@@ -120,10 +120,10 @@ def test_multi_step_history_not_flattened(mock_env, simple_obs_func):
   }
 
   manager = ObservationManager(cfg, mock_env)
-  assert manager.group_obs_dim["policy"] == (3, 3)
+  assert manager.group_obs_dim["actor"] == (3, 3)
 
   obs = manager.compute()
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   assert policy_obs.shape == (4, 3, 3)
 
@@ -135,7 +135,7 @@ def test_history_accumulates_correctly(mock_env, simple_obs_func):
   """Test that history buffer accumulates observations in correct order."""
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=3, flatten_history_dim=False
@@ -150,13 +150,13 @@ def test_history_accumulates_correctly(mock_env, simple_obs_func):
 
   # First compute uses value=2 and initializes buffer.
   obs = manager.compute(update_history=False)
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   assert torch.allclose(policy_obs[0], torch.full((3, 3), 2.0, device=device))
 
   # Update with value=3.
   obs = manager.compute(update_history=True)
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   # History: [2, 2, 3] (oldest to newest).
   expected = torch.stack(
@@ -170,7 +170,7 @@ def test_history_accumulates_correctly(mock_env, simple_obs_func):
 
   # Update with value=4.
   obs = manager.compute(update_history=True)
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   # History: [2, 3, 4].
   expected = torch.stack(
@@ -184,7 +184,7 @@ def test_history_accumulates_correctly(mock_env, simple_obs_func):
 
   # Update with value=5, circular overwrite.
   obs = manager.compute(update_history=True)
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   # History: [3, 4, 5].
   expected = torch.stack(
@@ -201,7 +201,7 @@ def test_update_history_false_doesnt_modify_buffer(mock_env, simple_obs_func):
   """Test that update_history=False doesn't modify the buffer."""
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=2, flatten_history_dim=False
@@ -214,12 +214,12 @@ def test_update_history_false_doesnt_modify_buffer(mock_env, simple_obs_func):
 
   # Initialize (value=1).
   obs1 = manager.compute(update_history=False)
-  policy_obs1 = obs1["policy"]
+  policy_obs1 = obs1["actor"]
   assert isinstance(policy_obs1, torch.Tensor)
 
   # Call without update (value=2, but buffer unchanged).
   obs2 = manager.compute(update_history=False)
-  policy_obs2 = obs2["policy"]
+  policy_obs2 = obs2["actor"]
   assert isinstance(policy_obs2, torch.Tensor)
 
   # History should still be [1, 1].
@@ -233,7 +233,7 @@ def test_group_history_overrides_term(mock_env, simple_obs_func):
   """Test group history_length overrides term history_length."""
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       history_length=5,  # Group level.
       flatten_history_dim=False,
       terms={
@@ -247,10 +247,10 @@ def test_group_history_overrides_term(mock_env, simple_obs_func):
   }
 
   manager = ObservationManager(cfg, mock_env)
-  assert manager.group_obs_dim["policy"] == (5, 3)
+  assert manager.group_obs_dim["actor"] == (5, 3)
 
   obs = manager.compute()
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   assert policy_obs.shape == (4, 5, 3)
 
@@ -262,7 +262,7 @@ def test_reset_clears_all_envs(mock_env, simple_obs_func):
   """Test that reset without env_ids clears all environments."""
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=2, flatten_history_dim=False
@@ -282,7 +282,7 @@ def test_reset_clears_all_envs(mock_env, simple_obs_func):
 
   # Buffer should be zeroed.
   obs = manager.compute(update_history=False)
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   assert torch.allclose(policy_obs, torch.zeros((4, 2, 3), device=mock_env.device))
 
@@ -291,7 +291,7 @@ def test_reset_partial_envs(mock_env, simple_obs_func):
   """Test that reset with specific env_ids only resets those envs."""
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=3, flatten_history_dim=False
@@ -306,14 +306,14 @@ def test_reset_partial_envs(mock_env, simple_obs_func):
   manager.compute(update_history=True)
   manager.compute(update_history=True)
   obs_before = manager.compute(update_history=True)
-  policy_obs_before = obs_before["policy"]
+  policy_obs_before = obs_before["actor"]
   assert isinstance(policy_obs_before, torch.Tensor)
 
   # Reset only envs 0 and 2.
   manager.reset(env_ids=torch.tensor([0, 2], device=mock_env.device))
 
   obs_after = manager.compute(update_history=False)
-  policy_obs_after = obs_after["policy"]
+  policy_obs_after = obs_after["actor"]
   assert isinstance(policy_obs_after, torch.Tensor)
 
   # Envs 0 and 2 should be reset (zeros), 1 and 3 unchanged.
@@ -331,7 +331,7 @@ def test_reset_partial_envs_with_backfill(mock_env, simple_obs_func):
   """Test that reset envs get backfilled on next update."""
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=3, flatten_history_dim=False
@@ -353,7 +353,7 @@ def test_reset_partial_envs_with_backfill(mock_env, simple_obs_func):
 
   # Next update with value=5.
   obs = manager.compute(update_history=True)
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
 
   # Env 0: [5, 5, 5] (backfilled after reset).
@@ -390,7 +390,7 @@ def test_history_with_clip(mock_env, simple_obs_func):
   """Test that clipping is applied before history."""
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=simple_obs_func,
@@ -406,7 +406,7 @@ def test_history_with_clip(mock_env, simple_obs_func):
   manager = ObservationManager(cfg, mock_env)
 
   obs = manager.compute(update_history=True)
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   # Values should be clipped.
   assert torch.all(policy_obs >= -0.5)
@@ -417,7 +417,7 @@ def test_history_with_scale(mock_env, simple_obs_func):
   """Test that scaling is applied before history."""
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=simple_obs_func,
@@ -438,7 +438,7 @@ def test_history_with_scale(mock_env, simple_obs_func):
   manager.compute(update_history=False)
   # Second call uses value=3, scaled to 6, and updates history.
   obs = manager.compute(update_history=True)
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
 
   # History: [4, 6].
@@ -461,7 +461,7 @@ def test_mixed_terms_concatenated(mock_env, simple_obs_func, device):
     return torch.full((env.num_envs, 2), float(counter["value"]) * 10, device=device)
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs_with_history": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=2, flatten_history_dim=True
@@ -474,10 +474,10 @@ def test_mixed_terms_concatenated(mock_env, simple_obs_func, device):
   manager = ObservationManager(cfg, mock_env)
 
   # Should concatenate: (3*2) + 2 = 8.
-  assert manager.group_obs_dim["policy"] == (8,)
+  assert manager.group_obs_dim["actor"] == (8,)
 
   obs = manager.compute()
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   assert policy_obs.shape == (4, 8)
 
@@ -486,7 +486,7 @@ def test_no_double_append_on_first_call(mock_env, simple_obs_func):
   """Test that first call with update_history=True only appends once, not twice."""
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=simple_obs_func, params={}, history_length=3, flatten_history_dim=False
@@ -502,7 +502,7 @@ def test_no_double_append_on_first_call(mock_env, simple_obs_func):
   # First call with update_history=True (value=2).
   # This should initialize the buffer AND append once (not twice).
   obs = manager.compute(update_history=True)
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
 
   # Verify buffer was initialized and backfilled correctly.
@@ -517,7 +517,7 @@ def test_no_double_append_on_first_call(mock_env, simple_obs_func):
   assert torch.allclose(policy_obs[0], expected_first)
 
   # Get the circular buffer and check pointer position.
-  circular_buffer = manager._group_obs_term_history_buffer["policy"]["obs1"]
+  circular_buffer = manager._group_obs_term_history_buffer["actor"]["obs1"]
   # After one append, pointer should be at 0 (not 1 which would indicate double-append).
   assert circular_buffer._pointer == 0
   # And we should have exactly 1 push recorded.
@@ -525,7 +525,7 @@ def test_no_double_append_on_first_call(mock_env, simple_obs_func):
 
   # Second call with update_history=True (value=3).
   obs = manager.compute(update_history=True)
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
 
   # History should be [2, 2, 3] (oldest to newest).
@@ -563,7 +563,7 @@ def test_term_major_ordering(mock_env, device):
     return torch.tensor([[200.0, 201.0, 202.0]] * env.num_envs, device=device)
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       concatenate_terms=True,
       terms={
         "term_A": ObservationTermCfg(
@@ -580,7 +580,7 @@ def test_term_major_ordering(mock_env, device):
 
   # Compute observations (history will be backfilled with same values).
   obs = manager.compute(update_history=False)
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
 
   # Expected shape: (4 envs, 2*3 + 3*3) = (4, 15).

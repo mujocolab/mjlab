@@ -90,7 +90,7 @@ def test_joint_action_underactuated_with_wildcard(device):
       entities={"robot": robot_cfg},
     ),
     observations={
-      "policy": ObservationGroupCfg(
+      "actor": ObservationGroupCfg(
         terms={
           "joint_pos": ObservationTermCfg(
             func=lambda env: env.scene["robot"].data.joint_pos

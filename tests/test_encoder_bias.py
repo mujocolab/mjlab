@@ -73,7 +73,7 @@ def _make_env_cfg(
       entities={"robot": _make_robot_cfg()},
     ),
     observations={
-      "policy": ObservationGroupCfg(
+      "actor": ObservationGroupCfg(
         terms={"obs": ObservationTermCfg(func=obs_func)},
       ),
     },
@@ -154,12 +154,12 @@ def test_joint_pos_rel_includes_encoder_bias(device):
   robot = env.scene["robot"]
   bias = 0.5
 
-  obs_before = env.observation_manager.compute()["policy"]
+  obs_before = env.observation_manager.compute()["actor"]
   assert isinstance(obs_before, torch.Tensor)
   obs_before = obs_before.clone()
   robot.data.encoder_bias[:, 0] = bias
   env.observation_manager._obs_buffer = None  # Invalidate cache.
-  obs_after = env.observation_manager.compute()["policy"]
+  obs_after = env.observation_manager.compute()["actor"]
 
   # Observation should increase by bias amount.
   torch.testing.assert_close(obs_after, obs_before + bias, atol=1e-5, rtol=0)
@@ -174,12 +174,12 @@ def test_joint_vel_rel_ignores_encoder_bias(device):
 
   robot = env.scene["robot"]
 
-  obs_before = env.observation_manager.compute()["policy"]
+  obs_before = env.observation_manager.compute()["actor"]
   assert isinstance(obs_before, torch.Tensor)
   obs_before = obs_before.clone()
   robot.data.encoder_bias[:, 0] = 0.5
   env.observation_manager._obs_buffer = None
-  obs_after = env.observation_manager.compute()["policy"]
+  obs_after = env.observation_manager.compute()["actor"]
 
   torch.testing.assert_close(obs_before, obs_after, atol=1e-6, rtol=0)
 
@@ -250,7 +250,7 @@ def test_bias_compensation_produces_identical_physical_behavior(device):
 
   # Observations should differ by bias.
   env.observation_manager._obs_buffer = None
-  obs = env.observation_manager.compute()["policy"]
+  obs = env.observation_manager.compute()["actor"]
   assert isinstance(obs, torch.Tensor)
   obs_diff = obs[1, 0].item() - obs[0, 0].item()
   assert obs_diff == pytest.approx(bias_env1 - bias_env0, abs=1e-4)
@@ -273,7 +273,7 @@ def test_randomize_encoder_bias_event(device):
       entities={"robot": _make_robot_cfg()},
     ),
     observations={
-      "policy": ObservationGroupCfg(
+      "actor": ObservationGroupCfg(
         terms={"obs": ObservationTermCfg(func=partial(mdp.joint_pos_rel, biased=True))},
       ),
     },

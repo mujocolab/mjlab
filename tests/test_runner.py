@@ -58,7 +58,7 @@ def env(device):
       entities={"robot": robot_cfg},
     ),
     observations={
-      "policy": ObservationGroupCfg(
+      "actor": ObservationGroupCfg(
         terms={
           "joint_pos": ObservationTermCfg(
             func=lambda env: env.scene["robot"].data.joint_pos
@@ -88,7 +88,7 @@ def env(device):
   env.close()
 
 
-def test_runner_persists_common_step_counter(env, device):
+def test_runner_persists_common_step_counter(env, device, monkeypatch):
   """MjlabOnPolicyRunner should save and restore common_step_counter."""
   wrapped_env = RslRlVecEnvWrapper(env)
   agent_cfg = RslRlOnPolicyRunnerCfg(
@@ -99,6 +99,7 @@ def test_runner_persists_common_step_counter(env, device):
     runner = MjlabOnPolicyRunner(
       wrapped_env, asdict(agent_cfg), log_dir=tmpdir, device=device
     )
+    monkeypatch.setattr(runner.logger, "save_model", lambda *args, **kwargs: None)
     runner.logger.logger_type = "tensorboard"  # Normally set in learn().
 
     wrapped_env.unwrapped.common_step_counter = 12345
@@ -127,7 +128,8 @@ def test_runner_handles_old_checkpoints_without_env_state(env, device):
 
     checkpoint_path = str(Path(tmpdir) / "old_checkpoint.pt")
     old_checkpoint = {
-      "model_state_dict": runner.alg.actor.state_dict(),
+      "actor_state_dict": runner.alg.actor.state_dict(),
+      "critic_state_dict": runner.alg.critic.state_dict(),
       "optimizer_state_dict": runner.alg.optimizer.state_dict(),
       "iter": 100,
       "infos": None,

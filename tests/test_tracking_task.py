@@ -57,16 +57,16 @@ def test_tracking_no_state_estimation_observations() -> None:
     cfg = load_env_cfg(task_id, play=play_mode)
     mode_str = "play mode" if play_mode else "training mode"
 
-    assert "policy" in cfg.observations, (
+    assert "actor" in cfg.observations, (
       f"Task {task_id} ({mode_str}) missing policy observations"
     )
-    policy_terms = cfg.observations["policy"].terms
+    actor_terms = cfg.observations["actor"].terms
 
-    assert "motion_anchor_pos_b" not in policy_terms, (
+    assert "motion_anchor_pos_b" not in actor_terms, (
       f"Task {task_id} ({mode_str}) has motion_anchor_pos_b in policy, "
       "expected it to be removed for no-state-estimation variant"
     )
-    assert "base_lin_vel" not in policy_terms, (
+    assert "base_lin_vel" not in actor_terms, (
       f"Task {task_id} ({mode_str}) has base_lin_vel in policy, "
       "expected it to be removed for no-state-estimation variant"
     )

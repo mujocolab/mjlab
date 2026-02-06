@@ -37,7 +37,7 @@ def test_noise_applied_when_corruption_enabled(mock_env, device):
     return torch.ones((env.num_envs, 3), device=device)
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=obs_func,
@@ -52,7 +52,7 @@ def test_noise_applied_when_corruption_enabled(mock_env, device):
   manager = ObservationManager(cfg, mock_env)
   obs = manager.compute()
 
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   # Expect 1.0 + 0.5 = 1.5
   expected = torch.full((4, 3), 1.5, device=device)
@@ -66,7 +66,7 @@ def test_noise_not_applied_when_corruption_disabled(mock_env, device):
     return torch.ones((env.num_envs, 3), device=device)
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=obs_func,
@@ -81,7 +81,7 @@ def test_noise_not_applied_when_corruption_disabled(mock_env, device):
   manager = ObservationManager(cfg, mock_env)
   obs = manager.compute()
 
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   # Noise should NOT be applied, expect original value of 1.0
   expected = torch.full((4, 3), 1.0, device=device)
@@ -95,7 +95,7 @@ def test_noise_add_operation(mock_env, device):
     return torch.full((env.num_envs, 3), 2.0, device=device)
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=obs_func,
@@ -110,7 +110,7 @@ def test_noise_add_operation(mock_env, device):
   manager = ObservationManager(cfg, mock_env)
   obs = manager.compute()
 
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   # Expect 2.0 + 0.3 = 2.3
   expected = torch.full((4, 3), 2.3, device=device)
@@ -124,7 +124,7 @@ def test_noise_scale_operation(mock_env, device):
     return torch.full((env.num_envs, 3), 2.0, device=device)
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=obs_func,
@@ -139,7 +139,7 @@ def test_noise_scale_operation(mock_env, device):
   manager = ObservationManager(cfg, mock_env)
   obs = manager.compute()
 
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   # Expect 2.0 * 0.5 = 1.0
   expected = torch.full((4, 3), 1.0, device=device)
@@ -153,7 +153,7 @@ def test_noise_abs_operation(mock_env, device):
     return torch.full((env.num_envs, 3), 2.0, device=device)
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=obs_func,
@@ -168,7 +168,7 @@ def test_noise_abs_operation(mock_env, device):
   manager = ObservationManager(cfg, mock_env)
   obs = manager.compute()
 
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   # Expect data to be replaced with bias = 0.7
   expected = torch.full((4, 3), 0.7, device=device)
@@ -182,7 +182,7 @@ def test_noise_with_per_dimension_bias(mock_env, device):
     return torch.ones((env.num_envs, 3), device=device)
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs1": ObservationTermCfg(
           func=obs_func,
@@ -197,7 +197,7 @@ def test_noise_with_per_dimension_bias(mock_env, device):
   manager = ObservationManager(cfg, mock_env)
   obs = manager.compute()
 
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   # Expect 1.0 + [0.1, 0.2, 0.3] = [1.1, 1.2, 1.3]
   expected = torch.tensor([[1.1, 1.2, 1.3]] * 4, device=device)
@@ -241,7 +241,7 @@ def test_multiple_terms_with_different_noise(mock_env, device):
     return torch.full((env.num_envs, 2), 3.0, device=device)
 
   cfg = {
-    "policy": ObservationGroupCfg(
+    "actor": ObservationGroupCfg(
       terms={
         "obs_a": ObservationTermCfg(
           func=obs_func_a,
@@ -261,7 +261,7 @@ def test_multiple_terms_with_different_noise(mock_env, device):
   manager = ObservationManager(cfg, mock_env)
   obs = manager.compute()
 
-  policy_obs = obs["policy"]
+  policy_obs = obs["actor"]
   assert isinstance(policy_obs, torch.Tensor)
   # obs_a: 1.0 + 0.1 = 1.1
   # obs_b: 3.0 * 2.0 = 6.0
