@@ -43,7 +43,7 @@ dependencies = [
   "viser>=1.0.21",
   "moviepy",
   "tensordict",
-  "rsl-rl-lib==3.1.0",
+  "rsl-rl-lib==4.0.0",
   "tensorboard>=2.20.0",
   "onnxscript>=0.5.4",
   "wandb>=0.22.3",
@@ -122,6 +122,7 @@ warp-lang = { index = "nvidia", marker = "sys_platform != 'darwin'" }
 mujoco = { index = "mujoco" }
 torch = { index = "pytorch-cu128", extra = "cu128", marker = "sys_platform != 'darwin'" }
 mujoco-warp = { git = "https://github.com/google-deepmind/mujoco_warp", rev = "7f89cacecbf0baff92a631671d4a7a45c2b07e20" }
+rsl-rl-lib = { git = "https://github.com/leggedrobotics/rsl_rl", rev = "v4.0.0" }
 
 [tool.ruff]
 src = ["src"]  # Helpful for recognizing first-party imports.
