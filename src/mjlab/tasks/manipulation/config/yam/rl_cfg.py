@@ -1,20 +1,20 @@
 from mjlab.rl import (
-  RslRlOnPolicyRunnerCfg,
   RslRlModelCfg,
+  RslRlOnPolicyRunnerCfg,
   RslRlPpoAlgorithmCfg,
 )
 
 
 def yam_lift_cube_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
   return RslRlOnPolicyRunnerCfg(
-    actor = RslRlModelCfg(
+    actor=RslRlModelCfg(
       hidden_dims=(512, 256, 128),
       activation="elu",
       obs_normalization=True,
       stochastic=True,
       init_noise_std=1.0,
     ),
-    critic = RslRlModelCfg(
+    critic=RslRlModelCfg(
       hidden_dims=(512, 256, 128),
       activation="elu",
       obs_normalization=True,

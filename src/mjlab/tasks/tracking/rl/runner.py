@@ -31,7 +31,10 @@ class MotionTrackingOnPolicyRunner(MjlabOnPolicyRunner):
 
     policy_path = path.split("model")[0]
     filename = policy_path.split("/")[-2] + ".onnx"
-    if hasattr(self.alg.actor, "obs_normalizer") and self.alg.actor.obs_normalizer is not None:
+    if (
+      hasattr(self.alg.actor, "obs_normalizer")
+      and self.alg.actor.obs_normalizer is not None
+    ):
       normalizer = self.alg.actor.obs_normalizer
     else:
       normalizer = None
@@ -43,14 +46,16 @@ class MotionTrackingOnPolicyRunner(MjlabOnPolicyRunner):
       filename=filename,
     )
     # Attach metadata (use "local" for run_path if not using wandb)
-    run_name = wandb.run.name if self.logger.logger_type == "wandb" and wandb.run else "local"
+    run_name = (
+      wandb.run.name if self.logger.logger_type == "wandb" and wandb.run else "local"
+    )
     attach_onnx_metadata(
       self.env.unwrapped,
       run_name,  # type: ignore
       path=policy_path,
       filename=filename,
     )
-    if self.logger.logger_type in ["wandb"]: 
+    if self.logger.logger_type in ["wandb"]:
       wandb.save(policy_path + filename, base_path=os.path.dirname(policy_path))
       # link the artifact registry to this run
       if self.registry_name is not None:

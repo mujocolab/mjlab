@@ -23,7 +23,7 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
     # If we pass the normalizer to the exporter, it will wrap the actor and run:
     # normalizer(x) -> actor(normalizer(x)) -> actor_internal_normalizer(normalizer(x))
     # This causes double normalization.
-    
+
     # We pass None so the exporter uses Identity, relying on the actor's internal normalizer.
     export_velocity_policy_as_onnx(
       self.alg.actor,
@@ -32,7 +32,9 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
       filename=filename,
     )
     # Attach metadata (use "local" for run_path if not using wandb)
-    run_name = wandb.run.name if self.logger.logger_type == "wandb" and wandb.run else "local"
+    run_name = (
+      wandb.run.name if self.logger.logger_type == "wandb" and wandb.run else "local"
+    )
     attach_onnx_metadata(
       self.env.unwrapped,
       run_name,  # type: ignore

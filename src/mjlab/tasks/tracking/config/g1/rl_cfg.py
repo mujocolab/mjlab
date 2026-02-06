@@ -1,8 +1,8 @@
 """RL configuration for Unitree G1 tracking task."""
 
 from mjlab.rl import (
-  RslRlOnPolicyRunnerCfg,
   RslRlModelCfg,
+  RslRlOnPolicyRunnerCfg,
   RslRlPpoAlgorithmCfg,
 )
 
@@ -10,14 +10,14 @@ from mjlab.rl import (
 def unitree_g1_tracking_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
   """Create RL runner configuration for Unitree G1 tracking task."""
   return RslRlOnPolicyRunnerCfg(
-    actor = RslRlModelCfg(
+    actor=RslRlModelCfg(
       hidden_dims=(512, 256, 128),
       activation="elu",
       obs_normalization=True,
       stochastic=True,
       init_noise_std=1.0,
     ),
-    critic = RslRlModelCfg(
+    critic=RslRlModelCfg(
       hidden_dims=(512, 256, 128),
       activation="elu",
       obs_normalization=True,
