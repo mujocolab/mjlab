@@ -18,16 +18,13 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
     super().save(path, infos)
     policy_path = path.split("model")[0]
     filename = os.path.basename(os.path.dirname(policy_path)) + ".onnx"
-
-    # Note: In new rsl_rl, the Actor (MLPModel) usually contains the normalizer internally.
-    # If we pass the normalizer to the exporter, it will wrap the actor and run:
-    # normalizer(x) -> actor(normalizer(x)) -> actor_internal_normalizer(normalizer(x))
-    # This causes double normalization.
-
-    # We pass None so the exporter uses Identity, relying on the actor's internal normalizer.
+    if self.alg.actor.actor_obs_normalization:
+      normalizer = self.alg.actor.actor_obs_normalizer
+    else:
+      normalizer = None
     export_velocity_policy_as_onnx(
       self.alg.actor,
-      normalizer=None,
+      normalizer=normalizer,
       path=policy_path,
       filename=filename,
     )

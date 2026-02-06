@@ -31,11 +31,8 @@ class MotionTrackingOnPolicyRunner(MjlabOnPolicyRunner):
 
     policy_path = path.split("model")[0]
     filename = policy_path.split("/")[-2] + ".onnx"
-    if (
-      hasattr(self.alg.actor, "obs_normalizer")
-      and self.alg.actor.obs_normalizer is not None
-    ):
-      normalizer = self.alg.actor.obs_normalizer
+    if self.alg.actor.actor_obs_normalization:
+      normalizer = self.alg.actor.actor_obs_normalizer
     else:
       normalizer = None
     export_motion_policy_as_onnx(
