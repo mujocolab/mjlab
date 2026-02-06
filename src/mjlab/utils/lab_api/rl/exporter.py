@@ -7,7 +7,10 @@
 #   - 2025-10-27: Added dynamo=False parameter to torch.onnx.export() calls for PyTorch 2.9
 #     compatibility (lines 187, 200, 216). PyTorch 2.9 changed the default behavior and
 #     requires explicit dynamo=False to use the legacy ONNX exporter.
-# TODO Louis: Update file changelog
+#   - 2025-02-06: Updated exporter to support rsl-rl-lib v4.0.0. Refactored policy
+#     parameter extraction to use the new MLPModel structure (mapping 'actor' to 'mlp'
+#     and 'memory_a' to 'rnn') and ensured compatibility with the internal observation
+#     normalization in new RSL-RL models.
 import copy
 import os
 import torch
