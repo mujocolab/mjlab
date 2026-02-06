@@ -31,14 +31,12 @@ class MotionTrackingOnPolicyRunner(MjlabOnPolicyRunner):
 
     policy_path = path.split("model")[0]
     filename = policy_path.split("/")[-2] + ".onnx"
-    if self.alg.actor.obs_normalization:
-      normalizer = self.alg.actor.obs_normalizer
-    else:
-      normalizer = None
+    # In rsl-rl 4.0.0, the Actor (MLPModel) contains the normalizer internally.
+    # Pass normalizer=None so the exporter uses Identity, avoiding double normalization.
     export_motion_policy_as_onnx(
       self.env.unwrapped,
       self.alg.actor,
-      normalizer=normalizer,
+      normalizer=None,
       path=policy_path,
       filename=filename,
     )
