@@ -5,24 +5,22 @@ from typing import Literal, Tuple
 
 
 @dataclass
-class RslRlPpoActorCriticCfg:
-  """Config for the PPO actor-critic networks."""
+class RslRlModelCfg:
+  """Config for a single neural network model (Actor or Critic)."""
 
-  init_noise_std: float = 1.0
-  """The initial noise standard deviation of the policy."""
-  noise_std_type: Literal["scalar", "log"] = "scalar"
-  """The type of noise standard deviation for the policy. Default is scalar."""
-  actor_obs_normalization: bool = False
-  """Whether to normalize the observation for the actor network. Default is False."""
-  critic_obs_normalization: bool = False
-  """Whether to normalize the observation for the critic network. Default is False."""
-  actor_hidden_dims: Tuple[int, ...] = (128, 128, 128)
-  """The hidden dimensions of the actor network."""
-  critic_hidden_dims: Tuple[int, ...] = (128, 128, 128)
-  """The hidden dimensions of the critic network."""
+  hidden_dims: Tuple[int, ...] = (128, 128, 128)
+  """The hidden dimensions of the network."""
   activation: str = "elu"
-  """The activation function to use in the actor and critic networks."""
-  class_name: str = "ActorCritic"
+  """The activation function."""
+  obs_normalization: bool = False
+  """Whether to normalize the observations. Default is False."""
+  init_noise_std: float = 1.0
+  """The initial noise standard deviation."""
+  noise_std_type: Literal["scalar", "log"] = "scalar"
+  """The type of noise standard deviation."""
+  stochastic: bool = False
+  """Whether the model output is stochastic."""
+  class_name: str = "MLPModel"
   """Ignore, required by RSL-RL."""
 
 
@@ -61,6 +59,8 @@ class RslRlPpoAlgorithmCfg:
   advantage is normalized over the mini-batches only. Otherwise, the advantage is
   normalized over the entire collected trajectories.
   """
+  optimizer: Literal["adam", "adamw", "sgd", "rmsprop"] = "adam"
+  """The optimizer to use."""
   class_name: str = "PPO"
   """Ignore, required by RSL-RL."""
 
@@ -109,7 +109,9 @@ class RslRlBaseRunnerCfg:
 class RslRlOnPolicyRunnerCfg(RslRlBaseRunnerCfg):
   class_name: str = "OnPolicyRunner"
   """The runner class name. Default is OnPolicyRunner."""
-  policy: RslRlPpoActorCriticCfg = field(default_factory=RslRlPpoActorCriticCfg)
-  """The policy configuration."""
+  actor: RslRlModelCfg = field(default_factory=lambda: RslRlModelCfg(stochastic=True))
+  """The actor configuration."""
+  critic: RslRlModelCfg = field(default_factory=lambda: RslRlModelCfg(stochastic=False))
+  """The critic configuration."""
   algorithm: RslRlPpoAlgorithmCfg = field(default_factory=RslRlPpoAlgorithmCfg)
   """The algorithm configuration."""

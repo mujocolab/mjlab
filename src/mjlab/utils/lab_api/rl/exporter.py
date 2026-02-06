@@ -7,7 +7,7 @@
 #   - 2025-10-27: Added dynamo=False parameter to torch.onnx.export() calls for PyTorch 2.9
 #     compatibility (lines 187, 200, 216). PyTorch 2.9 changed the default behavior and
 #     requires explicit dynamo=False to use the legacy ONNX exporter.
-
+# TODO Louis: Update file changelog
 import copy
 import os
 import torch
@@ -56,10 +56,10 @@ class _TorchPolicyExporter(torch.nn.Module):
         super().__init__()
         self.is_recurrent = policy.is_recurrent
         # copy policy parameters
-        if hasattr(policy, "actor"):
-            self.actor = copy.deepcopy(policy.actor)
+        if hasattr(policy, "mlp"):
+            self.actor = copy.deepcopy(policy.mlp)
             if self.is_recurrent:
-                self.rnn = copy.deepcopy(policy.memory_a.rnn)
+                self.rnn = copy.deepcopy(policy.rnn.rnn)
         elif hasattr(policy, "student"):
             self.actor = copy.deepcopy(policy.student)
             if self.is_recurrent:
@@ -129,10 +129,10 @@ class _OnnxPolicyExporter(torch.nn.Module):
         self.verbose = verbose
         self.is_recurrent = policy.is_recurrent
         # copy policy parameters
-        if hasattr(policy, "actor"):
-            self.actor = copy.deepcopy(policy.actor)
+        if hasattr(policy, "mlp"):
+            self.actor = copy.deepcopy(policy.mlp)
             if self.is_recurrent:
-                self.rnn = copy.deepcopy(policy.memory_a.rnn)
+                self.rnn = copy.deepcopy(policy.rnn.rnn)
         elif hasattr(policy, "student"):
             self.actor = copy.deepcopy(policy.student)
             if self.is_recurrent:

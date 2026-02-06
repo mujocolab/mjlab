@@ -14,9 +14,9 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     super().save(path, infos)
 
   def load(
-    self, path: str, load_optimizer: bool = True, map_location: str | None = None
+    self, path: str, load_cfg: dict | None = None, strict: bool = True, map_location: str | None = None
   ):
-    infos = super().load(path, load_optimizer, map_location)
+    infos = super().load(path, load_cfg, strict, map_location)
     if infos and "env_state" in infos:
       self.env.unwrapped.common_step_counter = infos["env_state"]["common_step_counter"]
     return infos
