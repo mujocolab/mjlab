@@ -70,7 +70,7 @@ class ObservationGroupCfg:
   """Configuration for an observation group.
 
   An observation group bundles multiple observation terms together. Groups are
-  typically used to separate observations for different purposes (e.g., "policy"
+  typically used to separate observations for different purposes (e.g., "actor"
   for the actor, "critic" for the value function).
   """
 

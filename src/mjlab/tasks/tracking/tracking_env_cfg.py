@@ -43,7 +43,7 @@ def make_tracking_env_cfg() -> ManagerBasedRlEnvCfg:
   # Observations
   ##
 
-  policy_terms = {
+  actor_terms = {
     "command": ObservationTermCfg(
       func=mdp.generated_commands, params={"command_name": "motion"}
     ),
@@ -106,8 +106,8 @@ def make_tracking_env_cfg() -> ManagerBasedRlEnvCfg:
   }
 
   observations = {
-    "policy": ObservationGroupCfg(
-      terms=policy_terms,
+    "actor": ObservationGroupCfg(
+      terms=actor_terms,
       concatenate_terms=True,
       enable_corruption=True,
     ),

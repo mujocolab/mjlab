@@ -71,13 +71,13 @@ def unitree_g1_flat_tracking_env_cfg(
 
   # Modify observations if we don't have state estimation.
   if not has_state_estimation:
-    new_policy_terms = {
+    new_actor_terms = {
       k: v
-      for k, v in cfg.observations["policy"].terms.items()
+      for k, v in cfg.observations["actor"].terms.items()
       if k not in ["motion_anchor_pos_b", "base_lin_vel"]
     }
-    cfg.observations["policy"] = ObservationGroupCfg(
-      terms=new_policy_terms,
+    cfg.observations["actor"] = ObservationGroupCfg(
+      terms=new_actor_terms,
       concatenate_terms=True,
       enable_corruption=True,
     )
@@ -87,7 +87,7 @@ def unitree_g1_flat_tracking_env_cfg(
     # Effectively infinite episode length.
     cfg.episode_length_s = int(1e9)
 
-    cfg.observations["policy"].enable_corruption = False
+    cfg.observations["actor"].enable_corruption = False
     cfg.events.pop("push_robot", None)
 
     # Disable RSI randomization.

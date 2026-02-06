@@ -142,7 +142,7 @@ def unitree_g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     # Effectively infinite episode length.
     cfg.episode_length_s = int(1e9)
 
-    cfg.observations["policy"].enable_corruption = False
+    cfg.observations["actor"].enable_corruption = False
     cfg.events.pop("push_robot", None)
     cfg.events["randomize_terrain"] = EventTermCfg(
       func=envs_mdp.randomize_terrain,

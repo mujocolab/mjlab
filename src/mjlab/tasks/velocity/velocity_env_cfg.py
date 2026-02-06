@@ -34,7 +34,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
   # Observations
   ##
 
-  policy_terms = {
+  actor_terms = {
     "base_lin_vel": ObservationTermCfg(
       func=mdp.builtin_sensor,
       params={"sensor_name": "robot/imu_lin_vel"},
@@ -65,7 +65,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
   }
 
   critic_terms = {
-    **policy_terms,
+    **actor_terms,
     "foot_height": ObservationTermCfg(
       func=mdp.foot_height,
       params={"asset_cfg": SceneEntityCfg("robot", site_names=())},  # Set per-robot.
@@ -85,8 +85,8 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
   }
 
   observations = {
-    "policy": ObservationGroupCfg(
-      terms=policy_terms,
+    "actor": ObservationGroupCfg(
+      terms=actor_terms,
       concatenate_terms=True,
       enable_corruption=True,
     ),

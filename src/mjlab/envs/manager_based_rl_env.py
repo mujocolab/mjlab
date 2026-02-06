@@ -61,7 +61,7 @@ class ManagerBasedRlEnvCfg:
   specifies ``num_envs``, the number of parallel environments."""
 
   observations: dict[str, ObservationGroupCfg] = field(default_factory=dict)
-  """Observation groups configuration. Each group (e.g., "policy", "critic") contains
+  """Observation groups configuration. Each group (e.g., "actor", "critic") contains
   observation terms that are concatenated. Groups can have different settings for
   noise, history, and delay."""
 

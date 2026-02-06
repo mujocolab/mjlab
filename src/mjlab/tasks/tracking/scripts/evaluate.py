@@ -66,7 +66,7 @@ def run_evaluate(task_id: str, cfg: EvaluateConfig) -> dict[str, float]:
 
   # Evaluation config.
   motion_cmd.sampling_mode = "start"
-  env_cfg.observations["policy"].enable_corruption = True
+  env_cfg.observations["actor"].enable_corruption = True
   env_cfg.events.pop("push_robot", None)
   env_cfg.scene.num_envs = cfg.num_envs
 

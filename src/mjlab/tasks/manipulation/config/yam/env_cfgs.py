@@ -43,7 +43,7 @@ def yam_lift_cube_env_cfg(
   lift_command = cfg.commands["lift_height"]
   assert isinstance(lift_command, LiftingCommandCfg)
 
-  cfg.observations["policy"].terms["ee_to_cube"].params["asset_cfg"].site_names = (
+  cfg.observations["actor"].terms["ee_to_cube"].params["asset_cfg"].site_names = (
     "grasp_site",
   )
   cfg.rewards["lift"].params["asset_cfg"].site_names = ("grasp_site",)
@@ -67,7 +67,7 @@ def yam_lift_cube_env_cfg(
   # Apply play mode overrides.
   if play:
     cfg.episode_length_s = int(1e9)
-    cfg.observations["policy"].enable_corruption = False
+    cfg.observations["actor"].enable_corruption = False
     cfg.events.pop("push_robot", None)
 
   return cfg

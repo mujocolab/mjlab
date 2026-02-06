@@ -22,7 +22,7 @@ from mjlab.viewer import ViewerConfig
 def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
   """Create base cube lifting task configuration."""
 
-  policy_terms = {
+  actor_terms = {
     "joint_pos": ObservationTermCfg(
       func=mdp.joint_pos_rel,
       noise=Unoise(n_min=-0.01, n_max=0.01),
@@ -50,10 +50,10 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
     "actions": ObservationTermCfg(func=mdp.last_action),
   }
 
-  critic_terms = {**policy_terms}
+  critic_terms = {**actor_terms}
 
   observations = {
-    "policy": ObservationGroupCfg(policy_terms, enable_corruption=True),
+    "actor": ObservationGroupCfg(actor_terms, enable_corruption=True),
     "critic": ObservationGroupCfg(critic_terms, enable_corruption=False),
   }
 
