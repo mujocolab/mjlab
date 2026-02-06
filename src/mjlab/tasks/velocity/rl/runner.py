@@ -18,8 +18,8 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
     super().save(path, infos)
     policy_path = path.split("model")[0]
     filename = os.path.basename(os.path.dirname(policy_path)) + ".onnx"
-    if self.alg.actor.actor_obs_normalization:
-      normalizer = self.alg.actor.actor_obs_normalizer
+    if self.alg.actor.obs_normalization:
+      normalizer = self.alg.actor.obs_normalizer
     else:
       normalizer = None
     export_velocity_policy_as_onnx(
