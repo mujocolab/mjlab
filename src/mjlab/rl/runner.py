@@ -30,7 +30,7 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
       critic_state_dict = {}
 
       for key, value in model_state_dict.items():
-        # migrate actor keys.
+        # Migrate actor keys.
         if key.startswith("actor."):
           new_key = key.replace("actor.", "mlp.")
           actor_state_dict[new_key] = value
@@ -40,7 +40,7 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
         elif key in ["std", "log_std"]:
           actor_state_dict[key] = value
 
-        # migrate critic keys.
+        # Migrate critic keys.
         if key.startswith("critic."):
           new_key = key.replace("critic.", "mlp.")
           critic_state_dict[new_key] = value
