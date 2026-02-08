@@ -721,9 +721,10 @@ class BoxRandomSpreadTerrainCfg(SubTerrainCfg):
       size_y = rng.uniform(*self.box_size_range)
       height = rng.uniform(*self.box_height_range)
 
+      # Scale height by difficulty.
+      height = height * (0.2 + 0.8 * difficulty)
+
       # Random position within inner area.
-      inner_size_x = self.size[0] - 2 * self.border_width
-      inner_size_y = self.size[1] - 2 * self.border_width
       pos_x = rng.uniform(self.border_width + size_x / 2, self.size[0] - self.border_width - size_x / 2)
       pos_y = rng.uniform(self.border_width + size_y / 2, self.size[1] - self.border_width - size_y / 2)
       
@@ -849,16 +850,19 @@ class BoxOpenStairsTerrainCfg(SubTerrainCfg):
       )
       geometries.append(TerrainGeometry(geom=box, color=rgba))
 
-    # Platform
+    # Platform.
     platform_size = (
-      terrain_size[0] - 2 * num_steps * self.step_width,
-      terrain_size[1] - 2 * num_steps * self.step_width,
+      np.maximum(1e-6, terrain_size[0] - 2 * num_steps * self.step_width),
+      np.maximum(1e-6, terrain_size[1] - 2 * num_steps * self.step_width),
     )
-    platform_h = (num_steps + 1) * step_height
-    platform_pos = (terrain_center[0], terrain_center[1], num_steps * step_height / 2)
+    # The platform should have its SURFACE at the same level as the top step.
+    platform_h = num_steps * step_height
+    # Ensure platform_h > 0 for MuJoCo safety.
+    platform_h = np.maximum(1e-6, platform_h)
+    platform_pos = (terrain_center[0], terrain_center[1], platform_h / 2)
     box = body.add_geom(
       type=mujoco.mjtGeom.mjGEOM_BOX,
-      size=(np.maximum(1e-6, platform_size[0] / 2.0), np.maximum(1e-6, platform_size[1] / 2.0), np.maximum(1e-6, platform_h / 2.0)),
+      size=(platform_size[0] / 2.0, platform_size[1] / 2.0, platform_h / 2.0),
       pos=platform_pos,
     )
     platform_rgba = _get_platform_color(_MUJOCO_BLUE)
@@ -1079,9 +1083,12 @@ class BoxNarrowBeamsTerrainCfg(SubTerrainCfg):
   def function(
     self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
   ) -> TerrainOutput:
-    del rng  # Unused.
     body = spec.body("terrain")
     geometries = []
+
+    # Scale number of beams by difficulty.
+    num_beams = int(self.num_beams * (0.5 + 0.5 * difficulty))
+    num_beams = max(1, num_beams)
 
     # Narrower beams with difficulty.
     beam_width = self.beam_width / (0.5 + 0.5 * difficulty)
@@ -1090,8 +1097,8 @@ class BoxNarrowBeamsTerrainCfg(SubTerrainCfg):
     if self.border_width > 0.0:
       border_center = (0.5 * self.size[0], 0.5 * self.size[1], -0.05)
       border_boxes = make_border(body, self.size, (self.size[0] - 2 * self.border_width, self.size[1] - 2 * self.border_width), 0.1, border_center)
-      for box in border_boxes:
-        geometries.append(TerrainGeometry(geom=box, color=border_rgba))
+      for b_geom in border_boxes:
+        geometries.append(TerrainGeometry(geom=b_geom, color=border_rgba))
 
     # Platform.
     platform_rgba = _get_platform_color(_MUJOCO_BLUE)
@@ -1105,22 +1112,28 @@ class BoxNarrowBeamsTerrainCfg(SubTerrainCfg):
     inner_size_x = self.size[0] - 2 * self.border_width
     beam_length = (inner_size_x - self.platform_width) / 2
     
-    total_y_width = (self.num_beams - 1) * self.spacing
-    start_y = (self.size[1] - total_y_width) / 2
+    center_x, center_y = self.size[0] / 2, self.size[1] / 2
 
-    for i in range(self.num_beams):
-      y_pos = start_y + i * self.spacing
-      z_pos = self.beam_height / 2
+    # Radial beams.
+    angles = np.linspace(0, 2 * np.pi, num_beams, endpoint=False)
+    for angle in angles:
+      # Position the beam such that one end touches the platform.
+      # The platform extends from center - platform_width/2 to center + platform_width/2.
+      # For a radial beam, it should start at radius self.platform_width / 2.
+      # Actually, let's just center it at radius (self.platform_width / 2 + beam_length / 2).
+      dist = self.platform_width / 2 + beam_length / 2
+      px = center_x + dist * np.cos(angle)
+      py = center_y + dist * np.sin(angle)
+      pz = self.beam_height / 2
       
-      # Beam X.
-      for side in [-1, 1]:
-        x_pos = self.size[0] / 2 + side * (self.platform_width / 2 + beam_length / 2)
-        geom = body.add_geom(
-          type=mujoco.mjtGeom.mjGEOM_BOX,
-          size=(np.maximum(1e-6, beam_length / 2), np.maximum(1e-6, beam_width / 2), np.maximum(1e-6, self.beam_height / 2)),
-          pos=(x_pos, y_pos, z_pos),
-        )
-        geometries.append(TerrainGeometry(geom=geom, color=brand_ramp(_MUJOCO_BLUE, 0.5)))
+      geom = body.add_geom(
+        type=mujoco.mjtGeom.mjGEOM_BOX,
+        size=(np.maximum(1e-6, beam_length / 2), np.maximum(1e-6, beam_width / 2), np.maximum(1e-6, self.beam_height / 2)),
+        pos=(px, py, pz),
+      )
+      # Quat for yaw = angle.
+      geom.quat = (np.cos(angle / 2), 0, 0, np.sin(angle / 2))
+      geometries.append(TerrainGeometry(geom=geom, color=brand_ramp(_MUJOCO_BLUE, 0.5)))
 
     origin = np.array([self.size[0] / 2, self.size[1] / 2, self.beam_height])
     return TerrainOutput(origin=origin, geometries=geometries)
