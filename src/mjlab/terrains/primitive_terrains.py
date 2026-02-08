@@ -662,6 +662,8 @@ class BoxRandomSpreadTerrainCfg(SubTerrainCfg):
   box_height_range: tuple[float, float] = (0.1, 0.4)
   box_yaw_range: tuple[float, float] = (0, 360)
   add_floor: bool = True
+  platform_width: float = 1.0
+  border_width: float = 0.25
 
   def function(
     self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
@@ -672,13 +674,46 @@ class BoxRandomSpreadTerrainCfg(SubTerrainCfg):
     # Scale number of boxes by difficulty.
     num_boxes = int(self.num_boxes * (0.5 + 0.5 * difficulty))
 
+    terrain_height = 1.0
+    border_rgba = darken_rgba(brand_ramp(_MUJOCO_BLUE, 0.0), 0.85)
+
+    if self.border_width > 0.0:
+      border_center = (0.5 * self.size[0], 0.5 * self.size[1], -terrain_height / 2)
+      border_inner_size = (
+        self.size[0] - 2 * self.border_width,
+        self.size[1] - 2 * self.border_width,
+      )
+      border_boxes = make_border(
+        body, self.size, border_inner_size, terrain_height, border_center
+      )
+      for box in border_boxes:
+        geometries.append(TerrainGeometry(geom=box, color=border_rgba))
+
     if self.add_floor:
       floor_geom = body.add_geom(
         type=mujoco.mjtGeom.mjGEOM_BOX,
-        size=(self.size[0] / 2, self.size[1] / 2, 0.05),
+        size=(
+          (self.size[0] - 2 * self.border_width) / 2,
+          (self.size[1] - 2 * self.border_width) / 2,
+          0.05,
+        ),
         pos=(self.size[0] / 2, self.size[1] / 2, -0.05),
       )
       geometries.append(TerrainGeometry(geom=floor_geom, color=(0.4, 0.4, 0.4, 1.0)))
+
+    # Platform
+    platform_rgba = _get_platform_color(_MUJOCO_BLUE)
+    platform_geom = body.add_geom(
+      type=mujoco.mjtGeom.mjGEOM_BOX,
+      size=(self.platform_width / 2, self.platform_width / 2, terrain_height / 2),
+      pos=(self.size[0] / 2, self.size[1] / 2, -terrain_height / 2),
+    )
+    geometries.append(TerrainGeometry(geom=platform_geom, color=platform_rgba))
+
+    platform_half = self.platform_width / 2
+    terrain_center = self.size[0] / 2
+    platform_min = terrain_center - platform_half
+    platform_max = terrain_center + platform_half
 
     for _ in range(num_boxes):
       # Random size.
@@ -686,9 +721,17 @@ class BoxRandomSpreadTerrainCfg(SubTerrainCfg):
       size_y = rng.uniform(*self.box_size_range)
       height = rng.uniform(*self.box_height_range)
 
-      # Random position.
-      pos_x = rng.uniform(size_x / 2, self.size[0] - size_x / 2)
-      pos_y = rng.uniform(size_y / 2, self.size[1] - size_y / 2)
+      # Random position within inner area.
+      inner_size_x = self.size[0] - 2 * self.border_width
+      inner_size_y = self.size[1] - 2 * self.border_width
+      pos_x = rng.uniform(self.border_width + size_x / 2, self.size[0] - self.border_width - size_x / 2)
+      pos_y = rng.uniform(self.border_width + size_y / 2, self.size[1] - self.border_width - size_y / 2)
+      
+      # Avoid platform.
+      if (platform_min - size_x / 2 <= pos_x <= platform_max + size_x / 2) and \
+         (platform_min - size_y / 2 <= pos_y <= platform_max + size_y / 2):
+        continue
+
       pos_z = height / 2
 
       # Random orientation (yaw).
@@ -711,11 +754,11 @@ class BoxRandomSpreadTerrainCfg(SubTerrainCfg):
 
 @dataclass(kw_only=True)
 class BoxOpenStairsTerrainCfg(SubTerrainCfg):
-  num_steps: int = 10
+  step_height_range: tuple[float, float] = (0.1, 0.2)
   step_width: float = 0.4
-  step_height: float = 0.15
-  stair_width: float = 2.0
-  gap_width: float = 0.1
+  platform_width: float = 1.0
+  border_width: float = 0.25
+  step_thickness: float = 0.05
 
   def function(
     self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
@@ -724,38 +767,97 @@ class BoxOpenStairsTerrainCfg(SubTerrainCfg):
     body = spec.body("terrain")
     geometries = []
 
-    # Scale step height by difficulty.
-    step_height = self.step_height * (0.5 + 0.5 * difficulty)
+    step_height = self.step_height_range[0] + difficulty * (
+      self.step_height_range[1] - self.step_height_range[0]
+    )
 
-    start_x = (self.size[0] - self.num_steps * (self.step_width + self.gap_width)) / 2
-    y_pos = self.size[1] / 2
+    # Compute number of steps.
+    num_steps_x = (self.size[0] - 2 * self.border_width - self.platform_width) // (
+      2 * self.step_width
+    ) + 1
+    num_steps_y = (self.size[1] - 2 * self.border_width - self.platform_width) // (
+      2 * self.step_width
+    ) + 1
+    num_steps = int(min(num_steps_x, num_steps_y))
 
-    for i in range(self.num_steps):
-      x_pos = start_x + (i + 0.5) * (self.step_width + self.gap_width)
-      z_pos = (i + 0.5) * step_height
-      
-      # Box thickness (how deep the step piece is).
-      thickness = 0.05
-      
-      rgba = brand_ramp(_MUJOCO_BLUE, i / max(1, self.num_steps - 1))
-      
-      geom = body.add_geom(
-        type=mujoco.mjtGeom.mjGEOM_BOX,
-        size=(self.step_width / 2, self.stair_width / 2, thickness / 2),
-        pos=(x_pos, y_pos, z_pos),
+    first_step_rgba = brand_ramp(_MUJOCO_BLUE, 0.0)
+    border_rgba = darken_rgba(first_step_rgba, 0.85)
+
+    if self.border_width > 0.0:
+      border_center = (0.5 * self.size[0], 0.5 * self.size[1], -step_height / 2)
+      border_inner_size = (
+        self.size[0] - 2 * self.border_width,
+        self.size[1] - 2 * self.border_width,
       )
-      geometries.append(TerrainGeometry(geom=geom, color=rgba))
+      border_boxes = make_border(
+        body, self.size, border_inner_size, step_height, border_center
+      )
+      for box in border_boxes:
+        geometries.append(TerrainGeometry(geom=box, color=border_rgba))
 
-    origin = np.array([start_x + 0.5 * self.step_width, y_pos, step_height])
+    terrain_center = [0.5 * self.size[0], 0.5 * self.size[1], 0.0]
+    terrain_size = (
+      self.size[0] - 2 * self.border_width,
+      self.size[1] - 2 * self.border_width,
+    )
+
+    for k in range(num_steps):
+      t = k / max(num_steps - 1, 1)
+      rgba = brand_ramp(_MUJOCO_BLUE, t)
+
+      box_size = (
+        terrain_size[0] - 2 * k * self.step_width,
+        terrain_size[1] - 2 * k * self.step_width,
+      )
+      
+      z_pos = (k + 0.5) * step_height
+      box_offset = (k + 0.5) * self.step_width
+      
+      # Top.
+      box_pos = (terrain_center[0], terrain_center[1] + terrain_size[1] / 2.0 - box_offset, z_pos)
+      box = body.add_geom(type=mujoco.mjtGeom.mjGEOM_BOX, size=(box_size[0] / 2.0, self.step_width / 2.0, self.step_thickness / 2.0), pos=box_pos)
+      geometries.append(TerrainGeometry(geom=box, color=rgba))
+
+      # Bottom.
+      box_pos = (terrain_center[0], terrain_center[1] - terrain_size[1] / 2.0 + box_offset, z_pos)
+      box = body.add_geom(type=mujoco.mjtGeom.mjGEOM_BOX, size=(box_size[0] / 2.0, self.step_width / 2.0, self.step_thickness / 2.0), pos=box_pos)
+      geometries.append(TerrainGeometry(geom=box, color=rgba))
+
+      # Right.
+      box_pos = (terrain_center[0] + terrain_size[0] / 2.0 - box_offset, terrain_center[1], z_pos)
+      box = body.add_geom(type=mujoco.mjtGeom.mjGEOM_BOX, size=(self.step_width / 2.0, (box_size[1] - 2 * self.step_width) / 2.0, self.step_thickness / 2.0), pos=box_pos)
+      geometries.append(TerrainGeometry(geom=box, color=rgba))
+
+      # Left.
+      box_pos = (terrain_center[0] - terrain_size[0] / 2.0 + box_offset, terrain_center[1], z_pos)
+      box = body.add_geom(type=mujoco.mjtGeom.mjGEOM_BOX, size=(self.step_width / 2.0, (box_size[1] - 2 * self.step_width) / 2.0, self.step_thickness / 2.0), pos=box_pos)
+      geometries.append(TerrainGeometry(geom=box, color=rgba))
+
+    # Platform
+    platform_size = (
+      terrain_size[0] - 2 * num_steps * self.step_width,
+      terrain_size[1] - 2 * num_steps * self.step_width,
+    )
+    platform_h = (num_steps + 1) * step_height
+    platform_pos = (terrain_center[0], terrain_center[1], num_steps * step_height / 2)
+    box = body.add_geom(
+      type=mujoco.mjtGeom.mjGEOM_BOX,
+      size=(platform_size[0] / 2.0, platform_size[1] / 2.0, platform_h / 2.0),
+      pos=platform_pos,
+    )
+    platform_rgba = _get_platform_color(_MUJOCO_BLUE)
+    geometries.append(TerrainGeometry(geom=box, color=platform_rgba))
+
+    origin = np.array([terrain_center[0], terrain_center[1], num_steps * step_height])
     return TerrainOutput(origin=origin, geometries=geometries)
 
 
 @dataclass(kw_only=True)
 class BoxRandomStairsTerrainCfg(SubTerrainCfg):
-  num_steps: int = 10
-  step_width: float = 1.0
-  step_height_range: tuple[float, float] = (0.05, 0.2)
-  stair_width: float = 4.0
+  step_width: float = 0.8
+  step_height_range: tuple[float, float] = (0.1, 0.3)
+  platform_width: float = 1.0
+  border_width: float = 0.25
 
   def function(
     self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
@@ -763,35 +865,94 @@ class BoxRandomStairsTerrainCfg(SubTerrainCfg):
     body = spec.body("terrain")
     geometries = []
 
-    start_x = (self.size[0] - self.num_steps * self.step_width) / 2
-    y_pos = self.size[1] / 2
+    # Compute number of steps.
+    num_steps_x = (self.size[0] - 2 * self.border_width - self.platform_width) // (
+      2 * self.step_width
+    ) + 1
+    num_steps_y = (self.size[1] - 2 * self.border_width - self.platform_width) // (
+      2 * self.step_width
+    ) + 1
+    num_steps = int(min(num_steps_x, num_steps_y))
+
+    first_step_rgba = brand_ramp(_MUJOCO_BLUE, 0.0)
+    border_rgba = darken_rgba(first_step_rgba, 0.85)
+
+    if self.border_width > 0.0:
+      border_center = (0.5 * self.size[0], 0.5 * self.size[1], -0.05)
+      border_inner_size = (
+        self.size[0] - 2 * self.border_width,
+        self.size[1] - 2 * self.border_width,
+      )
+      border_boxes = make_border(
+        body, self.size, border_inner_size, 0.1, border_center
+      )
+      for box in border_boxes:
+        geometries.append(TerrainGeometry(geom=box, color=border_rgba))
+
+    terrain_center = [0.5 * self.size[0], 0.5 * self.size[1], 0.0]
+    terrain_size = (
+      self.size[0] - 2 * self.border_width,
+      self.size[1] - 2 * self.border_width,
+    )
 
     current_z = 0.0
-    for i in range(self.num_steps):
-      x_pos = start_x + (i + 0.5) * self.step_width
-      
-      # Step height variation.
+    for k in range(num_steps):
+      t = k / max(num_steps - 1, 1)
+      rgba = brand_ramp(_MUJOCO_BLUE, t)
+
       h_low, h_high = self.step_height_range
       step_h = rng.uniform(h_low, h_high) * (0.5 + 0.5 * difficulty)
-      
-      # We create a box from current_z to current_z + step_h.
-      # Actually, more like a staircase where each step is a solid block down to ground or previous level.
-      # To keep it simple and reduce geoms, just one box per step that is high enough.
-      
       total_h = current_z + step_h
-      z_pos = total_h / 2
       
-      rgba = brand_ramp(_MUJOCO_BLUE, i / max(1, self.num_steps - 1))
-      
-      geom = body.add_geom(
-        type=mujoco.mjtGeom.mjGEOM_BOX,
-        size=(self.step_width / 2, self.stair_width / 2, total_h / 2),
-        pos=(x_pos, y_pos, z_pos),
+      box_size = (
+        terrain_size[0] - 2 * k * self.step_width,
+        terrain_size[1] - 2 * k * self.step_width,
       )
-      geometries.append(TerrainGeometry(geom=geom, color=rgba))
+      
+      z_pos = total_h / 2
+      box_offset = (k + 0.5) * self.step_width
+      
+      # For solid staircase, we can use a single box that is high enough for each "ring".
+      # But to correctly follow the "random height" requirement per step, 
+      # we should use 4 boxes per level.
+      
+      # Top.
+      box_pos = (terrain_center[0], terrain_center[1] + terrain_size[1] / 2.0 - box_offset, z_pos)
+      box = body.add_geom(type=mujoco.mjtGeom.mjGEOM_BOX, size=(box_size[0] / 2.0, self.step_width / 2.0, total_h / 2.0), pos=box_pos)
+      geometries.append(TerrainGeometry(geom=box, color=rgba))
+
+      # Bottom.
+      box_pos = (terrain_center[0], terrain_center[1] - terrain_size[1] / 2.0 + box_offset, z_pos)
+      box = body.add_geom(type=mujoco.mjtGeom.mjGEOM_BOX, size=(box_size[0] / 2.0, self.step_width / 2.0, total_h / 2.0), pos=box_pos)
+      geometries.append(TerrainGeometry(geom=box, color=rgba))
+
+      # Right.
+      box_pos = (terrain_center[0] + terrain_size[0] / 2.0 - box_offset, terrain_center[1], z_pos)
+      box = body.add_geom(type=mujoco.mjtGeom.mjGEOM_BOX, size=(self.step_width / 2.0, (box_size[1] - 2 * self.step_width) / 2.0, total_h / 2.0), pos=box_pos)
+      geometries.append(TerrainGeometry(geom=box, color=rgba))
+
+      # Left.
+      box_pos = (terrain_center[0] - terrain_size[0] / 2.0 + box_offset, terrain_center[1], z_pos)
+      box = body.add_geom(type=mujoco.mjtGeom.mjGEOM_BOX, size=(self.step_width / 2.0, (box_size[1] - 2 * self.step_width) / 2.0, total_h / 2.0), pos=box_pos)
+      geometries.append(TerrainGeometry(geom=box, color=rgba))
+      
       current_z = total_h
 
-    origin = np.array([start_x + 0.5 * self.step_width, y_pos, current_z])
+    # Platform
+    platform_size = (
+      terrain_size[0] - 2 * num_steps * self.step_width,
+      terrain_size[1] - 2 * num_steps * self.step_width,
+    )
+    platform_pos = (terrain_center[0], terrain_center[1], current_z / 2)
+    box = body.add_geom(
+      type=mujoco.mjtGeom.mjGEOM_BOX,
+      size=(platform_size[0] / 2.0, platform_size[1] / 2.0, current_z / 2.0),
+      pos=platform_pos,
+    )
+    platform_rgba = _get_platform_color(_MUJOCO_BLUE)
+    geometries.append(TerrainGeometry(geom=box, color=platform_rgba))
+
+    origin = np.array([terrain_center[0], terrain_center[1], current_z])
     return TerrainOutput(origin=origin, geometries=geometries)
 
 @dataclass(kw_only=True)
@@ -800,6 +961,8 @@ class BoxSteppingStonesTerrainCfg(SubTerrainCfg):
   stone_distance_range: tuple[float, float] = (0.2, 0.5)
   stone_height: float = 0.5
   stone_height_variation: float = 0.1
+  platform_width: float = 1.0
+  border_width: float = 0.25
 
   def function(
     self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
@@ -815,11 +978,32 @@ class BoxSteppingStonesTerrainCfg(SubTerrainCfg):
     avg_stone_size = (self.stone_size_range[0] + self.stone_size_range[1]) / 2
     spacing = avg_stone_size + avg_distance
 
-    num_x = int(self.size[0] / spacing)
-    num_y = int(self.size[1] / spacing)
+    num_x = int((self.size[0] - 2 * self.border_width) / spacing)
+    num_y = int((self.size[1] - 2 * self.border_width) / spacing)
 
-    offset_x = (self.size[0] - (num_x - 1) * spacing) / 2
-    offset_y = (self.size[1] - (num_y - 1) * spacing) / 2
+    offset_x = self.border_width + (self.size[0] - 2 * self.border_width - (num_x - 1) * spacing) / 2
+    offset_y = self.border_width + (self.size[1] - 2 * self.border_width - (num_y - 1) * spacing) / 2
+
+    border_rgba = darken_rgba(brand_ramp(_MUJOCO_GREEN, 0.0), 0.85)
+    if self.border_width > 0.0:
+      border_center = (0.5 * self.size[0], 0.5 * self.size[1], -0.05)
+      border_boxes = make_border(body, self.size, (self.size[0] - 2 * self.border_width, self.size[1] - 2 * self.border_width), 0.1, border_center)
+      for box in border_boxes:
+        geometries.append(TerrainGeometry(geom=box, color=border_rgba))
+
+    # Platform.
+    platform_rgba = _get_platform_color(_MUJOCO_GREEN)
+    platform_geom = body.add_geom(
+      type=mujoco.mjtGeom.mjGEOM_BOX,
+      size=(self.platform_width / 2, self.platform_width / 2, self.stone_height / 2),
+      pos=(self.size[0] / 2, self.size[1] / 2, self.stone_height / 2),
+    )
+    geometries.append(TerrainGeometry(geom=platform_geom, color=platform_rgba))
+
+    platform_half = self.platform_width / 2
+    terrain_center = self.size[0] / 2
+    platform_min = terrain_center - platform_half
+    platform_max = terrain_center + platform_half
 
     for i in range(num_x):
       for j in range(num_y):
@@ -827,11 +1011,14 @@ class BoxSteppingStonesTerrainCfg(SubTerrainCfg):
         size_x = rng.uniform(*self.stone_size_range)
         size_y = rng.uniform(*self.stone_size_range)
         
-        # Randomize position slightly.
         px = offset_x + i * spacing + rng.uniform(-0.1, 0.1)
         py = offset_y + j * spacing + rng.uniform(-0.1, 0.1)
         
-        # Randomize height.
+        # Avoid platform.
+        if (platform_min - size_x / 2 <= px <= platform_max + size_x / 2) and \
+           (platform_min - size_y / 2 <= py <= platform_max + size_y / 2):
+          continue
+
         h = self.stone_height + rng.uniform(-self.stone_height_variation, self.stone_height_variation)
         h = h * (0.5 + 0.5 * difficulty)
         
@@ -844,7 +1031,7 @@ class BoxSteppingStonesTerrainCfg(SubTerrainCfg):
         )
         geometries.append(TerrainGeometry(geom=geom, color=rgba))
 
-    origin = np.array([offset_x, offset_y, self.stone_height])
+    origin = np.array([self.size[0] / 2, self.size[1] / 2, self.stone_height])
     return TerrainOutput(origin=origin, geometries=geometries)
 
 
@@ -854,6 +1041,8 @@ class BoxNarrowBeamsTerrainCfg(SubTerrainCfg):
   beam_width: float = 0.1
   beam_height: float = 0.2
   spacing: float = 0.8
+  platform_width: float = 1.0
+  border_width: float = 0.25
 
   def function(
     self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
@@ -865,27 +1054,43 @@ class BoxNarrowBeamsTerrainCfg(SubTerrainCfg):
     # Narrower beams with difficulty.
     beam_width = self.beam_width / (0.5 + 0.5 * difficulty)
 
-    beam_length = self.size[0] * 0.8
-    start_x = (self.size[0] - beam_length) / 2
+    border_rgba = darken_rgba(brand_ramp(_MUJOCO_BLUE, 0.0), 0.85)
+    if self.border_width > 0.0:
+      border_center = (0.5 * self.size[0], 0.5 * self.size[1], -0.05)
+      border_boxes = make_border(body, self.size, (self.size[0] - 2 * self.border_width, self.size[1] - 2 * self.border_width), 0.1, border_center)
+      for box in border_boxes:
+        geometries.append(TerrainGeometry(geom=box, color=border_rgba))
+
+    # Platform.
+    platform_rgba = _get_platform_color(_MUJOCO_BLUE)
+    platform_geom = body.add_geom(
+      type=mujoco.mjtGeom.mjGEOM_BOX,
+      size=(self.platform_width / 2, self.platform_width / 2, self.beam_height / 2),
+      pos=(self.size[0] / 2, self.size[1] / 2, self.beam_height / 2),
+    )
+    geometries.append(TerrainGeometry(geom=platform_geom, color=platform_rgba))
+
+    inner_size_x = self.size[0] - 2 * self.border_width
+    beam_length = (inner_size_x - self.platform_width) / 2
     
     total_y_width = (self.num_beams - 1) * self.spacing
     start_y = (self.size[1] - total_y_width) / 2
 
     for i in range(self.num_beams):
       y_pos = start_y + i * self.spacing
-      x_pos = start_x + beam_length / 2
       z_pos = self.beam_height / 2
       
-      rgba = brand_ramp(_MUJOCO_BLUE, 0.5)
-      
-      geom = body.add_geom(
-        type=mujoco.mjtGeom.mjGEOM_BOX,
-        size=(beam_length / 2, beam_width / 2, self.beam_height / 2),
-        pos=(x_pos, y_pos, z_pos),
-      )
-      geometries.append(TerrainGeometry(geom=geom, color=rgba))
+      # Beam X.
+      for side in [-1, 1]:
+        x_pos = self.size[0] / 2 + side * (self.platform_width / 2 + beam_length / 2)
+        geom = body.add_geom(
+          type=mujoco.mjtGeom.mjGEOM_BOX,
+          size=(beam_length / 2, beam_width / 2, self.beam_height / 2),
+          pos=(x_pos, y_pos, z_pos),
+        )
+        geometries.append(TerrainGeometry(geom=geom, color=brand_ramp(_MUJOCO_BLUE, 0.5)))
 
-    origin = np.array([start_x, start_y, self.beam_height])
+    origin = np.array([self.size[0] / 2, self.size[1] / 2, self.beam_height])
     return TerrainOutput(origin=origin, geometries=geometries)
 
 
@@ -894,6 +1099,8 @@ class BoxTiltedGridTerrainCfg(SubTerrainCfg):
   grid_width: float = 1.0
   tilt_range_deg: float = 15.0
   height_range: tuple[float, float] = (0.0, 0.2)
+  platform_width: float = 1.0
+  border_width: float = 0.25
 
   def function(
     self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
@@ -901,11 +1108,32 @@ class BoxTiltedGridTerrainCfg(SubTerrainCfg):
     body = spec.body("terrain")
     geometries = []
 
-    num_x = int(self.size[0] / self.grid_width)
-    num_y = int(self.size[1] / self.grid_width)
+    num_x = int((self.size[0] - 2 * self.border_width) / self.grid_width)
+    num_y = int((self.size[1] - 2 * self.border_width) / self.grid_width)
     
-    offset_x = (self.size[0] - (num_x - 1) * self.grid_width) / 2
-    offset_y = (self.size[1] - (num_y - 1) * self.grid_width) / 2
+    offset_x = self.border_width + (self.size[0] - 2 * self.border_width - (num_x - 1) * self.grid_width) / 2
+    offset_y = self.border_width + (self.size[1] - 2 * self.border_width - (num_y - 1) * self.grid_width) / 2
+
+    border_rgba = darken_rgba(brand_ramp(_MUJOCO_GREEN, 0.0), 0.85)
+    if self.border_width > 0.0:
+      border_center = (0.5 * self.size[0], 0.5 * self.size[1], -0.05)
+      border_boxes = make_border(body, self.size, (self.size[0] - 2 * self.border_width, self.size[1] - 2 * self.border_width), 0.1, border_center)
+      for box in border_boxes:
+        geometries.append(TerrainGeometry(geom=box, color=border_rgba))
+
+    # Platform.
+    platform_rgba = _get_platform_color(_MUJOCO_GREEN)
+    platform_geom = body.add_geom(
+      type=mujoco.mjtGeom.mjGEOM_BOX,
+      size=(self.platform_width / 2, self.platform_width / 2, 0.5 / 2),
+      pos=(self.size[0] / 2, self.size[1] / 2, 0.5 / 2),
+    )
+    geometries.append(TerrainGeometry(geom=platform_geom, color=platform_rgba))
+
+    platform_half = self.platform_width / 2
+    terrain_center = self.size[0] / 2
+    platform_min = terrain_center - platform_half
+    platform_max = terrain_center + platform_half
 
     max_tilt = np.deg2rad(self.tilt_range_deg * difficulty)
 
@@ -914,6 +1142,11 @@ class BoxTiltedGridTerrainCfg(SubTerrainCfg):
         px = offset_x + i * self.grid_width
         py = offset_y + j * self.grid_width
         
+        # Avoid platform.
+        if (platform_min - self.grid_width / 2 <= px <= platform_max + self.grid_width / 2) and \
+           (platform_min - self.grid_width / 2 <= py <= platform_max + self.grid_width / 2):
+          continue
+
         h_noise = rng.uniform(*self.height_range)
         # Use a base height so that tilting doesn't make corners go below 0 easily.
         base_h = 0.5
