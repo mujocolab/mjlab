@@ -93,12 +93,8 @@ class BoxPyramidStairsTerrainCfg(SubTerrainCfg):
     )
 
     # Compute number of steps in x and y direction.
-    num_steps_x = (self.size[0] - 2 * self.border_width - self.platform_width) // (
-      2 * self.step_width
-    ) + 1
-    num_steps_y = (self.size[1] - 2 * self.border_width - self.platform_width) // (
-      2 * self.step_width
-    ) + 1
+    num_steps_x = int((self.size[0] - 2 * self.border_width - self.platform_width) / (2 * self.step_width))
+    num_steps_y = int((self.size[1] - 2 * self.border_width - self.platform_width) / (2 * self.step_width))
     num_steps = int(min(num_steps_x, num_steps_y))
 
     first_step_rgba = brand_ramp(_MUJOCO_BLUE, 0.0)
@@ -244,12 +240,8 @@ class BoxInvertedPyramidStairsTerrainCfg(BoxPyramidStairsTerrainCfg):
     )
 
     # Compute number of steps in x and y direction.
-    num_steps_x = (self.size[0] - 2 * self.border_width - self.platform_width) // (
-      2 * self.step_width
-    ) + 1
-    num_steps_y = (self.size[1] - 2 * self.border_width - self.platform_width) // (
-      2 * self.step_width
-    ) + 1
+    num_steps_x = int((self.size[0] - 2 * self.border_width - self.platform_width) / (2 * self.step_width))
+    num_steps_y = int((self.size[1] - 2 * self.border_width - self.platform_width) / (2 * self.step_width))
     num_steps = int(min(num_steps_x, num_steps_y))
     total_height = (num_steps + 1) * step_height
 
@@ -773,12 +765,8 @@ class BoxOpenStairsTerrainCfg(SubTerrainCfg):
     )
 
     # Compute number of steps.
-    num_steps_x = (self.size[0] - 2 * self.border_width - self.platform_width) // (
-      2 * self.step_width
-    ) + 1
-    num_steps_y = (self.size[1] - 2 * self.border_width - self.platform_width) // (
-      2 * self.step_width
-    ) + 1
+    num_steps_x = int((self.size[0] - 2 * self.border_width - self.platform_width) / (2 * self.step_width))
+    num_steps_y = int((self.size[1] - 2 * self.border_width - self.platform_width) / (2 * self.step_width))
     num_steps = int(min(num_steps_x, num_steps_y))
 
     first_step_rgba = brand_ramp(_MUJOCO_BLUE, 0.0)
@@ -855,11 +843,11 @@ class BoxOpenStairsTerrainCfg(SubTerrainCfg):
       np.maximum(1e-6, terrain_size[0] - 2 * num_steps * self.step_width),
       np.maximum(1e-6, terrain_size[1] - 2 * num_steps * self.step_width),
     )
-    # The platform should have its SURFACE at the same level as the top step.
-    platform_h = num_steps * step_height
-    # Ensure platform_h > 0 for MuJoCo safety.
+    # The top of the steps is at (num_steps - 0.5) * step_height + thickness / 2.
+    # Let's align the platform top surface with the top-most step.
+    platform_h = (num_steps - 0.5) * step_height + self.step_thickness / 2.0
     platform_h = np.maximum(1e-6, platform_h)
-    platform_pos = (terrain_center[0], terrain_center[1], platform_h / 2)
+    platform_pos = (terrain_center[0], terrain_center[1], platform_h / 2.0)
     box = body.add_geom(
       type=mujoco.mjtGeom.mjGEOM_BOX,
       size=(platform_size[0] / 2.0, platform_size[1] / 2.0, platform_h / 2.0),
@@ -868,7 +856,7 @@ class BoxOpenStairsTerrainCfg(SubTerrainCfg):
     platform_rgba = _get_platform_color(_MUJOCO_BLUE)
     geometries.append(TerrainGeometry(geom=box, color=platform_rgba))
 
-    origin = np.array([terrain_center[0], terrain_center[1], num_steps * step_height])
+    origin = np.array([terrain_center[0], terrain_center[1], platform_h])
     return TerrainOutput(origin=origin, geometries=geometries)
 
 
@@ -886,12 +874,8 @@ class BoxRandomStairsTerrainCfg(SubTerrainCfg):
     geometries = []
 
     # Compute number of steps.
-    num_steps_x = (self.size[0] - 2 * self.border_width - self.platform_width) // (
-      2 * self.step_width
-    ) + 1
-    num_steps_y = (self.size[1] - 2 * self.border_width - self.platform_width) // (
-      2 * self.step_width
-    ) + 1
+    num_steps_x = int((self.size[0] - 2 * self.border_width - self.platform_width) / (2 * self.step_width))
+    num_steps_y = int((self.size[1] - 2 * self.border_width - self.platform_width) / (2 * self.step_width))
     num_steps = int(min(num_steps_x, num_steps_y))
 
     first_step_rgba = brand_ramp(_MUJOCO_BLUE, 0.0)
@@ -995,8 +979,8 @@ class BoxRandomStairsTerrainCfg(SubTerrainCfg):
 class BoxSteppingStonesTerrainCfg(SubTerrainCfg):
   stone_size_range: tuple[float, float] = (0.4, 0.8)
   stone_distance_range: tuple[float, float] = (0.2, 0.5)
-  stone_height: float = 0.5
-  stone_height_variation: float = 0.1
+  stone_height: float = 2.0
+  stone_height_variation: float = 0.5
   platform_width: float = 1.0
   border_width: float = 0.25
 
@@ -1031,7 +1015,7 @@ class BoxSteppingStonesTerrainCfg(SubTerrainCfg):
     platform_rgba = _get_platform_color(_MUJOCO_GREEN)
     platform_geom = body.add_geom(
       type=mujoco.mjtGeom.mjGEOM_BOX,
-      size=(self.platform_width / 2, self.platform_width / 2, self.stone_height / 2),
+      size=(np.maximum(1e-6, self.platform_width / 2), np.maximum(1e-6, self.platform_width / 2), np.maximum(1e-6, self.stone_height / 2)),
       pos=(self.size[0] / 2, self.size[1] / 2, self.stone_height / 2),
     )
     geometries.append(TerrainGeometry(geom=platform_geom, color=platform_rgba))
@@ -1056,7 +1040,6 @@ class BoxSteppingStonesTerrainCfg(SubTerrainCfg):
           continue
 
         h = self.stone_height + rng.uniform(-self.stone_height_variation, self.stone_height_variation)
-        h = h * (0.5 + 0.5 * difficulty)
         
         rgba = brand_ramp(_MUJOCO_GREEN, rng.uniform(0.4, 0.7))
         
@@ -1073,7 +1056,7 @@ class BoxSteppingStonesTerrainCfg(SubTerrainCfg):
 
 @dataclass(kw_only=True)
 class BoxNarrowBeamsTerrainCfg(SubTerrainCfg):
-  num_beams: int = 3
+  num_beams: int = 16
   beam_width: float = 0.1
   beam_height: float = 0.2
   spacing: float = 0.8
@@ -1086,9 +1069,8 @@ class BoxNarrowBeamsTerrainCfg(SubTerrainCfg):
     body = spec.body("terrain")
     geometries = []
 
-    # Scale number of beams by difficulty.
-    num_beams = int(self.num_beams * (0.5 + 0.5 * difficulty))
-    num_beams = max(1, num_beams)
+    # Number of beams can be increased with difficulty if desired.
+    num_beams = self.num_beams
 
     # Narrower beams with difficulty.
     beam_width = self.beam_width / (0.5 + 0.5 * difficulty)
