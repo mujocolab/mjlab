@@ -26,6 +26,7 @@ def test_perlin_terrain_generation(rng: np.random.Generator):
     lacunarity=2.0,
     scale=10.0,
     horizontal_scale=0.1,
+    resolution=0.1,
   )
   
   output = cfg.function(difficulty=0.5, spec=spec, rng=rng)
@@ -64,12 +65,12 @@ def test_perlin_terrain_resolution(rng: np.random.Generator):
     size=(10.0, 10.0),
     height_range=(0.1, 0.5),
     horizontal_scale=0.1,
-    resolution=2.0,  # 2x pixels
+    resolution=0.05,  # 200 pixels
   )
   
   output = cfg.function(difficulty=0.5, spec=spec, rng=rng)
   hfield = output.geometries[0].hfield
-  # (10.0 / (0.1 / 2.0)) = 200
+  # (10.0 / 0.05) = 200
   assert hfield.nrow == 200
   assert hfield.ncol == 200
   assert len(hfield.userdata) == 200 * 200
@@ -86,6 +87,7 @@ def test_perlin_terrain_with_border(rng: np.random.Generator):
     height_range=(0.1, 0.5),
     border_width=2.0,
     horizontal_scale=0.1,
+    resolution=0.1,
   )
   
   output = cfg.function(difficulty=0.5, spec=spec, rng=rng)
@@ -93,9 +95,6 @@ def test_perlin_terrain_with_border(rng: np.random.Generator):
   data = np.asarray(hfield.userdata).reshape(100, 100)
   
   # Border pixels: 2.0 / 0.1 = 20
-  # Border areas should be 0 (the elevation_min of the whole thing will be 0 if noise is balanced around 0)
-  # Wait, elevation_min is subtracted, so border (originally 0) might not be 0 in normalized data if noise_raw had negatives.
-  # Let's check if the border is flat.
   border_pixels = 20
   top_border = data[:border_pixels, :]
   bottom_border = data[-border_pixels:, :]
