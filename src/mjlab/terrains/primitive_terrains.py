@@ -401,6 +401,7 @@ class BoxRandomGridTerrainCfg(SubTerrainCfg):
   """Maximum height difference between cells that can be merged, in meters."""
   max_merge_distance: int = 3
   """Maximum number of grid cells that can be merged in each direction."""
+  border_width: float = 0.25
 
   def function(
     self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
@@ -417,8 +418,8 @@ class BoxRandomGridTerrainCfg(SubTerrainCfg):
     boxes_list = []
     box_colors = []
 
-    num_boxes_x = int(self.size[0] / self.grid_width)
-    num_boxes_y = int(self.size[1] / self.grid_width)
+    num_boxes_x = int((self.size[0] - 2 * self.border_width) / self.grid_width)
+    num_boxes_y = int((self.size[1] - 2 * self.border_width) / self.grid_width)
 
     terrain_height = 1.0
     border_width = self.size[0] - min(num_boxes_x, num_boxes_y) * self.grid_width

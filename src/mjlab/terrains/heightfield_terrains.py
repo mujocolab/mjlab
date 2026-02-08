@@ -102,6 +102,70 @@ def color_by_height(
   return material_name
 
 
+def _fractal_perlin_noise_2d(
+  x_size: int,
+  y_size: int,
+  rng: np.random.Generator,
+  octaves: int = 4,
+  persistence: float = 0.5,
+  lacunarity: float = 2.0,
+  scale: float = 1.0,
+) -> np.ndarray:
+  """Generate 2D fractal Perlin noise."""
+
+  def lerp(a, b, x):
+    return a + x * (b - a)
+
+  def fade(t):
+    return t * t * t * (t * (t * 6 - 15) + 10)
+
+  def gradient(h, x, y):
+    h = h % 4
+    return np.where(
+      h == 0,
+      x + y,
+      np.where(h == 1, x - y, np.where(h == 2, -x + y, -x - y)),
+    )
+
+  def perlin(x, y, p):
+    xi = x.astype(int) % 256
+    yi = y.astype(int) % 256
+    xf = x - x.astype(int)
+    yf = y - y.astype(int)
+    u = fade(xf)
+    v = fade(yf)
+
+    n00 = gradient(p[p[xi] + yi], xf, yf)
+    n01 = gradient(p[p[xi] + yi + 1], xf, yf - 1)
+    n11 = gradient(p[p[xi + 1] + yi + 1], xf - 1, yf - 1)
+    n10 = gradient(p[p[xi + 1] + yi], xf - 1, yf)
+
+    x1 = lerp(n00, n10, u)
+    x2 = lerp(n01, n11, u)
+    return lerp(x1, x2, v)
+
+  p = np.arange(256, dtype=int)
+  rng.shuffle(p)
+  p = np.stack([p, p]).flatten()
+
+  noise = np.zeros((x_size, y_size))
+  amplitude = 1.0
+  frequency = scale
+  total_amplitude = 0.0
+
+  x = np.linspace(0, x_size, x_size, endpoint=False)
+  y = np.linspace(0, y_size, y_size, endpoint=False)
+  xx, yy = np.meshgrid(x, y, indexing="ij")
+
+  for _ in range(octaves):
+    noise += amplitude * perlin(xx * frequency / x_size, yy * frequency / y_size, p)
+    total_amplitude += amplitude
+    amplitude *= persistence
+    frequency *= lacunarity
+
+  return noise / total_amplitude
+
+
 def _compute_flat_patches(
   noise: np.ndarray,
   vertical_scale: float,
@@ -741,6 +805,129 @@ class HfDiscreteObstaclesTerrainCfg(SubTerrainCfg):
       self.vertical_scale,
       self.horizontal_scale,
       hfield_z_offset,
+      self.flat_patch_sampling,
+      rng,
+    )
+
+    geom = TerrainGeometry(geom=hfield_geom, hfield=field)
+    return TerrainOutput(origin=origin, geometries=[geom], flat_patches=flat_patches)
+
+
+@dataclass(kw_only=True)
+class HfPerlinNoiseTerrainCfg(SubTerrainCfg):
+  height_range: tuple[float, float]
+  octaves: int = 4
+  persistence: float = 0.5
+  lacunarity: float = 2.0
+  scale: float = 10.0
+  horizontal_scale: float = 0.1
+  resolution: float = 0.05
+  base_thickness_ratio: float = 1.0
+  border_width: float = 0.0
+
+  def function(
+    self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
+  ) -> TerrainOutput:
+    body = spec.body("terrain")
+
+    if self.border_width > 0 and self.border_width < self.resolution:
+      raise ValueError(
+        f"Border width ({self.border_width}) must be >= resolution "
+        f"({self.resolution})"
+      )
+
+    target_height = self.height_range[0] + difficulty * (
+      self.height_range[1] - self.height_range[0]
+    )
+
+    # Resolution is the pixel size (distance between grid points).
+    grid_spacing = self.resolution
+    
+    # Feature scale is affected by both 'scale' and 'horizontal_scale'.
+    # A larger horizontal_scale means larger features (stretched out).
+    effective_scale = self.scale * (self.resolution / self.horizontal_scale)
+
+    border_pixels = int(self.border_width / grid_spacing)
+    width_pixels = int(self.size[0] / grid_spacing)
+    length_pixels = int(self.size[1] / grid_spacing)
+
+    if border_pixels > 0:
+      inner_width_pixels = width_pixels - 2 * border_pixels
+      inner_length_pixels = length_pixels - 2 * border_pixels
+      noise_raw = _fractal_perlin_noise_2d(
+        inner_width_pixels,
+        inner_length_pixels,
+        rng,
+        octaves=self.octaves,
+        persistence=self.persistence,
+        lacunarity=self.lacunarity,
+        scale=effective_scale,
+      )
+      # Normalize to [0, 1]
+      noise_min, noise_max = noise_raw.min(), noise_raw.max()
+      noise_range = noise_max - noise_min if noise_max > noise_min else 1.0
+      inner_normalized = (noise_raw - noise_min) / noise_range
+
+      normalized_elevation = np.zeros((width_pixels, length_pixels), dtype=np.float32)
+      normalized_elevation[
+        border_pixels : -border_pixels,
+        border_pixels : -border_pixels,
+      ] = inner_normalized
+    else:
+      noise_raw = _fractal_perlin_noise_2d(
+        width_pixels,
+        length_pixels,
+        rng,
+        octaves=self.octaves,
+        persistence=self.persistence,
+        lacunarity=self.lacunarity,
+        scale=effective_scale,
+      )
+      noise_min, noise_max = noise_raw.min(), noise_raw.max()
+      noise_range = noise_max - noise_min if noise_max > noise_min else 1.0
+      normalized_elevation = ((noise_raw - noise_min) / noise_range).astype(np.float32)
+
+    max_physical_height = target_height
+    base_thickness = max_physical_height * self.base_thickness_ratio
+
+    unique_id = uuid.uuid4().hex
+    field = spec.add_hfield(
+      name=f"hfield_{unique_id}",
+      size=[
+        self.size[0] / 2,
+        self.size[1] / 2,
+        max_physical_height,
+        base_thickness,
+      ],
+      nrow=normalized_elevation.shape[0],
+      ncol=normalized_elevation.shape[1],
+      userdata=normalized_elevation.flatten(),
+    )
+
+    material_name = color_by_height(
+      spec, normalized_elevation, unique_id, normalized_elevation
+    )
+
+    hfield_geom = body.add_geom(
+      type=mujoco.mjtGeom.mjGEOM_HFIELD,
+      hfieldname=field.name,
+      pos=[
+        self.size[0] / 2,
+        self.size[1] / 2,
+        0,
+      ],
+      material=material_name,
+    )
+
+    spawn_height = max_physical_height
+    origin = np.array([self.size[0] / 2, self.size[1] / 2, spawn_height])
+
+    # For flat patches, we pass the absolute physical heights.
+    flat_patches = _compute_flat_patches(
+      normalized_elevation * max_physical_height,
+      1.0,  # vertical_scale is 1.0 because we already have physical heights
+      grid_spacing,
+      0,
       self.flat_patch_sampling,
       rng,
     )
