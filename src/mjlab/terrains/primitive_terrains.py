@@ -799,7 +799,8 @@ class BoxOpenStairsTerrainCfg(SubTerrainCfg):
         terrain_size[1] - 2 * k * self.step_width,
       )
       
-      z_pos = (k + 0.5) * step_height
+      # Inverted: Outer steps (small k) are higher.
+      z_pos = (num_steps - k - 0.5) * step_height
       box_offset = (k + 0.5) * self.step_width
       
       # Top.
@@ -843,10 +844,9 @@ class BoxOpenStairsTerrainCfg(SubTerrainCfg):
       np.maximum(1e-6, terrain_size[0] - 2 * num_steps * self.step_width),
       np.maximum(1e-6, terrain_size[1] - 2 * num_steps * self.step_width),
     )
-    # The top of the steps is at (num_steps - 0.5) * step_height + thickness / 2.
-    # Let's align the platform top surface with the top-most step.
-    platform_h = (num_steps - 0.5) * step_height + self.step_thickness / 2.0
-    platform_h = np.maximum(1e-6, platform_h)
+    # Align the platform top surface with z=0 (bottom of inverted stairs).
+    # Since the last step (k=num_steps-1) is at z_pos = 0.5 * step_height.
+    platform_h = 0.05 
     platform_pos = (terrain_center[0], terrain_center[1], platform_h / 2.0)
     box = body.add_geom(
       type=mujoco.mjtGeom.mjGEOM_BOX,
@@ -979,8 +979,8 @@ class BoxRandomStairsTerrainCfg(SubTerrainCfg):
 class BoxSteppingStonesTerrainCfg(SubTerrainCfg):
   stone_size_range: tuple[float, float] = (0.4, 0.8)
   stone_distance_range: tuple[float, float] = (0.2, 0.5)
-  stone_height: float = 2.0
-  stone_height_variation: float = 0.5
+  stone_height: float = 5.0
+  stone_height_variation: float = 1.0
   platform_width: float = 1.0
   border_width: float = 0.25
 
@@ -1008,8 +1008,16 @@ class BoxSteppingStonesTerrainCfg(SubTerrainCfg):
     if self.border_width > 0.0:
       border_center = (0.5 * self.size[0], 0.5 * self.size[1], -0.05)
       border_boxes = make_border(body, self.size, (self.size[0] - 2 * self.border_width, self.size[1] - 2 * self.border_width), 0.1, border_center)
-      for box in border_boxes:
-        geometries.append(TerrainGeometry(geom=box, color=border_rgba))
+      for b_geom in border_boxes:
+        geometries.append(TerrainGeometry(geom=b_geom, color=border_rgba))
+
+    # Ground floor.
+    floor_geom = body.add_geom(
+      type=mujoco.mjtGeom.mjGEOM_BOX,
+      size=(self.size[0] / 2, self.size[1] / 2, 0.05),
+      pos=(self.size[0] / 2, self.size[1] / 2, -0.05),
+    )
+    geometries.append(TerrainGeometry(geom=floor_geom, color=(0.2, 0.2, 0.2, 1.0)))
 
     # Platform.
     platform_rgba = _get_platform_color(_MUJOCO_GREEN)
@@ -1056,7 +1064,7 @@ class BoxSteppingStonesTerrainCfg(SubTerrainCfg):
 
 @dataclass(kw_only=True)
 class BoxNarrowBeamsTerrainCfg(SubTerrainCfg):
-  num_beams: int = 16
+  num_beams: int = 32
   beam_width: float = 0.1
   beam_height: float = 0.2
   spacing: float = 0.8
