@@ -84,9 +84,9 @@ ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
     ),
     "random_spread_boxes": terrain_gen.BoxRandomSpreadTerrainCfg(
       proportion=0.05,
-      num_boxes=250,
+      num_boxes=60,
       box_size_range=(0.3, 1.0),
-      box_height_range=(0.1, 0.4),
+      box_height_range=(0.05, 1.0),
       platform_width=1.0,
       border_width=0.25,
     ),
