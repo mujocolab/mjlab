@@ -114,8 +114,8 @@ ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
     ),
     "narrow_beams": terrain_gen.BoxNarrowBeamsTerrainCfg(
       proportion=0.05,
-      num_beams=3,
-      beam_width=0.1,
+      num_beams=32,
+      beam_width_range=(0.05, 0.2),
       beam_height=0.2,
       spacing=0.8,
       platform_width=1.0,

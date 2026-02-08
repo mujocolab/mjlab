@@ -1065,7 +1065,7 @@ class BoxSteppingStonesTerrainCfg(SubTerrainCfg):
 @dataclass(kw_only=True)
 class BoxNarrowBeamsTerrainCfg(SubTerrainCfg):
   num_beams: int = 32
-  beam_width: float = 0.1
+  beam_width_range: tuple[float, float] = (0.05, 0.2)
   beam_height: float = 0.2
   spacing: float = 0.8
   platform_width: float = 1.0
@@ -1080,8 +1080,9 @@ class BoxNarrowBeamsTerrainCfg(SubTerrainCfg):
     # Number of beams can be increased with difficulty if desired.
     num_beams = self.num_beams
 
-    # Narrower beams with difficulty.
-    beam_width = self.beam_width / (0.5 + 0.5 * difficulty)
+    # Narrower beams with difficulty (interp from max to min).
+    w_min, w_max = self.beam_width_range
+    beam_width = w_max - difficulty * (w_max - w_min)
 
     border_rgba = darken_rgba(brand_ramp(_MUJOCO_BLUE, 0.0), 0.85)
     if self.border_width > 0.0:
