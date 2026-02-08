@@ -701,7 +701,8 @@ class BoxRandomSpreadTerrainCfg(SubTerrainCfg):
         size=(size_x / 2, size_y / 2, height / 2),
         pos=(pos_x, pos_y, pos_z),
       )
-      geom.euler = (0, 0, yaw)
+      # MuJoCo quat is (w, x, y, z).
+      geom.quat = (np.cos(yaw / 2), 0, 0, np.sin(yaw / 2))
       geometries.append(TerrainGeometry(geom=geom, color=rgba))
 
     origin = np.array([self.size[0] / 2, self.size[1] / 2, 0.0])
@@ -929,7 +930,12 @@ class BoxTiltedGridTerrainCfg(SubTerrainCfg):
           size=(self.grid_width / 2, self.grid_width / 2, total_h / 2),
           pos=(px, py, total_h / 2),
         )
-        geom.euler = (tilt_x, tilt_y, 0)
+        # Convert Euler (tilt_x, tilt_y, 0) to Quat (w, x, y, z).
+        cx = np.cos(tilt_x / 2)
+        sx = np.sin(tilt_x / 2)
+        cy = np.cos(tilt_y / 2)
+        sy = np.sin(tilt_y / 2)
+        geom.quat = (cx * cy, sx * cy, cx * sy, -sx * sy)
         geometries.append(TerrainGeometry(geom=geom, color=rgba))
 
     origin = np.array([self.size[0] / 2, self.size[1] / 2, 0.5])
