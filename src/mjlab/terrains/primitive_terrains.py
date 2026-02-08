@@ -1058,7 +1058,7 @@ class BoxSteppingStonesTerrainCfg(SubTerrainCfg):
         
         geom = body.add_geom(
           type=mujoco.mjtGeom.mjGEOM_BOX,
-          size=(size_x / 2, size_y / 2, h / 2),
+          size=(np.maximum(1e-6, size_x / 2), np.maximum(1e-6, size_y / 2), np.maximum(1e-6, h / 2)),
           pos=(px, py, h / 2),
         )
         geometries.append(TerrainGeometry(geom=geom, color=rgba))
@@ -1097,7 +1097,7 @@ class BoxNarrowBeamsTerrainCfg(SubTerrainCfg):
     platform_rgba = _get_platform_color(_MUJOCO_BLUE)
     platform_geom = body.add_geom(
       type=mujoco.mjtGeom.mjGEOM_BOX,
-      size=(self.platform_width / 2, self.platform_width / 2, self.beam_height / 2),
+      size=(np.maximum(1e-6, self.platform_width / 2), np.maximum(1e-6, self.platform_width / 2), np.maximum(1e-6, self.beam_height / 2)),
       pos=(self.size[0] / 2, self.size[1] / 2, self.beam_height / 2),
     )
     geometries.append(TerrainGeometry(geom=platform_geom, color=platform_rgba))
@@ -1117,7 +1117,7 @@ class BoxNarrowBeamsTerrainCfg(SubTerrainCfg):
         x_pos = self.size[0] / 2 + side * (self.platform_width / 2 + beam_length / 2)
         geom = body.add_geom(
           type=mujoco.mjtGeom.mjGEOM_BOX,
-          size=(beam_length / 2, beam_width / 2, self.beam_height / 2),
+          size=(np.maximum(1e-6, beam_length / 2), np.maximum(1e-6, beam_width / 2), np.maximum(1e-6, self.beam_height / 2)),
           pos=(x_pos, y_pos, z_pos),
         )
         geometries.append(TerrainGeometry(geom=geom, color=brand_ramp(_MUJOCO_BLUE, 0.5)))
@@ -1157,7 +1157,7 @@ class BoxTiltedGridTerrainCfg(SubTerrainCfg):
     platform_rgba = _get_platform_color(_MUJOCO_GREEN)
     platform_geom = body.add_geom(
       type=mujoco.mjtGeom.mjGEOM_BOX,
-      size=(self.platform_width / 2, self.platform_width / 2, 0.5 / 2),
+      size=(np.maximum(1e-6, self.platform_width / 2), np.maximum(1e-6, self.platform_width / 2), np.maximum(1e-6, 0.5 / 2)),
       pos=(self.size[0] / 2, self.size[1] / 2, 0.5 / 2),
     )
     geometries.append(TerrainGeometry(geom=platform_geom, color=platform_rgba))
@@ -1192,7 +1192,7 @@ class BoxTiltedGridTerrainCfg(SubTerrainCfg):
         
         geom = body.add_geom(
           type=mujoco.mjtGeom.mjGEOM_BOX,
-          size=(self.grid_width / 2, self.grid_width / 2, total_h / 2),
+          size=(np.maximum(1e-6, self.grid_width / 2), np.maximum(1e-6, self.grid_width / 2), np.maximum(1e-6, total_h / 2)),
           pos=(px, py, total_h / 2),
         )
         # Convert Euler (tilt_x, tilt_y, 0) to Quat (w, x, y, z).
