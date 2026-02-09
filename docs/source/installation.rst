@@ -81,8 +81,8 @@ Initialize a managed Python project:
 .. code-block:: bash
 
    # Create a new package-based project
-   uv init --package my_mj_project
-   cd my_mj_project
+   uv init --package my_mjlab_project
+   cd my_mjlab_project
 
 3. Add mjlab dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^
