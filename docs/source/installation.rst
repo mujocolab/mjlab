@@ -64,8 +64,8 @@ This is our recommended way to use ``mjlab``. You have
 your own project and want to use ``mjlab`` as a dependency
 using ``uv``.
 
-Install uv
-^^^^^^^^^^
+1. Install uv
+^^^^^^^^^^^^^
 
 If you do not have ``uv`` installed, run:
 
@@ -73,9 +73,19 @@ If you do not have ``uv`` installed, run:
 
    curl -LsSf https://astral.sh/uv/install.sh | sh
 
+2. Initialize your project
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Add mjlab dependency
-^^^^^^^^^^^^^^^^^^^^
+Initialize a managed Python project:
+
+.. code-block:: bash
+
+   # Create a new package-based project
+   uv init --package my_mjlab_project
+   cd my_mjlab_project
+
+3. Add mjlab dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There are different options to add ``mjlab`` as a dependency.
 We recommend using the latest stable version from PyPI. If you need
@@ -123,6 +133,11 @@ install. These options are interchangeable: you can switch at any time.
 
          uv add --editable /path/to/cloned/mjlab
 
+.. tip::
+
+   For a complete example of how to structure a project that integrates a custom robot
+   with an existing ``mjlab`` task, check out the
+   `ANYmal C Velocity Tracking <https://github.com/mujocolab/anymal_c_velocity>`_ repository.
 
 Verification
 ^^^^^^^^^^^^
