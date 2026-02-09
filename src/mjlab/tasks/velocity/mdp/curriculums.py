@@ -74,8 +74,15 @@ def commands_vel(
   command_term = env.command_manager.get_term(command_name)
   assert command_term is not None
   cfg = cast(UniformVelocityCommandCfg, command_term.cfg)
+  # verify that the stage is only either defined as step or iteration
+  if any("iteration" in stage and "step" in stage for stage in velocity_stages):
+    raise ValueError("stage should only be defined as step or iteration, not both")
   for stage in velocity_stages:
-    if env.common_step_counter > stage["step"]:
+    if "step" in stage:
+      steps = stage["step"]
+    else:
+      steps = stage["iteration"] * env.cfg.num_steps_per_env
+    if env.common_step_counter > steps:
       if "lin_vel_x" in stage and stage["lin_vel_x"] is not None:
         cfg.ranges.lin_vel_x = stage["lin_vel_x"]
       if "lin_vel_y" in stage and stage["lin_vel_y"] is not None:
@@ -101,7 +108,14 @@ def reward_weight(
   """Update a reward term's weight based on training step stages."""
   del env_ids  # Unused.
   reward_term_cfg = env.reward_manager.get_term_cfg(reward_name)
+  # verify that the stage is only either defined as step or iteration
+  if any("iteration" in stage and "step" in stage for stage in weight_stages):
+    raise ValueError("stage should only be defined as step or iteration, not both")
   for stage in weight_stages:
-    if env.common_step_counter > stage["step"]:
+    if "step" in stage:
+      steps = stage["step"]
+    else:
+      steps = stage["iteration"] * env.cfg.num_steps_per_env
+    if env.common_step_counter > steps:
       reward_term_cfg.weight = stage["weight"]
   return torch.tensor([reward_term_cfg.weight])

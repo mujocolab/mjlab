@@ -101,6 +101,13 @@ class ManagerBasedRlEnvCfg:
     ceil(episode_length_s / (sim.mujoco.timestep * decimation))
   """
 
+  num_steps_per_env: int = 24
+  """Number of steps per environment per RL iteration.
+
+  This is used to scale curriculum steps to match the total number of environment steps
+  taken during training. Default is 24.
+  """
+
   rewards: dict[str, RewardTermCfg] = field(default_factory=dict)
   """Reward terms configuration."""
 

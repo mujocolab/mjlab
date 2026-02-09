@@ -103,6 +103,10 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
   if rank == 0:
     print(f"[INFO] Logging experiment in directory: {log_dir}")
 
+  # Propagate num_steps_per_env to env config before environment creation.
+  # This ensures curriculum functions use the correct value from the first step.
+  cfg.env.num_steps_per_env = cfg.agent.num_steps_per_env
+
   env = ManagerBasedRlEnv(
     cfg=cfg.env, device=device, render_mode="rgb_array" if cfg.video else None
   )

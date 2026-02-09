@@ -23,6 +23,12 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     for key in ("actor", "critic"):
       if key in train_cfg and train_cfg[key].get("cnn_cfg") is None:
         train_cfg[key].pop("cnn_cfg", None)
+
+    # Propagate num_steps_per_env to the environment config.
+    if "num_steps_per_env" in train_cfg:
+      if hasattr(env.unwrapped.cfg, "num_steps_per_env"):
+        env.unwrapped.cfg.num_steps_per_env = train_cfg["num_steps_per_env"]
+
     super().__init__(env, train_cfg, log_dir, device)
 
   def export_policy_to_onnx(
