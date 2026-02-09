@@ -26,10 +26,13 @@ def reward_weight(
   if any("iteration" in stage and "step" in stage for stage in weight_stages):
     raise ValueError("stage should only be defined as step or iteration, not both")
   for stage in weight_stages:
-    if "step" in stage:
-      steps = stage["step"]
-    else:
-      steps = stage["iteration"] * env.cfg.num_steps_per_env
+    if "step" not in stage and "iteration" not in stage:
+      raise ValueError("stage must have either 'step' or 'iteration' key")
+    steps = (
+      stage["step"]
+      if "step" in stage
+      else stage["iteration"] * env.cfg.num_steps_per_env
+    )
     if env.common_step_counter > steps:
       reward_term_cfg.weight = stage["weight"]
   return torch.tensor([reward_term_cfg.weight])

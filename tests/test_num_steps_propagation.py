@@ -14,7 +14,7 @@ from mjlab.scene import SceneCfg
 from mjlab.scripts.train import TrainConfig
 from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
-from mjlab.tasks.velocity.mdp.curriculums import commands_vel
+from mjlab.tasks.velocity.mdp.curriculums import VelocityStage, commands_vel
 from mjlab.terrains import TerrainImporterCfg
 
 
@@ -114,26 +114,26 @@ def test_curriculum_with_step_type(mock_env_with_command):
   mock_env, mock_cfg = mock_env_with_command
 
   # Stages using "step" - threshold is used directly (not scaled)
-  stages = [
+  stages: list[VelocityStage] = [
     {"step": 0, "lin_vel_x": (-1.0, 1.0)},
     {"step": 5000, "lin_vel_x": (-2.0, 2.0)},
   ]
 
   # Before threshold (4000 < 5000)
   mock_env.common_step_counter = 4000
-  commands_vel(mock_env, None, "cmd", stages)
+  commands_vel(mock_env, torch.tensor([]), "cmd", stages)
   assert mock_cfg.ranges.lin_vel_x == (-1.0, 1.0)
 
   # After threshold (6000 > 5000)
   mock_env.common_step_counter = 6000
-  commands_vel(mock_env, None, "cmd", stages)
+  commands_vel(mock_env, torch.tensor([]), "cmd", stages)
   assert mock_cfg.ranges.lin_vel_x == (-2.0, 2.0)
 
   # Verify step is independent of num_steps_per_env
   mock_cfg.ranges.lin_vel_x = (-1.0, 1.0)  # Reset
   mock_env.cfg.num_steps_per_env = 10  # Should not affect step-based stages
   mock_env.common_step_counter = 4000  # Still < 5000
-  commands_vel(mock_env, None, "cmd", stages)
+  commands_vel(mock_env, torch.tensor([]), "cmd", stages)
   assert mock_cfg.ranges.lin_vel_x == (-1.0, 1.0)  # Should NOT trigger stage 2
 
 
@@ -143,26 +143,26 @@ def test_curriculum_with_iteration_type(mock_env_with_command):
   mock_env.cfg.num_steps_per_env = 48
 
   # Stages using "iteration" - threshold = iteration * num_steps_per_env
-  stages = [
+  stages: list[VelocityStage] = [
     {"iteration": 0, "lin_vel_x": (-1.0, 1.0)},
     {"iteration": 100, "lin_vel_x": (-2.0, 2.0)},  # Threshold = 100 * 48 = 4800
   ]
 
   # Before threshold (4000 < 4800)
   mock_env.common_step_counter = 4000
-  commands_vel(mock_env, None, "cmd", stages)
+  commands_vel(mock_env, torch.tensor([]), "cmd", stages)
   assert mock_cfg.ranges.lin_vel_x == (-1.0, 1.0)
 
   # After threshold (5000 > 4800)
   mock_env.common_step_counter = 5000
-  commands_vel(mock_env, None, "cmd", stages)
+  commands_vel(mock_env, torch.tensor([]), "cmd", stages)
   assert mock_cfg.ranges.lin_vel_x == (-2.0, 2.0)
 
   # Verify threshold scales with num_steps_per_env
   mock_cfg.ranges.lin_vel_x = (-1.0, 1.0)  # Reset
   mock_env.cfg.num_steps_per_env = 10  # New threshold = 100 * 10 = 1000
   mock_env.common_step_counter = 1500  # > 1000
-  commands_vel(mock_env, None, "cmd", stages)
+  commands_vel(mock_env, torch.tensor([]), "cmd", stages)
   assert mock_cfg.ranges.lin_vel_x == (-2.0, 2.0)
 
 
@@ -186,12 +186,12 @@ def test_curriculum_rejects_mixed_step_and_iteration():
   mock_env.command_manager.get_term.return_value = mock_command_term
 
   # Invalid: both step and iteration specified
-  invalid_stages = [
+  invalid_stages: list[VelocityStage] = [
     {"step": 0, "iteration": 0, "lin_vel_x": (-1.0, 1.0)},
   ]
 
   with pytest.raises(ValueError, match="step or iteration"):
-    commands_vel(mock_env, None, "cmd", invalid_stages)
+    commands_vel(mock_env, torch.tensor([]), "cmd", invalid_stages)
 
 
 if __name__ == "__main__":

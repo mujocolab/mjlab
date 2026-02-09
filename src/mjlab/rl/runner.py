@@ -26,8 +26,9 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
 
     # Propagate num_steps_per_env to the environment config.
     if "num_steps_per_env" in train_cfg:
-      if hasattr(env.unwrapped.cfg, "num_steps_per_env"):
-        env.unwrapped.cfg.num_steps_per_env = train_cfg["num_steps_per_env"]
+      unwrapped = env.unwrapped if isinstance(env, RslRlVecEnvWrapper) else None
+      if unwrapped is not None and hasattr(unwrapped.cfg, "num_steps_per_env"):
+        unwrapped.cfg.num_steps_per_env = train_cfg["num_steps_per_env"]
 
     super().__init__(env, train_cfg, log_dir, device)
 

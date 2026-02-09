@@ -15,8 +15,9 @@ if TYPE_CHECKING:
 _DEFAULT_SCENE_CFG = SceneEntityCfg("robot")
 
 
-class VelocityStage(TypedDict):
+class VelocityStage(TypedDict, total=False):
   step: int
+  iteration: int
   lin_vel_x: tuple[float, float] | None
   lin_vel_y: tuple[float, float] | None
   ang_vel_z: tuple[float, float] | None
@@ -78,10 +79,13 @@ def commands_vel(
   if any("iteration" in stage and "step" in stage for stage in velocity_stages):
     raise ValueError("stage should only be defined as step or iteration, not both")
   for stage in velocity_stages:
-    if "step" in stage:
-      steps = stage["step"]
-    else:
-      steps = stage["iteration"] * env.cfg.num_steps_per_env
+    if "step" not in stage and "iteration" not in stage:
+      raise ValueError("stage must have either 'step' or 'iteration' key")
+    steps = (
+      stage["step"]
+      if "step" in stage
+      else stage["iteration"] * env.cfg.num_steps_per_env
+    )
     if env.common_step_counter > steps:
       if "lin_vel_x" in stage and stage["lin_vel_x"] is not None:
         cfg.ranges.lin_vel_x = stage["lin_vel_x"]
@@ -112,10 +116,13 @@ def reward_weight(
   if any("iteration" in stage and "step" in stage for stage in weight_stages):
     raise ValueError("stage should only be defined as step or iteration, not both")
   for stage in weight_stages:
-    if "step" in stage:
-      steps = stage["step"]
-    else:
-      steps = stage["iteration"] * env.cfg.num_steps_per_env
+    if "step" not in stage and "iteration" not in stage:
+      raise ValueError("stage must have either 'step' or 'iteration' key")
+    steps = (
+      stage["step"]
+      if "step" in stage
+      else stage["iteration"] * env.cfg.num_steps_per_env
+    )
     if env.common_step_counter > steps:
       reward_term_cfg.weight = stage["weight"]
   return torch.tensor([reward_term_cfg.weight])
