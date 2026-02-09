@@ -133,22 +133,11 @@ install. These options are interchangeable: you can switch at any time.
 
          uv add --editable /path/to/cloned/mjlab
 
-4. Reference Implementation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. tip::
 
-For a complete example of how to structure a project in order to 
-integrate a custom robot with an existing ``mjlab`` task, see 
-our reference repository:
-
-**ANYmal C Velocity Tracking**: https://github.com/mujocolab/anymal_c_velocity
-
-To clone and run the ANYmal C demo immediately:
-
-.. code-block:: bash
-
-   git clone https://github.com/mujocolab/anymal_c_velocity
-   cd anymal_c_velocity
-   uv run play Mjlab-Velocity-Flat-Anymal-C --agent zero
+   For a complete example of how to structure a project that integrates a custom robot
+   with an existing ``mjlab`` task, check out the
+   `ANYmal C Velocity Tracking <https://github.com/mujocolab/anymal_c_velocity>`_ repository.
 
 Verification
 ^^^^^^^^^^^^
