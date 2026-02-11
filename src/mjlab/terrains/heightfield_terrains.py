@@ -832,8 +832,7 @@ class HfPerlinNoiseTerrainCfg(SubTerrainCfg):
 
     if self.border_width > 0 and self.border_width < self.resolution:
       raise ValueError(
-        f"Border width ({self.border_width}) must be >= resolution "
-        f"({self.resolution})"
+        f"Border width ({self.border_width}) must be >= resolution ({self.resolution})"
       )
 
     target_height = self.height_range[0] + difficulty * (
@@ -842,7 +841,7 @@ class HfPerlinNoiseTerrainCfg(SubTerrainCfg):
 
     # Resolution is the pixel size (distance between grid points).
     grid_spacing = self.resolution
-    
+
     # Feature scale is affected by both 'scale' and 'horizontal_scale'.
     # A larger horizontal_scale means larger features (stretched out).
     effective_scale = self.scale * (self.resolution / self.horizontal_scale)
@@ -870,8 +869,8 @@ class HfPerlinNoiseTerrainCfg(SubTerrainCfg):
 
       normalized_elevation = np.zeros((width_pixels, length_pixels), dtype=np.float32)
       normalized_elevation[
-        border_pixels : -border_pixels,
-        border_pixels : -border_pixels,
+        border_pixels:-border_pixels,
+        border_pixels:-border_pixels,
       ] = inner_normalized
     else:
       noise_raw = _fractal_perlin_noise_2d(
@@ -901,7 +900,7 @@ class HfPerlinNoiseTerrainCfg(SubTerrainCfg):
       ],
       nrow=normalized_elevation.shape[0],
       ncol=normalized_elevation.shape[1],
-      userdata=normalized_elevation.flatten(),
+      userdata=normalized_elevation.flatten().tolist(),
     )
 
     material_name = color_by_height(
