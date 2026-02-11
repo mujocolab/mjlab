@@ -19,6 +19,27 @@ from mjlab.terrains.primitive_terrains import (
 from mjlab.terrains.primitive_terrains import (
   BoxRandomGridTerrainCfg as BoxRandomGridTerrainCfg,
 )
+from mjlab.terrains.primitive_terrains import (
+  BoxRandomSpreadTerrainCfg as BoxRandomSpreadTerrainCfg,
+)
+from mjlab.terrains.primitive_terrains import (
+  BoxOpenStairsTerrainCfg as BoxOpenStairsTerrainCfg,
+)
+from mjlab.terrains.primitive_terrains import (
+  BoxRandomStairsTerrainCfg as BoxRandomStairsTerrainCfg,
+)
+from mjlab.terrains.primitive_terrains import (
+  BoxSteppingStonesTerrainCfg as BoxSteppingStonesTerrainCfg,
+)
+from mjlab.terrains.primitive_terrains import (
+  BoxNarrowBeamsTerrainCfg as BoxNarrowBeamsTerrainCfg,
+)
+from mjlab.terrains.primitive_terrains import (
+  BoxTiltedGridTerrainCfg as BoxTiltedGridTerrainCfg,
+)
+from mjlab.terrains.primitive_terrains import (
+  BoxNestedRingsTerrainCfg as BoxNestedRingsTerrainCfg,
+)
 from mjlab.terrains.terrain_generator import (
   FlatPatchSamplingCfg as FlatPatchSamplingCfg,
 )

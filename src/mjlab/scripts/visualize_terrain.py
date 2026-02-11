@@ -40,6 +40,8 @@ PARAM_HINTS = {
     "num_obstacles": (1, 100, 1),
     "obstacle_height_range": (0.0, 1.0, 0.05),
     "obstacle_width_range": (0.1, 2.0, 0.05),
+    "box_width_range": (0.1, 2.0, 0.05),
+    "box_length_range": (0.1, 2.0, 0.05),
     "slope_range": (0.0, 1.0, 0.05),
     "platform_width": (0.1, 5.0, 0.1),
     "step_height_range": (0.0, 0.5, 0.01),
@@ -48,6 +50,11 @@ PARAM_HINTS = {
     "grid_height_range": (0.0, 1.0, 0.05),
     "height_merge_threshold": (0.01, 0.2, 0.01),
     "max_merge_distance": (1, 10, 1),
+    "num_beams": (1, 64, 1),
+    "num_rings": (1, 32, 1),
+    "displacement_range": (0.0, 1.0, 0.005),
+    "stone_size_variation": (0.0, 1.0, 0.005),
+    "stone_height_variation": (0.0, 1.0, 0.005),
 }
 
 def main():
@@ -55,7 +62,7 @@ def main():
     
     # Load available terrains from config.
     available_presets = ROUGH_TERRAINS_CFG.sub_terrains
-    preset_names = list(available_presets.keys())
+    preset_names = ["All Terrains"] + list(available_presets.keys())
     
     # State management.
     state = {
@@ -79,43 +86,56 @@ def main():
     def update_terrain():
         nonlocal terrain_handle
         
-        selected_instance = available_presets[state["preset_name"]]
-        terrain_type = type(selected_instance)
-        
-        # Instantiate sub-terrain config with current GUI state.
-        sub_cfg_params = {}
-        for field in dataclasses.fields(terrain_type):
-            if field.name in ["proportion", "size", "flat_patch_sampling"]:
-                sub_cfg_params[field.name] = getattr(selected_instance, field.name)
-                continue
+        if state["preset_name"] == "All Terrains":
+            # Create a copy with equal proportions to ensure all are shown once.
+            sub_terrains = {}
+            for name, cfg in available_presets.items():
+                new_cfg = dataclasses.replace(cfg, proportion=1.0)
+                sub_terrains[name] = new_cfg
+            num_cols = len(sub_terrains)
+            num_rows = state["rows"]
+        else:
+            selected_instance = available_presets[state["preset_name"]]
+            terrain_type = type(selected_instance)
             
-            if "range" in field.name:
-                if field.name + "_min" in state["params"]:
-                    sub_cfg_params[field.name] = (
-                        state["params"][field.name + "_min"],
-                        state["params"][field.name + "_max"]
-                    )
+            # Instantiate sub-terrain config with current GUI state.
+            sub_cfg_params = {}
+            for field in dataclasses.fields(terrain_type):
+                if field.name in ["proportion", "size", "flat_patch_sampling"]:
+                    sub_cfg_params[field.name] = getattr(selected_instance, field.name)
+                    continue
+                
+                if "range" in field.name and isinstance(getattr(selected_instance, field.name), (tuple, list)):
+                    if field.name + "_min" in state["params"]:
+                        sub_cfg_params[field.name] = (
+                            state["params"][field.name + "_min"],
+                            state["params"][field.name + "_max"]
+                        )
+                    else:
+                        sub_cfg_params[field.name] = getattr(selected_instance, field.name)
+                elif field.name in state["params"]:
+                    sub_cfg_params[field.name] = state["params"][field.name]
                 else:
                     sub_cfg_params[field.name] = getattr(selected_instance, field.name)
-            elif field.name in state["params"]:
-                sub_cfg_params[field.name] = state["params"][field.name]
-            else:
-                sub_cfg_params[field.name] = getattr(selected_instance, field.name)
-        
-        try:
-            sub_cfg = terrain_type(**sub_cfg_params)
-        except Exception as e:
-            print(f"Error creating config: {e}")
-            return
+            
+            try:
+                sub_cfg = terrain_type(**sub_cfg_params)
+            except Exception as e:
+                print(f"Error creating config: {e}")
+                return
+            
+            sub_terrains = {"main": sub_cfg}
+            num_cols = state["cols"]
+            num_rows = state["rows"]
 
         generator_cfg = TerrainGeneratorCfg(
             seed=state["seed"],
             size=state["size"],
-            num_rows=state["rows"],
-            num_cols=state["cols"],
+            num_rows=num_rows,
+            num_cols=num_cols,
             curriculum=True,
             difficulty_range=state["difficulty_range"],
-            sub_terrains={"main": sub_cfg},
+            sub_terrains=sub_terrains,
             add_lights=True,
         )
         
@@ -155,6 +175,11 @@ def main():
             control.remove()
         param_controls.clear()
         
+        if state["preset_name"] == "All Terrains":
+            with gui_params_folder:
+                server.gui.add_markdown("_Parameters not available for 'All Terrains' mode._")
+            return
+
         selected_instance = available_presets[state["preset_name"]]
         terrain_type = type(selected_instance)
         fields = dataclasses.fields(terrain_type)
@@ -168,13 +193,10 @@ def main():
                 type_str = str(field.type)
                 
                 # Check for range tuples first.
-                if "range" in field.name:
+                if "range" in field.name and isinstance(getattr(selected_instance, field.name), (tuple, list)):
                     hint = PARAM_HINTS.get(field.name, (0.0, 1.0, 0.01))
                     
-                    if hasattr(selected_instance, field.name):
-                        val_min, val_max = getattr(selected_instance, field.name)
-                    else:
-                        val_min, val_max = hint[0], hint[1]
+                    val_min, val_max = getattr(selected_instance, field.name)
                     
                     # Store in state if not present.
                     if field.name + "_min" not in state["params"]:
@@ -231,8 +253,11 @@ def main():
                     )
                     
                     @slider.on_update
-                    def _(event, name=field.name):
-                        state["params"][name] = event.target.value
+                    def _(event, name=field.name, is_int=("int" in type_str) or field.type is int):
+                        val = event.target.value
+                        if is_int:
+                            val = int(val)
+                        state["params"][name] = val
                         update_terrain()
                     
                     param_controls.append(slider)
