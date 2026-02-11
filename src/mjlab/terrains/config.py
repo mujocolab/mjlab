@@ -27,13 +27,13 @@ ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
     ),
     "hf_pyramid_slope": terrain_gen.HfPyramidSlopedTerrainCfg(
       proportion=0.1,
-      slope_range=(0.0, 1.0),
+      slope_range=(0.0, 0.7),
       platform_width=2.0,
       border_width=0.25,
     ),
     "hf_pyramid_slope_inv": terrain_gen.HfPyramidSlopedTerrainCfg(
       proportion=0.1,
-      slope_range=(0.0, 1.0),
+      slope_range=(0.0, 0.7),
       platform_width=2.0,
       border_width=0.25,
       inverted=True,

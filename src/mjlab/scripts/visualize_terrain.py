@@ -10,6 +10,7 @@ Run with:
 from __future__ import annotations
 
 import dataclasses
+import re
 import time
 from typing import Any, Dict, List, Type
 
@@ -20,9 +21,28 @@ import viser
 import viser.transforms as vtf
 
 import mjlab.terrains as terrain_gen
+from mjlab.asset_zoo.robots import (
+    get_g1_robot_cfg,
+    get_go1_robot_cfg,
+    get_yam_robot_cfg,
+)
 from mjlab.terrains.config import ROUGH_TERRAINS_CFG
-from mjlab.terrains.terrain_generator import TerrainGeneratorCfg, TerrainGenerator
-from mjlab.viewer.viser.conversions import merge_geoms
+from mjlab.terrains.terrain_generator import (
+    TerrainGenerator,
+    TerrainGeneratorCfg,
+)
+from mjlab.viewer.viser.conversions import (
+    merge_geoms,
+    merge_geoms_global,
+)
+
+# Supported robots for visualization.
+ROBOT_CFG_GETTERS = {
+    "None": None,
+    "Unitree Go1": get_go1_robot_cfg,
+    "Unitree G1": get_g1_robot_cfg,
+    "Yam": get_yam_robot_cfg,
+}
 
 # Parameter range hints for sliders.
 PARAM_HINTS = {
@@ -67,12 +87,15 @@ def main():
     # State management.
     state = {
         "preset_name": preset_names[0],
+        "robot_name": "None",
         "seed": 42,
         "size": ROUGH_TERRAINS_CFG.size,
         "params": {},
         "rows": 10,
         "cols": 1,
         "difficulty_range": (0.0, 1.0),
+        "robot_handles": [],
+        "terrain_origins": None,
     }
     
     # Handle for the terrain mesh in the scene.
@@ -81,10 +104,84 @@ def main():
     # GUI for statistics.
     gui_stats_folder = server.gui.add_folder("Statistics")
     with gui_stats_folder:
+        status_label = server.gui.add_markdown("**Status:** Ready")
         polygon_count_label = server.gui.add_markdown("**Number of Polygons:** -")
+
+    def update_robots():
+        # Clear old robot handles.
+        for h in state["robot_handles"]:
+            h.remove()
+        state["robot_handles"] = []
+
+        if state["robot_name"] == "None" or state["terrain_origins"] is None:
+            status_label.content = "**Status:** Ready"
+            return
+
+        status_label.content = f"**Status:** Spawning {state['robot_name']}..."
+        
+        # Get robot config.
+        robot_cfg_getter = ROBOT_CFG_GETTERS[state["robot_name"]]
+        robot_cfg = robot_cfg_getter()
+        
+        # Merge robot template mesh.
+        # We compile the robot spec standalone to get a clean local-space mesh template.
+        robot_spec = robot_cfg.spec_fn()
+        if robot_spec.worldbody.bodies:
+            robot_spec.worldbody.bodies[0].pos = (0, 0, 0)
+        
+        if robot_spec.keys:
+            robot_spec.delete(robot_spec.keys[0])
+            
+        robot_model = robot_spec.compile()
+        robot_data = mujoco.MjData(robot_model)
+        
+        # Apply joint poses.
+        for pattern, val in robot_cfg.init_state.joint_pos.items():
+            if not pattern.startswith("^"):
+                pattern = ".*" + pattern
+            for j_id in range(robot_model.njnt):
+                name = mujoco.mj_id2name(robot_model, mujoco.mjtObj.mjOBJ_JOINT, j_id)
+                if re.match(pattern, name):
+                    adr = robot_model.jnt_qposadr[j_id]
+                    robot_data.qpos[adr] = val
+        
+        mujoco.mj_forward(robot_model, robot_data)
+        
+        # Filter for visual geoms only (group < 3).
+        visual_geom_ids = [i for i in range(robot_model.ngeom) if robot_model.geom_group[i] < 3]
+        if not visual_geom_ids:
+            status_label.content = "**Status:** Error: No visual geoms for robot"
+            print(f"Error: No visual geoms found for {state['robot_name']}")
+            return
+            
+        robot_mesh = merge_geoms_global(robot_model, robot_data, visual_geom_ids)
+        print(f"Robot mesh generated with {len(robot_mesh.vertices)} vertices and {len(robot_mesh.faces)} faces.")
+        
+        # Prepare batched positions.
+        num_rows, num_cols = state["terrain_origins"].shape[:2]
+        batched_positions = []
+        for row in range(num_rows):
+            for col in range(num_cols):
+                pos = state["terrain_origins"][row, col] + np.array(robot_cfg.init_state.pos)
+                batched_positions.append(pos)
+        
+        batched_positions = np.array(batched_positions)
+        print(f"Instancing {len(batched_positions)} robots at positions like {batched_positions[0]}")
+        batched_wxyzs = np.array([1.0, 0.0, 0.0, 0.0])[None].repeat(len(batched_positions), axis=0)
+
+        with server.atomic():
+            handle = server.scene.add_batched_meshes_trimesh(
+                "/robots_batched",
+                robot_mesh,
+                batched_positions=batched_positions,
+                batched_wxyzs=batched_wxyzs,
+            )
+            state["robot_handles"].append(handle)
+        status_label.content = "**Status:** Ready"
 
     def update_terrain():
         nonlocal terrain_handle
+        status_label.content = "**Status:** Generating terrain..."
         
         if state["preset_name"] == "All Terrains":
             # Create a copy with equal proportions to ensure all are shown once.
@@ -124,9 +221,9 @@ def main():
                 print(f"Error creating config: {e}")
                 return
             
-            sub_terrains = {"main": sub_cfg}
-            num_cols = state["cols"]
             num_rows = state["rows"]
+            num_cols = state["cols"]
+            sub_terrains = {state["preset_name"]: sub_cfg}
 
         generator_cfg = TerrainGeneratorCfg(
             seed=state["seed"],
@@ -142,28 +239,42 @@ def main():
         generator = TerrainGenerator(generator_cfg)
         spec = mujoco.MjSpec()
         generator.compile(spec)
+
+        # Save terrain metadata for robot spawning.
+        state["terrain_origins"] = generator.terrain_origins
+
+        status_label.content = "**Status:** Compiling MuJoCo model..."
         model = spec.compile()
+        data = mujoco.MjData(model)
+
+        mujoco.mj_forward(model, data)
         
-        # The terrain body is named "terrain".
+        # Find terrain geoms.
         terrain_body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "terrain")
-        geom_ids = [i for i in range(model.ngeom) if model.geom_bodyid[i] == terrain_body_id]
-        
-        if not geom_ids:
+        terrain_geom_ids = [i for i in range(model.ngeom) if model.geom_bodyid[i] == terrain_body_id]
+
+        if not terrain_geom_ids:
+            status_label.content = "**Status:** Error: No terrain geoms found"
             print("No terrain geoms found.")
             return
 
-        mesh = merge_geoms(model, geom_ids)
-        polygon_count_label.content = f"**Number of Polygons:** {len(mesh.faces):,}"
+        status_label.content = f"**Status:** Merging {len(terrain_geom_ids)} terrain geoms..."
+        terrain_mesh = merge_geoms(model, terrain_geom_ids)
+        num_faces = len(terrain_mesh.faces)
+        polygon_count_label.content = f"**Number of Polygons:** {num_faces:,}"
         
-        # Remove old mesh if exists.
+        # Remove old terrain mesh if exists.
         if terrain_handle is not None:
             terrain_handle.remove()
-            
+        
+        status_label.content = "**Status:** Uploading terrain mesh..."
         terrain_handle = server.scene.add_mesh_trimesh(
             "/terrain",
-            mesh,
-            position=(0, 0, 0),
+            terrain_mesh,
         )
+        
+        # Trigger robot update.
+        update_robots()
 
     # GUI Setup.
     gui_params_folder = server.gui.add_folder("Terrain Parameters")
@@ -208,8 +319,15 @@ def main():
                     
                     v_min, v_max, v_step = hint
                     # Ensure range is valid for sliders.
-                    v_min = min(v_min, cur_min)
-                    v_max = max(v_max, cur_max)
+                    if cur_min is not None:
+                        v_min = min(v_min, cur_min)
+                    else:
+                        cur_min = v_min
+                    
+                    if cur_max is not None:
+                        v_max = max(v_max, cur_max)
+                    else:
+                        cur_max = v_max
 
                     s_min = server.gui.add_slider(
                         f"{field.name} min",
@@ -243,8 +361,11 @@ def main():
                     
                     cur_val = state["params"][field.name]
                     v_min, v_max, v_step = hint
-                    v_min = min(v_min, cur_val)
-                    v_max = max(v_max, cur_val)
+                    if cur_val is not None:
+                        v_min = min(v_min, cur_val)
+                        v_max = max(v_max, cur_val)
+                    else:
+                        cur_val = (v_min + v_max) / 2.0
 
                     slider = server.gui.add_slider(
                         field.name,
@@ -319,6 +440,17 @@ def main():
             state["seed"] = event.target.value
             update_terrain()
 
+        robot_select = server.gui.add_dropdown(
+            "Robot",
+            options=list(ROBOT_CFG_GETTERS.keys()),
+            initial_value=state["robot_name"]
+        )
+        
+        @robot_select.on_update
+        def _(event):
+            state["robot_name"] = event.target.value
+            update_robots()
+
         btn_randomize = server.gui.add_button("Randomize Seed")
         @btn_randomize.on_click
         def _(_):
@@ -326,6 +458,13 @@ def main():
             seed_input.value = new_seed
             state["seed"] = new_seed
             update_terrain()
+
+        btn_reset_camera = server.gui.add_button("Reset Camera")
+        @btn_reset_camera.on_click
+        def _(_):
+            for client in server.get_clients().values():
+                client.camera.position = (10, 10, 10)
+                client.camera.look_at = (0, 0, 0)
 
     # Initialize.
     rebuild_gui()

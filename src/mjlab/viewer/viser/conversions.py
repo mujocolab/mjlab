@@ -671,3 +671,42 @@ def get_site_name(mj_model: mujoco.MjModel, site_id: int) -> str:
   if not site_name:
     site_name = f"site_{site_id}"
   return site_name
+
+
+def merge_geoms_global(
+  mj_model: mujoco.MjModel, mj_data: mujoco.MjData, geom_ids: list[int]
+) -> trimesh.Trimesh:
+  """Merge multiple geoms into a single trimesh using world-space coordinates.
+
+  Args:
+    mj_model: MuJoCo model containing geom definitions
+    mj_data: MuJoCo data containing world-space transforms (geom_xpos, geom_xmat)
+    geom_ids: List of geom indices to merge
+
+  Returns:
+    Single merged trimesh with all geoms transformed to their world poses
+  """
+  meshes = []
+  for geom_id in geom_ids:
+    geom_type = mj_model.geom_type[geom_id]
+
+    if geom_type == mjtGeom.mjGEOM_MESH:
+      mesh = mujoco_mesh_to_trimesh(mj_model, geom_id, verbose=False)
+    else:
+      mesh = create_primitive_mesh(mj_model, geom_id)
+
+    # Use world-space position and rotation from mj_data.
+    pos = mj_data.geom_xpos[geom_id]
+    xmat = mj_data.geom_xmat[geom_id].reshape(3, 3)
+
+    transform = np.eye(4)
+    transform[:3, :3] = xmat
+    transform[:3, 3] = pos
+    mesh.apply_transform(transform)
+    meshes.append(mesh)
+
+  if not meshes:
+    return trimesh.Trimesh()
+  if len(meshes) == 1:
+    return meshes[0]
+  return trimesh.util.concatenate(meshes)
