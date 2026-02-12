@@ -830,9 +830,10 @@ class HfPerlinNoiseTerrainCfg(SubTerrainCfg):
   ) -> TerrainOutput:
     body = spec.body("terrain")
 
-    if self.border_width > 0 and self.border_width < self.resolution:
+    if self.border_width > 0 and self.border_width < self.horizontal_scale:
       raise ValueError(
-        f"Border width ({self.border_width}) must be >= resolution ({self.resolution})"
+        f"Border width ({self.border_width}) must be >= "
+        f"horizontal_scale ({self.horizontal_scale})"
       )
 
     target_height = self.height_range[0] + difficulty * (

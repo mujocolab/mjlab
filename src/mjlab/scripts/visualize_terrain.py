@@ -23,7 +23,7 @@ from mjlab.asset_zoo.robots import (
   get_go1_robot_cfg,
   get_yam_robot_cfg,
 )
-from mjlab.terrains.config import ROUGH_TERRAINS_CFG
+from mjlab.terrains.config import ALL_TERRAINS_CFG
 from mjlab.terrains.terrain_generator import (
   TerrainGenerator,
   TerrainGeneratorCfg,
@@ -92,7 +92,7 @@ def main():
   server = viser.ViserServer()
 
   # Load available terrains from config.
-  available_presets = ROUGH_TERRAINS_CFG.sub_terrains
+  available_presets = ALL_TERRAINS_CFG.sub_terrains
   preset_names = ["All Terrains"] + list(available_presets.keys())
 
   # State management.
@@ -100,7 +100,7 @@ def main():
     "preset_name": preset_names[0],
     "robot_name": "None",
     "seed": 42,
-    "size": ROUGH_TERRAINS_CFG.size,
+    "size": ALL_TERRAINS_CFG.size,
     "params": {},
     "rows": 10,
     "cols": 1,
@@ -173,22 +173,22 @@ def main():
       return
 
     robot_mesh = merge_geoms_global(robot_model, robot_data, visual_geom_ids)
-    print(
-      f"Robot mesh generated with {len(robot_mesh.vertices)} vertices and {len(robot_mesh.faces)} faces."
-    )
+    n_verts = len(robot_mesh.vertices)
+    n_faces = len(robot_mesh.faces)
+    print(f"Robot mesh: {n_verts} vertices, {n_faces} faces.")
 
     # Prepare batched positions.
     num_rows, num_cols = state["terrain_origins"].shape[:2]
     batched_positions = []
     for row in range(num_rows):
       for col in range(num_cols):
-        pos = state["terrain_origins"][row, col] + np.array(robot_cfg.init_state.pos)
+        origin = state["terrain_origins"][row, col]
+        pos = origin + np.array(robot_cfg.init_state.pos)
         batched_positions.append(pos)
 
     batched_positions = np.array(batched_positions)
-    print(
-      f"Instancing {len(batched_positions)} robots at positions like {batched_positions[0]}"
-    )
+    n = len(batched_positions)
+    print(f"Instancing {n} robots at positions like {batched_positions[0]}")
     batched_wxyzs = np.array([1.0, 0.0, 0.0, 0.0])[None].repeat(
       len(batched_positions), axis=0
     )
