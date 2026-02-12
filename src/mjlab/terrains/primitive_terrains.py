@@ -1487,47 +1487,19 @@ class BoxTiltedGridTerrainCfg(SubTerrainCfg):
             vz = total_h + tilt_x * (vx - bx_center) + tilt_y * (vy - by_center)
             verts.append([vx, vy, vz])
 
-        # Faces CCW (Counter-Clockwise) from outside.
+        # Faces ccw from outside.
         # 0:(min,min), 1:(min,max), 2:(max,min), 3:(max,max)
         # 4-7 are same x,y as 0-3 but at top.
+        # fmt: off
         faces = [
-          4,
-          6,
-          7,
-          4,
-          7,
-          5,  # Top (+z)
-          0,
-          1,
-          3,
-          0,
-          3,
-          2,  # Bottom (-z)
-          0,
-          2,
-          6,
-          0,
-          6,
-          4,  # Front (-y)
-          1,
-          5,
-          7,
-          1,
-          7,
-          3,  # Back (+y)
-          0,
-          4,
-          5,
-          0,
-          5,
-          1,  # Left (-x)
-          2,
-          3,
-          7,
-          2,
-          7,
-          6,  # Right (+x)
+          4, 6, 7, 4, 7, 5,  # Top (+z)
+          0, 1, 3, 0, 3, 2,  # Bottom (-z)
+          0, 2, 6, 0, 6, 4,  # Front (-y)
+          1, 5, 7, 1, 7, 3,  # Back (+y)
+          0, 4, 5, 0, 5, 1,  # Left (-x)
+          2, 3, 7, 2, 7, 6,  # Right (+x)
         ]
+        # fmt: on
 
         m_name = f"tile_{i}_{j}_{rng.integers(int(1e9))}"
         mesh = spec.add_mesh(
