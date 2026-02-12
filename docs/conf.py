@@ -150,6 +150,12 @@ html_theme_options = {
       "type": "url",
     },
     {
+      "name": "Benchmarks",
+      "url": "https://mujocolab.github.io/mjlab/nightly/",
+      "icon": "https://img.shields.io/badge/Nightly-Benchmarks-blue",
+      "type": "url",
+    },
+    {
       "name": "Stars",
       "url": "https://img.shields.io/github/stars/mujocolab/mjlab?color=fedcba",
       "icon": "https://img.shields.io/github/stars/mujocolab/mjlab?color=fedcba",
