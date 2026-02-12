@@ -4,7 +4,7 @@ Displays a 10-row grid of terrains with increasing difficulty.
 Configurations and parameters are dynamically loaded from mjlab.terrains.config.
 
 Run with:
-  uv run python src/mjlab/scripts/visualize_terrain.py
+  uv run src/mjlab/scripts/visualize_terrain.py
 """
 
 from __future__ import annotations
@@ -308,7 +308,7 @@ def main():
 
   # GUI Setup.
   gui_params_folder = server.gui.add_folder("Terrain Parameters")
-  param_controls: List[viser.GuiInputHandle[Any]] = []
+  param_controls: List[Any] = []
 
   def rebuild_gui():
     nonlocal param_controls
@@ -318,7 +318,10 @@ def main():
 
     if state["preset_name"] == "All Terrains":
       with gui_params_folder:
-        server.gui.add_markdown("_Parameters not available for 'All Terrains' mode._")
+        md = server.gui.add_markdown(
+          "_Parameters not available for 'All Terrains' mode._"
+        )
+        param_controls.append(md)
       return
 
     selected_instance = available_presets[state["preset_name"]]

@@ -85,6 +85,7 @@ def test_pyramid_stairs_platform_matches_config(
   output = cfg.function(difficulty=0.5, spec=spec, rng=rng)
 
   platform_geom = output.geometries[-1].geom
+  assert platform_geom is not None
   platform_full_width = 2 * platform_geom.size[0]
   assert platform_full_width >= cfg.platform_width
 
