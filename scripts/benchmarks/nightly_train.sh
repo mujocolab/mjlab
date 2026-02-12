@@ -1,5 +1,5 @@
 #!/bin/bash
-# Nightly training script for MJLab benchmarks
+# Nightly training script for mjlab benchmarks
 #
 # This script clones mjlab fresh, runs the tracking benchmark, and generates a report.
 # It is designed to be called by a systemd timer or cron job.
