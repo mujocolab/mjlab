@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths-ignore:
       - '**.md'
+      - '**.rst'
+      - 'docs/**'
       - 'Makefile'
       - 'LICENSE'
       - 'scripts/benchmarks/**'
@@ -12,6 +14,8 @@ on:
     branches: [main]
     paths-ignore:
       - '**.md'
+      - '**.rst'
+      - 'docs/**'
       - 'Makefile'
       - 'LICENSE'
       - 'scripts/benchmarks/**'

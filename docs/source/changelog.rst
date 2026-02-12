@@ -8,8 +8,7 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
-- Added camera sensor, unified sensor context, and spatial-softmax CNN
-  model.
+- Added RGB and depth camera sensors and BVH-accelerated raycasting.
 - Added ``MetricsManager`` for logging custom metrics during training.
 - Added terrain visualizer. Contribution by
   `@mktk1117 <https://github.com/mktk1117>`_.
