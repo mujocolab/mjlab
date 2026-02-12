@@ -49,8 +49,7 @@ Is it faster than Isaac Lab?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Based on our experience over the last few months, mjlab is **on par or
-faster** than Isaac Lab. See our `nightly benchmarks <https://mujocolab.github.io/mjlab/nightly/>`_ for
-up-to-date performance metrics across different tasks.
+faster** than Isaac Lab.
 
 What GPU do you recommend?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
