@@ -26,6 +26,32 @@ class CurriculumTermCfg(ManagerTermBaseCfg):
   pass
 
 
+def resolve_curriculum_iterations(
+  curriculum: dict[str, CurriculumTermCfg],
+  num_steps_per_env: int,
+) -> None:
+  """Convert ``"iteration"`` keys to ``"step"`` keys in curriculum stages.
+
+  This allows curriculum configs to express thresholds in training
+  iterations (more intuitive) rather than raw environment steps.
+  The conversion is ``step = iteration * num_steps_per_env``.
+
+  Modifies *curriculum* in-place. Raises :class:`ValueError` if a stage
+  dict contains both ``"iteration"`` and ``"step"`` keys.
+  """
+  for term_cfg in curriculum.values():
+    for value in term_cfg.params.values():
+      if not isinstance(value, list):
+        continue
+      for item in value:
+        if not isinstance(item, dict):
+          continue
+        if "iteration" in item and "step" in item:
+          raise ValueError(f"Curriculum stage has both 'iteration' and 'step': {item}")
+        if "iteration" in item:
+          item["step"] = item.pop("iteration") * num_steps_per_env
+
+
 class CurriculumManager(ManagerBase):
   """Manages curriculum learning for the environment.
 
