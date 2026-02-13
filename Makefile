@@ -47,7 +47,7 @@ docs:
 
 .PHONY: docs-watch
 docs-watch:
-	uv run --extra docs sphinx-autobuild docs docs/_build
+	uv run --group docs sphinx-autobuild docs docs/_build
 
 .PHONY: publish-test
 publish-test: build
