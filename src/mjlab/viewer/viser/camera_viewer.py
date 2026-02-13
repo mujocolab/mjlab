@@ -61,7 +61,7 @@ class ViserCameraViewer:
         initial_value=1.0,
       )
       self._depth_handle = self._server.gui.add_image(
-        image=np.zeros((self._display_height, self._display_width), dtype=np.uint8),
+        image=np.zeros((self._display_height, self._display_width, 3), dtype=np.uint8),
         label=f"{self._camera_name}_depth",
         format="jpeg",
       )
@@ -139,7 +139,7 @@ class ViserCameraViewer:
         scale = self._display_height // depth_uint8.shape[0]
         depth_uint8 = self._upsample_nearest(depth_uint8, scale)
 
-      self._depth_handle.image = depth_uint8
+      self._depth_handle.image = np.repeat(depth_uint8[:, :, np.newaxis], 3, axis=-1)
 
     self._update_frustum(sim_data, env_idx)
 
