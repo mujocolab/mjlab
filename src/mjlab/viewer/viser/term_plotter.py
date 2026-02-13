@@ -52,9 +52,9 @@ class ViserTermPlotter:
         handle.visible = self._enabled_checkbox.value
 
     # Create individual plot for each term
-    for name in self._term_names:
+    for term_name in self._term_names:
       # Initialize history deque for this term
-      self._histories[name] = deque(maxlen=self._history_length)
+      self._histories[term_name] = deque(maxlen=self._history_length)
 
       # Create initial empty data
       x_data = np.array([], dtype=np.float64)
@@ -64,7 +64,7 @@ class ViserTermPlotter:
       series = [
         viser.uplot.Series(label="Steps"),  # X-axis
         viser.uplot.Series(
-          label=name,
+          label=term_name,
           stroke="#1f77b4",  # Blue for all plots
           width=2,
         ),
@@ -81,18 +81,18 @@ class ViserTermPlotter:
           "y": viser.uplot.Scale(auto=True),
         },
         legend=viser.uplot.Legend(show=False),  # No legend needed for single series
-        title=name,  # Add title to the plot
+        title=term_name,  # Add title to the plot
         aspect=2.0,  # Wider aspect ratio for individual plots
         visible=False,
       )
 
-      self._plot_handles[name] = plot_handle
+      self._plot_handles[term_name] = plot_handle
 
   def update(self, terms: list[tuple[str, np.ndarray]]) -> None:
     """Update the plots with new data.
 
     Args:
-      terms: List of (name, value_array) tuples
+      terms: List of (term_name, value_array) tuples
     """
     # Early return if plots are disabled
     if not self._enabled_checkbox.value:
@@ -102,17 +102,17 @@ class ViserTermPlotter:
       return
 
     # Update each term's plot individually
-    for name, arr in terms:
-      if name not in self._histories or name not in self._plot_handles:
+    for term_name, arr in terms:
+      if term_name not in self._histories or term_name not in self._plot_handles:
         continue
 
       value = float(arr[0])
       if np.isfinite(value):
         # Add to history deque (automatically pops oldest when full)
-        self._histories[name].append(value)
+        self._histories[term_name].append(value)
 
         # Update this term's plot
-        hist = self._histories[name]
+        hist = self._histories[term_name]
         hist_len = len(hist)
 
         if hist_len > 0:
@@ -124,7 +124,7 @@ class ViserTermPlotter:
           y_data = np.fromiter(hist, dtype=np.float64, count=hist_len)
 
           # Update plot data
-          self._plot_handles[name].data = (x_data, y_data)
+          self._plot_handles[term_name].data = (x_data, y_data)
 
   def clear_histories(self) -> None:
     """Clear all term histories."""
