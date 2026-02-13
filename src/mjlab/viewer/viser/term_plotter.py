@@ -1,4 +1,4 @@
-"""Reward plotting functionality for Viser viewer."""
+"""Plotting functionality for Viser viewer."""
 
 from collections import deque
 
@@ -7,23 +7,25 @@ import viser
 import viser.uplot
 
 
-class ViserRewardPlotter:
-  """Handles reward plotting for the Viser viewer with individual plots per term."""
+class ViserTermPlotter:
+  """Handles plotting for the Viser viewer with individual plots per term."""
 
   def __init__(
     self,
     server: viser.ViserServer,
     term_names: list[str],
+    name: str = "Reward",
     history_length: int = 150,
     max_terms: int = 12,
   ):
-    """Initialize the reward plotter.
+    """Initialize the plotter.
 
     Args:
       server: The Viser server instance
-      term_names: List of reward term names to plot
+      term_names: List of term names to plot
+      name: Name prefix for the plots (e.g. "Reward" or "Metric")
       history_length: Number of points to keep in history
-      max_terms: Maximum number of reward terms to plot
+      max_terms: Maximum number of terms to plot
     """
     self._server = server
     self._history_length = history_length
@@ -38,9 +40,9 @@ class ViserRewardPlotter:
     self._x_array = np.arange(-history_length + 1, 1, dtype=np.float64)
     self._folder_handle = None
 
-    # Add checkbox to enable/disable reward plots
+    # Add checkbox to enable/disable plots
     self._enabled_checkbox = self._server.gui.add_checkbox(
-      "Enable reward plots", initial_value=False
+      f"Enable {name.lower()} plots", initial_value=False
     )
 
     @self._enabled_checkbox.on_update
@@ -49,7 +51,7 @@ class ViserRewardPlotter:
       for handle in self._plot_handles.values():
         handle.visible = self._enabled_checkbox.value
 
-    # Create individual plot for each reward term
+    # Create individual plot for each term
     for name in self._term_names:
       # Initialize history deque for this term
       self._histories[name] = deque(maxlen=self._history_length)
@@ -86,11 +88,11 @@ class ViserRewardPlotter:
 
       self._plot_handles[name] = plot_handle
 
-  def update(self, reward_terms: list[tuple[str, np.ndarray]]) -> None:
-    """Update the plots with new reward data.
+  def update(self, terms: list[tuple[str, np.ndarray]]) -> None:
+    """Update the plots with new data.
 
     Args:
-      reward_terms: List of (name, value_array) tuples
+      terms: List of (name, value_array) tuples
     """
     # Early return if plots are disabled
     if not self._enabled_checkbox.value:
@@ -100,7 +102,7 @@ class ViserRewardPlotter:
       return
 
     # Update each term's plot individually
-    for name, arr in reward_terms:
+    for name, arr in terms:
       if name not in self._histories or name not in self._plot_handles:
         continue
 
@@ -125,7 +127,7 @@ class ViserRewardPlotter:
           self._plot_handles[name].data = (x_data, y_data)
 
   def clear_histories(self) -> None:
-    """Clear all reward histories."""
+    """Clear all term histories."""
     for history in self._histories.values():
       history.clear()
 
