@@ -26,6 +26,6 @@ from mjlab.viewer.viser.conversions import (
 from mjlab.viewer.viser.conversions import (
   rotation_quat_from_vectors as rotation_quat_from_vectors,
 )
-from mjlab.viewer.viser.reward_plotter import ViserRewardPlotter as ViserRewardPlotter
 from mjlab.viewer.viser.scene import ViserMujocoScene as ViserMujocoScene
+from mjlab.viewer.viser.term_plotter import ViserTermPlotter as ViserTermPlotter
 from mjlab.viewer.viser.viewer import ViserPlayViewer as ViserPlayViewer
