@@ -79,6 +79,8 @@ class NativeMujocoViewer(BaseViewer):
 
     self.env_idx = self.cfg.env_idx
     self._mj_lock = Lock()
+    # Body id we intend the native viewer to track (None => no tracking intended).
+    self._intended_trackbodyid: Optional[int] = None
 
   def setup(self) -> None:
     """Setup MuJoCo viewer resources."""
@@ -133,6 +135,28 @@ class NativeMujocoViewer(BaseViewer):
     # Window may have been closed between is_running() check and here.
     if not v.is_running():
       return
+
+    # Re-apply intended tracking state. Some native viewer UI actions
+    # (for example, toggling collision/contact visualization) can mutate
+    # the camera type/trackbodyid. If the configuration requested a
+    # tracking camera, re-enforce it so tracking remains active.
+    if self._intended_trackbodyid is not None:
+      try:
+        if (
+          v.cam.type != mujoco.mjtCamera.mjCAMERA_TRACKING.value
+          or v.cam.trackbodyid != self._intended_trackbodyid
+        ):
+          v.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
+          v.cam.trackbodyid = int(self._intended_trackbodyid)
+          v.cam.fixedcamid = -1
+          # Restore any configured view parameters.
+          v.cam.lookat = getattr(self.cfg, "lookat", v.cam.lookat)
+          v.cam.elevation = getattr(self.cfg, "elevation", v.cam.elevation)
+          v.cam.azimuth = getattr(self.cfg, "azimuth", v.cam.azimuth)
+          v.cam.distance = getattr(self.cfg, "distance", v.cam.distance)
+      except Exception:
+        # Be robust to any viewer state changes; don't crash the render loop.
+        pass
 
     with self._mj_lock:
       sim_data = self.env.unwrapped.sim.data
@@ -319,6 +343,7 @@ class NativeMujocoViewer(BaseViewer):
         self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FREE.value
         self.viewer.cam.fixedcamid = -1
         self.viewer.cam.trackbodyid = -1
+        self._intended_trackbodyid = None
 
       elif self.cfg.origin_type == self.cfg.OriginType.ASSET_ROOT:
         if not self.cfg.entity_name:
@@ -328,6 +353,7 @@ class NativeMujocoViewer(BaseViewer):
         self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
         self.viewer.cam.trackbodyid = body_id
         self.viewer.cam.fixedcamid = -1
+        self._intended_trackbodyid = int(body_id)
 
       else:  # ASSET_BODY
         if not self.cfg.entity_name or not self.cfg.body_name:
@@ -343,6 +369,7 @@ class NativeMujocoViewer(BaseViewer):
         self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
         self.viewer.cam.trackbodyid = body_id
         self.viewer.cam.fixedcamid = -1
+        self._intended_trackbodyid = int(body_id)
 
       self.viewer.cam.lookat = getattr(self.cfg, "lookat", self.viewer.cam.lookat)
       self.viewer.cam.elevation = getattr(
@@ -354,6 +381,7 @@ class NativeMujocoViewer(BaseViewer):
       self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FREE.value
       self.viewer.cam.fixedcamid = -1
       self.viewer.cam.trackbodyid = -1
+      self._intended_trackbodyid = None
 
   # Reward plotting helpers.
 
