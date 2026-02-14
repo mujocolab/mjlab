@@ -34,7 +34,7 @@ TL;DR
 
 **Basic PD control:**
 
-.. code-block:: python 
+.. code-block:: python
 
     from mjlab.actuator import BuiltinPositionActuatorCfg
     from mjlab.entity import EntityCfg, EntityArticulationInfoCfg
@@ -143,7 +143,7 @@ implicitly, providing best numerical stability.
             effort_limit=50.0,
         ),
     )
-    
+
 
 Explicit Actuators
 ^^^^^^^^^^^^^^^^^^
@@ -152,8 +152,8 @@ These actuators explicitly compute efforts and forward them to an underlying <mo
 actuator acting as a passthrough. This enables custom control laws and actuator
 dynamics that can't be expressed with built-in types.
 
-.. important:: 
-    
+.. important::
+
      Explicit actuators may be less numerically stable
      than built-in actuators because the integrator cannot account for the
      velocity derivatives of the control forces, especially with high damping
@@ -188,7 +188,7 @@ velocity.
             velocity_limit=30.0,     # No-load speed (rad/s)
         ),
     )
-    
+
 
 **DcMotorActuator parameters:**
 
@@ -359,7 +359,7 @@ damping terms of the actuator implicitly, improving stability without
 additional cost.
 
 .. note::
-     
+
      mjlab defaults to ``<implicitfast>``, as it is MuJoCo's recommended
      integrator and provides superior stability for actuator-side damping.
 
@@ -559,8 +559,8 @@ The action dimension is determined automatically by the active objectives:
     DifferentialIKActionCfg(
         entity_name="robot",
         actuator_names=("joint.*",),   # Regex for controlled joints
-        ee_name="grasp_site",          # End-effector element name
-        ee_type="site",                # "body", "site", or "geom"
+        frame_name="grasp_site",       # End-effector element name
+        frame_type="site",             # "body", "site", or "geom"
         use_relative_mode=False,       # Absolute target mode
         damping=0.05,                  # DLS damping (lambda)
         max_dq=0.5,                    # Per-step joint displacement limit
