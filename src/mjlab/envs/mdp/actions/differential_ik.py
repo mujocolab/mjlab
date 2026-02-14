@@ -50,9 +50,6 @@ class DifferentialIKActionCfg(ActionTermCfg):
   """If True, actions are deltas applied to the current frame pose.
   If False, actions are absolute targets."""
 
-  scale: float = 1.0
-  """Scaling factor applied to raw actions."""
-
   damping: float = 0.05
   """Damping coefficient (lambda) for the DLS pseudoinverse."""
 
@@ -117,9 +114,7 @@ class DifferentialIKAction(ActionTerm):
       self._action_dim = 6 if cfg.use_relative_mode else 7
     else:
       self._action_dim = 3
-
     self._raw_actions = torch.zeros(self.num_envs, self._action_dim, device=self.device)
-    self._processed_actions = torch.zeros_like(self._raw_actions)
 
     self._desired_pos = torch.zeros(self.num_envs, 3, device=self.device)
     self._desired_quat = torch.zeros(self.num_envs, 4, device=self.device)
@@ -164,25 +159,22 @@ class DifferentialIKAction(ActionTerm):
 
   def process_actions(self, actions: torch.Tensor) -> None:
     self._raw_actions[:] = actions
-    self._processed_actions[:] = actions * self.cfg.scale
 
     frame_pos, frame_quat = self._get_frame_pose()
     if self._action_dim == 3:
       if self.cfg.use_relative_mode:
-        self._desired_pos[:] = frame_pos + self._processed_actions
+        self._desired_pos[:] = frame_pos + actions
       else:
-        self._desired_pos[:] = self._processed_actions
+        self._desired_pos[:] = actions
       self._desired_quat[:] = frame_quat
     elif self._action_dim == 6:
-      target_pos, target_quat = apply_delta_pose(
-        frame_pos, frame_quat, self._processed_actions
-      )
+      target_pos, target_quat = apply_delta_pose(frame_pos, frame_quat, actions)
       self._desired_pos[:] = target_pos
       self._desired_quat[:] = target_quat
     else:
       assert self._action_dim == 7
-      self._desired_pos[:] = self._processed_actions[:, :3]
-      self._desired_quat[:] = self._processed_actions[:, 3:7]
+      self._desired_pos[:] = actions[:, :3]
+      self._desired_quat[:] = actions[:, 3:7]
 
   def compute_dq(self) -> torch.Tensor:
     """Run one DLS IK step and return joint displacement.
@@ -207,8 +199,8 @@ class DifferentialIKAction(ActionTerm):
     lam = max(self.cfg.damping, 1e-6)
 
     # Joint-space normal equations: (J^T W J + λ²I) dq = J^T W dx.
-    # Equivalent to task-space DLS but solves a smaller n×n system
-    # instead of the (6 + 2n)-square task-space system.
+    # Equivalent to task-space DLS but solves a smaller n×n system instead of the
+    # (6 + 2n)-square task-space system.
     wp2, wo2 = w_pos * w_pos, w_ori * w_ori
     JTJ = wp2 * torch.einsum("bti,btj->bij", jacp, jacp) + wo2 * torch.einsum(
       "bti,btj->bij", jacr, jacr
@@ -249,7 +241,6 @@ class DifferentialIKAction(ActionTerm):
     if env_ids is None:
       env_ids = slice(None)
     self._raw_actions[env_ids] = 0.0
-    self._processed_actions[env_ids] = 0.0
     self._desired_pos[env_ids] = 0.0
     self._desired_quat[env_ids] = 0.0
     self._desired_quat[env_ids, 0] = 1.0
