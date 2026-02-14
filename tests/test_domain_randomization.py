@@ -39,7 +39,6 @@ ROBOT_XML = """
 """
 
 FRICTION_RANGE = (0.3, 1.2)
-MASS_SCALE_RANGE = (0.8, 1.2)
 DAMPING_RANGE = (0.1, 0.5)
 NUM_ENVS = 4
 
@@ -60,7 +59,7 @@ def create_test_env(device, num_envs=NUM_ENVS):
   sim_cfg = SimulationCfg()
   sim = Simulation(num_envs=num_envs, cfg=sim_cfg, model=model, device=device)
   scene.initialize(model, sim.model, sim.data)
-  sim.expand_model_fields(("geom_friction", "body_mass", "dof_damping"))
+  sim.expand_model_fields(("geom_friction", "dof_damping"))
 
   class Env:
     def __init__(self, scene, sim):
@@ -92,7 +91,6 @@ def assert_has_diversity(values, min_unique=2):
   "field,ranges,operation,entity_names,axes,seed",
   [
     ("geom_friction", FRICTION_RANGE, "abs", {"geom_names": [".*"]}, [0], 123),
-    ("body_mass", MASS_SCALE_RANGE, "scale", {"body_names": [".*"]}, None, 456),
     ("dof_damping", DAMPING_RANGE, "abs", {"joint_names": [".*"]}, None, 789),
   ],
 )
@@ -108,10 +106,6 @@ def test_randomize_field(device, field, ranges, operation, entity_names, axes, s
   if field == "geom_friction":
     indices = robot.indexing.geom_ids
     model_field = env.sim.model.geom_friction[:, indices[0], 0]
-    initial_values = model_field.clone()
-  elif field == "body_mass":
-    indices = robot.indexing.body_ids
-    model_field = env.sim.model.body_mass[:, indices[0]]
     initial_values = model_field.clone()
   else:
     assert field == "dof_damping"
@@ -183,25 +177,25 @@ def test_randomize_field_scale_uses_defaults(device):
   """Verify scale/add operations use defaults to prevent accumulation."""
   env = create_test_env(device, num_envs=2)
   robot = env.scene["robot"]
-  env.sim.expand_model_fields(("body_mass",))
 
-  body_idx = robot.indexing.body_ids[0]
-  default_mass = env.sim.get_default_field("body_mass")[body_idx].item()
+  geom_idx = robot.indexing.geom_ids[0]
+  default_friction = env.sim.get_default_field("geom_friction")[geom_idx, 0].item()
 
   # Randomize 3 times with scale operation.
   for _ in range(3):
     randomize_field(
       env,  # pyright: ignore[reportArgumentType]
       env_ids=None,
-      field="body_mass",
+      field="geom_friction",
       ranges=(2.0, 2.0),
       operation="scale",
-      asset_cfg=SceneEntityCfg("robot", body_ids=[0]),
+      asset_cfg=SceneEntityCfg("robot", geom_ids=[0]),
+      axes=[0],
     )
 
   # Values should NOT accumulate.
-  final_mass = env.sim.model.body_mass[0, body_idx].item()
-  assert abs(final_mass - default_mass * 2.0) < 1e-5
+  final_friction = env.sim.model.geom_friction[0, geom_idx, 0].item()
+  assert abs(final_friction - default_friction * 2.0) < 1e-5
 
 
 def test_randomize_field_scale_partial_axes(device):
@@ -267,37 +261,39 @@ def test_randomize_field_single_env_without_expand(device):
   env = Env(scene, sim)
   robot = env.scene["robot"]
 
-  body_idx = robot.indexing.body_ids[0]
-  original_mass = sim.model.body_mass[0, body_idx].item()
+  geom_idx = robot.indexing.geom_ids[0]
+  original_friction = sim.model.geom_friction[0, geom_idx, 0].item()
 
   # Randomize with scale operation should work without expand_model_fields.
   randomize_field(
     env,  # type: ignore[arg-type]
     env_ids=None,
-    field="body_mass",
+    field="geom_friction",
     ranges=(2.0, 2.0),
     operation="scale",
-    asset_cfg=SceneEntityCfg("robot", body_ids=[0]),
+    asset_cfg=SceneEntityCfg("robot", geom_ids=[0]),
+    axes=[0],
   )
 
-  final_mass = sim.model.body_mass[0, body_idx].item()
-  assert abs(final_mass - original_mass * 2.0) < 1e-5, (
-    f"Expected mass {original_mass * 2.0}, got {final_mass}"
+  final_friction = sim.model.geom_friction[0, geom_idx, 0].item()
+  assert abs(final_friction - original_friction * 2.0) < 1e-5, (
+    f"Expected friction {original_friction * 2.0}, got {final_friction}"
   )
 
   # Randomize again should still be original * 2.0 (no accumulation).
   randomize_field(
     env,  # type: ignore[arg-type]
     env_ids=None,
-    field="body_mass",
+    field="geom_friction",
     ranges=(2.0, 2.0),
     operation="scale",
-    asset_cfg=SceneEntityCfg("robot", body_ids=[0]),
+    asset_cfg=SceneEntityCfg("robot", geom_ids=[0]),
+    axes=[0],
   )
 
-  final_mass_2 = sim.model.body_mass[0, body_idx].item()
-  assert abs(final_mass_2 - original_mass * 2.0) < 1e-5, (
-    f"Expected mass {original_mass * 2.0} (no accumulation), got {final_mass_2}"
+  final_friction_2 = sim.model.geom_friction[0, geom_idx, 0].item()
+  assert abs(final_friction_2 - original_friction * 2.0) < 1e-5, (
+    f"Expected friction {original_friction * 2.0} (no accumulation), got {final_friction_2}"
   )
 
 

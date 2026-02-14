@@ -383,12 +383,8 @@ FIELD_SPECS = {
   "jnt_range": FieldSpec("joint"),
   "jnt_stiffness": FieldSpec("joint"),
   # Body - uses IDs directly.
-  "body_mass": FieldSpec("body"),
   "body_ipos": FieldSpec("body", default_axes=[0, 1, 2]),
   "body_iquat": FieldSpec("body", default_axes=[0, 1, 2, 3]),
-  "body_inertia": FieldSpec("body"),
-  "body_pos": FieldSpec("body", default_axes=[0, 1, 2]),
-  "body_quat": FieldSpec("body", default_axes=[0, 1, 2, 3]),
   # Geom - uses IDs directly.
   "geom_friction": FieldSpec("geom", default_axes=[0], valid_axes=[0, 1, 2]),
   "geom_pos": FieldSpec("geom", default_axes=[0, 1, 2]),
@@ -418,7 +414,7 @@ def randomize_field(
   Args:
     env: The environment.
     env_ids: Environment IDs to randomize.
-    field: Field name (e.g., "geom_friction", "body_mass").
+    field: Field name (e.g., "geom_friction", "dof_damping").
     ranges: Either (min, max) for all axes, or {axis: (min, max)} for specific axes.
     distribution: Distribution type.
     operation: How to apply randomization. For "scale" and "add" operations,

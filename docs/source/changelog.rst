@@ -22,6 +22,14 @@ Fixed
   ``cnn_cfg`` keyword argument. Contribution by
   `@griffinaddison <https://github.com/griffinaddison>`_.
 
+Changed
+^^^^^^^
+
+- Removed ``body_mass``, ``body_inertia``, ``body_pos``, and ``body_quat``
+  from ``FIELD_SPECS`` in domain randomization. These fields have derived
+  quantities that require ``set_const`` to recompute; without that call,
+  randomizing them silently breaks physics.
+
 .. figure:: _static/changelog/native_reward.png
    :width: 80%
 
