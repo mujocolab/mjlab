@@ -180,6 +180,7 @@ class DifferentialIKAction(ActionTerm):
       self._desired_ee_pos[:] = target_pos
       self._desired_ee_quat[:] = target_quat
     else:
+      assert self._action_dim == 7
       self._desired_ee_pos[:] = self._processed_actions[:, :3]
       self._desired_ee_quat[:] = self._processed_actions[:, 3:7]
 
