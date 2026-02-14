@@ -212,13 +212,13 @@ class DifferentialIKAction(ActionTerm):
     # Joint-space normal equations: (J^T W J + λ²I) dq = J^T W dx.
     # Equivalent to task-space DLS but solves a smaller n×n system
     # instead of the (6 + 2n)-square task-space system.
-    jacp_T = jacp.transpose(1, 2)
-    jacr_T = jacr.transpose(1, 2)
     wp2, wo2 = w_pos * w_pos, w_ori * w_ori
-    JTJ = wp2 * (jacp_T @ jacp) + wo2 * (jacr_T @ jacr)
-    JTdx = wp2 * (jacp_T @ pos_error.unsqueeze(-1)).squeeze(-1) + wo2 * (
-      jacr_T @ rot_error.unsqueeze(-1)
-    ).squeeze(-1)
+    JTJ = wp2 * torch.einsum("bti,btj->bij", jacp, jacp) + wo2 * torch.einsum(
+      "bti,btj->bij", jacr, jacr
+    )
+    JTdx = wp2 * torch.einsum("bti,bt->bi", jacp, pos_error) + wo2 * torch.einsum(
+      "bti,bt->bi", jacr, rot_error
+    )
 
     # Joint-limit penalty (diagonal contribution).
     q = self._entity.data.joint_pos[:, self._joint_ids]
@@ -239,7 +239,7 @@ class DifferentialIKAction(ActionTerm):
     # Damping.
     JTJ.diagonal(dim1=-2, dim2=-1).add_(lam * lam)
 
-    dq = torch.linalg.solve(JTJ, JTdx.unsqueeze(-1)).squeeze(-1)
+    dq = torch.linalg.solve(JTJ, JTdx)
     return dq.clamp(-self.cfg.max_dq, self.cfg.max_dq)
 
   def apply_actions(self) -> None:
