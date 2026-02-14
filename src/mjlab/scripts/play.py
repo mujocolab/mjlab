@@ -154,7 +154,9 @@ def run_play(task_id: str, cfg: PlayConfig):
     print(
       "[WARN] Video recording with dummy agents is disabled (no checkpoint/log_dir)."
     )
-  env = ManagerBasedRlEnv(cfg=env_cfg, device=device, render_mode=render_mode)
+  env = ManagerBasedRlEnv(
+    cfg=env_cfg, device=device, render_mode=render_mode, agent_cfg=agent_cfg
+  )
 
   if TRAINED_MODE and cfg.video:
     print("[INFO] Recording videos during play")

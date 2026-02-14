@@ -62,12 +62,36 @@ class CurriculumManager(ManagerBase):
 
   _env: ManagerBasedRlEnv
 
-  def __init__(self, cfg: dict[str, CurriculumTermCfg], env: ManagerBasedRlEnv):
+  def __init__(
+    self,
+    cfg: dict[str, CurriculumTermCfg],
+    env: ManagerBasedRlEnv,
+    *,
+    agent_cfg: Any | None = None,
+  ):
+    """Create a CurriculumManager.
+
+    Optional arguments allow resolving curriculum stages expressed as
+    ``iteration`` thresholds into ``step`` thresholds using the runner's
+    ``num_steps_per_env``. Pass either ``agent_cfg`` (runner config) or
+    ``num_steps_per_env`` directly. Resolution is performed before term
+    preparation so term constructors see resolved values.
+    """
+
     self._term_names: list[str] = list()
     self._term_cfgs: list[CurriculumTermCfg] = list()
     self._class_term_cfgs: list[CurriculumTermCfg] = list()
 
+    # Work on a deep copy so modifications are local to this manager.
     self.cfg = deepcopy(cfg)
+
+    # Prefer num_steps_per_env from agent_cfg if provided.
+    if agent_cfg is not None:
+      num_steps_per_env = getattr(agent_cfg, "num_steps_per_env", None)
+      if num_steps_per_env is None:
+        raise ValueError("agent_cfg provided but missing num_steps_per_env attribute.")
+      resolve_curriculum_iterations(self.cfg, num_steps_per_env)
+
     super().__init__(env)
 
     self._curriculum_state = dict()
