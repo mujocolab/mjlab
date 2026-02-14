@@ -125,8 +125,8 @@ def test_action_dim(device, orientation_weight, relative, expected_dim):
   cfg = DifferentialIKActionCfg(
     entity_name="robot",
     actuator_names=("joint.*",),
-    ee_name="ee",
-    ee_type="body",
+    frame_name="ee",
+    frame_type="body",
     orientation_weight=orientation_weight,
     use_relative_mode=relative,
   )
@@ -135,27 +135,27 @@ def test_action_dim(device, orientation_weight, relative, expected_dim):
 
 
 @pytest.mark.parametrize(
-  "ee_type,ee_name",
+  "frame_type,frame_name",
   [
     ("body", "ee"),
     ("site", "ee_site"),
     ("geom", "ee_geom"),
   ],
 )
-def test_ee_types(device, ee_type, ee_name):
+def test_frame_types(device, frame_type, frame_name):
   entity, sim = _make_entity(device)
   env = _make_env(entity, sim, device)
   cfg = DifferentialIKActionCfg(
     entity_name="robot",
     actuator_names=("joint.*",),
-    ee_name=ee_name,
-    ee_type=ee_type,
+    frame_name=frame_name,
+    frame_type=frame_type,
     orientation_weight=0.0,
   )
   action: DifferentialIKAction = cfg.build(env)
   assert action.action_dim == 3
 
-  pos, quat = action._get_ee_pose()
+  pos, quat = action._get_frame_pose()
   assert pos.shape == (NUM_ENVS, 3)
   assert quat.shape == (NUM_ENVS, 4)
 
@@ -167,15 +167,15 @@ def test_ik_convergence_position(device):
   cfg = DifferentialIKActionCfg(
     entity_name="robot",
     actuator_names=("joint.*",),
-    ee_name="ee",
-    ee_type="body",
+    frame_name="ee",
+    frame_type="body",
     orientation_weight=0.0,
     use_relative_mode=False,
     damping=0.05,
   )
   action: DifferentialIKAction = cfg.build(env)
 
-  initial_pos, _ = action._get_ee_pose()
+  initial_pos, _ = action._get_frame_pose()
   target = initial_pos.clone()
   target[:, 0] += 0.05
 
@@ -186,7 +186,7 @@ def test_ik_convergence_position(device):
     entity.write_joint_position_to_sim(q, joint_ids=action._joint_ids)
     sim.forward()
 
-  final_pos, _ = action._get_ee_pose()
+  final_pos, _ = action._get_frame_pose()
   error = (final_pos - target).norm(dim=-1)
   assert (error < 0.003).all(), f"Position error too large: {error}"
 
@@ -197,8 +197,8 @@ def test_reset_clears_buffers(device):
   cfg = DifferentialIKActionCfg(
     entity_name="robot",
     actuator_names=("joint.*",),
-    ee_name="ee",
-    ee_type="body",
+    frame_name="ee",
+    frame_type="body",
   )
   action: DifferentialIKAction = cfg.build(env)
 
@@ -220,8 +220,8 @@ def test_joint_limits_respected(device):
   action_no_lim: DifferentialIKAction = DifferentialIKActionCfg(
     entity_name="robot",
     actuator_names=("joint.*",),
-    ee_name="ee",
-    ee_type="body",
+    frame_name="ee",
+    frame_type="body",
     orientation_weight=0.0,
     use_relative_mode=False,
     damping=0.05,
@@ -229,15 +229,15 @@ def test_joint_limits_respected(device):
   action_lim: DifferentialIKAction = DifferentialIKActionCfg(
     entity_name="robot",
     actuator_names=("joint.*",),
-    ee_name="ee",
-    ee_type="body",
+    frame_name="ee",
+    frame_type="body",
     orientation_weight=0.0,
     use_relative_mode=False,
     damping=0.05,
     joint_limit_weight=10.0,
   ).build(env)
 
-  initial_pos, _ = action_no_lim._get_ee_pose()
+  initial_pos, _ = action_no_lim._get_frame_pose()
   target = initial_pos.clone()
   target[:, 0] += 0.15
 
@@ -275,13 +275,13 @@ def _central_fd_position(action, entity, sim, q0, eps):
     q_plus[:, i] += eps
     entity.write_joint_position_to_sim(q_plus, joint_ids=action._joint_ids)
     sim.forward()
-    pos_plus = action._get_ee_pose()[0].clone()
+    pos_plus = action._get_frame_pose()[0].clone()
 
     q_minus = q0.clone()
     q_minus[:, i] -= eps
     entity.write_joint_position_to_sim(q_minus, joint_ids=action._joint_ids)
     sim.forward()
-    pos_minus = action._get_ee_pose()[0].clone()
+    pos_minus = action._get_frame_pose()[0].clone()
 
     jacp_fd[:, :, i] = (pos_plus - pos_minus) / (2 * eps)
   return jacp_fd
@@ -296,7 +296,7 @@ def _central_fd_orientation(action, entity, sim, q0, quat0, eps):
     q_plus[:, i] += eps
     entity.write_joint_position_to_sim(q_plus, joint_ids=action._joint_ids)
     sim.forward()
-    _, quat_plus = action._get_ee_pose()
+    _, quat_plus = action._get_frame_pose()
     q_diff_plus = quat_mul(quat_plus, _quat_conjugate(quat0))
     aa_plus = axis_angle_from_quat(q_diff_plus)
 
@@ -304,7 +304,7 @@ def _central_fd_orientation(action, entity, sim, q0, quat0, eps):
     q_minus[:, i] -= eps
     entity.write_joint_position_to_sim(q_minus, joint_ids=action._joint_ids)
     sim.forward()
-    _, quat_minus = action._get_ee_pose()
+    _, quat_minus = action._get_frame_pose()
     q_diff_minus = quat_mul(quat_minus, _quat_conjugate(quat0))
     aa_minus = axis_angle_from_quat(q_diff_minus)
 
@@ -324,8 +324,8 @@ def test_jacobian_finite_difference_position(device):
   cfg = DifferentialIKActionCfg(
     entity_name="robot",
     actuator_names=("joint.*",),
-    ee_name="ee",
-    ee_type="body",
+    frame_name="ee",
+    frame_type="body",
     orientation_weight=0.0,
     use_relative_mode=False,
     damping=0.05,
@@ -336,7 +336,7 @@ def test_jacobian_finite_difference_position(device):
   entity.write_joint_position_to_sim(q0, joint_ids=action._joint_ids)
   sim.forward()
 
-  pos0 = action._get_ee_pose()[0].clone()
+  pos0 = action._get_frame_pose()[0].clone()
   action._point_torch[:] = pos0
   action._compute_jacobian()
   jacp_analytic = action._jacp_torch[:, :, action._joint_dof_ids].clone()
@@ -356,8 +356,8 @@ def test_jacobian_finite_difference_orientation(device):
   cfg = DifferentialIKActionCfg(
     entity_name="robot",
     actuator_names=("joint.*",),
-    ee_name="ee",
-    ee_type="body",
+    frame_name="ee",
+    frame_type="body",
     use_relative_mode=False,
     damping=0.05,
   )
@@ -367,10 +367,10 @@ def test_jacobian_finite_difference_orientation(device):
   entity.write_joint_position_to_sim(q0, joint_ids=action._joint_ids)
   sim.forward()
 
-  _, quat0 = action._get_ee_pose()
+  _, quat0 = action._get_frame_pose()
   quat0 = quat0.clone()
 
-  pos0 = action._get_ee_pose()[0].clone()
+  pos0 = action._get_frame_pose()[0].clone()
   action._point_torch[:] = pos0
   action._compute_jacobian()
   jacr_analytic = action._jacr_torch[:, :, action._joint_dof_ids].clone()
@@ -391,8 +391,8 @@ def test_posture_regularization(device):
   cfg = DifferentialIKActionCfg(
     entity_name="robot",
     actuator_names=("joint.*",),
-    ee_name="ee",
-    ee_type="body",
+    frame_name="ee",
+    frame_type="body",
     orientation_weight=0.0,
     use_relative_mode=False,
     damping=0.05,
@@ -405,9 +405,9 @@ def test_posture_regularization(device):
   entity.write_joint_position_to_sim(q0, joint_ids=action._joint_ids)
   sim.forward()
 
-  # Target = current EE position, so only posture term drives motion.
-  ee_pos, _ = action._get_ee_pose()
-  action.process_actions(ee_pos.clone())
+  # Target = current frame position, so only posture term drives motion.
+  frame_pos, _ = action._get_frame_pose()
+  action.process_actions(frame_pos.clone())
 
   for _ in range(10):
     dq = action.compute_dq()

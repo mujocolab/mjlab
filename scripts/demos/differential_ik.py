@@ -1,10 +1,9 @@
 """Interactive IK control demo.
 
 Drag the 3D transform control in the viser viewer to move the YAM end-effector.
-Use the gripper slider to open/close the gripper.
 
 Run with:
-  uv run python scripts/demos/ik_control.py
+  MJLAB_WARP_QUIET=1 uv run scripts/demos/differential_ik.py
 """
 
 from __future__ import annotations
@@ -34,8 +33,7 @@ DEMO_INIT_STATE = EntityCfg.InitialStateCfg(
   joint_vel={".*": 0.0},
 )
 
-IK_ITERATIONS = 20
-GRIPPER_MAX = 0.037
+IK_ITERATIONS = 10
 
 
 def main() -> None:
@@ -48,14 +46,16 @@ def main() -> None:
   sim_cfg = SimulationCfg(mujoco=MujocoCfg(gravity=(0, 0, -9.81)))
   sim = Simulation(num_envs=1, cfg=sim_cfg, model=model, device=device)
   entity.initialize(model, sim.model, sim.data, device)
+  entity.write_joint_position_to_sim(entity.data.default_joint_pos, joint_ids=None)
+  sim.forward()
 
   env = SimpleNamespace(num_envs=1, device=device, scene={"robot": entity}, sim=sim)
   ik_cfg = DifferentialIKActionCfg(
     entity_name="robot",
     actuator_names=("joint.*",),
-    ee_name="grasp_site",
-    ee_type="site",
-    posture_weight=0.0,
+    frame_name="grasp_site",
+    frame_type="site",
+    posture_weight=0.02,
     joint_limit_weight=1e-1,
     damping=1e-1,
     use_relative_mode=False,
@@ -65,16 +65,17 @@ def main() -> None:
 
   grip_ids, _ = entity.find_joints("left_finger")
   grip_joint_ids = torch.tensor(grip_ids, device=device, dtype=torch.long)
+  grip_open = torch.tensor([[0.037]], device=device)
 
   server = viser.ViserServer(label="IK Control Demo")
   scene = ViserMujocoScene.create(server, sim.mj_model, num_envs=1)
   scene.create_visualization_gui(
-    camera_distance=1.0,
+    camera_distance=0.1,
     camera_azimuth=135.0,
     camera_elevation=30.0,
   )
 
-  site_id = ik_action._ee_global_id
+  site_id = ik_action._frame_id
   pos = sim.data.site_xpos[0, site_id].cpu().numpy()
   xmat = sim.data.site_xmat[0, site_id]
   quat = quat_from_matrix(xmat).cpu().numpy()
@@ -86,14 +87,11 @@ def main() -> None:
     scale=0.12,
   )
 
+  needs_reset = [False]
+
   with server.gui.add_folder("IK Control"):
-    gripper_slider = server.gui.add_slider(
-      "Gripper Opening",
-      min=0.0,
-      max=GRIPPER_MAX,
-      step=0.001,
-      initial_value=GRIPPER_MAX,
-    )
+    reset_button = server.gui.add_button("Reset")
+    reset_button.on_click(lambda _: needs_reset.__setitem__(0, True))
     iterations_slider = server.gui.add_slider(
       "IK Iterations",
       min=1,
@@ -143,19 +141,30 @@ def main() -> None:
   print("IK Control Demo")
   print("  Open the viser URL printed above")
   print("  Drag the 3D transform control to move the end-effector")
-  print("  Use the Gripper Opening slider to open/close")
   print("=" * 60)
 
   target_action = torch.zeros(1, 7, device=device)
-  grip_q = torch.zeros(1, 1, device=device)
+
+  def _reset() -> None:
+    entity.write_joint_position_to_sim(entity.data.default_joint_pos, joint_ids=None)
+    sim.forward()
+    ik_action.reset()
+    p = sim.data.site_xpos[0, site_id].cpu().numpy()
+    q = quat_from_matrix(sim.data.site_xmat[0, site_id]).cpu().numpy()
+    transform_ctrl.position = (float(p[0]), float(p[1]), float(p[2]))
+    transform_ctrl.wxyz = (float(q[0]), float(q[1]), float(q[2]), float(q[3]))
 
   try:
     while True:
-      ik_cfg.damping = damping_slider.value
-      ik_cfg.position_weight = pos_w_slider.value
-      ik_cfg.orientation_weight = ori_w_slider.value
-      ik_cfg.joint_limit_weight = jlim_w_slider.value
-      ik_cfg.posture_weight = posture_w_slider.value
+      if needs_reset[0]:
+        needs_reset[0] = False
+        _reset()
+
+      ik_cfg.damping = max(damping_slider.value, 1e-2)
+      ik_cfg.position_weight = max(pos_w_slider.value, 0.0)
+      ik_cfg.orientation_weight = max(ori_w_slider.value, 0.0)
+      ik_cfg.joint_limit_weight = max(jlim_w_slider.value, 0.0)
+      ik_cfg.posture_weight = max(posture_w_slider.value, 0.0)
 
       p = transform_ctrl.position
       w = transform_ctrl.wxyz
@@ -168,17 +177,14 @@ def main() -> None:
         dq = ik_action.compute_dq()
         q = entity.data.joint_pos[:, joint_ids] + dq
         entity.write_joint_position_to_sim(q, joint_ids=joint_ids)
+        entity.write_joint_position_to_sim(grip_open, joint_ids=grip_joint_ids)
         sim.forward()
-
-      grip_q[0, 0] = gripper_slider.value
-      entity.write_joint_position_to_sim(grip_q, joint_ids=grip_joint_ids)
-      sim.forward()
 
       scene.update(sim.wp_data)
       if scene.needs_update:
         scene.refresh_visualization()
 
-      time.sleep(1 / 30)
+      time.sleep(1.0 / 30.0)
   except KeyboardInterrupt:
     print("\nShutting down...")
     server.stop()

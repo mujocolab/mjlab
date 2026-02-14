@@ -40,14 +40,14 @@ class DifferentialIKActionCfg(ActionTermCfg):
   actuator_names: tuple[str, ...] | list[str]
   """Actuator name expressions to resolve the controlled joints."""
 
-  ee_type: Literal["body", "site", "geom"] = "body"
-  """Element type of the end-effector."""
+  frame_type: Literal["body", "site", "geom"] = "body"
+  """Element type of the target frame."""
 
-  ee_name: str
-  """Name of the end-effector element on the entity."""
+  frame_name: str
+  """Name of the target frame element on the entity."""
 
   use_relative_mode: bool = True
-  """If True, actions are deltas applied to the current EE pose.
+  """If True, actions are deltas applied to the current frame pose.
   If False, actions are absolute targets."""
 
   scale: float = 1.0
@@ -57,7 +57,7 @@ class DifferentialIKActionCfg(ActionTermCfg):
   """Damping coefficient (lambda) for the DLS pseudoinverse."""
 
   max_dq: float = 0.5
-  """Maximum joint displacement (rad) per IK step."""
+  """Maximum joint displacement per IK solve (rad/step)."""
 
   position_weight: float = 1.0
   """Weight for the position residual in the DLS system."""
@@ -95,8 +95,8 @@ class DifferentialIKActionCfg(ActionTermCfg):
 
 
 class DifferentialIKAction(ActionTerm):
-  """Converts task-space commands into joint position targets via
-  damped least-squares IK each decimation substep.
+  """Converts task-space commands into joint position targets via damped least-squares
+  IK each decimation substep.
   """
 
   cfg: DifferentialIKActionCfg
@@ -110,8 +110,8 @@ class DifferentialIKAction(ActionTerm):
     self._num_joints = len(joint_ids)
     self._joint_dof_ids = self._entity.indexing.joint_v_adr[self._joint_ids]
 
-    self._ee_type = cfg.ee_type
-    self._resolve_ee(cfg.ee_name)
+    self._frame_type = cfg.frame_type
+    self._resolve_frame(cfg.frame_name)
 
     if cfg.orientation_weight > 0:
       self._action_dim = 6 if cfg.use_relative_mode else 7
@@ -121,9 +121,9 @@ class DifferentialIKAction(ActionTerm):
     self._raw_actions = torch.zeros(self.num_envs, self._action_dim, device=self.device)
     self._processed_actions = torch.zeros_like(self._raw_actions)
 
-    self._desired_ee_pos = torch.zeros(self.num_envs, 3, device=self.device)
-    self._desired_ee_quat = torch.zeros(self.num_envs, 4, device=self.device)
-    self._desired_ee_quat[:, 0] = 1.0
+    self._desired_pos = torch.zeros(self.num_envs, 3, device=self.device)
+    self._desired_quat = torch.zeros(self.num_envs, 4, device=self.device)
+    self._desired_quat[:, 0] = 1.0
 
     # Joint-limit buffers.
     limits = self._entity.data.soft_joint_pos_limits
@@ -148,7 +148,7 @@ class DifferentialIKAction(ActionTerm):
       self._jacr_wp = wp.zeros((nworld, 3, nv), dtype=float)
       self._point_wp = wp.zeros(nworld, dtype=wp.vec3)
       self._body_wp = wp.zeros(nworld, dtype=wp.int32)
-      self._body_wp.fill_(self._ee_body_id)
+      self._body_wp.fill_(self._body_id)
 
     self._jacp_torch = wp.to_torch(self._jacp_wp)
     self._jacr_torch = wp.to_torch(self._jacr_wp)
@@ -166,23 +166,23 @@ class DifferentialIKAction(ActionTerm):
     self._raw_actions[:] = actions
     self._processed_actions[:] = actions * self.cfg.scale
 
-    ee_pos, ee_quat = self._get_ee_pose()
+    frame_pos, frame_quat = self._get_frame_pose()
     if self._action_dim == 3:
       if self.cfg.use_relative_mode:
-        self._desired_ee_pos[:] = ee_pos + self._processed_actions
+        self._desired_pos[:] = frame_pos + self._processed_actions
       else:
-        self._desired_ee_pos[:] = self._processed_actions
-      self._desired_ee_quat[:] = ee_quat
+        self._desired_pos[:] = self._processed_actions
+      self._desired_quat[:] = frame_quat
     elif self._action_dim == 6:
       target_pos, target_quat = apply_delta_pose(
-        ee_pos, ee_quat, self._processed_actions
+        frame_pos, frame_quat, self._processed_actions
       )
-      self._desired_ee_pos[:] = target_pos
-      self._desired_ee_quat[:] = target_quat
+      self._desired_pos[:] = target_pos
+      self._desired_quat[:] = target_quat
     else:
       assert self._action_dim == 7
-      self._desired_ee_pos[:] = self._processed_actions[:, :3]
-      self._desired_ee_quat[:] = self._processed_actions[:, 3:7]
+      self._desired_pos[:] = self._processed_actions[:, :3]
+      self._desired_quat[:] = self._processed_actions[:, 3:7]
 
   def compute_dq(self) -> torch.Tensor:
     """Run one DLS IK step and return joint displacement.
@@ -190,16 +190,12 @@ class DifferentialIKAction(ActionTerm):
     Returns:
       Joint displacement tensor of shape ``(num_envs, num_joints)``.
     """
-    ee_pos, ee_quat = self._get_ee_pose()
+    frame_pos, frame_quat = self._get_frame_pose()
     pos_error, rot_error = compute_pose_error(
-      ee_pos,
-      ee_quat,
-      self._desired_ee_pos,
-      self._desired_ee_quat,
-      rot_error_type="axis_angle",
+      frame_pos, frame_quat, self._desired_pos, self._desired_quat
     )
 
-    self._point_torch[:] = ee_pos
+    self._point_torch[:] = frame_pos
     self._compute_jacobian()
     jacp = self._jacp_torch[:, :, self._joint_dof_ids]
     jacr = self._jacr_torch[:, :, self._joint_dof_ids]
@@ -254,51 +250,51 @@ class DifferentialIKAction(ActionTerm):
       env_ids = slice(None)
     self._raw_actions[env_ids] = 0.0
     self._processed_actions[env_ids] = 0.0
-    self._desired_ee_pos[env_ids] = 0.0
-    self._desired_ee_quat[env_ids] = 0.0
-    self._desired_ee_quat[env_ids, 0] = 1.0
+    self._desired_pos[env_ids] = 0.0
+    self._desired_quat[env_ids] = 0.0
+    self._desired_quat[env_ids, 0] = 1.0
 
   # Private
 
-  def _resolve_ee(self, ee_name: str) -> None:
-    """Resolve the EE element to its global ID and parent body ID."""
-    if self._ee_type == "body":
-      ids, _ = self._entity.find_bodies(ee_name)
+  def _resolve_frame(self, frame_name: str) -> None:
+    """Resolve the frame element to its global ID and parent body ID."""
+    if self._frame_type == "body":
+      ids, _ = self._entity.find_bodies(frame_name)
       local_id = ids[0]
-      self._ee_global_id = int(self._entity.indexing.body_ids[local_id].item())
-      self._ee_body_id = self._ee_global_id
-    elif self._ee_type == "site":
-      ids, _ = self._entity.find_sites(ee_name)
+      self._frame_id = int(self._entity.indexing.body_ids[local_id].item())
+      self._body_id = self._frame_id
+    elif self._frame_type == "site":
+      ids, _ = self._entity.find_sites(frame_name)
       local_id = ids[0]
-      self._ee_global_id = int(self._entity.indexing.site_ids[local_id].item())
-      self._ee_body_id = int(self._env.sim.mj_model.site_bodyid[self._ee_global_id])
-    elif self._ee_type == "geom":
-      ids, _ = self._entity.find_geoms(ee_name)
+      self._frame_id = int(self._entity.indexing.site_ids[local_id].item())
+      self._body_id = int(self._env.sim.mj_model.site_bodyid[self._frame_id])
+    elif self._frame_type == "geom":
+      ids, _ = self._entity.find_geoms(frame_name)
       local_id = ids[0]
-      self._ee_global_id = int(self._entity.indexing.geom_ids[local_id].item())
-      self._ee_body_id = int(self._env.sim.mj_model.geom_bodyid[self._ee_global_id])
+      self._frame_id = int(self._entity.indexing.geom_ids[local_id].item())
+      self._body_id = int(self._env.sim.mj_model.geom_bodyid[self._frame_id])
     else:
-      raise ValueError(f"Unknown ee_type: {self._ee_type}")
+      raise ValueError(f"Unknown frame_type: {self._frame_type}")
 
-  def _get_ee_pose(self) -> tuple[torch.Tensor, torch.Tensor]:
-    """Return current EE (position, quaternion) from sim data."""
+  def _get_frame_pose(self) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return current frame (position, quaternion) from sim data."""
     data = self._env.sim.data
-    if self._ee_type == "body":
-      pos = data.xpos[:, self._ee_global_id]
-      quat = data.xquat[:, self._ee_global_id]
-    elif self._ee_type == "site":
-      pos = data.site_xpos[:, self._ee_global_id]
-      xmat = data.site_xmat[:, self._ee_global_id]
+    if self._frame_type == "body":
+      pos = data.xpos[:, self._frame_id]
+      quat = data.xquat[:, self._frame_id]
+    elif self._frame_type == "site":
+      pos = data.site_xpos[:, self._frame_id]
+      xmat = data.site_xmat[:, self._frame_id]
       quat = quat_from_matrix(xmat)
     else:
-      assert self._ee_type == "geom"
-      pos = data.geom_xpos[:, self._ee_global_id]
-      xmat = data.geom_xmat[:, self._ee_global_id]
+      assert self._frame_type == "geom"
+      pos = data.geom_xpos[:, self._frame_id]
+      xmat = data.geom_xmat[:, self._frame_id]
       quat = quat_from_matrix(xmat)
     return pos, quat
 
   def _compute_jacobian(self) -> None:
-    """Compute the EE Jacobian via mjwarp into pre-allocated buffers."""
+    """Compute the frame Jacobian."""
     with wp.ScopedDevice(self._env.sim.wp_device):
       mjwarp.jac(
         self._env.sim.wp_model,
