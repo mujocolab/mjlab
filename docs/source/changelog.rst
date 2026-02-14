@@ -9,6 +9,10 @@ Added
 ^^^^^
 
 - Added reward term visualization to the native viewer (toggle with ``P``).
+- Added ``DifferentialIKAction`` for task-space control via damped
+  least-squares IK. Supports weighted position/orientation tracking,
+  soft joint-limit avoidance, and null-space posture regularization.
+  Includes an interactive viser demo (``scripts/demos/ik_control.py``).
 
 .. figure:: _static/changelog/native_reward.png
    :width: 80%

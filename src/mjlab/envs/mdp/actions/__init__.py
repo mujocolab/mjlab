@@ -22,3 +22,9 @@ from mjlab.envs.mdp.actions.actions import TendonVelocityAction as TendonVelocit
 from mjlab.envs.mdp.actions.actions import (
   TendonVelocityActionCfg as TendonVelocityActionCfg,
 )
+from mjlab.envs.mdp.actions.differential_ik import (
+  DifferentialIKAction as DifferentialIKAction,
+)
+from mjlab.envs.mdp.actions.differential_ik import (
+  DifferentialIKActionCfg as DifferentialIKActionCfg,
+)

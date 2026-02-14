@@ -530,10 +530,70 @@ Actuators are typically controlled via action terms in the action manager:
 - ``JointPositionAction``: Sets position targets (for PD actuators)
 - ``JointVelocityAction``: Sets velocity targets (for velocity actuators)
 - ``JointEffortAction``: Sets effort/torque targets (for torque actuators)
+- ``DifferentialIKAction``: Task-space control via damped least-squares IK
 
 The action manager calls ``entity.set_joint_position_target()``,
 ``set_joint_velocity_target()``, or ``set_joint_effort_target()`` under the hood,
 which populate the ``ActuatorCmd`` passed to each actuator's ``compute()`` method.
+
+Differential IK Action
+""""""""""""""""""""""
+
+``DifferentialIKAction`` converts task-space commands (Cartesian position
+and/or orientation) into joint-space targets via damped least-squares (DLS)
+inverse kinematics. It runs one IK step per decimation substep via
+``apply_actions()``, or can be iterated externally via ``compute_dq()``.
+
+The action dimension is determined automatically by the active objectives:
+
+- ``orientation_weight == 0`` → **3D** (position only)
+- ``orientation_weight > 0, use_relative_mode=True`` → **6D** (delta pos +
+  delta axis-angle)
+- ``orientation_weight > 0, use_relative_mode=False`` → **7D** (absolute
+  pos + quaternion)
+
+.. code-block:: python
+
+    from mjlab.envs.mdp.actions import DifferentialIKActionCfg
+
+    DifferentialIKActionCfg(
+        entity_name="robot",
+        actuator_names=("joint.*",),   # Regex for controlled joints
+        ee_name="grasp_site",          # End-effector element name
+        ee_type="site",                # "body", "site", or "geom"
+        use_relative_mode=False,       # Absolute target mode
+        damping=0.05,                  # DLS damping (lambda)
+        max_dq=0.5,                    # Per-step joint displacement limit
+        position_weight=1.0,           # Position tracking weight
+        orientation_weight=1.0,        # Orientation tracking weight
+        joint_limit_weight=0.1,        # Soft joint-limit avoidance
+        posture_weight=0.0,            # Null-space posture regularization
+        posture_target={".*": 0.0},    # Posture target (regex → value)
+    )
+
+**Standalone usage (outside RL):**
+
+The ``compute_dq()`` method returns joint displacements without writing to
+actuator targets, enabling multi-iteration IK in standalone scripts:
+
+.. code-block:: python
+
+    from mjlab.envs.mdp.actions import DifferentialIKAction
+
+    action: DifferentialIKAction = cfg.build(env)
+    action.process_actions(target_pose)
+    for _ in range(20):  # Multiple IK iterations
+        dq = action.compute_dq()
+        q = entity.data.joint_pos[:, action._joint_ids] + dq
+        entity.write_joint_position_to_sim(q, joint_ids=action._joint_ids)
+        sim.forward()
+
+**Weighted objectives:**
+
+All objectives (position, orientation, joint limits, posture) are stacked
+into a single DLS system. Setting a weight to zero disables that objective
+with no overhead in the solve. Weights can be changed at runtime (e.g. from
+GUI sliders in the ``scripts/demos/ik_control.py`` demo).
 
 Domain Randomization
 ^^^^^^^^^^^^^^^^^^^^
