@@ -41,7 +41,7 @@ dependencies = [
   "mujoco>=3.5.0",
   "trimesh>=4.8.3",
   "viser>=1.0.21",
-  "moviepy",
+  "mediapy>=1.2.6",
   "tensordict",
   "rsl-rl-lib==4.0.1",
   "tensorboard>=2.20.0",

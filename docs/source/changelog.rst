@@ -29,6 +29,8 @@ Changed
   from ``FIELD_SPECS`` in domain randomization. These fields have derived
   quantities that require ``set_const`` to recompute; without that call,
   randomizing them silently breaks physics.
+- Replaced ``moviepy`` with ``mediapy`` for video recording. ``mediapy``
+  handles cloud storage paths (GCS, S3) natively.
 
 .. figure:: _static/changelog/native_reward.png
    :width: 80%
