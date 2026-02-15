@@ -456,9 +456,3 @@ being worked on.
 
 If something isn't working or if we've missed something, please
 `file a bug report <https://github.com/mujocolab/mjlab/issues/new>`_.
-
-.. important::
-
-   mjlab has reached v1.0.0! While we strive for stability, please note that
-   MuJoCo Warp (our physics backend) is still in beta. Feedback and
-   contributions are very welcome.

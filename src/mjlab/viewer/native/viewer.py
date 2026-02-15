@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections import deque
 from dataclasses import dataclass
 from threading import Lock
@@ -37,6 +38,7 @@ class PlotCfg:
   init_yrange: tuple[float, float] = (-0.01, 0.01)  # Initial y-range.
   grid_size: tuple[int, int] = (3, 4)  # Grid size (rows, columns).
   max_viewports: int = 12  # Cap number of plots shown.
+  min_rows_per_col: int = 4  # Minimum rows for height calc (prevents stretching).
   max_rows_per_col: int = 6  # Stack up to this many per column.
   plot_strip_fraction: float = 1 / 3  # Right-side width reserved for plots.
   background_alpha: float = 0.5  # Background alpha for plots.
@@ -69,7 +71,8 @@ class NativeMujocoViewer(BaseViewer):
     self._figures: dict[str, mujoco.MjvFigure] = {}  # Per-term figure.
     self._histories: dict[str, deque[float]] = {}  # Per-term ring buffer.
     self._yrange: dict[str, tuple[float, float]] = {}  # Per-term y-range.
-    self._show_plots: bool = True
+    self._scale: dict[str, float] = {}  # Per-term display scale factor.
+    self._show_plots: bool = False
     self._show_debug_vis: bool = True
     self._show_all_envs: bool = False
     self._plot_cfg = plot_cfg or PlotCfg()
@@ -90,13 +93,13 @@ class NativeMujocoViewer(BaseViewer):
     self.pert = mujoco.MjvPerturb() if self.enable_perturbations else None
     self.vopt = mujoco.MjvOption()
 
-    # self._term_names = [
-    #   name
-    #   for name, _ in self.env.unwrapped.reward_manager.get_active_iterable_terms(
-    #     self.env_idx
-    #   )
-    # ]
-    # self._init_reward_plots(self._term_names)
+    self._term_names = [
+      name
+      for name, _ in self.env.unwrapped.reward_manager.get_active_iterable_terms(
+        self.env_idx
+      )
+    ]
+    self._init_reward_plots(self._term_names)
 
     assert self.mjm is not None
     assert self.mjd is not None
@@ -127,6 +130,10 @@ class NativeMujocoViewer(BaseViewer):
     assert v is not None
     assert self.mjm is not None and self.mjd is not None and self.vopt is not None
 
+    # Window may have been closed between is_running() check and here.
+    if not v.is_running():
+      return
+
     with self._mj_lock:
       sim_data = self.env.unwrapped.sim.data
       if self.mjm.nq > 0:
@@ -137,42 +144,42 @@ class NativeMujocoViewer(BaseViewer):
         self.mjd.mocap_quat[:] = sim_data.mocap_quat[self.env_idx].cpu().numpy()
       mujoco.mj_forward(self.mjm, self.mjd)
 
-      # text_1 = "Env\nStep\nStatus\nSpeed\nFPS"
-      # text_2 = (
-      #   f"{self.env_idx + 1}/{self.env.num_envs}\n"
-      #   f"{self._step_count}\n"
-      #   f"{'PAUSED' if self._is_paused else 'RUNNING'}\n"
-      #   f"{self._time_multiplier * 100:.1f}%\n"
-      #   f"{self._smoothed_fps:.1f}"
-      # )
-      # overlay = (
-      #   mujoco.mjtFontScale.mjFONTSCALE_150.value,
-      #   mujoco.mjtGridPos.mjGRID_TOPLEFT.value,
-      #   text_1,
-      #   text_2,
-      # )
-      # v.set_texts(overlay)
+      text_1 = "Env\nStep\nStatus\nSpeed\nFPS"
+      text_2 = (
+        f"{self.env_idx + 1}/{self.env.num_envs}\n"
+        f"{self._step_count}\n"
+        f"{'PAUSED' if self._is_paused else 'RUNNING'}\n"
+        f"{self._time_multiplier * 100:.1f}%\n"
+        f"{self._smoothed_fps:.1f}"
+      )
+      overlay = (
+        mujoco.mjtFontScale.mjFONTSCALE_150.value,
+        mujoco.mjtGridPos.mjGRID_TOPLEFT.value,
+        text_1,
+        text_2,
+      )
+      v.set_texts(overlay)
 
-      # if self._show_plots and self._term_names:
-      #   terms = list(
-      #     self.env.unwrapped.reward_manager.get_active_iterable_terms(self.env_idx)
-      #   )
-      #   if not self._is_paused:
-      #     for name, arr in terms:
-      #       if name in self._histories:
-      #         self._append_point(name, float(arr[0]))
-      #         self._write_history_to_figure(name)
+      if self._show_plots and self._term_names:
+        terms = list(
+          self.env.unwrapped.reward_manager.get_active_iterable_terms(self.env_idx)
+        )
+        if not self._is_paused:
+          for name, arr in terms:
+            if name in self._histories:
+              self._append_point(name, float(arr[0]))
+              self._write_history_to_figure(name)
 
-      #   viewports = compute_viewports(len(self._term_names), v.viewport, self._plot_cfg)
-      #   viewport_figs = [
-      #     (viewports[i], self._figures[self._term_names[i]])
-      #     for i in range(
-      #       min(len(viewports), len(self._term_names), self._plot_cfg.max_viewports)
-      #     )
-      #   ]
-      #   v.set_figures(viewport_figs)
-      # else:
-      #   v.set_figures([])
+        viewports = compute_viewports(len(self._term_names), v.viewport, self._plot_cfg)
+        viewport_figs = [
+          (viewports[i], self._figures[self._term_names[i]])
+          for i in range(
+            min(len(viewports), len(self._term_names), self._plot_cfg.max_viewports)
+          )
+        ]
+        v.set_figures(viewport_figs)
+      else:
+        v.set_figures([])
 
       v.user_scn.ngeom = 0
       if self._show_debug_vis and hasattr(self.env.unwrapped, "update_visualizers"):
@@ -355,6 +362,7 @@ class NativeMujocoViewer(BaseViewer):
     self._figures.clear()
     self._histories.clear()
     self._yrange.clear()
+    self._scale.clear()
     for name in term_names:
       self._figures[name] = make_empty_figure(
         name,
@@ -365,13 +373,16 @@ class NativeMujocoViewer(BaseViewer):
       )
       self._histories[name] = deque(maxlen=self._plot_cfg.history)
       self._yrange[name] = self._plot_cfg.init_yrange
+      self._scale[name] = 1.0
 
   def _clear_histories(self) -> None:
     """Clear histories and reset figures."""
     for name in self._term_names:
       self._histories[name].clear()
       self._yrange[name] = self._plot_cfg.init_yrange
+      self._scale[name] = 1.0
       fig = self._figures[name]
+      fig.title = name
       fig.linepnt[0] = 0
       fig.range[1][0] = float(self._plot_cfg.init_yrange[0])
       fig.range[1][1] = float(self._plot_cfg.init_yrange[1])
@@ -388,12 +399,7 @@ class NativeMujocoViewer(BaseViewer):
     hist = self._histories[name]
     n = min(len(hist), self._plot_cfg.history)
 
-    fig.linepnt[0] = n
-    for i in range(n):
-      fig.linedata[0][2 * i] = float(-i)
-      fig.linedata[0][2 * i + 1] = float(hist[-1 - i])
-
-    # Autoscale y-axis.
+    # Autoscale y-axis (in raw units).
     if n >= 5:
       data = np.fromiter(hist, dtype=float, count=n)
       lo = float(np.percentile(data, self._plot_cfg.p_lo))
@@ -408,8 +414,40 @@ class NativeMujocoViewer(BaseViewer):
     else:
       lo, hi = self._plot_cfg.init_yrange
 
-    fig.range[1][0] = float(lo)
-    fig.range[1][1] = float(hi)
+    # Compute scale factor so axis labels avoid scientific notation.
+    scale = _display_scale(lo, hi)
+    self._scale[name] = scale
+
+    # Write scaled data into figure.
+    fig.linepnt[0] = n
+    for i in range(n):
+      fig.linedata[0][2 * i] = float(-i)
+      fig.linedata[0][2 * i + 1] = float(hist[-1 - i]) * scale
+
+    fig.range[1][0] = float(lo * scale)
+    fig.range[1][1] = float(hi * scale)
+
+    # Update title with scale suffix.
+    if scale == 1.0:
+      fig.title = name
+    else:
+      exp = round(math.log10(1.0 / scale))
+      fig.title = f"{name} (1e{exp})"
+
+
+def _display_scale(lo: float, hi: float) -> float:
+  """Return a power-of-10 multiplier that brings *lo*/*hi* into a readable range.
+
+  Values in [0.01, 100] render as clean decimals in MuJoCo's ``%g``
+  tick labels, so we only rescale outside that band.
+  """
+  max_abs = max(abs(lo), abs(hi))
+  if max_abs < 1e-15:
+    return 1.0
+  exp = math.floor(math.log10(max_abs))
+  if -2 <= exp <= 2:
+    return 1.0
+  return 10.0 ** (-exp)
 
 
 def compute_viewports(
@@ -423,16 +461,16 @@ def compute_viewports(
   cols = 1 if num_plots <= cfg.max_rows_per_col else 2
   rows = min(cfg.max_rows_per_col, (num_plots + cols - 1) // cols)
 
-  strip_w = int(rect.width * cfg.plot_strip_fraction)
-  vp_w = strip_w // cols
-  vp_h = rect.height // rows
+  vp_w = int(rect.width * cfg.plot_strip_fraction) // 2
+  strip_w = vp_w * cols
+  vp_h = rect.height // max(rows, cfg.min_rows_per_col)
 
   left0 = rect.left + rect.width - strip_w
   vps: list[mujoco.MjrRect] = []
   for idx in range(min(num_plots, cfg.max_viewports)):
     c = idx // rows
     r = idx % rows
-    left = left0 + c * vp_w
+    left = left0 + (cols - 1 - c) * vp_w
     bottom = rect.bottom + rect.height - (r + 1) * vp_h
     vps.append(mujoco.MjrRect(left=left, bottom=bottom, width=vp_w, height=vp_h))
   return vps

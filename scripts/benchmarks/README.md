@@ -1,6 +1,6 @@
-# MJLab Nightly Benchmarks
+# mjlab Nightly Benchmarks
 
-This directory contains scripts for automated nightly benchmarking of MJLab.
+This directory contains scripts for automated nightly benchmarking of mjlab.
 
 ## Overview
 

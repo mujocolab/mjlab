@@ -32,6 +32,10 @@ make docs       # Build documentation
 
 Before creating a PR, ensure all checks pass with `make test`.
 
+When making user-facing changes, add an entry to `docs/source/changelog.rst`
+under the "Upcoming version (not yet released)" section using
+Added/Changed/Fixed categories.
+
 Some style guidelines to follow:
 - Line length limit is 88 columns. This applies to code, comments, and docstrings.
 - Avoid local imports unless they are strictly necessary (e.g. circular imports).

@@ -4,7 +4,7 @@
 
 1. Bump `version` in `pyproject.toml`.
 2. Update `version` and `date-released` in `CITATION.cff`.
-3. Update the `mujoco-warp` git rev in `docs/source/installation.rst` if it changed.
+3. Update the "Upcoming version (not yet released)" heading in `docs/source/changelog.rst` to the new version number and date.
 4. Commit the version bump, then create an annotated tag:
 
 ```sh
@@ -34,14 +34,12 @@ UV_PUBLISH_TOKEN=<your-testpypi-token> make publish-test
 
 Then verify the upload works end-to-end. Use `--index-strategy unsafe-best-match`
 because TestPyPI won't have all dependencies and uv needs to fall back to real
-PyPI for them. Pin `mujoco-warp` to the git rev used by this release (found in
-`[tool.uv.sources]` in `pyproject.toml`):
+PyPI for them:
 
 ```sh
 uvx --extra-index-url https://test.pypi.org/simple/ \
     --index-strategy unsafe-best-match \
     --from mjlab \
-    --with "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@<REV>" \
     demo
 ```
 
@@ -62,9 +60,7 @@ Verify the release installs and runs correctly. Use `--refresh` to bypass
 the `uvx` cache (which may still hold the TestPyPI version):
 
 ```sh
-uvx --refresh --from mjlab \
-    --with "mujoco-warp @ git+https://github.com/google-deepmind/mujoco_warp@<REV>" \
-    demo
+uvx --refresh --from mjlab demo
 ```
 
 ## Releasing from a past tag

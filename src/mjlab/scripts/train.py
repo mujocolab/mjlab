@@ -11,7 +11,6 @@ from typing import Literal, cast
 import tyro
 
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
-from mjlab.managers.curriculum_manager import resolve_curriculum_iterations
 from mjlab.rl import MjlabOnPolicyRunner, RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.registry import list_tasks, load_env_cfg, load_rl_cfg, load_runner_cls
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
@@ -103,8 +102,6 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
 
   if rank == 0:
     print(f"[INFO] Logging experiment in directory: {log_dir}")
-
-  resolve_curriculum_iterations(cfg.env.curriculum, cfg.agent.num_steps_per_env)
 
   env = ManagerBasedRlEnv(
     cfg=cfg.env, device=device, render_mode="rgb_array" if cfg.video else None

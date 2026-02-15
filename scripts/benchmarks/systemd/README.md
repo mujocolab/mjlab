@@ -1,7 +1,7 @@
 # Systemd Setup for Nightly Benchmarks
 
 This directory contains systemd user service and timer files for running nightly
-MJLab benchmarks.
+mjlab benchmarks.
 
 ## Setup
 

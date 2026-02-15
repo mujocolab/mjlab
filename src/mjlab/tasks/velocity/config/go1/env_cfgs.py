@@ -122,6 +122,7 @@ def unitree_go1_rough_env_cfg(
 
     cfg.observations["actor"].enable_corruption = False
     cfg.events.pop("push_robot", None)
+    cfg.curriculum = {}
     cfg.events["randomize_terrain"] = EventTermCfg(
       func=envs_mdp.randomize_terrain,
       mode="reset",
@@ -159,15 +160,10 @@ def unitree_go1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   del cfg.observations["actor"].terms["height_scan"]
   del cfg.observations["critic"].terms["height_scan"]
 
-  # Disable terrain curriculum.
-  assert "terrain_levels" in cfg.curriculum
-  del cfg.curriculum["terrain_levels"]
+  # Disable terrain curriculum (not present in play mode since rough clears all).
+  cfg.curriculum.pop("terrain_levels", None)
 
   if play:
-    # Disable command curriculum.
-    assert "command_vel" in cfg.curriculum
-    del cfg.curriculum["command_vel"]
-
     twist_cmd = cfg.commands["twist"]
     assert isinstance(twist_cmd, UniformVelocityCommandCfg)
     twist_cmd.ranges.lin_vel_x = (-1.5, 2.0)

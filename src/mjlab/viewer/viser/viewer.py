@@ -15,8 +15,8 @@ from mjlab.sensor import CameraSensor
 from mjlab.sim.sim import Simulation
 from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
 from mjlab.viewer.viser.camera_viewer import ViserCameraViewer
-from mjlab.viewer.viser.reward_plotter import ViserRewardPlotter
 from mjlab.viewer.viser.scene import ViserMujocoScene
+from mjlab.viewer.viser.term_plotter import ViserTermPlotter
 
 
 class ViserPlayViewer(BaseViewer):
@@ -30,7 +30,8 @@ class ViserPlayViewer(BaseViewer):
     verbosity: VerbosityLevel = VerbosityLevel.SILENT,
   ) -> None:
     super().__init__(env, policy, frame_rate, verbosity)
-    self._reward_plotter: ViserRewardPlotter | None = None
+    self._reward_plotter: ViserTermPlotter | None = None
+    self._metrics_plotter: ViserTermPlotter | None = None
     self._sim_lock = Lock()
     self._camera_viewers: list[ViserCameraViewer] = []
 
@@ -134,7 +135,21 @@ class ViserPlayViewer(BaseViewer):
             self._scene.env_idx
           )
         ]
-        self._reward_plotter = ViserRewardPlotter(self._server, term_names)
+        self._reward_plotter = ViserTermPlotter(self._server, term_names, name="Reward")
+
+    if hasattr(self.env.unwrapped, "metrics_manager"):
+      term_names = [
+        name
+        for name, _ in self.env.unwrapped.metrics_manager.get_active_iterable_terms(
+          self._scene.env_idx
+        )
+      ]
+      if term_names:
+        with tabs.add_tab("Metrics", icon=viser.Icon.CHART_BAR):
+          # Get metrics term names and create metrics plotter.
+          self._metrics_plotter = ViserTermPlotter(
+            self._server, term_names, name="Metric"
+          )
 
     # Groups tab (geoms and sites).
     self._scene.create_groups_gui(tabs)
@@ -167,6 +182,8 @@ class ViserPlayViewer(BaseViewer):
         self._prev_env_idx = self._scene.env_idx
         if self._reward_plotter:
           self._reward_plotter.clear_histories()
+        if self._metrics_plotter:
+          self._metrics_plotter.clear_histories()
         # Clear debug visualizations when switching environments
         if self._scene.debug_visualization_enabled:
           self._scene.clear_debug_all()
@@ -178,6 +195,14 @@ class ViserPlayViewer(BaseViewer):
           )
         )
         self._reward_plotter.update(terms)
+
+      if self._metrics_plotter is not None and not self._is_paused:
+        terms = list(
+          self.env.unwrapped.metrics_manager.get_active_iterable_terms(
+            self._scene.env_idx
+          )
+        )
+        self._metrics_plotter.update(terms)
 
     # Update camera images
     if self._camera_viewers and (not self._is_paused or self._needs_update):
@@ -213,17 +238,21 @@ class ViserPlayViewer(BaseViewer):
 
   @override
   def reset_environment(self) -> None:
-    """Extend BaseViewer.reset_environment to clear reward histories."""
+    """Extend BaseViewer.reset_environment to clear reward and metrics histories."""
     with self._sim_lock:
       super().reset_environment()
     if self._reward_plotter:
       self._reward_plotter.clear_histories()
+    if self._metrics_plotter:
+      self._metrics_plotter.clear_histories()
 
   @override
   def close(self) -> None:
     """Close the viewer and cleanup resources."""
     if self._reward_plotter:
       self._reward_plotter.cleanup()
+    if self._metrics_plotter:
+      self._metrics_plotter.cleanup()
     for camera_viewer in self._camera_viewers:
       camera_viewer.cleanup()
     self._threadpool.shutdown(wait=True)

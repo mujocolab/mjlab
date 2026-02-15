@@ -1,4 +1,4 @@
-# MJLab Nightly Benchmark Timer
+# mjlab Nightly Benchmark Timer
 #
 # This timer triggers the nightly training run.
 # Default: 2:00 AM daily
@@ -12,7 +12,7 @@
 # Check next run: systemctl --user status mjlab-nightly.timer
 
 [Unit]
-Description=Run MJLab nightly benchmarks
+Description=Run mjlab nightly benchmarks
 
 [Timer]
 # Run at 2:00 AM every day

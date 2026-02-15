@@ -99,7 +99,7 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MJLab Nightly Benchmark</title>
+    <title>mjlab Nightly Benchmark</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
@@ -285,7 +285,7 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
 <body>
     <header>
         <div>
-            <h1><a href="{github_repo}" style="color:inherit;text-decoration:none">MJLab</a> Nightly Benchmark</h1>
+            <h1><a href="{github_repo}" style="color:inherit;text-decoration:none">mjlab</a> Nightly Benchmark</h1>
             <div class="subtitle">Performance tracking over time</div>
         </div>
         <div class="header-right">

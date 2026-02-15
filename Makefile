@@ -37,8 +37,8 @@ test-all: check test
 .PHONY: build
 build:
 	uv build
-	uv run --isolated --no-project --with dist/*.whl --with git+https://github.com/google-deepmind/mujoco_warp tests/smoke_test.py
-	uv run --isolated --no-project --with dist/*.tar.gz --with git+https://github.com/google-deepmind/mujoco_warp tests/smoke_test.py
+	uv run --isolated --no-project --with dist/*.whl tests/smoke_test.py
+	uv run --isolated --no-project --with dist/*.tar.gz tests/smoke_test.py
 	@echo "Build and import test successful"
 
 .PHONY: docs
@@ -47,7 +47,7 @@ docs:
 
 .PHONY: docs-watch
 docs-watch:
-	uv run --extra docs sphinx-autobuild docs docs/_build
+	uv run --group docs sphinx-autobuild docs docs/_build
 
 .PHONY: publish-test
 publish-test: build

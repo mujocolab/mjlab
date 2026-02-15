@@ -1,4 +1,4 @@
-# MJLab Nightly Benchmark Service
+# mjlab Nightly Benchmark Service
 #
 # Installation:
 #   1. Copy this file to ~/.config/systemd/user/mjlab-nightly.service
@@ -10,7 +10,7 @@
 # To check logs: journalctl --user -u mjlab-nightly.service
 
 [Unit]
-Description=MJLab Nightly Training Benchmark
+Description=mjlab Nightly Training Benchmark
 After=network-online.target
 Wants=network-online.target
 

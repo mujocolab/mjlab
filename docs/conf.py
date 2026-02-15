@@ -146,7 +146,13 @@ html_theme_options = {
     {
       "name": "mjlab",
       "url": "https://github.com/mujocolab/mjlab",
-      "icon": "https://img.shields.io/badge/mjlab-1.0.0-silver.svg",
+      "icon": "https://img.shields.io/badge/mjlab-1.1.0-silver.svg",
+      "type": "url",
+    },
+    {
+      "name": "Benchmarks",
+      "url": "https://mujocolab.github.io/mjlab/nightly/",
+      "icon": "https://img.shields.io/badge/Nightly-Benchmarks-blue",
       "type": "url",
     },
     {
