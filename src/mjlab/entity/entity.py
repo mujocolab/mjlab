@@ -323,6 +323,10 @@ class Entity:
     return len(self.actuator_names)
 
   @property
+  def num_tendons(self) -> int:
+    return len(self.tendon_names)
+
+  @property
   def root_body(self) -> mujoco.MjsBody:
     return self.spec.bodies[1]
 

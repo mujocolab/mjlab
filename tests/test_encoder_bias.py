@@ -18,6 +18,7 @@ from conftest import get_test_device
 from mjlab.actuator import BuiltinPositionActuatorCfg
 from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg, mdp
+from mjlab.envs.mdp import dr
 from mjlab.managers.event_manager import EventTermCfg
 from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
@@ -284,7 +285,7 @@ def test_randomize_encoder_bias_event(device):
     },
     events={
       "randomize_bias": EventTermCfg(
-        func=mdp.randomize_encoder_bias,
+        func=dr.encoder_bias,
         mode="startup",
         params={"bias_range": (-0.1, 0.1), "asset_cfg": SceneEntityCfg("robot")},
       )

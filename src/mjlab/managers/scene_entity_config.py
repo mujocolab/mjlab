@@ -25,6 +25,7 @@ _FIELD_CONFIGS = [
   _FieldConfig(
     "actuator_names", "actuator_ids", "find_actuators", "num_actuators", "actuator"
   ),
+  _FieldConfig("tendon_names", "tendon_ids", "find_tendons", "num_tendons", "tendon"),
 ]
 
 
@@ -69,6 +70,12 @@ class SceneEntityCfg:
 
   actuator_ids: list[int] | slice = field(default_factory=lambda: slice(None))
   """IDs of actuators to include. Can be a list or slice."""
+
+  tendon_names: str | tuple[str, ...] | None = None
+  """Names of tendons to include. Can be a single string or tuple."""
+
+  tendon_ids: list[int] | slice = field(default_factory=lambda: slice(None))
+  """IDs of tendons to include. Can be a list or slice."""
 
   preserve_order: bool = False
   """If True, maintains the order of components as specified."""

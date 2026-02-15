@@ -5,12 +5,44 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- Added tendon support to ``SceneEntityCfg`` (``tendon_names``/``tendon_ids``).
+- Added ``Simulation.recompute_constants()`` for recomputing derived model
+  quantities after domain randomization.
+- Added new domain randomization functions: ``dr.geom_pos``,
+  ``dr.geom_quat``, ``dr.geom_rgba``,
+  ``dr.site_pos``, ``dr.site_quat``, and
+  ``dr.body_inertia_quat``.
+
 Changed
 ^^^^^^^
 
 - Replaced the single ``scale`` parameter in ``DifferentialIKActionCfg`` with
   separate ``delta_pos_scale`` and ``delta_ori_scale`` for independent scaling
   of position and orientation components.
+- Redesigned domain randomization: replaced ``randomize_field()`` and
+  ``FIELD_SPECS`` with explicit per-field functions in a dedicated ``dr``
+  module (``dr.geom_friction``, ``dr.body_mass``, ``dr.joint_damping``,
+  etc.). Moved from ``events.py`` to ``mjlab.envs.mdp.dr``. Each function
+  is typed, carries its own recompute metadata via ``@requires_model_fields``,
+  and automatically handles derived-field recomputation. Removed the
+  ``domain_randomization`` flag from ``EventTermCfg``. Added support for
+  per-component string-keyed ranges, ``shared_random`` on all DR functions,
+  and tendon randomization.
+
+Fixed
+^^^^^
+
+- Fixed ``dr.effort_limits`` scale operation accumulating on
+  repeated calls instead of using stored defaults.
+- Fixed ``EventManager`` calling ``recompute_constants()`` on every
+  ``apply()`` even when no domain-randomization terms actually fired.
+- Fixed ``dr.body_com_offset`` missing ``recompute="set_const"``
+  declaration, which silently skipped derived-field recomputation.
+- Fixed ``EventManager`` always using the pre-computed mode-level
+  recompute instead of tracking the strongest level that actually fired.
 
 Version 1.1.1 (February 14, 2026)
 ---------------------------------

@@ -19,22 +19,62 @@ F = Callable[..., None]
 
 EventMode = Literal["startup", "reset", "interval"]
 
+# Derived fields that must be recomputed after modifying certain model fields.
+# Keyed by the recompute level needed.
+_RECOMPUTE_DERIVED: dict[str, tuple[str, ...]] = {
+  "none": (),
+  "set_const_fixed": ("body_subtreemass",),
+  "set_const_0": (
+    "actuator_acc0",
+    "tendon_length0",
+    "dof_invweight0",
+    "body_invweight0",
+    "tendon_invweight0",
+    "cam_pos0",
+    "cam_poscom0",
+    "cam_mat0",
+    "light_pos0",
+    "light_poscom0",
+    "light_dir0",
+  ),
+}
+_RECOMPUTE_DERIVED["set_const"] = (
+  _RECOMPUTE_DERIVED["set_const_fixed"] + _RECOMPUTE_DERIVED["set_const_0"]
+)
 
-def requires_model_fields(*fields: str) -> Callable[[F], F]:
+# Order from strongest to weakest.
+_RECOMPUTE_LEVELS = ("set_const", "set_const_0", "set_const_fixed", "none")
+
+
+def requires_model_fields(*fields: str, recompute: str = "none") -> Callable[[F], F]:
   """Mark an event function as requiring specific model fields expanded per-world.
 
   Fields listed here are registered in ``EventManager.domain_randomization_fields``
   so that ``sim.expand_model_fields()`` allocates real per-world memory for them.
+  Derived fields from the ``recompute`` level are automatically included.
+
+  Args:
+    fields: Model field names that this function writes to.
+    recompute: Recompute level needed after modification. One of
+      ``"none"``, ``"set_const_fixed"``, ``"set_const_0"``, or
+      ``"set_const"``. Derived fields are auto-appended.
 
   Example::
 
-    @requires_model_fields("actuator_gainprm", "actuator_biasprm")
-    def randomize_pd_gains(env, env_ids, ...):
+    @requires_model_fields("body_mass", recompute="set_const")
+    def randomize_body_mass(env, env_ids, ...):
       ...
   """
+  if recompute not in _RECOMPUTE_LEVELS:
+    raise ValueError(
+      f"Unknown recompute level '{recompute}'. Valid: {_RECOMPUTE_LEVELS}"
+    )
+  derived = _RECOMPUTE_DERIVED.get(recompute, ())
+  all_fields = fields + tuple(f for f in derived if f not in fields)
 
   def decorator(func: F) -> F:
-    func.model_fields = fields  # type: ignore[attr-defined]
+    func.model_fields = all_fields  # type: ignore[attr-defined]
+    func.recompute = recompute  # type: ignore[attr-defined]
     return func
 
   return decorator
@@ -78,11 +118,6 @@ class EventTermCfg(ManagerTermBaseCfg):
   """Minimum environment steps between triggers. Prevents the event from firing
   too frequently when episodes reset rapidly. Only applies to ``mode="reset"``.
   Set to 0 (default) to trigger on every reset."""
-
-  domain_randomization: bool = False
-  """Whether this event performs domain randomization. If True, the field name
-  from ``params["field"]`` is tracked and exposed via
-  ``EventManager.domain_randomization_fields`` for logging/debugging."""
 
 
 class EventManager(ManagerBase):
@@ -198,6 +233,8 @@ class EventManager(ManagerBase):
         f"Event mode '{mode}' requires the total number of environment steps to be provided."
       )
 
+    strongest_fired = "none"
+
     for index, term_cfg in enumerate(self._mode_term_cfgs[mode]):
       if mode == "interval":
         time_left = self._interval_term_time_left[index]
@@ -210,6 +247,7 @@ class EventManager(ManagerBase):
             sampled_interval = torch.rand(1) * (upper - lower) + lower
             self._interval_term_time_left[index][:] = sampled_interval
             term_cfg.func(self._env, None, **term_cfg.params)
+            strongest_fired = self._strongest_level(strongest_fired, term_cfg)
         else:
           valid_env_ids = (time_left < 1e-6).nonzero().flatten()
           if len(valid_env_ids) > 0:
@@ -221,6 +259,7 @@ class EventManager(ManagerBase):
             )
             self._interval_term_time_left[index][valid_env_ids] = sampled_time
             term_cfg.func(self._env, valid_env_ids, **term_cfg.params)
+            strongest_fired = self._strongest_level(strongest_fired, term_cfg)
       elif mode == "reset":
         assert global_env_step_count is not None
         min_step_count = term_cfg.min_step_count_between_reset
@@ -232,6 +271,7 @@ class EventManager(ManagerBase):
           )
           self._reset_term_last_triggered_once[index][env_ids] = True
           term_cfg.func(self._env, env_ids, **term_cfg.params)
+          strongest_fired = self._strongest_level(strongest_fired, term_cfg)
         else:
           last_triggered_step = self._reset_term_last_triggered_step_id[index][env_ids]
           triggered_at_least_once = self._reset_term_last_triggered_once[index][env_ids]
@@ -248,8 +288,13 @@ class EventManager(ManagerBase):
               global_env_step_count
             )
             term_cfg.func(self._env, valid_env_ids, **term_cfg.params)
+            strongest_fired = self._strongest_level(strongest_fired, term_cfg)
       else:
         term_cfg.func(self._env, env_ids, **term_cfg.params)
+        strongest_fired = self._strongest_level(strongest_fired, term_cfg)
+
+    if strongest_fired != "none":
+      self._env.sim.recompute_constants(strongest_fired)
 
   def _prepare_terms(self) -> None:
     self._interval_term_time_left: list[torch.Tensor] = list()
@@ -291,13 +336,18 @@ class EventManager(ManagerBase):
         no_trigger = torch.zeros(self.num_envs, device=self.device, dtype=torch.bool)
         self._reset_term_last_triggered_once.append(no_trigger)
 
-      if term_cfg.domain_randomization:
-        field_name = term_cfg.params["field"]
-        if field_name not in self._domain_randomization_fields:
-          self._domain_randomization_fields.append(field_name)
-
       func = term_cfg.func
       if hasattr(func, "model_fields"):
         for field in func.model_fields:
           if field not in self._domain_randomization_fields:
             self._domain_randomization_fields.append(field)
+
+  @staticmethod
+  def _strongest_level(current: str, term_cfg: EventTermCfg) -> str:
+    """Return the stronger of *current* and the term's recompute level."""
+    level = getattr(term_cfg.func, "recompute", "none")
+    if level == "none":
+      return current
+    if _RECOMPUTE_LEVELS.index(level) < _RECOMPUTE_LEVELS.index(current):
+      return level
+    return current

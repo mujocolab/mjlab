@@ -7,7 +7,7 @@ import torch
 from conftest import get_test_device
 
 from mjlab import actuator
-from mjlab.envs.mdp import events
+from mjlab.envs.mdp import dr, events
 from mjlab.managers.event_manager import EventManager, EventTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
@@ -66,40 +66,26 @@ def test_reset_joints_by_offset(device):
   assert torch.allclose(joint_pos, torch.ones_like(joint_pos) * 0.5)
 
 
-def test_class_based_event_with_domain_randomization(device):
-  """Test that class-based events work and domain_randomization flag tracks fields."""
-
-  # Create a simple class-based event term.
-  class CustomRandomizer:
-    def __init__(self, cfg, env):
-      self.cfg = cfg
-      self.env = env
-
-    def __call__(self, env, env_ids, field, ranges):
-      pass  # No-op for testing
-
-  # Create a mock environment with minimal requirements.
+def test_decorator_based_domain_randomization_tracking(device):
+  """Test that @requires_model_fields decorator tracks fields in EventManager."""
   env = Mock()
   env.num_envs = 4
   env.device = device
   env.scene = {}
   env.sim = Mock()
 
-  # Create event manager config with both DR and non-DR terms.
   cfg = {
-    # Class-based DR term should be tracked.
-    "custom_dr": EventTermCfg(
+    # Decorated DR term should be tracked via model_fields.
+    "friction": EventTermCfg(
       mode="startup",
-      func=CustomRandomizer,
-      domain_randomization=True,
-      params={"field": "geom_friction", "ranges": (0.3, 1.2)},
+      func=dr.geom_friction,
+      params={"ranges": (0.3, 1.2)},
     ),
-    # Regular function-based DR term should be tracked.
-    "standard_dr": EventTermCfg(
+    # Decorated DR term with recompute should be tracked.
+    "damping": EventTermCfg(
       mode="reset",
-      func=events.randomize_field,
-      domain_randomization=True,
-      params={"field": "dof_damping", "ranges": (0.1, 0.5)},
+      func=dr.joint_damping,
+      params={"ranges": (0.1, 0.5)},
     ),
     # Non-DR term should not be tracked.
     "regular_event": EventTermCfg(
@@ -111,12 +97,8 @@ def test_class_based_event_with_domain_randomization(device):
 
   manager = EventManager(cfg, env)
 
-  # Verify that DR fields are tracked.
   assert "geom_friction" in manager.domain_randomization_fields
   assert "dof_damping" in manager.domain_randomization_fields
-
-  # Verify that non-DR event is not tracked.
-  assert len(manager.domain_randomization_fields) == 2
 
 
 def test_randomize_pd_gains(device):
@@ -173,7 +155,7 @@ def test_randomize_pd_gains(device):
   )
 
   # Test scale operation.
-  events.randomize_pd_gains(
+  dr.pd_gains(
     env,
     torch.tensor([0], device=device),
     kp_range=(1.5, 1.5),  # 1.5x scale
@@ -219,7 +201,7 @@ def test_randomize_pd_gains(device):
   )
 
   # Test abs operation.
-  events.randomize_pd_gains(
+  dr.pd_gains(
     env,
     torch.tensor([1], device=device),
     kp_range=(200.0, 200.0),
@@ -289,6 +271,9 @@ def test_randomize_effort_limits(device):
   ideal_actuator.set_effort_limit = actuator.IdealPdActuator.set_effort_limit.__get__(
     ideal_actuator
   )
+  ideal_actuator.default_force_limit = torch.tensor(
+    [[50.0, 50.0], [50.0, 50.0]], device=device
+  )
 
   mock_entity.actuators = [builtin_actuator, xml_actuator, ideal_actuator]
   env.scene = {"robot": mock_entity}
@@ -299,8 +284,14 @@ def test_randomize_effort_limits(device):
   env.sim.model.actuator_forcerange[:, :, 0] = -100.0  # Lower limit
   env.sim.model.actuator_forcerange[:, :, 1] = 100.0  # Upper limit
 
+  # Mock get_default_field for scale operation.
+  default_forcerange = torch.zeros((6, 2), device=device)
+  default_forcerange[:, 0] = -100.0
+  default_forcerange[:, 1] = 100.0
+  env.sim.get_default_field = lambda field: default_forcerange
+
   # Test scale operation.
-  events.randomize_effort_limits(
+  dr.effort_limits(
     env,
     torch.tensor([0], device=device),
     effort_limit_range=(2.0, 2.0),  # 2x scale
@@ -333,7 +324,7 @@ def test_randomize_effort_limits(device):
   )
 
   # Test abs operation.
-  events.randomize_effort_limits(
+  dr.effort_limits(
     env,
     torch.tensor([1], device=device),
     effort_limit_range=(150.0, 150.0),
@@ -395,7 +386,7 @@ def test_randomize_pd_gains_multi_env(device):
   env.sim.get_default_field = lambda f: defaults[f]
 
   torch.manual_seed(42)
-  events.randomize_pd_gains(
+  dr.pd_gains(
     env,
     torch.tensor([0, 1], device=device),
     kp_range=(0.5, 2.0),
@@ -432,8 +423,13 @@ def test_randomize_effort_limits_multi_env(device):
   env.sim.model.actuator_forcerange[:, :, 0] = -100.0
   env.sim.model.actuator_forcerange[:, :, 1] = 100.0
 
+  default_forcerange = torch.zeros((2, 2), device=device)
+  default_forcerange[:, 0] = -100.0
+  default_forcerange[:, 1] = 100.0
+  env.sim.get_default_field = lambda field: default_forcerange
+
   torch.manual_seed(42)
-  events.randomize_effort_limits(
+  dr.effort_limits(
     env,
     torch.tensor([0, 1], device=device),
     effort_limit_range=(0.5, 2.0),
@@ -459,7 +455,7 @@ def test_model_fields_registered_in_event_manager(device):
   cfg = {
     "pd_gains": EventTermCfg(
       mode="reset",
-      func=events.randomize_pd_gains,
+      func=dr.pd_gains,
       params={
         "kp_range": (0.8, 1.2),
         "kd_range": (0.8, 1.2),
@@ -467,7 +463,7 @@ def test_model_fields_registered_in_event_manager(device):
     ),
     "effort_limits": EventTermCfg(
       mode="reset",
-      func=events.randomize_effort_limits,
+      func=dr.effort_limits,
       params={
         "effort_limit_range": (0.8, 1.2),
       },

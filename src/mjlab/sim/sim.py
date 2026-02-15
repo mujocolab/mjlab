@@ -275,6 +275,25 @@ class Simulation:
       ).clone()
     return self._default_model_fields[field]
 
+  _VALID_RECOMPUTE_LEVELS = ("set_const", "set_const_0", "set_const_fixed")
+
+  def recompute_constants(self, level: str = "set_const") -> None:
+    """Recompute derived model quantities after domain randomization.
+
+    Args:
+      level: Which constants to recompute. One of ``"set_const"``
+        (full), ``"set_const_0"`` (qpos0-dependent), or
+        ``"set_const_fixed"`` (mass-dependent only).
+    """
+    if level not in self._VALID_RECOMPUTE_LEVELS:
+      raise ValueError(
+        f"Unknown recompute level '{level}'. "
+        f"Valid levels: {self._VALID_RECOMPUTE_LEVELS}"
+      )
+    fn = getattr(mjwarp, level)
+    with wp.ScopedDevice(self.wp_device):
+      fn(self._wp_model, self._wp_data)
+
   def forward(self) -> None:
     with wp.ScopedDevice(self.wp_device):
       if self.use_cuda_graph and self.forward_graph is not None:
