@@ -122,4 +122,10 @@ def height_scan(
     Tensor of shape [B, N] where B is num_envs and N is num_rays.
   """
   sensor: RayCastSensor = env.scene[sensor_name]
-  return sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.hit_pos_w[..., 2] - offset
+  height = sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.hit_pos_w[..., 2]
+  # hit_pos_w returns sensor coords if ray out of range, making height == 0 at these locations
+  # Height 0 should mean there is an object directly in front of the sensor, which is not the case here
+  # Instead, set these readings to max sensor distance to show that it is out of range
+  height[sensor.data.distances == -1] = sensor.cfg.max_distance
+  height -= offset
+  return height
