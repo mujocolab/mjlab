@@ -50,6 +50,13 @@ class DifferentialIKActionCfg(ActionTermCfg):
   """If True, actions are deltas applied to the current frame pose.
   If False, actions are absolute targets."""
 
+  scale: float = 1.0
+  """Scaling factor applied to actions in relative mode.
+
+  Ignored in absolute mode. In relative mode, maps raw policy outputs
+  to task-space deltas (meters for position, radians for orientation).
+  """
+
   damping: float = 0.05
   """Damping coefficient (lambda) for the DLS pseudoinverse."""
 
@@ -163,12 +170,13 @@ class DifferentialIKAction(ActionTerm):
     frame_pos, frame_quat = self._get_frame_pose()
     if self._action_dim == 3:
       if self.cfg.use_relative_mode:
-        self._desired_pos[:] = frame_pos + actions
+        self._desired_pos[:] = frame_pos + actions * self.cfg.scale
       else:
         self._desired_pos[:] = actions
       self._desired_quat[:] = frame_quat
     elif self._action_dim == 6:
-      target_pos, target_quat = apply_delta_pose(frame_pos, frame_quat, actions)
+      delta = actions * self.cfg.scale
+      target_pos, target_quat = apply_delta_pose(frame_pos, frame_quat, delta)
       self._desired_pos[:] = target_pos
       self._desired_quat[:] = target_quat
     else:
