@@ -14,6 +14,14 @@ Added
   soft joint-limit avoidance, and null-space posture regularization.
   Includes an interactive viser demo (``scripts/demos/differential_ik.py``).
 
+Fixed
+^^^^^
+
+- Fixed ``play.py`` defaulting to the base rsl-rl ``OnPolicyRunner`` instead
+  of ``MjlabOnPolicyRunner``, which caused a ``TypeError`` from an unexpected
+  ``cnn_cfg`` keyword argument. Contribution by
+  `@griffinaddison <https://github.com/griffinaddison>`_.
+
 .. figure:: _static/changelog/native_reward.png
    :width: 80%
 
