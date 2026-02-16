@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
@@ -16,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -25,11 +29,13 @@ jobs:
         uses: astral-sh/setup-uv@v4
 
       - name: Build Sphinx Documentation
-        run: uv run --group docs sphinx-build docs docs/_build
+        run: uv run --group docs sphinx-multiversion docs docs/_build
+
+      - name: Add root redirect
+        run: echo '<meta http-equiv="refresh" content="0; url=main/index.html">' > docs/_build/index.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/_build/
-          keep_files: true
