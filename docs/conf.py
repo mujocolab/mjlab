@@ -176,6 +176,7 @@ smv_tag_whitelist = os.getenv("SMV_TAG_WHITELIST", r"^v[1-9]\d*\.\d+\.\d+$")
 html_sidebars = {
   "**": [
     "navbar-logo.html",
+    "versioning.html",
     "icon-links.html",
     "search-field.html",
     "sbt-sidebar-nav.html",
