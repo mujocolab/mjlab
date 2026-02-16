@@ -12,6 +12,13 @@ Changed
   separate ``delta_pos_scale`` and ``delta_ori_scale`` for independent scaling
   of position and orientation components.
 
+Fixed
+^^^^^
+
+- Fixed ghost mesh visualization for fixed-base entities by extending
+  ``DebugVisualizer.add_ghost_mesh`` to optionally accept ``mocap_pos`` and
+  ``mocap_quat``.
+
 Version 1.1.1 (February 14, 2026)
 ---------------------------------
 
