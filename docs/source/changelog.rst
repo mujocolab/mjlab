@@ -5,10 +5,53 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Changed
+^^^^^^^
+
+- Replaced the single ``scale`` parameter in ``DifferentialIKActionCfg`` with
+  separate ``delta_pos_scale`` and ``delta_ori_scale`` for independent scaling
+  of position and orientation components.
+
+Fixed
+^^^^^
+
+- Fixed ``height_scan`` returning ~0 for missed rays; now defaults to
+  ``max_distance``. Replaced ``clip=(-1, 1)`` with ``scale`` normalization
+  in the velocity task config. Thanks to `@eufrizz <https://github.com/eufrizz>`_
+  for reporting and the initial fix (`#642 <https://github.com/mujocolab/mjlab/pull/642>`_).
+- Fixed ghost mesh visualization for fixed-base entities by extending
+  ``DebugVisualizer.add_ghost_mesh`` to optionally accept ``mocap_pos`` and
+  ``mocap_quat``.
+
+Version 1.1.1 (February 14, 2026)
+---------------------------------
+
 Added
 ^^^^^
 
 - Added reward term visualization to the native viewer (toggle with ``P``).
+- Added ``DifferentialIKAction`` for task-space control via damped
+  least-squares IK. Supports weighted position/orientation tracking,
+  soft joint-limit avoidance, and null-space posture regularization.
+  Includes an interactive viser demo (``scripts/demos/differential_ik.py``).
+
+Fixed
+^^^^^
+
+- Fixed ``play.py`` defaulting to the base rsl-rl ``OnPolicyRunner`` instead
+  of ``MjlabOnPolicyRunner``, which caused a ``TypeError`` from an unexpected
+  ``cnn_cfg`` keyword argument. Contribution by
+  `@griffinaddison <https://github.com/griffinaddison>`_.
+
+Changed
+^^^^^^^
+
+- Removed ``body_mass``, ``body_inertia``, ``body_pos``, and ``body_quat``
+  from ``FIELD_SPECS`` in domain randomization. These fields have derived
+  quantities that require ``set_const`` to recompute; without that call,
+  randomizing them silently breaks physics.
+- Replaced ``moviepy`` with ``mediapy`` for video recording. ``mediapy``
+  handles cloud storage paths (GCS, S3) natively.
 
 .. figure:: _static/changelog/native_reward.png
    :width: 80%

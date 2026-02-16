@@ -280,7 +280,7 @@ class MotionCommand(CommandTerm):
 
     # Update metrics.
     H = -(sampling_probabilities * (sampling_probabilities + 1e-12).log()).sum()
-    H_norm = H / math.log(self.bin_count)
+    H_norm = H / math.log(self.bin_count) if self.bin_count > 1 else 1.0
     pmax, imax = sampling_probabilities.max(dim=0)
     self.metrics["sampling_entropy"][:] = H_norm
     self.metrics["sampling_top1_prob"][:] = pmax

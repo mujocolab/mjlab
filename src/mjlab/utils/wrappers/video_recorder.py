@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable, Literal
 
+import mediapy as media
 import numpy as np
 import torch
 from typing_extensions import assert_never
@@ -42,7 +43,7 @@ class VideoRecorder(ManagerBasedRlEnv):
   def __init__(
     self,
     env: ManagerBasedRlEnv,
-    video_folder: Path,
+    video_folder: str | Path,
     episode_trigger: Callable[[int], bool] | None = None,
     step_trigger: Callable[[int], bool] | None = None,
     video_length: int | None = None,
@@ -51,7 +52,7 @@ class VideoRecorder(ManagerBasedRlEnv):
   ):
     # Don't call super().__init__() - we're wrapping an existing env.
     self._wrapped_env = env
-    self.video_folder = video_folder
+    self.video_folder = Path(video_folder)
     self.video_folder.mkdir(parents=True, exist_ok=True)
 
     self.episode_trigger = episode_trigger
@@ -181,8 +182,6 @@ class VideoRecorder(ManagerBasedRlEnv):
   def _finish_recording(self) -> None:
     """Finish recording and save the video."""
     if self.current_video_frames:
-      from moviepy import ImageSequenceClip
-
       # Convert frames to uint8 format.
       video_frames = []
       for frame in self.current_video_frames:
@@ -191,10 +190,8 @@ class VideoRecorder(ManagerBasedRlEnv):
           frame = (np.clip(frame, 0, 1) * 255).astype(np.uint8)
         video_frames.append(frame)
 
-      # Write video using moviepy.
       fps = self._wrapped_env.metadata.get("render_fps", 30)
-      clip = ImageSequenceClip(video_frames, fps=fps)
-      clip.write_videofile(str(self.current_video_path))
+      media.write_video(str(self.current_video_path), video_frames, fps=fps)
 
       if not self.disable_logger:
         print(f"[INFO] Saved video to {self.current_video_path}")

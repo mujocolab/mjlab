@@ -134,3 +134,39 @@ a {
     padding-top: 0rem !important;
     padding-bottom: 0rem !important;
 }
+
+/* Version switcher */
+.sidebar-version-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.sidebar-version-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--pst-color-text-muted);
+    white-space: nowrap;
+}
+
+.sidebar-version-select {
+    flex: 1;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--pst-color-border);
+    border-radius: 4px;
+    background: var(--pst-color-background);
+    color: var(--pst-color-text-base);
+    cursor: pointer;
+}
+
+.sidebar-version-select:hover {
+    border-color: var(--pst-color-primary);
+}
+
+/* Sidebar section spacing */
+.bd-sidebar .navbar-icon-links {
+    padding: 0 1rem 0.25rem !important;
+}

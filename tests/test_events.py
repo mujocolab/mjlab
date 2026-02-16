@@ -99,7 +99,7 @@ def test_class_based_event_with_domain_randomization(device):
       mode="reset",
       func=events.randomize_field,
       domain_randomization=True,
-      params={"field": "body_mass", "ranges": (0.8, 1.2)},
+      params={"field": "dof_damping", "ranges": (0.1, 0.5)},
     ),
     # Non-DR term should not be tracked.
     "regular_event": EventTermCfg(
@@ -113,7 +113,7 @@ def test_class_based_event_with_domain_randomization(device):
 
   # Verify that DR fields are tracked.
   assert "geom_friction" in manager.domain_randomization_fields
-  assert "body_mass" in manager.domain_randomization_fields
+  assert "dof_damping" in manager.domain_randomization_fields
 
   # Verify that non-DR event is not tracked.
   assert len(manager.domain_randomization_fields) == 2

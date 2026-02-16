@@ -45,6 +45,10 @@ build:
 docs:
 	uv run --group docs sphinx-build docs docs/_build
 
+.PHONY: docs-multiversion
+docs-multiversion:
+	uv run --group docs sphinx-multiversion docs docs/_build
+
 .PHONY: docs-watch
 docs-watch:
 	uv run --group docs sphinx-autobuild docs docs/_build

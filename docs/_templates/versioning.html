@@ -1,0 +1,13 @@
+{% if versions %}
+<div class="sidebar-version-switcher">
+  <label class="sidebar-version-label" for="version-select">Version</label>
+  <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
+    {%- for item in versions.branches %}
+    <option value="{{ item.url }}" {% if item == current_version %}selected{% endif %}>{{ item.name }}</option>
+    {%- endfor %}
+    {%- for item in versions.tags|reverse %}
+    <option value="{{ item.url }}" {% if item == current_version %}selected{% endif %}>{{ item.name }}</option>
+    {%- endfor %}
+  </select>
+</div>
+{% endif %}

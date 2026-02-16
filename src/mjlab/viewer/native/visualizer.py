@@ -91,6 +91,8 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
     self,
     qpos: np.ndarray | torch.Tensor,
     model: mujoco.MjModel,
+    mocap_pos: np.ndarray | torch.Tensor | None = None,
+    mocap_quat: np.ndarray | torch.Tensor | None = None,
     alpha: float = 0.5,
     label: str | None = None,
   ) -> None:
@@ -101,6 +103,8 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
     Args:
       qpos: Joint positions for the ghost pose
       model: MuJoCo model with pre-configured appearance (geom_rgba for colors)
+      mocap_pos: Optional mocap position(s) for fixed-base entities
+      mocap_quat: Optional mocap quaternion(s) for fixed-base entities
       alpha: Transparency override (not used in MuJoCo implementation)
       label: Optional label (not used in MuJoCo implementation)
     """
@@ -108,8 +112,24 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
 
     if isinstance(qpos, torch.Tensor):
       qpos = qpos.cpu().numpy()
+    if isinstance(mocap_pos, torch.Tensor):
+      mocap_pos = mocap_pos.cpu().numpy()
+    if isinstance(mocap_quat, torch.Tensor):
+      mocap_quat = mocap_quat.cpu().numpy()
 
     self._viz_data.qpos[:] = qpos
+    if mocap_pos is not None and model.nmocap > 0:
+      mocap_pos_arr = np.asarray(mocap_pos)
+      if mocap_pos_arr.ndim == 1:
+        self._viz_data.mocap_pos[0] = mocap_pos_arr
+      else:
+        self._viz_data.mocap_pos[:] = mocap_pos_arr
+    if mocap_quat is not None and model.nmocap > 0:
+      mocap_quat_arr = np.asarray(mocap_quat)
+      if mocap_quat_arr.ndim == 1:
+        self._viz_data.mocap_quat[0] = mocap_quat_arr
+      else:
+        self._viz_data.mocap_quat[:] = mocap_quat_arr
     mujoco.mj_forward(model, self._viz_data)
 
     mujoco.mjv_addGeoms(
