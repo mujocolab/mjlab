@@ -107,7 +107,10 @@ def builtin_sensor(env: ManagerBasedRlEnv, sensor_name: str) -> torch.Tensor:
 
 
 def height_scan(
-  env: ManagerBasedRlEnv, sensor_name: str, offset: float = 0.0
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  offset: float = 0.0,
+  miss_value: float | None = None,
 ) -> torch.Tensor:
   """Height scan from a raycast sensor.
 
@@ -117,9 +120,17 @@ def height_scan(
     env: The environment.
     sensor_name: Name of a RayCastSensor in the scene.
     offset: Constant offset subtracted from heights.
+    miss_value: Value to use for rays that miss (distance < 0).
+      Defaults to the sensor's ``max_distance``.
 
   Returns:
     Tensor of shape [B, N] where B is num_envs and N is num_rays.
   """
   sensor: RayCastSensor = env.scene[sensor_name]
-  return sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.hit_pos_w[..., 2] - offset
+  if miss_value is None:
+    miss_value = sensor.cfg.max_distance
+  heights = (
+    sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.hit_pos_w[..., 2] - offset
+  )
+  miss_mask = sensor.data.distances < 0
+  return torch.where(miss_mask, torch.full_like(heights, miss_value), heights)

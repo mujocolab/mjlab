@@ -15,6 +15,10 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ``height_scan`` returning ~0 for missed rays; now defaults to
+  ``max_distance``. Replaced ``clip=(-1, 1)`` with ``scale`` normalization
+  in the velocity task config. Thanks to `@eufrizz <https://github.com/eufrizz>`_
+  for reporting and the initial fix (`#642 <https://github.com/mujocolab/mjlab/pull/642>`_).
 - Fixed ghost mesh visualization for fixed-base entities by extending
   ``DebugVisualizer.add_ghost_mesh`` to optionally accept ``mocap_pos`` and
   ``mocap_quat``.
