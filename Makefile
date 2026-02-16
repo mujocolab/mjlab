@@ -43,6 +43,10 @@ build:
 
 .PHONY: docs
 docs:
+	uv run --group docs sphinx-multiversion docs docs/_build
+
+.PHONY: docs-single
+docs-single:
 	uv run --group docs sphinx-build docs docs/_build
 
 .PHONY: docs-watch
