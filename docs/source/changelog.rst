@@ -96,7 +96,7 @@ Fixed
   Reported by `@bwrooney82 <https://github.com/bwrooney82>`_.
 - Fixed Viser viewer rendering textured robots as gray (`#544 <https://github.com/mujocolab/mjlab/pull/544>`_).
 - Fixed Viser plane rendering ignoring MuJoCo size parameter (`#540 <https://github.com/mujocolab/mjlab/pull/540>`_).
-- Fixed ``HfDiscreteObstaclesTerrainCfg`` spawn height (`#522 <https://github.com/mujocolab/mjlab/pull/522>`_).
+- Fixed ``HfDiscreteObstaclesTerrainCfg`` spawn height (`#552 <https://github.com/mujocolab/mjlab/pull/552>`_).
 - Fixed ``RaycastSensor`` visualization ignoring the all-envs toggle (`#607 <https://github.com/mujocolab/mjlab/pull/607>`_).
   Contribution by `@oxkitsune <https://github.com/oxkitsune>`_.
 
