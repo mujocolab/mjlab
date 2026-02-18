@@ -46,5 +46,14 @@ def _import_registered_packages() -> None:
       print(f"[WARN] Failed to load task package {entry_point.name}: {e}")
 
 
+def _configure_mediapy() -> None:
+  """Point mediapy at the bundled imageio-ffmpeg binary."""
+  import imageio_ffmpeg
+  import mediapy
+
+  mediapy.set_ffmpeg(imageio_ffmpeg.get_ffmpeg_exe())
+
+
 _configure_warp()
+_configure_mediapy()
 _import_registered_packages()

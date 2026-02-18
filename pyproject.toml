@@ -42,6 +42,7 @@ dependencies = [
   "trimesh>=4.8.3",
   "viser>=1.0.21",
   "mediapy>=1.2.6",
+  "imageio-ffmpeg",
   "tensordict",
   "rsl-rl-lib==4.0.1",
   "tensorboard>=2.20.0",

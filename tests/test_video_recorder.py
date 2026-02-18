@@ -1,17 +1,11 @@
 """Tests for video recording with mediapy."""
 
-import shutil
 from pathlib import Path
 from unittest.mock import Mock
 
 import mediapy as media
 import numpy as np
-import pytest
 import torch
-
-pytestmark = pytest.mark.skipif(
-  shutil.which("ffmpeg") is None, reason="ffmpeg not installed"
-)
 
 
 def _make_mock_env(num_envs: int = 1):
