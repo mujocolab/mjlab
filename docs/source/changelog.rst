@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Changed
 ^^^^^^^
 
+- Reverted video recording from ``mediapy`` back to ``moviepy``. ``moviepy``
+  bundles ``ffmpeg`` via ``imageio-ffmpeg``, removing the need for a system
+  ``ffmpeg`` install (`#637 <https://github.com/mujocolab/mjlab/pull/637>`_).
 - Replaced the single ``scale`` parameter in ``DifferentialIKActionCfg`` with
   separate ``delta_pos_scale`` and ``delta_ori_scale`` for independent scaling
   of position and orientation components.

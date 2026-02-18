@@ -1,17 +1,11 @@
-"""Tests for video recording with mediapy."""
+"""Tests for video recording with moviepy."""
 
-import shutil
 from pathlib import Path
 from unittest.mock import Mock
 
-import mediapy as media
 import numpy as np
 import pytest
 import torch
-
-pytestmark = pytest.mark.skipif(
-  shutil.which("ffmpeg") is None, reason="ffmpeg not installed"
-)
 
 
 def _make_mock_env(num_envs: int = 1):
@@ -54,10 +48,12 @@ def test_step_trigger_writes_video(tmp_path: Path):
   videos = list(tmp_path.glob("*.mp4"))
   assert len(videos) == 1
 
-  # Verify the file is a valid video readable by mediapy.
-  frames = media.read_video(str(videos[0]))
-  assert len(frames) == 5
-  assert frames[0].shape == (64, 64, 3)
+  # Verify the file is a valid video readable by moviepy.
+  from moviepy import VideoFileClip
+
+  clip = VideoFileClip(str(videos[0]))
+  assert clip.duration == pytest.approx(5 / 30, abs=0.1)
+  clip.close()
 
 
 def test_accepts_string_path(tmp_path: Path):

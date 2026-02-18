@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable, Literal
 
-import mediapy as media
 import numpy as np
 import torch
 from typing_extensions import assert_never
@@ -190,8 +189,11 @@ class VideoRecorder(ManagerBasedRlEnv):
           frame = (np.clip(frame, 0, 1) * 255).astype(np.uint8)
         video_frames.append(frame)
 
+      from moviepy import ImageSequenceClip
+
       fps = self._wrapped_env.metadata.get("render_fps", 30)
-      media.write_video(str(self.current_video_path), video_frames, fps=fps)
+      clip = ImageSequenceClip(video_frames, fps=fps)
+      clip.write_videofile(str(self.current_video_path))
 
       if not self.disable_logger:
         print(f"[INFO] Saved video to {self.current_video_path}")
