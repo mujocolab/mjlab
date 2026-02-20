@@ -426,7 +426,7 @@ class EntityData:
   @property
   def root_link_ang_vel_w(self) -> torch.Tensor:
     """Root link angular velocity in world frame. Shape (num_envs, 3)."""
-    return self.root_link_vel_w[:, 3:6]
+    return self.data.cvel[:, self.indexing.root_body_id, 0:3]
 
   @property
   def root_com_pos_w(self) -> torch.Tensor:
@@ -446,7 +446,8 @@ class EntityData:
   @property
   def root_com_ang_vel_w(self) -> torch.Tensor:
     """Root COM angular velocity in world frame. Shape (num_envs, 3)."""
-    return self.root_com_vel_w[:, 3:6]
+    # Angular velocity is the same for link and COM frames.
+    return self.data.cvel[:, self.indexing.root_body_id, 0:3]
 
   @property
   def body_link_pos_w(self) -> torch.Tensor:
@@ -466,7 +467,7 @@ class EntityData:
   @property
   def body_link_ang_vel_w(self) -> torch.Tensor:
     """Body link angular velocities in world frame. Shape (num_envs, num_bodies, 3)."""
-    return self.body_link_vel_w[..., 3:6]
+    return self.data.cvel[:, self.indexing.body_ids, 0:3]
 
   @property
   def body_com_pos_w(self) -> torch.Tensor:
@@ -486,7 +487,8 @@ class EntityData:
   @property
   def body_com_ang_vel_w(self) -> torch.Tensor:
     """Body COM angular velocities in world frame. Shape (num_envs, num_bodies, 3)."""
-    return self.body_com_vel_w[..., 3:6]
+    # Angular velocity is the same for link and COM frames.
+    return self.data.cvel[:, self.indexing.body_ids, 0:3]
 
   @property
   def body_external_force(self) -> torch.Tensor:
@@ -516,7 +518,8 @@ class EntityData:
   @property
   def geom_ang_vel_w(self) -> torch.Tensor:
     """Geom angular velocities in world frame. Shape (num_envs, num_geoms, 3)."""
-    return self.geom_vel_w[..., 3:6]
+    body_ids = self.model.geom_bodyid[self.indexing.geom_ids]
+    return self.data.cvel[:, body_ids, 0:3]
 
   @property
   def site_pos_w(self) -> torch.Tensor:
@@ -536,7 +539,8 @@ class EntityData:
   @property
   def site_ang_vel_w(self) -> torch.Tensor:
     """Site angular velocities in world frame. Shape (num_envs, num_sites, 3)."""
-    return self.site_vel_w[..., 3:6]
+    body_ids = self.model.site_bodyid[self.indexing.site_ids]
+    return self.data.cvel[:, body_ids, 0:3]
 
   # Derived properties.
 
