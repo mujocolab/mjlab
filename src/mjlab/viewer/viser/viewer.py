@@ -224,7 +224,7 @@ class ViserPlayViewer(BaseViewer):
     def update_scene() -> None:
       with self._sim_lock:
         with self._server.atomic():
-          self._scene.update(sim.wp_data)
+          self._scene.update(sim.data)
           self._server.flush()
 
     self._threadpool.submit(update_scene)
