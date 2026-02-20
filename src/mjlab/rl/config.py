@@ -111,6 +111,9 @@ class RslRlBaseRunnerCfg:
   """
   clip_actions: float | None = None
   """The clipping range for action values. If None (default), no clipping is applied."""
+  upload_model: bool = True
+  """Whether to upload model files (.pt, .onnx) to W&B on save. Set to
+  False to keep metric logging but avoid storage usage. Default is True."""
 
 
 @dataclass

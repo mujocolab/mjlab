@@ -5,6 +5,13 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- Added ``upload_model`` option to ``RslRlBaseRunnerCfg`` to control W&B model
+  file uploads (``.pt`` and ``.onnx``) while keeping metric logging enabled
+  (:gh:`654`).
+
 Changed
 ^^^^^^^
 

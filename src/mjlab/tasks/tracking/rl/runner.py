@@ -108,7 +108,7 @@ class MotionTrackingOnPolicyRunner(MjlabOnPolicyRunner):
       }
     )
     attach_metadata_to_onnx(os.path.join(policy_path, filename), metadata)
-    if self.logger.logger_type in ["wandb"]:
+    if self.logger.logger_type in ["wandb"] and self.cfg["upload_model"]:
       wandb.save(policy_path + filename, base_path=os.path.dirname(policy_path))
       if self.registry_name is not None:
         wandb.run.use_artifact(self.registry_name)  # type: ignore
