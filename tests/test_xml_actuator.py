@@ -10,7 +10,7 @@ from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg, mdp
 from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationTermCfg
 from mjlab.scene import SceneCfg
 from mjlab.sim import MujocoCfg, SimulationCfg
-from mjlab.terrains import TerrainImporterCfg
+from mjlab.terrains import TerrainEntityCfg
 
 # Robot with 2 joints but only 1 actuator defined (underactuated).
 ROBOT_XML_UNDERACTUATED = """
@@ -84,7 +84,7 @@ def test_joint_action_underactuated_with_wildcard(device):
 
   env_cfg = ManagerBasedRlEnvCfg(
     scene=SceneCfg(
-      terrain=TerrainImporterCfg(terrain_type="plane"),
+      terrain=TerrainEntityCfg(terrain_type="plane"),
       num_envs=1,
       extent=1.0,
       entities={"robot": robot_cfg},

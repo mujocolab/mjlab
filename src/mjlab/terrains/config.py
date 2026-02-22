@@ -1,8 +1,8 @@
 import mujoco
 
 import mjlab.terrains as terrain_gen
+from mjlab.terrains.terrain_entity import TerrainEntity, TerrainEntityCfg
 from mjlab.terrains.terrain_generator import TerrainGeneratorCfg
-from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
 
 ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
   size=(8.0, 8.0),
@@ -191,9 +191,9 @@ if __name__ == "__main__":
 
   device = "cuda" if torch.cuda.is_available() else "cpu"
 
-  terrain_cfg = TerrainImporterCfg(
+  terrain_cfg = TerrainEntityCfg(
     terrain_type="generator",
     terrain_generator=ROUGH_TERRAINS_CFG,
   )
-  terrain = TerrainImporter(terrain_cfg, device=device)
+  terrain = TerrainEntity(terrain_cfg, device=device)
   mujoco.viewer.launch(terrain.spec.compile())

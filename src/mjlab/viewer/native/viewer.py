@@ -116,6 +116,8 @@ class NativeMujocoViewer(BaseViewer):
     if not self.cfg.enable_shadows:
       self.viewer.user_scn.flags[mujoco.mjtRndFlag.mjRND_SHADOW] = 0
 
+    self.viewer.opt.flags[mujoco.mjtVisFlag.mjVIS_SCLINERTIA] = 1
+
     self._setup_camera()
 
     if self.enable_perturbations:
@@ -135,22 +137,26 @@ class NativeMujocoViewer(BaseViewer):
       return
 
     with self._mj_lock:
-      sim_data = self.env.unwrapped.sim.data
+      sim = self.env.unwrapped.sim
+      sim_data = sim.data
       if self.mjm.nq > 0:
         self.mjd.qpos[:] = sim_data.qpos[self.env_idx].cpu().numpy()
         self.mjd.qvel[:] = sim_data.qvel[self.env_idx].cpu().numpy()
       if self.mjm.nmocap > 0:
         self.mjd.mocap_pos[:] = sim_data.mocap_pos[self.env_idx].cpu().numpy()
         self.mjd.mocap_quat[:] = sim_data.mocap_quat[self.env_idx].cpu().numpy()
+      self._sync_model_fields(sim, self.env_idx)
       mujoco.mj_forward(self.mjm, self.mjd)
 
-      text_1 = "Env\nStep\nStatus\nSpeed\nFPS"
+      step_dt = self.env.unwrapped.step_dt
+      rt = self._smoothed_sps * step_dt
+      text_1 = "Env\nStep\nStatus\nSpeed\nRealtime"
       text_2 = (
         f"{self.env_idx + 1}/{self.env.num_envs}\n"
         f"{self._step_count}\n"
         f"{'PAUSED' if self._is_paused else 'RUNNING'}\n"
         f"{self._time_multiplier * 100:.1f}%\n"
-        f"{self._smoothed_fps:.1f}"
+        f"{rt:.2f}x ({self._smoothed_fps:.0f} FPS)"
       )
       overlay = (
         mujoco.mjtFontScale.mjFONTSCALE_150.value,
@@ -197,13 +203,49 @@ class NativeMujocoViewer(BaseViewer):
           if self.mjm.nmocap > 0:
             self.vd.mocap_pos[:] = sim_data.mocap_pos[i].cpu().numpy()
             self.vd.mocap_quat[:] = sim_data.mocap_quat[i].cpu().numpy()
+          self._sync_model_fields(sim, i)
           mujoco.mj_forward(self.mjm, self.vd)
           assert self.pert is not None
           mujoco.mjv_addGeoms(
             self.mjm, self.vd, self.vopt, self.pert, self.catmask, v.user_scn
           )
+        # Restore main env's model fields.
+        self._sync_model_fields(sim, self.env_idx)
 
-      v.sync(state_only=True)
+      has_visual_dr = bool(sim.expanded_fields & self._VISUAL_FIELDS)
+      v.sync(state_only=not has_visual_dr)
+
+  # Fields that affect rendering. Physics-only fields (geom_aabb,
+  # geom_rbound, dof_*, jnt_*, actuator_*, tendon_*, etc.) are skipped.
+  _VISUAL_FIELDS = frozenset(
+    {
+      "geom_rgba",
+      "geom_size",
+      "geom_pos",
+      "geom_quat",
+      "site_pos",
+      "site_quat",
+      "body_pos",
+      "body_quat",
+      "body_ipos",
+      "body_inertia",
+      "body_iquat",
+      "body_mass",
+      "cam_pos",
+      "cam_quat",
+      "cam_fovy",
+      "cam_intrinsic",
+      "light_pos",
+      "light_dir",
+    }
+  )
+
+  def _sync_model_fields(self, sim, env_idx: int) -> None:
+    """Sync visually-relevant DR'd model fields from GPU to MjModel."""
+    for field_name in sim.expanded_fields & self._VISUAL_FIELDS:
+      src = getattr(sim.model, field_name)[env_idx].cpu().numpy()
+      dst = getattr(self.mjm, field_name)
+      dst[:] = src.reshape(dst.shape)
 
   def sync_viewer_to_env(self) -> None:
     """Copy perturbation forces from viewer to env."""

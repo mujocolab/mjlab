@@ -1,4 +1,5 @@
 from mjlab.envs import ManagerBasedRlEnvCfg
+from mjlab.envs.mdp import dr
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.action_manager import ActionTermCfg
 from mjlab.managers.command_manager import CommandTermCfg
@@ -14,7 +15,7 @@ from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.tasks.manipulation import mdp as manipulation_mdp
 from mjlab.tasks.manipulation.mdp import LiftingCommandCfg
 from mjlab.tasks.velocity import mdp
-from mjlab.terrains import TerrainImporterCfg
+from mjlab.terrains import TerrainEntityCfg
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
 from mjlab.viewer import ViewerConfig
 
@@ -102,12 +103,10 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
     ),
     "fingertip_friction_slide": EventTermCfg(
       mode="startup",
-      func=mdp.randomize_field,
-      domain_randomization=True,
+      func=dr.geom_friction,
       params={
         "asset_cfg": SceneEntityCfg("robot", geom_names=()),  # Set per-robot.
         "operation": "abs",
-        "field": "geom_friction",
         "distribution": "uniform",
         "axes": [0],
         "ranges": (0.3, 1.5),
@@ -115,12 +114,10 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
     ),
     "fingertip_friction_spin": EventTermCfg(
       mode="startup",
-      func=mdp.randomize_field,
-      domain_randomization=True,
+      func=dr.geom_friction,
       params={
         "asset_cfg": SceneEntityCfg("robot", geom_names=()),  # Set per-robot.
         "operation": "abs",
-        "field": "geom_friction",
         "distribution": "log_uniform",
         "axes": [1],
         "ranges": (1e-4, 2e-2),
@@ -128,12 +125,10 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
     ),
     "fingertip_friction_roll": EventTermCfg(
       mode="startup",
-      func=mdp.randomize_field,
-      domain_randomization=True,
+      func=dr.geom_friction,
       params={
         "asset_cfg": SceneEntityCfg("robot", geom_names=()),  # Set per-robot.
         "operation": "abs",
-        "field": "geom_friction",
         "distribution": "log_uniform",
         "axes": [2],
         "ranges": (1e-5, 5e-3),
@@ -216,7 +211,7 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
 
   return ManagerBasedRlEnvCfg(
     scene=SceneCfg(
-      terrain=TerrainImporterCfg(terrain_type="plane"),
+      terrain=TerrainEntityCfg(terrain_type="plane"),
       num_envs=1,
       env_spacing=1.0,
       sensors=(ee_ground_collision_cfg,),

@@ -15,7 +15,7 @@ from mjlab.sensor import BuiltinSensor, Sensor, SensorCfg
 from mjlab.sensor.camera_sensor import CameraSensor
 from mjlab.sensor.raycast_sensor import RayCastSensor
 from mjlab.sensor.sensor_context import SensorContext
-from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
+from mjlab.terrains.terrain_entity import TerrainEntity, TerrainEntityCfg
 
 _SCENE_XML = Path(__file__).parent / "scene.xml"
 
@@ -24,7 +24,7 @@ _SCENE_XML = Path(__file__).parent / "scene.xml"
 class SceneCfg:
   num_envs: int = 1
   env_spacing: float = 2.0
-  terrain: TerrainImporterCfg | None = None
+  terrain: TerrainEntityCfg | None = None
   entities: dict[str, EntityCfg] = field(default_factory=dict)
   sensors: tuple[SensorCfg, ...] = field(default_factory=tuple)
   extent: float | None = None
@@ -37,7 +37,7 @@ class Scene:
     self._device = device
     self._entities: dict[str, Entity] = {}
     self._sensors: dict[str, Sensor] = {}
-    self._terrain: TerrainImporter | None = None
+    self._terrain: TerrainEntity | None = None
     self._default_env_origins: torch.Tensor | None = None
     self._sensor_context: SensorContext | None = None
 
@@ -95,7 +95,7 @@ class Scene:
     return self._sensors
 
   @property
-  def terrain(self) -> TerrainImporter | None:
+  def terrain(self) -> TerrainEntity | None:
     return self._terrain
 
   @property
@@ -107,11 +107,6 @@ class Scene:
     return self._device
 
   def __getitem__(self, key: str) -> Any:
-    if key == "terrain":
-      if self._terrain is None:
-        raise KeyError("No terrain configured in this scene.")
-      return self._terrain
-
     if key in self._sensors:
       return self._sensors[key]
     if key in self._entities:
@@ -119,8 +114,6 @@ class Scene:
 
     # Not found, raise helpful error.
     available = list(self._entities.keys()) + list(self._sensors.keys())
-    if self._terrain is not None:
-      available.append("terrain")
     raise KeyError(f"Scene element '{key}' not found. Available: {available}")
 
   # Methods.
@@ -212,9 +205,11 @@ class Scene:
       return
     self._cfg.terrain.num_envs = self._cfg.num_envs
     self._cfg.terrain.env_spacing = self._cfg.env_spacing
-    self._terrain = TerrainImporter(self._cfg.terrain, self._device)
+    terrain = TerrainEntity(self._cfg.terrain, device=self._device)
+    self._terrain = terrain
+    self._entities["terrain"] = terrain
     frame = self._spec.worldbody.add_frame()
-    self._spec.attach(self._terrain.spec, prefix="", frame=frame)
+    self._spec.attach(terrain.spec, prefix="", frame=frame)
 
   def _add_sensors(self) -> None:
     for sensor_cfg in self._cfg.sensors:

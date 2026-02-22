@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import enum
 from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass
@@ -20,21 +21,75 @@ F = Callable[..., None]
 EventMode = Literal["startup", "reset", "interval"]
 
 
-def requires_model_fields(*fields: str) -> Callable[[F], F]:
+class RecomputeLevel(enum.IntEnum):
+  """Recomputation level for derived model constants after domain randomization.
+
+  Higher values are more expensive and recompute a superset of the lower levels.
+
+  .. note::
+
+    All levels above ``none`` are expensive (forward kinematics, mass matrix
+    factorization, etc.). Prefer ``startup`` or ``reset`` event modes for
+    DR terms that require recomputation.
+  """
+
+  none = 0
+  """No recomputation needed (e.g. geom_friction, dof_damping)."""
+
+  set_const_fixed = 1
+  """Recompute ``body_subtreemass``. Use after modifying ``body_gravcomp``."""
+
+  set_const_0 = 2
+  """Recompute ``dof_invweight0``, ``body_invweight0``, ``tendon_length0``,
+  ``tendon_invweight0``. Use after modifying ``dof_armature``, ``body_inertia``,
+  ``body_pos``, ``body_quat``, or ``qpos0``."""
+
+  set_const = 3
+  """Full recomputation (superset of all lower levels). Use after modifying
+  ``body_mass`` or ``body_ipos``."""
+
+
+_DERIVED_FIELDS: dict[RecomputeLevel, tuple[str, ...]] = {
+  RecomputeLevel.none: (),
+  RecomputeLevel.set_const_fixed: ("body_subtreemass",),
+  RecomputeLevel.set_const_0: (
+    "dof_invweight0",
+    "body_invweight0",
+    "tendon_length0",
+    "tendon_invweight0",
+  ),
+}
+_DERIVED_FIELDS[RecomputeLevel.set_const] = (
+  _DERIVED_FIELDS[RecomputeLevel.set_const_fixed]
+  + _DERIVED_FIELDS[RecomputeLevel.set_const_0]
+)
+
+
+def requires_model_fields(
+  *fields: str, recompute: RecomputeLevel = RecomputeLevel.none
+) -> Callable[[F], F]:
   """Mark an event function as requiring specific model fields expanded per-world.
 
   Fields listed here are registered in ``EventManager.domain_randomization_fields``
   so that ``sim.expand_model_fields()`` allocates real per-world memory for them.
 
+  Args:
+    *fields: Model field names to expand per-world.
+    recompute: Recomputation level after modifying these fields.
+      Derived fields are automatically appended to the model_fields list.
+
   Example::
 
-    @requires_model_fields("actuator_gainprm", "actuator_biasprm")
-    def randomize_pd_gains(env, env_ids, ...):
+    @requires_model_fields("body_mass", recompute=RecomputeLevel.set_const)
+    def body_mass(env, env_ids, ...):
       ...
   """
+  derived = _DERIVED_FIELDS[recompute]
+  all_fields = fields + tuple(f for f in derived if f not in fields)
 
   def decorator(func: F) -> F:
-    func.model_fields = fields  # type: ignore[attr-defined]
+    func.model_fields = all_fields  # type: ignore[attr-defined]
+    func.recompute = recompute  # type: ignore[attr-defined]
     return func
 
   return decorator
@@ -78,11 +133,6 @@ class EventTermCfg(ManagerTermBaseCfg):
   """Minimum environment steps between triggers. Prevents the event from firing
   too frequently when episodes reset rapidly. Only applies to ``mode="reset"``.
   Set to 0 (default) to trigger on every reset."""
-
-  domain_randomization: bool = False
-  """Whether this event performs domain randomization. If True, the field name
-  from ``params["field"]`` is tracked and exposed via
-  ``EventManager.domain_randomization_fields`` for logging/debugging."""
 
 
 class EventManager(ManagerBase):
@@ -198,7 +248,10 @@ class EventManager(ManagerBase):
         f"Event mode '{mode}' requires the total number of environment steps to be provided."
       )
 
+    strongest_fired = RecomputeLevel.none
+
     for index, term_cfg in enumerate(self._mode_term_cfgs[mode]):
+      fired = False
       if mode == "interval":
         time_left = self._interval_term_time_left[index]
         assert dt is not None
@@ -210,6 +263,7 @@ class EventManager(ManagerBase):
             sampled_interval = torch.rand(1) * (upper - lower) + lower
             self._interval_term_time_left[index][:] = sampled_interval
             term_cfg.func(self._env, None, **term_cfg.params)
+            fired = True
         else:
           valid_env_ids = (time_left < 1e-6).nonzero().flatten()
           if len(valid_env_ids) > 0:
@@ -221,6 +275,7 @@ class EventManager(ManagerBase):
             )
             self._interval_term_time_left[index][valid_env_ids] = sampled_time
             term_cfg.func(self._env, valid_env_ids, **term_cfg.params)
+            fired = True
       elif mode == "reset":
         assert global_env_step_count is not None
         min_step_count = term_cfg.min_step_count_between_reset
@@ -232,6 +287,7 @@ class EventManager(ManagerBase):
           )
           self._reset_term_last_triggered_once[index][env_ids] = True
           term_cfg.func(self._env, env_ids, **term_cfg.params)
+          fired = True
         else:
           last_triggered_step = self._reset_term_last_triggered_step_id[index][env_ids]
           triggered_at_least_once = self._reset_term_last_triggered_once[index][env_ids]
@@ -248,8 +304,17 @@ class EventManager(ManagerBase):
               global_env_step_count
             )
             term_cfg.func(self._env, valid_env_ids, **term_cfg.params)
+            fired = True
       else:
         term_cfg.func(self._env, env_ids, **term_cfg.params)
+        fired = True
+
+      if fired:
+        level = getattr(term_cfg.func, "recompute", RecomputeLevel.none)
+        strongest_fired = max(strongest_fired, level)
+
+    if strongest_fired != RecomputeLevel.none:
+      self._env.sim.recompute_constants(strongest_fired)
 
   def _prepare_terms(self) -> None:
     self._interval_term_time_left: list[torch.Tensor] = list()
@@ -290,11 +355,6 @@ class EventManager(ManagerBase):
         self._reset_term_last_triggered_step_id.append(step_count)
         no_trigger = torch.zeros(self.num_envs, device=self.device, dtype=torch.bool)
         self._reset_term_last_triggered_once.append(no_trigger)
-
-      if term_cfg.domain_randomization:
-        field_name = term_cfg.params["field"]
-        if field_name not in self._domain_randomization_fields:
-          self._domain_randomization_fields.append(field_name)
 
       func = term_cfg.func
       if hasattr(func, "model_fields"):

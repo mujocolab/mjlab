@@ -8,6 +8,7 @@ import mujoco_warp as mjwarp
 import torch
 import warp as wp
 
+from mjlab.managers.event_manager import RecomputeLevel
 from mjlab.sim.randomization import expand_model_fields
 from mjlab.sim.sim_data import TorchArray, WarpBridge
 from mjlab.utils.nan_guard import NanGuard, NanGuardCfg
@@ -138,6 +139,7 @@ class Simulation:
     self.wp_device = wp.get_device(self.device)
     self.num_envs = num_envs
     self._default_model_fields: dict[str, torch.Tensor] = {}
+    self._expanded_fields: set[str] = set()
 
     # MuJoCo model and data.
     self._mj_model = model
@@ -236,6 +238,11 @@ class Simulation:
     """Default values for expanded model fields, used in domain randomization."""
     return self._default_model_fields
 
+  @property
+  def expanded_fields(self) -> set[str]:
+    """Names of model fields that have been expanded for per-env DR."""
+    return self._expanded_fields
+
   # Methods.
 
   def expand_model_fields(self, fields: tuple[str, ...]) -> None:
@@ -248,6 +255,7 @@ class Simulation:
       raise ValueError(f"Fields not found in model: {invalid_fields}")
 
     expand_model_fields(self._wp_model, self.num_envs, list(fields))
+    self._expanded_fields.update(fields)
     self._model_bridge.clear_cache()
 
     if self._sensor_context is not None:
@@ -274,6 +282,19 @@ class Simulation:
         default_value, dtype=model_field.dtype, device=self.device
       ).clone()
     return self._default_model_fields[field]
+
+  def recompute_constants(self, level: RecomputeLevel) -> None:
+    """Recompute derived model constants after domain randomization.
+
+    Args:
+      level: Which constants to recompute. ``set_const`` is the most
+        expensive (covers body_mass changes), ``set_const_0`` covers
+        qpos0/body_inertia/dof_armature changes, and ``set_const_fixed``
+        is the cheapest (covers body_gravcomp changes).
+    """
+    fn = getattr(mjwarp, level.name)
+    with wp.ScopedDevice(self.wp_device):
+      fn(self._wp_model, self._wp_data)
 
   def forward(self) -> None:
     with wp.ScopedDevice(self.wp_device):

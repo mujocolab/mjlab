@@ -6,11 +6,11 @@ import torch
 from conftest import get_test_device
 
 from mjlab.terrains.heightfield_terrains import HfRandomUniformTerrainCfg
+from mjlab.terrains.terrain_entity import TerrainEntity, TerrainEntityCfg
 from mjlab.terrains.terrain_generator import (
   FlatPatchSamplingCfg,
   TerrainGeneratorCfg,
 )
-from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
 from mjlab.terrains.utils import find_flat_patches_from_heightfield
 
 
@@ -140,10 +140,10 @@ def test_terrain_importer_end_to_end():
       ),
     },
   )
-  importer_cfg = TerrainImporterCfg(
+  importer_cfg = TerrainEntityCfg(
     terrain_type="generator", terrain_generator=gen_cfg, num_envs=4
   )
-  importer = TerrainImporter(importer_cfg, device=device)
+  importer = TerrainEntity(importer_cfg, device=device)
 
   assert "spawn" in importer.flat_patches
   patches = importer.flat_patches["spawn"]

@@ -22,7 +22,7 @@ from mjlab.rl.spatial_softmax import SpatialSoftmaxCNNModel
 from mjlab.scene import SceneCfg
 from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.tasks.tracking.rl.runner import _OnnxMotionModel
-from mjlab.terrains import TerrainImporterCfg
+from mjlab.terrains import TerrainEntityCfg
 
 
 @pytest.fixture(scope="module")
@@ -58,7 +58,7 @@ def env(device):
 
   env_cfg = ManagerBasedRlEnvCfg(
     scene=SceneCfg(
-      terrain=TerrainImporterCfg(terrain_type="plane"),
+      terrain=TerrainEntityCfg(terrain_type="plane"),
       num_envs=2,
       extent=1.0,
       entities={"robot": robot_cfg},

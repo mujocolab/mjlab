@@ -161,6 +161,26 @@ class DebugVisualizer(ABC):
     ...
 
   @abstractmethod
+  def add_ellipsoid(
+    self,
+    center: np.ndarray | torch.Tensor,
+    size: np.ndarray | torch.Tensor,
+    mat: np.ndarray | torch.Tensor,
+    color: tuple[float, float, float, float],
+    label: str | None = None,
+  ) -> None:
+    """Add an ellipsoid visualization.
+
+    Args:
+      center: Center position (3D vector).
+      size: Semi-axes lengths (3D vector: a, b, c).
+      mat: 3x3 rotation matrix (or flattened 9-element array).
+      color: RGBA color (values 0-1).
+      label: Optional label for this ellipsoid.
+    """
+    ...
+
+  @abstractmethod
   def clear(self) -> None:
     """Clear all debug visualizations."""
     ...
@@ -218,6 +238,9 @@ class NullDebugVisualizer:
     pass
 
   def add_cylinder(self, start, end, radius, color, label=None) -> None:
+    pass
+
+  def add_ellipsoid(self, center, size, mat, color, label=None) -> None:
     pass
 
   def clear(self) -> None:

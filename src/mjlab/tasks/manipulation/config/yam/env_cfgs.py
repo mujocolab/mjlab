@@ -8,11 +8,13 @@ from mjlab.asset_zoo.robots import (
 )
 from mjlab.entity import EntityCfg
 from mjlab.envs import ManagerBasedRlEnvCfg
+from mjlab.envs.mdp import dr
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers import (
   ObservationGroupCfg,
   ObservationTermCfg,
 )
+from mjlab.managers.event_manager import EventTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import CameraSensorCfg, ContactSensorCfg
 from mjlab.tasks.manipulation import mdp as manipulation_mdp
@@ -124,6 +126,19 @@ def yam_lift_cube_vision_env_cfg(
     terms=cam_terms, enable_corruption=False, concatenate_terms=True
   )
   cfg.observations["camera"] = camera_obs
+
+  if cam_type == "rgb":
+    cfg.events["cube_color"] = EventTermCfg(
+      func=dr.geom_rgba,
+      mode="reset",
+      params={
+        "asset_cfg": SceneEntityCfg("cube", geom_names=(".*",)),
+        "operation": "abs",
+        "distribution": "uniform",
+        "axes": [0, 1, 2],
+        "ranges": (0.0, 1.0),
+      },
+    )
 
   # Pop privileged info from actor observations.
   actor_obs = cfg.observations["actor"]

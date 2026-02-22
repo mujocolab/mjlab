@@ -106,7 +106,8 @@ class BaseViewer(ABC):
     self._timer = Timer()
     self._sim_timer = Timer()
     self._render_timer = Timer()
-    self._time_until_next_frame = 0.0
+    self._sim_time_budget = 0.0
+    self._time_until_next_render = 0.0
 
     self._speed_index = self.SPEED_MULTIPLIERS.index(1.0)
     self._time_multiplier = self.SPEED_MULTIPLIERS[self._speed_index]
@@ -117,9 +118,11 @@ class BaseViewer(ABC):
     self._accumulated_sim_time = 0.0
     self._accumulated_render_time = 0.0
 
-    # FPS tracking.
+    # FPS and realtime tracking.
     self._smoothed_fps: float = 0.0
+    self._smoothed_sps: float = 0.0
     self._fps_accum_frames: int = 0
+    self._sps_accum_steps: int = 0
     self._fps_accum_time: float = 0.0
     self._fps_last_frame_time: Optional[float] = None
     self._fps_update_interval: float = 0.5
@@ -184,6 +187,7 @@ class BaseViewer(ABC):
         actions = self.policy(obs)
         self.env.step(actions)
         self._step_count += 1
+        self._sps_accum_steps += 1
       self._accumulated_sim_time += self._sim_timer.measured_time
 
   def reset_environment(self) -> None:
@@ -198,6 +202,7 @@ class BaseViewer(ABC):
 
   def resume(self) -> None:
     self._is_paused = False
+    self._sim_time_budget = 0.0
     self._timer.tick()
     self._fps_last_frame_time = time.time()
     self.log("[INFO] Simulation resumed", VerbosityLevel.INFO)
@@ -229,23 +234,43 @@ class BaseViewer(ABC):
     return False
 
   def tick(self) -> bool:
+    """Advance the viewer by one tick.
+
+    Physics and rendering are decoupled: physics steps are governed by a
+    sim-time budget (accumulated from wall time * speed multiplier), while
+    rendering always happens at the configured ``frame_rate``. This keeps
+    the display smooth even at slow playback speeds.
+
+    Returns True when a render frame was produced, False otherwise.
+    """
     self._process_actions()
 
-    elapsed_time = self._timer.tick() * self._time_multiplier
-    self._time_until_next_frame -= elapsed_time
+    wall_dt = self._timer.tick()
 
-    if self._time_until_next_frame > 0:
+    # Step physics based on accumulated sim-time budget.
+    if not self._is_paused:
+      step_dt = self.env.unwrapped.step_dt
+      self._sim_time_budget += wall_dt * self._time_multiplier
+      # Cap budget to prevent spiral of death after long stalls.
+      self._sim_time_budget = min(self._sim_time_budget, step_dt * 10)
+
+      if self._sim_time_budget >= step_dt:
+        self.sync_viewer_to_env()
+      while self._sim_time_budget >= step_dt:
+        self.step_simulation()
+        self._sim_time_budget -= step_dt
+
+    # Render at fixed frame rate, independent of physics speed.
+    self._time_until_next_render -= wall_dt
+    if self._time_until_next_render > 0:
       return False
 
-    self._time_until_next_frame += self.frame_time
-    if self._time_until_next_frame < -self.frame_time:
-      self._time_until_next_frame = 0.0
+    self._time_until_next_render += self.frame_time
+    if self._time_until_next_render < -self.frame_time:
+      self._time_until_next_render = 0.0
 
     with self._render_timer.measure_time():
-      self.sync_viewer_to_env()
-      self.step_simulation()
       self.sync_env_to_viewer()
-
     self._accumulated_render_time += self._render_timer.measured_time
     self._frame_count += 1
     self._update_fps()
@@ -310,12 +335,15 @@ class BaseViewer(ABC):
     self._fps_accum_frames += 1
     self._fps_accum_time += dt
     if self._fps_accum_time >= self._fps_update_interval:
-      inst = self._fps_accum_frames / self._fps_accum_time
+      alpha = self._fps_alpha
+      inst_fps = self._fps_accum_frames / self._fps_accum_time
+      inst_sps = self._sps_accum_steps / self._fps_accum_time
       if self._smoothed_fps == 0.0:
-        self._smoothed_fps = inst
+        self._smoothed_fps = inst_fps
+        self._smoothed_sps = inst_sps
       else:
-        self._smoothed_fps = (
-          self._fps_alpha * inst + (1.0 - self._fps_alpha) * self._smoothed_fps
-        )
+        self._smoothed_fps = alpha * inst_fps + (1 - alpha) * self._smoothed_fps
+        self._smoothed_sps = alpha * inst_sps + (1 - alpha) * self._smoothed_sps
       self._fps_accum_frames = 0
+      self._sps_accum_steps = 0
       self._fps_accum_time = 0.0

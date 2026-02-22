@@ -5,12 +5,57 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+.. admonition:: Breaking API changes
+   :class: attention
+
+   - ``randomize_field`` no longer exists. Replace calls with typed functions
+     from the new ``dr`` module (e.g. ``dr.geom_friction``, ``dr.body_mass``).
+   - ``EventTermCfg`` no longer accepts ``domain_randomization``. The
+     ``@requires_model_fields`` decorator on each ``dr`` function takes care
+     of field expansion automatically.
+
 Added
 ^^^^^
 
+- New ``dr`` module (``mjlab.envs.mdp.dr``) replacing ``randomize_field``
+  with typed per-field domain randomization functions. Each function
+  automatically recomputes derived fields via ``set_const``. Highlights:
+
+  - Camera and light randomization: ``dr.cam_fovy``, ``dr.cam_pos``,
+    ``dr.cam_quat``, ``dr.cam_intrinsic``, ``dr.light_pos``,
+    ``dr.light_dir``. Camera and light names are now supported in
+    ``SceneEntityCfg`` (``camera_names`` / ``light_names``).
+  - ``dr.pseudo_inertia`` for physics-consistent randomization of
+    ``body_mass``, ``body_ipos``, ``body_inertia``, and ``body_iquat``
+    via the pseudo-inertia matrix parameterization (Rucker & Wensing
+    2022). Replaces the removed ``dr.body_inertia`` /
+    ``dr.body_iquat``.
+  - ``dr.geom_size`` with automatic recomputation of ``geom_rbound``
+    and ``geom_aabb`` for broadphase consistency.
+  - ``dr.tendon_armature`` and ``dr.tendon_frictionloss``.
+  - ``dr.body_quat``, ``dr.geom_quat``, and ``dr.site_quat`` with RPY
+    perturbation composed onto the default quaternion.
+  - Fixed ``dr.effort_limits`` drifting on repeated randomization.
+  - Fixed ``dr.body_com_offset`` not triggering ``set_const``.
+
+- ``yam_lift_cube_vision_env_cfg`` now randomizes cube color (``dr.geom_rgba``)
+  on every reset when ``cam_type="rgb"``.
+
+- The native viewer now reflects per-world DR changes to visual model fields
+  on each reset. Geom appearance, body and site poses, camera parameters,
+  and light positions are all synced from the GPU model before rendering.
+  Inertia boxes (press ``I``) and camera frustums (press ``Q``) update
+  correctly when the corresponding fields are randomized. See
+  :doc:`randomization` for viewer-specific caveats.
+
+- Terrain is now a proper ``Entity`` subclass (``TerrainEntity``). This
+  allows domain randomization functions to target terrain parameters
+  (friction, cameras, lights) via ``SceneEntityCfg("terrain", ...)``.
+  ``TerrainImporter`` / ``TerrainImporterCfg`` remain as aliases but will be
+  deprecated in a future version.
 - Added ``upload_model`` option to ``RslRlBaseRunnerCfg`` to control W&B model
   file uploads (``.pt`` and ``.onnx``) while keeping metric logging enabled
-  (:gh:`654`).
+  (`#654 <https://github.com/mujocolab/mjlab/pull/654>`_).
 
 Changed
 ^^^^^^^
@@ -32,6 +77,8 @@ Fixed
 - Fixed ghost mesh visualization for fixed-base entities by extending
   ``DebugVisualizer.add_ghost_mesh`` to optionally accept ``mocap_pos`` and
   ``mocap_quat`` (`#645 <https://github.com/mujocolab/mjlab/pull/645>`_).
+- Fixed viser viewer crashing on scenes with no mocap bodies by adding
+  an ``nmocap`` guard, matching the native viewer behavior.
 
 Version 1.1.1 (February 14, 2026)
 ---------------------------------

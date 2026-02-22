@@ -42,11 +42,31 @@ from mjlab.terrains.primitive_terrains import (
 from mjlab.terrains.primitive_terrains import (
   BoxTiltedGridTerrainCfg as BoxTiltedGridTerrainCfg,
 )
+from mjlab.terrains.terrain_entity import TerrainEntity as TerrainEntity
+from mjlab.terrains.terrain_entity import TerrainEntityCfg as TerrainEntityCfg
 from mjlab.terrains.terrain_generator import (
   FlatPatchSamplingCfg as FlatPatchSamplingCfg,
 )
 from mjlab.terrains.terrain_generator import SubTerrainCfg as SubTerrainCfg
 from mjlab.terrains.terrain_generator import TerrainGenerator as TerrainGenerator
 from mjlab.terrains.terrain_generator import TerrainGeneratorCfg as TerrainGeneratorCfg
-from mjlab.terrains.terrain_importer import TerrainImporter as TerrainImporter
-from mjlab.terrains.terrain_importer import TerrainImporterCfg as TerrainImporterCfg
+
+# Backwards compatibility aliases (deprecated).
+_DEPRECATED_ALIASES = {
+  "TerrainImporter": "TerrainEntity",
+  "TerrainImporterCfg": "TerrainEntityCfg",
+}
+
+
+def __getattr__(name: str):
+  if name in _DEPRECATED_ALIASES:
+    import warnings
+
+    new_name = _DEPRECATED_ALIASES[name]
+    warnings.warn(
+      f"{name} is deprecated and will be removed in a future version. Use {new_name} instead.",
+      DeprecationWarning,
+      stacklevel=2,
+    )
+    return globals()[new_name]
+  raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

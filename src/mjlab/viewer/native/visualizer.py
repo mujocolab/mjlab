@@ -253,6 +253,38 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
     )
 
   @override
+  def add_ellipsoid(
+    self,
+    center: np.ndarray | torch.Tensor,
+    size: np.ndarray | torch.Tensor,
+    mat: np.ndarray | torch.Tensor,
+    color: tuple[float, float, float, float],
+    label: str | None = None,
+  ) -> None:
+    """Add an ellipsoid visualization using MuJoCo's ellipsoid geometry."""
+    del label  # Unused.
+
+    if isinstance(center, torch.Tensor):
+      center = center.cpu().numpy()
+    if isinstance(size, torch.Tensor):
+      size = size.cpu().numpy()
+    if isinstance(mat, torch.Tensor):
+      mat = mat.cpu().numpy()
+
+    self.scn.ngeom += 1
+    geom = self.scn.geoms[self.scn.ngeom - 1]
+    geom.category = mujoco.mjtCatBit.mjCAT_DECOR
+
+    mujoco.mjv_initGeom(
+      geom=geom,
+      type=mujoco.mjtGeom.mjGEOM_ELLIPSOID.value,
+      size=np.asarray(size, dtype=np.float64),
+      pos=np.asarray(center, dtype=np.float64),
+      mat=np.asarray(mat, dtype=np.float64).flatten(),
+      rgba=np.asarray(color, dtype=np.float32),
+    )
+
+  @override
   def clear(self) -> None:
     """Clear debug visualizations by resetting geom count."""
     self.scn.ngeom = self._initial_geom_count

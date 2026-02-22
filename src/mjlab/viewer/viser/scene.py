@@ -163,6 +163,11 @@ class ViserMujocoScene(DebugVisualizer):
   ] = field(default_factory=list, init=False)
   _cylinder_handle: viser.BatchedMeshHandle | None = field(default=None, init=False)
   _cylinder_mesh: trimesh.Trimesh | None = field(default=None, init=False)
+  _queued_ellipsoids: list[
+    tuple[np.ndarray, np.ndarray, np.ndarray, tuple[float, float, float, float]]
+  ] = field(default_factory=list, init=False)
+  _ellipsoid_handle: viser.BatchedMeshHandle | None = field(default=None, init=False)
+  _ellipsoid_mesh: trimesh.Trimesh | None = field(default=None, init=False)
   _fixed_site_handles: dict[tuple[int, int], viser.GlbHandle] = field(
     default_factory=dict, init=False
   )
@@ -501,8 +506,9 @@ class ViserMujocoScene(DebugVisualizer):
       mocap_pos = wp_data.mocap_pos.cpu().numpy()
       mocap_quat = wp_data.mocap_quat.cpu().numpy()
     else:
-      mocap_pos = np.zeros((body_xpos.shape[0], 0, 3))
-      mocap_quat = np.zeros((body_xpos.shape[0], 0, 4))
+      nworld = body_xpos.shape[0]
+      mocap_pos = np.zeros((nworld, 0, 3))
+      mocap_quat = np.zeros((nworld, 0, 4))
     scene_offset = np.zeros(3)
     if self.camera_tracking_enabled and self._tracked_body_id is not None:
       tracked_pos = body_xpos[env_idx, self._tracked_body_id, :].copy()
@@ -563,6 +569,7 @@ class ViserMujocoScene(DebugVisualizer):
     self._sync_arrows()
     self._sync_spheres()
     self._sync_cylinders()
+    self._sync_ellipsoids()
     self._sync_ghosts()
 
   def _update_visualization(
@@ -757,7 +764,15 @@ class ViserMujocoScene(DebugVisualizer):
             )
 
   def _create_mesh_handles_by_group(self) -> None:
-    """Create mesh handles for each geom group separately to allow independent toggling."""
+    """Create mesh handles for each geom group separately to allow independent toggling.
+
+    Note: geom_rgba DR is not currently reflected in viser. All dynamic geoms go
+    through add_batched_meshes_trimesh (BatchedGlbHandle), which bakes vertex colors
+    into the GLB at construction time and has no runtime color update API.
+    To support it, color-only geoms would need to use add_batched_meshes_simple
+    (BatchedMeshHandle) instead, which exposes a batched_colors property. Deferred
+    for now.
+    """
     # Group geoms by (body_id, group_id).
     body_group_geoms: dict[tuple[int, int], list[int]] = {}
 
@@ -1229,6 +1244,37 @@ class ViserMujocoScene(DebugVisualizer):
     self._queued_cylinders.append((start.copy(), end.copy(), radius, color))
 
   @override
+  def add_ellipsoid(
+    self,
+    center: np.ndarray | torch.Tensor,
+    size: np.ndarray | torch.Tensor,
+    mat: np.ndarray | torch.Tensor,
+    color: tuple[float, float, float, float],
+    label: str | None = None,
+  ) -> None:
+    """Queue an ellipsoid for batched rendering."""
+    if not self.debug_visualization_enabled:
+      return
+
+    del label  # Unused.
+    if isinstance(center, torch.Tensor):
+      center = center.cpu().numpy()
+    if isinstance(size, torch.Tensor):
+      size = size.cpu().numpy()
+    if isinstance(mat, torch.Tensor):
+      mat = mat.cpu().numpy()
+
+    mat = np.asarray(mat, dtype=np.float32).reshape(3, 3)
+    self._queued_ellipsoids.append(
+      (
+        np.asarray(center, dtype=np.float32).copy(),
+        np.asarray(size, dtype=np.float32).copy(),
+        mat.copy(),
+        color,
+      )
+    )
+
+  @override
   def clear(self) -> None:
     """Clear all debug visualizations.
 
@@ -1238,6 +1284,7 @@ class ViserMujocoScene(DebugVisualizer):
     self._queued_arrows.clear()
     self._queued_spheres.clear()
     self._queued_cylinders.clear()
+    self._queued_ellipsoids.clear()
     self._queued_ghosts.clear()
 
   def clear_debug_all(self) -> None:
@@ -1264,6 +1311,11 @@ class ViserMujocoScene(DebugVisualizer):
     if self._cylinder_handle is not None:
       self._cylinder_handle.remove()
       self._cylinder_handle = None
+
+    # Remove ellipsoid meshes
+    if self._ellipsoid_handle is not None:
+      self._ellipsoid_handle.remove()
+      self._ellipsoid_handle = None
 
     # Remove ghost meshes
     for handle in self._ghost_handles_batched.values():
@@ -1573,6 +1625,61 @@ class ViserMujocoScene(DebugVisualizer):
       self._cylinder_handle.batched_wxyzs = wxyzs
       self._cylinder_handle.batched_scales = scales
       self._cylinder_handle.batched_colors = colors
+
+  def _sync_ellipsoids(self) -> None:
+    """Render all queued ellipsoids using batched meshes."""
+    if not self.debug_visualization_enabled:
+      return
+
+    if not self._queued_ellipsoids:
+      if self._ellipsoid_handle is not None:
+        self._ellipsoid_handle.remove()
+        self._ellipsoid_handle = None
+      return
+
+    if self._ellipsoid_mesh is None:
+      self._ellipsoid_mesh = trimesh.creation.icosphere(subdivisions=2, radius=1.0)
+
+    num_ellipsoids = len(self._queued_ellipsoids)
+    positions = np.zeros((num_ellipsoids, 3), dtype=np.float32)
+    wxyzs = np.zeros((num_ellipsoids, 4), dtype=np.float32)
+    scales = np.zeros((num_ellipsoids, 3), dtype=np.float32)
+    colors = np.zeros((num_ellipsoids, 3), dtype=np.uint8)
+    opacities = np.zeros(num_ellipsoids, dtype=np.float32)
+
+    for i, (center, size, mat, color) in enumerate(self._queued_ellipsoids):
+      positions[i] = center + self._scene_offset
+      wxyzs[i] = vtf.SO3.from_matrix(mat).wxyz
+      scales[i] = size
+      colors[i] = (np.array(color[:3]) * 255).astype(np.uint8)
+      opacities[i] = color[3]
+
+    needs_recreation = self._ellipsoid_handle is None or len(positions) != len(
+      self._ellipsoid_handle.batched_positions
+    )
+
+    if needs_recreation:
+      if self._ellipsoid_handle is not None:
+        self._ellipsoid_handle.remove()
+
+      self._ellipsoid_handle = self.server.scene.add_batched_meshes_simple(
+        f"/debug/env_{self.env_idx}/ellipsoids",
+        self._ellipsoid_mesh.vertices,
+        self._ellipsoid_mesh.faces,
+        batched_wxyzs=wxyzs,
+        batched_positions=positions,
+        batched_scales=scales,
+        batched_colors=colors,
+        opacity=opacities[0],
+        cast_shadow=False,
+        receive_shadow=False,
+      )
+    else:
+      assert self._ellipsoid_handle is not None
+      self._ellipsoid_handle.batched_positions = positions
+      self._ellipsoid_handle.batched_wxyzs = wxyzs
+      self._ellipsoid_handle.batched_scales = scales
+      self._ellipsoid_handle.batched_colors = colors
 
   def _sync_ghosts(self) -> None:
     """Render all queued ghosts using batched meshes.
