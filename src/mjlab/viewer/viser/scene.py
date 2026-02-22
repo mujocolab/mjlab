@@ -497,8 +497,12 @@ class ViserMujocoScene(DebugVisualizer):
 
     body_xpos = wp_data.xpos.cpu().numpy()
     body_xmat = wp_data.xmat.cpu().numpy()
-    mocap_pos = wp_data.mocap_pos.cpu().numpy()
-    mocap_quat = wp_data.mocap_quat.cpu().numpy()
+    if self.mj_model.nmocap > 0:
+      mocap_pos = wp_data.mocap_pos.cpu().numpy()
+      mocap_quat = wp_data.mocap_quat.cpu().numpy()
+    else:
+      mocap_pos = np.zeros((body_xpos.shape[0], 0, 3))
+      mocap_quat = np.zeros((body_xpos.shape[0], 0, 4))
     scene_offset = np.zeros(3)
     if self.camera_tracking_enabled and self._tracked_body_id is not None:
       tracked_pos = body_xpos[env_idx, self._tracked_body_id, :].copy()
@@ -508,8 +512,9 @@ class ViserMujocoScene(DebugVisualizer):
     if self.show_contact_points or self.show_contact_forces:
       self.mj_data.qpos[:] = wp_data.qpos.cpu().numpy()[env_idx]
       self.mj_data.qvel[:] = wp_data.qvel.cpu().numpy()[env_idx]
-      self.mj_data.mocap_pos[:] = mocap_pos[env_idx]
-      self.mj_data.mocap_quat[:] = mocap_quat[env_idx]
+      if self.mj_model.nmocap > 0:
+        self.mj_data.mocap_pos[:] = mocap_pos[env_idx]
+        self.mj_data.mocap_quat[:] = mocap_quat[env_idx]
       mujoco.mj_forward(self.mj_model, self.mj_data)
       contacts = self._extract_contacts_from_mjdata(self.mj_data)
 
@@ -527,8 +532,12 @@ class ViserMujocoScene(DebugVisualizer):
     """
     body_xpos = mj_data.xpos[None, ...]
     body_xmat = mj_data.xmat.reshape(-1, 3, 3)[None, ...]
-    mocap_pos = mj_data.mocap_pos[None, ...]
-    mocap_quat = mj_data.mocap_quat[None, ...]
+    if self.mj_model.nmocap > 0:
+      mocap_pos = mj_data.mocap_pos[None, ...]
+      mocap_quat = mj_data.mocap_quat[None, ...]
+    else:
+      mocap_pos = np.zeros((1, 0, 3))
+      mocap_quat = np.zeros((1, 0, 4))
     env_idx = 0
     scene_offset = np.zeros(3)
     if self.camera_tracking_enabled and self._tracked_body_id is not None:

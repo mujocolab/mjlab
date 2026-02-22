@@ -79,7 +79,7 @@ class ViserCameraViewer:
     aspect = self._camera_sensor.cfg.width / self._camera_sensor.cfg.height
     return fovy_rad, aspect
 
-  def _update_frustum(self, sim_data, env_idx: int) -> None:
+  def _update_frustum(self, sim_data, env_idx: int, scene_offset: np.ndarray) -> None:
     if not self._show_frustum_toggle.value:
       if self._frustum_handle is not None:
         self._frustum_handle.remove()
@@ -88,7 +88,7 @@ class ViserCameraViewer:
 
     # Get camera pose from simulation data
     cam_id = self._camera_idx
-    cam_pos = sim_data.cam_xpos[env_idx, cam_id].cpu().numpy()  # [3]
+    cam_pos = sim_data.cam_xpos[env_idx, cam_id].cpu().numpy() + scene_offset
     cam_mat = sim_data.cam_xmat[env_idx, cam_id].cpu().numpy().reshape(3, 3)  # [3, 3]
 
     # Convert rotation matrix to quaternion (wxyz format for viser)
@@ -116,7 +116,9 @@ class ViserCameraViewer:
   def _upsample_nearest(self, image: np.ndarray, scale: int) -> np.ndarray:
     return np.repeat(np.repeat(image, scale, axis=0), scale, axis=1)
 
-  def update(self, sim_data, env_idx: int = 0) -> None:
+  def update(
+    self, sim_data, env_idx: int = 0, scene_offset: np.ndarray | None = None
+  ) -> None:
     data = self._camera_sensor.data
 
     if self._has_rgb and self._rgb_handle is not None and data.rgb is not None:
@@ -141,7 +143,9 @@ class ViserCameraViewer:
 
       self._depth_handle.image = np.repeat(depth_uint8[:, :, np.newaxis], 3, axis=-1)
 
-    self._update_frustum(sim_data, env_idx)
+    if scene_offset is None:
+      scene_offset = np.zeros(3)
+    self._update_frustum(sim_data, env_idx, scene_offset)
 
   def cleanup(self) -> None:
     if self._rgb_handle is not None:

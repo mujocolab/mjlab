@@ -207,7 +207,7 @@ class ViserPlayViewer(BaseViewer):
     # Update camera images
     if self._camera_viewers and (not self._is_paused or self._needs_update):
       for camera_viewer in self._camera_viewers:
-        camera_viewer.update(sim.data, self._scene.env_idx)
+        camera_viewer.update(sim.data, self._scene.env_idx, self._scene._scene_offset)
 
     # Update debug visualizations if enabled
     if self._scene.debug_visualization_enabled and hasattr(
