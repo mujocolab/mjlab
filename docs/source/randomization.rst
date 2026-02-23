@@ -46,13 +46,14 @@ Available Functions
 Model field functions
 ^^^^^^^^^^^^^^^^^^^^^
 
-Every function below follows the same signature: ``(env, env_ids, ranges, ...)``.
-The function name corresponds to a field on ``sim.model`` (the MuJoCo Warp
+Each function writes to a single field on ``sim.model`` (the MuJoCo Warp
 model). For example, ``dr.geom_friction`` writes to ``sim.model.geom_friction``,
-``dr.body_mass`` writes to ``sim.model.body_mass``, and so on. Some functions
-have a more readable name than the underlying MuJoCo field. In those cases the
-raw field name is available as an alias: ``dr.body_com_offset`` and
-``dr.body_ipos`` are the same function.
+``dr.body_mass`` writes to ``sim.model.body_mass``, and so on. Most share the
+signature ``(env, env_ids, ranges, ...)``, with ``distribution`` and
+``operation`` controlling sampling and application (see :ref:`dr-parameters`).
+Some functions have a more readable name than the underlying MuJoCo field; in
+those cases the raw field name is available as an alias (``dr.body_com_offset``
+and ``dr.body_ipos`` are the same function).
 
 .. rubric:: Geom fields
 
@@ -212,6 +213,7 @@ raw field name is available as an alias: ``dr.body_com_offset`` and
      - ``light_dir``
      - Light direction vector
      -
+
 .. rubric:: Tendon fields
 
 .. list-table::
@@ -323,7 +325,7 @@ where :math:`q` is the body-to-principal-frame quaternion (``body_iquat``)
 and :math:`R(q)` is its rotation matrix.
 
 The math follows `Rucker & Wensing, "Smooth Parameterization of Rigid-Body
-Inertia," IEEE RA-L 2022 <https://ieeexplore.ieee.org/document/9690029>`_.
+Inertia," IEEE RA-L 2022 <https://par.nsf.gov/servlets/purl/10347458>`_.
 :math:`J` is factored via Cholesky as :math:`J = LL^\top`. A perturbation
 is applied through an upper-triangular matrix :math:`U`:
 
@@ -565,12 +567,11 @@ come from vertex data or are infinite, not derivable from ``geom_size``.
 Fields without ``dr`` functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Add on demand
-"""""""""""""
+Added as needed
+""""""""""""""""
 
 These continuous model fields could use a standard ``dr.*`` function but
-don't have one yet. Contributions welcome — the implementation is
-straightforward (see any existing single-field function as a template).
+don't have one yet. We will add them as demand arises.
 
 .. list-table::
    :header-rows: 1
@@ -581,24 +582,10 @@ straightforward (see any existing single-field function as a template).
      - Notes
    * - Body
      - ``body_gravcomp``
-     - Gravity compensation weight. Needs ``set_const``.
-   * - Geom
-     - ``geom_solref``, ``geom_solimp``, ``geom_solmix``
-     - Contact solver parameters.
-   * -
-     - ``geom_margin``, ``geom_gap``
-     - Contact distance thresholds (detection and solver inclusion).
+     - Gravity compensation weight. Needs ``set_const_fixed``.
    * - Joint / DOF
-     - ``jnt_solref``, ``jnt_solimp``, ``dof_solref``,
-       ``dof_solimp``
-     - Joint-limit and DOF-level solver parameters.
-   * -
      - ``jnt_margin``
      - Distance threshold for joint-limit detection.
-   * -
-     - ``qpos_spring``
-     - Spring reference position. Coupled with ``qpos0``; randomizing
-       independently is error-prone.
    * - Tendon
      - ``tendon_range``
      - Tendon length limits.
@@ -608,29 +595,26 @@ straightforward (see any existing single-field function as a template).
    * -
      - ``tendon_lengthspring``
      - Spring rest-length range.
-   * - Equality
-     - ``eq_data``, ``eq_solref``, ``eq_solimp``
-     - Constraint anchors and solver parameters. Useful for
-       randomizing weld/connect constraints.
-   * - Pair
-     - ``pair_solref``, ``pair_solimp``
-     - Geom-pair solver parameter overrides.
-   * -
-     - ``pair_friction``
-     - Geom-pair friction override.
-   * -
-     - ``pair_margin``, ``pair_gap``
-     - Geom-pair contact distance thresholds.
    * - Actuator
      - ``actuator_dynprm``, ``actuator_gear``,
        ``actuator_ctrlrange``, ``actuator_actrange``
      - ``pd_gains`` and ``effort_limits`` cover common cases.
-Requires dedicated API
-""""""""""""""""""""""
+   * - Material
+     - ``mat_rgba``, ``mat_texrepeat``
+     - Continuous per-world fields. Requires material-level entity
+       indexing (selecting by material name).
 
-These fields need specialized handling beyond the standard continuous
-randomization API — either because they are integer/categorical, involve
-vertex data, or require a visual domain randomization pipeline.
+Better as custom code
+"""""""""""""""""""""
+
+These fields have coupled semantics that make a generic ``dr.*`` function
+more misleading than helpful. For example, ``solref`` is interpreted
+differently depending on the solver type (elliptic vs. direct), ``solimp``
+has ordering constraints (dmin < dmax, width > 0), and ``qpos_spring`` is
+coupled with ``qpos0``. The right ranges depend on your specific modeling
+choices. Write a custom event term instead (see
+:ref:`Custom Class-Based Event Terms <dr-custom-event-terms>` or use
+``@requires_model_fields`` to handle field expansion automatically).
 
 .. list-table::
    :header-rows: 1
@@ -639,45 +623,82 @@ vertex data, or require a visual domain randomization pipeline.
    * - Category
      - Field(s)
      - Notes
-   * - Visual appearance
-     - ``mat_rgba``, ``mat_texrepeat``, ``geom_matid``,
-       ``mat_texid``
-     - Color, texture, and material randomization for visual DR
-       (camera-based policies). ``mat_rgba`` is continuous;
-       ``geom_matid`` / ``mat_texid`` are integer IDs that need
-       a swapping API. Requires entity indexing for materials.
+   * - Solver parameters
+     - ``geom_solref``, ``geom_solimp``, ``geom_solmix``,
+       ``jnt_solref``, ``jnt_solimp``, ``dof_solref``,
+       ``dof_solimp``, ``pair_solref``, ``pair_solimp``,
+       ``eq_solref``, ``eq_solimp``
+     - Semantics depend on solver type and timestep.
+   * - Contact thresholds
+     - ``geom_margin``, ``geom_gap``, ``pair_margin``, ``pair_gap``
+     - Interact with solver parameters above.
+   * - Pair overrides
+     - ``pair_friction``, ``eq_data``
+     - Per-pair friction and constraint anchor overrides.
+   * - Spring reference
+     - ``qpos_spring``
+     - Coupled with ``qpos0``; randomizing independently is
+       error-prone.
+
+Requires dedicated API
+""""""""""""""""""""""
+
+These fields need specialized handling because they are integer/categorical,
+involve vertex data, or lack the per-world dimension needed for independent
+per-environment values.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 40 40
+
+   * - Category
+     - Field(s)
+     - Notes
+   * - Material / texture swapping
+     - ``geom_matid``, ``mat_texid``
+     - Integer IDs that need a swapping API, not continuous
+       sampling. Requires material-level entity indexing.
    * - Mesh
      - ``mesh_vert``, ``mesh_normal``, ``mesh_face``, etc.
-     - Shape variation for manipulation objects. Would need vertex
-       perturbation or mesh swapping — not a simple field write.
+     - Shape variation for manipulation objects. These fields
+       lack the per-world dimension, so per-world variation is
+       not possible with the current expand infrastructure.
+       Heterogeneous-world support is
+       `in progress <https://github.com/google-deepmind/mujoco_warp/pull/1009>`_.
    * - Deformable
      - ``flex_*``
      - Deformable body parameters for soft-object manipulation.
+       Like mesh fields, most ``flex_*`` fields lack the per-world
+       dimension.
 
 Not a DR target
 """"""""""""""""
 
 - ``light_active``, ``light_castshadow``, ``light_type``,
-  ``cam_projection`` — boolean/integer toggles, not continuous parameters.
-- ``jnt_pos``, ``jnt_axis`` — structural joint geometry; changing at
+  ``cam_projection``: boolean/integer toggles, not continuous parameters.
+- ``jnt_pos``, ``jnt_axis``: structural joint geometry; changing at
   runtime is fragile and not a standard use case.
-- ``hfield_data``, ``hfield_size`` — terrain data; use the terrain
+- ``hfield_data``, ``hfield_size``: terrain data; use the terrain
   system instead.
 
+
+.. _dr-parameters:
 
 Parameters
 ----------
 
-Every ``dr`` function accepts ``distribution``, ``operation``, and ``ranges``
-parameters. These three work together: ``distribution`` controls how values
-are sampled from ``ranges``, and ``operation`` controls how those sampled values
-are applied to the model field.
+The model field functions share three parameters that control randomization:
+``distribution`` controls how values are sampled from ``ranges``, and
+``operation`` controls how those sampled values are applied to the model field.
+(Entity-level functions like ``dr.pseudo_inertia`` and ``dr.pd_gains`` have
+their own signatures; see their docstrings for details.)
 
 Distribution
 ^^^^^^^^^^^^
 
 The ``distribution`` parameter controls how random values are sampled from
-the provided ``ranges``.
+the provided ``ranges``. You can pass a built-in string or a
+``dr.Distribution`` instance for custom sampling logic.
 
 .. list-table::
    :header-rows: 1
@@ -693,11 +714,36 @@ the provided ``ranges``.
    * - ``"gaussian"``
      - ``ranges`` is interpreted as ``(mean, std)``
 
+To define a custom distribution, create a ``dr.Distribution`` instance. The
+``sample`` callable receives ``(lower, upper, shape, device)`` and returns a
+tensor. For example, a truncated normal that clamps samples to the given
+bounds:
+
+.. code-block:: python
+
+    import torch
+    from mjlab.envs.mdp import dr
+
+    truncated_normal = dr.Distribution(
+        name="truncated_normal",
+        sample=lambda lo, hi, shape, device: torch.clamp(
+            torch.normal(
+                mean=(lo + hi) / 2,
+                std=(hi - lo) / 4,  # 95% of samples within bounds
+            ).expand(shape),
+            min=lo,
+            max=hi,
+        ),
+    )
+
+    params={"distribution": truncated_normal, "ranges": (0.3, 1.2)}
+
 Operation
 ^^^^^^^^^
 
 The ``operation`` parameter controls how the sampled value is applied to the
-model field.
+model field. You can pass a built-in string or a ``dr.Operation`` instance
+for custom logic.
 
 .. list-table::
    :header-rows: 1
@@ -716,6 +762,49 @@ For ``"scale"`` and ``"add"``, the DR engine always applies the random draw to
 the **original default values** captured from the compiled ``MjModel`` on CPU,
 not the current values. This prevents accumulation: scaling friction by 2x
 three times in a row gives 2x the original, not 8x.
+
+To define a custom operation, create a ``dr.Operation`` instance. The four
+fields are:
+
+- ``name``: a human-readable label for error messages.
+- ``initialize``: creates the result tensor that gets filled axis by axis
+  with sampled values. For example, ``scale`` starts from ones so that
+  unsampled axes multiply by 1 (no change), while ``add`` starts from zeros.
+- ``combine``: takes ``(base_values, random_values)`` and returns the final
+  tensor written into the model field. For example, ``scale`` returns
+  ``base * random`` and ``add`` returns ``base + random``.
+- ``uses_defaults``: when ``True``, the base values are the compile-time
+  defaults (preventing accumulation across repeated calls). When ``False``,
+  the base values are the current model values.
+
+As an example, the built-in ``add`` always adds to the *default* values, so
+repeated calls reset rather than drift. A custom ``drift`` operation that
+adds to the *current* values is useful for ``mode="interval"`` events where
+parameters should slowly wander over time:
+
+.. code-block:: python
+
+    import torch
+    from mjlab.envs.mdp import dr
+
+    drift = dr.Operation(
+        name="drift",
+        initialize=torch.zeros_like,
+        combine=torch.add,
+        uses_defaults=False,  # read current values, not defaults
+    )
+
+    # Friction slowly wanders each interval step.
+    friction_drift: EventTermCfg = EventTermCfg(
+        mode="interval",
+        interval_range_s=(0.5, 1.0),
+        func=dr.geom_friction,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", geom_names=[".*_foot.*"]),
+            "ranges": (-0.01, 0.01),
+            "operation": drift,
+        },
+    )
 
 Axis selection
 ^^^^^^^^^^^^^^
@@ -1024,6 +1113,8 @@ need no recomputation.
    recomputation (``geom_friction``, ``dof_damping``, etc.) are cheap to
    randomize at any frequency.
 
+
+.. _dr-custom-event-terms:
 
 Custom Class-Based Event Terms
 ------------------------------

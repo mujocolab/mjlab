@@ -11,11 +11,10 @@ from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 from ._core import (
   _DEFAULT_ASSET_CFG,
-  Distribution,
-  Operation,
   Ranges,
   _randomize_model_field,
 )
+from ._types import Distribution, Operation
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
@@ -27,8 +26,8 @@ def tendon_damping(
   env_ids: torch.Tensor | None,
   ranges: Ranges,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-  distribution: Distribution = "uniform",
-  operation: Operation = "abs",
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "abs",
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
@@ -53,8 +52,8 @@ def tendon_stiffness(
   env_ids: torch.Tensor | None,
   ranges: Ranges,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-  distribution: Distribution = "uniform",
-  operation: Operation = "abs",
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "abs",
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
@@ -79,8 +78,8 @@ def tendon_friction(
   env_ids: torch.Tensor | None,
   ranges: Ranges,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-  distribution: Distribution = "uniform",
-  operation: Operation = "abs",
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "abs",
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
@@ -109,8 +108,8 @@ def tendon_armature(
   env_ids: torch.Tensor | None,
   ranges: Ranges,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-  distribution: Distribution = "uniform",
-  operation: Operation = "abs",
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "abs",
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:

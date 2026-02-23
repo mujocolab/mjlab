@@ -3,18 +3,19 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import torch
 
 from mjlab.entity import Entity, EntityIndexing
 from mjlab.managers.scene_entity_config import SceneEntityCfg
-from mjlab.utils.lab_api.math import (
-  quat_from_euler_xyz,
-  quat_mul,
-  sample_gaussian,
-  sample_log_uniform,
-  sample_uniform,
+from mjlab.utils.lab_api.math import quat_from_euler_xyz, quat_mul
+
+from ._types import (
+  Distribution,
+  Operation,
+  resolve_distribution,
+  resolve_operation,
 )
 
 if TYPE_CHECKING:
@@ -23,8 +24,6 @@ if TYPE_CHECKING:
 Ranges = (
   tuple[float, float] | dict[int, tuple[float, float]] | dict[str, tuple[float, float]]
 )
-Distribution = Literal["uniform", "log_uniform", "gaussian"]
-Operation = Literal["abs", "scale", "add"]
 
 _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
 
@@ -51,8 +50,8 @@ def _randomize_model_field(
   *,
   entity_type: str,
   ranges: Ranges,
-  distribution: Distribution = "uniform",
-  operation: Operation = "abs",
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "abs",
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
   axes: list[int] | None = None,
   shared_random: bool = False,
@@ -61,6 +60,9 @@ def _randomize_model_field(
   use_address: bool = False,
 ) -> None:
   """Core randomization engine for model fields."""
+  operation = resolve_operation(operation)
+  distribution = resolve_distribution(distribution)
+
   # Handle string-keyed ranges: resolve each pattern and recurse.
   if isinstance(ranges, dict) and ranges and isinstance(next(iter(ranges)), str):
     _randomize_with_string_ranges(
@@ -102,7 +104,7 @@ def _randomize_model_field(
   env_grid, entity_grid = torch.meshgrid(env_ids, entity_indices, indexing="ij")
   indexed_data = model_field[env_grid, entity_grid]
 
-  if operation in ("scale", "add"):
+  if operation.uses_defaults:
     default_field = env.sim.get_default_field(field)
     base_values = default_field[entity_indices].unsqueeze(0).expand_as(indexed_data)
   else:
@@ -129,14 +131,7 @@ def _randomize_model_field(
       operation,
     )
 
-  _apply_operation(
-    model_field,
-    env_grid,
-    entity_grid,
-    base_values,
-    random_values,
-    operation,
-  )
+  model_field[env_grid, entity_grid] = operation.combine(base_values, random_values)
 
 
 def _randomize_with_string_ranges(
@@ -146,8 +141,8 @@ def _randomize_with_string_ranges(
   *,
   entity_type: str,
   ranges: dict[str, tuple[float, float]],
-  distribution: Distribution,
-  operation: Operation,
+  distribution: Distribution | str,
+  operation: Operation | str,
   asset_cfg: SceneEntityCfg,
   axes: list[int] | None,
   shared_random: bool,
@@ -269,21 +264,15 @@ def _prepare_axis_ranges(
 
 
 def _generate_random_values(
-  distribution: str,
+  distribution: Distribution,
   axis_ranges: dict[int, tuple[float, float]],
   indexed_data: torch.Tensor,
   target_axes: list[int],
   device: str,
-  operation: str,
+  operation: Operation,
 ) -> torch.Tensor:
   """Generate random values for the specified axes."""
-  if operation == "scale":
-    result = torch.ones_like(indexed_data)
-  elif operation == "add":
-    result = torch.zeros_like(indexed_data)
-  else:
-    assert operation == "abs"
-    result = indexed_data.clone()
+  result = operation.initialize(indexed_data)
 
   for axis in target_axes:
     lower, upper = axis_ranges[axis]
@@ -295,13 +284,7 @@ def _generate_random_values(
     else:
       shape = indexed_data.shape
 
-    random_vals = _sample_distribution(
-      distribution,
-      lower_bound,
-      upper_bound,
-      shape,
-      device,
-    )
+    random_vals = distribution.sample(lower_bound, upper_bound, shape, device)
 
     if len(indexed_data.shape) > 2:
       result[..., axis] = random_vals.squeeze(-1)
@@ -311,55 +294,19 @@ def _generate_random_values(
   return result
 
 
-def _apply_operation(
-  model_field: torch.Tensor,
-  env_grid: torch.Tensor,
-  entity_grid: torch.Tensor,
-  indexed_data: torch.Tensor,
-  random_values: torch.Tensor,
-  operation: str,
-) -> None:
-  """Apply the randomization operation."""
-  if operation == "add":
-    model_field[env_grid, entity_grid] = indexed_data + random_values
-  elif operation == "scale":
-    model_field[env_grid, entity_grid] = indexed_data * random_values
-  elif operation == "abs":
-    model_field[env_grid, entity_grid] = random_values
-  else:
-    raise ValueError(f"Unknown operation: {operation}")
-
-
-def _sample_distribution(
-  distribution: str,
-  lower: torch.Tensor,
-  upper: torch.Tensor,
-  shape: tuple[int, ...],
-  device: str,
-) -> torch.Tensor:
-  """Sample from the specified distribution."""
-  if distribution == "uniform":
-    return sample_uniform(lower, upper, shape, device=device)
-  elif distribution == "log_uniform":
-    return sample_log_uniform(lower, upper, shape, device=device)
-  elif distribution == "gaussian":
-    return sample_gaussian(lower, upper, shape, device=device)
-  else:
-    raise ValueError(f"Unknown distribution: {distribution}")
-
-
 # Quaternion helpers.
 
 
 def _sample_angle(
-  distribution: Distribution,
+  distribution: Distribution | str,
   range_: tuple[float, float],
   shape: tuple[int, ...],
   device: str,
 ) -> torch.Tensor:
+  dist = resolve_distribution(distribution)
   lower = torch.tensor(range_[0], device=device)
   upper = torch.tensor(range_[1], device=device)
-  return _sample_distribution(distribution, lower, upper, shape, device)
+  return dist.sample(lower, upper, shape, device)
 
 
 def _randomize_quat_field(
@@ -371,7 +318,7 @@ def _randomize_quat_field(
   roll_range: tuple[float, float],
   pitch_range: tuple[float, float],
   yaw_range: tuple[float, float],
-  distribution: Distribution,
+  distribution: Distribution | str,
   asset_cfg: SceneEntityCfg,
 ) -> None:
   """Core implementation for quaternion randomization via RPY composition.

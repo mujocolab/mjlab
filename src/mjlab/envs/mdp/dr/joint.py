@@ -13,11 +13,10 @@ from mjlab.utils.lab_api.math import sample_uniform
 
 from ._core import (
   _DEFAULT_ASSET_CFG,
-  Distribution,
-  Operation,
   Ranges,
   _randomize_model_field,
 )
+from ._types import Distribution, Operation
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
@@ -29,8 +28,8 @@ def joint_damping(
   env_ids: torch.Tensor | None,
   ranges: Ranges,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-  distribution: Distribution = "uniform",
-  operation: Operation = "abs",
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "abs",
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
@@ -60,8 +59,8 @@ def joint_armature(
   env_ids: torch.Tensor | None,
   ranges: Ranges,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-  distribution: Distribution = "uniform",
-  operation: Operation = "abs",
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "abs",
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
@@ -91,8 +90,8 @@ def joint_friction(
   env_ids: torch.Tensor | None,
   ranges: Ranges,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-  distribution: Distribution = "uniform",
-  operation: Operation = "abs",
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "abs",
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
@@ -122,8 +121,8 @@ def joint_stiffness(
   env_ids: torch.Tensor | None,
   ranges: Ranges,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-  distribution: Distribution = "uniform",
-  operation: Operation = "abs",
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "abs",
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
@@ -152,8 +151,8 @@ def joint_limits(
   env_ids: torch.Tensor | None,
   ranges: Ranges,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-  distribution: Distribution = "uniform",
-  operation: Operation = "abs",
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "abs",
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
@@ -182,8 +181,8 @@ def joint_default_pos(
   env_ids: torch.Tensor | None,
   ranges: Ranges,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-  distribution: Distribution = "uniform",
-  operation: Operation = "add",
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "add",
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:

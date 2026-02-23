@@ -16,14 +16,13 @@ from mjlab.utils.lab_api.math import (
 
 from ._core import (
   _DEFAULT_ASSET_CFG,
-  Distribution,
-  Operation,
   Ranges,
   _get_entity_indices,
   _randomize_model_field,
   _randomize_quat_field,
   _sample_angle,
 )
+from ._types import Distribution, Operation
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
@@ -184,8 +183,8 @@ def body_mass(
   env_ids: torch.Tensor | None,
   ranges: Ranges,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-  distribution: Distribution = "uniform",
-  operation: Operation = "scale",
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "scale",
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
@@ -229,8 +228,8 @@ def body_com_offset(
   env_ids: torch.Tensor | None,
   ranges: Ranges,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-  distribution: Distribution = "uniform",
-  operation: Operation = "add",
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "add",
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
@@ -260,8 +259,8 @@ def body_pos(
   env_ids: torch.Tensor | None,
   ranges: Ranges,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-  distribution: Distribution = "uniform",
-  operation: Operation = "add",
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "add",
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
@@ -288,7 +287,7 @@ def body_quat(
   roll_range: tuple[float, float] = (0.0, 0.0),
   pitch_range: tuple[float, float] = (0.0, 0.0),
   yaw_range: tuple[float, float] = (0.0, 0.0),
-  distribution: Distribution = "uniform",
+  distribution: Distribution | str = "uniform",
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> None:
   """Randomize body orientation by composing an RPY perturbation.
@@ -332,7 +331,7 @@ def pseudo_inertia(
   t1_range: tuple[float, float] = (0.0, 0.0),
   t2_range: tuple[float, float] = (0.0, 0.0),
   t3_range: tuple[float, float] = (0.0, 0.0),
-  distribution: Distribution = "uniform",
+  distribution: Distribution | str = "uniform",
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> None:
   r"""Physics-consistent inertial randomization via the pseudo-inertia matrix.
@@ -341,8 +340,9 @@ def pseudo_inertia(
   while guaranteeing exact physical consistency for any perturbation magnitude.
   Triggers ``set_const`` recomputation.
 
-  The parameterization follows https://ieeexplore.ieee.org/document/9690029
-  (Rucker & Wensing, 2022): the pseudo-inertia matrix :math:`J \succ 0` is factored via
+  The parameterization follows `Rucker & Wensing, 2022
+  <https://par.nsf.gov/servlets/purl/10347458>`_: the pseudo-inertia matrix
+  :math:`J \succ 0` is factored via
   Cholesky as :math:`J = LL^\top`, then perturbed by an upper-triangular matrix
   U: :math:`J' = (UL)(UL)^\top`. The result is diagonalized via eigendecomposition to
   extract principal moments (``body_inertia``) and principal frame rotation

@@ -11,12 +11,11 @@ from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 from ._core import (
   _DEFAULT_ASSET_CFG,
-  Distribution,
-  Operation,
   Ranges,
   _randomize_model_field,
   _randomize_quat_field,
 )
+from ._types import Distribution, Operation
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
@@ -28,8 +27,8 @@ def cam_fovy(
   env_ids: torch.Tensor | None,
   ranges: Ranges,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-  distribution: Distribution = "uniform",
-  operation: Operation = "abs",
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "abs",
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
@@ -54,8 +53,8 @@ def cam_pos(
   env_ids: torch.Tensor | None,
   ranges: Ranges,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-  distribution: Distribution = "uniform",
-  operation: Operation = "abs",
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "abs",
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
@@ -82,7 +81,7 @@ def cam_quat(
   roll_range: tuple[float, float] = (0.0, 0.0),
   pitch_range: tuple[float, float] = (0.0, 0.0),
   yaw_range: tuple[float, float] = (0.0, 0.0),
-  distribution: Distribution = "uniform",
+  distribution: Distribution | str = "uniform",
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> None:
   """Randomize camera orientation by composing an RPY perturbation.
@@ -110,8 +109,8 @@ def cam_intrinsic(
   env_ids: torch.Tensor | None,
   ranges: Ranges,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-  distribution: Distribution = "uniform",
-  operation: Operation = "abs",
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "abs",
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:

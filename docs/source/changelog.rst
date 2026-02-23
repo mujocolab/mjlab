@@ -35,6 +35,11 @@ Added
   - ``dr.tendon_armature`` and ``dr.tendon_frictionloss``.
   - ``dr.body_quat``, ``dr.geom_quat``, and ``dr.site_quat`` with RPY
     perturbation composed onto the default quaternion.
+  - Extensible ``Operation`` and ``Distribution`` types. Users can define
+    custom operations and distributions as class instances and pass them
+    anywhere a string is accepted. Built-in instances (``dr.abs``,
+    ``dr.scale``, ``dr.add``, ``dr.uniform``, ``dr.log_uniform``,
+    ``dr.gaussian``) are exported from the ``dr`` module.
   - Fixed ``dr.effort_limits`` drifting on repeated randomization.
   - Fixed ``dr.body_com_offset`` not triggering ``set_const``.
 

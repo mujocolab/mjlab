@@ -12,10 +12,8 @@ from mjlab.entity import Entity
 from mjlab.managers.event_manager import requires_model_fields
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
-from ._core import (
-  _DEFAULT_ASSET_CFG,
-  _sample_distribution,
-)
+from ._core import _DEFAULT_ASSET_CFG
+from ._types import resolve_distribution
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
@@ -64,15 +62,14 @@ def pd_gains(
   for actuator in actuators:
     ctrl_ids = actuator.global_ctrl_ids
 
-    kp_samples = _sample_distribution(
-      distribution,
+    dist = resolve_distribution(distribution)
+    kp_samples = dist.sample(
       torch.tensor(kp_range[0], device=env.device),
       torch.tensor(kp_range[1], device=env.device),
       (len(env_ids), len(ctrl_ids)),
       env.device,
     )
-    kd_samples = _sample_distribution(
-      distribution,
+    kd_samples = dist.sample(
       torch.tensor(kd_range[0], device=env.device),
       torch.tensor(kd_range[1], device=env.device),
       (len(env_ids), len(ctrl_ids)),
@@ -157,8 +154,8 @@ def effort_limits(
     ctrl_ids = actuator.global_ctrl_ids
     num_actuators = len(ctrl_ids)
 
-    effort_samples = _sample_distribution(
-      distribution,
+    dist = resolve_distribution(distribution)
+    effort_samples = dist.sample(
       torch.tensor(effort_limit_range[0], device=env.device),
       torch.tensor(effort_limit_range[1], device=env.device),
       (len(env_ids), num_actuators),

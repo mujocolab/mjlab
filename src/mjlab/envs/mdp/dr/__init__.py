@@ -1,5 +1,16 @@
 """Domain randomization functions."""
 
+# Types and built-in instances.
+# isort: split
+from ._types import Distribution as Distribution
+from ._types import Operation as Operation
+from ._types import abs as abs
+from ._types import add as add
+from ._types import gaussian as gaussian
+from ._types import log_uniform as log_uniform
+from ._types import scale as scale
+from ._types import uniform as uniform
+
 # Geom.
 # isort: split
 from .geom import geom_friction as geom_friction

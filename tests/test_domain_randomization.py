@@ -18,9 +18,7 @@ pytestmark = pytest.mark.filterwarnings(
   "ignore:Use of index_put_ on expanded tensors is deprecated:UserWarning"
 )
 
-# ---------------------------------------------------------------------------
-# Shared helpers
-# ---------------------------------------------------------------------------
+# Shared helpers.
 
 ROBOT_XML = """
 <mujoco>
@@ -86,9 +84,7 @@ def create_test_env(
   return Env(scene, sim, device)
 
 
-# ---------------------------------------------------------------------------
-# Operations: abs, scale, add
-# ---------------------------------------------------------------------------
+# Operations: abs, scale, add.
 
 
 def test_abs_operation(device):
@@ -159,9 +155,7 @@ def test_add_operation(device):
   )
 
 
-# ---------------------------------------------------------------------------
-# No accumulation (scale and add share the same mechanism)
-# ---------------------------------------------------------------------------
+# No accumulation (scale and add share the same mechanism).
 
 
 @pytest.mark.parametrize(
@@ -193,9 +187,7 @@ def test_no_accumulation(device, operation, fixed_val, expected_fn):
   assert abs(final - expected_fn(default_friction)) < 1e-5
 
 
-# ---------------------------------------------------------------------------
-# Distributions
-# ---------------------------------------------------------------------------
+# Distributions.
 
 
 def test_log_uniform_distribution(device):
@@ -239,9 +231,7 @@ def test_gaussian_distribution(device):
   assert abs(vals.mean().item() - mean) < 0.05
 
 
-# ---------------------------------------------------------------------------
-# Axes
-# ---------------------------------------------------------------------------
+# Axes.
 
 
 @pytest.mark.parametrize(
@@ -310,9 +300,7 @@ def test_invalid_axes_raises(device):
     )
 
 
-# ---------------------------------------------------------------------------
-# String-keyed ranges
-# ---------------------------------------------------------------------------
+# String-keyed ranges.
 
 
 def test_string_keyed_ranges(device):
@@ -349,9 +337,7 @@ def test_string_keyed_ranges_no_match_raises(device):
     )
 
 
-# ---------------------------------------------------------------------------
-# Shared random
-# ---------------------------------------------------------------------------
+# Shared random.
 
 
 def test_shared_random(device):
@@ -382,9 +368,7 @@ def test_shared_random(device):
   assert torch.all((friction >= 0.3) & (friction <= 1.2))
 
 
-# ---------------------------------------------------------------------------
-# Edge cases
-# ---------------------------------------------------------------------------
+# Edge cases.
 
 
 def test_single_env_without_expand(device):
@@ -436,9 +420,7 @@ def test_partial_env_ids(device):
   assert result[3] == original[3]
 
 
-# ---------------------------------------------------------------------------
-# CUDA graph
-# ---------------------------------------------------------------------------
+# CUDA graph.
 
 
 @pytest.mark.skipif(
@@ -466,9 +448,7 @@ def test_expand_model_fields_recreates_cuda_graph(device):
   )
 
 
-# ---------------------------------------------------------------------------
-# Integration test
-# ---------------------------------------------------------------------------
+# Integration test.
 
 
 @pytest.mark.slow
@@ -510,9 +490,7 @@ def test_g1_foot_friction_shared_across_geoms(device):
     env.close()
 
 
-# ---------------------------------------------------------------------------
-# Quaternion DR tests
-# ---------------------------------------------------------------------------
+# Quaternion DR tests.
 
 
 def _make_quat_env(device, num_envs=NUM_ENVS):
@@ -524,67 +502,86 @@ def _make_quat_env(device, num_envs=NUM_ENVS):
   )
 
 
-def test_body_quat_is_unit_quaternion(device):
+_QUAT_CASES = [
+  pytest.param(
+    dr.body_quat,
+    "body_quat",
+    SceneEntityCfg("robot", body_names=(".*",)),
+    "body_ids",
+    id="body",
+  ),
+  pytest.param(
+    dr.geom_quat,
+    "geom_quat",
+    SceneEntityCfg("robot", geom_names=(".*",)),
+    "geom_ids",
+    id="geom",
+  ),
+  pytest.param(
+    dr.site_quat,
+    "site_quat",
+    SceneEntityCfg("robot", site_names=(".*",)),
+    "site_ids",
+    id="site",
+  ),
+]
+
+
+@pytest.mark.parametrize("dr_func, field, asset_cfg, ids_attr", _QUAT_CASES)
+def test_quat_is_unit_quaternion(device, dr_func, field, asset_cfg, ids_attr):
   """All output quaternions must have unit norm (within 1e-6)."""
   torch.manual_seed(0)
   env = _make_quat_env(device)
   robot = env.scene["robot"]
 
-  dr.body_quat(
+  dr_func(
     env,
     env_ids=None,
     roll_range=(-0.5, 0.5),
     pitch_range=(-0.5, 0.5),
     yaw_range=(-math.pi, math.pi),
-    asset_cfg=SceneEntityCfg("robot", body_names=(".*",)),
+    asset_cfg=asset_cfg,
   )
 
-  body_ids = robot.indexing.body_ids
-  quats = env.sim.model.body_quat[:, body_ids, :]  # (N_envs, N_bodies, 4)
+  ids = getattr(robot.indexing, ids_attr)
+  quats = getattr(env.sim.model, field)[:, ids, :]
   norms = quats.norm(dim=-1)
   assert torch.all((norms - 1.0).abs() < 1e-6), (
     f"Non-unit quaternion found; max deviation: {(norms - 1.0).abs().max()}"
   )
 
 
-def test_body_quat_zero_range_unchanged(device):
+@pytest.mark.parametrize("dr_func, field, asset_cfg, ids_attr", _QUAT_CASES)
+def test_quat_zero_range_unchanged(device, dr_func, field, asset_cfg, ids_attr):
   """All ranges (0, 0): result equals default quaternion."""
   env = _make_quat_env(device)
   robot = env.scene["robot"]
-  body_ids = robot.indexing.body_ids
-  default_quat = env.sim.get_default_field("body_quat")[body_ids].clone()
+  ids = getattr(robot.indexing, ids_attr)
+  default_quat = env.sim.get_default_field(field)[ids].clone()
 
-  dr.body_quat(env, env_ids=None, asset_cfg=SceneEntityCfg("robot", body_names=(".*",)))
+  dr_func(env, env_ids=None, asset_cfg=asset_cfg)
 
-  result = env.sim.model.body_quat[:, body_ids, :]
+  result = getattr(env.sim.model, field)[:, ids, :]
   assert torch.allclose(result, default_quat.unsqueeze(0).expand_as(result), atol=1e-6)
 
 
-def test_body_quat_composes_with_default(device):
-  """Fixed yaw=π/4 matches manual quat_mul(q_yaw, q_default)."""
+@pytest.mark.parametrize("dr_func, field, asset_cfg, ids_attr", _QUAT_CASES)
+def test_quat_composes_with_default(device, dr_func, field, asset_cfg, ids_attr):
+  """Fixed yaw=pi/4 matches manual quat_mul(q_yaw, q_default)."""
   env = _make_quat_env(device)
   robot = env.scene["robot"]
-  body_ids = robot.indexing.body_ids
-  n_bodies = len(body_ids)
+  ids = getattr(robot.indexing, ids_attr)
+  n = len(ids)
 
   yaw = math.pi / 4
-  dr.body_quat(
-    env,
-    env_ids=None,
-    yaw_range=(yaw, yaw),
-    asset_cfg=SceneEntityCfg("robot", body_names=(".*",)),
-  )
+  dr_func(env, env_ids=None, yaw_range=(yaw, yaw), asset_cfg=asset_cfg)
 
-  result = env.sim.model.body_quat[:, body_ids, :]  # (N_envs, N_bodies, 4)
-
-  q_default = env.sim.get_default_field("body_quat")[body_ids]  # (N_bodies, 4)
-  zeros = torch.zeros(n_bodies, device=device)
-  q_yaw = quat_from_euler_xyz(zeros, zeros, zeros + yaw)  # (N_bodies, 4)
-  q_expected = quat_mul(q_yaw, q_default)  # (N_bodies, 4)
-
-  assert torch.allclose(result, q_expected.unsqueeze(0).expand_as(result), atol=1e-6), (
-    f"max deviation: {(result - q_expected.unsqueeze(0)).abs().max()}"
-  )
+  result = getattr(env.sim.model, field)[:, ids, :]
+  q_default = env.sim.get_default_field(field)[ids]
+  zeros = torch.zeros(n, device=device)
+  q_yaw = quat_from_euler_xyz(zeros, zeros, zeros + yaw)
+  q_expected = quat_mul(q_yaw, q_default)
+  assert torch.allclose(result, q_expected.unsqueeze(0).expand_as(result), atol=1e-6)
 
 
 def test_body_quat_only_specified_axes(device):
@@ -592,7 +589,6 @@ def test_body_quat_only_specified_axes(device):
   torch.manual_seed(1)
   env = _make_quat_env(device)
   robot = env.scene["robot"]
-  # Pick a single body for clear comparison.
   body_cfg = SceneEntityCfg("robot", body_names=("base",))
   body_cfg.resolve(env.scene)
   body_ids = robot.indexing.body_ids[body_cfg.body_ids]
@@ -604,132 +600,16 @@ def test_body_quat_only_specified_axes(device):
     asset_cfg=SceneEntityCfg("robot", body_names=("base",)),
   )
 
-  result = env.sim.model.body_quat[:, body_ids, :]  # (N_envs, 1, 4)
+  result = env.sim.model.body_quat[:, body_ids, :]
   # For the default quat [1,0,0,0] composed with a yaw-only rotation,
-  # qx and qy should remain 0 (pure yaw → no roll/pitch).
-  q_default = env.sim.get_default_field("body_quat")[body_ids]  # (1, 4)
+  # qx and qy should remain 0 (pure yaw -> no roll/pitch).
+  q_default = env.sim.get_default_field("body_quat")[body_ids]
   if torch.allclose(q_default, torch.tensor([[1.0, 0.0, 0.0, 0.0]], device=device)):
     assert torch.allclose(result[..., 1], torch.zeros_like(result[..., 1]), atol=1e-6)
     assert torch.allclose(result[..., 2], torch.zeros_like(result[..., 2]), atol=1e-6)
 
 
-def test_geom_quat_is_unit_quaternion(device):
-  """All output geom quaternions must have unit norm."""
-  torch.manual_seed(2)
-  env = _make_quat_env(device)
-  robot = env.scene["robot"]
-
-  dr.geom_quat(
-    env,
-    env_ids=None,
-    roll_range=(-0.5, 0.5),
-    pitch_range=(-0.5, 0.5),
-    yaw_range=(-math.pi, math.pi),
-    asset_cfg=SceneEntityCfg("robot", geom_names=(".*",)),
-  )
-
-  geom_ids = robot.indexing.geom_ids
-  quats = env.sim.model.geom_quat[:, geom_ids, :]
-  norms = quats.norm(dim=-1)
-  assert torch.all((norms - 1.0).abs() < 1e-6)
-
-
-def test_geom_quat_zero_range_unchanged(device):
-  """All ranges (0, 0): geom quats equal defaults."""
-  env = _make_quat_env(device)
-  robot = env.scene["robot"]
-  geom_ids = robot.indexing.geom_ids
-  default_quat = env.sim.get_default_field("geom_quat")[geom_ids].clone()
-
-  dr.geom_quat(env, env_ids=None, asset_cfg=SceneEntityCfg("robot", geom_names=(".*",)))
-
-  result = env.sim.model.geom_quat[:, geom_ids, :]
-  assert torch.allclose(result, default_quat.unsqueeze(0).expand_as(result), atol=1e-6)
-
-
-def test_geom_quat_composes_with_default(device):
-  """Fixed yaw=π/4 for geoms matches manual quat_mul."""
-  env = _make_quat_env(device)
-  robot = env.scene["robot"]
-  geom_ids = robot.indexing.geom_ids
-  n_geoms = len(geom_ids)
-
-  yaw = math.pi / 4
-  dr.geom_quat(
-    env,
-    env_ids=None,
-    yaw_range=(yaw, yaw),
-    asset_cfg=SceneEntityCfg("robot", geom_names=(".*",)),
-  )
-
-  result = env.sim.model.geom_quat[:, geom_ids, :]
-  q_default = env.sim.get_default_field("geom_quat")[geom_ids]
-  zeros = torch.zeros(n_geoms, device=device)
-  q_yaw = quat_from_euler_xyz(zeros, zeros, zeros + yaw)
-  q_expected = quat_mul(q_yaw, q_default)
-  assert torch.allclose(result, q_expected.unsqueeze(0).expand_as(result), atol=1e-6)
-
-
-def test_site_quat_is_unit_quaternion(device):
-  """All output site quaternions must have unit norm."""
-  torch.manual_seed(3)
-  env = _make_quat_env(device)
-  robot = env.scene["robot"]
-
-  dr.site_quat(
-    env,
-    env_ids=None,
-    roll_range=(-0.5, 0.5),
-    pitch_range=(-0.5, 0.5),
-    yaw_range=(-math.pi, math.pi),
-    asset_cfg=SceneEntityCfg("robot", site_names=(".*",)),
-  )
-
-  site_ids = robot.indexing.site_ids
-  quats = env.sim.model.site_quat[:, site_ids, :]
-  norms = quats.norm(dim=-1)
-  assert torch.all((norms - 1.0).abs() < 1e-6)
-
-
-def test_site_quat_zero_range_unchanged(device):
-  """All ranges (0, 0): site quats equal defaults."""
-  env = _make_quat_env(device)
-  robot = env.scene["robot"]
-  site_ids = robot.indexing.site_ids
-  default_quat = env.sim.get_default_field("site_quat")[site_ids].clone()
-
-  dr.site_quat(env, env_ids=None, asset_cfg=SceneEntityCfg("robot", site_names=(".*",)))
-
-  result = env.sim.model.site_quat[:, site_ids, :]
-  assert torch.allclose(result, default_quat.unsqueeze(0).expand_as(result), atol=1e-6)
-
-
-def test_site_quat_composes_with_default(device):
-  """Fixed yaw=π/4 for sites matches manual quat_mul."""
-  env = _make_quat_env(device)
-  robot = env.scene["robot"]
-  site_ids = robot.indexing.site_ids
-  n_sites = len(site_ids)
-
-  yaw = math.pi / 4
-  dr.site_quat(
-    env,
-    env_ids=None,
-    yaw_range=(yaw, yaw),
-    asset_cfg=SceneEntityCfg("robot", site_names=(".*",)),
-  )
-
-  result = env.sim.model.site_quat[:, site_ids, :]
-  q_default = env.sim.get_default_field("site_quat")[site_ids]
-  zeros = torch.zeros(n_sites, device=device)
-  q_yaw = quat_from_euler_xyz(zeros, zeros, zeros + yaw)
-  q_expected = quat_mul(q_yaw, q_default)
-  assert torch.allclose(result, q_expected.unsqueeze(0).expand_as(result), atol=1e-6)
-
-
-# ---------------------------------------------------------------------------
-# pseudo_inertia tests
-# ---------------------------------------------------------------------------
+# pseudo_inertia tests.
 
 
 def _make_inertia_env(device, num_envs=NUM_ENVS):
@@ -1065,9 +945,7 @@ def test_pseudo_inertia_partial_env_ids(device):
   assert torch.allclose(mass_after[1], mass_before[1], atol=1e-6)
 
 
-# ---------------------------------------------------------------------------
-# Camera / Light DR tests
-# ---------------------------------------------------------------------------
+# Camera / Light DR tests.
 
 
 def _make_cam_light_env(device, num_envs=NUM_ENVS):
@@ -1228,9 +1106,7 @@ def test_camera_partial_env_ids(device):
   assert torch.allclose(result[3], original_fovy[3])
 
 
-# ---------------------------------------------------------------------------
-# geom_size DR tests
-# ---------------------------------------------------------------------------
+# geom_size DR tests.
 
 GEOM_SIZE_XML = """
 <mujoco>
@@ -1424,9 +1300,7 @@ def test_geom_size_raises_on_unsupported_type(device):
     dr.geom_size(env, env_ids=None, ranges=(1.0, 2.0), asset_cfg=plane_cfg)
 
 
-# ---------------------------------------------------------------------------
-# Tendon DR tests
-# ---------------------------------------------------------------------------
+# Tendon DR tests.
 
 TENDON_XML = """
 <mujoco>
@@ -1527,3 +1401,147 @@ def test_tendon_armature_no_accumulation(device):
 
   result = env.sim.model.tendon_armature[0, tendon_ids]
   assert torch.allclose(result, default_val * 2.0, atol=1e-5)
+
+
+# Extensible Operation / Distribution types.
+
+
+def test_operation_instance_abs(device):
+  """Passing an Operation instance works identically to the string."""
+  from mjlab.envs.mdp.dr._types import abs as abs_op
+
+  torch.manual_seed(42)
+  env1 = create_test_env(device)
+  robot = env1.scene["robot"]
+
+  dr.geom_friction(
+    env1,
+    env_ids=None,
+    ranges=(0.3, 1.2),
+    operation="abs",
+    asset_cfg=SceneEntityCfg("robot", geom_names=(".*",)),
+    axes=[0],
+  )
+  result_str = env1.sim.model.geom_friction[:, robot.indexing.geom_ids, 0].clone()
+
+  torch.manual_seed(42)
+  env2 = create_test_env(device)
+
+  dr.geom_friction(
+    env2,
+    env_ids=None,
+    ranges=(0.3, 1.2),
+    operation=abs_op,
+    asset_cfg=SceneEntityCfg("robot", geom_names=(".*",)),
+    axes=[0],
+  )
+  result_inst = env2.sim.model.geom_friction[:, robot.indexing.geom_ids, 0]
+
+  assert torch.allclose(result_str, result_inst)
+
+
+def test_distribution_instance_uniform(device):
+  """Passing a Distribution instance works identically to the string."""
+  from mjlab.envs.mdp.dr._types import uniform as uniform_dist
+
+  torch.manual_seed(42)
+  env1 = create_test_env(device)
+  robot = env1.scene["robot"]
+
+  dr.geom_friction(
+    env1,
+    env_ids=None,
+    ranges=(0.3, 1.2),
+    distribution="uniform",
+    operation="abs",
+    asset_cfg=SceneEntityCfg("robot", geom_names=(".*",)),
+    axes=[0],
+  )
+  result_str = env1.sim.model.geom_friction[:, robot.indexing.geom_ids, 0].clone()
+
+  torch.manual_seed(42)
+  env2 = create_test_env(device)
+
+  dr.geom_friction(
+    env2,
+    env_ids=None,
+    ranges=(0.3, 1.2),
+    distribution=uniform_dist,
+    operation="abs",
+    asset_cfg=SceneEntityCfg("robot", geom_names=(".*",)),
+    axes=[0],
+  )
+  result_inst = env2.sim.model.geom_friction[:, robot.indexing.geom_ids, 0]
+
+  assert torch.allclose(result_str, result_inst)
+
+
+def test_custom_operation(device):
+  """A user-defined Operation works end-to-end."""
+  from mjlab.envs.mdp.dr._types import Operation
+
+  clamp_op = Operation(
+    name="clamp",
+    initialize=torch.Tensor.clone,
+    combine=lambda base, random: torch.clamp(random, min=0.4, max=0.9),
+    uses_defaults=False,
+  )
+
+  torch.manual_seed(42)
+  env = create_test_env(device)
+  robot = env.scene["robot"]
+
+  dr.geom_friction(
+    env,
+    env_ids=None,
+    ranges=(0.1, 1.5),
+    operation=clamp_op,
+    asset_cfg=SceneEntityCfg("robot", geom_names=(".*",)),
+    axes=[0],
+  )
+
+  friction = env.sim.model.geom_friction[:, robot.indexing.geom_ids, 0]
+  assert torch.all((friction >= 0.4 - 1e-5) & (friction <= 0.9 + 1e-5))
+
+
+def test_custom_distribution(device):
+  """A user-defined Distribution works end-to-end."""
+  from mjlab.envs.mdp.dr._types import Distribution
+
+  # Distribution that always returns the midpoint.
+  midpoint_dist = Distribution(
+    name="midpoint",
+    sample=lambda lo, hi, shape, device: ((lo + hi) / 2).expand(shape),
+  )
+
+  env = create_test_env(device)
+  robot = env.scene["robot"]
+
+  dr.geom_friction(
+    env,
+    env_ids=None,
+    ranges=(0.2, 0.8),
+    distribution=midpoint_dist,
+    operation="abs",
+    asset_cfg=SceneEntityCfg("robot", geom_names=(".*",)),
+    axes=[0],
+  )
+
+  friction = env.sim.model.geom_friction[:, robot.indexing.geom_ids, 0]
+  assert torch.allclose(friction, torch.tensor(0.5, device=device), atol=1e-5)
+
+
+def test_resolve_unknown_operation_raises(device):
+  """Unknown operation string raises ValueError."""
+  from mjlab.envs.mdp.dr._types import resolve_operation
+
+  with pytest.raises(ValueError, match="Unknown operation"):
+    resolve_operation("nonexistent")
+
+
+def test_resolve_unknown_distribution_raises(device):
+  """Unknown distribution string raises ValueError."""
+  from mjlab.envs.mdp.dr._types import resolve_distribution
+
+  with pytest.raises(ValueError, match="Unknown distribution"):
+    resolve_distribution("nonexistent")
