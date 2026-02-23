@@ -53,6 +53,11 @@ Added
   correctly when the corresponding fields are randomized. See
   :doc:`randomization` for viewer-specific caveats.
 
+- ``DebugVisualizer`` now supports ellipsoid visualization via
+  ``add_ellipsoid``.
+
+- Visualizers display the realtime factor alongside FPS.
+
 - Terrain is now a proper ``Entity`` subclass (``TerrainEntity``). This
   allows domain randomization functions to target terrain parameters
   (friction, cameras, lights) via ``SceneEntityCfg("terrain", ...)``.

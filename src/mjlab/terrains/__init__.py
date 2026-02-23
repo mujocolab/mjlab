@@ -51,6 +51,7 @@ from mjlab.terrains.terrain_generator import SubTerrainCfg as SubTerrainCfg
 from mjlab.terrains.terrain_generator import TerrainGenerator as TerrainGenerator
 from mjlab.terrains.terrain_generator import TerrainGeneratorCfg as TerrainGeneratorCfg
 
+# TODO(kevin): remove these aliases, see https://github.com/mujocolab/mjlab/issues/667
 # Backwards compatibility aliases (deprecated).
 _DEPRECATED_ALIASES = {
   "TerrainImporter": "TerrainEntity",
