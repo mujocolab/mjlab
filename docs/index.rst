@@ -69,6 +69,7 @@ Table of Contents
 
    source/motivation
    source/faq
+   source/contributing
    source/changelog
 
 .. toctree::

@@ -17,6 +17,8 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Contributing guide with documentation for shared Claude Code commands
+  (``/update-mjwarp``, ``/commit-push-pr``).
 - New ``dr`` module (``mjlab.envs.mdp.dr``) replacing ``randomize_field``
   with typed per-field domain randomization functions. Each function
   automatically recomputes derived fields via ``set_const``. Highlights:
