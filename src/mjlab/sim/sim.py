@@ -259,7 +259,7 @@ class Simulation:
     self._model_bridge.clear_cache()
 
     if self._sensor_context is not None:
-      self._sensor_context.recreate(self._mj_model)
+      self._sensor_context.recreate(self._mj_model, self._expanded_fields)
 
     # Field expansion allocates new arrays and replaces them via setattr. The
     # CUDA graph captured the old memory addresses, so we must recreate it.

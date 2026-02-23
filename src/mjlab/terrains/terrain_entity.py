@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 import mujoco
@@ -10,6 +10,8 @@ import torch
 from mjlab.entity import Entity, EntityCfg
 from mjlab.terrains.terrain_generator import TerrainGenerator, TerrainGeneratorCfg
 from mjlab.utils import spec_config as spec_cfg
+
+_DEFAULT_SUN_LIGHT = spec_cfg.LightCfg(name="sun", pos=(0, 0, 1.5), type="directional")
 
 _DEFAULT_PLANE_TEXTURE = spec_cfg.TextureCfg(
   name="groundplane",
@@ -29,6 +31,7 @@ _DEFAULT_PLANE_MATERIAL = spec_cfg.MaterialCfg(
   texrepeat=(4, 4),
   reflectance=0.2,
   texture="groundplane",
+  geom_names_expr=("terrain",),
 )
 
 
@@ -51,6 +54,20 @@ class TerrainEntityCfg(EntityCfg):
   num_envs: int = 1
   """Number of parallel environments to create. This will get overridden by the
   scene configuration if specified there."""
+  textures: tuple[spec_cfg.TextureCfg, ...] = field(
+    default_factory=lambda: (_DEFAULT_PLANE_TEXTURE,)
+  )
+  """Textures for the ground plane. Defaults to a checker pattern. Set to
+  ``()`` to disable textures (e.g. when using ``dr.geom_rgba``)."""
+  materials: tuple[spec_cfg.MaterialCfg, ...] = field(
+    default_factory=lambda: (_DEFAULT_PLANE_MATERIAL,)
+  )
+  """Materials for the ground plane. Defaults to the checker material. Set to
+  ``()`` to disable materials (e.g. when using ``dr.geom_rgba``)."""
+  lights: tuple[spec_cfg.LightCfg, ...] = field(
+    default_factory=lambda: (_DEFAULT_SUN_LIGHT,)
+  )
+  """Lights for the scene. Defaults to a directional sun light."""
 
   def build(self) -> TerrainEntity:
     raise TypeError(
@@ -196,16 +213,10 @@ class TerrainEntity(Entity):
   # Private methods.
 
   def _import_ground_plane(self, name: str) -> None:
-    _DEFAULT_PLANE_TEXTURE.edit_spec(self._spec)
-    _DEFAULT_PLANE_MATERIAL.edit_spec(self._spec)
     self._spec.worldbody.add_body(name=name).add_geom(
       name=name,
       type=mujoco.mjtGeom.mjGEOM_PLANE,
       size=(0, 0, 0.01),
-      material=_DEFAULT_PLANE_MATERIAL.name,
-    )
-    spec_cfg.LightCfg(name="sun", pos=(0, 0, 1.5), type="directional").edit_spec(
-      self._spec
     )
 
   def _add_env_origin_sites(self) -> None:

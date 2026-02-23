@@ -38,6 +38,7 @@ _ENTITY_NAMES_ATTR: dict[str, str] = {
   "tendon": "tendon_names",
   "camera": "camera_names",
   "light": "light_names",
+  "material": "material_names",
 }
 
 # Private engine.
@@ -92,10 +93,11 @@ def _randomize_model_field(
   else:
     env_ids = env_ids.to(env.device, dtype=torch.int)
 
-  model_field = getattr(env.sim.model, field)
   entity_indices = _get_entity_indices(
     asset.indexing, asset_cfg, entity_type, use_address
   )
+
+  model_field = getattr(env.sim.model, field)
   target_axes = _determine_target_axes(
     model_field, axes, narrowed_ranges, default_axes, valid_axes
   )
@@ -210,6 +212,8 @@ def _get_entity_indices(
       return indexing.cam_ids[asset_cfg.camera_ids]
     case "light":
       return indexing.light_ids[asset_cfg.light_ids]
+    case "material":
+      return indexing.mat_ids[asset_cfg.material_ids]
     case _:
       raise ValueError(f"Unknown entity type: {entity_type}")
 

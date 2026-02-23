@@ -223,6 +223,7 @@ class NativeMujocoViewer(BaseViewer):
       "geom_size",
       "geom_pos",
       "geom_quat",
+      "mat_rgba",
       "site_pos",
       "site_quat",
       "body_pos",

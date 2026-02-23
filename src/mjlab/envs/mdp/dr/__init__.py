@@ -69,6 +69,10 @@ from .camera import cam_quat as cam_quat
 from .light import light_dir as light_dir
 from .light import light_pos as light_pos
 
+# Material.
+# isort: split
+from .material import mat_rgba as mat_rgba
+
 # Actuator.
 # isort: split
 from .actuator import effort_limits as effort_limits

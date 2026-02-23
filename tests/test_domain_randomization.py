@@ -1545,3 +1545,68 @@ def test_resolve_unknown_distribution_raises(device):
 
   with pytest.raises(ValueError, match="Unknown distribution"):
     resolve_distribution("nonexistent")
+
+
+# mat_rgba tests.
+
+MAT_XML = """
+<mujoco>
+  <asset>
+    <material name="test_mat" rgba="1 1 1 1"/>
+  </asset>
+  <worldbody>
+    <body name="base" pos="0 0 1">
+      <freejoint name="free_joint"/>
+      <geom name="base_geom" type="box" size="0.1 0.1 0.1" mass="1.0"
+        material="test_mat"/>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+
+def _make_mat_env(device, num_envs=NUM_ENVS):
+  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(MAT_XML))
+  scene_cfg = SceneCfg(num_envs=num_envs, entities={"robot": entity_cfg})
+  scene = Scene(scene_cfg, device)
+  model = scene.compile()
+  sim = Simulation(num_envs=num_envs, cfg=SimulationCfg(), model=model, device=device)
+  scene.initialize(model, sim.model, sim.data)
+  sim.expand_model_fields(("mat_rgba",))
+  return Env(scene, sim, device)
+
+
+def test_mat_rgba_abs(device):
+  """Values within range, diversity across envs."""
+  torch.manual_seed(42)
+  env = _make_mat_env(device)
+
+  dr.mat_rgba(
+    env,
+    env_ids=None,
+    ranges=(0.2, 0.8),
+    asset_cfg=SceneEntityCfg("robot", material_names=("test_mat",)),
+    operation="abs",
+  )
+
+  mat_id = mujoco.mj_name2id(
+    env.sim.mj_model, mujoco.mjtObj.mjOBJ_MATERIAL, "robot/test_mat"
+  )
+  rgba = env.sim.model.mat_rgba[:, mat_id, :]
+  assert torch.all((rgba >= 0.2 - 1e-5) & (rgba <= 0.8 + 1e-5))
+  assert len(torch.unique(rgba[:, 0])) >= 2
+
+
+def test_mat_rgba_invalid_name(device):
+  """ValueError for unknown material name."""
+  env = _make_mat_env(device)
+
+  with pytest.raises(ValueError, match="nonexistent_material"):
+    cfg = SceneEntityCfg("robot", material_names=("nonexistent_material",))
+    cfg.resolve(env.scene)
+    dr.mat_rgba(
+      env,
+      env_ids=None,
+      ranges=(0.2, 0.8),
+      asset_cfg=cfg,
+    )

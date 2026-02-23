@@ -40,6 +40,13 @@ _FIELD_CONFIGS = [
     "num_lights",
     "light",
   ),
+  _FieldConfig(
+    "material_names",
+    "material_ids",
+    "find_materials",
+    "num_materials",
+    "material",
+  ),
 ]
 
 
@@ -102,6 +109,12 @@ class SceneEntityCfg:
 
   light_ids: list[int] | slice = field(default_factory=lambda: slice(None))
   """IDs of lights to include. Can be a list or slice."""
+
+  material_names: str | tuple[str, ...] | None = None
+  """Names of materials to include. Can be a single string or tuple."""
+
+  material_ids: list[int] | slice = field(default_factory=lambda: slice(None))
+  """IDs of materials to include. Can be a list or slice."""
 
   preserve_order: bool = False
   """If True, maintains the order of components as specified."""

@@ -221,3 +221,36 @@ def test_camera_cfg():
 
   camera = spec.camera("test_camera")
   assert camera.name == "test_camera"
+
+
+def test_material_cfg_geom_assignment():
+  """MaterialCfg.geom_names_expr assigns material to matching geoms."""
+  spec = mujoco.MjSpec()
+  body = spec.worldbody.add_body(name="test_body")
+  body.add_geom(
+    name="link1_visual",
+    type=mujoco.mjtGeom.mjGEOM_BOX,
+    size=[0.1, 0.1, 0.1],
+  )
+  body.add_geom(
+    name="link2_visual",
+    type=mujoco.mjtGeom.mjGEOM_BOX,
+    size=[0.1, 0.1, 0.1],
+  )
+  body.add_geom(
+    name="arm_collision",
+    type=mujoco.mjtGeom.mjGEOM_BOX,
+    size=[0.1, 0.1, 0.1],
+  )
+
+  mat_cfg = MaterialCfg(
+    name="my_mat",
+    texuniform=True,
+    texrepeat=(1, 1),
+    geom_names_expr=(r".*_visual$",),
+  )
+  mat_cfg.edit_spec(spec)
+
+  assert spec.geom("link1_visual").material == "my_mat"
+  assert spec.geom("link2_visual").material == "my_mat"
+  assert spec.geom("arm_collision").material == ""

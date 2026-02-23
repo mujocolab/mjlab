@@ -42,6 +42,10 @@ Added
     anywhere a string is accepted. Built-in instances (``dr.abs``,
     ``dr.scale``, ``dr.add``, ``dr.uniform``, ``dr.log_uniform``,
     ``dr.gaussian``) are exported from the ``dr`` module.
+  - ``dr.mat_rgba`` for per-world material color randomization. Tints
+    the texture color, useful for randomizing appearance of textured
+    surfaces. Material names are now supported in ``SceneEntityCfg``
+    (``material_names``).
   - Fixed ``dr.effort_limits`` drifting on repeated randomization.
   - Fixed ``dr.body_com_offset`` not triggering ``set_const``.
 
@@ -54,6 +58,14 @@ Added
   Inertia boxes (press ``I``) and camera frustums (press ``Q``) update
   correctly when the corresponding fields are randomized. See
   :doc:`randomization` for viewer-specific caveats.
+
+- ``MaterialCfg.geom_names_expr`` for assigning materials to geoms by
+  name pattern during ``edit_spec``.
+
+- ``TerrainEntityCfg`` now exposes ``textures``, ``materials``, and
+  ``lights`` as configurable fields (previously hardcoded). Set
+  ``textures=()``, ``materials=()`` to use flat ``dr.geom_rgba``
+  instead of the default checker texture.
 
 - ``DebugVisualizer`` now supports ellipsoid visualization via
   ``add_ellipsoid``.

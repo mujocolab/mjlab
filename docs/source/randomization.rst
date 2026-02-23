@@ -214,6 +214,21 @@ and ``dr.body_ipos`` are the same function).
      - Light direction vector
      -
 
+.. rubric:: Material fields
+
+.. list-table::
+   :header-rows: 1
+   :widths: 28 18 34 20
+
+   * - Function
+     - MuJoCo field
+     - Description
+     - Notes
+   * - ``dr.mat_rgba``
+     - ``mat_rgba``
+     - Material RGBA color (tints textures)
+     -
+
 .. rubric:: Tendon fields
 
 .. list-table::
@@ -600,8 +615,8 @@ don't have one yet. We will add them as demand arises.
        ``actuator_ctrlrange``, ``actuator_actrange``
      - ``pd_gains`` and ``effort_limits`` cover common cases.
    * - Material
-     - ``mat_rgba``, ``mat_texrepeat``
-     - Continuous per-world fields. Requires material-level entity
+     - ``mat_texrepeat``
+     - Continuous per-world field. Requires material-level entity
        indexing (selecting by material name).
 
 Better as custom code
@@ -1166,6 +1181,7 @@ The native viewer syncs per-world model fields from the GPU to a local
 toggles then work correctly against the randomized model:
 
 - Geom appearance (``geom_rgba``, ``geom_size``, ``geom_pos``, ``geom_quat``)
+- Material color (``mat_rgba``): tints textured surfaces
 - Body and site poses (``body_pos``, ``body_quat``, ``body_ipos``,
   ``site_pos``, ``site_quat``)
 - Inertia (``body_inertia``, ``body_iquat``, ``body_mass``): press ``I``
@@ -1197,10 +1213,14 @@ toggles then work correctly against the randomized model:
 
 .. note::
 
-   ``cam_fovy`` has no effect on the frustum visualization for cameras that
-   use intrinsic parameters (``sensorsize`` / ``focal`` set in XML). MuJoCo
-   draws those frustums from ``cam_intrinsic`` and ``cam_sensorsize``
-   instead. Use ``dr.cam_intrinsic`` to vary the frustum for such cameras.
+   ``cam_fovy`` has no effect on cameras that use intrinsic parameters
+   (``sensorsize`` / ``focal`` set in XML). This applies to both rendered
+   images and the frustum visualization. MuJoCo computes the projection
+   from ``cam_intrinsic`` and ``cam_sensorsize`` instead. Use
+   ``dr.cam_intrinsic`` to randomize the field of view for such cameras.
+   See the `MuJoCo camera documentation
+   <https://mujoco.readthedocs.io/en/stable/XMLreference.html#body-camera>`_
+   for details on how intrinsic parameters interact with ``fovy``.
 
 **Viser**
 

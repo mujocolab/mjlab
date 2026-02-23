@@ -31,6 +31,10 @@ def _unpack_rgb_kernel(
   rgb[world_idx, pixel_idx, 2] = b
 
 
+# Fields that require per-pixel ray recomputation at render time.
+_RAY_FIELDS = frozenset({"cam_fovy", "cam_intrinsic"})
+
+
 class SensorContext:
   """Container for shared sensing resources.
 
@@ -69,6 +73,7 @@ class SensorContext:
     self._depth_torch: torch.Tensor | None = None
     self._rgb_adr_np: list[int] | None = None
     self._depth_adr_np: list[int] | None = None
+    self._disable_precomputed_rays = False
     self._create_context(mj_model)
 
     # Wire up sensors to use this context.
@@ -89,11 +94,17 @@ class SensorContext:
   def render_context(self) -> mjwarp.RenderContext:
     return self._ctx
 
-  def recreate(self, mj_model: mujoco.MjModel) -> None:
+  def recreate(
+    self,
+    mj_model: mujoco.MjModel,
+    expanded_fields: set[str] | None = None,
+  ) -> None:
     """Recreate the render context after model fields are expanded.
 
     Called by Simulation.expand_model_fields() for domain randomization.
     """
+    if expanded_fields is not None:
+      self._disable_precomputed_rays = bool(expanded_fields & _RAY_FIELDS)
     self._create_context(mj_model)
 
   def prepare(self) -> None:
@@ -271,6 +282,7 @@ class SensorContext:
         use_shadows=use_shadows,
         enabled_geom_groups=enabled_geom_groups,
         cam_active=cam_active,
+        use_precomputed_rays=not self._disable_precomputed_rays,
       )
 
     # Cache address arrays from the render context. An adr value of -1 means that data

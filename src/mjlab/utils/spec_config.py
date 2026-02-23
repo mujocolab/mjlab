@@ -104,7 +104,10 @@ class TextureCfg(SpecCfg):
 
 @dataclass
 class MaterialCfg(SpecCfg):
-  """Configuration to add a material to the MuJoCo spec."""
+  """Configuration to add a material to the MuJoCo spec.
+
+  Optionally assigns the material to geoms matching ``geom_names_expr``.
+  """
 
   name: str
   """Name of the material."""
@@ -116,6 +119,9 @@ class MaterialCfg(SpecCfg):
   """Material reflectance value."""
   texture: str | None = None
   """Name of texture to apply (optional)."""
+  geom_names_expr: tuple[str, ...] | None = None
+  """Regex patterns to match geom names. Matching geoms will have their
+  material set to this material. ``None`` means no assignment."""
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
     self.validate()
@@ -127,6 +133,14 @@ class MaterialCfg(SpecCfg):
     )
     if self.texture is not None:
       mat.textures[mujoco.mjtTextureRole.mjTEXROLE_RGB.value] = self.texture
+
+    if self.geom_names_expr is not None:
+      from mjlab.utils.string import filter_exp
+
+      all_geom_names = tuple(g.name for g in spec.geoms)
+      matched = filter_exp(self.geom_names_expr, all_geom_names)
+      for geom_name in matched:
+        spec.geom(geom_name).material = self.name
 
   def validate(self) -> None:
     if self.texrepeat[0] <= 0 or self.texrepeat[1] <= 0:
