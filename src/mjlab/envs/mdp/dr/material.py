@@ -28,13 +28,24 @@ def mat_rgba(
 ) -> None:
   """Randomize material RGBA color.
 
+  In MuJoCo, a material's RGBA plays two roles depending on whether a texture is
+  assigned:
+
+  - **With texture**: ``mat_rgba`` is a multiplicative modulator. The rendered color
+    equals ``texture_color * mat_rgba`` per channel. ``(1, 1, 1, 1)`` leaves the
+    texture unchanged; values below 1 darken it.
+  - **Without texture**: ``mat_rgba`` directly sets the material's surface color,
+    similar to how :func:`~mjlab.envs.mdp.dr.geom_rgba` sets geom colors.
+
+  Note: If a geom has no material assigned (``matid < 0``), its color is controlled by
+  ``geom_rgba``, not ``mat_rgba``.
+
   Args:
     env: The environment instance.
     env_ids: Environment indices to randomize. ``None`` means all.
     ranges: Value range(s) for sampling.
     asset_cfg: Entity and material selection. Use
-      ``SceneEntityCfg("entity", material_names=(...))`` to target
-      specific materials.
+      ``SceneEntityCfg("entity", material_names=(...))`` to target specific materials.
     distribution: Sampling distribution.
     operation: How to combine sampled values with the base.
     axes: Which RGBA channels to randomize. Defaults to ``[0, 1, 2, 3]``.

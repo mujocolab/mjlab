@@ -111,10 +111,13 @@ class MaterialCfg(SpecCfg):
 
   name: str
   """Name of the material."""
-  texuniform: bool
-  """Whether texture is uniform."""
-  texrepeat: tuple[int, int]
-  """Texture repeat pattern (width, height) - both must be positive."""
+  rgba: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0)
+  """RGBA color of the material. Without a texture this is the direct
+  surface color; with a texture it multiplies the texture colors."""
+  texuniform: bool = False
+  """Whether texture coordinates are uniform."""
+  texrepeat: tuple[float, float] = (1.0, 1.0)
+  """Texture repeat pattern (width, height). Must be positive."""
   reflectance: float = 0.0
   """Material reflectance value."""
   texture: str | None = None
@@ -128,6 +131,7 @@ class MaterialCfg(SpecCfg):
 
     mat = spec.add_material(
       name=self.name,
+      rgba=self.rgba,
       texuniform=self.texuniform,
       texrepeat=self.texrepeat,
     )

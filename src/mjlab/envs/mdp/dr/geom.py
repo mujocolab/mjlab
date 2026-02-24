@@ -213,7 +213,24 @@ def geom_rgba(
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
-  """Randomize geom RGBA colors."""
+  """Randomize geom RGBA colors.
+
+  Only affects rendering when the geom has no material assigned. If a material is
+  assigned, its color (or texture) takes precedence over ``geom_rgba``.
+  Use :func:`~mjlab.envs.mdp.dr.mat_rgba` instead, or clear the material assignment
+  first.
+
+  Args:
+    env: The environment instance.
+    env_ids: Environment indices to randomize. ``None`` means all.
+    ranges: Value range(s) for sampling.
+    asset_cfg: Entity and geom selection.
+    distribution: Sampling distribution.
+    operation: How to combine sampled values with the base.
+    axes: Which RGBA channels to randomize. Defaults to ``[0, 1, 2, 3]``.
+    shared_random: If ``True``, all selected geoms receive the same sampled value per
+      environment.
+  """
   _randomize_model_field(
     env,
     env_ids,
