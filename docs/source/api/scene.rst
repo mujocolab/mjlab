@@ -1,10 +1,23 @@
 mjlab.scene
 ===========
 
-Scene management.
-
 .. automodule:: mjlab.scene
-   :members:
-   :undoc-members:
-   :imported-members:
-   :show-inheritance:
+
+.. rubric:: Classes
+
+.. hlist::
+  :columns: 3
+
+  - :class:`Scene`
+  - :class:`SceneCfg`
+
+Scene
+-----
+
+.. autoclass:: Scene
+  :members:
+
+.. autoclass:: SceneCfg
+  :members:
+  :exclude-members: __init__
+  :undoc-members:

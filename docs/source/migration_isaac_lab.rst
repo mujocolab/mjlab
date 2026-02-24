@@ -1,4 +1,4 @@
-.. _migration-isaaclab:
+.. _migration_isaac_lab:
 
 Migrating from Isaac Lab
 ========================
@@ -57,6 +57,8 @@ mjlab:
 Isaac Lab uses nested ``@configclass`` blocks for manager terms. ``mjlab``
 instead uses **plain dictionaries** mapping names to config objects, which makes
 it easy to construct variants, merge configs, or generate them programmatically.
+For the full context behind this design decision, see
+`PR #292 <https://github.com/mujocolab/mjlab/pull/292>`_.
 
 **Isaac Lab:**
 

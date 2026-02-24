@@ -14,10 +14,9 @@ choose the one that best fits your use case.
 
     **System Requirements**
 
-    - **Operating System**: Linux recommended
+    - **Training**: Linux + NVIDIA GPU (CUDA 12.4+ recommended)
+    - **Evaluation**: Linux, macOS, or Windows (WSL)
     - **Python**: 3.10 or higher
-    - **GPU**: NVIDIA GPU
-    - **CUDA version**: CUDA 12.4+ Recommended
 
     See :ref:`faq` for more details on what is exactly supported.
 
@@ -150,8 +149,7 @@ This method is for developing ``mjlab`` itself or contributing to the project.
 
 .. code:: bash
 
-   git clone https://github.com/mujocolab/mjlab.git
-   cd mjlab
+   git clone https://github.com/mujocolab/mjlab.git && cd mjlab
    uv sync
 
 Verification
@@ -169,55 +167,11 @@ After installation, verify that ``mjlab`` is working by running the demo:
 Method 3 - Classic pip / venv / conda
 -------------------------------------
 
-While ``mjlab`` is designed to work with `uv <https://docs.astral.sh/uv/>`_, you can
-also use it with any pip-based virtual environment (``venv``, ``conda``, ``virtualenv``, etc.).
+Activate your virtual environment (``venv``, ``conda``, etc.), then install:
 
-Create and activate your virtual environment
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code:: bash
 
-.. tab-set::
-
-   .. tab-item:: venv
-
-      Using ``venv`` (standard library):
-
-      .. code:: bash
-
-         python -m venv mjlab-env
-         source mjlab-env/bin/activate
-
-   .. tab-item:: conda
-
-      Using ``conda``:
-
-      .. code:: bash
-
-         conda create -n mjlab python=3.13
-         conda activate mjlab
-
-
-Install mjlab and dependencies via pip
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. tab-set::
-
-   .. tab-item:: PyPI
-
-      From PyPI:
-
-      .. code:: bash
-
-         pip install mjlab
-
-   .. tab-item:: Source
-
-      From Source:
-
-      .. code:: bash
-
-         git clone https://github.com/mujocolab/mjlab.git
-         cd mjlab
-         pip install -e .
+   pip install mjlab
 
 
 Verification
@@ -235,12 +189,7 @@ After installation, verify that ``mjlab`` is working by running the demo:
 Method 4 - Docker / clusters
 ----------------------------
 
-This method is recommended if you prefer running ``mjlab`` in containers (for example on
-servers or clusters).
-
-
-Prerequisites
-^^^^^^^^^^^^^
+Prerequisites:
 
 - Install Docker: `Docker installation guide <https://docs.docker.com/engine/install/>`_.
 - Install an appropriate NVIDIA driver for your system and the
@@ -249,39 +198,12 @@ Prerequisites
   - Be sure to register the container runtime with Docker and restart, as described in
     the Docker configuration section of the NVIDIA install guide.
 
-
-Build the Docker image
-^^^^^^^^^^^^^^^^^^^^^^
-
-From the root of the repository:
+Build and run:
 
 .. code-block:: bash
 
    make docker-build
-
-
-Run mjlab in Docker
-^^^^^^^^^^^^^^^^^^^
-
-Use the included helper script to run an ``mjlab`` Docker container with useful arguments preconfigured:
-
-.. code-block:: bash
-
-   ./scripts/run_docker.sh
-
-Examples:
-
-- Demo with viewer:
-
-  .. code-block:: bash
-
-     ./scripts/run_docker.sh uv run demo
-
-- Training example:
-
-  .. code-block:: bash
-
-     ./scripts/run_docker.sh uv run train Mjlab-Velocity-Flat-Unitree-G1 --env.scene.num-envs 4096
+   ./scripts/run_docker.sh uv run demo
 
 
 Having some troubles?

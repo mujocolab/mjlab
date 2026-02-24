@@ -1,10 +1,44 @@
 mjlab.sim
 =========
 
-Simulation core.
-
 .. automodule:: mjlab.sim
-   :members:
-   :undoc-members:
-   :imported-members:
-   :show-inheritance:
+
+.. rubric:: Classes
+
+.. hlist::
+  :columns: 3
+
+  - :class:`Simulation`
+  - :class:`SimulationCfg`
+  - :class:`MujocoCfg`
+  - :class:`TorchArray`
+  - :class:`WarpBridge`
+
+Simulation
+----------
+
+.. autoclass:: Simulation
+  :members:
+
+.. autoclass:: SimulationCfg
+  :members:
+  :exclude-members: __init__
+  :undoc-members:
+
+
+.. autoclass:: MujocoCfg
+  :members:
+  :exclude-members: __init__
+  :undoc-members:
+
+TorchArray
+----------
+
+.. autoclass:: TorchArray
+  :members:
+
+WarpBridge
+----------
+
+.. autoclass:: WarpBridge
+  :members:

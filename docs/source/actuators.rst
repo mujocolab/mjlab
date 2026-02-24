@@ -4,35 +4,18 @@ Actuators
 =========
 
 Actuators convert high-level commands (position, velocity, effort) into
-low-level efforts that drive joints. Implementations use either
-built-in actuators (physics engine computes torques and integrates damping
-forces implicitly) or explicit actuators (user computes torques explicitly,
-integrator cannot account for their velocity derivatives).
+low-level efforts that drive joints. They are configured through the
+``articulation`` field of :ref:`EntityCfg <entity>`. mjlab provides
+**built-in** actuators that leverage the physics engine's implicit
+integration for best stability, and **explicit** actuators for custom
+control laws and actuator dynamics.
 
-Choosing an Actuator Type
--------------------------
 
-**Built-in actuators** (``BuiltinPositionActuator``, ``BuiltinVelocityActuator``): Use
-MuJoCo's native implementations. The physics engine computes torques and
-integrates damping forces implicitly, providing the best numerical stability.
+Quick start
+-----------
 
-**Explicit actuators** (``IdealPdActuator``, ``DcMotorActuator``,
-``LearnedMlpActuator``): Compute torques explicitly so the simulator cannot
-account for velocity derivatives. Use when you need custom control laws or
-actuator dynamics that can't be expressed with built-in types (e.g.,
-velocity-dependent torque limits, learned actuator networks).
-
-**XML actuators** (``XmlPositionActuator``, ``XmlMotorActuator``,
-``XmlVelocityActuator``): Wrap actuators already defined in your robot's XML
-file.
-
-**Delayed actuators** (``DelayedActuator``): Generic wrapper that adds command
-delays to any actuator type. Use for modeling communication latency.
-
-TL;DR
------
-
-**Basic PD control:**
+Basic PD control with ``BuiltinPositionActuator``, the most common
+starting point.
 
 .. code-block:: python
 
@@ -53,7 +36,8 @@ TL;DR
         ),
     )
 
-**Add delays:**
+Wrap any actuator in ``DelayedActuatorCfg`` to model communication
+latency.
 
 .. code-block:: python
 
@@ -71,59 +55,76 @@ TL;DR
     )
 
 
-Actuator Interface
-------------------
+Built-in vs explicit actuators
+------------------------------
 
-All actuators implement a unified ``compute()`` interface that receives an
-``ActuatorCmd`` (containing position, velocity, and effort targets) and returns
-control signals for the low-level MuJoCo actuators driving each joint. The
-abstraction provides lifecycle hooks for model modification, initialization,
-reset, and runtime updates.
+The key design decision when configuring actuators is whether to use
+**built-in** or **explicit** types. The difference comes down to how
+MuJoCo's integrator handles velocity-dependent forces.
 
-**Core interface:**
+**Built-in actuators** (``BuiltinPositionActuator``,
+``BuiltinVelocityActuator``, ``BuiltinMotorActuator``,
+``BuiltinMuscleActuator``) create native MuJoCo actuator elements in the
+MjSpec. The physics engine computes the control law and integrates
+velocity-dependent damping forces implicitly. This provides the best
+numerical stability, particularly with high gains or large timesteps.
 
-.. code-block:: python
+**Explicit actuators** (``IdealPdActuator``, ``DcMotorActuator``,
+``LearnedMlpActuator``) compute torques in user code and forward them
+through a ``<motor>`` actuator acting as a passthrough. Because the
+integrator cannot account for the velocity derivatives of these
+externally computed forces, they are less numerically robust than built-in
+types. Use explicit actuators when you need custom control laws or actuator
+dynamics that cannot be expressed with built-in types (e.g.,
+velocity-dependent torque limits, learned actuator networks).
 
-    def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
-        """Convert high-level commands to control signals.
+The two approaches match closely in the linear, unconstrained regime at
+small timesteps. At larger timesteps or higher gains, built-in actuators
+are more forgiving.
 
-        Args:
-            cmd: Command containing position_target, velocity_target, effort_target
-                (each is a [num_envs, num_targets] tensor or None)
+**Integrator choice.** mjlab places damping inside the actuator rather than
+in joints. The ``euler`` integrator treats joint damping implicitly but
+actuator damping explicitly, limiting stability. The ``implicitfast``
+integrator treats all known velocity-dependent forces implicitly, handling
+both proportional and damping terms of the actuator without additional cost.
 
-        Returns:
-            Control signals for this actuator ([num_envs, num_targets] tensor)
-        """
+.. note::
 
-**Lifecycle hooks:**
+     mjlab defaults to ``implicitfast``, as it is MuJoCo's recommended
+     integrator and provides superior stability for actuator-side damping.
 
-- ``edit_spec``: Modify MjSpec before compilation (add actuators, set gains)
-- ``initialize``: Post-compilation setup (resolve indices, allocate buffers)
-- ``reset``: Per-environment reset logic
-- ``update``: Pre-step updates
-- ``compute``: Convert commands to control signals
 
-**Properties:**
-
-- ``target_ids``: Tensor of local target indices controlled by this actuator
-- ``target_names``: List of target names controlled by this actuator
-- ``ctrl_ids``: Tensor of global control input indices for this actuator
-
-Actuator Types
+Actuator types
 --------------
 
-Built-in Actuators
+All actuator configs share a few common fields inherited from
+``ActuatorCfg``:
+
+- ``target_names_expr``: Tuple of regex patterns matched against joint
+  names (or tendon/site names when using a different
+  ``transmission_type``).
+- ``armature``: Reflected rotor inertia added to the target joint.
+- ``frictionloss``: Static friction (stiction) modeled as a constraint
+  on the target joint. See MuJoCo's
+  `frictionloss <https://mujoco.readthedocs.io/en/stable/XMLreference.html#body-joint-frictionloss>`_.
+
+Built-in actuators
 ^^^^^^^^^^^^^^^^^^
 
-Built-in actuators use MuJoCo's native actuator types via the MjSpec API. The physics
-engine computes the control law and integrates velocity-dependent damping forces
-implicitly, providing best numerical stability.
+Built-in actuators use MuJoCo's native actuator types via the MjSpec API.
 
-**BuiltinPositionActuator**: Creates ``<position>`` actuators for PD control.
+**BuiltinPositionActuator**: Creates ``<position>`` actuators for PD
+control.
 
-**BuiltinVelocityActuator**: Creates ``<velocity>`` actuators for velocity control.
+**BuiltinVelocityActuator**: Creates ``<velocity>`` actuators for velocity
+control.
 
-**BuiltinMotorActuator**: Creates ``<motor>`` actuators for direct torque control.
+**BuiltinMotorActuator**: Creates ``<motor>`` actuators for direct torque
+control.
+
+**BuiltinMuscleActuator**: Creates ``<muscle>`` actuators for
+biologically-inspired muscle dynamics with force-length-velocity
+characteristics.
 
 .. code-block:: python
 
@@ -145,27 +146,26 @@ implicitly, providing best numerical stability.
     )
 
 
-Explicit Actuators
+Explicit actuators
 ^^^^^^^^^^^^^^^^^^
 
-These actuators explicitly compute efforts and forward them to an underlying <motor>
-actuator acting as a passthrough. This enables custom control laws and actuator
-dynamics that can't be expressed with built-in types.
+Explicit actuators compute efforts and forward them to an underlying
+``<motor>`` actuator acting as a passthrough. See
+`Built-in vs explicit actuators`_ above for stability implications.
 
-.. important::
+**IdealPdActuator**: Implements an ideal PD controller. Computes torques
+as ``tau = Kp * pos_error + Kd * vel_error``.
 
-     Explicit actuators may be less numerically stable
-     than built-in actuators because the integrator cannot account for the
-     velocity derivatives of the control forces, especially with high damping
-     gains.
+**DcMotorActuator**: Extends ``IdealPdActuator`` with velocity-dependent
+torque saturation to model DC motor torque-speed curves (back-EMF
+effects). Implements a linear torque-speed curve: maximum torque at zero
+velocity, zero torque at maximum velocity.
 
-**IdealPdActuator**: Base class that implements an ideal PD controller.
-
-**DcMotorActuator**: Example of a more realistic actuator model built on top
-of ``IdealPdActuator``. Adds velocity-dependent torque saturation to model DC
-motor torque-speed curves (back-EMF effects). It implements a linear
-torque-speed curve: maximum torque at zero velocity, zero torque at maximum
-velocity.
+**LearnedMlpActuator**: Neural network-based actuator that uses a
+trained MLP to predict torque outputs from joint state history. Useful
+when analytical models cannot capture complex actuator dynamics like
+delays, nonlinearities, and friction effects. Inherits DC motor
+velocity-based torque limits.
 
 .. code-block:: python
 
@@ -190,58 +190,13 @@ velocity.
     )
 
 
-**DcMotorActuator parameters:**
-
-- ``saturation_effort``: Peak motor torque at zero velocity (stall torque)
-- ``velocity_limit``: Maximum motor velocity (no-load speed, *rad/s*)
-- ``effort_limit``: Continuous torque limit (from base class)
-
-**LearnedMlpActuator**: Neural network-based actuator that uses a trained MLP
-to predict torque outputs from joint state history. Useful when analytical
-models can't capture complex actuator dynamics like delays, nonlinearities, and
-friction effects. Inherits DC motor velocity-based torque limits.
-
-.. code-block:: python
-
-    from mjlab.actuator import LearnedMlpActuatorCfg
-
-    actuators = (
-        LearnedMlpActuatorCfg(
-            target_names_expr=(".*_ankle_.*",),
-            network_file="models/ankle_actuator.pt",  # TorchScript model
-            pos_scale=1.0,        # Input scaling for position errors
-            vel_scale=0.05,       # Input scaling for velocities
-            torque_scale=10.0,    # Output scaling for torques
-            input_order="pos_vel",
-            history_length=3,     # Use current + 2 previous timesteps
-            saturation_effort=50.0,
-            velocity_limit=30.0,
-            effort_limit=25.0,
-        ),
-    )
-
-**LearnedMlpActuator parameters:**
-
-- ``network_file``: Path to TorchScript MLP model (``.pt`` file)
-- ``pos_scale``: Scaling factor for position error inputs
-- ``vel_scale``: Scaling factor for velocity inputs
-- ``torque_scale``: Scaling factor for network torque outputs
-- ``input_order``: ``pos_vel`` (position then velocity) or ``vel_pos``
-- ``history_length``: Number of timesteps to use (e.g., 3 = current + 2 past)
-- ``saturation_effort``, ``velocity_limit``, ``effort_limit``: Same as
-  DcMotorActuator
-
-The network receives scaled inputs
-``[pos_error[t], pos_error[t-1], ..., vel[t], vel[t-1], ...]`` and outputs torques
-that are scaled and clipped by DC motor limits.
-
-XML Actuators
+XML actuators
 ^^^^^^^^^^^^^
 
 XML actuators wrap actuators already defined in your robot's XML file. The
-config finds existing actuators by matching their ``target`` joint name against
-the ``target_names_expr`` patterns. Each joint must have exactly one matching
-actuator.
+config finds existing actuators by matching their ``target`` joint name
+against the ``target_names_expr`` patterns. Each joint must have exactly one
+matching actuator.
 
 **XmlPositionActuator**: Wraps existing ``<position>`` actuators
 
@@ -263,12 +218,12 @@ actuator.
         XmlPositionActuatorCfg(target_names_expr=("hip_joint",)),
     )
 
-Delayed Actuator
+Delayed actuator
 ^^^^^^^^^^^^^^^^
 
-Generic wrapper that adds command delays to any actuator. Useful for modeling
-actuator latency and communication delays. The delay operates on command
-targets before they reach the actuator's control law.
+Generic wrapper that adds command delays to any actuator. Useful for
+modeling actuator latency and communication delays. The delay operates on
+command targets before they reach the actuator's control law.
 
 .. code-block:: python
 
@@ -308,66 +263,15 @@ Delays are quantized to physics timesteps. For example, with 500Hz physics
 .. note::
 
      Each target gets an independent delay buffer with its own lag
-     schedule. This provides maximum flexibility for modeling different latency
-     characteristics for position, velocity, and effort commands.
+     schedule. This provides maximum flexibility for modeling different
+     latency characteristics for position, velocity, and effort commands.
 
-PD Control and Integrator Choice
---------------------------------
 
-The distinction between **built-in** and **explicit** PD control only makes sense
-in the context of how MuJoCo integrates velocity-dependent forces. This section
-explains how each actuator style interacts with the integrator, and why
-mjlab uses ``<implicitfast>`` **by default**.
-
-Built-in vs Explicit PD Control
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-**BuiltinPositionActuator** uses MuJoCo's internal PD implementation:
-
-- Creates ``<position>`` actuators in the MjSpec
-- Physics engine computes the PD law and integrates velocity-dependent damping
-  forces implicitly
-
-**IdealPdActuator** implements PD control explicitly:
-
-- Creates ``<motor>`` actuators in the MjSpec
-- Computes torques explicitly: ``τ = Kp·pos_error + Kd·vel_error``
-- The integrator cannot account for the velocity derivatives of these forces
-
-They match closely in the linear, unconstrained regime and small time steps.
-However, built-in PD is more numerically robust and as such can be used with
-larger gains and larger timesteps.
-
-Integrator Behavior in MuJoCo
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The choice of integrator in MuJoCo strongly affects stability for
-velocity-dependent forces:
-
-- ``euler`` is semi-implicit but treats joint damping implicitly. Other
-  forces, including explicit actuator damping, are integrated explicitly.
-- ``implicitfast`` treats *all known velocity-dependent forces implicitly*,
-  stabilizing systems with large damping or stiff actuation.
-
-mjlab Recommendation
-^^^^^^^^^^^^^^^^^^^^
-
-mjlab actuators apply damping inside the actuator (not in joints). Because of
-this, **Euler** cannot integrate the damping implicitly, making it less stable.
-The ``implicitfast`` integrator, however, handles both proportional and
-damping terms of the actuator implicitly, improving stability without
-additional cost.
-
-.. note::
-
-     mjlab defaults to ``<implicitfast>``, as it is MuJoCo's recommended
-     integrator and provides superior stability for actuator-side damping.
-
-Authoring Actuator Configs
+Authoring actuator configs
 --------------------------
 
-Since actuator parameters are uniform within each config, use separate actuator
-configs for joints that need different parameters:
+Since actuator parameters are uniform within each config, use separate
+actuator configs for joints that need different parameters:
 
 .. code-block:: python
 
@@ -406,24 +310,33 @@ configs for joints that need different parameters:
     )
 
 This design choice reflects a deliberate simplification in mjlab: each
-``ActuatorCfg`` represents a single actuator type (e.g., a specific motor/gearbox
-model) applied uniformly across all joints it drives. Hardware parameters such
-as ``armature`` (reflected rotor inertia) and ``gear`` describe properties of the
-actuator hardware, even though they are implemented in MuJoCo as joint or
-actuator fields. In other frameworks (like Isaac Lab), these fields may accept
-``float | dict[str, float]`` to support per-joint variation. mjlab instead
-encourages one config per actuator type or per joint group, keeping the hardware
-model physically consistent and explicit. The main trade-off is verbosity in
-special cases, such as parallel linkages, where per-joint overrides could have
-been convenient, but the benefit is clearer semantics and simpler maintenance.
+``ActuatorCfg`` represents a single actuator type (e.g., a specific
+motor/gearbox model) applied uniformly across all joints it drives.
+Hardware parameters such as ``armature`` (reflected rotor inertia) and
+``gear`` describe properties of the actuator hardware, even though they
+are implemented in MuJoCo as joint or actuator fields. In other frameworks
+(like Isaac Lab), these fields may accept ``float | dict[str, float]`` to
+support per-joint variation. mjlab instead encourages one config per
+actuator type or per joint group, keeping the hardware model physically
+consistent and explicit. The main trade-off is verbosity in special cases,
+such as parallel linkages, where per-joint overrides could have been
+convenient, but the benefit is clearer semantics and simpler maintenance.
 
-Computing Hardware Parameters from Motor Specs
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+See :ref:`actions` for how action terms route policy outputs to actuators
+(including DifferentialIK for task-space control), and
+:ref:`domain_randomization` for randomizing gains and effort limits.
+
+
+Computing hardware parameters
+------------------------------
+
+This section is relevant when configuring actuators from real motor
+datasheets. If you are using manually tuned gains, you can skip ahead.
 
 mjlab provides utilities in ``mjlab.utils.actuator`` to compute actuator
-parameters from physical motor specifications. This is particularly useful for
-computing reflected inertia (``armature``) and deriving appropriate control gains
-from hardware datasheets.
+parameters from physical motor specifications. This is particularly
+useful for computing reflected inertia (``armature``) and deriving
+appropriate control gains from hardware datasheets.
 
 **Example: Unitree G1 motor configuration**
 
@@ -438,7 +351,7 @@ from hardware datasheets.
 
     # Motor specs from manufacturer datasheet.
     ROTOR_INERTIAS_7520_14 = (
-        0.489e-4,  # Motor rotor inertia (kg·m**2)
+        0.489e-4,  # Motor rotor inertia (kg*m**2)
         0.098e-4,  # Planet carrier inertia
         0.533e-4,  # Output stage inertia
     )
@@ -449,7 +362,7 @@ from hardware datasheets.
     )
 
     # Compute reflected inertia at joint output.
-    # J_reflected = J_motor*(N₁*N₂)**2 + J_carrier*N₂**2 + J_output.
+    # J_reflected = J_motor*(N1*N2)**2 + J_carrier*N2**2 + J_output.
     ARMATURE_7520_14 = reflected_inertia_from_two_stage_planetary(
         ROTOR_INERTIAS_7520_14, GEARS_7520_14
     )
@@ -458,7 +371,7 @@ from hardware datasheets.
     ACTUATOR_7520_14 = ElectricActuator(
         reflected_inertia=ARMATURE_7520_14,
         velocity_limit=32.0,   # rad/s at joint
-        effort_limit=88.0,     # N·m continuous torque
+        effort_limit=88.0,     # N*m continuous torque
     )
 
     # Derive PD gains from natural frequency and damping ratio.
@@ -480,19 +393,20 @@ from hardware datasheets.
 
 .. note::
 
-     The example uses `DAMPING_RATIO = 2.0`
-     (overdamped) rather than the critically damped value of 1.0. This is because
-     the reflected inertia calculation only accounts for the motor's rotor inertia,
-     not the apparent inertia of the links being moved. In practice, the total
-     effective inertia at the joint is higher than just the reflected motor inertia,
-     so using an overdamped ratio provides better stability margins when the true
-     system inertia is underestimated.
+     The example uses ``DAMPING_RATIO = 2.0``
+     (overdamped) rather than the critically damped value of 1.0. This is
+     because the reflected inertia calculation only accounts for the motor's
+     rotor inertia, not the apparent inertia of the links being moved. In
+     practice, the total effective inertia at the joint is higher than just
+     the reflected motor inertia, so using an overdamped ratio provides
+     better stability margins when the true system inertia is
+     underestimated.
 
 **Parallel linkage approximation:**
 
-For joints driven by parallel linkages (like the G1's ankles with dual motors),
-the effective armature in the nominal configuration can be approximated as the
-sum of the individual motor armatures:
+For joints driven by parallel linkages (like the G1's ankles with dual
+motors), the effective armature in the nominal configuration can be
+approximated as the sum of the individual motor armatures:
 
 .. code-block:: python
 
@@ -506,122 +420,48 @@ sum of the individual motor armatures:
     )
 
 
-Using Actuators in Environments
--------------------------------
+Extending: custom actuators
+----------------------------
 
-Action Terms
-^^^^^^^^^^^^
+All actuators implement a unified ``compute()`` interface that receives an
+``ActuatorCmd`` (containing position, velocity, and effort targets) and
+returns control signals for the low-level MuJoCo actuators driving each
+joint.
 
-Actuators are typically controlled via action terms in the action manager:
-
-.. code-block:: python
-
-    from mjlab.envs.mdp.actions import JointPositionActionCfg
-
-    JointPositionActionCfg(
-        entity_name="robot",
-        actuator_names=(".*",),  # Regex patterns for joint selection
-        scale=1.0,
-        use_default_offset=True,  # Use robot's default joint positions as offset
-    )
-
-**Available action terms:**
-
-- ``JointPositionAction``: Sets position targets (for PD actuators)
-- ``JointVelocityAction``: Sets velocity targets (for velocity actuators)
-- ``JointEffortAction``: Sets effort/torque targets (for torque actuators)
-- ``DifferentialIKAction``: Task-space control via damped least-squares IK
-
-The action manager calls ``entity.set_joint_position_target()``,
-``set_joint_velocity_target()``, or ``set_joint_effort_target()`` under the hood,
-which populate the ``ActuatorCmd`` passed to each actuator's ``compute()`` method.
-
-Differential IK Action
-""""""""""""""""""""""
-
-``DifferentialIKAction`` converts task-space commands (Cartesian position
-and/or orientation) into joint-space targets via damped least-squares (DLS)
-inverse kinematics. It runs one IK step per decimation substep via
-``apply_actions()``, or can be iterated externally via ``compute_dq()``.
-
-The action dimension is determined automatically by the active objectives:
-
-- ``orientation_weight == 0`` → **3D** (position only)
-- ``orientation_weight > 0, use_relative_mode=True`` → **6D** (delta pos +
-  delta axis-angle)
-- ``orientation_weight > 0, use_relative_mode=False`` → **7D** (absolute
-  pos + quaternion)
+**Core interface:**
 
 .. code-block:: python
 
-    from mjlab.envs.mdp.actions import DifferentialIKActionCfg
+    def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
+        """Convert high-level commands to control signals.
 
-    DifferentialIKActionCfg(
-        entity_name="robot",
-        actuator_names=("joint.*",),   # Regex for controlled joints
-        frame_name="grasp_site",       # End-effector element name
-        frame_type="site",             # "body", "site", or "geom"
-        use_relative_mode=False,       # Absolute target mode
-        damping=0.05,                  # DLS damping (lambda)
-        max_dq=0.5,                    # Per-step joint displacement limit
-        position_weight=1.0,           # Position tracking weight
-        orientation_weight=1.0,        # Orientation tracking weight
-        joint_limit_weight=0.1,        # Soft joint-limit avoidance
-        posture_weight=0.0,            # Null-space posture regularization
-        posture_target={".*": 0.0},    # Posture target (regex → value)
-    )
+        Args:
+            cmd: Command containing position_target, velocity_target,
+                effort_target (each is a [num_envs, num_targets] tensor
+                or None)
 
-**Standalone usage (outside RL):**
+        Returns:
+            Control signals for this actuator
+            ([num_envs, num_targets] tensor)
+        """
 
-The ``compute_dq()`` method returns joint displacements without writing to
-actuator targets, enabling multi-iteration IK in standalone scripts:
+**Lifecycle hooks:**
 
-.. code-block:: python
+- ``edit_spec``: Modify MjSpec before compilation (add actuators, set
+  gains)
+- ``initialize``: Post-compilation setup (resolve indices, allocate
+  buffers)
+- ``reset``: Per-environment reset logic
+- ``update``: Pre-step updates
+- ``compute``: Convert commands to control signals
 
-    from mjlab.envs.mdp.actions import DifferentialIKAction
+**Properties:**
 
-    action: DifferentialIKAction = cfg.build(env)
-    action.process_actions(target_pose)
-    for _ in range(20):  # Multiple IK iterations
-        dq = action.compute_dq()
-        q = entity.data.joint_pos[:, action._joint_ids] + dq
-        entity.write_joint_position_to_sim(q, joint_ids=action._joint_ids)
-        sim.forward()
+- ``target_ids``: Tensor of local target indices controlled by this
+  actuator
+- ``target_names``: List of target names controlled by this actuator
+- ``ctrl_ids``: Tensor of global control input indices for this actuator
 
-**Weighted objectives:**
-
-All objectives (position, orientation, joint limits, posture) are stacked
-into a single DLS system. Setting a weight to zero disables that objective
-with no overhead in the solve. Weights can be changed at runtime (e.g. from
-GUI sliders in the ``scripts/demos/ik_control.py`` demo).
-
-Domain Randomization
-^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: python
-
-    from mjlab.envs.mdp import dr
-    from mjlab.managers.event_manager import EventTermCfg
-    from mjlab.managers.scene_entity_config import SceneEntityCfg
-
-    EventTermCfg(
-        func=dr.pd_gains,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", actuator_names=(".*",)),
-            "kp_range": (0.8, 1.2),
-            "kd_range": (0.8, 1.2),
-            "distribution": "uniform",
-            "operation": "scale",  # or "abs" for absolute values
-        },
-    )
-
-    EventTermCfg(
-        func=dr.effort_limits,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", actuator_names=(".*_leg_.*",)),
-            "effort_limit_range": (0.7, 1.0),  # Reduce effort by 0-30%
-            "operation": "scale",
-        },
-    )
+``IdealPdActuator`` is the recommended base class for custom explicit
+actuators. ``DcMotorActuator`` and ``LearnedMlpActuator`` are both
+built on top of it and serve as examples of the extension pattern.

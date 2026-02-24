@@ -14,3 +14,6 @@ This section provides detailed API documentation for all public modules in mjlab
    sensor
    managers
    terrains
+   rl
+   viewer
+   tasks

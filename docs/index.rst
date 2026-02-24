@@ -5,29 +5,99 @@ Welcome to mjlab!
    :width: 100%
    :alt: mjlab
 
-What is mjlab?
-==============
+mjlab is a lightweight, open-source framework for robot learning that
+combines GPU-accelerated simulation with composable environments and minimal
+setup friction. It adopts the manager-based API introduced by
+`Isaac Lab <https://github.com/isaac-sim/IsaacLab>`_, where users compose
+modular building blocks for observations, rewards, and events, and pairs it
+with `MuJoCo Warp <https://github.com/google-deepmind/mujoco_warp>`_ for
+GPU-accelerated physics. The result is a framework installable with a single
+command, requiring minimal dependencies, and providing direct access to
+native `MuJoCo <https://github.com/google-deepmind/mujoco>`_ data
+structures.
 
-**mjlab = Isaac Lab's API + MuJoCo's simplicity + GPU acceleration**
+**Key features:**
 
-We took Isaac Lab's proven manager-based architecture and RL abstractions,
-then built them directly on MuJoCo Warp. No translation layers, no Omniverse
-overhead. Just fast, transparent physics.
+- **Composable environments:** users define observations, rewards,
+  terminations, and other MDP terms as modular building blocks
+- **Minimal dependencies:** single-command install via ``uv``, low startup
+  latency
+- **Direct MuJoCo data structures:** native ``MjModel``/``MjData`` access
+  with no translation layers
+- **PyTorch-native:** observations, rewards, and actions are PyTorch
+  tensors backed by zero-copy GPU memory sharing
 
-You can try mjlab *without installing anything* by using `uvx`:
+For more on the design decisions behind mjlab, see :doc:`source/motivation`.
+
+**Try it now** (no installation needed):
 
 .. code-block:: bash
 
-   # Install uv if you haven't already
-   curl -LsSf https://astral.sh/uv/install.sh | sh
+   uvx --from mjlab --refresh demo
 
-   # Run the mjlab demo (no local installation needed)
-   uvx --from mjlab demo
+Table of Contents
+-----------------
 
-If this runs, your setup is compatible with mjlab *for evaluation*.
+.. toctree::
+   :maxdepth: 1
+   :caption: User Guide
+
+   source/installation
+   source/tutorials
+   source/contributing
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Concepts
+
+   source/architecture_overview
+   source/entity/index
+   source/actuators
+   source/sensors/index
+   source/scene
+   source/terrain
+
+.. toctree::
+   :maxdepth: 1
+   :caption: The Manager Layer
+
+   source/environment_config
+   source/observations
+   source/actions
+   source/rewards
+   source/terminations
+   source/commands
+   source/events
+   source/randomization
+   source/curriculum
+   source/metrics
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Training & Debugging
+
+   source/training/rsl_rl
+   source/viewers
+   source/training/distributed_training
+   source/debugging/nan_guard
+
+.. toctree::
+   :maxdepth: 2
+   :caption: API Reference
+
+   source/api/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Further Reading
+
+   source/motivation
+   source/migration_isaac_lab
+   source/faq
+   source/changelog
 
 License & citation
-==================
+------------------
 
 mjlab is licensed under the Apache License, Version 2.0.
 Please refer to the `LICENSE file <https://github.com/mujocolab/mjlab/blob/main/LICENSE/>`_ for details.
@@ -44,7 +114,7 @@ If you use mjlab in your research, we would appreciate a citation:
     }
 
 Acknowledgments
-===============
+---------------
 
 mjlab would not exist without the excellent work of the Isaac Lab team, whose API design
 and abstractions mjlab builds upon.
@@ -52,40 +122,3 @@ and abstractions mjlab builds upon.
 Thanks also to the MuJoCo Warp team — especially Erik Frey and Taylor Howell — for
 answering our questions, giving helpful feedback, and implementing features based
 on our requests countless times.
-
-Table of Contents
-=================
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Getting Started
-
-   source/installation
-   source/migration_isaac_lab
-
-.. toctree::
-   :maxdepth: 1
-   :caption: About the Project
-
-   source/motivation
-   source/faq
-   source/contributing
-   source/changelog
-
-.. toctree::
-   :maxdepth: 2
-   :caption: API Reference
-
-   source/api/index
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Core Concepts
-
-   source/randomization
-   source/nan_guard
-   source/observation
-   source/actuators
-   source/sensors
-   source/raycast_sensor
-   source/distributed_training

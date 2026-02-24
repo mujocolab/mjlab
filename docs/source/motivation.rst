@@ -3,132 +3,86 @@
 Why mjlab?
 ==========
 
-The Problem
------------
+Reinforcement learning has become a powerful tool for training robot
+controllers in simulation and transferring them to real hardware. The
+fidelity of this pipeline hinges on getting simulation details right.
 
-GPU-accelerated robotics simulation has great tools, 
-but each has tradeoffs:
+Several frameworks address this.
+`Isaac Lab <https://github.com/isaac-sim/IsaacLab>`_
+provides a comprehensive manager-based API for composing RL environments,
+but requires the Omniverse runtime, which adds installation complexity and
+startup latency.
+`MuJoCo Playground <https://playground.mujoco.org/>`_ takes the opposite
+approach: minimal
+abstractions and monolithic environment definitions that are easy to hack
+and quick to prototype, but code duplication across robots and tasks makes
+multi-task codebases difficult to maintain. There remains a gap for a
+framework that is both lightweight and built on a proven orchestration API
+with access to best-in-class physics.
 
-**Isaac Lab**: Excellent API and RL abstractions, but 
-heavy installation, slow startup, and Omniverse overhead 
-make rapid iteration painful.
-
-**MJX**: Fast and lightweight, but JAX's learning curve 
-and poor collision scaling (if using the ``jax`` 
-`implementation <https://github.com/google-deepmind/mujoco/blob/32e08f9507c9bdc5a1a5411c6fa9f0346542b038/mjx/mujoco/mjx/_src/types.py#L28-L33>`_ 
-rather than the ``warp`` one) limit adoption.
-
-**Newton**: Brand new generic simulator supporting 
-multiple solvers (MuJoCo, VBD, etc.) with USD-based 
-format instead of MJCF/XML. Doesn't yet have the 
-ecosystem and community resources that MuJoCo has built 
-over the years.
-
-Our Solution
-------------
-
-**mjlab = Isaac Lab's API + MuJoCo's simplicity + 
-GPU acceleration**
-
-We took Isaac Lab's proven manager-based architecture 
-and RL abstractions, then built them directly on MuJoCo 
-Warp. No translation layers, no Omniverse overhead. 
-Just fast, transparent physics.
-
-Why Not Use Isaac Lab with Newton?
-   Isaac Lab recently added 
-   `experimental Newton support <https://github.com/isaac-sim/IsaacLab/tree/dev/newton>`_, 
-   which is great for existing Isaac users who want to 
-   try MuJoCo via Newton's backend.
-
-   If you want a comprehensive platform (RL, imitation 
-   learning, photorealistic rendering, etc.), use Isaac 
-   Lab. If you want a focused tool for RL and sim2real 
-   with MuJoCo, use mjlab.
+mjlab fills this gap. It adopts Isaac Lab's manager-based design, where
+users compose self-contained building blocks for observations, rewards,
+events, and commands, and pairs it with MuJoCo Warp for GPU-accelerated
+physics simulation. The result is a framework with minimal dependencies,
+fast startup, direct access to native MuJoCo model and data structures,
+and a PyTorch-native interface for policy training.
 
 
-Why Not Add MuJoCo Warp to Isaac Lab?
-   This would be fantastic for the ecosystem! 
-   NVIDIA's team is exploring this with their 
-   recent `experimental Newton integration <https://github.com/isaac-sim/IsaacLab/tree/dev/newton>`_, 
-   which is exciting.
-
-   But for us, we wanted to start with something 
-   more focused that we could realistically 
-   maintain. Isaac Lab is architected around 
-   Omniverse/Isaac Sim's powerful capabilities, 
-   which makes sense given everything it supports. 
-   Integrating MuJoCo Warp there would mean working 
-   within that broader framework and supporting 
-   use cases beyond our scope.
-
-   Maintaining multi-backend compatibility 
-   naturally involves tradeoffs in complexity 
-   and dependency management. By starting fresh, we could:
-
-   - Write a lean codebase optimized specifically for MuJoCo Warp
-   - Keep dependencies minimal and installation fast
-   - Maintain direct access to native mjModel/mjData structures
-   - Iterate quickly without navigating a larger platform's constraints
-
-   Think of mjlab as a love letter to Isaac 
-   Lab's brilliant API design. We're bringing 
-   those manager-based abstractions to researchers 
-   who want something smaller and MuJoCo-specific. 
-   It's complementary, not competitive.
-
-Philosophy
-----------
-
-**Bare Metal Performance**
-
-- Direct MuJoCo Warp integration, no translation layers
-- Native mjModel/mjData structures MuJoCo users know and love
-- GPU-accelerated with minimal overhead
-
-**Developer Experience First**
-
-- One-line installation: ``uvx --from mjlab demo``
-- Blazing fast startup
-- Standard Python debugging (pdb anywhere!)
-- Fast iteration cycles
-
-**Focused Scope**
-
-- Rigid-body robotics and RL, not trying to do everything
-- Clean, maintainable codebase over feature bloat
-- MuJoCo-native implementation, not a generic wrapper
-
-When to Use mjlab
+Design philosophy
 -----------------
 
-**Use mjlab if you want:**
+mjlab is designed around three core engineering commitments:
 
-- Fast iteration and debugging
-- Direct MuJoCo physics control
-- Proven RL abstractions (Isaac Lab-style)
-- GPU acceleration without heavyweight dependencies
-- Simple installation and deployment
+1. **Minimal installation friction.** A single
+   ``uvx --from mjlab --refresh demo`` command is enough to run the
+   framework. No heavyweight runtimes, no multi-gigabyte downloads. The
+   dependency footprint is kept intentionally small.
 
-**Use Isaac Lab if you need:**
+2. **Transparent and inspectable physics.** mjlab targets a single physics
+   stack, MuJoCo Warp, to prioritize simulation transparency and
+   debuggability. The framework exposes MuJoCo-native ``MjModel`` and
+   ``MjData`` structures for direct inspection and state access.
+   Cross-simulator portability is a non-goal; mjlab favors precise control
+   and interpretability over backend generality.
 
-- Photorealistic rendering
-- USD pipeline integration
-- Omniverse ecosystem features
-
-**Use Newton if you need:**
-
-- Multi-physics solver support (e.g., deformables)
-- Differentiable simulation
-
-
-The Bottom Line
----------------
-
-mjlab isn't trying to replace everything. It's 
-built for researchers who love MuJoCo's simplicity 
-and want Isaac Lab's RL abstractions with GPU acceleration, 
-minus the overhead.
+3. **Tight MuJoCo ecosystem integration.** Users work directly with MuJoCo
+   models and conventions. MJCF files, MuJoCo Menagerie assets, and
+   standard MuJoCo tooling all work without translation layers.
 
 
+Scope
+-----
 
+mjlab provides infrastructure for rigid-body robot learning. It includes
+depth and raycast sensors for geometric perception. High-fidelity RGB
+rendering is out of scope. This does not preclude vision-based policies:
+a common approach is to train privileged policies using full state, then
+distill into vision-based controllers using external rendering.
+
+The framework is intended to be extended to custom robots, tasks, sensors,
+and actuators. It ships with reference implementations of velocity tracking,
+motion imitation, and manipulation tasks.
+
+
+Comparison
+----------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 25 50
+
+   * - Framework
+     - Strengths
+     - Best for
+   * - **mjlab**
+     - Lightweight, fast iteration, native MuJoCo, PyTorch
+     - MuJoCo users who want structured RL environments with GPU acceleration
+   * - **Isaac Lab**
+     - Photorealistic rendering, USD pipeline, Omniverse ecosystem
+     - Projects that need Isaac Sim capabilities
+   * - **MuJoCo Playground**
+     - Minimal abstractions, easy to hack, quick prototyping
+     - One-off experiments and rapid iteration on single tasks
+   * - **Newton**
+     - Multi-physics solvers (deformables, VBD), differentiable simulation
+     - Projects that need solver flexibility beyond rigid-body MuJoCo

@@ -1,9 +1,11 @@
+.. _domain_randomization:
+
 Domain Randomization
 ====================
 
 Domain randomization varies physical parameters during training so that policies
 are robust to modeling errors and real-world variation. This guide shows
-how to attach randomization terms to your environment using ``EventTermCfg`` and
+how to attach randomization terms to an environment using ``EventTermCfg`` and
 the ``dr`` module.
 
 Quick Start
@@ -586,7 +588,7 @@ Added as needed
 """"""""""""""""
 
 These continuous model fields could use a standard ``dr.*`` function but
-don't have one yet. We will add them as demand arises.
+do not have one yet. They will be added as demand arises.
 
 .. list-table::
    :header-rows: 1
@@ -627,7 +629,7 @@ These fields have coupled semantics that make a generic ``dr.*`` function
 more misleading than helpful. For example, ``solref`` is interpreted
 differently depending on the solver type (elliptic vs. direct), ``solimp``
 has ordering constraints (dmin < dmax, width > 0), and ``qpos_spring`` is
-coupled with ``qpos0``. The right ranges depend on your specific modeling
+coupled with ``qpos0``. The right ranges depend on the specific modeling
 choices. Write a custom event term instead (see
 :ref:`Custom Class-Based Event Terms <dr-custom-event-terms>` or use
 ``@requires_model_fields`` to handle field expansion automatically).
@@ -713,7 +715,7 @@ Distribution
 ^^^^^^^^^^^^
 
 The ``distribution`` parameter controls how random values are sampled from
-the provided ``ranges``. You can pass a built-in string or a
+the provided ``ranges``. It accepts a built-in string or a
 ``dr.Distribution`` instance for custom sampling logic.
 
 .. list-table::
@@ -758,7 +760,7 @@ Operation
 ^^^^^^^^^
 
 The ``operation`` parameter controls how the sampled value is applied to the
-model field. You can pass a built-in string or a ``dr.Operation`` instance
+model field. It accepts a built-in string or a ``dr.Operation`` instance
 for custom logic.
 
 .. list-table::
@@ -827,7 +829,7 @@ Axis selection
 
 Many model fields are multi-dimensional. For example, ``geom_friction`` has
 three components ``[tangential, torsional, rolling]`` and ``body_pos`` has
-three spatial axes ``[x, y, z]``. You can target specific axes using the
+three spatial axes ``[x, y, z]``. Specific axes can be targeted using the
 ``axes`` parameter or by passing a dict for ``ranges``.
 
 For ``geom_friction`` with ``condim=3`` (standard frictional contact), only
@@ -850,7 +852,7 @@ for details on condim and friction coefficients.
 Per-component string-keyed ranges
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can apply different ranges to different entities in a single call using
+Different ranges can be applied to different entities in a single call using
 regex patterns as dict keys:
 
 .. code-block:: python
@@ -888,8 +890,8 @@ Friction (reset)
 
 .. note::
 
-     Give your robot's collision geoms higher **priority** than terrain
-     (geom priority defaults to 0). Then you only need to randomize robot
+     Give the robot's collision geoms higher **priority** than terrain
+     (geom priority defaults to 0). Then only robot
      friction. MuJoCo will use the higher-priority geom's friction in
      (robot, terrain) contacts.
 
@@ -982,7 +984,7 @@ Each call independently samples a new perturbation from the default orientation.
 
 The default axis is 0 (tangential friction). Axes 1 (torsional) and 2
 (rolling) only affect contacts with ``condim >= 4``, so the default is correct
-for standard ``condim=3`` contacts. If your model uses high-dimensional
+for standard ``condim=3`` contacts. If the model uses high-dimensional
 contacts, pass ``axes=[0, 1, 2]`` explicitly.
 
 ``dr.geom_size`` raises on non-primitive geoms
@@ -991,7 +993,7 @@ contacts, pass ``axes=[0, 1, 2]`` explicitly.
 :func:`dr.geom_size` only supports primitive geom types (sphere, capsule,
 ellipsoid, cylinder, box) because broadphase bounds for mesh, plane, and
 heightfield geoms cannot be recomputed analytically. Selecting a non-primitive
-geom raises a ``ValueError``. Filter your ``SceneEntityCfg`` to primitive geoms
+geom raises a ``ValueError``. Filter the ``SceneEntityCfg`` to primitive geoms
 only:
 
 .. code-block:: python
@@ -1017,13 +1019,13 @@ model parameters.
 
 On the PyTorch side, mjlab wraps these stride-0 arrays using ``torch.expand``
 so they appear to have shape ``(num_envs, ngeom, 3)`` while still backed by a
-single row of memory. You can index with ``tensor[env_id]`` and it looks like
+single row of memory. Indexing with ``tensor[env_id]`` makes it look like
 each world has its own data, but writes to any world affect all of them because
 they all point to the same underlying memory.
 
-To actually give each world independent values, we **expand** the underlying
-Warp array from shape ``(1, N)`` to ``(num_worlds, N)`` with real per-world
-memory and normal strides. This is what ``sim.expand_model_fields()`` does: it
+To give each world independent values, the underlying Warp array is
+**expanded** from shape ``(1, N)`` to ``(num_worlds, N)`` with real
+per-world memory and normal strides. ``sim.expand_model_fields()``
 allocates a new array, copies the shared data into each world's row, and
 replaces the old array on the model. After expansion, writes to one world no
 longer affect others and each world can have its own friction, mass, or
@@ -1031,9 +1033,9 @@ damping values.
 
 Each ``dr`` function declares which fields it needs via the
 ``@requires_model_fields`` decorator, and the ``EventManager`` collects these
-at startup so expansion happens automatically. If you are writing a custom DR
-term that directly modifies model arrays, make sure those arrays have been
-expanded. Either decorate your function with ``@requires_model_fields`` or call
+at startup so expansion happens automatically. Custom DR terms that directly
+modify model arrays must ensure those arrays have been expanded. Either
+decorate the function with ``@requires_model_fields`` or call
 ``sim.expand_model_fields()`` manually.
 
 .. note::
@@ -1051,7 +1053,7 @@ for each world, compile each one into its own ``MjModel``, and transfer them all
 to the GPU. That would give perfectly consistent derived quantities for free
 because ``mj_setConst`` runs during compilation.
 
-We don't do this for two reasons:
+mjlab does not do this for two reasons:
 
 1. **Cost.** Compiling an ``MjSpec`` is a CPU operation. Doing it once per world
    on every episode reset would be far too slow for thousands of environments.
@@ -1060,7 +1062,7 @@ We don't do this for two reasons:
    worlds. There is no mechanism to load N independent models into one
    simulation.
 
-Instead, we modify the expanded arrays in place on the GPU and selectively
+Instead, mjlab modifies the expanded arrays in place on the GPU and selectively
 recompute only the derived quantities that depend on what changed. This is
 what the ``RecomputeLevel`` system handles.
 
@@ -1071,15 +1073,15 @@ Recomputation of derived fields
 
 Some model fields are **derived** from others. For example,
 ``body_subtreemass`` (the total mass of a body and all its descendants) depends
-on ``body_mass``. If you change ``body_mass`` without updating
+on ``body_mass``. Changing ``body_mass`` without updating
 ``body_subtreemass``, the constraint solver will use stale impedance values
 and the simulation will be subtly wrong.
 
-In C MuJoCo, you would call `mj_setConst
+In C MuJoCo, the solution is to call `mj_setConst
 <https://mujoco.readthedocs.io/en/latest/programming/simulation.html#mjmodel-changes>`_
 after modifying model parameters at runtime. MuJoCo Warp provides an equivalent
 set of functions (``set_const``, ``set_const_0``, ``set_const_fixed``) that run
-on the GPU and operate on all worlds in parallel. mjlab calls these for you
+on the GPU and operate on all worlds in parallel. mjlab calls these
 automatically.
 
 The three recomputation levels, from cheapest to most expensive:
@@ -1106,7 +1108,7 @@ The three recomputation levels, from cheapest to most expensive:
 The built-in ``dr`` functions already declare the correct level. When the
 ``EventManager`` fires multiple DR terms in a single ``apply()`` call, it
 tracks the strongest level among them and calls ``sim.recompute_constants()``
-once at the end. You never need to call it yourself unless you are writing
+once at the end. Manual calls are unnecessary unless writing
 custom DR logic.
 
 Fields that only affect contact or joint behavior directly (``geom_friction``,
@@ -1135,7 +1137,7 @@ need no recomputation.
 Custom Class-Based Event Terms
 ------------------------------
 
-You can create custom event terms using classes instead of functions. This is
+Custom event terms can also use classes instead of functions. This is
 useful for event terms that need to maintain state or perform initialization
 logic:
 
@@ -1162,7 +1164,7 @@ logic:
             )
 
 
-    # Use the custom class in your environment config
+    # Register in the environment config.
     terrain_friction: EventTermCfg = EventTermCfg(
         mode="reset",
         func=RandomizeTerrainFriction,
