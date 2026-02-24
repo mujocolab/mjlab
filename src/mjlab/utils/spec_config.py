@@ -271,13 +271,13 @@ class LightCfg(SpecCfg):
   """Light type ("spot" or "directional")."""
   castshadow: bool = True
   """Whether light casts shadows."""
-  pos: tuple[float, float, float] = (0, 0, 0)
+  pos: tuple[float, float, float] = (0.0, 0.0, 0.0)
   """Light position (x, y, z)."""
-  dir: tuple[float, float, float] = (0, 0, -1)
+  dir: tuple[float, float, float] = (0.0, 0.0, -1.0)
   """Light direction vector (x, y, z)."""
-  cutoff: float = 45
+  cutoff: float = 45.0
   """Spot light cutoff angle in degrees."""
-  exponent: float = 10
+  exponent: float = 10.0
   """Spot light exponent."""
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
@@ -314,11 +314,11 @@ class CameraCfg(SpecCfg):
   """Camera mode ("fixed", "track", "trackcom", "targetbody", "targetbodycom")."""
   target: str | None = None
   """Target body for tracking modes (optional)."""
-  fovy: float = 45
+  fovy: float = 45.0
   """Field of view in degrees."""
-  pos: tuple[float, float, float] = (0, 0, 0)
+  pos: tuple[float, float, float] = (0.0, 0.0, 0.0)
   """Camera position (x, y, z)."""
-  quat: tuple[float, float, float, float] = (1, 0, 0, 0)
+  quat: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)
   """Camera orientation quaternion (w, x, y, z)."""
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:

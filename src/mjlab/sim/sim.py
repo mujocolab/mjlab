@@ -70,7 +70,7 @@ class MujocoCfg:
   ccd_iterations: int = 50
 
   # Other.
-  gravity: tuple[float, float, float] = (0, 0, -9.81)
+  gravity: tuple[float, float, float] = (0.0, 0.0, -9.81)
   multiccd: bool = False
 
   def apply(self, model: mujoco.MjModel) -> None:

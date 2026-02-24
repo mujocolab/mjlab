@@ -703,7 +703,7 @@ class BoxRandomSpreadTerrainCfg(SubTerrainCfg):
   box_width_range: tuple[float, float] = (0.3, 1.0)
   box_length_range: tuple[float, float] = (0.3, 1.0)
   box_height_range: tuple[float, float] = (0.05, 1.0)
-  box_yaw_range: tuple[float, float] = (0, 360)
+  box_yaw_range: tuple[float, float] = (0.0, 360.0)
   add_floor: bool = True
   platform_width: float = 1.0
   border_width: float = 0.25

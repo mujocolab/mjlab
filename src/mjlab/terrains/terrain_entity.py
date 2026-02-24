@@ -11,7 +11,9 @@ from mjlab.entity import Entity, EntityCfg
 from mjlab.terrains.terrain_generator import TerrainGenerator, TerrainGeneratorCfg
 from mjlab.utils import spec_config as spec_cfg
 
-_DEFAULT_SUN_LIGHT = spec_cfg.LightCfg(name="sun", pos=(0, 0, 1.5), type="directional")
+_DEFAULT_SUN_LIGHT = spec_cfg.LightCfg(
+  name="sun", pos=(0.0, 0.0, 1.5), type="directional"
+)
 
 _DEFAULT_PLANE_TEXTURE = spec_cfg.TextureCfg(
   name="groundplane",
@@ -28,7 +30,7 @@ _DEFAULT_PLANE_TEXTURE = spec_cfg.TextureCfg(
 _DEFAULT_PLANE_MATERIAL = spec_cfg.MaterialCfg(
   name="groundplane",
   texuniform=True,
-  texrepeat=(4, 4),
+  texrepeat=(4.0, 4.0),
   reflectance=0.2,
   texture="groundplane",
   geom_names_expr=("terrain$",),
