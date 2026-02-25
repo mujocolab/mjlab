@@ -208,7 +208,7 @@ Prerequisites:
       .. code-block:: bash
 
          docker run --rm --runtime=nvidia --gpus all \
-           ghcr.io/mujocolab/mjlab:main uv run demo
+           ghcr.io/mujocolab/mjlab uv run demo
 
       The image is rebuilt on every push to ``main``.
 

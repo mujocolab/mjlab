@@ -34,13 +34,13 @@ setup: |
     sleep 3  # Wait for the daemon to be ready before pulling.
   fi
 
-  sudo docker pull ghcr.io/mujocolab/mjlab:main
+  sudo docker pull ghcr.io/mujocolab/mjlab:latest
 
 run: |
   sudo docker run --rm --runtime=nvidia --gpus all \
     -v "$HOME/.netrc:/root/.netrc:ro" \
     -e MUJOCO_GL=egl \
-    ghcr.io/mujocolab/mjlab:main \
+    ghcr.io/mujocolab/mjlab:latest \
     uv run --no-dev train "$TASK" \
       --env.scene.num-envs "$NUM_ENVS" \
       --agent.max-iterations "$MAX_ITERATIONS" \
