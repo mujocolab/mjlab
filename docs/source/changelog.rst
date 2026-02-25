@@ -17,6 +17,11 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Cloud training support via `SkyPilot <https://skypilot.readthedocs.io/>`_
+  and Lambda Cloud, with documentation covering setup, monitoring, and
+  cost management.
+- W&B hyperparameter sweep scripts that distribute one agent per GPU
+  across a multi-GPU instance.
 - Contributing guide with documentation for shared Claude Code commands
   (``/update-mjwarp``, ``/commit-push-pr``).
 - Added optional ``ViewerConfig.fovy`` and apply it in native viewer camera
