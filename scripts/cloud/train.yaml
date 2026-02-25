@@ -1,5 +1,7 @@
 # SkyPilot task for launching mjlab training on Lambda Cloud.
 #
+# Installs mjlab directly with uv (no Docker).
+#
 # Usage:
 #   sky launch scripts/cloud/train.yaml \
 #     --env TASK=Mjlab-Velocity-Flat-Unitree-G1
@@ -10,8 +12,8 @@ resources:
   cloud: lambda
   accelerators: A100:1
   autostop:
-    idle_minutes: 10
-    down: true  # Terminates the instance when idle (stops billing).
+    idle_minutes: 5
+    down: true
 
 workdir: .
 
@@ -25,21 +27,18 @@ envs:
   MUJOCO_GL: egl
 
 setup: |
-  # Configure NVIDIA runtime for Docker if not already set up.
-  if ! sudo docker info 2>/dev/null | grep -q "nvidia"; then
-    sudo nvidia-ctk runtime configure --runtime=docker
-    sudo systemctl restart docker
-    sleep 3  # Wait for the daemon to be ready before building.
-  fi
+  # Install EGL for MuJoCo headless rendering.
+  sudo apt-get update && sudo apt-get install -y libegl-dev
 
-  sudo docker build -t mjlab .
+  # Install uv if not present.
+  command -v uv || curl -LsSf https://astral.sh/uv/install.sh | sh
+  source "$HOME/.local/bin/env" 2>/dev/null || true
+
+  uv sync --locked --no-dev
 
 run: |
-  sudo docker run --rm --runtime=nvidia --gpus all \
-    -v "$HOME/.netrc:/root/.netrc:ro" \
-    -e MUJOCO_GL=egl \
-    mjlab \
-    uv run train "$TASK" \
-      --env.scene.num-envs "$NUM_ENVS" \
-      --agent.max-iterations "$MAX_ITERATIONS" \
-      --gpu-ids all
+  source "$HOME/.local/bin/env" 2>/dev/null || true
+  uv run train "$TASK" \
+    --env.scene.num-envs "$NUM_ENVS" \
+    --agent.max-iterations "$MAX_ITERATIONS" \
+    --gpu-ids all

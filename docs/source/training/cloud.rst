@@ -18,10 +18,10 @@ Two SkyPilot task files live in ``scripts/cloud/``:
    * - File
      - Description
    * - ``train.yaml``
-     - Builds and runs inside the project Dockerfile.
-   * - ``train-no-docker.yaml``
-     - Installs mjlab directly with uv. Faster to iterate on since it
-       skips the Docker build.
+     - Installs mjlab directly with uv.
+   * - ``train-docker.yaml``
+     - Pulls the pre-built Docker image from GHCR for a reproducible
+       environment.
 
 
 Prerequisites
@@ -76,17 +76,17 @@ From the repo root:
 
 .. code-block:: bash
 
-   # With Docker (mirrors the production Dockerfile).
    sky launch scripts/cloud/train.yaml \
      --env TASK=Mjlab-Velocity-Flat-Unitree-G1
-   # Without Docker (faster setup, installs mjlab directly).
-   sky launch scripts/cloud/train-no-docker.yaml \
+
+   # Or with Docker:
+   sky launch scripts/cloud/train-docker.yaml \
      --env TASK=Mjlab-Velocity-Flat-Unitree-G1
 What happens behind the scenes:
 
 1. SkyPilot finds an available Lambda instance with the requested GPU.
 2. It provisions the instance and uploads your local code via rsync.
-3. The ``setup`` step runs (Docker build or uv install).
+3. The ``setup`` step runs (uv install or Docker pull).
 4. The ``run`` step runs (training).
 5. After 5 minutes of idle time the instance is terminated automatically.
 
@@ -130,7 +130,7 @@ command line with ``--env``:
 
 .. code-block:: bash
 
-   sky launch scripts/cloud/train-no-docker.yaml \
+   sky launch scripts/cloud/train.yaml \
      --env TASK=Mjlab-Velocity-Flat-Unitree-Go1 \
      --env NUM_ENVS=8192 \
      --env MAX_ITERATIONS=10000
@@ -138,7 +138,7 @@ command line with ``--env``:
 
 .. code-block:: bash
 
-   sky launch scripts/cloud/train-no-docker.yaml \
+   sky launch scripts/cloud/train.yaml \
      --env TASK=Mjlab-Velocity-Flat-Unitree-Go1
 
 To see all registered tasks:
@@ -234,7 +234,7 @@ instance. Open a second terminal to keep an eye on things:
 .. code-block:: bash
 
    sky down sky-<cluster-name>
-   sky launch scripts/cloud/train-no-docker.yaml --retry-until-up
+   sky launch scripts/cloud/train.yaml --retry-until-up
 
 
 Iterating on a failed job
@@ -245,7 +245,7 @@ the problem locally and resubmit without waiting for a new instance:
 
 .. code-block:: bash
 
-   sky exec sky-<cluster-name> scripts/cloud/train-no-docker.yaml
+   sky exec sky-<cluster-name> scripts/cloud/train.yaml
 .. important::
 
    ``sky exec`` rsyncs your latest code and reruns the ``run`` step

@@ -195,14 +195,30 @@ Prerequisites:
 - Install an appropriate NVIDIA driver for your system and the
   `NVIDIA Container Toolkit <https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html>`_.
 
-  - Be sure to register the container runtime with Docker and restart, as described in
-    the Docker configuration section of the NVIDIA install guide.
+  - Be sure to register the container runtime with Docker and restart,
+    as described in the Docker configuration section of the NVIDIA
+    install guide.
 
-Build and run:
+.. tab-set::
 
-.. code-block:: bash
+   .. tab-item:: Pre-built image (recommended)
 
-   ./scripts/run_docker.sh uv run demo
+      Pull and run the latest image from the GitHub Container Registry:
+
+      .. code-block:: bash
+
+         docker run --rm --runtime=nvidia --gpus all \
+           ghcr.io/mujocolab/mjlab:main uv run demo
+
+      The image is rebuilt on every push to ``main``.
+
+   .. tab-item:: Local build
+
+      Build from source and run:
+
+      .. code-block:: bash
+
+         ./scripts/run_docker.sh uv run demo
 
 
 Having some troubles?
