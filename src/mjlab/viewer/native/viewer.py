@@ -85,9 +85,11 @@ class NativeMujocoViewer(BaseViewer):
     sim = self.env.unwrapped.sim
     self.mjm = sim.mj_model
     self.mjd = sim.mj_data
+    assert self.mjm is not None
+    if self.cfg.fovy is not None:
+      self.mjm.vis.global_.fovy = self.cfg.fovy
 
     if self.env.unwrapped.num_envs > 1:
-      assert self.mjm is not None
       self.vd = mujoco.MjData(self.mjm)
 
     self.pert = mujoco.MjvPerturb() if self.enable_perturbations else None
