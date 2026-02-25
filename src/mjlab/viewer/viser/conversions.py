@@ -200,22 +200,14 @@ def mujoco_mesh_to_trimesh(
           vertex_colors=np.tile(rgba_255, (len(new_vertices), 1))
         )
     else:
-      # No material - use default color based on collision/visual.
-      is_collision = (
-        mj_model.geom_contype[geom_idx] != 0 or mj_model.geom_conaffinity[geom_idx] != 0
-      )
-      if is_collision:
-        color = np.array([204, 102, 102, 128], dtype=np.uint8)  # Red-ish for collision.
-      else:
-        color = np.array([31, 128, 230, 255], dtype=np.uint8)  # Blue-ish for visual.
-
+      # No material - use geom_rgba directly.
+      rgba = mj_model.geom_rgba[geom_idx]
+      color = (np.clip(rgba, 0, 1) * 255).astype(np.uint8)
       mesh.visual = trimesh.visual.ColorVisuals(
         vertex_colors=np.tile(color, (len(new_vertices), 1))
       )
       if verbose:
-        print(
-          f"No material, using default {'collision' if is_collision else 'visual'} color"
-        )
+        print(f"No material, using geom_rgba: {rgba}")
 
   else:
     # No texture coordinates - simpler case.
@@ -238,21 +230,15 @@ def mujoco_mesh_to_trimesh(
       if verbose:
         print(f"Applied material color: {rgba}")
     else:
-      # Default color.
-      is_collision = (
-        mj_model.geom_contype[geom_idx] != 0 or mj_model.geom_conaffinity[geom_idx] != 0
-      )
-      if is_collision:
-        color = np.array([204, 102, 102, 128], dtype=np.uint8)  # Red-ish for collision.
-      else:
-        color = np.array([31, 128, 230, 255], dtype=np.uint8)  # Blue-ish for visual.
-
+      # No material - use geom_rgba directly.
+      rgba = mj_model.geom_rgba[geom_idx]
+      color = (np.clip(rgba, 0, 1) * 255).astype(np.uint8)
       # Use actual vertex count after mesh creation.
       mesh.visual = trimesh.visual.ColorVisuals(
         vertex_colors=np.tile(color, (len(mesh.vertices), 1))
       )
       if verbose:
-        print(f"Using default {'collision' if is_collision else 'visual'} color")
+        print(f"No material, using geom_rgba: {rgba}")
 
   # Final sanity checks.
   assert mesh.vertices.shape[1] == 3, (
