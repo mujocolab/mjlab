@@ -1,0 +1,37 @@
+# Example W&B sweep configuration. Customize the task, parameters, and
+# search space for your own experiment.
+#
+# Usage:
+#   ./scripts/cloud/sweep-launch.sh A100:4
+
+name: velocity-lr-entropy-sweep
+project: mjlab
+program: train
+method: random
+metric:
+  name: Train/mean_reward
+  goal: maximize
+
+parameters:
+  agent.algorithm.learning-rate:
+    distribution: log_uniform_values
+    min: 1e-4
+    max: 1e-2
+  agent.algorithm.entropy-coef:
+    distribution: log_uniform_values
+    min: 0.001
+    max: 0.1
+
+command:
+  - ${env}
+  - uv
+  - run
+  - ${program}
+  - Mjlab-Velocity-Flat-Unitree-G1
+  - --env.scene.num-envs
+  - "4096"
+  - --agent.max-iterations
+  - "6000"
+  - ${args}
+
+run_cap: 8

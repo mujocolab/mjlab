@@ -79,6 +79,7 @@ Table of Contents
    source/training/rsl_rl
    source/viewers
    source/training/distributed_training
+   source/training/cloud
    source/debugging/nan_guard
 
 .. toctree::

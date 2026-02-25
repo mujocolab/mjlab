@@ -2,7 +2,7 @@
 # https://github.com/astral-sh/uv-docker-example/blob/main/standalone.Dockerfile
 # Note that we use uv to launch, so we omit the second half of the example (non-UV final image)
 
-FROM nvidia/cuda:12.8.0-devel-ubuntu24.04
+FROM nvidia/cuda:12.8.0-runtime-ubuntu24.04
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ENV DEBIAN_FRONTEND=noninteractive

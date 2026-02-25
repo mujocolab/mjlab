@@ -1,0 +1,17 @@
+# SkyPilot job that runs a single W&B sweep agent on one GPU.
+#
+# Submit to an existing cluster provisioned by sweep-cluster.yaml:
+#   sky exec mjlab-sweep scripts/cloud/sweep-agent.yaml \
+#     --gpus A100:1 --env SWEEP_ID=<entity/project/sweep_id> -d
+
+resources:
+  accelerators: A100:1
+
+envs:
+  SWEEP_ID: ""
+  MUJOCO_GL: egl
+
+run: |
+  source "$HOME/.local/bin/env" 2>/dev/null || true
+  cd ~/sky_workdir
+  uv run wandb agent "$SWEEP_ID"

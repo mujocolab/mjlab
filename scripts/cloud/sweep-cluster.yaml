@@ -1,0 +1,34 @@
+# SkyPilot cluster definition for W&B sweep agents.
+#
+# Provisions a multi-GPU instance and installs dependencies. Does not
+# start any jobs. Use sweep-agent.yaml with sky exec for that.
+#
+# Usage:
+#   sky launch scripts/cloud/sweep-cluster.yaml -c mjlab-sweep --gpus A100:8
+
+name: mjlab-sweep-cluster
+
+resources:
+  cloud: lambda
+  accelerators: A100:8
+  autostop:
+    idle_minutes: 5
+    down: true
+
+workdir: .
+
+file_mounts:
+  ~/.netrc: ~/.netrc
+
+envs:
+  MUJOCO_GL: egl
+
+setup: |
+  # Install EGL for MuJoCo headless rendering.
+  sudo apt-get update && sudo apt-get install -y libegl-dev
+
+  # Install uv if not present.
+  command -v uv || curl -LsSf https://astral.sh/uv/install.sh | sh
+  source "$HOME/.local/bin/env" 2>/dev/null || true
+
+  uv sync --locked --no-dev

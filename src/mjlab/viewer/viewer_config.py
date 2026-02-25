@@ -6,6 +6,7 @@ from dataclasses import dataclass
 class ViewerConfig:
   lookat: tuple[float, float, float] = (0.0, 0.0, 0.0)
   distance: float = 5.0
+  fovy: float | None = None
   elevation: float = -45.0
   azimuth: float = 90.0
 
