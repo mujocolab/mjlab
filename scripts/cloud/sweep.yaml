@@ -1,12 +1,16 @@
-# W&B sweep configuration for learning rate and entropy coefficient search.
+# Example W&B sweep configuration. Customize the task, parameters, and
+# search space for your own experiment.
 #
 # Usage:
 #   ./scripts/cloud/sweep-launch.sh A100:4
 
-name: tracking-lr-entropy-sweep
+name: velocity-lr-entropy-sweep
 project: mjlab
 program: train
 method: random
+metric:
+  name: Train/mean_reward
+  goal: maximize
 
 parameters:
   agent.algorithm.learning-rate:
@@ -23,9 +27,7 @@ command:
   - uv
   - run
   - ${program}
-  - Mjlab-Tracking-Flat-Unitree-G1
-  - --registry-name
-  - rll_humanoid/wandb-registry-Motions/side_kick_test
+  - Mjlab-Velocity-Flat-Unitree-G1
   - --env.scene.num-envs
   - "4096"
   - --agent.max-iterations

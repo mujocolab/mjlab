@@ -78,10 +78,10 @@ From the repo root:
 
    # With Docker (mirrors the production Dockerfile).
    sky launch scripts/cloud/train.yaml \
-     --env TASK=Mjlab-Tracking-Flat-Unitree-G1
+     --env TASK=Mjlab-Velocity-Flat-Unitree-G1
    # Without Docker (faster setup, installs mjlab directly).
    sky launch scripts/cloud/train-no-docker.yaml \
-     --env TASK=Mjlab-Tracking-Flat-Unitree-G1
+     --env TASK=Mjlab-Velocity-Flat-Unitree-G1
 What happens behind the scenes:
 
 1. SkyPilot finds an available Lambda instance with the requested GPU.
@@ -139,16 +139,8 @@ command line with ``--env``:
 .. code-block:: bash
 
    sky launch scripts/cloud/train-no-docker.yaml \
-     --env TASK=Mjlab-MyTask-Flat-MyRobot \
-     --env REGISTRY_NAME=my-org/wandb-registry-Motions/my-motion
-Tasks that do not need a motion file (e.g. velocity) should pass an
-empty registry name:
+     --env TASK=Mjlab-Velocity-Flat-Unitree-Go1
 
-.. code-block:: bash
-
-   sky launch scripts/cloud/train-no-docker.yaml \
-     --env TASK=Mjlab-Velocity-Flat-Unitree-Go1 \
-     --env REGISTRY_NAME=""
 To see all registered tasks:
 
 .. code-block:: bash

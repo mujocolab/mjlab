@@ -5,7 +5,7 @@
 #
 # Usage:
 #   sky launch scripts/cloud/train-no-docker.yaml \
-#     --env TASK=Mjlab-Tracking-Flat-Unitree-G1
+#     --env TASK=Mjlab-Velocity-Flat-Unitree-G1
 
 name: mjlab-train
 
@@ -22,10 +22,9 @@ file_mounts:
   ~/.netrc: ~/.netrc
 
 envs:
-  TASK: Mjlab-Tracking-Flat-Unitree-G1
+  TASK: Mjlab-Velocity-Flat-Unitree-G1
   NUM_ENVS: "4096"
   MAX_ITERATIONS: "6000"
-  REGISTRY_NAME: rll_humanoid/wandb-registry-Motions/side_kick_test
   MUJOCO_GL: egl
 
 setup: |
@@ -43,5 +42,4 @@ run: |
   uv run train "$TASK" \
     --env.scene.num-envs "$NUM_ENVS" \
     --agent.max-iterations "$MAX_ITERATIONS" \
-    --registry-name "$REGISTRY_NAME" \
     --gpu-ids all
