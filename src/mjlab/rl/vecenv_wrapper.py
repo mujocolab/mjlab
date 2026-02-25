@@ -46,7 +46,7 @@ class RslRlVecEnvWrapper(VecEnv):
 
   @property
   def unwrapped(self) -> ManagerBasedRlEnv:
-    return self.env
+    return self.env.unwrapped
 
   # Properties.
 
