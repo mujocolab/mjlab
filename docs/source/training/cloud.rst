@@ -55,18 +55,18 @@ machine (e.g. ``kevins-macbook``) so you can tell keys apart later.
 
 You should see Lambda listed as an enabled cloud.
 
-**4. W&B API key** *(optional)*
+**4. W&B credentials** *(optional)*
 
-If you log to Weights & Biases, `generate an API key
-<https://docs.wandb.ai/models/quickstart#sign-up-and-create-an-api-key>`_
-(again, name it after your machine) and add it to your ``~/.zshrc``:
+If you log to Weights & Biases, install the ``wandb`` CLI and log in:
 
 .. code-block:: bash
 
-   export WANDB_API_KEY=<your-key>
+   uv tool install wandb
+   wandb login
 
-With this in your shell, ``--env WANDB_API_KEY`` forwards the value
-automatically at launch time.
+This stores your credentials in ``~/.netrc``. The SkyPilot task files
+mount this file onto the remote instance via ``file_mounts`` so that
+``wandb`` authenticates automatically, no environment variable needed.
 
 
 Quick start
@@ -78,14 +78,10 @@ From the repo root:
 
    # With Docker (mirrors the production Dockerfile).
    sky launch scripts/cloud/train.yaml \
-     --env TASK=Mjlab-Tracking-Flat-Unitree-G1 \
-     --env WANDB_API_KEY
-
+     --env TASK=Mjlab-Tracking-Flat-Unitree-G1
    # Without Docker (faster setup, installs mjlab directly).
    sky launch scripts/cloud/train-no-docker.yaml \
-     --env TASK=Mjlab-Tracking-Flat-Unitree-G1 \
-     --env WANDB_API_KEY
-
+     --env TASK=Mjlab-Tracking-Flat-Unitree-G1
 What happens behind the scenes:
 
 1. SkyPilot finds an available Lambda instance with the requested GPU.
@@ -137,18 +133,14 @@ command line with ``--env``:
    sky launch scripts/cloud/train-no-docker.yaml \
      --env TASK=Mjlab-Velocity-Flat-Unitree-Go1 \
      --env NUM_ENVS=8192 \
-     --env MAX_ITERATIONS=10000 \
-     --env WANDB_API_KEY
-
+     --env MAX_ITERATIONS=10000
 **Run your own task**
 
 .. code-block:: bash
 
    sky launch scripts/cloud/train-no-docker.yaml \
      --env TASK=Mjlab-MyTask-Flat-MyRobot \
-     --env REGISTRY_NAME=my-org/wandb-registry-Motions/my-motion \
-     --env WANDB_API_KEY
-
+     --env REGISTRY_NAME=my-org/wandb-registry-Motions/my-motion
 Tasks that do not need a motion file (e.g. velocity) should pass an
 empty registry name:
 
@@ -156,15 +148,75 @@ empty registry name:
 
    sky launch scripts/cloud/train-no-docker.yaml \
      --env TASK=Mjlab-Velocity-Flat-Unitree-Go1 \
-     --env REGISTRY_NAME="" \
-     --env WANDB_API_KEY
-
+     --env REGISTRY_NAME=""
 To see all registered tasks:
 
 .. code-block:: bash
 
    uv run list_envs
    uv run list_envs --keyword Velocity  # filter by keyword
+
+
+Hyperparameter sweeps
+---------------------
+
+Use `W&B Sweeps <https://docs.wandb.ai/models/sweeps/>`_ with SkyPilot
+to search hyperparameters across a multi-GPU instance. The sweep
+controller lives on the W&B servers; each GPU on the instance runs an
+independent sweep agent that pulls a hyperparameter configuration,
+trains, and reports metrics.
+
+The example uses ``method: random``, where each agent samples
+independently. Bayesian search also works well with parallel agents.
+Agents report results back as they finish and the controller updates its
+model between rounds. If using Bayesian, set ``run_cap`` high enough for
+the optimizer to go through several rounds.
+
+Four files are involved:
+
+.. list-table::
+   :widths: 35 65
+   :header-rows: 1
+
+   * - File
+     - Description
+   * - ``sweep.yaml``
+     - W&B sweep configuration (parameters, search method, metric).
+   * - ``sweep-cluster.yaml``
+     - SkyPilot cluster definition (resources, setup, no run section).
+   * - ``sweep-agent.yaml``
+     - SkyPilot job definition that runs ``wandb agent`` on one GPU.
+   * - ``sweep-launch.sh``
+     - Convenience script that creates the sweep, provisions the
+       cluster, and submits one agent per GPU.
+
+**Quick start**
+
+.. code-block:: bash
+
+   ./scripts/cloud/sweep-launch.sh A100:8   # 8 agents on an 8xA100
+
+This creates a W&B sweep, provisions a cluster, and submits one agent
+per GPU. Each agent runs training with a different set of
+hyperparameters sampled by the sweep controller.
+
+**Manual steps** (if you prefer more control):
+
+.. code-block:: bash
+
+   # 1. Create the sweep (returns a SWEEP_ID).
+   wandb sweep scripts/cloud/sweep.yaml
+
+   # 2. Provision the cluster (runs setup, no agents yet).
+   sky launch scripts/cloud/sweep-cluster.yaml \
+     -c mjlab-sweep --gpus A100:8
+
+   # 3. Submit one agent per GPU.
+   sky exec mjlab-sweep scripts/cloud/sweep-agent.yaml \
+     --gpus A100:1 --env SWEEP_ID=<entity/project/sweep_id> -d
+
+Monitor progress on the W&B dashboard or with ``sky queue mjlab-sweep``.
+When done, tear down the cluster with ``sky down mjlab-sweep``.
 
 
 Monitoring
@@ -190,7 +242,7 @@ instance. Open a second terminal to keep an eye on things:
 .. code-block:: bash
 
    sky down sky-<cluster-name>
-   sky launch scripts/cloud/train-no-docker.yaml --env WANDB_API_KEY --retry-until-up
+   sky launch scripts/cloud/train-no-docker.yaml --retry-until-up
 
 
 Iterating on a failed job
@@ -201,8 +253,7 @@ the problem locally and resubmit without waiting for a new instance:
 
 .. code-block:: bash
 
-   sky exec sky-<cluster-name> scripts/cloud/train-no-docker.yaml --env WANDB_API_KEY
-
+   sky exec sky-<cluster-name> scripts/cloud/train-no-docker.yaml
 .. important::
 
    ``sky exec`` rsyncs your latest code and reruns the ``run`` step
@@ -227,7 +278,7 @@ Cost management
    still running. Forgotten instances are the most common source of
    unexpected charges. To terminate everything at once: ``sky down -a``.
 
-- Instances auto-terminate after 10 minutes of idle time by default.
+- Instances auto-terminate after 5 minutes of idle time by default.
   You can change this in the YAML (``idle_minutes``) or at launch time
   with ``--idle-minutes-to-autostop``.
 - The ``down: true`` setting in the YAML means the instance is fully

@@ -93,23 +93,26 @@ class MotionTrackingOnPolicyRunner(MjlabOnPolicyRunner):
     super().save(path, infos)
     policy_path = path.split("model")[0]
     filename = policy_path.split("/")[-2] + ".onnx"
-    self.export_policy_to_onnx(policy_path, filename)
-    run_name: str = (
-      wandb.run.name if self.logger.logger_type == "wandb" and wandb.run else "local"
-    )  # type: ignore[assignment]
-    metadata = get_base_metadata(self.env.unwrapped, run_name)
-    motion_term = cast(
-      MotionCommand, self.env.unwrapped.command_manager.get_term("motion")
-    )
-    metadata.update(
-      {
-        "anchor_body_name": motion_term.cfg.anchor_body_name,
-        "body_names": list(motion_term.cfg.body_names),
-      }
-    )
-    attach_metadata_to_onnx(os.path.join(policy_path, filename), metadata)
-    if self.logger.logger_type in ["wandb"] and self.cfg["upload_model"]:
-      wandb.save(policy_path + filename, base_path=os.path.dirname(policy_path))
-      if self.registry_name is not None:
-        wandb.run.use_artifact(self.registry_name)  # type: ignore
-        self.registry_name = None
+    try:
+      self.export_policy_to_onnx(policy_path, filename)
+      run_name: str = (
+        wandb.run.name if self.logger.logger_type == "wandb" and wandb.run else "local"
+      )  # type: ignore[assignment]
+      metadata = get_base_metadata(self.env.unwrapped, run_name)
+      motion_term = cast(
+        MotionCommand, self.env.unwrapped.command_manager.get_term("motion")
+      )
+      metadata.update(
+        {
+          "anchor_body_name": motion_term.cfg.anchor_body_name,
+          "body_names": list(motion_term.cfg.body_names),
+        }
+      )
+      attach_metadata_to_onnx(os.path.join(policy_path, filename), metadata)
+      if self.logger.logger_type in ["wandb"] and self.cfg["upload_model"]:
+        wandb.save(policy_path + filename, base_path=os.path.dirname(policy_path))
+        if self.registry_name is not None:
+          wandb.run.use_artifact(self.registry_name)  # type: ignore
+          self.registry_name = None
+    except Exception as e:
+      print(f"[WARN] ONNX export failed (training continues): {e}")

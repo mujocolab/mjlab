@@ -1,0 +1,35 @@
+# W&B sweep configuration for learning rate and entropy coefficient search.
+#
+# Usage:
+#   ./scripts/cloud/sweep-launch.sh A100:4
+
+name: tracking-lr-entropy-sweep
+project: mjlab
+program: train
+method: random
+
+parameters:
+  agent.algorithm.learning-rate:
+    distribution: log_uniform_values
+    min: 1e-4
+    max: 1e-2
+  agent.algorithm.entropy-coef:
+    distribution: log_uniform_values
+    min: 0.001
+    max: 0.1
+
+command:
+  - ${env}
+  - uv
+  - run
+  - ${program}
+  - Mjlab-Tracking-Flat-Unitree-G1
+  - --registry-name
+  - rll_humanoid/wandb-registry-Motions/side_kick_test
+  - --env.scene.num-envs
+  - "4096"
+  - --agent.max-iterations
+  - "6000"
+  - ${args}
+
+run_cap: 8

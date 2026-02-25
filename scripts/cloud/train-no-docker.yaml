@@ -5,8 +5,7 @@
 #
 # Usage:
 #   sky launch scripts/cloud/train-no-docker.yaml \
-#     --env TASK=Mjlab-Tracking-Flat-Unitree-G1 \
-#     --env WANDB_API_KEY
+#     --env TASK=Mjlab-Tracking-Flat-Unitree-G1
 
 name: mjlab-train
 
@@ -18,6 +17,9 @@ resources:
     down: true
 
 workdir: .
+
+file_mounts:
+  ~/.netrc: ~/.netrc
 
 envs:
   TASK: Mjlab-Tracking-Flat-Unitree-G1

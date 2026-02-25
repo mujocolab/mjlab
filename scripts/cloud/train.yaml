@@ -2,8 +2,7 @@
 #
 # Usage:
 #   sky launch scripts/cloud/train.yaml \
-#     --env TASK=Mjlab-Tracking-Flat-Unitree-G1 \
-#     --env WANDB_API_KEY
+#     --env TASK=Mjlab-Tracking-Flat-Unitree-G1
 
 name: mjlab-train
 
@@ -15,6 +14,9 @@ resources:
     down: true  # Terminates the instance when idle (stops billing).
 
 workdir: .
+
+file_mounts:
+  ~/.netrc: ~/.netrc
 
 envs:
   TASK: Mjlab-Tracking-Flat-Unitree-G1
@@ -35,7 +37,7 @@ setup: |
 
 run: |
   sudo docker run --rm --runtime=nvidia --gpus all \
-    -e WANDB_API_KEY="$WANDB_API_KEY" \
+    -v "$HOME/.netrc:/root/.netrc:ro" \
     -e MUJOCO_GL=egl \
     mjlab \
     uv run train "$TASK" \
