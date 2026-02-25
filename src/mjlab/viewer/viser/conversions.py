@@ -202,9 +202,9 @@ def mujoco_mesh_to_trimesh(
     else:
       # No material - use geom_rgba directly.
       rgba = mj_model.geom_rgba[geom_idx]
-      color = (np.clip(rgba, 0, 1) * 255).astype(np.uint8)
+      rgba_255 = (rgba * 255).astype(np.uint8)
       mesh.visual = trimesh.visual.ColorVisuals(
-        vertex_colors=np.tile(color, (len(new_vertices), 1))
+        vertex_colors=np.tile(rgba_255, (len(new_vertices), 1))
       )
       if verbose:
         print(f"No material, using geom_rgba: {rgba}")
@@ -232,10 +232,10 @@ def mujoco_mesh_to_trimesh(
     else:
       # No material - use geom_rgba directly.
       rgba = mj_model.geom_rgba[geom_idx]
-      color = (np.clip(rgba, 0, 1) * 255).astype(np.uint8)
+      rgba_255 = (rgba * 255).astype(np.uint8)
       # Use actual vertex count after mesh creation.
       mesh.visual = trimesh.visual.ColorVisuals(
-        vertex_colors=np.tile(color, (len(mesh.vertices), 1))
+        vertex_colors=np.tile(rgba_255, (len(mesh.vertices), 1))
       )
       if verbose:
         print(f"No material, using geom_rgba: {rgba}")
