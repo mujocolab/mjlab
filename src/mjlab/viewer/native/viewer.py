@@ -6,7 +6,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional, Protocol
 
 import mujoco
 import mujoco.viewer
@@ -42,6 +42,32 @@ class PlotCfg:
   max_rows_per_col: int = 6  # Stack up to this many per column.
   plot_strip_fraction: float = 1 / 3  # Right-side width reserved for plots.
   background_alpha: float = 0.5  # Background alpha for plots.
+
+
+class _SimDataProtocol(Protocol):
+  qpos: "_TensorArrayProtocol"
+  qvel: "_TensorArrayProtocol"
+  mocap_pos: "_TensorArrayProtocol"
+  mocap_quat: "_TensorArrayProtocol"
+
+
+class _CpuArrayProtocol(Protocol):
+  def cpu(self) -> "_CpuArrayProtocol": ...
+  def numpy(self) -> np.ndarray: ...
+
+
+class _TensorArrayProtocol(Protocol):
+  def __getitem__(self, idx: int) -> _CpuArrayProtocol: ...
+
+
+class _SimModelProtocol(Protocol):
+  def __getattr__(self, name: str) -> object: ...
+
+
+class _SimProtocol(Protocol):
+  data: _SimDataProtocol
+  model: _SimModelProtocol
+  expanded_fields: set[str]
 
 
 class NativeMujocoViewer(BaseViewer):
@@ -208,7 +234,7 @@ class NativeMujocoViewer(BaseViewer):
       self.env.unwrapped.update_visualizers(visualizer)
 
   def _sync_env_state_to_mjdata(
-    self, target_data: mujoco.MjData, sim_data: Any, env_idx: int
+    self, target_data: mujoco.MjData, sim_data: _SimDataProtocol, env_idx: int
   ) -> None:
     """Copy one environment state from batched sim data into a MjData buffer."""
     assert self.mjm is not None
@@ -220,7 +246,10 @@ class NativeMujocoViewer(BaseViewer):
       target_data.mocap_quat[:] = sim_data.mocap_quat[env_idx].cpu().numpy()
 
   def _render_other_env_geoms(
-    self, viewer: mujoco.viewer.Handle, sim: Any, sim_data: Any
+    self,
+    viewer: mujoco.viewer.Handle,
+    sim: _SimProtocol,
+    sim_data: _SimDataProtocol,
   ) -> None:
     """Render non-selected environments into the native viewer scene."""
     if self.vd is None:
@@ -268,7 +297,7 @@ class NativeMujocoViewer(BaseViewer):
     }
   )
 
-  def _sync_model_fields(self, sim, env_idx: int) -> None:
+  def _sync_model_fields(self, sim: _SimProtocol, env_idx: int) -> None:
     """Sync visually-relevant DR'd model fields from GPU to MjModel."""
     for field_name in sim.expanded_fields & self._VISUAL_FIELDS:
       src = getattr(sim.model, field_name)[env_idx].cpu().numpy()
