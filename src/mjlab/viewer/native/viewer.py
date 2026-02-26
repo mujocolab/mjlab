@@ -388,50 +388,62 @@ class NativeMujocoViewer(BaseViewer):
     return False
 
   def _setup_camera(self) -> None:
-    # TODO(kevin): This function is gross and has lots of redundant code. Clean it up.
+    """Configure native viewer camera from viewer config."""
     assert self.viewer is not None
     self.viewer.opt.frame = mujoco.mjtFrame.mjFRAME_WORLD.value
 
-    if self.cfg and hasattr(self.cfg, "origin_type"):
-      if self.cfg.origin_type == self.cfg.OriginType.WORLD:
-        self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FREE.value
-        self.viewer.cam.fixedcamid = -1
-        self.viewer.cam.trackbodyid = -1
+    if not self.cfg or not hasattr(self.cfg, "origin_type"):
+      self._set_camera_world()
+      return
 
-      elif self.cfg.origin_type == self.cfg.OriginType.ASSET_ROOT:
-        if not self.cfg.entity_name:
-          raise ValueError("Asset name must be specified for ASSET_ROOT origin type")
-        robot: Entity = self.env.unwrapped.scene[self.cfg.entity_name]
-        body_id = robot.indexing.root_body_id
-        self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
-        self.viewer.cam.trackbodyid = body_id
-        self.viewer.cam.fixedcamid = -1
+    if self.cfg.origin_type == self.cfg.OriginType.WORLD:
+      self._set_camera_world()
+    elif self.cfg.origin_type == self.cfg.OriginType.ASSET_ROOT:
+      self._set_camera_asset_root()
+    else:  # ASSET_BODY
+      self._set_camera_asset_body()
 
-      else:  # ASSET_BODY
-        if not self.cfg.entity_name or not self.cfg.body_name:
-          raise ValueError("entity_name/body_name required for ASSET_BODY origin type")
-        robot: Entity = self.env.unwrapped.scene[self.cfg.entity_name]
-        if self.cfg.body_name not in robot.body_names:
-          raise ValueError(
-            f"Body '{self.cfg.body_name}' not found in asset '{self.cfg.entity_name}'"
-          )
-        body_id_list, _ = robot.find_bodies(self.cfg.body_name)
-        body_id = robot.indexing.bodies[body_id_list[0]].id
+    self.viewer.cam.lookat = getattr(self.cfg, "lookat", self.viewer.cam.lookat)
+    self.viewer.cam.elevation = getattr(
+      self.cfg, "elevation", self.viewer.cam.elevation
+    )
+    self.viewer.cam.azimuth = getattr(self.cfg, "azimuth", self.viewer.cam.azimuth)
+    self.viewer.cam.distance = getattr(self.cfg, "distance", self.viewer.cam.distance)
 
-        self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
-        self.viewer.cam.trackbodyid = body_id
-        self.viewer.cam.fixedcamid = -1
+  def _set_camera_world(self) -> None:
+    """Configure free camera in world frame."""
+    assert self.viewer is not None
+    self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FREE.value
+    self.viewer.cam.fixedcamid = -1
+    self.viewer.cam.trackbodyid = -1
 
-      self.viewer.cam.lookat = getattr(self.cfg, "lookat", self.viewer.cam.lookat)
-      self.viewer.cam.elevation = getattr(
-        self.cfg, "elevation", self.viewer.cam.elevation
+  def _set_camera_asset_root(self) -> None:
+    """Track the root body of a configured asset."""
+    assert self.viewer is not None
+    if not self.cfg.entity_name:
+      raise ValueError("Asset name must be specified for ASSET_ROOT origin type")
+    robot: Entity = self.env.unwrapped.scene[self.cfg.entity_name]
+    body_id = robot.indexing.root_body_id
+    self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
+    self.viewer.cam.trackbodyid = body_id
+    self.viewer.cam.fixedcamid = -1
+
+  def _set_camera_asset_body(self) -> None:
+    """Track a specific body of a configured asset."""
+    assert self.viewer is not None
+    if not self.cfg.entity_name or not self.cfg.body_name:
+      raise ValueError("entity_name/body_name required for ASSET_BODY origin type")
+    robot: Entity = self.env.unwrapped.scene[self.cfg.entity_name]
+    if self.cfg.body_name not in robot.body_names:
+      raise ValueError(
+        f"Body '{self.cfg.body_name}' not found in asset '{self.cfg.entity_name}'"
       )
-      self.viewer.cam.azimuth = getattr(self.cfg, "azimuth", self.viewer.cam.azimuth)
-      self.viewer.cam.distance = getattr(self.cfg, "distance", self.viewer.cam.distance)
-    else:
-      self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FREE.value
-      self.viewer.cam.fixedcamid = -1
-      self.viewer.cam.trackbodyid = -1
+    body_id_list, _ = robot.find_bodies(self.cfg.body_name)
+    body_id = robot.indexing.bodies[body_id_list[0]].id
+
+    self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
+    self.viewer.cam.trackbodyid = body_id
+    self.viewer.cam.fixedcamid = -1
 
   # Reward plotting helpers.
 
