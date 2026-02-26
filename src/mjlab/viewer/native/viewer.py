@@ -332,11 +332,11 @@ class NativeMujocoViewer(BaseViewer):
     elif key == KEY_PERIOD:
       self.request_action("NEXT_ENV")
     elif key == KEY_P:
-      self.request_action("TOGGLE_PLOTS", "TOGGLE_PLOTS")
+      self.request_action("TOGGLE_PLOTS")
     elif key == KEY_R:
-      self.request_action("TOGGLE_DEBUG_VIS", "TOGGLE_DEBUG_VIS")
+      self.request_action("TOGGLE_DEBUG_VIS")
     elif key == KEY_A:
-      self.request_action("TOGGLE_SHOW_ALL_ENVS", "TOGGLE_SHOW_ALL_ENVS")
+      self.request_action("TOGGLE_SHOW_ALL_ENVS")
     elif key == KEY_RIGHT:
       self.request_single_step()
 
@@ -352,40 +352,39 @@ class NativeMujocoViewer(BaseViewer):
       with self._mj_lock:
         mujoco.mj_forward(self.mjm, self.mjd)
 
-  def _handle_custom_action(self, action, payload) -> bool:
+  def _handle_custom_action(self, action: ViewerAction, payload: object | None) -> bool:
+    del payload
     if action == ViewerAction.PREV_ENV and self.env.unwrapped.num_envs > 1:
       self.env_idx = (self.env_idx - 1) % self.env.unwrapped.num_envs
       self._clear_histories()
       self.log(f"[INFO] Switched to environment {self.env_idx}", VerbosityLevel.INFO)
       return True
-    elif action == ViewerAction.NEXT_ENV and self.env.unwrapped.num_envs > 1:
+    if action == ViewerAction.NEXT_ENV and self.env.unwrapped.num_envs > 1:
       self.env_idx = (self.env_idx + 1) % self.env.unwrapped.num_envs
       self._clear_histories()
       self.log(f"[INFO] Switched to environment {self.env_idx}", VerbosityLevel.INFO)
       return True
-    else:
-      if hasattr(action, "value") and action.value == "custom":
-        if payload == "TOGGLE_PLOTS":
-          self._show_plots = not self._show_plots
-          self.log(
-            f"[INFO] Reward plots {'shown' if self._show_plots else 'hidden'}",
-            VerbosityLevel.INFO,
-          )
-          return True
-        elif payload == "TOGGLE_DEBUG_VIS":
-          self._show_debug_vis = not self._show_debug_vis
-          self.log(
-            f"[INFO] Debug visualization {'shown' if self._show_debug_vis else 'hidden'}",
-            VerbosityLevel.INFO,
-          )
-          return True
-        elif payload == "TOGGLE_SHOW_ALL_ENVS":
-          self._show_all_envs = not self._show_all_envs
-          self.log(
-            f"[INFO] Show all envs {'enabled' if self._show_all_envs else 'disabled'}",
-            VerbosityLevel.INFO,
-          )
-          return True
+    if action == ViewerAction.TOGGLE_PLOTS:
+      self._show_plots = not self._show_plots
+      self.log(
+        f"[INFO] Reward plots {'shown' if self._show_plots else 'hidden'}",
+        VerbosityLevel.INFO,
+      )
+      return True
+    if action == ViewerAction.TOGGLE_DEBUG_VIS:
+      self._show_debug_vis = not self._show_debug_vis
+      self.log(
+        f"[INFO] Debug visualization {'shown' if self._show_debug_vis else 'hidden'}",
+        VerbosityLevel.INFO,
+      )
+      return True
+    if action == ViewerAction.TOGGLE_SHOW_ALL_ENVS:
+      self._show_all_envs = not self._show_all_envs
+      self.log(
+        f"[INFO] Show all envs {'enabled' if self._show_all_envs else 'disabled'}",
+        VerbosityLevel.INFO,
+      )
+      return True
     return False
 
   def _setup_camera(self) -> None:

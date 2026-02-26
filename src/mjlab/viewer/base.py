@@ -93,6 +93,9 @@ class ViewerAction(Enum):
   SPEED_DOWN = "speed_down"
   PREV_ENV = "prev_env"
   NEXT_ENV = "next_env"
+  TOGGLE_PLOTS = "toggle_plots"
+  TOGGLE_DEBUG_VIS = "toggle_debug_vis"
+  TOGGLE_SHOW_ALL_ENVS = "toggle_show_all_envs"
   CUSTOM = "custom"
 
 
