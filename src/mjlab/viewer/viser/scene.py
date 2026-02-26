@@ -1815,17 +1815,8 @@ class ViserMujocoScene(DebugVisualizer):
 
       key = (model_hash, body_id)
 
-      # Check if we need to recreate handle (number of instances changed)
-      needs_recreation = key not in self._ghost_handles_batched or len(
-        positions
-      ) != len(self._ghost_handles_batched[key].batched_positions)
-
-      if needs_recreation:
-        # Remove old handle if exists
-        if key in self._ghost_handles_batched:
-          self._ghost_handles_batched[key].remove()
-
-        # Create new batched mesh
+      # Create handle if missing; otherwise update in place.
+      if key not in self._ghost_handles_batched:
         self._ghost_handles_batched[key] = self.server.scene.add_batched_meshes_simple(
           f"/debug/ghosts/body_{body_id}_{model_hash}",
           combined_mesh.vertices,
@@ -1838,12 +1829,29 @@ class ViserMujocoScene(DebugVisualizer):
           receive_shadow=False,
         )
       else:
-        # Update existing handle
+        # Update existing handle. Some viser versions allow dynamic batch sizes;
+        # if not, fallback to recreate for this key only.
         handle = self._ghost_handles_batched[key]
-        handle.batched_positions = positions
-        handle.batched_wxyzs = wxyzs
-        handle.batched_colors = colors
-        handle.visible = True
+        try:
+          handle.batched_positions = positions
+          handle.batched_wxyzs = wxyzs
+          handle.batched_colors = colors
+          handle.visible = True
+        except Exception:
+          handle.remove()
+          self._ghost_handles_batched[key] = (
+            self.server.scene.add_batched_meshes_simple(
+              f"/debug/ghosts/body_{body_id}_{model_hash}",
+              combined_mesh.vertices,
+              combined_mesh.faces,
+              batched_wxyzs=wxyzs,
+              batched_positions=positions,
+              batched_colors=colors,
+              opacity=alpha,
+              cast_shadow=False,
+              receive_shadow=False,
+            )
+          )
 
   @staticmethod
   def _mat_to_quat(mat: np.ndarray) -> np.ndarray:
