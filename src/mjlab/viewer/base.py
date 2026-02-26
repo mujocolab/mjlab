@@ -247,16 +247,17 @@ class BaseViewer(ABC):
 
     wall_dt = self._timer.tick()
 
-    # Step physics based on accumulated sim-time budget.
+    # Step physics based on accumulated sim-time budget.  At most one
+    # env.step() per tick so that physics never starves the renderer.
+    # The budget is allowed to accumulate across ticks for catch-up, but
+    # is capped to avoid a spiral of death after long stalls.
     if not self._is_paused:
       step_dt = self.env.unwrapped.step_dt
       self._sim_time_budget += wall_dt * self._time_multiplier
-      # Cap budget to prevent spiral of death after long stalls.
       self._sim_time_budget = min(self._sim_time_budget, step_dt * 10)
 
       if self._sim_time_budget >= step_dt:
         self.sync_viewer_to_env()
-      while self._sim_time_budget >= step_dt:
         self.step_simulation()
         self._sim_time_budget -= step_dt
 
