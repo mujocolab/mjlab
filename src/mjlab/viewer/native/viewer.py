@@ -6,7 +6,7 @@ import math
 from collections import deque
 from dataclasses import dataclass
 from threading import Lock
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import mujoco
 import mujoco.viewer
@@ -141,12 +141,7 @@ class NativeMujocoViewer(BaseViewer):
     with self._mj_lock:
       sim = self.env.unwrapped.sim
       sim_data = sim.data
-      if self.mjm.nq > 0:
-        self.mjd.qpos[:] = sim_data.qpos[self.env_idx].cpu().numpy()
-        self.mjd.qvel[:] = sim_data.qvel[self.env_idx].cpu().numpy()
-      if self.mjm.nmocap > 0:
-        self.mjd.mocap_pos[:] = sim_data.mocap_pos[self.env_idx].cpu().numpy()
-        self.mjd.mocap_quat[:] = sim_data.mocap_quat[self.env_idx].cpu().numpy()
+      self._sync_env_state_to_mjdata(self.mjd, sim_data, self.env_idx)
       self._sync_model_fields(sim, self.env_idx)
       mujoco.mj_forward(self.mjm, self.mjd)
 
@@ -212,7 +207,22 @@ class NativeMujocoViewer(BaseViewer):
       )
       self.env.unwrapped.update_visualizers(visualizer)
 
-  def _render_other_env_geoms(self, viewer, sim, sim_data) -> None:
+  def _sync_env_state_to_mjdata(
+    self, target_data: mujoco.MjData, sim_data: Any, env_idx: int
+  ) -> None:
+    """Copy one environment state from batched sim data into a MjData buffer."""
+    assert self.mjm is not None
+    if self.mjm.nq > 0:
+      target_data.qpos[:] = sim_data.qpos[env_idx].cpu().numpy()
+      target_data.qvel[:] = sim_data.qvel[env_idx].cpu().numpy()
+    if self.mjm.nmocap > 0:
+      target_data.mocap_pos[:] = sim_data.mocap_pos[env_idx].cpu().numpy()
+      target_data.mocap_quat[:] = sim_data.mocap_quat[env_idx].cpu().numpy()
+
+  def _render_other_env_geoms(
+    self, viewer: mujoco.viewer.Handle, sim: Any, sim_data: Any
+  ) -> None:
+    """Render non-selected environments into the native viewer scene."""
     if self.vd is None:
       return
     assert self.mjm is not None
@@ -222,11 +232,7 @@ class NativeMujocoViewer(BaseViewer):
     for i in range(self.env.unwrapped.num_envs):
       if i == self.env_idx:
         continue
-      self.vd.qpos[:] = sim_data.qpos[i].cpu().numpy()
-      self.vd.qvel[:] = sim_data.qvel[i].cpu().numpy()
-      if self.mjm.nmocap > 0:
-        self.vd.mocap_pos[:] = sim_data.mocap_pos[i].cpu().numpy()
-        self.vd.mocap_quat[:] = sim_data.mocap_quat[i].cpu().numpy()
+      self._sync_env_state_to_mjdata(self.vd, sim_data, i)
       self._sync_model_fields(sim, i)
       mujoco.mj_forward(self.mjm, self.vd)
       mujoco.mjv_addGeoms(
