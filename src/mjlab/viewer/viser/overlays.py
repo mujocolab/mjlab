@@ -5,8 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+import mujoco
 import viser
 
+from mjlab.sensor import CameraSensor
+from mjlab.viewer.viser.camera_viewer import ViserCameraViewer
 from mjlab.viewer.viser.term_plotter import ViserTermPlotter
 
 
@@ -76,3 +79,42 @@ class ViserTermOverlays:
       self.reward_plotter.cleanup()
     if self.metrics_plotter:
       self.metrics_plotter.cleanup()
+
+
+@dataclass
+class ViserCameraOverlays:
+  """Manage camera feed widgets and updates for Viser viewer."""
+
+  server: viser.ViserServer
+  env: Any
+  mj_model: mujoco.MjModel
+  camera_viewers: list[ViserCameraViewer] | None = None
+
+  def setup_controls(self) -> None:
+    """Create camera feed controls under the active GUI folder."""
+    camera_sensors = [
+      sensor
+      for sensor in self.env.unwrapped.scene.sensors.values()
+      if isinstance(sensor, CameraSensor)
+    ]
+    if not camera_sensors:
+      self.camera_viewers = []
+      return
+
+    self.camera_viewers = [
+      ViserCameraViewer(self.server, sensor, self.mj_model) for sensor in camera_sensors
+    ]
+
+  def update(self, sim_data: Any, env_idx: int, scene_offset: Any) -> None:
+    """Push latest camera images/frustums to GUI."""
+    if not self.camera_viewers:
+      return
+    for camera_viewer in self.camera_viewers:
+      camera_viewer.update(sim_data, env_idx, scene_offset)
+
+  def cleanup(self) -> None:
+    """Cleanup all camera feed widgets."""
+    if not self.camera_viewers:
+      return
+    for camera_viewer in self.camera_viewers:
+      camera_viewer.cleanup()

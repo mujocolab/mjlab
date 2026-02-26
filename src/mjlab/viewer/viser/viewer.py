@@ -12,11 +12,9 @@ from threading import Lock
 import viser
 from typing_extensions import override
 
-from mjlab.sensor import CameraSensor
 from mjlab.sim.sim import Simulation
 from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
-from mjlab.viewer.viser.camera_viewer import ViserCameraViewer
-from mjlab.viewer.viser.overlays import ViserTermOverlays
+from mjlab.viewer.viser.overlays import ViserCameraOverlays, ViserTermOverlays
 from mjlab.viewer.viser.scene import ViserMujocoScene
 
 
@@ -38,8 +36,8 @@ class ViserPlayViewer(BaseViewer):
   ) -> None:
     super().__init__(env, policy, frame_rate, verbosity)
     self._overlays: ViserTermOverlays | None = None
+    self._camera_overlays: ViserCameraOverlays | None = None
     self._sim_lock = Lock()
-    self._camera_viewers: list[ViserCameraViewer] = []
 
   @override
   def setup(self) -> None:
@@ -117,20 +115,9 @@ class ViserPlayViewer(BaseViewer):
           else:
             self.request_speed_up()
 
-      # Camera feeds: collect all camera sensors and add to controls tab.
-      camera_sensors = [
-        sensor
-        for sensor in self.env.unwrapped.scene.sensors.values()
-        if isinstance(sensor, CameraSensor)
-      ]
-      if camera_sensors:
-        with self._server.gui.add_folder("Camera Feeds"):
-          self._camera_viewers = [
-            ViserCameraViewer(self._server, sensor, sim.mj_model)
-            for sensor in camera_sensors
-          ]
-      else:
-        self._camera_viewers = []
+      self._camera_overlays = ViserCameraOverlays(self._server, self.env, sim.mj_model)
+      with self._server.gui.add_folder("Camera Feeds"):
+        self._camera_overlays.setup_controls()
 
       # Add standard visualization options from ViserMujocoScene (Environment, Visualization, Contacts, Camera Tracking, Debug Visualization).
       self._scene.create_visualization_gui(
@@ -179,11 +166,12 @@ class ViserPlayViewer(BaseViewer):
 
   def _update_camera_feeds(self, sim: Simulation, has_pending_updates: bool) -> None:
     """Push camera sensor frames to GUI when needed."""
-    if self._camera_viewers and self._should_update_cameras(
+    if self._camera_overlays and self._should_update_cameras(
       self._is_paused, has_pending_updates
     ):
-      for camera_viewer in self._camera_viewers:
-        camera_viewer.update(sim.data, self._scene.env_idx, self._scene._scene_offset)
+      self._camera_overlays.update(
+        sim.data, self._scene.env_idx, self._scene._scene_offset
+      )
 
   def _queue_debug_visualizers(self) -> None:
     """Queue environment-specific debug draw calls into the scene."""
@@ -264,8 +252,8 @@ class ViserPlayViewer(BaseViewer):
     """Close the viewer and cleanup resources."""
     if self._overlays:
       self._overlays.cleanup()
-    for camera_viewer in self._camera_viewers:
-      camera_viewer.cleanup()
+    if self._camera_overlays:
+      self._camera_overlays.cleanup()
     self._threadpool.shutdown(wait=True)
     self._server.stop()
 
