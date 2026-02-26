@@ -32,6 +32,7 @@ class TrainConfig:
   enable_nan_guard: bool = False
   torchrunx_log_dir: str | None = None
   wandb_run_path: str | None = None
+  wandb_checkpoint_name: str | None = None
   gpu_ids: list[int] | Literal["all"] | None = field(default_factory=lambda: [0])
 
   @staticmethod
@@ -114,7 +115,7 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
     if cfg.wandb_run_path is not None:
       # Load checkpoint from W&B.
       resume_path, was_cached = get_wandb_checkpoint_path(
-        log_root_path, Path(cfg.wandb_run_path)
+        log_root_path, Path(cfg.wandb_run_path), cfg.wandb_checkpoint_name
       )
       if rank == 0:
         run_id = resume_path.parent.name

@@ -34,6 +34,8 @@ class EvaluateConfig:
 
   wandb_run_path: str
   """W&B run path in format 'entity/project/run_id'."""
+  wandb_checkpoint_name: str | None = None
+  """Optional checkpoint name within the W&B run to load (e.g. 'model_4000.pt')."""
   num_envs: int = 1024
   """Number of parallel environments (= number of episodes to evaluate)."""
   device: str | None = None
@@ -73,7 +75,7 @@ def run_evaluate(task_id: str, cfg: EvaluateConfig) -> dict[str, float]:
   env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
   log_root_path = (Path("logs") / "rsl_rl" / agent_cfg.experiment_name).resolve()
-  resume_path, _ = get_wandb_checkpoint_path(log_root_path, Path(cfg.wandb_run_path))
+  resume_path, _ = get_wandb_checkpoint_path(log_root_path, Path(cfg.wandb_run_path), cfg.wandb_checkpoint_name)
   print(f"[INFO] Loading checkpoint: {resume_path}")
 
   runner_cls = load_runner_cls(task_id) or MjlabOnPolicyRunner
