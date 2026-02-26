@@ -89,7 +89,9 @@ def get_checkpoint_path(
   return run_path / checkpoint_file
 
 
-def get_wandb_checkpoint_path(log_path: Path, run_path: Path, checkpoint_name: str | None = None) -> tuple[Path, bool]:
+def get_wandb_checkpoint_path(
+  log_path: Path, run_path: Path, checkpoint_name: str | None = None
+) -> tuple[Path, bool]:
   """Get checkpoint path from wandb, downloading if needed.
 
   Returns:
