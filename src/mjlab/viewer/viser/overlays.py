@@ -1,4 +1,9 @@
-"""Overlay helpers for Viser viewer tabs."""
+"""Overlay managers for Viser viewer orchestration.
+
+These managers intentionally coordinate *when* higher-level updates happen
+(env switches, paused/running updates, etc.) while leaving low-level render
+handle lifecycle ownership inside :mod:`scene.py`.
+"""
 
 from __future__ import annotations
 
@@ -159,7 +164,11 @@ class ViserDebugOverlays:
 
 @dataclass
 class ViserContactOverlays:
-  """Manage contact-visualization orchestration from the viewer layer."""
+  """Manage contact-visualization orchestration from the viewer layer.
+
+  Note: contact mesh creation/update/removal stays in ``ViserMujocoScene``.
+  This manager only requests scene refreshes at the right times.
+  """
 
   scene: _SceneProtocol
 

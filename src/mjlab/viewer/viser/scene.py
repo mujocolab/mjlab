@@ -80,6 +80,10 @@ class ViserMujocoScene(DebugVisualizer):
 
   Also implements DebugVisualizer protocol for environment-specific annotations
   like arrows, ghost meshes, and coordinate frames.
+
+  Design boundary:
+  - This class owns render-handle lifecycle and geometry update internals.
+  - Viewer/overlay managers orchestrate *when* to request updates.
   """
 
   # Core.

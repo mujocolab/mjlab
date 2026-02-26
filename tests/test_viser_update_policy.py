@@ -193,3 +193,16 @@ def test_contact_overlays_enable_and_env_switch_behavior():
   assert overlays.is_enabled()
   overlays.on_env_switch()
   assert scene.needs_update
+
+
+def test_contact_overlays_noop_when_disabled_even_if_already_pending():
+  scene = _DummyScene(
+    env_idx=0,
+    debug_visualization_enabled=False,
+    show_contact_points=False,
+    show_contact_forces=False,
+    needs_update=True,
+  )
+  overlays = ViserContactOverlays(scene=scene)
+  overlays.on_env_switch()
+  assert scene.needs_update
