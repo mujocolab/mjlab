@@ -7,6 +7,7 @@ import time
 import traceback
 from abc import ABC, abstractmethod
 from collections import deque
+from dataclasses import dataclass
 from enum import Enum, IntEnum
 from typing import TYPE_CHECKING, Any, Optional, Protocol
 
@@ -68,6 +69,19 @@ class EnvProtocol(Protocol):
 
 class PolicyProtocol(Protocol):
   def __call__(self, obs: torch.Tensor) -> torch.Tensor: ...
+
+
+@dataclass(frozen=True)
+class ViewerStatus:
+  paused: bool
+  step_count: int
+  speed_multiplier: float
+  speed_label: str
+  target_realtime: float
+  actual_realtime: float
+  smoothed_fps: float
+  capped: bool
+  last_error: str | None
 
 
 class ViewerAction(Enum):
@@ -412,16 +426,31 @@ class BaseViewer(ABC):
       return f"1/{inv_rounded}x"
     return f"{multiplier:.3g}x"
 
+  def get_status(self) -> ViewerStatus:
+    """Build a read-only status snapshot for viewer UIs."""
+    return ViewerStatus(
+      paused=self._is_paused,
+      step_count=self._step_count,
+      speed_multiplier=self._time_multiplier,
+      speed_label=self._format_speed(self._time_multiplier),
+      target_realtime=self.target_realtime,
+      actual_realtime=self.actual_realtime,
+      smoothed_fps=self._smoothed_fps,
+      capped=self._is_capped,
+      last_error=self._last_error,
+    )
+
   def log_performance(self) -> None:
     if self._frame_count > 0:
+      status = self.get_status()
       avg_sim_ms = self._accumulated_sim_time / self._frame_count * 1000
       avg_render_ms = self._accumulated_render_time / self._frame_count * 1000
       total_ms = avg_sim_ms + avg_render_ms
-      status = "PAUSED" if self._is_paused else "RUNNING"
-      speed = self._format_speed(self._time_multiplier)
       print(
-        f"[{status}] Step {self._step_count} | FPS: {self._frame_count:.1f} | "
-        f"Speed: {speed} | Sim: {avg_sim_ms:.1f}ms | Render: {avg_render_ms:.1f}ms | "
+        f"[{'PAUSED' if status.paused else 'RUNNING'}] "
+        f"Step {status.step_count} | FPS: {self._frame_count:.1f} | "
+        f"Speed: {status.speed_label} | Sim: {avg_sim_ms:.1f}ms | "
+        f"Render: {avg_render_ms:.1f}ms | "
         f"Total: {total_ms:.1f}ms"
       )
 

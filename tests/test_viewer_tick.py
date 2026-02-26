@@ -198,3 +198,24 @@ def test_configurable_max_steps_per_tick():
   v._max_steps_per_tick = 5
   v.inject_tick(wall_dt=1.0)
   assert v.sim_step_count == 5
+
+
+def test_status_snapshot():
+  """Status snapshot exposes a consistent UI-facing state contract."""
+  v = FakeViewer(step_dt=0.01)
+  v._smoothed_fps = 60.0
+  v._smoothed_sps = 50.0
+  v._is_capped = True
+  v._last_error = "err"
+
+  status = v.get_status()
+
+  assert status.paused is False
+  assert status.step_count == v._step_count
+  assert status.speed_multiplier == 1.0
+  assert status.speed_label == "1x"
+  assert abs(status.target_realtime - 1.0) < 1e-10
+  assert abs(status.actual_realtime - 0.5) < 1e-10
+  assert abs(status.smoothed_fps - 60.0) < 1e-10
+  assert status.capped is True
+  assert status.last_error == "err"

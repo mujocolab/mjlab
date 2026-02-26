@@ -6,6 +6,7 @@ Adapted from an MJX visualizer by Chung Min Kim: https://github.com/chungmin99/
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from enum import Enum, auto
 from threading import Lock
 
 import viser
@@ -17,6 +18,12 @@ from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, Verbosity
 from mjlab.viewer.viser.camera_viewer import ViserCameraViewer
 from mjlab.viewer.viser.scene import ViserMujocoScene
 from mjlab.viewer.viser.term_plotter import ViserTermPlotter
+
+
+class UpdateReason(Enum):
+  ACTION = auto()
+  ENV_SWITCH = auto()
+  SCENE_REQUEST = auto()
 
 
 class ViserPlayViewer(BaseViewer):
@@ -44,7 +51,7 @@ class ViserPlayViewer(BaseViewer):
     self._server = viser.ViserServer(label="mjlab")
     self._threadpool = ThreadPoolExecutor(max_workers=1)
     self._counter = 0
-    self._needs_update = False
+    self._pending_update_reasons: set[UpdateReason] = set()
 
     # Create ViserMujocoScene for all 3D visualization (with debug visualization enabled).
     self._scene = ViserMujocoScene.create(
@@ -78,7 +85,6 @@ class ViserPlayViewer(BaseViewer):
         @self._pause_button.on_click
         def _(_) -> None:
           self.request_toggle_pause()
-          self._needs_update = True
 
         # Single-step button.
         self._step_button = self._server.gui.add_button(
@@ -89,7 +95,6 @@ class ViserPlayViewer(BaseViewer):
         @self._step_button.on_click
         def _(_) -> None:
           self.request_single_step()
-          self._needs_update = True
 
         # Reset button.
         reset_button = self._server.gui.add_button("Reset Environment")
@@ -97,7 +102,6 @@ class ViserPlayViewer(BaseViewer):
         @reset_button.on_click
         def _(_) -> None:
           self.request_reset()
-          self._needs_update = True
 
         # Speed controls.
         speed_buttons = self._server.gui.add_button_group(
@@ -173,6 +177,7 @@ class ViserPlayViewer(BaseViewer):
     had_actions = bool(self._actions)
     super()._process_actions()
     if had_actions:
+      self._pending_update_reasons.add(UpdateReason.ACTION)
       self._sync_ui_state()
 
   def _sync_ui_state(self) -> None:
@@ -183,56 +188,58 @@ class ViserPlayViewer(BaseViewer):
     )
     self._update_status_display()
 
-  @override
-  def sync_env_to_viewer(self) -> None:
-    """Synchronize environment state to viewer."""
-    sim = self.env.unwrapped.sim
-    assert isinstance(sim, Simulation)
-    self._scene.paused = self._is_paused
-    self._counter += 1
-    if self._counter % 10 == 0:
-      self._update_status_display()
-      if self._scene.env_idx != self._prev_env_idx:
-        self._prev_env_idx = self._scene.env_idx
-        if self._reward_plotter:
-          self._reward_plotter.clear_histories()
-        if self._metrics_plotter:
-          self._metrics_plotter.clear_histories()
-        # Clear debug visualizations when switching environments
-        if self._scene.debug_visualization_enabled:
-          self._scene.clear_debug_all()
+  def _update_env_dependent_plots(self) -> None:
+    """Refresh reward/metric plots and histories for the selected environment."""
+    if self._scene.env_idx != self._prev_env_idx:
+      self._prev_env_idx = self._scene.env_idx
+      self._pending_update_reasons.add(UpdateReason.ENV_SWITCH)
+      if self._reward_plotter:
+        self._reward_plotter.clear_histories()
+      if self._metrics_plotter:
+        self._metrics_plotter.clear_histories()
+      if self._scene.debug_visualization_enabled:
+        self._scene.clear_debug_all()
 
-      if self._reward_plotter is not None and not self._is_paused:
-        terms = list(
-          self.env.unwrapped.reward_manager.get_active_iterable_terms(
-            self._scene.env_idx
-          )
+    if self._reward_plotter is not None and not self._is_paused:
+      terms = list(
+        self.env.unwrapped.reward_manager.get_active_iterable_terms(self._scene.env_idx)
+      )
+      self._reward_plotter.update(terms)
+
+    if self._metrics_plotter is not None and not self._is_paused:
+      terms = list(
+        self.env.unwrapped.metrics_manager.get_active_iterable_terms(
+          self._scene.env_idx
         )
-        self._reward_plotter.update(terms)
+      )
+      self._metrics_plotter.update(terms)
 
-      if self._metrics_plotter is not None and not self._is_paused:
-        terms = list(
-          self.env.unwrapped.metrics_manager.get_active_iterable_terms(
-            self._scene.env_idx
-          )
-        )
-        self._metrics_plotter.update(terms)
-
-    # Update camera images
-    if self._camera_viewers and (not self._is_paused or self._needs_update):
+  def _update_camera_feeds(self, sim: Simulation, has_pending_updates: bool) -> None:
+    """Push camera sensor frames to GUI when needed."""
+    if self._camera_viewers and self._should_update_cameras(
+      self._is_paused, has_pending_updates
+    ):
       for camera_viewer in self._camera_viewers:
         camera_viewer.update(sim.data, self._scene.env_idx, self._scene._scene_offset)
 
-    # Update debug visualizations if enabled
+  def _queue_debug_visualizers(self) -> None:
+    """Queue environment-specific debug draw calls into the scene."""
     if self._scene.debug_visualization_enabled and hasattr(
       self.env.unwrapped, "update_visualizers"
     ):
       self._scene.clear()  # Clear queued arrows from previous frame
       self.env.unwrapped.update_visualizers(self._scene)
 
-    if self._counter % 2 != 0:
-      return
-    if self._is_paused and not self._needs_update and not self._scene.needs_update:
+  def _submit_scene_update_if_needed(
+    self, sim: Simulation, has_pending_updates: bool
+  ) -> None:
+    """Submit a scene sync job when the update policy allows it."""
+    if self._scene.needs_update:
+      self._pending_update_reasons.add(UpdateReason.SCENE_REQUEST)
+
+    if not self._should_submit_scene_update(
+      self._counter, self._is_paused, has_pending_updates
+    ):
       return
 
     def update_scene() -> None:
@@ -242,8 +249,39 @@ class ViserPlayViewer(BaseViewer):
           self._server.flush()
 
     self._threadpool.submit(update_scene)
-    self._needs_update = False
+    self._pending_update_reasons.clear()
     self._scene.needs_update = False
+
+  @staticmethod
+  def _should_update_cameras(paused: bool, has_pending_updates: bool) -> bool:
+    """Camera feeds update continuously while running and on-demand while paused."""
+    return (not paused) or has_pending_updates
+
+  @staticmethod
+  def _should_submit_scene_update(
+    counter: int, paused: bool, has_pending_updates: bool
+  ) -> bool:
+    """Scene submits at 30Hz (every other 60Hz tick) with pause-aware gating."""
+    if counter % 2 != 0:
+      return False
+    if paused and not has_pending_updates:
+      return False
+    return True
+
+  @override
+  def sync_env_to_viewer(self) -> None:
+    """Synchronize environment state to viewer."""
+    sim = self.env.unwrapped.sim
+    assert isinstance(sim, Simulation)
+    self._scene.paused = self._is_paused
+    self._counter += 1
+    if self._counter % 10 == 0:
+      self._update_status_display()
+    self._update_env_dependent_plots()
+    has_pending_updates = bool(self._pending_update_reasons) or self._scene.needs_update
+    self._update_camera_feeds(sim, has_pending_updates)
+    self._queue_debug_visualizers()
+    self._submit_scene_update_if_needed(sim, has_pending_updates)
 
   @override
   def sync_viewer_to_env(self) -> None:
@@ -279,16 +317,16 @@ class ViserPlayViewer(BaseViewer):
 
   def _update_status_display(self) -> None:
     """Update the HTML status display."""
-    speed = self._format_speed(self._time_multiplier)
-    actual_rt = self.actual_realtime
+    status = self.get_status()
+    actual_rt = status.actual_realtime
     rt_display = f"{actual_rt:.2f}x" if actual_rt > 0 else "—"
-    capped = ' <span style="color:#e74c3c;">[CAPPED]</span>' if self._is_capped else ""
+    capped = ' <span style="color:#e74c3c;">[CAPPED]</span>' if status.capped else ""
     self._status_html.content = f"""
       <div style="font-size: 0.85em; line-height: 1.25; padding: 0 1em 0.5em 1em;">
-        <strong>Status:</strong> {"Paused" if self._is_paused else "Running"}{capped}<br/>
-        <strong>Steps:</strong> {self._step_count}<br/>
-        <strong>Speed:</strong> {speed}<br/>
-        <strong>Target RT:</strong> {self.target_realtime:.2f}x<br/>
-        <strong>Actual RT:</strong> {rt_display} ({self._smoothed_fps:.0f} FPS)
+        <strong>Status:</strong> {"Paused" if status.paused else "Running"}{capped}<br/>
+        <strong>Steps:</strong> {status.step_count}<br/>
+        <strong>Speed:</strong> {status.speed_label}<br/>
+        <strong>Target RT:</strong> {status.target_realtime:.2f}x<br/>
+        <strong>Actual RT:</strong> {rt_display} ({status.smoothed_fps:.0f} FPS)
       </div>
       """

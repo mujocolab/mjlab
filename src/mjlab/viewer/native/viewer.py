@@ -150,16 +150,16 @@ class NativeMujocoViewer(BaseViewer):
       self._sync_model_fields(sim, self.env_idx)
       mujoco.mj_forward(self.mjm, self.mjd)
 
-      speed = self._format_speed(self._time_multiplier)
-      capped = " [CAPPED]" if self._is_capped else ""
+      status = self.get_status()
+      capped = " [CAPPED]" if status.capped else ""
       text_1 = "Env\nStep\nStatus\nSpeed\nTarget RT\nActual RT"
       text_2 = (
         f"{self.env_idx + 1}/{self.env.num_envs}\n"
-        f"{self._step_count}\n"
-        f"{'PAUSED' if self._is_paused else 'RUNNING'}{capped}\n"
-        f"{speed}\n"
-        f"{self.target_realtime:.2f}x\n"
-        f"{self.actual_realtime:.2f}x ({self._smoothed_fps:.0f} FPS)"
+        f"{status.step_count}\n"
+        f"{'PAUSED' if status.paused else 'RUNNING'}{capped}\n"
+        f"{status.speed_label}\n"
+        f"{status.target_realtime:.2f}x\n"
+        f"{status.actual_realtime:.2f}x ({status.smoothed_fps:.0f} FPS)"
       )
       overlay = (
         mujoco.mjtFontScale.mjFONTSCALE_150.value,
