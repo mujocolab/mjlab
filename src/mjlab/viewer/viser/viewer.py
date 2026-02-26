@@ -5,6 +5,7 @@ Adapted from an MJX visualizer by Chung Min Kim: https://github.com/chungmin99/
 
 from __future__ import annotations
 
+import time
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum, auto
 from threading import Lock
@@ -38,6 +39,11 @@ class ViserPlayViewer(BaseViewer):
     self._term_overlays: ViserTermOverlays | None = None
     self._camera_overlays: ViserCameraOverlays | None = None
     self._sim_lock = Lock()
+    self._camera_update_last_ms: float = 0.0
+    self._debug_queue_last_ms: float = 0.0
+    self._scene_submit_enqueue_last_ms: float = 0.0
+    self._scene_update_last_ms: float = 0.0
+    self._timing_last_log_time: float = 0.0
 
   @override
   def setup(self) -> None:
@@ -166,42 +172,72 @@ class ViserPlayViewer(BaseViewer):
 
   def _update_camera_feeds(self, sim: Simulation, has_pending_updates: bool) -> None:
     """Push camera sensor frames to GUI when needed."""
+    t0 = time.perf_counter()
     if self._camera_overlays and self._should_update_cameras(
       self._is_paused, has_pending_updates
     ):
       self._camera_overlays.update(
         sim.data, self._scene.env_idx, self._scene._scene_offset
       )
+    self._camera_update_last_ms = (time.perf_counter() - t0) * 1000.0
 
   def _queue_debug_visualizers(self) -> None:
     """Queue environment-specific debug draw calls into the scene."""
+    t0 = time.perf_counter()
     if self._scene.debug_visualization_enabled and hasattr(
       self.env.unwrapped, "update_visualizers"
     ):
       self._scene.clear()  # Clear queued arrows from previous frame
       self.env.unwrapped.update_visualizers(self._scene)
+    self._debug_queue_last_ms = (time.perf_counter() - t0) * 1000.0
 
   def _submit_scene_update_if_needed(
     self, sim: Simulation, has_pending_updates: bool
   ) -> None:
     """Submit a scene sync job when the update policy allows it."""
+    t_enqueue_start = time.perf_counter()
     if self._scene.needs_update:
       self._pending_update_reasons.add(UpdateReason.SCENE_REQUEST)
 
     if not self._should_submit_scene_update(
       self._counter, self._is_paused, has_pending_updates
     ):
+      self._scene_submit_enqueue_last_ms = 0.0
       return
 
     def update_scene() -> None:
       with self._sim_lock:
+        t0 = time.perf_counter()
         with self._server.atomic():
           self._scene.update(sim.data)
           self._server.flush()
+        self._scene_update_last_ms = (time.perf_counter() - t0) * 1000.0
 
     self._threadpool.submit(update_scene)
+    self._scene_submit_enqueue_last_ms = (
+      time.perf_counter() - t_enqueue_start
+    ) * 1000.0
     self._pending_update_reasons.clear()
     self._scene.needs_update = False
+
+  def _maybe_log_debug_timings(self) -> None:
+    """Log lightweight Viser pipeline timing in debug mode."""
+    if self.verbosity < VerbosityLevel.DEBUG:
+      return
+    now = time.time()
+    if now - self._timing_last_log_time < 1.0:
+      return
+    self._timing_last_log_time = now
+    self.log(
+      (
+        "[DEBUG] Viser timings: "
+        f"camera={self._camera_update_last_ms:.2f}ms, "
+        f"debug={self._debug_queue_last_ms:.2f}ms, "
+        f"submit_enqueue={self._scene_submit_enqueue_last_ms:.2f}ms, "
+        f"scene_update={self._scene_update_last_ms:.2f}ms"
+      ),
+      VerbosityLevel.DEBUG,
+    )
 
   @staticmethod
   def _should_update_cameras(paused: bool, has_pending_updates: bool) -> bool:
@@ -233,6 +269,7 @@ class ViserPlayViewer(BaseViewer):
     self._update_camera_feeds(sim, has_pending_updates)
     self._queue_debug_visualizers()
     self._submit_scene_update_if_needed(sim, has_pending_updates)
+    self._maybe_log_debug_timings()
 
   @override
   def sync_viewer_to_env(self) -> None:
