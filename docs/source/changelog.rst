@@ -77,6 +77,14 @@ Added
 - ``DebugVisualizer`` now supports ellipsoid visualization via
   ``add_ellipsoid``.
 
+- Viewer single-step mode: press RIGHT arrow (native) or click "Step"
+  (Viser) to advance exactly one physics step while paused.
+- Viewer error recovery: exceptions during stepping now pause the viewer
+  and log the traceback instead of crashing the process.
+- Native viewer runs forward kinematics while paused, keeping
+  perturbation visuals accurate.
+- Viewer speed multipliers use clean power-of-2 fractions (1/32x to 1x).
+
 - Visualizers display the realtime factor alongside FPS.
 
 - Terrain is now a proper ``Entity`` subclass (``TerrainEntity``). This

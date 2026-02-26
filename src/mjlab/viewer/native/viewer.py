@@ -150,15 +150,16 @@ class NativeMujocoViewer(BaseViewer):
       self._sync_model_fields(sim, self.env_idx)
       mujoco.mj_forward(self.mjm, self.mjd)
 
-      step_dt = self.env.unwrapped.step_dt
-      rt = self._smoothed_sps * step_dt
-      text_1 = "Env\nStep\nStatus\nSpeed\nRealtime"
+      speed = self._format_speed(self._time_multiplier)
+      capped = " [CAPPED]" if self._is_capped else ""
+      text_1 = "Env\nStep\nStatus\nSpeed\nTarget RT\nActual RT"
       text_2 = (
         f"{self.env_idx + 1}/{self.env.num_envs}\n"
         f"{self._step_count}\n"
-        f"{'PAUSED' if self._is_paused else 'RUNNING'}\n"
-        f"{self._time_multiplier * 100:.1f}%\n"
-        f"{rt:.2f}x ({self._smoothed_fps:.0f} FPS)"
+        f"{'PAUSED' if self._is_paused else 'RUNNING'}{capped}\n"
+        f"{speed}\n"
+        f"{self.target_realtime:.2f}x\n"
+        f"{self.actual_realtime:.2f}x ({self._smoothed_fps:.0f} FPS)"
       )
       overlay = (
         mujoco.mjtFontScale.mjFONTSCALE_150.value,
@@ -290,6 +291,7 @@ class NativeMujocoViewer(BaseViewer):
       KEY_P,
       KEY_PERIOD,
       KEY_R,
+      KEY_RIGHT,
       KEY_SPACE,
     )
 
@@ -311,12 +313,20 @@ class NativeMujocoViewer(BaseViewer):
       self.request_action("TOGGLE_DEBUG_VIS", "TOGGLE_DEBUG_VIS")
     elif key == KEY_A:
       self.request_action("TOGGLE_SHOW_ALL_ENVS", "TOGGLE_SHOW_ALL_ENVS")
+    elif key == KEY_RIGHT:
+      self.request_single_step()
 
     if self.user_key_callback:
       try:
         self.user_key_callback(key)
       except Exception as e:
         self.log(f"[WARN] user key_callback raised: {e}", VerbosityLevel.INFO)
+
+  def _forward_paused(self) -> None:
+    """Run forward kinematics while paused to keep perturbation visuals accurate."""
+    if self.mjm is not None and self.mjd is not None:
+      with self._mj_lock:
+        mujoco.mj_forward(self.mjm, self.mjd)
 
   def _handle_custom_action(self, action, payload) -> bool:
     if action == ViewerAction.PREV_ENV and self.env.unwrapped.num_envs > 1:

@@ -80,6 +80,17 @@ class ViserPlayViewer(BaseViewer):
           self.request_toggle_pause()
           self._needs_update = True
 
+        # Single-step button.
+        self._step_button = self._server.gui.add_button(
+          "Step",
+          icon=viser.Icon.PLAYER_TRACK_NEXT,
+        )
+
+        @self._step_button.on_click
+        def _(_) -> None:
+          self.request_single_step()
+          self._needs_update = True
+
         # Reset button.
         reset_button = self._server.gui.add_button("Reset Environment")
 
@@ -91,13 +102,15 @@ class ViserPlayViewer(BaseViewer):
         # Speed controls.
         speed_buttons = self._server.gui.add_button_group(
           "Speed",
-          options=["Slower", "Faster"],
+          options=["Slower", "1x", "Faster"],
         )
 
         @speed_buttons.on_click
         def _(event) -> None:
           if event.target.value == "Slower":
             self.request_speed_down()
+          elif event.target.value == "1x":
+            self.request_reset_speed()
           else:
             self.request_speed_up()
 
@@ -175,6 +188,7 @@ class ViserPlayViewer(BaseViewer):
     """Synchronize environment state to viewer."""
     sim = self.env.unwrapped.sim
     assert isinstance(sim, Simulation)
+    self._scene.paused = self._is_paused
     self._counter += 1
     if self._counter % 10 == 0:
       self._update_status_display()
@@ -265,14 +279,16 @@ class ViserPlayViewer(BaseViewer):
 
   def _update_status_display(self) -> None:
     """Update the HTML status display."""
-    step_dt = self.env.unwrapped.step_dt
-    rt = self._smoothed_sps * step_dt
-    rt_display = f"{rt:.2f}x" if rt > 0 else "—"
+    speed = self._format_speed(self._time_multiplier)
+    actual_rt = self.actual_realtime
+    rt_display = f"{actual_rt:.2f}x" if actual_rt > 0 else "—"
+    capped = ' <span style="color:#e74c3c;">[CAPPED]</span>' if self._is_capped else ""
     self._status_html.content = f"""
       <div style="font-size: 0.85em; line-height: 1.25; padding: 0 1em 0.5em 1em;">
-        <strong>Status:</strong> {"Paused" if self._is_paused else "Running"}<br/>
+        <strong>Status:</strong> {"Paused" if self._is_paused else "Running"}{capped}<br/>
         <strong>Steps:</strong> {self._step_count}<br/>
-        <strong>Speed:</strong> {self._time_multiplier:.0%}<br/>
-        <strong>Realtime:</strong> {rt_display} ({self._smoothed_fps:.0f} FPS)
+        <strong>Speed:</strong> {speed}<br/>
+        <strong>Target RT:</strong> {self.target_realtime:.2f}x<br/>
+        <strong>Actual RT:</strong> {rt_display} ({self._smoothed_fps:.0f} FPS)
       </div>
       """
