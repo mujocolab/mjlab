@@ -150,73 +150,91 @@ class NativeMujocoViewer(BaseViewer):
       self._sync_model_fields(sim, self.env_idx)
       mujoco.mj_forward(self.mjm, self.mjd)
 
-      status = self.get_status()
-      capped = " [CAPPED]" if status.capped else ""
-      text_1 = "Env\nStep\nStatus\nSpeed\nTarget RT\nActual RT"
-      text_2 = (
-        f"{self.env_idx + 1}/{self.env.num_envs}\n"
-        f"{status.step_count}\n"
-        f"{'PAUSED' if status.paused else 'RUNNING'}{capped}\n"
-        f"{status.speed_label}\n"
-        f"{status.target_realtime:.2f}x\n"
-        f"{status.actual_realtime:.2f}x ({status.smoothed_fps:.0f} FPS)"
-      )
-      overlay = (
-        mujoco.mjtFontScale.mjFONTSCALE_150.value,
-        mujoco.mjtGridPos.mjGRID_TOPLEFT.value,
-        text_1,
-        text_2,
-      )
-      v.set_texts(overlay)
-
-      if self._show_plots and self._term_names:
-        terms = list(
-          self.env.unwrapped.reward_manager.get_active_iterable_terms(self.env_idx)
-        )
-        if not self._is_paused:
-          for name, arr in terms:
-            if name in self._histories:
-              self._append_point(name, float(arr[0]))
-              self._write_history_to_figure(name)
-
-        viewports = compute_viewports(len(self._term_names), v.viewport, self._plot_cfg)
-        viewport_figs = [
-          (viewports[i], self._figures[self._term_names[i]])
-          for i in range(
-            min(len(viewports), len(self._term_names), self._plot_cfg.max_viewports)
-          )
-        ]
-        v.set_figures(viewport_figs)
-      else:
-        v.set_figures([])
-
-      v.user_scn.ngeom = 0
-      if self._show_debug_vis and hasattr(self.env.unwrapped, "update_visualizers"):
-        visualizer = MujocoNativeDebugVisualizer(
-          v.user_scn, self.mjm, self.env_idx, self._show_all_envs
-        )
-        self.env.unwrapped.update_visualizers(visualizer)
-
-      if self.vd is not None:
-        for i in range(self.env.unwrapped.num_envs):
-          if i == self.env_idx:
-            continue
-          self.vd.qpos[:] = sim_data.qpos[i].cpu().numpy()
-          self.vd.qvel[:] = sim_data.qvel[i].cpu().numpy()
-          if self.mjm.nmocap > 0:
-            self.vd.mocap_pos[:] = sim_data.mocap_pos[i].cpu().numpy()
-            self.vd.mocap_quat[:] = sim_data.mocap_quat[i].cpu().numpy()
-          self._sync_model_fields(sim, i)
-          mujoco.mj_forward(self.mjm, self.vd)
-          assert self.pert is not None
-          mujoco.mjv_addGeoms(
-            self.mjm, self.vd, self.vopt, self.pert, self.catmask, v.user_scn
-          )
-        # Restore main env's model fields.
-        self._sync_model_fields(sim, self.env_idx)
+      self._set_status_overlay(v)
+      self._update_reward_figures(v)
+      self._update_debug_visualizers(v)
+      self._render_other_env_geoms(v, sim, sim_data)
 
       has_visual_dr = bool(sim.expanded_fields & self._VISUAL_FIELDS)
       v.sync(state_only=not has_visual_dr)
+
+  def _set_status_overlay(self, viewer: mujoco.viewer.Handle) -> None:
+    status = self.get_status()
+    capped = " [CAPPED]" if status.capped else ""
+    text_1 = "Env\nStep\nStatus\nSpeed\nTarget RT\nActual RT"
+    text_2 = (
+      f"{self.env_idx + 1}/{self.env.num_envs}\n"
+      f"{status.step_count}\n"
+      f"{'PAUSED' if status.paused else 'RUNNING'}{capped}\n"
+      f"{status.speed_label}\n"
+      f"{status.target_realtime:.2f}x\n"
+      f"{status.actual_realtime:.2f}x ({status.smoothed_fps:.0f} FPS)"
+    )
+    overlay = (
+      mujoco.mjtFontScale.mjFONTSCALE_150.value,
+      mujoco.mjtGridPos.mjGRID_TOPLEFT.value,
+      text_1,
+      text_2,
+    )
+    viewer.set_texts(overlay)
+
+  def _update_reward_figures(self, viewer: mujoco.viewer.Handle) -> None:
+    if not self._show_plots or not self._term_names:
+      viewer.set_figures([])
+      return
+
+    terms = list(
+      self.env.unwrapped.reward_manager.get_active_iterable_terms(self.env_idx)
+    )
+    if not self._is_paused:
+      for name, arr in terms:
+        if name in self._histories:
+          self._append_point(name, float(arr[0]))
+          self._write_history_to_figure(name)
+
+    viewports = compute_viewports(
+      len(self._term_names), viewer.viewport, self._plot_cfg
+    )
+    viewport_figs = [
+      (viewports[i], self._figures[self._term_names[i]])
+      for i in range(
+        min(len(viewports), len(self._term_names), self._plot_cfg.max_viewports)
+      )
+    ]
+    viewer.set_figures(viewport_figs)
+
+  def _update_debug_visualizers(self, viewer: mujoco.viewer.Handle) -> None:
+    viewer.user_scn.ngeom = 0
+    if self._show_debug_vis and hasattr(self.env.unwrapped, "update_visualizers"):
+      assert self.mjm is not None
+      visualizer = MujocoNativeDebugVisualizer(
+        viewer.user_scn, self.mjm, self.env_idx, self._show_all_envs
+      )
+      self.env.unwrapped.update_visualizers(visualizer)
+
+  def _render_other_env_geoms(self, viewer, sim, sim_data) -> None:
+    if self.vd is None:
+      return
+    assert self.mjm is not None
+    assert self.vopt is not None
+    assert self.pert is not None
+
+    for i in range(self.env.unwrapped.num_envs):
+      if i == self.env_idx:
+        continue
+      self.vd.qpos[:] = sim_data.qpos[i].cpu().numpy()
+      self.vd.qvel[:] = sim_data.qvel[i].cpu().numpy()
+      if self.mjm.nmocap > 0:
+        self.vd.mocap_pos[:] = sim_data.mocap_pos[i].cpu().numpy()
+        self.vd.mocap_quat[:] = sim_data.mocap_quat[i].cpu().numpy()
+      self._sync_model_fields(sim, i)
+      mujoco.mj_forward(self.mjm, self.vd)
+      mujoco.mjv_addGeoms(
+        self.mjm, self.vd, self.vopt, self.pert, self.catmask, viewer.user_scn
+      )
+
+    # Restore main env's model fields.
+    self._sync_model_fields(sim, self.env_idx)
 
   # Fields that affect rendering. Physics-only fields (geom_aabb,
   # geom_rbound, dof_*, jnt_*, actuator_*, tendon_*, etc.) are skipped.
