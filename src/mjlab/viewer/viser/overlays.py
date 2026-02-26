@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 import mujoco
 import viser
@@ -13,13 +13,22 @@ from mjlab.viewer.viser.camera_viewer import ViserCameraViewer
 from mjlab.viewer.viser.term_plotter import ViserTermPlotter
 
 
+class _EnvProtocol(Protocol):
+  @property
+  def unwrapped(self) -> Any: ...
+
+
+class _SceneProtocol(Protocol):
+  env_idx: int
+
+
 @dataclass
 class ViserTermOverlays:
   """Manage reward/metrics term plot tabs for Viser viewer."""
 
   server: viser.ViserServer
-  env: Any
-  scene: Any
+  env: _EnvProtocol
+  scene: _SceneProtocol
   reward_plotter: ViserTermPlotter | None = None
   metrics_plotter: ViserTermPlotter | None = None
 
@@ -86,7 +95,7 @@ class ViserCameraOverlays:
   """Manage camera feed widgets and updates for Viser viewer."""
 
   server: viser.ViserServer
-  env: Any
+  env: _EnvProtocol
   mj_model: mujoco.MjModel
   camera_viewers: list[ViserCameraViewer] | None = None
 

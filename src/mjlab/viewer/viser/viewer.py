@@ -35,7 +35,7 @@ class ViserPlayViewer(BaseViewer):
     verbosity: VerbosityLevel = VerbosityLevel.SILENT,
   ) -> None:
     super().__init__(env, policy, frame_rate, verbosity)
-    self._overlays: ViserTermOverlays | None = None
+    self._term_overlays: ViserTermOverlays | None = None
     self._camera_overlays: ViserCameraOverlays | None = None
     self._sim_lock = Lock()
 
@@ -128,8 +128,8 @@ class ViserPlayViewer(BaseViewer):
 
     self._prev_env_idx = self._scene.env_idx
 
-    self._overlays = ViserTermOverlays(self._server, self.env, self._scene)
-    self._overlays.setup_tabs(tabs)
+    self._term_overlays = ViserTermOverlays(self._server, self.env, self._scene)
+    self._term_overlays.setup_tabs(tabs)
 
     # Groups tab (geoms and sites).
     self._scene.create_groups_gui(tabs)
@@ -156,13 +156,13 @@ class ViserPlayViewer(BaseViewer):
     if self._scene.env_idx != self._prev_env_idx:
       self._prev_env_idx = self._scene.env_idx
       self._pending_update_reasons.add(UpdateReason.ENV_SWITCH)
-      if self._overlays:
-        self._overlays.on_env_switch()
+      if self._term_overlays:
+        self._term_overlays.on_env_switch()
       if self._scene.debug_visualization_enabled:
         self._scene.clear_debug_all()
 
-    if self._overlays:
-      self._overlays.update(self._is_paused)
+    if self._term_overlays:
+      self._term_overlays.update(self._is_paused)
 
   def _update_camera_feeds(self, sim: Simulation, has_pending_updates: bool) -> None:
     """Push camera sensor frames to GUI when needed."""
@@ -244,14 +244,14 @@ class ViserPlayViewer(BaseViewer):
     """Extend BaseViewer.reset_environment to clear reward and metrics histories."""
     with self._sim_lock:
       super().reset_environment()
-    if self._overlays:
-      self._overlays.clear_histories()
+    if self._term_overlays:
+      self._term_overlays.clear_histories()
 
   @override
   def close(self) -> None:
     """Close the viewer and cleanup resources."""
-    if self._overlays:
-      self._overlays.cleanup()
+    if self._term_overlays:
+      self._term_overlays.cleanup()
     if self._camera_overlays:
       self._camera_overlays.cleanup()
     self._threadpool.shutdown(wait=True)
