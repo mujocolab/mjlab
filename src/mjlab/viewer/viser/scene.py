@@ -694,11 +694,21 @@ class ViserMujocoScene(DebugVisualizer):
     # Keep one live refresh pending when overlays depend on live sim state.
     # This covers contact toggles and paused debug-viz toggles (e.g. ghosts),
     # which otherwise can require stepping/unpausing to appear.
-    self.needs_update = (
-      self.show_contact_points
-      or self.show_contact_forces
-      or self.debug_visualization_enabled
+    self.needs_update = self._requires_live_refresh(
+      show_contact_points=self.show_contact_points,
+      show_contact_forces=self.show_contact_forces,
+      debug_visualization_enabled=self.debug_visualization_enabled,
     )
+
+  @staticmethod
+  def _requires_live_refresh(
+    *,
+    show_contact_points: bool,
+    show_contact_forces: bool,
+    debug_visualization_enabled: bool,
+  ) -> bool:
+    """Whether scene should request one live recompute after cached refresh."""
+    return show_contact_points or show_contact_forces or debug_visualization_enabled
 
   def _add_fixed_geometry(self) -> None:
     """Add fixed world geometry to the scene."""

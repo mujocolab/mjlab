@@ -1,5 +1,6 @@
 """Tests for Viser viewer update-policy helpers."""
 
+from mjlab.viewer.viser.scene import ViserMujocoScene
 from mjlab.viewer.viser.viewer import ViserPlayViewer
 
 
@@ -27,4 +28,27 @@ def test_should_submit_scene_update():
   )
   assert ViserPlayViewer._should_submit_scene_update(
     counter=2, paused=True, has_pending_updates=True
+  )
+
+
+def test_scene_requires_live_refresh():
+  assert not ViserMujocoScene._requires_live_refresh(
+    show_contact_points=False,
+    show_contact_forces=False,
+    debug_visualization_enabled=False,
+  )
+  assert ViserMujocoScene._requires_live_refresh(
+    show_contact_points=True,
+    show_contact_forces=False,
+    debug_visualization_enabled=False,
+  )
+  assert ViserMujocoScene._requires_live_refresh(
+    show_contact_points=False,
+    show_contact_forces=True,
+    debug_visualization_enabled=False,
+  )
+  assert ViserMujocoScene._requires_live_refresh(
+    show_contact_points=False,
+    show_contact_forces=False,
+    debug_visualization_enabled=True,
   )
