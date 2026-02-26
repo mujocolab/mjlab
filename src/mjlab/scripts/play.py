@@ -130,7 +130,7 @@ def run_play(task_id: str, cfg: PlayConfig):
           "`wandb_run_path` is required when `checkpoint_file` is not provided."
         )
       resume_path, was_cached = get_wandb_checkpoint_path(
-        log_root_path, Path(cfg.wandb_run_path), cfg.checkpoint_file
+        log_root_path, Path(cfg.wandb_run_path), cfg.wandb_checkpoint_name
       )
       # Extract run_id and checkpoint name from path for display.
       run_id = resume_path.parent.name
