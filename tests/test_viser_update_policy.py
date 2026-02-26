@@ -5,6 +5,7 @@ from typing import Any, cast
 
 import numpy as np
 
+from mjlab.viewer.viser.overlays import ViserDebugOverlays
 from mjlab.viewer.viser.scene import ViserMujocoScene
 from mjlab.viewer.viser.viewer import ViserPlayViewer
 
@@ -12,6 +13,29 @@ from mjlab.viewer.viser.viewer import ViserPlayViewer
 @dataclass
 class _DummyHandle:
   visible: bool
+
+
+@dataclass
+class _DummyScene:
+  env_idx: int
+  debug_visualization_enabled: bool
+  clear_count: int = 0
+  clear_debug_count: int = 0
+
+  def clear(self) -> None:
+    self.clear_count += 1
+
+  def clear_debug_all(self) -> None:
+    self.clear_debug_count += 1
+
+
+class _DummyEnv:
+  def __init__(self, unwrapped: Any):
+    self._unwrapped = unwrapped
+
+  @property
+  def unwrapped(self) -> Any:
+    return self._unwrapped
 
 
 def test_should_update_cameras():
@@ -116,3 +140,34 @@ def test_refresh_visualization_sets_needs_update_for_live_overlays():
   scene.debug_visualization_enabled = True
   ViserMujocoScene.refresh_visualization(scene)
   assert scene.needs_update
+
+
+def test_debug_overlays_on_env_switch_respects_enabled_flag():
+  env = _DummyEnv(type("Unwrapped", (), {})())
+  scene = _DummyScene(env_idx=0, debug_visualization_enabled=False)
+  overlays = ViserDebugOverlays(env=env, scene=scene)
+
+  overlays.on_env_switch()
+  assert scene.clear_debug_count == 0
+
+  scene.debug_visualization_enabled = True
+  overlays.on_env_switch()
+  assert scene.clear_debug_count == 1
+
+
+def test_debug_overlays_queue_calls_update_visualizers_when_available():
+  scene = _DummyScene(env_idx=0, debug_visualization_enabled=True)
+  update_calls = {"count": 0}
+
+  class _Unwrapped:
+    def update_visualizers(self, scene_arg: Any) -> None:
+      del scene_arg
+      update_calls["count"] += 1
+
+  unwrapped = _Unwrapped()
+  env = _DummyEnv(unwrapped)
+  overlays = ViserDebugOverlays(env=env, scene=scene)
+
+  overlays.queue()
+  assert scene.clear_count == 1
+  assert update_calls["count"] == 1

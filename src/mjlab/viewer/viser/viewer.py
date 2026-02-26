@@ -15,7 +15,11 @@ from typing_extensions import override
 
 from mjlab.sim.sim import Simulation
 from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
-from mjlab.viewer.viser.overlays import ViserCameraOverlays, ViserTermOverlays
+from mjlab.viewer.viser.overlays import (
+  ViserCameraOverlays,
+  ViserDebugOverlays,
+  ViserTermOverlays,
+)
 from mjlab.viewer.viser.scene import ViserMujocoScene
 
 
@@ -38,6 +42,7 @@ class ViserPlayViewer(BaseViewer):
     super().__init__(env, policy, frame_rate, verbosity)
     self._term_overlays: ViserTermOverlays | None = None
     self._camera_overlays: ViserCameraOverlays | None = None
+    self._debug_overlays: ViserDebugOverlays | None = None
     self._sim_lock = Lock()
     self._camera_update_last_ms: float = 0.0
     self._debug_queue_last_ms: float = 0.0
@@ -136,6 +141,7 @@ class ViserPlayViewer(BaseViewer):
 
     self._term_overlays = ViserTermOverlays(self._server, self.env, self._scene)
     self._term_overlays.setup_tabs(tabs)
+    self._debug_overlays = ViserDebugOverlays(self.env, self._scene)
 
     # Groups tab (geoms and sites).
     self._scene.create_groups_gui(tabs)
@@ -164,8 +170,8 @@ class ViserPlayViewer(BaseViewer):
       self._pending_update_reasons.add(UpdateReason.ENV_SWITCH)
       if self._term_overlays:
         self._term_overlays.on_env_switch()
-      if self._scene.debug_visualization_enabled:
-        self._scene.clear_debug_all()
+      if self._debug_overlays:
+        self._debug_overlays.on_env_switch()
 
     if self._term_overlays:
       self._term_overlays.update(self._is_paused)
@@ -184,11 +190,8 @@ class ViserPlayViewer(BaseViewer):
   def _queue_debug_visualizers(self) -> None:
     """Queue environment-specific debug draw calls into the scene."""
     t0 = time.perf_counter()
-    if self._scene.debug_visualization_enabled and hasattr(
-      self.env.unwrapped, "update_visualizers"
-    ):
-      self._scene.clear()  # Clear queued arrows from previous frame
-      self.env.unwrapped.update_visualizers(self._scene)
+    if self._debug_overlays:
+      self._debug_overlays.queue()
     self._debug_queue_last_ms = (time.perf_counter() - t0) * 1000.0
 
   def _submit_scene_update_if_needed(

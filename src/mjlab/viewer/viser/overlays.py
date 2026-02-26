@@ -20,6 +20,10 @@ class _EnvProtocol(Protocol):
 
 class _SceneProtocol(Protocol):
   env_idx: int
+  debug_visualization_enabled: bool
+
+  def clear_debug_all(self) -> None: ...
+  def clear(self) -> None: ...
 
 
 @dataclass
@@ -127,3 +131,24 @@ class ViserCameraOverlays:
       return
     for camera_viewer in self.camera_viewers:
       camera_viewer.cleanup()
+
+
+@dataclass
+class ViserDebugOverlays:
+  """Manage debug visualization queueing and env-switch behavior."""
+
+  env: _EnvProtocol
+  scene: _SceneProtocol
+
+  def on_env_switch(self) -> None:
+    """Reset debug visuals when switching selected environment."""
+    if self.scene.debug_visualization_enabled:
+      self.scene.clear_debug_all()
+
+  def queue(self) -> None:
+    """Queue environment debug visualizers for the current frame."""
+    if self.scene.debug_visualization_enabled and hasattr(
+      self.env.unwrapped, "update_visualizers"
+    ):
+      self.scene.clear()  # Clear queued arrows from previous frame.
+      self.env.unwrapped.update_visualizers(self.scene)
