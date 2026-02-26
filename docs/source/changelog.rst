@@ -103,6 +103,10 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed viewer physics loop starving the renderer by replacing the single
+  sim-time budget with a two-clock design (tracked vs actual sim time).
+  Physics now self-corrects after overshooting, keeping FPS smooth at all
+  speed multipliers.
 - Bundled ``ffmpeg`` for ``mediapy`` via ``imageio-ffmpeg``, removing the
   requirement for a system ``ffmpeg`` install. Thanks to
   `@rdeits-bd <https://github.com/rdeits-bd>`_ for the suggestion.

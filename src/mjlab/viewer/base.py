@@ -106,7 +106,9 @@ class BaseViewer(ABC):
     self._timer = Timer()
     self._sim_timer = Timer()
     self._render_timer = Timer()
-    self._sim_time_budget = 0.0
+    self._tracked_sim_time = 0.0  # Expected sim time (wall_dt * multiplier)
+    self._actual_sim_time = 0.0  # Real sim time (advances by step_dt)
+    self._step_wall_time = 0.0  # Wall time spent stepping last tick
     self._time_until_next_render = 0.0
 
     self._speed_index = self.SPEED_MULTIPLIERS.index(1.0)
@@ -193,6 +195,9 @@ class BaseViewer(ABC):
   def reset_environment(self) -> None:
     self.env.reset()
     self._step_count = 0
+    self._tracked_sim_time = 0.0
+    self._actual_sim_time = 0.0
+    self._step_wall_time = 0.0
     self._timer.tick()
 
   def pause(self) -> None:
@@ -202,7 +207,7 @@ class BaseViewer(ABC):
 
   def resume(self) -> None:
     self._is_paused = False
-    self._sim_time_budget = 0.0
+    self._tracked_sim_time = self._actual_sim_time  # Prevent catch-up burst
     self._timer.tick()
     self._fps_last_frame_time = time.time()
     self.log("[INFO] Simulation resumed", VerbosityLevel.INFO)
@@ -247,18 +252,37 @@ class BaseViewer(ABC):
 
     wall_dt = self._timer.tick()
 
-    # Step physics based on accumulated sim-time budget.
+    # Step physics using two-clock decoupling: tracked time (where sim
+    # *should* be) vs actual time (where it *is*).  When physics overshoots
+    # a frame budget the next tick naturally runs zero iterations, giving
+    # the renderer a chance to breathe.
     if not self._is_paused:
       step_dt = self.env.unwrapped.step_dt
-      self._sim_time_budget += wall_dt * self._time_multiplier
-      # Cap budget to prevent spiral of death after long stalls.
-      self._sim_time_budget = min(self._sim_time_budget, step_dt * 10)
 
-      if self._sim_time_budget >= step_dt:
+      # Subtract previous step execution time from wall_dt so that slow
+      # physics doesn't inflate the budget (prevents feedback spiral where
+      # large wall_dt → many steps → even larger wall_dt next tick).
+      idle_dt = max(0.0, wall_dt - self._step_wall_time)
+      self._step_wall_time = 0.0
+      self._tracked_sim_time += idle_dt * self._time_multiplier
+
+      # Cap: don't let tracked time race more than 10 steps ahead.
+      max_lead = step_dt * 10
+      if self._tracked_sim_time - self._actual_sim_time > max_lead:
+        self._tracked_sim_time = self._actual_sim_time + max_lead
+
+      # Step physics until actual time catches up to tracked time.
+      # Use a small tolerance to avoid missing steps due to float rounding
+      # (e.g. 0.015 - 0.005 = 0.009999… instead of 0.01).
+      deficit = self._tracked_sim_time - self._actual_sim_time
+      if deficit >= step_dt - 1e-10:
         self.sync_viewer_to_env()
-      while self._sim_time_budget >= step_dt:
-        self.step_simulation()
-        self._sim_time_budget -= step_dt
+        t0 = time.time()
+        while deficit >= step_dt - 1e-10:
+          self.step_simulation()
+          self._actual_sim_time += step_dt
+          deficit -= step_dt
+        self._step_wall_time = time.time() - t0
 
     # Render at fixed frame rate, independent of physics speed.
     self._time_until_next_render -= wall_dt
