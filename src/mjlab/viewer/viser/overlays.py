@@ -21,6 +21,9 @@ class _EnvProtocol(Protocol):
 class _SceneProtocol(Protocol):
   env_idx: int
   debug_visualization_enabled: bool
+  show_contact_points: bool
+  show_contact_forces: bool
+  needs_update: bool
 
   def clear_debug_all(self) -> None: ...
   def clear(self) -> None: ...
@@ -152,3 +155,19 @@ class ViserDebugOverlays:
     ):
       self.scene.clear()  # Clear queued arrows from previous frame.
       self.env.unwrapped.update_visualizers(self.scene)
+
+
+@dataclass
+class ViserContactOverlays:
+  """Manage contact-visualization orchestration from the viewer layer."""
+
+  scene: _SceneProtocol
+
+  def is_enabled(self) -> bool:
+    """Whether any contact visualization is currently enabled."""
+    return self.scene.show_contact_points or self.scene.show_contact_forces
+
+  def on_env_switch(self) -> None:
+    """Request a scene refresh when switching environments with contacts enabled."""
+    if self.is_enabled():
+      self.scene.needs_update = True

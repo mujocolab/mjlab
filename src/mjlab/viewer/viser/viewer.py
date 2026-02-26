@@ -17,6 +17,7 @@ from mjlab.sim.sim import Simulation
 from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
 from mjlab.viewer.viser.overlays import (
   ViserCameraOverlays,
+  ViserContactOverlays,
   ViserDebugOverlays,
   ViserTermOverlays,
 )
@@ -43,6 +44,7 @@ class ViserPlayViewer(BaseViewer):
     self._term_overlays: ViserTermOverlays | None = None
     self._camera_overlays: ViserCameraOverlays | None = None
     self._debug_overlays: ViserDebugOverlays | None = None
+    self._contact_overlays: ViserContactOverlays | None = None
     self._sim_lock = Lock()
     self._camera_update_last_ms: float = 0.0
     self._debug_queue_last_ms: float = 0.0
@@ -142,6 +144,7 @@ class ViserPlayViewer(BaseViewer):
     self._term_overlays = ViserTermOverlays(self._server, self.env, self._scene)
     self._term_overlays.setup_tabs(tabs)
     self._debug_overlays = ViserDebugOverlays(self.env, self._scene)
+    self._contact_overlays = ViserContactOverlays(self._scene)
 
     # Groups tab (geoms and sites).
     self._scene.create_groups_gui(tabs)
@@ -172,6 +175,8 @@ class ViserPlayViewer(BaseViewer):
         self._term_overlays.on_env_switch()
       if self._debug_overlays:
         self._debug_overlays.on_env_switch()
+      if self._contact_overlays:
+        self._contact_overlays.on_env_switch()
 
     if self._term_overlays:
       self._term_overlays.update(self._is_paused)

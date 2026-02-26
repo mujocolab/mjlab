@@ -5,7 +5,7 @@ from typing import Any, cast
 
 import numpy as np
 
-from mjlab.viewer.viser.overlays import ViserDebugOverlays
+from mjlab.viewer.viser.overlays import ViserContactOverlays, ViserDebugOverlays
 from mjlab.viewer.viser.scene import ViserMujocoScene
 from mjlab.viewer.viser.viewer import ViserPlayViewer
 
@@ -19,6 +19,9 @@ class _DummyHandle:
 class _DummyScene:
   env_idx: int
   debug_visualization_enabled: bool
+  show_contact_points: bool = False
+  show_contact_forces: bool = False
+  needs_update: bool = False
   clear_count: int = 0
   clear_debug_count: int = 0
 
@@ -171,3 +174,22 @@ def test_debug_overlays_queue_calls_update_visualizers_when_available():
   overlays.queue()
   assert scene.clear_count == 1
   assert update_calls["count"] == 1
+
+
+def test_contact_overlays_enable_and_env_switch_behavior():
+  scene = _DummyScene(
+    env_idx=0,
+    debug_visualization_enabled=False,
+    show_contact_points=False,
+    show_contact_forces=False,
+  )
+  overlays = ViserContactOverlays(scene=scene)
+  assert not overlays.is_enabled()
+
+  overlays.on_env_switch()
+  assert not scene.needs_update
+
+  scene.show_contact_points = True
+  assert overlays.is_enabled()
+  overlays.on_env_switch()
+  assert scene.needs_update
