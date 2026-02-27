@@ -313,12 +313,19 @@ class ViserPlayViewer(BaseViewer):
     actual_rt = status.actual_realtime
     rt_display = f"{actual_rt:.2f}x" if actual_rt > 0 else "—"
     capped = ' <span style="color:#e74c3c;">[CAPPED]</span>' if status.capped else ""
+    error_line = ""
+    if status.last_error:
+      # Show last line of traceback to avoid flooding the panel.
+      first_line = status.last_error.strip().splitlines()[-1]
+      error_line = (
+        f'<br/><span style="color:#e74c3c;"><strong>Error:</strong> {first_line}</span>'
+      )
     self._status_html.content = f"""
       <div style="font-size: 0.85em; line-height: 1.25; padding: 0 1em 0.5em 1em;">
         <strong>Status:</strong> {"Paused" if status.paused else "Running"}{capped}<br/>
         <strong>Steps:</strong> {status.step_count}<br/>
         <strong>Speed:</strong> {status.speed_label}<br/>
         <strong>Target RT:</strong> {status.target_realtime:.2f}x<br/>
-        <strong>Actual RT:</strong> {rt_display} ({status.smoothed_fps:.0f} FPS)
+        <strong>Actual RT:</strong> {rt_display} ({status.smoothed_fps:.0f} FPS){error_line}
       </div>
       """

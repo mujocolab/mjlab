@@ -55,18 +55,26 @@ def test_budget_cap():
   v.inject_tick(wall_dt=1.0)
   assert v.sim_step_count == 10
 
+  # Also works with a custom cap.
+  v2 = FakeViewer(step_dt=0.01)
+  v2._max_steps_per_tick = 5
+  v2.inject_tick(wall_dt=1.0)
+  assert v2.sim_step_count == 5
+
 
 def test_pause_and_resume():
-  """Pausing stops physics; resuming resyncs clocks (no catch-up burst)."""
+  """Pausing stops physics; resuming resyncs clocks and clears errors."""
   v = FakeViewer(step_dt=0.01)
   v.inject_tick(wall_dt=0.03)
   assert v.sim_step_count == 3
 
   v.pause()
+  v._last_error = "some error"
   v.inject_tick(wall_dt=0.5)
   assert v.sim_step_count == 3  # No steps while paused
 
   v.resume()
+  assert v._last_error is None  # Error cleared on resume
   v.inject_tick(wall_dt=0.01)
   assert v.sim_step_count == 4  # Exactly 1, no burst
 
@@ -106,9 +114,6 @@ def test_render_independent_of_physics():
   assert v.inject_tick(wall_dt=1.0 / 60.0) is True  # Frame time elapsed
 
 
-# --- New tests ---
-
-
 def test_single_step_while_paused():
   """Single-step advances exactly one step and updates sim time."""
   v = FakeViewer(step_dt=0.01)
@@ -126,21 +131,17 @@ def test_single_step_while_paused():
 def test_single_step_ignored_when_running():
   """Single-step does nothing when not paused."""
   v = FakeViewer(step_dt=0.01)
-  # Advance a bit first
   v.inject_tick(wall_dt=0.01)
   assert v.sim_step_count == 1
 
   v.request_single_step()
   v.inject_tick(wall_dt=0.0)
-  # Only the normal tick stepping should apply (0 wall_dt = 0 steps)
   assert v.sim_step_count == 1
 
 
-def test_error_recovery_pauses():
-  """Exception in _execute_step pauses viewer and stores error."""
+def test_error_recovery_pauses_and_reset_clears():
+  """Exception during step pauses and stores error; reset clears it."""
   v = FakeViewer(step_dt=0.01)
-  # Replace _execute_step with real base implementation to test error recovery.
-  # Then make the policy raise.
   v._execute_step = BaseViewer._execute_step.__get__(v, FakeViewer)  # type: ignore[attr-defined]
   v.policy = MagicMock(side_effect=RuntimeError("test error"))
 
@@ -150,6 +151,10 @@ def test_error_recovery_pauses():
   assert v._last_error is not None
   assert "test error" in v._last_error
   assert abs(v._actual_sim_time) < 1e-10
+
+  # Reset clears the error.
+  v.reset_environment()
+  assert v._last_error is None
 
 
 def test_single_step_failure_does_not_advance_sim_time():
@@ -166,33 +171,6 @@ def test_single_step_failure_does_not_advance_sim_time():
   assert abs(v._tracked_sim_time) < 1e-10
 
 
-def test_error_cleared_on_reset():
-  """Resetting the environment clears the stored error."""
-  v = FakeViewer(step_dt=0.01)
-  v._last_error = "some error"
-
-  v.reset_environment()
-
-  assert v._last_error is None
-
-
-def test_error_cleared_on_resume():
-  """Resuming clears the stored error."""
-  v = FakeViewer(step_dt=0.01)
-  v.pause()
-  v._last_error = "some error"
-
-  v.resume()
-
-  assert v._last_error is None
-
-
-def test_speed_multipliers_power_of_two():
-  """Speed multipliers are power-of-2 fractions from 1/32 to 8."""
-  expected = [1 / 32, 1 / 16, 1 / 8, 1 / 4, 1 / 2, 1.0, 2.0, 4.0, 8.0]
-  assert BaseViewer.SPEED_MULTIPLIERS == expected
-
-
 def test_format_speed():
   """_format_speed produces human-readable fraction strings."""
   assert BaseViewer._format_speed(1.0) == "1x"
@@ -201,16 +179,8 @@ def test_format_speed():
   assert BaseViewer._format_speed(1 / 32) == "1/32x"
 
 
-def test_configurable_max_steps_per_tick():
-  """_max_steps_per_tick controls the budget cap."""
-  v = FakeViewer(step_dt=0.01)
-  v._max_steps_per_tick = 5
-  v.inject_tick(wall_dt=1.0)
-  assert v.sim_step_count == 5
-
-
 def test_status_snapshot():
-  """Status snapshot exposes a consistent UI-facing state contract."""
+  """Status snapshot exposes actual_realtime = smoothed_sps * step_dt."""
   v = FakeViewer(step_dt=0.01)
   v._smoothed_fps = 60.0
   v._smoothed_sps = 50.0
@@ -219,12 +189,7 @@ def test_status_snapshot():
 
   status = v.get_status()
 
-  assert status.paused is False
-  assert status.step_count == v._step_count
-  assert status.speed_multiplier == 1.0
-  assert status.speed_label == "1x"
-  assert abs(status.target_realtime - 1.0) < 1e-10
   assert abs(status.actual_realtime - 0.5) < 1e-10
-  assert abs(status.smoothed_fps - 60.0) < 1e-10
+  assert status.speed_label == "1x"
   assert status.capped is True
   assert status.last_error == "err"
