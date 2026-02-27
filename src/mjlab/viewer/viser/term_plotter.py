@@ -37,7 +37,7 @@ def _group_terms(names: list[str], min_group: int = 2) -> dict[str, list[str]]:
   are placed in an "other" bucket.
 
   Returns:
-      Ordered dict of ``{group_label: [term_names]}``.
+    Ordered dict of ``{group_label: [term_names]}``.
   """
   prefix_map: dict[str, list[str]] = {}
   for name in names:
@@ -81,16 +81,16 @@ class ViserTermPlotter:
     """Initialize the plotter.
 
     Args:
-        server: The Viser server instance
-        term_names: List of term names to plot
-        name: Name prefix for the plots (e.g. "Reward" or "Metric")
-        history_length: Number of points to keep in history
+      server: The Viser server instance
+      term_names: List of term names to plot
+      name: Name prefix for the plots (e.g. "Reward" or "Metric")
+      history_length: Number of points to keep in history
     """
     self._server = server
     self._name = name
     self._history_length = history_length
 
-    # Pre-allocated x-axis array (reused for all plots)
+    # Pre-allocated x-axis array (reused for all plots).
     self._x_array = np.arange(-history_length + 1, 1, dtype=np.float64)
 
     # Stable color assignment.
@@ -106,18 +106,15 @@ class ViserTermPlotter:
     self._checkboxes: dict[str, viser.GuiInputHandle] = {}
     self._overlay_handle: viser.GuiUplotHandle | None = None
 
-    # Dummy series for empty state (viser requires x + >=1 y).
     self._dummy_series = (
       viser.uplot.Series(label="Steps"),
       viser.uplot.Series(label="\u2014", stroke="#888", width=1),
     )
     self._empty = np.array([], dtype=np.float64)
 
-    # Build all GUI elements while we're in the correct tab context.
+    # Build all GUI elements.
     self._build_selector_gui(term_names)
     self._build_overlay_plot()
-    # Folder for individual plots — created now (in the right tab) so that
-    # lazily-added plots from callbacks are scoped correctly.
     self._plots_folder = self._server.gui.add_folder(
       self._label("Individual"), expand_by_default=True
     )
@@ -259,13 +256,7 @@ class ViserTermPlotter:
     self._overlay_handle.data = tuple(data)
 
   def update(self, terms: list[tuple[str, np.ndarray]]) -> None:
-    """Push new data and refresh visible plots.
-
-    Args:
-        terms: ``[(name, value_array), ...]`` from the reward/metrics manager.
-    """
-    # Always accumulate history even for hidden terms so toggling on
-    # immediately shows full history.
+    """Push new data and refresh visible plots."""
     any_enabled = False
     for tname, arr in terms:
       state = self._terms.get(tname)
@@ -295,7 +286,7 @@ class ViserTermPlotter:
         state.individual_plot.data = (x, y)
 
   def clear_histories(self) -> None:
-    """Clear all histories (e.g. on env reset or env switch)."""
+    """Clear all term histories."""
     for state in self._terms.values():
       state.history.clear()
       if state.individual_plot is not None:
@@ -303,7 +294,7 @@ class ViserTermPlotter:
     self._refresh_overlay()
 
   def cleanup(self) -> None:
-    """Remove all GUI handles."""
+    """Clean up resources."""
     if self._overlay_handle is not None:
       self._overlay_handle.remove()
     for state in self._terms.values():
