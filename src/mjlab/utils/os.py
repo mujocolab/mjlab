@@ -112,7 +112,12 @@ def get_wandb_checkpoint_path(
   if checkpoint_name is None:
     checkpoint_file = max(files, key=lambda x: int(x.split("_")[1].split(".")[0]))
   else:
-    checkpoint_file = Path(checkpoint_name)
+    if checkpoint_name not in files:
+      raise ValueError(
+        f"Checkpoint '{checkpoint_name}' not found in run {run_path}."
+        f" Available: {files}"
+      )
+    checkpoint_file = checkpoint_name
 
   checkpoint_path = download_dir / checkpoint_file
 
