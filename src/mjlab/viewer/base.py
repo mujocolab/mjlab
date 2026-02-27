@@ -130,7 +130,6 @@ class BaseViewer(ABC):
     self._render_timer = Timer()
     self._tracked_sim_time = 0.0  # Expected sim time (wall_dt * multiplier)
     self._actual_sim_time = 0.0  # Real sim time (advances by step_dt)
-    self._step_wall_time = 0.0  # Wall time spent stepping last tick
     self._time_until_next_render = 0.0
 
     self._speed_index = self.SPEED_MULTIPLIERS.index(1.0)
@@ -259,7 +258,6 @@ class BaseViewer(ABC):
     self._step_count = 0
     self._tracked_sim_time = 0.0
     self._actual_sim_time = 0.0
-    self._step_wall_time = 0.0
     self._last_error = None
     self._timer.tick()
 
@@ -330,12 +328,7 @@ class BaseViewer(ABC):
     if not self._is_paused:
       step_dt = self.env.unwrapped.step_dt
 
-      # Subtract previous step execution time from wall_dt so that slow
-      # physics doesn't inflate the budget (prevents feedback spiral where
-      # large wall_dt → many steps → even larger wall_dt next tick).
-      idle_dt = max(0.0, wall_dt - self._step_wall_time)
-      self._step_wall_time = 0.0
-      self._tracked_sim_time += idle_dt * self._time_multiplier
+      self._tracked_sim_time += wall_dt * self._time_multiplier
 
       # Cap: don't let tracked time race more than N steps ahead.
       max_lead = step_dt * self._max_steps_per_tick
@@ -358,14 +351,12 @@ class BaseViewer(ABC):
       deficit = self._tracked_sim_time - self._actual_sim_time
       if deficit >= step_dt - 1e-10:
         self.sync_viewer_to_env()
-        t0 = time.time()
         while deficit >= step_dt - 1e-10:
           step_ok = self.step_simulation()
           if not step_ok:
             break
           self._actual_sim_time += step_dt
           deficit -= step_dt
-        self._step_wall_time = time.time() - t0
     else:
       self._forward_paused()
 
