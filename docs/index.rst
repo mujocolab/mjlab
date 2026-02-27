@@ -95,6 +95,7 @@ Table of Contents
    source/motivation
    source/migration_isaac_lab
    source/faq
+   source/research
    source/changelog
 
 License & citation

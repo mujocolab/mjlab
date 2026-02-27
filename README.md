@@ -83,101 +83,6 @@ uv run play Mjlab-Your-Task-Id --agent random  # Sends uniform random actions
 When running motion-tracking tasks, add `--registry-name your-org/motions/motion-name` to the command.
 
 
-## Community Projects
-
-mjlab is used for research and robotics applications around the world. Examples:
-
-<table>
-  <tr>
-    <td>
-      <a href="https://github.com/menloresearch/asimov-mjlab">
-        menloresearch/asimov-mjlab
-        <br /><img
-          alt="GitHub stars"
-          src="https://img.shields.io/github/stars/menloresearch/asimov-mjlab?style=social"
-        />
-      </a>
-    </td>
-    <td>Locomotion fork for the Asimov bipedal robot.</td>
-  </tr>
-  <tr>
-    <td>
-      <a href="http://husky-humanoid.github.io/">
-        HUSKY
-      </a>
-      <br />
-      <a href="https://github.com/mujocolab/mjlab/discussions/572">#572</a>
-      ·
-      <a href="https://arxiv.org/abs/2602.03205">Paper</a>
-    </td>
-    <td>
-      Humanoid skateboarding with dynamic balance control.
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <a href="https://github.com/Nagi-ovo/mjlab-homierl">
-        Nagi-ovo/mjlab-homierl
-        <br /><img
-          alt="GitHub stars"
-          src="https://img.shields.io/github/stars/Nagi-ovo/mjlab-homierl?style=social"
-        />
-      </a>
-    </td>
-    <td>Multi-task H1 locomotion (walk/squat/stand) with upper-body disturbance robustness.</td>
-  </tr>
-  <tr>
-    <td>
-      <a href="https://github.com/MyoHub/mjlab_myosuite">
-        MyoHub/mjlab_myosuite
-        <br /><img
-          alt="GitHub stars"
-          src="https://img.shields.io/github/stars/MyoHub/mjlab_myosuite?style=social"
-        />
-      </a>
-    </td>
-    <td>Musculoskeletal simulation integration with MyoSuite.</td>
-  </tr>
-  <tr>
-    <td>
-      <a href="https://github.com/MarcDcls/mjlab_upkie">
-        MarcDcls/mjlab_upkie
-        <br /><img
-          alt="GitHub stars"
-          src="https://img.shields.io/github/stars/MarcDcls/mjlab_upkie?style=social"
-        />
-      </a>
-    </td>
-    <td>Velocity control for the Upkie wheeled biped.</td>
-  </tr>
-  <tr>
-    <td>
-      <a href="https://github.com/unitreerobotics/unitree_rl_mjlab">
-        unitreerobotics/unitree_rl_mjlab
-        <br /><img
-          alt="GitHub stars"
-          src="https://img.shields.io/github/stars/unitreerobotics/unitree_rl_mjlab?style=social"
-        />
-      </a>
-    </td>
-    <td>Official Unitree RL environments for Go2, G1, and H1_2.</td>
-  </tr>
-  <tr>
-    <td>
-      <a href="https://github.com/Msornerrrr/in-hand-rotation-mjlab">
-        Msornerrrr/in-hand-rotation-mjlab
-        <br /><img
-          alt="GitHub stars"
-          src="https://img.shields.io/github/stars/Msornerrrr/in-hand-rotation-mjlab?style=social"
-        />
-      </a>
-    </td>
-    <td>Sim-to-real RL for in-hand cube rotation with the LEAP Hand.</td>
-  </tr>
-</table>
-
-Want to share your project? Post in [Show and Tell](https://github.com/mujocolab/mjlab/discussions/categories/show-and-tell)!
-
 ## Documentation
 
 Full documentation is available at **[mujocolab.github.io/mjlab](https://mujocolab.github.io/mjlab/)**.
@@ -195,7 +100,9 @@ For development setup: `uvx pre-commit install`
 
 ## Citation
 
-If you use mjlab in your research, please cite:
+mjlab is used in published research and open-source robotics projects. See the [Research](https://mujocolab.github.io/mjlab/main/source/research.html) page for publications and projects, or share your own in [Show and Tell](https://github.com/mujocolab/mjlab/discussions/categories/show-and-tell).
+
+If you use mjlab in your research, please consider citing:
 
 ```bibtex
 @misc{zakka2026mjlablightweightframeworkgpuaccelerated,
