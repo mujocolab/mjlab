@@ -9,7 +9,7 @@ from conftest import get_test_device
 
 from mjlab.actuator import BuiltinPositionActuatorCfg
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
-from mjlab.envs.mdp.rewards import electrical_power_cost
+from mjlab.envs.mdp.rewards import electrical_power_cost, joint_torques_l2
 from mjlab.managers.reward_manager import RewardManager, RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
@@ -330,3 +330,27 @@ def test_reward_scaling_default_is_enabled(mock_env):
 
   # Default (scaling enabled): reward = 1.0 * 1.0 * 0.01 = 0.01
   assert torch.allclose(rewards, torch.full((4,), 0.01))
+
+
+def test_joint_torques_l2_with_actuator_ids(mock_env):
+  """Test that joint_torques_l2 only penalizes specified actuators."""
+  mock_env.scene["robot"].data.actuator_force = torch.tensor([[1.0, 2.0, 3.0, 4.0]] * 4)
+
+  asset_cfg = SceneEntityCfg(name="robot", actuator_ids=[0, 2])
+  result = joint_torques_l2(mock_env, asset_cfg)
+
+  # Only actuators 0 and 2: 1^2 + 3^2 = 10.0
+  expected = torch.full((4,), 10.0)
+  assert torch.allclose(result, expected)
+
+
+def test_joint_torques_l2_all_actuators(mock_env):
+  """Test that joint_torques_l2 uses all actuators by default."""
+  mock_env.scene["robot"].data.actuator_force = torch.tensor([[1.0, 2.0, 3.0]] * 4)
+
+  asset_cfg = SceneEntityCfg(name="robot")
+  result = joint_torques_l2(mock_env, asset_cfg)
+
+  # All actuators: 1^2 + 2^2 + 3^2 = 14.0
+  expected = torch.full((4,), 14.0)
+  assert torch.allclose(result, expected)
