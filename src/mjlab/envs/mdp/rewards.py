@@ -34,7 +34,9 @@ def joint_torques_l2(
 ) -> torch.Tensor:
   """Penalize joint torques applied on the articulation using L2 squared kernel."""
   asset: Entity = env.scene[asset_cfg.name]
-  return torch.sum(torch.square(asset.data.actuator_force), dim=1)
+  return torch.sum(
+    torch.square(asset.data.actuator_force[:, asset_cfg.actuator_ids]), dim=1
+  )
 
 
 def joint_vel_l2(
