@@ -753,16 +753,10 @@ class ViserMujocoScene(DebugVisualizer):
             geom_name = mj_id2name(self.mj_model, mjtObj.mjOBJ_GEOM, geom_id)
             self.server.scene.add_grid(
               f"/fixed_bodies/{body_name}/{geom_name}",
-              # For infinite grids in viser 1.0.10, the width and height
-              # parameters determined the region of the grid that can
-              # receive shadows. We'll just make this really big for now.
-              # In a future release of Viser these two args should ideally be
-              # unnecessary.
-              width=2000.0,
-              height=2000.0,
               infinite_grid=True,
               fade_distance=50.0,
               shadow_opacity=0.2,
+              plane_opacity=0.4,
               position=self.mj_model.geom_pos[geom_id],
               wxyz=self.mj_model.geom_quat[geom_id],
             )

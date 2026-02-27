@@ -1669,7 +1669,7 @@ requires-dist = [
     { name = "tqdm" },
     { name = "trimesh", specifier = ">=4.8.3" },
     { name = "tyro", specifier = ">=1.0.1" },
-    { name = "viser", specifier = ">=1.0.21" },
+    { name = "viser", specifier = ">=1.0.23" },
     { name = "wandb", specifier = ">=0.22.3" },
     { name = "warp-lang", marker = "sys_platform != 'darwin'", specifier = ">=1.12.0.dev0", index = "https://pypi.nvidia.com/" },
     { name = "warp-lang", marker = "sys_platform == 'darwin'", specifier = ">=1.12.0.dev0" },
@@ -4199,12 +4199,11 @@ wheels = [
 
 [[package]]
 name = "viser"
-version = "1.0.21"
+version = "1.0.24"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "imageio" },
     { name = "msgspec" },
-    { name = "nodeenv" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.3.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "requests" },
@@ -4216,9 +4215,9 @@ dependencies = [
     { name = "yourdfpy" },
     { name = "zstandard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d5/f0/4aeb9b6fe5d285bf201dc8ec236659b94aa73f8e350f0401f7f7015e5363/viser-1.0.21.tar.gz", hash = "sha256:b047b0b6ccc5c9b26374e1c48a514e15dbed05df351dcc2e71014f13ac651771", size = 4774656, upload-time = "2026-01-21T23:56:52.7Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e4/7f/a0ea9ae86b7c51332f4dfe54476683747568857d550779ed556f4584deb6/viser-1.0.24.tar.gz", hash = "sha256:d1f52c8dccf553b1d5a8825f631344e2e91b2d5615dfac41cb81fd50035d9224", size = 4780467, upload-time = "2026-02-26T23:12:53.655Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b9/c4/819f000b3d64f654a054a8b24bf8d0c5e799636393135784d0886d8c808e/viser-1.0.21-py3-none-any.whl", hash = "sha256:9458709976e2d1b59b7b4a531e0e7088234f394ee9a58ca864e002fb34ef4bfe", size = 4856654, upload-time = "2026-01-21T23:56:54.6Z" },
+    { url = "https://files.pythonhosted.org/packages/83/6e/137abad4a09314654da21eb11b187b98c5b2b2da792d375af38c9b608698/viser-1.0.24-py3-none-any.whl", hash = "sha256:df91331b6c20c8fb39367faaa8eb2707cb3a403cb8b6f18396683798aa68ccba", size = 4864557, upload-time = "2026-02-26T23:12:55.417Z" },
 ]
 
 [[package]]
