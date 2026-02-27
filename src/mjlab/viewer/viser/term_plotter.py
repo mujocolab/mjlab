@@ -69,7 +69,7 @@ class _TermState:
 
 
 class ViserTermPlotter:
-  """Handles plotting for the Viser viewer with selective display and combined overlay."""
+  """Handles plotting for the Viser viewer with selective display."""
 
   def __init__(
     self,
@@ -104,7 +104,6 @@ class ViserTermPlotter:
 
     # GUI handles.
     self._checkboxes: dict[str, viser.GuiInputHandle] = {}
-    self._overlay_handle: viser.GuiUplotHandle | None = None
 
     self._dummy_series = (
       viser.uplot.Series(label="Steps"),
@@ -114,7 +113,6 @@ class ViserTermPlotter:
 
     # Build all GUI elements.
     self._build_selector_gui(term_names)
-    self._build_overlay_plot()
     self._plots_folder = self._server.gui.add_folder(
       self._label("Individual"), expand_by_default=True
     )
@@ -140,7 +138,6 @@ class ViserTermPlotter:
           state.enabled = enable
           self._checkboxes[tname].value = enable
         self._sync_individual_plots()
-        self._refresh_overlay()
 
       # Grouped checkboxes.
       groups = _group_terms(term_names)
@@ -166,24 +163,6 @@ class ViserTermPlotter:
             def _(event, _tname=tname) -> None:
               self._terms[_tname].enabled = event.target.value
               self._sync_individual_plots()
-              self._refresh_overlay()
-
-  def _build_overlay_plot(self) -> None:
-    """Create the combined overlay uPlot."""
-    self._overlay_handle = self._server.gui.add_uplot(
-      data=(self._empty, self._empty),
-      series=self._dummy_series,
-      scales={
-        "x": viser.uplot.Scale(
-          time=False, auto=False, range=(-self._history_length, 0)
-        ),
-        "y": viser.uplot.Scale(auto=True),
-      },
-      legend=viser.uplot.Legend(show=True),
-      title=self._label("overlay"),
-      aspect=2.5,
-      visible=True,
-    )
 
   def _sync_individual_plots(self) -> None:
     """Create or remove individual plots to match current selection."""
@@ -224,37 +203,6 @@ class ViserTermPlotter:
         visible=True,
       )
 
-  def _refresh_overlay(self) -> None:
-    """Rebuild overlay plot series/data for currently-enabled terms."""
-    if self._overlay_handle is None:
-      return
-
-    enabled = [s for s in self._terms.values() if s.enabled]
-    if not enabled:
-      self._overlay_handle.series = self._dummy_series
-      self._overlay_handle.data = (self._empty, self._empty)
-      return
-
-    max_len = max(len(s.history) for s in enabled)
-    if max_len == 0:
-      return
-
-    x = self._x_array[-max_len:]
-
-    series = [viser.uplot.Series(label="Steps")]
-    data: list[np.ndarray] = [x]
-
-    for s in enabled:
-      series.append(viser.uplot.Series(label=s.name, stroke=s.color, width=2))
-      arr = np.full(max_len, np.nan, dtype=np.float64)
-      if len(s.history) > 0:
-        vals = np.fromiter(s.history, dtype=np.float64, count=len(s.history))
-        arr[-len(vals) :] = vals
-      data.append(arr)
-
-    self._overlay_handle.series = tuple(series)
-    self._overlay_handle.data = tuple(data)
-
   def update(self, terms: list[tuple[str, np.ndarray]]) -> None:
     """Push new data and refresh visible plots."""
     any_enabled = False
@@ -270,9 +218,6 @@ class ViserTermPlotter:
 
     if not any_enabled:
       return
-
-    # Update overlay.
-    self._refresh_overlay()
 
     # Update individual plots.
     for state in self._terms.values():
@@ -291,12 +236,9 @@ class ViserTermPlotter:
       state.history.clear()
       if state.individual_plot is not None:
         state.individual_plot.data = (self._empty, self._empty)
-    self._refresh_overlay()
 
   def cleanup(self) -> None:
     """Clean up resources."""
-    if self._overlay_handle is not None:
-      self._overlay_handle.remove()
     for state in self._terms.values():
       if state.individual_plot is not None:
         state.individual_plot.remove()
