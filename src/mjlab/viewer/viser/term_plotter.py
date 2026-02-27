@@ -105,10 +105,6 @@ class ViserTermPlotter:
     # GUI handles.
     self._checkboxes: dict[str, viser.GuiInputHandle] = {}
 
-    self._dummy_series = (
-      viser.uplot.Series(label="Steps"),
-      viser.uplot.Series(label="\u2014", stroke="#888", width=1),
-    )
     self._empty = np.array([], dtype=np.float64)
 
     # Build all GUI elements.
