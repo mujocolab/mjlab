@@ -30,6 +30,10 @@ Papers that use mjlab. To add your work, open a pull request or post in
    * - Title
      - Authors
      - Year
+   * - `BeyondMimic: From Motion Tracking to Versatile Humanoid Control via 
+       Guided Diffusion <https://arxiv.org/abs/2508.08241>`_
+     - Liao, Truong, Huang, Gao, Tevet, Sreenath, Liu
+     - 2025
    * - `HUSKY: Humanoid Skateboarding System via Physics-Aware Whole-Body Control
        <https://arxiv.org/abs/2602.03205>`_
      - Han, Wang, Zhang, Liu, Luo, Bai, Li
