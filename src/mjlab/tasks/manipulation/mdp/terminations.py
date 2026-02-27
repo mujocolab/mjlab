@@ -10,7 +10,16 @@ if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
 
 
-def illegal_contact(env: ManagerBasedRlEnv, sensor_name: str) -> torch.Tensor:
+def illegal_contact(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  force_threshold: float = 10.0,
+) -> torch.Tensor:
   sensor: ContactSensor = env.scene[sensor_name]
-  assert sensor.data.found is not None
-  return torch.any(sensor.data.found, dim=-1)
+  data = sensor.data
+  if data.force_history is not None:
+    # force_history: [B, N, H, 3]
+    force_mag = torch.norm(data.force_history, dim=-1)  # [B, N, H]
+    return (force_mag > force_threshold).any(dim=-1).any(dim=-1)  # [B]
+  assert data.found is not None
+  return torch.any(data.found, dim=-1)

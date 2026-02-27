@@ -145,9 +145,10 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
       entity="robot",
     ),
     secondary=ContactMatch(mode="body", pattern="terrain"),
-    fields=("found",),
+    fields=("found", "force"),
     reduce="none",
     num_slots=1,
+    history_length=4,
   )
 
   rewards = {
@@ -191,7 +192,7 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
     "time_out": TerminationTermCfg(func=mdp.time_out, time_out=True),
     "ee_ground_collision": TerminationTermCfg(
       func=manipulation_mdp.illegal_contact,
-      params={"sensor_name": "ee_ground_collision"},
+      params={"sensor_name": "ee_ground_collision", "force_threshold": 10.0},
     ),
   }
 

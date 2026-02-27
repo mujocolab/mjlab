@@ -241,6 +241,59 @@ methods provide edge detection for transition events.
     first_contact = sensor.compute_first_contact(dt)  # Just landed
     first_air = sensor.compute_first_air(dt)           # Just took off
 
+.. _contact-sensor-history:
+
+History (decimation safe contacts)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When using decimation (multiple physics substeps per policy step), a
+brief collision can occur and resolve entirely within the substep loop.
+By the time the policy reads the sensor, the contact is gone and
+``found`` reports zero. Setting ``history_length`` on the sensor config
+tells the sensor to keep a rolling buffer of the last *N* substeps for
+force, torque, and distance fields. The policy can then inspect the
+full history and decide whether a real contact occurred.
+
+Set ``history_length`` equal to your decimation value so the buffer
+covers exactly one policy step:
+
+.. code-block:: python
+
+    ContactSensorCfg(
+        name="self_collision",
+        primary=ContactMatch(mode="subtree", pattern="pelvis", entity="robot"),
+        secondary=ContactMatch(mode="subtree", pattern="pelvis", entity="robot"),
+        fields=("found", "force"),
+        history_length=4,  # matches decimation=4
+    )
+
+The history tensors live on ``ContactData`` alongside the regular
+fields:
+
+.. code-block:: python
+
+    data = sensor.data
+    data.force_history   # [B, N, H, 3]  (H = history_length)
+    data.torque_history  # [B, N, H, 3]
+    data.dist_history    # [B, N, H]
+
+Index 0 is the most recent substep. To check whether any substep had
+a contact force above a threshold:
+
+.. code-block:: python
+
+    force_mag = torch.norm(data.force_history, dim=-1)  # [B, N, H]
+    had_contact = (force_mag > 10.0).any(dim=1).any(dim=-1)  # [B]
+
+.. note::
+
+   ``track_air_time=True`` already accumulates contact state across
+   substeps for gait rewards, so feet ground sensors typically do not
+   need ``history_length``. Use history for sensors where you need to
+   detect brief collisions that would otherwise be missed (self
+   collisions, illegal contact terminations).
+
+
 Output
 ^^^^^^
 

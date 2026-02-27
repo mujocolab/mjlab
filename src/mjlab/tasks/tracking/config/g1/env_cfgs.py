@@ -25,9 +25,10 @@ def unitree_g1_flat_tracking_env_cfg(
     name="self_collision",
     primary=ContactMatch(mode="subtree", pattern="pelvis", entity="robot"),
     secondary=ContactMatch(mode="subtree", pattern="pelvis", entity="robot"),
-    fields=("found",),
+    fields=("found", "force"),
     reduce="none",
     num_slots=1,
+    history_length=4,
   )
   cfg.scene.sensors = (self_collision_cfg,)
 

@@ -246,7 +246,7 @@ def make_tracking_env_cfg() -> ManagerBasedRlEnvCfg:
     "self_collisions": RewardTermCfg(
       func=mdp.self_collision_cost,
       weight=-10.0,
-      params={"sensor_name": "self_collision"},
+      params={"sensor_name": "self_collision", "force_threshold": 10.0},
     ),
   }
 

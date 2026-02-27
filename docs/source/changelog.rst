@@ -99,6 +99,9 @@ Added
 Changed
 ^^^^^^^
 
+- Self collision and illegal contact sensors now use ``history_length`` to
+  catch contacts across decimation substeps. Reward and termination functions
+  read ``force_history`` with a configurable ``force_threshold``.
 - Replaced the single ``scale`` parameter in ``DifferentialIKActionCfg`` with
   separate ``delta_pos_scale`` and ``delta_ori_scale`` for independent scaling
   of position and orientation components.

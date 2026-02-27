@@ -113,8 +113,23 @@ def motion_global_body_angular_velocity_error_exp(
   return torch.exp(-error.mean(-1) / std**2)
 
 
-def self_collision_cost(env: ManagerBasedRlEnv, sensor_name: str) -> torch.Tensor:
-  """Cost that returns the number of self-collisions detected by a sensor."""
+def self_collision_cost(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  force_threshold: float = 10.0,
+) -> torch.Tensor:
+  """Penalize self-collisions.
+
+  When the sensor provides force history (from ``history_length > 0``),
+  counts substeps where any contact force exceeds *force_threshold*.
+  Falls back to the instantaneous ``found`` count otherwise.
+  """
   sensor: ContactSensor = env.scene[sensor_name]
-  assert sensor.data.found is not None
-  return sensor.data.found.squeeze(-1)
+  data = sensor.data
+  if data.force_history is not None:
+    # force_history: [B, N, H, 3]
+    force_mag = torch.norm(data.force_history, dim=-1)  # [B, N, H]
+    hit = (force_mag > force_threshold).any(dim=1)  # [B, H]
+    return hit.sum(dim=-1).float()  # [B]
+  assert data.found is not None
+  return data.found.squeeze(-1)

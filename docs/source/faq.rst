@@ -138,6 +138,40 @@ The ``nan_guard`` tool makes it easier to:
 
 Reporting well-isolated issues helps improve the framework for everyone.
 
+My contact sensor misses collisions when using decimation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With ``decimation > 1`` the physics runs multiple substeps per policy
+step. A brief contact (e.g. a self collision or an illegal ground touch)
+can appear and disappear within the substep loop, so by the time the
+sensor is read, ``found`` is zero and the event is invisible to
+rewards and terminations.
+
+Set ``history_length`` on the ``ContactSensorCfg`` equal to your
+decimation value. The sensor then stores force, torque, and distance
+for the last *N* substeps. Your reward or termination function can
+inspect the history to detect contacts that would otherwise be missed:
+
+.. code-block:: python
+
+    ContactSensorCfg(
+        name="self_collision",
+        ...,
+        fields=("found", "force"),
+        history_length=4,  # matches decimation=4
+    )
+
+    # In the reward/termination function:
+    force_mag = torch.norm(sensor.data.force_history, dim=-1)  # [B, N, H]
+    had_contact = (force_mag > 10.0).any(dim=1).any(dim=-1)    # [B]
+
+See :ref:`contact-sensor-history` for full details.
+
+.. note::
+
+   Feet ground sensors with ``track_air_time=True`` already accumulate
+   contact state across substeps, so they do not need history.
+
 .. _faq-sim-forward:
 
 When do I need to call ``sim.forward()``?

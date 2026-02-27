@@ -180,7 +180,7 @@ def main() -> None:
         entity.write_joint_position_to_sim(grip_open, joint_ids=grip_joint_ids)
         sim.forward()
 
-      scene.update(sim.wp_data)
+      scene.update(sim.data)
       if scene.needs_update:
         scene.refresh_visualization()
 

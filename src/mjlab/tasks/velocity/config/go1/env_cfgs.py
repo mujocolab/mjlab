@@ -60,9 +60,10 @@ def unitree_go1_rough_env_cfg(
       exclude=tuple(geom_names),
     ),
     secondary=ContactMatch(mode="body", pattern="terrain"),
-    fields=("found",),
+    fields=("found", "force"),
     reduce="none",
     num_slots=1,
+    history_length=4,
   )
   cfg.scene.sensors = (cfg.scene.sensors or ()) + (
     feet_ground_cfg,
@@ -112,7 +113,7 @@ def unitree_go1_rough_env_cfg(
 
   cfg.terminations["illegal_contact"] = TerminationTermCfg(
     func=mdp.illegal_contact,
-    params={"sensor_name": nonfoot_ground_cfg.name},
+    params={"sensor_name": nonfoot_ground_cfg.name, "force_threshold": 10.0},
   )
 
   # Apply play mode overrides.
