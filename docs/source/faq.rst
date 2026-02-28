@@ -242,14 +242,6 @@ but this is not yet available.
 As an alternative, mjlab supports **video logging to Weights & Biases
 (W&B)**, so you can monitor rollout videos directly in the experiment dashboard.
 
-What about camera/pixel rendering for vision-based RL?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Camera rendering for **pixel-based agents** is not yet available.
-
-The MuJoCo Warp team is actively developing **camera support**. Once mature, it
-will be integrated into mjlab for vision-based RL workflows.
-
 How many environments can I visualize at once?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
