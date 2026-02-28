@@ -92,20 +92,14 @@ Add a ``nan_detection`` termination to reset environments that hit NaN:
 
 .. code-block:: python
 
-   from dataclasses import dataclass, field
-
-   from mjlab.envs.mdp.terminations import nan_detection
+   from mjlab.envs.mdp import terminations as mdp_term
    from mjlab.managers.termination_manager import TerminationTermCfg
 
-   @dataclass
-   class TerminationCfg:
+   # In your ManagerBasedRlEnvCfg subclass:
+   terminations = {
       # Your other terminations...
-      nan_term: TerminationTermCfg = field(
-         default_factory=lambda: TerminationTermCfg(
-               func=nan_detection,
-               time_out=False,
-         )
-      )
+      "nan_term": TerminationTermCfg(func=mdp_term.nan_detection),
+   }
 
 This marks NaN environments as terminated so they can reset while training
 continues. Terminations are logged as
@@ -245,15 +239,14 @@ As an alternative, mjlab supports **video logging to Weights & Biases
 How many environments can I visualize at once?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Visualizers are **limited to 32 environments maximum** for performance reasons.
+Viewers render a small number of environments for performance reasons.
 
-- **Offscreen renderer** (for video recording): Hard-capped at 32 envs
-  (see ``_MAX_ENVS`` in ``viewer/offscreen_renderer.py:12``)
+- **Offscreen renderer** (for video recording): Renders the tracked
+  environment plus up to 2 nearest neighbors (see ``_MAX_EXTRA_ENVS``
+  in ``viewer/offscreen_renderer.py``).
 - **Native/Viser viewers**: Limited by MuJoCo's geometry buffer
-  (default 10,000 geoms, configurable via ``max_geom`` parameter)
-
-With thousands of environments, only a subset will be rendered. The viewer
-shows whichever environments fit within the geometry budget.
+  (default 10,000 geoms). The viewer shows whichever environments fit
+  within the geometry budget.
 
 Why are my fixed-base robots all stacked at the origin instead of in a grid?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -287,12 +280,12 @@ their ``env_origins``. If your robots appear stacked at (0, 0, 0):
      # ... other events
    }
 
-This pattern is used in the example manipulation task (see ``lift_cube_env_cfg.py:84-93``).
+This pattern is used in the example manipulation task (see ``lift_cube_env_cfg.py:85-94``).
 
 **Why this is needed**: Fixed-base robots are automatically wrapped in mocap
 bodies by ``auto_wrap_fixed_base_mocap()``, but mocap positioning only happens
 when you explicitly call a reset event. The ``env_origins`` offset is applied
-inside ``reset_root_state_uniform()`` at line 127 of ``envs/mdp/events.py``.
+inside ``reset_root_state_uniform()`` at line 131 of ``envs/mdp/events.py``.
 
 See `issue #560 <https://github.com/mujocolab/mjlab/issues/560>`_ for examples.
 
