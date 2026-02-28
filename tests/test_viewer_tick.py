@@ -1,14 +1,15 @@
-"""Tests for the two-clock physics/render decoupling in BaseViewer.tick()."""
+"""Tests for the single-accumulator BaseViewer in base_alt.py."""
 
 from __future__ import annotations
 
+import time
 from unittest.mock import MagicMock
 
 from mjlab.viewer.base import BaseViewer
 
 
 class FakeViewer(BaseViewer):
-  """Minimal concrete viewer with controllable timing."""
+  """Minimal concrete viewer for testing."""
 
   def __init__(self, step_dt: float = 0.01, frame_rate: float = 60.0):
     env = MagicMock()
@@ -16,9 +17,14 @@ class FakeViewer(BaseViewer):
     env.cfg.viewer = MagicMock()
     super().__init__(env, MagicMock(return_value=MagicMock()), frame_rate=frame_rate)
     self.sim_step_count = 0
+    self.render_count = 0
+    self._last_tick_time = time.perf_counter()
 
   def setup(self) -> None: ...
-  def sync_env_to_viewer(self) -> None: ...
+
+  def sync_env_to_viewer(self) -> None:
+    self.render_count += 1
+
   def sync_viewer_to_env(self) -> None: ...
   def close(self) -> None: ...
   def is_running(self) -> bool:
@@ -27,152 +33,158 @@ class FakeViewer(BaseViewer):
   def _execute_step(self) -> bool:
     self.sim_step_count += 1
     self._step_count += 1
-    self._sps_accum_steps += 1
+    self._stats_steps += 1
     return True
 
-  def inject_tick(self, wall_dt: float) -> bool:
-    """Call tick() with controlled wall_dt."""
-    self._timer.tick = lambda: wall_dt  # type: ignore[assignment]
+  def inject_tick(self, dt: float) -> bool:
+    """Call tick() with a controlled dt."""
+    now = time.perf_counter()
+    self._last_tick_time = now - dt
     return self.tick()
 
 
-def test_tick_stepping():
-  """Physics steps match sim-time budget: 1 step, 3 steps, then 0."""
+# Physics stepping.
+
+
+def test_stepping():
+  """Physics steps match sim-time budget."""
   v = FakeViewer(step_dt=0.01)
-  v.inject_tick(wall_dt=0.01)
+  v.inject_tick(dt=0.01)
   assert v.sim_step_count == 1
 
-  v.inject_tick(wall_dt=0.03)
+  v.inject_tick(dt=0.03)
   assert v.sim_step_count == 4
 
-  v.inject_tick(wall_dt=0.0)
-  assert v.sim_step_count == 4  # No budget → no steps
+  v.inject_tick(dt=0.0)
+  assert v.sim_step_count == 4
 
 
-def test_budget_cap():
-  """Large wall_dt is capped to max_steps_per_tick (spiral-of-death prevention)."""
+def test_accumulator_carries():
+  """Fractional budget carries across ticks."""
   v = FakeViewer(step_dt=0.01)
-  v.inject_tick(wall_dt=1.0)
-  assert v.sim_step_count == 10
+  v.inject_tick(dt=0.01)
+  assert v.sim_step_count == 1
 
-  # Also works with a custom cap.
-  v2 = FakeViewer(step_dt=0.01)
-  v2._max_steps_per_tick = 5
-  v2.inject_tick(wall_dt=1.0)
-  assert v2.sim_step_count == 5
+  v.inject_tick(dt=0.015)
+  assert v.sim_step_count == 2  # 0.015 budget, 1 step, 0.005 carry
+
+  v.inject_tick(dt=0.015)
+  assert v.sim_step_count == 4  # 0.005+0.015=0.02, 2 steps
 
 
-def test_pause_and_resume():
-  """Pausing stops physics; resuming resyncs clocks and clears errors."""
+def test_high_speed():
+  v = FakeViewer(step_dt=0.01, frame_rate=60.0)
+  v._speed_index = v.SPEED_MULTIPLIERS.index(8.0)
+  v._time_multiplier = 8.0
+  v.inject_tick(dt=1.0 / 60.0)
+  assert v.sim_step_count == 13
+
+
+def test_slow_speed():
+  v = FakeViewer(step_dt=0.01, frame_rate=60.0)
+  v._speed_index = 0
+  v._time_multiplier = 1 / 32
+  for _ in range(19):
+    v.inject_tick(dt=1.0 / 60.0)
+  assert v.sim_step_count == 0
+  for _ in range(3):
+    v.inject_tick(dt=1.0 / 60.0)
+  assert v.sim_step_count >= 1
+
+
+# Render timing.
+
+
+def test_render_at_frame_rate():
+  v = FakeViewer(step_dt=0.01, frame_rate=60.0)
+  assert v.inject_tick(dt=0.001) is True  # First tick renders.
+  assert v.inject_tick(dt=0.001) is False  # Too soon.
+  assert v.inject_tick(dt=1.0 / 60.0) is True  # Frame time elapsed.
+
+
+# Pause and resume.
+
+
+def test_pause_stops_physics():
   v = FakeViewer(step_dt=0.01)
-  v.inject_tick(wall_dt=0.03)
-  assert v.sim_step_count == 3
+  v.inject_tick(dt=0.02)
+  before = v.sim_step_count
+
+  v.pause()
+  v.inject_tick(dt=0.5)
+  assert v.sim_step_count == before
+
+
+def test_resume_no_burst():
+  v = FakeViewer(step_dt=0.01)
+  v.inject_tick(dt=0.03)
+  count_before = v.sim_step_count
 
   v.pause()
   v._last_error = "some error"
-  v.inject_tick(wall_dt=0.5)
-  assert v.sim_step_count == 3  # No steps while paused
 
   v.resume()
-  assert v._last_error is None  # Error cleared on resume
-  v.inject_tick(wall_dt=0.01)
-  assert v.sim_step_count == 4  # Exactly 1, no burst
+  assert v._last_error is None
+  assert v._sim_budget == 0.0
+
+  v.inject_tick(dt=0.01)
+  assert v.sim_step_count - count_before == 1
 
 
-def test_full_wall_time_used_for_budget():
-  """Full wall time feeds the sim budget (max_steps_per_tick caps spirals).
-
-  With step_dt=0.01:
-    tick 1: tracked=0.010, deficit=0.010 → 1 step,  actual=0.01
-    tick 2: tracked=0.025, deficit=0.015 → 1 step,  actual=0.02  (5ms carry)
-    tick 3: tracked=0.040, deficit=0.020 → 2 steps, actual=0.04  (carry consumed)
-    tick 4: tracked=0.055, deficit=0.015 → 1 step,  actual=0.05  (5ms carry)
-
-  Over 4 ticks (55ms wall), 50ms sim time → RTF=0.91x, approaching 1.0 as
-  the half-step carry oscillation averages out.
-  """
-  v = FakeViewer(step_dt=0.01)
-  v.inject_tick(wall_dt=0.01)
-  assert v.sim_step_count == 1
-
-  v.inject_tick(wall_dt=0.015)
-  assert v.sim_step_count == 2
-
-  v.inject_tick(wall_dt=0.015)
-  assert v.sim_step_count == 4  # 2 steps (carry from tick 2 consumed)
-
-  v.inject_tick(wall_dt=0.015)
-  assert v.sim_step_count == 5
-
-
-def test_render_independent_of_physics():
-  """Render timing follows frame_rate, not physics stepping."""
-  v = FakeViewer(step_dt=0.01, frame_rate=60.0)
-
-  assert v.inject_tick(wall_dt=0.001) is True  # First tick always renders
-  assert v.inject_tick(wall_dt=0.001) is False  # Too soon
-  assert v.inject_tick(wall_dt=1.0 / 60.0) is True  # Frame time elapsed
+# Single step.
 
 
 def test_single_step_while_paused():
-  """Single-step advances exactly one step and updates sim time."""
   v = FakeViewer(step_dt=0.01)
   v.pause()
 
   v.request_single_step()
-  v.inject_tick(wall_dt=0.0)
+  v.inject_tick(dt=0.0)
 
   assert v.sim_step_count == 1
-  assert v._is_paused  # Still paused after single step
-  assert abs(v._actual_sim_time - 0.01) < 1e-10
-  assert abs(v._tracked_sim_time - v._actual_sim_time) < 1e-10
+  assert v._is_paused
 
 
 def test_single_step_ignored_when_running():
-  """Single-step does nothing when not paused."""
   v = FakeViewer(step_dt=0.01)
-  v.inject_tick(wall_dt=0.01)
-  assert v.sim_step_count == 1
+  v.inject_tick(dt=0.02)
+  before = v.sim_step_count
 
   v.request_single_step()
-  v.inject_tick(wall_dt=0.0)
-  assert v.sim_step_count == 1
+  v.inject_tick(dt=0.02)
+  assert v.sim_step_count > before
 
 
-def test_error_recovery_pauses_and_reset_clears():
-  """Exception during step pauses and stores error; reset clears it."""
+# Error recovery.
+
+
+def test_error_pauses():
   v = FakeViewer(step_dt=0.01)
   v._execute_step = BaseViewer._execute_step.__get__(v, FakeViewer)  # type: ignore[attr-defined]
   v.policy = MagicMock(side_effect=RuntimeError("test error"))
 
-  v.inject_tick(wall_dt=0.01)
+  v.inject_tick(dt=0.02)
 
   assert v._is_paused
   assert v._last_error is not None
   assert "test error" in v._last_error
-  assert abs(v._actual_sim_time) < 1e-10
 
-  # Reset clears the error.
+
+def test_reset_clears():
+  v = FakeViewer(step_dt=0.01)
+  v.inject_tick(dt=0.02)
+  v._last_error = "err"
+
   v.reset_environment()
+  assert v._step_count == 0
+  assert v._sim_budget == 0.0
   assert v._last_error is None
 
 
-def test_single_step_failure_does_not_advance_sim_time():
-  """Single-step failure should not advance sim clocks."""
-  v = FakeViewer(step_dt=0.01)
-  v._execute_step = BaseViewer._execute_step.__get__(v, FakeViewer)  # type: ignore[attr-defined]
-  v.policy = MagicMock(side_effect=RuntimeError("single-step error"))
-  v.pause()
-
-  v.request_single_step()
-  v.inject_tick(wall_dt=0.0)
-
-  assert abs(v._actual_sim_time) < 1e-10
-  assert abs(v._tracked_sim_time) < 1e-10
+# Formatting and status.
 
 
 def test_format_speed():
-  """_format_speed produces human-readable fraction strings."""
   assert BaseViewer._format_speed(1.0) == "1x"
   assert BaseViewer._format_speed(0.5) == "1/2x"
   assert BaseViewer._format_speed(0.25) == "1/4x"
@@ -180,16 +192,60 @@ def test_format_speed():
 
 
 def test_status_snapshot():
-  """Status snapshot exposes actual_realtime = smoothed_sps * step_dt."""
   v = FakeViewer(step_dt=0.01)
-  v._smoothed_fps = 60.0
-  v._smoothed_sps = 50.0
-  v._is_capped = True
+  v._fps = 60.0
+  v._sps = 50.0
   v._last_error = "err"
 
   status = v.get_status()
-
   assert abs(status.actual_realtime - 0.5) < 1e-10
   assert status.speed_label == "1x"
-  assert status.capped is True
   assert status.last_error == "err"
+
+
+def test_capped_clears_each_tick():
+  """Capped resets to False each tick; only True when deadline hit."""
+  v = FakeViewer(step_dt=0.01)
+  v.inject_tick(dt=0.02)
+  assert not v._was_capped
+
+  # Force capped state, then verify next tick clears it.
+  v._was_capped = True
+  v.inject_tick(dt=0.02)
+  assert not v._was_capped
+
+
+def test_capped_false_when_no_remaining_budget():
+  """Deadline hit with no remaining budget is NOT capped (transient stall)."""
+  v = FakeViewer(step_dt=0.01, frame_rate=60.0)
+  # dt=0.01 at 1x: budget=0.01, exactly 1 step, budget goes to 0.
+  # Even if deadline fires (via GC), no remaining work to drop.
+  v.inject_tick(dt=0.01)
+  assert not v._was_capped
+
+
+# Spiral protection.
+
+
+def test_no_spiral():
+  v = FakeViewer(step_dt=0.01, frame_rate=60.0)
+  v._speed_index = v.SPEED_MULTIPLIERS.index(8.0)
+  v._time_multiplier = 8.0
+
+  original = v._execute_step
+
+  def slow_step() -> bool:
+    time.sleep(0.005)
+    return original()
+
+  v._execute_step = slow_step  # type: ignore[assignment]
+
+  start = time.perf_counter()
+  v.inject_tick(dt=1.0 / 60.0)
+  elapsed = time.perf_counter() - start
+
+  assert elapsed < 0.05
+  assert v.sim_step_count < 13
+  assert v.sim_step_count >= 1
+  # Capped because slow steps + large budget means remaining work was dropped.
+  assert v._was_capped

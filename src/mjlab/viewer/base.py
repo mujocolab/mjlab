@@ -1,8 +1,74 @@
-"""Base class for environment viewers."""
+"""Base class for environment viewers.
+
+The viewer runs a policy against an RL environment and displays the
+result in real time.
+
+The Problem
+===========
+
+Each call to ``env.step()`` advances the simulation by a fixed amount
+of sim time (``step_dt``, set by the env config). The simplest viewer
+would call ``env.step()`` once per loop iteration, but iterations take
+however long the hardware needs. A fast machine loops 67 times per
+second and the simulation runs too fast; a slow machine loops 30 times
+and it runs too slow. Playback speed would depend on hardware.
+
+The viewer needs to answer a different question: given how much real
+time just elapsed, how many calls to ``env.step()`` will keep the
+simulation advancing at the right pace?
+
+Budget Accumulator
+==================
+
+A single variable, ``_sim_budget``, tracks how much sim time has
+accumulated but not yet been simulated. Each tick of the main loop:
+
+  1. Measure real time elapsed since the last tick.
+  2. Multiply by the speed setting and add to the budget.
+  3. Call ``env.step()`` in a loop, subtracting ``step_dt`` from the
+     budget each time, until the budget is less than one step.
+  4. Carry the leftover to the next tick.
+
+Example at 1x speed, step_dt = 0.02s (50 Hz control), 60 fps::
+
+  tick 1:  +0.0167s  ->  budget = 0.0167  ->  no step (< 0.02)
+  tick 2:  +0.0167s  ->  budget = 0.0334  ->  1 step, 0.0134 left
+  tick 3:  +0.0167s  ->  budget = 0.0301  ->  1 step, 0.0101 left
+  ...
+
+This averages to 50 steps per second on any hardware. At 2x speed the
+elapsed time is doubled before adding to the budget, so steps happen
+twice as often. At 0.5x, half as often.
+
+Rendering is independent: the display refreshes at ``frame_rate``
+(e.g. 60 Hz) whether or not a new step happened. Some frames will
+re-display the same state.
+
+If physics is too slow to keep up, the budget grows without bound. A
+real time deadline (one frame period) caps each burst so the renderer
+always gets a turn. Leftover budget is dropped and ``_was_capped`` is
+set.
+
+Main Loop
+=========
+
+::
+
+  run()
+    setup()
+    while running:
+      tick()                    -> True if a frame was produced
+        _process_actions()      drain UI action queue
+        _step_physics(dt)       accumulate budget, step until spent
+        sync_env_to_viewer()    push state to display (at frame_rate)
+      sleep(1ms)                yield CPU when no frame is due
+
+Subclasses implement setup(), sync_env_to_viewer(), sync_viewer_to_env(),
+close(), and is_running().
+"""
 
 from __future__ import annotations
 
-import contextlib
 import time
 import traceback
 from abc import ABC, abstractmethod
@@ -21,28 +87,6 @@ class VerbosityLevel(IntEnum):
   SILENT = 0
   INFO = 1
   DEBUG = 2
-
-
-class Timer:
-  def __init__(self):
-    self._previous_time = time.time()
-    self._measured_time = 0.0
-
-  def tick(self):
-    curr_time = time.time()
-    self._measured_time = curr_time - self._previous_time
-    self._previous_time = curr_time
-    return self._measured_time
-
-  @contextlib.contextmanager
-  def measure_time(self):
-    start_time = time.time()
-    yield
-    self._measured_time = time.time() - start_time
-
-  @property
-  def measured_time(self):
-    return self._measured_time
 
 
 class EnvProtocol(Protocol):
@@ -118,48 +162,32 @@ class BaseViewer(ABC):
     self.verbosity = VerbosityLevel(verbosity)
     self.cfg = env.cfg.viewer
 
-    # Loop state.
+    # State.
     self._is_paused = False
     self._step_count = 0
     self._last_error: str | None = None
-    self._max_steps_per_tick: int = 10
 
-    # Timing.
-    self._timer = Timer()
-    self._sim_timer = Timer()
-    self._render_timer = Timer()
-    self._tracked_sim_time = 0.0  # Expected sim time (wall_dt * multiplier)
-    self._actual_sim_time = 0.0  # Real sim time (advances by step_dt)
-    self._time_until_next_render = 0.0
-
+    # Speed.
     self._speed_index = self.SPEED_MULTIPLIERS.index(1.0)
     self._time_multiplier = self.SPEED_MULTIPLIERS[self._speed_index]
 
-    # Perf tracking.
-    self._frame_count = 0
-    self._last_fps_log_time = 0.0
-    self._accumulated_sim_time = 0.0
-    self._accumulated_render_time = 0.0
+    # Physics accumulator and render timer.
+    self._sim_budget = 0.0
+    self._time_until_next_render = 0.0
+    self._last_tick_time = 0.0
+    self._was_capped = False
 
-    # FPS and realtime tracking.
-    self._smoothed_fps: float = 0.0
-    self._smoothed_sps: float = 0.0
-    self._fps_accum_frames: int = 0
-    self._sps_accum_steps: int = 0
-    self._fps_accum_time: float = 0.0
-    self._fps_last_frame_time: Optional[float] = None
-    self._fps_update_interval: float = 0.5
-    self._fps_alpha: float = 0.35
+    # Windowed stats, updated every 0.5s.
+    self._stats_frames = 0
+    self._stats_steps = 0
+    self._stats_last_time = 0.0
+    self._fps = 0.0
+    self._sps = 0.0
 
-    # Capped indicator: true when max_steps_per_tick was hit recently.
-    self._capped_ticks: int = 0
-    self._capped_window: int = 0
-    self._is_capped: bool = False
-
-    # Thread-safe action queue (drained in main loop).
+    # Action queue, drained on main thread each tick.
     self._actions: deque[tuple[ViewerAction, Optional[Any]]] = deque()
 
-  # Abstract hooks every concrete viewer must implement.
+  # Abstract hooks.
 
   @abstractmethod
   def setup(self) -> None: ...
@@ -172,13 +200,20 @@ class BaseViewer(ABC):
   @abstractmethod
   def is_running(self) -> bool: ...
 
+  def _forward_paused(self) -> None:  # noqa: B027
+    """Hook for subclasses to run forward kinematics while paused."""
+
+  def _handle_custom_action(self, action: ViewerAction, payload: Optional[Any]) -> bool:
+    del action, payload
+    return False
+
   # Logging.
 
   def log(self, message: str, level: VerbosityLevel = VerbosityLevel.INFO) -> None:
     if self.verbosity >= level:
       print(message)
 
-  # Public controls.
+  # Thread-safe action requests.
 
   def request_reset(self) -> None:
     self._actions.append((ViewerAction.RESET, None))
@@ -199,33 +234,61 @@ class BaseViewer(ABC):
     self._actions.append((ViewerAction.RESET_SPEED, None))
 
   def request_action(self, name: str, payload: Optional[Any] = None) -> None:
-    """Viewer-specific actions (e.g., PREV_ENV/NEXT_ENV for native)."""
     try:
       action = ViewerAction[name]
     except KeyError:
       action = ViewerAction.CUSTOM
     self._actions.append((action, payload))
 
+  # Speed controls.
+
+  def increase_speed(self) -> None:
+    if self._speed_index < len(self.SPEED_MULTIPLIERS) - 1:
+      self._speed_index += 1
+      self._time_multiplier = self.SPEED_MULTIPLIERS[self._speed_index]
+
+  def decrease_speed(self) -> None:
+    if self._speed_index > 0:
+      self._speed_index -= 1
+      self._time_multiplier = self.SPEED_MULTIPLIERS[self._speed_index]
+
+  def reset_speed(self) -> None:
+    self._speed_index = self.SPEED_MULTIPLIERS.index(1.0)
+    self._time_multiplier = 1.0
+
+  # Pause and resume.
+
+  def pause(self) -> None:
+    self._is_paused = True
+    self.log("[INFO] Simulation paused", VerbosityLevel.INFO)
+
+  def resume(self) -> None:
+    self._is_paused = False
+    self._last_error = None
+    self._sim_budget = 0.0
+    self._last_tick_time = time.perf_counter()
+    self.log("[INFO] Simulation resumed", VerbosityLevel.INFO)
+
+  def toggle_pause(self) -> None:
+    if self._is_paused:
+      self.resume()
+    else:
+      self.pause()
+
   # Core loop.
 
   def _execute_step(self) -> bool:
-    """Run one obs/policy/step cycle. No pause check.
+    """Run one obs/policy/step cycle.
 
     Returns True on success, False if step failed.
     """
-    # Wrap in no_grad mode to prevent gradient accumulation and memory leaks.
-    # NOTE: Using torch.inference_mode() causes a "RuntimeError: Inplace update to
-    # inference tensor outside InferenceMode is not allowed" inside the command
-    # manager when resetting the env with a key callback.
     try:
       with torch.no_grad():
-        with self._sim_timer.measure_time():
-          obs = self.env.get_observations()
-          actions = self.policy(obs)
-          self.env.step(actions)
-          self._step_count += 1
-          self._sps_accum_steps += 1
-        self._accumulated_sim_time += self._sim_timer.measured_time
+        obs = self.env.get_observations()
+        actions = self.policy(obs)
+        self.env.step(actions)
+        self._step_count += 1
+        self._stats_steps += 1
         return True
     except Exception:
       self._last_error = traceback.format_exc()
@@ -236,49 +299,47 @@ class BaseViewer(ABC):
       self.pause()
       return False
 
-  def step_simulation(self) -> bool:
-    if self._is_paused:
-      return False
-    return self._execute_step()
+  def _step_physics(self, dt: float) -> None:
+    """Run physics steps for this frame's sim-time budget."""
+    step_dt = self.env.unwrapped.step_dt
+    self._sim_budget += dt * self._time_multiplier
+    self._was_capped = False
+
+    if self._sim_budget < step_dt:
+      return
+
+    self.sync_viewer_to_env()
+    hit_deadline = False
+    deadline = time.perf_counter() + self.frame_time
+    while self._sim_budget >= step_dt:
+      if not self._execute_step():
+        self._sim_budget = 0.0
+        return
+      self._sim_budget -= step_dt
+      if time.perf_counter() > deadline:
+        hit_deadline = True
+        break
+
+    if hit_deadline:
+      # Only report capped if we actually had to drop remaining work. A transient stall
+      # (GC pause) during a single step triggers the deadline but leaves no remaining
+      # budget, so it's not a real cap.
+      self._was_capped = self._sim_budget >= step_dt
+      self._sim_budget = min(self._sim_budget, step_dt)
 
   def _single_step(self) -> None:
     """Advance exactly one step while paused."""
     if not self._is_paused:
       return
     self.sync_viewer_to_env()
-    step_ok = self._execute_step()
-    if not step_ok:
-      return
-    step_dt = self.env.unwrapped.step_dt
-    self._actual_sim_time += step_dt
-    self._tracked_sim_time = self._actual_sim_time
+    self._execute_step()
 
   def reset_environment(self) -> None:
     self.env.reset()
     self._step_count = 0
-    self._tracked_sim_time = 0.0
-    self._actual_sim_time = 0.0
+    self._sim_budget = 0.0
     self._last_error = None
-    self._timer.tick()
-
-  def pause(self) -> None:
-    self._is_paused = True
-    self._fps_last_frame_time = None
-    self.log("[INFO] Simulation paused", VerbosityLevel.INFO)
-
-  def resume(self) -> None:
-    self._is_paused = False
-    self._last_error = None
-    self._tracked_sim_time = self._actual_sim_time  # Prevent catch-up burst
-    self._timer.tick()
-    self._fps_last_frame_time = time.time()
-    self.log("[INFO] Simulation resumed", VerbosityLevel.INFO)
-
-  def toggle_pause(self) -> None:
-    if self._is_paused:
-      self.resume()
-    else:
-      self.pause()
+    self._last_tick_time = time.perf_counter()
 
   def _process_actions(self) -> None:
     """Drain action queue. Runs on the main loop thread."""
@@ -297,71 +358,26 @@ class BaseViewer(ABC):
       elif action == ViewerAction.SPEED_DOWN:
         self.decrease_speed()
       else:
-        # Hook for subclasses to handle PREV_ENV/NEXT_ENV or CUSTOM actions
         _ = self._handle_custom_action(action, payload)
 
-  def _handle_custom_action(self, action: ViewerAction, payload: Optional[Any]) -> bool:
-    del action, payload  # Unused.
-    return False
-
-  def _forward_paused(self) -> None:  # noqa: B027
-    """Hook for subclasses to run forward kinematics while paused."""
-
   def tick(self) -> bool:
-    """Advance the viewer by one tick.
-
-    Physics and rendering are decoupled: physics steps are governed by a
-    sim-time budget (accumulated from wall time * speed multiplier), while
-    rendering always happens at the configured ``frame_rate``. This keeps
-    the display smooth even at slow playback speeds.
+    """Advance one tick: drain actions, step physics, maybe render.
 
     Returns True when a render frame was produced, False otherwise.
     """
+    now = time.perf_counter()
+    dt = now - self._last_tick_time
+    self._last_tick_time = now
+
     self._process_actions()
 
-    wall_dt = self._timer.tick()
-
-    # Step physics using two-clock decoupling: tracked time (where sim
-    # *should* be) vs actual time (where it *is*).  When physics overshoots
-    # a frame budget the next tick naturally runs zero iterations, giving
-    # the renderer a chance to breathe.
-    if not self._is_paused:
-      step_dt = self.env.unwrapped.step_dt
-
-      self._tracked_sim_time += wall_dt * self._time_multiplier
-
-      # Cap: don't let tracked time race more than N steps ahead.
-      max_lead = step_dt * self._max_steps_per_tick
-      hit_cap = self._tracked_sim_time - self._actual_sim_time > max_lead
-      if hit_cap:
-        self._tracked_sim_time = self._actual_sim_time + max_lead
-
-      # Track whether the cap is hit repeatedly (over a sliding window).
-      self._capped_window += 1
-      if hit_cap:
-        self._capped_ticks += 1
-      if self._capped_window >= 30:
-        self._is_capped = self._capped_ticks > self._capped_window // 2
-        self._capped_ticks = 0
-        self._capped_window = 0
-
-      # Step physics until actual time catches up to tracked time.
-      # Use a small tolerance to avoid missing steps due to float rounding
-      # (e.g. 0.015 - 0.005 = 0.009999… instead of 0.01).
-      deficit = self._tracked_sim_time - self._actual_sim_time
-      if deficit >= step_dt - 1e-10:
-        self.sync_viewer_to_env()
-        while deficit >= step_dt - 1e-10:
-          step_ok = self.step_simulation()
-          if not step_ok:
-            break
-          self._actual_sim_time += step_dt
-          deficit -= step_dt
-    else:
+    if self._is_paused:
       self._forward_paused()
+    else:
+      self._step_physics(dt)
 
-    # Render at fixed frame rate, independent of physics speed.
-    self._time_until_next_render -= wall_dt
+    # Render at fixed frame rate.
+    self._time_until_next_render -= dt
     if self._time_until_next_render > 0:
       return False
 
@@ -369,51 +385,60 @@ class BaseViewer(ABC):
     if self._time_until_next_render < -self.frame_time:
       self._time_until_next_render = 0.0
 
-    with self._render_timer.measure_time():
-      self.sync_env_to_viewer()
-    self._accumulated_render_time += self._render_timer.measured_time
-    self._frame_count += 1
-    self._update_fps()
-
-    if self.verbosity >= VerbosityLevel.DEBUG:
-      now = time.time()
-      if now - self._last_fps_log_time >= 1.0:
-        self.log_performance()
-        self._last_fps_log_time = now
-        self._frame_count = 0
-        self._accumulated_sim_time = 0.0
-        self._accumulated_render_time = 0.0
-
+    self.sync_env_to_viewer()
+    self._stats_frames += 1
     return True
 
   def run(self, num_steps: Optional[int] = None) -> None:
     self.setup()
-    self._last_fps_log_time = time.time()
-    self._timer.tick()
-    self._fps_last_frame_time = time.time()
+    now = time.perf_counter()
+    self._stats_last_time = now
+    self._last_tick_time = now
     try:
       while self.is_running() and (num_steps is None or self._step_count < num_steps):
         if not self.tick():
           time.sleep(0.001)
+        self._update_stats()
     finally:
       self.close()
 
+  # Stats.
+
+  def _update_stats(self) -> None:
+    if self._is_paused:
+      return
+    now = time.perf_counter()
+    dt = now - self._stats_last_time
+    if dt >= 0.5:
+      self._fps = self._stats_frames / dt
+      self._sps = self._stats_steps / dt
+      self._stats_frames = 0
+      self._stats_steps = 0
+      self._stats_last_time = now
+
+      if self.verbosity >= VerbosityLevel.DEBUG:
+        status = self.get_status()
+        print(
+          f"[{'PAUSED' if status.paused else 'RUNNING'}] "
+          f"Step {status.step_count} | "
+          f"FPS: {status.smoothed_fps:.0f} | "
+          f"Speed: {status.speed_label} | "
+          f"RTF: {status.actual_realtime:.2f}x / "
+          f"{status.target_realtime:.2f}x"
+        )
+
   @property
   def target_realtime(self) -> float:
-    """Target realtime factor based on the current speed multiplier."""
     return self._time_multiplier
 
   @property
   def actual_realtime(self) -> float:
-    """Actual realtime factor based on smoothed steps per second."""
-    return self._smoothed_sps * self.env.unwrapped.step_dt
+    return self._sps * self.env.unwrapped.step_dt
 
   @staticmethod
   def _format_speed(multiplier: float) -> str:
-    """Format speed multiplier as a human-readable string (e.g. '1/4x')."""
     if multiplier == 1.0:
       return "1x"
-    # Check for clean power-of-2 fractions.
     inv = 1.0 / multiplier
     inv_rounded = round(inv)
     if abs(inv - inv_rounded) < 1e-9 and inv_rounded > 0:
@@ -421,7 +446,6 @@ class BaseViewer(ABC):
     return f"{multiplier:.3g}x"
 
   def get_status(self) -> ViewerStatus:
-    """Build a read-only status snapshot for viewer UIs."""
     return ViewerStatus(
       paused=self._is_paused,
       step_count=self._step_count,
@@ -429,62 +453,7 @@ class BaseViewer(ABC):
       speed_label=self._format_speed(self._time_multiplier),
       target_realtime=self.target_realtime,
       actual_realtime=self.actual_realtime,
-      smoothed_fps=self._smoothed_fps,
-      capped=self._is_capped,
+      smoothed_fps=self._fps,
+      capped=self._was_capped,
       last_error=self._last_error,
     )
-
-  def log_performance(self) -> None:
-    if self._frame_count > 0:
-      status = self.get_status()
-      avg_sim_ms = self._accumulated_sim_time / self._frame_count * 1000
-      avg_render_ms = self._accumulated_render_time / self._frame_count * 1000
-      total_ms = avg_sim_ms + avg_render_ms
-      print(
-        f"[{'PAUSED' if status.paused else 'RUNNING'}] "
-        f"Step {status.step_count} | FPS: {self._frame_count:.1f} | "
-        f"Speed: {status.speed_label} | Sim: {avg_sim_ms:.1f}ms | "
-        f"Render: {avg_render_ms:.1f}ms | "
-        f"Total: {total_ms:.1f}ms"
-      )
-
-  def increase_speed(self) -> None:
-    if self._speed_index < len(self.SPEED_MULTIPLIERS) - 1:
-      self._speed_index += 1
-      self._time_multiplier = self.SPEED_MULTIPLIERS[self._speed_index]
-
-  def decrease_speed(self) -> None:
-    if self._speed_index > 0:
-      self._speed_index -= 1
-      self._time_multiplier = self.SPEED_MULTIPLIERS[self._speed_index]
-
-  def reset_speed(self) -> None:
-    self._speed_index = self.SPEED_MULTIPLIERS.index(1.0)
-    self._time_multiplier = 1.0
-
-  def _update_fps(self) -> None:
-    if self._is_paused:
-      return
-    now = time.time()
-    if self._fps_last_frame_time is None:
-      self._fps_last_frame_time = now
-      return
-    dt = now - self._fps_last_frame_time
-    self._fps_last_frame_time = now
-    if dt <= 0:
-      return
-    self._fps_accum_frames += 1
-    self._fps_accum_time += dt
-    if self._fps_accum_time >= self._fps_update_interval:
-      alpha = self._fps_alpha
-      inst_fps = self._fps_accum_frames / self._fps_accum_time
-      inst_sps = self._sps_accum_steps / self._fps_accum_time
-      if self._smoothed_fps == 0.0:
-        self._smoothed_fps = inst_fps
-        self._smoothed_sps = inst_sps
-      else:
-        self._smoothed_fps = alpha * inst_fps + (1 - alpha) * self._smoothed_fps
-        self._smoothed_sps = alpha * inst_sps + (1 - alpha) * self._smoothed_sps
-      self._fps_accum_frames = 0
-      self._sps_accum_steps = 0
-      self._fps_accum_time = 0.0
