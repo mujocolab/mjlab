@@ -14,7 +14,12 @@ import viser
 from typing_extensions import override
 
 from mjlab.sim.sim import Simulation
-from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
+from mjlab.viewer.base import (
+  BaseViewer,
+  EnvProtocol,
+  PolicyProtocol,
+  VerbosityLevel,
+)
 from mjlab.viewer.viser.overlays import (
   ViserCameraOverlays,
   ViserContactOverlays,
@@ -193,10 +198,15 @@ class ViserPlayViewer(BaseViewer):
     self._camera_update_last_ms = (time.perf_counter() - t0) * 1000.0
 
   def _queue_debug_visualizers(self) -> None:
-    """Queue environment-specific debug draw calls into the scene."""
+    """Queue environment-specific debug draw calls into the scene.
+
+    Acquires ``_sim_lock`` so the clear+requeue is atomic with respect
+    to the background thread that reads the queues in ``scene.update``.
+    """
     t0 = time.perf_counter()
     if self._debug_overlays:
-      self._debug_overlays.queue()
+      with self._sim_lock:
+        self._debug_overlays.queue()
     self._debug_queue_last_ms = (time.perf_counter() - t0) * 1000.0
 
   def _submit_scene_update_if_needed(
@@ -275,7 +285,14 @@ class ViserPlayViewer(BaseViewer):
     self._update_env_dependent_plots()
     has_pending_updates = bool(self._pending_update_reasons) or self._scene.needs_update
     self._update_camera_feeds(sim, has_pending_updates)
-    self._queue_debug_visualizers()
+    # Queue debug visualizers only when a scene update will actually be
+    # submitted.  Clearing the queues on skipped ticks creates a race
+    # with the background thread that causes debug overlays to blink.
+    will_submit = self._should_submit_scene_update(
+      self._counter, self._is_paused, has_pending_updates
+    )
+    if will_submit:
+      self._queue_debug_visualizers()
     self._submit_scene_update_if_needed(sim, has_pending_updates)
     self._maybe_log_debug_timings()
 

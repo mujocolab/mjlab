@@ -351,12 +351,17 @@ class BaseViewer(ABC):
       deficit = self._tracked_sim_time - self._actual_sim_time
       if deficit >= step_dt - 1e-10:
         self.sync_viewer_to_env()
+        physics_start = time.perf_counter()
         while deficit >= step_dt - 1e-10:
           step_ok = self.step_simulation()
           if not step_ok:
             break
           self._actual_sim_time += step_dt
           deficit -= step_dt
+          # Yield to rendering after one frame-time of wall clock so
+          # physics doesn't starve the render loop on slow hardware.
+          if time.perf_counter() - physics_start > self.frame_time:
+            break
     else:
       self._forward_paused()
 
