@@ -87,6 +87,11 @@ Added
 
 - Visualizers display the realtime factor alongside FPS.
 
+- ``joint_torques_l2`` now respects ``SceneEntityCfg.actuator_ids``,
+  allowing penalization of a subset of actuators instead of all of them
+  (`#703 <https://github.com/mujocolab/mjlab/pull/703>`_). Contribution by
+  `@saikishor <https://github.com/saikishor>`_.
+
 - Terrain is now a proper ``Entity`` subclass (``TerrainEntity``). This
   allows domain randomization functions to target terrain parameters
   (friction, cameras, lights) via ``SceneEntityCfg("terrain", ...)``.
