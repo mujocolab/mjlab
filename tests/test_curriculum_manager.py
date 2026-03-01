@@ -1,10 +1,12 @@
-"""Tests for resolve_curriculum_iterations()."""
+"""Tests for resolve_curriculum_iterations() and CurriculumManager."""
 
 import copy
+from unittest.mock import Mock
 
 import pytest
 
 from mjlab.managers.curriculum_manager import (
+  CurriculumManager,
   CurriculumTermCfg,
   resolve_curriculum_iterations,
 )
@@ -97,3 +99,48 @@ def test_lift_cube_env_cfg_stages_resolve():
   assert stages[1]["step"] == 500 * 24
   assert stages[2]["step"] == 1000 * 24
   assert all("iteration" not in stage for stage in stages)
+
+
+def _make_mock_env():
+  env = Mock()
+  env.num_envs = 1
+  env.device = "cpu"
+  env.scene = None
+  return env
+
+
+def test_curriculum_manager_resolves_iterations_via_num_steps_per_env():
+  stages = [
+    {"iteration": 0, "lin_vel_x": (-1.0, 1.0)},
+    {"iteration": 5000, "lin_vel_x": (-2.0, 2.0)},
+  ]
+  curriculum = _make_curriculum("velocity_stages", stages)
+  mgr = CurriculumManager(curriculum, _make_mock_env(), num_steps_per_env=24)
+
+  resolved = mgr.cfg["term"].params["velocity_stages"]
+  assert resolved[0] == {"step": 0, "lin_vel_x": (-1.0, 1.0)}
+  assert resolved[1] == {"step": 120000, "lin_vel_x": (-2.0, 2.0)}
+  assert all("iteration" not in stage for stage in resolved)
+
+
+def test_curriculum_manager_leaves_iterations_when_num_steps_not_given():
+  stages = [
+    {"iteration": 0, "lin_vel_x": (-1.0, 1.0)},
+    {"iteration": 5000, "lin_vel_x": (-2.0, 2.0)},
+  ]
+  curriculum = _make_curriculum("velocity_stages", stages)
+  mgr = CurriculumManager(curriculum, _make_mock_env())
+
+  resolved = mgr.cfg["term"].params["velocity_stages"]
+  assert all("iteration" in stage for stage in resolved)
+  assert all("step" not in stage for stage in resolved)
+
+
+def test_curriculum_manager_does_not_mutate_input_cfg():
+  stages = [{"iteration": 100, "lin_vel_x": (-1.0, 1.0)}]
+  curriculum = _make_curriculum("velocity_stages", stages)
+  original_stages = copy.deepcopy(stages)
+
+  CurriculumManager(curriculum, _make_mock_env(), num_steps_per_env=24)
+
+  assert curriculum["term"].params["velocity_stages"] == original_stages
