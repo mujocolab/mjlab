@@ -158,14 +158,12 @@ class ManagerBasedRlEnv:
     device: str,
     render_mode: str | None = None,
     *,
-    agent_cfg: Any | None = None,
+    num_steps_per_env: int | None = None,
     **kwargs,
   ) -> None:
     # Initialize base environment state.
     self.cfg = cfg
-    # Store optional runner config so managers can access runner-level
-    # settings (e.g., num_steps_per_env) when they are constructed.
-    self._agent_cfg = agent_cfg
+    self._num_steps_per_env = num_steps_per_env
     if self.cfg.seed is not None:
       self.cfg.seed = self.seed(self.cfg.seed)
     self._sim_step_counter = 0
@@ -304,11 +302,8 @@ class ManagerBasedRlEnv:
     )
     print_info(f"[INFO] {self.reward_manager}")
     if len(self.cfg.curriculum) > 0:
-      # Pass the agent config through so the CurriculumManager can resolve
-      # any stages specified in "iterations" using the runner's
-      # ``num_steps_per_env`` before preparing terms.
       self.curriculum_manager = CurriculumManager(
-        self.cfg.curriculum, self, agent_cfg=self._agent_cfg
+        self.cfg.curriculum, self, num_steps_per_env=self._num_steps_per_env
       )
     else:
       self.curriculum_manager = NullCurriculumManager()
