@@ -38,6 +38,10 @@ Papers that use mjlab. To add your work, open a pull request or post in
        Trajectory Optimization <https://arxiv.org/abs/2602.06827>`_
      - Dhedin, Taouil, Omar, Yu, Tao, Dai, Khadiv
      - 2026
+   * - `CLOT: Closed-Loop Global Motion Tracking for Whole-Body Humanoid
+       Teleoperation <https://arxiv.org/abs/2602.15060>`_
+     - Zhu, Cai, Yang, Ren, Xie, Wang, Wu, et al.
+     - 2026
 
 Projects
 --------
