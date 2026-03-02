@@ -102,6 +102,7 @@ class NativeMujocoViewer(BaseViewer):
     self._show_debug_vis: bool = True
     self._show_all_envs: bool = False
     self._plot_cfg = plot_cfg or PlotCfg()
+    self._figures_dirty: bool = False
 
     self.env_idx = self.cfg.env_idx
     self._mj_lock = Lock()
@@ -171,8 +172,15 @@ class NativeMujocoViewer(BaseViewer):
       self._sync_model_fields(sim, self.env_idx)
       mujoco.mj_forward(self.mjm, self.mjd)
 
+      # The viewer window can close at any time. Re-check before set_texts
+      # / set_figures since those use spin-wait sync with the render loop.
+      if not v.is_running():
+        return
       self._set_status_overlay(v)
+      if not v.is_running():
+        return
       self._update_reward_figures(v)
+
       self._update_debug_visualizers(v)
       self._render_other_env_geoms(v, sim, sim_data)
 
@@ -201,7 +209,11 @@ class NativeMujocoViewer(BaseViewer):
 
   def _update_reward_figures(self, viewer: mujoco.viewer.Handle) -> None:
     if not self._show_plots or not self._term_names:
-      viewer.set_figures([])
+      # Only send an empty set_figures when transitioning from shown to hidden, to
+      # avoid a spin-wait round trip every frame.
+      if self._figures_dirty:
+        viewer.set_figures([])
+        self._figures_dirty = False
       return
 
     terms = list(
@@ -223,6 +235,7 @@ class NativeMujocoViewer(BaseViewer):
       )
     ]
     viewer.set_figures(viewport_figs)
+    self._figures_dirty = True
 
   def _update_debug_visualizers(self, viewer: mujoco.viewer.Handle) -> None:
     viewer.user_scn.ngeom = 0
@@ -321,11 +334,7 @@ class NativeMujocoViewer(BaseViewer):
     v = self.viewer
     self.viewer = None
     if v:
-      try:
-        if v.is_running():
-          v.close()
-      except Exception as e:
-        self.log(f"[WARN] Error while closing viewer: {e}", VerbosityLevel.INFO)
+      v.close()
     self.log("[INFO] MuJoCo viewer closed", VerbosityLevel.INFO)
 
   def reset_environment(self) -> None:
