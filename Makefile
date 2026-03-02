@@ -43,7 +43,7 @@ build:
 
 .PHONY: docs
 docs:
-	uv run --group docs sphinx-build docs docs/_build
+	uv run --group docs sphinx-build -j auto docs docs/_build
 
 .PHONY: docs-multiversion
 docs-multiversion:
@@ -51,7 +51,7 @@ docs-multiversion:
 
 .PHONY: docs-watch
 docs-watch:
-	uv run --group docs sphinx-autobuild docs docs/_build
+	uv run --group docs sphinx-autobuild -j auto docs docs/_build
 
 .PHONY: publish-test
 publish-test: build
