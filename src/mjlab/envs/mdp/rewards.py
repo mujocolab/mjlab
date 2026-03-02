@@ -56,14 +56,20 @@ def joint_acc_l2(
 
 
 def action_rate_l2(env: ManagerBasedRlEnv) -> torch.Tensor:
-  """Penalize the rate of change of the actions using L2 squared kernel."""
+  """Penalize the rate of change of the actions using L2 squared kernel.
+
+  Operates on raw policy output (before per-term scale/offset).
+  """
   return torch.sum(
     torch.square(env.action_manager.action - env.action_manager.prev_action), dim=1
   )
 
 
 def action_acc_l2(env: ManagerBasedRlEnv) -> torch.Tensor:
-  """Penalize the acceleration of the actions using L2 squared kernel."""
+  """Penalize the acceleration of the actions using L2 squared kernel.
+
+  Operates on raw policy output (before per-term scale/offset).
+  """
   action_acc = (
     env.action_manager.action
     - 2 * env.action_manager.prev_action

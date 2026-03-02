@@ -111,14 +111,20 @@ class ActionManager(ManagerBase):
 
   @property
   def action(self) -> torch.Tensor:
+    """Raw policy output from the current step, before per-term
+    scale/offset. Shape: ``(num_envs, total_action_dim)``."""
     return self._action
 
   @property
   def prev_action(self) -> torch.Tensor:
+    """Raw policy output from the previous step, before per-term
+    scale/offset. Shape: ``(num_envs, total_action_dim)``."""
     return self._prev_action
 
   @property
   def prev_prev_action(self) -> torch.Tensor:
+    """Raw policy output from two steps ago, before per-term
+    scale/offset. Shape: ``(num_envs, total_action_dim)``."""
     return self._prev_prev_action
 
   @property
@@ -143,14 +149,24 @@ class ActionManager(ManagerBase):
     return {}
 
   def process_action(self, action: torch.Tensor) -> None:
+    """Store the raw policy output and route slices to each action term.
+
+    Called once per policy step. The raw action tensor is saved into the
+    history buffers (``action``, ``prev_action``, ``prev_prev_action``) *before*
+    any per-term scale/offset is applied. Each term then receives its slice and
+    independently applies its own affine transformation via
+    :meth:`ActionTerm.process_actions`.
+    """
     if self.total_action_dim != action.shape[1]:
       raise ValueError(
-        f"Invalid action shape, expected: {self.total_action_dim}, received: {action.shape[1]}."
+        f"Invalid action shape, expected: {self.total_action_dim},"
+        f" received: {action.shape[1]}."
       )
+    # Shift history: prev_prev ← prev ← current ← new.
     self._prev_prev_action[:] = self._prev_action
     self._prev_action[:] = self._action
     self._action[:] = action.to(self.device)
-    # Split and apply.
+    # Split the flat action vector and route each slice to its term.
     idx = 0
     for term in self._terms.values():
       term_actions = action[:, idx : idx + term.action_dim]
@@ -158,6 +174,11 @@ class ActionManager(ManagerBase):
       idx += term.action_dim
 
   def apply_action(self) -> None:
+    """Write processed actions to entity actuator targets.
+
+    Called on every decimation substep (physics step), not just once per policy
+    step. Each term writes its most recently processed targets to the simulation.
+    """
     for term in self._terms.values():
       term.apply_actions()
 
