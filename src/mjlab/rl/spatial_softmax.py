@@ -137,10 +137,7 @@ class SpatialSoftmaxCNNModel(CNNModel):
     hidden_dims: tuple[int] | list[int] = [256, 256, 256],  # noqa: B006
     activation: str = "elu",
     obs_normalization: bool = False,
-    stochastic: bool = False,
-    init_noise_std: float = 1.0,
-    noise_std_type: str = "scalar",
-    state_dependent_std: bool = False,
+    distribution_cfg: dict[str, Any] | None = None,
   ) -> None:
     # Separate 1D / 2D observation groups (sets self.obs_groups_2d,
     # obs_dims_2d, obs_channels_2d; returns 1D info for MLPModel).
@@ -186,17 +183,14 @@ class SpatialSoftmaxCNNModel(CNNModel):
 
     MLPModel.__init__(
       self,
-      obs,
-      obs_groups,
-      obs_set,
-      output_dim,
-      hidden_dims,
-      activation,
-      obs_normalization,
-      stochastic,
-      init_noise_std,
-      noise_std_type,
-      state_dependent_std,
+      obs=obs,
+      obs_groups=obs_groups,
+      obs_set=obs_set,
+      output_dim=output_dim,
+      hidden_dims=hidden_dims,
+      activation=activation,
+      obs_normalization=obs_normalization,
+      distribution_cfg=distribution_cfg,
     )
 
     if isinstance(_cnns, nn.ModuleDict):

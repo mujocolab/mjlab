@@ -14,17 +14,19 @@ class RslRlModelCfg:
   """The activation function."""
   obs_normalization: bool = False
   """Whether to normalize the observations. Default is False."""
-  init_noise_std: float = 1.0
-  """The initial noise standard deviation."""
-  noise_std_type: Literal["scalar", "log"] = "scalar"
-  """The type of noise standard deviation."""
-  stochastic: bool = False
-  """Whether the model output is stochastic."""
   cnn_cfg: dict[str, Any] | None = None
   """CNN encoder config. When set, class_name should be "CNNModel".
 
   Passed to ``rsl_rl.modules.CNN``. Common keys: output_channels,
   kernel_size, stride, padding, activation, global_pool, max_pool.
+  """
+  distribution_cfg: dict[str, Any] | None = None
+  """Distribution config dict passed to rsl_rl. Example::
+
+    {"class_name": "GaussianDistribution",
+     "init_std": 1.0, "std_type": "scalar"}
+
+  ``None`` means deterministic output (use for critic).
   """
   class_name: str = "MLPModel"
   """Model class name resolved by RSL-RL (MLPModel or CNNModel)."""
@@ -120,9 +122,17 @@ class RslRlBaseRunnerCfg:
 class RslRlOnPolicyRunnerCfg(RslRlBaseRunnerCfg):
   class_name: str = "OnPolicyRunner"
   """The runner class name. Default is OnPolicyRunner."""
-  actor: RslRlModelCfg = field(default_factory=lambda: RslRlModelCfg(stochastic=True))
+  actor: RslRlModelCfg = field(
+    default_factory=lambda: RslRlModelCfg(
+      distribution_cfg={
+        "class_name": "GaussianDistribution",
+        "init_std": 1.0,
+        "std_type": "scalar",
+      }
+    )
+  )
   """The actor configuration."""
-  critic: RslRlModelCfg = field(default_factory=lambda: RslRlModelCfg(stochastic=False))
+  critic: RslRlModelCfg = field(default_factory=RslRlModelCfg)
   """The critic configuration."""
   algorithm: RslRlPpoAlgorithmCfg = field(default_factory=RslRlPpoAlgorithmCfg)
   """The algorithm configuration."""

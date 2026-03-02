@@ -181,15 +181,11 @@ Unitree G1 velocity task shows a typical configuration:
                 hidden_dims=(512, 256, 128),
                 activation="elu",
                 obs_normalization=True,
-                stochastic=True,
-                init_noise_std=1.0,
             ),
             critic=RslRlModelCfg(
                 hidden_dims=(512, 256, 128),
                 activation="elu",
                 obs_normalization=True,
-                stochastic=False,
-                init_noise_std=1.0,
             ),
             algorithm=RslRlPpoAlgorithmCfg(
                 value_loss_coef=1.0,

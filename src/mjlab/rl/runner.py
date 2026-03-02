@@ -1,4 +1,3 @@
-import copy
 import os
 
 import torch
@@ -20,10 +19,12 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     log_dir: str | None = None,
     device: str = "cpu",
   ) -> None:
-    # Strip None-valued cnn_cfg so MLPModel doesn't receive it.
+    # Strip None-valued optional configs so MLPModel doesn't receive them.
     for key in ("actor", "critic"):
-      if key in train_cfg and train_cfg[key].get("cnn_cfg") is None:
-        train_cfg[key].pop("cnn_cfg", None)
+      if key in train_cfg:
+        for opt in ("cnn_cfg", "distribution_cfg"):
+          if train_cfg[key].get(opt) is None:
+            train_cfg[key].pop(opt, None)
     super().__init__(env, train_cfg, log_dir, device)
 
   def export_policy_to_onnx(
@@ -35,9 +36,7 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     dynamic_axes being deprecated with the new TorchDynamo export path
     (torch>=2.9 default).
     """
-    # Deep-copy because rsl_rl's _OnnxCNNModel shares CNN modules with the original
-    # policy; without this, .to("cpu") moves the live weights.
-    onnx_model = copy.deepcopy(self.alg.get_policy().as_onnx(verbose=verbose))
+    onnx_model = self.alg.get_policy().as_onnx(verbose=verbose)
     onnx_model.to("cpu")
     onnx_model.eval()
     os.makedirs(path, exist_ok=True)
@@ -113,6 +112,13 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
 
       loaded_dict["actor_state_dict"] = actor_state_dict
       loaded_dict["critic_state_dict"] = critic_state_dict
+
+    # Migrate rsl-rl 4.x actor keys to 5.x distribution keys.
+    actor_sd = loaded_dict.get("actor_state_dict", {})
+    if "std" in actor_sd:
+      actor_sd["distribution.std_param"] = actor_sd.pop("std")
+    if "log_std" in actor_sd:
+      actor_sd["distribution.log_std_param"] = actor_sd.pop("log_std")
 
     load_iteration = self.alg.load(loaded_dict, load_cfg, strict)
     if load_iteration:

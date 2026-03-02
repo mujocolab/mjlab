@@ -176,7 +176,6 @@ def _make_actor(obs_dim=8, output_dim=4, obs_normalization=True):
     hidden_dims=[32, 32],
     activation="elu",
     obs_normalization=obs_normalization,
-    stochastic=False,
   )
 
 
@@ -218,7 +217,7 @@ def test_onnx_export_without_normalization():
   assert out.shape == (4, 4)
 
 
-# -- CNN (spatial-softmax) ONNX export tests ---------------------------------
+# CNN (spatial-softmax) ONNX export tests.
 
 _IMG_H, _IMG_W, _IMG_C = 16, 16, 3
 _OBS_DIM_1D = 8
@@ -248,7 +247,6 @@ def _make_cnn_actor(obs_normalization=True):
     hidden_dims=[32, 32],
     activation="elu",
     obs_normalization=obs_normalization,
-    stochastic=False,
   )
 
 

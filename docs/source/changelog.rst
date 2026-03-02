@@ -14,6 +14,11 @@ Upcoming version (not yet released)
      ``@requires_model_fields`` decorator on each ``dr`` function takes care
      of field expansion automatically.
    - ``Scene.to_zip()`` is deprecated. Use ``Scene.write(path, zip=True)``.
+   - ``RslRlModelCfg`` no longer accepts ``stochastic``, ``init_noise_std``,
+     or ``noise_std_type``. Use ``distribution_cfg`` instead
+     (e.g. ``{"class_name": "GaussianDistribution", "init_std": 1.0,
+     "std_type": "scalar"}``). Existing checkpoints are automatically
+     migrated on load.
 
 Added
 ^^^^^
@@ -139,6 +144,10 @@ Changed
   specified lookat point instead of auto tracking a body. A new ``AUTO``
   origin type (now the default) preserves the previous auto tracking
   behavior.
+- Upgraded ``rsl-rl-lib`` from 4.0.1 to 5.0.1. ``RslRlModelCfg`` now
+  uses ``distribution_cfg`` dict instead of ``stochastic`` /
+  ``init_noise_std`` / ``noise_std_type``. Existing checkpoints are
+  automatically migrated on load.
 - Reorganized the Viser Controls tab into a cleaner folder hierarchy:
   Info, Simulation, Commands, Scene (with Environment, Camera, Debug Viz,
   Contacts sub-folders), and Camera Feeds. The Environment folder is

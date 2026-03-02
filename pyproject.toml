@@ -44,7 +44,7 @@ dependencies = [
   "mediapy>=1.2.6",
   "imageio-ffmpeg",
   "tensordict",
-  "rsl-rl-lib==4.0.1",
+  "rsl-rl-lib==5.0.1",
   "tensorboard>=2.20.0",
   "onnxscript>=0.5.4",
   "wandb>=0.22.3",
