@@ -171,10 +171,13 @@ class Entity:
       # Find targets based on transmission type.
       if actuator_cfg.transmission_type == TransmissionType.JOINT:
         target_ids, target_names = self.find_joints(actuator_cfg.target_names_expr)
+        target_spec_names = [self._non_free_joints[i].name for i in target_ids]
       elif actuator_cfg.transmission_type == TransmissionType.TENDON:
         target_ids, target_names = self.find_tendons(actuator_cfg.target_names_expr)
+        target_spec_names = [self._spec.tendons[i].name for i in target_ids]
       elif actuator_cfg.transmission_type == TransmissionType.SITE:
         target_ids, target_names = self.find_sites(actuator_cfg.target_names_expr)
+        target_spec_names = [self.spec.sites[i].name for i in target_ids]
       else:
         raise ValueError(
           f"Invalid transmission_type: {actuator_cfg.transmission_type}. "
@@ -187,7 +190,7 @@ class Entity:
           f"expressions: {actuator_cfg.target_names_expr}"
         )
       actuator_instance = actuator_cfg.build(self, target_ids, target_names)
-      actuator_instance.edit_spec(self._spec, target_names)
+      actuator_instance.edit_spec(self._spec, target_spec_names)
       self._actuators.append(actuator_instance)
 
   def _add_initial_state_keyframe(self) -> None:

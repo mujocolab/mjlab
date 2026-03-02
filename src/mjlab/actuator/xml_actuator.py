@@ -40,7 +40,8 @@ class XmlActuator(Actuator[XmlActuatorCfgT], Generic[XmlActuatorCfgT]):
       if actuator is not None:
         self._mjs_actuators.append(actuator)
         filtered_target_ids.append(self._target_ids_list[i])
-        filtered_target_names.append(target_name)
+        # Store the user-facing (stripped) name, not the spec name.
+        filtered_target_names.append(self._target_names[i])
 
     if len(filtered_target_names) == 0:
       raise ValueError(

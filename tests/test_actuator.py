@@ -1,5 +1,6 @@
 """Tests for actuator module."""
 
+import mujoco
 import pytest
 import torch
 from conftest import (
@@ -10,9 +11,12 @@ from conftest import (
 )
 
 from mjlab.actuator import (
+  BuiltinMotorActuatorCfg,
   BuiltinPositionActuatorCfg,
   IdealPdActuatorCfg,
+  XmlMotorActuatorCfg,
 )
+from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 
 
 @pytest.fixture(scope="module")
@@ -84,3 +88,65 @@ def test_targets_cleared_on_reset(device, robot_xml):
   assert torch.allclose(
     entity.data.joint_effort_target, torch.zeros(1, 2, device=device)
   )
+
+
+# ---------------------------------------------------------------------------
+# Internal attach prefix tests (issue #709)
+# ---------------------------------------------------------------------------
+
+
+def _make_arm_spec() -> mujoco.MjSpec:
+  """Helper: single-joint arm with a motor actuator."""
+  spec = mujoco.MjSpec()
+  body = spec.worldbody.add_body(name="link")
+  body.add_joint(name="elbow", type=mujoco.mjtJoint.mjJNT_HINGE)
+  body.add_geom(type=mujoco.mjtGeom.mjGEOM_SPHERE, size=[0.1, 0, 0])
+  act = spec.add_actuator(name="motor_elbow", target="elbow")
+  act.trntype = mujoco.mjtTrn.mjTRN_JOINT
+  act.gainprm[:] = [1] + [0] * 9
+  return spec
+
+
+def _prefixed_entity_spec() -> mujoco.MjSpec:
+  """Entity spec that composes a sub-model via internal attach."""
+  root = mujoco.MjSpec()
+  root.worldbody.add_geom(type=mujoco.mjtGeom.mjGEOM_PLANE, size=[1, 1, 0.01])
+  frame = root.worldbody.add_frame()
+  root.attach(_make_arm_spec(), prefix="arm/", frame=frame)
+  return root
+
+
+def test_builtin_actuator_with_internal_attach_prefix(device):
+  """Builtin actuator resolves joints through internal attach prefix."""
+  cfg = EntityCfg(
+    spec_fn=_prefixed_entity_spec,
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        BuiltinMotorActuatorCfg(target_names_expr=("elbow",), effort_limit=100.0),
+      )
+    ),
+  )
+  entity = Entity(cfg)
+
+  # User-facing names should be stripped.
+  assert entity.joint_names == ("elbow",)
+
+  entity, _ = initialize_entity(entity, device)
+
+  assert len(entity.actuators) == 1
+  assert entity.actuators[0].target_names == ["elbow"]
+
+
+def test_xml_actuator_with_internal_attach_prefix(device):
+  """XML actuator matches targets through internal attach prefix."""
+  cfg = EntityCfg(
+    spec_fn=_prefixed_entity_spec,
+    articulation=EntityArticulationInfoCfg(
+      actuators=(XmlMotorActuatorCfg(target_names_expr=("elbow",)),)
+    ),
+  )
+  entity = Entity(cfg)
+  entity, sim = initialize_entity(entity, device)
+
+  assert len(entity.actuators) == 1
+  assert entity.actuators[0].target_names == ["elbow"]

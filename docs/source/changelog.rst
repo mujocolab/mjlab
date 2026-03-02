@@ -119,6 +119,9 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed actuator target resolution for entities whose ``spec_fn`` uses
+  internal ``MjSpec.attach(prefix=...)``
+  (`#709 <https://github.com/mujocolab/mjlab/issues/709>`_).
 - Fixed viewer physics loop starving the renderer by replacing the single
   sim-time budget with a two-clock design (tracked vs actual sim time).
   Physics now self-corrects after overshooting, keeping FPS smooth at all

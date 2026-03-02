@@ -151,8 +151,10 @@ class Actuator(ABC, Generic[ActuatorCfgT]):
 
     Args:
       spec: The entity's MjSpec to edit.
-      target_names: Names of targets (joints, tendons, or sites) controlled by
-        this actuator.
+      target_names: Names of targets (joints, tendons, or sites) as they
+        appear in the spec. When the entity's ``spec_fn`` uses internal
+        ``MjSpec.attach(prefix=...)``, these will include the prefix
+        (e.g., ``"left/elbow"`` rather than ``"elbow"``).
     """
     raise NotImplementedError
 
