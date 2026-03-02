@@ -135,16 +135,28 @@ class ViserPlayViewer(BaseViewer):
           else:
             self.request_speed_up()
 
-      self._camera_overlays = ViserCameraOverlays(self._server, self.env, sim.mj_model)
-      with self._server.gui.add_folder("Camera Feeds"):
-        self._camera_overlays.setup_controls()
+      # Let command terms create their own GUI controls.
+      env = self.env.unwrapped
+      if env.command_manager.active_terms:
+        with self._server.gui.add_folder("Commands"):
+          env.command_manager.create_gui(self._server, lambda: self._scene.env_idx)
 
-      # Add standard visualization options from ViserMujocoScene (Environment, Visualization, Contacts, Camera Tracking, Debug Visualization).
-      self._scene.create_visualization_gui(
-        camera_distance=self.cfg.distance,
-        camera_azimuth=self.cfg.azimuth,
-        camera_elevation=self.cfg.elevation,
-      )
+      # Add standard visualization options from ViserMujocoScene.
+      def _debug_viz_extra() -> None:
+        env.command_manager.create_debug_vis_gui(self._server)
+
+      with self._server.gui.add_folder("Scene"):
+        self._scene.create_visualization_gui(
+          camera_distance=self.cfg.distance,
+          camera_azimuth=self.cfg.azimuth,
+          camera_elevation=self.cfg.elevation,
+          debug_viz_extra_gui=_debug_viz_extra,
+        )
+
+      self._camera_overlays = ViserCameraOverlays(self._server, self.env, sim.mj_model)
+      if self._camera_overlays.has_cameras:
+        with self._server.gui.add_folder("Camera Feeds"):
+          self._camera_overlays.setup_controls()
 
     self._prev_env_idx = self._scene.env_idx
 

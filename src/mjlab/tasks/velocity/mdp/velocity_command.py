@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -15,6 +16,8 @@ from mjlab.utils.lab_api.math import (
 )
 
 if TYPE_CHECKING:
+  import viser
+
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
   from mjlab.viewer.debug_visualizer import DebugVisualizer
 
@@ -42,6 +45,11 @@ class UniformVelocityCommand(CommandTerm):
 
     self.metrics["error_vel_xy"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["error_vel_yaw"] = torch.zeros(self.num_envs, device=self.device)
+
+    # Set by create_gui() when the viewer is active.
+    self._joystick_enabled: viser.GuiCheckboxHandle | None = None
+    self._joystick_sliders: list[viser.GuiSliderHandle] = []
+    self._joystick_get_env_idx: Callable[[], int] | None = None
 
   @property
   def command(self) -> torch.Tensor:
@@ -98,6 +106,72 @@ class UniformVelocityCommand(CommandTerm):
       )
     standing_env_ids = self.is_standing_env.nonzero(as_tuple=False).flatten()
     self.vel_command_b[standing_env_ids, :] = 0.0
+
+  # GUI.
+
+  def create_gui(
+    self,
+    name: str,
+    server: "viser.ViserServer",
+    get_env_idx: Callable[[], int],
+  ) -> None:
+    """Create velocity joystick sliders in the Viser viewer."""
+    from viser import Icon
+
+    ranges = self.cfg.ranges
+
+    axes = [
+      ("lin_vel_x", ranges.lin_vel_x[1]),
+      ("lin_vel_y", ranges.lin_vel_y[1]),
+      ("ang_vel_z", ranges.ang_vel_z[1]),
+    ]
+    sliders: list = []
+
+    with server.gui.add_folder(name.capitalize()):
+      enabled = server.gui.add_checkbox("Enable", initial_value=False)
+
+      for label, max_val in axes:
+        max_input = server.gui.add_slider(
+          f"Max {label}",
+          initial_value=max_val,
+          step=0.1,
+          min=0.1,
+          max=10.0,
+        )
+        slider = server.gui.add_slider(
+          label,
+          min=-max_val,
+          max=max_val,
+          step=0.05,
+          initial_value=0.0,
+        )
+
+        @max_input.on_update
+        def _(_ev, _s=slider, _m=max_input) -> None:
+          _s.min = -_m.value
+          _s.max = _m.value
+
+        sliders.append(slider)
+
+      zero_btn = server.gui.add_button("Zero", icon=Icon.SQUARE_X)
+
+      @zero_btn.on_click
+      def _(_) -> None:
+        for s in sliders:
+          s.value = 0.0
+
+    # Store GUI state for compute() override.
+    self._joystick_enabled = enabled
+    self._joystick_sliders = sliders
+    self._joystick_get_env_idx = get_env_idx
+
+  def compute(self, dt: float) -> None:
+    super().compute(dt)
+    if self._joystick_enabled is not None and self._joystick_enabled.value:
+      assert self._joystick_get_env_idx is not None
+      idx = self._joystick_get_env_idx()
+      for i, s in enumerate(self._joystick_sliders):
+        self.vel_command_b[idx, i] = s.value
 
   # Visualization.
 

@@ -77,6 +77,13 @@ Added
 - ``DebugVisualizer`` now supports ellipsoid visualization via
   ``add_ellipsoid``.
 
+- Interactive velocity joystick sliders in the Viser viewer. Enable the
+  joystick under Commands/Twist to override velocity commands with manual
+  sliders for ``lin_vel_x``, ``lin_vel_y``, and ``ang_vel_z``
+  (`#666 <https://github.com/mujocolab/mjlab/issues/666>`_).
+- Per-term debug visualization toggles in the Viser viewer. Individual
+  command term visualizers (e.g. velocity arrows) can now be toggled
+  independently under Scene/Debug Viz.
 - Viewer single-step mode: press RIGHT arrow (native) or click "Step"
   (Viser) to advance exactly one physics step while paused.
 - Viewer error recovery: exceptions during stepping now pause the viewer
@@ -104,6 +111,13 @@ Added
 Changed
 ^^^^^^^
 
+- Reorganized the Viser Controls tab into a cleaner folder hierarchy:
+  Info, Simulation, Commands, Scene (with Environment, Camera, Debug Viz,
+  Contacts sub-folders), and Camera Feeds. The Environment folder is
+  hidden for single-env tasks and the Commands folder is hidden when no
+  command terms are active.
+- Viser camera tracking is now enabled by default so the agent stays in
+  frame on launch.
 - Self collision and illegal contact sensors now use ``history_length`` to
   catch contacts across decimation substeps. Reward and termination functions
   read ``force_history`` with a configurable ``force_threshold``.

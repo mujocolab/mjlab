@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import mujoco
@@ -106,7 +107,7 @@ class ViserMujocoScene(DebugVisualizer):
 
   # Visualization settings (set directly or automatically updated by create_options_gui).
   env_idx: int = 0  # Current environment index (DebugVisualizer protocol).
-  camera_tracking_enabled: bool = False
+  camera_tracking_enabled: bool = True
   show_only_selected: bool = False
   geom_groups_visible: list[bool] = field(
     default_factory=lambda: [True, True, True, False, False, False]
@@ -275,6 +276,7 @@ class ViserMujocoScene(DebugVisualizer):
     camera_azimuth: float = 45.0,
     camera_elevation: float = 30.0,
     show_debug_viz_control: bool = True,
+    debug_viz_extra_gui: Callable[[], None] | None = None,
   ) -> None:
     """Add standard GUI controls that automatically update this scene's settings.
 
@@ -283,30 +285,12 @@ class ViserMujocoScene(DebugVisualizer):
       camera_azimuth: Default camera azimuth angle in degrees.
       camera_elevation: Default camera elevation angle in degrees.
       show_debug_viz_control: Whether to show the debug visualization checkbox.
+      debug_viz_extra_gui: Optional callback invoked inside the Debug Viz
+        folder to add extra controls (e.g., per-term toggles).
     """
-    with self.server.gui.add_folder("Visualization"):
-      slider_fov = self.server.gui.add_slider(
-        "FOV (°)",
-        min=_DEFAULT_FOV_MIN,
-        max=_DEFAULT_FOV_MAX,
-        step=1,
-        initial_value=_DEFAULT_FOV_DEGREES,
-        hint="Vertical FOV of viewer camera, in degrees.",
-      )
-
-      @slider_fov.on_update
-      def _(_) -> None:
-        for client in self.server.get_clients().values():
-          client.camera.fov = np.radians(slider_fov.value)
-
-      @self.server.on_client_connect
-      def _(client: viser.ClientHandle) -> None:
-        client.camera.fov = np.radians(slider_fov.value)
-
     # Environment selection (only if multiple environments).
-    with self.server.gui.add_folder("Environment"):
-      # Environment selection slider (if multiple envs).
-      if self.num_envs > 1:
+    if self.num_envs > 1:
+      with self.server.gui.add_folder("Environment"):
         env_slider = self.server.gui.add_slider(
           "Select",
           min=0,
@@ -332,7 +316,22 @@ class ViserMujocoScene(DebugVisualizer):
           self.show_only_selected = show_only_cb.value
           self._request_update()
 
-      # Camera tracking controls.
+    # Precompute default camera position for tracking snap.
+    _az_rad = np.deg2rad(camera_azimuth)
+    _el_rad = np.deg2rad(camera_elevation)
+    _default_camera_pos = (
+      -np.array(
+        [
+          np.cos(_el_rad) * np.cos(_az_rad),
+          np.cos(_el_rad) * np.sin(_az_rad),
+          np.sin(_el_rad),
+        ]
+      )
+      * camera_distance
+    )
+
+    # Camera controls.
+    with self.server.gui.add_folder("Camera"):
       cb_camera_tracking = self.server.gui.add_checkbox(
         "Track camera",
         initial_value=self.camera_tracking_enabled,
@@ -342,121 +341,126 @@ class ViserMujocoScene(DebugVisualizer):
       @cb_camera_tracking.on_update
       def _(_) -> None:
         self.camera_tracking_enabled = cb_camera_tracking.value
-        # Snap camera to default view when enabling tracking.
         if self.camera_tracking_enabled:
-          # Convert to radians and calculate camera position.
-          azimuth_rad = np.deg2rad(camera_azimuth)
-          elevation_rad = np.deg2rad(camera_elevation)
-
-          # Calculate forward vector from spherical coordinates.
-          forward = np.array(
-            [
-              np.cos(elevation_rad) * np.cos(azimuth_rad),
-              np.cos(elevation_rad) * np.sin(azimuth_rad),
-              np.sin(elevation_rad),
-            ]
-          )
-
-          # Camera position is origin - forward * distance.
-          camera_pos = -forward * camera_distance
-
-          # Snap all connected clients to this view.
           for client in self.server.get_clients().values():
-            client.camera.position = camera_pos
+            client.camera.position = _default_camera_pos
             client.camera.look_at = np.zeros(3)
-
         self._request_update()
 
-      # Debug visualization controls (only show if requested).
-      if show_debug_viz_control:
-        with self.server.gui.add_folder("Debug Viz"):
-          cb_debug_vis = self.server.gui.add_checkbox(
-            "Enabled",
-            initial_value=self.debug_visualization_enabled,
-            hint="Show debug arrows and ghost meshes.",
-          )
+      slider_fov = self.server.gui.add_slider(
+        "FOV (°)",
+        min=_DEFAULT_FOV_MIN,
+        max=_DEFAULT_FOV_MAX,
+        step=1,
+        initial_value=_DEFAULT_FOV_DEGREES,
+        hint="Vertical FOV of viewer camera, in degrees.",
+      )
 
-          @cb_debug_vis.on_update
-          def _(_) -> None:
-            self.debug_visualization_enabled = cb_debug_vis.value
-            # Clear visualizer if hiding.
-            if not self.debug_visualization_enabled:
-              self.clear_debug_all()
-            self._request_update()
+      @slider_fov.on_update
+      def _(_) -> None:
+        for client in self.server.get_clients().values():
+          client.camera.fov = np.radians(slider_fov.value)
 
-          cb_show_all_envs = self.server.gui.add_checkbox(
-            "All envs",
-            initial_value=self.show_all_envs,
-            hint="Show debug visualization for all environments.",
-          )
+      @self.server.on_client_connect
+      def _(client: viser.ClientHandle) -> None:
+        client.camera.fov = np.radians(slider_fov.value)
+        if self.camera_tracking_enabled:
+          client.camera.position = _default_camera_pos
+          client.camera.look_at = np.zeros(3)
 
-          @cb_show_all_envs.on_update
-          def _(_) -> None:
-            self.show_all_envs = cb_show_all_envs.value
-            # Clear ghosts when switching from all envs to single env
-            if not self.show_all_envs:
-              self.clear_debug_all()
-            self._request_update()
-
-      # Contact visualization settings.
-      with self.server.gui.add_folder("Contacts"):
-        cb_contact_points = self.server.gui.add_checkbox(
-          "Points",
-          initial_value=False,
-          hint="Toggle contact point visualization.",
-        )
-        contact_point_color = self.server.gui.add_rgb(
-          "Points Color", initial_value=self.contact_point_color
-        )
-        cb_contact_forces = self.server.gui.add_checkbox(
-          "Forces",
-          initial_value=False,
-          hint="Toggle contact force visualization.",
-        )
-        contact_force_color = self.server.gui.add_rgb(
-          "Forces Color", initial_value=self.contact_force_color
-        )
-        meansize_input = self.server.gui.add_number(
-          "Scale",
-          step=self.mj_model.stat.meansize * 0.01,
-          initial_value=self.mj_model.stat.meansize,
+    # Debug visualization controls (only show if requested).
+    if show_debug_viz_control:
+      with self.server.gui.add_folder("Debug Viz"):
+        cb_debug_vis = self.server.gui.add_checkbox(
+          "Enabled",
+          initial_value=self.debug_visualization_enabled,
+          hint="Show debug arrows and ghost meshes.",
         )
 
-        @cb_contact_points.on_update
+        @cb_debug_vis.on_update
         def _(_) -> None:
-          self.show_contact_points = cb_contact_points.value
-          self._sync_visibilities()
+          self.debug_visualization_enabled = cb_debug_vis.value
+          # Clear visualizer if hiding.
+          if not self.debug_visualization_enabled:
+            self.clear_debug_all()
           self._request_update()
 
-        @contact_point_color.on_update
+        cb_show_all_envs = self.server.gui.add_checkbox(
+          "All envs",
+          initial_value=self.show_all_envs,
+          hint="Show debug visualization for all environments.",
+        )
+
+        @cb_show_all_envs.on_update
         def _(_) -> None:
-          self.contact_point_color = contact_point_color.value
-          if self.contact_point_handle is not None:
-            self.contact_point_handle.remove()
-            self.contact_point_handle = None
+          self.show_all_envs = cb_show_all_envs.value
+          # Clear ghosts when switching from all envs to single env
+          if not self.show_all_envs:
+            self.clear_debug_all()
           self._request_update()
 
-        @cb_contact_forces.on_update
-        def _(_) -> None:
-          self.show_contact_forces = cb_contact_forces.value
-          self._sync_visibilities()
-          self._request_update()
+        if debug_viz_extra_gui is not None:
+          debug_viz_extra_gui()
 
-        @contact_force_color.on_update
-        def _(_) -> None:
-          self.contact_force_color = contact_force_color.value
-          if self.contact_force_shaft_handle is not None:
-            self.contact_force_shaft_handle.remove()
-            self.contact_force_shaft_handle = None
-          if self.contact_force_head_handle is not None:
-            self.contact_force_head_handle.remove()
-            self.contact_force_head_handle = None
-          self._request_update()
+    # Contact visualization settings.
+    with self.server.gui.add_folder("Contacts"):
+      cb_contact_points = self.server.gui.add_checkbox(
+        "Points",
+        initial_value=False,
+        hint="Toggle contact point visualization.",
+      )
+      contact_point_color = self.server.gui.add_rgb(
+        "Points Color", initial_value=self.contact_point_color
+      )
+      cb_contact_forces = self.server.gui.add_checkbox(
+        "Forces",
+        initial_value=False,
+        hint="Toggle contact force visualization.",
+      )
+      contact_force_color = self.server.gui.add_rgb(
+        "Forces Color", initial_value=self.contact_force_color
+      )
+      meansize_input = self.server.gui.add_number(
+        "Scale",
+        step=self.mj_model.stat.meansize * 0.01,
+        initial_value=self.mj_model.stat.meansize,
+      )
 
-        @meansize_input.on_update
-        def _(_) -> None:
-          self.meansize_override = meansize_input.value
-          self._request_update()
+      @cb_contact_points.on_update
+      def _(_) -> None:
+        self.show_contact_points = cb_contact_points.value
+        self._sync_visibilities()
+        self._request_update()
+
+      @contact_point_color.on_update
+      def _(_) -> None:
+        self.contact_point_color = contact_point_color.value
+        if self.contact_point_handle is not None:
+          self.contact_point_handle.remove()
+          self.contact_point_handle = None
+        self._request_update()
+
+      @cb_contact_forces.on_update
+      def _(_) -> None:
+        self.show_contact_forces = cb_contact_forces.value
+        self._sync_visibilities()
+        self._request_update()
+
+      @contact_force_color.on_update
+      def _(_) -> None:
+        self.contact_force_color = contact_force_color.value
+        if self.contact_force_shaft_handle is not None:
+          self.contact_force_shaft_handle.remove()
+          self.contact_force_shaft_handle = None
+        if self.contact_force_head_handle is not None:
+          self.contact_force_head_handle.remove()
+          self.contact_force_head_handle = None
+        self._request_update()
+
+      @meansize_input.on_update
+      def _(_) -> None:
+        self.meansize_override = meansize_input.value
+        self._request_update()
 
   def create_groups_gui(self, tabs) -> None:
     """Add unified groups tab with geoms and sites folders.
