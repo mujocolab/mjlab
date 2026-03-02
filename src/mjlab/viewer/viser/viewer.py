@@ -44,6 +44,7 @@ class ViserPlayViewer(BaseViewer):
     policy: PolicyProtocol,
     frame_rate: float = 60.0,
     verbosity: VerbosityLevel = VerbosityLevel.SILENT,
+    viser_server: viser.ViserServer | None = None,
   ) -> None:
     super().__init__(env, policy, frame_rate, verbosity)
     self._term_overlays: ViserTermOverlays | None = None
@@ -56,6 +57,8 @@ class ViserPlayViewer(BaseViewer):
     self._scene_submit_enqueue_last_ms: float = 0.0
     self._scene_update_last_ms: float = 0.0
     self._timing_last_log_time: float = 0.0
+    self._external_server = viser_server is not None
+    self._server = viser_server or viser.ViserServer(label="mjlab")
 
   @override
   def setup(self) -> None:
@@ -63,7 +66,6 @@ class ViserPlayViewer(BaseViewer):
     sim = self.env.unwrapped.sim
     assert isinstance(sim, Simulation)
 
-    self._server = viser.ViserServer(label="mjlab")
     self._threadpool = ThreadPoolExecutor(max_workers=1)
     self._counter = 0
     self._pending_update_reasons: set[UpdateReason] = set()
@@ -317,7 +319,8 @@ class ViserPlayViewer(BaseViewer):
     if self._camera_overlays:
       self._camera_overlays.cleanup()
     self._threadpool.shutdown(wait=True)
-    self._server.stop()
+    if not self._external_server:
+      self._server.stop()
 
   @override
   def is_running(self) -> bool:
