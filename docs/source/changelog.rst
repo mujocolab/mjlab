@@ -17,6 +17,8 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- ONNX auto-export and metadata attachment for manipulation tasks (lift cube)
+  on every checkpoint save, matching the velocity and tracking task behavior.
 - Cloud training support via `SkyPilot <https://skypilot.readthedocs.io/>`_
   and Lambda Cloud, with documentation covering setup, monitoring, and
   cost management.
