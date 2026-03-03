@@ -1,3 +1,4 @@
+import copy
 import os
 
 import torch
@@ -34,7 +35,9 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     dynamic_axes being deprecated with the new TorchDynamo export path
     (torch>=2.9 default).
     """
-    onnx_model = self.alg.get_policy().as_onnx(verbose=verbose)
+    # Deep-copy because rsl_rl's _OnnxCNNModel shares CNN modules with the original
+    # policy; without this, .to("cpu") moves the live weights.
+    onnx_model = copy.deepcopy(self.alg.get_policy().as_onnx(verbose=verbose))
     onnx_model.to("cpu")
     onnx_model.eval()
     os.makedirs(path, exist_ok=True)
