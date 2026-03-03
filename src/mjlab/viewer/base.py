@@ -336,6 +336,9 @@ class BaseViewer(ABC):
 
   def reset_environment(self) -> None:
     self.env.reset()
+    reset_fn = getattr(self.policy, "reset", None)
+    if reset_fn is not None:
+      reset_fn()
     self._step_count = 0
     self._sim_budget = 0.0
     self._last_error = None

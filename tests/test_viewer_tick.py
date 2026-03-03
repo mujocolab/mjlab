@@ -181,6 +181,24 @@ def test_reset_clears():
   assert v._last_error is None
 
 
+def test_reset_calls_policy_reset():
+  """reset_environment() calls policy.reset() if available."""
+  v = FakeViewer(step_dt=0.01)
+  v.policy = MagicMock()
+  v.policy.reset = MagicMock()
+
+  v.reset_environment()
+  v.policy.reset.assert_called_once()
+
+
+def test_reset_without_policy_reset():
+  """reset_environment() works fine when policy has no reset method."""
+  v = FakeViewer(step_dt=0.01)
+  v.policy = lambda obs: obs  # plain callable, no reset attribute
+
+  v.reset_environment()  # should not raise
+
+
 # Formatting and status.
 
 
