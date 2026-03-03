@@ -225,6 +225,11 @@ class NativeMujocoViewer(BaseViewer):
       self._update_debug_visualizers(v)
       self._render_other_env_geoms(v, sim, sim_data)
 
+      # Pin tracking camera to body frame origin so DR-induced COM shifts don't move
+      # the camera.
+      if sim.expanded_fields & self._INERTIAL_FIELDS:
+        self._stabilize_tracking_camera()
+
       has_visual_dr = bool(sim.expanded_fields & self._VISUAL_FIELDS)
       v.sync(state_only=not has_visual_dr)
 
@@ -326,6 +331,9 @@ class NativeMujocoViewer(BaseViewer):
     # Restore main env's model fields.
     self._sync_model_fields(sim, self.env_idx)
 
+  # Inertial fields that shift subtree_com (and thus the tracking camera).
+  _INERTIAL_FIELDS = frozenset({"body_ipos", "body_mass"})
+
   # Fields that affect rendering. Physics-only fields (geom_aabb,
   # geom_rbound, dof_*, jnt_*, actuator_*, tendon_*, etc.) are skipped.
   _VISUAL_FIELDS = frozenset(
@@ -358,6 +366,23 @@ class NativeMujocoViewer(BaseViewer):
       src = getattr(sim.model, field_name)[env_idx].cpu().numpy()
       dst = getattr(self.mjm, field_name)
       dst[:] = src.reshape(dst.shape)
+
+  def _stabilize_tracking_camera(self) -> None:
+    """Pin the tracked body's subtree_com to its frame origin (xpos).
+
+    MuJoCo's tracking camera centers on ``subtree_com[trackbodyid]``, which
+    shifts when inertial fields (body_ipos, body_mass) are domain randomized.
+    Overwriting that single entry with ``xpos`` (the body frame origin,
+    unaffected by body_ipos) keeps the camera stable.
+    """
+    assert self.mjd is not None
+    if not (
+      self.viewer and self.viewer.cam.type == mujoco.mjtCamera.mjCAMERA_TRACKING.value
+    ):
+      return
+    bid = self.viewer.cam.trackbodyid
+    if bid >= 0:
+      self.mjd.subtree_com[bid] = self.mjd.xpos[bid]
 
   def sync_viewer_to_env(self) -> None:
     """Sync mouse perturbation to sim via ``qfrc_applied``.
