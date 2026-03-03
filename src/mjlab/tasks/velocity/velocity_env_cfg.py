@@ -7,6 +7,8 @@ Robot-specific configurations call the factory and customize as needed.
 import math
 from dataclasses import replace
 
+import torch
+
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs import mdp as envs_mdp
 from mjlab.envs.mdp import dr
@@ -15,6 +17,7 @@ from mjlab.managers.action_manager import ActionTermCfg
 from mjlab.managers.command_manager import CommandTermCfg
 from mjlab.managers.curriculum_manager import CurriculumTermCfg
 from mjlab.managers.event_manager import EventTermCfg
+from mjlab.managers.metrics_manager import MetricsTermCfg
 from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
@@ -28,6 +31,13 @@ from mjlab.terrains import TerrainEntityCfg
 from mjlab.terrains.config import ROUGH_TERRAINS_CFG
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
 from mjlab.viewer import ViewerConfig
+
+
+def action_rate_l2(env) -> torch.Tensor:
+  """Penalize the rate of change of the actions using L2 squared kernel."""
+  return torch.sum(
+    torch.square(env.action_manager.action - env.action_manager.prev_action), dim=1
+  )
 
 
 def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
@@ -111,6 +121,12 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
       func=mdp.foot_contact_forces,
       params={"sensor_name": "feet_ground_contact"},
     ),
+  }
+
+  metrics = {
+    "test1": MetricsTermCfg(
+      func=action_rate_l2,
+    )
   }
 
   observations = {
@@ -393,6 +409,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     rewards=rewards,
     terminations=terminations,
     curriculum=curriculum,
+    metrics=metrics,
     viewer=ViewerConfig(
       origin_type=ViewerConfig.OriginType.ASSET_BODY,
       entity_name="robot",

@@ -65,7 +65,7 @@ class _TermState:
   color: str
   enabled: bool = False
   history: deque[float] = field(default_factory=lambda: deque(maxlen=300))
-  individual_plot: viser.GuiUplotHandle | None = None
+  plot: viser.GuiUplotHandle | None = None
 
 
 class ViserTermPlotter:
@@ -109,23 +109,13 @@ class ViserTermPlotter:
 
     # Build all GUI elements.
     self._build_selector_gui(term_names)
-    self._plots_folder = self._server.gui.add_folder(
-      self._label("Individual"), expand_by_default=True
-    )
-
-  def _label(self, text: str) -> str:
-    """Namespace a GUI label to avoid collisions between plotters."""
-    return f"{self._name}: {text}"
+    self._plots_folder = self._server.gui.add_folder("Plots", expand_by_default=True)
 
   def _build_selector_gui(self, term_names: list[str]) -> None:
     """Build grouped checkboxes for term selection."""
-    with self._server.gui.add_folder(
-      self._label("Select terms"), expand_by_default=True
-    ):
+    with self._server.gui.add_folder("Select terms", expand_by_default=True):
       # Bulk actions.
-      bulk = self._server.gui.add_button_group(
-        self._label("bulk"), options=["All", "None"]
-      )
+      bulk = self._server.gui.add_button_group("bulk", options=["All", "None"])
 
       @bulk.on_click
       def _(event) -> None:
@@ -133,14 +123,14 @@ class ViserTermPlotter:
         for tname, state in self._terms.items():
           state.enabled = enable
           self._checkboxes[tname].value = enable
-        self._sync_individual_plots()
+        self._sync_plots()
 
       # Grouped checkboxes.
       groups = _group_terms(term_names)
       for group_label, members in groups.items():
         use_folder = len(groups) > 1
         ctx = (
-          self._server.gui.add_folder(self._label(group_label), expand_by_default=False)
+          self._server.gui.add_folder(group_label, expand_by_default=False)
           if use_folder
           else contextlib.nullcontext()
         )
@@ -149,7 +139,7 @@ class ViserTermPlotter:
           for tname in members:
             state = self._terms[tname]
             cb = self._server.gui.add_checkbox(
-              self._label(tname),
+              tname,
               initial_value=state.enabled,
               hint=f"Color: {state.color}",
             )
@@ -158,18 +148,18 @@ class ViserTermPlotter:
             @cb.on_update
             def _(event, _tname=tname) -> None:
               self._terms[_tname].enabled = event.target.value
-              self._sync_individual_plots()
+              self._sync_plots()
 
-  def _sync_individual_plots(self) -> None:
-    """Create or remove individual plots to match current selection."""
+  def _sync_plots(self) -> None:
+    """Create or remove plots to match current selection."""
     for state in self._terms.values():
-      if state.enabled and state.individual_plot is None:
-        self._create_individual_plot(state)
-      elif not state.enabled and state.individual_plot is not None:
-        state.individual_plot.remove()
-        state.individual_plot = None
+      if state.enabled and state.plot is None:
+        self._create_plot(state)
+      elif not state.enabled and state.plot is not None:
+        state.plot.remove()
+        state.plot = None
 
-  def _create_individual_plot(self, state: _TermState) -> None:
+  def _create_plot(self, state: _TermState) -> None:
     """Lazily create a single-term plot inside the scoped folder."""
     h = state.history
     hist_len = len(h)
@@ -181,7 +171,7 @@ class ViserTermPlotter:
       y = self._empty
 
     with self._plots_folder:
-      state.individual_plot = self._server.gui.add_uplot(
+      state.plot = self._server.gui.add_uplot(
         data=(x, y),
         series=(
           viser.uplot.Series(label="Steps"),
@@ -194,7 +184,7 @@ class ViserTermPlotter:
           "y": viser.uplot.Scale(auto=True),
         },
         legend=viser.uplot.Legend(show=False),
-        title=self._label(state.name),
+        title=state.name,
         aspect=2.0,
         visible=True,
       )
@@ -215,29 +205,29 @@ class ViserTermPlotter:
     if not any_enabled:
       return
 
-    # Update individual plots.
+    # Update plots.
     for state in self._terms.values():
-      if not state.enabled or state.individual_plot is None:
+      if not state.enabled or state.plot is None:
         continue
       h = state.history
       hist_len = len(h)
       if hist_len > 0:
         x = self._x_array[-hist_len:]
         y = np.fromiter(h, dtype=np.float64, count=hist_len)
-        state.individual_plot.data = (x, y)
+        state.plot.data = (x, y)
 
   def clear_histories(self) -> None:
     """Clear all term histories."""
     for state in self._terms.values():
       state.history.clear()
-      if state.individual_plot is not None:
-        state.individual_plot.data = (self._empty, self._empty)
+      if state.plot is not None:
+        state.plot.data = (self._empty, self._empty)
 
   def cleanup(self) -> None:
     """Clean up resources."""
     for state in self._terms.values():
-      if state.individual_plot is not None:
-        state.individual_plot.remove()
+      if state.plot is not None:
+        state.plot.remove()
     for cb in self._checkboxes.values():
       cb.remove()
     self._terms.clear()
