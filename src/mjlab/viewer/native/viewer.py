@@ -431,11 +431,11 @@ class NativeMujocoViewer(BaseViewer):
     self.viewer.opt.frame = mujoco.mjtFrame.mjFRAME_WORLD.value
 
     if not self.cfg or not hasattr(self.cfg, "origin_type"):
-      self._set_camera_world()
+      self._set_camera_auto_track()
       return
 
     if self.cfg.origin_type == self.cfg.OriginType.WORLD:
-      self._set_camera_world()
+      self._set_camera_auto_track()
     elif self.cfg.origin_type == self.cfg.OriginType.ASSET_ROOT:
       self._set_camera_asset_root()
     else:  # ASSET_BODY
@@ -447,6 +447,21 @@ class NativeMujocoViewer(BaseViewer):
     )
     self.viewer.cam.azimuth = getattr(self.cfg, "azimuth", self.viewer.cam.azimuth)
     self.viewer.cam.distance = getattr(self.cfg, "distance", self.viewer.cam.distance)
+
+  def _set_camera_auto_track(self) -> None:
+    """Track first non-fixed body; fall back to free camera if none exists."""
+    assert self.viewer is not None
+    assert self.mjm is not None
+    for body_id in range(self.mjm.nbody):
+      is_weld = self.mjm.body_weldid[body_id] == 0
+      root_id = self.mjm.body_rootid[body_id]
+      root_is_mocap = self.mjm.body_mocapid[root_id] >= 0
+      if not (is_weld and not root_is_mocap):
+        self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
+        self.viewer.cam.trackbodyid = body_id
+        self.viewer.cam.fixedcamid = -1
+        return
+    self._set_camera_world()
 
   def _set_camera_world(self) -> None:
     """Configure free camera in world frame."""

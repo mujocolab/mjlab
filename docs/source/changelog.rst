@@ -28,6 +28,9 @@ Added
   (``/update-mjwarp``, ``/commit-push-pr``).
 - Added optional ``ViewerConfig.fovy`` and apply it in native viewer camera
   setup when provided.
+- Native viewer now tracks the first non-fixed body by default (matching
+  the Viser viewer behavior introduced in
+  ``716aaaa58ad7bfaf34d2f771549d461204d1b4ba``).
 - New ``dr`` module (``mjlab.envs.mdp.dr``) replacing ``randomize_field``
   with typed per-field domain randomization functions. Each function
   automatically recomputes derived fields via ``set_const``. Highlights:
