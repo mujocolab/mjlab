@@ -24,6 +24,8 @@ class ViewerConfig:
   entity_name: str | None = None
   body_name: str | None = None
   env_idx: int = 0
+  max_extra_envs: int = 2
+  """Number of neighboring environments to render around ``env_idx``."""
   enable_reflections: bool = True
   enable_shadows: bool = True
   height: int = 240

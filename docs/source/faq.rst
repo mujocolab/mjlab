@@ -242,8 +242,8 @@ How many environments can I visualize at once?
 Viewers render a small number of environments for performance reasons.
 
 - **Offscreen renderer** (for video recording): Renders the tracked
-  environment plus up to 2 nearest neighbors (see ``_MAX_EXTRA_ENVS``
-  in ``viewer/offscreen_renderer.py``).
+  environment plus its nearest neighbors. The count is controlled by
+  ``ViewerConfig.max_extra_envs`` (default 2).
 - **Native/Viser viewers**: Limited by MuJoCo's geometry buffer
   (default 10,000 geoms). The viewer shows whichever environments fit
   within the geometry budget.
