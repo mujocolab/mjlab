@@ -18,6 +18,7 @@ from mjlab.utils.lab_api.string import resolve_matching_names
 from mjlab.utils.mujoco import dof_width, qpos_width
 from mjlab.utils.spec import auto_wrap_fixed_base_mocap
 from mjlab.utils.string import resolve_expr
+from mjlab.utils.xml import fix_spec_xml, strip_buffer_textures
 
 
 @dataclass(frozen=False)
@@ -482,9 +483,13 @@ class Entity:
     return self.spec.compile()
 
   def write_xml(self, xml_path: Path) -> None:
-    """Write the MjSpec to disk."""
-    with open(xml_path, "w") as f:
-      f.write(self.spec.to_xml())
+    """Write the MjSpec to disk.
+
+    Operates on a copy of the spec to avoid mutating the original.
+    """
+    tmp = self.spec.copy()
+    strip_buffer_textures(tmp)
+    xml_path.write_text(fix_spec_xml(tmp.to_xml()))
 
   def to_zip(self, path: Path) -> None:
     """Write the MjSpec to a zip file."""

@@ -81,6 +81,7 @@ Table of Contents
    source/training/distributed_training
    source/training/cloud
    source/debugging/nan_guard
+   source/debugging/export_scene
 
 .. toctree::
    :maxdepth: 2

@@ -13,6 +13,7 @@ Upcoming version (not yet released)
    - ``EventTermCfg`` no longer accepts ``domain_randomization``. The
      ``@requires_model_fields`` decorator on each ``dr`` function takes care
      of field expansion automatically.
+   - ``Scene.to_zip()`` is deprecated. Use ``Scene.write(path, zip=True)``.
 
 Added
 ^^^^^
@@ -63,6 +64,10 @@ Added
     (``material_names``).
   - Fixed ``dr.effort_limits`` drifting on repeated randomization.
   - Fixed ``dr.body_com_offset`` not triggering ``set_const``.
+
+- ``export-scene`` CLI script to export any task scene or asset_zoo entity
+  (``g1``, ``go1``, ``yam``) to a directory or zip archive for inspection
+  and debugging.
 
 - ``yam_lift_cube_vision_env_cfg`` now randomizes cube color (``dr.geom_rgba``)
   on every reset when ``cam_type="rgb"``.
@@ -115,6 +120,13 @@ Added
 - Added ``upload_model`` option to ``RslRlBaseRunnerCfg`` to control W&B model
   file uploads (``.pt`` and ``.onnx``) while keeping metric logging enabled
   (`#654 <https://github.com/mujocolab/mjlab/pull/654>`_).
+- ``Scene.write(output_dir, zip=False)`` exports the scene XML and mesh
+  assets to a directory (or zip archive). Replaces ``Scene.to_zip()``.
+- ``Entity.write_xml()`` and ``Scene.write()`` now apply XML fixups
+  (empty defaults, duplicate nested defaults) and strip buffer textures
+  that ``MjSpec.to_xml()`` cannot serialize.
+- ``fix_spec_xml`` and ``strip_buffer_textures`` utilities in
+  ``mjlab.utils.xml``.
 
 Changed
 ^^^^^^^
