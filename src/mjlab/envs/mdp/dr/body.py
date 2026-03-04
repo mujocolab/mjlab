@@ -117,7 +117,23 @@ def _decompose_pseudo_inertia_J(
   )  # (*batch, 3, 3)
 
   # Columns of V are principal axes in body frame; eigenvalues are principal moments.
-  principal_moments, V = torch.linalg.eigh(I_com)  # (*batch, 3), (*batch, 3, 3)
+  # Chunk to avoid cusolver batch size limits on some GPUs.
+  _MAX_EIGH_BATCH = 16384
+  batch_shape = I_com.shape[:-2]
+  flat_total = 1
+  for s in batch_shape:
+    flat_total *= s
+  if flat_total > _MAX_EIGH_BATCH:
+    I_flat = I_com.reshape(flat_total, 3, 3)
+    pm_chunks, v_chunks = [], []
+    for chunk in I_flat.split(_MAX_EIGH_BATCH, dim=0):
+      pm, v = torch.linalg.eigh(chunk)
+      pm_chunks.append(pm)
+      v_chunks.append(v)
+    principal_moments = torch.cat(pm_chunks, dim=0).reshape(*batch_shape, 3)
+    V = torch.cat(v_chunks, dim=0).reshape(*batch_shape, 3, 3)
+  else:
+    principal_moments, V = torch.linalg.eigh(I_com)  # (*batch, 3), (*batch, 3, 3)
 
   # Ensure V is a proper rotation (det = +1). eigh can return reflections.
   dets = torch.linalg.det(V)  # (*batch,)
