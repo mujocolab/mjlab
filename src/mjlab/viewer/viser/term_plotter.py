@@ -115,7 +115,7 @@ class ViserTermPlotter:
     """Build grouped checkboxes for term selection."""
     with self._server.gui.add_folder("Select terms", expand_by_default=True):
       # Bulk actions.
-      bulk = self._server.gui.add_button_group("bulk", options=["All", "None"])
+      bulk = self._server.gui.add_button_group("Bulk", options=["All", "None"])
 
       @bulk.on_click
       def _(event) -> None:
