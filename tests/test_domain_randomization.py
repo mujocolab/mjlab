@@ -945,6 +945,35 @@ def test_pseudo_inertia_partial_env_ids(device):
   assert torch.allclose(mass_after[1], mass_before[1], atol=1e-6)
 
 
+def test_decompose_pseudo_inertia_eigh_chunking():
+  """Chunked eigh produces the same result as a single call."""
+  from mjlab.envs.mdp.dr.body import (
+    _MAX_EIGH_BATCH,
+    _decompose_pseudo_inertia_J,
+    _reconstruct_pseudo_inertia_J,
+  )
+
+  torch.manual_seed(0)
+  # Build a batch larger than the chunk limit so the chunking path is taken.
+  n = _MAX_EIGH_BATCH + 100
+  mass = torch.rand(n) + 0.1
+  ipos = torch.randn(n, 3) * 0.05
+  inertia = torch.rand(n, 3) + 0.1
+  iquat = torch.randn(n, 4)
+  iquat = iquat / iquat.norm(dim=-1, keepdim=True)
+
+  J = _reconstruct_pseudo_inertia_J(mass, ipos, inertia, iquat)
+
+  # Decompose with chunking (the production path).
+  mass_out, ipos_out, pm_out, iquat_out = _decompose_pseudo_inertia_J(J)
+
+  # Reconstruct and compare: the round-trip should be near-exact.
+  J_rt = _reconstruct_pseudo_inertia_J(mass_out, ipos_out, pm_out, iquat_out)
+  assert torch.allclose(J, J_rt, atol=1e-5), (
+    f"Round-trip mismatch; max error: {(J - J_rt).abs().max()}"
+  )
+
+
 # Camera / Light DR tests.
 
 

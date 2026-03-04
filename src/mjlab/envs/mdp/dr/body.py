@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import warnings
 from typing import TYPE_CHECKING
 
@@ -26,6 +27,10 @@ from ._types import Distribution, Operation
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
+
+# cusolverDnXsyevBatched has an undocumented batch size limit (~32k).
+# We chunk at 16k to stay well within the limit while keeping overhead low.
+_MAX_EIGH_BATCH = 16384
 
 # Pseudo-inertia helpers.
 
@@ -118,11 +123,8 @@ def _decompose_pseudo_inertia_J(
 
   # Columns of V are principal axes in body frame; eigenvalues are principal moments.
   # Chunk to avoid cusolver batch size limits on some GPUs.
-  _MAX_EIGH_BATCH = 16384
   batch_shape = I_com.shape[:-2]
-  flat_total = 1
-  for s in batch_shape:
-    flat_total *= s
+  flat_total = math.prod(batch_shape) if batch_shape else 1
   if flat_total > _MAX_EIGH_BATCH:
     I_flat = I_com.reshape(flat_total, 3, 3)
     pm_chunks, v_chunks = [], []
