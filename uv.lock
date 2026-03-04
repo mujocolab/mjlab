@@ -1653,7 +1653,7 @@ requires-dist = [
     { name = "imageio-ffmpeg" },
     { name = "mediapy", specifier = ">=1.2.6" },
     { name = "mujoco", specifier = ">=3.5.0", index = "https://py.mujoco.org/" },
-    { name = "mujoco-warp", git = "https://github.com/google-deepmind/mujoco_warp?rev=e28c6038cdf8a353b4146974e4cf37e74dda809a" },
+    { name = "mujoco-warp", git = "https://github.com/google-deepmind/mujoco_warp?rev=ebdadbf2df521dd5b47463436a8f4b96e6c34977" },
     { name = "onnxscript", specifier = ">=0.5.4" },
     { name = "prettytable" },
     { name = "rsl-rl-lib", specifier = "==4.0.1" },
@@ -1809,8 +1809,8 @@ wheels = [
 
 [[package]]
 name = "mujoco-warp"
-version = "3.5.0"
-source = { git = "https://github.com/google-deepmind/mujoco_warp?rev=e28c6038cdf8a353b4146974e4cf37e74dda809a#e28c6038cdf8a353b4146974e4cf37e74dda809a" }
+version = "3.5.0.2"
+source = { git = "https://github.com/google-deepmind/mujoco_warp?rev=ebdadbf2df521dd5b47463436a8f4b96e6c34977#ebdadbf2df521dd5b47463436a8f4b96e6c34977" }
 dependencies = [
     { name = "absl-py" },
     { name = "etils", extra = ["epath"] },

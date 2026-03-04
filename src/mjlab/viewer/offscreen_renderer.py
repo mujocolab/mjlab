@@ -9,10 +9,6 @@ from mjlab.scene import Scene
 from mjlab.viewer.native.visualizer import MujocoNativeDebugVisualizer
 from mjlab.viewer.viewer_config import ViewerConfig
 
-# Max number of envs to visualize (performance/memory limit).
-# See FAQ: "How many environments can I visualize at once?"
-_MAX_EXTRA_ENVS = 2
-
 
 class OffscreenRenderer:
   def __init__(self, model: mujoco.MjModel, cfg: ViewerConfig, scene: Scene) -> None:
@@ -116,10 +112,10 @@ class OffscreenRenderer:
     We render a small local neighborhood around ``env_idx`` instead of the first
     N environments, so videos stay focused on the tracked robot and nearby peers.
     """
-    if _MAX_EXTRA_ENVS <= 0 or nworld <= 1:
+    if self._cfg.max_extra_envs <= 0 or nworld <= 1:
       return []
 
-    k = min(_MAX_EXTRA_ENVS, nworld - 1)
+    k = min(self._cfg.max_extra_envs, nworld - 1)
     origins = self._scene.env_origins[:nworld].cpu().numpy()
     ref = origins[env_idx]
     dist2 = np.sum((origins - ref) ** 2, axis=1)
