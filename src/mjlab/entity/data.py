@@ -39,6 +39,11 @@ class EntityData:
   root_link_pose_w) require sim.forward() to be current. If you write then read,
   call sim.forward() in between. Event order matters when mixing reads and writes.
   All inputs/outputs use world frame.
+
+  Ball Joint Support:
+    Position tensors use nq dimensions (4 per ball, 1 per hinge/slide).
+    Velocity/effort tensors use nv dimensions (3 per ball, 1 per hinge/slide).
+    Joint limits remain per-joint: (nworld, num_joints, 2).
   """
 
   indexing: EntityIndexing
@@ -155,9 +160,9 @@ class EntityData:
       raise ValueError("Cannot write joint position for non-articulated entity.")
 
     env_ids = self._resolve_env_ids(env_ids)
-    joint_ids = joint_ids if joint_ids is not None else slice(None)
-    q_slice = self.indexing.joint_q_adr[joint_ids]
-    self.data.qpos[env_ids, q_slice] = position
+    q_indices = self.indexing.expand_to_q_indices(joint_ids)
+    q_adr = self.indexing.joint_q_adr[q_indices]
+    self.data.qpos[env_ids, q_adr] = position
 
   def write_joint_velocity(
     self,
@@ -169,9 +174,9 @@ class EntityData:
       raise ValueError("Cannot write joint velocity for non-articulated entity.")
 
     env_ids = self._resolve_env_ids(env_ids)
-    joint_ids = joint_ids if joint_ids is not None else slice(None)
-    v_slice = self.indexing.joint_v_adr[joint_ids]
-    self.data.qvel[env_ids, v_slice] = velocity
+    v_indices = self.indexing.expand_to_v_indices(joint_ids)
+    v_adr = self.indexing.joint_v_adr[v_indices]
+    self.data.qvel[env_ids, v_adr] = velocity
 
   def write_external_wrench(
     self,

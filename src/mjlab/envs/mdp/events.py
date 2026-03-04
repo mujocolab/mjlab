@@ -9,6 +9,7 @@ import torch
 from mjlab.entity import Entity
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.utils.lab_api.math import (
+  quat_from_angle_axis,
   quat_from_euler_xyz,
   quat_mul,
   sample_uniform,
@@ -284,6 +285,11 @@ def reset_joints_by_offset(
   velocity_range: tuple[float, float],
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> None:
+  """Reset joint positions with random offsets from default.
+
+  For hinge joints: adds uniform noise and clamps to limits.
+  For ball joints: applies random rotation via quaternion multiplication.
+  """
   if env_ids is None:
     env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
 
@@ -295,17 +301,102 @@ def reset_joints_by_offset(
   soft_joint_pos_limits = asset.data.soft_joint_pos_limits
   assert soft_joint_pos_limits is not None
 
-  joint_pos = default_joint_pos[env_ids][:, asset_cfg.joint_ids].clone()
-  joint_pos += sample_uniform(*position_range, joint_pos.shape, env.device)
-  joint_pos_limits = soft_joint_pos_limits[env_ids][:, asset_cfg.joint_ids]
-  joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
-
-  joint_vel = default_joint_vel[env_ids][:, asset_cfg.joint_ids].clone()
-  joint_vel += sample_uniform(*velocity_range, joint_vel.shape, env.device)
+  v_indices = asset.indexing.expand_to_v_indices(asset_cfg.joint_ids)
 
   joint_ids = asset_cfg.joint_ids
-  if isinstance(joint_ids, list):
-    joint_ids = torch.tensor(joint_ids, device=env.device)
+  if isinstance(joint_ids, slice):
+    joint_ids_tensor = torch.arange(asset.num_joints, device=env.device)
+  elif isinstance(joint_ids, list):
+    joint_ids_tensor = torch.tensor(joint_ids, device=env.device)
+  else:
+    joint_ids_tensor = joint_ids
+
+  # Hinge-only entities: use simple add + clamp.
+  if asset.nq == asset.nv:
+    q_indices = asset.indexing.expand_to_q_indices(asset_cfg.joint_ids)
+    joint_pos = default_joint_pos[env_ids][:, q_indices].clone()
+    joint_pos += sample_uniform(*position_range, joint_pos.shape, env.device)
+
+    joint_limits = soft_joint_pos_limits[env_ids][:, joint_ids_tensor]
+    qpos_widths = asset.indexing.joint_qpos_widths[joint_ids_tensor]
+    expanded_limits = joint_limits.repeat_interleave(qpos_widths, dim=1)
+    joint_pos = joint_pos.clamp_(expanded_limits[..., 0], expanded_limits[..., 1])
+  else:
+    # Mixed ball/hinge joints: handle separately.
+    qpos_widths = asset.indexing.joint_qpos_widths[joint_ids_tensor]
+    dof_widths = asset.indexing.joint_dof_widths[joint_ids_tensor]
+    q_offsets = asset.indexing.q_offsets[joint_ids_tensor]
+
+    num_envs = len(env_ids)
+    device = env.device
+    total_qpos = int(qpos_widths.sum().item())
+    joint_pos = torch.zeros((num_envs, total_qpos), device=device)
+
+    is_ball_joint = (qpos_widths == 4) & (dof_widths == 3)
+    qpos_cumsum = torch.cat(
+      [
+        torch.zeros(1, device=device, dtype=qpos_widths.dtype),
+        qpos_widths.cumsum(0)[:-1],
+      ]
+    )
+
+    # Ball joints: sample rotation angle, random axis, apply via quat_mul.
+    if is_ball_joint.any():
+      ball_q_offsets = q_offsets[is_ball_joint]
+      ball_out_offsets = qpos_cumsum[is_ball_joint]
+      num_ball = int(is_ball_joint.sum().item())
+
+      # Get default quaternions.
+      ball_q_indices = ball_q_offsets.unsqueeze(1) + torch.arange(4, device=device)
+      default_quats = default_joint_pos[env_ids][:, ball_q_indices.flatten()].view(
+        num_envs, num_ball, 4
+      )
+
+      # Sample rotation angles from position_range.
+      angles = sample_uniform(
+        position_range[0], position_range[1], (num_envs * num_ball,), device
+      )
+
+      # Sample random rotation axes (unit vectors).
+      axes = torch.randn((num_envs * num_ball, 3), device=device)
+      axes = axes / axes.norm(dim=-1, keepdim=True)
+
+      # Create delta quaternions.
+      delta_quats = quat_from_angle_axis(angles, axes)
+
+      # Apply rotation: q_new = q_default * q_delta.
+      new_quats = quat_mul(default_quats.reshape(-1, 4), delta_quats).view(
+        num_envs, num_ball, 4
+      )
+
+      ball_out_indices = ball_out_offsets.unsqueeze(1) + torch.arange(4, device=device)
+      joint_pos[:, ball_out_indices.flatten()] = new_quats.reshape(num_envs, -1)
+
+    # Hinge joints: add noise + clamp.
+    is_hinge_joint = ~is_ball_joint
+    if is_hinge_joint.any():
+      hinge_q_offsets = q_offsets[is_hinge_joint]
+      hinge_out_offsets = qpos_cumsum[is_hinge_joint]
+      hinge_joint_ids = joint_ids_tensor[is_hinge_joint]
+      num_hinge = int(is_hinge_joint.sum().item())
+
+      default_hinge = default_joint_pos[env_ids][:, hinge_q_offsets]
+      noise = sample_uniform(*position_range, (num_envs, num_hinge), device)
+      hinge_pos = default_hinge + noise
+
+      # Clamp to limits.
+      hinge_limits = soft_joint_pos_limits[env_ids][:, hinge_joint_ids]
+      hinge_pos = hinge_pos.clamp_(hinge_limits[..., 0], hinge_limits[..., 1])
+
+      joint_pos[:, hinge_out_offsets] = hinge_pos
+
+  joint_vel = default_joint_vel[env_ids][:, v_indices].clone()
+  joint_vel += sample_uniform(*velocity_range, joint_vel.shape, env.device)
+
+  if isinstance(asset_cfg.joint_ids, list):
+    joint_ids = torch.tensor(asset_cfg.joint_ids, device=env.device)
+  else:
+    joint_ids = asset_cfg.joint_ids
 
   asset.write_joint_state_to_sim(
     joint_pos.view(len(env_ids), -1),

@@ -64,6 +64,7 @@ def joint_velocity_hinge_penalty(
   penalty, shaped as the negative squared L2 norm of the excess velocities.
   """
   robot: Entity = env.scene[asset_cfg.name]
-  joint_vel = robot.data.joint_vel[:, asset_cfg.joint_ids]
+  v_indices = robot.indexing.expand_to_v_indices(asset_cfg.joint_ids)
+  joint_vel = robot.data.joint_vel[:, v_indices]
   excess = (joint_vel.abs() - max_vel).clamp_min(0.0)
   return (excess**2).sum(dim=-1)

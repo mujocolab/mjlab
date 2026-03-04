@@ -105,6 +105,9 @@ class DelayedActuator(Actuator[DelayedActuatorCfg]):
     self._target_ids = self._base_actuator._target_ids
     self._ctrl_ids = self._base_actuator._ctrl_ids
     self._global_ctrl_ids = self._base_actuator._global_ctrl_ids
+    # Copy expanded indices for ball joint support.
+    self._q_indices = self._base_actuator._q_indices
+    self._v_indices = self._base_actuator._v_indices
 
     targets = (
       (self.cfg.delay_target,)

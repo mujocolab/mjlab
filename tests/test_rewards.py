@@ -199,7 +199,8 @@ def test_electrical_power_cost_partially_actuated(device):
 
   reward = electrical_power_cost(reward_cfg, env)
 
-  assert len(reward._joint_ids) == 2
+  assert isinstance(reward._v_indices, torch.Tensor)
+  assert len(reward._v_indices) == 2
   assert len(reward._actuator_ids) == 2
 
   # Test case 1: All forces and velocities aligned (all positive work).

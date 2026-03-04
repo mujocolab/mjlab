@@ -428,6 +428,9 @@ def test_reset_joints_by_offset(device):
   env.device = device
 
   mock_entity = Mock()
+  mock_entity.num_joints = 3
+  mock_entity.nq = 3
+  mock_entity.nv = 3
   mock_entity.data.default_joint_pos = torch.zeros((2, 3), device=device)
   mock_entity.data.default_joint_vel = torch.zeros((2, 3), device=device)
   mock_entity.data.soft_joint_pos_limits = torch.tensor(
@@ -438,6 +441,15 @@ def test_reset_joints_by_offset(device):
     device=device,
   )
   mock_entity.write_joint_state_to_sim = Mock()
+
+  # Mock indexing for ball joint support (all hinge joints: 1 qpos, 1 dof each).
+  mock_entity.indexing.expand_to_q_indices = (
+    lambda x: slice(None) if isinstance(x, slice) else x
+  )
+  mock_entity.indexing.expand_to_v_indices = (
+    lambda x: slice(None) if isinstance(x, slice) else x
+  )
+  mock_entity.indexing.joint_qpos_widths = torch.ones(3, dtype=torch.int, device=device)
   env.scene = {"robot": mock_entity}
 
   # Normal offset.

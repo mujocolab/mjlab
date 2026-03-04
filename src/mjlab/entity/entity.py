@@ -17,7 +17,7 @@ from mjlab.utils import spec_config as spec_cfg
 from mjlab.utils.lab_api.string import resolve_matching_names
 from mjlab.utils.mujoco import dof_width, qpos_width
 from mjlab.utils.spec import auto_wrap_fixed_base_mocap
-from mjlab.utils.string import resolve_expr
+from mjlab.utils.string import resolve_expr_with_widths
 
 
 @dataclass(frozen=False)
@@ -53,9 +53,62 @@ class EntityIndexing:
   free_joint_q_adr: torch.Tensor
   free_joint_v_adr: torch.Tensor
 
+  # Ball joint support: per-joint dimensions and cumulative offsets.
+  joint_qpos_widths: torch.Tensor  # (num_joints,) - 4 for ball, 1 for hinge/slide
+  joint_dof_widths: torch.Tensor  # (num_joints,) - 3 for ball, 1 for hinge/slide
+  joint_types: torch.Tensor  # (num_joints,) - mjtJoint enum values
+  q_offsets: torch.Tensor  # (num_joints,) - cumulative qpos offsets per joint
+  v_offsets: torch.Tensor  # (num_joints,) - cumulative qvel offsets per joint
+  nq: int  # Total qpos dimension
+  nv: int  # Total dof dimension
+
   @property
   def root_body_id(self) -> int:
     return self.bodies[0].id
+
+  def expand_to_q_indices(
+    self, joint_ids: torch.Tensor | Sequence[int] | slice | None
+  ) -> torch.Tensor | slice:
+    """Expand joint IDs to qpos indices for ball joint support."""
+    return self._expand_indices(joint_ids, self.joint_qpos_widths, self.q_offsets)
+
+  def expand_to_v_indices(
+    self, joint_ids: torch.Tensor | Sequence[int] | slice | None
+  ) -> torch.Tensor | slice:
+    """Expand joint IDs to qvel indices for ball joint support."""
+    return self._expand_indices(joint_ids, self.joint_dof_widths, self.v_offsets)
+
+  def _expand_indices(
+    self,
+    joint_ids: torch.Tensor | Sequence[int] | slice | None,
+    widths: torch.Tensor,
+    offsets: torch.Tensor,
+  ) -> torch.Tensor | slice:
+    """Expand joint IDs to DOF indices using tensor operations."""
+    if joint_ids is None:
+      return slice(None)
+
+    device = widths.device
+    if isinstance(joint_ids, slice):
+      start = joint_ids.start or 0
+      stop = joint_ids.stop or len(widths)
+      joint_ids = torch.arange(start, stop, device=device)
+    elif not isinstance(joint_ids, torch.Tensor):
+      joint_ids = torch.tensor(joint_ids, dtype=torch.long, device=device)
+
+    selected_widths = widths[joint_ids]
+    selected_offsets = offsets[joint_ids]
+
+    # Expand using repeat_interleave: starts + local_offsets
+    repeated_offsets = selected_offsets.repeat_interleave(selected_widths)
+    total = int(selected_widths.sum().item())
+    cumwidths = torch.zeros_like(selected_widths)
+    cumwidths[1:] = selected_widths[:-1].cumsum(0)
+    local_offsets = torch.arange(total, device=device) - cumwidths.repeat_interleave(
+      selected_widths
+    )
+
+    return repeated_offsets + local_offsets
 
 
 @dataclass
@@ -70,7 +123,10 @@ class EntityCfg:
     ang_vel: tuple[float, float, float] = (0.0, 0.0, 0.0)
     # Articulation (only for articulated entities).
     # Set to None to use the model's existing keyframe (errors if none exists).
-    joint_pos: dict[str, float] | None = field(default_factory=lambda: {".*": 0.0})
+    # Ball joints use tuple of 4 floats for quaternion (w, x, y, z).
+    joint_pos: dict[str, float | tuple[float, ...]] | None = field(
+      default_factory=lambda: {".*": 0.0}
+    )
     joint_vel: dict[str, float] = field(default_factory=lambda: {".*": 0.0})
 
   init_state: InitialStateCfg = field(default_factory=InitialStateCfg)
@@ -207,21 +263,37 @@ class Entity:
         self.root_body.quat[:] = self.cfg.init_state.rot
       return
 
-    qpos_components = []
+    qpos_components: list[tuple[float, ...]] = []
 
     if self._free_joint is not None:
       qpos_components.extend([self.cfg.init_state.pos, self.cfg.init_state.rot])
 
     joint_pos = None
     if self._non_free_joints:
-      joint_pos = resolve_expr(self.cfg.init_state.joint_pos, self.joint_names, 0.0)
+      # Per-joint widths and defaults (ball: 4 qpos, hinge/slide: 1).
+      widths = tuple(qpos_width(j.type) for j in self._non_free_joints)
+      defaults = tuple(
+        (1.0, 0.0, 0.0, 0.0) if j.type == mujoco.mjtJoint.mjJNT_BALL else (0.0,)
+        for j in self._non_free_joints
+      )
+      joint_pos = resolve_expr_with_widths(
+        self.cfg.init_state.joint_pos, self.joint_names, widths, defaults
+      )
       qpos_components.append(joint_pos)
 
     key_qpos = np.hstack(qpos_components) if qpos_components else np.array([])
     key = self._spec.add_key(name="init_state", qpos=key_qpos.tolist())
 
     if self.is_actuated and joint_pos is not None:
-      name_to_pos = {name: joint_pos[i] for i, name in enumerate(self.joint_names)}
+      # Map joint names to position values for ctrl (skip ball joints).
+      joint_q_offset = 0
+      name_to_pos: dict[str, float] = {}
+      for j, name in zip(self._non_free_joints, self.joint_names, strict=True):
+        width = qpos_width(j.type)
+        if width == 1:
+          name_to_pos[name] = joint_pos[joint_q_offset]
+        joint_q_offset += width
+
       ctrl = []
       for act in self._spec.actuators:
         joint_name = act.target
@@ -317,6 +389,20 @@ class Entity:
   @property
   def num_joints(self) -> int:
     return len(self.joint_names)
+
+  @property
+  def nq(self) -> int:
+    """Total qpos dimension (excludes free joint). Accounts for ball joints (4 qpos)."""
+    if hasattr(self, "indexing"):
+      return self.indexing.nq
+    return sum(qpos_width(j.type) for j in self._non_free_joints)
+
+  @property
+  def nv(self) -> int:
+    """Total dof dimension (excludes free joint). Accounts for ball joints (3 dof)."""
+    if hasattr(self, "indexing"):
+      return self.indexing.nv
+    return sum(dof_width(j.type) for j in self._non_free_joints)
 
   @property
   def num_bodies(self) -> int:
@@ -524,6 +610,13 @@ class Entity:
 
     # Joint state.
     if self.is_articulated:
+      # Use indexing tensors for widths; build defaults based on joint types.
+      qpos_widths = tuple(indexing.joint_qpos_widths.tolist())
+      dof_widths_tuple = tuple(indexing.joint_dof_widths.tolist())
+      is_ball = (indexing.joint_types == int(mujoco.mjtJoint.mjJNT_BALL)).tolist()
+      qpos_defaults = tuple((1.0, 0.0, 0.0, 0.0) if b else (0.0,) for b in is_ball)
+      vel_defaults = tuple((0.0, 0.0, 0.0) if b else (0.0,) for b in is_ball)
+
       if self.cfg.init_state.joint_pos is None:
         # Use keyframe joint positions.
         key_qpos = mj_model.key("init_state").qpos
@@ -533,19 +626,40 @@ class Entity:
         ].repeat(nworld, 1)
       else:
         default_joint_pos = torch.tensor(
-          resolve_expr(self.cfg.init_state.joint_pos, self.joint_names, 0.0),
+          resolve_expr_with_widths(
+            self.cfg.init_state.joint_pos,
+            self.joint_names,
+            qpos_widths,
+            qpos_defaults,
+          ),
           device=device,
         )[None].repeat(nworld, 1)
       default_joint_vel = torch.tensor(
-        resolve_expr(self.cfg.init_state.joint_vel, self.joint_names, 0.0),
+        resolve_expr_with_widths(
+          self.cfg.init_state.joint_vel,
+          self.joint_names,
+          dof_widths_tuple,
+          vel_defaults,
+        ),
         device=device,
       )[None].repeat(nworld, 1)
 
-      # Joint limits.
+      # Joint limits: hinge/slide have real limits, ball joints don't.
+      # MuJoCo joint types: free=0, ball=1, slide=2, hinge=3.
       joint_ids_global = torch.tensor(
         [j.id for j in self._non_free_joints], device=device
       )
-      dof_limits = model.jnt_range[:, joint_ids_global]
+      dof_limits = model.jnt_range[:, joint_ids_global]  # (1, num_joints, 2)
+      has_real_limits = indexing.joint_types >= 2  # slide=2, hinge=3
+      ball_mask = ~has_real_limits
+      if ball_mask.any():
+        # Ball joints: substitute with large range since they have no position limits.
+        large_range = 1e6
+        dof_limits = dof_limits.clone()
+        dof_limits[:, ball_mask, :] = torch.tensor(
+          [[-large_range, large_range]], device=device
+        )
+
       default_joint_pos_limits = dof_limits.clone()
       joint_pos_limits = default_joint_pos_limits.clone()
       joint_pos_mean = (joint_pos_limits[..., 0] + joint_pos_limits[..., 1]) / 2
@@ -577,14 +691,15 @@ class Entity:
       )
 
     if self.is_actuated:
+      # Use nq for position targets, nv for velocity/effort targets.
       joint_pos_target = torch.zeros(
-        (nworld, self.num_joints), dtype=torch.float, device=device
+        (nworld, indexing.nq), dtype=torch.float, device=device
       )
       joint_vel_target = torch.zeros(
-        (nworld, self.num_joints), dtype=torch.float, device=device
+        (nworld, indexing.nv), dtype=torch.float, device=device
       )
       joint_effort_target = torch.zeros(
-        (nworld, self.num_joints), dtype=torch.float, device=device
+        (nworld, indexing.nv), dtype=torch.float, device=device
       )
     else:
       joint_pos_target = torch.empty(nworld, 0, dtype=torch.float, device=device)
@@ -618,10 +733,10 @@ class Entity:
       site_effort_target = torch.empty(nworld, 0, dtype=torch.float, device=device)
 
     # Encoder bias for simulating encoder calibration errors.
-    # Shape: (num_envs, num_joints). Defaults to zero (no bias).
+    # Shape: (num_envs, nq). Defaults to zero (no bias).
     if self.is_articulated:
       encoder_bias = torch.zeros(
-        (nworld, self.num_joints), dtype=torch.float, device=device
+        (nworld, indexing.nq), dtype=torch.float, device=device
       )
     else:
       encoder_bias = torch.empty(nworld, 0, dtype=torch.float, device=device)
@@ -815,15 +930,15 @@ class Entity:
     """Set joint position targets.
 
     Args:
-      position: Target joint poisitions with shape (N, num_joints).
+      position: Target joint positions with shape (N, nq) or (N, selected_nq).
+        For ball joints, this should include all 4 quaternion values per joint.
       joint_ids: Optional joint indices to set. If None, set all joints.
       env_ids: Optional environment indices. If None, set all environments.
     """
     if env_ids is None:
       env_ids = slice(None)
-    if joint_ids is None:
-      joint_ids = slice(None)
-    self._data.joint_pos_target[env_ids, joint_ids] = position
+    q_indices = self.indexing.expand_to_q_indices(joint_ids)
+    self._data.joint_pos_target[env_ids, q_indices] = position
 
   def set_joint_velocity_target(
     self,
@@ -834,15 +949,15 @@ class Entity:
     """Set joint velocity targets.
 
     Args:
-      velocity: Target joint velocities with shape (N, num_joints).
+      velocity: Target joint velocities with shape (N, nv) or (N, selected_nv).
+        For ball joints, this should include all 3 angular velocity values per joint.
       joint_ids: Optional joint indices to set. If None, set all joints.
       env_ids: Optional environment indices. If None, set all environments.
     """
     if env_ids is None:
       env_ids = slice(None)
-    if joint_ids is None:
-      joint_ids = slice(None)
-    self._data.joint_vel_target[env_ids, joint_ids] = velocity
+    v_indices = self.indexing.expand_to_v_indices(joint_ids)
+    self._data.joint_vel_target[env_ids, v_indices] = velocity
 
   def set_joint_effort_target(
     self,
@@ -853,15 +968,15 @@ class Entity:
     """Set joint effort targets.
 
     Args:
-      effort: Target joint efforts with shape (N, num_joints).
+      effort: Target joint efforts with shape (N, nv) or (N, selected_nv).
+        For ball joints, this should include all 3 torque values per joint.
       joint_ids: Optional joint indices to set. If None, set all joints.
       env_ids: Optional environment indices. If None, set all environments.
     """
     if env_ids is None:
       env_ids = slice(None)
-    if joint_ids is None:
-      joint_ids = slice(None)
-    self._data.joint_effort_target[env_ids, joint_ids] = effort
+    v_indices = self.indexing.expand_to_v_indices(joint_ids)
+    self._data.joint_effort_target[env_ids, v_indices] = effort
 
   def set_tendon_len_target(
     self,
@@ -1013,6 +1128,11 @@ class Entity:
     joint_v_adr = []
     free_joint_q_adr = []
     free_joint_v_adr = []
+
+    # Per-joint dimension tracking for ball joint support.
+    joint_qpos_widths_list: list[int] = []
+    joint_dof_widths_list: list[int] = []
+    joint_types_list: list[int] = []
     for joint in self.spec.joints:
       jnt = model.joint(joint.name)
       jnt_type = jnt.type[0]
@@ -1022,12 +1142,38 @@ class Entity:
         free_joint_v_adr.extend(range(vadr, vadr + 6))
         free_joint_q_adr.extend(range(qadr, qadr + 7))
       else:
-        joint_v_adr.extend(range(vadr, vadr + dof_width(jnt_type)))
-        joint_q_adr.extend(range(qadr, qadr + qpos_width(jnt_type)))
+        qw = qpos_width(jnt_type)
+        dw = dof_width(jnt_type)
+        joint_v_adr.extend(range(vadr, vadr + dw))
+        joint_q_adr.extend(range(qadr, qadr + qw))
+
+        # Track per-joint dimensions.
+        joint_types_list.append(jnt_type)
+        joint_qpos_widths_list.append(qw)
+        joint_dof_widths_list.append(dw)
+
     joint_q_adr = torch.tensor(joint_q_adr, dtype=torch.int, device=device)
     joint_v_adr = torch.tensor(joint_v_adr, dtype=torch.int, device=device)
     free_joint_v_adr = torch.tensor(free_joint_v_adr, dtype=torch.int, device=device)
     free_joint_q_adr = torch.tensor(free_joint_q_adr, dtype=torch.int, device=device)
+
+    # Convert per-joint tracking lists to tensors.
+    joint_qpos_widths = torch.tensor(
+      joint_qpos_widths_list, dtype=torch.int, device=device
+    )
+    joint_dof_widths = torch.tensor(
+      joint_dof_widths_list, dtype=torch.int, device=device
+    )
+    joint_types = torch.tensor(joint_types_list, dtype=torch.int, device=device)
+
+    # Compute cumulative offsets for tensor-based index expansion.
+    q_offsets = torch.zeros_like(joint_qpos_widths)
+    v_offsets = torch.zeros_like(joint_dof_widths)
+    if len(joint_qpos_widths) > 0:
+      q_offsets[1:] = joint_qpos_widths[:-1].cumsum(0)
+      v_offsets[1:] = joint_dof_widths[:-1].cumsum(0)
+    nq = int(joint_qpos_widths.sum().item()) if len(joint_qpos_widths) > 0 else 0
+    nv = int(joint_dof_widths.sum().item()) if len(joint_dof_widths) > 0 else 0
 
     if self.is_fixed_base and self.is_mocap:
       mocap_id = int(model.body_mocapid[self.root_body.id])
@@ -1058,6 +1204,13 @@ class Entity:
       joint_v_adr=joint_v_adr,
       free_joint_q_adr=free_joint_q_adr,
       free_joint_v_adr=free_joint_v_adr,
+      joint_qpos_widths=joint_qpos_widths,
+      joint_dof_widths=joint_dof_widths,
+      joint_types=joint_types,
+      q_offsets=q_offsets,
+      v_offsets=v_offsets,
+      nq=nq,
+      nv=nv,
     )
 
   def _apply_actuator_controls(self) -> None:

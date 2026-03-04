@@ -9,6 +9,7 @@ import torch
 from mjlab.entity import Entity
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import BuiltinSensor, RayCastSensor
+from mjlab.utils.lab_api.math import quat_box_minus
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
@@ -53,12 +54,74 @@ def joint_pos_rel(
   biased: bool = False,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> torch.Tensor:
+  """Compute relative joint positions (current - default) in DOF space.
+
+  For hinge/slide joints: returns scalar difference.
+  For ball joints: returns 3D axis-angle difference via quat_box_minus.
+
+  Returns:
+    Tensor of shape (num_envs, total_dof) for selected joints.
+  """
   asset: Entity = env.scene[asset_cfg.name]
   default_joint_pos = asset.data.default_joint_pos
   assert default_joint_pos is not None
-  jnt_ids = asset_cfg.joint_ids
   joint_pos = asset.data.joint_pos_biased if biased else asset.data.joint_pos
-  return joint_pos[:, jnt_ids] - default_joint_pos[:, jnt_ids]
+
+  # Hinge-only entities (nq == nv means no ball joints).
+  if asset.nq == asset.nv:
+    q_indices = asset.indexing.expand_to_q_indices(asset_cfg.joint_ids)
+    return joint_pos[:, q_indices] - default_joint_pos[:, q_indices]
+
+  # Ball joints.
+  joint_ids = asset_cfg.joint_ids
+  if isinstance(joint_ids, slice):
+    joint_ids_tensor = torch.arange(asset.num_joints, device=joint_pos.device)
+  elif isinstance(joint_ids, list):
+    joint_ids_tensor = torch.tensor(joint_ids, device=joint_pos.device)
+  else:
+    joint_ids_tensor = joint_ids
+
+  qpos_widths = asset.indexing.joint_qpos_widths[joint_ids_tensor]
+  dof_widths = asset.indexing.joint_dof_widths[joint_ids_tensor]
+  q_offsets = asset.indexing.q_offsets[joint_ids_tensor]
+
+  num_envs = joint_pos.shape[0]
+  device = joint_pos.device
+
+  is_ball_joint = (qpos_widths == 4) & (dof_widths == 3)
+  dof_cumsum = torch.cat(
+    [torch.zeros(1, device=device, dtype=dof_widths.dtype), dof_widths.cumsum(0)[:-1]]
+  )
+  total_dof = int(dof_widths.sum().item())
+  result = torch.zeros((num_envs, total_dof), device=device, dtype=joint_pos.dtype)
+
+  # Ball joints: quaternion difference via quat_box_minus.
+  if is_ball_joint.any():
+    ball_q_offsets = q_offsets[is_ball_joint]
+    ball_out_offsets = dof_cumsum[is_ball_joint]
+
+    ball_q_indices = ball_q_offsets.unsqueeze(1) + torch.arange(4, device=device)
+    current_quats = joint_pos[:, ball_q_indices.flatten()].view(num_envs, -1, 4)
+    default_quats = default_joint_pos[:, ball_q_indices.flatten()].view(num_envs, -1, 4)
+
+    num_ball = current_quats.shape[1]
+    diff_flat = quat_box_minus(
+      current_quats.reshape(-1, 4), default_quats.reshape(-1, 4)
+    )
+    diff = diff_flat.view(num_envs, num_ball, 3)
+
+    ball_out_indices = ball_out_offsets.unsqueeze(1) + torch.arange(3, device=device)
+    result[:, ball_out_indices.flatten()] = diff.reshape(num_envs, -1)
+
+  # Hinge joints: scalar subtraction.
+  is_hinge_joint = ~is_ball_joint
+  if is_hinge_joint.any():
+    hinge_q_offsets = q_offsets[is_hinge_joint]
+    hinge_out_offsets = dof_cumsum[is_hinge_joint]
+    diff_hinge = joint_pos[:, hinge_q_offsets] - default_joint_pos[:, hinge_q_offsets]
+    result[:, hinge_out_offsets] = diff_hinge
+
+  return result
 
 
 def joint_vel_rel(
@@ -68,8 +131,8 @@ def joint_vel_rel(
   asset: Entity = env.scene[asset_cfg.name]
   default_joint_vel = asset.data.default_joint_vel
   assert default_joint_vel is not None
-  jnt_ids = asset_cfg.joint_ids
-  return asset.data.joint_vel[:, jnt_ids] - default_joint_vel[:, jnt_ids]
+  v_indices = asset.indexing.expand_to_v_indices(asset_cfg.joint_ids)
+  return asset.data.joint_vel[:, v_indices] - default_joint_vel[:, v_indices]
 
 
 ##
