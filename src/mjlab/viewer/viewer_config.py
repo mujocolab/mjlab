@@ -13,14 +13,17 @@ class ViewerConfig:
   class OriginType(enum.Enum):
     """The frame in which the camera position and target are defined."""
 
+    AUTO = enum.auto()
+    """Track the first non-fixed body, or fall back to a free camera."""
     WORLD = enum.auto()
-    """The origin of the world."""
+    """Free camera at the configured lookat point."""
     ASSET_ROOT = enum.auto()
-    """The center of the asset defined by entity_name."""
+    """Track the root body of the asset defined by entity_name."""
     ASSET_BODY = enum.auto()
-    """The center of the body defined by body_name in asset defined by entity_name."""
+    """Track the body defined by body_name in the asset defined by
+    entity_name."""
 
-  origin_type: OriginType = OriginType.WORLD
+  origin_type: OriginType = OriginType.AUTO
   entity_name: str | None = None
   body_name: str | None = None
   env_idx: int = 0

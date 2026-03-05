@@ -502,8 +502,10 @@ class NativeMujocoViewer(BaseViewer):
       self._set_camera_auto_track()
       return
 
-    if self.cfg.origin_type == self.cfg.OriginType.WORLD:
+    if self.cfg.origin_type == self.cfg.OriginType.AUTO:
       self._set_camera_auto_track()
+    elif self.cfg.origin_type == self.cfg.OriginType.WORLD:
+      self._set_camera_world()
     elif self.cfg.origin_type == self.cfg.OriginType.ASSET_ROOT:
       self._set_camera_asset_root()
     else:  # ASSET_BODY

@@ -24,7 +24,10 @@ class OffscreenRenderer:
 
     self._model.vis.global_.offheight = cfg.height
     self._model.vis.global_.offwidth = cfg.width
-    if cfg.fovy is not None and cfg.origin_type == cfg.OriginType.WORLD:
+    if cfg.fovy is not None and cfg.origin_type in (
+      cfg.OriginType.AUTO,
+      cfg.OriginType.WORLD,
+    ):
       self._model.vis.global_.fovy = cfg.fovy
 
     if not cfg.enable_shadows:
@@ -136,7 +139,10 @@ class OffscreenRenderer:
     camera = mujoco.MjvCamera()
     mujoco.mjv_defaultFreeCamera(self._model, camera)
 
-    if self._cfg.origin_type == self._cfg.OriginType.WORLD:
+    if self._cfg.origin_type in (
+      self._cfg.OriginType.AUTO,
+      self._cfg.OriginType.WORLD,
+    ):
       # Free camera, no tracking.
       camera.type = mujoco.mjtCamera.mjCAMERA_FREE.value
       camera.fixedcamid = -1

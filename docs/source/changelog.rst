@@ -123,6 +123,10 @@ Changed
   arrows for any nonzero applied forces. Mouse perturbation forces are
   converted to ``qfrc_applied`` (generalized joint space) so they coexist
   with programmatic forces on ``xfrc_applied`` without conflict.
+- ``ViewerConfig.OriginType.WORLD`` now configures a free camera at the
+  specified lookat point instead of auto tracking a body. A new ``AUTO``
+  origin type (now the default) preserves the previous auto tracking
+  behavior.
 - Reorganized the Viser Controls tab into a cleaner folder hierarchy:
   Info, Simulation, Commands, Scene (with Environment, Camera, Debug Viz,
   Contacts sub-folders), and Camera Feeds. The Environment folder is
