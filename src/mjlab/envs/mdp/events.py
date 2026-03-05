@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import torch
@@ -9,6 +10,7 @@ import torch
 from mjlab.entity import Entity
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.utils.lab_api.math import (
+  quat_apply,
   quat_from_euler_xyz,
   quat_mul,
   sample_uniform,
@@ -16,6 +18,7 @@ from mjlab.utils.lab_api.math import (
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
+  from mjlab.viewer.debug_visualizer import DebugVisualizer
 
 _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
 
@@ -351,3 +354,225 @@ def apply_external_force_torque(
   asset.write_external_wrench_to_sim(
     forces, torques, env_ids=env_ids, body_ids=asset_cfg.body_ids
   )
+
+
+class apply_body_impulse:
+  """Apply random impulses to bodies for a sampled duration.
+
+  Simulates transient external disturbances such as bumps, wind gusts, or
+  collisions with unseen objects. A constant force/torque wrench is applied
+  to one or more bodies for a randomly sampled duration, followed by a
+  cooldown period of silence before the next impulse.
+
+  **Lifecycle of a single impulse:**
+
+  1. **Cooldown.** The event is idle for a random duration sampled from ``cooldown_s``.
+    No force is applied.
+  2. **Trigger.** A force vector is sampled uniformly per component from ``force_range``
+    and written to ``xfrc_applied`` on the selected bodies.
+  3. **Sustain.** The force is held constant for a random duration sampled from
+    ``duration_s``.
+  4. **Expire.** The force is zeroed and the cooldown restarts at step 1.
+
+  Each environment runs its own independent timer so impulses are decorrelated across
+  the batch.
+
+  **Application point.** By default, forces act at each body's center of mass.
+  ``body_point_offset`` shifts the application point in the body's local frame, for
+  example ``(0, 0, 0.1)`` for 10 cm above the CoM. The offset produces additional
+  torque via the cross product ``offset x force``, causing the body to tip rather than
+  just translate. This is analogous to choosing where on the body an external push is
+  applied.
+
+  Use with ``mode="step"``.
+  """
+
+  @dataclass
+  class VizCfg:
+    """Arrow visualization settings for active impulse forces."""
+
+    rgba: tuple[float, float, float, float] = (0.9, 0.2, 0.8, 0.9)
+    """Arrow color (RGBA)."""
+    scale: float = 0.005
+    """Arrow length in meters per Newton of force."""
+    width: float = 0.015
+    """Arrow shaft width in meters."""
+    min_force: float = 1.0
+    """Minimum force magnitude (N) below which arrows are hidden."""
+
+  def __init__(self, cfg, env: ManagerBasedRlEnv):
+    self._asset: Entity = env.scene[cfg.params["asset_cfg"].name]
+    self._body_ids = cfg.params["asset_cfg"].body_ids
+    self._num_envs = env.num_envs
+    self._device = env.device
+    self._step_dt = env.step_dt
+    self._viz_cfg: apply_body_impulse.VizCfg = cfg.params.get(
+      "viz_cfg", apply_body_impulse.VizCfg()
+    )
+    offset = cfg.params.get("body_point_offset", None)
+    self._body_point_offset: torch.Tensor | None = (
+      torch.tensor(offset, device=self._device, dtype=torch.float32)
+      if offset is not None
+      else None
+    )
+
+    self._num_bodies = (
+      len(self._body_ids)
+      if isinstance(self._body_ids, list)
+      else self._asset.num_bodies
+    )
+
+    self._time_remaining = torch.zeros(self._num_envs, device=self._device)
+    self._interval_time_left = torch.zeros(self._num_envs, device=self._device)
+    self._active = torch.zeros(self._num_envs, device=self._device, dtype=torch.bool)
+
+  def __call__(
+    self,
+    env: ManagerBasedRlEnv,
+    env_ids: torch.Tensor | None,
+    force_range: tuple[float, float],
+    torque_range: tuple[float, float],
+    duration_s: tuple[float, float],
+    cooldown_s: tuple[float, float],
+    asset_cfg: SceneEntityCfg,
+    body_point_offset: tuple[float, float, float] | None = None,
+  ) -> None:
+    """Tick impulse state: expire old impulses, trigger new ones.
+
+    Args:
+      env: The environment instance.
+      env_ids: Unused (step events always operate on all envs).
+      force_range: ``(min, max)`` uniform range for each force component (N).
+      torque_range: ``(min, max)`` uniform range for each torque component (Nm).
+      duration_s: ``(min, max)`` uniform range for impulse duration in seconds.
+      cooldown_s: ``(min, max)`` uniform range for the cooldown between consecutive
+        impulses in seconds.
+      asset_cfg: Entity and body selection. ``body_ids`` on the config selects which
+        bodies receive forces.
+      body_point_offset: Optional ``(x, y, z)`` offset in the body frame where the
+        force is applied. Generates additional torque via ``cross(offset, force)``.
+    """
+    del env, env_ids, asset_cfg  # Unused.
+    dt = self._step_dt
+
+    # Decrement timers for active envs.
+    self._time_remaining[self._active] -= dt
+
+    # Clear expired impulses and resample their interval timers.
+    expired = self._active & (self._time_remaining <= 0)
+    if expired.any():
+      expired_ids = expired.nonzero(as_tuple=False).squeeze(-1)
+      zeros = torch.zeros((len(expired_ids), self._num_bodies, 3), device=self._device)
+      self._asset.write_external_wrench_to_sim(
+        zeros, zeros, env_ids=expired_ids, body_ids=self._body_ids
+      )
+      self._active[expired_ids] = False
+      self._time_remaining[expired_ids] = 0.0
+      int_low, int_high = cooldown_s
+      self._interval_time_left[expired_ids] = (
+        torch.rand(len(expired_ids), device=self._device) * (int_high - int_low)
+        + int_low
+      )
+
+    # Decrement interval timers.
+    self._interval_time_left -= dt
+
+    # Trigger new impulses for eligible envs.
+    eligible = (~self._active) & (self._interval_time_left <= 0)
+    if not eligible.any():
+      return
+
+    trigger_ids = eligible.nonzero(as_tuple=False).squeeze(-1)
+    n = len(trigger_ids)
+
+    # Sample forces and torques.
+    size = (n, self._num_bodies, 3)
+    forces = sample_uniform(*force_range, size, self._device)
+    torques = sample_uniform(*torque_range, size, self._device)
+
+    # Adjust torque for off-CoM application point.
+    if body_point_offset is not None:
+      offset_local = torch.tensor(
+        body_point_offset, device=self._device, dtype=torch.float32
+      )
+      body_quat = self._asset.data.body_com_quat_w[trigger_ids][:, self._body_ids]
+      # Rotate offset into world frame: (n, num_bodies, 3).
+      offset_w = quat_apply(
+        body_quat.reshape(-1, 4), offset_local.expand(n * self._num_bodies, 3)
+      ).reshape(n, self._num_bodies, 3)
+      torques = torques + torch.cross(offset_w, forces, dim=-1)
+
+    self._asset.write_external_wrench_to_sim(
+      forces, torques, env_ids=trigger_ids, body_ids=self._body_ids
+    )
+
+    # Sample duration and set timers.
+    dur_low, dur_high = duration_s
+    self._time_remaining[trigger_ids] = (
+      torch.rand(n, device=self._device) * (dur_high - dur_low) + dur_low
+    )
+    self._active[trigger_ids] = True
+
+    # Resample interval timers.
+    int_low, int_high = cooldown_s
+    self._interval_time_left[trigger_ids] = (
+      torch.rand(n, device=self._device) * (int_high - int_low) + int_low
+    )
+
+  def debug_vis(self, visualizer: DebugVisualizer) -> None:
+    """Draw arrows for active impulse forces."""
+    if not self._active.any():
+      return
+    viz = self._viz_cfg
+    min_sq = viz.min_force * viz.min_force
+    wrench = self._asset.data.body_external_wrench  # (nworld, nbody, 6)
+    com_pos = self._asset.data.body_com_pos_w  # (nworld, nbody, 3)
+    offset = self._body_point_offset
+    com_quat = self._asset.data.body_com_quat_w if offset is not None else None
+    for env_idx in visualizer.get_env_indices(self._num_envs):
+      if not self._active[env_idx]:
+        continue
+      for i in range(wrench.shape[1]):
+        force = wrench[env_idx, i, :3]
+        if (force * force).sum().item() < min_sq:
+          continue
+        force_np = force.cpu().numpy()
+        start_np = com_pos[env_idx, i].cpu().numpy()
+        if offset is not None and com_quat is not None:
+          offset_w = quat_apply(com_quat[env_idx, i], offset)
+          start_np = start_np + offset_w.cpu().numpy()
+        end_np = start_np + force_np * viz.scale
+        visualizer.add_arrow(
+          start=start_np,
+          end=end_np,
+          color=viz.rgba,
+          width=viz.width,
+        )
+
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
+    if env_ids is None:
+      env_ids = slice(None)
+
+    # Clear forces for reset envs.
+    if isinstance(env_ids, slice):
+      reset_ids = env_ids
+    else:
+      reset_ids = env_ids
+
+    if self._active[reset_ids].any():
+      if isinstance(env_ids, slice):
+        active_ids = self._active.nonzero(as_tuple=False).squeeze(-1)
+      else:
+        active_ids = env_ids[self._active[env_ids]]
+      if len(active_ids) > 0:
+        zeros = torch.zeros(
+          (len(active_ids), self._num_bodies, 3),
+          device=self._device,
+        )
+        self._asset.write_external_wrench_to_sim(
+          zeros, zeros, env_ids=active_ids, body_ids=self._body_ids
+        )
+
+    self._time_remaining[reset_ids] = 0.0
+    self._interval_time_left[reset_ids] = 0.0
+    self._active[reset_ids] = False

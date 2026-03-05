@@ -17,6 +17,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``"step"`` event mode that fires every environment step.
+- Added ``apply_body_impulse`` event for applying transient external wrenches
+  to bodies with configurable duration and optional application point offset.
 - ONNX auto-export and metadata attachment for manipulation tasks (lift cube)
   on every checkpoint save, matching the velocity and tracking task behavior.
 - Cloud training support via `SkyPilot <https://skypilot.readthedocs.io/>`_
@@ -116,6 +119,10 @@ Added
 Changed
 ^^^^^^^
 
+- Native viewer now syncs ``xfrc_applied`` to the render buffer and draws
+  arrows for any nonzero applied forces. Mouse perturbation forces are
+  converted to ``qfrc_applied`` (generalized joint space) so they coexist
+  with programmatic forces on ``xfrc_applied`` without conflict.
 - Reorganized the Viser Controls tab into a cleaner folder hierarchy:
   Info, Simulation, Commands, Scene (with Environment, Camera, Debug Viz,
   Contacts sub-folders), and Camera Feeds. The Environment folder is
