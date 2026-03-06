@@ -169,6 +169,7 @@ def create_position_actuator(
   actuator.biasprm[2] = -damping
 
   # Limits.
+  actuator.inheritrange = 0.0
   actuator.ctrllimited = False
   # No ctrlrange needed, but provide the max theoretical range anyway.
   if effort_limit is not None:
