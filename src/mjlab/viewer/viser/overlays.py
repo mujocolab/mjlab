@@ -54,7 +54,9 @@ class ViserTermOverlays:
             self.scene.env_idx
           )
         ]
-        self.reward_plotter = ViserTermPlotter(self.server, term_names, name="Reward")
+        self.reward_plotter = ViserTermPlotter(
+          self.server, term_names, name="Reward", env_idx=self.scene.env_idx
+        )
 
     if hasattr(self.env.unwrapped, "metrics_manager"):
       term_names = [
@@ -66,15 +68,18 @@ class ViserTermOverlays:
       if term_names:
         with tabs.add_tab("Metrics", icon=viser.Icon.CHART_BAR):
           self.metrics_plotter = ViserTermPlotter(
-            self.server, term_names, name="Metric"
+            self.server, term_names, name="Metric", env_idx=self.scene.env_idx
           )
 
   def on_env_switch(self) -> None:
     """Clear histories when active environment changes."""
+    env_idx = self.scene.env_idx
     if self.reward_plotter:
       self.reward_plotter.clear_histories()
+      self.reward_plotter.update_env_idx(env_idx)
     if self.metrics_plotter:
       self.metrics_plotter.clear_histories()
+      self.metrics_plotter.update_env_idx(env_idx)
 
   def update(self, paused: bool) -> None:
     """Update term plots from the selected environment."""

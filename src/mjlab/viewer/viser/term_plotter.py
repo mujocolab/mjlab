@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 from collections import deque
 from dataclasses import dataclass, field
 
@@ -30,33 +29,6 @@ def _color_for(index: int) -> str:
   return _PALETTE[index % len(_PALETTE)]
 
 
-def _group_terms(names: list[str], min_group: int = 2) -> dict[str, list[str]]:
-  """Group term names by longest common prefix (split on ``_``).
-
-  Terms that don't share a prefix with at least ``min_group - 1`` others
-  are placed in an "other" bucket.
-
-  Returns:
-    Ordered dict of ``{group_label: [term_names]}``.
-  """
-  prefix_map: dict[str, list[str]] = {}
-  for name in names:
-    parts = name.split("_")
-    prefix = parts[0] if parts else name
-    prefix_map.setdefault(prefix, []).append(name)
-
-  groups: dict[str, list[str]] = {}
-  other: list[str] = []
-  for prefix, members in sorted(prefix_map.items()):
-    if len(members) >= min_group:
-      groups[prefix] = sorted(members)
-    else:
-      other.extend(members)
-  if other:
-    groups["other"] = sorted(other)
-  return groups
-
-
 @dataclass
 class _TermState:
   """Mutable state for a single term."""
@@ -77,6 +49,7 @@ class ViserTermPlotter:
     term_names: list[str],
     name: str = "Reward",
     history_length: int = 150,
+    env_idx: int = 0,
   ) -> None:
     """Initialize the plotter.
 
@@ -85,6 +58,7 @@ class ViserTermPlotter:
       term_names: List of term names to plot
       name: Name prefix for the plots (e.g. "Reward" or "Metric")
       history_length: Number of points to keep in history
+      env_idx: Index of the environment being displayed
     """
     self._server = server
     self._name = name
@@ -107,55 +81,82 @@ class ViserTermPlotter:
 
     self._empty = np.array([], dtype=np.float64)
 
+    self._env_idx = env_idx
+
     # Build all GUI elements.
     self._build_selector_gui(term_names)
     self._plots_folder = self._server.gui.add_folder("Plots", expand_by_default=True)
 
   def _build_selector_gui(self, term_names: list[str]) -> None:
-    """Build grouped checkboxes for term selection."""
+    """Build flat checkboxes with a filter input for term selection."""
     with self._server.gui.add_folder("Select terms", expand_by_default=True):
+      self._env_label = self._server.gui.add_markdown(self._env_label_text())
+
+      # Filter input.
+      self._filter_input = self._server.gui.add_text(
+        "Filter",
+        initial_value="",
+        hint="Term name must contain this string",
+      )
+
+      @self._filter_input.on_update
+      def _(_) -> None:
+        filter_str = self._filter_input.value.lower()
+        for tname, state in self._terms.items():
+          cb = self._checkboxes[tname]
+          visible = filter_str in tname.lower()
+          cb.visible = visible
+          if not visible:
+            if state.plot is not None:
+              state.plot.remove()
+              state.plot = None
+          elif state.enabled and state.plot is None:
+            self._create_plot(state)
+
       # Bulk actions.
-      bulk = self._server.gui.add_button_group("Bulk", options=["All", "None"])
+      bulk = self._server.gui.add_button_group("Select", options=["All", "None"])
 
       @bulk.on_click
       def _(event) -> None:
         enable = event.target.value == "All"
         for tname, state in self._terms.items():
-          state.enabled = enable
-          self._checkboxes[tname].value = enable
+          cb = self._checkboxes[tname]
+          if cb.visible:
+            state.enabled = enable
+            cb.value = enable
         self._sync_plots()
 
-      # Grouped checkboxes.
-      groups = _group_terms(term_names)
-      for group_label, members in groups.items():
-        use_folder = len(groups) > 1
-        ctx = (
-          self._server.gui.add_folder(group_label, expand_by_default=False)
-          if use_folder
-          else contextlib.nullcontext()
+      # Flat checkbox list.
+      for tname in term_names:
+        state = self._terms[tname]
+        cb = self._server.gui.add_checkbox(
+          tname,
+          initial_value=state.enabled,
+          hint=f"Color: {state.color}",
         )
+        self._checkboxes[tname] = cb
 
-        with ctx:
-          for tname in members:
-            state = self._terms[tname]
-            cb = self._server.gui.add_checkbox(
-              tname,
-              initial_value=state.enabled,
-              hint=f"Color: {state.color}",
-            )
-            self._checkboxes[tname] = cb
+        @cb.on_update
+        def _(event, _tname=tname) -> None:
+          self._terms[_tname].enabled = event.target.value
+          self._sync_plots()
 
-            @cb.on_update
-            def _(event, _tname=tname) -> None:
-              self._terms[_tname].enabled = event.target.value
-              self._sync_plots()
+  def _env_label_text(self) -> str:
+    return f"<small><em>Showing terms for environment #{self._env_idx}</em></small>"
+
+  def update_env_idx(self, env_idx: int) -> None:
+    """Update the displayed environment index."""
+    self._env_idx = env_idx
+    self._env_label.content = self._env_label_text()
 
   def _sync_plots(self) -> None:
     """Create or remove plots to match current selection."""
-    for state in self._terms.values():
-      if state.enabled and state.plot is None:
+    for tname, state in self._terms.items():
+      cb = self._checkboxes[tname]
+      should_show = state.enabled and cb.visible
+      if should_show and state.plot is None:
         self._create_plot(state)
-      elif not state.enabled and state.plot is not None:
+      elif not should_show and state.plot is not None:
         state.plot.remove()
         state.plot = None
 
