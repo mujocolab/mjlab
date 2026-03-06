@@ -173,11 +173,17 @@ def create_position_actuator(
   actuator.ctrllimited = False
   # No ctrlrange needed, but provide the max theoretical range anyway.
   if effort_limit is not None:
+    if transmission_type == TransmissionType.JOINT:
+      _range = spec.joint(joint_name).range
+    elif transmission_type == TransmissionType.TENDON:
+      _range = spec.tendon(joint_name).range
+    else:
+      _range = (0.0, 0.0)
+    delta = effort_limit / stiffness
+    actuator.ctrlrange[:] = np.array([_range[0] - delta, _range[1] + delta])
+
     actuator.forcelimited = True
     actuator.forcerange[:] = np.array([-effort_limit, effort_limit])
-    actuator.ctrlrange[:] = np.array(
-      [-effort_limit / stiffness, effort_limit / stiffness]
-    )
   else:
     actuator.forcelimited = False
     # No forcerange needed.
