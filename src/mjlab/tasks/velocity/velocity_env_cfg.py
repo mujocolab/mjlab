@@ -134,7 +134,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
   metrics = {
     "mean_action_acc": MetricsTermCfg(
       func=mdp.mean_action_acc,
-    )
+    ),
   }
 
   ##
