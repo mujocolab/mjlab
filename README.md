@@ -49,7 +49,7 @@ uv run train Mjlab-Velocity-Flat-Unitree-G1 --env.scene.num-envs 4096
 
 ```bash
 uv run train Mjlab-Velocity-Flat-Unitree-G1 \
-  --gpu-ids 0 1 \
+  --gpu-ids "[0, 1]" \
   --env.scene.num-envs 4096
 ```
 

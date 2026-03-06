@@ -16,10 +16,10 @@ Usage
 .. code-block:: bash
 
     # Single GPU (default).
-    uv run train <task-name> --gpu-ids 0
+    uv run train <task-name> --gpu-ids "[0]"
 
     # Two GPUs.
-    uv run train <task-name> --gpu-ids 0 1
+    uv run train <task-name> --gpu-ids "[0, 1]"
 
     # All available GPUs.
     uv run train <task-name> --gpu-ids all
@@ -30,7 +30,7 @@ Usage
 Key points:
 
 - GPU indices are relative to ``CUDA_VISIBLE_DEVICES`` if set. For example,
-  ``CUDA_VISIBLE_DEVICES=2,3 uv run train ... --gpu-ids 0 1`` uses physical
+  ``CUDA_VISIBLE_DEVICES=2,3 uv run train ... --gpu-ids "[0, 1]"`` uses physical
   GPUs 2 and 3.
 - Single-GPU and CPU modes run directly without torchrunx.
 
@@ -100,10 +100,10 @@ This can be customized:
 .. code-block:: bash
 
     # Disable torchrunx file logging.
-    uv run train <task-name> --gpu-ids 0 1 --torchrunx-log-dir ""
+    uv run train <task-name> --gpu-ids "[0, 1]" --torchrunx-log-dir ""
 
     # Custom log directory.
-    uv run train <task-name> --gpu-ids 0 1 --torchrunx-log-dir /path/to/logs
+    uv run train <task-name> --gpu-ids "[0, 1]" --torchrunx-log-dir /path/to/logs
 
     # Environment variable (takes precedence over the flag).
-    TORCHRUNX_LOG_DIR=/tmp/logs uv run train <task-name> --gpu-ids 0 1
+    TORCHRUNX_LOG_DIR=/tmp/logs uv run train <task-name> --gpu-ids "[0, 1]"
