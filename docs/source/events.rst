@@ -47,6 +47,18 @@ dedicated reference page. See :ref:`domain_randomization` for the full
                 "velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)},
             },
         ),
+        # Transient random impulses with duration and cooldown.
+        "impulse": EventTermCfg(
+            func=event_fns.apply_body_impulse,
+            mode="step",
+            params={
+                "force_range": (-50.0, 50.0),
+                "torque_range": (0.0, 0.0),
+                "duration_s": (0.1, 0.2),
+                "cooldown_s": (1.0, 3.0),
+                "asset_cfg": SceneEntityCfg("robot", body_names=("base",)),
+            },
+        ),
     }
 
 
@@ -54,8 +66,9 @@ Lifecycle modes
 ---------------
 
 The ``mode`` field on ``EventTermCfg`` determines when the term fires. The
-three modes correspond to the three timescales of an RL training run: once
-at process startup, once per episode, and periodically within an episode.
+four modes correspond to the timescales of an RL training run: once at
+process startup, once per episode, periodically within an episode, and on
+every environment step.
 
 ``"startup"``
     Fires once during environment initialization, after all managers are
@@ -84,6 +97,14 @@ at process startup, once per episode, and periodically within an episode.
     synchronizes all environments to a single shared timer. Interval events
     are the natural home for mid-episode perturbations such as external
     pushes or drifting model parameters.
+
+``"step"``
+    Fires on every environment step, for all environments. This mode is
+    intended for continuous effects that must be evaluated each step, such
+    as ``apply_body_impulse`` which manages its own internal duration and
+    cooldown timers. Because step events run every step, they should be
+    lightweight or manage their own activation logic internally to avoid
+    unnecessary computation.
 
 As with all manager terms, ``func`` points to the callable and ``params``
 holds keyword arguments forwarded to it alongside ``env`` and ``env_ids``.
@@ -135,6 +156,14 @@ The functions below are available in ``mjlab.envs.mdp.events``.
    * - ``apply_external_force_torque``
      - Applies random forces and torques to one or more bodies via the
        MuJoCo external wrench mechanism.
+   * - ``apply_body_impulse``
+     - Applies transient external wrenches to bodies with configurable
+       duration and cooldown. Each environment independently samples a
+       random force direction and holds it for a sampled duration, then
+       waits through a cooldown before firing again. Supports an optional
+       ``body_point_offset`` to shift the application point away from the
+       center of mass. Includes built in debug visualization that draws
+       force arrows in the viewer. Use with ``mode="step"``.
    * - ``randomize_terrain``
      - Assigns each environment to a random sub-terrain row and column,
        ignoring the curriculum. Useful for evaluation or play mode.

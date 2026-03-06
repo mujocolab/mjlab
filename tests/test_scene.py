@@ -182,14 +182,13 @@ def test_compile_scene_with_entities(scene_with_entities_cfg, device):
   assert any("robot/" in name for name in body_names)
 
 
-# TODO: Test that we can unzip and reload the scene correctly.
-def test_to_zip(minimal_scene_cfg, tmp_path, device):
+def test_write_zip(minimal_scene_cfg, tmp_path, device):
   """Test exporting scene to zip file."""
   scene = Scene(minimal_scene_cfg, device)
-  zip_path = tmp_path / "scene.zip"
+  out = tmp_path / "scene_pkg"
 
-  scene.to_zip(zip_path)
-  assert zip_path.exists()
+  scene.write(out, zip=True)
+  assert out.with_suffix(".zip").exists()
 
 
 # ============================================================================
@@ -344,9 +343,9 @@ def test_full_scene_lifecycle(robot_entity_cfg, device, tmp_path):
 
   scene.reset(env_ids=torch.tensor([0, 2]))
 
-  zip_path = tmp_path / "test_scene.zip"
-  scene.to_zip(zip_path)
-  assert zip_path.exists()
+  out = tmp_path / "test_scene_pkg"
+  scene.write(out, zip=True)
+  assert out.with_suffix(".zip").exists()
 
   for entity in scene.entities.values():
     assert entity.data is not None

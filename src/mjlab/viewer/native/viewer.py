@@ -1,4 +1,43 @@
-"""Environment viewer built on MuJoCo's passive viewer."""
+"""Environment viewer built on MuJoCo's passive viewer.
+
+Overview
+--------
+The simulation runs on the GPU via mujoco_warp, but MuJoCo's passive viewer
+requires CPU ``MjModel`` and ``MjData`` structures. Each frame, this module
+copies the GPU state for one environment into CPU buffers, calls
+``mj_forward`` to recompute kinematics and contacts, and hands the result to
+the render thread via ``v.sync()``. Contacts visible in the viewer are
+computed by C MuJoCo on the CPU, not by mujoco_warp on the GPU.
+
+The per frame sync has four steps:
+
+1. ``_sync_env_state_to_mjdata``: copy ``qpos``, ``qvel``, ``mocap``, and
+   ``xfrc_applied`` from GPU tensors into CPU ``MjData``.
+2. ``mj_forward``: recompute kinematics, collisions, and derived quantities.
+3. ``_sync_model_fields``: if domain randomization expanded visual fields
+   (geom colors, body poses, camera parameters, etc.), copy the per world
+   values from GPU ``sim.model`` into CPU ``MjModel``.
+4. ``v.sync()``: hand ``MjModel``/``MjData`` to the passive viewer's render
+   thread.
+
+For multi environment scenes, steps 1 and 2 are repeated for neighboring
+environments into a secondary ``MjData`` (``self.vd``), and their geoms are
+injected via ``mjv_addGeoms``.
+
+External force channels
+-----------------------
+MuJoCo sums two external force inputs during forward dynamics:
+
+* ``xfrc_applied``: Cartesian forces per body (GPU to CPU, for rendering).
+* ``qfrc_applied``: generalized forces per DoF (CPU to GPU, for mouse input).
+
+Programmatic forces (e.g. ``apply_body_impulse``) write to ``xfrc_applied``
+on the GPU and flow one way to the CPU ``MjData`` for visualization. Mouse
+perturbation forces flow the opposite direction: the viewer computes them on
+the CPU via ``mjv_applyPerturbForce``, converts to joint space with
+``mj_applyFT``, and writes to ``qfrc_applied`` on the GPU. Each field flows
+in one direction only, so the two sources never overwrite each other.
+"""
 
 from __future__ import annotations
 
@@ -49,6 +88,8 @@ class _SimDataProtocol(Protocol):
   qvel: "_TensorArrayProtocol"
   mocap_pos: "_TensorArrayProtocol"
   mocap_quat: "_TensorArrayProtocol"
+  xfrc_applied: "_TensorArrayProtocol"
+  qfrc_applied: "_TensorArrayProtocol"
 
 
 class _CpuArrayProtocol(Protocol):
@@ -184,6 +225,11 @@ class NativeMujocoViewer(BaseViewer):
       self._update_debug_visualizers(v)
       self._render_other_env_geoms(v, sim, sim_data)
 
+      # Pin tracking camera to body frame origin so DR-induced COM shifts don't move
+      # the camera.
+      if sim.expanded_fields & self._INERTIAL_FIELDS:
+        self._stabilize_tracking_camera()
+
       has_visual_dr = bool(sim.expanded_fields & self._VISUAL_FIELDS)
       v.sync(state_only=not has_visual_dr)
 
@@ -257,6 +303,7 @@ class NativeMujocoViewer(BaseViewer):
     if self.mjm.nmocap > 0:
       target_data.mocap_pos[:] = sim_data.mocap_pos[env_idx].cpu().numpy()
       target_data.mocap_quat[:] = sim_data.mocap_quat[env_idx].cpu().numpy()
+    target_data.xfrc_applied[:] = sim_data.xfrc_applied[env_idx].cpu().numpy()
 
   def _render_other_env_geoms(
     self,
@@ -283,6 +330,9 @@ class NativeMujocoViewer(BaseViewer):
 
     # Restore main env's model fields.
     self._sync_model_fields(sim, self.env_idx)
+
+  # Inertial fields that shift subtree_com (and thus the tracking camera).
+  _INERTIAL_FIELDS = frozenset({"body_ipos", "body_mass"})
 
   # Fields that affect rendering. Physics-only fields (geom_aabb,
   # geom_rbound, dof_*, jnt_*, actuator_*, tendon_*, etc.) are skipped.
@@ -317,17 +367,60 @@ class NativeMujocoViewer(BaseViewer):
       dst = getattr(self.mjm, field_name)
       dst[:] = src.reshape(dst.shape)
 
-  def sync_viewer_to_env(self) -> None:
-    """Copy perturbation forces from viewer to env."""
-    if not self.enable_perturbations or self._is_paused or not self.mjd:
+  def _stabilize_tracking_camera(self) -> None:
+    """Pin the tracked body's subtree_com to its frame origin (xpos).
+
+    MuJoCo's tracking camera centers on ``subtree_com[trackbodyid]``, which
+    shifts when inertial fields (body_ipos, body_mass) are domain randomized.
+    Overwriting that single entry with ``xpos`` (the body frame origin,
+    unaffected by body_ipos) keeps the camera stable.
+    """
+    assert self.mjd is not None
+    if not (
+      self.viewer and self.viewer.cam.type == mujoco.mjtCamera.mjCAMERA_TRACKING.value
+    ):
       return
-    assert self.mjm is not None
-    with self._mj_lock:
-      xfrc = torch.as_tensor(
-        self.mjd.xfrc_applied, dtype=torch.float, device=self.env.device
-      )
+    bid = self.viewer.cam.trackbodyid
+    if bid >= 0:
+      self.mjd.subtree_com[bid] = self.mjd.xpos[bid]
+
+  def sync_viewer_to_env(self) -> None:
+    """Sync mouse perturbation to sim via ``qfrc_applied``.
+
+    Mouse perturbation forces are converted from Cartesian body space
+    (``xfrc_applied``) to generalized joint space (``qfrc_applied``)
+    so that they coexist with programmatic forces on ``xfrc_applied``.
+    See the module docstring for details on the channel separation.
+    """
+    v = self.viewer
+    if v is None or self.mjm is None or self.mjd is None:
+      return
+
     sim_data = self.env.unwrapped.sim.data
-    sim_data.xfrc_applied[self.env_idx] = xfrc[None]
+    pert = v.perturb
+
+    if pert.active != 0 and pert.select > 0:
+      # Compute mouse perturbation force in Cartesian space.
+      mujoco.mjv_applyPerturbForce(self.mjm, self.mjd, pert)
+
+      body_id = pert.select
+      force = self.mjd.xfrc_applied[body_id, :3].copy()
+      torque = self.mjd.xfrc_applied[body_id, 3:].copy()
+      point = self.mjd.xipos[body_id].copy()
+
+      # Convert to generalized forces.
+      qfrc = np.zeros(self.mjm.nv)
+      mujoco.mj_applyFT(self.mjm, self.mjd, force, torque, point, body_id, qfrc)
+
+      sim_data.qfrc_applied[self.env_idx] = torch.from_numpy(qfrc).to(
+        device=sim_data.qfrc_applied.device
+      )
+
+      # Clear so _sync_env_state_to_mjdata writes clean programmatic
+      # forces next frame.
+      self.mjd.xfrc_applied[body_id] = 0.0
+    else:
+      sim_data.qfrc_applied[self.env_idx] = 0.0
 
   def close(self) -> None:
     """Close viewer and cleanup."""
@@ -434,8 +527,10 @@ class NativeMujocoViewer(BaseViewer):
       self._set_camera_auto_track()
       return
 
-    if self.cfg.origin_type == self.cfg.OriginType.WORLD:
+    if self.cfg.origin_type == self.cfg.OriginType.AUTO:
       self._set_camera_auto_track()
+    elif self.cfg.origin_type == self.cfg.OriginType.WORLD:
+      self._set_camera_world()
     elif self.cfg.origin_type == self.cfg.OriginType.ASSET_ROOT:
       self._set_camera_asset_root()
     else:  # ASSET_BODY

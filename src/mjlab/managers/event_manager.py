@@ -15,10 +15,11 @@ from mjlab.managers.manager_base import ManagerBase, ManagerTermBaseCfg
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
+  from mjlab.viewer.debug_visualizer import DebugVisualizer
 
 F = Callable[..., None]
 
-EventMode = Literal["startup", "reset", "interval"]
+EventMode = Literal["startup", "reset", "interval", "step"]
 
 
 class RecomputeLevel(enum.IntEnum):
@@ -102,23 +103,27 @@ class EventTermCfg(ManagerTermBaseCfg):
   Event terms trigger operations at specific simulation events. They're commonly
   used for domain randomization, state resets, and periodic perturbations.
 
-  The three modes determine when the event fires:
+  The four modes determine when the event fires:
 
   - ``"startup"``: Once when the environment initializes. Use for parameters that
-    should be randomized per-environment but stay constant within an episode (
-    e.g., domain randomization).
+    should be randomized per-environment but stay constant within an episode (e.g.,
+    domain randomization).
 
-  - ``"reset"``: On every episode reset. Use for parameters that should vary
-    between episodes (e.g., initial robot pose, domain randomization).
+  - ``"reset"``: On every episode reset. Use for parameters that should vary between
+    episodes (e.g., initial robot pose, domain randomization).
 
-  - ``"interval"``: Periodically during simulation, controlled by
-    ``interval_range_s``. Use for perturbations that should happen during
-    episodes (e.g., pushing the robot, external disturbances).
+  - ``"interval"``: Periodically during simulation, controlled by ``interval_range_s``.
+    Use for perturbations that should happen during episodes (e.g., pushing the robot,
+    external disturbances).
+
+  - ``"step"``: Every environment step, unconditionally on all envs. Use for terms that
+    manage per-step state such as force lifetimes (e.g., ``apply_body_impulse``).
   """
 
   mode: EventMode
   """When the event triggers: ``"startup"`` (once at init), ``"reset"`` (every
-  episode), or ``"interval"`` (periodically during simulation)."""
+  episode), ``"interval"`` (periodically during simulation), or ``"step"`` (every
+  environment step)."""
 
   interval_range_s: tuple[float, float] | None = None
   """Time range in seconds for interval mode. The next trigger time is uniformly
@@ -247,6 +252,10 @@ class EventManager(ManagerBase):
       raise ValueError(
         f"Event mode '{mode}' requires the total number of environment steps to be provided."
       )
+    if mode == "step" and dt is None:
+      raise ValueError(
+        f"Event mode '{mode}' requires the time-step of the environment."
+      )
 
     strongest_fired = RecomputeLevel.none
 
@@ -276,6 +285,9 @@ class EventManager(ManagerBase):
             self._interval_term_time_left[index][valid_env_ids] = sampled_time
             term_cfg.func(self._env, valid_env_ids, **term_cfg.params)
             fired = True
+      elif mode == "step":
+        term_cfg.func(self._env, None, **term_cfg.params)
+        fired = True
       elif mode == "reset":
         assert global_env_step_count is not None
         min_step_count = term_cfg.min_step_count_between_reset
@@ -315,6 +327,13 @@ class EventManager(ManagerBase):
 
     if strongest_fired != RecomputeLevel.none:
       self._env.sim.recompute_constants(strongest_fired)
+
+  def debug_vis(self, visualizer: "DebugVisualizer") -> None:
+    """Delegate debug visualization to class-based event terms."""
+    for mode_cfgs in self._mode_class_term_cfgs.values():
+      for term_cfg in mode_cfgs:
+        if hasattr(term_cfg.func, "debug_vis"):
+          term_cfg.func.debug_vis(visualizer)
 
   def _prepare_terms(self) -> None:
     self._interval_term_time_left: list[torch.Tensor] = list()

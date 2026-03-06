@@ -149,6 +149,13 @@ playback. The force transfers into the simulation on the next step,
 making it easy to test balance recovery, grasp robustness, or
 disturbance rejection without writing any code.
 
+Mouse perturbation forces are kept separate from programmatic forces
+(e.g. ``apply_body_impulse``) by routing them through different MuJoCo
+channels: programmatic forces use ``xfrc_applied`` (Cartesian body
+forces), while mouse forces are converted to ``qfrc_applied``
+(generalized joint forces) via ``mj_applyFT``. Both channels are summed
+during forward dynamics, so they coexist without conflict.
+
 **Domain randomization visualization.**
 The native viewer syncs all visual DR fields from GPU to CPU each
 frame. Randomized geom colors, sizes, positions, material colors,

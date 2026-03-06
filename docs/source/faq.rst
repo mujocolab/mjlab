@@ -63,7 +63,7 @@ Does mjlab support multi-GPU training?
 Yes, mjlab supports **multi-GPU distributed training** using
 `torchrunx <https://github.com/apoorvkh/torchrunx>`_.
 
-- Use ``--gpu-ids 0 1`` (or ``--gpu-ids all``) when running the ``train``
+- Use ``--gpu-ids "[0, 1]"`` (or ``--gpu-ids all``) when running the ``train``
   command.
 - See the :doc:`training/distributed_training` for configuration details and examples.
 
@@ -131,6 +131,23 @@ The ``nan_guard`` tool makes it easier to:
   `MuJoCo Warp team <https://github.com/google-deepmind/mujoco_warp/issues>`_.
 
 Reporting well-isolated issues helps improve the framework for everyone.
+
+How can I inspect the generated scene XML?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use the ``export-scene`` script to write the full scene (XML and mesh assets)
+to a directory:
+
+.. code-block:: bash
+
+    uv run export-scene g1 --output-dir /tmp/g1
+
+The exported ``scene.xml`` can be loaded directly in MuJoCo for visual
+inspection or diffing. This is useful for verifying that task configuration
+and physics are set up correctly, and for creating minimal reproducible
+examples to share with mjlab or MuJoCo Warp developers. The script accepts task IDs,
+entity aliases (``g1``, ``go1``, ``yam``), or arbitrary import paths. See
+:doc:`debugging/export_scene` for full details.
 
 My contact sensor misses collisions when using decimation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

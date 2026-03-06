@@ -263,6 +263,7 @@ class ManagerBasedRlEnv:
     self.manager_visualizers = {}
     if getattr(self.command_manager, "active_terms", None):
       self.manager_visualizers["command_manager"] = self.command_manager
+    self.manager_visualizers["event_manager"] = self.event_manager
 
   def load_managers(self) -> None:
     """Load and initialize all managers.
@@ -401,6 +402,8 @@ class ManagerBasedRlEnv:
 
     self.command_manager.compute(dt=self.step_dt)
 
+    if "step" in self.event_manager.available_modes:
+      self.event_manager.apply(mode="step", dt=self.step_dt)
     if "interval" in self.event_manager.available_modes:
       self.event_manager.apply(mode="interval", dt=self.step_dt)
 

@@ -507,7 +507,180 @@ def test_sync_actuator_delays(device):
 
 
 # ===========================================================================
-# Section 4: Recomputation integration
+# Section 4: Step mode and apply_body_impulse
+# ===========================================================================
+
+
+def test_step_mode_fires_every_call(device):
+  """Step-mode events fire unconditionally on every apply() call."""
+  call_count = [0]
+
+  def counter(env, env_ids):
+    call_count[0] += 1
+
+  env = Mock()
+  env.num_envs = 2
+  env.device = device
+  env.scene = {}
+  env.sim = Mock()
+
+  cfg = {
+    "step_counter": EventTermCfg(
+      mode="step",
+      func=counter,
+      params={},
+    ),
+  }
+  manager = EventManager(cfg, env)
+
+  for _ in range(5):
+    manager.apply(mode="step", dt=0.02)
+
+  assert call_count[0] == 5
+
+
+def _make_impulse_env(device, num_envs=2, num_bodies=1, body_ids=None):
+  """Create a mock env for apply_body_impulse tests."""
+  if body_ids is None:
+    body_ids = [0]
+  env = Mock()
+  env.num_envs = num_envs
+  env.device = device
+  env.step_dt = 0.02
+
+  mock_entity = Mock()
+  mock_entity.num_bodies = num_bodies
+  mock_entity.data = Mock()
+  mock_entity.data.body_com_quat_w = torch.zeros(
+    (num_envs, num_bodies, 4), device=device
+  )
+  mock_entity.data.body_com_quat_w[..., 0] = 1.0
+  env.scene = {"robot": mock_entity}
+
+  asset_cfg = SceneEntityCfg("robot", body_ids=body_ids)
+  term_cfg = Mock()
+  term_cfg.params = {"asset_cfg": asset_cfg}
+  impulse = events.apply_body_impulse(cfg=term_cfg, env=env)
+  return env, mock_entity, asset_cfg, impulse
+
+
+def test_apply_body_impulse_basic(device):
+  """Impulse is applied and cleared after duration expires."""
+  env, mock_entity, asset_cfg, impulse = _make_impulse_env(
+    device, num_envs=2, num_bodies=3, body_ids=[1]
+  )
+
+  # First call: cooldown_s starts at 0 and gets decremented by dt,
+  # so it becomes <= 0 and triggers.
+  impulse(
+    env,
+    None,
+    force_range=(10.0, 10.0),
+    torque_range=(0.0, 0.0),
+    duration_s=(0.05, 0.05),
+    cooldown_s=(10.0, 10.0),
+    asset_cfg=asset_cfg,
+  )
+  assert impulse._active.any()
+  mock_entity.write_external_wrench_to_sim.assert_called()
+
+  def step():
+    impulse(
+      env,
+      None,
+      force_range=(10.0, 10.0),
+      torque_range=(0.0, 0.0),
+      duration_s=(0.05, 0.05),
+      cooldown_s=(10.0, 10.0),
+      asset_cfg=asset_cfg,
+    )
+
+  # Step a few times (duration is 0.05s, step_dt is 0.02s).
+  mock_entity.write_external_wrench_to_sim.reset_mock()
+  step()  # t=0.02, remaining=0.03
+  assert impulse._active.all()
+
+  step()  # t=0.04, remaining=0.01
+  assert impulse._active.all()
+
+  step()  # t=0.06, remaining=-0.01 -> cleared
+  assert not impulse._active.any()
+
+  # Verify write_external_wrench_to_sim was called with zeros to clear.
+  clear_call = None
+  for call in mock_entity.write_external_wrench_to_sim.call_args_list:
+    forces = call[0][0]
+    if torch.all(forces == 0):
+      clear_call = call
+  assert clear_call is not None
+
+
+def test_apply_body_impulse_with_offset(device):
+  """body_point_offset adds cross-product contribution to torque."""
+  env, mock_entity, asset_cfg, impulse = _make_impulse_env(
+    device, num_envs=1, num_bodies=1, body_ids=[0]
+  )
+
+  impulse(
+    env,
+    None,
+    force_range=(1.0, 1.0),
+    torque_range=(0.0, 0.0),
+    duration_s=(1.0, 1.0),
+    cooldown_s=(0.0, 0.0),
+    asset_cfg=asset_cfg,
+    body_point_offset=(0.0, 0.0, 0.5),
+  )
+
+  call_args = mock_entity.write_external_wrench_to_sim.call_args
+  forces = call_args[0][0]
+  torques = call_args[0][1]
+
+  # force is (1,1,1) applied at offset (0,0,0.5).
+  # cross((0,0,0.5), (1,1,1)) = (-0.5, 0.5, 0)
+  offset = torch.tensor([0.0, 0.0, 0.5], device=device)
+  expected_extra_torque = torch.cross(offset.unsqueeze(0), forces.squeeze(0), dim=-1)
+  torch.testing.assert_close(
+    torques.squeeze(0), expected_extra_torque, atol=1e-5, rtol=1e-5
+  )
+
+
+def test_apply_body_impulse_reset_clears(device):
+  """reset() zeros forces and resets internal state."""
+  env, mock_entity, asset_cfg, impulse = _make_impulse_env(
+    device, num_envs=2, num_bodies=1, body_ids=[0]
+  )
+
+  # Trigger impulse.
+  impulse(
+    env,
+    None,
+    force_range=(10.0, 10.0),
+    torque_range=(0.0, 0.0),
+    duration_s=(1.0, 1.0),
+    cooldown_s=(0.0, 0.0),
+    asset_cfg=asset_cfg,
+  )
+  assert impulse._active.all()
+
+  # Reset env 0.
+  mock_entity.write_external_wrench_to_sim.reset_mock()
+  impulse.reset(env_ids=torch.tensor([0], device=device))
+
+  assert not impulse._active[0]
+  assert impulse._active[1]
+  assert impulse._time_remaining[0] == 0.0
+
+  # Verify clearing write was called for env 0.
+  mock_entity.write_external_wrench_to_sim.assert_called_once()
+  call_args = mock_entity.write_external_wrench_to_sim.call_args
+  env_ids_arg = call_args[1]["env_ids"]
+  assert len(env_ids_arg) == 1
+  assert env_ids_arg[0].item() == 0
+
+
+# ===========================================================================
+# Section 5: Recomputation integration
 # ===========================================================================
 
 
@@ -598,7 +771,7 @@ def test_dof_armature_recompute(device):
 
 
 # ===========================================================================
-# Section 5: Recompute vs mj_setConst / recompiled MjSpec
+# Section 6: Recompute vs mj_setConst / recompiled MjSpec
 # ===========================================================================
 
 
