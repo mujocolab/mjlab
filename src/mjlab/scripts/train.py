@@ -11,11 +11,7 @@ from typing import Literal, cast
 import tyro
 
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
-from mjlab.rl import (
-  MjlabOnPolicyRunner,
-  RslRlBaseRunnerCfg,
-  RslRlVecEnvWrapper,
-)
+from mjlab.rl import MjlabOnPolicyRunner, RslRlBaseRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.registry import list_tasks, load_env_cfg, load_rl_cfg, load_runner_cls
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
 from mjlab.utils.gpu import select_gpus
@@ -44,7 +40,6 @@ class TrainConfig:
   def from_task(task_id: str) -> "TrainConfig":
     env_cfg = load_env_cfg(task_id)
     agent_cfg = load_rl_cfg(task_id)
-    assert isinstance(agent_cfg, RslRlBaseRunnerCfg)
     return TrainConfig(env=env_cfg, agent=agent_cfg)
 
 
