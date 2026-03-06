@@ -12,6 +12,7 @@ import torch
 from mjlab import actuator
 from mjlab.actuator import BuiltinActuatorGroup
 from mjlab.actuator.actuator import TransmissionType
+from mjlab.actuator.xml_actuator import XmlActuator
 from mjlab.entity.data import EntityData
 from mjlab.utils import spec_config as spec_cfg
 from mjlab.utils.lab_api.string import resolve_matching_names
@@ -79,6 +80,7 @@ class EntityCfg:
     default_factory=lambda: (lambda: mujoco.MjSpec())
   )
   articulation: EntityArticulationInfoCfg | None = None
+  sort_actuators: bool = False
 
   # Editors.
   lights: tuple[spec_cfg.LightCfg, ...] = field(default_factory=tuple)
@@ -168,6 +170,9 @@ class Entity:
     if self.cfg.articulation is None:
       return
 
+    sort = self.cfg.sort_actuators
+    pending = []
+
     for actuator_cfg in self.cfg.articulation.actuators:
       # Find targets based on transmission type.
       if actuator_cfg.transmission_type == TransmissionType.JOINT:
@@ -191,8 +196,36 @@ class Entity:
           f"expressions: {actuator_cfg.target_names_expr}"
         )
       actuator_instance = actuator_cfg.build(self, target_ids, target_names)
-      actuator_instance.edit_spec(self._spec, target_spec_names)
       self._actuators.append(actuator_instance)
+
+      if not sort or isinstance(actuator_instance, XmlActuator):
+        actuator_instance.edit_spec(self._spec, target_spec_names)
+      else:
+        for target_spec_name in target_spec_names:
+          pending.append(((actuator_cfg, actuator_instance), target_spec_name))
+
+    if sort and pending:
+      # Sort so ctrl ordering matches joint/tendon/site definition order
+      type_priority = {
+        TransmissionType.JOINT: 0,
+        TransmissionType.TENDON: 1,
+        TransmissionType.SITE: 2,
+      }
+      order_maps = {
+        TransmissionType.JOINT: {name: i for i, name in enumerate(self.joint_names)},
+        TransmissionType.TENDON: {name: i for i, name in enumerate(self.tendon_names)},
+        TransmissionType.SITE: {name: i for i, name in enumerate(self.site_names)},
+      }
+
+      def sort_key(item):
+        (actuator_cfg, _), target_spec_name = item
+        t = type_priority[actuator_cfg.transmission_type]
+        o = order_maps[actuator_cfg.transmission_type].get(target_spec_name, -1)
+        return (t, o)
+
+      pending.sort(key=sort_key)
+      for (_, actuator_instance), target_spec_name in pending:
+        actuator_instance.edit_spec(self._spec, [target_spec_name])
 
   def _add_initial_state_keyframe(self) -> None:
     # If joint_pos is None, use existing keyframe from the model.
