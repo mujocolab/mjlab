@@ -33,13 +33,6 @@ from mjlab.utils.noise import UniformNoiseCfg as Unoise
 from mjlab.viewer import ViewerConfig
 
 
-def action_rate_l2(env) -> torch.Tensor:
-  """Penalize the rate of change of the actions using L2 squared kernel."""
-  return torch.sum(
-    torch.square(env.action_manager.action - env.action_manager.prev_action), dim=1
-  )
-
-
 def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
   """Create base velocity tracking task configuration."""
 
@@ -121,12 +114,6 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
       func=mdp.foot_contact_forces,
       params={"sensor_name": "feet_ground_contact"},
     ),
-  }
-
-  metrics = {
-    "test1": MetricsTermCfg(
-      func=action_rate_l2,
-    )
   }
 
   observations = {
