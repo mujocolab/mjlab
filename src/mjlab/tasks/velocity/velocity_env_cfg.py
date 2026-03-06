@@ -7,8 +7,6 @@ Robot-specific configurations call the factory and customize as needed.
 import math
 from dataclasses import replace
 
-import torch
-
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs import mdp as envs_mdp
 from mjlab.envs.mdp import dr
