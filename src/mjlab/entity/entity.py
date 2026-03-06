@@ -80,7 +80,7 @@ class EntityCfg:
     default_factory=lambda: (lambda: mujoco.MjSpec())
   )
   articulation: EntityArticulationInfoCfg | None = None
-  sort_actuators: bool = False
+  sort_actuators: bool = True
 
   # Editors.
   lights: tuple[spec_cfg.LightCfg, ...] = field(default_factory=tuple)
