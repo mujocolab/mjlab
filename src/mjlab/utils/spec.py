@@ -170,10 +170,13 @@ def create_position_actuator(
 
   # Limits.
   actuator.ctrllimited = False
-  # No ctrlrange needed.
+  # No ctrlrange needed, but provide the max theoretical range anyway.
   if effort_limit is not None:
     actuator.forcelimited = True
     actuator.forcerange[:] = np.array([-effort_limit, effort_limit])
+    actuator.ctrlrange[:] = np.array(
+      [-effort_limit / stiffness, effort_limit / stiffness]
+    )
   else:
     actuator.forcelimited = False
     # No forcerange needed.
