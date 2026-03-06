@@ -80,7 +80,11 @@ class EntityCfg:
     default_factory=lambda: (lambda: mujoco.MjSpec())
   )
   articulation: EntityArticulationInfoCfg | None = None
-  sort_actuators: bool = True
+  sort_actuators: bool = False
+  """When True, reorder actuators so that ``model.ctrl`` follows joint/tendon/site
+  definition order rather than the order actuators appear in the config. XML actuators
+  are excluded from sorting and always retain their declaration order.
+  """
 
   # Editors.
   lights: tuple[spec_cfg.LightCfg, ...] = field(default_factory=tuple)
@@ -170,9 +174,8 @@ class Entity:
     if self.cfg.articulation is None:
       return
 
-    sort = self.cfg.sort_actuators
-    pending = []
-
+    # Collect actuator instances and their targets.
+    pending: list[tuple[actuator.ActuatorCfg, actuator.Actuator, list[str]]] = []
     for actuator_cfg in self.cfg.articulation.actuators:
       # Find targets based on transmission type.
       if actuator_cfg.transmission_type == TransmissionType.JOINT:
@@ -197,35 +200,51 @@ class Entity:
         )
       actuator_instance = actuator_cfg.build(self, target_ids, target_names)
       self._actuators.append(actuator_instance)
+      pending.append((actuator_cfg, actuator_instance, target_spec_names))
 
-      if not sort or isinstance(actuator_instance, XmlActuator):
-        actuator_instance.edit_spec(self._spec, target_spec_names)
-      else:
-        for target_spec_name in target_spec_names:
-          pending.append(((actuator_cfg, actuator_instance), target_spec_name))
+    if not self.cfg.sort_actuators:
+      for _, inst, names in pending:
+        inst.edit_spec(self._spec, names)
+      return
 
-    if sort and pending:
-      # Sort so ctrl ordering matches joint/tendon/site definition order
-      type_priority = {
-        TransmissionType.JOINT: 0,
-        TransmissionType.TENDON: 1,
-        TransmissionType.SITE: 2,
-      }
-      order_maps = {
-        TransmissionType.JOINT: {name: i for i, name in enumerate(self.joint_names)},
-        TransmissionType.TENDON: {name: i for i, name in enumerate(self.tendon_names)},
-        TransmissionType.SITE: {name: i for i, name in enumerate(self.site_names)},
-      }
+    # Sort actuators so ctrl order matches joint/tendon/site definition order.
+    # XmlActuators are added first (they wrap pre-existing XML actuators),
+    # then remaining actuators sorted by transmission type and target order.
+    order_maps = {
+      TransmissionType.JOINT: {name: i for i, name in enumerate(self.joint_names)},
+      TransmissionType.TENDON: {name: i for i, name in enumerate(self.tendon_names)},
+      TransmissionType.SITE: {name: i for i, name in enumerate(self.site_names)},
+    }
+    # Group by transmission type (ordering is conventional, not physics-motivated).
+    # Within each group, actuators are sorted by their target's definition order in the
+    # spec.
+    type_priority = {
+      TransmissionType.JOINT: 0,
+      TransmissionType.TENDON: 1,
+      TransmissionType.SITE: 2,
+    }
 
-      def sort_key(item):
-        (actuator_cfg, _), target_spec_name = item
-        t = type_priority[actuator_cfg.transmission_type]
-        o = order_maps[actuator_cfg.transmission_type].get(target_spec_name, -1)
-        return (t, o)
+    # XmlActuators go first in declaration order (they reference actuators already
+    # present in the spec).
+    for _, inst, names in pending:
+      if isinstance(inst, XmlActuator):
+        inst.edit_spec(self._spec, names)
 
-      pending.sort(key=sort_key)
-      for (_, actuator_instance), target_spec_name in pending:
-        actuator_instance.edit_spec(self._spec, [target_spec_name])
+    # Flatten remaining actuators to (instance, single_target) pairs and sort.
+    flat: list[tuple[actuator.ActuatorCfg, actuator.Actuator, str]] = []
+    for cfg, inst, names in pending:
+      if not isinstance(inst, XmlActuator):
+        for name in names:
+          flat.append((cfg, inst, name))
+
+    flat.sort(
+      key=lambda item: (
+        type_priority[item[0].transmission_type],
+        order_maps[item[0].transmission_type].get(item[2], float("inf")),
+      )
+    )
+    for _, inst, name in flat:
+      inst.edit_spec(self._spec, [name])
 
   def _add_initial_state_keyframe(self) -> None:
     # If joint_pos is None, use existing keyframe from the model.

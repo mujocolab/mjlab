@@ -168,22 +168,32 @@ def create_position_actuator(
   actuator.biasprm[1] = -stiffness
   actuator.biasprm[2] = -damping
 
-  # Limits.
+  # Position actuators must allow setpoints beyond joint limits.
+  # Since force = stiffness * (ctrl - pos), clamping ctrl to the joint range would
+  # produce zero force when the joint is at its limit. Force is still bounded by
+  # forcerange below. Both lines are needed: ctrllimited=False is the primary guard,
+  # and inheritrange=0 prevents MuJoCo from resolving the default ctrllimited=AUTO back
+  # to True when a joint range exists.
   actuator.inheritrange = 0.0
   actuator.ctrllimited = False
-  # No ctrlrange needed, but provide the max theoretical range anyway.
   if effort_limit is not None:
-    if transmission_type == TransmissionType.JOINT:
-      _range = spec.joint(joint_name).range
-    elif transmission_type == TransmissionType.TENDON:
-      _range = spec.tendon(joint_name).range
-    else:
-      _range = (0.0, 0.0)
-    delta = effort_limit / stiffness
-    actuator.ctrlrange[:] = np.array([_range[0] - delta, _range[1] + delta])
-
     actuator.forcelimited = True
     actuator.forcerange[:] = np.array([-effort_limit, effort_limit])
+
+    # Informational ctrlrange (not enforced since ctrllimited=False).
+    # Assuming zero velocity, force = stiffness * (ctrl - pos). Solving for the ctrl
+    # that saturates force at the worst-case position gives:
+    #   ctrl_max = joint_high + effort_limit / stiffness
+    #   ctrl_min = joint_low  - effort_limit / stiffness
+    # Beyond this range, force is always clamped regardless of position.
+    if transmission_type == TransmissionType.JOINT:
+      target_range = spec.joint(joint_name).range
+    elif transmission_type == TransmissionType.TENDON:
+      target_range = spec.tendon(joint_name).range
+    else:
+      target_range = (0.0, 0.0)
+    delta = effort_limit / stiffness
+    actuator.ctrlrange[:] = np.array([target_range[0] - delta, target_range[1] + delta])
   else:
     actuator.forcelimited = False
     # No forcerange needed.
