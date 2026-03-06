@@ -4,14 +4,14 @@ from copy import deepcopy
 from dataclasses import dataclass
 
 from mjlab.envs import ManagerBasedRlEnvCfg
-from mjlab.rl import RslRlOnPolicyRunnerCfg
+from mjlab.rl import RslRlBaseRunnerCfg
 
 
 @dataclass
 class _TaskCfg:
   env_cfg: ManagerBasedRlEnvCfg
   play_env_cfg: ManagerBasedRlEnvCfg
-  rl_cfg: RslRlOnPolicyRunnerCfg
+  rl_cfg: RslRlBaseRunnerCfg
   runner_cls: type | None
 
 
@@ -23,7 +23,7 @@ def register_mjlab_task(
   task_id: str,
   env_cfg: ManagerBasedRlEnvCfg,
   play_env_cfg: ManagerBasedRlEnvCfg,
-  rl_cfg: RslRlOnPolicyRunnerCfg,
+  rl_cfg: RslRlBaseRunnerCfg,
   runner_cls: type | None = None,
 ) -> None:
   """Register an environment task.
@@ -55,7 +55,7 @@ def load_env_cfg(task_name: str, play: bool = False) -> ManagerBasedRlEnvCfg:
   )
 
 
-def load_rl_cfg(task_name: str) -> RslRlOnPolicyRunnerCfg:
+def load_rl_cfg(task_name: str) -> RslRlBaseRunnerCfg:
   """Load RL configuration for a task.
 
   Returns a deep copy to prevent mutation of the registered config.
