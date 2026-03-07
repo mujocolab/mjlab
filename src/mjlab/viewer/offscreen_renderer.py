@@ -159,8 +159,9 @@ class OffscreenRenderer:
           robot = list(self._scene.entities.values())[0]
         else:
           raise ValueError(
-            f"Multiple entities in scene ({len(self._scene.entities)}). "
-            "Specify entity_name to choose which one."
+            f"Multiple entities in scene ({len(self._scene.entities)}): "
+            f"{list(self._scene.entities.keys())}. "
+            "Set ViewerConfig.entity_name to choose which one."
           )
 
       body_id = robot.indexing.root_body_id
