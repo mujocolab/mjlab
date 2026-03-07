@@ -2,6 +2,16 @@
 Changelog
 =========
 
+Upcoming version (not yet released)
+-----------------------------------
+
+Fixed
+^^^^^
+
+- Set terrain geom mass to zero so that the static terrain body does not
+  inflate ``stat.meanmass``, which made force arrow visualization invisible
+  on rough terrain (:issue:`734`, :issue:`537`).
+
 Version 1.2.0 (March 6, 2026)
 -----------------------------
 
