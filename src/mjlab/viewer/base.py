@@ -69,6 +69,7 @@ close(), and is_running().
 
 from __future__ import annotations
 
+import signal
 import time
 import traceback
 from abc import ABC, abstractmethod
@@ -166,6 +167,7 @@ class BaseViewer(ABC):
     self._is_paused = False
     self._step_count = 0
     self._last_error: str | None = None
+    self._interrupted = False
 
     # Speed.
     self._speed_index = self.SPEED_MULTIPLIERS.index(1.0)
@@ -392,18 +394,28 @@ class BaseViewer(ABC):
     self._stats_frames += 1
     return True
 
-  def run(self, num_steps: Optional[int] = None) -> None:
+  def run(self, num_steps: Optional[int] = None, catch_sigint: bool = True) -> None:
     self.setup()
     now = time.perf_counter()
     self._stats_last_time = now
     self._last_tick_time = now
+    if catch_sigint:
+      signal.signal(signal.SIGINT, self._sigint_handler)
+
     try:
-      while self.is_running() and (num_steps is None or self._step_count < num_steps):
+      while (
+        self.is_running()
+        and (num_steps is None or self._step_count < num_steps)
+        and not self._interrupted
+      ):
         if not self.tick():
           time.sleep(0.001)
         self._update_stats()
     finally:
       self.close()
+
+  def _sigint_handler(self, signum, frame) -> None:
+    self._interrupted = True
 
   # Stats.
 
