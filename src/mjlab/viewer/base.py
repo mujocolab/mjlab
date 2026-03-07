@@ -167,7 +167,6 @@ class BaseViewer(ABC):
     self._is_paused = False
     self._step_count = 0
     self._last_error: str | None = None
-    self._interrupted = False
 
     # Speed.
     self._speed_index = self.SPEED_MULTIPLIERS.index(1.0)
@@ -395,14 +394,20 @@ class BaseViewer(ABC):
     return True
 
   def run(self, num_steps: Optional[int] = None, catch_sigint: bool = True) -> None:
+    self._interrupted = False
     self.setup()
     now = time.perf_counter()
     self._stats_last_time = now
     self._last_tick_time = now
-    if catch_sigint:
-      signal.signal(signal.SIGINT, self._sigint_handler)
 
+    prev_handler = None
     try:
+      if catch_sigint:
+        try:
+          prev_handler = signal.signal(signal.SIGINT, self._sigint_handler)
+        except ValueError:
+          pass  # Non-main thread; skip gracefully.
+
       while (
         self.is_running()
         and (num_steps is None or self._step_count < num_steps)
@@ -413,9 +418,14 @@ class BaseViewer(ABC):
         self._update_stats()
     finally:
       self.close()
+      if prev_handler is not None:
+        signal.signal(signal.SIGINT, prev_handler)
 
   def _sigint_handler(self, signum, frame) -> None:
     self._interrupted = True
+    print("\nCtrl+C received. Shutting down viewer...")
+    # Restore default so a second Ctrl+C kills immediately.
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
 
   # Stats.
 
