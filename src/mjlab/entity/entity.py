@@ -13,6 +13,7 @@ import torch
 from mjlab import actuator
 from mjlab.actuator import BuiltinActuatorGroup
 from mjlab.actuator.actuator import TransmissionType
+from mjlab.actuator.delayed_builtin_group import DelayedBuiltinActuatorGroup
 from mjlab.actuator.xml_actuator import XmlActuator
 from mjlab.entity.data import EntityData
 from mjlab.utils import spec_config as spec_cfg
@@ -575,7 +576,12 @@ class Entity:
 
     # Vectorize built-in actuators; we'll loop through custom ones.
     builtin_group, custom_actuators = BuiltinActuatorGroup.process(self._actuators)
+    delayed_builtin_group, custom_actuators = DelayedBuiltinActuatorGroup.process(
+      custom_actuators
+    )
+    delayed_builtin_group.initialize(nworld, device)
     self._builtin_group = builtin_group
+    self._delayed_builtin_group = delayed_builtin_group
     self._custom_actuators = custom_actuators
 
     # Root state.
@@ -1150,6 +1156,7 @@ class Entity:
 
   def _apply_actuator_controls(self) -> None:
     self._builtin_group.apply_controls(self._data)
+    self._delayed_builtin_group.apply_controls(self._data)
     for act in self._custom_actuators:
       command = act.get_command(self._data)
       self._data.write_ctrl(act.compute(command), act.ctrl_ids)

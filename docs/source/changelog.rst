@@ -5,6 +5,12 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- Added ``DelayedBuiltinActuatorGroup`` that fuses delayed builtin actuators
+  sharing the same delay configuration into a single buffer operation.
+
 Changed
 ^^^^^^^
 
