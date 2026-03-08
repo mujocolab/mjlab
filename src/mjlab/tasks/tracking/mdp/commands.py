@@ -209,17 +209,30 @@ class MotionCommand(CommandTerm):
     return self.robot.data.body_link_ang_vel_w[:, self.robot_anchor_body_index]
 
   def _update_metrics(self):
+    # Batch motion lookups: single fancy-index per tensor.
+    ts = self.time_steps
+    ai = self.motion_anchor_body_index
+    env_origins = self._env.scene.env_origins
+
+    m_body_pos = self.motion.body_pos_w[ts]
+    m_body_quat = self.motion.body_quat_w[ts]
+    m_body_lv = self.motion.body_lin_vel_w[ts]
+    m_body_av = self.motion.body_ang_vel_w[ts]
+
+    anchor_pos_w = m_body_pos[:, ai] + env_origins
+    anchor_quat_w = m_body_quat[:, ai]
+
     self.metrics["error_anchor_pos"] = torch.norm(
-      self.anchor_pos_w - self.robot_anchor_pos_w, dim=-1
+      anchor_pos_w - self.robot_anchor_pos_w, dim=-1
     )
     self.metrics["error_anchor_rot"] = quat_error_magnitude(
-      self.anchor_quat_w, self.robot_anchor_quat_w
+      anchor_quat_w, self.robot_anchor_quat_w
     )
     self.metrics["error_anchor_lin_vel"] = torch.norm(
-      self.anchor_lin_vel_w - self.robot_anchor_lin_vel_w, dim=-1
+      m_body_lv[:, ai] - self.robot_anchor_lin_vel_w, dim=-1
     )
     self.metrics["error_anchor_ang_vel"] = torch.norm(
-      self.anchor_ang_vel_w - self.robot_anchor_ang_vel_w, dim=-1
+      m_body_av[:, ai] - self.robot_anchor_ang_vel_w, dim=-1
     )
 
     self.metrics["error_body_pos"] = torch.norm(
@@ -230,17 +243,19 @@ class MotionCommand(CommandTerm):
     ).mean(dim=-1)
 
     self.metrics["error_body_lin_vel"] = torch.norm(
-      self.body_lin_vel_w - self.robot_body_lin_vel_w, dim=-1
+      m_body_lv - self.robot_body_lin_vel_w, dim=-1
     ).mean(dim=-1)
     self.metrics["error_body_ang_vel"] = torch.norm(
-      self.body_ang_vel_w - self.robot_body_ang_vel_w, dim=-1
+      m_body_av - self.robot_body_ang_vel_w, dim=-1
     ).mean(dim=-1)
 
+    m_joint_pos = self.motion.joint_pos[ts]
+    m_joint_vel = self.motion.joint_vel[ts]
     self.metrics["error_joint_pos"] = torch.norm(
-      self.joint_pos - self.robot_joint_pos, dim=-1
+      m_joint_pos - self.robot_joint_pos, dim=-1
     )
     self.metrics["error_joint_vel"] = torch.norm(
-      self.joint_vel - self.robot_joint_vel, dim=-1
+      m_joint_vel - self.robot_joint_vel, dim=-1
     )
 
   def _adaptive_sampling(self, env_ids: torch.Tensor):
@@ -368,28 +383,36 @@ class MotionCommand(CommandTerm):
     if env_ids.numel() > 0:
       self._resample_command(env_ids)
 
-    anchor_pos_w_repeat = self.anchor_pos_w[:, None, :].repeat(
-      1, len(self.cfg.body_names), 1
-    )
-    anchor_quat_w_repeat = self.anchor_quat_w[:, None, :].repeat(
-      1, len(self.cfg.body_names), 1
-    )
-    robot_anchor_pos_w_repeat = self.robot_anchor_pos_w[:, None, :].repeat(
-      1, len(self.cfg.body_names), 1
-    )
-    robot_anchor_quat_w_repeat = self.robot_anchor_quat_w[:, None, :].repeat(
-      1, len(self.cfg.body_names), 1
-    )
+    # Batch motion lookups: single fancy-index per tensor instead of
+    # repeated per-property access.
+    ts = self.time_steps
+    motion_body_pos_w = self.motion.body_pos_w[ts]
+    motion_body_quat_w = self.motion.body_quat_w[ts]
+    env_origins = self._env.scene.env_origins
+    num_bodies = len(self.cfg.body_names)
 
-    delta_pos_w = robot_anchor_pos_w_repeat
-    delta_pos_w[..., 2] = anchor_pos_w_repeat[..., 2]
-    delta_ori_w = yaw_quat(
-      quat_mul(robot_anchor_quat_w_repeat, quat_inv(anchor_quat_w_repeat))
-    )
+    body_pos_w = motion_body_pos_w + env_origins[:, None, :]
+    body_quat_w = motion_body_quat_w
+    anchor_pos_w = motion_body_pos_w[:, self.motion_anchor_body_index] + env_origins
+    anchor_quat_w = motion_body_quat_w[:, self.motion_anchor_body_index]
 
-    self.body_quat_relative_w = quat_mul(delta_ori_w, self.body_quat_w)
+    # Compute delta_ori at anchor level (N, 4) then expand to body dim.
+    # This avoids expanding quaternions before the quat_mul/quat_inv.
+    delta_ori_anchor = yaw_quat(
+      quat_mul(self.robot_anchor_quat_w, quat_inv(anchor_quat_w))
+    )  # (N, 4)
+    delta_ori_w = delta_ori_anchor[:, None, :].expand(
+      -1, num_bodies, -1
+    )  # (N, B, 4) — strided view
+
+    # delta_pos_w: copy robot anchor xy, use motion anchor z.
+    delta_pos_w = self.robot_anchor_pos_w[:, None, :].expand(-1, num_bodies, -1).clone()
+    delta_pos_w[..., 2] = anchor_pos_w[:, None, 2]
+
+    anchor_pos_w_exp = anchor_pos_w[:, None, :].expand(-1, num_bodies, -1)
+    self.body_quat_relative_w = quat_mul(delta_ori_w, body_quat_w)
     self.body_pos_relative_w = delta_pos_w + quat_apply(
-      delta_ori_w, self.body_pos_w - anchor_pos_w_repeat
+      delta_ori_w, body_pos_w - anchor_pos_w_exp
     )
 
     if self.cfg.sampling_mode == "adaptive":

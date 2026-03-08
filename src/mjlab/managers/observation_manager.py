@@ -326,7 +326,17 @@ class ObservationManager(ManagerBase):
       group_term_names, self._group_obs_term_cfgs[group_name], strict=False
     )
     for term_name, term_cfg in obs_terms:
-      obs: torch.Tensor = term_cfg.func(self._env, **term_cfg.params).clone()
+      obs: torch.Tensor = term_cfg.func(self._env, **term_cfg.params)
+      # Only clone when in-place ops (noise, clip_, mul_) would corrupt
+      # the source tensor. Terms without any post-processing can skip
+      # the copy entirely.
+      needs_inplace = (
+        term_cfg.noise is not None
+        or term_cfg.clip is not None
+        or term_cfg.scale is not None
+      )
+      if needs_inplace:
+        obs = obs.clone()
       if isinstance(term_cfg.noise, noise_cfg.NoiseCfg):
         obs = term_cfg.noise.apply(obs)
       elif isinstance(term_cfg.noise, noise_cfg.NoiseModelCfg):

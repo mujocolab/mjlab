@@ -122,11 +122,14 @@ class RewardManager(ManagerBase):
         self._step_reward[:, term_idx] = 0.0
         continue
       value = term_cfg.func(self._env, **term_cfg.params) * term_cfg.weight * scale
-      # NaN/Inf can occur from corrupted physics state; zero them to avoid policy crash.
-      value = torch.nan_to_num(value, nan=0.0, posinf=0.0, neginf=0.0)
       self._reward_buf += value
       self._episode_sums[name] += value
       self._step_reward[:, term_idx] = value / scale
+    # NaN/Inf can occur from corrupted physics state; zero them to avoid
+    # policy crash.  Single sanitize pass instead of per-term.
+    self._reward_buf = torch.nan_to_num(
+      self._reward_buf, nan=0.0, posinf=0.0, neginf=0.0
+    )
     return self._reward_buf
 
   def get_active_iterable_terms(self, env_idx):
