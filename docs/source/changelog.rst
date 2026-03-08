@@ -5,6 +5,15 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Changed
+^^^^^^^
+
+- Reduced manager overhead in the environment step loop. Observations skip
+  ``.clone()`` when no post-processing is needed, reward ``nan_to_num`` is
+  batched once on the accumulated buffer, and ``MotionCommand`` caches
+  motion tensor lookups to avoid redundant fancy-indexing across reward,
+  observation, termination, and metric computations.
+
 Fixed
 ^^^^^
 
