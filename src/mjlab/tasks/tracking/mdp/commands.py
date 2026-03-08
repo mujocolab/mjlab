@@ -115,9 +115,46 @@ class MotionCommand(CommandTerm):
     self.metrics["sampling_top1_prob"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["sampling_top1_bin"] = torch.zeros(self.num_envs, device=self.device)
 
+    # Cached motion state -- populated by _refresh_motion_cache() which is
+    # called from _update_command().  Properties read these instead of
+    # fancy-indexing the motion tensors on every access.
+    self._cached_ts: torch.Tensor | None = None
+    self._cached_body_pos = torch.empty(0)
+    self._cached_body_quat = torch.empty(0)
+    self._cached_body_lv = torch.empty(0)
+    self._cached_body_av = torch.empty(0)
+    self._cached_joint_pos = torch.empty(0)
+    self._cached_joint_vel = torch.empty(0)
+
+    # Pre-compute sampling ranges (avoids creating tensors on every reset).
+    pose_range_list = [
+      self.cfg.pose_range.get(key, (0.0, 0.0))
+      for key in ["x", "y", "z", "roll", "pitch", "yaw"]
+    ]
+    self._pose_ranges = torch.tensor(pose_range_list, device=self.device)
+    vel_range_list = [
+      self.cfg.velocity_range.get(key, (0.0, 0.0))
+      for key in ["x", "y", "z", "roll", "pitch", "yaw"]
+    ]
+    self._vel_ranges = torch.tensor(vel_range_list, device=self.device)
+
+    # Populate the cache for the initial time_steps (all zeros).
+    self._refresh_motion_cache()
+
     # Ghost model created lazily on first visualization
     self._ghost_model: mujoco.MjModel | None = None
     self._ghost_color = np.array(cfg.viz.ghost_color, dtype=np.float32)
+
+  def _refresh_motion_cache(self) -> None:
+    """Fancy-index motion tensors once and cache for the current step."""
+    ts = self.time_steps
+    self._cached_ts = ts
+    self._cached_body_pos = self.motion.body_pos_w[ts]
+    self._cached_body_quat = self.motion.body_quat_w[ts]
+    self._cached_body_lv = self.motion.body_lin_vel_w[ts]
+    self._cached_body_av = self.motion.body_ang_vel_w[ts]
+    self._cached_joint_pos = self.motion.joint_pos[ts]
+    self._cached_joint_vel = self.motion.joint_vel[ts]
 
   @property
   def command(self) -> torch.Tensor:
@@ -125,48 +162,46 @@ class MotionCommand(CommandTerm):
 
   @property
   def joint_pos(self) -> torch.Tensor:
-    return self.motion.joint_pos[self.time_steps]
+    return self._cached_joint_pos
 
   @property
   def joint_vel(self) -> torch.Tensor:
-    return self.motion.joint_vel[self.time_steps]
+    return self._cached_joint_vel
 
   @property
   def body_pos_w(self) -> torch.Tensor:
-    return (
-      self.motion.body_pos_w[self.time_steps] + self._env.scene.env_origins[:, None, :]
-    )
+    return self._cached_body_pos + self._env.scene.env_origins[:, None, :]
 
   @property
   def body_quat_w(self) -> torch.Tensor:
-    return self.motion.body_quat_w[self.time_steps]
+    return self._cached_body_quat
 
   @property
   def body_lin_vel_w(self) -> torch.Tensor:
-    return self.motion.body_lin_vel_w[self.time_steps]
+    return self._cached_body_lv
 
   @property
   def body_ang_vel_w(self) -> torch.Tensor:
-    return self.motion.body_ang_vel_w[self.time_steps]
+    return self._cached_body_av
 
   @property
   def anchor_pos_w(self) -> torch.Tensor:
     return (
-      self.motion.body_pos_w[self.time_steps, self.motion_anchor_body_index]
+      self._cached_body_pos[:, self.motion_anchor_body_index]
       + self._env.scene.env_origins
     )
 
   @property
   def anchor_quat_w(self) -> torch.Tensor:
-    return self.motion.body_quat_w[self.time_steps, self.motion_anchor_body_index]
+    return self._cached_body_quat[:, self.motion_anchor_body_index]
 
   @property
   def anchor_lin_vel_w(self) -> torch.Tensor:
-    return self.motion.body_lin_vel_w[self.time_steps, self.motion_anchor_body_index]
+    return self._cached_body_lv[:, self.motion_anchor_body_index]
 
   @property
   def anchor_ang_vel_w(self) -> torch.Tensor:
-    return self.motion.body_ang_vel_w[self.time_steps, self.motion_anchor_body_index]
+    return self._cached_body_av[:, self.motion_anchor_body_index]
 
   @property
   def robot_joint_pos(self) -> torch.Tensor:
@@ -209,15 +244,14 @@ class MotionCommand(CommandTerm):
     return self.robot.data.body_link_ang_vel_w[:, self.robot_anchor_body_index]
 
   def _update_metrics(self):
-    # Batch motion lookups: single fancy-index per tensor.
-    ts = self.time_steps
+    # Use cached motion state (populated by _refresh_motion_cache).
     ai = self.motion_anchor_body_index
     env_origins = self._env.scene.env_origins
 
-    m_body_pos = self.motion.body_pos_w[ts]
-    m_body_quat = self.motion.body_quat_w[ts]
-    m_body_lv = self.motion.body_lin_vel_w[ts]
-    m_body_av = self.motion.body_ang_vel_w[ts]
+    m_body_pos = self._cached_body_pos
+    m_body_quat = self._cached_body_quat
+    m_body_lv = self._cached_body_lv
+    m_body_av = self._cached_body_av
 
     anchor_pos_w = m_body_pos[:, ai] + env_origins
     anchor_quat_w = m_body_quat[:, ai]
@@ -249,8 +283,8 @@ class MotionCommand(CommandTerm):
       m_body_av - self.robot_body_ang_vel_w, dim=-1
     ).mean(dim=-1)
 
-    m_joint_pos = self.motion.joint_pos[ts]
-    m_joint_vel = self.motion.joint_vel[ts]
+    m_joint_pos = self._cached_joint_pos
+    m_joint_vel = self._cached_joint_vel
     self.metrics["error_joint_pos"] = torch.norm(
       m_joint_pos - self.robot_joint_pos, dim=-1
     )
@@ -318,31 +352,30 @@ class MotionCommand(CommandTerm):
       assert self.cfg.sampling_mode == "adaptive"
       self._adaptive_sampling(env_ids)
 
+    # Refresh cache since time_steps changed.
+    self._refresh_motion_cache()
+
     root_pos = self.body_pos_w[:, 0].clone()
     root_ori = self.body_quat_w[:, 0].clone()
     root_lin_vel = self.body_lin_vel_w[:, 0].clone()
     root_ang_vel = self.body_ang_vel_w[:, 0].clone()
 
-    range_list = [
-      self.cfg.pose_range.get(key, (0.0, 0.0))
-      for key in ["x", "y", "z", "roll", "pitch", "yaw"]
-    ]
-    ranges = torch.tensor(range_list, device=self.device)
     rand_samples = sample_uniform(
-      ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=self.device
+      self._pose_ranges[:, 0],
+      self._pose_ranges[:, 1],
+      (len(env_ids), 6),
+      device=self.device,
     )
     root_pos[env_ids] += rand_samples[:, 0:3]
     orientations_delta = quat_from_euler_xyz(
       rand_samples[:, 3], rand_samples[:, 4], rand_samples[:, 5]
     )
     root_ori[env_ids] = quat_mul(orientations_delta, root_ori[env_ids])
-    range_list = [
-      self.cfg.velocity_range.get(key, (0.0, 0.0))
-      for key in ["x", "y", "z", "roll", "pitch", "yaw"]
-    ]
-    ranges = torch.tensor(range_list, device=self.device)
     rand_samples = sample_uniform(
-      ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=self.device
+      self._vel_ranges[:, 0],
+      self._vel_ranges[:, 1],
+      (len(env_ids), 6),
+      device=self.device,
     )
     root_lin_vel[env_ids] += rand_samples[:, :3]
     root_ang_vel[env_ids] += rand_samples[:, 3:]
@@ -383,18 +416,17 @@ class MotionCommand(CommandTerm):
     if env_ids.numel() > 0:
       self._resample_command(env_ids)
 
-    # Batch motion lookups: single fancy-index per tensor instead of
-    # repeated per-property access.
-    ts = self.time_steps
-    motion_body_pos_w = self.motion.body_pos_w[ts]
-    motion_body_quat_w = self.motion.body_quat_w[ts]
+    # Refresh the motion cache once; all subsequent property accesses
+    # (rewards, observations, metrics, terminations) reuse cached tensors.
+    self._refresh_motion_cache()
+
     env_origins = self._env.scene.env_origins
     num_bodies = len(self.cfg.body_names)
 
-    body_pos_w = motion_body_pos_w + env_origins[:, None, :]
-    body_quat_w = motion_body_quat_w
-    anchor_pos_w = motion_body_pos_w[:, self.motion_anchor_body_index] + env_origins
-    anchor_quat_w = motion_body_quat_w[:, self.motion_anchor_body_index]
+    body_pos_w = self._cached_body_pos + env_origins[:, None, :]
+    body_quat_w = self._cached_body_quat
+    anchor_pos_w = self._cached_body_pos[:, self.motion_anchor_body_index] + env_origins
+    anchor_quat_w = self._cached_body_quat[:, self.motion_anchor_body_index]
 
     # Compute delta_ori at anchor level (N, 4) then expand to body dim.
     # This avoids expanding quaternions before the quat_mul/quat_inv.
