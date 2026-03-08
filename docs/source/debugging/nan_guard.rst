@@ -55,8 +55,9 @@ Configuration
 Behavior
 --------
 
-- **Captures** simulation state before each step (``qpos``, ``qvel``, and
-  ``act`` if the model has actuator activations)
+- **Captures** simulation state before each step (``qpos``, ``qvel``,
+  ``act`` if the model has actuator activations, and ``mocap_pos``/``mocap_quat``
+  if the model has mocap bodies)
 - **Detects** NaN/Inf in ``qpos``, ``qvel``, ``qacc``,
   ``qacc_warmstart``, and ``sensordata`` after each step
 - **Dumps** the rolling buffer and model to disk on first detection
