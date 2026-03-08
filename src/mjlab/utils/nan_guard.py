@@ -45,7 +45,13 @@ class NanGuard:
     self.step_counter = 0
     self._dumped = False
 
-    self.state_size = mujoco.mj_stateSize(mj_model, mujoco.mjtState.mjSTATE_PHYSICS)
+    self.state_spec = mujoco.mjtState.mjSTATE_PHYSICS.value
+    if mj_model.nmocap > 0:
+      self.state_spec |= (
+        mujoco.mjtState.mjSTATE_MOCAP_POS.value
+        | mujoco.mjtState.mjSTATE_MOCAP_QUAT.value
+      )
+    self.state_size = mujoco.mj_stateSize(mj_model, self.state_spec)
     self.mj_model = mj_model
     self.mj_data = mujoco.MjData(mj_model)
 
@@ -61,6 +67,9 @@ class NanGuard:
     }
     if self.mj_model.na > 0:
       state["act"] = wp_data.act.clone()
+    if self.mj_model.nmocap > 0:
+      state["mocap_pos"] = wp_data.mocap_pos.clone()
+      state["mocap_quat"] = wp_data.mocap_quat.clone()
 
     self.buffer.append(state)
     self.step_counter += 1
@@ -137,6 +146,8 @@ class NanGuard:
       qpos = item["qpos"]
       qvel = item["qvel"]
       act = item.get("act", None)
+      mocap_pos = item.get("mocap_pos", None)
+      mocap_quat = item.get("mocap_quat", None)
 
       states = np.empty((len(envs_to_dump), self.state_size))
       for idx, env_id in enumerate(envs_to_dump):
@@ -144,10 +155,11 @@ class NanGuard:
         self.mj_data.qvel[:] = qvel[env_id].cpu().numpy()
         if act is not None:
           self.mj_data.act[:] = act[env_id].cpu().numpy()
+        if mocap_pos is not None:
+          self.mj_data.mocap_pos[:] = mocap_pos[env_id].cpu().numpy()
+          self.mj_data.mocap_quat[:] = mocap_quat[env_id].cpu().numpy()
 
-        mujoco.mj_getState(
-          self.mj_model, self.mj_data, states[idx], mujoco.mjtState.mjSTATE_PHYSICS
-        )
+        mujoco.mj_getState(self.mj_model, self.mj_data, states[idx], self.state_spec)
 
       data[f"states_step_{step:06d}"] = states
 
@@ -157,13 +169,15 @@ class NanGuard:
         "num_envs_dumped": len(envs_to_dump),
         "nan_env_ids": nan_env_ids,
         "dumped_env_ids": list(envs_to_dump),
+        "state_spec": self.state_spec,
         "state_size": self.state_size,
         "buffer_size": len(self.buffer),
         "detection_step": self.step_counter,
         "timestamp": timestamp,
         "model_file": model_filename.name,
-        "note": "States captured using mj_getState(mjSTATE_PHYSICS). "
-        "Use mj_setState to restore. Model saved as MJB for easy reloading.",
+        "note": "States captured using mj_getState with state_spec. "
+        "Use mj_setState with the same spec to restore. "
+        "Model saved as MJB for easy reloading.",
       },
       dtype=object,
     )

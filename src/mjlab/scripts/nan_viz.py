@@ -40,6 +40,9 @@ class NanDumpViewer:
       [k for k in self.dump.keys() if k.startswith("states_step_")],
       key=lambda x: int(x.split("_")[-1]),
     )
+    self.state_spec = self.metadata.get(
+      "state_spec", mujoco.mjtState.mjSTATE_PHYSICS.value
+    )
     self.num_steps = len(self.state_keys)
     self.num_envs_dumped = self.metadata["num_envs_dumped"]
     self.dumped_env_ids = self.metadata["dumped_env_ids"]
@@ -127,7 +130,7 @@ class NanDumpViewer:
     state = states[self.current_env]
 
     # Set state and compute derived quantities.
-    mujoco.mj_setState(self.model, self.data, state, mujoco.mjtState.mjSTATE_PHYSICS)
+    mujoco.mj_setState(self.model, self.data, state, self.state_spec)
     mujoco.mj_forward(self.model, self.data)
 
     # Update scene from single-environment MuJoCo data.

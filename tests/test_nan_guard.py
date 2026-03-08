@@ -30,6 +30,26 @@ def simple_model():
   return spec.compile()
 
 
+@pytest.fixture
+def mocap_model():
+  """Create a model with a mocap body and a freejoint body."""
+  xml = """
+  <mujoco>
+    <worldbody>
+      <body name="mocap_body" mocap="true">
+        <geom type="sphere" size="0.05"/>
+      </body>
+      <body name="free_body">
+        <freejoint/>
+        <geom type="box" size="0.1 0.1 0.1"/>
+      </body>
+    </worldbody>
+  </mujoco>
+  """
+  spec = mujoco.MjSpec.from_string(xml)
+  return spec.compile()
+
+
 def test_nan_guard_disabled_by_default(simple_model):
   """NaN guard should be disabled by default with no overhead."""
   cfg = SimulationCfg()
@@ -204,9 +224,8 @@ def test_nan_guard_with_complex_model():
     # Verify we can create MjData and restore a state.
     loaded_data = mujoco.MjData(loaded_model)
     state = dump["states_step_000000"][0]
-    mujoco.mj_setState(
-      loaded_model, loaded_data, state, mujoco.mjtState.mjSTATE_PHYSICS
-    )
+    state_spec = metadata.get("state_spec", mujoco.mjtState.mjSTATE_PHYSICS.value)
+    mujoco.mj_setState(loaded_model, loaded_data, state, state_spec)
     mujoco.mj_forward(loaded_model, loaded_data)
 
     # Data should be valid (no NaN in derived quantities after forward).
@@ -341,3 +360,50 @@ def test_nan_guard_creates_latest_symlinks(simple_model):
     # Loading via symlink should work.
     loaded_model = mujoco.MjModel.from_binary_path(str(latest_model))
     assert loaded_model.nq == simple_model.nq
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Likely bug on CPU MjWarp")
+def test_nan_guard_captures_mocap_state(mocap_model):
+  """NaN guard should capture and restore mocap body poses."""
+  with tempfile.TemporaryDirectory() as tmpdir:
+    cfg = SimulationCfg(
+      nan_guard=NanGuardCfg(enabled=True, buffer_size=5, output_dir=tmpdir)
+    )
+    sim = Simulation(num_envs=2, cfg=cfg, model=mocap_model, device=get_test_device())
+
+    # Set a known mocap position before stepping.
+    sim.data.mocap_pos[0, 0] = torch.tensor([1.0, 2.0, 3.0], device=get_test_device())
+
+    # Run a few steps.
+    for _ in range(3):
+      sim.step()
+
+    # Inject NaN to trigger dump.
+    sim.data.qpos[0, 0] = float("nan")
+    sim.step()
+
+    # Load dump.
+    dump_files = [
+      f for f in Path(tmpdir).glob("nan_dump_*.npz") if "latest" not in f.name
+    ]
+    assert len(dump_files) == 1
+
+    dump = np.load(dump_files[0], allow_pickle=True)
+    metadata = dump["_metadata"].item()
+
+    # Metadata should include state_spec with mocap flags.
+    assert "state_spec" in metadata
+    state_spec = metadata["state_spec"]
+    assert state_spec & mujoco.mjtState.mjSTATE_MOCAP_POS.value
+    assert state_spec & mujoco.mjtState.mjSTATE_MOCAP_QUAT.value
+
+    # State size should be larger than physics-only.
+    physics_size = mujoco.mj_stateSize(mocap_model, mujoco.mjtState.mjSTATE_PHYSICS)
+    assert metadata["state_size"] > physics_size
+
+    # Restore a state and verify mocap data round-trips.
+    loaded_data = mujoco.MjData(mocap_model)
+    state = dump["states_step_000000"][0]
+    mujoco.mj_setState(mocap_model, loaded_data, state, state_spec)
+    assert loaded_data.mocap_pos.shape == (1, 3)
+    np.testing.assert_allclose(loaded_data.mocap_pos[0], [1.0, 2.0, 3.0], atol=1e-5)

@@ -10,6 +10,9 @@ Added
 
 - Added ``DelayedBuiltinActuatorGroup`` that fuses delayed builtin actuators
   sharing the same delay configuration into a single buffer operation.
+- NaN guard now captures mocap body poses (``mocap_pos``, ``mocap_quat``)
+  when the model has mocap bodies, enabling full state reconstruction in
+  the dump viewer for fixed-base entities.
 
 Changed
 ^^^^^^^
