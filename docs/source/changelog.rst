@@ -26,12 +26,17 @@ Fixed
 ^^^^^
 
 - ``dr.pseudo_inertia`` no longer loads cuSOLVER, eliminating ~4 GB of
-  persistent GPU memory overhead. Cholesky and eigendecomposition are now
-  computed analytically for the small matrices involved (4x4 and 3x3)
-  (:issue:`753`).
+  persistent GPU memory overhead. The 4x4 Cholesky and 3x3
+  eigendecomposition are computed analytically (Cardano's formula for
+  eigenvalues, projector products for eigenvectors), removing all
+  Python level loops and the associated kernel launch overhead
+  (`#753 <https://github.com/mujocolab/mjlab/pull/753>`_,
+  `#757 <https://github.com/mujocolab/mjlab/issues/757>`_).
 - Set terrain geom mass to zero so that the static terrain body does not
   inflate ``stat.meanmass``, which made force arrow visualization invisible
-  on rough terrain (:issue:`734`, :issue:`537`).
+  on rough terrain
+  (`#734 <https://github.com/mujocolab/mjlab/issues/734>`_,
+  `#537 <https://github.com/mujocolab/mjlab/issues/537>`_).
 
 Version 1.2.0 (March 6, 2026)
 -----------------------------

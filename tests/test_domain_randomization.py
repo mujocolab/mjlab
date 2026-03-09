@@ -9,6 +9,7 @@ from conftest import get_test_device
 
 from mjlab.entity import EntityCfg
 from mjlab.envs.mdp import dr
+from mjlab.envs.mdp.dr.body import _eigh_3x3
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import Scene, SceneCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
@@ -951,6 +952,86 @@ def test_pseudo_inertia_partial_env_ids(device):
   assert not torch.allclose(mass_after[0], mass_before[0], atol=1e-6)
   # Env 1 unchanged.
   assert torch.allclose(mass_after[1], mass_before[1], atol=1e-6)
+
+
+# _eigh_3x3 exactness tests.
+
+
+def test_eigh_3x3_matches_torch_random(device):
+  """Eigenvalues and reconstructed matrices match torch.linalg.eigh."""
+  torch.manual_seed(42)
+  n = 256
+  # Random symmetric matrices via A = M @ M^T + eps*I (guarantees SPD).
+  M = torch.randn(n, 3, 3, device=device)
+  A = M @ M.mT + 0.01 * torch.eye(3, device=device)
+
+  vals, vecs = _eigh_3x3(A)
+  vals_ref, _ = torch.linalg.eigh(A)
+
+  # Eigenvalues should match closely.
+  assert torch.allclose(vals, vals_ref, atol=1e-4), (
+    f"max eigenvalue error: {(vals - vals_ref).abs().max()}"
+  )
+
+  # Reconstruction: V @ diag(vals) @ V^T should recover A.
+  A_recon = vecs @ torch.diag_embed(vals) @ vecs.mT
+  assert torch.allclose(A_recon, A, atol=1e-4), (
+    f"max reconstruction error: {(A_recon - A).abs().max()}"
+  )
+
+  # V should be orthogonal: V^T V = I.
+  VtV = vecs.mT @ vecs
+  I3 = torch.eye(3, device=device).expand_as(VtV)
+  assert torch.allclose(VtV, I3, atol=1e-5), (
+    f"max orthogonality error: {(VtV - I3).abs().max()}"
+  )
+
+
+def test_eigh_3x3_degenerate_double(device):
+  """Double-degenerate matrix (two equal eigenvalues)."""
+
+  # diag(1, 1, 3) — two eigenvalues equal.
+  A = torch.diag(torch.tensor([1.0, 1.0, 3.0], device=device)).unsqueeze(0)
+
+  vals, vecs = _eigh_3x3(A)
+
+  assert torch.allclose(vals, torch.tensor([[1.0, 1.0, 3.0]], device=device), atol=1e-3)
+
+  A_recon = vecs @ torch.diag_embed(vals) @ vecs.mT
+  assert torch.allclose(A_recon, A, atol=1e-3)
+
+  VtV = vecs.mT @ vecs
+  I3 = torch.eye(3, device=device).unsqueeze(0)
+  assert torch.allclose(VtV, I3, atol=1e-5)
+
+
+def test_eigh_3x3_degenerate_triple(device):
+  """Triple-degenerate matrix (A = k*I)."""
+
+  k = 2.5
+  A = (k * torch.eye(3, device=device)).unsqueeze(0)
+
+  vals, vecs = _eigh_3x3(A)
+
+  assert torch.allclose(vals, torch.full((1, 3), k, device=device), atol=1e-5)
+
+  VtV = vecs.mT @ vecs
+  I3 = torch.eye(3, device=device).unsqueeze(0)
+  assert torch.allclose(VtV, I3, atol=1e-5)
+
+
+def test_eigh_3x3_det_positive(device):
+  """Eigenvector matrix always has det = +1 (proper rotation)."""
+  torch.manual_seed(99)
+
+  M = torch.randn(512, 3, 3, device=device)
+  A = M @ M.mT + 0.01 * torch.eye(3, device=device)
+
+  _, vecs = _eigh_3x3(A)
+  dets = torch.linalg.det(vecs)
+  assert torch.allclose(dets, torch.ones_like(dets), atol=1e-4), (
+    f"det range: [{dets.min()}, {dets.max()}]"
+  )
 
 
 # Camera / Light DR tests.

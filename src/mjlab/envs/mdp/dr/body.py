@@ -27,10 +27,7 @@ from ._types import Distribution, Operation
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
 
-# Number of Jacobi sweeps for 3x3 eigendecomposition. Each sweep applies 3 Givens
-# rotations (one per off-diagonal pair). 5 sweeps are more than enough for 3x3 matrices
-# to converge to machine precision.
-_JACOBI_SWEEPS = 5
+_CARDANO_TWO_PI_3 = 2.0943951023931953  # 2π/3
 
 # Pseudo-inertia helpers.
 
@@ -65,70 +62,116 @@ def _cholesky_4x4(A: torch.Tensor) -> torch.Tensor:
   return L
 
 
-def _eigh_3x3_jacobi(
+def _eigh_3x3(
   A: torch.Tensor,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-  """Batched eigendecomposition for 3x3 symmetric matrices via Jacobi.
+  """Analytical eigendecomposition for batched 3x3 symmetric matrices.
 
-  Avoids ``torch.linalg.eigh`` (and the cuSOLVER library it loads), which allocates
-  several GB of persistent GPU memory on first use.
-
-  Uses cyclic Jacobi rotations over the three off-diagonal pairs. For 3x3 matrices,
-  ``_JACOBI_SWEEPS`` sweeps converge to machine precision.
+  Computes eigenvalues via Cardano's formula for the characteristic polynomial,
+  then extracts eigenvectors from projector products. Avoids Python-level loops,
+  so the number of CUDA kernel launches is fixed regardless of desired precision.
 
   Args:
     A: ``(*batch, 3, 3)`` symmetric matrix.
 
   Returns:
     eigenvalues: ``(*batch, 3)`` in ascending order.
-    V: ``(*batch, 3, 3)`` orthogonal eigenvectors (columns).
+    V: ``(*batch, 3, 3)`` orthogonal eigenvectors (columns), ``det(V) = +1``.
   """
-  D = A.clone()
-  V = torch.eye(3, device=A.device, dtype=A.dtype).expand_as(D).clone()
+  # Upper triangle.
+  a00 = A[..., 0, 0]
+  a01 = A[..., 0, 1]
+  a02 = A[..., 0, 2]
+  a11 = A[..., 1, 1]
+  a12 = A[..., 1, 2]
+  a22 = A[..., 2, 2]
 
-  for _ in range(_JACOBI_SWEEPS):
-    for p, q in ((0, 1), (0, 2), (1, 2)):
-      r = 3 - p - q
-      apq = D[..., p, q]
-      app = D[..., p, p]
-      aqq = D[..., q, q]
+  # Eigenvalues via Cardano's formula.
+  # Shift: q = tr(A)/3, B = A - qI (traceless).
+  q = (a00 + a11 + a22) / 3
+  b00 = a00 - q
+  b11 = a11 - q
+  b22 = a22 - q
 
-      # Jacobi rotation: tau = (aqq - app) / (2*apq),
-      # t = sign(tau) / (|tau| + sqrt(1 + tau^2)).
-      diff = aqq - app
-      denom = 2 * apq
-      tau = diff / denom
-      t = torch.sign(tau) / (torch.abs(tau) + torch.sqrt(1 + tau * tau))
-      # When apq ≈ 0, skip rotation (t = 0).
-      t = torch.where(torch.abs(denom) > 1e-30, t, torch.zeros_like(t))
+  # p^2 = ||B||_F^2 / 6.
+  p_sq = (
+    b00 * b00 + b11 * b11 + b22 * b22 + 2 * (a01 * a01 + a02 * a02 + a12 * a12)
+  ) / 6
+  p = torch.sqrt(torch.clamp(p_sq, min=1e-30))
 
-      c = 1 / torch.sqrt(1 + t * t)
-      s = t * c
+  # r = det(B/p) / 2.  |r| <= 1 for real symmetric matrices.
+  inv_p = 1 / p
+  c00 = b00 * inv_p
+  c01 = a01 * inv_p
+  c02 = a02 * inv_p
+  c11 = b11 * inv_p
+  c12 = a12 * inv_p
+  c22 = b22 * inv_p
+  r = (
+    c00 * (c11 * c22 - c12 * c12)
+    - c01 * (c01 * c22 - c12 * c02)
+    + c02 * (c01 * c12 - c11 * c02)
+  ) / 2
 
-      # Update diagonal and off-diagonal elements.
-      D[..., p, p] = app - t * apq
-      D[..., q, q] = aqq + t * apq
-      D[..., p, q] = D[..., q, p] = 0
+  phi = torch.acos(torch.clamp(r, -1.0, 1.0)) / 3
+  two_p = 2 * p
 
-      arp = D[..., r, p].clone()
-      arq = D[..., r, q].clone()
-      D[..., r, p] = D[..., p, r] = c * arp - s * arq
-      D[..., r, q] = D[..., q, r] = s * arp + c * arq
+  # Eigenvalues in ascending order (guaranteed by cosine ordering for 0 <= phi <= pi/3).
+  eig0 = q + two_p * torch.cos(phi + _CARDANO_TWO_PI_3)  # smallest
+  eig1 = q + two_p * torch.cos(phi - _CARDANO_TWO_PI_3)  # middle
+  eig2 = q + two_p * torch.cos(phi)  # largest
+  eigenvalues = torch.stack([eig0, eig1, eig2], dim=-1)
 
-      # Accumulate eigenvectors: V[:, p/q] = c*Vp ∓ s*Vq.
-      vp = V[..., :, p].clone()
-      vq = V[..., :, q].clone()
-      c_exp = c.unsqueeze(-1)
-      s_exp = s.unsqueeze(-1)
-      V[..., :, p] = c_exp * vp - s_exp * vq
-      V[..., :, q] = s_exp * vp + c_exp * vq
+  # Eigenvectors via projector products.
+  # For eigenvalue lambda_i, prod_{j != i} (A - lambda_j I) has columns proportional to
+  # v_i.
+  I3 = torch.eye(3, device=A.device, dtype=A.dtype)
+  M0 = A - eig0[..., None, None] * I3
+  M1 = A - eig1[..., None, None] * I3
+  M2 = A - eig2[..., None, None] * I3
 
-  eigenvalues = torch.stack([D[..., 0, 0], D[..., 1, 1], D[..., 2, 2]], dim=-1)
+  P2 = torch.matmul(M0, M1)  # columns proportional to v2
+  P0 = torch.matmul(M1, M2)  # columns proportional to v0
 
-  # Sort in ascending order to match torch.linalg.eigh convention.
-  idx = eigenvalues.argsort(dim=-1)
-  eigenvalues = eigenvalues.gather(-1, idx)
-  V = V.gather(-1, idx.unsqueeze(-2).expand_as(V))
+  # Select best (largest-norm) column from each projector.
+  def _best_col(P: torch.Tensor) -> torch.Tensor:
+    col_sq = (P * P).sum(dim=-2)  # (*batch, 3)
+    idx = col_sq.argmax(dim=-1)  # (*batch,)
+    idx = idx[..., None, None].expand_as(P[..., :1])  # (*batch, 3, 1)
+    return P.gather(-1, idx)[..., 0]  # (*batch, 3)
+
+  v2 = _best_col(P2)
+  v2 = v2 / (torch.norm(v2, dim=-1, keepdim=True) + 1e-30)
+
+  v0 = _best_col(P0)
+  # Gram-Schmidt against v2 to enforce orthogonality.
+  v0 = v0 - (v0 * v2).sum(dim=-1, keepdim=True) * v2
+  v0_norm = torch.norm(v0, dim=-1, keepdim=True)
+
+  # Fallback for double degeneracy (lambda_0 ~ lambda_1): pick any unit vector
+  # perpendicular to v2.
+  abs_v2 = torch.abs(v2)
+  min_dim = abs_v2.argmin(dim=-1, keepdim=True)  # (*batch, 1)
+  fb = torch.zeros_like(v2).scatter_(-1, min_dim, 1.0)
+  fb = fb - (fb * v2).sum(dim=-1, keepdim=True) * v2
+  fb = fb / (torch.norm(fb, dim=-1, keepdim=True) + 1e-30)
+
+  need_fb = v0_norm[..., 0] < 1e-10
+  v0 = torch.where(
+    need_fb[..., None],
+    fb,
+    v0 / (v0_norm + 1e-30),
+  )
+
+  # v1 = v2 x v0 guarantees a right-handed frame (det V = +1).
+  v1 = torch.linalg.cross(v2, v0)
+  v1 = v1 / (torch.norm(v1, dim=-1, keepdim=True) + 1e-30)
+
+  V = torch.stack([v0, v1, v2], dim=-1)
+
+  # Triple degeneracy (p ~ 0 => A ~ qI): fall back to identity.
+  degenerate = p_sq < 1e-20
+  V = torch.where(degenerate[..., None, None], I3.expand_as(V), V)
 
   return eigenvalues, V
 
@@ -220,14 +263,8 @@ def _decompose_pseudo_inertia_J(
   )  # (*batch, 3, 3)
 
   # Columns of V are principal axes in body frame; eigenvalues are principal moments.
-  principal_moments, V = _eigh_3x3_jacobi(I_com)
-
-  # Ensure V is a proper rotation (det = +1). eigh can return reflections.
-  dets = torch.linalg.det(V)  # (*batch,)
-  neg = dets < 0
-  if torch.any(neg):
-    V = V.clone()
-    V[neg, :, 2] *= -1
+  # _eigh_3x3 guarantees det(V) = +1 (right-handed frame via cross product).
+  principal_moments, V = _eigh_3x3(I_com)
 
   # MuJoCo body_iquat is principal->body, i.e. it represents R = V.
   iquat = quat_from_matrix(V)  # (*batch, 4), wxyz
