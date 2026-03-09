@@ -32,6 +32,9 @@ Fixed
 - Set terrain geom mass to zero so that the static terrain body does not
   inflate ``stat.meanmass``, which made force arrow visualization invisible
   on rough terrain (:issue:`734`, :issue:`537`).
+- Native viewer now syncs ``qpos0`` when domain randomized, fixing incorrect
+  body positions after ``dr.joint_default_pos`` randomization
+  (:issue:`760`).
 
 Version 1.2.0 (March 6, 2026)
 -----------------------------
