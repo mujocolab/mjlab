@@ -338,7 +338,7 @@ class NativeMujocoViewer(BaseViewer):
   # geom_rbound, dof_*, jnt_*, actuator_*, tendon_*, etc.) are skipped.
   _VISUAL_FIELDS = frozenset(
     {
-      "qpos0", 
+      "qpos0",
       "geom_rgba",
       "geom_size",
       "geom_pos",
