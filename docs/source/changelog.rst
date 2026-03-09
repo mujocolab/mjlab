@@ -5,6 +5,14 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Changed
+^^^^^^^
+
+- ``Entity.clear_state()`` is deprecated. Use ``Entity.reset()`` instead.
+  ``clear_state`` only zeroed actuator targets without resetting actuator
+  internal state (e.g. delay buffers), which could cause stale commands
+  after teleporting the robot to a new pose.
+
 Fixed
 ^^^^^
 

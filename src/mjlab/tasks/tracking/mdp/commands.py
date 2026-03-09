@@ -360,7 +360,7 @@ class MotionCommand(CommandTerm):
     )
     self.robot.write_root_state_to_sim(root_state, env_ids=env_ids)
 
-    self.robot.clear_state(env_ids=env_ids)
+    self.robot.reset(env_ids=env_ids)
 
   def _update_command(self):
     self.time_steps += 1

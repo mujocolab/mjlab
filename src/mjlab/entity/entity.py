@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Sequence
@@ -339,6 +340,12 @@ class Entity:
   def actuators(self) -> list[actuator.Actuator]:
     return self._actuators
 
+  # Names.
+
+  @property
+  def body_names(self) -> tuple[str, ...]:
+    return tuple(b.name.split("/")[-1] for b in self.spec.bodies[1:])
+
   @property
   def all_joint_names(self) -> tuple[str, ...]:
     return tuple(j.name.split("/")[-1] for j in self._all_joints)
@@ -348,48 +355,16 @@ class Entity:
     return tuple(j.name.split("/")[-1] for j in self._non_free_joints)
 
   @property
-  def body_names(self) -> tuple[str, ...]:
-    return tuple(b.name.split("/")[-1] for b in self.spec.bodies[1:])
-
-  @property
   def geom_names(self) -> tuple[str, ...]:
     return tuple(g.name.split("/")[-1] for g in self.spec.geoms)
-
-  @property
-  def tendon_names(self) -> tuple[str, ...]:
-    return tuple(t.name.split("/")[-1] for t in self._spec.tendons)
 
   @property
   def site_names(self) -> tuple[str, ...]:
     return tuple(s.name.split("/")[-1] for s in self.spec.sites)
 
   @property
-  def actuator_names(self) -> tuple[str, ...]:
-    return tuple(a.name.split("/")[-1] for a in self.spec.actuators)
-
-  @property
-  def num_joints(self) -> int:
-    return len(self.joint_names)
-
-  @property
-  def num_bodies(self) -> int:
-    return len(self.body_names)
-
-  @property
-  def num_geoms(self) -> int:
-    return len(self.geom_names)
-
-  @property
-  def num_sites(self) -> int:
-    return len(self.site_names)
-
-  @property
-  def num_actuators(self) -> int:
-    return len(self.actuator_names)
-
-  @property
-  def num_tendons(self) -> int:
-    return len(self.tendon_names)
+  def tendon_names(self) -> tuple[str, ...]:
+    return tuple(t.name.split("/")[-1] for t in self._spec.tendons)
 
   @property
   def camera_names(self) -> tuple[str, ...]:
@@ -400,6 +375,36 @@ class Entity:
     return tuple(lt.name.split("/")[-1] for lt in self.spec.lights)
 
   @property
+  def material_names(self) -> tuple[str, ...]:
+    return tuple(m.name.split("/")[-1] for m in self.spec.materials)
+
+  @property
+  def actuator_names(self) -> tuple[str, ...]:
+    return tuple(a.name.split("/")[-1] for a in self.spec.actuators)
+
+  # Counts.
+
+  @property
+  def num_bodies(self) -> int:
+    return len(self.body_names)
+
+  @property
+  def num_joints(self) -> int:
+    return len(self.joint_names)
+
+  @property
+  def num_geoms(self) -> int:
+    return len(self.geom_names)
+
+  @property
+  def num_sites(self) -> int:
+    return len(self.site_names)
+
+  @property
+  def num_tendons(self) -> int:
+    return len(self.tendon_names)
+
+  @property
   def num_cameras(self) -> int:
     return len(self.camera_names)
 
@@ -408,18 +413,18 @@ class Entity:
     return len(self.light_names)
 
   @property
-  def material_names(self) -> tuple[str, ...]:
-    return tuple(m.name.split("/")[-1] for m in self.spec.materials)
-
-  @property
   def num_materials(self) -> int:
     return len(self.material_names)
+
+  @property
+  def num_actuators(self) -> int:
+    return len(self.actuator_names)
 
   @property
   def root_body(self) -> mujoco.MjsBody:
     return self.spec.bodies[1]
 
-  # Methods.
+  # Find methods.
 
   def find_bodies(
     self, name_keys: str | Sequence[str], preserve_order: bool = False
@@ -435,26 +440,6 @@ class Entity:
     if joint_subset is None:
       joint_subset = self.joint_names
     return resolve_matching_names(name_keys, joint_subset, preserve_order)
-
-  def find_actuators(
-    self,
-    name_keys: str | Sequence[str],
-    actuator_subset: Sequence[str] | None = None,
-    preserve_order: bool = False,
-  ) -> tuple[list[int], list[str]]:
-    if actuator_subset is None:
-      actuator_subset = self.actuator_names
-    return resolve_matching_names(name_keys, actuator_subset, preserve_order)
-
-  def find_tendons(
-    self,
-    name_keys: str | Sequence[str],
-    tendon_subset: Sequence[str] | None = None,
-    preserve_order: bool = False,
-  ) -> tuple[list[int], list[str]]:
-    if tendon_subset is None:
-      tendon_subset = self.tendon_names
-    return resolve_matching_names(name_keys, tendon_subset, preserve_order)
 
   def find_joints_by_actuator_names(
     self,
@@ -500,6 +485,16 @@ class Entity:
       site_subset = self.site_names
     return resolve_matching_names(name_keys, site_subset, preserve_order)
 
+  def find_tendons(
+    self,
+    name_keys: str | Sequence[str],
+    tendon_subset: Sequence[str] | None = None,
+    preserve_order: bool = False,
+  ) -> tuple[list[int], list[str]]:
+    if tendon_subset is None:
+      tendon_subset = self.tendon_names
+    return resolve_matching_names(name_keys, tendon_subset, preserve_order)
+
   def find_cameras(
     self,
     name_keys: str | Sequence[str],
@@ -530,6 +525,16 @@ class Entity:
       material_subset = self.material_names
     return resolve_matching_names(name_keys, material_subset, preserve_order)
 
+  def find_actuators(
+    self,
+    name_keys: str | Sequence[str],
+    actuator_subset: Sequence[str] | None = None,
+    preserve_order: bool = False,
+  ) -> tuple[list[int], list[str]]:
+    if actuator_subset is None:
+      actuator_subset = self.actuator_names
+    return resolve_matching_names(name_keys, actuator_subset, preserve_order)
+
   def compile(self) -> mujoco.MjModel:
     """Compile the underlying MjSpec into an MjModel."""
     return self.spec.compile()
@@ -555,6 +560,12 @@ class Entity:
     data: mjwarp.Data,
     device: str,
   ) -> None:
+    """Prepare the entity for simulation after the spec has been compiled.
+
+    Computes global index mappings, initializes actuators, and allocates all nworld
+    state and target tensors in ``EntityData``. Called once by the scene during
+    environment construction.
+    """
     indexing = self._compute_indexing(mj_model, device)
     self.indexing = indexing
     nworld = data.nworld
@@ -710,20 +721,40 @@ class Entity:
     )
 
   def update(self, dt: float) -> None:
+    """Advance actuator internal state by one physics substep.
+
+    Called after each ``sim.step()`` within the decimation loop.
+    """
     for act in self._actuators:
       act.update(dt)
 
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
-    self.clear_state(env_ids)
+    """Zero actuator targets and reset actuator internal state.
+
+    Called by the scene when environments are reset at episode boundaries,
+    and by commands that teleport the robot to a new pose mid-episode.
+    """
+    self._data.clear_state(env_ids)
 
     for act in self._actuators:
       act.reset(env_ids)
 
-  def write_data_to_sim(self) -> None:
-    self._apply_actuator_controls()
-
   def clear_state(self, env_ids: torch.Tensor | slice | None = None) -> None:
-    self._data.clear_state(env_ids)
+    """Deprecated. Use ``reset`` instead."""
+    warnings.warn(
+      "Entity.clear_state() is deprecated. Use Entity.reset().",
+      DeprecationWarning,
+      stacklevel=2,
+    )
+    self.reset(env_ids)
+
+  def write_data_to_sim(self) -> None:
+    """Convert actuator targets into low-level controls and write them to the sim.
+
+    Called before each ``sim.step()`` within the decimation loop. Builtin actuators are
+    applied in a single batched operation; custom actuators are applied individually.
+    """
+    self._apply_actuator_controls()
 
   def write_ctrl_to_sim(
     self,
