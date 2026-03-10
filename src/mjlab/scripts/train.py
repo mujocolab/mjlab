@@ -155,6 +155,12 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
   if is_tracking_task:
     runner_kwargs["registry_name"] = registry_name
 
+  # Write config files before runner creation, since the runner mutates agent_cfg
+  # in-place (e.g., injecting non-serializable objects).
+  if rank == 0:
+    dump_yaml(log_dir / "params" / "env.yaml", env_cfg)
+    dump_yaml(log_dir / "params" / "agent.yaml", agent_cfg)
+
   runner = runner_cls(env, agent_cfg, str(log_dir), device, **runner_kwargs)
 
   add_wandb_tags(cfg.agent.wandb_tags)
@@ -162,11 +168,6 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
   if resume_path is not None:
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
     runner.load(str(resume_path))
-
-  # Only write config files from rank 0 to avoid race conditions.
-  if rank == 0:
-    dump_yaml(log_dir / "params" / "env.yaml", env_cfg)
-    dump_yaml(log_dir / "params" / "agent.yaml", agent_cfg)
 
   runner.learn(
     num_learning_iterations=cfg.agent.max_iterations, init_at_random_ep_len=True

@@ -1,5 +1,6 @@
 """Tests for MjlabOnPolicyRunner."""
 
+import ast
 import tempfile
 from dataclasses import asdict
 from pathlib import Path
@@ -12,6 +13,7 @@ from conftest import get_test_device
 from rsl_rl.models import MLPModel
 from tensordict import TensorDict
 
+import mjlab.scripts.train as train_mod
 from mjlab.actuator import XmlMotorActuatorCfg
 from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg, mdp
@@ -23,6 +25,7 @@ from mjlab.scene import SceneCfg
 from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.tasks.tracking.rl.runner import _OnnxMotionModel
 from mjlab.terrains import TerrainEntityCfg
+from mjlab.utils.os import dump_yaml
 
 
 @pytest.fixture(scope="module")
@@ -306,6 +309,59 @@ def test_cnn_onnx_export_to_file():
     )
     assert onnx_path.exists()
     onnx.checker.check_model(str(onnx_path))
+
+
+def test_agent_cfg_serializable_after_runner_creation(env, device):
+  """dump_yaml must be called before runner creation.
+
+  The runner mutates agent_cfg in-place (e.g. resolve_symmetry_config injects
+  non-serializable objects). Verify that the train script writes config files before
+  constructing the runner.
+
+  Regression test for https://github.com/mjlab-org/mjlab/issues/764.
+  """
+  wrapped_env = RslRlVecEnvWrapper(env)
+  agent_cfg = asdict(
+    RslRlOnPolicyRunnerCfg(num_steps_per_env=4, max_iterations=10, save_interval=5)
+  )
+
+  # Dump should succeed before runner creation.
+  with tempfile.TemporaryDirectory() as tmpdir:
+    dump_yaml(Path(tmpdir) / "agent.yaml", agent_cfg)
+
+  # Create runner (mutates agent_cfg via resolve_symmetry_config).
+  with tempfile.TemporaryDirectory() as tmpdir:
+    MjlabOnPolicyRunner(wrapped_env, agent_cfg, log_dir=tmpdir, device=device)
+
+  # Confirm that the runner added non-serializable keys to agent_cfg.
+  sym_cfg = agent_cfg.get("algorithm", {}).get("symmetry_cfg")
+  runner_mutated = sym_cfg is not None or "multi_gpu" in agent_cfg
+  assert runner_mutated, "Expected runner to mutate agent_cfg"
+
+  # Verify the train script calls dump_yaml before runner_cls().
+  source = Path(train_mod.__file__).read_text()
+  tree = ast.parse(source)
+
+  dump_yaml_line = None
+  runner_cls_line = None
+  for node in ast.walk(tree):
+    if isinstance(node, ast.Call):
+      func = node.func
+      # Look for dump_yaml(..., agent_cfg)
+      if isinstance(func, ast.Name) and func.id == "dump_yaml":
+        for arg in node.args:
+          if isinstance(arg, ast.Name) and arg.id == "agent_cfg":
+            dump_yaml_line = node.lineno
+      # Look for runner_cls(...)
+      if isinstance(func, ast.Name) and func.id == "runner_cls":
+        runner_cls_line = node.lineno
+
+  assert dump_yaml_line is not None, "dump_yaml(agent_cfg) not found"
+  assert runner_cls_line is not None, "runner_cls() not found"
+  assert dump_yaml_line < runner_cls_line, (
+    f"dump_yaml (line {dump_yaml_line}) must be called before "
+    f"runner_cls (line {runner_cls_line})"
+  )
 
 
 class _MockMotion:
