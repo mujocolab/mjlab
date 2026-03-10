@@ -205,7 +205,7 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
     obs = torch.zeros(1, model.policy.input_size)
     torch.onnx.export(
       model,
-      (obs),
+      (obs,),
       os.path.join(path, filename),
       export_params=True,
       opset_version=18,

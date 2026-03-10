@@ -20,7 +20,7 @@ class DiscriminatorCfg :
 
   n_updates : int = 10
 
-  motion_file : str = "/home/manuelactis/walk1_subject1.pkl"
+  motion_file : str = ""
 
   weight : float = 2.0
 

@@ -32,6 +32,7 @@ class TrainConfig:
   env: ManagerBasedRlEnvCfg
   agent: RslRlBaseRunnerCfg
   registry_name: str | None = None
+  motion_file_amd: str | None = None
   video: bool = False
   video_length: int = 200
   video_interval: int = 2000
@@ -74,6 +75,7 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
   print(f"[INFO] Training with: device={device}, seed={seed}, rank={rank}")
 
   registry_name: str | None = None
+  motion_file_amd: str | None = None
 
   # Check if this is a tracking task by checking for motion command.
   is_tracking_task = "motion" in cfg.env.commands and isinstance(
@@ -171,8 +173,10 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
 
   if runner_cls is AmpOnPolicyRunner :
     discriminator_cgf = DiscriminatorCfg()
+    discriminator_cgf.motion_file = cfg.motion_file_amd if cfg.motion_file_amd is not None else ""
     discriminator_cgf.n_obs = 23
     discriminator_cgf.device = device
+    assert(discriminator_cgf.motion_file != "")
     runner_kwargs["discriminator_cfg"] = discriminator_cgf
 
   runner = runner_cls(env, agent_cfg, str(log_dir), device, **runner_kwargs)
