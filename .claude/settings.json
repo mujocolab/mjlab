@@ -1,16 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find:*)",
-      "Bash(make check:*)",
-      "Bash(make test:*)",
-      "Bash(make docs:*)",
-      "Bash(git fetch:*)",
-      "Bash(git commit:*)",
-      "Bash(git checkout:*)",
-      "Bash(git reset:*)",
-      "Bash(gh api:*)",
-      "Bash(git ls-tree:*)"
+      "Bash(make:*)",
+      "Bash(uv run:*)",
+      "Bash(uv lock:*)",
+      "Bash(uv sync:*)",
+      "Bash(uv add:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "WebSearch",
+      "Skill(commit-push-pr)",
+      "Skill(pr-review-toolkit:review-pr)"
     ]
   },
   "hooks": {

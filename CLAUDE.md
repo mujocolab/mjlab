@@ -30,11 +30,25 @@ make test       # Run the full test suite
 make docs       # Build documentation
 ```
 
+Always run `make check` before committing. This runs formatting, linting,
+and type checking. Do not commit code that fails type checking.
+
 Before creating a PR, ensure all checks pass with `make test`.
 
 When making user-facing changes, add an entry to `docs/source/changelog.rst`
 under the "Upcoming version (not yet released)" section using
 Added/Changed/Fixed categories.
+
+# Commits and PRs
+
+- Put `Fixes #<number>` at the end of the commit message body, not in
+  the title.
+- PR body should be plain, concise prose. No section headers, checklists,
+  or structured templates. Describe the problem, what the change does, and
+  any non-obvious tradeoffs. A good PR description reads like a short
+  paragraph to a colleague, not a form.
+- PR and commit messages are rendered on GitHub, so don't hard-wrap them
+  at 88 columns. Let each sentence flow on one line.
 
 Some style guidelines to follow:
 - Line length limit is 88 columns. This applies to code, comments, and docstrings.
