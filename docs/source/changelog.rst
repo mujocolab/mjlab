@@ -19,6 +19,8 @@ Added
 Changed
 ^^^^^^^
 
+- Removed deprecated ``TerrainImporter`` and ``TerrainImporterCfg`` aliases.
+  Use ``TerrainEntity`` and ``TerrainEntityCfg`` instead (:issue:`667`).
 - ``Entity.clear_state()`` is deprecated. Use ``Entity.reset()`` instead.
   ``clear_state`` only zeroed actuator targets without resetting actuator
   internal state (e.g. delay buffers), which could cause stale commands

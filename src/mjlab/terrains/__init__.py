@@ -50,24 +50,3 @@ from mjlab.terrains.terrain_generator import (
 from mjlab.terrains.terrain_generator import SubTerrainCfg as SubTerrainCfg
 from mjlab.terrains.terrain_generator import TerrainGenerator as TerrainGenerator
 from mjlab.terrains.terrain_generator import TerrainGeneratorCfg as TerrainGeneratorCfg
-
-# TODO(kevin): remove these aliases, see https://github.com/mujocolab/mjlab/issues/667
-# Backwards compatibility aliases (deprecated).
-_DEPRECATED_ALIASES = {
-  "TerrainImporter": "TerrainEntity",
-  "TerrainImporterCfg": "TerrainEntityCfg",
-}
-
-
-def __getattr__(name: str):
-  if name in _DEPRECATED_ALIASES:
-    import warnings
-
-    new_name = _DEPRECATED_ALIASES[name]
-    warnings.warn(
-      f"{name} is deprecated and will be removed in a future version. Use {new_name} instead.",
-      DeprecationWarning,
-      stacklevel=2,
-    )
-    return globals()[new_name]
-  raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
