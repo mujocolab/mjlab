@@ -49,6 +49,7 @@ dependencies = [
   "tensorboard>=2.20.0",
   "onnxscript>=0.5.4",
   "wandb>=0.22.3",
+  "joblib",
 ]
 
 [project.urls]
