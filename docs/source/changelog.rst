@@ -8,6 +8,8 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``margin``, ``gap``, and ``solmix`` fields to ``CollisionCfg``
+  for per geom contact parameter configuration (:issue:`766`).
 - Added ``DelayedBuiltinActuatorGroup`` that fuses delayed builtin actuators
   sharing the same delay configuration into a single buffer operation.
 - NaN guard now captures mocap body poses (``mocap_pos``, ``mocap_quat``)

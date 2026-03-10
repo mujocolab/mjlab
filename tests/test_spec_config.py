@@ -110,6 +110,44 @@ def test_collision_dict_field_resolution(multi_geom_spec):
   assert arm.priority == 0
 
 
+def test_collision_margin_gap_solmix(multi_geom_spec):
+  """CollisionCfg should set margin, gap, and solmix on matched geoms."""
+  collision_cfg = CollisionCfg(
+    geom_names_expr=("arm_collision",),
+    margin=0.01,
+    gap=0.005,
+    solmix=0.5,
+    disable_other_geoms=False,
+  )
+  collision_cfg.edit_spec(multi_geom_spec)
+
+  geom = multi_geom_spec.geom("arm_collision")
+  assert geom.margin == pytest.approx(0.01)
+  assert geom.gap == pytest.approx(0.005)
+  assert geom.solmix == pytest.approx(0.5)
+
+
+def test_collision_margin_gap_solmix_dict(multi_geom_spec):
+  """CollisionCfg should support dict-based margin, gap, solmix overrides."""
+  collision_cfg = CollisionCfg(
+    geom_names_expr=(r".*_foot\d_collision$", "arm_collision"),
+    margin={r".*_foot\d_collision$": 0.02, "arm_collision": 0.01},
+    gap={r".*_foot\d_collision$": 0.01, "arm_collision": 0.0},
+    solmix={r".*_foot\d_collision$": 0.8, "arm_collision": 0.2},
+    disable_other_geoms=False,
+  )
+  collision_cfg.edit_spec(multi_geom_spec)
+
+  left_foot = multi_geom_spec.geom("left_foot1_collision")
+  assert left_foot.margin == pytest.approx(0.02)
+  assert left_foot.gap == pytest.approx(0.01)
+  assert left_foot.solmix == pytest.approx(0.8)
+
+  arm = multi_geom_spec.geom("arm_collision")
+  assert arm.margin == pytest.approx(0.01)
+  assert arm.solmix == pytest.approx(0.2)
+
+
 def test_collision_disable_other_geoms(multi_geom_spec):
   """CollisionCfg should disable non-matching geoms when requested."""
   collision_cfg = CollisionCfg(
@@ -137,24 +175,24 @@ def test_collision_disable_other_geoms(multi_geom_spec):
     ("contype", -1, "contype must be non-negative"),
     ("conaffinity", -1, "conaffinity must be non-negative"),
     ("priority", -1, "priority must be non-negative"),
+    ("margin", -0.1, "margin must be non-negative"),
+    ("gap", -0.1, "gap must be non-negative"),
+    ("solmix", 1.5, r"solmix must be in \[0, 1\]"),
   ],
 )
 # fmt: on
 def test_collision_validation(param, value, expected_error):
   """CollisionCfg should validate parameters."""
   with pytest.raises(ValueError, match=expected_error):
-    geom_names_expr = ("test",)
-    contype = value if param == "contype" else 1
-    conaffinity = value if param == "conaffinity" else 1
-    condim = value if param == "condim" else 3
-    priority = value if param == "priority" else 0
-
     cfg = CollisionCfg(
-      geom_names_expr=geom_names_expr,
-      contype=contype,
-      conaffinity=conaffinity,
-      condim=condim,
-      priority=priority,
+      geom_names_expr=("test",),
+      contype=value if param == "contype" else 1,
+      conaffinity=value if param == "conaffinity" else 1,
+      condim=value if param == "condim" else 3,
+      priority=value if param == "priority" else 0,
+      margin=value if param == "margin" else None,
+      gap=value if param == "gap" else None,
+      solmix=value if param == "solmix" else None,
     )
     cfg.validate()
 

@@ -30,6 +30,9 @@ _GEOM_ATTR_DEFAULTS = {
   "friction": None,
   "solref": None,
   "solimp": None,
+  "margin": None,
+  "gap": None,
+  "solmix": None,
 }
 
 _LIGHT_TYPE_MAP = {
@@ -178,6 +181,12 @@ class CollisionCfg(SpecCfg):
   """Solver reference parameters as tuple or dict mapping patterns to tuples."""
   solimp: tuple[float, ...] | dict[str, tuple[float, ...]] | None = None
   """Solver impedance parameters as tuple or dict mapping patterns to tuples."""
+  margin: float | dict[str, float] | None = None
+  """Detection margin. Contacts are generated when geom distance < margin."""
+  gap: float | dict[str, float] | None = None
+  """Gap for solver inclusion. Contact included when dist < margin - gap."""
+  solmix: float | dict[str, float] | None = None
+  """Mixing weight for blending solver parameters between geom pairs."""
   disable_other_geoms: bool = True
   """Whether to disable collision for non-matching geoms."""
 
@@ -221,6 +230,36 @@ class CollisionCfg(SpecCfg):
               f"{field_name} must be non-negative, got {value} for pattern '{pattern}'"
             )
 
+    # Validate margin (non-negative).
+    if isinstance(self.margin, (int, float)) and self.margin < 0:
+      raise ValueError("margin must be non-negative")
+    if isinstance(self.margin, dict):
+      for pattern, value in self.margin.items():
+        if value < 0:
+          raise ValueError(
+            f"margin must be non-negative, got {value} for pattern '{pattern}'"
+          )
+
+    # Validate gap (non-negative).
+    if isinstance(self.gap, (int, float)) and self.gap < 0:
+      raise ValueError("gap must be non-negative")
+    if isinstance(self.gap, dict):
+      for pattern, value in self.gap.items():
+        if value < 0:
+          raise ValueError(
+            f"gap must be non-negative, got {value} for pattern '{pattern}'"
+          )
+
+    # Validate solmix (must be in [0, 1]).
+    if isinstance(self.solmix, (int, float)) and not (0 <= self.solmix <= 1):
+      raise ValueError("solmix must be in [0, 1]")
+    if isinstance(self.solmix, dict):
+      for pattern, value in self.solmix.items():
+        if not (0 <= value <= 1):
+          raise ValueError(
+            f"solmix must be in [0, 1], got {value} for pattern '{pattern}'"
+          )
+
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
     from mjlab.utils.spec import disable_collision
     from mjlab.utils.string import filter_exp, resolve_field
@@ -247,6 +286,13 @@ class CollisionCfg(SpecCfg):
       CollisionCfg.set_array_field(geom.friction, resolved_fields["friction"][i])
       CollisionCfg.set_array_field(geom.solref, resolved_fields["solref"][i])
       CollisionCfg.set_array_field(geom.solimp, resolved_fields["solimp"][i])
+
+      if resolved_fields["margin"][i] is not None:
+        geom.margin = resolved_fields["margin"][i]
+      if resolved_fields["gap"][i] is not None:
+        geom.gap = resolved_fields["gap"][i]
+      if resolved_fields["solmix"][i] is not None:
+        geom.solmix = resolved_fields["solmix"][i]
 
     if self.disable_other_geoms:
       other_geoms = set(all_geom_names).difference(geom_subset)
