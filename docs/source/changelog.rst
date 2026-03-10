@@ -35,6 +35,10 @@ Fixed
 - Native viewer now syncs ``qpos0`` when domain randomized, fixing incorrect
   body positions after ``dr.joint_default_pos`` randomization
   (:issue:`760`).
+- ``command_manager.compute()`` is now called during ``reset()`` so that
+  derived command state (e.g. relative body positions in tracking
+  environments) is populated before the first observation is returned
+  (:issue:`761`).
 
 Version 1.2.0 (March 6, 2026)
 -----------------------------

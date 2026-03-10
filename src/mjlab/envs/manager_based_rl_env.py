@@ -332,6 +332,7 @@ class ManagerBasedRlEnv:
     self._reset_idx(env_ids)
     self.scene.write_data_to_sim()
     self.sim.forward()
+    self.command_manager.compute(dt=0.0)
     self.sim.sense()
     self.obs_buf = self.observation_manager.compute(update_history=True)
     return self.obs_buf, self.extras
