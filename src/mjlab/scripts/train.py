@@ -172,12 +172,16 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
     dump_yaml(log_dir / "params" / "agent.yaml", agent_cfg)
 
   if runner_cls is AmpOnPolicyRunner :
-    discriminator_cgf = DiscriminatorCfg()
-    discriminator_cgf.motion_file = cfg.motion_file_amp if cfg.motion_file_amp is not None else ""
-    discriminator_cgf.n_obs = 23
-    discriminator_cgf.device = device
-    assert(discriminator_cgf.motion_file != "")
-    runner_kwargs["discriminator_cfg"] = discriminator_cgf
+
+    _PKG_DIR = Path(__file__).parent
+    PATH_MOTION_FILE = str(_PKG_DIR / "motions" / cfg.motion_file_amp) if cfg.motion_file_amp is not None else ""
+
+    discriminator_cfg = DiscriminatorCfg()
+    discriminator_cfg.motion_file = PATH_MOTION_FILE
+    discriminator_cfg.n_obs = 23
+    discriminator_cfg.device = device
+    assert(discriminator_cfg.motion_file != "")
+    runner_kwargs["discriminator_cfg"] = discriminator_cfg
 
   runner = runner_cls(env, agent_cfg, str(log_dir), device, **runner_kwargs)
 
