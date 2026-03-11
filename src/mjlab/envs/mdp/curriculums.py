@@ -33,6 +33,20 @@ def reward_weight(
   return torch.tensor([reward_term_cfg.weight])
 
 
+def _deep_update(target: dict, source: dict) -> None:
+  """Recursively merge ``source`` into ``target`` in-place.
+
+  Dict-valued keys are merged rather than replaced, so callers can update a
+  subset of a nested mapping without losing other entries.  All other value
+  types are overwritten directly.
+  """
+  for key, value in source.items():
+    if isinstance(value, dict) and isinstance(target.get(key), dict):
+      _deep_update(target[key], value)
+    else:
+      target[key] = value
+
+
 def reward_params(
   env: ManagerBasedRlEnv,
   env_ids: torch.Tensor,
@@ -47,28 +61,43 @@ def reward_params(
   params are applied.  Later stages in the list take precedence when multiple
   thresholds are exceeded.
 
-  Example::
+  When a param value is itself a dict (e.g. ``std_walking`` in a posture
+  reward that maps joint-name patterns to std values), the stage value is
+  **deep-merged** into the existing dict so that only the specified keys are
+  updated and the rest are preserved.  Pass the full dict in the stage to
+  replace it entirely.
 
-    curriculum_manager = CurriculumManagerCfg(
-      terms={
-        "lin_vel_reward_std": CurriculumTermCfg(
-          func=reward_params,
-          params={
-            "reward_name": "lin_vel",
-            "param_stages": [
-              {"step": 0,    "params": {"std": 0.5}},
-              {"step": 1000, "params": {"std": 0.3}},
-            ],
-          },
-        )
-      }
+  Example — scalar param::
+
+    CurriculumTermCfg(
+      func=reward_params,
+      params={
+        "reward_name": "track_linear_velocity",
+        "param_stages": [
+          {"step": 0,    "params": {"std": 0.5}},
+          {"step": 1000, "params": {"std": 0.3}},
+        ],
+      },
+    )
+
+  Example — dict-valued param (pose reward)::
+
+    CurriculumTermCfg(
+      func=reward_params,
+      params={
+        "reward_name": "pose",
+        "param_stages": [
+          {"step": 0,    "params": {"std_walking": {".*knee.*": 0.5}}},
+          {"step": 1000, "params": {"std_walking": {".*knee.*": 0.3}}},
+        ],
+      },
     )
   """
   del env_ids  # Unused.
   reward_term_cfg = env.reward_manager.get_term_cfg(reward_name)
   for stage in param_stages:
     if env.common_step_counter > stage["step"]:
-      reward_term_cfg.params.update(stage["params"])
+      _deep_update(reward_term_cfg.params, stage["params"])
   return {
     k: torch.tensor(v) if not isinstance(v, torch.Tensor) else v
     for k, v in reward_term_cfg.params.items()

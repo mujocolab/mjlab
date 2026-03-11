@@ -145,6 +145,27 @@ def test_non_scalar_params_excluded_from_return(mock_env):
   assert "scale" in result
 
 
+def test_dict_param_deep_merged(mock_env):
+  """Dict-valued params are deep-merged so unrelated keys are preserved."""
+  cfg = RewardTermCfg(
+    func=lambda env: torch.ones(env.num_envs),
+    weight=1.0,
+    params={"std_walking": {".*knee.*": 0.5, ".*hip.*": 0.4}},
+  )
+  _setup_env(mock_env, step_counter=200, reward_term_cfg=cfg)
+
+  envs_mdp.reward_params(
+    mock_env,
+    env_ids=torch.tensor([0, 1]),
+    reward_name="pose",
+    param_stages=[{"step": 100, "params": {"std_walking": {".*knee.*": 0.2}}}],
+  )
+
+  # Only the specified key is updated; the other is preserved.
+  assert cfg.params["std_walking"][".*knee.*"] == pytest.approx(0.2)
+  assert cfg.params["std_walking"][".*hip.*"] == pytest.approx(0.4)
+
+
 # --- reward_weight ---
 
 
