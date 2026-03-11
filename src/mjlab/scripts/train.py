@@ -180,7 +180,7 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
     discriminator_cfg.motion_file = PATH_MOTION_FILE
     discriminator_cfg.n_obs = 23
     discriminator_cfg.device = device
-    assert(discriminator_cfg.motion_file != "")
+    assert(discriminator_cfg.motion_file != ""), f"Please pass the motion file name with --motion_file_amp"
     runner_kwargs["discriminator_cfg"] = discriminator_cfg
 
   runner = runner_cls(env, agent_cfg, str(log_dir), device, **runner_kwargs)

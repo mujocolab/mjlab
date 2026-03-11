@@ -15,12 +15,11 @@ from mjlab.rl.exporter_utils import (
 )
 from mjlab.rl.runner import MjlabOnPolicyRunner
 from mjlab.tasks.AMP.rl.networks import Discriminator, DiscriminatorCfg
-from mjlab.tasks.tracking.mdp import MotionCommand
 
 _DEFAULT_DISCRIMINATOR_CFG = DiscriminatorCfg()
 
 def load_motion_data(file_name: str = "", source_fps: int = 30, target_fps: int = 50) -> torch.Tensor:
-  assert(file_name != "")
+
   data = joblib.load(file_name)
   clip = data[list(data.keys())[0]]  # get first clip
   dof_data = torch.tensor(clip["dof"], dtype=torch.float32)  # (T, 23)
@@ -72,7 +71,8 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
     self.registry_name = registry_name
     self.discriminator = Discriminator(discriminator_cfg)
 
-    self.motion_data = load_motion_data(discriminator_cfg.motion_file).to(self.device)
+    if discriminator_cfg.motion_file is not None:
+      self.motion_data = load_motion_data(discriminator_cfg.motion_file).to(self.device)
 
 
   # Overide OnPolicyRunner learn() to add Discriminator | but keep similar structure

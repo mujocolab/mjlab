@@ -1,69 +1,44 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import torch
 
-from mjlab.utils.lab_api.math import (
-  matrix_from_quat,
-  subtract_frame_transforms,
-)
-
-from .commands import MotionCommand
+from mjlab.entity import Entity
+from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.sensor import ContactSensor
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
 
-
-def motion_anchor_pos_b(env: ManagerBasedRlEnv, command_name: str) -> torch.Tensor:
-  command = cast(MotionCommand, env.command_manager.get_term(command_name))
-
-  pos, _ = subtract_frame_transforms(
-    command.robot_anchor_pos_w,
-    command.robot_anchor_quat_w,
-    command.anchor_pos_w,
-    command.anchor_quat_w,
-  )
-
-  return pos.view(env.num_envs, -1)
+_DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
 
 
-def motion_anchor_ori_b(env: ManagerBasedRlEnv, command_name: str) -> torch.Tensor:
-  command = cast(MotionCommand, env.command_manager.get_term(command_name))
-
-  _, ori = subtract_frame_transforms(
-    command.robot_anchor_pos_w,
-    command.robot_anchor_quat_w,
-    command.anchor_pos_w,
-    command.anchor_quat_w,
-  )
-  mat = matrix_from_quat(ori)
-  return mat[..., :2].reshape(mat.shape[0], -1)
+def foot_height(
+  env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG
+) -> torch.Tensor:
+  asset: Entity = env.scene[asset_cfg.name]
+  return asset.data.site_pos_w[:, asset_cfg.site_ids, 2]  # (num_envs, num_sites)
 
 
-def robot_body_pos_b(env: ManagerBasedRlEnv, command_name: str) -> torch.Tensor:
-  command = cast(MotionCommand, env.command_manager.get_term(command_name))
-
-  num_bodies = len(command.cfg.body_names)
-  pos_b, _ = subtract_frame_transforms(
-    command.robot_anchor_pos_w[:, None, :].repeat(1, num_bodies, 1),
-    command.robot_anchor_quat_w[:, None, :].repeat(1, num_bodies, 1),
-    command.robot_body_pos_w,
-    command.robot_body_quat_w,
-  )
-
-  return pos_b.view(env.num_envs, -1)
+def foot_air_time(env: ManagerBasedRlEnv, sensor_name: str) -> torch.Tensor:
+  sensor: ContactSensor = env.scene[sensor_name]
+  sensor_data = sensor.data
+  current_air_time = sensor_data.current_air_time
+  assert current_air_time is not None
+  return current_air_time
 
 
-def robot_body_ori_b(env: ManagerBasedRlEnv, command_name: str) -> torch.Tensor:
-  command = cast(MotionCommand, env.command_manager.get_term(command_name))
+def foot_contact(env: ManagerBasedRlEnv, sensor_name: str) -> torch.Tensor:
+  sensor: ContactSensor = env.scene[sensor_name]
+  sensor_data = sensor.data
+  assert sensor_data.found is not None
+  return (sensor_data.found > 0).float()
 
-  num_bodies = len(command.cfg.body_names)
-  _, ori_b = subtract_frame_transforms(
-    command.robot_anchor_pos_w[:, None, :].repeat(1, num_bodies, 1),
-    command.robot_anchor_quat_w[:, None, :].repeat(1, num_bodies, 1),
-    command.robot_body_pos_w,
-    command.robot_body_quat_w,
-  )
-  mat = matrix_from_quat(ori_b)
-  return mat[..., :2].reshape(mat.shape[0], -1)
+
+def foot_contact_forces(env: ManagerBasedRlEnv, sensor_name: str) -> torch.Tensor:
+  sensor: ContactSensor = env.scene[sensor_name]
+  sensor_data = sensor.data
+  assert sensor_data.force is not None
+  forces_flat = sensor_data.force.flatten(start_dim=1)  # [B, N*3]
+  return torch.sign(forces_flat) * torch.log1p(torch.abs(forces_flat))

@@ -10,7 +10,7 @@ from torch import nn
 
 
 class DiscriminatorCfg :
-  n_obs : int
+  n_obs : int = 1
 
   hidden_dim : int = 512
 
@@ -20,7 +20,7 @@ class DiscriminatorCfg :
 
   n_updates : int = 10
 
-  motion_file : str = ""
+  motion_file : str | None = None
 
   weight : float = 2.0
 

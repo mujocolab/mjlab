@@ -1,4 +1,4 @@
-"""Unitree G1 velocity environment configurations."""
+"""Unitree G1 amp environment configurations."""
 
 from mjlab.asset_zoo.robots import (
   G1_ACTION_SCALE,
@@ -10,13 +10,13 @@ from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.event_manager import EventTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.sensor import ContactMatch, ContactSensorCfg, RayCastSensorCfg
-from mjlab.tasks.velocity import mdp
-from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
+from mjlab.tasks.AMP import mdp
+from mjlab.tasks.AMP.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.AMP.amp_env_cfg import make_amp_env_cfg
 
 
 def unitree_g1_rough_amp_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
-  """Create Unitree G1 rough terrain velocity configuration."""
+  """Create Unitree G1 rough terrain amp configuration."""
   cfg = make_amp_env_cfg()
 
   cfg.sim.mujoco.ccd_iterations = 500
@@ -132,7 +132,7 @@ def unitree_g1_rough_amp_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
 
 def unitree_g1_flat_amp_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
-  """Create Unitree G1 flat terrain velocity configuration."""
+  """Create Unitree G1 flat terrain amp configuration."""
   cfg = unitree_g1_rough_amp_env_cfg(play=play)
 
   cfg.sim.njmax = 300
