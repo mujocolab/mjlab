@@ -194,3 +194,36 @@ def test_action_sets_entity_target(
 
   entity_target = getattr(entity.data, target_attr)
   assert torch.allclose(entity_target, target)
+
+
+def test_base_action_clip(fixtures_dir, device):
+  """BaseAction: clip clamps only matched actuators; others stay unclipped."""
+  entity = make_entity(
+    fixtures_dir / "fixed_base_articulated.xml",
+    ("joint.*",),
+    TransmissionType.JOINT,
+    device,
+    from_file=True,
+  )
+  env = make_env(entity, "robot", device)
+
+  # Clip only joint1; joint2 should remain unclipped.
+  cfg = JointPositionActionCfg(
+    entity_name="robot",
+    actuator_names=("joint.*",),
+    scale=1.0,
+    use_default_offset=False,
+    clip={"joint1": (-0.5, 0.5)},
+  )
+  action = cfg.build(env)
+
+  # joint1=2.0 should be clipped to 0.5, joint2=2.0 should pass through.
+  raw = torch.tensor([[2.0, 2.0]], device=device).expand(4, -1)
+  action.process_actions(raw)
+
+  assert torch.allclose(
+    action._processed_actions[:, 0], torch.tensor(0.5, device=device)
+  )
+  assert torch.allclose(
+    action._processed_actions[:, 1], torch.tensor(2.0, device=device)
+  )

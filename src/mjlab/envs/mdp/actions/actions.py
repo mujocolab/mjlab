@@ -88,6 +88,15 @@ class BaseAction(ActionTerm):
         f"Supported types are float and dict."
       )
 
+    if cfg.clip is not None:
+      self._clip = torch.tensor(
+        [[-float("inf"), float("inf")]], device=self.device
+      ).repeat(self.num_envs, self.action_dim, 1)
+      index_list, _, value_list = resolve_matching_names_values(
+        cfg.clip, self._target_names
+      )
+      self._clip[:, index_list] = torch.tensor(value_list, device=self.device)
+
   def _find_targets(self, cfg: BaseActionCfg) -> tuple[list[int], list[str]]:
     """Find target IDs and names based on transmission type.
 
@@ -143,9 +152,15 @@ class BaseAction(ActionTerm):
     return self._target_names
 
   def process_actions(self, actions: torch.Tensor):
-    """Process raw actions by applying scale and offset."""
+    """Process raw actions by applying scale, offset, and optional clip."""
     self._raw_actions[:] = actions
     self._processed_actions = self._raw_actions * self._scale + self._offset
+    if self.cfg.clip is not None:
+      self._processed_actions = torch.clamp(
+        self._processed_actions,
+        min=self._clip[:, :, 0],
+        max=self._clip[:, :, 1],
+      )
 
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
     """Reset raw actions to zero for specified environments."""

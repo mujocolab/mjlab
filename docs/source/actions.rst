@@ -42,8 +42,19 @@ scaling; joint action types also provide ``use_default_offset``, which
 automatically loads the entity's default joint positions or velocities
 as the offset so that a raw output of zero produces the default pose.
 
-``clip`` optionally clamps the processed action before it reaches the
-actuator.
+``clip`` optionally clamps the processed action (after scale and offset)
+before it reaches the actuator. It accepts a dict mapping actuator name
+patterns to ``(min, max)`` tuples, resolved the same way as ``scale``
+and ``offset``.
+
+.. code-block:: python
+
+    JointPositionActionCfg(
+        entity_name="robot",
+        actuator_names=(".*",),
+        scale=0.5,
+        clip={".*_hip_.*": (-1.0, 1.0), ".*_knee_.*": (-0.5, 2.0)},
+    )
 
 Actions are written to actuator targets on every decimation substep
 (physics step), not just once per policy step. This is in contrast to

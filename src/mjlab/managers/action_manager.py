@@ -27,8 +27,9 @@ class ActionTermCfg(abc.ABC):
   """Name of the entity in the scene that this action term controls."""
 
   clip: dict[str, tuple] | None = None
-  """Optional clipping bounds per transmission type. Maps transmission name
-  (e.g., 'position', 'velocity') to (min, max) tuple."""
+  """Optional clipping bounds applied to processed actions (after scale
+  and offset). Dict maps actuator name regex patterns to (min, max)
+  tuples, resolved the same way as ``scale`` and ``offset``."""
 
   @abc.abstractmethod
   def build(self, env: ManagerBasedRlEnv) -> ActionTerm:
