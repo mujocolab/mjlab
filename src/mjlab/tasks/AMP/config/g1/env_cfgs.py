@@ -114,15 +114,6 @@ def unitree_g1_rough_amp_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     "asset_cfg"
   ] = SceneEntityCfg("robot", joint_names=_JOINT_NAMES_FOR_DISCRIM_REGEX)
 
-  # Rationale for std values:
-  # - Knees/hip_pitch get the loosest std to allow natural leg bending during stride.
-  # - Hip roll/yaw stay tighter to prevent excessive lateral sway and keep gait stable.
-  # - Ankle roll is very tight for balance; ankle pitch looser for foot clearance.
-  # - Waist roll/pitch stay tight to keep the torso upright and stable.
-  # - Shoulders/elbows get moderate freedom for natural arm swing during walking.
-  # - Wrists are loose (0.3) since they don't affect balance much.
-  # Running values are ~1.5-2x walking values to accommodate larger motion range.
-
 
   cfg.rewards["upright"].params["asset_cfg"].body_names = ("torso_link",)
   cfg.rewards["body_ang_vel"].params["asset_cfg"].body_names = ("torso_link",)
