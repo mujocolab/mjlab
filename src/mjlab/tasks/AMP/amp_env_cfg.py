@@ -114,38 +114,11 @@ def make_amp_env_cfg() -> ManagerBasedRlEnvCfg:
     ),
   }
 
-
-  _JOINT_NAMES_FOR_DISCRIM_REGEX = (
-    "left_hip_pitch_joint",
-    "left_hip_roll_joint",
-    "left_hip_yaw_joint",
-    "left_knee_joint",
-    "left_ankle_pitch_joint",
-    "left_ankle_roll_joint",
-    "right_hip_pitch_joint",
-    "right_hip_roll_joint",
-    "right_hip_yaw_joint",
-    "right_knee_joint",
-    "right_ankle_pitch_joint",
-    "right_ankle_roll_joint",
-    "waist_yaw_joint",
-    "waist_roll_joint",
-    "waist_pitch_joint",
-    "left_shoulder_pitch_joint",
-    "left_shoulder_roll_joint",
-    "left_shoulder_yaw_joint",
-    "left_elbow_joint",
-    "right_shoulder_pitch_joint",
-    "right_shoulder_roll_joint",
-    "right_shoulder_yaw_joint",
-    "right_elbow_joint",
-  )
-
   discriminator_terms = {
     "joint_pos": ObservationTermCfg(
       func=mdp.joint_pos_rel,
       noise=Unoise(n_min=-0.01, n_max=0.01),
-      params={"asset_cfg": SceneEntityCfg("robot", joint_names=(_JOINT_NAMES_FOR_DISCRIM_REGEX))}
+      params={"asset_cfg": SceneEntityCfg("robot", joint_names=(".*"))} # Set per-robot
     ),
   }
 
