@@ -37,7 +37,8 @@ Before creating a PR, ensure all checks pass with `make test`.
 
 When making user-facing changes, add an entry to `docs/source/changelog.rst`
 under the "Upcoming version (not yet released)" section using
-Added/Changed/Fixed categories.
+Added/Changed/Fixed categories. Reference issues with `:issue:\`123\``
+(renders as a link to the GitHub issue).
 
 # Commits and PRs
 

@@ -28,7 +28,15 @@ extensions = [
   "sphinx_design",
   "sphinx_tabs.tabs",
   "sphinx_multiversion",
+  "sphinx.ext.extlinks",
 ]
+
+extlinks = {
+  "issue": (
+    "https://github.com/mujocolab/mjlab/issues/%s",
+    "#%s",
+  ),
+}
 
 mathjax3_config = {
   "tex": {
