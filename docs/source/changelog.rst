@@ -45,6 +45,11 @@ Fixed
   derived command state (e.g. relative body positions in tracking
   environments) is populated before the first observation is returned
   (:issue:`761`).
+- ``RayCastSensor`` with ``ray_alignment="yaw"`` or ``"world"`` now correctly
+  aligns the frame offset when attached to a site or geom with a local offset
+  from its parent body. Previously only ray directions and pattern offsets were
+  aligned, causing the frame position to swing with body pitch/roll
+  (:issue:`775`).
 
 Version 1.2.0 (March 6, 2026)
 -----------------------------

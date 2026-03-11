@@ -490,6 +490,8 @@ class RayCastSensor(Sensor[RayCastData]):
     self._cached_frame_pos: torch.Tensor | None = None
     self._cached_frame_mat: torch.Tensor | None = None
 
+    self._frame_local_pos: torch.Tensor | None = None
+
     self._ctx: SensorContext | None = None
 
   def edit_spec(
@@ -524,11 +526,21 @@ class RayCastSensor(Sensor[RayCastData]):
       # Look up parent body for exclusion.
       self._frame_body_id = int(mj_model.site_bodyid[self._frame_site_id])
       self._frame_type = "site"
+      self._frame_local_pos = torch.tensor(
+        mj_model.site_pos[self._frame_site_id],
+        dtype=torch.float32,
+        device=device,
+      )
     elif frame.type == "geom":
       self._frame_geom_id = mj_model.geom(frame_name).id
       # Look up parent body for exclusion.
       self._frame_body_id = int(mj_model.geom_bodyid[self._frame_geom_id])
       self._frame_type = "geom"
+      self._frame_local_pos = torch.tensor(
+        mj_model.geom_pos[self._frame_geom_id],
+        dtype=torch.float32,
+        device=device,
+      )
     else:
       raise ValueError(
         f"RayCastSensor frame must be 'body', 'site', or 'geom', got '{frame.type}'"
@@ -624,11 +636,21 @@ class RayCastSensor(Sensor[RayCastData]):
       frame_pos = self._data.xpos[env_indices, self._frame_body_id]
       frame_mat = self._data.xmat[env_indices, self._frame_body_id]
     elif self._frame_type == "site":
-      frame_pos = self._data.site_xpos[env_indices, self._frame_site_id]
+      body_pos = self._data.xpos[env_indices, self._frame_body_id]
+      body_mat = self._data.xmat[env_indices, self._frame_body_id]
       frame_mat = self._data.site_xmat[env_indices, self._frame_site_id]
+      body_align = self._compute_alignment_rotation(body_mat.view(-1, 3, 3))
+      frame_pos = body_pos + torch.einsum(
+        "bij,j->bi", body_align, self._frame_local_pos
+      )
     else:  # geom
-      frame_pos = self._data.geom_xpos[env_indices, self._frame_geom_id]
+      body_pos = self._data.xpos[env_indices, self._frame_body_id]
+      body_mat = self._data.xmat[env_indices, self._frame_body_id]
       frame_mat = self._data.geom_xmat[env_indices, self._frame_geom_id]
+      body_align = self._compute_alignment_rotation(body_mat.view(-1, 3, 3))
+      frame_pos = body_pos + torch.einsum(
+        "bij,j->bi", body_align, self._frame_local_pos
+      )
 
     rot_mats = self._compute_alignment_rotation(frame_mat.view(-1, 3, 3)).cpu().numpy()
     origins = frame_pos.cpu().numpy()
@@ -701,12 +723,17 @@ class RayCastSensor(Sensor[RayCastData]):
     if self._frame_type == "body":
       frame_pos = self._data.xpos[:, self._frame_body_id]
       frame_mat = self._data.xmat[:, self._frame_body_id].view(-1, 3, 3)
-    elif self._frame_type == "site":
-      frame_pos = self._data.site_xpos[:, self._frame_site_id]
-      frame_mat = self._data.site_xmat[:, self._frame_site_id].view(-1, 3, 3)
-    else:  # geom
-      frame_pos = self._data.geom_xpos[:, self._frame_geom_id]
-      frame_mat = self._data.geom_xmat[:, self._frame_geom_id].view(-1, 3, 3)
+    else:
+      body_pos = self._data.xpos[:, self._frame_body_id]
+      body_mat = self._data.xmat[:, self._frame_body_id].view(-1, 3, 3)
+      if self._frame_type == "site":
+        frame_mat = self._data.site_xmat[:, self._frame_site_id].view(-1, 3, 3)
+      else:
+        frame_mat = self._data.geom_xmat[:, self._frame_geom_id].view(-1, 3, 3)
+      body_align = self._compute_alignment_rotation(body_mat)
+      frame_pos = body_pos + torch.einsum(
+        "bij,j->bi", body_align, self._frame_local_pos
+      )
 
     num_envs = frame_pos.shape[0]
     rot_mat = self._compute_alignment_rotation(frame_mat)

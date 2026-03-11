@@ -534,11 +534,6 @@ def test_raycast_body_rotation_affects_rays(device):
   ), f"Expected ~{expected_distance:.2f}m, got {data_rotated.distances}"
 
 
-# ============================================================================
-# Pinhole Camera Pattern Tests
-# ============================================================================
-
-
 def test_pinhole_camera_pattern_num_rays(device):
   """Verify pinhole pattern generates width * height rays."""
   simple_xml = """
@@ -669,11 +664,6 @@ def test_pinhole_from_mujoco_camera_fovy_mode(device):
   sim.sense()
   data = sensor.data
   assert torch.all(data.distances >= 0)  # Should hit floor
-
-
-# ============================================================================
-# Ray Alignment Tests
-# ============================================================================
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Likely bug on CPU MjWarp")
@@ -942,4 +932,122 @@ def test_height_scan_misses(device):
   # Misses default to sensor max_distance.
   assert torch.allclose(
     heights, torch.full_like(heights, raycast_cfg.max_distance), atol=1e-5
+  )
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Likely bug on CPU MjWarp")
+def test_ray_alignment_yaw_site_offset(device):
+  """Verify yaw alignment correctly aligns frame offset for sites.
+
+  When a site has a large Z offset from its parent body, the frame position should be
+  recomputed using the body's yaw-only rotation so that pitch/roll does not swing the
+  ray origin.
+  """
+  xml = """
+    <mujoco>
+      <option gravity="0 0 0"/>
+      <worldbody>
+        <geom name="floor" type="plane" size="50 50 0.1" pos="0 0 0"/>
+        <body name="base" pos="0 0 2">
+          <freejoint name="free_joint"/>
+          <geom name="base_geom" type="sphere" size="0.1" mass="1.0"/>
+          <site name="high_site" pos="0 0 20"/>
+        </body>
+      </worldbody>
+    </mujoco>
+  """
+
+  raycast_cfg = RayCastSensorCfg(
+    name="yaw_site_scan",
+    frame=ObjRef(type="site", name="high_site", entity="robot"),
+    pattern=GridPatternCfg(size=(0.0, 0.0), resolution=0.1, direction=(0.0, 0.0, -1.0)),
+    ray_alignment="yaw",
+    max_distance=50.0,
+  )
+
+  scene, sim = _make_scene_and_sim(device, xml, sensors=(raycast_cfg,))
+  sensor = scene["yaw_site_scan"]
+
+  # Baseline: unrotated body. Site at z=22, floor at z=0 -> distance ~22m.
+  sim.step()
+  scene.update(dt=sim.cfg.mujoco.timestep)
+  sim.sense()
+  baseline_dist = sensor.data.distances.clone()
+  assert torch.allclose(baseline_dist, torch.full_like(baseline_dist, 22.0), atol=0.2)
+
+  # Tilt body 30 degrees around X axis (pitch).
+  angle = math.pi / 6
+  quat = [math.cos(angle / 2), math.sin(angle / 2), 0, 0]
+  sim.data.qpos[0, 3:7] = torch.tensor(quat, device=device)
+  sim.step()
+  scene.update(dt=sim.cfg.mujoco.timestep)
+  sim.sense()
+  tilted_dist = sensor.data.distances.clone()
+
+  # With the fix, distance should remain ~22m because yaw alignment prevents the site
+  # offset from swinging with pitch.
+  assert torch.allclose(tilted_dist, baseline_dist, atol=0.5), (
+    f"Expected ~22m after pitch, got {tilted_dist}"
+  )
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Likely bug on CPU MjWarp")
+def test_ray_alignment_world_site_offset(device):
+  """Verify world alignment correctly aligns frame offset for sites.
+
+  With world alignment the site offset should be rotated by the identity matrix, so
+  combined pitch and roll on the body should not move the ray origin away from directly
+  above the body.
+  """
+  xml = """
+    <mujoco>
+      <option gravity="0 0 0"/>
+      <worldbody>
+        <geom name="floor" type="plane" size="50 50 0.1" pos="0 0 0"/>
+        <body name="base" pos="0 0 2">
+          <freejoint name="free_joint"/>
+          <geom name="base_geom" type="sphere" size="0.1" mass="1.0"/>
+          <site name="high_site" pos="0 0 20"/>
+        </body>
+      </worldbody>
+    </mujoco>
+  """
+
+  raycast_cfg = RayCastSensorCfg(
+    name="world_site_scan",
+    frame=ObjRef(type="site", name="high_site", entity="robot"),
+    pattern=GridPatternCfg(size=(0.0, 0.0), resolution=0.1, direction=(0.0, 0.0, -1.0)),
+    ray_alignment="world",
+    max_distance=50.0,
+  )
+
+  scene, sim = _make_scene_and_sim(device, xml, sensors=(raycast_cfg,))
+  sensor = scene["world_site_scan"]
+
+  # Baseline: unrotated body. Site at z=22 -> distance ~22m.
+  sim.step()
+  scene.update(dt=sim.cfg.mujoco.timestep)
+  sim.sense()
+  baseline_dist = sensor.data.distances.clone()
+  assert torch.allclose(baseline_dist, torch.full_like(baseline_dist, 22.0), atol=0.2)
+
+  # Apply combined pitch (30 deg) + roll (20 deg).
+  pitch = math.pi / 6
+  roll = math.pi / 9
+  cp, sp = math.cos(pitch / 2), math.sin(pitch / 2)
+  cr, sr = math.cos(roll / 2), math.sin(roll / 2)
+  # q_pitch (around X) then q_roll (around Y): q = q_roll * q_pitch
+  qw = cr * cp
+  qx = cr * sp
+  qy = sr * cp
+  qz = -sr * sp
+  sim.data.qpos[0, 3:7] = torch.tensor([qw, qx, qy, qz], device=device)
+  sim.step()
+  scene.update(dt=sim.cfg.mujoco.timestep)
+  sim.sense()
+  rotated_dist = sensor.data.distances.clone()
+
+  # With world alignment, distance should remain ~22m.
+  assert torch.allclose(rotated_dist, baseline_dist, atol=0.5), (
+    f"Expected ~22m after pitch+roll, got {rotated_dist}"
   )
