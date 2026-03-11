@@ -22,7 +22,7 @@ class DiscriminatorCfg :
 
   motion_file : str | None = None
 
-  weight : float = 2.0
+  weight : float = 1.0
 
 class Discriminator(nn.Module):
   """Sigmoid simple model"""

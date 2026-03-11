@@ -33,6 +33,7 @@ class TrainConfig:
   agent: RslRlBaseRunnerCfg
   registry_name: str | None = None
   motion_file_amp: str | None = None
+  amp_weight : float = 1.0
   video: bool = False
   video_length: int = 200
   video_interval: int = 2000
@@ -179,6 +180,7 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
     discriminator_cfg = DiscriminatorCfg()
     discriminator_cfg.motion_file = PATH_MOTION_FILE
     discriminator_cfg.n_obs = 23
+    discriminator_cfg.weight = cfg.amp_weight
     discriminator_cfg.device = device
     assert(discriminator_cfg.motion_file != ""), f"Please pass the motion file name with --motion_file_amp"
     runner_kwargs["discriminator_cfg"] = discriminator_cfg
