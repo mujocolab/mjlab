@@ -200,14 +200,13 @@ def test_electrical_power_cost_partially_actuated(device):
   reward = electrical_power_cost(reward_cfg, env)
 
   assert len(reward._joint_ids) == 2
-  assert len(reward._actuator_ids) == 2
 
   # Test case 1: All forces and velocities aligned (all positive work).
-  # actuated_joint1 (qvel[:, 0]), actuated_joint2 (qvel[:, 2]).
-  # Note: qvel[:, 1] is the passive joint, not used in power calculation.
-  sim.data.actuator_force[:] = torch.tensor(
-    [[2.0, 3.0], [1.0, 4.0]], device=device, dtype=torch.float32
-  )
+  # actuated_joint1 (dof 0), actuated_joint2 (dof 2).
+  # Note: dof 1 is the passive joint, not used in power calculation.
+  sim.data.qfrc_actuator[:] = 0.0
+  sim.data.qfrc_actuator[:, 0] = torch.tensor([2.0, 1.0], device=device)
+  sim.data.qfrc_actuator[:, 2] = torch.tensor([3.0, 4.0], device=device)
   sim.data.qvel[:] = 0.0
   sim.data.qvel[:, 0] = torch.tensor([1.0, 2.0], device=device)
   sim.data.qvel[:, 2] = torch.tensor([2.0, 1.0], device=device)
@@ -219,9 +218,9 @@ def test_electrical_power_cost_partially_actuated(device):
   assert torch.allclose(power_cost, expected)
 
   # Test case 2: Some negative forces (regenerative braking, not penalized).
-  sim.data.actuator_force[:] = torch.tensor(
-    [[-2.0, 3.0], [1.0, -4.0]], device=device, dtype=torch.float32
-  )
+  sim.data.qfrc_actuator[:] = 0.0
+  sim.data.qfrc_actuator[:, 0] = torch.tensor([-2.0, 1.0], device=device)
+  sim.data.qfrc_actuator[:, 2] = torch.tensor([3.0, -4.0], device=device)
 
   power_cost = reward(env, asset_cfg)
 

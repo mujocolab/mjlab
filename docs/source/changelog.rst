@@ -17,6 +17,11 @@ Added
   the dump viewer for fixed-base entities.
 - Implemented ``ActionTermCfg.clip`` for clamping processed actions after
   scale and offset (:issue:`771`).
+- Added ``qfrc_actuator`` and ``qfrc_external`` generalized force accessors
+  to ``EntityData``. ``qfrc_actuator`` gives actuator forces in joint space
+  (projected through the transmission). ``qfrc_external`` recovers the
+  generalized force from body external wrenches (``xfrc_applied``)
+  (:issue:`776`).
 
 Changed
 ^^^^^^^
@@ -27,10 +32,17 @@ Changed
   ``clear_state`` only zeroed actuator targets without resetting actuator
   internal state (e.g. delay buffers), which could cause stale commands
   after teleporting the robot to a new pose.
+- Removed ``EntityData.generalized_force``. The property was bugged (indexed
+  free joint DOFs instead of articulated DOFs) and the name was ambiguous.
+  Use ``qfrc_actuator`` or ``qfrc_external`` instead (:issue:`776`).
 
 Fixed
 ^^^^^
 
+- ``electrical_power_cost`` now uses ``qfrc_actuator`` (joint space) instead
+  of ``actuator_force`` (actuation space) for mechanical power computation.
+  Previously the reward was incorrect for actuators with gear ratios other
+  than 1 (:issue:`776`).
 - ``dr.pseudo_inertia`` no longer loads cuSOLVER, eliminating ~4 GB of
   persistent GPU memory overhead. Cholesky and eigendecomposition are now
   computed analytically for the small matrices involved (4x4 and 3x3)

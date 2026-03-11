@@ -139,15 +139,11 @@ class electrical_power_cost:
     joint_ids, _ = asset.find_joints(
       cfg.params["asset_cfg"].joint_names,
     )
-    actuator_ids, _ = asset.find_actuators(
-      cfg.params["asset_cfg"].joint_names,
-    )
     self._joint_ids = torch.tensor(joint_ids, device=env.device, dtype=torch.long)
-    self._actuator_ids = torch.tensor(actuator_ids, device=env.device, dtype=torch.long)
 
   def __call__(self, env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     asset: Entity = env.scene[asset_cfg.name]
-    tau = asset.data.actuator_force[:, self._actuator_ids]
+    tau = asset.data.qfrc_actuator[:, self._joint_ids]
     qd = asset.data.joint_vel[:, self._joint_ids]
     mech = tau * qd
     mech_pos = torch.clamp(mech, min=0.0)  # Don't penalize regen.
