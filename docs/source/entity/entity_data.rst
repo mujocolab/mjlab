@@ -258,12 +258,38 @@ Joint properties cover 1-DOF revolute and prismatic joints. The free joint
      - Joint accelerations in rad/s² or m/s²
    * - ``actuator_force``
      - ``[num_envs, num_actuators]``
-     - Scalar actuation force in actuation space. Use this in reward and
-       observation terms where joint torques are needed.
-   * - ``generalized_force``
-     - ``[num_envs, nv]``
-     - Generalized forces applied to the free-joint DOFs
+     - Scalar actuator output in actuation space (per actuator). This is
+       the force before projection through the transmission Jacobian. For
+       actuator forces in joint space, use ``qfrc_actuator`` instead.
 
+
+.. _generalized-forces:
+
+Reference: generalized forces
+-----------------------------
+
+These properties expose selected components of MuJoCo's generalized
+force decomposition, sliced to this entity's articulated joint DOFs.
+Free joint DOFs are excluded. All shapes are ``[num_envs, nv]`` where
+``nv`` is the number of articulated DOFs belonging to this entity.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Property
+     - Description
+   * - ``qfrc_actuator``
+     - Forces produced by all actuators, mapped into joint space. For
+       motors this is the commanded torque times the gear ratio. For
+       position and velocity actuators this is the force computed by
+       the internal PD law. When ``actuatorgravcomp`` is enabled on a
+       joint, the gravity compensation force is included here.
+   * - ``qfrc_external``
+     - Forces on joints due to Cartesian wrenches applied to bodies
+       via ``xfrc_applied``. This is the :math:`J^\top F` mapping.
+       MuJoCo does not store this term separately; the property
+       recovers it from other force components after ``forward()``.
 
 Reference: geom and site state
 -------------------------------

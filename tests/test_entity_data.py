@@ -1,10 +1,17 @@
 """Tests for EntityData."""
 
 import mujoco
+import numpy as np
 import pytest
 import torch
-from conftest import get_test_device
+from conftest import (
+  create_entity_with_actuator,
+  get_test_device,
+  initialize_entity,
+  load_fixture_xml,
+)
 
+from mjlab.actuator import BuiltinMotorActuatorCfg
 from mjlab.entity import Entity, EntityCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
 
@@ -282,3 +289,109 @@ def test_entity_data_reset_partial_envs(device):
   assert torch.all(entity.data.tendon_effort_target[1] == 0.0)
   assert torch.all(entity.data.tendon_effort_target[2] == 9.0)
   assert torch.all(entity.data.tendon_effort_target[3] == 0.0)
+
+
+# Generalized force accessor tests.
+
+TWO_LINK_ARM_XML = """
+<mujoco>
+  <worldbody>
+    <body name="base">
+      <body name="upper" pos="0 0 0.5">
+        <joint name="shoulder" type="hinge" axis="0 1 0"/>
+        <geom type="capsule" fromto="0 0 0 0 0 0.4" size="0.03" mass="1.0"/>
+        <body name="lower" pos="0 0 0.4">
+          <joint name="elbow" type="hinge" axis="0 1 0"/>
+          <geom type="capsule" fromto="0 0 0 0 0 0.3" size="0.02" mass="0.5"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+
+def test_qfrc_actuator_slices_joint_dofs_only(device):
+  """qfrc_actuator should expose only articulated joint DoFs."""
+  xml = load_fixture_xml("floating_base_articulated")
+  cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(xml))
+  entity = Entity(cfg)
+  entity, sim = initialize_entity_with_sim(entity, device)
+
+  joint_v_adr = entity.indexing.joint_v_adr
+  free_v_adr = entity.indexing.free_joint_v_adr
+  nv = sim.data.qvel.shape[1]
+
+  values = torch.arange(1, nv + 1, device=device, dtype=torch.float32)
+  sim.data.qfrc_actuator[0] = values
+  expected = values[joint_v_adr]
+  actual = entity.data.qfrc_actuator[0]
+  assert torch.equal(actual, expected)
+
+  assert free_v_adr.numel() > 0
+  assert entity.data.qfrc_actuator.shape[-1] == joint_v_adr.numel()
+  assert entity.data.qfrc_actuator.shape[-1] != free_v_adr.numel()
+
+
+def test_qfrc_actuator_matches_motor_command_with_gear(device):
+  """qfrc_actuator should equal actuator_force projected through joint gear."""
+  xml = load_fixture_xml("fixed_base_articulated")
+  entity = create_entity_with_actuator(
+    xml,
+    BuiltinMotorActuatorCfg(
+      target_names_expr=("joint.*",),
+      effort_limit=100.0,
+      gear=3.0,
+    ),
+  )
+  entity, sim = initialize_entity(entity, device)
+
+  commanded = torch.tensor([[2.0, -1.0]], device=device)
+  entity.set_joint_effort_target(commanded)
+  entity.write_data_to_sim()
+  sim.forward()
+
+  assert torch.allclose(entity.data.actuator_force, commanded, atol=1e-6)
+  assert torch.allclose(entity.data.qfrc_actuator, 3.0 * commanded, atol=1e-6)
+
+
+def test_qfrc_external_matches_mj_applyFT(device):
+  """qfrc_external should match J^T * xfrc_applied computed by CPU MuJoCo."""
+  cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(TWO_LINK_ARM_XML))
+  entity = Entity(cfg)
+  entity, sim = initialize_entity_with_sim(entity, device)
+
+  entity.write_joint_state_to_sim(
+    torch.tensor([[0.5, -0.3]], device=device),
+    torch.tensor([[0.0, 0.0]], device=device),
+  )
+  sim.forward()
+
+  lower_body_id = int(entity.indexing.body_ids[1].item())
+  force = torch.tensor([1.0, 0.0, -2.0], device=device)
+  torque = torch.tensor([0.0, 0.5, 0.0], device=device)
+  sim.data.xfrc_applied[0, lower_body_id, 0:3] = force
+  sim.data.xfrc_applied[0, lower_body_id, 3:6] = torque
+  sim.forward()
+
+  mjd = mujoco.MjData(sim.mj_model)
+  mjd.qpos[:] = sim.data.qpos[0].cpu().numpy()
+  mjd.qvel[:] = sim.data.qvel[0].cpu().numpy()
+  mujoco.mj_forward(sim.mj_model, mjd)
+
+  qfrc_reference = np.zeros(sim.mj_model.nv)
+  mujoco.mj_applyFT(
+    sim.mj_model,
+    mjd,
+    force.cpu().numpy().astype(np.float64),
+    torque.cpu().numpy().astype(np.float64),
+    mjd.xipos[lower_body_id],
+    lower_body_id,
+    qfrc_reference,
+  )
+  expected = torch.from_numpy(qfrc_reference).to(device=device, dtype=torch.float32)
+
+  joint_v_adr = entity.indexing.joint_v_adr
+  assert torch.allclose(
+    entity.data.qfrc_external, expected[joint_v_adr].unsqueeze(0), atol=1e-5
+  )
