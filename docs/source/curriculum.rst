@@ -57,11 +57,11 @@ Built-in curriculum functions
 Reward curriculum
 -----------------
 
-``reward_curriculum`` lets you schedule changes to any reward term's
-weight or keyword arguments over the course of training. Define a list
-of stages, each with a ``step`` threshold and optional ``weight`` and
-``params`` fields. When the global step counter reaches a stage's
-threshold, the corresponding values are applied.
+``reward_curriculum`` schedules changes to a reward term's weight or
+keyword arguments as training progresses. Each stage specifies a
+``step`` threshold and an optional ``weight`` or ``params`` update.
+Stages are evaluated in order, and each one whose threshold has been
+reached is applied.
 
 **Ramping a penalty weight**
 
