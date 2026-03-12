@@ -4,7 +4,7 @@ import mujoco
 import numpy as np
 import pytest
 
-from mjlab.utils.spec import create_position_actuator
+from mjlab.utils.spec import create_position_actuator, create_velocity_actuator
 
 
 @pytest.fixture
@@ -152,3 +152,63 @@ def test_ctrllimited_true_would_clip_internally():
   np.testing.assert_allclose(force_beyond, force_at_limit, rtol=1e-10)
   expected_force = -stiffness * (0.5 - 1.0)
   np.testing.assert_allclose(force_at_limit, expected_force, rtol=1e-5)
+
+
+@pytest.fixture
+def spec_with_continuous_joint():
+  """Create a spec with a continuous (unlimited) hinge joint."""
+  spec = mujoco.MjSpec()
+  body = spec.worldbody.add_body(name="wheel")
+  body.add_joint(
+    name="wheel_joint",
+    type=mujoco.mjtJoint.mjJNT_HINGE,
+    axis=[0, 0, 1],
+  )
+  body.add_geom(type=mujoco.mjtGeom.mjGEOM_CYLINDER, size=[0.1, 0.05], mass=1.0)
+  return spec
+
+
+def test_velocity_actuator_continuous_joint(spec_with_continuous_joint):
+  """Velocity actuator compiles for continuous joints with no range."""
+  damping = 10.0
+  create_velocity_actuator(
+    spec_with_continuous_joint,
+    "wheel_joint",
+    damping=damping,
+  )
+  model = spec_with_continuous_joint.compile()
+  data = mujoco.MjData(model)
+
+  actuator_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, "wheel_joint")
+  assert model.actuator_ctrllimited[actuator_id] == 0
+
+  # Commanding a velocity target should produce force = damping * (ctrl - qvel).
+  data.qvel[0] = 0.0
+  data.ctrl[0] = 5.0
+  mujoco.mj_forward(model, data)
+  expected_force = damping * 5.0
+  np.testing.assert_allclose(data.actuator_force[0], expected_force, rtol=1e-5)
+
+
+def test_velocity_actuator_forces_clipped_to_effort_limit(
+  spec_with_continuous_joint,
+):
+  """Velocity actuator force is bounded by effort_limit."""
+  effort_limit = 20.0
+  create_velocity_actuator(
+    spec_with_continuous_joint,
+    "wheel_joint",
+    damping=1000.0,
+    effort_limit=effort_limit,
+  )
+  model = spec_with_continuous_joint.compile()
+  data = mujoco.MjData(model)
+
+  actuator_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, "wheel_joint")
+  assert model.actuator_forcelimited[actuator_id] == 1
+
+  # Large velocity error would exceed effort_limit without clamping.
+  data.qvel[0] = 0.0
+  data.ctrl[0] = 100.0
+  mujoco.mj_forward(model, data)
+  assert abs(data.actuator_force[0]) <= effort_limit + 1e-6

@@ -217,10 +217,14 @@ def create_velocity_actuator(
   effort_limit: float | None = None,
   armature: float = 0.0,
   frictionloss: float = 0.0,
-  inheritrange: float = 1.0,
   transmission_type: TransmissionType = TransmissionType.JOINT,
 ) -> mujoco.MjsActuator:
-  """Creates a <velocity> actuator."""
+  """Creates a <velocity> actuator.
+
+  Control inputs are not clamped so that velocity commands work for any joint,
+  including continuous joints that have no range defined. Force output is still
+  bounded when effort_limit is set.
+  """
   actuator = spec.add_actuator(name=joint_name, target=joint_name)
 
   actuator.trntype = _TRANSMISSION_TYPE_MAP[transmission_type]
@@ -228,8 +232,8 @@ def create_velocity_actuator(
   actuator.gaintype = mujoco.mjtGain.mjGAIN_FIXED
   actuator.biastype = mujoco.mjtBias.mjBIAS_AFFINE
 
-  actuator.inheritrange = inheritrange
-  actuator.ctrllimited = True  # Technically redundant but being explicit.
+  actuator.inheritrange = 0.0
+  actuator.ctrllimited = False
   actuator.gainprm[0] = damping
   actuator.biasprm[2] = -damping
 

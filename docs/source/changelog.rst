@@ -47,6 +47,9 @@ Fixed
   of ``actuator_force`` (actuation space) for mechanical power computation.
   Previously the reward was incorrect for actuators with gear ratios other
   than 1 (:issue:`776`).
+- ``create_velocity_actuator`` no longer sets ``ctrllimited=True`` with
+  ``inheritrange=1.0``. This caused a ``ValueError`` for continuous joints
+  (e.g. wheels) that have no position range defined (:issue:`787`).
 - ``dr.pseudo_inertia`` no longer loads cuSOLVER, eliminating ~4 GB of
   persistent GPU memory overhead. Cholesky and eigendecomposition are now
   computed analytically for the small matrices involved (4x4 and 3x3)
