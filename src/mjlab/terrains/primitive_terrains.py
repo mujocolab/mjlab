@@ -1156,8 +1156,9 @@ class BoxSteppingStonesTerrainCfg(SubTerrainCfg):
     d_low, d_high = self.stone_distance_range
     avg_distance = (d_low + d_high) / 2 + difficulty * (d_high - d_low) / 2
 
-    # Grid spacing (stone size + gap).
-    avg_stone_size = (self.stone_size_range[0] + self.stone_size_range[1]) / 2
+    # Decrease stone size with difficulty (larger stones are easier).
+    s_min, s_max = self.stone_size_range
+    avg_stone_size = (s_min + s_max) / 2 - difficulty * (s_max - s_min) / 2
     spacing = avg_stone_size + avg_distance
 
     # Aggressive grid density to reach borders.
@@ -1218,8 +1219,7 @@ class BoxSteppingStonesTerrainCfg(SubTerrainCfg):
 
     for i in range(num_x):
       for j in range(num_y):
-        avg_s_min, avg_s_max = self.stone_size_range
-        base_size = (avg_s_min + avg_s_max) / 2
+        base_size = avg_stone_size
 
         # Proposed position with displacement.
         px = (
@@ -1237,10 +1237,10 @@ class BoxSteppingStonesTerrainCfg(SubTerrainCfg):
         x_min, x_max = px - size_x / 2, px + size_x / 2
         y_min, y_max = py - size_y / 2, py + size_y / 2
 
-        # Avoid platform.
-        margin = max(avg_s_max, self.stone_size_variation * 2) / 2
-        if (platform_min - margin <= px <= platform_max + margin) and (
-          platform_min - margin <= py <= platform_max + margin
+        # Skip stones centered inside the platform. Stones whose edges
+        # extend under the platform are kept; the platform covers the overlap.
+        if (platform_min <= px <= platform_max) and (
+          platform_min <= py <= platform_max
         ):
           continue
 

@@ -30,6 +30,9 @@ Added
 Changed
 ^^^^^^^
 
+- ``BoxSteppingStonesTerrainCfg`` stone size now decreases with difficulty,
+  interpolating from the large end of ``stone_size_range`` at difficulty 0
+  to the small end at difficulty 1 (:issue:`785`).
 - Removed deprecated ``TerrainImporter`` and ``TerrainImporterCfg`` aliases.
   Use ``TerrainEntity`` and ``TerrainEntityCfg`` instead (:issue:`667`).
 - ``Entity.clear_state()`` is deprecated. Use ``Entity.reset()`` instead.
@@ -55,6 +58,10 @@ Fixed
   (``DcMotorActuator``, ``IdealPdActuator``) previously showed incorrect
   contact forces because the viewer ran with ``ctrl=0``
   (:issue:`786`).
+- ``BoxSteppingStonesTerrainCfg`` no longer creates a large gap around the
+  platform. Stones are now only skipped when their center falls inside the
+  platform; edges that extend under the platform are allowed since the
+  platform covers them (:issue:`785`).
 - ``dr.pseudo_inertia`` no longer loads cuSOLVER, eliminating ~4 GB of
   persistent GPU memory overhead. Cholesky and eigendecomposition are now
   computed analytically for the small matrices involved (4x4 and 3x3)
