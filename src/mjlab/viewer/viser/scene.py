@@ -527,6 +527,7 @@ class ViserMujocoScene(DebugVisualizer):
     if self.show_contact_points or self.show_contact_forces:
       self.mj_data.qpos[:] = wp_data.qpos.cpu().numpy()[env_idx]
       self.mj_data.qvel[:] = wp_data.qvel.cpu().numpy()[env_idx]
+      self.mj_data.ctrl[:] = wp_data.ctrl.cpu().numpy()[env_idx]
       if self.mj_model.nmocap > 0:
         self.mj_data.mocap_pos[:] = mocap_pos[env_idx]
         self.mj_data.mocap_quat[:] = mocap_quat[env_idx]

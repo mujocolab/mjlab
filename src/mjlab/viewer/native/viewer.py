@@ -88,6 +88,7 @@ class _SimDataProtocol(Protocol):
   qvel: "_TensorArrayProtocol"
   mocap_pos: "_TensorArrayProtocol"
   mocap_quat: "_TensorArrayProtocol"
+  ctrl: "_TensorArrayProtocol"
   xfrc_applied: "_TensorArrayProtocol"
   qfrc_applied: "_TensorArrayProtocol"
 
@@ -300,6 +301,8 @@ class NativeMujocoViewer(BaseViewer):
     if self.mjm.nq > 0:
       target_data.qpos[:] = sim_data.qpos[env_idx].cpu().numpy()
       target_data.qvel[:] = sim_data.qvel[env_idx].cpu().numpy()
+    if self.mjm.nu > 0:
+      target_data.ctrl[:] = sim_data.ctrl[env_idx].cpu().numpy()
     if self.mjm.nmocap > 0:
       target_data.mocap_pos[:] = sim_data.mocap_pos[env_idx].cpu().numpy()
       target_data.mocap_quat[:] = sim_data.mocap_quat[env_idx].cpu().numpy()

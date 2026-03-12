@@ -50,6 +50,11 @@ Fixed
 - ``create_velocity_actuator`` no longer sets ``ctrllimited=True`` with
   ``inheritrange=1.0``. This caused a ``ValueError`` for continuous joints
   (e.g. wheels) that have no position range defined (:issue:`787`).
+- Contact force visualization now copies ``ctrl`` into the CPU ``MjData``
+  before calling ``mj_forward``. Actuators that compute torques in Python
+  (``DcMotorActuator``, ``IdealPdActuator``) previously showed incorrect
+  contact forces because the viewer ran with ``ctrl=0``
+  (:issue:`786`).
 - ``dr.pseudo_inertia`` no longer loads cuSOLVER, eliminating ~4 GB of
   persistent GPU memory overhead. Cholesky and eigendecomposition are now
   computed analytically for the small matrices involved (4x4 and 3x3)
