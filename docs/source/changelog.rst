@@ -8,6 +8,10 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added :ref:`motion imitation <motion-imitation>` documentation with
+  preprocessing instructions. The README now links here instead of the
+  BeyondMimic repository, which produced incompatible NPZ files when used
+  with mjlab (:issue:`777`).
 - Added ``margin``, ``gap``, and ``solmix`` fields to ``CollisionCfg``
   for per geom contact parameter configuration (:issue:`766`).
 - Added ``DelayedBuiltinActuatorGroup`` that fuses delayed builtin actuators
