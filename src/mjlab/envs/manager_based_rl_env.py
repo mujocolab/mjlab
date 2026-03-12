@@ -157,10 +157,13 @@ class ManagerBasedRlEnv:
     cfg: ManagerBasedRlEnvCfg,
     device: str,
     render_mode: str | None = None,
+    *,
+    num_steps_per_env: int | None = None,
     **kwargs,
   ) -> None:
     # Initialize base environment state.
     self.cfg = cfg
+    self._num_steps_per_env = num_steps_per_env
     if self.cfg.seed is not None:
       self.cfg.seed = self.seed(self.cfg.seed)
     self._sim_step_counter = 0
@@ -300,7 +303,9 @@ class ManagerBasedRlEnv:
     )
     print_info(f"[INFO] {self.reward_manager}")
     if len(self.cfg.curriculum) > 0:
-      self.curriculum_manager = CurriculumManager(self.cfg.curriculum, self)
+      self.curriculum_manager = CurriculumManager(
+        self.cfg.curriculum, self, num_steps_per_env=self._num_steps_per_env
+      )
     else:
       self.curriculum_manager = NullCurriculumManager()
     print_info(f"[INFO] {self.curriculum_manager}")

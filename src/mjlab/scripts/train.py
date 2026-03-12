@@ -105,7 +105,10 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
     print(f"[INFO] Logging experiment in directory: {log_dir}")
 
   env = ManagerBasedRlEnv(
-    cfg=cfg.env, device=device, render_mode="rgb_array" if cfg.video else None
+    cfg=cfg.env,
+    device=device,
+    render_mode="rgb_array" if cfg.video else None,
+    num_steps_per_env=cfg.agent.num_steps_per_env,
   )
 
   log_root_path = log_dir.parent  # Go up from specific run dir to experiment dir.

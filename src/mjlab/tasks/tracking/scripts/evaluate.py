@@ -71,7 +71,9 @@ def run_evaluate(task_id: str, cfg: EvaluateConfig) -> dict[str, float]:
   env_cfg.events.pop("push_robot", None)
   env_cfg.scene.num_envs = cfg.num_envs
 
-  env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
+  env = ManagerBasedRlEnv(
+    cfg=env_cfg, device=device, num_steps_per_env=agent_cfg.num_steps_per_env
+  )
   env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
   log_root_path = (Path("logs") / "rsl_rl" / agent_cfg.experiment_name).resolve()

@@ -26,6 +26,32 @@ class CurriculumTermCfg(ManagerTermBaseCfg):
   pass
 
 
+def resolve_curriculum_iterations(
+  curriculum: dict[str, CurriculumTermCfg],
+  num_steps_per_env: int,
+) -> None:
+  """Convert ``"iteration"`` keys to ``"step"`` keys in curriculum stages.
+
+  This allows curriculum configs to express thresholds in training
+  iterations (more intuitive) rather than raw environment steps.
+  The conversion is ``step = iteration * num_steps_per_env``.
+
+  Modifies *curriculum* in-place. Raises :class:`ValueError` if a stage
+  dict contains both ``"iteration"`` and ``"step"`` keys.
+  """
+  for term_cfg in curriculum.values():
+    for value in term_cfg.params.values():
+      if not isinstance(value, list):
+        continue
+      for item in value:
+        if not isinstance(item, dict):
+          continue
+        if "iteration" in item and "step" in item:
+          raise ValueError(f"Curriculum stage has both 'iteration' and 'step': {item}")
+        if "iteration" in item:
+          item["step"] = item.pop("iteration") * num_steps_per_env
+
+
 class CurriculumManager(ManagerBase):
   """Manages curriculum learning for the environment.
 
@@ -36,12 +62,23 @@ class CurriculumManager(ManagerBase):
 
   _env: ManagerBasedRlEnv
 
-  def __init__(self, cfg: dict[str, CurriculumTermCfg], env: ManagerBasedRlEnv):
+  def __init__(
+    self,
+    cfg: dict[str, CurriculumTermCfg],
+    env: ManagerBasedRlEnv,
+    *,
+    num_steps_per_env: int | None = None,
+  ):
     self._term_names: list[str] = list()
     self._term_cfgs: list[CurriculumTermCfg] = list()
     self._class_term_cfgs: list[CurriculumTermCfg] = list()
 
+    # Work on a deep copy so modifications are local to this manager.
     self.cfg = deepcopy(cfg)
+
+    if num_steps_per_env is not None:
+      resolve_curriculum_iterations(self.cfg, num_steps_per_env)
+
     super().__init__(env)
 
     self._curriculum_state = dict()
