@@ -80,15 +80,15 @@ def reward_params(
       },
     )
 
-  Example — dict-valued param (pose reward)::
+  Example — dict-valued param::
 
     CurriculumTermCfg(
       func=reward_params,
       params={
-        "reward_name": "pose",
+        "reward_name": "base_height",
         "param_stages": [
-          {"step": 0,    "params": {"std_walking": {".*knee.*": 0.5}}},
-          {"step": 1000, "params": {"std_walking": {".*knee.*": 0.3}}},
+          {"step": 0,    "params": {"joint": {"leg_right_knee_joint": 0.5}}},
+          {"step": 1000, "params": {"joint": {"leg_right_knee_joint": 0.3}}},
         ],
       },
     )
