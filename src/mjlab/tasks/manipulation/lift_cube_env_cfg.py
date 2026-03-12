@@ -198,10 +198,10 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
 
   curriculum = {
     "joint_vel_hinge_weight": CurriculumTermCfg(
-      func=manipulation_mdp.reward_weight,
+      func=manipulation_mdp.reward_curriculum,
       params={
         "reward_name": "joint_vel_hinge",
-        "weight_stages": [
+        "stages": [
           {"step": 0, "weight": -0.01},
           {"step": 500 * 24, "weight": -0.1},
           {"step": 1000 * 24, "weight": -1.0},

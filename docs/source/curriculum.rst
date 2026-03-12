@@ -48,10 +48,72 @@ Built-in curriculum functions
      - Widens velocity command ranges based on training step count.
        Each stage specifies a step threshold and the new ranges to
        apply once that threshold is exceeded.
-   * - ``reward_weight``
-     - Ramps a reward term's weight up or down according to training
-       step thresholds. Useful for introducing penalty terms gradually
-       after the policy has learned basic locomotion.
+   * - ``reward_curriculum``
+     - Adjusts a reward term's weight and/or params according to
+       training step thresholds. Replaces the older ``reward_weight``
+       function and also supports modifying reward function parameters.
+
+
+Reward curriculum
+-----------------
+
+``reward_curriculum`` lets you schedule changes to any reward term's
+weight or keyword arguments over the course of training. Define a list
+of stages, each with a ``step`` threshold and optional ``weight`` and
+``params`` fields. When the global step counter reaches a stage's
+threshold, the corresponding values are applied.
+
+**Ramping a penalty weight**
+
+A common pattern is to introduce a penalty term at low weight early in
+training and increase it once the policy has learned the basics:
+
+.. code-block:: python
+
+    from mjlab.managers.curriculum_manager import CurriculumTermCfg
+
+    curriculum = {
+        "joint_vel_hinge_weight": CurriculumTermCfg(
+            func=mdp.reward_curriculum,
+            params={
+                "reward_name": "joint_vel_hinge",
+                "stages": [
+                    {"step": 0, "weight": -0.01},
+                    {"step": 12000, "weight": -0.1},
+                    {"step": 24000, "weight": -1.0},
+                ],
+            },
+        ),
+    }
+
+**Adjusting reward parameters**
+
+You can also change the parameters passed to the reward function. For
+example, tightening a tracking tolerance as training progresses:
+
+.. code-block:: python
+
+    curriculum = {
+        "track_lin_vel_tighten": CurriculumTermCfg(
+            func=mdp.reward_curriculum,
+            params={
+                "reward_name": "track_linear_velocity",
+                "stages": [
+                    {"step": 0, "params": {"std": 0.5}},
+                    {"step": 20000, "params": {"std": 0.3}},
+                    {"step": 50000, "params": {"std": 0.1}},
+                ],
+            },
+        ),
+    }
+
+**Combining weight and params**
+
+A single stage can update both weight and params at once:
+
+.. code-block:: python
+
+    {"step": 24000, "weight": -1.0, "params": {"max_vel": 1.0}}
 
 
 Terrain curriculum
