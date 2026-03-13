@@ -266,7 +266,13 @@ def create_primitive_mesh(mj_model: mujoco.MjModel, geom_id: int) -> trimesh.Tri
   """
   size = mj_model.geom_size[geom_id]
   geom_type = mj_model.geom_type[geom_id]
-  rgba = mj_model.geom_rgba[geom_id].copy()
+
+  # Prefer material color over geom_rgba (geom_rgba is often the default gray).
+  matid = mj_model.geom_matid[geom_id]
+  if matid >= 0:
+    rgba = mj_model.mat_rgba[matid].copy()
+  else:
+    rgba = mj_model.geom_rgba[geom_id].copy()
 
   # Convert rgba to uint8 for vertex colors.
   rgba_uint8 = (np.clip(rgba, 0, 1) * 255).astype(np.uint8)

@@ -1,5 +1,8 @@
 """Tests for EntityData."""
 
+import math
+from pathlib import Path
+
 import mujoco
 import numpy as np
 import pytest
@@ -12,8 +15,10 @@ from conftest import (
 )
 
 from mjlab.actuator import BuiltinMotorActuatorCfg
-from mjlab.entity import Entity, EntityCfg
+from mjlab.actuator.actuator import TransmissionType
+from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
+from mjlab.utils.lab_api.math import quat_apply_inverse
 
 FLOATING_BASE_XML = """
 <mujoco>
@@ -84,10 +89,6 @@ def test_root_velocity_frame_conversion(device):
   stores it in body frame. This test verifies the conversion happens
   correctly by checking qvel directly.
   """
-  from mjlab.utils.lab_api.math import (
-    quat_apply_inverse,
-  )
-
   entity = create_floating_base_entity()
   entity, sim = initialize_entity_with_sim(entity, device)
 
@@ -203,12 +204,6 @@ def test_entity_data_properties_accessible(device, property_name, expected_shape
 
 def test_entity_data_reset_clears_all_targets(device):
   """Test that EntityData.clear_state() zeros out all target buffers."""
-  from pathlib import Path
-
-  from mjlab.actuator.actuator import TransmissionType
-  from mjlab.actuator.builtin_actuator import BuiltinMotorActuatorCfg
-  from mjlab.entity import EntityArticulationInfoCfg
-
   xml_path = Path(__file__).parent / "fixtures" / "tendon_finger.xml"
 
   cfg = EntityCfg(
@@ -245,12 +240,6 @@ def test_entity_data_reset_clears_all_targets(device):
 
 def test_entity_data_reset_partial_envs(device):
   """Test that EntityData.clear_state() can reset specific environments."""
-  from pathlib import Path
-
-  from mjlab.actuator.actuator import TransmissionType
-  from mjlab.actuator.builtin_actuator import BuiltinMotorActuatorCfg
-  from mjlab.entity import EntityArticulationInfoCfg
-
   xml_path = Path(__file__).parent / "fixtures" / "tendon_finger.xml"
 
   cfg = EntityCfg(
@@ -289,6 +278,139 @@ def test_entity_data_reset_partial_envs(device):
   assert torch.all(entity.data.tendon_effort_target[1] == 0.0)
   assert torch.all(entity.data.tendon_effort_target[2] == 9.0)
   assert torch.all(entity.data.tendon_effort_target[3] == 0.0)
+
+
+# Joint limits tests.
+
+MIXED_LIMITS_XML = """
+<mujoco>
+  <worldbody>
+    <body name="base">
+      <body name="cart" pos="0 0 1">
+        <joint name="slider" type="slide" axis="1 0 0" limited="true" range="-2 2"/>
+        <geom type="box" size="0.1 0.1 0.1" mass="1"/>
+        <body name="pole">
+          <joint name="hinge" type="hinge" axis="0 1 0"/>
+          <geom type="capsule" fromto="0 0 0 0 0 0.5" size="0.02" mass="0.1"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+ALL_LIMITED_XML = """
+<mujoco>
+  <worldbody>
+    <body name="base">
+      <body name="link1" pos="0 0 0.1">
+        <joint name="j1" type="hinge" axis="0 0 1" limited="true" range="-1.5 1.5"/>
+        <geom type="box" size="0.05 0.05 0.1" mass="1"/>
+        <body name="link2" pos="0 0 0.2">
+          <joint name="j2" type="hinge" axis="0 1 0" limited="true" range="-1 1"/>
+          <geom type="box" size="0.05 0.05 0.1" mass="0.5"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+ALL_UNLIMITED_XML = """
+<mujoco>
+  <worldbody>
+    <body name="base">
+      <body name="link1" pos="0 0 0.1">
+        <joint name="j1" type="hinge" axis="0 0 1"/>
+        <geom type="box" size="0.05 0.05 0.1" mass="1"/>
+        <body name="link2" pos="0 0 0.2">
+          <joint name="j2" type="hinge" axis="0 1 0"/>
+          <geom type="box" size="0.05 0.05 0.1" mass="0.5"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+
+def test_soft_limits_unlimited_joints_are_infinite(device):
+  """Unlimited joints must have [-inf, inf] soft limits, not [0, 0]."""
+  cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(MIXED_LIMITS_XML))
+  entity = Entity(cfg)
+  entity, _ = initialize_entity_with_sim(entity, device)
+
+  limits = entity.data.soft_joint_pos_limits[0]
+  # slider (index 0) is limited: finite limits.
+  assert torch.isfinite(limits[0, 0]) and torch.isfinite(limits[0, 1])
+  assert limits[0, 0] == -2.0
+  assert limits[0, 1] == 2.0
+  # hinge (index 1) is unlimited: infinite limits.
+  assert limits[1, 0] == float("-inf")
+  assert limits[1, 1] == float("inf")
+
+
+def test_soft_limits_all_limited(device):
+  """All-limited joints should have finite soft limits."""
+  cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(ALL_LIMITED_XML))
+  entity = Entity(cfg)
+  entity, _ = initialize_entity_with_sim(entity, device)
+
+  limits = entity.data.soft_joint_pos_limits[0]
+  for j in range(limits.shape[0]):
+    assert torch.isfinite(limits[j, 0]) and torch.isfinite(limits[j, 1])
+
+
+def test_soft_limits_all_unlimited(device):
+  """All-unlimited joints should have infinite soft limits."""
+  cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(ALL_UNLIMITED_XML))
+  entity = Entity(cfg)
+  entity, _ = initialize_entity_with_sim(entity, device)
+
+  limits = entity.data.soft_joint_pos_limits[0]
+  for j in range(limits.shape[0]):
+    assert limits[j, 0] == float("-inf")
+    assert limits[j, 1] == float("inf")
+
+
+def test_joint_pos_limits_match_soft_limits_for_unlimited(device):
+  """joint_pos_limits and default_joint_pos_limits should also be inf for unlimited."""
+  cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(MIXED_LIMITS_XML))
+  entity = Entity(cfg)
+  entity, _ = initialize_entity_with_sim(entity, device)
+
+  # Hinge is joint index 1, unlimited.
+  for limits_tensor in (
+    entity.data.joint_pos_limits,
+    entity.data.default_joint_pos_limits,
+    entity.data.soft_joint_pos_limits,
+  ):
+    assert limits_tensor[0, 1, 0] == float("-inf")
+    assert limits_tensor[0, 1, 1] == float("inf")
+
+
+def test_reset_joints_by_offset_respects_unlimited(device):
+  """reset_joints_by_offset must not clamp unlimited joints to [0, 0]."""
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(MIXED_LIMITS_XML),
+    init_state=EntityCfg.InitialStateCfg(
+      joint_pos={"slider": 0.0, "hinge": math.pi},
+      joint_vel={".*": 0.0},
+    ),
+  )
+  entity = Entity(cfg)
+  entity, _ = initialize_entity_with_sim(entity, device)
+
+  # Simulate what reset_joints_by_offset does.
+  default_pos = entity.data.default_joint_pos
+  soft_limits = entity.data.soft_joint_pos_limits
+  joint_pos = default_pos.clone()
+  joint_pos = joint_pos.clamp_(soft_limits[..., 0], soft_limits[..., 1])
+
+  # Hinge should stay at pi, not get clamped to 0.
+  assert torch.allclose(
+    joint_pos[0, 1], torch.tensor(math.pi, device=device), atol=1e-5
+  )
 
 
 # Generalized force accessor tests.

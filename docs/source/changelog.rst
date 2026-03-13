@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added cartpole balance and swingup tasks (``Mjlab-Cartpole-Balance`` and
+  ``Mjlab-Cartpole-Swingup``) with a :ref:`tutorial <tutorial-cartpole>`
+  that walks through building an environment from scratch.
 - Added :ref:`motion imitation <motion-imitation>` documentation with
   preprocessing instructions. The README now links here instead of the
   BeyondMimic repository, which produced incompatible NPZ files when used
@@ -53,6 +56,9 @@ Fixed
 - ``create_velocity_actuator`` no longer sets ``ctrllimited=True`` with
   ``inheritrange=1.0``. This caused a ``ValueError`` for continuous joints
   (e.g. wheels) that have no position range defined (:issue:`787`).
+- Joint limits for unlimited joints are now set to [-inf, inf] instead of
+  [0, 0]. Previously the zero range caused incorrect clamping for entities
+  with unlimited hinge or slide joints.
 - Contact force visualization now copies ``ctrl`` into the CPU ``MjData``
   before calling ``mj_forward``. Actuators that compute torques in Python
   (``DcMotorActuator``, ``IdealPdActuator``) previously showed incorrect

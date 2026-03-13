@@ -47,6 +47,19 @@ _SOLVER_MAP = {
   "pgs": mujoco.mjtSolver.mjSOL_PGS,
 }
 
+# Maps short flag names to MuJoCo enum values.
+# Names match the XML <flag> attribute names (e.g. <flag contact="disable"/>).
+_DISABLE_FLAG_MAP: dict[str, int] = {
+  name.removeprefix("mjDSBL_").lower(): getattr(mujoco.mjtDisableBit, name).value
+  for name in dir(mujoco.mjtDisableBit)
+  if name.startswith("mjDSBL_")
+}
+_ENABLE_FLAG_MAP: dict[str, int] = {
+  name.removeprefix("mjENBL_").lower(): getattr(mujoco.mjtEnableBit, name).value
+  for name in dir(mujoco.mjtEnableBit)
+  if name.startswith("mjENBL_")
+}
+
 
 @dataclass
 class MujocoCfg:
@@ -71,7 +84,12 @@ class MujocoCfg:
 
   # Other.
   gravity: tuple[float, float, float] = (0.0, 0.0, -9.81)
-  multiccd: bool = False
+  # Global MuJoCo option flags. Names match the XML <flag> attributes
+  # (e.g. "contact", "gravity", "sensor"). See mjtDisableBit / mjtEnableBit.
+  disableflags: tuple[str, ...] = ()
+  """Disable flags to set (e.g. ``("contact",)`` to disable contacts)."""
+  enableflags: tuple[str, ...] = ()
+  """Enable flags to set (e.g. ``("energy",)`` to enable energy computation)."""
 
   def apply(self, model: mujoco.MjModel) -> None:
     """Apply configuration settings to a compiled MjModel."""
@@ -87,8 +105,18 @@ class MujocoCfg:
     model.opt.ls_iterations = self.ls_iterations
     model.opt.ls_tolerance = self.ls_tolerance
     model.opt.ccd_iterations = self.ccd_iterations
-    if self.multiccd:
-      model.opt.enableflags |= mujoco.mjtEnableBit.mjENBL_MULTICCD
+    for flag in self.disableflags:
+      if flag not in _DISABLE_FLAG_MAP:
+        raise ValueError(
+          f"Unknown disable flag {flag!r}. Valid flags: {sorted(_DISABLE_FLAG_MAP)}"
+        )
+      model.opt.disableflags |= _DISABLE_FLAG_MAP[flag]
+    for flag in self.enableflags:
+      if flag not in _ENABLE_FLAG_MAP:
+        raise ValueError(
+          f"Unknown enable flag {flag!r}. Valid flags: {sorted(_ENABLE_FLAG_MAP)}"
+        )
+      model.opt.enableflags |= _ENABLE_FLAG_MAP[flag]
 
 
 @dataclass(kw_only=True)

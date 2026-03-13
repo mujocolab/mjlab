@@ -56,7 +56,7 @@ def test_simulation_config_is_piped(robot_xml, device):
       ls_iterations=14,
       ccd_iterations=20,
       gravity=(0, 0, 7.5),
-      multiccd=True,
+      enableflags=("multiccd",),
     ),
   )
 
