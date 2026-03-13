@@ -149,6 +149,17 @@ def test_return_includes_weight_and_scalar_params(mock_env, reward_term_cfg):
   assert result["std"].item() == pytest.approx(0.2)
 
 
+def test_unknown_param_raises(mock_env, reward_term_cfg):
+  """Typos in param names are caught instead of silently ignored."""
+  _setup_env(mock_env, step_counter=200, reward_term_cfg=reward_term_cfg)
+  with pytest.raises(KeyError, match="unknown param"):
+    _call(
+      mock_env,
+      reward_name="r",
+      stages=[{"step": 100, "params": {"stdd": 0.2}}],
+    )
+
+
 def test_step_zero_applies_immediately(mock_env, reward_term_cfg):
   """A step: 0 stage applies on the very first call (counter == 0)."""
   _setup_env(mock_env, step_counter=0, reward_term_cfg=reward_term_cfg)

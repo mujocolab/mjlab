@@ -53,6 +53,13 @@ def reward_curriculum(
       if "weight" in stage:
         reward_term_cfg.weight = stage["weight"]
       if "params" in stage:
+        unknown = stage["params"].keys() - reward_term_cfg.params.keys()
+        if unknown:
+          raise KeyError(
+            f"reward_curriculum: stage at step {stage['step']} sets"
+            f" unknown param(s) {unknown} on reward term"
+            f" '{reward_name}'. Check for typos."
+          )
         reward_term_cfg.params.update(stage["params"])
   result: dict[str, torch.Tensor] = {
     "weight": torch.tensor(reward_term_cfg.weight),
