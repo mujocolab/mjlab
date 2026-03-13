@@ -62,13 +62,15 @@ each piece, then assemble them into a complete config at the end.
 Entity: wrapping the XML
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-An entity is mjlab's representation of a simulated object. It loads a
-MuJoCo XML, attaches actuators to it, and exposes simulation data (joint
-positions, velocities, etc.) as batched PyTorch tensors that your
-observation and reward functions read from.
+An entity is a simulated object in the scene. It can be anything from a
+static table to an articulated robot. The ``EntityCfg`` wraps a MuJoCo
+XML and, optionally, actuator and initial state configurations. At
+runtime, the entity exposes simulation data (joint positions, velocities,
+etc.) as batched PyTorch tensors.
 
-To create one we need three things: a function that loads the XML, an
-actuator configuration, and an initial state.
+The cartpole is an articulated entity with one actuator, so we need a
+function that loads the XML, an actuator configuration, and an initial
+state.
 
 .. code-block:: python
 
@@ -83,17 +85,33 @@ actuator configuration, and an initial state.
         actuators=(XmlMotorActuatorCfg(target_names_expr=("slider",)),),
     )
 
-    # Initial joint states. For swingup the pole starts pointing down
-    # (hinge = pi). For balance it starts upright (hinge = 0).
-    _BALANCE_INIT = EntityCfg.InitialStateCfg(
-        joint_pos={"slider": 0.0, "hinge_1": 0.0},
-        joint_vel={".*": 0.0},
-    )
+The initial joint state depends on the task variant:
 
-    _SWINGUP_INIT = EntityCfg.InitialStateCfg(
-        joint_pos={"slider": 0.0, "hinge_1": math.pi},
-        joint_vel={".*": 0.0},
-    )
+.. tab-set::
+
+   .. tab-item:: Swingup
+
+      The pole starts pointing down (``hinge = pi``). The agent must swing
+      it up and balance it.
+
+      .. code-block:: python
+
+          _SWINGUP_INIT = EntityCfg.InitialStateCfg(
+              joint_pos={"slider": 0.0, "hinge_1": math.pi},
+              joint_vel={".*": 0.0},
+          )
+
+   .. tab-item:: Balance
+
+      The pole starts upright (``hinge = 0``). The agent only needs to
+      keep it balanced.
+
+      .. code-block:: python
+
+          _BALANCE_INIT = EntityCfg.InitialStateCfg(
+              joint_pos={"slider": 0.0, "hinge_1": 0.0},
+              joint_vel={".*": 0.0},
+          )
 
 Now we can snap these together into an ``EntityCfg``:
 
@@ -118,17 +136,8 @@ returns a tensor. The observation manager concatenates them into a single
 vector for the policy. mjlab provides common terms in ``mjlab.envs.mdp``
 (joint positions, velocities, etc.), but you can always define your own.
 
-For cartpole we need to ask: what does the agent need to know to act
-well? The cartpole has two moving parts (the cart and the pole), so its
-physical state is fully described by two positions and two velocities.
-This is the minimal set that makes the problem Markov: given these four
-values, the future trajectory is completely determined by the equations
-of motion for any control input. If you removed any one of them (say
-the pole velocity), the agent could not tell whether the pole is falling
-or recovering, and no policy could reliably act on that.
-
-In dm_control's terminology, this makes the task *strongly observable*:
-the full state can be recovered from a single observation.
+The cartpole has two moving parts, so its physical state is fully
+described by two positions and two velocities:
 
 .. list-table::
    :header-rows: 1
@@ -150,45 +159,67 @@ the full state can be recovered from a single observation.
      - 1
      - How fast is the pole rotating?
 
-The pole angle is encoded as cosine and sine rather than a raw angle.
-MuJoCo's unlimited hinge does not wrap the angle, so as the pole spins
-the raw value keeps growing. Cosine and sine give the same output for
-the same physical angle regardless of how many rotations have occurred.
+.. tip::
+
+   The pole angle is encoded as cosine and sine rather than a raw angle.
+   MuJoCo's unlimited hinge does not wrap the angle, so as the pole
+   spins the raw value keeps growing. Cosine and sine give the same
+   output for the same physical angle regardless of how many rotations
+   have occurred.
+
 This is the one custom observation function:
 
 .. code-block:: python
 
     def pole_angle_cos_sin(env, asset_cfg) -> torch.Tensor:
         asset: Entity = env.scene[asset_cfg.name]
-        # joint_pos has shape [num_envs, num_joints]. Unlike vanilla
-        # MuJoCo where data is for a single world, all data in mjlab is
-        # batched along the first dimension because many environments
-        # run in parallel. Every function you write should accept and
-        # return tensors with this leading batch dimension.
         angle = asset.data.joint_pos[:, asset_cfg.joint_ids]
         return torch.cat([torch.cos(angle), torch.sin(angle)], dim=-1)
 
-To wire these up, we create ``ObservationTermCfg`` entries and group them.
-``SceneEntityCfg`` scopes each function to specific joints on the entity:
+.. note::
+
+   All data in mjlab is batched: tensors have shape
+   ``[num_envs, ...]`` because many environments run in parallel.
+   Every function you write should accept and return tensors with this
+   leading batch dimension.
+
+To wire these up, we create ``ObservationTermCfg`` entries and group
+them. ``SceneEntityCfg`` scopes each function to specific joints on
+the entity:
 
 .. code-block:: python
 
-    # Point at the joints we care about.
     cart_cfg = SceneEntityCfg("cartpole", joint_names=("slider",))
     hinge_cfg = SceneEntityCfg("cartpole", joint_names=("hinge_1",))
 
-    # Each term is a function + the params to call it with.
+    cart_pos = ObservationTermCfg(
+        func=joint_pos_rel, params={"asset_cfg": cart_cfg},
+    )
+    pole_angle = ObservationTermCfg(
+        func=pole_angle_cos_sin, params={"asset_cfg": hinge_cfg},
+    )
+    cart_vel = ObservationTermCfg(
+        func=joint_vel_rel, params={"asset_cfg": cart_cfg},
+    )
+    pole_vel = ObservationTermCfg(
+        func=joint_vel_rel, params={"asset_cfg": hinge_cfg},
+    )
+
+Each term pairs a function with the parameters to call it with. Now
+we group them. The RL algorithm expects an ``"actor"`` and ``"critic"``
+group; they share the same terms here, but when you add noise later
+you can give the critic clean observations
+(asymmetric actor-critic [#aac]_).
+
+.. code-block:: python
+
     actor_terms = {
-        "cart_pos": ObservationTermCfg(func=joint_pos_rel, params={"asset_cfg": cart_cfg}),
-        "pole_angle": ObservationTermCfg(func=pole_angle_cos_sin, params={"asset_cfg": hinge_cfg}),
-        "cart_vel": ObservationTermCfg(func=joint_vel_rel, params={"asset_cfg": cart_cfg}),
-        "pole_vel": ObservationTermCfg(func=joint_vel_rel, params={"asset_cfg": hinge_cfg}),
+        "cart_pos": cart_pos,
+        "pole_angle": pole_angle,
+        "cart_vel": cart_vel,
+        "pole_vel": pole_vel,
     }
 
-    # The RL algorithm expects both an "actor" and "critic" group.
-    # They see the same observations here; when you add noise later,
-    # you can give the critic clean observations for better value
-    # estimates (asymmetric actor-critic).
     observations = {
         "actor": ObservationGroupCfg(actor_terms),
         "critic": ObservationGroupCfg({**actor_terms}),
@@ -212,10 +243,6 @@ buffer, which clamps it to [-1, 1] and multiplies by the gear ratio:
         ),
     }
 
-The policy samples from an unbounded Gaussian, so it can output values
-outside [-1, 1]. MuJoCo handles the clamping, and the log probability is
-computed on the unclamped value so gradients stay correct.
-
 Rewards: the training signal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -233,15 +260,8 @@ multiplicative term:
        \times \underbrace{\frac{1 + g(\dot\theta)}{2}}_{\text{small velocity}}
 
 Each factor is between 0 and 1. The product is high only when all four
-conditions hold simultaneously. A weighted sum would let the agent trade
-off one factor against another; the product prevents that.
-
-The offsets (1, 1, 4, 1) control how forgiving each factor is. The
-upright term can drop all the way to 0 when the pole is down, making it
-the dominant signal. The small_control term bottoms out at 4/5 = 0.8
-even at maximum force, so the agent is not afraid to push hard when it
-needs to (important for swingup). The centered and small_velocity terms
-sit in between, bottoming out at 0.5.
+conditions hold simultaneously, preventing the agent from trading off
+one factor against another.
 
 .. code-block:: python
 
@@ -256,15 +276,10 @@ sit in between, bottoming out at 0.5.
 Terminations: when to stop
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The dm_control Control Suite formulates its tasks as infinite-horizon:
-there are no terminal states, and the discount is always 1. The
-1000 step episodes are just a practical evaluation window, not a real
-boundary. The agent should behave as if the episode could continue
-forever.
-
-We express this with a time limit termination and ``time_out=True``,
-which tells the RL algorithm to bootstrap the value function rather
-than treating the end of the episode as a true terminal state:
+The cartpole has no failure states, so the only termination is a time
+limit. Setting ``time_out=True`` tells the RL algorithm this is a
+truncation, not a true terminal state, so it bootstraps the value
+function past the episode boundary:
 
 .. code-block:: python
 
@@ -404,19 +419,21 @@ robust policy:
         noise=UniformNoiseCfg(n_min=-0.05, n_max=0.05),
     )
 
-**Randomize the physics.** Use the :ref:`domain_randomization` system to
-vary pole mass or joint damping across environments, training a policy
-that transfers across physical variations.
+**Randomize the physics.** Use the :ref:`domain_randomization` system
+to vary pole mass or joint damping across environments, training a
+policy that transfers across physical variations.
 
-**Explore other tasks.** The library ships with locomotion, manipulation,
-and motion tracking tasks that you can run out of the box:
+**Explore other tasks.** The library ships with locomotion,
+manipulation, and motion tracking tasks you can run out of the box:
 ``Mjlab-Velocity-Flat-Unitree-Go1``, ``Mjlab-Lift-Cube-Yam``, and
 ``Mjlab-Tracking-Flat-Unitree-G1``, among others. Reading their source
-is a good way to see how more complex reward and observation structures
-are composed.
+shows how more complex observation and reward structures are composed.
 
-**Build something new.** The cartpole is intentionally minimal. Once you
-are comfortable with the pieces, try designing your own robot model and
-task from scratch. The same pattern of XML model, observation terms,
-reward terms, and config applies regardless of how complex the system
-becomes.
+**Build something new.** The cartpole is intentionally minimal. Once
+you are comfortable with the pieces, try designing your own robot model
+and task from scratch. The same pattern applies regardless of how
+complex the system becomes.
+
+.. rubric:: References
+
+.. [#aac] Pinto, L., Andrychowicz, M., Welinder, P., Zaremba, W., & Abbeel, P. (2018). `Asymmetric Actor Critic for Image-Based Robot Learning <https://www.roboticsproceedings.org/rss14/p08.pdf>`_. *Robotics: Science and Systems XIV*.
