@@ -122,9 +122,9 @@ class EntityData:
       raise ValueError("Cannot write root COM velocity for fixed-base entity.")
     assert velocity.shape[-1] == self.ROOT_VEL_DIM
 
-    env_ids = self._resolve_env_ids(env_ids)
+    env_ids = env_ids if env_ids is not None else slice(None)
     com_offset_b = self.model.body_ipos[:, self.indexing.root_body_id]
-    quat_w = self.data.qpos[env_ids, self.indexing.free_joint_q_adr[3:7]]
+    quat_w = self.data.qpos[:, self.indexing.free_joint_q_adr[3:7]][env_ids]
     com_offset_w = quat_apply(quat_w, com_offset_b[env_ids])
     lin_vel_com = velocity[:, :3]
     ang_vel_w = velocity[:, 3:]

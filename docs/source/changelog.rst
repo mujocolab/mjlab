@@ -56,6 +56,8 @@ Fixed
 - ``create_velocity_actuator`` no longer sets ``ctrllimited=True`` with
   ``inheritrange=1.0``. This caused a ``ValueError`` for continuous joints
   (e.g. wheels) that have no position range defined (:issue:`787`).
+- ``write_root_com_velocity_to_sim`` no longer fails with tensor ``env_ids``
+  on floating base entities (:issue:`793`).
 - Joint limits for unlimited joints are now set to [-inf, inf] instead of
   [0, 0]. Previously the zero range caused incorrect clamping for entities
   with unlimited hinge or slide joints.

@@ -18,7 +18,7 @@ from mjlab.actuator import BuiltinMotorActuatorCfg
 from mjlab.actuator.actuator import TransmissionType
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
-from mjlab.utils.lab_api.math import quat_apply_inverse
+from mjlab.utils.lab_api.math import quat_apply, quat_apply_inverse
 
 FLOATING_BASE_XML = """
 <mujoco>
@@ -26,6 +26,18 @@ FLOATING_BASE_XML = """
     <body name="object" pos="0 0 1">
       <freejoint name="free_joint"/>
       <geom name="object_geom" type="box" size="0.1 0.1 0.1" rgba="0.3 0.3 0.8 1" mass="0.1"/>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+FLOATING_BASE_COM_OFFSET_XML = """
+<mujoco>
+  <worldbody>
+    <body name="object" pos="0 0 1">
+      <freejoint name="free_joint"/>
+      <inertial pos="0.1 0.05 0" mass="1" diaginertia="0.01 0.01 0.01"/>
+      <geom type="box" size="0.1 0.1 0.1"/>
     </body>
   </worldbody>
 </mujoco>
@@ -138,6 +150,56 @@ def test_write_velocity_uses_qpos_not_xquat(device):
   vel_w_read = entity.data.root_link_vel_w
 
   assert torch.allclose(vel_w_read, vel_w, atol=1e-4)
+
+
+def test_write_root_com_velocity(device):
+  """COM velocity write must produce the same qvel as manual conversion."""
+  num_envs = 4
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(FLOATING_BASE_COM_OFFSET_XML)
+  )
+  entity = Entity(cfg)
+  entity, sim = initialize_entity_with_sim(entity, device, num_envs=num_envs)
+
+  # Give each env a different non-identity orientation.
+  pose = torch.zeros(num_envs, 7, device=device)
+  pose[:, 2] = 1.0
+  quats = torch.tensor(
+    [
+      [1.0, 0.0, 0.0, 0.0],
+      [0.707, 0.707, 0.0, 0.0],
+      [0.5, 0.5, 0.5, 0.5],
+      [0.0, 0.707, 0.0, 0.707],
+    ],
+    device=device,
+  )
+  pose[:, 3:7] = quats
+  entity.write_root_link_pose_to_sim(pose)
+
+  com_vel = torch.tensor(
+    [[1.0, 0.5, -0.2, 0.1, 0.2, 0.3], [-0.5, 1.0, 0.0, -0.1, 0.0, 0.4]],
+    device=device,
+  )
+  env_ids = torch.tensor([1, 3], device=device)
+
+  # Write COM velocity via the API.
+  entity.write_root_com_velocity_to_sim(com_vel, env_ids=env_ids)
+  qvel_from_api = sim.data.qvel.clone()
+
+  # Manually convert COM velocity to link velocity and write that instead.
+  com_offset_b = sim.model.body_ipos[:, entity.indexing.root_body_id]
+  com_offset_w = quat_apply(quats[env_ids], com_offset_b[env_ids])
+  lin_vel_link = com_vel[:, :3] - torch.cross(com_vel[:, 3:], com_offset_w, dim=-1)
+  link_vel = torch.cat([lin_vel_link, com_vel[:, 3:]], dim=-1)
+  entity.write_root_link_velocity_to_sim(link_vel, env_ids=env_ids)
+  qvel_from_manual = sim.data.qvel.clone()
+
+  assert torch.allclose(qvel_from_api, qvel_from_manual, atol=1e-5)
+
+  # Untouched envs should have zero velocity.
+  v_adr = entity.indexing.free_joint_v_adr
+  assert torch.all(qvel_from_api[0, v_adr] == 0.0)
+  assert torch.all(qvel_from_api[2, v_adr] == 0.0)
 
 
 def test_read_requires_forward_to_be_current(device):
