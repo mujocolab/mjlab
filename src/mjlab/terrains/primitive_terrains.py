@@ -1154,11 +1154,11 @@ class BoxSteppingStonesTerrainCfg(SubTerrainCfg):
 
     # Increase distance between stones with difficulty.
     d_low, d_high = self.stone_distance_range
-    avg_distance = (d_low + d_high) / 2 + difficulty * (d_high - d_low) / 2
+    avg_distance = d_low + difficulty * (d_high - d_low)
 
     # Decrease stone size with difficulty (larger stones are easier).
     s_min, s_max = self.stone_size_range
-    avg_stone_size = (s_min + s_max) / 2 - difficulty * (s_max - s_min) / 2
+    avg_stone_size = s_max - difficulty * (s_max - s_min)
     spacing = avg_stone_size + avg_distance
 
     # Aggressive grid density to reach borders.
