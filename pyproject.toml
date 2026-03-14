@@ -134,7 +134,7 @@ torch = [
   { index = "pytorch-cpu", extra = "cpu", marker = "sys_platform != 'darwin'" },
 ]
 mujoco = { index = "mujoco" }
-mujoco-warp = { git = "https://github.com/google-deepmind/mujoco_warp", rev = "d9bcc326544b845111eed21079bfa8f8738e2518" }
+mujoco-warp = { git = "https://github.com/google-deepmind/mujoco_warp", rev = "e1b9d2640884801497ab0a3257145fd1e65d095b" }  # PR #1191 head (per-world geom_dataid)
 
 [tool.ruff]
 src = ["src"]  # Helpful for recognizing first-party imports.

@@ -13,6 +13,7 @@ from ._types import uniform as uniform
 
 # Geom.
 # isort: split
+from .geom import geom_dataid as geom_dataid
 from .geom import geom_friction as geom_friction
 from .geom import geom_pos as geom_pos
 from .geom import geom_quat as geom_quat

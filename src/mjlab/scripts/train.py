@@ -35,6 +35,12 @@ class TrainConfig:
   wandb_checkpoint_name: str | None = None
   """Optional checkpoint name within the W&B run to load (e.g. 'model_4000.pt')."""
   gpu_ids: list[int] | Literal["all"] | None = field(default_factory=lambda: [0])
+  objects: str | None = None
+  """Dex-manip object selection. Use comma/semicolon/space separators, or 'all'."""
+  envs_per_object: int | None = None
+  """Dex-manip only: number of parallel envs to allocate per selected object."""
+  object_assignment_mode: Literal["cycle", "sample"] = "cycle"
+  """Dex-manip only: per-reset assignment strategy for selected objects."""
 
   @staticmethod
   def from_task(task_id: str) -> "TrainConfig":
@@ -44,6 +50,23 @@ class TrainConfig:
 
 
 def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
+  if task_id == "Mjlab-Dex-Manip":
+    from mjlab.tasks.dex_manip.env_cfg import (
+      apply_dex_manip_overrides,
+    )
+
+    selected = apply_dex_manip_overrides(
+      cfg.env,
+      objects=cfg.objects,
+      envs_per_object=cfg.envs_per_object,
+      assignment_mode=cfg.object_assignment_mode,
+    )
+    print(
+      "[INFO] Dex manip overrides: "
+      f"objects={selected}, envs_per_object={cfg.envs_per_object}, "
+      f"num_envs={cfg.env.scene.num_envs}, assignment={cfg.object_assignment_mode}"
+    )
+
   cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
   if cuda_visible == "":
     device = "cpu"
