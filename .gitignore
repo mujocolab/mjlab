@@ -14,7 +14,10 @@ artifacts/
 render_robots.py
 benchmark_results/
 *.sbatch
+assets/checkpoints/
+assets/demos/
 
 # Documentation outputs.
 **/_build/*
 **/generated/*
+assets/checkpoints/

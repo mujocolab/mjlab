@@ -394,7 +394,7 @@ def geom_dataid(
       f"Expected geom_dataid.shape[0] == num_envs ({env.num_envs}), "
       f"got {model_field.shape[0]}."
     )
-  if model_field.stride(0) == 0:
+  if env.num_envs > 1 and model_field.stride(0) == 0:
     raise ValueError(
       "geom_dataid appears to be a broadcasted view (stride(0)==0), so per-world "
       "writes would alias across environments. Ensure geom_dataid is expanded via "

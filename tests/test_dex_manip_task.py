@@ -71,6 +71,20 @@ def test_dex_manip_apply_overrides() -> None:
   )
 
 
+def test_dex_manip_task_uses_task_specific_grasp_and_spawn() -> None:
+  _import_tasks()
+
+  cfg = load_env_cfg("Mjlab-Dex-Manip")
+
+  robot_cfg = cfg.scene.entities["robot"]
+  object_cfg = cfg.scene.entities["object"]
+
+  assert robot_cfg.init_state.joint_pos["if_rot"] == pytest.approx(0.4)
+  assert robot_cfg.init_state.joint_pos["rf_rot"] == pytest.approx(-0.4)
+  assert robot_cfg.init_state.joint_pos["th_cmc"] == pytest.approx(1.45)
+  assert object_cfg.init_state.pos == pytest.approx((-0.092, 0.055, 0.27))
+
+
 @pytest.mark.slow
 def test_dex_manip_training_smoke(device: str) -> None:
   _import_tasks()

@@ -210,7 +210,10 @@ class ManagerBasedRlEnv:
     self._offline_renderer: OffscreenRenderer | None = None
     if self.render_mode == "rgb_array":
       renderer = OffscreenRenderer(
-        model=self.sim.mj_model, cfg=self.cfg.viewer, scene=self.scene
+        model=self.sim.mj_model,
+        cfg=self.cfg.viewer,
+        scene=self.scene,
+        batched_model=self.sim.model,
       )
       renderer.initialize()
       self._offline_renderer = renderer

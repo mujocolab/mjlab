@@ -8,6 +8,7 @@ from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.utils.lab_api.math import euler_xyz_from_quat, wrap_to_pi
 
 from .mdp.numerics import sanitize_to_range
+from .objects import resolve_mesh_id
 
 if TYPE_CHECKING:
   from mjlab.entity import Entity
@@ -34,40 +35,6 @@ def _resolve_object_geom_id(
   return geom_id
 
 
-def _resolve_mesh_id(env: ManagerBasedRlEnv, mesh_name: str) -> int:
-  cache_key = f"_dex_manip_mesh_id::{mesh_name}"
-  cached = getattr(env, cache_key, None)
-  if cached is not None:
-    return int(cached)
-
-  available_names = [mesh.name for mesh in env.scene.spec.meshes if mesh.name is not None]
-  exact_name_to_id = {name: idx for idx, name in enumerate(available_names)}
-
-  if mesh_name in exact_name_to_id:
-    mesh_id = exact_name_to_id[mesh_name]
-  else:
-    suffix_matches = [
-      idx
-      for idx, full_name in enumerate(available_names)
-      if full_name.rsplit("/", 1)[-1] == mesh_name
-    ]
-    if len(suffix_matches) == 1:
-      mesh_id = suffix_matches[0]
-    elif len(suffix_matches) > 1:
-      matched = [available_names[idx] for idx in suffix_matches]
-      raise ValueError(
-        f"Mesh name {mesh_name!r} is ambiguous. Matches: {matched}. "
-        "Use a fully qualified mesh name."
-      )
-    else:
-      raise ValueError(
-        f"Unknown mesh name {mesh_name!r}. Available: {sorted(available_names)}"
-      )
-
-  setattr(env, cache_key, mesh_id)
-  return mesh_id
-
-
 def _object_dataid_per_env(
   env: ManagerBasedRlEnv,
   object_cfg: SceneEntityCfg,
@@ -90,7 +57,7 @@ def reward_for_mesh(
   object_cfg: SceneEntityCfg = _DEFAULT_OBJECT_CFG,
 ) -> torch.Tensor:
   per_env_dataid = _object_dataid_per_env(env, object_cfg)
-  mesh_id = _resolve_mesh_id(env, mesh_name)
+  mesh_id = resolve_mesh_id(env, mesh_name)
   mask = per_env_dataid == mesh_id
   if not torch.any(mask):
     value = torch.tensor(0.0, device=env.device, dtype=env.reward_buf.dtype)

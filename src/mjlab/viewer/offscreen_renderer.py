@@ -1,5 +1,6 @@
 """MuJoCo offscreen renderer for headless visualization."""
 
+from typing import TYPE_CHECKING
 from typing import Any, Callable
 
 import mujoco
@@ -9,13 +10,43 @@ from mjlab.scene import Scene
 from mjlab.viewer.native.visualizer import MujocoNativeDebugVisualizer
 from mjlab.viewer.viewer_config import ViewerConfig
 
+if TYPE_CHECKING:
+  from mjlab.sim.sim import ModelBridge
+
+
+def _copy_per_env_render_fields(
+  mj_model: mujoco.MjModel,
+  batched_model: "ModelBridge | None",
+  env_idx: int,
+) -> None:
+  """Copy per-env render-relevant model fields into the CPU MuJoCo model.
+
+  MuJoCo offscreen rendering operates on a single CPU ``MjModel`` / ``MjData``.
+  When simulation uses per-world expanded model fields (e.g. ``geom_dataid`` for
+  mixed meshes), we must copy the selected world's values into that CPU model
+  before ``mj_forward`` so rendering matches simulation.
+  """
+  if batched_model is None:
+    return
+
+  geom_dataid = getattr(batched_model, "geom_dataid", None)
+  if geom_dataid is not None and getattr(geom_dataid, "ndim", 0) == 2:
+    mj_model.geom_dataid[:] = geom_dataid[env_idx].cpu().numpy()
+
 
 class OffscreenRenderer:
-  def __init__(self, model: mujoco.MjModel, cfg: ViewerConfig, scene: Scene) -> None:
+  def __init__(
+    self,
+    model: mujoco.MjModel,
+    cfg: ViewerConfig,
+    scene: Scene,
+    batched_model: "ModelBridge | None" = None,
+  ) -> None:
     self._cfg = cfg
     self._model = model
     self._data = mujoco.MjData(model)
     self._scene = scene
+    self._batched_model = batched_model
     self._orig_extent = float(self._model.stat.extent)
     self._render_extent = self._compute_render_extent()
     # Keep extent override local to offscreen rendering so shadow/camera scaling
@@ -73,6 +104,7 @@ class OffscreenRenderer:
       return
 
     env_idx = max(0, min(int(self._cfg.env_idx), nworld - 1))
+    _copy_per_env_render_fields(self._model, self._batched_model, env_idx)
     if self._model.nq > 0:
       self._data.qpos[:] = data.qpos[env_idx].cpu().numpy()
       self._data.qvel[:] = data.qvel[env_idx].cpu().numpy()
@@ -93,6 +125,7 @@ class OffscreenRenderer:
 
     # Add nearest neighboring environments as geoms for context.
     for i in self._get_extra_env_ids(nworld, env_idx):
+      _copy_per_env_render_fields(self._model, self._batched_model, i)
       if self._model.nq > 0:
         self._data.qpos[:] = data.qpos[i].cpu().numpy()
         self._data.qvel[:] = data.qvel[i].cpu().numpy()

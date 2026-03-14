@@ -56,6 +56,25 @@ __MESH_XML__
 
 LEAP_ACTION_SCALE = 1.0 / 24.0
 PALM_CENTER_GEOM_EXPR = "palm_collision_.*"
+GRASP_INIT_JOINT_POS = {
+  "if_mcp": 0.1,
+  "if_rot": 0.4,
+  "if_pip": 1.3,
+  "if_dip": 0.0,
+  "mf_mcp": 0.1,
+  "mf_rot": 0.0,
+  "mf_pip": 1.3,
+  "mf_dip": 0.0,
+  "rf_mcp": 0.1,
+  "rf_rot": -0.4,
+  "rf_pip": 1.3,
+  "rf_dip": 0.0,
+  "th_cmc": 1.45,
+  "th_axl": -1.5,
+  "th_mcp": 0.579,
+  "th_ipl": 1.37,
+}
+OBJECT_SPAWN_POS = (-0.092, 0.055, 0.27)
 
 
 def make_dex_manip_base_env_cfg() -> ManagerBasedRlEnvCfg:
@@ -491,9 +510,19 @@ def dex_manip_env_cfg(
   envs_per_object: int | None = 8,
 ) -> ManagerBasedRlEnvCfg:
   cfg = make_dex_manip_base_env_cfg()
+  robot_cfg = get_leap_left_custom_hand_cfg()
+  robot_cfg.init_state.joint_pos = dict(GRASP_INIT_JOINT_POS)
   cfg.scene.entities = {
-    "robot": get_leap_left_custom_hand_cfg(),
-    "object": EntityCfg(spec_fn=get_multi_object_spec),
+    "robot": robot_cfg,
+    "object": EntityCfg(
+      init_state=EntityCfg.InitialStateCfg(
+        pos=OBJECT_SPAWN_POS,
+        rot=(1.0, 0.0, 0.0, 0.0),
+        lin_vel=(0.0, 0.0, 0.0),
+        ang_vel=(0.0, 0.0, 0.0),
+      ),
+      spec_fn=get_multi_object_spec,
+    ),
   }
 
   selected_objects = apply_dex_manip_overrides(
