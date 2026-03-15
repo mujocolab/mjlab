@@ -78,8 +78,7 @@ class RewardBarPanel:
 
   def _render_empty(self) -> None:
     self._html_handle.content = (
-      '<div style="padding:0.5em;color:#999;font-size:0.85em;">'
-      "Waiting for data…</div>"
+      '<div style="padding:0.5em;color:#999;font-size:0.85em;">Waiting for data…</div>'
     )
 
   def _render(self) -> None:
@@ -112,7 +111,7 @@ class RewardBarPanel:
         f'<div style="display:flex;align-items:center;margin:2px 0;">'
         # Label
         f'<span style="min-width:120px;font-size:0.78em;text-align:right;'
-        f'padding-right:6px;color:#ddd;white-space:nowrap;overflow:hidden;'
+        f"padding-right:6px;color:#ddd;white-space:nowrap;overflow:hidden;"
         f'text-overflow:ellipsis;" title="{name}">{name}</span>'
         # Bar container
         f'<div style="flex:1;background:#333;border-radius:3px;height:18px;'

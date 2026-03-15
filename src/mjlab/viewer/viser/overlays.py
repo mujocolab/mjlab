@@ -93,7 +93,9 @@ class ViserTermOverlays:
 
   def update(self, paused: bool) -> None:
     """Update term plots from the selected environment."""
-    if (self.reward_plotter is not None or self.reward_bar_panel is not None) and not paused:
+    if (
+      self.reward_plotter is not None or self.reward_bar_panel is not None
+    ) and not paused:
       terms = list(
         self.env.unwrapped.reward_manager.get_active_iterable_terms(self.scene.env_idx)
       )
