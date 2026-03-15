@@ -6,6 +6,7 @@ over ~1 second. Positive terms are green, negative terms are red.
 
 from __future__ import annotations
 
+import html
 from collections import deque
 
 import numpy as np
@@ -19,7 +20,7 @@ class RewardBarPanel:
     self,
     server: viser.ViserServer,
     term_names: list[str],
-    step_dt: float,
+    update_dt: float,
     max_terms: int = 20,
   ) -> None:
     """Initialize the reward bar panel.
@@ -27,7 +28,8 @@ class RewardBarPanel:
     Args:
       server: The Viser server instance.
       term_names: List of reward term names.
-      step_dt: Environment step dt (seconds). Used to size the averaging
+      update_dt: Time in seconds between consecutive ``update()`` calls
+        (i.e. the viewer's frame time). Used to size the averaging
         window to ~1 second.
       max_terms: Maximum number of terms to display.
     """
@@ -35,9 +37,7 @@ class RewardBarPanel:
     self._term_names = term_names[:max_terms]
 
     # ~1 second averaging window, but at least 1 step.
-    # The viewer updates every 10 sim steps, so divide accordingly.
-    update_interval = 10  # sync_env_to_viewer updates every 10 frames
-    self._window_steps = max(1, int(1.0 / (step_dt * update_interval)))
+    self._window_steps = max(1, round(1.0 / update_dt))
 
     # Per-term circular buffer for running mean.
     self._histories: dict[str, deque[float]] = {
@@ -107,12 +107,13 @@ class RewardBarPanel:
       else:
         val_str = f"{val:.4f}"
 
+      safe_name = html.escape(name, quote=True)
       rows.append(
         f'<div style="display:flex;align-items:center;margin:2px 0;">'
         # Label
         f'<span style="min-width:120px;font-size:0.78em;text-align:right;'
         f"padding-right:6px;color:#ddd;white-space:nowrap;overflow:hidden;"
-        f'text-overflow:ellipsis;" title="{name}">{name}</span>'
+        f'text-overflow:ellipsis;" title="{safe_name}">{safe_name}</span>'
         # Bar container
         f'<div style="flex:1;background:#333;border-radius:3px;height:18px;'
         f'position:relative;overflow:hidden;">'
@@ -125,9 +126,9 @@ class RewardBarPanel:
         f"</div></div>"
       )
 
-    html = (
+    markup = (
       '<div style="padding:0.3em 0.5em;font-family:monospace;">'
       + "".join(rows)
       + "</div>"
     )
-    self._html_handle.content = html
+    self._html_handle.content = markup

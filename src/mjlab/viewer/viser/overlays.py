@@ -42,6 +42,7 @@ class ViserTermOverlays:
   server: viser.ViserServer
   env: _EnvProtocol
   scene: _SceneProtocol
+  frame_time: float
   reward_plotter: ViserTermPlotter | None = None
   reward_bar_panel: RewardBarPanel | None = None
   metrics_plotter: ViserTermPlotter | None = None
@@ -60,7 +61,7 @@ class ViserTermOverlays:
         self.reward_bar_panel = RewardBarPanel(
           self.server,
           term_names,
-          step_dt=self.env.unwrapped.step_dt,
+          update_dt=self.frame_time,
         )
         self.reward_plotter = ViserTermPlotter(
           self.server, term_names, name="Reward", env_idx=self.scene.env_idx
