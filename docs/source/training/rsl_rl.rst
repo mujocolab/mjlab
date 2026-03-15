@@ -242,6 +242,11 @@ The runner searches for the most recent run directory under
 Narrow the search with ``--agent.load-run`` (regex on directory names) and
 ``--agent.load-checkpoint`` (regex on checkpoint filenames).
 
+``--agent.max-iterations`` controls how many *additional* iterations to run
+from the checkpoint. If you are resuming from iteration 11500 with
+``--agent.max-iterations 300`` (the default), training will run iterations
+11500 through 11800. Set this to the number of new iterations you want.
+
 To resume from a W&B run:
 
 .. code-block:: bash
