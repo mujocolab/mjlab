@@ -87,9 +87,11 @@ class TerrainEntity(Entity):
 
   .. note::
     Environment allocation for procedural terrain: Columns (terrain types) are
-    evenly distributed across environments, but rows (difficulty levels) are
-    randomly sampled. This means multiple environments can spawn on the same
-    (row, col) patch, leaving others unoccupied, even when num_envs > num_patches.
+    distributed across environments **by proportion** (matching each
+    sub-terrain's ``proportion`` field) when a ``TerrainGeneratorCfg`` is
+    available, or evenly when it is not.  Rows (difficulty levels) are randomly
+    sampled.  This means multiple environments can spawn on the same (row, col)
+    patch, leaving others unoccupied, even when num_envs > num_patches.
 
   See FAQ: "How does env_origins determine robot layout?"
   """
@@ -112,7 +114,9 @@ class TerrainEntity(Entity):
         self.cfg.terrain_generator, device=self._device
       )
       terrain_generator.compile(self._spec)
-      self._configure_env_origins(terrain_generator.terrain_origins)
+      self._configure_env_origins(
+        terrain_generator.terrain_origins, self.cfg.terrain_generator
+      )
       self._flat_patches: dict[str, torch.Tensor] = {
         name: torch.from_numpy(arr).to(device=self._device, dtype=torch.float)
         for name, arr in terrain_generator.flat_patches.items()
@@ -148,13 +152,17 @@ class TerrainEntity(Entity):
   # Terrain origin management.
 
   def configure_env_origins(
-    self, origins: np.ndarray | torch.Tensor | None = None
+    self,
+    origins: np.ndarray | torch.Tensor | None = None,
+    terrain_generator_cfg: TerrainGeneratorCfg | None = None,
   ) -> None:
     """Configure the origins of the environments based on the terrain."""
-    self._configure_env_origins(origins)
+    self._configure_env_origins(origins, terrain_generator_cfg)
 
   def _configure_env_origins(
-    self, origins: np.ndarray | torch.Tensor | None = None
+    self,
+    origins: np.ndarray | torch.Tensor | None = None,
+    terrain_generator_cfg: TerrainGeneratorCfg | None = None,
   ) -> None:
     if origins is not None:
       if isinstance(origins, np.ndarray):
@@ -163,7 +171,7 @@ class TerrainEntity(Entity):
         assert isinstance(origins, torch.Tensor)
       self.terrain_origins = origins.to(self._device, dtype=torch.float)
       self.env_origins = self._compute_env_origins_curriculum(
-        self.cfg.num_envs, self.terrain_origins
+        self.cfg.num_envs, self.terrain_origins, terrain_generator_cfg
       )
     else:
       self.terrain_origins = None
@@ -285,8 +293,21 @@ class TerrainEntity(Entity):
             )
 
   def _compute_env_origins_curriculum(
-    self, num_envs: int, origins: torch.Tensor
+    self,
+    num_envs: int,
+    origins: torch.Tensor,
+    terrain_generator_cfg: TerrainGeneratorCfg | None = None,
   ) -> torch.Tensor:
+    """Compute the origins of the environments defined by the sub-terrain origins.
+
+    Allocation strategy:
+      - Columns (terrain_types): Distributed across environments **by proportion**.
+        Each column (terrain type) receives
+        ``max(1, round(proportion / total * num_envs))`` environments.
+        Falls back to even distribution when *terrain_generator_cfg* is ``None``.
+      - Rows (terrain_levels): Randomly sampled from [0, max_init_terrain_level].
+        Supports curriculum learning where rows represent difficulty levels.
+    """
     num_rows, num_cols = origins.shape[:2]
     if self.cfg.max_init_terrain_level is None:
       max_init_level = num_rows - 1
@@ -296,11 +317,40 @@ class TerrainEntity(Entity):
     self.terrain_levels = torch.randint(
       0, max_init_level + 1, (num_envs,), device=self._device
     )
-    self.terrain_types = torch.div(
-      torch.arange(num_envs, device=self._device),
-      (num_envs / num_cols),
-      rounding_mode="floor",
-    ).to(torch.long)
+
+    # Distribute robots across columns by proportion.
+    if (
+      terrain_generator_cfg is not None
+      and len(terrain_generator_cfg.sub_terrains) == num_cols
+    ):
+      proportions = np.array(
+        [cfg.proportion for cfg in terrain_generator_cfg.sub_terrains.values()]
+      )
+      proportions = proportions / proportions.sum()
+      
+      # Base allocation using floor to ensure we never exceed num_envs
+      counts = np.floor(proportions * num_envs).astype(int)
+      
+      # Distribute remainder to columns with largest fractional parts
+      remainder = num_envs - counts.sum()
+      if remainder > 0:
+        fractional_part = (proportions * num_envs) - counts
+        order = np.argsort(-fractional_part)
+        for i in range(remainder):
+          counts[order[i % num_cols]] += 1
+
+      self.terrain_types = torch.cat([
+        torch.full((c,), col, device=self._device, dtype=torch.long)
+        for col, c in enumerate(counts)
+      ])
+    else:
+      # Fallback: even distribution.
+      self.terrain_types = torch.div(
+        torch.arange(num_envs, device=self._device),
+        (num_envs / num_cols),
+        rounding_mode="floor",
+      ).to(torch.long)
+
     env_origins = torch.zeros(num_envs, 3, device=self._device)
     env_origins[:] = origins[self.terrain_levels, self.terrain_types]
     return env_origins

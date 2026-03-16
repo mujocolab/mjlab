@@ -60,14 +60,13 @@ class TerrainOutput:
 @dataclass
 class SubTerrainCfg(abc.ABC):
   proportion: float = 1.0
-  """Terrain type allocation weight (behavior depends on curriculum mode):
+  """Robot spawning weight for this terrain type.
 
-  - curriculum=True: Controls column allocation. Normalized proportions determine
-    how many columns each terrain type occupies via cumulative distribution.
-    Example: proportions [0.5, 0.5] with num_cols=2 gives one terrain per column.
+  In curriculum mode, controls how many robots are spawned on this terrain's
+  column relative to other terrain types. Each terrain type always gets
+  exactly one column; proportion only affects spawning distribution.
 
-  - curriculum=False: Sampling probability for each patch. Each patch independently
-    samples a terrain type weighted by normalized proportions.
+  In random mode, controls the sampling probability for each patch.
   """
   size: tuple[float, float] = (10.0, 10.0)
   """Width and length of the terrain patch, in meters."""
@@ -93,15 +92,13 @@ class TerrainGeneratorCfg:
   curriculum: bool = False
   """Controls terrain allocation mode:
 
-  - curriculum=True: Each column gets ONE terrain type (deterministic allocation).
-    Difficulty increases along rows. Use this to ensure each terrain type occupies
-    its own column(s).
+  - curriculum=True: Each terrain type gets exactly ONE column.
+    ``num_cols`` is automatically set to ``len(sub_terrains)``.
+    Difficulty increases along rows. The ``proportion`` field controls
+    how many robots are spawned per column, not column count.
 
   - curriculum=False: Every patch is randomly sampled from all terrain types.
     Proportions control sampling probability. Use this for random variety.
-
-  Example: With 2 terrain types and num_cols=2, curriculum=True gives one terrain
-  per column. curriculum=False gives a random mix of both types in all patches.
   """
   size: tuple[float, float]
   """Width and length of each sub-terrain patch, in meters."""
@@ -114,8 +111,11 @@ class TerrainGeneratorCfg:
   curriculum mode. Note: Environments are randomly assigned to rows, so multiple
   envs can share the same patch."""
   num_cols: int = 1
-  """Number of sub-terrain columns in the grid. Represents terrain type variants.
-  Note: Environments are evenly distributed across columns (not random)."""
+  """Number of sub-terrain columns in the grid.
+
+  In curriculum mode this is automatically overridden to
+  ``len(sub_terrains)`` (one column per terrain type).
+  In random mode it is used as-is."""
   color_scheme: Literal["height", "random", "none"] = "height"
   """Coloring strategy for terrain geometry. "height" colors by elevation,
   "random" assigns random colors, "none" uses uniform gray."""
@@ -137,10 +137,10 @@ class TerrainGenerator:
     terrain type weighted by proportions. Results in random variety across
     all patches.
 
-  - **Curriculum mode** (curriculum=True): Columns are deterministically
-    assigned to terrain types based on proportions. All patches in a column
-    share the same terrain type, with difficulty increasing along rows.
-    Use this to ensure each terrain type occupies specific column(s).
+  - **Curriculum mode** (curriculum=True): Each terrain type gets exactly one
+    column (``num_cols`` is overridden to ``len(sub_terrains)``). Difficulty
+    increases along rows. The ``proportion`` field controls robot spawning
+    distribution, not column count.
 
   Terrain types are weighted by proportion and their geometry is generated
   based on a difficulty value in the configured range. The grid is centered
@@ -154,6 +154,10 @@ class TerrainGenerator:
 
     self.cfg = cfg
     self.device = device
+
+    # In curriculum mode, one column per terrain type.
+    if self.cfg.curriculum:
+      self.cfg.num_cols = len(self.cfg.sub_terrains)
 
     for sub_cfg in self.cfg.sub_terrains.values():
       sub_cfg.size = self.cfg.size
@@ -249,21 +253,9 @@ class TerrainGenerator:
       self.terrain_origins[sub_row, sub_col] = spawn_origin
 
   def _generate_curriculum_terrains(self, spec: mujoco.MjSpec) -> None:
-    # Normalize the proportions of the sub-terrains.
-    proportions = np.array(
-      [sub_cfg.proportion for sub_cfg in self.cfg.sub_terrains.values()]
-    )
-    proportions /= np.sum(proportions)
-
-    sub_indices = []
-    for index in range(self.cfg.num_cols):
-      sub_index = np.min(
-        np.where(index / self.cfg.num_cols + 0.001 < np.cumsum(proportions))[0]
-      )
-      sub_indices.append(sub_index)
-    sub_indices = np.array(sub_indices, dtype=np.int32)
-
+    # One column per terrain type — proportion is only for spawning.
     sub_terrains_cfgs = list(self.cfg.sub_terrains.values())
+    sub_indices = np.arange(len(sub_terrains_cfgs), dtype=np.int32)
 
     for sub_col in range(self.cfg.num_cols):
       for sub_row in range(self.cfg.num_rows):
