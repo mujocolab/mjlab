@@ -147,22 +147,27 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
         self.alg.compute_returns(obs)
 
       # Here, update discriminator based on real and motion file samples
+      self.discriminator.train()
       for update_step in range(self.discriminator.cfg.n_updates):
 
-        # Sample motion data slice
-        max_start = self.motion_data.shape[0] - self.cfg["num_steps_per_env"] - 1
-        start_idx = torch.randint(0, max_start, (1,)).item()
-        motion_slice = self.motion_data[start_idx : start_idx + self.cfg["num_steps_per_env"] + 1]
+        fake_stack = torch.stack(trajectory_buffer, dim=1)   # (num_envs, 25, n_obs)
+        fake_data = torch.cat([fake_stack[:, :-1, :], fake_stack[:, 1:, :]], dim=-1)
+        fake_data_flat = fake_data.view(-1, 2 * self.discriminator.cfg.n_obs)  # (num_envs * 24, 2 * n_obs)
 
-        # Build (obs_n, obs_n+1) pairs from motion data
-        real_data = torch.cat([motion_slice[:-1], motion_slice[1:]], dim=-1)
+        n_samples = fake_data_flat.shape[0]
 
-        # Build (obs_n, obs_n+1) pairs from trajectory buffer
-        fake_stack = torch.stack(trajectory_buffer, dim=1)   # (num_envs, 25, n_obs) ✅
-        fake_data = torch.cat([fake_stack[:, :-1, :], fake_stack[:, 1:, :]], dim=-1)  # (num_envs, 24, 2*n_obs)
+        real_indices = torch.randint(0, self.motion_data.shape[0] - 1, (n_samples,))
+        real_data_flat = torch.cat([
+          self.motion_data[real_indices],
+          self.motion_data[real_indices + 1],
+        ], dim=-1)  # (n_samples, 2 * n_obs)
 
-        fake_data_flat = fake_data.view(-1, 2 * self.discriminator.cfg.n_obs)
-        real_data_flat = real_data.view(-1, 2 * self.discriminator.cfg.n_obs)
+        env_indices = torch.randint(0, fake_stack.shape[0], (n_samples,))       # random envs
+        step_indices = torch.randint(0, fake_stack.shape[1] - 1, (n_samples,))  # random steps
+        fake_data_flat = torch.cat([
+          fake_stack[env_indices, step_indices],
+          fake_stack[env_indices, step_indices + 1],
+        ], dim=-1)  # (n_samples, 2 * n_obs)
 
         self.discriminator.train_oneshot(real_data_flat, fake_data_flat)
 
