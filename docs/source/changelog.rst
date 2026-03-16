@@ -29,6 +29,8 @@ Added
   (projected through the transmission). ``qfrc_external`` recovers the
   generalized force from body external wrenches (``xfrc_applied``)
   (:issue:`776`).
+- Added ``RewardBarPanel`` to the Viser viewer, showing horizontal bars for
+  each reward term with a running mean over ~1 second (:issue:`800`).
 
 Changed
 ^^^^^^^

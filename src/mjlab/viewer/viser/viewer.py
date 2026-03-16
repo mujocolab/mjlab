@@ -160,7 +160,9 @@ class ViserPlayViewer(BaseViewer):
 
     self._prev_env_idx = self._scene.env_idx
 
-    self._term_overlays = ViserTermOverlays(self._server, self.env, self._scene)
+    self._term_overlays = ViserTermOverlays(
+      self._server, self.env, self._scene, self.frame_time
+    )
     self._term_overlays.setup_tabs(tabs)
     self._debug_overlays = ViserDebugOverlays(self.env, self._scene)
     self._contact_overlays = ViserContactOverlays(self._scene)

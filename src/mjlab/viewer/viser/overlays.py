@@ -15,6 +15,7 @@ import viser
 
 from mjlab.sensor import CameraSensor
 from mjlab.viewer.viser.camera_viewer import ViserCameraViewer
+from mjlab.viewer.viser.reward_bar_panel import RewardBarPanel
 from mjlab.viewer.viser.term_plotter import ViserTermPlotter
 
 
@@ -41,7 +42,9 @@ class ViserTermOverlays:
   server: viser.ViserServer
   env: _EnvProtocol
   scene: _SceneProtocol
+  frame_time: float
   reward_plotter: ViserTermPlotter | None = None
+  reward_bar_panel: RewardBarPanel | None = None
   metrics_plotter: ViserTermPlotter | None = None
 
   def setup_tabs(self, tabs: Any) -> None:
@@ -54,6 +57,12 @@ class ViserTermOverlays:
             self.scene.env_idx
           )
         ]
+        # Live bar panel (running-mean comparison).
+        self.reward_bar_panel = RewardBarPanel(
+          self.server,
+          term_names,
+          update_dt=self.frame_time,
+        )
         self.reward_plotter = ViserTermPlotter(
           self.server, term_names, name="Reward", env_idx=self.scene.env_idx
         )
@@ -77,17 +86,24 @@ class ViserTermOverlays:
     if self.reward_plotter:
       self.reward_plotter.clear_histories()
       self.reward_plotter.update_env_idx(env_idx)
+    if self.reward_bar_panel:
+      self.reward_bar_panel.clear_histories()
     if self.metrics_plotter:
       self.metrics_plotter.clear_histories()
       self.metrics_plotter.update_env_idx(env_idx)
 
   def update(self, paused: bool) -> None:
     """Update term plots from the selected environment."""
-    if self.reward_plotter is not None and not paused:
+    if (
+      self.reward_plotter is not None or self.reward_bar_panel is not None
+    ) and not paused:
       terms = list(
         self.env.unwrapped.reward_manager.get_active_iterable_terms(self.scene.env_idx)
       )
-      self.reward_plotter.update(terms)
+      if self.reward_plotter is not None:
+        self.reward_plotter.update(terms)
+      if self.reward_bar_panel is not None:
+        self.reward_bar_panel.update(terms)
 
     if self.metrics_plotter is not None and not paused:
       terms = list(
@@ -103,6 +119,8 @@ class ViserTermOverlays:
     """Cleanup plotter resources."""
     if self.reward_plotter:
       self.reward_plotter.cleanup()
+    if self.reward_bar_panel:
+      self.reward_bar_panel.cleanup()
     if self.metrics_plotter:
       self.metrics_plotter.cleanup()
 
