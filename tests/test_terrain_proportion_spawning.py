@@ -1,11 +1,10 @@
 """Tests for proportion-based robot spawning on terrain columns."""
 
-import numpy as np
 import torch
 
+from mjlab.terrains.primitive_terrains import BoxFlatTerrainCfg
 from mjlab.terrains.terrain_entity import TerrainEntity, TerrainEntityCfg
 from mjlab.terrains.terrain_generator import TerrainGeneratorCfg
-from mjlab.terrains.primitive_terrains import BoxFlatTerrainCfg
 
 
 def _make_terrain_entity(num_envs: int) -> TerrainEntity:
@@ -38,7 +37,6 @@ def _make_generator_cfg(proportions: list[float]) -> TerrainGeneratorCfg:
   )
 
 
-
 class TestEvenDistributionFallback:
   """Without terrain_generator_cfg, robots should be distributed evenly."""
 
@@ -69,8 +67,7 @@ class TestProportionDistribution:
     entity._compute_env_origins_curriculum(num_envs, origins, gen_cfg)
 
     counts = [
-      (entity.terrain_types == col).sum().item()
-      for col in range(len(proportions))
+      (entity.terrain_types == col).sum().item() for col in range(len(proportions))
     ]
     assert counts[0] == 50
     assert counts[1] == 30
@@ -115,8 +112,7 @@ class TestProportionDistribution:
     entity._compute_env_origins_curriculum(num_envs, origins, gen_cfg)
 
     counts = [
-      (entity.terrain_types == col).sum().item()
-      for col in range(len(proportions))
+      (entity.terrain_types == col).sum().item() for col in range(len(proportions))
     ]
     # 30 / 4 = 7.5 → expects 8, 8, 7, 7 (or similar rounding).
     for c in counts:

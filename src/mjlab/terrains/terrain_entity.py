@@ -327,10 +327,10 @@ class TerrainEntity(Entity):
         [cfg.proportion for cfg in terrain_generator_cfg.sub_terrains.values()]
       )
       proportions = proportions / proportions.sum()
-      
+
       # Base allocation using floor to ensure we never exceed num_envs
       counts = np.floor(proportions * num_envs).astype(int)
-      
+
       # Distribute remainder to columns with largest fractional parts
       remainder = num_envs - counts.sum()
       if remainder > 0:
@@ -339,10 +339,12 @@ class TerrainEntity(Entity):
         for i in range(remainder):
           counts[order[i % num_cols]] += 1
 
-      self.terrain_types = torch.cat([
-        torch.full((c,), col, device=self._device, dtype=torch.long)
-        for col, c in enumerate(counts)
-      ])
+      self.terrain_types = torch.cat(
+        [
+          torch.full((c,), col, device=self._device, dtype=torch.long)
+          for col, c in enumerate(counts)
+        ]
+      )
     else:
       # Fallback: even distribution.
       self.terrain_types = torch.div(
