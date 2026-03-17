@@ -220,6 +220,35 @@ def test_onnx_export_without_normalization():
   assert out.shape == (4, 4)
 
 
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+def test_onnx_runtime_roundtrip_matches_pytorch():
+  """Exported .onnx file produces the same outputs as PyTorch via onnxruntime."""
+  ort = pytest.importorskip("onnxruntime")
+  actor = _make_actor(obs_normalization=True)
+  _train_normalizer(actor)
+  onnx_model = actor.as_onnx(verbose=False)
+  onnx_model.eval()
+
+  x = torch.randn(4, actor.obs_dim)
+  expected = _model_output(actor, x)
+
+  with tempfile.TemporaryDirectory() as tmpdir:
+    path = Path(tmpdir) / "policy.onnx"
+    torch.onnx.export(
+      onnx_model,
+      (x,),
+      str(path),
+      input_names=onnx_model.input_names,  # pyright: ignore[reportArgumentType]
+      output_names=onnx_model.output_names,  # pyright: ignore[reportArgumentType]
+      opset_version=18,
+      dynamo=False,
+    )
+    sess = ort.InferenceSession(str(path))
+    [actual] = sess.run(None, {"obs": x.numpy()})
+
+  torch.testing.assert_close(torch.from_numpy(actual), expected, atol=1e-5, rtol=0)
+
+
 # CNN (spatial-softmax) ONNX export tests.
 
 _IMG_H, _IMG_W, _IMG_C = 16, 16, 3
@@ -253,6 +282,19 @@ def _make_cnn_actor(obs_normalization=True):
   )
 
 
+def _train_cnn_normalizer(actor, n_batches=50, batch_size=64):
+  actor.train()
+  for _ in range(n_batches):
+    obs = TensorDict(
+      {
+        "actor": torch.randn(batch_size, _OBS_DIM_1D) * 5 + 3,
+        "camera": torch.randn(batch_size, _IMG_C, _IMG_H, _IMG_W),
+      }
+    )
+    actor.update_normalization(obs)
+  actor.eval()
+
+
 def _cnn_model_output(actor, x_1d, x_2d):
   obs = TensorDict({"actor": x_1d, "camera": x_2d})
   with torch.no_grad():
@@ -262,17 +304,7 @@ def _cnn_model_output(actor, x_1d, x_2d):
 def test_cnn_onnx_export_matches_actor():
   """as_onnx() with SpatialSoftmaxCNNModel matches the original model."""
   actor = _make_cnn_actor(obs_normalization=True)
-  # Train normalizer on 1D observations.
-  actor.train()
-  for _ in range(50):
-    obs = TensorDict(
-      {
-        "actor": torch.randn(64, _OBS_DIM_1D) * 5 + 3,
-        "camera": torch.randn(64, _IMG_C, _IMG_H, _IMG_W),
-      }
-    )
-    actor.update_normalization(obs)
-  actor.eval()
+  _train_cnn_normalizer(actor)
 
   onnx_model = actor.as_onnx(verbose=False)
   onnx_model.eval()
@@ -309,6 +341,37 @@ def test_cnn_onnx_export_to_file():
     )
     assert onnx_path.exists()
     onnx.checker.check_model(str(onnx_path))
+
+
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+def test_cnn_onnx_runtime_roundtrip_matches_pytorch():
+  """Exported CNN .onnx file produces the same outputs as PyTorch via onnxruntime."""
+  ort = pytest.importorskip("onnxruntime")
+  actor = _make_cnn_actor(obs_normalization=True)
+  _train_cnn_normalizer(actor)
+
+  onnx_model = actor.as_onnx(verbose=False)
+  onnx_model.eval()
+
+  x_1d = torch.randn(4, _OBS_DIM_1D)
+  x_2d = torch.randn(4, _IMG_C, _IMG_H, _IMG_W)
+  expected = _cnn_model_output(actor, x_1d, x_2d)
+
+  with tempfile.TemporaryDirectory() as tmpdir:
+    path = Path(tmpdir) / "cnn_policy.onnx"
+    torch.onnx.export(
+      onnx_model,
+      (x_1d, x_2d),
+      str(path),
+      input_names=onnx_model.input_names,  # pyright: ignore[reportArgumentType]
+      output_names=onnx_model.output_names,  # pyright: ignore[reportArgumentType]
+      opset_version=18,
+      dynamo=False,
+    )
+    sess = ort.InferenceSession(str(path))
+    [actual] = sess.run(None, {"obs": x_1d.numpy(), "camera": x_2d.numpy()})
+
+  torch.testing.assert_close(torch.from_numpy(actual), expected, atol=1e-5, rtol=0)
 
 
 def test_agent_cfg_serializable_after_runner_creation(env, device):

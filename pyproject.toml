@@ -67,6 +67,7 @@ dev = [
   "ipdb>=0.13.13",
   "pre-commit>=4.3.0",
   "pyright>=1.1.408",
+  "onnxruntime>=1.19.0; python_version >= '3.11'",
   "pytest>=v9.0.2",
   "ruff>=v0.14.14",
   "ty>=v0.0.14",
