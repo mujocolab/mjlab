@@ -35,6 +35,10 @@ Added
 Changed
 ^^^^^^^
 
+- In curriculum terrain mode, each terrain type now gets exactly one column
+  (``num_cols`` is set to ``len(sub_terrains)``). The ``proportion`` field
+  now controls robot spawning distribution across columns rather than column
+  count. Random mode is unchanged (:issue:`811`).
 - ``BoxSteppingStonesTerrainCfg`` stone size now decreases with difficulty,
   interpolating from the large end of ``stone_size_range`` at difficulty 0
   to the small end at difficulty 1 (:issue:`785`).

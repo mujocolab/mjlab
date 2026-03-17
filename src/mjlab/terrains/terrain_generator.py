@@ -92,10 +92,10 @@ class TerrainGeneratorCfg:
   curriculum: bool = False
   """Controls terrain allocation mode:
 
-  - curriculum=True: Each terrain type gets exactly ONE column.
-    ``num_cols`` is automatically set to ``len(sub_terrains)``.
-    Difficulty increases along rows. The ``proportion`` field controls
-    how many robots are spawned per column, not column count.
+  - curriculum=True: Each terrain type gets exactly ONE column. The generator uses
+    ``len(sub_terrains)`` columns regardless of ``num_cols``. Difficulty increases
+    along rows. The ``proportion`` field controls how many robots are spawned per
+    column, not column count.
 
   - curriculum=False: Every patch is randomly sampled from all terrain types.
     Proportions control sampling probability. Use this for random variety.
@@ -113,9 +113,8 @@ class TerrainGeneratorCfg:
   num_cols: int = 1
   """Number of sub-terrain columns in the grid.
 
-  In curriculum mode this is automatically overridden to
-  ``len(sub_terrains)`` (one column per terrain type).
-  In random mode it is used as-is."""
+  In curriculum mode the generator ignores this value and uses one column per terrain
+  type (``len(sub_terrains)``). In random mode it is used as-is."""
   color_scheme: Literal["height", "random", "none"] = "height"
   """Coloring strategy for terrain geometry. "height" colors by elevation,
   "random" assigns random colors, "none" uses uniform gray."""
@@ -137,9 +136,9 @@ class TerrainGenerator:
     terrain type weighted by proportions. Results in random variety across
     all patches.
 
-  - **Curriculum mode** (curriculum=True): Each terrain type gets exactly one
-    column (``num_cols`` is overridden to ``len(sub_terrains)``). Difficulty
-    increases along rows. The ``proportion`` field controls robot spawning
+  - **Curriculum mode** (curriculum=True): Each terrain type gets exactly one column
+    (the generator uses ``len(sub_terrains)`` columns regardless of ``num_cols``).
+    Difficulty increases along rows. The ``proportion`` field controls robot spawning
     distribution, not column count.
 
   Terrain types are weighted by proportion and their geometry is generated
@@ -157,7 +156,9 @@ class TerrainGenerator:
 
     # In curriculum mode, one column per terrain type.
     if self.cfg.curriculum:
-      self.cfg.num_cols = len(self.cfg.sub_terrains)
+      self._num_cols = len(self.cfg.sub_terrains)
+    else:
+      self._num_cols = self.cfg.num_cols
 
     for sub_cfg in self.cfg.sub_terrains.values():
       sub_cfg.size = self.cfg.size
@@ -168,7 +169,7 @@ class TerrainGenerator:
       seed = np.random.randint(0, 10000)
     self.np_rng = np.random.default_rng(seed)
 
-    self.terrain_origins = np.zeros((self.cfg.num_rows, self.cfg.num_cols, 3))
+    self.terrain_origins = np.zeros((self.cfg.num_rows, self._num_cols, 3))
 
     # Pre-allocate flat patch storage by scanning all sub-terrain configs.
     self.flat_patches: dict[str, np.ndarray] = {}
@@ -186,7 +187,7 @@ class TerrainGenerator:
           )
     for name, max_num_patches in patch_names.items():
       self.flat_patches[name] = np.zeros(
-        (self.cfg.num_rows, self.cfg.num_cols, max_num_patches, 3)
+        (self.cfg.num_rows, self._num_cols, max_num_patches, 3)
       )
 
   def compile(self, spec: mujoco.MjSpec) -> None:
@@ -227,8 +228,8 @@ class TerrainGenerator:
     sub_terrains_cfgs = list(self.cfg.sub_terrains.values())
 
     # Randomly sample and place sub-terrains in the grid.
-    for index in range(self.cfg.num_rows * self.cfg.num_cols):
-      sub_row, sub_col = np.unravel_index(index, (self.cfg.num_rows, self.cfg.num_cols))
+    for index in range(self.cfg.num_rows * self._num_cols):
+      sub_row, sub_col = np.unravel_index(index, (self.cfg.num_rows, self._num_cols))
       sub_row = int(sub_row)
       sub_col = int(sub_col)
 
@@ -255,9 +256,8 @@ class TerrainGenerator:
   def _generate_curriculum_terrains(self, spec: mujoco.MjSpec) -> None:
     # One column per terrain type — proportion is only for spawning.
     sub_terrains_cfgs = list(self.cfg.sub_terrains.values())
-    sub_indices = np.arange(len(sub_terrains_cfgs), dtype=np.int32)
 
-    for sub_col in range(self.cfg.num_cols):
+    for sub_col in range(self._num_cols):
       for sub_row in range(self.cfg.num_rows):
         lower, upper = self.cfg.difficulty_range
         difficulty = (sub_row + self.np_rng.uniform()) / self.cfg.num_rows
@@ -267,7 +267,7 @@ class TerrainGenerator:
           spec,
           world_position,
           difficulty,
-          sub_terrains_cfgs[sub_indices[sub_col]],
+          sub_terrains_cfgs[sub_col],
           sub_row,
           sub_col,
         )
@@ -285,7 +285,7 @@ class TerrainGenerator:
 
     # Offset to center the entire grid at world origin.
     grid_offset_x = -self.cfg.num_rows * self.cfg.size[0] * 0.5
-    grid_offset_y = -self.cfg.num_cols * self.cfg.size[1] * 0.5
+    grid_offset_y = -self._num_cols * self.cfg.size[1] * 0.5
 
     return np.array([grid_offset_x + rel_x, grid_offset_y + rel_y, 0.0])
 
@@ -344,11 +344,11 @@ class TerrainGenerator:
     body = spec.body("terrain")
     border_size = (
       self.cfg.num_rows * self.cfg.size[0] + 2 * self.cfg.border_width,
-      self.cfg.num_cols * self.cfg.size[1] + 2 * self.cfg.border_width,
+      self._num_cols * self.cfg.size[1] + 2 * self.cfg.border_width,
     )
     inner_size = (
       self.cfg.num_rows * self.cfg.size[0],
-      self.cfg.num_cols * self.cfg.size[1],
+      self._num_cols * self.cfg.size[1],
     )
     # Border should be centered at origin since the terrain grid is centered.
     border_center = (0, 0, -self.cfg.border_height / 2)
@@ -370,7 +370,7 @@ class TerrainGenerator:
       return
 
     total_width = self.cfg.size[0] * self.cfg.num_rows
-    total_height = self.cfg.size[1] * self.cfg.num_cols
+    total_height = self.cfg.size[1] * self._num_cols
     light_height = max(total_width, total_height) * 0.6
 
     spec.body("terrain").add_light(

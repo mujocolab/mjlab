@@ -11,6 +11,31 @@ from mjlab.entity import Entity, EntityCfg
 from mjlab.terrains.terrain_generator import TerrainGenerator, TerrainGeneratorCfg
 from mjlab.utils import spec_config as spec_cfg
 
+
+def _proportional_counts(num_envs: int, proportions: np.ndarray) -> np.ndarray:
+  """Distribute *num_envs* across buckets proportionally.
+
+  Every bucket gets at least one when ``num_envs >= len(proportions)``. Remaining slots
+  are allocated via the Largest Remainder Method.
+  """
+  n = len(proportions)
+  if num_envs >= n:
+    counts = np.ones(n, dtype=int)
+    remaining = num_envs - n
+  else:
+    counts = np.zeros(n, dtype=int)
+    remaining = num_envs
+  if remaining > 0:
+    ideal = proportions * remaining
+    floor = np.floor(ideal).astype(int)
+    counts += floor
+    leftover = remaining - floor.sum()
+    if leftover > 0:
+      order = np.argsort(-(ideal - floor))
+      counts[order[:leftover]] += 1
+  return counts
+
+
 _DEFAULT_SUN_LIGHT = spec_cfg.LightCfg(
   name="sun", pos=(0.0, 0.0, 1.5), type="directional"
 )
@@ -114,9 +139,10 @@ class TerrainEntity(Entity):
         self.cfg.terrain_generator, device=self._device
       )
       terrain_generator.compile(self._spec)
-      self._configure_env_origins(
-        terrain_generator.terrain_origins, self.cfg.terrain_generator
-      )
+      gen_cfg = self.cfg.terrain_generator
+      proportions = np.array([s.proportion for s in gen_cfg.sub_terrains.values()])
+      proportions = proportions / proportions.sum()
+      self._configure_env_origins(terrain_generator.terrain_origins, proportions)
       self._flat_patches: dict[str, torch.Tensor] = {
         name: torch.from_numpy(arr).to(device=self._device, dtype=torch.float)
         for name, arr in terrain_generator.flat_patches.items()
@@ -154,15 +180,15 @@ class TerrainEntity(Entity):
   def configure_env_origins(
     self,
     origins: np.ndarray | torch.Tensor | None = None,
-    terrain_generator_cfg: TerrainGeneratorCfg | None = None,
+    proportions: np.ndarray | None = None,
   ) -> None:
     """Configure the origins of the environments based on the terrain."""
-    self._configure_env_origins(origins, terrain_generator_cfg)
+    self._configure_env_origins(origins, proportions)
 
   def _configure_env_origins(
     self,
     origins: np.ndarray | torch.Tensor | None = None,
-    terrain_generator_cfg: TerrainGeneratorCfg | None = None,
+    proportions: np.ndarray | None = None,
   ) -> None:
     if origins is not None:
       if isinstance(origins, np.ndarray):
@@ -171,7 +197,7 @@ class TerrainEntity(Entity):
         assert isinstance(origins, torch.Tensor)
       self.terrain_origins = origins.to(self._device, dtype=torch.float)
       self.env_origins = self._compute_env_origins_curriculum(
-        self.cfg.num_envs, self.terrain_origins, terrain_generator_cfg
+        self.cfg.num_envs, self.terrain_origins, proportions
       )
     else:
       self.terrain_origins = None
@@ -296,17 +322,16 @@ class TerrainEntity(Entity):
     self,
     num_envs: int,
     origins: torch.Tensor,
-    terrain_generator_cfg: TerrainGeneratorCfg | None = None,
+    proportions: np.ndarray | None = None,
   ) -> torch.Tensor:
-    """Compute the origins of the environments defined by the sub-terrain origins.
+    """Compute env origins from sub-terrain origins.
 
-    Allocation strategy:
-      - Columns (terrain_types): Distributed across environments **by proportion**.
-        Each column (terrain type) receives
-        ``max(1, round(proportion / total * num_envs))`` environments.
-        Falls back to even distribution when *terrain_generator_cfg* is ``None``.
-      - Rows (terrain_levels): Randomly sampled from [0, max_init_terrain_level].
-        Supports curriculum learning where rows represent difficulty levels.
+    Args:
+      num_envs: Number of environments to place.
+      origins: Sub-terrain origins, shape ``[num_rows, num_cols, 3]``.
+      proportions: Normalized per-column weights. When provided, robots
+        are distributed proportionally (every column gets at least one
+        when ``num_envs >= num_cols``). ``None`` gives even distribution.
     """
     num_rows, num_cols = origins.shape[:2]
     if self.cfg.max_init_terrain_level is None:
@@ -318,35 +343,13 @@ class TerrainEntity(Entity):
       0, max_init_level + 1, (num_envs,), device=self._device
     )
 
-    # Distribute robots across columns by proportion.
-    if (
-      terrain_generator_cfg is not None
-      and len(terrain_generator_cfg.sub_terrains) == num_cols
-    ):
-      proportions = np.array(
-        [cfg.proportion for cfg in terrain_generator_cfg.sub_terrains.values()]
-      )
-      proportions = proportions / proportions.sum()
-
-      # Base allocation using floor to ensure we never exceed num_envs
-      counts = np.floor(proportions * num_envs).astype(int)
-
-      # Distribute remainder to columns with largest fractional parts
-      remainder = num_envs - counts.sum()
-      if remainder > 0:
-        fractional_part = (proportions * num_envs) - counts
-        order = np.argsort(-fractional_part)
-        for i in range(remainder):
-          counts[order[i % num_cols]] += 1
-
-      self.terrain_types = torch.cat(
-        [
-          torch.full((c,), col, device=self._device, dtype=torch.long)
-          for col, c in enumerate(counts)
-        ]
+    if proportions is not None and len(proportions) == num_cols:
+      counts = _proportional_counts(num_envs, proportions)
+      self.terrain_types = torch.repeat_interleave(
+        torch.arange(num_cols, device=self._device),
+        torch.from_numpy(counts).to(self._device),
       )
     else:
-      # Fallback: even distribution.
       self.terrain_types = torch.div(
         torch.arange(num_envs, device=self._device),
         (num_envs / num_cols),
