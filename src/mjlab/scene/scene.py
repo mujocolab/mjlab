@@ -13,9 +13,8 @@ import numpy as np
 import torch
 
 from mjlab.entity import Entity, EntityCfg
-from mjlab.sensor import BuiltinSensor, Sensor, SensorCfg
+from mjlab.sensor import BuiltinSensor, RayCastSensor, Sensor, SensorCfg
 from mjlab.sensor.camera_sensor import CameraSensor
-from mjlab.sensor.raycast_sensor import RayCastSensor
 from mjlab.sensor.sensor_context import SensorContext
 from mjlab.terrains.terrain_entity import TerrainEntity, TerrainEntityCfg
 from mjlab.utils.xml import fix_spec_xml, strip_buffer_textures

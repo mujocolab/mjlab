@@ -13,6 +13,7 @@ from threading import Lock
 import viser
 from typing_extensions import override
 
+from mjlab.sensor.raycast_sensor import RayCastSensor
 from mjlab.sim.sim import Simulation
 from mjlab.viewer.base import (
   BaseViewer,
@@ -144,6 +145,7 @@ class ViserPlayViewer(BaseViewer):
       # Add standard visualization options from ViserMujocoScene.
       def _debug_viz_extra() -> None:
         env.command_manager.create_debug_vis_gui(self._server)
+        self._create_sensor_debug_vis_gui()
 
       with self._server.gui.add_folder("Scene"):
         self._scene.create_visualization_gui(
@@ -212,6 +214,28 @@ class ViserPlayViewer(BaseViewer):
         sim.data, self._scene.env_idx, self._scene._scene_offset
       )
     self._camera_update_last_ms = (time.perf_counter() - t0) * 1000.0
+
+  def _create_sensor_debug_vis_gui(self) -> None:
+    """Add per-sensor debug visualization checkboxes."""
+    env = self.env.unwrapped
+    vis_sensors = [
+      s
+      for s in env.scene.sensors.values()
+      if isinstance(s, RayCastSensor) and s.cfg.debug_vis
+    ]
+    if not vis_sensors:
+      return
+    for sensor in vis_sensors:
+      cb = self._server.gui.add_checkbox(
+        sensor.cfg.name,
+        initial_value=sensor._debug_vis_enabled,
+      )
+
+      def _on_update(_ev, _s=sensor, _cb=cb) -> None:
+        _s._debug_vis_enabled = _cb.value
+        self._scene.needs_update = True
+
+      cb.on_update(_on_update)
 
   def _queue_debug_visualizers(self) -> None:
     """Queue environment-specific debug draw calls into the scene.

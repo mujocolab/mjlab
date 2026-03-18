@@ -4,90 +4,24 @@ from __future__ import annotations
 
 import math
 
-import mujoco
 import pytest
 import torch
-from conftest import get_test_device
+from conftest import get_test_device, make_scene_and_sim
 
-from mjlab.entity import EntityCfg
 from mjlab.envs.mdp.observations import height_scan
-from mjlab.scene import Scene, SceneCfg
 from mjlab.sensor import (
   GridPatternCfg,
   ObjRef,
   PinholeCameraPatternCfg,
   RayCastData,
   RayCastSensorCfg,
+  RingPatternCfg,
 )
-from mjlab.sim.sim import Simulation, SimulationCfg
 
 
 @pytest.fixture(scope="module")
 def device():
-  """Test device fixture."""
   return get_test_device()
-
-
-def _make_scene_and_sim(
-  device: str,
-  xml: str,
-  sensors: tuple,
-  num_envs: int = 1,
-  sim_cfg: SimulationCfg | None = None,
-) -> tuple[Scene, Simulation]:
-  """Create a scene and simulation with sensors wired up."""
-  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(xml))
-  scene_cfg = SceneCfg(
-    num_envs=num_envs,
-    env_spacing=5.0,
-    entities={"robot": entity_cfg},
-    sensors=sensors,
-  )
-  scene = Scene(scene_cfg, device)
-  model = scene.compile()
-  if sim_cfg is None:
-    sim_cfg = SimulationCfg(njmax=20)
-  sim = Simulation(num_envs=num_envs, cfg=sim_cfg, model=model, device=device)
-  scene.initialize(sim.mj_model, sim.model, sim.data)
-  if scene.sensor_context is not None:
-    sim.set_sensor_context(scene.sensor_context)
-  return scene, sim
-
-
-@pytest.fixture(scope="module")
-def robot_with_floor_xml():
-  """XML for a floating body above a ground plane."""
-  return """
-    <mujoco>
-      <worldbody>
-        <geom name="floor" type="plane" size="10 10 0.1" pos="0 0 0"/>
-        <body name="base" pos="0 0 2">
-          <freejoint name="free_joint"/>
-          <geom name="base_geom" type="box" size="0.2 0.2 0.1" mass="5.0"/>
-          <site name="base_site" pos="0 0 -0.1"/>
-        </body>
-      </worldbody>
-    </mujoco>
-  """
-
-
-@pytest.fixture(scope="module")
-def scene_with_obstacles_xml():
-  """XML for a body above various obstacles."""
-  return """
-    <mujoco>
-      <worldbody>
-        <geom name="floor" type="plane" size="10 10 0.1" pos="0 0 0"/>
-        <geom name="box1" type="box" size="0.5 0.5 0.5" pos="1 0 0.5"/>
-        <geom name="box2" type="box" size="0.3 0.3 0.8" pos="-1 0 0.8"/>
-        <body name="scanner" pos="0 0 3">
-          <freejoint name="free_joint"/>
-          <geom name="scanner_geom" type="sphere" size="0.1" mass="1.0"/>
-          <site name="scan_site" pos="0 0 0"/>
-        </body>
-      </worldbody>
-    </mujoco>
-  """
 
 
 def test_basic_raycast_hit_detection(robot_with_floor_xml, device):
@@ -101,7 +35,7 @@ def test_basic_raycast_hit_detection(robot_with_floor_xml, device):
     max_distance=10.0,
   )
 
-  scene, sim = _make_scene_and_sim(
+  scene, sim = make_scene_and_sim(
     device, robot_with_floor_xml, sensors=(raycast_cfg,), num_envs=2
   )
 
@@ -133,7 +67,7 @@ def test_raycast_normals_point_up(robot_with_floor_xml, device):
     max_distance=10.0,
   )
 
-  scene, sim = _make_scene_and_sim(device, robot_with_floor_xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, robot_with_floor_xml, sensors=(raycast_cfg,))
 
   sensor = scene["terrain_scan"]
   sim.step()
@@ -141,15 +75,9 @@ def test_raycast_normals_point_up(robot_with_floor_xml, device):
   data = sensor.data
 
   # Normals should point up (+Z) for a horizontal floor.
-  assert torch.allclose(
-    data.normals_w[:, :, 2], torch.ones_like(data.normals_w[:, :, 2])
-  )
-  assert torch.allclose(
-    data.normals_w[:, :, 0], torch.zeros_like(data.normals_w[:, :, 0])
-  )
-  assert torch.allclose(
-    data.normals_w[:, :, 1], torch.zeros_like(data.normals_w[:, :, 1])
-  )
+  expected = torch.zeros_like(data.normals_w)
+  expected[:, :, 2] = 1.0
+  assert torch.allclose(data.normals_w, expected)
 
 
 def test_raycast_miss_returns_negative_one(device):
@@ -175,7 +103,7 @@ def test_raycast_miss_returns_negative_one(device):
     exclude_parent_body=True,
   )
 
-  scene, sim = _make_scene_and_sim(device, no_floor_xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, no_floor_xml, sensors=(raycast_cfg,))
 
   sensor = scene["terrain_scan"]
   sim.step()
@@ -196,7 +124,7 @@ def test_raycast_exclude_parent_body(robot_with_floor_xml, device):
     exclude_parent_body=True,
   )
 
-  scene, sim = _make_scene_and_sim(device, robot_with_floor_xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, robot_with_floor_xml, sensors=(raycast_cfg,))
 
   sensor = scene["terrain_scan"]
   sim.step()
@@ -232,7 +160,7 @@ def test_raycast_include_geom_groups(device):
     include_geom_groups=(0,),
   )
 
-  scene, sim = _make_scene_and_sim(device, groups_xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, groups_xml, sensors=(raycast_cfg,))
 
   sensor = scene["group_filter_test"]
   sim.step()
@@ -251,7 +179,7 @@ def test_raycast_include_geom_groups(device):
     include_geom_groups=(1,),
   )
 
-  scene2, sim2 = _make_scene_and_sim(device, groups_xml, sensors=(raycast_cfg_group1,))
+  scene2, sim2 = make_scene_and_sim(device, groups_xml, sensors=(raycast_cfg_group1,))
 
   sensor2 = scene2["group1_test"]
   sim2.step()
@@ -285,7 +213,7 @@ def test_raycast_frame_attachment_geom(device):
     max_distance=10.0,
   )
 
-  scene, sim = _make_scene_and_sim(device, geom_xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, geom_xml, sensors=(raycast_cfg,))
 
   sensor = scene["geom_scan"]
   sim.step()
@@ -306,7 +234,7 @@ def test_raycast_frame_attachment_site(robot_with_floor_xml, device):
     max_distance=10.0,
   )
 
-  scene, sim = _make_scene_and_sim(device, robot_with_floor_xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, robot_with_floor_xml, sensors=(raycast_cfg,))
 
   sensor = scene["site_scan"]
   sim.step()
@@ -342,7 +270,7 @@ def test_raycast_grid_pattern_num_rays(device):
     pattern=GridPatternCfg(size=(1.0, 0.5), resolution=0.5),
   )
 
-  scene, sim = _make_scene_and_sim(device, simple_xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, simple_xml, sensors=(raycast_cfg,))
 
   sensor = scene["grid_test"]
   assert sensor.num_rays == 6
@@ -369,7 +297,7 @@ def test_raycast_different_direction(device):
     max_distance=10.0,
   )
 
-  scene, sim = _make_scene_and_sim(device, wall_xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, wall_xml, sensors=(raycast_cfg,))
 
   sensor = scene["forward_scan"]
   sim.step()
@@ -388,33 +316,20 @@ def test_raycast_different_direction(device):
 
 def test_raycast_error_on_invalid_frame_type(device):
   """Verify ValueError is raised for invalid frame type."""
+  simple_xml = """
+    <mujoco>
+      <worldbody>
+        <body name="base"><geom type="sphere" size="0.1"/></body>
+      </worldbody>
+    </mujoco>
+  """
+  raycast_cfg = RayCastSensorCfg(
+    name="invalid",
+    frame=ObjRef(type="joint", name="some_joint", entity="robot"),
+    pattern=GridPatternCfg(size=(0.1, 0.1), resolution=0.1),
+  )
   with pytest.raises(ValueError, match="must be 'body', 'site', or 'geom'"):
-    simple_xml = """
-      <mujoco>
-        <worldbody>
-          <body name="base"><geom type="sphere" size="0.1"/></body>
-        </worldbody>
-      </mujoco>
-    """
-    entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(simple_xml))
-
-    raycast_cfg = RayCastSensorCfg(
-      name="invalid",
-      frame=ObjRef(type="joint", name="some_joint", entity="robot"),  # Invalid type
-      pattern=GridPatternCfg(size=(0.1, 0.1), resolution=0.1),
-    )
-
-    scene_cfg = SceneCfg(
-      num_envs=1,
-      entities={"robot": entity_cfg},
-      sensors=(raycast_cfg,),
-    )
-
-    scene = Scene(scene_cfg, device)
-    model = scene.compile()
-    sim_cfg = SimulationCfg(njmax=20)
-    sim = Simulation(num_envs=1, cfg=sim_cfg, model=model, device=device)
-    scene.initialize(sim.mj_model, sim.model, sim.data)
+    make_scene_and_sim(device, simple_xml, sensors=(raycast_cfg,))
 
 
 def test_raycast_hit_pos_w_correctness(robot_with_floor_xml, device):
@@ -426,7 +341,7 @@ def test_raycast_hit_pos_w_correctness(robot_with_floor_xml, device):
     max_distance=10.0,
   )
 
-  scene, sim = _make_scene_and_sim(device, robot_with_floor_xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, robot_with_floor_xml, sensors=(raycast_cfg,))
 
   sensor = scene["terrain_scan"]
   sim.step()
@@ -468,7 +383,7 @@ def test_raycast_max_distance_clamping(device):
     max_distance=3.0,
   )
 
-  scene, sim = _make_scene_and_sim(device, far_floor_xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, far_floor_xml, sensors=(raycast_cfg,))
 
   sensor = scene["short_range"]
   sim.step()
@@ -502,7 +417,7 @@ def test_raycast_body_rotation_affects_rays(device):
     max_distance=10.0,
   )
 
-  scene, sim = _make_scene_and_sim(device, rotated_body_xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, rotated_body_xml, sensors=(raycast_cfg,))
 
   sensor = scene["rotated_scan"]
 
@@ -534,6 +449,11 @@ def test_raycast_body_rotation_affects_rays(device):
   ), f"Expected ~{expected_distance:.2f}m, got {data_rotated.distances}"
 
 
+# ============================================================================
+# Pinhole Camera Pattern Tests
+# ============================================================================
+
+
 def test_pinhole_camera_pattern_num_rays(device):
   """Verify pinhole pattern generates width * height rays."""
   simple_xml = """
@@ -554,26 +474,10 @@ def test_pinhole_camera_pattern_num_rays(device):
     pattern=PinholeCameraPatternCfg(width=16, height=12, fovy=74.0),
   )
 
-  scene, sim = _make_scene_and_sim(device, simple_xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, simple_xml, sensors=(raycast_cfg,))
 
   sensor = scene["camera_scan"]
   assert sensor.num_rays == 16 * 12
-
-
-def test_pinhole_camera_fov(robot_with_floor_xml, device):
-  """Verify pinhole pattern ray angles match FOV."""
-  # 90 degree vertical FOV.
-  raycast_cfg = RayCastSensorCfg(
-    name="camera_scan",
-    frame=ObjRef(type="body", name="base", entity="robot"),
-    pattern=PinholeCameraPatternCfg(width=3, height=3, fovy=90.0),
-    max_distance=10.0,
-  )
-
-  scene, sim = _make_scene_and_sim(device, robot_with_floor_xml, sensors=(raycast_cfg,))
-
-  sensor = scene["camera_scan"]
-  assert sensor.num_rays == 9
 
 
 def test_pinhole_from_intrinsic_matrix():
@@ -617,7 +521,7 @@ def test_pinhole_from_mujoco_camera(device):
     max_distance=10.0,
   )
 
-  scene, sim = _make_scene_and_sim(device, camera_xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, camera_xml, sensors=(raycast_cfg,))
 
   sensor = scene["camera_scan"]
   # Should have 64 * 48 = 3072 rays.
@@ -653,7 +557,7 @@ def test_pinhole_from_mujoco_camera_fovy_mode(device):
     max_distance=10.0,
   )
 
-  scene, sim = _make_scene_and_sim(device, camera_xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, camera_xml, sensors=(raycast_cfg,))
 
   sensor = scene["camera_scan"]
   # Should have 32 * 24 = 768 rays.
@@ -664,6 +568,11 @@ def test_pinhole_from_mujoco_camera_fovy_mode(device):
   sim.sense()
   data = sensor.data
   assert torch.all(data.distances >= 0)  # Should hit floor
+
+
+# ============================================================================
+# Ray Alignment Tests
+# ============================================================================
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Likely bug on CPU MjWarp")
@@ -691,7 +600,7 @@ def test_ray_alignment_yaw(device):
     max_distance=10.0,
   )
 
-  scene, sim = _make_scene_and_sim(device, rotated_body_xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, rotated_body_xml, sensors=(raycast_cfg,))
 
   sensor = scene["yaw_scan"]
 
@@ -742,7 +651,7 @@ def test_ray_alignment_world(device):
     max_distance=10.0,
   )
 
-  scene, sim = _make_scene_and_sim(device, rotated_body_xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, rotated_body_xml, sensors=(raycast_cfg,))
 
   sensor = scene["world_scan"]
 
@@ -814,7 +723,7 @@ def test_ray_alignment_yaw_singularity(device):
     max_distance=10.0,
   )
 
-  scene, sim = _make_scene_and_sim(device, xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, xml, sensors=(raycast_cfg,))
 
   sensor = scene["yaw_scan"]
 
@@ -878,7 +787,7 @@ def test_height_scan_hits(robot_with_floor_xml, device):
     max_distance=10.0,
   )
 
-  scene, sim = _make_scene_and_sim(
+  scene, sim = make_scene_and_sim(
     device, robot_with_floor_xml, sensors=(raycast_cfg,), num_envs=2
   )
 
@@ -921,7 +830,7 @@ def test_height_scan_misses(device):
     exclude_parent_body=True,
   )
 
-  scene, sim = _make_scene_and_sim(device, no_floor_xml, sensors=(raycast_cfg,))
+  scene, sim = make_scene_and_sim(device, no_floor_xml, sensors=(raycast_cfg,))
 
   sim.step()
   sim.sense()
@@ -935,119 +844,378 @@ def test_height_scan_misses(device):
   )
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Likely bug on CPU MjWarp")
-def test_ray_alignment_yaw_site_offset(device):
-  """Verify yaw alignment correctly aligns frame offset for sites.
+# ============================================================================
+# Multi-Frame Tests
+# ============================================================================
 
-  When a site has a large Z offset from its parent body, the frame position should be
-  recomputed using the body's yaw-only rotation so that pitch/roll does not swing the
-  ray origin.
+MULTI_SITE_XML = """
+  <mujoco>
+    <worldbody>
+      <geom name="floor" type="plane" size="10 10 0.1" pos="0 0 0"/>
+      <body name="base" pos="0 0 3">
+        <freejoint name="free_joint"/>
+        <geom name="base_geom" type="box" size="0.2 0.2 0.1" mass="5.0"/>
+        <site name="site_top" pos="0 0 0.5"/>
+        <site name="site_mid" pos="0 0 0"/>
+        <site name="site_bot" pos="0 0 -0.5"/>
+      </body>
+    </worldbody>
+  </mujoco>
+"""
+
+
+def test_multi_frame_shapes(device):
+  """Multi-frame sensor produces correct output shapes."""
+  cfg = RayCastSensorCfg(
+    name="multi",
+    frame=(
+      ObjRef(type="site", name="site_top", entity="robot"),
+      ObjRef(type="site", name="site_mid", entity="robot"),
+      ObjRef(type="site", name="site_bot", entity="robot"),
+    ),
+    pattern=GridPatternCfg(size=(0.0, 0.0), resolution=0.1),
+    max_distance=10.0,
+  )
+
+  scene, sim = make_scene_and_sim(device, MULTI_SITE_XML, (cfg,), num_envs=2)
+  sim.step()
+  sim.sense()
+
+  sensor = scene["multi"]
+  data = sensor.data
+
+  assert sensor.num_frames == 3
+  assert sensor.num_rays_per_frame == 1
+  assert sensor.num_rays == 3
+
+  assert data.distances.shape == (2, 3)
+  assert data.frame_pos_w.shape == (2, 3, 3)
+  assert data.frame_quat_w.shape == (2, 3, 4)
+  # Backward compat: pos_w/quat_w equal first frame.
+  assert data.pos_w.shape == (2, 3)
+  assert data.quat_w.shape == (2, 4)
+  assert torch.allclose(data.pos_w, data.frame_pos_w[:, 0])
+  assert torch.allclose(data.quat_w, data.frame_quat_w[:, 0])
+
+
+def test_multi_frame_heights(device):
+  """Sites at different Z offsets produce proportional distances."""
+  cfg = RayCastSensorCfg(
+    name="multi",
+    frame=(
+      ObjRef(type="site", name="site_top", entity="robot"),
+      ObjRef(type="site", name="site_mid", entity="robot"),
+      ObjRef(type="site", name="site_bot", entity="robot"),
+    ),
+    pattern=GridPatternCfg(size=(0.0, 0.0), resolution=0.1),
+    max_distance=10.0,
+  )
+
+  scene, sim = make_scene_and_sim(device, MULTI_SITE_XML, (cfg,))
+  sim.step()
+  sim.sense()
+
+  distances = scene["multi"].data.distances[0]
+  # site_top at z=3.5, site_mid at z=3, site_bot at z=2.5.
+  assert distances[0].item() == pytest.approx(3.5, abs=0.1)
+  assert distances[1].item() == pytest.approx(3.0, abs=0.1)
+  assert distances[2].item() == pytest.approx(2.5, abs=0.1)
+
+
+def test_multi_frame_body_exclusion(device):
+  """Each frame excludes only its own parent body, not others.
+
+  body_a has a platform geom directly below site_b. Frame B's rays
+  should skip body_b's own geom but HIT body_a's platform. Frame A's
+  rays should skip body_a and hit the floor.
+  """
+  xml = """
+    <mujoco>
+      <worldbody>
+        <geom name="floor" type="plane" size="10 10 0.1" pos="0 0 0"/>
+        <body name="body_a" pos="0 0 1">
+          <freejoint name="free_a"/>
+          <geom name="geom_a" type="box" size="2 2 0.1" mass="5.0"/>
+          <site name="site_a" pos="0 0 0"/>
+        </body>
+        <body name="body_b" pos="0 0 3">
+          <freejoint name="free_b"/>
+          <geom name="geom_b" type="box" size="0.5 0.5 0.5" mass="5.0"/>
+          <site name="site_b" pos="0 0 0"/>
+        </body>
+      </worldbody>
+    </mujoco>
+  """
+
+  cfg = RayCastSensorCfg(
+    name="multi",
+    frame=(
+      ObjRef(type="site", name="site_a", entity="robot"),
+      ObjRef(type="site", name="site_b", entity="robot"),
+    ),
+    pattern=GridPatternCfg(size=(0.0, 0.0), resolution=0.1),
+    max_distance=10.0,
+    exclude_parent_body=True,
+  )
+
+  scene, sim = make_scene_and_sim(device, xml, (cfg,))
+  sim.step()
+  sim.sense()
+
+  distances = scene["multi"].data.distances[0]
+  # Frame A (site_a at z=1): excludes body_a, hits floor at z=0 -> dist ~1.0.
+  assert distances[0].item() == pytest.approx(1.0, abs=0.15)
+  # Frame B (site_b at z=3): excludes body_b, hits body_a's platform
+  # at z=1.1 -> dist ~1.9.
+  assert distances[1].item() == pytest.approx(1.9, abs=0.15)
+
+
+def test_multi_frame_height_scan(device):
+  """height_scan works correctly with multi-frame sensors."""
+  cfg = RayCastSensorCfg(
+    name="multi",
+    frame=(
+      ObjRef(type="site", name="site_top", entity="robot"),
+      ObjRef(type="site", name="site_mid", entity="robot"),
+      ObjRef(type="site", name="site_bot", entity="robot"),
+    ),
+    pattern=GridPatternCfg(size=(0.0, 0.0), resolution=0.1),
+    max_distance=10.0,
+  )
+
+  scene, sim = make_scene_and_sim(device, MULTI_SITE_XML, (cfg,), num_envs=2)
+  sim.step()
+  sim.sense()
+
+  env = _FakeEnv(scene)
+  heights = height_scan(env, "multi")  # type: ignore[invalid-argument-type]
+
+  assert heights.shape == (2, 3)
+  # Each frame's height = frame_z - hit_z.
+  # site_top at z=3.5, site_mid at z=3, site_bot at z=2.5; floor at z=0.
+  assert heights[0, 0].item() == pytest.approx(3.5, abs=0.1)
+  assert heights[0, 1].item() == pytest.approx(3.0, abs=0.1)
+  assert heights[0, 2].item() == pytest.approx(2.5, abs=0.1)
+
+
+# ============================================================================
+# Ring Pattern Tests
+# ============================================================================
+
+
+def test_ring_pattern_num_rays(device):
+  """Ring with 8 samples + center = 9 rays."""
+  cfg = RayCastSensorCfg(
+    name="ring",
+    frame=ObjRef(type="body", name="base", entity="robot"),
+    pattern=RingPatternCfg.single_ring(radius=0.1, num_samples=8, include_center=True),
+  )
+
+  simple_xml = """
+    <mujoco>
+      <worldbody>
+        <geom name="floor" type="plane" size="10 10 0.1"/>
+        <body name="base" pos="0 0 1">
+          <freejoint name="free_joint"/>
+          <geom name="base_geom" type="sphere" size="0.1"/>
+        </body>
+      </worldbody>
+    </mujoco>
+  """
+
+  scene, sim = make_scene_and_sim(device, simple_xml, (cfg,))
+  sensor = scene["ring"]
+  assert sensor.num_rays == 9
+  assert sensor.num_rays_per_frame == 9
+
+
+def test_ring_pattern_concentric(device):
+  """Concentric rings: 1 center + 4 + 6 + 8 = 19 rays."""
+  cfg = RayCastSensorCfg(
+    name="ring",
+    frame=ObjRef(type="body", name="base", entity="robot"),
+    pattern=RingPatternCfg(
+      rings=(
+        RingPatternCfg.Ring(radius=0.05, num_samples=4),
+        RingPatternCfg.Ring(radius=0.10, num_samples=6),
+        RingPatternCfg.Ring(radius=0.20, num_samples=8),
+      ),
+      include_center=True,
+    ),
+  )
+
+  simple_xml = """
+    <mujoco>
+      <worldbody>
+        <geom name="floor" type="plane" size="10 10 0.1"/>
+        <body name="base" pos="0 0 1">
+          <freejoint name="free_joint"/>
+          <geom name="base_geom" type="sphere" size="0.1"/>
+        </body>
+      </worldbody>
+    </mujoco>
+  """
+
+  scene, sim = make_scene_and_sim(device, simple_xml, (cfg,))
+  sensor = scene["ring"]
+  assert sensor.num_rays == 19
+
+
+def test_ring_pattern_hits_floor(device):
+  """Ring pattern hits floor and ring offsets lie on a circle."""
+  radius = 0.1
+  cfg = RayCastSensorCfg(
+    name="ring",
+    frame=ObjRef(type="body", name="base", entity="robot"),
+    pattern=RingPatternCfg.single_ring(
+      radius=radius, num_samples=4, include_center=True
+    ),
+    max_distance=10.0,
+  )
+
+  simple_xml = """
+    <mujoco>
+      <worldbody>
+        <geom name="floor" type="plane" size="10 10 0.1"/>
+        <body name="base" pos="0 0 2">
+          <freejoint name="free_joint"/>
+          <geom name="base_geom" type="sphere" size="0.05"/>
+        </body>
+      </worldbody>
+    </mujoco>
+  """
+
+  scene, sim = make_scene_and_sim(device, simple_xml, (cfg,))
+  sim.step()
+  sim.sense()
+
+  data = scene["ring"].data
+  # All 5 rays (1 center + 4 ring) should hit the floor.
+  assert torch.all(data.distances >= 0)
+  assert torch.allclose(data.distances, torch.full_like(data.distances, 2.0), atol=0.1)
+
+  # Verify ring geometry: non-center hits should lie on a circle of
+  # the given radius around the body's XY position.
+  hit_xy = data.hit_pos_w[0, :, :2]  # [5, 2]
+  body_xy = data.pos_w[0, :2]  # [2]
+  dists_from_center = (hit_xy - body_xy).norm(dim=1)
+  # Center ray (index 0) should be at ~0 offset.
+  assert dists_from_center[0].item() == pytest.approx(0.0, abs=0.02)
+  # Ring rays (indices 1-4) should be at ~radius offset.
+  for i in range(1, 5):
+    assert dists_from_center[i].item() == pytest.approx(radius, abs=0.02)
+
+
+def test_ring_pattern_no_center(device):
+  """Ring with include_center=False omits the center ray."""
+  cfg = RayCastSensorCfg(
+    name="ring",
+    frame=ObjRef(type="body", name="base", entity="robot"),
+    pattern=RingPatternCfg.single_ring(radius=0.1, num_samples=4, include_center=False),
+  )
+  simple_xml = """
+    <mujoco>
+      <worldbody>
+        <geom name="floor" type="plane" size="10 10 0.1"/>
+        <body name="base" pos="0 0 1">
+          <freejoint name="free_joint"/>
+          <geom name="base_geom" type="sphere" size="0.1"/>
+        </body>
+      </worldbody>
+    </mujoco>
+  """
+  scene, sim = make_scene_and_sim(device, simple_xml, (cfg,))
+  assert scene["ring"].num_rays == 4
+
+
+def test_multi_frame_multiple_rays_per_frame(device):
+  """Multi-frame with grid pattern: verifies reshape ordering."""
+  cfg = RayCastSensorCfg(
+    name="multi",
+    frame=(
+      ObjRef(type="site", name="site_top", entity="robot"),
+      ObjRef(type="site", name="site_bot", entity="robot"),
+    ),
+    pattern=GridPatternCfg(size=(0.2, 0.2), resolution=0.1),
+    max_distance=10.0,
+  )
+
+  scene, sim = make_scene_and_sim(device, MULTI_SITE_XML, (cfg,))
+  sim.step()
+  sim.sense()
+
+  sensor = scene["multi"]
+  N = sensor.num_rays_per_frame
+  assert N == 9  # 3x3 grid
+  assert sensor.num_rays == 18  # 2 frames * 9
+
+  data = sensor.data
+  # First frame (site_top, z=3.5) rays should all be ~3.5.
+  top_dists = data.distances[0, :N]
+  assert torch.allclose(top_dists, torch.full_like(top_dists, 3.5), atol=0.1)
+  # Second frame (site_bot, z=2.5) rays should all be ~2.5.
+  bot_dists = data.distances[0, N:]
+  assert torch.allclose(bot_dists, torch.full_like(bot_dists, 2.5), atol=0.1)
+
+  # height_scan should also produce correct per-frame heights.
+  env = _FakeEnv(scene)
+  heights = height_scan(env, "multi")  # type: ignore[invalid-argument-type]
+  assert heights.shape == (1, 18)
+  top_heights = heights[0, :N]
+  bot_heights = heights[0, N:]
+  assert torch.allclose(top_heights, torch.full_like(top_heights, 3.5), atol=0.1)
+  assert torch.allclose(bot_heights, torch.full_like(bot_heights, 2.5), atol=0.1)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Likely bug on CPU MjWarp")
+def test_site_origin_is_physical_with_world_alignment(device):
+  """ray_alignment only controls direction, not origin position.
+
+  When a calf body pitches, the foot site swings to its physical
+  position (site_xpos). Rays still point -Z (world-aligned), giving
+  the correct distance from the actual foot to the ground.
   """
   xml = """
     <mujoco>
       <option gravity="0 0 0"/>
       <worldbody>
         <geom name="floor" type="plane" size="50 50 0.1" pos="0 0 0"/>
-        <body name="base" pos="0 0 2">
+        <body name="calf" pos="0 0 1">
           <freejoint name="free_joint"/>
-          <geom name="base_geom" type="sphere" size="0.1" mass="1.0"/>
-          <site name="high_site" pos="0 0 20"/>
+          <geom name="calf_geom" type="sphere" size="0.05" mass="1.0"/>
+          <site name="foot" pos="0 0 -0.5"/>
         </body>
       </worldbody>
     </mujoco>
   """
 
-  raycast_cfg = RayCastSensorCfg(
-    name="yaw_site_scan",
-    frame=ObjRef(type="site", name="high_site", entity="robot"),
-    pattern=GridPatternCfg(size=(0.0, 0.0), resolution=0.1, direction=(0.0, 0.0, -1.0)),
-    ray_alignment="yaw",
-    max_distance=50.0,
+  cfg = RayCastSensorCfg(
+    name="scan",
+    frame=ObjRef(type="site", name="foot", entity="robot"),
+    pattern=GridPatternCfg(size=(0.0, 0.0), resolution=0.1),
+    ray_alignment="world",
+    max_distance=5.0,
   )
 
-  scene, sim = _make_scene_and_sim(device, xml, sensors=(raycast_cfg,))
-  sensor = scene["yaw_site_scan"]
+  scene, sim = make_scene_and_sim(device, xml, (cfg,))
 
-  # Baseline: unrotated body. Site at z=22, floor at z=0 -> distance ~22m.
+  # Baseline: body upright, site at z=0.5.
   sim.step()
   scene.update(dt=sim.cfg.mujoco.timestep)
   sim.sense()
-  baseline_dist = sensor.data.distances.clone()
-  assert torch.allclose(baseline_dist, torch.full_like(baseline_dist, 22.0), atol=0.2)
+  data = scene["scan"].data
+  assert data.pos_w[0, 2].item() == pytest.approx(0.5, abs=0.05)
+  assert data.distances[0, 0].item() == pytest.approx(0.5, abs=0.05)
 
-  # Tilt body 30 degrees around X axis (pitch).
-  angle = math.pi / 6
+  # Pitch calf 90 degrees. Site swings to (0, -0.5, 1.0).
+  # Ray points -Z (world), distance to floor = 1.0.
+  angle = math.pi / 2
   quat = [math.cos(angle / 2), math.sin(angle / 2), 0, 0]
   sim.data.qpos[0, 3:7] = torch.tensor(quat, device=device)
   sim.step()
   scene.update(dt=sim.cfg.mujoco.timestep)
   sim.sense()
-  tilted_dist = sensor.data.distances.clone()
+  data = scene["scan"].data
 
-  # With the fix, distance should remain ~22m because yaw alignment prevents the site
-  # offset from swinging with pitch.
-  assert torch.allclose(tilted_dist, baseline_dist, atol=0.5), (
-    f"Expected ~22m after pitch, got {tilted_dist}"
-  )
-
-
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Likely bug on CPU MjWarp")
-def test_ray_alignment_world_site_offset(device):
-  """Verify world alignment correctly aligns frame offset for sites.
-
-  With world alignment the site offset should be rotated by the identity matrix, so
-  combined pitch and roll on the body should not move the ray origin away from directly
-  above the body.
-  """
-  xml = """
-    <mujoco>
-      <option gravity="0 0 0"/>
-      <worldbody>
-        <geom name="floor" type="plane" size="50 50 0.1" pos="0 0 0"/>
-        <body name="base" pos="0 0 2">
-          <freejoint name="free_joint"/>
-          <geom name="base_geom" type="sphere" size="0.1" mass="1.0"/>
-          <site name="high_site" pos="0 0 20"/>
-        </body>
-      </worldbody>
-    </mujoco>
-  """
-
-  raycast_cfg = RayCastSensorCfg(
-    name="world_site_scan",
-    frame=ObjRef(type="site", name="high_site", entity="robot"),
-    pattern=GridPatternCfg(size=(0.0, 0.0), resolution=0.1, direction=(0.0, 0.0, -1.0)),
-    ray_alignment="world",
-    max_distance=50.0,
-  )
-
-  scene, sim = _make_scene_and_sim(device, xml, sensors=(raycast_cfg,))
-  sensor = scene["world_site_scan"]
-
-  # Baseline: unrotated body. Site at z=22 -> distance ~22m.
-  sim.step()
-  scene.update(dt=sim.cfg.mujoco.timestep)
-  sim.sense()
-  baseline_dist = sensor.data.distances.clone()
-  assert torch.allclose(baseline_dist, torch.full_like(baseline_dist, 22.0), atol=0.2)
-
-  # Apply combined pitch (30 deg) + roll (20 deg).
-  pitch = math.pi / 6
-  roll = math.pi / 9
-  cp, sp = math.cos(pitch / 2), math.sin(pitch / 2)
-  cr, sr = math.cos(roll / 2), math.sin(roll / 2)
-  # q_pitch (around X) then q_roll (around Y): q = q_roll * q_pitch
-  qw = cr * cp
-  qx = cr * sp
-  qy = sr * cp
-  qz = -sr * sp
-  sim.data.qpos[0, 3:7] = torch.tensor([qw, qx, qy, qz], device=device)
-  sim.step()
-  scene.update(dt=sim.cfg.mujoco.timestep)
-  sim.sense()
-  rotated_dist = sensor.data.distances.clone()
-
-  # With world alignment, distance should remain ~22m.
-  assert torch.allclose(rotated_dist, baseline_dist, atol=0.5), (
-    f"Expected ~22m after pitch+roll, got {rotated_dist}"
-  )
+  assert data.pos_w[0, 2].item() == pytest.approx(1.0, abs=0.1)
+  assert data.distances[0, 0].item() == pytest.approx(1.0, abs=0.1)

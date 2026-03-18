@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import warnings
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import mujoco
@@ -49,7 +50,7 @@ class SensorContext:
     model: mjwarp.Model,
     data: mjwarp.Data,
     camera_sensors: list[CameraSensor],
-    raycast_sensors: list[RayCastSensor],
+    raycast_sensors: Sequence[RayCastSensor],
     device: str,
   ):
     self._model = model
@@ -217,9 +218,9 @@ class SensorContext:
     """Compute the union of geom groups across all raycast sensors."""
     groups: set[int] = set()
     for s in self.raycast_sensors:
-      if s.cfg.include_geom_groups is None:
+      if s.include_geom_groups is None:
         return {0, 1, 2, 3, 4, 5}
-      groups.update(s.cfg.include_geom_groups)
+      groups.update(s.include_geom_groups)
     return groups
 
   def _create_context(self, mj_model: mujoco.MjModel) -> None:

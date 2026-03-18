@@ -115,6 +115,7 @@ def height_scan(
   """Height scan from a raycast sensor.
 
   Returns the height of the sensor frame above each hit point.
+  Supports multi-frame sensors: each ray uses its own frame's Z.
 
   Args:
     env: The environment.
@@ -124,13 +125,22 @@ def height_scan(
       Defaults to the sensor's ``max_distance``.
 
   Returns:
-    Tensor of shape [B, N] where B is num_envs and N is num_rays.
+    Tensor of shape [B, N] where N = num_frames * num_rays_per_frame.
+    Rays are ordered frame-major (all rays for frame 0, then frame 1, etc.).
   """
   sensor: RayCastSensor = env.scene[sensor_name]
   if miss_value is None:
     miss_value = sensor.cfg.max_distance
-  heights = (
-    sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.hit_pos_w[..., 2] - offset
-  )
-  miss_mask = sensor.data.distances < 0
+
+  data = sensor.data
+  F, N = sensor.num_frames, sensor.num_rays_per_frame
+  B = data.distances.shape[0]
+
+  # Each ray's height = its frame's Z - hit Z. For single-frame sensors (F=1) this
+  # reduces to the original pos_w[:, 2] - hit_z broadcast.
+  frame_z = data.frame_pos_w[:, :, 2:3]  # [B, F, 1]
+  hit_z = data.hit_pos_w[..., 2].view(B, F, N)  # [B, F, N]
+  heights = (frame_z - hit_z - offset).view(B, F * N)
+
+  miss_mask = data.distances < 0
   return torch.where(miss_mask, torch.full_like(heights, miss_value), heights)

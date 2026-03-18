@@ -122,6 +122,12 @@ Added
   to bodies with configurable duration and optional application point offset.
 - ONNX auto-export and metadata attachment for manipulation tasks (lift cube)
   on every checkpoint save, matching the velocity and tracking task behavior.
+- Multi-frame ``RayCastSensor``: pass a tuple of ``ObjRef`` to ``frame`` for
+  per-site raycasting with independent body exclusion. New properties:
+  ``num_frames``, ``num_rays_per_frame``. New ``RayCastData`` fields:
+  ``frame_pos_w`` and ``frame_quat_w``.
+- ``RingPatternCfg`` ray pattern for concentric ring sampling around each
+  frame.
 - Cloud training support via `SkyPilot <https://skypilot.readthedocs.io/>`_
   and Lambda Cloud, with documentation covering setup, monitoring, and
   cost management.
