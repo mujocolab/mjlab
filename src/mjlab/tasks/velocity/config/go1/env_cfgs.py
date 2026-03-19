@@ -1,5 +1,6 @@
 """Unitree Go1 velocity environment configurations."""
 
+import math
 from typing import Literal
 
 from mjlab.asset_zoo.robots import (
@@ -11,6 +12,7 @@ from mjlab.envs import mdp as envs_mdp
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers import TerminationTermCfg
 from mjlab.managers.event_manager import EventTermCfg
+from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import (
   ContactMatch,
@@ -69,15 +71,53 @@ def unitree_go1_rough_env_cfg(
     num_slots=1,
     track_air_time=True,
   )
-  nonfoot_ground_cfg = ContactSensorCfg(
-    name="nonfoot_ground_touch",
+  self_collision_cfg = ContactSensorCfg(
+    name="self_collision",
+    primary=ContactMatch(mode="subtree", pattern="trunk", entity="robot"),
+    secondary=ContactMatch(mode="subtree", pattern="trunk", entity="robot"),
+    fields=("found", "force"),
+    reduce="none",
+    num_slots=1,
+    history_length=4,
+  )
+  thigh_geom_names = tuple(
+    f"{leg}_thigh_collision{i}" for leg in foot_names for i in (1, 2, 3)
+  )
+  thigh_ground_cfg = ContactSensorCfg(
+    name="thigh_ground_touch",
     primary=ContactMatch(
       mode="geom",
       entity="robot",
-      # Grab all collision geoms...
-      pattern=r".*_collision\d*$",
-      # Except for the foot geoms.
-      exclude=tuple(geom_names),
+      pattern=thigh_geom_names,
+    ),
+    secondary=ContactMatch(mode="body", pattern="terrain"),
+    fields=("found", "force"),
+    reduce="none",
+    num_slots=1,
+    history_length=4,
+  )
+  calf_geom_names = tuple(
+    f"{leg}_calf_collision{i}" for leg in foot_names for i in (1, 2)
+  )
+  shank_ground_cfg = ContactSensorCfg(
+    name="shank_ground_touch",
+    primary=ContactMatch(
+      mode="geom",
+      entity="robot",
+      pattern=calf_geom_names,
+    ),
+    secondary=ContactMatch(mode="body", pattern="terrain"),
+    fields=("found", "force"),
+    reduce="none",
+    num_slots=1,
+    history_length=4,
+  )
+  trunk_head_ground_cfg = ContactSensorCfg(
+    name="trunk_ground_touch",
+    primary=ContactMatch(
+      mode="geom",
+      entity="robot",
+      pattern=("trunk_collision", "head_collision"),
     ),
     secondary=ContactMatch(mode="body", pattern="terrain"),
     fields=("found", "force"),
@@ -87,7 +127,10 @@ def unitree_go1_rough_env_cfg(
   )
   cfg.scene.sensors = (cfg.scene.sensors or ()) + (
     feet_ground_cfg,
-    nonfoot_ground_cfg,
+    self_collision_cfg,
+    thigh_ground_cfg,
+    shank_ground_cfg,
+    trunk_head_ground_cfg,
   )
 
   if cfg.scene.terrain is not None and cfg.scene.terrain.terrain_generator is not None:
@@ -164,9 +207,35 @@ def unitree_go1_rough_env_cfg(
   cfg.rewards["angular_momentum"].weight = 0.0
   cfg.rewards["air_time"].weight = 0.0
 
+  # Per-body-group collision penalties.
+  cfg.rewards["self_collisions"] = RewardTermCfg(
+    func=mdp.self_collision_cost,
+    weight=-0.1,
+    params={"sensor_name": self_collision_cfg.name},
+  )
+  cfg.rewards["shank_collision"] = RewardTermCfg(
+    func=mdp.self_collision_cost,
+    weight=-0.1,
+    params={"sensor_name": shank_ground_cfg.name},
+  )
+  cfg.rewards["trunk_head_collision"] = RewardTermCfg(
+    func=mdp.self_collision_cost,
+    weight=-0.1,
+    params={"sensor_name": trunk_head_ground_cfg.name},
+  )
+
+  # On rough terrain the quadruped tilts significantly; don't terminate on
+  # orientation alone. Let out_of_terrain_bounds handle bad episodes.
+  cfg.terminations.pop("fell_over", None)
+
   cfg.terminations["illegal_contact"] = TerminationTermCfg(
     func=mdp.illegal_contact,
-    params={"sensor_name": nonfoot_ground_cfg.name, "force_threshold": 10.0},
+    params={"sensor_name": thigh_ground_cfg.name},
+  )
+  cfg.terminations["out_of_terrain_bounds"] = TerminationTermCfg(
+    func=mdp.out_of_terrain_bounds,
+    time_out=True,
+    params={"margin": 0.3},
   )
 
   # Apply play mode overrides.
@@ -207,13 +276,32 @@ def unitree_go1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.scene.terrain.terrain_type = "plane"
   cfg.scene.terrain.terrain_generator = None
 
-  # Remove raycast sensor and height scan (no terrain to scan).
+  # Remove raycast sensors and collision sensors not needed on flat.
+  remove_sensors = {
+    "terrain_scan",
+    "self_collision",
+    "thigh_ground_touch",
+    "shank_ground_touch",
+    "trunk_ground_touch",
+  }
   cfg.scene.sensors = tuple(
-    s for s in (cfg.scene.sensors or ()) if s.name != "terrain_scan"
+    s for s in (cfg.scene.sensors or ()) if s.name not in remove_sensors
   )
   del cfg.observations["actor"].terms["height_scan"]
   del cfg.observations["critic"].terms["height_scan"]
   cfg.rewards["upright"].params.pop("terrain_sensor_names", None)
+
+  # Remove granular collision rewards (not useful on flat ground).
+  for key in ("self_collisions", "shank_collision", "trunk_head_collision"):
+    cfg.rewards.pop(key, None)
+
+  # On flat terrain fell_over is sufficient; thigh contact implies fallen.
+  cfg.terminations.pop("illegal_contact", None)
+  cfg.terminations.pop("out_of_terrain_bounds", None)
+  cfg.terminations["fell_over"] = TerminationTermCfg(
+    func=mdp.bad_orientation,
+    params={"limit_angle": math.radians(70.0)},
+  )
 
   # Disable terrain curriculum (not present in play mode since rough clears all).
   cfg.curriculum.pop("terrain_levels", None)

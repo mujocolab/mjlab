@@ -68,7 +68,7 @@ def test_g1_velocity_has_required_sensors(g1_velocity_task_ids: list[str]) -> No
 
 
 def test_go1_velocity_has_required_sensors(go1_velocity_task_ids: list[str]) -> None:
-  """Go1 velocity tasks should have feet/ground and nonfoot/ground sensors."""
+  """Go1 velocity tasks should have feet/ground and collision sensors."""
   for task_id in go1_velocity_task_ids:
     cfg = load_env_cfg(task_id)
 
@@ -78,9 +78,14 @@ def test_go1_velocity_has_required_sensors(go1_velocity_task_ids: list[str]) -> 
     assert "feet_ground_contact" in sensor_names, (
       f"Task {task_id} missing feet_ground_contact sensor"
     )
-    assert "nonfoot_ground_touch" in sensor_names, (
-      f"Task {task_id} missing nonfoot_ground_touch sensor"
-    )
+    if "Rough" in task_id:
+      for name in (
+        "self_collision",
+        "thigh_ground_touch",
+        "shank_ground_touch",
+        "trunk_ground_touch",
+      ):
+        assert name in sensor_names, f"Task {task_id} missing {name} sensor"
 
 
 def test_flat_velocity_tasks_have_plane_terrain(

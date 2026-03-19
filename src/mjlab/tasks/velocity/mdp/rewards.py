@@ -175,7 +175,7 @@ def self_collision_cost(
     hit = (force_mag > force_threshold).any(dim=1)  # [B, H]
     return hit.sum(dim=-1).float()  # [B]
   assert data.found is not None
-  return data.found.squeeze(-1)
+  return data.found.sum(dim=-1).float()
 
 
 def body_angular_velocity_penalty(
