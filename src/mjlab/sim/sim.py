@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import gc
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal, cast
 
@@ -27,6 +29,23 @@ else:
 
 # Minimum CUDA driver version supported for conditional CUDA graphs.
 _GRAPH_CAPTURE_MIN_DRIVER = (12, 4)
+
+
+@contextmanager
+def _suspend_gc():
+  """Temporarily disable the garbage collector.
+
+  Prevents GC from finalizing stale Warp Graph objects during wp.ScopedCapture, which
+  would record their destructor calls into the new graph and corrupt it on replay.
+  """
+  enabled = gc.isenabled()
+  gc.disable()
+  try:
+    yield
+  finally:
+    if enabled:
+      gc.enable()
+
 
 _JACOBIAN_MAP = {
   "auto": mujoco.mjtJacobian.mjJAC_AUTO,
@@ -220,7 +239,7 @@ class Simulation:
     self.reset_graph = None
     self.sense_graph = None
     if self.use_cuda_graph:
-      with wp.ScopedDevice(self.wp_device):
+      with _suspend_gc(), wp.ScopedDevice(self.wp_device):
         with wp.ScopedCapture() as capture:
           mjwarp.step(self.wp_model, self.wp_data)
         self.step_graph = capture.graph
