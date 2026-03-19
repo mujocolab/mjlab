@@ -283,7 +283,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
       params={"command_name": "twist", "std": math.sqrt(0.5)},
     ),
     "upright": RewardTermCfg(
-      func=mdp.flat_orientation,
+      func=mdp.upright,
       weight=1.0,
       params={
         "std": math.sqrt(0.2),

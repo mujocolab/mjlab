@@ -146,6 +146,7 @@ class ViserPlayViewer(BaseViewer):
       def _debug_viz_extra() -> None:
         env.command_manager.create_debug_vis_gui(self._server)
         self._create_sensor_debug_vis_gui()
+        self._create_reward_debug_vis_gui()
 
       with self._server.gui.add_folder("Scene"):
         self._scene.create_visualization_gui(
@@ -234,6 +235,20 @@ class ViserPlayViewer(BaseViewer):
       def _on_update(_ev, _s=sensor, _cb=cb) -> None:
         _s._debug_vis_enabled = _cb.value
         self._scene.needs_update = True
+
+      cb.on_update(_on_update)
+
+  def _create_reward_debug_vis_gui(self) -> None:
+    """Add per-reward debug visualization checkboxes."""
+    env = self.env.unwrapped
+    for name, func in env.reward_manager.get_visualizable_terms():
+      cb = self._server.gui.add_checkbox(
+        name,
+        initial_value=func._debug_vis_enabled,
+      )
+
+      def _on_update(_ev, _f=func, _cb=cb) -> None:
+        _f._debug_vis_enabled = _cb.value
 
       cb.on_update(_on_update)
 

@@ -115,6 +115,7 @@ def unitree_go1_rough_env_cfg(
   }
 
   cfg.rewards["upright"].params["asset_cfg"].body_names = ("trunk",)
+  cfg.rewards["upright"].params["terrain_sensor_names"] = ("terrain_scan",)
   cfg.rewards["body_ang_vel"].params["asset_cfg"].body_names = ("trunk",)
 
   for reward_name in ["foot_clearance", "foot_slip"]:
@@ -173,6 +174,7 @@ def unitree_go1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   )
   del cfg.observations["actor"].terms["height_scan"]
   del cfg.observations["critic"].terms["height_scan"]
+  cfg.rewards["upright"].params.pop("terrain_sensor_names", None)
 
   # Disable terrain curriculum (not present in play mode since rough clears all).
   cfg.curriculum.pop("terrain_levels", None)
