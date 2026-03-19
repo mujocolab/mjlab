@@ -11,7 +11,14 @@ from mjlab.envs import mdp as envs_mdp
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers import TerminationTermCfg
 from mjlab.managers.event_manager import EventTermCfg
-from mjlab.sensor import ContactMatch, ContactSensorCfg, ObjRef, RayCastSensorCfg
+from mjlab.sensor import (
+  ContactMatch,
+  ContactSensorCfg,
+  ObjRef,
+  RayCastSensorCfg,
+  RingPatternCfg,
+  TerrainHeightSensorCfg,
+)
 from mjlab.tasks.velocity import mdp
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
@@ -40,6 +47,15 @@ def unitree_go1_rough_env_cfg(
   foot_names = ("FR", "FL", "RR", "RL")
   site_names = ("FR", "FL", "RR", "RL")
   geom_names = tuple(f"{name}_foot_collision" for name in foot_names)
+
+  # Wire foot height scan to per-foot sites.
+  for sensor in cfg.scene.sensors or ():
+    if sensor.name == "foot_height_scan":
+      assert isinstance(sensor, TerrainHeightSensorCfg)
+      sensor.frame = tuple(
+        ObjRef(type="site", name=s, entity="robot") for s in site_names
+      )
+      sensor.pattern = RingPatternCfg.single_ring(radius=0.04, num_samples=4)
 
   feet_ground_cfg = ContactSensorCfg(
     name="feet_ground_contact",
@@ -82,10 +98,6 @@ def unitree_go1_rough_env_cfg(
   cfg.viewer.distance = 1.5
   cfg.viewer.elevation = -10.0
 
-  cfg.observations["critic"].terms["foot_height"].params[
-    "asset_cfg"
-  ].site_names = site_names
-
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = geom_names
   cfg.events["base_com"].params["asset_cfg"].body_names = ("trunk",)
 
@@ -105,7 +117,7 @@ def unitree_go1_rough_env_cfg(
   cfg.rewards["upright"].params["asset_cfg"].body_names = ("trunk",)
   cfg.rewards["body_ang_vel"].params["asset_cfg"].body_names = ("trunk",)
 
-  for reward_name in ["foot_clearance", "foot_swing_height", "foot_slip"]:
+  for reward_name in ["foot_clearance", "foot_slip"]:
     cfg.rewards[reward_name].params["asset_cfg"].site_names = site_names
 
   cfg.rewards["body_ang_vel"].weight = 0.0

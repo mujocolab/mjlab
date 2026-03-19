@@ -265,3 +265,35 @@ Examples
         max_distance=3.0,
         include_geom_groups=(0,),
     )
+
+
+TerrainHeightSensor
+-------------------
+
+``TerrainHeightSensor`` is a thin ``RayCastSensor`` subclass that adds
+per-frame vertical clearance to the sensor data. It computes
+``frame_z - hit_z`` for each ray, replaces misses with ``max_distance``,
+and reduces across rays per frame.
+
+.. code-block:: python
+
+    from mjlab.sensor import TerrainHeightSensorCfg, RingPatternCfg, ObjRef
+
+    cfg = TerrainHeightSensorCfg(
+        name="foot_height",
+        frame=(
+            ObjRef(type="site", name="left_foot", entity="robot"),
+            ObjRef(type="site", name="right_foot", entity="robot"),
+        ),
+        pattern=RingPatternCfg.single_ring(radius=0.04, num_samples=4),
+        max_distance=1.0,
+        include_geom_groups=(0,),
+    )
+
+    # At runtime:
+    sensor = env.scene["foot_height"]
+    sensor.data.heights    # [B, F] vertical clearance per foot
+    sensor.data.distances  # [B, N] raw ray distances (inherited)
+
+The ``reduction`` config field controls how rays are aggregated within
+each frame: ``"min"`` (default), ``"max"``, or ``"mean"``.

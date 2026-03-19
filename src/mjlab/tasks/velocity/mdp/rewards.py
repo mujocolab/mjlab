@@ -8,6 +8,7 @@ from mjlab.entity import Entity
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import BuiltinSensor, ContactSensor
+from mjlab.sensor.terrain_height_sensor import TerrainHeightSensor
 from mjlab.utils.lab_api.math import quat_apply_inverse
 from mjlab.utils.lab_api.string import (
   resolve_matching_names_values,
@@ -167,16 +168,21 @@ def feet_air_time(
 def feet_clearance(
   env: ManagerBasedRlEnv,
   target_height: float,
+  height_sensor_name: str,
   command_name: str | None = None,
   command_threshold: float = 0.01,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> torch.Tensor:
   """Penalize deviation from target clearance height, weighted by foot velocity."""
   asset: Entity = env.scene[asset_cfg.name]
-  foot_z = asset.data.site_pos_w[:, asset_cfg.site_ids, 2]  # [B, N]
-  foot_vel_xy = asset.data.site_lin_vel_w[:, asset_cfg.site_ids, :2]  # [B, N, 2]
-  vel_norm = torch.norm(foot_vel_xy, dim=-1)  # [B, N]
-  delta = torch.abs(foot_z - target_height)  # [B, N]
+  height_sensor = env.scene[height_sensor_name]
+  assert isinstance(height_sensor, TerrainHeightSensor), (
+    f"feet_clearance requires a TerrainHeightSensor, got {type(height_sensor).__name__}"
+  )
+  foot_height = height_sensor.data.heights  # [B, F]
+  foot_vel_xy = asset.data.site_lin_vel_w[:, asset_cfg.site_ids, :2]  # [B, F, 2]
+  vel_norm = torch.norm(foot_vel_xy, dim=-1)  # [B, F]
+  delta = torch.abs(foot_height - target_height)  # [B, F]
   cost = torch.sum(delta * vel_norm, dim=1)  # [B]
   if command_name is not None:
     command = env.command_manager.get_command(command_name)
@@ -193,10 +199,13 @@ class feet_swing_height:
   """Penalize deviation from target swing height, evaluated at landing."""
 
   def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
-    self.sensor_name = cfg.params["sensor_name"]
-    self.site_names = cfg.params["asset_cfg"].site_names
+    height_sensor = env.scene[cfg.params["height_sensor_name"]]
+    assert isinstance(height_sensor, TerrainHeightSensor), (
+      f"feet_swing_height requires a TerrainHeightSensor, got {type(height_sensor).__name__}"
+    )
+    num_feet = height_sensor.num_frames
     self.peak_heights = torch.zeros(
-      (env.num_envs, len(self.site_names)), device=env.device, dtype=torch.float32
+      (env.num_envs, num_feet), device=env.device, dtype=torch.float32
     )
     self.step_dt = env.step_dt
 
@@ -204,16 +213,16 @@ class feet_swing_height:
     self,
     env: ManagerBasedRlEnv,
     sensor_name: str,
+    height_sensor_name: str,
     target_height: float,
     command_name: str,
     command_threshold: float,
-    asset_cfg: SceneEntityCfg,
   ) -> torch.Tensor:
-    asset: Entity = env.scene[asset_cfg.name]
     contact_sensor: ContactSensor = env.scene[sensor_name]
     command = env.command_manager.get_command(command_name)
     assert command is not None
-    foot_heights = asset.data.site_pos_w[:, asset_cfg.site_ids, 2]
+    height_sensor: TerrainHeightSensor = env.scene[height_sensor_name]
+    foot_heights = height_sensor.data.heights
     in_air = contact_sensor.data.found == 0
     self.peak_heights = torch.where(
       in_air,
