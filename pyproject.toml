@@ -50,6 +50,7 @@ dependencies = [
   "onnxscript>=0.5.4",
   "wandb>=0.22.3",
   "joblib",
+  "pandas",
 ]
 
 [project.urls]

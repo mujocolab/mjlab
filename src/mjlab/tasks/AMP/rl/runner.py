@@ -4,6 +4,7 @@ from typing import cast
 import torch
 import wandb
 import joblib
+import pandas as pd
 from rsl_rl.env.vec_env import VecEnv
 from torch import nn
 import time
@@ -29,7 +30,18 @@ _DEFAULT_DISCRIMINATOR_CFG = DiscriminatorCfg()
 
 def load_motion_data(file_name: str = "", source_fps: int = 30, target_fps: int = 50) -> torch.Tensor:
 
-  data = joblib.load(file_name)
+  ext = os.path.splitext(file_name)[-1].lower()
+
+  if ext == ".csv":
+    data = torch.tensor(pd.read_csv(file_name).values, dtype=torch.float32)
+    return data
+
+  elif ext in (".pkl", ".joblib"):
+    data = joblib.load(file_name)
+
+  else:
+    raise ValueError(f"Unsupported file format: {ext}")
+
   clip = data[list(data.keys())[0]]  # get first clip
   dof_data = torch.tensor(clip["dof"], dtype=torch.float32)  # (T, 23)
   
@@ -37,17 +49,15 @@ def load_motion_data(file_name: str = "", source_fps: int = 30, target_fps: int 
   t_orig = torch.linspace(0, T / source_fps, T)
   t_new = torch.linspace(0, T / source_fps, int(T * target_fps / source_fps))
 
-  # Interpolate: need (1, 1, T) for grid_sample or just use numpy interp
-  # torch has no built-in 1D interp, so we use searchsorted
   indices = torch.searchsorted(t_orig, t_new).clamp(1, T - 1)
   t_low = t_orig[indices - 1]
   t_high = t_orig[indices]
-  alpha = ((t_new - t_low) / (t_high - t_low)).unsqueeze(-1)  # (T_new, 1)
+  alpha = ((t_new - t_low) / (t_high - t_low)).unsqueeze(-1)
 
-  dof_low = dof_data[indices - 1]   # (T_new, 23)
-  dof_high = dof_data[indices]      # (T_new, 23)
+  dof_low = dof_data[indices - 1]
+  dof_high = dof_data[indices]
 
-  dof_resampled = dof_low + alpha * (dof_high - dof_low)  # (T_new, 23)
+  dof_resampled = dof_low + alpha * (dof_high - dof_low)
   return dof_resampled
 
 
