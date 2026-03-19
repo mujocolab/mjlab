@@ -11,6 +11,7 @@ from mjlab.envs import mdp as envs_mdp
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers import TerminationTermCfg
 from mjlab.managers.event_manager import EventTermCfg
+from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import (
   ContactMatch,
   ContactSensorCfg,
@@ -33,6 +34,8 @@ def unitree_go1_rough_env_cfg(
   cfg = make_velocity_env_cfg()
 
   cfg.sim.mujoco.ccd_iterations = 500
+  cfg.sim.mujoco.impratio = 10
+  cfg.sim.mujoco.cone = "elliptic"
   cfg.sim.contact_sensor_maxmatch = 500
 
   cfg.scene.entities = {"robot": get_go1_robot_cfg()}
@@ -98,7 +101,43 @@ def unitree_go1_rough_env_cfg(
   cfg.viewer.distance = 1.5
   cfg.viewer.elevation = -10.0
 
-  cfg.events["foot_friction"].params["asset_cfg"].geom_names = geom_names
+  # Replace the base foot_friction with per-axis friction events for condim 6.
+  del cfg.events["foot_friction"]
+  cfg.events["foot_friction_slide"] = EventTermCfg(
+    mode="startup",
+    func=envs_mdp.dr.geom_friction,
+    params={
+      "asset_cfg": SceneEntityCfg("robot", geom_names=geom_names),
+      "operation": "abs",
+      "axes": [0],
+      "ranges": (0.3, 1.5),
+      "shared_random": True,
+    },
+  )
+  cfg.events["foot_friction_spin"] = EventTermCfg(
+    mode="startup",
+    func=envs_mdp.dr.geom_friction,
+    params={
+      "asset_cfg": SceneEntityCfg("robot", geom_names=geom_names),
+      "operation": "abs",
+      "distribution": "log_uniform",
+      "axes": [1],
+      "ranges": (1e-4, 2e-2),
+      "shared_random": True,
+    },
+  )
+  cfg.events["foot_friction_roll"] = EventTermCfg(
+    mode="startup",
+    func=envs_mdp.dr.geom_friction,
+    params={
+      "asset_cfg": SceneEntityCfg("robot", geom_names=geom_names),
+      "operation": "abs",
+      "distribution": "log_uniform",
+      "axes": [2],
+      "ranges": (1e-5, 5e-3),
+      "shared_random": True,
+    },
+  )
   cfg.events["base_com"].params["asset_cfg"].body_names = ("trunk",)
 
   cfg.rewards["pose"].params["std_standing"] = {
