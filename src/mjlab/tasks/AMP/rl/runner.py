@@ -15,6 +15,7 @@ from mjlab.rl.exporter_utils import (
 )
 from mjlab.rl.runner import MjlabOnPolicyRunner
 from mjlab.tasks.AMP.rl.networks import Discriminator, DiscriminatorCfg
+from mjlab.utils.spaces import Dict as DictSpace
 
 ##
 #
@@ -78,7 +79,7 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
     super().__init__(env, train_cfg, log_dir, device)
     self.registry_name = registry_name
 
-    discriminator_cfg. n_obs = self.env.observation_space.spaces["discriminator"].shape[1]
+    discriminator_cfg.n_obs = cast(DictSpace, self.env.observation_space).spaces["discriminator"].shape[1]
     self.discriminator = Discriminator(discriminator_cfg)
 
     if discriminator_cfg.motion_file is not None:
