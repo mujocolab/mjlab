@@ -22,7 +22,7 @@ def unitree_g1_rough_amp_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   cfg.sim.mujoco.ccd_iterations = 500
   cfg.sim.contact_sensor_maxmatch = 500
-  cfg.sim.nconmax = 45
+  cfg.sim.nconmax = 60
 
   cfg.scene.entities = {"robot": get_g1_robot_cfg()}
 
@@ -160,7 +160,7 @@ def unitree_g1_flat_amp_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.sim.njmax = 300
   cfg.sim.mujoco.ccd_iterations = 50
   cfg.sim.contact_sensor_maxmatch = 64
-  cfg.sim.nconmax = None
+  cfg.sim.nconmax = 60
 
   # Switch to flat terrain.
   assert cfg.scene.terrain is not None
@@ -180,7 +180,7 @@ def unitree_g1_flat_amp_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   if play:
     twist_cmd = cfg.commands["twist"]
     assert isinstance(twist_cmd, UniformVelocityCommandCfg)
-    twist_cmd.ranges.lin_vel_x = (0.0, 2.0)
+    twist_cmd.ranges.lin_vel_x = (0.5, 1.0)
     twist_cmd.ranges.ang_vel_z = (0.0, 0.0)
 
   return cfg

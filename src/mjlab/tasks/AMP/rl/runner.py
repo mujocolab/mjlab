@@ -77,6 +77,8 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
   ):
     super().__init__(env, train_cfg, log_dir, device)
     self.registry_name = registry_name
+
+    discriminator_cfg. n_obs = self.env.observation_space.spaces["discriminator"].shape[1]
     self.discriminator = Discriminator(discriminator_cfg)
 
     if discriminator_cfg.motion_file is not None:
@@ -119,6 +121,9 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
       trajectory_buffer = [discriminator_obs]
       trajectory_cursor = 0
 
+      # Dones buffer to track invalid transitions
+      done_buffer = []
+
       with torch.inference_mode():
         for _ in range(self.cfg["num_steps_per_env"]):
           # Sample actions
@@ -131,15 +136,19 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
           trajectory_buffer.append(discriminator_obs)
           trajectory_cursor += 1
 
+          # Move to device
+          obs, rewards, dones = (obs.to(self.device), rewards.to(self.device), dones.to(self.device))
+
+          done_buffer.append(dones)
+          valid = (~dones).float()
+
           discriminator_input = torch.cat((trajectory_buffer[trajectory_cursor-1],trajectory_buffer[trajectory_cursor]),dim=-1)
           disc_out = self.discriminator.forward(discriminator_input).squeeze()  # (num_envs,)
-          rewards += self.discriminator.cfg.weight * torch.clamp(
+          rewards += valid * self.discriminator.cfg.weight * torch.clamp(
               1.0 - 0.25 * torch.square(disc_out - 1.0),
               min=0.0
           )
 
-          # Move to device
-          obs, rewards, dones = (obs.to(self.device), rewards.to(self.device), dones.to(self.device))
           # Process the step
           self.alg.process_env_step(obs, rewards, dones, extras)
           # Extract intrinsic rewards if RND is used (only for logging)
@@ -169,7 +178,13 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
         fake_stack = torch.stack(trajectory_buffer, dim=1)   # (num_envs, 25, n_obs) ✅
         fake_data = torch.cat([fake_stack[:, :-1, :], fake_stack[:, 1:, :]], dim=-1)  # (num_envs, 24, 2*n_obs)
 
+        done_stack = torch.stack(done_buffer, dim=1)
+        valid_mask = (~done_stack).float()  
+
         fake_data_flat = fake_data.view(-1, 2 * self.discriminator.cfg.n_obs)
+        valid_flat = valid_mask.view(-1).bool()
+        fake_data_flat = fake_data_flat[valid_flat]
+
         real_data_flat = real_data.view(-1, 2 * self.discriminator.cfg.n_obs)
 
         self.discriminator.train_oneshot(real_data_flat, fake_data_flat)

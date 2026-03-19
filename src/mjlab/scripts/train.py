@@ -179,7 +179,6 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
 
     discriminator_cfg = DiscriminatorCfg()
     discriminator_cfg.motion_file = PATH_MOTION_FILE
-    discriminator_cfg.n_obs = 23
     discriminator_cfg.weight = cfg.amp_weight
     discriminator_cfg.device = device
     assert(discriminator_cfg.motion_file != ""), f"Please pass the motion file name with --motion_file_amp"
