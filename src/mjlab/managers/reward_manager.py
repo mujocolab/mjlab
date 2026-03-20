@@ -13,6 +13,7 @@ from mjlab.managers.manager_base import ManagerBase, ManagerTermBaseCfg
 
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
+  from mjlab.viewer.debug_visualizer import DebugVisualizer
 
 
 @dataclass(kw_only=True)
@@ -128,6 +129,25 @@ class RewardManager(ManagerBase):
       self._episode_sums[name] += value
       self._step_reward[:, term_idx] = value / scale
     return self._reward_buf
+
+  def debug_vis(self, visualizer: DebugVisualizer) -> None:
+    """Delegate debug visualization to class-based reward terms."""
+    for _, func in self.get_visualizable_terms():
+      func.debug_vis(visualizer)
+
+  def get_visualizable_terms(self) -> list[tuple[str, Any]]:
+    """Return ``(name, func)`` pairs for class-based terms with debug_vis."""
+    results: list[tuple[str, Any]] = []
+    for term_cfg in self._class_term_cfgs:
+      if not hasattr(term_cfg.func, "debug_vis"):
+        continue
+      name = next(
+        n
+        for n, c in zip(self._term_names, self._term_cfgs, strict=False)
+        if c is term_cfg
+      )
+      results.append((name, term_cfg.func))
+    return results
 
   def get_active_iterable_terms(self, env_idx):
     terms = []

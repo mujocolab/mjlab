@@ -1,190 +1,10 @@
 """Raycast sensor for terrain and obstacle detection.
 
-Ray Patterns
-------------
+Provides :class:`RayCastSensor` and :class:`RayCastSensorCfg` for BVH-accelerated
+raycasting with grid, pinhole camera, and ring patterns. Supports multi-frame
+attachment, configurable ray alignment, and geom group filtering.
 
-This module provides three ray pattern types for different use cases:
-
-**Grid Pattern** - Parallel rays in a 2D grid::
-
-    Camera at any height:
-          ↓   ↓   ↓   ↓   ↓      ← All rays point same direction
-          ↓   ↓   ↓   ↓   ↓
-          ↓   ↓   ↓   ↓   ↓
-        ──●───●───●───●───●──    ← Fixed spacing (e.g., 10cm apart)
-             Ground
-
-- Rays are parallel (all point in the same direction, e.g., -Z down)
-- Spacing is defined in world units (meters)
-- Height doesn't affect the hit pattern - same footprint regardless of altitude
-- Good for: height maps, terrain scanning with consistent spatial sampling
-
-**Pinhole Camera Pattern** - Diverging rays from a single point::
-
-    Camera LOW:                    Camera HIGH:
-             📷                            📷
-            /|\\                          /  |  \\
-           / | \\                        /   |   \\
-          /  |  \\                      /    |    \\
-        ─●───●───●─                 ───●─────●─────●───
-        (small footprint)           (large footprint)
-
-- Rays diverge from a single point (like light entering a camera)
-- FOV is fixed in angular units (degrees)
-- Higher altitude → wider ground coverage, more spread between hits
-- Lower altitude → tighter ground coverage, denser hits
-- Good for: simulating depth cameras, LiDAR with angular resolution
-
-**Ring Pattern** - Rays in concentric rings around the origin::
-
-    Ring (8 samples):
-         ●   ●
-       ●       ●     ← evenly spaced on circle
-       ●       ●
-         ●   ●
-           ●         ← center (optional)
-
-- Rays cast from offsets arranged in rings around the attachment frame
-- Supports multiple concentric rings at different radii
-- Good for: per-site height sensing, foot clearance, terrain sampling
-
-**Pattern Comparison**:
-
-============== ==================== ========================== =================
-Aspect         Grid                 Pinhole                    Ring
-============== ==================== ========================== =================
-Ray direction  All parallel         Diverge from origin        All parallel
-Spacing        Meters               Degrees (FOV)              Radius + count
-Height affect  No                   Yes                        No
-Real-world     Orthographic proj.   Perspective camera / LiDAR Terrain probe
-============== ==================== ========================== =================
-
-The pinhole behavior matches real depth sensors (RealSense, LiDAR) - when
-you're farther from an object, each pixel covers more area.
-
-
-Frame Attachment
-----------------
-
-Rays are attached to one or more frames in the scene via ``ObjRef``. Supported
-frame types:
-
-- **body**: Attach to a body's origin. Rays follow body position and orientation.
-- **site**: Attach to a site. Useful for precise placement or offset from body.
-- **geom**: Attach to a geometry. Useful for sensors mounted on specific parts.
-
-Single frame::
-
-    from mjlab.sensor import ObjRef, RayCastSensorCfg, GridPatternCfg
-
-    cfg = RayCastSensorCfg(
-        name="terrain_scan",
-        frame=ObjRef(type="body", name="base", entity="robot"),
-        pattern=GridPatternCfg(size=(1.0, 1.0), resolution=0.1),
-    )
-
-Multiple frames (e.g. per-foot height sensing)::
-
-    cfg = RayCastSensorCfg(
-        name="foot_heights",
-        frame=(
-            ObjRef(type="site", name="left_foot", entity="robot"),
-            ObjRef(type="site", name="right_foot", entity="robot"),
-        ),
-        pattern=RingPatternCfg.single_ring(radius=0.05, num_samples=8),
-    )
-
-With multiple frames, the output ``distances`` has shape ``[B, F*N]`` where
-F is the number of frames and N is rays per frame. Each frame's parent body
-is excluded independently when ``exclude_parent_body`` is True.
-
-The ``exclude_parent_body`` option (default: True) prevents rays from hitting
-the body they're attached to.
-
-
-Ray Alignment
--------------
-
-The ``ray_alignment`` setting controls how rays orient relative to the frame::
-
-    Robot tilted 30°:
-
-    "base" (default)          "yaw"                    "world"
-    Rays tilt with body       Rays stay level          Rays fixed to world
-          ↘ ↓ ↙                    ↓ ↓ ↓                    ↓ ↓ ↓
-           \\|/                     |||                      |||
-            🤖  ← tilted            🤖  ← tilted             🤖  ← tilted
-           /                       /                        /
-
-- **base**: Full position + rotation. Rays rotate with the body. Good for
-  body-mounted sensors that should scan relative to the robot's orientation.
-
-- **yaw**: Position + yaw only, ignores pitch/roll. Rays always point straight
-  down regardless of body tilt. Good for height maps where you want consistent
-  vertical sampling even when the robot is on a slope.
-
-- **world**: Fixed in world frame, only position follows body. Rays always
-  point in a fixed world direction. Good for gravity-aligned measurements.
-
-
-Debug Visualization
--------------------
-
-Enable visualization with ``debug_vis=True`` and customize via ``VizCfg``::
-
-    cfg = RayCastSensorCfg(
-        name="scan",
-        frame=ObjRef(type="body", name="base", entity="robot"),
-        pattern=GridPatternCfg(),
-        debug_vis=True,
-        viz=RayCastSensorCfg.VizCfg(
-            hit_color=(0, 1, 0, 0.8),      # Green for hits
-            miss_color=(1, 0, 0, 0.4),     # Red for misses
-            show_rays=True,                 # Draw ray arrows
-            show_normals=True,              # Draw surface normals
-            normal_color=(1, 1, 0, 1),     # Yellow normals
-        ),
-    )
-
-Visualization options:
-
-- ``hit_color`` / ``miss_color``: RGBA colors for ray arrows
-- ``hit_sphere_color`` / ``hit_sphere_radius``: Spheres at hit points
-- ``show_rays``: Draw arrows from origin to hit/miss points
-- ``show_normals`` / ``normal_color`` / ``normal_length``: Surface normal arrows
-
-
-Geom Group Filtering
---------------------
-
-MuJoCo geoms can be assigned to groups 0-5. Use ``include_geom_groups`` to
-filter which groups the rays can hit::
-
-    cfg = RayCastSensorCfg(
-        name="terrain_only",
-        frame=ObjRef(type="body", name="base", entity="robot"),
-        pattern=GridPatternCfg(),
-        include_geom_groups=(0, 1),  # Only hit geoms in groups 0 and 1
-    )
-
-This is useful for ignoring certain geometry (e.g., visual-only geoms in
-group 3) while still detecting collisions with terrain (group 0).
-
-
-Output Data
------------
-
-Access sensor data via the ``data`` property, which returns ``RayCastData``:
-
-- ``distances``: [B, N] Distance to hit, or -1 if no hit / beyond max_distance
-- ``hit_pos_w``: [B, N, 3] World-space hit positions
-- ``normals_w``: [B, N, 3] Surface normals at hit points (world frame)
-- ``pos_w``: [B, 3] First frame position (backward compat)
-- ``quat_w``: [B, 4] First frame orientation (backward compat)
-- ``frame_pos_w``: [B, F, 3] All frame positions
-- ``frame_quat_w``: [B, F, 4] All frame orientations
-
-Where B = environments, F = frames, N = F * num_rays_per_frame (total rays).
+See :doc:`/sensors/raycast_sensor` for usage guide and examples.
 """
 
 from __future__ import annotations
@@ -883,7 +703,7 @@ class RayCastSensor(Sensor[RayCastData]):
     # affects ray directions (applied to frame_mat below).
     pos_list: list[torch.Tensor] = []
     mat_list: list[torch.Tensor] = []
-    for frame_type, obj_id, _body_id in self._frame_infos:
+    for frame_type, obj_id, _ in self._frame_infos:
       if frame_type == "body":
         pos_list.append(self._data.xpos[:, obj_id])
         mat_list.append(self._data.xmat[:, obj_id].view(-1, 3, 3))
@@ -953,19 +773,21 @@ class RayCastSensor(Sensor[RayCastData]):
     F = self._num_frames
 
     assert self._ray_dist is not None and self._ray_normal is not None
-    self._distances = wp.to_torch(self._ray_dist)
-    self._normals_w = wp.to_torch(self._ray_normal).view(B, self._num_rays, 3)
-    self._distances[self._distances > self.cfg.max_distance] = -1.0
+    distances = wp.to_torch(self._ray_dist)
+    normals_w = wp.to_torch(self._ray_normal).view(B, self._num_rays, 3)
+    distances[distances > self.cfg.max_distance] = -1.0
 
-    hit_mask = self._distances >= 0
+    hit_mask = distances >= 0
     hit_pos_w = self._cached_world_origins.clone()
     hit_pos_w[hit_mask] = self._cached_world_origins[
       hit_mask
-    ] + self._cached_world_rays[hit_mask] * self._distances[hit_mask].unsqueeze(-1)
+    ] + self._cached_world_rays[hit_mask] * distances[hit_mask].unsqueeze(-1)
     self._hit_pos_w = hit_pos_w
 
     # Zero out normals for misses.
-    self._normals_w[~hit_mask] = 0.0
+    normals_w[~hit_mask] = 0.0
+    self._distances = distances
+    self._normals_w = normals_w
 
     # All frames: [B, F, 3] / [B, F, 4].
     self._frame_pos_w = self._cached_frame_pos

@@ -8,13 +8,16 @@ from mjlab.entity import Entity
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import BuiltinSensor, ContactSensor
-from mjlab.utils.lab_api.math import quat_apply_inverse
+from mjlab.sensor.terrain_height_sensor import TerrainHeightSensor
+from mjlab.tasks.velocity.mdp.terrain_utils import terrain_normal_from_sensors
+from mjlab.utils.lab_api.math import quat_apply, quat_apply_inverse
 from mjlab.utils.lab_api.string import (
   resolve_matching_names_values,
 )
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
+  from mjlab.viewer.debug_visualizer import DebugVisualizer
 
 
 _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
@@ -60,29 +63,97 @@ def track_angular_velocity(
   return torch.exp(-ang_vel_error / std**2)
 
 
-def flat_orientation(
-  env: ManagerBasedRlEnv,
-  std: float,
-  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-) -> torch.Tensor:
-  """Reward flat base orientation (robot being upright).
+class upright:
+  """Reward for keeping the base upright.
 
-  If asset_cfg has body_ids specified, computes the projected gravity
-  for that specific body. Otherwise, uses the root link projected gravity.
+  Without ``terrain_sensor_names``, penalizes tilt relative to world up (correct for
+  flat ground).
+
+  With ``terrain_sensor_names``, penalizes tilt relative to the terrain surface normal.
   """
-  asset: Entity = env.scene[asset_cfg.name]
 
-  # If body_ids are specified, compute projected gravity for that body.
-  if asset_cfg.body_ids:
-    body_quat_w = asset.data.body_link_quat_w[:, asset_cfg.body_ids, :]  # [B, N, 4]
-    body_quat_w = body_quat_w.squeeze(1)  # [B, 4]
-    gravity_w = asset.data.gravity_vec_w  # [3]
-    projected_gravity_b = quat_apply_inverse(body_quat_w, gravity_w)  # [B, 3]
-    xy_squared = torch.sum(torch.square(projected_gravity_b[:, :2]), dim=1)
-  else:
-    # Use root link projected gravity.
-    xy_squared = torch.sum(torch.square(asset.data.projected_gravity_b[:, :2]), dim=1)
-  return torch.exp(-xy_squared / std**2)
+  def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
+    self._terrain_sensor_names: tuple[str, ...] | None = cfg.params.get(
+      "terrain_sensor_names"
+    )
+    self._debug_vis_enabled = True
+    self._env = env
+    self._asset_cfg: SceneEntityCfg = cfg.params.get("asset_cfg", _DEFAULT_ASSET_CFG)
+
+  def __call__(
+    self,
+    env: ManagerBasedRlEnv,
+    std: float,
+    asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+    terrain_sensor_names: tuple[str, ...] | None = None,
+  ) -> torch.Tensor:
+    asset: Entity = env.scene[asset_cfg.name]
+
+    if asset_cfg.body_ids:
+      body_quat_w = asset.data.body_link_quat_w[:, asset_cfg.body_ids, :]  # [B, N, 4]
+      body_quat_w = body_quat_w.squeeze(1)  # [B, 4]
+    else:
+      body_quat_w = asset.data.root_link_quat_w  # [B, 4]
+
+    if terrain_sensor_names is not None:
+      terrain_normal = terrain_normal_from_sensors(env, terrain_sensor_names)  # [B, 3]
+      # Project terrain normal into body frame. When aligned with the terrain surface
+      # this should be (0, 0, 1); XY measures tilt.
+      target_b = quat_apply_inverse(body_quat_w, terrain_normal)  # [B, 3]
+      xy_squared = torch.sum(torch.square(target_b[:, :2]), dim=1)
+    else:
+      gravity_w = asset.data.gravity_vec_w  # [3]
+      projected_gravity_b = quat_apply_inverse(body_quat_w, gravity_w)
+      xy_squared = torch.sum(torch.square(projected_gravity_b[:, :2]), dim=1)
+
+    return torch.exp(-xy_squared / std**2)
+
+  def reset(self, env_ids: torch.Tensor) -> None:
+    del env_ids  # Unused.
+
+  def debug_vis(self, visualizer: DebugVisualizer) -> None:
+    if not self._debug_vis_enabled or self._terrain_sensor_names is None:
+      return
+
+    env = self._env
+    asset: Entity = env.scene[self._asset_cfg.name]
+
+    env_indices = list(visualizer.get_env_indices(env.num_envs))
+    if not env_indices:
+      return
+
+    terrain_normal = terrain_normal_from_sensors(env, self._terrain_sensor_names)
+    if self._asset_cfg.body_ids:
+      body_quat_w = asset.data.body_link_quat_w[:, self._asset_cfg.body_ids, :].squeeze(
+        1
+      )
+    else:
+      body_quat_w = asset.data.root_link_quat_w
+    up_local = torch.tensor([0.0, 0.0, 1.0], device=env.device).expand_as(
+      body_quat_w[:, :3]
+    )
+    body_up_w = quat_apply(body_quat_w, up_local)
+
+    positions = asset.data.root_link_pos_w
+    offset = torch.tensor([0.0, 0.3, 0.0], device=env.device)
+    scale = 0.25
+
+    for i in env_indices:
+      origin = positions[i] + offset
+      # Terrain normal (magenta).
+      visualizer.add_arrow(
+        start=origin,
+        end=origin + terrain_normal[i] * scale,
+        color=(0.8, 0.2, 0.8, 0.8),
+        width=0.01,
+      )
+      # Body up (orange).
+      visualizer.add_arrow(
+        start=origin,
+        end=origin + body_up_w[i] * scale,
+        color=(1.0, 0.5, 0.0, 0.8),
+        width=0.01,
+      )
 
 
 def self_collision_cost(
@@ -104,7 +175,7 @@ def self_collision_cost(
     hit = (force_mag > force_threshold).any(dim=1)  # [B, H]
     return hit.sum(dim=-1).float()  # [B]
   assert data.found is not None
-  return data.found.squeeze(-1)
+  return data.found.sum(dim=-1).float()
 
 
 def body_angular_velocity_penalty(
@@ -167,16 +238,21 @@ def feet_air_time(
 def feet_clearance(
   env: ManagerBasedRlEnv,
   target_height: float,
+  height_sensor_name: str,
   command_name: str | None = None,
   command_threshold: float = 0.01,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> torch.Tensor:
   """Penalize deviation from target clearance height, weighted by foot velocity."""
   asset: Entity = env.scene[asset_cfg.name]
-  foot_z = asset.data.site_pos_w[:, asset_cfg.site_ids, 2]  # [B, N]
-  foot_vel_xy = asset.data.site_lin_vel_w[:, asset_cfg.site_ids, :2]  # [B, N, 2]
-  vel_norm = torch.norm(foot_vel_xy, dim=-1)  # [B, N]
-  delta = torch.abs(foot_z - target_height)  # [B, N]
+  height_sensor = env.scene[height_sensor_name]
+  assert isinstance(height_sensor, TerrainHeightSensor), (
+    f"feet_clearance requires a TerrainHeightSensor, got {type(height_sensor).__name__}"
+  )
+  foot_height = height_sensor.data.heights  # [B, F]
+  foot_vel_xy = asset.data.site_lin_vel_w[:, asset_cfg.site_ids, :2]  # [B, F, 2]
+  vel_norm = torch.norm(foot_vel_xy, dim=-1)  # [B, F]
+  delta = torch.abs(foot_height - target_height)  # [B, F]
   cost = torch.sum(delta * vel_norm, dim=1)  # [B]
   if command_name is not None:
     command = env.command_manager.get_command(command_name)
@@ -193,10 +269,13 @@ class feet_swing_height:
   """Penalize deviation from target swing height, evaluated at landing."""
 
   def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
-    self.sensor_name = cfg.params["sensor_name"]
-    self.site_names = cfg.params["asset_cfg"].site_names
+    height_sensor = env.scene[cfg.params["height_sensor_name"]]
+    assert isinstance(height_sensor, TerrainHeightSensor), (
+      f"feet_swing_height requires a TerrainHeightSensor, got {type(height_sensor).__name__}"
+    )
+    num_feet = height_sensor.num_frames
     self.peak_heights = torch.zeros(
-      (env.num_envs, len(self.site_names)), device=env.device, dtype=torch.float32
+      (env.num_envs, num_feet), device=env.device, dtype=torch.float32
     )
     self.step_dt = env.step_dt
 
@@ -204,16 +283,16 @@ class feet_swing_height:
     self,
     env: ManagerBasedRlEnv,
     sensor_name: str,
+    height_sensor_name: str,
     target_height: float,
     command_name: str,
     command_threshold: float,
-    asset_cfg: SceneEntityCfg,
   ) -> torch.Tensor:
-    asset: Entity = env.scene[asset_cfg.name]
     contact_sensor: ContactSensor = env.scene[sensor_name]
     command = env.command_manager.get_command(command_name)
     assert command is not None
-    foot_heights = asset.data.site_pos_w[:, asset_cfg.site_ids, 2]
+    height_sensor: TerrainHeightSensor = env.scene[height_sensor_name]
+    foot_heights = height_sensor.data.heights
     in_air = contact_sensor.data.found == 0
     self.peak_heights = torch.where(
       in_air,

@@ -72,9 +72,9 @@ def test_foot_collision_geoms(go1_model) -> None:
   for i in range(go1_model.ngeom):
     geom = go1_model.geom(i)
     if re.match(foot_pattern, geom.name):
-      assert geom.condim == 3
+      assert geom.condim == 6
       assert geom.priority == 1
-      assert geom.friction[0] == 0.6
+      assert geom.friction[0] == 1.0
 
 
 def test_collision_geom_count(go1_model) -> None:
