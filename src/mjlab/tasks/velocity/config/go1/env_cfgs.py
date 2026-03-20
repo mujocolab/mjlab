@@ -225,17 +225,12 @@ def unitree_go1_rough_env_cfg(
   )
 
   # On rough terrain the quadruped tilts significantly; don't terminate on
-  # orientation alone. Let out_of_terrain_bounds handle bad episodes.
+  # orientation alone. Let terrain_edge_reached handle resets.
   cfg.terminations.pop("fell_over", None)
 
   cfg.terminations["illegal_contact"] = TerminationTermCfg(
     func=mdp.illegal_contact,
     params={"sensor_name": thigh_ground_cfg.name},
-  )
-  cfg.terminations["out_of_terrain_bounds"] = TerminationTermCfg(
-    func=mdp.out_of_terrain_bounds,
-    time_out=True,
-    params={"margin": 0.3},
   )
 
   # Apply play mode overrides.
@@ -297,7 +292,7 @@ def unitree_go1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   # On flat terrain fell_over is sufficient; thigh contact implies fallen.
   cfg.terminations.pop("illegal_contact", None)
-  cfg.terminations.pop("out_of_terrain_bounds", None)
+  cfg.terminations.pop("terrain_edge_reached", None)
   cfg.terminations["fell_over"] = TerminationTermCfg(
     func=mdp.bad_orientation,
     params={"limit_angle": math.radians(70.0)},

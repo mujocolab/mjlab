@@ -380,6 +380,10 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
       func=mdp.bad_orientation,
       params={"limit_angle": math.radians(70.0)},
     ),
+    "terrain_edge_reached": TerminationTermCfg(
+      func=mdp.terrain_edge_reached,
+      time_out=True,
+    ),
   }
 
   ##
