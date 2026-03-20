@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``STAIRS_TERRAINS_CFG`` terrain preset for progressive stair
+  curriculum training and ``@terrain_preset`` decorator for composing
+  terrain configurations from reusable presets.
 - Added cartpole balance and swingup tasks (``Mjlab-Cartpole-Balance`` and
   ``Mjlab-Cartpole-Swingup``) with a :ref:`tutorial <tutorial-cartpole>`
   that walks through building an environment from scratch.
