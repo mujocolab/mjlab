@@ -26,6 +26,8 @@ class PlayConfig:
   wandb_run_path: str | None = None
   wandb_checkpoint_name: str | None = None
   """Optional checkpoint name within the W&B run to load (e.g. 'model_4000.pt')."""
+  checkpoint_step: int | None = None
+  """Step number to load from W&B (e.g. 1500 loads model_1500.pt). Defaults to latest."""
   checkpoint_file: str | None = None
   motion_file: str | None = None
   num_envs: int | None = None
@@ -130,8 +132,11 @@ def run_play(task_id: str, cfg: PlayConfig):
         raise ValueError(
           "`wandb_run_path` is required when `checkpoint_file` is not provided."
         )
+      checkpoint_name = cfg.wandb_checkpoint_name
+      if checkpoint_name is None and cfg.checkpoint_step is not None:
+        checkpoint_name = f"model_{cfg.checkpoint_step}.pt"
       resume_path, was_cached = get_wandb_checkpoint_path(
-        log_root_path, Path(cfg.wandb_run_path), cfg.wandb_checkpoint_name
+        log_root_path, Path(cfg.wandb_run_path), checkpoint_name
       )
       # Extract run_id and checkpoint name from path for display.
       run_id = resume_path.parent.name
