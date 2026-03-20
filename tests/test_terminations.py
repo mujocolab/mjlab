@@ -10,7 +10,10 @@ from conftest import get_test_device
 from mjlab.envs.mdp.terminations import nan_detection
 from mjlab.managers.termination_manager import TerminationManager, TerminationTermCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
-from mjlab.tasks.velocity.mdp.terminations import terrain_edge_reached
+from mjlab.tasks.velocity.mdp.terminations import (
+  out_of_terrain_bounds,
+  terrain_edge_reached,
+)
 
 
 @pytest.fixture
@@ -157,3 +160,42 @@ def test_terrain_edge_reached_no_terrain(mock_terrain_env):
   asset.data.root_link_pos_w[0, 0] = 100.0
   result = terrain_edge_reached(env, threshold_fraction=0.95)
   assert not result.any()
+
+
+@pytest.fixture
+def mock_grid_terrain_env():
+  device = get_test_device()
+  num_envs = 4
+
+  env = Mock()
+  env.num_envs = num_envs
+  env.device = device
+
+  # 10x10 grid of 8x8m sub-terrains → half_x = 40m, limit = 39.7m.
+  terrain = Mock()
+  terrain.cfg.terrain_type = "generator"
+  terrain.cfg.terrain_generator.size = (8.0, 8.0)
+  terrain.cfg.terrain_generator.num_rows = 10
+  terrain.cfg.terrain_generator.num_cols = 10
+
+  env.scene.terrain = terrain
+
+  asset = Mock()
+  asset.data.root_link_pos_w = torch.zeros(num_envs, 3, device=device)
+  env.scene.__getitem__ = Mock(return_value=asset)
+
+  return env, asset
+
+
+def test_out_of_terrain_bounds_within(mock_grid_terrain_env):
+  env, asset = mock_grid_terrain_env
+  result = out_of_terrain_bounds(env)
+  assert not result.any()
+
+
+def test_out_of_terrain_bounds_outside(mock_grid_terrain_env):
+  env, asset = mock_grid_terrain_env
+  # Past the grid edge (limit_x = 40 - 0.3 = 39.7m).
+  asset.data.root_link_pos_w[2, 0] = 40.0
+  result = out_of_terrain_bounds(env)
+  assert result[2] and not result[0] and not result[1] and not result[3]
