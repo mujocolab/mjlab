@@ -25,7 +25,7 @@ class DiscriminatorCfg :
   weight : float = 1.0
 
 class Discriminator(nn.Module):
-  """Sigmoid simple model"""
+  """ReLU simple model"""
 
   def __init__(
     self,
