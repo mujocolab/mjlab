@@ -28,24 +28,25 @@ from mjlab.utils.spaces import Dict as DictSpace
 
 _DEFAULT_DISCRIMINATOR_CFG = DiscriminatorCfg()
 
-def load_motion_data(file_name: str = "", source_fps: int = 30, target_fps: int = 50) -> torch.Tensor:
+def load_motion_data(file_name: str = "", source_fps: int = 0, target_fps: int = 50) -> torch.Tensor:
 
   ext = os.path.splitext(file_name)[-1].lower()
 
   if ext == ".csv":
-    data = torch.tensor(pd.read_csv(file_name).values, dtype=torch.float32)
-    return data
+    _data = torch.tensor(pd.read_csv(file_name, header=None).values, dtype=torch.float32)
 
   elif ext in (".pkl", ".joblib"):
     data = joblib.load(file_name)
+    clip = data[list(data.keys())[0]]
+    _data = torch.tensor(clip["dof"], dtype=torch.float32)
 
   else:
     raise ValueError(f"Unsupported file format: {ext}")
 
-  clip = data[list(data.keys())[0]]  # get first clip
-  dof_data = torch.tensor(clip["dof"], dtype=torch.float32)  # (T, 23)
-  
-  T = dof_data.shape[0]
+  if source_fps == 0:
+    return _data
+
+  T = _data.shape[0]
   t_orig = torch.linspace(0, T / source_fps, T)
   t_new = torch.linspace(0, T / source_fps, int(T * target_fps / source_fps))
 
@@ -54,11 +55,11 @@ def load_motion_data(file_name: str = "", source_fps: int = 30, target_fps: int 
   t_high = t_orig[indices]
   alpha = ((t_new - t_low) / (t_high - t_low)).unsqueeze(-1)
 
-  dof_low = dof_data[indices - 1]
-  dof_high = dof_data[indices]
+  _data_low = _data[indices - 1]
+  _data_high = _data[indices]
 
-  dof_resampled = dof_low + alpha * (dof_high - dof_low)
-  return dof_resampled
+  _data_resampled = _data_low + alpha * (_data_high - _data_low)
+  return _data_resampled
 
 
 class _OnnxAmpModel(nn.Module):
@@ -85,6 +86,7 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
     device: str = "cpu",
     registry_name: str | None = None,
     discriminator_cfg: DiscriminatorCfg = _DEFAULT_DISCRIMINATOR_CFG,
+    resample : int = 0
   ):
     super().__init__(env, train_cfg, log_dir, device)
     self.registry_name = registry_name
@@ -93,7 +95,7 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
     self.discriminator = Discriminator(discriminator_cfg)
 
     if discriminator_cfg.motion_file is not None:
-      self.motion_data = load_motion_data(discriminator_cfg.motion_file).to(self.device)
+      self.motion_data = load_motion_data(discriminator_cfg.motion_file, source_fps=resample, target_fps=int(1.0 / self.env.unwrapped.step_dt)).to(self.device)
 
 
   # Overide OnPolicyRunner learn() to add Discriminator | but keep similar structure
@@ -155,6 +157,11 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
 
           discriminator_input = torch.cat((trajectory_buffer[trajectory_cursor-1],trajectory_buffer[trajectory_cursor]),dim=-1)
           disc_out = self.discriminator.forward(discriminator_input).squeeze()  # (num_envs,)
+
+          self.env.unwrapped.extras["log"][f"Metrics/Discriminator_ouput"] = torch.mean(
+            disc_out
+          )
+
           rewards += valid * self.discriminator.cfg.weight * torch.clamp(
               1.0 - 0.25 * torch.square(disc_out - 1.0),
               min=0.0
