@@ -60,13 +60,11 @@ class Discriminator(nn.Module):
     loss_fake = torch.mean((fake_preds + 1) ** 2)   # fake → -1
     return loss_real + loss_fake
   
-  def gradient_penalty(self, real_data: torch.Tensor) -> torch.Tensor:
-    real_data = real_data.requires_grad_(True)
-    preds = self.forward(real_data)
+  def gradient_penalty(self, real_data: torch.Tensor, real_preds: torch.Tensor) -> torch.Tensor:
     grads = torch.autograd.grad(
-      outputs=preds,
+      outputs=real_preds,
       inputs=real_data,
-      grad_outputs=torch.ones_like(preds),
+      grad_outputs=torch.ones_like(real_preds),
       create_graph=True,
       retain_graph=True,
     )[0]
@@ -75,12 +73,14 @@ class Discriminator(nn.Module):
   def train_oneshot(self, real_data, fake_data) -> None:
     self.train()
 
+    real_data = real_data.requires_grad_(True)  # ← moved here
     real_preds = self.forward(real_data)
     fake_preds = self.forward(fake_data)
 
     loss = self.discriminator_objective(real_preds, fake_preds)
-    loss += 5.0 * self.gradient_penalty(real_data)
+    loss += 5.0 * self.gradient_penalty(real_data, real_preds)
 
     self.optimizer.zero_grad()
     loss.backward()
     self.optimizer.step()
+    self.eval()

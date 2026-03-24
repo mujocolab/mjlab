@@ -86,7 +86,8 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
     device: str = "cpu",
     registry_name: str | None = None,
     discriminator_cfg: DiscriminatorCfg = _DEFAULT_DISCRIMINATOR_CFG,
-    resample : int = 0
+    resample: int = 0,
+    replay_buffer_size: int = 100_000,
   ):
     super().__init__(env, train_cfg, log_dir, device)
     self.registry_name = registry_name
@@ -97,8 +98,34 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
     if discriminator_cfg.motion_file is not None:
       self.motion_data = load_motion_data(discriminator_cfg.motion_file, source_fps=resample, target_fps=int(1.0 / self.env.unwrapped.step_dt)).to(self.device)
 
+    # Replay buffer: stores (obs_t, obs_t+1) pairs from past rollouts
+    self._replay_buffer = torch.zeros(replay_buffer_size, 2 * discriminator_cfg.n_obs, device=self.device)
+    self._replay_ptr = 0
+    self._replay_size = 0
+    self._replay_capacity = replay_buffer_size
 
-  # Overide OnPolicyRunner learn() to add Discriminator | but keep similar structure
+  def _push_to_replay_buffer(self, fake_data_flat: torch.Tensor) -> None:
+    """Insert a batch of transition pairs into the circular replay buffer."""
+    n = fake_data_flat.shape[0]
+    end = self._replay_ptr + n
+
+    if end <= self._replay_capacity:
+      self._replay_buffer[self._replay_ptr:end] = fake_data_flat
+    else:
+      # Wrap around
+      first = self._replay_capacity - self._replay_ptr
+      self._replay_buffer[self._replay_ptr:] = fake_data_flat[:first]
+      self._replay_buffer[:n - first] = fake_data_flat[first:]
+
+    self._replay_ptr = end % self._replay_capacity
+    self._replay_size = min(self._replay_size + n, self._replay_capacity)
+
+  def _sample_fake_data(self, n: int) -> torch.Tensor:
+    """Sample n transition pairs from the replay buffer."""
+    indices = torch.randint(0, self._replay_size, (n,), device=self.device)
+    return self._replay_buffer[indices]
+
+  # Override OnPolicyRunner learn() to add Discriminator | but keep similar structure
   def learn(self, num_learning_iterations: int, init_at_random_ep_len: bool = False) -> None:
     # Randomize initial episode lengths (for exploration)
     if init_at_random_ep_len:
@@ -155,12 +182,10 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
           done_buffer.append(dones)
           valid = (~dones).float()
 
-          discriminator_input = torch.cat((trajectory_buffer[trajectory_cursor-1],trajectory_buffer[trajectory_cursor]),dim=-1)
+          discriminator_input = torch.cat((trajectory_buffer[trajectory_cursor-1], trajectory_buffer[trajectory_cursor]), dim=-1)
           disc_out = self.discriminator.forward(discriminator_input).squeeze()  # (num_envs,)
 
-          self.env.unwrapped.extras["log"][f"Metrics/Discriminator_ouput"] = torch.mean(
-            disc_out
-          )
+          self.env.unwrapped.extras["log"]["Metrics/Discriminator_ouput"] = torch.mean(disc_out)
 
           rewards += valid * self.discriminator.cfg.weight * torch.clamp(
               1.0 - 0.25 * torch.square(disc_out - 1.0),
@@ -181,33 +206,31 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
         # Compute returns
         self.alg.compute_returns(obs)
 
-      # Here, update discriminator based on real and motion file samples
-      for update_step in range(self.discriminator.cfg.n_updates):
+      # Build fake transition pairs from current rollout and push to replay buffer
+      fake_stack = torch.stack(trajectory_buffer, dim=1)                            # (num_envs, T+1, n_obs)
+      fake_data = torch.cat([fake_stack[:, :-1, :], fake_stack[:, 1:, :]], dim=-1)  # (num_envs, T, 2*n_obs)
 
-        # Sample motion data slice
-        max_start = self.motion_data.shape[0] - self.cfg["num_steps_per_env"] - 1
-        start_idx = torch.randint(0, max_start, (1,)).item()
-        motion_slice = self.motion_data[start_idx : start_idx + self.cfg["num_steps_per_env"] + 1]
+      done_stack = torch.stack(done_buffer, dim=1)
+      valid_mask = (~done_stack)
 
-        # Build (obs_n, obs_n+1) pairs from trajectory buffer
-        fake_stack = torch.stack(trajectory_buffer, dim=1)   # (num_envs, 25, n_obs)
-        fake_data = torch.cat([fake_stack[:, :-1, :], fake_stack[:, 1:, :]], dim=-1)  # (num_envs, 24, 2*n_obs)
+      fake_data_flat = fake_data.view(-1, 2 * self.discriminator.cfg.n_obs)
+      valid_flat = valid_mask.view(-1)
+      fake_data_flat = fake_data_flat[valid_flat]
 
-        done_stack = torch.stack(done_buffer, dim=1)
-        valid_mask = (~done_stack).float()  
+      self._push_to_replay_buffer(fake_data_flat.detach())
 
-        fake_data_flat = fake_data.view(-1, 2 * self.discriminator.cfg.n_obs)
-        valid_flat = valid_mask.view(-1).bool()
-        fake_data_flat = fake_data_flat[valid_flat]
+      # Update discriminator using replay buffer samples
+      for _ in range(self.discriminator.cfg.n_updates):
 
-        # Build (obs_n, obs_n+1) pairs from motion data
-        n_fake = fake_data_flat.shape[0]
+        # Only sample from replay buffer once it has enough data
+        n_fake = min(fake_data_flat.shape[0], self._replay_size)
+        sampled_fake = self._sample_fake_data(n_fake)
 
-        # Sample random consecutive pairs from motion data to match fake data size
+        # Sample real data to match fake batch size
         indices = torch.randint(0, self.motion_data.shape[0] - 1, (n_fake,), device=self.device)
         real_data_flat = torch.cat([self.motion_data[indices], self.motion_data[indices + 1]], dim=-1)
 
-        self.discriminator.train_oneshot(real_data_flat, fake_data_flat)
+        self.discriminator.train_oneshot(real_data_flat, sampled_fake)
 
       # Update policy
       loss_dict = self.alg.update()
@@ -254,9 +277,7 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
       opset_version=18,
       verbose=verbose,
       input_names=["obs"],
-      output_names=[
-        "actions",
-      ],
+      output_names=["actions"],
       dynamic_axes={},
       dynamo=False,
     )
