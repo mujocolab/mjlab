@@ -120,6 +120,11 @@ def make_amp_env_cfg() -> ManagerBasedRlEnvCfg:
       noise=Unoise(n_min=-0.01, n_max=0.01),
       params={"asset_cfg": SceneEntityCfg("robot", joint_names=(".*"))} # Set per-robot
     ),
+    "joint_vel": ObservationTermCfg(
+      func=mdp.joint_vel_rel,
+      noise=Unoise(n_min=-0.01, n_max=0.01),
+      params={"asset_cfg": SceneEntityCfg("robot", joint_names=(".*"))} # Set per-robot
+    ),
   }
 
   observations = {
