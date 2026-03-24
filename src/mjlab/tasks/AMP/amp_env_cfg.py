@@ -125,6 +125,16 @@ def make_amp_env_cfg() -> ManagerBasedRlEnvCfg:
       noise=Unoise(n_min=-0.01, n_max=0.01),
       params={"asset_cfg": SceneEntityCfg("robot", joint_names=(".*"))} # Set per-robot
     ),
+    "base_lin_vel": ObservationTermCfg(
+      func=mdp.builtin_sensor,
+      params={"sensor_name": "robot/imu_lin_vel"},
+      noise=Unoise(n_min=-0.5, n_max=0.5),
+    ),
+    "base_ang_vel": ObservationTermCfg(
+      func=mdp.builtin_sensor,
+      params={"sensor_name": "robot/imu_ang_vel"},
+      noise=Unoise(n_min=-0.2, n_max=0.2),
+    ),
   }
 
   observations = {
@@ -309,7 +319,7 @@ def make_amp_env_cfg() -> ManagerBasedRlEnvCfg:
     "time_out": TerminationTermCfg(func=mdp.time_out, time_out=True),
     "fell_over": TerminationTermCfg(
       func=mdp.bad_orientation,
-      params={"limit_angle": math.radians(50.0)},
+      params={"limit_angle": math.radians(75.0)},
     ),
   }
 

@@ -73,7 +73,7 @@ class Discriminator(nn.Module):
   def train_oneshot(self, real_data, fake_data) -> None:
     self.train()
 
-    real_data = real_data.requires_grad_(True)  # ← moved here
+    real_data = real_data.requires_grad_(True)
     real_preds = self.forward(real_data)
     fake_preds = self.forward(fake_data)
 
