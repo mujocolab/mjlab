@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import torch
-import torch.nn.functional as F
 
 from torch import nn
 
@@ -61,19 +60,26 @@ class Discriminator(nn.Module):
     loss_fake = torch.mean((fake_preds + 1) ** 2)   # fake → -1
     return loss_real + loss_fake
   
-  def train_oneshot(
-    self,
-    real_data,
-    fake_data
-  ) -> None:
-    
+  def gradient_penalty(self, real_data: torch.Tensor) -> torch.Tensor:
+    real_data = real_data.requires_grad_(True)
+    preds = self.forward(real_data)
+    grads = torch.autograd.grad(
+      outputs=preds,
+      inputs=real_data,
+      grad_outputs=torch.ones_like(preds),
+      create_graph=True,
+      retain_graph=True,
+    )[0]
+    return torch.mean(torch.sum(grads**2, dim=-1))
+
+  def train_oneshot(self, real_data, fake_data) -> None:
     self.train()
 
-    # Forward pass
     real_preds = self.forward(real_data)
     fake_preds = self.forward(fake_data)
 
     loss = self.discriminator_objective(real_preds, fake_preds)
+    loss += 5.0 * self.gradient_penalty(real_data)
 
     self.optimizer.zero_grad()
     loss.backward()

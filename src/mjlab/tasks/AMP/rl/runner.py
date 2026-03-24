@@ -189,11 +189,8 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
         start_idx = torch.randint(0, max_start, (1,)).item()
         motion_slice = self.motion_data[start_idx : start_idx + self.cfg["num_steps_per_env"] + 1]
 
-        # Build (obs_n, obs_n+1) pairs from motion data
-        real_data = torch.cat([motion_slice[:-1], motion_slice[1:]], dim=-1)
-
         # Build (obs_n, obs_n+1) pairs from trajectory buffer
-        fake_stack = torch.stack(trajectory_buffer, dim=1)   # (num_envs, 25, n_obs) ✅
+        fake_stack = torch.stack(trajectory_buffer, dim=1)   # (num_envs, 25, n_obs)
         fake_data = torch.cat([fake_stack[:, :-1, :], fake_stack[:, 1:, :]], dim=-1)  # (num_envs, 24, 2*n_obs)
 
         done_stack = torch.stack(done_buffer, dim=1)
@@ -203,7 +200,12 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
         valid_flat = valid_mask.view(-1).bool()
         fake_data_flat = fake_data_flat[valid_flat]
 
-        real_data_flat = real_data.view(-1, 2 * self.discriminator.cfg.n_obs)
+        # Build (obs_n, obs_n+1) pairs from motion data
+        n_fake = fake_data_flat.shape[0]
+
+        # Sample random consecutive pairs from motion data to match fake data size
+        indices = torch.randint(0, self.motion_data.shape[0] - 1, (n_fake,), device=self.device)
+        real_data_flat = torch.cat([self.motion_data[indices], self.motion_data[indices + 1]], dim=-1)
 
         self.discriminator.train_oneshot(real_data_flat, fake_data_flat)
 
