@@ -170,3 +170,61 @@ def test_foot_height_miss_returns_max_distance(device):
   # Both feet are >1m above ground, beyond max_distance=1.0.
   assert heights[0, 0].item() == pytest.approx(1.0, abs=0.01)
   assert heights[0, 1].item() == pytest.approx(1.0, abs=0.01)
+
+
+def test_foot_penetration_plane(device):
+  """Foot below a ground plane should report near-zero, not max_distance."""
+  xml = """
+    <mujoco>
+      <worldbody>
+        <geom name="ground" type="plane" size="5 5 0.1" pos="0 0 0"/>
+        <body name="base" pos="0 0 0.05">
+          <freejoint name="free_joint"/>
+          <geom name="base_geom" type="sphere" size="0.02" mass="1.0" group="1"/>
+          <site name="left_foot" pos="0 0 -0.04"/>
+          <site name="right_foot" pos="0 0 -0.06"/>
+        </body>
+      </worldbody>
+    </mujoco>
+  """
+  # left_foot at z=0.01 (above), right_foot at z=-0.01 (below).
+  cfg = _foot_sensor_cfg()
+  scene, sim = make_scene_and_sim(device, xml, (cfg,))
+  sim.step()
+  sim.forward()
+  sim.sense()
+
+  heights = scene["foot_height_scan"].data.heights[0]
+  assert heights[0].item() < 0.1
+  assert heights[1].item() < 0.5
+
+
+def test_foot_penetration_box(device):
+  """Foot inside box terrain should report near-zero, not box thickness.
+
+  Regression: rays inside a box hit the bottom face, producing a bogus
+  height equal to the box thickness.
+  """
+  xml = """
+    <mujoco>
+      <worldbody>
+        <geom name="terrain" type="box" size="5 5 0.5" pos="0 0 0.5"/>
+        <body name="base" pos="0 0 1.05">
+          <freejoint name="free_joint"/>
+          <geom name="base_geom" type="sphere" size="0.02" mass="1.0" group="1"/>
+          <site name="left_foot" pos="0 0 -0.04"/>
+          <site name="right_foot" pos="0 0 -0.08"/>
+        </body>
+      </worldbody>
+    </mujoco>
+  """
+  # Terrain top at z=1.0. left_foot at z=1.01, right_foot at z=0.97.
+  cfg = _foot_sensor_cfg()
+  scene, sim = make_scene_and_sim(device, xml, (cfg,))
+  sim.step()
+  sim.forward()
+  sim.sense()
+
+  heights = scene["foot_height_scan"].data.heights[0]
+  assert heights[0].item() < 0.1
+  assert heights[1].item() < 0.5

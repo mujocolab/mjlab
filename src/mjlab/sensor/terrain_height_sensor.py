@@ -63,15 +63,16 @@ class TerrainHeightSensor(RayCastSensor):
     hit_z = raw.hit_pos_w[:, :, 2].view(B, F, N)  # [B, F, N]
     heights = frame_z.unsqueeze(-1) - hit_z  # [B, F, N]
 
-    miss = raw.distances.view(B, F, N) < 0
-    # When all rays for a frame miss there are two cases:
-    # 1. Frame is below or at the terrain surface (rays start below and
-    #    point down, never hitting anything). True clearance is ~0.
-    # 2. Frame is genuinely above max_distance. True clearance >=
-    #    max_distance.
-    # We distinguish them using frame_z clamped to [0, max_distance].
-    # For partial misses (some rays hit, some don't), max_distance is
-    # the right fallback since the frame is above terrain.
+    dists = raw.distances.view(B, F, N)
+    normal_z = raw.normals_w[:, :, 2].view(B, F, N)
+
+    # Backface hit: ray hit the underside of geometry (normal_z < 0).
+    # This means the ray origin is inside terrain, so clearance is 0.
+    backface = (dists >= 0) & (normal_z < 0)
+    heights = torch.where(backface, torch.zeros_like(heights), heights)
+
+    # True miss: no intersection at all.
+    miss = dists < 0
     all_miss = miss.all(dim=-1, keepdim=True).expand_as(miss)  # [B, F, N]
     fallback = frame_z.unsqueeze(-1).clamp(0, self.cfg.max_distance)
     fallback = fallback.expand_as(heights)  # [B, F, N]
