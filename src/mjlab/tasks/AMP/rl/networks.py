@@ -17,7 +17,7 @@ class DiscriminatorCfg :
 
   device : torch.device | str | None = None
 
-  n_updates : int = 10
+  n_updates : int = 2
 
   motion_file : str | None = None
 
@@ -47,7 +47,8 @@ class Discriminator(nn.Module):
     )
     self.prediction = nn.Linear(cfg.hidden_dim, self.n_out, device=cfg.device)
 
-    self.optimizer = torch.optim.Adam(self.parameters(), lr=3e-4)
+    self.optimizer = torch.optim.Adam(self.parameters(), lr=1e-5)
+    
 
   def forward(
     self, obs: torch.Tensor
@@ -74,11 +75,18 @@ class Discriminator(nn.Module):
     self.train()
 
     real_data = real_data.requires_grad_(True)
-    real_preds = self.forward(real_data)
-    fake_preds = self.forward(fake_data)
+    fake_data = fake_data.requires_grad_(True)
+
+    noise_std = 0.05
+    _real_data = real_data + noise_std * torch.randn_like(real_data)
+    _fake_data = fake_data + noise_std * torch.randn_like(fake_data)
+
+    real_preds = self.forward(_real_data)
+    fake_preds = self.forward(_fake_data)
 
     loss = self.discriminator_objective(real_preds, fake_preds)
-    loss += 0.1 * self.gradient_penalty(real_data, real_preds)
+    loss += 0.05 * self.gradient_penalty(real_data, real_preds)
+    loss += 0.05 * self.gradient_penalty(fake_data, fake_preds)
 
     self.optimizer.zero_grad()
     loss.backward()

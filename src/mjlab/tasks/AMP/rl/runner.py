@@ -187,14 +187,17 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
           obs_t = (trajectory_buffer[trajectory_cursor-1] - self.motion_mean) / self.motion_std
           obs_tp1 = (trajectory_buffer[trajectory_cursor] - self.motion_mean) / self.motion_std
           discriminator_input = torch.cat((obs_t, obs_tp1), dim=-1)
+          discriminator_input_noise = 0.05 * torch.randn_like(discriminator_input)
+          discriminator_input = discriminator_input + discriminator_input_noise
           disc_out = self.discriminator.forward(discriminator_input).squeeze()
 
           self.env.unwrapped.extras["log"]["Metrics/Discriminator_ouput"] = torch.mean(disc_out)
-
           amp_reward = valid * self.discriminator.cfg.weight * torch.clamp(
             1.0 - 0.25 * torch.square(disc_out - 1.0),
             min=0.0
           )
+
+          self.env.unwrapped.extras["log"]["Metrics/Discriminator_reward"] = torch.mean(amp_reward)
 
           rewards += amp_reward
 
@@ -234,11 +237,11 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
 
       self._push_to_replay_buffer(fake_data_flat.detach())
 
-      if self._replay_size >= 1000:
+      if it >= 50 and it % 4 == 0:
         # Update discriminator using replay buffer samples
         for _ in range(self.discriminator.cfg.n_updates):
           # Only sample from replay buffer once it has enough data
-          n_fake = min(fake_data_flat.shape[0], self._replay_size)
+          n_fake = min(fake_data_flat.shape[0], self._replay_size, 512)
           sampled_fake = self._sample_fake_data(n_fake)
 
           # Sample real data to match fake batch size
