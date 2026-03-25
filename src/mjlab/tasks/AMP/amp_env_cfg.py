@@ -116,12 +116,12 @@ def make_amp_env_cfg() -> ManagerBasedRlEnvCfg:
 
   discriminator_terms = {
     "joint_pos": ObservationTermCfg(
-      func=mdp.joint_pos_rel,
+      func=mdp.joint_pos_abs,
       noise=Unoise(n_min=-0.01, n_max=0.01),
       params={"asset_cfg": SceneEntityCfg("robot", joint_names=(".*"))} # Set per-robot
     ),
     "joint_vel": ObservationTermCfg(
-      func=mdp.joint_vel_rel,
+      func=mdp.joint_vel_abs,
       noise=Unoise(n_min=-0.01, n_max=0.01),
       params={"asset_cfg": SceneEntityCfg("robot", joint_names=(".*"))} # Set per-robot
     ),
@@ -319,7 +319,7 @@ def make_amp_env_cfg() -> ManagerBasedRlEnvCfg:
     "time_out": TerminationTermCfg(func=mdp.time_out, time_out=True),
     "fell_over": TerminationTermCfg(
       func=mdp.bad_orientation,
-      params={"limit_angle": math.radians(75.0)},
+      params={"limit_angle": math.radians(100.0)},
     ),
   }
 

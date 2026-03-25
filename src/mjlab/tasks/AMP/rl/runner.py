@@ -97,6 +97,8 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
 
     if discriminator_cfg.motion_file is not None:
       self.motion_data = load_motion_data(discriminator_cfg.motion_file, source_fps=resample, target_fps=int(1.0 / self.env.unwrapped.step_dt)).to(self.device)
+      self.motion_mean = self.motion_data.mean(dim=0, keepdim=True)
+      self.motion_std = self.motion_data.std(dim=0, keepdim=True) + 1e-6
 
     # Replay buffer: stores (obs_t, obs_t+1) pairs from past rollouts
     self._replay_buffer = torch.zeros(replay_buffer_size, 2 * discriminator_cfg.n_obs, device=self.device)
@@ -182,8 +184,10 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
           done_buffer.append(dones)
           valid = (~dones).float()
 
-          discriminator_input = torch.cat((trajectory_buffer[trajectory_cursor-1], trajectory_buffer[trajectory_cursor]), dim=-1)
-          disc_out = self.discriminator.forward(discriminator_input).squeeze()  # (num_envs,)
+          obs_t = (trajectory_buffer[trajectory_cursor-1] - self.motion_mean) / self.motion_std
+          obs_tp1 = (trajectory_buffer[trajectory_cursor] - self.motion_mean) / self.motion_std
+          discriminator_input = torch.cat((obs_t, obs_tp1), dim=-1)
+          disc_out = self.discriminator.forward(discriminator_input).squeeze()
 
           self.env.unwrapped.extras["log"]["Metrics/Discriminator_ouput"] = torch.mean(disc_out)
 
@@ -217,20 +221,38 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
       valid_flat = valid_mask.view(-1)
       fake_data_flat = fake_data_flat[valid_flat]
 
+      # THEN split
+      fake_t = fake_data_flat[:, :self.discriminator.cfg.n_obs]
+      fake_tp1 = fake_data_flat[:, self.discriminator.cfg.n_obs:]
+
+      # Normalize
+      fake_t = (fake_t - self.motion_mean) / self.motion_std
+      fake_tp1 = (fake_tp1 - self.motion_mean) / self.motion_std
+
+      fake_data_flat = torch.cat([fake_t, fake_tp1], dim=-1)
+
       self._push_to_replay_buffer(fake_data_flat.detach())
 
-      # Update discriminator using replay buffer samples
-      for _ in range(self.discriminator.cfg.n_updates):
+      if self._replay_size >= 1000:
+        # Update discriminator using replay buffer samples
+        for _ in range(self.discriminator.cfg.n_updates):
+          # Only sample from replay buffer once it has enough data
+          n_fake = min(fake_data_flat.shape[0], self._replay_size)
+          sampled_fake = self._sample_fake_data(n_fake)
 
-        # Only sample from replay buffer once it has enough data
-        n_fake = min(fake_data_flat.shape[0], self._replay_size)
-        sampled_fake = self._sample_fake_data(n_fake)
+          # Sample real data to match fake batch size
+          indices = torch.randint(0, self.motion_data.shape[0] - 1, (n_fake,), device=self.device)
+          
+          real_t = self.motion_data[indices]
+          real_tp1 = self.motion_data[indices + 1]
 
-        # Sample real data to match fake batch size
-        indices = torch.randint(0, self.motion_data.shape[0] - 1, (n_fake,), device=self.device)
-        real_data_flat = torch.cat([self.motion_data[indices], self.motion_data[indices + 1]], dim=-1)
+          # Normalize each frame BEFORE concatenation
+          real_t = (real_t - self.motion_mean) / self.motion_std
+          real_tp1 = (real_tp1 - self.motion_mean) / self.motion_std
 
-        self.discriminator.train_oneshot(real_data_flat, sampled_fake)
+          real_data_flat = torch.cat([real_t, real_tp1], dim=-1)
+
+          self.discriminator.train_oneshot(real_data_flat, sampled_fake)
 
       # Update policy
       loss_dict = self.alg.update()

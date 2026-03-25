@@ -48,6 +48,25 @@ def projected_gravity(
 ##
 
 
+def joint_pos_abs(
+  env: ManagerBasedRlEnv,
+  biased: bool = False,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  asset: Entity = env.scene[asset_cfg.name]
+  jnt_ids = asset_cfg.joint_ids
+  joint_pos = asset.data.joint_pos_biased if biased else asset.data.joint_pos
+  return joint_pos[:, jnt_ids]
+
+
+def joint_vel_abs(
+  env: ManagerBasedRlEnv,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  asset: Entity = env.scene[asset_cfg.name]
+  jnt_ids = asset_cfg.joint_ids
+  return asset.data.joint_vel[:, jnt_ids]
+
 def joint_pos_rel(
   env: ManagerBasedRlEnv,
   biased: bool = False,
