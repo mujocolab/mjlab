@@ -78,7 +78,7 @@ class Discriminator(nn.Module):
     fake_preds = self.forward(fake_data)
 
     loss = self.discriminator_objective(real_preds, fake_preds)
-    loss += 5.0 * self.gradient_penalty(real_data, real_preds)
+    loss += 0.1 * self.gradient_penalty(real_data, real_preds)
 
     self.optimizer.zero_grad()
     loss.backward()

@@ -27,17 +27,33 @@ def track_linear_velocity(
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> torch.Tensor:
   """Reward for tracking the commanded base linear velocity.
-
-  The commanded z velocity is assumed to be zero.
+  
+  Projects velocity onto the world horizontal plane using yaw-only rotation,
+  so the robot cannot gain reward by flopping forward or gaining vertical velocity.
   """
   asset: Entity = env.scene[asset_cfg.name]
   command = env.command_manager.get_command(command_name)
   assert command is not None, f"Command '{command_name}' not found."
-  actual = asset.data.root_link_lin_vel_b
-  xy_error = torch.sum(torch.square(command[:, :2] - actual[:, :2]), dim=1)
-  z_error = torch.square(actual[:, 2])
-  lin_vel_error = xy_error + z_error
-  return torch.exp(-lin_vel_error / std**2)
+
+  # Extract yaw from quaternion (w, x, y, z)
+  quat = asset.data.root_link_quat_w
+  w, x, y, z = quat[:, 0], quat[:, 1], quat[:, 2], quat[:, 3]
+  yaw = torch.atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
+  cos_yaw = torch.cos(yaw)
+  sin_yaw = torch.sin(yaw)
+
+  # Project body frame XY velocity into yaw-aligned horizontal plane
+  actual_b = asset.data.root_link_lin_vel_b
+  vx = actual_b[:, 0]
+  vy = actual_b[:, 1]
+  actual_horizontal_x = cos_yaw * vx - sin_yaw * vy
+  actual_horizontal_y = sin_yaw * vx + cos_yaw * vy
+  actual_horizontal = torch.stack([actual_horizontal_x, actual_horizontal_y], dim=1)
+
+  # Penalize vertical velocity in body frame
+  xy_error = torch.sum(torch.square(command[:, :2] - actual_horizontal), dim=1)
+  z_error = torch.square(actual_b[:, 2])
+  return torch.exp(-(xy_error + z_error) / std**2)
 
 
 def track_angular_velocity(

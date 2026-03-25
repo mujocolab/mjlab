@@ -182,7 +182,7 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
           obs, rewards, dones = (obs.to(self.device), rewards.to(self.device), dones.to(self.device))
 
           done_buffer.append(dones)
-          valid = (~dones).float()
+          valid = (dones == 0).float()
 
           obs_t = (trajectory_buffer[trajectory_cursor-1] - self.motion_mean) / self.motion_std
           obs_tp1 = (trajectory_buffer[trajectory_cursor] - self.motion_mean) / self.motion_std
@@ -191,10 +191,12 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
 
           self.env.unwrapped.extras["log"]["Metrics/Discriminator_ouput"] = torch.mean(disc_out)
 
-          rewards += valid * self.discriminator.cfg.weight * torch.clamp(
-              1.0 - 0.25 * torch.square(disc_out - 1.0),
-              min=0.0
+          amp_reward = valid * self.discriminator.cfg.weight * torch.clamp(
+            1.0 - 0.25 * torch.square(disc_out - 1.0),
+            min=0.0
           )
+
+          rewards += amp_reward
 
           # Process the step
           self.alg.process_env_step(obs, rewards, dones, extras)
@@ -215,13 +217,12 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
       fake_data = torch.cat([fake_stack[:, :-1, :], fake_stack[:, 1:, :]], dim=-1)  # (num_envs, T, 2*n_obs)
 
       done_stack = torch.stack(done_buffer, dim=1)
-      valid_mask = (~done_stack)
+      valid_mask = (done_stack == 0)
 
       fake_data_flat = fake_data.view(-1, 2 * self.discriminator.cfg.n_obs)
       valid_flat = valid_mask.view(-1)
       fake_data_flat = fake_data_flat[valid_flat]
 
-      # THEN split
       fake_t = fake_data_flat[:, :self.discriminator.cfg.n_obs]
       fake_tp1 = fake_data_flat[:, self.discriminator.cfg.n_obs:]
 
