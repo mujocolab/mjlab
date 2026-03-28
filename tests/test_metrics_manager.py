@@ -122,3 +122,74 @@ def test_none_terms_are_skipped(mock_env):
   }
   manager = MetricsManager(cfg, mock_env)  # type: ignore[arg-type]
   assert manager._term_names == ["valid"]
+
+
+def test_per_substep_averaging(mock_env):
+  """Substep terms are averaged across substeps; step terms evaluated once."""
+  substep_call = [0]
+
+  def rising_metric(env):
+    substep_call[0] += 1
+    return torch.full((env.num_envs,), float(substep_call[0]), device=env.device)
+
+  cfg = {
+    "step_term": MetricsTermCfg(
+      func=lambda env: torch.ones(env.num_envs, device=env.device) * 2.0,
+      params={},
+    ),
+    "substep_term": MetricsTermCfg(func=rising_metric, params={}, per_substep=True),
+  }
+  manager = MetricsManager(cfg, mock_env)
+
+  for _ in range(2):  # 2 env steps
+    for _ in range(4):  # 4 substeps each
+      manager.compute_substep()
+    manager.compute()
+
+  info = manager.reset(env_ids=torch.tensor([0]))
+  assert info["Episode_Metrics/step_term"].item() == pytest.approx(2.0)
+  # Substeps: step 0 -> [1,2,3,4] avg=2.5; step 1 -> [5,6,7,8] avg=6.5.
+  # Episode avg = (2.5 + 6.5) / 2 = 4.5.  A broken single-eval path
+  # would give (1 + 2) / 2 = 1.5.
+  assert info["Episode_Metrics/substep_term"].item() == pytest.approx(4.5)
+
+
+def test_substep_reset_zeroes_accumulators(mock_env):
+  """Reset zeroes substep accumulators for the given env_ids."""
+  cfg = {
+    "sub": MetricsTermCfg(
+      func=lambda env: torch.ones(env.num_envs, device=env.device),
+      params={},
+      per_substep=True,
+    ),
+  }
+  manager = MetricsManager(cfg, mock_env)
+
+  # Accumulate some substep values without calling compute().
+  for _ in range(3):
+    manager.compute_substep()
+
+  # Reset env 0 -- its substep accum should be zeroed.
+  manager.reset(env_ids=torch.tensor([0]))
+  assert manager._substep_accum[0][0].item() == 0.0
+  # Env 1 still has its accumulated value.
+  assert manager._substep_accum[0][1].item() == pytest.approx(3.0)
+
+
+def test_no_substep_terms_no_overhead(mock_env):
+  """When no per_substep terms exist, compute_substep is a no-op."""
+  cfg = {
+    "step_only": MetricsTermCfg(
+      func=lambda env: torch.ones(env.num_envs, device=env.device),
+      params={},
+    ),
+  }
+  manager = MetricsManager(cfg, mock_env)
+
+  # Should not raise or change state.
+  manager.compute_substep()
+  assert manager._substep_count == 0
+
+  manager.compute()
+  info = manager.reset(env_ids=torch.tensor([0]))
+  assert info["Episode_Metrics/step_only"].item() == pytest.approx(1.0)

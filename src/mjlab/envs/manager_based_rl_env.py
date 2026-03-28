@@ -375,6 +375,7 @@ class ManagerBasedRlEnv:
       self.scene.write_data_to_sim()
       self.sim.step()
       self.scene.update(dt=self.physics_dt)
+      self.metrics_manager.compute_substep()
 
     # Update env counters.
     self.episode_length_buf += 1

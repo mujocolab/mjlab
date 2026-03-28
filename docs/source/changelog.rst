@@ -34,6 +34,10 @@ Added
   (:issue:`776`).
 - Added ``RewardBarPanel`` to the Viser viewer, showing horizontal bars for
   each reward term with a running mean over ~1 second (:issue:`800`).
+- Added ``per_substep`` flag to ``MetricsTermCfg`` for evaluating metrics
+  once per physics substep inside the decimation loop. The per substep
+  values are averaged within each environment step, so episode averages
+  remain comparable to regular per step metrics.
 
 Changed
 ^^^^^^^
