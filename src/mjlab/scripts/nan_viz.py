@@ -58,7 +58,7 @@ class NanDumpViewer:
     self.server = viser.ViserServer(label="NaN Dump Viewer")
     self.current_step = 0
     self.current_env = 0
-    self.scene = ViserMujocoScene.create(self.server, self.model, num_envs=1)
+    self.scene = ViserMujocoScene(self.server, self.model, num_envs=1)
 
   def setup(self) -> None:
     """Setup the viewer GUI and scene."""
@@ -95,7 +95,7 @@ class NanDumpViewer:
           self._update_state()
 
     # Add standard visualization options (hide debug viz control since no env).
-    self.scene.create_visualization_gui(show_debug_viz_control=False)
+    self.scene.create_scene_gui(show_debug_viz_control=False)
 
     # Initial state update.
     self._update_state()

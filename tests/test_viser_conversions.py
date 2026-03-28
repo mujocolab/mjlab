@@ -46,7 +46,7 @@ def test_unitree_g1_conversion():
       mesh_geom_count += 1
 
       # Convert to trimesh.
-      mesh = mujoco_mesh_to_trimesh(model, geom_idx, verbose=False)
+      mesh = mujoco_mesh_to_trimesh(model, geom_idx)
 
       # Basic checks.
       assert mesh is not None, f"Failed to convert geom {geom_idx}"
@@ -77,7 +77,7 @@ def test_unitree_go1_conversion():
       mesh_geom_count += 1
 
       # Convert to trimesh.
-      mesh = mujoco_mesh_to_trimesh(model, geom_idx, verbose=False)
+      mesh = mujoco_mesh_to_trimesh(model, geom_idx)
 
       # Basic checks.
       assert mesh is not None, f"Failed to convert geom {geom_idx}"
@@ -119,7 +119,7 @@ def test_texture_extraction():
   # Find the mesh geom.
   for geom_idx in range(model.ngeom):
     if model.geom_type[geom_idx] == mujoco.mjtGeom.mjGEOM_MESH:
-      mesh = mujoco_mesh_to_trimesh(model, geom_idx, verbose=False)
+      mesh = mujoco_mesh_to_trimesh(model, geom_idx)
 
       assert mesh is not None, "Failed to convert textured mesh"
       assert mesh.visual is not None, "Mesh has no visual"
@@ -165,7 +165,7 @@ def test_material_colors():
   colors_found = []
   for geom_idx in range(model.ngeom):
     if model.geom_type[geom_idx] == mujoco.mjtGeom.mjGEOM_MESH:
-      mesh = mujoco_mesh_to_trimesh(model, geom_idx, verbose=False)
+      mesh = mujoco_mesh_to_trimesh(model, geom_idx)
 
       # Check visual colors.
       visual = mesh.visual
@@ -197,7 +197,7 @@ def test_performance():
 
   start_time = time.time()
   for geom_idx in mesh_geoms:
-    mujoco_mesh_to_trimesh(model, geom_idx, verbose=False)
+    mujoco_mesh_to_trimesh(model, geom_idx)
   elapsed = time.time() - start_time
 
   avg_time = elapsed / len(mesh_geoms) * 1000  # Convert to ms.
@@ -207,44 +207,6 @@ def test_performance():
   # Warn if it's too slow.
   if avg_time > 50:
     print("  ⚠ Warning: Conversion is slow (>50ms per mesh)")
-
-
-def test_verbose_mode():
-  """Test that verbose mode produces output."""
-  xml_string = """
-    <mujoco>
-        <asset>
-            <material name="test" rgba="1 0 0 1"/>
-            <!-- Tetrahedron with 4 vertices -->
-            <mesh name="tetra"
-                  vertex="0 0 0  1 0 0  0.5 0.866 0  0.5 0.289 0.816"
-                  face="0 1 2  0 1 3  0 2 3  1 2 3"/>
-        </asset>
-        <worldbody>
-            <geom type="mesh" mesh="tetra" material="test"/>
-        </worldbody>
-    </mujoco>
-    """
-
-  model = mujoco.MjModel.from_xml_string(xml_string)
-
-  # Test with verbose=True.
-  import io
-  import sys
-
-  captured_output = io.StringIO()
-  sys.stdout = captured_output
-
-  mujoco_mesh_to_trimesh(model, 0, verbose=True)
-
-  sys.stdout = sys.__stdout__
-  output = captured_output.getvalue()
-
-  # Should have printed something.
-  assert len(output) > 0, "Verbose mode should produce output"
-  assert "vertices" in output or "color" in output, "Should mention vertices or color"
-
-  print("✓ Verbose mode: Produces debug output when enabled")
 
 
 def test_mesh_with_texture_coordinates():
@@ -271,7 +233,7 @@ def test_mesh_with_texture_coordinates():
   assert model.mesh_texcoordnum[0] == 4, "Mesh should have 4 texture coordinates"
 
   # Convert the mesh.
-  mesh = mujoco_mesh_to_trimesh(model, 0, verbose=False)
+  mesh = mujoco_mesh_to_trimesh(model, 0)
 
   # Verify the mesh was created successfully.
   assert mesh is not None, "Failed to convert textured mesh"
@@ -578,7 +540,6 @@ if __name__ == "__main__":
     test_texture_extraction,
     test_material_colors,
     test_performance,
-    test_verbose_mode,
     test_mesh_with_texture_coordinates,
     test_get_geom_texture_id,
     test_get_geom_texture_id_primitive,

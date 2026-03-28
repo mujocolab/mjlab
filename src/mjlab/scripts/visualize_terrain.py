@@ -16,7 +16,14 @@ from typing import Any, List, TypedDict
 
 import mujoco
 import numpy as np
+import trimesh
 import viser
+from mjviser.conversions import (
+  create_primitive_mesh,
+  merge_geoms,
+  mujoco_mesh_to_trimesh,
+)
+from mujoco import mjtGeom
 
 from mjlab.asset_zoo.robots import (
   get_g1_robot_cfg,
@@ -27,10 +34,6 @@ from mjlab.terrains.config import ALL_TERRAINS_CFG
 from mjlab.terrains.terrain_generator import (
   TerrainGenerator,
   TerrainGeneratorCfg,
-)
-from mjlab.viewer.viser.conversions import (
-  merge_geoms,
-  merge_geoms_global,
 )
 
 # Supported robots for visualization.
@@ -172,7 +175,19 @@ def main():
       print(f"Error: No visual geoms found for {state['robot_name']}")
       return
 
-    robot_mesh = merge_geoms_global(robot_model, robot_data, visual_geom_ids)
+    # Merge visual geoms in world space.
+    meshes = []
+    for gid in visual_geom_ids:
+      if robot_model.geom_type[gid] == mjtGeom.mjGEOM_MESH:
+        mesh = mujoco_mesh_to_trimesh(robot_model, gid)
+      else:
+        mesh = create_primitive_mesh(robot_model, gid)
+      xform = np.eye(4)
+      xform[:3, :3] = robot_data.geom_xmat[gid].reshape(3, 3)
+      xform[:3, 3] = robot_data.geom_xpos[gid]
+      mesh.apply_transform(xform)
+      meshes.append(mesh)
+    robot_mesh = trimesh.util.concatenate(meshes) if len(meshes) > 1 else meshes[0]
     n_verts = len(robot_mesh.vertices)
     n_faces = len(robot_mesh.faces)
     print(f"Robot mesh: {n_verts} vertices, {n_faces} faces.")

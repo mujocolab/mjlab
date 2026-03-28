@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import mujoco
 import numpy as np
-import torch
 from typing_extensions import override
 
 from mjlab.viewer.debug_visualizer import DebugVisualizer
@@ -52,19 +51,14 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
   @override
   def add_arrow(
     self,
-    start: np.ndarray | torch.Tensor,
-    end: np.ndarray | torch.Tensor,
+    start: np.ndarray,
+    end: np.ndarray,
     color: tuple[float, float, float, float],
     width: float = 0.015,
     label: str | None = None,
   ) -> None:
     """Add an arrow visualization using MuJoCo's arrow geometry."""
     del label  # Unused.
-
-    if isinstance(start, torch.Tensor):
-      start = start.cpu().numpy()
-    if isinstance(end, torch.Tensor):
-      end = end.cpu().numpy()
 
     self.scn.ngeom += 1
     geom = self.scn.geoms[self.scn.ngeom - 1]
@@ -89,10 +83,10 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
   @override
   def add_ghost_mesh(
     self,
-    qpos: np.ndarray | torch.Tensor,
+    qpos: np.ndarray,
     model: mujoco.MjModel,
-    mocap_pos: np.ndarray | torch.Tensor | None = None,
-    mocap_quat: np.ndarray | torch.Tensor | None = None,
+    mocap_pos: np.ndarray | None = None,
+    mocap_quat: np.ndarray | None = None,
     alpha: float = 0.5,
     label: str | None = None,
   ) -> None:
@@ -109,13 +103,6 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
       label: Optional label (not used in MuJoCo implementation)
     """
     del alpha, label  # Unused.
-
-    if isinstance(qpos, torch.Tensor):
-      qpos = qpos.cpu().numpy()
-    if isinstance(mocap_pos, torch.Tensor):
-      mocap_pos = mocap_pos.cpu().numpy()
-    if isinstance(mocap_quat, torch.Tensor):
-      mocap_quat = mocap_quat.cpu().numpy()
 
     self._viz_data.qpos[:] = qpos
     if mocap_pos is not None and model.nmocap > 0:
@@ -144,34 +131,16 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
   @override
   def add_frame(
     self,
-    position: np.ndarray | torch.Tensor,
-    rotation_matrix: np.ndarray | torch.Tensor,
+    position: np.ndarray,
+    rotation_matrix: np.ndarray,
     scale: float = 0.3,
     label: str | None = None,
     axis_radius: float = 0.01,
     alpha: float = 1.0,
     axis_colors: tuple[tuple[float, float, float], ...] | None = None,
   ) -> None:
-    """Add a coordinate frame visualization with RGB-colored axes.
-
-    This implementation reuses add_arrow to draw the three axis arrows.
-
-    Args:
-      position: Position of the frame origin (3D vector)
-      rotation_matrix: Rotation matrix (3x3)
-      scale: Scale/length of the axis arrows
-      label: Optional label for this frame.
-      axis_radius: Radius of the axis arrows.
-      alpha: Opacity for all axes (0=transparent, 1=opaque).
-      axis_colors: Optional tuple of 3 RGB colors for X, Y, Z axes. If None, uses
-        default RGB coloring (X=red, Y=green, Z=blue).
-    """
+    """Add a coordinate frame visualization with RGB-colored axes."""
     del label  # Unused.
-
-    if isinstance(position, torch.Tensor):
-      position = position.cpu().numpy()
-    if isinstance(rotation_matrix, torch.Tensor):
-      rotation_matrix = rotation_matrix.cpu().numpy()
 
     default_colors = [(0.9, 0, 0), (0, 0.9, 0.0), (0.0, 0.0, 0.9)]
     colors = axis_colors if axis_colors is not None else default_colors
@@ -191,16 +160,13 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
   @override
   def add_sphere(
     self,
-    center: np.ndarray | torch.Tensor,
+    center: np.ndarray,
     radius: float,
     color: tuple[float, float, float, float],
     label: str | None = None,
   ) -> None:
     """Add a sphere visualization using MuJoCo's sphere geometry."""
     del label  # Unused.
-
-    if isinstance(center, torch.Tensor):
-      center = center.cpu().numpy()
 
     self.scn.ngeom += 1
     geom = self.scn.geoms[self.scn.ngeom - 1]
@@ -218,19 +184,14 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
   @override
   def add_cylinder(
     self,
-    start: np.ndarray | torch.Tensor,
-    end: np.ndarray | torch.Tensor,
+    start: np.ndarray,
+    end: np.ndarray,
     radius: float,
     color: tuple[float, float, float, float],
     label: str | None = None,
   ) -> None:
     """Add a cylinder visualization using MuJoCo's cylinder connector."""
     del label  # Unused.
-
-    if isinstance(start, torch.Tensor):
-      start = start.cpu().numpy()
-    if isinstance(end, torch.Tensor):
-      end = end.cpu().numpy()
 
     self.scn.ngeom += 1
     geom = self.scn.geoms[self.scn.ngeom - 1]
@@ -255,21 +216,14 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
   @override
   def add_ellipsoid(
     self,
-    center: np.ndarray | torch.Tensor,
-    size: np.ndarray | torch.Tensor,
-    mat: np.ndarray | torch.Tensor,
+    center: np.ndarray,
+    size: np.ndarray,
+    mat: np.ndarray,
     color: tuple[float, float, float, float],
     label: str | None = None,
   ) -> None:
     """Add an ellipsoid visualization using MuJoCo's ellipsoid geometry."""
     del label  # Unused.
-
-    if isinstance(center, torch.Tensor):
-      center = center.cpu().numpy()
-    if isinstance(size, torch.Tensor):
-      size = size.cpu().numpy()
-    if isinstance(mat, torch.Tensor):
-      mat = mat.cpu().numpy()
 
     self.scn.ngeom += 1
     geom = self.scn.geoms[self.scn.ngeom - 1]

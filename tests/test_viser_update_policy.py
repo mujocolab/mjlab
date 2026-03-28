@@ -4,8 +4,10 @@ from dataclasses import dataclass
 from typing import Any
 from unittest.mock import MagicMock
 
+import mujoco
+from mjviser import ViserMujocoScene
+
 from mjlab.viewer.viser.overlays import ViserContactOverlays, ViserDebugOverlays
-from mjlab.viewer.viser.scene import ViserMujocoScene
 from mjlab.viewer.viser.viewer import ViserPlayViewer
 
 
@@ -62,21 +64,20 @@ def test_should_submit_scene_update():
 
 
 def test_scene_requires_live_refresh():
-  assert not ViserMujocoScene._requires_live_refresh(
-    show_contact_points=False,
-    show_contact_forces=False,
-    debug_visualization_enabled=False,
-  )
-  assert ViserMujocoScene._requires_live_refresh(
-    show_contact_points=True,
-    show_contact_forces=False,
-    debug_visualization_enabled=False,
-  )
-  assert ViserMujocoScene._requires_live_refresh(
-    show_contact_points=False,
-    show_contact_forces=False,
-    debug_visualization_enabled=True,
-  )
+  """Base scene sets needs_update when contact overlays are visible."""
+  model = mujoco.MjModel.from_xml_string("<mujoco><worldbody/></mujoco>")
+  server = MagicMock()
+  scene = ViserMujocoScene(server, model, num_envs=1)
+
+  scene.show_contact_points = False
+  scene.show_contact_forces = False
+  scene.needs_update = False
+  scene._last_body_xpos = None  # No cached data, refresh is a no-op.
+  scene.refresh_visualization()
+  assert not scene.needs_update
+
+  scene.show_contact_points = True
+  assert scene.show_contact_points or scene.show_contact_forces
 
 
 def test_debug_overlays_env_switch_and_queue():

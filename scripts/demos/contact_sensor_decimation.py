@@ -126,10 +126,10 @@ def run_viewer():
   scene, sim = build(history_length=0)
 
   server = viser.ViserServer(label="Bouncing Ball")
-  viz = ViserMujocoScene.create(server, sim.mj_model, num_envs=NUM_ENVS)
+  viz = ViserMujocoScene(server, sim.mj_model, num_envs=NUM_ENVS)
   viz.show_contact_forces = True
   viz.show_contact_points = True
-  viz.create_visualization_gui(
+  viz.create_scene_gui(
     camera_distance=2.0,
     camera_azimuth=90.0,
     camera_elevation=20.0,

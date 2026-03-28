@@ -1622,6 +1622,7 @@ source = { editable = "." }
 dependencies = [
     { name = "imageio-ffmpeg" },
     { name = "mediapy" },
+    { name = "mjviser" },
     { name = "mujoco", version = "3.6.0.dev881362074", source = { registry = "https://py.mujoco.org/" }, marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine != 'arm64' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128') or (sys_platform != 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
     { name = "mujoco", version = "3.6.0.dev881488083", source = { registry = "https://py.mujoco.org/" }, marker = "platform_machine != 'arm64' or sys_platform != 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
     { name = "mujoco-warp" },
@@ -1685,6 +1686,7 @@ docs = [
 requires-dist = [
     { name = "imageio-ffmpeg" },
     { name = "mediapy", specifier = ">=1.2.6" },
+    { name = "mjviser", specifier = ">=0.0.7" },
     { name = "mujoco", specifier = ">=3.6.0", index = "https://py.mujoco.org/" },
     { name = "mujoco-warp", git = "https://github.com/google-deepmind/mujoco_warp?rev=875c4caf06d71b12b2036c327e7a07ce08a78b9a" },
     { name = "onnxscript", specifier = ">=0.5.4" },
@@ -1732,6 +1734,24 @@ docs = [
     { name = "sphinx-tabs" },
     { name = "sphinxcontrib-bibtex" },
     { name = "sphinxemoji" },
+]
+
+[[package]]
+name = "mjviser"
+version = "0.0.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "mujoco", version = "3.6.0.dev881362074", source = { registry = "https://py.mujoco.org/" }, marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine != 'arm64' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128') or (sys_platform != 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
+    { name = "mujoco", version = "3.6.0.dev881488083", source = { registry = "https://py.mujoco.org/" }, marker = "platform_machine != 'arm64' or sys_platform != 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
+    { name = "numpy", version = "2.3.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
+    { name = "pillow" },
+    { name = "trimesh" },
+    { name = "viser" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a8/6e/0ac16fc2f8dc923a5c9fba8474a67145995e3143bcb355e523fe440810f4/mjviser-0.0.7.tar.gz", hash = "sha256:4bce2aee39518454592896bbc6d049c952255cb08340105fd89e4d1626102121", size = 26131, upload-time = "2026-03-26T20:10:24.227Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/82/8f/65d32d32fd8c8ebe8f822b0cfc3db92b3599f9ede919fcb824f482f42f81/mjviser-0.0.7-py3-none-any.whl", hash = "sha256:909a8bb883bb2340a17319aa201b14652799e9ff9f0454513cb7dab048ebc1fb", size = 28660, upload-time = "2026-03-26T20:10:25.594Z" },
 ]
 
 [[package]]

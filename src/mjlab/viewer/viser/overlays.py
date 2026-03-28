@@ -27,9 +27,12 @@ class _EnvProtocol(Protocol):
 class _SceneProtocol(Protocol):
   env_idx: int
   debug_visualization_enabled: bool
-  show_contact_points: bool
-  show_contact_forces: bool
   needs_update: bool
+
+  @property
+  def show_contact_points(self) -> bool: ...
+  @property
+  def show_contact_forces(self) -> bool: ...
 
   def clear_debug_all(self) -> None: ...
   def clear(self) -> None: ...

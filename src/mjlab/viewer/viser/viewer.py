@@ -27,7 +27,7 @@ from mjlab.viewer.viser.overlays import (
   ViserDebugOverlays,
   ViserTermOverlays,
 )
-from mjlab.viewer.viser.scene import ViserMujocoScene
+from mjlab.viewer.viser.scene import MjlabViserScene
 
 
 class UpdateReason(Enum):
@@ -71,8 +71,8 @@ class ViserPlayViewer(BaseViewer):
     self._counter = 0
     self._pending_update_reasons: set[UpdateReason] = set()
 
-    # Create ViserMujocoScene for all 3D visualization (with debug visualization enabled).
-    self._scene = ViserMujocoScene.create(
+    # Create MjlabViserScene for all 3D visualization (with debug visualization enabled).
+    self._scene = MjlabViserScene(
       server=self._server,
       mj_model=sim.mj_model,
       num_envs=self.env.num_envs,
@@ -142,14 +142,16 @@ class ViserPlayViewer(BaseViewer):
         with self._server.gui.add_folder("Commands"):
           env.command_manager.create_gui(self._server, lambda: self._scene.env_idx)
 
-      # Add standard visualization options from ViserMujocoScene.
+      # Add standard visualization options from MjlabViserScene.
       def _debug_viz_extra() -> None:
-        env.command_manager.create_debug_vis_gui(self._server)
+        env.command_manager.create_debug_vis_gui(
+          self._server, on_change=self._scene.request_update
+        )
         self._create_sensor_debug_vis_gui()
         self._create_reward_debug_vis_gui()
 
       with self._server.gui.add_folder("Scene"):
-        self._scene.create_visualization_gui(
+        self._scene.create_scene_gui(
           camera_distance=self.cfg.distance,
           camera_azimuth=self.cfg.azimuth,
           camera_elevation=self.cfg.elevation,
@@ -163,6 +165,10 @@ class ViserPlayViewer(BaseViewer):
 
     self._prev_env_idx = self._scene.env_idx
 
+    # Visualization tab (overlay controls: contacts, forces, inertia, etc.).
+    with tabs.add_tab("Visualization", icon=viser.Icon.EYE):
+      self._scene.create_overlay_gui()
+
     self._term_overlays = ViserTermOverlays(
       self._server, self.env, self._scene, self.frame_time
     )
@@ -170,8 +176,9 @@ class ViserPlayViewer(BaseViewer):
     self._debug_overlays = ViserDebugOverlays(self.env, self._scene)
     self._contact_overlays = ViserContactOverlays(self._scene)
 
-    # Groups tab (geoms and sites).
-    self._scene.create_groups_gui(tabs)
+    # Groups tab (geom/site/joint/tendon/actuator visibility).
+    with tabs.add_tab("Groups", icon=viser.Icon.LAYERS_INTERSECT):
+      self._scene.create_groups_gui()
 
   @override
   def _process_actions(self) -> None:
@@ -249,6 +256,7 @@ class ViserPlayViewer(BaseViewer):
 
       def _on_update(_ev, _f=func, _cb=cb) -> None:
         _f._debug_vis_enabled = _cb.value
+        self._scene.request_update()
 
       cb.on_update(_on_update)
 

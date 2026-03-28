@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import numpy as np
 import torch
 
 from mjlab.entity import Entity
@@ -134,8 +135,10 @@ class upright:
     )
     body_up_w = quat_apply(body_quat_w, up_local)
 
-    positions = asset.data.root_link_pos_w
-    offset = torch.tensor([0.0, 0.3, 0.0], device=env.device)
+    positions = asset.data.root_link_pos_w.cpu().numpy()
+    offset = np.array([0.0, 0.3, 0.0])
+    terrain_normal_np = terrain_normal.cpu().numpy()
+    body_up_np = body_up_w.cpu().numpy()
     scale = 0.25
 
     for i in env_indices:
@@ -143,14 +146,14 @@ class upright:
       # Terrain normal (magenta).
       visualizer.add_arrow(
         start=origin,
-        end=origin + terrain_normal[i] * scale,
+        end=origin + terrain_normal_np[i] * scale,
         color=(0.8, 0.2, 0.8, 0.8),
         width=0.01,
       )
       # Body up (orange).
       visualizer.add_arrow(
         start=origin,
-        end=origin + body_up_w[i] * scale,
+        end=origin + body_up_np[i] * scale,
         color=(1.0, 0.5, 0.0, 0.8),
         width=0.01,
       )

@@ -168,7 +168,11 @@ class CommandManager(ManagerBase):
     for name, term in self._terms.items():
       term.create_gui(name, server, get_env_idx)
 
-  def create_debug_vis_gui(self, server: "viser.ViserServer") -> None:
+  def create_debug_vis_gui(
+    self,
+    server: "viser.ViserServer",
+    on_change: Callable[[], None] | None = None,
+  ) -> None:
     """Add per-term debug visualization checkboxes."""
     vis_terms = {name: term for name, term in self._terms.items() if term.cfg.debug_vis}
     if not vis_terms:
@@ -181,6 +185,8 @@ class CommandManager(ManagerBase):
 
       def _on_update(_ev, _term: CommandTerm = term, _cb=cb) -> None:
         _term._debug_vis_enabled = _cb.value
+        if on_change is not None:
+          on_change()
 
       cb.on_update(_on_update)
 
@@ -259,7 +265,11 @@ class NullCommandManager:
   ) -> None:
     pass
 
-  def create_debug_vis_gui(self, server: "viser.ViserServer") -> None:
+  def create_debug_vis_gui(
+    self,
+    server: "viser.ViserServer",
+    on_change: Callable[[], None] | None = None,
+  ) -> None:
     pass
 
   def get_active_iterable_terms(
