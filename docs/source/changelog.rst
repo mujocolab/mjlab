@@ -38,6 +38,12 @@ Added
 Changed
 ^^^^^^^
 
+- Replaced the viser viewer internals with the ``mjviser`` package. Scene
+  creation, mesh conversion, and overlay rendering (contacts, forces,
+  inertia, tendons, joints, frames) are now provided by mjviser. The viewer
+  exposes a new Visualization tab for overlay controls and a Groups tab for
+  geom/site visibility. Debug visualization and warp tensor conversion remain
+  in mjlab's ``MjlabViserScene`` subclass (:issue:`839`).
 - In curriculum terrain mode, each terrain type now gets exactly one column
   (``num_cols`` is set to ``len(sub_terrains)``). The ``proportion`` field
   now controls robot spawning distribution across columns rather than column
