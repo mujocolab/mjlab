@@ -28,8 +28,14 @@ class RslRlModelCfg:
 
   ``None`` means deterministic output (use for critic).
   """
+  rnn_type: str | None = None
+  """RNN type ("lstm" or "gru"). When set, class_name should be "RNNModel"."""
+  rnn_hidden_dim: int = 256
+  """Hidden state dimension for the RNN."""
+  rnn_num_layers: int = 1
+  """Number of stacked RNN layers."""
   class_name: str = "MLPModel"
-  """Model class name resolved by RSL-RL (MLPModel or CNNModel)."""
+  """Model class name resolved by RSL-RL (MLPModel, CNNModel, or RNNModel)."""
 
 
 @dataclass
