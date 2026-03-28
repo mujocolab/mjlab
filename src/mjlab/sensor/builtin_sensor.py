@@ -203,11 +203,14 @@ class BuiltinSensorCfg(SensorCfg):
   cutoff: float = 0.0
   """When this value is positive, it limits the absolute value of the sensor output."""
 
-  def __post_init__(self) -> None:
-    # Auto-prefix sensor name if it references an entity.
+  @property
+  def prefixed_name(self) -> str:
+    """The sensor name with entity prefix if applicable."""
     if self.obj is not None and self.obj.entity is not None:
-      self.name = f"{self.obj.entity}/{self.name}"
+      return f"{self.obj.entity}/{self.name}"
+    return self.name
 
+  def __post_init__(self) -> None:
     if self.sensor_type in _SENSORS_REQUIRING_SITE:
       if self.obj is None:
         raise ValueError(
@@ -278,7 +281,7 @@ class BuiltinSensor(Sensor[torch.Tensor]):
   ) -> None:
     super().__init__()
     if cfg is not None:
-      self._name = cfg.name
+      self._name = cfg.prefixed_name
       self.cfg: BuiltinSensorCfg | None = cfg
     else:
       assert name is not None, "Must provide either cfg or name"
@@ -299,23 +302,23 @@ class BuiltinSensor(Sensor[torch.Tensor]):
 
     # Check for duplicate sensors.
     for sensor in scene_spec.sensors:
-      if sensor.name == self.cfg.name:
+      if sensor.name == self.cfg.prefixed_name:
         is_entity_scoped = self.cfg.obj is not None and self.cfg.obj.entity is not None
         if is_entity_scoped:
           raise ValueError(
-            f"Sensor '{self.cfg.name}' is defined in both entity XML and scene config. "
-            f"Remove the sensor definition from the entity XML file, or remove the "
-            f"BuiltinSensorCfg from scene.sensors."
+            f"Sensor '{self.cfg.prefixed_name}' is defined in both entity XML and "
+            f"scene config. Remove the sensor definition from the entity XML file, "
+            f"or remove the BuiltinSensorCfg from scene.sensors."
           )
         else:
           raise ValueError(
-            f"Sensor '{self.cfg.name}' already exists in the scene. "
+            f"Sensor '{self.cfg.prefixed_name}' already exists in the scene. "
             f"Rename this sensor to avoid conflicts."
           )
 
     # Add sensor to spec.
     scene_spec.add_sensor(
-      name=self.cfg.name,
+      name=self.cfg.prefixed_name,
       type=_SENSOR_TYPE_MAP[self.cfg.sensor_type],
       objtype=(
         _OBJECT_TYPE_MAP[self.cfg.obj.type] if self.cfg.obj is not None else None

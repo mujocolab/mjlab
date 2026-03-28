@@ -24,6 +24,11 @@ class SensorCfg(ABC):
 
   name: str
 
+  @property
+  def prefixed_name(self) -> str:
+    """The sensor name as it appears in the MuJoCo model."""
+    return self.name
+
   @abstractmethod
   def build(self) -> Sensor[Any]:
     """Build sensor instance from this config."""

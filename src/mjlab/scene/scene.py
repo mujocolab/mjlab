@@ -260,7 +260,7 @@ class Scene:
     for sensor_cfg in self._cfg.sensors:
       sns = sensor_cfg.build()
       sns.edit_spec(self._spec, self._entities)
-      self._sensors[sensor_cfg.name] = sns
+      self._sensors[sensor_cfg.prefixed_name] = sns
 
     for sns in self._spec.sensors:
       if sns.name not in self._sensors:

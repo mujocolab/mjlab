@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import copy
+
 import mujoco
 import pytest
 import torch
@@ -354,3 +356,17 @@ def test_cutoff_parameter(articulated_robot_xml, device):
 
   sensor = sim.mj_model.sensor("robot/joint1_pos")
   assert sensor.cutoff[0] == 0.01
+
+
+def test_deepcopy_no_double_prefix():
+  """Regression test for #850: deepcopy should not double-prefix sensor name."""
+  cfg = BuiltinSensorCfg(
+    name="joint1_pos",
+    sensor_type="jointpos",
+    obj=ObjRef(type="joint", name="joint1", entity="robot"),
+  )
+  assert cfg.prefixed_name == "robot/joint1_pos"
+
+  cfg_copy = copy.deepcopy(cfg)
+  assert cfg_copy.prefixed_name == "robot/joint1_pos"
+  assert cfg_copy.name == "joint1_pos"
