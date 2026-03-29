@@ -68,6 +68,11 @@ Changed
 Fixed
 ^^^^^
 
+- ``export-scene`` now writes only referenced assets and places them
+  correctly under the output directory. Previously, asset keys containing
+  path traversal could write files outside the output directory, and all
+  spec assets were included regardless of whether the scene XML referenced
+  them (:issue:`858`).
 - ``electrical_power_cost`` now uses ``qfrc_actuator`` (joint space) instead
   of ``actuator_force`` (actuation space) for mechanical power computation.
   Previously the reward was incorrect for actuators with gear ratios other
