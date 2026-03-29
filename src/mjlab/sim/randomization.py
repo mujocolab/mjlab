@@ -51,4 +51,6 @@ def expand_model_fields(
   for field in model.__dataclass_fields__:
     if field in fields_to_expand:
       array = getattr(model, field)
+      if array.shape[0] != 1:
+        continue  # Already per-world (e.g., variant compilation).
       setattr(model, field, tile(array))

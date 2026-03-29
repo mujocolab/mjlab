@@ -108,7 +108,11 @@ def _randomize_model_field(
 
   if operation.uses_defaults:
     default_field = env.sim.get_default_field(field)
-    base_values = default_field[entity_indices].unsqueeze(0).expand_as(indexed_data)
+    if field in env.sim.per_world_default_fields:
+      # Per-world defaults from mesh variant compilation.
+      base_values = default_field[env_grid, entity_grid]
+    else:
+      base_values = default_field[entity_indices].unsqueeze(0).expand_as(indexed_data)
   else:
     base_values = indexed_data
 

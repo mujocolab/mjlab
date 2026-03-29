@@ -112,6 +112,25 @@ class _SimProtocol(Protocol):
   expanded_fields: set[str]
 
 
+def _disable_model_sameframe_shortcuts(model: mujoco.MjModel) -> None:
+  """Force MuJoCo's host model down the full local-to-global transform path.
+
+  ``mujoco_warp`` does not implement MuJoCo's ``*_sameframe`` shortcuts: its
+  kinematics kernels always apply the full transform for inertial frames,
+  geoms, and sites. Clearing these compile-time flags on the CPU viewer model
+  keeps host-side ``mj_forward`` consistent with the GPU path when per-world
+  mesh variants change local offsets and frame alignments.
+  """
+  none = mujoco.mjtSameFrame.mjSAMEFRAME_NONE.value
+  model.body_sameframe[:] = none
+  model.geom_sameframe[:] = none
+  model.site_sameframe[:] = none
+  # ``body_simple`` is another compile-time shortcut derived from
+  # ``body_sameframe``. Clear it too so host-side inertia code does not assume
+  # the original compiled alignment.
+  model.body_simple[:] = 0
+
+
 class NativeMujocoViewer(BaseViewer):
   def __init__(
     self,
@@ -155,6 +174,7 @@ class NativeMujocoViewer(BaseViewer):
     self.mjm = sim.mj_model
     self.mjd = sim.mj_data
     assert self.mjm is not None
+    _disable_model_sameframe_shortcuts(self.mjm)
     if self.cfg.fovy is not None:
       self.mjm.vis.global_.fovy = self.cfg.fovy
 
@@ -224,6 +244,7 @@ class NativeMujocoViewer(BaseViewer):
       self._update_reward_figures(v)
 
       self._update_debug_visualizers(v)
+      self._add_env_selection_marker(v)
       self._render_other_env_geoms(v, sim, sim_data)
 
       # Pin tracking camera to body frame origin so DR-induced COM shifts don't move
@@ -293,6 +314,37 @@ class NativeMujocoViewer(BaseViewer):
       )
       self.env.unwrapped.update_visualizers(visualizer)
 
+  def _add_env_selection_marker(self, viewer: mujoco.viewer.Handle) -> None:
+    """Draw a downward arrow above the selected environment."""
+    if self.env.unwrapped.num_envs <= 1:
+      return
+    assert self.mjd is not None and self.mjm is not None
+    last = self.mjm.nbody - 1
+    center = self.mjd.xpos[max(last, 1)].copy()
+    arrow_top = center + np.array([0.0, 0.0, 0.4])
+    arrow_bottom = center + np.array([0.0, 0.0, 0.15])
+    scn = viewer.user_scn
+    if scn.ngeom >= scn.maxgeom:
+      return
+    scn.ngeom += 1
+    geom = scn.geoms[scn.ngeom - 1]
+    geom.category = mujoco.mjtCatBit.mjCAT_DECOR
+    mujoco.mjv_initGeom(
+      geom=geom,
+      type=mujoco.mjtGeom.mjGEOM_ARROW.value,
+      size=np.zeros(3),
+      pos=np.zeros(3),
+      mat=np.zeros(9),
+      rgba=np.array([1.0, 0.2, 0.2, 0.8], dtype=np.float32),
+    )
+    mujoco.mjv_connector(
+      geom=geom,
+      type=mujoco.mjtGeom.mjGEOM_ARROW.value,
+      width=0.02,
+      from_=arrow_top,
+      to=arrow_bottom,
+    )
+
   def _sync_env_state_to_mjdata(
     self, target_data: mujoco.MjData, sim_data: _SimDataProtocol, env_idx: int
   ) -> None:
@@ -342,6 +394,7 @@ class NativeMujocoViewer(BaseViewer):
   _VISUAL_FIELDS = frozenset(
     {
       "qpos0",  # Needed for correct mj_forward kinematics (qpos - qpos0).
+      "geom_dataid",  # Per-world mesh variants.
       "geom_rgba",
       "geom_size",
       "geom_pos",
