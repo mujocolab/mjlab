@@ -280,23 +280,19 @@ model.
        See :ref:`dr-pseudo-inertia` for details.
    * - ``dr.pd_gains``
      - Randomizes stiffness (kp) and damping (kd) together. For
-       ``BuiltinPositionActuator`` and ``XmlPositionActuator`` it writes to
+       ``BuiltinPositionActuator`` and ``XmlActuator`` it writes to
        ``actuator_gainprm`` and ``actuator_biasprm``. For
        ``IdealPdActuator`` it sets gains on the entity directly. All three
-       can be wrapped with ``DelayedActuator``.
+       support inline delay fields.
    * - ``dr.effort_limits``
      - Randomizes actuator force range (``actuator_forcerange``). For
        ``IdealPdActuator`` also updates the entity's internal force limit.
-       Supports ``BuiltinPositionActuator``, ``XmlPositionActuator``, and
+       Supports ``BuiltinPositionActuator``, ``XmlActuator``, and
        ``IdealPdActuator``.
    * - ``dr.encoder_bias``
      - Adds a fixed per-joint bias to position readings, simulating encoder
        calibration errors. Writes to ``entity.data.encoder_bias``, not the
        MuJoCo model.
-   * - ``dr.sync_actuator_delays``
-     - Samples a single lag value per environment and applies it to all
-       ``DelayedActuator`` instances on the entity, ensuring consistent
-       delay across joints.
 
 
 .. _dr-pseudo-inertia:

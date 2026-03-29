@@ -43,6 +43,7 @@ class DcMotorActuatorCfg(IdealPdActuatorCfg):
 
   def __post_init__(self) -> None:
     """Validate DC motor parameters."""
+    super().__post_init__()
     import warnings
 
     if self.effort_limit == float("inf"):

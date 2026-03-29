@@ -77,4 +77,3 @@ from .material import mat_rgba as mat_rgba
 # isort: split
 from .actuator import effort_limits as effort_limits
 from .actuator import pd_gains as pd_gains
-from .actuator import sync_actuator_delays as sync_actuator_delays

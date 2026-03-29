@@ -4,7 +4,7 @@ import mujoco
 import pytest
 from conftest import get_test_device
 
-from mjlab.actuator import XmlMotorActuatorCfg
+from mjlab.actuator import XmlActuatorCfg
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg, mdp
 from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationTermCfg
@@ -46,7 +46,7 @@ def test_xml_actuator_underactuated_with_wildcard():
   cfg = EntityCfg(
     spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML_UNDERACTUATED),
     articulation=EntityArticulationInfoCfg(
-      actuators=(XmlMotorActuatorCfg(target_names_expr=(".*",)),)
+      actuators=(XmlActuatorCfg(target_names_expr=(".*",)),)
     ),
   )
   entity = Entity(cfg)
@@ -66,7 +66,7 @@ def test_xml_actuator_no_matching_actuators_raises_error():
     cfg = EntityCfg(
       spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML_UNDERACTUATED),
       articulation=EntityArticulationInfoCfg(
-        actuators=(XmlMotorActuatorCfg(target_names_expr=("joint1",)),)
+        actuators=(XmlActuatorCfg(target_names_expr=("joint1",)),)
       ),
     )
     entity = Entity(cfg)
@@ -78,7 +78,7 @@ def test_joint_action_underactuated_with_wildcard(device):
   robot_cfg = EntityCfg(
     spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML_UNDERACTUATED),
     articulation=EntityArticulationInfoCfg(
-      actuators=(XmlMotorActuatorCfg(target_names_expr=(".*",)),)
+      actuators=(XmlActuatorCfg(target_names_expr=(".*",)),)
     ),
   )
 
@@ -118,3 +118,60 @@ def test_joint_action_underactuated_with_wildcard(device):
   assert action_term.target_ids.tolist() == [1]
 
   env.close()
+
+
+# Robot with a "general" actuator (hand-tuned gainprm/biasprm that don't match
+# any standard pattern). Strict auto-detection would reject this.
+ROBOT_XML_GENERAL_ACTUATOR = """
+<mujoco>
+  <worldbody>
+    <body name="base" pos="0 0 1">
+      <freejoint name="free_joint"/>
+      <geom name="base_geom" type="box" size="0.2 0.2 0.1" mass="1.0"/>
+      <body name="link1" pos="0 0 0">
+        <joint name="joint1" type="hinge" axis="0 0 1" range="-1.57 1.57"/>
+        <geom name="link1_geom" type="box" size="0.1 0.1 0.1" mass="0.1"/>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <general name="custom_act" joint="joint1"
+             gaintype="fixed" biastype="affine"
+             gainprm="10" biasprm="5 -3 -1"/>
+  </actuator>
+</mujoco>
+"""
+
+
+def test_xml_actuator_explicit_command_field_bypasses_detection():
+  """Explicit command_field allows non-standard XML actuators."""
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML_GENERAL_ACTUATOR),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        XmlActuatorCfg(
+          target_names_expr=("joint1",),
+          command_field="effort",
+        ),
+      )
+    ),
+  )
+  entity = Entity(cfg)
+  entity.compile()
+
+  actuator = entity._actuators[0]
+  assert actuator.command_field == "effort"
+  assert actuator._target_names == ["joint1"]
+
+
+def test_xml_actuator_auto_detection_rejects_general_actuator():
+  """Auto-detection raises for non-standard actuators when command_field is None."""
+  with pytest.raises(ValueError, match="Cannot determine command field"):
+    cfg = EntityCfg(
+      spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML_GENERAL_ACTUATOR),
+      articulation=EntityArticulationInfoCfg(
+        actuators=(XmlActuatorCfg(target_names_expr=("joint1",)),)
+      ),
+    )
+    entity = Entity(cfg)
+    entity.compile()

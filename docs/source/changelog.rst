@@ -20,8 +20,6 @@ Added
   with mjlab (:issue:`777`).
 - Added ``margin``, ``gap``, and ``solmix`` fields to ``CollisionCfg``
   for per geom contact parameter configuration (:issue:`766`).
-- Added ``DelayedBuiltinActuatorGroup`` that fuses delayed builtin actuators
-  sharing the same delay configuration into a single buffer operation.
 - NaN guard now captures mocap body poses (``mocap_pos``, ``mocap_quat``)
   when the model has mocap bodies, enabling full state reconstruction in
   the dump viewer for fixed-base entities.
@@ -42,6 +40,16 @@ Added
 Changed
 ^^^^^^^
 
+- Actuator delay is now configured inline on any ``ActuatorCfg`` subclass
+  (e.g. ``BuiltinPositionActuatorCfg(..., delay_min_lag=2, delay_max_lag=5)``)
+  instead of wrapping with ``DelayedActuatorCfg``. ``DelayedActuator``,
+  ``DelayedActuatorCfg``, and ``DelayedBuiltinActuatorGroup`` are removed.
+- Removed ``delay_target`` from ``ActuatorCfg``. Delay now always applies to
+  the actuator's ``command_field`` automatically. Multi-target delay
+  (``delay_target=("position", "velocity")``) is no longer supported.
+- ``XmlPositionActuatorCfg``, ``XmlVelocityActuatorCfg``, ``XmlMotorActuatorCfg``,
+  and ``XmlMuscleActuatorCfg`` are replaced by a single ``XmlActuatorCfg`` that auto
+  detects the actuator type from XML. Pass ``command_field=...`` to override detection.
 - Replaced the viser viewer internals with the ``mjviser`` package. Scene
   creation, mesh conversion, and overlay rendering (contacts, forces,
   inertia, tendons, joints, frames) are now provided by mjviser. The viewer

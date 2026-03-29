@@ -16,6 +16,7 @@ from mjlab.actuator.actuator import (
   Actuator,
   ActuatorCfg,
   ActuatorCmd,
+  CommandField,
   TransmissionType,
 )
 from mjlab.utils.spec import (
@@ -61,6 +62,10 @@ class BuiltinPositionActuatorCfg(ActuatorCfg):
 
 class BuiltinPositionActuator(Actuator[BuiltinPositionActuatorCfg]):
   """MuJoCo built-in position actuator."""
+
+  @property
+  def command_field(self) -> CommandField:
+    return "position"
 
   def __init__(
     self,
@@ -112,6 +117,10 @@ class BuiltinMotorActuatorCfg(ActuatorCfg):
 
 class BuiltinMotorActuator(Actuator[BuiltinMotorActuatorCfg]):
   """MuJoCo built-in motor actuator."""
+
+  @property
+  def command_field(self) -> CommandField:
+    return "effort"
 
   def __init__(
     self,
@@ -170,6 +179,10 @@ class BuiltinVelocityActuatorCfg(ActuatorCfg):
 
 class BuiltinVelocityActuator(Actuator[BuiltinVelocityActuatorCfg]):
   """MuJoCo built-in velocity actuator."""
+
+  @property
+  def command_field(self) -> CommandField:
+    return "velocity"
 
   def __init__(
     self,
@@ -243,6 +256,10 @@ class BuiltinMuscleActuatorCfg(ActuatorCfg):
 
 class BuiltinMuscleActuator(Actuator[BuiltinMuscleActuatorCfg]):
   """MuJoCo built-in muscle actuator."""
+
+  @property
+  def command_field(self) -> CommandField:
+    return "effort"
 
   def __init__(
     self,

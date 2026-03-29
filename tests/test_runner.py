@@ -14,7 +14,7 @@ from rsl_rl.models import MLPModel
 from tensordict import TensorDict
 
 import mjlab.scripts.train as train_mod
-from mjlab.actuator import XmlMotorActuatorCfg
+from mjlab.actuator import XmlActuatorCfg
 from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg, mdp
 from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationTermCfg
@@ -55,7 +55,7 @@ def env(device):
   robot_cfg = EntityCfg(
     spec_fn=lambda: mujoco.MjSpec.from_string(robot_xml),
     articulation=EntityArticulationInfoCfg(
-      actuators=(XmlMotorActuatorCfg(target_names_expr=(".*",)),)
+      actuators=(XmlActuatorCfg(target_names_expr=(".*",)),)
     ),
   )
 

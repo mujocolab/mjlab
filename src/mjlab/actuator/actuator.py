@@ -2,20 +2,25 @@
 
 from __future__ import annotations
 
+import dataclasses
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, Literal, TypeVar
 
 import mujoco
 import mujoco_warp as mjwarp
 import torch
+
+from mjlab.utils.buffers import DelayBuffer
 
 if TYPE_CHECKING:
   from mjlab.entity import Entity
   from mjlab.entity.data import EntityData
 
 ActuatorCfgT = TypeVar("ActuatorCfgT", bound="ActuatorCfg")
+
+CommandField = Literal["position", "velocity", "effort"]
 
 
 class TransmissionType(str, Enum):
@@ -31,8 +36,8 @@ class ActuatorCfg(ABC):
   target_names_expr: tuple[str, ...]
   """Targets that are part of this actuator group.
 
-  Can be a tuple of names or tuple of regex expressions.
-  Interpreted based on transmission_type (joint/tendon/site).
+  Can be a tuple of names or tuple of regex expressions. Interpreted based on
+  transmission_type.
   """
 
   transmission_type: TransmissionType = TransmissionType.JOINT
@@ -48,6 +53,28 @@ class ActuatorCfg(ABC):
   Also known as dry friction or load-independent friction.
   """
 
+  delay_min_lag: int = 0
+  """Minimum command delay in physics timesteps.
+
+  Each step, a lag is sampled uniformly from [min, max]. The command target arrives
+  that many steps late at the actuator's control law. Models communication and bus
+  latency between the policy and the motor (as opposed to observation delay, which
+  models sensor pipeline latency).
+  """
+
+  delay_max_lag: int = 0
+  """Maximum command delay in physics timesteps. Set > 0 to enable delay."""
+
+  delay_hold_prob: float = 0.0
+  """Probability of keeping the current lag instead of resampling."""
+
+  delay_update_period: int = 0
+  """How often to resample the lag, in physics timesteps (0 = every step)."""
+
+  delay_per_env_phase: bool = True
+  """Stagger lag resampling across environments so they don't all update
+  on the same step."""
+
   def __post_init__(self) -> None:
     assert self.armature >= 0.0, "armature must be non-negative."
     assert self.frictionloss >= 0.0, "frictionloss must be non-negative."
@@ -57,6 +84,13 @@ class ActuatorCfg(ABC):
           f"{self.__class__.__name__}: armature and frictionloss are not supported for "
           "SITE transmission type."
         )
+    assert self.delay_min_lag >= 0, "delay_min_lag must be non-negative."
+    assert self.delay_max_lag >= 0, "delay_max_lag must be non-negative."
+    assert self.delay_min_lag <= self.delay_max_lag, (
+      "delay_min_lag must be <= delay_max_lag."
+    )
+    assert 0.0 <= self.delay_hold_prob <= 1.0, "delay_hold_prob must be in [0, 1]."
+    assert self.delay_update_period >= 0, "delay_update_period must be non-negative."
 
   @abstractmethod
   def build(
@@ -114,6 +148,21 @@ class Actuator(ABC, Generic[ActuatorCfgT]):
     self._global_ctrl_ids: torch.Tensor | None = None
     self._mjs_actuators: list[mujoco.MjsActuator] = []
     self._site_zeros: torch.Tensor | None = None
+    self._delay_buffer: DelayBuffer | None = None
+
+  @property
+  def has_delay(self) -> bool:
+    """Whether this actuator has delay configured."""
+    return self.cfg.delay_max_lag > 0
+
+  @property
+  def command_field(self) -> CommandField | None:
+    """The primary command field this actuator consumes.
+
+    Returns None by default. Subclasses should override to return the
+    appropriate field.
+    """
+    return None
 
   @property
   def target_ids(self) -> torch.Tensor:
@@ -197,6 +246,60 @@ class Actuator(ABC, Generic[ActuatorCfgT]):
       ntargets = len(self._target_ids_list)
       self._site_zeros = torch.zeros((nenvs, ntargets), device=device)
 
+    self._init_delay_buffer(data.nworld, device)
+
+  def _init_delay_buffer(self, num_envs: int, device: str) -> None:
+    """Create delay buffer. Called during initialize()."""
+    if not self.has_delay:
+      return
+    if self.command_field is None:
+      raise ValueError(
+        f"{self.__class__.__name__}: delay is configured (delay_max_lag="
+        f"{self.cfg.delay_max_lag}) but command_field is not defined."
+      )
+    self._delay_buffer = DelayBuffer(
+      min_lag=self.cfg.delay_min_lag,
+      max_lag=self.cfg.delay_max_lag,
+      batch_size=num_envs,
+      device=device,
+      hold_prob=self.cfg.delay_hold_prob,
+      update_period=self.cfg.delay_update_period,
+      per_env_phase=self.cfg.delay_per_env_phase,
+    )
+
+  def apply_delay(self, cmd: ActuatorCmd) -> ActuatorCmd:
+    """Apply delay to the command_field target. No-op without delay."""
+    if self._delay_buffer is None:
+      return cmd
+    cf = self.command_field
+    if cf == "position":
+      self._delay_buffer.append(cmd.position_target)
+      return dataclasses.replace(cmd, position_target=self._delay_buffer.compute())
+    elif cf == "velocity":
+      self._delay_buffer.append(cmd.velocity_target)
+      return dataclasses.replace(cmd, velocity_target=self._delay_buffer.compute())
+    else:
+      self._delay_buffer.append(cmd.effort_target)
+      return dataclasses.replace(cmd, effort_target=self._delay_buffer.compute())
+
+  def set_lags(
+    self,
+    lags: torch.Tensor,
+    env_ids: torch.Tensor | slice | None = None,
+  ) -> None:
+    """Set delay lag values for specified environments.
+
+    Built-in actuators with the same delay config share a fused delay
+    buffer for performance. Calling ``set_lags`` on any one of them
+    affects the entire fused group.
+
+    Args:
+      lags: Lag values in physics timesteps. Shape: (num_env_ids,) or scalar.
+      env_ids: Environment indices to set. If None, sets all environments.
+    """
+    if self._delay_buffer is not None:
+      self._delay_buffer.set_lags(lags, env_ids)
+
   def get_command(self, data: EntityData) -> ActuatorCmd:
     """Extract command data for this actuator from entity data.
 
@@ -251,13 +354,14 @@ class Actuator(ABC, Generic[ActuatorCfgT]):
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
     """Reset actuator state for specified environments.
 
-    Base implementation does nothing. Override in subclasses that maintain
-    internal state.
+    Resets delay buffers if present. Subclasses that override this should
+    call ``super().reset(env_ids)``.
 
     Args:
       env_ids: Environment indices to reset. If None, reset all environments.
     """
-    del env_ids  # Unused.
+    if self._delay_buffer is not None:
+      self._delay_buffer.reset(env_ids)
 
   def update(self, dt: float) -> None:
     """Update actuator state after a simulation step.

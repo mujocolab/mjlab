@@ -8,7 +8,7 @@ import pytest
 import torch
 from conftest import get_test_device, load_fixture_xml
 
-from mjlab.actuator import BuiltinPositionActuatorCfg, XmlMotorActuatorCfg
+from mjlab.actuator import BuiltinPositionActuatorCfg, XmlActuatorCfg
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.scene import Scene, SceneCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
@@ -479,7 +479,7 @@ def test_find_joints_by_actuator_names_preserves_natural_order(device):
   robot_cfg = EntityCfg(
     spec_fn=lambda: mujoco.MjSpec.from_string(ACTUATOR_ORDER_TEST_XML),
     articulation=EntityArticulationInfoCfg(
-      actuators=(XmlMotorActuatorCfg(target_names_expr=(".*",)),)
+      actuators=(XmlActuatorCfg(target_names_expr=(".*",)),)
     ),
   )
 
@@ -510,7 +510,7 @@ def test_ctrl_ids_follow_natural_joint_order(device):
   robot_cfg = EntityCfg(
     spec_fn=lambda: mujoco.MjSpec.from_string(ACTUATOR_ORDER_TEST_XML),
     articulation=EntityArticulationInfoCfg(
-      actuators=(XmlMotorActuatorCfg(target_names_expr=(".*",)),)
+      actuators=(XmlActuatorCfg(target_names_expr=(".*",)),)
     ),
   )
 
@@ -550,7 +550,7 @@ def test_find_joints_by_actuator_names_returns_entity_local_indices():
   robot_cfg = EntityCfg(
     spec_fn=lambda: mujoco.MjSpec.from_string(UNDERACTUATED_XML),
     articulation=EntityArticulationInfoCfg(
-      actuators=(XmlMotorActuatorCfg(target_names_expr=(".*",)),)
+      actuators=(XmlActuatorCfg(target_names_expr=(".*",)),)
     ),
   )
 
@@ -764,3 +764,43 @@ def test_tendon_and_site_targets_only_allocated_when_needed(device):
 
   # Joint targets should still be allocated (2 joints).
   assert entity.data.joint_pos_target.shape == (4, 2)
+
+
+def test_add_actuators_wrong_namespace_error_includes_hint():
+  """Error message includes namespace hint when name exists in another namespace."""
+  from mjlab.actuator.actuator import TransmissionType
+
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(XML_WITH_SITES_AND_TENDONS),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        BuiltinPositionActuatorCfg(
+          target_names_expr=("tendon1",),
+          stiffness=10.0,
+          damping=1.0,
+          transmission_type=TransmissionType.JOINT,
+        ),
+      )
+    ),
+  )
+  with pytest.raises(ValueError, match="Matches were found in.*tendons.*tendon1"):
+    Entity(cfg)
+
+
+@pytest.mark.filterwarnings("ignore:Actuator config matched")
+def test_wildcard_warns_about_unactuated_namespaces():
+  """Wildcard matching joints should warn about unactuated tendons."""
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(XML_WITH_SITES_AND_TENDONS),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        BuiltinPositionActuatorCfg(
+          target_names_expr=(".*",),
+          stiffness=10.0,
+          damping=1.0,
+        ),
+      )
+    ),
+  )
+  with pytest.warns(match="also match.*tendon"):
+    Entity(cfg)

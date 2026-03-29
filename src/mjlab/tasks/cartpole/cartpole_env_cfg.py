@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import mujoco
 import torch
 
-from mjlab.actuator.xml_actuator import XmlMotorActuatorCfg
+from mjlab.actuator.xml_actuator import XmlActuatorCfg
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs.mdp import (
@@ -53,7 +53,7 @@ def _get_spec() -> mujoco.MjSpec:
 
 
 _CARTPOLE_ARTICULATION = EntityArticulationInfoCfg(
-  actuators=(XmlMotorActuatorCfg(target_names_expr=("slider",)),),
+  actuators=(XmlActuatorCfg(target_names_expr=("slider",)),),
 )
 
 _BALANCE_INIT = EntityCfg.InitialStateCfg(

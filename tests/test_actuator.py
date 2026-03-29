@@ -14,7 +14,7 @@ from mjlab.actuator import (
   BuiltinMotorActuatorCfg,
   BuiltinPositionActuatorCfg,
   IdealPdActuatorCfg,
-  XmlMotorActuatorCfg,
+  XmlActuatorCfg,
 )
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 
@@ -142,7 +142,7 @@ def test_xml_actuator_with_internal_attach_prefix(device):
   cfg = EntityCfg(
     spec_fn=_prefixed_entity_spec,
     articulation=EntityArticulationInfoCfg(
-      actuators=(XmlMotorActuatorCfg(target_names_expr=("elbow",)),)
+      actuators=(XmlActuatorCfg(target_names_expr=("elbow",)),)
     ),
   )
   entity = Entity(cfg)

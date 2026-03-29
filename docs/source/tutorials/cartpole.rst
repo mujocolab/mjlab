@@ -82,7 +82,7 @@ state.
 
     # Tell mjlab to use the motor defined in the XML as is.
     _CARTPOLE_ARTICULATION = EntityArticulationInfoCfg(
-        actuators=(XmlMotorActuatorCfg(target_names_expr=("slider",)),),
+        actuators=(XmlActuatorCfg(target_names_expr=("slider",)),),
     )
 
 The initial joint state depends on the task variant:
@@ -230,7 +230,7 @@ Actions: what the agent does
 
 The agent outputs a single scalar: the force on the cart.
 ``JointEffortActionCfg`` writes the policy output to the actuator's
-effort target. The ``XmlMotorActuator`` passes it to MuJoCo's ``ctrl``
+effort target. The ``XmlActuator`` passes it to MuJoCo's ``ctrl``
 buffer, which clamps it to [-1, 1] and multiplies by the gear ratio:
 
 .. code-block:: python

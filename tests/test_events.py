@@ -181,7 +181,8 @@ def _make_pd_env(device, num_envs=2):
   builtin.ctrl_ids = torch.tensor([0, 1], device=device)
   builtin.global_ctrl_ids = torch.tensor([0, 1], device=device)
 
-  xml = Mock(spec=actuator.XmlPositionActuator)
+  xml = Mock(spec=actuator.XmlActuator)
+  xml.command_field = "position"
   xml.ctrl_ids = torch.tensor([2, 3], device=device)
   xml.global_ctrl_ids = torch.tensor([2, 3], device=device)
 
@@ -229,7 +230,8 @@ def _make_effort_env(device, num_envs=2):
   builtin.ctrl_ids = torch.tensor([0, 1], device=device)
   builtin.global_ctrl_ids = torch.tensor([0, 1], device=device)
 
-  xml = Mock(spec=actuator.XmlPositionActuator)
+  xml = Mock(spec=actuator.XmlActuator)
+  xml.command_field = "position"
   xml.ctrl_ids = torch.tensor([2, 3], device=device)
   xml.global_ctrl_ids = torch.tensor([2, 3], device=device)
 
@@ -466,44 +468,6 @@ def test_reset_joints_by_offset(device):
   call_args = mock_entity.write_joint_state_to_sim.call_args
   joint_pos = call_args[0][0]
   assert torch.allclose(joint_pos, torch.ones_like(joint_pos) * 0.5)
-
-
-def test_sync_actuator_delays(device):
-  """Samples lag in range and applies to all delayed actuators."""
-  from mjlab.actuator.delayed_actuator import DelayedActuator
-
-  env = Mock()
-  env.num_envs = 4
-  env.device = device
-
-  delayed_1 = Mock(spec=DelayedActuator)
-  delayed_2 = Mock(spec=DelayedActuator)
-  non_delayed = Mock(spec=actuator.BuiltinPositionActuator)
-
-  mock_entity = Mock()
-  mock_entity.actuators = [delayed_1, non_delayed, delayed_2]
-  env.scene = {"robot": mock_entity}
-
-  torch.manual_seed(42)
-  dr.sync_actuator_delays(
-    env,
-    env_ids=None,
-    lag_range=(1, 5),
-    asset_cfg=SceneEntityCfg("robot"),
-  )
-
-  delayed_1.set_lags.assert_called_once()
-  delayed_2.set_lags.assert_called_once()
-  assert not hasattr(non_delayed, "set_lags")
-
-  # Both calls should receive the same lags (same sample).
-  lags_1 = delayed_1.set_lags.call_args[0][0]
-  lags_2 = delayed_2.set_lags.call_args[0][0]
-  torch.testing.assert_close(lags_1, lags_2)
-
-  assert torch.all(lags_1 >= 1)
-  assert torch.all(lags_1 <= 5)
-  assert len(lags_1) == 4
 
 
 # ===========================================================================

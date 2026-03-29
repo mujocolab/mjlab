@@ -13,7 +13,6 @@ import torch
 from mjlab import actuator
 from mjlab.actuator import BuiltinActuatorGroup
 from mjlab.actuator.actuator import TransmissionType
-from mjlab.actuator.delayed_builtin_group import DelayedBuiltinActuatorGroup
 from mjlab.actuator.xml_actuator import XmlActuator
 from mjlab.entity.data import EntityData
 from mjlab.utils import spec_config as spec_cfg
@@ -179,27 +178,75 @@ class Entity:
     # Collect actuator instances and their targets.
     pending: list[tuple[actuator.ActuatorCfg, actuator.Actuator, list[str]]] = []
     for actuator_cfg in self.cfg.articulation.actuators:
-      # Find targets based on transmission type.
-      if actuator_cfg.transmission_type == TransmissionType.JOINT:
-        target_ids, target_names = self.find_joints(actuator_cfg.target_names_expr)
-        target_spec_names = [self._non_free_joints[i].name for i in target_ids]
-      elif actuator_cfg.transmission_type == TransmissionType.TENDON:
-        target_ids, target_names = self.find_tendons(actuator_cfg.target_names_expr)
-        target_spec_names = [self._spec.tendons[i].name for i in target_ids]
-      elif actuator_cfg.transmission_type == TransmissionType.SITE:
-        target_ids, target_names = self.find_sites(actuator_cfg.target_names_expr)
-        target_spec_names = [self.spec.sites[i].name for i in target_ids]
-      else:
-        raise ValueError(
-          f"Invalid transmission_type: {actuator_cfg.transmission_type}. "
-          f"Must be TransmissionType.JOINT, TransmissionType.TENDON, or TransmissionType.SITE."
-        )
+      # Find targets based on transmission type. resolve_matching_names raises
+      # ValueError when no regex matches; we catch that to produce a better error with
+      # namespace hints below.
+      target_ids: list[int] = []
+      target_names: list[str] = []
+      target_spec_names: list[str] = []
+      try:
+        if actuator_cfg.transmission_type == TransmissionType.JOINT:
+          target_ids, target_names = self.find_joints(actuator_cfg.target_names_expr)
+          target_spec_names = [self._non_free_joints[i].name for i in target_ids]
+        elif actuator_cfg.transmission_type == TransmissionType.TENDON:
+          target_ids, target_names = self.find_tendons(actuator_cfg.target_names_expr)
+          target_spec_names = [self._spec.tendons[i].name for i in target_ids]
+        elif actuator_cfg.transmission_type == TransmissionType.SITE:
+          target_ids, target_names = self.find_sites(actuator_cfg.target_names_expr)
+          target_spec_names = [self.spec.sites[i].name for i in target_ids]
+        else:
+          raise TypeError(
+            f"Invalid transmission_type: {actuator_cfg.transmission_type}. "
+            f"Must be TransmissionType.JOINT, TransmissionType.TENDON, "
+            f"or TransmissionType.SITE."
+          )
+      except ValueError:
+        pass  # target_names stays empty, fall through to hint logic
+
+      # Check other namespaces for matches. If we found nothing, this produces a
+      # helpful error. If we did find targets, it warns about unactuated matches in
+      # other namespaces.
+      current = actuator_cfg.transmission_type
+      other_matches: dict[TransmissionType, tuple[str, list[str]]] = {}
+      other_namespaces = {
+        TransmissionType.JOINT: ("joint", self.joint_names),
+        TransmissionType.TENDON: ("tendon", self.tendon_names),
+        TransmissionType.SITE: ("site", self.site_names),
+      }
+      for tt, (label, names) in other_namespaces.items():
+        if tt == current or not names:
+          continue
+        try:
+          _, matched = resolve_matching_names(actuator_cfg.target_names_expr, names)
+          other_matches[tt] = (label, matched)
+        except ValueError:
+          pass
 
       if len(target_names) == 0:
-        raise ValueError(
-          f"No {actuator_cfg.transmission_type}s found for actuator with "
-          f"expressions: {actuator_cfg.target_names_expr}"
+        msg = (
+          f"No {current.value}s matched expressions: {actuator_cfg.target_names_expr}"
         )
+        if other_matches:
+          hints = [
+            f"{label}s ({', '.join(matched)})"
+            for label, matched in other_matches.values()
+          ]
+          msg += (
+            f". Matches were found in: {'; '.join(hints)}. "
+            f"Check that transmission_type is correct."
+          )
+        raise ValueError(msg)
+
+      for tt, (label, matched) in other_matches.items():
+        warnings.warn(
+          f"Actuator config matched {len(target_names)} {current.value}(s) "
+          f"but the same expressions also match {len(matched)} {label}(s): "
+          f"{', '.join(matched)}. Add a separate config with "
+          f"transmission_type=TransmissionType.{tt.name} if those should "
+          f"be actuated too.",
+          stacklevel=2,
+        )
+
       actuator_instance = actuator_cfg.build(self, target_ids, target_names)
       self._actuators.append(actuator_instance)
       pending.append((actuator_cfg, actuator_instance, target_spec_names))
@@ -576,12 +623,8 @@ class Entity:
 
     # Vectorize built-in actuators; we'll loop through custom ones.
     builtin_group, custom_actuators = BuiltinActuatorGroup.process(self._actuators)
-    delayed_builtin_group, custom_actuators = DelayedBuiltinActuatorGroup.process(
-      custom_actuators
-    )
-    delayed_builtin_group.initialize(nworld, device)
+    builtin_group.initialize(nworld, device)
     self._builtin_group = builtin_group
-    self._delayed_builtin_group = delayed_builtin_group
     self._custom_actuators = custom_actuators
 
     # Root state.
@@ -1166,7 +1209,7 @@ class Entity:
 
   def _apply_actuator_controls(self) -> None:
     self._builtin_group.apply_controls(self._data)
-    self._delayed_builtin_group.apply_controls(self._data)
     for act in self._custom_actuators:
       command = act.get_command(self._data)
+      command = act.apply_delay(command)
       self._data.write_ctrl(act.compute(command), act.ctrl_ids)

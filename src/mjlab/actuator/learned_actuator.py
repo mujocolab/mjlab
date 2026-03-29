@@ -125,6 +125,7 @@ class LearnedMlpActuator(DcMotorActuator[LearnedMlpActuatorCfg]):
     Args:
       env_ids: Environment indices to reset. If None, reset all environments.
     """
+    super().reset(env_ids)
     assert self._pos_error_history is not None
     assert self._vel_history is not None
 

@@ -1,4 +1,4 @@
-"""Tests for DelayedBuiltinActuatorGroup."""
+"""Tests for BuiltinActuatorGroup (unified delayed + non-delayed)."""
 
 import mujoco
 import pytest
@@ -7,7 +7,6 @@ from conftest import get_test_device, load_fixture_xml
 
 from mjlab.actuator import (
   BuiltinPositionActuatorCfg,
-  DelayedActuatorCfg,
   IdealPdActuatorCfg,
 )
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
@@ -35,78 +34,74 @@ def make_entity(actuator_cfgs, num_envs, device):
 
 def test_fused_group_created(device):
   """Delayed builtins with same config are fused into one group."""
-  cfg1 = DelayedActuatorCfg(
-    base_cfg=BuiltinPositionActuatorCfg(
-      target_names_expr=("joint1",), stiffness=50.0, damping=5.0
-    ),
+  cfg1 = BuiltinPositionActuatorCfg(
+    target_names_expr=("joint1",),
+    stiffness=50.0,
+    damping=5.0,
     delay_min_lag=1,
     delay_max_lag=3,
   )
-  cfg2 = DelayedActuatorCfg(
-    base_cfg=BuiltinPositionActuatorCfg(
-      target_names_expr=("joint2",), stiffness=50.0, damping=5.0
-    ),
+  cfg2 = BuiltinPositionActuatorCfg(
+    target_names_expr=("joint2",),
+    stiffness=50.0,
+    damping=5.0,
     delay_min_lag=1,
     delay_max_lag=3,
   )
   entity, _ = make_entity((cfg1, cfg2), num_envs=2, device=device)
 
-  assert len(entity._delayed_builtin_group._groups) == 1
+  assert len(entity._builtin_group._delayed_groups) == 1
   assert len(entity._custom_actuators) == 0
 
 
 def test_different_delay_configs_separate_groups(device):
   """Delayed builtins with different delay configs get separate groups."""
-  cfg1 = DelayedActuatorCfg(
-    base_cfg=BuiltinPositionActuatorCfg(
-      target_names_expr=("joint1",), stiffness=50.0, damping=5.0
-    ),
+  cfg1 = BuiltinPositionActuatorCfg(
+    target_names_expr=("joint1",),
+    stiffness=50.0,
+    damping=5.0,
     delay_min_lag=1,
     delay_max_lag=3,
   )
-  cfg2 = DelayedActuatorCfg(
-    base_cfg=BuiltinPositionActuatorCfg(
-      target_names_expr=("joint2",), stiffness=50.0, damping=5.0
-    ),
+  cfg2 = BuiltinPositionActuatorCfg(
+    target_names_expr=("joint2",),
+    stiffness=50.0,
+    damping=5.0,
     delay_min_lag=5,
     delay_max_lag=10,
   )
   entity, _ = make_entity((cfg1, cfg2), num_envs=2, device=device)
 
-  assert len(entity._delayed_builtin_group._groups) == 2
+  assert len(entity._builtin_group._delayed_groups) == 2
 
 
 def test_non_builtin_delayed_not_fused(device):
   """Delayed non-builtin actuators remain in custom_actuators."""
-  delayed_builtin = DelayedActuatorCfg(
-    base_cfg=BuiltinPositionActuatorCfg(
-      target_names_expr=("joint1",), stiffness=50.0, damping=5.0
-    ),
+  delayed_builtin = BuiltinPositionActuatorCfg(
+    target_names_expr=("joint1",),
+    stiffness=50.0,
+    damping=5.0,
     delay_min_lag=1,
     delay_max_lag=3,
   )
-  delayed_custom = DelayedActuatorCfg(
-    base_cfg=IdealPdActuatorCfg(
-      target_names_expr=("joint2",),
-      stiffness=50.0,
-      damping=5.0,
-      effort_limit=100.0,
-    ),
-    delay_min_lag=1,
-    delay_max_lag=3,
+  custom = IdealPdActuatorCfg(
+    target_names_expr=("joint2",),
+    stiffness=50.0,
+    damping=5.0,
+    effort_limit=100.0,
   )
-  entity, _ = make_entity((delayed_builtin, delayed_custom), num_envs=2, device=device)
+  entity, _ = make_entity((delayed_builtin, custom), num_envs=2, device=device)
 
-  assert len(entity._delayed_builtin_group._groups) == 1
+  assert len(entity._builtin_group._delayed_groups) == 1
   assert len(entity._custom_actuators) == 1
 
 
 def test_delayed_controls_written(device):
   """Fused delayed builtins write controls to sim correctly."""
-  cfg = DelayedActuatorCfg(
-    base_cfg=BuiltinPositionActuatorCfg(
-      target_names_expr=("joint.*",), stiffness=50.0, damping=5.0
-    ),
+  cfg = BuiltinPositionActuatorCfg(
+    target_names_expr=("joint.*",),
+    stiffness=50.0,
+    damping=5.0,
     delay_min_lag=0,
     delay_max_lag=0,
   )
@@ -122,10 +117,10 @@ def test_delayed_controls_written(device):
 
 def test_delay_actually_delays(device):
   """With nonzero fixed lag, a new target takes lag steps to appear."""
-  cfg = DelayedActuatorCfg(
-    base_cfg=BuiltinPositionActuatorCfg(
-      target_names_expr=("joint.*",), stiffness=50.0, damping=5.0
-    ),
+  cfg = BuiltinPositionActuatorCfg(
+    target_names_expr=("joint.*",),
+    stiffness=50.0,
+    damping=5.0,
     delay_min_lag=2,
     delay_max_lag=2,
   )
@@ -156,10 +151,10 @@ def test_delay_actually_delays(device):
 
 def test_reset_clears_buffer(device):
   """Reset clears delay buffers so old values don't leak through."""
-  cfg = DelayedActuatorCfg(
-    base_cfg=BuiltinPositionActuatorCfg(
-      target_names_expr=("joint.*",), stiffness=50.0, damping=5.0
-    ),
+  cfg = BuiltinPositionActuatorCfg(
+    target_names_expr=("joint.*",),
+    stiffness=50.0,
+    damping=5.0,
     delay_min_lag=2,
     delay_max_lag=2,
   )
