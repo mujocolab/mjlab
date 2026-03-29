@@ -1,5 +1,7 @@
 """MjSpec utils."""
 
+from __future__ import annotations
+
 import shutil
 import xml.etree.ElementTree as ET
 import zipfile
@@ -431,3 +433,87 @@ def create_muscle_actuator(
   actuator.ctrlrange[:] = np.array([0.0, 1.0])
 
   return actuator
+
+
+# ---------------------------------------------------------------------------
+# Mesh variant helpers
+# ---------------------------------------------------------------------------
+
+
+def copy_mesh_data(src: mujoco.MjsMesh, dst: mujoco.MjsMesh) -> None:
+  """Copy mesh geometry from *src* to *dst*.
+
+  Copies vertex/face data, file path, scale, reference frame, and smoothing settings.
+  The ``name`` field is NOT copied; set it on *dst* before calling.
+  """
+  if src.file:
+    dst.file = src.file
+  if len(src.uservert) > 0:
+    dst.uservert = src.uservert
+  if len(src.userface) > 0:
+    dst.userface = src.userface
+  if len(src.usernormal) > 0:
+    dst.usernormal = src.usernormal
+  if len(src.usertexcoord) > 0:
+    dst.usertexcoord = src.usertexcoord
+  if len(src.userfacenormal) > 0:
+    dst.userfacenormal = src.userfacenormal
+  if len(src.userfacetexcoord) > 0:
+    dst.userfacetexcoord = src.userfacetexcoord
+  dst.scale[:] = src.scale
+  dst.refpos[:] = src.refpos
+  dst.refquat[:] = src.refquat
+  dst.smoothnormal = src.smoothnormal
+
+
+def validate_variant_structure(
+  names: list[str],
+  bodies: list[mujoco.MjsBody],
+) -> None:
+  """Validate that variant specs share the same kinematic structure.
+
+  Checks that all variants have the same number of child bodies, the same number of
+  joints, the same joint types, and the same joint names. Raises ``ValueError`` with a
+  descriptive message if any differ.
+  """
+  ref_name = names[0]
+  ref_body = bodies[0]
+  ref_joints = list(ref_body.joints)
+  ref_joint_types = [j.type for j in ref_joints]
+  ref_joint_names = [j.name for j in ref_joints]
+  ref_sub_bodies = list(ref_body.bodies)
+
+  for i in range(1, len(names)):
+    other_name = names[i]
+    other_body = bodies[i]
+
+    other_sub_bodies = list(other_body.bodies)
+    if len(other_sub_bodies) != len(ref_sub_bodies):
+      raise ValueError(
+        f"Variant '{other_name}' has {len(other_sub_bodies)} "
+        f"child bodies, but '{ref_name}' has "
+        f"{len(ref_sub_bodies)}."
+      )
+
+    other_joints = list(other_body.joints)
+    if len(other_joints) != len(ref_joints):
+      raise ValueError(
+        f"Variant '{other_name}' has {len(other_joints)} "
+        f"joints, but '{ref_name}' has {len(ref_joints)}."
+      )
+
+    other_joint_types = [j.type for j in other_joints]
+    if other_joint_types != ref_joint_types:
+      raise ValueError(
+        f"Variant '{other_name}' has joint types "
+        f"{other_joint_types}, but '{ref_name}' has "
+        f"{ref_joint_types}."
+      )
+
+    other_joint_names = [j.name for j in other_joints]
+    if other_joint_names != ref_joint_names:
+      raise ValueError(
+        f"Variant '{other_name}' has joint names "
+        f"{other_joint_names}, but '{ref_name}' has "
+        f"{ref_joint_names}."
+      )

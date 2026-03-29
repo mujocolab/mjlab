@@ -18,7 +18,11 @@ from mjlab.entity.data import EntityData
 from mjlab.utils import spec_config as spec_cfg
 from mjlab.utils.lab_api.string import resolve_matching_names
 from mjlab.utils.mujoco import dof_width, qpos_width
-from mjlab.utils.spec import auto_wrap_fixed_base_mocap
+from mjlab.utils.spec import (
+  auto_wrap_fixed_base_mocap,
+  copy_mesh_data,
+  validate_variant_structure,
+)
 from mjlab.utils.string import resolve_expr
 from mjlab.utils.xml import fix_spec_xml, strip_buffer_textures
 
@@ -61,6 +65,30 @@ class EntityIndexing:
   @property
   def root_body_id(self) -> int:
     return self.bodies[0].id
+
+
+@dataclass
+class VariantCfg:
+  """One object variant for per-world mesh randomization.
+
+  Each variant provides a ``spec_fn`` that returns an MjSpec for one object.
+  The ``weight`` controls what fraction of worlds use this variant.
+  """
+
+  spec_fn: Callable[[], mujoco.MjSpec]
+  weight: float = 1.0
+
+
+@dataclass
+class VariantMetadata:
+  """Bookkeeping produced by Entity when merging variant specs."""
+
+  variant_names: tuple[str, ...]
+  variant_weights: tuple[float, ...]
+  # Per-variant ordered mesh names for each geom slot. Shorter variants
+  # have None for padding slots that should be disabled (dataid = -1).
+  variant_mesh_names: tuple[tuple[str | None, ...], ...]
+  num_mesh_geoms: int  # Max mesh geom count after padding.
 
 
 @dataclass
@@ -110,6 +138,29 @@ class EntityArticulationInfoCfg:
   soft_joint_pos_limit_factor: float = 1.0
 
 
+@dataclass
+class VariantEntityCfg(EntityCfg):
+  """Entity config for per-world mesh variants.
+
+  Instead of a single ``spec_fn``, provide a dict of named variants.
+  Each world gets a variant assigned proportionally by weight. The
+  merged spec (with all variant meshes and padded geoms) is built
+  automatically.
+
+  All variants must share the same kinematic structure (same bodies,
+  joints, joint types). Only mesh geoms can differ.
+
+  Do not set ``spec_fn``; it is constructed automatically from the
+  merged variant specs.
+  """
+
+  variants: dict[str, VariantCfg] = field(default_factory=dict)
+  """Named mesh variants with weights."""
+
+  def build(self) -> Entity:
+    return Entity(self)
+
+
 class Entity:
   """An entity represents a physical object in the simulation.
 
@@ -143,6 +194,7 @@ class Entity:
   def __init__(self, cfg: EntityCfg) -> None:
     self.cfg = cfg
     self._actuators: list[actuator.Actuator] = []
+    self._variant_metadata: VariantMetadata | None = None
     self._build_spec()
     self._identify_joints()
     self._apply_spec_editors()
@@ -150,7 +202,118 @@ class Entity:
     self._add_initial_state_keyframe()
 
   def _build_spec(self) -> None:
-    self._spec = auto_wrap_fixed_base_mocap(self.cfg.spec_fn)()
+    if isinstance(self.cfg, VariantEntityCfg):
+      self._build_merged_spec()
+    else:
+      self._spec = auto_wrap_fixed_base_mocap(self.cfg.spec_fn)()
+
+  def _build_merged_spec(self) -> None:
+    """Build a merged spec from multiple variant specs.
+
+    Validates that all variants share the same kinematic structure,
+    merges all mesh assets into a single spec, and pads the body to
+    the max mesh geom count across variants.
+    """
+    assert isinstance(self.cfg, VariantEntityCfg)
+    variants = self.cfg.variants
+    if len(variants) < 2:
+      raise ValueError(
+        f"variants must contain at least 2 entries, got {len(variants)}."
+      )
+
+    variant_names: list[str] = []
+    variant_weights: list[float] = []
+    variant_specs: list[mujoco.MjSpec] = []
+    for name, vcfg in variants.items():
+      variant_names.append(name)
+      variant_weights.append(vcfg.weight)
+      variant_specs.append(vcfg.spec_fn())
+
+    # Find root body in each variant.
+    variant_bodies: list[mujoco.MjsBody] = []
+    for i, spec in enumerate(variant_specs):
+      children = list(spec.worldbody.bodies)
+      if len(children) != 1:
+        raise ValueError(
+          f"Variant '{variant_names[i]}' must have exactly one "
+          f"root body under worldbody, got {len(children)}."
+        )
+      variant_bodies.append(children[0])
+
+    validate_variant_structure(variant_names, variant_bodies)
+
+    # Collect original mesh names per variant BEFORE any renaming.
+    variant_orig_mesh_names: list[list[str]] = []
+    variant_mesh_geom_counts: list[int] = []
+    for body in variant_bodies:
+      orig_names = [
+        g.meshname for g in body.geoms if g.type == mujoco.mjtGeom.mjGEOM_MESH
+      ]
+      variant_orig_mesh_names.append(orig_names)
+      variant_mesh_geom_counts.append(len(orig_names))
+
+    max_mesh_geoms = max(variant_mesh_geom_counts)
+
+    # Use first variant as template. Prefix ALL mesh names with
+    # variant name to avoid collisions across variants.
+    template_spec = variant_specs[0]
+    template_body = variant_bodies[0]
+
+    # Rename template meshes first.
+    template_prefix = f"{variant_names[0]}/"
+    old_to_new: dict[str, str] = {}
+    for mesh in template_spec.meshes:
+      new_name = f"{template_prefix}{mesh.name}"
+      old_to_new[mesh.name] = new_name
+      mesh.name = new_name
+    for g in template_body.geoms:
+      if g.meshname in old_to_new:
+        g.meshname = old_to_new[g.meshname]
+
+    # Copy mesh assets from other variants.
+    for i in range(1, len(variant_specs)):
+      prefix = f"{variant_names[i]}/"
+      for mesh in variant_specs[i].meshes:
+        new_mesh = template_spec.add_mesh()
+        new_mesh.name = f"{prefix}{mesh.name}"
+        copy_mesh_data(mesh, new_mesh)
+
+    # Pad body to max mesh geom count.
+    current_count = variant_mesh_geom_counts[0]
+    if max_mesh_geoms > current_count:
+      longest_idx = max(
+        range(len(variant_mesh_geom_counts)),
+        key=lambda j: variant_mesh_geom_counts[j],
+      )
+      longest_prefix = f"{variant_names[longest_idx]}/"
+      longest_names = variant_orig_mesh_names[longest_idx]
+      for k in range(current_count, max_mesh_geoms):
+        geom = template_body.add_geom()
+        geom.type = mujoco.mjtGeom.mjGEOM_MESH
+        geom.meshname = f"{longest_prefix}{longest_names[k]}"
+        geom.contype = 0
+        geom.conaffinity = 0
+
+    # Build variant_mesh_names: use original names with variant prefix.
+    variant_mesh_name_lists: list[tuple[str | None, ...]] = []
+    for i, orig_names in enumerate(variant_orig_mesh_names):
+      prefix = f"{variant_names[i]}/"
+      names: list[str | None] = [f"{prefix}{n}" for n in orig_names]
+      while len(names) < max_mesh_geoms:
+        names.append(None)
+      variant_mesh_name_lists.append(tuple(names))
+
+    self._variant_metadata = VariantMetadata(
+      variant_names=tuple(variant_names),
+      variant_weights=tuple(variant_weights),
+      variant_mesh_names=tuple(variant_mesh_name_lists),
+      num_mesh_geoms=max_mesh_geoms,
+    )
+    self._spec = template_spec
+
+  @property
+  def variant_metadata(self) -> VariantMetadata | None:
+    return self._variant_metadata
 
   def _identify_joints(self) -> None:
     self._all_joints = self._spec.joints
@@ -648,16 +811,7 @@ class Entity:
     self._custom_actuators = custom_actuators
 
     # Root state.
-    root_state_components = [self.cfg.init_state.pos, self.cfg.init_state.rot]
-    if not self.is_fixed_base:
-      root_state_components.extend(
-        [self.cfg.init_state.lin_vel, self.cfg.init_state.ang_vel]
-      )
-    default_root_state = torch.tensor(
-      sum((tuple(c) for c in root_state_components), ()),
-      dtype=torch.float,
-      device=device,
-    ).repeat(nworld, 1)
+    default_root_state = self._build_default_root_state(nworld, device)
 
     # Joint state.
     if self.is_articulated:
@@ -1149,6 +1303,18 @@ class Entity:
   ##
   # Private methods.
   ##
+
+  def _build_default_root_state(self, nworld: int, device: str) -> torch.Tensor:
+    """Build default root state tensor, uniform across all worlds."""
+    base = self.cfg.init_state
+    components: list[tuple[float, ...]] = [base.pos, base.rot]
+    if not self.is_fixed_base:
+      components.extend([base.lin_vel, base.ang_vel])
+    return torch.tensor(
+      sum((tuple(c) for c in components), ()),
+      dtype=torch.float,
+      device=device,
+    ).repeat(nworld, 1)
 
   def _compute_indexing(self, model: mujoco.MjModel, device: str) -> EntityIndexing:
     bodies = tuple([b for b in self.spec.bodies[1:]])
