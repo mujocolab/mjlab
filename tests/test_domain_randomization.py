@@ -84,13 +84,17 @@ def create_test_env(
   return Env(scene, sim, device)
 
 
+@pytest.fixture(scope="module")
+def env(device):
+  return create_test_env(device)
+
+
 # Operations: abs, scale, add.
 
 
-def test_abs_operation(device):
+def test_abs_operation(env):
   """Values set directly within range, diversity across envs."""
   torch.manual_seed(42)
-  env = create_test_env(device)
   robot = env.scene["robot"]
 
   dr.geom_friction(
@@ -107,10 +111,9 @@ def test_abs_operation(device):
   assert len(torch.unique(friction)) >= 2
 
 
-def test_scale_operation(device):
+def test_scale_operation(env):
   """Values = default * sample, within expected bounds."""
   torch.manual_seed(42)
-  env = create_test_env(device)
   robot = env.scene["robot"]
   geom_idx = robot.indexing.geom_ids[0]
 
@@ -131,10 +134,9 @@ def test_scale_operation(device):
   )
 
 
-def test_add_operation(device):
+def test_add_operation(env):
   """Values = default + sample, within expected bounds."""
   torch.manual_seed(42)
-  env = create_test_env(device)
   robot = env.scene["robot"]
   geom_idx = robot.indexing.geom_ids[0]
 
@@ -285,10 +287,8 @@ def test_dict_int_axis_ranges(device):
   assert 0.001 - 1e-5 <= final[1].item() <= 0.002 + 1e-5
 
 
-def test_invalid_axes_raises(device):
+def test_invalid_axes_raises(env):
   """axes outside valid_axes raises ValueError."""
-  env = create_test_env(device)
-
   with pytest.raises(ValueError, match="Invalid axes"):
     dr.geom_friction(
       env,
@@ -303,11 +303,9 @@ def test_invalid_axes_raises(device):
 # String-keyed ranges.
 
 
-def test_string_keyed_ranges(device):
+def test_string_keyed_ranges(env):
   """Per-component DR with regex patterns."""
   torch.manual_seed(42)
-  env = create_test_env(device)
-
   dr.joint_damping(
     env,
     env_ids=None,
@@ -323,10 +321,8 @@ def test_string_keyed_ranges(device):
   assert abs(damping[1].item() - 1.5) < 1e-5
 
 
-def test_string_keyed_ranges_no_match_raises(device):
+def test_string_keyed_ranges_no_match_raises(env):
   """Pattern matching no names raises ValueError."""
-  env = create_test_env(device)
-
   with pytest.raises(ValueError, match="matched no"):
     dr.joint_damping(
       env,
@@ -340,10 +336,9 @@ def test_string_keyed_ranges_no_match_raises(device):
 # Shared random.
 
 
-def test_shared_random(device):
+def test_shared_random(env):
   """All entities within same env get same value, envs differ."""
   torch.manual_seed(42)
-  env = create_test_env(device, num_envs=4)
   robot = env.scene["robot"]
   geom_ids = robot.indexing.geom_ids
 
@@ -393,10 +388,9 @@ def test_single_env_without_expand(device):
   assert abs(final - original_friction * 2.0) < 1e-5
 
 
-def test_partial_env_ids(device):
+def test_partial_env_ids(env):
   """Randomizing subset of envs leaves others unchanged."""
   torch.manual_seed(42)
-  env = create_test_env(device, num_envs=4)
   robot = env.scene["robot"]
   geom_idx = robot.indexing.geom_ids[0]
 
@@ -502,6 +496,11 @@ def _make_quat_env(device, num_envs=NUM_ENVS):
   )
 
 
+@pytest.fixture(scope="module")
+def quat_env(device):
+  return _make_quat_env(device)
+
+
 _QUAT_CASES = [
   pytest.param(
     dr.body_quat,
@@ -528,10 +527,10 @@ _QUAT_CASES = [
 
 
 @pytest.mark.parametrize("dr_func, field, asset_cfg, ids_attr", _QUAT_CASES)
-def test_quat_is_unit_quaternion(device, dr_func, field, asset_cfg, ids_attr):
+def test_quat_is_unit_quaternion(quat_env, dr_func, field, asset_cfg, ids_attr):
   """All output quaternions must have unit norm (within 1e-6)."""
   torch.manual_seed(0)
-  env = _make_quat_env(device)
+  env = quat_env
   robot = env.scene["robot"]
 
   dr_func(
@@ -552,9 +551,9 @@ def test_quat_is_unit_quaternion(device, dr_func, field, asset_cfg, ids_attr):
 
 
 @pytest.mark.parametrize("dr_func, field, asset_cfg, ids_attr", _QUAT_CASES)
-def test_quat_zero_range_unchanged(device, dr_func, field, asset_cfg, ids_attr):
+def test_quat_zero_range_unchanged(quat_env, dr_func, field, asset_cfg, ids_attr):
   """All ranges (0, 0): result equals default quaternion."""
-  env = _make_quat_env(device)
+  env = quat_env
   robot = env.scene["robot"]
   ids = getattr(robot.indexing, ids_attr)
   default_quat = env.sim.get_default_field(field)[ids].clone()
@@ -566,9 +565,9 @@ def test_quat_zero_range_unchanged(device, dr_func, field, asset_cfg, ids_attr):
 
 
 @pytest.mark.parametrize("dr_func, field, asset_cfg, ids_attr", _QUAT_CASES)
-def test_quat_composes_with_default(device, dr_func, field, asset_cfg, ids_attr):
+def test_quat_composes_with_default(quat_env, dr_func, field, asset_cfg, ids_attr):
   """Fixed yaw=pi/4 matches manual quat_mul(q_yaw, q_default)."""
-  env = _make_quat_env(device)
+  env = quat_env
   robot = env.scene["robot"]
   ids = getattr(robot.indexing, ids_attr)
   n = len(ids)
@@ -578,16 +577,16 @@ def test_quat_composes_with_default(device, dr_func, field, asset_cfg, ids_attr)
 
   result = getattr(env.sim.model, field)[:, ids, :]
   q_default = env.sim.get_default_field(field)[ids]
-  zeros = torch.zeros(n, device=device)
+  zeros = torch.zeros(n, device=env.device)
   q_yaw = quat_from_euler_xyz(zeros, zeros, zeros + yaw)
   q_expected = quat_mul(q_yaw, q_default)
   assert torch.allclose(result, q_expected.unsqueeze(0).expand_as(result), atol=1e-6)
 
 
-def test_body_quat_only_specified_axes(device):
+def test_body_quat_only_specified_axes(quat_env):
   """Yaw-only perturbation: roll/pitch of result match default."""
   torch.manual_seed(1)
-  env = _make_quat_env(device)
+  env = quat_env
   robot = env.scene["robot"]
   body_cfg = SceneEntityCfg("robot", body_names=("base",))
   body_cfg.resolve(env.scene)
@@ -604,7 +603,7 @@ def test_body_quat_only_specified_axes(device):
   # For the default quat [1,0,0,0] composed with a yaw-only rotation, qx and qy should
   # remain 0 (pure yaw -> no roll/pitch).
   q_default = env.sim.get_default_field("body_quat")[body_ids]
-  if torch.allclose(q_default, torch.tensor([[1.0, 0.0, 0.0, 0.0]], device=device)):
+  if torch.allclose(q_default, torch.tensor([[1.0, 0.0, 0.0, 0.0]], device=env.device)):
     assert torch.allclose(result[..., 1], torch.zeros_like(result[..., 1]), atol=1e-6)
     assert torch.allclose(result[..., 2], torch.zeros_like(result[..., 2]), atol=1e-6)
 
@@ -619,6 +618,11 @@ def _make_inertia_env(device, num_envs=NUM_ENVS):
     num_envs=num_envs,
     expand_fields=("body_mass", "body_ipos", "body_inertia", "body_iquat"),
   )
+
+
+@pytest.fixture(scope="module")
+def inertia_env(device):
+  return _make_inertia_env(device)
 
 
 def _matrix_from_quat(q: torch.Tensor) -> torch.Tensor:
@@ -675,10 +679,10 @@ def _reconstruct_J(mass, ipos, inertia, iquat):
   return J
 
 
-def test_pseudo_inertia_physical_consistency(device):
+def test_pseudo_inertia_physical_consistency(inertia_env):
   """After wide perturbation, J ≻ 0, mass > 0, triangle inequality holds."""
   torch.manual_seed(10)
-  env = _make_inertia_env(device)
+  env = inertia_env
   robot = env.scene["robot"]
   body_cfg = SceneEntityCfg("robot", body_names=("base", "foot1", "foot2"))
   body_cfg.resolve(env.scene)
@@ -727,9 +731,9 @@ def test_pseudo_inertia_physical_consistency(device):
   assert torch.all(eigvals > -1e-5), f"Non-positive J eigenvalue: {eigvals.min()}"
 
 
-def test_pseudo_inertia_zero_perturbation_unchanged(device):
+def test_pseudo_inertia_zero_perturbation_unchanged(inertia_env):
   """All ranges (0, 0): mass, ipos, inertia, iquat equal defaults (1e-5)."""
-  env = _make_inertia_env(device)
+  env = inertia_env
   robot = env.scene["robot"]
   body_cfg = SceneEntityCfg("robot", body_names=("base", "foot1", "foot2"))
   body_cfg.resolve(env.scene)
@@ -762,7 +766,7 @@ def test_pseudo_inertia_zero_perturbation_unchanged(device):
   )
 
 
-def test_pseudo_inertia_zero_perturbation_offset_body(device):
+def test_pseudo_inertia_zero_perturbation_offset_body(inertia_env):
   """Zero perturbation preserves physics for a body with non-trivial ipos/iquat.
 
   Since ``eigh`` returns eigenvalues in ascending order while MuJoCo may store them
@@ -770,7 +774,7 @@ def test_pseudo_inertia_zero_perturbation_offset_body(device):
   representation-independent) rather than the raw principal moments and iquat
   individually.
   """
-  env = _make_inertia_env(device)
+  env = inertia_env
   robot = env.scene["robot"]
   body_cfg = SceneEntityCfg("robot", body_names=("offset_body",))
   body_cfg.resolve(env.scene)
@@ -785,7 +789,7 @@ def test_pseudo_inertia_zero_perturbation_offset_body(device):
   assert not torch.allclose(def_ipos, torch.zeros_like(def_ipos), atol=1e-6), (
     "Test body should have non-zero ipos"
   )
-  identity_q = torch.tensor([1.0, 0.0, 0.0, 0.0], device=device)
+  identity_q = torch.tensor([1.0, 0.0, 0.0, 0.0], device=env.device)
   assert not (
     torch.allclose(def_iquat, identity_q.expand_as(def_iquat), atol=1e-6)
     or torch.allclose(def_iquat, -identity_q.expand_as(def_iquat), atol=1e-6)
@@ -814,9 +818,9 @@ def test_pseudo_inertia_zero_perturbation_offset_body(device):
   )
 
 
-def test_pseudo_inertia_alpha_only_scales_mass(device):
+def test_pseudo_inertia_alpha_only_scales_mass(inertia_env):
   """alpha-only: mass and inertia scale by e^{2α}, ipos unchanged."""
-  env = _make_inertia_env(device)
+  env = inertia_env
   robot = env.scene["robot"]
   body_cfg = SceneEntityCfg("robot", body_names=("base", "foot1", "foot2"))
   body_cfg.resolve(env.scene)
@@ -845,9 +849,9 @@ def test_pseudo_inertia_alpha_only_scales_mass(device):
   assert torch.allclose(ipos, def_ipos.unsqueeze(0).expand_as(ipos), atol=1e-5)
 
 
-def test_pseudo_inertia_t1_shifts_com(device):
+def test_pseudo_inertia_t1_shifts_com(inertia_env):
   """t1-only: mass unchanged, ipos[0] shifts by exactly t1."""
-  env = _make_inertia_env(device)
+  env = inertia_env
   robot = env.scene["robot"]
   body_cfg = SceneEntityCfg("robot", body_names=("base", "foot1", "foot2"))
   body_cfg.resolve(env.scene)
@@ -972,10 +976,15 @@ def _make_cam_light_env(device, num_envs=NUM_ENVS):
   )
 
 
-def test_cam_fovy_abs(device):
+@pytest.fixture(scope="module")
+def cam_light_env(device):
+  return _make_cam_light_env(device)
+
+
+def test_cam_fovy_abs(cam_light_env):
   """Set fovy to absolute range, check bounds."""
   torch.manual_seed(42)
-  env = _make_cam_light_env(device)
+  env = cam_light_env
   robot = env.scene["robot"]
   cam_cfg = SceneEntityCfg("robot", camera_names=(".*",))
   cam_cfg.resolve(env.scene)
@@ -993,10 +1002,10 @@ def test_cam_fovy_abs(device):
   assert torch.all((fovy >= 30.0 - 1e-3) & (fovy <= 90.0 + 1e-3))
 
 
-def test_cam_pos_add(device):
+def test_cam_pos_add(cam_light_env):
   """Add offset to camera positions, check default + offset."""
   torch.manual_seed(42)
-  env = _make_cam_light_env(device)
+  env = cam_light_env
   robot = env.scene["robot"]
   cam_cfg = SceneEntityCfg("robot", camera_names=("front_cam",))
   cam_cfg.resolve(env.scene)
@@ -1019,9 +1028,9 @@ def test_cam_pos_add(device):
     assert torch.all((result[..., ax] >= lo) & (result[..., ax] <= hi))
 
 
-def test_cam_quat_zero_unchanged(device):
+def test_cam_quat_zero_unchanged(cam_light_env):
   """Zero RPY range preserves default quaternion."""
-  env = _make_cam_light_env(device)
+  env = cam_light_env
   robot = env.scene["robot"]
   cam_cfg = SceneEntityCfg("robot", camera_names=(".*",))
   cam_cfg.resolve(env.scene)
@@ -1039,10 +1048,10 @@ def test_cam_quat_zero_unchanged(device):
   )
 
 
-def test_light_pos_abs(device):
+def test_light_pos_abs(cam_light_env):
   """Set light position to absolute range, check bounds."""
   torch.manual_seed(42)
-  env = _make_cam_light_env(device)
+  env = cam_light_env
   robot = env.scene["robot"]
   light_cfg = SceneEntityCfg("robot", light_names=(".*",))
   light_cfg.resolve(env.scene)
@@ -1060,10 +1069,10 @@ def test_light_pos_abs(device):
   assert torch.all((pos >= -5.0 - 1e-3) & (pos <= 5.0 + 1e-3))
 
 
-def test_light_dir_add(device):
+def test_light_dir_add(cam_light_env):
   """Add offset to light direction, check default + offset."""
   torch.manual_seed(42)
-  env = _make_cam_light_env(device)
+  env = cam_light_env
   robot = env.scene["robot"]
   light_cfg = SceneEntityCfg("robot", light_names=(".*",))
   light_cfg.resolve(env.scene)
@@ -1086,10 +1095,10 @@ def test_light_dir_add(device):
     assert torch.all((result[..., ax] >= lo) & (result[..., ax] <= hi))
 
 
-def test_camera_partial_env_ids(device):
+def test_camera_partial_env_ids(cam_light_env):
   """Subset of envs randomized, others unchanged."""
   torch.manual_seed(42)
-  env = _make_cam_light_env(device, num_envs=4)
+  env = cam_light_env
   robot = env.scene["robot"]
   cam_cfg = SceneEntityCfg("robot", camera_names=(".*",))
   cam_cfg.resolve(env.scene)
@@ -1144,6 +1153,11 @@ def _make_geom_size_env(device, num_envs=NUM_ENVS):
   return Env(scene, sim, device)
 
 
+@pytest.fixture(scope="module")
+def geom_size_env(device):
+  return _make_geom_size_env(device)
+
+
 def _expected_rbound(geom_type, s0, s1, s2):
   """Reference rbound computation matching MuJoCo GetRBound."""
   if geom_type == "sphere":
@@ -1174,10 +1188,10 @@ def _expected_aabb_half(geom_type, s0, s1, s2):
   raise ValueError(geom_type)
 
 
-def test_geom_size_scale_updates_bounds(device):
+def test_geom_size_scale_updates_bounds(geom_size_env):
   """Scaling geom_size updates rbound and aabb consistently."""
   torch.manual_seed(42)
-  env = _make_geom_size_env(device)
+  env = geom_size_env
   robot = env.scene["robot"]
   geom_cfg = SceneEntityCfg("robot", geom_names=(".*",))
   geom_cfg.resolve(env.scene)
@@ -1225,7 +1239,7 @@ def test_geom_size_scale_updates_bounds(device):
 
       # Center should be zero for all primitives.
       center = aabb[e, g_local, 0]
-      assert torch.allclose(center, torch.zeros(3, device=device), atol=1e-6)
+      assert torch.allclose(center, torch.zeros(3, device=env.device), atol=1e-6)
 
 
 def test_geom_size_no_accumulation(device):
@@ -1354,6 +1368,11 @@ def _make_tendon_env(device, num_envs=NUM_ENVS):
   return Env(scene, sim, device)
 
 
+@pytest.fixture(scope="module")
+def tendon_env(device):
+  return _make_tendon_env(device)
+
+
 @pytest.mark.parametrize(
   "dr_func, field",
   [
@@ -1363,10 +1382,10 @@ def _make_tendon_env(device, num_envs=NUM_ENVS):
     (dr.tendon_armature, "tendon_armature"),
   ],
 )
-def test_tendon_field_scale(device, dr_func, field):
+def test_tendon_field_scale(tendon_env, dr_func, field):
   """Scale operation on tendon fields: result = default * sample."""
   torch.manual_seed(42)
-  env = _make_tendon_env(device)
+  env = tendon_env
   robot = env.scene["robot"]
   tendon_cfg = SceneEntityCfg("robot", tendon_names=(".*",))
   tendon_cfg.resolve(env.scene)
@@ -1484,19 +1503,18 @@ def test_distribution_instance_uniform(device):
   assert torch.allclose(result_str, result_inst)
 
 
-def test_custom_operation(device):
+def test_custom_operation(env):
   """A user-defined Operation works end-to-end."""
   from mjlab.envs.mdp.dr._types import Operation
 
   clamp_op = Operation(
     name="clamp",
     initialize=torch.Tensor.clone,
-    combine=lambda base, random: torch.clamp(random, min=0.4, max=0.9),
+    combine=lambda _base, random: torch.clamp(random, min=0.4, max=0.9),
     uses_defaults=False,
   )
 
   torch.manual_seed(42)
-  env = create_test_env(device)
   robot = env.scene["robot"]
 
   dr.geom_friction(
@@ -1512,17 +1530,16 @@ def test_custom_operation(device):
   assert torch.all((friction >= 0.4 - 1e-5) & (friction <= 0.9 + 1e-5))
 
 
-def test_custom_distribution(device):
+def test_custom_distribution(env):
   """A user-defined Distribution works end-to-end."""
   from mjlab.envs.mdp.dr._types import Distribution
 
   # Distribution that always returns the midpoint.
   midpoint_dist = Distribution(
     name="midpoint",
-    sample=lambda lo, hi, shape, device: ((lo + hi) / 2).expand(shape),
+    sample=lambda lo, hi, shape, _device: ((lo + hi) / 2).expand(shape),
   )
 
-  env = create_test_env(device)
   robot = env.scene["robot"]
 
   dr.geom_friction(
@@ -1536,7 +1553,7 @@ def test_custom_distribution(device):
   )
 
   friction = env.sim.model.geom_friction[:, robot.indexing.geom_ids, 0]
-  assert torch.allclose(friction, torch.tensor(0.5, device=device), atol=1e-5)
+  assert torch.allclose(friction, torch.tensor(0.5, device=env.device), atol=1e-5)
 
 
 def test_resolve_unknown_operation_raises(device):
@@ -1584,10 +1601,15 @@ def _make_mat_env(device, num_envs=NUM_ENVS):
   return Env(scene, sim, device)
 
 
-def test_mat_rgba_abs(device):
+@pytest.fixture(scope="module")
+def mat_env(device):
+  return _make_mat_env(device)
+
+
+def test_mat_rgba_abs(mat_env):
   """Values within range, diversity across envs."""
   torch.manual_seed(42)
-  env = _make_mat_env(device)
+  env = mat_env
 
   dr.mat_rgba(
     env,
@@ -1605,9 +1627,9 @@ def test_mat_rgba_abs(device):
   assert len(torch.unique(rgba[:, 0])) >= 2
 
 
-def test_mat_rgba_invalid_name(device):
+def test_mat_rgba_invalid_name(mat_env):
   """ValueError for unknown material name."""
-  env = _make_mat_env(device)
+  env = mat_env
 
   with pytest.raises(ValueError, match="nonexistent_material"):
     cfg = SceneEntityCfg("robot", material_names=("nonexistent_material",))
