@@ -22,14 +22,36 @@ from mjlab.envs.mdp.actions import (
 from mjlab.sim.sim import Simulation, SimulationCfg
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def device():
   return get_test_device()
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def fixtures_dir():
   return Path(__file__).parent / "fixtures"
+
+
+@pytest.fixture(scope="module")
+def tendon_finger_entity(fixtures_dir, device):
+  return make_entity(
+    fixtures_dir / "tendon_finger.xml",
+    ("finger_tendon",),
+    TransmissionType.TENDON,
+    device,
+    from_file=True,
+  )
+
+
+@pytest.fixture(scope="module")
+def fixed_base_entity(fixtures_dir, device):
+  return make_entity(
+    fixtures_dir / "fixed_base_articulated.xml",
+    ("joint.*",),
+    TransmissionType.JOINT,
+    device,
+    from_file=True,
+  )
 
 
 def make_entity(xml_or_path, target_expr, transmission_type, device, from_file=False):
@@ -68,15 +90,9 @@ def make_env(entity, name, device):
   return env
 
 
-def test_base_action_applies_scale_and_offset(fixtures_dir, device):
+def test_base_action_applies_scale_and_offset(tendon_finger_entity, device):
   """BaseAction: processed = raw * scale + offset."""
-  entity = make_entity(
-    fixtures_dir / "tendon_finger.xml",
-    ("finger_tendon",),
-    TransmissionType.TENDON,
-    device,
-    from_file=True,
-  )
+  entity = tendon_finger_entity
   env = make_env(entity, "finger", device)
 
   cfg = TendonLengthActionCfg(
@@ -93,15 +109,9 @@ def test_base_action_applies_scale_and_offset(fixtures_dir, device):
   assert torch.allclose(action._processed_actions, raw * 2.0 + 0.5)
 
 
-def test_base_action_reset_zeros_specific_envs(fixtures_dir, device):
+def test_base_action_reset_zeros_specific_envs(tendon_finger_entity, device):
   """BaseAction.reset() zeros raw_action for specified env_ids only."""
-  entity = make_entity(
-    fixtures_dir / "tendon_finger.xml",
-    ("finger_tendon",),
-    TransmissionType.TENDON,
-    device,
-    from_file=True,
-  )
+  entity = tendon_finger_entity
   env = make_env(entity, "finger", device)
 
   cfg = TendonLengthActionCfg(entity_name="finger", actuator_names=("finger_tendon",))
@@ -196,15 +206,9 @@ def test_action_sets_entity_target(
   assert torch.allclose(entity_target, target)
 
 
-def test_base_action_clip(fixtures_dir, device):
+def test_base_action_clip(fixed_base_entity, device):
   """BaseAction: clip clamps only matched actuators; others stay unclipped."""
-  entity = make_entity(
-    fixtures_dir / "fixed_base_articulated.xml",
-    ("joint.*",),
-    TransmissionType.JOINT,
-    device,
-    from_file=True,
-  )
+  entity = fixed_base_entity
   env = make_env(entity, "robot", device)
 
   # Clip only joint1; joint2 should remain unclipped.

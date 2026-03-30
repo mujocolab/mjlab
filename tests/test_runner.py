@@ -33,7 +33,7 @@ def device():
   return get_test_device()
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def env(device):
   robot_xml = """
   <mujoco>
