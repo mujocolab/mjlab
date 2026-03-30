@@ -1,3 +1,4 @@
+import colorsys
 from typing import Any, Literal
 
 import mujoco
@@ -178,8 +179,6 @@ def _make_cube_spec(
 
 def _cube_color(i: int, n: int) -> tuple[float, float, float, float]:
   """Generate a distinct color for cube i of n using HSV hue rotation."""
-  import colorsys
-
   h = i / max(n, 1)
   r, g, b = colorsys.hsv_to_rgb(h, 0.8, 0.9)
   return (r, g, b, 1.0)

@@ -20,12 +20,9 @@ def _colorize_segmentation(seg: np.ndarray) -> np.ndarray:
   mask = seg >= 0
   if mask.any():
     ids = seg[mask].astype(np.uint32)
-    r = ((ids * 67 + 29) % 255 + 1).astype(np.uint8)
-    g = ((ids * 131 + 53) % 255 + 1).astype(np.uint8)
-    b = ((ids * 199 + 97) % 255 + 1).astype(np.uint8)
-    rgb[mask, 0] = r
-    rgb[mask, 1] = g
-    rgb[mask, 2] = b
+    rgb[mask, 0] = ((ids * 67 + 29) % 255 + 1).astype(np.uint8)
+    rgb[mask, 1] = ((ids * 131 + 53) % 255 + 1).astype(np.uint8)
+    rgb[mask, 2] = ((ids * 199 + 97) % 255 + 1).astype(np.uint8)
   return rgb
 
 

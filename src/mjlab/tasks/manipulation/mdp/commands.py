@@ -129,8 +129,17 @@ class MultiCubeLiftingCommand(CommandTerm):
 
     self.cubes = [env.scene[name] for name in cfg.entity_names]
     self._num_cubes = len(self.cubes)
-    self._geom_ids = [c.indexing.geom_ids for c in self.cubes]
-    self._max_geoms = max(g.shape[0] for g in self._geom_ids)
+
+    geom_ids = [c.indexing.geom_ids for c in self.cubes]
+    max_geoms = max(g.shape[0] for g in geom_ids)
+    self._padded_geom_ids = torch.full(
+      (self._num_cubes, max_geoms),
+      -999,
+      device=self.device,
+      dtype=geom_ids[0].dtype,
+    )
+    for i, g in enumerate(geom_ids):
+      self._padded_geom_ids[i, : g.shape[0]] = g
 
     self.target_pos = torch.zeros(self.num_envs, 3, device=self.device)
     self.episode_success = torch.zeros(self.num_envs, device=self.device)
@@ -149,20 +158,11 @@ class MultiCubeLiftingCommand(CommandTerm):
   @property
   def target_geom_ids(self) -> torch.Tensor:
     """Geom IDs of the target cube per env. Shape: (B, K)."""
-    padded = torch.full(
-      (self._num_cubes, self._max_geoms),
-      -999,
-      device=self.device,
-      dtype=self._geom_ids[0].dtype,
-    )
-    for i, g in enumerate(self._geom_ids):
-      padded[i, : g.shape[0]] = g
-    return padded[self.target_selection]
+    return self._padded_geom_ids[self.target_selection]
 
   def target_object_pos(self) -> torch.Tensor:
     all_pos = torch.stack([c.data.root_link_pos_w for c in self.cubes])
-    sel = self.target_selection  # (B,)
-    return all_pos[sel, torch.arange(self.num_envs)]
+    return all_pos[self.target_selection, torch.arange(self.num_envs)]
 
   def _update_metrics(self) -> None:
     obj_pos = self.target_object_pos()
@@ -243,6 +243,7 @@ class MultiCubeLiftingCommandCfg(CommandTermCfg):
   success_threshold: float = 0.05
   difficulty: Literal["fixed", "dynamic"] = "fixed"
 
+  @dataclass
   class TargetPositionRangeCfg:
     x: tuple[float, float] = (0.3, 0.5)
     y: tuple[float, float] = (-0.2, 0.2)
