@@ -15,7 +15,7 @@ from mjlab.sensor.sensor import Sensor, SensorCfg
 if TYPE_CHECKING:
   from mjlab.sensor.sensor_context import SensorContext
 
-CameraDataType = Literal["rgb", "depth"]
+CameraDataType = Literal["rgb", "depth", "segmentation"]
 
 # Default MuJoCo fov, in degrees.
 _DEFAULT_CAM_FOVY = 45.0
@@ -72,7 +72,8 @@ class CameraSensorCfg(SensorCfg):
   """Image height in pixels."""
 
   data_types: tuple[CameraDataType, ...] = ("rgb",)
-  """Data types to capture: any combination of "rgb" and "depth"."""
+  """Data types to capture: any combination of "rgb", "depth",
+  and "segmentation"."""
 
   use_textures: bool = True
   """Whether to use textures in rendering."""
@@ -93,7 +94,7 @@ class CameraSensorCfg(SensorCfg):
   """
 
   def __post_init__(self) -> None:
-    valid = {"rgb", "depth"}
+    valid = {"rgb", "depth", "segmentation"}
     invalid = {dt for dt in self.data_types if dt not in valid}
     if invalid:
       raise ValueError(f"Invalid camera data types: {invalid}. Valid types: {valid}")
@@ -111,6 +112,7 @@ class CameraSensorData:
   Shapes:
     - rgb: [num_envs, height, width, 3] (uint8)
     - depth: [num_envs, height, width, 1] (float32)
+    - segmentation: [num_envs, height, width, 1] (int32)
   """
 
   rgb: torch.Tensor | None = None
@@ -120,6 +122,13 @@ class CameraSensorData:
   depth: torch.Tensor | None = None
   """Depth image [num_envs, height, width, 1] (float32). None if not
   enabled."""
+
+  segmentation: torch.Tensor | None = None
+  """Per-pixel geom IDs [num_envs, height, width, 1] (int32).
+
+  Values: >= 0 for rigid geom IDs, -1 for background, -2 for flex
+  bodies. None if not enabled.
+  """
 
 
 class CameraSensor(Sensor[CameraSensorData]):
@@ -208,10 +217,14 @@ class CameraSensor(Sensor[CameraSensorData]):
       )
     rgb_data = None
     depth_data = None
+    seg_data = None
     if "rgb" in self.cfg.data_types:
       rgb = self._ctx.get_rgb(self._camera_idx)
       rgb_data = rgb.clone() if self.cfg.clone_data else rgb
     if "depth" in self.cfg.data_types:
       depth = self._ctx.get_depth(self._camera_idx)
       depth_data = depth.clone() if self.cfg.clone_data else depth
-    return CameraSensorData(rgb=rgb_data, depth=depth_data)
+    if "segmentation" in self.cfg.data_types:
+      seg = self._ctx.get_segmentation(self._camera_idx)
+      seg_data = seg.clone() if self.cfg.clone_data else seg
+    return CameraSensorData(rgb=rgb_data, depth=depth_data, segmentation=seg_data)

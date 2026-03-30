@@ -13,6 +13,22 @@ if TYPE_CHECKING:
   from mjlab.sensor.camera_sensor import CameraSensor
 
 
+def _colorize_segmentation(seg: np.ndarray) -> np.ndarray:
+  """Map geom IDs to distinct RGB colors. Background (-1) is black."""
+  h, w = seg.shape
+  rgb = np.zeros((h, w, 3), dtype=np.uint8)
+  mask = seg >= 0
+  if mask.any():
+    ids = seg[mask].astype(np.uint32)
+    r = ((ids * 67 + 29) % 255 + 1).astype(np.uint8)
+    g = ((ids * 131 + 53) % 255 + 1).astype(np.uint8)
+    b = ((ids * 199 + 97) % 255 + 1).astype(np.uint8)
+    rgb[mask, 0] = r
+    rgb[mask, 1] = g
+    rgb[mask, 2] = b
+  return rgb
+
+
 class ViserCameraViewer:
   """Handles camera image visualization for the Viser viewer."""
 
@@ -29,6 +45,7 @@ class ViserCameraViewer:
 
     self._rgb_handle: viser.GuiImageHandle | None = None
     self._depth_handle: viser.GuiImageHandle | None = None
+    self._seg_handle: viser.GuiImageHandle | None = None
     self._frustum_handle: viser.CameraFrustumHandle | None = None
 
     self._camera_name = camera_sensor.camera_name
@@ -36,6 +53,7 @@ class ViserCameraViewer:
 
     self._has_rgb = "rgb" in self._camera_sensor.cfg.data_types
     self._has_depth = "depth" in self._camera_sensor.cfg.data_types
+    self._has_seg = "segmentation" in self._camera_sensor.cfg.data_types
 
     height = self._camera_sensor.cfg.height
     width = self._camera_sensor.cfg.width
@@ -63,6 +81,16 @@ class ViserCameraViewer:
       self._depth_handle = self._server.gui.add_image(
         image=np.zeros((self._display_height, self._display_width, 3), dtype=np.uint8),
         label=f"{self._camera_name}_depth",
+        format="jpeg",
+      )
+
+    if self._has_seg:
+      self._seg_handle = self._server.gui.add_image(
+        image=np.zeros(
+          (self._display_height, self._display_width, 3),
+          dtype=np.uint8,
+        ),
+        label=f"{self._camera_name}_segmentation",
         format="jpeg",
       )
 
@@ -116,6 +144,12 @@ class ViserCameraViewer:
   def _upsample_nearest(self, image: np.ndarray, scale: int) -> np.ndarray:
     return np.repeat(np.repeat(image, scale, axis=0), scale, axis=1)
 
+  def _maybe_upsample(self, image: np.ndarray) -> np.ndarray:
+    if self._needs_upsampling:
+      scale = self._display_height // image.shape[0]
+      return self._upsample_nearest(image, scale)
+    return image
+
   def update(
     self, sim_data, env_idx: int = 0, scene_offset: np.ndarray | None = None
   ) -> None:
@@ -123,25 +157,21 @@ class ViserCameraViewer:
 
     if self._has_rgb and self._rgb_handle is not None and data.rgb is not None:
       rgb_np = data.rgb[env_idx].cpu().numpy()
-
-      # Upsample if needed for better visibility
-      if self._needs_upsampling:
-        scale = self._display_height // rgb_np.shape[0]
-        rgb_np = self._upsample_nearest(rgb_np, scale)
-
-      self._rgb_handle.image = rgb_np
+      self._rgb_handle.image = self._maybe_upsample(rgb_np)
 
     if self._has_depth and self._depth_handle is not None and data.depth is not None:
       depth_np = data.depth[env_idx].squeeze().cpu().numpy()
-
       depth_scale = max(self._depth_scale_slider.value, 0.01)
       depth_normalized = np.clip(depth_np / depth_scale, 0.0, 1.0)
       depth_uint8 = (depth_normalized * 255).astype(np.uint8)
-      if self._needs_upsampling:
-        scale = self._display_height // depth_uint8.shape[0]
-        depth_uint8 = self._upsample_nearest(depth_uint8, scale)
+      self._depth_handle.image = self._maybe_upsample(
+        np.repeat(depth_uint8[:, :, np.newaxis], 3, axis=-1)
+      )
 
-      self._depth_handle.image = np.repeat(depth_uint8[:, :, np.newaxis], 3, axis=-1)
+    if self._has_seg and self._seg_handle is not None and data.segmentation is not None:
+      seg_np = data.segmentation[env_idx, :, :, 0].cpu().numpy()
+      seg_rgb = _colorize_segmentation(seg_np)
+      self._seg_handle.image = self._maybe_upsample(seg_rgb)
 
     if scene_offset is None:
       scene_offset = np.zeros(3)
@@ -153,6 +183,8 @@ class ViserCameraViewer:
     if self._depth_handle is not None:
       self._depth_handle.remove()
       self._depth_scale_slider.remove()
+    if self._seg_handle is not None:
+      self._seg_handle.remove()
     if self._frustum_handle is not None:
       self._frustum_handle.remove()
     self._show_frustum_toggle.remove()

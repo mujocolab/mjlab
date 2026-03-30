@@ -7,7 +7,10 @@ import torch
 from mjlab.entity import Entity
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import CameraSensor
-from mjlab.tasks.manipulation.mdp.commands import LiftingCommand
+from mjlab.tasks.manipulation.mdp.commands import (
+  LiftingCommand,
+  MultiCubeLiftingCommand,
+)
 from mjlab.utils.lab_api.math import quat_apply, quat_inv
 
 if TYPE_CHECKING:
@@ -74,9 +77,10 @@ def target_position(
 ) -> torch.Tensor:
   """Target position in EE frame."""
   command = env.command_manager.get_term(command_name)
-  if not isinstance(command, LiftingCommand):
+  if not isinstance(command, (LiftingCommand, MultiCubeLiftingCommand)):
     raise TypeError(
-      f"Command '{command_name}' must be a LiftingCommand, got {type(command)}"
+      f"Command '{command_name}' must be a LiftingCommand or "
+      f"MultiCubeLiftingCommand, got {type(command)}"
     )
   robot: Entity = env.scene[asset_cfg.name]
   ee_pos_w = robot.data.site_pos_w[:, asset_cfg.site_ids].squeeze(1)
@@ -109,3 +113,56 @@ def camera_depth(
   depth_data = depth_data.permute(0, 3, 1, 2)  # (B, 1, H, W)
   depth_data_clipped = torch.clamp(depth_data, min=min_depth, max=cutoff_distance)
   return torch.clamp(depth_data_clipped / cutoff_distance, 0.0, 1.0)
+
+
+def camera_segmentation(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+) -> torch.Tensor:
+  """Per-pixel geom ID segmentation in (B, 1, H, W) format."""
+  sensor: CameraSensor = env.scene[sensor_name]
+  seg_data = sensor.data.segmentation  # (B, H, W, 1)
+  assert seg_data is not None, f"Camera '{sensor_name}' has no segmentation data"
+  return seg_data.permute(0, 3, 1, 2)  # (B, 1, H, W)
+
+
+def camera_entity_mask(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  entity_name: str,
+) -> torch.Tensor:
+  """Binary mask for a specific entity in (B, 1, H, W) format.
+
+  Pixels belonging to the entity are 1.0, all others 0.0.
+  """
+  sensor: CameraSensor = env.scene[sensor_name]
+  seg_data = sensor.data.segmentation  # (B, H, W, 1)
+  assert seg_data is not None, f"Camera '{sensor_name}' has no segmentation data"
+  seg = seg_data[..., 0]  # (B, H, W)
+  entity: Entity = env.scene[entity_name]
+  geom_ids = entity.indexing.geom_ids  # (num_geoms,) on device
+  mask = (seg.unsqueeze(-1) == geom_ids).any(-1)  # (B, H, W)
+  return mask.float().unsqueeze(1)  # (B, 1, H, W)
+
+
+def camera_target_cube_mask(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  command_name: str,
+) -> torch.Tensor:
+  """Binary mask of the target cube selected by a MultiCubeLiftingCommand.
+
+  Output shape: (B, 1, H, W) float32.
+  """
+  sensor: CameraSensor = env.scene[sensor_name]
+  seg_data = sensor.data.segmentation  # (B, H, W, 1)
+  assert seg_data is not None, f"Camera '{sensor_name}' has no segmentation data"
+  seg = seg_data[..., 0]  # (B, H, W)
+
+  command = env.command_manager.get_term(command_name)
+  assert isinstance(command, MultiCubeLiftingCommand)
+  target_ids = command.target_geom_ids  # (B, K)
+
+  # (B, H, W, K) == comparison, reduce over K
+  mask = (seg.unsqueeze(-1) == target_ids.unsqueeze(1).unsqueeze(1)).any(-1)
+  return mask.float().unsqueeze(1)  # (B, 1, H, W)

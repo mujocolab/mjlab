@@ -115,6 +115,156 @@ class LiftingCommand(CommandTerm):
       )
 
 
+class MultiCubeLiftingCommand(CommandTerm):
+  """Selects one of N cubes as the target at each reset."""
+
+  cfg: MultiCubeLiftingCommandCfg
+
+  def __init__(
+    self,
+    cfg: MultiCubeLiftingCommandCfg,
+    env: ManagerBasedRlEnv,
+  ):
+    super().__init__(cfg, env)
+
+    self.cubes = [env.scene[name] for name in cfg.entity_names]
+    self._num_cubes = len(self.cubes)
+    self._geom_ids = [c.indexing.geom_ids for c in self.cubes]
+    self._max_geoms = max(g.shape[0] for g in self._geom_ids)
+
+    self.target_pos = torch.zeros(self.num_envs, 3, device=self.device)
+    self.episode_success = torch.zeros(self.num_envs, device=self.device)
+    self.target_selection = torch.zeros(
+      self.num_envs, dtype=torch.long, device=self.device
+    )
+
+    self.metrics["position_error"] = torch.zeros(self.num_envs, device=self.device)
+    self.metrics["at_goal"] = torch.zeros(self.num_envs, device=self.device)
+    self.metrics["episode_success"] = torch.zeros(self.num_envs, device=self.device)
+
+  @property
+  def command(self) -> torch.Tensor:
+    return self.target_pos
+
+  @property
+  def target_geom_ids(self) -> torch.Tensor:
+    """Geom IDs of the target cube per env. Shape: (B, K)."""
+    padded = torch.full(
+      (self._num_cubes, self._max_geoms),
+      -999,
+      device=self.device,
+      dtype=self._geom_ids[0].dtype,
+    )
+    for i, g in enumerate(self._geom_ids):
+      padded[i, : g.shape[0]] = g
+    return padded[self.target_selection]
+
+  def target_object_pos(self) -> torch.Tensor:
+    all_pos = torch.stack([c.data.root_link_pos_w for c in self.cubes])
+    sel = self.target_selection  # (B,)
+    return all_pos[sel, torch.arange(self.num_envs)]
+
+  def _update_metrics(self) -> None:
+    obj_pos = self.target_object_pos()
+    error = torch.norm(self.target_pos - obj_pos, dim=-1)
+    at_goal = (error < self.cfg.success_threshold).float()
+    self.episode_success = torch.maximum(self.episode_success, at_goal)
+    self.metrics["position_error"] = error
+    self.metrics["at_goal"] = at_goal
+    self.metrics["episode_success"] = self.episode_success
+
+  def compute_success(self) -> torch.Tensor:
+    return self.metrics["position_error"] < self.cfg.success_threshold
+
+  def _resample_command(self, env_ids: torch.Tensor) -> None:
+    n = len(env_ids)
+    self.episode_success[env_ids] = 0.0
+
+    self.target_selection[env_ids] = torch.randint(
+      0, self._num_cubes, (n,), device=self.device
+    )
+
+    if self.cfg.difficulty == "fixed":
+      target = torch.tensor([0.4, 0.0, 0.3], device=self.device).expand(n, 3)
+      self.target_pos[env_ids] = target + self._env.scene.env_origins[env_ids]
+    else:
+      r = self.cfg.target_position_range
+      lo = torch.tensor([r.x[0], r.y[0], r.z[0]], device=self.device)
+      hi = torch.tensor([r.x[1], r.y[1], r.z[1]], device=self.device)
+      target = sample_uniform(lo, hi, (n, 3), device=self.device)
+      self.target_pos[env_ids] = target + self._env.scene.env_origins[env_ids]
+
+    r = self.cfg.object_pose_range
+    lo = torch.tensor([r.x[0], r.y[0], r.z[0]], device=self.device)
+    hi = torch.tensor([r.x[1], r.y[1], r.z[1]], device=self.device)
+    for cube in self.cubes:
+      pos = sample_uniform(lo, hi, (n, 3), device=self.device)
+      pos = pos + self._env.scene.env_origins[env_ids]
+      yaw = sample_uniform(r.yaw[0], r.yaw[1], (n,), device=self.device)
+      quat = quat_from_euler_xyz(
+        torch.zeros(n, device=self.device),
+        torch.zeros(n, device=self.device),
+        yaw,
+      )
+      pose = torch.cat([pos, quat], dim=-1)
+      velocity = torch.zeros(n, 6, device=self.device)
+      cube.write_root_link_pose_to_sim(pose, env_ids=env_ids)
+      cube.write_root_link_velocity_to_sim(velocity, env_ids=env_ids)
+
+  def _update_command(self) -> None:
+    pass
+
+  def _debug_vis_impl(self, visualizer: DebugVisualizer) -> None:
+    env_indices = visualizer.get_env_indices(self.num_envs)
+    if not env_indices:
+      return
+    for batch in env_indices:
+      target_pos = self.target_pos[batch].cpu().numpy()
+      visualizer.add_sphere(
+        center=target_pos,
+        radius=0.03,
+        color=(1.0, 0.5, 0.0, 0.3),
+        label=f"target_position_{batch}",
+      )
+      cube_pos = self.target_object_pos()[batch].cpu().numpy()
+      marker = cube_pos.copy()
+      marker[2] += 0.04
+      visualizer.add_sphere(
+        center=marker,
+        radius=0.01,
+        color=(1.0, 0.0, 0.0, 1.0),
+        label=f"target_cube_marker_{batch}",
+      )
+
+
+@dataclass(kw_only=True)
+class MultiCubeLiftingCommandCfg(CommandTermCfg):
+  entity_names: tuple[str, ...] = ()
+  success_threshold: float = 0.05
+  difficulty: Literal["fixed", "dynamic"] = "fixed"
+
+  class TargetPositionRangeCfg:
+    x: tuple[float, float] = (0.3, 0.5)
+    y: tuple[float, float] = (-0.2, 0.2)
+    z: tuple[float, float] = (0.2, 0.4)
+
+  target_position_range: TargetPositionRangeCfg = field(
+    default_factory=TargetPositionRangeCfg
+  )
+
+  @dataclass
+  class ObjectPoseRangeCfg:
+    x: tuple[float, float] = (0.25, 0.40)
+    y: tuple[float, float] = (-0.15, 0.15)
+    z: tuple[float, float] = (0.02, 0.05)
+    yaw: tuple[float, float] = (-math.pi, math.pi)
+
+  object_pose_range: ObjectPoseRangeCfg = field(default_factory=ObjectPoseRangeCfg)
+
+  def build(self, env: ManagerBasedRlEnv) -> MultiCubeLiftingCommand:
+    return MultiCubeLiftingCommand(self, env)
+
+
 @dataclass(kw_only=True)
 class LiftingCommandCfg(CommandTermCfg):
   entity_name: str

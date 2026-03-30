@@ -6,7 +6,10 @@ import torch
 
 from mjlab.entity import Entity
 from mjlab.managers.scene_entity_config import SceneEntityCfg
-from mjlab.tasks.manipulation.mdp.commands import LiftingCommand
+from mjlab.tasks.manipulation.mdp.commands import (
+  LiftingCommand,
+  MultiCubeLiftingCommand,
+)
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
@@ -50,6 +53,43 @@ def bring_object_reward(
   position_error = torch.sum(
     torch.square(command.target_pos - obj.data.root_link_pos_w), dim=-1
   )
+  return torch.exp(-position_error / std**2)
+
+
+def multi_cube_staged_position_reward(
+  env: ManagerBasedRlEnv,
+  command_name: str,
+  reaching_std: float,
+  bringing_std: float,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Staged reward for the target cube selected by MultiCubeLiftingCommand."""
+  robot: Entity = env.scene[asset_cfg.name]
+  command = cast(
+    MultiCubeLiftingCommand,
+    env.command_manager.get_term(command_name),
+  )
+  ee_pos_w = robot.data.site_pos_w[:, asset_cfg.site_ids].squeeze(1)
+  obj_pos_w = command.target_object_pos()
+  reach_error = torch.sum(torch.square(ee_pos_w - obj_pos_w), dim=-1)
+  reaching = torch.exp(-reach_error / reaching_std**2)
+  position_error = torch.sum(torch.square(command.target_pos - obj_pos_w), dim=-1)
+  bringing = torch.exp(-position_error / bringing_std**2)
+  return reaching * (1.0 + bringing)
+
+
+def multi_cube_bring_object_reward(
+  env: ManagerBasedRlEnv,
+  command_name: str,
+  std: float,
+) -> torch.Tensor:
+  """Gaussian reward for bringing the selected target cube to goal."""
+  command = cast(
+    MultiCubeLiftingCommand,
+    env.command_manager.get_term(command_name),
+  )
+  obj_pos_w = command.target_object_pos()
+  position_error = torch.sum(torch.square(command.target_pos - obj_pos_w), dim=-1)
   return torch.exp(-position_error / std**2)
 
 

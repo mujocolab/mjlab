@@ -15,10 +15,12 @@ from mjlab.managers import (
   ObservationTermCfg,
 )
 from mjlab.managers.event_manager import EventTermCfg
+from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import CameraSensorCfg, ContactSensorCfg
 from mjlab.tasks.manipulation import mdp as manipulation_mdp
 from mjlab.tasks.manipulation.lift_cube_env_cfg import make_lift_cube_env_cfg
+from mjlab.tasks.manipulation.mdp import MultiCubeLiftingCommandCfg
 
 
 def get_cube_spec(cube_size: float = 0.02, mass: float = 0.05) -> mujoco.MjSpec:
@@ -154,5 +156,154 @@ def yam_lift_cube_vision_env_cfg(
     },
     # NOTE: No noise for goal position.
   )
+
+  return cfg
+
+
+def _make_cube_spec(
+  rgba: tuple[float, float, float, float],
+) -> mujoco.MjSpec:
+  spec = mujoco.MjSpec()
+  body = spec.worldbody.add_body(name="cube")
+  body.add_freejoint(name="cube_joint")
+  body.add_geom(
+    name="cube_geom",
+    type=mujoco.mjtGeom.mjGEOM_BOX,
+    size=(0.02,) * 3,
+    mass=0.05,
+    rgba=rgba,
+  )
+  return spec
+
+
+def _cube_color(i: int, n: int) -> tuple[float, float, float, float]:
+  """Generate a distinct color for cube i of n using HSV hue rotation."""
+  import colorsys
+
+  h = i / max(n, 1)
+  r, g, b = colorsys.hsv_to_rgb(h, 0.8, 0.9)
+  return (r, g, b, 1.0)
+
+
+def yam_multi_cube_seg_env_cfg(
+  num_cubes: int = 3,
+  play: bool = False,
+) -> ManagerBasedRlEnvCfg:
+  """Multi-cube task: depth + segmentation mask for goal conditioning."""
+  cfg = make_lift_cube_env_cfg()
+
+  cube_names = [f"cube_{i}" for i in range(num_cubes)]
+  entities: dict[str, EntityCfg] = {"robot": get_yam_robot_cfg()}
+  for i, name in enumerate(cube_names):
+    color = _cube_color(i, num_cubes)
+    entities[name] = EntityCfg(
+      spec_fn=lambda c=color: _make_cube_spec(c),
+    )
+  cfg.scene.entities = entities
+
+  joint_pos_action = cfg.actions["joint_pos"]
+  assert isinstance(joint_pos_action, JointPositionActionCfg)
+  joint_pos_action.scale = YAM_ACTION_SCALE
+
+  cfg.commands = {
+    "lift_height": MultiCubeLiftingCommandCfg(
+      entity_names=tuple(cube_names),
+      resampling_time_range=(8.0, 12.0),
+      debug_vis=True,
+      difficulty="dynamic",
+    ),
+  }
+
+  cfg.rewards["lift"] = RewardTermCfg(
+    func=manipulation_mdp.multi_cube_staged_position_reward,
+    weight=1.0,
+    params={
+      "command_name": "lift_height",
+      "reaching_std": 0.2,
+      "bringing_std": 0.3,
+      "asset_cfg": SceneEntityCfg("robot", site_names=("grasp_site",)),
+    },
+  )
+  cfg.rewards["lift_precise"] = RewardTermCfg(
+    func=manipulation_mdp.multi_cube_bring_object_reward,
+    weight=1.0,
+    params={
+      "command_name": "lift_height",
+      "std": 0.05,
+    },
+  )
+
+  fingertip_geoms = r"[lr]f_down(6|7|8|9|10|11)_collision"
+  cfg.events["fingertip_friction_slide"].params[
+    "asset_cfg"
+  ].geom_names = fingertip_geoms
+  cfg.events["fingertip_friction_spin"].params["asset_cfg"].geom_names = fingertip_geoms
+  cfg.events["fingertip_friction_roll"].params["asset_cfg"].geom_names = fingertip_geoms
+
+  assert cfg.scene.sensors is not None
+  for sensor in cfg.scene.sensors:
+    if sensor.name == "ee_ground_collision":
+      assert isinstance(sensor, ContactSensorCfg)
+      sensor.primary.pattern = "link_6"
+
+  cfg.viewer.body_name = "arm"
+  cfg.sim.nconmax = max(cfg.sim.nconmax or 55, 55 + num_cubes * 120)
+
+  cam_cfg = CameraSensorCfg(
+    name="camera_d405",
+    camera_name="robot/camera_d405",
+    height=32,
+    width=32,
+    data_types=("depth", "segmentation"),
+    enabled_geom_groups=(0, 3),
+    use_shadows=False,
+    use_textures=True,
+  )
+  cfg.scene.sensors = (cfg.scene.sensors or ()) + (cam_cfg,)
+
+  cam_terms = {
+    "depth": ObservationTermCfg(
+      func=manipulation_mdp.camera_depth,
+      params={
+        "sensor_name": "camera_d405",
+        "cutoff_distance": 0.5,
+      },
+    ),
+    "target_mask": ObservationTermCfg(
+      func=manipulation_mdp.camera_target_cube_mask,
+      params={
+        "sensor_name": "camera_d405",
+        "command_name": "lift_height",
+      },
+    ),
+  }
+  cfg.observations["camera"] = ObservationGroupCfg(
+    terms=cam_terms,
+    enable_corruption=False,
+    concatenate_terms=True,
+    concatenate_dim=0,
+  )
+
+  for group_name in ("actor", "critic"):
+    obs = cfg.observations[group_name]
+    obs.terms.pop("ee_to_cube", None)
+    obs.terms.pop("cube_to_goal", None)
+    obs.terms["goal_position"] = ObservationTermCfg(
+      func=manipulation_mdp.target_position,
+      params={
+        "command_name": "lift_height",
+        "asset_cfg": SceneEntityCfg("robot", site_names=("grasp_site",)),
+      },
+    )
+
+  if play:
+    cfg.episode_length_s = int(1e9)
+    cfg.observations["actor"].enable_corruption = False
+    cfg.curriculum = {}
+    assert cfg.commands is not None
+    cfg.commands["lift_height"].resampling_time_range = (
+      4.0,
+      4.0,
+    )
 
   return cfg
