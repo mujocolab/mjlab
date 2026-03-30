@@ -13,6 +13,7 @@ from enum import Enum, auto
 from threading import Event, Lock
 from typing import Any, Optional
 
+import torch
 import viser
 from typing_extensions import override
 
@@ -166,7 +167,12 @@ class ViserPlayViewer(BaseViewer):
       env = self.env.unwrapped
       if env.command_manager.active_terms:
         with self._server.gui.add_folder("Commands"):
-          env.command_manager.create_gui(self._server, lambda: self._scene.env_idx)
+          env.command_manager.create_gui(
+            self._server,
+            lambda: self._scene.env_idx,
+            on_change=self._scene.request_update,
+            request_action=self.request_action,
+          )
 
       # Add standard visualization options from MjlabViserScene.
       def _debug_viz_extra() -> None:
@@ -267,6 +273,9 @@ class ViserPlayViewer(BaseViewer):
     action: ViewerAction,
     payload: Optional[Any],
   ) -> bool:
+    if isinstance(payload, dict) and payload.get("type") == "gui_reset":
+      self._handle_gui_reset(payload.get("all_envs", False))
+      return True
     if action != ViewerAction.FETCH_CHECKPOINT:
       return False
     if self._ckpt_mgr is None:
@@ -306,6 +315,26 @@ class ViserPlayViewer(BaseViewer):
       print(f"[INFO]: Loaded {name}")
     return True
 
+  def _handle_gui_reset(self, all_envs: bool) -> None:
+    """Reset environment(s) and apply GUI-selected command state."""
+    env = self.env.unwrapped
+    if all_envs:
+      env_ids = torch.arange(env.num_envs, dtype=torch.int64, device=env.device)
+    else:
+      env_ids = torch.tensor(
+        [self._scene.env_idx], dtype=torch.int64, device=env.device
+      )
+
+    with self._sim_lock:
+      env.reset(env_ids=env_ids)
+      if env.command_manager.apply_gui_reset(env_ids):
+        env.scene.write_data_to_sim()
+        env.sim.forward()
+        env.sim.sense()
+
+    self._pending_update_reasons.add(UpdateReason.ACTION)
+    self._sync_ui_state()
+
   @override
   def _process_actions(self) -> None:
     """Process queued actions and sync UI state."""
@@ -322,6 +351,7 @@ class ViserPlayViewer(BaseViewer):
       viser.Icon.PLAYER_PLAY if self._is_paused else viser.Icon.PLAYER_PAUSE
     )
     self._update_status_display()
+    self.env.unwrapped.command_manager.on_viewer_pause(self._is_paused)
 
   def _update_env_dependent_plots(self) -> None:
     """Refresh reward/metric plots and histories for the selected environment."""

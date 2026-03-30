@@ -23,6 +23,11 @@ from mjlab.utils.lab_api.math import (
 from mjlab.viewer.debug_visualizer import DebugVisualizer
 
 if TYPE_CHECKING:
+  from collections.abc import Callable
+  from typing import Any
+
+  import viser
+
   from mjlab.entity import Entity
   from mjlab.envs import ManagerBasedRlEnv
 
@@ -294,6 +299,25 @@ class MotionCommand(CommandTerm):
     self.metrics["sampling_top1_prob"][:] = 1.0 / self.bin_count
     self.metrics["sampling_top1_bin"][:] = 0.5  # No specific bin preference.
 
+  def _write_reference_state_to_sim(
+    self,
+    env_ids: torch.Tensor,
+    root_pos: torch.Tensor,
+    root_ori: torch.Tensor,
+    root_lin_vel: torch.Tensor,
+    root_ang_vel: torch.Tensor,
+    joint_pos: torch.Tensor,
+    joint_vel: torch.Tensor,
+  ) -> None:
+    """Clip joint positions and write root + joint state to sim."""
+    soft_limits = self.robot.data.soft_joint_pos_limits[env_ids]
+    joint_pos = torch.clip(joint_pos, soft_limits[:, :, 0], soft_limits[:, :, 1])
+    self.robot.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
+
+    root_state = torch.cat([root_pos, root_ori, root_lin_vel, root_ang_vel], dim=-1)
+    self.robot.write_root_state_to_sim(root_state, env_ids=env_ids)
+    self.robot.reset(env_ids=env_ids)
+
   def _resample_command(self, env_ids: torch.Tensor):
     if self.cfg.sampling_mode == "start":
       self.time_steps[env_ids] = 0
@@ -303,10 +327,10 @@ class MotionCommand(CommandTerm):
       assert self.cfg.sampling_mode == "adaptive"
       self._adaptive_sampling(env_ids)
 
-    root_pos = self.body_pos_w[:, 0].clone()
-    root_ori = self.body_quat_w[:, 0].clone()
-    root_lin_vel = self.body_lin_vel_w[:, 0].clone()
-    root_ang_vel = self.body_ang_vel_w[:, 0].clone()
+    root_pos = self.body_pos_w[env_ids, 0].clone()
+    root_ori = self.body_quat_w[env_ids, 0].clone()
+    root_lin_vel = self.body_lin_vel_w[env_ids, 0].clone()
+    root_ang_vel = self.body_ang_vel_w[env_ids, 0].clone()
 
     range_list = [
       self.cfg.pose_range.get(key, (0.0, 0.0))
@@ -316,11 +340,11 @@ class MotionCommand(CommandTerm):
     rand_samples = sample_uniform(
       ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=self.device
     )
-    root_pos[env_ids] += rand_samples[:, 0:3]
+    root_pos += rand_samples[:, 0:3]
     orientations_delta = quat_from_euler_xyz(
       rand_samples[:, 3], rand_samples[:, 4], rand_samples[:, 5]
     )
-    root_ori[env_ids] = quat_mul(orientations_delta, root_ori[env_ids])
+    root_ori = quat_mul(orientations_delta, root_ori)
     range_list = [
       self.cfg.velocity_range.get(key, (0.0, 0.0))
       for key in ["x", "y", "z", "roll", "pitch", "yaw"]
@@ -329,11 +353,11 @@ class MotionCommand(CommandTerm):
     rand_samples = sample_uniform(
       ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=self.device
     )
-    root_lin_vel[env_ids] += rand_samples[:, :3]
-    root_ang_vel[env_ids] += rand_samples[:, 3:]
+    root_lin_vel += rand_samples[:, :3]
+    root_ang_vel += rand_samples[:, 3:]
 
-    joint_pos = self.joint_pos.clone()
-    joint_vel = self.joint_vel.clone()
+    joint_pos = self.joint_pos[env_ids].clone()
+    joint_vel = self.joint_vel[env_ids]
 
     joint_pos += sample_uniform(
       lower=self.cfg.joint_position_range[0],
@@ -341,33 +365,23 @@ class MotionCommand(CommandTerm):
       size=joint_pos.shape,
       device=joint_pos.device,  # type: ignore
     )
-    soft_joint_pos_limits = self.robot.data.soft_joint_pos_limits[env_ids]
-    joint_pos[env_ids] = torch.clip(
-      joint_pos[env_ids], soft_joint_pos_limits[:, :, 0], soft_joint_pos_limits[:, :, 1]
+
+    self._write_reference_state_to_sim(
+      env_ids,
+      root_pos,
+      root_ori,
+      root_lin_vel,
+      root_ang_vel,
+      joint_pos,
+      joint_vel,
     )
-    self.robot.write_joint_state_to_sim(
-      joint_pos[env_ids], joint_vel[env_ids], env_ids=env_ids
-    )
 
-    root_state = torch.cat(
-      [
-        root_pos[env_ids],
-        root_ori[env_ids],
-        root_lin_vel[env_ids],
-        root_ang_vel[env_ids],
-      ],
-      dim=-1,
-    )
-    self.robot.write_root_state_to_sim(root_state, env_ids=env_ids)
+  def update_relative_body_poses(self) -> None:
+    """Recompute ``body_pos_relative_w`` and ``body_quat_relative_w``.
 
-    self.robot.reset(env_ids=env_ids)
-
-  def _update_command(self):
-    self.time_steps += 1
-    env_ids = torch.where(self.time_steps >= self.motion.time_step_total)[0]
-    if env_ids.numel() > 0:
-      self._resample_command(env_ids)
-
+    Called after ``reset_to_frame`` so that termination checks that
+    compare relative body positions see the correct state.
+    """
     anchor_pos_w_repeat = self.anchor_pos_w[:, None, :].repeat(
       1, len(self.cfg.body_names), 1
     )
@@ -391,6 +405,14 @@ class MotionCommand(CommandTerm):
     self.body_pos_relative_w = delta_pos_w + quat_apply(
       delta_ori_w, self.body_pos_w - anchor_pos_w_repeat
     )
+
+  def _update_command(self):
+    self.time_steps += 1
+    env_ids = torch.where(self.time_steps >= self.motion.time_step_total)[0]
+    if env_ids.numel() > 0:
+      self._resample_command(env_ids)
+
+    self.update_relative_body_poses()
 
     if self.cfg.sampling_mode == "adaptive":
       self.bin_failed_count = (
@@ -468,6 +490,81 @@ class MotionCommand(CommandTerm):
           scale=0.15,
           label=f"current_anchor_{batch}",
         )
+
+  def create_gui(
+    self,
+    name: str,
+    server: viser.ViserServer,
+    get_env_idx: Callable[[], int],
+    on_change: Callable[[], None] | None = None,
+    request_action: Callable[[str, Any], None] | None = None,
+  ) -> None:
+    """Create motion scrubber controls in the Viser viewer."""
+    max_frame = int(self.motion.time_step_total) - 1
+
+    with server.gui.add_folder(name.capitalize()):
+      scrubber = server.gui.add_slider(
+        "Frame",
+        min=0,
+        max=max_frame,
+        step=1,
+        initial_value=0,
+      )
+
+      @scrubber.on_update
+      def _(_) -> None:
+        idx = get_env_idx()
+        self.time_steps[idx] = int(scrubber.value)
+        if on_change is not None:
+          on_change()
+
+      all_envs_cb = server.gui.add_checkbox("All envs", initial_value=True)
+      start_btn = server.gui.add_button("Start Here")
+
+      @start_btn.on_click
+      def _(_) -> None:
+        if request_action is not None:
+          request_action(
+            "CUSTOM",
+            {"type": "gui_reset", "all_envs": all_envs_cb.value},
+          )
+
+    self._scrubber_handles = (scrubber, all_envs_cb, start_btn)
+    self._set_scrubber_disabled(True)
+
+  def _set_scrubber_disabled(self, disabled: bool) -> None:
+    """Enable or disable the motion scrubber GUI controls."""
+    for handle in self._scrubber_handles:
+      handle.disabled = disabled
+
+  def on_viewer_pause(self, paused: bool) -> None:
+    if hasattr(self, "_scrubber_handles"):
+      self._set_scrubber_disabled(not paused)
+
+  def apply_gui_reset(self, env_ids: torch.Tensor) -> bool:
+    if not hasattr(self, "_scrubber_handles"):
+      return False
+    frame = int(self._scrubber_handles[0].value)
+    self.reset_to_frame(env_ids, frame)
+    self.update_relative_body_poses()
+    return True
+
+  def reset_to_frame(self, env_ids: torch.Tensor, frame: int) -> None:
+    """Reset to exact reference state at a specific frame.
+
+    Like ``_resample_command`` but deterministic: no random
+    perturbations to pose, velocity, or joint positions.
+    """
+    self.time_steps[env_ids] = frame
+    self._write_reference_state_to_sim(
+      env_ids,
+      self.body_pos_w[env_ids, 0],
+      self.body_quat_w[env_ids, 0],
+      self.body_lin_vel_w[env_ids, 0],
+      self.body_ang_vel_w[env_ids, 0],
+      self.joint_pos[env_ids],
+      self.joint_vel[env_ids],
+    )
 
 
 @dataclass(kw_only=True)

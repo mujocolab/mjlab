@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import torch
@@ -142,8 +142,10 @@ class UniformVelocityCommand(CommandTerm):
   def create_gui(
     self,
     name: str,
-    server: "viser.ViserServer",
+    server: viser.ViserServer,
     get_env_idx: Callable[[], int],
+    on_change: Callable[[], None] | None = None,
+    request_action: Callable[[str, Any], None] | None = None,
   ) -> None:
     """Create velocity joystick sliders in the Viser viewer."""
     from viser import Icon
