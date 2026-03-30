@@ -39,6 +39,10 @@ Added
 - Added a Checkpoints tab to the Viser play viewer for hot-swapping
   checkpoints without restarting. Works with local directories and W&B
   runs (:issue:`751`). Contribution by @omarrayyann.
+- Added ``"segmentation"`` camera data type for per-pixel geom ID output
+  alongside RGB and depth, and a multi-cube goal-conditioned lifting task
+  (``Mjlab-Multi-Cube-Seg-Yam``) that uses it (:issue:`862`).
+  Contribution by @pthangeda.
 
 Changed
 ^^^^^^^
