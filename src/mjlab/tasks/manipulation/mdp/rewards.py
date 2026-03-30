@@ -65,10 +65,11 @@ def multi_cube_staged_position_reward(
 ) -> torch.Tensor:
   """Staged reward for the target cube selected by MultiCubeLiftingCommand."""
   robot: Entity = env.scene[asset_cfg.name]
-  command = cast(
-    MultiCubeLiftingCommand,
-    env.command_manager.get_term(command_name),
-  )
+  command = env.command_manager.get_term(command_name)
+  if not isinstance(command, MultiCubeLiftingCommand):
+    raise TypeError(
+      f"Command '{command_name}' must be a MultiCubeLiftingCommand, got {type(command)}"
+    )
   ee_pos_w = robot.data.site_pos_w[:, asset_cfg.site_ids].squeeze(1)
   obj_pos_w = command.target_object_pos()
   reach_error = torch.sum(torch.square(ee_pos_w - obj_pos_w), dim=-1)
@@ -84,10 +85,11 @@ def multi_cube_bring_object_reward(
   std: float,
 ) -> torch.Tensor:
   """Gaussian reward for bringing the selected target cube to goal."""
-  command = cast(
-    MultiCubeLiftingCommand,
-    env.command_manager.get_term(command_name),
-  )
+  command = env.command_manager.get_term(command_name)
+  if not isinstance(command, MultiCubeLiftingCommand):
+    raise TypeError(
+      f"Command '{command_name}' must be a MultiCubeLiftingCommand, got {type(command)}"
+    )
   obj_pos_w = command.target_object_pos()
   position_error = torch.sum(torch.square(command.target_pos - obj_pos_w), dim=-1)
   return torch.exp(-position_error / std**2)

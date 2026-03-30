@@ -24,7 +24,11 @@ from mjlab.tasks.manipulation.lift_cube_env_cfg import make_lift_cube_env_cfg
 from mjlab.tasks.manipulation.mdp import MultiCubeLiftingCommandCfg
 
 
-def get_cube_spec(cube_size: float = 0.02, mass: float = 0.05) -> mujoco.MjSpec:
+def get_cube_spec(
+  cube_size: float = 0.02,
+  mass: float = 0.05,
+  rgba: tuple[float, float, float, float] = (0.8, 0.2, 0.2, 1.0),
+) -> mujoco.MjSpec:
   spec = mujoco.MjSpec()
   body = spec.worldbody.add_body(name="cube")
   body.add_freejoint(name="cube_joint")
@@ -33,7 +37,7 @@ def get_cube_spec(cube_size: float = 0.02, mass: float = 0.05) -> mujoco.MjSpec:
     type=mujoco.mjtGeom.mjGEOM_BOX,
     size=(cube_size,) * 3,
     mass=mass,
-    rgba=(0.8, 0.2, 0.2, 1.0),
+    rgba=rgba,
   )
   return spec
 
@@ -161,22 +165,6 @@ def yam_lift_cube_vision_env_cfg(
   return cfg
 
 
-def _make_cube_spec(
-  rgba: tuple[float, float, float, float],
-) -> mujoco.MjSpec:
-  spec = mujoco.MjSpec()
-  body = spec.worldbody.add_body(name="cube")
-  body.add_freejoint(name="cube_joint")
-  body.add_geom(
-    name="cube_geom",
-    type=mujoco.mjtGeom.mjGEOM_BOX,
-    size=(0.02,) * 3,
-    mass=0.05,
-    rgba=rgba,
-  )
-  return spec
-
-
 def _cube_color(i: int, n: int) -> tuple[float, float, float, float]:
   """Generate a distinct color for cube i of n using HSV hue rotation."""
   h = i / max(n, 1)
@@ -196,7 +184,7 @@ def yam_multi_cube_seg_env_cfg(
   for i, name in enumerate(cube_names):
     color = _cube_color(i, num_cubes)
     entities[name] = EntityCfg(
-      spec_fn=lambda c=color: _make_cube_spec(c),
+      spec_fn=lambda c=color: get_cube_spec(rgba=c),
     )
   cfg.scene.entities = entities
 

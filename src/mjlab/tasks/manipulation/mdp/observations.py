@@ -126,25 +126,6 @@ def camera_segmentation(
   return seg_data.permute(0, 3, 1, 2)  # (B, 1, H, W)
 
 
-def camera_entity_mask(
-  env: ManagerBasedRlEnv,
-  sensor_name: str,
-  entity_name: str,
-) -> torch.Tensor:
-  """Binary mask for a specific entity in (B, 1, H, W) format.
-
-  Pixels belonging to the entity are 1.0, all others 0.0.
-  """
-  sensor: CameraSensor = env.scene[sensor_name]
-  seg_data = sensor.data.segmentation  # (B, H, W, 1)
-  assert seg_data is not None, f"Camera '{sensor_name}' has no segmentation data"
-  seg = seg_data[..., 0]  # (B, H, W)
-  entity: Entity = env.scene[entity_name]
-  geom_ids = entity.indexing.geom_ids  # (num_geoms,) on device
-  mask = (seg.unsqueeze(-1) == geom_ids).any(-1)  # (B, H, W)
-  return mask.float().unsqueeze(1)  # (B, 1, H, W)
-
-
 def camera_target_cube_mask(
   env: ManagerBasedRlEnv,
   sensor_name: str,

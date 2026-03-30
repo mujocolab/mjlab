@@ -147,6 +147,9 @@ class MultiCubeLiftingCommand(CommandTerm):
       self.num_envs, dtype=torch.long, device=self.device
     )
 
+    self._env_arange = torch.arange(self.num_envs, device=self.device)
+    self._cached_target_obj_pos = torch.zeros(self.num_envs, 3, device=self.device)
+
     self.metrics["position_error"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["at_goal"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["episode_success"] = torch.zeros(self.num_envs, device=self.device)
@@ -161,11 +164,16 @@ class MultiCubeLiftingCommand(CommandTerm):
     return self._padded_geom_ids[self.target_selection]
 
   def target_object_pos(self) -> torch.Tensor:
-    all_pos = torch.stack([c.data.root_link_pos_w for c in self.cubes])
-    return all_pos[self.target_selection, torch.arange(self.num_envs)]
+    """Position of the target cube per env.
+
+    Cached per step — updated in _update_metrics which runs before rewards.
+    """
+    return self._cached_target_obj_pos
 
   def _update_metrics(self) -> None:
-    obj_pos = self.target_object_pos()
+    all_pos = torch.stack([c.data.root_link_pos_w for c in self.cubes])
+    self._cached_target_obj_pos = all_pos[self.target_selection, self._env_arange]
+    obj_pos = self._cached_target_obj_pos
     error = torch.norm(self.target_pos - obj_pos, dim=-1)
     at_goal = (error < self.cfg.success_threshold).float()
     self.episode_success = torch.maximum(self.episode_success, at_goal)
