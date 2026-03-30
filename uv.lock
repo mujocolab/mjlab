@@ -1686,7 +1686,7 @@ docs = [
 requires-dist = [
     { name = "imageio-ffmpeg" },
     { name = "mediapy", specifier = ">=1.2.6" },
-    { name = "mjviser", specifier = ">=0.0.7" },
+    { name = "mjviser", specifier = ">=0.0.8" },
     { name = "mujoco", specifier = ">=3.6.0", index = "https://py.mujoco.org/" },
     { name = "mujoco-warp", git = "https://github.com/google-deepmind/mujoco_warp?rev=875c4caf06d71b12b2036c327e7a07ce08a78b9a" },
     { name = "onnxscript", specifier = ">=0.5.4" },
@@ -1703,7 +1703,7 @@ requires-dist = [
     { name = "tqdm" },
     { name = "trimesh", specifier = ">=4.8.3" },
     { name = "tyro", specifier = ">=1.0.1" },
-    { name = "viser", specifier = ">=1.0.24" },
+    { name = "viser", specifier = ">=1.0.26" },
     { name = "wandb", specifier = ">=0.22.3" },
     { name = "warp-lang", marker = "sys_platform != 'darwin'", specifier = ">=1.12.0", index = "https://pypi.nvidia.com/" },
     { name = "warp-lang", marker = "sys_platform == 'darwin'", specifier = ">=1.12.0" },
@@ -1738,7 +1738,7 @@ docs = [
 
 [[package]]
 name = "mjviser"
-version = "0.0.7"
+version = "0.0.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mujoco", version = "3.6.0.dev881362074", source = { registry = "https://py.mujoco.org/" }, marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine != 'arm64' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128') or (sys_platform != 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
@@ -1749,9 +1749,9 @@ dependencies = [
     { name = "trimesh" },
     { name = "viser" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a8/6e/0ac16fc2f8dc923a5c9fba8474a67145995e3143bcb355e523fe440810f4/mjviser-0.0.7.tar.gz", hash = "sha256:4bce2aee39518454592896bbc6d049c952255cb08340105fd89e4d1626102121", size = 26131, upload-time = "2026-03-26T20:10:24.227Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b0/d1/3ee6b143333059e4c72a01e267502ea220324467d8717c884c0d7f2ea25a/mjviser-0.0.8.tar.gz", hash = "sha256:e7c5e32d343bf6854d4f09ef6a0de759e86af45cf1c0c3c72ca96dff2f13425d", size = 26539, upload-time = "2026-03-30T15:56:50.376Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/82/8f/65d32d32fd8c8ebe8f822b0cfc3db92b3599f9ede919fcb824f482f42f81/mjviser-0.0.7-py3-none-any.whl", hash = "sha256:909a8bb883bb2340a17319aa201b14652799e9ff9f0454513cb7dab048ebc1fb", size = 28660, upload-time = "2026-03-26T20:10:25.594Z" },
+    { url = "https://files.pythonhosted.org/packages/13/08/eb590ff2ac31be7289707718aeda06f1fbf8c11d23e5a7927e941b4efc98/mjviser-0.0.8-py3-none-any.whl", hash = "sha256:51d31146e9187bbd587ec84f231ddad08506e4b6456f3f3de372529b2c728dc6", size = 29066, upload-time = "2026-03-30T15:56:51.245Z" },
 ]
 
 [[package]]
@@ -4505,7 +4505,7 @@ wheels = [
 
 [[package]]
 name = "viser"
-version = "1.0.24"
+version = "1.0.26"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "imageio" },
@@ -4521,9 +4521,9 @@ dependencies = [
     { name = "yourdfpy" },
     { name = "zstandard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e4/7f/a0ea9ae86b7c51332f4dfe54476683747568857d550779ed556f4584deb6/viser-1.0.24.tar.gz", hash = "sha256:d1f52c8dccf553b1d5a8825f631344e2e91b2d5615dfac41cb81fd50035d9224", size = 4780467, upload-time = "2026-02-26T23:12:53.655Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/12/ce/82a0e50fae21f5e02fcc5d9aff2ab59dccb9c319b6c4cf528f2228049b05/viser-1.0.26.tar.gz", hash = "sha256:dc08c6f505e70324b0603bdddf9714c00ac828c259ee49abd8ad094bfc90c91c", size = 4828261, upload-time = "2026-03-30T11:43:19.513Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/83/6e/137abad4a09314654da21eb11b187b98c5b2b2da792d375af38c9b608698/viser-1.0.24-py3-none-any.whl", hash = "sha256:df91331b6c20c8fb39367faaa8eb2707cb3a403cb8b6f18396683798aa68ccba", size = 4864557, upload-time = "2026-02-26T23:12:55.417Z" },
+    { url = "https://files.pythonhosted.org/packages/91/f7/762a2d5fab509d0c632b271e21e634462397cc02cca649771c3e9d2e0bcc/viser-1.0.26-py3-none-any.whl", hash = "sha256:03b177b4ef584f58f7b74fdf44cccb165b8a220ffd90728ef5c1e3d1b1fcf258", size = 4922888, upload-time = "2026-03-30T11:43:21.355Z" },
 ]
 
 [[package]]
