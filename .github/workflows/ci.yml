@@ -52,6 +52,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
           version: "0.9.27"
+      - name: Restore Warp kernel cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/warp
+          key: warp-kernels-${{ runner.os }}-${{ runner.arch }}-${{ matrix.python-version }}-${{ hashFiles('uv.lock', 'mjlab/**/*.py') }}
+          restore-keys: |
+            warp-kernels-${{ runner.os }}-${{ runner.arch }}-${{ matrix.python-version }}-
       - name: Test with python ${{ matrix.python-version }}
         run: uv run --extra cpu pytest
 
