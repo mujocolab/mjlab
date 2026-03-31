@@ -13,6 +13,19 @@ from mjlab.utils.buffers import CircularBuffer, DelayBuffer
 from mjlab.utils.noise import noise_cfg, noise_model
 from mjlab.utils.noise.noise_cfg import NoiseCfg, NoiseModelCfg
 
+@dataclass
+class SaveCfg :
+  save_to_csv: bool = False
+  """If True, saves observations during inference into a csv file every frame.
+  If False, saving into a csv is not performed."""
+
+  csv_file_name: str | None = None
+  """ If save_to_csv is True, this field contains the filename where observations will be saved
+  """
+
+  chunk_size : int = 500
+  """ Chunk size for bulk saving observations into csv file
+  """
 
 @dataclass
 class ObservationTermCfg(ManagerTermBaseCfg):

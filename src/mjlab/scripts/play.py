@@ -12,6 +12,7 @@ import torch
 import tyro
 
 from mjlab.envs import ManagerBasedRlEnv
+from mjlab.managers.observation_manager import SaveCfg
 from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
 from mjlab.tasks.registry import list_tasks, load_env_cfg, load_rl_cfg, load_runner_cls
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
@@ -38,6 +39,8 @@ class PlayConfig:
   """Optional checkpoint name within the W&B run to load (e.g. 'model_4000.pt')."""
   checkpoint_file: str | None = None
   motion_file: str | None = None
+  csv_save_file : str | None = None
+  csv_chunk_save_size : int = 500
   num_envs: int | None = None
   device: str | None = None
   video: bool = False
@@ -164,7 +167,17 @@ def run_play(task_id: str, cfg: PlayConfig):
     print(
       "[WARN] Video recording with dummy agents is disabled (no checkpoint/log_dir)."
     )
-  env = ManagerBasedRlEnv(cfg=env_cfg, device=device, render_mode=render_mode)
+
+  csv_save_path = Path("Obs_logs_csv")
+  saveCfg = None
+  if cfg.csv_save_file is not None:
+    csv_save_path.mkdir(parents=True, exist_ok=True)
+    saveCfg = SaveCfg()
+    saveCfg.csv_file_name = str(csv_save_path / cfg.csv_save_file)
+    saveCfg.save_to_csv = True
+    saveCfg.chunk_size = max(cfg.csv_chunk_save_size, 200)
+
+  env = ManagerBasedRlEnv(cfg=env_cfg, device=device, render_mode=render_mode, saveCfg = saveCfg)
 
   if TRAINED_MODE and cfg.video:
     print("[INFO] Recording videos during play")
