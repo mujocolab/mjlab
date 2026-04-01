@@ -242,8 +242,8 @@ class ManagerBasedRlEnv:
     if self.save_cfg is not None :
       if self.save_cfg.save_to_csv :
         assert self.num_envs == 1, "Can only save data in csv with single env, please set num-envs to 1"
-        self.csvfile = open(f'{self.save_cfg.csv_file_name}.csv', 'w', newline='')
-        self.csv_writer = csv.writer(self.csvfile, delimiter=',',
+        self.csv_file = open(f'{self.save_cfg.csv_file_name}.csv', 'w', newline='')
+        self.csv_writer = csv.writer(self.csv_file, delimiter=',',
           quotechar='|', quoting=csv.QUOTE_MINIMAL)
         
         self.save_csv_chunk = []
@@ -491,8 +491,8 @@ class ManagerBasedRlEnv:
     if self._offline_renderer is not None:
       self._offline_renderer.close()
     
-    if hasattr(self, "csvfile") and self.csvfile is not None:
-      self.csvfile.close()
+    if hasattr(self, "csv_file") and self.csv_file is not None:
+      self.csv_file.close()
 
   @staticmethod
   def seed(seed: int = -1) -> int:
