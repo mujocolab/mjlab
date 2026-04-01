@@ -118,16 +118,14 @@ For simple cases a lambda suffices:
 
     spec_fn = lambda: mujoco.MjSpec.from_file("robot.xml")
 
-For anything more involved, use a regular function. The asset zoo robots
-all follow this pattern: load the XML, attach mesh assets, and return
-the spec.
+For anything more involved, use a regular function. MuJoCo resolves mesh
+assets from disk automatically, so ``get_spec`` only needs to load the
+XML:
 
 .. code-block:: python
 
     def get_spec() -> mujoco.MjSpec:
-        spec = mujoco.MjSpec.from_file(str(ROBOT_XML))
-        spec.assets = get_assets(spec.meshdir)
-        return spec
+        return mujoco.MjSpec.from_file(str(ROBOT_XML))
 
 Because ``spec_fn`` is an arbitrary callable, you can perform any
 `MjSpec edits <https://mujoco.readthedocs.io/en/stable/python.html#spec>`_

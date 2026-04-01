@@ -11,7 +11,6 @@ from mjlab.utils.actuator import (
   ElectricActuator,
   reflect_rotary_to_linear,
 )
-from mjlab.utils.os import update_assets
 from mjlab.utils.spec_config import CollisionCfg
 
 ##
@@ -24,16 +23,8 @@ YAM_XML: Path = (
 assert YAM_XML.exists()
 
 
-def get_assets(meshdir: str) -> dict[str, bytes]:
-  assets: dict[str, bytes] = {}
-  update_assets(assets, YAM_XML.parent / "assets", meshdir)
-  return assets
-
-
 def get_spec() -> mujoco.MjSpec:
-  spec = mujoco.MjSpec.from_file(str(YAM_XML))
-  spec.assets = get_assets(spec.meshdir)
-  return spec
+  return mujoco.MjSpec.from_file(str(YAM_XML))
 
 
 ##
