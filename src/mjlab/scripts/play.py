@@ -39,8 +39,8 @@ class PlayConfig:
   """Optional checkpoint name within the W&B run to load (e.g. 'model_4000.pt')."""
   checkpoint_file: str | None = None
   motion_file: str | None = None
-  csv_save_file : str | None = None
-  csv_chunk_save_size : int = 500
+  csv_save_file: str | None = None
+  csv_chunk_save_size: int = 500
   num_envs: int | None = None
   device: str | None = None
   video: bool = False
@@ -177,7 +177,9 @@ def run_play(task_id: str, cfg: PlayConfig):
     save_cfg.save_to_csv = True
     save_cfg.chunk_size = max(cfg.csv_chunk_save_size, 200)
 
-  env = ManagerBasedRlEnv(cfg=env_cfg, device=device, render_mode=render_mode, save_cfg = save_cfg)
+  env = ManagerBasedRlEnv(
+    cfg=env_cfg, device=device, render_mode=render_mode, save_cfg=save_cfg
+  )
 
   if TRAINED_MODE and cfg.video:
     print("[INFO] Recording videos during play")

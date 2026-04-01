@@ -1,9 +1,7 @@
+import csv
 import math
 from dataclasses import dataclass, field
 from typing import Any
-
-import csv
-from pathlib import Path
 
 import mujoco
 import numpy as np
@@ -47,7 +45,7 @@ from mjlab.viewer.viewer_config import ViewerConfig
 
 
 @dataclass
-class SaveCfg :
+class SaveCfg:
   save_to_csv: bool = False
   """If True, saves observations during inference into a csv file every frame.
   If False, saving into a csv is not performed."""
@@ -56,9 +54,10 @@ class SaveCfg :
   """ If save_to_csv is True, this field contains the filename where observations will be saved
   """
 
-  chunk_size : int = 500
+  chunk_size: int = 500
   """ Chunk size for bulk saving observations into csv file
   """
+
 
 @dataclass(kw_only=True)
 class ManagerBasedRlEnvCfg:
@@ -239,21 +238,28 @@ class ManagerBasedRlEnv:
     self.load_managers()
     self.setup_manager_visualizers()
 
-    if self.save_cfg is not None :
-      if self.save_cfg.save_to_csv :
-        assert self.num_envs == 1, "Can only save data in csv with single env, please set num-envs to 1"
-        self.csv_file = open(f'{self.save_cfg.csv_file_name}.csv', 'w', newline='')
-        self.csv_writer = csv.writer(self.csv_file, delimiter=',',
-          quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        
+    if self.save_cfg is not None:
+      if self.save_cfg.save_to_csv:
+        assert self.num_envs == 1, (
+          "Can only save data in csv with single env, please set num-envs to 1"
+        )
+        self.csv_file = open(f"{self.save_cfg.csv_file_name}.csv", "w", newline="")
+        self.csv_writer = csv.writer(
+          self.csv_file, delimiter=",", quotechar="|", quoting=csv.QUOTE_MINIMAL
+        )
+
         self.save_csv_chunk = []
         self.csv_writer.writerow(
-            [term for term, dim in zip(
-                self.observation_manager.active_terms["actor"],
-                self.observation_manager.group_obs_term_dim["actor"]
-            ) for _ in range(int(math.prod(dim)))]
-            +
-            ["Action" for _ in range(self.action_manager.total_action_dim)]
+          [
+            term
+            for term, dim in zip(
+              self.observation_manager.active_terms["actor"],
+              self.observation_manager.group_obs_term_dim["actor"],
+              strict=False,
+            )
+            for _ in range(int(math.prod(dim)))
+          ]
+          + ["Action" for _ in range(self.action_manager.total_action_dim)]
         )
 
   # Properties.
@@ -449,15 +455,15 @@ class ManagerBasedRlEnv:
     self.sim.sense()
     self.obs_buf = self.observation_manager.compute(update_history=True)
 
-    if self.save_cfg is not None :
-      if self.save_cfg.save_to_csv :
-        if self.reset_terminated.item() :
+    if self.save_cfg is not None:
+      if self.save_cfg.save_to_csv:
+        if self.reset_terminated.item():
           self.save_csv_chunk.append([])
-        else :
-          row_obs = self.obs_buf["actor"].cpu().numpy().flatten().tolist()          #type: ignore
+        else:
+          row_obs = self.obs_buf["actor"].cpu().numpy().flatten().tolist()  # type: ignore
           row_act = action.cpu().numpy().flatten().tolist()
           self.save_csv_chunk.append(row_obs + row_act)
-        
+
         if len(self.save_csv_chunk) >= self.save_cfg.chunk_size:
           self.csv_writer.writerows(self.save_csv_chunk)
           self.save_csv_chunk.clear()
@@ -490,7 +496,7 @@ class ManagerBasedRlEnv:
   def close(self) -> None:
     if self._offline_renderer is not None:
       self._offline_renderer.close()
-    
+
     if hasattr(self, "csv_file") and self.csv_file is not None:
       self.csv_file.close()
 
