@@ -13,6 +13,7 @@ from mjlab.utils.buffers import CircularBuffer, DelayBuffer
 from mjlab.utils.noise import noise_cfg, noise_model
 from mjlab.utils.noise.noise_cfg import NoiseCfg, NoiseModelCfg
 
+
 @dataclass
 class ObservationTermCfg(ManagerTermBaseCfg):
   """Configuration for an observation term.

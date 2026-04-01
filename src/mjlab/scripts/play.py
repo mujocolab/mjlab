@@ -168,7 +168,7 @@ def run_play(task_id: str, cfg: PlayConfig):
       "[WARN] Video recording with dummy agents is disabled (no checkpoint/log_dir)."
     )
 
-  csv_save_path = Path("Obs_logs_csv")
+  csv_save_path = Path("rollout_obs_csv")
   save_cfg = None
   if cfg.csv_save_file is not None:
     csv_save_path.mkdir(parents=True, exist_ok=True)
