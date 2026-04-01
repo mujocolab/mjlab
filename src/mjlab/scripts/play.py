@@ -12,7 +12,7 @@ import torch
 import tyro
 
 from mjlab.envs import ManagerBasedRlEnv
-from mjlab.managers.observation_manager import SaveCfg
+from mjlab.envs.manager_based_rl_env import SaveCfg
 from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
 from mjlab.tasks.registry import list_tasks, load_env_cfg, load_rl_cfg, load_runner_cls
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
@@ -169,15 +169,15 @@ def run_play(task_id: str, cfg: PlayConfig):
     )
 
   csv_save_path = Path("Obs_logs_csv")
-  saveCfg = None
+  save_cfg = None
   if cfg.csv_save_file is not None:
     csv_save_path.mkdir(parents=True, exist_ok=True)
-    saveCfg = SaveCfg()
-    saveCfg.csv_file_name = str(csv_save_path / cfg.csv_save_file)
-    saveCfg.save_to_csv = True
-    saveCfg.chunk_size = max(cfg.csv_chunk_save_size, 200)
+    save_cfg = SaveCfg()
+    save_cfg.csv_file_name = str(csv_save_path / cfg.csv_save_file)
+    save_cfg.save_to_csv = True
+    save_cfg.chunk_size = max(cfg.csv_chunk_save_size, 200)
 
-  env = ManagerBasedRlEnv(cfg=env_cfg, device=device, render_mode=render_mode, saveCfg = saveCfg)
+  env = ManagerBasedRlEnv(cfg=env_cfg, device=device, render_mode=render_mode, save_cfg = save_cfg)
 
   if TRAINED_MODE and cfg.video:
     print("[INFO] Recording videos during play")

@@ -30,7 +30,7 @@ from mjlab.managers.metrics_manager import (
   MetricsTermCfg,
   NullMetricsManager,
 )
-from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationManager, SaveCfg
+from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationManager
 from mjlab.managers.reward_manager import RewardManager, RewardTermCfg
 from mjlab.managers.termination_manager import TerminationManager, TerminationTermCfg
 from mjlab.scene import Scene
@@ -45,6 +45,20 @@ from mjlab.viewer.debug_visualizer import DebugVisualizer
 from mjlab.viewer.offscreen_renderer import OffscreenRenderer
 from mjlab.viewer.viewer_config import ViewerConfig
 
+
+@dataclass
+class SaveCfg :
+  save_to_csv: bool = False
+  """If True, saves observations during inference into a csv file every frame.
+  If False, saving into a csv is not performed."""
+
+  csv_file_name: str | None = None
+  """ If save_to_csv is True, this field contains the filename where observations will be saved
+  """
+
+  chunk_size : int = 500
+  """ Chunk size for bulk saving observations into csv file
+  """
 
 @dataclass(kw_only=True)
 class ManagerBasedRlEnvCfg:
@@ -160,12 +174,12 @@ class ManagerBasedRlEnv:
     cfg: ManagerBasedRlEnvCfg,
     device: str,
     render_mode: str | None = None,
-    saveCfg: SaveCfg | None = None,
+    save_cfg: SaveCfg | None = None,
     **kwargs,
   ) -> None:
     # Initialize base environment state.
     self.cfg = cfg
-    self.saveCfg = saveCfg
+    self.save_cfg = save_cfg
     if self.cfg.seed is not None:
       self.cfg.seed = self.seed(self.cfg.seed)
     self._sim_step_counter = 0
@@ -225,10 +239,10 @@ class ManagerBasedRlEnv:
     self.load_managers()
     self.setup_manager_visualizers()
 
-    if self.saveCfg is not None :
-      if self.saveCfg.save_to_csv :
+    if self.save_cfg is not None :
+      if self.save_cfg.save_to_csv :
         assert self.num_envs == 1, "Can only save data in csv with single env, please set num-envs to 1"
-        self.csvfile = open(f'{self.saveCfg.csv_file_name}.csv', 'w', newline='')
+        self.csvfile = open(f'{self.save_cfg.csv_file_name}.csv', 'w', newline='')
         self.csv_writer = csv.writer(self.csvfile, delimiter=',',
           quotechar='|', quoting=csv.QUOTE_MINIMAL)
         
@@ -435,8 +449,8 @@ class ManagerBasedRlEnv:
     self.sim.sense()
     self.obs_buf = self.observation_manager.compute(update_history=True)
 
-    if self.saveCfg is not None :
-      if self.saveCfg.save_to_csv :
+    if self.save_cfg is not None :
+      if self.save_cfg.save_to_csv :
         if self.reset_terminated.item() :
           self.save_csv_chunk.append([])
         else :
@@ -444,7 +458,7 @@ class ManagerBasedRlEnv:
           row_act = action.cpu().numpy().flatten().tolist()
           self.save_csv_chunk.append(row_obs + row_act)
         
-        if len(self.save_csv_chunk) >= self.saveCfg.chunk_size:
+        if len(self.save_csv_chunk) >= self.save_cfg.chunk_size:
           self.csv_writer.writerows(self.save_csv_chunk)
           self.save_csv_chunk.clear()
 
