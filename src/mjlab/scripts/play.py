@@ -248,7 +248,7 @@ def run_play(task_id: str, cfg: PlayConfig):
       _log_root = log_root_path  # pyright: ignore[reportPossiblyUnboundVariable]
 
       def fetch_available_wandb() -> list[tuple[str, str]]:
-        wandb_run.update()
+        wandb_run.load()
         now = datetime.now(tz=timezone.utc)
         entries: list[tuple[str, str, int]] = []
         for f in wandb_run.files():
