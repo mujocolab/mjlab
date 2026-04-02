@@ -1718,7 +1718,7 @@ docs = [
 requires-dist = [
     { name = "imageio-ffmpeg" },
     { name = "mediapy", specifier = ">=1.2.6" },
-    { name = "mjviser", specifier = ">=0.0.8" },
+    { name = "mjviser", specifier = ">=0.0.11" },
     { name = "mujoco", specifier = ">=3.6.0", index = "https://py.mujoco.org/" },
     { name = "mujoco-warp", git = "https://github.com/google-deepmind/mujoco_warp?rev=875c4caf06d71b12b2036c327e7a07ce08a78b9a" },
     { name = "onnxscript", specifier = ">=0.5.4" },
@@ -1770,7 +1770,7 @@ docs = [
 
 [[package]]
 name = "mjviser"
-version = "0.0.8"
+version = "0.0.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mujoco", version = "3.6.0.dev881362074", source = { registry = "https://py.mujoco.org/" }, marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine != 'arm64' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128') or (sys_platform != 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
@@ -1781,9 +1781,9 @@ dependencies = [
     { name = "trimesh" },
     { name = "viser" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b0/d1/3ee6b143333059e4c72a01e267502ea220324467d8717c884c0d7f2ea25a/mjviser-0.0.8.tar.gz", hash = "sha256:e7c5e32d343bf6854d4f09ef6a0de759e86af45cf1c0c3c72ca96dff2f13425d", size = 26539, upload-time = "2026-03-30T15:56:50.376Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d6/c4/7de1e89d8abc19785e307eebc0990cee9d76e9e045a654f425b3cef2f595/mjviser-0.0.11.tar.gz", hash = "sha256:aebc12785995d4fe1aa3e46cb13f0e464dfd8abe9f63d30ebe77f78767e8cedf", size = 29193, upload-time = "2026-04-02T03:32:01.777Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/13/08/eb590ff2ac31be7289707718aeda06f1fbf8c11d23e5a7927e941b4efc98/mjviser-0.0.8-py3-none-any.whl", hash = "sha256:51d31146e9187bbd587ec84f231ddad08506e4b6456f3f3de372529b2c728dc6", size = 29066, upload-time = "2026-03-30T15:56:51.245Z" },
+    { url = "https://files.pythonhosted.org/packages/71/da/116ec59e1de628fbd6330e21d05452d6755f5ab0b55c55a2b37c81ec0868/mjviser-0.0.11-py3-none-any.whl", hash = "sha256:8c4ed7570e0e74171a983cb1603329315fcc46ace0a24d47ab1fde2044a56b59", size = 31937, upload-time = "2026-04-02T03:32:02.717Z" },
 ]
 
 [[package]]
@@ -2312,7 +2312,7 @@ name = "nvidia-cudnn-cu12"
 version = "9.10.2.21"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas-cu12", marker = "(sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
+    { name = "nvidia-cublas-cu12", marker = "(platform_machine != 's390x' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu') or (platform_machine == 's390x' and sys_platform == 'linux' and extra == 'extra-5-mjlab-cu128') or (platform_machine != 's390x' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128') or (sys_platform != 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fa/41/e79269ce215c857c935fd86bcfe91a451a584dfc27f1e068f568b9ad1ab7/nvidia_cudnn_cu12-9.10.2.21-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:c9132cc3f8958447b4910a1720036d9eff5928cc3179b0a51fb6d167c6cc87d8", size = 705026878, upload-time = "2025-06-06T21:52:51.348Z" },
@@ -2325,7 +2325,7 @@ name = "nvidia-cufft-cu12"
 version = "11.3.3.83"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-nvjitlink-cu12", marker = "(sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine != 's390x' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu') or (platform_machine == 's390x' and sys_platform == 'linux' and extra == 'extra-5-mjlab-cu128') or (platform_machine != 's390x' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128') or (sys_platform != 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/60/bc/7771846d3a0272026c416fbb7e5f4c1f146d6d80704534d0b187dd6f4800/nvidia_cufft_cu12-11.3.3.83-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:848ef7224d6305cdb2a4df928759dca7b1201874787083b6e7550dd6765ce69a", size = 193109211, upload-time = "2025-03-07T01:44:56.873Z" },
@@ -2357,9 +2357,9 @@ name = "nvidia-cusolver-cu12"
 version = "11.7.3.90"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas-cu12", marker = "(sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
-    { name = "nvidia-cusparse-cu12", marker = "(sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
-    { name = "nvidia-nvjitlink-cu12", marker = "(sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
+    { name = "nvidia-cublas-cu12", marker = "(platform_machine != 's390x' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu') or (platform_machine == 's390x' and sys_platform == 'linux' and extra == 'extra-5-mjlab-cu128') or (platform_machine != 's390x' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128') or (sys_platform != 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
+    { name = "nvidia-cusparse-cu12", marker = "(platform_machine != 's390x' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu') or (platform_machine == 's390x' and sys_platform == 'linux' and extra == 'extra-5-mjlab-cu128') or (platform_machine != 's390x' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128') or (sys_platform != 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine != 's390x' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu') or (platform_machine == 's390x' and sys_platform == 'linux' and extra == 'extra-5-mjlab-cu128') or (platform_machine != 's390x' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128') or (sys_platform != 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c8/32/f7cd6ce8a7690544d084ea21c26e910a97e077c9b7f07bf5de623ee19981/nvidia_cusolver_cu12-11.7.3.90-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:db9ed69dbef9715071232caa9b69c52ac7de3a95773c2db65bdba85916e4e5c0", size = 267229841, upload-time = "2025-03-07T01:46:54.356Z" },
@@ -2372,7 +2372,7 @@ name = "nvidia-cusparse-cu12"
 version = "12.5.8.93"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-nvjitlink-cu12", marker = "(sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine != 's390x' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu') or (platform_machine == 's390x' and sys_platform == 'linux' and extra == 'extra-5-mjlab-cu128') or (platform_machine != 's390x' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128') or (sys_platform != 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/bc/f7/cd777c4109681367721b00a106f491e0d0d15cfa1fd59672ce580ce42a97/nvidia_cusparse_cu12-12.5.8.93-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:9b6c161cb130be1a07a27ea6923df8141f3c295852f4b260c65f18f3e0a091dc", size = 288117129, upload-time = "2025-03-07T01:47:40.407Z" },

@@ -41,7 +41,7 @@ dependencies = [
   "mujoco>=3.6.0",
   "trimesh>=4.8.3",
   "viser>=1.0.26",
-  "mjviser>=0.0.8",
+  "mjviser>=0.0.11",
   "mediapy>=1.2.6",
   "imageio-ffmpeg",
   "tensordict",
