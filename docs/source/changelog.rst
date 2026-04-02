@@ -8,6 +8,8 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added :func:`~mjlab.envs.mdp.dr.pair_friction` for randomizing geom-pair
+  friction overrides (``pair_friction`` in ``mjModel``).
 - Added ``STAIRS_TERRAINS_CFG`` terrain preset for progressive stair
   curriculum training and ``@terrain_preset`` decorator for composing
   terrain configurations from reusable presets.

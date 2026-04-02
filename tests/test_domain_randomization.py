@@ -1640,3 +1640,221 @@ def test_mat_rgba_invalid_name(mat_env):
       ranges=(0.2, 0.8),
       asset_cfg=cfg,
     )
+
+
+# pair_friction tests.
+
+PAIR_XML = """
+<mujoco>
+  <worldbody>
+    <body name="base" pos="0 0 1">
+      <freejoint name="free_joint"/>
+      <geom name="base_geom" type="box" size="0.1 0.1 0.1" mass="1.0"/>
+      <body name="foot" pos="0 0 -0.15">
+        <geom name="foot_geom" type="box" size="0.05 0.05 0.02" mass="0.1"/>
+      </body>
+    </body>
+    <geom name="floor" type="plane" size="2 2 0.1"/>
+  </worldbody>
+  <contact>
+    <pair name="base_floor" geom1="base_geom" geom2="floor"
+          friction="0.5 0.5 0.005 0.0001 0.0001"/>
+    <pair name="foot_floor" geom1="foot_geom" geom2="floor"
+          friction="0.3 0.3 0.003 0.0002 0.0002"/>
+  </contact>
+</mujoco>
+"""
+
+
+@pytest.fixture(scope="module")
+def pair_env(device):
+  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(PAIR_XML))
+  scene_cfg = SceneCfg(num_envs=NUM_ENVS, entities={"robot": entity_cfg})
+  scene = Scene(scene_cfg, device)
+  model = scene.compile()
+  sim = Simulation(num_envs=NUM_ENVS, cfg=SimulationCfg(), model=model, device=device)
+  scene.initialize(model, sim.model, sim.data)
+  sim.expand_model_fields(("pair_friction",))
+  return Env(scene, sim, device)
+
+
+def test_pair_friction_abs(pair_env):
+  """Values set directly within range, diverse across envs."""
+  torch.manual_seed(42)
+  env = pair_env
+  robot = env.scene["robot"]
+
+  dr.pair_friction(env, env_ids=None, ranges=(0.4, 1.5), operation="abs")
+
+  friction = env.sim.model.pair_friction[:, robot.indexing.pair_ids, 0]
+  assert torch.all((friction >= 0.4) & (friction <= 1.5))
+  assert len(torch.unique(friction)) >= 2
+
+
+def test_pair_friction_scale(pair_env):
+  """Values = default * sample; no accumulation after 3 calls."""
+  env = pair_env
+  robot = env.scene["robot"]
+  pair_idx = robot.indexing.pair_ids[0]
+  default_val = env.sim.get_default_field("pair_friction")[pair_idx, 0].item()
+
+  for _ in range(3):
+    dr.pair_friction(
+      env,
+      env_ids=None,
+      ranges=(2.0, 2.0),
+      operation="scale",
+      asset_cfg=SceneEntityCfg("robot", pair_ids=[0]),
+      axes=[0],
+    )
+
+  result = env.sim.model.pair_friction[:, pair_idx, 0]
+  assert torch.allclose(result, torch.full_like(result, default_val * 2.0), atol=1e-5)
+
+
+def test_pair_friction_add(pair_env):
+  """Values = default + sample; no accumulation after 3 calls."""
+  env = pair_env
+  robot = env.scene["robot"]
+  pair_idx = robot.indexing.pair_ids[0]
+  default_val = env.sim.get_default_field("pair_friction")[pair_idx, 0].item()
+
+  for _ in range(3):
+    dr.pair_friction(
+      env,
+      env_ids=None,
+      ranges=(0.1, 0.1),
+      operation="add",
+      asset_cfg=SceneEntityCfg("robot", pair_ids=[0]),
+      axes=[0],
+    )
+
+  result = env.sim.model.pair_friction[:, pair_idx, 0]
+  assert torch.allclose(result, torch.full_like(result, default_val + 0.1), atol=1e-5)
+
+
+def test_pair_friction_axes_selectivity(pair_env):
+  """Only the targeted axis changes; others stay at their original values."""
+  torch.manual_seed(7)
+  env = pair_env
+  robot = env.scene["robot"]
+
+  before = env.sim.model.pair_friction.clone()
+
+  dr.pair_friction(env, env_ids=None, ranges=(0.8, 1.2), operation="abs", axes=[0])
+
+  after = env.sim.model.pair_friction
+  pair_ids = robot.indexing.pair_ids
+  # Axis 0 changed.
+  assert not torch.allclose(after[:, pair_ids, 0], before[:, pair_ids, 0])
+  # Axes 1-4 unchanged.
+  for ax in range(1, 5):
+    assert torch.allclose(after[:, pair_ids, ax], before[:, pair_ids, ax])
+
+
+def test_pair_friction_partial_env_ids(pair_env):
+  """Randomizing a subset of envs leaves the others unchanged."""
+  torch.manual_seed(99)
+  env = pair_env
+  robot = env.scene["robot"]
+
+  before = env.sim.model.pair_friction.clone()
+  randomized_ids = torch.tensor([0, 1], device=env.device)
+
+  dr.pair_friction(
+    env, env_ids=randomized_ids, ranges=(2.0, 3.0), operation="abs", axes=[0]
+  )
+
+  after = env.sim.model.pair_friction
+  pair_ids = robot.indexing.pair_ids
+  unchanged_ids = torch.tensor([2, 3], device=env.device)
+  assert torch.allclose(
+    after[unchanged_ids[:, None], pair_ids[None, :], :],
+    before[unchanged_ids[:, None], pair_ids[None, :], :],
+  )
+
+
+def test_pair_friction_shared_random(pair_env):
+  """All pairs in the same env get the same value; envs differ."""
+  torch.manual_seed(5)
+  env = pair_env
+  robot = env.scene["robot"]
+
+  dr.pair_friction(
+    env, env_ids=None, ranges=(0.5, 2.0), operation="abs", axes=[0], shared_random=True
+  )
+
+  pair_ids = robot.indexing.pair_ids
+  friction = env.sim.model.pair_friction[:, pair_ids, 0]
+  # Within each env, all pairs have the same value.
+  for e in range(env.num_envs):
+    row = friction[e]
+    assert torch.allclose(row, row[0].expand_as(row), atol=1e-6)
+  # Across envs, values differ.
+  assert not torch.allclose(friction[0], friction[1])
+
+
+def test_pair_friction_by_name(pair_env):
+  """Targeting pair by name only modifies that pair."""
+  torch.manual_seed(11)
+  env = pair_env
+  robot = env.scene["robot"]
+
+  foot_cfg = SceneEntityCfg("robot", pair_names=("foot_floor",))
+  foot_cfg.resolve(env.scene)
+  base_cfg = SceneEntityCfg("robot", pair_names=("base_floor",))
+  base_cfg.resolve(env.scene)
+  foot_pair_id = robot.indexing.pair_ids[foot_cfg.pair_ids]
+  base_pair_id = robot.indexing.pair_ids[base_cfg.pair_ids]
+
+  before = env.sim.model.pair_friction.clone()
+  dr.pair_friction(
+    env, env_ids=None, ranges=(1.5, 2.5), operation="abs", asset_cfg=foot_cfg
+  )
+
+  after = env.sim.model.pair_friction
+  # foot_floor changed.
+  assert not torch.allclose(after[:, foot_pair_id, 0], before[:, foot_pair_id, 0])
+  # base_floor unchanged.
+  assert torch.allclose(after[:, base_pair_id, :], before[:, base_pair_id, :])
+
+
+def test_pair_friction_string_ranges(pair_env):
+  """Dict with pair name patterns randomizes the matched pairs correctly."""
+  torch.manual_seed(13)
+  env = pair_env
+  robot = env.scene["robot"]
+
+  dr.pair_friction(
+    env,
+    env_ids=None,
+    ranges={"base_floor": (1.0, 1.0), "foot_floor": (0.5, 0.5)},
+    operation="abs",
+    axes=[0],
+  )
+
+  base_cfg = SceneEntityCfg("robot", pair_names=("base_floor",))
+  base_cfg.resolve(env.scene)
+  foot_cfg = SceneEntityCfg("robot", pair_names=("foot_floor",))
+  foot_cfg.resolve(env.scene)
+  base_id = robot.indexing.pair_ids[base_cfg.pair_ids]
+  foot_id = robot.indexing.pair_ids[foot_cfg.pair_ids]
+  assert torch.allclose(
+    env.sim.model.pair_friction[:, base_id, 0],
+    torch.ones(env.num_envs, device=env.device),
+    atol=1e-5,
+  )
+  assert torch.allclose(
+    env.sim.model.pair_friction[:, foot_id, 0],
+    torch.full((env.num_envs,), 0.5, device=env.device),
+    atol=1e-5,
+  )
+
+
+def test_pair_friction_invalid_name(pair_env):
+  """ValueError for unknown pair name."""
+  env = pair_env
+
+  with pytest.raises(ValueError, match="nonexistent_pair"):
+    cfg = SceneEntityCfg("robot", pair_names=("nonexistent_pair",))
+    cfg.resolve(env.scene)

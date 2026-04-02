@@ -231,6 +231,24 @@ and ``dr.body_ipos`` are the same function).
      - Material RGBA color (tints textures)
      -
 
+.. rubric:: Contact pair fields
+
+.. list-table::
+   :header-rows: 1
+   :widths: 28 18 34 20
+
+   * - Function
+     - MuJoCo field
+     - Description
+     - Notes
+   * - ``dr.pair_friction``
+     - ``pair_friction``
+     - Per-pair friction override ``[tangent1, tangent2, spin, roll1, roll2]``
+     - Default axis: 0 (tangent1, requires ``condim >= 3``). Overrides
+       per-geom friction for explicitly defined
+       `<contact><pair> <https://mujoco.readthedocs.io/en/stable/XMLreference.html#contact-pair>`_
+       elements
+
 .. rubric:: Tendon fields
 
 .. list-table::
@@ -647,8 +665,8 @@ choices. Write a custom event term instead (see
      - ``geom_margin``, ``geom_gap``, ``pair_margin``, ``pair_gap``
      - Interact with solver parameters above.
    * - Pair overrides
-     - ``pair_friction``, ``eq_data``
-     - Per-pair friction and constraint anchor overrides.
+     - ``eq_data``
+     - Constraint anchor overrides.
    * - Spring reference
      - ``qpos_spring``
      - Coupled with ``qpos0``; randomizing independently is

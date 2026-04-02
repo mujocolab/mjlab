@@ -39,6 +39,7 @@ _ENTITY_NAMES_ATTR: dict[str, str] = {
   "camera": "camera_names",
   "light": "light_names",
   "material": "material_names",
+  "pair": "pair_names",
 }
 
 # Private engine.
@@ -214,6 +215,8 @@ def _get_entity_indices(
       return indexing.light_ids[asset_cfg.light_ids]
     case "material":
       return indexing.mat_ids[asset_cfg.material_ids]
+    case "pair":
+      return indexing.pair_ids[asset_cfg.pair_ids]
     case _:
       raise ValueError(f"Unknown entity type: {entity_type}")
 

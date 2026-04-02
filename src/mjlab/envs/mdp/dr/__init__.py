@@ -73,6 +73,10 @@ from .light import light_pos as light_pos
 # isort: split
 from .material import mat_rgba as mat_rgba
 
+# Pair.
+# isort: split
+from .pair import pair_friction as pair_friction
+
 # Actuator.
 # isort: split
 from .actuator import effort_limits as effort_limits
