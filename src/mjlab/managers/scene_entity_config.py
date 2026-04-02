@@ -175,7 +175,12 @@ class SceneEntityCfg:
       )
     elif names is not None:
       self._resolve_names_to_ids(
-        names, entity_all_names, entity_count, find_method, config.ids_attr
+        names,
+        entity_all_names,
+        entity_count,
+        find_method,
+        config.names_attr,
+        config.ids_attr,
       )
     elif isinstance(ids, list):
       self._resolve_ids_to_names(ids, entity_all_names, config.names_attr)
@@ -217,13 +222,17 @@ class SceneEntityCfg:
     entity_all_names: list[str],
     entity_count: int,
     find_method,
+    names_attr: str,
     ids_attr: str,
   ) -> None:
     """Resolve names to IDs, optimizing to slice(None) when all are selected."""
-    found_ids, _ = find_method(names, preserve_order=self.preserve_order)
+    found_ids, found_names = find_method(names, preserve_order=self.preserve_order)
+
+    # Keep names and IDs in the same order.
+    setattr(self, names_attr, found_names)
 
     # Optimize to slice(None) if all components are selected in order.
-    if len(found_ids) == entity_count and names == entity_all_names:
+    if len(found_ids) == entity_count and found_names == entity_all_names:
       setattr(self, ids_attr, slice(None))
     else:
       setattr(self, ids_attr, found_ids)
