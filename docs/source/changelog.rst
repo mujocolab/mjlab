@@ -36,6 +36,8 @@ Added
   once per physics substep inside the decimation loop. The per substep
   values are averaged within each environment step, so episode averages
   remain comparable to regular per step metrics.
+- Added ``project-instinct/InstinctMJ`` to the research page's list of
+  projects built on mjlab.
 - Added a Checkpoints tab to the Viser play viewer for hot-swapping
   checkpoints without restarting. Works with local directories and W&B
   runs (:issue:`751`). Contribution by @omarrayyann.
