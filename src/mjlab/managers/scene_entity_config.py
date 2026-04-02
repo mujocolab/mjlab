@@ -161,15 +161,13 @@ class SceneEntityCfg:
 
     # Normalize single values to lists for uniform processing.
     names = self._normalize_to_list(names)
-    if names is not None:
-      setattr(self, config.names_attr, names)
-
     if isinstance(ids, (int, list)):
       ids = self._normalize_to_list(ids)
       setattr(self, config.ids_attr, ids)
 
     # Handle three resolution cases.
     if names is not None and isinstance(ids, list):
+      setattr(self, config.names_attr, names)
       self._validate_consistency(
         names, ids, entity_all_names, find_method, config.kind_label
       )
@@ -185,13 +183,15 @@ class SceneEntityCfg:
     elif isinstance(ids, list):
       self._resolve_ids_to_names(ids, entity_all_names, config.names_attr)
 
-  def _normalize_to_list(self, value: str | int | list | None) -> list | None:
+  def _normalize_to_list(self, value: str | int | tuple | list | None) -> list | None:
     """Convert single values to lists for uniform processing."""
     if value is None:
       return None
     if isinstance(value, (str, int)):
       return [value]
-    return value
+    if isinstance(value, list):
+      return value
+    return list(value)
 
   def _validate_consistency(
     self,
@@ -232,7 +232,7 @@ class SceneEntityCfg:
     setattr(self, names_attr, found_names)
 
     # Optimize to slice(None) if all components are selected in order.
-    if len(found_ids) == entity_count and found_names == entity_all_names:
+    if len(found_ids) == entity_count and found_names == list(entity_all_names):
       setattr(self, ids_attr, slice(None))
     else:
       setattr(self, ids_attr, found_ids)

@@ -34,24 +34,29 @@ class _FakeEntity:
 
   # find_* helpers return (ids, names) similar to Entity API.
   def _find(
-    self, query_names: tuple[str, ...], pool: tuple[str, ...]
+    self,
+    query_names: tuple[str, ...],
+    pool: tuple[str, ...],
+    preserve_order: bool,
   ) -> tuple[list[int], list[str]]:
     # Treat query as exact names (no regex) to keep tests minimal.
     indices = [list(pool).index(n) for n in query_names]
+    if not preserve_order:
+      indices.sort()
     names = [list(pool)[i] for i in indices]
     return indices, names
 
   def find_joints(self, query_names: tuple[str, ...], preserve_order: bool = False):
-    return self._find(query_names, self.joint_names)
+    return self._find(query_names, self.joint_names, preserve_order)
 
   def find_bodies(self, query_names: tuple[str, ...], preserve_order: bool = False):
-    return self._find(query_names, self.body_names)
+    return self._find(query_names, self.body_names, preserve_order)
 
   def find_geoms(self, query_names: tuple[str, ...], preserve_order: bool = False):
-    return self._find(query_names, self.geom_names)
+    return self._find(query_names, self.geom_names, preserve_order)
 
   def find_sites(self, query_names: tuple[str, ...], preserve_order: bool = False):
-    return self._find(query_names, self.site_names)
+    return self._find(query_names, self.site_names, preserve_order)
 
 
 @pytest.fixture
@@ -139,3 +144,64 @@ def test_inconsistent_names_and_ids_raise(
 
   with pytest.raises(ValueError):
     cfg.resolve(fake_scene)
+
+
+def test_tuple_names_with_consistent_ids(fake_scene):
+  """Tuple names with matching IDs should validate without error."""
+  cfg = SceneEntityCfg(name="robot")
+  cfg.joint_names = ("a", "b")
+  cfg.joint_ids = [0, 1]
+
+  cfg.resolve(fake_scene)
+
+  assert cfg.joint_names == ["a", "b"]
+  assert cfg.joint_ids == [0, 1]
+
+
+@pytest.mark.parametrize(
+  "field_names",
+  [
+    ("joint_names", "joint_ids"),
+    ("body_names", "body_ids"),
+    ("geom_names", "geom_ids"),
+    ("site_names", "site_ids"),
+  ],
+)
+def test_names_reordered_to_match_ids_when_not_preserving_order(
+  fake_scene, field_names
+):
+  """With preserve_order=False, names are reordered to internal order."""
+  names_attr, ids_attr = field_names
+
+  # Give a subset in reverse of internal order.
+  cfg = SceneEntityCfg(name="robot")
+  setattr(cfg, names_attr, ["c", "a"])
+
+  cfg.resolve(fake_scene)
+
+  # IDs and names must both be in internal order: a=0, c=2.
+  assert getattr(cfg, ids_attr) == [0, 2]
+  assert getattr(cfg, names_attr) == ["a", "c"]
+
+
+@pytest.mark.parametrize(
+  "field_names",
+  [
+    ("joint_names", "joint_ids"),
+    ("body_names", "body_ids"),
+    ("geom_names", "geom_ids"),
+    ("site_names", "site_ids"),
+  ],
+)
+def test_names_preserve_user_order_when_preserving_order(fake_scene, field_names):
+  """With preserve_order=True, names stay in the user-specified order."""
+  names_attr, ids_attr = field_names
+
+  cfg = SceneEntityCfg(name="robot", preserve_order=True)
+  setattr(cfg, names_attr, ["c", "a"])
+
+  cfg.resolve(fake_scene)
+
+  # User order preserved: c=2, a=0.
+  assert getattr(cfg, ids_attr) == [2, 0]
+  assert getattr(cfg, names_attr) == ["c", "a"]
