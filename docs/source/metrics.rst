@@ -51,12 +51,19 @@ environment. On every call to ``compute()``:
 2. Each term function is called with the current environment state.
 3. The returned per-environment values are added to the running sums.
 
-When an environment resets, the manager divides each term's accumulated sum
-by the step count for that environment, averages the result across all
-resetting environments, and returns the scalar under the key
-``Episode_Metrics/<term_name>``. The sums and counters are then zeroed for
-the reset environments. Division is per-environment, so environments that
-terminated early are not diluted by longer-running ones.
+When an environment resets, the manager reduces each term's accumulated
+values to a scalar, averages the result across all resetting environments,
+and returns it under the key ``Episode_Metrics/<term_name>``. The sums and
+counters are then zeroed for the reset environments.
+
+The reduction is controlled by the ``reduce`` field on ``MetricsTermCfg``:
+
+- ``"mean"`` (default): divides the accumulated sum by the step count for
+  each environment. Division is per-environment, so environments that
+  terminated early are not diluted by longer-running ones.
+- ``"last"``: reports the value from the final step of the episode. This is
+  useful for binary success metrics (such as whether the robot is standing)
+  that should not be averaged over time.
 
 These scalars flow through ``env.extras["log"]`` into the training runner,
 which writes them to the configured logger. In a typical training run they

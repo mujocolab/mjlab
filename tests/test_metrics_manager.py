@@ -176,6 +176,51 @@ def test_substep_reset_zeroes_accumulators(mock_env):
   assert manager._substep_accum[0][1].item() == pytest.approx(3.0)
 
 
+def test_reduce_last_reports_final_step_value(mock_env):
+  """reduce='last' reports the last step's value, not the episode average."""
+  step = [0]
+
+  def rising_metric(env):
+    step[0] += 1
+    return torch.full((env.num_envs,), float(step[0]), device=env.device)
+
+  cfg = {"term": MetricsTermCfg(func=rising_metric, params={}, reduce="last")}
+  manager = MetricsManager(cfg, mock_env)
+
+  for _ in range(4):
+    manager.compute()
+
+  info = manager.reset(env_ids=torch.tensor([0]))
+
+  # Values were 1, 2, 3, 4. Mean would be 2.5; last should be 4.
+  assert info["Episode_Metrics/term"].item() == pytest.approx(4.0)
+
+
+def test_reduce_mean_and_last_coexist(mock_env):
+  """Mixed reduce modes in the same manager report correctly."""
+  step = [0]
+
+  def rising_metric(env):
+    step[0] += 1
+    return torch.full((env.num_envs,), float(step[0]), device=env.device)
+
+  cfg = {
+    "mean_term": MetricsTermCfg(func=rising_metric, params={}, reduce="mean"),
+    "last_term": MetricsTermCfg(func=rising_metric, params={}, reduce="last"),
+  }
+  manager = MetricsManager(cfg, mock_env)
+
+  for _ in range(3):
+    manager.compute()
+
+  info = manager.reset(env_ids=torch.tensor([0]))
+
+  # mean_term sees steps 1, 3, 5 (odd calls); episode avg = 3.0.
+  # last_term sees steps 2, 4, 6 (even calls); last value = 6.0.
+  assert info["Episode_Metrics/mean_term"].item() == pytest.approx(3.0)
+  assert info["Episode_Metrics/last_term"].item() == pytest.approx(6.0)
+
+
 def test_no_substep_terms_no_overhead(mock_env):
   """When no per_substep terms exist, compute_substep is a no-op."""
   cfg = {

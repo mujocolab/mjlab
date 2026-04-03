@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``reduce`` field to ``MetricsTermCfg``. Setting ``reduce="last"``
+  reports the value from the final step of the episode rather than the
+  episode mean, which is useful for binary success metrics.
 - Added :class:`~mjlab.envs.mdp.actions.RelativeJointPositionAction` for
   joint position control relative to the current configuration. The target is
   ``current_pos + action * scale``, so a zero action holds the current
