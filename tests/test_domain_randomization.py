@@ -1752,6 +1752,28 @@ def test_pair_friction_axes_selectivity(pair_env):
     assert torch.allclose(after[:, pair_ids, ax], before[:, pair_ids, ax])
 
 
+def test_pair_friction_multi_axis(pair_env):
+  """axes=[0, 1] randomizes both tangent components; axes 2-4 stay unchanged."""
+  torch.manual_seed(17)
+  env = pair_env
+  robot = env.scene["robot"]
+
+  before = env.sim.model.pair_friction.clone()
+
+  dr.pair_friction(env, env_ids=None, ranges=(0.4, 1.0), operation="abs", axes=[0, 1])
+
+  after = env.sim.model.pair_friction
+  pair_ids = robot.indexing.pair_ids
+  # Both tangent axes changed.
+  assert not torch.allclose(after[:, pair_ids, 0], before[:, pair_ids, 0])
+  assert not torch.allclose(after[:, pair_ids, 1], before[:, pair_ids, 1])
+  # Axes 2-4 unchanged.
+  for ax in range(2, 5):
+    assert torch.allclose(after[:, pair_ids, ax], before[:, pair_ids, ax])
+  # Axis 0 and axis 1 are sampled independently (not forced equal).
+  assert not torch.allclose(after[:, pair_ids, 0], after[:, pair_ids, 1])
+
+
 def test_pair_friction_partial_env_ids(pair_env):
   """Randomizing a subset of envs leaves the others unchanged."""
   torch.manual_seed(99)
@@ -1849,6 +1871,105 @@ def test_pair_friction_string_ranges(pair_env):
     torch.full((env.num_envs,), 0.5, device=env.device),
     atol=1e-5,
   )
+
+
+def test_pair_friction_isotropic_tangent(pair_env):
+  """isotropic=True mirrors tangent2 = tangent1; spin and roll axes unchanged."""
+  torch.manual_seed(21)
+  env = pair_env
+  robot = env.scene["robot"]
+  pair_ids = robot.indexing.pair_ids
+
+  before = env.sim.model.pair_friction.clone()
+  dr.pair_friction(
+    env, env_ids=None, ranges=(0.4, 1.0), operation="abs", axes=[0], isotropic=True
+  )
+
+  after = env.sim.model.pair_friction
+  # Axis 0 was randomized into range.
+  assert torch.all((after[:, pair_ids, 0] >= 0.4) & (after[:, pair_ids, 0] <= 1.0))
+  # Axis 1 equals axis 0 exactly.
+  assert torch.allclose(after[:, pair_ids, 1], after[:, pair_ids, 0])
+  # Axes 2, 3, 4 untouched.
+  for ax in (2, 3, 4):
+    assert torch.allclose(after[:, pair_ids, ax], before[:, pair_ids, ax])
+
+
+def test_pair_friction_isotropic_shared(pair_env):
+  """isotropic=True + shared_random=True: all pairs same value, tangent2 == tangent1."""
+  torch.manual_seed(33)
+  env = pair_env
+  robot = env.scene["robot"]
+  pair_ids = robot.indexing.pair_ids
+
+  dr.pair_friction(
+    env,
+    env_ids=None,
+    ranges=(0.4, 1.0),
+    operation="abs",
+    axes=[0],
+    shared_random=True,
+    isotropic=True,
+  )
+
+  friction = env.sim.model.pair_friction[:, pair_ids, :]
+  # All pairs in each env share the same tangent1 value.
+  for e in range(env.num_envs):
+    assert torch.allclose(
+      friction[e, :, 0], friction[e, 0, 0].expand(len(pair_ids)), atol=1e-6
+    )
+  # Across envs, values differ.
+  assert not torch.allclose(friction[0, 0, 0], friction[1, 0, 0])
+  # tangent2 == tangent1 everywhere.
+  assert torch.allclose(friction[:, :, 1], friction[:, :, 0])
+
+
+def test_pair_friction_isotropic_roll(pair_env):
+  """isotropic=True with roll axes mirrors roll2 = roll1; tangent axes unchanged."""
+  torch.manual_seed(41)
+  env = pair_env
+  robot = env.scene["robot"]
+  pair_ids = robot.indexing.pair_ids
+
+  before = env.sim.model.pair_friction.clone()
+  dr.pair_friction(
+    env, env_ids=None, ranges=(0.001, 0.01), operation="abs", axes=[3], isotropic=True
+  )
+
+  after = env.sim.model.pair_friction
+  # Axis 3 was randomized.
+  assert not torch.allclose(after[:, pair_ids, 3], before[:, pair_ids, 3])
+  # Axis 4 equals axis 3 exactly.
+  assert torch.allclose(after[:, pair_ids, 4], after[:, pair_ids, 3])
+  # Tangent and spin axes untouched.
+  for ax in (0, 1, 2):
+    assert torch.allclose(after[:, pair_ids, ax], before[:, pair_ids, ax])
+
+
+def test_pair_friction_isotropic_roll_dict_ranges(pair_env):
+  """isotropic=True with dict-int ranges containing roll axis triggers roll2 = roll1."""
+  torch.manual_seed(53)
+  env = pair_env
+  robot = env.scene["robot"]
+  pair_ids = robot.indexing.pair_ids
+
+  before = env.sim.model.pair_friction.clone()
+  dr.pair_friction(
+    env,
+    env_ids=None,
+    ranges={3: (0.001, 0.01)},
+    operation="abs",
+    isotropic=True,
+  )
+
+  after = env.sim.model.pair_friction
+  # Axis 3 was randomized.
+  assert not torch.allclose(after[:, pair_ids, 3], before[:, pair_ids, 3])
+  # Axis 4 equals axis 3 exactly (dict-int ranges must trigger the roll copy).
+  assert torch.allclose(after[:, pair_ids, 4], after[:, pair_ids, 3])
+  # Tangent and spin axes untouched.
+  for ax in (0, 1, 2):
+    assert torch.allclose(after[:, pair_ids, ax], before[:, pair_ids, ax])
 
 
 def test_pair_friction_invalid_name(pair_env):
