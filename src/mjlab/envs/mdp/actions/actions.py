@@ -224,6 +224,39 @@ class JointPositionAction(BaseAction):
     self._entity.set_joint_position_target(target, joint_ids=self._target_ids)
 
 
+@dataclass(kw_only=True)
+class RelativeJointPositionActionCfg(BaseActionCfg):
+  """Configuration for joint position control relative to current positions.
+
+  target = current_joint_pos + action * scale
+
+  The ``offset`` field inherited from ``BaseActionCfg`` is not supported and
+  must remain at its default of ``0.0``. The ``clip`` field is supported and
+  clamps the delta (``action * scale``) before it is added to the current
+  position.
+  """
+
+  def __post_init__(self):
+    self.transmission_type = TransmissionType.JOINT
+    if self.offset != 0.0:
+      raise ValueError(
+        "RelativeJointPositionActionCfg does not support 'offset'. "
+        "The target is current_pos + action * scale; a fixed offset has no meaning."
+      )
+
+  def build(self, env: ManagerBasedRlEnv) -> RelativeJointPositionAction:
+    return RelativeJointPositionAction(self, env)
+
+
+class RelativeJointPositionAction(BaseAction):
+  """Control joints via position targets relative to current positions."""
+
+  def apply_actions(self) -> None:
+    current_pos = self._entity.data.joint_pos[:, self._target_ids]
+    target = current_pos + self._processed_actions
+    self._entity.set_joint_position_target(target, joint_ids=self._target_ids)
+
+
 class JointVelocityAction(BaseAction):
   """Control joints via velocity targets."""
 

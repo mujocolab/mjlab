@@ -8,6 +8,12 @@ from mjlab.envs.mdp.actions.actions import JointVelocityAction as JointVelocityA
 from mjlab.envs.mdp.actions.actions import (
   JointVelocityActionCfg as JointVelocityActionCfg,
 )
+from mjlab.envs.mdp.actions.actions import (
+  RelativeJointPositionAction as RelativeJointPositionAction,
+)
+from mjlab.envs.mdp.actions.actions import (
+  RelativeJointPositionActionCfg as RelativeJointPositionActionCfg,
+)
 from mjlab.envs.mdp.actions.actions import SiteEffortAction as SiteEffortAction
 from mjlab.envs.mdp.actions.actions import SiteEffortActionCfg as SiteEffortActionCfg
 from mjlab.envs.mdp.actions.actions import TendonEffortAction as TendonEffortAction

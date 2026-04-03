@@ -76,6 +76,10 @@ Action types
        Encoder bias from ``dr.encoder_bias`` is subtracted automatically
        so that randomized offsets propagate correctly to the control
        command.
+   * - ``RelativeJointPositionAction``
+     - Sets joint position targets relative to the current joint positions.
+       The target is ``current_pos + action * scale``, so a policy output of
+       zero holds the robot in place regardless of its current configuration.
    * - ``JointVelocityAction``
      - Sets joint velocity targets. ``use_default_offset=True`` uses the
        default joint velocities (typically zero).

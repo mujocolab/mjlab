@@ -14,6 +14,7 @@ from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.envs.mdp.actions import (
   JointPositionActionCfg,
+  RelativeJointPositionActionCfg,
   SiteEffortActionCfg,
   TendonEffortActionCfg,
   TendonLengthActionCfg,
@@ -51,6 +52,17 @@ def fixed_base_entity(fixtures_dir, device):
     TransmissionType.JOINT,
     device,
     from_file=True,
+  )
+
+
+@pytest.fixture(scope="module")
+def floating_base_entity(device):
+  return make_entity(
+    load_fixture_xml("floating_base_articulated"),
+    ("joint.*",),
+    TransmissionType.JOINT,
+    device,
+    from_file=False,
   )
 
 
@@ -231,3 +243,76 @@ def test_base_action_clip(fixed_base_entity, device):
   assert torch.allclose(
     action._processed_actions[:, 1], torch.tensor(2.0, device=device)
   )
+
+
+def test_relative_joint_position_zero_action(floating_base_entity, device):
+  """With zero action, targets equal current_pos."""
+  entity = floating_base_entity
+  env = make_env(entity, "robot", device)
+
+  cfg = RelativeJointPositionActionCfg(
+    entity_name="robot", actuator_names=("joint.*",), scale=1.0
+  )
+  action = cfg.build(env)
+
+  current_pos = entity.data.joint_pos[:, action.target_ids].clone()
+
+  action.process_actions(torch.zeros(4, action.action_dim, device=device))
+  action.apply_actions()
+
+  assert torch.allclose(entity.data.joint_pos_target[:, action.target_ids], current_pos)
+
+
+def test_relative_joint_position_nonzero_action(floating_base_entity, device):
+  """With nonzero action, targets shift by action * scale from current."""
+  entity = floating_base_entity
+  env = make_env(entity, "robot", device)
+
+  scale = 0.1
+  cfg = RelativeJointPositionActionCfg(
+    entity_name="robot", actuator_names=("joint.*",), scale=scale
+  )
+  action = cfg.build(env)
+
+  current_pos = entity.data.joint_pos[:, action.target_ids].clone()
+
+  raw = torch.ones(4, action.action_dim, device=device)
+  action.process_actions(raw)
+  action.apply_actions()
+
+  expected = current_pos + raw * scale
+  assert torch.allclose(entity.data.joint_pos_target[:, action.target_ids], expected)
+
+
+def test_relative_joint_position_ignores_encoder_bias(floating_base_entity, device):
+  """Encoder bias must not affect the target: target = current_pos + delta."""
+  entity = floating_base_entity
+  env = make_env(entity, "robot", device)
+
+  cfg = RelativeJointPositionActionCfg(
+    entity_name="robot", actuator_names=("joint.*",), scale=1.0
+  )
+  action = cfg.build(env)
+
+  entity.data.encoder_bias[:, action.target_ids] = 0.05
+
+  current_pos = entity.data.joint_pos[:, action.target_ids].clone()
+  delta = 0.1
+  raw = torch.full((4, action.action_dim), delta, device=device)
+  action.process_actions(raw)
+  action.apply_actions()
+
+  assert torch.allclose(
+    entity.data.joint_pos_target[:, action.target_ids], current_pos + delta
+  )
+
+  # Reset bias so this shared fixture doesn't affect other tests.
+  entity.data.encoder_bias[:, action.target_ids] = 0.0
+
+
+def test_relative_joint_position_offset_raises(floating_base_entity, device):
+  """Setting offset on RelativeJointPositionActionCfg raises ValueError."""
+  with pytest.raises(ValueError, match="offset"):
+    RelativeJointPositionActionCfg(
+      entity_name="robot", actuator_names=("joint.*",), offset=0.5
+    )
