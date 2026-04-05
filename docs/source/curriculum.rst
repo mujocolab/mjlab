@@ -52,6 +52,10 @@ Built-in curriculum functions
      - Adjusts a reward term's weight and/or params according to
        training step thresholds. Replaces the older ``reward_weight``
        function and also supports modifying reward function parameters.
+   * - ``termination_curriculum``
+     - Adjusts a termination term's params according to training step
+       thresholds. Useful for gradually tightening termination
+       conditions (e.g. energy limits) as training progresses.
 
 
 Reward curriculum
@@ -114,6 +118,40 @@ A single stage can update both weight and params at once:
 .. code-block:: python
 
     {"step": 24000, "weight": -1.0, "params": {"max_vel": 1.0}}
+
+
+Termination curriculum
+----------------------
+
+``termination_curriculum`` schedules changes to a termination term's
+parameters as training progresses. This is useful for gradually
+tightening termination conditions once the policy has learned basic
+behaviors.
+
+**Tightening an energy limit**
+
+Start with a permissive energy threshold and reduce it over training:
+
+.. code-block:: python
+
+    from mjlab.managers.curriculum_manager import CurriculumTermCfg
+
+    curriculum = {
+        "energy_threshold": CurriculumTermCfg(
+            func=mdp.termination_curriculum,
+            params={
+                "termination_name": "energy",
+                "stages": [
+                    {"step": 12000, "params": {"threshold": 1000.0}},
+                    {"step": 24000, "params": {"threshold": 700.0}},
+                    {"step": 36000, "params": {"threshold": 400.0}},
+                ],
+            },
+        ),
+    }
+
+The ``time_out`` field on ``TerminationTermCfg`` can also be toggled
+via stages if needed, though this is uncommon in practice.
 
 
 Terrain curriculum

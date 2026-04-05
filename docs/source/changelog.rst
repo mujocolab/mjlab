@@ -8,6 +8,11 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added :func:`~mjlab.envs.mdp.curriculums.termination_curriculum` for
+  scheduling changes to termination term parameters during training,
+  matching the existing ``reward_curriculum`` pattern. Both now share a
+  single internal engine with init-time validation of stage ordering,
+  field existence, and param keys.
 - Added ``reduce`` field to ``MetricsTermCfg``. Setting ``reduce="last"``
   reports the value from the final step of the episode rather than the
   episode mean, which is useful for binary success metrics.
