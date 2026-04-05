@@ -35,6 +35,10 @@ mjlab.managers
   - :class:`MetricsManager`
   - :class:`NullMetricsManager`
   - :class:`MetricsTermCfg`
+  - :class:`RecorderManager`
+  - :class:`NullRecorderManager`
+  - :class:`RecorderTerm`
+  - :class:`RecorderTermCfg`
 
 Base
 ----
@@ -182,3 +186,23 @@ Metrics Manager
 .. autoclass:: MetricsTermCfg
   :members:
   :exclude-members: __init__
+
+Recorder Manager
+----------------
+
+.. autoclass:: RecorderManager
+  :members:
+  :show-inheritance:
+
+.. autoclass:: NullRecorderManager
+  :members:
+  :show-inheritance:
+
+.. autoclass:: RecorderTerm
+  :members:
+  :show-inheritance:
+
+.. autoclass:: RecorderTermCfg
+  :members:
+  :exclude-members: __init__
+  :undoc-members:

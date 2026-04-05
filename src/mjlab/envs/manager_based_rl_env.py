@@ -28,6 +28,11 @@ from mjlab.managers.metrics_manager import (
   NullMetricsManager,
 )
 from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationManager
+from mjlab.managers.recorder_manager import (
+  NullRecorderManager,
+  RecorderManager,
+  RecorderTermCfg,
+)
 from mjlab.managers.reward_manager import RewardManager, RewardTermCfg
 from mjlab.managers.termination_manager import TerminationManager, TerminationTermCfg
 from mjlab.scene import Scene
@@ -121,6 +126,10 @@ class ManagerBasedRlEnvCfg:
 
   metrics: dict[str, MetricsTermCfg] = field(default_factory=dict)
   """Custom metric terms for logging per-step values as episode averages."""
+
+  recorders: dict[str, RecorderTermCfg] = field(default_factory=dict)
+  """Recorder terms for logging observations, actions, or other data during rollouts.
+  If empty, a no-op manager is used with zero overhead."""
 
   is_finite_horizon: bool = False
   """Whether the task has a finite or infinite horizon. Defaults to False (infinite).
@@ -310,6 +319,11 @@ class ManagerBasedRlEnv:
     else:
       self.metrics_manager = NullMetricsManager()
     print_info(f"[INFO] {self.metrics_manager}")
+    if len(self.cfg.recorders) > 0:
+      self.recorder_manager = RecorderManager(self.cfg.recorders, self)
+    else:
+      self.recorder_manager = NullRecorderManager()
+    print_info(f"[INFO] {self.recorder_manager}")
 
     # Configure spaces for the environment.
     self._configure_gym_env_spaces()
@@ -336,6 +350,7 @@ class ManagerBasedRlEnv:
     self.command_manager.compute(dt=0.0)
     self.sim.sense()
     self.obs_buf = self.observation_manager.compute(update_history=True)
+    self.recorder_manager.record_post_reset(env_ids)
     return self.obs_buf, self.extras
 
   def step(self, action: torch.Tensor) -> types.VecEnvStepReturn:
@@ -394,6 +409,7 @@ class ManagerBasedRlEnv:
     # Reset envs that terminated/timed-out and log the episode info.
     reset_env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
     if len(reset_env_ids) > 0:
+      self.recorder_manager.record_pre_reset(reset_env_ids)
       self._reset_idx(reset_env_ids)
       self.scene.write_data_to_sim()
 
@@ -412,6 +428,9 @@ class ManagerBasedRlEnv:
 
     self.sim.sense()
     self.obs_buf = self.observation_manager.compute(update_history=True)
+    if len(reset_env_ids) > 0:
+      self.recorder_manager.record_post_reset(reset_env_ids)
+    self.recorder_manager.record_post_step()
 
     return (
       self.obs_buf,
@@ -441,6 +460,7 @@ class ManagerBasedRlEnv:
   def close(self) -> None:
     if self._offline_renderer is not None:
       self._offline_renderer.close()
+    self.recorder_manager.close()
 
   @staticmethod
   def seed(seed: int = -1) -> int:

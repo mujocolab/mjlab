@@ -8,6 +8,12 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added :class:`~mjlab.managers.RecorderManager` for logging observations,
+  actions, or arbitrary environment data during rollouts. Implement a
+  :class:`~mjlab.managers.RecorderTerm` subclass and register it in the
+  ``recorders`` dict on ``ManagerBasedRlEnvCfg``. The manager provides
+  ``record_pre_reset``, ``record_post_reset``, and ``record_post_step``
+  lifecycle hooks with no opinion on how data is stored.
 - Added :func:`~mjlab.envs.mdp.curriculums.termination_curriculum` for
   scheduling changes to termination term parameters during training,
   matching the existing ``reward_curriculum`` pattern. Both now share a

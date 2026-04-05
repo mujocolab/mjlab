@@ -152,6 +152,8 @@ ignore = ["B011"]
 
 [tool.pyright]
 pythonVersion = "3.10"
+venvPath = "."
+venv = ".venv"
 ignore = ["./typings", "./src/mjlab/utils/lab_api", "./docs"]
 stubPath = "typings"
 
