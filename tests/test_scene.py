@@ -568,3 +568,30 @@ def test_two_actuated_entities_write_ctrl(device):
 
   # Controls should differ since targets differ.
   assert not torch.allclose(ctrl_a, ctrl_b)
+
+
+def test_entity_with_option_flags_warns(device):
+  """Entity XML <option> flags are not propagated by MjSpec.attach()."""
+  xml_with_option = """
+    <mujoco>
+      <option>
+        <flag contact="disable" />
+      </option>
+      <worldbody>
+        <body name="box" pos="0 0 0.5">
+          <freejoint name="free"/>
+          <geom name="box_geom" type="box" size="0.1 0.1 0.1" mass="1.0"/>
+        </body>
+      </worldbody>
+    </mujoco>
+  """
+  cfg = SceneCfg(
+    num_envs=1,
+    entities={
+      "box": EntityCfg(
+        spec_fn=lambda: mujoco.MjSpec.from_string(xml_with_option),
+      ),
+    },
+  )
+  with pytest.warns(UserWarning, match="disableflags"):
+    Scene(cfg, device)

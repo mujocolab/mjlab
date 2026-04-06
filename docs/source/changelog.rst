@@ -105,6 +105,10 @@ Changed
 Fixed
 ^^^^^
 
+- Scene now warns when an attached entity or terrain spec has non-default
+  ``<option>`` fields (e.g. ``<flag contact="disable"/>``), which are
+  silently dropped by ``MjSpec.attach()``. Use ``MujocoCfg`` to set
+  simulation options instead (:issue:`885`).
 - Fixed ``SceneEntityCfg`` names and IDs ordering mismatch when
   ``preserve_order=False`` (:issue:`876`). Contribution by @jsw7460.
 - Fixed ONNX export path resolution in the velocity, manipulation, and

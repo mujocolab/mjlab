@@ -12,6 +12,54 @@ import numpy as np
 from mjlab.actuator.actuator import TransmissionType
 from mjlab.utils.xml import fix_spec_xml, strip_buffer_textures
 
+_DEFAULT_SPEC_OPTION = mujoco.MjSpec().option
+
+_OPTION_FIELDS = (
+  "ccd_iterations",
+  "ccd_tolerance",
+  "cone",
+  "density",
+  "disableactuator",
+  "disableflags",
+  "enableflags",
+  "gravity",
+  "impratio",
+  "integrator",
+  "iterations",
+  "jacobian",
+  "ls_iterations",
+  "ls_tolerance",
+  "magnetic",
+  "noslip_iterations",
+  "noslip_tolerance",
+  "o_friction",
+  "o_margin",
+  "o_solimp",
+  "o_solref",
+  "sdf_initpoints",
+  "sdf_iterations",
+  "sleep_tolerance",
+  "solver",
+  "timestep",
+  "tolerance",
+  "viscosity",
+  "wind",
+)
+
+
+def non_default_option_fields(opt: mujoco._specs.MjOption) -> list[str]:
+  """Return option field names that differ from MjSpec defaults."""
+  diffs = []
+  for name in _OPTION_FIELDS:
+    default = getattr(_DEFAULT_SPEC_OPTION, name)
+    value = getattr(opt, name)
+    if isinstance(default, np.ndarray):
+      if not np.array_equal(default, value):
+        diffs.append(name)
+    elif default != value:
+      diffs.append(name)
+  return diffs
+
 
 def export_spec(
   spec: mujoco.MjSpec,

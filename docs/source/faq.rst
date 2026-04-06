@@ -234,6 +234,35 @@ This is a known limitation being tracked in
 Until determinism is implemented upstream, mjlab training runs will not be
 perfectly reproducible even when setting a seed.
 
+My XML ``<option>`` flags are not taking effect
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you set simulation options like ``<flag contact="disable"/>`` in your
+entity XML, they will be silently ignored. This is because mjlab composes
+scenes by attaching entity specs into a parent scene spec using
+``MjSpec.attach()``, which does not propagate ``<option>`` settings from
+the child to the parent. This is a MuJoCo design decision: there is no
+sensible way to merge engine options (timestep, gravity, solver settings,
+etc.) across multiple attached models.
+
+To configure simulation options, use :class:`~mjlab.sim.sim.MujocoCfg` in
+your task's Python config:
+
+.. code-block:: python
+
+   from mjlab.sim.sim import MujocoCfg, SimulationCfg
+
+   sim=SimulationCfg(
+       mujoco=MujocoCfg(
+           disableflags=("contact",),
+           # timestep=0.01, gravity=(0, 0, -9.81), etc.
+       ),
+   )
+
+``MujocoCfg`` applies options directly to the compiled model, so they
+always take effect. mjlab will emit a warning if it detects non-default
+``<option>`` fields on an attached entity spec.
+
 Rendering & Visualization
 -------------------------
 
