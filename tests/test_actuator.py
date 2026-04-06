@@ -165,7 +165,8 @@ _XML_WITH_JOINT_PROPERTIES = """\
       <geom type="box" size="0.2 0.2 0.1" mass="1.0"/>
       <body name="link1">
         <joint name="joint1" type="hinge" axis="0 0 1"
-               range="-1.57 1.57" armature="0.5" frictionloss="0.3"/>
+               range="-1.57 1.57" armature="0.5" frictionloss="0.3"
+               damping="0.8"/>
         <geom type="box" size="0.1 0.1 0.1" mass="0.1"/>
       </body>
     </body>
@@ -259,3 +260,68 @@ def test_all_actuator_types_preserve_xml_properties(device, actuator_cfg):
   dof_id = m.jnt_dofadr[m.joint("joint1").id]
   assert m.dof_armature[dof_id] == pytest.approx(0.5)
   assert m.dof_frictionloss[dof_id] == pytest.approx(0.3)
+
+
+# ---------------------------------------------------------------------------
+# Viscous damping tests
+# ---------------------------------------------------------------------------
+
+
+def test_viscous_damping_default_preserves_xml(device):
+  """viscous_damping=None preserves XML joint damping (0.8)."""
+  cfg = BuiltinMotorActuatorCfg(target_names_expr=("joint1",), effort_limit=100.0)
+  entity = create_entity_with_actuator(_XML_WITH_JOINT_PROPERTIES, cfg)
+  entity, sim = initialize_entity(entity, device)
+
+  m = sim.mj_model
+  dof_id = m.jnt_dofadr[m.joint("joint1").id]
+  assert m.dof_damping[dof_id] == pytest.approx(0.8)
+
+
+def test_viscous_damping_explicit_overrides_xml(device):
+  """Explicit viscous_damping overrides XML damping."""
+  cfg = BuiltinMotorActuatorCfg(
+    target_names_expr=("joint1",), effort_limit=100.0, viscous_damping=2.5
+  )
+  entity = create_entity_with_actuator(_XML_WITH_JOINT_PROPERTIES, cfg)
+  entity, sim = initialize_entity(entity, device)
+
+  m = sim.mj_model
+  dof_id = m.jnt_dofadr[m.joint("joint1").id]
+  assert m.dof_damping[dof_id] == pytest.approx(2.5)
+
+
+def test_viscous_damping_explicit_zero_overrides_xml(device):
+  """Explicit 0.0 overrides XML damping (distinguishes None from 0.0)."""
+  cfg = BuiltinMotorActuatorCfg(
+    target_names_expr=("joint1",), effort_limit=100.0, viscous_damping=0.0
+  )
+  entity = create_entity_with_actuator(_XML_WITH_JOINT_PROPERTIES, cfg)
+  entity, sim = initialize_entity(entity, device)
+
+  m = sim.mj_model
+  dof_id = m.jnt_dofadr[m.joint("joint1").id]
+  assert m.dof_damping[dof_id] == pytest.approx(0.0)
+
+
+def test_viscous_damping_produces_passive_force(device, robot_xml):
+  """Nonzero viscous_damping produces a dissipative passive force."""
+  damping = 3.0
+  actuator_cfg = BuiltinMotorActuatorCfg(
+    target_names_expr=("joint.*",), effort_limit=100.0, viscous_damping=damping
+  )
+  entity = create_entity_with_actuator(robot_xml, actuator_cfg)
+  entity, sim = initialize_entity(entity, device)
+
+  vel = torch.tensor([[1.0, -2.0]], device=device)
+  entity.write_joint_state_to_sim(
+    position=torch.zeros(1, 2, device=device),
+    velocity=vel,
+  )
+  entity.write_data_to_sim()
+  sim.step()
+
+  qfrc_damper = sim.data.qfrc_damper[0]
+  # f = -b * v
+  assert qfrc_damper[6].item() == pytest.approx(-damping * 1.0, abs=1e-4)
+  assert qfrc_damper[7].item() == pytest.approx(-damping * -2.0, abs=1e-4)

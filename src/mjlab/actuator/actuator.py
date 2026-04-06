@@ -53,6 +53,17 @@ class ActuatorCfg(ABC):
   Also known as dry friction or load-independent friction.
   """
 
+  viscous_damping: float | None = None
+  """Passive viscous damping coefficient. None preserves the XML value.
+
+  Produces a dissipative force f(v) = -b·v proportional to velocity. Always present
+  regardless of actuator activity. Unlike ``damping`` (the PD derivative gain kv, which
+  is active control), this is a passive property.
+
+  Maps to ``<joint damping>`` for JOINT transmission and ``<tendon damping>``
+  for TENDON transmission. Ignored for SITE.
+  """
+
   delay_min_lag: int = 0
   """Minimum command delay in physics timesteps.
 
@@ -80,13 +91,17 @@ class ActuatorCfg(ABC):
       assert self.armature >= 0.0, "armature must be non-negative."
     if self.frictionloss is not None:
       assert self.frictionloss >= 0.0, "frictionloss must be non-negative."
+    if self.viscous_damping is not None:
+      assert self.viscous_damping >= 0.0, "viscous_damping must be non-negative."
     if self.transmission_type == TransmissionType.SITE:
-      if (self.armature is not None and self.armature > 0.0) or (
-        self.frictionloss is not None and self.frictionloss > 0.0
+      if (
+        (self.armature is not None and self.armature > 0.0)
+        or (self.frictionloss is not None and self.frictionloss > 0.0)
+        or (self.viscous_damping is not None and self.viscous_damping > 0.0)
       ):
         raise ValueError(
-          f"{self.__class__.__name__}: armature and frictionloss are not supported for "
-          "SITE transmission type."
+          f"{self.__class__.__name__}: armature, frictionloss, and viscous_damping are "
+          "not supported for SITE transmission type."
         )
     assert self.delay_min_lag >= 0, "delay_min_lag must be non-negative."
     assert self.delay_max_lag >= 0, "delay_max_lag must be non-negative."

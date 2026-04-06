@@ -87,6 +87,7 @@ class BuiltinPositionActuator(Actuator[BuiltinPositionActuatorCfg]):
         effort_limit=self.cfg.effort_limit,
         armature=self.cfg.armature,
         frictionloss=self.cfg.frictionloss,
+        viscous_damping=self.cfg.viscous_damping,
         transmission_type=self.cfg.transmission_type,
       )
       self._mjs_actuators.append(actuator)
@@ -141,6 +142,7 @@ class BuiltinMotorActuator(Actuator[BuiltinMotorActuatorCfg]):
         gear=self.cfg.gear,
         armature=self.cfg.armature,
         frictionloss=self.cfg.frictionloss,
+        viscous_damping=self.cfg.viscous_damping,
         transmission_type=self.cfg.transmission_type,
       )
       self._mjs_actuators.append(actuator)
@@ -203,6 +205,7 @@ class BuiltinVelocityActuator(Actuator[BuiltinVelocityActuatorCfg]):
         effort_limit=self.cfg.effort_limit,
         armature=self.cfg.armature,
         frictionloss=self.cfg.frictionloss,
+        viscous_damping=self.cfg.viscous_damping,
         transmission_type=self.cfg.transmission_type,
       )
       self._mjs_actuators.append(actuator)

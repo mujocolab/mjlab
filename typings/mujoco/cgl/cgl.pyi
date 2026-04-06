@@ -4,8 +4,8 @@ Bindings for Apple CGL.
 from __future__ import annotations
 import ctypes as ctypes
 from ctypes import c_int as GLint
-from ctypes import c_void_p as CGLPixelFormatObj
 from ctypes import c_void_p as CGLContextObj
+from ctypes import c_void_p as CGLPixelFormatObj
 import enum as enum
 import typing
 __all__: list[str] = ['CGLContextObj', 'CGLError', 'CGLOpenGLProfile', 'CGLPixelFormatAttribute', 'CGLPixelFormatObj', 'CGLReleaseContext', 'CGLReleasePixelFormat', 'GLint', 'ctypes', 'enum']
@@ -78,7 +78,7 @@ def _make_checked(func):
     ...
 CGLReleaseContext: ctypes.CDLL.__init__.<locals>._FuncPtr  # value = <_FuncPtr object>
 CGLReleasePixelFormat: ctypes.CDLL.__init__.<locals>._FuncPtr  # value = <_FuncPtr object>
-_CGL: ctypes.CDLL  # value = <CDLL '/System/Library/Frameworks/OpenGL.framework/OpenGL', handle 3fbddafc8 at 0x104fadfd0>
+_CGL: ctypes.CDLL  # value = <CDLL '/System/Library/Frameworks/OpenGL.framework/OpenGL', handle 3e664afc8 at 0x104c2d400>
 _CGLChoosePixelFormat: ctypes.CDLL.__init__.<locals>._FuncPtr  # value = <_FuncPtr object>
 _CGLCreateContext: ctypes.CDLL.__init__.<locals>._FuncPtr  # value = <_FuncPtr object>
 _CGLErrorString: ctypes.CDLL.__init__.<locals>._FuncPtr  # value = <_FuncPtr object>

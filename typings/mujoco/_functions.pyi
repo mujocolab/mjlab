@@ -4,14 +4,14 @@ import numpy
 import numpy.typing
 import types
 import typing
-__all__: list[str] = ['mj_Euler', 'mj_RungeKutta', 'mj_addContact', 'mj_addM', 'mj_angmomMat', 'mj_applyFT', 'mj_camlight', 'mj_checkAcc', 'mj_checkPos', 'mj_checkVel', 'mj_clearCache', 'mj_collision', 'mj_comPos', 'mj_comVel', 'mj_compareFwdInv', 'mj_constraintUpdate', 'mj_contactForce', 'mj_copyData', 'mj_copyState', 'mj_crb', 'mj_defaultLROpt', 'mj_defaultOption', 'mj_defaultSolRefImp', 'mj_defaultVisual', 'mj_differentiatePos', 'mj_energyPos', 'mj_energyVel', 'mj_extractState', 'mj_factorM', 'mj_flex', 'mj_forward', 'mj_forwardSkip', 'mj_fullM', 'mj_fwdAcceleration', 'mj_fwdActuation', 'mj_fwdConstraint', 'mj_fwdKinematics', 'mj_fwdPosition', 'mj_fwdVelocity', 'mj_geomDistance', 'mj_getCache', 'mj_getCacheCapacity', 'mj_getCacheSize', 'mj_getState', 'mj_getTotalmass', 'mj_id2name', 'mj_implicit', 'mj_integratePos', 'mj_invConstraint', 'mj_invPosition', 'mj_invVelocity', 'mj_inverse', 'mj_inverseSkip', 'mj_isDual', 'mj_isPyramidal', 'mj_isSparse', 'mj_island', 'mj_jac', 'mj_jacBody', 'mj_jacBodyCom', 'mj_jacDot', 'mj_jacGeom', 'mj_jacPointAxis', 'mj_jacSite', 'mj_jacSubtreeCom', 'mj_kinematics', 'mj_loadAllPluginLibraries', 'mj_loadPluginLibrary', 'mj_local2Global', 'mj_makeConstraint', 'mj_makeM', 'mj_mulJacTVec', 'mj_mulJacVec', 'mj_mulM', 'mj_mulM2', 'mj_multiRay', 'mj_name2id', 'mj_normalizeQuat', 'mj_objectAcceleration', 'mj_objectVelocity', 'mj_passive', 'mj_printData', 'mj_printFormattedData', 'mj_printFormattedModel', 'mj_printFormattedScene', 'mj_printModel', 'mj_printScene', 'mj_printSchema', 'mj_projectConstraint', 'mj_ray', 'mj_rayFlex', 'mj_rayHfield', 'mj_rayMesh', 'mj_referenceConstraint', 'mj_resetCallbacks', 'mj_resetData', 'mj_resetDataDebug', 'mj_resetDataKeyframe', 'mj_rne', 'mj_rnePostConstraint', 'mj_saveLastXML', 'mj_saveModel', 'mj_sensorAcc', 'mj_sensorPos', 'mj_sensorVel', 'mj_setCacheCapacity', 'mj_setConst', 'mj_setKeyframe', 'mj_setLengthRange', 'mj_setState', 'mj_setTotalmass', 'mj_sizeModel', 'mj_solveM', 'mj_solveM2', 'mj_stateSize', 'mj_step', 'mj_step1', 'mj_step2', 'mj_subtreeVel', 'mj_tendon', 'mj_transmission', 'mj_version', 'mj_versionString', 'mjd_inverseFD', 'mjd_quatIntegrate', 'mjd_subQuat', 'mjd_transitionFD', 'mju_Halton', 'mju_L1', 'mju_add', 'mju_add3', 'mju_addScl', 'mju_addScl3', 'mju_addTo', 'mju_addTo3', 'mju_addToScl', 'mju_addToScl3', 'mju_axisAngle2Quat', 'mju_band2Dense', 'mju_bandDiag', 'mju_bandMulMatVec', 'mju_boxQP', 'mju_cholFactor', 'mju_cholFactorBand', 'mju_cholSolve', 'mju_cholSolveBand', 'mju_cholUpdate', 'mju_clip', 'mju_copy', 'mju_copy3', 'mju_copy4', 'mju_cross', 'mju_d2n', 'mju_decodePyramid', 'mju_dense2Band', 'mju_dense2sparse', 'mju_derivQuat', 'mju_dist3', 'mju_dot', 'mju_dot3', 'mju_eig3', 'mju_encodePyramid', 'mju_euler2Quat', 'mju_eye', 'mju_f2n', 'mju_fill', 'mju_getXMLDependencies', 'mju_insertionSort', 'mju_insertionSortInt', 'mju_isBad', 'mju_isZero', 'mju_mat2Quat', 'mju_mat2Rot', 'mju_max', 'mju_min', 'mju_mulMatMat', 'mju_mulMatMatT', 'mju_mulMatTMat', 'mju_mulMatTVec', 'mju_mulMatTVec3', 'mju_mulMatVec', 'mju_mulMatVec3', 'mju_mulPose', 'mju_mulQuat', 'mju_mulQuatAxis', 'mju_mulVecMatVec', 'mju_muscleBias', 'mju_muscleDynamics', 'mju_muscleGain', 'mju_n2d', 'mju_n2f', 'mju_negPose', 'mju_negQuat', 'mju_norm', 'mju_norm3', 'mju_normalize', 'mju_normalize3', 'mju_normalize4', 'mju_printMat', 'mju_printMatSparse', 'mju_quat2Mat', 'mju_quat2Vel', 'mju_quatIntegrate', 'mju_quatZ2Vec', 'mju_rayGeom', 'mju_raySkin', 'mju_rotVecQuat', 'mju_round', 'mju_scl', 'mju_scl3', 'mju_sigmoid', 'mju_sign', 'mju_sparse2dense', 'mju_springDamper', 'mju_sqrMatTD', 'mju_standardNormal', 'mju_str2Type', 'mju_sub', 'mju_sub3', 'mju_subFrom', 'mju_subFrom3', 'mju_subQuat', 'mju_sum', 'mju_symmetrize', 'mju_transformSpatial', 'mju_transpose', 'mju_trnVecPose', 'mju_type2Str', 'mju_unit4', 'mju_warningText', 'mju_writeLog', 'mju_writeNumBytes', 'mju_zero', 'mju_zero3', 'mju_zero4', 'mjv_addGeoms', 'mjv_alignToCamera', 'mjv_applyPerturbForce', 'mjv_applyPerturbPose', 'mjv_cameraFrame', 'mjv_cameraFrustum', 'mjv_cameraInModel', 'mjv_cameraInRoom', 'mjv_connector', 'mjv_defaultCamera', 'mjv_defaultFigure', 'mjv_defaultFreeCamera', 'mjv_defaultOption', 'mjv_defaultPerturb', 'mjv_frustumHeight', 'mjv_initGeom', 'mjv_initPerturb', 'mjv_makeLights', 'mjv_model2room', 'mjv_moveCamera', 'mjv_moveModel', 'mjv_movePerturb', 'mjv_room2model', 'mjv_select', 'mjv_updateCamera', 'mjv_updateScene', 'mjv_updateSkin']
-def _realloc_con_efc(d: mujoco._structs.MjData, ncon: typing.SupportsInt, nefc: typing.SupportsInt, nJ: typing.SupportsInt = -1) -> None:
+__all__: list[str] = ['mj_Euler', 'mj_RungeKutta', 'mj_addContact', 'mj_addM', 'mj_angmomMat', 'mj_applyFT', 'mj_camlight', 'mj_checkAcc', 'mj_checkPos', 'mj_checkVel', 'mj_clearCache', 'mj_collision', 'mj_comPos', 'mj_comVel', 'mj_compareFwdInv', 'mj_constraintUpdate', 'mj_contactForce', 'mj_copyData', 'mj_copyState', 'mj_crb', 'mj_defaultLROpt', 'mj_defaultOption', 'mj_defaultSolRefImp', 'mj_defaultVisual', 'mj_differentiatePos', 'mj_energyPos', 'mj_energyVel', 'mj_extractState', 'mj_factorM', 'mj_flex', 'mj_forward', 'mj_forwardSkip', 'mj_fullM', 'mj_fwdAcceleration', 'mj_fwdActuation', 'mj_fwdConstraint', 'mj_fwdKinematics', 'mj_fwdPosition', 'mj_fwdVelocity', 'mj_geomDistance', 'mj_getCache', 'mj_getCacheCapacity', 'mj_getCacheSize', 'mj_getState', 'mj_getTotalmass', 'mj_id2name', 'mj_implicit', 'mj_initCtrlHistory', 'mj_initSensorHistory', 'mj_integratePos', 'mj_invConstraint', 'mj_invPosition', 'mj_invVelocity', 'mj_inverse', 'mj_inverseSkip', 'mj_isDual', 'mj_isPyramidal', 'mj_isSparse', 'mj_island', 'mj_jac', 'mj_jacBody', 'mj_jacBodyCom', 'mj_jacDot', 'mj_jacGeom', 'mj_jacPointAxis', 'mj_jacSite', 'mj_jacSubtreeCom', 'mj_kinematics', 'mj_loadAllPluginLibraries', 'mj_loadPluginLibrary', 'mj_local2Global', 'mj_makeConstraint', 'mj_makeM', 'mj_mulJacTVec', 'mj_mulJacVec', 'mj_mulM', 'mj_mulM2', 'mj_multiRay', 'mj_name2id', 'mj_normalizeQuat', 'mj_objectAcceleration', 'mj_objectVelocity', 'mj_passive', 'mj_printData', 'mj_printFormattedData', 'mj_printFormattedModel', 'mj_printFormattedScene', 'mj_printModel', 'mj_printScene', 'mj_printSchema', 'mj_projectConstraint', 'mj_ray', 'mj_rayFlex', 'mj_rayHfield', 'mj_rayMesh', 'mj_readCtrl', 'mj_readSensor', 'mj_referenceConstraint', 'mj_resetCallbacks', 'mj_resetData', 'mj_resetDataDebug', 'mj_resetDataKeyframe', 'mj_rne', 'mj_rnePostConstraint', 'mj_saveLastXML', 'mj_saveModel', 'mj_sensorAcc', 'mj_sensorPos', 'mj_sensorVel', 'mj_setCacheCapacity', 'mj_setConst', 'mj_setKeyframe', 'mj_setLengthRange', 'mj_setState', 'mj_setTotalmass', 'mj_sizeModel', 'mj_solveM', 'mj_solveM2', 'mj_stateSize', 'mj_step', 'mj_step1', 'mj_step2', 'mj_subtreeVel', 'mj_tendon', 'mj_transmission', 'mj_version', 'mj_versionString', 'mjd_inverseFD', 'mjd_quatIntegrate', 'mjd_subQuat', 'mjd_transitionFD', 'mju_Halton', 'mju_L1', 'mju_add', 'mju_add3', 'mju_addScl', 'mju_addScl3', 'mju_addTo', 'mju_addTo3', 'mju_addToScl', 'mju_addToScl3', 'mju_axisAngle2Quat', 'mju_band2Dense', 'mju_bandDiag', 'mju_bandMulMatVec', 'mju_boxQP', 'mju_cholFactor', 'mju_cholFactorBand', 'mju_cholSolve', 'mju_cholSolveBand', 'mju_cholUpdate', 'mju_clip', 'mju_copy', 'mju_copy3', 'mju_copy4', 'mju_cross', 'mju_d2n', 'mju_decodePyramid', 'mju_dense2Band', 'mju_dense2sparse', 'mju_derivQuat', 'mju_dist3', 'mju_dot', 'mju_dot3', 'mju_eig3', 'mju_encodePyramid', 'mju_euler2Quat', 'mju_eye', 'mju_f2n', 'mju_fill', 'mju_getXMLDependencies', 'mju_insertionSort', 'mju_insertionSortInt', 'mju_isBad', 'mju_isZero', 'mju_mat2Quat', 'mju_mat2Rot', 'mju_max', 'mju_min', 'mju_mulMatMat', 'mju_mulMatMatT', 'mju_mulMatTMat', 'mju_mulMatTVec', 'mju_mulMatTVec3', 'mju_mulMatVec', 'mju_mulMatVec3', 'mju_mulPose', 'mju_mulQuat', 'mju_mulQuatAxis', 'mju_mulVecMatVec', 'mju_muscleBias', 'mju_muscleDynamics', 'mju_muscleGain', 'mju_n2d', 'mju_n2f', 'mju_negPose', 'mju_negQuat', 'mju_norm', 'mju_norm3', 'mju_normalize', 'mju_normalize3', 'mju_normalize4', 'mju_printMat', 'mju_printMatSparse', 'mju_quat2Mat', 'mju_quat2Vel', 'mju_quatIntegrate', 'mju_quatZ2Vec', 'mju_rayGeom', 'mju_raySkin', 'mju_rotVecQuat', 'mju_round', 'mju_scl', 'mju_scl3', 'mju_sigmoid', 'mju_sign', 'mju_sparse2dense', 'mju_springDamper', 'mju_sqrMatTD', 'mju_standardNormal', 'mju_str2Type', 'mju_sub', 'mju_sub3', 'mju_subFrom', 'mju_subFrom3', 'mju_subQuat', 'mju_sum', 'mju_symmetrize', 'mju_transformSpatial', 'mju_transpose', 'mju_trnVecPose', 'mju_type2Str', 'mju_unit4', 'mju_warningText', 'mju_writeLog', 'mju_writeNumBytes', 'mju_zero', 'mju_zero3', 'mju_zero4', 'mjv_addGeoms', 'mjv_alignToCamera', 'mjv_applyPerturbForce', 'mjv_applyPerturbPose', 'mjv_cameraFrame', 'mjv_cameraFrustum', 'mjv_cameraInModel', 'mjv_cameraInRoom', 'mjv_connector', 'mjv_defaultCamera', 'mjv_defaultFigure', 'mjv_defaultFreeCamera', 'mjv_defaultOption', 'mjv_defaultPerturb', 'mjv_frustumHeight', 'mjv_initGeom', 'mjv_initPerturb', 'mjv_makeLights', 'mjv_model2room', 'mjv_moveCamera', 'mjv_moveModel', 'mjv_movePerturb', 'mjv_room2model', 'mjv_select', 'mjv_updateCamera', 'mjv_updateScene', 'mjv_updateSkin']
+def _realloc_con_efc(d: mujoco._structs.MjData, ncon: typing.SupportsInt | typing.SupportsIndex, nefc: typing.SupportsInt | typing.SupportsIndex, nJ: typing.SupportsInt | typing.SupportsIndex = -1) -> None:
     ...
 def mj_Euler(m: mujoco._structs.MjModel, d: mujoco._structs.MjData) -> None:
     """
     Euler integrator, semi-implicit in velocity.
     """
-def mj_RungeKutta(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, N: typing.SupportsInt) -> None:
+def mj_RungeKutta(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, N: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Runge-Kutta explicit order-N integrator.
     """
@@ -23,11 +23,11 @@ def mj_addM(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, dst: typing.A
     """
     Add inertia matrix to destination matrix (lower triangle only). Destination can be sparse or dense when all int* are NULL.
     """
-def mj_angmomMat(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"], body: typing.SupportsInt) -> None:
+def mj_angmomMat(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"], body: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Compute subtree angular momentum matrix.
     """
-def mj_applyFT(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, force: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], torque: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], point: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], body: typing.SupportsInt, qfrc_target: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"]) -> None:
+def mj_applyFT(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, force: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], torque: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], point: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], body: typing.SupportsInt | typing.SupportsIndex, qfrc_target: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"]) -> None:
     """
     Apply Cartesian force and torque (outside xfrc_applied mechanism).
     """
@@ -67,11 +67,11 @@ def mj_compareFwdInv(m: mujoco._structs.MjModel, d: mujoco._structs.MjData) -> N
     """
     Compare forward and inverse dynamics, save results in fwdinv.
     """
-def mj_constraintUpdate(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jar: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], cost: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[1, 1]", "flags.writeable"] | None, flg_coneHessian: typing.SupportsInt) -> None:
+def mj_constraintUpdate(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jar: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], cost: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[1, 1]", "flags.writeable"] | None, flg_coneHessian: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Compute efc_state, efc_force, qfrc_constraint, and (optionally) cone Hessians. If cost is not NULL, set *cost = s(jar) where jar = Jac*qacc-aref.
     """
-def mj_contactForce(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, id: typing.SupportsInt, result: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[6, 1]", "flags.writeable"]) -> None:
+def mj_contactForce(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, id: typing.SupportsInt | typing.SupportsIndex, result: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[6, 1]", "flags.writeable"]) -> None:
     """
     Extract 6D force:torque given contact id, in the contact frame.
     """
@@ -79,7 +79,7 @@ def mj_copyData(dest: mujoco._structs.MjData, m: mujoco._structs.MjModel, src: m
     """
     Copy mjData. m is only required to contain the size fields from MJMODEL_INTS.
     """
-def mj_copyState(m: mujoco._structs.MjModel, src: mujoco._structs.MjData, dst: mujoco._structs.MjData, sig: typing.SupportsInt) -> None:
+def mj_copyState(m: mujoco._structs.MjModel, src: mujoco._structs.MjData, dst: mujoco._structs.MjData, sig: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Copy state from src to dst.
     """
@@ -95,7 +95,7 @@ def mj_defaultOption(opt: mujoco._structs.MjOption) -> None:
     """
     Set physics options to default values.
     """
-def mj_defaultSolRefImp(solref: typing.SupportsFloat, solimp: typing.SupportsFloat) -> None:
+def mj_defaultSolRefImp(solref: typing.SupportsFloat | typing.SupportsIndex, solimp: typing.SupportsFloat | typing.SupportsIndex) -> None:
     """
     Set solver parameters to default values.
     """
@@ -103,7 +103,7 @@ def mj_defaultVisual(vis: mujoco._structs.MjVisual) -> None:
     """
     Set visual options to default values.
     """
-def mj_differentiatePos(m: mujoco._structs.MjModel, qvel: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], dt: typing.SupportsFloat, qpos1: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], qpos2: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]) -> None:
+def mj_differentiatePos(m: mujoco._structs.MjModel, qvel: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], dt: typing.SupportsFloat | typing.SupportsIndex, qpos1: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], qpos2: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]) -> None:
     """
     Compute velocity by finite-differencing two positions.
     """
@@ -115,7 +115,7 @@ def mj_energyVel(m: mujoco._structs.MjModel, d: mujoco._structs.MjData) -> None:
     """
     Evaluate velocity-dependent energy (kinetic).
     """
-def mj_extractState(m: mujoco._structs.MjModel, src: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], srcsig: typing.SupportsInt, dst: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], dstsig: typing.SupportsInt) -> None:
+def mj_extractState(m: mujoco._structs.MjModel, src: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], srcsig: typing.SupportsInt | typing.SupportsIndex, dst: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], dstsig: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Extract a subset of components from a state previously obtained via mj_getState.
     """
@@ -131,7 +131,7 @@ def mj_forward(m: mujoco._structs.MjModel, d: mujoco._structs.MjData) -> None:
     """
     Forward dynamics: same as mj_step but do not integrate in time.
     """
-def mj_forwardSkip(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, skipstage: typing.SupportsInt, skipsensor: typing.SupportsInt) -> None:
+def mj_forwardSkip(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, skipstage: typing.SupportsInt | typing.SupportsIndex, skipsensor: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Forward dynamics with skip; skipstage is mjtStage.
     """
@@ -163,7 +163,7 @@ def mj_fwdVelocity(m: mujoco._structs.MjModel, d: mujoco._structs.MjData) -> Non
     """
     Run velocity-dependent computations.
     """
-def mj_geomDistance(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, geom1: typing.SupportsInt, geom2: typing.SupportsInt, distmax: typing.SupportsFloat, fromto: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None) -> float:
+def mj_geomDistance(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, geom1: typing.SupportsInt | typing.SupportsIndex, geom2: typing.SupportsInt | typing.SupportsIndex, distmax: typing.SupportsFloat | typing.SupportsIndex, fromto: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None) -> float:
     """
     Return smallest signed distance between two geoms and optionally segment from geom1 to geom2.
     """
@@ -179,7 +179,7 @@ def mj_getCacheSize(cache: types.CapsuleType) -> int:
     """
     Get the current size of the asset cache in bytes.
     """
-def mj_getState(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, state: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], sig: typing.SupportsInt) -> None:
+def mj_getState(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, state: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], sig: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Get state.
     """
@@ -187,7 +187,7 @@ def mj_getTotalmass(m: mujoco._structs.MjModel) -> float:
     """
     Sum all body masses.
     """
-def mj_id2name(m: mujoco._structs.MjModel, type: typing.SupportsInt, id: typing.SupportsInt) -> str:
+def mj_id2name(m: mujoco._structs.MjModel, type: typing.SupportsInt | typing.SupportsIndex, id: typing.SupportsInt | typing.SupportsIndex) -> str:
     """
     Get name of object with the specified mjtObj type and id; return NULL if name not found.
     """
@@ -195,7 +195,15 @@ def mj_implicit(m: mujoco._structs.MjModel, d: mujoco._structs.MjData) -> None:
     """
     Implicit-in-velocity integrators.
     """
-def mj_integratePos(m: mujoco._structs.MjModel, qpos: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], qvel: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], dt: typing.SupportsFloat) -> None:
+def mj_initCtrlHistory(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, id: typing.SupportsInt | typing.SupportsIndex, times: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"] | None, values: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]) -> None:
+    """
+    Initialize history buffer for actuator; if times is NULL, uses existing buffer timestamps.
+    """
+def mj_initSensorHistory(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, id: typing.SupportsInt | typing.SupportsIndex, times: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"] | None, values: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.c_contiguous"], phase: typing.SupportsFloat | typing.SupportsIndex) -> None:
+    """
+    Initialize history buffer for sensor; if times is NULL, uses existing buffer timestamps. phase sets the user slot (last computation time for interval sensors).
+    """
+def mj_integratePos(m: mujoco._structs.MjModel, qpos: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], qvel: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], dt: typing.SupportsFloat | typing.SupportsIndex) -> None:
     """
     Integrate position with given velocity.
     """
@@ -215,7 +223,7 @@ def mj_inverse(m: mujoco._structs.MjModel, d: mujoco._structs.MjData) -> None:
     """
     Inverse dynamics: qacc must be set before calling.
     """
-def mj_inverseSkip(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, skipstage: typing.SupportsInt, skipsensor: typing.SupportsInt) -> None:
+def mj_inverseSkip(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, skipstage: typing.SupportsInt | typing.SupportsIndex, skipsensor: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Inverse dynamics with skip; skipstage is mjtStage.
     """
@@ -235,35 +243,35 @@ def mj_island(m: mujoco._structs.MjModel, d: mujoco._structs.MjData) -> None:
     """
     Find constraint islands.
     """
-def mj_jac(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jacp: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, jacr: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, point: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], body: typing.SupportsInt) -> None:
+def mj_jac(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jacp: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, jacr: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, point: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], body: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Compute 3/6-by-nv end-effector Jacobian of global point attached to given body.
     """
-def mj_jacBody(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jacp: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, jacr: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, body: typing.SupportsInt) -> None:
+def mj_jacBody(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jacp: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, jacr: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, body: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Compute body frame end-effector Jacobian.
     """
-def mj_jacBodyCom(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jacp: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, jacr: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, body: typing.SupportsInt) -> None:
+def mj_jacBodyCom(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jacp: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, jacr: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, body: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Compute body center-of-mass end-effector Jacobian.
     """
-def mj_jacDot(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jacp: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, jacr: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, point: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], body: typing.SupportsInt) -> None:
+def mj_jacDot(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jacp: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, jacr: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, point: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], body: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Compute 3/6-by-nv Jacobian time derivative of global point attached to given body.
     """
-def mj_jacGeom(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jacp: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, jacr: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, geom: typing.SupportsInt) -> None:
+def mj_jacGeom(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jacp: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, jacr: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, geom: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Compute geom end-effector Jacobian.
     """
-def mj_jacPointAxis(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jacPoint: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, jacAxis: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, point: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], axis: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], body: typing.SupportsInt) -> None:
+def mj_jacPointAxis(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jacPoint: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, jacAxis: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, point: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], axis: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], body: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Compute translation end-effector Jacobian of point, and rotation Jacobian of axis.
     """
-def mj_jacSite(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jacp: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, jacr: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, site: typing.SupportsInt) -> None:
+def mj_jacSite(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jacp: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, jacr: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, site: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Compute site end-effector Jacobian.
     """
-def mj_jacSubtreeCom(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jacp: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, body: typing.SupportsInt) -> None:
+def mj_jacSubtreeCom(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, jacp: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, body: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Compute subtree center-of-mass end-effector Jacobian.
     """
@@ -279,7 +287,7 @@ def mj_loadPluginLibrary(path: str) -> None:
     """
     Load a dynamic library. The dynamic library is assumed to register one or more plugins.
     """
-def mj_local2Global(d: mujoco._structs.MjData, xpos: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"], xmat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9, 1]", "flags.writeable"], pos: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], quat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 1]"], body: typing.SupportsInt, sameframe: typing.SupportsInt) -> None:
+def mj_local2Global(d: mujoco._structs.MjData, xpos: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"], xmat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9, 1]", "flags.writeable"], pos: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], quat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 1]"], body: typing.SupportsInt | typing.SupportsIndex, sameframe: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Map from body local to global Cartesian coordinates, sameframe takes values from mjtSameFrame.
     """
@@ -307,11 +315,11 @@ def mj_mulM2(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, res: typing.
     """
     Multiply vector by (inertia matrix)^(1/2).
     """
-def mj_multiRay(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, pnt: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], geomgroup: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[6, 1]"] | None, flg_static: typing.SupportsInt, bodyexclude: typing.SupportsInt, geomid: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]", "flags.writeable"], dist: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], normal: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"] | None, nray: typing.SupportsInt, cutoff: typing.SupportsFloat) -> None:
+def mj_multiRay(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, pnt: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], geomgroup: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[6, 1]"] | None, flg_static: typing.SupportsInt | typing.SupportsIndex, bodyexclude: typing.SupportsInt | typing.SupportsIndex, geomid: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]", "flags.writeable"], dist: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], normal: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"] | None, nray: typing.SupportsInt | typing.SupportsIndex, cutoff: typing.SupportsFloat | typing.SupportsIndex) -> None:
     """
     Intersect multiple rays emanating from a single point, compute normals if given. Similar semantics to mj_ray, but vec, normal and dist are arrays. Geoms further than cutoff are ignored.
     """
-def mj_name2id(m: mujoco._structs.MjModel, type: typing.SupportsInt, name: str) -> int:
+def mj_name2id(m: mujoco._structs.MjModel, type: typing.SupportsInt | typing.SupportsIndex, name: str) -> int:
     """
     Get id of object with the specified mjtObj type and name; return -1 if id not found.
     """
@@ -319,11 +327,11 @@ def mj_normalizeQuat(m: mujoco._structs.MjModel, qpos: typing.Annotated[numpy.ty
     """
     Normalize all quaternions in qpos-type vector.
     """
-def mj_objectAcceleration(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, objtype: typing.SupportsInt, objid: typing.SupportsInt, res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[6, 1]", "flags.writeable"], flg_local: typing.SupportsInt) -> None:
+def mj_objectAcceleration(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, objtype: typing.SupportsInt | typing.SupportsIndex, objid: typing.SupportsInt | typing.SupportsIndex, res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[6, 1]", "flags.writeable"], flg_local: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Compute object 6D acceleration (rot:lin) in object-centered frame, world/local orientation.
     """
-def mj_objectVelocity(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, objtype: typing.SupportsInt, objid: typing.SupportsInt, res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[6, 1]", "flags.writeable"], flg_local: typing.SupportsInt) -> None:
+def mj_objectVelocity(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, objtype: typing.SupportsInt | typing.SupportsIndex, objid: typing.SupportsInt | typing.SupportsIndex, res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[6, 1]", "flags.writeable"], flg_local: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Compute object 6D velocity (rot:lin) in object-centered frame, world/local orientation.
     """
@@ -363,21 +371,29 @@ def mj_projectConstraint(m: mujoco._structs.MjModel, d: mujoco._structs.MjData) 
     """
     Compute inverse constraint inertia efc_AR.
     """
-def mj_ray(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, pnt: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], geomgroup: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[6, 1]"] | None, flg_static: typing.SupportsInt, bodyexclude: typing.SupportsInt, geomid: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[1, 1]", "flags.writeable"] | None, normal: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"] | None = None) -> float:
+def mj_ray(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, pnt: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], geomgroup: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[6, 1]"] | None, flg_static: typing.SupportsInt | typing.SupportsIndex, bodyexclude: typing.SupportsInt | typing.SupportsIndex, geomid: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[1, 1]", "flags.writeable"] | None, normal: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"] | None = None) -> float:
     """
     Intersect ray (pnt+x*vec, x>=0) with visible geoms, except geoms in bodyexclude. Return distance (x) to nearest surface, or -1 if no intersection. geomgroup, flg_static are as in mjvOption; geomgroup==NULL skips group exclusion.
     """
-def mj_rayFlex(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, flex_layer: typing.SupportsInt, flg_vert: typing.SupportsInt, flg_edge: typing.SupportsInt, flg_face: typing.SupportsInt, flg_skin: typing.SupportsInt, flexid: typing.SupportsInt, pnt: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vertid: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[1, 1]", "flags.writeable"] | None = None, normal: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"] | None = None) -> float:
+def mj_rayFlex(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, flex_layer: typing.SupportsInt | typing.SupportsIndex, flg_vert: typing.SupportsInt | typing.SupportsIndex, flg_edge: typing.SupportsInt | typing.SupportsIndex, flg_face: typing.SupportsInt | typing.SupportsIndex, flg_skin: typing.SupportsInt | typing.SupportsIndex, flexid: typing.SupportsInt | typing.SupportsIndex, pnt: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vertid: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[1, 1]", "flags.writeable"] | None = None, normal: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"] | None = None) -> float:
     """
     Intersect ray with flex; return nearest distance or -1 if no intersection, and also output nearest vertex id and surface normal.
     """
-def mj_rayHfield(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, geomid: typing.SupportsInt, pnt: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], normal: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"] | None = None) -> float:
+def mj_rayHfield(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, geomid: typing.SupportsInt | typing.SupportsIndex, pnt: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], normal: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"] | None = None) -> float:
     """
     Intersect ray with hfield; return nearest distance or -1 if no intersection.
     """
-def mj_rayMesh(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, geomid: typing.SupportsInt, pnt: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], normal: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"] | None = None) -> float:
+def mj_rayMesh(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, geomid: typing.SupportsInt | typing.SupportsIndex, pnt: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], normal: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"] | None = None) -> float:
     """
     Intersect ray with mesh; return nearest distance or -1 if no intersection.
+    """
+def mj_readCtrl(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, id: typing.SupportsInt | typing.SupportsIndex, time: typing.SupportsFloat | typing.SupportsIndex, interp: typing.SupportsInt | typing.SupportsIndex) -> float:
+    """
+    Read ctrl value for actuator at given time. Returns d->ctrl[id] if no history, otherwise reads from history buffer. interp: 0=zero-order-hold, 1=linear, 2=cubic spline.
+    """
+def mj_readSensor(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, id: typing.SupportsInt | typing.SupportsIndex, time: typing.SupportsFloat | typing.SupportsIndex, result: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], interp: typing.SupportsInt | typing.SupportsIndex) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"]:
+    """
+    Read sensor value from history buffer at given time. Returns pointer to sensordata (no history) or history buffer (exact match), or NULL if interpolation performed (writes to result). interp: 0=zero-order-hold, 1=linear, 2=cubic spline.
     """
 def mj_referenceConstraint(m: mujoco._structs.MjModel, d: mujoco._structs.MjData) -> None:
     """
@@ -391,15 +407,15 @@ def mj_resetData(m: mujoco._structs.MjModel, d: mujoco._structs.MjData) -> None:
     """
     Reset data to defaults.
     """
-def mj_resetDataDebug(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, debug_value: typing.SupportsInt) -> None:
+def mj_resetDataDebug(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, debug_value: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Reset data to defaults, fill everything else with debug_value.
     """
-def mj_resetDataKeyframe(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, key: typing.SupportsInt) -> None:
+def mj_resetDataKeyframe(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, key: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Reset data. If 0 <= key < nkey, set fields from specified keyframe.
     """
-def mj_rne(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, flg_acc: typing.SupportsInt, result: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"]) -> None:
+def mj_rne(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, flg_acc: typing.SupportsInt | typing.SupportsIndex, result: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"]) -> None:
     """
     RNE: compute M(qpos)*qacc + C(qpos,qvel); flg_acc=0 removes inertial term.
     """
@@ -427,7 +443,7 @@ def mj_sensorVel(m: mujoco._structs.MjModel, d: mujoco._structs.MjData) -> None:
     """
     Evaluate velocity-dependent sensors.
     """
-def mj_setCacheCapacity(cache: types.CapsuleType, size: typing.SupportsInt) -> int:
+def mj_setCacheCapacity(cache: types.CapsuleType, size: typing.SupportsInt | typing.SupportsIndex) -> int:
     """
     Set the capacity of the asset cache in bytes (0 to disable); return the new capacity.
     """
@@ -435,19 +451,19 @@ def mj_setConst(m: mujoco._structs.MjModel, d: mujoco._structs.MjData) -> None:
     """
     Set constant fields of mjModel, corresponding to qpos0 configuration.
     """
-def mj_setKeyframe(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, k: typing.SupportsInt) -> None:
+def mj_setKeyframe(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, k: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Copy current state to the k-th model keyframe.
     """
-def mj_setLengthRange(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, index: typing.SupportsInt, opt: mujoco._structs.MjLROpt) -> None:
+def mj_setLengthRange(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, index: typing.SupportsInt | typing.SupportsIndex, opt: mujoco._structs.MjLROpt) -> None:
     """
     Set actuator_lengthrange for specified actuator; return 1 if ok, 0 if error.
     """
-def mj_setState(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, state: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], sig: typing.SupportsInt) -> None:
+def mj_setState(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, state: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], sig: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Set state.
     """
-def mj_setTotalmass(m: mujoco._structs.MjModel, newmass: typing.SupportsFloat) -> None:
+def mj_setTotalmass(m: mujoco._structs.MjModel, newmass: typing.SupportsFloat | typing.SupportsIndex) -> None:
     """
     Scale body masses and inertias to achieve specified total mass.
     """
@@ -463,11 +479,11 @@ def mj_solveM2(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, x: typing.
     """
     Half of linear solve:  x = sqrt(inv(D))*inv(L')*y
     """
-def mj_stateSize(m: mujoco._structs.MjModel, sig: typing.SupportsInt) -> int:
+def mj_stateSize(m: mujoco._structs.MjModel, sig: typing.SupportsInt | typing.SupportsIndex) -> int:
     """
     Return size of state signature.
     """
-def mj_step(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, nstep: typing.SupportsInt = 1) -> None:
+def mj_step(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, nstep: typing.SupportsInt | typing.SupportsIndex = 1) -> None:
     """
     Advance simulation, use control callback to obtain external force and control. Optionally, repeat nstep times.
     """
@@ -499,11 +515,11 @@ def mj_versionString() -> str:
     """
     Return the current version of MuJoCo as a null-terminated string.
     """
-def mjd_inverseFD(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, eps: typing.SupportsFloat, flg_actuation: typing.SupportsInt, DfDq: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, DfDv: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, DfDa: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, DsDq: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, DsDv: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, DsDa: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, DmDq: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None) -> None:
+def mjd_inverseFD(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, eps: typing.SupportsFloat | typing.SupportsIndex, flg_actuation: typing.SupportsInt | typing.SupportsIndex, DfDq: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, DfDv: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, DfDa: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, DsDq: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, DsDv: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, DsDa: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, DmDq: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None) -> None:
     """
     Finite differenced Jacobians of (force, sensors) = mj_inverse(state, acceleration)   All outputs are optional. Output dimensions (transposed w.r.t Control Theory convention):     DfDq: (nv x nv)     DfDv: (nv x nv)     DfDa: (nv x nv)     DsDq: (nv x nsensordata)     DsDv: (nv x nsensordata)     DsDa: (nv x nsensordata)     DmDq: (nv x nM)   single-letter shortcuts:     inputs: q=qpos, v=qvel, a=qacc     outputs: f=qfrc_inverse, s=sensordata, m=qM   notes:     optionally computes mass matrix Jacobian DmDq     flg_actuation specifies whether to subtract qfrc_actuator from qfrc_inverse
     """
-def mjd_quatIntegrate(vel: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], scale: typing.SupportsFloat, Dquat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9, 1]", "flags.writeable"], Dvel: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9, 1]", "flags.writeable"], Dscale: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"]) -> None:
+def mjd_quatIntegrate(vel: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], scale: typing.SupportsFloat | typing.SupportsIndex, Dquat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9, 1]", "flags.writeable"], Dvel: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9, 1]", "flags.writeable"], Dscale: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"]) -> None:
     """
     Derivatives of mju_quatIntegrate.
     """
@@ -511,11 +527,11 @@ def mjd_subQuat(qa: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1
     """
     Derivatives of mju_subQuat.
     """
-def mjd_transitionFD(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, eps: typing.SupportsFloat, flg_centered: typing.SupportsInt, A: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, B: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, C: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None) -> None:
+def mjd_transitionFD(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, eps: typing.SupportsFloat | typing.SupportsIndex, flg_centered: typing.SupportsInt | typing.SupportsIndex, A: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, B: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, C: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None, D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"] | None) -> None:
     """
     Finite differenced transition matrices (control theory notation)   d(x_next) = A*dx + B*du   d(sensor) = C*dx + D*du   required output matrix dimensions:      A: (2*nv+na x 2*nv+na)      B: (2*nv+na x nu)      D: (nsensordata x 2*nv+na)      C: (nsensordata x nu)
     """
-def mju_Halton(index: typing.SupportsInt, base: typing.SupportsInt) -> float:
+def mju_Halton(index: typing.SupportsInt | typing.SupportsIndex, base: typing.SupportsInt | typing.SupportsIndex) -> float:
     """
     Generate Halton sequence.
     """
@@ -531,11 +547,11 @@ def mju_add3(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"
     """
     Set res = vec1 + vec2.
     """
-def mju_addScl(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], vec1: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], vec2: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], scl: typing.SupportsFloat) -> None:
+def mju_addScl(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], vec1: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], vec2: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], scl: typing.SupportsFloat | typing.SupportsIndex) -> None:
     """
     Set res = vec1 + vec2*scl.
     """
-def mju_addScl3(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"], vec1: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vec2: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], scl: typing.SupportsFloat) -> None:
+def mju_addScl3(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"], vec1: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vec2: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], scl: typing.SupportsFloat | typing.SupportsIndex) -> None:
     """
     Set res = vec1 + vec2*scl.
     """
@@ -547,27 +563,27 @@ def mju_addTo3(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1
     """
     Set res = res + vec.
     """
-def mju_addToScl(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], scl: typing.SupportsFloat) -> None:
+def mju_addToScl(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], scl: typing.SupportsFloat | typing.SupportsIndex) -> None:
     """
     Set res = res + vec*scl.
     """
-def mju_addToScl3(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], scl: typing.SupportsFloat) -> None:
+def mju_addToScl3(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], scl: typing.SupportsFloat | typing.SupportsIndex) -> None:
     """
     Set res = res + vec*scl.
     """
-def mju_axisAngle2Quat(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 1]", "flags.writeable"], axis: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], angle: typing.SupportsFloat) -> None:
+def mju_axisAngle2Quat(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 1]", "flags.writeable"], axis: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], angle: typing.SupportsFloat | typing.SupportsIndex) -> None:
     """
     Convert axisAngle to quaternion.
     """
-def mju_band2Dense(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"], mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], ntotal: typing.SupportsInt, nband: typing.SupportsInt, ndense: typing.SupportsInt, flg_sym: typing.SupportsInt) -> None:
+def mju_band2Dense(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"], mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], ntotal: typing.SupportsInt | typing.SupportsIndex, nband: typing.SupportsInt | typing.SupportsIndex, ndense: typing.SupportsInt | typing.SupportsIndex, flg_sym: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Convert banded matrix to dense matrix, fill upper triangle if flg_sym>0.
     """
-def mju_bandDiag(i: typing.SupportsInt, ntotal: typing.SupportsInt, nband: typing.SupportsInt, ndense: typing.SupportsInt) -> int:
+def mju_bandDiag(i: typing.SupportsInt | typing.SupportsIndex, ntotal: typing.SupportsInt | typing.SupportsIndex, nband: typing.SupportsInt | typing.SupportsIndex, ndense: typing.SupportsInt | typing.SupportsIndex) -> int:
     """
     Address of diagonal element i in band-dense matrix representation.
     """
-def mju_bandMulMatVec(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.c_contiguous"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.c_contiguous"], ntotal: typing.SupportsInt, nband: typing.SupportsInt, ndense: typing.SupportsInt, nvec: typing.SupportsInt, flg_sym: typing.SupportsInt) -> None:
+def mju_bandMulMatVec(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.c_contiguous"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.c_contiguous"], ntotal: typing.SupportsInt | typing.SupportsIndex, nband: typing.SupportsInt | typing.SupportsIndex, ndense: typing.SupportsInt | typing.SupportsIndex, nvec: typing.SupportsInt | typing.SupportsIndex, flg_sym: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Multiply band-diagonal matrix with nvec vectors, include upper triangle if flg_sym>0.
     """
@@ -575,11 +591,11 @@ def mju_boxQP(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]
     """
     minimize 0.5*x'*H*x + x'*g  s.t. lower <= x <= upper; return rank or -1 if failed   inputs:     n           - problem dimension     H           - SPD matrix                n*n     g           - bias vector               n     lower       - lower bounds              n     upper       - upper bounds              n     res         - solution warmstart        n   return value:     nfree <= n  - rank of unconstrained subspace, -1 if failure   outputs (required):     res         - solution                  n     R           - subspace Cholesky factor  nfree*nfree    allocated: n*(n+7)   outputs (optional):     index       - set of free dimensions    nfree          allocated: n   notes:     the initial value of res is used to warmstart the solver     R must have allocatd size n*(n+7), but only nfree*nfree values are used in output     index (if given) must have allocated size n, but only nfree values are used in output     only the lower triangles of H and R and are read from and written to, respectively     the convenience function mju_boxQPmalloc allocates the required data structures
     """
-def mju_cholFactor(mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"], mindiag: typing.SupportsFloat) -> int:
+def mju_cholFactor(mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"], mindiag: typing.SupportsFloat | typing.SupportsIndex) -> int:
     """
     Cholesky decomposition: mat = L*L'; return rank, decomposition performed in-place into mat.
     """
-def mju_cholFactorBand(mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], ntotal: typing.SupportsInt, nband: typing.SupportsInt, ndense: typing.SupportsInt, diagadd: typing.SupportsFloat, diagmul: typing.SupportsFloat) -> float:
+def mju_cholFactorBand(mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], ntotal: typing.SupportsInt | typing.SupportsIndex, nband: typing.SupportsInt | typing.SupportsIndex, ndense: typing.SupportsInt | typing.SupportsIndex, diagadd: typing.SupportsFloat | typing.SupportsIndex, diagmul: typing.SupportsFloat | typing.SupportsIndex) -> float:
     """
     Band-dense Cholesky decomposition.  Return minimum value in the factorized diagonal, or 0 if rank-deficient.  mat has (ntotal-ndense) x nband + ndense x ntotal elements.  The first (ntotal-ndense) x nband store the band part, left of diagonal, inclusive.  The second ndense x ntotal store the band part as entire dense rows.  Add diagadd+diagmul*mat_ii to diagonal before factorization.
     """
@@ -587,15 +603,15 @@ def mju_cholSolve(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m
     """
     Solve (mat*mat') * res = vec, where mat is a Cholesky factor.
     """
-def mju_cholSolveBand(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], ntotal: typing.SupportsInt, nband: typing.SupportsInt, ndense: typing.SupportsInt) -> None:
+def mju_cholSolveBand(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], ntotal: typing.SupportsInt | typing.SupportsIndex, nband: typing.SupportsInt | typing.SupportsIndex, ndense: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Solve (mat*mat')*res = vec where mat is a band-dense Cholesky factor.
     """
-def mju_cholUpdate(mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"], x: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], flg_plus: typing.SupportsInt) -> int:
+def mju_cholUpdate(mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.c_contiguous"], x: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], flg_plus: typing.SupportsInt | typing.SupportsIndex) -> int:
     """
     Cholesky rank-one update: L*L' +/- x*x'; return rank.
     """
-def mju_clip(x: typing.SupportsFloat, min: typing.SupportsFloat, max: typing.SupportsFloat) -> float:
+def mju_clip(x: typing.SupportsFloat | typing.SupportsIndex, min: typing.SupportsFloat | typing.SupportsIndex, max: typing.SupportsFloat | typing.SupportsIndex) -> float:
     """
     Clip x to the range [min, max].
     """
@@ -623,7 +639,7 @@ def mju_decodePyramid(force: typing.Annotated[numpy.typing.NDArray[numpy.float64
     """
     Convert pyramid representation to contact force.
     """
-def mju_dense2Band(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.c_contiguous"], ntotal: typing.SupportsInt, nband: typing.SupportsInt, ndense: typing.SupportsInt) -> None:
+def mju_dense2Band(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.c_contiguous"], ntotal: typing.SupportsInt | typing.SupportsIndex, nband: typing.SupportsInt | typing.SupportsIndex, ndense: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Convert dense matrix to banded matrix.
     """
@@ -667,7 +683,7 @@ def mju_f2n(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]",
     """
     Convert from float to mjtNum.
     """
-def mju_fill(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], val: typing.SupportsFloat) -> None:
+def mju_fill(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], val: typing.SupportsFloat | typing.SupportsIndex) -> None:
     """
     Set res = val.
     """
@@ -683,7 +699,7 @@ def mju_insertionSortInt(list: typing.Annotated[numpy.typing.NDArray[numpy.int32
     """
     Integer insertion sort, resulting list is in increasing order.
     """
-def mju_isBad(x: typing.SupportsFloat) -> int:
+def mju_isBad(x: typing.SupportsFloat | typing.SupportsIndex) -> int:
     """
     Return 1 if nan or abs(x)>mjMAXVAL, 0 otherwise. Used by check functions.
     """
@@ -699,11 +715,11 @@ def mju_mat2Rot(quat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4,
     """
     Extract 3D rotation from an arbitrary 3x3 matrix by refining the input quaternion. Return the number of iterations required to converge.
     """
-def mju_max(a: typing.SupportsFloat, b: typing.SupportsFloat) -> float:
+def mju_max(a: typing.SupportsFloat | typing.SupportsIndex, b: typing.SupportsFloat | typing.SupportsIndex) -> float:
     """
     Return max(a,b) with single evaluation of a and b.
     """
-def mju_min(a: typing.SupportsFloat, b: typing.SupportsFloat) -> float:
+def mju_min(a: typing.SupportsFloat | typing.SupportsIndex, b: typing.SupportsFloat | typing.SupportsIndex) -> float:
     """
     Return min(a,b) with single evaluation of a and b.
     """
@@ -751,15 +767,15 @@ def mju_mulVecMatVec(vec1: typing.Annotated[numpy.typing.NDArray[numpy.float64],
     """
     Multiply square matrix with vectors on both sides: return vec1' * mat * vec2.
     """
-def mju_muscleBias(len: typing.SupportsFloat, lengthrange: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], acc0: typing.SupportsFloat, prm: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9, 1]"]) -> float:
+def mju_muscleBias(len: typing.SupportsFloat | typing.SupportsIndex, lengthrange: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], acc0: typing.SupportsFloat | typing.SupportsIndex, prm: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9, 1]"]) -> float:
     """
     Muscle passive force, prm = (range[2], force, scale, lmin, lmax, vmax, fpmax, fvmax).
     """
-def mju_muscleDynamics(ctrl: typing.SupportsFloat, act: typing.SupportsFloat, prm: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]) -> float:
+def mju_muscleDynamics(ctrl: typing.SupportsFloat | typing.SupportsIndex, act: typing.SupportsFloat | typing.SupportsIndex, prm: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]) -> float:
     """
     Muscle activation dynamics, prm = (tau_act, tau_deact, smoothing_width).
     """
-def mju_muscleGain(len: typing.SupportsFloat, vel: typing.SupportsFloat, lengthrange: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], acc0: typing.SupportsFloat, prm: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9, 1]"]) -> float:
+def mju_muscleGain(len: typing.SupportsFloat | typing.SupportsIndex, vel: typing.SupportsFloat | typing.SupportsIndex, lengthrange: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], acc0: typing.SupportsFloat | typing.SupportsIndex, prm: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9, 1]"]) -> float:
     """
     Muscle active force, prm = (range[2], force, scale, lmin, lmax, vmax, fpmax, fvmax).
     """
@@ -811,11 +827,11 @@ def mju_quat2Mat(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9,
     """
     Convert quaternion to 3D rotation matrix.
     """
-def mju_quat2Vel(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"], quat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 1]"], dt: typing.SupportsFloat) -> None:
+def mju_quat2Vel(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"], quat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 1]"], dt: typing.SupportsFloat | typing.SupportsIndex) -> None:
     """
     Convert quaternion (corresponding to orientation difference) to 3D velocity.
     """
-def mju_quatIntegrate(quat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 1]", "flags.writeable"], vel: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], scale: typing.SupportsFloat) -> None:
+def mju_quatIntegrate(quat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 1]", "flags.writeable"], vel: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], scale: typing.SupportsFloat | typing.SupportsIndex) -> None:
     """
     Integrate quaternion given 3D angular velocity.
     """
@@ -823,11 +839,11 @@ def mju_quatZ2Vec(quat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[
     """
     Construct quaternion performing rotation from z-axis to given vector.
     """
-def mju_rayGeom(pos: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9, 1]"], size: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], pnt: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], geomtype: typing.SupportsInt, normal: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"] | None = None) -> float:
+def mju_rayGeom(pos: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9, 1]"], size: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], pnt: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], geomtype: typing.SupportsInt | typing.SupportsIndex, normal: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"] | None = None) -> float:
     """
     Intersect ray with pure geom; return nearest distance or -1 if no intersection.
     """
-def mju_raySkin(nface: typing.SupportsInt, nvert: typing.SupportsInt, face: typing.SupportsInt, vert: typing.SupportsFloat, pnt: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vertid: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[1, 1]", "flags.writeable"]) -> float:
+def mju_raySkin(nface: typing.SupportsInt | typing.SupportsIndex, nvert: typing.SupportsInt | typing.SupportsIndex, face: typing.SupportsInt | typing.SupportsIndex, vert: typing.SupportsFloat | typing.SupportsIndex, pnt: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], vertid: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[1, 1]", "flags.writeable"]) -> float:
     """
     Intersect ray with skin; return nearest distance or -1 if no intersection, and also output nearest vertex id.
     """
@@ -835,23 +851,23 @@ def mju_rotVecQuat(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[
     """
     Rotate vector by quaternion.
     """
-def mju_round(x: typing.SupportsFloat) -> int:
+def mju_round(x: typing.SupportsFloat | typing.SupportsIndex) -> int:
     """
     Round x to nearest integer.
     """
-def mju_scl(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], scl: typing.SupportsFloat) -> None:
+def mju_scl(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], scl: typing.SupportsFloat | typing.SupportsIndex) -> None:
     """
     Set res = vec*scl.
     """
-def mju_scl3(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], scl: typing.SupportsFloat) -> None:
+def mju_scl3(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], scl: typing.SupportsFloat | typing.SupportsIndex) -> None:
     """
     Set res = vec*scl.
     """
-def mju_sigmoid(x: typing.SupportsFloat) -> float:
+def mju_sigmoid(x: typing.SupportsFloat | typing.SupportsIndex) -> float:
     """
     Sigmoid function over 0<=x<=1 using quintic polynomial.
     """
-def mju_sign(x: typing.SupportsFloat) -> float:
+def mju_sign(x: typing.SupportsFloat | typing.SupportsIndex) -> float:
     """
     Return sign of x: +1, -1 or 0.
     """
@@ -859,7 +875,7 @@ def mju_sparse2dense(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], 
     """
     Convert matrix from sparse to dense.
     """
-def mju_springDamper(pos0: typing.SupportsFloat, vel0: typing.SupportsFloat, Kp: typing.SupportsFloat, Kv: typing.SupportsFloat, dt: typing.SupportsFloat) -> float:
+def mju_springDamper(pos0: typing.SupportsFloat | typing.SupportsIndex, vel0: typing.SupportsFloat | typing.SupportsIndex, Kp: typing.SupportsFloat | typing.SupportsIndex, Kv: typing.SupportsFloat | typing.SupportsIndex, dt: typing.SupportsFloat | typing.SupportsIndex) -> float:
     """
     Integrate spring-damper analytically; return pos(dt).
     """
@@ -867,7 +883,7 @@ def mju_sqrMatTD(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m,
     """
     Set res = mat' * diag * mat if diag is not NULL, and res = mat' * mat otherwise.
     """
-def mju_standardNormal(num2: typing.SupportsFloat | None) -> float:
+def mju_standardNormal(num2: typing.SupportsFloat | typing.SupportsIndex | None) -> float:
     """
     Standard normal random number generator (optional second number).
     """
@@ -903,7 +919,7 @@ def mju_symmetrize(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[
     """
     Symmetrize square matrix res = (mat + mat')/2.
     """
-def mju_transformSpatial(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[6, 1]", "flags.writeable"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[6, 1]"], flg_force: typing.SupportsInt, newpos: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], oldpos: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], rotnew2old: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9, 1]"]) -> None:
+def mju_transformSpatial(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[6, 1]", "flags.writeable"], vec: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[6, 1]"], flg_force: typing.SupportsInt | typing.SupportsIndex, newpos: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], oldpos: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], rotnew2old: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9, 1]"]) -> None:
     """
     Coordinate transform of 6D motion or force vector in rotation:translation format. rotnew2old is 3-by-3, NULL means no rotation; flg_force specifies force or motion type.
     """
@@ -915,7 +931,7 @@ def mju_trnVecPose(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[
     """
     Transform vector by pose.
     """
-def mju_type2Str(type: typing.SupportsInt) -> str:
+def mju_type2Str(type: typing.SupportsInt | typing.SupportsIndex) -> str:
     """
     Convert type id (mjtObj) to type name.
     """
@@ -923,7 +939,7 @@ def mju_unit4(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 1]
     """
     Set res = (1,0,0,0).
     """
-def mju_warningText(warning: typing.SupportsInt, info: typing.SupportsInt) -> str:
+def mju_warningText(warning: typing.SupportsInt | typing.SupportsIndex, info: typing.SupportsInt | typing.SupportsIndex) -> str:
     """
     Construct a warning message given the warning type and info.
     """
@@ -931,7 +947,7 @@ def mju_writeLog(type: str, msg: str) -> None:
     """
     Write [datetime, type: message] to MUJOCO_LOG.TXT.
     """
-def mju_writeNumBytes(nbytes: typing.SupportsInt) -> str:
+def mju_writeNumBytes(nbytes: typing.SupportsInt | typing.SupportsIndex) -> str:
     """
     Return human readable number of bytes using standard letter suffix.
     """
@@ -947,7 +963,7 @@ def mju_zero4(res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 1]
     """
     Set res = 0.
     """
-def mjv_addGeoms(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, opt: mujoco._structs.MjvOption, pert: mujoco._structs.MjvPerturb, catmask: typing.SupportsInt, scn: mujoco._structs.MjvScene) -> None:
+def mjv_addGeoms(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, opt: mujoco._structs.MjvOption, pert: mujoco._structs.MjvPerturb, catmask: typing.SupportsInt | typing.SupportsIndex, scn: mujoco._structs.MjvScene) -> None:
     """
     Add geoms from selected categories.
     """
@@ -959,7 +975,7 @@ def mjv_applyPerturbForce(m: mujoco._structs.MjModel, d: mujoco._structs.MjData,
     """
     Set perturb force,torque in d->xfrc_applied, if selected body is dynamic.
     """
-def mjv_applyPerturbPose(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, pert: mujoco._structs.MjvPerturb, flg_paused: typing.SupportsInt) -> None:
+def mjv_applyPerturbPose(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, pert: mujoco._structs.MjvPerturb, flg_paused: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
     Set perturb pos,quat in d->mocap when selected body is mocap, and in d->qpos otherwise. Write d->qpos only if flg_paused and subtree root for selected body has free joint.
     """
@@ -979,7 +995,7 @@ def mjv_cameraInRoom(headpos: typing.Annotated[numpy.typing.NDArray[numpy.float6
     """
     Get camera info in room space; average left and right OpenGL cameras.
     """
-def mjv_connector(geom: mujoco._structs.MjvGeom, type: typing.SupportsInt, width: typing.SupportsFloat, from_: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], to: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]) -> None:
+def mjv_connector(geom: mujoco._structs.MjvGeom, type: typing.SupportsInt | typing.SupportsIndex, width: typing.SupportsFloat | typing.SupportsIndex, from_: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], to: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]) -> None:
     """
     Set (type, size, pos, mat) for connector-type geom between given points. Assume that mjv_initGeom was already called to set all other properties. Width of mjGEOM_LINE is denominated in pixels.
     """
@@ -1007,7 +1023,7 @@ def mjv_frustumHeight(scn: mujoco._structs.MjvScene) -> float:
     """
     Get frustum height at unit distance from camera; average left and right OpenGL cameras.
     """
-def mjv_initGeom(geom: mujoco._structs.MjvGeom, type: typing.SupportsInt, size: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], pos: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9, 1]"], rgba: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[4, 1]"]) -> None:
+def mjv_initGeom(geom: mujoco._structs.MjvGeom, type: typing.SupportsInt | typing.SupportsIndex, size: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], pos: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], mat: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9, 1]"], rgba: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[4, 1]"]) -> None:
     """
     Initialize given geom fields when not NULL, set the rest to their default values.
     """
@@ -1023,15 +1039,15 @@ def mjv_model2room(roompos: typing.Annotated[numpy.typing.NDArray[numpy.float64]
     """
     Transform pose from model to room space.
     """
-def mjv_moveCamera(m: mujoco._structs.MjModel, action: typing.SupportsInt, reldx: typing.SupportsFloat, reldy: typing.SupportsFloat, scn: mujoco._structs.MjvScene, cam: mujoco._structs.MjvCamera) -> None:
+def mjv_moveCamera(m: mujoco._structs.MjModel, action: typing.SupportsInt | typing.SupportsIndex, reldx: typing.SupportsFloat | typing.SupportsIndex, reldy: typing.SupportsFloat | typing.SupportsIndex, scn: mujoco._structs.MjvScene, cam: mujoco._structs.MjvCamera) -> None:
     """
     Move camera with mouse; action is mjtMouse.
     """
-def mjv_moveModel(m: mujoco._structs.MjModel, action: typing.SupportsInt, reldx: typing.SupportsFloat, reldy: typing.SupportsFloat, roomup: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], scn: mujoco._structs.MjvScene) -> None:
+def mjv_moveModel(m: mujoco._structs.MjModel, action: typing.SupportsInt | typing.SupportsIndex, reldx: typing.SupportsFloat | typing.SupportsIndex, reldy: typing.SupportsFloat | typing.SupportsIndex, roomup: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], scn: mujoco._structs.MjvScene) -> None:
     """
     Move model with mouse; action is mjtMouse.
     """
-def mjv_movePerturb(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, action: typing.SupportsInt, reldx: typing.SupportsFloat, reldy: typing.SupportsFloat, scn: mujoco._structs.MjvScene, pert: mujoco._structs.MjvPerturb) -> None:
+def mjv_movePerturb(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, action: typing.SupportsInt | typing.SupportsIndex, reldx: typing.SupportsFloat | typing.SupportsIndex, reldy: typing.SupportsFloat | typing.SupportsIndex, scn: mujoco._structs.MjvScene, pert: mujoco._structs.MjvPerturb) -> None:
     """
     Move perturb object with mouse; action is mjtMouse.
     """
@@ -1039,7 +1055,7 @@ def mjv_room2model(modelpos: typing.Annotated[numpy.typing.NDArray[numpy.float64
     """
     Transform pose from room to model space.
     """
-def mjv_select(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, vopt: mujoco._structs.MjvOption, aspectratio: typing.SupportsFloat, relx: typing.SupportsFloat, rely: typing.SupportsFloat, scn: mujoco._structs.MjvScene, selpnt: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"], geomid: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[1, 1]", "flags.writeable"], flexid: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[1, 1]", "flags.writeable"], skinid: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[1, 1]", "flags.writeable"]) -> int:
+def mjv_select(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, vopt: mujoco._structs.MjvOption, aspectratio: typing.SupportsFloat | typing.SupportsIndex, relx: typing.SupportsFloat | typing.SupportsIndex, rely: typing.SupportsFloat | typing.SupportsIndex, scn: mujoco._structs.MjvScene, selpnt: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"], geomid: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[1, 1]", "flags.writeable"], flexid: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[1, 1]", "flags.writeable"], skinid: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[1, 1]", "flags.writeable"]) -> int:
     """
     Select geom, flex or skin with mouse; return bodyid; -1: none selected.
     """
@@ -1047,7 +1063,7 @@ def mjv_updateCamera(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, cam:
     """
     Update camera.
     """
-def mjv_updateScene(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, opt: mujoco._structs.MjvOption, pert: mujoco._structs.MjvPerturb | None, cam: mujoco._structs.MjvCamera, catmask: typing.SupportsInt, scn: mujoco._structs.MjvScene) -> None:
+def mjv_updateScene(m: mujoco._structs.MjModel, d: mujoco._structs.MjData, opt: mujoco._structs.MjvOption, pert: mujoco._structs.MjvPerturb | None, cam: mujoco._structs.MjvCamera, catmask: typing.SupportsInt | typing.SupportsIndex, scn: mujoco._structs.MjvScene) -> None:
     """
     Update entire scene given model state.
     """

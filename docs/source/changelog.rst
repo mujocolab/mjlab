@@ -8,6 +8,11 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``ActuatorCfg.viscous_damping`` for passive velocity proportional
+  damping (``f = -b·v``), distinct from the PD derivative gain ``damping``
+  used by position and velocity actuators. Maps to ``<joint damping>`` for
+  JOINT transmission and ``<tendon damping>`` for TENDON transmission.
+  Defaults to ``None`` (preserves the XML value).
 - Added :class:`~mjlab.managers.RecorderManager` for logging observations,
   actions, or arbitrary environment data during rollouts. Implement a
   :class:`~mjlab.managers.RecorderTerm` subclass and register it in the

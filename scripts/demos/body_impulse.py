@@ -72,7 +72,7 @@ def create_pendulum_spec() -> mujoco.MjSpec:
   joint = bag_body.add_joint()
   joint.name = "bag_joint"
   joint.type = mujoco.mjtJoint.mjJNT_BALL
-  joint.damping = 3.0
+  joint.damping[:] = 3.0
   joint.frictionloss = 0.5
 
   # Rope (visual only capsule from pivot to bag center).

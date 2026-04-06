@@ -43,7 +43,7 @@ class Handle:
         ...
     def lock(self):
         ...
-    def set_figures(self, viewports_figures: typing.Union[typing.Tuple[mujoco._render.MjrRect, mujoco._structs.MjvFigure], typing.List[typing.Tuple[mujoco._render.MjrRect, mujoco._structs.MjvFigure]]]):
+    def set_figures(self, viewports_figures: typing.Union[typing.Tuple[mujoco._structs.MjrRect, mujoco._structs.MjvFigure], typing.List[typing.Tuple[mujoco._structs.MjrRect, mujoco._structs.MjvFigure]]]):
         """
         Overlay figures on the viewer.
         
@@ -52,7 +52,7 @@ class Handle:
             viewport: Rectangle defining position and size of the figure
             figure: MjvFigure object containing the figure data to display
         """
-    def set_images(self, viewports_images: typing.Union[typing.Tuple[mujoco._render.MjrRect, numpy.ndarray], typing.List[typing.Tuple[mujoco._render.MjrRect, numpy.ndarray]]]):
+    def set_images(self, viewports_images: typing.Union[typing.Tuple[mujoco._structs.MjrRect, numpy.ndarray], typing.List[typing.Tuple[mujoco._structs.MjrRect, numpy.ndarray]]]):
         """
         Overlay images on the viewer.
         
