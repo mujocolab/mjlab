@@ -13,6 +13,7 @@ from conftest import (
 from mjlab.actuator import (
   BuiltinMotorActuatorCfg,
   BuiltinPositionActuatorCfg,
+  BuiltinVelocityActuatorCfg,
   IdealPdActuatorCfg,
   XmlActuatorCfg,
 )
@@ -150,3 +151,111 @@ def test_xml_actuator_with_internal_attach_prefix(device):
 
   assert len(entity.actuators) == 1
   assert entity.actuators[0].target_names == ["elbow"]
+
+
+# ---------------------------------------------------------------------------
+# Armature / frictionloss preservation tests
+# ---------------------------------------------------------------------------
+
+_XML_WITH_JOINT_PROPERTIES = """\
+<mujoco>
+  <worldbody>
+    <body name="base" pos="0 0 1">
+      <freejoint name="free_joint"/>
+      <geom type="box" size="0.2 0.2 0.1" mass="1.0"/>
+      <body name="link1">
+        <joint name="joint1" type="hinge" axis="0 0 1"
+               range="-1.57 1.57" armature="0.5" frictionloss="0.3"/>
+        <geom type="box" size="0.1 0.1 0.1" mass="0.1"/>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+
+def test_xml_armature_frictionloss_preserved_by_default(device):
+  """Builtin actuator preserves XML armature/frictionloss when not set."""
+  cfg = BuiltinMotorActuatorCfg(target_names_expr=("joint1",), effort_limit=100.0)
+  entity = create_entity_with_actuator(_XML_WITH_JOINT_PROPERTIES, cfg)
+  entity, sim = initialize_entity(entity, device)
+
+  m = sim.mj_model
+  dof_id = m.jnt_dofadr[m.joint("joint1").id]
+  assert m.dof_armature[dof_id] == pytest.approx(0.5)
+  assert m.dof_frictionloss[dof_id] == pytest.approx(0.3)
+
+
+def test_explicit_armature_frictionloss_overrides_xml(device):
+  """Explicit values override XML armature/frictionloss."""
+  cfg = BuiltinMotorActuatorCfg(
+    target_names_expr=("joint1",),
+    effort_limit=100.0,
+    armature=1.0,
+    frictionloss=0.7,
+  )
+  entity = create_entity_with_actuator(_XML_WITH_JOINT_PROPERTIES, cfg)
+  entity, sim = initialize_entity(entity, device)
+
+  m = sim.mj_model
+  dof_id = m.jnt_dofadr[m.joint("joint1").id]
+  assert m.dof_armature[dof_id] == pytest.approx(1.0)
+  assert m.dof_frictionloss[dof_id] == pytest.approx(0.7)
+
+
+def test_explicit_zero_overrides_xml(device):
+  """Explicit 0.0 overrides XML values (distinguishes None from 0.0)."""
+  cfg = BuiltinMotorActuatorCfg(
+    target_names_expr=("joint1",),
+    effort_limit=100.0,
+    armature=0.0,
+    frictionloss=0.0,
+  )
+  entity = create_entity_with_actuator(_XML_WITH_JOINT_PROPERTIES, cfg)
+  entity, sim = initialize_entity(entity, device)
+
+  m = sim.mj_model
+  dof_id = m.jnt_dofadr[m.joint("joint1").id]
+  assert m.dof_armature[dof_id] == pytest.approx(0.0)
+  assert m.dof_frictionloss[dof_id] == pytest.approx(0.0)
+
+
+def test_partial_override_preserves_other_field(device):
+  """Setting only armature preserves XML frictionloss, and vice versa."""
+  cfg = BuiltinMotorActuatorCfg(
+    target_names_expr=("joint1",), effort_limit=100.0, armature=1.0
+  )
+  entity = create_entity_with_actuator(_XML_WITH_JOINT_PROPERTIES, cfg)
+  entity, sim = initialize_entity(entity, device)
+
+  m = sim.mj_model
+  dof_id = m.jnt_dofadr[m.joint("joint1").id]
+  assert m.dof_armature[dof_id] == pytest.approx(1.0)
+  assert m.dof_frictionloss[dof_id] == pytest.approx(0.3)
+
+
+@pytest.mark.parametrize(
+  "actuator_cfg",
+  [
+    BuiltinPositionActuatorCfg(
+      target_names_expr=("joint1",), stiffness=50.0, damping=5.0
+    ),
+    BuiltinVelocityActuatorCfg(target_names_expr=("joint1",), damping=5.0),
+    IdealPdActuatorCfg(
+      target_names_expr=("joint1",),
+      stiffness=50.0,
+      damping=5.0,
+      effort_limit=100.0,
+    ),
+  ],
+  ids=["position", "velocity", "ideal_pd"],
+)
+def test_all_actuator_types_preserve_xml_properties(device, actuator_cfg):
+  """All builtin actuator types preserve XML armature/frictionloss."""
+  entity = create_entity_with_actuator(_XML_WITH_JOINT_PROPERTIES, actuator_cfg)
+  entity, sim = initialize_entity(entity, device)
+
+  m = sim.mj_model
+  dof_id = m.jnt_dofadr[m.joint("joint1").id]
+  assert m.dof_armature[dof_id] == pytest.approx(0.5)
+  assert m.dof_frictionloss[dof_id] == pytest.approx(0.3)

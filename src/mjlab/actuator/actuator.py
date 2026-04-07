@@ -43,11 +43,11 @@ class ActuatorCfg(ABC):
   transmission_type: TransmissionType = TransmissionType.JOINT
   """Transmission type. Defaults to JOINT."""
 
-  armature: float = 0.0
-  """Reflected rotor inertia."""
+  armature: float | None = None
+  """Reflected rotor inertia. None preserves the XML value."""
 
-  frictionloss: float = 0.0
-  """Friction loss force limit.
+  frictionloss: float | None = None
+  """Friction loss force limit. None preserves the XML value.
 
   Applies a constant friction force opposing motion, independent of load or velocity.
   Also known as dry friction or load-independent friction.
@@ -76,10 +76,14 @@ class ActuatorCfg(ABC):
   on the same step."""
 
   def __post_init__(self) -> None:
-    assert self.armature >= 0.0, "armature must be non-negative."
-    assert self.frictionloss >= 0.0, "frictionloss must be non-negative."
+    if self.armature is not None:
+      assert self.armature >= 0.0, "armature must be non-negative."
+    if self.frictionloss is not None:
+      assert self.frictionloss >= 0.0, "frictionloss must be non-negative."
     if self.transmission_type == TransmissionType.SITE:
-      if self.armature > 0.0 or self.frictionloss > 0.0:
+      if (self.armature is not None and self.armature > 0.0) or (
+        self.frictionloss is not None and self.frictionloss > 0.0
+      ):
         raise ValueError(
           f"{self.__class__.__name__}: armature and frictionloss are not supported for "
           "SITE transmission type."

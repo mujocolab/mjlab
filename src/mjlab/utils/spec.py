@@ -213,8 +213,8 @@ def create_motor_actuator(
   *,
   effort_limit: float,
   gear: float = 1.0,
-  armature: float = 0.0,
-  frictionloss: float = 0.0,
+  armature: float | None = None,
+  frictionloss: float | None = None,
   transmission_type: TransmissionType = TransmissionType.JOINT,
 ) -> mujoco.MjsActuator:
   """Create a <motor> actuator."""
@@ -232,13 +232,17 @@ def create_motor_actuator(
   actuator.ctrllimited = True
   actuator.ctrlrange[:] = np.array([-effort_limit, effort_limit])
 
-  # Set armature and frictionloss.
+  # Set armature and frictionloss (None = preserve XML value).
   if transmission_type == TransmissionType.JOINT:
-    spec.joint(joint_name).armature = armature
-    spec.joint(joint_name).frictionloss = frictionloss
+    if armature is not None:
+      spec.joint(joint_name).armature = armature
+    if frictionloss is not None:
+      spec.joint(joint_name).frictionloss = frictionloss
   elif transmission_type == TransmissionType.TENDON:
-    spec.tendon(joint_name).armature = armature
-    spec.tendon(joint_name).frictionloss = frictionloss
+    if armature is not None:
+      spec.tendon(joint_name).armature = armature
+    if frictionloss is not None:
+      spec.tendon(joint_name).frictionloss = frictionloss
 
   return actuator
 
@@ -250,8 +254,8 @@ def create_position_actuator(
   stiffness: float,
   damping: float,
   effort_limit: float | None = None,
-  armature: float = 0.0,
-  frictionloss: float = 0.0,
+  armature: float | None = None,
+  frictionloss: float | None = None,
   transmission_type: TransmissionType = TransmissionType.JOINT,
 ) -> mujoco.MjsActuator:
   """Creates a <position> actuator.
@@ -302,13 +306,17 @@ def create_position_actuator(
     actuator.forcelimited = False
     # No forcerange needed.
 
-  # Set armature and frictionloss.
+  # Set armature and frictionloss (None = preserve XML value).
   if transmission_type == TransmissionType.JOINT:
-    spec.joint(joint_name).armature = armature
-    spec.joint(joint_name).frictionloss = frictionloss
+    if armature is not None:
+      spec.joint(joint_name).armature = armature
+    if frictionloss is not None:
+      spec.joint(joint_name).frictionloss = frictionloss
   elif transmission_type == TransmissionType.TENDON:
-    spec.tendon(joint_name).armature = armature
-    spec.tendon(joint_name).frictionloss = frictionloss
+    if armature is not None:
+      spec.tendon(joint_name).armature = armature
+    if frictionloss is not None:
+      spec.tendon(joint_name).frictionloss = frictionloss
 
   return actuator
 
@@ -319,8 +327,8 @@ def create_velocity_actuator(
   *,
   damping: float,
   effort_limit: float | None = None,
-  armature: float = 0.0,
-  frictionloss: float = 0.0,
+  armature: float | None = None,
+  frictionloss: float | None = None,
   transmission_type: TransmissionType = TransmissionType.JOINT,
 ) -> mujoco.MjsActuator:
   """Creates a <velocity> actuator.
@@ -348,12 +356,17 @@ def create_velocity_actuator(
   else:
     actuator.forcelimited = False
 
+  # Set armature and frictionloss (None = preserve XML value).
   if transmission_type == TransmissionType.JOINT:
-    spec.joint(joint_name).armature = armature
-    spec.joint(joint_name).frictionloss = frictionloss
+    if armature is not None:
+      spec.joint(joint_name).armature = armature
+    if frictionloss is not None:
+      spec.joint(joint_name).frictionloss = frictionloss
   elif transmission_type == TransmissionType.TENDON:
-    spec.tendon(joint_name).armature = armature
-    spec.tendon(joint_name).frictionloss = frictionloss
+    if armature is not None:
+      spec.tendon(joint_name).armature = armature
+    if frictionloss is not None:
+      spec.tendon(joint_name).frictionloss = frictionloss
 
   return actuator
 
