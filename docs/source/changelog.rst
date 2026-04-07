@@ -105,6 +105,9 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ghost geom filtering in the Viser viewer. Ghost geoms were selected
+  by collision flags, so collision-disabled robot geoms appeared as ghosts.
+  The viewer now uses visual alpha to determine which geoms to render.
 - Scene now warns when an attached entity or terrain spec has non-default
   ``<option>`` fields (e.g. ``<flag contact="disable"/>``), which are
   silently dropped by ``MjSpec.attach()``. Use ``MujocoCfg`` to set

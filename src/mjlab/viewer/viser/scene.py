@@ -608,8 +608,8 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
     alpha_by_model: dict[int, float] = {}
 
     for qpos, model, mocap_pos, mocap_quat, alpha, _label in self._queued_ghosts:
-      mhash = hash((model.ngeom, model.nbody, model.nq))
-      alpha_by_model[mhash] = alpha
+      model_id = id(model)
+      alpha_by_model[model_id] = alpha
 
       # Forward kinematics on the visualization-only MjData.
       self._viz_data.qpos[:] = qpos
@@ -625,31 +625,31 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
           self._viz_data.mocap_quat[:] = mocap_quat
       mujoco.mj_forward(model, self._viz_data)
 
-      # Group visual geoms by body.
+      # Group visible ghost geoms by body.
       body_geoms: dict[int, list[int]] = {}
       for gi in range(model.ngeom):
-        bid = model.geom_bodyid[gi]
-        if model.geom_contype[gi] != 0 or model.geom_conaffinity[gi] != 0:
+        if model.geom_rgba[gi, 3] == 0:
           continue
+        bid = model.geom_bodyid[gi]
         if model.body_dofnum[bid] == 0 and model.body_parentid[bid] == 0:
           continue
         body_geoms.setdefault(bid, []).append(gi)
 
-      for bid, geom_ids in body_geoms.items():
-        key = (mhash, bid)
+      for bid, bid_geom_ids in body_geoms.items():
+        key = (model_id, bid)
         body_data.setdefault(key, []).append(
           (
             (self._viz_data.xpos[bid] + self._scene_offset).copy(),
             vtf.SO3.from_matrix(self._viz_data.xmat[bid].reshape(3, 3)).wxyz.copy(),
-            (model.geom_rgba[geom_ids[0]][:3] * 255).astype(np.uint8),
+            (model.geom_rgba[bid_geom_ids[0]][:3] * 255).astype(np.uint8),
           )
         )
 
         # Cache combined mesh per (model, body).
-        by_model = self._ghost_meshes.setdefault(mhash, {})
+        by_model = self._ghost_meshes.setdefault(model_id, {})
         if bid not in by_model:
           meshes = []
-          for gid in geom_ids:
+          for gid in bid_geom_ids:
             mesh = _create_geom_mesh(model, gid)
             if mesh is not None:
               T = np.eye(4)
@@ -667,20 +667,20 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
       self._ghost_handles.pop(key).remove()
 
     # Create or update handles.
-    for (mhash, bid), transforms in body_data.items():
-      mesh = self._ghost_meshes.get(mhash, {}).get(bid)
+    for (model_id, bid), transforms in body_data.items():
+      mesh = self._ghost_meshes.get(model_id, {}).get(bid)
       if mesh is None:
         continue
 
       positions = np.array([t[0] for t in transforms], dtype=np.float32)
       wxyzs = np.array([t[1] for t in transforms], dtype=np.float32)
       colors = np.array([t[2] for t in transforms], dtype=np.uint8)
-      alpha = alpha_by_model.get(mhash, 0.5)
-      key = (mhash, bid)
+      alpha = alpha_by_model.get(model_id, 0.5)
+      key = (model_id, bid)
 
       if key not in self._ghost_handles:
         self._ghost_handles[key] = self.server.scene.add_batched_meshes_simple(
-          f"/debug/ghosts/body_{bid}_{mhash}",
+          f"/debug/ghosts/body_{bid}_{model_id}",
           mesh.vertices,
           mesh.faces,
           batched_wxyzs=wxyzs,
@@ -700,7 +700,7 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
         except Exception:
           handle.remove()
           self._ghost_handles[key] = self.server.scene.add_batched_meshes_simple(
-            f"/debug/ghosts/body_{bid}_{mhash}",
+            f"/debug/ghosts/body_{bid}_{model_id}",
             mesh.vertices,
             mesh.faces,
             batched_wxyzs=wxyzs,

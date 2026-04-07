@@ -5,7 +5,6 @@ import math
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal
 
-import mujoco
 import numpy as np
 import torch
 
@@ -120,8 +119,7 @@ class MotionCommand(CommandTerm):
     self.metrics["sampling_top1_prob"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["sampling_top1_bin"] = torch.zeros(self.num_envs, device=self.device)
 
-    # Ghost model created lazily on first visualization
-    self._ghost_model: mujoco.MjModel | None = None
+    self._ghost_model = None
     self._ghost_color = np.array(cfg.viz.ghost_color, dtype=np.float32)
 
   @property
@@ -443,7 +441,11 @@ class MotionCommand(CommandTerm):
         qpos[free_joint_q_adr[3:7]] = self.body_quat_w[batch, 0].cpu().numpy()
         qpos[joint_q_adr] = self.joint_pos[batch].cpu().numpy()
 
-        visualizer.add_ghost_mesh(qpos, model=self._ghost_model, label=f"ghost_{batch}")
+        visualizer.add_ghost_mesh(
+          qpos,
+          model=self._ghost_model,
+          label=f"ghost_{batch}",
+        )
 
     elif self.cfg.viz.mode == "frames":
       for batch in env_indices:
