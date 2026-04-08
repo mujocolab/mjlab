@@ -71,5 +71,5 @@ Projects built on mjlab. To add yours, open a pull request or post in
      - Sim to real RL for in hand cube rotation with the LEAP Hand.
    * - `project-instinct/InstinctMJ <https://github.com/project-instinct/InstinctMJ>`_
      - mjlab version of Project-Instinct, a whole-body control toolchain to study Instinct-Level intelligence.
-   * - `lzyang2000/twist2_mjlab <https://github.com/lzyang2000/twist2_mjlab>`
-     - mjlab version of TWIST2.
+   * - `lzyang2000/twist2_mjlab <https://github.com/lzyang2000/twist2_mjlab>`_
+     - mjlab port of `TWIST2 <https://arxiv.org/abs/2511.02832>`_.
