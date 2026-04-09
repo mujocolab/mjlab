@@ -748,17 +748,23 @@ class RayCastSensor(Sensor[RayCastData]):
 
   def raycast_kernel(self, rc: mjwarp.RenderContext) -> None:
     """IN-GRAPH: Execute BVH-accelerated raycast kernel."""
+    assert self._ray_pnt is not None
+    assert self._ray_vec is not None
+    assert self._ray_bodyexclude is not None
+    assert self._ray_dist is not None
+    assert self._ray_geomid is not None
+    assert self._ray_normal is not None
     rays(
       m=self._model.struct,  # type: ignore[attr-defined]
       d=self._data.struct,  # type: ignore[attr-defined]
-      pnt=self._ray_pnt,
-      vec=self._ray_vec,
+      pnt=self._ray_pnt,  # pyright: ignore[reportArgumentType]
+      vec=self._ray_vec,  # pyright: ignore[reportArgumentType]
       geomgroup=self._geomgroup,  # pyright: ignore[reportArgumentType]
       flg_static=True,
       bodyexclude=self._ray_bodyexclude,
-      dist=self._ray_dist,
-      geomid=self._ray_geomid,
-      normal=self._ray_normal,
+      dist=self._ray_dist,  # pyright: ignore[reportArgumentType]
+      geomid=self._ray_geomid,  # pyright: ignore[reportArgumentType]
+      normal=self._ray_normal,  # pyright: ignore[reportArgumentType]
       rc=rc,
     )
 
