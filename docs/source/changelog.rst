@@ -112,6 +112,9 @@ Changed
 - Removed ``EntityData.generalized_force``. The property was bugged (indexed
   free joint DOFs instead of articulated DOFs) and the name was ambiguous.
   Use ``qfrc_actuator`` or ``qfrc_external`` instead (:issue:`776`).
+- ``fetch_wandb_checkpoint`` now filters checkpoints server-side via the
+  ``pattern`` parameter, avoiding unnecessary pagination and tolerance to
+  corrupted metadata (:issue:`898`).
 
 Fixed
 ^^^^^

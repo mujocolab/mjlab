@@ -78,7 +78,9 @@ def get_wandb_checkpoint_path(
   api = wandb.Api()
   wandb_run = api.run(str(run_path))
   files = [
-    file.name for file in wandb_run.files() if re.match(r"^model_\d+\.pt$", file.name)
+    file.name
+    for file in wandb_run.files(pattern="model_%.pt")
+    if re.match(r"^model_\d+\.pt$", file.name)
   ]
   if checkpoint_name is None:
     checkpoint_file = max(files, key=lambda x: int(x.split("_")[1].split(".")[0]))
