@@ -53,6 +53,64 @@ class PlayConfig:
   _demo_mode: tyro.conf.Suppress[bool] = False
 
 
+def _apply_obs_history_from_checkpoint(env_cfg, checkpoint_path: str) -> None:
+  """Peek at a checkpoint and restore observation history lengths into env_cfg.
+
+  Checkpoints saved by MjlabOnPolicyRunner store the observation group history
+  configuration in ``infos["env_state"]["obs_history_cfg"]``.  This function reads
+  that data and writes it back into *env_cfg* so the environment is constructed with
+  matching history lengths — no manual editing required.
+
+  Silently no-ops when the checkpoint is old (pre-dating this feature) or the key is
+  absent for any other reason.
+  """
+  try:
+    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    obs_history_cfg = (
+      ckpt.get("infos", {}).get("env_state", {}).get("obs_history_cfg", None)
+    )
+  except Exception as e:
+    print(f"[WARN]: Could not peek at checkpoint for obs history config: {e}")
+    return
+
+  if obs_history_cfg is None:
+    return
+
+  for group_name, group_hist in obs_history_cfg.items():
+    if group_name not in env_cfg.observations:
+      continue
+    group = env_cfg.observations[group_name]
+    group_hl = group_hist.get("history_length")
+    if group_hl is not None:
+      # Group-level override: apply to the group and let the manager propagate.
+      group.history_length = group_hl
+      group.flatten_history_dim = group_hist.get("flatten_history_dim", True)
+      print(
+        f"[INFO]: Restored obs history for group '{group_name}': "
+        f"history_length={group_hl}"
+      )
+    else:
+      # No group-level override: restore per-term history lengths.
+      any_nonzero = False
+      for term_name, term_hist in group_hist.get("terms", {}).items():
+        term_hl = term_hist.get("history_length", 0)
+        if (
+          term_hl > 0
+          and term_name in group.terms
+          and group.terms[term_name] is not None
+        ):
+          group.terms[term_name].history_length = term_hl
+          group.terms[term_name].flatten_history_dim = term_hist.get(
+            "flatten_history_dim", True
+          )
+          any_nonzero = True
+      if any_nonzero:
+        print(
+          f"[INFO]: Restored per-term obs history for group '{group_name}' "
+          f"from checkpoint."
+        )
+
+
 def run_play(task_id: str, cfg: PlayConfig):
   configure_torch_backends()
 
@@ -151,6 +209,7 @@ def run_play(task_id: str, cfg: PlayConfig):
         f"[INFO]: Loading checkpoint: {checkpoint_name} (run: {run_id}, {cached_str})"
       )
     log_dir = resume_path.parent
+    _apply_obs_history_from_checkpoint(env_cfg, str(resume_path))
 
   if cfg.num_envs is not None:
     env_cfg.scene.num_envs = cfg.num_envs
