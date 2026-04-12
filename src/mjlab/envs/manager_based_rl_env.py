@@ -148,6 +148,10 @@ class ManagerBasedRlEnvCfg:
   observations. When False, ``step()`` returns the true terminal observation and the
   caller must explicitly call ``reset(env_ids=...)`` for done environments before the
   next ``step()``.
+
+  Note: mjlab's bundled ``train.py`` goes through rsl_rl's ``OnPolicyRunner``, which
+  does not drive manual resets. ``auto_reset=False`` is intended for users running
+  their own training loop (or a wrapper that handles the reset between steps).
   """
 
   scale_rewards_by_dt: bool = True
