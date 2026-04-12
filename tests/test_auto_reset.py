@@ -103,6 +103,46 @@ def test_auto_reset_false_requires_manual_reset_before_next_step(device):
   env.close()
 
 
+def _slice_obs(obs: dict, ids: torch.Tensor) -> dict[str, torch.Tensor]:
+  """Return a new obs dict containing only the rows at ``ids`` (per group)."""
+  return {k: v[ids] for k, v in obs.items() if isinstance(v, torch.Tensor)}
+
+
+def test_auto_reset_false_user_loop_pattern(device):
+  """Example: run your own training loop against an auto_reset=False env.
+
+  The pattern is:
+    1. After step(), derive done_ids from terminated | truncated.
+    2. Slice obs[done_ids] to get the true terminal observation and use it for
+      bootstrap / target computation.
+    3. Call env.reset(env_ids=done_ids) to reset only the done envs.
+    4. Continue stepping with the full batch.
+  """
+  env = ManagerBasedRlEnv(cfg=_make_cfg(auto_reset=False), device=device)
+  obs, _ = env.reset(seed=0)
+  episode_count = torch.zeros(env.num_envs, dtype=torch.long, device=env.device)
+  last_terminal_obs: dict[str, torch.Tensor] | None = None
+
+  action = torch.zeros((env.num_envs, 1), device=env.device)
+  for _ in range((env.max_episode_length + 2) * 3):
+    obs, _, terminated, truncated, _ = env.step(action)
+    done = terminated | truncated
+    if not done.any():
+      continue
+
+    done_ids = done.nonzero(as_tuple=False).squeeze(-1)
+    last_terminal_obs = _slice_obs(obs, done_ids)  # feed this to your critic/replay
+
+    episode_count[done_ids] += 1
+    obs, _ = env.reset(env_ids=done_ids)
+    if (episode_count >= 2).all():
+      break
+
+  assert (episode_count >= 2).all()
+  assert last_terminal_obs is not None
+  env.close()
+
+
 def test_auto_reset_false_obs_differs_from_auto_reset_true(device):
   """Terminal obs (auto_reset=False) differs from post-reset obs (auto_reset=True)."""
   # Run with auto_reset=True, capture post-reset obs for done envs.
