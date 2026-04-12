@@ -60,6 +60,39 @@ def get_checkpoint_path(
   return run_path / checkpoint_file
 
 
+def get_wandb_env_yaml_path(log_path: Path, run_path: Path) -> Path:
+  """Get env.yaml path from a W&B run, downloading if needed.
+
+  The file is cached under ``<log_path>/wandb_checkpoints/<run_id>/params/env.yaml``
+  so subsequent calls are instant.
+
+  Returns:
+    Local path to the downloaded (or cached) env.yaml.
+
+  Raises:
+    RuntimeError: If params/env.yaml cannot be downloaded from the run.
+  """
+  import wandb
+
+  run_id = str(run_path).split("/")[-1]
+  download_dir = log_path / "wandb_checkpoints" / run_id
+  env_yaml_path = download_dir / "params" / "env.yaml"
+
+  if not env_yaml_path.exists():
+    api = wandb.Api()
+    wandb_run = api.run(str(run_path))
+    try:
+      wandb_file = wandb_run.file("params/env.yaml")
+      download_dir.mkdir(parents=True, exist_ok=True)
+      wandb_file.download(str(download_dir), replace=True)
+    except Exception as e:
+      raise RuntimeError(
+        f"Could not download params/env.yaml from W&B run {run_path}: {e}"
+      ) from e
+
+  return env_yaml_path
+
+
 def get_wandb_checkpoint_path(
   log_path: Path, run_path: Path, checkpoint_name: str | None = None
 ) -> tuple[Path, bool]:
