@@ -1,5 +1,7 @@
 """RL configuration for Unitree G1 velocity task."""
 
+from functools import partial
+
 from mjlab.rl import (
   RslRlModelCfg,
   RslRlOnPolicyRunnerCfg,
@@ -7,7 +9,9 @@ from mjlab.rl import (
 )
 
 
-def unitree_g1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
+def unitree_g1_ppo_runner_cfg(
+  max_iterations: int = 30_000,
+) -> RslRlOnPolicyRunnerCfg:
   """Create RL runner configuration for Unitree G1 velocity task."""
   return RslRlOnPolicyRunnerCfg(
     actor=RslRlModelCfg(
@@ -17,7 +21,7 @@ def unitree_g1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
       distribution_cfg={
         "class_name": "GaussianDistribution",
         "init_std": 1.0,
-        "std_type": "scalar",
+        "std_type": "log",
       },
     ),
     critic=RslRlModelCfg(
@@ -42,5 +46,10 @@ def unitree_g1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
     experiment_name="g1_velocity",
     save_interval=50,
     num_steps_per_env=24,
-    max_iterations=30_000,
+    max_iterations=max_iterations,
   )
+
+
+unitree_g1_flat_ppo_runner_cfg = partial(
+  unitree_g1_ppo_runner_cfg, max_iterations=5_000
+)

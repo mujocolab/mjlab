@@ -47,8 +47,7 @@ def terrain_levels_vel(
   # Robots that walked far enough progress to harder terrains.
   move_up = distance > terrain_generator.size[0] / 2
 
-  # Robots that walked less than half of their required distance go to
-  # simpler terrains.
+  # Robots that walked less than half of their required distance go to simpler terrains.
   move_down = (
     distance < torch.norm(command[env_ids, :2], dim=1) * env.max_episode_length_s * 0.5
   )
@@ -64,8 +63,8 @@ def terrain_levels_vel(
     "max": torch.max(levels),
   }
 
-  # In curriculum mode num_cols == num_terrains (one column per type),
-  # so the column index directly maps to the sub-terrain name.
+  # In curriculum mode num_cols == num_terrains (one column per type), so the column
+  # index directly maps to the sub-terrain name.
   sub_terrain_names = list(terrain_generator.sub_terrains.keys())
   terrain_origins = terrain.terrain_origins
   assert terrain_origins is not None

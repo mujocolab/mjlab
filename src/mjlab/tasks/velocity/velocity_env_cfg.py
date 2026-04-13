@@ -51,7 +51,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     max_distance=5.0,
     exclude_parent_body=True,
     include_geom_groups=(0,),  # Terrain only.
-    debug_vis=True,
+    debug_vis=False,
   )
 
   foot_height_scan = TerrainHeightSensorCfg(
@@ -61,7 +61,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     max_distance=1.0,
     exclude_parent_body=True,
     include_geom_groups=(0,),  # Terrain only.
-    debug_vis=True,
+    debug_vis=False,
     viz=TerrainHeightSensorCfg.VizCfg(
       show_rays=True,
       hit_color=(1.0, 0.0, 1.0, 0.8),  # Magenta rays.
@@ -91,6 +91,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     "joint_pos": ObservationTermCfg(
       func=mdp.joint_pos_rel,
       noise=Unoise(n_min=-0.01, n_max=0.01),
+      params={"biased": True},
     ),
     "joint_vel": ObservationTermCfg(
       func=mdp.joint_vel_rel,
@@ -111,6 +112,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
 
   critic_terms = {
     **actor_terms,
+    "joint_pos": ObservationTermCfg(func=mdp.joint_pos_rel),
     "height_scan": ObservationTermCfg(
       func=envs_mdp.height_scan,
       params={"sensor_name": "terrain_scan"},
@@ -178,7 +180,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     "twist": UniformVelocityCommandCfg(
       entity_name="robot",
       resampling_time_range=(3.0, 8.0),
-      rel_standing_envs=0.1,
+      rel_standing_envs=0.2,
       rel_heading_envs=0.3,
       rel_forward_envs=0.2,
       heading_command=True,
@@ -187,7 +189,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
       ranges=UniformVelocityCommandCfg.Ranges(
         lin_vel_x=(-1.0, 1.0),
         lin_vel_y=(-1.0, 1.0),
-        ang_vel_z=(-0.5, 0.5),
+        ang_vel_z=(-1.0, 1.0),
         heading=(-math.pi, math.pi),
       ),
     )
@@ -275,12 +277,12 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
   rewards = {
     "track_linear_velocity": RewardTermCfg(
       func=mdp.track_linear_velocity,
-      weight=2.0,
+      weight=1.0,
       params={"command_name": "twist", "std": math.sqrt(0.25)},
     ),
     "track_angular_velocity": RewardTermCfg(
       func=mdp.track_angular_velocity,
-      weight=2.0,
+      weight=1.0,
       params={"command_name": "twist", "std": math.sqrt(0.5)},
     ),
     "upright": RewardTermCfg(
@@ -315,7 +317,12 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
       params={"sensor_name": "robot/root_angmom"},
     ),
     "dof_pos_limits": RewardTermCfg(func=mdp.joint_pos_limits, weight=-1.0),
-    "action_rate_l2": RewardTermCfg(func=mdp.action_rate_l2, weight=-0.1),
+    "action_rate_l2": RewardTermCfg(func=mdp.action_rate_l2, weight=-0.01),
+    "energy": RewardTermCfg(
+      func=envs_mdp.electrical_power_cost,
+      weight=0.0,
+      params={"asset_cfg": SceneEntityCfg("robot", joint_names=(".*",))},
+    ),
     "air_time": RewardTermCfg(
       func=mdp.feet_air_time,
       weight=0.0,  # Override per-robot.
@@ -329,7 +336,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     ),
     "foot_clearance": RewardTermCfg(
       func=mdp.feet_clearance,
-      weight=-2.0,
+      weight=0.0,
       params={
         "target_height": 0.1,
         "height_sensor_name": "foot_height_scan",
@@ -340,7 +347,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     ),
     "foot_swing_height": RewardTermCfg(
       func=mdp.feet_swing_height,
-      weight=-0.25,
+      weight=0.0,
       params={
         "sensor_name": "feet_ground_contact",
         "height_sensor_name": "foot_height_scan",
@@ -361,7 +368,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     ),
     "soft_landing": RewardTermCfg(
       func=mdp.soft_landing,
-      weight=-1e-5,
+      weight=0.0,
       params={
         "sensor_name": "feet_ground_contact",
         "command_name": "twist",
@@ -394,17 +401,6 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     "terrain_levels": CurriculumTermCfg(
       func=mdp.terrain_levels_vel,
       params={"command_name": "twist"},
-    ),
-    "command_vel": CurriculumTermCfg(
-      func=mdp.commands_vel,
-      params={
-        "command_name": "twist",
-        "velocity_stages": [
-          {"step": 0, "lin_vel_x": (-1.0, 1.0), "ang_vel_z": (-0.5, 0.5)},
-          {"step": 5000 * 24, "lin_vel_x": (-1.5, 2.0), "ang_vel_z": (-0.7, 0.7)},
-          {"step": 10000 * 24, "lin_vel_x": (-2.0, 3.0)},
-        ],
-      },
     ),
   }
 
@@ -440,8 +436,6 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
       azimuth=90.0,
     ),
     sim=SimulationCfg(
-      nconmax=35,
-      njmax=1500,
       mujoco=MujocoCfg(
         timestep=0.005,
         iterations=10,

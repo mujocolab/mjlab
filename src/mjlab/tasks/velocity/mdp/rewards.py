@@ -255,8 +255,9 @@ def feet_clearance(
   foot_height = height_sensor.data.heights  # [B, F]
   foot_vel_xy = asset.data.site_lin_vel_w[:, asset_cfg.site_ids, :2]  # [B, F, 2]
   vel_norm = torch.norm(foot_vel_xy, dim=-1)  # [B, F]
+  vel_norm_sqrt = torch.sqrt(vel_norm + 1e-6)  # [B, F]
   delta = torch.abs(foot_height - target_height)  # [B, F]
-  cost = torch.sum(delta * vel_norm, dim=1)  # [B]
+  cost = torch.sum(delta * vel_norm_sqrt, dim=1)  # [B]
   if command_name is not None:
     command = env.command_manager.get_command(command_name)
     if command is not None:
@@ -281,6 +282,11 @@ class feet_swing_height:
       (env.num_envs, num_feet), device=env.device, dtype=torch.float32
     )
     self.step_dt = env.step_dt
+
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
+    if env_ids is None:
+      env_ids = slice(None)
+    self.peak_heights[env_ids] = 0.0
 
   def __call__(
     self,
@@ -464,3 +470,320 @@ class variable_posture:
     error_squared = torch.square(current_joint_pos - desired_joint_pos)
 
     return torch.exp(-torch.mean(error_squared / (std**2), dim=1))
+
+
+class swing_quality_reward:
+  """Weak positive [0,1] reward for the quality of completed swings.
+
+  The reward is evaluated only on landing events, so it shapes how feet swing
+  without strongly incentivizing the policy to increase gait frequency.
+
+  Clearance is scored against a target peak height, optionally with asymmetric
+  penalties so under-clearance can be punished more strongly than over-clearance.
+  Air time is scored against a target swing duration. The per-step reward is the
+  mean landing quality across feet that landed on that step, and zero otherwise.
+  """
+
+  def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
+    height_sensor_name: str | None = cfg.params.get("height_sensor_name")
+    if height_sensor_name is not None:
+      height_sensor = env.scene[height_sensor_name]
+      assert isinstance(height_sensor, TerrainHeightSensor), (
+        f"swing_quality_reward requires a TerrainHeightSensor, "
+        f"got {type(height_sensor).__name__}"
+      )
+      n_feet = height_sensor.num_frames
+    else:
+      n_feet = len(cfg.params["asset_cfg"].site_names)
+
+    self.n_feet = n_feet
+    self.step_dt = env.step_dt
+
+    batch = env.num_envs
+    device = env.device
+    self.peak_heights = torch.zeros(batch, n_feet, device=device)
+    self.swing_air_time = torch.zeros(batch, n_feet, device=device)
+
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
+    if env_ids is None:
+      env_ids = slice(None)
+    self.peak_heights[env_ids] = 0.0
+    self.swing_air_time[env_ids] = 0.0
+
+  def __call__(
+    self,
+    env: ManagerBasedRlEnv,
+    sensor_name: str,
+    target_height: float,
+    target_air_time: float,
+    clearance_std: float,
+    air_time_std: float,
+    command_name: str,
+    command_threshold: float,
+    height_sensor_name: str | None = None,
+    asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+    over_clearance_scale: float = 1.0,
+  ) -> torch.Tensor:
+    contact_sensor: ContactSensor = env.scene[sensor_name]
+
+    command = env.command_manager.get_command(command_name)
+    assert command is not None
+    linear_norm = torch.norm(command[:, :2], dim=1)
+    angular_norm = torch.abs(command[:, 2])
+    active = (linear_norm + angular_norm) > command_threshold  # [B]
+    active_feet = active.unsqueeze(1)
+
+    inactive_feet = ~active_feet
+    self.peak_heights = torch.where(
+      inactive_feet,
+      torch.zeros_like(self.peak_heights),
+      self.peak_heights,
+    )
+    self.swing_air_time = torch.where(
+      inactive_feet,
+      torch.zeros_like(self.swing_air_time),
+      self.swing_air_time,
+    )
+
+    if height_sensor_name is not None:
+      height_sensor: TerrainHeightSensor = env.scene[height_sensor_name]
+      foot_z = height_sensor.data.heights  # [B, F]
+    else:
+      asset: Entity = env.scene[asset_cfg.name]
+      site_z = asset.data.site_pos_w[:, asset_cfg.site_ids, 2]  # [B, F]
+      foot_z = site_z - site_z.min(dim=1, keepdim=True).values
+
+    assert contact_sensor.data.found is not None
+    in_air = contact_sensor.data.found == 0  # [B, N]
+    if in_air.shape[1] != self.n_feet or foot_z.shape[1] != self.n_feet:
+      raise ValueError(
+        "swing_quality_reward requires matching foot counts across contact and height inputs."
+      )
+
+    tracked_in_air = in_air & active_feet
+    self.swing_air_time = torch.where(
+      tracked_in_air,
+      self.swing_air_time + self.step_dt,
+      self.swing_air_time,
+    )
+    self.peak_heights = torch.where(
+      tracked_in_air,
+      torch.maximum(self.peak_heights, foot_z),
+      self.peak_heights,
+    )
+
+    first_contact = contact_sensor.compute_first_contact(dt=self.step_dt)
+    tracked_landing = first_contact & active_feet
+    landing = tracked_landing.float()
+
+    clearance_error = self.peak_heights - target_height
+    if over_clearance_scale <= 0.0:
+      raise ValueError("swing_quality_reward over_clearance_scale must be positive.")
+    scaled_clearance_error = torch.where(
+      clearance_error >= 0.0,
+      clearance_error / over_clearance_scale,
+      clearance_error,
+    )
+    clearance_quality = torch.exp(
+      -torch.square(scaled_clearance_error) / (clearance_std**2)
+    )
+    air_time_quality = torch.exp(
+      -torch.square(self.swing_air_time - target_air_time) / (air_time_std**2)
+    )
+    swing_quality = clearance_quality * air_time_quality
+
+    landing_count = landing.sum(dim=1)
+    landing_quality = (swing_quality * landing).sum(dim=1) / torch.clamp(
+      landing_count, min=1.0
+    )
+    reward = torch.where(
+      landing_count > 0, landing_quality, torch.zeros_like(landing_count)
+    )
+
+    log = env.extras.setdefault("log", {})
+    total_landings = landing.sum().clamp(min=1.0)
+    log["Metrics/swing_quality_peak_height"] = (
+      self.peak_heights * landing
+    ).sum() / total_landings
+    log["Metrics/swing_quality_air_time"] = (
+      self.swing_air_time * landing
+    ).sum() / total_landings
+    log["Metrics/swing_quality_mean"] = (swing_quality * landing).sum() / total_landings
+
+    reset_mask = tracked_landing | inactive_feet
+    self.peak_heights = torch.where(
+      reset_mask,
+      torch.zeros_like(self.peak_heights),
+      self.peak_heights,
+    )
+    self.swing_air_time = torch.where(
+      reset_mask,
+      torch.zeros_like(self.swing_air_time),
+      self.swing_air_time,
+    )
+
+    return reward * active.float()
+
+
+class gait_reward:
+  """Positive [0,1] reward for gait quality (clearance + air time).
+
+  Tracks peak clearance and air time during each foot's swing phase. At
+  landing, computes a quality score for the completed swing.
+
+  Scores persist through stance and only decay for feet that stay in swing
+  without landing. This keeps the reward dense while avoiding a strong bias
+  toward rapid footfall cadence.
+  """
+
+  def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
+    height_sensor_name: str | None = cfg.params.get("height_sensor_name")
+    if height_sensor_name is not None:
+      height_sensor = env.scene[height_sensor_name]
+      assert isinstance(height_sensor, TerrainHeightSensor), (
+        f"gait_reward requires a TerrainHeightSensor, "
+        f"got {type(height_sensor).__name__}"
+      )
+      n_feet = height_sensor.num_frames
+    else:
+      n_feet = len(cfg.params["asset_cfg"].site_names)
+
+    self.n_feet = n_feet
+    self.step_dt = env.step_dt
+
+    B = env.num_envs
+    device = env.device
+    self.peak_heights = torch.zeros(B, n_feet, device=device)
+    self.swing_air_time = torch.zeros(B, n_feet, device=device)
+    self.foot_scores = torch.zeros(B, n_feet, device=device)
+
+    halflife = cfg.params.get("score_halflife", 0.5)
+    if halflife <= 0.0:
+      raise ValueError("gait_reward score_halflife must be positive.")
+    self.decay = 0.5 ** (self.step_dt / halflife)
+
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
+    if env_ids is None:
+      env_ids = slice(None)
+    self.peak_heights[env_ids] = 0.0
+    self.swing_air_time[env_ids] = 0.0
+    self.foot_scores[env_ids] = 0.0
+
+  def __call__(
+    self,
+    env: ManagerBasedRlEnv,
+    sensor_name: str,
+    target_height: float,
+    target_air_time: float,
+    clearance_std: float,
+    air_time_std: float,
+    command_name: str,
+    command_threshold: float,
+    height_sensor_name: str | None = None,
+    asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+    score_halflife: float = 0.5,
+  ) -> torch.Tensor:
+    del score_halflife  # Consumed in __init__.
+    contact_sensor: ContactSensor = env.scene[sensor_name]
+
+    command = env.command_manager.get_command(command_name)
+    assert command is not None
+    linear_norm = torch.norm(command[:, :2], dim=1)
+    angular_norm = torch.abs(command[:, 2])
+    active = (linear_norm + angular_norm) > command_threshold  # [B]
+    active_feet = active.unsqueeze(1)
+
+    # Reset inactive envs so reward state does not carry stale gait history.
+    inactive_feet = ~active_feet
+    self.peak_heights = torch.where(
+      inactive_feet,
+      torch.zeros_like(self.peak_heights),
+      self.peak_heights,
+    )
+    self.swing_air_time = torch.where(
+      inactive_feet,
+      torch.zeros_like(self.swing_air_time),
+      self.swing_air_time,
+    )
+    self.foot_scores = torch.where(
+      inactive_feet,
+      torch.zeros_like(self.foot_scores),
+      self.foot_scores,
+    )
+
+    # Get foot heights: terrain-relative if sensor available, else relative to the
+    # lowest foot in the batch as a flat-ground fallback.
+    if height_sensor_name is not None:
+      height_sensor: TerrainHeightSensor = env.scene[height_sensor_name]
+      foot_z = height_sensor.data.heights  # [B, F]
+    else:
+      asset: Entity = env.scene[asset_cfg.name]
+      site_z = asset.data.site_pos_w[:, asset_cfg.site_ids, 2]  # [B, F]
+      foot_z = site_z - site_z.min(dim=1, keepdim=True).values
+
+    # Swing / stance.
+    assert contact_sensor.data.found is not None
+    in_air = contact_sensor.data.found == 0  # [B, N]
+    if in_air.shape[1] != self.n_feet or foot_z.shape[1] != self.n_feet:
+      raise ValueError(
+        "gait_reward requires matching foot counts across contact and height inputs."
+      )
+
+    tracked_in_air = in_air & active_feet
+
+    # Accumulate swing metrics while in air.
+    self.swing_air_time = torch.where(
+      tracked_in_air,
+      self.swing_air_time + self.step_dt,
+      self.swing_air_time,
+    )
+    self.peak_heights = torch.where(
+      tracked_in_air,
+      torch.maximum(self.peak_heights, foot_z),
+      self.peak_heights,
+    )
+
+    # Detect landing events.
+    first_contact = contact_sensor.compute_first_contact(dt=self.step_dt)
+    tracked_landing = first_contact & active_feet
+    landing = tracked_landing.float()  # [B, N]
+
+    # Quality of the completed swing.
+    clearance_error = self.peak_heights - target_height
+    clearance_quality = torch.exp(-torch.square(clearance_error) / (clearance_std**2))
+    air_time_quality = torch.exp(
+      -torch.square(self.swing_air_time - target_air_time) / (air_time_std**2)
+    )
+    swing_quality = clearance_quality * air_time_quality  # [B, N]
+
+    # Log metrics.
+    n_landings = landing.sum().clamp(min=1.0)
+    log = env.extras.setdefault("log", {})
+    log["Metrics/gait_peak_height"] = (self.peak_heights * landing).sum() / n_landings
+    log["Metrics/gait_air_time"] = (self.swing_air_time * landing).sum() / n_landings
+    log["Metrics/gait_swing_quality"] = (swing_quality * landing).sum() / n_landings
+
+    # Refresh at landing, decay only for feet that remain in swing without landing,
+    # and preserve scores during stance.
+    decaying = tracked_in_air & ~tracked_landing
+    decayed_scores = torch.where(
+      decaying, self.foot_scores * self.decay, self.foot_scores
+    )
+    self.foot_scores = torch.where(tracked_landing, swing_quality, decayed_scores)
+
+    # Reset swing tracking for landed or inactive feet.
+    reset_mask = tracked_landing | inactive_feet
+    self.peak_heights = torch.where(
+      reset_mask,
+      torch.zeros_like(self.peak_heights),
+      self.peak_heights,
+    )
+    self.swing_air_time = torch.where(
+      reset_mask,
+      torch.zeros_like(self.swing_air_time),
+      self.swing_air_time,
+    )
+
+    # Reward = mean foot score, bounded [0, 1].
+    reward = self.foot_scores.mean(dim=1)
+    return reward * active.float()
