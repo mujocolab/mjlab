@@ -145,7 +145,9 @@ def test_get_base_metadata_skips_non_actuated_joints(device):
       "actor": ObservationGroupCfg(
         terms={
           "joint_pos": ObservationTermCfg(
-            func=lambda env: env.scene["robot"].data.joint_pos
+            func=lambda env: env.scene["robot"].data.joint_pos,
+            history_length=5,
+            scale=2.0,
           ),
         },
       ),
@@ -179,5 +181,25 @@ def test_get_base_metadata_skips_non_actuated_joints(device):
   assert isinstance(damping_meta, list)
   assert len(stiffness_meta) == len(robot.spec.actuators)
   assert len(damping_meta) == len(robot.spec.actuators)
+
+  observation_names = metadata["observation_names"]
+  assert isinstance(observation_names, list)
+  assert "joint_pos" in observation_names
+
+  observation_terms_scale = metadata["observation_terms_scale"]
+  assert isinstance(observation_terms_scale, list)
+  assert len(observation_terms_scale) == len(observation_names)
+  assert observation_terms_scale[0] == 2.0
+
+  observation_history_length = metadata["observation_terms_history_length"]
+  assert isinstance(observation_history_length, list)
+  assert len(observation_history_length) == len(observation_names)
+  assert observation_history_length[0] == 5
+
+  observation_flatten_history_dim = metadata["observation_terms_flatten_history_dim"]
+  assert isinstance(observation_flatten_history_dim, list)
+  assert len(observation_flatten_history_dim) == len(observation_names)
+  # Default flatten_history_dim is 1.0 (True)
+  assert observation_flatten_history_dim[0] == 1.0
 
   env.close()
