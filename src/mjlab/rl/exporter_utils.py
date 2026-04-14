@@ -48,33 +48,35 @@ def get_base_metadata(
   ]
   joint_stiffness = env.sim.mj_model.actuator_gainprm[ctrl_ids_natural, 0]
   joint_damping = -env.sim.mj_model.actuator_biasprm[ctrl_ids_natural, 2]
-  observation_term_scale = list()
-  observation_term_flatten_history_dim = list()
-  observation_term_history_length = list()
-  observation_term_clip = list()
+  observation_term_scale: list = []
+  observation_term_flatten_history_dim: list = []
+  observation_term_history_length: list = []
+  observation_term_clip: list = []
   observation_names = env.observation_manager.active_terms["actor"]
 
   for active_term in observation_names:
-    if env.observation_manager.get_term_cfg("actor", active_term).scale is None:
+    cfg = env.observation_manager.get_term_cfg("actor", active_term)
+
+    if cfg.scale is None:
       observation_term_scale.append(1.0)
     else:
-      raw_scale = env.observation_manager.get_term_cfg("actor", active_term).scale
+      raw_scale = cfg.scale
       scale = (
         raw_scale.cpu().tolist() if isinstance(raw_scale, torch.Tensor) else raw_scale
       )
       observation_term_scale.append(scale)
 
-    raw_clip = env.observation_manager.get_term_cfg("actor", active_term).clip
+    raw_clip = cfg.clip
     if raw_clip is None:
       observation_term_clip.append([float("-inf"), float("inf")])
     else:
       observation_term_clip.append(list(raw_clip))
 
     observation_term_flatten_history_dim.append(
-      env.observation_manager.get_term_cfg("actor", active_term).flatten_history_dim
+      cfg.flatten_history_dim
     )
     observation_term_history_length.append(
-      env.observation_manager.get_term_cfg("actor", active_term).history_length
+      cfg.history_length
     )
 
   if (
@@ -97,7 +99,7 @@ def get_base_metadata(
     "observation_terms_scale": observation_term_scale,
     "observation_terms_flatten_history_dim": observation_term_flatten_history_dim,
     "observation_terms_history_length": observation_term_history_length,
-    "observation_term_clip": observation_term_clip,
+    "observation_terms_clip": observation_term_clip,
     "action_scale": joint_action._scale[0].cpu().tolist()
     if isinstance(joint_action._scale, torch.Tensor)
     else joint_action._scale,
