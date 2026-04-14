@@ -2,8 +2,8 @@
 Changelog
 =========
 
-Upcoming version (not yet released)
------------------------------------
+Version 1.3.0 (April 14, 2026)
+------------------------------
 
 Added
 ^^^^^
@@ -41,7 +41,9 @@ Added
   ``current_pos + action * scale``, so a zero action holds the current
   configuration rather than commanding the default pose.
 - Added :func:`~mjlab.envs.mdp.dr.pair_friction` for randomizing geom-pair
-  friction overrides (``pair_friction`` in ``mjModel``).
+  friction overrides (``pair_friction`` in ``mjModel``), with an
+  ``isotropic=True`` option that mirrors the symmetric tangent and roll
+  axes so single-axis randomization does not leave the paired axis stale.
 - Added ``STAIRS_TERRAINS_CFG`` terrain preset for progressive stair
   curriculum training and ``@terrain_preset`` decorator for composing
   terrain configurations from reusable presets.
