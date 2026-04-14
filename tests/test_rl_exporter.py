@@ -200,12 +200,12 @@ def test_get_base_metadata_skips_non_actuated_joints(device):
   assert isinstance(observation_flatten_history_dim, list)
   assert len(observation_flatten_history_dim) == len(observation_names)
   # Default flatten_history_dim is 1.0 (True)
-  assert observation_flatten_history_dim[0] == 1.0
+  assert observation_flatten_history_dim[0] is True
 
-  observation_term_clip = metadata["observation_term_clip"]
-  assert isinstance(observation_term_clip, list)
-  assert len(observation_term_clip) == len(observation_names)
+  observation_terms_clip = metadata["observation_terms_clip"]
+  assert isinstance(observation_terms_clip, list)
+  assert len(observation_terms_clip) == len(observation_names)
   # Default clip is [-inf, inf]
-  assert observation_term_clip[0] == [float("-inf"), float("inf")]
+  assert observation_terms_clip[0] == [float("-inf"), float("inf")]
 
   env.close()

@@ -72,12 +72,8 @@ def get_base_metadata(
     else:
       observation_term_clip.append(list(raw_clip))
 
-    observation_term_flatten_history_dim.append(
-      cfg.flatten_history_dim
-    )
-    observation_term_history_length.append(
-      cfg.history_length
-    )
+    observation_term_flatten_history_dim.append(cfg.flatten_history_dim)
+    observation_term_history_length.append(cfg.history_length)
 
   if (
     len(observation_term_flatten_history_dim) != len(observation_term_history_length)
