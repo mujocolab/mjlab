@@ -6,6 +6,7 @@ import tempfile
 import mujoco
 import onnx
 import pytest
+import torch
 from conftest import get_test_device
 
 from mjlab.actuator import XmlActuatorCfg
@@ -207,5 +208,89 @@ def test_get_base_metadata_skips_non_actuated_joints(device):
   assert len(observation_terms_clip) == len(observation_names)
   # Default clip is [-inf, inf]
   assert observation_terms_clip[0] == [float("-inf"), float("inf")]
+
+  env.close()
+
+
+def test_get_base_metadata_multiple_terms_scale_clip(device):
+  """get_base_metadata preserves obs term ordering and handles scalar/vector tensor scale, tuple scale, and non-default clip."""
+  robot_cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML_UNDERACTUATED),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(XmlActuatorCfg(target_names_expr=(".*",)),)
+    ),
+  )
+
+  env_cfg = ManagerBasedRlEnvCfg(
+    scene=SceneCfg(
+      terrain=TerrainEntityCfg(terrain_type="plane"),
+      num_envs=1,
+      extent=1.0,
+      entities={"robot": robot_cfg},
+    ),
+    observations={
+      "actor": ObservationGroupCfg(
+        terms={
+          "joint_pos": ObservationTermCfg(
+            func=lambda env: env.scene["robot"].data.joint_pos,
+            scale=torch.tensor(
+              2.0
+            ),  # tensor scale -> should be converted via .tolist()
+            history_length=1,
+          ),
+          "joint_vel": ObservationTermCfg(
+            func=lambda env: env.scene["robot"].data.joint_vel,
+            scale=(0.5, 1.5),  # tuple scale -> stored as-is
+            clip=(-1.0, 1.0),  # non-default clip
+            history_length=1,
+          ),
+          "joint_pos_scaled": ObservationTermCfg(
+            func=lambda env: env.scene["robot"].data.joint_pos,
+            scale=torch.tensor([1.0, 2.0]),  # per-element tensor -> list of floats
+            history_length=1,
+          ),
+        },
+      ),
+    },
+    actions={
+      "joint_pos": mdp.JointPositionActionCfg(
+        entity_name="robot", actuator_names=(".*",), scale=1.0
+      )
+    },
+    sim=SimulationCfg(mujoco=MujocoCfg(timestep=0.01, iterations=1)),
+    decimation=1,
+    episode_length_s=1.0,
+  )
+
+  env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
+  metadata = get_base_metadata(env, run_path="dummy/run")
+
+  observation_names = metadata["observation_names"]
+  scales = metadata["observation_terms_scale"]
+  clips = metadata["observation_terms_clip"]
+  assert isinstance(observation_names, list)
+  assert isinstance(scales, list)
+  assert isinstance(clips, list)
+
+  # Terms appear in definition order.
+  assert observation_names == ["joint_pos", "joint_vel", "joint_pos_scaled"]
+
+  # Scalar tensor scale is unwrapped to a plain float.
+  assert scales[0] == 2.0
+
+  # Tuple scale is stored as list.
+  assert scales[1] == [0.5, 1.5]
+
+  # Per-element tensor scale is converted to a list of floats.
+  assert scales[2] == [1.0, 2.0]
+
+  # joint_pos has default clip.
+  assert clips[0] == [float("-inf"), float("inf")]
+
+  # joint_vel has explicit clip converted to list.
+  assert clips[1] == [-1.0, 1.0]
+
+  # joint_pos_scaled has default clip.
+  assert clips[2] == [float("-inf"), float("inf")]
 
   env.close()
