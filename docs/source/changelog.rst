@@ -83,6 +83,9 @@ Added
 Changed
 ^^^^^^^
 
+- Renamed the ``list_envs`` console script to ``list-envs`` for consistency
+  with the other hyphenated entry points (``viz-nan``, ``export-scene``).
+  Invoke via ``uv run list-envs``.
 - ``ActuatorCfg.armature`` and ``ActuatorCfg.frictionloss`` now default to
   ``None`` instead of ``0.0``. ``None`` preserves the value defined in the
   XML. Previously, builtin actuators would silently overwrite XML joint and
@@ -128,6 +131,9 @@ Changed
 Fixed
 ^^^^^
 
+- ``train`` and ``play`` now print a top-level usage message when invoked
+  with ``-h`` / ``--help`` and no task argument, pointing users at
+  ``list-envs`` and ``<TASK> --help`` (:issue:`905`).
 - Fixed ghost geom filtering in the Viser viewer. Ghost geoms were selected
   by collision flags, so collision-disabled robot geoms appeared as ghosts.
   The viewer now uses visual alpha to determine which geoms to render.
