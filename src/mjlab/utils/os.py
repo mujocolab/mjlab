@@ -1,8 +1,53 @@
+import importlib
 import re
 from pathlib import Path
 from typing import Dict
 
 import yaml
+
+
+class _CompatLoader(yaml.UnsafeLoader):
+  """YAML loader that resolves Python object tags for nested classes.
+
+  Older YAML files may contain tags like
+  ``!!python/object/apply:some.module.OuterClass.NestedClass`` where PyYAML's
+  default resolution splits only on the last dot, failing to find the nested
+  class. This loader progressively tries shorter module paths to locate the
+  object through attribute access instead.
+  """
+
+  def find_python_name(self, name, mark):
+    try:
+      return super().find_python_name(name, mark)
+    except (AttributeError, yaml.constructor.ConstructorError):
+      parts = name.split(".")
+      for split in range(len(parts) - 1, 0, -1):
+        module_name = ".".join(parts[:split])
+        attr_path = parts[split:]
+        try:
+          obj = importlib.import_module(module_name)
+          for attr in attr_path:
+            obj = getattr(obj, attr)
+          return obj
+        except (ImportError, AttributeError):
+          continue
+      # Unresolvable (e.g. a serialised lambda or removed class) — return a
+      # no-op so the entry loads as None rather than crashing.
+      return lambda *_args, **_kwargs: None
+
+
+def load_yaml(filename: Path) -> Dict:
+  """Loads data from a YAML file.
+
+  Compatible with files written by older versions of :func:`dump_yaml` that
+  used Python-specific ``!!python/object/apply`` tags for enum values, as well
+  as current files that store enum values as plain name strings.
+
+  Args:
+      filename: The path to the YAML file.
+  """
+  with open(filename) as f:
+    return yaml.load(f, Loader=_CompatLoader)
 
 
 def dump_yaml(filename: Path, data: Dict, sort_keys: bool = False) -> None:
