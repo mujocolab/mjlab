@@ -5,9 +5,30 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Changed
+^^^^^^^
+
+- Task package load failures during ``mjlab`` import now print the full
+  traceback (and the entry point's module path) to ``stderr`` instead of
+  just the exception message, making it easier to pinpoint the source of
+  import errors when running commands like ``list-envs`` (:issue:`910`).
+  Contribution by @saikishor.
+
+Version 1.3.0 (April 14, 2026)
+------------------------------
+
 Added
 ^^^^^
 
+- Added ``ManagerBasedRlEnvCfg.auto_reset`` flag. When ``True`` (default),
+  ``step()`` continues to reset done environments in place and returns the
+  post-reset observation. When ``False``, ``step()`` skips the reset block
+  and returns the terminal observation directly; the caller must call
+  ``reset(env_ids=...)`` for done environments before the next ``step()``
+  or a ``RuntimeError`` is raised. Enables access to the true terminal
+  state for algorithms that need it. Note that mjlab's bundled ``train.py``
+  uses rsl_rl's ``OnPolicyRunner``, which does not drive manual resets, so
+  ``auto_reset=False`` is intended for custom training loops (:issue:`900`).
 - Added ``ActuatorCfg.viscous_damping`` for passive velocity proportional
   damping (``f = -b·v``), distinct from the PD derivative gain ``damping``
   used by position and velocity actuators. Maps to ``<joint damping>`` for
@@ -32,7 +53,9 @@ Added
   ``current_pos + action * scale``, so a zero action holds the current
   configuration rather than commanding the default pose.
 - Added :func:`~mjlab.envs.mdp.dr.pair_friction` for randomizing geom-pair
-  friction overrides (``pair_friction`` in ``mjModel``).
+  friction overrides (``pair_friction`` in ``mjModel``), with an
+  ``isotropic=True`` option that mirrors the symmetric tangent and roll
+  axes so single-axis randomization does not leave the paired axis stale.
 - Added ``STAIRS_TERRAINS_CFG`` terrain preset for progressive stair
   curriculum training and ``@terrain_preset`` decorator for composing
   terrain configurations from reusable presets.
@@ -74,6 +97,9 @@ Added
 Changed
 ^^^^^^^
 
+- Renamed the ``list_envs`` console script to ``list-envs`` for consistency
+  with the other hyphenated entry points (``viz-nan``, ``export-scene``).
+  Invoke via ``uv run list-envs``.
 - ``ActuatorCfg.armature`` and ``ActuatorCfg.frictionloss`` now default to
   ``None`` instead of ``0.0``. ``None`` preserves the value defined in the
   XML. Previously, builtin actuators would silently overwrite XML joint and
@@ -119,6 +145,9 @@ Changed
 Fixed
 ^^^^^
 
+- ``train`` and ``play`` now print a top-level usage message when invoked
+  with ``-h`` / ``--help`` and no task argument, pointing users at
+  ``list-envs`` and ``<TASK> --help`` (:issue:`905`).
 - Fixed ghost geom filtering in the Viser viewer. Ghost geoms were selected
   by collision flags, so collision-disabled robot geoms appeared as ghosts.
   The viewer now uses visual alpha to determine which geoms to render.

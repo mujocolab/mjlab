@@ -41,7 +41,7 @@ conflicts = [[
 ]]
 
 [manifest]
-overrides = [{ name = "mujoco", specifier = ">=3.6.0.dev0", index = "https://py.mujoco.org/" }]
+overrides = [{ name = "mujoco", specifier = ">=3.7.0.dev0", index = "https://py.mujoco.org/" }]
 
 [[package]]
 name = "absl-py"
@@ -1649,7 +1649,7 @@ wheels = [
 
 [[package]]
 name = "mjlab"
-version = "1.2.0"
+version = "1.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "imageio-ffmpeg" },
@@ -1718,8 +1718,8 @@ requires-dist = [
     { name = "imageio-ffmpeg" },
     { name = "mediapy", specifier = ">=1.2.6" },
     { name = "mjviser", specifier = ">=0.0.11" },
-    { name = "mujoco", specifier = ">=3.6.0", index = "https://py.mujoco.org/" },
-    { name = "mujoco-warp", git = "https://github.com/google-deepmind/mujoco_warp?rev=36fc8bef0f12bf8ade95a106b03f00dd1a8a82e9" },
+    { name = "mujoco", specifier = ">=3.7.0", index = "https://py.mujoco.org/" },
+    { name = "mujoco-warp", git = "https://github.com/google-deepmind/mujoco_warp?rev=ea7f05b" },
     { name = "onnxscript", specifier = ">=0.5.4" },
     { name = "prettytable" },
     { name = "rsl-rl-lib", specifier = "==5.0.1" },
@@ -1964,8 +1964,8 @@ wheels = [
 
 [[package]]
 name = "mujoco-warp"
-version = "3.6.0"
-source = { git = "https://github.com/google-deepmind/mujoco_warp?rev=36fc8bef0f12bf8ade95a106b03f00dd1a8a82e9#36fc8bef0f12bf8ade95a106b03f00dd1a8a82e9" }
+version = "3.7.0.1"
+source = { git = "https://github.com/google-deepmind/mujoco_warp?rev=ea7f05b#ea7f05baa3e5ea375ed2eeb041fd90eb9b7d6932" }
 dependencies = [
     { name = "absl-py" },
     { name = "etils", extra = ["epath"] },

@@ -141,6 +141,19 @@ class ManagerBasedRlEnvCfg:
     limit.
   """
 
+  auto_reset: bool = True
+  """Whether to automatically reset environments that terminate or time out.
+
+  When True (default), ``step()`` resets done environments and returns post-reset
+  observations. When False, ``step()`` returns the true terminal observation and the
+  caller must explicitly call ``reset(env_ids=...)`` for done environments before the
+  next ``step()``.
+
+  Note: mjlab's bundled ``train.py`` goes through rsl_rl's ``OnPolicyRunner``, which
+  does not drive manual resets. ``auto_reset=False`` is intended for users running
+  their own training loop (or a wrapper that handles the reset between steps).
+  """
+
   scale_rewards_by_dt: bool = True
   """Whether to multiply rewards by the environment step duration (dt).
 
@@ -175,6 +188,9 @@ class ManagerBasedRlEnv:
     self._sim_step_counter = 0
     self.extras = {}
     self.obs_buf = {}
+    self._manual_reset_pending = torch.zeros(
+      self.cfg.scene.num_envs, dtype=torch.bool, device=device
+    )
 
     # Initialize scene and simulation.
     self.scene = Scene(self.cfg.scene, device=device)
@@ -356,32 +372,43 @@ class ManagerBasedRlEnv:
   def step(self, action: torch.Tensor) -> types.VecEnvStepReturn:
     """Run one environment step: apply actions, simulate, compute RL signals.
 
-    **Forward-call placement.** MuJoCo's ``mj_step`` runs forward kinematics
-    *before* integration, so after stepping, derived quantities (``xpos``,
-    ``xquat``, ``site_xpos``, ``cvel``, ``sensordata``) lag ``qpos``/``qvel``
-    by one physics substep. Rather than calling ``sim.forward()`` twice (once
-    after the decimation loop and once after the reset block), this method
-    calls it **once**, right before observation computation. This single call
-    refreshes derived quantities for *all* envs: non-reset envs pick up
-    post-decimation kinematics, reset envs pick up post-reset kinematics.
+    When ``auto_reset=True`` (default), environments that terminate or time out are
+    reset in place and the returned observation is the post-reset state. When
+    ``auto_reset=False``, the reset is skipped and the returned observation is the
+    terminal state; the caller must call ``reset(env_ids=...)`` for done envs before
+    the next ``step()``.
 
-    The tradeoff is that termination and reward managers see derived
-    quantities that are stale by one physics substep (the last ``mj_step``
-    ran ``mj_forward`` from *pre*-integration ``qpos``). In practice, the
-    staleness is negligible for reward shaping and termination
-    checks. Critically, the staleness is *consistent*: every env,
-    every step, always sees the same lag, so the MDP is well-defined
-    and the value function can learn the correct mapping.
+    **Forward-call placement.** MuJoCo's ``mj_step`` runs forward kinematics *before*
+    integration, so after stepping, derived quantities (``xpos``, ``xquat``,
+    ``site_xpos``, ``cvel``, ``sensordata``) lag ``qpos``/``qvel`` by one physics
+    substep. Rather than calling ``sim.forward()`` twice (once after the decimation
+    loop and once after the reset block), this method calls it **once**, right
+    before observation computation. This single call refreshes derived quantities
+    for *all* envs: non-reset envs pick up post-decimation kinematics, reset envs
+    pick up post-reset kinematics.
+
+    The tradeoff is that termination and reward managers see derived quantities that
+    are stale by one physics substep (the last ``mj_step`` ran ``mj_forward`` from
+    *pre*-integration ``qpos``). In practice, the staleness is negligible for reward
+    shaping and termination checks. Critically, the staleness is *consistent*: every
+    env, every step, always sees the same lag, so the MDP is well-defined and the
+    value function can learn the correct mapping.
 
     .. note::
 
-      Event and command authors do not need to call ``sim.forward()``
-      themselves. This method handles it. The only constraint is: do not
-      read derived quantities (``root_link_pose_w``, ``body_link_vel_w``,
-      etc.) in the same function that writes state
-      (``write_root_state_to_sim``, ``write_joint_state_to_sim``, etc.).
-      See :ref:`faq` for details.
+      Event and command authors do not need to call ``sim.forward()`` themselves.
+      This method handles it. The only constraint is: do not read derived quantities
+      (``root_link_pose_w``, ``body_link_vel_w``, etc.) in the same function that
+      writes state (``write_root_state_to_sim``, ``write_joint_state_to_sim``,
+      etc.). See :ref:`faq` for details.
     """
+    if not self.cfg.auto_reset and torch.any(self._manual_reset_pending):
+      pending_ids = self._manual_reset_pending.nonzero(as_tuple=False).squeeze(-1)
+      raise RuntimeError(
+        f"Environments {pending_ids.cpu().tolist()} must be reset via "
+        "reset(env_ids=...) before calling step() again when auto_reset=False."
+      )
+
     self.action_manager.process_action(action.to(self.device))
 
     for _ in range(self.cfg.decimation):
@@ -408,7 +435,7 @@ class ManagerBasedRlEnv:
 
     # Reset envs that terminated/timed-out and log the episode info.
     reset_env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
-    if len(reset_env_ids) > 0:
+    if self.cfg.auto_reset and len(reset_env_ids) > 0:
       self.recorder_manager.record_pre_reset(reset_env_ids)
       self._reset_idx(reset_env_ids)
       self.scene.write_data_to_sim()
@@ -428,8 +455,12 @@ class ManagerBasedRlEnv:
 
     self.sim.sense()
     self.obs_buf = self.observation_manager.compute(update_history=True)
-    if len(reset_env_ids) > 0:
+
+    if self.cfg.auto_reset and len(reset_env_ids) > 0:
       self.recorder_manager.record_post_reset(reset_env_ids)
+    elif len(reset_env_ids) > 0:
+      self._manual_reset_pending[reset_env_ids] = True
+
     self.recorder_manager.record_post_step()
 
     return (
@@ -548,3 +579,4 @@ class ManagerBasedRlEnv:
     self.extras["log"].update(info)
     # reset the episode length buffer.
     self.episode_length_buf[env_ids] = 0
+    self._manual_reset_pending[env_ids] = False

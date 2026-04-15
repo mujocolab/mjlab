@@ -145,8 +145,8 @@ To see all registered tasks:
 
 .. code-block:: bash
 
-   uv run list_envs
-   uv run list_envs --keyword Velocity  # filter by keyword
+   uv run list-envs
+   uv run list-envs --keyword Velocity  # filter by keyword
 
 
 Hyperparameter sweeps
