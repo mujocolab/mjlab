@@ -149,7 +149,7 @@ def _apply_obs_cfg_from_env_yaml(env_cfg, env_yaml_path: str | Path) -> None:
         # update the nested dataclass properties in-place rather than replacing
         # the whole object with a raw dict.
         if is_dataclass(original) and isinstance(yaml_val, dict):
-          nested_fields = {f.name for f in fields(original)}
+          nested_fields = {f.name for f in fields(original) if f.init}
           for k, v in yaml_val.items():
             if k in nested_fields:
               nested_original = getattr(original, k)
