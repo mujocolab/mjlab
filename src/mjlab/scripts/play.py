@@ -10,6 +10,7 @@ from typing import Literal
 
 import torch
 import tyro
+
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
 from mjlab.tasks.registry import list_tasks, load_env_cfg, load_rl_cfg, load_runner_cls
@@ -154,11 +155,15 @@ def _apply_obs_cfg_from_env_yaml(env_cfg, env_yaml_path: str | Path) -> None:
               nested_original = getattr(original, k)
               setattr(original, k, v)
               if nested_original != v:
-                print(f"  {group_name}.{term_name}.{field_name}.{k} = {v!r} (was {nested_original!r})")
+                print(
+                  f"  {group_name}.{term_name}.{field_name}.{k} = {v!r} (was {nested_original!r})"
+                )
         else:
           setattr(term_cfg, field_name, yaml_val)
           if original != yaml_val:
-            print(f"  {group_name}.{term_name}.{field_name} = {yaml_val!r} (was {original!r})")
+            print(
+              f"  {group_name}.{term_name}.{field_name} = {yaml_val!r} (was {original!r})"
+            )
 
   print(f"[INFO]: Applied observation config from env.yaml: {env_yaml_path}")
 

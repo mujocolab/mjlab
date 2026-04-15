@@ -1,9 +1,11 @@
 import importlib
+import logging
 import re
 from pathlib import Path
 from typing import Dict
 
 import yaml
+import yaml.constructor
 
 
 class _CompatLoader(yaml.UnsafeLoader):
@@ -30,10 +32,12 @@ class _CompatLoader(yaml.UnsafeLoader):
             obj = getattr(obj, attr)
           return obj
         except (ImportError, AttributeError) as e:
-          import logging
           logging.getLogger(__name__).debug(
             "[DEBUG]: Could not resolve '%s' as module '%s' + attrs %s: %s",
-            name, module_name, attr_path, e,
+            name,
+            module_name,
+            attr_path,
+            e,
           )
           continue
       # Unresolvable (e.g. a serialised lambda or removed class) — return a
