@@ -29,10 +29,20 @@ class _CompatLoader(yaml.UnsafeLoader):
           for attr in attr_path:
             obj = getattr(obj, attr)
           return obj
-        except (ImportError, AttributeError):
+        except (ImportError, AttributeError) as e:
+          import logging
+          logging.getLogger(__name__).debug(
+            "[DEBUG]: Could not resolve '%s' as module '%s' + attrs %s: %s",
+            name, module_name, attr_path, e,
+          )
           continue
       # Unresolvable (e.g. a serialised lambda or removed class) — return a
       # no-op so the entry loads as None rather than crashing.
+      logging.getLogger(__name__).warning(
+        "[WARN]: Could not resolve Python name '%s' — loading as None. "
+        "This key will be missing from the loaded config.",
+        name,
+      )
       return lambda *_args, **_kwargs: None
 
 
