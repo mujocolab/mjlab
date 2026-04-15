@@ -48,6 +48,10 @@ class PlayConfig:
   viewer: Literal["auto", "native", "viser"] = "auto"
   no_terminations: bool = False
   """Disable all termination conditions (useful for viewing motions with dummy agents)."""
+  env_yaml: str | None = None
+  """Path to the env.yaml used during training, for restoring the observation
+  configuration (e.g. history lengths). Auto-resolved from the checkpoint directory
+  or W&B run when not provided. Use this to override the default resolution."""
 
   # Internal flag used by demo script.
   _demo_mode: tyro.conf.Suppress[bool] = False
