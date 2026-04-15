@@ -1,4 +1,5 @@
 import os
+import sys
 import traceback
 from importlib.metadata import entry_points
 from pathlib import Path
@@ -45,9 +46,10 @@ def _import_registered_packages() -> None:
       entry_point.load()
     except Exception:
       print(
-        f"[WARN] Failed to load task package '{entry_point.name}' ({entry_point.value}):"
+        f"[WARN] Failed to load task package '{entry_point.name}' ({entry_point.value}):",
+        file=sys.stderr,
       )
-      traceback.print_exc()
+      traceback.print_exc(file=sys.stderr)
 
 
 def _configure_mediapy() -> None:

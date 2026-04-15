@@ -2,6 +2,18 @@
 Changelog
 =========
 
+Upcoming version (not yet released)
+-----------------------------------
+
+Changed
+^^^^^^^
+
+- Task package load failures during ``mjlab`` import now print the full
+  traceback (and the entry point's module path) to ``stderr`` instead of
+  just the exception message, making it easier to pinpoint the source of
+  import errors when running commands like ``list-envs`` (:issue:`910`).
+  Contribution by @saikishor.
+
 Version 1.3.0 (April 14, 2026)
 ------------------------------
 
