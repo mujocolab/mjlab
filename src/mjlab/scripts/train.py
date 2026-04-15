@@ -175,8 +175,7 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
 
   if runner_cls is AmpOnPolicyRunner :
 
-    _PKG_DIR = Path(__file__).parent
-    PATH_MOTION_FILE = str(_PKG_DIR / "motions" / cfg.motion_file_amp) if cfg.motion_file_amp is not None else ""
+    PATH_MOTION_FILE = str(Path("motions") / cfg.motion_file_amp) if cfg.motion_file_amp is not None else ""
 
     discriminator_cfg = DiscriminatorCfg()
     discriminator_cfg.motion_file = PATH_MOTION_FILE
