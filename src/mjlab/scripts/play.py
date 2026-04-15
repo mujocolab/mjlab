@@ -3,19 +3,18 @@
 import os
 import sys
 import time as _time
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields, is_dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
 import torch
 import tyro
-
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
 from mjlab.tasks.registry import list_tasks, load_env_cfg, load_rl_cfg, load_runner_cls
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
-from mjlab.utils.os import get_wandb_checkpoint_path
+from mjlab.utils.os import get_wandb_checkpoint_path, get_wandb_env_yaml_path, load_yaml
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.utils.wrappers import VideoRecorder
 from mjlab.viewer import NativeMujocoViewer, ViserPlayViewer
@@ -57,62 +56,111 @@ class PlayConfig:
   _demo_mode: tyro.conf.Suppress[bool] = False
 
 
-def _apply_obs_history_from_checkpoint(env_cfg, checkpoint_path: str) -> None:
-  """Peek at a checkpoint and restore observation history lengths into env_cfg.
+def _apply_obs_cfg_from_env_yaml(env_cfg, env_yaml_path: str | Path) -> None:
+  """Load env.yaml and apply observation configuration to env_cfg.
 
-  Checkpoints saved by MjlabOnPolicyRunner store the observation group history
-  configuration in ``infos["env_state"]["obs_history_cfg"]``.  This function reads
-  that data and writes it back into *env_cfg* so the environment is constructed with
-  matching history lengths — no manual editing required.
+  Reads the ``observations`` section of the YAML file saved during training and
+  applies per-term and group-level settings (``history_length``,
+  ``flatten_history_dim`` etc) to *env_cfg*, so the environment is constructed with
+  the same observation layout as during training.
 
-  Silently no-ops when the checkpoint is old (pre-dating this feature) or the key is
-  absent for any other reason.
+  Raises:
+    FileNotFoundError: If *env_yaml_path* does not exist.
+    RuntimeError: If a group or term present in the YAML is absent from env_cfg, or
+      if the ``func`` reference for a term does not match.
   """
-  try:
-    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-    obs_history_cfg = (
-      ckpt.get("infos", {}).get("env_state", {}).get("obs_history_cfg", None)
+
+  env_yaml_path = Path(env_yaml_path)
+  if not env_yaml_path.exists():
+    raise FileNotFoundError(
+      f"env.yaml not found at '{env_yaml_path}'. "
+      "Pass --env-yaml <path> to specify it explicitly."
     )
-  except Exception as e:
-    print(f"[WARN]: Could not peek at checkpoint for obs history config: {e}")
-    return
 
-  if obs_history_cfg is None:
-    return
+  env_yaml = load_yaml(env_yaml_path)
 
-  for group_name, group_hist in obs_history_cfg.items():
+  yaml_observations: dict = env_yaml.get("observations") or {}
+
+  def _qualname(func) -> str:
+    return f"{func.__module__}.{func.__qualname__}"
+
+  for group_name, yaml_group in yaml_observations.items():
     if group_name not in env_cfg.observations:
-      continue
-    group = env_cfg.observations[group_name]
-    group_hl = group_hist.get("history_length")
-    if group_hl is not None:
-      # Group-level override: apply to the group and let the manager propagate.
-      group.history_length = group_hl
-      group.flatten_history_dim = group_hist.get("flatten_history_dim", True)
-      print(
-        f"[INFO]: Restored obs history for group '{group_name}': "
-        f"history_length={group_hl}"
+      raise RuntimeError(
+        f"Observation group '{group_name}' found in env.yaml is missing from "
+        f"env_cfg. Available groups: {list(env_cfg.observations.keys())}"
       )
-    else:
-      # No group-level override: restore per-term history lengths.
-      any_nonzero = False
-      for term_name, term_hist in group_hist.get("terms", {}).items():
-        term_hl = term_hist.get("history_length", 0)
-        if (
-          term_hl > 0
-          and term_name in group.terms
-          and group.terms[term_name] is not None
-        ):
-          group.terms[term_name].history_length = term_hl
-          group.terms[term_name].flatten_history_dim = term_hist.get(
-            "flatten_history_dim", True
-          )
-          any_nonzero = True
-      if any_nonzero:
-        print(
-          f"[INFO]: Restored per-term obs history for group '{group_name}' "
-          f"from checkpoint."
+
+    group_cfg = env_cfg.observations[group_name]
+
+    # Apply all group-level fields present in the YAML, skipping 'terms' which
+    # is handled below.
+    _GROUP_SKIP = {"terms"}
+    group_fields = {f.name for f in fields(group_cfg)}
+    for field_name in group_fields:
+      if field_name in _GROUP_SKIP or field_name not in yaml_group:
+        continue
+      setattr(group_cfg, field_name, yaml_group[field_name])
+
+    yaml_terms: dict = yaml_group.get("terms") or {}
+
+    # Drop terms that are in env_cfg but absent from the YAML — they were not
+    # present during training and would corrupt the observation dimension.
+    extra_terms = set(group_cfg.terms.keys()) - set(yaml_terms.keys())
+    for term_name in extra_terms:
+      print(
+        f"[WARN]: Dropping obs term '{group_name}.{term_name}' not present in "
+        f"env.yaml — it was not used during training."
+      )
+      del group_cfg.terms[term_name]
+
+    for term_name, yaml_term in yaml_terms.items():
+      if term_name not in group_cfg.terms:
+        raise RuntimeError(
+          f"Observation term '{group_name}.{term_name}' found in env.yaml is "
+          f"missing from env_cfg. Available terms: {list(group_cfg.terms.keys())}"
         )
+
+      term_cfg = group_cfg.terms[term_name]
+      yaml_func = yaml_term.get("func")
+
+      # Validate that the function reference hasn't changed.
+      if yaml_func is not None and term_cfg.func is not None:
+        yaml_qn = _qualname(yaml_func)
+        cfg_qn = _qualname(term_cfg.func)
+        if yaml_qn != cfg_qn:
+          raise RuntimeError(
+            f"Observation term '{group_name}.{term_name}': func mismatch. "
+            f"env.yaml references '{yaml_qn}' but env_cfg has '{cfg_qn}'."
+          )
+
+      # Apply all term-level fields present in the YAML, skipping 'func' and
+      # 'params' which come from the task config and are only validated, not
+      # overwritten.
+      _TERM_SKIP = {"func", "params"}
+      term_fields = {f.name for f in fields(term_cfg)}
+      for field_name in term_fields:
+        if field_name in _TERM_SKIP or field_name not in yaml_term:
+          continue
+        original = getattr(term_cfg, field_name)
+        yaml_val = yaml_term[field_name]
+        # If the existing field is a dataclass and the YAML value is a dict,
+        # update the nested dataclass properties in-place rather than replacing
+        # the whole object with a raw dict.
+        if is_dataclass(original) and isinstance(yaml_val, dict):
+          nested_fields = {f.name for f in fields(original)}
+          for k, v in yaml_val.items():
+            if k in nested_fields:
+              nested_original = getattr(original, k)
+              setattr(original, k, v)
+              if nested_original != v:
+                print(f"  {group_name}.{term_name}.{field_name}.{k} = {v!r} (was {nested_original!r})")
+        else:
+          setattr(term_cfg, field_name, yaml_val)
+          if original != yaml_val:
+            print(f"  {group_name}.{term_name}.{field_name} = {yaml_val!r} (was {original!r})")
+
+  print(f"[INFO]: Applied observation config from env.yaml: {env_yaml_path}")
 
 
 def run_play(task_id: str, cfg: PlayConfig):
@@ -213,7 +261,15 @@ def run_play(task_id: str, cfg: PlayConfig):
         f"[INFO]: Loading checkpoint: {checkpoint_name} (run: {run_id}, {cached_str})"
       )
     log_dir = resume_path.parent
-    _apply_obs_history_from_checkpoint(env_cfg, str(resume_path))
+
+    # Resolve env.yaml: explicit CLI path > auto-detect from run dir / W&B.
+    if cfg.env_yaml is not None:
+      env_yaml_path: Path = Path(cfg.env_yaml)
+    elif cfg.wandb_run_path is not None:
+      env_yaml_path = get_wandb_env_yaml_path(log_root_path, Path(cfg.wandb_run_path))
+    else:
+      env_yaml_path = resume_path.parent / "params" / "env.yaml"
+    _apply_obs_cfg_from_env_yaml(env_cfg, env_yaml_path)
 
   if cfg.num_envs is not None:
     env_cfg.scene.num_envs = cfg.num_envs
