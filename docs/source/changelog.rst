@@ -50,6 +50,11 @@ Fixed
   (e.g. bias drawn from the wrong ``bias_noise_cfg``), and missed
   ``reset()`` calls for overwritten instances. Instances are now keyed
   by ``(group_name, term_name)`` so each group owns its own noise model.
+- Fixed ``CurriculumManager.get_active_iterable_terms`` raising
+  ``TypeError`` when a term's state was a dict. The dict branch indexed
+  the output list by term name instead of appending to the local ``data``
+  list. No in-tree caller currently invokes this method, so the bug was
+  latent.
 
 Version 1.3.0 (April 14, 2026)
 ------------------------------

@@ -84,7 +84,7 @@ class CurriculumManager(ManagerBase):
           for _key, value in term_state.items():
             if isinstance(value, torch.Tensor):
               value = value.item()
-            terms[term_name].append(value)
+            data.append(value)
         else:
           if isinstance(term_state, torch.Tensor):
             term_state = term_state.item()
