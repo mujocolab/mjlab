@@ -253,8 +253,9 @@ class ObservationManager(ManagerBase):
           self._group_obs_term_history_buffer[group_name][term_name].reset(
             batch_ids=batch_ids
           )
-    for mod in self._group_obs_class_instances.values():
-      mod.reset(env_ids=env_ids)
+    for group_mods in self._group_obs_class_instances.values():
+      for mod in group_mods.values():
+        mod.reset(env_ids=env_ids)
     return {}
 
   def _check_and_handle_nans(
@@ -330,7 +331,7 @@ class ObservationManager(ManagerBase):
       if isinstance(term_cfg.noise, noise_cfg.NoiseCfg):
         obs = term_cfg.noise.apply(obs)
       elif isinstance(term_cfg.noise, noise_cfg.NoiseModelCfg):
-        obs = self._group_obs_class_instances[term_name](obs)
+        obs = self._group_obs_class_instances[group_name][term_name](obs)
       if term_cfg.clip:
         obs = obs.clip_(min=term_cfg.clip[0], max=term_cfg.clip[1])
       if term_cfg.scale is not None:
@@ -392,7 +393,7 @@ class ObservationManager(ManagerBase):
     self._group_obs_class_term_cfgs: dict[str, list[ObservationTermCfg]] = dict()
     self._group_obs_concatenate: dict[str, bool] = dict()
     self._group_obs_concatenate_dim: dict[str, int] = dict()
-    self._group_obs_class_instances: dict[str, noise_model.NoiseModel] = {}
+    self._group_obs_class_instances: dict[str, dict[str, noise_model.NoiseModel]] = {}
     self._group_obs_term_delay_buffer: dict[str, dict[str, DelayBuffer]] = dict()
     self._group_obs_term_history_buffer: dict[str, dict[str, CircularBuffer]] = dict()
 
@@ -406,6 +407,7 @@ class ObservationManager(ManagerBase):
       self._group_obs_term_dim[group_name] = list()
       self._group_obs_term_cfgs[group_name] = list()
       self._group_obs_class_term_cfgs[group_name] = list()
+      self._group_obs_class_instances[group_name] = {}
       group_entry_delay_buffer: dict[str, DelayBuffer] = dict()
       group_entry_history_buffer: dict[str, CircularBuffer] = dict()
 
@@ -452,7 +454,7 @@ class ObservationManager(ManagerBase):
             f"Class type for observation term '{term_name}' NoiseModelCfg"
             f" is not a subclass of 'NoiseModel'. Received: '{type(noise_model_cls)}'."
           )
-          self._group_obs_class_instances[term_name] = noise_model_cls(
+          self._group_obs_class_instances[group_name][term_name] = noise_model_cls(
             term_cfg.noise, num_envs=self._env.num_envs, device=self._env.device
           )
 

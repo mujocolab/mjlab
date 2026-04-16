@@ -41,6 +41,15 @@ Fixed
   notebook cell and verifies that every ``from mjlab... import X``
   reference resolves, so future renames in the mjlab public API can't
   silently rot the tutorials (:issue:`913`).
+- Fixed ``ObservationManager`` silently sharing a single ``NoiseModelCfg``
+  instance across observation groups that declared terms with the same
+  name. ``_group_obs_class_instances`` was keyed by term name alone, so
+  the last group processed in ``_prepare_terms`` overwrote earlier
+  groups' instances. Symptoms included the wrong noise config being
+  applied, shared per-episode state for ``NoiseModelWithAdditiveBias``
+  (e.g. bias drawn from the wrong ``bias_noise_cfg``), and missed
+  ``reset()`` calls for overwritten instances. Instances are now keyed
+  by ``(group_name, term_name)`` so each group owns its own noise model.
 
 Version 1.3.0 (April 14, 2026)
 ------------------------------
