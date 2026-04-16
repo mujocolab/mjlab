@@ -14,6 +14,16 @@ Changed
   import errors when running commands like ``list-envs`` (:issue:`910`).
   Contribution by @saikishor.
 
+Fixed
+^^^^^
+
+- Updated the ``create_new_task.ipynb`` Colab tutorial to import
+  ``XmlActuatorCfg`` instead of the removed ``XmlVelocityActuatorCfg``.
+  Added a regression test (``tests/test_notebooks.py``) that parses each
+  notebook cell and verifies that every ``from mjlab... import X``
+  reference resolves, so future renames in the mjlab public API can't
+  silently rot the tutorials (:issue:`913`).
+
 Version 1.3.0 (April 14, 2026)
 ------------------------------
 
