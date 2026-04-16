@@ -5,6 +5,14 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- Added ``ContactSensor.primary_names`` property to expose the resolved
+  primary names in the order they appear along the per-contact axis of the
+  output tensors. This makes it possible to map a contact-data column back
+  to the primary it belongs to (:issue:`914`).
+
 Changed
 ^^^^^^^
 
@@ -13,10 +21,20 @@ Changed
   just the exception message, making it easier to pinpoint the source of
   import errors when running commands like ``list-envs`` (:issue:`910`).
   Contribution by @saikishor.
+- Clarified ``ContactSensor`` shape conventions: per-contact fields
+  (``found``, ``force``, ``torque``, ``dist``, ``pos``, ``normal``,
+  ``tangent``) have shape ``[B, P * num_slots, ...]`` while per-primary
+  air-time fields (``current_air_time``, ``last_air_time``,
+  ``current_contact_time``, ``last_contact_time``) have shape ``[B, P]``,
+  where ``P`` is the number of resolved primaries (:issue:`914`).
 
 Fixed
 ^^^^^
 
+- Fixed a runtime broadcast error in ``ContactSensor`` when combining
+  ``num_slots > 1`` with ``track_air_time=True`` and more than one primary.
+  Air-time tracking now reduces ``found`` across slots so that a primary is
+  considered in contact when any of its slots reports a match (:issue:`914`).
 - Updated the ``create_new_task.ipynb`` Colab tutorial to import
   ``XmlActuatorCfg`` instead of the removed ``XmlVelocityActuatorCfg``.
   Added a regression test (``tests/test_notebooks.py``) that parses each

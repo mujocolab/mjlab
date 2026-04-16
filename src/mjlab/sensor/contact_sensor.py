@@ -1,4 +1,22 @@
-"""Contact sensors track collisions between geoms, bodies, or subtrees."""
+"""Contact sensors track collisions between geoms, bodies, or subtrees.
+
+A ``ContactSensor`` resolves regex patterns into a set of *primary* MuJoCo
+elements and (optionally) a single *secondary* element to filter against. Each
+physics step it pulls per-primary contact data from MuJoCo's native contact
+sensor and packages it into a batched ``ContactData`` dataclass.
+
+Shape conventions on ``ContactData``:
+
+- ``P`` = number of primary elements resolved from the pattern (see
+  :attr:`ContactSensor.primary_names` for the index→name mapping).
+- ``N`` = ``P * num_slots`` (per-contact axis, primary-major layout).
+- Per-contact fields (``found``, ``force``, ``torque``, ``dist``, ``pos``,
+  ``normal``, ``tangent``) have shape ``[B, N, ...]``.
+- Per-primary fields (``current_air_time`` etc.) have shape ``[B, P]``.
+
+Most users want the default ``num_slots=1``, in which case ``N == P`` and the
+two shape families coincide.
+"""
 
 from __future__ import annotations
 
@@ -51,10 +69,16 @@ _MODE_TO_OBJTYPE = {
 class ContactMatch:
   """Specifies what to match on one side of a contact.
 
-  mode: "geom", "body", or "subtree"
-  pattern: Regex or tuple of regexes (expands within entity if specified)
-  entity: Entity name to search within (None = treat pattern as literal MuJoCo name)
-  exclude: Filter out matches using these regex patterns or exact names.
+  Args:
+    mode: MuJoCo element type to match against ("geom", "body", or "subtree").
+    pattern: A regex (or tuple of regexes) matched against element names within
+      ``entity``. If ``entity`` is unset, the pattern is treated as a literal
+      MuJoCo name (no regex expansion).
+    entity: Entity name to scope the pattern to. If ``None``/``""``, the
+      pattern is taken as a literal MuJoCo name.
+    exclude: Names to filter out of the match. Each entry is treated as a
+      regex if it contains any regex metacharacters, otherwise as an exact
+      name.
   """
 
   mode: Literal["geom", "body", "subtree"]
@@ -65,25 +89,61 @@ class ContactMatch:
 
 @dataclass
 class ContactSensorCfg(SensorCfg):
-  """Tracks contacts between primary and secondary patterns.
+  """Configuration for a :class:`ContactSensor`.
 
-  Output shape: [B, N * num_slots] or [B, N * num_slots, 3] where N = # of primaries
+  A contact sensor watches contacts between a ``primary`` set of elements and
+  an optional ``secondary`` element. Patterns expand to multiple primaries
+  (e.g. all four feet on a quadruped); each primary becomes one column on the
+  per-contact axis of the output tensors.
 
-  Fields (choose subset):
-    - found: 0=no contact, >0=match count before reduction
-    - force, torque: 3D vectors in contact frame (or global if reduce="netforce")
-    - dist: penetration depth
-    - pos, normal, tangent: 3D vectors in global frame (normal: primary→secondary)
+  See the module docstring for shape conventions (``P``, ``N``, primary-major
+  layout) and :attr:`ContactSensor.primary_names` for index→name lookup.
 
-  Reduction modes (selects top num_slots from all matches):
-    - "none": fast, non-deterministic
-    - "mindist", "maxforce": closest/strongest contacts
-    - "netforce": sum all forces (global frame)
+  Args:
+    primary: Elements to measure (e.g. the robot's feet). Typically a regex
+      that resolves to multiple elements.
+    secondary: Optional filter on what the primary may contact (e.g. terrain).
+      ``None`` means "any contact with a primary counts".
+    fields: Which contact quantities to extract. Only requested fields are
+      allocated and computed; the rest are ``None`` on ``ContactData``.
 
-  Policies:
-    - secondary_policy: "first", "any", or "error" when secondary matches multiple
-    - track_air_time: enables landing/takeoff detection
-    - global_frame: rotates force/torque to global (requires normal+tangent fields)
+      - ``"found"``: 0 = no contact; >0 = number of matched contacts.
+      - ``"force"``, ``"torque"``: 3D vectors in the contact frame (or in the
+        global frame when ``reduce="netforce"`` or ``global_frame=True``).
+      - ``"dist"``: penetration depth (scalar).
+      - ``"pos"``, ``"normal"``, ``"tangent"``: 3D vectors in the global
+        frame (normal points primary → secondary).
+
+    reduce: How to collapse simultaneous contacts on the same primary down to
+      ``num_slots`` representative contacts.
+
+      - ``"none"``: fast, non-deterministic ordering.
+      - ``"mindist"``: keep the closest (deepest) contacts.
+      - ``"maxforce"``: keep the strongest contacts.
+      - ``"netforce"``: sum all contacts into a single net wrench (always
+        produces one slot per primary regardless of ``num_slots``).
+
+    num_slots: Number of contacts to retain per primary after reduction.
+      Almost always ``1``: most policies want one representative contact per
+      primary, and pattern expansion already gives you many primaries. Only
+      raise this when a single primary may have multiple distinct contacts
+      you want to inspect separately, paired with ``reduce`` in
+      ``{"none", "mindist", "maxforce"}``. Ignored by ``reduce="netforce"``.
+    secondary_policy: How to handle a secondary pattern that resolves to
+      multiple elements: ``"first"`` picks the first match, ``"any"`` drops
+      the secondary filter entirely, ``"error"`` raises.
+    track_air_time: Allocate per-primary air/contact time accumulators
+      (useful for gait rewards). Requires ``"found"`` in ``fields``. Slot
+      reduction within a primary uses an "any slot in contact" rule.
+    global_frame: Rotate ``force``/``torque`` from the contact frame to the
+      global frame. Requires ``"normal"`` and ``"tangent"`` in ``fields``.
+      Implicit when ``reduce="netforce"``.
+    history_length: If >0, keep a rolling buffer of the last N substeps of
+      ``force``/``torque``/``dist`` data. Set to your decimation value so the
+      buffer covers exactly one policy step; useful for catching brief
+      collisions that resolve mid-substep. ``0`` disables the buffer.
+    debug: Print each MuJoCo sensor as it is added to the spec. Useful for
+      checking that pattern expansion produced the elements you expected.
   """
 
   primary: ContactMatch
@@ -95,19 +155,6 @@ class ContactSensorCfg(SensorCfg):
   track_air_time: bool = False
   global_frame: bool = False
   history_length: int = 0
-  """Number of substeps to store in history buffer for force/torque/dist fields.
-
-  When 0 (default): No history buffer is allocated. History fields (force_history,
-  torque_history, dist_history) are None. Use the regular fields (force, torque, dist)
-  for the current instantaneous values.
-
-  When >0: Allocates a history buffer that stores the last N substeps of contact data.
-  Shape is [B, N, history_length, ...] where index 0 is the most recent substep.
-  Set to your decimation value to capture all substeps within one policy step.
-
-  Note: history_length=1 is redundant with the regular fields but provides a consistent
-  [B, N, H, ...] shape if your code expects a history dimension.
-  """
   debug: bool = False
 
   def build(self) -> ContactSensor:
@@ -126,7 +173,7 @@ class _ContactSlot:
 
 @dataclass
 class _AirTimeState:
-  """Tracks how long contacts have been in air/contact. Shape: [B, N]."""
+  """Tracks how long contacts have been in air/contact. Shape: [B, P]."""
 
   current_air_time: torch.Tensor
   last_air_time: torch.Tensor
@@ -137,7 +184,12 @@ class _AirTimeState:
 
 @dataclass
 class ContactData:
-  """Contact sensor output (only requested fields are populated)."""
+  """Contact sensor output (only requested fields are populated).
+
+  Shape conventions: P = number of primaries; N = P * num_slots (per-contact
+  fields are laid out primary-major). Air-time fields are per-primary and
+  reduce across slots (any slot in contact → primary in contact).
+  """
 
   found: torch.Tensor | None = None
   """[B, N] 0=no contact, >0=match count"""
@@ -155,13 +207,13 @@ class ContactData:
   """[B, N, 3] global frame"""
 
   current_air_time: torch.Tensor | None = None
-  """[B, N] time in air (if track_air_time=True)"""
+  """[B, P] time in air per primary (if track_air_time=True)"""
   last_air_time: torch.Tensor | None = None
-  """[B, N] duration of last air phase (if track_air_time=True)"""
+  """[B, P] duration of last air phase per primary (if track_air_time=True)"""
   current_contact_time: torch.Tensor | None = None
-  """[B, N] time in contact (if track_air_time=True)"""
+  """[B, P] time in contact per primary (if track_air_time=True)"""
   last_contact_time: torch.Tensor | None = None
-  """[B, N] duration of last contact phase (if track_air_time=True)"""
+  """[B, P] duration of last contact phase per primary (if track_air_time=True)"""
 
   force_history: torch.Tensor | None = None
   """[B, N, H, 3] contact forces over last H substeps (index 0 = most recent)"""
@@ -191,6 +243,16 @@ class ContactSensor(Sensor[ContactData]):
     self._air_time_state: _AirTimeState | None = None
     self._history_state: dict[str, torch.Tensor] | None = None
 
+  @property
+  def primary_names(self) -> list[str]:
+    """Primary names in the order they appear along the per-contact dim.
+
+    Per-contact fields ([B, N, ...]) are laid out primary-major, so primary
+    `primary_names[i]` occupies indices [i * num_slots : (i + 1) * num_slots].
+    Per-primary fields ([B, P, ...]) have one entry per name in this list.
+    """
+    return list(dict.fromkeys(slot.primary_name for slot in self._slots))
+
   def edit_spec(self, scene_spec: mujoco.MjSpec, entities: dict[str, Entity]) -> None:
     """Expand patterns and add MuJoCo sensors (one per primary x field pair)."""
     self._slots.clear()
@@ -203,6 +265,11 @@ class ContactSensor(Sensor[ContactData]):
         entities, self.cfg.secondary, self.cfg.secondary_policy
       )
 
+    # MuJoCo allows packing multiple fields into one contact sensor via the
+    # `dataspec` bitfield, but we register one sensor per (primary, field) pair
+    # so each sensor's `sensordata` block is laid out as `[B, num_slots * dim]`
+    # and `_extract_sensor_data` can reshape per field without computing
+    # per-field offsets within an interleaved per-slot layout.
     for prim in primary_names:
       for field in self.cfg.fields:
         sensor_name = f"{self.cfg.name}_{prim}_{field}"
@@ -239,9 +306,10 @@ class ContactSensor(Sensor[ContactData]):
     self._data = data
     self._device = device
 
+    n_primary = len(self.primary_names)
+
     if self.cfg.track_air_time:
       n_envs = data.time.shape[0]
-      n_primary = len(set(slot.primary_name for slot in self._slots))
       self._air_time_state = _AirTimeState(
         current_air_time=torch.zeros((n_envs, n_primary), device=device),
         last_air_time=torch.zeros((n_envs, n_primary), device=device),
@@ -252,7 +320,6 @@ class ContactSensor(Sensor[ContactData]):
 
     if self.cfg.history_length > 0:
       n_envs = data.time.shape[0]
-      n_primary = len(set(slot.primary_name for slot in self._slots))
       n_contacts = n_primary * self.cfg.num_slots
       h = self.cfg.history_length
       self._history_state = {}
@@ -309,7 +376,7 @@ class ContactSensor(Sensor[ContactData]):
       self._update_history()
 
   def compute_first_contact(self, dt: float, abs_tol: float = 1.0e-8) -> torch.Tensor:
-    """Returns [B, N] bool: True for contacts established within last dt seconds."""
+    """Returns [B, P] bool: True for primaries that landed within the last dt seconds."""
     if self._air_time_state is None:
       raise RuntimeError(
         f"Sensor '{self.cfg.name}' must have track_air_time=True "
@@ -320,7 +387,7 @@ class ContactSensor(Sensor[ContactData]):
     return is_in_contact & within_dt
 
   def compute_first_air(self, dt: float, abs_tol: float = 1.0e-8) -> torch.Tensor:
-    """Returns [B, N] bool: True for contacts broken within last dt seconds."""
+    """Returns [B, P] bool: True for primaries that took off within the last dt seconds."""
     if self._air_time_state is None:
       raise RuntimeError(
         f"Sensor '{self.cfg.name}' must have track_air_time=True "
@@ -387,7 +454,12 @@ class ContactSensor(Sensor[ContactData]):
     elapsed_time = current_time - self._air_time_state.last_time
     elapsed_time = elapsed_time.unsqueeze(-1)
 
-    is_contact = contact_data.found > 0
+    # Reduce `found` from [B, P*num_slots] to [B, P]: a primary is in contact
+    # if any of its slots reports a match. Air-time is tracked per primary.
+    found = contact_data.found
+    if self.cfg.num_slots > 1:
+      found = found.view(found.size(0), -1, self.cfg.num_slots).any(dim=-1)
+    is_contact = found > 0
 
     state = self._air_time_state
     is_first_contact = (state.current_air_time > 0) & is_contact
@@ -550,53 +622,55 @@ class ContactSensor(Sensor[ContactData]):
     reduce_mode = _CONTACT_REDUCE_MAP[self.cfg.reduce]
     intprm = [data_bits, reduce_mode, self.cfg.num_slots]
 
-    primary_entity = self.cfg.primary.entity
-    if primary_entity and primary_entity != "":
-      prefixed_primary = f"{primary_entity}/{primary_name}"
-    else:
-      prefixed_primary = primary_name
-
     kwargs: dict[str, Any] = {
       "name": sensor_name,
       "type": mujoco.mjtSensor.mjSENS_CONTACT,
       "objtype": _MODE_TO_OBJTYPE[self.cfg.primary.mode],
-      "objname": prefixed_primary,
+      "objname": _prefix_name(primary_name, self.cfg.primary.entity),
       "intprm": intprm,
     }
 
     if secondary_name is not None:
       assert self.cfg.secondary is not None
-      secondary_entity = self.cfg.secondary.entity
-      if secondary_entity and secondary_entity != "":
-        prefixed_secondary = f"{secondary_entity}/{secondary_name}"
-      else:
-        prefixed_secondary = secondary_name
       kwargs["reftype"] = _MODE_TO_OBJTYPE[self.cfg.secondary.mode]
-      kwargs["refname"] = prefixed_secondary
+      kwargs["refname"] = _prefix_name(secondary_name, self.cfg.secondary.entity)
 
     if self.cfg.debug:
-
-      def _ename(v):
-        return getattr(v, "name", str(v))
-
-      objtype_name = _ename(kwargs["objtype"]).removeprefix("mjOBJ_")
-      reftype_val = kwargs.get("reftype")
-      refname_val = kwargs.get("refname")
-      reftype_name = (
-        _ename(reftype_val).removeprefix("mjOBJ_")
-        if reftype_val is not None
-        else "<any>"
-      )
-
-      ref_str = "<any>" if refname_val is None else f"{reftype_name}:{refname_val}"
-
-      print(
-        "Adding contact sensor\n"
-        f"  name    : {sensor_name}\n"
-        f"  object  : {objtype_name}:{kwargs['objname']}\n"
-        f"  ref     : {ref_str}\n"
-        f"  field   : {field}  bits=0b{intprm[0]:b}\n"
-        f"  reduce  : {self.cfg.reduce}  num_slots={self.cfg.num_slots}"
-      )
+      self._print_debug(sensor_name, field, intprm, kwargs)
 
     scene_spec.add_sensor(**kwargs)
+
+  def _print_debug(
+    self,
+    sensor_name: str,
+    field: str,
+    intprm: list[int],
+    kwargs: dict[str, Any],
+  ) -> None:
+    objtype_name = _objtype_name(kwargs["objtype"])
+    reftype_val = kwargs.get("reftype")
+    refname_val = kwargs.get("refname")
+    if refname_val is None:
+      ref_str = "<any>"
+    else:
+      ref_str = f"{_objtype_name(reftype_val)}:{refname_val}"
+    print(
+      "Adding contact sensor\n"
+      f"  name    : {sensor_name}\n"
+      f"  object  : {objtype_name}:{kwargs['objname']}\n"
+      f"  ref     : {ref_str}\n"
+      f"  field   : {field}  bits=0b{intprm[0]:b}\n"
+      f"  reduce  : {self.cfg.reduce}  num_slots={self.cfg.num_slots}"
+    )
+
+
+def _prefix_name(name: str, entity: str | None) -> str:
+  """Prepend ``entity/`` to a MuJoCo name when an entity scope is set."""
+  if entity:
+    return f"{entity}/{name}"
+  return name
+
+
+def _objtype_name(objtype: Any) -> str:
+  """Pretty-print a MuJoCo object type, dropping the ``mjOBJ_`` prefix."""
+  return getattr(objtype, "name", str(objtype)).removeprefix("mjOBJ_")
