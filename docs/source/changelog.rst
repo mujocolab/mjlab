@@ -38,11 +38,12 @@ Fixed
   effective grid shape from ``terrain.terrain_origins`` and includes the
   border in the footprint, so robots no longer reset while still on valid
   terrain (or fail to reset after running off it) (:issue:`923`).
-- ``ObservationManager`` now raises a clear ``ValueError`` when an
-  observation group ends up with zero active terms (e.g. all terms set
-  to ``None``), instead of failing later with an opaque ``torch.stack``
-  or ``torch.cat`` error. To disable a group, set the entire group to
-  ``None``.
+- ``ObservationManager`` now skips observation groups that end up with
+  zero active terms (e.g. all terms set to ``None``) with a log message,
+  instead of crashing later in ``torch.stack``/``torch.cat``. This lets
+  a shared runner config define groups that become empty under certain
+  runtime flags (e.g. model-specific terms all disabled for one variant).
+  The whole group can still be set to ``None`` to disable it explicitly.
 - Fixed a runtime broadcast error in ``ContactSensor`` when combining
   ``num_slots > 1`` with ``track_air_time=True`` and more than one primary.
   Air-time tracking now reduces ``found`` across slots so that a primary is
