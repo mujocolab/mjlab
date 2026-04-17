@@ -31,6 +31,13 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ``out_of_terrain_bounds`` using stale terrain dimensions. It read
+  ``TerrainGeneratorCfg.num_cols`` directly, which is ignored in curriculum
+  mode (the generator uses ``len(sub_terrains)`` columns instead), and it
+  did not account for ``border_width``. The termination now reads the
+  effective grid shape from ``terrain.terrain_origins`` and includes the
+  border in the footprint, so robots no longer reset while still on valid
+  terrain (or fail to reset after running off it) (:issue:`923`).
 - ``ObservationManager`` now raises a clear ``ValueError`` when an
   observation group ends up with zero active terms (e.g. all terms set
   to ``None``), instead of failing later with an opaque ``torch.stack``

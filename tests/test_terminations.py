@@ -175,8 +175,13 @@ def mock_grid_terrain_env():
   terrain = Mock()
   terrain.cfg.terrain_type = "generator"
   terrain.cfg.terrain_generator.size = (8.0, 8.0)
-  terrain.cfg.terrain_generator.num_rows = 10
-  terrain.cfg.terrain_generator.num_cols = 10
+  terrain.cfg.terrain_generator.border_width = 0.0
+  # Config num_rows/num_cols may differ from the effective grid (e.g. curriculum
+  # mode sets num_cols = len(sub_terrains) regardless of cfg.num_cols). The
+  # termination should read terrain_origins, not the config fields.
+  terrain.cfg.terrain_generator.num_rows = 999
+  terrain.cfg.terrain_generator.num_cols = 999
+  terrain.terrain_origins = torch.zeros(10, 10, 3, device=device)
 
   env.scene.terrain = terrain
 
@@ -199,3 +204,13 @@ def test_out_of_terrain_bounds_outside(mock_grid_terrain_env):
   asset.data.root_link_pos_w[2, 0] = 40.0
   result = out_of_terrain_bounds(env)
   assert result[2] and not result[0] and not result[1] and not result[3]
+
+
+def test_out_of_terrain_bounds_includes_border_width(mock_grid_terrain_env):
+  env, asset = mock_grid_terrain_env
+  # 2m flat border extends the footprint: half_x = 40 + 2 = 42m.
+  env.scene.terrain.cfg.terrain_generator.border_width = 2.0
+  asset.data.root_link_pos_w[0, 0] = 41.0  # Inside border, should not fire.
+  asset.data.root_link_pos_w[1, 0] = 42.0  # Past border edge (limit 41.7m).
+  result = out_of_terrain_bounds(env)
+  assert not result[0] and result[1]
