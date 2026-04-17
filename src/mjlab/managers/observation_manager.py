@@ -483,5 +483,12 @@ class ObservationManager(ManagerBase):
             obs_dims = (obs_dims[0], int(np.prod(obs_dims[1:])))
 
         self._group_obs_term_dim[group_name].append(obs_dims[1:])
+
+      if not self._group_obs_term_names[group_name]:
+        raise ValueError(
+          f"Observation group '{group_name}' has no active terms. "
+          "Set the entire group to None to disable it."
+        )
+
       self._group_obs_term_delay_buffer[group_name] = group_entry_delay_buffer
       self._group_obs_term_history_buffer[group_name] = group_entry_history_buffer
