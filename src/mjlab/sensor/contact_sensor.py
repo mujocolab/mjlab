@@ -375,7 +375,7 @@ class ContactSensor(Sensor[ContactData]):
     if self._history_state is not None:
       self._update_history()
 
-  def compute_first_contact(self, dt: float, abs_tol: float = 1.0e-8) -> torch.Tensor:
+  def compute_first_contact(self, dt: float, abs_tol: float = 1.0e-6) -> torch.Tensor:
     """Returns [B, P] bool: True for primaries that landed within the last dt seconds."""
     if self._air_time_state is None:
       raise RuntimeError(
@@ -386,7 +386,7 @@ class ContactSensor(Sensor[ContactData]):
     within_dt = self._air_time_state.current_contact_time < (dt + abs_tol)
     return is_in_contact & within_dt
 
-  def compute_first_air(self, dt: float, abs_tol: float = 1.0e-8) -> torch.Tensor:
+  def compute_first_air(self, dt: float, abs_tol: float = 1.0e-6) -> torch.Tensor:
     """Returns [B, P] bool: True for primaries that took off within the last dt seconds."""
     if self._air_time_state is None:
       raise RuntimeError(
