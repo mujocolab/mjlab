@@ -232,17 +232,17 @@ class Simulation:
       per_world_mesh,
     )
 
-    result = per_world_mesh(
-      spec,
-      self.num_envs,
-      variant_info,
-      configure_model=self.cfg.mujoco.apply,
-    )
-    self._mj_model = result.mj_model
-    self._mj_data = mujoco.MjData(self._mj_model)
-    mujoco.mj_forward(self._mj_model, self._mj_data)
-
     with wp.ScopedDevice(self.wp_device):
+      result = per_world_mesh(
+        spec,
+        self.num_envs,
+        variant_info,
+        configure_model=self.cfg.mujoco.apply,
+      )
+      self._mj_model = result.mj_model
+      self._mj_data = mujoco.MjData(self._mj_model)
+      mujoco.mj_forward(self._mj_model, self._mj_data)
+
       self._wp_model = result.wp_model
       self._wp_model.opt.ls_parallel = self.cfg.ls_parallel
       self._wp_model.opt.contact_sensor_maxmatch = self.cfg.contact_sensor_maxmatch
