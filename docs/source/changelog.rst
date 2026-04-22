@@ -31,6 +31,14 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ``ContactSensor.compute_first_contact`` and ``compute_first_air``
+  occasionally missing events when a contact began or ended right at the
+  last physics substep of a control step. ``current_contact_time`` /
+  ``current_air_time`` accumulate in float32 and can drift a few ULPs past
+  ``dt``, but the default ``abs_tol`` of ``1e-8`` sat at the noise floor
+  and rejected the comparison. Raised the default to ``1e-6``, which stays
+  well below typical control ``dt`` while comfortably covering float32
+  accumulation noise (:issue:`933`). Contribution by @paLeziart.
 - Fixed ``out_of_terrain_bounds`` using stale terrain dimensions. It read
   ``TerrainGeneratorCfg.num_cols`` directly, which is ignored in curriculum
   mode (the generator uses ``len(sub_terrains)`` columns instead), and it
