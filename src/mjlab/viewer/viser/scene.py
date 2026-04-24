@@ -150,6 +150,55 @@ class _VariantMeshGroup:
   mocap_ids: list[int] = field(default_factory=list)
 
 
+@dataclass
+class _PerWorldHullGroup:
+  """One convex-hull handle covering the envs that share a hull variant."""
+
+  handle: viser.BatchedMeshHandle
+  body_id: int
+  env_ids: np.ndarray
+
+
+def _compute_body_hull(
+  mj_model: mujoco.MjModel, geom_ids: list[int]
+) -> trimesh.Trimesh | None:
+  """Compute a merged convex hull for a body's mesh geoms.
+
+  Bypasses ``mjviser.merge_geoms_hull`` (which reads ``mesh_polynum`` and
+  returns ``None`` for any mesh that MuJoCo didn't compile polygon data for --
+  a situation that arises for later per-world-mesh variants). Uses the raw
+  ``mesh_vert`` / ``mesh_face`` arrays and trimesh's convex hull instead.
+  """
+  pieces: list[trimesh.Trimesh] = []
+  for geom_id in geom_ids:
+    if int(mj_model.geom_type[geom_id]) != int(mjtGeom.mjGEOM_MESH):
+      continue
+    mesh_id = int(mj_model.geom_dataid[geom_id])
+    if mesh_id < 0:
+      continue
+    vert_start = int(mj_model.mesh_vertadr[mesh_id])
+    vert_count = int(mj_model.mesh_vertnum[mesh_id])
+    if vert_count < 4:
+      continue
+    vertices = mj_model.mesh_vert[vert_start : vert_start + vert_count].copy()
+    try:
+      piece = trimesh.PointCloud(vertices).convex_hull
+    except Exception:
+      continue
+    transform = np.eye(4)
+    transform[:3, :3] = vtf.SO3(mj_model.geom_quat[geom_id]).as_matrix()
+    transform[:3, 3] = mj_model.geom_pos[geom_id]
+    piece.apply_transform(transform)
+    pieces.append(piece)
+  if not pieces:
+    return None
+  merged = pieces[0] if len(pieces) == 1 else trimesh.util.concatenate(pieces)
+  try:
+    return merged.convex_hull
+  except Exception:
+    return merged
+
+
 class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
   """ViserMujocoScene with debug visualization and warp tensor conversion.
 
@@ -170,6 +219,10 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
     self._use_per_world_mesh_groups = bool(
       self._expanded_fields & _GEOMETRY_HANDLE_FIELDS
     )
+    # Populated by _build_hull_handles when per-world variants are active.
+    # Initialized here because ViserMujocoScene.__init__ calls our overrides
+    # of _compute_hull_body_meshes / _build_hull_handles during super().__init__.
+    self._hull_per_world_groups: list[_PerWorldHullGroup] = []
     if self._sim_model is not None:
       sync_visual_fields(mj_model, self._sim_model, self._expanded_fields, 0)
       disable_model_sameframe_shortcuts(mj_model)
@@ -408,6 +461,153 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
         )
 
   @override
+  def _compute_hull_body_meshes(self) -> None:
+    """Record hull-bearing bodies across all variants; meshes built lazily."""
+    if not self._use_per_world_mesh_groups:
+      super()._compute_hull_body_meshes()
+      return
+    # Upstream caches one merged hull per body from the current mj_model.
+    # With per-world variants each env can have a different set of active
+    # mesh slots, so the actual hulls are computed per-variant in
+    # _build_hull_handles. Here we just record which bodies carry mesh hulls
+    # in any env so mjviser's _sync_visibilities / _hull_hide_meshes logic
+    # still has the right body set.
+    self._hull_body_meshes = {}
+    hull_bodies: set[int] = set()
+    for env_idx in range(self.num_envs):
+      self._sync_model_fields(env_idx)
+      for geom_id in range(self.mj_model.ngeom):
+        if int(self.mj_model.geom_type[geom_id]) != int(mjtGeom.mjGEOM_MESH):
+          continue
+        if int(self.mj_model.geom_dataid[geom_id]) < 0:
+          continue
+        hull_bodies.add(int(self.mj_model.geom_bodyid[geom_id]))
+    self._sync_model_fields(self.env_idx)
+    self._hull_mesh_bodies = hull_bodies
+
+  @override
+  def _build_hull_handles(self) -> None:
+    """Build one batched hull handle per (body, variant) across envs."""
+    if not self._use_per_world_mesh_groups:
+      super()._build_hull_handles()
+      return
+
+    color = np.array(self._hull_color, dtype=np.uint8)
+    opacity = float(self._hull_opacity)
+
+    # Group envs by (body_id, hull fingerprint). Fingerprint captures the
+    # fields that merge_geoms_hull actually reads (geom_dataid + local
+    # geom_pos/quat), so any two envs with identical fingerprints share the
+    # same hull mesh in body-local space.
+    variants: dict[tuple[int, tuple], dict[str, Any]] = {}
+    fixed_hull_bodies: dict[int, list[int]] = {}
+
+    for env_idx in range(self.num_envs):
+      self._sync_model_fields(env_idx)
+      body_geoms: dict[int, list[int]] = {}
+      for geom_id in range(self.mj_model.ngeom):
+        if int(self.mj_model.geom_type[geom_id]) != int(mjtGeom.mjGEOM_MESH):
+          continue
+        if int(self.mj_model.geom_dataid[geom_id]) < 0:
+          continue
+        body_id = int(self.mj_model.geom_bodyid[geom_id])
+        body_geoms.setdefault(body_id, []).append(geom_id)
+
+      for body_id, geom_ids in body_geoms.items():
+        if is_fixed_body(self.mj_model, body_id):
+          # Fixed bodies don't need per-env batching; defer to upstream
+          # single-hull path using env_idx 0 (already the default).
+          if env_idx == 0:
+            fixed_hull_bodies[body_id] = geom_ids
+          continue
+        fingerprint = tuple(
+          (
+            int(self.mj_model.geom_dataid[gid]),
+            tuple(float(x) for x in self.mj_model.geom_pos[gid].round(6)),
+            tuple(float(x) for x in self.mj_model.geom_quat[gid].round(6)),
+          )
+          for gid in geom_ids
+        )
+        key = (body_id, fingerprint)
+        v = variants.get(key)
+        if v is None:
+          hull = _compute_body_hull(self.mj_model, geom_ids)
+          if hull is None:
+            continue
+          v = {
+            "body_id": body_id,
+            "vertices": hull.vertices.astype(np.float32),
+            "faces": hull.faces.astype(np.int32),
+            "env_ids": [],
+          }
+          variants[key] = v
+        v["env_ids"].append(env_idx)
+
+    # Fixed bodies: build one hull handle each (same body-local mesh for all
+    # envs since the body is welded). Uses env 0's synced state which is the
+    # default after the loop below.
+    self._sync_model_fields(self.env_idx)
+    for body_id, geom_ids in fixed_hull_bodies.items():
+      hull = _compute_body_hull(self.mj_model, geom_ids)
+      if hull is None:
+        continue
+      body = self.mj_model.body(body_id)
+      fixed_opacities = (
+        None if opacity >= 1.0 else np.array([opacity], dtype=np.float32)
+      )
+      handle = self.server.scene.add_batched_meshes_simple(
+        f"/fixed_bodies/hull/{body_id}",
+        hull.vertices.astype(np.float32),
+        hull.faces.astype(np.int32),
+        batched_wxyzs=np.array([[1.0, 0.0, 0.0, 0.0]], dtype=np.float32),
+        batched_positions=np.zeros((1, 3), dtype=np.float32),
+        batched_colors=color[None],
+        batched_opacities=fixed_opacities,
+        position=body.pos,
+        wxyz=body.quat,
+        visible=self._show_convex_hull,
+        cast_shadow=False,
+        receive_shadow=False,
+        lod="off",
+      )
+      self._hull_fixed_handles[body_id] = handle
+
+    self._hull_dynamic_handles = []
+    self._hull_per_world_groups = []
+    for variant_idx, ((body_id, _fp), v) in enumerate(variants.items()):
+      env_ids = np.asarray(v["env_ids"], dtype=np.int32)
+      batch_count = int(env_ids.size)
+      dynamic_opacities = (
+        None if opacity >= 1.0 else np.full(batch_count, opacity, dtype=np.float32)
+      )
+      handle = self.server.scene.add_batched_meshes_simple(
+        f"/hull/{body_id}/variant{variant_idx}",
+        v["vertices"],
+        v["faces"],
+        batched_wxyzs=np.tile([1.0, 0.0, 0.0, 0.0], (batch_count, 1)).astype(
+          np.float32
+        ),
+        batched_positions=np.zeros((batch_count, 3), dtype=np.float32),
+        batched_colors=np.tile(color, (batch_count, 1)),
+        batched_opacities=dynamic_opacities,
+        visible=self._show_convex_hull,
+        cast_shadow=False,
+        receive_shadow=False,
+        lod="off",
+      )
+      self._hull_per_world_groups.append(
+        _PerWorldHullGroup(handle=handle, body_id=body_id, env_ids=env_ids)
+      )
+      # Also register in the upstream list so show_convex_hull.setter and
+      # any other base-class consumer still see every dynamic hull handle.
+      self._hull_dynamic_handles.append((handle, body_id))
+
+  @override
+  def _clear_hull_handles(self) -> None:
+    super()._clear_hull_handles()
+    self._hull_per_world_groups = []
+
+  @override
   def _update_visualization_locked(
     self,
     body_xpos: np.ndarray,
@@ -501,14 +701,22 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
         handle.batched_wxyzs = quat
 
       if self._show_convex_hull:
-        for handle, body_id in self._hull_dynamic_handles:
-          if not handle.visible:
+        for hg in self._hull_per_world_groups:
+          env_ids = hg.env_ids
+          body_id = hg.body_id
+          if slice_single:
+            mask = env_ids == env_idx
+            if not np.any(mask):
+              hg.handle.visible = False
+              continue
+            env_ids = env_ids[mask]
+          elif not hg.handle.visible:
             continue
-          pos, quat = self._batched_transform(
-            body_xpos, body_xquat, body_id, env_idx, scene_offset, slice_single
-          )
-          handle.batched_positions = pos
-          handle.batched_wxyzs = quat
+          pos = body_xpos[env_ids, body_id] + scene_offset
+          quat = body_xquat[env_ids, body_id]
+          hg.handle.batched_positions = pos
+          hg.handle.batched_wxyzs = quat
+          hg.handle.visible = True
 
       if self._any_decor_visible() and mj_data is not None:
         self._update_decor_from_mjvscene(mj_data, scene_offset)

@@ -504,6 +504,126 @@ def test_viser_builds_per_world_mesh_handles_for_variants():
     env.close()
 
 
+def test_viser_convex_hulls_are_per_variant():
+  """Convex-hull handles must differ across variants, not all show env0's hull."""
+  from contextlib import nullcontext
+
+  from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
+  from mjlab.scene import SceneCfg
+  from mjlab.terrains import TerrainEntityCfg
+  from mjlab.viewer.viser.scene import MjlabViserScene, _PerWorldHullGroup
+
+  class _Handle:
+    def __init__(self, **kwargs):
+      self.visible = kwargs.get("visible", True)
+      self.batched_positions = kwargs.get("batched_positions", np.zeros((0, 3)))
+      self.batched_wxyzs = kwargs.get("batched_wxyzs", np.zeros((0, 4)))
+      self.batched_scales = kwargs.get("batched_scales")
+      self.batched_colors = kwargs.get("batched_colors")
+      self.batched_opacities = kwargs.get("batched_opacities")
+      self.position = kwargs.get("position", np.zeros(3))
+      self.wxyz = kwargs.get("wxyz", np.array([1.0, 0.0, 0.0, 0.0]))
+      self.vertices = kwargs.get("vertices")
+      self.faces = kwargs.get("faces")
+
+    def remove(self) -> None:
+      pass
+
+  class _Scene:
+    def __init__(self):
+      self.batched: list[tuple[tuple, dict, _Handle]] = []
+
+    def configure_environment_map(self, **_kwargs) -> None:
+      pass
+
+    def add_frame(self, *_args, **kwargs) -> _Handle:
+      return _Handle(**kwargs)
+
+    def add_grid(self, *_args, **kwargs) -> _Handle:
+      return _Handle(**kwargs)
+
+    def add_mesh_trimesh(self, *_args, **kwargs) -> _Handle:
+      return _Handle(**kwargs)
+
+    def add_batched_meshes_trimesh(self, *args, **kwargs) -> _Handle:
+      handle = _Handle(**kwargs)
+      self.batched.append((args, kwargs, handle))
+      return handle
+
+    def add_batched_meshes_simple(self, path, vertices, faces, **kwargs) -> _Handle:
+      # Capture the mesh identity so the test can compare hull shapes.
+      kwargs = dict(kwargs)
+      kwargs["vertices"] = np.asarray(vertices)
+      kwargs["faces"] = np.asarray(faces)
+      handle = _Handle(**kwargs)
+      self.batched.append(((path,), kwargs, handle))
+      return handle
+
+  class _Server:
+    def __init__(self):
+      self.scene = _Scene()
+
+    def atomic(self):
+      return nullcontext()
+
+    def flush(self) -> None:
+      pass
+
+  # Sphere and cone produce visibly different convex hulls.
+  env_cfg = ManagerBasedRlEnvCfg(
+    decimation=1,
+    scene=SceneCfg(
+      terrain=TerrainEntityCfg(terrain_type="plane"),
+      num_envs=4,
+      env_spacing=1.0,
+      entities={
+        "object": VariantEntityCfg(
+          variants={
+            "sphere": VariantCfg(_simple_sphere_spec, weight=0.5),
+            "cone": VariantCfg(_simple_cone_spec, weight=0.5),
+          },
+          init_state=EntityCfg.InitialStateCfg(pos=(0.0, 0.0, 0.2)),
+        )
+      },
+    ),
+  )
+
+  env = ManagerBasedRlEnv(cfg=env_cfg, device="cpu")
+  try:
+    server = _Server()
+    scene = MjlabViserScene(
+      server,
+      env.sim.mj_model,
+      env.num_envs,
+      sim_model=env.sim.model,
+      expanded_fields=env.sim.expanded_fields,
+    )
+    groups: list[_PerWorldHullGroup] = list(scene._hull_per_world_groups)
+    # Two distinct variants -> at least two hull handles on the same body.
+    assert len(groups) >= 2, f"expected >=2 hull variants, got {len(groups)}"
+    all_envs = np.concatenate([g.env_ids for g in groups])
+    assert sorted(all_envs.tolist()) == list(range(env.num_envs))
+    # Hulls must be shape-distinct, not all copies of env0's hull.
+    shapes = {(g.handle.vertices.shape, g.handle.faces.shape) for g in groups}
+    assert len(shapes) >= 2, (
+      f"hull variants collapsed to one shape: {shapes} "
+      "(all envs would share env0's hull)"
+    )
+
+    body_xpos = env.sim.data.xpos.cpu().numpy()
+    body_xmat = env.sim.data.xmat.cpu().numpy()
+    scene.show_convex_hull = True
+    scene.show_only_selected = True
+    for target_env in range(env.num_envs):
+      scene.update_from_arrays(body_xpos, body_xmat, env_idx=target_env)
+      visible_groups = [g for g in groups if g.handle.visible]
+      assert len(visible_groups) == 1
+      assert target_env in visible_groups[0].env_ids
+      assert visible_groups[0].handle.batched_positions.shape[0] == 1
+  finally:
+    env.close()
+
+
 # ---------------------------------------------------------------------------
 # Full env lifecycle
 # ---------------------------------------------------------------------------
