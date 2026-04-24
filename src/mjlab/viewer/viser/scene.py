@@ -710,8 +710,6 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
               hg.handle.visible = False
               continue
             env_ids = env_ids[mask]
-          elif not hg.handle.visible:
-            continue
           pos = body_xpos[env_ids, body_id] + scene_offset
           quat = body_xquat[env_ids, body_id]
           hg.handle.batched_positions = pos

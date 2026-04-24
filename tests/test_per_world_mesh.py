@@ -276,6 +276,13 @@ def test_padding_slots_get_disabled():
   # Last 2 mesh geom slots should be -1 (disabled padding).
   assert sphere_dataid[-1] == -1
   assert sphere_dataid[-2] == -1
+  # Padding slots must still be collision-enabled in the template/warp model.
+  # Short variants are disabled by per-world dataid=-1; long variants need the
+  # same slots enabled so their extra hulls can collide.
+  assert np.all(result.mj_model.geom_contype[mesh_geom_ids[-2:]] == 1)
+  assert np.all(result.mj_model.geom_conaffinity[mesh_geom_ids[-2:]] == 1)
+  assert np.all(result.wp_model.geom_contype.numpy()[mesh_geom_ids[-2:]] == 1)
+  assert np.all(result.wp_model.geom_conaffinity.numpy()[mesh_geom_ids[-2:]] == 1)
   # First 3 should be valid (>= 0).
   assert all(d >= 0 for d in sphere_dataid[:3])
 
@@ -620,6 +627,10 @@ def test_viser_convex_hulls_are_per_variant():
       assert len(visible_groups) == 1
       assert target_env in visible_groups[0].env_ids
       assert visible_groups[0].handle.batched_positions.shape[0] == 1
+
+    scene.show_only_selected = False
+    scene.update_from_arrays(body_xpos, body_xmat, env_idx=0)
+    assert all(g.handle.visible for g in groups)
   finally:
     env.close()
 

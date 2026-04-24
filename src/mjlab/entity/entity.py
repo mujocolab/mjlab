@@ -331,8 +331,8 @@ class Entity:
         geom = template_body.add_geom()
         geom.type = mujoco.mjtGeom.mjGEOM_MESH
         geom.meshname = f"{longest_prefix}{longest_names[k]}"
-        geom.contype = 0
-        geom.conaffinity = 0
+        geom.contype = 1
+        geom.conaffinity = 1
 
     # Build variant_mesh_names: use original names with variant prefix.
     variant_mesh_name_lists: list[tuple[str | None, ...]] = []
