@@ -5,8 +5,8 @@ or torus. Objects fall onto a ground plane with randomized colors.
 
 Run with:
   uv run mjpython scripts/demos/per_world_mesh.py                  # macOS
-  uv run python scripts/demos/per_world_mesh.py                    # Linux
-  uv run python scripts/demos/per_world_mesh.py --viewer viser     # Viser
+  uv run scripts/demos/per_world_mesh.py                           # Linux
+  uv run scripts/demos/per_world_mesh.py --viewer viser            # Viser
 """
 
 from __future__ import annotations
@@ -155,15 +155,6 @@ def create_env_cfg() -> ManagerBasedRlEnvCfg:
           "asset_cfg": SceneEntityCfg("object"),
         },
       ),
-      "randomize_mass": EventTermCfg(
-        func=dr.body_mass,
-        mode="startup",
-        params={
-          "ranges": (0.8, 1.2),
-          "operation": "scale",
-          "asset_cfg": SceneEntityCfg("object"),
-        },
-      ),
     },
     sim=SimulationCfg(mujoco=MujocoCfg(timestep=0.002)),
     episode_length_s=5.0,
@@ -184,8 +175,10 @@ class ZeroPolicy:
     return torch.zeros(1, 0)
 
 
-def main(device: str = "cpu", viewer: str = "auto") -> None:
+def main(device: str | None = None, viewer: str = "auto") -> None:
   configure_torch_backends()
+  if device is None:
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
   env_cfg = create_env_cfg()
   env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
