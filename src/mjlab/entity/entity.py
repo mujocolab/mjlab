@@ -79,6 +79,17 @@ class VariantCfg:
   weight: float = 1.0
 
 
+@dataclass(frozen=True)
+class BodyInertialMetadata:
+  """Explicit inertial properties for one body in a mesh variant."""
+
+  body_name: str
+  mass: float
+  ipos: tuple[float, float, float]
+  inertia: tuple[float, float, float]
+  iquat: tuple[float, float, float, float]
+
+
 @dataclass
 class VariantMetadata:
   """Bookkeeping produced by Entity when merging variant specs."""
@@ -89,6 +100,34 @@ class VariantMetadata:
   # have None for padding slots that should be disabled (dataid = -1).
   variant_mesh_names: tuple[tuple[str | None, ...], ...]
   num_mesh_geoms: int  # Max mesh geom count after padding.
+  # Per-variant explicit body inertials. Names are local to the variant spec;
+  # per_world_mesh prefixes them with the scene entity name when applying them.
+  variant_body_inertials: tuple[tuple[BodyInertialMetadata, ...], ...] = ()
+
+
+def _iter_body_tree(body: mujoco.MjsBody):
+  yield body
+  for child in body.bodies:
+    yield from _iter_body_tree(child)
+
+
+def _collect_explicit_body_inertials(
+  root_body: mujoco.MjsBody,
+) -> tuple[BodyInertialMetadata, ...]:
+  inertials: list[BodyInertialMetadata] = []
+  for body in _iter_body_tree(root_body):
+    if not body.name or not body.explicitinertial:
+      continue
+    inertials.append(
+      BodyInertialMetadata(
+        body_name=body.name,
+        mass=float(body.mass),
+        ipos=tuple(float(x) for x in body.ipos),
+        inertia=tuple(float(x) for x in body.inertia),
+        iquat=tuple(float(x) for x in body.iquat),
+      )
+    )
+  return tuple(inertials)
 
 
 @dataclass
@@ -241,6 +280,9 @@ class Entity:
       variant_bodies.append(children[0])
 
     validate_variant_structure(variant_names, variant_bodies)
+    variant_body_inertials = tuple(
+      _collect_explicit_body_inertials(body) for body in variant_bodies
+    )
 
     # Collect original mesh names per variant BEFORE any renaming.
     variant_orig_mesh_names: list[list[str]] = []
@@ -291,8 +333,8 @@ class Entity:
         geom = template_body.add_geom()
         geom.type = mujoco.mjtGeom.mjGEOM_MESH
         geom.meshname = f"{longest_prefix}{longest_names[k]}"
-        geom.contype = 0
-        geom.conaffinity = 0
+        geom.contype = 1
+        geom.conaffinity = 1
 
     # Build variant_mesh_names: use original names with variant prefix.
     variant_mesh_name_lists: list[tuple[str | None, ...]] = []
@@ -308,6 +350,7 @@ class Entity:
       variant_weights=tuple(variant_weights),
       variant_mesh_names=tuple(variant_mesh_name_lists),
       num_mesh_geoms=max_mesh_geoms,
+      variant_body_inertials=variant_body_inertials,
     )
     self._spec = template_spec
 

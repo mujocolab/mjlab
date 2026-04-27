@@ -52,6 +52,14 @@ import mujoco.viewer
 import numpy as np
 import torch
 
+from mjlab.viewer._model_sync import (
+  INERTIAL_FIELDS,
+  VISUAL_FIELDS,
+  sync_visual_fields,
+)
+from mjlab.viewer._model_sync import (
+  disable_model_sameframe_shortcuts as _disable_model_sameframe_shortcuts,
+)
 from mjlab.viewer.base import (
   BaseViewer,
   EnvProtocol,
@@ -110,25 +118,6 @@ class _SimProtocol(Protocol):
   data: _SimDataProtocol
   model: _SimModelProtocol
   expanded_fields: set[str]
-
-
-def _disable_model_sameframe_shortcuts(model: mujoco.MjModel) -> None:
-  """Force MuJoCo's host model down the full local-to-global transform path.
-
-  ``mujoco_warp`` does not implement MuJoCo's ``*_sameframe`` shortcuts: its
-  kinematics kernels always apply the full transform for inertial frames,
-  geoms, and sites. Clearing these compile-time flags on the CPU viewer model
-  keeps host-side ``mj_forward`` consistent with the GPU path when per-world
-  mesh variants change local offsets and frame alignments.
-  """
-  none = mujoco.mjtSameFrame.mjSAMEFRAME_NONE.value
-  model.body_sameframe[:] = none
-  model.geom_sameframe[:] = none
-  model.site_sameframe[:] = none
-  # ``body_simple`` is another compile-time shortcut derived from
-  # ``body_sameframe``. Clear it too so host-side inertia code does not assume
-  # the original compiled alignment.
-  model.body_simple[:] = 0
 
 
 class NativeMujocoViewer(BaseViewer):
@@ -249,10 +238,10 @@ class NativeMujocoViewer(BaseViewer):
 
       # Pin tracking camera to body frame origin so DR-induced COM shifts don't move
       # the camera.
-      if sim.expanded_fields & self._INERTIAL_FIELDS:
+      if sim.expanded_fields & INERTIAL_FIELDS:
         self._stabilize_tracking_camera()
 
-      has_visual_dr = bool(sim.expanded_fields & self._VISUAL_FIELDS)
+      has_visual_dr = bool(sim.expanded_fields & VISUAL_FIELDS)
       v.sync(state_only=not has_visual_dr)
 
   def _set_status_overlay(self, viewer: mujoco.viewer.Handle) -> None:
@@ -386,43 +375,10 @@ class NativeMujocoViewer(BaseViewer):
     # Restore main env's model fields.
     self._sync_model_fields(sim, self.env_idx)
 
-  # Inertial fields that shift subtree_com (and thus the tracking camera).
-  _INERTIAL_FIELDS = frozenset({"body_ipos", "body_mass"})
-
-  # Fields that affect rendering. Physics-only fields (geom_aabb,
-  # geom_rbound, dof_*, jnt_*, actuator_*, tendon_*, etc.) are skipped.
-  _VISUAL_FIELDS = frozenset(
-    {
-      "qpos0",  # Needed for correct mj_forward kinematics (qpos - qpos0).
-      "geom_dataid",  # Per-world mesh variants.
-      "geom_rgba",
-      "geom_size",
-      "geom_pos",
-      "geom_quat",
-      "mat_rgba",
-      "site_pos",
-      "site_quat",
-      "body_pos",
-      "body_quat",
-      "body_ipos",
-      "body_inertia",
-      "body_iquat",
-      "body_mass",
-      "cam_pos",
-      "cam_quat",
-      "cam_fovy",
-      "cam_intrinsic",
-      "light_pos",
-      "light_dir",
-    }
-  )
-
   def _sync_model_fields(self, sim: _SimProtocol, env_idx: int) -> None:
     """Sync visually-relevant DR'd model fields from GPU to MjModel."""
-    for field_name in sim.expanded_fields & self._VISUAL_FIELDS:
-      src = getattr(sim.model, field_name)[env_idx].cpu().numpy()
-      dst = getattr(self.mjm, field_name)
-      dst[:] = src.reshape(dst.shape)
+    assert self.mjm is not None
+    sync_visual_fields(self.mjm, sim.model, sim.expanded_fields, env_idx)
 
   def _stabilize_tracking_camera(self) -> None:
     """Pin the tracked body's subtree_com to its frame origin (xpos).

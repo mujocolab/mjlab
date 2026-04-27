@@ -8,7 +8,7 @@ import pytest
 
 from mjlab.entity import EntityCfg, VariantCfg, VariantEntityCfg
 from mjlab.scene.per_world_mesh import allocate_worlds
-from mjlab.viewer.native.viewer import _disable_model_sameframe_shortcuts
+from mjlab.viewer._model_sync import disable_model_sameframe_shortcuts
 
 # ---------------------------------------------------------------------------
 # Helpers: variant specs with visual + collision mesh geoms.
@@ -276,6 +276,13 @@ def test_padding_slots_get_disabled():
   # Last 2 mesh geom slots should be -1 (disabled padding).
   assert sphere_dataid[-1] == -1
   assert sphere_dataid[-2] == -1
+  # Padding slots must still be collision-enabled in the template/warp model.
+  # Short variants are disabled by per-world dataid=-1; long variants need the
+  # same slots enabled so their extra hulls can collide.
+  assert np.all(result.mj_model.geom_contype[mesh_geom_ids[-2:]] == 1)
+  assert np.all(result.mj_model.geom_conaffinity[mesh_geom_ids[-2:]] == 1)
+  assert np.all(result.wp_model.geom_contype.numpy()[mesh_geom_ids[-2:]] == 1)
+  assert np.all(result.wp_model.geom_conaffinity.numpy()[mesh_geom_ids[-2:]] == 1)
   # First 3 should be valid (>= 0).
   assert all(d >= 0 for d in sphere_dataid[:3])
 
@@ -314,6 +321,318 @@ def test_dependent_fields_match_individual_compilation():
 
   # Sphere and cone should have different masses.
   assert not np.isclose(body_mass[sphere_w, obj_body], body_mass[cone_w, obj_body])
+
+
+def test_select_default_values_uses_per_world_variant_defaults():
+  """Per-world defaults are indexed by env first, then by entity."""
+  import torch
+
+  from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
+  from mjlab.envs.mdp.dr._core import _select_default_values
+  from mjlab.scene import SceneCfg
+  from mjlab.terrains import TerrainEntityCfg
+
+  def _explicit_variant(
+    mesh_name: str,
+    mass: float,
+    inertia: tuple[float, float, float],
+    *,
+    cone: bool = False,
+  ) -> mujoco.MjSpec:
+    spec = mujoco.MjSpec()
+    mesh = spec.add_mesh()
+    mesh.name = mesh_name
+    if cone:
+      mesh.make_cone(nedge=8, radius=0.05)
+    else:
+      mesh.make_sphere(subdivision=1)
+    body = spec.worldbody.add_body(name="prop")
+    body.add_freejoint()
+    body.explicitinertial = 1
+    body.mass = mass
+    body.ipos = (0.0, 0.0, 0.0)
+    body.inertia = inertia
+    body.iquat = (1.0, 0.0, 0.0, 0.0)
+    body.add_geom(
+      name="visual",
+      type=mujoco.mjtGeom.mjGEOM_MESH,
+      meshname=mesh_name,
+      contype=0,
+      conaffinity=0,
+      mass=0.0,
+    )
+    return spec
+
+  object_cfg = VariantEntityCfg(
+    variants={
+      "sphere": VariantCfg(
+        lambda: _explicit_variant("sphere", 0.2, (1e-4, 2e-4, 3e-4)),
+        weight=0.5,
+      ),
+      "cone": VariantCfg(
+        lambda: _explicit_variant("cone", 0.7, (4e-4, 5e-4, 6e-4), cone=True),
+        weight=0.5,
+      ),
+    },
+    init_state=EntityCfg.InitialStateCfg(pos=(0.0, 0.0, 0.2)),
+  )
+  env_cfg = ManagerBasedRlEnvCfg(
+    decimation=1,
+    scene=SceneCfg(
+      terrain=TerrainEntityCfg(terrain_type="plane"),
+      num_envs=4,
+      env_spacing=1.0,
+      entities={"object": object_cfg},
+    ),
+  )
+
+  env = ManagerBasedRlEnv(cfg=env_cfg, device="cpu")
+  try:
+    obj_body = int(env.scene["object"].indexing.root_body_id)
+    env_ids = torch.arange(env.num_envs, device=env.device)
+    body_ids = torch.tensor([obj_body], device=env.device)
+
+    for field in ("body_mass", "body_ipos", "body_inertia", "body_iquat"):
+      selected = _select_default_values(env, field, env_ids, body_ids)
+      torch.testing.assert_close(
+        selected[:, 0],
+        getattr(env.sim.model, field)[:, obj_body],
+      )
+  finally:
+    env.close()
+
+
+def test_viser_builds_per_world_mesh_handles_for_variants():
+  """Viser dynamic meshes must not collapse all worlds onto env0's mesh."""
+  from contextlib import nullcontext
+
+  from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
+  from mjlab.scene import SceneCfg
+  from mjlab.terrains import TerrainEntityCfg
+  from mjlab.viewer.viser.scene import MjlabViserScene, _PerWorldMeshGroup
+
+  class _Handle:
+    def __init__(self, **kwargs):
+      self.visible = kwargs.get("visible", True)
+      self.batched_positions = kwargs.get("batched_positions", np.zeros((0, 3)))
+      self.batched_wxyzs = kwargs.get("batched_wxyzs", np.zeros((0, 4)))
+      self.batched_scales = kwargs.get("batched_scales")
+      self.batched_colors = kwargs.get("batched_colors")
+      self.batched_opacities = kwargs.get("batched_opacities")
+      self.position = kwargs.get("position", np.zeros(3))
+      self.wxyz = kwargs.get("wxyz", np.array([1.0, 0.0, 0.0, 0.0]))
+
+    def remove(self) -> None:
+      pass
+
+  class _Scene:
+    def __init__(self):
+      self.batched: list[tuple[tuple, dict, _Handle]] = []
+
+    def configure_environment_map(self, **_kwargs) -> None:
+      pass
+
+    def add_frame(self, *_args, **kwargs) -> _Handle:
+      return _Handle(**kwargs)
+
+    def add_grid(self, *_args, **kwargs) -> _Handle:
+      return _Handle(**kwargs)
+
+    def add_mesh_trimesh(self, *_args, **kwargs) -> _Handle:
+      return _Handle(**kwargs)
+
+    def add_batched_meshes_trimesh(self, *args, **kwargs) -> _Handle:
+      handle = _Handle(**kwargs)
+      self.batched.append((args, kwargs, handle))
+      return handle
+
+    def add_batched_meshes_simple(self, *args, **kwargs) -> _Handle:
+      handle = _Handle(**kwargs)
+      self.batched.append((args, kwargs, handle))
+      return handle
+
+  class _Server:
+    def __init__(self):
+      self.scene = _Scene()
+
+    def atomic(self):
+      return nullcontext()
+
+    def flush(self) -> None:
+      pass
+
+  env_cfg = ManagerBasedRlEnvCfg(
+    decimation=1,
+    scene=SceneCfg(
+      terrain=TerrainEntityCfg(terrain_type="plane"),
+      num_envs=4,
+      env_spacing=1.0,
+      entities={
+        "object": VariantEntityCfg(
+          variants={
+            "sphere": VariantCfg(_simple_sphere_spec, weight=0.5),
+            "cone": VariantCfg(_simple_cone_spec, weight=0.5),
+          },
+          init_state=EntityCfg.InitialStateCfg(pos=(0.0, 0.0, 0.2)),
+        )
+      },
+    ),
+  )
+
+  env = ManagerBasedRlEnv(cfg=env_cfg, device="cpu")
+  try:
+    server = _Server()
+    scene = MjlabViserScene(
+      server,
+      env.sim.mj_model,
+      env.num_envs,
+      sim_model=env.sim.model,
+      expanded_fields=env.sim.expanded_fields,
+    )
+    groups = [mg for mg in scene._mesh_groups if isinstance(mg, _PerWorldMeshGroup)]
+
+    assert groups
+    assert sum(len(mg.env_ids) for mg in groups) >= env.num_envs
+
+    body_xpos = env.sim.data.xpos.cpu().numpy()
+    body_xmat = env.sim.data.xmat.cpu().numpy()
+    mocap_pos = (
+      env.sim.data.mocap_pos.cpu().numpy() if env.sim.mj_model.nmocap > 0 else None
+    )
+    mocap_quat = (
+      env.sim.data.mocap_quat.cpu().numpy() if env.sim.mj_model.nmocap > 0 else None
+    )
+    scene.show_only_selected = True
+    scene.update_from_arrays(body_xpos, body_xmat, mocap_pos, mocap_quat, env_idx=0)
+    scene.update_from_arrays(body_xpos, body_xmat, mocap_pos, mocap_quat, env_idx=1)
+
+    assert any(mg.handle.visible for mg in groups)
+  finally:
+    env.close()
+
+
+def test_viser_convex_hulls_are_per_variant():
+  """Convex-hull handles must differ across variants, not all show env0's hull."""
+  from contextlib import nullcontext
+
+  from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
+  from mjlab.scene import SceneCfg
+  from mjlab.terrains import TerrainEntityCfg
+  from mjlab.viewer.viser.scene import MjlabViserScene, _PerWorldHullGroup
+
+  class _Handle:
+    def __init__(self, **kwargs):
+      self.visible = kwargs.get("visible", True)
+      self.batched_positions = kwargs.get("batched_positions", np.zeros((0, 3)))
+      self.batched_wxyzs = kwargs.get("batched_wxyzs", np.zeros((0, 4)))
+      self.batched_scales = kwargs.get("batched_scales")
+      self.batched_colors = kwargs.get("batched_colors")
+      self.batched_opacities = kwargs.get("batched_opacities")
+      self.position = kwargs.get("position", np.zeros(3))
+      self.wxyz = kwargs.get("wxyz", np.array([1.0, 0.0, 0.0, 0.0]))
+      self.vertices = kwargs.get("vertices")
+      self.faces = kwargs.get("faces")
+
+    def remove(self) -> None:
+      pass
+
+  class _Scene:
+    def __init__(self):
+      self.batched: list[tuple[tuple, dict, _Handle]] = []
+
+    def configure_environment_map(self, **_kwargs) -> None:
+      pass
+
+    def add_frame(self, *_args, **kwargs) -> _Handle:
+      return _Handle(**kwargs)
+
+    def add_grid(self, *_args, **kwargs) -> _Handle:
+      return _Handle(**kwargs)
+
+    def add_mesh_trimesh(self, *_args, **kwargs) -> _Handle:
+      return _Handle(**kwargs)
+
+    def add_batched_meshes_trimesh(self, *args, **kwargs) -> _Handle:
+      handle = _Handle(**kwargs)
+      self.batched.append((args, kwargs, handle))
+      return handle
+
+    def add_batched_meshes_simple(self, path, vertices, faces, **kwargs) -> _Handle:
+      # Capture the mesh identity so the test can compare hull shapes.
+      kwargs = dict(kwargs)
+      kwargs["vertices"] = np.asarray(vertices)
+      kwargs["faces"] = np.asarray(faces)
+      handle = _Handle(**kwargs)
+      self.batched.append(((path,), kwargs, handle))
+      return handle
+
+  class _Server:
+    def __init__(self):
+      self.scene = _Scene()
+
+    def atomic(self):
+      return nullcontext()
+
+    def flush(self) -> None:
+      pass
+
+  # Sphere and cone produce visibly different convex hulls.
+  env_cfg = ManagerBasedRlEnvCfg(
+    decimation=1,
+    scene=SceneCfg(
+      terrain=TerrainEntityCfg(terrain_type="plane"),
+      num_envs=4,
+      env_spacing=1.0,
+      entities={
+        "object": VariantEntityCfg(
+          variants={
+            "sphere": VariantCfg(_simple_sphere_spec, weight=0.5),
+            "cone": VariantCfg(_simple_cone_spec, weight=0.5),
+          },
+          init_state=EntityCfg.InitialStateCfg(pos=(0.0, 0.0, 0.2)),
+        )
+      },
+    ),
+  )
+
+  env = ManagerBasedRlEnv(cfg=env_cfg, device="cpu")
+  try:
+    server = _Server()
+    scene = MjlabViserScene(
+      server,
+      env.sim.mj_model,
+      env.num_envs,
+      sim_model=env.sim.model,
+      expanded_fields=env.sim.expanded_fields,
+    )
+    groups: list[_PerWorldHullGroup] = list(scene._hull_per_world_groups)
+    # Two distinct variants -> at least two hull handles on the same body.
+    assert len(groups) >= 2, f"expected >=2 hull variants, got {len(groups)}"
+    all_envs = np.concatenate([g.env_ids for g in groups])
+    assert sorted(all_envs.tolist()) == list(range(env.num_envs))
+    # Hulls must be shape-distinct, not all copies of env0's hull.
+    shapes = {(g.handle.vertices.shape, g.handle.faces.shape) for g in groups}
+    assert len(shapes) >= 2, (
+      f"hull variants collapsed to one shape: {shapes} "
+      "(all envs would share env0's hull)"
+    )
+
+    body_xpos = env.sim.data.xpos.cpu().numpy()
+    body_xmat = env.sim.data.xmat.cpu().numpy()
+    scene.show_convex_hull = True
+    scene.show_only_selected = True
+    for target_env in range(env.num_envs):
+      scene.update_from_arrays(body_xpos, body_xmat, env_idx=target_env)
+      visible_groups = [g for g in groups if g.handle.visible]
+      assert len(visible_groups) == 1
+      assert target_env in visible_groups[0].env_ids
+      assert visible_groups[0].handle.batched_positions.shape[0] == 1
+
+    scene.show_only_selected = False
+    scene.update_from_arrays(body_xpos, body_xmat, env_idx=0)
+    assert all(g.handle.visible for g in groups)
+  finally:
+    env.close()
 
 
 # ---------------------------------------------------------------------------
@@ -440,6 +759,6 @@ def test_sameframe_fix_makes_host_forward_match_variant():
   assert not np.allclose(base_data.geom_xpos, cone_data.geom_xpos)
 
   # After fix: clearing sameframe makes them match.
-  _disable_model_sameframe_shortcuts(base_model)
+  disable_model_sameframe_shortcuts(base_model)
   mujoco.mj_forward(base_model, base_data)
   np.testing.assert_allclose(base_data.geom_xpos, cone_data.geom_xpos, atol=1e-6)
