@@ -25,6 +25,11 @@ Added
 Changed
 ^^^^^^^
 
+- ``TerrainEntityCfg`` debug visualization sites (environment origins,
+  terrain origins, flat patches) are now off by default. Set
+  ``debug_vis=True`` to re-enable them. The sites inflated ``nsite`` and
+  caused a measurable slowdown in the per-step ``site_local_to_global``
+  kernel (:issue:`942`).
 - Task package load failures during ``mjlab`` import now print the full
   traceback (and the entry point's module path) to ``stderr`` instead of
   just the exception message, making it easier to pinpoint the source of

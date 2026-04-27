@@ -95,6 +95,9 @@ class TerrainEntityCfg(EntityCfg):
     default_factory=lambda: (_DEFAULT_SUN_LIGHT,)
   )
   """Lights for the scene. Defaults to a directional sun light."""
+  debug_vis: bool = False
+  """Add visualization sites for environment origins, terrain origins, and
+  flat patches. Defaults to False."""
 
   def build(self) -> TerrainEntity:
     raise TypeError(
@@ -158,9 +161,10 @@ class TerrainEntity(Entity):
     else:
       raise ValueError(f"Unknown terrain type: {self.cfg.terrain_type}")
 
-    self._add_env_origin_sites()
-    self._add_terrain_origin_sites()
-    self._add_flat_patch_sites()
+    if self.cfg.debug_vis:
+      self._add_env_origin_sites()
+      self._add_terrain_origin_sites()
+      self._add_flat_patch_sites()
 
   def _add_initial_state_keyframe(self) -> None:
     pass  # No joints, no keyframe.
