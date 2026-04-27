@@ -107,6 +107,30 @@ def test_nan_detection_with_termination_manager(mock_env_with_sim):
 
 
 @pytest.fixture
+def mock_env():
+  """Minimal mock environment for shape validation tests."""
+  env = Mock()
+  env.num_envs = 4
+  env.device = "cpu"
+  env.scene = {"robot": Mock()}
+  return env
+
+
+def test_termination_shape_validation_rejects_bad_compute_output(mock_env):
+  """Termination terms must return one boolean per environment."""
+  cfg = {
+    "bad": TerminationTermCfg(
+      func=lambda env: torch.zeros(env.num_envs, 1, dtype=torch.bool)
+    )
+  }
+  manager = TerminationManager(cfg, mock_env)
+  with pytest.raises(
+    ValueError, match="TerminationManager term 'bad'.*expected \\(4,\\)"
+  ):
+    manager.compute()
+
+
+@pytest.fixture
 def mock_terrain_env():
   device = get_test_device()
   num_envs = 4

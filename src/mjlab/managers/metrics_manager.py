@@ -127,7 +127,7 @@ class MetricsManager(ManagerBase):
     if not self._substep_term_indices:
       return
     for i, idx in enumerate(self._substep_term_indices):
-      value = self._term_cfgs[idx].func(self._env, **self._term_cfgs[idx].params)
+      value = self._compute_term(idx)
       self._substep_accum[i] += value
     self._substep_count += 1
 
@@ -142,8 +142,7 @@ class MetricsManager(ManagerBase):
       self._substep_count = 0
     for idx in self._step_term_indices:
       name = self._term_names[idx]
-      term_cfg = self._term_cfgs[idx]
-      value = term_cfg.func(self._env, **term_cfg.params)
+      value = self._compute_term(idx)
       self._episode_sums[name] += value
       self._step_values[:, idx] = value
 
@@ -171,6 +170,13 @@ class MetricsManager(ManagerBase):
         self._step_term_indices.append(idx)
       if hasattr(term_cfg.func, "reset") and callable(term_cfg.func.reset):
         self._class_term_cfgs.append(term_cfg)
+
+  def _compute_term(self, idx: int) -> torch.Tensor:
+    name = self._term_names[idx]
+    term_cfg = self._term_cfgs[idx]
+    value = term_cfg.func(self._env, **term_cfg.params)
+    self._check_term_shape(name, value)
+    return value
 
 
 class NullMetricsManager:

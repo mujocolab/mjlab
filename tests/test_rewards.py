@@ -331,6 +331,14 @@ def test_reward_scaling_default_is_enabled(mock_env):
   assert torch.allclose(rewards, torch.full((4,), 0.01))
 
 
+def test_reward_shape_validation_rejects_bad_compute_output(mock_env):
+  """Reward terms must return one scalar per environment."""
+  cfg = {"bad": RewardTermCfg(func=lambda env: torch.ones(env.num_envs, 1), weight=1.0)}
+  manager = RewardManager(cfg, mock_env)
+  with pytest.raises(ValueError, match="RewardManager term 'bad'.*expected \\(4,\\)"):
+    manager.compute(dt=0.01)
+
+
 def test_joint_torques_l2_with_actuator_ids(mock_env):
   """Test that joint_torques_l2 only penalizes specified actuators."""
   mock_env.scene["robot"].data.actuator_force = torch.tensor([[1.0, 2.0, 3.0, 4.0]] * 4)

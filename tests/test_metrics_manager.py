@@ -221,6 +221,26 @@ def test_reduce_mean_and_last_coexist(mock_env):
   assert info["Episode_Metrics/last_term"].item() == pytest.approx(6.0)
 
 
+def test_metrics_step_shape_validation_rejects_bad_compute_output(mock_env):
+  """Step metrics must return one scalar per environment."""
+  cfg = {"bad": MetricsTermCfg(func=lambda env: torch.ones(env.num_envs, 1))}
+  manager = MetricsManager(cfg, mock_env)
+  with pytest.raises(ValueError, match="MetricsManager term 'bad'.*expected \\(4,\\)"):
+    manager.compute()
+
+
+def test_metrics_substep_shape_validation_rejects_bad_compute_output(mock_env):
+  """Substep metrics must return one scalar per environment."""
+  cfg = {
+    "bad": MetricsTermCfg(
+      func=lambda env: torch.ones(env.num_envs, 1), per_substep=True
+    )
+  }
+  manager = MetricsManager(cfg, mock_env)
+  with pytest.raises(ValueError, match="MetricsManager term 'bad'.*expected \\(4,\\)"):
+    manager.compute_substep()
+
+
 def test_no_substep_terms_no_overhead(mock_env):
   """When no per_substep terms exist, compute_substep is a no-op."""
   cfg = {
