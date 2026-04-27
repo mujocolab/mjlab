@@ -226,7 +226,14 @@ class Simulation:
     spec: mujoco.MjSpec,
     variant_info: list[tuple[str, VariantMetadata]],
   ) -> None:
-    """Per-world mesh path: build model with per-world geom_dataid."""
+    """Per-world mesh path: build model with per-world geom_dataid.
+
+    ``self._mj_model`` remains a single host-side template model. The actual
+    simulation model may store variant-dependent fields as per-world arrays in
+    ``self._wp_model`` / ``self.model``. CPU consumers that call MuJoCo APIs on
+    ``self._mj_model`` must first sync the relevant per-world fields for the env
+    they are rendering or inspecting.
+    """
     from mjlab.scene.per_world_mesh import (
       VARIANT_DEPENDENT_FIELDS,
       per_world_mesh,

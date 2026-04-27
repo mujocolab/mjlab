@@ -1,6 +1,10 @@
-"""Shared helpers for keeping a host-side ``MjModel`` consistent with
-``mjlab.sim.Sim.model`` when per-world fields (domain randomization or
-per-world mesh variants) diverge from the compiled XML.
+"""Shared helpers for syncing per-world model fields into a host ``MjModel``.
+
+The simulator owns one CPU ``MjModel`` as a template for MuJoCo host APIs, while
+``mjlab.sim.Simulation.model`` may hold per-world arrays after domain
+randomization or per-world mesh compilation. Viewers and renderers must copy the
+target env's visual fields into their host model before calling CPU MuJoCo
+rendering or kinematics functions.
 
 Used by the native / offscreen / viser viewers.
 """
