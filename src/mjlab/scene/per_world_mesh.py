@@ -254,12 +254,22 @@ def _populate_dependent_fields(
         spec_geoms[spec_idx].conaffinity = 0
         spec_geoms[spec_idx].mass = 0.0
 
+    # Reset every body that any variant marks as explicit-inertial. Variants
+    # without an explicit inertial fall back to MuJoCo's mesh-derived path
+    # during compile, so clear the diagonal inertial fields so prior
+    # iteration values cannot leak through. Do NOT assign ``body.fullinertia``
+    # here: any assignment (even zeros) flags the field as user-specified and
+    # spec.compile() then rejects it as conflicting with ``body.inertia``.
+    # ``_restore_body_state`` at the top of each iteration already restores
+    # fullinertia to its baseline.
     for body_name in variant_inertial_body_names:
       if body_name in body_name_to_spec_body:
         body = body_name_to_spec_body[body_name]
         body.explicitinertial = 0
         body.mass = 0.0
         body.inertia = np.zeros(3, dtype=np.float64)
+        body.ipos = np.zeros(3, dtype=np.float64)
+        body.iquat = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float64)
 
     for entity_prefix, metadata in variant_info:
       variant_idx = int(world_to_variant[entity_prefix][first_world])
