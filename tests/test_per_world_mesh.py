@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 import mujoco
 import numpy as np
 import pytest
+import torch
 
 from mjlab.entity import EntityCfg, VariantCfg, VariantEntityCfg
 from mjlab.scene.per_world_mesh import allocate_worlds
-from mjlab.viewer._model_sync import disable_model_sameframe_shortcuts
+from mjlab.viewer.model_sync import (
+  disable_model_sameframe_shortcuts,
+  sync_model_fields,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers: variant specs with visual + collision mesh geoms.
@@ -325,8 +331,6 @@ def test_dependent_fields_match_individual_compilation():
 
 def test_select_default_values_uses_per_world_variant_defaults():
   """Per-world defaults are indexed by env first, then by entity."""
-  import torch
-
   from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
   from mjlab.envs.mdp.dr._core import _select_default_values
   from mjlab.scene import SceneCfg
@@ -350,9 +354,9 @@ def test_select_default_values_uses_per_world_variant_defaults():
     body.add_freejoint()
     body.explicitinertial = 1
     body.mass = mass
-    body.ipos = (0.0, 0.0, 0.0)
-    body.inertia = inertia
-    body.iquat = (1.0, 0.0, 0.0, 0.0)
+    body.ipos[:] = (0.0, 0.0, 0.0)
+    body.inertia[:] = inertia
+    body.iquat[:] = (1.0, 0.0, 0.0, 0.0)
     body.add_geom(
       name="visual",
       type=mujoco.mjtGeom.mjGEOM_MESH,
@@ -481,9 +485,16 @@ def test_viser_builds_per_world_mesh_handles_for_variants():
 
   env = ManagerBasedRlEnv(cfg=env_cfg, device="cpu")
   try:
+    env.sim.expand_model_fields(("geom_rgba",))
+    env.sim.model.geom_rgba[:, :, :3] = torch.linspace(
+      0.2,
+      0.9,
+      env.num_envs,
+      device=env.device,
+    )[:, None, None]
     server = _Server()
     scene = MjlabViserScene(
-      server,
+      cast(Any, server),
       env.sim.mj_model,
       env.num_envs,
       sim_model=env.sim.model,
@@ -507,6 +518,16 @@ def test_viser_builds_per_world_mesh_handles_for_variants():
     scene.update_from_arrays(body_xpos, body_xmat, mocap_pos, mocap_quat, env_idx=1)
 
     assert any(mg.handle.visible for mg in groups)
+
+    handle_count = len(server.scene.batched)
+    env.sim.model.geom_rgba[:, :, :3] = torch.linspace(
+      0.9,
+      0.2,
+      env.num_envs,
+      device=env.device,
+    )[:, None, None]
+    scene.update_from_arrays(body_xpos, body_xmat, mocap_pos, mocap_quat, env_idx=0)
+    assert len(server.scene.batched) > handle_count
   finally:
     env.close()
 
@@ -599,7 +620,7 @@ def test_viser_convex_hulls_are_per_variant():
   try:
     server = _Server()
     scene = MjlabViserScene(
-      server,
+      cast(Any, server),
       env.sim.mj_model,
       env.num_envs,
       sim_model=env.sim.model,
@@ -642,8 +663,6 @@ def test_viser_convex_hulls_are_per_variant():
 
 def test_env_step_with_variants():
   """Build a full ManagerBasedRlEnv with variants; step without crashing."""
-  import torch
-
   from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
   from mjlab.envs.mdp.events import reset_root_state_uniform
   from mjlab.managers.event_manager import EventTermCfg
@@ -762,3 +781,31 @@ def test_sameframe_fix_makes_host_forward_match_variant():
   disable_model_sameframe_shortcuts(base_model)
   mujoco.mj_forward(base_model, base_data)
   np.testing.assert_allclose(base_data.geom_xpos, cone_data.geom_xpos, atol=1e-6)
+
+
+def test_sync_model_fields_copies_only_requested_env_fields():
+  """Viewer model sync copies explicit fields and leaves others unchanged."""
+  model = _simple_sphere_spec().compile()
+
+  class _SimModel:
+    geom_rgba = torch.tensor(
+      [
+        [[0.1, 0.2, 0.3, 0.4]],
+        [[0.5, 0.6, 0.7, 0.8]],
+      ],
+      dtype=torch.float32,
+    )
+    geom_pos = torch.tensor(
+      [
+        [[1.0, 2.0, 3.0]],
+        [[4.0, 5.0, 6.0]],
+      ],
+      dtype=torch.float32,
+    )
+
+  original_geom_pos = model.geom_pos.copy()
+
+  sync_model_fields(model, _SimModel(), {"geom_rgba"}, env_idx=1)
+
+  np.testing.assert_allclose(model.geom_rgba, [[0.5, 0.6, 0.7, 0.8]])
+  np.testing.assert_allclose(model.geom_pos, original_geom_pos)

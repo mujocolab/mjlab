@@ -1715,7 +1715,7 @@ docs = [
 requires-dist = [
     { name = "imageio-ffmpeg" },
     { name = "mediapy", specifier = ">=1.2.6" },
-    { name = "mjviser", specifier = ">=0.0.13" },
+    { name = "mjviser", git = "https://github.com/mujocolab/mjviser?rev=1bdfd6fe79066b847a5f430000fcfbb53ec31a6f" },
     { name = "mujoco", specifier = ">=3.8.0", index = "https://py.mujoco.org/" },
     { name = "mujoco-warp", git = "https://github.com/google-deepmind/mujoco_warp?rev=6f235d4" },
     { name = "onnxscript", specifier = ">=0.5.4" },
@@ -1768,7 +1768,7 @@ docs = [
 [[package]]
 name = "mjviser"
 version = "0.0.13"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/mujocolab/mjviser?rev=1bdfd6fe79066b847a5f430000fcfbb53ec31a6f#1bdfd6fe79066b847a5f430000fcfbb53ec31a6f" }
 dependencies = [
     { name = "mujoco" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
@@ -1776,10 +1776,6 @@ dependencies = [
     { name = "pillow" },
     { name = "trimesh" },
     { name = "viser" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/3b/6c/5a866cd6b96068ee1a849e09a3a62224bdb7aac944bf9433057b0ce93019/mjviser-0.0.13.tar.gz", hash = "sha256:b1569ab388ef39c84e2ab2dfc48e407203fee60c49b0b0a543dc87ed4a1a38c5", size = 29427, upload-time = "2026-04-27T17:34:53.528Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8d/d5/1288e2d4ce380b2ca91d1e86a1fc1ca9ebba051627d01fb03d93ad4a6f8c/mjviser-0.0.13-py3-none-any.whl", hash = "sha256:cedf1bf38207ee9b03197643f4c978c14b8810938abf3683b78ebdb522ce2a17", size = 32142, upload-time = "2026-04-27T17:34:52.384Z" },
 ]
 
 [[package]]

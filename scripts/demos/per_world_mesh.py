@@ -6,6 +6,7 @@ or torus. Objects fall onto a ground plane with randomized colors.
 Run with:
   uv run mjpython scripts/demos/per_world_mesh.py                  # macOS
   uv run scripts/demos/per_world_mesh.py                           # Linux
+  uv run scripts/demos/per_world_mesh.py --viewer native           # Native
   uv run scripts/demos/per_world_mesh.py --viewer viser            # Viser
 """
 
@@ -17,7 +18,7 @@ import mujoco
 import torch
 import tyro
 
-import mjlab  # noqa: F401
+import mjlab
 from mjlab.entity import EntityCfg, VariantCfg, VariantEntityCfg
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
 from mjlab.envs.mdp import dr
@@ -31,7 +32,7 @@ from mjlab.terrains import TerrainEntityCfg
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.viewer import NativeMujocoViewer, ViserPlayViewer
 
-# -- Object variant specs using MuJoCo mesh builtins -----------------------
+# Object variant specs using MuJoCo mesh builtins.
 
 
 # Shape definitions: (mesh_name, make_fn, make_kwargs, base_scale).
@@ -96,7 +97,7 @@ def _build_variants() -> dict[str, VariantCfg]:
   return variants
 
 
-# -- Environment config -----------------------------------------------------
+# Environment config.
 
 
 def create_env_cfg() -> ManagerBasedRlEnvCfg:
@@ -189,7 +190,7 @@ def main(device: str | None = None, viewer: str = "auto") -> None:
   print("Per-World Mesh Variant Demo")
   print(f"  Worlds: {env.num_envs}")
   print(f"  Variants: {n_variants} (4 shapes x 3 sizes)")
-  print("  + randomized color, friction, mass, velocity")
+  print("  + randomized color, friction, velocity")
   print("=" * 50)
 
   if viewer == "auto":

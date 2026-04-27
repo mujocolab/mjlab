@@ -141,6 +141,7 @@ torch = [
 ]
 mujoco = { index = "mujoco" }
 mujoco-warp = { git = "https://github.com/google-deepmind/mujoco_warp", rev = "6f235d4" }
+mjviser = { git = "https://github.com/mujocolab/mjviser", rev = "1bdfd6fe79066b847a5f430000fcfbb53ec31a6f" }
 
 [tool.ruff]
 src = ["src"]  # Helpful for recognizing first-party imports.

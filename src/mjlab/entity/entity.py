@@ -122,9 +122,18 @@ def _collect_explicit_body_inertials(
       BodyInertialMetadata(
         body_name=body.name,
         mass=float(body.mass),
-        ipos=tuple(float(x) for x in body.ipos),
-        inertia=tuple(float(x) for x in body.inertia),
-        iquat=tuple(float(x) for x in body.iquat),
+        ipos=(float(body.ipos[0]), float(body.ipos[1]), float(body.ipos[2])),
+        inertia=(
+          float(body.inertia[0]),
+          float(body.inertia[1]),
+          float(body.inertia[2]),
+        ),
+        iquat=(
+          float(body.iquat[0]),
+          float(body.iquat[1]),
+          float(body.iquat[2]),
+          float(body.iquat[3]),
+        ),
       )
     )
   return tuple(inertials)

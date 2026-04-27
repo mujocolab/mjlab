@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 import mujoco
 import numpy as np
@@ -24,23 +24,31 @@ from mjviser.conversions import (
 from mujoco import mjtGeom
 from typing_extensions import override
 
-from mjlab.viewer._model_sync import (
-  disable_model_sameframe_shortcuts,
-  sync_visual_fields,
-)
 from mjlab.viewer.debug_visualizer import DebugVisualizer
+from mjlab.viewer.model_sync import (
+  VIEWER_MODEL_FIELDS,
+  disable_model_sameframe_shortcuts,
+  sync_model_fields,
+)
 
 _Z_AXIS = np.array([0.0, 0.0, 1.0])
 _IDENTITY_QUAT = np.array([1.0, 0.0, 0.0, 0.0])
-_GEOMETRY_HANDLE_FIELDS = frozenset(
+_VISER_GEOMETRY_HANDLE_FIELDS = frozenset(
   {
     "geom_dataid",
-    "geom_rgba",
     "geom_size",
     "geom_pos",
     "geom_quat",
+  }
+)
+_VISER_APPEARANCE_HANDLE_FIELDS = frozenset(
+  {
+    "geom_rgba",
     "mat_rgba",
   }
+)
+_VISER_BAKED_HANDLE_FIELDS = (
+  _VISER_GEOMETRY_HANDLE_FIELDS | _VISER_APPEARANCE_HANDLE_FIELDS
 )
 
 
@@ -159,6 +167,14 @@ class _PerWorldHullGroup:
   env_ids: np.ndarray
 
 
+@dataclass
+class _HullVariant:
+  body_id: int
+  vertices: np.ndarray
+  faces: np.ndarray
+  env_ids: list[int] = field(default_factory=list)
+
+
 def _compute_body_hull(
   mj_model: mujoco.MjModel, geom_ids: list[int]
 ) -> trimesh.Trimesh | None:
@@ -216,17 +232,27 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
   ) -> None:
     self._sim_model = sim_model
     self._expanded_fields = expanded_fields or set()
+    self._baked_appearance_fields = (
+      self._expanded_fields & _VISER_APPEARANCE_HANDLE_FIELDS
+    )
+    self._baked_appearance_fingerprint: tuple[tuple[str, bytes], ...] | None = None
     self._use_per_world_mesh_groups = bool(
-      self._expanded_fields & _GEOMETRY_HANDLE_FIELDS
+      self._expanded_fields & _VISER_BAKED_HANDLE_FIELDS
     )
     # Populated by _build_hull_handles when per-world variants are active.
     # Initialized here because ViserMujocoScene.__init__ calls our overrides
     # of _compute_hull_body_meshes / _build_hull_handles during super().__init__.
     self._hull_per_world_groups: list[_PerWorldHullGroup] = []
     if self._sim_model is not None:
-      sync_visual_fields(mj_model, self._sim_model, self._expanded_fields, 0)
+      sync_model_fields(
+        mj_model,
+        self._sim_model,
+        self._expanded_fields & VIEWER_MODEL_FIELDS,
+        0,
+      )
       disable_model_sameframe_shortcuts(mj_model)
     super().__init__(server, mj_model, num_envs)
+    self._baked_appearance_fingerprint = self._appearance_fingerprint()
 
     self.debug_visualization_enabled = False
     self.show_all_envs = False
@@ -355,7 +381,28 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
     """Sync visually relevant per-world model fields into the host MjModel."""
     if self._sim_model is None:
       return
-    sync_visual_fields(self.mj_model, self._sim_model, self._expanded_fields, env_idx)
+    fields = self._expanded_fields & VIEWER_MODEL_FIELDS
+    sync_model_fields(self.mj_model, self._sim_model, fields, env_idx)
+    self._rebuild_visual_handles_if_needed()
+
+  def _appearance_fingerprint(self) -> tuple[tuple[str, bytes], ...] | None:
+    """Return a stable fingerprint for fields baked into Viser mesh handles."""
+    if self._sim_model is None or not self._baked_appearance_fields:
+      return None
+    parts: list[tuple[str, bytes]] = []
+    for field_name in sorted(self._baked_appearance_fields):
+      value = getattr(self._sim_model, field_name).cpu().numpy()
+      parts.append((field_name, value.tobytes()))
+    return tuple(parts)
+
+  def _rebuild_visual_handles_if_needed(self) -> None:
+    if self._baked_appearance_fingerprint is None:
+      return
+    fingerprint = self._appearance_fingerprint()
+    if fingerprint == self._baked_appearance_fingerprint:
+      return
+    self._baked_appearance_fingerprint = fingerprint
+    self.rebuild_visual_handles()
 
   @staticmethod
   def _geom_subgroup_visual_fingerprint(
@@ -446,7 +493,7 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
           lod=((2.0, lod_ratio),) if lod_ratio < 0.5 else "off",
           visible=visible,
         )
-        self._mesh_groups.append(
+        cast(Any, self._mesh_groups).append(
           _PerWorldMeshGroup(
             handle=handle,
             body_ids=np.asarray(variant.body_ids, dtype=np.int32),
@@ -499,7 +546,7 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
     # fields that merge_geoms_hull actually reads (geom_dataid + local
     # geom_pos/quat), so any two envs with identical fingerprints share the
     # same hull mesh in body-local space.
-    variants: dict[tuple[int, tuple], dict[str, Any]] = {}
+    variants: dict[tuple[int, tuple[object, ...]], _HullVariant] = {}
     fixed_hull_bodies: dict[int, list[int]] = {}
 
     for env_idx in range(self.num_envs):
@@ -534,14 +581,13 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
           hull = _compute_body_hull(self.mj_model, geom_ids)
           if hull is None:
             continue
-          v = {
-            "body_id": body_id,
-            "vertices": hull.vertices.astype(np.float32),
-            "faces": hull.faces.astype(np.int32),
-            "env_ids": [],
-          }
+          v = _HullVariant(
+            body_id=body_id,
+            vertices=hull.vertices.astype(np.float32),
+            faces=hull.faces.astype(np.int32),
+          )
           variants[key] = v
-        v["env_ids"].append(env_idx)
+        v.env_ids.append(env_idx)
 
     # Fixed bodies: build one hull handle each (same body-local mesh for all
     # envs since the body is welded). Uses env 0's synced state which is the
@@ -575,15 +621,15 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
     self._hull_dynamic_handles = []
     self._hull_per_world_groups = []
     for variant_idx, ((body_id, _fp), v) in enumerate(variants.items()):
-      env_ids = np.asarray(v["env_ids"], dtype=np.int32)
+      env_ids = np.asarray(v.env_ids, dtype=np.int32)
       batch_count = int(env_ids.size)
       dynamic_opacities = (
         None if opacity >= 1.0 else np.full(batch_count, opacity, dtype=np.float32)
       )
       handle = self.server.scene.add_batched_meshes_simple(
         f"/hull/{body_id}/variant{variant_idx}",
-        v["vertices"],
-        v["faces"],
+        v.vertices,
+        v.faces,
         batched_wxyzs=np.tile([1.0, 0.0, 0.0, 0.0], (batch_count, 1)).astype(
           np.float32
         ),

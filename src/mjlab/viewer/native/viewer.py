@@ -52,20 +52,18 @@ import mujoco.viewer
 import numpy as np
 import torch
 
-from mjlab.viewer._model_sync import (
-  INERTIAL_FIELDS,
-  VISUAL_FIELDS,
-  sync_visual_fields,
-)
-from mjlab.viewer._model_sync import (
-  disable_model_sameframe_shortcuts as _disable_model_sameframe_shortcuts,
-)
 from mjlab.viewer.base import (
   BaseViewer,
   EnvProtocol,
   PolicyProtocol,
   VerbosityLevel,
   ViewerAction,
+)
+from mjlab.viewer.model_sync import (
+  VIEWER_INERTIAL_FIELDS,
+  VIEWER_MODEL_FIELDS,
+  disable_model_sameframe_shortcuts,
+  sync_model_fields,
 )
 from mjlab.viewer.native.visualizer import MujocoNativeDebugVisualizer
 
@@ -163,7 +161,7 @@ class NativeMujocoViewer(BaseViewer):
     self.mjm = sim.mj_model
     self.mjd = sim.mj_data
     assert self.mjm is not None
-    _disable_model_sameframe_shortcuts(self.mjm)
+    disable_model_sameframe_shortcuts(self.mjm)
     if self.cfg.fovy is not None:
       self.mjm.vis.global_.fovy = self.cfg.fovy
 
@@ -238,10 +236,10 @@ class NativeMujocoViewer(BaseViewer):
 
       # Pin tracking camera to body frame origin so DR-induced COM shifts don't move
       # the camera.
-      if sim.expanded_fields & INERTIAL_FIELDS:
+      if sim.expanded_fields & VIEWER_INERTIAL_FIELDS:
         self._stabilize_tracking_camera()
 
-      has_visual_dr = bool(sim.expanded_fields & VISUAL_FIELDS)
+      has_visual_dr = bool(sim.expanded_fields & VIEWER_MODEL_FIELDS)
       v.sync(state_only=not has_visual_dr)
 
   def _set_status_overlay(self, viewer: mujoco.viewer.Handle) -> None:
@@ -378,7 +376,8 @@ class NativeMujocoViewer(BaseViewer):
   def _sync_model_fields(self, sim: _SimProtocol, env_idx: int) -> None:
     """Sync visually-relevant DR'd model fields from GPU to MjModel."""
     assert self.mjm is not None
-    sync_visual_fields(self.mjm, sim.model, sim.expanded_fields, env_idx)
+    fields = sim.expanded_fields & VIEWER_MODEL_FIELDS
+    sync_model_fields(self.mjm, sim.model, fields, env_idx)
 
   def _stabilize_tracking_camera(self) -> None:
     """Pin the tracked body's subtree_com to its frame origin (xpos).

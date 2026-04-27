@@ -6,9 +6,10 @@ import mujoco
 import numpy as np
 
 from mjlab.scene import Scene
-from mjlab.viewer._model_sync import (
+from mjlab.viewer.model_sync import (
+  VIEWER_MODEL_FIELDS,
   disable_model_sameframe_shortcuts,
-  sync_visual_fields,
+  sync_model_fields,
 )
 from mjlab.viewer.native.visualizer import MujocoNativeDebugVisualizer
 from mjlab.viewer.viewer_config import ViewerConfig
@@ -151,7 +152,8 @@ class OffscreenRenderer:
     """Sync visually relevant per-world model fields into the host MjModel."""
     if self._sim_model is None or self._expanded_fields is None:
       return
-    sync_visual_fields(self._model, self._sim_model, self._expanded_fields, env_idx)
+    fields = self._expanded_fields & VIEWER_MODEL_FIELDS
+    sync_model_fields(self._model, self._sim_model, fields, env_idx)
 
   def render(self) -> np.ndarray:
     if self._renderer is None:
