@@ -8,6 +8,8 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added Python 3.14 support. Bumps the ``mujoco`` floor to 3.8 and
+  ``mujoco-warp`` to 3.8 (which adopts the 3.8 API).
 - Added ``ContactSensor.primary_names`` property to expose the resolved
   primary names in the order they appear along the per-contact axis of the
   output tensors. This makes it possible to map a contact-data column back
@@ -16,6 +18,10 @@ Added
 Changed
 ^^^^^^^
 
+- The ``cu128`` and ``cpu`` torch knobs moved from optional-dependencies
+  to dependency-groups, with ``cu128`` now default-activated. To install
+  the CPU-only wheel, use ``uv sync --no-group cu128 --group cpu``
+  (previously ``uv sync --extra cpu``).
 - Task package load failures during ``mjlab`` import now print the full
   traceback (and the entry point's module path) to ``stderr`` instead of
   just the exception message, making it easier to pinpoint the source of

@@ -22,23 +22,27 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: 3 :: Only",
   "Typing :: Typed",
   "Environment :: GPU :: NVIDIA CUDA",
+  "Environment :: GPU :: NVIDIA CUDA :: 12",
+  "Environment :: GPU :: NVIDIA CUDA :: 13",
   "Topic :: Scientific/Engineering",
   "Natural Language :: English",
 ]
 description = "Isaac Lab API, powered by MuJoCo-Warp, for RL and robotics research."
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.10,<3.15"
 dependencies = [
   "prettytable",
   "tqdm",
   "tyro>=1.0.1",
-  "torch>=2.7.0",
+  "torch>=2.7.0; python_version < '3.14'",
+  "torch>=2.10.0; python_version >= '3.14'",
   "torchrunx>=0.3.4",
   "warp-lang>=1.12.0",
-  "mujoco-warp>=3.7.0.1",
-  "mujoco>=3.7.0",
+  "mujoco-warp>=3.8.0",
+  "mujoco>=3.8.0",
   "trimesh>=4.8.3",
   "viser>=1.0.26",
   "mjviser>=0.0.11",
@@ -64,6 +68,17 @@ viz-nan = "mjlab.scripts.nan_viz:main"
 export-scene = "mjlab.scripts.export_scene:main"
 
 [dependency-groups]
+cu128 = [
+  "torch>=2.7.0; python_version < '3.14'",
+  "torch>=2.10.0; python_version >= '3.14'",
+]
+cu130 = [
+  "torch>=2.10.0",
+]
+cpu = [
+  "torch>=2.7.0; python_version < '3.14'",
+  "torch>=2.10.0; python_version >= '3.14'",
+]
 dev = [
   "ipdb>=0.13.13",
   "pre-commit>=4.3.0",
@@ -89,13 +104,10 @@ docs = [
   "sphinx_multiversion",
 ]
 
-[project.optional-dependencies]
-cu128 = ["torch>=2.7.0"]
-cpu = ["torch>=2.7.0"]
-
 [tool.uv]
+default-groups = ["cu128", "dev"]
 conflicts = [
-  [{extra = "cu128"}, {extra = "cpu"}],
+  [{group = "cu128"}, {group = "cu130"}, {group = "cpu"}],
 ]
 # The nightly index (py.mujoco.org) only has dev builds, and PEP 440 ranks
 # 3.7.0.devN < 3.7.0, so the >=3.7.0 floor in [project.dependencies] would
@@ -120,6 +132,11 @@ url = "https://download.pytorch.org/whl/cu128"
 explicit = true
 
 [[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[[tool.uv.index]]
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
@@ -132,11 +149,12 @@ explicit = true
 [tool.uv.sources]
 warp-lang = { index = "nvidia", marker = "sys_platform != 'darwin'" }
 torch = [
-  { index = "pytorch-cu128", extra = "cu128", marker = "sys_platform != 'darwin'" },
-  { index = "pytorch-cpu", extra = "cpu", marker = "sys_platform != 'darwin'" },
+  { index = "pytorch-cu128", group = "cu128", marker = "sys_platform != 'darwin'" },
+  { index = "pytorch-cu130", group = "cu130", marker = "sys_platform != 'darwin'" },
+  { index = "pytorch-cpu", group = "cpu", marker = "sys_platform != 'darwin'" },
 ]
 mujoco = { index = "mujoco" }
-mujoco-warp = { git = "https://github.com/google-deepmind/mujoco_warp", rev = "ea7f05b" }
+mujoco-warp = { git = "https://github.com/google-deepmind/mujoco_warp", rev = "ebcb4932c12f8e32500c8589994239ccb64735f0" }
 
 [tool.ruff]
 src = ["src"]  # Helpful for recognizing first-party imports.

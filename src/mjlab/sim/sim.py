@@ -131,6 +131,10 @@ class MujocoCfg:
         )
       model.opt.disableflags |= _DISABLE_FLAG_MAP[flag]
     for flag in self.enableflags:
+      if flag == "multiccd" and flag not in _ENABLE_FLAG_MAP:
+        # multiccd became default-on in mujoco 3.8 and was removed from mjtEnableBit.
+        # Accept it silently for backward-compatible configs.
+        continue
       if flag not in _ENABLE_FLAG_MAP:
         raise ValueError(
           f"Unknown enable flag {flag!r}. Valid flags: {sorted(_ENABLE_FLAG_MAP)}"

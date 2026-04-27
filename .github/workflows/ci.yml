@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
       - name: Setup uv
@@ -60,13 +60,13 @@ jobs:
           restore-keys: |
             warp-kernels-${{ runner.os }}-${{ runner.arch }}-${{ matrix.python-version }}-
       - name: Test with python ${{ matrix.python-version }}
-        run: uv run --extra cpu pytest
+        run: uv run --no-group cu128 --group cpu pytest
 
   pyright:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
       - name: Setup uv
@@ -76,13 +76,13 @@ jobs:
           enable-cache: true
           version: "0.9.27"
       - name: Test with python ${{ matrix.python-version }}
-        run: uv run --extra cpu pyright
+        run: uv run --no-group cu128 --group cpu pyright
 
   ty-check:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
       - name: Setup uv
@@ -92,4 +92,4 @@ jobs:
           enable-cache: true
           version: "0.9.27"
       - name: Type check with python ${{ matrix.python-version }}
-        run: uv run --extra cpu ty check
+        run: uv run --no-group cu128 --group cpu ty check

@@ -56,7 +56,7 @@ def test_simulation_config_is_piped(robot_xml, device):
       ls_iterations=14,
       ccd_iterations=20,
       gravity=(0, 0, 7.5),
-      enableflags=("multiccd",),
+      enableflags=("energy",),
     ),
   )
 
@@ -70,7 +70,7 @@ def test_simulation_config_is_piped(robot_xml, device):
   assert sim.mj_model.opt.ls_iterations == cfg.mujoco.ls_iterations
   assert sim.mj_model.opt.ccd_iterations == cfg.mujoco.ccd_iterations
   assert tuple(sim.mj_model.opt.gravity) == cfg.mujoco.gravity
-  assert sim.mj_model.opt.enableflags & mujoco.mjtEnableBit.mjENBL_MULTICCD
+  assert sim.mj_model.opt.enableflags & mujoco.mjtEnableBit.mjENBL_ENERGY
 
   # MujocoCfg should be inherited by wp_model via put_model.
   np.testing.assert_almost_equal(
@@ -82,7 +82,7 @@ def test_simulation_config_is_piped(robot_xml, device):
   assert sim.model.opt.integrator == mujoco.mjtIntegrator.mjINT_EULER
   assert sim.model.opt.solver == mujoco.mjtSolver.mjSOL_CG
   assert sim.model.opt.iterations == cfg.mujoco.iterations
-  assert sim.model.opt.enableflags & mujoco.mjtEnableBit.mjENBL_MULTICCD
+  assert sim.model.opt.enableflags & mujoco.mjtEnableBit.mjENBL_ENERGY
 
   # SimulationCfg should be applied to wp_model.
   assert sim.wp_model.opt.contact_sensor_maxmatch == cfg.contact_sensor_maxmatch

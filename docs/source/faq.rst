@@ -42,6 +42,27 @@ Not all CUDA versions are supported by MuJoCo Warp.
 - **Recommended**: CUDA **12.4+** (for conditional execution support in CUDA
   graphs).
 
+Which PyTorch wheel does mjlab install?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On Linux, ``uv sync`` installs the **CUDA 12.8 PyTorch wheel** by default.
+This wheel requires NVIDIA driver ``>=525`` and is forward-compatible with
+all newer drivers, so it is the right choice for most users.
+
+Two alternative wheels are available as dependency groups. To switch,
+deactivate ``cu128`` and activate the desired group:
+
+.. code-block:: bash
+
+   # CUDA 13.0 wheel. Requires NVIDIA driver >=580. Use only if a specific
+   # CUDA 13 feature is required; cu128 wheels run correctly on driver 580+.
+   uv sync --no-group cu128 --group cu130
+
+   # CPU-only wheel. Used by CI and on machines without an NVIDIA GPU.
+   uv sync --no-group cu128 --group cpu
+
+The same flags apply to ``uv run`` for one-off commands.
+
 Performance
 -----------
 
