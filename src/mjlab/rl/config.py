@@ -95,8 +95,9 @@ class RslRlBaseRunnerCfg:
   save_interval: int = 50
   """The number of iterations between saves."""
   experiment_name: str = "exp1"
-  """Directory name used to group runs under
-  ``logs/rsl_rl/{experiment_name}/``."""
+  """Directory name used to group runs under ``{log_root}/{experiment_name}/``.
+  The log root defaults to ``logs/rsl_rl`` and can be overridden with
+  ``--log-root`` on the CLI."""
   run_name: str = ""
   """Optional label appended to the timestamped run directory
   (e.g. ``2025-01-27_14-30-00_{run_name}``). Also becomes the
