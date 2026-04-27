@@ -101,6 +101,10 @@ conflicts = [
 # 3.7.0.devN < 3.7.0, so the >=3.7.0 floor in [project.dependencies] would
 # reject them. This override loosens the constraint for uv resolution only.
 override-dependencies = ["mujoco>=3.7.0.dev0"]
+constraint-dependencies = [
+  "GitPython>=3.1.47",
+  "lxml>=6.1.0",
+]
 required-environments = [
   "sys_platform == 'darwin' and platform_machine == 'arm64'",
   "sys_platform == 'linux' and platform_machine == 'x86_64'",
