@@ -8,6 +8,11 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- ``RewardManager``, ``TerminationManager``, and ``MetricsManager`` now
+  validate that every term function returns a tensor of shape
+  ``(num_envs,)`` at environment init, raising a clear ``ValueError``
+  naming the offending term instead of silently broadcasting or crashing
+  later during training.
 - Added ``ContactSensor.primary_names`` property to expose the resolved
   primary names in the order they appear along the per-contact axis of the
   output tensors. This makes it possible to map a contact-data column back
