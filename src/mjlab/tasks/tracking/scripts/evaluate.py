@@ -43,6 +43,7 @@ class EvaluateConfig:
   output_file: str | None = None
   """Optional path to save metrics as JSON."""
   log_root: str = "logs/rsl_rl"
+  """Root directory under which experiment logs are written."""
 
 
 def run_evaluate(task_id: str, cfg: EvaluateConfig) -> dict[str, float]:

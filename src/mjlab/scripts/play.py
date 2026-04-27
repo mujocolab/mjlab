@@ -50,6 +50,7 @@ class PlayConfig:
   no_terminations: bool = False
   """Disable all termination conditions (useful for viewing motions with dummy agents)."""
   log_root: str = "logs/rsl_rl"
+  """Root directory under which experiment logs are written."""
 
   # Internal flag used by demo script.
   _demo_mode: tyro.conf.Suppress[bool] = False
