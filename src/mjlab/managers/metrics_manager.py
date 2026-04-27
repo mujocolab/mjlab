@@ -155,6 +155,15 @@ class MetricsManager(ManagerBase):
       terms.append((name, [self._step_values[env_idx, idx].cpu().item()]))
     return terms
 
+  def validate_term_shapes(self) -> None:
+    for term_name, term_cfg in zip(self._term_names, self._term_cfgs, strict=False):
+      value = term_cfg.func(self._env, **term_cfg.params)
+      if value.shape != (self.num_envs,):
+        raise ValueError(
+          f"Metrics term '{term_name}' returned shape {value.shape},"
+          f" expected ({self.num_envs},)."
+        )
+
   def _prepare_terms(self):
     for term_name, term_cfg in self.cfg.items():
       term_cfg: MetricsTermCfg | None
@@ -193,6 +202,9 @@ class NullMetricsManager:
 
   def reset(self, env_ids: torch.Tensor | None = None) -> dict[str, float]:
     return {}
+
+  def validate_term_shapes(self) -> None:
+    pass
 
   def compute_substep(self) -> None:
     pass

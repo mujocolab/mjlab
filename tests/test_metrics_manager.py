@@ -221,6 +221,40 @@ def test_reduce_mean_and_last_coexist(mock_env):
   assert info["Episode_Metrics/last_term"].item() == pytest.approx(6.0)
 
 
+def test_metrics_shape_validation_accepts_correct_shape(mock_env):
+  """Metrics terms returning (num_envs,) pass shape validation."""
+  cfg = {"ok": MetricsTermCfg(func=lambda env: torch.ones(env.num_envs), params={})}
+  manager = MetricsManager(cfg, mock_env)
+  manager.validate_term_shapes()
+  assert "ok" in manager.active_terms
+
+
+def test_metrics_shape_validation_rejects_scalar(mock_env):
+  """Metrics terms returning a scalar are rejected by shape validation."""
+  cfg = {"bad": MetricsTermCfg(func=lambda env: torch.tensor(1.0), params={})}
+  manager = MetricsManager(cfg, mock_env)
+  with pytest.raises(ValueError, match="expected \\(4,\\)"):
+    manager.validate_term_shapes()
+
+
+def test_metrics_shape_validation_rejects_2d(mock_env):
+  """Metrics terms returning (num_envs, 1) are rejected by shape validation."""
+  cfg = {"bad": MetricsTermCfg(func=lambda env: torch.ones(env.num_envs, 1), params={})}
+  manager = MetricsManager(cfg, mock_env)
+  with pytest.raises(ValueError, match="expected \\(4,\\)"):
+    manager.validate_term_shapes()
+
+
+def test_metrics_shape_validation_rejects_wrong_num_envs(mock_env):
+  """Metrics terms returning wrong num_envs are rejected by shape validation."""
+  cfg = {
+    "bad": MetricsTermCfg(func=lambda env: torch.ones(env.num_envs + 1), params={})
+  }
+  manager = MetricsManager(cfg, mock_env)
+  with pytest.raises(ValueError, match="expected \\(4,\\)"):
+    manager.validate_term_shapes()
+
+
 def test_no_substep_terms_no_overhead(mock_env):
   """When no per_substep terms exist, compute_substep is a no-op."""
   cfg = {

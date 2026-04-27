@@ -107,6 +107,62 @@ def test_nan_detection_with_termination_manager(mock_env_with_sim):
 
 
 @pytest.fixture
+def mock_env():
+  """Minimal mock environment for shape validation tests."""
+  env = Mock()
+  env.num_envs = 4
+  env.device = "cpu"
+  env.scene = {"robot": Mock()}
+  return env
+
+
+def test_termination_shape_validation_accepts_correct_shape(mock_env):
+  """Termination terms returning (num_envs,) pass shape validation."""
+  cfg = {
+    "ok": TerminationTermCfg(
+      func=lambda env: torch.zeros(env.num_envs, dtype=torch.bool), params={}
+    )
+  }
+  manager = TerminationManager(cfg, mock_env)
+  manager.validate_term_shapes()
+  assert "ok" in manager.active_terms
+
+
+def test_termination_shape_validation_rejects_scalar(mock_env):
+  """Termination terms returning a scalar are rejected by shape validation."""
+  cfg = {"bad": TerminationTermCfg(func=lambda env: torch.tensor(True), params={})}
+  manager = TerminationManager(cfg, mock_env)
+  with pytest.raises(ValueError, match="expected \\(4,\\)"):
+    manager.validate_term_shapes()
+
+
+def test_termination_shape_validation_rejects_2d(mock_env):
+  """Termination terms returning (num_envs, 1) are rejected by shape validation."""
+  cfg = {
+    "bad": TerminationTermCfg(
+      func=lambda env: torch.ones(env.num_envs, 1, dtype=torch.bool),
+      params={},
+    )
+  }
+  manager = TerminationManager(cfg, mock_env)
+  with pytest.raises(ValueError, match="expected \\(4,\\)"):
+    manager.validate_term_shapes()
+
+
+def test_termination_shape_validation_rejects_wrong_num_envs(mock_env):
+  """Termination terms returning wrong num_envs are rejected by shape validation."""
+  cfg = {
+    "bad": TerminationTermCfg(
+      func=lambda env: torch.zeros(env.num_envs + 1, dtype=torch.bool),
+      params={},
+    )
+  }
+  manager = TerminationManager(cfg, mock_env)
+  with pytest.raises(ValueError, match="expected \\(4,\\)"):
+    manager.validate_term_shapes()
+
+
+@pytest.fixture
 def mock_terrain_env():
   device = get_test_device()
   num_envs = 4

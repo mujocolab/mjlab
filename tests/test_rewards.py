@@ -331,6 +331,52 @@ def test_reward_scaling_default_is_enabled(mock_env):
   assert torch.allclose(rewards, torch.full((4,), 0.01))
 
 
+def test_reward_shape_validation_accepts_correct_shape(mock_env):
+  """Reward terms returning (num_envs,) pass shape validation."""
+  cfg = {
+    "ok": RewardTermCfg(
+      func=lambda env: torch.ones(env.num_envs), weight=1.0, params={}
+    )
+  }
+  manager = RewardManager(cfg, mock_env)
+  manager.validate_term_shapes()
+  assert "ok" in manager.active_terms
+
+
+def test_reward_shape_validation_rejects_scalar(mock_env):
+  """Reward terms returning a scalar are rejected by shape validation."""
+  cfg = {
+    "bad": RewardTermCfg(func=lambda env: torch.tensor(1.0), weight=1.0, params={})
+  }
+  manager = RewardManager(cfg, mock_env)
+  with pytest.raises(ValueError, match="expected \\(4,\\)"):
+    manager.validate_term_shapes()
+
+
+def test_reward_shape_validation_rejects_2d(mock_env):
+  """Reward terms returning (num_envs, 1) are rejected by shape validation."""
+  cfg = {
+    "bad": RewardTermCfg(
+      func=lambda env: torch.ones(env.num_envs, 1), weight=1.0, params={}
+    )
+  }
+  manager = RewardManager(cfg, mock_env)
+  with pytest.raises(ValueError, match="expected \\(4,\\)"):
+    manager.validate_term_shapes()
+
+
+def test_reward_shape_validation_rejects_wrong_num_envs(mock_env):
+  """Reward terms returning wrong num_envs are rejected by shape validation."""
+  cfg = {
+    "bad": RewardTermCfg(
+      func=lambda env: torch.ones(env.num_envs + 1), weight=1.0, params={}
+    )
+  }
+  manager = RewardManager(cfg, mock_env)
+  with pytest.raises(ValueError, match="expected \\(4,\\)"):
+    manager.validate_term_shapes()
+
+
 def test_joint_torques_l2_with_actuator_ids(mock_env):
   """Test that joint_torques_l2 only penalizes specified actuators."""
   mock_env.scene["robot"].data.actuator_force = torch.tensor([[1.0, 2.0, 3.0, 4.0]] * 4)

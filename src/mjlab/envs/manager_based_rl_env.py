@@ -341,6 +341,12 @@ class ManagerBasedRlEnv:
       self.recorder_manager = NullRecorderManager()
     print_info(f"[INFO] {self.recorder_manager}")
 
+    self.extras.setdefault("log", {})
+
+    self.reward_manager.validate_term_shapes()
+    self.termination_manager.validate_term_shapes()
+    self.metrics_manager.validate_term_shapes()
+
     # Configure spaces for the environment.
     self._configure_gym_env_spaces()
 

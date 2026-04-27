@@ -160,6 +160,15 @@ class RewardManager(ManagerBase):
       raise ValueError(f"Term '{term_name}' not found in active terms.")
     return self._term_cfgs[self._term_names.index(term_name)]
 
+  def validate_term_shapes(self) -> None:
+    for term_name, term_cfg in zip(self._term_names, self._term_cfgs, strict=False):
+      value = term_cfg.func(self._env, **term_cfg.params)
+      if value.shape != (self.num_envs,):
+        raise ValueError(
+          f"Reward term '{term_name}' returned shape {value.shape},"
+          f" expected ({self.num_envs},)."
+        )
+
   def _prepare_terms(self):
     for term_name, term_cfg in self.cfg.items():
       term_cfg: RewardTermCfg | None
