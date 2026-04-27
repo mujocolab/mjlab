@@ -25,6 +25,9 @@ Added
 Changed
 ^^^^^^^
 
+- Bumped ``rsl-rl-lib`` from 5.0.1 to 5.2.0. This brings ``torch.compile`` support for
+  PPO and Distillation, and optional std clamping and constant std in
+  ``GaussianDistribution``. No code changes required on the mjlab side.
 - ``TerrainEntityCfg`` debug visualization sites (environment origins,
   terrain origins, flat patches) are now off by default. Set
   ``debug_vis=True`` to re-enable them. The sites inflated ``nsite`` and
