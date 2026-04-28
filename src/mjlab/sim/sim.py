@@ -11,6 +11,7 @@ import torch
 import warp as wp
 
 from mjlab.managers.event_manager import RecomputeLevel
+from mjlab.scene.per_world_mesh import VARIANT_DEPENDENT_FIELDS, per_world_mesh
 from mjlab.sim.randomization import expand_model_fields
 from mjlab.sim.sim_data import TorchArray, WarpBridge
 from mjlab.utils.nan_guard import NanGuard, NanGuardCfg
@@ -234,11 +235,6 @@ class Simulation:
     ``self._mj_model`` must first sync the relevant per-world fields for the env
     they are rendering or inspecting.
     """
-    from mjlab.scene.per_world_mesh import (
-      VARIANT_DEPENDENT_FIELDS,
-      per_world_mesh,
-    )
-
     with wp.ScopedDevice(self.wp_device):
       result = per_world_mesh(
         spec,
