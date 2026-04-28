@@ -25,12 +25,22 @@ Added
 Changed
 ^^^^^^^
 
+- Bumped ``mujoco`` to 3.8 and ``mujoco-warp`` to 3.8.0. The ``multiccd``
+  enable flag was removed in mujoco 3.8 (it became default-on), so configs
+  that listed ``"multiccd"`` in ``MujocoCfg.enableflags`` need to drop it.
 - Camera segmentation now matches ``mujoco_warp``'s typed segmentation
   output. ``CameraSensorData.segmentation`` stores ``(object_id,
   object_type)`` pairs in shape ``[B, H, W, 2]`` instead of the previous
-  legacy geom-id-only layout.
-- Sped up ``RayCaster`` post-processing and ``quat_from_matrix``. 
-  ``quat_from_matrix`` output may differ by ~2e-7 vs. the previous implementation.
+  legacy geom-id-only layout. Contribution by @tkelestemur.
+- Sped up ``RayCaster`` post-processing by removing boolean-mask indexing
+  operations and replacing them with ``masked_fill_`` plus a clamped-distance
+  formulation of ``hit_pos_w`` that places misses at the world origin. This
+  removes all CUDA syncs from the ray post-process, letting the CPU thread
+  proceed while GPU-based sensing runs. Contribution by @bd-pdomanico.
+- Sped up ``quat_from_matrix`` by removing CUDA syncs and aligning the
+  implementation with the latest version in ``pytorch3d``. ~4-5x speedup
+  on a 4090. Output may differ by ~2e-7 vs. the previous implementation.
+  Contribution by @bd-pdomanico.
 - Bumped ``rsl-rl-lib`` from 5.0.1 to 5.2.0. This brings ``torch.compile`` support for
   PPO and Distillation, and optional std clamping and constant std in
   ``GaussianDistribution``. No code changes required on the mjlab side.
