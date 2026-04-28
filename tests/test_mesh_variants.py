@@ -16,9 +16,7 @@ from mjlab.viewer.model_sync import (
   sync_model_fields,
 )
 
-# ---------------------------------------------------------------------------
 # Helpers: variant specs with visual + collision mesh geoms.
-# ---------------------------------------------------------------------------
 
 
 def _sphere_2col_spec() -> mujoco.MjSpec:
@@ -143,9 +141,7 @@ def _build_scene_with_variants(
   return scene_spec, [("object/", entity.variant_metadata)]
 
 
-# ---------------------------------------------------------------------------
-# allocate_worlds
-# ---------------------------------------------------------------------------
+# allocate_worlds.
 
 
 def test_allocate_worlds_proportional():
@@ -195,9 +191,7 @@ def test_allocate_worlds_largest_remainder_sums_to_nworld():
     assert max(counts) - min(counts) <= 1
 
 
-# ---------------------------------------------------------------------------
-# Entity merging
-# ---------------------------------------------------------------------------
+# Entity merging.
 
 
 def test_entity_builds_with_variants():
@@ -235,9 +229,7 @@ def test_multi_geom_body_padding():
   assert all(n is not None for n in meta.variant_mesh_names[1])
 
 
-# ---------------------------------------------------------------------------
-# Validation
-# ---------------------------------------------------------------------------
+# Validation.
 
 
 def test_mismatched_joint_structure_raises():
@@ -251,12 +243,29 @@ def test_mismatched_joint_structure_raises():
     cfg.build()
 
 
-def test_single_variant_raises():
+def test_single_variant_builds():
+  """A single variant degenerates cleanly; useful for templated variant sets."""
   cfg = VariantEntityCfg(
     variants={"only": VariantCfg(spec_fn=_simple_sphere_spec)},
   )
-  with pytest.raises(ValueError, match="at least 2"):
+  entity = cfg.build()
+  assert entity.variant_metadata is not None
+  assert entity.variant_metadata.variant_names == ("only",)
+
+
+def test_empty_variants_raises():
+  cfg = VariantEntityCfg(variants={})
+  with pytest.raises(ValueError, match="at least one"):
     cfg.build()
+
+
+def test_setting_spec_fn_on_variant_cfg_raises():
+  """VariantEntityCfg.spec_fn is unused; setting it should fail loudly."""
+  with pytest.raises(ValueError, match="spec_fn cannot be set"):
+    VariantEntityCfg(
+      variants={"only": VariantCfg(spec_fn=_simple_sphere_spec)},
+      spec_fn=_simple_sphere_spec,
+    )
 
 
 def test_no_variants_unchanged():
@@ -265,9 +274,7 @@ def test_no_variants_unchanged():
   assert entity.variant_metadata is None
 
 
-# ---------------------------------------------------------------------------
-# build_mesh_variant_model: dataid and dependent fields
-# ---------------------------------------------------------------------------
+# build_mesh_variant_model: dataid and dependent fields.
 
 
 def test_dataid_assigned_per_world():
@@ -679,9 +686,109 @@ def test_viser_convex_hulls_are_per_variant():
     env.close()
 
 
-# ---------------------------------------------------------------------------
-# Full env lifecycle
-# ---------------------------------------------------------------------------
+# DR consistency on variant scenes.
+
+
+def _explicit_mass_variant(
+  mesh_name: str,
+  mass: float,
+  *,
+  cone: bool = False,
+) -> mujoco.MjSpec:
+  """Build a single-geom freejoint variant with an explicit body mass."""
+  spec = mujoco.MjSpec()
+  mesh = spec.add_mesh()
+  mesh.name = mesh_name
+  if cone:
+    mesh.make_cone(nedge=8, radius=0.05)
+  else:
+    mesh.make_sphere(subdivision=1)
+  body = spec.worldbody.add_body(name="prop")
+  body.add_freejoint()
+  body.explicitinertial = 1
+  body.mass = mass
+  body.ipos[:] = (0.0, 0.0, 0.0)
+  body.inertia[:] = (1e-4, 1e-4, 1e-4)
+  body.iquat[:] = (1.0, 0.0, 0.0, 0.0)
+  body.add_geom(
+    name="visual",
+    type=mujoco.mjtGeom.mjGEOM_MESH,
+    meshname=mesh_name,
+    contype=0,
+    conaffinity=0,
+    mass=0.0,
+  )
+  return spec
+
+
+def test_dr_body_mass_scale_preserves_variant_baseline():
+  """``dr.body_mass`` scale must use each variant's own baseline.
+
+  This is the load-bearing claim of ``_per_world_default_fields``: scaling
+  body_mass on a variant scene by a per-env factor must produce
+  ``variant_default[env] * scale[env]``, not ``template_default * scale[env]``.
+  """
+  from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
+  from mjlab.envs.mdp import dr
+  from mjlab.managers.event_manager import EventTermCfg
+  from mjlab.managers.scene_entity_config import SceneEntityCfg
+  from mjlab.scene import SceneCfg
+  from mjlab.terrains import TerrainEntityCfg
+
+  light_mass = 0.1
+  heavy_mass = 1.0
+  scale = 2.0
+
+  object_cfg = VariantEntityCfg(
+    variants={
+      "light": VariantCfg(
+        lambda: _explicit_mass_variant("light", light_mass), weight=0.5
+      ),
+      "heavy": VariantCfg(
+        lambda: _explicit_mass_variant("heavy", heavy_mass, cone=True), weight=0.5
+      ),
+    },
+    init_state=EntityCfg.InitialStateCfg(pos=(0.0, 0.0, 0.2)),
+  )
+  env_cfg = ManagerBasedRlEnvCfg(
+    decimation=1,
+    scene=SceneCfg(
+      terrain=TerrainEntityCfg(terrain_type="plane"),
+      num_envs=4,
+      env_spacing=1.0,
+      entities={"object": object_cfg},
+    ),
+    events={
+      "scale_mass": EventTermCfg(
+        func=dr.body_mass,
+        mode="startup",
+        params={
+          "asset_cfg": SceneEntityCfg("object", body_names=("prop",)),
+          "operation": "scale",
+          "ranges": (scale, scale),  # deterministic factor
+        },
+      ),
+    },
+  )
+
+  with pytest.warns(UserWarning, match="dr.body_mass only randomizes mass"):
+    env = ManagerBasedRlEnv(cfg=env_cfg, device="cpu")
+  try:
+    obj_body = int(env.scene["object"].indexing.root_body_id)
+    w2v = env.sim.world_to_variant["object"]
+    actual = env.sim.model.body_mass[:, obj_body].cpu()
+
+    variant_baseline = torch.tensor([light_mass, heavy_mass], dtype=actual.dtype)
+    expected = variant_baseline[w2v.cpu()] * scale
+    torch.testing.assert_close(actual, expected, atol=1e-5, rtol=1e-5)
+
+    # Sanity: at least one env per variant, otherwise the test is vacuous.
+    assert (w2v == 0).any() and (w2v == 1).any()
+  finally:
+    env.close()
+
+
+# Full env lifecycle.
 
 
 def test_env_step_with_variants():
@@ -733,9 +840,7 @@ def test_env_step_with_variants():
   env.close()
 
 
-# ---------------------------------------------------------------------------
-# Viewer: sameframe shortcut fix
-# ---------------------------------------------------------------------------
+# Viewer: sameframe shortcut fix.
 
 
 def _viewer_regression_sphere_spec() -> mujoco.MjSpec:

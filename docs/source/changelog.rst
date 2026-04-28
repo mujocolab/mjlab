@@ -21,6 +21,18 @@ Added
   primary names in the order they appear along the per-contact axis of the
   output tensors. This makes it possible to map a contact-data column back
   to the primary it belongs to (:issue:`914`).
+- Added per-world mesh variant support via ``VariantEntityCfg`` and
+  ``VariantCfg``. Each world in a batched simulation can now use a
+  different mesh asset for the same logical entity (e.g. world 0 holds a
+  cube, world 1 a sphere), with weights controlling the proportion of
+  worlds assigned to each variant. Mesh-derived constants (collision
+  bounds, body inertials, subtree mass, inverse weights) are compiled
+  per-variant and stored as per-world arrays in the Warp model, so domain
+  randomization, the native viewer, the offscreen renderer, and the Viser
+  viewer all pick up the variant assignment automatically. Variants must
+  share the same kinematic structure (same bodies, joints, joint types);
+  only mesh geoms may differ. Assignment is fixed at simulation init.
+  See :ref:`per_world_mesh` for usage. With help from @XiangruiJiang.
 
 Changed
 ^^^^^^^

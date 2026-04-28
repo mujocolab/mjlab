@@ -187,6 +187,19 @@ class EntityArticulationInfoCfg:
   soft_joint_pos_limit_factor: float = 1.0
 
 
+def _variant_spec_fn_unset() -> mujoco.MjSpec:
+  """Sentinel default for ``VariantEntityCfg.spec_fn``.
+
+  ``VariantEntityCfg`` builds its spec from ``variants`` via
+  ``Entity._build_merged_spec``; the inherited ``spec_fn`` field is unused.
+  Identity comparison against this sentinel detects accidental user overrides.
+  """
+  raise AssertionError(
+    "VariantEntityCfg.spec_fn should never be called; the merged spec is "
+    "built from `variants`."
+  )
+
+
 @dataclass
 class VariantEntityCfg(EntityCfg):
   """Entity config for per-world mesh variants.
@@ -199,15 +212,23 @@ class VariantEntityCfg(EntityCfg):
   All variants must share the same kinematic structure (same bodies,
   joints, joint types). Only mesh geoms can differ.
 
-  Do not set ``spec_fn``; it is constructed automatically from the
-  merged variant specs.
+  Variant assignment is fixed at ``Simulation`` initialization; it does
+  not resample on episode reset. Pass the per-variant spec via
+  :class:`VariantCfg` rather than setting ``spec_fn`` directly.
   """
 
   variants: dict[str, VariantCfg] = field(default_factory=dict)
   """Named mesh variants with weights."""
 
-  def build(self) -> Entity:
-    return Entity(self)
+  spec_fn: Callable[[], mujoco.MjSpec] = field(default=_variant_spec_fn_unset)
+  """Unused on ``VariantEntityCfg``; the merged spec is built from ``variants``."""
+
+  def __post_init__(self) -> None:
+    if self.spec_fn is not _variant_spec_fn_unset:
+      raise ValueError(
+        "VariantEntityCfg.spec_fn cannot be set; pass per-variant specs via "
+        "VariantCfg(spec_fn=...) inside `variants` instead."
+      )
 
 
 class Entity:
@@ -265,10 +286,8 @@ class Entity:
     """
     assert isinstance(self.cfg, VariantEntityCfg)
     variants = self.cfg.variants
-    if len(variants) < 2:
-      raise ValueError(
-        f"variants must contain at least 2 entries, got {len(variants)}."
-      )
+    if not variants:
+      raise ValueError("VariantEntityCfg.variants must contain at least one entry.")
 
     variant_names: list[str] = []
     variant_weights: list[float] = []

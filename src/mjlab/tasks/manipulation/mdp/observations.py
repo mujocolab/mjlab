@@ -12,7 +12,7 @@ from mjlab.tasks.manipulation.mdp.commands import (
   LiftingCommand,
   MultiCubeLiftingCommand,
 )
-from mjlab.utils.lab_api.math import quat_apply, quat_inv, quat_mul
+from mjlab.utils.lab_api.math import quat_apply, quat_inv
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
@@ -56,53 +56,6 @@ def object_to_goal_distance(
   base_quat_w = robot.data.root_link_quat_w
   distance_vec_b = quat_apply(quat_inv(base_quat_w), distance_vec_w)
   return distance_vec_b
-
-
-def object_pose_in_base(
-  env: ManagerBasedRlEnv,
-  object_name: str,
-  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
-) -> torch.Tensor:
-  """Object position and orientation in the robot base frame. Shape ``(B, 7)``.
-
-  Layout: ``[px, py, pz, qw, qx, qy, qz]``. Required when the policy must
-  adapt grasp orientation to the object (anisotropic shapes).
-  """
-  robot: Entity = env.scene[asset_cfg.name]
-  obj: Entity = env.scene[object_name]
-  base_pos_w = robot.data.root_link_pos_w
-  base_quat_w = robot.data.root_link_quat_w
-  obj_pos_w = obj.data.root_link_pos_w
-  obj_quat_w = obj.data.root_link_quat_w
-  base_quat_inv = quat_inv(base_quat_w)
-  pos_b = quat_apply(base_quat_inv, obj_pos_w - base_pos_w)
-  quat_b = quat_mul(base_quat_inv, obj_quat_w)
-  return torch.cat([pos_b, quat_b], dim=-1)
-
-
-def object_sorted_extents(
-  env: ManagerBasedRlEnv,
-  object_name: str,
-) -> torch.Tensor:
-  """Sorted half-extents of the object's first mesh geom AABB. Shape ``(B, 3)``.
-
-  Sorted ascending so the obs is invariant to which body axis happens to be
-  the long one. Tells the policy "this is a 5x1.5x1.5 cm thing" regardless
-  of how the variant was built. Reads per-world ``geom_aabb`` for variant
-  scenes; falls back to the shared host value otherwise.
-  """
-  obj: Entity = env.scene[object_name]
-  geom_id = int(obj.indexing.geom_ids[0].item())
-  aabb = env.sim.get_default_field("geom_aabb")
-  # Per-world variant scenes store as (nworld, ngeom, 2, 3) where [..., 1, :]
-  # is the half-extents vec3. Host scenes store as (ngeom, 6) where [3:6] is
-  # the half-extents.
-  if aabb.dim() == 4:
-    he = aabb[:, geom_id, 1, :]
-  else:
-    he = aabb[geom_id, 3:6].unsqueeze(0).expand(env.num_envs, -1)
-  sorted_he, _ = torch.sort(he, dim=-1)
-  return sorted_he
 
 
 def ee_velocity(

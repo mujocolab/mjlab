@@ -204,6 +204,9 @@ class Simulation:
     # know what to copy per env). Superset of `_per_world_default_fields`
     # plus `geom_dataid` for variant scenes.
     self._expanded_fields: set[str] = set()
+    # Per-entity variant assignment, keyed by entity name (no trailing
+    # slash). Empty for non-variant scenes.
+    self._world_to_variant: dict[str, torch.Tensor] = {}
 
     if spec is not None and variant_info:
       self._init_with_variants(spec, variant_info)
@@ -272,6 +275,15 @@ class Simulation:
     # viewer syncs them per-world.
     self._expanded_fields.update(VARIANT_DEPENDENT_FIELDS)
     self._expanded_fields.add("geom_dataid")
+
+    # Stash variant assignments as torch tensors keyed by bare entity name
+    # (mesh_variants emits "<name>/" prefixes; strip the trailing slash for
+    # the public API).
+    for prefix, arr in result.world_to_variant.items():
+      key = prefix.rstrip("/")
+      self._world_to_variant[key] = torch.as_tensor(
+        arr, dtype=torch.long, device=self.device
+      )
 
   def _finish_init(self) -> None:
     """Common initialization after warp model is created."""
@@ -369,6 +381,16 @@ class Simulation:
   def per_world_default_fields(self) -> set[str]:
     """Fields with per-world defaults from mesh variant compilation."""
     return self._per_world_default_fields
+
+  @property
+  def world_to_variant(self) -> dict[str, torch.Tensor]:
+    """Per-entity variant assignment for variant scenes.
+
+    Maps entity name (without trailing slash) to a ``(num_envs,)`` tensor of
+    variant indices. The index order matches the order of variants declared
+    in the entity's :class:`VariantEntityCfg`. Empty for non-variant scenes.
+    """
+    return self._world_to_variant
 
   # Methods.
 

@@ -138,29 +138,32 @@ def build_mesh_variant_model(
     world_to_variant[entity_prefix] = w2v
 
     mesh_geom_ids = _find_entity_mesh_geom_ids(model, entity_prefix)
+    nslots = len(mesh_geom_ids)
 
-    # Set per-world dataid for each mesh geom slot.
-    for w in range(nworld):
-      variant_idx = assignment[w]
-      mesh_names = metadata.variant_mesh_names[variant_idx]
-      for slot, geom_id in enumerate(mesh_geom_ids):
-        if slot < len(mesh_names) and mesh_names[slot] is not None:
-          # Resolve prefixed mesh name to mesh ID.
-          mesh_name = mesh_names[slot]
-          assert mesh_name is not None
-          # The mesh name in the merged spec is already prefixed
-          # with the variant name (e.g., "mug/visual_mesh"). But
-          # when attached to the scene, it also gets the entity
-          # prefix (e.g., "object/mug/visual_mesh"). Resolve using
-          # the entity prefix.
-          full_mesh_name = f"{entity_prefix}{mesh_name}"
-          mesh_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_MESH, full_mesh_name)
-          if mesh_id < 0:
-            raise ValueError(f"Mesh '{full_mesh_name}' not found in compiled model.")
-          dataid_table[w, geom_id] = mesh_id
-        else:
-          # Padding slot: disable this geom for this world.
-          dataid_table[w, geom_id] = -1
+    # Resolve every (variant, slot) -> mesh_id once. Mesh names in the merged
+    # spec are variant-prefixed ("mug/visual_mesh"); after attaching to the
+    # scene they also carry the entity prefix ("object/mug/visual_mesh").
+    # Padding slots are -1.
+    nvariants = len(metadata.variant_mesh_names)
+    variant_slot_ids = np.full((nvariants, nslots), -1, dtype=np.int64)
+    for v_idx, mesh_names in enumerate(metadata.variant_mesh_names):
+      for slot in range(min(nslots, len(mesh_names))):
+        name = mesh_names[slot]
+        if name is None:
+          continue
+        full = f"{entity_prefix}{name}"
+        mid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_MESH, full)
+        if mid < 0:
+          variant_label = metadata.variant_names[v_idx]
+          raise ValueError(
+            f"Mesh '{full}' (variant '{variant_label}', slot {slot}) "
+            f"not found in compiled model."
+          )
+        variant_slot_ids[v_idx, slot] = mid
+
+    # Vectorized scatter: row-select by variant assignment, write into the
+    # mesh-geom columns of the per-world dataid table.
+    dataid_table[:, mesh_geom_ids] = variant_slot_ids[w2v]
 
   # Build warp model.
   m = mjwarp.put_model(model)
