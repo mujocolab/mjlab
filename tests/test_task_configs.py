@@ -67,7 +67,11 @@ def test_play_mode_observation_corruption_disabled(all_task_ids: list[str]) -> N
 
 def test_training_mode_observation_corruption_enabled(all_task_ids: list[str]) -> None:
   """Training mode tasks should have observation corruption enabled for policy."""
+  # Tasks that intentionally disable actor observation corruption.
+  exempt = {"Mjlab-Lift-Variant-Yam"}
   for task_id in all_task_ids:
+    if task_id in exempt:
+      continue
     cfg = load_env_cfg(task_id)
 
     assert "actor" in cfg.observations, (
