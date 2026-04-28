@@ -25,6 +25,8 @@ Added
 Changed
 ^^^^^^^
 
+- Sped up ``RayCaster`` post-processing and ``quat_from_matrix``. 
+  ``quat_from_matrix`` output may differ by ~2e-7 vs. the previous implementation.
 - Bumped ``rsl-rl-lib`` from 5.0.1 to 5.2.0. This brings ``torch.compile`` support for
   PPO and Distillation, and optional std clamping and constant std in
   ``GaussianDistribution``. No code changes required on the mjlab side.
