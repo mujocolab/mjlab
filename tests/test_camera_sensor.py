@@ -329,7 +329,7 @@ def test_cam_intrinsic_dr_changes_rendered_image(device):
 
 
 def test_camera_segmentation_shape(device):
-  """Segmentation data has correct shape [num_envs, height, width, 1]."""
+  """Segmentation data has correct shape [num_envs, height, width, 2]."""
   cam_cfg = CameraSensorCfg(
     name="test_cam",
     camera_name="world/overhead_cam",
@@ -345,14 +345,14 @@ def test_camera_segmentation_shape(device):
 
   assert isinstance(data, CameraSensorData)
   assert data.segmentation is not None
-  assert data.segmentation.shape == (2, 24, 32, 1)
+  assert data.segmentation.shape == (2, 24, 32, 2)
   assert data.segmentation.dtype == torch.int32
   assert data.rgb is None
   assert data.depth is None
 
 
 def test_camera_segmentation_content(device):
-  """Segmentation contains background (-1) and geom hits (>= 0)."""
+  """Segmentation contains typed MuJoCo ids for geom hits and background."""
   cam_cfg = CameraSensorCfg(
     name="test_cam",
     camera_name="world/overhead_cam",
@@ -368,9 +368,17 @@ def test_camera_segmentation_content(device):
   assert seg is not None
 
   seg_np = seg.cpu().numpy()
-  assert (seg_np >= 0).any(), "Expected at least one geom hit"
-  unique_ids = len(set(seg_np.flatten().tolist()))
-  assert unique_ids > 1, "Expected multiple distinct geom IDs"
+  obj_ids = seg_np[..., 0]
+  obj_types = seg_np[..., 1]
+
+  geom_mask = obj_types == int(mujoco.mjtObj.mjOBJ_GEOM)
+  background_mask = obj_types == -1
+
+  assert geom_mask.any(), "Expected at least one geom hit"
+  assert (obj_ids[geom_mask] >= 0).all()
+  assert len(set(obj_ids[geom_mask].flatten().tolist())) > 1
+  if background_mask.any():
+    assert (obj_ids[background_mask] == -1).all()
 
 
 def test_camera_rgb_depth_segmentation(device):
@@ -393,7 +401,7 @@ def test_camera_rgb_depth_segmentation(device):
   assert data.segmentation is not None
   assert data.rgb.shape == (2, 24, 32, 3)
   assert data.depth.shape == (2, 24, 32, 1)
-  assert data.segmentation.shape == (2, 24, 32, 1)
+  assert data.segmentation.shape == (2, 24, 32, 2)
 
 
 def test_camera_create_on_parent_body(device):

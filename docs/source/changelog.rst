@@ -25,6 +25,10 @@ Added
 Changed
 ^^^^^^^
 
+- Camera segmentation now matches ``mujoco_warp``'s typed segmentation
+  output. ``CameraSensorData.segmentation`` stores ``(object_id,
+  object_type)`` pairs in shape ``[B, H, W, 2]`` instead of the previous
+  legacy geom-id-only layout.
 - Sped up ``RayCaster`` post-processing and ``quat_from_matrix``. 
   ``quat_from_matrix`` output may differ by ~2e-7 vs. the previous implementation.
 - Bumped ``rsl-rl-lib`` from 5.0.1 to 5.2.0. This brings ``torch.compile`` support for

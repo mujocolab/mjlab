@@ -150,6 +150,10 @@ Only requested types are allocated; the other field on
    * - ``"depth"``
      - ``[B, H, W, 1]`` float32
      - Depth image. Values are distances from the camera plane.
+   * - ``"segmentation"``
+     - ``[B, H, W, 2]`` int32
+     - Typed segmentation. Channel 0 stores object IDs and channel 1 stores
+       MuJoCo object types. Background pixels are ``(-1, -1)``.
 
 
 Render settings
@@ -193,6 +197,7 @@ Output
     class CameraSensorData:
         rgb: Tensor | None      # [B, H, W, 3] uint8
         depth: Tensor | None    # [B, H, W, 1] float32
+        segmentation: Tensor | None  # [B, H, W, 2] int32
 
 By default, the returned tensors are zero-copy views into the render
 buffer. Set ``clone_data=True`` on the config if you modify them in

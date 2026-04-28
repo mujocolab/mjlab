@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import mujoco
 import torch
 
 from mjlab.entity import Entity
@@ -119,11 +120,11 @@ def camera_segmentation(
   env: ManagerBasedRlEnv,
   sensor_name: str,
 ) -> torch.Tensor:
-  """Per-pixel geom ID segmentation in (B, 1, H, W) format."""
+  """Per-pixel typed segmentation in (B, 2, H, W) format."""
   sensor: CameraSensor = env.scene[sensor_name]
-  seg_data = sensor.data.segmentation  # (B, H, W, 1)
+  seg_data = sensor.data.segmentation  # (B, H, W, 2)
   assert seg_data is not None, f"Camera '{sensor_name}' has no segmentation data"
-  return seg_data.permute(0, 3, 1, 2)  # (B, 1, H, W)
+  return seg_data.permute(0, 3, 1, 2)  # (B, 2, H, W)
 
 
 def camera_target_cube_mask(
@@ -136,14 +137,17 @@ def camera_target_cube_mask(
   Output shape: (B, 1, H, W) float32.
   """
   sensor: CameraSensor = env.scene[sensor_name]
-  seg_data = sensor.data.segmentation  # (B, H, W, 1)
+  seg_data = sensor.data.segmentation  # (B, H, W, 2)
   assert seg_data is not None, f"Camera '{sensor_name}' has no segmentation data"
-  seg = seg_data[..., 0]  # (B, H, W)
+  obj_ids = seg_data[..., 0]  # (B, H, W)
+  obj_types = seg_data[..., 1]  # (B, H, W)
 
   command = env.command_manager.get_term(command_name)
   assert isinstance(command, MultiCubeLiftingCommand)
   target_ids = command.target_geom_ids  # (B, K)
 
-  # (B, H, W, K) == comparison, reduce over K
-  mask = (seg.unsqueeze(-1) == target_ids.unsqueeze(1).unsqueeze(1)).any(-1)
+  # Only geom hits should participate in the target mask.
+  is_geom = obj_types == int(mujoco.mjtObj.mjOBJ_GEOM)
+  mask = (obj_ids.unsqueeze(-1) == target_ids.unsqueeze(1).unsqueeze(1)).any(-1)
+  mask = mask & is_geom
   return mask.float().unsqueeze(1)  # (B, 1, H, W)
