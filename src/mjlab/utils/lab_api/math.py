@@ -314,7 +314,7 @@ def _sqrt_positive_part(x: torch.Tensor) -> torch.Tensor:
     return torch.where(positive_mask, torch.sqrt(safe_x), 0.0)
 
 
-@torch.compile(fullgraph=True)
+@torch.jit.script
 def quat_from_matrix(matrix: torch.Tensor) -> torch.Tensor:
     """Convert rotations given as rotation matrices to quaternions.
 

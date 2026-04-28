@@ -37,10 +37,6 @@ Changed
   formulation of ``hit_pos_w`` that places misses at the world origin. This
   removes all CUDA syncs from the ray post-process, letting the CPU thread
   proceed while GPU-based sensing runs. Contribution by @bd-pdomanico.
-- Sped up ``quat_from_matrix`` by removing CUDA syncs and aligning the
-  implementation with the latest version in ``pytorch3d``. ~4-5x speedup
-  on a 4090. Output may differ by ~2e-7 vs. the previous implementation.
-  Contribution by @bd-pdomanico.
 - Bumped ``rsl-rl-lib`` from 5.0.1 to 5.2.0. This brings ``torch.compile`` support for
   PPO and Distillation, and optional std clamping and constant std in
   ``GaussianDistribution``. No code changes required on the mjlab side.
