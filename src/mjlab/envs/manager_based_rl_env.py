@@ -184,7 +184,7 @@ class ManagerBasedRlEnv:
     # Initialize base environment state.
     self.cfg = cfg
     if self.cfg.seed is not None:
-      self.cfg.seed = self.seed(self.cfg.seed)
+      self.cfg.seed = self.seed(self.cfg.seed, device=device)
     self._sim_step_counter = 0
     self.extras = {}
     self.obs_buf = {}
@@ -493,12 +493,11 @@ class ManagerBasedRlEnv:
       self._offline_renderer.close()
     self.recorder_manager.close()
 
-  @staticmethod
-  def seed(seed: int = -1) -> int:
+  def seed(self, seed: int = -1, device: str | torch.device | None = None) -> int:
     if seed == -1:
       seed = np.random.randint(0, 10_000)
     print_info(f"Setting seed: {seed}")
-    random_utils.seed_rng(seed)
+    random_utils.seed_rng(seed, device=device if device is not None else self.device)
     return seed
 
   def update_visualizers(self, visualizer: DebugVisualizer) -> None:

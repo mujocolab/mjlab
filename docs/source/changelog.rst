@@ -48,6 +48,11 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ``ManagerBasedRlEnv`` initializing Warp on all visible CUDA devices
+  even when constructed with ``device="cpu"``. ``seed_rng`` now accepts a
+  ``device`` argument and skips ``wp.rand_init`` on CPU devices, so a
+  CPU-only env no longer claims a CUDA context on machines with a visible
+  GPU (:issue:`949`).
 - Fixed ``ContactSensor.compute_first_contact`` and ``compute_first_air``
   occasionally missing events when a contact began or ended right at the
   last physics substep of a control step. ``current_contact_time`` /
