@@ -781,17 +781,18 @@ class RayCastSensor(Sensor[RayCastData]):
     assert self._ray_dist is not None and self._ray_normal is not None
     distances = wp.to_torch(self._ray_dist)
     normals_w = wp.to_torch(self._ray_normal).view(B, self._num_rays, 3)
-    distances[distances > self.cfg.max_distance] = -1.0
+    distances.masked_fill_(distances > self.cfg.max_distance, -1.0)
 
     hit_mask = distances >= 0
-    hit_pos_w = self._cached_world_origins.clone()
-    hit_pos_w[hit_mask] = self._cached_world_origins[
-      hit_mask
-    ] + self._cached_world_rays[hit_mask] * distances[hit_mask].unsqueeze(-1)
-    self._hit_pos_w = hit_pos_w
+    # ``origin + ray * max(distance, 0)`` collapses miss rays to ``origin``
+    # (clamped distance is 0) without any branching.
+    clamped = distances.clamp(min=0.0)
+    self._hit_pos_w = (
+      self._cached_world_origins + self._cached_world_rays * clamped.unsqueeze(-1)
+    )
 
     # Zero out normals for misses.
-    normals_w[~hit_mask] = 0.0
+    normals_w.masked_fill_(~hit_mask.unsqueeze(-1), 0.0)
     self._distances = distances
     self._normals_w = normals_w
 
