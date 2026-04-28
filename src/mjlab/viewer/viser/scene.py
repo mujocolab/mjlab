@@ -520,16 +520,22 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
     # in any env so mjviser's _sync_visibilities / _hull_hide_meshes logic
     # still has the right body set.
     self._hull_body_meshes = {}
+    # Read the per-world geom_dataid table directly from sim_model: a body
+    # is a hull body iff any world has at least one active mesh geom on it,
+    # which is constant data we don't need to materialize per-env into
+    # mj_model to inspect.
+    assert self._sim_model is not None
+    dataid = self._sim_model.geom_dataid.cpu().numpy()
+    if dataid.ndim == 1:
+      dataid = dataid[None, :]
+    geom_active_in_any_world = (dataid >= 0).any(axis=0)
     hull_bodies: set[int] = set()
-    for env_idx in range(self.num_envs):
-      self._sync_model_fields(env_idx)
-      for geom_id in range(self.mj_model.ngeom):
-        if int(self.mj_model.geom_type[geom_id]) != int(mjtGeom.mjGEOM_MESH):
-          continue
-        if int(self.mj_model.geom_dataid[geom_id]) < 0:
-          continue
-        hull_bodies.add(int(self.mj_model.geom_bodyid[geom_id]))
-    self._sync_model_fields(self.env_idx)
+    for geom_id in range(self.mj_model.ngeom):
+      if int(self.mj_model.geom_type[geom_id]) != int(mjtGeom.mjGEOM_MESH):
+        continue
+      if not geom_active_in_any_world[geom_id]:
+        continue
+      hull_bodies.add(int(self.mj_model.geom_bodyid[geom_id]))
     self._hull_mesh_bodies = hull_bodies
 
   @override

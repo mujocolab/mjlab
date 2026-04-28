@@ -380,6 +380,11 @@ def _select_default_values(
   """
   default_field = env.sim.get_default_field(field)
   if field in env.sim.per_world_default_fields:
+    assert default_field.shape[0] == env.num_envs, (
+      f"Field '{field}' is registered as per-world but its default has "
+      f"shape {tuple(default_field.shape)}; expected leading dim "
+      f"{env.num_envs}."
+    )
     env_grid, entity_grid = torch.meshgrid(env_ids, entity_indices, indexing="ij")
     return default_field[env_grid, entity_grid]
 

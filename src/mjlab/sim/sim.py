@@ -11,7 +11,7 @@ import torch
 import warp as wp
 
 from mjlab.managers.event_manager import RecomputeLevel
-from mjlab.scene.per_world_mesh import VARIANT_DEPENDENT_FIELDS, per_world_mesh
+from mjlab.sim.mesh_variants import VARIANT_DEPENDENT_FIELDS, build_mesh_variant_model
 from mjlab.sim.randomization import expand_model_fields
 from mjlab.sim.sim_data import TorchArray, WarpBridge
 from mjlab.utils.nan_guard import NanGuard, NanGuardCfg
@@ -195,7 +195,14 @@ class Simulation:
     self.wp_device = wp.get_device(self.device)
     self.num_envs = num_envs
     self._default_model_fields: dict[str, torch.Tensor] = {}
+    # Fields whose DR baseline is per-world (DR's `_select_default_values`
+    # uses this to know whether to index `[env, ...]` vs `[...]`).
+    # Variant-dependent fields go here; `geom_dataid` does not, because
+    # DR does not randomize mesh selection.
     self._per_world_default_fields: set[str] = set()
+    # Fields that have per-world warp arrays (viewer sync uses this to
+    # know what to copy per env). Superset of `_per_world_default_fields`
+    # plus `geom_dataid` for variant scenes.
     self._expanded_fields: set[str] = set()
 
     if spec is not None and variant_info:
@@ -236,7 +243,7 @@ class Simulation:
     they are rendering or inspecting.
     """
     with wp.ScopedDevice(self.wp_device):
-      result = per_world_mesh(
+      result = build_mesh_variant_model(
         spec,
         self.num_envs,
         variant_info,

@@ -1,8 +1,8 @@
 """Per-world mesh variant support.
 
-Builds on mujoco_warp's batched ``geom_dataid`` to assign different meshes
-to different simulation worlds. Adapted from the upstream reference
-implementation in ``mujoco_warp/_src/io_test.py``.
+Sibling of :mod:`mjlab.sim.randomization`: that module expands singleton
+model fields into per-world arrays for DR; this one writes per-world
+arrays whose rows differ by mesh variant.
 """
 
 from __future__ import annotations
@@ -34,8 +34,8 @@ VARIANT_DEPENDENT_FIELDS = (
 
 
 @dataclass
-class PerWorldMeshResult:
-  """Output of :func:`per_world_mesh`."""
+class MeshVariantResult:
+  """Output of :func:`build_mesh_variant_model`."""
 
   wp_model: mjwarp.Model
   mj_model: mujoco.MjModel
@@ -77,12 +77,14 @@ def allocate_worlds(
 ) -> list[int]:
   """Assign worlds proportionally by weight (largest-remainder method).
 
-  Returns a list of length *nworld* containing variant indices.
+  Returns a list of length *nworld* containing variant indices. Weights
+  must be non-negative with at least one positive entry.
   """
+  if any(w < 0 for w in weights):
+    raise ValueError(f"weights must be non-negative, got {weights}.")
   total = sum(weights)
   if total <= 0:
-    total = float(len(weights))
-    weights = tuple(1.0 for _ in weights)
+    raise ValueError(f"weights must have a positive sum, got {weights}.")
   quotas = [(w / total) * nworld for w in weights]
   floors = [int(q) for q in quotas]
   remainders = sorted(
@@ -98,12 +100,12 @@ def allocate_worlds(
   return assignment
 
 
-def per_world_mesh(
+def build_mesh_variant_model(
   spec: mujoco.MjSpec,
   nworld: int,
   variant_info: list[tuple[str, VariantMetadata]],
   configure_model: Callable[[mujoco.MjModel], None] | None = None,
-) -> PerWorldMeshResult:
+) -> MeshVariantResult:
   """Build a warp Model with per-world mesh assignments.
 
   Args:
@@ -115,7 +117,7 @@ def per_world_mesh(
       MjModel before ``put_model`` (e.g., setting solver options).
 
   Returns:
-    A :class:`PerWorldMeshResult` containing the warp model, host
+    A :class:`MeshVariantResult` containing the warp model, host
     model, and per-entity world-to-variant mappings.
   """
   spec = spec.copy()
@@ -169,7 +171,7 @@ def per_world_mesh(
     m, spec, model, dataid_table, nworld, variant_info, world_to_variant
   )
 
-  return PerWorldMeshResult(
+  return MeshVariantResult(
     wp_model=m,
     mj_model=model,
     world_to_variant=world_to_variant,
@@ -187,7 +189,8 @@ def _populate_dependent_fields(
 ) -> None:
   """Compile each unique variant and write per-world dependent fields.
 
-  Mutates *spec* temporarily (saves and restores geom state).
+  Each unique variant is compiled from a fresh ``spec.copy()``; the input
+  ``spec`` is not mutated.
   """
   # Find unique dataid rows.
   unique_rows: dict[tuple[int, ...], int] = {}
@@ -196,80 +199,66 @@ def _populate_dependent_fields(
     if key not in unique_rows:
       unique_rows[key] = w
 
-  # Save spec geom state.
-  spec_geoms = list(spec.geoms)
-  saved: dict[int, tuple[str, int, int, float]] = {}
-  for idx, g in enumerate(spec_geoms):
-    saved[idx] = (g.meshname, g.contype, g.conaffinity, g.mass)
+  # Map padded_model geom IDs to geom names (stable across spec copies).
+  geom_id_to_name: dict[int, str] = {}
+  for g in spec.geoms:
+    if not g.name:
+      continue
+    gid = mujoco.mj_name2id(padded_model, mujoco.mjtObj.mjOBJ_GEOM, g.name)
+    if gid >= 0:
+      geom_id_to_name[gid] = g.name
 
-  spec_bodies = list(spec.bodies)
-  body_name_to_spec_body = {b.name: b for b in spec_bodies if b.name}
-  saved_body_state = {
-    b.name: (
-      int(b.explicitinertial),
-      float(b.mass),
-      np.array(b.ipos, dtype=np.float64).copy(),
-      np.array(b.inertia, dtype=np.float64).copy(),
-      np.array(b.iquat, dtype=np.float64).copy(),
-      np.array(b.fullinertia, dtype=np.float64).copy(),
-    )
-    for b in spec_bodies
-    if b.name
-  }
+  # Collect all variant geom IDs in padded_model.
+  all_variant_geom_ids: set[int] = set()
+  for entity_prefix, _ in variant_info:
+    all_variant_geom_ids.update(_find_entity_mesh_geom_ids(padded_model, entity_prefix))
+
+  # Bodies any variant marks as explicit-inertial: must be reset on the
+  # fresh spec copy before applying this variant's inertials. Variants
+  # without an explicit inertial fall back to MuJoCo's mesh-derived path
+  # during compile, so we clear the diagonal inertial fields. Do NOT
+  # assign ``body.fullinertia``: any assignment (even zeros) flags the
+  # field as user-specified and ``spec.compile()`` then rejects it as
+  # conflicting with ``body.inertia``.
   variant_inertial_body_names: set[str] = set()
   for entity_prefix, metadata in variant_info:
     for variant_inertials in metadata.variant_body_inertials:
       for inertial in variant_inertials:
         variant_inertial_body_names.add(f"{entity_prefix}{inertial.body_name}")
 
-  # Map geom IDs in padded_model to spec geom indices.
-  geom_id_to_spec_idx: dict[int, int] = {}
-  for idx, g in enumerate(spec_geoms):
-    if g.name:
-      gid = mujoco.mj_name2id(padded_model, mujoco.mjtObj.mjOBJ_GEOM, g.name)
-      if gid >= 0:
-        geom_id_to_spec_idx[gid] = idx
-
-  # Collect all variant geom IDs.
-  all_variant_geom_ids: set[int] = set()
-  for entity_prefix, _ in variant_info:
-    all_variant_geom_ids.update(_find_entity_mesh_geom_ids(padded_model, entity_prefix))
-
-  # Compile each unique variant.
+  # Compile each unique variant from a fresh spec copy.
   compiled_variants: dict[tuple[int, ...], mujoco.MjModel] = {}
   for key, first_world in unique_rows.items():
-    _restore_body_state(body_name_to_spec_body, saved_body_state)
+    variant_spec = spec.copy()
+    geoms_by_name = {g.name: g for g in variant_spec.geoms if g.name}
+    bodies_by_name = {b.name: b for b in variant_spec.bodies if b.name}
+
+    # Apply this variant's mesh selection per geom slot.
     for gid in all_variant_geom_ids:
-      if gid not in geom_id_to_spec_idx:
+      name = geom_id_to_name.get(gid)
+      if name is None:
         continue
-      spec_idx = geom_id_to_spec_idx[gid]
-      mesh_id = dataid_table[first_world, gid]
+      geom = geoms_by_name[name]
+      mesh_id = int(dataid_table[first_world, gid])
       if mesh_id >= 0:
         mesh_name = mujoco.mj_id2name(padded_model, mujoco.mjtObj.mjOBJ_MESH, mesh_id)
-        spec_geoms[spec_idx].meshname = mesh_name
-        spec_geoms[spec_idx].contype = 1
-        spec_geoms[spec_idx].conaffinity = 1
+        geom.meshname = mesh_name
+        geom.contype = 1
+        geom.conaffinity = 1
       else:
-        spec_geoms[spec_idx].contype = 0
-        spec_geoms[spec_idx].conaffinity = 0
-        spec_geoms[spec_idx].mass = 0.0
+        geom.contype = 0
+        geom.conaffinity = 0
+        geom.mass = 0.0
 
-    # Reset every body that any variant marks as explicit-inertial. Variants
-    # without an explicit inertial fall back to MuJoCo's mesh-derived path
-    # during compile, so clear the diagonal inertial fields so prior
-    # iteration values cannot leak through. Do NOT assign ``body.fullinertia``
-    # here: any assignment (even zeros) flags the field as user-specified and
-    # spec.compile() then rejects it as conflicting with ``body.inertia``.
-    # ``_restore_body_state`` at the top of each iteration already restores
-    # fullinertia to its baseline.
     for body_name in variant_inertial_body_names:
-      if body_name in body_name_to_spec_body:
-        body = body_name_to_spec_body[body_name]
-        body.explicitinertial = 0
-        body.mass = 0.0
-        body.inertia = np.zeros(3, dtype=np.float64)
-        body.ipos = np.zeros(3, dtype=np.float64)
-        body.iquat = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float64)
+      body = bodies_by_name.get(body_name)
+      if body is None:
+        continue
+      body.explicitinertial = 0
+      body.mass = 0.0
+      body.inertia = np.zeros(3, dtype=np.float64)
+      body.ipos = np.zeros(3, dtype=np.float64)
+      body.iquat = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float64)
 
     for entity_prefix, metadata in variant_info:
       variant_idx = int(world_to_variant[entity_prefix][first_world])
@@ -277,21 +266,12 @@ def _populate_dependent_fields(
         continue
       for inertial in metadata.variant_body_inertials[variant_idx]:
         _apply_body_inertial(
-          body_name_to_spec_body,
+          bodies_by_name,
           f"{entity_prefix}{inertial.body_name}",
           inertial,
         )
-    compiled_variants[key] = spec.compile()
 
-  # Restore spec state.
-  for idx, g in enumerate(spec_geoms):
-    if idx in saved:
-      meshname, contype, conaffinity, mass = saved[idx]
-      g.meshname = meshname
-      g.contype = contype
-      g.conaffinity = conaffinity
-      g.mass = mass
-  _restore_body_state(body_name_to_spec_body, saved_body_state)
+    compiled_variants[key] = variant_spec.compile()
 
   # Build per-world numpy arrays.
   ngeom = padded_model.ngeom
@@ -338,11 +318,11 @@ def _populate_dependent_fields(
 
 
 def _apply_body_inertial(
-  body_name_to_spec_body: dict[str, mujoco.MjsBody],
+  bodies_by_name: dict[str, mujoco.MjsBody],
   body_name: str,
   inertial: BodyInertialMetadata,
 ) -> None:
-  body = body_name_to_spec_body.get(body_name)
+  body = bodies_by_name.get(body_name)
   if body is None:
     raise ValueError(f"Body '{body_name}' not found in compiled variant spec.")
   body.explicitinertial = 1
@@ -350,23 +330,3 @@ def _apply_body_inertial(
   body.ipos = np.asarray(inertial.ipos, dtype=np.float64)
   body.inertia = np.asarray(inertial.inertia, dtype=np.float64)
   body.iquat = np.asarray(inertial.iquat, dtype=np.float64)
-
-
-def _restore_body_state(
-  body_name_to_spec_body: dict[str, mujoco.MjsBody],
-  saved_body_state: dict[
-    str,
-    tuple[int, float, np.ndarray, np.ndarray, np.ndarray, np.ndarray],
-  ],
-) -> None:
-  for body_name, state in saved_body_state.items():
-    body = body_name_to_spec_body.get(body_name)
-    if body is None:
-      continue
-    explicitinertial, mass, ipos, inertia, iquat, fullinertia = state
-    body.explicitinertial = explicitinertial
-    body.mass = mass
-    body.ipos = ipos.copy()
-    body.inertia = inertia.copy()
-    body.iquat = iquat.copy()
-    body.fullinertia = fullinertia.copy()

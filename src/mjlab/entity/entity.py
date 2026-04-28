@@ -101,7 +101,8 @@ class VariantMetadata:
   variant_mesh_names: tuple[tuple[str | None, ...], ...]
   num_mesh_geoms: int  # Max mesh geom count after padding.
   # Per-variant explicit body inertials. Names are local to the variant spec;
-  # per_world_mesh prefixes them with the scene entity name when applying them.
+  # build_mesh_variant_model prefixes them with the scene entity name when
+  # applying them.
   variant_body_inertials: tuple[tuple[BodyInertialMetadata, ...], ...] = ()
 
 

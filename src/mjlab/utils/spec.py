@@ -446,6 +446,7 @@ def copy_mesh_data(src: mujoco.MjsMesh, dst: mujoco.MjsMesh) -> None:
   Copies vertex/face data, file path, scale, reference frame, and smoothing settings.
   The ``name`` field is NOT copied; set it on *dst* before calling.
   """
+  assert dst.name, "dst.name must be set before copy_mesh_data."
   if src.file:
     dst.file = src.file
   if len(src.uservert) > 0:

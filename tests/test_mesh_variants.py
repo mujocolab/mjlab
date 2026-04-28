@@ -10,7 +10,7 @@ import pytest
 import torch
 
 from mjlab.entity import EntityCfg, VariantCfg, VariantEntityCfg
-from mjlab.scene.per_world_mesh import allocate_worlds
+from mjlab.sim.mesh_variants import allocate_worlds, build_mesh_variant_model
 from mjlab.viewer.model_sync import (
   disable_model_sameframe_shortcuts,
   sync_model_fields,
@@ -166,6 +166,35 @@ def test_allocate_worlds_single_variant():
   assert result == [0, 0, 0, 0, 0]
 
 
+def test_allocate_worlds_zero_weight_skips_variant():
+  """A zero-weight variant gets zero worlds; the rest split nworld."""
+  result = allocate_worlds((1.0, 0.0, 1.0), 10)
+  assert len(result) == 10
+  assert result.count(1) == 0
+  assert result.count(0) == 5
+  assert result.count(2) == 5
+
+
+def test_allocate_worlds_rejects_negative_weight():
+  with pytest.raises(ValueError, match="non-negative"):
+    allocate_worlds((1.0, -0.1), 10)
+
+
+def test_allocate_worlds_rejects_all_zero():
+  with pytest.raises(ValueError, match="positive sum"):
+    allocate_worlds((0.0, 0.0), 10)
+
+
+def test_allocate_worlds_largest_remainder_sums_to_nworld():
+  """Largest-remainder rounding must always allocate exactly nworld worlds."""
+  for nworld in (3, 7, 100, 1000):
+    result = allocate_worlds((1.0, 1.0, 1.0), nworld)
+    assert len(result) == nworld
+    # Difference between any two variant counts is at most 1 (uniform).
+    counts = [result.count(i) for i in range(3)]
+    assert max(counts) - min(counts) <= 1
+
+
 # ---------------------------------------------------------------------------
 # Entity merging
 # ---------------------------------------------------------------------------
@@ -237,16 +266,14 @@ def test_no_variants_unchanged():
 
 
 # ---------------------------------------------------------------------------
-# per_world_mesh: dataid and dependent fields
+# build_mesh_variant_model: dataid and dependent fields
 # ---------------------------------------------------------------------------
 
 
 def test_dataid_assigned_per_world():
   """Each world's geom_dataid points to its variant's meshes."""
-  from mjlab.scene.per_world_mesh import per_world_mesh
-
   scene_spec, vi = _build_scene_with_variants(_simple_sphere_spec, _simple_cone_spec)
-  result = per_world_mesh(scene_spec, 4, vi)
+  result = build_mesh_variant_model(scene_spec, 4, vi)
 
   dataid = result.wp_model.geom_dataid.numpy()
   assert dataid.shape == (4, result.mj_model.ngeom)
@@ -262,10 +289,8 @@ def test_dataid_assigned_per_world():
 
 def test_padding_slots_get_disabled():
   """Shorter variant's padding geom slots have dataid == -1."""
-  from mjlab.scene.per_world_mesh import per_world_mesh
-
   scene_spec, vi = _build_scene_with_variants(_sphere_2col_spec, _cone_4col_spec)
-  result = per_world_mesh(scene_spec, 4, vi)
+  result = build_mesh_variant_model(scene_spec, 4, vi)
 
   dataid = result.wp_model.geom_dataid.numpy()
   w2v = result.world_to_variant["object/"]
@@ -295,10 +320,8 @@ def test_padding_slots_get_disabled():
 
 def test_dependent_fields_match_individual_compilation():
   """Per-world body_mass matches independently compiled variant models."""
-  from mjlab.scene.per_world_mesh import per_world_mesh
-
   scene_spec, vi = _build_scene_with_variants(_simple_sphere_spec, _simple_cone_spec)
-  result = per_world_mesh(scene_spec, 4, vi)
+  result = build_mesh_variant_model(scene_spec, 4, vi)
 
   # Compile each variant independently for reference values.
   sphere_model = _simple_sphere_spec().compile()
