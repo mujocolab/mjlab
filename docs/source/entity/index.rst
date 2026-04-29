@@ -197,8 +197,8 @@ example, a ``CollisionCfg`` with ``geom_names_expr=(".*_foot.*",)``
 sets contact parameters only on foot geoms. See the asset zoo
 (``mjlab.asset_zoo.robots``) for complete examples.
 
-Per-world mesh variants
-^^^^^^^^^^^^^^^^^^^^^^^
+Heterogeneous worlds
+^^^^^^^^^^^^^^^^^^^^
 
 For scenes that need different mesh assets in different parallel worlds
 (for example, training a manipulation policy that generalizes across
@@ -206,7 +206,7 @@ object shapes), use ``VariantEntityCfg`` instead of ``EntityCfg``. Each
 world is assigned a variant proportional to a configurable weight, and
 mesh-dependent compiled constants (collision bounds, body inertials,
 subtree mass) are stored as per-world arrays so domain randomization and
-viewers stay consistent. See :ref:`per_world_mesh`.
+viewers stay consistent. See :ref:`heterogeneous_worlds`.
 
 Subclassing Entity
 ^^^^^^^^^^^^^^^^^^

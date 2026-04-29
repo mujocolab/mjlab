@@ -11,7 +11,7 @@ import numpy as np
 import torch
 
 from mjlab.entity import Entity, EntityCfg
-from mjlab.entity.entity import VariantMetadata
+from mjlab.entity.variants import VariantMetadata
 from mjlab.sensor import BuiltinSensor, RayCastSensor, Sensor, SensorCfg
 from mjlab.sensor.camera_sensor import CameraSensor
 from mjlab.sensor.sensor_context import SensorContext
@@ -131,11 +131,6 @@ class Scene:
   @property
   def device(self) -> str:
     return self._device
-
-  @property
-  def has_mesh_variants(self) -> bool:
-    """True if any entity declares per-world mesh variants."""
-    return any(ent.variant_metadata is not None for ent in self._entities.values())
 
   def collect_variant_info(
     self,

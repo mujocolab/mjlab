@@ -3,7 +3,7 @@ from __future__ import annotations
 import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Sequence
+from typing import TYPE_CHECKING, Callable, Sequence
 
 import mujoco
 import mujoco_warp as mjwarp
@@ -18,13 +18,12 @@ from mjlab.entity.data import EntityData
 from mjlab.utils import spec_config as spec_cfg
 from mjlab.utils.lab_api.string import resolve_matching_names
 from mjlab.utils.mujoco import dof_width, qpos_width
-from mjlab.utils.spec import (
-  auto_wrap_fixed_base_mocap,
-  copy_mesh_data,
-  validate_variant_structure,
-)
+from mjlab.utils.spec import auto_wrap_fixed_base_mocap
 from mjlab.utils.string import resolve_expr
 from mjlab.utils.xml import fix_spec_xml, strip_buffer_textures
+
+if TYPE_CHECKING:
+  from mjlab.entity.variants import VariantMetadata
 
 
 @dataclass(frozen=False)
@@ -65,79 +64,6 @@ class EntityIndexing:
   @property
   def root_body_id(self) -> int:
     return self.bodies[0].id
-
-
-@dataclass
-class VariantCfg:
-  """One object variant for per-world mesh randomization.
-
-  Each variant provides a ``spec_fn`` that returns an MjSpec for one object.
-  The ``weight`` controls what fraction of worlds use this variant.
-  """
-
-  spec_fn: Callable[[], mujoco.MjSpec]
-  weight: float = 1.0
-
-
-@dataclass(frozen=True)
-class BodyInertialMetadata:
-  """Explicit inertial properties for one body in a mesh variant."""
-
-  body_name: str
-  mass: float
-  ipos: tuple[float, float, float]
-  inertia: tuple[float, float, float]
-  iquat: tuple[float, float, float, float]
-
-
-@dataclass
-class VariantMetadata:
-  """Bookkeeping produced by Entity when merging variant specs."""
-
-  variant_names: tuple[str, ...]
-  variant_weights: tuple[float, ...]
-  # Per-variant ordered mesh names for each geom slot. Shorter variants
-  # have None for padding slots that should be disabled (dataid = -1).
-  variant_mesh_names: tuple[tuple[str | None, ...], ...]
-  num_mesh_geoms: int  # Max mesh geom count after padding.
-  # Per-variant explicit body inertials. Names are local to the variant spec;
-  # build_mesh_variant_model prefixes them with the scene entity name when
-  # applying them.
-  variant_body_inertials: tuple[tuple[BodyInertialMetadata, ...], ...] = ()
-
-
-def _iter_body_tree(body: mujoco.MjsBody):
-  yield body
-  for child in body.bodies:
-    yield from _iter_body_tree(child)
-
-
-def _collect_explicit_body_inertials(
-  root_body: mujoco.MjsBody,
-) -> tuple[BodyInertialMetadata, ...]:
-  inertials: list[BodyInertialMetadata] = []
-  for body in _iter_body_tree(root_body):
-    if not body.name or not body.explicitinertial:
-      continue
-    inertials.append(
-      BodyInertialMetadata(
-        body_name=body.name,
-        mass=float(body.mass),
-        ipos=(float(body.ipos[0]), float(body.ipos[1]), float(body.ipos[2])),
-        inertia=(
-          float(body.inertia[0]),
-          float(body.inertia[1]),
-          float(body.inertia[2]),
-        ),
-        iquat=(
-          float(body.iquat[0]),
-          float(body.iquat[1]),
-          float(body.iquat[2]),
-          float(body.iquat[3]),
-        ),
-      )
-    )
-  return tuple(inertials)
 
 
 @dataclass
@@ -187,50 +113,6 @@ class EntityArticulationInfoCfg:
   soft_joint_pos_limit_factor: float = 1.0
 
 
-def _variant_spec_fn_unset() -> mujoco.MjSpec:
-  """Sentinel default for ``VariantEntityCfg.spec_fn``.
-
-  ``VariantEntityCfg`` builds its spec from ``variants`` via
-  ``Entity._build_merged_spec``; the inherited ``spec_fn`` field is unused.
-  Identity comparison against this sentinel detects accidental user overrides.
-  """
-  raise AssertionError(
-    "VariantEntityCfg.spec_fn should never be called; the merged spec is "
-    "built from `variants`."
-  )
-
-
-@dataclass
-class VariantEntityCfg(EntityCfg):
-  """Entity config for per-world mesh variants.
-
-  Instead of a single ``spec_fn``, provide a dict of named variants.
-  Each world gets a variant assigned proportionally by weight. The
-  merged spec (with all variant meshes and padded geoms) is built
-  automatically.
-
-  All variants must share the same kinematic structure (same bodies,
-  joints, joint types). Only mesh geoms can differ.
-
-  Variant assignment is fixed at ``Simulation`` initialization; it does
-  not resample on episode reset. Pass the per-variant spec via
-  :class:`VariantCfg` rather than setting ``spec_fn`` directly.
-  """
-
-  variants: dict[str, VariantCfg] = field(default_factory=dict)
-  """Named mesh variants with weights."""
-
-  spec_fn: Callable[[], mujoco.MjSpec] = field(default=_variant_spec_fn_unset)
-  """Unused on ``VariantEntityCfg``; the merged spec is built from ``variants``."""
-
-  def __post_init__(self) -> None:
-    if self.spec_fn is not _variant_spec_fn_unset:
-      raise ValueError(
-        "VariantEntityCfg.spec_fn cannot be set; pass per-variant specs via "
-        "VariantCfg(spec_fn=...) inside `variants` instead."
-      )
-
-
 class Entity:
   """An entity represents a physical object in the simulation.
 
@@ -272,129 +154,12 @@ class Entity:
     self._add_initial_state_keyframe()
 
   def _build_spec(self) -> None:
+    from mjlab.entity.variants import VariantEntityCfg, build_merged_variant_spec
+
     if isinstance(self.cfg, VariantEntityCfg):
-      self._build_merged_spec()
+      self._spec, self._variant_metadata = build_merged_variant_spec(self.cfg)
     else:
       self._spec = auto_wrap_fixed_base_mocap(self.cfg.spec_fn)()
-
-  def _build_merged_spec(self) -> None:
-    """Build a merged spec from multiple variant specs.
-
-    Validates that all variants share the same kinematic structure,
-    merges all mesh assets into a single spec, and pads the body to
-    the max mesh geom count across variants.
-    """
-    assert isinstance(self.cfg, VariantEntityCfg)
-    variants = self.cfg.variants
-    if not variants:
-      raise ValueError("VariantEntityCfg.variants must contain at least one entry.")
-
-    variant_names: list[str] = []
-    variant_weights: list[float] = []
-    variant_specs: list[mujoco.MjSpec] = []
-    for name, vcfg in variants.items():
-      variant_names.append(name)
-      variant_weights.append(vcfg.weight)
-      variant_specs.append(vcfg.spec_fn())
-
-    # Find root body in each variant.
-    variant_bodies: list[mujoco.MjsBody] = []
-    for i, spec in enumerate(variant_specs):
-      children = list(spec.worldbody.bodies)
-      if len(children) != 1:
-        raise ValueError(
-          f"Variant '{variant_names[i]}' must have exactly one "
-          f"root body under worldbody, got {len(children)}."
-        )
-      variant_bodies.append(children[0])
-
-    validate_variant_structure(variant_names, variant_bodies)
-
-    # Variant entities must be floating-base. Mocap auto-wrap is not applied
-    # for variant entities, so fixed-base variants would silently stack at
-    # the world origin. Variants share joint structure (validated above), so
-    # checking the first is sufficient.
-    ref_joints = list(variant_bodies[0].joints)
-    if not ref_joints or ref_joints[0].type != mujoco.mjtJoint.mjJNT_FREE:
-      raise ValueError(
-        "VariantEntityCfg requires floating-base variants. Each variant's "
-        "root body must declare a free joint via body.add_freejoint(); "
-        "fixed-base variants are not supported."
-      )
-
-    variant_body_inertials = tuple(
-      _collect_explicit_body_inertials(body) for body in variant_bodies
-    )
-
-    # Collect original mesh names per variant BEFORE any renaming.
-    variant_orig_mesh_names: list[list[str]] = []
-    variant_mesh_geom_counts: list[int] = []
-    for body in variant_bodies:
-      orig_names = [
-        g.meshname for g in body.geoms if g.type == mujoco.mjtGeom.mjGEOM_MESH
-      ]
-      variant_orig_mesh_names.append(orig_names)
-      variant_mesh_geom_counts.append(len(orig_names))
-
-    max_mesh_geoms = max(variant_mesh_geom_counts)
-
-    # Use first variant as template. Prefix ALL mesh names with
-    # variant name to avoid collisions across variants.
-    template_spec = variant_specs[0]
-    template_body = variant_bodies[0]
-
-    # Rename template meshes first.
-    template_prefix = f"{variant_names[0]}/"
-    old_to_new: dict[str, str] = {}
-    for mesh in template_spec.meshes:
-      new_name = f"{template_prefix}{mesh.name}"
-      old_to_new[mesh.name] = new_name
-      mesh.name = new_name
-    for g in template_body.geoms:
-      if g.meshname in old_to_new:
-        g.meshname = old_to_new[g.meshname]
-
-    # Copy mesh assets from other variants.
-    for i in range(1, len(variant_specs)):
-      prefix = f"{variant_names[i]}/"
-      for mesh in variant_specs[i].meshes:
-        new_mesh = template_spec.add_mesh()
-        new_mesh.name = f"{prefix}{mesh.name}"
-        copy_mesh_data(mesh, new_mesh)
-
-    # Pad body to max mesh geom count.
-    current_count = variant_mesh_geom_counts[0]
-    if max_mesh_geoms > current_count:
-      longest_idx = max(
-        range(len(variant_mesh_geom_counts)),
-        key=lambda j: variant_mesh_geom_counts[j],
-      )
-      longest_prefix = f"{variant_names[longest_idx]}/"
-      longest_names = variant_orig_mesh_names[longest_idx]
-      for k in range(current_count, max_mesh_geoms):
-        geom = template_body.add_geom()
-        geom.type = mujoco.mjtGeom.mjGEOM_MESH
-        geom.meshname = f"{longest_prefix}{longest_names[k]}"
-        geom.contype = 1
-        geom.conaffinity = 1
-
-    # Build variant_mesh_names: use original names with variant prefix.
-    variant_mesh_name_lists: list[tuple[str | None, ...]] = []
-    for i, orig_names in enumerate(variant_orig_mesh_names):
-      prefix = f"{variant_names[i]}/"
-      names: list[str | None] = [f"{prefix}{n}" for n in orig_names]
-      while len(names) < max_mesh_geoms:
-        names.append(None)
-      variant_mesh_name_lists.append(tuple(names))
-
-    self._variant_metadata = VariantMetadata(
-      variant_names=tuple(variant_names),
-      variant_weights=tuple(variant_weights),
-      variant_mesh_names=tuple(variant_mesh_name_lists),
-      num_mesh_geoms=max_mesh_geoms,
-      variant_body_inertials=variant_body_inertials,
-    )
-    self._spec = template_spec
 
   @property
   def variant_metadata(self) -> VariantMetadata | None:

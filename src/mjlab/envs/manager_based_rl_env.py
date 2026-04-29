@@ -194,21 +194,13 @@ class ManagerBasedRlEnv:
 
     # Initialize scene and simulation.
     self.scene = Scene(self.cfg.scene, device=device)
-    if self.scene.has_mesh_variants:
-      self.sim = Simulation(
-        num_envs=self.scene.num_envs,
-        cfg=self.cfg.sim,
-        spec=self.scene.spec,
-        variant_info=self.scene.collect_variant_info(),
-        device=device,
-      )
-    else:
-      self.sim = Simulation(
-        num_envs=self.scene.num_envs,
-        cfg=self.cfg.sim,
-        model=self.scene.compile(),
-        device=device,
-      )
+    self.sim = Simulation(
+      num_envs=self.scene.num_envs,
+      cfg=self.cfg.sim,
+      spec=self.scene.spec,
+      variant_info=self.scene.collect_variant_info(),
+      device=device,
+    )
 
     self.scene.initialize(
       mj_model=self.sim.mj_model,

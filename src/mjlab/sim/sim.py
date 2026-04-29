@@ -10,14 +10,14 @@ import mujoco_warp as mjwarp
 import torch
 import warp as wp
 
+from mjlab.entity.variants import VARIANT_DEPENDENT_FIELDS, build_variant_model
 from mjlab.managers.event_manager import RecomputeLevel
-from mjlab.sim.mesh_variants import VARIANT_DEPENDENT_FIELDS, build_mesh_variant_model
 from mjlab.sim.randomization import expand_model_fields
 from mjlab.sim.sim_data import TorchArray, WarpBridge
 from mjlab.utils.nan_guard import NanGuard, NanGuardCfg
 
 if TYPE_CHECKING:
-  from mjlab.entity.entity import VariantMetadata
+  from mjlab.entity.variants import VariantMetadata
   from mjlab.sensor.sensor_context import SensorContext
 
 # Type aliases for better IDE support while maintaining runtime compatibility
@@ -246,7 +246,7 @@ class Simulation:
     they are rendering or inspecting.
     """
     with wp.ScopedDevice(self.wp_device):
-      result = build_mesh_variant_model(
+      result = build_variant_model(
         spec,
         self.num_envs,
         variant_info,
@@ -277,7 +277,7 @@ class Simulation:
     self._expanded_fields.add("geom_dataid")
 
     # Stash variant assignments as torch tensors keyed by bare entity name
-    # (mesh_variants emits "<name>/" prefixes; strip the trailing slash for
+    # (build_variant_model emits "<name>/" prefixes; strip the trailing slash for
     # the public API).
     for prefix, arr in result.world_to_variant.items():
       key = prefix.rstrip("/")
