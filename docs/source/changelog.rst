@@ -75,6 +75,12 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ``extras["log"]`` entries written by reward terms (e.g. ``Metrics/*``
+  values in velocity tasks) being silently discarded on any step where at
+  least one environment resets. ``_reset_idx`` was clearing the dict after
+  ``reward_manager.compute()`` had already populated it. The clear now
+  happens at the top of ``step()`` and ``reset()`` so that all entries
+  survive (:issue:`957`).
 - Fixed ``ManagerBasedRlEnv`` initializing Warp on all visible CUDA devices
   even when constructed with ``device="cpu"``. ``seed_rng`` now accepts a
   ``device`` argument and skips ``wp.rand_init`` on CPU devices, so a
