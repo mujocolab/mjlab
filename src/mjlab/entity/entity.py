@@ -309,6 +309,19 @@ class Entity:
       variant_bodies.append(children[0])
 
     validate_variant_structure(variant_names, variant_bodies)
+
+    # Variant entities must be floating-base. Mocap auto-wrap is not applied
+    # for variant entities, so fixed-base variants would silently stack at
+    # the world origin. Variants share joint structure (validated above), so
+    # checking the first is sufficient.
+    ref_joints = list(variant_bodies[0].joints)
+    if not ref_joints or ref_joints[0].type != mujoco.mjtJoint.mjJNT_FREE:
+      raise ValueError(
+        "VariantEntityCfg requires floating-base variants. Each variant's "
+        "root body must declare a free joint via body.add_freejoint(); "
+        "fixed-base variants are not supported."
+      )
+
     variant_body_inertials = tuple(
       _collect_explicit_body_inertials(body) for body in variant_bodies
     )

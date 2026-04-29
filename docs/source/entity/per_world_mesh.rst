@@ -23,23 +23,20 @@ How it works
 A standard ``EntityCfg`` provides a single ``spec_fn`` that returns one
 ``MjSpec``. A ``VariantEntityCfg`` provides a dictionary of named
 variants, each with its own ``spec_fn`` and a weight controlling the
-proportion of worlds that use it. During scene construction mjlab
-merges the per-variant specs into a single ``MjSpec`` whose mesh slots
-are padded to the maximum count any variant uses, then writes a
-per-world ``geom_dataid`` table that selects the right mesh for each
-world. In the merged scene ``geom_dataid`` is no longer a flat
-``(ngeom,)`` vector but a ``(num_envs, ngeom)`` table whose rows differ
-by variant. A value of ``-1`` marks a disabled mesh slot, used for
-variants with fewer mesh geoms than the maximum.
+proportion of worlds that use it.
 
-Mesh choice is entangled with several other compiled-model constants:
-geom collision bounds, geom local frames, body inertials, subtree mass,
-and inverse weights. mjlab compiles each unique row of the
-``geom_dataid`` table on the host and copies the relevant compiled
-fields into per-world arrays on the GPU, so each world's compiled
-constants stay consistent with that world's mesh selection. The full
-list of fields handled this way is in
-``mjlab.sim.mesh_variants.VARIANT_DEPENDENT_FIELDS``.
+**All variants must declare the same kinematic structure.** The batched
+simulator assumes a single topology across worlds; per-world variation
+is confined to mesh assets and the constants derived from them. mjlab
+uses the first variant's body tree as the template and copies mesh
+assets and explicit body inertials from the others. Geom-level
+properties on later variants such as ``rgba``, friction, and material
+assignments are not propagated; control per-world appearance through
+domain randomization on ``geom_rgba`` or ``mat_rgba``. The structural
+check is enforced at construction time and raises a ``ValueError``
+describing the first mismatch. Variants must also be floating-base
+(declare a free joint on the root body); fixed-base variants are
+rejected.
 
 A minimal two-variant config:
 
@@ -70,24 +67,23 @@ A minimal two-variant config:
         init_state=EntityCfg.InitialStateCfg(pos=(0.0, 0.0, 0.2)),
     )
 
-Every variant must declare the same kinematic structure. Only mesh
-assets and explicit body inertials may differ across variants. mjlab
-preserves the first variant's body tree as the template; from each
-later variant it copies the mesh assets and, if the body declares one,
-the explicit inertial properties (``body.explicitinertial = 1`` with
-``mass``, ``ipos``, ``inertia``, ``iquat``). Geom-level properties on
-later variants such as ``rgba``, friction, and material assignments are
-not propagated. Per-world appearance is best controlled through domain
-randomization on ``geom_rgba`` or ``mat_rgba`` rather than through
-per-variant specs.
+During scene construction mjlab merges the per-variant specs into a
+single ``MjSpec`` whose mesh slots are padded to the maximum count any
+variant uses, then writes a per-world ``geom_dataid`` table that
+selects the right mesh for each world. In the merged scene
+``geom_dataid`` is no longer a flat ``(ngeom,)`` vector but a
+``(num_envs, ngeom)`` table whose rows differ by variant. A value of
+``-1`` marks a disabled mesh slot, used for variants with fewer mesh
+geoms than the maximum.
 
-The kinematic-structure check is enforced at construction time and
-raises a ``ValueError`` describing the first mismatch. The current
-check covers the variant root body's direct joints (count, types,
-names) and the count of its direct child bodies. Deeper mismatches in
-nested body trees are not detected; for typical single-body props this
-does not apply, but multi-body articulated variants should be
-hand-checked.
+Mesh choice is entangled with several other compiled-model constants:
+geom collision bounds, geom local frames, body inertials, subtree mass,
+and inverse weights. mjlab compiles each unique row of the
+``geom_dataid`` table on the host and copies the relevant compiled
+fields into per-world arrays on the GPU, so each world's compiled
+constants stay consistent with that world's mesh selection. The full
+list of fields handled this way is in
+``mjlab.sim.mesh_variants.VARIANT_DEPENDENT_FIELDS``.
 
 
 World assignment
@@ -202,23 +198,3 @@ and does not affect training throughput.
 The merged spec contains every variant's mesh assets simultaneously.
 Memory footprint at scene-build time scales with the total number of
 mesh vertices and faces across all declared variants.
-
-
-Limitations
------------
-
-* **Fixed-base entities are not currently supported.**
-  ``Entity._build_spec`` skips the ``auto_wrap_fixed_base_mocap`` pass
-  for ``VariantEntityCfg``, so fixed-base variants are not
-  mocap-wrapped and would remain at the world origin. Use
-  floating-base variants with a free joint, as in the example above.
-* **Only meshes and explicit body inertials vary across variants.**
-  Per-variant geom properties (``rgba``, friction, contype,
-  conaffinity), per-variant materials, and per-variant textures are
-  not propagated; the first variant's values are used for all worlds.
-  Vary appearance through domain randomization on ``geom_rgba`` or
-  ``mat_rgba`` instead.
-* **The kinematic-structure validator is shallow.** It checks the
-  variant root body's joints and the count of its direct children but
-  does not recursively compare nested body trees. Multi-body
-  articulated variants should be hand-checked.

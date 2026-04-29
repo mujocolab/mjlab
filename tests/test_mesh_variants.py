@@ -259,6 +259,28 @@ def test_empty_variants_raises():
     cfg.build()
 
 
+def _fixed_base_sphere_spec() -> mujoco.MjSpec:
+  """Fixed-base sphere variant (no free joint): currently unsupported."""
+  spec = mujoco.MjSpec()
+  m = spec.add_mesh(name="sphere")
+  m.make_sphere(subdivision=2)
+  body = spec.worldbody.add_body(name="prop")
+  body.add_geom(type=mujoco.mjtGeom.mjGEOM_MESH, meshname="sphere")
+  return spec
+
+
+def test_fixed_base_variants_rejected():
+  """Variants must be floating-base; fixed-base raises with a clear message."""
+  cfg = VariantEntityCfg(
+    variants={
+      "a": VariantCfg(spec_fn=_fixed_base_sphere_spec, weight=0.5),
+      "b": VariantCfg(spec_fn=_fixed_base_sphere_spec, weight=0.5),
+    },
+  )
+  with pytest.raises(ValueError, match="floating-base"):
+    cfg.build()
+
+
 def test_setting_spec_fn_on_variant_cfg_raises():
   """VariantEntityCfg.spec_fn is unused; setting it should fail loudly."""
   with pytest.raises(ValueError, match="spec_fn cannot be set"):
