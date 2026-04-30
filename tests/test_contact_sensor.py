@@ -1075,9 +1075,7 @@ def test_history_captures_impact_forces(device):
 
 
 def test_global_frame_maxforce_rotation(device):
-  """
-  A box at rest on a plane has its contact normals all vertical.
-  """
+  """A box at rest on a plane has its contact normals all vertical."""
   cfg = ContactSensorCfg(
     name="box_contact",
     primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),

@@ -80,7 +80,7 @@ Fixed
   rotated onto the wrong axis. The contact-frame→world rotation matrix had
   its columns ordered ``[tangent, tangent2, normal]`` instead of
   ``[normal, tangent, tangent2]``, projecting the normal-force component
-  onto a tangent direction.
+  onto a tangent direction. Contribution by @bd-pdomanico.
 - Fixed ``extras["log"]`` entries written by reward terms (e.g. ``Metrics/*``
   values in velocity tasks) being silently discarded on any step where at
   least one environment resets. ``_reset_idx`` was clearing the dict after
