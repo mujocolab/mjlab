@@ -1,7 +1,7 @@
 import mujoco
 import pytest
 
-from mjlab.asset_zoo.robots import get_g1_robot_cfg, get_go1_robot_cfg
+from mjlab.asset_zoo.robots import get_g1_robot_cfg, get_go1_robot_cfg, get_h1_robot_cfg
 from mjlab.entity import Entity
 
 
@@ -10,6 +10,7 @@ from mjlab.entity import Entity
   [
     ("G1", get_g1_robot_cfg),
     ("GO1", get_go1_robot_cfg),
+    ("H1", get_h1_robot_cfg),
   ],
 )
 def test_robot_compiles_parametrized(robot_name: str, robot_cfg_fn) -> None:

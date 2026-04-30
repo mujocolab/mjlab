@@ -22,6 +22,7 @@ def load_robot_model(robot_name: str) -> mujoco.MjModel:
   robot_paths = {
     "unitree_g1": base_path / "unitree_g1/xmls/g1.xml",
     "unitree_go1": base_path / "unitree_go1/xmls/go1.xml",
+    "unitree_h1": base_path / "unitree_h1/xmls/h1.xml",
   }
 
   if robot_name not in robot_paths:
@@ -89,6 +90,35 @@ def test_unitree_go1_conversion():
 
   print(f"✓ Unitree Go1: Successfully converted {mesh_geom_count} mesh geometries")
   print(f"  - Also has {primitive_geom_count} primitive geometries")
+
+
+def test_unitree_h1_conversion():
+  """Test conversion with Unitree H1 robot."""
+  model = load_robot_model("unitree_h1")
+
+  mesh_geom_count = 0
+  has_textures = False
+
+  for geom_idx in range(model.ngeom):
+    if model.geom_type[geom_idx] == mujoco.mjtGeom.mjGEOM_MESH:
+      mesh_geom_count += 1
+
+      # Convert to trimesh.
+      mesh = mujoco_mesh_to_trimesh(model, geom_idx)
+
+      # Basic checks.
+      assert mesh is not None, f"Failed to convert geom {geom_idx}"
+      assert len(mesh.vertices) > 0, f"Mesh {geom_idx} has no vertices"
+      assert len(mesh.faces) > 0, f"Mesh {geom_idx} has no faces"
+
+      # Check for textures.
+      if hasattr(mesh.visual, "uv"):
+        has_textures = True
+
+  assert mesh_geom_count > 0, "No mesh geometries found in Unitree H1"
+  print(f"✓ Unitree H1: Successfully converted {mesh_geom_count} mesh geometries")
+  if has_textures:
+    print("  - Found textured meshes")
 
 
 def test_texture_extraction():
