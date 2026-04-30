@@ -75,6 +75,12 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ``ContactSensor`` with ``global_frame=True`` and
+  ``reduce`` ∈ {``"none"``, ``"mindist"``, ``"maxforce"``} producing forces
+  rotated onto the wrong axis. The contact-frame→world rotation matrix had
+  its columns ordered ``[tangent, tangent2, normal]`` instead of
+  ``[normal, tangent, tangent2]``, projecting the normal-force component
+  onto a tangent direction.
 - Fixed ``extras["log"]`` entries written by reward terms (e.g. ``Metrics/*``
   values in velocity tasks) being silently discarded on any step where at
   least one environment resets. ``_reset_idx`` was clearing the dict after

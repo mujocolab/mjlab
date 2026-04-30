@@ -428,7 +428,7 @@ class ContactSensor(Sensor[ContactData]):
     normal = data.normal
     tangent = data.tangent
     tangent2 = torch.cross(normal, tangent, dim=-1)
-    R = torch.stack([tangent, tangent2, normal], dim=-1)
+    R = torch.stack([normal, tangent, tangent2], dim=-1)
 
     has_contact = torch.norm(normal, dim=-1, keepdim=True) > 1e-8
 

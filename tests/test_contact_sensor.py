@@ -1072,3 +1072,39 @@ def test_history_captures_impact_forces(device):
   assert torch.all(max_force_seen > steady_state_force * 1.5), (
     f"Peak force {max_force_seen} should be significantly above mg={steady_state_force}"
   )
+
+
+def test_global_frame_maxforce_rotation(device):
+  """
+  A box at rest on a plane has its contact normals all vertical.
+  """
+  cfg = ContactSensorCfg(
+    name="box_contact",
+    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
+    fields=("found", "force", "normal", "tangent"),
+    reduce="maxforce",
+    global_frame=True,
+  )
+  scene, sim = create_scene_with_sensor(FALLING_BOX_XML, "box", cfg, device)
+
+  root_state = torch.zeros((2, 13), device=sim.device)
+  root_state[:, 2] = 0.11
+  root_state[:, 3] = 1.0
+  scene["box"].write_root_state_to_sim(root_state)
+  for _ in range(150):
+    sim.step()
+    scene.update(dt=sim.cfg.mujoco.timestep)
+
+  sensor_force = scene["box_contact"].data.force[:, 0, :]
+
+  # On a flat plane the contact normal is vertical, so a correctly rotated
+  # global-frame force should have its magnitude entirely on the z axis.
+  assert torch.all(sensor_force[:, 0].abs() < 0.05), (
+    f"sensor_force x-component should be ~0, got {sensor_force[:, 0].tolist()}"
+  )
+  assert torch.all(sensor_force[:, 1].abs() < 0.05), (
+    f"sensor_force y-component should be ~0, got {sensor_force[:, 1].tolist()}"
+  )
+  assert torch.all(sensor_force[:, 2].abs() > 1.0), (
+    f"sensor_force z-component should be non-trivial, got {sensor_force[:, 2].tolist()}"
+  )
