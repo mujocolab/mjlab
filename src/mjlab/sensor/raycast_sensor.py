@@ -435,7 +435,7 @@ class RayCastSensor(Sensor[RayCastData]):
     self._model: mjwarp.Model | None = None
     self._mj_model: mujoco.MjModel | None = None
     self._device: str | None = None
-    self._wp_device: wp.context.Device | None = None
+    self._wp_device: wp.Device | None = None
 
     # Per-frame info: list of (frame_type, obj_id, body_id).
     self._frame_infos: list[tuple[Literal["body", "site", "geom"], int, int]] = []

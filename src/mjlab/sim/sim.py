@@ -526,7 +526,7 @@ class Simulation:
     if not self.wp_device.is_cuda:
       return False
 
-    driver_ver = wp.context.runtime.driver_version
+    driver_ver = wp.get_cuda_driver_version()
     has_mempool = wp.is_mempool_enabled(self.wp_device)
 
     if driver_ver is None:
