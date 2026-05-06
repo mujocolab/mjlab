@@ -93,6 +93,7 @@ def pd_gains(
           default_biasprm[ctrl_ids, 2] * kd_samples
         )
       else:
+        assert op.name == "abs"
         env.sim.model.actuator_gainprm[env_ids[:, None], ctrl_ids, 0] = kp_samples
         env.sim.model.actuator_biasprm[env_ids[:, None], ctrl_ids, 1] = -kp_samples
         env.sim.model.actuator_biasprm[env_ids[:, None], ctrl_ids, 2] = -kd_samples
@@ -109,6 +110,7 @@ def pd_gains(
           kd=actuator.default_damping[env_ids] * kd_samples,
         )
       else:
+        assert op.name == "abs"
         actuator.set_gains(env_ids, kp=kp_samples, kd=kd_samples)
 
     else:
@@ -182,6 +184,7 @@ def effort_limits(
           default_forcerange[ctrl_ids, 1] * effort_samples
         )
       else:
+        assert op.name == "abs"
         env.sim.model.actuator_forcerange[
           env_ids[:, None], ctrl_ids, 0
         ] = -effort_samples
@@ -198,6 +201,7 @@ def effort_limits(
           effort_limit=actuator.default_force_limit[env_ids] * effort_samples,
         )
       else:
+        assert op.name == "abs"
         actuator.set_effort_limit(env_ids, effort_limit=effort_samples)
 
     else:
