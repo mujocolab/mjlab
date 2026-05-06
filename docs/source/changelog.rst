@@ -80,6 +80,10 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ``dr.pd_gains`` and ``dr.effort_limits`` silently no-oping when
+  passed an ``Operation`` object (e.g. ``dr.scale``) instead of a string.
+  Both functions now accept ``Operation | str`` like every other DR event
+  and raise ``ValueError`` for unsupported operations (:issue:`971`).
 - Fixed ``ContactSensor`` with ``global_frame=True`` and
   ``reduce`` ∈ {``"none"``, ``"mindist"``, ``"maxforce"``} producing forces
   rotated onto the wrong axis. The contact-frame→world rotation matrix had

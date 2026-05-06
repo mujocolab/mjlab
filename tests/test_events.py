@@ -418,6 +418,62 @@ def test_effort_limits_scale_no_accumulation(device):
   assert abs(actual_upper - 200.0) < 1e-5
 
 
+def test_pd_gains_accepts_operation_object(device):
+  """dr.scale / dr.abs Operation objects produce the same result as strings."""
+  env_str, ideal_str = _make_pd_env(device)
+  env_obj, ideal_obj = _make_pd_env(device)
+
+  ids = torch.tensor([0], device=device)
+  kwargs = dict(
+    kp_range=(1.5, 1.5), kd_range=(2.0, 2.0), asset_cfg=SceneEntityCfg("robot")
+  )
+
+  torch.manual_seed(0)
+  dr.pd_gains(env_str, ids, operation="scale", **kwargs)
+  torch.manual_seed(0)
+  dr.pd_gains(env_obj, ids, operation=dr.scale, **kwargs)
+
+  assert torch.allclose(
+    env_str.sim.model.actuator_gainprm[0], env_obj.sim.model.actuator_gainprm[0]
+  )
+  assert torch.allclose(ideal_str.stiffness, ideal_obj.stiffness)
+
+
+def test_effort_limits_accepts_operation_object(device):
+  """dr.abs Operation object produces the same result as the string."""
+  env_str, ideal_str = _make_effort_env(device)
+  env_obj, ideal_obj = _make_effort_env(device)
+
+  ids = torch.tensor([0], device=device)
+  kwargs = dict(effort_limit_range=(150.0, 150.0), asset_cfg=SceneEntityCfg("robot"))
+
+  dr.effort_limits(env_str, ids, operation="abs", **kwargs)
+  dr.effort_limits(env_obj, ids, operation=dr.abs, **kwargs)
+
+  assert torch.allclose(
+    env_str.sim.model.actuator_forcerange[0], env_obj.sim.model.actuator_forcerange[0]
+  )
+  assert torch.allclose(ideal_str.force_limit, ideal_obj.force_limit)
+
+
+def test_pd_gains_rejects_unsupported_operation(device):
+  """Operations other than scale/abs raise ValueError."""
+  env, _ = _make_pd_env(device)
+  ids = torch.tensor([0], device=device)
+
+  with pytest.raises(ValueError, match="only supports 'scale' and 'abs'"):
+    dr.pd_gains(env, ids, kp_range=(1.0, 1.0), kd_range=(1.0, 1.0), operation=dr.add)
+
+
+def test_effort_limits_rejects_unsupported_operation(device):
+  """Operations other than scale/abs raise ValueError."""
+  env, _ = _make_effort_env(device)
+  ids = torch.tensor([0], device=device)
+
+  with pytest.raises(ValueError, match="only supports 'scale' and 'abs'"):
+    dr.effort_limits(env, ids, effort_limit_range=(1.0, 1.0), operation=dr.add)
+
+
 # ===========================================================================
 # Section 3: Other events
 # ===========================================================================
