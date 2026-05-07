@@ -553,13 +553,7 @@ class apply_body_impulse:
     if env_ids is None:
       env_ids = slice(None)
 
-    # Clear forces for reset envs.
-    if isinstance(env_ids, slice):
-      reset_ids = env_ids
-    else:
-      reset_ids = env_ids
-
-    if self._active[reset_ids].any():
+    if self._active[env_ids].any():
       if isinstance(env_ids, slice):
         active_ids = self._active.nonzero(as_tuple=False).squeeze(-1)
       else:
@@ -573,6 +567,6 @@ class apply_body_impulse:
           zeros, zeros, env_ids=active_ids, body_ids=self._body_ids
         )
 
-    self._time_remaining[reset_ids] = 0.0
-    self._interval_time_left[reset_ids] = 0.0
-    self._active[reset_ids] = False
+    self._time_remaining[env_ids] = 0.0
+    self._interval_time_left[env_ids] = 0.0
+    self._active[env_ids] = False
