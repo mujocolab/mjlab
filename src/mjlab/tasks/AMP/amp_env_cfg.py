@@ -21,7 +21,12 @@ from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.managers.termination_manager import TerminationTermCfg
 from mjlab.scene import SceneCfg
-from mjlab.sensor import GridPatternCfg, ObjRef, RayCastSensorCfg
+from mjlab.sensor import (
+  GridPatternCfg,
+  ObjRef,
+  RayCastSensorCfg,
+  TerrainHeightSensorCfg,
+)
 from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.tasks.AMP import mdp
 from mjlab.tasks.AMP.mdp import UniformVelocityCommandCfg
@@ -47,6 +52,22 @@ def make_amp_env_cfg() -> ManagerBasedRlEnvCfg:
     exclude_parent_body=True,
     debug_vis=True,
     viz=RayCastSensorCfg.VizCfg(show_normals=True),
+  )
+
+
+  foot_height_scan = TerrainHeightSensorCfg(
+    name="foot_height_scan",
+    frame=(),  # Set per-robot: frame and pattern.
+    ray_alignment="yaw",
+    max_distance=1.0,
+    exclude_parent_body=True,
+    include_geom_groups=(0,),  # Terrain only.
+    debug_vis=True,
+    viz=TerrainHeightSensorCfg.VizCfg(
+      show_rays=True,
+      hit_color=(1.0, 0.0, 1.0, 0.8),  # Magenta rays.
+      hit_sphere_color=(1.0, 0.0, 1.0, 1.0),
+    ),
   )
 
   ##
@@ -98,7 +119,7 @@ def make_amp_env_cfg() -> ManagerBasedRlEnvCfg:
     ),
     "foot_height": ObservationTermCfg(
       func=mdp.foot_height,
-      params={"asset_cfg": SceneEntityCfg("robot", site_names=())},  # Set per-robot.
+      params={"sensor_name": "foot_height_scan"},
     ),
     "foot_air_time": ObservationTermCfg(
       func=mdp.foot_air_time,
@@ -356,7 +377,7 @@ def make_amp_env_cfg() -> ManagerBasedRlEnvCfg:
         terrain_generator=replace(ROUGH_TERRAINS_CFG),
         max_init_terrain_level=5,
       ),
-      sensors=(terrain_scan,),
+      sensors=(terrain_scan, foot_height_scan),
       num_envs=1,
       extent=2.0,
     ),

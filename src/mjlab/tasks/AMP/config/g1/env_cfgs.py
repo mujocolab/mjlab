@@ -14,7 +14,8 @@ from mjlab.sensor import (
   ContactMatch,
   ContactSensorCfg,
   ObjRef,
-  RayCastSensorCfg,
+  RingPatternCfg,
+  TerrainHeightSensorCfg,
 )
 from mjlab.tasks.AMP import mdp
 from mjlab.tasks.AMP.mdp import UniformVelocityCommandCfg
@@ -30,13 +31,6 @@ def unitree_g1_rough_amp_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.sim.nconmax = 60
 
   cfg.scene.entities = {"robot": get_g1_robot_cfg()}
-
-  # Set raycast sensor frame to G1 pelvis.
-  for sensor in cfg.scene.sensors or ():
-    if sensor.name == "terrain_scan":
-      assert isinstance(sensor, RayCastSensorCfg)
-      assert isinstance(sensor.frame, ObjRef)
-      sensor.frame.name = "pelvis"
 
   site_names = ("left_foot", "right_foot")
   geom_names = tuple(
@@ -65,6 +59,10 @@ def unitree_g1_rough_amp_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     num_slots=1,
     history_length=4,
   )
+  
+  # Remove the default terrain scan sensor
+  cfg.scene.sensors = tuple(s for s in cfg.scene.sensors if s.name != "terrain_scan")
+
   cfg.scene.sensors = (cfg.scene.sensors or ()) + (
     feet_ground_cfg,
     self_collision_cfg,
@@ -83,9 +81,14 @@ def unitree_g1_rough_amp_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   assert isinstance(twist_cmd, UniformVelocityCommandCfg)
   twist_cmd.viz.z_offset = 1.15
 
-  cfg.observations["critic"].terms["foot_height"].params[
-    "asset_cfg"
-  ].site_names = site_names
+  # Wire foot height scan to per-foot sites.
+  for sensor in cfg.scene.sensors or ():
+    if sensor.name == "foot_height_scan":
+      assert isinstance(sensor, TerrainHeightSensorCfg)
+      sensor.frame = tuple(
+        ObjRef(type="site", name=s, entity="robot") for s in site_names
+      )
+      sensor.pattern = RingPatternCfg.single_ring(radius=0.03, num_samples=6)
 
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = geom_names
   cfg.events["base_com"].params["asset_cfg"].body_names = ("torso_link",)
