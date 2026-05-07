@@ -314,10 +314,10 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
         self.save(os.path.join(self.logger.log_dir, f"model_{it}.pt"))  # type: ignore
 
     # Save the final model after training and stop the logging writer
-    if self.logger.writer is not None:
+    if self.logger.writer is not None and self.logger.log_dir is not None:
       self.save(
         os.path.join(self.logger.log_dir, f"model_{self.current_learning_iteration}.pt")
-      )  # type: ignore
+      )
       self.logger.stop_logging_writer()
 
   def export_policy_to_onnx(

@@ -78,7 +78,6 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
   print(f"[INFO] Training with: device={device}, seed={seed}, rank={rank}")
 
   registry_name: str | None = None
-  motion_file_amp: str | None = None
 
   # Check if this is a tracking task by checking for motion command.
   is_tracking_task = "motion" in cfg.env.commands and isinstance(
