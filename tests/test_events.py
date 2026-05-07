@@ -559,7 +559,9 @@ def test_step_mode_fires_every_call(device):
   assert call_count[0] == 5
 
 
-def _make_impulse_env(device, num_envs=2, num_bodies=1, body_ids=None):
+def _make_impulse_env(
+  device, num_envs=2, num_bodies=1, body_ids=None, cooldown_s=(0.0, 0.0)
+):
   """Create a mock env for apply_body_impulse tests."""
   if body_ids is None:
     body_ids = [0]
@@ -579,7 +581,7 @@ def _make_impulse_env(device, num_envs=2, num_bodies=1, body_ids=None):
 
   asset_cfg = SceneEntityCfg("robot", body_ids=body_ids)
   term_cfg = Mock()
-  term_cfg.params = {"asset_cfg": asset_cfg}
+  term_cfg.params = {"asset_cfg": asset_cfg, "cooldown_s": cooldown_s}
   impulse = events.apply_body_impulse(cfg=term_cfg, env=env)
   return env, mock_entity, asset_cfg, impulse
 
@@ -587,12 +589,12 @@ def _make_impulse_env(device, num_envs=2, num_bodies=1, body_ids=None):
 def test_apply_body_impulse_basic(device):
   """Impulse is applied and cleared after duration expires."""
   env, mock_entity, asset_cfg, impulse = _make_impulse_env(
-    device, num_envs=2, num_bodies=3, body_ids=[1]
+    device, num_envs=2, num_bodies=3, body_ids=[1], cooldown_s=(10.0, 10.0)
   )
 
   # Skip the initial cooldown so the first call triggers immediately;
   # the trigger/sustain/expire cycle is what's under test here.
-  impulse._needs_init[:] = False
+  impulse._interval_time_left[:] = 0.0
 
   impulse(
     env,
@@ -707,7 +709,7 @@ def test_apply_body_impulse_initial_cooldown(device):
   Regression test for #973.
   """
   env, mock_entity, asset_cfg, impulse = _make_impulse_env(
-    device, num_envs=1, num_bodies=1, body_ids=[0]
+    device, num_envs=1, num_bodies=1, body_ids=[0], cooldown_s=(0.05, 0.05)
   )
 
   def step():
