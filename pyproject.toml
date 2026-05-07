@@ -102,7 +102,7 @@ conflicts = [
 # reject them. This override loosens the constraint for uv resolution only.
 override-dependencies = ["mujoco>=3.8.0.dev0"]
 constraint-dependencies = [
-  "GitPython>=3.1.47",
+  "GitPython>=3.1.49",
   "lxml>=6.1.0",
 ]
 required-environments = [
