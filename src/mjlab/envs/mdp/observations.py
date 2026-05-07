@@ -67,6 +67,7 @@ def joint_vel_abs(
   jnt_ids = asset_cfg.joint_ids
   return asset.data.joint_vel[:, jnt_ids]
 
+
 def joint_pos_rel(
   env: ManagerBasedRlEnv,
   biased: bool = False,

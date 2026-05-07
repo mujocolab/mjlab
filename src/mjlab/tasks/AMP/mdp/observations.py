@@ -4,8 +4,6 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from mjlab.entity import Entity
-from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import ContactSensor, TerrainHeightSensor
 
 if TYPE_CHECKING:

@@ -54,7 +54,6 @@ def make_amp_env_cfg() -> ManagerBasedRlEnvCfg:
     viz=RayCastSensorCfg.VizCfg(show_normals=True),
   )
 
-
   foot_height_scan = TerrainHeightSensorCfg(
     name="foot_height_scan",
     frame=(),  # Set per-robot: frame and pattern.
@@ -139,12 +138,16 @@ def make_amp_env_cfg() -> ManagerBasedRlEnvCfg:
     "joint_pos": ObservationTermCfg(
       func=mdp.joint_pos_rel,
       noise=Unoise(n_min=-0.01, n_max=0.01),
-      params={"asset_cfg": SceneEntityCfg("robot", joint_names=(".*"))} # Set per-robot
+      params={
+        "asset_cfg": SceneEntityCfg("robot", joint_names=(".*"))
+      },  # Set per-robot
     ),
     "joint_vel": ObservationTermCfg(
       func=mdp.joint_vel_rel,
       noise=Unoise(n_min=-0.01, n_max=0.01),
-      params={"asset_cfg": SceneEntityCfg("robot", joint_names=(".*"))} # Set per-robot
+      params={
+        "asset_cfg": SceneEntityCfg("robot", joint_names=(".*"))
+      },  # Set per-robot
     ),
     "base_lin_vel": ObservationTermCfg(
       func=mdp.builtin_sensor,
@@ -320,7 +323,6 @@ def make_amp_env_cfg() -> ManagerBasedRlEnvCfg:
       params={"sensor_name": "robot/root_angmom"},
     ),
     "dof_pos_limits": RewardTermCfg(func=mdp.joint_pos_limits, weight=-1.0),
-    
     "soft_landing": RewardTermCfg(
       func=mdp.soft_landing,
       weight=-1e-5,

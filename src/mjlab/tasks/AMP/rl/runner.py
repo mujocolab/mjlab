@@ -1,13 +1,13 @@
 import os
+import time
 from typing import cast
 
-import torch
-import wandb
 import joblib
 import pandas as pd
+import torch
+import wandb
 from rsl_rl.env.vec_env import VecEnv
 from torch import nn
-import time
 
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.rl.exporter_utils import (
@@ -28,12 +28,16 @@ from mjlab.utils.spaces import Dict as DictSpace
 
 _DEFAULT_DISCRIMINATOR_CFG = DiscriminatorCfg()
 
-def load_motion_data(file_name: str = "", source_fps: int = 0, target_fps: int = 50) -> torch.Tensor:
 
+def load_motion_data(
+  file_name: str = "", source_fps: int = 0, target_fps: int = 50
+) -> torch.Tensor:
   ext = os.path.splitext(file_name)[-1].lower()
 
   if ext == ".csv":
-    _data = torch.tensor(pd.read_csv(file_name, header=None).values, dtype=torch.float32)
+    _data = torch.tensor(
+      pd.read_csv(file_name, header=None).values, dtype=torch.float32
+    )
 
   elif ext in (".pkl", ".joblib"):
     data = joblib.load(file_name)
@@ -70,9 +74,7 @@ class _OnnxAmpModel(nn.Module):
     self.policy = actor.as_onnx(verbose=False)
 
   def forward(self, x):
-    return (
-      self.policy(x),
-    )
+    return (self.policy(x),)
 
 
 class AmpOnPolicyRunner(MjlabOnPolicyRunner):
@@ -92,16 +94,24 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
     super().__init__(env, train_cfg, log_dir, device)
     self.registry_name = registry_name
 
-    discriminator_cfg.n_obs = cast(DictSpace, self.env.observation_space).spaces["discriminator"].shape[1]
+    discriminator_cfg.n_obs = (
+      cast(DictSpace, self.env.observation_space).spaces["discriminator"].shape[1]
+    )
     self.discriminator = Discriminator(discriminator_cfg)
 
     if discriminator_cfg.motion_file is not None:
-      self.motion_data = load_motion_data(discriminator_cfg.motion_file, source_fps=resample, target_fps=int(1.0 / self.env.unwrapped.step_dt)).to(self.device)
+      self.motion_data = load_motion_data(
+        discriminator_cfg.motion_file,
+        source_fps=resample,
+        target_fps=int(1.0 / self.env.unwrapped.step_dt),
+      ).to(self.device)
       self.motion_mean = self.motion_data.mean(dim=0, keepdim=True)
       self.motion_std = self.motion_data.std(dim=0, keepdim=True) + 1e-6
 
     # Replay buffer: stores (obs_t, obs_t+1) pairs from past rollouts
-    self._replay_buffer = torch.zeros(replay_buffer_size, 2 * discriminator_cfg.n_obs, device=self.device)
+    self._replay_buffer = torch.zeros(
+      replay_buffer_size, 2 * discriminator_cfg.n_obs, device=self.device
+    )
     self._replay_ptr = 0
     self._replay_size = 0
     self._replay_capacity = replay_buffer_size
@@ -112,12 +122,12 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
     end = self._replay_ptr + n
 
     if end <= self._replay_capacity:
-      self._replay_buffer[self._replay_ptr:end] = fake_data_flat
+      self._replay_buffer[self._replay_ptr : end] = fake_data_flat
     else:
       # Wrap around
       first = self._replay_capacity - self._replay_ptr
-      self._replay_buffer[self._replay_ptr:] = fake_data_flat[:first]
-      self._replay_buffer[:n - first] = fake_data_flat[first:]
+      self._replay_buffer[self._replay_ptr :] = fake_data_flat[:first]
+      self._replay_buffer[: n - first] = fake_data_flat[first:]
 
     self._replay_ptr = end % self._replay_capacity
     self._replay_size = min(self._replay_size + n, self._replay_capacity)
@@ -128,7 +138,9 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
     return self._replay_buffer[indices]
 
   # Override OnPolicyRunner learn() to add Discriminator | but keep similar structure
-  def learn(self, num_learning_iterations: int, init_at_random_ep_len: bool = False) -> None:
+  def learn(
+    self, num_learning_iterations: int, init_at_random_ep_len: bool = False
+  ) -> None:
     # Randomize initial episode lengths (for exploration)
     if init_at_random_ep_len:
       self.env.episode_length_buf = torch.randint_like(
@@ -179,32 +191,47 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
           trajectory_cursor += 1
 
           # Move to device
-          obs, rewards, dones = (obs.to(self.device), rewards.to(self.device), dones.to(self.device))
+          obs, rewards, dones = (
+            obs.to(self.device),
+            rewards.to(self.device),
+            dones.to(self.device),
+          )
 
           done_buffer.append(dones)
           valid = (dones == 0).float()
 
-          obs_t = (trajectory_buffer[trajectory_cursor-1] - self.motion_mean) / self.motion_std
-          obs_tp1 = (trajectory_buffer[trajectory_cursor] - self.motion_mean) / self.motion_std
+          obs_t = (
+            trajectory_buffer[trajectory_cursor - 1] - self.motion_mean
+          ) / self.motion_std
+          obs_tp1 = (
+            trajectory_buffer[trajectory_cursor] - self.motion_mean
+          ) / self.motion_std
           discriminator_input = torch.cat((obs_t, obs_tp1), dim=-1)
           discriminator_input_noise = 0.05 * torch.randn_like(discriminator_input)
           discriminator_input = discriminator_input + discriminator_input_noise
           disc_out = self.discriminator.forward(discriminator_input).squeeze()
 
-          self.env.unwrapped.extras["log"]["Metrics/Discriminator_ouput"] = torch.mean(disc_out)
-          amp_reward = valid * self.discriminator.cfg.weight * torch.clamp(
-            1.0 - 0.25 * torch.square(disc_out - 1.0),
-            min=0.0
+          self.env.unwrapped.extras["log"]["Metrics/Discriminator_ouput"] = torch.mean(
+            disc_out
+          )
+          amp_reward = (
+            valid
+            * self.discriminator.cfg.weight
+            * torch.clamp(1.0 - 0.25 * torch.square(disc_out - 1.0), min=0.0)
           )
 
-          self.env.unwrapped.extras["log"]["Metrics/Discriminator_reward"] = torch.mean(amp_reward)
+          self.env.unwrapped.extras["log"]["Metrics/Discriminator_reward"] = torch.mean(
+            amp_reward
+          )
 
           rewards += amp_reward
 
           # Process the step
           self.alg.process_env_step(obs, rewards, dones, extras)
           # Extract intrinsic rewards if RND is used (only for logging)
-          intrinsic_rewards = self.alg.intrinsic_rewards if self.cfg["algorithm"]["rnd_cfg"] else None
+          intrinsic_rewards = (
+            self.alg.intrinsic_rewards if self.cfg["algorithm"]["rnd_cfg"] else None
+          )
           # Book keeping
           self.logger.process_env_step(rewards, dones, extras, intrinsic_rewards)
 
@@ -216,18 +243,20 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
         self.alg.compute_returns(obs)
 
       # Build fake transition pairs from current rollout and push to replay buffer
-      fake_stack = torch.stack(trajectory_buffer, dim=1)                            # (num_envs, T+1, n_obs)
-      fake_data = torch.cat([fake_stack[:, :-1, :], fake_stack[:, 1:, :]], dim=-1)  # (num_envs, T, 2*n_obs)
+      fake_stack = torch.stack(trajectory_buffer, dim=1)  # (num_envs, T+1, n_obs)
+      fake_data = torch.cat(
+        [fake_stack[:, :-1, :], fake_stack[:, 1:, :]], dim=-1
+      )  # (num_envs, T, 2*n_obs)
 
       done_stack = torch.stack(done_buffer, dim=1)
-      valid_mask = (done_stack == 0)
+      valid_mask = done_stack == 0
 
       fake_data_flat = fake_data.view(-1, 2 * self.discriminator.cfg.n_obs)
       valid_flat = valid_mask.view(-1)
       fake_data_flat = fake_data_flat[valid_flat]
 
-      fake_t = fake_data_flat[:, :self.discriminator.cfg.n_obs]
-      fake_tp1 = fake_data_flat[:, self.discriminator.cfg.n_obs:]
+      fake_t = fake_data_flat[:, : self.discriminator.cfg.n_obs]
+      fake_tp1 = fake_data_flat[:, self.discriminator.cfg.n_obs :]
 
       # Normalize
       fake_t = (fake_t - self.motion_mean) / self.motion_std
@@ -245,8 +274,10 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
           sampled_fake = self._sample_fake_data(n_fake)
 
           # Sample real data to match fake batch size
-          indices = torch.randint(0, self.motion_data.shape[0] - 1, (n_fake,), device=self.device)
-          
+          indices = torch.randint(
+            0, self.motion_data.shape[0] - 1, (n_fake,), device=self.device
+          )
+
           real_t = self.motion_data[indices]
           real_tp1 = self.motion_data[indices + 1]
 
@@ -284,7 +315,9 @@ class AmpOnPolicyRunner(MjlabOnPolicyRunner):
 
     # Save the final model after training and stop the logging writer
     if self.logger.writer is not None:
-      self.save(os.path.join(self.logger.log_dir, f"model_{self.current_learning_iteration}.pt"))  # type: ignore
+      self.save(
+        os.path.join(self.logger.log_dir, f"model_{self.current_learning_iteration}.pt")
+      )  # type: ignore
       self.logger.stop_logging_writer()
 
   def export_policy_to_onnx(

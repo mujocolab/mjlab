@@ -18,8 +18,8 @@ from mjlab.sensor import (
   TerrainHeightSensorCfg,
 )
 from mjlab.tasks.AMP import mdp
-from mjlab.tasks.AMP.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.AMP.amp_env_cfg import make_amp_env_cfg
+from mjlab.tasks.AMP.mdp import UniformVelocityCommandCfg
 
 
 def unitree_g1_rough_amp_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
@@ -59,7 +59,7 @@ def unitree_g1_rough_amp_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     num_slots=1,
     history_length=4,
   )
-  
+
   # Remove the default terrain scan sensor
   cfg.scene.sensors = tuple(s for s in cfg.scene.sensors if s.name != "terrain_scan")
 
@@ -125,22 +125,19 @@ def unitree_g1_rough_amp_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     "right_wrist_yaw_joint",
   )
 
-  cfg.observations["discriminator"].terms["joint_pos"].params[
-    "asset_cfg"
-  ] = SceneEntityCfg("robot", joint_names=_JOINT_NAMES_FOR_DISCRIM_REGEX)
+  cfg.observations["discriminator"].terms["joint_pos"].params["asset_cfg"] = (
+    SceneEntityCfg("robot", joint_names=_JOINT_NAMES_FOR_DISCRIM_REGEX)
+  )
 
-  cfg.observations["discriminator"].terms["joint_vel"].params[
-    "asset_cfg"
-  ] = SceneEntityCfg("robot", joint_names=_JOINT_NAMES_FOR_DISCRIM_REGEX)
-
+  cfg.observations["discriminator"].terms["joint_vel"].params["asset_cfg"] = (
+    SceneEntityCfg("robot", joint_names=_JOINT_NAMES_FOR_DISCRIM_REGEX)
+  )
 
   cfg.rewards["upright"].params["asset_cfg"].body_names = ("torso_link",)
   cfg.rewards["body_ang_vel"].params["asset_cfg"].body_names = ("torso_link",)
 
-
   cfg.rewards["body_ang_vel"].weight = -0.05
   cfg.rewards["angular_momentum"].weight = -0.02
-
 
   cfg.rewards["self_collisions"] = RewardTermCfg(
     func=mdp.self_collision_cost,

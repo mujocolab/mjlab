@@ -1,5 +1,5 @@
-from mjlab.tasks.registry import register_mjlab_task
 from mjlab.tasks.AMP.rl import AmpOnPolicyRunner
+from mjlab.tasks.registry import register_mjlab_task
 
 from .env_cfgs import unitree_g1_flat_amp_env_cfg
 from .rl_cfg import unitree_g1_amp_ppo_runner_cfg

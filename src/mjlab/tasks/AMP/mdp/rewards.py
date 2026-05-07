@@ -27,7 +27,7 @@ def track_linear_velocity(
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> torch.Tensor:
   """Reward for tracking the commanded base linear velocity.
-  
+
   Projects velocity onto the world horizontal plane using yaw-only rotation,
   so the robot cannot gain reward by flopping forward or gaining vertical velocity.
   """

@@ -13,6 +13,12 @@ import tyro
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
 from mjlab.rl import MjlabOnPolicyRunner, RslRlBaseRunnerCfg, RslRlVecEnvWrapper
 from mjlab.scripts._cli import maybe_print_top_level_help
+from mjlab.tasks.AMP.rl import (
+  AmpOnPolicyRunner as AmpOnPolicyRunner,
+)
+from mjlab.tasks.AMP.rl import (
+  DiscriminatorCfg as DiscriminatorCfg,
+)
 from mjlab.tasks.registry import list_tasks, load_env_cfg, load_rl_cfg, load_runner_cls
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
 from mjlab.utils.gpu import select_gpus
@@ -21,11 +27,6 @@ from mjlab.utils.torch import configure_torch_backends
 from mjlab.utils.wandb import add_wandb_tags
 from mjlab.utils.wrappers import VideoRecorder
 
-from mjlab.tasks.AMP.rl import (
-  AmpOnPolicyRunner as AmpOnPolicyRunner,
-  DiscriminatorCfg as DiscriminatorCfg,
-)
-
 
 @dataclass(frozen=True)
 class TrainConfig:
@@ -33,8 +34,8 @@ class TrainConfig:
   agent: RslRlBaseRunnerCfg
   registry_name: str | None = None
   motion_file_amp: str | None = None
-  amp_weight : float = 1.0
-  resample : int = 0
+  amp_weight: float = 1.0
+  resample: int = 0
   video: bool = False
   video_length: int = 200
   video_interval: int = 2000
@@ -173,15 +174,20 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
     dump_yaml(log_dir / "params" / "env.yaml", env_cfg)
     dump_yaml(log_dir / "params" / "agent.yaml", agent_cfg)
 
-  if runner_cls is AmpOnPolicyRunner :
-
-    PATH_MOTION_FILE = str(Path("motions") / cfg.motion_file_amp) if cfg.motion_file_amp is not None else ""
+  if runner_cls is AmpOnPolicyRunner:
+    PATH_MOTION_FILE = (
+      str(Path("motions") / cfg.motion_file_amp)
+      if cfg.motion_file_amp is not None
+      else ""
+    )
 
     discriminator_cfg = DiscriminatorCfg()
     discriminator_cfg.motion_file = PATH_MOTION_FILE
     discriminator_cfg.weight = cfg.amp_weight
     discriminator_cfg.device = device
-    assert(discriminator_cfg.motion_file != ""), f"Please pass the motion file name with --motion_file_amp"
+    assert discriminator_cfg.motion_file != "", (
+      "Please pass the motion file name with --motion_file_amp"
+    )
     runner_kwargs["discriminator_cfg"] = discriminator_cfg
     runner_kwargs["resample"] = cfg.resample
 
