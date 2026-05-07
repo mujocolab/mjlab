@@ -590,8 +590,10 @@ def test_apply_body_impulse_basic(device):
     device, num_envs=2, num_bodies=3, body_ids=[1]
   )
 
-  # First call: cooldown_s starts at 0 and gets decremented by dt,
-  # so it becomes <= 0 and triggers.
+  # Skip the initial cooldown so the first call triggers immediately;
+  # the trigger/sustain/expire cycle is what's under test here.
+  impulse._needs_init[:] = False
+
   impulse(
     env,
     None,
@@ -697,6 +699,43 @@ def test_apply_body_impulse_reset_clears(device):
   env_ids_arg = call_args[1]["env_ids"]
   assert len(env_ids_arg) == 1
   assert env_ids_arg[0].item() == 0
+
+
+def test_apply_body_impulse_initial_cooldown(device):
+  """The first call after init/reset enters cooldown, not an immediate impulse.
+
+  Regression test for #973.
+  """
+  env, mock_entity, asset_cfg, impulse = _make_impulse_env(
+    device, num_envs=1, num_bodies=1, body_ids=[0]
+  )
+
+  def step():
+    impulse(
+      env,
+      None,
+      force_range=(10.0, 10.0),
+      torque_range=(0.0, 0.0),
+      duration_s=(1.0, 1.0),
+      cooldown_s=(0.05, 0.05),  # ~2.5 steps at dt=0.02
+      asset_cfg=asset_cfg,
+    )
+
+  # First two steps consume the sampled cooldown; impulse must not fire yet.
+  step()
+  assert not impulse._active.any()
+  step()
+  assert not impulse._active.any()
+
+  # Third step crosses the cooldown boundary and triggers.
+  step()
+  assert impulse._active.all()
+
+  # Reset re-enters cooldown: next step should not immediately re-trigger.
+  impulse.reset(env_ids=torch.tensor([0], device=device))
+  assert not impulse._active.any()
+  step()
+  assert not impulse._active.any()
 
 
 # ===========================================================================

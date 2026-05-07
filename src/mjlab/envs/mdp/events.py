@@ -425,6 +425,9 @@ class apply_body_impulse:
     self._time_remaining = torch.zeros(self._num_envs, device=self._device)
     self._interval_time_left = torch.zeros(self._num_envs, device=self._device)
     self._active = torch.zeros(self._num_envs, device=self._device, dtype=torch.bool)
+    # Cooldown is sampled lazily on the first call (and after reset), since
+    # cooldown_s is only available at __call__ time.
+    self._needs_init = torch.ones(self._num_envs, device=self._device, dtype=torch.bool)
 
   def __call__(
     self,
@@ -454,6 +457,17 @@ class apply_body_impulse:
     """
     del env, env_ids, asset_cfg  # Unused.
     dt = self._step_dt
+
+    # Sample initial cooldowns for envs starting fresh (first call or after
+    # reset) so the first impulse is preceded by a cooldown rather than firing
+    # immediately at t=0.
+    if self._needs_init.any():
+      init_ids = self._needs_init.nonzero(as_tuple=False).squeeze(-1)
+      int_low, int_high = cooldown_s
+      self._interval_time_left[init_ids] = (
+        torch.rand(len(init_ids), device=self._device) * (int_high - int_low) + int_low
+      )
+      self._needs_init[init_ids] = False
 
     # Decrement timers for active envs.
     self._time_remaining[self._active] -= dt
@@ -570,3 +584,4 @@ class apply_body_impulse:
     self._time_remaining[env_ids] = 0.0
     self._interval_time_left[env_ids] = 0.0
     self._active[env_ids] = False
+    self._needs_init[env_ids] = True

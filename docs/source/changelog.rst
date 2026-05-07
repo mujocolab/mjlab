@@ -80,6 +80,10 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ``apply_body_impulse`` firing an impulse on the very first step (and
+  the first step after every reset) instead of starting with a cooldown as
+  documented. The cooldown is now sampled lazily on the first call so impulse
+  timing is decorrelated from episode resets (:issue:`973`).
 - Fixed ``dr.pd_gains`` and ``dr.effort_limits`` silently no-oping when
   passed an ``Operation`` object (e.g. ``dr.scale``) instead of a string.
   Both functions now accept ``Operation | str`` like every other DR event
