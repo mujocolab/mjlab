@@ -1732,7 +1732,7 @@ requires-dist = [
     { name = "tqdm" },
     { name = "trimesh", specifier = ">=4.8.3" },
     { name = "tyro", specifier = ">=1.0.1" },
-    { name = "viser", specifier = ">=1.0.26" },
+    { name = "viser", specifier = ">=1.0.27" },
     { name = "wandb", specifier = ">=0.22.3" },
     { name = "warp-lang", marker = "sys_platform != 'darwin'", specifier = ">=1.12.0", index = "https://pypi.nvidia.com/" },
     { name = "warp-lang", marker = "sys_platform == 'darwin'", specifier = ">=1.12.0" },
@@ -4672,7 +4672,7 @@ wheels = [
 
 [[package]]
 name = "viser"
-version = "1.0.26"
+version = "1.0.27"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "imageio" },
@@ -4688,9 +4688,9 @@ dependencies = [
     { name = "yourdfpy" },
     { name = "zstandard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/12/ce/82a0e50fae21f5e02fcc5d9aff2ab59dccb9c319b6c4cf528f2228049b05/viser-1.0.26.tar.gz", hash = "sha256:dc08c6f505e70324b0603bdddf9714c00ac828c259ee49abd8ad094bfc90c91c", size = 4828261, upload-time = "2026-03-30T11:43:19.513Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/f5/48adb4e5e4234f48e96a1e7fc50cca6731280df0c279833e333963f9ea5c/viser-1.0.27.tar.gz", hash = "sha256:87e3239d6c1c2c003db93ac4072430ec790e336ffe7214781f035e54faebc0af", size = 4897986, upload-time = "2026-05-06T10:30:47.556Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/91/f7/762a2d5fab509d0c632b271e21e634462397cc02cca649771c3e9d2e0bcc/viser-1.0.26-py3-none-any.whl", hash = "sha256:03b177b4ef584f58f7b74fdf44cccb165b8a220ffd90728ef5c1e3d1b1fcf258", size = 4922888, upload-time = "2026-03-30T11:43:21.355Z" },
+    { url = "https://files.pythonhosted.org/packages/7c/ad/8ae712579e294b4395fb39f7d65524b51fc7b731eacce26af096b7e59b61/viser-1.0.27-py3-none-any.whl", hash = "sha256:8da5b7934416e6e2d3a7ebcf39fc840f21030b51eb63231e8cfef457bfb49031", size = 4998748, upload-time = "2026-05-06T10:30:49.965Z" },
 ]
 
 [[package]]
