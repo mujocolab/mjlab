@@ -80,6 +80,9 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed duplicate random seeds across nodes in multi-node training. The
+  per-process seed offset in ``scripts/train.py`` now uses the global
+  ``RANK`` instead of ``LOCAL_RANK``. Contribution by @bd-pdomanico.
 - Fixed ``apply_body_impulse`` firing an impulse on the very first step (and
   the first step after every reset) instead of starting with a cooldown as
   documented. The cooldown is now sampled lazily on the first call so impulse

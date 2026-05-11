@@ -59,7 +59,7 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
     os.environ["MUJOCO_EGL_DEVICE_ID"] = str(local_rank)
     device = f"cuda:{local_rank}"
     # Set seed to have diversity in different processes.
-    seed = cfg.agent.seed + local_rank
+    seed = cfg.agent.seed + rank
 
   configure_torch_backends()
 
