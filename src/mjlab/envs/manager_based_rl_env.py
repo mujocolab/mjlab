@@ -478,6 +478,9 @@ class ManagerBasedRlEnv:
       self.extras,
     )
 
+  def get_observations(self) -> dict:
+    return self.observation_manager.compute()
+
   def render(self) -> np.ndarray | None:
     if self.render_mode == "human" or self.render_mode is None:
       return None
