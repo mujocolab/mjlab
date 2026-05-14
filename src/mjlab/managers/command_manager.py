@@ -44,7 +44,7 @@ class CommandTermCfg(abc.ABC):
     raise NotImplementedError
 
 
-class CommandTerm(ManagerTermBase):
+class CommandTerm(ManagerTermBase, abc.ABC):
   """Base class for command terms."""
 
   def __init__(self, cfg: CommandTermCfg, env: ManagerBasedRlEnv):

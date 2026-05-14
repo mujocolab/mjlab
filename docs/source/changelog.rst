@@ -80,6 +80,10 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ``@abc.abstractmethod`` decorators being silently ignored on
+  ``ActionTerm`` and ``CommandTerm``. Subclasses that omit a required
+  override now raise ``TypeError`` on instantiation (previously they
+  silently constructed and failed later). Contribution by @bd-pdomanico.
 - Fixed duplicate random seeds across nodes in multi-node training. The
   per-process seed offset in ``scripts/train.py`` now uses the global
   ``RANK`` instead of ``LOCAL_RANK``. Contribution by @bd-pdomanico.

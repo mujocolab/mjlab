@@ -37,7 +37,7 @@ class ActionTermCfg(abc.ABC):
     raise NotImplementedError
 
 
-class ActionTerm(ManagerTermBase):
+class ActionTerm(ManagerTermBase, abc.ABC):
   """Base class for action terms.
 
   The action term is responsible for processing the raw actions sent to the environment
