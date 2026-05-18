@@ -5,14 +5,154 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- Added ``--log-root`` CLI option to ``train``, ``play``, and ``evaluate``
+  scripts for choosing where training logs are stored. Defaults to
+  ``logs/rsl_rl`` (unchanged behavior). Useful for directing outputs to a
+  scratch disk or shared mount.
+- ``RewardManager``, ``TerminationManager``, and ``MetricsManager`` now
+  validate that every term function returns a tensor of shape
+  ``(num_envs,)`` when evaluated, raising a clear ``ValueError``
+  naming the offending term instead of silently broadcasting or crashing
+  with an opaque error later during training.
+- Added ``ContactSensor.primary_names`` property to expose the resolved
+  primary names in the order they appear along the per-contact axis of the
+  output tensors. This makes it possible to map a contact-data column back
+  to the primary it belongs to (:issue:`914`).
+- Added per-world mesh variant support via ``VariantEntityCfg``. Each
+  world in a batched simulation can now use a different mesh asset for
+  the same logical entity (e.g. world 0 holds a cube, world 1 a
+  sphere). Variants are passed as a ``dict[str, Callable]`` of named
+  spec callables; the optional ``assignment`` field controls how worlds
+  map to variants and accepts ``None`` (uniform), a ``dict[str, float]``
+  of per-variant weights, or a custom ``Callable[[int], Sequence[int]]``.
+  Mesh-derived constants (collision bounds, body inertials, subtree
+  mass, inverse weights) are compiled per-variant and stored as
+  per-world arrays in the Warp model, so domain randomization, the
+  native viewer, the offscreen renderer, and the Viser viewer all pick
+  up the variant assignment automatically. Variants must share the
+  same kinematic structure (same bodies, joints, joint types); only
+  mesh geoms may differ. Assignment is fixed at simulation init. See
+  :ref:`heterogeneous_worlds` for usage. With help from @XiangruiJiang.
+- Per-world mesh variants now support per-variant materials and textures.
+  Each variant can reference its own named material, which is automatically
+  prefixed and scattered via ``geom_matid`` alongside the existing
+  ``geom_dataid`` table. Variants without a material get ``matid = -1``.
+  Contribution by @omarrayyann.
+
 Changed
 ^^^^^^^
 
+- Bumped ``mujoco`` to 3.8 and ``mujoco-warp`` to 3.8.0. The ``multiccd``
+  enable flag was removed in mujoco 3.8 (it became default-on), so configs
+  that listed ``"multiccd"`` in ``MujocoCfg.enableflags`` need to drop it.
+- Camera segmentation now matches ``mujoco_warp``'s typed segmentation
+  output. ``CameraSensorData.segmentation`` stores ``(object_id,
+  object_type)`` pairs in shape ``[B, H, W, 2]`` instead of the previous
+  legacy geom-id-only layout. Contribution by @tkelestemur.
+- Sped up ``RayCaster`` post-processing by removing boolean-mask indexing
+  operations and replacing them with ``masked_fill_`` plus a clamped-distance
+  formulation of ``hit_pos_w`` that places misses at the world origin. This
+  removes all CUDA syncs from the ray post-process, letting the CPU thread
+  proceed while GPU-based sensing runs. Contribution by @bd-pdomanico.
+- Bumped ``rsl-rl-lib`` from 5.0.1 to 5.2.0. This brings ``torch.compile`` support for
+  PPO and Distillation, and optional std clamping and constant std in
+  ``GaussianDistribution``. No code changes required on the mjlab side.
+- ``TerrainEntityCfg`` debug visualization sites (environment origins,
+  terrain origins, flat patches) are now off by default. Set
+  ``debug_vis=True`` to re-enable them. The sites inflated ``nsite`` and
+  caused a measurable slowdown in the per-step ``site_local_to_global``
+  kernel (:issue:`942`).
 - Task package load failures during ``mjlab`` import now print the full
   traceback (and the entry point's module path) to ``stderr`` instead of
   just the exception message, making it easier to pinpoint the source of
   import errors when running commands like ``list-envs`` (:issue:`910`).
   Contribution by @saikishor.
+- Clarified ``ContactSensor`` shape conventions: per-contact fields
+  (``found``, ``force``, ``torque``, ``dist``, ``pos``, ``normal``,
+  ``tangent``) have shape ``[B, P * num_slots, ...]`` while per-primary
+  air-time fields (``current_air_time``, ``last_air_time``,
+  ``current_contact_time``, ``last_contact_time``) have shape ``[B, P]``,
+  where ``P`` is the number of resolved primaries (:issue:`914`).
+
+Fixed
+^^^^^
+
+- Fixed duplicate random seeds across nodes in multi-node training. The
+  per-process seed offset in ``scripts/train.py`` now uses the global
+  ``RANK`` instead of ``LOCAL_RANK``. Contribution by @bd-pdomanico.
+- Fixed ``apply_body_impulse`` firing an impulse on the very first step (and
+  the first step after every reset) instead of starting with a cooldown as
+  documented. The cooldown is now sampled lazily on the first call so impulse
+  timing is decorrelated from episode resets (:issue:`973`).
+- Fixed ``dr.pd_gains`` and ``dr.effort_limits`` silently no-oping when
+  passed an ``Operation`` object (e.g. ``dr.scale``) instead of a string.
+  Both functions now accept ``Operation | str`` like every other DR event
+  and raise ``ValueError`` for unsupported operations (:issue:`971`).
+- Fixed ``ContactSensor`` with ``global_frame=True`` and
+  ``reduce`` ∈ {``"none"``, ``"mindist"``, ``"maxforce"``} producing forces
+  rotated onto the wrong axis. The contact-frame→world rotation matrix had
+  its columns ordered ``[tangent, tangent2, normal]`` instead of
+  ``[normal, tangent, tangent2]``, projecting the normal-force component
+  onto a tangent direction. Contribution by @bd-pdomanico.
+- Fixed ``extras["log"]`` entries written by reward terms (e.g. ``Metrics/*``
+  values in velocity tasks) being silently discarded on any step where at
+  least one environment resets. ``_reset_idx`` was clearing the dict after
+  ``reward_manager.compute()`` had already populated it. The clear now
+  happens at the top of ``step()`` and ``reset()`` so that all entries
+  survive (:issue:`957`).
+- Fixed ``ManagerBasedRlEnv`` initializing Warp on all visible CUDA devices
+  even when constructed with ``device="cpu"``. ``seed_rng`` now accepts a
+  ``device`` argument and skips ``wp.rand_init`` on CPU devices, so a
+  CPU-only env no longer claims a CUDA context on machines with a visible
+  GPU (:issue:`949`).
+- Fixed ``ContactSensor.compute_first_contact`` and ``compute_first_air``
+  occasionally missing events when a contact began or ended right at the
+  last physics substep of a control step. ``current_contact_time`` /
+  ``current_air_time`` accumulate in float32 and can drift a few ULPs past
+  ``dt``, but the default ``abs_tol`` of ``1e-8`` sat at the noise floor
+  and rejected the comparison. Raised the default to ``1e-6``, which stays
+  well below typical control ``dt`` while comfortably covering float32
+  accumulation noise (:issue:`933`). Contribution by @paLeziart.
+- Fixed ``out_of_terrain_bounds`` using stale terrain dimensions. It read
+  ``TerrainGeneratorCfg.num_cols`` directly, which is ignored in curriculum
+  mode (the generator uses ``len(sub_terrains)`` columns instead), and it
+  did not account for ``border_width``. The termination now reads the
+  effective grid shape from ``terrain.terrain_origins`` and includes the
+  border in the footprint, so robots no longer reset while still on valid
+  terrain (or fail to reset after running off it) (:issue:`923`).
+- ``ObservationManager`` now skips observation groups that end up with
+  zero active terms (e.g. all terms set to ``None``) with a log message,
+  instead of crashing later in ``torch.stack``/``torch.cat``. This lets
+  a shared runner config define groups that become empty under certain
+  runtime flags (e.g. model-specific terms all disabled for one variant).
+  The whole group can still be set to ``None`` to disable it explicitly.
+- Fixed a runtime broadcast error in ``ContactSensor`` when combining
+  ``num_slots > 1`` with ``track_air_time=True`` and more than one primary.
+  Air-time tracking now reduces ``found`` across slots so that a primary is
+  considered in contact when any of its slots reports a match (:issue:`914`).
+- Updated the ``create_new_task.ipynb`` Colab tutorial to import
+  ``XmlActuatorCfg`` instead of the removed ``XmlVelocityActuatorCfg``.
+  Added a regression test (``tests/test_notebooks.py``) that parses each
+  notebook cell and verifies that every ``from mjlab... import X``
+  reference resolves, so future renames in the mjlab public API can't
+  silently rot the tutorials (:issue:`913`).
+- Fixed ``ObservationManager`` silently sharing a single ``NoiseModelCfg``
+  instance across observation groups that declared terms with the same
+  name. ``_group_obs_class_instances`` was keyed by term name alone, so
+  the last group processed in ``_prepare_terms`` overwrote earlier
+  groups' instances. Symptoms included the wrong noise config being
+  applied, shared per-episode state for ``NoiseModelWithAdditiveBias``
+  (e.g. bias drawn from the wrong ``bias_noise_cfg``), and missed
+  ``reset()`` calls for overwritten instances. Instances are now keyed
+  by ``(group_name, term_name)`` so each group owns its own noise model.
+- Fixed ``CurriculumManager.get_active_iterable_terms`` raising
+  ``TypeError`` when a term's state was a dict. The dict branch indexed
+  the output list by term name instead of appending to the local ``data``
+  list. No in-tree caller currently invokes this method, so the bug was
+  latent.
 
 Added
 ^^^^^

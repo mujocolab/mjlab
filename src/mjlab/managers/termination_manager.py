@@ -104,6 +104,7 @@ class TerminationManager(ManagerBase):
     self._terminated_buf[:] = False
     for name, term_cfg in zip(self._term_names, self._term_cfgs, strict=False):
       value = term_cfg.func(self._env, **term_cfg.params)
+      self._check_term_shape(name, value)
       if term_cfg.time_out:
         self._truncated_buf |= value
       else:

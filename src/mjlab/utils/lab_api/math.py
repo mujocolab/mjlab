@@ -303,17 +303,15 @@ def quat_from_euler_xyz(roll: torch.Tensor, pitch: torch.Tensor, yaw: torch.Tens
     return torch.stack([qw, qx, qy, qz], dim=-1)
 
 
-@torch.jit.script
 def _sqrt_positive_part(x: torch.Tensor) -> torch.Tensor:
-    """Returns torch.sqrt(torch.max(0, x)) but with a zero sub-gradient where x is 0.
+    """Returns torch.sqrt(torch.max(0, x)) but with a zero subgradient where x is 0.
 
     Reference:
         https://github.com/facebookresearch/pytorch3d/blob/main/pytorch3d/transforms/rotation_conversions.py#L91-L99
     """
-    ret = torch.zeros_like(x)
     positive_mask = x > 0
-    ret[positive_mask] = torch.sqrt(x[positive_mask])
-    return ret
+    safe_x = torch.where(positive_mask, x, 1.0)
+    return torch.where(positive_mask, torch.sqrt(safe_x), 0.0)
 
 
 @torch.jit.script
@@ -331,10 +329,10 @@ def quat_from_matrix(matrix: torch.Tensor) -> torch.Tensor:
     """
     if matrix.size(-1) != 3 or matrix.size(-2) != 3:
         raise ValueError(f"Invalid rotation matrix shape {matrix.shape}.")
-
     batch_dim = matrix.shape[:-2]
-    m00, m01, m02, m10, m11, m12, m20, m21, m22 = torch.unbind(matrix.reshape(batch_dim + (9,)), dim=-1)
-
+    m00, m01, m02, m10, m11, m12, m20, m21, m22 = torch.unbind(
+        matrix.reshape(batch_dim + (9,)), dim=-1
+    )
     q_abs = _sqrt_positive_part(
         torch.stack(
             [
@@ -346,32 +344,32 @@ def quat_from_matrix(matrix: torch.Tensor) -> torch.Tensor:
             dim=-1,
         )
     )
-
-    # we produce the desired quaternion multiplied by each of r, i, j, k
     quat_by_rijk = torch.stack(
         [
-            # pyre-fixme[58]: `**` is not supported for operand types `Tensor` and `int`.
-            torch.stack([q_abs[..., 0] ** 2, m21 - m12, m02 - m20, m10 - m01], dim=-1),
-            # pyre-fixme[58]: `**` is not supported for operand types `Tensor` and `int`.
-            torch.stack([m21 - m12, q_abs[..., 1] ** 2, m10 + m01, m02 + m20], dim=-1),
-            # pyre-fixme[58]: `**` is not supported for operand types `Tensor` and `int`.
-            torch.stack([m02 - m20, m10 + m01, q_abs[..., 2] ** 2, m12 + m21], dim=-1),
-            # pyre-fixme[58]: `**` is not supported for operand types `Tensor` and `int`.
-            torch.stack([m10 - m01, m20 + m02, m21 + m12, q_abs[..., 3] ** 2], dim=-1),
+            torch.stack(
+                [torch.square(q_abs[..., 0]), m21 - m12, m02 - m20, m10 - m01], dim=-1
+            ),
+            torch.stack(
+                [m21 - m12, torch.square(q_abs[..., 1]), m10 + m01, m02 + m20], dim=-1
+            ),
+            torch.stack(
+                [m02 - m20, m10 + m01, torch.square(q_abs[..., 2]), m12 + m21], dim=-1
+            ),
+            torch.stack(
+                [m10 - m01, m20 + m02, m21 + m12, torch.square(q_abs[..., 3])], dim=-1
+            ),
         ],
         dim=-2,
     )
-
-    # We floor here at 0.1 but the exact level is not important; if q_abs is small,
-    # the candidate won't be picked.
-    flr = torch.tensor(0.1).to(dtype=q_abs.dtype, device=q_abs.device)
-    quat_candidates = quat_by_rijk / (2.0 * q_abs[..., None].max(flr))
+    # Floor of 0.1 keeps the divisor away from zero; ill-conditioned
+    # candidates will not be selected by the argmax below.
+    quat_candidates = quat_by_rijk / (2.0 * q_abs[..., None].clamp_min(0.1))
 
     # if not for numerical problems, quat_candidates[i] should be same (up to a sign),
     # forall i; we pick the best-conditioned one (with the largest denominator)
-    return quat_candidates[torch.nn.functional.one_hot(q_abs.argmax(dim=-1), num_classes=4) > 0.5, :].reshape(
-        batch_dim + (4,)
-    )
+    indices = q_abs.argmax(dim=-1, keepdim=True)
+    gather_indices = indices.unsqueeze(-1).expand(batch_dim + (1, 4))
+    return torch.gather(quat_candidates, -2, gather_indices).squeeze(-2)
 
 
 def _axis_angle_rotation(axis: Literal["X", "Y", "Z"], angle: torch.Tensor) -> torch.Tensor:

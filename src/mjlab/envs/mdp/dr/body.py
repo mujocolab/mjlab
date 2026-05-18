@@ -21,6 +21,7 @@ from ._core import (
   _randomize_model_field,
   _randomize_quat_field,
   _sample_angle,
+  _select_default_values,
 )
 from ._types import Distribution, Operation
 
@@ -495,15 +496,15 @@ def pseudo_inertia(
   n_bodies = len(entity_indices)
   shape = (n_envs, n_bodies)
 
-  def_mass = env.sim.get_default_field("body_mass")[entity_indices]
-  def_ipos = env.sim.get_default_field("body_ipos")[entity_indices]
-  def_inertia = env.sim.get_default_field("body_inertia")[entity_indices]
-  def_iquat = env.sim.get_default_field("body_iquat")[entity_indices]
+  def_mass = _select_default_values(env, "body_mass", env_ids, entity_indices)
+  def_ipos = _select_default_values(env, "body_ipos", env_ids, entity_indices)
+  def_inertia = _select_default_values(env, "body_inertia", env_ids, entity_indices)
+  def_iquat = _select_default_values(env, "body_iquat", env_ids, entity_indices)
 
-  # Reconstruct J_default for each body: (n_bodies, 4, 4).
+  # Reconstruct J_default for each env/body: (n_envs, n_bodies, 4, 4).
   J_default = _reconstruct_pseudo_inertia_J(def_mass, def_ipos, def_inertia, def_iquat)
 
-  # Cholesky factor L: (n_bodies, 4, 4), lower triangular.
+  # Cholesky factor L: (n_envs, n_bodies, 4, 4), lower triangular.
   L = _cholesky_4x4(J_default)
 
   # Sample perturbation parameters, each (n_envs, n_bodies).
@@ -524,9 +525,8 @@ def pseudo_inertia(
   # Build U: (n_envs, n_bodies, 4, 4), upper triangular.
   U = _build_perturbation_U(alpha, d1, d2, d3, s12, s13, s23, t1, t2, t3)
 
-  # L_new = U @ L, broadcast over envs.
-  L_exp = L.unsqueeze(0).expand(n_envs, n_bodies, 4, 4)
-  L_new = torch.matmul(U, L_exp)  # (n_envs, n_bodies, 4, 4)
+  # L_new = U @ L.
+  L_new = torch.matmul(U, L)  # (n_envs, n_bodies, 4, 4)
 
   # New pseudo-inertia: J' = L_new @ L_newᵀ.
   J_new = torch.matmul(L_new, L_new.mT)  # (n_envs, n_bodies, 4, 4)

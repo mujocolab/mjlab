@@ -121,6 +121,14 @@ class ManagerBase(abc.ABC):
     del env_ids  # Unused.
     return {}
 
+  def _check_term_shape(self, term_name: str, value: torch.Tensor) -> None:
+    if value.shape != (self.num_envs,):
+      manager_name = type(self).__name__
+      raise ValueError(
+        f"{manager_name} term '{term_name}' returned shape {tuple(value.shape)}, "
+        f"expected ({self.num_envs},)."
+      )
+
   def get_active_iterable_terms(
     self, env_idx: int
   ) -> Sequence[tuple[str, Sequence[float]]]:

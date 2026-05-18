@@ -11,7 +11,10 @@ from mjlab.managers.observation_manager import (
   ObservationManager,
   ObservationTermCfg,
 )
-from mjlab.utils.noise.noise_cfg import ConstantNoiseCfg
+from mjlab.utils.noise.noise_cfg import (
+  ConstantNoiseCfg,
+  NoiseModelWithAdditiveBiasCfg,
+)
 
 
 @pytest.fixture
@@ -229,6 +232,48 @@ def test_noise_tensor_caching(device):
   expected = torch.full((4, 3), 1.5, device=device)
   assert torch.allclose(result1, expected)
   assert torch.allclose(result2, expected)
+
+
+def test_shared_term_name_noise_models_are_per_group(mock_env, device):
+  """Each group owns its own noise model instance when they share a term name.
+
+  ConstantNoiseCfg(op="add") shifts the additive-bias tensor by the configured
+  amount on every reset, so each group's observation drifts by its own value
+  after each manager.reset().
+  """
+
+  def obs_func(env):
+    return torch.zeros((env.num_envs, 3), device=device)
+
+  def group(bias: float) -> ObservationGroupCfg:
+    return ObservationGroupCfg(
+      terms={
+        "obs": ObservationTermCfg(
+          func=obs_func,
+          params={},
+          noise=NoiseModelWithAdditiveBiasCfg(
+            noise_cfg=ConstantNoiseCfg(bias=0.0, operation="add"),
+            bias_noise_cfg=ConstantNoiseCfg(bias=bias, operation="add"),
+          ),
+        ),
+      },
+      enable_corruption=True,
+    )
+
+  manager = ObservationManager({"actor": group(10.0), "critic": group(-1.0)}, mock_env)
+
+  obs = manager.compute()
+  assert isinstance(obs["actor"], torch.Tensor)
+  assert isinstance(obs["critic"], torch.Tensor)
+  assert torch.allclose(obs["actor"], torch.full((4, 3), 10.0, device=device))
+  assert torch.allclose(obs["critic"], torch.full((4, 3), -1.0, device=device))
+
+  manager.reset()
+  obs = manager.compute()
+  assert isinstance(obs["actor"], torch.Tensor)
+  assert isinstance(obs["critic"], torch.Tensor)
+  assert torch.allclose(obs["actor"], torch.full((4, 3), 20.0, device=device))
+  assert torch.allclose(obs["critic"], torch.full((4, 3), -2.0, device=device))
 
 
 def test_multiple_terms_with_different_noise(mock_env, device):

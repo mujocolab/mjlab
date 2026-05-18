@@ -59,6 +59,12 @@ from mjlab.viewer.base import (
   VerbosityLevel,
   ViewerAction,
 )
+from mjlab.viewer.model_sync import (
+  VIEWER_INERTIAL_FIELDS,
+  VIEWER_MODEL_FIELDS,
+  disable_model_sameframe_shortcuts,
+  sync_model_fields,
+)
 from mjlab.viewer.native.visualizer import MujocoNativeDebugVisualizer
 
 if TYPE_CHECKING:
@@ -155,6 +161,7 @@ class NativeMujocoViewer(BaseViewer):
     self.mjm = sim.mj_model
     self.mjd = sim.mj_data
     assert self.mjm is not None
+    disable_model_sameframe_shortcuts(self.mjm)
     if self.cfg.fovy is not None:
       self.mjm.vis.global_.fovy = self.cfg.fovy
 
@@ -224,14 +231,15 @@ class NativeMujocoViewer(BaseViewer):
       self._update_reward_figures(v)
 
       self._update_debug_visualizers(v)
+      self._add_env_selection_marker(v)
       self._render_other_env_geoms(v, sim, sim_data)
 
       # Pin tracking camera to body frame origin so DR-induced COM shifts don't move
       # the camera.
-      if sim.expanded_fields & self._INERTIAL_FIELDS:
+      if sim.expanded_fields & VIEWER_INERTIAL_FIELDS:
         self._stabilize_tracking_camera()
 
-      has_visual_dr = bool(sim.expanded_fields & self._VISUAL_FIELDS)
+      has_visual_dr = bool(sim.expanded_fields & VIEWER_MODEL_FIELDS)
       v.sync(state_only=not has_visual_dr)
 
   def _set_status_overlay(self, viewer: mujoco.viewer.Handle) -> None:
@@ -293,6 +301,37 @@ class NativeMujocoViewer(BaseViewer):
       )
       self.env.unwrapped.update_visualizers(visualizer)
 
+  def _add_env_selection_marker(self, viewer: mujoco.viewer.Handle) -> None:
+    """Draw a downward arrow above the selected environment."""
+    if self.env.unwrapped.num_envs <= 1:
+      return
+    assert self.mjd is not None and self.mjm is not None
+    last = self.mjm.nbody - 1
+    center = self.mjd.xpos[max(last, 1)].copy()
+    arrow_top = center + np.array([0.0, 0.0, 0.4])
+    arrow_bottom = center + np.array([0.0, 0.0, 0.15])
+    scn = viewer.user_scn
+    if scn.ngeom >= scn.maxgeom:
+      return
+    scn.ngeom += 1
+    geom = scn.geoms[scn.ngeom - 1]
+    geom.category = mujoco.mjtCatBit.mjCAT_DECOR
+    mujoco.mjv_initGeom(
+      geom=geom,
+      type=mujoco.mjtGeom.mjGEOM_ARROW.value,
+      size=np.zeros(3),
+      pos=np.zeros(3),
+      mat=np.zeros(9),
+      rgba=np.array([1.0, 0.2, 0.2, 0.8], dtype=np.float32),
+    )
+    mujoco.mjv_connector(
+      geom=geom,
+      type=mujoco.mjtGeom.mjGEOM_ARROW.value,
+      width=0.02,
+      from_=arrow_top,
+      to=arrow_bottom,
+    )
+
   def _sync_env_state_to_mjdata(
     self, target_data: mujoco.MjData, sim_data: _SimDataProtocol, env_idx: int
   ) -> None:
@@ -334,42 +373,11 @@ class NativeMujocoViewer(BaseViewer):
     # Restore main env's model fields.
     self._sync_model_fields(sim, self.env_idx)
 
-  # Inertial fields that shift subtree_com (and thus the tracking camera).
-  _INERTIAL_FIELDS = frozenset({"body_ipos", "body_mass"})
-
-  # Fields that affect rendering. Physics-only fields (geom_aabb,
-  # geom_rbound, dof_*, jnt_*, actuator_*, tendon_*, etc.) are skipped.
-  _VISUAL_FIELDS = frozenset(
-    {
-      "qpos0",  # Needed for correct mj_forward kinematics (qpos - qpos0).
-      "geom_rgba",
-      "geom_size",
-      "geom_pos",
-      "geom_quat",
-      "mat_rgba",
-      "site_pos",
-      "site_quat",
-      "body_pos",
-      "body_quat",
-      "body_ipos",
-      "body_inertia",
-      "body_iquat",
-      "body_mass",
-      "cam_pos",
-      "cam_quat",
-      "cam_fovy",
-      "cam_intrinsic",
-      "light_pos",
-      "light_dir",
-    }
-  )
-
   def _sync_model_fields(self, sim: _SimProtocol, env_idx: int) -> None:
     """Sync visually-relevant DR'd model fields from GPU to MjModel."""
-    for field_name in sim.expanded_fields & self._VISUAL_FIELDS:
-      src = getattr(sim.model, field_name)[env_idx].cpu().numpy()
-      dst = getattr(self.mjm, field_name)
-      dst[:] = src.reshape(dst.shape)
+    assert self.mjm is not None
+    fields = sim.expanded_fields & VIEWER_MODEL_FIELDS
+    sync_model_fields(self.mjm, sim.model, fields, env_idx)
 
   def _stabilize_tracking_camera(self) -> None:
     """Pin the tracked body's subtree_com to its frame origin (xpos).

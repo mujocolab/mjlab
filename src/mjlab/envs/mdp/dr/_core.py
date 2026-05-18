@@ -108,8 +108,7 @@ def _randomize_model_field(
   indexed_data = model_field[env_grid, entity_grid]
 
   if operation.uses_defaults:
-    default_field = env.sim.get_default_field(field)
-    base_values = default_field[entity_indices].unsqueeze(0).expand_as(indexed_data)
+    base_values = _select_default_values(env, field, env_ids, entity_indices)
   else:
     base_values = indexed_data
 
@@ -355,11 +354,39 @@ def _randomize_quat_field(
   ).reshape(n_envs, n_entities, 4)
 
   # Expand default to (n_envs, n_entities, 4) so quat_mul shapes match.
-  q_default = env.sim.get_default_field(field)[entity_indices]  # (n_entities, 4)
-  q_default_exp = q_default.unsqueeze(0).expand(n_envs, n_entities, 4).contiguous()
+  q_default_exp = _select_default_values(
+    env, field, env_ids, entity_indices
+  ).contiguous()
 
   q_new = quat_mul(q_perturb, q_default_exp)  # (n_envs, n_entities, 4)
 
   model_field = getattr(env.sim.model, field)
   env_grid, entity_grid = torch.meshgrid(env_ids, entity_indices, indexing="ij")
   model_field[env_grid, entity_grid] = q_new
+
+
+def _select_default_values(
+  env,
+  field: str,
+  env_ids: torch.Tensor,
+  entity_indices: torch.Tensor,
+) -> torch.Tensor:
+  """Return default model values indexed as ``(env, entity, ...)``.
+
+  Standard model defaults are stored as ``(nentity, ...)`` and are shared by
+  every env. Per-world mesh compilation snapshots variant-dependent defaults as
+  ``(nworld, nentity, ...)`` so downstream DR must preserve each world's variant
+  baseline instead of indexing the first dimension as entities.
+  """
+  default_field = env.sim.get_default_field(field)
+  if field in env.sim.per_world_default_fields:
+    assert default_field.shape[0] == env.num_envs, (
+      f"Field '{field}' is registered as per-world but its default has "
+      f"shape {tuple(default_field.shape)}; expected leading dim "
+      f"{env.num_envs}."
+    )
+    env_grid, entity_grid = torch.meshgrid(env_ids, entity_indices, indexing="ij")
+    return default_field[env_grid, entity_grid]
+
+  values = default_field[entity_indices].unsqueeze(0)
+  return values.expand((env_ids.numel(),) + values.shape[1:])

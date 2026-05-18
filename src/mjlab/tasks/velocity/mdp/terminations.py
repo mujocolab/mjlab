@@ -47,7 +47,7 @@ def out_of_terrain_bounds(
     )
 
   terrain_generator = terrain.cfg.terrain_generator
-  if terrain_generator is None:
+  if terrain_generator is None or terrain.terrain_origins is None:
     return torch.zeros(
       (env.num_envs,),
       device=env.device,
@@ -57,8 +57,11 @@ def out_of_terrain_bounds(
   asset: Entity = env.scene[asset_cfg.name]
   root_xy_w = asset.data.root_link_pos_w[:, :2]
 
-  half_x = 0.5 * (terrain_generator.num_rows * terrain_generator.size[0])
-  half_y = 0.5 * (terrain_generator.num_cols * terrain_generator.size[1])
+  # Use the generated grid shape (curriculum mode overrides cfg.num_cols with
+  # len(sub_terrains)), and include the flat border around the patch grid.
+  num_rows, num_cols = terrain.terrain_origins.shape[:2]
+  half_x = 0.5 * (num_rows * terrain_generator.size[0]) + terrain_generator.border_width
+  half_y = 0.5 * (num_cols * terrain_generator.size[1]) + terrain_generator.border_width
   limit_x = max(0.0, half_x - margin)
   limit_y = max(0.0, half_y - margin)
 

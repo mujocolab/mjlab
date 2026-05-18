@@ -13,7 +13,7 @@ from mjlab.managers.event_manager import requires_model_fields
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 from ._core import _DEFAULT_ASSET_CFG
-from ._types import resolve_distribution
+from ._types import Operation, resolve_distribution, resolve_operation
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
@@ -27,7 +27,7 @@ def pd_gains(
   kd_range: tuple[float, float],
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
   distribution: Literal["uniform", "log_uniform"] = "uniform",
-  operation: Literal["scale", "abs"] = "scale",
+  operation: Operation | str = "scale",
 ) -> None:
   """Randomize PD stiffness and damping gains.
 
@@ -41,6 +41,11 @@ def pd_gains(
     operation: "scale" multiplies default gains by sampled values, "abs" sets
       absolute values.
   """
+  op = resolve_operation(operation)
+  if op.name not in ("scale", "abs"):
+    raise ValueError(
+      f"pd_gains only supports 'scale' and 'abs' operations, got {op.name!r}"
+    )
   asset: Entity = env.scene[asset_cfg.name]
 
   if env_ids is None:
@@ -75,7 +80,7 @@ def pd_gains(
     if isinstance(actuator, BuiltinPositionActuator) or (
       isinstance(actuator, XmlActuator) and actuator.command_field == "position"
     ):
-      if operation == "scale":
+      if op.name == "scale":
         default_gainprm = env.sim.get_default_field("actuator_gainprm")
         default_biasprm = env.sim.get_default_field("actuator_biasprm")
         env.sim.model.actuator_gainprm[env_ids[:, None], ctrl_ids, 0] = (
@@ -87,7 +92,8 @@ def pd_gains(
         env.sim.model.actuator_biasprm[env_ids[:, None], ctrl_ids, 2] = (
           default_biasprm[ctrl_ids, 2] * kd_samples
         )
-      elif operation == "abs":
+      else:
+        assert op.name == "abs"
         env.sim.model.actuator_gainprm[env_ids[:, None], ctrl_ids, 0] = kp_samples
         env.sim.model.actuator_biasprm[env_ids[:, None], ctrl_ids, 1] = -kp_samples
         env.sim.model.actuator_biasprm[env_ids[:, None], ctrl_ids, 2] = -kd_samples
@@ -95,7 +101,7 @@ def pd_gains(
     elif isinstance(actuator, IdealPdActuator):
       assert actuator.stiffness is not None
       assert actuator.damping is not None
-      if operation == "scale":
+      if op.name == "scale":
         assert actuator.default_stiffness is not None
         assert actuator.default_damping is not None
         actuator.set_gains(
@@ -103,7 +109,8 @@ def pd_gains(
           kp=actuator.default_stiffness[env_ids] * kp_samples,
           kd=actuator.default_damping[env_ids] * kd_samples,
         )
-      elif operation == "abs":
+      else:
+        assert op.name == "abs"
         actuator.set_gains(env_ids, kp=kp_samples, kd=kd_samples)
 
     else:
@@ -121,7 +128,7 @@ def effort_limits(
   effort_limit_range: tuple[float, float],
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
   distribution: Literal["uniform", "log_uniform"] = "uniform",
-  operation: Literal["scale", "abs"] = "scale",
+  operation: Operation | str = "scale",
 ) -> None:
   """Randomize actuator effort limits.
 
@@ -133,6 +140,11 @@ def effort_limits(
     distribution: Distribution type ("uniform" or "log_uniform").
     operation: "scale" multiplies default limits, "abs" sets absolute values.
   """
+  op = resolve_operation(operation)
+  if op.name not in ("scale", "abs"):
+    raise ValueError(
+      f"effort_limits only supports 'scale' and 'abs' operations, got {op.name!r}"
+    )
   asset: Entity = env.scene[asset_cfg.name]
 
   if env_ids is None:
@@ -163,7 +175,7 @@ def effort_limits(
     if isinstance(actuator, BuiltinPositionActuator) or (
       isinstance(actuator, XmlActuator) and actuator.command_field == "position"
     ):
-      if operation == "scale":
+      if op.name == "scale":
         default_forcerange = env.sim.get_default_field("actuator_forcerange")
         env.sim.model.actuator_forcerange[env_ids[:, None], ctrl_ids, 0] = (
           default_forcerange[ctrl_ids, 0] * effort_samples
@@ -171,7 +183,8 @@ def effort_limits(
         env.sim.model.actuator_forcerange[env_ids[:, None], ctrl_ids, 1] = (
           default_forcerange[ctrl_ids, 1] * effort_samples
         )
-      elif operation == "abs":
+      else:
+        assert op.name == "abs"
         env.sim.model.actuator_forcerange[
           env_ids[:, None], ctrl_ids, 0
         ] = -effort_samples
@@ -181,13 +194,14 @@ def effort_limits(
 
     elif isinstance(actuator, IdealPdActuator):
       assert actuator.force_limit is not None
-      if operation == "scale":
+      if op.name == "scale":
         assert actuator.default_force_limit is not None
         actuator.set_effort_limit(
           env_ids,
           effort_limit=actuator.default_force_limit[env_ids] * effort_samples,
         )
-      elif operation == "abs":
+      else:
+        assert op.name == "abs"
         actuator.set_effort_limit(env_ids, effort_limit=effort_samples)
 
     else:

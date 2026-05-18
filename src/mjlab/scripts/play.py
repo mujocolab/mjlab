@@ -49,6 +49,8 @@ class PlayConfig:
   viewer: Literal["auto", "native", "viser"] = "auto"
   no_terminations: bool = False
   """Disable all termination conditions (useful for viewing motions with dummy agents)."""
+  log_root: str = "logs/rsl_rl"
+  """Root directory under which experiment logs are written."""
   env_yaml: str | None = None
   """Path to the env.yaml used during training, for restoring the observation
   configuration (e.g. history lengths). Auto-resolved from the checkpoint directory
@@ -245,7 +247,7 @@ def run_play(task_id: str, cfg: PlayConfig):
   log_dir: Path | None = None
   resume_path: Path | None = None
   if TRAINED_MODE:
-    log_root_path = (Path("logs") / "rsl_rl" / agent_cfg.experiment_name).resolve()
+    log_root_path = (Path(cfg.log_root) / agent_cfg.experiment_name).resolve()
     if cfg.checkpoint_file is not None:
       resume_path = Path(cfg.checkpoint_file)
       if not resume_path.exists():

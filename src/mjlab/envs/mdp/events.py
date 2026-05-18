@@ -422,9 +422,16 @@ class apply_body_impulse:
       else self._asset.num_bodies
     )
 
+    self._cooldown_s: tuple[float, float] = cfg.params["cooldown_s"]
     self._time_remaining = torch.zeros(self._num_envs, device=self._device)
-    self._interval_time_left = torch.zeros(self._num_envs, device=self._device)
     self._active = torch.zeros(self._num_envs, device=self._device, dtype=torch.bool)
+    # Pre-sample the initial cooldown so the first impulse is preceded by a cooldown
+    # rather than firing immediately at t=0.
+    self._interval_time_left = self._sample_cooldown(self._num_envs)
+
+  def _sample_cooldown(self, n: int) -> torch.Tensor:
+    low, high = self._cooldown_s
+    return sample_uniform(low, high, n, self._device)
 
   def __call__(
     self,
@@ -446,13 +453,14 @@ class apply_body_impulse:
       torque_range: ``(min, max)`` uniform range for each torque component (Nm).
       duration_s: ``(min, max)`` uniform range for impulse duration in seconds.
       cooldown_s: ``(min, max)`` uniform range for the cooldown between consecutive
-        impulses in seconds.
+        impulses in seconds. Captured at init so the first impulse can be
+        preceded by a sampled cooldown; the kwarg passed here is unused.
       asset_cfg: Entity and body selection. ``body_ids`` on the config selects which
         bodies receive forces.
       body_point_offset: Optional ``(x, y, z)`` offset in the body frame where the
         force is applied. Generates additional torque via ``cross(offset, force)``.
     """
-    del env, env_ids, asset_cfg  # Unused.
+    del env, env_ids, asset_cfg, cooldown_s  # Unused at call time.
     dt = self._step_dt
 
     # Decrement timers for active envs.
@@ -468,11 +476,7 @@ class apply_body_impulse:
       )
       self._active[expired_ids] = False
       self._time_remaining[expired_ids] = 0.0
-      int_low, int_high = cooldown_s
-      self._interval_time_left[expired_ids] = (
-        torch.rand(len(expired_ids), device=self._device) * (int_high - int_low)
-        + int_low
-      )
+      self._interval_time_left[expired_ids] = self._sample_cooldown(len(expired_ids))
 
     # Decrement interval timers.
     self._interval_time_left -= dt
@@ -514,10 +518,7 @@ class apply_body_impulse:
     self._active[trigger_ids] = True
 
     # Resample interval timers.
-    int_low, int_high = cooldown_s
-    self._interval_time_left[trigger_ids] = (
-      torch.rand(n, device=self._device) * (int_high - int_low) + int_low
-    )
+    self._interval_time_left[trigger_ids] = self._sample_cooldown(n)
 
   def debug_vis(self, visualizer: DebugVisualizer) -> None:
     """Draw arrows for active impulse forces."""
@@ -553,13 +554,7 @@ class apply_body_impulse:
     if env_ids is None:
       env_ids = slice(None)
 
-    # Clear forces for reset envs.
-    if isinstance(env_ids, slice):
-      reset_ids = env_ids
-    else:
-      reset_ids = env_ids
-
-    if self._active[reset_ids].any():
+    if self._active[env_ids].any():
       if isinstance(env_ids, slice):
         active_ids = self._active.nonzero(as_tuple=False).squeeze(-1)
       else:
@@ -573,6 +568,7 @@ class apply_body_impulse:
           zeros, zeros, env_ids=active_ids, body_ids=self._body_ids
         )
 
-    self._time_remaining[reset_ids] = 0.0
-    self._interval_time_left[reset_ids] = 0.0
-    self._active[reset_ids] = False
+    n = self._num_envs if isinstance(env_ids, slice) else len(env_ids)
+    self._time_remaining[env_ids] = 0.0
+    self._interval_time_left[env_ids] = self._sample_cooldown(n)
+    self._active[env_ids] = False

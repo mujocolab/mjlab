@@ -10,12 +10,14 @@ import mujoco_warp as mjwarp
 import torch
 import warp as wp
 
+from mjlab.entity.variants import VARIANT_DEPENDENT_FIELDS, build_variant_model
 from mjlab.managers.event_manager import RecomputeLevel
 from mjlab.sim.randomization import expand_model_fields
 from mjlab.sim.sim_data import TorchArray, WarpBridge
 from mjlab.utils.nan_guard import NanGuard, NanGuardCfg
 
 if TYPE_CHECKING:
+  from mjlab.entity.variants import VariantMetadata
   from mjlab.sensor.sensor_context import SensorContext
 
 # Type aliases for better IDE support while maintaining runtime compatibility
@@ -179,37 +181,123 @@ class Simulation:
   """
 
   def __init__(
-    self, num_envs: int, cfg: SimulationCfg, model: mujoco.MjModel, device: str
+    self,
+    num_envs: int,
+    cfg: SimulationCfg,
+    model: mujoco.MjModel | None = None,
+    device: str = "cuda:0",
+    *,
+    spec: mujoco.MjSpec | None = None,
+    variant_info: list[tuple[str, VariantMetadata]] | None = None,
   ):
     self.cfg = cfg
     self.device = device
     self.wp_device = wp.get_device(self.device)
     self.num_envs = num_envs
     self._default_model_fields: dict[str, torch.Tensor] = {}
+    # Fields whose DR baseline is per-world (DR's `_select_default_values`
+    # uses this to know whether to index `[env, ...]` vs `[...]`).
+    # Variant-dependent fields go here; `geom_dataid` does not, because
+    # DR does not randomize mesh selection.
+    self._per_world_default_fields: set[str] = set()
+    # Fields that have per-world warp arrays (viewer sync uses this to
+    # know what to copy per env). Superset of `_per_world_default_fields`
+    # plus `geom_dataid` for variant scenes.
     self._expanded_fields: set[str] = set()
+    # Per-entity variant assignment, keyed by entity name (no trailing
+    # slash). Empty for non-variant scenes.
+    self._world_to_variant: dict[str, torch.Tensor] = {}
 
-    # MuJoCo model and data.
+    if spec is not None and variant_info:
+      self._init_with_variants(spec, variant_info)
+    elif spec is not None:
+      compiled = spec.compile()
+      cfg.mujoco.apply(compiled)
+      self._init_with_model(compiled)
+    elif model is not None:
+      cfg.mujoco.apply(model)
+      self._init_with_model(model)
+    else:
+      raise ValueError("Either model or spec must be provided.")
+
+  def _init_with_model(self, model: mujoco.MjModel) -> None:
+    """Standard path: build warp model from compiled MjModel."""
     self._mj_model = model
-    cfg.mujoco.apply(self._mj_model)
     self._mj_data = mujoco.MjData(model)
     mujoco.mj_forward(self._mj_model, self._mj_data)
 
-    # MJWarp model and data.
     with wp.ScopedDevice(self.wp_device):
       self._wp_model = mjwarp.put_model(self._mj_model)
-      self._wp_model.opt.ls_parallel = cfg.ls_parallel
-      self._wp_model.opt.contact_sensor_maxmatch = cfg.contact_sensor_maxmatch
+      self._wp_model.opt.ls_parallel = self.cfg.ls_parallel
+      self._wp_model.opt.contact_sensor_maxmatch = self.cfg.contact_sensor_maxmatch
+      self._finish_init()
 
-      self._wp_data = mjwarp.put_data(
-        self._mj_model,
-        self._mj_data,
-        nworld=self.num_envs,
-        nconmax=self.cfg.nconmax,
-        njmax=self.cfg.njmax,
+  def _init_with_variants(
+    self,
+    spec: mujoco.MjSpec,
+    variant_info: list[tuple[str, VariantMetadata]],
+  ) -> None:
+    """Per-world mesh path: build model with per-world geom_dataid.
+
+    ``self._mj_model`` remains a single host-side template model. The actual
+    simulation model may store variant-dependent fields as per-world arrays in
+    ``self._wp_model`` / ``self.model``. CPU consumers that call MuJoCo APIs on
+    ``self._mj_model`` must first sync the relevant per-world fields for the env
+    they are rendering or inspecting.
+    """
+    with wp.ScopedDevice(self.wp_device):
+      result = build_variant_model(
+        spec,
+        self.num_envs,
+        variant_info,
+        configure_model=self.cfg.mujoco.apply,
+      )
+      self._mj_model = result.mj_model
+      self._mj_data = mujoco.MjData(self._mj_model)
+      mujoco.mj_forward(self._mj_model, self._mj_data)
+
+      self._wp_model = result.wp_model
+      self._wp_model.opt.ls_parallel = self.cfg.ls_parallel
+      self._wp_model.opt.contact_sensor_maxmatch = self.cfg.contact_sensor_maxmatch
+
+      # Snapshot variant-dependent fields as per-world defaults so
+      # DR scale/add operations use each variant's base values.
+      for field_name in VARIANT_DEPENDENT_FIELDS:
+        arr = getattr(self._wp_model, field_name)
+        self._default_model_fields[field_name] = torch.as_tensor(
+          arr.numpy(), device=self.device
+        ).clone()
+      self._per_world_default_fields.update(VARIANT_DEPENDENT_FIELDS)
+
+      self._finish_init()
+
+    # Register variant-dependent fields as expanded so the native
+    # viewer syncs them per-world.
+    self._expanded_fields.update(VARIANT_DEPENDENT_FIELDS)
+    self._expanded_fields.add("geom_dataid")
+    self._expanded_fields.add("geom_matid")
+
+    # Stash variant assignments as torch tensors keyed by bare entity name
+    # (build_variant_model emits "<name>/" prefixes; strip the trailing slash for
+    # the public API).
+    for prefix, arr in result.world_to_variant.items():
+      key = prefix.rstrip("/")
+      self._world_to_variant[key] = torch.as_tensor(
+        arr, dtype=torch.long, device=self.device
       )
 
-      self._reset_mask_wp = wp.zeros(num_envs, dtype=bool)
-      self._reset_mask = TorchArray(self._reset_mask_wp)
+  def _finish_init(self) -> None:
+    """Common initialization after warp model is created."""
+    self._wp_data = mjwarp.put_data(
+      self._mj_model,
+      self._mj_data,
+      nworld=self.num_envs,
+      nconmax=self.cfg.nconmax,
+      njmax=self.cfg.njmax,
+    )
+
+    self._reset_mask_wp = wp.zeros(self.num_envs, dtype=bool)
+    self._reset_mask = TorchArray(self._reset_mask_wp)
 
     self._model_bridge = WarpBridge(self._wp_model, nworld=self.num_envs)
     self._data_bridge = WarpBridge(self._wp_data)
@@ -218,7 +306,7 @@ class Simulation:
     self.use_cuda_graph = self._should_use_cuda_graph()
     self.create_graph()
 
-    self.nan_guard = NanGuard(cfg.nan_guard, self.num_envs, self._mj_model)
+    self.nan_guard = NanGuard(self.cfg.nan_guard, self.num_envs, self._mj_model)
 
   def create_graph(self) -> None:
     """Capture CUDA graphs for step, forward, and reset operations.
@@ -289,6 +377,21 @@ class Simulation:
   def expanded_fields(self) -> set[str]:
     """Names of model fields that have been expanded for per-env DR."""
     return self._expanded_fields
+
+  @property
+  def per_world_default_fields(self) -> set[str]:
+    """Fields with per-world defaults from mesh variant compilation."""
+    return self._per_world_default_fields
+
+  @property
+  def world_to_variant(self) -> dict[str, torch.Tensor]:
+    """Per-entity variant assignment for variant scenes.
+
+    Maps entity name (without trailing slash) to a ``(num_envs,)`` tensor of
+    variant indices. The index order matches the order of variants declared
+    in the entity's :class:`VariantEntityCfg`. Empty for non-variant scenes.
+    """
+    return self._world_to_variant
 
   # Methods.
 
@@ -423,7 +526,7 @@ class Simulation:
     if not self.wp_device.is_cuda:
       return False
 
-    driver_ver = wp.context.runtime.driver_version
+    driver_ver = wp.get_cuda_driver_version()
     has_mempool = wp.is_mempool_enabled(self.wp_device)
 
     if driver_ver is None:

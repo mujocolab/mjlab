@@ -743,6 +743,58 @@ def test_num_slots_greater_than_one(device):
   assert data_3.normal.shape == (2, 6, 3)
 
 
+def test_multi_slot_air_time_and_primary_names(device):
+  """Multi-slot air-time stays per-primary, primaries are exposed by name.
+
+  Regression for issue #914: previously `num_slots > 1` with `track_air_time`
+  crashed in `_update_air_time_tracking` because air-time state was [B, P]
+  while `found` was [B, P * num_slots]. The fix reduces `found` across slots.
+  This test pins both the regression and the new `primary_names` API.
+  """
+  cfg = ContactSensorCfg(
+    name="feet_contact",
+    primary=ContactMatch(
+      mode="geom",
+      pattern=("left_foot_geom", "right_foot_geom"),
+      entity="biped",
+    ),
+    secondary=None,
+    fields=("found",),
+    num_slots=3,
+    track_air_time=True,
+  )
+
+  scene, sim = create_scene_with_sensor(BIPED_XML, "biped", cfg, device)
+  sensor = scene["feet_contact"]
+
+  # `primary_names` reflects pattern order and indexes the per-primary axis.
+  assert sensor.primary_names == ["left_foot_geom", "right_foot_geom"]
+
+  # Settle the biped on the ground so feet are in stable contact.
+  root_state = torch.zeros((2, 13), device=sim.device)
+  root_state[:, 2] = 0.25
+  root_state[:, 3] = 1.0
+  scene["biped"].write_root_state_to_sim(root_state)
+  for _ in range(20):
+    sim.step()
+    scene.update(dt=sim.cfg.mujoco.timestep)
+
+  data = sensor.data
+  assert data.found is not None
+  assert data.current_contact_time is not None
+
+  # Per-contact axis is P * num_slots; per-primary axis is P.
+  assert data.found.shape == (2, 2 * 3)
+  assert data.current_contact_time.shape == (2, len(sensor.primary_names))
+
+  # Air-time update actually ran and accumulated time for primaries in
+  # contact (not just "didn't crash"). Each foot reports a contact in some
+  # slot, so its per-primary contact time should grow above zero.
+  any_contact_per_primary = (data.found > 0).view(2, 2, 3).any(dim=-1)
+  assert torch.all(any_contact_per_primary), "expected both feet in contact"
+  assert torch.all(data.current_contact_time > 0)
+
+
 ##
 # History tests.
 ##
@@ -1019,4 +1071,38 @@ def test_history_captures_impact_forces(device):
   # that the history captured the transient impact spike.
   assert torch.all(max_force_seen > steady_state_force * 1.5), (
     f"Peak force {max_force_seen} should be significantly above mg={steady_state_force}"
+  )
+
+
+def test_global_frame_maxforce_rotation(device):
+  """A box at rest on a plane has its contact normals all vertical."""
+  cfg = ContactSensorCfg(
+    name="box_contact",
+    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
+    fields=("found", "force", "normal", "tangent"),
+    reduce="maxforce",
+    global_frame=True,
+  )
+  scene, sim = create_scene_with_sensor(FALLING_BOX_XML, "box", cfg, device)
+
+  root_state = torch.zeros((2, 13), device=sim.device)
+  root_state[:, 2] = 0.11
+  root_state[:, 3] = 1.0
+  scene["box"].write_root_state_to_sim(root_state)
+  for _ in range(150):
+    sim.step()
+    scene.update(dt=sim.cfg.mujoco.timestep)
+
+  sensor_force = scene["box_contact"].data.force[:, 0, :]
+
+  # On a flat plane the contact normal is vertical, so a correctly rotated
+  # global-frame force should have its magnitude entirely on the z axis.
+  assert torch.all(sensor_force[:, 0].abs() < 0.05), (
+    f"sensor_force x-component should be ~0, got {sensor_force[:, 0].tolist()}"
+  )
+  assert torch.all(sensor_force[:, 1].abs() < 0.05), (
+    f"sensor_force y-component should be ~0, got {sensor_force[:, 1].tolist()}"
+  )
+  assert torch.all(sensor_force[:, 2].abs() > 1.0), (
+    f"sensor_force z-component should be non-trivial, got {sensor_force[:, 2].tolist()}"
   )

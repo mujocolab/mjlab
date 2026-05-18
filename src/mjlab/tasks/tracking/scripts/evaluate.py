@@ -42,6 +42,8 @@ class EvaluateConfig:
   """Device to run on. Defaults to CUDA if available."""
   output_file: str | None = None
   """Optional path to save metrics as JSON."""
+  log_root: str = "logs/rsl_rl"
+  """Root directory under which experiment logs are written."""
 
 
 def run_evaluate(task_id: str, cfg: EvaluateConfig) -> dict[str, float]:
@@ -74,7 +76,7 @@ def run_evaluate(task_id: str, cfg: EvaluateConfig) -> dict[str, float]:
   env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
   env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
-  log_root_path = (Path("logs") / "rsl_rl" / agent_cfg.experiment_name).resolve()
+  log_root_path = (Path(cfg.log_root) / agent_cfg.experiment_name).resolve()
   resume_path, _ = get_wandb_checkpoint_path(
     log_root_path, Path(cfg.wandb_run_path), cfg.wandb_checkpoint_name
   )

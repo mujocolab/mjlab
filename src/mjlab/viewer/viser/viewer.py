@@ -103,6 +103,8 @@ class ViserPlayViewer(BaseViewer):
       server=self._server,
       mj_model=sim.mj_model,
       num_envs=self.env.num_envs,
+      sim_model=sim.model,
+      expanded_fields=sim.expanded_fields,
     )
 
     self._scene.env_idx = self.cfg.env_idx

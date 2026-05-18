@@ -1,4 +1,4 @@
-"""Camera sensor for RGB and depth rendering."""
+"""Camera sensor for RGB, depth, and segmentation rendering."""
 
 from __future__ import annotations
 
@@ -112,7 +112,7 @@ class CameraSensorData:
   Shapes:
     - rgb: [num_envs, height, width, 3] (uint8)
     - depth: [num_envs, height, width, 1] (float32)
-    - segmentation: [num_envs, height, width, 1] (int32)
+    - segmentation: [num_envs, height, width, 2] (int32)
   """
 
   rgb: torch.Tensor | None = None
@@ -124,10 +124,10 @@ class CameraSensorData:
   enabled."""
 
   segmentation: torch.Tensor | None = None
-  """Per-pixel geom IDs [num_envs, height, width, 1] (int32).
+  """Per-pixel typed segmentation [num_envs, height, width, 2] (int32).
 
-  Values: >= 0 for rigid geom IDs, -1 for background, -2 for flex
-  bodies. None if not enabled.
+  Channel 0 stores MuJoCo object IDs. Channel 1 stores the corresponding
+  MuJoCo object types. Background pixels are ``(-1, -1)``.
   """
 
 

@@ -14,15 +14,19 @@ if TYPE_CHECKING:
 
 
 def _colorize_segmentation(seg: np.ndarray) -> np.ndarray:
-  """Map geom IDs to distinct RGB colors. Background (-1) is black."""
-  h, w = seg.shape
+  """Map typed segmentation pairs to distinct RGB colors."""
+  h, w, _ = seg.shape
   rgb = np.zeros((h, w, 3), dtype=np.uint8)
-  mask = seg >= 0
+  obj_ids = seg[..., 0]
+  obj_types = seg[..., 1]
+  mask = (obj_ids >= 0) & (obj_types >= 0)
   if mask.any():
-    ids = seg[mask].astype(np.uint32)
-    rgb[mask, 0] = ((ids * 67 + 29) % 255 + 1).astype(np.uint8)
-    rgb[mask, 1] = ((ids * 131 + 53) % 255 + 1).astype(np.uint8)
-    rgb[mask, 2] = ((ids * 199 + 97) % 255 + 1).astype(np.uint8)
+    ids = obj_ids[mask].astype(np.uint32)
+    types = obj_types[mask].astype(np.uint32)
+    keys = ids * np.uint32(1315423911) ^ types * np.uint32(2654435761)
+    rgb[mask, 0] = ((keys * 67 + 29) % 255 + 1).astype(np.uint8)
+    rgb[mask, 1] = ((keys * 131 + 53) % 255 + 1).astype(np.uint8)
+    rgb[mask, 2] = ((keys * 199 + 97) % 255 + 1).astype(np.uint8)
   return rgb
 
 
@@ -166,7 +170,7 @@ class ViserCameraViewer:
       )
 
     if self._has_seg and self._seg_handle is not None and data.segmentation is not None:
-      seg_np = data.segmentation[env_idx, :, :, 0].cpu().numpy()
+      seg_np = data.segmentation[env_idx].cpu().numpy()
       seg_rgb = _colorize_segmentation(seg_np)
       self._seg_handle.image = self._maybe_upsample(seg_rgb)
 

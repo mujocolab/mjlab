@@ -17,6 +17,7 @@ from mjlab.sensor import (
   RayCastSensorCfg,
   RingPatternCfg,
 )
+from mjlab.sim import MujocoCfg, SimulationCfg
 
 
 @pytest.fixture(scope="module")
@@ -399,7 +400,6 @@ def test_raycast_body_rotation_affects_rays(device):
   """Verify rays rotate with the body frame."""
   rotated_body_xml = """
     <mujoco>
-      <option gravity="0 0 0"/>
       <worldbody>
         <geom name="floor" type="plane" size="10 10 0.1" pos="0 0 0"/>
         <body name="base" pos="0 0 2">
@@ -417,7 +417,10 @@ def test_raycast_body_rotation_affects_rays(device):
     max_distance=10.0,
   )
 
-  scene, sim = make_scene_and_sim(device, rotated_body_xml, sensors=(raycast_cfg,))
+  sim_cfg = SimulationCfg(mujoco=MujocoCfg(gravity=(0, 0, 0)), njmax=20)
+  scene, sim = make_scene_and_sim(
+    device, rotated_body_xml, sensors=(raycast_cfg,), sim_cfg=sim_cfg
+  )
 
   sensor = scene["rotated_scan"]
 
@@ -580,7 +583,6 @@ def test_ray_alignment_yaw(device):
   """Verify yaw alignment ignores pitch/roll."""
   rotated_body_xml = """
     <mujoco>
-      <option gravity="0 0 0"/>
       <worldbody>
         <geom name="floor" type="plane" size="10 10 0.1" pos="0 0 0"/>
         <body name="base" pos="0 0 2">
@@ -600,7 +602,10 @@ def test_ray_alignment_yaw(device):
     max_distance=10.0,
   )
 
-  scene, sim = make_scene_and_sim(device, rotated_body_xml, sensors=(raycast_cfg,))
+  sim_cfg = SimulationCfg(mujoco=MujocoCfg(gravity=(0, 0, 0)), njmax=20)
+  scene, sim = make_scene_and_sim(
+    device, rotated_body_xml, sensors=(raycast_cfg,), sim_cfg=sim_cfg
+  )
 
   sensor = scene["yaw_scan"]
 
@@ -631,7 +636,6 @@ def test_ray_alignment_world(device):
   """Verify world alignment keeps rays fixed."""
   rotated_body_xml = """
     <mujoco>
-      <option gravity="0 0 0"/>
       <worldbody>
         <geom name="floor" type="plane" size="10 10 0.1" pos="0 0 0"/>
         <body name="base" pos="0 0 2">
@@ -651,7 +655,10 @@ def test_ray_alignment_world(device):
     max_distance=10.0,
   )
 
-  scene, sim = make_scene_and_sim(device, rotated_body_xml, sensors=(raycast_cfg,))
+  sim_cfg = SimulationCfg(mujoco=MujocoCfg(gravity=(0, 0, 0)), njmax=20)
+  scene, sim = make_scene_and_sim(
+    device, rotated_body_xml, sensors=(raycast_cfg,), sim_cfg=sim_cfg
+  )
 
   sensor = scene["world_scan"]
 
@@ -701,7 +708,6 @@ def test_ray_alignment_yaw_singularity(device):
   """
   xml = """
     <mujoco>
-      <option gravity="0 0 0"/>
       <worldbody>
         <geom name="floor" type="plane" size="10 10 0.1" pos="0 0 0"/>
         <body name="base" pos="0 0 2">
@@ -723,7 +729,8 @@ def test_ray_alignment_yaw_singularity(device):
     max_distance=10.0,
   )
 
-  scene, sim = make_scene_and_sim(device, xml, sensors=(raycast_cfg,))
+  sim_cfg = SimulationCfg(mujoco=MujocoCfg(gravity=(0, 0, 0)), njmax=20)
+  scene, sim = make_scene_and_sim(device, xml, sensors=(raycast_cfg,), sim_cfg=sim_cfg)
 
   sensor = scene["yaw_scan"]
 
@@ -1177,7 +1184,6 @@ def test_site_origin_is_physical_with_world_alignment(device):
   """
   xml = """
     <mujoco>
-      <option gravity="0 0 0"/>
       <worldbody>
         <geom name="floor" type="plane" size="50 50 0.1" pos="0 0 0"/>
         <body name="calf" pos="0 0 1">
@@ -1197,7 +1203,8 @@ def test_site_origin_is_physical_with_world_alignment(device):
     max_distance=5.0,
   )
 
-  scene, sim = make_scene_and_sim(device, xml, (cfg,))
+  sim_cfg = SimulationCfg(mujoco=MujocoCfg(gravity=(0, 0, 0)), njmax=20)
+  scene, sim = make_scene_and_sim(device, xml, (cfg,), sim_cfg=sim_cfg)
 
   # Baseline: body upright, site at z=0.5.
   sim.step()

@@ -191,14 +191,14 @@ class SensorContext:
     return cam_data.view(nworld, h, w, 1)
 
   def get_segmentation(self, cam_idx: int) -> torch.Tensor:
-    """Get per-pixel geom ID data for a camera.
+    """Get per-pixel segmentation data for a camera.
 
     Args:
       cam_idx: MuJoCo camera ID.
 
     Returns:
-      Tensor of shape [num_envs, height, width, 1] (int32).
-      Values: >= 0 for geom IDs, -1 for background, -2 for flex.
+      Tensor of shape [num_envs, height, width, 2] (int32).
+      Channel 0 stores object IDs. Channel 1 stores MuJoCo object types.
     """
     if cam_idx not in self._cam_idx_to_list_idx:
       available = list(self._cam_idx_to_list_idx.keys())
@@ -222,8 +222,8 @@ class SensorContext:
     num_pixels = w * h
     nworld = self._data.nworld
 
-    cam_data = self._seg_torch[:, seg_adr : seg_adr + num_pixels]
-    return cam_data.view(nworld, h, w, 1)
+    cam_data = self._seg_torch[:, seg_adr : seg_adr + num_pixels, :]
+    return cam_data.view(nworld, h, w, 2)
 
   # Private methods.
 

@@ -376,7 +376,7 @@ Train:
 
 .. code-block:: bash
 
-    uv run train Mjlab-Cartpole-Swingup --num-envs 4096
+    uv run train Mjlab-Cartpole-Swingup --env.scene.num-envs 4096
 
 Play back a trained checkpoint, either from a local file or a W&B run:
 

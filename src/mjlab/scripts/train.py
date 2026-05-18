@@ -31,6 +31,8 @@ class TrainConfig:
   video_length: int = 200
   video_interval: int = 2000
   enable_nan_guard: bool = False
+  log_root: str = "logs/rsl_rl"
+  """Root directory under which experiment logs are written."""
   torchrunx_log_dir: str | None = None
   wandb_run_path: str | None = None
   wandb_checkpoint_name: str | None = None
@@ -57,7 +59,7 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
     os.environ["MUJOCO_EGL_DEVICE_ID"] = str(local_rank)
     device = f"cuda:{local_rank}"
     # Set seed to have diversity in different processes.
-    seed = cfg.agent.seed + local_rank
+    seed = cfg.agent.seed + rank
 
   configure_torch_backends()
 
@@ -181,8 +183,7 @@ def launch_training(task_id: str, args: TrainConfig | None = None):
   args = args or TrainConfig.from_task(task_id)
 
   # Create log directory once before launching workers.
-  log_root_path = Path("logs") / "rsl_rl" / args.agent.experiment_name
-  log_root_path.resolve()
+  log_root_path = (Path(args.log_root) / args.agent.experiment_name).resolve()
   log_dir_name = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
   if args.agent.run_name:
     log_dir_name += f"_{args.agent.run_name}"

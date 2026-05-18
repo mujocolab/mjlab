@@ -6,16 +6,32 @@ import mujoco
 import numpy as np
 
 from mjlab.scene import Scene
+from mjlab.viewer.model_sync import (
+  VIEWER_MODEL_FIELDS,
+  disable_model_sameframe_shortcuts,
+  sync_model_fields,
+)
 from mjlab.viewer.native.visualizer import MujocoNativeDebugVisualizer
 from mjlab.viewer.viewer_config import ViewerConfig
 
 
 class OffscreenRenderer:
-  def __init__(self, model: mujoco.MjModel, cfg: ViewerConfig, scene: Scene) -> None:
+  def __init__(
+    self,
+    model: mujoco.MjModel,
+    cfg: ViewerConfig,
+    scene: Scene,
+    sim_model: Any | None = None,
+    expanded_fields: set[str] | None = None,
+  ) -> None:
     self._cfg = cfg
     self._model = model
+    self._sim_model = sim_model
+    self._expanded_fields = expanded_fields
     self._data = mujoco.MjData(model)
     self._scene = scene
+    if self._sim_model is not None:
+      disable_model_sameframe_shortcuts(self._model)
     self._orig_extent = float(self._model.stat.extent)
     self._render_extent = self._compute_render_extent()
     # Keep extent override local to offscreen rendering so shadow/camera scaling
@@ -73,6 +89,7 @@ class OffscreenRenderer:
       return
 
     env_idx = max(0, min(int(self._cfg.env_idx), nworld - 1))
+    self._sync_model_fields(env_idx)
     if self._model.nq > 0:
       self._data.qpos[:] = data.qpos[env_idx].cpu().numpy()
       self._data.qvel[:] = data.qvel[env_idx].cpu().numpy()
@@ -93,6 +110,7 @@ class OffscreenRenderer:
 
     # Add nearest neighboring environments as geoms for context.
     for i in self._get_extra_env_ids(nworld, env_idx):
+      self._sync_model_fields(i)
       if self._model.nq > 0:
         self._data.qpos[:] = data.qpos[i].cpu().numpy()
         self._data.qvel[:] = data.qvel[i].cpu().numpy()
@@ -108,6 +126,8 @@ class OffscreenRenderer:
         self._catmask.value,
         self._renderer.scene,
       )
+
+    self._sync_model_fields(env_idx)
 
   def _get_extra_env_ids(self, nworld: int, env_idx: int) -> list[int]:
     """Return nearest neighboring env ids to render as context.
@@ -127,6 +147,13 @@ class OffscreenRenderer:
     nearest = np.argpartition(dist2, kth=k - 1)[:k]
     nearest = nearest[np.argsort(dist2[nearest])]
     return [int(i) for i in nearest]
+
+  def _sync_model_fields(self, env_idx: int) -> None:
+    """Sync visually relevant per-world model fields into the host MjModel."""
+    if self._sim_model is None or self._expanded_fields is None:
+      return
+    fields = self._expanded_fields & VIEWER_MODEL_FIELDS
+    sync_model_fields(self._model, self._sim_model, fields, env_idx)
 
   def render(self) -> np.ndarray:
     if self._renderer is None:
