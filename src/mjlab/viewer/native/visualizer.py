@@ -239,6 +239,31 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
     )
 
   @override
+  def add_box(
+    self,
+    center: np.ndarray,
+    size: np.ndarray,
+    mat: np.ndarray,
+    color: tuple[float, float, float, float],
+    label: str | None = None,
+  ) -> None:
+    """Add a box visualization using MuJoCo's box geometry."""
+    del label  # Unused.
+
+    self.scn.ngeom += 1
+    geom = self.scn.geoms[self.scn.ngeom - 1]
+    geom.category = mujoco.mjtCatBit.mjCAT_DECOR
+
+    mujoco.mjv_initGeom(
+      geom=geom,
+      type=mujoco.mjtGeom.mjGEOM_BOX.value,
+      size=np.asarray(size, dtype=np.float64),
+      pos=np.asarray(center, dtype=np.float64),
+      mat=np.asarray(mat, dtype=np.float64).flatten(),
+      rgba=np.asarray(color, dtype=np.float32),
+    )
+
+  @override
   def clear(self) -> None:
     """Clear debug visualizations by resetting geom count."""
     self.scn.ngeom = self._initial_geom_count

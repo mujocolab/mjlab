@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``DebugVisualizer.add_box`` for drawing an axis-oriented box
+  primitive, mirroring ``add_ellipsoid``. Supported by both the native
+  and Viser viewers. ``size`` is the box half-extents (:issue:`992`).
 - Added ``--log-root`` CLI option to ``train``, ``play``, and ``evaluate``
   scripts for choosing where training logs are stored. Defaults to
   ``logs/rsl_rl`` (unchanged behavior). Useful for directing outputs to a
