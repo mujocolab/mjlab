@@ -83,6 +83,11 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed heavy flicker in offscreen training videos on rough-terrain tasks.
+  The renderer recomputed its context "neighbor" robots every frame from
+  ``env_origins``, which the terrain curriculum mutates on reset, so the
+  neighbor set kept changing and robots popped in and out. The neighbor
+  set is now computed once and cached (:issue:`979`).
 - Fixed duplicate random seeds across nodes in multi-node training. The
   per-process seed offset in ``scripts/train.py`` now uses the global
   ``RANK`` instead of ``LOCAL_RANK``. Contribution by @bd-pdomanico.
