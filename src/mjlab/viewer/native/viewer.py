@@ -41,6 +41,8 @@ in one direction only, so the two sources never overwrite each other.
 
 from __future__ import annotations
 
+import ctypes
+import ctypes.util
 import math
 from collections import deque
 from dataclasses import dataclass
@@ -116,6 +118,31 @@ class _SimProtocol(Protocol):
   data: _SimDataProtocol
   model: _SimModelProtocol
   expanded_fields: set[str]
+
+
+_x11_error_handler_ref: object = None  # keeps ctypes callback alive until process exits
+
+
+def _suppress_x11_errors() -> None:
+  """Install a no-op X11 error handler to prevent BadPixmap exit(1) on viewer close.
+
+  MuJoCo's render thread can still be mid-render when v.close() frees X11 resources,
+  producing a BadPixmap error whose default handler calls exit(1). Installing a no-op
+  handler here (immediately before v.close()) swallows the error cleanly. Safe because
+  we are already in shutdown; any X11 error at this point is a benign cleanup artifact.
+  """
+  global _x11_error_handler_ref
+  libname = ctypes.util.find_library("X11")
+  if not libname:
+    return
+  try:
+    libx11 = ctypes.CDLL(libname)
+    _HANDLER_TYPE = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p)
+    handler = _HANDLER_TYPE(lambda display, event: 0)
+    libx11.XSetErrorHandler(handler)
+    _x11_error_handler_ref = handler
+  except Exception:
+    pass
 
 
 class NativeMujocoViewer(BaseViewer):
@@ -439,6 +466,7 @@ class NativeMujocoViewer(BaseViewer):
     v = self.viewer
     self.viewer = None
     if v:
+      _suppress_x11_errors()
       v.close()
     self.log("[INFO] MuJoCo viewer closed", VerbosityLevel.INFO)
 
