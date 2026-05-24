@@ -102,6 +102,10 @@ Fixed
   ``env_origins``, which the terrain curriculum mutates on reset, so the
   neighbor set kept changing and robots popped in and out. The neighbor
   set is now computed once and cached (:issue:`979`).
+- Fixed command delay only applying to an actuator's position target.
+  ``IdealPdActuator`` and ``DcMotorActuator`` also use velocity and effort, which
+  arrived undelayed and out of sync; all command targets now share one delay.
+  Zero-reference setups are unaffected.
 - Fixed duplicate random seeds across nodes in multi-node training. The
   per-process seed offset in ``scripts/train.py`` now uses the global
   ``RANK`` instead of ``LOCAL_RANK``. Contribution by @bd-pdomanico.

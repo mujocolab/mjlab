@@ -4,7 +4,7 @@ import mujoco
 import pytest
 from conftest import get_test_device
 
-from mjlab.actuator import XmlActuatorCfg
+from mjlab.actuator import XmlActuator, XmlActuatorCfg
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg, mdp
 from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationTermCfg
@@ -160,6 +160,7 @@ def test_xml_actuator_explicit_command_field_bypasses_detection():
   entity.compile()
 
   actuator = entity._actuators[0]
+  assert isinstance(actuator, XmlActuator)
   assert actuator.command_field == "effort"
   assert actuator._target_names == ["joint1"]
 
