@@ -215,6 +215,27 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
             border-color: var(--accent);
             color: white;
         }}
+        .range-selector {{
+            display: flex;
+            gap: 0.4rem;
+            margin-bottom: 1rem;
+        }}
+        .range-btn {{
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.3rem 0.75rem;
+            cursor: pointer;
+            color: var(--text);
+            font-size: 0.8rem;
+            font-weight: 500;
+        }}
+        .range-btn:hover {{ border-color: var(--accent); }}
+        .range-btn.active {{
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }}
         .tab-content {{ display: none; }}
         .tab-content.active {{ display: block; }}
         .tab-description {{
@@ -303,6 +324,12 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
 
     <div id="tracking" class="tab-content active">
         <p class="tab-description">Nightly motion imitation training and evaluation on Unitree G1 (1024 trials per run).</p>
+        <div class="range-selector" id="range-selector">
+            <button class="range-btn" data-days="30">30d</button>
+            <button class="range-btn active" data-days="90">90d</button>
+            <button class="range-btn" data-days="180">180d</button>
+            <button class="range-btn" data-days="0">All</button>
+        </div>
         <div class="charts" id="charts"></div>
     </div>
 
@@ -393,6 +420,7 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
         }};
 
         let charts = [];
+        let trackingCharts = [];
 
         function updateChartColors() {{
             const style = getComputedStyle(root);
@@ -449,7 +477,7 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
             `;
             chartsContainer.appendChild(card);
 
-            charts.push(new Chart(card.querySelector('canvas'), {{
+            const chart = new Chart(card.querySelector('canvas'), {{
                 type: 'line',
                 data: {{
                     datasets: [
@@ -459,7 +487,8 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                             borderColor: color,
                             backgroundColor: color + '20',
                             borderWidth: 2,
-                            pointRadius: 4,
+                            pointRadius: 2,
+                            pointHoverRadius: 5,
                             tension: 0.1,
                             fill: true
                         }},
@@ -531,8 +560,27 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                         }}
                     }}
                 }}
-            }}));
+            }});
+            charts.push(chart);
+            trackingCharts.push(chart);
         }});
+
+        // Date-range windowing across all tracking charts.
+        function setRange(days) {{
+            const min = days > 0 ? Date.now() - days * 86400000 : undefined;
+            trackingCharts.forEach(c => {{
+                c.options.scales.x.min = min;
+                c.update();
+            }});
+        }}
+        document.querySelectorAll('.range-btn').forEach(btn => {{
+            btn.addEventListener('click', () => {{
+                document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                setRange(parseInt(btn.dataset.days));
+            }});
+        }});
+        setRange(90);
 
         // Tab switching
         document.querySelectorAll('.tab').forEach(tab => {{
