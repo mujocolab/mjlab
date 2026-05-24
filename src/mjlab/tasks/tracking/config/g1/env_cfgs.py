@@ -5,8 +5,11 @@ from mjlab.asset_zoo.robots import (
   get_g1_robot_cfg,
 )
 from mjlab.envs import ManagerBasedRlEnvCfg
+from mjlab.envs.mdp import dr
 from mjlab.envs.mdp.actions import JointPositionActionCfg
+from mjlab.managers.event_manager import EventTermCfg
 from mjlab.managers.observation_manager import ObservationGroupCfg
+from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
 from mjlab.tasks.tracking.tracking_env_cfg import make_tracking_env_cfg
@@ -60,6 +63,28 @@ def unitree_g1_flat_tracking_env_cfg(
     "asset_cfg"
   ].geom_names = r"^(left|right)_foot[1-7]_collision$"
   cfg.events["base_com"].params["asset_cfg"].body_names = ("torso_link",)
+
+  # IMU mounting domain randomization. Perturbing the IMU site pose feeds through
+  # the site-based base velocity sensors (robot/imu_lin_vel, robot/imu_ang_vel).
+  cfg.events["imu_site_pos"] = EventTermCfg(
+    mode="startup",
+    func=dr.site_pos,
+    params={
+      "asset_cfg": SceneEntityCfg("robot", site_names=("imu_in_pelvis",)),
+      "operation": "add",
+      "ranges": {0: (-0.01, 0.01), 1: (-0.01, 0.01), 2: (-0.01, 0.01)},
+    },
+  )
+  cfg.events["imu_site_quat"] = EventTermCfg(
+    mode="startup",
+    func=dr.site_quat,
+    params={
+      "asset_cfg": SceneEntityCfg("robot", site_names=("imu_in_pelvis",)),
+      "roll_range": (-0.05, 0.05),
+      "pitch_range": (-0.05, 0.05),
+      "yaw_range": (-0.05, 0.05),
+    },
+  )
 
   cfg.terminations["ee_body_pos"].params["body_names"] = (
     "left_ankle_roll_link",
