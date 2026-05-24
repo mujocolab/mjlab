@@ -1,5 +1,6 @@
 """Tests for motion tracking evaluation metrics."""
 
+import math
 from unittest.mock import Mock
 
 import pytest
@@ -79,58 +80,52 @@ def test_mpkpe_uses_global_reference(mock_command):
   assert torch.allclose(mpkpe, torch.ones(mock_command.num_envs), atol=1e-6)
 
 
-def test_r_mpkpe_invariant_to_global_translation(mock_command):
-  """Test R-MPKPE is invariant to global translation."""
+def test_r_mpkpe_zero_when_relative_positions_match(mock_command):
+  """R-MPKPE is zero when re-anchored positions are identical."""
   num_bodies = len(mock_command.cfg.body_names)
+  positions = torch.rand(mock_command.num_envs, num_bodies, 3)
 
-  mock_command.anchor_pos_w = torch.zeros(mock_command.num_envs, 3)
-  mock_command.body_pos_w = torch.rand(mock_command.num_envs, num_bodies, 3)
-  mock_command.robot_anchor_pos_w = torch.zeros(mock_command.num_envs, 3)
-  mock_command.robot_body_pos_w = mock_command.body_pos_w.clone()
+  mock_command.body_pos_relative_w = positions.clone()
+  mock_command.robot_body_pos_w = positions.clone()
 
-  r_mpkpe_1 = compute_root_relative_mpkpe(mock_command)
+  r_mpkpe = compute_root_relative_mpkpe(mock_command)
 
-  # Translate everything by large offset.
-  offset = torch.tensor([100.0, 200.0, 300.0])
-  mock_command.anchor_pos_w = offset.expand(mock_command.num_envs, 3).clone()
-  mock_command.body_pos_w = mock_command.body_pos_w + offset
-  mock_command.robot_anchor_pos_w = offset.expand(mock_command.num_envs, 3).clone()
-  mock_command.robot_body_pos_w = mock_command.robot_body_pos_w + offset
-
-  r_mpkpe_2 = compute_root_relative_mpkpe(mock_command)
-
-  assert torch.allclose(r_mpkpe_1, r_mpkpe_2, atol=1e-5)
+  assert r_mpkpe.shape == (mock_command.num_envs,)
+  assert torch.allclose(r_mpkpe, torch.zeros(mock_command.num_envs), atol=1e-6)
 
 
-def test_r_mpkpe_detects_relative_error(mock_command):
-  """Test R-MPKPE detects errors in relative positions."""
+def test_r_mpkpe_uses_relative_reference(mock_command):
+  """R-MPKPE reads the re-anchored reference, not the global one.
+
+  Setting body_pos_w to match the robot exactly would yield zero error if
+  it were (incorrectly) used; the metric must instead follow
+  body_pos_relative_w.
+  """
   num_bodies = len(mock_command.cfg.body_names)
-
-  mock_command.anchor_pos_w = torch.zeros(mock_command.num_envs, 3)
-  mock_command.body_pos_w = torch.zeros(mock_command.num_envs, num_bodies, 3)
-  mock_command.body_pos_w[:, :, 0] = 1.0  # Bodies 1 unit from anchor
-
-  mock_command.robot_anchor_pos_w = torch.zeros(mock_command.num_envs, 3)
-  mock_command.robot_body_pos_w = torch.zeros(mock_command.num_envs, num_bodies, 3)
-  mock_command.robot_body_pos_w[:, :, 0] = 2.0  # Bodies 2 units from anchor
+  robot_pos = torch.rand(mock_command.num_envs, num_bodies, 3)
+  mock_command.robot_body_pos_w = robot_pos.clone()
+  mock_command.body_pos_w = robot_pos.clone()  # zero error if misused
+  mock_command.body_pos_relative_w = robot_pos.clone()
+  mock_command.body_pos_relative_w[:, :, 0] += 1.0  # 1 unit of local pose error
 
   r_mpkpe = compute_root_relative_mpkpe(mock_command)
 
   assert torch.allclose(r_mpkpe, torch.ones(mock_command.num_envs), atol=1e-6)
 
 
-def test_joint_velocity_error(mock_command):
-  """Test joint velocity error computes correct L2 norm."""
+def test_joint_velocity_error_rms(mock_command):
+  """Joint velocity error is the per-joint RMS of the velocity error."""
   num_joints = 3
 
   mock_command.joint_vel = torch.zeros(mock_command.num_envs, num_joints)
   mock_command.robot_joint_vel = torch.zeros(mock_command.num_envs, num_joints)
   mock_command.robot_joint_vel[:, 0] = 3.0
-  mock_command.robot_joint_vel[:, 1] = 4.0  # Error [3, 4, 0] has norm 5
+  mock_command.robot_joint_vel[:, 1] = 4.0  # Error [3, 4, 0]
 
   error = compute_joint_velocity_error(mock_command)
 
-  assert torch.allclose(error, torch.ones(mock_command.num_envs) * 5.0, atol=1e-6)
+  expected = math.sqrt((3.0**2 + 4.0**2 + 0.0**2) / num_joints)
+  assert torch.allclose(error, torch.ones(mock_command.num_envs) * expected, atol=1e-6)
 
 
 def test_ee_position_error_only_uses_specified_bodies(mock_command):
@@ -172,3 +167,13 @@ def test_ee_orientation_error_detects_rotation(mock_command):
   # Error should be approximately pi/2 radians.
   expected = torch.ones(mock_command.num_envs) * (3.14159 / 2)
   assert torch.allclose(error, expected, atol=0.01)
+
+
+def test_ee_metrics_raise_on_unknown_body(mock_command):
+  """Unknown end-effector names raise instead of silently scoring zero."""
+  num_bodies = len(mock_command.cfg.body_names)
+  mock_command.body_pos_relative_w = torch.zeros(mock_command.num_envs, num_bodies, 3)
+  mock_command.robot_body_pos_w = torch.zeros(mock_command.num_envs, num_bodies, 3)
+
+  with pytest.raises(ValueError, match="not tracked"):
+    compute_ee_position_error(mock_command, ("nonexistent_body",))

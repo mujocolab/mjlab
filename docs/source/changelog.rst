@@ -54,6 +54,16 @@ Added
 Changed
 ^^^^^^^
 
+- Changed the tracking task's root-relative MPKPE metric
+  (``compute_root_relative_mpkpe``) to use ``body_pos_relative_w``, the
+  reference re-anchored to the robot's root position and heading each step.
+  It previously removed only the anchor translation, so heading drift still
+  leaked into the score; it now removes both translation and yaw drift and
+  measures intrinsic body pose error, matching the tracking reward.
+- Changed the tracking task's joint velocity metric
+  (``compute_joint_velocity_error``) from a raw L2 norm to a per-joint RMS,
+  so the value no longer scales with the number of joints and is comparable
+  across robots.
 - Bumped ``mujoco`` to 3.8 and ``mujoco-warp`` to 3.8.0. The ``multiccd``
   enable flag was removed in mujoco 3.8 (it became default-on), so configs
   that listed ``"multiccd"`` in ``MujocoCfg.enableflags`` need to drop it.
@@ -97,6 +107,11 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed the tracking task's end-effector metrics silently returning a zero
+  error when an end-effector body name was not in the tracked body list.
+  ``compute_ee_position_error`` and ``compute_ee_orientation_error`` now
+  raise a clear ``ValueError`` for unknown names instead of masking the
+  misconfiguration.
 - Fixed the tracking MPKPE metric (``compute_mpkpe``) using the reward's
   drift-cancelled reference ``body_pos_relative_w`` instead of the true
   global reference ``body_pos_w``. It is documented to measure global-frame
