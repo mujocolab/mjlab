@@ -111,11 +111,6 @@ Fixed
   ``reward_manager.compute()`` had already populated it. The clear now
   happens at the top of ``step()`` and ``reset()`` so that all entries
   survive (:issue:`957`).
-- Fixed ``ManagerBasedRlEnv`` initializing Warp on all visible CUDA devices
-  even when constructed with ``device="cpu"``. ``seed_rng`` now accepts a
-  ``device`` argument and skips ``wp.rand_init`` on CPU devices, so a
-  CPU-only env no longer claims a CUDA context on machines with a visible
-  GPU (:issue:`949`).
 - Fixed ``ContactSensor.compute_first_contact`` and ``compute_first_air``
   occasionally missing events when a contact began or ended right at the
   last physics substep of a control step. ``current_contact_time`` /
