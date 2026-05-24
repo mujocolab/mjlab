@@ -85,7 +85,8 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
       noise=Unoise(n_min=-0.2, n_max=0.2),
     ),
     "projected_gravity": ObservationTermCfg(
-      func=mdp.projected_gravity,
+      func=mdp.projected_gravity_from_sensor,
+      params={"sensor_name": "robot/imu_upvector"},
       noise=Unoise(n_min=-0.05, n_max=0.05),
     ),
     "joint_pos": ObservationTermCfg(
@@ -264,6 +265,29 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
           1: (-0.025, 0.025),
           2: (-0.03, 0.03),
         },
+      },
+    ),
+    # IMU mounting domain randomization. Perturbing the IMU site pose feeds through
+    # the site-based observations: orientation into projected_gravity (read from the
+    # robot/imu_upvector framezaxis sensor) and base velocities, position into the
+    # velocimeter. The site name is set per-robot.
+    "imu_site_pos": EventTermCfg(
+      mode="startup",
+      func=dr.site_pos,
+      params={
+        "asset_cfg": SceneEntityCfg("robot", site_names=()),  # Set per-robot.
+        "operation": "add",
+        "ranges": {0: (-0.01, 0.01), 1: (-0.01, 0.01), 2: (-0.01, 0.01)},
+      },
+    ),
+    "imu_site_quat": EventTermCfg(
+      mode="startup",
+      func=dr.site_quat,
+      params={
+        "asset_cfg": SceneEntityCfg("robot", site_names=()),  # Set per-robot.
+        "roll_range": (-0.05, 0.05),
+        "pitch_range": (-0.05, 0.05),
+        "yaw_range": (-0.05, 0.05),
       },
     ),
   }

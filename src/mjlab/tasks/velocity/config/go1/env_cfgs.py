@@ -182,6 +182,8 @@ def unitree_go1_rough_env_cfg(
     },
   )
   cfg.events["base_com"].params["asset_cfg"].body_names = ("trunk",)
+  for event in ("imu_site_pos", "imu_site_quat"):
+    cfg.events[event].params["asset_cfg"].site_names = ("imu",)
 
   cfg.rewards["pose"].params["std_standing"] = {
     r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.05,

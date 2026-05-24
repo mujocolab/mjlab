@@ -6,11 +6,9 @@ from mjlab.asset_zoo.robots import (
 )
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs import mdp as envs_mdp
-from mjlab.envs.mdp import dr
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.event_manager import EventTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
-from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import (
   ContactMatch,
   ContactSensorCfg,
@@ -97,33 +95,8 @@ def unitree_g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = geom_names
   cfg.events["base_com"].params["asset_cfg"].body_names = ("torso_link",)
-
-  # IMU mounting domain randomization. Read projected gravity from the IMU site
-  # (via the framezaxis sensor) so that perturbing the site pose shows up in the
-  # observation, then randomize that site's position and orientation.
-  for group in ("actor", "critic"):
-    grav_term = cfg.observations[group].terms["projected_gravity"]
-    grav_term.func = mdp.projected_gravity_from_sensor
-    grav_term.params = {"sensor_name": "robot/imu_upvector"}
-  cfg.events["imu_site_pos"] = EventTermCfg(
-    mode="startup",
-    func=dr.site_pos,
-    params={
-      "asset_cfg": SceneEntityCfg("robot", site_names=("imu_in_pelvis",)),
-      "operation": "add",
-      "ranges": {0: (-0.01, 0.01), 1: (-0.01, 0.01), 2: (-0.01, 0.01)},
-    },
-  )
-  cfg.events["imu_site_quat"] = EventTermCfg(
-    mode="startup",
-    func=dr.site_quat,
-    params={
-      "asset_cfg": SceneEntityCfg("robot", site_names=("imu_in_pelvis",)),
-      "roll_range": (-0.05, 0.05),
-      "pitch_range": (-0.05, 0.05),
-      "yaw_range": (-0.05, 0.05),
-    },
-  )
+  for event in ("imu_site_pos", "imu_site_quat"):
+    cfg.events[event].params["asset_cfg"].site_names = ("imu_in_pelvis",)
 
   # Rationale for std values:
   # - Knees/hip_pitch get the loosest std to allow natural leg bending during stride.
