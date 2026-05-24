@@ -107,6 +107,13 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed the tracking evaluation script (``evaluate``) computing its metrics
+  one motion frame out of sync. It advanced the command an extra frame
+  before the rollout and read the reference after ``env.step`` had already
+  advanced it, so the robot was scored against the next frame rather than
+  the one it was rewarded against. The reference is now snapshotted before
+  each step, and per-step averaging counts active steps explicitly instead
+  of inferring them from a nonzero MPKPE.
 - Fixed the tracking task's end-effector metrics silently returning a zero
   error when an end-effector body name was not in the tracked body list.
   ``compute_ee_position_error`` and ``compute_ee_orientation_error`` now
