@@ -95,8 +95,6 @@ def unitree_g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = geom_names
   cfg.events["base_com"].params["asset_cfg"].body_names = ("torso_link",)
-  for event in ("imu_site_pos", "imu_site_quat"):
-    cfg.events[event].params["asset_cfg"].site_names = ("imu_in_pelvis",)
 
   # Rationale for std values:
   # - Knees/hip_pitch get the loosest std to allow natural leg bending during stride.

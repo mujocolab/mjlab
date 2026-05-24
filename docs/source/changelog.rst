@@ -9,13 +9,11 @@ Added
 ^^^^^
 
 - Added ``mdp.projected_gravity_from_sensor``, an observation that derives
-  projected gravity from a ``framezaxis`` up-vector sensor on the IMU site
-  (negated) rather than from the root body orientation. Unlike
-  ``mdp.projected_gravity``, it reflects IMU site pose, so it can observe IMU
-  mounting domain randomization. Go1 and G1 now ship an ``imu_upvector``
-  sensor; the velocity tasks use this observation and randomize the IMU site
-  position/orientation via ``dr.site_pos`` / ``dr.site_quat``, and the G1
-  tracking config adds the same randomization.
+  projected gravity from a ``framezaxis`` up-vector sensor (negated) rather
+  than from the root body orientation. Unlike ``mdp.projected_gravity``, it
+  reflects the sensor's site frame, so it can observe IMU mounting domain
+  randomization (e.g. via ``dr.site_quat``). Go1 and G1 ship an
+  ``imu_upvector`` sensor for this.
 - Added ``DebugVisualizer.add_box`` for drawing an axis-oriented box
   primitive, mirroring ``add_ellipsoid``. Supported by both the native
   and Viser viewers. ``size`` is the box half-extents (:issue:`992`).
