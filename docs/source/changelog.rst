@@ -79,6 +79,14 @@ Changed
   air-time fields (``current_air_time``, ``last_air_time``,
   ``current_contact_time``, ``last_contact_time``) have shape ``[B, P]``,
   where ``P`` is the number of resolved primaries (:issue:`914`).
+- Event functions now share a single ``resolve_env_ids`` helper to expand
+  ``env_ids=None`` to all environments, replacing five copies of the same
+  guard. ``push_by_setting_velocity`` and ``apply_external_force_torque``
+  accept ``env_ids=None`` too, so they work as global-time interval terms.
+  Documented when to use ``apply_external_force_torque`` (a constant,
+  self-managed wrench) versus ``apply_body_impulse`` (transient, automatic
+  impulses) versus ``push_by_setting_velocity`` (an instantaneous velocity
+  kick).
 
 Fixed
 ^^^^^
