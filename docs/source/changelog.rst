@@ -54,16 +54,11 @@ Added
 Changed
 ^^^^^^^
 
-- Changed the tracking task's root-relative MPKPE metric
-  (``compute_root_relative_mpkpe``) to use ``body_pos_relative_w``, the
-  reference re-anchored to the robot's root position and heading each step.
-  It previously removed only the anchor translation, so heading drift still
-  leaked into the score; it now removes both translation and yaw drift and
-  measures intrinsic body pose error, matching the tracking reward.
-- Changed the tracking task's joint velocity metric
-  (``compute_joint_velocity_error``) from a raw L2 norm to a per-joint RMS,
-  so the value no longer scales with the number of joints and is comparable
-  across robots.
+- Changed ``compute_root_relative_mpkpe`` to re-anchor the reference to the
+  robot's root each step, removing yaw drift as well as translation so it
+  measures intrinsic body pose error.
+- Changed ``compute_joint_velocity_error`` from an L2 norm to a per-joint
+  RMS, so it no longer scales with the number of joints.
 - Bumped ``mujoco`` to 3.8 and ``mujoco-warp`` to 3.8.0. The ``multiccd``
   enable flag was removed in mujoco 3.8 (it became default-on), so configs
   that listed ``"multiccd"`` in ``MujocoCfg.enableflags`` need to drop it.
@@ -107,24 +102,13 @@ Changed
 Fixed
 ^^^^^
 
-- Fixed the tracking evaluation script (``evaluate``) computing its metrics
-  one motion frame out of sync. It advanced the command an extra frame
-  before the rollout and read the reference after ``env.step`` had already
-  advanced it, so the robot was scored against the next frame rather than
-  the one it was rewarded against. The reference is now snapshotted before
-  each step, and per-step averaging counts active steps explicitly instead
-  of inferring them from a nonzero MPKPE.
-- Fixed the tracking task's end-effector metrics silently returning a zero
-  error when an end-effector body name was not in the tracked body list.
-  ``compute_ee_position_error`` and ``compute_ee_orientation_error`` now
-  raise a clear ``ValueError`` for unknown names instead of masking the
-  misconfiguration.
-- Fixed the tracking MPKPE metric (``compute_mpkpe``) using the reward's
-  drift-cancelled reference ``body_pos_relative_w`` instead of the true
-  global reference ``body_pos_w``. It is documented to measure global-frame
-  keypoint error but previously never captured global drift and nearly
-  duplicated the root-relative metric. It now uses ``body_pos_w``
-  (:issue:`1006`).
+- Fixed the tracking ``evaluate`` script scoring each metric against the
+  next motion frame; the reference is now snapshotted before each step to
+  match the reward.
+- Fixed the tracking end-effector metrics silently scoring zero for an
+  unknown body name; they now raise ``ValueError``.
+- Fixed ``compute_mpkpe`` measuring root-relative instead of global error;
+  it now uses the global reference ``body_pos_w`` (:issue:`1006`).
 - Fixed heavy flicker in offscreen training videos on rough-terrain tasks.
   The renderer recomputed its context "neighbor" robots every frame from
   ``env_origins``, which the terrain curriculum mutates on reset, so the
