@@ -42,6 +42,27 @@ Not all CUDA versions are supported by MuJoCo Warp.
 - **Recommended**: CUDA **12.4+** (for conditional execution support in CUDA
   graphs).
 
+How do I run on CPU without touching the GPU?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Passing ``device="cpu"`` puts all mjlab computation on the CPU, but it does
+**not** stop Warp from initializing the GPU. The first time Warp's runtime
+comes up, it eagerly enumerates and creates a CUDA context on **every**
+visible device, regardless of which device you requested. So on a machine
+with a visible GPU, a ``device="cpu"`` run still claims VRAM.
+
+This happens inside Warp and cannot be prevented from Python once the
+package is imported. To keep the process entirely off the GPU, hide the
+devices from CUDA before launching:
+
+.. code-block:: bash
+
+   CUDA_VISIBLE_DEVICES="" uv run train.py ...
+
+With no visible CUDA devices, Warp initializes CPU-only and never allocates
+on the GPU. See `issue #949
+<https://github.com/mujocolab/mjlab/issues/949>`_ for background.
+
 Performance
 -----------
 

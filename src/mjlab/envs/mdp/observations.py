@@ -106,6 +106,23 @@ def builtin_sensor(env: ManagerBasedRlEnv, sensor_name: str) -> torch.Tensor:
   return sensor.data
 
 
+def projected_gravity_from_sensor(
+  env: ManagerBasedRlEnv, sensor_name: str
+) -> torch.Tensor:
+  """Projected gravity from a ``framezaxis`` up-vector sensor.
+
+  The sensor is expected to output the world Z-axis expressed in the sensor's frame
+  (e.g. ``framezaxis`` with ``objtype=body objname=world`` and ``reftype=site``). That
+  is the body-frame "up" vector, so it is negated to point along gravity.
+
+  Unlike :func:`projected_gravity`, which uses the root body orientation, this reads
+  the sensor's site frame and therefore reflects IMU site pose randomization.
+  """
+  sensor = env.scene[sensor_name]
+  assert isinstance(sensor, BuiltinSensor)
+  return -sensor.data
+
+
 def height_scan(
   env: ManagerBasedRlEnv,
   sensor_name: str,

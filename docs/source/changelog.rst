@@ -8,6 +8,12 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``mdp.projected_gravity_from_sensor``, an observation that derives
+  projected gravity from a ``framezaxis`` up-vector sensor (negated) rather
+  than from the root body orientation. Unlike ``mdp.projected_gravity``, it
+  reflects the sensor's site frame, so it can observe IMU mounting domain
+  randomization (e.g. via ``dr.site_quat``). Go1 and G1 ship an
+  ``imu_upvector`` sensor for this.
 - Added ``DebugVisualizer.add_box`` for drawing an axis-oriented box
   primitive, mirroring ``add_ellipsoid``. Supported by both the native
   and Viser viewers. ``size`` is the box half-extents (:issue:`992`).
@@ -79,10 +85,23 @@ Changed
   air-time fields (``current_air_time``, ``last_air_time``,
   ``current_contact_time``, ``last_contact_time``) have shape ``[B, P]``,
   where ``P`` is the number of resolved primaries (:issue:`914`).
+- Event functions now share a single ``resolve_env_ids`` helper to expand
+  ``env_ids=None`` to all environments, replacing five copies of the same
+  guard. ``push_by_setting_velocity`` and ``apply_external_force_torque``
+  accept ``env_ids=None`` too, so they work as global-time interval terms.
+  Documented when to use ``apply_external_force_torque`` (a constant,
+  self-managed wrench) versus ``apply_body_impulse`` (transient, automatic
+  impulses) versus ``push_by_setting_velocity`` (an instantaneous velocity
+  kick).
 
 Fixed
 ^^^^^
 
+- Fixed heavy flicker in offscreen training videos on rough-terrain tasks.
+  The renderer recomputed its context "neighbor" robots every frame from
+  ``env_origins``, which the terrain curriculum mutates on reset, so the
+  neighbor set kept changing and robots popped in and out. The neighbor
+  set is now computed once and cached (:issue:`979`).
 - Fixed duplicate random seeds across nodes in multi-node training. The
   per-process seed offset in ``scripts/train.py`` now uses the global
   ``RANK`` instead of ``LOCAL_RANK``. Contribution by @bd-pdomanico.
@@ -106,11 +125,6 @@ Fixed
   ``reward_manager.compute()`` had already populated it. The clear now
   happens at the top of ``step()`` and ``reset()`` so that all entries
   survive (:issue:`957`).
-- Fixed ``ManagerBasedRlEnv`` initializing Warp on all visible CUDA devices
-  even when constructed with ``device="cpu"``. ``seed_rng`` now accepts a
-  ``device`` argument and skips ``wp.rand_init`` on CPU devices, so a
-  CPU-only env no longer claims a CUDA context on machines with a visible
-  GPU (:issue:`949`).
 - Fixed ``ContactSensor.compute_first_contact`` and ``compute_first_air``
   occasionally missing events when a contact began or ended right at the
   last physics substep of a control step. ``current_contact_time`` /

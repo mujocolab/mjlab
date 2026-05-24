@@ -165,6 +165,7 @@
     <gyro name="imu_ang_vel" site="imu"/>
     <velocimeter name="imu_lin_vel" site="imu"/>
     <accelerometer name="imu_lin_acc" site="imu"/>
+    <framezaxis name="imu_upvector" objtype="body" objname="world" reftype="site" refname="imu"/>
     <subtreeangmom name="root_angmom" body="trunk"/>
   </sensor>
 </mujoco>
