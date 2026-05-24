@@ -34,11 +34,11 @@ def mock_command():
 
 
 def test_mpkpe_zero_when_positions_match(mock_command):
-  """Test MPKPE is zero when positions are identical."""
+  """Test MPKPE is zero when global positions are identical."""
   num_bodies = len(mock_command.cfg.body_names)
   positions = torch.rand(mock_command.num_envs, num_bodies, 3)
 
-  mock_command.body_pos_relative_w = positions.clone()
+  mock_command.body_pos_w = positions.clone()
   mock_command.robot_body_pos_w = positions.clone()
 
   mpkpe = compute_mpkpe(mock_command)
@@ -48,12 +48,31 @@ def test_mpkpe_zero_when_positions_match(mock_command):
 
 
 def test_mpkpe_correct_error(mock_command):
-  """Test MPKPE computes correct mean error."""
+  """Test MPKPE computes the correct mean global error."""
   num_bodies = len(mock_command.cfg.body_names)
 
-  mock_command.body_pos_relative_w = torch.zeros(mock_command.num_envs, num_bodies, 3)
+  mock_command.body_pos_w = torch.zeros(mock_command.num_envs, num_bodies, 3)
   mock_command.robot_body_pos_w = torch.zeros(mock_command.num_envs, num_bodies, 3)
   mock_command.robot_body_pos_w[:, :, 0] = 1.0  # 1 unit offset in x
+
+  mpkpe = compute_mpkpe(mock_command)
+
+  assert torch.allclose(mpkpe, torch.ones(mock_command.num_envs), atol=1e-6)
+
+
+def test_mpkpe_uses_global_reference(mock_command):
+  """MPKPE must read the global reference, not the drift-cancelled one.
+
+  Pins issue #1006: setting body_pos_relative_w to match the robot exactly
+  would yield zero error if it were (incorrectly) used; the metric must
+  instead follow body_pos_w.
+  """
+  num_bodies = len(mock_command.cfg.body_names)
+  robot_pos = torch.rand(mock_command.num_envs, num_bodies, 3)
+  mock_command.robot_body_pos_w = robot_pos.clone()
+  mock_command.body_pos_relative_w = robot_pos.clone()  # zero error if misused
+  mock_command.body_pos_w = robot_pos.clone()
+  mock_command.body_pos_w[:, :, 0] += 1.0  # 1 unit of global drift
 
   mpkpe = compute_mpkpe(mock_command)
 

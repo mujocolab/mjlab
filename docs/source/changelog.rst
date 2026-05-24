@@ -97,6 +97,12 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed the tracking MPKPE metric (``compute_mpkpe``) using the reward's
+  drift-cancelled reference ``body_pos_relative_w`` instead of the true
+  global reference ``body_pos_w``. It is documented to measure global-frame
+  keypoint error but previously never captured global drift and nearly
+  duplicated the root-relative metric. It now uses ``body_pos_w``
+  (:issue:`1006`).
 - Fixed heavy flicker in offscreen training videos on rough-terrain tasks.
   The renderer recomputed its context "neighbor" robots every frame from
   ``env_origins``, which the terrain curriculum mutates on reset, so the

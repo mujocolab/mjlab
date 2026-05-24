@@ -14,9 +14,10 @@ def compute_mpkpe(command: MotionCommand) -> torch.Tensor:
   """Compute Mean Per-Keybody Position Error (MPKPE).
 
   MPKPE measures the average Euclidean distance between the reference and
-  actual positions of all key bodies in world frame.
+  actual key body positions in the global world frame. It captures all
+  tracking error, including global translation and heading drift.
   """
-  pos_error = command.body_pos_relative_w - command.robot_body_pos_w
+  pos_error = command.body_pos_w - command.robot_body_pos_w
   per_body_error = torch.norm(pos_error, dim=-1)  # (num_envs, num_bodies)
   return per_body_error.mean(dim=-1)  # (num_envs,)
 
