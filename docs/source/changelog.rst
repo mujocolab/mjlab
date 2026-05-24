@@ -2,8 +2,8 @@
 Changelog
 =========
 
-Upcoming version (not yet released)
------------------------------------
+Version 1.4.0 (May 24, 2026)
+----------------------------
 
 Added
 ^^^^^
@@ -97,6 +97,12 @@ Changed
 Fixed
 ^^^^^
 
+- Removed use of deprecated ``warp-lang`` symbols (``wp.context.runtime``
+  and ``wp.context.Device``) that were dropped in newer ``warp-lang``
+  releases, causing ``AttributeError: module 'warp' has no attribute
+  'context'`` at import/runtime. mjlab now uses
+  ``wp.get_cuda_driver_version()`` and ``wp.Device`` instead
+  (:issue:`967`). Contribution by @rdeits.
 - Fixed heavy flicker in offscreen training videos on rough-terrain tasks.
   The renderer recomputed its context "neighbor" robots every frame from
   ``env_origins``, which the terrain curriculum mutates on reset, so the
