@@ -21,6 +21,24 @@ if TYPE_CHECKING:
   from mjlab.viewer.debug_visualizer import DebugVisualizer
 
 _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
+_SE3_KEYS = ("x", "y", "z", "roll", "pitch", "yaw")
+
+
+def _sample_se3_range(
+  range_dict: dict[str, tuple[float, float]] | None,
+  shape: tuple[int, ...],
+  device: str,
+) -> torch.Tensor:
+  """Sample uniform ``[x, y, z, roll, pitch, yaw]`` offsets.
+
+  ``range_dict`` maps any subset of those keys to ``(min, max)`` ranges; missing
+  keys default to ``(0.0, 0.0)`` (no offset). ``None`` is treated as empty. The
+  returned tensor has the requested ``shape`` whose last dimension must be 6.
+  """
+  range_dict = range_dict or {}
+  range_list = [range_dict.get(key, (0.0, 0.0)) for key in _SE3_KEYS]
+  ranges = torch.tensor(range_list, device=device)
+  return sample_uniform(ranges[:, 0], ranges[:, 1], shape, device=device)
 
 
 def resolve_env_ids(
@@ -122,13 +140,7 @@ def reset_root_state_uniform(
   asset: Entity = env.scene[asset_cfg.name]
 
   # Pose.
-  range_list = [
-    pose_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z", "roll", "pitch", "yaw"]
-  ]
-  ranges = torch.tensor(range_list, device=env.device)
-  pose_samples = sample_uniform(
-    ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=env.device
-  )
+  pose_samples = _sample_se3_range(pose_range, (len(env_ids), 6), env.device)
 
   # Fixed-based entities with mocap=True.
   if asset.is_fixed_base:
@@ -168,16 +180,7 @@ def reset_root_state_uniform(
   orientations = quat_mul(root_states[:, 3:7], orientations_delta)
 
   # Velocities.
-  if velocity_range is None:
-    velocity_range = {}
-  range_list = [
-    velocity_range.get(key, (0.0, 0.0))
-    for key in ["x", "y", "z", "roll", "pitch", "yaw"]
-  ]
-  ranges = torch.tensor(range_list, device=env.device)
-  vel_samples = sample_uniform(
-    ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=env.device
-  )
+  vel_samples = _sample_se3_range(velocity_range, (len(env_ids), 6), env.device)
   velocities = root_states[:, 7:13] + vel_samples
 
   asset.write_root_link_pose_to_sim(
@@ -240,15 +243,7 @@ def reset_root_state_from_flat_patches(
   root_states = default_root_state[env_ids].clone()
 
   # Apply optional pose range offset.
-  if pose_range is None:
-    pose_range = {}
-  range_list = [
-    pose_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z", "roll", "pitch", "yaw"]
-  ]
-  ranges = torch.tensor(range_list, device=env.device)
-  pose_samples = sample_uniform(
-    ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=env.device
-  )
+  pose_samples = _sample_se3_range(pose_range, (len(env_ids), 6), env.device)
 
   # Position: flat patch position + optional offset. Use patch z instead of default.
   final_positions = positions.clone()
@@ -272,16 +267,7 @@ def reset_root_state_from_flat_patches(
     return
 
   # Velocities.
-  if velocity_range is None:
-    velocity_range = {}
-  vel_range_list = [
-    velocity_range.get(key, (0.0, 0.0))
-    for key in ["x", "y", "z", "roll", "pitch", "yaw"]
-  ]
-  vel_ranges = torch.tensor(vel_range_list, device=env.device)
-  vel_samples = sample_uniform(
-    vel_ranges[:, 0], vel_ranges[:, 1], (len(env_ids), 6), device=env.device
-  )
+  vel_samples = _sample_se3_range(velocity_range, (len(env_ids), 6), env.device)
   velocities = root_states[:, 7:13] + vel_samples
 
   asset.write_root_link_pose_to_sim(
@@ -347,12 +333,7 @@ def push_by_setting_velocity(
   env_ids = resolve_env_ids(env, env_ids)
   asset: Entity = env.scene[asset_cfg.name]
   vel_w = asset.data.root_link_vel_w[env_ids]
-  range_list = [
-    velocity_range.get(key, (0.0, 0.0))
-    for key in ["x", "y", "z", "roll", "pitch", "yaw"]
-  ]
-  ranges = torch.tensor(range_list, device=env.device)
-  vel_w += sample_uniform(ranges[:, 0], ranges[:, 1], vel_w.shape, device=env.device)
+  vel_w += _sample_se3_range(velocity_range, vel_w.shape, env.device)
   asset.write_root_link_velocity_to_sim(vel_w, env_ids=env_ids)
 
 
