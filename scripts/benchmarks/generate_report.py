@@ -102,7 +102,6 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
     <title>mjlab Nightly Benchmark</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
     <style>
         :root {{
             --bg: #ffffff;
@@ -458,27 +457,6 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
         }}
 
         const AVG_WINDOW = 7;
-        const REG_THRESHOLD = 0.1;  // Flag points >10% worse than trailing avg.
-        const REG_COLOR = '#f85149';
-
-        // Flag each point that is worse than the trailing average of the prior
-        // AVG_WINDOW points by more than REG_THRESHOLD (direction-aware).
-        function regressionFlags(data, higherIsBetter) {{
-            return data.map((d, i) => {{
-                if (i < AVG_WINDOW) return false;
-                const prior = data.slice(i - AVG_WINDOW, i);
-                const avg = prior.reduce((s, p) => s + p.y, 0) / prior.length;
-                if (!avg) return false;
-                const rel = (d.y - avg) / Math.abs(avg);
-                return higherIsBetter ? rel < -REG_THRESHOLD : rel > REG_THRESHOLD;
-            }});
-        }}
-
-        // Shared zoom/pan config: wheel to zoom, drag to pan, x-axis only.
-        const ZOOM = {{
-            zoom: {{ wheel: {{ enabled: true }}, pinch: {{ enabled: true }}, mode: 'x' }},
-            pan: {{ enabled: true, mode: 'x' }}
-        }};
 
         METRICS.forEach(([key, label, unit, scale, higherIsBetter]) => {{
             const data = runs.map(r => ({{
@@ -489,22 +467,18 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
             }}));
 
             const avgData = rollingAvg(data, AVG_WINDOW);
-            const flags = regressionFlags(data, higherIsBetter);
             const color = colors[key] || '#58a6ff';
 
             const latestVal = data[data.length - 1]?.y;
-            const latestRegressed = flags[flags.length - 1];
             const arrow = higherIsBetter ? '\u2191' : '\u2193';
             const tooltip = higherIsBetter ? 'Higher is better' : 'Lower is better';
-            const valStyle = latestRegressed ? ` style="color:${{REG_COLOR}}"` : '';
-            const warn = latestRegressed ? ' \u26a0' : '';
 
             const card = document.createElement('div');
             card.className = 'chart-card';
             card.innerHTML = `
                 <div class="chart-title">
                     <span>${{label}} <span title="${{tooltip}}" style="cursor:help;opacity:0.6">${{arrow}}</span></span>
-                    <span class="chart-value"${{valStyle}}>${{latestVal?.toFixed(3)}} ${{unit}}${{warn}}</span>
+                    <span class="chart-value">${{latestVal?.toFixed(3)}} ${{unit}}</span>
                 </div>
                 <div class="chart-container"><canvas></canvas></div>
             `;
@@ -520,10 +494,8 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                             borderColor: color,
                             backgroundColor: color + '20',
                             borderWidth: 2,
-                            pointRadius: data.map((d, i) => flags[i] ? 5 : 2),
+                            pointRadius: 2,
                             pointHoverRadius: 5,
-                            pointBackgroundColor: data.map((d, i) => flags[i] ? REG_COLOR : color),
-                            pointBorderColor: data.map((d, i) => flags[i] ? REG_COLOR : color),
                             tension: 0.1,
                             fill: true
                         }},
@@ -551,7 +523,6 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                         }}
                     }},
                     plugins: {{
-                        zoom: ZOOM,
                         legend: {{
                             display: true,
                             position: 'bottom',
@@ -678,9 +649,6 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                     physicsData.push({{ ...point, y: result.physics_sps / 1000 }});
                 }});
 
-                const envFlags = regressionFlags(envData, true);
-                const physFlags = regressionFlags(physicsData, true);
-
                 const chart = new Chart(panel.querySelector('canvas'), {{
                     type: 'line',
                     data: {{
@@ -691,10 +659,8 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                                 borderColor: '#58a6ff',
                                 backgroundColor: '#58a6ff20',
                                 borderWidth: 2,
-                                pointRadius: envData.map((d, i) => envFlags[i] ? 5 : 2),
+                                pointRadius: 2,
                                 pointHoverRadius: 5,
-                                pointBackgroundColor: envData.map((d, i) => envFlags[i] ? REG_COLOR : '#58a6ff'),
-                                pointBorderColor: envData.map((d, i) => envFlags[i] ? REG_COLOR : '#58a6ff'),
                                 tension: 0.1,
                                 fill: true
                             }},
@@ -704,10 +670,8 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                                 borderColor: '#3fb950',
                                 backgroundColor: '#3fb95020',
                                 borderWidth: 2,
-                                pointRadius: physicsData.map((d, i) => physFlags[i] ? 5 : 2),
+                                pointRadius: 2,
                                 pointHoverRadius: 5,
-                                pointBackgroundColor: physicsData.map((d, i) => physFlags[i] ? REG_COLOR : '#3fb950'),
-                                pointBorderColor: physicsData.map((d, i) => physFlags[i] ? REG_COLOR : '#3fb950'),
                                 tension: 0.1,
                                 fill: true
                             }}
@@ -727,7 +691,6 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                             }}
                         }},
                         plugins: {{
-                            zoom: ZOOM,
                             legend: {{ display: true, position: 'bottom' }},
                             tooltip: {{
                                 mode: 'index',
