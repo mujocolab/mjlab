@@ -169,6 +169,16 @@ class Entity:
     self._all_joints = self._spec.joints
     self._free_joint = None
     self._non_free_joints = tuple(self._all_joints)
+
+    free_joints = [j for j in self._all_joints if j.type == mujoco.mjtJoint.mjJNT_FREE]
+    if len(free_joints) > 1:
+      raise ValueError(
+        f"Entity spec has {len(free_joints)} freejoints. An Entity models a "
+        "single rigid- or articulated-body system with at most one freejoint, "
+        "which serves as its root. Model each detached floating body as its own "
+        "entry in SceneCfg.entities instead."
+      )
+
     if self._all_joints and self._all_joints[0].type == mujoco.mjtJoint.mjJNT_FREE:
       self._free_joint = self._all_joints[0]
       if not self._free_joint.name:

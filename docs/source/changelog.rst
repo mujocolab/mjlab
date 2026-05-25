@@ -54,6 +54,12 @@ Added
 Changed
 ^^^^^^^
 
+- ``Entity`` now raises a clear error at construction when its spec contains
+  more than one freejoint. An entity models a single system rooted at one
+  body, so it has at most one freejoint; a second one was previously accepted
+  silently and only surfaced later as a cryptic shape mismatch when writing
+  root state. Model each detached floating body as its own entry in
+  ``SceneCfg.entities`` instead.
 - Changed ``compute_root_relative_mpkpe`` to re-anchor the reference to the
   robot's root each step, removing yaw drift as well as translation so it
   measures intrinsic body pose error.
