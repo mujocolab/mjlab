@@ -2,7 +2,7 @@
 Changelog
 =========
 
-Version 1.4.0 (May 24, 2026)
+Version 1.4.0 (May 25, 2026)
 ----------------------------
 
 Added
@@ -54,6 +54,17 @@ Added
 Changed
 ^^^^^^^
 
+- ``Entity`` now raises a clear error at construction when its spec contains
+  more than one freejoint. An entity models a single system rooted at one
+  body, so it has at most one freejoint; a second one was previously accepted
+  silently and only surfaced later as a cryptic shape mismatch when writing
+  root state. Model each detached floating body as its own entry in
+  ``SceneCfg.entities`` instead.
+- Changed ``compute_root_relative_mpkpe`` to re-anchor the reference to the
+  robot's root each step, removing yaw drift as well as translation so it
+  measures intrinsic body pose error.
+- Changed ``compute_joint_velocity_error`` from an L2 norm to a per-joint
+  RMS, so it no longer scales with the number of joints.
 - Bumped ``mujoco`` to 3.8 and ``mujoco-warp`` to 3.8.0. The ``multiccd``
   enable flag was removed in mujoco 3.8 (it became default-on), so configs
   that listed ``"multiccd"`` in ``MujocoCfg.enableflags`` need to drop it.
@@ -103,6 +114,13 @@ Fixed
   'context'`` at import/runtime. mjlab now uses
   ``wp.get_cuda_driver_version()`` and ``wp.Device`` instead
   (:issue:`967`). Contribution by @rdeits.
+- Fixed the tracking ``evaluate`` script scoring each metric against the
+  next motion frame; the reference is now snapshotted before each step to
+  match the reward.
+- Fixed the tracking end-effector metrics silently scoring zero for an
+  unknown body name; they now raise ``ValueError``.
+- Fixed ``compute_mpkpe`` measuring root-relative instead of global error;
+  it now uses the global reference ``body_pos_w`` (:issue:`1006`).
 - Fixed heavy flicker in offscreen training videos on rough-terrain tasks.
   The renderer recomputed its context "neighbor" robots every frame from
   ``env_origins``, which the terrain curriculum mutates on reset, so the

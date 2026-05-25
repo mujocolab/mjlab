@@ -243,6 +243,27 @@ def test_unnamed_freejoint_gets_default_name():
   assert "floating_base_joint" in entity.all_joint_names
 
 
+def test_multiple_freejoints_raises():
+  """An entity with more than one freejoint is rejected at construction."""
+  xml = """
+  <mujoco>
+    <worldbody>
+      <body name="object_a" pos="0 0 1">
+        <freejoint/>
+        <geom type="box" size="0.1 0.1 0.1" mass="0.1"/>
+      </body>
+      <body name="object_b" pos="1 0 1">
+        <freejoint/>
+        <geom type="box" size="0.1 0.1 0.1" mass="0.1"/>
+      </body>
+    </worldbody>
+  </mujoco>
+  """
+  cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(xml))
+  with pytest.raises(ValueError, match="2 freejoints"):
+    Entity(cfg)
+
+
 def test_find_methods():
   """Test find methods with exact and regex matches."""
   entity = create_floating_articulated_entity()
