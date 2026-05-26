@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import mujoco
+import numpy as np
 import torch
 
 from mjlab.actuator.actuator import (
@@ -89,6 +90,102 @@ class BuiltinPositionActuator(Actuator[BuiltinPositionActuatorCfg]):
 
   def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
     return cmd.position_target
+
+
+@dataclass(kw_only=True)
+class BuiltinPdActuatorCfg(ActuatorCfg):
+  """Implicit-integration version of ``IdealPdActuator``.
+
+  Both consume a position target and a velocity target with kp/kd gains.
+  The difference is in how the PD is delivered to MuJoCo: ``IdealPdActuator`` computes
+  the PD force in Python and feeds it to a ``<motor>`` element, which MuJoCo sees as an
+  opaque external force. This actuator expresses the PD as native MuJoCo elements (a
+  ``<position>`` carrying kp, a ``<velocity>`` carrying kd), so the ``implicit`` and
+  ``implicitfast`` integrators include the kp/kd derivatives in their velocity update.
+  That makes the actuator numerically stable at gain/timestep combinations where
+  explicit Python PD would diverge, which matters when you want to run a real motor's
+  stiff on-board PD gains in sim.
+  """
+
+  stiffness: float
+  """Proportional gain (kp)."""
+  damping: float
+  """Derivative gain (kd)."""
+  effort_limit: float | None = None
+  """Maximum total torque applied to the joint or tendon. Enforced as a
+  sum-clamp on the two PD terms via jnt_actfrcrange (JOINT) or
+  tendon_actfrcrange (TENDON). None leaves the limit unset."""
+
+  def __post_init__(self) -> None:
+    super().__post_init__()
+    if self.transmission_type == TransmissionType.SITE:
+      raise ValueError(
+        "BuiltinPdActuatorCfg does not support SITE transmission. "
+        "Use BuiltinMotorActuatorCfg for site transmission."
+      )
+
+  def build(
+    self, entity: Entity, target_ids: list[int], target_names: list[str]
+  ) -> BuiltinPdActuator:
+    return BuiltinPdActuator(self, entity, target_ids, target_names)
+
+
+class BuiltinPdActuator(Actuator[BuiltinPdActuatorCfg]):
+  """MuJoCo native PD: paired <position> + <velocity> elements per target."""
+
+  def __init__(
+    self,
+    cfg: BuiltinPdActuatorCfg,
+    entity: Entity,
+    target_ids: list[int],
+    target_names: list[str],
+  ) -> None:
+    super().__init__(cfg, entity, target_ids, target_names)
+
+  @property
+  def num_targets(self) -> int:
+    """Number of targets. ``ctrl_ids`` is laid out as ``[pos..., vel...]``,
+    each block of length ``num_targets``."""
+    return len(self._target_ids_list)
+
+  def edit_spec(self, spec: mujoco.MjSpec, target_names: list[str]) -> None:
+    # Position elements first, then velocity elements, so ctrl_ids is laid out
+    # as [pos_0..pos_{N-1}, vel_0..vel_{N-1}].
+    for target_name in target_names:
+      pos_act = create_position_actuator(
+        spec,
+        target_name,
+        actuator_name=f"{target_name}_pd_pos",
+        stiffness=self.cfg.stiffness,
+        damping=0.0,  # damping lives on the <velocity> element.
+        armature=self.cfg.armature,
+        frictionloss=self.cfg.frictionloss,
+        viscous_damping=self.cfg.viscous_damping,
+        transmission_type=self.cfg.transmission_type,
+      )
+      self._mjs_actuators.append(pos_act)
+    for target_name in target_names:
+      vel_act = create_velocity_actuator(
+        spec,
+        target_name,
+        actuator_name=f"{target_name}_pd_vel",
+        damping=self.cfg.damping,
+        transmission_type=self.cfg.transmission_type,
+      )
+      self._mjs_actuators.append(vel_act)
+    # Effort limit: sum-clamp on the joint/tendon, not on each element.
+    if self.cfg.effort_limit is not None:
+      lim = self.cfg.effort_limit
+      for target_name in target_names:
+        if self.cfg.transmission_type == TransmissionType.JOINT:
+          target = spec.joint(target_name)
+        else:
+          target = spec.tendon(target_name)
+        target.actfrclimited = mujoco.mjtLimited.mjLIMITED_TRUE
+        target.actfrcrange[:] = np.array([-lim, lim])
+
+  def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
+    return torch.cat((cmd.position_target, cmd.velocity_target), dim=1)
 
 
 @dataclass(kw_only=True)

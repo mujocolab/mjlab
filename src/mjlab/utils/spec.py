@@ -265,14 +265,21 @@ def create_position_actuator(
   frictionloss: float | None = None,
   viscous_damping: float | None = None,
   transmission_type: TransmissionType = TransmissionType.JOINT,
+  actuator_name: str | None = None,
 ) -> mujoco.MjsActuator:
   """Creates a <position> actuator.
 
   An important note about this actuator is that we set `ctrllimited` to False. This is
   because we want to allow the policy to output setpoints that are outside the kinematic
   limits of the joint.
+
+  ``actuator_name`` defaults to ``joint_name``; pass a distinct value when multiple
+  actuators target the same joint (e.g. paired position+velocity elements).
   """
-  actuator = spec.add_actuator(name=joint_name, target=joint_name)
+  actuator = spec.add_actuator(
+    name=actuator_name if actuator_name is not None else joint_name,
+    target=joint_name,
+  )
 
   actuator.trntype = _TRANSMISSION_TYPE_MAP[transmission_type]
   actuator.dyntype = mujoco.mjtDyn.mjDYN_NONE
@@ -343,14 +350,21 @@ def create_velocity_actuator(
   frictionloss: float | None = None,
   viscous_damping: float | None = None,
   transmission_type: TransmissionType = TransmissionType.JOINT,
+  actuator_name: str | None = None,
 ) -> mujoco.MjsActuator:
   """Creates a <velocity> actuator.
 
   Control inputs are not clamped so that velocity commands work for any joint,
   including continuous joints that have no range defined. Force output is still
   bounded when effort_limit is set.
+
+  ``actuator_name`` defaults to ``joint_name``; pass a distinct value when multiple
+  actuators target the same joint (e.g. paired position+velocity elements).
   """
-  actuator = spec.add_actuator(name=joint_name, target=joint_name)
+  actuator = spec.add_actuator(
+    name=actuator_name if actuator_name is not None else joint_name,
+    target=joint_name,
+  )
 
   actuator.trntype = _TRANSMISSION_TYPE_MAP[transmission_type]
   actuator.dyntype = mujoco.mjtDyn.mjDYN_NONE
