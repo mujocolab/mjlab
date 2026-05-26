@@ -17,6 +17,12 @@ from mjlab.actuator.builtin_actuator import (
   BuiltinMuscleActuatorCfg as BuiltinMuscleActuatorCfg,
 )
 from mjlab.actuator.builtin_actuator import (
+  BuiltinPdActuator as BuiltinPdActuator,
+)
+from mjlab.actuator.builtin_actuator import (
+  BuiltinPdActuatorCfg as BuiltinPdActuatorCfg,
+)
+from mjlab.actuator.builtin_actuator import (
   BuiltinPositionActuator as BuiltinPositionActuator,
 )
 from mjlab.actuator.builtin_actuator import (

@@ -8,6 +8,17 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``BuiltinPdActuator``, the implicit-integration version of
+  ``IdealPdActuator``. Same interface (position + velocity targets,
+  kp/kd gains), but expresses the PD as native MuJoCo ``<position>``
+  and ``<velocity>`` elements so the ``implicit`` / ``implicitfast``
+  integrators include the kp/kd derivatives in their velocity update.
+  The actuator stays stable at gain/timestep combinations where
+  explicit Python PD would diverge, which matters when you want to
+  run a real motor's stiff on-board PD gains in sim. ``effort_limit``
+  is enforced as a sum-clamp on the two PD terms via
+  ``jnt_actfrcrange`` (or ``tendon_actfrcrange``). Supported by
+  ``dr.pd_gains`` and ``dr.effort_limits``.
 - Added ``mdp.projected_gravity_from_sensor``, an observation that derives
   projected gravity from a ``framezaxis`` up-vector sensor (negated) rather
   than from the root body orientation. Unlike ``mdp.projected_gravity``, it
