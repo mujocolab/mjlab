@@ -13,6 +13,7 @@ from mjlab.actuator import (
   IdealPdActuator,
 )
 from mjlab.actuator.actuator import TransmissionType
+from mjlab.actuator.builtin_actuator import DcMotorInputMode
 from mjlab.actuator.xml_actuator import XmlActuator
 from mjlab.entity import Entity
 from mjlab.managers.event_manager import requires_model_fields
@@ -112,9 +113,9 @@ def pd_gains(
         env.sim.model.actuator_biasprm[env_ids[:, None], ctrl_ids, 2] = -kd_samples
 
     elif isinstance(actuator, BuiltinDcMotorActuator):
-      if actuator.cfg.mode == "voltage":
+      if actuator.cfg.mode == DcMotorInputMode.VOLTAGE:
         raise ValueError(
-          "dr.pd_gains does not apply to BuiltinDcMotorActuator in 'voltage' "
+          "dr.pd_gains does not apply to BuiltinDcMotorActuator in VOLTAGE "
           "mode (no internal PID gains to scale)."
         )
       # DC motor stores kp at gainprm[4] and kd at gainprm[6] (set via

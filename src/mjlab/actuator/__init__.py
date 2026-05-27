@@ -40,6 +40,15 @@ from mjlab.actuator.builtin_actuator import (
 from mjlab.actuator.builtin_actuator import (
   BuiltinVelocityActuatorCfg as BuiltinVelocityActuatorCfg,
 )
+from mjlab.actuator.builtin_actuator import (
+  DcMotorDatasheetParams as DcMotorDatasheetParams,
+)
+from mjlab.actuator.builtin_actuator import (
+  DcMotorInputMode as DcMotorInputMode,
+)
+from mjlab.actuator.builtin_actuator import (
+  DcMotorPhysicalParams as DcMotorPhysicalParams,
+)
 from mjlab.actuator.builtin_group import BuiltinActuatorGroup as BuiltinActuatorGroup
 from mjlab.actuator.dc_actuator import DcMotorActuator as DcMotorActuator
 from mjlab.actuator.dc_actuator import DcMotorActuatorCfg as DcMotorActuatorCfg

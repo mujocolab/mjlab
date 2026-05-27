@@ -6,7 +6,6 @@ config validation, and DR integration.
 """
 
 import math
-from typing import Literal
 from unittest.mock import Mock
 
 import mujoco
@@ -22,6 +21,9 @@ from conftest import (
 from mjlab.actuator import (
   BuiltinDcMotorActuator,
   BuiltinDcMotorActuatorCfg,
+  DcMotorDatasheetParams,
+  DcMotorInputMode,
+  DcMotorPhysicalParams,
 )
 from mjlab.actuator.actuator import TransmissionType
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
@@ -43,21 +45,26 @@ def device():
   return get_test_device()
 
 
+DATASHEET = DcMotorDatasheetParams(
+  nominal_voltage=V_NOM, stall_torque=TAU_STALL, no_load_speed=OMEGA_NL
+)
+
+
 def _make_cfg(
   *,
-  mode: Literal["voltage", "position", "velocity"] = "position",
+  mode: DcMotorInputMode = DcMotorInputMode.POSITION,
   stiffness=5.0,
   damping=0.5,
   voltage_limit=24.0,
   **extra,
 ) -> BuiltinDcMotorActuatorCfg:
   """Build a cfg with sensible PID defaults. ``extra`` forwards any other
-  ``BuiltinDcMotorActuatorCfg`` kwarg (effort_limit, integral_gain, thermal,
+  BuiltinDcMotorActuatorCfg kwarg (effort_limit, integral_gain, thermal,
   delay_*, etc.)."""
   return BuiltinDcMotorActuatorCfg(
     target_names_expr=("joint.*",),
     mode=mode,
-    nominal=(V_NOM, TAU_STALL, OMEGA_NL),
+    motor_params=DATASHEET,
     stiffness=stiffness,
     damping=damping,
     voltage_limit=voltage_limit,
@@ -118,12 +125,11 @@ def test_kr_packed_into_gainprm(device):
 
 
 def test_motor_const_path(device):
-  """``motor_const + resistance`` packs K = sqrt(Kt*Ke) and R verbatim."""
+  """Physical params pack K = sqrt(Kt*Ke) and R verbatim."""
   cfg = BuiltinDcMotorActuatorCfg(
     target_names_expr=("joint.*",),
-    mode="voltage",
-    motor_const=(0.1, 0.05),
-    resistance=2.0,
+    mode=DcMotorInputMode.VOLTAGE,
+    motor_params=DcMotorPhysicalParams(kt=0.1, ke=0.05, resistance=2.0),
   )
   _, sim = initialize_entity(create_entity_with_actuator(ROBOT_XML, cfg), device)
   m = sim.mj_model
@@ -139,8 +145,8 @@ def test_voltage_mode_steady_state(device):
   """At rest, ctrl = V -> tau = K * V / R."""
   cfg = BuiltinDcMotorActuatorCfg(
     target_names_expr=("joint.*",),
-    mode="voltage",
-    nominal=(V_NOM, TAU_STALL, OMEGA_NL),
+    mode=DcMotorInputMode.VOLTAGE,
+    motor_params=DATASHEET,
   )
   entity, sim = initialize_entity(create_entity_with_actuator(ROBOT_XML, cfg), device)
   V = torch.tensor([[10.0, -5.0]], device=device)
@@ -155,8 +161,8 @@ def test_voltage_mode_voltage_limit_zero_is_noop(device):
   MuJoCo's ``dcmotor_voltage`` (which only clamps when ``Vmax > 0``)."""
   cfg = BuiltinDcMotorActuatorCfg(
     target_names_expr=("joint.*",),
-    mode="voltage",
-    nominal=(V_NOM, TAU_STALL, OMEGA_NL),
+    mode=DcMotorInputMode.VOLTAGE,
+    motor_params=DATASHEET,
     voltage_limit=0.0,
   )
   entity, sim = initialize_entity(create_entity_with_actuator(ROBOT_XML, cfg), device)
@@ -171,8 +177,8 @@ def test_back_emf_reduces_torque_at_velocity(device):
   """Same V, joint moving at omega: tau = K * (V - K * omega) / R."""
   cfg = BuiltinDcMotorActuatorCfg(
     target_names_expr=("joint.*",),
-    mode="voltage",
-    nominal=(V_NOM, TAU_STALL, OMEGA_NL),
+    mode=DcMotorInputMode.VOLTAGE,
+    motor_params=DATASHEET,
   )
   entity, sim = initialize_entity(create_entity_with_actuator(ROBOT_XML, cfg), device)
   V = torch.tensor([[10.0, 0.0]], device=device)
@@ -215,7 +221,7 @@ def test_position_mode_voltage_clamp(device):
 def test_velocity_mode_pid(device):
   """P-only velocity tracking: tau = K * kp * (target - qdot) / R."""
   entity, sim = initialize_entity(
-    _make_entity(mode="velocity", damping=0.0, voltage_limit=1000.0),
+    _make_entity(mode=DcMotorInputMode.VELOCITY, damping=0.0, voltage_limit=1000.0),
     device,
   )
   qd0 = torch.tensor([[1.0, 0.0]], device=device)
@@ -257,8 +263,8 @@ def test_cogging_packed_into_biasprm(device):
   """``cogging=(A, Np, phi)`` packs into ``biasprm[0:3]``."""
   cfg = BuiltinDcMotorActuatorCfg(
     target_names_expr=("joint.*",),
-    mode="voltage",
-    nominal=(V_NOM, TAU_STALL, OMEGA_NL),
+    mode=DcMotorInputMode.VOLTAGE,
+    motor_params=DATASHEET,
     cogging=(0.5, 4.0, 0.1),
   )
   _, sim = initialize_entity(create_entity_with_actuator(ROBOT_XML, cfg), device)
@@ -275,8 +281,8 @@ def test_cogging_contributes_torque(device):
   A, Np, phi = 0.5, 4.0, 0.1
   cfg = BuiltinDcMotorActuatorCfg(
     target_names_expr=("joint.*",),
-    mode="voltage",
-    nominal=(V_NOM, TAU_STALL, OMEGA_NL),
+    mode=DcMotorInputMode.VOLTAGE,
+    motor_params=DATASHEET,
     cogging=(A, Np, phi),
   )
   entity, sim = initialize_entity(create_entity_with_actuator(ROBOT_XML, cfg), device)
@@ -302,8 +308,8 @@ def test_cogging_bypasses_effort_limit(device):
   A, Np, phi = 0.5, 0.0, math.pi / 2  # sin(pi/2)=1, so cogging = A at any q.
   cfg = BuiltinDcMotorActuatorCfg(
     target_names_expr=("joint.*",),
-    mode="voltage",
-    nominal=(V_NOM, TAU_STALL, OMEGA_NL),
+    mode=DcMotorInputMode.VOLTAGE,
+    motor_params=DATASHEET,
     cogging=(A, Np, phi),
     effort_limit=0.05,  # An order of magnitude below A.
   )
@@ -344,7 +350,9 @@ def test_integral_gain_ramps_torque(device):
   """Integrator in position mode ramps torque over time even with ``kp``
   and ``kd`` near zero."""
   # stiffness must be > 0 (validation); choose tiny so ki dominates.
-  base = dict(mode="position", stiffness=1e-4, damping=0.0, voltage_limit=24.0)
+  base = dict(
+    mode=DcMotorInputMode.POSITION, stiffness=1e-4, damping=0.0, voltage_limit=24.0
+  )
   ent_off, sim_off = _make_initialized(device, **base, integral_gain=0.0)
   ent_on, sim_on = _make_initialized(device, **base, integral_gain=10.0)
 
@@ -357,7 +365,9 @@ def test_integral_gain_ramps_torque(device):
 def test_slew_rate_limits_voltage(device):
   """``slew_rate`` rate-limits ``ctrl``: after one step, effective voltage
   is far below the requested input."""
-  base = dict(mode="voltage", stiffness=0.0, damping=0.0, voltage_limit=0.0)
+  base = dict(
+    mode=DcMotorInputMode.VOLTAGE, stiffness=0.0, damping=0.0, voltage_limit=0.0
+  )
   ent_off, sim_off = _make_initialized(device, **base, slew_rate=0.0)
   ent_on, sim_on = _make_initialized(device, **base, slew_rate=10.0)
 
@@ -369,7 +379,9 @@ def test_slew_rate_limits_voltage(device):
 
 def test_inductance_lags_current(device):
   """Large ``inductance`` (te >> dt) suppresses early-step torque."""
-  base = dict(mode="voltage", stiffness=0.0, damping=0.0, voltage_limit=0.0)
+  base = dict(
+    mode=DcMotorInputMode.VOLTAGE, stiffness=0.0, damping=0.0, voltage_limit=0.0
+  )
   ent_off, sim_off = _make_initialized(device, **base, inductance=0.0)
   ent_on, sim_on = _make_initialized(device, **base, inductance=1.0)
 
@@ -384,7 +396,9 @@ def test_thermal_decays_torque(device):
   torque over time."""
   # Params chosen for visible effect in a handful of steps without going
   # numerically unstable: small C (fast heating) and modest alpha.
-  base = dict(mode="voltage", stiffness=0.0, damping=0.0, voltage_limit=0.0)
+  base = dict(
+    mode=DcMotorInputMode.VOLTAGE, stiffness=0.0, damping=0.0, voltage_limit=0.0
+  )
   ent_off, sim_off = _make_initialized(device, **base)
   ent_on, sim_on = _make_initialized(
     device, **base, thermal=(1.0, 0.1, 0.0, 0.01, 0.0, 0.0)
@@ -403,7 +417,9 @@ def test_lugre_subtracts_friction(device):
   # the joint and back-EMF easing off under sim.step().
   #   no LuGre:  qfrc = -K^2 * v / R              (back-EMF only)
   #   w/ LuGre:  qfrc = -K^2 * v / R - sigma1*v - ...
-  base = dict(mode="voltage", stiffness=0.0, damping=0.0, voltage_limit=0.0)
+  base = dict(
+    mode=DcMotorInputMode.VOLTAGE, stiffness=0.0, damping=0.0, voltage_limit=0.0
+  )
   ent_off, sim_off = _make_initialized(device, **base)
   ent_on, sim_on = _make_initialized(
     device, **base, lugre=(1e4, 100.0, 0.1, 0.15, 0.01)
@@ -424,39 +440,29 @@ def test_lugre_subtracts_friction(device):
 # Config validation.
 
 
-def test_motor_characterization_xor():
-  with pytest.raises(ValueError, match="exactly one"):
-    BuiltinDcMotorActuatorCfg(
-      target_names_expr=("j",), nominal=(1, 1, 1), motor_const=(1, 1), resistance=1
-    )
-  with pytest.raises(ValueError, match="exactly one"):
-    BuiltinDcMotorActuatorCfg(target_names_expr=("j",))
-
-
-def test_motor_const_requires_resistance():
-  # `nominal=None`, `motor_const` set, `resistance` missing -> XOR check
-  # passes (only one characterization), but resistance is required.
-  with pytest.raises(ValueError, match="resistance"):
-    BuiltinDcMotorActuatorCfg(target_names_expr=("j",), motor_const=(1, 1))
-
-
 def test_pid_mode_requires_gains():
   with pytest.raises(ValueError, match="stiffness"):
     BuiltinDcMotorActuatorCfg(
-      target_names_expr=("j",), mode="position", nominal=(1, 1, 1), voltage_limit=1.0
+      target_names_expr=("j",),
+      mode=DcMotorInputMode.POSITION,
+      motor_params=DATASHEET,
+      voltage_limit=1.0,
     )
   with pytest.raises(ValueError, match="voltage_limit"):
     BuiltinDcMotorActuatorCfg(
-      target_names_expr=("j",), mode="position", nominal=(1, 1, 1), stiffness=1.0
+      target_names_expr=("j",),
+      mode=DcMotorInputMode.POSITION,
+      motor_params=DATASHEET,
+      stiffness=1.0,
     )
 
 
 def test_voltage_mode_rejects_pid_gains():
-  with pytest.raises(ValueError, match="voltage"):
+  with pytest.raises(ValueError, match="VOLTAGE"):
     BuiltinDcMotorActuatorCfg(
       target_names_expr=("j",),
-      mode="voltage",
-      nominal=(1, 1, 1),
+      mode=DcMotorInputMode.VOLTAGE,
+      motor_params=DATASHEET,
       stiffness=1.0,
     )
 
@@ -465,7 +471,7 @@ def test_site_rejected():
   with pytest.raises(ValueError, match="SITE"):
     BuiltinDcMotorActuatorCfg(
       target_names_expr=("j",),
-      nominal=(1, 1, 1),
+      motor_params=DATASHEET,
       stiffness=1.0,
       voltage_limit=1.0,
       transmission_type=TransmissionType.SITE,
@@ -489,7 +495,7 @@ def test_armature_applied(device):
 def _scene_env(
   device,
   num_envs=2,
-  mode: Literal["voltage", "position", "velocity"] = "position",
+  mode: DcMotorInputMode = DcMotorInputMode.POSITION,
 ):
   def spec_fn():
     spec = mujoco.MjSpec.from_string(ROBOT_XML)
@@ -504,10 +510,10 @@ def _scene_env(
         BuiltinDcMotorActuatorCfg(
           target_names_expr=("joint.*",),
           mode=mode,
-          nominal=(V_NOM, TAU_STALL, OMEGA_NL),
-          stiffness=5.0 if mode != "voltage" else 0.0,
-          damping=0.5 if mode != "voltage" else 0.0,
-          voltage_limit=24.0 if mode != "voltage" else 0.0,
+          motor_params=DATASHEET,
+          stiffness=5.0 if mode != DcMotorInputMode.VOLTAGE else 0.0,
+          damping=0.5 if mode != DcMotorInputMode.VOLTAGE else 0.0,
+          voltage_limit=24.0 if mode != DcMotorInputMode.VOLTAGE else 0.0,
           effort_limit=50.0,
         ),
       )
@@ -569,9 +575,9 @@ def test_dr_pd_gains_position_mode(
 
 
 def test_dr_pd_gains_voltage_mode_rejected(device):
-  env = _scene_env(device, mode="voltage")
+  env = _scene_env(device, mode=DcMotorInputMode.VOLTAGE)
   env.sim.expand_model_fields(("actuator_gainprm", "actuator_biasprm"))
-  with pytest.raises(ValueError, match="voltage"):
+  with pytest.raises(ValueError, match="VOLTAGE"):
     dr.pd_gains(
       env,
       env_ids=torch.tensor([0], device=device),
