@@ -120,6 +120,34 @@ _TRANSMISSION_TYPE_MAP = {
 }
 
 
+def apply_target_overrides(
+  spec: mujoco.MjSpec,
+  target_name: str,
+  transmission_type: TransmissionType,
+  *,
+  armature: float | None,
+  frictionloss: float | None,
+  viscous_damping: float | None,
+) -> None:
+  """Apply joint- or tendon-level overrides. ``None`` preserves the XML value.
+
+  SITE transmission is a no-op (sites have no armature / frictionloss / damping);
+  callers using SITE should not pass non-None overrides.
+  """
+  if transmission_type == TransmissionType.JOINT:
+    target = spec.joint(target_name)
+  elif transmission_type == TransmissionType.TENDON:
+    target = spec.tendon(target_name)
+  else:
+    return
+  if armature is not None:
+    target.armature = armature
+  if frictionloss is not None:
+    target.frictionloss = frictionloss
+  if viscous_damping is not None:
+    target.damping[0] = viscous_damping
+
+
 def auto_wrap_fixed_base_mocap(
   spec_fn: Callable[[], mujoco.MjSpec],
 ) -> Callable[[], mujoco.MjSpec]:
@@ -235,21 +263,14 @@ def create_motor_actuator(
   actuator.ctrllimited = True
   actuator.ctrlrange[:] = np.array([-effort_limit, effort_limit])
 
-  # Set armature, frictionloss, and viscous_damping (None = preserve XML value).
-  if transmission_type == TransmissionType.JOINT:
-    if armature is not None:
-      spec.joint(joint_name).armature = armature
-    if frictionloss is not None:
-      spec.joint(joint_name).frictionloss = frictionloss
-    if viscous_damping is not None:
-      spec.joint(joint_name).damping[0] = viscous_damping
-  elif transmission_type == TransmissionType.TENDON:
-    if armature is not None:
-      spec.tendon(joint_name).armature = armature
-    if frictionloss is not None:
-      spec.tendon(joint_name).frictionloss = frictionloss
-    if viscous_damping is not None:
-      spec.tendon(joint_name).damping[0] = viscous_damping
+  apply_target_overrides(
+    spec,
+    joint_name,
+    transmission_type,
+    armature=armature,
+    frictionloss=frictionloss,
+    viscous_damping=viscous_damping,
+  )
 
   return actuator
 
@@ -321,21 +342,14 @@ def create_position_actuator(
     actuator.forcelimited = False
     # No forcerange needed.
 
-  # Set armature, frictionloss, and viscous_damping (None = preserve XML value).
-  if transmission_type == TransmissionType.JOINT:
-    if armature is not None:
-      spec.joint(joint_name).armature = armature
-    if frictionloss is not None:
-      spec.joint(joint_name).frictionloss = frictionloss
-    if viscous_damping is not None:
-      spec.joint(joint_name).damping[0] = viscous_damping
-  elif transmission_type == TransmissionType.TENDON:
-    if armature is not None:
-      spec.tendon(joint_name).armature = armature
-    if frictionloss is not None:
-      spec.tendon(joint_name).frictionloss = frictionloss
-    if viscous_damping is not None:
-      spec.tendon(joint_name).damping[0] = viscous_damping
+  apply_target_overrides(
+    spec,
+    joint_name,
+    transmission_type,
+    armature=armature,
+    frictionloss=frictionloss,
+    viscous_damping=viscous_damping,
+  )
 
   return actuator
 
@@ -383,21 +397,14 @@ def create_velocity_actuator(
   else:
     actuator.forcelimited = False
 
-  # Set armature, frictionloss, and viscous_damping (None = preserve XML value).
-  if transmission_type == TransmissionType.JOINT:
-    if armature is not None:
-      spec.joint(joint_name).armature = armature
-    if frictionloss is not None:
-      spec.joint(joint_name).frictionloss = frictionloss
-    if viscous_damping is not None:
-      spec.joint(joint_name).damping[0] = viscous_damping
-  elif transmission_type == TransmissionType.TENDON:
-    if armature is not None:
-      spec.tendon(joint_name).armature = armature
-    if frictionloss is not None:
-      spec.tendon(joint_name).frictionloss = frictionloss
-    if viscous_damping is not None:
-      spec.tendon(joint_name).damping[0] = viscous_damping
+  apply_target_overrides(
+    spec,
+    joint_name,
+    transmission_type,
+    armature=armature,
+    frictionloss=frictionloss,
+    viscous_damping=viscous_damping,
+  )
 
   return actuator
 

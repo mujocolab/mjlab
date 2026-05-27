@@ -6,7 +6,12 @@ from typing import TYPE_CHECKING, Literal
 
 import torch
 
-from mjlab.actuator import BuiltinPdActuator, BuiltinPositionActuator, IdealPdActuator
+from mjlab.actuator import (
+  BuiltinDcMotorActuator,
+  BuiltinPdActuator,
+  BuiltinPositionActuator,
+  IdealPdActuator,
+)
 from mjlab.actuator.actuator import TransmissionType
 from mjlab.actuator.xml_actuator import XmlActuator
 from mjlab.entity import Entity
@@ -106,6 +111,28 @@ def pd_gains(
         env.sim.model.actuator_biasprm[env_ids[:, None], ctrl_ids, 1] = -kp_samples
         env.sim.model.actuator_biasprm[env_ids[:, None], ctrl_ids, 2] = -kd_samples
 
+    elif isinstance(actuator, BuiltinDcMotorActuator):
+      if actuator.cfg.mode == "voltage":
+        raise ValueError(
+          "dr.pd_gains does not apply to BuiltinDcMotorActuator in 'voltage' "
+          "mode (no internal PID gains to scale)."
+        )
+      # DC motor stores kp at gainprm[4] and kd at gainprm[6] (set via
+      # set_to_dcmotor). The bias slots carry back-EMF / cogging, not the PD,
+      # so we only touch gainprm.
+      if op.name == "scale":
+        default_gainprm = env.sim.get_default_field("actuator_gainprm")
+        env.sim.model.actuator_gainprm[env_ids[:, None], ctrl_ids, 4] = (
+          default_gainprm[ctrl_ids, 4] * kp_samples
+        )
+        env.sim.model.actuator_gainprm[env_ids[:, None], ctrl_ids, 6] = (
+          default_gainprm[ctrl_ids, 6] * kd_samples
+        )
+      else:
+        assert op.name == "abs"
+        env.sim.model.actuator_gainprm[env_ids[:, None], ctrl_ids, 4] = kp_samples
+        env.sim.model.actuator_gainprm[env_ids[:, None], ctrl_ids, 6] = kd_samples
+
     elif isinstance(actuator, BuiltinPdActuator):
       # ctrl_ids is laid out as [pos_0..pos_{N-1}, vel_0..vel_{N-1}], so the
       # first N rows carry kp and the next N carry kd.
@@ -155,8 +182,8 @@ def pd_gains(
     else:
       raise TypeError(
         f"pd_gains only supports BuiltinPositionActuator, BuiltinPdActuator, "
-        f"XmlActuator (position), and IdealPdActuator, "
-        f"got {type(actuator).__name__}"
+        f"BuiltinDcMotorActuator (position/velocity mode), XmlActuator (position), "
+        f"and IdealPdActuator, got {type(actuator).__name__}"
       )
 
 
@@ -216,7 +243,7 @@ def effort_limits(
       env.device,
     )
 
-    if isinstance(actuator, BuiltinPositionActuator) or (
+    if isinstance(actuator, (BuiltinPositionActuator, BuiltinDcMotorActuator)) or (
       isinstance(actuator, XmlActuator) and actuator.command_field == "position"
     ):
       if op.name == "scale":
@@ -274,6 +301,6 @@ def effort_limits(
     else:
       raise TypeError(
         f"effort_limits only supports BuiltinPositionActuator, BuiltinPdActuator, "
-        f"XmlActuator (position), and IdealPdActuator, "
+        f"BuiltinDcMotorActuator, XmlActuator (position), and IdealPdActuator, "
         f"got {type(actuator).__name__}"
       )
