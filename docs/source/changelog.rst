@@ -119,6 +119,12 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ``Episode_Reward/*``, ``Episode_Metrics/*``, ``Curriculum/*``, and
+  ``Episode_Termination/*`` log keys disappearing from the training output
+  after :issue:`957` was fixed. ``rsl_rl``'s logger derives its key set from
+  the first rollout step, which typically has no resets; ``RslRlVecEnvWrapper``
+  now maintains a log cache seeded from the initial reset so all keys are
+  present from step 0.
 - Removed use of deprecated ``warp-lang`` symbols (``wp.context.runtime``
   and ``wp.context.Device``) that were dropped in newer ``warp-lang``
   releases, causing ``AttributeError: module 'warp' has no attribute
