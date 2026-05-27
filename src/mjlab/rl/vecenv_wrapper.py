@@ -23,6 +23,9 @@ class RslRlVecEnvWrapper(VecEnv):
 
     # Reset at the start since rsl_rl does not call reset.
     self.env.reset()
+    # Cache from the initial reset the key set from first rollout so step() can
+    # carry those keys forward and they keep getting logged.
+    self._log_cache: dict = dict(self.unwrapped.extras.get("log", {}))
 
   @property
   def cfg(self) -> ManagerBasedRlEnvCfg:
@@ -75,6 +78,9 @@ class RslRlVecEnvWrapper(VecEnv):
     if self.clip_actions is not None:
       actions = torch.clamp(actions, -self.clip_actions, self.clip_actions)
     obs_dict, rew, terminated, truncated, extras = self.env.step(actions)
+    if "log" in extras:
+      self._log_cache.update(extras["log"])
+      extras["log"] = dict(self._log_cache)
     term_or_trunc = terminated | truncated
     assert isinstance(rew, torch.Tensor)
     assert isinstance(term_or_trunc, torch.Tensor)
