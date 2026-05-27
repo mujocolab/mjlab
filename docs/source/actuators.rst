@@ -61,6 +61,7 @@ MuJoCo's integrator handles velocity-dependent forces.
 
 **Built-in actuators** (``BuiltinPositionActuator``,
 ``BuiltinVelocityActuator``, ``BuiltinMotorActuator``,
+``BuiltinPdActuator``, ``BuiltinDcMotorActuator``,
 ``BuiltinMuscleActuator``) create native MuJoCo actuator elements in the
 MjSpec. The physics engine computes the control law and integrates
 velocity-dependent damping forces implicitly. This provides the best
@@ -118,6 +119,31 @@ control.
 
 **BuiltinMotorActuator**: Creates ``<motor>`` actuators for direct torque
 control.
+
+**BuiltinPdActuator**: Native PD that closes on both a position and a
+velocity target, implemented as paired ``<position>`` + ``<velocity>``
+actuators summing to ``kp * (p_target - q) + kd * (v_target - qdot)``.
+``BuiltinPositionActuator`` puts kd on the ``<position>`` element and
+implicitly assumes a zero velocity reference; use this when the policy
+emits a non-zero velocity target. Native delivery lets
+``implicit`` / ``implicitfast`` see the kd term in their velocity update,
+unlike ``IdealPdActuator`` which forwards Python-computed torque through
+an opaque ``<motor>``.
+
+**BuiltinDcMotorActuator**: Wraps MuJoCo's native
+`<dcmotor> <https://mujoco.readthedocs.io/en/stable/XMLreference.html#actuator-dcmotor>`_
+element. Torque is ``tau = K * (V - K * omega) / R``; the back-EMF runs
+through the native bias path, so ``implicit`` / ``implicitfast`` pick up
+its velocity derivative as effective damping. Three input modes pick what
+``ctrl`` carries: VOLTAGE drives the motor directly; POSITION / VELOCITY
+close an internal PID (with anti-windup and slew limiting) against a
+single setpoint, whose Vmax-clamped output becomes torque. POSITION mode
+pins v_target = 0 (the kd term acts on raw velocity). Optional physics:
+inductance,
+thermal model with I^2R heating, cogging ripple, LuGre friction.
+``DcMotorActuator`` (the explicit version) is a software PD with a
+velocity-dependent torque clamp on top of a ``<motor>``; this is the real
+electrical model.
 
 **BuiltinMuscleActuator**: Creates ``<muscle>`` actuators for
 biologically-inspired muscle dynamics with force-length-velocity
