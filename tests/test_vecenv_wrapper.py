@@ -90,6 +90,7 @@ def test_reset_only_log_keys_survive_nonreset_steps(env):
   wrapper = RslRlVecEnvWrapper(env)
   actions = torch.zeros(wrapper.num_envs, wrapper.num_actions, device=wrapper.device)
   _, _, dones, extras = wrapper.step(actions)
+  assert "Episode_Reward/const" in wrapper._log_cache
 
   assert not dones.any(), "test assumes no reset on the first step"
   assert "Episode_Reward/const" in extras["log"]
