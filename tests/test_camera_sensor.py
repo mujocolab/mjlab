@@ -328,6 +328,62 @@ def test_cam_intrinsic_dr_changes_rendered_image(device):
   assert torch.equal(after[1], baseline[1]), "Env 1 image changed unexpectedly"
 
 
+def test_camera_render_period_skip_force(device):
+  """Camera buffers are held on skipped sense calls and update when forced."""
+  cam_cfg = CameraSensorCfg(
+    name="test_cam",
+    camera_name="world/intrinsic_cam",
+    width=32,
+    height=24,
+    data_types=("rgb",),
+    render_update_period=3,
+  )
+  scene, sim = _make_scene_and_sim(
+    device, sensors=(cam_cfg,), xml=INTRINSIC_CAM_XML, num_envs=2
+  )
+  sim.expand_model_fields(("cam_intrinsic",))
+
+  sim.forward()
+  sim.sense()
+  baseline = scene["test_cam"].data.rgb.clone()
+
+  cam_id = sim.mj_model.camera("world/intrinsic_cam").id
+  sim.model.cam_intrinsic[0, cam_id, :2] *= 5.0
+
+  sim.forward()
+  sim.sense()
+  skipped = scene["test_cam"].data.rgb
+  assert torch.equal(skipped, baseline)
+
+  sim.sense(force_camera_render=True)
+  forced = scene["test_cam"].data.rgb
+  assert not torch.equal(forced[0], baseline[0])
+  assert torch.equal(forced[1], baseline[1])
+
+
+def test_camera_render_period_mismatch(device):
+  """Render cadence is shared because cameras use one RenderContext."""
+  cam_a = CameraSensorCfg(
+    name="cam_a",
+    camera_name="world/overhead_cam",
+    width=16,
+    height=12,
+    data_types=("rgb",),
+    render_update_period=1,
+  )
+  cam_b = CameraSensorCfg(
+    name="cam_b",
+    camera_name="world/overhead_cam",
+    width=16,
+    height=12,
+    data_types=("depth",),
+    render_update_period=2,
+  )
+
+  with pytest.raises(ValueError, match="render_update_period"):
+    _make_scene_and_sim(device, sensors=(cam_a, cam_b))
+
+
 def test_camera_segmentation_shape(device):
   """Segmentation data has correct shape [num_envs, height, width, 2]."""
   cam_cfg = CameraSensorCfg(

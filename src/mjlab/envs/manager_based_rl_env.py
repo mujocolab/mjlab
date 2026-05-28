@@ -370,7 +370,7 @@ class ManagerBasedRlEnv:
     self.scene.write_data_to_sim()
     self.sim.forward()
     self.command_manager.compute(dt=0.0)
-    self.sim.sense()
+    self.sim.sense(force_camera_render=True)
     self.obs_buf = self.observation_manager.compute(update_history=True)
     self.recorder_manager.record_post_reset(env_ids)
     return self.obs_buf, self.extras
@@ -460,7 +460,7 @@ class ManagerBasedRlEnv:
     if "interval" in self.event_manager.available_modes:
       self.event_manager.apply(mode="interval", dt=self.step_dt)
 
-    self.sim.sense()
+    self.sim.sense(force_camera_render=self.cfg.auto_reset and len(reset_env_ids) > 0)
     self.obs_buf = self.observation_manager.compute(update_history=True)
 
     if self.cfg.auto_reset and len(reset_env_ids) > 0:

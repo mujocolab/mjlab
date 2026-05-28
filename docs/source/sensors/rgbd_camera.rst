@@ -160,7 +160,8 @@ Render settings
 ---------------
 
 All camera sensors in a scene must share identical values for
-``use_textures``, ``use_shadows``, and ``enabled_geom_groups``. This
+``use_textures``, ``use_shadows``, ``enabled_geom_groups``, and
+``render_update_period``. This
 is a constraint of the underlying MuJoCo Warp rendering system, which
 uses a single ``RenderContext`` for all cameras. Mismatched settings
 raise a ``ValueError`` at scene construction.
@@ -184,6 +185,28 @@ raise a ``ValueError`` at scene construction.
         enabled_geom_groups=(0, 1, 2),  # Must match cam_a
         data_types=("depth",),
     )
+
+
+Render cadence
+--------------
+
+Set ``render_update_period`` to reuse camera images across multiple
+``sim.sense()`` calls. This is useful when visual observations are
+more expensive than the policy or control rate requires.
+
+.. code-block:: python
+
+    CameraSensorCfg(
+        name="wrist_cam",
+        camera_name="robot/wrist_camera",
+        data_types=("rgb", "depth"),
+        render_update_period=5,  # render every fifth sense call
+    )
+
+Skipped render calls leave the previous camera buffers unchanged.
+Environment resets force a fresh camera render so post-reset
+observations are current, even when the reset happens between scheduled
+camera updates.
 
 
 Output
