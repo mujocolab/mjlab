@@ -3,10 +3,12 @@
 import os
 from typing import Literal
 
+GpuId = int | str
+
 
 def select_gpus(
   gpu_ids: list[int] | Literal["all"] | None,
-) -> tuple[list[int] | None, int]:
+) -> tuple[list[GpuId] | None, int]:
   """Select GPUs based on CUDA_VISIBLE_DEVICES and user specification.
 
   This function treats the `gpu_ids` parameter as indices into the existing
@@ -19,7 +21,8 @@ def select_gpus(
 
   Returns:
     A tuple of (selected_gpu_ids, num_gpus) where:
-    - selected_gpu_ids: List of physical GPU IDs to use, or None for CPU mode
+    - selected_gpu_ids: List of physical GPU IDs (int for numeric, str for MIG
+      UUIDs), or None for CPU mode
     - num_gpus: Number of GPUs selected (0 for CPU mode)
 
   Examples:
@@ -50,8 +53,11 @@ def select_gpus(
 
   if existing_visible_devices is not None:
     # Parse existing CUDA_VISIBLE_DEVICES.
-    available_gpus = [
-      int(x.strip()) for x in existing_visible_devices.split(",") if x.strip()
+    # Use int for numeric IDs, keep as string for MIG UUIDs.
+    available_gpus: list[GpuId] = [
+      int(x.strip()) if x.strip().isdigit() else x.strip()
+      for x in existing_visible_devices.split(",")
+      if x.strip()
     ]
     # Empty CUDA_VISIBLE_DEVICES means CPU mode.
     if not available_gpus:
@@ -60,15 +66,16 @@ def select_gpus(
     # If not set, default to all available GPUs.
     import torch.cuda
 
-    available_gpus = list(range(torch.cuda.device_count()))
+    available_gpus: list[GpuId] = list(range(torch.cuda.device_count()))
 
   # Map gpu_ids indices to actual GPU IDs.
+  selected: list[GpuId]
   if gpu_ids == "all":
-    selected_gpus = available_gpus
+    selected = available_gpus
   else:
     # gpu_ids are indices into available_gpus.
-    selected_gpus = [available_gpus[i] for i in gpu_ids]
+    selected = [available_gpus[i] for i in gpu_ids]
 
-  num_gpus = len(selected_gpus)
+  num_gpus = len(selected)
 
-  return selected_gpus, num_gpus
+  return selected, num_gpus
