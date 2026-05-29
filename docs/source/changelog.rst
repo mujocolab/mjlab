@@ -18,6 +18,11 @@ Changed
 
 - Bumped ``rsl-rl-lib`` from 5.2.0 to 5.4.0.
 
+Fixed
+^^^^^
+
+- Fixed ``select_gpus`` crashing when ``CUDA_VISIBLE_DEVICES`` contains MIG UUIDs instead of numeric indices.
+
 Version 1.4.0 (May 26, 2026)
 ----------------------------
 
