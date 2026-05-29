@@ -257,11 +257,11 @@ class TerrainGenerator:
     # One column per terrain type — proportion is only for spawning.
     sub_terrains_cfgs = list(self.cfg.sub_terrains.values())
 
+    lower, upper = self.cfg.difficulty_range
     for sub_col in range(self._num_cols):
       for sub_row in range(self.cfg.num_rows):
-        lower, upper = self.cfg.difficulty_range
-        difficulty = (sub_row + self.np_rng.uniform()) / self.cfg.num_rows
-        difficulty = lower + (upper - lower) * difficulty
+        t = sub_row / max(self.cfg.num_rows - 1, 1)
+        difficulty = lower + (upper - lower) * t
         world_position = self._get_sub_terrain_position(sub_row, sub_col)
         spawn_origin = self._create_terrain_geom(
           spec,

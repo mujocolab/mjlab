@@ -106,7 +106,7 @@ class BoxPyramidStairsTerrainCfg(SubTerrainCfg):
     first_step_rgba = brand_ramp(_MUJOCO_BLUE, 0.0)
     border_rgba = darken_rgba(first_step_rgba, 0.85)
 
-    if self.border_width > 0.0 and not self.holes:
+    if self.border_width > 0.0 and not self.holes and step_height > 0.0:
       border_center = (0.5 * self.size[0], 0.5 * self.size[1], -step_height / 2)
       border_inner_size = (
         self.size[0] - 2 * self.border_width,
@@ -279,7 +279,7 @@ class BoxInvertedPyramidStairsTerrainCfg(BoxPyramidStairsTerrainCfg):
     first_step_rgba = brand_ramp(_MUJOCO_RED, 0.0)
     border_rgba = darken_rgba(first_step_rgba, 0.85)
 
-    if self.border_width > 0.0 and not self.holes:
+    if self.border_width > 0.0 and not self.holes and step_height > 0.0:
       border_center = (0.5 * self.size[0], 0.5 * self.size[1], -0.5 * step_height)
       border_inner_size = (
         self.size[0] - 2 * self.border_width,
