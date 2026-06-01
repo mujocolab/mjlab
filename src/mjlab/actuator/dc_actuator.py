@@ -14,12 +14,35 @@ import mujoco_warp as mjwarp
 import torch
 
 from mjlab.actuator.actuator import ActuatorCmd
-from mjlab.actuator.pd_actuator import IdealPdActuator, IdealPdActuatorCfg
+from mjlab.actuator.pd_actuator import IdealPdActuator, IdealPdActuatorCfg, pd_torque
 
 if TYPE_CHECKING:
   from mjlab.entity import Entity
 
 DcMotorCfgT = TypeVar("DcMotorCfgT", bound="DcMotorActuatorCfg")
+
+
+def dc_motor_clip(
+  effort: torch.Tensor,
+  saturation_effort: torch.Tensor,
+  velocity_limit: torch.Tensor,
+  vel_at_effort_lim: torch.Tensor,
+  force_limit: torch.Tensor,
+  vel: torch.Tensor,
+) -> torch.Tensor:
+  """Clip effort to the DC motor torque-speed curve.
+
+  Linear torque-speed curve: full saturation_effort at zero velocity falling to
+  zero at velocity_limit, further bounded by the continuous force_limit. Shared
+  by DcMotorActuator._clip_effort and the fused control law so the curve lives in
+  one place.
+  """
+  vel_clipped = torch.clamp(vel, min=-vel_at_effort_lim, max=vel_at_effort_lim)
+  torque_speed_top = saturation_effort * (1.0 - vel_clipped / velocity_limit)
+  torque_speed_bottom = saturation_effort * (-1.0 - vel_clipped / velocity_limit)
+  max_effort = torch.clamp(torque_speed_top, max=force_limit)
+  min_effort = torch.clamp(torque_speed_bottom, min=-force_limit)
+  return torch.clamp(effort, min=min_effort, max=max_effort)
 
 
 @dataclass(kw_only=True)
@@ -87,6 +110,27 @@ class DcMotorActuator(IdealPdActuator[DcMotorCfgT], Generic[DcMotorCfgT]):
   The continuous torque limit (effort_limit) further constrains the output.
   """
 
+  # Same stateless-law compute as IdealPd, with the torque-speed curve added to
+  # the law. The velocity feedback the curve needs comes straight from cmd.vel.
+  param_names = (
+    *IdealPdActuator.param_names,
+    "saturation_effort",
+    "velocity_limit_motor",
+    "_vel_at_effort_lim",
+  )
+
+  @staticmethod
+  def control_law(params: dict[str, torch.Tensor], cmd: ActuatorCmd) -> torch.Tensor:
+    torque = pd_torque(params["stiffness"], params["damping"], cmd)
+    return dc_motor_clip(
+      torque,
+      params["saturation_effort"],
+      params["velocity_limit_motor"],
+      params["_vel_at_effort_lim"],
+      params["force_limit"],
+      cmd.vel,
+    )
+
   def __init__(
     self,
     cfg: DcMotorCfgT,
@@ -132,35 +176,20 @@ class DcMotorActuator(IdealPdActuator[DcMotorCfgT], Generic[DcMotorCfgT]):
     )
     self._joint_vel_clipped = torch.zeros(num_envs, num_joints, device=device)
 
-  def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
-    assert self._joint_vel_clipped is not None
-    self._joint_vel_clipped[:] = cmd.vel
-    return super().compute(cmd)
-
   def _clip_effort(self, effort: torch.Tensor) -> torch.Tensor:
+    # Retained for LearnedMlpActuator, which has its own (stateful) compute and
+    # reuses this torque-speed clip. DcMotorActuator itself clips inside
+    # control_law via dc_motor_clip.
     assert self.saturation_effort is not None
     assert self.velocity_limit_motor is not None
     assert self.force_limit is not None
     assert self._vel_at_effort_lim is not None
     assert self._joint_vel_clipped is not None
-
-    # Clip velocity to corner velocity range.
-    vel_clipped = torch.clamp(
+    return dc_motor_clip(
+      effort,
+      self.saturation_effort,
+      self.velocity_limit_motor,
+      self._vel_at_effort_lim,
+      self.force_limit,
       self._joint_vel_clipped,
-      min=-self._vel_at_effort_lim,
-      max=self._vel_at_effort_lim,
     )
-
-    # Compute torque-speed curve limits.
-    torque_speed_top = self.saturation_effort * (
-      1.0 - vel_clipped / self.velocity_limit_motor
-    )
-    torque_speed_bottom = self.saturation_effort * (
-      -1.0 - vel_clipped / self.velocity_limit_motor
-    )
-
-    # Apply continuous torque constraint.
-    max_effort = torch.clamp(torque_speed_top, max=self.force_limit)
-    min_effort = torch.clamp(torque_speed_bottom, min=-self.force_limit)
-
-    return torch.clamp(effort, min=min_effort, max=max_effort)

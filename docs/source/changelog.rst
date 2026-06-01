@@ -18,6 +18,11 @@ Added
 Changed
 ^^^^^^^
 
+- Command delay on fusable actuators (ideal PD, DC motor) now applies one shared
+  lag per environment across all fused actuators sharing a delay config, matching
+  the built-in actuator path, rather than an independent lag per actuator group
+  (:issue:`1035`).
+
 Fixed
 ^^^^^
 
@@ -26,6 +31,11 @@ Fixed
   outside ``[-1, 1]``, making ``torch.acos`` return NaN and silently
   suppressing the termination for flipped robots. The argument is now clamped
   to ``[-1, 1]``.
+- Fixed a crash when using command delay on ideal PD (or other custom)
+  actuators whenever ``num_envs`` differed from the number of delayed targets,
+  and fused ideal PD and DC motor actuators sharing a transmission and delay
+  config into a single gather, delay, control-law evaluation, and control
+  write, removing per-group host overhead (:issue:`1035`).
 
 Version 1.5.0 (June 28, 2026)
 -----------------------------

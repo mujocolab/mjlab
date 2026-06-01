@@ -76,7 +76,11 @@ def test_different_delay_configs_separate_groups(device):
 
 
 def test_non_builtin_delayed_not_fused(device):
-  """Delayed non-builtin actuators remain in custom_actuators."""
+  """Builtin delay fusion does not absorb ideal PD actuators.
+
+  The ideal PD actuator is fused separately into the PD group, not into the
+  builtin group and not left on the per-actuator custom path.
+  """
   delayed_builtin = BuiltinPositionActuatorCfg(
     target_names_expr=("joint1",),
     stiffness=50.0,
@@ -93,7 +97,8 @@ def test_non_builtin_delayed_not_fused(device):
   entity, _ = make_entity((delayed_builtin, custom), num_envs=2, device=device)
 
   assert len(entity._builtin_group._delayed_groups) == 1
-  assert len(entity._custom_actuators) == 1
+  assert len(entity._fused_actuator_group._groups) == 1
+  assert len(entity._custom_actuators) == 0
 
 
 def test_delayed_controls_written(device):

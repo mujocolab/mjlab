@@ -11,7 +11,7 @@ import numpy as np
 import torch
 
 from mjlab import actuator
-from mjlab.actuator import BuiltinActuatorGroup
+from mjlab.actuator import BuiltinActuatorGroup, FusedActuatorGroup
 from mjlab.actuator.actuator import TransmissionType
 from mjlab.actuator.xml_actuator import XmlActuator
 from mjlab.entity.data import EntityData
@@ -666,10 +666,16 @@ class Entity:
     for act in self._actuators:
       act.initialize(mj_model, model, data, device)
 
-    # Vectorize built-in actuators; we'll loop through custom ones.
+    # Vectorize built-in actuators, then fuse ideal PD actuators; we'll loop
+    # through whatever custom actuators remain.
     builtin_group, custom_actuators = BuiltinActuatorGroup.process(self._actuators)
     builtin_group.initialize(nworld, device)
     self._builtin_group = builtin_group
+    fused_actuator_group, custom_actuators = FusedActuatorGroup.process(
+      custom_actuators
+    )
+    fused_actuator_group.initialize(nworld, device)
+    self._fused_actuator_group = fused_actuator_group
     self._custom_actuators = custom_actuators
 
     # Root state.
@@ -1261,6 +1267,7 @@ class Entity:
 
   def _apply_actuator_controls(self) -> None:
     self._builtin_group.apply_controls(self._data)
+    self._fused_actuator_group.apply_controls(self._data)
     for act in self._custom_actuators:
       command = act.get_command(self._data)
       command = act.apply_delay(command)
