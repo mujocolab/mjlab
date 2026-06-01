@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-import time
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -194,16 +193,9 @@ class TerrainGenerator:
     body = spec.worldbody.add_body(name="terrain")
 
     if self.cfg.curriculum:
-      tic = time.perf_counter()
       self._generate_curriculum_terrains(spec)
-      toc = time.perf_counter()
-      print(f"Curriculum terrain generation took {toc - tic:.4f} seconds.")
-
     else:
-      tic = time.perf_counter()
       self._generate_random_terrains(spec)
-      toc = time.perf_counter()
-      print(f"Terrain generation took {toc - tic:.4f} seconds.")
 
     self._add_terrain_border(spec)
     self._add_grid_lights(spec)

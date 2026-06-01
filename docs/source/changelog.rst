@@ -12,6 +12,10 @@ Added
   Supports voltage / position / velocity input modes with back-EMF,
   configurable motor constants, and optional integral, slew, inductance,
   thermal, LuGre, and cogging extensions.
+- Added ``scale_with_difficulty`` to ``HfRandomUniformTerrainCfg``. When
+  enabled, the noise amplitude scales with difficulty (flat at 0, full
+  ``noise_range`` at 1) so the terrain progresses in a curriculum. Defaults to
+  ``False``, preserving the previous difficulty-independent behavior.
 
 Changed
 ^^^^^^^
@@ -20,11 +24,42 @@ Changed
 - Curriculum-mode terrain difficulty is now deterministic across rows
   and reaches the configured ``difficulty_range`` endpoints
   (:issue:`1027`).
+- Heightfield terrains now color by absolute height with a diverging palette
+  (cool below the ground plane, green at ground level, warm above) on a fixed
+  scale, replacing the per-patch normalization. Color is now consistent across
+  terrains, and low-amplitude terrain such as ``random_rough`` reads as gently
+  tinted ground instead of high-contrast noise.
+- ``BoxNestedRingsTerrainCfg`` now builds uniform-height concentric ridges
+  whose separating gaps widen with difficulty, replacing the random per-ring
+  heights. Rings are colored by height (like the other terrains) and the outer
+  border matches the ring height.
+- Terrain generation no longer prints timing information to stdout.
 
 Fixed
 ^^^^^
 
 - Fixed ``select_gpus`` crashing when ``CUDA_VISIBLE_DEVICES`` contains MIG UUIDs instead of numeric indices.
+- Fixed pyramid-stairs terrains (``BoxPyramidStairsTerrainCfg``,
+  ``BoxInvertedPyramidStairsTerrainCfg``, and ``BoxOpenStairsTerrainCfg``)
+  leaving an empty, geometry-free border at difficulty 0, where the step
+  height collapses to zero. The flat border frame is now always generated as
+  solid geometry flush with the ground (:issue:`1033`).
+- Fixed ``HfPerlinNoiseTerrainCfg`` failing to compile at difficulty 0, where
+  the target height collapses to zero and MuJoCo rejects the non-positive
+  heightfield size.
+- Fixed ``BoxRandomGridTerrainCfg`` producing NaN colors (and failing to build)
+  at difficulty 0, where the grid height is zero and the color normalization
+  divided by zero.
+- Fixed the center platform z-fighting with surrounding geometry in
+  ``BoxRandomGridTerrainCfg`` (grid cells were left underneath the platform) and
+  ``BoxRandomSpreadTerrainCfg`` (the platform duplicated the floor surface).
+- Fixed ``BoxNarrowBeamsTerrainCfg`` square platform corners protruding between
+  the beams at high difficulty; the platform now shrinks to stay within the
+  beams' angular coverage.
+- Fixed ``BoxSteppingStonesTerrainCfg`` reconfiguring abruptly at a difficulty
+  threshold, where the stone grid re-tiled as its spacing crossed an integer
+  boundary, and leaving an oversized gap around the center platform. The grid is
+  now difficulty-independent and the platform snaps to it as a clean island.
 
 Version 1.4.0 (May 26, 2026)
 ----------------------------
