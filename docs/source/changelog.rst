@@ -60,6 +60,7 @@ Fixed
   threshold, where the stone grid re-tiled as its spacing crossed an integer
   boundary, and leaving an oversized gap around the center platform. The grid is
   now difficulty-independent and the platform snaps to it as a clean island.
+- Fixed ``train --video``, ``play``, and ``demo`` crashing with ``OpenGL platform library not loaded`` on headless hosts that don't pre-set ``MUJOCO_GL``. The default is now applied in ``mjlab/__init__.py`` so it takes effect before mujoco's GL backend selection runs.
 
 Version 1.4.0 (May 26, 2026)
 ----------------------------

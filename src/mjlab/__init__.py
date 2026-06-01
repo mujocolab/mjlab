@@ -1,4 +1,10 @@
 import os
+
+# Default to EGL for GPU-accelerated offscreen rendering. Must be set before
+# any mujoco import: mujoco's gl_context module captures MUJOCO_GL once at load
+# time. Override with e.g. MUJOCO_GL=osmesa on clusters without EGL.
+os.environ.setdefault("MUJOCO_GL", "egl")
+
 import sys
 import traceback
 from importlib.metadata import entry_points
