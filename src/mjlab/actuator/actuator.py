@@ -46,6 +46,15 @@ class ActuatorCfg(ABC):
   armature: float | None = None
   """Reflected rotor inertia. None preserves the XML value."""
 
+  velocity_limit: float | None = None
+  """Maximum joint velocity metadata. None leaves it unspecified.
+
+  MuJoCo does not expose an Isaac Lab-style solver velocity cap for joints or
+  tendons, so this common field is not written into the compiled model. Actuator
+  models may use it for their own torque-speed limits, and downstream terms can
+  read it as hardware metadata.
+  """
+
   frictionloss: float | None = None
   """Friction loss force limit. None preserves the XML value.
 
@@ -89,6 +98,8 @@ class ActuatorCfg(ABC):
   def __post_init__(self) -> None:
     if self.armature is not None:
       assert self.armature >= 0.0, "armature must be non-negative."
+    if self.velocity_limit is not None:
+      assert self.velocity_limit > 0.0, "velocity_limit must be positive."
     if self.frictionloss is not None:
       assert self.frictionloss >= 0.0, "frictionloss must be non-negative."
     if self.viscous_damping is not None:

@@ -91,6 +91,36 @@ def test_targets_cleared_on_reset(device, robot_xml):
   )
 
 
+def test_common_velocity_limit_metadata(device, robot_xml):
+  """velocity_limit is accepted on common actuator configs as metadata."""
+  actuator_cfg = BuiltinVelocityActuatorCfg(
+    target_names_expr=("joint.*",),
+    damping=5.0,
+    effort_limit=100.0,
+    velocity_limit=1.0,
+  )
+  entity = create_entity_with_actuator(robot_xml, actuator_cfg)
+  entity, sim = initialize_entity(entity, device)
+
+  velocity_target = torch.tensor([[3.0, -4.0]], device=device)
+  entity.set_joint_velocity_target(velocity_target)
+  entity.write_data_to_sim()
+
+  assert actuator_cfg.velocity_limit == pytest.approx(1.0)
+  assert torch.allclose(sim.data.ctrl[0], velocity_target[0])
+
+
+@pytest.mark.parametrize("velocity_limit", [0.0, -1.0])
+def test_common_velocity_limit_must_be_positive(velocity_limit):
+  with pytest.raises(AssertionError, match="velocity_limit"):
+    BuiltinPositionActuatorCfg(
+      target_names_expr=("joint.*",),
+      stiffness=50.0,
+      damping=5.0,
+      velocity_limit=velocity_limit,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Internal attach prefix tests (issue #709)
 # ---------------------------------------------------------------------------

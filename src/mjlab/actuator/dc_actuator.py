@@ -41,8 +41,8 @@ class DcMotorActuatorCfg(IdealPdActuatorCfg):
   saturation_effort: float
   """Peak motor torque at zero velocity (stall torque)."""
 
-  velocity_limit: float
-  """Maximum motor velocity (no-load speed)."""
+  velocity_limit: float | None = None
+  """Maximum motor velocity (no-load speed). Required."""
 
   def __post_init__(self) -> None:
     """Validate DC motor parameters."""
@@ -58,6 +58,10 @@ class DcMotorActuatorCfg(IdealPdActuatorCfg):
         UserWarning,
         stacklevel=2,
       )
+
+    assert self.velocity_limit is not None, (
+      "velocity_limit is required for DcMotorActuator."
+    )
 
     if self.effort_limit > self.saturation_effort:
       warnings.warn(
@@ -118,9 +122,11 @@ class DcMotorActuator(IdealPdActuator[DcMotorCfgT], Generic[DcMotorCfgT]):
       dtype=torch.float,
       device=device,
     )
+    velocity_limit = self.cfg.velocity_limit
+    assert velocity_limit is not None
     self.velocity_limit_motor = torch.full(
       (num_envs, num_joints),
-      self.cfg.velocity_limit,
+      velocity_limit,
       dtype=torch.float,
       device=device,
     )
