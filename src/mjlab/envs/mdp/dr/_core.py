@@ -133,7 +133,19 @@ def _randomize_model_field(
       operation,
     )
 
-  model_field[env_grid, entity_grid] = operation.combine(base_values, random_values)
+  combined = operation.combine(base_values, random_values)
+
+  # Only write back the axes we targeted. Non-target axes in ``combined`` hold the
+  # operation identity applied to ``base_values`` (e.g. ``default * 1`` for scale),
+  # so writing the full slice would clobber modifications made by earlier events
+  # that targeted different axes of the same field. We loop with an integer axis
+  # index (basic indexing) rather than a device index tensor to avoid a
+  # per-call host-to-device copy; ``target_axes`` is tiny (at most 4).
+  if combined.ndim > 2:
+    for axis in target_axes:
+      model_field[env_grid, entity_grid, axis] = combined[..., axis]
+  else:
+    model_field[env_grid, entity_grid] = combined
 
 
 def _randomize_with_string_ranges(

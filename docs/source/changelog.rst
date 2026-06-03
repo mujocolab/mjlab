@@ -38,6 +38,10 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed domain randomization events that target different ``axes`` of the same
+  model field (e.g. two ``dr.geom_size`` events scaling axis 0 and axis 1
+  separately) silently clobbering each other. Each event now writes back only
+  the axes it targeted, so per-axis events compose (:issue:`1042`).
 - Fixed ``select_gpus`` crashing when ``CUDA_VISIBLE_DEVICES`` contains MIG UUIDs instead of numeric indices.
 - Fixed pyramid-stairs terrains (``BoxPyramidStairsTerrainCfg``,
   ``BoxInvertedPyramidStairsTerrainCfg``, and ``BoxOpenStairsTerrainCfg``)

@@ -1266,6 +1266,41 @@ def test_geom_size_no_accumulation(device):
   assert torch.allclose(result, expected, atol=1e-5)
 
 
+def test_geom_size_separate_axes_dont_clobber(device):
+  """Events targeting different axes of the same geom compose, not clobber."""
+  env = _make_geom_size_env(device, num_envs=2)
+  robot = env.scene["robot"]
+  geom_cfg = SceneEntityCfg("robot", geom_names=("box_geom",))
+  geom_cfg.resolve(env.scene)
+  geom_ids = robot.indexing.geom_ids[geom_cfg.geom_ids]
+
+  default_size = env.sim.get_default_field("geom_size")[geom_ids].clone()
+
+  # Scale axis 0 by 0.1, then axis 1 by 3.0 in a separate event.
+  dr.geom_size(
+    env,
+    env_ids=None,
+    ranges=(0.1, 0.1),
+    operation="scale",
+    axes=[0],
+    asset_cfg=geom_cfg,
+  )
+  dr.geom_size(
+    env,
+    env_ids=None,
+    ranges=(3.0, 3.0),
+    operation="scale",
+    axes=[1],
+    asset_cfg=geom_cfg,
+  )
+
+  result = env.sim.model.geom_size[0, geom_ids]
+  expected = default_size.clone()
+  expected[..., 0] *= 0.1
+  expected[..., 1] *= 3.0
+  assert torch.allclose(result, expected, atol=1e-5)
+
+
 def test_geom_size_partial_env_ids(device):
   """Only specified envs are updated."""
   env = _make_geom_size_env(device, num_envs=4)
