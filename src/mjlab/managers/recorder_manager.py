@@ -149,7 +149,6 @@ class RecorderManager(ManagerBase):
   """
 
   def __init__(self, cfg: dict[str, RecorderTermCfg], env: ManagerBasedRlEnv):
-    # ``dict`` preserves insertion order, so iteration matches registration order.
     self._terms: dict[str, RecorderTerm] = {}
     self.cfg = deepcopy(cfg)
     super().__init__(env)  # calls _prepare_terms()
