@@ -68,6 +68,11 @@ Fixed
   platform library not loaded`` on headless Linux hosts that don't pre-set
   ``MUJOCO_GL``. The default is now applied in ``mjlab/__init__.py`` (Linux
   only) so it takes effect before mujoco's GL backend selection runs.
+- Fixed ``CircularBuffer.push`` crashing with a broadcast shape mismatch
+  when the buffered data has more than two dimensions. The first-push
+  backfill previously hard-coded ``[None, :, None]`` and ``[None, :, :]``
+  views, which only matched 2-D tensors; it now computes the broadcast
+  shape dynamically from the data's ``ndim``.
 
 Version 1.4.0 (May 26, 2026)
 ----------------------------

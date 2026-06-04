@@ -282,3 +282,57 @@ def test_dc_motor_warns_when_effort_limit_exceeds_saturation():
       velocity_limit=30.0,
       effort_limit=25.0,  # > saturation_effort.
     )
+
+
+def test_dc_motor_delay_position_mode(device, robot_xml):
+  """A 2-step lag should make the effective position target 2 steps behind."""
+  kp = 100.0
+  kd = 0.0
+  saturation_effort = 20.0
+  velocity_limit = 30.0
+  effort_limit = 20.0  # Set to saturation so the DC curve itself is the limit.
+
+  entity = create_entity_with_actuator(
+    robot_xml,
+    DcMotorActuatorCfg(
+      target_names_expr=("joint.*",),
+      effort_limit=effort_limit,
+      stiffness=kp,
+      damping=kd,
+      saturation_effort=saturation_effort,
+      velocity_limit=velocity_limit,
+      delay_min_lag=2,
+      delay_max_lag=4,
+    ),
+  )
+
+  entity, sim = initialize_entity(entity, device)
+
+  # Zero position and velocity.
+  joint_pos = torch.tensor([[0.0]], device=device)
+  joint_vel = torch.tensor([[0.0]], device=device)
+  entity.write_joint_state_to_sim(joint_pos, joint_vel)
+
+  # Small targets so torque demand stays below saturation_effort and is
+  # therefore distinguishable across steps.
+  targets = [
+    torch.tensor([[0.05]], device=device),  # demand = 5.0
+    torch.tensor([[0.10]], device=device),  # demand = 10.0
+    torch.tensor([[0.15]], device=device),  # demand = 15.0
+  ]
+
+  zero_effort = torch.zeros(1, 1, device=device)
+  for target in targets:
+    entity.set_joint_position_target(target)
+    entity.set_joint_velocity_target(zero_effort)
+    entity.set_joint_effort_target(zero_effort)
+    entity.write_data_to_sim()
+
+  # With lag=2 and three writes:
+  #   t=0: append target0 → return target0 (backfill)
+  #   t=1: append target1 → return target0 (clamped to available history)
+  #   t=2: append target2 → return target0 (lag=2, T-2 = 0)
+  # So the effective target should still be targets[0].
+  ctrl = sim.data.ctrl[0]
+  expected = kp * targets[0][0, 0]  # 5.0
+  assert torch.allclose(ctrl, torch.tensor([expected], device=device), atol=1e-4)

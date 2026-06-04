@@ -209,9 +209,8 @@ class CircularBuffer:
 
     # Backfill entire history with first frame for newly initialized batches.
     is_first_push = self._num_pushes == 0
-    torch.where(
-      is_first_push[None, :, None], data[None, :, :], self._buffer, out=self._buffer
-    )
+    cond = is_first_push.view(1, self._batch_size, *([1] * (data.ndim - 1)))
+    torch.where(cond, data.unsqueeze(0), self._buffer, out=self._buffer)
 
     self._num_pushes += 1
 
