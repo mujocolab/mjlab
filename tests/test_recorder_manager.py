@@ -351,7 +351,6 @@ def test_get_term_returns_registered_instance(mock_env: Mock) -> None:
   manager = RecorderManager(cfg, mock_env)
   term = manager.get_term("recorder")
   assert isinstance(term, _CountingRecorder)
-
   manager.record_post_step()
   # The instance returned by get_term is the same one the manager dispatches to.
   assert term.post_step_count == 1
