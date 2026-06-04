@@ -125,6 +125,72 @@ def test_delayed_ideal_applies_delay(device):
   assert torch.allclose(qfrc, expected_torque, atol=1e-4)
 
 
+def test_delayed_ideal_delays_velocity(device):
+  """Velocity targets share the same delay as position targets.
+
+  Regression test: the velocity reference used to bypass the delay buffer, so
+  the damping term consumed the latest target instead of the delayed one.
+  """
+  entity = create_entity_with_delayed_ideal(delay_min_lag=2, delay_max_lag=2)
+  entity, sim = initialize_entity(entity, device)
+
+  joint_pos = torch.zeros(1, 2, device=device)
+  joint_vel = torch.zeros(1, 2, device=device)
+  entity.write_joint_state_to_sim(joint_pos, joint_vel)
+
+  # Only the velocity target varies; position and effort stay zero.
+  vel_targets = [
+    torch.tensor([[0.1, 0.2]], device=device),
+    torch.tensor([[0.3, 0.4]], device=device),
+    torch.tensor([[0.5, 0.6]], device=device),
+  ]
+
+  for vel_target in vel_targets:
+    entity.set_joint_position_target(joint_pos)
+    entity.set_joint_velocity_target(vel_target)
+    entity.set_joint_effort_target(torch.zeros(1, 2, device=device))
+    entity.write_data_to_sim()
+    sim.forward()
+
+  joint_v_adr = entity.indexing.joint_v_adr
+  qfrc = sim.data.qfrc_actuator[0, joint_v_adr]
+
+  # With lag=2, the damping term uses the velocity target from step 0:
+  # kd * (delayed_vel_target - 0) = 10.0 * [0.1, 0.2].
+  expected_torque = 10.0 * vel_targets[0][0]
+  assert torch.allclose(qfrc, expected_torque, atol=1e-4)
+
+
+def test_delayed_ideal_delays_effort(device):
+  """Feedforward effort targets share the same delay as position targets."""
+  entity = create_entity_with_delayed_ideal(delay_min_lag=2, delay_max_lag=2)
+  entity, sim = initialize_entity(entity, device)
+
+  joint_pos = torch.zeros(1, 2, device=device)
+  joint_vel = torch.zeros(1, 2, device=device)
+  entity.write_joint_state_to_sim(joint_pos, joint_vel)
+
+  effort_targets = [
+    torch.tensor([[1.0, 2.0]], device=device),
+    torch.tensor([[3.0, 4.0]], device=device),
+    torch.tensor([[5.0, 6.0]], device=device),
+  ]
+
+  for effort_target in effort_targets:
+    entity.set_joint_position_target(joint_pos)
+    entity.set_joint_velocity_target(joint_vel)
+    entity.set_joint_effort_target(effort_target)
+    entity.write_data_to_sim()
+    sim.forward()
+
+  joint_v_adr = entity.indexing.joint_v_adr
+  qfrc = sim.data.qfrc_actuator[0, joint_v_adr]
+
+  # With lag=2, the feedforward term uses the effort target from step 0.
+  expected_torque = effort_targets[0][0]
+  assert torch.allclose(qfrc, expected_torque, atol=1e-4)
+
+
 def test_delayed_actuator_reset(device):
   """Test that reset clears the delay buffer."""
   entity = create_entity_with_delayed_builtin(delay_min_lag=1, delay_max_lag=3)

@@ -49,7 +49,6 @@ the geometry and how it scales with difficulty.
         terrain_generator=TerrainGeneratorCfg(
             size=(8.0, 8.0),
             num_rows=10,
-            num_cols=20,
             border_width=20.0,
             curriculum=True,
             sub_terrains={
@@ -70,10 +69,12 @@ the geometry and how it scales with difficulty.
         max_init_terrain_level=5,
     )
 
-The generator creates a ``num_rows x num_cols`` grid of patches. The
-``sub_terrains`` dictionary maps names to ``SubTerrainCfg`` instances,
-and each sub-terrain's ``proportion`` weight controls how many columns
-(curriculum mode) or sampling probability (random mode) it receives.
+The generator creates a grid of patches sized ``num_rows`` by either
+``num_cols`` (random mode) or ``len(sub_terrains)`` (curriculum mode,
+where ``num_cols`` is ignored). The ``sub_terrains`` dictionary maps
+names to ``SubTerrainCfg`` instances; each sub-terrain's ``proportion``
+controls robot spawning distribution across columns in curriculum mode,
+or per-patch sampling probability in random mode.
 
 
 Grid layout
@@ -82,30 +83,48 @@ Grid layout
 Two generation modes control how terrain types are distributed across
 the grid:
 
-**Curriculum mode** (``curriculum=True``). Columns are deterministically
-assigned to terrain types based on their ``proportion`` weights. A type
-with proportion 0.4 in a 20-column grid gets 8 columns. All patches in
-a column share the same terrain type, and difficulty increases from row 0
-(easiest) to row ``num_rows - 1`` (hardest). This structured layout is
-what enables the curriculum system to advance environments to harder rows
-as performance improves.
+**Curriculum mode** (``curriculum=True``). Each terrain type gets exactly
+one column; the generator uses ``len(sub_terrains)`` columns regardless of
+``num_cols``. All patches in a column share the same terrain type, and
+difficulty increases from row 0 (easiest) to row ``num_rows - 1``
+(hardest). The ``proportion`` field controls how robots are distributed
+across columns at spawn time, not column count. This structured layout
+is what enables the curriculum system to advance environments to harder
+rows as performance improves.
 
 **Random mode** (``curriculum=False``). Every patch independently samples
 a terrain type weighted by ``proportion`` and a difficulty from
-``difficulty_range``. This provides maximum variety but no structured
-difficulty progression.
+``difficulty_range``. ``num_cols`` is honored. This provides maximum
+variety but no structured difficulty progression.
 
 
 The difficulty parameter
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Each sub-terrain's generation function receives a ``difficulty`` value
-in ``[0, 1]``. This value linearly interpolates the terrain's
-configurable ranges. For example, a ``BoxPyramidStairsTerrainCfg`` with
+that linearly interpolates the terrain's configurable ranges. For
+example, a ``BoxPyramidStairsTerrainCfg`` with
 ``step_height_range=(0.0, 0.2)`` produces flat ground at difficulty 0
-and 20 cm steps at difficulty 1. In curriculum mode, difficulty is
-determined by the row: row 0 gets the minimum, row ``num_rows - 1`` gets
-the maximum.
+and 20 cm steps at difficulty 1.
+
+In curriculum mode, difficulty is determined by the row:
+``difficulty = lower + (upper - lower) * row / max(num_rows - 1, 1)``,
+where ``(lower, upper) = difficulty_range``. Row 0 is exactly
+``lower``, row ``num_rows - 1`` is exactly ``upper``, and intermediate
+rows are evenly spaced between them. All columns in a given row share
+the same difficulty scalar; the visible variation across columns comes
+from each sub-terrain type generating different geometry at the same
+difficulty.
+
+.. note::
+
+   With ``num_rows=1`` and ``curriculum=True``, every patch is generated
+   at ``difficulty = lower`` (the easiest configured difficulty). Use
+   ``curriculum=False`` if you want a single grid of randomly sampled
+   difficulties instead.
+
+In random mode, difficulty is sampled uniformly from
+``difficulty_range`` independently for every patch.
 
 
 Sub-terrain types
@@ -244,17 +263,23 @@ and undulating ground that box geoms cannot represent.
 Preset configurations
 ---------------------
 
-mjlab ships two ready-made ``TerrainGeneratorCfg`` presets in
+mjlab ships three ready-made ``TerrainGeneratorCfg`` presets in
 ``mjlab.terrains.config``:
 
 ``ROUGH_TERRAINS_CFG``
-    A 10x20 grid with seven terrain types (flat, stairs, inverted
-    stairs, slopes, inverted slopes, random rough, waves). Designed for
-    locomotion training with a moderate difficulty range.
+    A 10x20 random-mode grid with seven terrain types (flat, stairs,
+    inverted stairs, slopes, inverted slopes, random rough, waves).
+    Designed for locomotion training with a moderate difficulty range.
+    Set ``curriculum=True`` via ``dataclasses.replace`` to use it as a
+    curriculum grid (one column per terrain type).
+
+``STAIRS_TERRAINS_CFG``
+    A 10-row curriculum grid focused on stair traversal: flat plus
+    three pyramid-stair variants of increasing difficulty.
 
 ``ALL_TERRAINS_CFG``
-    A 10x16 grid with all sixteen terrain types at equal proportion.
-    Useful for training on maximum terrain variety.
+    A 10-row random-mode grid covering all available terrain types at
+    equal proportion. Useful for training on maximum terrain variety.
 
 Both can be used directly or customized with ``dataclasses.replace()``:
 
@@ -285,9 +310,9 @@ The key concepts:
 - The built-in ``terrain_levels_vel`` curriculum term promotes
   environments that track commanded velocity well and demotes
   environments that fall or fail to make progress.
-- When an environment reaches the maximum row, it is randomly reassigned
-  to a lower row to prevent the policy from collapsing to a single
-  difficulty level.
+- When an environment is promoted past the hardest row, it is randomly
+  reassigned to any row in ``[0, num_rows)`` to prevent the policy from
+  collapsing to a single difficulty level.
 
 
 Flat patch detection

@@ -6,6 +6,7 @@ import json
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from types import SimpleNamespace
 from typing import cast
 
 import torch
@@ -97,35 +98,61 @@ def run_evaluate(task_id: str, cfg: EvaluateConfig) -> dict[str, float]:
   all_joint_vel_error: list[torch.Tensor] = []
   all_ee_pos_error: list[torch.Tensor] = []
   all_ee_ori_error: list[torch.Tensor] = []
+  all_active: list[torch.Tensor] = []
 
   done_envs = torch.zeros(cfg.num_envs, dtype=torch.bool, device=device)
   success = torch.zeros(cfg.num_envs, dtype=torch.bool, device=device)
 
   obs = env.get_observations()
-  env.unwrapped.command_manager.compute(dt=env.unwrapped.step_dt)
 
   print(f"[INFO] Running {cfg.num_envs} evaluation episodes...")
 
   step = 0
   while not done_envs.all():
+    # Snapshot the reference frame the upcoming step will be scored against.
+    # env.step computes the reward (against the current reference) and only
+    # afterwards advances the command's motion frame, so reading the
+    # reference after stepping would pair the robot with the *next* frame.
+    # We snapshot here and pair it with the post-step robot state below,
+    # matching how the reward is computed.
+    ref = SimpleNamespace(
+      num_envs=command.num_envs,
+      device=command.device,
+      cfg=command.cfg,
+      body_pos_w=command.body_pos_w.clone(),
+      body_pos_relative_w=command.body_pos_relative_w.clone(),
+      body_quat_relative_w=command.body_quat_relative_w.clone(),
+      joint_vel=command.joint_vel.clone(),
+    )
+
     with torch.no_grad():
       actions = policy(obs)
     obs, _, dones, _ = env.step(actions)
 
-    # Compute metrics for active envs.
+    # Pair the snapshotted reference with the post-step robot state.
+    ref.robot_body_pos_w = command.robot_body_pos_w
+    ref.robot_body_quat_w = command.robot_body_quat_w
+    ref.robot_joint_vel = command.robot_joint_vel
+    ref_command = cast(MotionCommand, ref)
+
+    # Accumulate metrics for envs still running this step. active.any() is
+    # always true here: the loop runs only while some env is not done, and
+    # done_envs is updated below after this point.
     active = ~done_envs
-    if active.any():
-      all_mpkpe.append(torch.where(active, compute_mpkpe(command), 0.0))
-      all_r_mpkpe.append(torch.where(active, compute_root_relative_mpkpe(command), 0.0))
-      all_joint_vel_error.append(
-        torch.where(active, compute_joint_velocity_error(command), 0.0)
-      )
-      all_ee_pos_error.append(
-        torch.where(active, compute_ee_position_error(command, ee_body_names), 0.0)
-      )
-      all_ee_ori_error.append(
-        torch.where(active, compute_ee_orientation_error(command, ee_body_names), 0.0)
-      )
+    all_active.append(active.float())
+    all_mpkpe.append(torch.where(active, compute_mpkpe(ref_command), 0.0))
+    all_r_mpkpe.append(
+      torch.where(active, compute_root_relative_mpkpe(ref_command), 0.0)
+    )
+    all_joint_vel_error.append(
+      torch.where(active, compute_joint_velocity_error(ref_command), 0.0)
+    )
+    all_ee_pos_error.append(
+      torch.where(active, compute_ee_position_error(ref_command, ee_body_names), 0.0)
+    )
+    all_ee_ori_error.append(
+      torch.where(active, compute_ee_orientation_error(ref_command, ee_body_names), 0.0)
+    )
 
     # Track completions.
     terminated = env.unwrapped.termination_manager.terminated
@@ -142,7 +169,7 @@ def run_evaluate(task_id: str, cfg: EvaluateConfig) -> dict[str, float]:
       )
     step += 1
 
-  # Compute mean metrics.
+  # Compute mean metrics over the steps each env was active.
   stacks = [
     all_mpkpe,
     all_r_mpkpe,
@@ -151,7 +178,7 @@ def run_evaluate(task_id: str, cfg: EvaluateConfig) -> dict[str, float]:
     all_ee_ori_error,
   ]
   stacks = [torch.stack(s, dim=0) for s in stacks]
-  active_steps = (stacks[0] != 0).sum(dim=0).float().clamp(min=1)
+  active_steps = torch.stack(all_active, dim=0).sum(dim=0).clamp(min=1)
   means = [s.sum(dim=0) / active_steps for s in stacks]
 
   metrics = {

@@ -290,9 +290,12 @@ class EventManager(ManagerBase):
         fired = True
       elif mode == "reset":
         assert global_env_step_count is not None
+        # Reset events require concrete indices: callers (e.g. ManagerBasedRlEnv)
+        # resolve None to all environments upstream. Enforce that here so a future
+        # caller passing None fails loudly instead of leaking a slice into event
+        # functions, which only understand None or a tensor.
+        assert env_ids is not None, "reset events require concrete env_ids, got None"
         min_step_count = term_cfg.min_step_count_between_reset
-        if env_ids is None:
-          env_ids = slice(None)
         if min_step_count == 0:
           self._reset_term_last_triggered_step_id[index][env_ids] = (
             global_env_step_count

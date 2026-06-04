@@ -33,6 +33,9 @@ class DcMotorActuatorCfg(IdealPdActuatorCfg):
   Note: effort_limit should be explicitly set to a realistic value for proper
   motor modeling. Using the default (inf) will trigger a warning. Use
   IdealPdActuator if unlimited torque is desired.
+
+  For a native MuJoCo ``<dcmotor>`` with back-EMF, voltage saturation, and
+  configurable ``Kt`` / ``Ke`` / ``R``, see ``BuiltinDcMotorActuator``.
   """
 
   saturation_effort: float

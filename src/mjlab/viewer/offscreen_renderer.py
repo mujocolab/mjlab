@@ -57,6 +57,7 @@ class OffscreenRenderer:
     self._opt = mujoco.MjvOption()
     self._pert = mujoco.MjvPerturb()
     self._catmask = mujoco.mjtCatBit.mjCAT_DYNAMIC
+    self._extra_env_ids: list[int] | None = None
 
   @property
   def renderer(self) -> mujoco.Renderer:
@@ -134,9 +135,17 @@ class OffscreenRenderer:
 
     We render a small local neighborhood around ``env_idx`` instead of the first
     N environments, so videos stay focused on the tracked robot and nearby peers.
+
+    The neighbor set is computed once and cached. ``env_origins`` can mutate during
+    training (e.g. the terrain curriculum reassigns origins on reset), so recomputing
+    every frame would make the context robots pop in and out, causing video flicker.
     """
+    if self._extra_env_ids is not None:
+      return self._extra_env_ids
+
     if self._cfg.max_extra_envs <= 0 or nworld <= 1:
-      return []
+      self._extra_env_ids = []
+      return self._extra_env_ids
 
     k = min(self._cfg.max_extra_envs, nworld - 1)
     origins = self._scene.env_origins[:nworld].cpu().numpy()
@@ -146,7 +155,8 @@ class OffscreenRenderer:
 
     nearest = np.argpartition(dist2, kth=k - 1)[:k]
     nearest = nearest[np.argsort(dist2[nearest])]
-    return [int(i) for i in nearest]
+    self._extra_env_ids = [int(i) for i in nearest]
+    return self._extra_env_ids
 
   def _sync_model_fields(self, env_idx: int) -> None:
     """Sync visually relevant per-world model fields into the host MjModel."""

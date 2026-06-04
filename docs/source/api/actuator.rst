@@ -18,6 +18,13 @@ mjlab.actuator
   - :class:`BuiltinPositionActuatorCfg`
   - :class:`BuiltinVelocityActuator`
   - :class:`BuiltinVelocityActuatorCfg`
+  - :class:`BuiltinPdActuator`
+  - :class:`BuiltinPdActuatorCfg`
+  - :class:`BuiltinDcMotorActuator`
+  - :class:`BuiltinDcMotorActuatorCfg`
+  - :class:`DcMotorInputMode`
+  - :class:`DcMotorDatasheetParams`
+  - :class:`DcMotorPhysicalParams`
   - :class:`BuiltinMuscleActuator`
   - :class:`BuiltinMuscleActuatorCfg`
   - :class:`XmlActuator`
@@ -79,6 +86,40 @@ Builtin Actuators
   :show-inheritance:
 
 .. autoclass:: BuiltinVelocityActuatorCfg
+  :members:
+  :exclude-members: __init__
+  :undoc-members:
+
+
+.. autoclass:: BuiltinPdActuator
+  :members:
+  :show-inheritance:
+
+.. autoclass:: BuiltinPdActuatorCfg
+  :members:
+  :exclude-members: __init__
+  :undoc-members:
+
+
+.. autoclass:: BuiltinDcMotorActuator
+  :members:
+  :show-inheritance:
+
+.. autoclass:: BuiltinDcMotorActuatorCfg
+  :members:
+  :exclude-members: __init__
+  :undoc-members:
+
+.. autoclass:: DcMotorInputMode
+  :members:
+  :show-inheritance:
+
+.. autoclass:: DcMotorDatasheetParams
+  :members:
+  :exclude-members: __init__
+  :undoc-members:
+
+.. autoclass:: DcMotorPhysicalParams
   :members:
   :exclude-members: __init__
   :undoc-members:

@@ -4,6 +4,7 @@ import ast
 import tempfile
 from dataclasses import asdict
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import mujoco
 import onnx
@@ -521,3 +522,85 @@ def test_onnx_motion_model_clamps_out_of_bounds_time_step():
     _, joint_pos, *_ = model(x, time_step)
 
   torch.testing.assert_close(joint_pos, motion.joint_pos[num_steps - 1 : num_steps])
+
+
+def _make_tracking_runner_shell(registry_name, logger_type, upload_model=True):
+  """Build a MotionTrackingOnPolicyRunner with all heavy parts mocked out."""
+  from mjlab.tasks.tracking.rl.runner import MotionTrackingOnPolicyRunner
+
+  runner = MotionTrackingOnPolicyRunner.__new__(MotionTrackingOnPolicyRunner)
+  runner.registry_name = registry_name
+  runner.cfg = {"upload_model": upload_model}
+  runner.logger = MagicMock()
+  runner.logger.logger_type = logger_type
+
+  mock_motion_term = MagicMock()
+  mock_motion_term.cfg.anchor_body_name = "pelvis"
+  mock_motion_term.cfg.body_names = ["body1"]
+  runner.env = MagicMock()
+  runner.env.unwrapped.command_manager.get_term.return_value = mock_motion_term
+  return runner
+
+
+@pytest.mark.parametrize("logger_type", ["wandb", "WandbLogWriter"])
+def test_tracking_runner_registers_artifact_for_wandb_logger_types(
+  logger_type, monkeypatch, tmp_path
+):
+  """use_artifact is called for both legacy 'wandb' and current 'WandbLogWriter' logger types.
+
+  Regression test: rsl-rl-lib 5.4 renamed the WandB logger type from 'wandb'
+  to 'WandbLogWriter'. If only 'wandb' is checked, use_artifact is silently
+  skipped and the nightly report fails with 'No motion artifact found in the run.'
+  """
+  from mjlab.rl.runner import MjlabOnPolicyRunner
+  from mjlab.tasks.tracking.rl import runner as runner_mod
+
+  runner = _make_tracking_runner_shell("org/motions/motion:latest", logger_type)
+
+  monkeypatch.setattr(MjlabOnPolicyRunner, "save", lambda *a, **kw: None)
+  monkeypatch.setattr(runner_mod, "get_base_metadata", lambda *a: {})
+  monkeypatch.setattr(runner_mod, "attach_metadata_to_onnx", lambda *a: None)
+  monkeypatch.setattr(
+    runner.env.unwrapped.__class__,
+    "export_policy_to_onnx",
+    lambda *a, **kw: None,
+    raising=False,
+  )
+
+  checkpoint = tmp_path / "run-dir" / "model_100.pt"
+  checkpoint.parent.mkdir()
+  checkpoint.touch()
+
+  mock_run = MagicMock()
+  mock_run.name = "test-run"
+
+  with patch.object(runner_mod, "wandb") as mock_wandb:
+    mock_wandb.run = mock_run
+    runner.export_policy_to_onnx = MagicMock()
+    runner.save(str(checkpoint))
+
+  mock_run.use_artifact.assert_called_once_with("org/motions/motion:latest")
+
+
+def test_tracking_runner_does_not_register_artifact_for_tensorboard(
+  monkeypatch, tmp_path
+):
+  """use_artifact is NOT called when using the tensorboard logger."""
+  from mjlab.rl.runner import MjlabOnPolicyRunner
+  from mjlab.tasks.tracking.rl import runner as runner_mod
+
+  runner = _make_tracking_runner_shell("org/motions/motion:latest", "tensorboard")
+
+  monkeypatch.setattr(MjlabOnPolicyRunner, "save", lambda *a, **kw: None)
+  monkeypatch.setattr(runner_mod, "get_base_metadata", lambda *a: {})
+  monkeypatch.setattr(runner_mod, "attach_metadata_to_onnx", lambda *a: None)
+
+  checkpoint = tmp_path / "run-dir" / "model_100.pt"
+  checkpoint.parent.mkdir()
+  checkpoint.touch()
+
+  with patch.object(runner_mod, "wandb") as mock_wandb:
+    runner.export_policy_to_onnx = MagicMock()
+    runner.save(str(checkpoint))
+
+  mock_wandb.run.use_artifact.assert_not_called()

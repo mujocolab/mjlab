@@ -2,8 +2,15 @@
 
 import mujoco
 import numpy as np
+import pytest
 
-from mjlab.terrains.primitive_terrains import BoxSteppingStonesTerrainCfg
+from mjlab.terrains.config import ALL_TERRAIN_PRESETS
+from mjlab.terrains.primitive_terrains import (
+  _MIN_BORDER_HEIGHT,
+  BoxInvertedPyramidStairsTerrainCfg,
+  BoxPyramidStairsTerrainCfg,
+  BoxSteppingStonesTerrainCfg,
+)
 
 _CFG = BoxSteppingStonesTerrainCfg(
   proportion=1.0,
@@ -37,12 +44,10 @@ def _generate_stones(
     if geom is None:
       continue
     pos, size = geom.pos, geom.size
-    # Skip platform, floor, and border geoms.
-    is_platform = (
-      np.isclose(pos[0], center)
-      and np.isclose(pos[1], center)
-      and np.isclose(size[0], cfg.platform_width / 2, atol=1e-4)
-    )
+    # Skip platform, floor, and border geoms. The platform is the geom centered
+    # exactly at the patch center (its size is grid-snapped, not the configured
+    # width, so it is identified by position alone).
+    is_platform = np.isclose(pos[0], center) and np.isclose(pos[1], center)
     is_full_span = np.isclose(size[0], cfg.size[0] / 2) or np.isclose(
       size[1], cfg.size[1] / 2
     )
@@ -74,3 +79,50 @@ def test_stone_size_decreases_with_difficulty():
     sizes[difficulty] = np.mean([hx + hy for _, _, hx, hy in stones])
 
   assert sizes[0.0] > sizes[1.0]
+
+
+@pytest.mark.parametrize(
+  "cfg_cls", [BoxPyramidStairsTerrainCfg, BoxInvertedPyramidStairsTerrainCfg]
+)
+def test_pyramid_stairs_border_present_at_zero_difficulty(cfg_cls):
+  """At difficulty 0 the step height collapses to 0, but the flat border frame
+  must still be generated as solid, non-degenerate geometry (regression for the
+  empty-boundary bug, issue #1033)."""
+  cfg = cfg_cls(
+    size=(8.0, 8.0),
+    step_height_range=(0.0, 0.2),
+    step_width=0.3,
+    platform_width=3.0,
+    border_width=1.0,
+  )
+  spec = mujoco.MjSpec()
+  spec.worldbody.add_body(name="terrain")
+  output = cfg.function(difficulty=0.0, spec=spec, rng=np.random.default_rng(0))
+
+  # The border frame sits below z=0 (top flush at ground level); inner step
+  # boxes are centered at z=0. Identify the frame by its downward offset.
+  border_geoms = [
+    g.geom for g in output.geometries if g.geom is not None and g.geom.pos[2] < -1e-4
+  ]
+  assert len(border_geoms) == 4, "Expected four border frame boxes."
+  for geom in border_geoms:
+    # Each frame box must be solid, not a degenerate zero-height geom, and its
+    # top must be flush with the ground plane at z=0.
+    assert geom.size[2] >= _MIN_BORDER_HEIGHT / 2 - 1e-9
+    assert np.isclose(geom.pos[2] + geom.size[2], 0.0, atol=1e-6)
+
+
+@pytest.mark.parametrize("preset_name", sorted(ALL_TERRAIN_PRESETS))
+@pytest.mark.parametrize("difficulty", [0.0, 1.0])
+def test_preset_compiles_across_difficulty(preset_name, difficulty):
+  """Every terrain preset must generate compilable MuJoCo geometry across the
+  full difficulty range. Difficulty 0 is exercised explicitly because curriculum
+  row 0 lands there deterministically, which previously produced degenerate
+  geometry (zero-height hfields, NaN colors, missing borders)."""
+  cfg = ALL_TERRAIN_PRESETS[preset_name](size=(8.0, 8.0))
+  spec = mujoco.MjSpec()
+  spec.worldbody.add_body(name="terrain")
+  cfg.function(difficulty=difficulty, spec=spec, rng=np.random.default_rng(0))
+  # Compiling validates geom/hfield sizes and rgba values (catches NaNs and
+  # non-positive sizes that MuJoCo rejects).
+  spec.compile()

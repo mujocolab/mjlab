@@ -125,7 +125,9 @@ def test_dr_fields_registered_in_event_manager(device):
   assert "actuator_gainprm" in manager.domain_randomization_fields
   assert "actuator_biasprm" in manager.domain_randomization_fields
   assert "actuator_forcerange" in manager.domain_randomization_fields
-  assert len(manager.domain_randomization_fields) == 5
+  assert "jnt_actfrcrange" in manager.domain_randomization_fields
+  assert "tendon_actfrcrange" in manager.domain_randomization_fields
+  assert len(manager.domain_randomization_fields) == 7
 
 
 def test_recompute_level_ordering():

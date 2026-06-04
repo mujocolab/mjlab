@@ -215,6 +215,27 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
             border-color: var(--accent);
             color: white;
         }}
+        .range-selector {{
+            display: flex;
+            gap: 0.4rem;
+            margin-bottom: 1rem;
+        }}
+        .range-btn {{
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.3rem 0.75rem;
+            cursor: pointer;
+            color: var(--text);
+            font-size: 0.8rem;
+            font-weight: 500;
+        }}
+        .range-btn:hover {{ border-color: var(--accent); }}
+        .range-btn.active {{
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }}
         .tab-content {{ display: none; }}
         .tab-content.active {{ display: block; }}
         .tab-description {{
@@ -303,12 +324,24 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
 
     <div id="tracking" class="tab-content active">
         <p class="tab-description">Nightly motion imitation training and evaluation on Unitree G1 (1024 trials per run).</p>
+        <div class="range-selector" id="range-selector">
+            <button class="range-btn" data-days="30">30d</button>
+            <button class="range-btn active" data-days="90">90d</button>
+            <button class="range-btn" data-days="180">180d</button>
+            <button class="range-btn" data-days="0">All</button>
+        </div>
         <div class="charts" id="charts"></div>
     </div>
 
     <div id="throughput" class="tab-content">
         <p class="tab-description">Physics simulation throughput across tasks (4096 parallel envs, NVIDIA RTX 5090).</p>
         <div class="task-grid" id="task-grid"></div>
+        <div class="range-selector" id="range-selector-tp">
+            <button class="range-btn" data-days="30">30d</button>
+            <button class="range-btn active" data-days="90">90d</button>
+            <button class="range-btn" data-days="180">180d</button>
+            <button class="range-btn" data-days="0">All</button>
+        </div>
         <div id="task-chart-panels"></div>
     </div>
 
@@ -393,6 +426,8 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
         }};
 
         let charts = [];
+        let trackingCharts = [];
+        let throughputCharts = [];
 
         function updateChartColors() {{
             const style = getComputedStyle(root);
@@ -449,7 +484,7 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
             `;
             chartsContainer.appendChild(card);
 
-            charts.push(new Chart(card.querySelector('canvas'), {{
+            const chart = new Chart(card.querySelector('canvas'), {{
                 type: 'line',
                 data: {{
                     datasets: [
@@ -459,7 +494,8 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                             borderColor: color,
                             backgroundColor: color + '20',
                             borderWidth: 2,
-                            pointRadius: 4,
+                            pointRadius: 2,
+                            pointHoverRadius: 5,
                             tension: 0.1,
                             fill: true
                         }},
@@ -531,7 +567,9 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                         }}
                     }}
                 }}
-            }}));
+            }});
+            charts.push(chart);
+            trackingCharts.push(chart);
         }});
 
         // Tab switching
@@ -621,7 +659,8 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                                 borderColor: '#58a6ff',
                                 backgroundColor: '#58a6ff20',
                                 borderWidth: 2,
-                                pointRadius: 4,
+                                pointRadius: 2,
+                                pointHoverRadius: 5,
                                 tension: 0.1,
                                 fill: true
                             }},
@@ -631,7 +670,8 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                                 borderColor: '#3fb950',
                                 backgroundColor: '#3fb95020',
                                 borderWidth: 2,
-                                pointRadius: 4,
+                                pointRadius: 2,
+                                pointHoverRadius: 5,
                                 tension: 0.1,
                                 fill: true
                             }}
@@ -697,6 +737,7 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
                     }}
                 }});
                 charts.push(chart);
+                throughputCharts.push(chart);
                 throughputChartInstances[task] = {{ chart, panelId: `task-panel-${{i}}` }};
 
                 // Card click handler
@@ -712,6 +753,23 @@ def generate_dashboard_html(runs: list[dict], throughput_data: list[dict]) -> st
         }} else {{
             taskGrid.innerHTML = '<p style="color: var(--text-dim)">No throughput data available. Run measure_throughput.py to generate data.</p>';
         }}
+
+        // Date-range windowing across both tracking and throughput charts.
+        // Setting min and clearing max also resets any zoom/pan.
+        function setRange(days) {{
+            const min = days > 0 ? Date.now() - days * 86400000 : undefined;
+            [...trackingCharts, ...throughputCharts].forEach(c => {{
+                c.options.scales.x.min = min;
+                c.options.scales.x.max = undefined;
+                c.update();
+            }});
+            document.querySelectorAll('.range-btn').forEach(b =>
+                b.classList.toggle('active', parseInt(b.dataset.days) === days));
+        }}
+        document.querySelectorAll('.range-btn').forEach(btn => {{
+            btn.addEventListener('click', () => setRange(parseInt(btn.dataset.days)));
+        }});
+        setRange(90);
     </script>
 </body>
 </html>
@@ -764,7 +822,11 @@ def main(
       if run_id in eval_results_by_id:
         print(f"Using cached result for {run_id}")
       else:
-        result = evaluate_run(run_path, num_envs)
+        try:
+          result = evaluate_run(run_path, num_envs)
+        except RuntimeError as e:
+          print(f"Skipping {run_path}: {e}")
+          continue
         eval_results_by_id[run_id] = result
         new_evals += 1
   else:
@@ -783,7 +845,11 @@ def main(
           print(f"Reached eval limit ({eval_limit}), skipping remaining new runs")
           break
         run_path = f"{entity}/{project}/{run.id}"
-        result = evaluate_run(run_path, num_envs)
+        try:
+          result = evaluate_run(run_path, num_envs)
+        except RuntimeError as e:
+          print(f"Skipping {run.name} ({run.id}): {e}")
+          continue
         eval_results_by_id[run.id] = result
         new_evals += 1
 

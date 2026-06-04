@@ -175,15 +175,6 @@ class Actuator(ABC, Generic[ActuatorCfgT]):
     return self.cfg.delay_max_lag > 0
 
   @property
-  def command_field(self) -> CommandField | None:
-    """The primary command field this actuator consumes.
-
-    Returns None by default. Subclasses should override to return the
-    appropriate field.
-    """
-    return None
-
-  @property
   def target_ids(self) -> torch.Tensor:
     """Local indices of targets controlled by this actuator."""
     assert self._target_ids is not None
@@ -271,11 +262,6 @@ class Actuator(ABC, Generic[ActuatorCfgT]):
     """Create delay buffer. Called during initialize()."""
     if not self.has_delay:
       return
-    if self.command_field is None:
-      raise ValueError(
-        f"{self.__class__.__name__}: delay is configured (delay_max_lag="
-        f"{self.cfg.delay_max_lag}) but command_field is not defined."
-      )
     self._delay_buffer = DelayBuffer(
       min_lag=self.cfg.delay_min_lag,
       max_lag=self.cfg.delay_max_lag,
@@ -287,19 +273,25 @@ class Actuator(ABC, Generic[ActuatorCfgT]):
     )
 
   def apply_delay(self, cmd: ActuatorCmd) -> ActuatorCmd:
-    """Apply delay to the command_field target. No-op without delay."""
+    """Delay all command targets with one shared lag. No-op without delay.
+
+    Every target the policy issues (position, velocity, effort) travels the same
+    command channel and experiences the same latency, so they are stacked and
+    delayed together. Feedback fields (``pos``, ``vel``) are never delayed.
+    """
     if self._delay_buffer is None:
       return cmd
-    cf = self.command_field
-    if cf == "position":
-      self._delay_buffer.append(cmd.position_target)
-      return dataclasses.replace(cmd, position_target=self._delay_buffer.compute())
-    elif cf == "velocity":
-      self._delay_buffer.append(cmd.velocity_target)
-      return dataclasses.replace(cmd, velocity_target=self._delay_buffer.compute())
-    else:
-      self._delay_buffer.append(cmd.effort_target)
-      return dataclasses.replace(cmd, effort_target=self._delay_buffer.compute())
+    targets = torch.stack(
+      (cmd.position_target, cmd.velocity_target, cmd.effort_target), dim=-1
+    )
+    self._delay_buffer.append(targets)
+    delayed = self._delay_buffer.compute()
+    return dataclasses.replace(
+      cmd,
+      position_target=delayed[..., 0],
+      velocity_target=delayed[..., 1],
+      effort_target=delayed[..., 2],
+    )
 
   def set_lags(
     self,

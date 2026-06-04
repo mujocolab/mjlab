@@ -208,9 +208,11 @@ class CircularBuffer:
     self._buffer[self._pointer] = data
 
     # Backfill entire history with first frame for newly initialized batches.
+    # The condition and data are reshaped to broadcast against the buffer's
+    # (max_len, batch_size, ...) shape for data of any rank.
     is_first_push = self._num_pushes == 0
-    if torch.any(is_first_push):
-      self._buffer[:, is_first_push] = data[is_first_push]
+    condition = is_first_push.view(1, self._batch_size, *([1] * (data.ndim - 1)))
+    torch.where(condition, data.unsqueeze(0), self._buffer, out=self._buffer)
 
     self._num_pushes += 1
 
@@ -235,9 +237,6 @@ class CircularBuffer:
 
     pushes = self._num_pushes.clamp_min(1)
     valid = torch.minimum(key, pushes - 1).clamp_min(0)
-
-    if torch.all(valid == 0):
-      return self._buffer[self._pointer]
 
     idx = torch.remainder(self._pointer - valid, self._max_len)
     return self._buffer[idx, self._all_indices]

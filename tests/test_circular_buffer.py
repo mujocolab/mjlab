@@ -161,6 +161,29 @@ def test_backfill_after_per_batch_reset(device):
   )
 
 
+def test_backfill_multidimensional_data(device):
+  """First-push backfill works for >2D data whose trailing dims differ from batch.
+
+  Regression for #1045: the backfill broadcast hard-coded a 3D condition shape,
+  which misaligned the batch axis with a trailing axis when num_targets != batch.
+  Here batch_size=4 but the trailing axis is 2, so the buggy broadcast raised a
+  4-vs-2 mismatch.
+  """
+  batch_size, num_targets, num_channels = 4, 2, 3
+  buffer = CircularBuffer(max_len=3, batch_size=batch_size, device=device)
+
+  data = torch.arange(
+    batch_size * num_targets * num_channels, dtype=torch.float32, device=device
+  ).reshape(batch_size, num_targets, num_channels)
+  buffer.append(data)
+
+  hist = buffer.buffer  # (batch, max_len, num_targets, num_channels)
+  assert hist.shape == (batch_size, 3, num_targets, num_channels)
+  # First push backfills every history slot with the same frame per batch row.
+  for t in range(3):
+    assert torch.allclose(hist[:, t], data)
+
+
 def test_errors_and_types(device):
   """Error paths: wrong batch, pre-append access, and bad key size."""
   buffer = CircularBuffer(max_len=2, batch_size=2, device=device)
