@@ -42,6 +42,10 @@ Fixed
   model field (e.g. two ``dr.geom_size`` events scaling axis 0 and axis 1
   separately) silently clobbering each other. Each event now writes back only
   the axes it targeted, so per-axis events compose (:issue:`1042`).
+- Regenerated the bundled MuJoCo type stubs, which had drifted from the
+  installed mujoco version. CI now regenerates them and fails if they are
+  stale, so they stay in sync going forward. Run ``make stubs`` to update them
+  (:issue:`1048`).
 - Fixed ``select_gpus`` crashing when ``CUDA_VISIBLE_DEVICES`` contains MIG UUIDs instead of numeric indices.
 - Fixed pyramid-stairs terrains (``BoxPyramidStairsTerrainCfg``,
   ``BoxInvertedPyramidStairsTerrainCfg``, and ``BoxOpenStairsTerrainCfg``)

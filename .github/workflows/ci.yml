@@ -93,3 +93,23 @@ jobs:
           version: "0.9.27"
       - name: Type check with python ${{ matrix.python-version }}
         run: uv run --extra cpu ty check
+
+  stubs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          version: "0.9.27"
+      - name: Sync environment
+        run: uv sync --extra cpu
+      - name: Regenerate MuJoCo stubs
+        run: bash typings/generate_mujoco_stubs.sh
+      - name: Verify stubs are up to date
+        run: |
+          if ! git diff --exit-code typings/mujoco; then
+            echo "::error::MuJoCo type stubs are out of date. Run 'make stubs' and commit the result."
+            exit 1
+          fi

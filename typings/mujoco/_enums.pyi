@@ -1999,9 +1999,11 @@ class mjtDisableBit:
     
       mjDSBL_ISLAND
     
+      mjDSBL_MULTICCD
+    
       mjNDISABLE
     """
-    __members__: typing.ClassVar[dict[str, mjtDisableBit]]  # value = {'mjDSBL_CONSTRAINT': <mjtDisableBit.mjDSBL_CONSTRAINT: 1>, 'mjDSBL_EQUALITY': <mjtDisableBit.mjDSBL_EQUALITY: 2>, 'mjDSBL_FRICTIONLOSS': <mjtDisableBit.mjDSBL_FRICTIONLOSS: 4>, 'mjDSBL_LIMIT': <mjtDisableBit.mjDSBL_LIMIT: 8>, 'mjDSBL_CONTACT': <mjtDisableBit.mjDSBL_CONTACT: 16>, 'mjDSBL_SPRING': <mjtDisableBit.mjDSBL_SPRING: 32>, 'mjDSBL_DAMPER': <mjtDisableBit.mjDSBL_DAMPER: 64>, 'mjDSBL_GRAVITY': <mjtDisableBit.mjDSBL_GRAVITY: 128>, 'mjDSBL_CLAMPCTRL': <mjtDisableBit.mjDSBL_CLAMPCTRL: 256>, 'mjDSBL_WARMSTART': <mjtDisableBit.mjDSBL_WARMSTART: 512>, 'mjDSBL_FILTERPARENT': <mjtDisableBit.mjDSBL_FILTERPARENT: 1024>, 'mjDSBL_ACTUATION': <mjtDisableBit.mjDSBL_ACTUATION: 2048>, 'mjDSBL_REFSAFE': <mjtDisableBit.mjDSBL_REFSAFE: 4096>, 'mjDSBL_SENSOR': <mjtDisableBit.mjDSBL_SENSOR: 8192>, 'mjDSBL_MIDPHASE': <mjtDisableBit.mjDSBL_MIDPHASE: 16384>, 'mjDSBL_EULERDAMP': <mjtDisableBit.mjDSBL_EULERDAMP: 32768>, 'mjDSBL_AUTORESET': <mjtDisableBit.mjDSBL_AUTORESET: 65536>, 'mjDSBL_NATIVECCD': <mjtDisableBit.mjDSBL_NATIVECCD: 131072>, 'mjDSBL_ISLAND': <mjtDisableBit.mjDSBL_ISLAND: 262144>, 'mjNDISABLE': <mjtDisableBit.mjNDISABLE: 19>}
+    __members__: typing.ClassVar[dict[str, mjtDisableBit]]  # value = {'mjDSBL_CONSTRAINT': <mjtDisableBit.mjDSBL_CONSTRAINT: 1>, 'mjDSBL_EQUALITY': <mjtDisableBit.mjDSBL_EQUALITY: 2>, 'mjDSBL_FRICTIONLOSS': <mjtDisableBit.mjDSBL_FRICTIONLOSS: 4>, 'mjDSBL_LIMIT': <mjtDisableBit.mjDSBL_LIMIT: 8>, 'mjDSBL_CONTACT': <mjtDisableBit.mjDSBL_CONTACT: 16>, 'mjDSBL_SPRING': <mjtDisableBit.mjDSBL_SPRING: 32>, 'mjDSBL_DAMPER': <mjtDisableBit.mjDSBL_DAMPER: 64>, 'mjDSBL_GRAVITY': <mjtDisableBit.mjDSBL_GRAVITY: 128>, 'mjDSBL_CLAMPCTRL': <mjtDisableBit.mjDSBL_CLAMPCTRL: 256>, 'mjDSBL_WARMSTART': <mjtDisableBit.mjDSBL_WARMSTART: 512>, 'mjDSBL_FILTERPARENT': <mjtDisableBit.mjDSBL_FILTERPARENT: 1024>, 'mjDSBL_ACTUATION': <mjtDisableBit.mjDSBL_ACTUATION: 2048>, 'mjDSBL_REFSAFE': <mjtDisableBit.mjDSBL_REFSAFE: 4096>, 'mjDSBL_SENSOR': <mjtDisableBit.mjDSBL_SENSOR: 8192>, 'mjDSBL_MIDPHASE': <mjtDisableBit.mjDSBL_MIDPHASE: 16384>, 'mjDSBL_EULERDAMP': <mjtDisableBit.mjDSBL_EULERDAMP: 32768>, 'mjDSBL_AUTORESET': <mjtDisableBit.mjDSBL_AUTORESET: 65536>, 'mjDSBL_NATIVECCD': <mjtDisableBit.mjDSBL_NATIVECCD: 131072>, 'mjDSBL_ISLAND': <mjtDisableBit.mjDSBL_ISLAND: 262144>, 'mjDSBL_MULTICCD': <mjtDisableBit.mjDSBL_MULTICCD: 524288>, 'mjNDISABLE': <mjtDisableBit.mjNDISABLE: 20>}
     mjDSBL_ACTUATION: typing.ClassVar[mjtDisableBit]  # value = <mjtDisableBit.mjDSBL_ACTUATION: 2048>
     mjDSBL_AUTORESET: typing.ClassVar[mjtDisableBit]  # value = <mjtDisableBit.mjDSBL_AUTORESET: 65536>
     mjDSBL_CLAMPCTRL: typing.ClassVar[mjtDisableBit]  # value = <mjtDisableBit.mjDSBL_CLAMPCTRL: 256>
@@ -2016,12 +2018,13 @@ class mjtDisableBit:
     mjDSBL_ISLAND: typing.ClassVar[mjtDisableBit]  # value = <mjtDisableBit.mjDSBL_ISLAND: 262144>
     mjDSBL_LIMIT: typing.ClassVar[mjtDisableBit]  # value = <mjtDisableBit.mjDSBL_LIMIT: 8>
     mjDSBL_MIDPHASE: typing.ClassVar[mjtDisableBit]  # value = <mjtDisableBit.mjDSBL_MIDPHASE: 16384>
+    mjDSBL_MULTICCD: typing.ClassVar[mjtDisableBit]  # value = <mjtDisableBit.mjDSBL_MULTICCD: 524288>
     mjDSBL_NATIVECCD: typing.ClassVar[mjtDisableBit]  # value = <mjtDisableBit.mjDSBL_NATIVECCD: 131072>
     mjDSBL_REFSAFE: typing.ClassVar[mjtDisableBit]  # value = <mjtDisableBit.mjDSBL_REFSAFE: 4096>
     mjDSBL_SENSOR: typing.ClassVar[mjtDisableBit]  # value = <mjtDisableBit.mjDSBL_SENSOR: 8192>
     mjDSBL_SPRING: typing.ClassVar[mjtDisableBit]  # value = <mjtDisableBit.mjDSBL_SPRING: 32>
     mjDSBL_WARMSTART: typing.ClassVar[mjtDisableBit]  # value = <mjtDisableBit.mjDSBL_WARMSTART: 512>
-    mjNDISABLE: typing.ClassVar[mjtDisableBit]  # value = <mjtDisableBit.mjNDISABLE: 19>
+    mjNDISABLE: typing.ClassVar[mjtDisableBit]  # value = <mjtDisableBit.mjNDISABLE: 20>
     @typing.overload
     def __add__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
@@ -2284,20 +2287,17 @@ class mjtEnableBit:
     
       mjENBL_INVDISCRETE
     
-      mjENBL_MULTICCD
-    
       mjENBL_SLEEP
     
       mjNENABLE
     """
-    __members__: typing.ClassVar[dict[str, mjtEnableBit]]  # value = {'mjENBL_OVERRIDE': <mjtEnableBit.mjENBL_OVERRIDE: 1>, 'mjENBL_ENERGY': <mjtEnableBit.mjENBL_ENERGY: 2>, 'mjENBL_FWDINV': <mjtEnableBit.mjENBL_FWDINV: 4>, 'mjENBL_INVDISCRETE': <mjtEnableBit.mjENBL_INVDISCRETE: 8>, 'mjENBL_MULTICCD': <mjtEnableBit.mjENBL_MULTICCD: 16>, 'mjENBL_SLEEP': <mjtEnableBit.mjENBL_SLEEP: 32>, 'mjNENABLE': <mjtEnableBit.mjNENABLE: 6>}
+    __members__: typing.ClassVar[dict[str, mjtEnableBit]]  # value = {'mjENBL_OVERRIDE': <mjtEnableBit.mjENBL_OVERRIDE: 1>, 'mjENBL_ENERGY': <mjtEnableBit.mjENBL_ENERGY: 2>, 'mjENBL_FWDINV': <mjtEnableBit.mjENBL_FWDINV: 4>, 'mjENBL_INVDISCRETE': <mjtEnableBit.mjENBL_INVDISCRETE: 8>, 'mjENBL_SLEEP': <mjtEnableBit.mjENBL_SLEEP: 16>, 'mjNENABLE': <mjtEnableBit.mjNENABLE: 5>}
     mjENBL_ENERGY: typing.ClassVar[mjtEnableBit]  # value = <mjtEnableBit.mjENBL_ENERGY: 2>
     mjENBL_FWDINV: typing.ClassVar[mjtEnableBit]  # value = <mjtEnableBit.mjENBL_FWDINV: 4>
     mjENBL_INVDISCRETE: typing.ClassVar[mjtEnableBit]  # value = <mjtEnableBit.mjENBL_INVDISCRETE: 8>
-    mjENBL_MULTICCD: typing.ClassVar[mjtEnableBit]  # value = <mjtEnableBit.mjENBL_MULTICCD: 16>
     mjENBL_OVERRIDE: typing.ClassVar[mjtEnableBit]  # value = <mjtEnableBit.mjENBL_OVERRIDE: 1>
-    mjENBL_SLEEP: typing.ClassVar[mjtEnableBit]  # value = <mjtEnableBit.mjENBL_SLEEP: 32>
-    mjNENABLE: typing.ClassVar[mjtEnableBit]  # value = <mjtEnableBit.mjNENABLE: 6>
+    mjENBL_SLEEP: typing.ClassVar[mjtEnableBit]  # value = <mjtEnableBit.mjENBL_SLEEP: 16>
+    mjNENABLE: typing.ClassVar[mjtEnableBit]  # value = <mjtEnableBit.mjNENABLE: 5>
     @typing.overload
     def __add__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
@@ -9101,8 +9101,6 @@ class mjtWarning:
     
       mjWARN_CNSTRFULL
     
-      mjWARN_VGEOMFULL
-    
       mjWARN_BADQPOS
     
       mjWARN_BADQVEL
@@ -9113,16 +9111,15 @@ class mjtWarning:
     
       mjNWARNING
     """
-    __members__: typing.ClassVar[dict[str, mjtWarning]]  # value = {'mjWARN_INERTIA': <mjtWarning.mjWARN_INERTIA: 0>, 'mjWARN_CONTACTFULL': <mjtWarning.mjWARN_CONTACTFULL: 1>, 'mjWARN_CNSTRFULL': <mjtWarning.mjWARN_CNSTRFULL: 2>, 'mjWARN_VGEOMFULL': <mjtWarning.mjWARN_VGEOMFULL: 3>, 'mjWARN_BADQPOS': <mjtWarning.mjWARN_BADQPOS: 4>, 'mjWARN_BADQVEL': <mjtWarning.mjWARN_BADQVEL: 5>, 'mjWARN_BADQACC': <mjtWarning.mjWARN_BADQACC: 6>, 'mjWARN_BADCTRL': <mjtWarning.mjWARN_BADCTRL: 7>, 'mjNWARNING': <mjtWarning.mjNWARNING: 8>}
-    mjNWARNING: typing.ClassVar[mjtWarning]  # value = <mjtWarning.mjNWARNING: 8>
-    mjWARN_BADCTRL: typing.ClassVar[mjtWarning]  # value = <mjtWarning.mjWARN_BADCTRL: 7>
-    mjWARN_BADQACC: typing.ClassVar[mjtWarning]  # value = <mjtWarning.mjWARN_BADQACC: 6>
-    mjWARN_BADQPOS: typing.ClassVar[mjtWarning]  # value = <mjtWarning.mjWARN_BADQPOS: 4>
-    mjWARN_BADQVEL: typing.ClassVar[mjtWarning]  # value = <mjtWarning.mjWARN_BADQVEL: 5>
+    __members__: typing.ClassVar[dict[str, mjtWarning]]  # value = {'mjWARN_INERTIA': <mjtWarning.mjWARN_INERTIA: 0>, 'mjWARN_CONTACTFULL': <mjtWarning.mjWARN_CONTACTFULL: 1>, 'mjWARN_CNSTRFULL': <mjtWarning.mjWARN_CNSTRFULL: 2>, 'mjWARN_BADQPOS': <mjtWarning.mjWARN_BADQPOS: 3>, 'mjWARN_BADQVEL': <mjtWarning.mjWARN_BADQVEL: 4>, 'mjWARN_BADQACC': <mjtWarning.mjWARN_BADQACC: 5>, 'mjWARN_BADCTRL': <mjtWarning.mjWARN_BADCTRL: 6>, 'mjNWARNING': <mjtWarning.mjNWARNING: 7>}
+    mjNWARNING: typing.ClassVar[mjtWarning]  # value = <mjtWarning.mjNWARNING: 7>
+    mjWARN_BADCTRL: typing.ClassVar[mjtWarning]  # value = <mjtWarning.mjWARN_BADCTRL: 6>
+    mjWARN_BADQACC: typing.ClassVar[mjtWarning]  # value = <mjtWarning.mjWARN_BADQACC: 5>
+    mjWARN_BADQPOS: typing.ClassVar[mjtWarning]  # value = <mjtWarning.mjWARN_BADQPOS: 3>
+    mjWARN_BADQVEL: typing.ClassVar[mjtWarning]  # value = <mjtWarning.mjWARN_BADQVEL: 4>
     mjWARN_CNSTRFULL: typing.ClassVar[mjtWarning]  # value = <mjtWarning.mjWARN_CNSTRFULL: 2>
     mjWARN_CONTACTFULL: typing.ClassVar[mjtWarning]  # value = <mjtWarning.mjWARN_CONTACTFULL: 1>
     mjWARN_INERTIA: typing.ClassVar[mjtWarning]  # value = <mjtWarning.mjWARN_INERTIA: 0>
-    mjWARN_VGEOMFULL: typing.ClassVar[mjtWarning]  # value = <mjtWarning.mjWARN_VGEOMFULL: 3>
     @typing.overload
     def __add__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
