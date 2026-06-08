@@ -1612,7 +1612,8 @@ def test_resolve_unknown_distribution_raises(device):
 MAT_XML = """
 <mujoco>
   <asset>
-    <material name="test_mat" rgba="1 1 1 1"/>
+    <material name="test_mat" rgba="1 1 1 1" emission="0.1"
+      specular="0.2" shininess="0.3" texrepeat="1 2"/>
   </asset>
   <worldbody>
     <body name="base" pos="0 0 1">
@@ -1632,7 +1633,9 @@ def _make_mat_env(device, num_envs=NUM_ENVS):
   model = scene.compile()
   sim = Simulation(num_envs=num_envs, cfg=SimulationCfg(), model=model, device=device)
   scene.initialize(model, sim.model, sim.data)
-  sim.expand_model_fields(("mat_rgba",))
+  sim.expand_model_fields(
+    ("mat_rgba", "mat_emission", "mat_specular", "mat_shininess", "mat_texrepeat")
+  )
   return Env(scene, sim, device)
 
 
@@ -1660,6 +1663,59 @@ def test_mat_rgba_abs(mat_env):
   rgba = env.sim.model.mat_rgba[:, mat_id, :]
   assert torch.all((rgba >= 0.2 - 1e-5) & (rgba <= 0.8 + 1e-5))
   assert len(torch.unique(rgba[:, 0])) >= 2
+
+
+@pytest.mark.parametrize(
+  ("func_name", "field", "ranges"),
+  [
+    ("mat_emission", "mat_emission", (0.1, 0.7)),
+    ("mat_specular", "mat_specular", (0.0, 1.0)),
+    ("mat_shininess", "mat_shininess", (0.2, 0.9)),
+  ],
+)
+def test_scalar_material_fields_abs(mat_env, func_name, field, ranges):
+  """Scalar material fields randomize per selected material."""
+  torch.manual_seed(42)
+  env = mat_env
+  func = getattr(dr, func_name)
+
+  func(
+    env,
+    env_ids=None,
+    ranges=ranges,
+    asset_cfg=SceneEntityCfg("robot", material_names=("test_mat",)),
+    operation="abs",
+  )
+
+  mat_id = mujoco.mj_name2id(
+    env.sim.mj_model, mujoco.mjtObj.mjOBJ_MATERIAL, "robot/test_mat"
+  )
+  values = getattr(env.sim.model, field)[:, mat_id]
+  lower, upper = ranges
+  assert torch.all((values >= lower - 1e-5) & (values <= upper + 1e-5))
+  assert len(torch.unique(values)) >= 2
+
+
+def test_mat_texrepeat_abs(mat_env):
+  """Texture repeat randomizes S/T axes for selected materials."""
+  torch.manual_seed(42)
+  env = mat_env
+
+  dr.mat_texrepeat(
+    env,
+    env_ids=None,
+    ranges={0: (1.0, 3.0), 1: (4.0, 6.0)},
+    asset_cfg=SceneEntityCfg("robot", material_names=("test_mat",)),
+    operation="abs",
+  )
+
+  mat_id = mujoco.mj_name2id(
+    env.sim.mj_model, mujoco.mjtObj.mjOBJ_MATERIAL, "robot/test_mat"
+  )
+  texrepeat = env.sim.model.mat_texrepeat[:, mat_id, :]
+  assert torch.all((texrepeat[:, 0] >= 1.0 - 1e-5) & (texrepeat[:, 0] <= 3.0 + 1e-5))
+  assert torch.all((texrepeat[:, 1] >= 4.0 - 1e-5) & (texrepeat[:, 1] <= 6.0 + 1e-5))
+  assert len(torch.unique(texrepeat[:, 0])) >= 2
 
 
 def test_mat_rgba_invalid_name(mat_env):

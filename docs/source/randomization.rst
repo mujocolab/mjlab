@@ -230,6 +230,22 @@ and ``dr.body_ipos`` are the same function).
      - ``mat_rgba``
      - Material RGBA color (tints textures)
      -
+   * - ``dr.mat_emission``
+     - ``mat_emission``
+     - Self-illumination multiplier
+     - Used by MuJoCo Warp RGB rendering
+   * - ``dr.mat_specular``
+     - ``mat_specular``
+     - Specular reflection strength
+     - Used by MuJoCo Warp RGB rendering
+   * - ``dr.mat_shininess``
+     - ``mat_shininess``
+     - Surface shininess in ``[0, 1]``
+     - Used by MuJoCo Warp RGB rendering
+   * - ``dr.mat_texrepeat``
+     - ``mat_texrepeat``
+     - Texture repeat in the S/T directions
+     - Only affects textured materials
 
 .. rubric:: Contact pair fields
 
@@ -750,11 +766,6 @@ do not have one yet. They will be added as demand arises.
      - ``actuator_dynprm``, ``actuator_gear``,
        ``actuator_ctrlrange``, ``actuator_actrange``
      - ``pd_gains`` and ``effort_limits`` cover common cases.
-   * - Material
-     - ``mat_texrepeat``
-     - Continuous per-world field. Material-level entity indexing
-       is now supported (see ``dr.mat_rgba``), but ``dr.mat_texrepeat``
-       is not yet implemented.
 
 Better as custom code
 """""""""""""""""""""
@@ -1318,7 +1329,8 @@ The native viewer syncs per-world model fields from the GPU to a local
 toggles then work correctly against the randomized model:
 
 - Geom appearance (``geom_rgba``, ``geom_size``, ``geom_pos``, ``geom_quat``)
-- Material color (``mat_rgba``): tints textured surfaces
+- Material appearance (``mat_rgba``, ``mat_emission``, ``mat_specular``,
+  ``mat_shininess``, ``mat_texrepeat``)
 - Body and site poses (``body_pos``, ``body_quat``, ``body_ipos``,
   ``site_pos``, ``site_quat``)
 - Inertia (``body_inertia``, ``body_iquat``, ``body_mass``): press ``I``

@@ -16,6 +16,9 @@ Added
   enabled, the noise amplitude scales with difficulty (flat at 0, full
   ``noise_range`` at 1) so the terrain progresses in a curriculum. Defaults to
   ``False``, preserving the previous difficulty-independent behavior.
+- Added material domain randomization functions for MuJoCo Warp RGB rendering:
+  ``dr.mat_emission``, ``dr.mat_specular``, ``dr.mat_shininess``, and
+  ``dr.mat_texrepeat``.
 
 Changed
 ^^^^^^^

@@ -757,14 +757,14 @@ class RayCastSensor(Sensor[RayCastData]):
     rays(
       m=self._model.struct,  # type: ignore[attr-defined]
       d=self._data.struct,  # type: ignore[attr-defined]
-      pnt=self._ray_pnt,  # pyright: ignore[reportArgumentType]
-      vec=self._ray_vec,  # pyright: ignore[reportArgumentType]
+      pnt=self._ray_pnt,  # type: ignore[invalid-argument-type]
+      vec=self._ray_vec,  # type: ignore[invalid-argument-type]
       geomgroup=self._geomgroup,  # pyright: ignore[reportArgumentType]
       flg_static=True,
       bodyexclude=self._ray_bodyexclude,
-      dist=self._ray_dist,  # pyright: ignore[reportArgumentType]
-      geomid=self._ray_geomid,  # pyright: ignore[reportArgumentType]
-      normal=self._ray_normal,  # pyright: ignore[reportArgumentType]
+      dist=self._ray_dist,  # type: ignore[invalid-argument-type]
+      geomid=self._ray_geomid,  # type: ignore[invalid-argument-type]
+      normal=self._ray_normal,  # type: ignore[invalid-argument-type]
       rc=rc,
     )
 

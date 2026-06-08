@@ -71,7 +71,11 @@ from .light import light_pos as light_pos
 
 # Material.
 # isort: split
+from .material import mat_emission as mat_emission
 from .material import mat_rgba as mat_rgba
+from .material import mat_shininess as mat_shininess
+from .material import mat_specular as mat_specular
+from .material import mat_texrepeat as mat_texrepeat
 
 # Pair.
 # isort: split
