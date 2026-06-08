@@ -236,8 +236,8 @@ and ``dr.body_ipos`` are the same function).
      - Used by MuJoCo Warp RGB rendering
    * - ``dr.mat_specular``
      - ``mat_specular``
-     - Specular reflection strength
-     - Used by MuJoCo Warp RGB rendering
+     - Specular reflection strength in ``[0, 1]``
+     - Scales the MuJoCo Warp RGB specular component
    * - ``dr.mat_shininess``
      - ``mat_shininess``
      - Surface shininess in ``[0, 1]``
@@ -245,7 +245,7 @@ and ``dr.body_ipos`` are the same function).
    * - ``dr.mat_texrepeat``
      - ``mat_texrepeat``
      - Texture repeat in the S/T directions
-     - Only affects textured materials
+     - Only affects textured materials; values should stay positive
 
 .. rubric:: Contact pair fields
 

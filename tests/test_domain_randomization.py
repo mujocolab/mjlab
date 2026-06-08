@@ -1718,6 +1718,55 @@ def test_mat_texrepeat_abs(mat_env):
   assert len(torch.unique(texrepeat[:, 0])) >= 2
 
 
+@pytest.mark.parametrize(
+  ("func_name", "field"),
+  [
+    ("mat_emission", "mat_emission"),
+    ("mat_specular", "mat_specular"),
+    ("mat_shininess", "mat_shininess"),
+  ],
+)
+def test_scalar_material_fields_scale_use_defaults(mat_env, func_name, field):
+  """Scale operation uses compiled defaults for scalar material fields."""
+  env = mat_env
+  func = getattr(dr, func_name)
+
+  func(
+    env,
+    env_ids=None,
+    ranges=(2.0, 2.0),
+    asset_cfg=SceneEntityCfg("robot", material_names=("test_mat",)),
+    operation="scale",
+  )
+
+  mat_id = mujoco.mj_name2id(
+    env.sim.mj_model, mujoco.mjtObj.mjOBJ_MATERIAL, "robot/test_mat"
+  )
+  expected = env.sim.get_default_field(field)[mat_id] * 2.0
+  values = getattr(env.sim.model, field)[:, mat_id]
+  assert torch.allclose(values, expected.expand_as(values))
+
+
+def test_mat_texrepeat_scale_uses_defaults(mat_env):
+  """Scale operation uses compiled defaults and both S/T axes by default."""
+  env = mat_env
+
+  dr.mat_texrepeat(
+    env,
+    env_ids=None,
+    ranges=(2.0, 2.0),
+    asset_cfg=SceneEntityCfg("robot", material_names=("test_mat",)),
+    operation="scale",
+  )
+
+  mat_id = mujoco.mj_name2id(
+    env.sim.mj_model, mujoco.mjtObj.mjOBJ_MATERIAL, "robot/test_mat"
+  )
+  expected = env.sim.get_default_field("mat_texrepeat")[mat_id] * 2.0
+  texrepeat = env.sim.model.mat_texrepeat[:, mat_id, :]
+  assert torch.allclose(texrepeat, expected.expand_as(texrepeat))
+
+
 def test_mat_rgba_invalid_name(mat_env):
   """ValueError for unknown material name."""
   env = mat_env

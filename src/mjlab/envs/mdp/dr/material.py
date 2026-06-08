@@ -109,7 +109,11 @@ def mat_specular(
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
-  """Randomize material specular reflection strength."""
+  """Randomize material specular reflection strength.
+
+  MuJoCo stores specular in ``[0, 1]``. MuJoCo Warp uses it to scale the
+  specular component of RGB rendering.
+  """
   _randomize_model_field(
     env,
     env_ids,
@@ -165,7 +169,11 @@ def mat_texrepeat(
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
-  """Randomize material texture repeat in the S/T directions."""
+  """Randomize material texture repeat in the S/T directions.
+
+  Only affects textured materials. Values should remain positive; zero or
+  negative texture repeats are not meaningful for rendering.
+  """
   _randomize_model_field(
     env,
     env_ids,
