@@ -73,3 +73,5 @@ Projects built on mjlab. To add yours, open a pull request or post in
      - mjlab version of Project-Instinct, a whole-body control toolchain to study Instinct-Level intelligence.
    * - `lzyang2000/twist2_mjlab <https://github.com/lzyang2000/twist2_mjlab>`_
      - mjlab port of `TWIST2 <https://arxiv.org/abs/2511.02832>`_.
+   * - `wuji-technology/wuji-mjlab <https://github.com/wuji-technology/wuji-mjlab>`_
+     - In-hand cube reorientation on the Wuji Hand with sim-to-real deployment.
