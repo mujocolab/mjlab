@@ -93,6 +93,14 @@ class CameraSensorCfg(SensorCfg):
   Set to True if you modify the returned data in-place.
   """
 
+  render_update_period: int = 1
+  """Render camera images every N ``sim.sense()`` calls.
+
+  Values greater than 1 keep the previous camera buffer on skipped
+  calls. Environment resets still force a fresh render so reset
+  observations are current.
+  """
+
   def __post_init__(self) -> None:
     valid = {"rgb", "depth", "segmentation"}
     invalid = {dt for dt in self.data_types if dt not in valid}
@@ -100,6 +108,8 @@ class CameraSensorCfg(SensorCfg):
       raise ValueError(f"Invalid camera data types: {invalid}. Valid types: {valid}")
     if not self.data_types:
       raise ValueError("At least one data type must be specified.")
+    if self.render_update_period < 1:
+      raise ValueError("render_update_period must be at least 1.")
 
   def build(self) -> CameraSensor:
     return CameraSensor(self)

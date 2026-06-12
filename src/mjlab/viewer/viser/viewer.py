@@ -332,7 +332,7 @@ class ViserPlayViewer(BaseViewer):
       if env.command_manager.apply_gui_reset(env_ids):
         env.scene.write_data_to_sim()
         env.sim.forward()
-        env.sim.sense()
+        env.sim.sense(force_camera_render=True)
 
     self._pending_update_reasons.add(UpdateReason.ACTION)
     self._sync_ui_state()

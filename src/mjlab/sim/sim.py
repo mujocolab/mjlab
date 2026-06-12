@@ -326,6 +326,7 @@ class Simulation:
     self.forward_graph = None
     self.reset_graph = None
     self.sense_graph = None
+    self.sense_no_camera_render_graph = None
     if self.use_cuda_graph:
       with _suspend_gc(), wp.ScopedDevice(self.wp_device):
         with wp.ScopedCapture() as capture:
@@ -339,8 +340,15 @@ class Simulation:
         self.reset_graph = capture.graph
         if self._sensor_context is not None:
           with wp.ScopedCapture() as capture:
-            self._sense_kernel()
+            self._sense_kernel(render_cameras=True)
           self.sense_graph = capture.graph
+          if (
+            self._sensor_context.has_cameras
+            and self._sensor_context.camera_render_update_period > 1
+          ):
+            with wp.ScopedCapture() as capture:
+              self._sense_kernel(render_cameras=False)
+            self.sense_no_camera_render_graph = capture.graph
 
   # Properties.
 
@@ -483,30 +491,41 @@ class Simulation:
     self._sensor_context = ctx
     self.create_graph()
 
-  def sense(self) -> None:
+  def sense(self, *, force_camera_render: bool = False) -> None:
     """Execute the sense pipeline: prepare -> graph -> finalize.
 
     Runs BVH refit, camera rendering, and raycasting in a single
     CUDA graph launch. Should be called once per env step, right
     before observation computation.
+
+    Args:
+      force_camera_render: Refresh camera buffers even when their configured
+        render period would normally skip this sense call. Reset paths use this
+        so post-reset visual observations are current.
     """
     if self._sensor_context is None:
       return
 
     ctx = self._sensor_context
     ctx.prepare()
+    render_cameras = ctx.should_render_cameras(force=force_camera_render)
 
     with wp.ScopedDevice(self.wp_device):
       if self.use_cuda_graph and self.sense_graph is not None:
-        wp.capture_launch(self.sense_graph)
+        if render_cameras or not ctx.has_cameras:
+          wp.capture_launch(self.sense_graph)
+        else:
+          assert self.sense_no_camera_render_graph is not None
+          wp.capture_launch(self.sense_no_camera_render_graph)
       else:
-        self._sense_kernel()
+        self._sense_kernel(render_cameras=render_cameras)
 
     ctx.finalize()
+    ctx.advance_sense_counter()
 
   # Private methods.
 
-  def _sense_kernel(self) -> None:
+  def _sense_kernel(self, *, render_cameras: bool = True) -> None:
     """GPU kernel sequence for sensing (captured in sense_graph)."""
     assert self._sensor_context is not None
     ctx = self._sensor_context
@@ -514,7 +533,7 @@ class Simulation:
 
     mjwarp.refit_bvh(self.wp_model, self.wp_data, rc)
 
-    if ctx.has_cameras:
+    if render_cameras and ctx.has_cameras:
       mjwarp.render(self.wp_model, self.wp_data, rc)
       ctx.unpack_rgb()
 

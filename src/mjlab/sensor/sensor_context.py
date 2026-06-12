@@ -69,6 +69,11 @@ class SensorContext:
     if self.camera_sensors:
       self._validate_sensor_settings()
 
+    self.camera_render_update_period = (
+      self.camera_sensors[0].cfg.render_update_period if self.camera_sensors else 1
+    )
+    self._camera_render_step = 0
+
     self._rgb_unpacked: wp.array | None = None
     self._rgb_torch: torch.Tensor | None = None
     self._depth_torch: torch.Tensor | None = None
@@ -119,6 +124,17 @@ class SensorContext:
     """Post-graph: compute raycast hit positions."""
     for sensor in self.raycast_sensors:
       sensor.postprocess_rays()
+
+  def should_render_cameras(self, force: bool = False) -> bool:
+    """Whether this sense call should update camera render buffers."""
+    return self.has_cameras and (
+      force or self._camera_render_step % self.camera_render_update_period == 0
+    )
+
+  def advance_sense_counter(self) -> None:
+    """Advance render scheduling after a completed sense call."""
+    if self.has_cameras:
+      self._camera_render_step += 1
 
   def get_rgb(self, cam_idx: int) -> torch.Tensor:
     """Get unpacked RGB data for a camera.
@@ -248,6 +264,12 @@ class SensorContext:
         raise ValueError(
           "All camera sensors must share the same "
           f"enabled_geom_groups. '{s.cfg.name}' differs from "
+          f"'{ref.name}'."
+        )
+      if cfg.render_update_period != ref.render_update_period:
+        raise ValueError(
+          "All camera sensors must share the same "
+          f"render_update_period. '{s.cfg.name}' differs from "
           f"'{ref.name}'."
         )
 
