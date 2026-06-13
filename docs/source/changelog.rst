@@ -8,6 +8,12 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added gamepad (XInput) support to ``UniformVelocityCommand``: plug in any
+  XInput-compatible controller and the left stick drives ``lin_vel_x``/``lin_vel_y``
+  while the right stick drives ``ang_vel_z``. Requires the optional ``inputs``
+  package (``uv sync --extra gamepad``). The Viser viewer shows a read-only
+  *Gamepad* checkbox that reflects connection state; check *Enable* to activate
+  gamepad control.
 - Added ``BuiltinDcMotorActuator``, a native MuJoCo ``<dcmotor>`` wrapper.
   Supports voltage / position / velocity input modes with back-EMF,
   configurable motor constants, and optional integral, slew, inductance,

@@ -53,6 +53,7 @@ class UniformVelocityCommand(CommandTerm):
     self._joystick_enabled: viser.GuiCheckboxHandle | None = None
     self._joystick_sliders: list[viser.GuiSliderHandle] = []
     self._joystick_get_env_idx: Callable[[], int] | None = None
+    self._gamepad_connected_indicator: viser.GuiCheckboxHandle | None = None
 
   @property
   def command(self) -> torch.Tensor:
@@ -161,6 +162,8 @@ class UniformVelocityCommand(CommandTerm):
 
     with server.gui.add_folder(name.capitalize()):
       enabled = server.gui.add_checkbox("Enable", initial_value=False)
+      gamepad_status = server.gui.add_checkbox("Gamepad", initial_value=False)
+      gamepad_status.disabled = True
 
       for label, max_val in axes:
         max_input = server.gui.add_slider(
@@ -196,6 +199,75 @@ class UniformVelocityCommand(CommandTerm):
     self._joystick_enabled = enabled
     self._joystick_sliders = sliders
     self._joystick_get_env_idx = get_env_idx
+    self._gamepad_connected_indicator = gamepad_status
+    self._start_gamepad_thread()
+
+  def _start_gamepad_thread(self) -> None:
+    import threading
+
+    t = threading.Thread(target=self._gamepad_loop, daemon=True, name="gamepad-poll")
+    t.start()
+
+  def _gamepad_loop(self) -> None:
+    import time
+
+    try:
+      from inputs import UnpluggedError, get_gamepad  # type: ignore[import-untyped]
+    except ImportError:
+      print(
+        "[WARN] Gamepad support requires the 'inputs' package: "
+        "uv add --optional gamepad inputs"
+      )
+      return
+
+    # Left stick Y (inverted) → sliders[0] lin_vel_x (up = forward).
+    # Left stick X (inverted) → sliders[1] lin_vel_y (right = strafe right).
+    # Right stick X (inverted) → sliders[2] ang_vel_z (right = turn right).
+    axis_to_slider = {"ABS_Y": 0, "ABS_X": 1, "ABS_RX": 2}
+    inverted = {"ABS_X", "ABS_Y", "ABS_RX"}
+    deadzone = 0.1
+
+    connected = False
+    while True:
+      try:
+        events = get_gamepad()
+      except UnpluggedError:
+        if connected:
+          print("[INFO] Gamepad disconnected.")
+          connected = False
+          if self._gamepad_connected_indicator is not None:
+            self._gamepad_connected_indicator.value = False
+          for s in self._joystick_sliders:
+            s.value = 0.0
+        time.sleep(2.0)
+        continue
+      except Exception as exc:
+        print(f"[WARN] Gamepad error: {exc}")
+        time.sleep(2.0)
+        continue
+
+      if not connected:
+        print("[INFO] Gamepad connected.")
+        connected = True
+        if self._gamepad_connected_indicator is not None:
+          self._gamepad_connected_indicator.value = True
+
+      for event in events:
+        if event.ev_type != "Absolute":
+          continue
+        slider_idx = axis_to_slider.get(event.code)
+        if slider_idx is None:
+          continue
+        raw = float(event.state) / 32768.0
+        if event.code in inverted:
+          raw = -raw
+        if abs(raw) < deadzone:
+          raw = 0.0
+        else:
+          sign = 1.0 if raw > 0 else -1.0
+          raw = sign * (abs(raw) - deadzone) / (1.0 - deadzone)
+        slider = self._joystick_sliders[slider_idx]
+        slider.value = float(np.clip(raw * slider.max, slider.min, slider.max))
 
   def compute(self, dt: float) -> None:
     super().compute(dt)

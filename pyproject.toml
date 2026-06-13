@@ -50,6 +50,7 @@ dependencies = [
   "tensorboard>=2.20.0",
   "onnxscript>=0.5.4",
   "wandb>=0.22.3",
+  "huggingface_hub>=0.20.0",
 ]
 
 [project.urls]
@@ -93,6 +94,7 @@ docs = [
 [project.optional-dependencies]
 cu128 = ["torch>=2.7.0"]
 cpu = ["torch>=2.7.0"]
+gamepad = ["inputs"]
 
 [tool.uv]
 conflicts = [

@@ -83,6 +83,46 @@ uv run play Mjlab-Your-Task-Id --agent random  # Sends uniform random actions
 When running motion-tracking tasks, add `--registry-name your-org/motions/motion-name` to the command.
 
 
+## Gamepad Control
+
+Any XInput-compatible controller (Xbox, PS4/PS5 with mapping, etc.) can drive velocity commands in real time while playing a policy.
+
+**Setup:**
+
+```bash
+# From PyPI
+pip install 'mjlab[gamepad]'
+
+# From source (inside the repo)
+uv sync --extra gamepad
+```
+
+**Example — control a pre-trained Go1 policy:**
+
+```bash
+# Download the checkpoint
+huggingface-cli download robomotic/mjlab-policies \
+  go1_velocity/2026-04-27_13-40-37/model_final.pt \
+  --local-dir ./checkpoints
+
+# Launch the viewer
+uv run play Mjlab-Velocity-Flat-Unitree-Go1 \
+  --checkpoint-file ./checkpoints/go1_velocity/2026-04-27_13-40-37/model_final.pt \
+  --viewer viser
+```
+
+In the Viser browser UI, open the **Commands** folder and check **Enable** to activate gamepad input. A read-only **Gamepad** checkbox shows whether a controller is detected.
+
+**Axis mapping:**
+
+| Stick | Command |
+|---|---|
+| Left stick up / down | `lin_vel_x` — forward / backward |
+| Left stick left / right | `lin_vel_y` — strafe |
+| Right stick left / right | `ang_vel_z` — yaw |
+
+The **Max** sliders in the UI cap each axis, and the **Zero** button instantly zeroes all commands. The controller reconnects automatically if unplugged and re-plugged during a session.
+
 ## Documentation
 
 Full documentation is available at **[mujocolab.github.io/mjlab](https://mujocolab.github.io/mjlab/)**.
