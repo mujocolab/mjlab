@@ -445,6 +445,10 @@ class Simulation:
     fn = getattr(mjwarp, level.name)
     with wp.ScopedDevice(self.wp_device):
       fn(self._wp_model, self._wp_data)
+    # set_const()/set_const_0() rerun kinematics()/com_pos(), which overwrite the
+    # forward-derived data fields (xpos, xquat, xipos, subtree_com, geom_*, site_*)
+    # that EntityData caches. Invalidate downstream caches so they recompute.
+    self._data_bridge.bump_generation()
 
   def forward(self) -> None:
     with wp.ScopedDevice(self.wp_device):
@@ -452,6 +456,7 @@ class Simulation:
         wp.capture_launch(self.forward_graph)
       else:
         mjwarp.forward(self.wp_model, self.wp_data)
+    self._data_bridge.bump_generation()
 
   def step(self) -> None:
     with wp.ScopedDevice(self.wp_device):
@@ -460,6 +465,7 @@ class Simulation:
           wp.capture_launch(self.step_graph)
         else:
           mjwarp.step(self.wp_model, self.wp_data)
+    self._data_bridge.bump_generation()
 
   def reset(self, env_ids: torch.Tensor | None = None) -> None:
     with wp.ScopedDevice(self.wp_device):
@@ -473,6 +479,7 @@ class Simulation:
         wp.capture_launch(self.reset_graph)
       else:
         mjwarp.reset_data(self.wp_model, self.wp_data, reset=self._reset_mask_wp)
+    self._data_bridge.bump_generation()
 
   def set_sensor_context(self, ctx: SensorContext) -> None:
     """Wire a SensorContext for camera/raycast sensing.

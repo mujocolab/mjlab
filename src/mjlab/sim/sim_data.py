@@ -197,6 +197,19 @@ class WarpBridge(Generic[T]):
     object.__setattr__(self, "_struct", struct)
     object.__setattr__(self, "_wrapped_cache", {})
     object.__setattr__(self, "_nworld", nworld)
+    # Monotonic counter bumped by Simulation after step/forward/reset. Lazy
+    # consumers (e.g. EntityData derived-quantity caches) compare against this
+    # to know when their cached values are stale and must be recomputed.
+    object.__setattr__(self, "_generation", 0)
+
+  def bump_generation(self) -> None:
+    """Invalidate downstream caches by advancing the data generation counter.
+
+    Called by ``Simulation`` after any operation that mutates the underlying
+    physics state (``step``, ``forward``, ``reset``). It does not touch GPU
+    memory, so it is safe to call outside CUDA graph capture.
+    """
+    object.__setattr__(self, "_generation", self._generation + 1)
 
   def __getattr__(self, name: str) -> Any:
     """Get attribute from the wrapped data, wrapping Warp arrays as TorchArray."""

@@ -64,6 +64,31 @@ def test_no_history_by_default(mock_env, simple_obs_func):
   assert policy_obs.shape == (4, 3)
 
 
+def test_scaled_observation_does_not_mutate_source(mock_env, device):
+  """Scaling must not write through when an observation term returns a view."""
+
+  source = torch.ones((mock_env.num_envs, 3), device=device)
+
+  def obs_func(env):
+    return source[:, :]
+
+  cfg = {
+    "actor": ObservationGroupCfg(
+      terms={
+        "obs1": ObservationTermCfg(func=obs_func, params={}, scale=2.0),
+      }
+    ),
+  }
+
+  manager = ObservationManager(cfg, mock_env)
+  obs = manager.compute()
+
+  policy_obs = obs["actor"]
+  assert isinstance(policy_obs, torch.Tensor)
+  torch.testing.assert_close(policy_obs, torch.full_like(source, 2.0))
+  torch.testing.assert_close(source, torch.ones_like(source))
+
+
 def test_single_step_history(mock_env, simple_obs_func):
   """Test observation with history_length=1."""
 

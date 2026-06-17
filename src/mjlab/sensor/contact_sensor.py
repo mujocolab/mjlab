@@ -337,7 +337,9 @@ class ContactSensor(Sensor[ContactData]):
         )
 
   def _compute_data(self) -> ContactData:
-    out = self._extract_sensor_data()
+    return self._attach_state(self._extract_sensor_data())
+
+  def _attach_state(self, out: ContactData) -> ContactData:
     if self._air_time_state is not None:
       out.current_air_time = self._air_time_state.current_air_time
       out.last_air_time = self._air_time_state.last_air_time
@@ -370,10 +372,14 @@ class ContactSensor(Sensor[ContactData]):
 
   def update(self, dt: float) -> None:
     super().update(dt)
-    if self._air_time_state is not None:
-      self._update_air_time_tracking()
-    if self._history_state is not None:
-      self._update_history()
+    if self._air_time_state is not None or self._history_state is not None:
+      contact_data = self._extract_sensor_data()
+      if self._air_time_state is not None:
+        self._update_air_time_tracking(contact_data)
+      if self._history_state is not None:
+        self._update_history(contact_data)
+      self._cached_data = self._attach_state(contact_data)
+      self._cache_valid = True
 
   def compute_first_contact(self, dt: float, abs_tol: float = 1.0e-6) -> torch.Tensor:
     """Returns [B, P] bool: True for primaries that landed within the last dt seconds."""
@@ -442,10 +448,9 @@ class ContactSensor(Sensor[ContactData]):
 
     return data
 
-  def _update_air_time_tracking(self) -> None:
+  def _update_air_time_tracking(self, contact_data: ContactData) -> None:
     assert self._air_time_state is not None
 
-    contact_data = self._extract_sensor_data()
     if contact_data.found is None or "found" not in self.cfg.fields:
       return
 
@@ -489,11 +494,9 @@ class ContactSensor(Sensor[ContactData]):
 
     state.last_time[:] = current_time
 
-  def _update_history(self) -> None:
+  def _update_history(self, contact_data: ContactData) -> None:
     """Roll history buffer and insert current contact data at index 0."""
     assert self._history_state is not None
-
-    contact_data = self._extract_sensor_data()
 
     if "force" in self._history_state and contact_data.force is not None:
       self._history_state["force"] = self._history_state["force"].roll(1, dims=2)

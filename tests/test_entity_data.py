@@ -228,6 +228,30 @@ def test_read_requires_forward_to_be_current(device):
   assert not torch.allclose(current_pose, initial_pose, atol=1e-4)
 
 
+def test_derived_body_frame_cache_invalidates_on_forward(device):
+  """Cached derived root quantities must refresh after forward() advances data."""
+  entity = create_floating_base_entity()
+  entity, sim = initialize_entity_with_sim(entity, device)
+
+  sim.forward()
+  initial_gravity = entity.data.projected_gravity_b
+  cached_gravity = entity.data.projected_gravity_b
+  assert initial_gravity.data_ptr() == cached_gravity.data_ptr()
+
+  new_pose = torch.tensor(
+    [0.0, 0.0, 1.0, 0.707, 0.707, 0.0, 0.0], device=device
+  ).unsqueeze(0)
+  entity.write_root_link_pose_to_sim(new_pose)
+
+  stale_gravity = entity.data.projected_gravity_b
+  assert stale_gravity.data_ptr() == initial_gravity.data_ptr()
+
+  sim.forward()
+  current_gravity = entity.data.projected_gravity_b
+  assert current_gravity.data_ptr() != initial_gravity.data_ptr()
+  assert not torch.allclose(current_gravity, initial_gravity, atol=1e-4)
+
+
 @pytest.mark.parametrize(
   "property_name,expected_shape",
   [

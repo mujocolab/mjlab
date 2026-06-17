@@ -154,6 +154,7 @@ class DelayBuffer:
     )
     self._current_lags = torch.zeros(batch_size, dtype=torch.long, device=device)
     self._step_count = torch.zeros(batch_size, dtype=torch.long, device=device)
+    self._always_update = torch.ones(batch_size, dtype=torch.bool, device=device)
 
     if update_period > 0 and per_env_phase:
       self._phase_offsets = torch.randint(
@@ -252,7 +253,7 @@ class DelayBuffer:
       )
       should_update = phase_adjusted_count == 0
     else:
-      should_update = torch.ones(self.batch_size, dtype=torch.bool, device=self.device)
+      should_update = self._always_update
     new_lags = self._sample_lags(should_update)
     self._current_lags = torch.where(should_update, new_lags, self._current_lags)
     self._step_count += 1

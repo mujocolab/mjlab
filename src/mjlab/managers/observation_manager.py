@@ -327,11 +327,20 @@ class ObservationManager(ManagerBase):
       group_term_names, self._group_obs_term_cfgs[group_name], strict=False
     )
     for term_name, term_cfg in obs_terms:
-      obs: torch.Tensor = term_cfg.func(self._env, **term_cfg.params).clone()
+      obs: torch.Tensor = term_cfg.func(self._env, **term_cfg.params)
+      owns_storage = False
       if isinstance(term_cfg.noise, noise_cfg.NoiseCfg):
+        source_obs = obs
         obs = term_cfg.noise.apply(obs)
+        owns_storage = obs is not source_obs
       elif isinstance(term_cfg.noise, noise_cfg.NoiseModelCfg):
+        source_obs = obs
         obs = self._group_obs_class_instances[group_name][term_name](obs)
+        owns_storage = obs is not source_obs
+
+      if (term_cfg.clip or term_cfg.scale is not None) and not owns_storage:
+        obs = obs.clone()
+        owns_storage = True
       if term_cfg.clip:
         obs = obs.clip_(min=term_cfg.clip[0], max=term_cfg.clip[1])
       if term_cfg.scale is not None:
@@ -359,6 +368,12 @@ class ObservationManager(ManagerBase):
         else:
           group_obs[term_name] = circular_buffer.buffer
       else:
+        if (
+          not self._group_obs_concatenate[group_name]
+          and term_cfg.delay_max_lag == 0
+          and not owns_storage
+        ):
+          obs = obs.clone()
         group_obs[term_name] = obs
 
     # Final NaN check for non-per-term checking.

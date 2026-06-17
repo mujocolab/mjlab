@@ -131,6 +131,7 @@ class CircularBuffer:
     self._pointer: int = -1
     self._buffer: torch.Tensor | None = None
     self._all_indices = torch.arange(batch_size, device=device)
+    self._time_indices = torch.arange(max_len, device=device)
     self._num_pushes = torch.zeros(batch_size, dtype=torch.long, device=device)
     self._max_len_tensor = torch.full(
       (batch_size,), max_len, dtype=torch.long, device=device
@@ -170,7 +171,7 @@ class CircularBuffer:
       raise RuntimeError("Buffer not initialized. Call append() first.")
 
     start = (self._pointer + 1) % self._max_len
-    idx = (torch.arange(self._max_len, device=self._device) + start) % self._max_len
+    idx = (self._time_indices + start) % self._max_len
     buf = self._buffer.index_select(0, idx)  # (max_len, batch, ...)
     return buf.transpose(0, 1)  # (batch, max_len, ...)
 
