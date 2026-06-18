@@ -132,6 +132,24 @@ Because ``spec_fn`` is an arbitrary callable, you can perform any
 before returning: add bodies, change joint limits, swap materials,
 or build the entire model programmatically without an XML file at all.
 
+Locking joints
+""""""""""""""
+
+Use :func:`~mjlab.utils.spec.lock_joints` to permanently weld specific
+joints. It wraps a ``spec_fn`` and deletes the listed joints before
+compilation:
+
+.. code-block:: python
+
+    from mjlab.utils.spec import lock_joints
+
+    locked_spec_fn = lock_joints(get_spec, ["wrist_roll", "wrist_pitch"])
+
+    robot_cfg = EntityCfg(spec_fn=locked_spec_fn, ...)
+
+The deleted joints are frozen at their default position and removed from
+the action space entirely.
+
 ``init_state``
 ^^^^^^^^^^^^^^
 

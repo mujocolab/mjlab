@@ -4,7 +4,11 @@ import mujoco
 import numpy as np
 import pytest
 
-from mjlab.utils.spec import create_position_actuator, create_velocity_actuator
+from mjlab.utils.spec import (
+  create_position_actuator,
+  create_velocity_actuator,
+  lock_joints,
+)
 
 
 @pytest.fixture
@@ -212,3 +216,57 @@ def test_velocity_actuator_forces_clipped_to_effort_limit(
   data.ctrl[0] = 100.0
   mujoco.mj_forward(model, data)
   assert abs(data.actuator_force[0]) <= effort_limit + 1e-6
+
+
+# ---------------------------------------------------------------------------
+# lock_joints
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def two_joint_spec():
+  """Spec with two hinge joints on a serial chain."""
+  spec = mujoco.MjSpec()
+  b1 = spec.worldbody.add_body(name="link1")
+  b1.add_joint(name="j1", type=mujoco.mjtJoint.mjJNT_HINGE, axis=[0, 0, 1])
+  b1.add_geom(type=mujoco.mjtGeom.mjGEOM_BOX, size=[0.1, 0.1, 0.1], mass=1.0)
+  b2 = b1.add_body(name="link2")
+  b2.add_joint(name="j2", type=mujoco.mjtJoint.mjJNT_HINGE, axis=[0, 0, 1])
+  b2.add_geom(type=mujoco.mjtGeom.mjGEOM_BOX, size=[0.1, 0.1, 0.1], mass=1.0)
+  return spec
+
+
+def test_lock_joints_removes_specified_joints(two_joint_spec):
+  """Locking a joint removes it from the compiled model."""
+  spec_fn = lock_joints(lambda: two_joint_spec, ["j1"])
+  spec = spec_fn()
+
+  joint_names = [j.name for j in spec.joints]
+  assert "j1" not in joint_names
+  assert "j2" in joint_names
+
+  model = spec.compile()
+  assert model.njnt == 1
+
+
+def test_lock_joints_removes_multiple_joints(two_joint_spec):
+  """Locking all joints produces a fully welded model."""
+  spec_fn = lock_joints(lambda: two_joint_spec, ["j1", "j2"])
+  spec = spec_fn()
+
+  assert len(list(spec.joints)) == 0
+  model = spec.compile()
+  assert model.njnt == 0
+  assert model.nq == 0
+
+
+def test_lock_joints_missing_joint_raises():
+  """Requesting a non-existent joint raises an error."""
+  spec = mujoco.MjSpec()
+  body = spec.worldbody.add_body(name="body")
+  body.add_joint(name="j1", type=mujoco.mjtJoint.mjJNT_HINGE, axis=[0, 0, 1])
+  body.add_geom(type=mujoco.mjtGeom.mjGEOM_BOX, size=[0.1, 0.1, 0.1], mass=1.0)
+
+  spec_fn = lock_joints(lambda: spec, ["nonexistent"])
+  with pytest.raises(Exception):
+    spec_fn()

@@ -5,6 +5,7 @@ from __future__ import annotations
 import shutil
 import xml.etree.ElementTree as ET
 import zipfile
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Callable
 
@@ -196,6 +197,21 @@ def auto_wrap_fixed_base_mocap(
       wrapper_spec.add_key(name=name, qpos=qpos.tolist(), ctrl=ctrl.tolist())
 
     return wrapper_spec
+
+  return wrapper
+
+
+def lock_joints(
+  spec_fn: Callable[[], mujoco.MjSpec],
+  joint_names: Sequence[str],
+) -> Callable[[], mujoco.MjSpec]:
+  """Wrap spec_fn to delete joints before compilation."""
+
+  def wrapper() -> mujoco.MjSpec:
+    spec = spec_fn()
+    for name in joint_names:
+      spec.delete(spec.joint(name))
+    return spec
 
   return wrapper
 
