@@ -8,6 +8,8 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``reduce="max"`` to ``MetricsTermCfg`` for reporting episode-peak values
+  (e.g. peak power, peak contact force) without needing stateful wrapper classes.
 - Added ``BuiltinDcMotorActuator``, a native MuJoCo ``<dcmotor>`` wrapper.
   Supports voltage / position / velocity input modes with back-EMF,
   configurable motor constants, and optional integral, slew, inductance,
