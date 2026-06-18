@@ -184,7 +184,7 @@ class ViserTermPlotter:
           ),
           "y": viser.uplot.Scale(auto=True),
         },
-        legend=viser.uplot.Legend(show=False),
+        legend=viser.uplot.Legend(show=True),
         title=state.name,
         aspect=2.0,
         visible=True,
