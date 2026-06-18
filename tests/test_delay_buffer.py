@@ -298,3 +298,63 @@ def test_delay_buffer_validation(device):
 
   with pytest.raises(ValueError, match="update_period must be >= 0"):
     DelayBuffer(min_lag=0, max_lag=3, batch_size=1, update_period=-1, device=device)
+
+
+# peek_append: read-only counterpart to append + compute.
+
+
+def test_peek_append_matches_real_compute_constant_lag(device):
+  """peek_append equals a real append+compute (constant lag), mutating nothing.
+
+  With min_lag == max_lag, the per-step resampling in compute() is
+  deterministic, so peek_append (which reuses the current lags and resamples
+  nothing) must produce identical values to a real append+compute.
+  """
+  torch.manual_seed(0)
+  batch_size = 3
+  peeked = DelayBuffer(min_lag=2, max_lag=2, batch_size=batch_size, device=device)
+  # Warm the buffer through several real steps so lags/state have settled.
+  for i in range(5):
+    peeked.append(torch.full((batch_size, 2), float(i), device=device))
+    peeked.compute()
+
+  new_frame = torch.randn(batch_size, 2, device=device)
+
+  assert peeked._buffer._buffer is not None
+
+  # Reference: clone the internal state and perform the real append+compute.
+  reference = DelayBuffer(min_lag=2, max_lag=2, batch_size=batch_size, device=device)
+  reference._buffer._buffer = peeked._buffer._buffer.clone()
+  reference._buffer._pointer = peeked._buffer._pointer
+  reference._buffer._num_pushes = peeked._buffer._num_pushes.clone()
+  reference._current_lags = peeked._current_lags.clone()
+  reference._step_count = peeked._step_count.clone()
+  reference.append(new_frame)
+  expected = reference.compute()
+
+  # Snapshot mutable state to assert peek_append leaves it untouched.
+  pointer = peeked._buffer._pointer
+  pushes = peeked._buffer._num_pushes.clone()
+  storage = peeked._buffer._buffer.clone()
+  lags = peeked._current_lags.clone()
+  step_count = peeked._step_count.clone()
+
+  result = peeked.peek_append(new_frame)
+
+  assert torch.allclose(result, expected)
+  assert peeked._buffer._pointer == pointer
+  assert torch.equal(peeked._buffer._num_pushes, pushes)
+  assert torch.equal(peeked._buffer._buffer, storage)
+  assert torch.equal(peeked._current_lags, lags)
+  assert torch.equal(peeked._step_count, step_count)
+
+
+def test_peek_append_clamps_to_available_history(device):
+  """peek_append clamps the lag to available history early in an episode."""
+  buffer = DelayBuffer(min_lag=3, max_lag=3, batch_size=1, device=device)
+  buffer.append(torch.tensor([[1.0]], device=device))
+  buffer.compute()  # current_lags becomes 3, but only 1 frame exists.
+
+  # One real frame in history; peeking a second can return at most the oldest.
+  result = buffer.peek_append(torch.tensor([[2.0]], device=device))
+  assert torch.allclose(result, torch.tensor([[1.0]], device=device))

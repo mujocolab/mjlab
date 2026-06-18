@@ -226,6 +226,33 @@ class DelayBuffer:
     """
     self._buffer.append(data)
 
+  def peek_append(self, data: torch.Tensor) -> torch.Tensor:
+    """Return the delayed obs :meth:`compute` would yield after ``append(data)``.
+
+    Pure, read-only counterpart to ``append`` followed by ``compute``: it
+    mutates no state and, crucially, does *not* resample lags (so it draws no
+    RNG and leaves the step counter untouched). The most recently sampled
+    per-env lags are reused. This makes it safe for computing terminal
+    observations on a subset of environments without perturbing the live delay
+    process shared by the rest of the batch. See
+    :meth:`CircularBuffer.peek_append`.
+
+    Args:
+      data: Observation tensor of shape (batch_size, ...).
+
+    Returns:
+      Delayed observation of shape (batch_size, ...).
+    """
+    window = self._buffer.peek_append(data)  # (batch, buf_len, ...), chronological.
+    buf_len = window.shape[1]
+    # Valid history length after the hypothetical append, capped at capacity.
+    length_post = (self._buffer.current_length + 1).clamp_max(buf_len)
+    valid_lags = torch.minimum(self._current_lags, length_post - 1).clamp_min(0)
+    # Newest frame sits at window index buf_len - 1; lag L is L frames before it.
+    gather_idx = (buf_len - 1) - valid_lags
+    batch_idx = torch.arange(self.batch_size, device=self.device)
+    return window[batch_idx, gather_idx]
+
   def compute(self) -> torch.Tensor:
     """Compute delayed observation for current step.
 

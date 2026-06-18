@@ -216,6 +216,49 @@ class CircularBuffer:
 
     self._num_pushes += 1
 
+  def peek_append(self, data: torch.Tensor) -> torch.Tensor:
+    """Return the window :meth:`buffer` would yield after ``append(data)``.
+
+    This is a pure, read-only counterpart to :meth:`append`: it computes the
+    chronological history window that *would* result from appending ``data``,
+    but mutates no state (pointer, push counts, and stored frames are all left
+    untouched).
+
+    The buffer's single pointer is shared across the batch, so a real partial
+    append cannot update a subset of rows without shifting every other row's
+    window. ``peek_append`` sidesteps that entirely by never advancing the
+    pointer, which makes it safe for computing terminal observations on a
+    subset of (done) environments without disturbing the live history that the
+    rest of the batch continues to accumulate.
+
+    Args:
+      data: Tensor of shape (batch_size, ...) to hypothetically append.
+
+    Returns:
+      Chronological window (oldest to newest) of shape (batch_size, max_len,
+      ...), where the newest frame is ``data``.
+    """
+    if data.shape[0] != self._batch_size:
+      raise ValueError(f"Expected batch size {self._batch_size}, got {data.shape[0]}")
+    data = data.to(self._device)
+
+    # Never appended: a real append would backfill every slot with this first
+    # frame, so the window is `data` repeated across the time axis. Materialize
+    # (repeat, not expand) so the result never aliases `data`.
+    if self._buffer is None:
+      return data.unsqueeze(1).repeat(1, self._max_len, *([1] * (data.ndim - 1)))
+
+    # Normal case: drop the oldest frame and append `data` as the newest.
+    old_window = self.buffer  # (batch, max_len, ...), chronological.
+    window = torch.cat([old_window[:, 1:], data.unsqueeze(1)], dim=1)
+
+    # Rows not yet pushed since a reset get backfilled with `data`, matching the
+    # first-push behavior in append().
+    is_first_push = self._num_pushes == 0
+    if torch.any(is_first_push):
+      window[is_first_push] = data[is_first_push].unsqueeze(1)
+    return window
+
   def __getitem__(self, key: torch.Tensor | int) -> torch.Tensor:
     """Retrieve lagged frames per batch (LIFO).
 

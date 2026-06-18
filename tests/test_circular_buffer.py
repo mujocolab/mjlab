@@ -215,3 +215,104 @@ def test_dtype_and_device_preserved(device):
   buffer.append(x)
   assert buffer.buffer.dtype == torch.float32
   assert buffer.buffer.device.type == torch.device(device).type
+
+
+# peek_append: read-only counterpart to append.
+
+
+def _buffer_state(buffer: CircularBuffer):
+  """Snapshot the mutable state of a buffer for no-mutation assertions."""
+  return (
+    buffer._pointer,
+    buffer._num_pushes.clone(),
+    None if buffer._buffer is None else buffer._buffer.clone(),
+  )
+
+
+def _assert_state_unchanged(buffer: CircularBuffer, before) -> None:
+  pointer, num_pushes, storage = before
+  assert buffer._pointer == pointer
+  assert torch.equal(buffer._num_pushes, num_pushes)
+  if storage is None:
+    assert buffer._buffer is None
+  else:
+    assert buffer._buffer is not None
+    assert torch.equal(buffer._buffer, storage)
+
+
+@pytest.mark.parametrize("max_len", [1, 3, 4])
+@pytest.mark.parametrize("num_appends", [0, 1, 2, 5, 7])
+def test_peek_append_matches_real_append(device, max_len, num_appends):
+  """peek_append yields exactly the window a real append would, mutating nothing.
+
+  This is the core correctness guarantee: the terminal-observation snapshot uses
+  peek_append instead of append so the shared pointer is never advanced. We prove
+  it by comparing against a clone that performs the real append.
+  """
+  torch.manual_seed(0)
+  batch_size = 3
+  peeked = CircularBuffer(max_len=max_len, batch_size=batch_size, device=device)
+  for _ in range(num_appends):
+    peeked.append(torch.randn(batch_size, 2, device=device))
+
+  new_frame = torch.randn(batch_size, 2, device=device)
+
+  # Reference: a clone that actually appends.
+  reference = CircularBuffer(max_len=max_len, batch_size=batch_size, device=device)
+  if peeked._buffer is not None:
+    reference._buffer = peeked._buffer.clone()
+  reference._pointer = peeked._pointer
+  reference._num_pushes = peeked._num_pushes.clone()
+  reference.append(new_frame)
+
+  before = _buffer_state(peeked)
+  window = peeked.peek_append(new_frame)
+
+  assert window.shape == (batch_size, max_len, 2)
+  assert torch.allclose(window, reference.buffer)
+  # peek_append must not mutate the buffer it was called on.
+  _assert_state_unchanged(peeked, before)
+
+
+def test_peek_append_uninitialized_backfills(device):
+  """peek_append on a fresh buffer returns the frame repeated across time."""
+  buffer = CircularBuffer(max_len=3, batch_size=2, device=device)
+  frame = torch.tensor([[5.0], [10.0]], device=device)
+
+  window = buffer.peek_append(frame)
+
+  assert window.shape == (2, 3, 1)
+  assert torch.allclose(window[0], torch.tensor([[5.0], [5.0], [5.0]], device=device))
+  assert torch.allclose(
+    window[1], torch.tensor([[10.0], [10.0], [10.0]], device=device)
+  )
+  # Still uninitialized: no allocation happened.
+  assert buffer._buffer is None
+  assert not buffer.is_initialized
+
+
+def test_peek_append_backfills_reset_rows(device):
+  """A row reset since its last push is backfilled with the peeked frame."""
+  buffer = CircularBuffer(max_len=3, batch_size=2, device=device)
+  buffer.append(torch.tensor([[1.0], [10.0]], device=device))
+  buffer.append(torch.tensor([[2.0], [20.0]], device=device))
+  buffer.reset(batch_ids=torch.tensor([1], device=device))
+
+  before = _buffer_state(buffer)
+  window = buffer.peek_append(torch.tensor([[3.0], [50.0]], device=device))
+
+  # Row 0 (not reset): oldest dropped, newest appended -> [1, 2, 3].
+  assert torch.allclose(window[0], torch.tensor([[1.0], [2.0], [3.0]], device=device))
+  # Row 1 (reset, num_pushes==0): backfilled with 50.
+  assert torch.allclose(
+    window[1], torch.tensor([[50.0], [50.0], [50.0]], device=device)
+  )
+  _assert_state_unchanged(buffer, before)
+
+
+def test_peek_append_batch_size_validation(device):
+  """peek_append rejects a mismatched batch size."""
+  buffer = CircularBuffer(max_len=2, batch_size=2, device=device)
+  buffer.append(torch.tensor([[1.0], [2.0]], device=device))
+  with pytest.raises(ValueError, match="batch size"):
+    buffer.peek_append(torch.tensor([[1.0]], device=device))

@@ -303,8 +303,16 @@ class ObservationManager(ManagerBase):
     return torch.nan_to_num(tensor, nan=0.0, posinf=0.0, neginf=0.0)
 
   def compute(
-    self, update_history: bool = False
+    self, update_history: bool = False, peek: bool = False
   ) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
+    # Peek is a read-only snapshot (see compute_group): it never reads or writes
+    # the cache, never mutates delay/history buffers, and never draws RNG.
+    if peek:
+      return {
+        group_name: self.compute_group(group_name, peek=True)
+        for group_name in self._group_obs_term_names
+      }
+
     # Return cached observations if not updating and cache exists.
     # This prevents double-pushing to delay buffers when compute() is called
     # multiple times per control step (e.g., in get_observations() after step()).
@@ -318,8 +326,17 @@ class ObservationManager(ManagerBase):
     return obs_buffer
 
   def compute_group(
-    self, group_name: str, update_history: bool = False
+    self, group_name: str, update_history: bool = False, peek: bool = False
   ) -> torch.Tensor | dict[str, torch.Tensor]:
+    """Compute observations for a single group.
+
+    When ``peek=True``, computes a read-only snapshot of the current observation
+    *without mutating any state*: delay and history buffers are queried via their
+    ``peek_append`` methods (no pointer advance, no lag resampling), and noise is
+    skipped (it would draw from the global RNG and perturb the training
+    trajectory). This is used to capture true terminal observations for done
+    environments under auto-reset. Shapes are identical to the non-peek result.
+    """
     group_cfg = self.cfg[group_name]
     group_term_names = self._group_obs_term_names[group_name]
     group_obs: dict[str, torch.Tensor] = {}
@@ -328,10 +345,14 @@ class ObservationManager(ManagerBase):
     )
     for term_name, term_cfg in obs_terms:
       obs: torch.Tensor = term_cfg.func(self._env, **term_cfg.params).clone()
-      if isinstance(term_cfg.noise, noise_cfg.NoiseCfg):
-        obs = term_cfg.noise.apply(obs)
-      elif isinstance(term_cfg.noise, noise_cfg.NoiseModelCfg):
-        obs = self._group_obs_class_instances[group_name][term_name](obs)
+      # Noise is skipped on peek: NoiseCfg draws from the global RNG (which would
+      # perturb the training trajectory) and NoiseModelCfg carries per-step state
+      # (which would be advanced twice). Terminal observations are noise-free.
+      if not peek:
+        if isinstance(term_cfg.noise, noise_cfg.NoiseCfg):
+          obs = term_cfg.noise.apply(obs)
+        elif isinstance(term_cfg.noise, noise_cfg.NoiseModelCfg):
+          obs = self._group_obs_class_instances[group_name][term_name](obs)
       if term_cfg.clip:
         obs = obs.clip_(min=term_cfg.clip[0], max=term_cfg.clip[1])
       if term_cfg.scale is not None:
@@ -347,17 +368,24 @@ class ObservationManager(ManagerBase):
 
       if term_cfg.delay_max_lag > 0:
         delay_buffer = self._group_obs_term_delay_buffer[group_name][term_name]
-        delay_buffer.append(obs)
-        obs = delay_buffer.compute()
+        if peek:
+          obs = delay_buffer.peek_append(obs)
+        else:
+          delay_buffer.append(obs)
+          obs = delay_buffer.compute()
       if term_cfg.history_length > 0:
         circular_buffer = self._group_obs_term_history_buffer[group_name][term_name]
-        if update_history or not circular_buffer.is_initialized:
-          circular_buffer.append(obs)
+        if peek:
+          history = circular_buffer.peek_append(obs)
+        else:
+          if update_history or not circular_buffer.is_initialized:
+            circular_buffer.append(obs)
+          history = circular_buffer.buffer
 
         if term_cfg.flatten_history_dim:
-          group_obs[term_name] = circular_buffer.buffer.reshape(self._env.num_envs, -1)
+          group_obs[term_name] = history.reshape(self._env.num_envs, -1)
         else:
-          group_obs[term_name] = circular_buffer.buffer
+          group_obs[term_name] = history
       else:
         group_obs[term_name] = obs
 

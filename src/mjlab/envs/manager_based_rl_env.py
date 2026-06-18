@@ -154,6 +154,40 @@ class ManagerBasedRlEnvCfg:
   their own training loop (or a wrapper that handles the reset between steps).
   """
 
+  capture_terminal_observations: bool = False
+  """Whether to expose the true terminal observation for done environments while
+  keeping auto-reset enabled.
+
+  When True (and ``auto_reset=True``), on any step where one or more environments
+  terminate or time out, ``step()`` stores their true terminal observation (the
+  real ``s_{t+1}``, before reset) in ``extras["terminal"]``::
+
+    extras["terminal"] = {
+      "env_ids": LongTensor,                  # the done environment indices, shape [k]
+      "observations": {group: Tensor, ...},   # mirrors the obs dict, rows = [k]
+    }
+
+  The key is present only on steps where at least one environment resets, and only
+  when this flag is enabled. It is intended for algorithms that need the real next
+  state at episode boundaries (e.g. value bootstrapping at truncation, or AMP-style
+  style rewards) without giving up the standard auto-reset vectorized API. To build
+  a full ``[num_envs]`` next observation, scatter the terminal rows into the
+  returned observation::
+
+    next_obs = obs[group].clone()
+    if (term := extras.get("terminal")) is not None:
+      next_obs[term["env_ids"]] = term["observations"][group]
+
+  The terminal observation is a read-only snapshot: delay and history are applied,
+  but observation noise is *not* (it would draw from the RNG and perturb training),
+  and command resampling / step events are not re-run. For typical proprioceptive
+  observations this is exactly the terminal state; observations that depend on
+  commands reflect their value as of the previous control step. Enabling this flag
+  does not change the training trajectory; it only adds one ``forward``/``sense``
+  and an extra observation pass on steps where environments reset. This flag has no
+  effect when ``auto_reset=False`` (the returned observation is already terminal).
+  """
+
   scale_rewards_by_dt: bool = True
   """Whether to multiply rewards by the environment step duration (dt).
 
@@ -366,6 +400,7 @@ class ManagerBasedRlEnv:
     if seed is not None:
       self.seed(seed)
     self.extras["log"] = dict()
+    self.extras.pop("terminal", None)
     self._reset_idx(env_ids)
     self.scene.write_data_to_sim()
     self.sim.forward()
@@ -416,6 +451,7 @@ class ManagerBasedRlEnv:
       )
 
     self.extras["log"] = dict()
+    self.extras.pop("terminal", None)
     self.action_manager.process_action(action.to(self.device))
 
     for _ in range(self.cfg.decimation):
@@ -442,6 +478,14 @@ class ManagerBasedRlEnv:
 
     # Reset envs that terminated/timed-out and log the episode info.
     reset_env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+    if (
+      self.cfg.capture_terminal_observations
+      and self.cfg.auto_reset
+      and len(reset_env_ids) > 0
+    ):
+      # Snapshot the true terminal observation (real s_{t+1}) for done envs
+      # before they are reset below. Must run before _reset_idx.
+      self._store_terminal_observations(reset_env_ids)
     if self.cfg.auto_reset and len(reset_env_ids) > 0:
       self.recorder_manager.record_pre_reset(reset_env_ids)
       self._reset_idx(reset_env_ids)
@@ -589,3 +633,50 @@ class ManagerBasedRlEnv:
     # reset the episode length buffer.
     self.episode_length_buf[env_ids] = 0
     self._manual_reset_pending[env_ids] = False
+
+  def _store_terminal_observations(self, env_ids: torch.Tensor) -> None:
+    """Snapshot the true terminal observation for done envs into extras.
+
+    Called from ``step()`` before resetting ``env_ids``. Refreshes derived
+    quantities and sensors at the terminal (pre-reset) state so the snapshot
+    matches what ``step()`` would return with ``auto_reset=False``. Both
+    ``forward()`` and ``sense()`` are deterministic, draw no RNG, and do not
+    modify ``qpos``/``qvel``, and the peek observation pass mutates no buffers,
+    so this does not perturb the training trajectory.
+
+    This extra ``forward()`` precedes the unconditional ``forward()`` later in
+    ``step()``. That is safe because ``forward()`` is a fixed point: it writes
+    ``qacc`` into ``qacc_warmstart``, and re-solving from that warm start
+    reproduces the same ``qacc`` (verified to bit-equality on contact-rich
+    envs). So the extra call cannot change the result of the subsequent
+    ``forward()``; it is redundant compute on reset steps, not a perturbation.
+    (A deliberately under-converged solver would weaken this, at the cost of a
+    one-substep difference for done envs only.) See
+    :attr:`ManagerBasedRlEnvCfg.capture_terminal_observations`.
+    """
+    self.sim.forward()
+    self.sim.sense()
+    terminal_obs = self.observation_manager.compute(peek=True)
+    self.extras["terminal"] = {
+      "env_ids": env_ids.clone(),
+      "observations": _select_env_observations(terminal_obs, env_ids),
+    }
+
+
+def _select_env_observations(
+  obs: dict[str, torch.Tensor | dict[str, torch.Tensor]],
+  env_ids: torch.Tensor,
+) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
+  """Extract and clone the rows for ``env_ids`` from an observation dict.
+
+  Mirrors the structure of ``obs`` (concatenated groups are tensors; non-
+  concatenated groups are term dicts), returning ``[len(env_ids), ...]`` rows.
+  Clones so the result does not alias the live observation buffers.
+  """
+  selected: dict[str, torch.Tensor | dict[str, torch.Tensor]] = {}
+  for group, value in obs.items():
+    if isinstance(value, torch.Tensor):
+      selected[group] = value[env_ids].clone()
+    else:
+      selected[group] = {k: v[env_ids].clone() for k, v in value.items()}
+  return selected

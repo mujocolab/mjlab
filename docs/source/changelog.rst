@@ -8,6 +8,14 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``ManagerBasedRlEnvCfg.capture_terminal_observations``. When enabled
+  (with ``auto_reset=True``), ``step()`` stores the true terminal observation
+  (the real next state, before reset) for done environments in
+  ``extras["terminal"]``, so algorithms that need the real next state at episode
+  boundaries (value bootstrapping at truncation, AMP-style style rewards) can
+  access it without disabling auto-reset. The snapshot is read-only: it applies
+  delay and history but not observation noise, and enabling the flag does not
+  change the training trajectory (:issue:`1026`, :issue:`900`).
 - Added ``BuiltinDcMotorActuator``, a native MuJoCo ``<dcmotor>`` wrapper.
   Supports voltage / position / velocity input modes with back-EMF,
   configurable motor constants, and optional integral, slew, inductance,
