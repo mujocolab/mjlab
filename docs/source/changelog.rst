@@ -26,6 +26,15 @@ Changed
 ^^^^^^^
 
 - Bumped ``rsl-rl-lib`` from 5.2.0 to 5.4.0.
+- Bumped ``mujoco`` and ``mujoco-warp`` to 3.10, both pinned from PyPI. The
+  ``py.mujoco.org`` nightly index and the ``mujoco-warp`` git pin are dropped, so
+  resolution no longer breaks when nightly wheels are garbage-collected.
+
+  .. warning::
+
+     ``SimulationCfg.ls_parallel`` is deprecated and now ignored, since parallel
+     linesearch was removed upstream in MuJoCo Warp. Setting it emits a
+     ``DeprecationWarning``; remove it from any ``SimulationCfg`` you construct.
 - Curriculum-mode terrain difficulty is now deterministic across rows
   and reaches the configured ``difficulty_range`` endpoints
   (:issue:`1027`).

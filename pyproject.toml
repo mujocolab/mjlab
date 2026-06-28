@@ -37,8 +37,8 @@ dependencies = [
   "torch>=2.7.0",
   "torchrunx>=0.3.4",
   "warp-lang>=1.14.0",
-  "mujoco-warp>=3.9.0.1,~=3.9.0",
-  "mujoco~=3.8.0",
+  "mujoco-warp>=3.10.0.1,~=3.10.0",
+  "mujoco~=3.10.0",
   "trimesh>=4.8.3",
   "scipy>=1.15",
   "viser>=1.0.27",
@@ -98,10 +98,6 @@ cpu = ["torch>=2.7.0"]
 conflicts = [
   [{extra = "cu128"}, {extra = "cpu"}],
 ]
-# The nightly index (py.mujoco.org) only has dev builds, and PEP 440 ranks
-# 3.8.0.devN < 3.8.0, so the ~=3.8.0 floor in [project.dependencies] would
-# reject them. This override loosens the constraint for uv resolution only.
-override-dependencies = ["mujoco>=3.8.0.dev0"]
 constraint-dependencies = [
   "GitPython>=3.1.49",
   "lxml>=6.1.0",
@@ -129,19 +125,12 @@ name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
-[[tool.uv.index]]
-name = "mujoco"
-url = "https://py.mujoco.org"
-explicit = true
-
 [tool.uv.sources]
 warp-lang = { index = "nvidia", marker = "sys_platform != 'darwin'" }
 torch = [
   { index = "pytorch-cu128", extra = "cu128", marker = "sys_platform != 'darwin'" },
   { index = "pytorch-cpu", extra = "cpu", marker = "sys_platform != 'darwin'" },
 ]
-mujoco = { index = "mujoco" }
-mujoco-warp = { git = "https://github.com/google-deepmind/mujoco_warp", rev = "e65a72e49a978a3051e7942bc5591df355ba0b5c" }
 
 [tool.ruff]
 src = ["src"]  # Helpful for recognizing first-party imports.

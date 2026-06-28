@@ -3,7 +3,7 @@ import mujoco._enums
 import numpy
 import numpy.typing
 import typing
-__all__: list[str] = ['MjContact', 'MjData', 'MjLROpt', 'MjModel', 'MjOption', 'MjSolverStat', 'MjStatistic', 'MjTimerStat', 'MjVisual', 'MjWarningStat', 'MjrRect', 'MjvCamera', 'MjvFigure', 'MjvGLCamera', 'MjvGeom', 'MjvLight', 'MjvOption', 'MjvPerturb', 'MjvScene', 'mjv_averageCamera']
+__all__: list[str] = ['MjContact', 'MjData', 'MjLROpt', 'MjLogConfig', 'MjLogMessage', 'MjModel', 'MjOption', 'MjPreContact', 'MjSolverStat', 'MjStatistic', 'MjTimerStat', 'MjVisual', 'MjWarningStat', 'MjrRect', 'MjrVertexAttribute', 'MjvCamera', 'MjvFigure', 'MjvGLCamera', 'MjvGeom', 'MjvLight', 'MjvOption', 'MjvPerturb', 'MjvScene', 'mjv_averageCamera']
 class MjContact:
     __hash__: typing.ClassVar[None] = None
     def __copy__(self) -> MjContact:
@@ -131,7 +131,11 @@ class MjContact:
     def vert(self, arg1: typing.Any) -> None:
         ...
 class MjData:
-    _all_fields: typing.ClassVar[tuple] = ('narena', 'nbuffer', 'nplugin', 'pstack', 'pbase', 'parena', 'maxuse_stack', 'maxuse_arena', 'maxuse_con', 'maxuse_efc', 'ncon', 'ne', 'nf', 'nl', 'nefc', 'nJ', 'nA', 'nisland', 'nidof', 'ntree_awake', 'nbody_awake', 'nparent_awake', 'nv_awake', 'flg_energypos', 'flg_energyvel', 'flg_subtreevel', 'flg_rnepost', 'time', 'threadpool', 'maxuse_threadstack', 'solver', 'solver_niter', 'solver_nnz', 'solver_fwdinv', 'warning', 'timer', 'energy', 'qpos', 'qvel', 'act', 'history', 'qacc_warmstart', 'plugin_state', 'ctrl', 'qfrc_applied', 'xfrc_applied', 'eq_active', 'mocap_pos', 'mocap_quat', 'qacc', 'act_dot', 'userdata', 'sensordata', 'tree_asleep', 'plugin', 'plugin_data', 'xpos', 'xquat', 'xmat', 'xipos', 'ximat', 'xanchor', 'xaxis', 'geom_xpos', 'geom_xmat', 'site_xpos', 'site_xmat', 'cam_xpos', 'cam_xmat', 'light_xpos', 'light_xdir', 'subtree_com', 'cdof', 'cinert', 'flexvert_xpos', 'flexelem_aabb', 'flexedge_J', 'flexedge_length', 'flexvert_J', 'flexvert_length', 'bvh_aabb_dyn', 'ten_wrapadr', 'ten_wrapnum', 'ten_J', 'ten_length', 'wrap_obj', 'wrap_xpos', 'actuator_length', 'moment_rownnz', 'moment_rowadr', 'moment_colind', 'actuator_moment', 'crb', 'qM', 'M', 'qLD', 'qLDiagInv', 'bvh_active', 'tree_awake', 'body_awake', 'body_awake_ind', 'parent_awake_ind', 'dof_awake_ind', 'flexedge_velocity', 'ten_velocity', 'actuator_velocity', 'cvel', 'cdof_dot', 'qfrc_bias', 'qfrc_spring', 'qfrc_damper', 'qfrc_gravcomp', 'qfrc_fluid', 'qfrc_passive', 'subtree_linvel', 'subtree_angmom', 'qH', 'qHDiagInv', 'qDeriv', 'qLU', 'actuator_force', 'qfrc_actuator', 'qfrc_smooth', 'qacc_smooth', 'qfrc_constraint', 'qfrc_inverse', 'cacc', 'cfrc_int', 'cfrc_ext')
+    _all_fields: typing.ClassVar[tuple] = ('narena', 'nbuffer', 'nplugin', 'pstack', 'pbase', 'parena', 'threadpool', 'maxuse_stack', 'maxuse_arena', 'maxuse_con', 'maxuse_efc', 'ncon', 'ne', 'nf', 'nl', 'nefc', 'nJ', 'nY', 'nA', 'nisland', 'nidof', 'ntree_awake', 'nbody_awake', 'nparent_awake', 'nv_awake', 'flg_energypos', 'flg_energyvel', 'flg_subtreevel', 'flg_rnepost', 'time', 'solver', 'solver_niter', 'solver_nnz', 'solver_fwdinv', 'warning', 'timer', 'energy', 'qpos', 'qvel', 'act', 'history', 'qacc_warmstart', 'plugin_state', 'ctrl', 'qfrc_applied', 'xfrc_applied', 'eq_active', 'mocap_pos', 'mocap_quat', 'qacc', 'act_dot', 'userdata', 'sensordata', 'tree_asleep', 'plugin', 'plugin_data', 'xpos', 'xquat', 'xmat', 'xipos', 'ximat', 'xanchor', 'xaxis', 'geom_xpos', 'geom_xmat', 'site_xpos', 'site_xmat', 'cam_xpos', 'cam_xmat', 'light_xpos', 'light_xdir', 'subtree_com', 'cdof', 'cinert', 'flexvert_xpos', 'flexelem_aabb', 'flexedge_J', 'flexedge_length', 'flexvert_J', 'flexvert_length', 'bvh_aabb_dyn', 'ten_wrapadr', 'ten_wrapnum', 'ten_J', 'ten_length', 'wrap_obj', 'wrap_xpos', 'actuator_length', 'moment_rownnz', 'moment_rowadr', 'moment_colind', 'actuator_moment', 'crb', 'qM', 'M', 'qLD', 'qLDiagInv', 'bvh_active', 'tree_awake', 'body_awake', 'body_awake_ind', 'parent_awake_ind', 'dof_awake_ind', 'flexedge_velocity', 'ten_velocity', 'actuator_velocity', 'cvel', 'cdof_dot', 'qfrc_bias', 'qfrc_spring', 'qfrc_damper', 'qfrc_gravcomp', 'qfrc_fluid', 'qfrc_passive', 'subtree_linvel', 'subtree_angmom', 'qH', 'qHDiagInv', 'qDeriv', 'qLU', 'actuator_force', 'qfrc_actuator', 'qfrc_smooth', 'qacc_smooth', 'qfrc_constraint', 'qfrc_inverse', 'cacc', 'cfrc_int', 'cfrc_ext')
+    flg_energypos: bool
+    flg_energyvel: bool
+    flg_rnepost: bool
+    flg_subtreevel: bool
     @staticmethod
     def bind(data: MjData, specs: typing.Union[typing.Sequence[typing.Union[mujoco._specs.MjsBody, mujoco._specs.MjsFrame, mujoco._specs.MjsGeom, mujoco._specs.MjsJoint, mujoco._specs.MjsLight, mujoco._specs.MjsMaterial, mujoco._specs.MjsSite, mujoco._specs.MjsMesh, mujoco._specs.MjsSkin, mujoco._specs.MjsTexture, mujoco._specs.MjsText, mujoco._specs.MjsTuple, mujoco._specs.MjsCamera, mujoco._specs.MjsFlex, mujoco._specs.MjsHField, mujoco._specs.MjsKey, mujoco._specs.MjsNumeric, mujoco._specs.MjsPair, mujoco._specs.MjsExclude, mujoco._specs.MjsEquality, mujoco._specs.MjsTendon, mujoco._specs.MjsSensor, mujoco._specs.MjsActuator, mujoco._specs.MjsPlugin]], mujoco._specs.MjsBody, mujoco._specs.MjsFrame, mujoco._specs.MjsGeom, mujoco._specs.MjsJoint, mujoco._specs.MjsLight, mujoco._specs.MjsMaterial, mujoco._specs.MjsSite, mujoco._specs.MjsMesh, mujoco._specs.MjsSkin, mujoco._specs.MjsTexture, mujoco._specs.MjsText, mujoco._specs.MjsTuple, mujoco._specs.MjsCamera, mujoco._specs.MjsFlex, mujoco._specs.MjsHField, mujoco._specs.MjsKey, mujoco._specs.MjsNumeric, mujoco._specs.MjsPair, mujoco._specs.MjsExclude, mujoco._specs.MjsEquality, mujoco._specs.MjsTendon, mujoco._specs.MjsSensor, mujoco._specs.MjsActuator, mujoco._specs.MjsPlugin]):
         """
@@ -317,7 +321,7 @@ class MjData:
     def bvh_aabb_dyn(self, arg1: typing.Any) -> None:
         ...
     @property
-    def bvh_active(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def bvh_active(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @bvh_active.setter
     def bvh_active(self, arg1: typing.Any) -> None:
@@ -437,13 +441,25 @@ class MjData:
     def efc_R(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @property
+    def efc_Y(self) -> numpy.typing.NDArray[numpy.float64]:
+        ...
+    @property
+    def efc_Y_colind(self) -> numpy.typing.NDArray[numpy.int32]:
+        ...
+    @property
+    def efc_Y_rowadr(self) -> numpy.typing.NDArray[numpy.int32]:
+        ...
+    @property
+    def efc_Y_rownnz(self) -> numpy.typing.NDArray[numpy.int32]:
+        ...
+    @property
     def efc_aref(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @property
     def efc_b(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @property
-    def efc_diagApprox(self) -> numpy.typing.NDArray[numpy.float64]:
+    def efc_diagA(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @property
     def efc_force(self) -> numpy.typing.NDArray[numpy.float64]:
@@ -479,7 +495,7 @@ class MjData:
     def energy(self, arg1: typing.Any) -> None:
         ...
     @property
-    def eq_active(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def eq_active(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @eq_active.setter
     def eq_active(self, arg1: typing.Any) -> None:
@@ -527,30 +543,6 @@ class MjData:
     def flexvert_xpos(self, arg1: typing.Any) -> None:
         ...
     @property
-    def flg_energypos(self) -> int:
-        ...
-    @flg_energypos.setter
-    def flg_energypos(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def flg_energyvel(self) -> int:
-        ...
-    @flg_energyvel.setter
-    def flg_energyvel(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def flg_rnepost(self) -> int:
-        ...
-    @flg_rnepost.setter
-    def flg_rnepost(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def flg_subtreevel(self) -> int:
-        ...
-    @flg_subtreevel.setter
-    def flg_subtreevel(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    @property
     def geom_xmat(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @geom_xmat.setter
@@ -569,24 +561,6 @@ class MjData:
     def history(self, arg1: typing.Any) -> None:
         ...
     @property
-    def iLD(self) -> numpy.typing.NDArray[numpy.float64]:
-        ...
-    @property
-    def iLDiagInv(self) -> numpy.typing.NDArray[numpy.float64]:
-        ...
-    @property
-    def iM(self) -> numpy.typing.NDArray[numpy.float64]:
-        ...
-    @property
-    def iM_colind(self) -> numpy.typing.NDArray[numpy.int32]:
-        ...
-    @property
-    def iM_rowadr(self) -> numpy.typing.NDArray[numpy.int32]:
-        ...
-    @property
-    def iM_rownnz(self) -> numpy.typing.NDArray[numpy.int32]:
-        ...
-    @property
     def iacc(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @property
@@ -594,21 +568,6 @@ class MjData:
         ...
     @property
     def iefc_D(self) -> numpy.typing.NDArray[numpy.float64]:
-        ...
-    @property
-    def iefc_J(self) -> numpy.typing.NDArray[numpy.float64]:
-        ...
-    @property
-    def iefc_J_colind(self) -> numpy.typing.NDArray[numpy.int32]:
-        ...
-    @property
-    def iefc_J_rowadr(self) -> numpy.typing.NDArray[numpy.int32]:
-        ...
-    @property
-    def iefc_J_rownnz(self) -> numpy.typing.NDArray[numpy.int32]:
-        ...
-    @property
-    def iefc_J_rowsuper(self) -> numpy.typing.NDArray[numpy.int32]:
         ...
     @property
     def iefc_R(self) -> numpy.typing.NDArray[numpy.float64]:
@@ -716,12 +675,6 @@ class MjData:
     def maxuse_stack(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
         ...
     @property
-    def maxuse_threadstack(self) -> numpy.typing.NDArray[numpy.uint64]:
-        ...
-    @maxuse_threadstack.setter
-    def maxuse_threadstack(self, arg1: typing.Any) -> None:
-        ...
-    @property
     def mocap_pos(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @mocap_pos.setter
@@ -765,6 +718,12 @@ class MjData:
         ...
     @nJ.setter
     def nJ(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def nY(self) -> int:
+        ...
+    @nY.setter
+    def nY(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
         ...
     @property
     def narena(self) -> int:
@@ -1294,9 +1253,76 @@ class MjLROpt:
     @uselimit.setter
     def uselimit(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
         ...
+class MjLogConfig:
+    __hash__: typing.ClassVar[None] = None
+    logfile: str
+    logto_console: bool
+    logto_file: bool
+    @staticmethod
+    def get() -> MjLogConfig:
+        ...
+    def __copy__(self) -> MjLogConfig:
+        ...
+    def __deepcopy__(self, arg0: dict) -> MjLogConfig:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __init__(self) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def set(self) -> None:
+        ...
+    @property
+    def topics(self) -> int:
+        ...
+    @topics.setter
+    def topics(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+class MjLogMessage:
+    __hash__: typing.ClassVar[None] = None
+    subject: str
+    timestamp: bool
+    def __copy__(self) -> MjLogMessage:
+        ...
+    def __deepcopy__(self, arg0: dict) -> MjLogMessage:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __init__(self) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    @property
+    def body(self) -> typing.Any:
+        ...
+    @property
+    def file(self) -> typing.Any:
+        ...
+    @property
+    def func(self) -> typing.Any:
+        ...
+    @property
+    def level(self) -> int:
+        ...
+    @level.setter
+    def level(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def line(self) -> int:
+        ...
+    @line.setter
+    def line(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def topic(self) -> int:
+        ...
+    @topic.setter
+    def topic(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
 class MjModel:
-    _all_fields: typing.ClassVar[tuple] = ('nq', 'nv', 'nu', 'na', 'nbody', 'nbvh', 'nbvhstatic', 'nbvhdynamic', 'noct', 'njnt', 'ntree', 'nM', 'nB', 'nC', 'nD', 'ngeom', 'nsite', 'ncam', 'nlight', 'nflex', 'nflexnode', 'nflexvert', 'nflexedge', 'nflexelem', 'nflexelemdata', 'nflexstiffness', 'nflexelemedge', 'nflexshelldata', 'nflexevpair', 'nflextexcoord', 'nJfe', 'nJfv', 'nmesh', 'nmeshvert', 'nmeshnormal', 'nmeshtexcoord', 'nmeshface', 'nmeshgraph', 'nmeshpoly', 'nmeshpolyvert', 'nmeshpolymap', 'nskin', 'nskinvert', 'nskintexvert', 'nskinface', 'nskinbone', 'nskinbonevert', 'nhfield', 'nhfielddata', 'ntex', 'ntexdata', 'nmat', 'npair', 'nexclude', 'neq', 'ntendon', 'nJten', 'nwrap', 'nsensor', 'nnumeric', 'nnumericdata', 'ntext', 'ntextdata', 'ntuple', 'ntupledata', 'nkey', 'nmocap', 'nplugin', 'npluginattr', 'nuser_body', 'nuser_jnt', 'nuser_geom', 'nuser_site', 'nuser_cam', 'nuser_tendon', 'nuser_actuator', 'nuser_sensor', 'nnames', 'npaths', 'nnames_map', 'nJmom', 'ngravcomp', 'nemax', 'njmax', 'nconmax', 'nuserdata', 'nsensordata', 'npluginstate', 'nhistory', 'narena', 'nbuffer', 'qpos0', 'qpos_spring', 'body_parentid', 'body_rootid', 'body_weldid', 'body_mocapid', 'body_jntnum', 'body_jntadr', 'body_dofnum', 'body_dofadr', 'body_treeid', 'body_geomnum', 'body_geomadr', 'body_simple', 'body_sameframe', 'body_pos', 'body_quat', 'body_ipos', 'body_iquat', 'body_mass', 'body_subtreemass', 'body_inertia', 'body_invweight0', 'body_gravcomp', 'body_margin', 'body_user', 'body_plugin', 'body_contype', 'body_conaffinity', 'body_bvhadr', 'body_bvhnum', 'bvh_depth', 'bvh_child', 'bvh_nodeid', 'bvh_aabb', 'oct_depth', 'oct_child', 'oct_aabb', 'oct_coeff', 'jnt_type', 'jnt_qposadr', 'jnt_dofadr', 'jnt_bodyid', 'jnt_actuatorid', 'jnt_group', 'jnt_limited', 'jnt_actfrclimited', 'jnt_actgravcomp', 'jnt_solref', 'jnt_solimp', 'jnt_pos', 'jnt_axis', 'jnt_stiffness', 'jnt_stiffnesspoly', 'jnt_range', 'jnt_actfrcrange', 'jnt_margin', 'jnt_user', 'dof_bodyid', 'dof_jntid', 'dof_parentid', 'dof_treeid', 'dof_Madr', 'dof_simplenum', 'dof_solref', 'dof_solimp', 'dof_frictionloss', 'dof_armature', 'dof_damping', 'dof_dampingpoly', 'dof_invweight0', 'dof_M0', 'dof_length', 'tree_bodyadr', 'tree_bodynum', 'tree_dofadr', 'tree_dofnum', 'tree_sleep_policy', 'geom_type', 'geom_contype', 'geom_conaffinity', 'geom_condim', 'geom_bodyid', 'geom_dataid', 'geom_matid', 'geom_group', 'geom_priority', 'geom_plugin', 'geom_sameframe', 'geom_solmix', 'geom_solref', 'geom_solimp', 'geom_size', 'geom_aabb', 'geom_rbound', 'geom_pos', 'geom_quat', 'geom_friction', 'geom_margin', 'geom_gap', 'geom_fluid', 'geom_user', 'geom_rgba', 'site_type', 'site_bodyid', 'site_matid', 'site_group', 'site_sameframe', 'site_size', 'site_pos', 'site_quat', 'site_user', 'site_rgba', 'cam_mode', 'cam_bodyid', 'cam_targetbodyid', 'cam_pos', 'cam_quat', 'cam_poscom0', 'cam_pos0', 'cam_mat0', 'cam_projection', 'cam_fovy', 'cam_ipd', 'cam_resolution', 'cam_output', 'cam_sensorsize', 'cam_intrinsic', 'cam_user', 'light_mode', 'light_bodyid', 'light_targetbodyid', 'light_type', 'light_texid', 'light_castshadow', 'light_bulbradius', 'light_intensity', 'light_range', 'light_active', 'light_pos', 'light_dir', 'light_poscom0', 'light_pos0', 'light_dir0', 'light_attenuation', 'light_cutoff', 'light_exponent', 'light_ambient', 'light_diffuse', 'light_specular', 'flex_contype', 'flex_conaffinity', 'flex_condim', 'flex_priority', 'flex_solmix', 'flex_solref', 'flex_solimp', 'flex_friction', 'flex_margin', 'flex_gap', 'flex_internal', 'flex_selfcollide', 'flex_activelayers', 'flex_passive', 'flex_dim', 'flex_matid', 'flex_group', 'flex_interp', 'flex_bandwidth', 'flex_cellnum', 'flex_nodeadr', 'flex_nodenum', 'flex_vertadr', 'flex_vertnum', 'flex_edgeadr', 'flex_edgenum', 'flex_elemadr', 'flex_elemnum', 'flex_elemdataadr', 'flex_stiffnessadr', 'flex_elemedgeadr', 'flex_shellnum', 'flex_shelldataadr', 'flex_evpairadr', 'flex_evpairnum', 'flex_texcoordadr', 'flex_nodebodyid', 'flex_vertbodyid', 'flex_vertedgeadr', 'flex_vertedgenum', 'flex_vertedge', 'flex_edge', 'flex_edgeflap', 'flex_elem', 'flex_elemtexcoord', 'flex_elemedge', 'flex_elemlayer', 'flex_shell', 'flex_evpair', 'flex_vert', 'flex_vert0', 'flex_vertmetric', 'flex_node', 'flex_node0', 'flexedge_length0', 'flexedge_invweight0', 'flex_radius', 'flex_size', 'flex_stiffness', 'flex_bending', 'flex_damping', 'flex_edgestiffness', 'flex_edgedamping', 'flex_edgeequality', 'flex_rigid', 'flexedge_rigid', 'flex_centered', 'flex_flatskin', 'flex_bvhadr', 'flex_bvhnum', 'flexedge_J_rownnz', 'flexedge_J_rowadr', 'flexedge_J_colind', 'flexvert_J_rownnz', 'flexvert_J_rowadr', 'flexvert_J_colind', 'flex_rgba', 'flex_texcoord', 'mesh_vertadr', 'mesh_vertnum', 'mesh_faceadr', 'mesh_facenum', 'mesh_bvhadr', 'mesh_bvhnum', 'mesh_octadr', 'mesh_octnum', 'mesh_normaladr', 'mesh_normalnum', 'mesh_texcoordadr', 'mesh_texcoordnum', 'mesh_graphadr', 'mesh_vert', 'mesh_normal', 'mesh_texcoord', 'mesh_face', 'mesh_facenormal', 'mesh_facetexcoord', 'mesh_graph', 'mesh_scale', 'mesh_pos', 'mesh_quat', 'mesh_pathadr', 'mesh_polynum', 'mesh_polyadr', 'mesh_polynormal', 'mesh_polyvertadr', 'mesh_polyvertnum', 'mesh_polyvert', 'mesh_polymapadr', 'mesh_polymapnum', 'mesh_polymap', 'skin_matid', 'skin_group', 'skin_rgba', 'skin_inflate', 'skin_vertadr', 'skin_vertnum', 'skin_texcoordadr', 'skin_faceadr', 'skin_facenum', 'skin_boneadr', 'skin_bonenum', 'skin_vert', 'skin_texcoord', 'skin_face', 'skin_bonevertadr', 'skin_bonevertnum', 'skin_bonebindpos', 'skin_bonebindquat', 'skin_bonebodyid', 'skin_bonevertid', 'skin_bonevertweight', 'skin_pathadr', 'hfield_size', 'hfield_nrow', 'hfield_ncol', 'hfield_adr', 'hfield_data', 'hfield_pathadr', 'tex_type', 'tex_colorspace', 'tex_height', 'tex_width', 'tex_nchannel', 'tex_adr', 'tex_data', 'tex_pathadr', 'mat_texid', 'mat_texuniform', 'mat_texrepeat', 'mat_emission', 'mat_specular', 'mat_shininess', 'mat_reflectance', 'mat_metallic', 'mat_roughness', 'mat_rgba', 'pair_dim', 'pair_geom1', 'pair_geom2', 'pair_signature', 'pair_solref', 'pair_solreffriction', 'pair_solimp', 'pair_margin', 'pair_gap', 'pair_friction', 'exclude_signature', 'eq_type', 'eq_obj1id', 'eq_obj2id', 'eq_objtype', 'eq_active0', 'eq_solref', 'eq_solimp', 'eq_data', 'tendon_adr', 'tendon_num', 'tendon_matid', 'tendon_actuatorid', 'tendon_group', 'tendon_treenum', 'tendon_treeid', 'ten_J_rownnz', 'ten_J_rowadr', 'ten_J_colind', 'tendon_limited', 'tendon_actfrclimited', 'tendon_width', 'tendon_solref_lim', 'tendon_solimp_lim', 'tendon_solref_fri', 'tendon_solimp_fri', 'tendon_range', 'tendon_actfrcrange', 'tendon_margin', 'tendon_stiffness', 'tendon_stiffnesspoly', 'tendon_damping', 'tendon_dampingpoly', 'tendon_armature', 'tendon_frictionloss', 'tendon_lengthspring', 'tendon_length0', 'tendon_invweight0', 'tendon_user', 'tendon_rgba', 'wrap_type', 'wrap_objid', 'wrap_prm', 'actuator_trntype', 'actuator_dyntype', 'actuator_gaintype', 'actuator_biastype', 'actuator_trnid', 'actuator_damping', 'actuator_dampingpoly', 'actuator_armature', 'actuator_actadr', 'actuator_actnum', 'actuator_group', 'actuator_history', 'actuator_historyadr', 'actuator_delay', 'actuator_ctrllimited', 'actuator_forcelimited', 'actuator_actlimited', 'actuator_dynprm', 'actuator_gainprm', 'actuator_biasprm', 'actuator_actearly', 'actuator_ctrlrange', 'actuator_forcerange', 'actuator_actrange', 'actuator_gear', 'actuator_cranklength', 'actuator_acc0', 'actuator_length0', 'actuator_lengthrange', 'actuator_user', 'actuator_plugin', 'sensor_type', 'sensor_datatype', 'sensor_needstage', 'sensor_objtype', 'sensor_objid', 'sensor_reftype', 'sensor_refid', 'sensor_intprm', 'sensor_dim', 'sensor_adr', 'sensor_cutoff', 'sensor_noise', 'sensor_history', 'sensor_historyadr', 'sensor_delay', 'sensor_interval', 'sensor_user', 'sensor_plugin', 'plugin', 'plugin_stateadr', 'plugin_statenum', 'plugin_attr', 'plugin_attradr', 'numeric_adr', 'numeric_size', 'numeric_data', 'text_adr', 'text_size', 'text_data', 'tuple_adr', 'tuple_size', 'tuple_objtype', 'tuple_objid', 'tuple_objprm', 'key_time', 'key_qpos', 'key_qvel', 'key_act', 'key_mpos', 'key_mquat', 'key_ctrl', 'name_bodyadr', 'name_jntadr', 'name_geomadr', 'name_siteadr', 'name_camadr', 'name_lightadr', 'name_flexadr', 'name_meshadr', 'name_skinadr', 'name_hfieldadr', 'name_texadr', 'name_matadr', 'name_pairadr', 'name_excludeadr', 'name_eqadr', 'name_tendonadr', 'name_actuatoradr', 'name_sensoradr', 'name_numericadr', 'name_textadr', 'name_tupleadr', 'name_keyadr', 'name_pluginadr', 'names', 'names_map', 'paths', 'B_rownnz', 'B_rowadr', 'B_colind', 'M_rownnz', 'M_rowadr', 'M_colind', 'mapM2M', 'D_rownnz', 'D_rowadr', 'D_diag', 'D_colind', 'mapM2D', 'mapD2M')
-    _size_fields: typing.ClassVar[tuple] = ('nq', 'nv', 'nu', 'na', 'nbody', 'nbvh', 'nbvhstatic', 'nbvhdynamic', 'noct', 'njnt', 'ntree', 'nM', 'nB', 'nC', 'nD', 'ngeom', 'nsite', 'ncam', 'nlight', 'nflex', 'nflexnode', 'nflexvert', 'nflexedge', 'nflexelem', 'nflexelemdata', 'nflexstiffness', 'nflexelemedge', 'nflexshelldata', 'nflexevpair', 'nflextexcoord', 'nJfe', 'nJfv', 'nmesh', 'nmeshvert', 'nmeshnormal', 'nmeshtexcoord', 'nmeshface', 'nmeshgraph', 'nmeshpoly', 'nmeshpolyvert', 'nmeshpolymap', 'nskin', 'nskinvert', 'nskintexvert', 'nskinface', 'nskinbone', 'nskinbonevert', 'nhfield', 'nhfielddata', 'ntex', 'ntexdata', 'nmat', 'npair', 'nexclude', 'neq', 'ntendon', 'nJten', 'nwrap', 'nsensor', 'nnumeric', 'nnumericdata', 'ntext', 'ntextdata', 'ntuple', 'ntupledata', 'nkey', 'nmocap', 'nplugin', 'npluginattr', 'nuser_body', 'nuser_jnt', 'nuser_geom', 'nuser_site', 'nuser_cam', 'nuser_tendon', 'nuser_actuator', 'nuser_sensor', 'nnames', 'npaths', 'nnames_map', 'nJmom', 'ngravcomp', 'nemax', 'njmax', 'nconmax', 'nuserdata', 'nsensordata', 'npluginstate', 'nhistory', 'narena', 'nbuffer')
+    _all_fields: typing.ClassVar[tuple] = ('nq', 'nv', 'nu', 'na', 'nbody', 'nbvh', 'nbvhstatic', 'nbvhdynamic', 'noct', 'njnt', 'ntree', 'nM', 'nB', 'nC', 'nD', 'ngeom', 'nsite', 'ncam', 'nlight', 'nflex', 'nflexnode', 'nflexvert', 'nflexedge', 'nflexelem', 'nflexelemdata', 'nflexstiffness', 'nflexbending', 'nflexelemedge', 'nflexshelldata', 'nflexevpair', 'nflextexcoord', 'nJfe', 'nJfv', 'nmesh', 'nmeshvert', 'nmeshnormal', 'nmeshtexcoord', 'nmeshface', 'nmeshgraph', 'nmeshpoly', 'nmeshpolyvert', 'nmeshpolymap', 'nskin', 'nskinvert', 'nskintexvert', 'nskinface', 'nskinbone', 'nskinbonevert', 'nhfield', 'nhfielddata', 'ntex', 'ntexdata', 'nmat', 'npair', 'nexclude', 'neq', 'ntendon', 'nJten', 'nwrap', 'nsensor', 'nnumeric', 'nnumericdata', 'ntext', 'ntextdata', 'ntuple', 'ntupledata', 'nkey', 'nmocap', 'nplugin', 'npluginattr', 'nuser_body', 'nuser_jnt', 'nuser_geom', 'nuser_site', 'nuser_cam', 'nuser_tendon', 'nuser_actuator', 'nuser_sensor', 'nnames', 'npaths', 'nnames_map', 'nJmom', 'ngravcomp', 'nemax', 'njmax', 'nconmax', 'nuserdata', 'nsensordata', 'npluginstate', 'nhistory', 'narena', 'nbuffer', 'qpos0', 'qpos_spring', 'body_parentid', 'body_rootid', 'body_weldid', 'body_mocapid', 'body_jntnum', 'body_jntadr', 'body_dofnum', 'body_dofadr', 'body_treeid', 'body_geomnum', 'body_geomadr', 'body_simple', 'body_sameframe', 'body_pos', 'body_quat', 'body_ipos', 'body_iquat', 'body_mass', 'body_subtreemass', 'body_inertia', 'body_invweight0', 'body_gravcomp', 'body_margin', 'body_user', 'body_plugin', 'body_contype', 'body_conaffinity', 'body_bvhadr', 'body_bvhnum', 'bvh_depth', 'bvh_child', 'bvh_nodeid', 'bvh_aabb', 'oct_depth', 'oct_child', 'oct_aabb', 'oct_coeff', 'jnt_type', 'jnt_qposadr', 'jnt_dofadr', 'jnt_bodyid', 'jnt_actuatorid', 'jnt_group', 'jnt_limited', 'jnt_actfrclimited', 'jnt_actgravcomp', 'jnt_solref', 'jnt_solimp', 'jnt_pos', 'jnt_axis', 'jnt_stiffness', 'jnt_stiffnesspoly', 'jnt_range', 'jnt_actfrcrange', 'jnt_margin', 'jnt_user', 'dof_bodyid', 'dof_jntid', 'dof_parentid', 'dof_treeid', 'dof_Madr', 'dof_simplenum', 'dof_solref', 'dof_solimp', 'dof_frictionloss', 'dof_armature', 'dof_damping', 'dof_dampingpoly', 'dof_invweight0', 'dof_M0', 'dof_length', 'tree_bodyadr', 'tree_bodynum', 'tree_dofadr', 'tree_dofnum', 'tree_sleep_policy', 'geom_type', 'geom_contype', 'geom_conaffinity', 'geom_condim', 'geom_bodyid', 'geom_dataid', 'geom_matid', 'geom_group', 'geom_priority', 'geom_plugin', 'geom_sameframe', 'geom_solmix', 'geom_solref', 'geom_solimp', 'geom_size', 'geom_aabb', 'geom_rbound', 'geom_pos', 'geom_quat', 'geom_friction', 'geom_margin', 'geom_gap', 'geom_fluid', 'geom_user', 'geom_rgba', 'site_type', 'site_bodyid', 'site_matid', 'site_group', 'site_sameframe', 'site_size', 'site_pos', 'site_quat', 'site_user', 'site_rgba', 'cam_mode', 'cam_bodyid', 'cam_targetbodyid', 'cam_pos', 'cam_quat', 'cam_poscom0', 'cam_pos0', 'cam_mat0', 'cam_projection', 'cam_fovy', 'cam_ipd', 'cam_resolution', 'cam_output', 'cam_sensorsize', 'cam_intrinsic', 'cam_user', 'light_mode', 'light_bodyid', 'light_targetbodyid', 'light_type', 'light_texid', 'light_castshadow', 'light_bulbradius', 'light_intensity', 'light_range', 'light_active', 'light_pos', 'light_dir', 'light_poscom0', 'light_pos0', 'light_dir0', 'light_attenuation', 'light_cutoff', 'light_exponent', 'light_ambient', 'light_diffuse', 'light_specular', 'flex_contype', 'flex_conaffinity', 'flex_condim', 'flex_priority', 'flex_solmix', 'flex_solref', 'flex_solimp', 'flex_friction', 'flex_margin', 'flex_gap', 'flex_internal', 'flex_selfcollide', 'flex_activelayers', 'flex_passive', 'flex_dim', 'flex_matid', 'flex_group', 'flex_interp', 'flex_cellnum', 'flex_nodeadr', 'flex_nodenum', 'flex_vertadr', 'flex_vertnum', 'flex_edgeadr', 'flex_edgenum', 'flex_elemadr', 'flex_elemnum', 'flex_elemdataadr', 'flex_stiffnessadr', 'flex_elemedgeadr', 'flex_bendingadr', 'flex_shellnum', 'flex_shelldataadr', 'flex_evpairadr', 'flex_evpairnum', 'flex_texcoordadr', 'flex_nodebodyid', 'flex_vertbodyid', 'flex_vertedgeadr', 'flex_vertedgenum', 'flex_vertedge', 'flex_edge', 'flex_edgeflap', 'flex_elem', 'flex_elemtexcoord', 'flex_elemedge', 'flex_elemlayer', 'flex_shell', 'flex_evpair', 'flex_vert', 'flex_vert0', 'flex_vertmetric', 'flex_node', 'flex_node0', 'flexedge_length0', 'flexedge_invweight0', 'flex_radius', 'flex_size', 'flex_stiffness', 'flex_bending', 'flex_damping', 'flex_edgestiffness', 'flex_edgedamping', 'flex_edgeequality', 'flex_rigid', 'flexedge_rigid', 'flex_centered', 'flex_flatskin', 'flex_bvhadr', 'flex_bvhnum', 'flexedge_J_rownnz', 'flexedge_J_rowadr', 'flexedge_J_colind', 'flexvert_J_rownnz', 'flexvert_J_rowadr', 'flexvert_J_colind', 'flex_rgba', 'flex_texcoord', 'mesh_vertadr', 'mesh_vertnum', 'mesh_faceadr', 'mesh_facenum', 'mesh_bvhadr', 'mesh_bvhnum', 'mesh_octadr', 'mesh_octnum', 'mesh_normaladr', 'mesh_normalnum', 'mesh_texcoordadr', 'mesh_texcoordnum', 'mesh_graphadr', 'mesh_vert', 'mesh_normal', 'mesh_texcoord', 'mesh_face', 'mesh_facenormal', 'mesh_facetexcoord', 'mesh_graph', 'mesh_scale', 'mesh_pos', 'mesh_quat', 'mesh_pathadr', 'mesh_polynum', 'mesh_polyadr', 'mesh_polynormal', 'mesh_polyvertadr', 'mesh_polyvertnum', 'mesh_polyvert', 'mesh_polymapadr', 'mesh_polymapnum', 'mesh_polymap', 'skin_matid', 'skin_group', 'skin_rgba', 'skin_inflate', 'skin_vertadr', 'skin_vertnum', 'skin_texcoordadr', 'skin_faceadr', 'skin_facenum', 'skin_boneadr', 'skin_bonenum', 'skin_vert', 'skin_texcoord', 'skin_face', 'skin_bonevertadr', 'skin_bonevertnum', 'skin_bonebindpos', 'skin_bonebindquat', 'skin_bonebodyid', 'skin_bonevertid', 'skin_bonevertweight', 'skin_pathadr', 'hfield_size', 'hfield_nrow', 'hfield_ncol', 'hfield_adr', 'hfield_data', 'hfield_pathadr', 'tex_type', 'tex_colorspace', 'tex_height', 'tex_width', 'tex_nchannel', 'tex_adr', 'tex_data', 'tex_pathadr', 'mat_texid', 'mat_texuniform', 'mat_texrepeat', 'mat_emission', 'mat_specular', 'mat_shininess', 'mat_reflectance', 'mat_metallic', 'mat_roughness', 'mat_rgba', 'pair_dim', 'pair_geom1', 'pair_geom2', 'pair_signature', 'pair_solref', 'pair_solreffriction', 'pair_solimp', 'pair_margin', 'pair_gap', 'pair_friction', 'exclude_signature', 'eq_type', 'eq_obj1id', 'eq_obj2id', 'eq_objtype', 'eq_active0', 'eq_solref', 'eq_solimp', 'eq_data', 'tendon_adr', 'tendon_num', 'tendon_matid', 'tendon_actuatorid', 'tendon_group', 'tendon_treenum', 'tendon_treeid', 'ten_J_rownnz', 'ten_J_rowadr', 'ten_J_colind', 'tendon_limited', 'tendon_actfrclimited', 'tendon_width', 'tendon_solref_lim', 'tendon_solimp_lim', 'tendon_solref_fri', 'tendon_solimp_fri', 'tendon_range', 'tendon_actfrcrange', 'tendon_margin', 'tendon_stiffness', 'tendon_stiffnesspoly', 'tendon_damping', 'tendon_dampingpoly', 'tendon_armature', 'tendon_frictionloss', 'tendon_lengthspring', 'tendon_length0', 'tendon_invweight0', 'tendon_user', 'tendon_rgba', 'wrap_type', 'wrap_objid', 'wrap_prm', 'actuator_trntype', 'actuator_dyntype', 'actuator_gaintype', 'actuator_biastype', 'actuator_trnid', 'actuator_damping', 'actuator_dampingpoly', 'actuator_armature', 'actuator_actadr', 'actuator_actnum', 'actuator_group', 'actuator_history', 'actuator_historyadr', 'actuator_delay', 'actuator_ctrllimited', 'actuator_forcelimited', 'actuator_actlimited', 'actuator_dynprm', 'actuator_gainprm', 'actuator_biasprm', 'actuator_actearly', 'actuator_ctrlrange', 'actuator_forcerange', 'actuator_actrange', 'actuator_gear', 'actuator_cranklength', 'actuator_acc0', 'actuator_length0', 'actuator_lengthrange', 'actuator_user', 'actuator_plugin', 'sensor_type', 'sensor_datatype', 'sensor_needstage', 'sensor_objtype', 'sensor_objid', 'sensor_reftype', 'sensor_refid', 'sensor_intprm', 'sensor_dim', 'sensor_adr', 'sensor_cutoff', 'sensor_noise', 'sensor_history', 'sensor_historyadr', 'sensor_delay', 'sensor_interval', 'sensor_user', 'sensor_plugin', 'plugin', 'plugin_stateadr', 'plugin_statenum', 'plugin_attr', 'plugin_attradr', 'numeric_adr', 'numeric_size', 'numeric_data', 'text_adr', 'text_size', 'text_data', 'tuple_adr', 'tuple_size', 'tuple_objtype', 'tuple_objid', 'tuple_objprm', 'key_time', 'key_qpos', 'key_qvel', 'key_act', 'key_mpos', 'key_mquat', 'key_ctrl', 'name_bodyadr', 'name_jntadr', 'name_geomadr', 'name_siteadr', 'name_camadr', 'name_lightadr', 'name_flexadr', 'name_meshadr', 'name_skinadr', 'name_hfieldadr', 'name_texadr', 'name_matadr', 'name_pairadr', 'name_excludeadr', 'name_eqadr', 'name_tendonadr', 'name_actuatoradr', 'name_sensoradr', 'name_numericadr', 'name_textadr', 'name_tupleadr', 'name_keyadr', 'name_pluginadr', 'names', 'names_map', 'paths', 'B_rownnz', 'B_rowadr', 'B_colind', 'M_rownnz', 'M_rowadr', 'M_colind', 'mapM2M', 'D_rownnz', 'D_rowadr', 'D_diag', 'D_colind', 'mapM2D', 'mapD2M')
+    _size_fields: typing.ClassVar[tuple] = ('nq', 'nv', 'nu', 'na', 'nbody', 'nbvh', 'nbvhstatic', 'nbvhdynamic', 'noct', 'njnt', 'ntree', 'nM', 'nB', 'nC', 'nD', 'ngeom', 'nsite', 'ncam', 'nlight', 'nflex', 'nflexnode', 'nflexvert', 'nflexedge', 'nflexelem', 'nflexelemdata', 'nflexstiffness', 'nflexbending', 'nflexelemedge', 'nflexshelldata', 'nflexevpair', 'nflextexcoord', 'nJfe', 'nJfv', 'nmesh', 'nmeshvert', 'nmeshnormal', 'nmeshtexcoord', 'nmeshface', 'nmeshgraph', 'nmeshpoly', 'nmeshpolyvert', 'nmeshpolymap', 'nskin', 'nskinvert', 'nskintexvert', 'nskinface', 'nskinbone', 'nskinbonevert', 'nhfield', 'nhfielddata', 'ntex', 'ntexdata', 'nmat', 'npair', 'nexclude', 'neq', 'ntendon', 'nJten', 'nwrap', 'nsensor', 'nnumeric', 'nnumericdata', 'ntext', 'ntextdata', 'ntuple', 'ntupledata', 'nkey', 'nmocap', 'nplugin', 'npluginattr', 'nuser_body', 'nuser_jnt', 'nuser_geom', 'nuser_site', 'nuser_cam', 'nuser_tendon', 'nuser_actuator', 'nuser_sensor', 'nnames', 'npaths', 'nnames_map', 'nJmom', 'ngravcomp', 'nemax', 'njmax', 'nconmax', 'nuserdata', 'nsensordata', 'npluginstate', 'nhistory', 'narena', 'nbuffer')
     @staticmethod
     def _from_model_ptr(arg0: typing.SupportsInt | typing.SupportsIndex) -> MjModel:
         ...
@@ -1313,7 +1339,7 @@ class MjModel:
           A MjModelGroupedViews object or a list of the same type.
         """
     @staticmethod
-    def from_binary_path(filename: str, assets: collections.abc.Mapping[str, bytes] | None = None) -> MjModel:
+    def from_binary_path(filename: str, assets: collections.abc.Mapping[str, bytes] | None = None, vfs: ... = None) -> MjModel:
         """
         Loads an MjModel from an MJB file and an optional assets dictionary.
         
@@ -1321,17 +1347,14 @@ class MjModel:
         This is useful for example when the MJB is not available as a file on disk.
         """
     @staticmethod
-    def from_xml_path(filename: str, assets: collections.abc.Mapping[str, bytes] | None = None) -> MjModel:
+    def from_xml_path(filename: str, assets: collections.abc.Mapping[str, bytes] | None = None, vfs: ... = None) -> MjModel:
         """
-        Loads an MjModel from an XML file and an optional assets dictionary.
-        
-        The filename for the XML can also refer to a key in the assets dictionary.
-        This is useful for example when the XML is not available as a file on disk.
+        Loads an MjModel from an XML file and optional assets dict or VFS.
         """
     @staticmethod
-    def from_xml_string(xml: str, assets: collections.abc.Mapping[str, bytes] | None = None) -> MjModel:
+    def from_xml_string(xml: str, assets: collections.abc.Mapping[str, bytes] | None = None, vfs: ... = None) -> MjModel:
         """
-        Loads an MjModel from an XML string and an optional assets dictionary.
+        Loads an MjModel from an XML string and optional assets dict or VFS.
         """
     def __copy__(self) -> MjModel:
         ...
@@ -1636,13 +1659,13 @@ class MjModel:
     def actuator_actadr(self, arg1: typing.Any) -> None:
         ...
     @property
-    def actuator_actearly(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def actuator_actearly(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @actuator_actearly.setter
     def actuator_actearly(self, arg1: typing.Any) -> None:
         ...
     @property
-    def actuator_actlimited(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def actuator_actlimited(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @actuator_actlimited.setter
     def actuator_actlimited(self, arg1: typing.Any) -> None:
@@ -1684,7 +1707,7 @@ class MjModel:
     def actuator_cranklength(self, arg1: typing.Any) -> None:
         ...
     @property
-    def actuator_ctrllimited(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def actuator_ctrllimited(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @actuator_ctrllimited.setter
     def actuator_ctrllimited(self, arg1: typing.Any) -> None:
@@ -1726,7 +1749,7 @@ class MjModel:
     def actuator_dyntype(self, arg1: typing.Any) -> None:
         ...
     @property
-    def actuator_forcelimited(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def actuator_forcelimited(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @actuator_forcelimited.setter
     def actuator_forcelimited(self, arg1: typing.Any) -> None:
@@ -2194,7 +2217,7 @@ class MjModel:
     def dof_treeid(self, arg1: typing.Any) -> None:
         ...
     @property
-    def eq_active0(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def eq_active0(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @eq_active0.setter
     def eq_active0(self, arg1: typing.Any) -> None:
@@ -2254,16 +2277,16 @@ class MjModel:
     def flex_activelayers(self, arg1: typing.Any) -> None:
         ...
     @property
-    def flex_bandwidth(self) -> numpy.typing.NDArray[numpy.int32]:
-        ...
-    @flex_bandwidth.setter
-    def flex_bandwidth(self, arg1: typing.Any) -> None:
-        ...
-    @property
     def flex_bending(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @flex_bending.setter
     def flex_bending(self, arg1: typing.Any) -> None:
+        ...
+    @property
+    def flex_bendingadr(self) -> numpy.typing.NDArray[numpy.int32]:
+        ...
+    @flex_bendingadr.setter
+    def flex_bendingadr(self, arg1: typing.Any) -> None:
         ...
     @property
     def flex_bvhadr(self) -> numpy.typing.NDArray[numpy.int32]:
@@ -2284,7 +2307,7 @@ class MjModel:
     def flex_cellnum(self, arg1: typing.Any) -> None:
         ...
     @property
-    def flex_centered(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def flex_centered(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @flex_centered.setter
     def flex_centered(self, arg1: typing.Any) -> None:
@@ -2428,7 +2451,7 @@ class MjModel:
     def flex_evpairnum(self, arg1: typing.Any) -> None:
         ...
     @property
-    def flex_flatskin(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def flex_flatskin(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @flex_flatskin.setter
     def flex_flatskin(self, arg1: typing.Any) -> None:
@@ -2452,7 +2475,7 @@ class MjModel:
     def flex_group(self, arg1: typing.Any) -> None:
         ...
     @property
-    def flex_internal(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def flex_internal(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @flex_internal.setter
     def flex_internal(self, arg1: typing.Any) -> None:
@@ -2530,7 +2553,7 @@ class MjModel:
     def flex_rgba(self, arg1: typing.Any) -> None:
         ...
     @property
-    def flex_rigid(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def flex_rigid(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @flex_rigid.setter
     def flex_rigid(self, arg1: typing.Any) -> None:
@@ -2692,7 +2715,7 @@ class MjModel:
     def flexedge_length0(self, arg1: typing.Any) -> None:
         ...
     @property
-    def flexedge_rigid(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def flexedge_rigid(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @flexedge_rigid.setter
     def flexedge_rigid(self, arg1: typing.Any) -> None:
@@ -2902,7 +2925,7 @@ class MjModel:
     def hfield_size(self, arg1: typing.Any) -> None:
         ...
     @property
-    def jnt_actfrclimited(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def jnt_actfrclimited(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @jnt_actfrclimited.setter
     def jnt_actfrclimited(self, arg1: typing.Any) -> None:
@@ -2914,7 +2937,7 @@ class MjModel:
     def jnt_actfrcrange(self, arg1: typing.Any) -> None:
         ...
     @property
-    def jnt_actgravcomp(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def jnt_actgravcomp(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @jnt_actgravcomp.setter
     def jnt_actgravcomp(self, arg1: typing.Any) -> None:
@@ -2950,7 +2973,7 @@ class MjModel:
     def jnt_group(self, arg1: typing.Any) -> None:
         ...
     @property
-    def jnt_limited(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def jnt_limited(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @jnt_limited.setter
     def jnt_limited(self, arg1: typing.Any) -> None:
@@ -3058,7 +3081,7 @@ class MjModel:
     def key_time(self, arg1: typing.Any) -> None:
         ...
     @property
-    def light_active(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def light_active(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @light_active.setter
     def light_active(self, arg1: typing.Any) -> None:
@@ -3088,7 +3111,7 @@ class MjModel:
     def light_bulbradius(self, arg1: typing.Any) -> None:
         ...
     @property
-    def light_castshadow(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def light_castshadow(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @light_castshadow.setter
     def light_castshadow(self, arg1: typing.Any) -> None:
@@ -3256,7 +3279,7 @@ class MjModel:
     def mat_texrepeat(self, arg1: typing.Any) -> None:
         ...
     @property
-    def mat_texuniform(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def mat_texuniform(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @mat_texuniform.setter
     def mat_texuniform(self, arg1: typing.Any) -> None:
@@ -3668,6 +3691,9 @@ class MjModel:
         ...
     @property
     def nflex(self) -> int:
+        ...
+    @property
+    def nflexbending(self) -> int:
         ...
     @property
     def nflexedge(self) -> int:
@@ -4354,7 +4380,7 @@ class MjModel:
     def ten_J_rownnz(self, arg1: typing.Any) -> None:
         ...
     @property
-    def tendon_actfrclimited(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def tendon_actfrclimited(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @tendon_actfrclimited.setter
     def tendon_actfrclimited(self, arg1: typing.Any) -> None:
@@ -4426,7 +4452,7 @@ class MjModel:
     def tendon_lengthspring(self, arg1: typing.Any) -> None:
         ...
     @property
-    def tendon_limited(self) -> numpy.typing.NDArray[numpy.uint8]:
+    def tendon_limited(self) -> numpy.typing.NDArray[numpy.bool]:
         ...
     @tendon_limited.setter
     def tendon_limited(self, arg1: typing.Any) -> None:
@@ -4854,6 +4880,42 @@ class MjOption:
         ...
     @wind.setter
     def wind(self, arg1: typing.Any) -> None:
+        ...
+class MjPreContact:
+    __hash__: typing.ClassVar[None] = None
+    def __copy__(self) -> MjPreContact:
+        ...
+    def __deepcopy__(self, arg0: dict) -> MjPreContact:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __init__(self) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    @property
+    def dist(self) -> float:
+        ...
+    @dist.setter
+    def dist(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def normal(self) -> numpy.typing.NDArray[numpy.float64]:
+        ...
+    @normal.setter
+    def normal(self, arg1: typing.Any) -> None:
+        ...
+    @property
+    def pos(self) -> numpy.typing.NDArray[numpy.float64]:
+        ...
+    @pos.setter
+    def pos(self, arg1: typing.Any) -> None:
+        ...
+    @property
+    def tangent(self) -> numpy.typing.NDArray[numpy.float64]:
+        ...
+    @tangent.setter
+    def tangent(self, arg1: typing.Any) -> None:
         ...
 class MjSolverStat:
     __hash__: typing.ClassVar[None] = None
@@ -5584,6 +5646,30 @@ class MjrRect:
         ...
     @width.setter
     def width(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+class MjrVertexAttribute:
+    __hash__: typing.ClassVar[None] = None
+    def __copy__(self) -> MjrVertexAttribute:
+        ...
+    def __deepcopy__(self, arg0: dict) -> MjrVertexAttribute:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __init__(self, usage: typing.SupportsInt | typing.SupportsIndex = 0, type: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    @property
+    def type(self) -> int:
+        ...
+    @type.setter
+    def type(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def usage(self) -> int:
+        ...
+    @usage.setter
+    def usage(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
         ...
 class MjvCamera:
     __hash__: typing.ClassVar[None] = None

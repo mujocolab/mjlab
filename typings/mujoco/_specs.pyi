@@ -5,7 +5,7 @@ import mujoco._structs
 import numpy
 import numpy.typing
 import typing
-__all__: list[str] = ['MjByteVec', 'MjCharVec', 'MjDoubleVec', 'MjFloatVec', 'MjIntVec', 'MjOption', 'MjSpec', 'MjStatistic', 'MjStringVec', 'MjVisual', 'MjVisualHeadlight', 'MjVisualRgba', 'MjsActuator', 'MjsBody', 'MjsCamera', 'MjsCompiler', 'MjsDefault', 'MjsElement', 'MjsEquality', 'MjsExclude', 'MjsFlex', 'MjsFrame', 'MjsGeom', 'MjsHField', 'MjsJoint', 'MjsKey', 'MjsLight', 'MjsMaterial', 'MjsMesh', 'MjsNumeric', 'MjsOrientation', 'MjsPair', 'MjsPlugin', 'MjsSensor', 'MjsSite', 'MjsSkin', 'MjsTendon', 'MjsTendonPath', 'MjsText', 'MjsTexture', 'MjsTuple', 'MjsWrap']
+__all__: list[str] = ['MjByteVec', 'MjCharVec', 'MjDoubleVec', 'MjFloatVec', 'MjIntVec', 'MjOption', 'MjSpec', 'MjStatistic', 'MjStringVec', 'MjVfs', 'MjVisual', 'MjVisualHeadlight', 'MjVisualRgba', 'MjsActuator', 'MjsAuthored', 'MjsBody', 'MjsCamera', 'MjsCompiler', 'MjsDefault', 'MjsElement', 'MjsEquality', 'MjsExclude', 'MjsFlex', 'MjsFrame', 'MjsGeom', 'MjsHField', 'MjsJoint', 'MjsKey', 'MjsLight', 'MjsMaterial', 'MjsMesh', 'MjsNumeric', 'MjsOrientation', 'MjsPair', 'MjsPlugin', 'MjsSensor', 'MjsSite', 'MjsSkin', 'MjsTendon', 'MjsTendonPath', 'MjsText', 'MjsTexture', 'MjsTuple', 'MjsWrap']
 class MjByteVec:
     def __getitem__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> ...:
         ...
@@ -238,6 +238,7 @@ class MjOption:
         ...
 class MjSpec:
     assets: dict
+    authored: MjsAuthored
     comment: str
     compiler: MjsCompiler
     meshdir: str
@@ -249,7 +250,7 @@ class MjSpec:
     texturedir: str
     visual: MjVisual
     @staticmethod
-    def from_file(filename: str, include: collections.abc.Mapping[str, bytes] | None = None, assets: dict | None = None) -> MjSpec:
+    def from_file(filename: str, include: collections.abc.Mapping[str, bytes] | None = None, assets: dict | None = None, vfs: MjVfs = None) -> MjSpec:
         """
             Creates a spec from an XML file.
         
@@ -263,9 +264,12 @@ class MjSpec:
             assets : dict, optional
                 A dictionary of assets to be used by the spec. The keys are asset names
                 and the values are asset contents.
+            vfs : MjVfs, optional
+                A VFS to use for resolving includes and assets. Cannot be used with
+                include or assets.
         """
     @staticmethod
-    def from_string(xml: str, include: collections.abc.Mapping[str, bytes] | None = None, assets: dict | None = None) -> MjSpec:
+    def from_string(xml: str, include: collections.abc.Mapping[str, bytes] | None = None, assets: dict | None = None, vfs: MjVfs = None) -> MjSpec:
         """
             Creates a spec from an XML string.
         
@@ -279,6 +283,9 @@ class MjSpec:
             assets : dict, optional
                 A dictionary of assets to be used by the spec. The keys are asset names
                 and the values are asset contents.
+            vfs : MjVfs, optional
+                A VFS to use for resolving includes and assets. Cannot be used with
+                include or assets.
         """
     @staticmethod
     def from_zip(file: typing.Union[str, typing.IO[bytes]]) -> MjSpec:
@@ -466,7 +473,7 @@ class MjSpec:
                 rgba: list[float]
                 info: str
         """
-    def add_mesh(self, default: MjsDefault = None, name: str | None = None, content_type: str | None = None, file: str | None = None, refpos: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, refquat: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, scale: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, inertia: typing.SupportsInt | typing.SupportsIndex | None = None, smoothnormal: typing.SupportsInt | typing.SupportsIndex | None = None, needsdf: typing.SupportsInt | typing.SupportsIndex | None = None, maxhullvert: typing.SupportsInt | typing.SupportsIndex | None = None, uservert: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, usernormal: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, usertexcoord: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, userface: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex] | None = None, userfacenormal: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex] | None = None, userfacetexcoord: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex] | None = None, plugin: mujoco._specs.MjsPlugin | None = None, material: str | None = None, info: str | None = None) -> MjsMesh:
+    def add_mesh(self, default: MjsDefault = None, name: str | None = None, content_type: str | None = None, file: str | None = None, refpos: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, refquat: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, scale: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, inertia: typing.SupportsInt | typing.SupportsIndex | None = None, smoothnormal: typing.SupportsInt | typing.SupportsIndex | None = None, needsdf: typing.SupportsInt | typing.SupportsIndex | None = None, maxhullvert: typing.SupportsInt | typing.SupportsIndex | None = None, uservert: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, usernormal: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, usertexcoord: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, userface: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex] | None = None, userfacenormal: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex] | None = None, userfacetexcoord: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex] | None = None, plugin: mujoco._specs.MjsPlugin | None = None, material: str | None = None, octree_maxdepth: typing.SupportsInt | typing.SupportsIndex | None = None, info: str | None = None) -> MjsMesh:
         """
               Add mesh to spec.
         
@@ -489,6 +496,7 @@ class MjSpec:
                 userfacetexcoord: list[int]
                 plugin: MjsPlugin
                 material: str
+                octree_maxdepth: int
                 info: str
         """
     def add_numeric(self, name: str | None = None, data: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, size: typing.SupportsInt | typing.SupportsIndex | None = None, info: str | None = None) -> MjsNumeric:
@@ -654,7 +662,7 @@ class MjSpec:
         ...
     def camera(self, arg0: str) -> MjsCamera:
         ...
-    def compile(self) -> typing.Any:
+    def compile(self, vfs: mujoco._specs.MjVfs | None = None) -> typing.Any:
         ...
     def copy(self) -> MjSpec:
         ...
@@ -972,6 +980,9 @@ class MjSpec:
     def textures(self) -> list:
         ...
     @property
+    def timer(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[9, 1]", "flags.writeable"]:
+        ...
+    @property
     def tuples(self) -> list:
         ...
     @property
@@ -1018,6 +1029,21 @@ class MjStringVec:
     def __len__(self) -> int:
         ...
     def __setitem__(self, arg0: typing.SupportsInt | typing.SupportsIndex, arg1: str) -> None:
+        ...
+class MjVfs:
+    def __contains__(self, arg0: str) -> bool:
+        ...
+    def __delitem__(self, arg0: str) -> None:
+        ...
+    def __enter__(self) -> MjVfs:
+        ...
+    def __exit__(self, arg0: typing.Any, arg1: typing.Any, arg2: typing.Any) -> None:
+        ...
+    def __init__(self) -> None:
+        ...
+    def __setitem__(self, arg0: str, arg1: bytes) -> None:
+        ...
+    def close(self) -> None:
         ...
 class MjVisual:
     global: mujoco._structs.MjVisual.Global
@@ -1227,7 +1253,7 @@ class MjsActuator:
         ...
     def set_to_motor(self) -> None:
         ...
-    def set_to_muscle(self, timeconst: typing.SupportsFloat | typing.SupportsIndex = -1, tausmooth: typing.SupportsFloat | typing.SupportsIndex, range: typing.SupportsFloat | typing.SupportsIndex = [-1.0, -1.0], force: typing.SupportsFloat | typing.SupportsIndex = -1, scale: typing.SupportsFloat | typing.SupportsIndex = -1, lmin: typing.SupportsFloat | typing.SupportsIndex = -1, lmax: typing.SupportsFloat | typing.SupportsIndex = -1, vmax: typing.SupportsFloat | typing.SupportsIndex = -1, fpmax: typing.SupportsFloat | typing.SupportsIndex = -1, fvmax: typing.SupportsFloat | typing.SupportsIndex = -1) -> None:
+    def set_to_muscle(self, timeconst: typing.Annotated[collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex], "FixedSize(2)"] = [-1.0, -1.0], tausmooth: typing.SupportsFloat | typing.SupportsIndex, range: typing.Annotated[collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex], "FixedSize(2)"] = [-1.0, -1.0], force: typing.SupportsFloat | typing.SupportsIndex = -1, scale: typing.SupportsFloat | typing.SupportsIndex = -1, lmin: typing.SupportsFloat | typing.SupportsIndex = -1, lmax: typing.SupportsFloat | typing.SupportsIndex = -1, vmax: typing.SupportsFloat | typing.SupportsIndex = -1, fpmax: typing.SupportsFloat | typing.SupportsIndex = -1, fvmax: typing.SupportsFloat | typing.SupportsIndex = -1) -> None:
         ...
     def set_to_position(self, kp: typing.SupportsFloat | typing.SupportsIndex, kv: typing.SupportsFloat | typing.SupportsIndex = -1, dampratio: typing.SupportsFloat | typing.SupportsIndex = -1, timeconst: typing.SupportsFloat | typing.SupportsIndex = -1, inheritrange: bool = False) -> None:
         ...
@@ -1373,6 +1399,67 @@ class MjsActuator:
         ...
     @userdata.setter
     def userdata(self, arg1: typing.Any) -> None:
+        ...
+class MjsAuthored:
+    @property
+    def disableactuator(self) -> int:
+        ...
+    @disableactuator.setter
+    def disableactuator(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def disableflags(self) -> int:
+        ...
+    @disableflags.setter
+    def disableflags(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def enableflags(self) -> int:
+        ...
+    @enableflags.setter
+    def enableflags(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def option(self) -> int:
+        ...
+    @option.setter
+    def option(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def visual_global(self) -> int:
+        ...
+    @visual_global.setter
+    def visual_global(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def visual_headlight(self) -> int:
+        ...
+    @visual_headlight.setter
+    def visual_headlight(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def visual_map(self) -> int:
+        ...
+    @visual_map.setter
+    def visual_map(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def visual_quality(self) -> int:
+        ...
+    @visual_quality.setter
+    def visual_quality(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def visual_rgba(self) -> int:
+        ...
+    @visual_rgba.setter
+    def visual_rgba(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def visual_scale(self) -> int:
+        ...
+    @visual_scale.setter
+    def visual_scale(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
         ...
 class MjsBody:
     alt: MjsOrientation
@@ -1598,6 +1685,8 @@ class MjsBody:
     def first_light(self) -> MjsLight:
         ...
     def first_site(self) -> MjsSite:
+        ...
+    def make_flex(self, name: str, type: str | None = None, dim: typing.SupportsInt | typing.SupportsIndex = 3, dof: str | None = None, count: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex] | None = None, cellcount: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex] | None = None, spacing: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, scale: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, radius: typing.SupportsFloat | typing.SupportsIndex = 0.0, mass: typing.SupportsFloat | typing.SupportsIndex = 1.0, inertiabox: typing.SupportsFloat | typing.SupportsIndex = 0.005, equality: typing.SupportsInt | typing.SupportsIndex = 0, rigid: typing.SupportsInt | typing.SupportsIndex = 0, flatskin: typing.SupportsInt | typing.SupportsIndex = 0, elastic2d: typing.SupportsInt | typing.SupportsIndex = 0, pos: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, quat: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, origin: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] | None = None, file: str | None = None, vfs: MjVfs = None) -> MjsFlex:
         ...
     def next_body(self, arg0: MjsBody) -> MjsBody:
         ...
@@ -1833,6 +1922,12 @@ class MjsCompiler:
     def alignfree(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
         ...
     @property
+    def authored(self) -> int:
+        ...
+    @authored.setter
+    def authored(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
     def autolimits(self) -> int:
         ...
     @autolimits.setter
@@ -1855,6 +1950,12 @@ class MjsCompiler:
         ...
     @boundmass.setter
     def boundmass(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def conflict(self) -> int:
+        ...
+    @conflict.setter
+    def conflict(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
         ...
     @property
     def degree(self) -> int:
@@ -3064,6 +3165,12 @@ class MjsMesh:
         ...
     @needsdf.setter
     def needsdf(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def octree_maxdepth(self) -> int:
+        ...
+    @octree_maxdepth.setter
+    def octree_maxdepth(self, arg1: typing.SupportsInt | typing.SupportsIndex) -> None:
         ...
     @property
     def refpos(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]", "flags.writeable"]:

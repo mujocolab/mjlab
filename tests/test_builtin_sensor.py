@@ -129,8 +129,11 @@ def test_accelerometer_sensor(articulated_robot_xml, device):
 
   sensor = scene["robot/base_accel"]
 
-  # Step to make robot fall.
-  for _ in range(100):
+  # Step until the robot falls (from z=1) and rests on the floor. During free
+  # fall the accelerometer correctly reads ~0 (zero proper acceleration); it
+  # only registers the ~g ground reaction once the robot has landed (~280
+  # steps), so step well past that.
+  for _ in range(400):
     sim.step()
 
   data = sensor.data
