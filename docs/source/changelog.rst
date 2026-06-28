@@ -8,6 +8,18 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+Changed
+^^^^^^^
+
+Fixed
+^^^^^
+
+Version 1.5.0 (June 28, 2026)
+-----------------------------
+
+Added
+^^^^^
+
 - Added ``reduce="max"`` to ``MetricsTermCfg`` for reporting episode-peak values
   (e.g. peak power, peak contact force) without needing stateful wrapper classes.
 - Added ``BuiltinDcMotorActuator``, a native MuJoCo ``<dcmotor>`` wrapper.
@@ -60,7 +72,8 @@ Fixed
   installed mujoco version. CI now regenerates them and fails if they are
   stale, so they stay in sync going forward. Run ``make stubs`` to update them
   (:issue:`1048`).
-- Fixed ``select_gpus`` crashing when ``CUDA_VISIBLE_DEVICES`` contains MIG UUIDs instead of numeric indices.
+- Fixed ``select_gpus`` crashing when ``CUDA_VISIBLE_DEVICES`` contains MIG
+  UUIDs instead of numeric indices.
 - Fixed pyramid-stairs terrains (``BoxPyramidStairsTerrainCfg``,
   ``BoxInvertedPyramidStairsTerrainCfg``, and ``BoxOpenStairsTerrainCfg``)
   leaving an empty, geometry-free border at difficulty 0, where the step
@@ -86,6 +99,10 @@ Fixed
   platform library not loaded`` on headless Linux hosts that don't pre-set
   ``MUJOCO_GL``. The default is now applied in ``mjlab/__init__.py`` (Linux
   only) so it takes effect before mujoco's GL backend selection runs.
+- Fixed motion tracking re-anchoring to a stale robot pose after a mid-episode
+  motion resample. ``MotionCommand._update_command`` now calls ``sim.forward()``
+  after resampling so relative body poses read the post-teleport state
+  (:issue:`1068`).
 
 Version 1.4.0 (May 26, 2026)
 ----------------------------
