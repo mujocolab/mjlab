@@ -27,6 +27,8 @@ def terrain_levels_vel(
   env_ids: torch.Tensor,
   command_name: str,
   asset_cfg: SceneEntityCfg = _DEFAULT_SCENE_CFG,
+  promotion_frac: float = 0.8,
+  min_expected_distance: float = 0.1,
 ) -> dict[str, torch.Tensor]:
   asset: Entity = env.scene[asset_cfg.name]
 
@@ -44,15 +46,38 @@ def terrain_levels_vel(
     dim=1,
   )
 
-  # Robots that walked far enough progress to harder terrains.
-  move_up = distance > terrain_generator.size[0] / 2
+  # Estimate expected straight-line displacement from the commanded velocity.
+  command_speed = torch.norm(command[env_ids, :2], dim=1)
+  expected_distance = command_speed * env.max_episode_length_s
+
+  # If the robot is commanded to turn while moving, its net displacement is the
+  # chord of the commanded arc rather than the full path length.
+  if command.shape[1] >= 3:
+    yaw_delta = torch.abs(command[env_ids, 2]) * env.max_episode_length_s
+    arc_ratio = torch.ones_like(yaw_delta)
+    is_turning = yaw_delta > 1e-6
+    arc_ratio[is_turning] = torch.abs(
+      torch.sin(yaw_delta[is_turning] / 2.0) / (yaw_delta[is_turning] / 2.0)
+    )
+    expected_distance *= arc_ratio
+
+  is_commanded_to_move = expected_distance >= min_expected_distance
+  max_promotion_distance = torch.full_like(
+    expected_distance,
+    terrain_generator.size[0] / 2,
+  )
+  promotion_distance = torch.minimum(
+    expected_distance * promotion_frac,
+    max_promotion_distance,
+  )
+
+  # Robots that walked far enough for their command progress to harder terrains.
+  move_up = is_commanded_to_move & (distance > promotion_distance)
 
   # Robots that walked less than half of their required distance go to
   # simpler terrains.
-  move_down = (
-    distance < torch.norm(command[env_ids, :2], dim=1) * env.max_episode_length_s * 0.5
-  )
-  move_down *= ~move_up
+  move_down = is_commanded_to_move & (distance < expected_distance * 0.5)
+  move_down &= ~move_up
 
   # Update terrain levels.
   terrain.update_env_origins(env_ids, move_up, move_down)

@@ -1,6 +1,7 @@
-"""Tests for reward_curriculum and termination_curriculum."""
+"""Tests for curriculum terms."""
 
-from unittest.mock import Mock
+from types import SimpleNamespace
+from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
@@ -9,6 +10,7 @@ from mjlab.envs.mdp.curriculums import reward_curriculum, termination_curriculum
 from mjlab.managers.curriculum_manager import CurriculumTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.termination_manager import TerminationTermCfg
+from mjlab.tasks.velocity.mdp.curriculums import terrain_levels_vel
 
 
 def _reward_func(env):
@@ -65,6 +67,135 @@ def _make_termination_env(step_counter, term_cfg):
   env.common_step_counter = step_counter
   env.termination_manager.get_term_cfg.return_value = term_cfg
   return env
+
+
+def _make_terrain_levels_env(
+  command: torch.Tensor,
+  distance: torch.Tensor,
+  *,
+  max_episode_length_s: float = 10.0,
+  terrain_size: float = 8.0,
+):
+  num_envs = command.shape[0]
+  env_origins = torch.zeros((num_envs, 3))
+  root_link_pos_w = env_origins.clone()
+  root_link_pos_w[:, 0] = distance
+  asset = SimpleNamespace(
+    data=SimpleNamespace(root_link_pos_w=root_link_pos_w),
+  )
+
+  terrain_generator = SimpleNamespace(
+    size=(terrain_size, terrain_size),
+    sub_terrains={"flat": object(), "rough": object()},
+  )
+  terrain = SimpleNamespace(
+    cfg=SimpleNamespace(terrain_generator=terrain_generator),
+    update_env_origins=Mock(),
+    terrain_levels=torch.tensor([1, 3], dtype=torch.int64)[:num_envs],
+    terrain_types=torch.tensor([0, 1], dtype=torch.int64)[:num_envs],
+    terrain_origins=torch.zeros((4, 2, 3)),
+  )
+
+  scene = MagicMock()
+  scene.__getitem__.return_value = asset
+  scene.env_origins = env_origins
+  scene.terrain = terrain
+
+  env = SimpleNamespace(
+    scene=scene,
+    command_manager=Mock(),
+    max_episode_length_s=max_episode_length_s,
+  )
+  env.command_manager.get_command.return_value = command
+
+  return env, torch.arange(num_envs), terrain
+
+
+def _terrain_level_masks(terrain) -> tuple[torch.Tensor, torch.Tensor]:
+  _, move_up, move_down = terrain.update_env_origins.call_args.args
+  return move_up, move_down
+
+
+# Terrain levels: velocity task
+
+
+def test_terrain_levels_vel_promotes_full_expected_distance():
+  command = torch.tensor([[0.5, 0.0, 0.0]])
+  env, env_ids, terrain = _make_terrain_levels_env(
+    command,
+    torch.tensor([5.0]),
+    max_episode_length_s=10.0,
+  )
+
+  terrain_levels_vel(env, env_ids, command_name="twist")
+
+  move_up, move_down = _terrain_level_masks(terrain)
+  assert move_up.tolist() == [True]
+  assert move_down.tolist() == [False]
+
+
+def test_terrain_levels_vel_promotes_low_speed_tracking_on_short_tiles():
+  command = torch.tensor([[0.2, 0.0, 0.0]])
+  env, env_ids, terrain = _make_terrain_levels_env(
+    command,
+    torch.tensor([1.0]),
+    max_episode_length_s=5.0,
+    terrain_size=3.0,
+  )
+
+  terrain_levels_vel(env, env_ids, command_name="twist")
+
+  move_up, move_down = _terrain_level_masks(terrain)
+  assert move_up.tolist() == [True]
+  assert move_down.tolist() == [False]
+
+
+def test_terrain_levels_vel_demotes_under_travel_and_masks_are_exclusive():
+  command = torch.tensor([[0.5, 0.0, 0.0]])
+  env, env_ids, terrain = _make_terrain_levels_env(
+    command,
+    torch.tensor([2.0]),
+    max_episode_length_s=10.0,
+  )
+
+  terrain_levels_vel(env, env_ids, command_name="twist")
+
+  move_up, move_down = _terrain_level_masks(terrain)
+  assert move_up.tolist() == [False]
+  assert move_down.tolist() == [True]
+  assert not torch.any(move_up & move_down)
+
+
+def test_terrain_levels_vel_ignores_near_zero_commands():
+  command = torch.tensor([[0.01, 0.0, 0.0]])
+  env, env_ids, terrain = _make_terrain_levels_env(
+    command,
+    torch.tensor([0.02]),
+    max_episode_length_s=1.0,
+  )
+
+  terrain_levels_vel(env, env_ids, command_name="twist")
+
+  move_up, move_down = _terrain_level_masks(terrain)
+  assert move_up.tolist() == [False]
+  assert move_down.tolist() == [False]
+
+
+def test_terrain_levels_vel_original_arguments_and_result_keys():
+  command = torch.tensor(
+    [
+      [0.5, 0.0, 0.0],
+      [0.5, 0.0, 0.0],
+    ]
+  )
+  env, env_ids, _terrain = _make_terrain_levels_env(
+    command,
+    torch.tensor([5.0, 0.0]),
+  )
+
+  result = terrain_levels_vel(env, env_ids, command_name="twist")
+
+  assert set(result) == {"mean", "max", "flat", "rough"}
 
 
 # Reward: weight
