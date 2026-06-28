@@ -75,3 +75,5 @@ Projects built on mjlab. To add yours, open a pull request or post in
      - mjlab port of `TWIST2 <https://arxiv.org/abs/2511.02832>`_.
    * - `wuji-technology/wuji-mjlab <https://github.com/wuji-technology/wuji-mjlab>`_
      - In-hand cube reorientation on the Wuji Hand with sim-to-real deployment.
+   * - `wbc-mjlab/wbc-mjlab <https://github.com/wbc-mjlab/wbc-mjlab>`_
+     - Configurable whole-body control — shared MDP with task configs, one policy for many skills.
