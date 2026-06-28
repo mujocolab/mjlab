@@ -22,9 +22,17 @@ jobs:
         run: uv python install 3.13
       - name: Build
         run: uv build
+      # MUJOCO_GL=disable so `import mujoco` skips its GL backend import. Without
+      # it, mujoco 3.10 eagerly imports the EGL bindings at import time (mjlab
+      # defaults MUJOCO_GL=egl on Linux) and crashes on the runner, which has no
+      # GL libraries. The smoke test does not render, so disabling GL is fine.
       - name: Smoke test (wheel)
         run: uv run --isolated --no-project --with dist/*.whl tests/smoke_test.py
+        env:
+          MUJOCO_GL: disable
       - name: Smoke test (source distribution)
         run: uv run --isolated --no-project --with dist/*.tar.gz tests/smoke_test.py
+        env:
+          MUJOCO_GL: disable
       - name: Publish
         run: uv publish
