@@ -44,6 +44,9 @@ dependencies = [
   "viser>=1.0.27",
   "mjviser>=0.0.14",
   "mediapy>=1.2.6",
+  # mediapy 1.2.6 subclasses npt.NDArray at import, which numpy>=2.5 rejects.
+  # The upstream fix (google/mediapy#66) is unmerged, so cap numpy until it lands.
+  "numpy<2.5",
   "imageio-ffmpeg",
   "tensordict",
   "rsl-rl-lib==5.4.0",
