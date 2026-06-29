@@ -97,6 +97,7 @@ class EntityCfg:
   cameras: tuple[spec_cfg.CameraCfg, ...] = field(default_factory=tuple)
   textures: tuple[spec_cfg.TextureCfg, ...] = field(default_factory=tuple)
   materials: tuple[spec_cfg.MaterialCfg, ...] = field(default_factory=tuple)
+  meshes: tuple[spec_cfg.MeshCfg, ...] = field(default_factory=tuple)
   collisions: tuple[spec_cfg.CollisionCfg, ...] = field(default_factory=tuple)
 
   def build(self) -> Entity:
@@ -191,6 +192,7 @@ class Entity:
       self.cfg.cameras,
       self.cfg.textures,
       self.cfg.materials,
+      self.cfg.meshes,
       self.cfg.collisions,
     ]:
       for cfg in cfg_list:

@@ -155,6 +155,57 @@ class MaterialCfg(SpecCfg):
 
 
 @dataclass
+class MeshCfg(SpecCfg):
+  """Configuration to edit attributes of existing mesh assets in the MuJoCo spec.
+
+  Unlike collision properties such as contype, condim, and friction, which live on
+  geoms and are tuned via CollisionCfg, the attributes here belong to the mesh asset
+  itself. A mesh asset is a shared resource: one asset may be referenced by many
+  mesh geoms across different bodies, and there is a single convex hull per asset.
+  Attributes are therefore matched by mesh-asset name, not geom name.
+
+  Only attributes set to a non-None value are applied; everything else is left at
+  whatever the source XML compiled to.
+  """
+
+  mesh_names_expr: tuple[str, ...]
+  """Regex patterns to match mesh-asset names."""
+  maxhullvert: int | dict[str, int] | None = None
+  """Maximum vertex count for each matched mesh's collision convex hull. Lower
+  values yield cheaper narrowphase collision (the support function walks fewer hull
+  vertices) at the cost of hull fidelity. -1 means unlimited (MuJoCo's default);
+  positive values must be greater than 3. May be a single value applied to all
+  matched meshes, or a dict mapping regex patterns to per-mesh values."""
+
+  def edit_spec(self, spec: mujoco.MjSpec) -> None:
+    from mjlab.utils.string import filter_exp, resolve_field
+
+    self.validate()
+
+    all_mesh_names = tuple(m.name for m in spec.meshes)
+    matched = filter_exp(self.mesh_names_expr, all_mesh_names)
+
+    maxhullvert = resolve_field(self.maxhullvert, matched)
+    for i, mesh_name in enumerate(matched):
+      if maxhullvert[i] is not None:
+        spec.mesh(mesh_name).maxhullvert = maxhullvert[i]
+
+  def validate(self) -> None:
+    if isinstance(self.maxhullvert, dict):
+      items = list(self.maxhullvert.items())
+    else:
+      items = [(None, self.maxhullvert)]
+    for pattern, value in items:
+      if value is None or value == -1:
+        continue
+      if value <= 3:
+        where = f" for pattern '{pattern}'" if pattern is not None else ""
+        raise ValueError(
+          f"maxhullvert must be -1 (unlimited) or greater than 3, got {value}{where}"
+        )
+
+
+@dataclass
 class CollisionCfg(SpecCfg):
   """Configuration to modify collision properties of geoms in the MuJoCo spec.
 
