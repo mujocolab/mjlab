@@ -123,7 +123,10 @@ def test_accelerometer_sensor(articulated_robot_xml, device):
 
   scene = Scene(scene_cfg, device)
   model = scene.compile()
-  sim_cfg = SimulationCfg(njmax=20)
+  # The robot falls and rests on the floor here, generating contact
+  # constraints; njmax must accommodate the resting nefc (~32), unlike the
+  # other tests which only step once before the robot lands.
+  sim_cfg = SimulationCfg(njmax=40)
   sim = Simulation(num_envs=2, cfg=sim_cfg, model=model, device=device)
   scene.initialize(sim.mj_model, sim.model, sim.data)
 
