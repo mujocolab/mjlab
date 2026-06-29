@@ -18,6 +18,12 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ``mdp.bad_orientation`` returning NaN when float32 rounding in
+  ``quat_apply_inverse`` pushed the projected-gravity z-component slightly
+  outside ``[-1, 1]``, making ``torch.acos`` return NaN and silently
+  suppressing the termination for flipped robots. The argument is now clamped
+  to ``[-1, 1]``.
+
 Version 1.5.0 (June 28, 2026)
 -----------------------------
 
