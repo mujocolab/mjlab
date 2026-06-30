@@ -11,9 +11,18 @@ Added
 Changed
 ^^^^^^^
 
+- The Viser reward bar panel's term cap is now configurable via
+  ``ViserTermOverlays.reward_bar_max_terms`` (forwarded to
+  ``RewardBarPanel(max_terms=...)``), so environments with more than 20 reward
+  terms can show them all. Defaults to 20, preserving previous behavior.
+
 Fixed
 ^^^^^
 
+- The Viser reward bar panel no longer *silently* drops reward terms beyond
+  ``max_terms``; it now emits a warning listing the hidden terms. Previously
+  environments with more than 20 reward terms had the overflow disappear from
+  the bar panel with no indication.
 - Fixed the ``terrain_levels_vel`` curriculum promoting every env from level 0
   to level 1 on the initial reset, ignoring ``max_init_terrain_level=0``. Before
   the first step the robot sits at its spawn pose rather than a walked-to
