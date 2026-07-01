@@ -68,6 +68,17 @@ _SOLVER_MAP = {
   "cg": mujoco.mjtSolver.mjSOL_CG,
   "pgs": mujoco.mjtSolver.mjSOL_PGS,
 }
+_BROADPHASE_MAP = {
+  "nxn": mjwarp.BroadphaseType.NXN,
+  "sap_tile": mjwarp.BroadphaseType.SAP_TILE,
+  "sap_segmented": mjwarp.BroadphaseType.SAP_SEGMENTED,
+}
+_BROADPHASE_FILTER_MAP: dict[str, mjwarp.BroadphaseFilter] = {
+  "plane": mjwarp.BroadphaseFilter.PLANE,
+  "sphere": mjwarp.BroadphaseFilter.SPHERE,
+  "aabb": mjwarp.BroadphaseFilter.AABB,
+  "obb": mjwarp.BroadphaseFilter.OBB,
+}
 
 # Maps short flag names to MuJoCo enum values.
 # Names match the XML <flag> attribute names (e.g. <flag contact="disable"/>).
@@ -113,6 +124,14 @@ class MujocoCfg:
   enableflags: tuple[str, ...] = ()
   """Enable flags to set (e.g. ``("energy",)`` to enable energy computation)."""
 
+  # Broadphase settings (MuJoCo Warp only; not part of mujoco.MjOption).
+  broadphase: Literal["nxn", "sap_tile", "sap_segmented"] | None = None
+  """Broadphase collision algorithm. If None, use the MuJoCo Warp default."""
+  broadphase_filter: tuple[Literal["plane", "sphere", "aabb", "obb"], ...] | None = None
+  """Bounding-volume filters applied during broadphase collision checking.
+
+  If None, use the MuJoCo Warp default."""
+
   def apply(self, model: mujoco.MjModel) -> None:
     """Apply configuration settings to a compiled MjModel."""
     model.opt.jacobian = _JACOBIAN_MAP[self.jacobian]
@@ -139,6 +158,19 @@ class MujocoCfg:
           f"Unknown enable flag {flag!r}. Valid flags: {sorted(_ENABLE_FLAG_MAP)}"
         )
       model.opt.enableflags |= _ENABLE_FLAG_MAP[flag]
+
+  def apply_warp(self, wp_opt: mjwarp.Option) -> None:
+    """Apply MuJoCo Warp-only settings to a warp Option (post ``put_model``).
+
+    Fields left as ``None`` retain whatever ``put_model`` already set, i.e.
+    the MuJoCo Warp default.
+    """
+    if self.broadphase is not None:
+      wp_opt.broadphase = _BROADPHASE_MAP[self.broadphase]
+    if self.broadphase_filter is not None:
+      wp_opt.broadphase_filter = mjwarp.BroadphaseFilter(0)
+      for name in self.broadphase_filter:
+        wp_opt.broadphase_filter |= _BROADPHASE_FILTER_MAP[name]
 
 
 @dataclass(kw_only=True)
@@ -240,6 +272,7 @@ class Simulation:
     with wp.ScopedDevice(self.wp_device):
       self._wp_model = mjwarp.put_model(self._mj_model)
       self._wp_model.opt.contact_sensor_maxmatch = self.cfg.contact_sensor_maxmatch
+      self.cfg.mujoco.apply_warp(self._wp_model.opt)
       self._finish_init()
 
   def _init_with_variants(
@@ -268,6 +301,7 @@ class Simulation:
 
       self._wp_model = result.wp_model
       self._wp_model.opt.contact_sensor_maxmatch = self.cfg.contact_sensor_maxmatch
+      self.cfg.mujoco.apply_warp(self._wp_model.opt)
 
       # Snapshot variant-dependent fields as per-world defaults so
       # DR scale/add operations use each variant's base values.

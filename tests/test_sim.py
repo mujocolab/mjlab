@@ -1,6 +1,7 @@
 """Tests for sim.py."""
 
 import mujoco
+import mujoco_warp as mjwarp
 import numpy as np
 import pytest
 import torch
@@ -56,6 +57,8 @@ def test_simulation_config_is_piped(robot_xml, device):
       ccd_iterations=20,
       gravity=(0, 0, 7.5),
       enableflags=("energy",),
+      broadphase="sap_tile",
+      broadphase_filter=("plane", "aabb"),
     ),
   )
 
@@ -85,6 +88,12 @@ def test_simulation_config_is_piped(robot_xml, device):
 
   # SimulationCfg should be applied to wp_model.
   assert sim.wp_model.opt.contact_sensor_maxmatch == cfg.contact_sensor_maxmatch
+
+  # Broadphase settings are warp-only, applied directly to wp_model.opt.
+  assert sim.wp_model.opt.broadphase == mjwarp.BroadphaseType.SAP_TILE
+  assert sim.wp_model.opt.broadphase_filter == (
+    mjwarp.BroadphaseFilter.PLANE | mjwarp.BroadphaseFilter.AABB
+  )
 
 
 def test_ls_parallel_is_deprecated():

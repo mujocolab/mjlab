@@ -11,6 +11,9 @@ Added
 - Added ``MeshCfg``, a spec editor that matches mesh assets by name and edits
   their asset-level attributes. The first attribute is ``maxhullvert``, which
   caps the collision convex hull's vertex count to lower narrowphase cost.
+- Added ``MujocoCfg.broadphase`` and ``MujocoCfg.broadphase_filter`` to
+  configure MuJoCo Warp's broadphase collision algorithm and bounding-volume
+  filters.
 
 Changed
 ^^^^^^^
