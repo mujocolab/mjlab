@@ -26,7 +26,6 @@ def dc_motor_clip(
   effort: torch.Tensor,
   saturation_effort: torch.Tensor,
   velocity_limit: torch.Tensor,
-  vel_at_effort_lim: torch.Tensor,
   force_limit: torch.Tensor,
   vel: torch.Tensor,
 ) -> torch.Tensor:
@@ -36,7 +35,13 @@ def dc_motor_clip(
   zero at velocity_limit, further bounded by the continuous force_limit. Shared
   by DcMotorActuator._clip_effort and the fused control law so the curve lives in
   one place.
+
+  The corner velocity where the curve intersects force_limit is recomputed from
+  force_limit every call rather than cached, since force_limit can be
+  domain-randomized after initialize() (e.g. via set_effort_limit); caching it
+  would silently go stale.
   """
+  vel_at_effort_lim = velocity_limit * (1 + force_limit / saturation_effort)
   vel_clipped = torch.clamp(vel, min=-vel_at_effort_lim, max=vel_at_effort_lim)
   torque_speed_top = saturation_effort * (1.0 - vel_clipped / velocity_limit)
   torque_speed_bottom = saturation_effort * (-1.0 - vel_clipped / velocity_limit)
@@ -116,7 +121,6 @@ class DcMotorActuator(IdealPdActuator[DcMotorCfgT], Generic[DcMotorCfgT]):
     *IdealPdActuator.param_names,
     "saturation_effort",
     "velocity_limit_motor",
-    "_vel_at_effort_lim",
   )
 
   @staticmethod
@@ -126,7 +130,6 @@ class DcMotorActuator(IdealPdActuator[DcMotorCfgT], Generic[DcMotorCfgT]):
       torque,
       params["saturation_effort"],
       params["velocity_limit_motor"],
-      params["_vel_at_effort_lim"],
       params["force_limit"],
       cmd.vel,
     )
@@ -141,7 +144,6 @@ class DcMotorActuator(IdealPdActuator[DcMotorCfgT], Generic[DcMotorCfgT]):
     super().__init__(cfg, entity, target_ids, target_names)
     self.saturation_effort: torch.Tensor | None = None
     self.velocity_limit_motor: torch.Tensor | None = None
-    self._vel_at_effort_lim: torch.Tensor | None = None
     self._joint_vel_clipped: torch.Tensor | None = None
 
   def initialize(
@@ -168,12 +170,6 @@ class DcMotorActuator(IdealPdActuator[DcMotorCfgT], Generic[DcMotorCfgT]):
       dtype=torch.float,
       device=device,
     )
-
-    # Compute corner velocity where torque-speed curve intersects effort_limit.
-    assert self.force_limit is not None
-    self._vel_at_effort_lim = self.velocity_limit_motor * (
-      1 + self.force_limit / self.saturation_effort
-    )
     self._joint_vel_clipped = torch.zeros(num_envs, num_joints, device=device)
 
   def _clip_effort(self, effort: torch.Tensor) -> torch.Tensor:
@@ -183,13 +179,11 @@ class DcMotorActuator(IdealPdActuator[DcMotorCfgT], Generic[DcMotorCfgT]):
     assert self.saturation_effort is not None
     assert self.velocity_limit_motor is not None
     assert self.force_limit is not None
-    assert self._vel_at_effort_lim is not None
     assert self._joint_vel_clipped is not None
     return dc_motor_clip(
       effort,
       self.saturation_effort,
       self.velocity_limit_motor,
-      self._vel_at_effort_lim,
       self.force_limit,
       self._joint_vel_clipped,
     )
