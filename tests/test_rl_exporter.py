@@ -41,6 +41,15 @@ def test_list_to_csv_str():
   result = list_to_csv_str([1.0, 2.0, 3.0], decimals=1, delimiter=";")
   assert result == "1.0;2.0;3.0"
 
+  # Test nested sequence entries (e.g. per-term clip ranges or vector scales):
+  # each entry is joined with the sub-delimiter so the outer delimiter stays
+  # unambiguous and round-trips via a plain split.
+  result = list_to_csv_str([[1.0, 2.0], 3.0, [4.0, 5.0]], decimals=1)
+  assert result == "1.0;2.0,3.0,4.0;5.0"
+  entries = result.split(",")
+  assert entries == ["1.0;2.0", "3.0", "4.0;5.0"]
+  assert entries[0].split(";") == ["1.0", "2.0"]
+
 
 def test_attach_metadata_to_onnx():
   """Test that metadata can be attached to ONNX models."""
@@ -95,6 +104,47 @@ def test_attach_metadata_to_onnx():
     # Check stiffness values are in natural joint order.
     stiffness_values = [float(x) for x in metadata_props["joint_stiffness"].split(",")]
     assert stiffness_values == [20.0, 10.0]  # Natural order: joint_a (20), joint_b (10)
+
+
+def test_attach_metadata_to_onnx_nested_clip_and_scale():
+  """Per-term clip ranges and vector scales must round-trip through a plain
+  comma split without corrupting neighboring entries."""
+  with tempfile.TemporaryDirectory() as tmpdir:
+    onnx_path = os.path.join(tmpdir, "test_policy.onnx")
+
+    input_tensor = onnx.helper.make_tensor_value_info(
+      "input", onnx.TensorProto.FLOAT, [1, 2]
+    )
+    output_tensor = onnx.helper.make_tensor_value_info(
+      "output", onnx.TensorProto.FLOAT, [1, 2]
+    )
+    node = onnx.helper.make_node("Identity", ["input"], ["output"])
+    graph = onnx.helper.make_graph(
+      [node], "test_graph", [input_tensor], [output_tensor]
+    )
+    model = onnx.helper.make_model(graph)
+    onnx.save(model, onnx_path)
+
+    metadata = {
+      "observation_terms_clip": [
+        [float("-inf"), float("inf")],
+        [-1.0, 1.0],
+        [float("-inf"), float("inf")],
+      ],
+      "observation_terms_scale": [1.0, [0.5, 1.2, 0.3], 2.0],
+    }
+    attach_metadata_to_onnx(onnx_path, metadata)
+
+    loaded_model = onnx.load(onnx_path)
+    metadata_props = {prop.key: prop.value for prop in loaded_model.metadata_props}
+
+    clip_entries = metadata_props["observation_terms_clip"].split(",")
+    assert clip_entries == ["-inf;inf", "-1.000;1.000", "-inf;inf"]
+    assert [float(x) for x in clip_entries[1].split(";")] == [-1.0, 1.0]
+
+    scale_entries = metadata_props["observation_terms_scale"].split(",")
+    assert scale_entries == ["1.000", "0.500;1.200;0.300", "2.000"]
+    assert [float(x) for x in scale_entries[1].split(";")] == [0.5, 1.2, 0.3]
 
 
 # Robot with 2 joints but only 1 actuator (underactuated).

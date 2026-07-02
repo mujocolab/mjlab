@@ -8,15 +8,27 @@ from mjlab.envs import ManagerBasedRlEnv
 from mjlab.envs.mdp.actions import JointPositionAction
 
 
-def list_to_csv_str(arr, *, decimals: int = 3, delimiter: str = ",") -> str:
-  """Convert list to CSV string with specified decimal precision."""
+def list_to_csv_str(
+  arr, *, decimals: int = 3, delimiter: str = ",", sub_delimiter: str = ";"
+) -> str:
+  """Convert list to CSV string with specified decimal precision.
+
+  Elements that are themselves sequences (e.g. a per-dimension scale or a
+  [min, max] clip range) are joined with `sub_delimiter` instead of being
+  `str()`-formatted, which would otherwise embed a second, ambiguous set of
+  commas inside the top-level comma-delimited string.
+  """
   fmt = f"{{:.{decimals}f}}"
-  return delimiter.join(
-    fmt.format(x)
-    if isinstance(x, (int, float))
-    else str(x)  # numbers → format, strings → as-is
-    for x in arr
-  )
+
+  def format_scalar(x) -> str:
+    return fmt.format(x) if isinstance(x, (int, float)) else str(x)
+
+  def format_entry(x) -> str:
+    if isinstance(x, (list, tuple)):
+      return sub_delimiter.join(format_scalar(v) for v in x)
+    return format_scalar(x)
+
+  return delimiter.join(format_entry(x) for x in arr)
 
 
 def get_base_metadata(
@@ -74,15 +86,6 @@ def get_base_metadata(
 
     observation_term_flatten_history_dim.append(cfg.flatten_history_dim)
     observation_term_history_length.append(cfg.history_length)
-
-  if (
-    len(observation_term_flatten_history_dim) != len(observation_term_history_length)
-    or len(observation_term_scale) != len(observation_term_history_length)
-    or len(observation_term_scale) != len(observation_names)
-  ):
-    raise ValueError(
-      "Length of observation term metadata lists must match number of active observation terms."
-    )
 
   return {
     "run_path": run_path,
