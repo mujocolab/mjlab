@@ -312,6 +312,38 @@ def _generate_random_values(
   return result
 
 
+# Categorical engine.
+
+
+def _randomize_categorical_field(
+  env: ManagerBasedRlEnv,
+  env_ids: torch.Tensor | None,
+  field: str,
+  *,
+  entity_type: str,
+  pool: torch.Tensor,
+  asset_cfg: SceneEntityCfg,
+  shared_random: bool = False,
+) -> None:
+  """Core engine for categorical fields: assign each entry a value from ``pool``."""
+  asset = env.scene[asset_cfg.name]
+
+  if env_ids is None:
+    env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
+  else:
+    env_ids = env_ids.to(env.device, dtype=torch.int)
+
+  entity_indices = _get_entity_indices(asset.indexing, asset_cfg, entity_type, False)
+  env_grid, entity_grid = torch.meshgrid(env_ids, entity_indices, indexing="ij")
+
+  sample_shape = (env_ids.numel(), 1) if shared_random else env_grid.shape
+  pick = torch.randint(0, int(pool.numel()), sample_shape, device=env.device)
+  pick = pick.expand(env_grid.shape)
+
+  model_field = getattr(env.sim.model, field)
+  model_field[env_grid, entity_grid] = pool[pick]
+
+
 # Quaternion helpers.
 
 

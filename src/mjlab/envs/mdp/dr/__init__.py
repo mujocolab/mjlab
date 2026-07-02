@@ -14,6 +14,7 @@ from ._types import uniform as uniform
 # Geom.
 # isort: split
 from .geom import geom_friction as geom_friction
+from .geom import geom_matid as geom_matid
 from .geom import geom_pos as geom_pos
 from .geom import geom_quat as geom_quat
 from .geom import geom_rgba as geom_rgba

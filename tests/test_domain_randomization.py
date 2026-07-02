@@ -1782,6 +1782,110 @@ def test_mat_rgba_invalid_name(mat_env):
     )
 
 
+# geom_matid DR tests.
+
+GEOM_MATID_XML = """
+<mujoco>
+  <asset>
+    <material name="mat_a" rgba="1 0 0 1"/>
+    <material name="mat_b" rgba="0 1 0 1"/>
+    <material name="mat_c" rgba="0 0 1 1"/>
+  </asset>
+  <worldbody>
+    <body name="base" pos="0 0 1">
+      <freejoint name="free_joint"/>
+      <geom name="geom1" type="box" size="0.1 0.1 0.1" mass="1.0" material="mat_a"/>
+      <geom name="geom2" type="sphere" size="0.05" mass="0.3" material="mat_b"/>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+
+def _make_matid_env(device, num_envs=NUM_ENVS):
+  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(GEOM_MATID_XML))
+  scene_cfg = SceneCfg(num_envs=num_envs, entities={"robot": entity_cfg})
+  scene = Scene(scene_cfg, device)
+  model = scene.compile()
+  sim = Simulation(num_envs=num_envs, cfg=SimulationCfg(), model=model, device=device)
+  scene.initialize(model, sim.model, sim.data)
+  sim.expand_model_fields(("geom_matid",))
+  return Env(scene, sim, device)
+
+
+@pytest.fixture(scope="module")
+def matid_env(device):
+  return _make_matid_env(device)
+
+
+def test_geom_matid_draws_from_pool(matid_env):
+  """Assigned matids come from the selected pool; diversity across envs."""
+  torch.manual_seed(42)
+  env = matid_env
+  robot = env.scene["robot"]
+  asset_cfg = SceneEntityCfg("robot", geom_names=(".*",), material_names=(".*",))
+  asset_cfg.resolve(env.scene)
+
+  dr.geom_matid(env, env_ids=None, asset_cfg=asset_cfg)
+
+  geom_ids = robot.indexing.geom_ids[asset_cfg.geom_ids]
+  mat_ids = robot.indexing.mat_ids[asset_cfg.material_ids]
+  assigned = env.sim.model.geom_matid[:, geom_ids]
+  assert torch.all(torch.isin(assigned, mat_ids))
+  assert len(torch.unique(assigned)) >= 2
+
+
+def test_geom_matid_partial_env_ids(matid_env):
+  """Randomizing subset of envs leaves others unchanged."""
+  torch.manual_seed(42)
+  env = matid_env
+  robot = env.scene["robot"]
+  asset_cfg = SceneEntityCfg("robot", geom_names=(".*",), material_names=(".*",))
+  asset_cfg.resolve(env.scene)
+  geom_ids = robot.indexing.geom_ids[asset_cfg.geom_ids]
+
+  original = env.sim.model.geom_matid[:, geom_ids].clone()
+
+  dr.geom_matid(
+    env, env_ids=torch.tensor([0, 2], device=env.device), asset_cfg=asset_cfg
+  )
+
+  result = env.sim.model.geom_matid[:, geom_ids]
+  assert torch.all(result[1] == original[1])
+  assert torch.all(result[3] == original[3])
+
+
+def test_geom_matid_invalid_material_name(matid_env):
+  """ValueError for unknown material name."""
+  env = matid_env
+
+  with pytest.raises(ValueError, match="nonexistent_material"):
+    cfg = SceneEntityCfg(
+      "robot", geom_names=(".*",), material_names=("nonexistent_material",)
+    )
+    cfg.resolve(env.scene)
+    dr.geom_matid(env, env_ids=None, asset_cfg=cfg)
+
+
+def test_geom_matid_shared_random(matid_env):
+  """All geoms within same env get same material, envs differ."""
+  torch.manual_seed(42)
+  env = matid_env
+  robot = env.scene["robot"]
+  asset_cfg = SceneEntityCfg("robot", geom_names=(".*",), material_names=(".*",))
+  asset_cfg.resolve(env.scene)
+  geom_ids = robot.indexing.geom_ids[asset_cfg.geom_ids]
+
+  dr.geom_matid(env, env_ids=None, asset_cfg=asset_cfg, shared_random=True)
+
+  assigned = env.sim.model.geom_matid[:, geom_ids]
+  for env_idx in range(env.num_envs):
+    env_matids = assigned[env_idx]
+    assert torch.all(env_matids == env_matids[0])
+
+  assert len(torch.unique(assigned[:, 0])) > 1
+
+
 # pair_friction tests.
 
 PAIR_XML = """

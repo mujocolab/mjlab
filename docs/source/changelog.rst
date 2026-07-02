@@ -186,6 +186,8 @@ Added
   prefixed and scattered via ``geom_matid`` alongside the existing
   ``geom_dataid`` table. Variants without a material get ``matid = -1``.
   Contribution by @omarrayyann.
+- Added ``dr.geom_matid`` to randomize which baked material each geom uses
+  per environment, sampling uniformly from ``asset_cfg.material_names``.
 
 Changed
 ^^^^^^^
