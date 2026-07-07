@@ -18,6 +18,7 @@ Added
 Changed
 ^^^^^^^
 
+- Enabled skybox rendering for camera sensors.
 - Command delay on fusable actuators (ideal PD, DC motor) now applies one shared
   lag per environment across all fused actuators sharing a delay config, matching
   the built-in actuator path, rather than an independent lag per actuator group
