@@ -823,8 +823,8 @@ per-environment values.
      - Notes
    * - Texture-role swapping
      - ``mat_texid``
-     - Not implemented for now because mujoco's viewer doesn't reread 
-       ``mat_texid`` after context creation; use ``geom_matid`` with one baked 
+     - Not implemented for now because mujoco's viewer doesn't reread
+       ``mat_texid`` after context creation; use ``geom_matid`` with one baked
        material per texture to randomize textures instead.
    * - Mesh
      - ``mesh_vert``, ``mesh_normal``, ``mesh_face``, etc.
