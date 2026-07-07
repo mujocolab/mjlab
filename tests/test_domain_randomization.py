@@ -1819,20 +1819,27 @@ def matid_env(device):
 
 
 def test_geom_matid_draws_from_pool(matid_env):
-  """Assigned matids come from the selected pool; diversity across envs."""
+  """Assigned matids come from the pool and actually change from the defaults."""
   torch.manual_seed(42)
   env = matid_env
   robot = env.scene["robot"]
   asset_cfg = SceneEntityCfg("robot", geom_names=(".*",), material_names=(".*",))
   asset_cfg.resolve(env.scene)
 
-  dr.geom_matid(env, env_ids=None, asset_cfg=asset_cfg)
-
   geom_ids = robot.indexing.geom_ids[asset_cfg.geom_ids]
   mat_ids = robot.indexing.mat_ids[asset_cfg.material_ids]
+  original = env.sim.model.geom_matid[:, geom_ids].clone()
+
+  dr.geom_matid(env, env_ids=None, asset_cfg=asset_cfg)
+
   assigned = env.sim.model.geom_matid[:, geom_ids]
+  # Every assignment is a valid member of the selected pool.
   assert torch.all(torch.isin(assigned, mat_ids))
-  assert len(torch.unique(assigned)) >= 2
+  # Randomization is not a no-op: values differ from the baked defaults, and at
+  # least one geom draws a material it did not start with (proving the full pool
+  # is sampled, not just the compile-time defaults).
+  assert not torch.equal(assigned, original)
+  assert torch.isin(assigned, torch.unique(original), invert=True).any()
 
 
 def test_geom_matid_partial_env_ids(matid_env):
@@ -1856,7 +1863,7 @@ def test_geom_matid_partial_env_ids(matid_env):
 
 
 def test_geom_matid_invalid_material_name(matid_env):
-  """ValueError for unknown material name."""
+  """Unknown material name is rejected during config resolution."""
   env = matid_env
 
   with pytest.raises(ValueError, match="nonexistent_material"):
@@ -1864,6 +1871,16 @@ def test_geom_matid_invalid_material_name(matid_env):
       "robot", geom_names=(".*",), material_names=("nonexistent_material",)
     )
     cfg.resolve(env.scene)
+    dr.geom_matid(env, env_ids=None, asset_cfg=cfg)
+
+
+def test_geom_matid_empty_material_selection(matid_env):
+  """geom_matid raises when the resolved material pool is empty."""
+  env = matid_env
+  cfg = SceneEntityCfg("robot", geom_names=(".*",), material_names=())
+  cfg.resolve(env.scene)
+
+  with pytest.raises(ValueError, match="No materials selected"):
     dr.geom_matid(env, env_ids=None, asset_cfg=cfg)
 
 
