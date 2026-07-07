@@ -821,9 +821,11 @@ per-environment values.
    * - Category
      - Field(s)
      - Notes
-   * - Texture ID swapping
+   * - Texture-role swapping
      - ``mat_texid``
-     - Integer IDs that need a swapping API, not continuous sampling.
+     - Not implemented for now because mujoco's viewer doesn't reread 
+       ``mat_taxid`` after context creation; use ``geom_matid`` with one baked 
+       material per texture to randomize textures instead.
    * - Mesh
      - ``mesh_vert``, ``mesh_normal``, ``mesh_face``, etc.
      - Shape variation for manipulation objects. These fields
