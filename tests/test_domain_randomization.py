@@ -1942,6 +1942,7 @@ def texid_env(device):
 
 
 def test_mat_texid_draws_from_pool(texid_env):
+  """Assigned texids come from the pool and actually change from the defaults."""
   torch.manual_seed(42)
   env = texid_env
   robot = env.scene["robot"]
@@ -1962,6 +1963,7 @@ def test_mat_texid_draws_from_pool(texid_env):
 
 
 def test_mat_texid_partial_env_ids(texid_env):
+  """Randomizing subset of envs leaves others unchanged."""
   torch.manual_seed(42)
   env = texid_env
   robot = env.scene["robot"]
@@ -1982,6 +1984,7 @@ def test_mat_texid_partial_env_ids(texid_env):
 
 
 def test_mat_texid_invalid_texture_name(texid_env):
+  """Unknown texture name is rejected during config resolution."""
   env = texid_env
 
   with pytest.raises(ValueError, match="nonexistent_texture"):
@@ -1993,6 +1996,7 @@ def test_mat_texid_invalid_texture_name(texid_env):
 
 
 def test_mat_texid_empty_texture_selection(texid_env):
+  """mat_texid raises when the resolved texture pool is empty."""
   env = texid_env
   cfg = SceneEntityCfg("robot", material_names=(".*",), texture_names=())
   cfg.resolve(env.scene)
@@ -2002,6 +2006,7 @@ def test_mat_texid_empty_texture_selection(texid_env):
 
 
 def test_mat_texid_shared_random(texid_env):
+  """All materials within same env get same texture, envs differ."""
   torch.manual_seed(42)
   env = texid_env
   robot = env.scene["robot"]
