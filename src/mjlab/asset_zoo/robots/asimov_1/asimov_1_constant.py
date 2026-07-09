@@ -118,7 +118,7 @@ A4310_SINGLE = _MotorSpec(
   frictionloss=0.40,
 )
 
-# Leg gains come from the tuned legs-only config. Waist and arm gains are the
+
 # current full-body values used with this MJCF.
 HIP_PITCH_GAINS = _PdGains(150.0, 5.0)
 HIP_ROLL_GAINS = _PdGains(150.0, 5.0)

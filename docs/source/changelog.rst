@@ -27,6 +27,10 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed Asimov-1 velocity task registration crashing during import because its
+  config tried to inject ``asset_cfg.site_names`` into ``foot_swing_height``,
+  even though that reward uses the foot height sensor directly and has no
+  ``asset_cfg`` parameter.
 - Fixed ``mdp.bad_orientation`` returning NaN when float32 rounding in
   ``quat_apply_inverse`` pushed the projected-gravity z-component slightly
   outside ``[-1, 1]``, making ``torch.acos`` return NaN and silently

@@ -197,3 +197,19 @@ def test_go1_velocity_has_correct_action_scale(
     assert joint_pos_action.scale == GO1_ACTION_SCALE, (
       f"Task {task_id} action scale mismatch, expected GO1_ACTION_SCALE"
     )
+
+
+def test_asimov_velocity_foot_rewards_use_expected_site_config() -> None:
+  """Asimov foot rewards should only attach site config where it is supported."""
+  cfg = load_env_cfg("Mjlab-Velocity-Flat-Asimov-1")
+
+  for reward_name in ("foot_clearance", "foot_slip"):
+    assert cfg.rewards[reward_name].params["asset_cfg"].site_names == (
+      "left_foot",
+      "right_foot",
+    ), f"Task reward {reward_name} should target both foot sites"
+
+  assert "asset_cfg" not in cfg.rewards["foot_swing_height"].params, (
+    "foot_swing_height should use the foot height sensor directly rather than "
+    "expecting a site asset_cfg"
+  )
