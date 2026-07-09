@@ -177,6 +177,13 @@ class JointPositionActionCfg(BaseActionCfg):
   """Configuration for joint position control."""
 
   use_default_offset: bool = True
+  lpf_cutoff_freq: float | None = None
+  """Optional low-pass cutoff frequency placeholder for downstream configs.
+
+  The current mjlab joint-position action applies scale/offset directly and
+  does not yet implement action-side filtering. This field exists so task
+  configs can express the intended setting without relying on ad-hoc attrs.
+  """
 
   def __post_init__(self):
     self.transmission_type = TransmissionType.JOINT

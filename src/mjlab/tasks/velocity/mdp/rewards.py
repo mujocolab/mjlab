@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -179,6 +180,32 @@ def self_collision_cost(
     return hit.sum(dim=-1).float()  # [B]
   assert data.found is not None
   return data.found.sum(dim=-1).float()
+
+
+def feet_stumble(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  ratio_threshold: float,
+) -> torch.Tensor:
+  """Penalize contacts with excessive lateral force relative to support force."""
+  sensor: ContactSensor = env.scene[sensor_name]
+  assert sensor.data.force is not None
+  force = sensor.data.force
+  horizontal = torch.norm(force[..., :2], dim=-1)
+  vertical = torch.abs(force[..., 2]).clamp(min=1e-6)
+  return (horizontal > ratio_threshold * vertical).any(dim=1).float()
+
+
+def feet_contact_force_limit(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  max_force: float,
+) -> torch.Tensor:
+  """Penalize contact forces above a configured threshold."""
+  sensor: ContactSensor = env.scene[sensor_name]
+  assert sensor.data.force is not None
+  force_mag = torch.norm(sensor.data.force, dim=-1)
+  return torch.clamp(force_mag - max_force, min=0.0).sum(dim=1)
 
 
 def body_angular_velocity_penalty(
@@ -380,6 +407,108 @@ def soft_landing(
       active = (total_command > command_threshold).float()
       cost = cost * active
   return cost
+
+
+def _forward_walk_mask(
+  command: torch.Tensor,
+  command_threshold: float,
+  forward_only: bool,
+  lateral_yaw_tol: float,
+) -> torch.Tensor:
+  linear_norm = torch.norm(command[:, :2], dim=1)
+  angular_norm = torch.abs(command[:, 2])
+  total_command = linear_norm + angular_norm
+  active = total_command > command_threshold
+  if not forward_only:
+    return active
+  return (
+    active
+    & (command[:, 0] > command_threshold)
+    & (torch.abs(command[:, 1]) <= lateral_yaw_tol)
+    & (torch.abs(command[:, 2]) <= lateral_yaw_tol)
+  )
+
+
+class imitation_reward:
+  """Track a phase-indexed reference gait loaded from CSV."""
+
+  def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
+    asset: Entity = env.scene[cfg.params["asset_cfg"].name]
+    _, joint_names = asset.find_joints(cfg.params["asset_cfg"].joint_names)
+
+    csv_path = cfg.params["csv_path"]
+    with open(csv_path, newline="") as f:
+      reader = csv.reader(f)
+      header = next(reader)
+    name_to_index = {name: i for i, name in enumerate(header)}
+    indices = [name_to_index[name] for name in joint_names]
+
+    ref = np.loadtxt(csv_path, delimiter=",", skiprows=1, dtype=np.float32)
+    if ref.ndim == 1:
+      ref = ref[None, :]
+    self.reference = torch.tensor(ref[:, indices], device=env.device)
+
+  def __call__(
+    self,
+    env: ManagerBasedRlEnv,
+    csv_path,
+    command_name: str,
+    asset_cfg: SceneEntityCfg,
+    scale: float,
+    command_threshold: float,
+    forward_only: bool = False,
+    lateral_yaw_tol: float = 0.2,
+  ) -> torch.Tensor:
+    del csv_path  # Loaded once in __init__.
+
+    asset: Entity = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    assert command is not None
+    phase_clock = env.command_manager.get_term(command_name)
+    freq_base = getattr(phase_clock.cfg, "gait_freq_base", 0.5)
+    freq_speed_scale = getattr(phase_clock.cfg, "gait_freq_speed_scale", 0.0)
+    speed = torch.norm(command[:, :2], dim=1)
+    freq = freq_base + freq_speed_scale * speed
+    phase = torch.remainder(env.episode_length_buf.float() * env.step_dt * freq, 1.0)
+    ref_idx = torch.floor(phase * self.reference.shape[0]).long()
+    ref_idx = torch.clamp(ref_idx, max=self.reference.shape[0] - 1)
+
+    target = self.reference[ref_idx]
+    current = asset.data.joint_pos[:, asset_cfg.joint_ids]
+    err_sq = torch.mean(torch.square(current - target), dim=1)
+    reward = torch.exp(-scale * err_sq)
+
+    active = _forward_walk_mask(
+      command, command_threshold, forward_only, lateral_yaw_tol
+    ).float()
+    return reward * active
+
+
+def knee_swing_reward(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  command_name: str,
+  command_threshold: float,
+  target_flexion: float,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+  forward_only: bool = False,
+  lateral_yaw_tol: float = 0.2,
+) -> torch.Tensor:
+  """Reward knee flexion during swing, capped at target_flexion."""
+  asset: Entity = env.scene[asset_cfg.name]
+  sensor: ContactSensor = env.scene[sensor_name]
+  command = env.command_manager.get_command(command_name)
+  assert command is not None
+  assert sensor.data.found is not None
+
+  airborne = (sensor.data.found == 0).float()
+  knee_pos = torch.abs(asset.data.joint_pos[:, asset_cfg.joint_ids])
+  knee_reward = torch.clamp(knee_pos / target_flexion, max=1.0) * airborne
+
+  active = _forward_walk_mask(
+    command, command_threshold, forward_only, lateral_yaw_tol
+  ).float()
+  return knee_reward.sum(dim=1) * active
 
 
 class variable_posture:

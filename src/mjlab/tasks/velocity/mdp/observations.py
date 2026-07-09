@@ -45,3 +45,23 @@ def foot_contact_forces(env: ManagerBasedRlEnv, sensor_name: str) -> torch.Tenso
   assert sensor_data.force is not None
   forces_flat = sensor_data.force.flatten(start_dim=1)  # [B, N*3]
   return torch.sign(forces_flat) * torch.log1p(torch.abs(forces_flat))
+
+
+def projected_gravity_imu(env: ManagerBasedRlEnv, sensor_name: str) -> torch.Tensor:
+  """Projected gravity using an IMU up-vector sensor."""
+  sensor = env.scene[sensor_name]
+  return -sensor.data
+
+
+def gait_clock(env: ManagerBasedRlEnv, command_name: str) -> torch.Tensor:
+  """Return [cos(2*pi*phase), sin(2*pi*phase)] for velocity gait conditioning."""
+  command = env.command_manager.get_command(command_name)
+  assert command is not None
+  command_term = env.command_manager.get_term(command_name)
+  freq_base = getattr(command_term.cfg, "gait_freq_base", 0.5)
+  freq_speed_scale = getattr(command_term.cfg, "gait_freq_speed_scale", 0.0)
+  speed = torch.norm(command[:, :2], dim=1)
+  freq = freq_base + freq_speed_scale * speed
+  phase = torch.remainder(env.episode_length_buf.float() * env.step_dt * freq, 1.0)
+  angle = phase * (2.0 * torch.pi)
+  return torch.stack((torch.cos(angle), torch.sin(angle)), dim=1)

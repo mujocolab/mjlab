@@ -293,6 +293,10 @@ class UniformVelocityCommandCfg(CommandTermCfg):
   lin_vel_x, zero lin_vel_y and ang_vel_z). Increases training coverage for
   straight-line walking, which is important for stair climbing."""
   init_velocity_prob: float = 0.0
+  gait_freq_base: float = 0.5
+  """Base gait frequency in Hz used by gait-phase-conditioned observations/rewards."""
+  gait_freq_speed_scale: float = 0.0
+  """Additional gait frequency per m/s of commanded planar speed."""
 
   @dataclass
   class Ranges:
