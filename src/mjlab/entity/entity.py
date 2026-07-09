@@ -39,6 +39,7 @@ class EntityIndexing:
   cameras: tuple[mujoco.MjsCamera, ...]
   lights: tuple[mujoco.MjsLight, ...]
   materials: tuple[mujoco.MjsMaterial, ...]
+  textures: tuple[mujoco.MjsTexture, ...]
   pairs: tuple[mujoco.MjsPair, ...]
   actuators: tuple[mujoco.MjsActuator, ...] | None
 
@@ -50,6 +51,7 @@ class EntityIndexing:
   cam_ids: torch.Tensor
   light_ids: torch.Tensor
   mat_ids: torch.Tensor
+  tex_ids: torch.Tensor
   pair_ids: torch.Tensor
   ctrl_ids: torch.Tensor
   joint_ids: torch.Tensor
@@ -454,6 +456,10 @@ class Entity:
     return tuple(m.name.split("/")[-1] for m in self.spec.materials)
 
   @property
+  def texture_names(self) -> tuple[str, ...]:
+    return tuple(t.name.split("/")[-1] for t in self.spec.textures)
+
+  @property
   def pair_names(self) -> tuple[str, ...]:
     return tuple(p.name.split("/")[-1] for p in self.spec.pairs)
 
@@ -494,6 +500,10 @@ class Entity:
   @property
   def num_materials(self) -> int:
     return len(self.material_names)
+
+  @property
+  def num_textures(self) -> int:
+    return len(self.texture_names)
 
   @property
   def num_pairs(self) -> int:
@@ -607,6 +617,16 @@ class Entity:
     if material_subset is None:
       material_subset = self.material_names
     return resolve_matching_names(name_keys, material_subset, preserve_order)
+
+  def find_textures(
+    self,
+    name_keys: str | Sequence[str],
+    texture_subset: Sequence[str] | None = None,
+    preserve_order: bool = False,
+  ) -> tuple[list[int], list[str]]:
+    if texture_subset is None:
+      texture_subset = self.texture_names
+    return resolve_matching_names(name_keys, texture_subset, preserve_order)
 
   def find_pairs(
     self,
@@ -1193,6 +1213,7 @@ class Entity:
     cameras = tuple(self.spec.cameras)
     lights = tuple(self.spec.lights)
     materials = tuple(self.spec.materials)
+    textures = tuple(self.spec.textures)
     pairs = tuple(self.spec.pairs)
 
     body_ids = torch.tensor([b.id for b in bodies], dtype=torch.int, device=device)
@@ -1202,6 +1223,7 @@ class Entity:
     cam_ids = torch.tensor([c.id for c in cameras], dtype=torch.int, device=device)
     light_ids = torch.tensor([lt.id for lt in lights], dtype=torch.int, device=device)
     mat_ids = torch.tensor([m.id for m in materials], dtype=torch.int, device=device)
+    tex_ids = torch.tensor([t.id for t in textures], dtype=torch.int, device=device)
     pair_ids = torch.tensor([p.id for p in pairs], dtype=torch.int, device=device)
     joint_ids = torch.tensor([j.id for j in joints], dtype=torch.int, device=device)
 
@@ -1246,6 +1268,7 @@ class Entity:
       cameras=cameras,
       lights=lights,
       materials=materials,
+      textures=textures,
       pairs=pairs,
       actuators=actuators,
       body_ids=body_ids,
@@ -1255,6 +1278,7 @@ class Entity:
       cam_ids=cam_ids,
       light_ids=light_ids,
       mat_ids=mat_ids,
+      tex_ids=tex_ids,
       pair_ids=pair_ids,
       ctrl_ids=ctrl_ids,
       joint_ids=joint_ids,

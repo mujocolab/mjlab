@@ -47,6 +47,13 @@ _FIELD_CONFIGS = [
     "num_materials",
     "material",
   ),
+  _FieldConfig(
+    "texture_names",
+    "texture_ids",
+    "find_textures",
+    "num_textures",
+    "texture",
+  ),
   _FieldConfig("pair_names", "pair_ids", "find_pairs", "num_pairs", "pair"),
 ]
 
@@ -116,6 +123,10 @@ class SceneEntityCfg:
 
   material_ids: list[int] | slice = field(default_factory=lambda: slice(None))
   """IDs of materials to include. Can be a list or slice."""
+
+  texture_names: str | tuple[str, ...] | None = None
+
+  texture_ids: list[int] | slice = field(default_factory=lambda: slice(None))
 
   pair_names: str | tuple[str, ...] | None = None
   """Names of contact pairs to include. Can be a single string or tuple."""

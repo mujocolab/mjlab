@@ -189,6 +189,9 @@ Added
   Contribution by @omarrayyann.
 - Added ``dr.geom_matid`` to randomize which baked material each geom uses
   per environment, sampling uniformly from ``asset_cfg.material_names``.
+- Added ``dr.mat_texid`` to randomize which texture fills a given
+  ``mjtTextureRole`` slot (RGB by default) of each selected material,
+  sampling uniformly from ``asset_cfg.texture_names``.
 
 Changed
 ^^^^^^^
