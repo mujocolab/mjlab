@@ -247,6 +247,9 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ``TerrainGenerator`` overwriting custom geom names set by sub-terrain
+  functions with the default ``terrain_{i}`` name. Only unnamed geoms are now
+  auto-named.
 - Removed use of deprecated ``warp-lang`` symbols (``wp.context.runtime``
   and ``wp.context.Device``) that were dropped in newer ``warp-lang``
   releases, causing ``AttributeError: module 'warp' has no attribute

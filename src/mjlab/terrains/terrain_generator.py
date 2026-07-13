@@ -202,7 +202,8 @@ class TerrainGenerator:
 
     counter = 0
     for geom in body.geoms:
-      geom.name = f"terrain_{counter}"
+      if not geom.name:
+        geom.name = f"terrain_{counter}"
       # Terrain is static (no joints), so body mass is physically meaningless.
       # Without this, the thousands of dense geoms give the terrain body millions of kg
       # of mass, which inflates stat.meanmass and makes MuJoCo's force arrow
