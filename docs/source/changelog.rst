@@ -27,6 +27,10 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ``TorchArray`` not expanding world-shared model fields to ``nworld``
+  with mujoco_warp 3.10.0.2, which allocates them as real size-1 arrays
+  instead of stride-0 broadcast views. Multi-env indexing of fields like
+  ``soft_joint_pos_limits`` raised ``IndexError`` during resets.
 - Fixed ``mdp.bad_orientation`` returning NaN when float32 rounding in
   ``quat_apply_inverse`` pushed the projected-gravity z-component slightly
   outside ``[-1, 1]``, making ``torch.acos`` return NaN and silently

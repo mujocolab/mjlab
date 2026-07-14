@@ -46,6 +46,23 @@ def test_torch_array_ops_work(device):
   assert torch.sum(torch_arr).item() == 3.0  # type: ignore
 
 
+def test_torch_array_expands_batched_singleton_world_dim(device):
+  """Size-1 world dim expands to nworld when mjwarp marks the array batched."""
+  with wp.ScopedDevice(device):
+    wp_arr = wp.array([[1.0, 2.0]], dtype=wp.float32)
+  setattr(wp_arr, "_is_batched", True)  # noqa: B010
+  torch_arr = TorchArray(wp_arr, nworld=4)
+  assert torch_arr.shape == (4, 2)
+
+
+def test_torch_array_keeps_unbatched_singleton_dim(device):
+  """A real size-1 leading dim without the batched marker is not expanded."""
+  with wp.ScopedDevice(device):
+    wp_arr = wp.array([[1.0, 2.0]], dtype=wp.float32)
+  torch_arr = TorchArray(wp_arr, nworld=4)
+  assert torch_arr.shape == (1, 2)
+
+
 def test_bridge_wraps_arrays(mock_data):
   """WarpBridge wraps warp arrays as TorchArray."""
   bridge = WarpBridge(mock_data)
