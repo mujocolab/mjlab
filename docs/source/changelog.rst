@@ -14,6 +14,10 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed CUDA illegal memory accesses when domain randomization triggers
+  ``set_const`` with multiple environments. ``actuator_acc0`` is now expanded
+  per environment before MuJoCo Warp recomputes it.
+
 Version 1.5.1 (July 15, 2026)
 -----------------------------
 

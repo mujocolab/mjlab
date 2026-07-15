@@ -42,8 +42,8 @@ class RecomputeLevel(enum.IntEnum):
 
   set_const_0 = 2
   """Recompute ``dof_invweight0``, ``body_invweight0``, ``tendon_length0``,
-  ``tendon_invweight0``. Use after modifying ``dof_armature``, ``body_inertia``,
-  ``body_pos``, ``body_quat``, or ``qpos0``."""
+  ``tendon_invweight0``, and ``actuator_acc0``. Use after modifying
+  ``dof_armature``, ``body_inertia``, ``body_pos``, ``body_quat``, or ``qpos0``."""
 
   set_const = 3
   """Full recomputation (superset of all lower levels). Use after modifying
@@ -58,6 +58,7 @@ _DERIVED_FIELDS: dict[RecomputeLevel, tuple[str, ...]] = {
     "body_invweight0",
     "tendon_length0",
     "tendon_invweight0",
+    "actuator_acc0",
   ),
 }
 _DERIVED_FIELDS[RecomputeLevel.set_const] = (
