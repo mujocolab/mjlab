@@ -1248,7 +1248,8 @@ The three recomputation levels, from cheapest to most expensive:
      - After changing ``body_gravcomp``
    * - ``set_const_0``
      - ``dof_invweight0``, ``body_invweight0``, ``tendon_length0``,
-       ``tendon_invweight0``, plus camera and light references
+       ``tendon_invweight0``, ``actuator_acc0``, plus camera and light
+       references
      - After changing ``dof_armature``, ``tendon_armature``,
        ``body_inertia``, ``body_pos``, ``body_quat``, or ``qpos0``
    * - ``set_const``
