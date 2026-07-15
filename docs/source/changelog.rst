@@ -8,6 +8,18 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+Changed
+^^^^^^^
+
+Fixed
+^^^^^
+
+Version 1.5.1 (July 15, 2026)
+-----------------------------
+
+Added
+^^^^^
+
 - Added ``MeshCfg``, a spec editor that matches mesh assets by name and edits
   their asset-level attributes. The first attribute is ``maxhullvert``, which
   caps the collision convex hull's vertex count to lower narrowphase cost.
@@ -19,6 +31,9 @@ Changed
 ^^^^^^^
 
 - Enabled skybox rendering for camera sensors.
+- Bumped the minimum ``mujoco-warp`` to 3.10.0.2, which fixes ``qfrc_constraint``
+  being populated incorrectly across vectorized environments (:issue:`1086`).
+  Earlier 3.10.0.x releases are no longer supported.
 - Command delay on fusable actuators (ideal PD, DC motor) now applies one shared
   lag per environment across all fused actuators sharing a delay config, matching
   the built-in actuator path, rather than an independent lag per actuator group
@@ -27,10 +42,13 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ``TerrainGenerator`` overwriting custom geom names set by sub-terrain
+  functions with the default ``terrain_{i}`` name. Only unnamed geoms are now
+  auto-named.
 - Fixed ``TorchArray`` not expanding world-shared model fields to ``nworld``
   with mujoco_warp 3.10.0.2, which allocates them as real size-1 arrays
   instead of stride-0 broadcast views. Multi-env indexing of fields like
-  ``soft_joint_pos_limits`` raised ``IndexError`` during resets.
+  ``soft_joint_pos_limits`` raised ``IndexError`` during resets (:issue:`1093`).
 - Fixed ``mdp.bad_orientation`` returning NaN when float32 rounding in
   ``quat_apply_inverse`` pushed the projected-gravity z-component slightly
   outside ``[-1, 1]``, making ``torch.acos`` return NaN and silently
@@ -251,9 +269,6 @@ Changed
 Fixed
 ^^^^^
 
-- Fixed ``TerrainGenerator`` overwriting custom geom names set by sub-terrain
-  functions with the default ``terrain_{i}`` name. Only unnamed geoms are now
-  auto-named.
 - Removed use of deprecated ``warp-lang`` symbols (``wp.context.runtime``
   and ``wp.context.Device``) that were dropped in newer ``warp-lang``
   releases, causing ``AttributeError: module 'warp' has no attribute

@@ -1,6 +1,4 @@
 <mujoco model="cartpole">
-  <option timestep="0.01"/>
-
   <default>
     <default class="pole">
       <joint type="hinge" axis="0 1 0" damping="2e-6"/>

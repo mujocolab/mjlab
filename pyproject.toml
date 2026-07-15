@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "mjlab"
-version = "1.5.0"
+version = "1.5.1"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -37,7 +37,7 @@ dependencies = [
   "torch>=2.7.0",
   "torchrunx>=0.3.4",
   "warp-lang>=1.14.0",
-  "mujoco-warp>=3.10.0.1,~=3.10.0",
+  "mujoco-warp>=3.10.0.2,~=3.10.0",
   "mujoco~=3.10.0",
   "trimesh>=4.8.3",
   "scipy>=1.15",
