@@ -137,6 +137,7 @@ class MaterialCfg(SpecCfg):
       rgba=self.rgba,
       texuniform=self.texuniform,
       texrepeat=self.texrepeat,
+      reflectance=self.reflectance,
     )
     if self.texture is not None:
       mat.textures[mujoco.mjtTextureRole.mjTEXROLE_RGB.value] = self.texture

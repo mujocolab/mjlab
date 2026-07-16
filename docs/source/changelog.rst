@@ -17,6 +17,8 @@ Fixed
 - Fixed CUDA illegal memory accesses when domain randomization triggers
   ``set_const`` with multiple environments. ``actuator_acc0`` is now expanded
   per environment before MuJoCo Warp recomputes it.
+- Fixed ``MaterialCfg.reflectance`` being ignored when building the MuJoCo
+  spec. Contribution by @bd-pmorais.
 
 Version 1.5.1 (July 15, 2026)
 -----------------------------
@@ -34,7 +36,7 @@ Added
 Changed
 ^^^^^^^
 
-- Enabled skybox rendering for camera sensors.
+- Enabled skybox rendering for camera sensors. Contribution by @bd-pmorais.
 - Bumped the minimum ``mujoco-warp`` to 3.10.0.2, which fixes ``qfrc_constraint``
   being populated incorrectly across vectorized environments (:issue:`1086`).
   Earlier 3.10.0.x releases are no longer supported.
@@ -215,6 +217,7 @@ Added
   Contribution by @omarrayyann.
 - Added ``dr.geom_matid`` to randomize which baked material each geom uses
   per environment, sampling uniformly from ``asset_cfg.material_names``.
+  Contribution by @bd-pmorais.
 
 Changed
 ^^^^^^^
