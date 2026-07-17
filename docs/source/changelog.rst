@@ -14,6 +14,11 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ``ContactSensor`` air-time tracking accumulating float32 sim-clock
+  differences, whose quantization error grows with the clock magnitude and made
+  ``compute_first_contact`` / ``compute_first_air`` miss touchdowns on long runs.
+  The exact float64 substep ``dt`` is now accumulated instead. :issue:`1101`
+
 Version 1.5.2 (July 17, 2026)
 -----------------------------
 

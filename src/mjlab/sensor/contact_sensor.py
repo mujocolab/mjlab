@@ -179,7 +179,6 @@ class _AirTimeState:
   last_air_time: torch.Tensor
   current_contact_time: torch.Tensor
   last_contact_time: torch.Tensor
-  last_time: torch.Tensor
 
 
 @dataclass
@@ -315,7 +314,6 @@ class ContactSensor(Sensor[ContactData]):
         last_air_time=torch.zeros((n_envs, n_primary), device=device),
         current_contact_time=torch.zeros((n_envs, n_primary), device=device),
         last_contact_time=torch.zeros((n_envs, n_primary), device=device),
-        last_time=torch.zeros((n_envs,), device=device),
       )
 
     if self.cfg.history_length > 0:
@@ -360,8 +358,6 @@ class ContactSensor(Sensor[ContactData]):
       self._air_time_state.last_air_time[env_ids] = 0.0
       self._air_time_state.current_contact_time[env_ids] = 0.0
       self._air_time_state.last_contact_time[env_ids] = 0.0
-      if self._data is not None:
-        self._air_time_state.last_time[env_ids] = self._data.time[env_ids]
 
     # Reset history state for specified envs.
     if self._history_state is not None:
@@ -371,7 +367,7 @@ class ContactSensor(Sensor[ContactData]):
   def update(self, dt: float) -> None:
     super().update(dt)
     if self._air_time_state is not None:
-      self._update_air_time_tracking()
+      self._update_air_time_tracking(dt)
     if self._history_state is not None:
       self._update_history()
 
@@ -442,17 +438,18 @@ class ContactSensor(Sensor[ContactData]):
 
     return data
 
-  def _update_air_time_tracking(self) -> None:
+  def _update_air_time_tracking(self, dt: float) -> None:
     assert self._air_time_state is not None
 
     contact_data = self._extract_sensor_data()
     if contact_data.found is None or "found" not in self.cfg.fields:
       return
 
-    assert self._data is not None
-    current_time = self._data.time
-    elapsed_time = current_time - self._air_time_state.last_time
-    elapsed_time = elapsed_time.unsqueeze(-1)
+    # Accumulate the exact float64 substep dt rather than differencing the
+    # float32 sim clock (`data.time`). The clock's quantization error grows with
+    # its magnitude (ULP ~= time * 1.2e-7) and, since `data.time` is never reset
+    # on env reset, it eventually swamps the abs_tol in compute_first_contact.
+    elapsed_time = dt
 
     # Reduce `found` from [B, P*num_slots] to [B, P]: a primary is in contact
     # if any of its slots reports a match. Air-time is tracked per primary.
@@ -486,8 +483,6 @@ class ContactSensor(Sensor[ContactData]):
       state.current_contact_time + elapsed_time,
       torch.zeros_like(state.current_contact_time),
     )
-
-    state.last_time[:] = current_time
 
   def _update_history(self) -> None:
     """Roll history buffer and insert current contact data at index 0."""
