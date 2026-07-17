@@ -14,6 +14,11 @@ Changed
 Fixed
 ^^^^^
 
+- Enabled ``obs_normalization`` on the Go1 velocity actor and critic to match
+  the other velocity tasks. Without it, extreme-but-finite observations on rough
+  terrain drove value/policy divergence that eventually surfaced as a
+  ``normal expects all elements of std >= 0.0`` crash. :issue:`870` :issue:`1044`
+  :issue:`1053`
 - Fixed ``ContactSensor`` air-time tracking accumulating float32 sim-clock
   differences, whose quantization error grows with the clock magnitude and made
   ``compute_first_contact`` / ``compute_first_air`` miss touchdowns on long runs.
