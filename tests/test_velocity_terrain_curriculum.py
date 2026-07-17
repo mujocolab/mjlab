@@ -24,8 +24,17 @@ class _FakeTerrain:
     )
 
   def update_env_origins(self, env_ids, move_up, move_down):
+    # Mirror TerrainEntity.update_env_origins exactly, including the cap-wrap
+    # branch and the env_origins write, so the fake can't pass vacuously.
     self.terrain_levels[env_ids] += 1 * move_up - 1 * move_down
-    self.terrain_levels[env_ids] = torch.clip(self.terrain_levels[env_ids], 0)
+    self.terrain_levels[env_ids] = torch.where(
+      self.terrain_levels[env_ids] >= self.max_terrain_level,
+      torch.randint_like(self.terrain_levels[env_ids], self.max_terrain_level),
+      torch.clip(self.terrain_levels[env_ids], 0),
+    )
+    self.env_origins[env_ids] = self.terrain_origins[
+      self.terrain_levels[env_ids], self.terrain_types[env_ids]
+    ]
 
 
 def _make_env(terrain: _FakeTerrain, common_step_counter: int, walked: float):
