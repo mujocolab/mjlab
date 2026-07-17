@@ -14,6 +14,11 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed the ``terrain_levels_vel`` curriculum promoting every env from level 0
+  to level 1 on the initial reset, ignoring ``max_init_terrain_level=0``. Before
+  the first step the robot sits at its spawn pose rather than a walked-to
+  position, so the distance check was spurious; terrain levels are now frozen on
+  that first reset. :issue:`1094`
 - Fixed the velocity task's actor ``joint_pos`` observation not being biased by
   the ``encoder_bias`` domain randomization, so the encoder bias only affected
   actions and never the observed joint positions. The actor now observes biased
