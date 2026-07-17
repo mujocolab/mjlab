@@ -14,6 +14,10 @@ Changed
 Fixed
 ^^^^^
 
+- Hardened ``fit_terrain_normal`` against non-finite raycast hits. A single env
+  with a diverged state produced a NaN/Inf covariance that made
+  ``torch.linalg.eigh`` raise and crash the whole batch; such rows now fall back
+  to the up vector. :issue:`912`
 - Enabled ``obs_normalization`` on the Go1 velocity actor and critic to match
   the other velocity tasks. Without it, extreme-but-finite observations on rough
   terrain drove value/policy divergence that eventually surfaced as a
