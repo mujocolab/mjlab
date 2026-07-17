@@ -14,6 +14,12 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed the velocity task's actor ``joint_pos`` observation not being biased by
+  the ``encoder_bias`` domain randomization, so the encoder bias only affected
+  actions and never the observed joint positions. The actor now observes biased
+  joint positions while the critic keeps the true (unbiased) values as
+  privileged information, matching the tracking task.
+  See `discussion #1065 <https://github.com/mujocolab/mjlab/discussions/1065>`_.
 - Hardened ``fit_terrain_normal`` against non-finite raycast hits. A single env
   with a diverged state produced a NaN/Inf covariance that made
   ``torch.linalg.eigh`` raise and crash the whole batch; such rows now fall back
