@@ -19,6 +19,8 @@ Changed
 Fixed
 ^^^^^
 
+- Restored ONNX uploads and W&B run metadata for velocity and manipulation
+  training when using RSL-RL's current ``WandbLogWriter`` logger name.
 - The Viser reward bar panel no longer *silently* drops reward terms beyond
   ``max_terms``; it now emits a warning listing the hidden terms. Previously
   environments with more than 20 reward terms had the overflow disappear from

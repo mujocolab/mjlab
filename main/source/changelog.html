@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Jul 17, 2026"/>
+    <meta name="docbuild:last-update" content="Jul 20, 2026"/>
   </head>
   
   
@@ -554,6 +554,8 @@ reward terms can show them all. Defaults to 20, preserving previous behavior.
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Restored ONNX uploads and W&amp;B run metadata for velocity and manipulation
+training when using RSL-RL’s current <code class="docutils literal notranslate"><span class="pre">WandbLogWriter</span></code> logger name.</p></li>
 <li><p>The Viser reward bar panel no longer <em>silently</em> drops reward terms beyond
 <code class="docutils literal notranslate"><span class="pre">max_terms</span></code>; it now emits a warning listing the hidden terms. Previously
 environments with more than 20 reward terms had the overflow disappear from
@@ -1568,7 +1570,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Jul 17, 2026.
+  Last updated on Jul 20, 2026.
   <br/>
 </p>
   </div>
