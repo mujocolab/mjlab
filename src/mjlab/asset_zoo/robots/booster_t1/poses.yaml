@@ -1,0 +1,39 @@
+# Robot poses for visualization and testing
+# Joint angles in radians
+# Uses substring matching (e.g., Hip_Pitch matches Left_Hip_Pitch and Right_Hip_Pitch)
+
+default:
+  Hip_Pitch: -0.2
+  Hip_Roll: 0.0
+  Hip_Yaw: 0.0
+  Knee_Pitch: 0.4
+  Ankle_Pitch: -0.25
+  Ankle_Roll: 0.0
+  default: 0.0
+
+stand:
+  Hip_Pitch: -0.1
+  Hip_Roll: 0.0
+  Hip_Yaw: 0.0
+  Knee_Pitch: 0.2
+  Ankle_Pitch: -0.1
+  Ankle_Roll: 0.0
+  default: 0.0
+
+crouch:
+  Hip_Pitch: -0.4
+  Hip_Roll: 0.0
+  Hip_Yaw: 0.0
+  Knee_Pitch: 0.8
+  Ankle_Pitch: -0.4
+  Ankle_Roll: 0.0
+  default: 0.0
+
+t_pose:
+  Hip_Pitch: 0.0
+  Hip_Roll: 0.0
+  Hip_Yaw: 0.0
+  Knee_Pitch: 0.0
+  Ankle_Pitch: 0.0
+  Ankle_Roll: 0.0
+  default: 0.0
