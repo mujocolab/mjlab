@@ -99,6 +99,9 @@ make docs          # Build docs locally
 
 For development setup: `uvx pre-commit install`
 
+Project-specific planning, experiment records, and handoff notes for the soccer
+work are maintained in [项目管理](项目管理/README.md).
+
 ## Citation
 
 mjlab is used in published research and open-source robotics projects. See the [Research](https://mujocolab.github.io/mjlab/main/source/research.html) page for publications and projects, or share your own in [Show and Tell](https://github.com/mujocolab/mjlab/discussions/categories/show-and-tell).
