@@ -326,6 +326,7 @@ class SensorContext:
         use_precomputed_rays=not self._disable_precomputed_rays,
         render_seg=render_seg,
         render_skybox=True,
+        background_color=(0.0, 0.0, 0.0, 1.0),
       )
 
     # Cache address arrays from the render context. An adr value of -1 means that data

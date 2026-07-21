@@ -11,6 +11,10 @@ Added
 Changed
 ^^^^^^^
 
+- Changed the default MuJoCo Warp render background to solid black
+  (``0, 0, 0, 1``), matching MuJoCo's native renderer. Contribution by
+  @bd-pmorais.
+
 Fixed
 ^^^^^
 
