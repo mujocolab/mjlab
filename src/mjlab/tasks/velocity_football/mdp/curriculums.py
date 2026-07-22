@@ -114,3 +114,52 @@ def commands_vel(
     "ang_vel_z_min": torch.tensor(cfg.ranges.ang_vel_z[0]),
     "ang_vel_z_max": torch.tensor(cfg.ranges.ang_vel_z[1]),
   }
+
+
+def lin_vel_cmd_levels(
+  env: ManagerBasedRlEnv,
+  env_ids: torch.Tensor | slice,
+  command_name: str,
+  reward_term_name: str = "track_linear_velocity",
+  max_lin_vel_x: tuple[float, float] = (-0.5, 2.0),
+  max_lin_vel_y: tuple[float, float] = (-0.5, 0.5),
+  success_threshold: float = 0.7,
+  range_step: float = 0.1,
+) -> dict[str, torch.Tensor]:
+  """Expand linear command ranges when velocity tracking reaches a threshold."""
+  command_term = env.command_manager.get_term(command_name)
+  assert command_term is not None
+  cfg = cast(UniformVelocityCommandCfg, command_term.cfg)
+
+  reward_cfg = env.reward_manager.get_term_cfg(reward_term_name)
+  episode_reward_rate = (
+    torch.mean(env.reward_manager._episode_sums[reward_term_name][env_ids])
+    / env.max_episode_length_s
+  )
+
+  at_episode_boundary = env.common_step_counter % env.max_episode_length == 0
+  if (
+    at_episode_boundary and episode_reward_rate > reward_cfg.weight * success_threshold
+  ):
+    delta = torch.tensor((-range_step, range_step), device=env.device)
+    lin_vel_x = torch.clamp(
+      torch.tensor(cfg.ranges.lin_vel_x, device=env.device) + delta,
+      min=max_lin_vel_x[0],
+      max=max_lin_vel_x[1],
+    )
+    lin_vel_y = torch.clamp(
+      torch.tensor(cfg.ranges.lin_vel_y, device=env.device) + delta,
+      min=max_lin_vel_y[0],
+      max=max_lin_vel_y[1],
+    )
+    cfg.ranges.lin_vel_x = (float(lin_vel_x[0]), float(lin_vel_x[1]))
+    cfg.ranges.lin_vel_y = (float(lin_vel_y[0]), float(lin_vel_y[1]))
+
+  return {
+    "lin_vel_x_min": torch.tensor(cfg.ranges.lin_vel_x[0]),
+    "lin_vel_x_max": torch.tensor(cfg.ranges.lin_vel_x[1]),
+    "lin_vel_y_min": torch.tensor(cfg.ranges.lin_vel_y[0]),
+    "lin_vel_y_max": torch.tensor(cfg.ranges.lin_vel_y[1]),
+    "ang_vel_z_min": torch.tensor(cfg.ranges.ang_vel_z[0]),
+    "ang_vel_z_max": torch.tensor(cfg.ranges.ang_vel_z[1]),
+  }

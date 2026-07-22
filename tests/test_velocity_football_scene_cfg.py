@@ -212,9 +212,23 @@ def test_football_core_rewards_are_connected_to_environment() -> None:
     "y_abs": 0.15,
   }
 
-  # Robot locomotion weights are intentionally unchanged in this step.
-  assert cfg.rewards["track_linear_velocity"].weight == 2.0
+  assert cfg.rewards["track_linear_velocity"].weight == 1.0
   assert cfg.rewards["track_angular_velocity"].weight == 2.0
+
+
+def test_football_command_curriculum_matches_isaac_lab_reference() -> None:
+  cfg = make_velocity_env_cfg()
+
+  assert "command_vel" not in cfg.curriculum
+  curriculum = cfg.curriculum["lin_vel_cmd_levels"]
+  assert curriculum.params == {
+    "command_name": "twist",
+    "reward_term_name": "track_linear_velocity",
+    "max_lin_vel_x": (-0.5, 2.0),
+    "max_lin_vel_y": (-0.5, 0.5),
+    "success_threshold": 0.7,
+    "range_step": 0.1,
+  }
 
 
 def test_football_terminations_match_reference_thresholds() -> None:

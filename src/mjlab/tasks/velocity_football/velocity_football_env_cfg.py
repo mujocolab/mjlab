@@ -404,7 +404,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     # 线速度跟踪奖励
     "track_linear_velocity": RewardTermCfg(
       func=mdp.track_linear_velocity,
-      weight=2.0,
+      weight=1.0,
       params={"command_name": "twist", "std": math.sqrt(0.25)},
     ),
     # 角速度跟踪奖励
@@ -565,19 +565,16 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
       func=mdp.terrain_levels_vel,
       params={"command_name": "twist"},
     ),
-    # 分阶段扩大速度指令范围，循序渐进训练
-    "command_vel": CurriculumTermCfg(
-      func=mdp.commands_vel,
+    # 与 Isaac Lab 参考一致：跟踪奖励达标后逐级扩大线速度范围。
+    "lin_vel_cmd_levels": CurriculumTermCfg(
+      func=mdp.lin_vel_cmd_levels,
       params={
         "command_name": "twist",
-        "velocity_stages": [
-          # 初始阶段低速
-          {"step": 0, "lin_vel_x": (-1.0, 1.0), "ang_vel_z": (-0.5, 0.5)},
-          # 5000*24步后提升速度上限
-          {"step": 5000 * 24, "lin_vel_x": (-1.5, 2.0), "ang_vel_z": (-0.7, 0.7)},
-          # 10000*24步后开放最高速度
-          {"step": 10000 * 24, "lin_vel_x": (-2.0, 3.0)},
-        ],
+        "reward_term_name": "track_linear_velocity",
+        "max_lin_vel_x": (-0.5, 2.0),
+        "max_lin_vel_y": (-0.5, 0.5),
+        "success_threshold": 0.7,
+        "range_step": 0.1,
       },
     ),
   }

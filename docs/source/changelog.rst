@@ -19,6 +19,9 @@ Added
 Changed
 ^^^^^^^
 
+- Changed the football experiment configuration to match the Isaac Lab initial
+  velocity ranges, reward-driven command curriculum, and linear-velocity reward
+  weight.
 - The Viser reward bar panel's term cap is now configurable via
   ``ViewerConfig.reward_bar_max_terms``, so environments with more than 20
   reward terms can show them all. Defaults to 20, preserving previous behavior.

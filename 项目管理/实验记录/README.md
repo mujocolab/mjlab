@@ -5,7 +5,8 @@
 
 | ID | 日期 | 实验名称 | 状态 | 代码版本 | 相对基线变更 | Log 路径 | 结果 | 结论/下一步 |
 |---|---|---|---|---|---|---|---|---|
-| E0 | 2026-07-22 | MJLab 足球训练基线 | Completed（训练至 7506 iter） | 分支 `feat/football-environment`；基准 commit `0286b85`；运行时工作区有未提交修改，差异保存在 run 内 `git/mjlab_soccer.diff` | 无，作为后续实验基线 | `logs/rsl_rl/g1_velocity_football/2026-07-22_14-03-33` | mean reward：-1.98 → 最高 29.63 → 末尾 6.42；episode length：23.56 → 881.17；球失控终止：14 → 0.739；训练约 1.29 h | 已学到基础运动和控球，但奖励峰值后明显回落，尚未稳定收敛。后续 E1 仅同步 Isaac Lab 初始速度范围；E2 在 E1 基础上将线速度奖励权重改为 1.0 |
+| E0 | 2026-07-22 | MJLab 足球训练基线 | Completed（训练至 7506 iter） | 分支 `feat/football-environment`；run 基于 `0286b85` 和工作区差异 `git/mjlab_soccer.diff`，后固化为 commit `3de262e` | 无，作为后续实验基线 | `logs/rsl_rl/g1_velocity_football/2026-07-22_14-03-33` | mean reward：-1.98 → 最高 29.63 → 末尾 6.42；episode length：23.56 → 881.17；球失控终止：14 → 0.739；训练约 1.29 h | 已学到基础运动和控球，但奖励峰值后明显回落，尚未稳定收敛。E1 整体同步 Isaac Lab 的速度范围、课程和线速度奖励权重 |
+| E1 | 2026-07-22 | Isaac Lab 速度课程同步 | Planned | 分支 `exp/e1-isaac-curriculum`；基于 E0 commit `3de262e` | 初始 `lin_vel_x (-1,1) → (-0.25,1)`、`ang_vel_z (-0.5,0.5) → (-1,1)`；固定步数课程改为奖励达到 70% 后按 0.1 扩展至 `x=(-0.5,2)`、`y=(-0.5,0.5)`；`track_linear_velocity 2.0 → 1.0` | 待训练 | 待训练 | 三项联动整体同步实验，结果不能用于判断单个参数的独立贡献 |
 
 ## 填写规则
 
