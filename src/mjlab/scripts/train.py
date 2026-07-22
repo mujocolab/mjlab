@@ -37,6 +37,8 @@ class TrainConfig:
   wandb_run_path: str | None = None
   wandb_checkpoint_name: str | None = None
   """Optional checkpoint name within the W&B run to load (e.g. 'model_4000.pt')."""
+  pretrained_checkpoint: str | None = None
+  """Local walking checkpoint whose Actor initializes football training."""
   gpu_ids: list[int] | Literal["all"] | None = field(default_factory=lambda: [0])
 
   @staticmethod
@@ -47,6 +49,15 @@ class TrainConfig:
 
 
 def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
+  if cfg.agent.resume and cfg.pretrained_checkpoint is not None:
+    raise ValueError("--pretrained-checkpoint cannot be combined with --agent.resume")
+
+  pretrained_path: Path | None = None
+  if cfg.pretrained_checkpoint is not None:
+    pretrained_path = Path(cfg.pretrained_checkpoint).expanduser().resolve()
+    if not pretrained_path.is_file():
+      raise FileNotFoundError(f"Pretrained checkpoint not found: {pretrained_path}")
+
   cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
   if cuda_visible == "":
     device = "cpu"
@@ -171,6 +182,12 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
   if resume_path is not None:
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
     runner.load(str(resume_path))
+  elif pretrained_path is not None:
+    load_pretrained = getattr(runner, "load_pretrained", None)
+    if load_pretrained is None:
+      raise ValueError(f"Task {task_id!r} does not support --pretrained-checkpoint")
+    print(f"[INFO]: Initializing Actor from: {pretrained_path}")
+    load_pretrained(str(pretrained_path))
 
   runner.learn(
     num_learning_iterations=cfg.agent.max_iterations, init_at_random_ep_len=True

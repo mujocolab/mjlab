@@ -140,6 +140,8 @@ src = ["src"]  # Helpful for recognizing first-party imports.
 indent-width = 2
 exclude = [
   "src/mjlab/utils/lab_api",
+  "src/mjlab/tasks/velocity/velocity_football_env_cfg.py",
+  "src/mjlab/tasks/velocity_football/velocity_football_env_cfg_isaaclab.py",
   "typings",
 ]
 
@@ -151,7 +153,13 @@ ignore = ["B011"]
 pythonVersion = "3.10"
 venvPath = "."
 venv = ".venv"
-ignore = ["./typings", "./src/mjlab/utils/lab_api", "./docs"]
+ignore = [
+  "./typings",
+  "./src/mjlab/utils/lab_api",
+  "./src/mjlab/tasks/velocity/velocity_football_env_cfg.py",
+  "./src/mjlab/tasks/velocity_football/velocity_football_env_cfg_isaaclab.py",
+  "./docs",
+]
 stubPath = "typings"
 
 [tool.ty.environment]
@@ -159,7 +167,12 @@ extra-paths = ["typings"]
 
 [tool.ty.src]
 include = ["src", "tests"]
-exclude = ["src/mjlab/utils/lab_api", "typings"]
+exclude = [
+  "src/mjlab/utils/lab_api",
+  "src/mjlab/tasks/velocity/velocity_football_env_cfg.py",
+  "src/mjlab/tasks/velocity_football/velocity_football_env_cfg_isaaclab.py",
+  "typings",
+]
 
 [tool.pytest.ini_options]
 markers = [

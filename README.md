@@ -53,6 +53,21 @@ uv run train Mjlab-Velocity-Flat-Unitree-G1 --env.scene.num-envs 4096
 uv run train Mjlab-Velocity-Flat-Unitree-G1 \
   --gpu-ids "[0, 1]" \
   --env.scene.num-envs 4096
+
+10. 使用命令
+
+  首先训练足球兼容行走任务：
+
+  uv run train Mjlab-Velocity-Football-Pretrain-Flat-Unitree-G1 \
+    --env.scene.num-envs 4096 \
+    --agent.upload-model False
+
+  然后初始化足球策略：
+
+  uv run train Mjlab-Velocity-Football-Flat-Unitree-G1 \
+    --pretrained-checkpoint /home/ut/mjlab_soccer/logs/rsl_rl/g1_velocity_football_pretrain/2026-07-22_10-38-13/model_20000.pt \
+    --env.scene.num-envs 4096 \
+    --agent.upload-model False
 ```
 
 See the [Distributed Training guide](https://mujocolab.github.io/mjlab/main/source/training/distributed_training.html) for details.

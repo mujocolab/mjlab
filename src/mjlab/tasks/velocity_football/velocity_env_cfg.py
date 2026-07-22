@@ -29,10 +29,8 @@
 """
 
 import math
-from dataclasses import replace
 
 from mjlab.envs import ManagerBasedRlEnvCfg
-from mjlab.envs import mdp as envs_mdp
 from mjlab.envs.mdp import dr
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.action_manager import ActionTermCfg
@@ -52,10 +50,9 @@ from mjlab.sensor import (
   TerrainHeightSensorCfg,
 )
 from mjlab.sim import MujocoCfg, SimulationCfg
-from mjlab.tasks.velocity import mdp
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
+from mjlab.tasks.velocity_football import mdp
 from mjlab.terrains import TerrainEntityCfg
-from mjlab.terrains.config import ROUGH_TERRAINS_CFG
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
 from mjlab.viewer import ViewerConfig
 
@@ -65,7 +62,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
   生成基础速度跟踪强化学习环境配置模板
   所有空白占位参数（机身frame、刚体/关节/足端名称、奖励权重、动作缩放等）
   需要在机器人专属配置文件中通过 dataclass.replace() 自定义覆盖
-  返回一套完整包含传感器/观测/奖励/课程学习的通用足式机器人行走环境
+  返回一套完整包含传感器/观测/奖励/课程学习的通用足式机器人行走环境。
   """
 
   ##
@@ -101,11 +98,12 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
   # 观测空间：分为Actor策略观测（带噪声）、Critic价值观测（特权无噪声信息）
   ##
   actor_terms = {
-    "base_lin_vel": ObservationTermCfg(
-      func=mdp.builtin_sensor,
-      params={"sensor_name": "robot/imu_lin_vel"},
-      noise=Unoise(n_min=-0.5, n_max=0.5),  # IMU线速度观测均匀噪声
-    ),
+    # 为保持足球策略兼容，Actor不使用机身线速度；需要时可恢复：
+    # "base_lin_vel": ObservationTermCfg(
+    #     func=mdp.builtin_sensor,
+    #     params={"sensor_name": "robot/imu_lin_vel"},
+    #     noise=Unoise(n_min=-0.5, n_max=0.5),
+    # ),
     "base_ang_vel": ObservationTermCfg(
       func=mdp.builtin_sensor,
       params={"sensor_name": "robot/imu_ang_vel"},
@@ -115,6 +113,14 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
       func=mdp.projected_gravity,
       noise=Unoise(n_min=-0.05, n_max=0.05),  # 机身投影重力噪声
     ),
+    "command": ObservationTermCfg(
+      func=mdp.generated_commands,
+      params={"command_name": "twist"},
+    ),
+    "phase": ObservationTermCfg(
+      func=mdp.phase,
+      params={"period": 0.6, "command_name": "twist"},
+    ),
     "joint_pos": ObservationTermCfg(
       func=mdp.joint_pos_rel,
       params={"biased": True},  # Actor带关节零偏噪声
@@ -122,46 +128,60 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     ),
     "joint_vel": ObservationTermCfg(
       func=mdp.joint_vel_rel,
-      noise=Unoise(n_min=-1.5, n_max=1.5),
+      noise=Unoise(n_min=-0.5, n_max=0.5),
     ),
-    "actions": ObservationTermCfg(func=mdp.last_action),  # 上一步动作作为观测
-    "command": ObservationTermCfg(
-      func=mdp.generated_commands,
-      params={"command_name": "twist"},  # 当前速度指令
+    "actions": ObservationTermCfg(
+      func=mdp.last_action,
+      clip=(-10.0, 10.0),
+      delay_min_lag=2,
+      delay_max_lag=2,
     ),
-    "height_scan": ObservationTermCfg(
-      func=envs_mdp.height_scan,
-      params={"sensor_name": "terrain_scan"},
-      noise=Unoise(n_min=-0.1, n_max=0.1),
-      scale=1 / terrain_scan.max_distance,  # 雷达测距归一化到0~1
-    ),
+    # 无限平面不需要Actor地形扫描；恢复粗糙地形时可恢复：
+    # "height_scan": ObservationTermCfg(
+    #     func=envs_mdp.height_scan,
+    #     params={"sensor_name": "terrain_scan"},
+    #     noise=Unoise(n_min=-0.1, n_max=0.1),
+    #     scale=1 / terrain_scan.max_distance,
+    # ),
   }
 
   critic_terms = {
-    **actor_terms,
-    # Critic使用无偏真实关节角度，作为特权信息，策略推理时不可见
+    "base_lin_vel": ObservationTermCfg(func=mdp.base_lin_vel),
+    "base_ang_vel": ObservationTermCfg(func=mdp.base_ang_vel),
+    "projected_gravity": ObservationTermCfg(func=mdp.projected_gravity),
+    "command": ObservationTermCfg(
+      func=mdp.generated_commands,
+      params={"command_name": "twist"},
+    ),
+    "phase": ObservationTermCfg(
+      func=mdp.phase,
+      params={"period": 0.6, "command_name": "twist"},
+    ),
     "joint_pos": ObservationTermCfg(func=mdp.joint_pos_rel),
-    "height_scan": ObservationTermCfg(
-      func=envs_mdp.height_scan,
-      params={"sensor_name": "terrain_scan"},
-      scale=1 / terrain_scan.max_distance,
-    ),
-    "foot_height": ObservationTermCfg(
-      func=mdp.foot_height,
-      params={"sensor_name": "foot_height_scan"},  # 各足离地高度
-    ),
-    "foot_air_time": ObservationTermCfg(
-      func=mdp.foot_air_time,
-      params={"sensor_name": "feet_ground_contact"},  # 足端腾空累计时长
-    ),
-    "foot_contact": ObservationTermCfg(
-      func=mdp.foot_contact,
-      params={"sensor_name": "feet_ground_contact"},  # 足端接触二值信号
-    ),
-    "foot_contact_forces": ObservationTermCfg(
-      func=mdp.foot_contact_forces,
-      params={"sensor_name": "feet_ground_contact"},  # 足端接触力
-    ),
+    "joint_vel": ObservationTermCfg(func=mdp.joint_vel_rel),
+    "actions": ObservationTermCfg(func=mdp.last_action, clip=(-10.0, 10.0)),
+    # 以下特权观测不属于足球策略的公共前缀，暂不使用：
+    # 恢复 height_scan 时，同时恢复 mjlab.envs.mdp 的 envs_mdp import。
+    # "height_scan": ObservationTermCfg(
+    #     func=envs_mdp.height_scan,
+    #     params={"sensor_name": "terrain_scan"},
+    #     scale=1 / terrain_scan.max_distance,
+    # "foot_height": ObservationTermCfg(
+    #     func=mdp.foot_height,
+    #     params={"sensor_name": "foot_height_scan"},
+    # ),
+    # "foot_air_time": ObservationTermCfg(
+    #     func=mdp.foot_air_time,
+    #     params={"sensor_name": "feet_ground_contact"},
+    # ),
+    # "foot_contact": ObservationTermCfg(
+    #     func=mdp.foot_contact,
+    #     params={"sensor_name": "feet_ground_contact"},
+    # ),
+    # "foot_contact_forces": ObservationTermCfg(
+    #     func=mdp.foot_contact_forces,
+    #     params={"sensor_name": "feet_ground_contact"},
+    # ),
   }
 
   observations = {
@@ -169,11 +189,15 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
       terms=actor_terms,
       concatenate_terms=True,
       enable_corruption=True,  # 开启观测噪声
+      history_length=5,
+      flatten_history_dim=True,
     ),
     "critic": ObservationGroupCfg(
       terms=critic_terms,
       concatenate_terms=True,
       enable_corruption=False,  # 价值网络无观测噪声
+      history_length=5,
+      flatten_history_dim=True,
     ),
   }
 
@@ -204,17 +228,17 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
   commands: dict[str, CommandTermCfg] = {
     "twist": UniformVelocityCommandCfg(
       entity_name="robot",
-      resampling_time_range=(3.0, 8.0),  # 指令重新采样间隔3~8秒
-      rel_standing_envs=0.1,  # 10%环境保持静止
-      rel_heading_envs=0.3,  # 30%环境原地转向
-      rel_forward_envs=0.2,  # 20%环境直行
+      resampling_time_range=(10.0, 12.0),  # 行走预训练指令保持10~12秒
+      rel_standing_envs=0.05,  # 5%环境保持静止
+      rel_heading_envs=1.0,  # 所有非站立环境使用目标朝向
+      rel_forward_envs=0.0,
       heading_command=True,
       heading_control_stiffness=0.5,
       debug_vis=True,
       ranges=UniformVelocityCommandCfg.Ranges(
-        lin_vel_x=(-1.0, 1.0),  # X向线速度范围
-        lin_vel_y=(-1.0, 1.0),  # Y向线速度范围
-        ang_vel_z=(-0.5, 0.5),  # 偏航角速度范围
+        lin_vel_x=(-0.5, 1.0),  # 原项目Flat行走X向速度范围
+        lin_vel_y=(-0.5, 0.5),  # 原项目Flat行走Y向速度范围
+        ang_vel_z=(-1.0, 1.0),  # 偏航角速度范围
         heading=(-math.pi, math.pi),  # 目标朝向角度
       ),
     )
@@ -224,7 +248,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
   # 事件管理器：回合重置、周期扰动、启动域随机化DR
   ##
   events = {
-    # 回合起始重置机器人机身位姿
+    # 行走预训练仅重置机器人根状态，不生成足球。
     "reset_base": EventTermCfg(
       func=mdp.reset_root_state_uniform,
       mode="reset",
@@ -238,12 +262,12 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
         "velocity_range": {},
       },
     ),
-    # 重置所有关节至中立零偏
+    # 关节在默认姿态附近按参考范围随机重置。
     "reset_robot_joints": EventTermCfg(
       func=mdp.reset_joints_by_offset,
       mode="reset",
       params={
-        "position_range": (0.0, 0.0),
+        "position_range": (-0.1, 0.1),
         "velocity_range": (0.0, 0.0),
         "asset_cfg": SceneEntityCfg("robot", joint_names=(".*",)),
       },
@@ -252,17 +276,19 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     "push_robot": EventTermCfg(
       func=mdp.push_by_setting_velocity,
       mode="interval",
-      interval_range_s=(1.0, 3.0),  # 扰动间隔1~3秒
+      interval_range_s=(5.0, 6.0),
       params={
         "velocity_range": {
           "x": (-0.5, 0.5),
-          "y": (-0.5, 0.5),
-          "z": (-0.4, 0.4),
-          "roll": (-0.52, 0.52),
-          "pitch": (-0.52, 0.52),
-          "yaw": (-0.78, 0.78),
+          "y": (-0.3, 0.3),
+          "z": (-0.2, 0.2),
+          "roll": (-0.1, 0.1),
+          "pitch": (-0.1, 0.1),
+          "yaw": (-0.2, 0.2),
         },
       },
+      # 强扰动备选：interval=(1.0, 3.0)，速度范围分别为
+      # x±0.5、y±0.5、z±0.4、roll/pitch±0.52、yaw±0.78。
     ),
     # 环境初始化：随机足端地面摩擦系数
     "foot_friction": EventTermCfg(
@@ -304,6 +330,22 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
   # 奖励函数集合：主跟踪奖励、姿态正则、各类惩罚项
   ##
   rewards = {
+    # 非超时终止惩罚，当前覆盖机器人摔倒。
+    "is_terminated": RewardTermCfg(func=mdp.is_terminated, weight=-200.0),
+    # 执行器力矩L2正则，限制高能耗动作。
+    "joint_torques_l2": RewardTermCfg(
+      func=mdp.joint_torques_l2,
+      weight=-1e-5,
+      params={
+        "asset_cfg": SceneEntityCfg("robot", actuator_names=r".*"),
+      },
+    ),
+    # 关节加速度L2正则，抑制高频抖动。
+    "joint_acc_l2": RewardTermCfg(
+      func=mdp.joint_acc_l2,
+      weight=-1e-7,
+      params={"asset_cfg": SceneEntityCfg("robot", joint_names=(r".*",))},
+    ),
     # 线速度跟踪奖励
     "track_linear_velocity": RewardTermCfg(
       func=mdp.track_linear_velocity,
@@ -421,7 +463,8 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     "time_out": TerminationTermCfg(func=mdp.time_out, time_out=True),  # 达到最大时长
     "fell_over": TerminationTermCfg(
       func=mdp.bad_orientation,
-      params={"limit_angle": math.radians(70.0)},  # 机身倾斜超过70度判定摔倒
+      params={"limit_angle": 0.8},  # 参考阈值，约45.84度
+      # 若早期运球动作频繁误终止，可恢复：math.radians(70.0)
     ),
     "out_of_terrain_bounds": TerminationTermCfg(
       func=mdp.out_of_terrain_bounds,
@@ -460,11 +503,16 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
   ##
   return ManagerBasedRlEnvCfg(
     scene=SceneCfg(
-      terrain=TerrainEntityCfg(
-        terrain_type="generator",
-        terrain_generator=replace(ROUGH_TERRAINS_CFG),  # 粗糙地形生成模板
-        max_init_terrain_level=5,  # 初始最大地形难度等级
-      ),
+      # MuJoCo 平面在 XY 方向无限延伸。
+      terrain=TerrainEntityCfg(terrain_type="plane"),
+      # 后续恢复粗糙地形时，将上面一行替换为：
+      # terrain=TerrainEntityCfg(
+      #     terrain_type="generator",
+      #     terrain_generator=replace(ROUGH_TERRAINS_CFG),
+      #     max_init_terrain_level=5,
+      # ),
+      # 并恢复 dataclasses.replace 和 ROUGH_TERRAINS_CFG 的 import。
+      entities={},
       sensors=(terrain_scan, foot_height_scan),
       num_envs=1,
       extent=2.0,

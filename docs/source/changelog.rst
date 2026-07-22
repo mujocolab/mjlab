@@ -8,6 +8,14 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added the ``Mjlab-Velocity-Football-Flat-Unitree-G1`` task for training the
+  Unitree G1 to control a football on flat terrain.
+- Added the ``Mjlab-Velocity-Football-Pretrain-Flat-Unitree-G1`` task with an
+  observation layout compatible with later football-policy initialization.
+- Added ``--pretrained-checkpoint`` to initialize the football Actor from a
+  compatible walking checkpoint without restoring the Critic, optimizer,
+  iteration counter, or environment state.
+
 Changed
 ^^^^^^^
 
