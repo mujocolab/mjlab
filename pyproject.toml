@@ -102,7 +102,7 @@ conflicts = [
   [{extra = "cu128"}, {extra = "cpu"}],
 ]
 constraint-dependencies = [
-  "GitPython>=3.1.49",
+  "GitPython>=3.1.52",
   "lxml>=6.1.0",
 ]
 required-environments = [
