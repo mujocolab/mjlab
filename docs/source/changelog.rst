@@ -11,6 +11,15 @@ Added
 Changed
 ^^^^^^^
 
+Fixed
+^^^^^
+
+Version 1.5.3 (July 22, 2026)
+-----------------------------
+
+Changed
+^^^^^^^
+
 - The Viser reward bar panel's term cap is now configurable via
   ``ViewerConfig.reward_bar_max_terms``, so environments with more than 20
   reward terms can show them all. Defaults to 20, preserving previous behavior.
@@ -60,6 +69,9 @@ Fixed
   differences, whose quantization error grows with the clock magnitude and made
   ``compute_first_contact`` / ``compute_first_air`` miss touchdowns on long runs.
   The exact float64 substep ``dt`` is now accumulated instead. :issue:`1101`
+- Bumped ``mujoco-warp`` to 3.10.0.3, fixing a CUDA 700 illegal memory access in
+  ``smooth.crb`` triggered by startup mass domain randomization (via
+  ``set_const``) once ``num_envs >= 128`` on consumer Ada GPUs. :issue:`1108`
 
 Version 1.5.2 (July 17, 2026)
 -----------------------------
