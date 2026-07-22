@@ -21,6 +21,8 @@ Fixed
 
 - Bumped ``pillow`` (12.3.0), ``onnx`` (1.22.0), and ``soupsieve`` (2.9.1) in the
   lockfile to pick up security fixes.
+- Bumped ``GitPython`` (3.1.54) and ``setuptools`` (83.0.0) to pick up security
+  fixes.
 - Restored ONNX uploads and W&B run metadata for velocity and manipulation
   training when using RSL-RL's current ``WandbLogWriter`` logger name.
 - The Viser reward bar panel no longer *silently* drops reward terms beyond
