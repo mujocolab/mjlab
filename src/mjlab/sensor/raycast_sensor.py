@@ -807,6 +807,14 @@ class RayCastSensor(Sensor[RayCastData]):
     self._pos_w = self._frame_pos_w[:, 0]
     self._quat_w = self._frame_quat_w[:, 0]
 
+    # ``sense()`` runs after the decimation loop (which invalidates the cache)
+    # and after rewards may have already read ``.data``, repopulating the cache
+    # with pre-sense hit positions. Rebinding the tensors above leaves that
+    # cache pointing at the previous step's data, so invalidate here to force a
+    # recompute on the next ``.data`` access. Otherwise observations and debug
+    # visualization would lag one step behind the freshly sensed hits (#998).
+    self._invalidate_cache()
+
   def _compute_alignment_rotation(self, frame_mat: torch.Tensor) -> torch.Tensor:
     """Compute rotation matrix based on ray_alignment setting."""
     if self.cfg.ray_alignment == "base":
