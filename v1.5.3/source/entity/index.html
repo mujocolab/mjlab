@@ -1,0 +1,947 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Entity &#8212; mjlab Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../_static/twemoji.css" />
+    <link rel="stylesheet" type="text/css" href="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=53359634" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=3ea80bc3" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js"></script>
+    <script src="../../_static/twemoji.js"></script>
+    <script src="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/js/all.min.js?v=ec35c6c9"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'source/entity/index';</script>
+    <link rel="icon" href="../../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Entity Data" href="entity_data.html" />
+    <link rel="prev" title="Architecture Overview" href="../architecture_overview.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+    <meta name="docbuild:last-update" content="Jul 22, 2026"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">mjlab Documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item">
+<div class="sidebar-version-switcher">
+  <label class="sidebar-version-label" for="version-select">Version</label>
+  <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
+    <option value="../../../main/source/entity/index.html" >main</option>
+    <option value="index.html" selected>v1.5.3</option>
+    <option value="../../../v1.5.2/source/entity/index.html" >v1.5.2</option>
+    <option value="../../../v1.5.1/source/entity/index.html" >v1.5.1</option>
+    <option value="../../../v1.5.0/source/entity/index.html" >v1.5.0</option>
+    <option value="../../../v1.4.0/source/entity/index.html" >v1.4.0</option>
+    <option value="../../../v1.3.0/source/entity/index.html" >v1.3.0</option>
+    <option value="../../../v1.2.0/source/entity/index.html" >v1.2.0</option>
+    <option value="../../../v1.1.1/index.html" >v1.1.1</option>
+    <option value="../../../v1.1.0/index.html" >v1.1.0</option>
+    <option value="../../../v1.0.0/index.html" >v1.0.0</option>
+  </select>
+</div>
+</div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Guide</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials.html">Tutorials</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/cartpole.html">Cartpole: Building Your First Environment</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../architecture_overview.html">Architecture Overview</a></li>
+<li class="toctree-l1 current active has-children"><a class="current reference internal" href="#">Entity</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="entity_data.html">Entity Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="per_world_mesh.html">Heterogeneous Worlds</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../actuators.html">Actuators</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../sensors/index.html">Sensors</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sensors/raycast_sensor.html">RayCast Sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sensors/rgbd_camera.html">RGB-D Camera</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../scene.html">Scene</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../terrain.html">Terrain</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">The Manager Layer</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../environment_config.html">Environment Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../actions.html">Actions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../terminations.html">Terminations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../events.html">Events</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../randomization.html">Domain Randomization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../curriculum.html">Curriculum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recorders.html">Recorders</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training &amp; Debugging</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../training/rsl_rl.html">Training with RSL-RL</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../training/motion_imitation.html">Motion Imitation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../viewers.html">Viewers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/distributed_training.html">Distributed Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/cloud.html">Cloud Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../debugging/nan_guard.html">NaN Guard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../debugging/export_scene.html">Export Scene</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">API Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/envs.html">mjlab.envs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scene.html">mjlab.scene</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/sim.html">mjlab.sim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/entity.html">mjlab.entity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/actuator.html">mjlab.actuator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/sensor.html">mjlab.sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/managers.html">mjlab.managers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/terrains.html">mjlab.terrains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/rl.html">mjlab.rl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/viewer.html">mjlab.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/tasks.html">mjlab.tasks</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Further Reading</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../motivation.html">Why mjlab?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration_isaac_lab.html">Migrating from Isaac Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ &amp; Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../research.html">Research</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/edit/main/docs/source/entity/index.rst" target="_blank"
+   class="btn btn-sm btn-source-edit-button dropdown-item"
+   title="Suggest edit"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-pencil-alt"></i>
+  </span>
+<span class="btn__text-container">Suggest edit</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/issues/new?title=Issue%20on%20page%20%2Fsource/entity/index.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../../_sources/source/entity/index.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Entity</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#configuring-an-entity">Configuring an entity</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#spec-fn"><code class="docutils literal notranslate"><span class="pre">spec_fn</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#init-state"><code class="docutils literal notranslate"><span class="pre">init_state</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#articulation"><code class="docutils literal notranslate"><span class="pre">articulation</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#spec-editors">Spec editors</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#heterogeneous-worlds">Heterogeneous worlds</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#subclassing-entity">Subclassing Entity</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#finding-elements">Finding elements</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reading-runtime-state">Reading runtime state</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#entitydata">EntityData</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#sensors">Sensors</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#raw-simulation-data">Raw simulation data</a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="entity">
+<span id="id1"></span><h1>Entity<a class="headerlink" href="#entity" title="Link to this heading">#</a></h1>
+<p>An <code class="docutils literal notranslate"><span class="pre">Entity</span></code> represents a physical object in the simulation: a robot, a
+manipulated object, or a fixed fixture like a table. It is the central
+abstraction in mjlab’s physics layer.</p>
+<p>A single <code class="docutils literal notranslate"><span class="pre">Entity</span></code> class covers all variants (contrast Isaac Lab, which
+splits this across <code class="docutils literal notranslate"><span class="pre">Articulation</span></code>, <code class="docutils literal notranslate"><span class="pre">RigidObject</span></code>, and several other
+subclasses of <code class="docutils literal notranslate"><span class="pre">AssetBase</span></code>). Two orthogonal boolean properties classify
+each instance:</p>
+<dl class="simple">
+<dt><strong>Base type.</strong></dt><dd><p>A <em>fixed-base</em> entity is welded to the world and has no free joint. A
+<em>floating-base</em> entity has a free joint giving it 6-DOF movement.</p>
+</dd>
+<dt><strong>Articulation.</strong></dt><dd><p>An <em>articulated</em> entity has internal joints (revolute, prismatic, etc.).
+A <em>non-articulated</em> entity has none beyond a possible free joint.</p>
+</dd>
+</dl>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Example</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">is_fixed_base</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">is_articulated</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">is_actuated</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Fixed non-articulated</p></td>
+<td><p>Table, wall</p></td>
+<td><p>True</p></td>
+<td><p>False</p></td>
+<td><p>False</p></td>
+</tr>
+<tr class="row-odd"><td><p>Fixed articulated</p></td>
+<td><p>Robot arm, door</p></td>
+<td><p>True</p></td>
+<td><p>True</p></td>
+<td><p>True/False</p></td>
+</tr>
+<tr class="row-even"><td><p>Floating non-articulated</p></td>
+<td><p>Box, ball, mug</p></td>
+<td><p>False</p></td>
+<td><p>False</p></td>
+<td><p>False</p></td>
+</tr>
+<tr class="row-odd"><td><p>Floating articulated</p></td>
+<td><p>Humanoid, quadruped</p></td>
+<td><p>False</p></td>
+<td><p>True</p></td>
+<td><p>True/False</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>mjlab automatically wraps every fixed-base entity in a
+<a class="reference external" href="https://mujoco.readthedocs.io/en/stable/modeling.html#mocap-bodies">mocap body</a>
+so that each parallel environment can place the entity at a different
+position. Without this wrapping, all fixed-base entities would be
+welded to the world origin. The wrapping is transparent, but
+<strong>positioning only happens when a reset event runs</strong>. You must
+include a reset event such as <code class="docutils literal notranslate"><span class="pre">reset_root_state_uniform</span></code> in your
+event config; without one, every fixed-base entity will remain at
+the origin. See the <a class="reference internal" href="../faq.html#faq"><span class="std std-ref">FAQ</span></a> for a full example. Mocap
+entities can also be repositioned at runtime via
+<code class="docutils literal notranslate"><span class="pre">entity.write_mocap_pose_to_sim()</span></code>.</p>
+</div>
+<section id="configuring-an-entity">
+<h2>Configuring an entity<a class="headerlink" href="#configuring-an-entity" title="Link to this heading">#</a></h2>
+<p>Every entity is described by an <code class="docutils literal notranslate"><span class="pre">EntityCfg</span></code>. Only <code class="docutils literal notranslate"><span class="pre">spec_fn</span></code> is
+required in practice; all other fields have sensible defaults. A passive
+floating object needs nothing more than:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.entity</span><span class="w"> </span><span class="kn">import</span> <span class="n">EntityCfg</span>
+
+<span class="n">cube_cfg</span> <span class="o">=</span> <span class="n">EntityCfg</span><span class="p">(</span><span class="n">spec_fn</span><span class="o">=</span><span class="n">get_cube_spec</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>An actuated robot uses more of the interface:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.entity</span><span class="w"> </span><span class="kn">import</span> <span class="n">EntityCfg</span><span class="p">,</span> <span class="n">EntityArticulationInfoCfg</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.actuator</span><span class="w"> </span><span class="kn">import</span> <span class="n">IdealPDActuatorCfg</span>
+
+<span class="n">robot_cfg</span> <span class="o">=</span> <span class="n">EntityCfg</span><span class="p">(</span>
+    <span class="n">spec_fn</span><span class="o">=</span><span class="n">get_spec</span><span class="p">,</span>
+    <span class="n">init_state</span><span class="o">=</span><span class="n">EntityCfg</span><span class="o">.</span><span class="n">InitialStateCfg</span><span class="p">(</span>
+        <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">),</span>
+        <span class="n">joint_pos</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;.*_hip_.*&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s2">&quot;.*&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">},</span>
+    <span class="p">),</span>
+    <span class="n">articulation</span><span class="o">=</span><span class="n">EntityArticulationInfoCfg</span><span class="p">(</span>
+        <span class="n">actuators</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">IdealPDActuatorCfg</span><span class="p">(</span>
+                <span class="n">target_names_expr</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;.*&quot;</span><span class="p">,),</span>
+                <span class="n">stiffness</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;.*&quot;</span><span class="p">:</span> <span class="mf">50.0</span><span class="p">},</span>
+                <span class="n">damping</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;.*&quot;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">},</span>
+            <span class="p">),</span>
+        <span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">collisions</span><span class="o">=</span><span class="p">(</span><span class="n">my_collision_cfg</span><span class="p">,),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The following sections describe each field.</p>
+<section id="spec-fn">
+<h3><code class="docutils literal notranslate"><span class="pre">spec_fn</span></code><a class="headerlink" href="#spec-fn" title="Link to this heading">#</a></h3>
+<p>A callable that returns an <code class="docutils literal notranslate"><span class="pre">mujoco.MjSpec</span></code>. The scene calls it during
+composition, attaches the returned spec with a name prefix, and compiles
+everything into a shared <code class="docutils literal notranslate"><span class="pre">MjModel</span></code>.</p>
+<p>For simple cases a lambda suffices:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">spec_fn</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjSpec</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;robot.xml&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For anything more involved, use a regular function. MuJoCo resolves mesh
+assets from disk automatically, so <code class="docutils literal notranslate"><span class="pre">get_spec</span></code> only needs to load the
+XML:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_spec</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjSpec</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjSpec</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">ROBOT_XML</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Because <code class="docutils literal notranslate"><span class="pre">spec_fn</span></code> is an arbitrary callable, you can perform any
+<a class="reference external" href="https://mujoco.readthedocs.io/en/stable/python.html#spec">MjSpec edits</a>
+before returning: add bodies, change joint limits, swap materials,
+or build the entire model programmatically without an XML file at all.</p>
+</section>
+<section id="init-state">
+<h3><code class="docutils literal notranslate"><span class="pre">init_state</span></code><a class="headerlink" href="#init-state" title="Link to this heading">#</a></h3>
+<p>Default root pose, root velocity, and joint positions/velocities. These
+values are stored as a MuJoCo keyframe and used by reset events to
+return the entity to its initial configuration.</p>
+<p><code class="docutils literal notranslate"><span class="pre">joint_pos</span></code> and <code class="docutils literal notranslate"><span class="pre">joint_vel</span></code> are dicts mapping regex patterns to
+values. Patterns are matched against joint names in order, so later
+entries override earlier ones for any joint that matches both:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">init_state</span> <span class="o">=</span> <span class="n">EntityCfg</span><span class="o">.</span><span class="n">InitialStateCfg</span><span class="p">(</span>
+    <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">),</span>       <span class="c1"># root position</span>
+    <span class="n">rot</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>  <span class="c1"># root quaternion (w, x, y, z)</span>
+    <span class="n">joint_pos</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;.*&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>              <span class="c1"># all joints to zero</span>
+        <span class="s2">&quot;.*_hip_.*&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>       <span class="c1"># then override hips to 0.5</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Set <code class="docutils literal notranslate"><span class="pre">joint_pos=None</span></code> to use an existing keyframe from the MJCF model
+instead of defining values here.</p>
+</section>
+<section id="articulation">
+<h3><code class="docutils literal notranslate"><span class="pre">articulation</span></code><a class="headerlink" href="#articulation" title="Link to this heading">#</a></h3>
+<p>Actuator configuration. Only needed for entities that have actuated
+joints. Passive objects (boxes, tables, walls) can omit this field
+entirely. See <a class="reference internal" href="../actuators.html#actuators"><span class="std std-ref">Actuators</span></a> for details on actuator types.</p>
+<p><code class="docutils literal notranslate"><span class="pre">soft_joint_pos_limit_factor</span></code> (default 1.0) shrinks the joint range
+used by soft-limit penalty rewards, so the policy is penalized before
+reaching the physical hard stop. This does not modify the actual joint
+limits in the MuJoCo model.</p>
+</section>
+<section id="spec-editors">
+<h3>Spec editors<a class="headerlink" href="#spec-editors" title="Link to this heading">#</a></h3>
+<p>The remaining fields are optional tuples of spec editor configs that
+modify the <code class="docutils literal notranslate"><span class="pre">MjSpec</span></code> before compilation:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 80.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">collisions</span></code></p></td>
+<td><p>Set contact parameters (contype, conaffinity, friction) per geom.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">lights</span></code></p></td>
+<td><p>Add lights to specific bodies.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cameras</span></code></p></td>
+<td><p>Add cameras to specific bodies.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">textures</span></code></p></td>
+<td><p>Add procedural textures (checker, gradient, etc.).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">materials</span></code></p></td>
+<td><p>Add materials and optionally assign them to geoms by regex.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Each editor accepts regex patterns to target specific elements. For
+example, a <code class="docutils literal notranslate"><span class="pre">CollisionCfg</span></code> with <code class="docutils literal notranslate"><span class="pre">geom_names_expr=(&quot;.*_foot.*&quot;,)</span></code>
+sets contact parameters only on foot geoms. See the asset zoo
+(<code class="docutils literal notranslate"><span class="pre">mjlab.asset_zoo.robots</span></code>) for complete examples.</p>
+</section>
+<section id="heterogeneous-worlds">
+<h3>Heterogeneous worlds<a class="headerlink" href="#heterogeneous-worlds" title="Link to this heading">#</a></h3>
+<p>For scenes that need different mesh assets in different parallel worlds
+(for example, training a manipulation policy that generalizes across
+object shapes), use <code class="docutils literal notranslate"><span class="pre">VariantEntityCfg</span></code> instead of <code class="docutils literal notranslate"><span class="pre">EntityCfg</span></code>. Each
+world is assigned a variant proportional to a configurable weight, and
+mesh-dependent compiled constants (collision bounds, body inertials,
+subtree mass) are stored as per-world arrays so domain randomization and
+viewers stay consistent. See <a class="reference internal" href="per_world_mesh.html#heterogeneous-worlds"><span class="std std-ref">Heterogeneous Worlds</span></a>.</p>
+</section>
+<section id="subclassing-entity">
+<h3>Subclassing Entity<a class="headerlink" href="#subclassing-entity" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">Entity</span></code> and <code class="docutils literal notranslate"><span class="pre">EntityCfg</span></code> can be subclassed for specialized behavior.
+mjlab itself does this for terrain: <code class="docutils literal notranslate"><span class="pre">TerrainEntity</span></code> extends <code class="docutils literal notranslate"><span class="pre">Entity</span></code>
+with procedural terrain generation and per-environment origin
+computation, and <code class="docutils literal notranslate"><span class="pre">TerrainEntityCfg</span></code> adds fields like
+<code class="docutils literal notranslate"><span class="pre">terrain_type</span></code>, <code class="docutils literal notranslate"><span class="pre">env_spacing</span></code>, and <code class="docutils literal notranslate"><span class="pre">terrain_generator</span></code>. The same
+pattern works for any domain-specific entity that needs logic beyond
+what <code class="docutils literal notranslate"><span class="pre">EntityCfg</span></code> and spec editors provide.</p>
+</section>
+<section id="finding-elements">
+<h3>Finding elements<a class="headerlink" href="#finding-elements" title="Link to this heading">#</a></h3>
+<p>Entity provides <code class="docutils literal notranslate"><span class="pre">find_*</span></code> methods that accept regex patterns and return
+matched element indices and names:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ids</span><span class="p">,</span> <span class="n">names</span> <span class="o">=</span> <span class="n">entity</span><span class="o">.</span><span class="n">find_joints</span><span class="p">((</span><span class="s2">&quot;.*_hip_.*&quot;</span><span class="p">,</span> <span class="s2">&quot;.*_knee_.*&quot;</span><span class="p">))</span>
+<span class="n">ids</span><span class="p">,</span> <span class="n">names</span> <span class="o">=</span> <span class="n">entity</span><span class="o">.</span><span class="n">find_geoms</span><span class="p">((</span><span class="s2">&quot;.*foot.*&quot;</span><span class="p">,))</span>
+<span class="n">ids</span><span class="p">,</span> <span class="n">names</span> <span class="o">=</span> <span class="n">entity</span><span class="o">.</span><span class="n">find_bodies</span><span class="p">((</span><span class="s2">&quot;.*&quot;</span><span class="p">,))</span>
+</pre></div>
+</div>
+<p>Available methods: <code class="docutils literal notranslate"><span class="pre">find_bodies()</span></code>, <code class="docutils literal notranslate"><span class="pre">find_joints()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">find_geoms()</span></code>, <code class="docutils literal notranslate"><span class="pre">find_sites()</span></code>, <code class="docutils literal notranslate"><span class="pre">find_tendons()</span></code>.
+These are used internally during scene construction and manager
+initialization. In reward and observation terms, prefer
+<code class="docutils literal notranslate"><span class="pre">SceneEntityCfg</span></code> with name patterns as described below.</p>
+</section>
+</section>
+<section id="reading-runtime-state">
+<h2>Reading runtime state<a class="headerlink" href="#reading-runtime-state" title="Link to this heading">#</a></h2>
+<p>Once entities are added to a <code class="docutils literal notranslate"><span class="pre">SceneCfg</span></code> and the environment is
+constructed, their state is accessible through three interfaces at
+decreasing levels of abstraction.</p>
+<section id="entitydata">
+<h3>EntityData<a class="headerlink" href="#entitydata" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">entity.data</span></code> is the primary interface for reward, observation, and
+termination functions. It exposes kinematic state (poses, velocities, accelerations), actuator forces,
+generalized forces, and derived body-frame quantities such as projected
+gravity, all as PyTorch tensors with
+shape <code class="docutils literal notranslate"><span class="pre">(num_envs,</span> <span class="pre">...)</span></code>. See <a class="reference internal" href="entity_data.html#entity-data"><span class="std std-ref">Entity Data</span></a> for the full property
+reference.</p>
+<p><code class="docutils literal notranslate"><span class="pre">SceneEntityCfg</span></code> selects which entity and which elements within it a
+term operates on. Regex patterns in <code class="docutils literal notranslate"><span class="pre">joint_names</span></code>, <code class="docutils literal notranslate"><span class="pre">body_names</span></code>,
+<code class="docutils literal notranslate"><span class="pre">site_names</span></code>, etc. are resolved to integer indices once at manager
+initialization, so there is no regex overhead at runtime:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.managers.scene_entity_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">SceneEntityCfg</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">flat_orientation_l2</span><span class="p">(</span>
+    <span class="n">env</span><span class="p">,</span>
+    <span class="n">asset_cfg</span><span class="p">:</span> <span class="n">SceneEntityCfg</span> <span class="o">=</span> <span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;robot&quot;</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Penalize non-flat base orientation using projected gravity.&quot;&quot;&quot;</span>
+    <span class="n">asset</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">scene</span><span class="p">[</span><span class="n">asset_cfg</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">asset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">projected_gravity_b</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">SceneEntityCfg</span></code> also supports regex element selection through
+<code class="docutils literal notranslate"><span class="pre">joint_names</span></code>, <code class="docutils literal notranslate"><span class="pre">body_names</span></code>, <code class="docutils literal notranslate"><span class="pre">site_names</span></code>, etc. The resolved
+integer indices (e.g., <code class="docutils literal notranslate"><span class="pre">asset_cfg.joint_ids</span></code>) make the runtime read a
+single tensor slice with no regex overhead.</p>
+</section>
+<section id="sensors">
+<h3>Sensors<a class="headerlink" href="#sensors" title="Link to this heading">#</a></h3>
+<p>Sensors are configured on the <strong>scene</strong>, not on individual entities.
+A sensor can reference an entity element (e.g., a contact sensor on the
+robot’s feet, an accelerometer attached to a body site), but it can also
+be independent of any entity. This is why sensors live in <code class="docutils literal notranslate"><span class="pre">SceneCfg</span></code>
+rather than <code class="docutils literal notranslate"><span class="pre">EntityCfg</span></code>.</p>
+<p>At runtime, sensors are accessed by name through <code class="docutils literal notranslate"><span class="pre">env.scene</span></code>, the same
+way entities are:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">angular_momentum_penalty</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">sensor_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="n">sensor</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">scene</span><span class="p">[</span><span class="n">sensor_name</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">sensor</span><span class="o">.</span><span class="n">data</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Builtin sensors wrap MuJoCo sensor types (accelerometer, gyro, framepos,
+subtreeangmom, etc.). <code class="docutils literal notranslate"><span class="pre">ContactSensor</span></code>, <code class="docutils literal notranslate"><span class="pre">RayCastSensor</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">CameraSensor</span></code> provide higher-level abstractions for contact detection,
+terrain scanning, and RGB-D rendering. See <a class="reference internal" href="../sensors/index.html#sensors"><span class="std std-ref">Sensors</span></a> for details.</p>
+</section>
+<section id="raw-simulation-data">
+<h3>Raw simulation data<a class="headerlink" href="#raw-simulation-data" title="Link to this heading">#</a></h3>
+<p>For anything not covered by <code class="docutils literal notranslate"><span class="pre">EntityData</span></code> or sensors, the underlying
+MuJoCo Warp arrays are accessible through <code class="docutils literal notranslate"><span class="pre">env.sim.data</span></code> and
+<code class="docutils literal notranslate"><span class="pre">env.sim.model</span></code>. These expose the full <code class="docutils literal notranslate"><span class="pre">mjData</span></code> and <code class="docutils literal notranslate"><span class="pre">mjModel</span></code>
+fields as PyTorch tensors (zero-copy), indexed by global MuJoCo IDs
+rather than per-entity IDs:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Global joint positions across all entities.</span>
+<span class="n">qpos</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">qpos</span>          <span class="c1"># (num_envs, nq)</span>
+
+<span class="c1"># All body positions.</span>
+<span class="n">xpos</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">xpos</span>          <span class="c1"># (num_envs, nbody, 3)</span>
+
+<span class="c1"># Model-level constants.</span>
+<span class="n">body_mass</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">body_mass</span>  <span class="c1"># (nbody,)</span>
+</pre></div>
+</div>
+<p>This is useful for low-level operations or when you need quantities
+that span multiple entities.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The main limitation of raw sim data is that you must manage global
+MuJoCo indices yourself. In the future, we plan to support MuJoCo’s
+<a class="reference external" href="https://mujoco.readthedocs.io/en/latest/python.html#relationship-to-pymjcf-and-bind">bind</a>
+functionality, which will allow binding spec elements directly to
+their corresponding data views without manual index bookkeeping.</p>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="entity_data.html">Entity Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="per_world_mesh.html">Heterogeneous Worlds</a></li>
+</ul>
+</div>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../architecture_overview.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Architecture Overview</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="entity_data.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Entity Data</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#configuring-an-entity">Configuring an entity</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#spec-fn"><code class="docutils literal notranslate"><span class="pre">spec_fn</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#init-state"><code class="docutils literal notranslate"><span class="pre">init_state</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#articulation"><code class="docutils literal notranslate"><span class="pre">articulation</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#spec-editors">Spec editors</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#heterogeneous-worlds">Heterogeneous worlds</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#subclassing-entity">Subclassing Entity</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#finding-elements">Finding elements</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reading-runtime-state">Reading runtime state</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#entitydata">EntityData</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#sensors">Sensors</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#raw-simulation-data">Raw simulation data</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By The mjlab Developers
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2025, The mjlab Developers.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p class="last-updated">
+  Last updated on Jul 22, 2026.
+  <br/>
+</p>
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

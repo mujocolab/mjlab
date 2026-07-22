@@ -1,0 +1,926 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Viewers &#8212; mjlab Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../_static/twemoji.css" />
+    <link rel="stylesheet" type="text/css" href="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=53359634" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=3ea80bc3" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js"></script>
+    <script src="../_static/twemoji.js"></script>
+    <script src="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/js/all.min.js?v=ec35c6c9"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'source/viewers';</script>
+    <link rel="icon" href="../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Distributed Training" href="training/distributed_training.html" />
+    <link rel="prev" title="Motion Imitation" href="training/motion_imitation.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+    <meta name="docbuild:last-update" content="Jul 22, 2026"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">mjlab Documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item">
+<div class="sidebar-version-switcher">
+  <label class="sidebar-version-label" for="version-select">Version</label>
+  <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
+    <option value="../../main/source/viewers.html" >main</option>
+    <option value="viewers.html" selected>v1.5.3</option>
+    <option value="../../v1.5.2/source/viewers.html" >v1.5.2</option>
+    <option value="../../v1.5.1/source/viewers.html" >v1.5.1</option>
+    <option value="../../v1.5.0/source/viewers.html" >v1.5.0</option>
+    <option value="../../v1.4.0/source/viewers.html" >v1.4.0</option>
+    <option value="../../v1.3.0/source/viewers.html" >v1.3.0</option>
+    <option value="../../v1.2.0/source/viewers.html" >v1.2.0</option>
+    <option value="../../v1.1.1/index.html" >v1.1.1</option>
+    <option value="../../v1.1.0/index.html" >v1.1.0</option>
+    <option value="../../v1.0.0/index.html" >v1.0.0</option>
+  </select>
+</div>
+</div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="tutorials.html">Tutorials</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/cartpole.html">Cartpole: Building Your First Environment</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="architecture_overview.html">Architecture Overview</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="entity/index.html">Entity</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="entity/entity_data.html">Entity Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="entity/per_world_mesh.html">Heterogeneous Worlds</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="actuators.html">Actuators</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="sensors/index.html">Sensors</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="sensors/raycast_sensor.html">RayCast Sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sensors/rgbd_camera.html">RGB-D Camera</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="scene.html">Scene</a></li>
+<li class="toctree-l1"><a class="reference internal" href="terrain.html">Terrain</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">The Manager Layer</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="environment_config.html">Environment Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="actions.html">Actions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="terminations.html">Terminations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="events.html">Events</a></li>
+<li class="toctree-l1"><a class="reference internal" href="randomization.html">Domain Randomization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="curriculum.html">Curriculum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recorders.html">Recorders</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training &amp; Debugging</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="training/rsl_rl.html">Training with RSL-RL</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="training/motion_imitation.html">Motion Imitation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Viewers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training/distributed_training.html">Distributed Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training/cloud.html">Cloud Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="debugging/nan_guard.html">NaN Guard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="debugging/export_scene.html">Export Scene</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="api/index.html">API Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/envs.html">mjlab.envs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scene.html">mjlab.scene</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/sim.html">mjlab.sim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/entity.html">mjlab.entity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/actuator.html">mjlab.actuator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/sensor.html">mjlab.sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/managers.html">mjlab.managers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/terrains.html">mjlab.terrains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/rl.html">mjlab.rl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/viewer.html">mjlab.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/tasks.html">mjlab.tasks</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Further Reading</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="motivation.html">Why mjlab?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration_isaac_lab.html">Migrating from Isaac Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ &amp; Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="research.html">Research</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/edit/main/docs/source/viewers.rst" target="_blank"
+   class="btn btn-sm btn-source-edit-button dropdown-item"
+   title="Suggest edit"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-pencil-alt"></i>
+  </span>
+<span class="btn__text-container">Suggest edit</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/issues/new?title=Issue%20on%20page%20%2Fsource/viewers.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/source/viewers.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Viewers</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#launching-a-viewer">Launching a viewer</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#viewer-configuration">Viewer configuration</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#native-mujoco-viewer">Native MuJoCo viewer</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#viser-browser-based">Viser (browser-based)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#debug-visualization">Debug visualization</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#offscreen-renderer">Offscreen renderer</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-comparison">Quick comparison</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#citation">Citation</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="viewers">
+<span id="id1"></span><h1>Viewers<a class="headerlink" href="#viewers" title="Link to this heading">#</a></h1>
+<p>mjlab ships two interactive viewers for evaluating trained policies and
+debugging environment behavior: a <strong>native viewer</strong> built on MuJoCo’s
+<a class="reference external" href="https://mujoco.readthedocs.io/en/stable/python.html#passive-viewer">passive viewer</a>
+that opens a desktop window, and a <a class="reference external" href="https://viser.studio/main/">Viser</a> <strong>viewer</strong> that runs in the
+browser. Both share a common <code class="docutils literal notranslate"><span class="pre">ViewerConfig</span></code> and execute the same
+simulation loop; they differ in interface, feature set, and where they
+shine.</p>
+<section id="launching-a-viewer">
+<h2>Launching a viewer<a class="headerlink" href="#launching-a-viewer" title="Link to this heading">#</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">play</span></code> script accepts a <code class="docutils literal notranslate"><span class="pre">--viewer</span></code> flag:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Desktop window (MuJoCo native viewer).</span>
+uv<span class="w"> </span>run<span class="w"> </span>play<span class="w"> </span>Mjlab-Velocity-Flat-Unitree-G1<span class="w"> </span>--viewer<span class="w"> </span>native<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--wandb-run-path<span class="w"> </span>your-entity/your-project/run_id
+
+<span class="c1"># Browser-based viewer (opens localhost:8080).</span>
+uv<span class="w"> </span>run<span class="w"> </span>play<span class="w"> </span>Mjlab-Velocity-Flat-Unitree-G1<span class="w"> </span>--viewer<span class="w"> </span>viser<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--wandb-run-path<span class="w"> </span>your-entity/your-project/run_id
+</pre></div>
+</div>
+<p>The default is <code class="docutils literal notranslate"><span class="pre">auto</span></code>, which selects native when a display server is
+available (<code class="docutils literal notranslate"><span class="pre">DISPLAY</span></code> or <code class="docutils literal notranslate"><span class="pre">WAYLAND_DISPLAY</span></code>) and falls back to Viser
+on headless machines.</p>
+<p>For quick exploration without a trained checkpoint, pass <code class="docutils literal notranslate"><span class="pre">--agent</span> <span class="pre">zero</span></code>
+or <code class="docutils literal notranslate"><span class="pre">--agent</span> <span class="pre">random</span></code> to use a dummy policy:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>play<span class="w"> </span>Mjlab-Velocity-Flat-Unitree-G1<span class="w"> </span>--agent<span class="w"> </span>zero<span class="w"> </span>--viewer<span class="w"> </span>viser
+</pre></div>
+</div>
+</section>
+<section id="viewer-configuration">
+<h2>Viewer configuration<a class="headerlink" href="#viewer-configuration" title="Link to this heading">#</a></h2>
+<p>Camera position, tracking target, and rendering options live in
+<code class="docutils literal notranslate"><span class="pre">ViewerConfig</span></code>, set through the <code class="docutils literal notranslate"><span class="pre">viewer</span></code> field of
+<code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.viewer</span><span class="w"> </span><span class="kn">import</span> <span class="n">ViewerConfig</span>
+
+<span class="n">viewer</span> <span class="o">=</span> <span class="n">ViewerConfig</span><span class="p">(</span>
+    <span class="n">lookat</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
+    <span class="n">distance</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+    <span class="n">elevation</span><span class="o">=-</span><span class="mf">20.0</span><span class="p">,</span>
+    <span class="n">azimuth</span><span class="o">=</span><span class="mf">135.0</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">origin_type</span></code> field controls the camera reference frame:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 78.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Origin type</p></th>
+<th class="head"><p>Behavior</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">WORLD</span></code></p></td>
+<td><p>Free camera anchored at world origin (default).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ASSET_ROOT</span></code></p></td>
+<td><p>Camera tracks the root body of the entity named by
+<code class="docutils literal notranslate"><span class="pre">entity_name</span></code>. Good for locomotion tasks where the robot moves
+through the world.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ASSET_BODY</span></code></p></td>
+<td><p>Camera tracks a specific body (<code class="docutils literal notranslate"><span class="pre">body_name</span></code>) within the entity
+named by <code class="docutils literal notranslate"><span class="pre">entity_name</span></code>. Useful for close-up views of an
+end-effector or head.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Example with asset tracking:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">viewer</span> <span class="o">=</span> <span class="n">ViewerConfig</span><span class="p">(</span>
+    <span class="n">origin_type</span><span class="o">=</span><span class="n">ViewerConfig</span><span class="o">.</span><span class="n">OriginType</span><span class="o">.</span><span class="n">ASSET_ROOT</span><span class="p">,</span>
+    <span class="n">entity_name</span><span class="o">=</span><span class="s2">&quot;robot&quot;</span><span class="p">,</span>
+    <span class="n">distance</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+    <span class="n">elevation</span><span class="o">=-</span><span class="mf">15.0</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Additional fields:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">enable_shadows</span></code> and <code class="docutils literal notranslate"><span class="pre">enable_reflections</span></code> toggle rendering
+quality.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">height</span></code> and <code class="docutils literal notranslate"><span class="pre">width</span></code> set the offscreen render resolution (used
+by <code class="docutils literal notranslate"><span class="pre">OffscreenRenderer</span></code> and video recording).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">env_idx</span></code> selects which environment to display at startup.</p></li>
+</ul>
+</section>
+<section id="native-mujoco-viewer">
+<h2>Native MuJoCo viewer<a class="headerlink" href="#native-mujoco-viewer" title="Link to this heading">#</a></h2>
+<figure class="align-center">
+<a class="reference internal image-reference" href="../_images/native_viewer.png"><img alt="Native MuJoCo viewer with reward plots" src="../_images/native_viewer.png" style="width: 100%;" />
+</a>
+</figure>
+<p>The native viewer opens MuJoCo’s
+<a class="reference external" href="https://mujoco.readthedocs.io/en/stable/python.html#passive-viewer">passive viewer</a>
+in a desktop window. It provides the fastest, most faithful rendering
+with full MuJoCo visual fidelity. Choose this viewer for local
+iteration and interactive perturbation testing. The
+MuJoCo team has a
+<a class="reference external" href="https://www.youtube.com/watch?v=P83tKA1iz2Y">video tutorial</a>
+covering the viewer’s built-in controls and navigation.</p>
+<p><strong>Keyboard controls.</strong></p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 18.0%" />
+<col style="width: 82.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Action</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Space</span></code></p></td>
+<td><p>Pause or resume simulation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Enter</span></code></p></td>
+<td><p>Reset the environment.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">+</span></code> / <code class="docutils literal notranslate"><span class="pre">-</span></code></p></td>
+<td><p>Increase or decrease playback speed.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&lt;</span></code> / <code class="docutils literal notranslate"><span class="pre">&gt;</span></code></p></td>
+<td><p>Cycle through environments (when <code class="docutils literal notranslate"><span class="pre">num_envs</span> <span class="pre">&gt;</span> <span class="pre">1</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">A</span></code></p></td>
+<td><p>Toggle rendering all environments simultaneously. Debug
+visualization draws for all environments when this is active.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">P</span></code></p></td>
+<td><p>Toggle reward plots.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R</span></code></p></td>
+<td><p>Toggle debug visualization.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Reward plots.</strong>
+Press <code class="docutils literal notranslate"><span class="pre">P</span></code> to display per-term reward curves in a strip along the right
+edge of the window. Each term gets its own plot with an autoscaling
+y-axis. The plots update live and clear on environment reset. This is
+the fastest way to diagnose which reward terms dominate or misbehave
+during a rollout.</p>
+<p><strong>Interactive perturbations.</strong>
+Click and drag any body in the scene to apply external forces during
+playback. The force transfers into the simulation on the next step,
+making it easy to test balance recovery, grasp robustness, or
+disturbance rejection without writing any code.</p>
+<p>Mouse perturbation forces are kept separate from programmatic forces
+(e.g. <code class="docutils literal notranslate"><span class="pre">apply_body_impulse</span></code>) by routing them through different MuJoCo
+channels: programmatic forces use <code class="docutils literal notranslate"><span class="pre">xfrc_applied</span></code> (Cartesian body
+forces), while mouse forces are converted to <code class="docutils literal notranslate"><span class="pre">qfrc_applied</span></code>
+(generalized joint forces) via <code class="docutils literal notranslate"><span class="pre">mj_applyFT</span></code>. Both channels are summed
+during forward dynamics, so they coexist without conflict.</p>
+<p><strong>Domain randomization visualization.</strong>
+The native viewer syncs all visual DR fields from GPU to CPU each
+frame. Randomized geom colors, sizes, positions, material colors,
+body poses, camera parameters, light positions, and inertia ellipsoids
+all render faithfully. If a DR event changes a visual property, the
+native viewer shows it.</p>
+</section>
+<section id="viser-browser-based">
+<h2>Viser (browser-based)<a class="headerlink" href="#viser-browser-based" title="Link to this heading">#</a></h2>
+<figure class="align-center">
+<a class="reference internal image-reference" href="../_images/viser_viewer.png"><img alt="Viser browser-based viewer" src="../_images/viser_viewer.png" style="width: 100%;" />
+</a>
+</figure>
+<p>The <a class="reference external" href="https://viser.studio/main/">Viser</a> viewer opens an interactive 3D scene
+in the browser at <code class="docutils literal notranslate"><span class="pre">localhost:8080</span></code>. It works on remote machines over
+SSH tunnels, making it the natural choice for headless GPU servers and
+shared debugging sessions. Its web-based architecture makes it far more customizable than the
+native viewer. It also provides dedicated panels for camera sensor
+output that the native viewer does not.</p>
+<p><strong>Tab-based interface.</strong>
+The sidebar organizes controls into tabs:</p>
+<ul class="simple">
+<li><p><strong>Controls</strong>: play/pause, reset, speed adjustment, environment
+selection, and display settings (FOV, contacts, geom groups, camera
+tracking).</p></li>
+<li><p><strong>Rewards</strong>: live per-term reward charts, toggled by a checkbox.</p></li>
+<li><p><strong>Metrics</strong>: live per-term metric charts when a <code class="docutils literal notranslate"><span class="pre">MetricsManager</span></code>
+is present.</p></li>
+<li><p><strong>Camera Feeds</strong>: live RGB and depth image panels for every
+<code class="docutils literal notranslate"><span class="pre">CameraSensor</span></code> in the scene. A depth scale slider adjusts the
+visualization range, and a frustum toggle draws the camera’s field of
+view in the 3D scene.</p></li>
+<li><p><strong>Groups</strong>: show or hide MuJoCo geom and site groups.</p></li>
+</ul>
+<p><strong>Camera sensor integration.</strong>
+Viser auto-discovers all <code class="docutils literal notranslate"><span class="pre">CameraSensor</span></code> instances in the scene and
+displays their output as live image panels. Each camera also gets a
+frustum visualization in the 3D viewport, so you can see exactly what
+the sensor covers. This makes Viser the best tool for debugging camera
+placement, field of view, and depth sensing.</p>
+<p><strong>Contact visualization.</strong>
+The Controls tab exposes contact rendering options. When enabled, contact
+points appear as colored markers and contact forces as red arrows,
+giving immediate visual feedback on collision behavior.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The Viser viewer does not support interactive perturbations (applying
+wrenches to bodies). Use the native viewer for that, or set up
+perturbations via <a class="reference internal" href="events.html#events"><span class="std std-ref">events</span></a>.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Viser reads world-space body positions directly from GPU each frame,
+so body poses update correctly. However, <code class="docutils literal notranslate"><span class="pre">geom_rgba</span></code> and
+<code class="docutils literal notranslate"><span class="pre">geom_size</span></code> are baked into GLB meshes at scene construction time
+and will not reflect per-world DR changes. This will be addressed in
+a future release. For now, use the native viewer when you need to
+verify visual DR.</p>
+</div>
+</section>
+<section id="debug-visualization">
+<h2>Debug visualization<a class="headerlink" href="#debug-visualization" title="Link to this heading">#</a></h2>
+<p>Both viewers support a shared <code class="docutils literal notranslate"><span class="pre">DebugVisualizer</span></code> interface that manager
+terms can draw into. Available primitives:</p>
+<ul class="simple">
+<li><p><strong>Arrows</strong>: velocity commands, force vectors, heading indicators.</p></li>
+<li><p><strong>Spheres</strong>: target positions, contact points.</p></li>
+<li><p><strong>Cylinders</strong>: limb targets, distance markers.</p></li>
+<li><p><strong>Ellipsoids</strong>: inertia visualization.</p></li>
+<li><p><strong>Coordinate frames</strong>: body frame orientation, end-effector targets.</p></li>
+<li><p><strong>Ghost meshes</strong>: transparent renderings of a robot at a target pose,
+useful for motion tracking or goal visualization.</p></li>
+</ul>
+<p>In the native viewer, toggle debug visualization with <code class="docutils literal notranslate"><span class="pre">R</span></code> and press
+<code class="docutils literal notranslate"><span class="pre">A</span></code> to show debug draws for all environments at once. In Viser, the
+Controls tab has toggles for both. The <code class="docutils literal notranslate"><span class="pre">DebugVisualizer</span></code> abstraction
+means that reward and command terms draw once, and both viewers display
+the result without any viewer-specific code.</p>
+</section>
+<section id="offscreen-renderer">
+<h2>Offscreen renderer<a class="headerlink" href="#offscreen-renderer" title="Link to this heading">#</a></h2>
+<p>For recording videos without a display, <code class="docutils literal notranslate"><span class="pre">OffscreenRenderer</span></code> renders
+frames using MuJoCo’s offscreen rendering pipeline. It supports the
+same <code class="docutils literal notranslate"><span class="pre">ViewerConfig</span></code> camera configuration and accepts a debug
+visualization callback. The renderer is hard-capped at 32 environments
+to keep memory and rendering time manageable.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">play</span></code> script uses <code class="docutils literal notranslate"><span class="pre">OffscreenRenderer</span></code> when the <code class="docutils literal notranslate"><span class="pre">--video</span></code> flag
+is set:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>play<span class="w"> </span>Mjlab-Velocity-Flat-Unitree-G1<span class="w"> </span>--video<span class="w"> </span>--video-length<span class="w"> </span><span class="m">300</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--wandb-run-path<span class="w"> </span>your-entity/your-project/run_id
+</pre></div>
+</div>
+</section>
+<section id="quick-comparison">
+<h2>Quick comparison<a class="headerlink" href="#quick-comparison" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 24.0%" />
+<col style="width: 38.0%" />
+<col style="width: 38.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Native</p></th>
+<th class="head"><p>Viser</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Interface</p></td>
+<td><p>Desktop window</p></td>
+<td><p>Browser (<code class="docutils literal notranslate"><span class="pre">localhost:8080</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Best for</p></td>
+<td><p>Local iteration, perturbations</p></td>
+<td><p>Customization, remote dev, cameras</p></td>
+</tr>
+<tr class="row-even"><td><p>Reward plots</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">P</span></code> key, right-side strip</p></td>
+<td><p>Rewards tab, uPlot charts</p></td>
+</tr>
+<tr class="row-odd"><td><p>Metrics plots</p></td>
+<td></td>
+<td><p>Metrics tab</p></td>
+</tr>
+<tr class="row-even"><td><p>Camera feeds</p></td>
+<td></td>
+<td><p>Auto-discovered, with frustum</p></td>
+</tr>
+<tr class="row-odd"><td><p>Perturbations</p></td>
+<td><p>Click and drag</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>DR visualization</p></td>
+<td><p>Full (all visual fields synced)</p></td>
+<td><p>Partial (body poses only)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Contact rendering</p></td>
+<td></td>
+<td><p>Contact points and forces</p></td>
+</tr>
+<tr class="row-even"><td><p>Multi-environment</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&lt;</span></code> <code class="docutils literal notranslate"><span class="pre">&gt;</span></code> to cycle, <code class="docutils literal notranslate"><span class="pre">A</span></code> for all</p></td>
+<td><p>Dropdown selector</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="citation">
+<h2>Citation<a class="headerlink" href="#citation" title="Link to this heading">#</a></h2>
+<p>If you use the Viser viewer in your research, consider citing:</p>
+<div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@article</span><span class="p">{</span><span class="nl">yi2025viser</span><span class="p">,</span>
+<span class="w">    </span><span class="na">title</span><span class="p">=</span><span class="s">{Viser: Imperative, web-based 3d visualization in python}</span><span class="p">,</span>
+<span class="w">    </span><span class="na">author</span><span class="p">=</span><span class="s">{Yi, Brent and Kim, Chung Min and Kerr, Justin and Wu, Gina and Feng, Rebecca and Zhang, Anthony and Kulhanek, Jonas and Choi, Hongsuk and Ma, Yi and Tancik, Matthew and Kanazawa, Angjoo}</span><span class="p">,</span>
+<span class="w">    </span><span class="na">journal</span><span class="p">=</span><span class="s">{arXiv preprint arXiv:2507.22885}</span><span class="p">,</span>
+<span class="w">    </span><span class="na">year</span><span class="p">=</span><span class="s">{2025}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="training/motion_imitation.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Motion Imitation</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="training/distributed_training.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Distributed Training</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#launching-a-viewer">Launching a viewer</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#viewer-configuration">Viewer configuration</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#native-mujoco-viewer">Native MuJoCo viewer</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#viser-browser-based">Viser (browser-based)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#debug-visualization">Debug visualization</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#offscreen-renderer">Offscreen renderer</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-comparison">Quick comparison</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#citation">Citation</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By The mjlab Developers
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2025, The mjlab Developers.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p class="last-updated">
+  Last updated on Jul 22, 2026.
+  <br/>
+</p>
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
