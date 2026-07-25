@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-
 import mujoco
 import torch
 
@@ -16,6 +14,7 @@ from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.action_manager import ActionTermCfg
 from mjlab.scene import SceneCfg
+from mjlab.sensor import CameraSensorCfg
 from mjlab.sim import MujocoCfg, SimulationCfg
 from mjlab.terrains import TerrainEntityCfg
 from mjlab.viewer import NativeMujocoViewer, ViewerConfig
@@ -48,11 +47,13 @@ def _pickable_cfg(
   size: tuple[float, float, float],
   rgba: tuple[float, float, float, float],
 ) -> EntityCfg:
-  spec_fn: Callable[[], mujoco.MjSpec] = lambda: _make_pickable_spec(
-    geom_type=geom_type,
-    size=size,
-    rgba=rgba,
-  )
+  def spec_fn() -> mujoco.MjSpec:
+    return _make_pickable_spec(
+      geom_type=geom_type,
+      size=size,
+      rgba=rgba,
+    )
+
   return EntityCfg(
     spec_fn=spec_fn,
     init_state=EntityCfg.InitialStateCfg(
@@ -145,6 +146,29 @@ def _customize_scene(spec: mujoco.MjSpec) -> None:
 
 def make_env_cfg() -> ManagerBasedRlEnvCfg:
   """Create the custom scene configuration."""
+  cameras = (
+    CameraSensorCfg(
+      name="ego_camera",
+      parent_body="robot/base",
+      pos=(0.30, 0.0, 0.10),
+      # MuJoCo cameras look along local -Z. This points forward and slightly down.
+      quat=(0.741, 0.331, -0.331, -0.403),
+      fovy=75.0,
+      width=256,
+      height=256,
+      data_types=("rgb", "depth"),
+    ),
+    CameraSensorCfg(
+      name="wrist_camera",
+      parent_body="robot/d1/Link6",
+      pos=(0.0, 0.0, 0.06),
+      quat=(0.7071068, 0.0, 0.7071068, 0.0),
+      fovy=80.0,
+      width=256,
+      height=256,
+      data_types=("rgb", "depth"),
+    ),
+  )
   entities = {
     "robot": get_go2_d1_robot_cfg(),
     "red_cube": _pickable_cfg(
@@ -178,6 +202,7 @@ def make_env_cfg() -> ManagerBasedRlEnvCfg:
     scene=SceneCfg(
       terrain=TerrainEntityCfg(terrain_type="plane"),
       entities=entities,
+      sensors=cameras,
       num_envs=1,
       env_spacing=3.0,
       spec_fn=_customize_scene,
@@ -211,6 +236,7 @@ def main() -> None:
 
   env.reset()
   print("Custom Go2+D1 scene started in MuJoCo Warp.")
+  print("Sensors: ego_camera and wrist_camera (256x256 RGB + depth).")
   print("Close the viewer or press Ctrl+C to stop.")
   NativeMujocoViewer(env, zero_policy).run()
 

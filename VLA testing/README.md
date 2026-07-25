@@ -11,6 +11,9 @@ environments and VLA policies to mjlab.
 - Added a continuously rendered launcher for Meta-World's `pick-place-v3` task.
 - Added a custom mjlab scene with the Go2+D1 robot, a low work table, three
   movable objects, a target tray, and navigation obstacles.
+- Added robot-mounted ego and wrist cameras. Both produce 256x256 RGB and depth;
+  SmolVLA will consume RGB, while depth is retained for expert demonstrations,
+  debugging, and future perception work.
 - The next step is to inspect and port the task scene into mjlab, replacing the
   original arm with the existing Go2+D1 robot.
 
