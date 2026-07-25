@@ -1,0 +1,9 @@
+<mujoco model="buttonbox">
+    <include file="assets/buttonbox_dependencies.xml"/>
+    <include file="../scene/basic_scene.xml"/>
+    <worldbody>
+      <body pos="0 .8 .12">
+        <include file="assets/buttonbox.xml"/>
+      </body>
+    </worldbody>
+</mujoco>

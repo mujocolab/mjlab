@@ -1,0 +1,14 @@
+<mujocoinclude>
+    <body childclass="shelf_base">
+        <geom material="shelf_wood" mesh="shelf" pos="0 -0.015 0.24"/>
+        <geom material="shelf_white" mesh="shelf_supports" pos="0 0 0.04"/>
+        <geom class="shelf_col" pos="-0.11 0 0.32" size="0.01 0.1 0.32" type="box"/>
+        <geom class="shelf_col" pos="0.11 0 0.32" size="0.01 0.1 0.32" type="box"/>
+        <geom class="shelf_col" pos="0 0 0.65" size="0.12 0.1 0.01" type="box"/>
+        <geom class="shelf_col" pos="0 -0.015 0.24" size="0.1 0.095 0.01" type="box"/>
+        <geom class="shelf_col" pos="0 -0.015 0.05" size="0.1 0.095 0.01" type="box"/>
+        <geom class="shelf_col" pos="0 0.09 0.32" size="0.1 0.01 0.32" type="box"/>
+        <geom class="shelf_col" pos="0.0 -0.008 0.021" size="0.1 0.088 0.021" type="box"/>
+        <site name="goal" pos="0 0 0.3" size="0.02" rgba="0 0.8 0 1"/>
+    </body>
+</mujocoinclude>

@@ -1,0 +1,6 @@
+<mujocoinclude>
+    <body childclass="block_base">
+      <geom material="block_wood" pos="0 0 .02" mesh="block"/>
+      <geom name="objGeom" class="block_col" pos="0 0 .02" size="0.02 0.02 0.02" type="box" mass=".1"/>
+    </body>
+</mujocoinclude>

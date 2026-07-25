@@ -1,0 +1,25 @@
+<mujoco>
+  <include file="../scene/basic_scene.xml"/>
+  <include file="../objects/assets/dial_dependencies.xml"/>
+  <include file="../objects/assets/xyz_base_dependencies.xml"/>
+  <worldbody>
+    <include file="../objects/assets/xyz_base.xml"/>
+
+        <body name="dial" pos="0 0.7 0.">
+          <include file="../objects/assets/dial.xml"/>
+          <site name="dialStart" pos="0 -0.05 0.035" size="0.005" rgba="0 0 1 1"/>
+        </body>
+
+        <site name="goal" pos="0. 0.74 0.07" size="0.02"
+              rgba=".8 0 0 1"/>
+
+ -->    </worldbody>
+
+    <actuator>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="r_close" kp="400"  user="1"/>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="l_close" kp="400"  user="1"/>
+    </actuator>
+    <equality>
+        <weld body1="mocap" body2="hand" solref="0.02 1"></weld>
+    </equality>
+</mujoco>

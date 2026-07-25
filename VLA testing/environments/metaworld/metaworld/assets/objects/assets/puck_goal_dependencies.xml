@@ -1,0 +1,37 @@
+<mujocoinclude>
+    <compiler angle="radian" inertiafromgeom="auto" inertiagrouprange="4 5"/>
+    <asset>
+
+      <material name="puck_col" rgba="0.3 0.3 1.0 0.5" shininess="0" specular="0"/>
+      <material name="puck_white" rgba=".85 .85 .85 1" shininess="1" reflectance=".7" specular=".5"/>
+      <material name="puck_black" rgba=".15 .15 .15 1" shininess="1" reflectance="1" specular=".5"/>
+      <material name="puck_red" rgba=".6 0 0 1" shininess="1" reflectance="1" specular=".5"/>
+
+
+    </asset>
+    <default>
+
+      <default class="puck_base">
+          <joint armature="0.001" damping="2" limited="true"/>
+          <geom conaffinity="0" contype="0" group="1" type="mesh"/>
+          <position ctrllimited="true" ctrlrange="0 1.57"/>
+          <default class="puck_viz">
+              <geom condim="4" type="mesh"/>
+          </default>
+          <default class="puck_col">
+              <geom conaffinity="1" condim="3" contype="1" group="4" material="puck_col" solimp="0.99 0.99 0.01" solref="0.01 1"/>
+          </default>
+      </default>
+    </default>
+
+    <asset>
+        <mesh file="../objects/meshes/puck/goal_net.stl" name="goal_net"/>
+        <mesh file="../objects/meshes/puck/goal_rim.stl" name="goal_rim"/>
+        <mesh file="../objects/meshes/puck/net1_col.stl" name="net1_col"/>
+        <mesh file="../objects/meshes/puck/net2_col.stl" name="net2_col"/>
+        <mesh file="../objects/meshes/puck/net3_col.stl" name="net3_col"/>
+        <mesh file="../objects/meshes/puck/net4_col.stl" name="net4_col"/>
+        <mesh file="../objects/meshes/puck/puck.stl" name="puck"/>
+    </asset>
+
+</mujocoinclude>

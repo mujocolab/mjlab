@@ -1,0 +1,19 @@
+<mujocoinclude>
+    <body childclass="therm_base">
+      <joint type="slide" range="-0.2 0.2" axis="1 0 0" name="obj_slidex" damping="1" limited="true"/>
+      <joint type="slide" range="-0.2 0.2" axis="0 1 0" name="obj_slidey" damping="1" limited="true"/>
+      <geom material="therm_metal" mesh="therm_base" pos="0 0 0.02"/>
+      <geom material="therm_metal_green" mesh="therm_body" pos="0 0 0.14"/>
+      <geom material="therm_metal" mesh="therm_cap" pos="0 0 0.285"/>
+      <geom material="therm_metal" mesh="therm_handle" pos="0 -0.135 0.132"/>
+      <geom material="therm_metal" mesh="therm_trim" pos="0 0 0.285"/>
+      <geom class="therm_col" mesh="therm_trim" pos="0 0 0.285"/>
+      <geom class="therm_col" mesh="therm_cap" pos="0 0 0.285" type="mesh"/>
+      <geom class="therm_col" pos="0 0 0.14" size="0.06 0.1" type="cylinder"/>
+      <geom class="therm_col" pos="0 0 0.02" size="0.062 0.02" type="cylinder"/>
+      <geom class="therm_col" pos="0 -0.135 0.132" size="0.01 0.005 0.068" type="box"/>
+      <geom class="therm_col" pos="0 -0.09 0.195" size="0.01 0.04 0.005" type="box"/>
+      <geom class="therm_col" pos="0 -0.09 0.069" size="0.01 0.04 0.005" type="box"/>
+      <site name="insertion" pos="0 -0.09 .132" size="0.005" rgba="1 0 0 1"/>
+    </body>
+</mujocoinclude>

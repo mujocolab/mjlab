@@ -1,0 +1,30 @@
+<mujoco>
+    <include file="../scene/basic_scene.xml"/>
+    <include file="../objects/assets/stick_dependencies.xml"/>
+    <include file="../objects/assets/thermos_dependencies.xml"/>
+    <include file="../objects/assets/xyz_base_dependencies.xml"/>
+
+    <worldbody>
+      <include file="../objects/assets/xyz_base.xml"/>
+
+      <body name="stick" pos="-0.15 0.75 0.02">
+        <freejoint/>
+        <include file="../objects/assets/stick.xml"/>
+      </body>
+
+      <body name="object" pos="0.2 0.6 0">
+        <include file="../objects/assets/thermos.xml"/>
+
+      </body>
+      <site name="goal" pos="0.35 0.75 0.02" size="0.02"
+            rgba="0 0.8 0 1"/>
+    </worldbody>
+
+    <actuator>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="r_close" kp="400"  user="1"/>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="l_close" kp="400"  user="1"/>
+    </actuator>
+    <equality>
+        <weld body1="mocap" body2="hand" solref="0.02 1"></weld>
+    </equality>
+</mujoco>

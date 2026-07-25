@@ -1,0 +1,7 @@
+<mujoco model="obj">
+    <include file="assets/bin_dependencies.xml"/>
+    <include file="../scene/basic_scene.xml"/>
+    <worldbody>
+        <include file="assets/objA.xml"/>
+    </worldbody>
+</mujoco>

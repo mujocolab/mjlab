@@ -1,0 +1,11 @@
+<mujocoinclude>
+    <body childclass="box_base" name="box">
+        <geom material="box_wood" mesh="bin" pos="0 0 0.03"/>
+        <geom class="box_col" pos="0 -0.095 0.03" size="0.1 0.005 0.03" type="box" mass=".03"/>
+        <geom class="box_col" pos="0 0.095 0.03" size="0.1 0.005 0.03" type="box" mass=".03"/>
+        <geom class="box_col" pos="0.095 0 0.03" size="0.005 0.09 0.03" type="box" mass=".03"/>
+        <geom class="box_col" pos="-0.095 0 0.03" size="0.005 0.09 0.03" type="box" mass=".03"/>
+        <geom class="box_col" pos="0 0 0.005" size="0.1 0.1 0.005" type="box" mass=".03"/>
+    </body>
+
+</mujocoinclude>

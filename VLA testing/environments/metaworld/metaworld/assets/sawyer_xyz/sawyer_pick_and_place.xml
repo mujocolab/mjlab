@@ -1,0 +1,29 @@
+<mujoco>
+    <include file="../scene/basic_scene.xml"/>
+    <include file="../objects/assets/block_dependencies.xml"/>
+    <include file="../objects/assets/xyz_base_dependencies.xml"/>
+
+    <worldbody>
+      <include file="../objects/assets/xyz_base.xml"/>
+
+      <body name="obj" pos="0 0.6 0.02">
+        <freejoint/>
+        <include file="../objects/assets/block.xml"/>
+      </body>
+
+      <site name="hand-goal-site" pos="0.3 .9 0.03" size="0.02"
+            rgba="0 0 1 1"/>
+      <site name="obj-goal-site" pos="0.3 0.8 0.03" size="0.02"
+            rgba="1 0 0 1"/>
+      <site name="goal" pos="0.3 0.8 0.05" size="0.02"
+            rgba="0 0.8 0 1"/>
+    </worldbody>
+
+    <actuator>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="r_close" kp="400"  user="1"/>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="l_close" kp="400"  user="1"/>
+    </actuator>
+    <equality>
+        <weld body1="mocap" body2="hand" solref="0.02 1"></weld>
+    </equality>
+</mujoco>

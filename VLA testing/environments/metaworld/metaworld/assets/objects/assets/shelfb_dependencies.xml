@@ -1,0 +1,32 @@
+<mujocoinclude>
+    <compiler angle="radian" inertiafromgeom="auto" inertiagrouprange="4 5"/>
+    <asset>
+        <texture name="T_shelf_wood" type="cube" file="../textures/wood4.png"/>
+
+      <material name="shelfb_col" rgba="0.3 0.3 1.0 0.5" shininess="0" specular="0"/>
+      <material name="shelfb_white" rgba=".85 .85 .85 1" shininess="1" reflectance=".7" specular=".5"/>
+      <material name="shelfb_wood" texture="T_shelf_wood" shininess="1" reflectance="1" specular=".5"/>
+
+    </asset>
+    <default>
+
+      <default class="shelfb_base">
+          <joint armature="0.001" damping="2" limited="true"/>
+          <geom conaffinity="0" contype="0" group="1" type="mesh"/>
+          <position ctrllimited="true" ctrlrange="0 1.57"/>
+          <default class="shelfb_viz">
+              <geom condim="4" type="mesh"/>
+          </default>
+          <default class="shelfb_col">
+              <geom conaffinity="1" condim="3" contype="0" group="4" material="shelfb_col" solimp="0.99 0.99 0.01" solref="0.01 1"/>
+          </default>
+      </default>
+    </default>
+
+    <asset>
+      <mesh file="../objects/meshes/shelfb/shelf_0.stl" name="shelf_0"/>
+      <mesh file="../objects/meshes/shelfb/shelf_1.stl" name="shelf_1"/>
+      <mesh file="../objects/meshes/shelfb/shelf_frame.stl" name="shelf_frame"/>
+    </asset>
+
+</mujocoinclude>

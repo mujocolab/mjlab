@@ -1,0 +1,6 @@
+<mujocoinclude>
+    <body childclass="table" name="table">
+          <geom material="table_wood" type="box" size=".4 .4 .027" pos="0 0 -.027"/>
+          <geom material="table_wood" mesh="tablebody" pos="0 0 -0.094"/>
+    </body>
+</mujocoinclude>

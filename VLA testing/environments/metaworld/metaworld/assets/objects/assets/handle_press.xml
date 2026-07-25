@@ -1,0 +1,22 @@
+<mujocoinclude>
+    <body childclass="hdlprs_base" name="hdlprs">
+      <geom material="hdlprs_metal0" mesh="handle_press_base"/>
+      <geom material="hdlprs_black" euler="0 1.57 0" mesh="handle_press_trim"/>
+      <geom class="hdlprs_col" euler="0 1.57 0" mesh="handle_press_col1" pos="0.055 0 0" type="mesh" />
+      <geom class="hdlprs_col" euler="0 1.57 0" mesh="handle_press_col2" pos="-0.066 0 0" type="mesh" />
+      <geom class="hdlprs_col" euler="0 1.57 0" mesh="handle_press_col3" pos="-0.009 0 0" type="mesh" />
+      <geom class="hdlprs_col" pos="0 -0.082 0.014" size="0.035 0.028 0.014" type="box" />
+      <body name="handle_link" pos="0 -0.05 0.15">
+          <joint type="slide" axis="0 0 1" range="-.1 0" damping="30" limited="true"/>
+          <site name="handleStart" pos="0 -0.166 0.022" size="0.005" rgba="0.8 0 0 1"/>
+          <site name="handleRight" pos="0.05 -0.166 0.014" size="0.005" rgba="0 0.8 0 1"/>
+          <site name="handleCenter" pos="0 -0.12 0.0" size="0.01" rgba="0 0.8 0 1"/>
+
+          <geom material="hdlprs_red" euler="0 1.57 0" mesh="handle_press_grip" pos="0 -0.166 0" />
+          <geom material="hdlprs_black" mesh="handle_press_lever" pos="0 -0.089 0" />
+          <geom class="hdlprs_col" pos="0 -0.081 0" size="0.032 0.075 0.011" type="box" mass=".001"/>
+          <geom class="hdlprs_col" euler="0 1.57 0" pos="0 -0.166 0" size="0.022 0.07" type="cylinder" mass=".001"/>
+      </body>
+    </body>
+
+</mujocoinclude>

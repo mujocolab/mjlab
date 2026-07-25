@@ -1,0 +1,7 @@
+<mujocoinclude>
+    <body childclass="basketball_base" name="basketball">
+        <geom material="bskt_black" mesh="basketballinner"/>
+        <geom material="bskt_orange" mesh="basketballouter"/>
+        <geom class="basketball_col" type="sphere" size=".03" mass=".1" name="objGeom"/>
+    </body>
+</mujocoinclude>

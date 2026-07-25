@@ -1,0 +1,32 @@
+<mujocoinclude>
+    <compiler angle="radian" inertiafromgeom="auto" inertiagrouprange="4 5"/>
+    <asset>
+      <texture name="T_dial" type="cube" file="../textures/metal1.png"/>
+
+      <material name="dial_col" rgba="0.3 0.3 1.0 0.5" shininess="0" specular="0"/>
+      <material name="dial_metal" texture="T_dial" rgba=".35 .35 .35 1" shininess="1" reflectance=".7" specular=".5"/>
+      <material name="dial_red" rgba=".6 0 0 1" shininess="1" reflectance=".7" specular=".5"/>
+
+    </asset>
+    <default>
+      <default class="dial_base">
+          <joint armature="0.001" damping="1" limited="true"/>
+          <geom conaffinity="0" contype="0" group="1" type="mesh"/>
+          <position ctrllimited="true" ctrlrange="0 1.57"/>
+          <default class="dial_viz">
+              <geom condim="4" type="mesh"/>
+          </default>
+          <default class="dial_col">
+              <geom conaffinity="1" condim="3" contype="0" group="4" material="dial_col" solimp="0.99 0.99 0.01" solref="0.01 1"/>
+          </default>
+
+      </default>
+    </default>
+
+    <asset>
+        <mesh file="../objects/meshes/dial/dial.stl" name="dial"/>
+        <mesh file="../objects/meshes/dial/dialhead.stl" name="dialhead"/>
+
+    </asset>
+
+</mujocoinclude>

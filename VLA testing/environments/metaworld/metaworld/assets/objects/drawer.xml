@@ -1,0 +1,7 @@
+<mujoco model="drawer">
+    <include file="assets/drawer_dependencies.xml"/>
+    <include file="../scene/basic_scene.xml"/>
+    <worldbody>
+        <include file="assets/drawer.xml"/>
+    </worldbody>
+</mujoco>

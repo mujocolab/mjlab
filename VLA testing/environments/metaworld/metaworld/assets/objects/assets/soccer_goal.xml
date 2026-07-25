@@ -1,0 +1,10 @@
+<mujocoinclude>
+    <body childclass="soccer_base" name="soccer_goal">
+      <geom material="soccer_white" mesh="soccer_frame"/>
+      <geom material="soccer_blue" mesh="soccer_net"/>
+      <geom class="soccer_col" mesh="goal_col1" pos="0 0 0.08" type="mesh" />
+      <geom class="soccer_col" mesh="goal_col2" pos="0 0 0.08" type="mesh" />
+      <geom class="soccer_col" mesh="goal_col3" pos="0 0 0.08" type="mesh" />
+      <geom class="soccer_col" mesh="goal_col4" pos="0 0 0.08" type="mesh" />
+    </body>
+</mujocoinclude>

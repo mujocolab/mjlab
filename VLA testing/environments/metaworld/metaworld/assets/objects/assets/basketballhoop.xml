@@ -1,0 +1,28 @@
+<mujocoinclude>
+    <body childclass="basketball_base" name="basketballhoop">
+        <body name="backboardlink">
+            <geom material="bskt_white" mesh="backboard" pos="0 0 0.29" />
+            <geom material="bskt_white" mesh="backboardsquareinner" pos="0 -0.002 0.29" />
+            <geom material="bskt_red" mesh="backboardsquareouter" pos="0 -.001 0.29" />
+            <geom material="bskt_metal" mesh="pole"/>
+            <geom class="basketball_col" pos="0 0 0.29" size="0.1 0.01 0.07" type="box" mass=".2"/>
+            <geom class="basketball_col" pos="0 0 0.118" size="0.007 0.108" type="cylinder" mass=".2"/>
+            <geom class="basketball_col" pos="0 0 0.005" size="0.013 0.005" type="cylinder" mass=".01"/>
+            <body name="hooplink" pos="0 -0.083 0.25">
+                <geom material="bskt_red" mesh="hoop" pos="0 0 -0.001" />
+                <geom class="basketball_col" pos="0 .06  0" size="0.01 0.014 0.004" type="box" />
+
+                <geom class="basketball_col" euler="1.571 0.785 0" pos="0.031 0.032 -0.001" size="0.01 0.016" type="capsule" />
+                <geom class="basketball_col" euler="0 1.57 0" pos="0 0.045 -0.001" size="0.01 0.016" type="capsule" />
+                <geom class="basketball_col" euler="1.57 0 0" pos="0.044 0 -0.001" size="0.01 0.016" type="capsule" />
+                <geom class="basketball_col" euler="1.57 0 0" pos="-0.044 0 -0.001" size="0.01 0.016" type="capsule" />
+                <geom class="basketball_col" euler="0 1.57 0" pos="0 -0.045 -0.001" size="0.01 0.016" type="capsule" />
+                <geom class="basketball_col" euler="1.57 -0.785  0" pos="-0.031 0.032 -0.001" size="0.01 0.016" type="capsule" />
+                <geom class="basketball_col" euler="1.57 0.785 0" pos="-0.031 -0.032 -0.001" size="0.01 0.016" type="capsule" />
+                <geom class="basketball_col" euler="1.57 -0.785 0" pos="0.031 -0.032 -0.001" size="0.01 0.016" type="capsule" />
+                <site name="goal" size="0.01" rgba="1 0 0 1"/>
+
+            </body>
+        </body>
+    </body>
+</mujocoinclude>

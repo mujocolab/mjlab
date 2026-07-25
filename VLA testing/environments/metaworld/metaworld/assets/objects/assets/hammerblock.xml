@@ -1,0 +1,15 @@
+<mujocoinclude>
+    <body childclass="hmr_base" name="hammerblock">
+      <geom material="hmr_wood" mesh="hammerblock" pos="0 0 0.11"/>
+      <geom class="hmr_col" pos="0 0 0.172" size="0.1 0.1 0.048" type="box"/>
+      <geom class="hmr_col" pos="0.058 0 0.11" size="0.042 0.1 0.014" type="box"/>
+      <geom class="hmr_col" pos="-0.058 0 0.11" size="0.042 0.1 0.014" type="box"/>
+      <geom class="hmr_col" pos="0 0 0.048" size="0.1 0.1 0.048" type="box"/>
+      <body name="nail_link" pos="0 -0.21 0.11">
+          <joint type="slide" axis="0 1 0" range="0 .1" name="NailSlideJoint"/>
+          <geom material="hmr_metal" euler="1.57 0 0" mesh="nail" pos="-0.0 0.057 0"/>
+          <geom class="hmr_col" euler="1.57 0 0" pos="0.0 0.057 0" size="0.01 0.06" type="cylinder"/>
+          <geom class="hmr_col" euler="1.57 0 0" size="0.03 0.009" type="cylinder"/>
+      </body>
+    </body>
+</mujocoinclude>

@@ -1,0 +1,25 @@
+<mujocoinclude>
+    <body childclass="drawer_base">
+        <body name="drawercase_link" pos="0 0 0.084">
+            <geom material="drawer_beige" mesh="drawercase"/>
+            <geom class="drawer_col" pos="-0.11 0 0" size="0.008 0.1 0.084" type="box" mass=".05"/>
+            <geom class="drawer_col" pos="0.11 0 0" size="0.008 0.1 0.084" type="box" mass=".05"/>
+            <geom class="drawer_col" pos="0 0.092 -0.008" size="0.102 0.008 0.076" type="box" mass=".05"/>
+            <geom class="drawer_col" pos="0 -0.008 -0.07" size="0.102 0.092 0.014" type="box" mass=".05"/>
+            <geom class="drawer_col" pos="0 0 0.076" size="0.102 0.1 0.008" type="box" mass=".05"/>
+            <body name="drawer_link" pos="0 -0.01 0.006">
+                <joint type="slide" range="-0.16 0" axis="0 1 0" name="goal_slidey" pos="0 0 0" damping="2"/>
+                <geom material="drawer_beige" mesh="drawer"/>
+                <geom material="drawer_white" mesh="drawerhandle" pos="0 -0.114 0" name="objGeom"/>
+                <geom class="drawer_col" pos="0 -0.082 0.008" size="0.1 0.008 0.052" type="box" mass=".04"/>
+                <geom class="drawer_col" pos="0 0.082 0.008" size="0.1 0.008 0.052" type="box" mass=".04"/>
+                <geom class="drawer_col" pos="-0.092 0 0.008" size="0.008 0.074 0.052" type="box" mass=".04"/>
+                <geom class="drawer_col" pos="0.092 0 0.008" size="0.008 0.074 0.052" type="box" mass=".04"/>
+                <geom class="drawer_col" pos="0 0 -0.052" size="0.1 0.09 0.008" type="box" mass=".04"/>
+                <geom class="drawer_col" euler="1.571 0 0" pos="-0.05 -0.12 0.0" size="0.009 0.03" type="capsule" mass=".06"/>
+                <geom class="drawer_col" euler="0 1.57 0" pos="0 -0.15 0" size="0.009 0.05" type="capsule" mass=".06"/>
+                <geom class="drawer_col" euler="1.57 0 0" pos="0.05 -0.12 0" size="0.009 0.03" type="capsule" mass=".06"/>
+            </body>
+        </body>
+    </body>
+</mujocoinclude>

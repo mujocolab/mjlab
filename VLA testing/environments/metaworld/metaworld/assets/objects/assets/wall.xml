@@ -1,0 +1,6 @@
+<mujocoinclude>
+    <body childclass="wall_base">
+      <geom material="wall_brick" type="box" size="0.1 0.01 0.075" pos="0 0 0.075"/>
+      <geom class="wall_col" type="box" size="0.1 0.01 0.075" pos="0 0 0.075" mass="1"/>
+    </body>
+</mujocoinclude>

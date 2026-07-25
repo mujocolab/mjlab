@@ -1,0 +1,7 @@
+<mujoco model="coffeemachine">
+    <include file="assets/coffeemachine_dependencies.xml"/>
+    <include file="../scene/basic_scene.xml"/>
+    <worldbody>
+        <include file="assets/coffeemachine.xml"/>
+    </worldbody>
+</mujoco>

@@ -1,0 +1,15 @@
+<mujocoinclude>
+
+    <body name="top_link" pos="0 0 0.075">
+        <geom material="box_wood" mesh="boxtop" pos="0 0 -0.005" type="mesh"/>
+        <geom material="box_metal" euler="1.57 0 0" mesh="boxhandle" pos="0 0 0.082" type="mesh" name="BoxHandleGeom"/>
+        <geom class="top_col" pos="0.11 -0.0 -0.008" size="0.005 0.115 0.008" type="box" mass=".02"/>
+        <geom class="top_col" pos="0.0 -0.0 0.003" size="0.115 0.115 0.003" type="box" mass=".02"/>
+        <geom class="top_col" pos="-0.11 -0.0 -0.008" size="0.005 0.115 0.008" type="box" mass=".02"/>
+        <geom class="top_col" pos="0.0 -0.11 -0.008" size="0.115 0.005 0.008" type="box" mass=".02"/>
+        <geom class="top_col" pos="0.0 0.11 -0.008" size="0.115 0.005 0.008" type="box" mass=".02"/>
+        <geom class="top_col" euler="1.57 0.0 0.0" pos="0 0 0.082" size="0.008 0.05" type="capsule" mass=".05"/>
+        <geom class="top_col" pos="0 -0.05 0.043" size="0.008 0.035" type="capsule" mass=".05"/>
+        <geom class="top_col" pos="0 0.05 0.043" size="0.008 0.035" type="capsule" mass=".05"/>
+    </body>
+</mujocoinclude>

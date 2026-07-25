@@ -1,0 +1,36 @@
+<mujocoinclude>
+    <compiler angle="radian" inertiafromgeom="auto" inertiagrouprange="4 5"/>
+    <asset>
+      <material name="soccer_col" rgba="0.3 0.3 1.0 0.5" shininess="0" specular="0"/>
+      <material name="soccer_blue" rgba="0 .4 .6 1" shininess="1" reflectance=".7" specular=".5"/>
+      <material name="soccer_black" rgba=".15 .15 .15 1" shininess="1" reflectance="0" specular=".5"/>
+      <material name="soccer_white" rgba=".85 .85 .85 1" shininess=".1" reflectance="0" specular=".5"/>
+
+    </asset>
+    <default>
+
+      <default class="soccer_base">
+          <joint armature="0.001" damping="2" limited="true"/>
+          <geom conaffinity="0" contype="0" group="1" type="mesh"/>
+          <position ctrllimited="true" ctrlrange="0 1.57"/>
+          <default class="soccer_viz">
+              <geom condim="4" type="mesh"/>
+          </default>
+          <default class="soccer_col">
+              <geom conaffinity="1" condim="3" contype="1" group="4" material="soccer_col" solimp="0.99 0.99 0.01" solref="0.01 1"/>
+          </default>
+      </default>
+    </default>
+
+    <asset>
+        <mesh file="../objects/meshes/soccer/goal_col1.stl" name="goal_col1"/>
+        <mesh file="../objects/meshes/soccer/goal_col2.stl" name="goal_col2"/>
+        <mesh file="../objects/meshes/soccer/goal_col3.stl" name="goal_col3"/>
+        <mesh file="../objects/meshes/soccer/goal_col4.stl" name="goal_col4"/>
+        <mesh file="../objects/meshes/soccer/soccer_black.stl" name="soccer_black"/>
+        <mesh file="../objects/meshes/soccer/soccer_frame.stl" name="soccer_frame"/>
+        <mesh file="../objects/meshes/soccer/soccer_net.stl" name="soccer_net"/>
+        <mesh file="../objects/meshes/soccer/soccer_white.stl" name="soccer_white"/>
+    </asset>
+
+</mujocoinclude>

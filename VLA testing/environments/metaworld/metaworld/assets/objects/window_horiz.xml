@@ -1,0 +1,9 @@
+<mujoco model="window_horiz">
+    <include file="assets/window_dependencies.xml"/>
+    <include file="../scene/basic_scene.xml"/>
+    <worldbody>
+        <body pos="0 0.8 .202">
+            <include file="assets/window_horiz.xml"/>
+        </body>
+    </worldbody>
+</mujoco>

@@ -1,0 +1,10 @@
+<mujoco model="block">
+    <include file="assets/block_dependencies.xml"/>
+    <include file="../scene/basic_scene.xml"/>
+    <worldbody>
+        <body pos="0 0.4 0">
+            <freejoint/>
+            <include file="assets/block.xml"/>
+        </body>
+    </worldbody>
+</mujoco>

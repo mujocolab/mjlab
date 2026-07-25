@@ -1,0 +1,24 @@
+<mujoco>
+    <include file="../scene/basic_scene.xml"/>
+    <include file="../objects/assets/window_dependencies.xml"/>
+    <include file="../objects/assets/xyz_base_dependencies.xml"/>
+
+    <worldbody>
+      <include file="../objects/assets/xyz_base.xml"/>
+
+      <body name="window" pos="-0.1 0.785 0.202">
+        <include file="../objects/assets/window_horiz.xml"/>
+      </body>
+
+      <site name="goal" pos="0. 0.7 0.27" size="0.02"
+            rgba="0 0.8 0 1"/>
+    </worldbody>
+
+    <actuator>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="r_close" kp="400"  user="1"/>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="l_close" kp="400"  user="1"/>
+    </actuator>
+    <equality>
+        <weld body1="mocap" body2="hand" solref="0.02 1"></weld>
+    </equality>
+</mujoco>

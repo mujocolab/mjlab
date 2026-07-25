@@ -1,0 +1,32 @@
+<mujoco>
+    <include file="../scene/basic_scene.xml"/>
+    <include file="../objects/assets/peg_block_dependencies.xml"/>
+    <include file="../objects/assets/peg_insert_dependencies.xml"/>
+    <include file="../objects/assets/xyz_base_dependencies.xml"/>
+
+    <worldbody>
+      <include file="../objects/assets/xyz_base.xml"/>
+
+        <body name="peg" pos="0 0.6 0.03">
+          <inertial pos="0 0 0" mass="0.1" diaginertia="100000 100000 100000"/>
+          <geom name="peg" euler="0 1.57 0" size="0.015 0.015 0.12" type="box" mass=".1" rgba="0.3 1 0.3 1" conaffinity="1" contype="1" group="1"/>
+          <joint type="free" limited="false" damping="0.005"/>
+          <site name="pegHead" pos="-0.1 0 0" size="0.005" rgba="0.8 0 0 1"/>
+          <site name="pegEnd" pos="0.1 0 0" size="0.005" rgba="0.8 0 0 1"/>
+          <site name="pegGrasp" pos=".03 .0 .01" size="0.005" rgba="0.8 0 0 1"/>
+        </body>
+
+        <body name="box" euler="0 0 1.57" pos="-0.3 0.6 0">
+          <include file="../objects/assets/peg_block.xml"/>
+        </body>
+        <site name="goal" pos="0 0.6 0.05" size="0.01" rgba="0.8 0 0 1"/>
+    </worldbody>
+
+    <actuator>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="r_close" kp="400"  user="1"/>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="l_close" kp="400"  user="1"/>
+    </actuator>
+    <equality>
+        <weld body1="mocap" body2="hand" solref="0.02 1"></weld>
+    </equality>
+</mujoco>

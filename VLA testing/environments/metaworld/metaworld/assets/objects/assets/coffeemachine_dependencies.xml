@@ -1,0 +1,40 @@
+<mujocoinclude>
+    <compiler angle="radian" inertiafromgeom="auto" inertiagrouprange="4 5"/>
+    <asset>
+
+      <material name="cm_col" rgba="0.3 0.3 1.0 0.5" shininess="0" specular="0"/>
+      <material name="cmred" rgba="0.38 0.19 0.2 1" shininess="1" reflectance=".7" specular=".5"/>
+      <material name="cmwhite" rgba=".85 .85 .85 1" shininess="1" reflectance=".7" specular=".5"/>
+      <material name="cmgrey" rgba=".65 .65 .65 1" shininess="1" reflectance="1" specular=".5"/>
+
+      <material name="cmblack" rgba=".2 .2 .2 1" shininess="1" reflectance=".7" specular=".5"/>
+
+    </asset>
+    <default>
+
+      <default class="cm_base">
+          <joint armature="0.001" damping="2" limited="true"/>
+          <geom conaffinity="0" contype="0" group="1" type="mesh"/>
+          <position ctrllimited="true" ctrlrange="0 1.57"/>
+          <default class="cm_viz">
+              <geom condim="4" type="mesh"/>
+          </default>
+          <default class="cm_col">
+              <geom conaffinity="1" condim="3" contype="1" group="4" material="cm_col" solimp="0.99 0.99 0.01" solref="0.01 1"/>
+          </default>
+      </default>
+    </default>
+
+    <asset>
+        <mesh file="../objects/meshes/coffeemachine/body1.stl" name="body1"/>
+        <mesh file="../objects/meshes/coffeemachine/body2.stl" name="body2"/>
+        <mesh file="../objects/meshes/coffeemachine/button.stl" name="button"/>
+        <mesh file="../objects/meshes/coffeemachine/mug.stl" name="mug"/>
+        <mesh file="../objects/meshes/coffeemachine/handle.stl" name="handle"/>
+        <mesh file="../objects/meshes/coffeemachine/spout.stl" name="spout"/>
+        <mesh file="../objects/meshes/coffeemachine/spoutconnect.stl" name="spoutconnect"/>
+        <mesh file="../objects/meshes/coffeemachine/buttonring.stl" name="buttonring"/>
+        <mesh file="../objects/meshes/coffeemachine/bodypiece1.stl" name="bodypiece1"/>
+    </asset>
+
+</mujocoinclude>

@@ -1,0 +1,10 @@
+<mujoco model="peg_block">
+    <include file="assets/peg_block_dependencies.xml"/>
+    <include file="../scene/basic_scene.xml"/>
+    <worldbody>
+        <body pos="0 0.8 0">
+            <freejoint/>
+            <include file="assets/peg_block.xml"/>
+        </body>
+    </worldbody>
+</mujoco>

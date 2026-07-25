@@ -1,0 +1,29 @@
+<mujoco>
+    <!-- <include file="shared_config.xml"/> -->
+    <include file="../scene/basic_scene.xml"/>
+    <include file="../objects/assets/assembly_peg_dependencies.xml"/>
+    <include file="../objects/assets/xyz_base_dependencies.xml"/>
+
+    <worldbody>
+
+        <include file="../objects/assets/xyz_base.xml"/>
+        <body name="RoundNut" pos="0.1 0.6 0.02" quat="1 0 0 1">
+            <freejoint/>
+            <include file="../objects/assets/assembly_peg.xml"/>
+
+        </body>
+        <body name="peg" pos="0.1 0.8 0.05">
+          <!-- <geom pos="0 0 0" size="0.02 0.05" type="cylinder" friction="1 0.005 0.0001"/> -->
+          <geom material="asmbly_metal" pos="0 0 0" rgba="1 0.3 0.3 1" size="0.02 0.05" type="cylinder" conaffinity="1" contype="1" group="1" friction="1 0.005 0.0001"/>
+          <site name="pegTop" pos="0 0 0.05" size="0.005" rgba="0 0.8 0 1"/>
+        </body>
+    </worldbody>
+
+    <actuator>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="r_close" kp="400"  user="1"/>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="l_close" kp="400"  user="1"/>
+    </actuator>
+    <equality>
+        <weld body1="mocap" body2="hand" solref="0.02 1" />
+    </equality>
+</mujoco>

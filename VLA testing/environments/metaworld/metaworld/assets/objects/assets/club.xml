@@ -1,0 +1,13 @@
+<mujocoinclude>
+    <body childclass="club_base">
+      <geom material="club_wood" mesh="club_handle" pos="-0.005 0 0.092"/>
+      <geom material="club_black" mesh="club_head" pos="-0.08 0 0.0"/>
+      <geom material="club_black" mesh="club_tape" pos="-0.005 0 0.092"/>
+      <geom class="club_col" euler="1.57 0 0" pos="0.009 0 0" size="0.02 0.015" type="cylinder" mass=".1"/>
+      <geom class="club_col" euler="1.57 0 0" pos="-0.08 0 0" size="0.02 0.015" type="cylinder" mass=".1"/>
+      <geom class="club_col" pos="-0.035 0 0" size="0.045 0.015 0.02" type="box" mass=".1"/>
+      <geom class="club_col" pos="-0.005 0 0.032" size="0.012 0.012 0.012" type="box" mass=".02"/>
+      <geom class="club_col" pos="-0.005 0 0.092" size="0.01 0.01 0.048" type="box" mass=".05"/>
+      <site name="handleStart" pos="-.005 0 0.1" size="0.01" />
+    </body>
+</mujocoinclude>

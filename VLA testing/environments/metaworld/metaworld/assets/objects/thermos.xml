@@ -1,0 +1,9 @@
+<mujoco model="thermos">
+    <include file="assets/thermos_dependencies.xml"/>
+    <include file="../scene/basic_scene.xml"/>
+    <worldbody>
+      <body pos="0 .6 0">
+        <include file="assets/thermos.xml"/>
+      </body>
+    </worldbody>
+</mujoco>

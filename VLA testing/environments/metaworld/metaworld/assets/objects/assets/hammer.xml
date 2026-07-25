@@ -1,0 +1,17 @@
+<mujocoinclude>
+    <body childclass="hmr_base" name="hammer">
+        <geom material="hmr_red" euler="0 1.57 0" size="0.02 0.14" type="capsule" name="HammerHandle"/>
+        <geom material="hmr_metal" euler="0 1.57 0" pos="0.16 0 0" size="0.026 0.025" type="cylinder" name="HammerHead"/>
+        <geom material="hmr_metal" euler="1.57 0 0" pos="0.16 0.026 0" size="0.02 0.015" type="cylinder"/>
+        <geom material="hmr_metal" euler="1.57 0 0" pos="0.16 0.056 0" size="0.038 0.016" type="cylinder"/>
+        <geom material="hmr_metal" euler="1.57 0 0" pos="0.16 -0.056 0" size="0.038 0.016" type="cylinder"/>
+        <geom material="hmr_metal" euler="1.57 0 0" pos="0.16 -0.026 0" size="0.02 0.015" type="cylinder"/>
+
+        <geom class="hmr_col" euler="0 1.57 0" size="0.02 0.14" type="capsule" mass=".1"/>
+        <geom class="hmr_col" euler="0 1.57 0" pos="0.16 0 0.0" size="0.026 0.025" type="cylinder" mass=".2"/>
+        <geom class="hmr_col" euler="1.57 0 0" pos="0.16 0.026 0" size="0.02 0.015" type="cylinder" mass=".1"/>
+        <geom class="hmr_col" euler="1.57 0 0" pos="0.16 0.056 0" size="0.038 0.016" type="cylinder" mass=".3"/>
+        <geom class="hmr_col" euler="1.57 0 0" pos="0.16 -0.056 0.0" size="0.038 0.016" type="cylinder" mass=".3"/>
+        <geom class="hmr_col" euler="1.57 0 0" pos="0.16 -0.026 0.0" size="0.02 0.015" type="cylinder" mass=".1"/>
+    </body>
+</mujocoinclude>

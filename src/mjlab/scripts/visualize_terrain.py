@@ -12,7 +12,7 @@ from __future__ import annotations
 import dataclasses
 import re
 import time
-from typing import Any, List, TypedDict
+from typing import Any, List, Mapping, TypedDict
 
 import mujoco
 import numpy as np
@@ -26,8 +26,11 @@ from mjviser.conversions import (
 from mujoco import mjtGeom
 
 from mjlab.asset_zoo.robots import (
+  get_d1_robot_cfg,
   get_g1_robot_cfg,
   get_go1_robot_cfg,
+  get_go2_d1_robot_cfg,
+  get_go2_robot_cfg,
   get_yam_robot_cfg,
 )
 from mjlab.terrains.config import ALL_TERRAINS_CFG
@@ -39,7 +42,10 @@ from mjlab.terrains.terrain_generator import (
 # Supported robots for visualization.
 ROBOT_CFG_GETTERS = {
   "None": None,
+  "Unitree D1": get_d1_robot_cfg,
   "Unitree Go1": get_go1_robot_cfg,
+  "Unitree Go2": get_go2_robot_cfg,
+  "Unitree Go2 + D1": get_go2_d1_robot_cfg,
   "Unitree G1": get_g1_robot_cfg,
   "Yam": get_yam_robot_cfg,
 }
@@ -76,6 +82,26 @@ PARAM_HINTS = {
   "stone_size_variation": (0.0, 1.0, 0.005),
   "stone_height_variation": (0.0, 1.0, 0.005),
 }
+
+
+def _apply_initial_joint_positions(
+  robot_model: mujoco.MjModel,
+  robot_data: mujoco.MjData,
+  joint_pos: Mapping[str, float] | None,
+) -> None:
+  if joint_pos is None:
+    return
+
+  for pattern, val in joint_pos.items():
+    if not pattern.startswith("^"):
+      pattern = ".*" + pattern
+    for j_id in range(robot_model.njnt):
+      name = mujoco.mj_id2name(robot_model, mujoco.mjtObj.mjOBJ_JOINT, j_id)
+      if name is None:
+        continue
+      if re.match(pattern, name):
+        adr = robot_model.jnt_qposadr[j_id]
+        robot_data.qpos[adr] = val
 
 
 class _AppState(TypedDict):
@@ -151,19 +177,9 @@ def main():
     robot_model = robot_spec.compile()
     robot_data = mujoco.MjData(robot_model)
 
-    # Apply joint poses.
-    joint_pos = robot_cfg.init_state.joint_pos
-    if joint_pos is None:
-      joint_pos = {}
-    for pattern, val in joint_pos.items():
-      if not pattern.startswith("^"):
-        pattern = ".*" + pattern
-      for j_id in range(robot_model.njnt):
-        name = mujoco.mj_id2name(robot_model, mujoco.mjtObj.mjOBJ_JOINT, j_id)
-        if re.match(pattern, name):
-          adr = robot_model.jnt_qposadr[j_id]
-          robot_data.qpos[adr] = val
-
+    _apply_initial_joint_positions(
+      robot_model, robot_data, robot_cfg.init_state.joint_pos
+    )
     mujoco.mj_forward(robot_model, robot_data)
 
     # Filter for visual geoms only (group < 3).

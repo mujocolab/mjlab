@@ -1,0 +1,12 @@
+<mujocoinclude>
+    <body childclass="dial_base">
+      <joint name="knob_Joint_1" axis="0 0 1" type="hinge" limited="true" range="-3.14 3.14"/>
+
+      <geom material="dial_metal" mesh="dial" pos="0 0 0.018"/>
+      <geom material="dial_metal" mesh="dialhead" pos="0 0 0.051"/>
+      <geom material="dial_red" pos="0 -0.038 0.062" size="0.004 0.01 0.006" type="box"/>
+
+      <geom class="dial_col" pos="0 0 0.018" size="0.05 0.018" type="cylinder"/>
+      <geom class="dial_col" pos="0 0 0.051" size="0.015 0.046 0.015" type="box"/>
+    </body>
+</mujocoinclude>

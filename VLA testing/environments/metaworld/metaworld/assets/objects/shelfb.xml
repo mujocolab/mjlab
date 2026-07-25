@@ -1,0 +1,9 @@
+<mujoco model="shelfb">
+    <include file="assets/shelfb_dependencies.xml"/>
+    <include file="../scene/basic_scene.xml"/>
+    <worldbody>
+        <body pos="0 0.8 0">
+            <include file="assets/shelfb.xml"/>
+        </body>
+    </worldbody>
+</mujoco>

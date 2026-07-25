@@ -8,6 +8,8 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added a Unitree Go2 asset and flat/rough velocity tasks.
+- Added experimental Unitree D1 and Go2+D1 mobile manipulator assets.
 - Added ``BuiltinDcMotorActuator``, a native MuJoCo ``<dcmotor>`` wrapper.
   Supports voltage / position / velocity input modes with back-EMF,
   configurable motor constants, and optional integral, slew, inductance,
@@ -38,6 +40,8 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed terrain visualizer robot spawning for models with unnamed joints,
+  including Unitree Go2 and Go2+D1.
 - Fixed domain randomization events that target different ``axes`` of the same
   model field (e.g. two ``dr.geom_size`` events scaling axis 0 and axis 1
   separately) silently clobbering each other. Each event now writes back only

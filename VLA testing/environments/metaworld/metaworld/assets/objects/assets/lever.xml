@@ -1,0 +1,20 @@
+<mujocoinclude>
+    <body childclass="lever_base">
+        <geom material="lever_metal0" euler="0 1.57 0" mesh="lever_base"/>
+        <geom class="lever_col" pos="0 0 0.125" size="0.041 0.083 0.125" type="box"/>
+        <geom class="lever_col" euler="0 1.57 0" pos="0 0 0.25" size="0.083 0.041" type="cylinder"/>
+        <geom class="lever_col" pos="0 0 0.013" size="0.05 0.092 0.013" type="box"/>
+        <body name="lever_link1" pos="0.12 0 0.25">
+            <joint type="hinge" axis="1 0 0" range="0 1.57" name="LeverAxis"/>
+            <geom material="lever_metal1" euler="0 1.57 0" mesh="lever_axis"/>
+            <geom material="lever_metal0" euler="0 1.57 0" mesh="lever_rodbase"/>
+            <geom material="lever_blue" mesh="lever_handle" pos="0 -0.2 0" name="objGeom"/>
+            <geom material="lever_metal1" euler="1.57 0 0" mesh="lever_rod" pos="0 -0.1 0"/>
+            <geom class="lever_col" euler="0 1.57 0" size="0.038 0.016" type="cylinder" mass=".001"/>
+            <geom class="lever_col" euler="1.57 0 0" pos="0 -0.091 0" size="0.012 0.1" type="cylinder" mass=".001"/>
+            <geom class="lever_col" pos="0 -0.2 0" size="0.03" type="sphere" mass=".001"/>
+            <geom class="lever_col" euler="0 1.57 0" pos="-.025 0 0" size="0.016 0.046" type="cylinder" mass=".001"/>
+            <site name="leverStart" pos="0 -0.2 0" size="0.005" rgba="1 0 0 1"/>
+        </body>
+    </body>
+</mujocoinclude>

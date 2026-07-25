@@ -1,0 +1,35 @@
+<mujocoinclude>
+    <compiler angle="radian" inertiafromgeom="auto" inertiagrouprange="4 5"/>
+    <asset>
+
+      <material name="xyz_col" rgba="0.3 0.3 1.0 0.5" shininess="0" specular="0.5"/>
+
+      <mesh file="../objects/meshes/xyz_base/base.stl" name="base"/>
+      <mesh file="../objects/meshes/xyz_base/eGripperBase.stl" name="eGripperBase"/>
+      <mesh file="../objects/meshes/xyz_base/head.stl" name="head"/>
+      <mesh file="../objects/meshes/xyz_base/l0.stl" name="l0"/>
+      <mesh file="../objects/meshes/xyz_base/l1.stl" name="l1"/>
+      <mesh file="../objects/meshes/xyz_base/l2.stl" name="l2"/>
+      <mesh file="../objects/meshes/xyz_base/l3.stl" name="l3"/>
+      <mesh file="../objects/meshes/xyz_base/l4.stl" name="l4"/>
+      <mesh file="../objects/meshes/xyz_base/l5.stl" name="l5"/>
+      <mesh file="../objects/meshes/xyz_base/l6.stl" name="l6"/>
+      <mesh file="../objects/meshes/xyz_base/pedestal.stl" name="pedestal"/>
+    </asset>
+
+    <default>
+
+      <default class="xyz_base">
+          <joint armature="0.001" damping="2" limited="true"/>
+          <geom conaffinity="0" contype="0" group="1" type="mesh"/>
+          <position ctrllimited="true" ctrlrange="0 1.57"/>
+          <default class="base_viz">
+              <geom conaffinity="0" condim="4" contype="0" group="1" margin="0.001" solimp=".8 .9 .01" solref=".02 1" type="mesh"/>
+          </default>
+          <default class="base_col">
+              <geom conaffinity="1" condim="4" contype="1" group="4" margin="0.001" material="xyz_col" solimp=".8 .9 .01" solref=".02 1"/>
+          </default>
+      </default>
+    </default>
+
+</mujocoinclude>

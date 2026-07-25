@@ -1,0 +1,9 @@
+<mujoco model="doorlockA">
+    <include file="assets/doorlock_dependencies.xml"/>
+    <include file="../scene/basic_scene.xml"/>
+    <worldbody>
+      <body pos="0 .8 .15">
+        <include file="assets/doorlockA.xml"/>
+      </body>
+    </worldbody>
+</mujoco>

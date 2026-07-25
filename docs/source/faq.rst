@@ -167,8 +167,8 @@ The exported ``scene.xml`` can be loaded directly in MuJoCo for visual
 inspection or diffing. This is useful for verifying that task configuration
 and physics are set up correctly, and for creating minimal reproducible
 examples to share with mjlab or MuJoCo Warp developers. The script accepts task IDs,
-entity aliases (``g1``, ``go1``, ``yam``), or arbitrary import paths. See
-:doc:`debugging/export_scene` for full details.
+entity aliases (``d1``, ``g1``, ``go1``, ``go2``, ``go2_d1``, ``yam``), or
+arbitrary import paths. See :doc:`debugging/export_scene` for full details.
 
 My contact sensor misses collisions when using decimation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

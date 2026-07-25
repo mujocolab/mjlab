@@ -1,0 +1,21 @@
+<mujocoinclude>
+    <body childclass="plug_base" name="plug">
+      <geom material="plug_gold" mesh="plug" pos="-0.04 0.015 0.0"/>
+      <geom material="plug_black" euler="0 1.57 0" pos="-0.013 0 0" size="0.045  0.007" type="cylinder"/>
+      <geom material="plug_black" pos="0.06 0 0" size="0.04" type="sphere"/>
+      <geom material="plug_black" euler="0 1.57 0" pos="0.025 0.0 -0.0" size="0.04 0.035" type="cylinder"/>
+
+      <!-- <geom class="plug_col" pos="-0.035 0 0" size="0.036 0.021 0.021" type="box" mass=".001"/>
+      <geom class="plug_col" euler="0 1.57 0" pos="-0.013 0 0" size="0.045  0.007" type="cylinder" mass=".001"/>
+      <geom class="plug_col" pos="0.06 0 0" size="0.04" type="sphere" mass=".001"/>
+      <geom class="plug_col" euler="0 1.57 0" pos="0.025 0.0 -0.0" size="0.038 0.038 0.035" type="box" mass=".001"/>
+      -->
+      <geom class="plug_col" pos="-0.035 0 0" size="0.03" type="sphere" mass=".05" rgba="0.8 0 0 1"/>
+      <geom class="plug_col" euler="0 1.57 0" pos="-0.013 0 0" size="0.045  0.007" type="cylinder" mass=".01" rgba="0.8 0 0 1"/>
+      <geom class="plug_col" pos="0.06 0 0" size="0.04" type="sphere" mass=".01" rgba="0.8 0 0 1"/>
+      <geom class="plug_col" euler="0 1.57 0" pos="0.025 0.0 -0.0" size="0.038 0.038 0.035" type="box" mass=".01"/>
+
+      <site name="pegHead" pos="-0.04 0 0" size="0.005" rgba="0.8 0 0 1"/>
+      <site name="pegEnd" pos="0.04 0 0" size="0.005" rgba="0.8 0 0 1"/>
+    </body>
+</mujocoinclude>

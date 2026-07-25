@@ -1,0 +1,35 @@
+<mujocoinclude>
+    <compiler angle="radian" inertiafromgeom="auto" inertiagrouprange="4 5"/>
+    <asset>
+        <texture name="T_laptop_met" type="cube" file="../textures/metal1.png"/>
+
+      <material name="laptop_col" rgba="0.3 0.3 1.0 0.5" shininess="0" specular="0"/>
+      <material name="laptop_blue" rgba="0 0 .5 1" shininess="1" reflectance="1" specular="1"/>
+      <material name="laptop_grey" rgba=".3 .3 .35 1" shininess="1" reflectance="1" specular="1"/>
+      <material name="laptop_black" rgba=".15 .15 .15 1" shininess=".2" reflectance=".2" specular=".5"/>
+
+    </asset>
+    <default>
+
+      <default class="laptop_base">
+          <joint armature="0.001" damping="2" limited="true"/>
+          <geom conaffinity="0" contype="0" group="1" type="mesh"/>
+          <position ctrllimited="true" ctrlrange="0 1.57"/>
+          <default class="laptop_viz">
+              <geom condim="4" type="mesh"/>
+          </default>
+          <default class="laptop_col">
+              <geom conaffinity="1" condim="3" contype="1" group="4" material="laptop_col" solimp="0.99 0.99 0.01" solref="0.01 1"/>
+          </default>
+      </default>
+    </default>
+
+    <asset>
+        <mesh file="../objects/meshes/laptop/laptop_keys.stl" name="laptop_keys"/>
+        <mesh file="../objects/meshes/laptop/laptop_screen.stl" name="laptop_screen"/>
+        <mesh file="../objects/meshes/laptop/laptop_top.stl" name="laptop_top"/>
+        <mesh file="../objects/meshes/laptop/laptop_hinge.stl" name="laptop_hinge"/>
+        <mesh file="../objects/meshes/laptop/laptop_base.stl" name="laptop_base"/>
+    </asset>
+
+</mujocoinclude>

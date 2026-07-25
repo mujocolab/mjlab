@@ -1,0 +1,6 @@
+<mujoco model="xyz_base">
+    <include file="assets/xyz_base_dependencies.xml"/>
+    <worldbody>
+        <include file="assets/xyz_base.xml"/>
+    </worldbody>
+</mujoco>

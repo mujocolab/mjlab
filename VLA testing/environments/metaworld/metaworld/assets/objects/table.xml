@@ -1,0 +1,6 @@
+<mujoco model="table">
+    <include file="assets\table_dependencies.xml" />
+    <worldbody>
+        <include file="assets\table.xml" />
+    </worldbody>
+</mujoco>

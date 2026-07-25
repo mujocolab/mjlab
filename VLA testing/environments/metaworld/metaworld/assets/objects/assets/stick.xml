@@ -1,0 +1,8 @@
+<mujocoinclude>
+    <body childclass="stick_base">
+      <geom material="stick_blue" mesh="stick"/>
+      <geom class="stick_col" size="0.05 0.02 0.02" type="box" name="objGeom" mass=".02"/>
+      <site name="stick_end" pos="0.05 0 0" size="0.01"
+            rgba="0 0.8 0 1"/>
+    </body>
+</mujocoinclude>

@@ -34,7 +34,8 @@ Target resolution
 The positional ``target`` argument is resolved in order:
 
 1. **Task ID**: checked against the task registry (``import mjlab.tasks``).
-2. **Entity alias**: one of the built-in shorthands (``g1``, ``go1``, ``yam``).
+2. **Entity alias**: a built-in shorthand (``d1``, ``g1``, ``go1``,
+   ``go2``, ``go2_d1``, ``yam``).
 3. **Import path**: a ``module:attribute`` string pointing to any callable
    that returns an ``EntityCfg``.
 

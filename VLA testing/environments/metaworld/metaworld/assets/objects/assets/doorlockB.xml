@@ -1,0 +1,24 @@
+<mujocoinclude>
+    <body childclass="dl_base" name="doorlockB">
+      <geom material="dl_metal2" mesh="safe"/>
+      <geom class="dl_col" pos="-0.204 0 0" size="0.016 0.106 0.15" type="box"/>
+      <geom class="dl_col" pos="0.204 0 0" size="0.016 0.106 0.15" type="box"/>
+      <geom class="dl_col" pos="0 0 0.138" size="0.188 0.106 0.012" type="box"/>
+      <geom class="dl_col" pos="0 0 -0.138" size="0.189 0.106 0.012" type="box"/>
+      <geom class="dl_col" pos="0 0.094 0" size="0.188 0.012 0.126" type="box"/>
+      <body name="door_link" pos="-0.185 -0.1 0">
+          <joint name="doorjoint" type="hinge" axis="0 0 1" range="-2 0"/>
+          <geom material="dl_metal2" mesh="door" pos="0.185 0 0"/>
+          <geom name="handle" material="dl_metal" euler="1.57 0 0" mesh="door_handle" pos="0.325 -0.062 0"/>
+          <geom material="dl_metal" mesh="handle_base" pos="0.325 -0.006 0"/>
+          <geom material="dl_metal" pos="0 0 .07" size="0.013 .045" type="cylinder"/>
+          <geom material="dl_metal" pos="0 0 -.07" size="0.013 .045" type="cylinder"/>
+
+          <geom class="dl_col" euler="1.57 0 0" pos="0.325 -0.006 0" size="0.028 0.012" type="cylinder"/>
+          <geom class="dl_col" euler="1.57 0 0" pos="0.325 -0.065 0" size="0.013 0.047" type="cylinder"/>
+          <geom class="dl_col" euler="0 1.57 0" pos="0.381 -0.12 0" size="0.019 0.075" type="cylinder"/>
+          <geom class="dl_col" euler="0 1.57 0" pos="0.395 -0.12 0" size="0.023 0.054" type="cylinder"/>
+          <geom class="dl_col" pos="0.185 0.0 0.0" size="0.18 0.01 0.123" type="box" />
+      </body>
+    </body>
+</mujocoinclude>

@@ -1,0 +1,30 @@
+<mujoco>
+    <include file="../scene/basic_scene.xml"/>
+    <include file="../objects/assets/hammer_dependencies.xml"/>
+    <include file="../objects/assets/xyz_base_dependencies.xml"/>
+
+    <worldbody>
+        <include file="../objects/assets/xyz_base.xml"/>
+        <body name="hammerbody" pos="0 0.6 0.02">
+          <freejoint/>
+          <include file="../objects/assets/hammer.xml"/>
+
+        </body>
+
+
+        <body name="box" pos="0.24 0.85 0">
+          <include file="../objects/assets/hammerblock.xml"/>
+          <site name="nailHead" pos="0 -.215 .11" size="0.005" rgba="0.8 0 0 1"/>
+
+          <site name="goal" pos="0 -0.11 0.11" size="0.005" rgba="0 0.8 0 1"/>
+        </body>
+    </worldbody>
+
+    <actuator>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="r_close" kp="400"  user="1"/>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="l_close" kp="400"  user="1"/>
+    </actuator>
+    <equality>
+        <weld body1="mocap" body2="hand" solref="0.02 1"></weld>
+    </equality>
+</mujoco>

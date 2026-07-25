@@ -1,0 +1,16 @@
+gymnasium>=1.1
+mujoco==3.3.0
+numpy>=1.18
+scipy>=1.4.1
+imageio
+
+[dev]
+black
+isort
+mypy
+
+[testing]
+ipdb
+memory_profiler
+pyquaternion==0.9.5
+pytest>=4.4.0

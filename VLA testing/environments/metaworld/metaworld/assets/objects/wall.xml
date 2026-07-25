@@ -1,0 +1,7 @@
+<mujoco model="wall">
+    <include file="assets/wall_dependencies.xml"/>
+    <include file="../scene/basic_scene.xml"/>
+    <worldbody>
+        <include file="assets/wall.xml"/>
+    </worldbody>
+</mujoco>

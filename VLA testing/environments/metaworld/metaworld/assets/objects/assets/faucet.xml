@@ -1,0 +1,23 @@
+<mujocoinclude>
+    <body childclass="faucet_base">
+        <body name="faucet_link">
+            <geom material="faucet_metal" mesh="faucetbase" pos="0 0 0.088"/>
+            <geom class="faucet_col" pos="0 0 0.009" size="0.046 0.009" type="cylinder"/>
+            <geom class="faucet_col" pos="0 0 0.061" size="0.017 0.044" type="cylinder"/>
+            <body name="faucet_link2" pos="0 0 0.124">
+                <joint name="knob_Joint_1" type="hinge" range="-1.57 1.57" axis="0 0 1"/>
+                <geom material="faucet_metal" euler="1.57 0 0" mesh="faucethandle1" pos="0 -0.06 0.001"/>
+                <geom material="faucet_metal" mesh="faucethead" pos="0 0 0.001"/>
+                <geom material="faucet_red" euler="1.57 0 0" pos="0 -0.12 0.001" size="0.017 0.055" type="capsule"/>
+
+                <geom class="faucet_col" euler="1.57 0 0" pos="0 -0.05 0.001" size="0.012 0.021" type="cylinder"/>
+                <geom class="faucet_col" euler="1.57 0 0" pos="0 -0.12 0.001" size="0.017 0.055" type="capsule"/>
+                <geom class="faucet_col" pos="0 0 0.001" size="0.032 0.02" type="cylinder"/>
+
+                <site name="handleStartClose" pos="0.015 -0.175 0" size="0.01" rgba="0 0 0 1"/>
+                <site name="handleStartOpen" pos="-0.015 -0.175 0" size="0.005" rgba="1 1 1 1"/>
+            </body>
+        </body>
+
+    </body>
+</mujocoinclude>

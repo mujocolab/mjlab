@@ -1,0 +1,25 @@
+<mujocoinclude>
+    <compiler angle="radian" inertiafromgeom="auto" inertiagrouprange="4 4"/>
+    <asset>
+      <texture name="T_table" type="cube" file="../textures/wood1.png"/>
+
+      <material name="table_wood" texture="T_table" shininess=".3" specular="0.5"/>
+      <material name="collision_blue" rgba="0.3 0.3 1.0 0.5" shininess="0" specular="0.5"/>
+
+      <mesh file="../objects/meshes/table/tablebody.stl" name="tablebody"/>
+      <mesh file="../objects/meshes/table/tabletop.stl" name="tabletop"/>
+      <mesh file="../objects/meshes/table/table_hole2.stl" name="table_hole2"/>
+    </asset>
+
+    <default class="table">
+        <joint armature="0.001" damping="2" limited="true"/>
+        <geom conaffinity="0" contype="0" group="1" type="mesh"/>
+        <position ctrllimited="true" ctrlrange="0 1.57"/>
+        <default class="visual">
+            <geom conaffinity="0" condim="4" contype="0" group="1" margin="0.001" solimp=".8 .9 .01" solref=".02 1" type="mesh"/>
+        </default>
+        <default class="collision">
+            <geom conaffinity="1" condim="3" contype="1" group="4" material="collision_blue" solimp=".08 .09 .01" solref=".02 1"/>
+        </default>
+    </default>
+</mujocoinclude>

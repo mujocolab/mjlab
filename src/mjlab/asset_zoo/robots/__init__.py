@@ -4,6 +4,12 @@ from mjlab.asset_zoo.robots.i2rt_yam.yam_constants import (
 from mjlab.asset_zoo.robots.i2rt_yam.yam_constants import (
   get_yam_robot_cfg as get_yam_robot_cfg,
 )
+from mjlab.asset_zoo.robots.unitree_d1.d1_constants import (
+  D1_ACTION_SCALE as D1_ACTION_SCALE,
+)
+from mjlab.asset_zoo.robots.unitree_d1.d1_constants import (
+  get_d1_robot_cfg as get_d1_robot_cfg,
+)
 from mjlab.asset_zoo.robots.unitree_g1.g1_constants import (
   G1_ACTION_SCALE as G1_ACTION_SCALE,
 )
@@ -15,4 +21,16 @@ from mjlab.asset_zoo.robots.unitree_go1.go1_constants import (
 )
 from mjlab.asset_zoo.robots.unitree_go1.go1_constants import (
   get_go1_robot_cfg as get_go1_robot_cfg,
+)
+from mjlab.asset_zoo.robots.unitree_go2.go2_constants import (
+  GO2_ACTION_SCALE as GO2_ACTION_SCALE,
+)
+from mjlab.asset_zoo.robots.unitree_go2.go2_constants import (
+  get_go2_robot_cfg as get_go2_robot_cfg,
+)
+from mjlab.asset_zoo.robots.unitree_go2_d1.go2_d1_constants import (
+  GO2_D1_ACTION_SCALE as GO2_D1_ACTION_SCALE,
+)
+from mjlab.asset_zoo.robots.unitree_go2_d1.go2_d1_constants import (
+  get_go2_d1_robot_cfg as get_go2_d1_robot_cfg,
 )

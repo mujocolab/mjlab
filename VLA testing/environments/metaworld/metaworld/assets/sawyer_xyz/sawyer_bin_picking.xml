@@ -1,0 +1,33 @@
+<mujoco>
+    <include file="../scene/basic_scene.xml"/>
+    <include file="../objects/assets/bin_dependencies.xml"/>
+    <include file="../objects/assets/xyz_base_dependencies.xml"/>
+
+    <worldbody>
+        <include file="../objects/assets/xyz_base.xml"/>
+
+        <body name="obj" pos="-0.12 0.7 0.04">
+            <freejoint/>
+            <include file="../objects/assets/objA.xml"/>
+        </body>
+
+
+        <body name="bin_start" pos="-0.12 0.7 0">
+            <include file="../objects/assets/binA.xml"/>
+        </body>
+
+        <body name="bin_goal" pos="0.12 0.7 0">
+            <include file="../objects/assets/binB.xml"/>
+        </body>
+
+
+    </worldbody>
+
+    <actuator>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="r_close" kp="400"  user="1"/>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="l_close" kp="400"  user="1"/>
+    </actuator>
+    <equality>
+        <weld body1="mocap" body2="hand" solref="0.02 1"></weld>
+    </equality>
+</mujoco>

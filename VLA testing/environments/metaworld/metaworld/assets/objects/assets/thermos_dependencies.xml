@@ -1,0 +1,36 @@
+<mujocoinclude>
+    <compiler angle="radian" inertiafromgeom="auto" inertiagrouprange="4 5"/>
+    <asset>
+      <texture name="T_therm_met" type="cube" file="../textures/metal1.png"/>
+
+      <material name="therm_col" rgba="0.3 0.3 1.0 0.5" shininess="0" specular="0"/>
+      <material name="therm_red" rgba="0.19 0.38 0.2 1" shininess="1" reflectance=".7" specular=".5"/>
+      <material name="therm_white" rgba=".75 .75 .75 1" shininess="1" reflectance=".7" specular=".5"/>
+      <material name="therm_metal_green" texture="T_therm_met" rgba=".45 .56 .52 1" shininess="1" reflectance="1" specular=".5"/>
+      <material name="therm_metal" texture="T_therm_met" rgba=".85 .85 .85 1" shininess="1" reflectance="1" specular=".5"/>
+
+    </asset>
+    <default>
+
+      <default class="therm_base">
+          <joint armature="0.001" damping="2" limited="true"/>
+          <geom conaffinity="0" contype="0" group="1" type="mesh"/>
+          <position ctrllimited="true" ctrlrange="0 1.57"/>
+          <default class="therm_viz">
+              <geom condim="4" type="mesh"/>
+          </default>
+          <default class="therm_col">
+              <geom conaffinity="1" condim="3" contype="1" group="4" material="therm_col" solimp="0.99 0.99 0.01" solref="0.01 1"/>
+          </default>
+      </default>
+    </default>
+
+    <asset>
+      <mesh file="../objects/meshes/thermos/therm_base.stl" name="therm_base"/>
+      <mesh file="../objects/meshes/thermos/therm_body.stl" name="therm_body"/>
+      <mesh file="../objects/meshes/thermos/therm_cap.stl" name="therm_cap"/>
+      <mesh file="../objects/meshes/thermos/therm_handle.stl" name="therm_handle"/>
+      <mesh file="../objects/meshes/thermos/therm_trim.stl" name="therm_trim"/>
+    </asset>
+
+</mujocoinclude>

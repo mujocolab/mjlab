@@ -1,0 +1,15 @@
+<mujocoinclude>
+    <body childclass="laptop_base">
+        <geom material="laptop_grey" mesh="laptop_keys" pos="0 0 0.015"/>
+        <geom material="laptop_grey" mesh="laptop_base" pos="0.0 0.0 0.015" />
+        <geom class="laptop_col" pos="0 0 0.015" size="0.2 0.15 0.015" type="box"/>
+        <body name="laptoplid_link" pos="0 0.151 0.031">
+            <joint type="hinge" axis="1 0 0" range="0 1.57"/>
+            <geom material="laptop_black" mesh="laptop_screen" pos="0 0.01 0.15"/>
+            <geom material="laptop_grey" mesh="laptop_top" pos="0 0.01 0.15"/>
+            <geom material="laptop_grey" euler="0 1.57 0" mesh="laptop_hinge"/>
+            <geom class="laptop_col" pos="0 0.01 0.15" size="0.2 0.01 0.15" type="box" mass=".05"/>
+            <site rgba="1 0 0 1" size="0.002 0.002 0.002" pos="0 0.01 0.3" type="sphere" name="laptop_site"/>
+        </body>
+    </body>
+</mujocoinclude>

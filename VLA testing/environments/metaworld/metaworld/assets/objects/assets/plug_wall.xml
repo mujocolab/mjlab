@@ -1,0 +1,14 @@
+<mujocoinclude>
+    <body childclass="plug_base" pos="0 0 .099" name="plug_wall">
+      <geom material="plug_plast" mesh="plug_wall"/>
+      <geom material="plug_white" pos="0.025 0 0" mesh="plug_plastic"/>
+
+      <geom class="plug_col" pos="0 0.061 0.032" size="0.025 0.039 0.022" type="box"/>
+      <geom class="plug_col" pos="0 0 0.077" size="0.025 0.1 0.023" type="box"/>
+      <geom class="plug_col" pos="0 0 -0.045" size="0.025 0.1 0.055" type="box"/>
+      <geom class="plug_col" pos="0 0.056 -0.016" size="0.025 0.045 0.011" type="box"/>
+      <geom class="plug_col" pos="0 -0.061 0.032" size="0.025 0.039 0.022" type="box"/>
+      <site name="hole" pos="0.02 0 .03" size="0.005" rgba="0 0.8 0 1"/>
+
+    </body>
+</mujocoinclude>

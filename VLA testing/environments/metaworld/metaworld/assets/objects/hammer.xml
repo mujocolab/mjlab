@@ -1,0 +1,10 @@
+<mujoco model="hammer">
+    <include file="assets/hammer_dependencies.xml"/>
+    <include file="../scene/basic_scene.xml"/>
+    <worldbody>
+        <body pos="0 .9 .1">
+            <freejoint/>
+            <include file="assets/hammer.xml"/>
+        </body>
+    </worldbody>
+</mujoco>

@@ -1,0 +1,32 @@
+<mujocoinclude>
+    <body childclass="dl_base" name="doorlockA">
+      <geom material="dl_metal2" mesh="safe"/>
+      <geom class="dl_col" pos="-0.204 0 0" size="0.016 0.106 0.15" type="box"/>
+      <geom class="dl_col" pos="0.204 0 0" size="0.016 0.106 0.15" type="box"/>
+      <geom class="dl_col" pos="0 0 0.138" size="0.188 0.106 0.012" type="box"/>
+      <geom class="dl_col" pos="0 0 -0.138" size="0.189 0.106 0.012" type="box"/>
+      <geom class="dl_col" pos="0 0.094 0" size="0.188 0.012 0.126" type="box"/>
+      <body name="door_link" pos="-0.185 -0.1 0">
+          <geom material="dl_metal2" mesh="door" pos="0.185 0 0"/>
+          <geom material="dl_metal" euler="1.57 0 0" mesh="door_handle" pos="0.325 -0.062 -0.05"/>
+          <geom material="dl_metal" mesh="handle_base" pos="0.325 -0.006 -0.05"/>
+          <geom material="dl_metal" mesh="lock_base" pos="0.185 -0.009 0.061"/>
+          <geom material="dl_metal" pos="0 0 .07" size="0.013 .045" type="cylinder"/>
+          <geom material="dl_metal" pos="0 0 -.07" size="0.013 .045" type="cylinder"/>
+
+          <geom class="dl_col" pos="0.185 -0.009 0.061" size="0.047 0.013 0.047" type="box"/>
+          <geom class="dl_col" pos="0.325 -0.006 -0.05" size="0.028 0.012 0.028" type="box"/>
+          <geom class="dl_col" euler="1.57 0 0" pos="0.325 -0.065 -0.05" size="0.013 0.013 0.047" type="box"/>
+          <geom class="dl_col" euler="0 1.57 0" pos="0.381 -0.12 -0.05" size="0.019 0.019 0.075" type="box"/>
+          <geom class="dl_col" euler="0 1.57 0" pos="0.395 -0.12 -0.05" size="0.023 0.023 0.054" type="box"/>
+          <geom class="dl_col" pos="0.185 0 0" size="0.184 0.01 0.124" type="box"/>
+          <body name="lock_link" pos="0.185 -0.018 0.061">
+              <joint type="hinge" axis="0 1 0" range="0 1.57"/>
+              <geom material="dl_metal" mesh="lock" pos="0.042 -0.022 0"/>
+              <geom class="dl_col" pos="0.042 -0.024 0" size="0.05 0.019 0.01" type="box" mass=".001"/>
+              <site name="lockStartLock" pos="0.09 -0.04 0.01" size="0.005" rgba="1 1 1 1"/>
+              <site name="lockStartUnlock" pos="0.09 -0.04 -0.01" size="0.005" rgba="0 0 0 1"/>
+          </body>
+      </body>
+    </body>
+</mujocoinclude>

@@ -1,0 +1,9 @@
+<mujoco model="plug_wall">
+    <include file="assets/plug_dependencies.xml"/>
+    <include file="../scene/basic_scene.xml"/>
+    <worldbody>
+        <body pos="-.2 .6 0">
+            <include file="assets/plug_wall.xml"/>
+        </body>
+    </worldbody>
+</mujoco>

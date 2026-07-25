@@ -1,0 +1,34 @@
+<mujocoinclude>
+    <compiler angle="radian" inertiafromgeom="auto" inertiagrouprange="4 5"/>
+    <asset>
+        <texture name="T_boxmetal" type="cube" file="../textures/metal1.png"/>
+        <texture name="T_boxwood" type="cube" file="../textures/wood1.png"/>
+      <material name="box_col" rgba="0.3 0.3 1.0 0.5" shininess="0" specular="0"/>
+      <material name="box_red" rgba=".8 0 0 1" shininess="1" reflectance=".7" specular=".5"/>
+      <material name="box_blue" rgba="0 0 .8 1" shininess="1" reflectance=".7" specular=".5"/>
+      <material name="box_metal" rgba=".35 .35 .35 1" texture="T_boxmetal" shininess="1" reflectance=".7" specular=".5"/>
+      <material name="box_wood" texture="T_boxwood" shininess="1" reflectance=".7" specular=".5"/>
+    </asset>
+    <default>
+      <default class="box_base">
+          <joint armature="0.001" damping="2" limited="true"/>
+          <geom conaffinity="0" contype="0" group="1" type="mesh"/>
+          <default class="box_viz">
+              <geom condim="4" type="mesh"/>
+          </default>
+          <default class="box_col">
+              <geom conaffinity="1" condim="3" contype="0" group="4" material="box_col" solimp="0.99 0.99 0.01" solref="0.01 1"/>
+          </default>
+          <default class="top_col">
+              <geom conaffinity="1" condim="4" contype="1" group="4" material="box_col" solimp="0.99 0.99 0.01" solref="0.01 1"/>
+          </default>
+      </default>
+    </default>
+
+    <asset>
+        <mesh file="../objects/meshes/bin/bin.stl" name="bin"/>
+        <mesh file="../objects/meshes/box/boxtop.stl" name="boxtop"/>
+        <mesh file="../objects/meshes/box/boxhandle.stl" name="boxhandle"/>
+    </asset>
+
+</mujocoinclude>

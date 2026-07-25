@@ -1,0 +1,35 @@
+<mujoco>
+    <include file="../scene/basic_scene.xml"/>
+    <include file="../objects/assets/faucet_dependencies.xml"/>
+    <include file="../objects/assets/xyz_base_dependencies.xml"/>
+    <worldbody>
+        <include file="../objects/assets/xyz_base.xml"/>
+
+        <body name="faucetBase" pos="0 0.8 0">
+            <include file="../objects/assets/faucet.xml"/>
+
+        </body>
+
+
+        <site name="goal_open" pos="0.175 0.785 0.125" size="0.005"
+              rgba="0 .8 0 1"/>
+        <site name="goal_close" pos="-0.175 0.785 0.125" size="0.005"
+              rgba="0 0 0.8 1"/>
+
+<!--         <body name="box" pos="0 0.8 0.05">
+          <geom rgba="0.3 0.3 1 1" type="box" contype="1" size="0.1 0.05 0.05" name="box_left" conaffinity="1" pos="0 0 0" mass="1000" solimp="0.99 0.99 0.01" solref="0.01 1"/>
+          <geom rgba="0.3 0.3 1 1" type="box" contype="1" size="0.1 0.05 0.05" name="box_right" conaffinity="1" pos="0 0.16 0" mass="1000" solimp="0.99 0.99 0.01" solref="0.01 1"/>
+          <geom rgba="0.3 0.3 1 1" type="box" contype="1" size="0.035 0.03 0.05" name="box_front" conaffinity="1" pos="0.065 0.08 0" mass="1000" solimp="0.99 0.99 0.01" solref="0.01 1"/>
+          <geom rgba="0.3 0.3 1 1" type="box" contype="1" size="0.035 0.03 0.05" name="box_behind" conaffinity="1" pos="-0.065 0.08 0" mass="1000" solimp="0.99 0.99 0.01" solref="0.01 1"/>
+          <joint type="slide" range="-0.2 0." axis="0 1 0" name="goal_slidey" pos="0 0 0" damping="1.0"/>
+        </body>
+ -->    </worldbody>
+
+    <actuator>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="r_close" kp="400"  user="1"/>
+        <position ctrllimited="true" ctrlrange="-1 1" joint="l_close" kp="400"  user="1"/>
+    </actuator>
+    <equality>
+        <weld body1="mocap" body2="hand" solref="0.02 1"></weld>
+    </equality>
+</mujoco>

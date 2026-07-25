@@ -1,0 +1,65 @@
+<mujocoinclude>
+    <option timestep='0.0025' iterations="50" tolerance="1e-10" solver="Newton" jacobian="dense" cone="elliptic"/>
+
+    <asset>
+        <!-- night sky -->
+        <!-- <texture name="skybox" type="skybox" builtin="gradient" rgb1=".08 .09 .10" rgb2="0 0 0"
+               width="800" height="800" mark="random" markrgb=".8 .8 .8"/> -->
+        <texture type="skybox" builtin="gradient" rgb1=".50 .495 .48" rgb2=".50 .495 .48" width="32" height="32"/>
+        <texture name="T_table" type="cube" file="../textures/wood2.png"/>
+        <texture name="T_floor" type="2d" file="../textures/floor2.png"/>
+
+        <material name="basic_floor" texture="T_floor" texrepeat="12 12" shininess=".3" specular="0.5"
+                  reflectance="0.2"/>
+        <material name="table_wood" texture="T_table" shininess=".3" specular="0.5"/>
+        <material name="table_col" rgba="0.3 0.3 1.0 0.5" shininess="0" specular="0"/>
+
+        <mesh file="../objects/meshes/table/tablebody.stl" name="tablebody" scale="1 1 1"/>
+        <mesh file="../objects/meshes/table/tabletop.stl" name="tabletop" scale="1 1 1"/>
+    </asset>
+
+    <asset>
+        <texture name="T_wallmetal" type="cube" file="../textures/metal.png"/>
+        <material name="wall_metal" texture="T_wallmetal" shininess="1" reflectance="1" specular=".5"/>
+    </asset>
+
+    <visual>
+        <map fogstart="1.5" fogend="5" force="0.1" znear="0.01"/>
+        <quality shadowsize="4096" offsamples="4"/>
+
+        <headlight ambient="0.4 0.4 0.4"/>
+
+    </visual>
+
+    <worldbody>
+        <light castshadow="false" directional='true' diffuse='.3 .3 .3' specular='0.3 0.3 0.3' pos='-1 -1 1'
+               dir='1 1 -1'/>
+        <light directional='true' diffuse='.3 .3 .3' specular='0.3 0.3 0.3' pos='1 -1 1' dir='-1 1 -1'/>
+        <light castshadow="false" directional='true' diffuse='.3 .3 .3' specular='0.3 0.3 0.3' pos='0 1 1'
+               dir='0 -1 -1'/>
+        <body name="tablelink" pos="0 .6 0">
+            <geom material="table_wood" group="1" type="box" size=".7 .4 .027" pos="0 0 -.027" conaffinity="0"
+                  contype="0"/>
+            <geom material="table_wood" group="1" mesh="tablebody" pos="0 0 -0.65" type="mesh" conaffinity="0"
+                  contype="0"/>
+            <geom material="table_col" group="4" pos="0.0 0.0 -0.46" size="0.7 0.4 0.46" type="box" conaffinity="1"
+                  contype="0"/>
+        </body>
+
+        <body name="RetainingWall" pos="0.0 0.6 0.06">
+            <geom material="wall_metal" type="box" size=".7 .01 .06" pos="0. -0.39 0." conaffinity="1" condim="3"
+                  contype="0"/>
+            <geom material="wall_metal" type="box" size=".7 .01 .06" pos="0. 0.39 0." conaffinity="1" condim="3"
+                  contype="0"/>
+            <geom material="wall_metal" type="box" size=".01 .38 .06" pos="-.69 0. 0." conaffinity="1" condim="3"
+                  contype="0"/>
+            <geom material="wall_metal" type="box" size=".01 .38 .06" pos=".69 0. 0." conaffinity="1" condim="3"
+                  contype="0"/>
+        </body>
+
+        <geom name="floor" size="4 4 .1" pos="0 0 -.913" conaffinity="1" contype="1" type="plane" material="basic_floor"
+              condim="3"/>
+
+    </worldbody>
+
+</mujocoinclude>

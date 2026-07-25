@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>d1_description</name>
+  <version>1.0.0</version>
+  <description>URDF description package for the D1 arm.</description>
+
+  <maintainer email="TODO@email.com">TODO</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>joint_state_publisher_gui</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

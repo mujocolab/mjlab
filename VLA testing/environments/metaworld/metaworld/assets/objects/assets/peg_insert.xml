@@ -1,0 +1,11 @@
+<mujocoinclude>
+    <body childclass="peg_base" name="pegblock">
+      <!-- <geom material="peg_green" euler="0 1.57 0" size="0.02 0.06" type="capsule"/>
+      <geom class="peg_col" euler="0 1.57 0" size="0.02 0.06" type="capsule" mass=".1"/> -->
+      <!-- <geom material="peg_green" euler="0 1.57 0" size="0.015 0.015 0.12" type="box"/> -->
+      <geom class="peg_col" euler="0 1.57 0" size="0.015 0.015 0.12" type="box" mass=".1"/>
+      <site name="pegHead" pos="-0.1 0 0" size="0.005" rgba="0.8 0 0 1"/>
+      <site name="pegEnd" pos="0.1 0 0" size="0.005" rgba="0.8 0 0 1"/>
+      <site name="pegGrasp" pos=".03 .0 .01" size="0.005" rgba="0.8 0 0 1"/>
+    </body>
+</mujocoinclude>
