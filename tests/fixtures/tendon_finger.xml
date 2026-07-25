@@ -1,8 +1,6 @@
 <mujoco model="tendon_finger">
   <compiler angle="radian" autolimits="true"/>
 
-  <option timestep="0.002" integrator="implicitfast"/>
-
   <default>
     <geom type="capsule" size="0.01" rgba="0.8 0.6 0.4 1"/>
     <joint type="hinge" axis="0 1 0" range="-1.57 1.57" damping="0.1"/>

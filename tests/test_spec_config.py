@@ -1,5 +1,7 @@
 """Tests for spec_config.py."""
 
+import math
+
 import mujoco
 import pytest
 
@@ -8,6 +10,7 @@ from mjlab.utils.spec_config import (
   CollisionCfg,
   LightCfg,
   MaterialCfg,
+  MeshCfg,
   TextureCfg,
 )
 
@@ -195,6 +198,107 @@ def test_collision_validation(param, value, expected_error):
       solmix=value if param == "solmix" else None,
     )
     cfg.validate()
+
+
+# Mesh Tests
+
+
+def _sphere_points(n: int) -> list[float]:
+  """Deterministic point cloud on a unit sphere (Fibonacci lattice).
+
+  Every point is on the hull, so the unconstrained hull has n vertices.
+  """
+  phi = math.pi * (3.0 - math.sqrt(5.0))
+  verts: list[float] = []
+  for i in range(n):
+    y = 1.0 - 2.0 * (i + 0.5) / n
+    r = math.sqrt(max(0.0, 1.0 - y * y))
+    theta = phi * i
+    verts += [math.cos(theta) * r, y, math.sin(theta) * r]
+  return verts
+
+
+@pytest.fixture
+def multi_mesh_spec():
+  """Spec with two mesh assets, each a 100-vertex sphere point cloud."""
+  spec = mujoco.MjSpec()
+  for name in ("blob_a", "blob_b"):
+    mesh = spec.add_mesh()
+    mesh.name = name
+    mesh.uservert = _sphere_points(100)
+  return spec
+
+
+def _hull_numvert(spec: mujoco.MjSpec, mesh_name: str) -> int:
+  """Compile and return the convex-hull vertex count for a mesh asset.
+
+  maxhullvert caps the hull stored in mesh_graph (which the narrowphase support
+  function walks), not the raw mesh_vert array, so we read it back from the
+  compiled graph: the first int at mesh_graphadr is the hull vertex count.
+  """
+  body = spec.worldbody.add_body()
+  geom = body.add_geom()
+  geom.type = mujoco.mjtGeom.mjGEOM_MESH
+  geom.meshname = mesh_name
+  model = spec.compile()
+  mesh_id = model.mesh(mesh_name).id
+  return int(model.mesh_graph[model.mesh_graphadr[mesh_id]])
+
+
+def test_mesh_maxhullvert_scalar(multi_mesh_spec):
+  """MeshCfg should set maxhullvert on every matched mesh asset."""
+  MeshCfg(mesh_names_expr=(".*",), maxhullvert=12).edit_spec(multi_mesh_spec)
+
+  assert multi_mesh_spec.mesh("blob_a").maxhullvert == 12
+  assert multi_mesh_spec.mesh("blob_b").maxhullvert == 12
+
+
+def test_mesh_maxhullvert_regex_matching(multi_mesh_spec):
+  """Only meshes matching the regex should be modified; others stay default."""
+  MeshCfg(mesh_names_expr=("blob_a",), maxhullvert=8).edit_spec(multi_mesh_spec)
+
+  assert multi_mesh_spec.mesh("blob_a").maxhullvert == 8
+  assert multi_mesh_spec.mesh("blob_b").maxhullvert == -1  # Unchanged default.
+
+
+def test_mesh_maxhullvert_dict_resolution(multi_mesh_spec):
+  """A dict should resolve per-mesh values by pattern."""
+  MeshCfg(
+    mesh_names_expr=(".*",),
+    maxhullvert={"blob_a": 6, "blob_b": 20},
+  ).edit_spec(multi_mesh_spec)
+
+  assert multi_mesh_spec.mesh("blob_a").maxhullvert == 6
+  assert multi_mesh_spec.mesh("blob_b").maxhullvert == 20
+
+
+def test_mesh_unconstrained_hull_keeps_all_vertices(multi_mesh_spec):
+  """Baseline: without a cap, every sphere point is a hull vertex."""
+  assert _hull_numvert(multi_mesh_spec, "blob_a") == 100
+
+
+def test_mesh_maxhullvert_caps_compiled_hull(multi_mesh_spec):
+  """The cap should actually shrink the compiled convex hull below the baseline."""
+  MeshCfg(mesh_names_expr=("blob_a",), maxhullvert=10).edit_spec(multi_mesh_spec)
+  assert _hull_numvert(multi_mesh_spec, "blob_a") == 10
+
+
+@pytest.mark.parametrize("value", [0, 2, 3, -2])
+def test_mesh_maxhullvert_validation(value):
+  """maxhullvert must be -1 or greater than 3."""
+  with pytest.raises(ValueError, match="maxhullvert must be"):
+    MeshCfg(mesh_names_expr=(".*",), maxhullvert=value).validate()
+
+
+def test_mesh_maxhullvert_dict_validation():
+  """Validation should also cover dict-valued maxhullvert."""
+  with pytest.raises(ValueError, match="maxhullvert must be.*pattern 'blob_a'"):
+    MeshCfg(mesh_names_expr=(".*",), maxhullvert={"blob_a": 2}).validate()
+
+
+def test_mesh_maxhullvert_allows_unlimited():
+  """-1 (unlimited) is valid and is the MuJoCo default."""
+  MeshCfg(mesh_names_expr=(".*",), maxhullvert=-1).validate()
 
 
 # Visual Element Tests

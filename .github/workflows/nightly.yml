@@ -1,0 +1,37 @@
+name: nightly
+
+# Early warning: upgrade every dependency to its latest version and run the
+# test suite, so an upstream release that breaks mjlab shows up here rather than
+# in a user's install or at release time.
+
+on:
+  schedule:
+    - cron: "17 11 * * *"  # Daily at 11:17 UTC (off the hour to reduce delay).
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  latest-deps:
+    name: Test against latest dependencies (py${{ matrix.python-version }})
+    # Skip on forks; scheduled runs only make sense on the canonical repo.
+    if: github.repository == 'mujocolab/mjlab'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          version: "0.9.27"
+      - name: Upgrade all dependencies to latest
+        run: uv lock --upgrade
+      - name: Show dependency tree
+        run: uv tree
+      - name: Test
+        run: uv run --extra cpu pytest

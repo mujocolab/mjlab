@@ -33,3 +33,8 @@ class ViewerConfig:
   enable_shadows: bool = True
   height: int = 240
   width: int = 320
+  reward_bar_max_terms: int = 20
+  """Maximum number of reward terms shown in the Viser reward bar panel.
+
+  Terms beyond this limit are dropped (with a warning). Raise it for
+  environments with many reward terms."""

@@ -14,6 +14,7 @@ from ._core import (
   _DEFAULT_ASSET_CFG,
   Ranges,
   _get_entity_indices,
+  _randomize_categorical_field,
   _randomize_model_field,
   _randomize_quat_field,
 )
@@ -283,3 +284,42 @@ def geom_size(
     default_axes=[0, 1, 2],
   )
   _recompute_geom_bounds(env, env_ids, asset_cfg)
+
+
+@requires_model_fields("geom_matid")
+def geom_matid(
+  env: ManagerBasedRlEnv,
+  env_ids: torch.Tensor | None,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+  shared_random: bool = False,
+) -> None:
+  """Randomize which baked material each selected geom uses.
+
+  Each geom is assigned a material drawn uniformly from ``asset_cfg.material_names``.
+  Assigning a material to a geom that had none (``matid < 0``) switches its color
+  source from ``geom_rgba`` to the material's ``mat_rgba``/texture.
+
+  Args:
+    env: The environment instance.
+    env_ids: Environment indices to randomize. ``None`` means all.
+    asset_cfg: Entity, geom, and material selection.
+    shared_random: If ``True``, all selected geoms receive the same sampled value per
+      environment.
+  """
+  asset = env.scene[asset_cfg.name]
+  mat_ids = _get_entity_indices(asset.indexing, asset_cfg, "material", False)
+  if mat_ids.numel() == 0:
+    raise ValueError(
+      f"No materials selected for entity '{asset_cfg.name}'. Set "
+      "SceneEntityCfg.material_names to a non-empty selection."
+    )
+
+  _randomize_categorical_field(
+    env,
+    env_ids,
+    "geom_matid",
+    entity_type="geom",
+    pool=mat_ids,
+    asset_cfg=asset_cfg,
+    shared_random=shared_random,
+  )

@@ -13,7 +13,7 @@ def unitree_go1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
     actor=RslRlModelCfg(
       hidden_dims=(512, 256, 128),
       activation="elu",
-      obs_normalization=False,
+      obs_normalization=True,
       distribution_cfg={
         "class_name": "GaussianDistribution",
         "init_std": 1.0,
@@ -23,7 +23,7 @@ def unitree_go1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
     critic=RslRlModelCfg(
       hidden_dims=(512, 256, 128),
       activation="elu",
-      obs_normalization=False,
+      obs_normalization=True,
     ),
     algorithm=RslRlPpoAlgorithmCfg(
       value_loss_coef=1.0,

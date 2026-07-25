@@ -130,6 +130,35 @@ def test_dr_fields_registered_in_event_manager(device):
   assert len(manager.domain_randomization_fields) == 7
 
 
+def test_recompute_fields_registered_in_event_manager(device):
+  """Recomputed model fields are expanded per environment."""
+  env = Mock()
+  env.num_envs = 4
+  env.device = device
+  env.scene = {}
+  env.sim = Mock()
+
+  cfg = {
+    "body_com": EventTermCfg(
+      mode="startup",
+      func=dr.body_com_offset,
+      params={"ranges": (-0.01, 0.01)},
+    ),
+  }
+
+  manager = EventManager(cfg, env)
+
+  assert manager.domain_randomization_fields == (
+    "body_ipos",
+    "body_subtreemass",
+    "dof_invweight0",
+    "body_invweight0",
+    "tendon_length0",
+    "tendon_invweight0",
+    "actuator_acc0",
+  )
+
+
 def test_recompute_level_ordering():
   """IntEnum max() gives strongest level."""
   L = RecomputeLevel

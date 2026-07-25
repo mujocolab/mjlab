@@ -101,6 +101,30 @@ def test_collinear_points_fallback():
     torch.testing.assert_close(normal[b], expected, atol=1e-6, rtol=1e-6)
 
 
+def test_non_finite_points_fallback():
+  """Non-finite hits (from a diverged env) must not crash eigh; fall back to up."""
+  B, N = 3, 10
+  points = torch.zeros(B, N, 3)
+  # Batch 0: a valid tilted plane.
+  points[0, :, 0] = torch.linspace(0, 1, N)
+  points[0, :, 1] = torch.linspace(0, 1, N)
+  points[0, :, 2] = 0.2 * points[0, :, 0]
+  # Batch 1: all NaN. Batch 2: all Inf.
+  points[1] = float("nan")
+  points[2] = float("inf")
+  valid_mask = torch.ones(B, N, dtype=torch.bool)
+
+  normal = fit_terrain_normal(points, valid_mask)
+
+  assert torch.isfinite(normal).all()
+  expected_up = torch.tensor([0.0, 0.0, 1.0])
+  torch.testing.assert_close(normal[1], expected_up, atol=1e-6, rtol=1e-6)
+  torch.testing.assert_close(normal[2], expected_up, atol=1e-6, rtol=1e-6)
+  # The valid plane is still fit and points upward.
+  assert normal[0, 2] > 0
+  torch.testing.assert_close(normal[0].norm(), torch.tensor(1.0), atol=1e-4, rtol=0)
+
+
 def test_small_valid_plane_still_fits():
   """A tiny but planar patch should not be rejected as degenerate."""
   x_vals = torch.linspace(0.0, 1e-4, 4)

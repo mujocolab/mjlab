@@ -54,6 +54,14 @@ def terrain_levels_vel(
   )
   move_down *= ~move_up
 
+  # On the initial reset (before any env step) the robot is still at its spawn
+  # pose rather than a walked-to position, so ``distance`` is meaningless and
+  # would spuriously promote every env from level 0 to 1, ignoring
+  # ``max_init_terrain_level``. Freeze levels on that first reset.
+  if env.common_step_counter == 0:
+    move_up = torch.zeros_like(move_up)
+    move_down = torch.zeros_like(move_down)
+
   # Update terrain levels.
   terrain.update_env_origins(env_ids, move_up, move_down)
 

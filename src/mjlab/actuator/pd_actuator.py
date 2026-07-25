@@ -18,6 +18,20 @@ if TYPE_CHECKING:
 IdealPdCfgT = TypeVar("IdealPdCfgT", bound="IdealPdActuatorCfg")
 
 
+def pd_torque(
+  stiffness: torch.Tensor, damping: torch.Tensor, cmd: ActuatorCmd
+) -> torch.Tensor:
+  """Ideal PD control torque, unclamped.
+
+  kp * (pos_target - pos) + kd * (vel_target - vel) + effort_target. Shared by
+  the ideal PD and DC motor control laws so the PD sum lives in one place.
+  """
+  torque = stiffness * (cmd.position_target - cmd.pos)
+  torque += damping * (cmd.velocity_target - cmd.vel)
+  torque += cmd.effort_target
+  return torque
+
+
 @dataclass(kw_only=True)
 class IdealPdActuatorCfg(ActuatorCfg):
   """Configuration for ideal PD actuator."""
@@ -37,6 +51,21 @@ class IdealPdActuatorCfg(ActuatorCfg):
 
 class IdealPdActuator(Actuator, Generic[IdealPdCfgT]):
   """Ideal PD control actuator."""
+
+  param_names = ("stiffness", "damping", "force_limit")
+
+  def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
+    # Shared stateless-law compute. Keeping this (rather than writing a custom
+    # compute) is what marks an actuator as fusable; subclasses with a different
+    # control law (e.g. learned networks) override compute instead.
+    params = {name: getattr(self, name) for name in self.param_names}
+    return type(self).control_law(params, cmd)
+
+  @staticmethod
+  def control_law(params: dict[str, torch.Tensor], cmd: ActuatorCmd) -> torch.Tensor:
+    torque = pd_torque(params["stiffness"], params["damping"], cmd)
+    force_limit = params["force_limit"]
+    return torch.clamp(torque, -force_limit, force_limit)
 
   def __init__(
     self,
@@ -91,23 +120,6 @@ class IdealPdActuator(Actuator, Generic[IdealPdCfgT]):
     self.default_stiffness = self.stiffness.clone()
     self.default_damping = self.damping.clone()
     self.default_force_limit = self.force_limit.clone()
-
-  def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
-    assert self.stiffness is not None
-    assert self.damping is not None
-
-    pos_error = cmd.position_target - cmd.pos
-    vel_error = cmd.velocity_target - cmd.vel
-
-    computed_torques = self.stiffness * pos_error
-    computed_torques += self.damping * vel_error
-    computed_torques += cmd.effort_target
-
-    return self._clip_effort(computed_torques)
-
-  def _clip_effort(self, effort: torch.Tensor) -> torch.Tensor:
-    assert self.force_limit is not None
-    return torch.clamp(effort, -self.force_limit, self.force_limit)
 
   def set_gains(
     self,

@@ -591,6 +591,80 @@ def test_air_time_tracking(device):
   assert torch.any(data3.found > 0)
 
 
+def test_air_time_exact_at_large_sim_clock(device):
+  """Air-time accumulation is independent of the sim-clock magnitude.
+
+  Regression for issue #1101: `_update_air_time_tracking` used to accumulate
+  differences of the float32 sim clock (`data.time`), so the tracked values
+  inherited the clock's quantization error (ULP ~= time * 1.2e-7). That error
+  grows without bound as `data.time` grows (it is never reset on env reset) and
+  eventually exceeds the abs_tol in compute_first_contact, silently missing
+  first-substep touchdowns.
+
+  The fix accumulates the exact float64 substep dt instead, so `data.time` is
+  never read. We advance the clock to a large value and confirm the first
+  contact substep still reads exactly dt and first-contact fires. Against the
+  old code this asserts hard: the tracked time picks up the clock magnitude.
+  """
+  cfg = ContactSensorCfg(
+    name="feet_contact",
+    primary=ContactMatch(
+      mode="geom",
+      pattern=("left_foot_geom", "right_foot_geom"),
+      entity="biped",
+    ),
+    secondary=None,
+    fields=("found",),
+    track_air_time=True,
+  )
+
+  scene, sim = create_scene_with_sensor(BIPED_XML, "biped", cfg, device)
+  sensor = scene["feet_contact"]
+  dt = sim.cfg.mujoco.timestep
+
+  ground_state = torch.zeros((2, 13), device=sim.device)
+  ground_state[:, 2] = 0.25
+  ground_state[:, 3] = 1.0
+  air_state = ground_state.clone()
+  air_state[:, 2] = 1.0
+
+  # Settle the biped onto the ground so both feet are in stable contact, then
+  # lift it clear so the feet are airborne (current_air_time > 0, found == 0).
+  scene["biped"].write_root_state_to_sim(ground_state)
+  for _ in range(20):
+    sim.step()
+    scene.update(dt=dt)
+  scene["biped"].write_root_state_to_sim(air_state)
+  for _ in range(15):
+    sim.step()
+    scene.update(dt=dt)
+  assert torch.all(sensor.data.found == 0), "expected feet airborne before landing"
+
+  # Advance the sim clock far past the regime where float32 quantization exceeds
+  # the default abs_tol. The old code differenced this clock, so the first
+  # contact substep would inherit its magnitude; the fix ignores `data.time`.
+  sim.data.time[:] = 20_000.0
+
+  # Land: a single update in contact should read exactly one dt of contact time.
+  scene["biped"].write_root_state_to_sim(ground_state)
+  sim.step()
+  scene.update(dt=dt)
+
+  data = sensor.data
+  assert data.current_contact_time is not None
+  feet_landed = data.found.view(2, len(sensor.primary_names), -1).any(dim=-1)
+  assert torch.any(feet_landed), "expected at least one foot to land"
+
+  # The first contact substep reads exactly dt, independent of the huge clock.
+  assert torch.all(torch.abs(data.current_contact_time[feet_landed] - dt) < 1e-6), (
+    data.current_contact_time
+  )
+
+  # And first-contact detection at dt=step_dt fires for the feet that landed.
+  first_contact = sensor.compute_first_contact(dt=dt)
+  assert torch.all(first_contact[feet_landed])
+
+
 ##
 # Multi-sensor integration tests.
 ##

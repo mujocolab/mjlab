@@ -123,14 +123,20 @@ def test_accelerometer_sensor(articulated_robot_xml, device):
 
   scene = Scene(scene_cfg, device)
   model = scene.compile()
-  sim_cfg = SimulationCfg(njmax=20)
+  # The robot falls and rests on the floor here, generating contact
+  # constraints; njmax must accommodate the resting nefc (~32), unlike the
+  # other tests which only step once before the robot lands.
+  sim_cfg = SimulationCfg(njmax=40)
   sim = Simulation(num_envs=2, cfg=sim_cfg, model=model, device=device)
   scene.initialize(sim.mj_model, sim.model, sim.data)
 
   sensor = scene["robot/base_accel"]
 
-  # Step to make robot fall.
-  for _ in range(100):
+  # Step until the robot falls (from z=1) and rests on the floor. During free
+  # fall the accelerometer correctly reads ~0 (zero proper acceleration); it
+  # only registers the ~g ground reaction once the robot has landed (~280
+  # steps), so step well past that.
+  for _ in range(400):
     sim.step()
 
   data = sensor.data

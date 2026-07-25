@@ -1,5 +1,7 @@
 """Tests for terrain generation."""
 
+from dataclasses import dataclass
+
 import mujoco
 import numpy as np
 import pytest
@@ -10,6 +12,13 @@ from mjlab.terrains.primitive_terrains import (
   BoxInvertedPyramidStairsTerrainCfg,
   BoxPyramidStairsTerrainCfg,
   BoxSteppingStonesTerrainCfg,
+)
+from mjlab.terrains.terrain_generator import (
+  SubTerrainCfg,
+  TerrainGenerator,
+  TerrainGeneratorCfg,
+  TerrainGeometry,
+  TerrainOutput,
 )
 
 _CFG = BoxSteppingStonesTerrainCfg(
@@ -126,3 +135,46 @@ def test_preset_compiles_across_difficulty(preset_name, difficulty):
   # Compiling validates geom/hfield sizes and rgba values (catches NaNs and
   # non-positive sizes that MuJoCo rejects).
   spec.compile()
+
+
+@dataclass(kw_only=True)
+class _BoxesTerrainCfg(SubTerrainCfg):
+  """Test terrain that emits two boxes, named per `names` (None leaves unnamed)."""
+
+  names: tuple[str | None, str | None] = (None, None)
+
+  def function(
+    self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
+  ) -> TerrainOutput:
+    del difficulty, rng
+    body = spec.body("terrain")
+    geometries = []
+    for i in range(2):
+      geom = body.add_geom(
+        type=mujoco.mjtGeom.mjGEOM_BOX,
+        size=(0.5, 0.5, 0.5),
+        pos=(i, 0, 0),
+        name=self.names[i],
+      )
+      geometries.append(TerrainGeometry(geom=geom))
+    return TerrainOutput(origin=np.zeros(3), geometries=geometries)
+
+
+def test_compile_preserves_custom_names_and_defaults_unnamed_geoms():
+  """Geoms with a custom name from a sub-terrain must be preserved, while
+  unnamed geoms must fall back to the generator's default "terrain_{i}" name."""
+  cfg = TerrainGeneratorCfg(
+    size=(4.0, 4.0),
+    curriculum=True,
+    sub_terrains={
+      "named": _BoxesTerrainCfg(size=(4.0, 4.0), names=("foo_0", "foo_1")),
+      "unnamed": _BoxesTerrainCfg(size=(4.0, 4.0)),
+    },
+  )
+  generator = TerrainGenerator(cfg)
+  spec = mujoco.MjSpec()
+  generator.compile(spec)
+  model = spec.compile()
+
+  names = [model.geom(i).name for i in range(model.ngeom)]
+  assert names == ["foo_0", "foo_1", "terrain_2", "terrain_3"]

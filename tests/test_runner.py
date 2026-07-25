@@ -524,6 +524,49 @@ def test_onnx_motion_model_clamps_out_of_bounds_time_step():
   torch.testing.assert_close(joint_pos, motion.joint_pos[num_steps - 1 : num_steps])
 
 
+@pytest.mark.parametrize(
+  ("runner_module", "runner_class"),
+  [
+    ("mjlab.tasks.velocity.rl.runner", "VelocityOnPolicyRunner"),
+    ("mjlab.tasks.manipulation.rl.runner", "ManipulationOnPolicyRunner"),
+  ],
+)
+@pytest.mark.parametrize("logger_type", ["wandb", "WandbLogWriter"])
+def test_task_runner_uploads_onnx_for_wandb_logger_types(
+  runner_module, runner_class, logger_type, monkeypatch, tmp_path
+):
+  """ONNX upload supports both legacy and current RSL-RL W&B logger names."""
+  import importlib
+
+  runner_mod = importlib.import_module(runner_module)
+  runner_cls = getattr(runner_mod, runner_class)
+  runner = runner_cls.__new__(runner_cls)
+  runner.cfg = {"upload_model": True}
+  runner.logger = MagicMock()
+  runner.logger.logger_type = logger_type
+  runner.env = MagicMock()
+  runner.export_policy_to_onnx = MagicMock()
+
+  monkeypatch.setattr(MjlabOnPolicyRunner, "save", lambda *a, **kw: None)
+  monkeypatch.setattr(runner_mod, "get_base_metadata", lambda *a: {})
+  monkeypatch.setattr(runner_mod, "attach_metadata_to_onnx", lambda *a: None)
+
+  checkpoint = tmp_path / "run-dir" / "model_100.pt"
+  checkpoint.parent.mkdir()
+  checkpoint.touch()
+  onnx_path = checkpoint.parent / f"{checkpoint.parent.name}.onnx"
+
+  mock_run = MagicMock()
+  mock_run.name = "test-run"
+  with patch.object(runner_mod, "wandb") as mock_wandb:
+    mock_wandb.run = mock_run
+    runner.save(str(checkpoint))
+
+  mock_wandb.save.assert_called_once_with(
+    str(onnx_path), base_path=str(checkpoint.parent)
+  )
+
+
 def _make_tracking_runner_shell(registry_name, logger_type, upload_model=True):
   """Build a MotionTrackingOnPolicyRunner with all heavy parts mocked out."""
   from mjlab.tasks.tracking.rl.runner import MotionTrackingOnPolicyRunner

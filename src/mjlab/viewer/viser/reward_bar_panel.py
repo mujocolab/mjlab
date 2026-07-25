@@ -7,6 +7,7 @@ over ~1 second. Positive terms are green, negative terms are red.
 from __future__ import annotations
 
 import html
+import warnings
 from collections import deque
 
 import numpy as np
@@ -31,9 +32,19 @@ class RewardBarPanel:
       update_dt: Time in seconds between consecutive ``update()`` calls
         (i.e. the viewer's frame time). Used to size the averaging
         window to ~1 second.
-      max_terms: Maximum number of terms to display.
+      max_terms: Maximum number of terms to display. Terms beyond this
+        limit are dropped (with a warning) to keep the panel readable.
     """
     self._server = server
+    if len(term_names) > max_terms:
+      dropped = term_names[max_terms:]
+      warnings.warn(
+        f"RewardBarPanel: {len(term_names)} reward terms exceed max_terms="
+        f"{max_terms}; the bar panel will only show the first {max_terms}. "
+        f"Hidden terms: {dropped}. Pass a larger max_terms to show them all.",
+        UserWarning,
+        stacklevel=2,
+      )
     self._term_names = term_names[:max_terms]
 
     # ~1 second averaging window, but at least 1 step.

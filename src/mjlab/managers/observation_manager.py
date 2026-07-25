@@ -446,9 +446,9 @@ class ObservationManager(ManagerBase):
         obs_dims = tuple(term_cfg.func(self._env, **term_cfg.params).shape)
 
         if term_cfg.scale is not None:
-          term_cfg.scale = torch.tensor(
+          term_cfg.scale = torch.as_tensor(
             term_cfg.scale, dtype=torch.float, device=self._env.device
-          )
+          ).clone()
 
         if term_cfg.noise is not None and isinstance(
           term_cfg.noise, noise_cfg.NoiseModelCfg

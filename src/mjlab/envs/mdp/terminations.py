@@ -29,7 +29,9 @@ def bad_orientation(
   """Terminate when the asset's orientation exceeds the limit angle."""
   asset: Entity = env.scene[asset_cfg.name]
   projected_gravity = asset.data.projected_gravity_b
-  return torch.acos(-projected_gravity[:, 2]).abs() > limit_angle
+  return (
+    torch.acos(torch.clamp(-projected_gravity[:, 2], -1.0, 1.0)).abs() > limit_angle
+  )
 
 
 def root_height_below_minimum(

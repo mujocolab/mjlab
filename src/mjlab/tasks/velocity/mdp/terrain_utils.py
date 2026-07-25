@@ -39,6 +39,16 @@ def fit_terrain_normal(
   centered = (points - centroid.unsqueeze(1)) * mask_f
 
   cov = torch.einsum("bni,bnj->bij", centered, centered)
+
+  # ``torch.linalg.eigh`` raises when given non-finite input, so a single env
+  # with a diverged state (NaN/Inf raycast hits) would take down the whole
+  # batch. Replace non-finite covariances with the identity so the decomposition
+  # stays well-defined; these rows fail the reliability check below and fall
+  # back to the up vector.
+  finite = torch.isfinite(cov).all(dim=(-2, -1))
+  eye = torch.eye(3, device=device, dtype=cov.dtype)
+  cov = torch.where(finite.view(-1, 1, 1), cov, eye)
+
   eigenvalues, eigenvectors = torch.linalg.eigh(cov)
   normal = eigenvectors[:, :, 0]  # Smallest eigenvalue = plane normal.
   normal = normal / normal.norm(dim=-1, keepdim=True).clamp(min=1e-8)
@@ -52,7 +62,7 @@ def fit_terrain_normal(
   eps = torch.finfo(eigenvalues.dtype).eps
   plane_like = (eigenvalues[:, 0] / eigenvalues[:, 1].clamp(min=eps)) < 0.1
   has_spread = eigenvalues[:, 1] > eigenvalues[:, 2].clamp(min=eps) * 1e-6
-  reliable = enough & plane_like & has_spread
+  reliable = enough & plane_like & has_spread & finite
 
   up = torch.tensor([0.0, 0.0, 1.0], device=device).expand(B, 3)
   return torch.where(reliable.unsqueeze(-1), normal, up)

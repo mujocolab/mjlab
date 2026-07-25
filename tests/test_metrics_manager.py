@@ -241,6 +241,105 @@ def test_metrics_substep_shape_validation_rejects_bad_compute_output(mock_env):
     manager.compute_substep()
 
 
+def test_reduce_max_reports_episode_peak(mock_env):
+  """reduce='max' reports the highest value seen during the episode."""
+  step = [0]
+
+  def rising_then_falling(env):
+    step[0] += 1
+    val = 5.0 - abs(step[0] - 3)  # values: 3, 4, 5, 4, 3
+    return torch.full((env.num_envs,), val, device=env.device)
+
+  cfg = {"term": MetricsTermCfg(func=rising_then_falling, params={}, reduce="max")}
+  manager = MetricsManager(cfg, mock_env)
+
+  for _ in range(5):
+    manager.compute()
+
+  info = manager.reset(env_ids=torch.tensor([0]))
+
+  assert info["Episode_Metrics/term"].item() == pytest.approx(5.0)
+
+
+def test_reduce_max_reset_clears_to_neg_inf(mock_env):
+  """After reset, max tracking restarts from -inf."""
+  cfg = {
+    "term": MetricsTermCfg(
+      func=lambda env: torch.ones(env.num_envs, device=env.device) * 10.0,
+      params={},
+      reduce="max",
+    )
+  }
+  manager = MetricsManager(cfg, mock_env)
+
+  manager.compute()
+  manager.reset(env_ids=torch.tensor([0]))
+
+  # After reset, the max buffer for env 0 should be -inf.
+  assert manager._episode_max["term"][0].item() == float("-inf")
+  # Env 1 was not reset, so it keeps its max.
+  assert manager._episode_max["term"][1].item() == pytest.approx(10.0)
+
+
+def test_reduce_max_coexists_with_mean_and_last(mock_env):
+  """All three reduce modes work correctly in the same manager."""
+  step = [0]
+
+  def rising_metric(env):
+    step[0] += 1
+    return torch.full((env.num_envs,), float(step[0]), device=env.device)
+
+  cfg = {
+    "mean_term": MetricsTermCfg(func=rising_metric, params={}, reduce="mean"),
+    "last_term": MetricsTermCfg(func=rising_metric, params={}, reduce="last"),
+    "max_term": MetricsTermCfg(func=rising_metric, params={}, reduce="max"),
+  }
+  manager = MetricsManager(cfg, mock_env)
+
+  for _ in range(3):
+    manager.compute()
+
+  info = manager.reset(env_ids=torch.tensor([0]))
+
+  # mean_term sees 1, 4, 7; avg = 4.0
+  assert info["Episode_Metrics/mean_term"].item() == pytest.approx(4.0)
+  # last_term sees 2, 5, 8; last = 8.0
+  assert info["Episode_Metrics/last_term"].item() == pytest.approx(8.0)
+  # max_term sees 3, 6, 9; max = 9.0
+  assert info["Episode_Metrics/max_term"].item() == pytest.approx(9.0)
+
+
+def test_reduce_max_with_per_substep(mock_env):
+  """reduce='max' with per_substep tracks the max of step-averaged values."""
+  substep_call = [0]
+
+  def rising_metric(env):
+    substep_call[0] += 1
+    return torch.full((env.num_envs,), float(substep_call[0]), device=env.device)
+
+  cfg = {
+    "sub_max": MetricsTermCfg(
+      func=rising_metric, params={}, per_substep=True, reduce="max"
+    ),
+  }
+  manager = MetricsManager(cfg, mock_env)
+
+  # Step 0: substeps [1, 2] -> avg = 1.5
+  for _ in range(2):
+    manager.compute_substep()
+  manager.compute()
+
+  # Step 1: substeps [3, 4] -> avg = 3.5
+  for _ in range(2):
+    manager.compute_substep()
+  manager.compute()
+
+  info = manager.reset(env_ids=torch.tensor([0]))
+
+  # Max of step averages: max(1.5, 3.5) = 3.5
+  assert info["Episode_Metrics/sub_max"].item() == pytest.approx(3.5)
+
+
 def test_no_substep_terms_no_overhead(mock_env):
   """When no per_substep terms exist, compute_substep is a no-op."""
   cfg = {

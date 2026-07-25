@@ -1612,7 +1612,8 @@ def test_resolve_unknown_distribution_raises(device):
 MAT_XML = """
 <mujoco>
   <asset>
-    <material name="test_mat" rgba="1 1 1 1"/>
+    <material name="test_mat" rgba="1 1 1 1" emission="0.1"
+      specular="0.2" shininess="0.3" texrepeat="1 2"/>
   </asset>
   <worldbody>
     <body name="base" pos="0 0 1">
@@ -1632,7 +1633,9 @@ def _make_mat_env(device, num_envs=NUM_ENVS):
   model = scene.compile()
   sim = Simulation(num_envs=num_envs, cfg=SimulationCfg(), model=model, device=device)
   scene.initialize(model, sim.model, sim.data)
-  sim.expand_model_fields(("mat_rgba",))
+  sim.expand_model_fields(
+    ("mat_rgba", "mat_emission", "mat_specular", "mat_shininess", "mat_texrepeat")
+  )
   return Env(scene, sim, device)
 
 
@@ -1662,6 +1665,108 @@ def test_mat_rgba_abs(mat_env):
   assert len(torch.unique(rgba[:, 0])) >= 2
 
 
+@pytest.mark.parametrize(
+  ("func_name", "field", "ranges"),
+  [
+    ("mat_emission", "mat_emission", (0.1, 0.7)),
+    ("mat_specular", "mat_specular", (0.0, 1.0)),
+    ("mat_shininess", "mat_shininess", (0.2, 0.9)),
+  ],
+)
+def test_scalar_material_fields_abs(mat_env, func_name, field, ranges):
+  """Scalar material fields randomize per selected material."""
+  torch.manual_seed(42)
+  env = mat_env
+  func = getattr(dr, func_name)
+
+  func(
+    env,
+    env_ids=None,
+    ranges=ranges,
+    asset_cfg=SceneEntityCfg("robot", material_names=("test_mat",)),
+    operation="abs",
+  )
+
+  mat_id = mujoco.mj_name2id(
+    env.sim.mj_model, mujoco.mjtObj.mjOBJ_MATERIAL, "robot/test_mat"
+  )
+  values = getattr(env.sim.model, field)[:, mat_id]
+  lower, upper = ranges
+  assert torch.all((values >= lower - 1e-5) & (values <= upper + 1e-5))
+  assert len(torch.unique(values)) >= 2
+
+
+def test_mat_texrepeat_abs(mat_env):
+  """Texture repeat randomizes S/T axes for selected materials."""
+  torch.manual_seed(42)
+  env = mat_env
+
+  dr.mat_texrepeat(
+    env,
+    env_ids=None,
+    ranges={0: (1.0, 3.0), 1: (4.0, 6.0)},
+    asset_cfg=SceneEntityCfg("robot", material_names=("test_mat",)),
+    operation="abs",
+  )
+
+  mat_id = mujoco.mj_name2id(
+    env.sim.mj_model, mujoco.mjtObj.mjOBJ_MATERIAL, "robot/test_mat"
+  )
+  texrepeat = env.sim.model.mat_texrepeat[:, mat_id, :]
+  assert torch.all((texrepeat[:, 0] >= 1.0 - 1e-5) & (texrepeat[:, 0] <= 3.0 + 1e-5))
+  assert torch.all((texrepeat[:, 1] >= 4.0 - 1e-5) & (texrepeat[:, 1] <= 6.0 + 1e-5))
+  assert len(torch.unique(texrepeat[:, 0])) >= 2
+
+
+@pytest.mark.parametrize(
+  ("func_name", "field"),
+  [
+    ("mat_emission", "mat_emission"),
+    ("mat_specular", "mat_specular"),
+    ("mat_shininess", "mat_shininess"),
+  ],
+)
+def test_scalar_material_fields_scale_use_defaults(mat_env, func_name, field):
+  """Scale operation uses compiled defaults for scalar material fields."""
+  env = mat_env
+  func = getattr(dr, func_name)
+
+  func(
+    env,
+    env_ids=None,
+    ranges=(2.0, 2.0),
+    asset_cfg=SceneEntityCfg("robot", material_names=("test_mat",)),
+    operation="scale",
+  )
+
+  mat_id = mujoco.mj_name2id(
+    env.sim.mj_model, mujoco.mjtObj.mjOBJ_MATERIAL, "robot/test_mat"
+  )
+  expected = env.sim.get_default_field(field)[mat_id] * 2.0
+  values = getattr(env.sim.model, field)[:, mat_id]
+  assert torch.allclose(values, expected.expand_as(values))
+
+
+def test_mat_texrepeat_scale_uses_defaults(mat_env):
+  """Scale operation uses compiled defaults and both S/T axes by default."""
+  env = mat_env
+
+  dr.mat_texrepeat(
+    env,
+    env_ids=None,
+    ranges=(2.0, 2.0),
+    asset_cfg=SceneEntityCfg("robot", material_names=("test_mat",)),
+    operation="scale",
+  )
+
+  mat_id = mujoco.mj_name2id(
+    env.sim.mj_model, mujoco.mjtObj.mjOBJ_MATERIAL, "robot/test_mat"
+  )
+  expected = env.sim.get_default_field("mat_texrepeat")[mat_id] * 2.0
+  texrepeat = env.sim.model.mat_texrepeat[:, mat_id, :]
+  assert torch.allclose(texrepeat, expected.expand_as(texrepeat))
+
+
 def test_mat_rgba_invalid_name(mat_env):
   """ValueError for unknown material name."""
   env = mat_env
@@ -1675,6 +1780,127 @@ def test_mat_rgba_invalid_name(mat_env):
       ranges=(0.2, 0.8),
       asset_cfg=cfg,
     )
+
+
+# geom_matid DR tests.
+
+GEOM_MATID_XML = """
+<mujoco>
+  <asset>
+    <material name="mat_a" rgba="1 0 0 1"/>
+    <material name="mat_b" rgba="0 1 0 1"/>
+    <material name="mat_c" rgba="0 0 1 1"/>
+  </asset>
+  <worldbody>
+    <body name="base" pos="0 0 1">
+      <freejoint name="free_joint"/>
+      <geom name="geom1" type="box" size="0.1 0.1 0.1" mass="1.0" material="mat_a"/>
+      <geom name="geom2" type="sphere" size="0.05" mass="0.3" material="mat_b"/>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+
+def _make_matid_env(device, num_envs=NUM_ENVS):
+  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(GEOM_MATID_XML))
+  scene_cfg = SceneCfg(num_envs=num_envs, entities={"robot": entity_cfg})
+  scene = Scene(scene_cfg, device)
+  model = scene.compile()
+  sim = Simulation(num_envs=num_envs, cfg=SimulationCfg(), model=model, device=device)
+  scene.initialize(model, sim.model, sim.data)
+  sim.expand_model_fields(("geom_matid",))
+  return Env(scene, sim, device)
+
+
+@pytest.fixture(scope="module")
+def matid_env(device):
+  return _make_matid_env(device)
+
+
+def test_geom_matid_draws_from_pool(matid_env):
+  """Assigned matids come from the pool and actually change from the defaults."""
+  torch.manual_seed(42)
+  env = matid_env
+  robot = env.scene["robot"]
+  asset_cfg = SceneEntityCfg("robot", geom_names=(".*",), material_names=(".*",))
+  asset_cfg.resolve(env.scene)
+
+  geom_ids = robot.indexing.geom_ids[asset_cfg.geom_ids]
+  mat_ids = robot.indexing.mat_ids[asset_cfg.material_ids]
+  original = env.sim.model.geom_matid[:, geom_ids].clone()
+
+  dr.geom_matid(env, env_ids=None, asset_cfg=asset_cfg)
+
+  assigned = env.sim.model.geom_matid[:, geom_ids]
+  # Every assignment is a valid member of the selected pool.
+  assert torch.all(torch.isin(assigned, mat_ids))
+  # Randomization is not a no-op: values differ from the baked defaults, and at
+  # least one geom draws a material it did not start with (proving the full pool
+  # is sampled, not just the compile-time defaults).
+  assert not torch.equal(assigned, original)
+  assert torch.isin(assigned, torch.unique(original), invert=True).any()
+
+
+def test_geom_matid_partial_env_ids(matid_env):
+  """Randomizing subset of envs leaves others unchanged."""
+  torch.manual_seed(42)
+  env = matid_env
+  robot = env.scene["robot"]
+  asset_cfg = SceneEntityCfg("robot", geom_names=(".*",), material_names=(".*",))
+  asset_cfg.resolve(env.scene)
+  geom_ids = robot.indexing.geom_ids[asset_cfg.geom_ids]
+
+  original = env.sim.model.geom_matid[:, geom_ids].clone()
+
+  dr.geom_matid(
+    env, env_ids=torch.tensor([0, 2], device=env.device), asset_cfg=asset_cfg
+  )
+
+  result = env.sim.model.geom_matid[:, geom_ids]
+  assert torch.all(result[1] == original[1])
+  assert torch.all(result[3] == original[3])
+
+
+def test_geom_matid_invalid_material_name(matid_env):
+  """Unknown material name is rejected during config resolution."""
+  env = matid_env
+
+  with pytest.raises(ValueError, match="nonexistent_material"):
+    cfg = SceneEntityCfg(
+      "robot", geom_names=(".*",), material_names=("nonexistent_material",)
+    )
+    cfg.resolve(env.scene)
+    dr.geom_matid(env, env_ids=None, asset_cfg=cfg)
+
+
+def test_geom_matid_empty_material_selection(matid_env):
+  """geom_matid raises when the resolved material pool is empty."""
+  env = matid_env
+  cfg = SceneEntityCfg("robot", geom_names=(".*",), material_names=())
+  cfg.resolve(env.scene)
+
+  with pytest.raises(ValueError, match="No materials selected"):
+    dr.geom_matid(env, env_ids=None, asset_cfg=cfg)
+
+
+def test_geom_matid_shared_random(matid_env):
+  """All geoms within same env get same material, envs differ."""
+  torch.manual_seed(42)
+  env = matid_env
+  robot = env.scene["robot"]
+  asset_cfg = SceneEntityCfg("robot", geom_names=(".*",), material_names=(".*",))
+  asset_cfg.resolve(env.scene)
+  geom_ids = robot.indexing.geom_ids[asset_cfg.geom_ids]
+
+  dr.geom_matid(env, env_ids=None, asset_cfg=asset_cfg, shared_random=True)
+
+  assigned = env.sim.model.geom_matid[:, geom_ids]
+  for env_idx in range(env.num_envs):
+    env_matids = assigned[env_idx]
+    assert torch.all(env_matids == env_matids[0])
+
+  assert len(torch.unique(assigned[:, 0])) > 1
 
 
 # pair_friction tests.

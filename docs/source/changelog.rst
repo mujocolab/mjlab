@@ -10,6 +10,142 @@ Added
 
 - Added a Unitree Go2 asset and flat/rough velocity tasks.
 - Added experimental Unitree D1 and Go2+D1 mobile manipulator assets.
+
+Changed
+^^^^^^^
+
+- Changed the default MuJoCo Warp render background to solid black
+  (``0, 0, 0, 1``), matching MuJoCo's native renderer. Contribution by
+  @bd-pmorais.
+
+Fixed
+^^^^^
+
+Version 1.5.3 (July 22, 2026)
+-----------------------------
+
+Changed
+^^^^^^^
+
+- The Viser reward bar panel's term cap is now configurable via
+  ``ViewerConfig.reward_bar_max_terms``, so environments with more than 20
+  reward terms can show them all. Defaults to 20, preserving previous behavior.
+  :issue:`1079`
+
+Fixed
+^^^^^
+
+- Bumped ``pillow`` (12.3.0), ``onnx`` (1.22.0), and ``soupsieve`` (2.9.1) in the
+  lockfile to pick up security fixes.
+- Fixed raycast sensor debug visualization and observations lagging one step
+  behind the sensed hits. ``sense()`` rebinds the hit tensors after the cache had
+  already been repopulated by a pre-sense reward read, so ``.data`` returned the
+  previous step's hits; the cache is now invalidated after ``postprocess_rays``.
+  With ``ray_alignment="yaw"`` this made debug rays appear tilted by the foot's
+  per-step motion instead of vertical. :issue:`998`
+- Restored ONNX uploads and W&B run metadata for velocity and manipulation
+  training when using RSL-RL's current ``WandbLogWriter`` logger name.
+- The Viser reward bar panel no longer *silently* drops reward terms beyond
+  ``max_terms``; it now emits a warning listing the hidden terms. Previously
+  environments with more than 20 reward terms had the overflow disappear from
+  the bar panel with no indication. :issue:`1079`
+- Fixed the ``terrain_levels_vel`` curriculum promoting every env from level 0
+  to level 1 on the initial reset, ignoring ``max_init_terrain_level=0``. Before
+  the first step the robot sits at its spawn pose rather than a walked-to
+  position, so the distance check was spurious; terrain levels are now frozen on
+  that first reset. :issue:`1094`
+- Fixed the velocity task's actor ``joint_pos`` observation not being biased by
+  the ``encoder_bias`` domain randomization, so the encoder bias only affected
+  actions and never the observed joint positions. The actor now observes biased
+  joint positions while the critic keeps the true (unbiased) values as
+  privileged information, matching the tracking task.
+  See `discussion #1065 <https://github.com/mujocolab/mjlab/discussions/1065>`_.
+- Hardened ``fit_terrain_normal`` against non-finite raycast hits. A single env
+  with a diverged state produced a NaN/Inf covariance that made
+  ``torch.linalg.eigh`` raise and abort the whole batch; such rows now fall back
+  to the up vector. This stops the hard crash so a diverged env can be reset
+  normally; it does not by itself make a diverged env's downstream reward finite.
+  :issue:`912`
+- Enabled ``obs_normalization`` on the Go1 velocity actor and critic to match
+  the other velocity tasks. Without it, extreme-but-finite observations on rough
+  terrain drove value/policy divergence that eventually surfaced as a
+  ``normal expects all elements of std >= 0.0`` crash. Note that Go1 velocity
+  checkpoints trained before this change carry no normalizer buffers and will no
+  longer load; retrain from scratch. :issue:`870` :issue:`1044` :issue:`1053`
+- Fixed ``ContactSensor`` air-time tracking accumulating float32 sim-clock
+  differences, whose quantization error grows with the clock magnitude and made
+  ``compute_first_contact`` / ``compute_first_air`` miss touchdowns on long runs.
+  The exact float64 substep ``dt`` is now accumulated instead. :issue:`1101`
+- Bumped ``mujoco-warp`` to 3.10.0.3, fixing a CUDA 700 illegal memory access in
+  ``smooth.crb`` triggered by startup mass domain randomization (via
+  ``set_const``) once ``num_envs >= 128`` on consumer Ada GPUs. :issue:`1108`
+
+Version 1.5.2 (July 17, 2026)
+-----------------------------
+
+Fixed
+^^^^^
+
+- Fixed CUDA illegal memory accesses when domain randomization triggers
+  ``set_const`` with multiple environments. ``actuator_acc0`` is now expanded
+  per environment before MuJoCo Warp recomputes it.
+- Fixed ``MaterialCfg.reflectance`` being ignored when building the MuJoCo
+  spec. Contribution by @bd-pmorais.
+
+Version 1.5.1 (July 15, 2026)
+-----------------------------
+
+Added
+^^^^^
+
+- Added ``MeshCfg``, a spec editor that matches mesh assets by name and edits
+  their asset-level attributes. The first attribute is ``maxhullvert``, which
+  caps the collision convex hull's vertex count to lower narrowphase cost.
+- Added ``SimulationCfg.broadphase`` and ``SimulationCfg.broadphase_filter``
+  to configure MuJoCo Warp's broadphase collision algorithm and
+  bounding-volume filters.
+
+Changed
+^^^^^^^
+
+- Enabled skybox rendering for camera sensors. Contribution by @bd-pmorais.
+- Bumped the minimum ``mujoco-warp`` to 3.10.0.2, which fixes ``qfrc_constraint``
+  being populated incorrectly across vectorized environments (:issue:`1086`).
+  Earlier 3.10.0.x releases are no longer supported.
+- Command delay on fusable actuators (ideal PD, DC motor) now applies one shared
+  lag per environment across all fused actuators sharing a delay config, matching
+  the built-in actuator path, rather than an independent lag per actuator group
+  (:issue:`1035`).
+
+Fixed
+^^^^^
+
+- Fixed ``TerrainGenerator`` overwriting custom geom names set by sub-terrain
+  functions with the default ``terrain_{i}`` name. Only unnamed geoms are now
+  auto-named.
+- Fixed ``TorchArray`` not expanding world-shared model fields to ``nworld``
+  with mujoco_warp 3.10.0.2, which allocates them as real size-1 arrays
+  instead of stride-0 broadcast views. Multi-env indexing of fields like
+  ``soft_joint_pos_limits`` raised ``IndexError`` during resets (:issue:`1093`).
+- Fixed ``mdp.bad_orientation`` returning NaN when float32 rounding in
+  ``quat_apply_inverse`` pushed the projected-gravity z-component slightly
+  outside ``[-1, 1]``, making ``torch.acos`` return NaN and silently
+  suppressing the termination for flipped robots. The argument is now clamped
+  to ``[-1, 1]``.
+- Fixed a crash when using command delay on ideal PD (or other custom)
+  actuators whenever ``num_envs`` differed from the number of delayed targets,
+  and fused ideal PD and DC motor actuators sharing a transmission and delay
+  config into a single gather, delay, control-law evaluation, and control
+  write, removing per-group host overhead (:issue:`1035`).
+
+Version 1.5.0 (June 28, 2026)
+-----------------------------
+
+Added
+^^^^^
+
+- Added ``reduce="max"`` to ``MetricsTermCfg`` for reporting episode-peak values
+  (e.g. peak power, peak contact force) without needing stateful wrapper classes.
 - Added ``BuiltinDcMotorActuator``, a native MuJoCo ``<dcmotor>`` wrapper.
   Supports voltage / position / velocity input modes with back-EMF,
   configurable motor constants, and optional integral, slew, inductance,
@@ -18,11 +154,23 @@ Added
   enabled, the noise amplitude scales with difficulty (flat at 0, full
   ``noise_range`` at 1) so the terrain progresses in a curriculum. Defaults to
   ``False``, preserving the previous difficulty-independent behavior.
+- Added material domain randomization functions for MuJoCo Warp RGB rendering:
+  ``dr.mat_emission``, ``dr.mat_specular``, ``dr.mat_shininess``, and
+  ``dr.mat_texrepeat``.
 
 Changed
 ^^^^^^^
 
 - Bumped ``rsl-rl-lib`` from 5.2.0 to 5.4.0.
+- Bumped ``mujoco`` and ``mujoco-warp`` to 3.10, both pinned from PyPI. The
+  ``py.mujoco.org`` nightly index and the ``mujoco-warp`` git pin are dropped, so
+  resolution no longer breaks when nightly wheels are garbage-collected.
+
+  .. warning::
+
+     ``SimulationCfg.ls_parallel`` is deprecated and now ignored, since parallel
+     linesearch was removed upstream in MuJoCo Warp. Setting it emits a
+     ``DeprecationWarning``; remove it from any ``SimulationCfg`` you construct.
 - Curriculum-mode terrain difficulty is now deterministic across rows
   and reaches the configured ``difficulty_range`` endpoints
   (:issue:`1027`).
@@ -50,7 +198,8 @@ Fixed
   installed mujoco version. CI now regenerates them and fails if they are
   stale, so they stay in sync going forward. Run ``make stubs`` to update them
   (:issue:`1048`).
-- Fixed ``select_gpus`` crashing when ``CUDA_VISIBLE_DEVICES`` contains MIG UUIDs instead of numeric indices.
+- Fixed ``select_gpus`` crashing when ``CUDA_VISIBLE_DEVICES`` contains MIG
+  UUIDs instead of numeric indices.
 - Fixed pyramid-stairs terrains (``BoxPyramidStairsTerrainCfg``,
   ``BoxInvertedPyramidStairsTerrainCfg``, and ``BoxOpenStairsTerrainCfg``)
   leaving an empty, geometry-free border at difficulty 0, where the step
@@ -76,6 +225,10 @@ Fixed
   platform library not loaded`` on headless Linux hosts that don't pre-set
   ``MUJOCO_GL``. The default is now applied in ``mjlab/__init__.py`` (Linux
   only) so it takes effect before mujoco's GL backend selection runs.
+- Fixed motion tracking re-anchoring to a stale robot pose after a mid-episode
+  motion resample. ``MotionCommand._update_command`` now calls ``sim.forward()``
+  after resampling so relative body poses read the post-teleport state
+  (:issue:`1068`).
 
 Version 1.4.0 (May 26, 2026)
 ----------------------------
@@ -136,6 +289,9 @@ Added
   prefixed and scattered via ``geom_matid`` alongside the existing
   ``geom_dataid`` table. Variants without a material get ``matid = -1``.
   Contribution by @omarrayyann.
+- Added ``dr.geom_matid`` to randomize which baked material each geom uses
+  per environment, sampling uniformly from ``asset_cfg.material_names``.
+  Contribution by @bd-pmorais.
 
 Changed
 ^^^^^^^

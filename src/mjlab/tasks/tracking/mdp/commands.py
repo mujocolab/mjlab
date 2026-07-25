@@ -409,6 +409,10 @@ class MotionCommand(CommandTerm):
     env_ids = torch.where(self.time_steps >= self.motion.time_step_total)[0]
     if env_ids.numel() > 0:
       self._resample_command(env_ids)
+      # _resample_command writes qpos/qvel but does not refresh derived
+      # quantities; forward() so update_relative_body_poses reads the
+      # post-teleport robot anchor instead of the stale pre-resample pose.
+      self._env.sim.forward()
 
     self.update_relative_body_poses()
 

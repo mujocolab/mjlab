@@ -27,11 +27,13 @@ class MetricsTermCfg(ManagerTermBaseCfg):
     reduce: How to aggregate per-step values into an episode metric.
     ``"mean"`` (default) reports ``sum / step_count``. ``"last"`` reports
     the value from the final step of the episode, which is useful for binary
-    success metrics that should not be averaged over timesteps.
+    success metrics that should not be averaged over timesteps. ``"max"``
+    reports the highest value seen during the episode, useful for peak
+    metrics like maximum power or contact force.
   """
 
   per_substep: bool = False
-  reduce: Literal["mean", "last"] = "mean"
+  reduce: Literal["mean", "last", "max"] = "mean"
 
 
 class MetricsManager(ManagerBase):
@@ -56,19 +58,26 @@ class MetricsManager(ManagerBase):
     super().__init__(env=env)
 
     self._episode_sums: dict[str, torch.Tensor] = {}
-    for term_name in self._term_names:
+    self._episode_max: dict[str, torch.Tensor] = {}
+    for idx, term_name in enumerate(self._term_names):
       self._episode_sums[term_name] = torch.zeros(
         self.num_envs, dtype=torch.float, device=self.device
       )
+      if self._term_cfgs[idx].reduce == "max":
+        self._episode_max[term_name] = torch.full(
+          (self.num_envs,), float("-inf"), dtype=torch.float, device=self.device
+        )
     # Pre-resolved tensor refs for substep terms to avoid dict lookups in
     # the hot loop.
     self._substep_accum: list[torch.Tensor] = []
     self._substep_episode_sums: list[torch.Tensor] = []
+    self._substep_episode_max: list[torch.Tensor | None] = []
     for idx in self._substep_term_indices:
       name = self._term_names[idx]
       buf = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
       self._substep_accum.append(buf)
       self._substep_episode_sums.append(self._episode_sums[name])
+      self._substep_episode_max.append(self._episode_max.get(name))
     self._substep_count: int = 0
     self._step_count = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
     self._step_values = torch.zeros(
@@ -105,7 +114,11 @@ class MetricsManager(ManagerBase):
     # Avoid division by zero for envs that haven't stepped.
     safe_counts = torch.clamp(counts, min=1.0)
     for idx, key in enumerate(self._episode_sums):
-      if self._term_cfgs[idx].reduce == "last":
+      reduce = self._term_cfgs[idx].reduce
+      if reduce == "max":
+        extras["Episode_Metrics/" + key] = torch.mean(self._episode_max[key][env_ids])
+        self._episode_max[key][env_ids] = float("-inf")
+      elif reduce == "last":
         extras["Episode_Metrics/" + key] = torch.mean(self._step_values[env_ids, idx])
       else:
         extras["Episode_Metrics/" + key] = torch.mean(
@@ -138,6 +151,9 @@ class MetricsManager(ManagerBase):
         avg = self._substep_accum[i] / self._substep_count
         self._substep_episode_sums[i] += avg
         self._step_values[:, idx] = avg
+        max_buf = self._substep_episode_max[i]
+        if max_buf is not None:
+          torch.maximum(max_buf, avg, out=max_buf)
         self._substep_accum[i].zero_()
       self._substep_count = 0
     for idx in self._step_term_indices:
@@ -145,6 +161,8 @@ class MetricsManager(ManagerBase):
       value = self._compute_term(idx)
       self._episode_sums[name] += value
       self._step_values[:, idx] = value
+      if name in self._episode_max:
+        torch.maximum(self._episode_max[name], value, out=self._episode_max[name])
 
   def get_active_iterable_terms(
     self, env_idx: int

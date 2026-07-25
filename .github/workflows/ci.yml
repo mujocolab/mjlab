@@ -42,8 +42,16 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
+        resolution: ["locked"]
+        # Also test against a fresh resolve of the latest compatible
+        # dependencies so a new upstream release breaks a PR instead of a
+        # release.
+        include:
+          - python-version: "3.13"
+            resolution: "unlocked"
     steps:
       - uses: actions/checkout@v6
       - name: Setup uv
@@ -56,11 +64,17 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/warp
-          key: warp-kernels-${{ runner.os }}-${{ runner.arch }}-${{ matrix.python-version }}-${{ hashFiles('uv.lock', 'mjlab/**/*.py') }}
+          key: warp-kernels-${{ runner.os }}-${{ runner.arch }}-${{ matrix.python-version }}-${{ matrix.resolution }}-${{ hashFiles('uv.lock', 'mjlab/**/*.py') }}
           restore-keys: |
-            warp-kernels-${{ runner.os }}-${{ runner.arch }}-${{ matrix.python-version }}-
-      - name: Test with python ${{ matrix.python-version }}
+            warp-kernels-${{ runner.os }}-${{ runner.arch }}-${{ matrix.python-version }}-${{ matrix.resolution }}-
+      - name: Test with python ${{ matrix.python-version }} (locked deps)
+        if: matrix.resolution == 'locked'
         run: uv run --extra cpu pytest
+      - name: Test with python ${{ matrix.python-version }} (latest deps)
+        if: matrix.resolution == 'unlocked'
+        env:
+          UV_FROZEN: "0"
+        run: uv run --extra cpu --upgrade pytest
 
   pyright:
     runs-on: ubuntu-latest
@@ -113,3 +127,30 @@ jobs:
             echo "::error::MuJoCo type stubs are out of date. Run 'make stubs' and commit the result."
             exit 1
           fi
+
+  # Mirrors the release smoke test: build the artifacts and import mjlab from an
+  # isolated, freshly resolved install, so packaging and clean-install issues
+  # surface on the PR instead of at publish time.
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          version: "0.9.27"
+      - name: Install Python 3.13
+        run: uv python install 3.13
+      - name: Build
+        run: uv build
+      # MUJOCO_GL=disable so `import mujoco` skips its GL backend import; the
+      # runner has no GL libraries and the smoke test does not render.
+      - name: Smoke test (wheel)
+        run: uv run --isolated --no-project --with dist/*.whl tests/smoke_test.py
+        env:
+          MUJOCO_GL: disable
+      - name: Smoke test (source distribution)
+        run: uv run --isolated --no-project --with dist/*.tar.gz tests/smoke_test.py
+        env:
+          MUJOCO_GL: disable
