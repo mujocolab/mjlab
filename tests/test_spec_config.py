@@ -353,6 +353,27 @@ def test_light_cfg():
   assert light.name == "test_light"
 
 
+def test_light_cfg_color_and_attenuation():
+  """LightCfg should set diffuse, specular, ambient, active, attenuation."""
+  spec = mujoco.MjSpec()
+  light_cfg = LightCfg(
+    name="test_light",
+    diffuse=(1.0, 0.0, 0.0),
+    specular=(0.0, 1.0, 0.0),
+    ambient=(0.0, 0.0, 1.0),
+    active=False,
+    attenuation=(1.0, 0.5, 0.25),
+  )
+  light_cfg.edit_spec(spec)
+
+  light = spec.light("test_light")
+  assert tuple(light.diffuse) == pytest.approx((1.0, 0.0, 0.0))
+  assert tuple(light.specular) == pytest.approx((0.0, 1.0, 0.0))
+  assert tuple(light.ambient) == pytest.approx((0.0, 0.0, 1.0))
+  assert not light.active
+  assert tuple(light.attenuation) == pytest.approx((1.0, 0.5, 0.25))
+
+
 def test_camera_cfg():
   """CameraCfg should add cameras to spec."""
   spec = mujoco.MjSpec()
