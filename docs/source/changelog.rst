@@ -8,6 +8,13 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``diffuse``, ``specular``, ``ambient``, ``active``, and
+  ``attenuation`` fields to ``LightCfg`` for configuring light color and
+  falloff. Contribution by @bd-pmorais.
+- Added light domain randomization functions: ``dr.light_diffuse``,
+  ``dr.light_specular``, ``dr.light_ambient``, and ``dr.light_attenuation``.
+  Contribution by @bd-pmorais.
+
 Changed
 ^^^^^^^
 

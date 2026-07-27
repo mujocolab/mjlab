@@ -219,6 +219,22 @@ and ``dr.body_ipos`` are the same function).
      - ``light_dir``
      - Light direction vector
      -
+   * - ``dr.light_diffuse``
+     - ``light_diffuse``
+     - Diffuse RGB color
+     -
+   * - ``dr.light_specular``
+     - ``light_specular``
+     - Specular RGB color
+     -
+   * - ``dr.light_ambient``
+     - ``light_ambient``
+     - Ambient RGB color
+     -
+   * - ``dr.light_attenuation``
+     - ``light_attenuation``
+     - Constant, linear, and quadratic attenuation coefficients
+     -
 
 .. rubric:: Material fields
 

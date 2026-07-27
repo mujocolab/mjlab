@@ -377,6 +377,16 @@ class LightCfg(SpecCfg):
   """Spot light cutoff angle in degrees."""
   exponent: float = 10.0
   """Spot light exponent."""
+  diffuse: tuple[float, float, float] | None = None
+  """Diffuse RGB color. ``None`` keeps MuJoCo's default."""
+  specular: tuple[float, float, float] | None = None
+  """Specular RGB color. ``None`` keeps MuJoCo's default."""
+  ambient: tuple[float, float, float] | None = None
+  """Ambient RGB color. ``None`` keeps MuJoCo's default."""
+  active: bool = True
+  """Whether the light is on."""
+  attenuation: tuple[float, float, float] = (1.0, 0.0, 0.0)
+  """Constant, linear, and quadratic attenuation coefficients."""
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
     self.validate()
@@ -393,6 +403,11 @@ class LightCfg(SpecCfg):
       dir=self.dir,
       cutoff=self.cutoff,
       exponent=self.exponent,
+      diffuse=self.diffuse,
+      specular=self.specular,
+      ambient=self.ambient,
+      active=self.active,
+      attenuation=self.attenuation,
     )
     if self.name is not None:
       light.name = self.name

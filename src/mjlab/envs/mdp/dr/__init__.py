@@ -67,8 +67,12 @@ from .camera import cam_quat as cam_quat
 
 # Light.
 # isort: split
+from .light import light_ambient as light_ambient
+from .light import light_attenuation as light_attenuation
+from .light import light_diffuse as light_diffuse
 from .light import light_dir as light_dir
 from .light import light_pos as light_pos
+from .light import light_specular as light_specular
 
 # Material.
 # isort: split
