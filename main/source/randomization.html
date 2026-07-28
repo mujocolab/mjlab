@@ -61,7 +61,7 @@
     <link rel="prev" title="Events" href="events.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Jul 27, 2026"/>
+    <meta name="docbuild:last-update" content="Jul 28, 2026"/>
   </head>
   
   
@@ -834,6 +834,16 @@ triggers <code class="docutils literal notranslate"><span class="pre">set_const_
 <td><p><code class="docutils literal notranslate"><span class="pre">light_attenuation</span></code></p></td>
 <td><p>Constant, linear, and quadratic attenuation coefficients</p></td>
 <td></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.light_cutoff</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">light_cutoff</span></code></p></td>
+<td><p>Spot light half-cone angle in degrees</p></td>
+<td><p>Ignored for directional lights</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.light_exponent</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">light_exponent</span></code></p></td>
+<td><p>Spot light angular falloff exponent</p></td>
+<td><p>Ignored for directional lights</p></td>
 </tr>
 </tbody>
 </table>
@@ -2029,7 +2039,9 @@ toggles then work correctly against the randomized model:</p>
 to toggle inertia boxes</p></li>
 <li><p>Camera parameters (<code class="docutils literal notranslate"><span class="pre">cam_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">cam_quat</span></code>, <code class="docutils literal notranslate"><span class="pre">cam_fovy</span></code>,
 <code class="docutils literal notranslate"><span class="pre">cam_intrinsic</span></code>): press <code class="docutils literal notranslate"><span class="pre">Q</span></code> to toggle camera frustums</p></li>
-<li><p>Lights (<code class="docutils literal notranslate"><span class="pre">light_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">light_dir</span></code>)</p></li>
+<li><p>Lights (<code class="docutils literal notranslate"><span class="pre">light_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">light_dir</span></code>, <code class="docutils literal notranslate"><span class="pre">light_diffuse</span></code>, <code class="docutils literal notranslate"><span class="pre">light_specular</span></code>,
+<code class="docutils literal notranslate"><span class="pre">light_ambient</span></code>, <code class="docutils literal notranslate"><span class="pre">light_attenuation</span></code>, <code class="docutils literal notranslate"><span class="pre">light_cutoff</span></code>,
+<code class="docutils literal notranslate"><span class="pre">light_exponent</span></code>)</p></li>
 </ul>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
 <div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 docutils">
@@ -2218,7 +2230,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Jul 27, 2026.
+  Last updated on Jul 28, 2026.
   <br/>
 </p>
   </div>
