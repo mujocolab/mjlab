@@ -12,8 +12,8 @@ Added
   ``attenuation`` fields to ``LightCfg`` for configuring light color and
   falloff. Contribution by @bd-pmorais.
 - Added light domain randomization functions: ``dr.light_diffuse``,
-  ``dr.light_specular``, ``dr.light_ambient``, and ``dr.light_attenuation``.
-  Contribution by @bd-pmorais.
+  ``dr.light_specular``, ``dr.light_ambient``, ``dr.light_attenuation``,
+  ``dr.light_cutoff``, and ``dr.light_exponent``. Contribution by @bd-pmorais.
 
 Changed
 ^^^^^^^

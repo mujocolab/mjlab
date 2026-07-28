@@ -180,3 +180,55 @@ def light_attenuation(
     shared_random=shared_random,
     default_axes=[0, 1, 2],
   )
+
+
+@requires_model_fields("light_cutoff")
+def light_cutoff(
+  env: ManagerBasedRlEnv,
+  env_ids: torch.Tensor | None,
+  ranges: Ranges,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "abs",
+  axes: list[int] | None = None,
+  shared_random: bool = False,
+) -> None:
+  """Randomize spot light cutoff angles in degrees."""
+  _randomize_model_field(
+    env,
+    env_ids,
+    "light_cutoff",
+    entity_type="light",
+    ranges=ranges,
+    distribution=distribution,
+    operation=operation,
+    asset_cfg=asset_cfg,
+    axes=axes,
+    shared_random=shared_random,
+  )
+
+
+@requires_model_fields("light_exponent")
+def light_exponent(
+  env: ManagerBasedRlEnv,
+  env_ids: torch.Tensor | None,
+  ranges: Ranges,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+  distribution: Distribution | str = "uniform",
+  operation: Operation | str = "abs",
+  axes: list[int] | None = None,
+  shared_random: bool = False,
+) -> None:
+  """Randomize spot light angular falloff exponents."""
+  _randomize_model_field(
+    env,
+    env_ids,
+    "light_exponent",
+    entity_type="light",
+    ranges=ranges,
+    distribution=distribution,
+    operation=operation,
+    asset_cfg=asset_cfg,
+    axes=axes,
+    shared_random=shared_random,
+  )
