@@ -98,6 +98,7 @@ class EntityCfg:
   textures: tuple[spec_cfg.TextureCfg, ...] = field(default_factory=tuple)
   materials: tuple[spec_cfg.MaterialCfg, ...] = field(default_factory=tuple)
   meshes: tuple[spec_cfg.MeshCfg, ...] = field(default_factory=tuple)
+  geom_groups: tuple[spec_cfg.GeomGroupCfg, ...] = field(default_factory=tuple)
   collisions: tuple[spec_cfg.CollisionCfg, ...] = field(default_factory=tuple)
 
   def build(self) -> Entity:
@@ -193,6 +194,7 @@ class Entity:
       self.cfg.textures,
       self.cfg.materials,
       self.cfg.meshes,
+      self.cfg.geom_groups,
       self.cfg.collisions,
     ]:
       for cfg in cfg_list:

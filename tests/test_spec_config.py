@@ -8,6 +8,7 @@ import pytest
 from mjlab.utils.spec_config import (
   CameraCfg,
   CollisionCfg,
+  GeomGroupCfg,
   LightCfg,
   MaterialCfg,
   MeshCfg,
@@ -417,3 +418,50 @@ def test_material_cfg_geom_assignment():
   assert spec.geom("link1_visual").material == "my_mat"
   assert spec.geom("link2_visual").material == "my_mat"
   assert spec.geom("arm_collision").material == ""
+
+
+def test_geom_group_basic(multi_geom_spec):
+  """GeomGroupCfg should set the group of matching geoms."""
+  group_cfg = GeomGroupCfg(
+    geom_names_expr=(r"^(left|right)_foot\d_collision$",), group=3
+  )
+  group_cfg.edit_spec(multi_geom_spec)
+
+  assert multi_geom_spec.geom("left_foot1_collision").group == 3
+  assert multi_geom_spec.geom("right_foot3_collision").group == 3
+
+  arm = multi_geom_spec.geom("arm_collision")
+  assert arm.group == 0  # Default unchanged.
+
+
+def test_geom_group_dict_field_resolution(multi_geom_spec):
+  """GeomGroupCfg should support dict-based field resolution."""
+  group_cfg = GeomGroupCfg(
+    geom_names_expr=(r".*_foot\d_collision$", "arm_collision"),
+    group={r".*_foot\d_collision$": 3, "arm_collision": 4},
+  )
+  group_cfg.edit_spec(multi_geom_spec)
+
+  assert multi_geom_spec.geom("left_foot1_collision").group == 3
+  assert multi_geom_spec.geom("arm_collision").group == 4
+
+
+def test_geom_group_unnamed_geoms():
+  """GeomGroupCfg should update every matching geom, including unnamed ones."""
+  spec = mujoco.MjSpec()
+  body = spec.worldbody.add_body(name="test_body")
+  for _ in range(3):
+    body.add_geom(type=mujoco.mjtGeom.mjGEOM_BOX, size=[0.1, 0.1, 0.1])
+
+  group_cfg = GeomGroupCfg(geom_names_expr=(".*",), group=3)
+  group_cfg.edit_spec(spec)
+
+  assert [g.group for g in spec.geoms] == [3, 3, 3]
+
+
+@pytest.mark.parametrize("value", [-1, mujoco.mjNGROUP, {"arm_collision": -1}])
+def test_geom_group_validation(value):
+  """GeomGroupCfg should validate the group."""
+  with pytest.raises(ValueError, match="group must be in"):
+    cfg = GeomGroupCfg(geom_names_expr=("test",), group=value)
+    cfg.validate()

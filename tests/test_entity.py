@@ -12,6 +12,7 @@ from mjlab.actuator import BuiltinPositionActuatorCfg, XmlActuatorCfg
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.scene import Scene, SceneCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
+from mjlab.utils.spec_config import GeomGroupCfg
 
 FIXED_BASE_XML = """
 <mujoco>
@@ -262,6 +263,19 @@ def test_multiple_freejoints_raises():
   cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(xml))
   with pytest.raises(ValueError, match="2 freejoints"):
     Entity(cfg)
+
+
+def test_geom_groups_editor_applied():
+  """Test that geom_groups editors are applied during entity init."""
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(FIXED_BASE_ARTICULATED_XML),
+    geom_groups=(GeomGroupCfg(geom_names_expr=("link.*_geom",), group=3),),
+  )
+  entity = Entity(cfg)
+
+  assert entity.spec.geom("link1_geom").group == 3
+  assert entity.spec.geom("link2_geom").group == 3
+  assert entity.spec.geom("base_geom").group == 0
 
 
 def test_find_methods():

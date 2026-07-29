@@ -207,6 +207,50 @@ class MeshCfg(SpecCfg):
 
 
 @dataclass
+class GeomGroupCfg(SpecCfg):
+  """Configuration to set the visualization group of geoms in the MuJoCo spec.
+
+  Supports regex pattern matching for geom names and dict-based field resolution
+  for per-geom group assignment.
+  """
+
+  geom_names_expr: tuple[str, ...]
+  """Tuple of regex patterns to match geom names."""
+  group: int | dict[str, int]
+  """Visualization group (int or dict mapping patterns to values). Must be in
+  [0, mjNGROUP). Groups 3-5 are hidden by default in viewers and sensors."""
+
+  def validate(self) -> None:
+    """Validate group configuration parameters."""
+    # Validate group (must be in [0, mjNGROUP)).
+    if isinstance(self.group, dict):
+      for pattern, value in self.group.items():
+        if not 0 <= value < mujoco.mjNGROUP:
+          raise ValueError(
+            f"group must be in [0, {mujoco.mjNGROUP}), got {value} for "
+            f"pattern '{pattern}'"
+          )
+    elif not 0 <= self.group < mujoco.mjNGROUP:
+      raise ValueError(f"group must be in [0, {mujoco.mjNGROUP}), got {self.group}")
+
+  def edit_spec(self, spec: mujoco.MjSpec) -> None:
+    from mjlab.utils.string import filter_exp, resolve_field
+
+    self.validate()
+
+    all_geoms: list[mujoco.MjsGeom] = spec.geoms
+    all_geom_names = tuple(g.name for g in all_geoms)
+    matched_names = set(filter_exp(self.geom_names_expr, all_geom_names))
+    geom_subset = [g for g in all_geoms if g.name in matched_names]
+
+    group = resolve_field(self.group, tuple(g.name for g in geom_subset))
+
+    for geom, value in zip(geom_subset, group, strict=True):
+      if value is not None:
+        geom.group = value
+
+
+@dataclass
 class CollisionCfg(SpecCfg):
   """Configuration to modify collision properties of geoms in the MuJoCo spec.
 

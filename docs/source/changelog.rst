@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``GeomGroupCfg``, exposed as the ``geom_groups`` field on
+  ``EntityCfg``, for setting the visualization group per geom, so a geom can
+  collide without being drawn. Contribution by @bd-pmorais.
 - Added ``diffuse``, ``specular``, ``ambient``, ``active``, and
   ``attenuation`` fields to ``LightCfg`` for configuring light color and
   falloff. Contribution by @bd-pmorais.
