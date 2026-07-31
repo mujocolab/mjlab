@@ -8,6 +8,10 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``GeomCfg``, exposed as the ``geoms`` field on ``EntityCfg``, a spec
+  editor that matches geoms by name and edits their attributes. Currently
+  supports ``group``, so a geom can collide without being drawn.
+  Contribution by @bd-pmorais.
 - Added ``diffuse``, ``specular``, ``ambient``, ``active``, and
   ``attenuation`` fields to ``LightCfg`` for configuring light color and
   falloff. Contribution by @bd-pmorais.
