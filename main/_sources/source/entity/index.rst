@@ -191,6 +191,8 @@ modify the ``MjSpec`` before compilation:
      - Add procedural textures (checker, gradient, etc.).
    * - ``materials``
      - Add materials and optionally assign them to geoms by regex.
+   * - ``geoms``
+     - Edit attributes of existing geoms, such as the visualization group.
 
 Each editor accepts regex patterns to target specific elements. For
 example, a ``CollisionCfg`` with ``geom_names_expr=(".*_foot.*",)``
