@@ -25,6 +25,11 @@ Changed
 Fixed
 ^^^^^
 
+- ``RayCastSensorCfg.include_geom_groups`` now raises on values outside
+  ``[0, mjNGROUP)`` instead of silently excluding every geom.
+- Geoms with a negative group no longer pick up group 5's visibility toggle in
+  the Viser viewer.
+
 Version 1.5.3 (July 22, 2026)
 -----------------------------
 

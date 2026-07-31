@@ -44,8 +44,11 @@ def _geom_groups_to_vec6(groups: tuple[int, ...] | None):  # -> _vec6
     return _ALL_GROUPS
   out = [0, 0, 0, 0, 0, 0]
   for g in groups:
-    if 0 <= g <= 5:
-      out[g] = -1
+    if not 0 <= g < mujoco.mjNGROUP:
+      raise ValueError(
+        f"include_geom_groups must be in [0, {mujoco.mjNGROUP}), got {g}"
+      )
+    out[g] = -1
   return _vec6(*out)
 
 

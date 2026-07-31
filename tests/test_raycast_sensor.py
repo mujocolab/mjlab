@@ -17,6 +17,7 @@ from mjlab.sensor import (
   RayCastSensorCfg,
   RingPatternCfg,
 )
+from mjlab.sensor.raycast_sensor import _geom_groups_to_vec6
 from mjlab.sim import MujocoCfg, SimulationCfg
 
 
@@ -1234,3 +1235,10 @@ def test_site_origin_is_physical_with_world_alignment(device):
 
   assert data.pos_w[0, 2].item() == pytest.approx(1.0, abs=0.1)
   assert data.distances[0, 0].item() == pytest.approx(1.0, abs=0.1)
+
+
+@pytest.mark.parametrize("groups", [(6,), (-1,), (0, 7)])
+def test_include_geom_groups_out_of_range_raises(groups):
+  """Out-of-range geom groups should raise rather than silently exclude."""
+  with pytest.raises(ValueError, match="include_geom_groups must be in"):
+    _geom_groups_to_vec6(groups)

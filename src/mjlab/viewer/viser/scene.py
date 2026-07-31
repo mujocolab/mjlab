@@ -490,7 +490,9 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
         batch_count = len(variant.env_ids)
         lod_ratio = 1000.0 / variant.mesh.vertices.shape[0]
         suffix = f"/sub{variant.sub_idx}" if variant.sub_idx > 0 else ""
-        visible = variant.group_id < 6 and self.geom_groups_visible[variant.group_id]
+        visible = (
+          0 <= variant.group_id < 6 and self.geom_groups_visible[variant.group_id]
+        )
 
         handle = self.server.scene.add_batched_meshes_trimesh(
           f"/bodies/{variant.body_name}/group{variant.group_id}"
@@ -708,7 +710,7 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
       body_xquat = vtf.SO3.from_matrix(body_xmat).wxyz
       for mg in self._mesh_groups:
         if isinstance(mg, _PerWorldMeshGroup):
-          visible = mg.group_id < 6 and self.geom_groups_visible[mg.group_id]
+          visible = 0 <= mg.group_id < 6 and self.geom_groups_visible[mg.group_id]
           if visible and any(body_id in hidden_bodies for body_id in mg.body_ids):
             visible = False
           if not visible:
