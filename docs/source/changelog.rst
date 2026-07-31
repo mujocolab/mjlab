@@ -25,6 +25,9 @@ Changed
 Fixed
 ^^^^^
 
+- ``RayCastSensorCfg.include_geom_groups`` now raises on values outside
+  ``[0, mjNGROUP)`` instead of silently excluding every geom.
+
 Version 1.5.3 (July 22, 2026)
 -----------------------------
 
