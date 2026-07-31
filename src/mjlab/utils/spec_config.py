@@ -4,6 +4,8 @@ from typing import Literal
 
 import mujoco
 
+from mjlab.utils.string import filter_exp, resolve_field
+
 _TYPE_MAP = {
   "2d": mujoco.mjtTexture.mjTEXTURE_2D,
   "cube": mujoco.mjtTexture.mjTEXTURE_CUBE,
@@ -143,8 +145,6 @@ class MaterialCfg(SpecCfg):
       mat.textures[mujoco.mjtTextureRole.mjTEXROLE_RGB.value] = self.texture
 
     if self.geom_names_expr is not None:
-      from mjlab.utils.string import filter_exp
-
       all_geom_names = tuple(g.name for g in spec.geoms)
       matched = filter_exp(self.geom_names_expr, all_geom_names)
       for geom_name in matched:
@@ -179,8 +179,6 @@ class MeshCfg(SpecCfg):
   matched meshes, or a dict mapping regex patterns to per-mesh values."""
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
-    from mjlab.utils.string import filter_exp, resolve_field
-
     self.validate()
 
     all_mesh_names = tuple(m.name for m in spec.meshes)
@@ -204,6 +202,53 @@ class MeshCfg(SpecCfg):
         raise ValueError(
           f"maxhullvert must be -1 (unlimited) or greater than 3, got {value}{where}"
         )
+
+
+@dataclass
+class GeomCfg(SpecCfg):
+  """Configuration to edit attributes of existing geoms in the MuJoCo spec.
+
+  Geoms are matched by regex against their names; unnamed geoms match the empty
+  string. Collision attributes also live on geoms but are tuned via CollisionCfg.
+
+  Only attributes set to a non-None value are applied; everything else is left at
+  whatever the source XML compiled to.
+  """
+
+  geom_names_expr: tuple[str, ...]
+  """Regex patterns to match geom names."""
+  group: int | dict[str, int] | None = None
+  """Visualization group for each matched geom. Viewers and sensors draw groups
+  0-2 by default, so moving a geom to group 3-5 keeps it colliding while hiding
+  it from rendering. Must be in [0, mjNGROUP): MuJoCo does not range-check the
+  group, and out-of-range values are clamped into range by raycasting but
+  dropped by the warp renderer. May be a single value applied to all matched
+  geoms, or a dict mapping regex patterns to per-geom values."""
+
+  def edit_spec(self, spec: mujoco.MjSpec) -> None:
+    self.validate()
+
+    all_geoms: list[mujoco.MjsGeom] = spec.geoms
+    all_geom_names = tuple(g.name for g in all_geoms)
+    matched_names = set(filter_exp(self.geom_names_expr, all_geom_names))
+    geom_subset = [g for g in all_geoms if g.name in matched_names]
+
+    group = resolve_field(self.group, tuple(g.name for g in geom_subset))
+    for geom, value in zip(geom_subset, group, strict=True):
+      if value is not None:
+        geom.group = value
+
+  def validate(self) -> None:
+    if isinstance(self.group, dict):
+      items = list(self.group.items())
+    else:
+      items = [(None, self.group)]
+    for pattern, value in items:
+      if value is None:
+        continue
+      if not 0 <= value < mujoco.mjNGROUP:
+        where = f" for pattern '{pattern}'" if pattern is not None else ""
+        raise ValueError(f"group must be in [0, {mujoco.mjNGROUP}), got {value}{where}")
 
 
 @dataclass
@@ -314,7 +359,6 @@ class CollisionCfg(SpecCfg):
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
     from mjlab.utils.spec import disable_collision
-    from mjlab.utils.string import filter_exp, resolve_field
 
     self.validate()
 
