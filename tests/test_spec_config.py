@@ -1,6 +1,7 @@
 """Tests for spec_config.py."""
 
 import math
+from typing import cast
 
 import mujoco
 import pytest
@@ -77,6 +78,8 @@ def test_collision_regex_matching(multi_geom_spec):
   """CollisionCfg should support regex pattern matching."""
   collision_cfg = CollisionCfg(
     geom_names_expr=(r"^(left|right)_foot\d_collision$",),
+    contype=1,
+    conaffinity=1,
     condim=3,
     priority=1,
     friction=(0.6,),
@@ -100,6 +103,8 @@ def test_collision_dict_field_resolution(multi_geom_spec):
   """CollisionCfg should support dict-based field resolution."""
   collision_cfg = CollisionCfg(
     geom_names_expr=(r".*_foot\d_collision$", "arm_collision"),
+    contype=1,
+    conaffinity=1,
     condim={r".*_foot\d_collision$": 3, "arm_collision": 1},
     priority={r".*_foot\d_collision$": 2, "arm_collision": 0},
   )
@@ -118,6 +123,10 @@ def test_collision_margin_gap_solmix(multi_geom_spec):
   """CollisionCfg should set margin, gap, and solmix on matched geoms."""
   collision_cfg = CollisionCfg(
     geom_names_expr=("arm_collision",),
+    contype=1,
+    conaffinity=1,
+    condim=3,
+    priority=0,
     margin=0.01,
     gap=0.005,
     solmix=0.5,
@@ -135,6 +144,10 @@ def test_collision_margin_gap_solmix_dict(multi_geom_spec):
   """CollisionCfg should support dict-based margin, gap, solmix overrides."""
   collision_cfg = CollisionCfg(
     geom_names_expr=(r".*_foot\d_collision$", "arm_collision"),
+    contype=1,
+    conaffinity=1,
+    condim=3,
+    priority=0,
     margin={r".*_foot\d_collision$": 0.02, "arm_collision": 0.01},
     gap={r".*_foot\d_collision$": 0.01, "arm_collision": 0.0},
     solmix={r".*_foot\d_collision$": 0.8, "arm_collision": 0.2},
@@ -152,10 +165,41 @@ def test_collision_margin_gap_solmix_dict(multi_geom_spec):
   assert arm.solmix == pytest.approx(0.2)
 
 
+def test_collision_structural_dict_requires_coverage(multi_geom_spec):
+  """Dict-valued structural fields must cover every matched geom."""
+  collision_cfg = CollisionCfg(
+    geom_names_expr=(".*_collision",),
+    contype=1,
+    conaffinity=1,
+    condim={r".*_foot\d_collision$": 3},  # Does not cover arm_collision.
+    priority=0,
+  )
+  with pytest.raises(ValueError, match="condim dict does not match geom"):
+    collision_cfg.edit_spec(multi_geom_spec)
+
+
+def test_collision_structural_fields_are_required():
+  """Structural fields cannot be None."""
+  cfg = CollisionCfg(
+    geom_names_expr=(".*",),
+    contype=1,
+    conaffinity=1,
+    condim=cast(int, None),
+    priority=0,
+  )
+  with pytest.raises(ValueError, match="condim is required"):
+    cfg.validate()
+
+
 def test_collision_disable_other_geoms(multi_geom_spec):
   """CollisionCfg should disable non-matching geoms when requested."""
   collision_cfg = CollisionCfg(
-    geom_names_expr=("left_foot1_collision",), contype=2, disable_other_geoms=True
+    geom_names_expr=("left_foot1_collision",),
+    contype=2,
+    conaffinity=1,
+    condim=3,
+    priority=0,
+    disable_other_geoms=True,
   )
   collision_cfg.edit_spec(multi_geom_spec)
 
@@ -473,3 +517,29 @@ def test_geom_group_validation(value):
   with pytest.raises(ValueError, match="group must be in"):
     cfg = GeomCfg(geom_names_expr=("test",), group=value)
     cfg.validate()
+
+
+def test_geom_patches_collision_attrs(multi_geom_spec):
+  """GeomCfg should patch collision attributes, leaving unset ones alone."""
+  multi_geom_spec.geom("left_foot1_collision").contype = 2
+  GeomCfg(
+    geom_names_expr=(r"^(left|right)_foot\d_collision$",),
+    condim=6,
+    friction=(1.0, 5e-3, 5e-4),
+  ).edit_spec(multi_geom_spec)
+
+  left_foot = multi_geom_spec.geom("left_foot1_collision")
+  assert left_foot.condim == 6
+  assert left_foot.friction[0] == pytest.approx(1.0)
+  assert left_foot.contype == 2  # Unset attribute untouched.
+
+  arm = multi_geom_spec.geom("arm_collision")
+  assert arm.condim == 3  # Unmatched geom untouched.
+
+
+def test_geom_collision_attr_validation():
+  """GeomCfg should validate collision attributes like CollisionCfg does."""
+  with pytest.raises(ValueError, match="condim must be one of"):
+    GeomCfg(geom_names_expr=("test",), condim=2).validate()
+  with pytest.raises(ValueError, match="solmix must be in"):
+    GeomCfg(geom_names_expr=("test",), solmix=1.5).validate()

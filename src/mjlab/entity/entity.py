@@ -188,6 +188,9 @@ class Entity:
       self._non_free_joints = tuple(self._all_joints[1:])
 
   def _apply_spec_editors(self) -> None:
+    spec_cfg.warn_overlapping_geom_edits(
+      self.cfg.geoms, self.cfg.collisions, self._spec
+    )
     for cfg_list in [
       self.cfg.lights,
       self.cfg.cameras,
