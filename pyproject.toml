@@ -1,5 +1,5 @@
 [build-system]
-requires = ["uv_build>=0.8.19,<0.9.0"]
+requires = ["uv_build>=0.12.1,<0.13.0"]
 build-backend = "uv_build"
 
 [project]
@@ -16,7 +16,6 @@ classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -43,13 +42,11 @@ dependencies = [
   "scipy>=1.15",
   "viser>=1.0.27",
   "mjviser>=0.0.14",
-  "mediapy>=1.2.6",
-  # mediapy 1.2.6 subclasses npt.NDArray at import, which numpy>=2.5 rejects.
-  # The upstream fix (google/mediapy#66) is unmerged, so cap numpy until it lands.
-  "numpy<2.5",
+  "mediapy>=1.2.7",
+  "numpy",
   "imageio-ffmpeg",
   "tensordict",
-  "rsl-rl-lib==5.4.0",
+  "rsl-rl-lib==5.4.2",
   "tensorboard>=2.20.0",
   "onnxscript>=0.5.4",
   "wandb>=0.22.3",
@@ -74,7 +71,7 @@ dev = [
   "pyright>=1.1.408",
   "onnxruntime>=1.19.0; python_version >= '3.11'",
   "pytest>=v9.0.3",
-  "ruff>=v0.14.14",
+  "ruff>=0.16.1",
   "ty>=v0.0.14",
 ]
 docs = [

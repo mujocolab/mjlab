@@ -83,7 +83,7 @@ class EntityCfg:
 
   init_state: InitialStateCfg = field(default_factory=InitialStateCfg)
   spec_fn: Callable[[], mujoco.MjSpec] = field(
-    default_factory=lambda: (lambda: mujoco.MjSpec())
+    default_factory=lambda: lambda: mujoco.MjSpec()
   )
   articulation: EntityArticulationInfoCfg | None = None
   sort_actuators: bool = False
