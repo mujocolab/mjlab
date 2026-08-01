@@ -220,12 +220,6 @@ def get_free_joint(spec: mujoco.MjSpec) -> mujoco.MjsJoint | None:
   return joint
 
 
-def disable_collision(geom: mujoco.MjsGeom) -> None:
-  """Disables collision for a geom."""
-  geom.contype = 0
-  geom.conaffinity = 0
-
-
 def is_joint_limited(jnt: mujoco.MjsJoint) -> bool:
   """Returns True if a joint is limited."""
   match jnt.limited:

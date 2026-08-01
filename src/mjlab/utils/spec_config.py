@@ -79,8 +79,9 @@ def _set_geom_attr(geom: mujoco.MjsGeom, name: str, value) -> None:
 def _matched_geoms(spec: mujoco.MjSpec, exprs: tuple[str, ...]) -> list[mujoco.MjsGeom]:
   """Return geom objects whose names match any expression.
 
-  Matching is by object rather than name lookup so that unnamed geoms (which
-  all share the empty-string name) are handled correctly.
+  Filters the geom objects by name membership instead of looking names up via
+  ``spec.geom(name)``, so unnamed geoms (which all share the empty-string name)
+  are handled correctly. Geoms sharing a name are matched as a group.
   """
   all_geoms: list[mujoco.MjsGeom] = spec.geoms
   matched = set(filter_exp(exprs, tuple(g.name for g in all_geoms)))
@@ -209,9 +210,9 @@ class MaterialCfg(SpecCfg):
 class MeshCfg(SpecCfg):
   """Configuration to edit attributes of existing mesh assets in the MuJoCo spec.
 
-  Unlike collision properties such as contype, condim, and friction, which live on
-  geoms and are tuned via CollisionCfg, the attributes here belong to the mesh asset
-  itself. A mesh asset is a shared resource: one asset may be referenced by many
+  Unlike geom attributes, which are edited per geom via GeomCfg and CollisionCfg,
+  the attributes here belong to the mesh asset itself. A mesh asset is a shared
+  resource: one asset may be referenced by many
   mesh geoms across different bodies, and there is a single convex hull per asset.
   Attributes are therefore matched by mesh-asset name, not geom name.
 
