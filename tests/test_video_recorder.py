@@ -13,7 +13,9 @@ def _make_mock_env(num_envs: int = 1):
   env = Mock()
   env.render_mode = "rgb_array"
   env.metadata = {"render_fps": 30}
-  env.render.return_value = np.random.randint(0, 255, (num_envs, 64, 64, 3), np.uint8)
+  env.render.return_value = np.random.default_rng().integers(
+    0, 255, (num_envs, 64, 64, 3), dtype=np.uint8
+  )
   env.step.return_value = (
     torch.zeros(num_envs),  # obs
     torch.zeros(num_envs),  # reward
