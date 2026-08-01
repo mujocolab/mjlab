@@ -31,6 +31,7 @@ Added
 Changed
 ^^^^^^^
 
+- Bumped ``rsl-rl-lib`` from 5.4.0 to 5.4.2.
 - ``CollisionCfg`` and ``GeomCfg`` now share one write path, and mjlab warns
   when a ``GeomCfg`` collision patch is overwritten by a ``CollisionCfg``.
 - Changed the default MuJoCo Warp render background to solid black
