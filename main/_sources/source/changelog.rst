@@ -5,13 +5,22 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+.. admonition:: Breaking API changes
+   :class: attention
+
+   - ``CollisionCfg`` now requires ``contype``, ``conaffinity``, ``condim``,
+     and ``priority`` to be explicit instead of silently defaulting to
+     MuJoCo's values, and dict values for these fields must cover every
+     matched geom (add a catch-all ``".*"`` entry).
+
 Added
 ^^^^^
 
 - Added ``GeomCfg``, exposed as the ``geoms`` field on ``EntityCfg``, a spec
-  editor that matches geoms by name and edits their attributes. Currently
-  supports ``group``, so a geom can collide without being drawn.
-  Contribution by @bd-pmorais.
+  editor that matches geoms by name and patches their attributes. Supports
+  ``group`` (so a geom can collide without being drawn) and all collision
+  attributes; unset attributes are left untouched. Contribution by
+  @bd-pmorais.
 - Added ``diffuse``, ``specular``, ``ambient``, ``active``, and
   ``attenuation`` fields to ``LightCfg`` for configuring light color and
   falloff. Contribution by @bd-pmorais.
@@ -22,6 +31,8 @@ Added
 Changed
 ^^^^^^^
 
+- ``CollisionCfg`` and ``GeomCfg`` now share one write path, and mjlab warns
+  when a ``GeomCfg`` collision patch is overwritten by a ``CollisionCfg``.
 - Changed the default MuJoCo Warp render background to solid black
   (``0, 0, 0, 1``), matching MuJoCo's native renderer. Contribution by
   @bd-pmorais.

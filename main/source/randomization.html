@@ -61,7 +61,7 @@
     <link rel="prev" title="Events" href="events.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Jul 31, 2026"/>
+    <meta name="docbuild:last-update" content="Aug 01, 2026"/>
   </head>
   
   
@@ -1772,9 +1772,11 @@ friction. MuJoCo will use the higher-priority geom’s friction in
 
 <span class="n">robot_collision</span> <span class="o">=</span> <span class="n">CollisionCfg</span><span class="p">(</span>
     <span class="n">geom_names_expr</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;.*_foot.*&quot;</span><span class="p">],</span>
+    <span class="n">contype</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">conaffinity</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">condim</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
     <span class="n">priority</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">friction</span><span class="o">=</span><span class="p">(</span><span class="mf">0.6</span><span class="p">,),</span>
-    <span class="n">condim</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -2230,7 +2232,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Jul 31, 2026.
+  Last updated on Aug 01, 2026.
   <br/>
 </p>
   </div>

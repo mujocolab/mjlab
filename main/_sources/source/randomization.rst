@@ -1075,9 +1075,11 @@ Friction (reset)
 
     robot_collision = CollisionCfg(
         geom_names_expr=[".*_foot.*"],
+        contype=1,
+        conaffinity=1,
+        condim=3,
         priority=1,
         friction=(0.6,),
-        condim=3,
     )
 
 

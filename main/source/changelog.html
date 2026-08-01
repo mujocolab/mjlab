@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Jul 31, 2026"/>
+    <meta name="docbuild:last-update" content="Aug 01, 2026"/>
   </head>
   
   
@@ -545,13 +545,23 @@ document.write(`
 <h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading">#</a></h1>
 <section id="upcoming-version-not-yet-released">
 <h2>Upcoming version (not yet released)<a class="headerlink" href="#upcoming-version-not-yet-released" title="Link to this heading">#</a></h2>
+<div class="attention admonition">
+<p class="admonition-title">Breaking API changes</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">CollisionCfg</span></code> now requires <code class="docutils literal notranslate"><span class="pre">contype</span></code>, <code class="docutils literal notranslate"><span class="pre">conaffinity</span></code>, <code class="docutils literal notranslate"><span class="pre">condim</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">priority</span></code> to be explicit instead of silently defaulting to
+MuJoCo’s values, and dict values for these fields must cover every
+matched geom (add a catch-all <code class="docutils literal notranslate"><span class="pre">&quot;.*&quot;</span></code> entry).</p></li>
+</ul>
+</div>
 <section id="added">
 <h3>Added<a class="headerlink" href="#added" title="Link to this heading">#</a></h3>
 <ul class="simple">
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">GeomCfg</span></code>, exposed as the <code class="docutils literal notranslate"><span class="pre">geoms</span></code> field on <code class="docutils literal notranslate"><span class="pre">EntityCfg</span></code>, a spec
-editor that matches geoms by name and edits their attributes. Currently
-supports <code class="docutils literal notranslate"><span class="pre">group</span></code>, so a geom can collide without being drawn.
-Contribution by &#64;bd-pmorais.</p></li>
+editor that matches geoms by name and patches their attributes. Supports
+<code class="docutils literal notranslate"><span class="pre">group</span></code> (so a geom can collide without being drawn) and all collision
+attributes; unset attributes are left untouched. Contribution by
+&#64;bd-pmorais.</p></li>
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">diffuse</span></code>, <code class="docutils literal notranslate"><span class="pre">specular</span></code>, <code class="docutils literal notranslate"><span class="pre">ambient</span></code>, <code class="docutils literal notranslate"><span class="pre">active</span></code>, and
 <code class="docutils literal notranslate"><span class="pre">attenuation</span></code> fields to <code class="docutils literal notranslate"><span class="pre">LightCfg</span></code> for configuring light color and
 falloff. Contribution by &#64;bd-pmorais.</p></li>
@@ -563,6 +573,8 @@ falloff. Contribution by &#64;bd-pmorais.</p></li>
 <section id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">CollisionCfg</span></code> and <code class="docutils literal notranslate"><span class="pre">GeomCfg</span></code> now share one write path, and mjlab warns
+when a <code class="docutils literal notranslate"><span class="pre">GeomCfg</span></code> collision patch is overwritten by a <code class="docutils literal notranslate"><span class="pre">CollisionCfg</span></code>.</p></li>
 <li><p>Changed the default MuJoCo Warp render background to solid black
 (<code class="docutils literal notranslate"><span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">1</span></code>), matching MuJoCo’s native renderer. Contribution by
 &#64;bd-pmorais.</p></li>
@@ -1624,7 +1636,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Jul 31, 2026.
+  Last updated on Aug 01, 2026.
   <br/>
 </p>
   </div>
