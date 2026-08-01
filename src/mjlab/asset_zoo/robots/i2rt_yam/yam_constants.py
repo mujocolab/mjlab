@@ -150,6 +150,8 @@ HOME_KEYFRAME = EntityCfg.InitialStateCfg(
 
 FULL_COLLISION = CollisionCfg(
   geom_names_expr=(".*_collision",),
+  contype=1,
+  conaffinity=1,
   condim={
     "[lr]f_down(6|7|8|9|10|11)_collision": 6,
     ".*_collision": 3,
@@ -163,6 +165,7 @@ FULL_COLLISION = CollisionCfg(
   },
   priority={
     "[lr]f_down(6|7|8|9|10|11)_collision": 1,
+    ".*": 0,
   },
 )
 
@@ -189,6 +192,7 @@ GRIPPER_ONLY_COLLISION = CollisionCfg(
   },
   priority={
     "[lr]f_down(6|7|8|9|10|11)_collision": 1,
+    ".*": 0,
   },
 )
 

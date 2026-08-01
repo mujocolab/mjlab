@@ -12,7 +12,7 @@ from mjlab.actuator import BuiltinPositionActuatorCfg, XmlActuatorCfg
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.scene import Scene, SceneCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
-from mjlab.utils.spec_config import GeomCfg
+from mjlab.utils.spec_config import CollisionCfg, GeomCfg
 
 FIXED_BASE_XML = """
 <mujoco>
@@ -276,6 +276,21 @@ def test_geom_editor_applied():
   assert entity.spec.geom("link1_geom").group == 3
   assert entity.spec.geom("link2_geom").group == 3
   assert entity.spec.geom("base_geom").group == 0
+
+
+def test_geom_collision_overlap_warns():
+  """A GeomCfg collision patch clobbered by a CollisionCfg triggers a warning."""
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(FIXED_BASE_ARTICULATED_XML),
+    geoms=(GeomCfg(geom_names_expr=("link1_geom",), condim=6),),
+    collisions=(
+      CollisionCfg(
+        geom_names_expr=("link.*_geom",), contype=1, conaffinity=1, condim=3, priority=0
+      ),
+    ),
+  )
+  with pytest.warns(UserWarning, match="link1_geom.condim"):
+    Entity(cfg)
 
 
 def test_find_methods():
