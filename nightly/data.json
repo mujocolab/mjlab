@@ -2893,5 +2893,20 @@
       "ee_pos_error": 0.0453326553106308,
       "ee_ori_error": 0.17160233855247498
     }
+  },
+  {
+    "id": "40vs78gw",
+    "name": "2026-08-02_02-23-57",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/40vs78gw",
+    "created_at": "2026-08-02T09:24:02Z",
+    "commit": "a0a83e8",
+    "metrics": {
+      "success_rate": 0.9912109375,
+      "mpkpe": 0.10349061340093613,
+      "r_mpkpe": 0.029099710285663605,
+      "joint_vel_error": 0.5593547821044922,
+      "ee_pos_error": 0.04479319974780083,
+      "ee_ori_error": 0.17180773615837097
+    }
   }
 ]
