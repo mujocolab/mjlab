@@ -187,14 +187,25 @@ def test_factorial_tasks_freeze_b1_and_reward_contracts() -> None:
       env_cfg = load_env_cfg(task_id)
       rl_cfg = cast(Any, load_rl_cfg(task_id))
       actor = env_cfg.observations["actor"]
-      assert actor.terms["ball_visible_mask"].params["dropout_probability"] == 0.0
+      assert actor.history_length == 5
       assert env_cfg.observations["critic_history"].history_length == 10
 
       if actor_variant == 0:
+        assert tuple(actor.terms)[-2:] == (
+          "ball_pos_b",
+          "ball_to_feet_vectors_b",
+        )
+        assert actor.terms["ball_pos_b"].params["dropout_probability"] == 0.0
+        assert actor.terms["ball_pos_b"].params["x_range"] == (0.05, 1.00)
+        assert actor.terms["ball_pos_b"].params["y_range"] == (-0.70, 0.70)
+        assert "ball_visible_mask" not in actor.terms
         assert "actor_history" not in env_cfg.observations
         assert rl_cfg.actor.class_name == "MLPModel"
         assert rl_cfg.obs_groups["actor"] == ("actor",)
       else:
+        assert "ball_pos_b" not in actor.terms
+        assert "ball_to_feet_vectors_b" not in actor.terms
+        assert "ball_visible_mask" not in actor.terms
         actor_history = env_cfg.observations["actor_history"]
         assert tuple(actor_history.terms) == (
           "ball_pos_b",
@@ -203,6 +214,17 @@ def test_factorial_tasks_freeze_b1_and_reward_contracts() -> None:
         )
         assert actor_history.history_length == 10
         assert not actor_history.flatten_history_dim
+        assert actor_history.terms["ball_visible_mask"].params[
+          "dropout_probability"
+        ] == 0.0
+        assert actor_history.terms["ball_visible_mask"].params["x_range"] == (
+          0.05,
+          1.00,
+        )
+        assert actor_history.terms["ball_visible_mask"].params["y_range"] == (
+          -0.70,
+          0.70,
+        )
         assert rl_cfg.obs_groups["actor"] == ("actor", "actor_history")
         assert rl_cfg.actor.cnn_cfg == {
           "output_channels": (64, 64, 64),

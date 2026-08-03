@@ -572,10 +572,12 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     "ball_out_of_control": TerminationTermCfg(
       func=mdp.ball_out_of_control,
       params={
-        "max_distance": 1.5,
-        "min_forward": 0.0,
-        "max_forward": 1.0,
-        "max_lateral": 0.5,
+        # Keep this envelope outside the Actor visual rectangle so the policy
+        # receives a physical recovery interval after the ball becomes invisible.
+        "max_distance": 2.0,
+        "min_forward": -0.20,
+        "max_forward": 1.80,
+        "max_lateral": 0.90,
         "max_height": 0.5,
         "ball_cfg": SceneEntityCfg("ball"),
       },

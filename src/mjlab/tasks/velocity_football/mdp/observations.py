@@ -256,7 +256,7 @@ def _shared_masked_ball_visual(
 
 def masked_ball_pos_b(
   env: ManagerBasedRlEnv,
-  x_range: tuple[float, float] = (0.05, 1.50),
+  x_range: tuple[float, float] = (0.05, 1.00),
   y_range: tuple[float, float] = (-0.70, 0.70),
   dropout_probability: float = 0.0,
   bias_range: float = 0.10,
@@ -279,7 +279,7 @@ def masked_ball_pos_b(
 
 def masked_ball_to_feet_vectors_b(
   env: ManagerBasedRlEnv,
-  x_range: tuple[float, float] = (0.05, 1.50),
+  x_range: tuple[float, float] = (0.05, 1.00),
   y_range: tuple[float, float] = (-0.70, 0.70),
   dropout_probability: float = 0.0,
   bias_range: float = 0.10,
@@ -302,7 +302,7 @@ def masked_ball_to_feet_vectors_b(
 
 def ball_visible_mask(
   env: ManagerBasedRlEnv,
-  x_range: tuple[float, float] = (0.05, 1.50),
+  x_range: tuple[float, float] = (0.05, 1.00),
   y_range: tuple[float, float] = (-0.70, 0.70),
   dropout_probability: float = 0.0,
   bias_range: float = 0.10,

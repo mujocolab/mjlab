@@ -31,7 +31,7 @@ from mjlab.tasks.registry import load_env_cfg, load_rl_cfg
 TASK_ID = "Mjlab-Velocity-Football-Flat-Unitree-G1"
 FRAME_STACK = 5
 TEMPORAL_HISTORY_LENGTH = 10
-BALL_VISIBILITY_X_RANGE = (0.05, 1.50)
+BALL_VISIBILITY_X_RANGE = (0.05, 1.00)
 BALL_VISIBILITY_Y_RANGE = (-0.70, 0.70)
 PHASE_PERIOD = 0.6
 BALL_DISTURBANCE_INTERVAL_RANGE = (5.0, 6.0)
@@ -76,6 +76,10 @@ TEMPORAL_TERM_DIMS = {
 }
 EXPECTED_OBSERVATION_NAMES = tuple(TERM_DIMS)
 EXPECTED_OBS_DIM = FRAME_STACK * sum(TERM_DIMS.values())
+PROPRIOCEPTIVE_OBSERVATION_NAMES = EXPECTED_OBSERVATION_NAMES[:-2]
+PROPRIOCEPTIVE_OBS_DIM = FRAME_STACK * sum(
+  TERM_DIMS[name] for name in PROPRIOCEPTIVE_OBSERVATION_NAMES
+)
 TEMPORAL_OBSERVATION_NAMES = tuple(TEMPORAL_TERM_DIMS)
 TEMPORAL_OBS_DIM = sum(TEMPORAL_TERM_DIMS.values())
 B1_HISTORY_TERM_DIMS = {
@@ -126,6 +130,7 @@ class PolicyMetadata:
   action_scale: FloatArray
   observation_names: tuple[str, ...]
   observation_history: tuple[int, ...]
+  observation_dim: int
   temporal_history_length: int | None = None
   temporal_history_dim: int | None = None
 
@@ -150,11 +155,10 @@ class PolicyMetadata:
 
     input_dim = inputs[0].shape[-1]
     output_dim = outputs[0].shape[-1]
-    required_input_dim = TEMPORAL_OBS_DIM if temporal else EXPECTED_OBS_DIM
-    if input_dim != required_input_dim:
+    if not temporal and input_dim != EXPECTED_OBS_DIM:
       raise ValueError(
         f"Policy expects {input_dim} observations; this task requires "
-        f"{required_input_dim}."
+        f"{EXPECTED_OBS_DIM}."
       )
     temporal_history_length = None
     temporal_history_dim = None
@@ -179,6 +183,16 @@ class PolicyMetadata:
         )
       temporal_history_length = history_length
       temporal_history_dim = history_shape[-1]
+      supported_contract = (input_dim, temporal_history_dim) in {
+        (TEMPORAL_OBS_DIM, TEMPORAL_OBS_DIM),
+        (TEMPORAL_OBS_DIM, B1_HISTORY_OBS_DIM),
+        (PROPRIOCEPTIVE_OBS_DIM, B1_HISTORY_OBS_DIM),
+      }
+      if not supported_contract:
+        raise ValueError(
+          "Unsupported temporal policy input contract: "
+          f"obs={input_dim}, obs_history={temporal_history_dim}."
+        )
     if output_dim != EXPECTED_ACTION_DIM:
       raise ValueError(
         f"Policy produces {output_dim} actions; this task requires "
@@ -202,9 +216,11 @@ class PolicyMetadata:
       raise ValueError("ONNX default_joint_pos must contain 29 values.")
     if action_scale.shape != (EXPECTED_ACTION_DIM,):
       raise ValueError("ONNX action_scale must contain 29 values.")
-    expected_names = (
-      TEMPORAL_OBSERVATION_NAMES if temporal else EXPECTED_OBSERVATION_NAMES
-    )
+    expected_names = EXPECTED_OBSERVATION_NAMES
+    if temporal and input_dim == TEMPORAL_OBS_DIM:
+      expected_names = TEMPORAL_OBSERVATION_NAMES
+    elif temporal and input_dim == PROPRIOCEPTIVE_OBS_DIM:
+      expected_names = PROPRIOCEPTIVE_OBSERVATION_NAMES
     if observation_names != expected_names:
       raise ValueError(
         "ONNX observation order does not match the MJLab football task: "
@@ -212,7 +228,7 @@ class PolicyMetadata:
       )
     expected_history = (
       (0,) * len(observation_names)
-      if temporal
+      if temporal and input_dim == TEMPORAL_OBS_DIM
       else (FRAME_STACK,) * len(observation_names)
     )
     if observation_history != expected_history:
@@ -226,6 +242,7 @@ class PolicyMetadata:
       action_scale=action_scale,
       observation_names=observation_names,
       observation_history=observation_history,
+      observation_dim=input_dim,
       temporal_history_length=temporal_history_length,
       temporal_history_dim=temporal_history_dim,
     )
@@ -248,10 +265,11 @@ class _HistoryBuffer:
     self._values.append(value.copy())
     self._values.pop(0)
 
-  def flatten(self) -> FloatArray:
+  def flatten(self, length: int | None = None) -> FloatArray:
     if not self._values:
       raise RuntimeError("Observation history has not been initialized.")
-    return np.concatenate(self._values).astype(np.float32, copy=False)
+    values = self._values if length is None else self._values[-length:]
+    return np.concatenate(values).astype(np.float32, copy=False)
 
 
 class ObservationAssembler:
@@ -261,6 +279,11 @@ class ObservationAssembler:
     self._temporal = metadata is not None and metadata.is_temporal
     self._term_dims = TEMPORAL_TERM_DIMS if self._temporal else TERM_DIMS
     self._observation_names = (
+      metadata.observation_names
+      if metadata is not None
+      else EXPECTED_OBSERVATION_NAMES
+    )
+    self._all_names = (
       TEMPORAL_OBSERVATION_NAMES if self._temporal else EXPECTED_OBSERVATION_NAMES
     )
     history_length = (
@@ -270,6 +293,7 @@ class ObservationAssembler:
     )
     assert history_length is not None
     self._history_length = history_length
+    buffer_length = max(FRAME_STACK, history_length)
     self._history_names = self._observation_names
     self._history_dim = TEMPORAL_OBS_DIM
     if self._temporal and metadata is not None:
@@ -277,14 +301,15 @@ class ObservationAssembler:
       self._history_dim = metadata.temporal_history_dim
       if self._history_dim == B1_HISTORY_OBS_DIM:
         self._history_names = B1_HISTORY_OBSERVATION_NAMES
-    self._history = {
-      name: _HistoryBuffer(history_length) for name in self._observation_names
-    }
+    self._current_dim = (
+      metadata.observation_dim if metadata is not None else EXPECTED_OBS_DIM
+    )
+    self._history = {name: _HistoryBuffer(buffer_length) for name in self._all_names}
 
   def _validate_terms(self, terms: dict[str, FloatArray]) -> None:
-    if tuple(terms) != self._observation_names:
+    if tuple(terms) != self._all_names:
       raise ValueError(
-        f"Observation terms must be ordered as {self._observation_names}."
+        f"Observation terms must be ordered as {self._all_names}."
       )
     for name, expected_dim in self._term_dims.items():
       if terms[name].shape != (expected_dim,):
@@ -309,16 +334,19 @@ class ObservationAssembler:
 
   def observation(self) -> FloatArray:
     """Return the current frame or legacy term-major flattened history."""
-    if self._temporal:
+    if self._temporal and self._current_dim == TEMPORAL_OBS_DIM:
       obs = np.concatenate(
         [self._history[name]._values[-1] for name in self._observation_names]
       ).astype(np.float32, copy=False)
       expected_dim = TEMPORAL_OBS_DIM
     else:
       obs = np.concatenate(
-        [self._history[name].flatten() for name in self._observation_names]
+        [
+          self._history[name].flatten(FRAME_STACK)
+          for name in self._observation_names
+        ]
       ).astype(np.float32, copy=False)
-      expected_dim = EXPECTED_OBS_DIM
+      expected_dim = self._current_dim
     if obs.shape != (expected_dim,):
       raise RuntimeError(f"Assembled invalid observation shape {obs.shape}.")
     if not np.all(np.isfinite(obs)):
@@ -336,7 +364,7 @@ class ObservationAssembler:
             if self._history_dim == TEMPORAL_OBS_DIM
             else [self._history[name]._values[index] for name in self._history_names]
           )
-          for index in range(self._history_length)
+          for index in range(-self._history_length, 0)
         ]
       ).astype(np.float32, copy=False)
       inputs["obs_history"] = history.reshape(

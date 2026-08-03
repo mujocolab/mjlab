@@ -18,6 +18,8 @@ from mjlab.scripts.sim2sim.g1_football import (
   EXPECTED_OBS_DIM,
   EXPECTED_OBSERVATION_NAMES,
   FRAME_STACK,
+  PROPRIOCEPTIVE_OBS_DIM,
+  PROPRIOCEPTIVE_OBSERVATION_NAMES,
   TEMPORAL_HISTORY_LENGTH,
   TEMPORAL_OBS_DIM,
   TEMPORAL_OBSERVATION_NAMES,
@@ -62,17 +64,27 @@ def make_session(
 def make_temporal_session(
   history_length: int = TEMPORAL_HISTORY_LENGTH,
   history_dim: int = TEMPORAL_OBS_DIM,
+  input_dim: int = TEMPORAL_OBS_DIM,
 ) -> Any:
+  b1_stacked = input_dim == PROPRIOCEPTIVE_OBS_DIM
+  observation_names = (
+    PROPRIOCEPTIVE_OBSERVATION_NAMES
+    if b1_stacked
+    else TEMPORAL_OBSERVATION_NAMES
+  )
+  observation_history = "5" if b1_stacked else "0"
   metadata = {
     "joint_names": ",".join(f"joint_{index}" for index in range(29)),
     "default_joint_pos": ",".join("0" for _ in range(29)),
     "action_scale": ",".join("0.5" for _ in range(29)),
-    "observation_names": ",".join(TEMPORAL_OBSERVATION_NAMES),
-    "observation_terms_history_length": ",".join("0" for _ in TEMPORAL_TERM_DIMS),
+    "observation_names": ",".join(observation_names),
+    "observation_terms_history_length": ",".join(
+      observation_history for _ in observation_names
+    ),
   }
   return SimpleNamespace(
     get_inputs=lambda: [
-      SimpleNamespace(name="obs", shape=[1, TEMPORAL_OBS_DIM]),
+      SimpleNamespace(name="obs", shape=[1, input_dim]),
       SimpleNamespace(
         name="obs_history",
         shape=[1, history_length, history_dim],
@@ -159,7 +171,10 @@ def test_temporal_policy_metadata_and_assembler_build_dual_inputs() -> None:
 
 def test_b1_policy_assembler_uses_only_seven_ball_history_features() -> None:
   metadata = PolicyMetadata.from_session(
-    make_temporal_session(history_dim=B1_HISTORY_OBS_DIM)
+    make_temporal_session(
+      history_dim=B1_HISTORY_OBS_DIM,
+      input_dim=PROPRIOCEPTIVE_OBS_DIM,
+    )
   )
   assembler = ObservationAssembler(metadata)
   terms = {
@@ -170,7 +185,7 @@ def test_b1_policy_assembler_uses_only_seven_ball_history_features() -> None:
   obs = assembler.reset(terms)
   inputs = assembler.policy_inputs(obs)
 
-  assert inputs["obs"].shape == (1, TEMPORAL_OBS_DIM)
+  assert inputs["obs"].shape == (1, PROPRIOCEPTIVE_OBS_DIM)
   assert inputs["obs_history"].shape == (
     1,
     TEMPORAL_HISTORY_LENGTH,
@@ -184,7 +199,7 @@ def test_b1_policy_assembler_uses_only_seven_ball_history_features() -> None:
     ]
   )
   np.testing.assert_array_equal(inputs["obs_history"][0, -1], expected_latest)
-  np.testing.assert_array_equal(inputs["obs"][0, -B1_HISTORY_OBS_DIM:], expected_latest)
+  assert metadata.observation_names == PROPRIOCEPTIVE_OBSERVATION_NAMES
 
 
 @pytest.mark.parametrize("history_length", [5, 10, 20])

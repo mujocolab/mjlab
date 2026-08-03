@@ -75,9 +75,9 @@ def _temporal_actor_state(current_dim: int, fill: float) -> dict[str, torch.Tens
 
 
 def _b1_actor_state(fill: float) -> dict[str, torch.Tensor]:
-  state = _actor_state(169, fill)
+  state = _actor_state(554, fill)
   for suffix, offset in (("_mean", 0), ("_var", 1), ("_std", 2)):
-    state[f"obs_normalizer.{suffix}"] = torch.full((1, 105), fill + offset)
+    state[f"obs_normalizer.{suffix}"] = torch.full((1, 490), fill + offset)
     state[f"obs_normalizers_3d.actor_history.{suffix}"] = torch.full(
       (1, 7), fill + 20 + offset
     )
@@ -218,18 +218,20 @@ def test_load_pretrained_transfers_current_walk_to_current_football(tmp_path) ->
 
 
 def test_load_pretrained_keeps_new_b1_branch_randomly_initialized(tmp_path) -> None:
-  source = _actor_state(98, fill=2.0)
+  source = _actor_state(490, fill=2.0)
   initial = _b1_actor_state(fill=10.0)
   target_actor = _FakeActor(initial)
   runner = _fake_runner(target_actor)
-  checkpoint = tmp_path / "current_walk.pt"
+  checkpoint = tmp_path / "stacked_walk.pt"
   torch.save({"actor_state_dict": source}, checkpoint)
 
   runner.load_pretrained(str(checkpoint))
   actual = target_actor.state_dict()
 
-  torch.testing.assert_close(actual["mlp.0.weight"][:, :98], source["mlp.0.weight"])
-  assert torch.count_nonzero(actual["mlp.0.weight"][:, 98:]) == 0
+  torch.testing.assert_close(actual["mlp.0.weight"][:, :490], source["mlp.0.weight"])
+  assert torch.count_nonzero(actual["mlp.0.weight"][:, 490:]) == 0
+  for key in VelocityOnPolicyRunner._NORMALIZER_VECTOR_KEYS:
+    torch.testing.assert_close(actual[key], source[key])
   for key in initial:
     if key.startswith("cnn_encoders.") or key.startswith("obs_normalizers_3d."):
       torch.testing.assert_close(actual[key], initial[key])
@@ -297,7 +299,7 @@ def test_pretrain_observations_are_strict_football_prefix() -> None:
 
 
 @pytest.mark.slow
-def test_b1_newest_history_frame_matches_current_ball_observation() -> None:
+def test_b1_observation_groups_have_exclusive_contract() -> None:
   cfg = load_env_cfg(_B1_FOOTBALL_TASK_ID)
   cfg.scene.num_envs = 2
   output = io.StringIO()
@@ -310,11 +312,12 @@ def test_b1_newest_history_frame_matches_current_ball_observation() -> None:
         raw_obs, _ = env.reset(seed=42)
         obs = cast(dict[str, torch.Tensor], raw_obs)
 
-    assert obs["actor"].shape == (2, 105)
+    assert obs["actor"].shape == (2, 490)
     assert obs["actor_history"].shape == (2, 10, 7)
-    torch.testing.assert_close(
-      obs["actor"][:, -7:],
-      obs["actor_history"][:, -1, :],
+    assert torch.isfinite(obs["actor"]).all()
+    assert torch.isfinite(obs["actor_history"]).all()
+    assert set(env.observation_manager.active_terms["actor"]).isdisjoint(
+      {"ball_pos_b", "ball_to_feet_vectors_b", "ball_visible_mask"}
     )
   finally:
     if env is not None:

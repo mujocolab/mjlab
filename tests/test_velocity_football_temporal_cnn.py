@@ -32,7 +32,7 @@ def test_b1_causal_dilated_encoder_outputs_last_step_latent() -> None:
 def test_b1_temporal_model_exports_dual_input_onnx(tmp_path) -> None:
   obs = TensorDict(
     {
-      "actor": torch.zeros(2, 105),
+      "actor": torch.zeros(2, 490),
       "actor_history": torch.zeros(2, 10, 7),
     },
     batch_size=[2],
@@ -71,14 +71,14 @@ def test_b1_temporal_model_exports_dual_input_onnx(tmp_path) -> None:
 
   session = ort.InferenceSession(str(output_path), providers=["CPUExecutionProvider"])
   assert [(item.name, item.shape) for item in session.get_inputs()] == [
-    ("obs", [1, 105]),
+    ("obs", [1, 490]),
     ("obs_history", [1, 10, 7]),
   ]
   result = np.asarray(
     session.run(
       None,
       {
-        "obs": np.zeros((1, 105), dtype=np.float32),
+        "obs": np.zeros((1, 490), dtype=np.float32),
         "obs_history": np.zeros((1, 10, 7), dtype=np.float32),
       },
     )[0]

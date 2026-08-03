@@ -348,15 +348,15 @@ def test_football_command_curriculum_matches_isaac_lab_reference() -> None:
   }
 
 
-def test_football_terminations_match_reference_thresholds() -> None:
+def test_football_terminations_leave_margin_outside_visual_rectangle() -> None:
   cfg = make_velocity_env_cfg()
 
   assert cfg.terminations["fell_over"].params == {"limit_angle": 0.8}
   assert cfg.terminations["ball_out_of_control"].params == {
-    "max_distance": 1.5,
-    "min_forward": 0.0,
-    "max_forward": 1.0,
-    "max_lateral": 0.5,
+    "max_distance": 2.0,
+    "min_forward": -0.20,
+    "max_forward": 1.80,
+    "max_lateral": 0.90,
     "max_height": 0.5,
     "ball_cfg": SceneEntityCfg("ball"),
   }

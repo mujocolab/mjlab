@@ -6,7 +6,7 @@
 `2026-08-01_10-51-45_TemporalCNN_Football_hist10_visualmask_seed42_20k`
 为目标版本，只判断两个因果问题：
 
-1. 在相同视觉掩码和奖励下，10 帧 B1 足球轨迹 Causal/Dilated CNN 是否比当前帧 MLP Actor 更可靠；
+1. 在相同视觉掩码和奖励下，10 帧 B1 足球轨迹 Causal/Dilated CNN 是否比 5 帧 MLP 球历史更可靠；
 2. 在相同网络和观测下，球中心奖励是否比原始 IsaacLab 风格奖励更有利于控球。
 
 视觉矩形范围、共享球观测误差、命令分布、终止条件、PPO 参数、环境数和训练
@@ -36,18 +36,18 @@
 
 ## 3. 主消融：2×2 因子实验
 
-所有组固定视觉矩形 `x=[0.05, 1.50] m`、
+所有组固定视觉矩形 `x=[0.05, 1.00] m`、
 `y=[-0.70, 0.70] m`、随机丢帧概率 0、球位置固定偏差 0.10 m、逐帧噪声 0.06 m。
-启用 B1 的 A1 组固定使用 10 帧轨迹窗口；A0 不接收历史。
+启用 B1 的 A1 组固定使用 10 帧足球轨迹窗口；A0 使用原始 5 帧 MLP 历史。
 Actor 的足球轨迹分支是被消融对象；Critic 在四组中均保留相同 10 帧特权 TemporalCNN，减少 value function
 差异对 PPO 的干扰。
 
 | ID | Actor | 奖励 | 状态 | 作用 |
 |---|---|---|---|---|
-| A0R0 | 当前帧 MLP | IsaacLab 式球奖励 | 新训练 | 双关闭基线 |
-| A0R1 | 当前帧 MLP | 球中心 | 新训练 | 在 MLP 下测奖励主效应 |
-| A1R0 | 当前帧 MLP + 10 帧 B1 足球轨迹 CNN | IsaacLab 式球奖励 | 新训练 | 在基准球奖励下测轨迹历史主效应 |
-| A1R1 | 当前帧 MLP + 10 帧 B1 足球轨迹 CNN | 球中心 | 需要重训 | 新的目标完整版本 |
+| A0R0 | 5 帧全观测 MLP（520维） | IsaacLab 式球奖励 | 新训练 | 双关闭基线 |
+| A0R1 | 5 帧全观测 MLP（520维） | 球中心 | 新训练 | 在 MLP 下测奖励主效应 |
+| A1R0 | 5 帧本体 MLP（490维）+ 10×7 B1 CNN（64维） | IsaacLab 式球奖励 | 新训练 | 在基准球奖励下测轨迹历史主效应 |
+| A1R1 | 5 帧本体 MLP（490维）+ 10×7 B1 CNN（64维） | 球中心 | 需要重训 | 新的目标完整版本 |
 
 球中心奖励冻结为当前 E3/T1 参数：
 
@@ -68,11 +68,11 @@ IsaacLab 式球奖励只替换球相关部分：球速度 weight 1.0/std 0.5、�
 | 仿真 | MuJoCo timestep 0.005 s、decimation 4，即策略周期 0.02 s/50 Hz；implicitfast/Newton；重力 -9.81 m/s² |
 | 场景 | 4096 environments、平地、20 s episode、相同 G1/足球模型、质量/摩擦/接触参数和初始化随机化 |
 | 命令 | 重采样 5--6 s；vx 初始 [-0.25,1.0]、vy [-0.25,0.25] m/s、yaw [-1,1] rad/s；相同 curriculum；关闭 zero ramp、ball-relative generator 和 stop-skill generator |
-| Actor 当前帧观测 | IMU 角速度、重力投影、命令、相位、关节位置/速度、上一动作、球位置、球到双脚向量、ball-visible mask；顺序、归一化、裁剪和噪声一致 |
-| 视觉退化 | 矩形 x=[0.05,1.50] m、y=[-0.70,0.70] m；随机丢帧概率固定为 0；固定偏差范围 0.10 m；逐帧噪声范围 0.06 m；四组使用同一可见性状态 |
+| Actor 基础观测 | A0 将 104 维本体+球观测堆叠5帧得到520维；A1 仅将98维本体观测堆叠5帧得到490维，球观测只进CNN |
+| 视觉退化 | 矩形 x=[0.05,1.00] m、y=[-0.70,0.70] m；随机丢帧概率固定为 0；固定偏差范围 0.10 m；逐帧噪声范围 0.06 m；四组使用同一可见性状态 |
 | Critic | 全部使用相同 10 帧特权历史 TemporalCNN；channels=(256,128,64)、kernel=3、ELU、global average pooling、MLP=(512,256,128) |
 | 非消融奖励 | 机器人线速度 weight 1.0/std 0.5；角速度 weight 1.5/std≈0.707；终止、姿态、力矩、关节加速度、action-rate、足端和碰撞项全部保持 T1 不变 |
-| 终止 | 20 s timeout；fell-over angle 0.8 rad；ball-out-of-control max distance 1.5 m/min forward 0.0 m；其余条件相同 |
+| 终止 | 20 s timeout；fell-over angle 0.8 rad；ball-out-of-control 平面距离 2.0 m、x=[-0.20,1.80] m、|y|≤0.90 m；其余条件相同 |
 | PPO | 24 steps/env、5 epochs、4 mini-batches、Adam、lr=1e-3 adaptive、gamma=.99、lambda=.95、entropy=.01、clip=.2、desired KL=.01、max grad norm=1.0 |
 | 训练预算 | walk 15k + football 20k；save interval、4096 envs、硬件、代码 commit 和日志指标一致 |
 | 配对规则 | 训练使用相同 seed 与环境随机化配置；评估使用完全相同的预生成场景 manifest；最终 seeds=42/43/44；同一 Actor 分支的两个奖励组共享同一 walk checkpoint |
@@ -81,7 +81,7 @@ IsaacLab 式球奖励只替换球相关部分：球速度 weight 1.0/std 0.5、�
 
 | 因子 | 关闭/基线 | 开启/目标版本 |
 |---|---|---|
-| Actor 时序模块 A | A0：完整当前帧输入 MLP Actor，hidden=(512,256,128)，不提供历史 | A1：相同完整当前帧 MLP + 10 帧 B1 足球轨迹历史，Causal Conv1d channels=(64,64,64)、kernel=3、dilation=(1,2,4)、取最后时间步，输出64维后拼接至相同 MLP head |
+| Actor 时序模块 A | A0：104维本体+球观测堆叠5帧，520维 MLP Actor | A1：98维本体观测堆叠5帧（490维）+ 10×7 B1 足球历史 Causal CNN（64维），融合输入554维 |
 | 球中心奖励 R | R0：球速度 weight 1/std .5，无位置门控；相对速度/位置/离区项为 0；front-control weight .5 | R1：球速度 weight 2/std .8，并按控制区软门控；相对速度 .25；相对位置 .5；离区 -.5；不加 front-control |
 
 除以上两行外，任何配置差异都视为实验无效。特别禁止改变 `num_envs`、视野范围、命令
@@ -102,8 +102,8 @@ B1 只使用部署端能够构造、且直接描述足球轨迹的 7 维观测�
 输入张量固定为 `(B, 10, 7)`，时间顺序 oldest→newest。编码器固定为三层左侧因果 padding
 的 Conv1d，channels=(64,64,64)、kernel=3、dilation=(1,2,4)、ELU，并取最后时间步作为
 64维轨迹 latent；禁止使用 global average pooling。感受野为15帧，能够覆盖全部10帧。
-`ball_history[:, -1, :]` 必须与当前帧中的同一组球观测逐值一致，两者只能计算一次后共享，
-禁止分别重新采样观测噪声。
+`ball_history[:, -1, :]` 是当前球观测。A1 的主 MLP 不再接收球位置、球到双脚向量或
+visible mask，禁止建立第二条重复的球历史路径。
 
 不可见时位置和脚向量置零，mask=0；重新可见后恢复带共同 bias/noise 的位置和脚向量。
 B1 不输入仿真真值球速度，也不在本轮加入显式估计速度，速度变化由 CNN 从连续位置轨迹中
@@ -151,14 +151,14 @@ ball-to-feet vectors 都置零，同时 visible mask=0；重新进入矩形后�
 
 先训练 15k walk，再训练 20k football：
 
-1. 四组共享同一个当前帧 MLP Walk checkpoint；
-2. A0 直接迁移当前帧 Actor；A1 迁移相同当前帧 Actor，并在 football 阶段新增、随机初始化
+1. 四组共享同一个 490 维、5帧本体历史 MLP Walk checkpoint；
+2. A0 将 Walk Actor 前490维迁移到520维，新增30个球历史输入列置零；A1 保留完整490维 Walk Actor，并在 football 阶段新增、随机初始化
    B1 足球轨迹 CNN 与对应的64维 MLP 输入列；
 3. 同一 seed 的 A0R0/A0R1/A1R0/A1R1 使用完全相同的 Walk checkpoint；
 4. football 阶段除 A/R 两个因子外不改变初始化、环境和 PPO 配置；
 5. transfer 后自动核对共享 Actor 参数加载率和新增参数清单，非预期缺失即禁止启动。
 
-Walk 任务没有足球，不能有效预训练 B1。让 A0/A1 共享当前帧 MLP Walk 初始化，比为 A1
+Walk 任务没有足球，不能有效预训练 B1。让 A0/A1 共享 5 帧本体 MLP Walk 初始化，比为 A1
 单独训练一个全观测 TemporalCNN Walk 更干净，也避免把步态历史能力混入足球轨迹消融。
 Critic checkpoint 当前不会由 `load_pretrained` 迁移，football 的 Critic 在四组中按相同结构和
 seed 重新初始化。
@@ -175,7 +175,8 @@ pooling 和5%随机丢帧，只能作为历史参考。新的四个 cell 都必�
 视觉参数、num_envs、seed、walk checkpoint、参数加载率、ONNX 输入形状。
 
 通过条件：无 NaN；episode length 不发生数量级坍塌；policy std <0.65；4096 个环境；
-模型输入形状符合预期；B1 输入必须为 `(B,10,7)`；最新历史帧必须等于当前球观测。
+模型输入形状符合预期；A0 主输入必须为 `(B,520)`；A1 必须为 `(B,490)` +
+`(B,10,7)` 并在网络内融合为554维。
 
 由于不使用随机丢帧，还需先用真实物理 rollout 检查训练分布：必须出现“可见→出矩形视野→
 重新可见”的完整片段。建议初始门禁为至少20%的抽样 episode 出现一次该转换，且不可见帧
@@ -275,8 +276,8 @@ B1 Causal/Dilated CNN 判定有效需同时满足：
 
 ## 9. 阶段 0/1 执行记录（2026-08-03）
 
-阶段 0 已实现四个任务、B1 `(B,10,7)` 历史组、Causal/Dilated CNN、当前帧 Walk Actor
-迁移、ONNX/sim2sim 双输入以及历史一致性测试。随机丢帧固定为 0。
+阶段 0 已实现四个任务、B1 `(B,10,7)` 历史组、Causal/Dilated CNN、490维堆叠 Walk Actor
+迁移、ONNX/sim2sim 双输入以及历史一致性测试。A1 融合维度为554，随机丢帧固定为 0。
 
 阶段 1 使用已有 20k TemporalCNN 策略、seed 42、16 个环境运行 1000 个控制步：
 
@@ -285,6 +286,7 @@ B1 Causal/Dilated CNN 判定有效需同时满足：
 - 两项门禁均失败，结果保存在
   `项目管理/实验记录/b1_visibility_precheck_seed42.json`。
 
-根因是可视矩形 `x=[0.05,1.50]、y=[-0.70,0.70]` 大于失控终止区
+根因是原可视矩形 `x=[0.05,1.50]、y=[-0.70,0.70]` 大于原失控终止区
 `x=[0,1.0]、|y|<=0.5`：除近身 `x<0.05` 外，球通常先终止 episode，无法产生视野外恢复
-轨迹。因此在确认实机视野标定并重新协调可视矩形与终止区之前，不启动 15k/20k 长训练。
+轨迹。后续将可视矩形前向范围标定为 `x=[0.05,1.00]`，同时将失控终止区扩大为
+`x=[-0.20,1.80]、|y|<=0.90`、平面距离上限 2.0 m，并重新执行阶段 1 门禁。

@@ -24,7 +24,8 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
   _TEMPORAL_LATENT_DIM = 64
   _CURRENT_PRETRAIN_DIM = 98
   _CURRENT_FOOTBALL_DIM = 105
-  _B1_FOOTBALL_MLP_DIM = 169
+  _CURRENT_B1_FOOTBALL_MLP_DIM = 169
+  _STACKED_B1_FOOTBALL_MLP_DIM = 554
   _FIRST_LAYER_KEY = "mlp.0.weight"
   _TEMPORAL_CNN_FIRST_LAYER_KEY = "cnn_encoders.actor_history.net.0.weight"
   _NORMALIZER_VECTOR_KEYS = frozenset(
@@ -128,14 +129,24 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
       1
     ] == self._CURRENT_PRETRAIN_DIM and target_first.shape[1] in {
       self._CURRENT_FOOTBALL_DIM,
-      self._B1_FOOTBALL_MLP_DIM,
+      self._CURRENT_B1_FOOTBALL_MLP_DIM,
     }
-    if not legacy_transfer and not temporal_transfer and not current_mlp_transfer:
+    stacked_b1_transfer = (
+      source_first.shape[1] == self._PRETRAIN_ACTOR_OBS_DIM
+      and target_first.shape[1] == self._STACKED_B1_FOOTBALL_MLP_DIM
+      and any(key.startswith("cnn_encoders.actor_history.") for key in target)
+    )
+    if not (
+      legacy_transfer
+      or temporal_transfer
+      or current_mlp_transfer
+      or stacked_b1_transfer
+    ):
       raise ValueError(
         "Unsupported walking-to-football Actor dimensions: "
         f"source={source_first.shape[1]}, target={target_first.shape[1]}. "
         "Expected legacy 490->520, TemporalCNN 162->169, current MLP "
-        "98->105, or current MLP to B1 98->169."
+        "98->105, current MLP to B1 98->169, or stacked B1 490->554."
       )
 
     target_only = target.keys() - source.keys()
@@ -146,7 +157,8 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
       or key.startswith("obs_normalizers_3d.actor_history.")
     }
     if target_only and (
-      not current_mlp_transfer or not target_only <= allowed_target_only
+      not (current_mlp_transfer or stacked_b1_transfer)
+      or not target_only <= allowed_target_only
     ):
       raise ValueError(
         "Pretrained Actor parameters do not match the football Actor: "
@@ -222,6 +234,14 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
         expanded = target_value.clone()
         expanded[..., : self._CURRENT_PRETRAIN_DIM] = source_value
         transferred[key] = expanded
+      elif (
+        stacked_b1_transfer
+        and key == self._FIRST_LAYER_KEY
+        and source_value.shape[0] == target_value.shape[0]
+      ):
+        expanded = torch.zeros_like(target_value)
+        expanded[:, : self._PRETRAIN_ACTOR_OBS_DIM] = source_value
+        transferred[key] = expanded
       else:
         raise ValueError(
           f"Incompatible pretrained Actor parameter {key!r}: "
@@ -230,7 +250,7 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
         )
 
     self.alg.actor.load_state_dict(transferred, strict=True)
-    if current_mlp_transfer:
+    if current_mlp_transfer or stacked_b1_transfer:
       source_parameter_count = sum(value.numel() for value in source.values())
       retained_parameter_count = sum(
         target[key].numel() for key in retained_target_keys

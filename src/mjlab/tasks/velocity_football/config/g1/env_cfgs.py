@@ -299,7 +299,7 @@ def unitree_g1_temporal_flat_env_cfg(
 
   actor = cfg.observations["actor"]
   visual_params = {
-    "x_range": (0.05, 1.50),
+    "x_range": (0.05, 1.00),
     "y_range": (-0.70, 0.70),
     "dropout_probability": 0.0,
     "bias_range": 0.0 if play else 0.10,
@@ -386,17 +386,12 @@ RewardAblationVariant = Literal[
 ]
 
 FactorialBallRewardVariant = Literal["r0_isaaclab_ball", "r1_ball_center"]
-B1_HISTORY_TERMS = (
-  "ball_pos_b",
-  "ball_to_feet_vectors_b",
-  "ball_visible_mask",
-)
 
 
 def _configure_masked_ball_actor(cfg: ManagerBasedRlEnvCfg) -> None:
   actor = cfg.observations["actor"]
   visual_params = {
-    "x_range": (0.05, 1.50),
+    "x_range": (0.05, 1.00),
     "y_range": (-0.70, 0.70),
     "dropout_probability": 0.0,
     "bias_range": 0.10,
@@ -415,11 +410,9 @@ def _configure_masked_ball_actor(cfg: ManagerBasedRlEnvCfg) -> None:
     func=masked_ball_to_feet_vectors_b,
     params=deepcopy(visual_params),
   )
-  actor.terms["ball_visible_mask"] = ObservationTermCfg(
-    func=ball_visible_mask,
-    params=deepcopy(visual_params),
-  )
-  actor.history_length = None
+  # A0 keeps the original five-frame MLP contract (104 * 5 = 520).  The
+  # visibility bit belongs exclusively to the B1 temporal branch.
+  actor.history_length = 5
   actor.flatten_history_dim = True
 
 
@@ -488,12 +481,24 @@ def unitree_g1_factorial_flat_env_cfg(
   if use_b1_history:
     actor = cfg.observations["actor"]
     actor_history = deepcopy(actor)
+    ball_pos = deepcopy(actor.terms["ball_pos_b"])
+    ball_to_feet = deepcopy(actor.terms["ball_to_feet_vectors_b"])
     actor_history.terms = {
-      name: deepcopy(actor.terms[name]) for name in B1_HISTORY_TERMS
+      "ball_pos_b": ball_pos,
+      "ball_to_feet_vectors_b": ball_to_feet,
+      "ball_visible_mask": ObservationTermCfg(
+        func=ball_visible_mask,
+        params=deepcopy(ball_pos.params),
+      ),
     }
     actor_history.history_length = history_length
     actor_history.flatten_history_dim = False
     cfg.observations["actor_history"] = actor_history
+    # B1 assigns all football temporal processing to the CNN.  The main MLP
+    # retains only the 98-dimensional proprioceptive/control prefix for five
+    # frames (490 dimensions), avoiding duplicate ball-history pathways.
+    actor.terms.pop("ball_pos_b")
+    actor.terms.pop("ball_to_feet_vectors_b")
   _configure_factorial_ball_reward(cfg, reward_variant)
   return cfg
 
