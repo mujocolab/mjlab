@@ -1,5 +1,7 @@
 """Unitree G1 football-compatible velocity pretraining configurations."""
 
+from copy import deepcopy
+
 from mjlab.asset_zoo.robots import (
   G1_ACTION_SCALE,
   get_g1_robot_cfg,
@@ -21,6 +23,8 @@ from mjlab.tasks.velocity import mdp
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity_football.velocity_env_cfg import make_velocity_env_cfg
 
+from .pose import get_isaaclab_default_keyframe
+
 
 def unitree_g1_velocity_pretrain_rough_env_cfg(
   play: bool = False,
@@ -34,6 +38,7 @@ def unitree_g1_velocity_pretrain_rough_env_cfg(
 
   # Add the robot without replacing the football created by the base scene.
   cfg.scene.entities["robot"] = get_g1_robot_cfg()
+  cfg.scene.entities["robot"].init_state = get_isaaclab_default_keyframe()
 
   # Set raycast sensor frame to G1 pelvis.
   for sensor in cfg.scene.sensors or ():
@@ -215,5 +220,42 @@ def unitree_g1_velocity_pretrain_flat_env_cfg(
 
   # Disable terrain curriculum (not present in play mode since rough clears all).
   cfg.curriculum.pop("terrain_levels", None)
+
+  return cfg
+
+
+def unitree_g1_current_velocity_pretrain_flat_env_cfg(
+  play: bool = False,
+) -> ManagerBasedRlEnvCfg:
+  """Create the shared current-frame MLP walking pretraining task."""
+  cfg = unitree_g1_velocity_pretrain_flat_env_cfg(play=play)
+  for group_name in ("actor", "critic"):
+    group = cfg.observations[group_name]
+    group.history_length = None
+    group.flatten_history_dim = True
+  return cfg
+
+
+def unitree_g1_temporal_velocity_pretrain_flat_env_cfg(
+  play: bool = False,
+) -> ManagerBasedRlEnvCfg:
+  """Create the 10-frame TemporalCNN walking pretraining task."""
+  cfg = unitree_g1_velocity_pretrain_flat_env_cfg(play=play)
+
+  actor = cfg.observations["actor"]
+  actor.history_length = None
+  actor.flatten_history_dim = True
+  actor_history = deepcopy(actor)
+  actor_history.history_length = 10
+  actor_history.flatten_history_dim = False
+  cfg.observations["actor_history"] = actor_history
+
+  critic = cfg.observations["critic"]
+  critic.history_length = None
+  critic.flatten_history_dim = True
+  critic_history = deepcopy(critic)
+  critic_history.history_length = 10
+  critic_history.flatten_history_dim = False
+  cfg.observations["critic_history"] = critic_history
 
   return cfg

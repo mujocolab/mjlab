@@ -20,6 +20,7 @@ def ball_out_of_control(
   env: ManagerBasedRlEnv,
   max_distance: float,
   min_forward: float,
+  max_forward: float,
   max_lateral: float,
   max_height: float,
   ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
@@ -36,6 +37,7 @@ def ball_out_of_control(
   return (
     (planar_distance > max_distance)
     | (ball_relative_b[:, 0] < min_forward)
+    | (ball_relative_b[:, 0] > max_forward)
     | (torch.abs(ball_relative_b[:, 1]) > max_lateral)
     | (height_above_origin > max_height)
   )

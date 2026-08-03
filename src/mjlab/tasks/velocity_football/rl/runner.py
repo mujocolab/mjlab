@@ -18,13 +18,27 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
   env: RslRlVecEnvWrapper
 
   _PRETRAIN_ACTOR_OBS_DIM = 490
-  _FOOTBALL_ACTOR_OBS_DIM = 535
+  _FOOTBALL_ACTOR_OBS_DIM = 520
+  _TEMPORAL_PRETRAIN_CURRENT_DIM = 98
+  _TEMPORAL_FOOTBALL_CURRENT_DIM = 105
+  _TEMPORAL_LATENT_DIM = 64
+  _CURRENT_PRETRAIN_DIM = 98
+  _CURRENT_FOOTBALL_DIM = 105
+  _B1_FOOTBALL_MLP_DIM = 169
   _FIRST_LAYER_KEY = "mlp.0.weight"
+  _TEMPORAL_CNN_FIRST_LAYER_KEY = "cnn_encoders.actor_history.net.0.weight"
   _NORMALIZER_VECTOR_KEYS = frozenset(
     {
       "obs_normalizer._mean",
       "obs_normalizer._var",
       "obs_normalizer._std",
+    }
+  )
+  _TEMPORAL_HISTORY_NORMALIZER_VECTOR_KEYS = frozenset(
+    {
+      "obs_normalizers_3d.actor_history._mean",
+      "obs_normalizers_3d.actor_history._var",
+      "obs_normalizers_3d.actor_history._std",
     }
   )
 
@@ -69,8 +83,9 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
     """Initialize the football Actor from a compatible walking checkpoint.
 
     The Critic, optimizer, learning iteration, and environment state remain fresh.
-    The walking observations are a strict prefix of the football observations, so
-    the first layer copies its first 490 columns and zeros the 45 new columns.
+    Supported contracts copy the shared walking observation prefix, leave new
+    normalizer entries at their target defaults, and zero new MLP input columns.
+    A newly added B1 history encoder remains at its target initialization.
     """
     checkpoint = torch.load(
       path,
@@ -80,12 +95,10 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
     source = self._extract_actor_state_dict(checkpoint)
     target = self.alg.actor.state_dict()
 
-    missing = target.keys() - source.keys()
     unexpected = source.keys() - target.keys()
-    if missing or unexpected:
+    if unexpected:
       raise ValueError(
-        "Pretrained Actor parameters do not match the football Actor: "
-        f"missing={sorted(missing)}, unexpected={sorted(unexpected)}"
+        f"Pretrained Actor contains unexpected parameters: {sorted(unexpected)}"
       )
 
     source_first = source[self._FIRST_LAYER_KEY]
@@ -95,34 +108,119 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
         "The Actor first-layer weight must be a matrix: "
         f"source={tuple(source_first.shape)}, target={tuple(target_first.shape)}"
       )
-    if source_first.shape[1] != self._PRETRAIN_ACTOR_OBS_DIM:
+    legacy_transfer = (
+      source_first.shape[1] == self._PRETRAIN_ACTOR_OBS_DIM
+      and target_first.shape[1] == self._FOOTBALL_ACTOR_OBS_DIM
+    )
+    temporal_source_dim = (
+      self._TEMPORAL_PRETRAIN_CURRENT_DIM + self._TEMPORAL_LATENT_DIM
+    )
+    temporal_target_dim = (
+      self._TEMPORAL_FOOTBALL_CURRENT_DIM + self._TEMPORAL_LATENT_DIM
+    )
+    temporal_transfer = (
+      source_first.shape[1] == temporal_source_dim
+      and target_first.shape[1] == temporal_target_dim
+      and self._TEMPORAL_CNN_FIRST_LAYER_KEY in source
+      and self._TEMPORAL_CNN_FIRST_LAYER_KEY in target
+    )
+    current_mlp_transfer = source_first.shape[
+      1
+    ] == self._CURRENT_PRETRAIN_DIM and target_first.shape[1] in {
+      self._CURRENT_FOOTBALL_DIM,
+      self._B1_FOOTBALL_MLP_DIM,
+    }
+    if not legacy_transfer and not temporal_transfer and not current_mlp_transfer:
       raise ValueError(
-        f"Expected a walking Actor with 490 observations, got {source_first.shape[1]}"
+        "Unsupported walking-to-football Actor dimensions: "
+        f"source={source_first.shape[1]}, target={target_first.shape[1]}. "
+        "Expected legacy 490->520, TemporalCNN 162->169, current MLP "
+        "98->105, or current MLP to B1 98->169."
       )
-    if target_first.shape[1] != self._FOOTBALL_ACTOR_OBS_DIM:
+
+    target_only = target.keys() - source.keys()
+    allowed_target_only = {
+      key
+      for key in target
+      if key.startswith("cnn_encoders.actor_history.")
+      or key.startswith("obs_normalizers_3d.actor_history.")
+    }
+    if target_only and (
+      not current_mlp_transfer or not target_only <= allowed_target_only
+    ):
       raise ValueError(
-        "--pretrained-checkpoint requires the football Actor with 535 "
-        f"observations, got {target_first.shape[1]}"
+        "Pretrained Actor parameters do not match the football Actor: "
+        f"missing={sorted(target_only)}"
       )
 
     transferred: dict[str, torch.Tensor] = {}
+    retained_target_keys: list[str] = []
     for key, target_value in target.items():
+      if key not in source:
+        transferred[key] = target_value
+        retained_target_keys.append(key)
+        continue
       source_value = source[key]
       if source_value.shape == target_value.shape:
         transferred[key] = source_value
-      elif key == self._FIRST_LAYER_KEY and (
-        source_value.shape[0] == target_value.shape[0]
-        and source_value.shape[1] == self._PRETRAIN_ACTOR_OBS_DIM
+      elif (
+        legacy_transfer
+        and key == self._FIRST_LAYER_KEY
+        and (
+          source_value.shape[0] == target_value.shape[0]
+          and source_value.shape[1] == self._PRETRAIN_ACTOR_OBS_DIM
+        )
       ):
         expanded = torch.zeros_like(target_value)
         expanded[:, : self._PRETRAIN_ACTOR_OBS_DIM] = source_value
         transferred[key] = expanded
-      elif key in self._NORMALIZER_VECTOR_KEYS and (
-        source_value.shape[:-1] == target_value.shape[:-1]
-        and source_value.shape[-1] == self._PRETRAIN_ACTOR_OBS_DIM
+      elif (
+        legacy_transfer
+        and key in self._NORMALIZER_VECTOR_KEYS
+        and (
+          source_value.shape[:-1] == target_value.shape[:-1]
+          and source_value.shape[-1] == self._PRETRAIN_ACTOR_OBS_DIM
+        )
       ):
         expanded = target_value.clone()
         expanded[..., : self._PRETRAIN_ACTOR_OBS_DIM] = source_value
+        transferred[key] = expanded
+      elif temporal_transfer and key == self._FIRST_LAYER_KEY:
+        expanded = torch.zeros_like(target_value)
+        source_current = self._TEMPORAL_PRETRAIN_CURRENT_DIM
+        target_current = self._TEMPORAL_FOOTBALL_CURRENT_DIM
+        expanded[:, :source_current] = source_value[:, :source_current]
+        expanded[:, target_current:] = source_value[:, source_current:]
+        transferred[key] = expanded
+      elif temporal_transfer and key == self._TEMPORAL_CNN_FIRST_LAYER_KEY:
+        expanded = torch.zeros_like(target_value)
+        expanded[:, : self._TEMPORAL_PRETRAIN_CURRENT_DIM, :] = source_value
+        transferred[key] = expanded
+      elif temporal_transfer and key in (
+        self._NORMALIZER_VECTOR_KEYS | self._TEMPORAL_HISTORY_NORMALIZER_VECTOR_KEYS
+      ):
+        expanded = target_value.clone()
+        expanded[..., : self._TEMPORAL_PRETRAIN_CURRENT_DIM] = source_value
+        transferred[key] = expanded
+      elif (
+        current_mlp_transfer
+        and key == self._FIRST_LAYER_KEY
+        and (source_value.shape[0] == target_value.shape[0])
+      ):
+        expanded = torch.zeros_like(target_value)
+        expanded[:, : self._CURRENT_PRETRAIN_DIM] = source_value
+        transferred[key] = expanded
+      elif (
+        current_mlp_transfer
+        and key in self._NORMALIZER_VECTOR_KEYS
+        and (
+          source_value.shape[:-1] == target_value.shape[:-1]
+          and source_value.shape[-1] == self._CURRENT_PRETRAIN_DIM
+          and target_value.shape[-1] == self._CURRENT_FOOTBALL_DIM
+        )
+      ):
+        expanded = target_value.clone()
+        expanded[..., : self._CURRENT_PRETRAIN_DIM] = source_value
         transferred[key] = expanded
       else:
         raise ValueError(
@@ -132,6 +230,17 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
         )
 
     self.alg.actor.load_state_dict(transferred, strict=True)
+    if current_mlp_transfer:
+      source_parameter_count = sum(value.numel() for value in source.values())
+      retained_parameter_count = sum(
+        target[key].numel() for key in retained_target_keys
+      )
+      print(
+        "[INFO] Walk->Football Actor transfer: "
+        f"source tensors={len(source)}, source parameters={source_parameter_count}, "
+        f"new tensors={retained_target_keys}, "
+        f"new parameters={retained_parameter_count}."
+      )
 
   def save(self, path: str, infos=None):
     super().save(path, infos)

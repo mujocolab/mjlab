@@ -45,6 +45,12 @@ class UniformVelocityCommand(CommandTerm):
     self.is_standing_env = torch.zeros_like(self.is_heading_env)
     self.is_world_env = torch.zeros_like(self.is_heading_env)
     self.is_forward_env = torch.zeros_like(self.is_heading_env)
+    self.zero_ramp_active = torch.zeros_like(self.is_heading_env)
+    self.zero_ramp_start_b = torch.zeros(
+      self.num_envs, 3, device=self.device
+    )
+    self.zero_ramp_duration = torch.ones(self.num_envs, device=self.device)
+    self.zero_ramp_elapsed = torch.zeros(self.num_envs, device=self.device)
 
     self.metrics["error_vel_xy"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["error_vel_yaw"] = torch.zeros(self.num_envs, device=self.device)
@@ -73,6 +79,7 @@ class UniformVelocityCommand(CommandTerm):
     )
 
   def _resample_command(self, env_ids: torch.Tensor) -> None:
+    previous_command_b = self.vel_command_b[env_ids].clone()
     r = torch.empty(len(env_ids), device=self.device)
     self.vel_command_b[env_ids, 0] = r.uniform_(*self.cfg.ranges.lin_vel_x)
     self.vel_command_b[env_ids, 1] = r.uniform_(*self.cfg.ranges.lin_vel_y)
@@ -97,6 +104,24 @@ class UniformVelocityCommand(CommandTerm):
       )
       self.vel_command_b[fwd_ids, 1] = 0.0
       self.vel_command_b[fwd_ids, 2] = 0.0
+
+    self.zero_ramp_active[env_ids] = False
+    if self.cfg.zero_command_ramp_time_range is not None:
+      is_mid_episode = self._env.episode_length_buf[env_ids] > 0
+      has_previous_motion = torch.linalg.vector_norm(
+        previous_command_b, dim=1
+      ) > 1e-6
+      ramp_mask = (
+        self.is_standing_env[env_ids] & is_mid_episode & has_previous_motion
+      )
+      ramp_ids = env_ids[ramp_mask]
+      if len(ramp_ids) > 0:
+        self.zero_ramp_active[ramp_ids] = True
+        self.zero_ramp_start_b[ramp_ids] = previous_command_b[ramp_mask]
+        self.zero_ramp_elapsed[ramp_ids] = 0.0
+        self.zero_ramp_duration[ramp_ids] = self.zero_ramp_duration[
+          ramp_ids
+        ].uniform_(*self.cfg.zero_command_ramp_time_range)
 
     init_vel_mask = r.uniform_(0.0, 1.0) < self.cfg.init_velocity_prob
     init_vel_env_ids = env_ids[init_vel_mask]
@@ -134,8 +159,30 @@ class UniformVelocityCommand(CommandTerm):
       self.vel_command_b[w_ids, 1] = -sin_h * vx_w + cos_h * vy_w
 
     standing_env_ids = self.is_standing_env.nonzero(as_tuple=False).flatten()
-    self.vel_command_b[standing_env_ids, :] = 0.0
+    if self.cfg.zero_command_ramp_time_range is None:
+      self.vel_command_b[standing_env_ids, :] = 0.0
+      self.vel_command_w[standing_env_ids, :] = 0.0
+      return
+
+    immediate_stop_ids = standing_env_ids[
+      ~self.zero_ramp_active[standing_env_ids]
+    ]
+    self.vel_command_b[immediate_stop_ids, :] = 0.0
     self.vel_command_w[standing_env_ids, :] = 0.0
+
+    ramp_ids = self.zero_ramp_active.nonzero(as_tuple=False).flatten()
+    if len(ramp_ids) > 0:
+      self.zero_ramp_elapsed[ramp_ids] += self._env.step_dt
+      progress = torch.clamp(
+        self.zero_ramp_elapsed[ramp_ids] / self.zero_ramp_duration[ramp_ids],
+        max=1.0,
+      )
+      self.vel_command_b[ramp_ids] = self.zero_ramp_start_b[ramp_ids] * (
+        1.0 - progress.unsqueeze(1)
+      )
+      finished_ids = ramp_ids[progress >= 1.0]
+      self.vel_command_b[finished_ids, :] = 0.0
+      self.zero_ramp_active[finished_ids] = False
 
   # GUI.
 
@@ -293,6 +340,12 @@ class UniformVelocityCommandCfg(CommandTermCfg):
   lin_vel_x, zero lin_vel_y and ang_vel_z). Increases training coverage for
   straight-line walking, which is important for stair climbing."""
   init_velocity_prob: float = 0.0
+  zero_command_ramp_time_range: tuple[float, float] | None = None
+  """Optional linear ramp duration when a moving command resamples to standing.
+
+  Initial standing commands remain zero immediately. Only mid-episode
+  moving-to-standing transitions are ramped.
+  """
 
   @dataclass
   class Ranges:
@@ -319,3 +372,10 @@ class UniformVelocityCommandCfg(CommandTermCfg):
         "The velocity command has heading commands active (heading_command=True) but "
         "the `ranges.heading` parameter is set to None."
       )
+    if self.zero_command_ramp_time_range is not None:
+      ramp_min, ramp_max = self.zero_command_ramp_time_range
+      if ramp_min <= 0.0 or ramp_min > ramp_max:
+        raise ValueError(
+          "zero_command_ramp_time_range must be positive and ordered, "
+          f"got {self.zero_command_ramp_time_range}."
+        )

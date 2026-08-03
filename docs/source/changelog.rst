@@ -8,6 +8,11 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added the frozen A0R0/A0R1/A1R0/A1R1 football ablation tasks. The A1 Actor
+  encodes a 10-frame, 7-feature ball trajectory with a causal dilated CNN, and
+  exported ONNX policies expose a matching ``(1, 10, 7)`` history input.
+- Added controlled R0--R3 football reward-ablation tasks with coherent
+  per-episode ball-position bias shared by all ball-derived Actor observations.
 - Added the ``Mjlab-Velocity-Football-Flat-Unitree-G1`` task for training the
   Unitree G1 to control a football on flat terrain.
 - Added the ``Mjlab-Velocity-Football-Pretrain-Flat-Unitree-G1`` task with an
@@ -15,10 +20,39 @@ Added
 - Added ``--pretrained-checkpoint`` to initialize the football Actor from a
   compatible walking checkpoint without restoring the Critic, optimizer,
   iteration counter, or environment state.
+- Added ``sim2sim-g1-football`` to run 520-input G1 football ONNX policies in
+  native MuJoCo using D435 RGB-D ball perception and deployment-style history.
+- Added ``--ball-observation-seed`` to ``sim2sim-g1-football`` for reproducible
+  paired evaluations of football position bias, frame noise, delay, and dropout.
+- Added an explicit ball-relative velocity reference generator for G1 football
+  training. It uses filtered football position and relative velocity feedback
+  with deadbands and acceleration limits while keeping the original user command
+  as the football's global velocity-tracking objective.
+- Added the optional ``--ball-relative-command-generator`` Sim2Sim control path,
+  separate user/reference command curves, and ``--ball-velocity-seed`` for paired
+  disturbance experiments.
+- Added a Sim2Sim-only keyboard deceleration skill that generates a
+  minimum-jerk rise-and-fall policy reference, with a separate monotonic target,
+  trigger hysteresis, configurable timing, and CSV/plot telemetry.
 
 Changed
 ^^^^^^^
 
+- Replaced the G1 football training task's ball-relative command correction with
+  a vectorized stop-skill reference. Rapid deceleration now produces a
+  ``0.2 m/s`` minimum-jerk rise over ``0.3 s`` followed by a ``0.3 s`` fall;
+  the Actor and robot reward use that reference while the football reward uses
+  a separate monotonic target. Sim2Sim uses the same timing and amplitude.
+- Changed the football-aware reference to combine a rate-limited base command
+  with ball-state correction and asymmetric acceleration limits, allowing the
+  robot to follow a ball moving ahead before returning smoothly to the user
+  command.
+- Added an optional moving-to-standing linear velocity-command ramp. Football
+  experiments use a 0.3--0.5 s ramp to expose policies to smooth stop commands.
+- Replaced the football's global command-velocity and hard front-zone rewards
+  with exponential ball-to-pelvis relative-velocity and relative-position
+  rewards. The pelvis-frame position target and exponential scales are
+  calibrated from steady sim-to-sim trajectories.
 - Changed the football experiment configuration to match the Isaac Lab initial
   velocity ranges, reward-driven command curriculum, and linear-velocity reward
   weight.
@@ -30,6 +64,9 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed the default Sim2Sim stop-skill generator conflicting with an explicitly
+  enabled ball-relative command generator. The ball-relative generator now
+  takes precedence, matching E4 evaluation semantics.
 - The Viser reward bar panel no longer *silently* drops reward terms beyond
   ``max_terms``; it now emits a warning listing the hidden terms. Previously
   environments with more than 20 reward terms had the overflow disappear from

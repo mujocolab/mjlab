@@ -1,11 +1,60 @@
+import contextlib
+import io
 import os
+import re
 from pathlib import Path
 
 import torch
 from rsl_rl.env import VecEnv
 from rsl_rl.runners import OnPolicyRunner
+from rsl_rl.utils.logger import Logger
 
 from mjlab.rl.vecenv_wrapper import RslRlVecEnvWrapper
+
+
+class _OrderedTerminalLogger(Logger):
+  """Keep RSL-RL logging intact while ordering episode blocks in the console.
+
+  Scalars are still sent to the configured writer by the base implementation.
+  Only the already-rendered terminal text is rearranged, so dashboards and log
+  keys remain unchanged.
+  """
+
+  _BLOCK_ORDER = ("Episode_Reward/", "Episode_Termination/", "Curriculum/", "Episode_Metrics/")
+  _BLOCK_PATTERN = re.compile(r"^\s*(Episode_(?:Reward|Termination)|Curriculum|Episode_Metrics)/")
+
+  @classmethod
+  def _order_terminal_text(cls, output: str) -> str:
+    lines = output.splitlines(keepends=True)
+    indexed = [i for i, line in enumerate(lines) if cls._BLOCK_PATTERN.match(line)]
+    if len(indexed) < 2:
+      return output
+
+    ordered = []
+    for prefix in cls._BLOCK_ORDER:
+      ordered.extend(line for line in lines if line.lstrip().startswith(prefix))
+    if not ordered:
+      return output
+
+    first = indexed[0]
+    category_lines = set(indexed)
+    result = []
+    inserted = False
+    for i, line in enumerate(lines):
+      if i == first and not inserted:
+        result.extend(ordered)
+        inserted = True
+      if i not in category_lines:
+        result.append(line)
+    return "".join(result)
+
+  def log(self, *args, **kwargs) -> None:
+    terminal = io.StringIO()
+    with contextlib.redirect_stdout(terminal):
+      super().log(*args, **kwargs)
+    output = terminal.getvalue()
+    if output:
+      print(self._order_terminal_text(output), end="")
 
 
 class MjlabOnPolicyRunner(OnPolicyRunner):
@@ -30,6 +79,18 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
           for opt in ("rnn_type", "rnn_hidden_dim", "rnn_num_layers"):
             train_cfg[key].pop(opt, None)
     super().__init__(env, train_cfg, log_dir, device)
+    # The base runner constructs rsl_rl.utils.logger.Logger directly. Replace
+    # that instance after construction so only terminal rendering is customized.
+    self.logger = _OrderedTerminalLogger(
+      log_dir=log_dir,
+      cfg=self.cfg,
+      env_cfg=self.env.cfg,
+      num_envs=self.env.num_envs,
+      is_distributed=self.is_distributed,
+      gpu_world_size=self.gpu_world_size,
+      gpu_global_rank=self.gpu_global_rank,
+      device=self.device,
+    )
 
   def export_policy_to_onnx(
     self, path: str, filename: str = "policy.onnx", verbose: bool = False

@@ -45,7 +45,8 @@ def _evaluate(env: Any) -> torch.Tensor:
   return ball_out_of_control(
     env,
     max_distance=1.5,
-    min_forward=-0.5,
+    min_forward=0.0,
+    max_forward=1.0,
     max_lateral=0.5,
     max_height=0.5,
   )
@@ -55,12 +56,12 @@ def test_ball_out_of_control_checks_each_loss_condition_and_boundaries() -> None
   ball_pos_w = torch.tensor(
     [
       [0.25, 0.00, 0.11],
-      [1.51, 0.00, 0.11],
-      [-0.51, 0.00, 0.11],
+      [1.01, 0.00, 0.11],
+      [-0.01, 0.00, 0.11],
       [0.25, 0.51, 0.11],
       [0.25, 0.00, 0.51],
-      [1.50, 0.00, 0.11],
-      [-0.50, 0.00, 0.11],
+      [1.00, 0.00, 0.11],
+      [0.00, 0.00, 0.11],
       [0.00, 0.50, 0.11],
       [0.25, 0.00, 0.50],
     ]

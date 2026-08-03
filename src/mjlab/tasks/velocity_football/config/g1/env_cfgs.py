@@ -1,5 +1,8 @@
 """Unitree G1 velocity-football environment configurations."""
 
+from copy import deepcopy
+from typing import Literal
+
 from mjlab.asset_zoo.robots import (
   G1_ACTION_SCALE,
   get_g1_robot_cfg,
@@ -8,7 +11,9 @@ from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs import mdp as envs_mdp
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.event_manager import EventTermCfg
+from mjlab.managers.observation_manager import ObservationTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
+from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import (
   ContactMatch,
   ContactSensorCfg,
@@ -18,10 +23,26 @@ from mjlab.sensor import (
   TerrainHeightSensorCfg,
 )
 from mjlab.tasks.velocity import mdp
-from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
+from mjlab.tasks.velocity_football.mdp.observations import (
+  ball_visible_mask,
+  masked_ball_pos_b,
+  masked_ball_to_feet_vectors_b,
+  perceived_ball_pos_b,
+  perceived_ball_to_feet_vectors_b,
+)
+from mjlab.tasks.velocity_football.mdp.rewards import (
+  ball_front_control,
+  stop_ball_lin_vel_xy_exp,
+)
+from mjlab.tasks.velocity_football.mdp.velocity_command import (
+  StopSkillVelocityReferenceCfg,
+  UniformVelocityCommandCfg,
+)
 from mjlab.tasks.velocity_football.velocity_football_env_cfg import (
   make_velocity_env_cfg,
 )
+
+from .pose import get_isaaclab_default_keyframe
 
 
 def unitree_g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
@@ -34,6 +55,7 @@ def unitree_g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   # Add the robot without replacing the football created by the base scene.
   cfg.scene.entities["robot"] = get_g1_robot_cfg()
+  cfg.scene.entities["robot"].init_state = get_isaaclab_default_keyframe()
 
   # Set raycast sensor frame to G1 pelvis.
   for sensor in cfg.scene.sensors or ():
@@ -78,9 +100,24 @@ def unitree_g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     num_slots=1,
     history_length=4,
   )
+  ball_forbidden_contact_cfg = ContactSensorCfg(
+    name="ball_forbidden_contact",
+    primary=ContactMatch(
+      mode="body",
+      # Only knee links are forbidden from contacting the football.
+      pattern=r"^(left_knee_link|right_knee_link)$",
+      entity="robot",
+    ),
+    secondary=ContactMatch(mode="body", pattern="^ball$", entity="ball"),
+    fields=("found", "force"),
+    reduce="netforce",
+    num_slots=1,
+    history_length=4,
+  )
   cfg.scene.sensors = (cfg.scene.sensors or ()) + (
     feet_ground_cfg,
     self_collision_cfg,
+    ball_forbidden_contact_cfg,
   )
 
   if cfg.scene.terrain is not None and cfg.scene.terrain.terrain_generator is not None:
@@ -95,6 +132,22 @@ def unitree_g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   twist_cmd = cfg.commands["twist"]
   assert isinstance(twist_cmd, UniformVelocityCommandCfg)
   twist_cmd.viz.z_offset = 1.15
+  twist_cmd.zero_command_ramp_time_range = None
+  twist_cmd.ball_relative_velocity_reference = None
+  twist_cmd.stop_skill_velocity_reference = StopSkillVelocityReferenceCfg(
+    maximum_velocity=1.0,
+    rise_amplitude=0.2,
+    rise_duration=0.3,
+    fall_duration=0.3,
+    trigger_window=5,
+    acceleration_threshold=1.0,
+    minimum_command_drop=0.12,
+    persistence_frames=2,
+    rearm_acceleration_threshold=0.2,
+  )
+  ball_velocity_reward = cfg.rewards["track_ball_lin_vel_xy_exp"]
+  ball_velocity_reward.params["use_user_command"] = False
+  ball_velocity_reward.params["use_ball_command"] = True
 
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = geom_names
   cfg.events["base_com"].params["asset_cfg"].body_names = ("torso_link",)
@@ -162,6 +215,14 @@ def unitree_g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     weight=-1.0,
     params={"sensor_name": self_collision_cfg.name, "force_threshold": 10.0},
   )
+  cfg.rewards["ball_forbidden_contacts"] = RewardTermCfg(
+    func=mdp.self_collision_cost,
+    weight=-2.0,
+    params={
+      "sensor_name": ball_forbidden_contact_cfg.name,
+      "force_threshold": 5.0,
+    },
+  )
 
   # Apply play mode overrides.
   if play:
@@ -213,5 +274,291 @@ def unitree_g1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   # Disable terrain curriculum (not present in play mode since rough clears all).
   cfg.curriculum.pop("terrain_levels", None)
+
+  return cfg
+
+
+def unitree_g1_temporal_flat_env_cfg(
+  play: bool = False,
+  history_length: int = 10,
+) -> ManagerBasedRlEnvCfg:
+  """E3 football task with a 10-frame TemporalCNN and masked ball vision."""
+  if history_length <= 0:
+    raise ValueError("history_length must be positive")
+  cfg = unitree_g1_flat_env_cfg(play=play)
+
+  twist_cmd = cfg.commands["twist"]
+  assert isinstance(twist_cmd, UniformVelocityCommandCfg)
+  twist_cmd.zero_command_ramp_time_range = None
+  twist_cmd.ball_relative_velocity_reference = None
+  twist_cmd.stop_skill_velocity_reference = None
+
+  ball_velocity_reward = cfg.rewards["track_ball_lin_vel_xy_exp"]
+  ball_velocity_reward.params["use_user_command"] = True
+  ball_velocity_reward.params["use_ball_command"] = False
+
+  actor = cfg.observations["actor"]
+  visual_params = {
+    "x_range": (0.05, 1.50),
+    "y_range": (-0.70, 0.70),
+    "dropout_probability": 0.0,
+    "bias_range": 0.0 if play else 0.10,
+    "frame_noise_range": 0.0 if play else 0.06,
+    "ball_cfg": SceneEntityCfg("ball"),
+    "asset_cfg": SceneEntityCfg(
+      "robot",
+      body_names=(r".*_ankle_roll_link",),
+    ),
+  }
+  actor.terms["ball_pos_b"] = ObservationTermCfg(
+    func=masked_ball_pos_b,
+    params=deepcopy(visual_params),
+  )
+  actor.terms["ball_to_feet_vectors_b"] = ObservationTermCfg(
+    func=masked_ball_to_feet_vectors_b,
+    params=deepcopy(visual_params),
+  )
+  actor.terms["ball_visible_mask"] = ObservationTermCfg(
+    func=ball_visible_mask,
+    params=deepcopy(visual_params),
+  )
+  actor.history_length = None
+  actor.flatten_history_dim = True
+  actor_history = deepcopy(actor)
+  actor_history.history_length = history_length
+  actor_history.flatten_history_dim = False
+  cfg.observations["actor_history"] = actor_history
+
+  critic = cfg.observations["critic"]
+  critic.history_length = None
+  critic.flatten_history_dim = True
+  critic_history = deepcopy(critic)
+  critic_history.history_length = history_length
+  critic_history.flatten_history_dim = False
+  cfg.observations["critic_history"] = critic_history
+
+  return cfg
+
+
+def unitree_g1_temporal_stop_reward_flat_env_cfg(
+  play: bool = False,
+) -> ManagerBasedRlEnvCfg:
+  """Temporal football task with the isolated low-speed ball reward."""
+  cfg = unitree_g1_temporal_flat_env_cfg(play=play)
+  cfg.rewards["stop_ball_lin_vel_xy_exp"] = RewardTermCfg(
+    func=stop_ball_lin_vel_xy_exp,
+    weight=0.5,
+    params={
+      "std": 0.30,
+      "command_name": "twist",
+      "command_threshold": 0.10,
+      "ball_cfg": SceneEntityCfg("ball"),
+    },
+  )
+  return cfg
+
+
+def unitree_g1_temporal_history_flat_env_cfg(
+  history_length: int,
+  play: bool = False,
+) -> ManagerBasedRlEnvCfg:
+  """Create a TemporalCNN football task for history-length ablation."""
+  return unitree_g1_temporal_flat_env_cfg(
+    play=play,
+    history_length=history_length,
+  )
+
+
+def unitree_g1_visual_mask_flat_env_cfg(
+  play: bool = False,
+) -> ManagerBasedRlEnvCfg:
+  """Current-frame control task for the TemporalCNN history ablation."""
+  cfg = unitree_g1_temporal_flat_env_cfg(play=play)
+  cfg.observations.pop("actor_history")
+  return cfg
+
+
+RewardAblationVariant = Literal[
+  "r0_isaaclab",
+  "r1_e1",
+  "r2_no_relative_velocity",
+  "r3_no_relative_position",
+]
+
+FactorialBallRewardVariant = Literal["r0_isaaclab_ball", "r1_ball_center"]
+B1_HISTORY_TERMS = (
+  "ball_pos_b",
+  "ball_to_feet_vectors_b",
+  "ball_visible_mask",
+)
+
+
+def _configure_masked_ball_actor(cfg: ManagerBasedRlEnvCfg) -> None:
+  actor = cfg.observations["actor"]
+  visual_params = {
+    "x_range": (0.05, 1.50),
+    "y_range": (-0.70, 0.70),
+    "dropout_probability": 0.0,
+    "bias_range": 0.10,
+    "frame_noise_range": 0.06,
+    "ball_cfg": SceneEntityCfg("ball"),
+    "asset_cfg": SceneEntityCfg(
+      "robot",
+      body_names=(r".*_ankle_roll_link",),
+    ),
+  }
+  actor.terms["ball_pos_b"] = ObservationTermCfg(
+    func=masked_ball_pos_b,
+    params=deepcopy(visual_params),
+  )
+  actor.terms["ball_to_feet_vectors_b"] = ObservationTermCfg(
+    func=masked_ball_to_feet_vectors_b,
+    params=deepcopy(visual_params),
+  )
+  actor.terms["ball_visible_mask"] = ObservationTermCfg(
+    func=ball_visible_mask,
+    params=deepcopy(visual_params),
+  )
+  actor.history_length = None
+  actor.flatten_history_dim = True
+
+
+def _configure_privileged_critic_history(
+  cfg: ManagerBasedRlEnvCfg,
+  history_length: int,
+) -> None:
+  critic = cfg.observations["critic"]
+  critic.history_length = None
+  critic.flatten_history_dim = True
+  critic_history = deepcopy(critic)
+  critic_history.history_length = history_length
+  critic_history.flatten_history_dim = False
+  cfg.observations["critic_history"] = critic_history
+
+
+def _configure_factorial_ball_reward(
+  cfg: ManagerBasedRlEnvCfg,
+  variant: FactorialBallRewardVariant,
+) -> None:
+  if variant == "r1_ball_center":
+    cfg.rewards.pop("ball_front_control", None)
+    return
+  if variant != "r0_isaaclab_ball":
+    raise ValueError(f"Unknown factorial ball reward variant: {variant}")
+
+  cfg.rewards["track_ball_lin_vel_xy_exp"].weight = 1.0
+  cfg.rewards["track_ball_lin_vel_xy_exp"].params = {
+    "command_name": "twist",
+    "std": 0.5,
+    "gate_by_position": False,
+    "use_user_command": True,
+  }
+  cfg.rewards["track_ball_relative_vel_xy_exp"].weight = 0.0
+  cfg.rewards["track_ball_relative_pos_xy_exp"].weight = 0.0
+  cfg.rewards["ball_outside_control_zone"].weight = 0.0
+  cfg.rewards["ball_front_control"] = RewardTermCfg(
+    func=ball_front_control,
+    weight=0.5,
+    params={"x_range": (0.10, 0.40), "y_abs": 0.15},
+  )
+
+
+def unitree_g1_factorial_flat_env_cfg(
+  *,
+  use_b1_history: bool,
+  reward_variant: FactorialBallRewardVariant,
+  play: bool = False,
+  history_length: int = 10,
+) -> ManagerBasedRlEnvCfg:
+  """Create one frozen cell of the A0/A1 x R0/R1 factorial experiment."""
+  if history_length <= 0:
+    raise ValueError("history_length must be positive")
+  cfg = unitree_g1_flat_env_cfg(play=play)
+  command = cfg.commands["twist"]
+  assert isinstance(command, UniformVelocityCommandCfg)
+  command.zero_command_ramp_time_range = None
+  command.ball_relative_velocity_reference = None
+  command.stop_skill_velocity_reference = None
+  ball_reward = cfg.rewards["track_ball_lin_vel_xy_exp"]
+  ball_reward.params["use_user_command"] = True
+  ball_reward.params["use_ball_command"] = False
+
+  _configure_masked_ball_actor(cfg)
+  _configure_privileged_critic_history(cfg, history_length)
+  if use_b1_history:
+    actor = cfg.observations["actor"]
+    actor_history = deepcopy(actor)
+    actor_history.terms = {
+      name: deepcopy(actor.terms[name]) for name in B1_HISTORY_TERMS
+    }
+    actor_history.history_length = history_length
+    actor_history.flatten_history_dim = False
+    cfg.observations["actor_history"] = actor_history
+  _configure_factorial_ball_reward(cfg, reward_variant)
+  return cfg
+
+
+def unitree_g1_reward_ablation_flat_env_cfg(
+  variant: RewardAblationVariant,
+  play: bool = False,
+) -> ManagerBasedRlEnvCfg:
+  """Create a controlled reward-ablation task with shared ball perception error."""
+  cfg = unitree_g1_flat_env_cfg(play=play)
+
+  command = cfg.commands["twist"]
+  assert isinstance(command, UniformVelocityCommandCfg)
+  command.zero_command_ramp_time_range = None
+  command.ball_relative_velocity_reference = None
+  command.stop_skill_velocity_reference = None
+
+  actor = cfg.observations["actor"]
+  perception_range = 0.0 if play else 0.10
+  frame_noise_range = 0.0 if play else 0.06
+  ball_position = actor.terms["ball_pos_b"]
+  ball_position.func = perceived_ball_pos_b
+  ball_position.params = {
+    "bias_range": perception_range,
+    "frame_noise_range": frame_noise_range,
+  }
+  ball_position.noise = None
+
+  ball_to_feet = actor.terms["ball_to_feet_vectors_b"]
+  ball_to_feet.func = perceived_ball_to_feet_vectors_b
+  ball_to_feet.params = {
+    **ball_to_feet.params,
+    "bias_range": perception_range,
+    "frame_noise_range": frame_noise_range,
+  }
+  ball_to_feet.noise = None
+
+  if variant == "r0_isaaclab":
+    cfg.rewards["track_ball_lin_vel_xy_exp"].weight = 1.0
+    cfg.rewards["track_ball_lin_vel_xy_exp"].params = {
+      "command_name": "twist",
+      "std": 0.5,
+      "gate_by_position": False,
+      "use_user_command": True,
+    }
+    cfg.rewards["track_linear_velocity"].weight = 1.0
+    cfg.rewards["track_linear_velocity"].params["std"] = 0.5
+    cfg.rewards["track_angular_velocity"].weight = 2.0
+    cfg.rewards["track_angular_velocity"].params["std"] = 0.5
+    cfg.rewards["track_ball_relative_vel_xy_exp"].weight = 0.0
+    cfg.rewards["track_ball_relative_pos_xy_exp"].weight = 0.0
+    cfg.rewards["ball_outside_control_zone"].weight = 0.0
+    cfg.rewards["ball_front_control"] = RewardTermCfg(
+      func=ball_front_control,
+      weight=0.5,
+      params={"x_range": (0.10, 0.40), "y_abs": 0.15},
+    )
+  elif variant == "r1_e1":
+    pass
+  elif variant == "r2_no_relative_velocity":
+    cfg.rewards["track_ball_relative_vel_xy_exp"].weight = 0.0
+  elif variant == "r3_no_relative_position":
+    cfg.rewards["track_ball_relative_pos_xy_exp"].weight = 0.0
+    cfg.rewards["ball_outside_control_zone"].weight = 0.0
+  else:
+    raise ValueError(f"Unknown reward-ablation variant: {variant}")
 
   return cfg

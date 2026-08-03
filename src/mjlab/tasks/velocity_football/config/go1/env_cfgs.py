@@ -23,8 +23,10 @@ from mjlab.sensor import (
   TerrainHeightSensorCfg,
 )
 from mjlab.tasks.velocity import mdp
-from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
+from mjlab.tasks.velocity_football.mdp.velocity_command import (
+  UniformVelocityCommandCfg,
+)
 
 TerrainType = Literal["rough", "obstacles"]
 

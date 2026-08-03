@@ -50,8 +50,10 @@ from mjlab.sensor import (
   TerrainHeightSensorCfg,
 )
 from mjlab.sim import MujocoCfg, SimulationCfg
-from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity_football import mdp
+from mjlab.tasks.velocity_football.mdp.velocity_command import (
+  UniformVelocityCommandCfg,
+)
 from mjlab.terrains import TerrainEntityCfg
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
 from mjlab.viewer import ViewerConfig
@@ -135,13 +137,14 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     "actions": ObservationTermCfg(
       func=mdp.last_action,
       clip=(-10.0, 10.0),
-      delay_min_lag=2,
+      delay_min_lag=0,
       delay_max_lag=2,
     ),
     "ball_pos_b": ObservationTermCfg(
-      func=mdp.ball_pos_b,
-      noise=Unoise(n_min=-0.05, n_max=0.05),
-      delay_min_lag=2,
+      func=mdp.ball_pos_b_with_fixed_bias,
+      params={"bias_range": 0.10},
+      noise=Unoise(n_min=-0.06, n_max=0.06),
+      delay_min_lag=0,
       delay_max_lag=2,
     ),
     "ball_to_feet_vectors_b": ObservationTermCfg(
@@ -151,7 +154,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
         "asset_cfg": SceneEntityCfg("robot", body_names=(r".*_ankle_roll_link",)),
       },
       noise=Unoise(n_min=-0.1, n_max=0.1),
-      delay_min_lag=2,
+      delay_min_lag=0,
       delay_max_lag=2,
     ),
     # 无限平面不需要Actor地形扫描；恢复粗糙地形时可恢复：
@@ -258,6 +261,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
       entity_name="robot",
       resampling_time_range=(5.0, 6.0),  # 指令重新采样间隔5~6秒
       rel_standing_envs=0.05,  # 5%环境保持静止
+      zero_command_ramp_time_range=(0.3, 0.5),
       rel_heading_envs=1.0,  # 所有非站立环境使用目标朝向
       rel_forward_envs=0.0,
       heading_command=True,
@@ -401,7 +405,21 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
       weight=-1e-7,
       params={"asset_cfg": SceneEntityCfg("robot", joint_names=(r".*",))},
     ),
-    # 线速度跟踪奖励
+    # 足球全局平面速度跟踪：控球任务的主运动目标。
+    "track_ball_lin_vel_xy_exp": RewardTermCfg(
+      func=mdp.track_ball_lin_vel_xy_exp,
+      weight=2.0,
+      params={
+        "command_name": "twist",
+        "std": 0.8,
+        "control_x_range": (0.05, 0.45),
+        "control_y_abs": 0.15,
+        "gate_std_x": 0.10,
+        "gate_std_y": 0.05,
+        "use_user_command": True,
+      },
+    ),
+    # 机器人线速度跟踪：保留为较低权重的辅助项，避免机器人原地控球。
     "track_linear_velocity": RewardTermCfg(
       func=mdp.track_linear_velocity,
       weight=1.0,
@@ -410,26 +428,37 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     # 角速度跟踪奖励
     "track_angular_velocity": RewardTermCfg(
       func=mdp.track_angular_velocity,
-      weight=2.0,
+      weight=1.5,
       params={"command_name": "twist", "std": math.sqrt(0.5)},
     ),
-    # 足球在一个步态周期内的净位移平均速度跟踪二维速度指令。
-    "track_ball_lin_vel_xy_exp": RewardTermCfg(
-      func=mdp.track_ball_lin_vel_xy_exp,
-      weight=1.0,
-      params={
-        "command_name": "twist",
-        "std": 0.5,
-        "period": 0.6,
-      },
+    # 足球与机器人 pelvis 的瞬时相对平面速度趋近于零（无时间窗口）。
+    "track_ball_relative_vel_xy_exp": RewardTermCfg(
+      func=mdp.track_ball_relative_vel_xy_exp,
+      weight=0.25,
+      params={"std": 0.5},
     ),
-    # 足球球心位于机器人身前硬区间时获得控球奖励。
-    "ball_front_control": RewardTermCfg(
-      func=mdp.ball_front_control,
+    # 足球保持在 pelvis 前方固定锚点附近。
+    "track_ball_relative_pos_xy_exp": RewardTermCfg(
+      func=mdp.track_ball_relative_pos_xy_exp,
       weight=0.5,
       params={
-        "x_range": (0.1, 0.4),
+        "command_name": "twist",
+        "anchor_x": 0.19,
+        "anchor_x_speed_gain": 0.0,
+        "anchor_x_range": (0.19, 0.19),
+        "std_x": 0.5,
+        "std_y": 0.5,
+      },
+    ),
+    # 超出软控球区域时惩罚；区域内成本为零。
+    "ball_outside_control_zone": RewardTermCfg(
+      func=mdp.ball_outside_control_zone_l2,
+      weight=-0.5,
+      params={
+        "x_range": (0.05, 0.45),
         "y_abs": 0.15,
+        "std_x": 0.10,
+        "std_y": 0.05,
       },
     ),
     # 机身直立保持奖励
@@ -470,7 +499,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
     # 关节超出限位惩罚
     "dof_pos_limits": RewardTermCfg(func=mdp.joint_pos_limits, weight=-1.0),
     # 动作变化率L2惩罚，抑制剧烈抖动
-    "action_rate_l2": RewardTermCfg(func=mdp.action_rate_l2, weight=-0.1),
+    "action_rate_l2": RewardTermCfg(func=mdp.action_rate_l2, weight=-0.2),
     # 足端合理腾空时长奖励（步态辅助）
     "air_time": RewardTermCfg(
       func=mdp.feet_air_time,
@@ -544,7 +573,8 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
       func=mdp.ball_out_of_control,
       params={
         "max_distance": 1.5,
-        "min_forward": -0.5,
+        "min_forward": 0.0,
+        "max_forward": 1.0,
         "max_lateral": 0.5,
         "max_height": 0.5,
         "ball_cfg": SceneEntityCfg("ball"),

@@ -11,11 +11,12 @@ from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import BuiltinSensor, ContactSensor
 from mjlab.sensor.terrain_height_sensor import TerrainHeightSensor
 from mjlab.tasks.velocity.mdp.terrain_utils import terrain_normal_from_sensors
-from mjlab.utils.buffers import CircularBuffer
-from mjlab.utils.lab_api.math import quat_apply, quat_apply_inverse
+from mjlab.utils.lab_api.math import quat_apply, quat_apply_inverse, yaw_quat
 from mjlab.utils.lab_api.string import (
   resolve_matching_names_values,
 )
+
+from .observations import ball_pos_b
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
@@ -26,64 +27,172 @@ _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
 _DEFAULT_BALL_CFG = SceneEntityCfg("ball")
 
 
+def _get_velocity_command(
+  env: ManagerBasedRlEnv,
+  command_name: str,
+  use_user_command: bool,
+  use_ball_command: bool,
+) -> torch.Tensor:
+  command = env.command_manager.get_command(command_name)
+  assert command is not None, f"Command '{command_name}' not found."
+  if use_user_command and use_ball_command:
+    raise ValueError("Cannot use both user and football-specific commands.")
+  if not use_user_command and not use_ball_command:
+    return command
+  command_term = env.command_manager.get_term(command_name)
+  attribute = "ball_command" if use_ball_command else "user_command"
+  selected_command = getattr(command_term, attribute, None)
+  if selected_command is None:
+    raise ValueError(f"Command '{command_name}' does not expose {attribute!r}.")
+  return selected_command
+
+
 class track_ball_lin_vel_xy_exp:
-  """Reward commanded football velocity using net displacement over a time window."""
+  """Reward instantaneous football planar velocity tracking."""
 
   def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
-    period = cfg.params["period"]
     std = cfg.params["std"]
-    if period <= 0.0:
-      raise ValueError(f"period must be positive, got {period}")
     if std <= 0.0:
       raise ValueError(f"std must be positive, got {std}")
-
-    self._window_steps = max(1, round(period / env.step_dt))
-    self._position_history = CircularBuffer(
-      max_len=self._window_steps + 1,
-      batch_size=env.num_envs,
-      device=env.device,
-    )
 
   def __call__(
     self,
     env: ManagerBasedRlEnv,
     std: float,
-    period: float,
     command_name: str,
+    control_x_range: tuple[float, float] = (0.05, 0.45),
+    control_y_abs: float = 0.15,
+    gate_std_x: float = 0.10,
+    gate_std_y: float = 0.05,
+    gate_by_position: bool = True,
+    use_user_command: bool = False,
+    use_ball_command: bool = False,
     ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
     asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
   ) -> torch.Tensor:
-    del period  # The window length is fixed when the reward term is initialized.
     ball: Entity = env.scene[ball_cfg.name]
     robot: Entity = env.scene[asset_cfg.name]
-    command = env.command_manager.get_command(command_name)
-    assert command is not None, f"Command '{command_name}' not found."
-
-    ball_pos_w = ball.data.root_link_pos_w
-    self._position_history.append(ball_pos_w)
-    elapsed_steps = (self._position_history.current_length - 1).clamp(
-      max=self._window_steps
-    )
-    previous_ball_pos_w = self._position_history[elapsed_steps]
-    elapsed_time = elapsed_steps.to(ball_pos_w.dtype) * env.step_dt
-    ball_displacement_vel_w = (
-      ball_pos_w - previous_ball_pos_w
-    ) / elapsed_time.clamp_min(env.step_dt).unsqueeze(1)
-    ball_displacement_vel_b = quat_apply_inverse(
-      robot.data.root_link_quat_w, ball_displacement_vel_w
+    command = _get_velocity_command(
+      env,
+      command_name,
+      use_user_command,
+      use_ball_command,
     )
 
-    error = torch.sum(
-      torch.square(command[:, :2] - ball_displacement_vel_b[:, :2]), dim=1
+    ball_velocity_b = quat_apply_inverse(
+      robot.data.root_link_quat_w, ball.data.root_link_lin_vel_w
     )
-    reward = torch.exp(-error / std**2)
-    return torch.where(elapsed_steps > 0, reward, torch.zeros_like(reward))
+
+    error = torch.sum(torch.square(command[:, :2] - ball_velocity_b[:, :2]), dim=1)
+    velocity_reward = torch.exp(-error / std**2)
+    if not gate_by_position:
+      return velocity_reward
+
+    x_min, x_max = control_x_range
+    if x_min > x_max or control_y_abs <= 0.0:
+      raise ValueError("Invalid football control-zone bounds")
+    if gate_std_x <= 0.0 or gate_std_y <= 0.0:
+      raise ValueError("gate_std_x and gate_std_y must be positive")
+    ball_relative_b = ball_pos_b(env, ball_cfg=ball_cfg, asset_cfg=asset_cfg)
+    x_out = torch.relu(
+      torch.maximum(x_min - ball_relative_b[:, 0], ball_relative_b[:, 0] - x_max)
+      / gate_std_x
+    )
+    y_out = torch.relu((torch.abs(ball_relative_b[:, 1]) - control_y_abs) / gate_std_y)
+    position_gate = torch.exp(-(x_out.square() + y_out.square()))
+    return velocity_reward * position_gate
+
+
+def stop_ball_lin_vel_xy_exp(
+  env: ManagerBasedRlEnv,
+  std: float,
+  command_name: str,
+  command_threshold: float = 0.1,
+  ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
+) -> torch.Tensor:
+  """Reward low football planar speed during low-speed commands only."""
+  if std <= 0.0:
+    raise ValueError(f"std must be positive, got {std}")
+  if command_threshold < 0.0:
+    raise ValueError(f"command_threshold must be non-negative, got {command_threshold}")
+
+  command = env.command_manager.get_command(command_name)
+  assert command is not None, f"Command '{command_name}' not found."
+  ball: Entity = env.scene[ball_cfg.name]
+  command_speed = torch.linalg.vector_norm(command[:, :2], dim=1)
+  ball_speed_error = torch.sum(
+    torch.square(ball.data.root_link_lin_vel_w[:, :2]), dim=1
+  )
+  stop_reward = torch.exp(-ball_speed_error / std**2)
+  return stop_reward * (command_speed < command_threshold).float()
+
+
+class track_ball_relative_vel_xy_exp:
+  """Reward low instantaneous ball-to-pelvis planar velocity."""
+
+  def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
+    std = cfg.params["std"]
+    if std <= 0.0:
+      raise ValueError(f"std must be positive, got {std}")
+
+  def __call__(
+    self,
+    env: ManagerBasedRlEnv,
+    std: float,
+    period: float | None = None,
+    ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
+    asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+  ) -> torch.Tensor:
+    del period
+    ball: Entity = env.scene[ball_cfg.name]
+    robot: Entity = env.scene[asset_cfg.name]
+    relative_velocity_w = ball.data.root_link_lin_vel_w - robot.data.root_link_lin_vel_w
+    relative_velocity_yaw = quat_apply_inverse(
+      yaw_quat(robot.data.root_link_quat_w), relative_velocity_w
+    )
+
+    error = torch.sum(torch.square(relative_velocity_yaw[:, :2]), dim=1)
+    return torch.exp(-error / std**2)
 
   def reset(self, env_ids: torch.Tensor | slice) -> None:
-    if isinstance(env_ids, slice):
-      self._position_history.reset()
-    else:
-      self._position_history.reset(env_ids)
+    del env_ids
+
+
+def track_ball_relative_pos_xy_exp(
+  env: ManagerBasedRlEnv,
+  std_x: float,
+  std_y: float,
+  command_name: str,
+  anchor_x: float,
+  anchor_x_speed_gain: float,
+  anchor_x_range: tuple[float, float],
+  ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Reward the ball for staying near a speed-conditioned pelvis-frame anchor."""
+  if std_x <= 0.0 or std_y <= 0.0:
+    raise ValueError(f"std_x and std_y must be positive, got {std_x}, {std_y}")
+  anchor_x_min, anchor_x_max = anchor_x_range
+  if anchor_x_min > anchor_x_max:
+    raise ValueError(f"anchor_x_range must be ordered, got {anchor_x_range}")
+
+  command = env.command_manager.get_command(command_name)
+  assert command is not None, f"Command '{command_name}' not found."
+
+  ball_relative_yaw = ball_pos_b(
+    env,
+    ball_cfg=ball_cfg,
+    asset_cfg=asset_cfg,
+  )
+  command_speed = torch.linalg.vector_norm(command[:, :2], dim=1)
+  target_x = torch.clamp(
+    anchor_x + anchor_x_speed_gain * command_speed,
+    min=anchor_x_min,
+    max=anchor_x_max,
+  )
+  x_error = torch.square((ball_relative_yaw[:, 0] - target_x) / std_x)
+  y_error = torch.square(ball_relative_yaw[:, 1] / std_y)
+  return torch.exp(-(x_error + y_error))
 
 
 def ball_front_control(
@@ -107,6 +216,34 @@ def ball_front_control(
   in_x_range = (ball_pos_b[:, 0] >= x_min) & (ball_pos_b[:, 0] <= x_max)
   in_y_range = torch.abs(ball_pos_b[:, 1]) <= y_abs
   return (in_x_range & in_y_range).float()
+
+
+def ball_outside_control_zone_l2(
+  env: ManagerBasedRlEnv,
+  x_range: tuple[float, float],
+  y_abs: float,
+  std_x: float,
+  std_y: float,
+  ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Return a soft hinge cost when the ball leaves the pelvis control zone.
+
+  The cost is zero inside ``x_range`` and ``|y| <= y_abs`` and grows
+  quadratically outside the corresponding boundary.  The reward term should
+  therefore use a negative weight.
+  """
+  x_min, x_max = x_range
+  if x_min > x_max:
+    raise ValueError(f"x_range must be ordered, got {x_range}")
+  if y_abs <= 0.0 or std_x <= 0.0 or std_y <= 0.0:
+    raise ValueError("y_abs, std_x, and std_y must be positive")
+
+  ball_relative_b = ball_pos_b(env, ball_cfg=ball_cfg, asset_cfg=asset_cfg)
+  x_low = torch.relu((x_min - ball_relative_b[:, 0]) / std_x)
+  x_high = torch.relu((ball_relative_b[:, 0] - x_max) / std_x)
+  y_out = torch.relu((torch.abs(ball_relative_b[:, 1]) - y_abs) / std_y)
+  return x_low.square() + x_high.square() + y_out.square()
 
 
 def track_linear_velocity(

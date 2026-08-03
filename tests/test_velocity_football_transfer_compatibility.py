@@ -17,6 +17,7 @@ from mjlab.tasks.velocity_football.rl.runner import VelocityOnPolicyRunner
 
 _PRETRAIN_TASK_ID = "Mjlab-Velocity-Football-Pretrain-Flat-Unitree-G1"
 _FOOTBALL_TASK_ID = "Mjlab-Velocity-Football-Flat-Unitree-G1"
+_B1_FOOTBALL_TASK_ID = "Mjlab-Velocity-Football-A1R1-Flat-Unitree-G1"
 
 
 class _FakeActor:
@@ -51,6 +52,41 @@ def _actor_state(obs_dim: int, fill: float) -> dict[str, torch.Tensor]:
   }
 
 
+def _temporal_actor_state(current_dim: int, fill: float) -> dict[str, torch.Tensor]:
+  state = _actor_state(current_dim + 64, fill)
+  state["obs_normalizer._mean"] = torch.full((1, current_dim), fill)
+  state["obs_normalizer._var"] = torch.full((1, current_dim), fill + 1)
+  state["obs_normalizer._std"] = torch.full((1, current_dim), fill + 2)
+  state["cnn_encoders.actor_history.net.0.weight"] = torch.full(
+    (4, current_dim, 3), fill + 12
+  )
+  state["cnn_encoders.actor_history.net.0.bias"] = torch.full((4,), fill + 13)
+  state["obs_normalizers_3d.actor_history._mean"] = torch.full(
+    (1, current_dim), fill + 14
+  )
+  state["obs_normalizers_3d.actor_history._var"] = torch.full(
+    (1, current_dim), fill + 15
+  )
+  state["obs_normalizers_3d.actor_history._std"] = torch.full(
+    (1, current_dim), fill + 16
+  )
+  state["obs_normalizers_3d.actor_history.count"] = torch.tensor(123)
+  return state
+
+
+def _b1_actor_state(fill: float) -> dict[str, torch.Tensor]:
+  state = _actor_state(169, fill)
+  for suffix, offset in (("_mean", 0), ("_var", 1), ("_std", 2)):
+    state[f"obs_normalizer.{suffix}"] = torch.full((1, 105), fill + offset)
+    state[f"obs_normalizers_3d.actor_history.{suffix}"] = torch.full(
+      (1, 7), fill + 20 + offset
+    )
+  state["obs_normalizers_3d.actor_history.count"] = torch.tensor(0)
+  state["cnn_encoders.actor_history.net.1.weight"] = torch.full((64, 7, 3), fill + 30)
+  state["cnn_encoders.actor_history.net.1.bias"] = torch.full((64,), fill + 31)
+  return state
+
+
 def _fake_runner(actor: _FakeActor) -> VelocityOnPolicyRunner:
   runner = object.__new__(VelocityOnPolicyRunner)
   untyped_runner = cast(Any, runner)
@@ -63,7 +99,7 @@ def _fake_runner(actor: _FakeActor) -> VelocityOnPolicyRunner:
 
 def test_load_pretrained_transfers_only_walking_actor_prefix(tmp_path) -> None:
   source = _actor_state(490, fill=2.0)
-  target_actor = _FakeActor(_actor_state(535, fill=10.0))
+  target_actor = _FakeActor(_actor_state(520, fill=10.0))
   runner = _fake_runner(target_actor)
   algorithm = cast(Any, runner.alg)
   algorithm.critic = object()
@@ -96,13 +132,13 @@ def test_load_pretrained_transfers_only_walking_actor_prefix(tmp_path) -> None:
 
   assert torch.count_nonzero(actual["mlp.0.weight"][:, 490:]) == 0
   torch.testing.assert_close(
-    actual["obs_normalizer._mean"][:, 490:], torch.full((1, 45), 10.0)
+    actual["obs_normalizer._mean"][:, 490:], torch.full((1, 30), 10.0)
   )
   torch.testing.assert_close(
-    actual["obs_normalizer._var"][:, 490:], torch.full((1, 45), 11.0)
+    actual["obs_normalizer._var"][:, 490:], torch.full((1, 30), 11.0)
   )
   torch.testing.assert_close(
-    actual["obs_normalizer._std"][:, 490:], torch.full((1, 45), 12.0)
+    actual["obs_normalizer._std"][:, 490:], torch.full((1, 30), 12.0)
   )
   assert algorithm.critic is critic
   assert algorithm.optimizer is optimizer
@@ -113,10 +149,41 @@ def test_load_pretrained_transfers_only_walking_actor_prefix(tmp_path) -> None:
 def test_load_pretrained_rejects_wrong_actor_observation_size(tmp_path) -> None:
   checkpoint = tmp_path / "native_velocity.pt"
   torch.save({"actor_state_dict": _actor_state(99, fill=1.0)}, checkpoint)
-  runner = _fake_runner(_FakeActor(_actor_state(535, fill=10.0)))
+  runner = _fake_runner(_FakeActor(_actor_state(520, fill=10.0)))
 
-  with pytest.raises(ValueError, match="walking Actor with 490 observations"):
+  with pytest.raises(ValueError, match="Unsupported walking-to-football"):
     runner.load_pretrained(str(checkpoint))
+
+
+def test_load_pretrained_transfers_temporal_walk_actor(tmp_path) -> None:
+  source = _temporal_actor_state(98, fill=2.0)
+  target_actor = _FakeActor(_temporal_actor_state(105, fill=10.0))
+  runner = _fake_runner(target_actor)
+  checkpoint = tmp_path / "temporal_walking.pt"
+  torch.save({"actor_state_dict": source}, checkpoint)
+
+  runner.load_pretrained(str(checkpoint))
+  actual = target_actor.state_dict()
+
+  source_mlp = source["mlp.0.weight"]
+  actual_mlp = actual["mlp.0.weight"]
+  torch.testing.assert_close(actual_mlp[:, :98], source_mlp[:, :98])
+  assert torch.count_nonzero(actual_mlp[:, 98:105]) == 0
+  torch.testing.assert_close(actual_mlp[:, 105:], source_mlp[:, 98:])
+
+  source_cnn = source["cnn_encoders.actor_history.net.0.weight"]
+  actual_cnn = actual["cnn_encoders.actor_history.net.0.weight"]
+  torch.testing.assert_close(actual_cnn[:, :98], source_cnn)
+  assert torch.count_nonzero(actual_cnn[:, 98:]) == 0
+
+  torch.testing.assert_close(
+    actual["obs_normalizer._mean"][:, :98],
+    source["obs_normalizer._mean"],
+  )
+  torch.testing.assert_close(
+    actual["obs_normalizers_3d.actor_history._mean"][:, :98],
+    source["obs_normalizers_3d.actor_history._mean"],
+  )
 
 
 def test_load_pretrained_rejects_incompatible_hidden_layer(tmp_path) -> None:
@@ -124,10 +191,48 @@ def test_load_pretrained_rejects_incompatible_hidden_layer(tmp_path) -> None:
   source["mlp.2.weight"] = torch.ones(5, 4)
   checkpoint = tmp_path / "wrong_hidden_layer.pt"
   torch.save({"actor_state_dict": source}, checkpoint)
-  runner = _fake_runner(_FakeActor(_actor_state(535, fill=10.0)))
+  runner = _fake_runner(_FakeActor(_actor_state(520, fill=10.0)))
 
   with pytest.raises(ValueError, match="mlp.2.weight"):
     runner.load_pretrained(str(checkpoint))
+
+
+def test_load_pretrained_transfers_current_walk_to_current_football(tmp_path) -> None:
+  source = _actor_state(98, fill=2.0)
+  target_actor = _FakeActor(_actor_state(105, fill=10.0))
+  runner = _fake_runner(target_actor)
+  checkpoint = tmp_path / "current_walk.pt"
+  torch.save({"actor_state_dict": source}, checkpoint)
+
+  runner.load_pretrained(str(checkpoint))
+  actual = target_actor.state_dict()
+
+  torch.testing.assert_close(actual["mlp.0.weight"][:, :98], source["mlp.0.weight"])
+  assert torch.count_nonzero(actual["mlp.0.weight"][:, 98:]) == 0
+  torch.testing.assert_close(
+    actual["obs_normalizer._mean"][:, :98], source["obs_normalizer._mean"]
+  )
+  torch.testing.assert_close(
+    actual["obs_normalizer._mean"][:, 98:], torch.full((1, 7), 10.0)
+  )
+
+
+def test_load_pretrained_keeps_new_b1_branch_randomly_initialized(tmp_path) -> None:
+  source = _actor_state(98, fill=2.0)
+  initial = _b1_actor_state(fill=10.0)
+  target_actor = _FakeActor(initial)
+  runner = _fake_runner(target_actor)
+  checkpoint = tmp_path / "current_walk.pt"
+  torch.save({"actor_state_dict": source}, checkpoint)
+
+  runner.load_pretrained(str(checkpoint))
+  actual = target_actor.state_dict()
+
+  torch.testing.assert_close(actual["mlp.0.weight"][:, :98], source["mlp.0.weight"])
+  assert torch.count_nonzero(actual["mlp.0.weight"][:, 98:]) == 0
+  for key in initial:
+    if key.startswith("cnn_encoders.") or key.startswith("obs_normalizers_3d."):
+      torch.testing.assert_close(actual[key], initial[key])
 
 
 def test_football_tasks_register_transfer_runner() -> None:
@@ -173,8 +278,8 @@ def test_pretrain_observations_are_strict_football_prefix() -> None:
 
     assert pretrain_obs["actor"].shape == (1, 490)
     assert pretrain_obs["critic"].shape == (1, 505)
-    assert football_obs["actor"].shape == (1, 535)
-    assert football_obs["critic"].shape == (1, 565)
+    assert football_obs["actor"].shape == (1, 520)
+    assert football_obs["critic"].shape == (1, 550)
     assert pretrain.action_space.shape == football.action_space.shape == (1, 29)
 
     pretrain_terms = pretrain.observation_manager.active_terms
@@ -188,4 +293,29 @@ def test_pretrain_observations_are_strict_football_prefix() -> None:
     )
   finally:
     for env in environments:
+      env.close()
+
+
+@pytest.mark.slow
+def test_b1_newest_history_frame_matches_current_ball_observation() -> None:
+  cfg = load_env_cfg(_B1_FOOTBALL_TASK_ID)
+  cfg.scene.num_envs = 2
+  output = io.StringIO()
+  env = None
+  try:
+    with warnings.catch_warnings():
+      warnings.simplefilter("ignore")
+      with redirect_stdout(output), redirect_stderr(output):
+        env = ManagerBasedRlEnv(cfg, device="cpu")
+        raw_obs, _ = env.reset(seed=42)
+        obs = cast(dict[str, torch.Tensor], raw_obs)
+
+    assert obs["actor"].shape == (2, 105)
+    assert obs["actor_history"].shape == (2, 10, 7)
+    torch.testing.assert_close(
+      obs["actor"][:, -7:],
+      obs["actor_history"][:, -1, :],
+    )
+  finally:
+    if env is not None:
       env.close()
