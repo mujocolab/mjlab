@@ -240,6 +240,10 @@ def test_factorial_tasks_freeze_b1_and_reward_contracts() -> None:
         assert ball_reward.weight == 1.0
         assert ball_reward.params["std"] == 0.5
         assert not ball_reward.params["gate_by_position"]
+        assert env_cfg.rewards["track_linear_velocity"].weight == 1.0
+        assert env_cfg.rewards["track_linear_velocity"].params["std"] == 0.5
+        assert env_cfg.rewards["track_angular_velocity"].weight == 2.0
+        assert env_cfg.rewards["track_angular_velocity"].params["std"] == 0.5
         assert env_cfg.rewards["track_ball_relative_vel_xy_exp"].weight == 0.0
         assert env_cfg.rewards["track_ball_relative_pos_xy_exp"].weight == 0.0
         assert env_cfg.rewards["ball_outside_control_zone"].weight == 0.0

@@ -446,6 +446,10 @@ def _configure_factorial_ball_reward(
     "gate_by_position": False,
     "use_user_command": True,
   }
+  cfg.rewards["track_linear_velocity"].weight = 1.0
+  cfg.rewards["track_linear_velocity"].params["std"] = 0.5
+  cfg.rewards["track_angular_velocity"].weight = 2.0
+  cfg.rewards["track_angular_velocity"].params["std"] = 0.5
   cfg.rewards["track_ball_relative_vel_xy_exp"].weight = 0.0
   cfg.rewards["track_ball_relative_pos_xy_exp"].weight = 0.0
   cfg.rewards["ball_outside_control_zone"].weight = 0.0
