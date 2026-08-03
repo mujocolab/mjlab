@@ -14,6 +14,8 @@ from mjlab.scripts.sim2sim.g1_football import (
   B1_HISTORY_OBS_DIM,
   BALL_OBSERVATION_BIAS_RANGE,
   BALL_OBSERVATION_FRAME_NOISE_RANGE,
+  BALL_OBSERVATION_HOLD_PROBABILITY,
+  BALL_OBSERVATION_MAX_DELAY_STEPS,
   BALL_DISTURBANCE_INTERVAL_RANGE,
   BALL_DISTURBANCE_LINEAR_VELOCITY_RANGE,
   EXPECTED_ACTION_DIM,
@@ -127,7 +129,7 @@ def test_observation_assembler_uses_term_major_five_frame_history() -> None:
     offset += FRAME_STACK * dim
 
 
-def test_ball_observation_disturbance_uses_reduced_frame_noise() -> None:
+def test_ball_observation_disturbance_uses_fixed_episode_bias_only() -> None:
   observer = PerturbedBallObserver(_ConstantBallObserver(), seed=42)
   observer.reset()
   base_ball = np.asarray((0.4, 0.1), dtype=np.float32)
@@ -135,6 +137,9 @@ def test_ball_observation_disturbance_uses_reduced_frame_noise() -> None:
   dummy_data = cast(mujoco.MjData, None)
 
   assert np.all(np.abs(observer._bias) <= BALL_OBSERVATION_BIAS_RANGE)
+  assert BALL_OBSERVATION_FRAME_NOISE_RANGE == 0.0
+  assert BALL_OBSERVATION_MAX_DELAY_STEPS == 0
+  assert BALL_OBSERVATION_HOLD_PROBABILITY == 0.0
   for _ in range(20):
     ball, feet = observer.observe(dummy_data)
     error = ball - base_ball

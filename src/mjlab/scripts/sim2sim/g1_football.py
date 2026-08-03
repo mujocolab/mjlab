@@ -34,7 +34,9 @@ TEMPORAL_HISTORY_LENGTH = 10
 BALL_VISIBILITY_X_RANGE = (0.05, 1.00)
 BALL_VISIBILITY_Y_RANGE = (-0.70, 0.70)
 BALL_OBSERVATION_BIAS_RANGE = 0.10
-BALL_OBSERVATION_FRAME_NOISE_RANGE = 0.01
+BALL_OBSERVATION_FRAME_NOISE_RANGE = 0.0
+BALL_OBSERVATION_MAX_DELAY_STEPS = 0
+BALL_OBSERVATION_HOLD_PROBABILITY = 0.0
 PHASE_PERIOD = 0.6
 BALL_DISTURBANCE_INTERVAL_RANGE = (5.0, 6.0)
 BALL_DISTURBANCE_LINEAR_VELOCITY_RANGE = (
@@ -870,13 +872,21 @@ class PerturbedBallObserver:
     seed: int | None = None,
     bias_range: float = BALL_OBSERVATION_BIAS_RANGE,
     frame_noise_range: float = BALL_OBSERVATION_FRAME_NOISE_RANGE,
+    max_delay_steps: int = BALL_OBSERVATION_MAX_DELAY_STEPS,
+    hold_probability: float = BALL_OBSERVATION_HOLD_PROBABILITY,
   ) -> None:
     if bias_range < 0.0 or frame_noise_range < 0.0:
       raise ValueError("Ball observation disturbance ranges must be non-negative.")
+    if max_delay_steps < 0:
+      raise ValueError("Ball observation delay must be non-negative.")
+    if not 0.0 <= hold_probability <= 1.0:
+      raise ValueError("Ball observation hold probability must be in [0, 1].")
     self._observer = observer
     self._rng = np.random.default_rng(seed)
     self._bias_range = bias_range
     self._frame_noise_range = frame_noise_range
+    self._max_delay_steps = max_delay_steps
+    self._hold_probability = hold_probability
     self._bias = np.zeros(2, dtype=np.float32)
     self._delay_steps = 0
     self._history: deque[tuple[FloatArray, FloatArray]] = deque(maxlen=3)
@@ -887,7 +897,11 @@ class PerturbedBallObserver:
     self._bias = self._rng.uniform(
       -self._bias_range, self._bias_range, size=2
     ).astype(np.float32)
-    self._delay_steps = int(self._rng.integers(0, 3))
+    self._delay_steps = (
+      int(self._rng.integers(0, self._max_delay_steps + 1))
+      if self._max_delay_steps > 0
+      else 0
+    )
     self._history.clear()
     self._last = None
 
@@ -906,7 +920,7 @@ class PerturbedBallObserver:
       feet_to_ball = feet_to_ball.reshape(-1).astype(np.float32)
     current = (ball_pos.copy(), feet_to_ball.copy())
     self._history.append(current)
-    if self._last is not None and self._rng.random() < 0.03:
+    if self._last is not None and self._rng.random() < self._hold_probability:
       return self._last
     index = max(0, len(self._history) - 1 - self._delay_steps)
     output = self._history[index]
@@ -1594,7 +1608,8 @@ def run(cfg: Sim2SimCfg) -> None:
       "Ball observation disturbance: "
       f"episode_bias=+-{BALL_OBSERVATION_BIAS_RANGE:.2f}m, "
       f"frame_noise=+-{BALL_OBSERVATION_FRAME_NOISE_RANGE:.2f}m, "
-      "delay=0-2 steps, hold_probability=0.03"
+      f"delay=0-{BALL_OBSERVATION_MAX_DELAY_STEPS} steps, "
+      f"hold_probability={BALL_OBSERVATION_HOLD_PROBABILITY:.2f}"
     )
   if command_generator is not None:
     print(
