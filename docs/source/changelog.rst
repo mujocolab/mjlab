@@ -123,6 +123,9 @@ Version 1.5.1 (July 15, 2026)
 Added
 ^^^^^
 
+- Added ``reduce="sum"`` to ``MetricsTermCfg`` for reporting the accumulated
+  episode total (e.g. episodic reward, total distance traveled) instead of a
+  per-step average.
 - Added ``MeshCfg``, a spec editor that matches mesh assets by name and edits
   their asset-level attributes. The first attribute is ``maxhullvert``, which
   caps the collision convex hull's vertex count to lower narrowphase cost.

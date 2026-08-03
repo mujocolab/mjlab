@@ -64,6 +64,13 @@ The reduction is controlled by the ``reduce`` field on ``MetricsTermCfg``:
 - ``"last"``: reports the value from the final step of the episode. This is
   useful for binary success metrics (such as whether the robot is standing)
   that should not be averaged over time.
+- ``"max"``: reports the highest value seen during the episode, useful for
+  peak quantities such as maximum power draw or contact force.
+- ``"sum"``: reports the accumulated total over the episode without dividing
+  by the step count. Use it for quantities that are inherently cumulative,
+  such as episodic reward or total distance traveled. Note that the value
+  grows with episode length, so it is not comparable across episodes of
+  differing duration.
 
 These scalars flow through ``env.extras["log"]`` into the training runner,
 which writes them to the configured logger. In a typical training run they
