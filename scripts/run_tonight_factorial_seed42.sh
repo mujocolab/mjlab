@@ -4,6 +4,7 @@ set -euo pipefail
 repo_dir="/home/ut/football_project/mjlab_soccer"
 current_pid="91823"
 current_run="$repo_dir/logs/rsl_rl/g1_velocity_football/2026-08-03_17-17-51_B1_A1R0_strict_IsaacLab_seed42_5k_wandb"
+a1r1_run="$repo_dir/logs/rsl_rl/g1_velocity_football/2026-08-03_15-08-26_B1_A1R1_seed42_5k_wandb"
 
 cd "$repo_dir"
 export WARP_CACHE_PATH=/tmp/warp-cache
@@ -21,6 +22,29 @@ if [[ ! -f "$current_run/model_4999.pt" ]]; then
 fi
 echo "[$(date '+%F %T')] A1R0 complete"
 
+resume_b1_to_20k() {
+  local task_id="$1"
+  local source_run="$2"
+  local run_name="$3"
+  if [[ ! -f "$source_run/model_4999.pt" ]]; then
+    echo "[$(date '+%F %T')] ERROR: missing $source_run/model_4999.pt"
+    exit 1
+  fi
+  echo "[$(date '+%F %T')] Resuming $run_name from $source_run/model_4999.pt"
+  .venv/bin/train "$task_id" \
+    --env.scene.num-envs 4096 \
+    --agent.seed 42 \
+    --agent.resume True \
+    --agent.load-run "$(basename "$source_run")" \
+    --agent.load-checkpoint model_4999.pt \
+    --agent.max-iterations 15001 \
+    --agent.save-interval 1000 \
+    --agent.logger wandb \
+    --agent.upload-model False \
+    --agent.run-name "$run_name"
+  echo "[$(date '+%F %T')] Completed $run_name at model_19999.pt"
+}
+
 run_experiment() {
   local task_id="$1"
   local run_name="$2"
@@ -35,6 +59,16 @@ run_experiment() {
     --agent.run-name "$run_name"
   echo "[$(date '+%F %T')] Completed $run_name"
 }
+
+resume_b1_to_20k \
+  Mjlab-Velocity-Football-A1R0-Flat-Unitree-G1 \
+  "$current_run" \
+  B1_A1R0_strict_IsaacLab_seed42_resume5k_to20k_wandb
+
+resume_b1_to_20k \
+  Mjlab-Velocity-Football-A1R1-Flat-Unitree-G1 \
+  "$a1r1_run" \
+  B1_A1R1_ball_center_seed42_resume5k_to20k_wandb
 
 run_experiment \
   Mjlab-Velocity-Football-A0R0-Flat-Unitree-G1 \
