@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import mujoco
 import numpy as np
@@ -12,6 +12,8 @@ from mjlab.scripts.sim2sim.d435_ball_observer import (
 )
 from mjlab.scripts.sim2sim.g1_football import (
   B1_HISTORY_OBS_DIM,
+  BALL_OBSERVATION_BIAS_RANGE,
+  BALL_OBSERVATION_FRAME_NOISE_RANGE,
   BALL_DISTURBANCE_INTERVAL_RANGE,
   BALL_DISTURBANCE_LINEAR_VELOCITY_RANGE,
   EXPECTED_ACTION_DIM,
@@ -31,6 +33,7 @@ from mjlab.scripts.sim2sim.g1_football import (
   ModelBindings,
   ObservationAssembler,
   PolicyMetadata,
+  PerturbedBallObserver,
   Sim2SimCfg,
   StopSkillCommandGenerator,
   StopSkillCommandGeneratorCfg,
@@ -38,6 +41,21 @@ from mjlab.scripts.sim2sim.g1_football import (
   compute_football_observation,
   configure_tracking_camera,
 )
+
+
+class _ConstantBallObserver:
+  def reset(self) -> None:
+    pass
+
+  def observe(self, data: Any) -> tuple[np.ndarray, np.ndarray]:
+    del data
+    return (
+      np.asarray((0.4, 0.1), dtype=np.float32),
+      np.asarray((0.2, 0.1, 0.3, 0.1), dtype=np.float32),
+    )
+
+  def close(self) -> None:
+    pass
 
 
 def make_terms(fill: float = 0.0) -> dict[str, np.ndarray]:
@@ -107,6 +125,28 @@ def test_observation_assembler_uses_term_major_five_frame_history() -> None:
     term_history = obs[offset : offset + FRAME_STACK * dim]
     np.testing.assert_array_equal(term_history, 1.0)
     offset += FRAME_STACK * dim
+
+
+def test_ball_observation_disturbance_uses_reduced_frame_noise() -> None:
+  observer = PerturbedBallObserver(_ConstantBallObserver(), seed=42)
+  observer.reset()
+  base_ball = np.asarray((0.4, 0.1), dtype=np.float32)
+  base_feet = np.asarray((0.2, 0.1, 0.3, 0.1), dtype=np.float32)
+  dummy_data = cast(mujoco.MjData, None)
+
+  assert np.all(np.abs(observer._bias) <= BALL_OBSERVATION_BIAS_RANGE)
+  for _ in range(20):
+    ball, feet = observer.observe(dummy_data)
+    error = ball - base_ball
+    frame_noise = error - observer._bias
+    assert np.all(
+      np.abs(frame_noise) <= BALL_OBSERVATION_FRAME_NOISE_RANGE + 1.0e-6
+    )
+    np.testing.assert_allclose(
+      feet.reshape(-1, 2) - base_feet.reshape(-1, 2),
+      np.broadcast_to(error, (2, 2)),
+      atol=1.0e-6,
+    )
 
 
 def test_observation_assembler_uses_latest_action_without_deployment_delay() -> None:

@@ -33,6 +33,8 @@ FRAME_STACK = 5
 TEMPORAL_HISTORY_LENGTH = 10
 BALL_VISIBILITY_X_RANGE = (0.05, 1.00)
 BALL_VISIBILITY_Y_RANGE = (-0.70, 0.70)
+BALL_OBSERVATION_BIAS_RANGE = 0.10
+BALL_OBSERVATION_FRAME_NOISE_RANGE = 0.01
 PHASE_PERIOD = 0.6
 BALL_DISTURBANCE_INTERVAL_RANGE = (5.0, 6.0)
 BALL_DISTURBANCE_LINEAR_VELOCITY_RANGE = (
@@ -862,9 +864,19 @@ class BallVelocityDisturbance:
 class PerturbedBallObserver:
   """Wrap a visual observer with real-like position bias and jitter."""
 
-  def __init__(self, observer: Any, seed: int | None = None) -> None:
+  def __init__(
+    self,
+    observer: Any,
+    seed: int | None = None,
+    bias_range: float = BALL_OBSERVATION_BIAS_RANGE,
+    frame_noise_range: float = BALL_OBSERVATION_FRAME_NOISE_RANGE,
+  ) -> None:
+    if bias_range < 0.0 or frame_noise_range < 0.0:
+      raise ValueError("Ball observation disturbance ranges must be non-negative.")
     self._observer = observer
     self._rng = np.random.default_rng(seed)
+    self._bias_range = bias_range
+    self._frame_noise_range = frame_noise_range
     self._bias = np.zeros(2, dtype=np.float32)
     self._delay_steps = 0
     self._history: deque[tuple[FloatArray, FloatArray]] = deque(maxlen=3)
@@ -872,7 +884,9 @@ class PerturbedBallObserver:
 
   def reset(self) -> None:
     self._observer.reset()
-    self._bias = self._rng.uniform(-0.10, 0.10, size=2).astype(np.float32)
+    self._bias = self._rng.uniform(
+      -self._bias_range, self._bias_range, size=2
+    ).astype(np.float32)
     self._delay_steps = int(self._rng.integers(0, 3))
     self._history.clear()
     self._last = None
@@ -882,7 +896,11 @@ class PerturbedBallObserver:
     ball_pos = np.asarray(ball_pos, dtype=np.float32)
     feet_to_ball = np.asarray(feet_to_ball, dtype=np.float32)
     if np.any(np.abs(ball_pos) > 1e-6):
-      delta = self._bias + self._rng.uniform(-0.06, 0.06, size=2)
+      delta = self._bias + self._rng.uniform(
+        -self._frame_noise_range,
+        self._frame_noise_range,
+        size=2,
+      )
       ball_pos = ball_pos + delta
       feet_to_ball = feet_to_ball.reshape(-1, 2) + delta
       feet_to_ball = feet_to_ball.reshape(-1).astype(np.float32)
@@ -1571,6 +1589,13 @@ def run(cfg: Sim2SimCfg) -> None:
   print(
     f"Football observation: source={cfg.ball_observer}, viewer_camera={cfg.camera_view}"
   )
+  if cfg.ball_observation_disturbance:
+    print(
+      "Ball observation disturbance: "
+      f"episode_bias=+-{BALL_OBSERVATION_BIAS_RANGE:.2f}m, "
+      f"frame_noise=+-{BALL_OBSERVATION_FRAME_NOISE_RANGE:.2f}m, "
+      "delay=0-2 steps, hold_probability=0.03"
+    )
   if command_generator is not None:
     print(
       "Ball-relative command generator: enabled "
