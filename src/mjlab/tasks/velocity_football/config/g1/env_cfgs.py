@@ -460,7 +460,6 @@ def unitree_g1_factorial_flat_env_cfg(
   *,
   use_b1_history: bool,
   reward_variant: FactorialBallRewardVariant,
-  disable_relative_ball_rewards: bool = False,
   play: bool = False,
   history_length: int = 10,
 ) -> ManagerBasedRlEnvCfg:
@@ -501,9 +500,6 @@ def unitree_g1_factorial_flat_env_cfg(
     actor.terms.pop("ball_pos_b")
     actor.terms.pop("ball_to_feet_vectors_b")
   _configure_factorial_ball_reward(cfg, reward_variant)
-  if disable_relative_ball_rewards:
-    cfg.rewards["track_ball_relative_vel_xy_exp"].weight = 0.0
-    cfg.rewards["track_ball_relative_pos_xy_exp"].weight = 0.0
   return cfg
 
 

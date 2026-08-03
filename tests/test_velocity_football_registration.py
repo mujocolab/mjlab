@@ -248,20 +248,3 @@ def test_factorial_tasks_freeze_b1_and_reward_contracts() -> None:
         assert ball_reward.weight == 2.0
         assert ball_reward.params["std"] == 0.8
         assert "ball_front_control" not in env_cfg.rewards
-
-
-def test_a1r1_no_relative_rewards_only_disables_requested_terms() -> None:
-  baseline = load_env_cfg("Mjlab-Velocity-Football-A1R1-Flat-Unitree-G1")
-  ablation = load_env_cfg(
-    "Mjlab-Velocity-Football-A1R1-No-Relative-Rewards-Flat-Unitree-G1"
-  )
-
-  assert ablation.rewards["track_ball_relative_vel_xy_exp"].weight == 0.0
-  assert ablation.rewards["track_ball_relative_pos_xy_exp"].weight == 0.0
-  assert (
-    ablation.rewards["ball_outside_control_zone"].weight
-    == baseline.rewards["ball_outside_control_zone"].weight
-    == -0.5
-  )
-  assert set(ablation.rewards) == set(baseline.rewards)
-  assert tuple(ablation.observations) == tuple(baseline.observations)
