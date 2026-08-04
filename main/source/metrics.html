@@ -59,7 +59,7 @@
     <link rel="prev" title="Curriculum" href="curriculum.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Aug 01, 2026"/>
+    <meta name="docbuild:last-update" content="Aug 04, 2026"/>
   </head>
   
   
@@ -540,6 +540,13 @@ terminated early are not diluted by longer-running ones.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;last&quot;</span></code>: reports the value from the final step of the episode. This is
 useful for binary success metrics (such as whether the robot is standing)
 that should not be averaged over time.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code>: reports the highest value seen during the episode, useful for
+peak quantities such as maximum power draw or contact force.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;sum&quot;</span></code>: reports the accumulated total over the episode without dividing
+by the step count. Use it for quantities that are inherently cumulative,
+such as episodic reward or total distance traveled. Note that the value
+grows with episode length, so it is not comparable across episodes of
+differing duration.</p></li>
 </ul>
 <p>These scalars flow through <code class="docutils literal notranslate"><span class="pre">env.extras[&quot;log&quot;]</span></code> into the training runner,
 which writes them to the configured logger. In a typical training run they
@@ -655,7 +662,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Aug 01, 2026.
+  Last updated on Aug 04, 2026.
   <br/>
 </p>
   </div>
