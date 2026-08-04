@@ -367,6 +367,69 @@ def test_texture_cfg():
   assert texture.name == "test_texture"
 
 
+def test_texture_cfg_image_fields():
+  """TextureCfg should set file, grid, nchannel, flip, and random fields."""
+  spec = mujoco.MjSpec()
+  texture_cfg = TextureCfg(
+    name="test_texture",
+    type="cube",
+    mark="random",
+    random=0.25,
+    file="sky.png",
+    gridsize=(3, 4),
+    gridlayout=".U..LFRB.D..",
+    nchannel=4,
+    hflip=True,
+    vflip=True,
+  )
+  texture_cfg.edit_spec(spec)
+
+  texture = spec.texture("test_texture")
+  assert texture.file == "sky.png"
+  assert tuple(texture.gridsize) == (3, 4)
+  assert texture.nchannel == 4
+  assert texture.hflip
+  assert texture.vflip
+  assert texture.random == pytest.approx(0.25)
+
+
+@pytest.mark.parametrize(
+  "param,value,expected_error",
+  [
+    ("width", 0, "width must be positive"),
+    ("width", -1, "width must be positive"),
+    ("height", 0, "height must be positive"),
+    ("height", -1, "height must be positive"),
+  ],
+)
+def test_texture_cfg_validation(param, value, expected_error):
+  """TextureCfg should validate explicitly set width and height."""
+  with pytest.raises(ValueError, match=expected_error):
+    TextureCfg(
+      name="test_texture",
+      type="2d",
+      width=value if param == "width" else 64,
+      height=value if param == "height" else 64,
+    ).validate()
+
+
+@pytest.mark.parametrize("gridsize", [None, (1, 1)])
+def test_texture_single_file_skybox_validation(gridsize):
+  """A single-image skybox cannot be sampled as six faces by the Warp renderer."""
+  with pytest.raises(ValueError, match="must declare a gridsize"):
+    TextureCfg(
+      name="sky", type="skybox", file="sky.png", gridsize=gridsize
+    ).validate()
+
+
+def test_texture_skybox_allows_grid_and_cubefiles():
+  """A larger grid or explicit cubefiles cover all six faces."""
+  TextureCfg(name="sky", type="skybox", file="sky.png", gridsize=(6, 1)).validate()
+  TextureCfg(
+    name="sky", type="skybox", cubefiles=("a", "b", "c", "d", "e", "f")
+  ).validate()
+
+
 def test_material_cfg():
   """MaterialCfg should add materials to spec."""
   spec = mujoco.MjSpec()
