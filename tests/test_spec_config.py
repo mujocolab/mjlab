@@ -408,9 +408,16 @@ def test_texture_cfg_validation(param, value, expected_error):
     TextureCfg(
       name="test_texture",
       type="2d",
+      builtin="checker",
       width=value if param == "width" else 64,
       height=value if param == "height" else 64,
     ).validate()
+
+
+def test_texture_requires_source():
+  """A texture with no builtin, file, or cubefiles has nothing to render."""
+  with pytest.raises(ValueError, match="must specify a builtin pattern"):
+    TextureCfg(name="test_texture", type="2d").validate()
 
 
 @pytest.mark.parametrize("gridsize", [None, (1, 1)])
@@ -427,6 +434,13 @@ def test_texture_skybox_allows_grid_and_cubefiles():
   TextureCfg(name="sky", type="skybox", file="sky.png", gridsize=(6, 1)).validate()
   TextureCfg(
     name="sky", type="skybox", cubefiles=("a", "b", "c", "d", "e", "f")
+  ).validate()
+
+
+def test_texture_skybox_builtin_overrides_single_file():
+  """A builtin pattern takes precedence over the file, so the grid is irrelevant."""
+  TextureCfg(
+    name="sky", type="skybox", builtin="gradient", file="sky.png"
   ).validate()
 
 

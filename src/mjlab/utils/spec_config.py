@@ -182,10 +182,14 @@ class TextureCfg(SpecCfg):
       raise ValueError("Texture width must be positive.")
     if self.height is not None and self.height <= 0:
       raise ValueError("Texture height must be positive.")
+    if self.builtin == "none" and self.file is None and self.cubefiles is None:
+      raise ValueError("Texture must specify a builtin pattern, a file, or cubefiles.")
     # A 1x1 grid compiles to a single image, but the Warp renderer samples skyboxes
     # as six faces stacked vertically. Any larger grid compiles to those six faces.
+    # A builtin pattern takes precedence over the file and always fills six faces.
     if (
       self.type == "skybox"
+      and self.builtin == "none"
       and self.file is not None
       and (self.gridsize is None or tuple(self.gridsize) == (1, 1))
     ):
