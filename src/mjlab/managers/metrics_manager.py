@@ -140,17 +140,10 @@ class MetricsManager(ManagerBase):
       elif reduce == "sum":
         extras["Episode_Metrics/" + key] = torch.mean(self._episode_sums[key][env_ids])
 
-      elif reduce == "mean":
+      else:
         extras["Episode_Metrics/" + key] = torch.mean(
           self._episode_sums[key][env_ids] / safe_counts
         )
-
-      else:
-        msg = (
-          f"The reduce method '{reduce}' for metric '{key}' is unknown. "
-          f"Valid options are {REDUCE_OPTIONS}."
-        )
-        raise ValueError(msg)
 
       self._episode_sums[key][env_ids] = 0.0
     self._step_count[env_ids] = 0
