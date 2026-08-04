@@ -35,11 +35,31 @@ Added
 - Added ``reduce="sum"`` to ``MetricsTermCfg`` for reporting the accumulated
   episode total (e.g. episodic reward, total distance traveled) instead of a
   per-step average. Contribution by @bd-mlutter
+- Added ``ViewerConfig.geom_group`` and ``ViewerConfig.site_group`` to control
+  which MuJoCo geom and site visualization groups the offscreen renderer draws.
+  Both default to ``(1, 1, 1, 0, 0, 0)``, matching the previous behavior.
+  Contribution by @bd-mlutter
 
 Changed
 ^^^^^^^
 
 - Bumped ``rsl-rl-lib`` from 5.4.0 to 5.4.2.
+- ``ViewerConfig`` is now keyword-only. Its fields were reordered into semantic
+  groups (general options, camera placement, then origin-type-specific fields),
+  so positional construction is no longer supported.
+- ``ViewerConfig.fovy`` now applies to every ``origin_type``. It was previously
+  ignored for the tracking cameras (``ASSET_ROOT`` / ``ASSET_BODY``); set
+  ``fovy = None`` to keep the model default.
+- With ``origin_type`` of ``AUTO`` or ``WORLD``, the extra environments selected
+  by ``ViewerConfig.max_extra_envs`` are now the ones closest to ``lookat``
+  rather than the ones closest to ``env_idx``. Tracking cameras
+  (``ASSET_ROOT`` / ``ASSET_BODY``) still select neighbors around ``env_idx``.
+- ``ViewerConfig.max_extra_envs`` now raises a ``ValueError`` when it is
+  negative or when it requests more environments than the simulation has,
+  instead of being silently clamped.
+- The offscreen renderer copies the ``MjModel`` instead of mutating a shared
+  model. Therefore the options ``enable_shadows``, ``enable_reflections`` and
+  ``extent`` are local to the ``OffscreenRenderer``.
 - ``CollisionCfg`` and ``GeomCfg`` now share one write path, and mjlab warns
   when a ``GeomCfg`` collision patch is overwritten by a ``CollisionCfg``.
 - Changed the default MuJoCo Warp render background to solid black

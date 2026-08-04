@@ -31,17 +31,36 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
       env_idx: Index of the environment being visualized
       show_all_envs: If True, visualize all environments instead of just env_idx
     """
-    self.scn = scn
-    self.mj_model = mj_model
+    # DebugVisualizer Interface
     self.env_idx = env_idx
     self.show_all_envs = show_all_envs
+
+    # Native MuJoCo viewer specific variables
+    self._mjv_scene = scn
     self._initial_geom_count = scn.ngeom
     self._meansize: float = mj_model.stat.meansize
 
+    # These variables are only needed for the ghost visualization
+    # - The ghost is transparency is controlled using the self._vopt.flags
+    # - ref_mj_model should not be modified as it is just a reference
+    self._ref_mj_model = mj_model
+    self._mj_data = mujoco.MjData(mj_model)
     self._vopt = mujoco.MjvOption()
     self._vopt.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT] = True
     self._pert = mujoco.MjvPerturb()
-    self._viz_data = mujoco.MjData(mj_model)
+
+  @property
+  def scn(self) -> mujoco.MjvScene:
+    """Get the mjvScene that is visualized."""
+    # TODO(): Should the scene be accessible from the outside.
+    return self._mjv_scene
+
+  @property
+  def mj_model(self) -> mujoco.MjModel:
+    """Get the mjModel used to initialize the internal mjData buffer."""
+    # TODO(): Should that model be accessible using the MuJoCoNativeDebugVisualizer as it is
+    #  just a reference and unclear which other class is using this model?
+    return self._ref_mj_model
 
   @property
   @override
@@ -60,8 +79,8 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
     """Add an arrow visualization using MuJoCo's arrow geometry."""
     del label  # Unused.
 
-    self.scn.ngeom += 1
-    geom = self.scn.geoms[self.scn.ngeom - 1]
+    self._mjv_scene.ngeom += 1
+    geom = self._mjv_scene.geoms[self._mjv_scene.ngeom - 1]
     geom.category = mujoco.mjtCatBit.mjCAT_DECOR
 
     mujoco.mjv_initGeom(
@@ -102,30 +121,34 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
       alpha: Transparency override (not used in MuJoCo implementation)
       label: Optional label (not used in MuJoCo implementation)
     """
+    # alpha is not used as the ghost is transparency is controlled using the self._vopt.flags
     del alpha, label  # Unused.
 
-    self._viz_data.qpos[:] = qpos
+    # The model passed as function argument has to have the same structure as self._ref_mj_model as
+    # this model was used to create the self._mj_data. Depending on the structure mismatch, this
+    # can fail silently.
+    self._mj_data.qpos[:] = qpos
     if mocap_pos is not None and model.nmocap > 0:
       mocap_pos_arr = np.asarray(mocap_pos)
       if mocap_pos_arr.ndim == 1:
-        self._viz_data.mocap_pos[0] = mocap_pos_arr
+        self._mj_data.mocap_pos[0] = mocap_pos_arr
       else:
-        self._viz_data.mocap_pos[:] = mocap_pos_arr
+        self._mj_data.mocap_pos[:] = mocap_pos_arr
     if mocap_quat is not None and model.nmocap > 0:
       mocap_quat_arr = np.asarray(mocap_quat)
       if mocap_quat_arr.ndim == 1:
-        self._viz_data.mocap_quat[0] = mocap_quat_arr
+        self._mj_data.mocap_quat[0] = mocap_quat_arr
       else:
-        self._viz_data.mocap_quat[:] = mocap_quat_arr
-    mujoco.mj_forward(model, self._viz_data)
+        self._mj_data.mocap_quat[:] = mocap_quat_arr
+    mujoco.mj_forward(model, self._mj_data)
 
     mujoco.mjv_addGeoms(
       model,
-      self._viz_data,
+      self._mj_data,
       self._vopt,
       self._pert,
       mujoco.mjtCatBit.mjCAT_DYNAMIC.value,
-      self.scn,
+      self._mjv_scene,
     )
 
   @override
@@ -168,8 +191,8 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
     """Add a sphere visualization using MuJoCo's sphere geometry."""
     del label  # Unused.
 
-    self.scn.ngeom += 1
-    geom = self.scn.geoms[self.scn.ngeom - 1]
+    self._mjv_scene.ngeom += 1
+    geom = self._mjv_scene.geoms[self._mjv_scene.ngeom - 1]
     geom.category = mujoco.mjtCatBit.mjCAT_DECOR
 
     mujoco.mjv_initGeom(
@@ -193,8 +216,8 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
     """Add a cylinder visualization using MuJoCo's cylinder connector."""
     del label  # Unused.
 
-    self.scn.ngeom += 1
-    geom = self.scn.geoms[self.scn.ngeom - 1]
+    self._mjv_scene.ngeom += 1
+    geom = self._mjv_scene.geoms[self._mjv_scene.ngeom - 1]
     geom.category = mujoco.mjtCatBit.mjCAT_DECOR
 
     mujoco.mjv_initGeom(
@@ -225,8 +248,8 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
     """Add an ellipsoid visualization using MuJoCo's ellipsoid geometry."""
     del label  # Unused.
 
-    self.scn.ngeom += 1
-    geom = self.scn.geoms[self.scn.ngeom - 1]
+    self._mjv_scene.ngeom += 1
+    geom = self._mjv_scene.geoms[self._mjv_scene.ngeom - 1]
     geom.category = mujoco.mjtCatBit.mjCAT_DECOR
 
     mujoco.mjv_initGeom(
@@ -250,8 +273,8 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
     """Add a box visualization using MuJoCo's box geometry."""
     del label  # Unused.
 
-    self.scn.ngeom += 1
-    geom = self.scn.geoms[self.scn.ngeom - 1]
+    self._mjv_scene.ngeom += 1
+    geom = self._mjv_scene.geoms[self._mjv_scene.ngeom - 1]
     geom.category = mujoco.mjtCatBit.mjCAT_DECOR
 
     mujoco.mjv_initGeom(
@@ -266,4 +289,4 @@ class MujocoNativeDebugVisualizer(DebugVisualizer):
   @override
   def clear(self) -> None:
     """Clear debug visualizations by resetting geom count."""
-    self.scn.ngeom = self._initial_geom_count
+    self._mjv_scene.ngeom = self._initial_geom_count
