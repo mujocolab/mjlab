@@ -39,6 +39,8 @@ Added
 Changed
 ^^^^^^^
 
+- Bumped ``mujoco`` and ``mujoco-warp`` from 3.10 to 3.11, and regenerated the
+  bundled MuJoCo type stubs.
 - Bumped ``rsl-rl-lib`` from 5.4.0 to 5.4.2.
 - ``CollisionCfg`` and ``GeomCfg`` now share one write path, and mjlab warns
   when a ``GeomCfg`` collision patch is overwritten by a ``CollisionCfg``.
