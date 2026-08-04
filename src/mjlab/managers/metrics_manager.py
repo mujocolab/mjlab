@@ -14,26 +14,33 @@ from mjlab.managers.manager_base import ManagerBase, ManagerTermBaseCfg
 if TYPE_CHECKING:
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
 
+REDUCE_OPTIONS = ("last", "max", "mean", "sum")
+
 
 @dataclass(kw_only=True)
 class MetricsTermCfg(ManagerTermBaseCfg):
   """Configuration for a metrics term.
 
   Attributes:
-    per_substep: If True, evaluate this term once per physics substep inside the
-    decimation loop and report the per-step mean. Only the integrated state
-    (qpos, qvel, act) is current mid-loop; all derived quantities (xpos, xquat,
-    site_xpos, actuator_force, contacts, ...) are stale.
+    per_substep: If True, evaluate this term once per physics substep inside
+      the decimation loop and report the per-step mean. Only the integrated
+      state (qpos, qvel, act) is current mid-loop; all derived quantities
+      (xpos, xquat, site_xpos, actuator_force, contacts, ...) are stale.
+
     reduce: How to aggregate per-step values into an episode metric.
-    ``"mean"`` (default) reports ``sum / step_count``. ``"last"`` reports
-    the value from the final step of the episode, which is useful for binary
-    success metrics that should not be averaged over timesteps. ``"max"``
-    reports the highest value seen during the episode, useful for peak
-    metrics like maximum power or contact force.
+      - ``"mean"`` (default) reports ``sum / step_count``.
+      - ``"last"`` reports the value from the final step of the episode,
+        useful for binary success metrics that should not be averaged over
+        timesteps.
+      - ``"max"`` reports the highest value seen during the episode, useful
+        for peak metrics like maximum power or contact force.
+      - ``"sum"`` reports the accumulated total over the episode, useful for
+        cumulative quantities like episodic reward or total distance
+        traveled.
   """
 
   per_substep: bool = False
-  reduce: Literal["mean", "last", "max"] = "mean"
+  reduce: Literal["last", "max", "mean", "sum"] = "mean"
 
 
 class MetricsManager(ManagerBase):
@@ -60,9 +67,17 @@ class MetricsManager(ManagerBase):
     self._episode_sums: dict[str, torch.Tensor] = {}
     self._episode_max: dict[str, torch.Tensor] = {}
     for idx, term_name in enumerate(self._term_names):
+      if self._term_cfgs[idx].reduce not in REDUCE_OPTIONS:
+        msg = (
+          f"The reduce method '{self._term_cfgs[idx].reduce}' for metric '{term_name}' "
+          f"is unknown. Valid options are {REDUCE_OPTIONS}."
+        )
+        raise ValueError(msg)
+
       self._episode_sums[term_name] = torch.zeros(
         self.num_envs, dtype=torch.float, device=self.device
       )
+
       if self._term_cfgs[idx].reduce == "max":
         self._episode_max[term_name] = torch.full(
           (self.num_envs,), float("-inf"), dtype=torch.float, device=self.device
@@ -118,18 +133,27 @@ class MetricsManager(ManagerBase):
       if reduce == "max":
         extras["Episode_Metrics/" + key] = torch.mean(self._episode_max[key][env_ids])
         self._episode_max[key][env_ids] = float("-inf")
+
       elif reduce == "last":
         extras["Episode_Metrics/" + key] = torch.mean(self._step_values[env_ids, idx])
+
+      elif reduce == "sum":
+        extras["Episode_Metrics/" + key] = torch.mean(self._episode_sums[key][env_ids])
+
       else:
         extras["Episode_Metrics/" + key] = torch.mean(
           self._episode_sums[key][env_ids] / safe_counts
         )
+
       self._episode_sums[key][env_ids] = 0.0
     self._step_count[env_ids] = 0
+
     for buf in self._substep_accum:
       buf[env_ids] = 0.0
+
     for term_cfg in self._class_term_cfgs:
       term_cfg.func.reset(env_ids=env_ids)
+
     return extras
 
   def compute_substep(self) -> None:

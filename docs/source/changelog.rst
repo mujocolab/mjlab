@@ -27,6 +27,9 @@ Added
 - Added light domain randomization functions: ``dr.light_diffuse``,
   ``dr.light_specular``, ``dr.light_ambient``, ``dr.light_attenuation``,
   ``dr.light_cutoff``, and ``dr.light_exponent``. Contribution by @bd-pmorais.
+- Added ``reduce="sum"`` to ``MetricsTermCfg`` for reporting the accumulated
+  episode total (e.g. episodic reward, total distance traveled) instead of a
+  per-step average. Contribution by @bd-mlutter
 
 Changed
 ^^^^^^^
