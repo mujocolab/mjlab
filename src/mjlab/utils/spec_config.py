@@ -123,20 +123,36 @@ class TextureCfg(SpecCfg):
   """Name of the texture."""
   type: Literal["2d", "cube", "skybox"]
   """Texture type ("2d", "cube", or "skybox")."""
-  builtin: Literal["checker", "gradient", "flat", "none"]
+  builtin: Literal["checker", "gradient", "flat", "none"] = "none"
   """Built-in texture pattern ("checker", "gradient", "flat", or "none")."""
-  rgb1: tuple[float, float, float]
+  rgb1: tuple[float, float, float] | None = None
   """First RGB color tuple."""
-  rgb2: tuple[float, float, float]
+  rgb2: tuple[float, float, float] | None = None
   """Second RGB color tuple."""
-  width: int
-  """Texture width in pixels (must be positive)."""
-  height: int
-  """Texture height in pixels (must be positive)."""
+  width: int | None = None
+  """Texture width in pixels."""
+  height: int | None = None
+  """Texture height in pixels."""
   mark: Literal["edge", "cross", "random", "none"] = "none"
   """Marking pattern ("edge", "cross", "random", or "none")."""
   markrgb: tuple[float, float, float] = (0.0, 0.0, 0.0)
   """RGB color for markings."""
+  random: float = 0.01
+  """Fraction of marked pixels when mark is "random"."""
+  file: str | None = None
+  """Path to an image file to load the texture from."""
+  cubefiles: tuple[str, ...] | None = None
+  """Paths to the six face images of a cube or skybox texture."""
+  gridsize: tuple[int, int] | None = None
+  """Rows and columns of the face grid in the file. Cube and skybox only."""
+  gridlayout: str | None = None
+  """Twelve-character face layout of the grid in the file. Cube and skybox only."""
+  nchannel: int = 3
+  """Number of channels in the texture."""
+  hflip: bool = False
+  """Whether to flip the loaded image horizontally."""
+  vflip: bool = False
+  """Whether to flip the loaded image vertically."""
 
   def edit_spec(self, spec: mujoco.MjSpec) -> None:
     self.validate()
@@ -149,13 +165,38 @@ class TextureCfg(SpecCfg):
       rgb1=self.rgb1,
       rgb2=self.rgb2,
       markrgb=self.markrgb,
+      random=self.random,
       width=self.width,
       height=self.height,
+      nchannel=self.nchannel,
+      file=self.file,
+      cubefiles=self.cubefiles,
+      gridsize=self.gridsize,
+      gridlayout=self.gridlayout,
+      hflip=self.hflip,
+      vflip=self.vflip,
     )
 
   def validate(self) -> None:
-    if self.width <= 0 or self.height <= 0:
-      raise ValueError("Texture width and height must be positive.")
+    if self.width is not None and self.width <= 0:
+      raise ValueError("Texture width must be positive.")
+    if self.height is not None and self.height <= 0:
+      raise ValueError("Texture height must be positive.")
+    if self.builtin == "none" and self.file is None and self.cubefiles is None:
+      raise ValueError("Texture must specify a builtin pattern, a file, or cubefiles.")
+    # A 1x1 grid compiles to a single image, but the Warp renderer samples skyboxes
+    # as six faces stacked vertically. Any larger grid compiles to those six faces.
+    # A builtin pattern takes precedence over the file and always fills six faces.
+    if (
+      self.type == "skybox"
+      and self.builtin == "none"
+      and self.file is not None
+      and (self.gridsize is None or tuple(self.gridsize) == (1, 1))
+    ):
+      raise ValueError(
+        "A skybox loaded from a single file must declare a gridsize larger than "
+        "1x1, or be specified via cubefiles."
+      )
 
 
 @dataclass
