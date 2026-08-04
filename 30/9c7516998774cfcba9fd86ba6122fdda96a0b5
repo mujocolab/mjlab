@@ -1,0 +1,28 @@
+src/mjlab/terrains/primitive_terrains.py
+  s_eef43af95bbdfd::t_20254ef41d349d 1321
+  s_eef43af95bbdfd::t_3f190dfc990ead 1212-1213,1248,1312-1320
+tests/test_terrains.py
+  s_eef43af95bbdfd::t_2451feeae4aa30 3,43-44,49,51,56,60-64,66-84,87-95,101,111-117
+  s_eef43af95bbdfd::t_5d79a181e50a4e 85-86,96-100,102-110,118-129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "309c7516998774cfcba9fd86ba6122fdda96a0b5",
+  "prompts": {},
+  "humans": {
+    "h_e197986801cbf1": {
+      "author": "Louis Le Lay <louis_lelay@tests-MBP.localdomain>"
+    }
+  },
+  "sessions": {
+    "s_eef43af95bbdfd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ece9becf-5450-4c41-9e46-abd9a5ba2733",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Louis Le Lay <louis_lelay@tests-MBP.localdomain>"
+    }
+  }
+}
