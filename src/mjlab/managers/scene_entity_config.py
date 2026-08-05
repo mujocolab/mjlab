@@ -125,8 +125,10 @@ class SceneEntityCfg:
   """IDs of materials to include. Can be a list or slice."""
 
   texture_names: str | tuple[str, ...] | None = None
+  """Names of textures to include. Can be a single string or tuple."""
 
   texture_ids: list[int] | slice = field(default_factory=lambda: slice(None))
+  """IDs of textures to include. Can be a list or slice."""
 
   pair_names: str | tuple[str, ...] | None = None
   """Names of contact pairs to include. Can be a single string or tuple."""

@@ -1416,12 +1416,13 @@ world-space positions directly from GPU simulation data (``cam_xpos``,
 
 .. note::
 
-   ``geom_rgba`` and ``geom_size`` DR are **not** reflected in viser. Geom
-   colors and sizes are baked into the scene's GLB meshes at construction
-   time. The underlying viser API (``add_batched_meshes_simple``) supports
-   per-instance color updates via ``batched_colors``, but this requires
-   routing color-only geoms through a different handle type than the current
-   ``add_batched_meshes_trimesh`` path. Deferred for a future update.
+   ``geom_rgba``, ``geom_size`` and ``mat_texid`` DR are **not** reflected
+   in viser. Geom colors, sizes and textures are baked into the scene's
+   GLB meshes at construction time. The underlying viser API
+   (``add_batched_meshes_simple``) supports per-instance color updates via
+   ``batched_colors``, but this requires routing color-only geoms through
+   a different handle type than the current ``add_batched_meshes_trimesh``
+   path. Deferred for a future update.
 
 
 Migrating from Isaac Lab
