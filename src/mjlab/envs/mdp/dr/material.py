@@ -4,10 +4,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import mujoco
+
 from mjlab.managers.event_manager import requires_model_fields
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
-from ._core import _DEFAULT_ASSET_CFG, Ranges, _randomize_model_field
+from ._core import (
+  _DEFAULT_ASSET_CFG,
+  Ranges,
+  _get_entity_indices,
+  _randomize_categorical_field,
+  _randomize_model_field,
+)
 from ._types import Distribution, Operation
 
 if TYPE_CHECKING:
@@ -186,4 +194,37 @@ def mat_texrepeat(
     axes=axes,
     shared_random=shared_random,
     default_axes=[0, 1],
+  )
+
+
+@requires_model_fields("mat_texid")
+def mat_texid(
+  env: ManagerBasedRlEnv,
+  env_ids: torch.Tensor | None,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+  role: int = mujoco.mjtTextureRole.mjTEXROLE_RGB.value,
+  shared_random: bool = False,
+) -> None:
+  """Randomize which texture each selected material uses.
+
+  A material stores one texture per ``mjtTextureRole`` slot; only the ``role``
+  slot is modified, drawn uniformly from ``asset_cfg.texture_names``.
+  """
+  asset = env.scene[asset_cfg.name]
+  tex_ids = _get_entity_indices(asset.indexing, asset_cfg, "texture", False)
+  if tex_ids.numel() == 0:
+    raise ValueError(
+      f"No textures selected for entity '{asset_cfg.name}'. Set "
+      "SceneEntityCfg.texture_names to a non-empty selection."
+    )
+
+  _randomize_categorical_field(
+    env,
+    env_ids,
+    "mat_texid",
+    entity_type="material",
+    pool=tex_ids,
+    asset_cfg=asset_cfg,
+    shared_random=shared_random,
+    axis=role,
   )

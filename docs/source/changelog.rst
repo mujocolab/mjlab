@@ -35,6 +35,10 @@ Added
 - Added ``reduce="sum"`` to ``MetricsTermCfg`` for reporting the accumulated
   episode total (e.g. episodic reward, total distance traveled) instead of a
   per-step average. Contribution by @bd-mlutter
+- Added ``dr.mat_texid`` to randomize which texture fills a given
+  ``mjtTextureRole`` slot (RGB by default) of each selected material,
+  sampling uniformly from ``asset_cfg.texture_names``. Contribution by
+  @bd-pmorais.
 
 Changed
 ^^^^^^^

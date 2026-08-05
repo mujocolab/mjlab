@@ -34,6 +34,7 @@ VIEWER_MODEL_FIELDS = frozenset(
     "mat_rgba",
     "mat_shininess",
     "mat_specular",
+    "mat_texid",
     "mat_texrepeat",
     "site_pos",
     "site_quat",
