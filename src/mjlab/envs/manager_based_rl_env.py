@@ -192,6 +192,10 @@ class ManagerBasedRlEnv:
       self.cfg.scene.num_envs, dtype=torch.bool, device=device
     )
 
+    # Scratch buffer for the per-env command dt used on auto-reset steps. See
+    # the comment in step() next to the auto-reset block.
+    self._command_dt = torch.zeros(self.cfg.scene.num_envs, device=device)
+
     # Initialize scene and simulation.
     self.scene = Scene(self.cfg.scene, device=device)
     self.sim = Simulation(
@@ -368,10 +372,10 @@ class ManagerBasedRlEnv:
     self.extras["log"] = dict()
     self._reset_idx(env_ids)
     self.scene.write_data_to_sim()
-    self.sim.forward()
-    self.command_manager.compute(dt=0.0)
-    self.sim.sense()
-    self.obs_buf = self.observation_manager.compute(update_history=True)
+
+    # dt = 0 as the internal timer should not be updated
+    self._update_commands_and_observations(dt=0.0)
+
     self.recorder_manager.record_post_reset(env_ids)
     return self.obs_buf, self.extras
 
@@ -416,6 +420,15 @@ class ManagerBasedRlEnv:
       )
 
     self.extras["log"] = dict()
+
+    if "step" in self.event_manager.available_modes:
+      # The dt is not used for step events as only the step count and not the
+      # time matters.
+      self.event_manager.apply(mode="step", dt=self.step_dt)
+
+    if "interval" in self.event_manager.available_modes:
+      self.event_manager.apply(mode="interval", dt=self.step_dt)
+
     self.action_manager.process_action(action.to(self.device))
 
     for _ in range(self.cfg.decimation):
@@ -440,33 +453,31 @@ class ManagerBasedRlEnv:
     self.reward_buf = self.reward_manager.compute(dt=self.step_dt)
     self.metrics_manager.compute()
 
+    # Set the command dt buffer to the default step dt. If the environment is
+    # reset, the command dt is zeroed to not increment the timers directly after
+    # the reset, which is identical to the reset function.
+    cmd_dt = self._command_dt
+    cmd_dt.fill_(self.step_dt)
+
     # Reset envs that terminated/timed-out and log the episode info.
     reset_env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+
     if self.cfg.auto_reset and len(reset_env_ids) > 0:
       self.recorder_manager.record_pre_reset(reset_env_ids)
       self._reset_idx(reset_env_ids)
       self.scene.write_data_to_sim()
 
-    # Single forward() call: recompute derived quantities from current
-    # qpos/qvel for every env. For non-reset envs this resolves the
-    # one-substep staleness left by mj_step; for reset envs it picks up
-    # the freshly written reset state.
-    self.sim.forward()
+      # Zero the command dt for the reset environments
+      cmd_dt[reset_env_ids] = 0.0
 
-    self.command_manager.compute(dt=self.step_dt)
-
-    if "step" in self.event_manager.available_modes:
-      self.event_manager.apply(mode="step", dt=self.step_dt)
-    if "interval" in self.event_manager.available_modes:
-      self.event_manager.apply(mode="interval", dt=self.step_dt)
-
-    self.sim.sense()
-    self.obs_buf = self.observation_manager.compute(update_history=True)
-
-    if self.cfg.auto_reset and len(reset_env_ids) > 0:
+      self._update_commands_and_observations(dt=cmd_dt)
       self.recorder_manager.record_post_reset(reset_env_ids)
-    elif len(reset_env_ids) > 0:
-      self._manual_reset_pending[reset_env_ids] = True
+
+    else:
+      self._update_commands_and_observations(dt=cmd_dt)
+
+      if len(reset_env_ids) > 0:
+        self._manual_reset_pending[reset_env_ids] = True
 
     self.recorder_manager.record_post_step()
 
@@ -550,6 +561,21 @@ class ManagerBasedRlEnv:
     self.observation_space = batch_space(self.single_observation_space, self.num_envs)
     self.action_space = batch_space(self.single_action_space, self.num_envs)
 
+  def _update_commands_and_observations(self, dt: float | torch.Tensor) -> None:
+    """Update the command and observation manager.
+
+    Args:
+      dt: Time elapsed since the last update. dt is 0.0 for environments that were reset
+        and dt is step_dt for environments that were stepped.
+    """
+    # Single forward() call: recompute all MjData fields using the current qpos & qvel.
+    # For running environments, this resolves the one-substep staleness left by mj_step.
+    # For reset environments, this updates the fields with the new qpos and qvel.
+    self.sim.forward()
+    self.command_manager.compute(dt=dt)
+    self.sim.sense()
+    self.obs_buf = self.observation_manager.compute(update_history=True)
+
   def _reset_idx(self, env_ids: torch.Tensor | None = None) -> None:
     self.curriculum_manager.compute(env_ids=env_ids)
     self.sim.reset(env_ids)
@@ -586,6 +612,11 @@ class ManagerBasedRlEnv:
     # termination manager.
     info = self.termination_manager.reset(env_ids)
     self.extras["log"].update(info)
+
+    # Log the number of envs that were reset.
+    num_reset = self.num_envs if env_ids is None else len(env_ids)
+    self.extras["log"]["Episode/num_reset_envs"] = num_reset
+
     # reset the episode length buffer.
     self.episode_length_buf[env_ids] = 0
     self._manual_reset_pending[env_ids] = False

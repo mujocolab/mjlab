@@ -45,6 +45,20 @@ Changed
 - Changed the default MuJoCo Warp render background to solid black
   (``0, 0, 0, 1``), matching MuJoCo's native renderer. Contribution by
   @bd-pmorais.
+- ``step() -> reset()`` behaves identical to ``auto_reset = True``, which was
+  previously not the case. The changes to make this happen are:
+
+  - ``step`` and ``interval`` events are updated at the start of ``step()``, before
+    the action is processed and before the decimation loop, instead of after it.
+    This ordering is more consistent when using ``auto_reset`` enabled and disabled.
+    This implementation mimics the previous ``auto_reset`` implementation but now
+    explicitly resetting the environments works the same as using the ``auto_reset``
+    feature.
+  - ``command_manager.compute()`` receives a per-environment ``dt`` that is zero
+    for environments the auto-reset just restarted. The freshly sampled
+    resampling timers are no longer immediately decremented. This implementation
+    matches the implementation of the ``reset`` function which does not decrement
+    the timer for environments that were just restarted.
 
 Fixed
 ^^^^^

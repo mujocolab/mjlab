@@ -106,6 +106,13 @@ every environment step.
     lightweight or manage their own activation logic internally to avoid
     unnecessary computation.
 
+.. note::
+
+   Both modes fire at the *start* of ``step()``, before the action is processed
+   and before the physics loop, so a disturbance is integrated by the decimation
+   loop of the same step and its effect reaches the observation only once the
+   physics has acted on it.
+
 As with all manager terms, ``func`` points to the callable and ``params``
 holds keyword arguments forwarded to it alongside ``env`` and ``env_ids``.
 Any ``SceneEntityCfg`` values inside ``params`` are resolved once at

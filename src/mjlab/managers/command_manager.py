@@ -106,7 +106,13 @@ class CommandTerm(ManagerTermBase):
     self._resample(env_ids)
     return extras
 
-  def compute(self, dt: float) -> None:
+  def compute(self, dt: float | torch.Tensor) -> None:
+    """Advance the resampling timer and update the command.
+
+    Args:
+      dt: Elapsed time in seconds. Either a scalar applied to every environment,
+        or a tensor that contains the elapsed time per environment.
+    """
     self._update_metrics()
     self.time_left -= dt
     resample_env_ids = (self.time_left <= 0.0).nonzero().flatten()
@@ -246,7 +252,8 @@ class CommandManager(ManagerBase):
         extras[f"Metrics/{name}/{metric_name}"] = metric_value
     return extras
 
-  def compute(self, dt: float):
+  def compute(self, dt: float | torch.Tensor):
+    """Update all command terms. See :meth:`CommandTerm.compute` for ``dt``."""
     for term in self._terms.values():
       term.compute(dt)
 
@@ -320,7 +327,7 @@ class NullCommandManager:
   def reset(self, env_ids: torch.Tensor | None = None) -> dict[str, torch.Tensor]:
     return {}
 
-  def compute(self, dt: float) -> None:
+  def compute(self, dt: float | torch.Tensor) -> None:
     pass
 
   def get_command(self, name: str) -> None:

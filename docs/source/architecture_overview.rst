@@ -155,21 +155,23 @@ Each environment instance passes through four phases.
    which return the scene to an initial state with optional randomization.
    Command targets are resampled. Observation history buffers are cleared.
 
-4. **Step.** The policy action is processed by the ``ActionManager``. The
+4. **Step.** The policy action is processed by the ``ActionManager`` and the
+   ``EventManager`` updates the scheduled step and interval event. The
    physics simulation advances ``decimation`` times, with actuator commands
    applied and entity state updated each sub-step. After the decimation
    loop, the ``TerminationManager`` checks stop conditions, the
    ``RewardManager`` computes the reward signal, and any terminated
    environments are reset. A single ``forward()`` call refreshes derived
    quantities for all environments. The ``CommandManager`` advances or
-   resamples goals. Interval events fire if scheduled. Sensors update. The
-   ``ObservationManager`` assembles the observation for the next policy
-   query.
+   resamples goals. Sensors update. The ``ObservationManager`` assembles
+   the observation for the next policy query.
 
 The step sequence in order:
 
 .. code-block:: text
 
+    event_manager.apply(mode="step")
+    event_manager.apply(mode="interval")
     action_manager.process_action(action)
     for _ in range(decimation):
         action_manager.apply_action()
@@ -180,8 +182,7 @@ The step sequence in order:
     metrics_manager.compute()
     [reset terminated envs]
     sim.forward()
-    command_manager.compute()
-    event_manager.apply(mode="interval")
+    command_manager.compute()  # dt=0 for the envs just reset
     sim.sense()
     observation_manager.compute()
 
