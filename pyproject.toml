@@ -163,3 +163,10 @@ markers = [
   "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]
 addopts = "--strict-markers"
+filterwarnings = [
+  # MuJoCo Warp warns that MULTICCD (enabled by default) generates at most one
+  # contact for CCD pairs it lacks multicontact support for (e.g. cylinder-box,
+  # hfield-capsule). Test fixtures aren't validating contact fidelity for these
+  # pairs, so silence the expected noise.
+  "ignore:MULTICCD is enabled, but the scene contains CCD pairs:UserWarning",
+]
