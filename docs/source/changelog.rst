@@ -13,6 +13,12 @@ Upcoming version (not yet released)
      MuJoCo's values, and dict values for these fields must cover every
      matched geom (add a catch-all ``".*"`` entry).
 
+.. admonition:: Highlights
+   :class: note
+
+   - Upgraded to MuJoCo and MuJoCo Warp 3.11.
+   - Upgraded ``rsl-rl-lib`` to 5.4.2.
+
 Added
 ^^^^^
 
@@ -39,6 +45,9 @@ Added
   ``mjtTextureRole`` slot (RGB by default) of each selected material,
   sampling uniformly from ``asset_cfg.texture_names``. Contribution by
   @bd-pmorais.
+
+.. figure:: _static/changelog/mat_texid_dr.gif
+   :width: 30%
 
 Changed
 ^^^^^^^
