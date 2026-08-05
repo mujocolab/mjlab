@@ -411,7 +411,7 @@ def _detect_inertial_mode(body: mujoco.MjsBody) -> InertialMode:
   # zeros, flips the user-specified flag at compile time).
   if not math.isnan(float(body.fullinertia[0])):
     return "fullinertia"
-  if int(body.explicitinertial):
+  if body.explicitinertial:
     return "diagonal"
   return "mesh-derived"
 

@@ -454,7 +454,7 @@ def _spec_with_primitive(primitive_role: str = "collision") -> mujoco.MjSpec:
 def _spec_with_diagonal_inertia() -> mujoco.MjSpec:
   spec = _simple_sphere_spec()
   body = list(spec.worldbody.bodies)[0]
-  body.explicitinertial = 1
+  body.explicitinertial = True
   body.mass = 1.0
   body.ipos = np.array([0.0, 0.0, 0.0])
   body.inertia = np.array([0.001, 0.001, 0.001])
@@ -465,7 +465,7 @@ def _spec_with_diagonal_inertia() -> mujoco.MjSpec:
 def _spec_with_fullinertia() -> mujoco.MjSpec:
   spec = _simple_sphere_spec()
   body = list(spec.worldbody.bodies)[0]
-  body.explicitinertial = 1
+  body.explicitinertial = True
   body.mass = 1.0
   body.ipos = np.array([0.0, 0.0, 0.0])
   body.fullinertia = np.array([0.001, 0.001, 0.001, 0.0, 0.0, 0.0])
@@ -1225,7 +1225,7 @@ def test_select_default_values_uses_per_world_variant_defaults():
       mesh.make_sphere(subdivision=1)
     body = spec.worldbody.add_body(name="prop")
     body.add_freejoint()
-    body.explicitinertial = 1
+    body.explicitinertial = True
     body.mass = mass
     body.ipos[:] = (0.0, 0.0, 0.0)
     body.inertia[:] = inertia
@@ -1542,7 +1542,7 @@ def _explicit_mass_variant(
     mesh.make_sphere(subdivision=1)
   body = spec.worldbody.add_body(name="prop")
   body.add_freejoint()
-  body.explicitinertial = 1
+  body.explicitinertial = True
   body.mass = mass
   body.ipos[:] = (0.0, 0.0, 0.0)
   body.inertia[:] = (1e-4, 1e-4, 1e-4)

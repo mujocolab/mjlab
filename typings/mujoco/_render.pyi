@@ -3,7 +3,7 @@ import mujoco._structs
 import numpy
 import numpy.typing
 import typing
-__all__: list[str] = ['MjrContext', 'mjr_addAux', 'mjr_blitAux', 'mjr_blitBuffer', 'mjr_changeFont', 'mjr_drawPixels', 'mjr_figure', 'mjr_findRect', 'mjr_finish', 'mjr_getError', 'mjr_label', 'mjr_maxViewport', 'mjr_overlay', 'mjr_readPixels', 'mjr_rectangle', 'mjr_render', 'mjr_resizeOffscreen', 'mjr_restoreBuffer', 'mjr_setAux', 'mjr_setBuffer', 'mjr_text', 'mjr_uploadHField', 'mjr_uploadMesh', 'mjr_uploadTexture']
+__all__: list[str] = ['MjrContext', 'MjrRendererInfo', 'mjr_addAux', 'mjr_blitAux', 'mjr_blitBuffer', 'mjr_changeFont', 'mjr_defaultRendererInfo', 'mjr_drawPixels', 'mjr_figure', 'mjr_findRect', 'mjr_finish', 'mjr_getError', 'mjr_getRendererInfo', 'mjr_label', 'mjr_maxViewport', 'mjr_overlay', 'mjr_readPixels', 'mjr_rectangle', 'mjr_render', 'mjr_resizeOffscreen', 'mjr_restoreBuffer', 'mjr_setAux', 'mjr_setBuffer', 'mjr_text', 'mjr_uploadHField', 'mjr_uploadMesh', 'mjr_uploadTexture']
 class MjrContext:
     @typing.overload
     def __init__(self) -> None:
@@ -366,6 +366,24 @@ class MjrContext:
     @windowStereo.setter
     def windowStereo(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
+class MjrRendererInfo:
+    __hash__: typing.ClassVar[None] = None
+    def __copy__(self) -> MjrRendererInfo:
+        ...
+    def __deepcopy__(self, arg0: dict) -> MjrRendererInfo:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __init__(self) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    @property
+    def backend(self) -> str:
+        ...
+    @property
+    def renderer(self) -> str:
+        ...
 def mjr_addAux(index: typing.SupportsInt | typing.SupportsIndex, width: typing.SupportsInt | typing.SupportsIndex, height: typing.SupportsInt | typing.SupportsIndex, samples: typing.SupportsInt | typing.SupportsIndex, con: MjrContext) -> None:
     """
     Add Aux buffer with given index to context; free previous Aux buffer.
@@ -381,6 +399,10 @@ def mjr_blitBuffer(src: mujoco._structs.MjrRect, dst: mujoco._structs.MjrRect, f
 def mjr_changeFont(fontscale: typing.SupportsInt | typing.SupportsIndex, con: MjrContext) -> None:
     """
     Change font of existing context.
+    """
+def mjr_defaultRendererInfo(info: MjrRendererInfo) -> None:
+    """
+    Set default mjrRendererInfo.
     """
 def mjr_drawPixels(rgb: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, 1]"] | None, depth: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"] | None, viewport: mujoco._structs.MjrRect, con: MjrContext) -> None:
     """
@@ -401,6 +423,10 @@ def mjr_finish() -> None:
 def mjr_getError() -> int:
     """
     Call glGetError and return result.
+    """
+def mjr_getRendererInfo(info: MjrRendererInfo) -> None:
+    """
+    Get active renderer information.
     """
 def mjr_label(viewport: mujoco._structs.MjrRect, font: typing.SupportsInt | typing.SupportsIndex, txt: str, r: typing.SupportsFloat | typing.SupportsIndex, g: typing.SupportsFloat | typing.SupportsIndex, b: typing.SupportsFloat | typing.SupportsIndex, a: typing.SupportsFloat | typing.SupportsIndex, rt: typing.SupportsFloat | typing.SupportsIndex, gt: typing.SupportsFloat | typing.SupportsIndex, bt: typing.SupportsFloat | typing.SupportsIndex, con: MjrContext) -> None:
     """

@@ -1,6 +1,6 @@
 from __future__ import annotations
 import typing
-__all__: list[str] = ['mjrIndexType', 'mjrMeshPrimitiveType', 'mjrPixelFormat', 'mjrVertexAttributeType', 'mjrVertexAttributeUsage', 'mjtAlignFree', 'mjtBias', 'mjtBuiltin', 'mjtButton', 'mjtCTimer', 'mjtCamLight', 'mjtCamOutBit', 'mjtCamera', 'mjtCatBit', 'mjtColorSpace', 'mjtConDataField', 'mjtCone', 'mjtConflict', 'mjtConstraint', 'mjtConstraintState', 'mjtDataType', 'mjtDepthMap', 'mjtDisableBit', 'mjtDyn', 'mjtEnableBit', 'mjtEq', 'mjtEvent', 'mjtFlexSelf', 'mjtFont', 'mjtFontScale', 'mjtFrame', 'mjtFramebuffer', 'mjtGain', 'mjtGeom', 'mjtGeomInertia', 'mjtGridPos', 'mjtInertiaFromGeom', 'mjtIntegrator', 'mjtItem', 'mjtJacobian', 'mjtJoint', 'mjtLRMode', 'mjtLabel', 'mjtLightType', 'mjtLimited', 'mjtLogLevel', 'mjtLogTopic', 'mjtMark', 'mjtMeshBuiltin', 'mjtMeshInertia', 'mjtMouse', 'mjtObj', 'mjtOrientation', 'mjtPertBit', 'mjtPluginCapabilityBit', 'mjtProjection', 'mjtRayDataField', 'mjtRndFlag', 'mjtSDFType', 'mjtSameFrame', 'mjtSection', 'mjtSensor', 'mjtSleepPolicy', 'mjtSleepState', 'mjtSolver', 'mjtStage', 'mjtState', 'mjtStereo', 'mjtTexture', 'mjtTextureRole', 'mjtTimer', 'mjtTrn', 'mjtVisFlag', 'mjtWarning', 'mjtWrap']
+__all__: list[str] = ['mjrIndexType', 'mjrMeshPrimitiveType', 'mjrPixelFormat', 'mjrVertexAttributeType', 'mjrVertexAttributeUsage', 'mjtAlignFree', 'mjtBias', 'mjtBuiltin', 'mjtButton', 'mjtCTimer', 'mjtCamLight', 'mjtCamOutBit', 'mjtCamera', 'mjtCatBit', 'mjtColorSpace', 'mjtConDataField', 'mjtCone', 'mjtConflict', 'mjtConstraint', 'mjtConstraintState', 'mjtCtrlChart', 'mjtDataType', 'mjtDepthMap', 'mjtDisableBit', 'mjtDyn', 'mjtEnableBit', 'mjtEq', 'mjtEvent', 'mjtFlexSelf', 'mjtFont', 'mjtFontScale', 'mjtFrame', 'mjtFramebuffer', 'mjtGain', 'mjtGeom', 'mjtGeomInertia', 'mjtGridPos', 'mjtInertiaFromGeom', 'mjtIntegrator', 'mjtItem', 'mjtJacobian', 'mjtJoint', 'mjtLRMode', 'mjtLabel', 'mjtLightType', 'mjtLimited', 'mjtLogLevel', 'mjtLogTopic', 'mjtMark', 'mjtMeshBuiltin', 'mjtMeshInertia', 'mjtMouse', 'mjtObj', 'mjtOrientation', 'mjtPertBit', 'mjtPluginCapabilityBit', 'mjtProjection', 'mjtRayDataField', 'mjtRndFlag', 'mjtSDFType', 'mjtSameFrame', 'mjtSection', 'mjtSensor', 'mjtSleepPolicy', 'mjtSleepState', 'mjtSolver', 'mjtStage', 'mjtState', 'mjtStereo', 'mjtTexture', 'mjtTextureRole', 'mjtTimer', 'mjtTrn', 'mjtVisFlag', 'mjtWarning', 'mjtWrap']
 class mjrIndexType:
     """
     Members:
@@ -784,14 +784,17 @@ class mjtBias:
     
       mjBIAS_DCMOTOR
     
+      mjBIAS_SO3
+    
       mjBIAS_USER
     """
-    __members__: typing.ClassVar[dict[str, mjtBias]]  # value = {'mjBIAS_NONE': <mjtBias.mjBIAS_NONE: 0>, 'mjBIAS_AFFINE': <mjtBias.mjBIAS_AFFINE: 1>, 'mjBIAS_MUSCLE': <mjtBias.mjBIAS_MUSCLE: 2>, 'mjBIAS_DCMOTOR': <mjtBias.mjBIAS_DCMOTOR: 3>, 'mjBIAS_USER': <mjtBias.mjBIAS_USER: 4>}
+    __members__: typing.ClassVar[dict[str, mjtBias]]  # value = {'mjBIAS_NONE': <mjtBias.mjBIAS_NONE: 0>, 'mjBIAS_AFFINE': <mjtBias.mjBIAS_AFFINE: 1>, 'mjBIAS_MUSCLE': <mjtBias.mjBIAS_MUSCLE: 2>, 'mjBIAS_DCMOTOR': <mjtBias.mjBIAS_DCMOTOR: 3>, 'mjBIAS_SO3': <mjtBias.mjBIAS_SO3: 4>, 'mjBIAS_USER': <mjtBias.mjBIAS_USER: 5>}
     mjBIAS_AFFINE: typing.ClassVar[mjtBias]  # value = <mjtBias.mjBIAS_AFFINE: 1>
     mjBIAS_DCMOTOR: typing.ClassVar[mjtBias]  # value = <mjtBias.mjBIAS_DCMOTOR: 3>
     mjBIAS_MUSCLE: typing.ClassVar[mjtBias]  # value = <mjtBias.mjBIAS_MUSCLE: 2>
     mjBIAS_NONE: typing.ClassVar[mjtBias]  # value = <mjtBias.mjBIAS_NONE: 0>
-    mjBIAS_USER: typing.ClassVar[mjtBias]  # value = <mjtBias.mjBIAS_USER: 4>
+    mjBIAS_SO3: typing.ClassVar[mjtBias]  # value = <mjtBias.mjBIAS_SO3: 4>
+    mjBIAS_USER: typing.ClassVar[mjtBias]  # value = <mjtBias.mjBIAS_USER: 5>
     @typing.overload
     def __add__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
@@ -2623,6 +2626,129 @@ class mjtConstraintState:
     @property
     def value(self) -> int:
         ...
+class mjtCtrlChart:
+    """
+    Members:
+    
+      mjCHART_EXPMAP
+    
+      mjCHART_QUAT
+    """
+    __members__: typing.ClassVar[dict[str, mjtCtrlChart]]  # value = {'mjCHART_EXPMAP': <mjtCtrlChart.mjCHART_EXPMAP: 1>, 'mjCHART_QUAT': <mjtCtrlChart.mjCHART_QUAT: 2>}
+    mjCHART_EXPMAP: typing.ClassVar[mjtCtrlChart]  # value = <mjtCtrlChart.mjCHART_EXPMAP: 1>
+    mjCHART_QUAT: typing.ClassVar[mjtCtrlChart]  # value = <mjtCtrlChart.mjCHART_QUAT: 2>
+    @typing.overload
+    def __add__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    @typing.overload
+    def __add__(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> float:
+        ...
+    def __and__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    def __eq__(self, other: typing.Any) -> bool:
+        ...
+    @typing.overload
+    def __floordiv__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    @typing.overload
+    def __floordiv__(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> float:
+        ...
+    def __getstate__(self) -> int:
+        ...
+    def __hash__(self) -> int:
+        ...
+    def __index__(self) -> int:
+        ...
+    @typing.overload
+    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @typing.overload
+    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def __int__(self) -> int:
+        ...
+    def __lshift__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    @typing.overload
+    def __mod__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    @typing.overload
+    def __mod__(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> float:
+        ...
+    @typing.overload
+    def __mul__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    @typing.overload
+    def __mul__(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> float:
+        ...
+    def __ne__(self, other: typing.Any) -> bool:
+        ...
+    def __neg__(self) -> int:
+        ...
+    def __or__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    @typing.overload
+    def __radd__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    @typing.overload
+    def __radd__(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> float:
+        ...
+    def __rand__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    def __repr__(self) -> str:
+        ...
+    @typing.overload
+    def __rfloordiv__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    @typing.overload
+    def __rfloordiv__(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> float:
+        ...
+    @typing.overload
+    def __rmod__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    @typing.overload
+    def __rmod__(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> float:
+        ...
+    @typing.overload
+    def __rmul__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    @typing.overload
+    def __rmul__(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> float:
+        ...
+    def __ror__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    def __rshift__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    @typing.overload
+    def __rsub__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    @typing.overload
+    def __rsub__(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> float:
+        ...
+    def __rtruediv__(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> float:
+        ...
+    def __rxor__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def __str__(self) -> str:
+        ...
+    @typing.overload
+    def __sub__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    @typing.overload
+    def __sub__(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> float:
+        ...
+    def __truediv__(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> float:
+        ...
+    def __xor__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
+        ...
+    @property
+    def name(self) -> str:
+        ...
+    @property
+    def value(self) -> int:
+        ...
 class mjtDataType:
     """
     Members:
@@ -4288,14 +4414,17 @@ class mjtGain:
     
       mjGAIN_DCMOTOR
     
+      mjGAIN_SO3
+    
       mjGAIN_USER
     """
-    __members__: typing.ClassVar[dict[str, mjtGain]]  # value = {'mjGAIN_FIXED': <mjtGain.mjGAIN_FIXED: 0>, 'mjGAIN_AFFINE': <mjtGain.mjGAIN_AFFINE: 1>, 'mjGAIN_MUSCLE': <mjtGain.mjGAIN_MUSCLE: 2>, 'mjGAIN_DCMOTOR': <mjtGain.mjGAIN_DCMOTOR: 3>, 'mjGAIN_USER': <mjtGain.mjGAIN_USER: 4>}
+    __members__: typing.ClassVar[dict[str, mjtGain]]  # value = {'mjGAIN_FIXED': <mjtGain.mjGAIN_FIXED: 0>, 'mjGAIN_AFFINE': <mjtGain.mjGAIN_AFFINE: 1>, 'mjGAIN_MUSCLE': <mjtGain.mjGAIN_MUSCLE: 2>, 'mjGAIN_DCMOTOR': <mjtGain.mjGAIN_DCMOTOR: 3>, 'mjGAIN_SO3': <mjtGain.mjGAIN_SO3: 4>, 'mjGAIN_USER': <mjtGain.mjGAIN_USER: 5>}
     mjGAIN_AFFINE: typing.ClassVar[mjtGain]  # value = <mjtGain.mjGAIN_AFFINE: 1>
     mjGAIN_DCMOTOR: typing.ClassVar[mjtGain]  # value = <mjtGain.mjGAIN_DCMOTOR: 3>
     mjGAIN_FIXED: typing.ClassVar[mjtGain]  # value = <mjtGain.mjGAIN_FIXED: 0>
     mjGAIN_MUSCLE: typing.ClassVar[mjtGain]  # value = <mjtGain.mjGAIN_MUSCLE: 2>
-    mjGAIN_USER: typing.ClassVar[mjtGain]  # value = <mjtGain.mjGAIN_USER: 4>
+    mjGAIN_SO3: typing.ClassVar[mjtGain]  # value = <mjtGain.mjGAIN_SO3: 4>
+    mjGAIN_USER: typing.ClassVar[mjtGain]  # value = <mjtGain.mjGAIN_USER: 5>
     @typing.overload
     def __add__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
@@ -6761,8 +6890,12 @@ class mjtMouse:
       mjMOUSE_MOVE_V_REL
     
       mjMOUSE_MOVE_H_REL
+    
+      mjMOUSE_TURN_V
+    
+      mjMOUSE_TURN_H
     """
-    __members__: typing.ClassVar[dict[str, mjtMouse]]  # value = {'mjMOUSE_NONE': <mjtMouse.mjMOUSE_NONE: 0>, 'mjMOUSE_ROTATE_V': <mjtMouse.mjMOUSE_ROTATE_V: 1>, 'mjMOUSE_ROTATE_H': <mjtMouse.mjMOUSE_ROTATE_H: 2>, 'mjMOUSE_MOVE_V': <mjtMouse.mjMOUSE_MOVE_V: 3>, 'mjMOUSE_MOVE_H': <mjtMouse.mjMOUSE_MOVE_H: 4>, 'mjMOUSE_ZOOM': <mjtMouse.mjMOUSE_ZOOM: 5>, 'mjMOUSE_MOVE_V_REL': <mjtMouse.mjMOUSE_MOVE_V_REL: 6>, 'mjMOUSE_MOVE_H_REL': <mjtMouse.mjMOUSE_MOVE_H_REL: 7>}
+    __members__: typing.ClassVar[dict[str, mjtMouse]]  # value = {'mjMOUSE_NONE': <mjtMouse.mjMOUSE_NONE: 0>, 'mjMOUSE_ROTATE_V': <mjtMouse.mjMOUSE_ROTATE_V: 1>, 'mjMOUSE_ROTATE_H': <mjtMouse.mjMOUSE_ROTATE_H: 2>, 'mjMOUSE_MOVE_V': <mjtMouse.mjMOUSE_MOVE_V: 3>, 'mjMOUSE_MOVE_H': <mjtMouse.mjMOUSE_MOVE_H: 4>, 'mjMOUSE_ZOOM': <mjtMouse.mjMOUSE_ZOOM: 5>, 'mjMOUSE_MOVE_V_REL': <mjtMouse.mjMOUSE_MOVE_V_REL: 6>, 'mjMOUSE_MOVE_H_REL': <mjtMouse.mjMOUSE_MOVE_H_REL: 7>, 'mjMOUSE_TURN_V': <mjtMouse.mjMOUSE_TURN_V: 8>, 'mjMOUSE_TURN_H': <mjtMouse.mjMOUSE_TURN_H: 9>}
     mjMOUSE_MOVE_H: typing.ClassVar[mjtMouse]  # value = <mjtMouse.mjMOUSE_MOVE_H: 4>
     mjMOUSE_MOVE_H_REL: typing.ClassVar[mjtMouse]  # value = <mjtMouse.mjMOUSE_MOVE_H_REL: 7>
     mjMOUSE_MOVE_V: typing.ClassVar[mjtMouse]  # value = <mjtMouse.mjMOUSE_MOVE_V: 3>
@@ -6770,6 +6903,8 @@ class mjtMouse:
     mjMOUSE_NONE: typing.ClassVar[mjtMouse]  # value = <mjtMouse.mjMOUSE_NONE: 0>
     mjMOUSE_ROTATE_H: typing.ClassVar[mjtMouse]  # value = <mjtMouse.mjMOUSE_ROTATE_H: 2>
     mjMOUSE_ROTATE_V: typing.ClassVar[mjtMouse]  # value = <mjtMouse.mjMOUSE_ROTATE_V: 1>
+    mjMOUSE_TURN_H: typing.ClassVar[mjtMouse]  # value = <mjtMouse.mjMOUSE_TURN_H: 9>
+    mjMOUSE_TURN_V: typing.ClassVar[mjtMouse]  # value = <mjtMouse.mjMOUSE_TURN_V: 8>
     mjMOUSE_ZOOM: typing.ClassVar[mjtMouse]  # value = <mjtMouse.mjMOUSE_ZOOM: 5>
     @typing.overload
     def __add__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
@@ -9812,14 +9947,17 @@ class mjtTrn:
     
       mjTRN_BODY
     
+      mjTRN_SO3
+    
       mjTRN_UNDEFINED
     """
-    __members__: typing.ClassVar[dict[str, mjtTrn]]  # value = {'mjTRN_JOINT': <mjtTrn.mjTRN_JOINT: 0>, 'mjTRN_JOINTINPARENT': <mjtTrn.mjTRN_JOINTINPARENT: 1>, 'mjTRN_SLIDERCRANK': <mjtTrn.mjTRN_SLIDERCRANK: 2>, 'mjTRN_TENDON': <mjtTrn.mjTRN_TENDON: 3>, 'mjTRN_SITE': <mjtTrn.mjTRN_SITE: 4>, 'mjTRN_BODY': <mjtTrn.mjTRN_BODY: 5>, 'mjTRN_UNDEFINED': <mjtTrn.mjTRN_UNDEFINED: 1000>}
+    __members__: typing.ClassVar[dict[str, mjtTrn]]  # value = {'mjTRN_JOINT': <mjtTrn.mjTRN_JOINT: 0>, 'mjTRN_JOINTINPARENT': <mjtTrn.mjTRN_JOINTINPARENT: 1>, 'mjTRN_SLIDERCRANK': <mjtTrn.mjTRN_SLIDERCRANK: 2>, 'mjTRN_TENDON': <mjtTrn.mjTRN_TENDON: 3>, 'mjTRN_SITE': <mjtTrn.mjTRN_SITE: 4>, 'mjTRN_BODY': <mjtTrn.mjTRN_BODY: 5>, 'mjTRN_SO3': <mjtTrn.mjTRN_SO3: 6>, 'mjTRN_UNDEFINED': <mjtTrn.mjTRN_UNDEFINED: 1000>}
     mjTRN_BODY: typing.ClassVar[mjtTrn]  # value = <mjtTrn.mjTRN_BODY: 5>
     mjTRN_JOINT: typing.ClassVar[mjtTrn]  # value = <mjtTrn.mjTRN_JOINT: 0>
     mjTRN_JOINTINPARENT: typing.ClassVar[mjtTrn]  # value = <mjtTrn.mjTRN_JOINTINPARENT: 1>
     mjTRN_SITE: typing.ClassVar[mjtTrn]  # value = <mjtTrn.mjTRN_SITE: 4>
     mjTRN_SLIDERCRANK: typing.ClassVar[mjtTrn]  # value = <mjtTrn.mjTRN_SLIDERCRANK: 2>
+    mjTRN_SO3: typing.ClassVar[mjtTrn]  # value = <mjtTrn.mjTRN_SO3: 6>
     mjTRN_TENDON: typing.ClassVar[mjtTrn]  # value = <mjtTrn.mjTRN_TENDON: 3>
     mjTRN_UNDEFINED: typing.ClassVar[mjtTrn]  # value = <mjtTrn.mjTRN_UNDEFINED: 1000>
     @typing.overload
