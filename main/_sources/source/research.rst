@@ -42,6 +42,11 @@ Papers that use mjlab. To add your work, open a pull request or post in
        Teleoperation <https://arxiv.org/abs/2602.15060>`_
      - Zhu, Cai, Yang, Ren, Xie, Wang, Wu, et al.
      - 2026
+   * - `PAC-MAN: Perception-Aware CBF-RL for Whole-Body Safety in Humanoid
+       Dodgeball <https://arxiv.org/abs/2607.28623>`_
+       (`code <https://github.com/lzyang2000/perceptive_cbf_rl>`_)
+     - Yang, Li, Ames
+     - 2026
 
 Projects
 --------
