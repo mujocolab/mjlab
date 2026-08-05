@@ -274,6 +274,12 @@ and ``dr.body_ipos`` are the same function).
      - ``mat_texrepeat``
      - Texture repeat in the S/T directions
      - Only affects textured materials; values should stay positive
+   * - ``dr.mat_texid``
+     - ``mat_texid``
+     - Texture assigned to a material's ``mjtTextureRole`` slot (RGB by
+       default)
+     - Samples uniformly from ``asset_cfg.texture_names``. Use ``role`` to
+       target a different texture role.
 
 .. rubric:: Contact pair fields
 
@@ -845,11 +851,6 @@ per-environment values.
    * - Category
      - Field(s)
      - Notes
-   * - Texture-role swapping
-     - ``mat_texid``
-     - Not implemented for now because mujoco's viewer doesn't reread
-       ``mat_texid`` after context creation; use ``geom_matid`` with one baked
-       material per texture to randomize textures instead.
    * - Mesh
      - ``mesh_vert``, ``mesh_normal``, ``mesh_face``, etc.
      - Shape variation for manipulation objects. These fields
@@ -1363,7 +1364,7 @@ toggles then work correctly against the randomized model:
 - Geom appearance (``geom_rgba``, ``geom_size``, ``geom_pos``, ``geom_quat``,
   ``geom_matid``)
 - Material appearance (``mat_rgba``, ``mat_emission``, ``mat_specular``,
-  ``mat_shininess``, ``mat_texrepeat``)
+  ``mat_shininess``, ``mat_texrepeat``, ``mat_texid``)
 - Body and site poses (``body_pos``, ``body_quat``, ``body_ipos``,
   ``site_pos``, ``site_quat``)
 - Inertia (``body_inertia``, ``body_iquat``, ``body_mass``): press ``I``
@@ -1415,12 +1416,13 @@ world-space positions directly from GPU simulation data (``cam_xpos``,
 
 .. note::
 
-   ``geom_rgba`` and ``geom_size`` DR are **not** reflected in viser. Geom
-   colors and sizes are baked into the scene's GLB meshes at construction
-   time. The underlying viser API (``add_batched_meshes_simple``) supports
-   per-instance color updates via ``batched_colors``, but this requires
-   routing color-only geoms through a different handle type than the current
-   ``add_batched_meshes_trimesh`` path. Deferred for a future update.
+   ``geom_rgba``, ``geom_size`` and ``mat_texid`` DR are **not** reflected
+   in viser. Geom colors, sizes and textures are baked into the scene's
+   GLB meshes at construction time. The underlying viser API
+   (``add_batched_meshes_simple``) supports per-instance color updates via
+   ``batched_colors``, but this requires routing color-only geoms through
+   a different handle type than the current ``add_batched_meshes_trimesh``
+   path. Deferred for a future update.
 
 
 Migrating from Isaac Lab

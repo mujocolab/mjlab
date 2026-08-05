@@ -889,6 +889,13 @@ triggers <code class="docutils literal notranslate"><span class="pre">set_const_
 <td><p>Texture repeat in the S/T directions</p></td>
 <td><p>Only affects textured materials; values should stay positive</p></td>
 </tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.mat_texid</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mat_texid</span></code></p></td>
+<td><p>Texture assigned to a material’s <code class="docutils literal notranslate"><span class="pre">mjtTextureRole</span></code> slot (RGB by
+default)</p></td>
+<td><p>Samples uniformly from <code class="docutils literal notranslate"><span class="pre">asset_cfg.texture_names</span></code>. Use <code class="docutils literal notranslate"><span class="pre">role</span></code> to
+target a different texture role.</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -1537,13 +1544,7 @@ per-environment values.</p>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>Texture-role swapping</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">mat_texid</span></code></p></td>
-<td><p>Not implemented for now because mujoco’s viewer doesn’t reread
-<code class="docutils literal notranslate"><span class="pre">mat_texid</span></code> after context creation; use <code class="docutils literal notranslate"><span class="pre">geom_matid</span></code> with one baked
-material per texture to randomize textures instead.</p></td>
-</tr>
-<tr class="row-odd"><td><p>Mesh</p></td>
+<tr class="row-even"><td><p>Mesh</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">mesh_vert</span></code>, <code class="docutils literal notranslate"><span class="pre">mesh_normal</span></code>, <code class="docutils literal notranslate"><span class="pre">mesh_face</span></code>, etc.</p></td>
 <td><p>Shape variation for manipulation objects. These fields
 lack the per-world dimension, so per-world variation is
@@ -1551,7 +1552,7 @@ not possible with the current expand infrastructure.
 Heterogeneous-world support is
 <a class="reference external" href="https://github.com/google-deepmind/mujoco_warp/pull/1009">in progress</a>.</p></td>
 </tr>
-<tr class="row-even"><td><p>Deformable</p></td>
+<tr class="row-odd"><td><p>Deformable</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">flex_*</span></code></p></td>
 <td><p>Deformable body parameters for soft-object manipulation.
 Like mesh fields, most <code class="docutils literal notranslate"><span class="pre">flex_*</span></code> fields lack the per-world
@@ -2034,7 +2035,7 @@ toggles then work correctly against the randomized model:</p>
 <li><p>Geom appearance (<code class="docutils literal notranslate"><span class="pre">geom_rgba</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_size</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_quat</span></code>,
 <code class="docutils literal notranslate"><span class="pre">geom_matid</span></code>)</p></li>
 <li><p>Material appearance (<code class="docutils literal notranslate"><span class="pre">mat_rgba</span></code>, <code class="docutils literal notranslate"><span class="pre">mat_emission</span></code>, <code class="docutils literal notranslate"><span class="pre">mat_specular</span></code>,
-<code class="docutils literal notranslate"><span class="pre">mat_shininess</span></code>, <code class="docutils literal notranslate"><span class="pre">mat_texrepeat</span></code>)</p></li>
+<code class="docutils literal notranslate"><span class="pre">mat_shininess</span></code>, <code class="docutils literal notranslate"><span class="pre">mat_texrepeat</span></code>, <code class="docutils literal notranslate"><span class="pre">mat_texid</span></code>)</p></li>
 <li><p>Body and site poses (<code class="docutils literal notranslate"><span class="pre">body_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">body_quat</span></code>, <code class="docutils literal notranslate"><span class="pre">body_ipos</span></code>,
 <code class="docutils literal notranslate"><span class="pre">site_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">site_quat</span></code>)</p></li>
 <li><p>Inertia (<code class="docutils literal notranslate"><span class="pre">body_inertia</span></code>, <code class="docutils literal notranslate"><span class="pre">body_iquat</span></code>, <code class="docutils literal notranslate"><span class="pre">body_mass</span></code>): press <code class="docutils literal notranslate"><span class="pre">I</span></code>
@@ -2086,12 +2087,13 @@ world-space positions directly from GPU simulation data (<code class="docutils l
 <code class="docutils literal notranslate"><span class="pre">body_xpos</span></code>) every frame.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">geom_rgba</span></code> and <code class="docutils literal notranslate"><span class="pre">geom_size</span></code> DR are <strong>not</strong> reflected in viser. Geom
-colors and sizes are baked into the scene’s GLB meshes at construction
-time. The underlying viser API (<code class="docutils literal notranslate"><span class="pre">add_batched_meshes_simple</span></code>) supports
-per-instance color updates via <code class="docutils literal notranslate"><span class="pre">batched_colors</span></code>, but this requires
-routing color-only geoms through a different handle type than the current
-<code class="docutils literal notranslate"><span class="pre">add_batched_meshes_trimesh</span></code> path. Deferred for a future update.</p>
+<p><code class="docutils literal notranslate"><span class="pre">geom_rgba</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_size</span></code> and <code class="docutils literal notranslate"><span class="pre">mat_texid</span></code> DR are <strong>not</strong> reflected
+in viser. Geom colors, sizes and textures are baked into the scene’s
+GLB meshes at construction time. The underlying viser API
+(<code class="docutils literal notranslate"><span class="pre">add_batched_meshes_simple</span></code>) supports per-instance color updates via
+<code class="docutils literal notranslate"><span class="pre">batched_colors</span></code>, but this requires routing color-only geoms through
+a different handle type than the current <code class="docutils literal notranslate"><span class="pre">add_batched_meshes_trimesh</span></code>
+path. Deferred for a future update.</p>
 </div>
 </section>
 <section id="migrating-from-isaac-lab">
