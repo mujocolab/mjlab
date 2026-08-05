@@ -329,6 +329,7 @@ def _randomize_categorical_field(
   shared_random: bool = False,
   axis: int | None = None,
 ) -> None:
+  """Core engine for categorical fields: assign each entry a value from ``pool``."""
   asset = env.scene[asset_cfg.name]
 
   if env_ids is None:
