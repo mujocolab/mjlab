@@ -205,6 +205,11 @@ def mat_texid(
   role: int = mujoco.mjtTextureRole.mjTEXROLE_RGB.value,
   shared_random: bool = False,
 ) -> None:
+  """Randomize which texture each selected material uses.
+
+  A material stores one texture per ``mjtTextureRole`` slot; only the ``role``
+  slot is modified, drawn uniformly from ``asset_cfg.texture_names``.
+  """
   asset = env.scene[asset_cfg.name]
   tex_ids = _get_entity_indices(asset.indexing, asset_cfg, "texture", False)
   if tex_ids.numel() == 0:
