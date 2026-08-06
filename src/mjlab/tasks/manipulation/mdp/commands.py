@@ -97,7 +97,7 @@ class LiftingCommand(CommandTerm):
       self.object.write_root_link_pose_to_sim(pose, env_ids=env_ids)
       self.object.write_root_link_velocity_to_sim(velocity, env_ids=env_ids)
 
-  def _update_command(self) -> None:
+  def _update_command(self, env_ids: torch.Tensor | None = None) -> None:
     pass
 
   def _debug_vis_impl(self, visualizer: DebugVisualizer) -> None:
@@ -219,7 +219,7 @@ class MultiCubeLiftingCommand(CommandTerm):
       cube.write_root_link_pose_to_sim(pose, env_ids=env_ids)
       cube.write_root_link_velocity_to_sim(velocity, env_ids=env_ids)
 
-  def _update_command(self) -> None:
+  def _update_command(self, env_ids: torch.Tensor | None = None) -> None:
     pass
 
   def _debug_vis_impl(self, visualizer: DebugVisualizer) -> None:

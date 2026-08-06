@@ -404,11 +404,14 @@ class MotionCommand(CommandTerm):
       delta_ori_w, self.body_pos_w - anchor_pos_w_repeat
     )
 
-  def _update_command(self):
-    self.time_steps += 1
-    env_ids = torch.where(self.time_steps >= self.motion.time_step_total)[0]
-    if env_ids.numel() > 0:
-      self._resample_command(env_ids)
+  def _update_command(self, env_ids: torch.Tensor | None = None):
+    if env_ids is None:
+      self.time_steps += 1
+    else:
+      self.time_steps[env_ids] += 1
+    wrap_ids = torch.where(self.time_steps >= self.motion.time_step_total)[0]
+    if wrap_ids.numel() > 0:
+      self._resample_command(wrap_ids)
       # _resample_command writes qpos/qvel but does not refresh derived
       # quantities; forward() so update_relative_body_poses reads the
       # post-teleport robot anchor instead of the stale pre-resample pose.
@@ -416,7 +419,9 @@ class MotionCommand(CommandTerm):
 
     self.update_relative_body_poses()
 
-    if self.cfg.sampling_mode == "adaptive":
+    # Fold failure counts into the EMA only on the per-step update so
+    # manual resets do not decay it faster.
+    if env_ids is None and self.cfg.sampling_mode == "adaptive":
       self.bin_failed_count = (
         self.cfg.adaptive_alpha * self._current_bin_failed
         + (1 - self.cfg.adaptive_alpha) * self.bin_failed_count

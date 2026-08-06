@@ -369,7 +369,9 @@ class ManagerBasedRlEnv:
     self._reset_idx(env_ids)
     self.scene.write_data_to_sim()
     self.sim.forward()
-    self.command_manager.compute(dt=0.0)
+    # Scoped to env_ids so a partial reset does not advance stateful commands in the
+    # other envs.
+    self.command_manager.compute(dt=0.0, env_ids=env_ids)
     self.sim.sense()
     # Scoped to env_ids: only the reset envs' history/delay buffers receive
     # the post-reset frame; other envs' observation timelines are untouched.
