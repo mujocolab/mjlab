@@ -946,6 +946,24 @@ class Entity:
     """
     self._data.write_root_velocity(root_velocity, env_ids)
 
+  def write_root_link_velocity_b_to_sim(
+    self,
+    root_velocity_b: torch.Tensor,
+    env_ids: torch.Tensor | slice | None = None,
+  ):
+    """Like `write_root_link_velocity_to_sim()` but the velocity is expressed
+    in the root link's body frame. Reads the orientation from qpos, so it is
+    safe to call during a reset before forward() runs.
+
+    Args:
+      root_velocity_b: Tensor of shape (N, 6) where N is the number of
+        environments. Contains linear velocity (3) at body origin and angular
+        velocity (3), both in the root link's body frame.
+      env_ids: Optional tensor or slice specifying which environments to set. If
+        None, all environments are set.
+    """
+    self._data.write_root_velocity_b(root_velocity_b, env_ids)
+
   def write_root_com_velocity_to_sim(
     self,
     root_velocity: torch.Tensor,

@@ -11,7 +11,6 @@ from mjlab.entity import Entity
 from mjlab.managers.command_manager import CommandTerm, CommandTermCfg
 from mjlab.utils.lab_api.math import (
   matrix_from_quat,
-  quat_apply,
   wrap_to_pi,
 )
 
@@ -101,17 +100,15 @@ class UniformVelocityCommand(CommandTerm):
     init_vel_mask = r.uniform_(0.0, 1.0) < self.cfg.init_velocity_prob
     init_vel_env_ids = env_ids[init_vel_mask]
     if len(init_vel_env_ids) > 0:
-      root_pos = self.robot.data.root_link_pos_w[init_vel_env_ids]
-      root_quat = self.robot.data.root_link_quat_w[init_vel_env_ids]
-      lin_vel_b = self.robot.data.root_link_lin_vel_b[init_vel_env_ids]
-      lin_vel_b[:, :2] = self.vel_command_b[init_vel_env_ids, :2]
-      root_lin_vel_w = quat_apply(root_quat, lin_vel_b)
-      root_ang_vel_b = self.robot.data.root_link_ang_vel_b[init_vel_env_ids]
-      root_ang_vel_b[:, 2] = self.vel_command_b[init_vel_env_ids, 2]
-      root_state = torch.cat(
-        [root_pos, root_quat, root_lin_vel_w, root_ang_vel_b], dim=-1
-      )
-      self.robot.write_root_state_to_sim(root_state, init_vel_env_ids)
+      # Start these envs already moving at the commanded planar velocity. The
+      # body-frame write reads its orientation from qpos, so it is safe here:
+      # during a reset the events have written the new pose but forward() has
+      # not run, and derived kinematics still hold the previous episode's
+      # terminal state. The freshly reset pose is untouched.
+      vel_b = torch.zeros(len(init_vel_env_ids), 6, device=self.device)
+      vel_b[:, :2] = self.vel_command_b[init_vel_env_ids, :2]
+      vel_b[:, 5] = self.vel_command_b[init_vel_env_ids, 2]
+      self.robot.write_root_link_velocity_b_to_sim(vel_b, env_ids=init_vel_env_ids)
 
   def _update_command(self, env_ids: torch.Tensor | None = None) -> None:
     # Pure function of the current state; refreshing all envs is safe.
