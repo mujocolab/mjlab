@@ -68,6 +68,19 @@ class EntityIndexing:
     return self.bodies[0].id
 
 
+def _outer_index(
+  env_ids: torch.Tensor | slice, ids: torch.Tensor | slice
+) -> tuple[torch.Tensor | slice, torch.Tensor | slice]:
+  """Make [env_ids, ids] select the outer product when both are tensors.
+
+  Plain [tensor, tensor] indexing pairs the ids elementwise, which silently
+  writes a diagonal whenever the shapes happen to broadcast.
+  """
+  if isinstance(env_ids, torch.Tensor) and isinstance(ids, torch.Tensor):
+    return env_ids[:, None], ids
+  return env_ids, ids
+
+
 @dataclass
 class EntityCfg:
   @dataclass
@@ -1055,6 +1068,7 @@ class Entity:
       env_ids = slice(None)
     if joint_ids is None:
       joint_ids = slice(None)
+    env_ids, joint_ids = _outer_index(env_ids, joint_ids)
     self._data.joint_pos_target[env_ids, joint_ids] = position
 
   def set_joint_velocity_target(
@@ -1074,6 +1088,7 @@ class Entity:
       env_ids = slice(None)
     if joint_ids is None:
       joint_ids = slice(None)
+    env_ids, joint_ids = _outer_index(env_ids, joint_ids)
     self._data.joint_vel_target[env_ids, joint_ids] = velocity
 
   def set_joint_effort_target(
@@ -1093,6 +1108,7 @@ class Entity:
       env_ids = slice(None)
     if joint_ids is None:
       joint_ids = slice(None)
+    env_ids, joint_ids = _outer_index(env_ids, joint_ids)
     self._data.joint_effort_target[env_ids, joint_ids] = effort
 
   def set_tendon_len_target(
@@ -1112,6 +1128,7 @@ class Entity:
       env_ids = slice(None)
     if tendon_ids is None:
       tendon_ids = slice(None)
+    env_ids, tendon_ids = _outer_index(env_ids, tendon_ids)
     self._data.tendon_len_target[env_ids, tendon_ids] = length
 
   def set_tendon_vel_target(
@@ -1131,6 +1148,7 @@ class Entity:
       env_ids = slice(None)
     if tendon_ids is None:
       tendon_ids = slice(None)
+    env_ids, tendon_ids = _outer_index(env_ids, tendon_ids)
     self._data.tendon_vel_target[env_ids, tendon_ids] = velocity
 
   def set_tendon_effort_target(
@@ -1150,6 +1168,7 @@ class Entity:
       env_ids = slice(None)
     if tendon_ids is None:
       tendon_ids = slice(None)
+    env_ids, tendon_ids = _outer_index(env_ids, tendon_ids)
     self._data.tendon_effort_target[env_ids, tendon_ids] = effort
 
   def set_site_effort_target(
@@ -1169,6 +1188,7 @@ class Entity:
       env_ids = slice(None)
     if site_ids is None:
       site_ids = slice(None)
+    env_ids, site_ids = _outer_index(env_ids, site_ids)
     self._data.site_effort_target[env_ids, site_ids] = effort
 
   def write_external_wrench_to_sim(
