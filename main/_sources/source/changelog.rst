@@ -64,6 +64,11 @@ Changed
 Fixed
 ^^^^^
 
+- ``reset(env_ids=...)`` no longer appends a frame to every env's observation
+  history and delay buffers; only the reset envs receive their post-reset
+  frame. Previously, each manual partial reset gave the other envs a duplicate
+  frame, shortening their effective history and drifting their delay
+  schedules.
 - ``RayCastSensorCfg.include_geom_groups`` now raises on values outside
   ``[0, mjNGROUP)`` instead of silently excluding every geom.
 - Geoms with a negative group no longer pick up group 5's visibility toggle in

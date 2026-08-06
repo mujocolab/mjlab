@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Aug 05, 2026"/>
+    <meta name="docbuild:last-update" content="Aug 06, 2026"/>
   </head>
   
   
@@ -609,6 +609,11 @@ when a <code class="docutils literal notranslate"><span class="pre">GeomCfg</spa
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">reset(env_ids=...)</span></code> no longer appends a frame to every env’s observation
+history and delay buffers; only the reset envs receive their post-reset
+frame. Previously, each manual partial reset gave the other envs a duplicate
+frame, shortening their effective history and drifting their delay
+schedules.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">RayCastSensorCfg.include_geom_groups</span></code> now raises on values outside
 <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">mjNGROUP)</span></code> instead of silently excluding every geom.</p></li>
 <li><p>Geoms with a negative group no longer pick up group 5’s visibility toggle in
@@ -1662,7 +1667,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Aug 05, 2026.
+  Last updated on Aug 06, 2026.
   <br/>
 </p>
   </div>
