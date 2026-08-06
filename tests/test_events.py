@@ -963,3 +963,101 @@ def test_dof_armature_recompute_matches_recompile(device):
   gpu_dof_invweight = sim.model.dof_invweight0[0].cpu()
   ref_dof_invweight = torch.tensor(recompiled_model.dof_invweight0, dtype=torch.float32)
   torch.testing.assert_close(gpu_dof_invweight, ref_dof_invweight, atol=1e-4, rtol=1e-4)
+
+
+# ===========================================================================
+# Section: interval timer reset (issue: reset iterated the class-only list)
+# ===========================================================================
+
+
+def _noop_interval_event(env, env_ids):
+  del env, env_ids
+
+
+class _ClassIntervalEvent:
+  """Class-based interval event with a reset hook."""
+
+  def __init__(self, cfg, env):
+    del cfg, env
+
+  def reset(self, env_ids=None):
+    del env_ids
+
+  def __call__(self, env, env_ids):
+    del env, env_ids
+
+
+def _make_mock_env(device, num_envs=4):
+  env = Mock()
+  env.num_envs = num_envs
+  env.device = device
+  env.scene = {}
+  env.sim = Mock()
+  return env
+
+
+def test_interval_timer_resets_for_function_terms(device):
+  """Function-based interval terms get their per-env timer resampled on reset."""
+  env = _make_mock_env(device)
+  cfg = {
+    "push": EventTermCfg(
+      mode="interval", func=_noop_interval_event, interval_range_s=(5.0, 10.0)
+    ),
+  }
+  manager = EventManager(cfg, env)
+
+  timer = manager._interval_term_time_left[0]
+  # Zero the reset env's timer so the in-range assertion below can only pass
+  # if reset actually resampled it (deterministic, not clone-and-compare).
+  timer[1] = 0.0
+  before = timer.clone()
+  reset_ids = torch.tensor([1], dtype=torch.int64, device=device)
+  manager.reset(env_ids=reset_ids)
+
+  assert 5.0 <= timer[1].item() <= 10.0
+  untouched = torch.tensor([0, 2, 3], device=device)
+  assert torch.equal(timer[untouched], before[untouched])
+
+
+def test_interval_timer_reset_with_mixed_terms(device):
+  """Mixed function and class interval terms reset the right timer slots."""
+  env = _make_mock_env(device)
+  cfg = {
+    "push": EventTermCfg(
+      mode="interval", func=_noop_interval_event, interval_range_s=(5.0, 10.0)
+    ),
+    "impulse": EventTermCfg(
+      mode="interval", func=_ClassIntervalEvent, interval_range_s=(100.0, 200.0)
+    ),
+  }
+  manager = EventManager(cfg, env)
+
+  push_timer = manager._interval_term_time_left[0]
+  impulse_timer = manager._interval_term_time_left[1]
+  # Zero both timers for the reset env so the in-range assertions can only
+  # pass if reset resampled each slot (the init draw is from the same range,
+  # so comparing against it would be vacuous).
+  push_timer[1] = 0.0
+  impulse_timer[1] = 0.0
+  reset_ids = torch.tensor([1], dtype=torch.int64, device=device)
+  manager.reset(env_ids=reset_ids)
+
+  # Each timer slot is resampled from its own term's range.
+  assert 5.0 <= push_timer[1].item() <= 10.0
+  assert 100.0 <= impulse_timer[1].item() <= 200.0
+
+
+def test_interval_timer_reset_all_envs(device):
+  """reset(env_ids=None) resamples every env's timer."""
+  env = _make_mock_env(device)
+  cfg = {
+    "push": EventTermCfg(
+      mode="interval", func=_noop_interval_event, interval_range_s=(5.0, 10.0)
+    ),
+  }
+  manager = EventManager(cfg, env)
+
+  timer = manager._interval_term_time_left[0]
+  timer[:] = 0.0
+  manager.reset(env_ids=None)
+  assert ((timer >= 5.0) & (timer <= 10.0)).all()
