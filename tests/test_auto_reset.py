@@ -163,3 +163,34 @@ def test_auto_reset_false_obs_differs_from_auto_reset_true(device):
     off_val = obs_off[group]
     assert isinstance(on_val, torch.Tensor) and isinstance(off_val, torch.Tensor)
     assert not torch.equal(on_val, off_val)
+
+
+def test_partial_reset_leaves_other_envs_obs_buffers_untouched(device):
+  """reset(env_ids=...) must not advance other envs' history/delay buffers."""
+  cfg = _make_cfg(auto_reset=False)
+  cfg.observations["actor"].terms["cart_pos"].history_length = 4
+  cfg.observations["actor"].terms["cart_vel"].delay_min_lag = 2
+  cfg.observations["actor"].terms["cart_vel"].delay_max_lag = 2
+  env = ManagerBasedRlEnv(cfg=cfg, device=device)
+  env.reset()
+  action = torch.zeros((env.num_envs, 1), device=env.device)
+  for _ in range(3):
+    env.step(action)
+
+  om = env.observation_manager
+  hist = om._group_obs_term_history_buffer["actor"]["cart_pos"]
+  delay = om._group_obs_term_delay_buffer["actor"]["cart_vel"]
+  h_before = hist.buffer[0].clone()
+  d_before = delay.peek()[0].clone()
+
+  env.reset(env_ids=torch.tensor([1], dtype=torch.int64, device=env.device))
+
+  # Env 0 was not reset: history window and delayed obs are untouched.
+  assert torch.equal(hist.buffer[0], h_before)
+  assert torch.equal(delay.peek()[0], d_before)
+
+  # Env 1 was reset: history is backfilled with its single post-reset frame.
+  h1 = hist.buffer[1]
+  assert torch.all(h1 == h1[0])
+  assert hist.current_length[1].item() == 1
+  env.close()

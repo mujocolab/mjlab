@@ -226,8 +226,23 @@ class DelayBuffer:
     """
     self._buffer.append(data)
 
+  def backfill(self, data: torch.Tensor, batch_ids: torch.Tensor) -> None:
+    """Backfill the given rows with one frame, without advancing time.
+
+    Used after a partial reset: the reset rows (whose lags and step counters
+    were just zeroed by reset) get their first post-reset frame while the
+    remaining rows keep their history, lags, and update schedule intact.
+
+    Args:
+      data: Tensor of shape (batch_size, ...); only rows at batch_ids are read.
+      batch_ids: Batch indices to backfill.
+    """
+    self._buffer.backfill(data, batch_ids)
+
   def compute(self) -> torch.Tensor:
     """Compute delayed observation for current step.
+
+    Advances the lag update schedule, then returns the delayed observation.
 
     Returns:
       Delayed observation with shape (batch_size, ...).
@@ -236,6 +251,19 @@ class DelayBuffer:
       raise RuntimeError("Buffer not initialized. Call append() first.")
 
     self._update_lags()
+    return self.peek()
+
+  def peek(self) -> torch.Tensor:
+    """Return the delayed observation using current lags, without advancing.
+
+    Unlike compute, this neither steps the update schedule nor resamples lags,
+    so it is safe to call outside the once-per-step cadence.
+
+    Returns:
+      Delayed observation with shape (batch_size, ...).
+    """
+    if not self.is_initialized:
+      raise RuntimeError("Buffer not initialized. Call append() first.")
 
     # Clamp lags to valid range [0, buffer_length - 1].
     # Buffer may not be full yet (e.g., only 2 frames but sampled lag=3).
