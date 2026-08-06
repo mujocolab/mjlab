@@ -298,3 +298,30 @@ def test_delay_buffer_validation(device):
 
   with pytest.raises(ValueError, match="update_period must be >= 0"):
     DelayBuffer(min_lag=0, max_lag=3, batch_size=1, update_period=-1, device=device)
+
+
+def test_backfill_and_peek_leave_others_untouched(device):
+  """backfill serves the reset row's new frame; peek advances no schedules."""
+  B = 3
+  buf = DelayBuffer(1, 2, batch_size=B, device=device, generator=make_gen(9, device))
+  for t in range(4):
+    x = torch.arange(1, B + 1, device=device).float().unsqueeze(1) * 10 + t
+    buf.append(x)
+    buf.compute()
+
+  out_before = buf.peek()
+  lags_before = buf.current_lags.clone()
+  steps_before = buf._step_count.clone()
+
+  reset_ids = torch.tensor([1], device=device)
+  buf.reset(batch_ids=reset_ids)
+  buf.backfill(torch.tensor([[-1.0], [999.0], [-1.0]], device=device), reset_ids)
+  out = buf.peek()
+
+  # Reset row serves its backfilled frame (lag zeroed, one valid frame).
+  assert torch.allclose(out[1], torch.tensor([999.0], device=device))
+  # Other rows: same delayed frame, lags and schedule untouched.
+  keep = torch.tensor([0, 2], device=device)
+  assert torch.allclose(out[keep], out_before[keep])
+  assert torch.equal(buf.current_lags[keep], lags_before[keep])
+  assert torch.equal(buf._step_count[keep], steps_before[keep])

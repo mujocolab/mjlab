@@ -187,6 +187,27 @@ class CircularBuffer:
     if self._buffer is not None:
       self._buffer[:, ids] = 0.0
 
+  def backfill(self, data: torch.Tensor, batch_ids: torch.Tensor) -> None:
+    """Fill the given rows' entire history with one frame, without advancing time.
+
+    Unlike append, the global pointer does not move and other rows are
+    untouched. Used after a partial reset: the reset rows get their first
+    post-reset frame in every slot (the same backfill their next append would
+    apply) while the remaining rows keep their history intact.
+
+    Args:
+      data: Tensor of shape (batch_size, ...); only rows at batch_ids are read.
+      batch_ids: Batch indices to backfill.
+    """
+    if data.shape[0] != self._batch_size:
+      raise ValueError(f"Expected batch size {self._batch_size}, got {data.shape[0]}")
+    if self._buffer is None:
+      raise RuntimeError("Buffer not initialized. Call append() first.")
+
+    data = data.to(self._device)
+    self._buffer[:, batch_ids] = data[batch_ids].unsqueeze(0)
+    self._num_pushes[batch_ids] = 1
+
   def append(self, data: torch.Tensor) -> None:
     """Append a new frame for all batch elements.
 

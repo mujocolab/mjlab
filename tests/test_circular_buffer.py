@@ -215,3 +215,41 @@ def test_dtype_and_device_preserved(device):
   buffer.append(x)
   assert buffer.buffer.dtype == torch.float32
   assert buffer.buffer.device.type == torch.device(device).type
+
+
+def test_backfill_only_touches_given_rows(device):
+  """backfill writes one frame into all slots of given rows, no pointer advance."""
+  buffer = CircularBuffer(max_len=3, batch_size=3, device=device)
+  buffer.append(torch.tensor([[1.0], [10.0], [100.0]], device=device))
+  buffer.append(torch.tensor([[2.0], [20.0], [200.0]], device=device))
+  buffer.append(torch.tensor([[3.0], [30.0], [300.0]], device=device))
+
+  buffer.reset(batch_ids=torch.tensor([1], device=device))
+  data = torch.tensor([[-1.0], [99.0], [-1.0]], device=device)
+  buffer.backfill(data, torch.tensor([1], device=device))
+
+  result = buffer.buffer
+  assert torch.allclose(
+    result[0].flatten(), torch.tensor([1.0, 2.0, 3.0], device=device)
+  )
+  assert torch.allclose(
+    result[1].flatten(), torch.tensor([99.0, 99.0, 99.0], device=device)
+  )
+  assert torch.allclose(
+    result[2].flatten(), torch.tensor([100.0, 200.0, 300.0], device=device)
+  )
+  assert buffer.current_length.tolist() == [3, 1, 3]
+
+  # Subsequent appends treat the backfilled row normally.
+  buffer.append(torch.tensor([[4.0], [40.0], [400.0]], device=device))
+  result = buffer.buffer
+  assert torch.allclose(
+    result[1].flatten(), torch.tensor([99.0, 99.0, 40.0], device=device)
+  )
+  assert buffer.current_length.tolist() == [3, 2, 3]
+
+
+def test_backfill_uninitialized_raises(device):
+  buffer = CircularBuffer(max_len=2, batch_size=2, device=device)
+  with pytest.raises(RuntimeError, match="not initialized"):
+    buffer.backfill(torch.zeros(2, 1, device=device), torch.tensor([0], device=device))

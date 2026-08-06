@@ -371,7 +371,11 @@ class ManagerBasedRlEnv:
     self.sim.forward()
     self.command_manager.compute(dt=0.0)
     self.sim.sense()
-    self.obs_buf = self.observation_manager.compute(update_history=True)
+    # Scoped to env_ids: only the reset envs' history/delay buffers receive
+    # the post-reset frame; other envs' observation timelines are untouched.
+    self.obs_buf = self.observation_manager.compute(
+      update_history=True, env_ids=env_ids
+    )
     self.recorder_manager.record_post_reset(env_ids)
     return self.obs_buf, self.extras
 
