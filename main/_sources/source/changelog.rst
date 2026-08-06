@@ -12,6 +12,12 @@ Upcoming version (not yet released)
      and ``priority`` to be explicit instead of silently defaulting to
      MuJoCo's values, and dict values for these fields must cover every
      matched geom (add a catch-all ``".*"`` entry).
+   - ``CommandTerm._update_command`` now takes an ``env_ids`` argument:
+     ``None`` on the regular per-step update and the reset environment ids
+     when called from ``reset()``. Custom command terms must add the
+     parameter (construction raises a ``TypeError`` with migration
+     instructions otherwise) and scope any per-step state advance, such as
+     a motion frame index, to ``env_ids``.
 
 .. admonition:: Highlights
    :class: note
@@ -69,6 +75,13 @@ Fixed
   frame. Previously, each manual partial reset gave the other envs a duplicate
   frame, shortening their effective history and drifting their delay
   schedules.
+- ``reset(env_ids=...)`` no longer advances stateful commands in
+  environments that were not reset. Previously a partial reset gave every
+  environment an extra command update, so with ``auto_reset=False`` a
+  ``MotionCommand`` reference motion played at twice the normal speed and
+  could teleport non-reset robots via the wraparound resample. The adaptive
+  sampling EMA also no longer folds on resets, matching auto-reset
+  training dynamics. :issue:`1138`
 - ``RayCastSensorCfg.include_geom_groups`` now raises on values outside
   ``[0, mjNGROUP)`` instead of silently excluding every geom.
 - Geoms with a negative group no longer pick up group 5's visibility toggle in

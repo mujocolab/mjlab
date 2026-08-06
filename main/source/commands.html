@@ -584,10 +584,22 @@ actual robot.</p>
 <p>A custom command term is a class inheriting from <code class="docutils literal notranslate"><span class="pre">CommandTerm</span></code> paired
 with a configuration dataclass inheriting from <code class="docutils literal notranslate"><span class="pre">CommandTermCfg</span></code>. The
 term must implement four methods: <code class="docutils literal notranslate"><span class="pre">_resample_command(env_ids)</span></code> to
-sample new goals, <code class="docutils literal notranslate"><span class="pre">_update_command()</span></code> for per-step updates,
+sample new goals, <code class="docutils literal notranslate"><span class="pre">_update_command(env_ids)</span></code> for per-step updates,
 <code class="docutils literal notranslate"><span class="pre">_update_metrics()</span></code> for logging, and a <code class="docutils literal notranslate"><span class="pre">command</span></code> property returning
 the current goal tensor. The base class manages the resampling timer
 and reset logic automatically.</p>
+<p><code class="docutils literal notranslate"><span class="pre">_update_command</span></code> is called in two situations. On every environment
+step it receives <code class="docutils literal notranslate"><span class="pre">env_ids=None</span></code>, meaning update all environments.
+After a reset it is called again with the ids of the environments that
+were just reset, so their command state is brought up to date before
+observations are computed.</p>
+<p>The distinction matters when your update advances state, such as
+incrementing a frame index into a reference motion. Apply such advances
+only to <code class="docutils literal notranslate"><span class="pre">env_ids</span></code> (all environments when <code class="docutils literal notranslate"><span class="pre">None</span></code>); otherwise
+resetting a few environments would also advance every other one. Updates
+that simply recompute values from the current simulation state, like a
+heading error, give the same result no matter how often they run and can
+safely ignore <code class="docutils literal notranslate"><span class="pre">env_ids</span></code>.</p>
 <p>The configuration must implement a <code class="docutils literal notranslate"><span class="pre">build(env)</span></code> method that
 constructs the paired term instance.</p>
 </section>

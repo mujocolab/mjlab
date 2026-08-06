@@ -552,6 +552,12 @@ document.write(`
 and <code class="docutils literal notranslate"><span class="pre">priority</span></code> to be explicit instead of silently defaulting to
 MuJoCo’s values, and dict values for these fields must cover every
 matched geom (add a catch-all <code class="docutils literal notranslate"><span class="pre">&quot;.*&quot;</span></code> entry).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CommandTerm._update_command</span></code> now takes an <code class="docutils literal notranslate"><span class="pre">env_ids</span></code> argument:
+<code class="docutils literal notranslate"><span class="pre">None</span></code> on the regular per-step update and the reset environment ids
+when called from <code class="docutils literal notranslate"><span class="pre">reset()</span></code>. Custom command terms must add the
+parameter (construction raises a <code class="docutils literal notranslate"><span class="pre">TypeError</span></code> with migration
+instructions otherwise) and scope any per-step state advance, such as
+a motion frame index, to <code class="docutils literal notranslate"><span class="pre">env_ids</span></code>.</p></li>
 </ul>
 </div>
 <div class="note admonition">
@@ -614,6 +620,13 @@ history and delay buffers; only the reset envs receive their post-reset
 frame. Previously, each manual partial reset gave the other envs a duplicate
 frame, shortening their effective history and drifting their delay
 schedules.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reset(env_ids=...)</span></code> no longer advances stateful commands in
+environments that were not reset. Previously a partial reset gave every
+environment an extra command update, so with <code class="docutils literal notranslate"><span class="pre">auto_reset=False</span></code> a
+<code class="docutils literal notranslate"><span class="pre">MotionCommand</span></code> reference motion played at twice the normal speed and
+could teleport non-reset robots via the wraparound resample. The adaptive
+sampling EMA also no longer folds on resets, matching auto-reset
+training dynamics. <a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/1138">#1138</a></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">RayCastSensorCfg.include_geom_groups</span></code> now raises on values outside
 <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">mjNGROUP)</span></code> instead of silently excluding every geom.</p></li>
 <li><p>Geoms with a negative group no longer pick up group 5’s visibility toggle in
