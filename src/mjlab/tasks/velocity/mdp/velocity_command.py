@@ -113,12 +113,14 @@ class UniformVelocityCommand(CommandTerm):
       )
       self.robot.write_root_state_to_sim(root_state, init_vel_env_ids)
 
-  def _update_command(self) -> None:
+  def _update_command(self, env_ids: torch.Tensor | None = None) -> None:
+    # Pure function of the current state; refreshing all envs is safe.
+    del env_ids
     if self.cfg.heading_command:
       self.heading_error = wrap_to_pi(self.heading_target - self.robot.data.heading_w)
-      env_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
-      self.vel_command_b[env_ids, 2] = torch.clip(
-        self.cfg.heading_control_stiffness * self.heading_error[env_ids],
+      heading_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
+      self.vel_command_b[heading_ids, 2] = torch.clip(
+        self.cfg.heading_control_stiffness * self.heading_error[heading_ids],
         min=self.cfg.ranges.ang_vel_z[0],
         max=self.cfg.ranges.ang_vel_z[1],
       )
@@ -197,8 +199,8 @@ class UniformVelocityCommand(CommandTerm):
     self._joystick_sliders = sliders
     self._joystick_get_env_idx = get_env_idx
 
-  def compute(self, dt: float) -> None:
-    super().compute(dt)
+  def compute(self, dt: float, env_ids: torch.Tensor | None = None) -> None:
+    super().compute(dt, env_ids)
     if self._joystick_enabled is not None and self._joystick_enabled.value:
       assert self._joystick_get_env_idx is not None
       idx = self._joystick_get_env_idx()

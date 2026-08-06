@@ -100,10 +100,24 @@ Writing custom command terms
 A custom command term is a class inheriting from ``CommandTerm`` paired
 with a configuration dataclass inheriting from ``CommandTermCfg``. The
 term must implement four methods: ``_resample_command(env_ids)`` to
-sample new goals, ``_update_command()`` for per-step updates,
+sample new goals, ``_update_command(env_ids)`` for per-step updates,
 ``_update_metrics()`` for logging, and a ``command`` property returning
 the current goal tensor. The base class manages the resampling timer
 and reset logic automatically.
+
+``_update_command`` is called in two situations. On every environment
+step it receives ``env_ids=None``, meaning update all environments.
+After a reset it is called again with the ids of the environments that
+were just reset, so their command state is brought up to date before
+observations are computed.
+
+The distinction matters when your update advances state, such as
+incrementing a frame index into a reference motion. Apply such advances
+only to ``env_ids`` (all environments when ``None``); otherwise
+resetting a few environments would also advance every other one. Updates
+that simply recompute values from the current simulation state, like a
+heading error, give the same result no matter how often they run and can
+safely ignore ``env_ids``.
 
 The configuration must implement a ``build(env)`` method that
 constructs the paired term instance.
