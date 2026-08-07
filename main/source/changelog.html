@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Aug 06, 2026"/>
+    <meta name="docbuild:last-update" content="Aug 07, 2026"/>
   </head>
   
   
@@ -627,6 +627,14 @@ environment an extra command update, so with <code class="docutils literal notra
 could teleport non-reset robots via the wraparound resample. The adaptive
 sampling EMA also no longer folds on resets, matching auto-reset
 training dynamics. <a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/1138">#1138</a></p></li>
+<li><p>Interval event timers are now resampled on episode reset for function-based
+terms, as documented. Previously the countdown carried across episodes, so a
+new episode’s first <code class="docutils literal notranslate"><span class="pre">push_robot</span></code> in the velocity and tracking tasks could
+fire arbitrarily soon after spawn; with mixed function and class interval
+terms, reset also wrote into the wrong timer slots. Note this changes push
+timing relative to earlier training runs, and an interval term whose range
+exceeds the episode length is now re-armed on every reset and will never
+fire.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">RayCastSensorCfg.include_geom_groups</span></code> now raises on values outside
 <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">mjNGROUP)</span></code> instead of silently excluding every geom.</p></li>
 <li><p>Geoms with a negative group no longer pick up group 5’s visibility toggle in
@@ -1680,7 +1688,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Aug 06, 2026.
+  Last updated on Aug 07, 2026.
   <br/>
 </p>
   </div>

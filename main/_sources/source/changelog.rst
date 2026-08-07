@@ -82,6 +82,14 @@ Fixed
   could teleport non-reset robots via the wraparound resample. The adaptive
   sampling EMA also no longer folds on resets, matching auto-reset
   training dynamics. :issue:`1138`
+- Interval event timers are now resampled on episode reset for function-based
+  terms, as documented. Previously the countdown carried across episodes, so a
+  new episode's first ``push_robot`` in the velocity and tracking tasks could
+  fire arbitrarily soon after spawn; with mixed function and class interval
+  terms, reset also wrote into the wrong timer slots. Note this changes push
+  timing relative to earlier training runs, and an interval term whose range
+  exceeds the episode length is now re-armed on every reset and will never
+  fire.
 - ``RayCastSensorCfg.include_geom_groups`` now raises on values outside
   ``[0, mjNGROUP)`` instead of silently excluding every geom.
 - Geoms with a negative group no longer pick up group 5's visibility toggle in
