@@ -79,7 +79,7 @@ Fixed
 - ``UniformVelocityCommand``'s ``init_velocity_prob`` path no longer writes
   the previous episode's terminal pose back into the sim on reset. It read
   derived kinematics before ``forward()`` ran and rewrote the root pose; it
-  now reads qpos/qvel and writes only the root velocity.
+  now reads only qpos for the orientation and writes only the root velocity.
 - ``reset(env_ids=...)`` no longer appends a frame to every env's observation
   history and delay buffers; only the reset envs receive their post-reset
   frame. Previously, each manual partial reset gave the other envs a duplicate
