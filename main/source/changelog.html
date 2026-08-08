@@ -621,6 +621,10 @@ terminate the episode on the next step.</p></li>
 <li><p>Mid-episode lifting command resamples now refresh kinematics and the
 multi-cube reward cache, so observations and rewards no longer see
 pre-teleport object positions for one step after each resample.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UniformVelocityCommand</span></code>’s <code class="docutils literal notranslate"><span class="pre">init_velocity_prob</span></code> path no longer writes
+the previous episode’s terminal pose back into the sim on reset. It read
+derived kinematics before <code class="docutils literal notranslate"><span class="pre">forward()</span></code> ran and rewrote the root pose; it
+now reads only qpos for the orientation and writes only the root velocity.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">reset(env_ids=...)</span></code> no longer appends a frame to every env’s observation
 history and delay buffers; only the reset envs receive their post-reset
 frame. Previously, each manual partial reset gave the other envs a duplicate
