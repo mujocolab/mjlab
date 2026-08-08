@@ -566,6 +566,9 @@ class MotionCommand(CommandTerm):
       return False
     frame = int(self._scrubber_handles[0].value)
     self.reset_to_frame(env_ids, frame)
+    # reset_to_frame writes qpos/qvel; forward so update_relative_body_poses
+    # reads the scrubbed pose instead of the stale pre-scrub kinematics.
+    self._env.sim.forward()
     self.update_relative_body_poses()
     return True
 
