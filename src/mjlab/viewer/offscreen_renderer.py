@@ -1,10 +1,12 @@
 """MuJoCo offscreen renderer for headless visualization."""
 
+import copy
 from typing import Any, Callable
 
 import mujoco
 import numpy as np
 
+from mjlab.entity import Entity
 from mjlab.scene import Scene
 from mjlab.viewer.model_sync import (
   VIEWER_MODEL_FIELDS,
@@ -13,6 +15,41 @@ from mjlab.viewer.model_sync import (
 )
 from mjlab.viewer.native.visualizer import MujocoNativeDebugVisualizer
 from mjlab.viewer.viewer_config import ViewerConfig
+
+
+def _get_camera_body_id(cfg: ViewerConfig, entities: dict[str, Entity]) -> int:
+  """Resolve the body id the camera tracks, or -1 for free cameras."""
+  if cfg.origin_type in (
+    ViewerConfig.OriginType.AUTO,
+    ViewerConfig.OriginType.WORLD,
+  ):
+    return -1
+
+  entity_name = cfg.entity_name
+  if entity_name is None:
+    if len(entities) != 1:
+      raise ValueError(
+        f"Cannot auto-detect entity: scene has {len(entities)} entities "
+        f"({list(entities.keys())}). Set ViewerConfig.entity_name to choose one."
+      )
+    entity_name = next(iter(entities))
+  elif entity_name not in entities:
+    raise ValueError(
+      f"Entity '{entity_name}' not found in scene. "
+      f"Available entities: {list(entities.keys())}."
+    )
+  entity = entities[entity_name]
+
+  if cfg.origin_type == ViewerConfig.OriginType.ASSET_ROOT:
+    return entity.indexing.root_body_id
+
+  assert cfg.origin_type == ViewerConfig.OriginType.ASSET_BODY
+  if not cfg.body_name:
+    raise ValueError("body_name is required for the ASSET_BODY origin type.")
+  if cfg.body_name not in entity.body_names:
+    raise ValueError(f"Body '{cfg.body_name}' not found in entity '{entity_name}'.")
+  body_ids, _ = entity.find_bodies(cfg.body_name)
+  return entity.indexing.bodies[body_ids[0]].id
 
 
 class OffscreenRenderer:
@@ -25,25 +62,25 @@ class OffscreenRenderer:
     expanded_fields: set[str] | None = None,
   ) -> None:
     self._cfg = cfg
-    self._model = model
+    self._scene = scene
     self._sim_model = sim_model
     self._expanded_fields = expanded_fields
-    self._data = mujoco.MjData(model)
-    self._scene = scene
+
+    # Work on a copy so render-only tweaks (extent, shadows, reflections,
+    # sameframe shortcuts) never leak into the shared model.
+    self._model = copy.copy(model)
+    self._data = mujoco.MjData(self._model)
+
     if self._sim_model is not None:
       disable_model_sameframe_shortcuts(self._model)
-    self._orig_extent = float(self._model.stat.extent)
-    self._render_extent = self._compute_render_extent()
+
     # Keep extent override local to offscreen rendering so shadow/camera scaling
     # is not dominated by the full multi-env world bounds.
-    self._model.stat.extent = self._render_extent
+    self._model.stat.extent = self._compute_render_extent(cfg.distance)
 
     self._model.vis.global_.offheight = cfg.height
     self._model.vis.global_.offwidth = cfg.width
-    if cfg.fovy is not None and cfg.origin_type in (
-      cfg.OriginType.AUTO,
-      cfg.OriginType.WORLD,
-    ):
+    if cfg.fovy is not None:
       self._model.vis.global_.fovy = cfg.fovy
 
     if not cfg.enable_shadows:
@@ -51,13 +88,15 @@ class OffscreenRenderer:
     if not cfg.enable_reflections:
       self._model.mat_reflectance[:] = 0.0
 
-    self._cam = self._setup_camera()
+    self._cam = self._setup_camera(cfg, self._model, scene.entities)
+    self._env_ids: tuple[int, ...] | None = None
 
     self._renderer: mujoco.Renderer | None = None
     self._opt = mujoco.MjvOption()
+    self._opt.geomgroup[:] = np.array(cfg.geom_group, dtype=np.uint8)
+    self._opt.sitegroup[:] = np.array(cfg.site_group, dtype=np.uint8)
     self._pert = mujoco.MjvPerturb()
     self._catmask = mujoco.mjtCatBit.mjCAT_DYNAMIC
-    self._extra_env_ids: list[int] | None = None
 
   @property
   def renderer(self) -> mujoco.Renderer:
@@ -85,40 +124,33 @@ class OffscreenRenderer:
     if self._renderer is None:
       raise ValueError("Renderer not initialized. Call 'initialize()' first.")
 
-    nworld = int(data.nworld)
-    if nworld <= 0:
+    if int(data.nworld) <= 0:
       return
 
-    env_idx = max(0, min(int(self._cfg.env_idx), nworld - 1))
-    self._sync_model_fields(env_idx)
-    if self._model.nq > 0:
-      self._data.qpos[:] = data.qpos[env_idx].cpu().numpy()
-      self._data.qvel[:] = data.qvel[env_idx].cpu().numpy()
-    if self._model.nmocap > 0:
-      self._data.mocap_pos[:] = data.mocap_pos[env_idx].cpu().numpy()
-      self._data.mocap_quat[:] = data.mocap_quat[env_idx].cpu().numpy()
-    mujoco.mj_forward(self._model, self._data)
+    if self._env_ids is None:
+      self._env_ids = self._get_env_ids(
+        self._cfg, self._scene.env_origins.cpu().numpy()
+      )
+
+    # The primary env frames the camera and receives the debug overlays.
+    primary_env = self._env_ids[0]
+    self._sync_model_fields(primary_env)
+    self._sync_data_fields(data, primary_env)
 
     cam = camera if camera is not None else self._cam
-    self._renderer.update_scene(self._data, camera=cam)
+    self._renderer.update_scene(self._data, camera=cam, scene_option=self._opt)
 
     # Note: update_scene() resets the scene each frame, so no need to manually clear.
     if debug_vis_callback is not None:
       visualizer = MujocoNativeDebugVisualizer(
-        self._renderer.scene, self._model, env_idx=self._cfg.env_idx
+        self._renderer.scene, self._model, env_idx=primary_env
       )
       debug_vis_callback(visualizer)
 
-    # Add nearest neighboring environments as geoms for context.
-    for i in self._get_extra_env_ids(nworld, env_idx):
-      self._sync_model_fields(i)
-      if self._model.nq > 0:
-        self._data.qpos[:] = data.qpos[i].cpu().numpy()
-        self._data.qvel[:] = data.qvel[i].cpu().numpy()
-      if self._model.nmocap > 0:
-        self._data.mocap_pos[:] = data.mocap_pos[i].cpu().numpy()
-        self._data.mocap_quat[:] = data.mocap_quat[i].cpu().numpy()
-      mujoco.mj_forward(self._model, self._data)
+    # Add neighboring environments as geoms for context.
+    for env_id in self._env_ids[1:]:
+      self._sync_model_fields(env_id)
+      self._sync_data_fields(data, env_id)
       mujoco.mjv_addGeoms(
         self._model,
         self._data,
@@ -128,35 +160,26 @@ class OffscreenRenderer:
         self._renderer.scene,
       )
 
-    self._sync_model_fields(env_idx)
+  def render(self) -> np.ndarray:
+    if self._renderer is None:
+      raise ValueError("Renderer not initialized. Call 'initialize()' first.")
 
-  def _get_extra_env_ids(self, nworld: int, env_idx: int) -> list[int]:
-    """Return nearest neighboring env ids to render as context.
+    return self._renderer.render()
 
-    We render a small local neighborhood around ``env_idx`` instead of the first
-    N environments, so videos stay focused on the tracked robot and nearby peers.
+  def close(self) -> None:
+    if self._renderer is not None:
+      self._renderer.close()
+      self._renderer = None
 
-    The neighbor set is computed once and cached. ``env_origins`` can mutate during
-    training (e.g. the terrain curriculum reassigns origins on reset), so recomputing
-    every frame would make the context robots pop in and out, causing video flicker.
-    """
-    if self._extra_env_ids is not None:
-      return self._extra_env_ids
-
-    if self._cfg.max_extra_envs <= 0 or nworld <= 1:
-      self._extra_env_ids = []
-      return self._extra_env_ids
-
-    k = min(self._cfg.max_extra_envs, nworld - 1)
-    origins = self._scene.env_origins[:nworld].cpu().numpy()
-    ref = origins[env_idx]
-    dist2 = np.sum((origins - ref) ** 2, axis=1)
-    dist2[env_idx] = np.inf
-
-    nearest = np.argpartition(dist2, kth=k - 1)[:k]
-    nearest = nearest[np.argsort(dist2[nearest])]
-    self._extra_env_ids = [int(i) for i in nearest]
-    return self._extra_env_ids
+  def _sync_data_fields(self, data: Any, env_idx: int) -> None:
+    """Copy one env's state into the host MjData and refresh kinematics."""
+    if self._model.nq > 0:
+      self._data.qpos[:] = data.qpos[env_idx].cpu().numpy()
+      self._data.qvel[:] = data.qvel[env_idx].cpu().numpy()
+    if self._model.nmocap > 0:
+      self._data.mocap_pos[:] = data.mocap_pos[env_idx].cpu().numpy()
+      self._data.mocap_quat[:] = data.mocap_quat[env_idx].cpu().numpy()
+    mujoco.mj_forward(self._model, self._data)
 
   def _sync_model_fields(self, env_idx: int) -> None:
     """Sync visually relevant per-world model fields into the host MjModel."""
@@ -165,86 +188,68 @@ class OffscreenRenderer:
     fields = self._expanded_fields & VIEWER_MODEL_FIELDS
     sync_model_fields(self._model, self._sim_model, fields, env_idx)
 
-  def render(self) -> np.ndarray:
-    if self._renderer is None:
-      raise ValueError("Renderer not initialized. Call 'initialize()' first.")
+  @staticmethod
+  def _get_env_ids(cfg: ViewerConfig, env_origins: np.ndarray) -> tuple[int, ...]:
+    """Return the ids of the environments to render, primary env first.
 
-    return self._renderer.render()
+    The primary env is cfg.env_idx (clamped to the available worlds), followed
+    by up to max_extra_envs nearest neighbors by env origin, so videos stay
+    focused on the tracked robot and nearby peers.
 
-  def _setup_camera(self) -> mujoco.MjvCamera:
+    The set is resolved once, on first use, and kept stable: env_origins can
+    mutate during training (e.g. the terrain curriculum reassigns origins on
+    reset), and recomputing every frame would make the context robots pop in
+    and out, causing video flicker.
+    """
+    if cfg.max_extra_envs < 0:
+      raise ValueError(
+        f"'max_extra_envs' must be non-negative, got {cfg.max_extra_envs}."
+      )
+
+    n_world = env_origins.shape[0]
+    env_idx = max(0, min(int(cfg.env_idx), n_world - 1))
+    k = min(cfg.max_extra_envs, n_world - 1)
+    if k <= 0:
+      return (env_idx,)
+
+    dist2 = np.sum((env_origins - env_origins[env_idx]) ** 2, axis=1)
+    dist2[env_idx] = np.inf
+    nearest = np.argpartition(dist2, kth=k - 1)[:k]
+    nearest = nearest[np.argsort(dist2[nearest])]
+    return (env_idx, *(int(i) for i in nearest))
+
+  @staticmethod
+  def _setup_camera(
+    cfg: ViewerConfig,
+    model: mujoco.MjModel,
+    entities: dict[str, Entity],
+  ) -> mujoco.MjvCamera:
     """Setup camera based on config's origin_type."""
+    body_id = _get_camera_body_id(cfg, entities)
+
     camera = mujoco.MjvCamera()
-    mujoco.mjv_defaultFreeCamera(self._model, camera)
-
-    if self._cfg.origin_type in (
-      self._cfg.OriginType.AUTO,
-      self._cfg.OriginType.WORLD,
-    ):
-      # Free camera, no tracking.
+    mujoco.mjv_defaultFreeCamera(model, camera)
+    if body_id == -1:
       camera.type = mujoco.mjtCamera.mjCAMERA_FREE.value
-      camera.fixedcamid = -1
-      camera.trackbodyid = -1
-
-    elif self._cfg.origin_type == self._cfg.OriginType.ASSET_ROOT:
-      from mjlab.entity import Entity
-
-      if self._cfg.entity_name:
-        robot: Entity = self._scene[self._cfg.entity_name]
-      else:
-        # Auto-detect if only one entity.
-        if len(self._scene.entities) == 1:
-          robot = list(self._scene.entities.values())[0]
-        else:
-          raise ValueError(
-            f"Multiple entities in scene ({len(self._scene.entities)}): "
-            f"{list(self._scene.entities.keys())}. "
-            "Set ViewerConfig.entity_name to choose which one."
-          )
-
-      body_id = robot.indexing.root_body_id
+    else:
       camera.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
-      camera.trackbodyid = body_id
-      camera.fixedcamid = -1
-
-    elif self._cfg.origin_type == self._cfg.OriginType.ASSET_BODY:
-      if not self._cfg.entity_name or not self._cfg.body_name:
-        raise ValueError("entity_name/body_name required for ASSET_BODY origin type")
-
-      from mjlab.entity import Entity
-
-      robot: Entity = self._scene[self._cfg.entity_name]
-      if self._cfg.body_name not in robot.body_names:
-        raise ValueError(
-          f"Body '{self._cfg.body_name}' not found in asset '{self._cfg.entity_name}'"
-        )
-      body_id_list, _ = robot.find_bodies(self._cfg.body_name)
-      body_id = robot.indexing.bodies[body_id_list[0]].id
-
-      camera.type = mujoco.mjtCamera.mjCAMERA_TRACKING.value
-      camera.trackbodyid = body_id
-      camera.fixedcamid = -1
-
-    camera.lookat[:] = self._cfg.lookat
-    camera.elevation = self._cfg.elevation
-    camera.azimuth = self._cfg.azimuth
-    camera.distance = self._cfg.distance
+    camera.trackbodyid = body_id
+    camera.fixedcamid = -1
+    camera.lookat[:] = cfg.lookat
+    camera.elevation = cfg.elevation
+    camera.azimuth = cfg.azimuth
+    camera.distance = cfg.distance
 
     return camera
 
-  def close(self) -> None:
-    if self._renderer is not None:
-      self._renderer.close()
-      self._renderer = None
-    self._model.stat.extent = self._orig_extent
-
-  def _compute_render_extent(self) -> float:
+  @staticmethod
+  def _compute_render_extent(distance: float) -> float:
     """Compute a stable extent for offscreen rendering.
 
-    MuJoCo scales z-near/z-far and shadow clip with ``model.stat.extent``. In large
-    scenes this auto extent can become very large, which causes shadow-map precision
-    artifacts in offscreen video rendering.
-
-    We therefore use a local extent tied to the active camera distance.
+    MuJoCo scales z-near/z-far and shadow clip with ``model.stat.extent``. In
+    large scenes this auto extent can become very large, which causes
+    shadow-map precision artifacts in offscreen video rendering. We therefore
+    use a local extent tied to the camera distance, keeping enough room for
+    the tracked subject and camera motion.
     """
-    # Keep enough room for the tracked subject and camera motion.
-    return max(4.0, 1.5 * float(self._cfg.distance))
+    return max(4.0, 1.5 * float(distance))
