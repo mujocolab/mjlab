@@ -625,6 +625,9 @@ pre-teleport object positions for one step after each resample.</p></li>
 the previous episode’s terminal pose back into the sim on reset. It read
 derived kinematics before <code class="docutils literal notranslate"><span class="pre">forward()</span></code> ran and rewrote the root pose; it
 now reads only qpos for the orientation and writes only the root velocity.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">init_velocity_prob</span></code> now applies on episode reset only. A mid-episode
+timer resample used to also teleport the root velocity, which ran after
+<code class="docutils literal notranslate"><span class="pre">step()</span></code>’s forward and left velocity observations stale for one step.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Entity.set_joint_position_target</span></code> and its velocity/effort/tendon/site
 siblings now select the outer product when both <code class="docutils literal notranslate"><span class="pre">env_ids</span></code> and the element
 ids are tensors, instead of pairing them elementwise.</p></li>
