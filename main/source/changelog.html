@@ -558,6 +558,8 @@ when called from <code class="docutils literal notranslate"><span class="pre">re
 parameter (construction raises a <code class="docutils literal notranslate"><span class="pre">TypeError</span></code> with migration
 instructions otherwise) and scope any per-step state advance, such as
 a motion frame index, to <code class="docutils literal notranslate"><span class="pre">env_ids</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ViewerConfig</span></code> is now keyword-only; positional construction no
+longer works.</p></li>
 </ul>
 </div>
 <div class="note admonition">
@@ -589,6 +591,10 @@ their size from the image. Contribution by &#64;bd-pmorais.</p></li>
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">reduce=&quot;sum&quot;</span></code> to <code class="docutils literal notranslate"><span class="pre">MetricsTermCfg</span></code> for reporting the accumulated
 episode total (e.g. episodic reward, total distance traveled) instead of a
 per-step average. Contribution by &#64;bd-mlutter</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">ViewerConfig.geom_group</span></code> and <code class="docutils literal notranslate"><span class="pre">ViewerConfig.site_group</span></code> to
+control which geom and site visualization groups the offscreen renderer
+draws. Defaults match MuJoCo’s (groups 0 through 2), so rendering is
+unchanged unless configured. Contribution by &#64;bd-mlutter.</p></li>
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">dr.mat_texid</span></code> to randomize which texture fills a given
 <code class="docutils literal notranslate"><span class="pre">mjtTextureRole</span></code> slot (RGB by default) of each selected material,
 sampling uniformly from <code class="docutils literal notranslate"><span class="pre">asset_cfg.texture_names</span></code>. Contribution by
@@ -610,6 +616,15 @@ when a <code class="docutils literal notranslate"><span class="pre">GeomCfg</spa
 <li><p>Changed the default MuJoCo Warp render background to solid black
 (<code class="docutils literal notranslate"><span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">1</span></code>), matching MuJoCo’s native renderer. Contribution by
 &#64;bd-pmorais.</p></li>
+<li><p>The offscreen renderer now works on a copy of the <code class="docutils literal notranslate"><span class="pre">MjModel</span></code>, so its
+render-only tweaks (extent, shadows, reflections, offscreen size) no
+longer leak into the shared model. Contribution by &#64;bd-mlutter.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ViewerConfig</span></code> is now keyword-only, with fields grouped and documented.
+Contribution by &#64;bd-mlutter.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ViewerConfig.fovy</span></code> now also applies to the <code class="docutils literal notranslate"><span class="pre">ASSET_ROOT</span></code> and
+<code class="docutils literal notranslate"><span class="pre">ASSET_BODY</span></code> tracking cameras instead of being silently ignored; leave
+it at <code class="docutils literal notranslate"><span class="pre">None</span></code> (the default) to keep the model value. Contribution by
+&#64;bd-mlutter.</p></li>
 </ul>
 </section>
 <section id="fixed">
