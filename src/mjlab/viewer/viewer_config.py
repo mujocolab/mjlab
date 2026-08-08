@@ -33,6 +33,10 @@ class ViewerConfig:
   enable_shadows: bool = True
   height: int = 240
   width: int = 320
+  geom_group: tuple[int, int, int, int, int, int] = (1, 1, 1, 0, 0, 0)
+  """Which geom visualization groups the offscreen renderer draws."""
+  site_group: tuple[int, int, int, int, int, int] = (1, 1, 1, 0, 0, 0)
+  """Which site visualization groups the offscreen renderer draws."""
   reward_bar_max_terms: int = 20
   """Maximum number of reward terms shown in the Viser reward bar panel.
 

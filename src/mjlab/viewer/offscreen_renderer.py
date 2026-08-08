@@ -96,6 +96,8 @@ class OffscreenRenderer:
 
     self._renderer: mujoco.Renderer | None = None
     self._opt = mujoco.MjvOption()
+    self._opt.geomgroup[:] = np.array(cfg.geom_group, dtype=np.uint8)
+    self._opt.sitegroup[:] = np.array(cfg.site_group, dtype=np.uint8)
     self._pert = mujoco.MjvPerturb()
     self._catmask = mujoco.mjtCatBit.mjCAT_DYNAMIC
 
@@ -139,7 +141,7 @@ class OffscreenRenderer:
     self._sync_data_fields(data, primary_env)
 
     cam = camera if camera is not None else self._cam
-    self._renderer.update_scene(self._data, camera=cam)
+    self._renderer.update_scene(self._data, camera=cam, scene_option=self._opt)
 
     # Note: update_scene() resets the scene each frame, so no need to manually clear.
     if debug_vis_callback is not None:
