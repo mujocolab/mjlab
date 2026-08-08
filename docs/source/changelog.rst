@@ -18,6 +18,8 @@ Upcoming version (not yet released)
      parameter (construction raises a ``TypeError`` with migration
      instructions otherwise) and scope any per-step state advance, such as
      a motion frame index, to ``env_ids``.
+   - ``ViewerConfig`` is now keyword-only; positional construction no
+     longer works.
 
 .. admonition:: Highlights
    :class: note
@@ -47,6 +49,10 @@ Added
 - Added ``reduce="sum"`` to ``MetricsTermCfg`` for reporting the accumulated
   episode total (e.g. episodic reward, total distance traveled) instead of a
   per-step average. Contribution by @bd-mlutter
+- Added ``ViewerConfig.geom_group`` and ``ViewerConfig.site_group`` to
+  control which geom and site visualization groups the offscreen renderer
+  draws. Defaults match MuJoCo's (groups 0 through 2), so rendering is
+  unchanged unless configured. Contribution by @bd-mlutter.
 - Added ``dr.mat_texid`` to randomize which texture fills a given
   ``mjtTextureRole`` slot (RGB by default) of each selected material,
   sampling uniformly from ``asset_cfg.texture_names``. Contribution by
@@ -66,6 +72,15 @@ Changed
 - Changed the default MuJoCo Warp render background to solid black
   (``0, 0, 0, 1``), matching MuJoCo's native renderer. Contribution by
   @bd-pmorais.
+- The offscreen renderer now works on a copy of the ``MjModel``, so its
+  render-only tweaks (extent, shadows, reflections, offscreen size) no
+  longer leak into the shared model. Contribution by @bd-mlutter.
+- ``ViewerConfig`` is now keyword-only, with fields grouped and documented.
+  Contribution by @bd-mlutter.
+- ``ViewerConfig.fovy`` now also applies to the ``ASSET_ROOT`` and
+  ``ASSET_BODY`` tracking cameras instead of being silently ignored; leave
+  it at ``None`` (the default) to keep the model value. Contribution by
+  @bd-mlutter.
 
 Fixed
 ^^^^^
