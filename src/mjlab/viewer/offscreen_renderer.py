@@ -1,5 +1,6 @@
 """MuJoCo offscreen renderer for headless visualization."""
 
+import copy
 from typing import Any, Callable
 
 import mujoco
@@ -25,14 +26,15 @@ class OffscreenRenderer:
     expanded_fields: set[str] | None = None,
   ) -> None:
     self._cfg = cfg
-    self._model = model
+    # Work on a copy so render-only tweaks (extent, shadows, reflections,
+    # sameframe shortcuts) never leak into the shared model.
+    self._model = copy.copy(model)
     self._sim_model = sim_model
     self._expanded_fields = expanded_fields
-    self._data = mujoco.MjData(model)
+    self._data = mujoco.MjData(self._model)
     self._scene = scene
     if self._sim_model is not None:
       disable_model_sameframe_shortcuts(self._model)
-    self._orig_extent = float(self._model.stat.extent)
     self._render_extent = self._compute_render_extent()
     # Keep extent override local to offscreen rendering so shadow/camera scaling
     # is not dominated by the full multi-env world bounds.
@@ -127,8 +129,6 @@ class OffscreenRenderer:
         self._catmask.value,
         self._renderer.scene,
       )
-
-    self._sync_model_fields(env_idx)
 
   def _get_extra_env_ids(self, nworld: int, env_idx: int) -> list[int]:
     """Return nearest neighboring env ids to render as context.
@@ -235,7 +235,6 @@ class OffscreenRenderer:
     if self._renderer is not None:
       self._renderer.close()
       self._renderer = None
-    self._model.stat.extent = self._orig_extent
 
   def _compute_render_extent(self) -> float:
     """Compute a stable extent for offscreen rendering.
