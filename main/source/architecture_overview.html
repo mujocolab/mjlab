@@ -629,13 +629,13 @@ Command targets are resampled. Observation history buffers are cleared.</p></li>
 <li><p><strong>Step.</strong> The policy action is processed by the <code class="docutils literal notranslate"><span class="pre">ActionManager</span></code>. The
 physics simulation advances <code class="docutils literal notranslate"><span class="pre">decimation</span></code> times, with actuator commands
 applied and entity state updated each sub-step. After the decimation
-loop, the <code class="docutils literal notranslate"><span class="pre">TerminationManager</span></code> checks stop conditions, the
-<code class="docutils literal notranslate"><span class="pre">RewardManager</span></code> computes the reward signal, and any terminated
-environments are reset. A single <code class="docutils literal notranslate"><span class="pre">forward()</span></code> call refreshes derived
-quantities for all environments. The <code class="docutils literal notranslate"><span class="pre">CommandManager</span></code> advances or
-resamples goals. Interval events fire if scheduled. Sensors update. The
-<code class="docutils literal notranslate"><span class="pre">ObservationManager</span></code> assembles the observation for the next policy
-query.</p></li>
+loop, the <code class="docutils literal notranslate"><span class="pre">TerminationManager</span></code> checks stop conditions and the
+<code class="docutils literal notranslate"><span class="pre">RewardManager</span></code> computes the reward signal. Step and interval events
+fire if scheduled, acting on the pre-reset state. Any terminated
+environments are then reset. A single <code class="docutils literal notranslate"><span class="pre">forward()</span></code> call refreshes
+derived quantities for all environments. The <code class="docutils literal notranslate"><span class="pre">CommandManager</span></code> advances
+or resamples goals. Sensors update. The <code class="docutils literal notranslate"><span class="pre">ObservationManager</span></code> assembles
+the observation for the next policy query.</p></li>
 </ol>
 <p>The step sequence in order:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>action_manager.process_action(action)
@@ -646,10 +646,11 @@ for _ in range(decimation):
 termination_manager.compute()
 reward_manager.compute()
 metrics_manager.compute()
+event_manager.apply(mode=&quot;step&quot;)
+event_manager.apply(mode=&quot;interval&quot;)
 [reset terminated envs]
 sim.forward()
-command_manager.compute()
-event_manager.apply(mode=&quot;interval&quot;)
+command_manager.compute()  # dt=0 for envs just reset
 sim.sense()
 observation_manager.compute()
 </pre></div>

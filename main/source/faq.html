@@ -719,12 +719,14 @@ derived quantities in <code class="docutils literal notranslate"><span class="pr
 <code class="docutils literal notranslate"><span class="pre">cvel</span></code>, <code class="docutils literal notranslate"><span class="pre">sensordata</span></code>, etc.) into a consistent state with the current
 <code class="docutils literal notranslate"><span class="pre">qpos</span></code>/<code class="docutils literal notranslate"><span class="pre">qvel</span></code>.
 The environment’s <code class="docutils literal notranslate"><span class="pre">step()</span></code> method calls it once per step, right before
-observation computation, so observations, commands, and interval events
-always see fresh derived quantities. Termination and reward managers run
+observation computation, so observations and commands always see fresh
+derived quantities. Termination, reward, and step/interval events run
 <em>before</em> this call and therefore see derived quantities that are stale by
 one physics substep, a deliberate tradeoff that avoids a second
 <code class="docutils literal notranslate"><span class="pre">forward()</span></code> call while keeping the MDP well-defined (the staleness is
-consistent across all envs and all steps).</p>
+consistent across all envs and all steps). Because events run before the
+call, any state they write (e.g. a velocity push) is refreshed by it and
+visible to the same step’s observations.</p>
 <p>The one case where this matters is if you write an event or command that
 both writes state and reads derived quantities in the same function. For
 example, if Event A calls <code class="docutils literal notranslate"><span class="pre">entity.write_root_velocity_to_sim()</span></code> (which

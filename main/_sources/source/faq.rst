@@ -218,12 +218,14 @@ derived quantities in ``mjData`` (``xpos``, ``xquat``, ``site_xpos``,
 ``cvel``, ``sensordata``, etc.) into a consistent state with the current
 ``qpos``/``qvel``.
 The environment's ``step()`` method calls it once per step, right before
-observation computation, so observations, commands, and interval events
-always see fresh derived quantities. Termination and reward managers run
+observation computation, so observations and commands always see fresh
+derived quantities. Termination, reward, and step/interval events run
 *before* this call and therefore see derived quantities that are stale by
 one physics substep, a deliberate tradeoff that avoids a second
 ``forward()`` call while keeping the MDP well-defined (the staleness is
-consistent across all envs and all steps).
+consistent across all envs and all steps). Because events run before the
+call, any state they write (e.g. a velocity push) is refreshed by it and
+visible to the same step's observations.
 
 The one case where this matters is if you write an event or command that
 both writes state and reads derived quantities in the same function. For
