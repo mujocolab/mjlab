@@ -625,6 +625,17 @@ pre-teleport object positions for one step after each resample.</p></li>
 the previous episode’s terminal pose back into the sim on reset. It read
 derived kinematics before <code class="docutils literal notranslate"><span class="pre">forward()</span></code> ran and rewrote the root pose; it
 now reads only qpos for the orientation and writes only the root velocity.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Entity.set_joint_position_target</span></code> and its velocity/effort/tendon/site
+siblings now select the outer product when both <code class="docutils literal notranslate"><span class="pre">env_ids</span></code> and the element
+ids are tensors, instead of pairing them elementwise.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MotionCommand</span></code> now refreshes kinematics after a timer-expiry resample
+(finite <code class="docutils literal notranslate"><span class="pre">resampling_time_range</span></code>), matching its wraparound path.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CircularBuffer</span></code> lag retrieval now clamps to the oldest retained frame;
+a lag beyond the buffer length used to wrap around to a newer frame.</p></li>
+<li><p>Camera sensor caches are now invalidated after <code class="docutils literal notranslate"><span class="pre">sense()</span></code>, so a
+pre-sense read with <code class="docutils literal notranslate"><span class="pre">clone_data=True</span></code> can no longer pin the previous
+step’s frame into the observations (mirrors the raycast fix for
+<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/998">#998</a>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">reset(env_ids=...)</span></code> no longer appends a frame to every env’s observation
 history and delay buffers; only the reset envs receive their post-reset
 frame. Previously, each manual partial reset gave the other envs a duplicate

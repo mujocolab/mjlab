@@ -80,6 +80,17 @@ Fixed
   the previous episode's terminal pose back into the sim on reset. It read
   derived kinematics before ``forward()`` ran and rewrote the root pose; it
   now reads only qpos for the orientation and writes only the root velocity.
+- ``Entity.set_joint_position_target`` and its velocity/effort/tendon/site
+  siblings now select the outer product when both ``env_ids`` and the element
+  ids are tensors, instead of pairing them elementwise.
+- ``MotionCommand`` now refreshes kinematics after a timer-expiry resample
+  (finite ``resampling_time_range``), matching its wraparound path.
+- ``CircularBuffer`` lag retrieval now clamps to the oldest retained frame;
+  a lag beyond the buffer length used to wrap around to a newer frame.
+- Camera sensor caches are now invalidated after ``sense()``, so a
+  pre-sense read with ``clone_data=True`` can no longer pin the previous
+  step's frame into the observations (mirrors the raycast fix for
+  :issue:`998`).
 - ``reset(env_ids=...)`` no longer appends a frame to every env's observation
   history and delay buffers; only the reset envs receive their post-reset
   frame. Previously, each manual partial reset gave the other envs a duplicate
