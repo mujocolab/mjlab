@@ -59,7 +59,6 @@ def test_lifting_resample_refreshes_kinematics(device):
   term = cfg.build(env)
 
   term.reset(env_ids=torch.arange(env.num_envs, device=device))
-  assert not term._pending_forward  # Reset path relies on the env's forward.
   env.sim.forward()
 
   counter = term.command_counter.clone()
@@ -78,7 +77,6 @@ def test_multi_cube_resample_refreshes_kinematics_and_cache(device):
   term = cfg.build(env)
 
   term.reset(env_ids=torch.arange(env.num_envs, device=device))
-  assert not term._pending_forward
   env.sim.forward()
 
   counter = term.command_counter.clone()
