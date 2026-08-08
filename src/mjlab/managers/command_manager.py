@@ -108,18 +108,25 @@ class CommandTerm(ManagerTermBase):
     self._resample(env_ids)
     return extras
 
-  def compute(self, dt: float, env_ids: torch.Tensor | None = None) -> None:
+  def compute(
+    self, dt: float | torch.Tensor, env_ids: torch.Tensor | None = None
+  ) -> None:
     """Advance the command state by dt.
 
     With env_ids=None (the per-step path) all envs are updated; with env_ids
     (the reset path) timers and the command update are scoped to those envs.
     Metrics are always refreshed.
+
+    dt may be a scalar (all envs) or a per-env tensor (auto-reset path,
+    where freshly reset envs get zero to keep their timers full). A tensor
+    dt requires env_ids=None.
     """
     self._update_metrics()
     if env_ids is None:
       self.time_left -= dt
       resample_env_ids = (self.time_left <= 0.0).nonzero().flatten()
     else:
+      assert not isinstance(dt, torch.Tensor)
       self.time_left[env_ids] -= dt
       resample_env_ids = env_ids[self.time_left[env_ids] <= 0.0]
     if len(resample_env_ids) > 0:
@@ -277,7 +284,7 @@ class CommandManager(ManagerBase):
         extras[f"Metrics/{name}/{metric_name}"] = metric_value
     return extras
 
-  def compute(self, dt: float, env_ids: torch.Tensor | None = None):
+  def compute(self, dt: float | torch.Tensor, env_ids: torch.Tensor | None = None):
     for term in self._terms.values():
       term.compute(dt, env_ids)
 
@@ -351,7 +358,9 @@ class NullCommandManager:
   def reset(self, env_ids: torch.Tensor | None = None) -> dict[str, torch.Tensor]:
     return {}
 
-  def compute(self, dt: float, env_ids: torch.Tensor | None = None) -> None:
+  def compute(
+    self, dt: float | torch.Tensor, env_ids: torch.Tensor | None = None
+  ) -> None:
     pass
 
   def get_command(self, name: str) -> None:

@@ -81,6 +81,8 @@ Changed
   ``ASSET_BODY`` tracking cameras instead of being silently ignored; leave
   it at ``None`` (the default) to keep the model value. Contribution by
   @bd-mlutter.
+- ``auto_reset`` and an explicit ``reset()`` now leave identical command and
+  event timer state (:issue:`1133`).
 
 Fixed
 ^^^^^
