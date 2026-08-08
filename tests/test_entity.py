@@ -854,3 +854,17 @@ def test_wildcard_warns_about_unactuated_namespaces():
   )
   with pytest.warns(match="also match.*tendon"):
     Entity(cfg)
+
+
+def test_set_joint_position_target_outer_product(device):
+  """Tensor env_ids + tensor joint_ids select the outer product, not a diagonal."""
+  entity = create_fixed_articulated_entity()
+  entity, _ = initialize_entity_with_sim(entity, device, num_envs=2)
+
+  targets = torch.tensor([[1.0, 2.0], [3.0, 4.0]], device=device)
+  entity.set_joint_position_target(
+    targets,
+    joint_ids=torch.tensor([0, 1], device=device),
+    env_ids=torch.tensor([0, 1], device=device),
+  )
+  assert torch.equal(entity.data.joint_pos_target, targets)

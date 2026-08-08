@@ -408,11 +408,16 @@ class ManagerBasedRlEnv:
 
     .. note::
 
-      Event and command authors do not need to call ``sim.forward()`` themselves.
-      This method handles it. The only constraint is: do not read derived quantities
-      (``root_link_pose_w``, ``body_link_vel_w``, etc.) in the same function that
-      writes state (``write_root_state_to_sim``, ``write_joint_state_to_sim``,
-      etc.). See :ref:`faq` for details.
+      Reset-mode events and reset-path command resamples do not need to call
+      ``sim.forward()`` themselves; the single call above runs after them. Step
+      and interval events and command updates run *after* that call, so if they
+      write sim state they must refresh derived quantities themselves (see
+      ``MotionCommand._update_command``), and a plain state write (e.g. a
+      velocity push) is visible to qpos/qvel-backed reads this step but to
+      derived quantities only next step. In all cases, do not read derived
+      quantities (``root_link_pose_w``, ``body_link_vel_w``, etc.) in the same
+      function that writes state (``write_root_state_to_sim``,
+      ``write_joint_state_to_sim``, etc.). See :ref:`faq` for details.
     """
     if not self.cfg.auto_reset and torch.any(self._manual_reset_pending):
       pending_ids = self._manual_reset_pending.nonzero(as_tuple=False).squeeze(-1)

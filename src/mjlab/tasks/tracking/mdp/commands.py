@@ -121,6 +121,7 @@ class MotionCommand(CommandTerm):
 
     self._ghost_model = None
     self._ghost_color = np.array(cfg.viz.ghost_color, dtype=np.float32)
+    self._pending_forward = False
 
   @property
   def command(self) -> torch.Tensor:
@@ -373,6 +374,7 @@ class MotionCommand(CommandTerm):
       joint_pos,
       joint_vel,
     )
+    self._pending_forward = True
 
   def update_relative_body_poses(self) -> None:
     """Recompute ``body_pos_relative_w`` and ``body_quat_relative_w``.
@@ -404,6 +406,13 @@ class MotionCommand(CommandTerm):
       delta_ori_w, self.body_pos_w - anchor_pos_w_repeat
     )
 
+  def reset(self, env_ids: torch.Tensor | slice | None) -> dict[str, float]:
+    extras = super().reset(env_ids)
+    # Reset-path resamples are followed by the env's own forward(); only
+    # compute-path resamples (wraparound or timer expiry) need our refresh.
+    self._pending_forward = False
+    return extras
+
   def _update_command(self, env_ids: torch.Tensor | None = None):
     if env_ids is None:
       self.time_steps += 1
@@ -412,9 +421,14 @@ class MotionCommand(CommandTerm):
     wrap_ids = torch.where(self.time_steps >= self.motion.time_step_total)[0]
     if wrap_ids.numel() > 0:
       self._resample_command(wrap_ids)
-      # _resample_command writes qpos/qvel but does not refresh derived
-      # quantities; forward() so update_relative_body_poses reads the
-      # post-teleport robot anchor instead of the stale pre-resample pose.
+
+    # _resample_command writes qpos/qvel but does not refresh derived
+    # quantities; forward() so update_relative_body_poses reads the
+    # post-teleport robot anchor instead of the stale pre-resample pose.
+    # Covers both the wraparound above and a timer-expiry resample that ran
+    # in compute before this call.
+    if self._pending_forward:
+      self._pending_forward = False
       self._env.sim.forward()
 
     self.update_relative_body_poses()

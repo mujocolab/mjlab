@@ -256,8 +256,12 @@ class CircularBuffer:
     if key.numel() != self._batch_size:
       raise ValueError(f"Expected {self._batch_size} lags, got {key.numel()}")
 
+    # Clamp to the oldest retained frame: without the max_len bound, a lag
+    # beyond the buffer length would wrap around to a newer frame once
+    # num_pushes exceeds max_len.
     pushes = self._num_pushes.clamp_min(1)
-    valid = torch.minimum(key, pushes - 1).clamp_min(0)
+    max_lag = torch.minimum(pushes, self._max_len_tensor) - 1
+    valid = torch.minimum(key, max_lag).clamp_min(0)
 
     idx = torch.remainder(self._pointer - valid, self._max_len)
     return self._buffer[idx, self._all_indices]

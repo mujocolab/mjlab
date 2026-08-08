@@ -253,3 +253,16 @@ def test_backfill_uninitialized_raises(device):
   buffer = CircularBuffer(max_len=2, batch_size=2, device=device)
   with pytest.raises(RuntimeError, match="not initialized"):
     buffer.backfill(torch.zeros(2, 1, device=device), torch.tensor([0], device=device))
+
+
+def test_getitem_lag_clamps_to_oldest_after_wrap(device):
+  buffer = CircularBuffer(max_len=2, batch_size=1, device=device)
+  for v in [1.0, 2.0, 3.0]:
+    buffer.append(torch.tensor([[v]], device=device))
+
+  # Retained frames: [2, 3] (num_pushes exceeds max_len).
+  assert buffer[torch.tensor([0], device=device)].flatten().item() == 3.0
+  assert buffer[torch.tensor([1], device=device)].flatten().item() == 2.0
+  # A lag beyond the retained history clamps to the oldest frame instead of
+  # wrapping around to a newer one.
+  assert buffer[torch.tensor([2], device=device)].flatten().item() == 2.0
