@@ -73,6 +73,9 @@ Fixed
 - The Viser motion scrubber's Start Here button no longer computes relative
   body poses from stale pre-scrub kinematics, which could spuriously
   terminate the episode on the next step.
+- Mid-episode lifting command resamples now refresh kinematics and the
+  multi-cube reward cache, so observations and rewards no longer see
+  pre-teleport object positions for one step after each resample.
 - ``reset(env_ids=...)`` no longer appends a frame to every env's observation
   history and delay buffers; only the reset envs receive their post-reset
   frame. Previously, each manual partial reset gave the other envs a duplicate
