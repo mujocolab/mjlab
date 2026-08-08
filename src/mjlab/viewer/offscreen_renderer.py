@@ -80,10 +80,7 @@ class OffscreenRenderer:
 
     self._model.vis.global_.offheight = cfg.height
     self._model.vis.global_.offwidth = cfg.width
-    if cfg.fovy is not None and cfg.origin_type in (
-      cfg.OriginType.AUTO,
-      cfg.OriginType.WORLD,
-    ):
+    if cfg.fovy is not None:
       self._model.vis.global_.fovy = cfg.fovy
 
     if not cfg.enable_shadows:
