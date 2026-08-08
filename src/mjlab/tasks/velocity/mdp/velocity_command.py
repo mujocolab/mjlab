@@ -198,7 +198,9 @@ class UniformVelocityCommand(CommandTerm):
     self._joystick_sliders = sliders
     self._joystick_get_env_idx = get_env_idx
 
-  def compute(self, dt: float, env_ids: torch.Tensor | None = None) -> None:
+  def compute(
+    self, dt: float | torch.Tensor, env_ids: torch.Tensor | None = None
+  ) -> None:
     super().compute(dt, env_ids)
     if self._joystick_enabled is not None and self._joystick_enabled.value:
       assert self._joystick_get_env_idx is not None

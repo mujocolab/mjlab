@@ -3,8 +3,10 @@
 import pytest
 import torch
 from conftest import get_test_device
+from test_command_manager import CounterCommand, CounterCommandCfg
 
 from mjlab.envs import ManagerBasedRlEnv
+from mjlab.managers.event_manager import EventTermCfg
 from mjlab.tasks.cartpole.cartpole_env_cfg import cartpole_balance_env_cfg
 
 
@@ -194,3 +196,133 @@ def test_partial_reset_leaves_other_envs_obs_buffers_untouched(device):
   assert torch.all(h1 == h1[0])
   assert hist.current_length[1].item() == 1
   env.close()
+
+
+# Section: parity between auto-reset and the explicit reset() flow.
+
+_COMMAND_T = 7.0
+_INTERVAL_T = 5.0
+_MARKER_VEL = 37.0
+
+
+def _noop_event(env, env_ids) -> None:
+  del env, env_ids
+
+
+def _write_marker_velocity(env, env_ids) -> None:
+  """Overwrite joint velocities with a recognizable marker value."""
+  asset = env.scene["cartpole"]
+  if env_ids is None:
+    env_ids = torch.arange(env.num_envs, device=env.device)
+  joint_pos = asset.data.joint_pos[env_ids]
+  joint_vel = torch.full_like(asset.data.joint_vel[env_ids], _MARKER_VEL)
+  asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
+
+
+def _make_parity_cfg(auto_reset: bool):
+  """Cartpole cfg with fixed-interval command and event timers.
+
+  Fixed ranges make timer values deterministic, so assertions are exact and
+  independent of RNG state and physics nondeterminism.
+  """
+  cfg = _make_cfg(auto_reset)
+  cfg.commands = {
+    "counter": CounterCommandCfg(resampling_time_range=(_COMMAND_T, _COMMAND_T))
+  }
+  cfg.events["probe"] = EventTermCfg(
+    func=_noop_event, mode="interval", interval_range_s=(_INTERVAL_T, _INTERVAL_T)
+  )
+  return cfg
+
+
+def _stagger_env0(env, steps_until_reset: int) -> torch.Tensor:
+  """Advance env 0's episode clock so it times out after the given steps."""
+  env.reset()
+  env.episode_length_buf[0] = env.max_episode_length - steps_until_reset
+  return torch.zeros((env.num_envs, 1), device=env.device)
+
+
+def test_auto_reset_preserves_fresh_command_timer(device):
+  """A command timer resampled by an auto-reset is not decremented that step."""
+  env = ManagerBasedRlEnv(cfg=_make_parity_cfg(auto_reset=True), device=device)
+  action = _stagger_env0(env, steps_until_reset=2)
+  env.step(action)
+  env.step(action)  # Env 0 times out and auto-resets here.
+  assert env.episode_length_buf[0].item() == 0
+
+  term = env.command_manager.get_term("counter")
+  assert isinstance(term, CounterCommand)
+  time_left = term.time_left
+  expected_running = _COMMAND_T - 2 * env.step_dt
+  assert torch.allclose(time_left[0], torch.tensor(_COMMAND_T, device=env.device))
+  assert torch.allclose(
+    time_left[1:], torch.tensor(expected_running, device=env.device)
+  )
+  env.close()
+
+
+def test_auto_reset_preserves_fresh_interval_event_timer(device):
+  """An interval event timer resampled by an auto-reset is not decremented."""
+  env = ManagerBasedRlEnv(cfg=_make_parity_cfg(auto_reset=True), device=device)
+  action = _stagger_env0(env, steps_until_reset=2)
+  env.step(action)
+  env.step(action)  # Env 0 times out and auto-resets here.
+  assert env.episode_length_buf[0].item() == 0
+
+  timer = env.event_manager._interval_term_time_left[0]
+  expected_running = _INTERVAL_T - 2 * env.step_dt
+  assert torch.allclose(timer[0], torch.tensor(_INTERVAL_T, device=env.device))
+  assert torch.allclose(timer[1:], torch.tensor(expected_running, device=env.device))
+  env.close()
+
+
+def test_interval_event_acts_on_pre_reset_state(device):
+  """An interval event firing on a reset step hits the terminal state, so the
+  freshly reset env comes out clean, as in the explicit reset flow."""
+  cfg = _make_cfg(auto_reset=True)
+  cfg.events["kick"] = EventTermCfg(
+    func=_write_marker_velocity, mode="interval", interval_range_s=(0.0, 0.0)
+  )
+  env = ManagerBasedRlEnv(cfg=cfg, device=device)
+  action = _stagger_env0(env, steps_until_reset=1)
+  env.step(action)  # Kick fires for all envs; env 0 then auto-resets.
+  assert env.episode_length_buf[0].item() == 0
+
+  joint_vel = env.scene["cartpole"].data.joint_vel
+  # Env 0 was reset after the kick: its velocity is the reset distribution's,
+  # not the marker. Env 1 was not reset and still carries the marker.
+  assert joint_vel[0].abs().max().item() < 1.0
+  assert torch.allclose(joint_vel[1], torch.full_like(joint_vel[1], _MARKER_VEL))
+  env.close()
+
+
+def test_auto_reset_matches_manual_reset_timers(device):
+  """After a reset, both flows leave identical command/event timer state."""
+  auto_env = ManagerBasedRlEnv(cfg=_make_parity_cfg(auto_reset=True), device=device)
+  manual_env = ManagerBasedRlEnv(cfg=_make_parity_cfg(auto_reset=False), device=device)
+  auto_env.reset(seed=0)
+  manual_env.reset(seed=0)
+
+  action = torch.zeros((auto_env.num_envs, 1), device=auto_env.device)
+  done = torch.zeros(auto_env.num_envs, dtype=torch.bool, device=auto_env.device)
+  for _ in range(auto_env.max_episode_length):
+    auto_env.step(action)
+    _, _, terminated, truncated, _ = manual_env.step(action)
+    done = terminated | truncated
+  done_ids = done.nonzero(as_tuple=False).squeeze(-1)
+  assert len(done_ids) == manual_env.num_envs  # Time-out is synchronized.
+  manual_env.reset(env_ids=done_ids)
+
+  for env in (auto_env, manual_env):
+    term = env.command_manager.get_term("counter")
+    assert isinstance(term, CounterCommand)
+    interval_timer = env.event_manager._interval_term_time_left[0]
+    assert torch.all(env.episode_length_buf == 0)
+    assert torch.allclose(term.time_left, torch.full_like(term.time_left, _COMMAND_T))
+    assert torch.allclose(interval_timer, torch.full_like(interval_timer, _INTERVAL_T))
+    # Stateful command advance: resample zeroed the counter, then exactly one
+    # post-reset update ran in both flows.
+    assert torch.all(term.ticks == 1)
+
+  auto_env.close()
+  manual_env.close()
