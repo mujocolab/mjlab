@@ -80,6 +80,9 @@ Fixed
   the previous episode's terminal pose back into the sim on reset. It read
   derived kinematics before ``forward()`` ran and rewrote the root pose; it
   now reads only qpos for the orientation and writes only the root velocity.
+- ``init_velocity_prob`` now applies on episode reset only. A mid-episode
+  timer resample used to also teleport the root velocity, which ran after
+  ``step()``'s forward and left velocity observations stale for one step.
 - ``Entity.set_joint_position_target`` and its velocity/effort/tendon/site
   siblings now select the outer product when both ``env_ids`` and the element
   ids are tensors, instead of pairing them elementwise.

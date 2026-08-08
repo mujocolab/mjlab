@@ -97,18 +97,20 @@ class UniformVelocityCommand(CommandTerm):
       self.vel_command_b[fwd_ids, 1] = 0.0
       self.vel_command_b[fwd_ids, 2] = 0.0
 
-    init_vel_mask = r.uniform_(0.0, 1.0) < self.cfg.init_velocity_prob
-    init_vel_env_ids = env_ids[init_vel_mask]
-    if len(init_vel_env_ids) > 0:
-      # Start these envs already moving at the commanded planar velocity. The
-      # body-frame write reads its orientation from qpos, so it is safe here:
-      # during a reset the events have written the new pose but forward() has
-      # not run, and derived kinematics still hold the previous episode's
-      # terminal state. The freshly reset pose is untouched.
-      vel_b = torch.zeros(len(init_vel_env_ids), 6, device=self.device)
-      vel_b[:, :2] = self.vel_command_b[init_vel_env_ids, :2]
-      vel_b[:, 5] = self.vel_command_b[init_vel_env_ids, 2]
-      self.robot.write_root_link_velocity_b_to_sim(vel_b, env_ids=init_vel_env_ids)
+  def reset(self, env_ids: torch.Tensor | slice | None) -> dict[str, float]:
+    extras = super().reset(env_ids)
+    if self.cfg.init_velocity_prob > 0.0:
+      assert isinstance(env_ids, torch.Tensor)
+      r = torch.empty(len(env_ids), device=self.device)
+      init_ids = env_ids[r.uniform_(0.0, 1.0) < self.cfg.init_velocity_prob]
+      if len(init_ids) > 0:
+        # Start these envs already moving at the commanded planar velocity.
+        # Safe pre-forward: the body-frame write reads orientation from qpos.
+        vel_b = torch.zeros(len(init_ids), 6, device=self.device)
+        vel_b[:, :2] = self.vel_command_b[init_ids, :2]
+        vel_b[:, 5] = self.vel_command_b[init_ids, 2]
+        self.robot.write_root_link_velocity_b_to_sim(vel_b, env_ids=init_ids)
+    return extras
 
   def _update_command(self, env_ids: torch.Tensor | None = None) -> None:
     # Pure function of the current state; refreshing all envs is safe.
@@ -292,6 +294,8 @@ class UniformVelocityCommandCfg(CommandTermCfg):
   lin_vel_x, zero lin_vel_y and ang_vel_z). Increases training coverage for
   straight-line walking, which is important for stair climbing."""
   init_velocity_prob: float = 0.0
+  """Probability that an env starts its episode already moving at its sampled
+  planar command velocity. Applied on reset only."""
 
   @dataclass
   class Ranges:
