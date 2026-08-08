@@ -618,6 +618,9 @@ when a <code class="docutils literal notranslate"><span class="pre">GeomCfg</spa
 <li><p>The Viser motion scrubber’s Start Here button no longer computes relative
 body poses from stale pre-scrub kinematics, which could spuriously
 terminate the episode on the next step.</p></li>
+<li><p>Mid-episode lifting command resamples now refresh kinematics and the
+multi-cube reward cache, so observations and rewards no longer see
+pre-teleport object positions for one step after each resample.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">reset(env_ids=...)</span></code> no longer appends a frame to every env’s observation
 history and delay buffers; only the reset envs receive their post-reset
 frame. Previously, each manual partial reset gave the other envs a duplicate
