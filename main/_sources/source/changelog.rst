@@ -5,6 +5,9 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Version 1.6.0 (August 8, 2026)
+------------------------------
+
 .. admonition:: Breaking API changes
    :class: attention
 
