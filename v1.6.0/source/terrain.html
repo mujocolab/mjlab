@@ -1,0 +1,1033 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Terrain &#8212; mjlab Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../_static/twemoji.css" />
+    <link rel="stylesheet" type="text/css" href="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=53359634" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=3ea80bc3" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js"></script>
+    <script src="../_static/twemoji.js"></script>
+    <script src="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/js/all.min.js?v=ec35c6c9"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'source/terrain';</script>
+    <link rel="icon" href="../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Environment Configuration" href="environment_config.html" />
+    <link rel="prev" title="Scene" href="scene.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+    <meta name="docbuild:last-update" content="Aug 09, 2026"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">mjlab Documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item">
+<div class="sidebar-version-switcher">
+  <label class="sidebar-version-label" for="version-select">Version</label>
+  <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
+    <option value="../../main/source/terrain.html" >main</option>
+    <option value="terrain.html" selected>v1.6.0</option>
+    <option value="../../v1.5.3/source/terrain.html" >v1.5.3</option>
+    <option value="../../v1.5.2/source/terrain.html" >v1.5.2</option>
+    <option value="../../v1.5.1/source/terrain.html" >v1.5.1</option>
+    <option value="../../v1.5.0/source/terrain.html" >v1.5.0</option>
+    <option value="../../v1.4.0/source/terrain.html" >v1.4.0</option>
+    <option value="../../v1.3.0/source/terrain.html" >v1.3.0</option>
+    <option value="../../v1.2.0/source/terrain.html" >v1.2.0</option>
+    <option value="../../v1.1.1/index.html" >v1.1.1</option>
+    <option value="../../v1.1.0/index.html" >v1.1.0</option>
+    <option value="../../v1.0.0/index.html" >v1.0.0</option>
+  </select>
+</div>
+</div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="tutorials.html">Tutorials</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/cartpole.html">Cartpole: Building Your First Environment</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="architecture_overview.html">Architecture Overview</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="entity/index.html">Entity</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="entity/entity_data.html">Entity Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="entity/per_world_mesh.html">Heterogeneous Worlds</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="actuators.html">Actuators</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="sensors/index.html">Sensors</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="sensors/raycast_sensor.html">RayCast Sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sensors/rgbd_camera.html">RGB-D Camera</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="scene.html">Scene</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Terrain</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">The Manager Layer</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="environment_config.html">Environment Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="actions.html">Actions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="terminations.html">Terminations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="events.html">Events</a></li>
+<li class="toctree-l1"><a class="reference internal" href="randomization.html">Domain Randomization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="curriculum.html">Curriculum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recorders.html">Recorders</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training &amp; Debugging</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="training/rsl_rl.html">Training with RSL-RL</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="training/motion_imitation.html">Motion Imitation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="viewers.html">Viewers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training/distributed_training.html">Distributed Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training/cloud.html">Cloud Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="debugging/nan_guard.html">NaN Guard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="debugging/export_scene.html">Export Scene</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="api/index.html">API Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/envs.html">mjlab.envs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scene.html">mjlab.scene</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/sim.html">mjlab.sim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/entity.html">mjlab.entity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/actuator.html">mjlab.actuator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/sensor.html">mjlab.sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/managers.html">mjlab.managers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/terrains.html">mjlab.terrains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/rl.html">mjlab.rl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/viewer.html">mjlab.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/tasks.html">mjlab.tasks</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Further Reading</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="motivation.html">Why mjlab?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration_isaac_lab.html">Migrating from Isaac Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ &amp; Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="research.html">Research</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/edit/main/docs/source/terrain.rst" target="_blank"
+   class="btn btn-sm btn-source-edit-button dropdown-item"
+   title="Suggest edit"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-pencil-alt"></i>
+  </span>
+<span class="btn__text-container">Suggest edit</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/issues/new?title=Issue%20on%20page%20%2Fsource/terrain.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/source/terrain.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Terrain</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#flat-terrain">Flat terrain</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#procedural-terrain">Procedural terrain</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#grid-layout">Grid layout</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#the-difficulty-parameter">The difficulty parameter</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#sub-terrain-types">Sub-terrain types</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitive-terrains">Primitive terrains</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#heightfield-terrains">Heightfield terrains</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#preset-configurations">Preset configurations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#terrain-curriculum">Terrain curriculum</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#flat-patch-detection">Flat patch detection</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#debug-visualization">Debug visualization</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="terrain">
+<span id="id1"></span><h1>Terrain<a class="headerlink" href="#terrain" title="Link to this heading">#</a></h1>
+<p>The terrain is the shared ground surface for all environments in a scene.
+mjlab supports two modes: a flat ground plane for tasks that do not need
+varying terrain, and a procedural terrain generator that assembles a grid
+of sub-terrain patches with configurable difficulty. Procedural terrain
+is particularly useful for training locomotion policies, where a
+curriculum of increasing ground difficulty drives robust walking and
+climbing behaviors.</p>
+<p>Terrain is configured through <code class="docutils literal notranslate"><span class="pre">TerrainEntityCfg</span></code> and passed to the
+scene via the <code class="docutils literal notranslate"><span class="pre">terrain</span></code> field of <code class="docutils literal notranslate"><span class="pre">SceneCfg</span></code>. See <a class="reference internal" href="scene.html#scene"><span class="std std-ref">Scene</span></a> for
+how the terrain integrates with the rest of the scene.</p>
+<section id="flat-terrain">
+<h2>Flat terrain<a class="headerlink" href="#flat-terrain" title="Link to this heading">#</a></h2>
+<p>The default mode. A single ground plane modeled as a MuJoCo plane geom
+with no procedural geometry. Environments are arranged in a regular grid
+with spacing controlled by <code class="docutils literal notranslate"><span class="pre">env_spacing</span></code> on <code class="docutils literal notranslate"><span class="pre">SceneCfg</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.terrains</span><span class="w"> </span><span class="kn">import</span> <span class="n">TerrainEntityCfg</span>
+
+<span class="n">terrain</span> <span class="o">=</span> <span class="n">TerrainEntityCfg</span><span class="p">(</span><span class="n">terrain_type</span><span class="o">=</span><span class="s2">&quot;plane&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="procedural-terrain">
+<h2>Procedural terrain<a class="headerlink" href="#procedural-terrain" title="Link to this heading">#</a></h2>
+<p>For tasks that benefit from terrain variety (locomotion, navigation),
+<code class="docutils literal notranslate"><span class="pre">TerrainGeneratorCfg</span></code> assembles a rectangular grid of sub-terrain
+patches. Each patch is generated from a <code class="docutils literal notranslate"><span class="pre">SubTerrainCfg</span></code> that defines
+the geometry and how it scales with difficulty.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.terrains</span><span class="w"> </span><span class="kn">import</span> <span class="n">TerrainEntityCfg</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.terrains.terrain_generator</span><span class="w"> </span><span class="kn">import</span> <span class="n">TerrainGeneratorCfg</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">mjlab.terrains</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">terrain_gen</span>
+
+<span class="n">terrain</span> <span class="o">=</span> <span class="n">TerrainEntityCfg</span><span class="p">(</span>
+    <span class="n">terrain_type</span><span class="o">=</span><span class="s2">&quot;generator&quot;</span><span class="p">,</span>
+    <span class="n">terrain_generator</span><span class="o">=</span><span class="n">TerrainGeneratorCfg</span><span class="p">(</span>
+        <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mf">8.0</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">),</span>
+        <span class="n">num_rows</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">border_width</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
+        <span class="n">curriculum</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">sub_terrains</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;flat&quot;</span><span class="p">:</span> <span class="n">terrain_gen</span><span class="o">.</span><span class="n">BoxFlatTerrainCfg</span><span class="p">(</span><span class="n">proportion</span><span class="o">=</span><span class="mf">0.2</span><span class="p">),</span>
+            <span class="s2">&quot;stairs&quot;</span><span class="p">:</span> <span class="n">terrain_gen</span><span class="o">.</span><span class="n">BoxPyramidStairsTerrainCfg</span><span class="p">(</span>
+                <span class="n">proportion</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span>
+                <span class="n">step_height_range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">),</span>
+                <span class="n">step_width</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+                <span class="n">platform_width</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;rough&quot;</span><span class="p">:</span> <span class="n">terrain_gen</span><span class="o">.</span><span class="n">HfRandomUniformTerrainCfg</span><span class="p">(</span>
+                <span class="n">proportion</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span>
+                <span class="n">noise_range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.10</span><span class="p">),</span>
+                <span class="n">noise_step</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">},</span>
+    <span class="p">),</span>
+    <span class="n">max_init_terrain_level</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The generator creates a grid of patches sized <code class="docutils literal notranslate"><span class="pre">num_rows</span></code> by either
+<code class="docutils literal notranslate"><span class="pre">num_cols</span></code> (random mode) or <code class="docutils literal notranslate"><span class="pre">len(sub_terrains)</span></code> (curriculum mode,
+where <code class="docutils literal notranslate"><span class="pre">num_cols</span></code> is ignored). The <code class="docutils literal notranslate"><span class="pre">sub_terrains</span></code> dictionary maps
+names to <code class="docutils literal notranslate"><span class="pre">SubTerrainCfg</span></code> instances; each sub-terrain’s <code class="docutils literal notranslate"><span class="pre">proportion</span></code>
+controls robot spawning distribution across columns in curriculum mode,
+or per-patch sampling probability in random mode.</p>
+<section id="grid-layout">
+<h3>Grid layout<a class="headerlink" href="#grid-layout" title="Link to this heading">#</a></h3>
+<p>Two generation modes control how terrain types are distributed across
+the grid:</p>
+<p><strong>Curriculum mode</strong> (<code class="docutils literal notranslate"><span class="pre">curriculum=True</span></code>). Each terrain type gets exactly
+one column; the generator uses <code class="docutils literal notranslate"><span class="pre">len(sub_terrains)</span></code> columns regardless of
+<code class="docutils literal notranslate"><span class="pre">num_cols</span></code>. All patches in a column share the same terrain type, and
+difficulty increases from row 0 (easiest) to row <code class="docutils literal notranslate"><span class="pre">num_rows</span> <span class="pre">-</span> <span class="pre">1</span></code>
+(hardest). The <code class="docutils literal notranslate"><span class="pre">proportion</span></code> field controls how robots are distributed
+across columns at spawn time, not column count. This structured layout
+is what enables the curriculum system to advance environments to harder
+rows as performance improves.</p>
+<p><strong>Random mode</strong> (<code class="docutils literal notranslate"><span class="pre">curriculum=False</span></code>). Every patch independently samples
+a terrain type weighted by <code class="docutils literal notranslate"><span class="pre">proportion</span></code> and a difficulty from
+<code class="docutils literal notranslate"><span class="pre">difficulty_range</span></code>. <code class="docutils literal notranslate"><span class="pre">num_cols</span></code> is honored. This provides maximum
+variety but no structured difficulty progression.</p>
+</section>
+<section id="the-difficulty-parameter">
+<h3>The difficulty parameter<a class="headerlink" href="#the-difficulty-parameter" title="Link to this heading">#</a></h3>
+<p>Each sub-terrain’s generation function receives a <code class="docutils literal notranslate"><span class="pre">difficulty</span></code> value
+that linearly interpolates the terrain’s configurable ranges. For
+example, a <code class="docutils literal notranslate"><span class="pre">BoxPyramidStairsTerrainCfg</span></code> with
+<code class="docutils literal notranslate"><span class="pre">step_height_range=(0.0,</span> <span class="pre">0.2)</span></code> produces flat ground at difficulty 0
+and 20 cm steps at difficulty 1.</p>
+<p>In curriculum mode, difficulty is determined by the row:
+<code class="docutils literal notranslate"><span class="pre">difficulty</span> <span class="pre">=</span> <span class="pre">lower</span> <span class="pre">+</span> <span class="pre">(upper</span> <span class="pre">-</span> <span class="pre">lower)</span> <span class="pre">*</span> <span class="pre">row</span> <span class="pre">/</span> <span class="pre">max(num_rows</span> <span class="pre">-</span> <span class="pre">1,</span> <span class="pre">1)</span></code>,
+where <code class="docutils literal notranslate"><span class="pre">(lower,</span> <span class="pre">upper)</span> <span class="pre">=</span> <span class="pre">difficulty_range</span></code>. Row 0 is exactly
+<code class="docutils literal notranslate"><span class="pre">lower</span></code>, row <code class="docutils literal notranslate"><span class="pre">num_rows</span> <span class="pre">-</span> <span class="pre">1</span></code> is exactly <code class="docutils literal notranslate"><span class="pre">upper</span></code>, and intermediate
+rows are evenly spaced between them. All columns in a given row share
+the same difficulty scalar; the visible variation across columns comes
+from each sub-terrain type generating different geometry at the same
+difficulty.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">num_rows=1</span></code> and <code class="docutils literal notranslate"><span class="pre">curriculum=True</span></code>, every patch is generated
+at <code class="docutils literal notranslate"><span class="pre">difficulty</span> <span class="pre">=</span> <span class="pre">lower</span></code> (the easiest configured difficulty). Use
+<code class="docutils literal notranslate"><span class="pre">curriculum=False</span></code> if you want a single grid of randomly sampled
+difficulties instead.</p>
+</div>
+<p>In random mode, difficulty is sampled uniformly from
+<code class="docutils literal notranslate"><span class="pre">difficulty_range</span></code> independently for every patch.</p>
+</section>
+</section>
+<section id="sub-terrain-types">
+<h2>Sub-terrain types<a class="headerlink" href="#sub-terrain-types" title="Link to this heading">#</a></h2>
+<p>mjlab provides two families of sub-terrain types: <strong>primitive terrains</strong>
+built from box geoms, and <strong>heightfield terrains</strong> built from continuous
+elevation grids. All types inherit from <code class="docutils literal notranslate"><span class="pre">SubTerrainCfg</span></code> and accept a
+<code class="docutils literal notranslate"><span class="pre">proportion</span></code> weight and optional <code class="docutils literal notranslate"><span class="pre">flat_patch_sampling</span></code> configuration.</p>
+<section id="primitive-terrains">
+<h3>Primitive terrains<a class="headerlink" href="#primitive-terrains" title="Link to this heading">#</a></h3>
+<p>Procedural patches built entirely from box geoms. The discrete geometry
+makes them well suited for staircases, stepping stones, and other
+structured obstacles. Most primitive types share common parameters:
+<code class="docutils literal notranslate"><span class="pre">platform_width</span></code> (central flat area), <code class="docutils literal notranslate"><span class="pre">border_width</span></code> (flat margin),
+and one or more difficulty-scaled ranges.</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
+<div class="sd-row sd-row-cols-3 sd-row-cols-xs-3 sd-row-cols-sm-3 sd-row-cols-md-3 sd-row-cols-lg-3 docutils">
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Flat</div>
+<img alt="../_images/box_flat.png" src="../_images/box_flat.png" />
+<p class="sd-card-text">Flat box patch. Useful as an easy baseline in a curriculum grid.</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Pyramid Stairs</div>
+<img alt="../_images/box_pyramid_stairs.png" src="../_images/box_pyramid_stairs.png" />
+<p class="sd-card-text">Pyramid staircase with steps descending inward toward a central
+platform.</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Inverted Pyramid Stairs</div>
+<img alt="../_images/box_inverted_pyramid_stairs.png" src="../_images/box_inverted_pyramid_stairs.png" />
+<p class="sd-card-text">Inverted pyramid with steps ascending from the outside inward.</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Random Stairs</div>
+<img alt="../_images/box_random_stairs.png" src="../_images/box_random_stairs.png" />
+<p class="sd-card-text">Pyramid staircase with random per-step heights.</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Open Stairs</div>
+<img alt="../_images/box_open_stairs.png" src="../_images/box_open_stairs.png" />
+<p class="sd-card-text">Concentric step rings. Can be a bowl or pyramid depending on the
+<code class="docutils literal notranslate"><span class="pre">inverted</span></code> flag.</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Random Grid</div>
+<img alt="../_images/box_random_grid.png" src="../_images/box_random_grid.png" />
+<p class="sd-card-text">Grid of boxes at randomly sampled heights.</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Random Spread</div>
+<img alt="../_images/box_random_spread.png" src="../_images/box_random_spread.png" />
+<p class="sd-card-text">Randomly positioned and rotated boxes of varying sizes scattered
+across the patch.</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Stepping Stones</div>
+<img alt="../_images/box_stepping_stones.png" src="../_images/box_stepping_stones.png" />
+<p class="sd-card-text">Stepping-stone columns rising from a deep pit.</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Narrow Beams</div>
+<img alt="../_images/box_narrow_beams.png" src="../_images/box_narrow_beams.png" />
+<p class="sd-card-text">Radial beams extending outward from a central platform above a
+pit.</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Tilted Grid</div>
+<img alt="../_images/box_tilted_grid.png" src="../_images/box_tilted_grid.png" />
+<p class="sd-card-text">Grid of independently tilted mesh tiles.</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Nested Rings</div>
+<img alt="../_images/box_nested_rings.png" src="../_images/box_nested_rings.png" />
+<p class="sd-card-text">Concentric ring structures at random heights.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="heightfield-terrains">
+<h3>Heightfield terrains<a class="headerlink" href="#heightfield-terrains" title="Link to this heading">#</a></h3>
+<p>Continuous terrain profiles built from MuJoCo heightfield geoms. The
+surface is a dense grid of elevation samples, producing smooth slopes
+and undulating ground that box geoms cannot represent.</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
+<div class="sd-row sd-row-cols-3 sd-row-cols-xs-3 sd-row-cols-sm-3 sd-row-cols-md-3 sd-row-cols-lg-3 docutils">
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Pyramid Slope</div>
+<img alt="../_images/hf_pyramid_slope.png" src="../_images/hf_pyramid_slope.png" />
+<p class="sd-card-text">Smooth pyramid slope with a flat platform at the peak.
+<code class="docutils literal notranslate"><span class="pre">inverted=True</span></code> places the platform at the bottom.</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Random Uniform</div>
+<img alt="../_images/hf_random_uniform.png" src="../_images/hf_random_uniform.png" />
+<p class="sd-card-text">Random uniform noise, optionally downsampled and interpolated to
+control feature size.</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Wave</div>
+<img alt="../_images/hf_wave.png" src="../_images/hf_wave.png" />
+<p class="sd-card-text">Sinusoidal wave profile.</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Discrete Obstacles</div>
+<img alt="../_images/hf_discrete_obstacles.png" src="../_images/hf_discrete_obstacles.png" />
+<p class="sd-card-text">Rectangular bumps and pits scattered across a flat base.</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Perlin Noise</div>
+<img alt="../_images/hf_perlin_noise.png" src="../_images/hf_perlin_noise.png" />
+<p class="sd-card-text">Fractal Perlin noise producing natural terrain undulation.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="preset-configurations">
+<h2>Preset configurations<a class="headerlink" href="#preset-configurations" title="Link to this heading">#</a></h2>
+<p>mjlab ships three ready-made <code class="docutils literal notranslate"><span class="pre">TerrainGeneratorCfg</span></code> presets in
+<code class="docutils literal notranslate"><span class="pre">mjlab.terrains.config</span></code>:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">ROUGH_TERRAINS_CFG</span></code></dt><dd><p>A 10x20 random-mode grid with seven terrain types (flat, stairs,
+inverted stairs, slopes, inverted slopes, random rough, waves).
+Designed for locomotion training with a moderate difficulty range.
+Set <code class="docutils literal notranslate"><span class="pre">curriculum=True</span></code> via <code class="docutils literal notranslate"><span class="pre">dataclasses.replace</span></code> to use it as a
+curriculum grid (one column per terrain type).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">STAIRS_TERRAINS_CFG</span></code></dt><dd><p>A 10-row curriculum grid focused on stair traversal: flat plus
+three pyramid-stair variants of increasing difficulty.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">ALL_TERRAINS_CFG</span></code></dt><dd><p>A 10-row random-mode grid covering all available terrain types at
+equal proportion. Useful for training on maximum terrain variety.</p>
+</dd>
+</dl>
+<p>Both can be used directly or customized with <code class="docutils literal notranslate"><span class="pre">dataclasses.replace()</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">replace</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.terrains.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">ROUGH_TERRAINS_CFG</span>
+
+<span class="n">my_terrains</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span><span class="n">ROUGH_TERRAINS_CFG</span><span class="p">,</span> <span class="n">num_rows</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="terrain-curriculum">
+<h2>Terrain curriculum<a class="headerlink" href="#terrain-curriculum" title="Link to this heading">#</a></h2>
+<p>In curriculum mode the terrain grid provides a natural axis for
+progressive training: rows represent difficulty levels, and the
+curriculum system moves environments up or down the grid based on
+performance. See <a class="reference internal" href="curriculum.html#curriculum"><span class="std std-ref">Curriculum</span></a> for full details on configuring
+curriculum terms.</p>
+<p>The key concepts:</p>
+<ul class="simple">
+<li><p>Each environment tracks a <code class="docutils literal notranslate"><span class="pre">terrain_level</span></code> (row index) and
+<code class="docutils literal notranslate"><span class="pre">terrain_type</span></code> (column index).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TerrainEntityCfg.max_init_terrain_level</span></code> controls how high
+environments can start at their first reset. Setting it to 5 means
+environments begin on rows 0 through 5.</p></li>
+<li><p>The built-in <code class="docutils literal notranslate"><span class="pre">terrain_levels_vel</span></code> curriculum term promotes
+environments that track commanded velocity well and demotes
+environments that fall or fail to make progress.</p></li>
+<li><p>When an environment is promoted past the hardest row, it is randomly
+reassigned to any row in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">num_rows)</span></code> to prevent the policy from
+collapsing to a single difficulty level.</p></li>
+</ul>
+</section>
+<section id="flat-patch-detection">
+<h2>Flat patch detection<a class="headerlink" href="#flat-patch-detection" title="Link to this heading">#</a></h2>
+<p>Heightfield terrains can pre-compute flat regions on their surface during
+generation. These flat patches are useful as safe spawn points for tasks
+that require the robot to start on level ground, even on otherwise rough
+terrain.</p>
+<p>Flat patch detection is configured per sub-terrain via the
+<code class="docutils literal notranslate"><span class="pre">flat_patch_sampling</span></code> field on <code class="docutils literal notranslate"><span class="pre">SubTerrainCfg</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.terrains.terrain_generator</span><span class="w"> </span><span class="kn">import</span> <span class="n">FlatPatchSamplingCfg</span>
+
+<span class="n">rough</span> <span class="o">=</span> <span class="n">terrain_gen</span><span class="o">.</span><span class="n">HfRandomUniformTerrainCfg</span><span class="p">(</span>
+    <span class="n">proportion</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">noise_range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.10</span><span class="p">),</span>
+    <span class="n">flat_patch_sampling</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;spawn&quot;</span><span class="p">:</span> <span class="n">FlatPatchSamplingCfg</span><span class="p">(</span>
+            <span class="n">num_patches</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+            <span class="n">patch_radius</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+            <span class="n">max_height_diff</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The detection algorithm uses morphological filtering to find circular
+regions where height variation stays within <code class="docutils literal notranslate"><span class="pre">max_height_diff</span></code>. Detected
+patches are accessible at runtime through
+<code class="docutils literal notranslate"><span class="pre">scene.terrain.flat_patches[&quot;spawn&quot;]</span></code>.</p>
+<p>To spawn robots on detected patches instead of at the sub-terrain center,
+use <code class="docutils literal notranslate"><span class="pre">reset_root_state_from_flat_patches</span></code> as the reset event term. See
+<a class="reference internal" href="events.html#events"><span class="std std-ref">Events</span></a> for details.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only heightfield (<code class="docutils literal notranslate"><span class="pre">Hf*</span></code>) terrains support flat patch detection.
+Primitive (<code class="docutils literal notranslate"><span class="pre">Box*</span></code>) terrains do not have heightfield data to analyze.
+If any sub-terrain in the grid configures <code class="docutils literal notranslate"><span class="pre">flat_patch_sampling</span></code>,
+the flat patches array is allocated for all cells; sub-terrains
+without patches have their slots filled with the sub-terrain’s spawn
+origin so that the reset event always receives valid positions.</p>
+</div>
+</section>
+<section id="debug-visualization">
+<h2>Debug visualization<a class="headerlink" href="#debug-visualization" title="Link to this heading">#</a></h2>
+<p>The terrain entity adds debug sites to three geom groups that can be
+toggled in the MuJoCo native viewer or Viser viewer:</p>
+<ul class="simple">
+<li><p><strong>Group 3</strong>: flat patch sites (yellow boxes marking safe spawn regions)</p></li>
+<li><p><strong>Group 4</strong>: environment origin sites (green spheres at each
+environment’s position)</p></li>
+<li><p><strong>Group 5</strong>: terrain origin sites (blue spheres at each sub-terrain
+patch center)</p></li>
+</ul>
+<figure class="align-center" id="id2">
+<a class="reference internal image-reference" href="../_images/flat_patch_group.png"><img alt="Flat patch visualization" src="../_images/flat_patch_group.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Flat patches (group 3) overlaid on a procedural terrain grid in the
+Viser viewer.</span><a class="headerlink" href="#id2" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="scene.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Scene</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="environment_config.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Environment Configuration</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#flat-terrain">Flat terrain</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#procedural-terrain">Procedural terrain</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#grid-layout">Grid layout</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#the-difficulty-parameter">The difficulty parameter</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#sub-terrain-types">Sub-terrain types</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primitive-terrains">Primitive terrains</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#heightfield-terrains">Heightfield terrains</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#preset-configurations">Preset configurations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#terrain-curriculum">Terrain curriculum</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#flat-patch-detection">Flat patch detection</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#debug-visualization">Debug visualization</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By The mjlab Developers
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2025, The mjlab Developers.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p class="last-updated">
+  Last updated on Aug 09, 2026.
+  <br/>
+</p>
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

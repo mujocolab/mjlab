@@ -1,0 +1,1172 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>FAQ &amp; Troubleshooting &#8212; mjlab Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../_static/twemoji.css" />
+    <link rel="stylesheet" type="text/css" href="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=53359634" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=3ea80bc3" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js"></script>
+    <script src="../_static/twemoji.js"></script>
+    <script src="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/js/all.min.js?v=ec35c6c9"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'source/faq';</script>
+    <link rel="icon" href="../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Research" href="research.html" />
+    <link rel="prev" title="Migrating from Isaac Lab" href="migration_isaac_lab.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+    <meta name="docbuild:last-update" content="Aug 09, 2026"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">mjlab Documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item">
+<div class="sidebar-version-switcher">
+  <label class="sidebar-version-label" for="version-select">Version</label>
+  <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
+    <option value="../../main/source/faq.html" >main</option>
+    <option value="faq.html" selected>v1.6.0</option>
+    <option value="../../v1.5.3/source/faq.html" >v1.5.3</option>
+    <option value="../../v1.5.2/source/faq.html" >v1.5.2</option>
+    <option value="../../v1.5.1/source/faq.html" >v1.5.1</option>
+    <option value="../../v1.5.0/source/faq.html" >v1.5.0</option>
+    <option value="../../v1.4.0/source/faq.html" >v1.4.0</option>
+    <option value="../../v1.3.0/source/faq.html" >v1.3.0</option>
+    <option value="../../v1.2.0/source/faq.html" >v1.2.0</option>
+    <option value="../../v1.1.1/source/faq.html" >v1.1.1</option>
+    <option value="../../v1.1.0/source/faq.html" >v1.1.0</option>
+    <option value="../../v1.0.0/source/faq.html" >v1.0.0</option>
+  </select>
+</div>
+</div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="tutorials.html">Tutorials</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/cartpole.html">Cartpole: Building Your First Environment</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="architecture_overview.html">Architecture Overview</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="entity/index.html">Entity</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="entity/entity_data.html">Entity Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="entity/per_world_mesh.html">Heterogeneous Worlds</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="actuators.html">Actuators</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="sensors/index.html">Sensors</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="sensors/raycast_sensor.html">RayCast Sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sensors/rgbd_camera.html">RGB-D Camera</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="scene.html">Scene</a></li>
+<li class="toctree-l1"><a class="reference internal" href="terrain.html">Terrain</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">The Manager Layer</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="environment_config.html">Environment Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="actions.html">Actions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="terminations.html">Terminations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="events.html">Events</a></li>
+<li class="toctree-l1"><a class="reference internal" href="randomization.html">Domain Randomization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="curriculum.html">Curriculum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recorders.html">Recorders</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training &amp; Debugging</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="training/rsl_rl.html">Training with RSL-RL</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="training/motion_imitation.html">Motion Imitation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="viewers.html">Viewers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training/distributed_training.html">Distributed Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training/cloud.html">Cloud Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="debugging/nan_guard.html">NaN Guard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="debugging/export_scene.html">Export Scene</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="api/index.html">API Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/envs.html">mjlab.envs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scene.html">mjlab.scene</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/sim.html">mjlab.sim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/entity.html">mjlab.entity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/actuator.html">mjlab.actuator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/sensor.html">mjlab.sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/managers.html">mjlab.managers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/terrains.html">mjlab.terrains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/rl.html">mjlab.rl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/viewer.html">mjlab.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/tasks.html">mjlab.tasks</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Further Reading</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="motivation.html">Why mjlab?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration_isaac_lab.html">Migrating from Isaac Lab</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">FAQ &amp; Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="research.html">Research</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/edit/main/docs/source/faq.rst" target="_blank"
+   class="btn btn-sm btn-source-edit-button dropdown-item"
+   title="Suggest edit"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-pencil-alt"></i>
+  </span>
+<span class="btn__text-container">Suggest edit</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/issues/new?title=Issue%20on%20page%20%2Fsource/faq.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/source/faq.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>FAQ & Troubleshooting</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#platform-support">Platform Support</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#does-it-work-on-macos">Does it work on macOS?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#does-it-work-on-windows">Does it work on Windows?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda-compatibility">CUDA Compatibility</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-do-i-run-on-cpu-without-touching-the-gpu">How do I run on CPU without touching the GPU?</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#performance">Performance</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#is-it-faster-than-isaac-lab">Is it faster than Isaac Lab?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#what-gpu-do-you-recommend">What GPU do you recommend?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#does-mjlab-support-multi-gpu-training">Does mjlab support multi-GPU training?</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#training-debugging">Training &amp; Debugging</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#my-training-crashes-with-nan-errors">My training crashes with NaN errors</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-can-i-inspect-the-generated-scene-xml">How can I inspect the generated scene XML?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#my-contact-sensor-misses-collisions-when-using-decimation">My contact sensor misses collisions when using decimation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#when-do-i-need-to-call-sim-forward">When do I need to call <code class="docutils literal notranslate"><span class="pre">sim.forward()</span></code>?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#why-aren-t-my-training-runs-reproducible-even-with-a-fixed-seed">Why aren’t my training runs reproducible even with a fixed seed?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#my-xml-option-flags-are-not-taking-effect">My XML <code class="docutils literal notranslate"><span class="pre">&lt;option&gt;</span></code> flags are not taking effect</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#rendering-visualization">Rendering &amp; Visualization</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#what-visualization-options-are-available">What visualization options are available?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-many-environments-can-i-visualize-at-once">How many environments can I visualize at once?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#why-are-my-fixed-base-robots-all-stacked-at-the-origin-instead-of-in-a-grid">Why are my fixed-base robots all stacked at the origin instead of in a grid?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-does-env-origins-determine-robot-layout">How does env_origins determine robot layout?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-do-i-ensure-each-terrain-type-gets-its-own-column">How do I ensure each terrain type gets its own column?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#what-is-flat-patch-sampling-and-how-does-it-affect-robot-spawning">What is flat patch sampling and how does it affect robot spawning?</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#development-extensions">Development &amp; Extensions</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#can-i-develop-custom-tasks-in-my-own-repository">Can I develop custom tasks in my own repository?</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#assets-compatibility">Assets &amp; Compatibility</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#what-robots-are-included">What robots are included?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#can-i-use-usd-or-urdf-models">Can I use USD or URDF models?</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#getting-help">Getting Help</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#github-issues">GitHub Issues</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#discussions">Discussions</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#known-limitations">Known Limitations</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="faq-troubleshooting">
+<span id="faq"></span><h1>FAQ &amp; Troubleshooting<a class="headerlink" href="#faq-troubleshooting" title="Link to this heading">#</a></h1>
+<p>This page collects common questions about <strong>platform support</strong>, <strong>performance</strong>,
+<strong>training stability</strong>, and <strong>visualization</strong>, along with practical debugging
+tips and links to further resources.</p>
+<section id="platform-support">
+<h2>Platform Support<a class="headerlink" href="#platform-support" title="Link to this heading">#</a></h2>
+<section id="does-it-work-on-macos">
+<h3>Does it work on macOS?<a class="headerlink" href="#does-it-work-on-macos" title="Link to this heading">#</a></h3>
+<p>Yes, but only with limited performance. mjlab runs on macOS
+using <strong>CPU-only</strong> execution through MuJoCo Warp.</p>
+<ul class="simple">
+<li><p><strong>Training is not recommended on macOS</strong>, as it lacks GPU acceleration.</p></li>
+<li><p><strong>Evaluation works</strong>, but is significantly slower than on Linux with CUDA.</p></li>
+</ul>
+<p>For serious training workloads, we strongly recommend <strong>Linux with an NVIDIA GPU</strong>.</p>
+</section>
+<section id="does-it-work-on-windows">
+<h3>Does it work on Windows?<a class="headerlink" href="#does-it-work-on-windows" title="Link to this heading">#</a></h3>
+<p>We have performed preliminary testing on <strong>Windows</strong> and <strong>WSL</strong>, but some
+workflows are not guaranteed to be stable.</p>
+<ul class="simple">
+<li><p>Windows support may <strong>lag behind</strong> Linux.</p></li>
+<li><p>Windows will be <strong>tested less frequently</strong>, since Linux is the primary
+development and deployment platform.</p></li>
+<li><p>Community contributions that improve Windows support are very welcome.</p></li>
+</ul>
+</section>
+<section id="cuda-compatibility">
+<h3>CUDA Compatibility<a class="headerlink" href="#cuda-compatibility" title="Link to this heading">#</a></h3>
+<p>Not all CUDA versions are supported by MuJoCo Warp.</p>
+<ul class="simple">
+<li><p>See <a class="reference external" href="https://github.com/google-deepmind/mujoco_warp/issues/101">mujoco_warp#101</a>
+for details on CUDA compatibility.</p></li>
+<li><p><strong>Recommended</strong>: CUDA <strong>12.4+</strong> (for conditional execution support in CUDA
+graphs).</p></li>
+</ul>
+</section>
+<section id="how-do-i-run-on-cpu-without-touching-the-gpu">
+<h3>How do I run on CPU without touching the GPU?<a class="headerlink" href="#how-do-i-run-on-cpu-without-touching-the-gpu" title="Link to this heading">#</a></h3>
+<p>Passing <code class="docutils literal notranslate"><span class="pre">device=&quot;cpu&quot;</span></code> puts all mjlab computation on the CPU, but it does
+<strong>not</strong> stop Warp from initializing the GPU. The first time Warp’s runtime
+comes up, it eagerly enumerates and creates a CUDA context on <strong>every</strong>
+visible device, regardless of which device you requested. So on a machine
+with a visible GPU, a <code class="docutils literal notranslate"><span class="pre">device=&quot;cpu&quot;</span></code> run still claims VRAM.</p>
+<p>This happens inside Warp and cannot be prevented from Python once the
+package is imported. To keep the process entirely off the GPU, hide the
+devices from CUDA before launching:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>train.py<span class="w"> </span>...
+</pre></div>
+</div>
+<p>With no visible CUDA devices, Warp initializes CPU-only and never allocates
+on the GPU. See <a class="reference external" href="https://github.com/mujocolab/mjlab/issues/949">issue #949</a> for background.</p>
+</section>
+</section>
+<section id="performance">
+<h2>Performance<a class="headerlink" href="#performance" title="Link to this heading">#</a></h2>
+<section id="is-it-faster-than-isaac-lab">
+<h3>Is it faster than Isaac Lab?<a class="headerlink" href="#is-it-faster-than-isaac-lab" title="Link to this heading">#</a></h3>
+<p>Based on our experience over the last few months, mjlab is <strong>on par or
+faster</strong> than Isaac Lab.</p>
+</section>
+<section id="what-gpu-do-you-recommend">
+<h3>What GPU do you recommend?<a class="headerlink" href="#what-gpu-do-you-recommend" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p><strong>RTX 40-series GPUs</strong> (or newer)</p></li>
+<li><p><strong>L40s, H100</strong></p></li>
+</ul>
+</section>
+<section id="does-mjlab-support-multi-gpu-training">
+<h3>Does mjlab support multi-GPU training?<a class="headerlink" href="#does-mjlab-support-multi-gpu-training" title="Link to this heading">#</a></h3>
+<p>Yes, mjlab supports <strong>multi-GPU distributed training</strong> using
+<a class="reference external" href="https://github.com/apoorvkh/torchrunx">torchrunx</a>.</p>
+<ul class="simple">
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">--gpu-ids</span> <span class="pre">&quot;[0,</span> <span class="pre">1]&quot;</span></code> (or <code class="docutils literal notranslate"><span class="pre">--gpu-ids</span> <span class="pre">all</span></code>) when running the <code class="docutils literal notranslate"><span class="pre">train</span></code>
+command.</p></li>
+<li><p>See the <a class="reference internal" href="training/distributed_training.html"><span class="doc">Distributed Training</span></a> for configuration details and examples.</p></li>
+</ul>
+</section>
+</section>
+<section id="training-debugging">
+<h2>Training &amp; Debugging<a class="headerlink" href="#training-debugging" title="Link to this heading">#</a></h2>
+<section id="my-training-crashes-with-nan-errors">
+<h3>My training crashes with NaN errors<a class="headerlink" href="#my-training-crashes-with-nan-errors" title="Link to this heading">#</a></h3>
+<p>A typical error when using <code class="docutils literal notranslate"><span class="pre">rsl_rl</span></code> looks like:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>RuntimeError:<span class="w"> </span>normal<span class="w"> </span>expects<span class="w"> </span>all<span class="w"> </span>elements<span class="w"> </span>of<span class="w"> </span>std<span class="w"> </span>&gt;<span class="o">=</span><span class="w"> </span><span class="m">0</span>.0
+</pre></div>
+</div>
+<p>This occurs when NaN/Inf values in the <strong>physics state</strong> propagate to the
+policy network, causing its output standard deviation to become negative or NaN.</p>
+<p>There are many possible causes, including potential bugs in <strong>MuJoCo Warp</strong>
+(which is still in beta). mjlab offers two complementary mechanisms to help
+you handle this:</p>
+<ol class="arabic simple">
+<li><p><strong>For training stability</strong> - NaN termination</p></li>
+</ol>
+<p>Add a <code class="docutils literal notranslate"><span class="pre">nan_detection</span></code> termination to reset environments that hit NaN:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.envs.mdp</span><span class="w"> </span><span class="kn">import</span> <span class="n">terminations</span> <span class="k">as</span> <span class="n">mdp_term</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.managers.termination_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">TerminationTermCfg</span>
+
+<span class="c1"># In your ManagerBasedRlEnvCfg subclass:</span>
+<span class="n">terminations</span> <span class="o">=</span> <span class="p">{</span>
+   <span class="c1"># Your other terminations...</span>
+   <span class="s2">&quot;nan_term&quot;</span><span class="p">:</span> <span class="n">TerminationTermCfg</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">mdp_term</span><span class="o">.</span><span class="n">nan_detection</span><span class="p">),</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>This marks NaN environments as terminated so they can reset while training
+continues. Terminations are logged as
+<code class="docutils literal notranslate"><span class="pre">Episode_Termination/nan_term</span></code> in your metrics.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This is a <strong>band-aid solution</strong>. If NaNs correlate with your task objective
+(for example, NaNs occur exactly when the agent tries to grasp an object),
+the policy will never learn to complete that part of the task. Always
+investigate the <strong>root cause</strong> using <code class="docutils literal notranslate"><span class="pre">nan_guard</span></code> in addition to this
+termination.</p>
+</div>
+<ol class="arabic simple" start="2">
+<li><p><strong>For debugging</strong> - NaN guard</p></li>
+</ol>
+<p>Enable <code class="docutils literal notranslate"><span class="pre">nan_guard</span></code> to capture the simulation state when NaNs occur:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>train.py<span class="w"> </span>--enable-nan-guard<span class="w"> </span>True
+</pre></div>
+</div>
+<p>See the <a class="reference internal" href="debugging/nan_guard.html"><span class="doc">NaN Guard documentation</span></a> for details.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">nan_guard</span></code> tool makes it easier to:</p>
+<ul class="simple">
+<li><p>Inspect the simulation state at the moment NaNs appear.</p></li>
+<li><p>Build a minimal reproducible example (MRE).</p></li>
+<li><p>Report potential framework bugs to the
+<a class="reference external" href="https://github.com/google-deepmind/mujoco_warp/issues">MuJoCo Warp team</a>.</p></li>
+</ul>
+<p>Reporting well-isolated issues helps improve the framework for everyone.</p>
+</section>
+<section id="how-can-i-inspect-the-generated-scene-xml">
+<h3>How can I inspect the generated scene XML?<a class="headerlink" href="#how-can-i-inspect-the-generated-scene-xml" title="Link to this heading">#</a></h3>
+<p>Use the <code class="docutils literal notranslate"><span class="pre">export-scene</span></code> script to write the full scene (XML and mesh assets)
+to a directory:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>export-scene<span class="w"> </span>g1<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/g1
+</pre></div>
+</div>
+<p>The exported <code class="docutils literal notranslate"><span class="pre">scene.xml</span></code> can be loaded directly in MuJoCo for visual
+inspection or diffing. This is useful for verifying that task configuration
+and physics are set up correctly, and for creating minimal reproducible
+examples to share with mjlab or MuJoCo Warp developers. The script accepts task IDs,
+entity aliases (<code class="docutils literal notranslate"><span class="pre">g1</span></code>, <code class="docutils literal notranslate"><span class="pre">go1</span></code>, <code class="docutils literal notranslate"><span class="pre">yam</span></code>), or arbitrary import paths. See
+<a class="reference internal" href="debugging/export_scene.html"><span class="doc">Export Scene</span></a> for full details.</p>
+</section>
+<section id="my-contact-sensor-misses-collisions-when-using-decimation">
+<h3>My contact sensor misses collisions when using decimation<a class="headerlink" href="#my-contact-sensor-misses-collisions-when-using-decimation" title="Link to this heading">#</a></h3>
+<p>With <code class="docutils literal notranslate"><span class="pre">decimation</span> <span class="pre">&gt;</span> <span class="pre">1</span></code> the physics runs multiple substeps per policy
+step. A brief contact (e.g. a self collision or an illegal ground touch)
+can appear and disappear within the substep loop, so by the time the
+sensor is read, <code class="docutils literal notranslate"><span class="pre">found</span></code> is zero and the event is invisible to
+rewards and terminations.</p>
+<p>Set <code class="docutils literal notranslate"><span class="pre">history_length</span></code> on the <code class="docutils literal notranslate"><span class="pre">ContactSensorCfg</span></code> equal to your
+decimation value. The sensor then stores force, torque, and distance
+for the last <em>N</em> substeps. Your reward or termination function can
+inspect the history to detect contacts that would otherwise be missed:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ContactSensorCfg</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;self_collision&quot;</span><span class="p">,</span>
+    <span class="o">...</span><span class="p">,</span>
+    <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;found&quot;</span><span class="p">,</span> <span class="s2">&quot;force&quot;</span><span class="p">),</span>
+    <span class="n">history_length</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>  <span class="c1"># matches decimation=4</span>
+<span class="p">)</span>
+
+<span class="c1"># In the reward/termination function:</span>
+<span class="n">force_mag</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">sensor</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">force_history</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># [B, N, H]</span>
+<span class="n">had_contact</span> <span class="o">=</span> <span class="p">(</span><span class="n">force_mag</span> <span class="o">&gt;</span> <span class="mf">10.0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>    <span class="c1"># [B]</span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="sensors/index.html#contact-sensor-history"><span class="std std-ref">History (decimation safe contacts)</span></a> for full details.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Feet ground sensors with <code class="docutils literal notranslate"><span class="pre">track_air_time=True</span></code> already accumulate
+contact state across substeps, so they do not need history.</p>
+</div>
+</section>
+<section id="when-do-i-need-to-call-sim-forward">
+<span id="faq-sim-forward"></span><h3>When do I need to call <code class="docutils literal notranslate"><span class="pre">sim.forward()</span></code>?<a class="headerlink" href="#when-do-i-need-to-call-sim-forward" title="Link to this heading">#</a></h3>
+<p>Short answer: you almost certainly don’t.</p>
+<p><code class="docutils literal notranslate"><span class="pre">sim.forward()</span></code> wraps MuJoCo’s <code class="docutils literal notranslate"><span class="pre">mj_forward</span></code>, which runs the full forward
+dynamics pipeline (kinematics, contacts, forces, constraint solving, sensors)
+but skips integration, leaving <code class="docutils literal notranslate"><span class="pre">qpos</span></code>/<code class="docutils literal notranslate"><span class="pre">qvel</span></code> unchanged. It brings all
+derived quantities in <code class="docutils literal notranslate"><span class="pre">mjData</span></code> (<code class="docutils literal notranslate"><span class="pre">xpos</span></code>, <code class="docutils literal notranslate"><span class="pre">xquat</span></code>, <code class="docutils literal notranslate"><span class="pre">site_xpos</span></code>,
+<code class="docutils literal notranslate"><span class="pre">cvel</span></code>, <code class="docutils literal notranslate"><span class="pre">sensordata</span></code>, etc.) into a consistent state with the current
+<code class="docutils literal notranslate"><span class="pre">qpos</span></code>/<code class="docutils literal notranslate"><span class="pre">qvel</span></code>.
+The environment’s <code class="docutils literal notranslate"><span class="pre">step()</span></code> method calls it once per step, right before
+observation computation, so observations and commands always see fresh
+derived quantities. Termination, reward, and step/interval events run
+<em>before</em> this call and therefore see derived quantities that are stale by
+one physics substep, a deliberate tradeoff that avoids a second
+<code class="docutils literal notranslate"><span class="pre">forward()</span></code> call while keeping the MDP well-defined (the staleness is
+consistent across all envs and all steps). Because events run before the
+call, any state they write (e.g. a velocity push) is refreshed by it and
+visible to the same step’s observations.</p>
+<p>The one case where this matters is if you write an event or command that
+both writes state and reads derived quantities in the same function. For
+example, if Event A calls <code class="docutils literal notranslate"><span class="pre">entity.write_root_velocity_to_sim()</span></code> (which
+modifies <code class="docutils literal notranslate"><span class="pre">qvel</span></code>) and then immediately reads <code class="docutils literal notranslate"><span class="pre">entity.data.root_link_vel_w</span></code>
+(which comes from <code class="docutils literal notranslate"><span class="pre">cvel</span></code>), the read will see stale values from before the
+write.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Write methods (<code class="docutils literal notranslate"><span class="pre">write_root_state_to_sim</span></code>, <code class="docutils literal notranslate"><span class="pre">write_joint_state_to_sim</span></code>,
+etc.) modify <code class="docutils literal notranslate"><span class="pre">qpos</span></code>/<code class="docutils literal notranslate"><span class="pre">qvel</span></code> directly. Read properties
+(<code class="docutils literal notranslate"><span class="pre">root_link_pose_w</span></code>, <code class="docutils literal notranslate"><span class="pre">body_link_vel_w</span></code>, etc.) return derived
+quantities that are only current as of the last <code class="docutils literal notranslate"><span class="pre">sim.forward()</span></code> call.
+If you need to write then read in the same function, call
+<code class="docutils literal notranslate"><span class="pre">env.sim.forward()</span></code> between them.</p>
+</div>
+<p>For a deeper explanation, see <a class="reference external" href="https://github.com/mujocolab/mjlab/discussions/289">Discussion #289</a>.</p>
+</section>
+<section id="why-aren-t-my-training-runs-reproducible-even-with-a-fixed-seed">
+<h3>Why aren’t my training runs reproducible even with a fixed seed?<a class="headerlink" href="#why-aren-t-my-training-runs-reproducible-even-with-a-fixed-seed" title="Link to this heading">#</a></h3>
+<p>MuJoCo Warp does not yet guarantee determinism, so running the same
+simulation with identical inputs may produce slightly different outputs.
+This is a known limitation being tracked in
+<a class="reference external" href="https://github.com/google-deepmind/mujoco_warp/issues/562">mujoco_warp#562</a>.</p>
+<p>Until determinism is implemented upstream, mjlab training runs will not be
+perfectly reproducible even when setting a seed.</p>
+</section>
+<section id="my-xml-option-flags-are-not-taking-effect">
+<h3>My XML <code class="docutils literal notranslate"><span class="pre">&lt;option&gt;</span></code> flags are not taking effect<a class="headerlink" href="#my-xml-option-flags-are-not-taking-effect" title="Link to this heading">#</a></h3>
+<p>If you set simulation options like <code class="docutils literal notranslate"><span class="pre">&lt;flag</span> <span class="pre">contact=&quot;disable&quot;/&gt;</span></code> in your
+entity XML, they will be silently ignored. This is because mjlab composes
+scenes by attaching entity specs into a parent scene spec using
+<code class="docutils literal notranslate"><span class="pre">MjSpec.attach()</span></code>, which does not propagate <code class="docutils literal notranslate"><span class="pre">&lt;option&gt;</span></code> settings from
+the child to the parent. This is a MuJoCo design decision: there is no
+sensible way to merge engine options (timestep, gravity, solver settings,
+etc.) across multiple attached models.</p>
+<p>To configure simulation options, use <code class="xref py py-class docutils literal notranslate"><span class="pre">MujocoCfg</span></code> in
+your task’s Python config:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sim.sim</span><span class="w"> </span><span class="kn">import</span> <span class="n">MujocoCfg</span><span class="p">,</span> <span class="n">SimulationCfg</span>
+
+<span class="n">sim</span><span class="o">=</span><span class="n">SimulationCfg</span><span class="p">(</span>
+    <span class="n">mujoco</span><span class="o">=</span><span class="n">MujocoCfg</span><span class="p">(</span>
+        <span class="n">disableflags</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;contact&quot;</span><span class="p">,),</span>
+        <span class="c1"># timestep=0.01, gravity=(0, 0, -9.81), etc.</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">MujocoCfg</span></code> applies options directly to the compiled model, so they
+always take effect. mjlab will emit a warning if it detects non-default
+<code class="docutils literal notranslate"><span class="pre">&lt;option&gt;</span></code> fields on an attached entity spec.</p>
+</section>
+</section>
+<section id="rendering-visualization">
+<h2>Rendering &amp; Visualization<a class="headerlink" href="#rendering-visualization" title="Link to this heading">#</a></h2>
+<section id="what-visualization-options-are-available">
+<h3>What visualization options are available?<a class="headerlink" href="#what-visualization-options-are-available" title="Link to this heading">#</a></h3>
+<p>mjlab currently supports two visualizers for policy evaluation and
+debugging:</p>
+<ul class="simple">
+<li><p><strong>Native MuJoCo visualizer</strong> - the built-in visualizer that ships with MuJoCo.</p></li>
+<li><p><strong>Viser</strong> - <a class="reference external" href="https://github.com/nerfstudio-project/viser">Viser</a>,
+a web-based 3D visualization tool.</p></li>
+</ul>
+<p>We are exploring <strong>training-time visualization</strong> (e.g., live rollout viewers),
+but this is not yet available.</p>
+<p>As an alternative, mjlab supports <strong>video logging to Weights &amp; Biases
+(W&amp;B)</strong>, so you can monitor rollout videos directly in the experiment dashboard.</p>
+</section>
+<section id="how-many-environments-can-i-visualize-at-once">
+<h3>How many environments can I visualize at once?<a class="headerlink" href="#how-many-environments-can-i-visualize-at-once" title="Link to this heading">#</a></h3>
+<p>Viewers render a small number of environments for performance reasons.</p>
+<ul class="simple">
+<li><p><strong>Offscreen renderer</strong> (for video recording): Renders the tracked
+environment plus its nearest neighbors. The count is controlled by
+<code class="docutils literal notranslate"><span class="pre">ViewerConfig.max_extra_envs</span></code> (default 2).</p></li>
+<li><p><strong>Native/Viser viewers</strong>: Limited by MuJoCo’s geometry buffer
+(default 10,000 geoms). The viewer shows whichever environments fit
+within the geometry budget.</p></li>
+</ul>
+</section>
+<section id="why-are-my-fixed-base-robots-all-stacked-at-the-origin-instead-of-in-a-grid">
+<h3>Why are my fixed-base robots all stacked at the origin instead of in a grid?<a class="headerlink" href="#why-are-my-fixed-base-robots-all-stacked-at-the-origin-instead-of-in-a-grid" title="Link to this heading">#</a></h3>
+<p>Fixed-base robots require an <strong>explicit reset event</strong> to position them at
+their <code class="docutils literal notranslate"><span class="pre">env_origins</span></code>. If your robots appear stacked at (0, 0, 0):</p>
+<p><strong>Common causes:</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Missing reset event</strong> - Most common issue.</p></li>
+<li><p><strong>env_spacing is 0 or very small</strong> - Check your <code class="docutils literal notranslate"><span class="pre">SceneCfg(env_spacing=...)</span></code>.
+Even with proper reset events, if <code class="docutils literal notranslate"><span class="pre">env_spacing=0.0</span></code>, all robots will
+be at the same position. If <code class="docutils literal notranslate"><span class="pre">env_spacing</span></code> is very small (e.g., 0.01),
+they’ll be clustered in a tiny area that looks like a line from a distance.</p></li>
+</ol>
+<p><strong>Solution</strong>: Add a reset event that calls <code class="docutils literal notranslate"><span class="pre">reset_root_state_uniform</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># In your ManagerBasedRlEnvCfg</span>
+<span class="n">events</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="c1"># For positioning the base of the robot at env_origins.</span>
+  <span class="s2">&quot;reset_base&quot;</span><span class="p">:</span> <span class="n">EventTermCfg</span><span class="p">(</span>
+    <span class="n">func</span><span class="o">=</span><span class="n">mdp</span><span class="o">.</span><span class="n">reset_root_state_uniform</span><span class="p">,</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;reset&quot;</span><span class="p">,</span>
+    <span class="n">params</span><span class="o">=</span><span class="p">{</span>
+      <span class="s2">&quot;pose_range&quot;</span><span class="p">:</span> <span class="p">{},</span>  <span class="c1"># Empty = use default pose + env_origins</span>
+      <span class="s2">&quot;velocity_range&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="p">},</span>
+  <span class="p">),</span>
+  <span class="c1"># ... other events</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>This pattern is used in the example manipulation task (see <code class="docutils literal notranslate"><span class="pre">lift_cube_env_cfg.py:85-94</span></code>).</p>
+<p><strong>Why this is needed</strong>: Fixed-base robots are automatically wrapped in mocap
+bodies by <code class="docutils literal notranslate"><span class="pre">auto_wrap_fixed_base_mocap()</span></code>, but mocap positioning only happens
+when you explicitly call a reset event. The <code class="docutils literal notranslate"><span class="pre">env_origins</span></code> offset is applied
+inside <code class="docutils literal notranslate"><span class="pre">reset_root_state_uniform()</span></code> at line 131 of <code class="docutils literal notranslate"><span class="pre">envs/mdp/events.py</span></code>.</p>
+<p>See <a class="reference external" href="https://github.com/mujocolab/mjlab/issues/560">issue #560</a> for examples.</p>
+</section>
+<section id="how-does-env-origins-determine-robot-layout">
+<h3>How does env_origins determine robot layout?<a class="headerlink" href="#how-does-env-origins-determine-robot-layout" title="Link to this heading">#</a></h3>
+<p>Robot spacing depends on your terrain configuration:</p>
+<dl class="simple">
+<dt><strong>Plane terrain</strong> (<code class="docutils literal notranslate"><span class="pre">terrain_type=&quot;plane&quot;</span></code>):</dt><dd><ul class="simple">
+<li><p>Creates an approximately square grid automatically</p></li>
+<li><p>Grid size: <code class="docutils literal notranslate"><span class="pre">ceil(sqrt(num_envs))</span></code> rows x cols</p></li>
+<li><p>Spacing controlled by <code class="docutils literal notranslate"><span class="pre">env_spacing</span></code> parameter (default: 2.0m)</p></li>
+<li><p>Examples with <code class="docutils literal notranslate"><span class="pre">env_spacing=2.0</span></code>:
+- 32 envs → 7x5 grid spanning 12m x 8m
+- 4096 envs → 64x64 grid spanning 126m x 126m</p></li>
+<li><p><strong>Important</strong>: If <code class="docutils literal notranslate"><span class="pre">env_spacing=0</span></code>, all robots will be at (0, 0, 0)</p></li>
+<li><p>Implementation: <code class="docutils literal notranslate"><span class="pre">terrain_importer.py:_compute_env_origins_grid()</span></code></p></li>
+</ul>
+</dd>
+<dt><strong>Procedural terrain</strong> (<code class="docutils literal notranslate"><span class="pre">terrain_type=&quot;generator&quot;</span></code>):</dt><dd><ul class="simple">
+<li><p>Origins loaded from pre-generated terrain sub-patches</p></li>
+<li><p>Grid size: <code class="docutils literal notranslate"><span class="pre">TerrainGeneratorCfg.num_rows</span> <span class="pre">x</span> <span class="pre">num_cols</span></code></p></li>
+<li><p>Row index = difficulty level (curriculum mode)</p></li>
+<li><p>Column index = terrain type variant</p></li>
+<li><p><strong>Important allocation behavior</strong>: Columns (terrain types) are evenly distributed
+across environments, but rows (difficulty levels) are randomly sampled. This means
+multiple environments can spawn on the same (row, col) patch, leaving others unoccupied,
+even when <code class="docutils literal notranslate"><span class="pre">num_envs</span> <span class="pre">&gt;</span> <span class="pre">num_patches</span></code>.</p></li>
+<li><p>Example: 5x5 grid (25 patches), 100 envs → each column gets exactly 20 envs,
+but those 20 are randomly distributed across 5 rows, so some patches remain empty.</p></li>
+<li><p>Supports <code class="docutils literal notranslate"><span class="pre">randomize_env_origins()</span></code> to shuffle positions during training</p></li>
+</ul>
+</dd>
+</dl>
+</section>
+<section id="how-do-i-ensure-each-terrain-type-gets-its-own-column">
+<h3>How do I ensure each terrain type gets its own column?<a class="headerlink" href="#how-do-i-ensure-each-terrain-type-gets-its-own-column" title="Link to this heading">#</a></h3>
+<p>Set <code class="docutils literal notranslate"><span class="pre">curriculum=True</span></code> in your <code class="docutils literal notranslate"><span class="pre">TerrainGeneratorCfg</span></code>. This makes column
+allocation deterministic, with each column getting one terrain type based on
+normalized proportions.</p>
+<p>Example with 2 terrain types:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">TerrainGeneratorCfg</span><span class="p">(</span>
+  <span class="n">num_rows</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+  <span class="n">num_cols</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+  <span class="n">curriculum</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># Required for deterministic column allocation!</span>
+  <span class="n">sub_terrains</span><span class="o">=</span><span class="p">{</span>
+    <span class="s2">&quot;flat&quot;</span><span class="p">:</span> <span class="n">BoxFlatTerrainCfg</span><span class="p">(</span><span class="n">proportion</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>  <span class="c1"># Gets column 0</span>
+    <span class="s2">&quot;pillars&quot;</span><span class="p">:</span> <span class="n">HfDiscreteObstaclesTerrainCfg</span><span class="p">(</span>
+      <span class="n">proportion</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>  <span class="c1"># Gets column 1</span>
+    <span class="p">),</span>
+  <span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Without <code class="docutils literal notranslate"><span class="pre">curriculum=True</span></code>, every patch is randomly sampled and you’ll get
+a random mix of both terrain types scattered across all patches.</p>
+<p><strong>Note</strong>: When <code class="docutils literal notranslate"><span class="pre">num_cols</span></code> equals the number of terrain types, each terrain
+gets exactly one column regardless of proportion values (they’re normalized).
+When <code class="docutils literal notranslate"><span class="pre">num_cols</span> <span class="pre">&gt;</span> <span class="pre">num_terrain_types</span></code>, proportions determine how many columns
+each terrain type occupies.</p>
+</section>
+<section id="what-is-flat-patch-sampling-and-how-does-it-affect-robot-spawning">
+<h3>What is flat patch sampling and how does it affect robot spawning?<a class="headerlink" href="#what-is-flat-patch-sampling-and-how-does-it-affect-robot-spawning" title="Link to this heading">#</a></h3>
+<p>Flat patch sampling detects flat regions on heightfield terrains where robots
+can safely spawn. It uses morphological filtering on the heightfield to find
+circular areas where height variation is within a tolerance.</p>
+<p>Configure it on any sub-terrain via <code class="docutils literal notranslate"><span class="pre">flat_patch_sampling</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.terrains.terrain_generator</span><span class="w"> </span><span class="kn">import</span> <span class="n">FlatPatchSamplingCfg</span>
+
+<span class="s2">&quot;obstacles&quot;</span><span class="p">:</span> <span class="n">HfDiscreteObstaclesTerrainCfg</span><span class="p">(</span>
+  <span class="o">...</span><span class="p">,</span>
+  <span class="n">flat_patch_sampling</span><span class="o">=</span><span class="p">{</span>
+    <span class="s2">&quot;spawn&quot;</span><span class="p">:</span> <span class="n">FlatPatchSamplingCfg</span><span class="p">(</span>
+      <span class="n">num_patches</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>      <span class="c1"># patches to sample per sub-terrain</span>
+      <span class="n">patch_radius</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>    <span class="c1"># flatness check radius (meters)</span>
+      <span class="n">max_height_diff</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>  <span class="c1"># max height variation within radius</span>
+    <span class="p">),</span>
+  <span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Then use <code class="docutils literal notranslate"><span class="pre">reset_root_state_from_flat_patches</span></code> as your reset event to spawn
+robots on detected patches instead of at the sub-terrain center.</p>
+<p><strong>Key details:</strong></p>
+<ul class="simple">
+<li><p>Only heightfield (<code class="docutils literal notranslate"><span class="pre">Hf*</span></code>) terrains support actual flat patch detection.
+Box terrains (<code class="docutils literal notranslate"><span class="pre">Box*</span></code>) don’t have heightfield data to analyze.</p></li>
+<li><p>If any sub-terrain in the grid configures <code class="docutils literal notranslate"><span class="pre">flat_patch_sampling</span></code>, the
+flat patches array is allocated for <strong>all</strong> cells. Sub-terrains that don’t
+produce patches have their slots filled with the sub-terrain’s spawn origin,
+so <code class="docutils literal notranslate"><span class="pre">reset_root_state_from_flat_patches</span></code> always gets valid positions.</p></li>
+<li><p>Without <code class="docutils literal notranslate"><span class="pre">flat_patch_sampling</span></code>, use <code class="docutils literal notranslate"><span class="pre">reset_root_state_uniform</span></code> which
+spawns at the sub-terrain origin (<code class="docutils literal notranslate"><span class="pre">env_origins</span></code>) plus an optional random
+offset.</p></li>
+</ul>
+</section>
+</section>
+<section id="development-extensions">
+<h2>Development &amp; Extensions<a class="headerlink" href="#development-extensions" title="Link to this heading">#</a></h2>
+<section id="can-i-develop-custom-tasks-in-my-own-repository">
+<h3>Can I develop custom tasks in my own repository?<a class="headerlink" href="#can-i-develop-custom-tasks-in-my-own-repository" title="Link to this heading">#</a></h3>
+<p>Yes, mjlab has a <strong>plugin system</strong> that lets you develop tasks in separate
+repositories while still integrating seamlessly with the core:</p>
+<ul class="simple">
+<li><p>Your tasks appear as regular entries for the <code class="docutils literal notranslate"><span class="pre">train</span></code> and <code class="docutils literal notranslate"><span class="pre">play</span></code> commands.</p></li>
+<li><p>You can version and maintain your task repositories independently.</p></li>
+</ul>
+<p>A complete guide will be available in a future release.</p>
+</section>
+</section>
+<section id="assets-compatibility">
+<h2>Assets &amp; Compatibility<a class="headerlink" href="#assets-compatibility" title="Link to this heading">#</a></h2>
+<section id="what-robots-are-included">
+<h3>What robots are included?<a class="headerlink" href="#what-robots-are-included" title="Link to this heading">#</a></h3>
+<p>mjlab includes two <strong>reference robots</strong>:</p>
+<ul class="simple">
+<li><p><strong>Unitree Go1</strong> (quadruped).</p></li>
+<li><p><strong>Unitree G1</strong> (humanoid).</p></li>
+</ul>
+<p>These robots serve as:</p>
+<ul class="simple">
+<li><p>Minimal examples for <strong>robot integration</strong>.</p></li>
+<li><p>Stable, well-tested baselines for <strong>benchmark tasks</strong>.</p></li>
+</ul>
+<p>To keep the core library lean, we do <strong>not</strong> plan to aggressively expand the
+built-in robot library. Additional robots may be provided in separate
+repositories or community-maintained packages.</p>
+</section>
+<section id="can-i-use-usd-or-urdf-models">
+<h3>Can I use USD or URDF models?<a class="headerlink" href="#can-i-use-usd-or-urdf-models" title="Link to this heading">#</a></h3>
+<p>No, mjlab expects <strong>MJCF (MuJoCo XML)</strong> models.</p>
+<ul class="simple">
+<li><p>You will need to <strong>convert</strong> USD or URDF assets to MJCF.</p></li>
+<li><p>For many common robots, you can directly use
+<a class="reference external" href="https://github.com/google-deepmind/mujoco_menagerie">MuJoCo Menagerie</a>,
+which ships high-quality MJCF models and assets.</p></li>
+</ul>
+</section>
+</section>
+<section id="getting-help">
+<h2>Getting Help<a class="headerlink" href="#getting-help" title="Link to this heading">#</a></h2>
+<section id="github-issues">
+<h3>GitHub Issues<a class="headerlink" href="#github-issues" title="Link to this heading">#</a></h3>
+<p>Use GitHub issues for:</p>
+<ul class="simple">
+<li><p><strong>Bug reports</strong></p></li>
+<li><p><strong>Performance regressions</strong></p></li>
+<li><p><strong>Documentation gaps</strong></p></li>
+</ul>
+<p>When filing a bug, please include:</p>
+<ul class="simple">
+<li><p>CUDA driver and runtime versions</p></li>
+<li><p>GPU model</p></li>
+<li><p>A minimal reproduction script</p></li>
+<li><p>Complete error logs and stack traces</p></li>
+<li><p>Appropriate labels (for example: <code class="docutils literal notranslate"><span class="pre">bug</span></code>, <code class="docutils literal notranslate"><span class="pre">performance</span></code>, <code class="docutils literal notranslate"><span class="pre">docs</span></code>)</p></li>
+</ul>
+<p><a class="reference external" href="https://github.com/mujocolab/mjlab/issues">Open an issue</a></p>
+</section>
+<section id="discussions">
+<h3>Discussions<a class="headerlink" href="#discussions" title="Link to this heading">#</a></h3>
+<p>Use GitHub Discussions for:</p>
+<ul class="simple">
+<li><p>Usage questions (config, debugging, best practices)</p></li>
+<li><p>Performance tuning tips</p></li>
+<li><p>Asset conversion and modeling questions</p></li>
+<li><p>Design discussions and roadmap ideas</p></li>
+</ul>
+<p><a class="reference external" href="https://github.com/mujocolab/mjlab/discussions">Start a discussion</a></p>
+</section>
+</section>
+<section id="known-limitations">
+<h2>Known Limitations<a class="headerlink" href="#known-limitations" title="Link to this heading">#</a></h2>
+<p>We’re tracking missing features for the stable release in
+<a class="github reference external" href="https://github.com/mujocolab/mjlab/issues/100">mujocolab/mjlab#100</a>. Check our
+<a class="reference external" href="https://github.com/mujocolab/mjlab/issues">open issues</a> to see what’s actively
+being worked on.</p>
+<p>If something isn’t working or if we’ve missed something, please
+<a class="reference external" href="https://github.com/mujocolab/mjlab/issues/new">file a bug report</a>.</p>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="migration_isaac_lab.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Migrating from Isaac Lab</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="research.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Research</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#platform-support">Platform Support</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#does-it-work-on-macos">Does it work on macOS?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#does-it-work-on-windows">Does it work on Windows?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda-compatibility">CUDA Compatibility</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-do-i-run-on-cpu-without-touching-the-gpu">How do I run on CPU without touching the GPU?</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#performance">Performance</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#is-it-faster-than-isaac-lab">Is it faster than Isaac Lab?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#what-gpu-do-you-recommend">What GPU do you recommend?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#does-mjlab-support-multi-gpu-training">Does mjlab support multi-GPU training?</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#training-debugging">Training &amp; Debugging</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#my-training-crashes-with-nan-errors">My training crashes with NaN errors</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-can-i-inspect-the-generated-scene-xml">How can I inspect the generated scene XML?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#my-contact-sensor-misses-collisions-when-using-decimation">My contact sensor misses collisions when using decimation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#when-do-i-need-to-call-sim-forward">When do I need to call <code class="docutils literal notranslate"><span class="pre">sim.forward()</span></code>?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#why-aren-t-my-training-runs-reproducible-even-with-a-fixed-seed">Why aren’t my training runs reproducible even with a fixed seed?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#my-xml-option-flags-are-not-taking-effect">My XML <code class="docutils literal notranslate"><span class="pre">&lt;option&gt;</span></code> flags are not taking effect</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#rendering-visualization">Rendering &amp; Visualization</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#what-visualization-options-are-available">What visualization options are available?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-many-environments-can-i-visualize-at-once">How many environments can I visualize at once?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#why-are-my-fixed-base-robots-all-stacked-at-the-origin-instead-of-in-a-grid">Why are my fixed-base robots all stacked at the origin instead of in a grid?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-does-env-origins-determine-robot-layout">How does env_origins determine robot layout?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-do-i-ensure-each-terrain-type-gets-its-own-column">How do I ensure each terrain type gets its own column?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#what-is-flat-patch-sampling-and-how-does-it-affect-robot-spawning">What is flat patch sampling and how does it affect robot spawning?</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#development-extensions">Development &amp; Extensions</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#can-i-develop-custom-tasks-in-my-own-repository">Can I develop custom tasks in my own repository?</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#assets-compatibility">Assets &amp; Compatibility</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#what-robots-are-included">What robots are included?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#can-i-use-usd-or-urdf-models">Can I use USD or URDF models?</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#getting-help">Getting Help</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#github-issues">GitHub Issues</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#discussions">Discussions</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#known-limitations">Known Limitations</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By The mjlab Developers
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2025, The mjlab Developers.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p class="last-updated">
+  Last updated on Aug 09, 2026.
+  <br/>
+</p>
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

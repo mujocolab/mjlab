@@ -1,0 +1,1009 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Cartpole: Building Your First Environment &#8212; mjlab Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../_static/twemoji.css" />
+    <link rel="stylesheet" type="text/css" href="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=53359634" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=3ea80bc3" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js"></script>
+    <script src="../../_static/twemoji.js"></script>
+    <script src="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/js/all.min.js?v=ec35c6c9"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["\\(", "\\)"]], "displayMath": [["\\[", "\\]"]]}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'source/tutorials/cartpole';</script>
+    <link rel="icon" href="../../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Contributing" href="../contributing.html" />
+    <link rel="prev" title="Tutorials" href="../tutorials.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+    <meta name="docbuild:last-update" content="Aug 09, 2026"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">mjlab Documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item">
+<div class="sidebar-version-switcher">
+  <label class="sidebar-version-label" for="version-select">Version</label>
+  <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
+    <option value="../../../main/source/tutorials/cartpole.html" >main</option>
+    <option value="cartpole.html" selected>v1.6.0</option>
+    <option value="../../../v1.5.3/source/tutorials/cartpole.html" >v1.5.3</option>
+    <option value="../../../v1.5.2/source/tutorials/cartpole.html" >v1.5.2</option>
+    <option value="../../../v1.5.1/source/tutorials/cartpole.html" >v1.5.1</option>
+    <option value="../../../v1.5.0/source/tutorials/cartpole.html" >v1.5.0</option>
+    <option value="../../../v1.4.0/source/tutorials/cartpole.html" >v1.4.0</option>
+    <option value="../../../v1.3.0/source/tutorials/cartpole.html" >v1.3.0</option>
+    <option value="../../../v1.2.0/index.html" >v1.2.0</option>
+    <option value="../../../v1.1.1/index.html" >v1.1.1</option>
+    <option value="../../../v1.1.0/index.html" >v1.1.0</option>
+    <option value="../../../v1.0.0/index.html" >v1.0.0</option>
+  </select>
+</div>
+</div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Guide</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../tutorials.html">Tutorials</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Cartpole: Building Your First Environment</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../architecture_overview.html">Architecture Overview</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../entity/index.html">Entity</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../entity/entity_data.html">Entity Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../entity/per_world_mesh.html">Heterogeneous Worlds</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../actuators.html">Actuators</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../sensors/index.html">Sensors</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sensors/raycast_sensor.html">RayCast Sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sensors/rgbd_camera.html">RGB-D Camera</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../scene.html">Scene</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../terrain.html">Terrain</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">The Manager Layer</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../environment_config.html">Environment Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../actions.html">Actions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../terminations.html">Terminations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../events.html">Events</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../randomization.html">Domain Randomization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../curriculum.html">Curriculum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recorders.html">Recorders</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training &amp; Debugging</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../training/rsl_rl.html">Training with RSL-RL</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../training/motion_imitation.html">Motion Imitation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../viewers.html">Viewers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/distributed_training.html">Distributed Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/cloud.html">Cloud Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../debugging/nan_guard.html">NaN Guard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../debugging/export_scene.html">Export Scene</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">API Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/envs.html">mjlab.envs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scene.html">mjlab.scene</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/sim.html">mjlab.sim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/entity.html">mjlab.entity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/actuator.html">mjlab.actuator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/sensor.html">mjlab.sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/managers.html">mjlab.managers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/terrains.html">mjlab.terrains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/rl.html">mjlab.rl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/viewer.html">mjlab.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/tasks.html">mjlab.tasks</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Further Reading</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../motivation.html">Why mjlab?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration_isaac_lab.html">Migrating from Isaac Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ &amp; Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../research.html">Research</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/edit/main/docs/source/tutorials/cartpole.rst" target="_blank"
+   class="btn btn-sm btn-source-edit-button dropdown-item"
+   title="Suggest edit"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-pencil-alt"></i>
+  </span>
+<span class="btn__text-container">Suggest edit</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/issues/new?title=Issue%20on%20page%20%2Fsource/tutorials/cartpole.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../../_sources/source/tutorials/cartpole.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Cartpole: Building Your First Environment</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#the-xml-model">The XML model</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#building-the-environment">Building the environment</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#entity-wrapping-the-xml">Entity: wrapping the XML</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#observations-what-the-agent-sees">Observations: what the agent sees</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#actions-what-the-agent-does">Actions: what the agent does</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#rewards-the-training-signal">Rewards: the training signal</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#terminations-when-to-stop">Terminations: when to stop</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#events-resetting-the-state">Events: resetting the state</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#snapping-everything-together">Snapping everything together</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#registration-and-training">Registration and training</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#next-steps">Next steps</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="cartpole-building-your-first-environment">
+<span id="tutorial-cartpole"></span><h1>Cartpole: Building Your First Environment<a class="headerlink" href="#cartpole-building-your-first-environment" title="Link to this heading">#</a></h1>
+<p>This tutorial walks through building a cartpole swingup task from scratch.
+A cart slides along a rail with a pole attached by a hinge. The agent
+applies force to the cart to swing the pole up and balance it.</p>
+<video style="width:80%; display:block; margin:0 auto;" autoplay loop muted playsinline>
+  <source src="../../_static/tutorials/cartpole_swingup.mp4" type="video/mp4">
+</video>
+<p style="text-align:center; color:#666; font-size:0.9em; margin-top:0.5em;">
+  A trained agent performing the swingup task.
+</p><p>The entire task lives in two files: an XML model and a Python module. We
+will build both piece by piece, then snap them together at the end.</p>
+<section id="the-xml-model">
+<h2>The XML model<a class="headerlink" href="#the-xml-model" title="Link to this heading">#</a></h2>
+<p>Every environment starts with a MuJoCo XML that defines the physical
+system. For cartpole that means two bodies, two joints, and one motor:</p>
+<div class="highlight-xml notranslate"><div class="highlight"><pre><span></span><span class="cm">&lt;!-- A cart on a rail with a pole attached by a hinge. --&gt;</span>
+<span class="nt">&lt;body</span><span class="w"> </span><span class="na">name=</span><span class="s">&quot;cart&quot;</span><span class="w"> </span><span class="na">pos=</span><span class="s">&quot;0 0 1&quot;</span><span class="nt">&gt;</span>
+<span class="w">  </span><span class="nt">&lt;joint</span><span class="w"> </span><span class="na">name=</span><span class="s">&quot;slider&quot;</span><span class="w"> </span><span class="na">type=</span><span class="s">&quot;slide&quot;</span><span class="w"> </span><span class="na">axis=</span><span class="s">&quot;1 0 0&quot;</span>
+<span class="w">         </span><span class="na">limited=</span><span class="s">&quot;true&quot;</span><span class="w"> </span><span class="na">range=</span><span class="s">&quot;-1.8 1.8&quot;</span><span class="w"> </span><span class="na">damping=</span><span class="s">&quot;5e-4&quot;</span><span class="nt">/&gt;</span>
+<span class="w">  </span><span class="nt">&lt;geom</span><span class="w"> </span><span class="na">name=</span><span class="s">&quot;cart&quot;</span><span class="w"> </span><span class="na">type=</span><span class="s">&quot;box&quot;</span><span class="w"> </span><span class="na">size=</span><span class="s">&quot;0.2 0.15 0.1&quot;</span><span class="w"> </span><span class="na">mass=</span><span class="s">&quot;1&quot;</span><span class="nt">/&gt;</span>
+<span class="w">  </span><span class="nt">&lt;body</span><span class="w"> </span><span class="na">name=</span><span class="s">&quot;pole_1&quot;</span><span class="w"> </span><span class="na">childclass=</span><span class="s">&quot;pole&quot;</span><span class="nt">&gt;</span>
+<span class="w">    </span><span class="nt">&lt;joint</span><span class="w"> </span><span class="na">name=</span><span class="s">&quot;hinge_1&quot;</span><span class="nt">/&gt;</span>
+<span class="w">    </span><span class="nt">&lt;geom</span><span class="w"> </span><span class="na">name=</span><span class="s">&quot;pole_1&quot;</span><span class="nt">/&gt;</span>
+<span class="w">  </span><span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/body&gt;</span>
+
+<span class="cm">&lt;!-- A motor that pushes the cart along the rail. --&gt;</span>
+<span class="nt">&lt;actuator&gt;</span>
+<span class="w">  </span><span class="nt">&lt;motor</span><span class="w"> </span><span class="na">name=</span><span class="s">&quot;slide&quot;</span><span class="w"> </span><span class="na">joint=</span><span class="s">&quot;slider&quot;</span><span class="w"> </span><span class="na">gear=</span><span class="s">&quot;10&quot;</span>
+<span class="w">         </span><span class="na">ctrllimited=</span><span class="s">&quot;true&quot;</span><span class="w"> </span><span class="na">ctrlrange=</span><span class="s">&quot;-1 1&quot;</span><span class="nt">/&gt;</span>
+<span class="nt">&lt;/actuator&gt;</span>
+</pre></div>
+</div>
+<p>The motor has gear ratio 10 and control range [-1, 1], so the maximum
+force is 10 N. <code class="docutils literal notranslate"><span class="pre">ctrllimited</span></code> tells MuJoCo to clamp the control signal
+internally, so policy outputs outside this range are safe.</p>
+<p>The full XML is at <code class="docutils literal notranslate"><span class="pre">src/mjlab/tasks/cartpole/cartpole.xml</span></code>.</p>
+</section>
+<section id="building-the-environment">
+<h2>Building the environment<a class="headerlink" href="#building-the-environment" title="Link to this heading">#</a></h2>
+<p>Everything else lives in a single file, <code class="docutils literal notranslate"><span class="pre">cartpole_env_cfg.py</span></code>. An
+mjlab environment is made of small, composable pieces. We will define
+each piece, then assemble them into a complete config at the end.</p>
+<section id="entity-wrapping-the-xml">
+<h3>Entity: wrapping the XML<a class="headerlink" href="#entity-wrapping-the-xml" title="Link to this heading">#</a></h3>
+<p>An entity is a simulated object in the scene. It can be anything from a
+static table to an articulated robot. The <code class="docutils literal notranslate"><span class="pre">EntityCfg</span></code> wraps a MuJoCo
+XML and, optionally, actuator and initial state configurations. At
+runtime, the entity exposes simulation data (joint positions, velocities,
+etc.) as batched PyTorch tensors.</p>
+<p>The cartpole is an articulated entity with one actuator, so we need a
+function that loads the XML, an actuator configuration, and an initial
+state.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load the XML.</span>
+<span class="n">_CARTPOLE_XML</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;cartpole.xml&quot;</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_spec</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjSpec</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjSpec</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">_CARTPOLE_XML</span><span class="p">))</span>
+
+<span class="c1"># Tell mjlab to use the motor defined in the XML as is.</span>
+<span class="n">_CARTPOLE_ARTICULATION</span> <span class="o">=</span> <span class="n">EntityArticulationInfoCfg</span><span class="p">(</span>
+    <span class="n">actuators</span><span class="o">=</span><span class="p">(</span><span class="n">XmlActuatorCfg</span><span class="p">(</span><span class="n">target_names_expr</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;slider&quot;</span><span class="p">,)),),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The initial joint state depends on the task variant:</p>
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-0">
+Swingup</label><div class="sd-tab-content docutils">
+<p>The pole starts pointing down (<code class="docutils literal notranslate"><span class="pre">hinge</span> <span class="pre">=</span> <span class="pre">pi</span></code>). The agent must swing
+it up and balance it.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_SWINGUP_INIT</span> <span class="o">=</span> <span class="n">EntityCfg</span><span class="o">.</span><span class="n">InitialStateCfg</span><span class="p">(</span>
+    <span class="n">joint_pos</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;slider&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;hinge_1&quot;</span><span class="p">:</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="p">},</span>
+    <span class="n">joint_vel</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;.*&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input id="sd-tab-item-1" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-1">
+Balance</label><div class="sd-tab-content docutils">
+<p>The pole starts upright (<code class="docutils literal notranslate"><span class="pre">hinge</span> <span class="pre">=</span> <span class="pre">0</span></code>). The agent only needs to
+keep it balanced.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_BALANCE_INIT</span> <span class="o">=</span> <span class="n">EntityCfg</span><span class="o">.</span><span class="n">InitialStateCfg</span><span class="p">(</span>
+    <span class="n">joint_pos</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;slider&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;hinge_1&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">},</span>
+    <span class="n">joint_vel</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;.*&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Now we can snap these together into an <code class="docutils literal notranslate"><span class="pre">EntityCfg</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Bundle the spec loader, actuator, and initial state into one config.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_cartpole_cfg</span><span class="p">(</span><span class="n">swing_up</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EntityCfg</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">EntityCfg</span><span class="p">(</span>
+        <span class="n">spec_fn</span><span class="o">=</span><span class="n">_get_spec</span><span class="p">,</span>
+        <span class="n">articulation</span><span class="o">=</span><span class="n">_CARTPOLE_ARTICULATION</span><span class="p">,</span>
+        <span class="n">init_state</span><span class="o">=</span><span class="n">_SWINGUP_INIT</span> <span class="k">if</span> <span class="n">swing_up</span> <span class="k">else</span> <span class="n">_BALANCE_INIT</span><span class="p">,</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<p>That is the entity done. Later, we will pass it to the scene so the
+environment knows what to simulate.</p>
+</section>
+<section id="observations-what-the-agent-sees">
+<h3>Observations: what the agent sees<a class="headerlink" href="#observations-what-the-agent-sees" title="Link to this heading">#</a></h3>
+<p>Each observation term is a function that reads from the simulation and
+returns a tensor. The observation manager concatenates them into a single
+vector for the policy. mjlab provides common terms in <code class="docutils literal notranslate"><span class="pre">mjlab.envs.mdp</span></code>
+(joint positions, velocities, etc.), but you can always define your own.</p>
+<p>The cartpole has two moving parts, so its physical state is fully
+described by two positions and two velocities:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 12.0%" />
+<col style="width: 66.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Term</p></th>
+<th class="head"><p>Dim</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cart_pos</span></code></p></td>
+<td><p>1</p></td>
+<td><p>Where is the cart on the rail?</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pole_angle</span></code></p></td>
+<td><p>2</p></td>
+<td><p>Which way is the pole pointing? (cosine and sine)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cart_vel</span></code></p></td>
+<td><p>1</p></td>
+<td><p>How fast is the cart moving?</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pole_vel</span></code></p></td>
+<td><p>1</p></td>
+<td><p>How fast is the pole rotating?</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>The pole angle is encoded as cosine and sine rather than a raw angle.
+MuJoCo’s unlimited hinge does not wrap the angle, so as the pole
+spins the raw value keeps growing. Cosine and sine give the same
+output for the same physical angle regardless of how many rotations
+have occurred.</p>
+</div>
+<p>This is the one custom observation function:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">pole_angle_cos_sin</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">asset_cfg</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="n">asset</span><span class="p">:</span> <span class="n">Entity</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">scene</span><span class="p">[</span><span class="n">asset_cfg</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+    <span class="n">angle</span> <span class="o">=</span> <span class="n">asset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">joint_pos</span><span class="p">[:,</span> <span class="n">asset_cfg</span><span class="o">.</span><span class="n">joint_ids</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All data in mjlab is batched: tensors have shape
+<code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">...]</span></code> because many environments run in parallel.
+Every function you write should accept and return tensors with this
+leading batch dimension.</p>
+</div>
+<p>To wire these up, we create <code class="docutils literal notranslate"><span class="pre">ObservationTermCfg</span></code> entries and group
+them. <code class="docutils literal notranslate"><span class="pre">SceneEntityCfg</span></code> scopes each function to specific joints on
+the entity:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cart_cfg</span> <span class="o">=</span> <span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;cartpole&quot;</span><span class="p">,</span> <span class="n">joint_names</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;slider&quot;</span><span class="p">,))</span>
+<span class="n">hinge_cfg</span> <span class="o">=</span> <span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;cartpole&quot;</span><span class="p">,</span> <span class="n">joint_names</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;hinge_1&quot;</span><span class="p">,))</span>
+
+<span class="n">cart_pos</span> <span class="o">=</span> <span class="n">ObservationTermCfg</span><span class="p">(</span>
+    <span class="n">func</span><span class="o">=</span><span class="n">joint_pos_rel</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;asset_cfg&quot;</span><span class="p">:</span> <span class="n">cart_cfg</span><span class="p">},</span>
+<span class="p">)</span>
+<span class="n">pole_angle</span> <span class="o">=</span> <span class="n">ObservationTermCfg</span><span class="p">(</span>
+    <span class="n">func</span><span class="o">=</span><span class="n">pole_angle_cos_sin</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;asset_cfg&quot;</span><span class="p">:</span> <span class="n">hinge_cfg</span><span class="p">},</span>
+<span class="p">)</span>
+<span class="n">cart_vel</span> <span class="o">=</span> <span class="n">ObservationTermCfg</span><span class="p">(</span>
+    <span class="n">func</span><span class="o">=</span><span class="n">joint_vel_rel</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;asset_cfg&quot;</span><span class="p">:</span> <span class="n">cart_cfg</span><span class="p">},</span>
+<span class="p">)</span>
+<span class="n">pole_vel</span> <span class="o">=</span> <span class="n">ObservationTermCfg</span><span class="p">(</span>
+    <span class="n">func</span><span class="o">=</span><span class="n">joint_vel_rel</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;asset_cfg&quot;</span><span class="p">:</span> <span class="n">hinge_cfg</span><span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Each term pairs a function with the parameters to call it with. Now
+we group them. The RL algorithm expects an <code class="docutils literal notranslate"><span class="pre">&quot;actor&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;critic&quot;</span></code>
+group; they share the same terms here, but when you add noise later
+you can give the critic clean observations
+(asymmetric actor-critic <label for='sidenote-role-1' class='margin-toggle'><span id="id1">
+<sup>1</sup></span>
+
+</label><input type='checkbox' id='sidenote-role-1' name='sidenote-role-1' class='margin-toggle'><span class="sidenote"><sup>1</sup>Pinto, L., Andrychowicz, M., Welinder, P., Zaremba, W., &amp; Abbeel, P. (2018). <a class="reference external" href="https://www.roboticsproceedings.org/rss14/p08.pdf">Asymmetric Actor Critic for Image-Based Robot Learning</a>. <em>Robotics: Science and Systems XIV</em>.</span>).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">actor_terms</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;cart_pos&quot;</span><span class="p">:</span> <span class="n">cart_pos</span><span class="p">,</span>
+    <span class="s2">&quot;pole_angle&quot;</span><span class="p">:</span> <span class="n">pole_angle</span><span class="p">,</span>
+    <span class="s2">&quot;cart_vel&quot;</span><span class="p">:</span> <span class="n">cart_vel</span><span class="p">,</span>
+    <span class="s2">&quot;pole_vel&quot;</span><span class="p">:</span> <span class="n">pole_vel</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">observations</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;actor&quot;</span><span class="p">:</span> <span class="n">ObservationGroupCfg</span><span class="p">(</span><span class="n">actor_terms</span><span class="p">),</span>
+    <span class="s2">&quot;critic&quot;</span><span class="p">:</span> <span class="n">ObservationGroupCfg</span><span class="p">({</span><span class="o">**</span><span class="n">actor_terms</span><span class="p">}),</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="actions-what-the-agent-does">
+<h3>Actions: what the agent does<a class="headerlink" href="#actions-what-the-agent-does" title="Link to this heading">#</a></h3>
+<p>The agent outputs a single scalar: the force on the cart.
+<code class="docutils literal notranslate"><span class="pre">JointEffortActionCfg</span></code> writes the policy output to the actuator’s
+effort target. The <code class="docutils literal notranslate"><span class="pre">XmlActuator</span></code> passes it to MuJoCo’s <code class="docutils literal notranslate"><span class="pre">ctrl</span></code>
+buffer, which clamps it to [-1, 1] and multiplies by the gear ratio:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">actions</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;effort&quot;</span><span class="p">:</span> <span class="n">JointEffortActionCfg</span><span class="p">(</span>
+        <span class="n">entity_name</span><span class="o">=</span><span class="s2">&quot;cartpole&quot;</span><span class="p">,</span>
+        <span class="n">actuator_names</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;slider&quot;</span><span class="p">,),</span>
+        <span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="rewards-the-training-signal">
+<h3>Rewards: the training signal<a class="headerlink" href="#rewards-the-training-signal" title="Link to this heading">#</a></h3>
+<p>Each reward term is a function that returns a scalar per environment.
+The reward manager computes a weighted sum of all terms each step.</p>
+<p>The cartpole reward reproduces dm_control’s smooth reward as a single
+multiplicative term:</p>
+<div class="math notranslate nohighlight">
+\[r = \underbrace{\frac{\cos\theta + 1}{2}}_{\text{upright}}
+    \times \underbrace{\frac{1 + g(x)}{2}}_{\text{centered}}
+    \times \underbrace{\frac{4 + q(u)}{5}}_{\text{small control}}
+    \times \underbrace{\frac{1 + g(\dot\theta)}{2}}_{\text{small velocity}}\]</div>
+<p>Each factor is between 0 and 1. The product is high only when all four
+conditions hold simultaneously, preventing the agent from trading off
+one factor against another.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">rewards</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;smooth_reward&quot;</span><span class="p">:</span> <span class="n">RewardTermCfg</span><span class="p">(</span>
+        <span class="n">func</span><span class="o">=</span><span class="n">cartpole_smooth_reward</span><span class="p">,</span>
+        <span class="n">weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;cart_cfg&quot;</span><span class="p">:</span> <span class="n">cart_cfg</span><span class="p">,</span> <span class="s2">&quot;hinge_cfg&quot;</span><span class="p">:</span> <span class="n">hinge_cfg</span><span class="p">},</span>
+    <span class="p">),</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="terminations-when-to-stop">
+<h3>Terminations: when to stop<a class="headerlink" href="#terminations-when-to-stop" title="Link to this heading">#</a></h3>
+<p>The cartpole has no failure states, so the only termination is a time
+limit. Setting <code class="docutils literal notranslate"><span class="pre">time_out=True</span></code> tells the RL algorithm this is a
+truncation, not a true terminal state, so it bootstraps the value
+function past the episode boundary:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">terminations</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;time_out&quot;</span><span class="p">:</span> <span class="n">TerminationTermCfg</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">time_out</span><span class="p">,</span> <span class="n">time_out</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="events-resetting-the-state">
+<h3>Events: resetting the state<a class="headerlink" href="#events-resetting-the-state" title="Link to this heading">#</a></h3>
+<p>At the start of each episode, reset events randomize joint positions and
+velocities around the initial state we defined in the entity:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">events</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;reset_slider&quot;</span><span class="p">:</span> <span class="n">EventTermCfg</span><span class="p">(</span>
+        <span class="n">func</span><span class="o">=</span><span class="n">reset_joints_by_offset</span><span class="p">,</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;reset&quot;</span><span class="p">,</span>
+        <span class="n">params</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;position_range&quot;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">),</span>
+            <span class="s2">&quot;velocity_range&quot;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">),</span>
+            <span class="s2">&quot;asset_cfg&quot;</span><span class="p">:</span> <span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;cartpole&quot;</span><span class="p">,</span> <span class="n">joint_names</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;slider&quot;</span><span class="p">,)),</span>
+        <span class="p">},</span>
+    <span class="p">),</span>
+    <span class="s2">&quot;reset_hinge&quot;</span><span class="p">:</span> <span class="n">EventTermCfg</span><span class="p">(</span>
+        <span class="n">func</span><span class="o">=</span><span class="n">reset_joints_by_offset</span><span class="p">,</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;reset&quot;</span><span class="p">,</span>
+        <span class="n">params</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;position_range&quot;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.034</span><span class="p">,</span> <span class="mf">0.034</span><span class="p">),</span>
+            <span class="s2">&quot;velocity_range&quot;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">),</span>
+            <span class="s2">&quot;asset_cfg&quot;</span><span class="p">:</span> <span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;cartpole&quot;</span><span class="p">,</span> <span class="n">joint_names</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;hinge_1&quot;</span><span class="p">,)),</span>
+        <span class="p">},</span>
+    <span class="p">),</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The offsets are relative to the entity’s initial state. For swingup the
+hinge starts at pi, so the noise keeps it near pointing down.</p>
+</section>
+<section id="snapping-everything-together">
+<h3>Snapping everything together<a class="headerlink" href="#snapping-everything-together" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg</span></code> is where all the pieces come together. The
+scene holds the entity, and the config holds everything else:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">return</span> <span class="n">ManagerBasedRlEnvCfg</span><span class="p">(</span>
+    <span class="n">scene</span><span class="o">=</span><span class="n">SceneCfg</span><span class="p">(</span>
+        <span class="n">terrain</span><span class="o">=</span><span class="n">TerrainEntityCfg</span><span class="p">(</span><span class="n">terrain_type</span><span class="o">=</span><span class="s2">&quot;plane&quot;</span><span class="p">),</span>
+        <span class="n">entities</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;cartpole&quot;</span><span class="p">:</span> <span class="n">_get_cartpole_cfg</span><span class="p">(</span><span class="n">swing_up</span><span class="o">=</span><span class="n">swing_up</span><span class="p">)},</span>
+        <span class="n">num_envs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">env_spacing</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">observations</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+    <span class="n">actions</span><span class="o">=</span><span class="n">actions</span><span class="p">,</span>
+    <span class="n">events</span><span class="o">=</span><span class="n">events</span><span class="p">,</span>
+    <span class="n">rewards</span><span class="o">=</span><span class="n">rewards</span><span class="p">,</span>
+    <span class="n">terminations</span><span class="o">=</span><span class="n">terminations</span><span class="p">,</span>
+    <span class="n">sim</span><span class="o">=</span><span class="n">SimulationCfg</span><span class="p">(</span>
+        <span class="n">mujoco</span><span class="o">=</span><span class="n">MujocoCfg</span><span class="p">(</span><span class="n">timestep</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">disableflags</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;contact&quot;</span><span class="p">,)),</span>
+    <span class="p">),</span>
+    <span class="n">decimation</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">episode_length_s</span><span class="o">=</span><span class="mf">50.0</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">decimation=5</span></code> means the physics runs five substeps per policy step,
+giving a 20 Hz control frequency. <code class="docutils literal notranslate"><span class="pre">disableflags=(&quot;contact&quot;,)</span></code> skips
+contact computation since cartpole has no collisions. <code class="docutils literal notranslate"><span class="pre">num_envs=1</span></code> is
+the default; override it from the CLI with <code class="docutils literal notranslate"><span class="pre">--num-envs</span></code>.</p>
+</section>
+</section>
+<section id="registration-and-training">
+<h2>Registration and training<a class="headerlink" href="#registration-and-training" title="Link to this heading">#</a></h2>
+<p>The last step is to register the task so it can be launched by name.
+Each registration pairs an environment config with an RL config that
+specifies the network architecture and PPO hyperparameters. For cartpole
+a small network of two 64 unit hidden layers is plenty. The full RL
+config is in <code class="docutils literal notranslate"><span class="pre">cartpole_env_cfg.py</span></code> alongside the environment config.</p>
+<p>This goes in <code class="docutils literal notranslate"><span class="pre">__init__.py</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">register_mjlab_task</span><span class="p">(</span>
+    <span class="n">task_id</span><span class="o">=</span><span class="s2">&quot;Mjlab-Cartpole-Swingup&quot;</span><span class="p">,</span>
+    <span class="n">env_cfg</span><span class="o">=</span><span class="n">cartpole_swingup_env_cfg</span><span class="p">(),</span>
+    <span class="n">play_env_cfg</span><span class="o">=</span><span class="n">cartpole_swingup_env_cfg</span><span class="p">(</span><span class="n">play</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">rl_cfg</span><span class="o">=</span><span class="n">cartpole_ppo_runner_cfg</span><span class="p">(),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Train:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>Mjlab-Cartpole-Swingup<span class="w"> </span>--env.scene.num-envs<span class="w"> </span><span class="m">4096</span>
+</pre></div>
+</div>
+<p>Play back a trained checkpoint, either from a local file or a W&amp;B run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>play<span class="w"> </span>Mjlab-Cartpole-Swingup<span class="w"> </span>--checkpoint-file<span class="w"> </span>logs/rsl_rl/cartpole/model_500.pt
+uv<span class="w"> </span>run<span class="w"> </span>play<span class="w"> </span>Mjlab-Cartpole-Swingup<span class="w"> </span>--wandb-run-path<span class="w"> </span>&lt;user/project/run_id&gt;
+</pre></div>
+</div>
+<figure class="align-center" id="id2">
+<a class="reference internal image-reference" href="../../_images/cartpole_training_curve.png"><img alt="Cartpole swingup training curve" src="../../_images/cartpole_training_curve.png" style="width: 70%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Mean reward over 5 seeds (shaded: one standard deviation).</span><a class="headerlink" href="#id2" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+<p>Config fields can be overridden from the CLI:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>Mjlab-Cartpole-Swingup<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--num-envs<span class="w"> </span><span class="m">8192</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--agent.algorithm.learning-rate<span class="w"> </span>3e-4<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--agent.algorithm.entropy-coef<span class="w"> </span><span class="m">0</span>.005
+</pre></div>
+</div>
+</section>
+<section id="next-steps">
+<h2>Next steps<a class="headerlink" href="#next-steps" title="Link to this heading">#</a></h2>
+<p><strong>Add observation noise.</strong> The current config has no noise, so the
+policy is brittle. Add noise to any observation term to train a more
+robust policy:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">UniformNoiseCfg</span>
+
+<span class="n">ObservationTermCfg</span><span class="p">(</span>
+    <span class="n">func</span><span class="o">=</span><span class="n">joint_pos_rel</span><span class="p">,</span>
+    <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;asset_cfg&quot;</span><span class="p">:</span> <span class="n">cart_cfg</span><span class="p">},</span>
+    <span class="n">noise</span><span class="o">=</span><span class="n">UniformNoiseCfg</span><span class="p">(</span><span class="n">n_min</span><span class="o">=-</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">n_max</span><span class="o">=</span><span class="mf">0.05</span><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Randomize the physics.</strong> Use the <a class="reference internal" href="../randomization.html#domain-randomization"><span class="std std-ref">Domain Randomization</span></a> system
+to vary pole mass or joint damping across environments, training a
+policy that transfers across physical variations.</p>
+<p><strong>Explore other tasks.</strong> The library ships with locomotion,
+manipulation, and motion tracking tasks you can run out of the box:
+<code class="docutils literal notranslate"><span class="pre">Mjlab-Velocity-Flat-Unitree-Go1</span></code>, <code class="docutils literal notranslate"><span class="pre">Mjlab-Lift-Cube-Yam</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">Mjlab-Tracking-Flat-Unitree-G1</span></code>, among others. Reading their source
+shows how more complex observation and reward structures are composed.</p>
+<p><strong>Build something new.</strong> The cartpole is intentionally minimal. Once
+you are comfortable with the pieces, try designing your own robot model
+and task from scratch. The same pattern applies regardless of how
+complex the system becomes.</p>
+<p class="rubric">References</p>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../tutorials.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Tutorials</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../contributing.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Contributing</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#the-xml-model">The XML model</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#building-the-environment">Building the environment</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#entity-wrapping-the-xml">Entity: wrapping the XML</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#observations-what-the-agent-sees">Observations: what the agent sees</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#actions-what-the-agent-does">Actions: what the agent does</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#rewards-the-training-signal">Rewards: the training signal</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#terminations-when-to-stop">Terminations: when to stop</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#events-resetting-the-state">Events: resetting the state</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#snapping-everything-together">Snapping everything together</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#registration-and-training">Registration and training</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#next-steps">Next steps</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By The mjlab Developers
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2025, The mjlab Developers.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p class="last-updated">
+  Last updated on Aug 09, 2026.
+  <br/>
+</p>
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

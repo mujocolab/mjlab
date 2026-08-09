@@ -1,0 +1,896 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Migrating from Isaac Lab &#8212; mjlab Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../_static/twemoji.css" />
+    <link rel="stylesheet" type="text/css" href="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=53359634" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=3ea80bc3" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js"></script>
+    <script src="../_static/twemoji.js"></script>
+    <script src="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/js/all.min.js?v=ec35c6c9"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'source/migration_isaac_lab';</script>
+    <link rel="icon" href="../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="FAQ &amp; Troubleshooting" href="faq.html" />
+    <link rel="prev" title="Why mjlab?" href="motivation.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+    <meta name="docbuild:last-update" content="Aug 09, 2026"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">mjlab Documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item">
+<div class="sidebar-version-switcher">
+  <label class="sidebar-version-label" for="version-select">Version</label>
+  <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
+    <option value="../../main/source/migration_isaac_lab.html" >main</option>
+    <option value="migration_isaac_lab.html" selected>v1.6.0</option>
+    <option value="../../v1.5.3/source/migration_isaac_lab.html" >v1.5.3</option>
+    <option value="../../v1.5.2/source/migration_isaac_lab.html" >v1.5.2</option>
+    <option value="../../v1.5.1/source/migration_isaac_lab.html" >v1.5.1</option>
+    <option value="../../v1.5.0/source/migration_isaac_lab.html" >v1.5.0</option>
+    <option value="../../v1.4.0/source/migration_isaac_lab.html" >v1.4.0</option>
+    <option value="../../v1.3.0/source/migration_isaac_lab.html" >v1.3.0</option>
+    <option value="../../v1.2.0/source/migration_isaac_lab.html" >v1.2.0</option>
+    <option value="../../v1.1.1/source/migration_isaac_lab.html" >v1.1.1</option>
+    <option value="../../v1.1.0/source/migration_isaac_lab.html" >v1.1.0</option>
+    <option value="../../v1.0.0/source/migration_isaac_lab.html" >v1.0.0</option>
+  </select>
+</div>
+</div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="tutorials.html">Tutorials</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/cartpole.html">Cartpole: Building Your First Environment</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="architecture_overview.html">Architecture Overview</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="entity/index.html">Entity</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="entity/entity_data.html">Entity Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="entity/per_world_mesh.html">Heterogeneous Worlds</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="actuators.html">Actuators</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="sensors/index.html">Sensors</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="sensors/raycast_sensor.html">RayCast Sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sensors/rgbd_camera.html">RGB-D Camera</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="scene.html">Scene</a></li>
+<li class="toctree-l1"><a class="reference internal" href="terrain.html">Terrain</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">The Manager Layer</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="environment_config.html">Environment Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="actions.html">Actions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="terminations.html">Terminations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="events.html">Events</a></li>
+<li class="toctree-l1"><a class="reference internal" href="randomization.html">Domain Randomization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="curriculum.html">Curriculum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recorders.html">Recorders</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training &amp; Debugging</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="training/rsl_rl.html">Training with RSL-RL</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="training/motion_imitation.html">Motion Imitation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="viewers.html">Viewers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training/distributed_training.html">Distributed Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training/cloud.html">Cloud Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="debugging/nan_guard.html">NaN Guard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="debugging/export_scene.html">Export Scene</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="api/index.html">API Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/envs.html">mjlab.envs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scene.html">mjlab.scene</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/sim.html">mjlab.sim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/entity.html">mjlab.entity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/actuator.html">mjlab.actuator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/sensor.html">mjlab.sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/managers.html">mjlab.managers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/terrains.html">mjlab.terrains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/rl.html">mjlab.rl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/viewer.html">mjlab.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/tasks.html">mjlab.tasks</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Further Reading</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="motivation.html">Why mjlab?</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Migrating from Isaac Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ &amp; Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="research.html">Research</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/edit/main/docs/source/migration_isaac_lab.rst" target="_blank"
+   class="btn btn-sm btn-source-edit-button dropdown-item"
+   title="Suggest edit"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-pencil-alt"></i>
+  </span>
+<span class="btn__text-container">Suggest edit</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/issues/new?title=Issue%20on%20page%20%2Fsource/migration_isaac_lab.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/source/migration_isaac_lab.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Migrating from Isaac Lab</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tl-dr">TL;DR</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#key-differences">Key Differences</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#import-paths">1. Import Paths</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#configuration-structure">2. Configuration Structure</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#scene-configuration">3. Scene Configuration</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#complete-example-comparison">Complete Example Comparison</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#migration-checklist">Migration Checklist</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tips-and-support">Tips and Support</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="migrating-from-isaac-lab">
+<span id="migration-isaac-lab"></span><h1>Migrating from Isaac Lab<a class="headerlink" href="#migrating-from-isaac-lab" title="Link to this heading">#</a></h1>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This guide is a work in progress. As more users migrate, we will update this
+page with additional patterns and edge cases. If something is not covered,
+please open an issue on GitHub or start a discussion:</p>
+<ul class="simple">
+<li><p>Issues: <a class="github reference external" href="https://github.com/mujocolab/mjlab/issues">mujocolab/mjlab#issues</a></p></li>
+<li><p>Discussions: <a class="github reference external" href="https://github.com/mujocolab/mjlab/discussions">mujocolab/mjlab#discussions</a></p></li>
+</ul>
+</div>
+<section id="tl-dr">
+<h2>TL;DR<a class="headerlink" href="#tl-dr" title="Link to this heading">#</a></h2>
+<p>Most Isaac Lab <em>manager-based</em> task configs can be ported to <code class="docutils literal notranslate"><span class="pre">mjlab</span></code> with
+only small changes:</p>
+<ul class="simple">
+<li><p>The overall <strong>MDP structure is the same</strong> (managers for rewards, observations,
+actions, commands, terminations, events, curriculum).</p></li>
+<li><p>The <strong>environment base classes are similar</strong>, but naming is slightly
+different.</p></li>
+<li><p>The biggest change is <strong>configuration style</strong>: Isaac Lab uses nested
+<code class="docutils literal notranslate"><span class="pre">&#64;configclass</span></code> definitions; <code class="docutils literal notranslate"><span class="pre">mjlab</span></code> uses dictionaries of config objects.</p></li>
+</ul>
+<p>If you are familiar with Isaac Lab’s manager-based API, migration is mostly
+mechanical.</p>
+</section>
+<section id="key-differences">
+<h2>Key Differences<a class="headerlink" href="#key-differences" title="Link to this heading">#</a></h2>
+<section id="import-paths">
+<h3>1. Import Paths<a class="headerlink" href="#import-paths" title="Link to this heading">#</a></h3>
+<p>Isaac Lab:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">isaaclab.envs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ManagerBasedRLEnv</span>
+</pre></div>
+</div>
+<p>mjlab:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.envs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ManagerBasedRlEnvCfg</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">mjlab</span></code> uses a consistent <code class="docutils literal notranslate"><span class="pre">CamelCase</span></code> naming convention (for example,
+<code class="docutils literal notranslate"><span class="pre">RlEnv</span></code> instead of <code class="docutils literal notranslate"><span class="pre">RLEnv</span></code>).</p>
+</div>
+</section>
+<section id="configuration-structure">
+<h3>2. Configuration Structure<a class="headerlink" href="#configuration-structure" title="Link to this heading">#</a></h3>
+<p>Isaac Lab uses nested <code class="docutils literal notranslate"><span class="pre">&#64;configclass</span></code> blocks for manager terms. <code class="docutils literal notranslate"><span class="pre">mjlab</span></code>
+instead uses <strong>plain dictionaries</strong> mapping names to config objects, which makes
+it easy to construct variants, merge configs, or generate them programmatically.
+For the full context behind this design decision, see
+<a class="reference external" href="https://github.com/mujocolab/mjlab/pull/292">PR #292</a>.</p>
+<p><strong>Isaac Lab:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@configclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RewardsCfg</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reward terms for the MDP.&quot;&quot;&quot;</span>
+
+    <span class="n">motion_global_anchor_pos</span> <span class="o">=</span> <span class="n">RewTerm</span><span class="p">(</span>
+        <span class="n">func</span><span class="o">=</span><span class="n">mdp</span><span class="o">.</span><span class="n">motion_global_anchor_position_error_exp</span><span class="p">,</span>
+        <span class="n">weight</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;command_name&quot;</span><span class="p">:</span> <span class="s2">&quot;motion&quot;</span><span class="p">,</span> <span class="s2">&quot;std&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">motion_global_anchor_ori</span> <span class="o">=</span> <span class="n">RewTerm</span><span class="p">(</span>
+        <span class="n">func</span><span class="o">=</span><span class="n">mdp</span><span class="o">.</span><span class="n">motion_global_anchor_orientation_error_exp</span><span class="p">,</span>
+        <span class="n">weight</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;command_name&quot;</span><span class="p">:</span> <span class="s2">&quot;motion&quot;</span><span class="p">,</span> <span class="s2">&quot;std&quot;</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">},</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>mjlab:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">rewards</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;motion_global_anchor_pos&quot;</span><span class="p">:</span> <span class="n">RewardTermCfg</span><span class="p">(</span>
+        <span class="n">func</span><span class="o">=</span><span class="n">mdp</span><span class="o">.</span><span class="n">motion_global_anchor_position_error_exp</span><span class="p">,</span>
+        <span class="n">weight</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;command_name&quot;</span><span class="p">:</span> <span class="s2">&quot;motion&quot;</span><span class="p">,</span> <span class="s2">&quot;std&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">},</span>
+    <span class="p">),</span>
+    <span class="s2">&quot;motion_global_anchor_ori&quot;</span><span class="p">:</span> <span class="n">RewardTermCfg</span><span class="p">(</span>
+        <span class="n">func</span><span class="o">=</span><span class="n">mdp</span><span class="o">.</span><span class="n">motion_global_anchor_orientation_error_exp</span><span class="p">,</span>
+        <span class="n">weight</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;command_name&quot;</span><span class="p">:</span> <span class="s2">&quot;motion&quot;</span><span class="p">,</span> <span class="s2">&quot;std&quot;</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">},</span>
+    <span class="p">),</span>
+<span class="p">}</span>
+
+<span class="n">cfg</span> <span class="o">=</span> <span class="n">ManagerBasedRlEnvCfg</span><span class="p">(</span>
+    <span class="n">scene</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span>
+    <span class="n">rewards</span><span class="o">=</span><span class="n">rewards</span><span class="p">,</span>
+    <span class="c1"># ... other manager dictionaries:</span>
+    <span class="c1"># observations=..., actions=..., commands=..., terminations=...,</span>
+    <span class="c1"># events=..., curriculum=...</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>This pattern applies to all managers:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">rewards</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">observations</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">actions</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">commands</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">terminations</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">events</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">curriculum</span></code></p></li>
+</ul>
+</section>
+<section id="scene-configuration">
+<h3>3. Scene Configuration<a class="headerlink" href="#scene-configuration" title="Link to this heading">#</a></h3>
+<p>Scene setup is <strong>simpler</strong> in <code class="docutils literal notranslate"><span class="pre">mjlab</span></code>:</p>
+<ul class="simple">
+<li><p>No Omniverse / USD scene graph, no <code class="docutils literal notranslate"><span class="pre">prim_path</span></code> management.</p></li>
+<li><p>Assets are pure MuJoCo (MJCF) with modifier dataclasses applied to
+<code class="docutils literal notranslate"><span class="pre">mujoco.MjSpec</span></code>.</p></li>
+<li><p>Lights, materials, textures, and sensors are configured as part of
+<code class="docutils literal notranslate"><span class="pre">SceneCfg</span></code> and robot configs.</p></li>
+</ul>
+<p><strong>Isaac Lab:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">whole_body_tracking.robots.g1</span><span class="w"> </span><span class="kn">import</span> <span class="n">G1_ACTION_SCALE</span><span class="p">,</span> <span class="n">G1_CYLINDER_CFG</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">isaaclab.scene</span><span class="w"> </span><span class="kn">import</span> <span class="n">InteractiveSceneCfg</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">isaaclab.sensors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ContactSensorCfg</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">isaaclab.terrains</span><span class="w"> </span><span class="kn">import</span> <span class="n">TerrainImporterCfg</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">isaaclab.sim</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sim_utils</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">isaaclab.assets</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArticulationCfg</span><span class="p">,</span> <span class="n">AssetBaseCfg</span>
+
+<span class="nd">@configclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MySceneCfg</span><span class="p">(</span><span class="n">InteractiveSceneCfg</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Configuration for the terrain scene with a legged robot.&quot;&quot;&quot;</span>
+
+    <span class="c1"># ground terrain</span>
+    <span class="n">terrain</span> <span class="o">=</span> <span class="n">TerrainEntityCfg</span><span class="p">(</span>
+        <span class="n">prim_path</span><span class="o">=</span><span class="s2">&quot;/World/ground&quot;</span><span class="p">,</span>
+        <span class="n">terrain_type</span><span class="o">=</span><span class="s2">&quot;plane&quot;</span><span class="p">,</span>
+        <span class="n">collision_group</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">physics_material</span><span class="o">=</span><span class="n">sim_utils</span><span class="o">.</span><span class="n">RigidBodyMaterialCfg</span><span class="p">(</span>
+            <span class="n">friction_combine_mode</span><span class="o">=</span><span class="s2">&quot;multiply&quot;</span><span class="p">,</span>
+            <span class="n">restitution_combine_mode</span><span class="o">=</span><span class="s2">&quot;multiply&quot;</span><span class="p">,</span>
+            <span class="n">static_friction</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+            <span class="n">dynamic_friction</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">visual_material</span><span class="o">=</span><span class="n">sim_utils</span><span class="o">.</span><span class="n">MdlFileCfg</span><span class="p">(</span>
+            <span class="n">mdl_path</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{NVIDIA_NUCLEUS_DIR}</span><span class="s2">/Materials/Base/Architecture/Shingles_01.mdl&quot;</span><span class="p">,</span>
+            <span class="n">project_uvw</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="c1"># lights</span>
+    <span class="n">light</span> <span class="o">=</span> <span class="n">AssetBaseCfg</span><span class="p">(</span>
+        <span class="n">prim_path</span><span class="o">=</span><span class="s2">&quot;/World/light&quot;</span><span class="p">,</span>
+        <span class="n">spawn</span><span class="o">=</span><span class="n">sim_utils</span><span class="o">.</span><span class="n">DistantLightCfg</span><span class="p">(</span>
+            <span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">),</span> <span class="n">intensity</span><span class="o">=</span><span class="mf">3000.0</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">sky_light</span> <span class="o">=</span> <span class="n">AssetBaseCfg</span><span class="p">(</span>
+        <span class="n">prim_path</span><span class="o">=</span><span class="s2">&quot;/World/skyLight&quot;</span><span class="p">,</span>
+        <span class="n">spawn</span><span class="o">=</span><span class="n">sim_utils</span><span class="o">.</span><span class="n">DomeLightCfg</span><span class="p">(</span>
+            <span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mf">0.13</span><span class="p">,</span> <span class="mf">0.13</span><span class="p">,</span> <span class="mf">0.13</span><span class="p">),</span> <span class="n">intensity</span><span class="o">=</span><span class="mf">1000.0</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">robot</span> <span class="o">=</span> <span class="n">G1_CYLINDER_CFG</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">prim_path</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{ENV_REGEX_NS}</span><span class="s2">/Robot&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>mjlab:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">replace</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.scene</span><span class="w"> </span><span class="kn">import</span> <span class="n">SceneCfg</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.asset_zoo.robots.unitree_g1.g1_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_g1_robot_cfg</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.spec_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">ContactSensorCfg</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.terrains</span><span class="w"> </span><span class="kn">import</span> <span class="n">TerrainEntityCfg</span>
+
+<span class="c1"># Configure contact sensor</span>
+<span class="n">self_collision_sensor</span> <span class="o">=</span> <span class="n">ContactSensorCfg</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;self_collision&quot;</span><span class="p">,</span>
+    <span class="n">subtree1</span><span class="o">=</span><span class="s2">&quot;pelvis&quot;</span><span class="p">,</span>
+    <span class="n">subtree2</span><span class="o">=</span><span class="s2">&quot;pelvis&quot;</span><span class="p">,</span>
+    <span class="n">data</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;found&quot;</span><span class="p">,),</span>
+    <span class="n">reduce</span><span class="o">=</span><span class="s2">&quot;netforce&quot;</span><span class="p">,</span>
+    <span class="n">num</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>  <span class="c1"># report up to 10 contacts</span>
+<span class="p">)</span>
+
+<span class="c1"># Add sensor to robot config</span>
+<span class="n">g1_cfg</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span><span class="n">get_g1_robot_cfg</span><span class="p">(),</span> <span class="n">sensors</span><span class="o">=</span><span class="p">(</span><span class="n">self_collision_sensor</span><span class="p">,))</span>
+
+<span class="c1"># Create scene</span>
+<span class="n">SCENE_CFG</span> <span class="o">=</span> <span class="n">SceneCfg</span><span class="p">(</span>
+    <span class="n">terrain</span><span class="o">=</span><span class="n">TerrainEntityCfg</span><span class="p">(</span><span class="n">terrain_type</span><span class="o">=</span><span class="s2">&quot;plane&quot;</span><span class="p">),</span>
+    <span class="n">entities</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;robot&quot;</span><span class="p">:</span> <span class="n">g1_cfg</span><span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Key changes:</p>
+<ul class="simple">
+<li><p>No USD <code class="docutils literal notranslate"><span class="pre">prim_path</span></code> or cloning; the scene is described directly in MuJoCo.</p></li>
+<li><p>Materials, lights, and visual properties are applied via
+<code class="docutils literal notranslate"><span class="pre">MjSpec</span></code>-modifier dataclasses.</p></li>
+<li><p>See <code class="docutils literal notranslate"><span class="pre">mjlab.utils.spec_config</span></code> in the repository for helpers that apply
+these changes for you.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">asset_name</span></code> has been unified to <code class="docutils literal notranslate"><span class="pre">entity_name</span></code> across all configurations.</p></li>
+</ul>
+</section>
+</section>
+<section id="complete-example-comparison">
+<h2>Complete Example Comparison<a class="headerlink" href="#complete-example-comparison" title="Link to this heading">#</a></h2>
+<p>A good way to learn the pattern is to compare concrete tasks that have already
+been ported:</p>
+<ul class="simple">
+<li><p>Isaac Lab implementation (Beyond Mimic):</p>
+<ul>
+<li><p><a class="github reference external" href="https://github.com/HybridRobotics/whole_body_tracking/blob/main/source/whole_body_tracking/whole_body_tracking/tasks/tracking/tracking_env_cfg.py">HybridRobotics/whole_body_tracking</a></p></li>
+</ul>
+</li>
+<li><p>mjlab implementation:</p>
+<ul>
+<li><p><a class="github reference external" href="https://github.com/mujocolab/mjlab/blob/main/src/mjlab/tasks/tracking/tracking_env_cfg.py">mujocolab/mjlab</a></p></li>
+</ul>
+</li>
+</ul>
+<p>You will see that:</p>
+<ul class="simple">
+<li><p>Manager dictionaries in <code class="docutils literal notranslate"><span class="pre">mjlab</span></code> mirror Isaac Lab’s config classes,</p></li>
+<li><p>Reward, observation, command, and termination logic is almost identical,</p></li>
+<li><p>Scene and asset setup are simplified to pure MuJoCo.</p></li>
+</ul>
+</section>
+<section id="migration-checklist">
+<h2>Migration Checklist<a class="headerlink" href="#migration-checklist" title="Link to this heading">#</a></h2>
+<p>Use this as a quick checklist when porting a task:</p>
+<ol class="arabic simple">
+<li><p><strong>Base class and imports</strong></p>
+<ul class="simple">
+<li><p>Replace Isaac Lab imports (for example,
+<code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">isaaclab.envs</span> <span class="pre">import</span> <span class="pre">ManagerBasedRLEnv</span></code>) with the corresponding
+<code class="docutils literal notranslate"><span class="pre">mjlab</span></code> imports (for example,
+<code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">mjlab.envs</span> <span class="pre">import</span> <span class="pre">ManagerBasedRlEnvCfg</span></code>).</p></li>
+</ul>
+</li>
+<li><p><strong>Manager configuration</strong></p>
+<ul class="simple">
+<li><p>Convert each Isaac Lab <code class="docutils literal notranslate"><span class="pre">&#64;configclass</span></code> manager (<code class="docutils literal notranslate"><span class="pre">RewardsCfg</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ObservationsCfg</span></code>, etc.) into a dictionary of config objects.</p></li>
+<li><p>Pass these dictionaries into <code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg</span></code>.</p></li>
+</ul>
+</li>
+<li><p><strong>Scene and assets</strong></p>
+<ul class="simple">
+<li><p>Replace <code class="docutils literal notranslate"><span class="pre">InteractiveSceneCfg</span></code> with a <code class="docutils literal notranslate"><span class="pre">SceneCfg</span></code> instance.</p></li>
+<li><p>Replace USD / <code class="docutils literal notranslate"><span class="pre">prim_path</span></code> logic with MuJoCo asset configs and scene
+entities (for example, a robot from <code class="docutils literal notranslate"><span class="pre">asset_zoo</span></code>).</p></li>
+</ul>
+</li>
+<li><p><strong>Sensors and contact handling</strong></p>
+<ul class="simple">
+<li><p>Convert Isaac Lab <code class="docutils literal notranslate"><span class="pre">ContactSensorCfg</span></code> to
+<code class="docutils literal notranslate"><span class="pre">mjlab.utils.spec_config.ContactSensorCfg</span></code> and attach it to the robot
+config.</p></li>
+</ul>
+</li>
+<li><p><strong>RL entry points</strong></p>
+<ul class="simple">
+<li><p>Make sure your training script or entry point uses the correct task id and
+environment config (for example, via Gymnasium registration or direct
+construction, depending on how your project is structured).</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="tips-and-support">
+<h2>Tips and Support<a class="headerlink" href="#tips-and-support" title="Link to this heading">#</a></h2>
+<ol class="arabic simple">
+<li><p>Check the examples in the repository under:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">src/mjlab/tasks/</span></code></p></li>
+</ul>
+</li>
+<li><p>If you get stuck:</p>
+<ul class="simple">
+<li><p>Open an issue: <a class="github reference external" href="https://github.com/mujocolab/mjlab/issues">mujocolab/mjlab#issues</a></p></li>
+<li><p>Start a discussion: <a class="github reference external" href="https://github.com/mujocolab/mjlab/discussions">mujocolab/mjlab#discussions</a></p></li>
+</ul>
+</li>
+<li><p>Keep in mind MuJoCo vs Isaac Sim differences:</p>
+<ul class="simple">
+<li><p>Some Omniverse / USD rendering features do not have direct equivalents.</p></li>
+<li><p>Focus first on matching the <strong>physics and observations</strong>, then polish
+visuals if needed.</p></li>
+</ul>
+</li>
+</ol>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="motivation.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Why mjlab?</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="faq.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">FAQ &amp; Troubleshooting</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tl-dr">TL;DR</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#key-differences">Key Differences</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#import-paths">1. Import Paths</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#configuration-structure">2. Configuration Structure</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#scene-configuration">3. Scene Configuration</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#complete-example-comparison">Complete Example Comparison</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#migration-checklist">Migration Checklist</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tips-and-support">Tips and Support</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By The mjlab Developers
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2025, The mjlab Developers.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p class="last-updated">
+  Last updated on Aug 09, 2026.
+  <br/>
+</p>
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

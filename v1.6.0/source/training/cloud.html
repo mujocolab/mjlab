@@ -1,0 +1,866 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Cloud Training &#8212; mjlab Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../_static/twemoji.css" />
+    <link rel="stylesheet" type="text/css" href="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=53359634" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=3ea80bc3" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js"></script>
+    <script src="../../_static/twemoji.js"></script>
+    <script src="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/js/all.min.js?v=ec35c6c9"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'source/training/cloud';</script>
+    <link rel="icon" href="../../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="NaN Guard" href="../debugging/nan_guard.html" />
+    <link rel="prev" title="Distributed Training" href="distributed_training.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+    <meta name="docbuild:last-update" content="Aug 09, 2026"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">mjlab Documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item">
+<div class="sidebar-version-switcher">
+  <label class="sidebar-version-label" for="version-select">Version</label>
+  <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
+    <option value="../../../main/source/training/cloud.html" >main</option>
+    <option value="cloud.html" selected>v1.6.0</option>
+    <option value="../../../v1.5.3/source/training/cloud.html" >v1.5.3</option>
+    <option value="../../../v1.5.2/source/training/cloud.html" >v1.5.2</option>
+    <option value="../../../v1.5.1/source/training/cloud.html" >v1.5.1</option>
+    <option value="../../../v1.5.0/source/training/cloud.html" >v1.5.0</option>
+    <option value="../../../v1.4.0/source/training/cloud.html" >v1.4.0</option>
+    <option value="../../../v1.3.0/source/training/cloud.html" >v1.3.0</option>
+    <option value="../../../v1.2.0/source/training/cloud.html" >v1.2.0</option>
+    <option value="../../../v1.1.1/index.html" >v1.1.1</option>
+    <option value="../../../v1.1.0/index.html" >v1.1.0</option>
+    <option value="../../../v1.0.0/index.html" >v1.0.0</option>
+  </select>
+</div>
+</div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Guide</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials.html">Tutorials</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/cartpole.html">Cartpole: Building Your First Environment</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../architecture_overview.html">Architecture Overview</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../entity/index.html">Entity</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../entity/entity_data.html">Entity Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../entity/per_world_mesh.html">Heterogeneous Worlds</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../actuators.html">Actuators</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../sensors/index.html">Sensors</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sensors/raycast_sensor.html">RayCast Sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sensors/rgbd_camera.html">RGB-D Camera</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../scene.html">Scene</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../terrain.html">Terrain</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">The Manager Layer</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../environment_config.html">Environment Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../actions.html">Actions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../terminations.html">Terminations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../events.html">Events</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../randomization.html">Domain Randomization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../curriculum.html">Curriculum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recorders.html">Recorders</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training &amp; Debugging</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="rsl_rl.html">Training with RSL-RL</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="motion_imitation.html">Motion Imitation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../viewers.html">Viewers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distributed_training.html">Distributed Training</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Cloud Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../debugging/nan_guard.html">NaN Guard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../debugging/export_scene.html">Export Scene</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">API Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/envs.html">mjlab.envs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scene.html">mjlab.scene</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/sim.html">mjlab.sim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/entity.html">mjlab.entity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/actuator.html">mjlab.actuator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/sensor.html">mjlab.sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/managers.html">mjlab.managers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/terrains.html">mjlab.terrains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/rl.html">mjlab.rl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/viewer.html">mjlab.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/tasks.html">mjlab.tasks</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Further Reading</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../motivation.html">Why mjlab?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration_isaac_lab.html">Migrating from Isaac Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ &amp; Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../research.html">Research</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/edit/main/docs/source/training/cloud.rst" target="_blank"
+   class="btn btn-sm btn-source-edit-button dropdown-item"
+   title="Suggest edit"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-pencil-alt"></i>
+  </span>
+<span class="btn__text-container">Suggest edit</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/issues/new?title=Issue%20on%20page%20%2Fsource/training/cloud.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../../_sources/source/training/cloud.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Cloud Training</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#prerequisites">Prerequisites</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick start</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#common-operations">Common operations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#hyperparameter-sweeps">Hyperparameter sweeps</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#monitoring">Monitoring</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#iterating-on-a-failed-job">Iterating on a failed job</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cost-management">Cost management</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#troubleshooting">Troubleshooting</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="cloud-training">
+<span id="id1"></span><h1>Cloud Training<a class="headerlink" href="#cloud-training" title="Link to this heading">#</a></h1>
+<p>This guide walks through launching training jobs on
+<a class="reference external" href="https://lambdalabs.com/">Lambda Cloud</a> using
+<a class="reference external" href="https://skypilot.readthedocs.io/">SkyPilot</a>. SkyPilot provisions a GPU
+instance, syncs your code, runs the job, and tears down the machine when
+it finishes.</p>
+<p>Two SkyPilot task files live in <code class="docutils literal notranslate"><span class="pre">scripts/cloud/</span></code>:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>File</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">train.yaml</span></code></p></td>
+<td><p>Installs mjlab directly with uv.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">train-docker.yaml</span></code></p></td>
+<td><p>Pulls the pre-built Docker image from GHCR for a reproducible
+environment.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<section id="prerequisites">
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading">#</a></h2>
+<p><strong>1. Install SkyPilot</strong></p>
+<p>SkyPilot is a local CLI tool, not a project dependency. Install it with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;skypilot[lambda]&quot;</span>
+</pre></div>
+</div>
+<p><strong>2. Lambda Cloud API key</strong></p>
+<p>Generate a key at <a class="reference external" href="https://cloud.lambda.ai/api-keys/cloud-api">Lambda Cloud API keys</a>. Name it after your
+machine (e.g. <code class="docutils literal notranslate"><span class="pre">kevins-macbook</span></code>) so you can tell keys apart later.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span>~/.lambda_cloud<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>chmod<span class="w"> </span><span class="m">700</span><span class="w"> </span>~/.lambda_cloud
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;api_key = &lt;your-api-key&gt;&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>~/.lambda_cloud/lambda_keys
+chmod<span class="w"> </span><span class="m">600</span><span class="w"> </span>~/.lambda_cloud/lambda_keys
+</pre></div>
+</div>
+<p><strong>3. Verify setup</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sky<span class="w"> </span>check<span class="w"> </span>lambda
+</pre></div>
+</div>
+<p>You should see Lambda listed as an enabled cloud.</p>
+<p><strong>4. W&amp;B credentials</strong> <em>(optional)</em></p>
+<p>If you log to Weights &amp; Biases, install the <code class="docutils literal notranslate"><span class="pre">wandb</span></code> CLI and log in:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>wandb
+wandb<span class="w"> </span>login
+</pre></div>
+</div>
+<p>This stores your credentials in <code class="docutils literal notranslate"><span class="pre">~/.netrc</span></code>. The SkyPilot task files
+mount this file onto the remote instance via <code class="docutils literal notranslate"><span class="pre">file_mounts</span></code> so that
+<code class="docutils literal notranslate"><span class="pre">wandb</span></code> authenticates automatically, no environment variable needed.</p>
+</section>
+<section id="quick-start">
+<h2>Quick start<a class="headerlink" href="#quick-start" title="Link to this heading">#</a></h2>
+<p>From the repo root:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sky<span class="w"> </span>launch<span class="w"> </span>scripts/cloud/train.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="w"> </span><span class="nv">TASK</span><span class="o">=</span>Mjlab-Velocity-Flat-Unitree-G1
+
+<span class="c1"># Or with Docker:</span>
+sky<span class="w"> </span>launch<span class="w"> </span>scripts/cloud/train-docker.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="w"> </span><span class="nv">TASK</span><span class="o">=</span>Mjlab-Velocity-Flat-Unitree-G1
+</pre></div>
+</div>
+<p>What happens behind the scenes:</p>
+<ol class="arabic simple">
+<li><p>SkyPilot finds an available Lambda instance with the requested GPU.</p></li>
+<li><p>It provisions the instance and uploads your local code via rsync.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">setup</span></code> step runs (uv install or Docker pull).</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">run</span></code> step runs (training).</p></li>
+<li><p>After 5 minutes of idle time the instance is terminated automatically.</p></li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Lambda instances can only be <strong>launched</strong> or <strong>terminated</strong>. There is
+no pause or suspend. Do not run <code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">shutdown</span></code> from inside the
+instance; it will put the machine in an alert state and billing will
+continue. Always use <code class="docutils literal notranslate"><span class="pre">sky</span> <span class="pre">down</span></code> to terminate.</p>
+</div>
+</section>
+<section id="common-operations">
+<h2>Common operations<a class="headerlink" href="#common-operations" title="Link to this heading">#</a></h2>
+<p><strong>List available GPUs</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sky<span class="w"> </span>show-gpus<span class="w"> </span>--infra<span class="w"> </span>lambda
+</pre></div>
+</div>
+<p><strong>Choose a different GPU</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sky<span class="w"> </span>launch<span class="w"> </span>scripts/cloud/train.yaml<span class="w"> </span>--gpus<span class="w"> </span>H100:1<span class="w">    </span><span class="c1"># 1x H100</span>
+sky<span class="w"> </span>launch<span class="w"> </span>scripts/cloud/train.yaml<span class="w"> </span>--gpus<span class="w"> </span>A100:8<span class="w">    </span><span class="c1"># 8x A100</span>
+sky<span class="w"> </span>launch<span class="w"> </span>scripts/cloud/train.yaml<span class="w"> </span>--gpus<span class="w"> </span>A10:1<span class="w">     </span><span class="c1"># 1x A10 (cheaper)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Both task files pass <code class="docutils literal notranslate"><span class="pre">--gpu-ids</span> <span class="pre">all</span></code>, so multi-GPU instances
+automatically use <a class="reference internal" href="distributed_training.html#distributed-training"><span class="std std-ref">distributed training</span></a>.
+When requesting more than one GPU, consider scaling
+<code class="docutils literal notranslate"><span class="pre">MAX_ITERATIONS</span></code> down proportionally. See
+<a class="reference internal" href="distributed_training.html#distributed-training"><span class="std std-ref">Distributed Training</span></a> for details on scaling behavior.</p>
+</div>
+<p><strong>Override training parameters</strong></p>
+<p>Every variable in the YAML <code class="docutils literal notranslate"><span class="pre">envs</span></code> block can be overridden from the
+command line with <code class="docutils literal notranslate"><span class="pre">--env</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sky<span class="w"> </span>launch<span class="w"> </span>scripts/cloud/train.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="w"> </span><span class="nv">TASK</span><span class="o">=</span>Mjlab-Velocity-Flat-Unitree-Go1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="w"> </span><span class="nv">NUM_ENVS</span><span class="o">=</span><span class="m">8192</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="w"> </span><span class="nv">MAX_ITERATIONS</span><span class="o">=</span><span class="m">10000</span>
+</pre></div>
+</div>
+<p><strong>Run your own task</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sky<span class="w"> </span>launch<span class="w"> </span>scripts/cloud/train.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="w"> </span><span class="nv">TASK</span><span class="o">=</span>Mjlab-Velocity-Flat-Unitree-Go1
+</pre></div>
+</div>
+<p>To see all registered tasks:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>list-envs
+uv<span class="w"> </span>run<span class="w"> </span>list-envs<span class="w"> </span>--keyword<span class="w"> </span>Velocity<span class="w">  </span><span class="c1"># filter by keyword</span>
+</pre></div>
+</div>
+</section>
+<section id="hyperparameter-sweeps">
+<h2>Hyperparameter sweeps<a class="headerlink" href="#hyperparameter-sweeps" title="Link to this heading">#</a></h2>
+<p>Use <a class="reference external" href="https://docs.wandb.ai/models/sweeps/">W&amp;B Sweeps</a> with SkyPilot
+to search hyperparameters across a multi-GPU instance. The sweep
+controller lives on the W&amp;B servers; each GPU on the instance runs an
+independent sweep agent that pulls a hyperparameter configuration,
+trains, and reports metrics.</p>
+<p>The example uses <code class="docutils literal notranslate"><span class="pre">method:</span> <span class="pre">random</span></code>, where each agent samples
+independently. Bayesian search also works well with parallel agents.
+Agents report results back as they finish and the controller updates its
+model between rounds. If using Bayesian, set <code class="docutils literal notranslate"><span class="pre">run_cap</span></code> high enough for
+the optimizer to go through several rounds.</p>
+<p>Four files are involved:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>File</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sweep.yaml</span></code></p></td>
+<td><p>W&amp;B sweep configuration (parameters, search method, metric).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sweep-cluster.yaml</span></code></p></td>
+<td><p>SkyPilot cluster definition (resources, setup, no run section).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sweep-agent.yaml</span></code></p></td>
+<td><p>SkyPilot job definition that runs <code class="docutils literal notranslate"><span class="pre">wandb</span> <span class="pre">agent</span></code> on one GPU.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sweep-launch.sh</span></code></p></td>
+<td><p>Convenience script that creates the sweep, provisions the
+cluster, and submits one agent per GPU.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Quick start</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./scripts/cloud/sweep-launch.sh<span class="w"> </span>A100:8<span class="w">   </span><span class="c1"># 8 agents on an 8xA100</span>
+</pre></div>
+</div>
+<p>This creates a W&amp;B sweep, provisions a cluster, and submits one agent
+per GPU. Each agent runs training with a different set of
+hyperparameters sampled by the sweep controller.</p>
+<p><strong>Manual steps</strong> (if you prefer more control):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 1. Create the sweep (returns a SWEEP_ID).</span>
+wandb<span class="w"> </span>sweep<span class="w"> </span>scripts/cloud/sweep.yaml
+
+<span class="c1"># 2. Provision the cluster (runs setup, no agents yet).</span>
+sky<span class="w"> </span>launch<span class="w"> </span>scripts/cloud/sweep-cluster.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-c<span class="w"> </span>mjlab-sweep<span class="w"> </span>--gpus<span class="w"> </span>A100:8
+
+<span class="c1"># 3. Submit one agent per GPU.</span>
+sky<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>mjlab-sweep<span class="w"> </span>scripts/cloud/sweep-agent.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--gpus<span class="w"> </span>A100:1<span class="w"> </span>--env<span class="w"> </span><span class="nv">SWEEP_ID</span><span class="o">=</span>&lt;entity/project/sweep_id&gt;<span class="w"> </span>-d
+</pre></div>
+</div>
+<p>Monitor progress on the W&amp;B dashboard or with <code class="docutils literal notranslate"><span class="pre">sky</span> <span class="pre">queue</span> <span class="pre">mjlab-sweep</span></code>.
+When done, tear down the cluster with <code class="docutils literal notranslate"><span class="pre">sky</span> <span class="pre">down</span> <span class="pre">mjlab-sweep</span></code>.</p>
+</section>
+<section id="monitoring">
+<h2>Monitoring<a class="headerlink" href="#monitoring" title="Link to this heading">#</a></h2>
+<p>Provisioning can take five minutes or more while Lambda allocates the
+instance. Open a second terminal to keep an eye on things:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sky<span class="w"> </span>status<span class="w">                               </span><span class="c1"># cluster state (INIT, UP, ...)</span>
+sky<span class="w"> </span>logs<span class="w"> </span>sky-&lt;cluster-name&gt;<span class="w">              </span><span class="c1"># stream logs in real time</span>
+sky<span class="w"> </span>logs<span class="w"> </span>sky-&lt;cluster-name&gt;<span class="w"> </span>--no-follow<span class="w">  </span><span class="c1"># print current logs and exit</span>
+sky<span class="w"> </span>queue<span class="w"> </span>sky-&lt;cluster-name&gt;<span class="w">             </span><span class="c1"># job queue for the cluster</span>
+</pre></div>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If the cluster stays in <code class="docutils literal notranslate"><span class="pre">INIT</span></code> for a long time, the GPU type is
+likely sold out. Cancel with <code class="docutils literal notranslate"><span class="pre">sky</span> <span class="pre">down</span></code> and try a different GPU, or
+add <code class="docutils literal notranslate"><span class="pre">--retry-until-up</span></code> to let SkyPilot keep polling until capacity
+opens up.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sky<span class="w"> </span>down<span class="w"> </span>sky-&lt;cluster-name&gt;
+sky<span class="w"> </span>launch<span class="w"> </span>scripts/cloud/train.yaml<span class="w"> </span>--retry-until-up
+</pre></div>
+</div>
+</section>
+<section id="iterating-on-a-failed-job">
+<h2>Iterating on a failed job<a class="headerlink" href="#iterating-on-a-failed-job" title="Link to this heading">#</a></h2>
+<p>When a job fails the cluster keeps running (and billing). You can fix
+the problem locally and resubmit without waiting for a new instance:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sky<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>sky-&lt;cluster-name&gt;<span class="w"> </span>scripts/cloud/train.yaml
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><code class="docutils literal notranslate"><span class="pre">sky</span> <span class="pre">exec</span></code> rsyncs your latest code and reruns the <code class="docutils literal notranslate"><span class="pre">run</span></code> step
+only. It does <strong>not</strong> rerun <code class="docutils literal notranslate"><span class="pre">setup</span></code>. If your fix involves
+dependency changes, use <code class="docutils literal notranslate"><span class="pre">sky</span> <span class="pre">launch</span></code> again or SSH in and run the
+setup commands manually.</p>
+</div>
+<p>Other useful commands:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sky<span class="w"> </span>down<span class="w"> </span>sky-&lt;cluster-name&gt;<span class="w">  </span><span class="c1"># terminate the instance immediately</span>
+ssh<span class="w"> </span>sky-&lt;cluster-name&gt;<span class="w">       </span><span class="c1"># SSH in (SkyPilot configures this for you)</span>
+</pre></div>
+</div>
+</section>
+<section id="cost-management">
+<h2>Cost management<a class="headerlink" href="#cost-management" title="Link to this heading">#</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Always run <code class="docutils literal notranslate"><span class="pre">sky</span> <span class="pre">status</span></code> after each session to confirm nothing is
+still running. Forgotten instances are the most common source of
+unexpected charges. To terminate everything at once: <code class="docutils literal notranslate"><span class="pre">sky</span> <span class="pre">down</span> <span class="pre">-a</span></code>.</p>
+</div>
+<ul class="simple">
+<li><p>Instances auto-terminate after 5 minutes of idle time by default.
+You can change this in the YAML (<code class="docutils literal notranslate"><span class="pre">idle_minutes</span></code>) or at launch time
+with <code class="docutils literal notranslate"><span class="pre">--idle-minutes-to-autostop</span></code>.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">down:</span> <span class="pre">true</span></code> setting in the YAML means the instance is fully
+terminated when it stops, not just paused. Billing stops completely.</p></li>
+</ul>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading">#</a></h2>
+<p><strong>No instances available</strong></p>
+<p>Lambda GPUs sell out frequently. A few things to try:</p>
+<ul class="simple">
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">--retry-until-up</span></code> to poll automatically.</p></li>
+<li><p>Try a different GPU type: <code class="docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">A100:1</span></code>, <code class="docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">A10:1</span></code>, etc.</p></li>
+<li><p>If you have credentials for other clouds (GCP, AWS), SkyPilot can fall
+back to them automatically.</p></li>
+</ul>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="distributed_training.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Distributed Training</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../debugging/nan_guard.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">NaN Guard</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#prerequisites">Prerequisites</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick start</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#common-operations">Common operations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#hyperparameter-sweeps">Hyperparameter sweeps</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#monitoring">Monitoring</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#iterating-on-a-failed-job">Iterating on a failed job</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cost-management">Cost management</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#troubleshooting">Troubleshooting</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By The mjlab Developers
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2025, The mjlab Developers.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p class="last-updated">
+  Last updated on Aug 09, 2026.
+  <br/>
+</p>
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

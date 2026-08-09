@@ -1,0 +1,2262 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Domain Randomization &#8212; mjlab Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../_static/twemoji.css" />
+    <link rel="stylesheet" type="text/css" href="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=53359634" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=3ea80bc3" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js"></script>
+    <script src="../_static/twemoji.js"></script>
+    <script src="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/js/all.min.js?v=ec35c6c9"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["\\(", "\\)"]], "displayMath": [["\\[", "\\]"]]}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'source/randomization';</script>
+    <link rel="icon" href="../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Curriculum" href="curriculum.html" />
+    <link rel="prev" title="Events" href="events.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+    <meta name="docbuild:last-update" content="Aug 09, 2026"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">mjlab Documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item">
+<div class="sidebar-version-switcher">
+  <label class="sidebar-version-label" for="version-select">Version</label>
+  <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
+    <option value="../../main/source/randomization.html" >main</option>
+    <option value="randomization.html" selected>v1.6.0</option>
+    <option value="../../v1.5.3/source/randomization.html" >v1.5.3</option>
+    <option value="../../v1.5.2/source/randomization.html" >v1.5.2</option>
+    <option value="../../v1.5.1/source/randomization.html" >v1.5.1</option>
+    <option value="../../v1.5.0/source/randomization.html" >v1.5.0</option>
+    <option value="../../v1.4.0/source/randomization.html" >v1.4.0</option>
+    <option value="../../v1.3.0/source/randomization.html" >v1.3.0</option>
+    <option value="../../v1.2.0/source/randomization.html" >v1.2.0</option>
+    <option value="../../v1.1.1/source/randomization.html" >v1.1.1</option>
+    <option value="../../v1.1.0/source/randomization.html" >v1.1.0</option>
+    <option value="../../v1.0.0/source/randomization.html" >v1.0.0</option>
+  </select>
+</div>
+</div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="tutorials.html">Tutorials</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/cartpole.html">Cartpole: Building Your First Environment</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="architecture_overview.html">Architecture Overview</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="entity/index.html">Entity</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="entity/entity_data.html">Entity Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="entity/per_world_mesh.html">Heterogeneous Worlds</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="actuators.html">Actuators</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="sensors/index.html">Sensors</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="sensors/raycast_sensor.html">RayCast Sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sensors/rgbd_camera.html">RGB-D Camera</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="scene.html">Scene</a></li>
+<li class="toctree-l1"><a class="reference internal" href="terrain.html">Terrain</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">The Manager Layer</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="environment_config.html">Environment Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="actions.html">Actions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="terminations.html">Terminations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="events.html">Events</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Domain Randomization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="curriculum.html">Curriculum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recorders.html">Recorders</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training &amp; Debugging</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="training/rsl_rl.html">Training with RSL-RL</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="training/motion_imitation.html">Motion Imitation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="viewers.html">Viewers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training/distributed_training.html">Distributed Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training/cloud.html">Cloud Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="debugging/nan_guard.html">NaN Guard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="debugging/export_scene.html">Export Scene</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="api/index.html">API Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/envs.html">mjlab.envs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scene.html">mjlab.scene</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/sim.html">mjlab.sim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/entity.html">mjlab.entity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/actuator.html">mjlab.actuator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/sensor.html">mjlab.sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/managers.html">mjlab.managers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/terrains.html">mjlab.terrains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/rl.html">mjlab.rl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/viewer.html">mjlab.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/tasks.html">mjlab.tasks</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Further Reading</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="motivation.html">Why mjlab?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration_isaac_lab.html">Migrating from Isaac Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ &amp; Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="research.html">Research</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/edit/main/docs/source/randomization.rst" target="_blank"
+   class="btn btn-sm btn-source-edit-button dropdown-item"
+   title="Suggest edit"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-pencil-alt"></i>
+  </span>
+<span class="btn__text-container">Suggest edit</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/issues/new?title=Issue%20on%20page%20%2Fsource/randomization.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/source/randomization.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Domain Randomization</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick Start</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#available-functions">Available Functions</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#model-field-functions">Model field functions</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#entity-level-functions">Entity-level functions</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pseudo-inertia-randomization">Pseudo-inertia randomization</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#safety-of-runtime-model-changes">Safety of Runtime Model Changes</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-geom-size-recomputation-works">How <code class="docutils literal notranslate"><span class="pre">geom_size</span></code> recomputation works</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pair-friction-and-isotropic-friction"><code class="docutils literal notranslate"><span class="pre">pair_friction</span></code> and isotropic friction</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fields-without-dr-functions">Fields without <code class="docutils literal notranslate"><span class="pre">dr</span></code> functions</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#added-as-needed">Added as needed</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#better-as-custom-code">Better as custom code</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#requires-dedicated-api">Requires dedicated API</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#not-a-dr-target">Not a DR target</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#distribution">Distribution</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#operation">Operation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#axis-selection">Axis selection</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#per-component-string-keyed-ranges">Per-component string-keyed ranges</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examples">Examples</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#friction-reset">Friction (reset)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#joint-offset-startup">Joint Offset (startup)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#center-of-mass-com-startup">Center of Mass (COM) (startup)</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#common-pitfalls">Common Pitfalls</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dr-body-mass-does-not-scale-inertia"><code class="docutils literal notranslate"><span class="pre">dr.body_mass</span></code> does not scale inertia</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#quat-ranges-are-in-radians-not-degrees"><code class="docutils literal notranslate"><span class="pre">*_quat</span></code> ranges are in radians, not degrees</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#quat-perturbations-are-relative-to-the-default-not-the-current-value"><code class="docutils literal notranslate"><span class="pre">*_quat</span></code> perturbations are relative to the default, not the current value</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dr-geom-friction-only-randomizes-tangential-friction-by-default"><code class="docutils literal notranslate"><span class="pre">dr.geom_friction</span></code> only randomizes tangential friction by default</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dr-geom-size-raises-on-non-primitive-geoms"><code class="docutils literal notranslate"><span class="pre">dr.geom_size</span></code> raises on non-primitive geoms</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#how-it-works-under-the-hood">How It Works Under the Hood</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#per-world-storage">Per-world storage</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#why-not-just-recompile-the-model">Why not just recompile the model?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#recomputation-of-derived-fields">Recomputation of derived fields</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#custom-class-based-event-terms">Custom Class-Based Event Terms</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#visualizing-dr-changes">Visualizing DR Changes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#migrating-from-isaac-lab">Migrating from Isaac Lab</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="domain-randomization">
+<span id="id1"></span><h1>Domain Randomization<a class="headerlink" href="#domain-randomization" title="Link to this heading">#</a></h1>
+<p>Domain randomization varies physical parameters during training so that policies
+are robust to modeling errors and real-world variation. This guide shows
+how to attach randomization terms to an environment using <code class="docutils literal notranslate"><span class="pre">EventTermCfg</span></code> and
+the <code class="docutils literal notranslate"><span class="pre">dr</span></code> module.</p>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading">#</a></h2>
+<p>Use an <code class="docutils literal notranslate"><span class="pre">EventTermCfg</span></code> that calls a typed function from <code class="docutils literal notranslate"><span class="pre">dr</span></code> with a
+<strong>value range</strong> and an <strong>operation</strong> describing how to apply the draw.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.envs.mdp</span><span class="w"> </span><span class="kn">import</span> <span class="n">dr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.managers.event_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventTermCfg</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.managers.scene_entity_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">SceneEntityCfg</span>
+
+<span class="n">foot_friction</span><span class="p">:</span> <span class="n">EventTermCfg</span> <span class="o">=</span> <span class="n">EventTermCfg</span><span class="p">(</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;reset&quot;</span><span class="p">,</span>  <span class="c1"># randomize each episode</span>
+    <span class="n">func</span><span class="o">=</span><span class="n">dr</span><span class="o">.</span><span class="n">geom_friction</span><span class="p">,</span>
+    <span class="n">params</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;asset_cfg&quot;</span><span class="p">:</span> <span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;robot&quot;</span><span class="p">,</span> <span class="n">geom_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;.*_foot.*&quot;</span><span class="p">]),</span>
+        <span class="s2">&quot;ranges&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">),</span>
+        <span class="s2">&quot;operation&quot;</span><span class="p">:</span> <span class="s2">&quot;abs&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Each <code class="docutils literal notranslate"><span class="pre">dr</span></code> function is decorated with <code class="docutils literal notranslate"><span class="pre">&#64;requires_model_fields</span></code> which
+automatically tracks the fields that need to be expanded for per-world
+storage <strong>and</strong> the <code class="docutils literal notranslate"><span class="pre">RecomputeLevel</span></code> needed to keep
+<a class="reference internal" href="#dr-recomputation"><span class="std std-ref">derived quantities</span></a> consistent.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">mode</span></code> parameter controls when the event fires:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;startup&quot;</span></code> randomizes once at initialization</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;reset&quot;</span></code> randomizes at every episode reset</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;interval&quot;</span></code> randomizes at regular time intervals</p></li>
+</ul>
+</section>
+<section id="available-functions">
+<h2>Available Functions<a class="headerlink" href="#available-functions" title="Link to this heading">#</a></h2>
+<section id="model-field-functions">
+<h3>Model field functions<a class="headerlink" href="#model-field-functions" title="Link to this heading">#</a></h3>
+<p>Each function writes to a single field on <code class="docutils literal notranslate"><span class="pre">sim.model</span></code> (the MuJoCo Warp
+model). For example, <code class="docutils literal notranslate"><span class="pre">dr.geom_friction</span></code> writes to <code class="docutils literal notranslate"><span class="pre">sim.model.geom_friction</span></code>,
+<code class="docutils literal notranslate"><span class="pre">dr.body_mass</span></code> writes to <code class="docutils literal notranslate"><span class="pre">sim.model.body_mass</span></code>, and so on. Most share the
+signature <code class="docutils literal notranslate"><span class="pre">(env,</span> <span class="pre">env_ids,</span> <span class="pre">ranges,</span> <span class="pre">...)</span></code>, with <code class="docutils literal notranslate"><span class="pre">distribution</span></code> and
+<code class="docutils literal notranslate"><span class="pre">operation</span></code> controlling sampling and application (see <a class="reference internal" href="#dr-parameters"><span class="std std-ref">Parameters</span></a>).
+Some functions have a more readable name than the underlying MuJoCo field; in
+those cases the raw field name is available as an alias (<code class="docutils literal notranslate"><span class="pre">dr.body_com_offset</span></code>
+and <code class="docutils literal notranslate"><span class="pre">dr.body_ipos</span></code> are the same function).</p>
+<p class="rubric">Geom fields</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 28.0%" />
+<col style="width: 18.0%" />
+<col style="width: 34.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>MuJoCo field</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.geom_friction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">geom_friction</span></code></p></td>
+<td><p>Sliding, torsional, and rolling friction coefficients</p></td>
+<td><p>Default axis: 0 (tangential only)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.geom_pos</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">geom_pos</span></code></p></td>
+<td><p>Position of the geom in the parent body frame</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.geom_quat</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">geom_quat</span></code></p></td>
+<td><p>Orientation of the geom frame</p></td>
+<td><p>Accepts roll/pitch/yaw ranges (radians); composes with default</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.geom_rgba</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">geom_rgba</span></code></p></td>
+<td><p>Color and transparency (RGBA)</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.geom_size</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">geom_size</span></code></p></td>
+<td><p>Geom-specific size parameters (radius, half-lengths, etc.)</p></td>
+<td><p>Automatically recomputes <code class="docutils literal notranslate"><span class="pre">geom_rbound</span></code> and <code class="docutils literal notranslate"><span class="pre">geom_aabb</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.geom_matid</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">geom_matid</span></code></p></td>
+<td><p>Which baked material the geom renders with</p></td>
+<td><p>Samples uniformly from <code class="docutils literal notranslate"><span class="pre">asset_cfg.material_names</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Body fields</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 28.0%" />
+<col style="width: 18.0%" />
+<col style="width: 34.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>MuJoCo field</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.body_mass</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">body_mass</span></code></p></td>
+<td><p>Mass of the body</p></td>
+<td><p>Triggers <code class="docutils literal notranslate"><span class="pre">set_const</span></code> recomputation</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.body_com_offset</span></code> (alias <code class="docutils literal notranslate"><span class="pre">body_ipos</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">body_ipos</span></code></p></td>
+<td><p>Center of mass position relative to the body frame</p></td>
+<td><p>Triggers <code class="docutils literal notranslate"><span class="pre">set_const</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.body_pos</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">body_pos</span></code></p></td>
+<td><p>Position of the body frame in the parent frame</p></td>
+<td><p>Triggers <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.body_quat</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">body_quat</span></code></p></td>
+<td><p>Orientation of the body frame</p></td>
+<td><p>Accepts roll/pitch/yaw ranges (radians); composes with default;
+triggers <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Joint fields</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 28.0%" />
+<col style="width: 18.0%" />
+<col style="width: 34.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>MuJoCo field</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.joint_damping</span></code> (alias <code class="docutils literal notranslate"><span class="pre">dof_damping</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dof_damping</span></code></p></td>
+<td><p>Velocity-proportional damping force (passive)</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.joint_armature</span></code> (alias <code class="docutils literal notranslate"><span class="pre">dof_armature</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dof_armature</span></code></p></td>
+<td><p>Added rotor inertia (models geared transmissions)</p></td>
+<td><p>Triggers <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.joint_friction</span></code> (alias <code class="docutils literal notranslate"><span class="pre">dof_frictionloss</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dof_frictionloss</span></code></p></td>
+<td><p>Dry friction loss in the joint</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.joint_stiffness</span></code> (alias <code class="docutils literal notranslate"><span class="pre">jnt_stiffness</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">jnt_stiffness</span></code></p></td>
+<td><p>Spring stiffness pulling toward the reference position</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.joint_limits</span></code> (alias <code class="docutils literal notranslate"><span class="pre">jnt_range</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">jnt_range</span></code></p></td>
+<td><p>Lower and upper joint position limits</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.joint_default_pos</span></code> (alias <code class="docutils literal notranslate"><span class="pre">qpos0</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">qpos0</span></code></p></td>
+<td><p>Reference joint position (zero-spring equilibrium)</p></td>
+<td><p>Triggers <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Site fields</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 28.0%" />
+<col style="width: 18.0%" />
+<col style="width: 34.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>MuJoCo field</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.site_pos</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">site_pos</span></code></p></td>
+<td><p>Position of the site frame in the parent body frame</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.site_quat</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">site_quat</span></code></p></td>
+<td><p>Orientation of the site frame</p></td>
+<td><p>Accepts roll/pitch/yaw ranges (radians); composes with default</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Camera fields</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 28.0%" />
+<col style="width: 18.0%" />
+<col style="width: 34.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>MuJoCo field</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.cam_fovy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cam_fovy</span></code></p></td>
+<td><p>Vertical field of view (degrees)</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.cam_pos</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cam_pos</span></code></p></td>
+<td><p>Camera position in the parent body frame</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.cam_quat</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cam_quat</span></code></p></td>
+<td><p>Camera orientation</p></td>
+<td><p>Accepts roll/pitch/yaw ranges (radians); composes with default</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.cam_intrinsic</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cam_intrinsic</span></code></p></td>
+<td><p>Focal length and principal point <code class="docutils literal notranslate"><span class="pre">[fx,</span> <span class="pre">fy,</span> <span class="pre">cx,</span> <span class="pre">cy]</span></code></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Light fields</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 28.0%" />
+<col style="width: 18.0%" />
+<col style="width: 34.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>MuJoCo field</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.light_pos</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">light_pos</span></code></p></td>
+<td><p>Light position in the parent body frame</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.light_dir</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">light_dir</span></code></p></td>
+<td><p>Light direction vector</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.light_diffuse</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">light_diffuse</span></code></p></td>
+<td><p>Diffuse RGB color</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.light_specular</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">light_specular</span></code></p></td>
+<td><p>Specular RGB color</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.light_ambient</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">light_ambient</span></code></p></td>
+<td><p>Ambient RGB color</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.light_attenuation</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">light_attenuation</span></code></p></td>
+<td><p>Constant, linear, and quadratic attenuation coefficients</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.light_cutoff</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">light_cutoff</span></code></p></td>
+<td><p>Spot light half-cone angle in degrees</p></td>
+<td><p>Ignored for directional lights</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.light_exponent</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">light_exponent</span></code></p></td>
+<td><p>Spot light angular falloff exponent</p></td>
+<td><p>Ignored for directional lights</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Material fields</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 28.0%" />
+<col style="width: 18.0%" />
+<col style="width: 34.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>MuJoCo field</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.mat_rgba</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mat_rgba</span></code></p></td>
+<td><p>Material RGBA color (tints textures)</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.mat_emission</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mat_emission</span></code></p></td>
+<td><p>Self-illumination multiplier</p></td>
+<td><p>Used by MuJoCo Warp RGB rendering</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.mat_specular</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mat_specular</span></code></p></td>
+<td><p>Specular reflection strength in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code></p></td>
+<td><p>Scales the MuJoCo Warp RGB specular component</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.mat_shininess</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mat_shininess</span></code></p></td>
+<td><p>Surface shininess in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code></p></td>
+<td><p>Used by MuJoCo Warp RGB rendering</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.mat_texrepeat</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mat_texrepeat</span></code></p></td>
+<td><p>Texture repeat in the S/T directions</p></td>
+<td><p>Only affects textured materials; values should stay positive</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.mat_texid</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mat_texid</span></code></p></td>
+<td><p>Texture assigned to a material’s <code class="docutils literal notranslate"><span class="pre">mjtTextureRole</span></code> slot (RGB by
+default)</p></td>
+<td><p>Samples uniformly from <code class="docutils literal notranslate"><span class="pre">asset_cfg.texture_names</span></code>. Use <code class="docutils literal notranslate"><span class="pre">role</span></code> to
+target a different texture role.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Contact pair fields</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 28.0%" />
+<col style="width: 18.0%" />
+<col style="width: 34.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>MuJoCo field</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.pair_friction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pair_friction</span></code></p></td>
+<td><p>Per-pair friction override <code class="docutils literal notranslate"><span class="pre">[tangent1,</span> <span class="pre">tangent2,</span> <span class="pre">spin,</span> <span class="pre">roll1,</span> <span class="pre">roll2]</span></code></p></td>
+<td><p>Default axis: 0 (tangent1, requires <code class="docutils literal notranslate"><span class="pre">condim</span> <span class="pre">&gt;=</span> <span class="pre">3</span></code>). Use
+<code class="docutils literal notranslate"><span class="pre">isotropic=True</span></code> to mirror tangent2 = tangent1 (and roll2 = roll1).
+Overrides per-geom friction for explicitly defined
+<a class="reference external" href="https://mujoco.readthedocs.io/en/stable/XMLreference.html#contact-pair">&lt;contact&gt;&lt;pair&gt;</a>
+elements. See <a class="reference internal" href="#dr-pair-friction"><span class="std std-ref">pair_friction and isotropic friction</span></a>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Tendon fields</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 28.0%" />
+<col style="width: 18.0%" />
+<col style="width: 34.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>MuJoCo field</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.tendon_damping</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tendon_damping</span></code></p></td>
+<td><p>Velocity-proportional damping along the tendon</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.tendon_stiffness</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tendon_stiffness</span></code></p></td>
+<td><p>Spring stiffness along the tendon</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.tendon_friction</span></code> (alias <code class="docutils literal notranslate"><span class="pre">tendon_frictionloss</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tendon_frictionloss</span></code></p></td>
+<td><p>Dry friction loss along the tendon</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.tendon_armature</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tendon_armature</span></code></p></td>
+<td><p>Inertia associated with tendon velocity</p></td>
+<td><p>Triggers <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="entity-level-functions">
+<h3>Entity-level functions<a class="headerlink" href="#entity-level-functions" title="Link to this heading">#</a></h3>
+<p>The functions above all write to a single <code class="docutils literal notranslate"><span class="pre">sim.model</span></code> field. The functions
+below operate at the mjlab entity level instead, because they touch multiple
+model fields at once or modify entity state that doesn’t live on the MuJoCo
+model.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>What it does</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.pseudo_inertia</span></code></p></td>
+<td><p>Physics-consistent joint randomization of <code class="docutils literal notranslate"><span class="pre">body_mass</span></code>,
+<code class="docutils literal notranslate"><span class="pre">body_ipos</span></code>, <code class="docutils literal notranslate"><span class="pre">body_inertia</span></code>, and <code class="docutils literal notranslate"><span class="pre">body_iquat</span></code> via the
+pseudo-inertia matrix parameterization (Rucker &amp; Wensing 2022).
+Guarantees a positive-definite inertia tensor and positive mass.
+See <a class="reference internal" href="#dr-pseudo-inertia"><span class="std std-ref">Pseudo-inertia randomization</span></a> for details.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.pd_gains</span></code></p></td>
+<td><p>Randomizes stiffness (kp) and damping (kd) together. For
+<code class="docutils literal notranslate"><span class="pre">BuiltinPositionActuator</span></code> and <code class="docutils literal notranslate"><span class="pre">XmlActuator</span></code> it writes to
+<code class="docutils literal notranslate"><span class="pre">actuator_gainprm</span></code> and <code class="docutils literal notranslate"><span class="pre">actuator_biasprm</span></code>. For
+<code class="docutils literal notranslate"><span class="pre">IdealPdActuator</span></code> it sets gains on the entity directly. All three
+support inline delay fields.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.effort_limits</span></code></p></td>
+<td><p>Randomizes actuator force range (<code class="docutils literal notranslate"><span class="pre">actuator_forcerange</span></code>). For
+<code class="docutils literal notranslate"><span class="pre">IdealPdActuator</span></code> also updates the entity’s internal force limit.
+Supports <code class="docutils literal notranslate"><span class="pre">BuiltinPositionActuator</span></code>, <code class="docutils literal notranslate"><span class="pre">XmlActuator</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">IdealPdActuator</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.encoder_bias</span></code></p></td>
+<td><p>Adds a fixed per-joint bias to position readings, simulating encoder
+calibration errors. Writes to <code class="docutils literal notranslate"><span class="pre">entity.data.encoder_bias</span></code>, not the
+MuJoCo model.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="pseudo-inertia-randomization">
+<span id="dr-pseudo-inertia"></span><h3>Pseudo-inertia randomization<a class="headerlink" href="#pseudo-inertia-randomization" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">dr.pseudo_inertia</span></code> jointly randomizes <code class="docutils literal notranslate"><span class="pre">body_mass</span></code>, <code class="docutils literal notranslate"><span class="pre">body_ipos</span></code>,
+<code class="docutils literal notranslate"><span class="pre">body_inertia</span></code>, and <code class="docutils literal notranslate"><span class="pre">body_iquat</span></code> while guaranteeing physical consistency
+for any perturbation magnitude. Unlike randomizing these fields independently
+(which can produce negative masses, imaginary principal moments, or
+triangle-inequality violations), <code class="docutils literal notranslate"><span class="pre">pseudo_inertia</span></code> parameterizes inertia
+through the <em>pseudo-inertia matrix</em> <span class="math notranslate nohighlight">\(J \succ 0\)</span> and ensures the result
+is always physically valid.</p>
+<p>The pseudo-inertia matrix <span class="math notranslate nohighlight">\(J\)</span> is a <span class="math notranslate nohighlight">\(4 \times 4\)</span> symmetric
+positive-definite matrix that encodes mass, center of mass, and the full
+rotational inertia tensor in a single object:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}J = \begin{bmatrix}
+  \Sigma &amp; h \\
+  h^\top &amp; m
+\end{bmatrix}, \qquad
+\Sigma = \tfrac{1}{2}\operatorname{tr}(I)\,I_3 - I, \qquad
+h = m\,c\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(m\)</span> is mass (<code class="docutils literal notranslate"><span class="pre">body_mass</span></code>), <span class="math notranslate nohighlight">\(c\)</span> is the center of mass
+(<code class="docutils literal notranslate"><span class="pre">body_ipos</span></code>), <span class="math notranslate nohighlight">\(d\)</span> is the vector of principal inertia moments
+(<code class="docutils literal notranslate"><span class="pre">body_inertia</span></code>), and <span class="math notranslate nohighlight">\(I\)</span> is the <span class="math notranslate nohighlight">\(3 \times 3\)</span> inertia tensor
+at the body-frame origin. The inertia tensor is constructed by rotating the
+diagonal principal moments into the body frame and applying the
+parallel-axis theorem:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}I_{\text{com}} &amp;= V \operatorname{diag}(d)\, V^\top,
+\qquad V = R(q)^\top \\
+I &amp;= I_{\text{com}} + m\bigl(\lVert c \rVert^2 I_3 - c\,c^\top\bigr)\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(q\)</span> is the body-to-principal-frame quaternion (<code class="docutils literal notranslate"><span class="pre">body_iquat</span></code>)
+and <span class="math notranslate nohighlight">\(R(q)\)</span> is its rotation matrix.</p>
+<p>The math follows <a class="reference external" href="https://par.nsf.gov/servlets/purl/10347458">Rucker &amp; Wensing, “Smooth Parameterization of Rigid-Body
+Inertia,” IEEE RA-L 2022</a>.
+<span class="math notranslate nohighlight">\(J\)</span> is factored via Cholesky as <span class="math notranslate nohighlight">\(J = LL^\top\)</span>. A perturbation
+is applied through an upper-triangular matrix <span class="math notranslate nohighlight">\(U\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[J' = (UL)(UL)^\top\]</div>
+<p>which is guaranteed positive definite for any <span class="math notranslate nohighlight">\(U\)</span>. The perturbed
+inertia tensor is then decomposed back into MuJoCo fields: the inverse
+parallel-axis theorem shifts <span class="math notranslate nohighlight">\(I\)</span> back to the COM, and
+eigendecomposition extracts the principal moments (<code class="docutils literal notranslate"><span class="pre">body_inertia</span></code>) and
+principal-frame rotation (<code class="docutils literal notranslate"><span class="pre">body_iquat</span></code>). This is exact for any
+perturbation magnitude.</p>
+<p>The 10 parameters of <span class="math notranslate nohighlight">\(U\)</span> control different physical effects:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 80.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Physical effect</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">alpha</span></code></p></td>
+<td><p>Global mass-density log-scale. Mass and all principal inertia moments
+scale by <span class="math notranslate nohighlight">\(e^{2\alpha}\)</span>. Center of mass is unchanged.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">d1,</span> <span class="pre">d2,</span> <span class="pre">d3</span></code></p></td>
+<td><p>Axis-aligned stretch/compress along x, y, z in the inertia frame.
+Use <code class="docutils literal notranslate"><span class="pre">d_range</span></code> to set all three to the same range (isotropic).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s12,</span> <span class="pre">s13,</span> <span class="pre">s23</span></code></p></td>
+<td><p>Shear perturbation in the xy, xz, and yz planes. Redistributes
+mass asymmetrically; produces off-diagonal inertia contributions.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">t1,</span> <span class="pre">t2,</span> <span class="pre">t3</span></code></p></td>
+<td><p>Shifts the center of mass along x, y, z (body frame). For a pure
+<code class="docutils literal notranslate"><span class="pre">t1</span></code> shift, mass is unchanged and <code class="docutils literal notranslate"><span class="pre">body_ipos[0]</span></code> shifts by
+exactly <code class="docutils literal notranslate"><span class="pre">t1</span></code>. Use <code class="docutils literal notranslate"><span class="pre">t_range</span></code> to set all three to the same range.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Example</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">events</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># Isotropic mass scaling + small COM variation.</span>
+    <span class="s2">&quot;body_inertia_dr&quot;</span><span class="p">:</span> <span class="n">EventTermCfg</span><span class="p">(</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;reset&quot;</span><span class="p">,</span>
+        <span class="n">func</span><span class="o">=</span><span class="n">dr</span><span class="o">.</span><span class="n">pseudo_inertia</span><span class="p">,</span>
+        <span class="n">params</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;asset_cfg&quot;</span><span class="p">:</span> <span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;robot&quot;</span><span class="p">,</span> <span class="n">body_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;torso&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;alpha_range&quot;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">),</span>   <span class="c1"># ±10% mass/inertia scaling</span>
+            <span class="s2">&quot;t_range&quot;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">),</span>     <span class="c1"># ±2 cm COM shift</span>
+        <span class="p">},</span>
+    <span class="p">),</span>
+    <span class="c1"># Anisotropic stretching (x stiffer than y/z).</span>
+    <span class="s2">&quot;body_inertia_aniso_dr&quot;</span><span class="p">:</span> <span class="n">EventTermCfg</span><span class="p">(</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;startup&quot;</span><span class="p">,</span>
+        <span class="n">func</span><span class="o">=</span><span class="n">dr</span><span class="o">.</span><span class="n">pseudo_inertia</span><span class="p">,</span>
+        <span class="n">params</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;asset_cfg&quot;</span><span class="p">:</span> <span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;robot&quot;</span><span class="p">,</span> <span class="n">body_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;.*&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;alpha_range&quot;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">),</span>
+            <span class="s2">&quot;d1_range&quot;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">),</span>
+            <span class="s2">&quot;d2_range&quot;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">),</span>
+            <span class="s2">&quot;d3_range&quot;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">),</span>
+        <span class="p">},</span>
+    <span class="p">),</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="safety-of-runtime-model-changes">
+<span id="dr-safety"></span><h2>Safety of Runtime Model Changes<a class="headerlink" href="#safety-of-runtime-model-changes" title="Link to this heading">#</a></h2>
+<p>In C MuJoCo, modifying <code class="docutils literal notranslate"><span class="pre">mjModel</span></code> fields at runtime can be unsafe: some
+changes invalidate internal acceleration structures (BVH) or leave derived
+quantities stale. MuJoCo Warp has a different collision pipeline, so many of
+these concerns do not apply.</p>
+<p>Two architectural differences matter most:</p>
+<ol class="arabic simple">
+<li><p><strong>No collision BVH.</strong> C MuJoCo builds a static bounding-volume hierarchy
+(BVH) for midphase collision pruning. Changing <code class="docutils literal notranslate"><span class="pre">body_pos</span></code>/<code class="docutils literal notranslate"><span class="pre">body_quat</span></code>
+of a static body invalidates that tree. MuJoCo Warp uses NxN or
+sweep-and-prune broadphase instead, so there is no static tree to
+invalidate.</p></li>
+<li><p><strong>Local bounding boxes.</strong> <code class="docutils literal notranslate"><span class="pre">geom_aabb</span></code> in MuJoCo Warp is a <em>local</em>
+bounding box (center + half-size in the geom frame). The broadphase
+transforms it to world space every step using <code class="docutils literal notranslate"><span class="pre">geom_xpos</span></code>/<code class="docutils literal notranslate"><span class="pre">geom_xmat</span></code>
+from forward kinematics. In C MuJoCo, the BVH caches world-space bounds,
+so any change to <code class="docutils literal notranslate"><span class="pre">geom_pos</span></code>/<code class="docutils literal notranslate"><span class="pre">geom_quat</span></code> makes them stale.</p></li>
+</ol>
+<p>The table below shows which fields are safe to randomize in mjlab and how
+that compares to C MuJoCo.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 38.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Field(s)</p></th>
+<th class="head"><p>C MuJoCo</p></th>
+<th class="head"><p>mjlab / MuJoCo Warp</p></th>
+<th class="head"><p>Why the difference</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">body_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">body_quat</span></code></p></td>
+<td><p>Safe with <code class="docutils literal notranslate"><span class="pre">mj_setConst</span></code>, but <strong>unsafe for static bodies</strong>
+(invalidates midphase BVH)</p></td>
+<td><p><strong>Safe</strong> with <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+<td><p>No collision BVH to invalidate (see above). Body FK runs for
+all bodies regardless of <code class="docutils literal notranslate"><span class="pre">body_treeid</span></code>. See the
+<a class="reference internal" href="#dr-static-body-caveat"><span class="std std-ref">static-body caveat</span></a> below.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">body_mass</span></code>, <code class="docutils literal notranslate"><span class="pre">body_inertia</span></code>, <code class="docutils literal notranslate"><span class="pre">body_ipos</span></code>, <code class="docutils literal notranslate"><span class="pre">body_iquat</span></code></p></td>
+<td><p>Safe with <code class="docutils literal notranslate"><span class="pre">mj_setConst</span></code></p></td>
+<td><p><strong>Safe</strong> with <code class="docutils literal notranslate"><span class="pre">set_const</span></code></p></td>
+<td><p>Same approach. <code class="docutils literal notranslate"><span class="pre">dr.pseudo_inertia</span></code> jointly randomizes all
+four while guaranteeing physical consistency.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">geom_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_quat</span></code></p></td>
+<td><p><strong>Unsafe</strong> (no <code class="docutils literal notranslate"><span class="pre">mj_setConst</span></code> support)</p></td>
+<td><p><strong>Safe</strong> for geoms on dynamic bodies</p></td>
+<td><p>FK recomputes <code class="docutils literal notranslate"><span class="pre">geom_xpos</span></code>/<code class="docutils literal notranslate"><span class="pre">geom_xmat</span></code> every step from
+<code class="docutils literal notranslate"><span class="pre">geom_pos</span></code>/<code class="docutils literal notranslate"><span class="pre">geom_quat</span></code>, and local <code class="docutils literal notranslate"><span class="pre">geom_aabb</span></code> stays
+valid (see above). See the
+<a class="reference internal" href="#dr-static-body-caveat"><span class="std std-ref">static-body caveat</span></a> below.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">geom_size</span></code></p></td>
+<td><p><strong>Unsafe</strong></p></td>
+<td><p><strong>Safe</strong> (recomputes bounds automatically)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dr.geom_size</span></code> recomputes <code class="docutils literal notranslate"><span class="pre">geom_rbound</span></code> and <code class="docutils literal notranslate"><span class="pre">geom_aabb</span></code>
+inline after writing new sizes. Only primitive types (sphere,
+capsule, ellipsoid, cylinder, box) are supported.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">geom_rbound</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_aabb</span></code></p></td>
+<td><p><strong>Unsafe</strong> (internal derived quantities)</p></td>
+<td><p><strong>Not randomized</strong> (derived)</p></td>
+<td><p>Broadphase acceleration data. Only set once during model
+loading. Would need recomputation if <code class="docutils literal notranslate"><span class="pre">geom_size</span></code> changes.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">geom_friction</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_rgba</span></code></p></td>
+<td><p>Safe</p></td>
+<td><p><strong>Safe</strong></p></td>
+<td><p>No derived quantities. Contact friction is read directly each
+step.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dof_armature</span></code></p></td>
+<td><p>Safe with <code class="docutils literal notranslate"><span class="pre">mj_setConst</span></code></p></td>
+<td><p><strong>Safe</strong> with <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+<td><p>Same approach.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dof_damping</span></code>, <code class="docutils literal notranslate"><span class="pre">dof_frictionloss</span></code>, <code class="docutils literal notranslate"><span class="pre">jnt_stiffness</span></code>,
+<code class="docutils literal notranslate"><span class="pre">jnt_range</span></code></p></td>
+<td><p>Safe</p></td>
+<td><p><strong>Safe</strong></p></td>
+<td><p>No derived quantities.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">qpos0</span></code></p></td>
+<td><p>Safe with <code class="docutils literal notranslate"><span class="pre">mj_setConst</span></code></p></td>
+<td><p><strong>Safe</strong> with <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+<td><p>Same approach.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tendon_stiffness</span></code>, <code class="docutils literal notranslate"><span class="pre">tendon_damping</span></code>, <code class="docutils literal notranslate"><span class="pre">tendon_frictionloss</span></code></p></td>
+<td><p>Mostly safe (<code class="docutils literal notranslate"><span class="pre">mj_setConst</span></code> if changing from/to zero)</p></td>
+<td><p><strong>Safe</strong></p></td>
+<td><p>MuJoCo Warp does not use the sleep mechanism that makes the
+zero/non-zero transition special in C MuJoCo.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tendon_armature</span></code></p></td>
+<td><p>Safe with <code class="docutils literal notranslate"><span class="pre">mj_setConst</span></code></p></td>
+<td><p><strong>Safe</strong> with <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+<td><p>Contributes to the mass matrix via <code class="docutils literal notranslate"><span class="pre">smooth.tendon_armature()</span></code>.
+Same approach as <code class="docutils literal notranslate"><span class="pre">dof_armature</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">actuator_gainprm</span></code>, <code class="docutils literal notranslate"><span class="pre">actuator_biasprm</span></code></p></td>
+<td><p>Mostly safe (<code class="docutils literal notranslate"><span class="pre">mj_setConst</span></code> for dampratio actuators)</p></td>
+<td><p><strong>Safe</strong></p></td>
+<td><p>mjlab’s <code class="docutils literal notranslate"><span class="pre">dr.pd_gains</span></code> handles dampratio internally.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">site_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">site_quat</span></code></p></td>
+<td><p>Mostly safe (<code class="docutils literal notranslate"><span class="pre">mj_setConst</span></code> for tracking cameras/lights)</p></td>
+<td><p><strong>Safe</strong></p></td>
+<td><p>Sites are recomputed via FK. No tracking camera concern in
+typical RL usage.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">bvh_aabb</span></code>, <code class="docutils literal notranslate"><span class="pre">oct_aabb</span></code>, <code class="docutils literal notranslate"><span class="pre">oct_coeff</span></code></p></td>
+<td><p><strong>Unsafe</strong></p></td>
+<td><p>Not applicable / not randomized</p></td>
+<td><p>MuJoCo Warp uses BVH only for rendering, not collision. Octree
+data (<code class="docutils literal notranslate"><span class="pre">oct_*</span></code>) is used for SDF collision and should not be
+modified.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="admonition-static-body-caveat-for-geom-pos-geom-quat-and-body-pos-body-quat admonition" id="dr-static-body-caveat">
+<p class="admonition-title">Static-body caveat for <code class="docutils literal notranslate"><span class="pre">geom_pos</span></code>/<code class="docutils literal notranslate"><span class="pre">geom_quat</span></code> and
+<code class="docutils literal notranslate"><span class="pre">body_pos</span></code>/<code class="docutils literal notranslate"><span class="pre">body_quat</span></code></p>
+<p>MuJoCo Warp’s forward kinematics skips geoms that are both
+<strong>world-welded</strong> (<code class="docutils literal notranslate"><span class="pre">body_weldid</span> <span class="pre">==</span> <span class="pre">0</span></code>) and <strong>not descended from a mocap
+body</strong> (<code class="docutils literal notranslate"><span class="pre">body_mocapid[root]</span> <span class="pre">==</span> <span class="pre">-1</span></code>). For such geoms,
+<code class="docutils literal notranslate"><span class="pre">geom_xpos</span></code>/<code class="docutils literal notranslate"><span class="pre">geom_xmat</span></code> are computed once during <code class="docutils literal notranslate"><span class="pre">make_data</span></code> and
+never updated. Changing <code class="docutils literal notranslate"><span class="pre">geom_pos</span></code> or the parent <code class="docutils literal notranslate"><span class="pre">body_pos</span></code> would
+leave the world-space collision position stale.</p>
+<p>In practice this affects only bare <code class="docutils literal notranslate"><span class="pre">&lt;geom&gt;</span></code> elements placed directly on
+the <code class="docutils literal notranslate"><span class="pre">&lt;worldbody&gt;</span></code> in XML (e.g. a ground plane) that are not part of any
+mjlab entity.  All mjlab entities (including fixed-base ones) are
+auto-wrapped in a mocap body by <code class="docutils literal notranslate"><span class="pre">auto_wrap_fixed_base_mocap</span></code>, which
+makes them exempt from the FK skip.  The built-in <code class="docutils literal notranslate"><span class="pre">dr</span></code> functions target
+named bodies/geoms on entities, so they are always safe.</p>
+</div>
+<section id="how-geom-size-recomputation-works">
+<span id="dr-geom-size"></span><h3>How <code class="docutils literal notranslate"><span class="pre">geom_size</span></code> recomputation works<a class="headerlink" href="#how-geom-size-recomputation-works" title="Link to this heading">#</a></h3>
+<p>Changing <code class="docutils literal notranslate"><span class="pre">geom_size</span></code> at runtime requires updating two derived fields that
+the broadphase reads every step:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">geom_rbound</span></code>: bounding sphere radius (used for sphere-filter pruning)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">geom_aabb</span></code>: local axis-aligned bounding box (used for AABB/OBB pruning)</p></li>
+</ul>
+<p>Both are copied from <code class="docutils literal notranslate"><span class="pre">MjModel</span></code> during model loading and never recomputed
+by MuJoCo Warp. <code class="docutils literal notranslate"><span class="pre">dr.geom_size</span></code> handles this by recomputing both fields
+inline (pure PyTorch, no Warp kernel needed) after writing the new sizes.</p>
+<p>The formulas are type-dependent:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 23.1%" />
+<col style="width: 38.5%" />
+<col style="width: 38.5%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Geom type</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">geom_rbound</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">geom_aabb</span></code> half-size</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Sphere</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s[0]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(s[0],</span> <span class="pre">s[0],</span> <span class="pre">s[0])</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Capsule</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s[0]</span> <span class="pre">+</span> <span class="pre">s[1]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(s[0],</span> <span class="pre">s[0],</span> <span class="pre">s[0]</span> <span class="pre">+</span> <span class="pre">s[1])</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Cylinder</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sqrt(s[0]²</span> <span class="pre">+</span> <span class="pre">s[1]²)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(s[0],</span> <span class="pre">s[0],</span> <span class="pre">s[1])</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Ellipsoid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">max(s[0],</span> <span class="pre">s[1],</span> <span class="pre">s[2])</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(s[0],</span> <span class="pre">s[1],</span> <span class="pre">s[2])</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Box</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sqrt(s[0]²</span> <span class="pre">+</span> <span class="pre">s[1]²</span> <span class="pre">+</span> <span class="pre">s[2]²)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(s[0],</span> <span class="pre">s[1],</span> <span class="pre">s[2])</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Plane, heightfield, mesh, and SDF geoms are not supported because their bounds
+come from vertex data or are infinite, not derivable from <code class="docutils literal notranslate"><span class="pre">geom_size</span></code>.</p>
+</section>
+<section id="pair-friction-and-isotropic-friction">
+<span id="dr-pair-friction"></span><h3><code class="docutils literal notranslate"><span class="pre">pair_friction</span></code> and isotropic friction<a class="headerlink" href="#pair-friction-and-isotropic-friction" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">pair_friction</span></code> stores five friction coefficients per contact pair:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 10.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Index</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Active when</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>tangent1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">condim</span> <span class="pre">&gt;=</span> <span class="pre">3</span></code></p></td>
+<td><p>Sliding friction along the first tangent axis of the contact frame</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>tangent2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">condim</span> <span class="pre">&gt;=</span> <span class="pre">3</span></code></p></td>
+<td><p>Sliding friction along the second tangent axis</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>spin</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">condim</span> <span class="pre">&gt;=</span> <span class="pre">4</span></code></p></td>
+<td><p>Torsional friction around the contact normal</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>roll1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">condim</span> <span class="pre">=</span> <span class="pre">6</span></code></p></td>
+<td><p>Rolling friction around the first tangent axis</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>roll2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">condim</span> <span class="pre">=</span> <span class="pre">6</span></code></p></td>
+<td><p>Rolling friction around the second tangent axis</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>MuJoCo’s standard geom friction is a 3-vector <code class="docutils literal notranslate"><span class="pre">[tangential,</span> <span class="pre">torsional,</span>
+<span class="pre">rolling]</span></code> that is automatically expanded to the 5-vector by replicating the
+tangential coefficient into tangent1 and tangent2, and the rolling coefficient
+into roll1 and roll2. For pair overrides the five values are stored
+independently, so the symmetry must be maintained explicitly. Pass
+<code class="docutils literal notranslate"><span class="pre">isotropic=True</span></code> to enforce this: after sampling, tangent2 is overwritten
+with tangent1, and roll2 is overwritten with roll1 whenever axes 3 or 4 are
+targeted.</p>
+<p><strong>Recommendations by condim.</strong></p>
+<p><strong>condim = 3.</strong> Both tangent axes are active. Sample tangent1 and set tangent2 equal to it with <code class="docutils literal notranslate"><span class="pre">isotropic=True</span></code>. Pass
+<code class="docutils literal notranslate"><span class="pre">shared_random=True</span></code> so that all pairs selected by <code class="docutils literal notranslate"><span class="pre">asset_cfg</span></code> receive the
+same sampled value within each environment (environments still get independent
+values from one another):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">dr</span><span class="o">.</span><span class="n">pair_friction</span><span class="p">(</span>
+    <span class="n">env</span><span class="p">,</span>
+    <span class="n">env_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">ranges</span><span class="o">=</span><span class="p">(</span><span class="mf">0.4</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+    <span class="n">operation</span><span class="o">=</span><span class="s2">&quot;abs&quot;</span><span class="p">,</span>
+    <span class="n">asset_cfg</span><span class="o">=</span><span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;robot&quot;</span><span class="p">,</span> <span class="n">pair_names</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;foot1_floor&quot;</span><span class="p">,</span> <span class="s2">&quot;foot2_floor&quot;</span><span class="p">)),</span>
+    <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>           <span class="c1"># sample tangent1</span>
+    <span class="n">shared_random</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="c1"># all pairs selected by asset_cfg share one value per env</span>
+    <span class="n">isotropic</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>     <span class="c1"># tangent2 = tangent1</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>condim = 4.</strong> Spin (axis 2) is additionally active. Randomize sliding
+friction as above. If spin should also be randomized, do so in a separate
+call with its own range:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">dr</span><span class="o">.</span><span class="n">pair_friction</span><span class="p">(</span>
+    <span class="n">env</span><span class="p">,</span>
+    <span class="n">env_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">ranges</span><span class="o">=</span><span class="p">(</span><span class="mf">0.4</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+    <span class="n">operation</span><span class="o">=</span><span class="s2">&quot;abs&quot;</span><span class="p">,</span>
+    <span class="n">asset_cfg</span><span class="o">=</span><span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;robot&quot;</span><span class="p">,</span> <span class="n">pair_names</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;foot1_floor&quot;</span><span class="p">,</span> <span class="s2">&quot;foot2_floor&quot;</span><span class="p">)),</span>
+    <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="n">shared_random</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">isotropic</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">dr</span><span class="o">.</span><span class="n">pair_friction</span><span class="p">(</span>
+    <span class="n">env</span><span class="p">,</span>
+    <span class="n">env_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">ranges</span><span class="o">=</span><span class="p">(</span><span class="mf">0.003</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">),</span>
+    <span class="n">operation</span><span class="o">=</span><span class="s2">&quot;abs&quot;</span><span class="p">,</span>
+    <span class="n">asset_cfg</span><span class="o">=</span><span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;robot&quot;</span><span class="p">,</span> <span class="n">pair_names</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;foot1_floor&quot;</span><span class="p">,</span> <span class="s2">&quot;foot2_floor&quot;</span><span class="p">)),</span>
+    <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+    <span class="n">shared_random</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>condim = 6.</strong> All five axes are active. Randomize sliding friction as above.
+To also randomize rolling friction symmetrically, target axis 3 with
+<code class="docutils literal notranslate"><span class="pre">isotropic=True</span></code> so that roll2 is set equal to roll1:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">dr</span><span class="o">.</span><span class="n">pair_friction</span><span class="p">(</span>
+    <span class="n">env</span><span class="p">,</span>
+    <span class="n">env_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">ranges</span><span class="o">=</span><span class="p">(</span><span class="mf">0.4</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+    <span class="n">operation</span><span class="o">=</span><span class="s2">&quot;abs&quot;</span><span class="p">,</span>
+    <span class="n">asset_cfg</span><span class="o">=</span><span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;robot&quot;</span><span class="p">,</span> <span class="n">pair_names</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;foot1_floor&quot;</span><span class="p">,</span> <span class="s2">&quot;foot2_floor&quot;</span><span class="p">)),</span>
+    <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="n">shared_random</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">isotropic</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">dr</span><span class="o">.</span><span class="n">pair_friction</span><span class="p">(</span>
+    <span class="n">env</span><span class="p">,</span>
+    <span class="n">env_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">ranges</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">),</span>
+    <span class="n">operation</span><span class="o">=</span><span class="s2">&quot;abs&quot;</span><span class="p">,</span>
+    <span class="n">asset_cfg</span><span class="o">=</span><span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;robot&quot;</span><span class="p">,</span> <span class="n">pair_names</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;foot1_floor&quot;</span><span class="p">,</span> <span class="s2">&quot;foot2_floor&quot;</span><span class="p">)),</span>
+    <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+    <span class="n">shared_random</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">isotropic</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># roll2 = roll1</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="fields-without-dr-functions">
+<h3>Fields without <code class="docutils literal notranslate"><span class="pre">dr</span></code> functions<a class="headerlink" href="#fields-without-dr-functions" title="Link to this heading">#</a></h3>
+<section id="added-as-needed">
+<h4>Added as needed<a class="headerlink" href="#added-as-needed" title="Link to this heading">#</a></h4>
+<p>These continuous model fields could use a standard <code class="docutils literal notranslate"><span class="pre">dr.*</span></code> function but
+do not have one yet. They will be added as demand arises.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 40.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Category</p></th>
+<th class="head"><p>Field(s)</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Body</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">body_gravcomp</span></code></p></td>
+<td><p>Gravity compensation weight. Needs <code class="docutils literal notranslate"><span class="pre">set_const_fixed</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Joint / DOF</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">jnt_margin</span></code></p></td>
+<td><p>Distance threshold for joint-limit detection.</p></td>
+</tr>
+<tr class="row-even"><td><p>Tendon</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tendon_range</span></code></p></td>
+<td><p>Tendon length limits.</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tendon_margin</span></code></p></td>
+<td><p>Distance threshold for tendon-limit detection.</p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tendon_lengthspring</span></code></p></td>
+<td><p>Spring rest-length range.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Actuator</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">actuator_dynprm</span></code>, <code class="docutils literal notranslate"><span class="pre">actuator_gear</span></code>,
+<code class="docutils literal notranslate"><span class="pre">actuator_ctrlrange</span></code>, <code class="docutils literal notranslate"><span class="pre">actuator_actrange</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pd_gains</span></code> and <code class="docutils literal notranslate"><span class="pre">effort_limits</span></code> cover common cases.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="better-as-custom-code">
+<h4>Better as custom code<a class="headerlink" href="#better-as-custom-code" title="Link to this heading">#</a></h4>
+<p>These fields have coupled semantics that make a generic <code class="docutils literal notranslate"><span class="pre">dr.*</span></code> function
+more misleading than helpful. For example, <code class="docutils literal notranslate"><span class="pre">solref</span></code> is interpreted
+differently depending on the solver type (elliptic vs. direct), <code class="docutils literal notranslate"><span class="pre">solimp</span></code>
+has ordering constraints (dmin &lt; dmax, width &gt; 0), and <code class="docutils literal notranslate"><span class="pre">qpos_spring</span></code> is
+coupled with <code class="docutils literal notranslate"><span class="pre">qpos0</span></code>. The right ranges depend on the specific modeling
+choices. Write a custom event term instead (see
+<a class="reference internal" href="#dr-custom-event-terms"><span class="std std-ref">Custom Class-Based Event Terms</span></a> or use
+<code class="docutils literal notranslate"><span class="pre">&#64;requires_model_fields</span></code> to handle field expansion automatically).</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 40.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Category</p></th>
+<th class="head"><p>Field(s)</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Solver parameters</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">geom_solref</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_solimp</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_solmix</span></code>,
+<code class="docutils literal notranslate"><span class="pre">jnt_solref</span></code>, <code class="docutils literal notranslate"><span class="pre">jnt_solimp</span></code>, <code class="docutils literal notranslate"><span class="pre">dof_solref</span></code>,
+<code class="docutils literal notranslate"><span class="pre">dof_solimp</span></code>, <code class="docutils literal notranslate"><span class="pre">pair_solref</span></code>, <code class="docutils literal notranslate"><span class="pre">pair_solimp</span></code>,
+<code class="docutils literal notranslate"><span class="pre">eq_solref</span></code>, <code class="docutils literal notranslate"><span class="pre">eq_solimp</span></code></p></td>
+<td><p>Semantics depend on solver type and timestep.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Contact thresholds</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">geom_margin</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_gap</span></code>, <code class="docutils literal notranslate"><span class="pre">pair_margin</span></code>, <code class="docutils literal notranslate"><span class="pre">pair_gap</span></code></p></td>
+<td><p>Interact with solver parameters above.</p></td>
+</tr>
+<tr class="row-even"><td><p>Pair overrides</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">eq_data</span></code></p></td>
+<td><p>Constraint anchor overrides.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Spring reference</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">qpos_spring</span></code></p></td>
+<td><p>Coupled with <code class="docutils literal notranslate"><span class="pre">qpos0</span></code>; randomizing independently is
+error-prone.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="requires-dedicated-api">
+<h4>Requires dedicated API<a class="headerlink" href="#requires-dedicated-api" title="Link to this heading">#</a></h4>
+<p>These fields need specialized handling because they are integer/categorical,
+involve vertex data, or lack the per-world dimension needed for independent
+per-environment values.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 40.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Category</p></th>
+<th class="head"><p>Field(s)</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Mesh</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mesh_vert</span></code>, <code class="docutils literal notranslate"><span class="pre">mesh_normal</span></code>, <code class="docutils literal notranslate"><span class="pre">mesh_face</span></code>, etc.</p></td>
+<td><p>Shape variation for manipulation objects. These fields
+lack the per-world dimension, so per-world variation is
+not possible with the current expand infrastructure.
+Heterogeneous-world support is
+<a class="reference external" href="https://github.com/google-deepmind/mujoco_warp/pull/1009">in progress</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Deformable</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">flex_*</span></code></p></td>
+<td><p>Deformable body parameters for soft-object manipulation.
+Like mesh fields, most <code class="docutils literal notranslate"><span class="pre">flex_*</span></code> fields lack the per-world
+dimension.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="not-a-dr-target">
+<h4>Not a DR target<a class="headerlink" href="#not-a-dr-target" title="Link to this heading">#</a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">light_active</span></code>, <code class="docutils literal notranslate"><span class="pre">light_castshadow</span></code>, <code class="docutils literal notranslate"><span class="pre">light_type</span></code>,
+<code class="docutils literal notranslate"><span class="pre">cam_projection</span></code>: boolean/integer toggles, not continuous parameters.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">jnt_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">jnt_axis</span></code>: structural joint geometry; changing at
+runtime is fragile and not a standard use case.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hfield_data</span></code>, <code class="docutils literal notranslate"><span class="pre">hfield_size</span></code>: terrain data; use the terrain
+system instead.</p></li>
+</ul>
+</section>
+</section>
+</section>
+<section id="parameters">
+<span id="dr-parameters"></span><h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h2>
+<p>The model field functions share three parameters that control randomization:
+<code class="docutils literal notranslate"><span class="pre">distribution</span></code> controls how values are sampled from <code class="docutils literal notranslate"><span class="pre">ranges</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">operation</span></code> controls how those sampled values are applied to the model field.
+(Entity-level functions like <code class="docutils literal notranslate"><span class="pre">dr.pseudo_inertia</span></code> and <code class="docutils literal notranslate"><span class="pre">dr.pd_gains</span></code> have
+their own signatures; see their docstrings for details.)</p>
+<section id="distribution">
+<h3>Distribution<a class="headerlink" href="#distribution" title="Link to this heading">#</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">distribution</span></code> parameter controls how random values are sampled from
+the provided <code class="docutils literal notranslate"><span class="pre">ranges</span></code>. It accepts a built-in string or a
+<code class="docutils literal notranslate"><span class="pre">dr.Distribution</span></code> instance for custom sampling logic.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Value</p></th>
+<th class="head"><p>Behavior</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;uniform&quot;</span></code> (default)</p></td>
+<td><p>Samples uniformly between <code class="docutils literal notranslate"><span class="pre">ranges[0]</span></code> and <code class="docutils literal notranslate"><span class="pre">ranges[1]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;log_uniform&quot;</span></code></p></td>
+<td><p>Samples in log space, useful for parameters that span orders of
+magnitude (e.g. torsional friction). Both range values must be &gt; 0.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;gaussian&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ranges</span></code> is interpreted as <code class="docutils literal notranslate"><span class="pre">(mean,</span> <span class="pre">std)</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>To define a custom distribution, create a <code class="docutils literal notranslate"><span class="pre">dr.Distribution</span></code> instance. The
+<code class="docutils literal notranslate"><span class="pre">sample</span></code> callable receives <code class="docutils literal notranslate"><span class="pre">(lower,</span> <span class="pre">upper,</span> <span class="pre">shape,</span> <span class="pre">device)</span></code> and returns a
+tensor. For example, a truncated normal that clamps samples to the given
+bounds:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.envs.mdp</span><span class="w"> </span><span class="kn">import</span> <span class="n">dr</span>
+
+<span class="n">truncated_normal</span> <span class="o">=</span> <span class="n">dr</span><span class="o">.</span><span class="n">Distribution</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;truncated_normal&quot;</span><span class="p">,</span>
+    <span class="n">sample</span><span class="o">=</span><span class="k">lambda</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
+            <span class="n">mean</span><span class="o">=</span><span class="p">(</span><span class="n">lo</span> <span class="o">+</span> <span class="n">hi</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">std</span><span class="o">=</span><span class="p">(</span><span class="n">hi</span> <span class="o">-</span> <span class="n">lo</span><span class="p">)</span> <span class="o">/</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># 95% of samples within bounds</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
+        <span class="nb">min</span><span class="o">=</span><span class="n">lo</span><span class="p">,</span>
+        <span class="nb">max</span><span class="o">=</span><span class="n">hi</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;distribution&quot;</span><span class="p">:</span> <span class="n">truncated_normal</span><span class="p">,</span> <span class="s2">&quot;ranges&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">)}</span>
+</pre></div>
+</div>
+</section>
+<section id="operation">
+<h3>Operation<a class="headerlink" href="#operation" title="Link to this heading">#</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">operation</span></code> parameter controls how the sampled value is applied to the
+model field. It accepts a built-in string or a <code class="docutils literal notranslate"><span class="pre">dr.Operation</span></code> instance
+for custom logic.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Value</p></th>
+<th class="head"><p>Behavior</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;abs&quot;</span></code> (default)</p></td>
+<td><p>Sets the field to the sampled value directly</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;scale&quot;</span></code></p></td>
+<td><p>Multiplies the original default value by the sampled value</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;add&quot;</span></code></p></td>
+<td><p>Adds the sampled value to the original default value</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>For <code class="docutils literal notranslate"><span class="pre">&quot;scale&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;add&quot;</span></code>, the DR engine always applies the random draw to
+the <strong>original default values</strong> captured from the compiled <code class="docutils literal notranslate"><span class="pre">MjModel</span></code> on CPU,
+not the current values. This prevents accumulation: scaling friction by 2x
+three times in a row gives 2x the original, not 8x.</p>
+<p>To define a custom operation, create a <code class="docutils literal notranslate"><span class="pre">dr.Operation</span></code> instance. The four
+fields are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code>: a human-readable label for error messages.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">initialize</span></code>: creates the result tensor that gets filled axis by axis
+with sampled values. For example, <code class="docutils literal notranslate"><span class="pre">scale</span></code> starts from ones so that
+unsampled axes multiply by 1 (no change), while <code class="docutils literal notranslate"><span class="pre">add</span></code> starts from zeros.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">combine</span></code>: takes <code class="docutils literal notranslate"><span class="pre">(base_values,</span> <span class="pre">random_values)</span></code> and returns the final
+tensor written into the model field. For example, <code class="docutils literal notranslate"><span class="pre">scale</span></code> returns
+<code class="docutils literal notranslate"><span class="pre">base</span> <span class="pre">*</span> <span class="pre">random</span></code> and <code class="docutils literal notranslate"><span class="pre">add</span></code> returns <code class="docutils literal notranslate"><span class="pre">base</span> <span class="pre">+</span> <span class="pre">random</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">uses_defaults</span></code>: when <code class="docutils literal notranslate"><span class="pre">True</span></code>, the base values are the compile-time
+defaults (preventing accumulation across repeated calls). When <code class="docutils literal notranslate"><span class="pre">False</span></code>,
+the base values are the current model values.</p></li>
+</ul>
+<p>As an example, the built-in <code class="docutils literal notranslate"><span class="pre">add</span></code> always adds to the <em>default</em> values, so
+repeated calls reset rather than drift. A custom <code class="docutils literal notranslate"><span class="pre">drift</span></code> operation that
+adds to the <em>current</em> values is useful for <code class="docutils literal notranslate"><span class="pre">mode=&quot;interval&quot;</span></code> events where
+parameters should slowly wander over time:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.envs.mdp</span><span class="w"> </span><span class="kn">import</span> <span class="n">dr</span>
+
+<span class="n">drift</span> <span class="o">=</span> <span class="n">dr</span><span class="o">.</span><span class="n">Operation</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;drift&quot;</span><span class="p">,</span>
+    <span class="n">initialize</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">,</span>
+    <span class="n">combine</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">add</span><span class="p">,</span>
+    <span class="n">uses_defaults</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># read current values, not defaults</span>
+<span class="p">)</span>
+
+<span class="c1"># Friction slowly wanders each interval step.</span>
+<span class="n">friction_drift</span><span class="p">:</span> <span class="n">EventTermCfg</span> <span class="o">=</span> <span class="n">EventTermCfg</span><span class="p">(</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;interval&quot;</span><span class="p">,</span>
+    <span class="n">interval_range_s</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+    <span class="n">func</span><span class="o">=</span><span class="n">dr</span><span class="o">.</span><span class="n">geom_friction</span><span class="p">,</span>
+    <span class="n">params</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;asset_cfg&quot;</span><span class="p">:</span> <span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;robot&quot;</span><span class="p">,</span> <span class="n">geom_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;.*_foot.*&quot;</span><span class="p">]),</span>
+        <span class="s2">&quot;ranges&quot;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">),</span>
+        <span class="s2">&quot;operation&quot;</span><span class="p">:</span> <span class="n">drift</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="axis-selection">
+<h3>Axis selection<a class="headerlink" href="#axis-selection" title="Link to this heading">#</a></h3>
+<p>Many model fields are multi-dimensional. For example, <code class="docutils literal notranslate"><span class="pre">geom_friction</span></code> has
+three components <code class="docutils literal notranslate"><span class="pre">[tangential,</span> <span class="pre">torsional,</span> <span class="pre">rolling]</span></code> and <code class="docutils literal notranslate"><span class="pre">body_pos</span></code> has
+three spatial axes <code class="docutils literal notranslate"><span class="pre">[x,</span> <span class="pre">y,</span> <span class="pre">z]</span></code>. Specific axes can be targeted using the
+<code class="docutils literal notranslate"><span class="pre">axes</span></code> parameter or by passing a dict for <code class="docutils literal notranslate"><span class="pre">ranges</span></code>.</p>
+<p>For <code class="docutils literal notranslate"><span class="pre">geom_friction</span></code> with <code class="docutils literal notranslate"><span class="pre">condim=3</span></code> (standard frictional contact), only
+<strong>axis 0 (tangential)</strong> affects contact behavior. See the <a class="reference external" href="https://mujoco.readthedocs.io/en/stable/computation/index.html#contact">MuJoCo contact
+documentation</a>
+for details on condim and friction coefficients.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Tangential friction only (this is the default for geom_friction)</span>
+<span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;ranges&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">)}}</span>
+
+<span class="c1"># Tangential + torsional (torsional matters for condim &gt;= 4)</span>
+<span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;ranges&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="mi">1</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">)}}</span>
+
+<span class="c1"># X and Y position with the same range</span>
+<span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;axes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;ranges&quot;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)}</span>
+</pre></div>
+</div>
+</section>
+<section id="per-component-string-keyed-ranges">
+<h3>Per-component string-keyed ranges<a class="headerlink" href="#per-component-string-keyed-ranges" title="Link to this heading">#</a></h3>
+<p>Different ranges can be applied to different entities in a single call using
+regex patterns as dict keys:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">dr</span><span class="o">.</span><span class="n">joint_damping</span><span class="p">(</span>
+    <span class="n">env</span><span class="p">,</span> <span class="n">env_ids</span><span class="p">,</span>
+    <span class="n">ranges</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;.*knee.*&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">),</span> <span class="s2">&quot;.*hip.*&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">)},</span>
+    <span class="n">operation</span><span class="o">=</span><span class="s2">&quot;scale&quot;</span><span class="p">,</span>
+    <span class="n">asset_cfg</span><span class="o">=</span><span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;robot&quot;</span><span class="p">,</span> <span class="n">joint_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;.*&quot;</span><span class="p">]),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Each pattern is matched against the entity names (joint names, geom names, etc.)
+and the corresponding range is applied to the matching components. In this
+example, knee joints get their damping scaled by 0.5x to 1.5x while hip joints
+get a tighter 0.8x to 1.2x range, all in a single event term.</p>
+</section>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Link to this heading">#</a></h2>
+<section id="friction-reset">
+<h3>Friction (reset)<a class="headerlink" href="#friction-reset" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">foot_friction</span><span class="p">:</span> <span class="n">EventTermCfg</span> <span class="o">=</span> <span class="n">EventTermCfg</span><span class="p">(</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;reset&quot;</span><span class="p">,</span>
+    <span class="n">func</span><span class="o">=</span><span class="n">dr</span><span class="o">.</span><span class="n">geom_friction</span><span class="p">,</span>
+    <span class="n">params</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;asset_cfg&quot;</span><span class="p">:</span> <span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;robot&quot;</span><span class="p">,</span> <span class="n">geom_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;.*_foot.*&quot;</span><span class="p">]),</span>
+        <span class="s2">&quot;ranges&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">),</span>
+        <span class="s2">&quot;operation&quot;</span><span class="p">:</span> <span class="s2">&quot;abs&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Give the robot’s collision geoms higher <strong>priority</strong> than terrain
+(geom priority defaults to 0). Then only robot
+friction. MuJoCo will use the higher-priority geom’s friction in
+(robot, terrain) contacts.</p>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.spec_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">CollisionCfg</span>
+
+<span class="n">robot_collision</span> <span class="o">=</span> <span class="n">CollisionCfg</span><span class="p">(</span>
+    <span class="n">geom_names_expr</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;.*_foot.*&quot;</span><span class="p">],</span>
+    <span class="n">contype</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">conaffinity</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">condim</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">priority</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">friction</span><span class="o">=</span><span class="p">(</span><span class="mf">0.6</span><span class="p">,),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="joint-offset-startup">
+<h3>Joint Offset (startup)<a class="headerlink" href="#joint-offset-startup" title="Link to this heading">#</a></h3>
+<p>Randomize default joint positions to simulate joint offset calibration errors:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">joint_offset</span><span class="p">:</span> <span class="n">EventTermCfg</span> <span class="o">=</span> <span class="n">EventTermCfg</span><span class="p">(</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;startup&quot;</span><span class="p">,</span>
+    <span class="n">func</span><span class="o">=</span><span class="n">dr</span><span class="o">.</span><span class="n">joint_default_pos</span><span class="p">,</span>
+    <span class="n">params</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;asset_cfg&quot;</span><span class="p">:</span> <span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;robot&quot;</span><span class="p">,</span> <span class="n">joint_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;.*&quot;</span><span class="p">]),</span>
+        <span class="s2">&quot;ranges&quot;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">),</span>
+        <span class="s2">&quot;operation&quot;</span><span class="p">:</span> <span class="s2">&quot;add&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="center-of-mass-com-startup">
+<h3>Center of Mass (COM) (startup)<a class="headerlink" href="#center-of-mass-com-startup" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">com</span><span class="p">:</span> <span class="n">EventTermCfg</span> <span class="o">=</span> <span class="n">EventTermCfg</span><span class="p">(</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;startup&quot;</span><span class="p">,</span>
+    <span class="n">func</span><span class="o">=</span><span class="n">dr</span><span class="o">.</span><span class="n">body_com_offset</span><span class="p">,</span>
+    <span class="n">params</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;asset_cfg&quot;</span><span class="p">:</span> <span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;robot&quot;</span><span class="p">,</span> <span class="n">body_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;torso&quot;</span><span class="p">]),</span>
+        <span class="s2">&quot;ranges&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">),</span> <span class="mi">1</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">)},</span>
+        <span class="s2">&quot;operation&quot;</span><span class="p">:</span> <span class="s2">&quot;add&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="common-pitfalls">
+<h2>Common Pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this heading">#</a></h2>
+<section id="dr-body-mass-does-not-scale-inertia">
+<h3><code class="docutils literal notranslate"><span class="pre">dr.body_mass</span></code> does not scale inertia<a class="headerlink" href="#dr-body-mass-does-not-scale-inertia" title="Link to this heading">#</a></h3>
+<p>Scaling mass without scaling inertia is only physically correct when modelling
+a point mass added at the COM (which contributes zero rotational inertia).
+For the common DR use case, simulating manufacturing variation or uncertainty
+in link density, mass and inertia should scale together. Use
+<code class="xref py py-func docutils literal notranslate"><span class="pre">dr.pseudo_inertia()</span></code> with <code class="docutils literal notranslate"><span class="pre">alpha_range</span></code> instead:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Wrong: mass changes, inertia stays fixed (physically inconsistent).</span>
+<span class="n">EventTermCfg</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">dr</span><span class="o">.</span><span class="n">body_mass</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;ranges&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">)})</span>
+
+<span class="c1"># Correct: mass and inertia both scale by e^{2alpha} (uniform density change).</span>
+<span class="n">EventTermCfg</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">dr</span><span class="o">.</span><span class="n">pseudo_inertia</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;alpha_range&quot;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)})</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">dr.body_mass</span></code> emits a <code class="docutils literal notranslate"><span class="pre">UserWarning</span></code> at runtime to flag this.</p>
+</section>
+<section id="quat-ranges-are-in-radians-not-degrees">
+<h3><code class="docutils literal notranslate"><span class="pre">*_quat</span></code> ranges are in radians, not degrees<a class="headerlink" href="#quat-ranges-are-in-radians-not-degrees" title="Link to this heading">#</a></h3>
+<p>All quaternion randomization functions (<code class="xref py py-func docutils literal notranslate"><span class="pre">dr.geom_quat()</span></code>,
+<code class="xref py py-func docutils literal notranslate"><span class="pre">dr.body_quat()</span></code>, <code class="xref py py-func docutils literal notranslate"><span class="pre">dr.site_quat()</span></code>, <code class="xref py py-func docutils literal notranslate"><span class="pre">dr.cam_quat()</span></code>) accept
+roll/pitch/yaw ranges in <strong>radians</strong>. Passing degree values silently produces
+rotations roughly 57x larger than intended. There is no runtime check.</p>
+</section>
+<section id="quat-perturbations-are-relative-to-the-default-not-the-current-value">
+<h3><code class="docutils literal notranslate"><span class="pre">*_quat</span></code> perturbations are relative to the default, not the current value<a class="headerlink" href="#quat-perturbations-are-relative-to-the-default-not-the-current-value" title="Link to this heading">#</a></h3>
+<p>The sampled RPY perturbation is composed with the <strong>default</strong> quaternion, not
+the current one. This is consistent with the no-accumulation guarantee of all
+other <code class="docutils literal notranslate"><span class="pre">dr</span></code> functions, but it means repeated calls do not stack rotations.
+Each call independently samples a new perturbation from the default orientation.</p>
+</section>
+<section id="dr-geom-friction-only-randomizes-tangential-friction-by-default">
+<h3><code class="docutils literal notranslate"><span class="pre">dr.geom_friction</span></code> only randomizes tangential friction by default<a class="headerlink" href="#dr-geom-friction-only-randomizes-tangential-friction-by-default" title="Link to this heading">#</a></h3>
+<p>The default axis is 0 (tangential friction). Axes 1 (torsional) and 2
+(rolling) only affect contacts with <code class="docutils literal notranslate"><span class="pre">condim</span> <span class="pre">&gt;=</span> <span class="pre">4</span></code>, so the default is correct
+for standard <code class="docutils literal notranslate"><span class="pre">condim=3</span></code> contacts. If the model uses high-dimensional
+contacts, pass <code class="docutils literal notranslate"><span class="pre">axes=[0,</span> <span class="pre">1,</span> <span class="pre">2]</span></code> explicitly.</p>
+</section>
+<section id="dr-geom-size-raises-on-non-primitive-geoms">
+<h3><code class="docutils literal notranslate"><span class="pre">dr.geom_size</span></code> raises on non-primitive geoms<a class="headerlink" href="#dr-geom-size-raises-on-non-primitive-geoms" title="Link to this heading">#</a></h3>
+<p><code class="xref py py-func docutils literal notranslate"><span class="pre">dr.geom_size()</span></code> only supports primitive geom types (sphere, capsule,
+ellipsoid, cylinder, box) because broadphase bounds for mesh, plane, and
+heightfield geoms cannot be recomputed analytically. Selecting a non-primitive
+geom raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. Filter the <code class="docutils literal notranslate"><span class="pre">SceneEntityCfg</span></code> to primitive geoms
+only:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Select only primitive geoms by name pattern.</span>
+<span class="n">geom_cfg</span> <span class="o">=</span> <span class="n">SceneEntityCfg</span><span class="p">(</span><span class="s2">&quot;robot&quot;</span><span class="p">,</span> <span class="n">geom_names</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;.*sphere.*&quot;</span><span class="p">,</span> <span class="s2">&quot;.*box.*&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="how-it-works-under-the-hood">
+<h2>How It Works Under the Hood<a class="headerlink" href="#how-it-works-under-the-hood" title="Link to this heading">#</a></h2>
+<p>Understanding the internals helps when writing custom DR terms or debugging
+unexpected behavior.</p>
+<section id="per-world-storage">
+<h3>Per-world storage<a class="headerlink" href="#per-world-storage" title="Link to this heading">#</a></h3>
+<p>MuJoCo Warp batches thousands of worlds into a single simulation. To save
+memory, model arrays like <code class="docutils literal notranslate"><span class="pre">geom_friction</span></code> are stored once with shape
+<code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">ngeom,</span> <span class="pre">3)</span></code> and a <strong>stride of 0</strong> along the first (world) dimension.
+GPU kernels index into these arrays with <code class="docutils literal notranslate"><span class="pre">worldid</span> <span class="pre">%</span> <span class="pre">arr.shape[0]</span></code>. When
+<code class="docutils literal notranslate"><span class="pre">shape[0]</span></code> is 1, every world reads the same row, so they all share identical
+model parameters.</p>
+<p>On the PyTorch side, mjlab wraps these stride-0 arrays using <code class="docutils literal notranslate"><span class="pre">torch.expand</span></code>
+so they appear to have shape <code class="docutils literal notranslate"><span class="pre">(num_envs,</span> <span class="pre">ngeom,</span> <span class="pre">3)</span></code> while still backed by a
+single row of memory. Indexing with <code class="docutils literal notranslate"><span class="pre">tensor[env_id]</span></code> makes it look like
+each world has its own data, but writes to any world affect all of them because
+they all point to the same underlying memory.</p>
+<p>To give each world independent values, the underlying Warp array is
+<strong>expanded</strong> from shape <code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">N)</span></code> to <code class="docutils literal notranslate"><span class="pre">(num_worlds,</span> <span class="pre">N)</span></code> with real
+per-world memory and normal strides. <code class="docutils literal notranslate"><span class="pre">sim.expand_model_fields()</span></code>
+allocates a new array, copies the shared data into each world’s row, and
+replaces the old array on the model. After expansion, writes to one world no
+longer affect others and each world can have its own friction, mass, or
+damping values.</p>
+<p>Each <code class="docutils literal notranslate"><span class="pre">dr</span></code> function declares which fields it needs via the
+<code class="docutils literal notranslate"><span class="pre">&#64;requires_model_fields</span></code> decorator, and the <code class="docutils literal notranslate"><span class="pre">EventManager</span></code> collects these
+at startup so expansion happens automatically. Custom DR terms that directly
+modify model arrays must ensure those arrays have been expanded. Either
+decorate the function with <code class="docutils literal notranslate"><span class="pre">&#64;requires_model_fields</span></code> or call
+<code class="docutils literal notranslate"><span class="pre">sim.expand_model_fields()</span></code> manually.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Expanding a field allocates new GPU memory and invalidates any captured CUDA
+graph because the graph holds pointers to the old arrays. mjlab recreates
+the graph automatically after expansion. This is a one-time cost at
+environment startup, not per-episode.</p>
+</div>
+</section>
+<section id="why-not-just-recompile-the-model">
+<h3>Why not just recompile the model?<a class="headerlink" href="#why-not-just-recompile-the-model" title="Link to this heading">#</a></h3>
+<p>The cleanest way to get per-world variation would be to modify the <code class="docutils literal notranslate"><span class="pre">MjSpec</span></code>
+for each world, compile each one into its own <code class="docutils literal notranslate"><span class="pre">MjModel</span></code>, and transfer them all
+to the GPU. That would give perfectly consistent derived quantities for free
+because <code class="docutils literal notranslate"><span class="pre">mj_setConst</span></code> runs during compilation.</p>
+<p>mjlab does not do this for two reasons:</p>
+<ol class="arabic simple">
+<li><p><strong>Cost.</strong> Compiling an <code class="docutils literal notranslate"><span class="pre">MjSpec</span></code> is a CPU operation. Doing it once per world
+on every episode reset would be far too slow for thousands of environments.</p></li>
+<li><p><strong>Architecture.</strong> MuJoCo Warp expects a single <code class="docutils literal notranslate"><span class="pre">Model</span></code> shared across all
+worlds. There is no mechanism to load N independent models into one
+simulation.</p></li>
+</ol>
+<p>Instead, mjlab modifies the expanded arrays in place on the GPU and selectively
+recompute only the derived quantities that depend on what changed. This is
+what the <code class="docutils literal notranslate"><span class="pre">RecomputeLevel</span></code> system handles.</p>
+</section>
+<section id="recomputation-of-derived-fields">
+<span id="dr-recomputation"></span><h3>Recomputation of derived fields<a class="headerlink" href="#recomputation-of-derived-fields" title="Link to this heading">#</a></h3>
+<p>Some model fields are <strong>derived</strong> from others. For example,
+<code class="docutils literal notranslate"><span class="pre">body_subtreemass</span></code> (the total mass of a body and all its descendants) depends
+on <code class="docutils literal notranslate"><span class="pre">body_mass</span></code>. Changing <code class="docutils literal notranslate"><span class="pre">body_mass</span></code> without updating
+<code class="docutils literal notranslate"><span class="pre">body_subtreemass</span></code>, the constraint solver will use stale impedance values
+and the simulation will be subtly wrong.</p>
+<p>In C MuJoCo, the solution is to call <a class="reference external" href="https://mujoco.readthedocs.io/en/latest/programming/simulation.html#mjmodel-changes">mj_setConst</a>
+after modifying model parameters at runtime. MuJoCo Warp provides an equivalent
+set of functions (<code class="docutils literal notranslate"><span class="pre">set_const</span></code>, <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code>, <code class="docutils literal notranslate"><span class="pre">set_const_fixed</span></code>) that run
+on the GPU and operate on all worlds in parallel. mjlab calls these
+automatically.</p>
+<p>The three recomputation levels, from cheapest to most expensive:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 35.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Level</p></th>
+<th class="head"><p>What it recomputes</p></th>
+<th class="head"><p>When to use</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">set_const_fixed</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">body_subtreemass</span></code></p></td>
+<td><p>After changing <code class="docutils literal notranslate"><span class="pre">body_gravcomp</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dof_invweight0</span></code>, <code class="docutils literal notranslate"><span class="pre">body_invweight0</span></code>, <code class="docutils literal notranslate"><span class="pre">tendon_length0</span></code>,
+<code class="docutils literal notranslate"><span class="pre">tendon_invweight0</span></code>, <code class="docutils literal notranslate"><span class="pre">actuator_acc0</span></code>, plus camera and light
+references</p></td>
+<td><p>After changing <code class="docutils literal notranslate"><span class="pre">dof_armature</span></code>, <code class="docutils literal notranslate"><span class="pre">tendon_armature</span></code>,
+<code class="docutils literal notranslate"><span class="pre">body_inertia</span></code>, <code class="docutils literal notranslate"><span class="pre">body_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">body_quat</span></code>, or <code class="docutils literal notranslate"><span class="pre">qpos0</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">set_const</span></code></p></td>
+<td><p>Everything above</p></td>
+<td><p>After changing <code class="docutils literal notranslate"><span class="pre">body_mass</span></code> or <code class="docutils literal notranslate"><span class="pre">body_ipos</span></code> (center of mass)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The built-in <code class="docutils literal notranslate"><span class="pre">dr</span></code> functions already declare the correct level. When the
+<code class="docutils literal notranslate"><span class="pre">EventManager</span></code> fires multiple DR terms in a single <code class="docutils literal notranslate"><span class="pre">apply()</span></code> call, it
+tracks the strongest level among them and calls <code class="docutils literal notranslate"><span class="pre">sim.recompute_constants()</span></code>
+once at the end. Manual calls are unnecessary unless writing
+custom DR logic.</p>
+<p>Fields that only affect contact or joint behavior directly (<code class="docutils literal notranslate"><span class="pre">geom_friction</span></code>,
+<code class="docutils literal notranslate"><span class="pre">dof_damping</span></code>, <code class="docutils literal notranslate"><span class="pre">dof_frictionloss</span></code>, etc.) have no derived quantities and
+need no recomputation.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>mjlab captures <code class="docutils literal notranslate"><span class="pre">sim.step()</span></code>, <code class="docutils literal notranslate"><span class="pre">sim.forward()</span></code>, <code class="docutils literal notranslate"><span class="pre">sim.reset()</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">sim.sense()</span></code> as individual CUDA graphs for performance. All event
+manager logic, including <code class="docutils literal notranslate"><span class="pre">recompute_constants</span></code>, runs as regular
+Python between these graph replays, so it will not break graph capture.</p>
+<p>That said, <code class="docutils literal notranslate"><span class="pre">set_const</span></code> is expensive: it runs forward kinematics, the
+composite rigid body algorithm, and mass matrix factorization across all
+worlds. Calling it every step via an <code class="docutils literal notranslate"><span class="pre">interval</span></code> event would add
+significant overhead. In practice, fields that need recomputation
+(<code class="docutils literal notranslate"><span class="pre">body_mass</span></code>, <code class="docutils literal notranslate"><span class="pre">body_com_offset</span></code>, <code class="docutils literal notranslate"><span class="pre">joint_armature</span></code>, etc.) are best
+randomized with <code class="docutils literal notranslate"><span class="pre">startup</span></code> or <code class="docutils literal notranslate"><span class="pre">reset</span></code> modes. Fields that need no
+recomputation (<code class="docutils literal notranslate"><span class="pre">geom_friction</span></code>, <code class="docutils literal notranslate"><span class="pre">dof_damping</span></code>, etc.) are cheap to
+randomize at any frequency.</p>
+</div>
+</section>
+</section>
+<section id="custom-class-based-event-terms">
+<span id="dr-custom-event-terms"></span><h2>Custom Class-Based Event Terms<a class="headerlink" href="#custom-class-based-event-terms" title="Link to this heading">#</a></h2>
+<p>Custom event terms can also use classes instead of functions. This is
+useful for event terms that need to maintain state or perform initialization
+logic:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">RandomizeTerrainFriction</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom event term that randomizes terrain friction.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
+        <span class="c1"># Find the terrain geom index during initialization</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_terrain_idx</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">geom</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">scene</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">geoms</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">geom</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;terrain&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_terrain_idx</span> <span class="o">=</span> <span class="n">idx</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_terrain_idx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Terrain geom not found in the model.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">env_ids</span><span class="p">,</span> <span class="n">ranges</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Called each time the event is triggered.&quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.math</span><span class="w"> </span><span class="kn">import</span> <span class="n">sample_uniform</span>
+        <span class="n">env</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">geom_friction</span><span class="p">[</span><span class="n">env_ids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_terrain_idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">sample_uniform</span><span class="p">(</span><span class="n">ranges</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ranges</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">env_ids</span><span class="p">),</span> <span class="n">env</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="p">)</span>
+
+
+<span class="c1"># Register in the environment config.</span>
+<span class="n">terrain_friction</span><span class="p">:</span> <span class="n">EventTermCfg</span> <span class="o">=</span> <span class="n">EventTermCfg</span><span class="p">(</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;reset&quot;</span><span class="p">,</span>
+    <span class="n">func</span><span class="o">=</span><span class="n">RandomizeTerrainFriction</span><span class="p">,</span>
+    <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;ranges&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">)},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="visualizing-dr-changes">
+<h2>Visualizing DR Changes<a class="headerlink" href="#visualizing-dr-changes" title="Link to this heading">#</a></h2>
+<p>Both viewers reflect DR changes, but with different coverage.</p>
+<p><strong>Native viewer</strong></p>
+<p>The native viewer syncs per-world model fields from the GPU to a local
+<code class="docutils literal notranslate"><span class="pre">MjModel</span></code> before each render. All of MuJoCo’s built-in visualization
+toggles then work correctly against the randomized model:</p>
+<ul class="simple">
+<li><p>Geom appearance (<code class="docutils literal notranslate"><span class="pre">geom_rgba</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_size</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_quat</span></code>,
+<code class="docutils literal notranslate"><span class="pre">geom_matid</span></code>)</p></li>
+<li><p>Material appearance (<code class="docutils literal notranslate"><span class="pre">mat_rgba</span></code>, <code class="docutils literal notranslate"><span class="pre">mat_emission</span></code>, <code class="docutils literal notranslate"><span class="pre">mat_specular</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mat_shininess</span></code>, <code class="docutils literal notranslate"><span class="pre">mat_texrepeat</span></code>, <code class="docutils literal notranslate"><span class="pre">mat_texid</span></code>)</p></li>
+<li><p>Body and site poses (<code class="docutils literal notranslate"><span class="pre">body_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">body_quat</span></code>, <code class="docutils literal notranslate"><span class="pre">body_ipos</span></code>,
+<code class="docutils literal notranslate"><span class="pre">site_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">site_quat</span></code>)</p></li>
+<li><p>Inertia (<code class="docutils literal notranslate"><span class="pre">body_inertia</span></code>, <code class="docutils literal notranslate"><span class="pre">body_iquat</span></code>, <code class="docutils literal notranslate"><span class="pre">body_mass</span></code>): press <code class="docutils literal notranslate"><span class="pre">I</span></code>
+to toggle inertia boxes</p></li>
+<li><p>Camera parameters (<code class="docutils literal notranslate"><span class="pre">cam_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">cam_quat</span></code>, <code class="docutils literal notranslate"><span class="pre">cam_fovy</span></code>,
+<code class="docutils literal notranslate"><span class="pre">cam_intrinsic</span></code>): press <code class="docutils literal notranslate"><span class="pre">Q</span></code> to toggle camera frustums</p></li>
+<li><p>Lights (<code class="docutils literal notranslate"><span class="pre">light_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">light_dir</span></code>, <code class="docutils literal notranslate"><span class="pre">light_diffuse</span></code>, <code class="docutils literal notranslate"><span class="pre">light_specular</span></code>,
+<code class="docutils literal notranslate"><span class="pre">light_ambient</span></code>, <code class="docutils literal notranslate"><span class="pre">light_attenuation</span></code>, <code class="docutils literal notranslate"><span class="pre">light_cutoff</span></code>,
+<code class="docutils literal notranslate"><span class="pre">light_exponent</span></code>)</p></li>
+</ul>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 docutils">
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<img alt="Cube color, size, and link orientations randomized each reset" src="../_images/dr_combined_rand.gif" />
+<p class="sd-card-text">Cube color (<code class="docutils literal notranslate"><span class="pre">dr.geom_rgba</span></code>), cube size (<code class="docutils literal notranslate"><span class="pre">dr.geom_size</span></code>), and
+link 2/3 orientations (<code class="docutils literal notranslate"><span class="pre">dr.body_quat</span></code>) randomized each episode
+reset. Broadphase bounds are recomputed automatically after size
+changes.</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<img alt="Inertia ellipsoids resizing each episode reset" src="../_images/dr_pseudo_inertia.gif" />
+<p class="sd-card-text"><code class="docutils literal notranslate"><span class="pre">dr.pseudo_inertia</span></code> with <code class="docutils literal notranslate"><span class="pre">alpha_range=(-0.5,</span> <span class="pre">0.5)</span></code> on links 2
+and 3. The inertia ellipsoids resize each episode reset while other
+links remain unchanged.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">cam_fovy</span></code> has no effect on cameras that use intrinsic parameters
+(<code class="docutils literal notranslate"><span class="pre">sensorsize</span></code> / <code class="docutils literal notranslate"><span class="pre">focal</span></code> set in XML). This applies to both rendered
+images and the frustum visualization. MuJoCo computes the projection
+from <code class="docutils literal notranslate"><span class="pre">cam_intrinsic</span></code> and <code class="docutils literal notranslate"><span class="pre">cam_sensorsize</span></code> instead. Use
+<code class="docutils literal notranslate"><span class="pre">dr.cam_intrinsic</span></code> to randomize the field of view for such cameras.
+See the <a class="reference external" href="https://mujoco.readthedocs.io/en/stable/XMLreference.html#body-camera">MuJoCo camera documentation</a>
+for details on how intrinsic parameters interact with <code class="docutils literal notranslate"><span class="pre">fovy</span></code>.</p>
+</div>
+<p><strong>Viser</strong></p>
+<p>Camera frustums and body poses are always current because viser reads
+world-space positions directly from GPU simulation data (<code class="docutils literal notranslate"><span class="pre">cam_xpos</span></code>,
+<code class="docutils literal notranslate"><span class="pre">body_xpos</span></code>) every frame.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">geom_rgba</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_size</span></code> and <code class="docutils literal notranslate"><span class="pre">mat_texid</span></code> DR are <strong>not</strong> reflected
+in viser. Geom colors, sizes and textures are baked into the scene’s
+GLB meshes at construction time. The underlying viser API
+(<code class="docutils literal notranslate"><span class="pre">add_batched_meshes_simple</span></code>) supports per-instance color updates via
+<code class="docutils literal notranslate"><span class="pre">batched_colors</span></code>, but this requires routing color-only geoms through
+a different handle type than the current <code class="docutils literal notranslate"><span class="pre">add_batched_meshes_trimesh</span></code>
+path. Deferred for a future update.</p>
+</div>
+</section>
+<section id="migrating-from-isaac-lab">
+<h2>Migrating from Isaac Lab<a class="headerlink" href="#migrating-from-isaac-lab" title="Link to this heading">#</a></h2>
+<p>Isaac Lab exposes explicit friction combination modes (<code class="docutils literal notranslate"><span class="pre">multiply</span></code>, <code class="docutils literal notranslate"><span class="pre">average</span></code>,
+<code class="docutils literal notranslate"><span class="pre">min</span></code>, <code class="docutils literal notranslate"><span class="pre">max</span></code>). MuJoCo instead uses <strong>priority-based selection</strong>: if one
+contacting geom has higher <code class="docutils literal notranslate"><span class="pre">priority</span></code>, its friction is used. Otherwise the
+<strong>element-wise maximum</strong> is used. See the
+<a class="reference external" href="https://mujoco.readthedocs.io/en/stable/computation/index.html#contact">MuJoCo contact documentation</a>
+for details.</p>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="events.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Events</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="curriculum.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Curriculum</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick Start</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#available-functions">Available Functions</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#model-field-functions">Model field functions</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#entity-level-functions">Entity-level functions</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pseudo-inertia-randomization">Pseudo-inertia randomization</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#safety-of-runtime-model-changes">Safety of Runtime Model Changes</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-geom-size-recomputation-works">How <code class="docutils literal notranslate"><span class="pre">geom_size</span></code> recomputation works</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pair-friction-and-isotropic-friction"><code class="docutils literal notranslate"><span class="pre">pair_friction</span></code> and isotropic friction</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fields-without-dr-functions">Fields without <code class="docutils literal notranslate"><span class="pre">dr</span></code> functions</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#added-as-needed">Added as needed</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#better-as-custom-code">Better as custom code</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#requires-dedicated-api">Requires dedicated API</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#not-a-dr-target">Not a DR target</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#distribution">Distribution</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#operation">Operation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#axis-selection">Axis selection</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#per-component-string-keyed-ranges">Per-component string-keyed ranges</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examples">Examples</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#friction-reset">Friction (reset)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#joint-offset-startup">Joint Offset (startup)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#center-of-mass-com-startup">Center of Mass (COM) (startup)</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#common-pitfalls">Common Pitfalls</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dr-body-mass-does-not-scale-inertia"><code class="docutils literal notranslate"><span class="pre">dr.body_mass</span></code> does not scale inertia</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#quat-ranges-are-in-radians-not-degrees"><code class="docutils literal notranslate"><span class="pre">*_quat</span></code> ranges are in radians, not degrees</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#quat-perturbations-are-relative-to-the-default-not-the-current-value"><code class="docutils literal notranslate"><span class="pre">*_quat</span></code> perturbations are relative to the default, not the current value</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dr-geom-friction-only-randomizes-tangential-friction-by-default"><code class="docutils literal notranslate"><span class="pre">dr.geom_friction</span></code> only randomizes tangential friction by default</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dr-geom-size-raises-on-non-primitive-geoms"><code class="docutils literal notranslate"><span class="pre">dr.geom_size</span></code> raises on non-primitive geoms</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#how-it-works-under-the-hood">How It Works Under the Hood</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#per-world-storage">Per-world storage</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#why-not-just-recompile-the-model">Why not just recompile the model?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#recomputation-of-derived-fields">Recomputation of derived fields</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#custom-class-based-event-terms">Custom Class-Based Event Terms</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#visualizing-dr-changes">Visualizing DR Changes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#migrating-from-isaac-lab">Migrating from Isaac Lab</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By The mjlab Developers
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2025, The mjlab Developers.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p class="last-updated">
+  Last updated on Aug 09, 2026.
+  <br/>
+</p>
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

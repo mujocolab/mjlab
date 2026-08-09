@@ -1,0 +1,1201 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Entity Data &#8212; mjlab Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../_static/twemoji.css" />
+    <link rel="stylesheet" type="text/css" href="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=53359634" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=3ea80bc3" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js"></script>
+    <script src="../../_static/twemoji.js"></script>
+    <script src="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/js/all.min.js?v=ec35c6c9"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["\\(", "\\)"]], "displayMath": [["\\[", "\\]"]]}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'source/entity/entity_data';</script>
+    <link rel="icon" href="../../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Heterogeneous Worlds" href="per_world_mesh.html" />
+    <link rel="prev" title="Entity" href="index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+    <meta name="docbuild:last-update" content="Aug 09, 2026"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">mjlab Documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item">
+<div class="sidebar-version-switcher">
+  <label class="sidebar-version-label" for="version-select">Version</label>
+  <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
+    <option value="../../../main/source/entity/entity_data.html" >main</option>
+    <option value="entity_data.html" selected>v1.6.0</option>
+    <option value="../../../v1.5.3/source/entity/entity_data.html" >v1.5.3</option>
+    <option value="../../../v1.5.2/source/entity/entity_data.html" >v1.5.2</option>
+    <option value="../../../v1.5.1/source/entity/entity_data.html" >v1.5.1</option>
+    <option value="../../../v1.5.0/source/entity/entity_data.html" >v1.5.0</option>
+    <option value="../../../v1.4.0/source/entity/entity_data.html" >v1.4.0</option>
+    <option value="../../../v1.3.0/source/entity/entity_data.html" >v1.3.0</option>
+    <option value="../../../v1.2.0/source/entity/entity_data.html" >v1.2.0</option>
+    <option value="../../../v1.1.1/index.html" >v1.1.1</option>
+    <option value="../../../v1.1.0/index.html" >v1.1.0</option>
+    <option value="../../../v1.0.0/index.html" >v1.0.0</option>
+  </select>
+</div>
+</div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Guide</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials.html">Tutorials</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/cartpole.html">Cartpole: Building Your First Environment</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../architecture_overview.html">Architecture Overview</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Entity</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Entity Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="per_world_mesh.html">Heterogeneous Worlds</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../actuators.html">Actuators</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../sensors/index.html">Sensors</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sensors/raycast_sensor.html">RayCast Sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sensors/rgbd_camera.html">RGB-D Camera</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../scene.html">Scene</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../terrain.html">Terrain</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">The Manager Layer</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../environment_config.html">Environment Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../actions.html">Actions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../terminations.html">Terminations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../events.html">Events</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../randomization.html">Domain Randomization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../curriculum.html">Curriculum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recorders.html">Recorders</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training &amp; Debugging</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../training/rsl_rl.html">Training with RSL-RL</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../training/motion_imitation.html">Motion Imitation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../viewers.html">Viewers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/distributed_training.html">Distributed Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/cloud.html">Cloud Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../debugging/nan_guard.html">NaN Guard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../debugging/export_scene.html">Export Scene</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">API Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/envs.html">mjlab.envs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scene.html">mjlab.scene</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/sim.html">mjlab.sim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/entity.html">mjlab.entity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/actuator.html">mjlab.actuator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/sensor.html">mjlab.sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/managers.html">mjlab.managers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/terrains.html">mjlab.terrains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/rl.html">mjlab.rl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/viewer.html">mjlab.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/tasks.html">mjlab.tasks</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Further Reading</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../motivation.html">Why mjlab?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration_isaac_lab.html">Migrating from Isaac Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ &amp; Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../research.html">Research</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/edit/main/docs/source/entity/entity_data.rst" target="_blank"
+   class="btn btn-sm btn-source-edit-button dropdown-item"
+   title="Suggest edit"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-pencil-alt"></i>
+  </span>
+<span class="btn__text-container">Suggest edit</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/issues/new?title=Issue%20on%20page%20%2Fsource/entity/entity_data.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../../_sources/source/entity/entity_data.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Entity Data</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reference-root-state">Reference: root state</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reference-body-state">Reference: body state</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reference-joint-state">Reference: joint state</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reference-generalized-forces">Reference: generalized forces</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reference-geom-and-site-state">Reference: geom and site state</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reference-tendon-state">Reference: tendon state</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#frame-conventions">Frame conventions</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#quaternion-convention">Quaternion convention</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#reduced-state-vs-derived-quantities">Reduced state vs. derived quantities</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-velocity-properties-are-computed-from-cvel">How velocity properties are computed from <code class="docutils literal notranslate"><span class="pre">cvel</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#default-pose-and-relative-quantities">Default pose and relative quantities</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="entity-data">
+<span id="id1"></span><h1>Entity Data<a class="headerlink" href="#entity-data" title="Link to this heading">#</a></h1>
+<p>This page is the property reference for <code class="docutils literal notranslate"><span class="pre">EntityData</span></code>. For an overview
+of how <code class="docutils literal notranslate"><span class="pre">entity.data</span></code> fits into the broader data access story, see
+<a class="reference internal" href="index.html#entity"><span class="std std-ref">Entity</span></a>.</p>
+<p>All properties are PyTorch tensors backed by MuJoCo Warp’s GPU buffers
+with no copy overhead. The first dimension is always <code class="docutils literal notranslate"><span class="pre">num_envs</span></code>, the
+number of parallel simulation worlds.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Read properties reflect the state after <code class="docutils literal notranslate"><span class="pre">sim.forward()</span></code> is called.
+If you write simulation state and then read a derived property in the
+same event term, call <code class="docutils literal notranslate"><span class="pre">sim.forward()</span></code> between the write and the
+read. The environment step sequence already does this; the warning
+applies only when writing custom event terms that mix reads and
+writes. See the <a class="reference internal" href="../faq.html#faq-sim-forward"><span class="std std-ref">FAQ</span></a> for a detailed
+explanation.</p>
+</div>
+<section id="reference-root-state">
+<h2>Reference: root state<a class="headerlink" href="#reference-root-state" title="Link to this heading">#</a></h2>
+<p>Root properties describe the position, orientation, and velocity of the
+entity’s root body. Properties ending in <code class="docutils literal notranslate"><span class="pre">_w</span></code> are expressed in the world
+frame. Properties ending in <code class="docutils literal notranslate"><span class="pre">_b</span></code> are expressed in the entity’s base frame.
+See <a class="reference internal" href="#frame-conventions"><span class="std std-ref">Frame conventions</span></a> for details.</p>
+<p>Each entity has two root reference points: the <strong>link origin</strong> (the body
+frame origin defined in the MJCF) and the <strong>center of mass (COM)</strong>.
+Which one is relevant depends on the task.</p>
+<div class="admonition-mujoco-s-mixed-frame-qvel admonition">
+<p class="admonition-title">MuJoCo’s mixed-frame <code class="docutils literal notranslate"><span class="pre">qvel</span></code></p>
+<p>For floating-base entities, the free joint stores 6 DOFs in
+<code class="docutils literal notranslate"><span class="pre">qvel</span></code>. MuJoCo expresses the <strong>linear</strong> components in the
+<strong>world frame</strong> but the <strong>angular</strong> components in the <strong>local body
+frame</strong>. EntityData avoids this pitfall: all <code class="docutils literal notranslate"><span class="pre">_w</span></code> velocity
+properties are computed from <code class="docutils literal notranslate"><span class="pre">cvel</span></code> (see
+<a class="reference internal" href="#cvel-section"><span class="std std-ref">How velocity properties are computed from cvel</span></a> below) and are fully world-frame. If you
+read <code class="docutils literal notranslate"><span class="pre">env.sim.data.qvel</span></code> directly, be aware of the mixed
+convention.</p>
+</div>
+<p class="rubric">Root link properties</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 20.0%" />
+<col style="width: 15.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Shape</p></th>
+<th class="head"><p>Frame</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">root_link_pose_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">7]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Root link position (3) and quaternion (4) concatenated</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">root_link_pos_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">3]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Root link position</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">root_link_quat_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">4]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Root link orientation as quaternion (w, x, y, z)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">root_link_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">6]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Root link linear (3) and angular (3) velocity concatenated</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">root_link_lin_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">3]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Root link linear velocity</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">root_link_ang_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">3]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Root link angular velocity</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">root_link_lin_vel_b</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">3]</span></code></p></td>
+<td><p>body</p></td>
+<td><p>Root link linear velocity in base frame</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">root_link_ang_vel_b</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">3]</span></code></p></td>
+<td><p>body</p></td>
+<td><p>Root link angular velocity in base frame</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Root COM properties</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 20.0%" />
+<col style="width: 15.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Shape</p></th>
+<th class="head"><p>Frame</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">root_com_pose_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">7]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Root COM position (3) and quaternion (4) concatenated</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">root_com_pos_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">3]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Root COM position</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">root_com_quat_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">4]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Root COM orientation as quaternion (w, x, y, z)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">root_com_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">6]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Root COM linear (3) and angular (3) velocity concatenated</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">root_com_lin_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">3]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Root COM linear velocity</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">root_com_ang_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">3]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Root COM angular velocity</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">root_com_lin_vel_b</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">3]</span></code></p></td>
+<td><p>body</p></td>
+<td><p>Root COM linear velocity in base frame</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">root_com_ang_vel_b</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">3]</span></code></p></td>
+<td><p>body</p></td>
+<td><p>Root COM angular velocity in base frame</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Derived root properties</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 20.0%" />
+<col style="width: 15.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Shape</p></th>
+<th class="head"><p>Frame</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">projected_gravity_b</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">3]</span></code></p></td>
+<td><p>body</p></td>
+<td><p>Gravity vector (0, 0, -1) rotated into the base frame. Used to measure
+tilt: a perfectly upright robot reads <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">-1]</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">heading_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Heading angle (radians) of the root body’s forward axis projected onto
+the XY plane.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="reference-body-state">
+<h2>Reference: body state<a class="headerlink" href="#reference-body-state" title="Link to this heading">#</a></h2>
+<p>Body properties give per-body kinematic state for all bodies belonging to the
+entity. The second dimension is <code class="docutils literal notranslate"><span class="pre">num_bodies</span></code>, which counts all non-world
+bodies in the entity’s kinematic tree.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Shape</p></th>
+<th class="head"><p>Frame</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">body_link_pose_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_bodies,</span> <span class="pre">7]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Per-body link position (3) and quaternion (4)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">body_link_pos_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_bodies,</span> <span class="pre">3]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Per-body link positions</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">body_link_quat_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_bodies,</span> <span class="pre">4]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Per-body link orientations</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">body_link_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_bodies,</span> <span class="pre">6]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Per-body link linear (3) and angular (3) velocity</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">body_link_lin_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_bodies,</span> <span class="pre">3]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Per-body link linear velocities</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">body_link_ang_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_bodies,</span> <span class="pre">3]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Per-body link angular velocities</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">body_com_pose_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_bodies,</span> <span class="pre">7]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Per-body COM position (3) and quaternion (4)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">body_com_pos_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_bodies,</span> <span class="pre">3]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Per-body COM positions</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">body_com_quat_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_bodies,</span> <span class="pre">4]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Per-body COM orientations</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">body_com_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_bodies,</span> <span class="pre">6]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Per-body COM linear (3) and angular (3) velocity</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">body_com_lin_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_bodies,</span> <span class="pre">3]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Per-body COM linear velocities</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">body_com_ang_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_bodies,</span> <span class="pre">3]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>Per-body COM angular velocities</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">body_external_wrench</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_bodies,</span> <span class="pre">6]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>External force (3) and torque (3) applied to each body</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">body_external_force</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_bodies,</span> <span class="pre">3]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>External forces applied to each body</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">body_external_torque</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_bodies,</span> <span class="pre">3]</span></code></p></td>
+<td><p>world</p></td>
+<td><p>External torques applied to each body</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="reference-joint-state">
+<h2>Reference: joint state<a class="headerlink" href="#reference-joint-state" title="Link to this heading">#</a></h2>
+<p>Joint properties cover 1-DOF revolute and prismatic joints. The free joint
+(root floating-base DOF) is excluded; use root state properties for that.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 25.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Shape</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">joint_pos</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_joints]</span></code></p></td>
+<td><p>Joint positions in radians (revolute) or metres (prismatic)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">joint_pos_biased</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_joints]</span></code></p></td>
+<td><p>Joint positions with encoder bias added. Used when simulating
+encoder calibration errors via domain randomization.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">joint_vel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_joints]</span></code></p></td>
+<td><p>Joint velocities in rad/s or m/s</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">joint_acc</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_joints]</span></code></p></td>
+<td><p>Joint accelerations in rad/s² or m/s²</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">actuator_force</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_actuators]</span></code></p></td>
+<td><p>Scalar actuator output in actuation space (per actuator). This is
+the force before projection through the transmission Jacobian. For
+actuator forces in joint space, use <code class="docutils literal notranslate"><span class="pre">qfrc_actuator</span></code> instead.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="reference-generalized-forces">
+<span id="generalized-forces"></span><h2>Reference: generalized forces<a class="headerlink" href="#reference-generalized-forces" title="Link to this heading">#</a></h2>
+<p>These properties expose selected components of MuJoCo’s generalized
+force decomposition, sliced to this entity’s articulated joint DOFs.
+Free joint DOFs are excluded. All shapes are <code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">nv]</span></code> where
+<code class="docutils literal notranslate"><span class="pre">nv</span></code> is the number of articulated DOFs belonging to this entity.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">qfrc_actuator</span></code></p></td>
+<td><p>Forces produced by all actuators, mapped into joint space. For
+motors this is the commanded torque times the gear ratio. For
+position and velocity actuators this is the force computed by
+the internal PD law. When <code class="docutils literal notranslate"><span class="pre">actuatorgravcomp</span></code> is enabled on a
+joint, the gravity compensation force is included here.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">qfrc_external</span></code></p></td>
+<td><p>Forces on joints due to Cartesian wrenches applied to bodies
+via <code class="docutils literal notranslate"><span class="pre">xfrc_applied</span></code>. This is the <span class="math notranslate nohighlight">\(J^\top F\)</span> mapping.
+MuJoCo does not store this term separately; the property
+recovers it from other force components after <code class="docutils literal notranslate"><span class="pre">forward()</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="reference-geom-and-site-state">
+<h2>Reference: geom and site state<a class="headerlink" href="#reference-geom-and-site-state" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 25.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Shape</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">geom_pose_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_geoms,</span> <span class="pre">7]</span></code></p></td>
+<td><p>Per-geom position (3) and quaternion (4) in world frame</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">geom_pos_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_geoms,</span> <span class="pre">3]</span></code></p></td>
+<td><p>Per-geom positions in world frame</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">geom_quat_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_geoms,</span> <span class="pre">4]</span></code></p></td>
+<td><p>Per-geom orientations in world frame</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">geom_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_geoms,</span> <span class="pre">6]</span></code></p></td>
+<td><p>Per-geom linear (3) and angular (3) velocity in world frame</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">geom_lin_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_geoms,</span> <span class="pre">3]</span></code></p></td>
+<td><p>Per-geom linear velocities in world frame</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">geom_ang_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_geoms,</span> <span class="pre">3]</span></code></p></td>
+<td><p>Per-geom angular velocities in world frame</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">site_pose_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_sites,</span> <span class="pre">7]</span></code></p></td>
+<td><p>Per-site position (3) and quaternion (4) in world frame</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">site_pos_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_sites,</span> <span class="pre">3]</span></code></p></td>
+<td><p>Per-site positions in world frame</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">site_quat_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_sites,</span> <span class="pre">4]</span></code></p></td>
+<td><p>Per-site orientations in world frame</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">site_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_sites,</span> <span class="pre">6]</span></code></p></td>
+<td><p>Per-site linear (3) and angular (3) velocity in world frame</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">site_lin_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_sites,</span> <span class="pre">3]</span></code></p></td>
+<td><p>Per-site linear velocities in world frame</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">site_ang_vel_w</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_sites,</span> <span class="pre">3]</span></code></p></td>
+<td><p>Per-site angular velocities in world frame</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="reference-tendon-state">
+<h2>Reference: tendon state<a class="headerlink" href="#reference-tendon-state" title="Link to this heading">#</a></h2>
+<p>Tendon properties are only populated for entities that have tendon-driven
+actuators.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 25.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Shape</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tendon_len</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_tendons]</span></code></p></td>
+<td><p>Tendon lengths</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tendon_vel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_tendons]</span></code></p></td>
+<td><p>Tendon velocities</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="frame-conventions">
+<span id="id2"></span><h2>Frame conventions<a class="headerlink" href="#frame-conventions" title="Link to this heading">#</a></h2>
+<p>Property names encode their reference frame with a suffix.</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">_w</span></code> (world frame)</dt><dd><p>A fixed global frame. The origin is typically at the scene origin and
+its axes are constant throughout the episode. World-frame quantities are
+useful when you need absolute position, such as checking whether the
+robot has fallen below a height threshold.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">_b</span></code> (body frame / base frame)</dt><dd><p>The entity’s root body frame. It translates and rotates with the robot.
+Most observation terms use body-frame quantities because they are
+invariant to the robot’s heading direction. A velocity expressed in the
+body frame reads the same whether the robot faces north or south, which
+makes it easier for the policy to generalize.</p>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">projected_gravity_b</span></code> is a good example of why the frame suffix
+matters. It takes the world-frame gravity vector <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">-1]</span></code> and
+rotates it into the base frame. When the robot is upright the result is
+<code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">-1]</span></code>; as the robot tilts, the x and y components grow,
+giving the policy a direct signal for orientation correction.</p>
+<section id="quaternion-convention">
+<h3>Quaternion convention<a class="headerlink" href="#quaternion-convention" title="Link to this heading">#</a></h3>
+<p>All quaternions use the <code class="docutils literal notranslate"><span class="pre">(w,</span> <span class="pre">x,</span> <span class="pre">y,</span> <span class="pre">z)</span></code> convention, matching MuJoCo.</p>
+</section>
+<section id="reduced-state-vs-derived-quantities">
+<h3>Reduced state vs. derived quantities<a class="headerlink" href="#reduced-state-vs-derived-quantities" title="Link to this heading">#</a></h3>
+<p>EntityData properties fall into two categories that behave differently
+with respect to <code class="docutils literal notranslate"><span class="pre">sim.forward()</span></code>:</p>
+<p><strong>Reduced state.</strong> <code class="docutils literal notranslate"><span class="pre">joint_pos</span></code> and <code class="docutils literal notranslate"><span class="pre">joint_vel</span></code> read directly from
+MuJoCo’s <code class="docutils literal notranslate"><span class="pre">qpos</span></code> and <code class="docutils literal notranslate"><span class="pre">qvel</span></code> arrays. Write methods such as
+<code class="docutils literal notranslate"><span class="pre">write_joint_state_to_sim()</span></code> modify these arrays directly, so reads
+are always current.</p>
+<p><strong>Derived quantities.</strong> All pose and velocity properties (<code class="docutils literal notranslate"><span class="pre">*_pose_w</span></code>,
+<code class="docutils literal notranslate"><span class="pre">*_vel_w</span></code>, <code class="docutils literal notranslate"><span class="pre">*_vel_b</span></code>) are computed from MuJoCo’s internal arrays
+(<code class="docutils literal notranslate"><span class="pre">xpos</span></code>, <code class="docutils literal notranslate"><span class="pre">xquat</span></code>, <code class="docutils literal notranslate"><span class="pre">cvel</span></code>, <code class="docutils literal notranslate"><span class="pre">subtree_com</span></code>, etc.) which are only
+updated when <code class="docutils literal notranslate"><span class="pre">sim.forward()</span></code> runs. If you write to <code class="docutils literal notranslate"><span class="pre">qpos</span></code>/<code class="docutils literal notranslate"><span class="pre">qvel</span></code>
+and then read a derived property without an intervening <code class="docutils literal notranslate"><span class="pre">forward()</span></code>,
+the read will return stale values.</p>
+<p>The environment step sequence calls <code class="docutils literal notranslate"><span class="pre">forward()</span></code> at the right time, so
+this only matters if you write custom event terms that both write and
+read in the same function. See the <a class="reference internal" href="../faq.html#faq-sim-forward"><span class="std std-ref">FAQ</span></a> for
+details.</p>
+</section>
+<section id="how-velocity-properties-are-computed-from-cvel">
+<span id="cvel-section"></span><h3>How velocity properties are computed from <code class="docutils literal notranslate"><span class="pre">cvel</span></code><a class="headerlink" href="#how-velocity-properties-are-computed-from-cvel" title="Link to this heading">#</a></h3>
+<p>MuJoCo does not store world-frame linear velocities directly. Instead,
+it stores a 6D spatial velocity per body called <code class="docutils literal notranslate"><span class="pre">cvel</span></code> (com-based
+velocity), laid out as <code class="docutils literal notranslate"><span class="pre">(angular[3],</span> <span class="pre">linear[3])</span></code>. This vector is
+expressed in the <strong>c-frame</strong>: a frame centered at <code class="docutils literal notranslate"><span class="pre">subtree_com</span></code> (the
+center of mass of the body’s kinematic subtree) and oriented like the
+world frame. MuJoCo uses this representation to improve numerical
+precision for mechanisms far from the world origin. See
+<a class="reference external" href="https://mujoco.readthedocs.io/en/stable/APIreference/APItypes.html#c-frame-variables">c-frame variables</a>
+and Featherstone’s
+<a class="reference external" href="http://royfeatherstone.org/spatial/">Spatial Algebra</a> for background.</p>
+<p>To recover the world-frame linear velocity at an arbitrary point
+<span class="math notranslate nohighlight">\(\mathbf{p}\)</span> on a rigid body, we apply the standard rigid-body
+velocity transfer formula. Let <span class="math notranslate nohighlight">\(\boldsymbol{\omega}\)</span> and
+<span class="math notranslate nohighlight">\(\mathbf{v}_c\)</span> denote the angular and linear components of
+<code class="docutils literal notranslate"><span class="pre">cvel</span></code>, and let <span class="math notranslate nohighlight">\(\mathbf{c}\)</span> denote <code class="docutils literal notranslate"><span class="pre">subtree_com</span></code>. Because
+the c-frame is world-aligned, <span class="math notranslate nohighlight">\(\boldsymbol{\omega}\)</span> is already in
+the world frame. The linear velocity at <span class="math notranslate nohighlight">\(\mathbf{p}\)</span> is:</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{v}_p
+  = \mathbf{v}_c
+    - \boldsymbol{\omega} \times (\mathbf{c} - \mathbf{p})\]</div>
+<p>EntityData applies this formula in <code class="docutils literal notranslate"><span class="pre">compute_velocity_from_cvel()</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">compute_velocity_from_cvel</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">subtree_com</span><span class="p">,</span> <span class="n">cvel</span><span class="p">):</span>
+    <span class="n">lin_vel_c</span> <span class="o">=</span> <span class="n">cvel</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
+    <span class="n">ang_vel_c</span> <span class="o">=</span> <span class="n">cvel</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">subtree_com</span> <span class="o">-</span> <span class="n">pos</span>
+    <span class="n">lin_vel_w</span> <span class="o">=</span> <span class="n">lin_vel_c</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">ang_vel_c</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">ang_vel_w</span> <span class="o">=</span> <span class="n">ang_vel_c</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">lin_vel_w</span><span class="p">,</span> <span class="n">ang_vel_w</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Every velocity property in EntityData (<code class="docutils literal notranslate"><span class="pre">root_link_vel_w</span></code>,
+<code class="docutils literal notranslate"><span class="pre">body_link_vel_w</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_vel_w</span></code>, <code class="docutils literal notranslate"><span class="pre">site_vel_w</span></code>, and their COM
+variants) uses this function, substituting the appropriate point:</p>
+<ul class="simple">
+<li><p><strong>Link velocities</strong> use <code class="docutils literal notranslate"><span class="pre">xpos</span></code> (body frame origin).</p></li>
+<li><p><strong>COM velocities</strong> use <code class="docutils literal notranslate"><span class="pre">xipos</span></code> (body center of mass).</p></li>
+<li><p><strong>Geom/site velocities</strong> use <code class="docutils literal notranslate"><span class="pre">geom_xpos</span></code>/<code class="docutils literal notranslate"><span class="pre">site_xpos</span></code>, with
+<code class="docutils literal notranslate"><span class="pre">cvel</span></code> looked up from the parent body.</p></li>
+</ul>
+</section>
+</section>
+<section id="default-pose-and-relative-quantities">
+<h2>Default pose and relative quantities<a class="headerlink" href="#default-pose-and-relative-quantities" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">entity.data.default_joint_pos</span></code> holds the joint positions from the entity’s
+initial-state configuration (the <code class="docutils literal notranslate"><span class="pre">init_state.joint_pos</span></code> field of
+<code class="docutils literal notranslate"><span class="pre">EntityCfg</span></code>). It has shape <code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_joints]</span></code> and is replicated
+across all environments at initialization time.</p>
+<p>The relative joint position is the deviation of the current joint position
+from this default:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">joint_pos_rel</span> <span class="o">=</span> <span class="n">joint_pos</span> <span class="o">-</span> <span class="n">default_joint_pos</span>
+</pre></div>
+</div>
+<p>This is what the <code class="docutils literal notranslate"><span class="pre">joint_pos_rel</span></code> observation function computes:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">joint_pos_rel</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">asset_cfg</span><span class="p">):</span>
+    <span class="n">asset</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">scene</span><span class="p">[</span><span class="n">asset_cfg</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+    <span class="n">jnt_ids</span> <span class="o">=</span> <span class="n">asset_cfg</span><span class="o">.</span><span class="n">joint_ids</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">asset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">joint_pos</span><span class="p">[:,</span> <span class="n">jnt_ids</span><span class="p">]</span>
+        <span class="o">-</span> <span class="n">asset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">default_joint_pos</span><span class="p">[:,</span> <span class="n">jnt_ids</span><span class="p">]</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<p>Relative joint positions give the policy a compact representation of posture
+deviation. When the robot is at its default pose, every element is zero.</p>
+<p>Similarly, <code class="docutils literal notranslate"><span class="pre">default_joint_vel</span></code> is used by the <code class="docutils literal notranslate"><span class="pre">joint_vel_rel</span></code> observation
+function. For most configurations the default velocity is zero, so
+<code class="docutils literal notranslate"><span class="pre">joint_vel_rel</span></code> is identical to <code class="docutils literal notranslate"><span class="pre">joint_vel</span></code>. The indirection exists to
+allow non-zero reference velocities in tasks such as motion imitation.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">use_default_offset=True</span></code> option in joint position action configs uses
+<code class="docutils literal notranslate"><span class="pre">default_joint_pos</span></code> as the zero point for the action space, so a network
+output of zero commands the robot to its default pose. This is the standard
+configuration for locomotion tasks.</p>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Entity</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="per_world_mesh.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Heterogeneous Worlds</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reference-root-state">Reference: root state</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reference-body-state">Reference: body state</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reference-joint-state">Reference: joint state</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reference-generalized-forces">Reference: generalized forces</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reference-geom-and-site-state">Reference: geom and site state</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reference-tendon-state">Reference: tendon state</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#frame-conventions">Frame conventions</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#quaternion-convention">Quaternion convention</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#reduced-state-vs-derived-quantities">Reduced state vs. derived quantities</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-velocity-properties-are-computed-from-cvel">How velocity properties are computed from <code class="docutils literal notranslate"><span class="pre">cvel</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#default-pose-and-relative-quantities">Default pose and relative quantities</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By The mjlab Developers
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2025, The mjlab Developers.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p class="last-updated">
+  Last updated on Aug 09, 2026.
+  <br/>
+</p>
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

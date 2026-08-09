@@ -1,0 +1,904 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>RayCast Sensor &#8212; mjlab Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../_static/twemoji.css" />
+    <link rel="stylesheet" type="text/css" href="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=53359634" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=3ea80bc3" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js"></script>
+    <script src="../../_static/twemoji.js"></script>
+    <script src="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/js/all.min.js?v=ec35c6c9"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'source/sensors/raycast_sensor';</script>
+    <link rel="icon" href="../../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="RGB-D Camera" href="rgbd_camera.html" />
+    <link rel="prev" title="Sensors" href="index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+    <meta name="docbuild:last-update" content="Aug 09, 2026"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">mjlab Documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item">
+<div class="sidebar-version-switcher">
+  <label class="sidebar-version-label" for="version-select">Version</label>
+  <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
+    <option value="../../../main/source/sensors/raycast_sensor.html" >main</option>
+    <option value="raycast_sensor.html" selected>v1.6.0</option>
+    <option value="../../../v1.5.3/source/sensors/raycast_sensor.html" >v1.5.3</option>
+    <option value="../../../v1.5.2/source/sensors/raycast_sensor.html" >v1.5.2</option>
+    <option value="../../../v1.5.1/source/sensors/raycast_sensor.html" >v1.5.1</option>
+    <option value="../../../v1.5.0/source/sensors/raycast_sensor.html" >v1.5.0</option>
+    <option value="../../../v1.4.0/source/sensors/raycast_sensor.html" >v1.4.0</option>
+    <option value="../../../v1.3.0/source/sensors/raycast_sensor.html" >v1.3.0</option>
+    <option value="../../../v1.2.0/source/sensors/raycast_sensor.html" >v1.2.0</option>
+    <option value="../../../v1.1.1/index.html" >v1.1.1</option>
+    <option value="../../../v1.1.0/index.html" >v1.1.0</option>
+    <option value="../../../v1.0.0/index.html" >v1.0.0</option>
+  </select>
+</div>
+</div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Guide</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials.html">Tutorials</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/cartpole.html">Cartpole: Building Your First Environment</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../architecture_overview.html">Architecture Overview</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../entity/index.html">Entity</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../entity/entity_data.html">Entity Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../entity/per_world_mesh.html">Heterogeneous Worlds</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../actuators.html">Actuators</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Sensors</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">RayCast Sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rgbd_camera.html">RGB-D Camera</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../scene.html">Scene</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../terrain.html">Terrain</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">The Manager Layer</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../environment_config.html">Environment Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../actions.html">Actions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../terminations.html">Terminations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../events.html">Events</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../randomization.html">Domain Randomization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../curriculum.html">Curriculum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recorders.html">Recorders</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training &amp; Debugging</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../training/rsl_rl.html">Training with RSL-RL</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../training/motion_imitation.html">Motion Imitation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../viewers.html">Viewers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/distributed_training.html">Distributed Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/cloud.html">Cloud Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../debugging/nan_guard.html">NaN Guard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../debugging/export_scene.html">Export Scene</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">API Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/envs.html">mjlab.envs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scene.html">mjlab.scene</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/sim.html">mjlab.sim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/entity.html">mjlab.entity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/actuator.html">mjlab.actuator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/sensor.html">mjlab.sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/managers.html">mjlab.managers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/terrains.html">mjlab.terrains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/rl.html">mjlab.rl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/viewer.html">mjlab.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/tasks.html">mjlab.tasks</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Further Reading</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../motivation.html">Why mjlab?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration_isaac_lab.html">Migrating from Isaac Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ &amp; Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../research.html">Research</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/edit/main/docs/source/sensors/raycast_sensor.rst" target="_blank"
+   class="btn btn-sm btn-source-edit-button dropdown-item"
+   title="Suggest edit"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-pencil-alt"></i>
+  </span>
+<span class="btn__text-container">Suggest edit</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/issues/new?title=Issue%20on%20page%20%2Fsource/sensors/raycast_sensor.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../../_sources/source/sensors/raycast_sensor.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>RayCast Sensor</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick start</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ray-patterns">Ray patterns</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pattern-comparison">Pattern comparison</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#frame-attachment">Frame attachment</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ray-alignment">Ray alignment</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#geom-group-filtering">Geom group filtering</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#output">Output</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examples">Examples</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#terrainheightsensor">TerrainHeightSensor</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="raycast-sensor">
+<span id="id1"></span><h1>RayCast Sensor<a class="headerlink" href="#raycast-sensor" title="Link to this heading">#</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">RayCastSensor</span></code> provides GPU-accelerated raycasting for terrain
+scanning, obstacle detection, and depth sensing. Rays are emitted from
+a frame attached to a body, site, or geom in the scene, and the sensor
+reports hit distances, world-space hit positions, and surface normals.</p>
+<video controls style="display: block; margin: 0 auto; max-width: 100%; height: auto;">
+  <source src="../../_static/raycast_demo.mp4" type="video/mp4">
+</video><section id="quick-start">
+<h2>Quick start<a class="headerlink" href="#quick-start" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">RayCastSensorCfg</span><span class="p">,</span> <span class="n">GridPatternCfg</span><span class="p">,</span> <span class="n">ObjRef</span>
+
+<span class="c1"># Downward-facing grid for terrain height scanning.</span>
+<span class="n">raycast_cfg</span> <span class="o">=</span> <span class="n">RayCastSensorCfg</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;terrain_scan&quot;</span><span class="p">,</span>
+    <span class="n">frame</span><span class="o">=</span><span class="n">ObjRef</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;body&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;base&quot;</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="s2">&quot;robot&quot;</span><span class="p">),</span>
+    <span class="n">pattern</span><span class="o">=</span><span class="n">GridPatternCfg</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">resolution</span><span class="o">=</span><span class="mf">0.1</span><span class="p">),</span>
+    <span class="n">max_distance</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">scene_cfg</span> <span class="o">=</span> <span class="n">SceneCfg</span><span class="p">(</span>
+    <span class="n">entities</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;robot&quot;</span><span class="p">:</span> <span class="n">robot_cfg</span><span class="p">},</span>
+    <span class="n">sensors</span><span class="o">=</span><span class="p">(</span><span class="n">raycast_cfg</span><span class="p">,),</span>
+<span class="p">)</span>
+
+<span class="c1"># Access at runtime.</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">scene</span><span class="p">[</span><span class="s2">&quot;terrain_scan&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+<span class="n">data</span><span class="o">.</span><span class="n">distances</span>      <span class="c1"># [B, N] distance to hit, -1 if miss</span>
+<span class="n">data</span><span class="o">.</span><span class="n">hit_pos_w</span>      <span class="c1"># [B, N, 3] world-space hit positions</span>
+<span class="n">data</span><span class="o">.</span><span class="n">normals_w</span>      <span class="c1"># [B, N, 3] surface normals</span>
+</pre></div>
+</div>
+</section>
+<section id="ray-patterns">
+<h2>Ray patterns<a class="headerlink" href="#ray-patterns" title="Link to this heading">#</a></h2>
+<p>Ray patterns define the spatial distribution and direction of rays
+emitted from the sensor frame.</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 docutils">
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Grid pattern</div>
+<p class="sd-card-text">Parallel rays in a 2D grid with fixed spatial resolution. The
+ground footprint does not change with sensor height because ray
+spacing is defined in world units (meters). The natural choice for
+height maps and terrain scanning.</p>
+<video autoplay loop muted playsinline style="width: 100%; height: auto;">
+  <source src="../../_static/pattern_grid.mp4" type="video/mp4">
+</video></div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Pinhole camera pattern</div>
+<p class="sd-card-text">Diverging rays emitted from a single origin, analogous to a depth
+camera. The ground coverage increases with sensor
+height because the field of view is fixed in angular units.</p>
+<video autoplay loop muted playsinline style="width: 100%; height: auto;">
+  <source src="../../_static/pattern_pinhole.mp4" type="video/mp4">
+</video></div>
+</div>
+</div>
+</div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">GridPatternCfg</span><span class="p">,</span> <span class="n">PinholeCameraPatternCfg</span>
+
+<span class="c1"># Parallel grid: fixed footprint, height-invariant.</span>
+<span class="n">grid</span> <span class="o">=</span> <span class="n">GridPatternCfg</span><span class="p">(</span>
+    <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>              <span class="c1"># Grid dimensions in meters</span>
+    <span class="n">resolution</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>               <span class="c1"># Spacing between rays</span>
+    <span class="n">direction</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">),</span>   <span class="c1"># Ray direction (down)</span>
+<span class="p">)</span>
+
+<span class="c1"># Pinhole: perspective projection, diverging rays.</span>
+<span class="n">pinhole</span> <span class="o">=</span> <span class="n">PinholeCameraPatternCfg</span><span class="p">(</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+    <span class="n">fovy</span><span class="o">=</span><span class="mf">45.0</span><span class="p">,</span>  <span class="c1"># Vertical FOV in degrees</span>
+<span class="p">)</span>
+
+<span class="c1"># Pinhole from a MuJoCo camera definition.</span>
+<span class="n">pinhole</span> <span class="o">=</span> <span class="n">PinholeCameraPatternCfg</span><span class="o">.</span><span class="n">from_mujoco_camera</span><span class="p">(</span><span class="s2">&quot;robot/depth_cam&quot;</span><span class="p">)</span>
+
+<span class="c1"># Pinhole from an intrinsic matrix.</span>
+<span class="n">pinhole</span> <span class="o">=</span> <span class="n">PinholeCameraPatternCfg</span><span class="o">.</span><span class="n">from_intrinsic_matrix</span><span class="p">(</span>
+    <span class="n">intrinsic_matrix</span><span class="o">=</span><span class="p">[</span><span class="mi">500</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">320</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">240</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">640</span><span class="p">,</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">480</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<section id="pattern-comparison">
+<h3>Pattern comparison<a class="headerlink" href="#pattern-comparison" title="Link to this heading">#</a></h3>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 40.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Aspect</p></th>
+<th class="head"><p>Grid</p></th>
+<th class="head"><p>Pinhole</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Ray direction</p></td>
+<td><p>Parallel</p></td>
+<td><p>Diverging</p></td>
+</tr>
+<tr class="row-odd"><td><p>Spacing unit</p></td>
+<td><p>Meters</p></td>
+<td><p>Degrees (FOV)</p></td>
+</tr>
+<tr class="row-even"><td><p>Height affects coverage</p></td>
+<td><p>No</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p>Projection model</p></td>
+<td><p>Orthographic</p></td>
+<td><p>Perspective</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="frame-attachment">
+<h2>Frame attachment<a class="headerlink" href="#frame-attachment" title="Link to this heading">#</a></h2>
+<p>Rays are emitted from a frame in the scene specified via <code class="docutils literal notranslate"><span class="pre">ObjRef</span></code>.
+The frame can be a body, site, or geom on any entity.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">frame</span> <span class="o">=</span> <span class="n">ObjRef</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;body&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;base&quot;</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="s2">&quot;robot&quot;</span><span class="p">)</span>
+<span class="n">frame</span> <span class="o">=</span> <span class="n">ObjRef</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;site&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;scan_site&quot;</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="s2">&quot;robot&quot;</span><span class="p">)</span>
+<span class="n">frame</span> <span class="o">=</span> <span class="n">ObjRef</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;geom&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;sensor_mount&quot;</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="s2">&quot;robot&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">exclude_parent_body</span></code> (default <code class="docutils literal notranslate"><span class="pre">True</span></code>) prevents rays from hitting
+the body to which the sensor is attached.</p>
+</section>
+<section id="ray-alignment">
+<h2>Ray alignment<a class="headerlink" href="#ray-alignment" title="Link to this heading">#</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">ray_alignment</span></code> setting controls how rays orient relative to the
+attached frame when the body rotates.</p>
+<video autoplay loop muted playsinline
+       style="display: block; margin: 0 auto; max-width: 100%; height: auto;">
+  <source src="../../_static/ray_alignment_comparison.mp4" type="video/mp4">
+</video><div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 45.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Mode</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Use case</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;base&quot;</span></code></p></td>
+<td><p>Full position and rotation tracking</p></td>
+<td><p>Body-mounted sensors</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;yaw&quot;</span></code></p></td>
+<td><p>Follows yaw, ignores pitch and roll</p></td>
+<td><p>Terrain height maps</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;world&quot;</span></code></p></td>
+<td><p>Fixed world-frame direction</p></td>
+<td><p>Gravity-aligned sensing</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">RayCastSensorCfg</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;height_scan&quot;</span><span class="p">,</span>
+    <span class="n">frame</span><span class="o">=</span><span class="n">ObjRef</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;body&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;base&quot;</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="s2">&quot;robot&quot;</span><span class="p">),</span>
+    <span class="n">pattern</span><span class="o">=</span><span class="n">GridPatternCfg</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">resolution</span><span class="o">=</span><span class="mf">0.1</span><span class="p">),</span>
+    <span class="n">ray_alignment</span><span class="o">=</span><span class="s2">&quot;yaw&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="geom-group-filtering">
+<h2>Geom group filtering<a class="headerlink" href="#geom-group-filtering" title="Link to this heading">#</a></h2>
+<p>MuJoCo assigns geoms to groups 0 through 5. Use
+<code class="docutils literal notranslate"><span class="pre">include_geom_groups</span></code> to restrict which geoms rays can hit. This is
+useful for ignoring visual-only geoms or isolating terrain geometry.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">RayCastSensorCfg</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;terrain_only&quot;</span><span class="p">,</span>
+    <span class="n">frame</span><span class="o">=</span><span class="n">ObjRef</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;body&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;base&quot;</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="s2">&quot;robot&quot;</span><span class="p">),</span>
+    <span class="n">pattern</span><span class="o">=</span><span class="n">GridPatternCfg</span><span class="p">(),</span>
+    <span class="n">include_geom_groups</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="output">
+<h2>Output<a class="headerlink" href="#output" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">RayCastData</span></code> is a dataclass with shape annotations relative to
+<code class="docutils literal notranslate"><span class="pre">B</span></code> (number of environments) and <code class="docutils literal notranslate"><span class="pre">N</span></code> (number of rays).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RayCastData</span><span class="p">:</span>
+    <span class="n">distances</span><span class="p">:</span> <span class="n">Tensor</span>   <span class="c1"># [B, N] distance to hit, -1 if miss</span>
+    <span class="n">hit_pos_w</span><span class="p">:</span> <span class="n">Tensor</span>   <span class="c1"># [B, N, 3] world-space hit positions</span>
+    <span class="n">normals_w</span><span class="p">:</span> <span class="n">Tensor</span>   <span class="c1"># [B, N, 3] surface normals</span>
+    <span class="n">pos_w</span><span class="p">:</span> <span class="n">Tensor</span>       <span class="c1"># [B, 3] sensor frame position</span>
+    <span class="n">quat_w</span><span class="p">:</span> <span class="n">Tensor</span>      <span class="c1"># [B, 4] sensor frame orientation (w, x, y, z)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Set <code class="docutils literal notranslate"><span class="pre">debug_vis=True</span></code> on the config to visualize ray hits at
+runtime.</p>
+</div>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sensor</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">RayCastSensorCfg</span><span class="p">,</span> <span class="n">GridPatternCfg</span><span class="p">,</span> <span class="n">PinholeCameraPatternCfg</span><span class="p">,</span> <span class="n">ObjRef</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Dense height map for terrain-aware locomotion.</span>
+<span class="n">height_scan</span> <span class="o">=</span> <span class="n">RayCastSensorCfg</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;height_scan&quot;</span><span class="p">,</span>
+    <span class="n">frame</span><span class="o">=</span><span class="n">ObjRef</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;body&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;base&quot;</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="s2">&quot;robot&quot;</span><span class="p">),</span>
+    <span class="n">pattern</span><span class="o">=</span><span class="n">GridPatternCfg</span><span class="p">(</span>
+        <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mf">1.6</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+        <span class="n">resolution</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">direction</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">ray_alignment</span><span class="o">=</span><span class="s2">&quot;yaw&quot;</span><span class="p">,</span>
+    <span class="n">max_distance</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Simulated depth camera using pinhole projection.</span>
+<span class="n">depth_cam</span> <span class="o">=</span> <span class="n">RayCastSensorCfg</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;depth&quot;</span><span class="p">,</span>
+    <span class="n">frame</span><span class="o">=</span><span class="n">ObjRef</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;site&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;camera_site&quot;</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="s2">&quot;robot&quot;</span><span class="p">),</span>
+    <span class="n">pattern</span><span class="o">=</span><span class="n">PinholeCameraPatternCfg</span><span class="o">.</span><span class="n">from_mujoco_camera</span><span class="p">(</span><span class="s2">&quot;robot/depth_cam&quot;</span><span class="p">),</span>
+    <span class="n">max_distance</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Forward-facing obstacle scan.</span>
+<span class="n">obstacle_scan</span> <span class="o">=</span> <span class="n">RayCastSensorCfg</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;obstacle&quot;</span><span class="p">,</span>
+    <span class="n">frame</span><span class="o">=</span><span class="n">ObjRef</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;body&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;head&quot;</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="s2">&quot;robot&quot;</span><span class="p">),</span>
+    <span class="n">pattern</span><span class="o">=</span><span class="n">GridPatternCfg</span><span class="p">(</span>
+        <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">),</span>
+        <span class="n">resolution</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">direction</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">max_distance</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+    <span class="n">include_geom_groups</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="terrainheightsensor">
+<h2>TerrainHeightSensor<a class="headerlink" href="#terrainheightsensor" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">TerrainHeightSensor</span></code> is a thin <code class="docutils literal notranslate"><span class="pre">RayCastSensor</span></code> subclass that adds
+per-frame vertical clearance to the sensor data. It computes
+<code class="docutils literal notranslate"><span class="pre">frame_z</span> <span class="pre">-</span> <span class="pre">hit_z</span></code> for each ray, replaces misses with <code class="docutils literal notranslate"><span class="pre">max_distance</span></code>,
+and reduces across rays per frame.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">TerrainHeightSensorCfg</span><span class="p">,</span> <span class="n">RingPatternCfg</span><span class="p">,</span> <span class="n">ObjRef</span>
+
+<span class="n">cfg</span> <span class="o">=</span> <span class="n">TerrainHeightSensorCfg</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;foot_height&quot;</span><span class="p">,</span>
+    <span class="n">frame</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">ObjRef</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;site&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;left_foot&quot;</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="s2">&quot;robot&quot;</span><span class="p">),</span>
+        <span class="n">ObjRef</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;site&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;right_foot&quot;</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="s2">&quot;robot&quot;</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">pattern</span><span class="o">=</span><span class="n">RingPatternCfg</span><span class="o">.</span><span class="n">single_ring</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mf">0.04</span><span class="p">,</span> <span class="n">num_samples</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span>
+    <span class="n">max_distance</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">include_geom_groups</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,),</span>
+<span class="p">)</span>
+
+<span class="c1"># At runtime:</span>
+<span class="n">sensor</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">scene</span><span class="p">[</span><span class="s2">&quot;foot_height&quot;</span><span class="p">]</span>
+<span class="n">sensor</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">heights</span>    <span class="c1"># [B, F] vertical clearance per foot</span>
+<span class="n">sensor</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">distances</span>  <span class="c1"># [B, N] raw ray distances (inherited)</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">reduction</span></code> config field controls how rays are aggregated within
+each frame: <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> (default), <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;mean&quot;</span></code>.</p>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Sensors</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="rgbd_camera.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">RGB-D Camera</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick start</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ray-patterns">Ray patterns</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pattern-comparison">Pattern comparison</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#frame-attachment">Frame attachment</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ray-alignment">Ray alignment</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#geom-group-filtering">Geom group filtering</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#output">Output</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examples">Examples</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#terrainheightsensor">TerrainHeightSensor</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By The mjlab Developers
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2025, The mjlab Developers.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p class="last-updated">
+  Last updated on Aug 09, 2026.
+  <br/>
+</p>
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
