@@ -11,7 +11,6 @@ from mjlab.entity import Entity
 from mjlab.managers.command_manager import CommandTerm, CommandTermCfg
 from mjlab.utils.lab_api.math import (
   matrix_from_quat,
-  quat_apply,
   wrap_to_pi,
 )
 
@@ -98,27 +97,29 @@ class UniformVelocityCommand(CommandTerm):
       self.vel_command_b[fwd_ids, 1] = 0.0
       self.vel_command_b[fwd_ids, 2] = 0.0
 
-    init_vel_mask = r.uniform_(0.0, 1.0) < self.cfg.init_velocity_prob
-    init_vel_env_ids = env_ids[init_vel_mask]
-    if len(init_vel_env_ids) > 0:
-      root_pos = self.robot.data.root_link_pos_w[init_vel_env_ids]
-      root_quat = self.robot.data.root_link_quat_w[init_vel_env_ids]
-      lin_vel_b = self.robot.data.root_link_lin_vel_b[init_vel_env_ids]
-      lin_vel_b[:, :2] = self.vel_command_b[init_vel_env_ids, :2]
-      root_lin_vel_w = quat_apply(root_quat, lin_vel_b)
-      root_ang_vel_b = self.robot.data.root_link_ang_vel_b[init_vel_env_ids]
-      root_ang_vel_b[:, 2] = self.vel_command_b[init_vel_env_ids, 2]
-      root_state = torch.cat(
-        [root_pos, root_quat, root_lin_vel_w, root_ang_vel_b], dim=-1
-      )
-      self.robot.write_root_state_to_sim(root_state, init_vel_env_ids)
+  def reset(self, env_ids: torch.Tensor | slice | None) -> dict[str, float]:
+    extras = super().reset(env_ids)
+    if self.cfg.init_velocity_prob > 0.0:
+      assert isinstance(env_ids, torch.Tensor)
+      r = torch.empty(len(env_ids), device=self.device)
+      init_ids = env_ids[r.uniform_(0.0, 1.0) < self.cfg.init_velocity_prob]
+      if len(init_ids) > 0:
+        # Start these envs already moving at the commanded planar velocity.
+        # Safe pre-forward: the body-frame write reads orientation from qpos.
+        vel_b = torch.zeros(len(init_ids), 6, device=self.device)
+        vel_b[:, :2] = self.vel_command_b[init_ids, :2]
+        vel_b[:, 5] = self.vel_command_b[init_ids, 2]
+        self.robot.write_root_link_velocity_b_to_sim(vel_b, env_ids=init_ids)
+    return extras
 
-  def _update_command(self) -> None:
+  def _update_command(self, env_ids: torch.Tensor | None = None) -> None:
+    # Pure function of the current state; refreshing all envs is safe.
+    del env_ids
     if self.cfg.heading_command:
       self.heading_error = wrap_to_pi(self.heading_target - self.robot.data.heading_w)
-      env_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
-      self.vel_command_b[env_ids, 2] = torch.clip(
-        self.cfg.heading_control_stiffness * self.heading_error[env_ids],
+      heading_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
+      self.vel_command_b[heading_ids, 2] = torch.clip(
+        self.cfg.heading_control_stiffness * self.heading_error[heading_ids],
         min=self.cfg.ranges.ang_vel_z[0],
         max=self.cfg.ranges.ang_vel_z[1],
       )
@@ -197,8 +198,10 @@ class UniformVelocityCommand(CommandTerm):
     self._joystick_sliders = sliders
     self._joystick_get_env_idx = get_env_idx
 
-  def compute(self, dt: float) -> None:
-    super().compute(dt)
+  def compute(
+    self, dt: float | torch.Tensor, env_ids: torch.Tensor | None = None
+  ) -> None:
+    super().compute(dt, env_ids)
     if self._joystick_enabled is not None and self._joystick_enabled.value:
       assert self._joystick_get_env_idx is not None
       idx = self._joystick_get_env_idx()
@@ -293,6 +296,8 @@ class UniformVelocityCommandCfg(CommandTermCfg):
   lin_vel_x, zero lin_vel_y and ang_vel_z). Increases training coverage for
   straight-line walking, which is important for stair climbing."""
   init_velocity_prob: float = 0.0
+  """Probability that an env starts its episode already moving at its sampled
+  planar command velocity. Applied on reset only."""
 
   @dataclass
   class Ranges:

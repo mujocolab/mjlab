@@ -263,6 +263,7 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
     self._queued_spheres: list = []
     self._queued_cylinders: list = []
     self._queued_ellipsoids: list = []
+    self._queued_boxes: list = []
 
     # Batched mesh handles for simple primitives.
     def _shaft_mesh() -> trimesh.Trimesh:
@@ -287,12 +288,19 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
       "ellipsoids",
       lambda: trimesh.creation.icosphere(subdivisions=2, radius=1.0),
     )
+    # Unit half-extents so that scaling by the box size yields the requested
+    # half-extents (extents=2 spans -1 to 1 along each axis).
+    self._boxes = _BatchedPrimitive(
+      "boxes",
+      lambda: trimesh.creation.box(extents=(2.0, 2.0, 2.0)),
+    )
     self._all_primitives = [
       self._arrow_shafts,
       self._arrow_heads,
       self._spheres,
       self._cylinders,
       self._ellipsoids,
+      self._boxes,
     ]
 
     # Ghost mesh state.
@@ -482,7 +490,9 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
         batch_count = len(variant.env_ids)
         lod_ratio = 1000.0 / variant.mesh.vertices.shape[0]
         suffix = f"/sub{variant.sub_idx}" if variant.sub_idx > 0 else ""
-        visible = variant.group_id < 6 and self.geom_groups_visible[variant.group_id]
+        visible = (
+          0 <= variant.group_id < 6 and self.geom_groups_visible[variant.group_id]
+        )
 
         handle = self.server.scene.add_batched_meshes_trimesh(
           f"/bodies/{variant.body_name}/group{variant.group_id}"
@@ -700,7 +710,7 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
       body_xquat = vtf.SO3.from_matrix(body_xmat).wxyz
       for mg in self._mesh_groups:
         if isinstance(mg, _PerWorldMeshGroup):
-          visible = mg.group_id < 6 and self.geom_groups_visible[mg.group_id]
+          visible = 0 <= mg.group_id < 6 and self.geom_groups_visible[mg.group_id]
           if visible and any(body_id in hidden_bodies for body_id in mg.body_ids):
             visible = False
           if not visible:
@@ -956,12 +966,34 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
     )
 
   @override
+  def add_box(
+    self,
+    center: np.ndarray | torch.Tensor,
+    size: np.ndarray | torch.Tensor,
+    mat: np.ndarray | torch.Tensor,
+    color: tuple[float, float, float, float],
+    label: str | None = None,
+  ) -> None:
+    if not self.debug_visualization_enabled:
+      return
+    del label
+    self._queued_boxes.append(
+      (
+        np.asarray(_to_numpy(center), dtype=np.float32).copy(),
+        np.asarray(_to_numpy(size), dtype=np.float32).copy(),
+        np.asarray(_to_numpy(mat), dtype=np.float32).reshape(3, 3).copy(),
+        color,
+      )
+    )
+
+  @override
   def clear(self) -> None:
     """Clear all debug visualization queues."""
     self._queued_arrows.clear()
     self._queued_spheres.clear()
     self._queued_cylinders.clear()
     self._queued_ellipsoids.clear()
+    self._queued_boxes.clear()
     self._queued_ghosts.clear()
 
   def clear_debug_all(self) -> None:
@@ -1039,6 +1071,7 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
     self._sync_spheres()
     self._sync_cylinders()
     self._sync_ellipsoids()
+    self._sync_boxes()
 
   def _sync_spheres(self) -> None:
     if not self._queued_spheres:
@@ -1116,6 +1149,32 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
       colors[i] = _color_uint8(color)
       opacity = color[3]
     self._ellipsoids.sync(
+      self.server,
+      self.env_idx,
+      positions,
+      wxyzs,
+      scales,
+      colors,
+      opacity,
+    )
+
+  def _sync_boxes(self) -> None:
+    if not self._queued_boxes:
+      self._boxes.remove()
+      return
+    n = len(self._queued_boxes)
+    positions = np.zeros((n, 3), dtype=np.float32)
+    wxyzs = np.zeros((n, 4), dtype=np.float32)
+    scales = np.zeros((n, 3), dtype=np.float32)
+    colors = np.zeros((n, 3), dtype=np.uint8)
+    opacity = 1.0
+    for i, (center, size, mat, color) in enumerate(self._queued_boxes):
+      positions[i] = center + self._scene_offset
+      wxyzs[i] = vtf.SO3.from_matrix(mat).wxyz
+      scales[i] = size
+      colors[i] = _color_uint8(color)
+      opacity = color[3]
+    self._boxes.sync(
       self.server,
       self.env_idx,
       positions,

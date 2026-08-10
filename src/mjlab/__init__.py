@@ -1,5 +1,15 @@
 import os
 import sys
+
+# Default to EGL for GPU-accelerated offscreen rendering on Linux. Must be set
+# before any mujoco import: mujoco's gl_context module captures MUJOCO_GL once
+# at load time. Override with e.g. MUJOCO_GL=osmesa on clusters without EGL.
+# Linux-only because mujoco's gl_context rejects "egl" on macOS/Windows and
+# raises at import. On those platforms we leave MUJOCO_GL alone so mujoco
+# defaults to GLFW.
+if sys.platform.startswith("linux"):
+  os.environ.setdefault("MUJOCO_GL", "egl")
+
 import traceback
 from importlib.metadata import entry_points
 from pathlib import Path

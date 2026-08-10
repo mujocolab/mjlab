@@ -17,6 +17,7 @@ from mjlab.sensor import (
   RayCastSensorCfg,
   RingPatternCfg,
 )
+from mjlab.sensor.raycast_sensor import _geom_groups_to_vec6
 from mjlab.sim import MujocoCfg, SimulationCfg
 
 
@@ -936,7 +937,7 @@ def test_multi_frame_body_exclusion(device):
   should skip body_b's own geom but HIT body_a's platform. Frame A's
   rays should skip body_a and hit the floor.
   """
-  xml = """
+  body_a_xml = """
     <mujoco>
       <worldbody>
         <geom name="floor" type="plane" size="10 10 0.1" pos="0 0 0"/>
@@ -945,6 +946,12 @@ def test_multi_frame_body_exclusion(device):
           <geom name="geom_a" type="box" size="2 2 0.1" mass="5.0"/>
           <site name="site_a" pos="0 0 0"/>
         </body>
+      </worldbody>
+    </mujoco>
+  """
+  body_b_xml = """
+    <mujoco>
+      <worldbody>
         <body name="body_b" pos="0 0 3">
           <freejoint name="free_b"/>
           <geom name="geom_b" type="box" size="0.5 0.5 0.5" mass="5.0"/>
@@ -957,15 +964,17 @@ def test_multi_frame_body_exclusion(device):
   cfg = RayCastSensorCfg(
     name="multi",
     frame=(
-      ObjRef(type="site", name="site_a", entity="robot"),
-      ObjRef(type="site", name="site_b", entity="robot"),
+      ObjRef(type="site", name="site_a", entity="body_a"),
+      ObjRef(type="site", name="site_b", entity="body_b"),
     ),
     pattern=GridPatternCfg(size=(0.0, 0.0), resolution=0.1),
     max_distance=10.0,
     exclude_parent_body=True,
   )
 
-  scene, sim = make_scene_and_sim(device, xml, (cfg,))
+  scene, sim = make_scene_and_sim(
+    device, {"body_a": body_a_xml, "body_b": body_b_xml}, (cfg,)
+  )
   sim.step()
   sim.sense()
 
@@ -1226,3 +1235,10 @@ def test_site_origin_is_physical_with_world_alignment(device):
 
   assert data.pos_w[0, 2].item() == pytest.approx(1.0, abs=0.1)
   assert data.distances[0, 0].item() == pytest.approx(1.0, abs=0.1)
+
+
+@pytest.mark.parametrize("groups", [(6,), (-1,), (0, 7)])
+def test_include_geom_groups_out_of_range_raises(groups):
+  """Out-of-range geom groups should raise rather than silently exclude."""
+  with pytest.raises(ValueError, match="include_geom_groups must be in"):
+    _geom_groups_to_vec6(groups)

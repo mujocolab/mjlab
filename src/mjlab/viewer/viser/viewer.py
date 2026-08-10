@@ -204,7 +204,11 @@ class ViserPlayViewer(BaseViewer):
       self._scene.create_overlay_gui()
 
     self._term_overlays = ViserTermOverlays(
-      self._server, self.env, self._scene, self.frame_time
+      self._server,
+      self.env,
+      self._scene,
+      self.frame_time,
+      reward_bar_max_terms=self.cfg.reward_bar_max_terms,
     )
     self._term_overlays.setup_tabs(tabs)
     self._debug_overlays = ViserDebugOverlays(self.env, self._scene)

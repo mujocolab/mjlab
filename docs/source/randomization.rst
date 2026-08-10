@@ -87,6 +87,10 @@ and ``dr.body_ipos`` are the same function).
      - ``geom_size``
      - Geom-specific size parameters (radius, half-lengths, etc.)
      - Automatically recomputes ``geom_rbound`` and ``geom_aabb``
+   * - ``dr.geom_matid``
+     - ``geom_matid``
+     - Which baked material the geom renders with
+     - Samples uniformly from ``asset_cfg.material_names``
 
 .. rubric:: Body fields
 
@@ -215,6 +219,30 @@ and ``dr.body_ipos`` are the same function).
      - ``light_dir``
      - Light direction vector
      -
+   * - ``dr.light_diffuse``
+     - ``light_diffuse``
+     - Diffuse RGB color
+     -
+   * - ``dr.light_specular``
+     - ``light_specular``
+     - Specular RGB color
+     -
+   * - ``dr.light_ambient``
+     - ``light_ambient``
+     - Ambient RGB color
+     -
+   * - ``dr.light_attenuation``
+     - ``light_attenuation``
+     - Constant, linear, and quadratic attenuation coefficients
+     -
+   * - ``dr.light_cutoff``
+     - ``light_cutoff``
+     - Spot light half-cone angle in degrees
+     - Ignored for directional lights
+   * - ``dr.light_exponent``
+     - ``light_exponent``
+     - Spot light angular falloff exponent
+     - Ignored for directional lights
 
 .. rubric:: Material fields
 
@@ -230,6 +258,28 @@ and ``dr.body_ipos`` are the same function).
      - ``mat_rgba``
      - Material RGBA color (tints textures)
      -
+   * - ``dr.mat_emission``
+     - ``mat_emission``
+     - Self-illumination multiplier
+     - Used by MuJoCo Warp RGB rendering
+   * - ``dr.mat_specular``
+     - ``mat_specular``
+     - Specular reflection strength in ``[0, 1]``
+     - Scales the MuJoCo Warp RGB specular component
+   * - ``dr.mat_shininess``
+     - ``mat_shininess``
+     - Surface shininess in ``[0, 1]``
+     - Used by MuJoCo Warp RGB rendering
+   * - ``dr.mat_texrepeat``
+     - ``mat_texrepeat``
+     - Texture repeat in the S/T directions
+     - Only affects textured materials; values should stay positive
+   * - ``dr.mat_texid``
+     - ``mat_texid``
+     - Texture assigned to a material's ``mjtTextureRole`` slot (RGB by
+       default)
+     - Samples uniformly from ``asset_cfg.texture_names``. Use ``role`` to
+       target a different texture role.
 
 .. rubric:: Contact pair fields
 
@@ -750,11 +800,6 @@ do not have one yet. They will be added as demand arises.
      - ``actuator_dynprm``, ``actuator_gear``,
        ``actuator_ctrlrange``, ``actuator_actrange``
      - ``pd_gains`` and ``effort_limits`` cover common cases.
-   * - Material
-     - ``mat_texrepeat``
-     - Continuous per-world field. Material-level entity indexing
-       is now supported (see ``dr.mat_rgba``), but ``dr.mat_texrepeat``
-       is not yet implemented.
 
 Better as custom code
 """""""""""""""""""""
@@ -806,10 +851,6 @@ per-environment values.
    * - Category
      - Field(s)
      - Notes
-   * - Material / texture swapping
-     - ``geom_matid``, ``mat_texid``
-     - Integer IDs that need a swapping API, not continuous
-       sampling. Requires material-level entity indexing.
    * - Mesh
      - ``mesh_vert``, ``mesh_normal``, ``mesh_face``, etc.
      - Shape variation for manipulation objects. These fields
@@ -1035,9 +1076,11 @@ Friction (reset)
 
     robot_collision = CollisionCfg(
         geom_names_expr=[".*_foot.*"],
+        contype=1,
+        conaffinity=1,
+        condim=3,
         priority=1,
         friction=(0.6,),
-        condim=3,
     )
 
 
@@ -1232,7 +1275,8 @@ The three recomputation levels, from cheapest to most expensive:
      - After changing ``body_gravcomp``
    * - ``set_const_0``
      - ``dof_invweight0``, ``body_invweight0``, ``tendon_length0``,
-       ``tendon_invweight0``, plus camera and light references
+       ``tendon_invweight0``, ``actuator_acc0``, plus camera and light
+       references
      - After changing ``dof_armature``, ``tendon_armature``,
        ``body_inertia``, ``body_pos``, ``body_quat``, or ``qpos0``
    * - ``set_const``
@@ -1317,15 +1361,19 @@ The native viewer syncs per-world model fields from the GPU to a local
 ``MjModel`` before each render. All of MuJoCo's built-in visualization
 toggles then work correctly against the randomized model:
 
-- Geom appearance (``geom_rgba``, ``geom_size``, ``geom_pos``, ``geom_quat``)
-- Material color (``mat_rgba``): tints textured surfaces
+- Geom appearance (``geom_rgba``, ``geom_size``, ``geom_pos``, ``geom_quat``,
+  ``geom_matid``)
+- Material appearance (``mat_rgba``, ``mat_emission``, ``mat_specular``,
+  ``mat_shininess``, ``mat_texrepeat``, ``mat_texid``)
 - Body and site poses (``body_pos``, ``body_quat``, ``body_ipos``,
   ``site_pos``, ``site_quat``)
 - Inertia (``body_inertia``, ``body_iquat``, ``body_mass``): press ``I``
   to toggle inertia boxes
 - Camera parameters (``cam_pos``, ``cam_quat``, ``cam_fovy``,
   ``cam_intrinsic``): press ``Q`` to toggle camera frustums
-- Lights (``light_pos``, ``light_dir``)
+- Lights (``light_pos``, ``light_dir``, ``light_diffuse``, ``light_specular``,
+  ``light_ambient``, ``light_attenuation``, ``light_cutoff``,
+  ``light_exponent``)
 
 .. grid:: 2
 
@@ -1368,12 +1416,13 @@ world-space positions directly from GPU simulation data (``cam_xpos``,
 
 .. note::
 
-   ``geom_rgba`` and ``geom_size`` DR are **not** reflected in viser. Geom
-   colors and sizes are baked into the scene's GLB meshes at construction
-   time. The underlying viser API (``add_batched_meshes_simple``) supports
-   per-instance color updates via ``batched_colors``, but this requires
-   routing color-only geoms through a different handle type than the current
-   ``add_batched_meshes_trimesh`` path. Deferred for a future update.
+   ``geom_rgba``, ``geom_size`` and ``mat_texid`` DR are **not** reflected
+   in viser. Geom colors, sizes and textures are baked into the scene's
+   GLB meshes at construction time. The underlying viser API
+   (``add_batched_meshes_simple``) supports per-instance color updates via
+   ``batched_colors``, but this requires routing color-only geoms through
+   a different handle type than the current ``add_batched_meshes_trimesh``
+   path. Deferred for a future update.
 
 
 Migrating from Isaac Lab

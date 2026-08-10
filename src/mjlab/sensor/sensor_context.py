@@ -119,6 +119,11 @@ class SensorContext:
     """Post-graph: compute raycast hit positions."""
     for sensor in self.raycast_sensors:
       sensor.postprocess_rays()
+    # Fresh render results: drop camera data cached by a pre-sense read so
+    # observations serve this step's frames (mirrors the raycast
+    # invalidation in postprocess_rays).
+    for sensor in self.camera_sensors:
+      sensor._invalidate_cache()
 
   def get_rgb(self, cam_idx: int) -> torch.Tensor:
     """Get unpacked RGB data for a camera.
@@ -325,6 +330,8 @@ class SensorContext:
         cam_active=cam_active,
         use_precomputed_rays=not self._disable_precomputed_rays,
         render_seg=render_seg,
+        render_skybox=True,
+        background_color=(0.0, 0.0, 0.0, 1.0),
       )
 
     # Cache address arrays from the render context. An adr value of -1 means that data

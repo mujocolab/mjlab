@@ -106,17 +106,25 @@ def initialize_entity(entity: Entity, device: str, num_envs: int = 1):
 
 def make_scene_and_sim(
   device: str,
-  xml: str,
+  xml: str | dict[str, str],
   sensors: tuple,
   num_envs: int = 1,
   sim_cfg: SimulationCfg | None = None,
 ) -> tuple[Scene, Simulation]:
-  """Create a scene and simulation from inline XML with sensors wired up."""
-  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(xml))
+  """Create a scene and simulation from inline XML with sensors wired up.
+
+  ``xml`` may be a single XML string (registered as the ``robot`` entity) or a
+  mapping of entity name to XML string for multi-entity scenes.
+  """
+  xml_by_entity = {"robot": xml} if isinstance(xml, str) else xml
+  entities = {
+    name: EntityCfg(spec_fn=lambda s=s: mujoco.MjSpec.from_string(s))
+    for name, s in xml_by_entity.items()
+  }
   scene_cfg = SceneCfg(
     num_envs=num_envs,
     env_spacing=5.0,
-    entities={"robot": entity_cfg},
+    entities=entities,
     sensors=sensors,
   )
   scene = Scene(scene_cfg, device)

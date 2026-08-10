@@ -58,7 +58,7 @@ def mock_env() -> Mock:
 def manager_and_term(mock_env: Mock) -> tuple[RecorderManager, _CountingRecorder]:
   cfg = {"recorder": RecorderTermCfg(func=_CountingRecorder, params={})}
   manager = RecorderManager(cfg, mock_env)
-  term = manager._terms[0]
+  term = manager.get_term("recorder")
   assert isinstance(term, _CountingRecorder)
   return manager, term
 
@@ -235,7 +235,8 @@ def test_close_propagates_to_all_terms(mock_env: Mock) -> None:
     "b": RecorderTermCfg(func=_CountingRecorder, params={}),
   }
   manager = RecorderManager(cfg, mock_env)
-  term_a, term_b = manager._terms
+  term_a = manager.get_term("a")
+  term_b = manager.get_term("b")
   assert isinstance(term_a, _CountingRecorder)
   assert isinstance(term_b, _CountingRecorder)
 
@@ -271,7 +272,8 @@ def test_multiple_terms_have_independent_state(mock_env: Mock) -> None:
     "b": RecorderTermCfg(func=_CountingRecorder, params={}),
   }
   manager = RecorderManager(cfg, mock_env)
-  term_a, term_b = manager._terms
+  term_a = manager.get_term("a")
+  term_b = manager.get_term("b")
   assert isinstance(term_a, _CountingRecorder)
   assert isinstance(term_b, _CountingRecorder)
 
@@ -313,7 +315,7 @@ def test_function_based_term_raises(mock_env: Mock) -> None:
 def test_cfg_params_accessible_on_term(mock_env: Mock) -> None:
   cfg = {"t": RecorderTermCfg(func=_CountingRecorder, params={"path": "/tmp/out.csv"})}
   manager = RecorderManager(cfg, mock_env)
-  term = manager._terms[0]
+  term = manager.get_term("t")
   assert isinstance(term, _CountingRecorder)
   assert term.cfg.params["path"] == "/tmp/out.csv"
 
@@ -338,6 +340,44 @@ def test_null_recorder_manager_no_ops() -> None:
   manager.record_post_step()
   manager.close()
   assert manager.active_terms == []
+
+
+# Public term lookup.
+
+
+def test_get_term_returns_registered_instance(mock_env: Mock) -> None:
+  """get_term returns the live term the manager dispatches to, not a copy."""
+  cfg = {"recorder": RecorderTermCfg(func=_CountingRecorder, params={})}
+  manager = RecorderManager(cfg, mock_env)
+  term = manager.get_term("recorder")
+  assert isinstance(term, _CountingRecorder)
+  manager.record_post_step()
+  # The instance returned by get_term is the same one the manager dispatches to.
+  assert term.post_step_count == 1
+
+
+def test_get_term_missing_raises(mock_env: Mock) -> None:
+  """get_term raises KeyError when the requested term name is not registered."""
+  cfg = {"recorder": RecorderTermCfg(func=_CountingRecorder, params={})}
+  manager = RecorderManager(cfg, mock_env)
+  with pytest.raises(KeyError, match="missing"):
+    manager.get_term("missing")
+
+
+def test_contains_for_recorder_manager(mock_env: Mock) -> None:
+  """`in` reflects whether a term name is registered on the manager."""
+  cfg = {"recorder": RecorderTermCfg(func=_CountingRecorder, params={})}
+  manager = RecorderManager(cfg, mock_env)
+  assert "recorder" in manager
+  assert "other" not in manager
+
+
+def test_contains_and_get_term_for_null_manager() -> None:
+  """NullRecorderManager has no terms: `in` is always False and get_term raises."""
+  manager = NullRecorderManager()
+  assert "anything" not in manager
+  with pytest.raises(KeyError):
+    manager.get_term("anything")
 
 
 def test_base_term_all_hooks_are_no_ops(mock_env: Mock) -> None:

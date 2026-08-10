@@ -182,7 +182,8 @@ modify the ``MjSpec`` before compilation:
    * - Field
      - Purpose
    * - ``collisions``
-     - Set contact parameters (contype, conaffinity, friction) per geom.
+     - Replace the entity's collision structure: which geoms collide, and
+       with what contact parameters.
    * - ``lights``
      - Add lights to specific bodies.
    * - ``cameras``
@@ -191,11 +192,25 @@ modify the ``MjSpec`` before compilation:
      - Add procedural textures (checker, gradient, etc.).
    * - ``materials``
      - Add materials and optionally assign them to geoms by regex.
+   * - ``geoms``
+     - Patch attributes of existing geoms (visualization group, collision
+       attributes). Unset attributes are left untouched.
 
 Each editor accepts regex patterns to target specific elements. For
 example, a ``CollisionCfg`` with ``geom_names_expr=(".*_foot.*",)``
 sets contact parameters only on foot geoms. See the asset zoo
 (``mjlab.asset_zoo.robots``) for complete examples.
+
+``geoms`` and ``collisions`` both write geom attributes but with
+different semantics. A ``GeomCfg`` is a sparse *patch*: every attribute
+defaults to ``None``, and only attributes you set are written. A
+``CollisionCfg`` is a *policy*: ``contype``, ``conaffinity``,
+``condim``, and ``priority`` are required and always written to every
+matched geom, and non-matched geoms have collision disabled by default,
+so the entity's contact behavior is fully determined by the config
+regardless of the source XML. Collision configs are applied after geom
+configs; mjlab warns if a ``GeomCfg`` sets a collision attribute that a
+``CollisionCfg`` then overwrites.
 
 Heterogeneous worlds
 ^^^^^^^^^^^^^^^^^^^^

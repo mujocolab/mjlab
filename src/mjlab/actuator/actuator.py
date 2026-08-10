@@ -6,7 +6,7 @@ import dataclasses
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Generic, Literal, TypeVar
+from typing import TYPE_CHECKING, ClassVar, Generic, Literal, TypeVar
 
 import mujoco
 import mujoco_warp as mjwarp
@@ -148,8 +148,57 @@ class ActuatorCmd:
   """Current velocities (joint velocities, tendon velocities, or site velocities)."""
 
 
+def delay_command(
+  buffer: DelayBuffer,
+  position_target: torch.Tensor,
+  velocity_target: torch.Tensor,
+  effort_target: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+  """Delay the three command-target fields through one shared channel.
+
+  Every target the policy issues (position, velocity, effort) travels the same
+  command bus and incurs the same latency, so they are stacked and delayed
+  together by a single DelayBuffer. Feedback (pos, vel) is never delayed. Shared
+  by Actuator.apply_delay and the fused group so the command-delay semantics
+  live in exactly one place.
+
+  Args:
+    buffer: The delay buffer to append to and read the delayed command from.
+    position_target: Position targets, shape (num_envs, num_targets).
+    velocity_target: Velocity targets, shape (num_envs, num_targets).
+    effort_target: Feedforward effort targets, shape (num_envs, num_targets).
+
+  Returns:
+    The delayed (position_target, velocity_target, effort_target) tuple.
+  """
+  stacked = torch.stack((position_target, velocity_target, effort_target), dim=-1)
+  buffer.append(stacked)
+  delayed = buffer.compute()
+  return delayed[..., 0], delayed[..., 1], delayed[..., 2]
+
+
 class Actuator(ABC, Generic[ActuatorCfgT]):
   """Base actuator interface."""
+
+  # Fusion contract. An actuator whose control output is a stateless function of
+  # per-target parameters and the command implements control_law over the
+  # parameter tensors named in param_names, and applies it through the shared
+  # compute (see IdealPdActuator). Such actuators are fused automatically (see
+  # mjlab.actuator.fused_group). Actuators with a custom compute (built-ins, XML,
+  # learned networks) are not fused; they need no opt-out flag, since overriding
+  # compute is itself the signal.
+  param_names: ClassVar[tuple[str, ...]] = ()
+
+  @staticmethod
+  def control_law(params: dict[str, torch.Tensor], cmd: ActuatorCmd) -> torch.Tensor:
+    """Stateless control law over per-target parameters.
+
+    params maps each name in param_names to its tensor of shape
+    (num_envs, num_targets); for a fused group these are the concatenated
+    tensors. Returns the control signal of the same trailing shape. Implemented
+    by stateless-law actuator types.
+    """
+    raise NotImplementedError
 
   def __init__(
     self,
@@ -173,15 +222,6 @@ class Actuator(ABC, Generic[ActuatorCfgT]):
   def has_delay(self) -> bool:
     """Whether this actuator has delay configured."""
     return self.cfg.delay_max_lag > 0
-
-  @property
-  def command_field(self) -> CommandField | None:
-    """The primary command field this actuator consumes.
-
-    Returns None by default. Subclasses should override to return the
-    appropriate field.
-    """
-    return None
 
   @property
   def target_ids(self) -> torch.Tensor:
@@ -271,11 +311,6 @@ class Actuator(ABC, Generic[ActuatorCfgT]):
     """Create delay buffer. Called during initialize()."""
     if not self.has_delay:
       return
-    if self.command_field is None:
-      raise ValueError(
-        f"{self.__class__.__name__}: delay is configured (delay_max_lag="
-        f"{self.cfg.delay_max_lag}) but command_field is not defined."
-      )
     self._delay_buffer = DelayBuffer(
       min_lag=self.cfg.delay_min_lag,
       max_lag=self.cfg.delay_max_lag,
@@ -287,19 +322,26 @@ class Actuator(ABC, Generic[ActuatorCfgT]):
     )
 
   def apply_delay(self, cmd: ActuatorCmd) -> ActuatorCmd:
-    """Apply delay to the command_field target. No-op without delay."""
+    """Delay all command targets with one shared lag. No-op without delay.
+
+    Every target the policy issues (position, velocity, effort) travels the same
+    command channel and experiences the same latency, so they are stacked and
+    delayed together. Feedback fields (``pos``, ``vel``) are never delayed.
+    """
     if self._delay_buffer is None:
       return cmd
-    cf = self.command_field
-    if cf == "position":
-      self._delay_buffer.append(cmd.position_target)
-      return dataclasses.replace(cmd, position_target=self._delay_buffer.compute())
-    elif cf == "velocity":
-      self._delay_buffer.append(cmd.velocity_target)
-      return dataclasses.replace(cmd, velocity_target=self._delay_buffer.compute())
-    else:
-      self._delay_buffer.append(cmd.effort_target)
-      return dataclasses.replace(cmd, effort_target=self._delay_buffer.compute())
+    position_target, velocity_target, effort_target = delay_command(
+      self._delay_buffer,
+      cmd.position_target,
+      cmd.velocity_target,
+      cmd.effort_target,
+    )
+    return dataclasses.replace(
+      cmd,
+      position_target=position_target,
+      velocity_target=velocity_target,
+      effort_target=effort_target,
+    )
 
   def set_lags(
     self,

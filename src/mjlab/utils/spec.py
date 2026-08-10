@@ -120,6 +120,34 @@ _TRANSMISSION_TYPE_MAP = {
 }
 
 
+def apply_target_overrides(
+  spec: mujoco.MjSpec,
+  target_name: str,
+  transmission_type: TransmissionType,
+  *,
+  armature: float | None,
+  frictionloss: float | None,
+  viscous_damping: float | None,
+) -> None:
+  """Apply joint- or tendon-level overrides. ``None`` preserves the XML value.
+
+  SITE transmission is a no-op (sites have no armature / frictionloss / damping);
+  callers using SITE should not pass non-None overrides.
+  """
+  if transmission_type == TransmissionType.JOINT:
+    target = spec.joint(target_name)
+  elif transmission_type == TransmissionType.TENDON:
+    target = spec.tendon(target_name)
+  else:
+    return
+  if armature is not None:
+    target.armature = armature
+  if frictionloss is not None:
+    target.frictionloss = frictionloss
+  if viscous_damping is not None:
+    target.damping[0] = viscous_damping
+
+
 def auto_wrap_fixed_base_mocap(
   spec_fn: Callable[[], mujoco.MjSpec],
 ) -> Callable[[], mujoco.MjSpec]:
@@ -192,12 +220,6 @@ def get_free_joint(spec: mujoco.MjSpec) -> mujoco.MjsJoint | None:
   return joint
 
 
-def disable_collision(geom: mujoco.MjsGeom) -> None:
-  """Disables collision for a geom."""
-  geom.contype = 0
-  geom.conaffinity = 0
-
-
 def is_joint_limited(jnt: mujoco.MjsJoint) -> bool:
   """Returns True if a joint is limited."""
   match jnt.limited:
@@ -235,21 +257,14 @@ def create_motor_actuator(
   actuator.ctrllimited = True
   actuator.ctrlrange[:] = np.array([-effort_limit, effort_limit])
 
-  # Set armature, frictionloss, and viscous_damping (None = preserve XML value).
-  if transmission_type == TransmissionType.JOINT:
-    if armature is not None:
-      spec.joint(joint_name).armature = armature
-    if frictionloss is not None:
-      spec.joint(joint_name).frictionloss = frictionloss
-    if viscous_damping is not None:
-      spec.joint(joint_name).damping[0] = viscous_damping
-  elif transmission_type == TransmissionType.TENDON:
-    if armature is not None:
-      spec.tendon(joint_name).armature = armature
-    if frictionloss is not None:
-      spec.tendon(joint_name).frictionloss = frictionloss
-    if viscous_damping is not None:
-      spec.tendon(joint_name).damping[0] = viscous_damping
+  apply_target_overrides(
+    spec,
+    joint_name,
+    transmission_type,
+    armature=armature,
+    frictionloss=frictionloss,
+    viscous_damping=viscous_damping,
+  )
 
   return actuator
 
@@ -265,14 +280,21 @@ def create_position_actuator(
   frictionloss: float | None = None,
   viscous_damping: float | None = None,
   transmission_type: TransmissionType = TransmissionType.JOINT,
+  actuator_name: str | None = None,
 ) -> mujoco.MjsActuator:
   """Creates a <position> actuator.
 
   An important note about this actuator is that we set `ctrllimited` to False. This is
   because we want to allow the policy to output setpoints that are outside the kinematic
   limits of the joint.
+
+  ``actuator_name`` defaults to ``joint_name``; pass a distinct value when multiple
+  actuators target the same joint (e.g. paired position+velocity elements).
   """
-  actuator = spec.add_actuator(name=joint_name, target=joint_name)
+  actuator = spec.add_actuator(
+    name=actuator_name if actuator_name is not None else joint_name,
+    target=joint_name,
+  )
 
   actuator.trntype = _TRANSMISSION_TYPE_MAP[transmission_type]
   actuator.dyntype = mujoco.mjtDyn.mjDYN_NONE
@@ -314,21 +336,14 @@ def create_position_actuator(
     actuator.forcelimited = False
     # No forcerange needed.
 
-  # Set armature, frictionloss, and viscous_damping (None = preserve XML value).
-  if transmission_type == TransmissionType.JOINT:
-    if armature is not None:
-      spec.joint(joint_name).armature = armature
-    if frictionloss is not None:
-      spec.joint(joint_name).frictionloss = frictionloss
-    if viscous_damping is not None:
-      spec.joint(joint_name).damping[0] = viscous_damping
-  elif transmission_type == TransmissionType.TENDON:
-    if armature is not None:
-      spec.tendon(joint_name).armature = armature
-    if frictionloss is not None:
-      spec.tendon(joint_name).frictionloss = frictionloss
-    if viscous_damping is not None:
-      spec.tendon(joint_name).damping[0] = viscous_damping
+  apply_target_overrides(
+    spec,
+    joint_name,
+    transmission_type,
+    armature=armature,
+    frictionloss=frictionloss,
+    viscous_damping=viscous_damping,
+  )
 
   return actuator
 
@@ -343,14 +358,21 @@ def create_velocity_actuator(
   frictionloss: float | None = None,
   viscous_damping: float | None = None,
   transmission_type: TransmissionType = TransmissionType.JOINT,
+  actuator_name: str | None = None,
 ) -> mujoco.MjsActuator:
   """Creates a <velocity> actuator.
 
   Control inputs are not clamped so that velocity commands work for any joint,
   including continuous joints that have no range defined. Force output is still
   bounded when effort_limit is set.
+
+  ``actuator_name`` defaults to ``joint_name``; pass a distinct value when multiple
+  actuators target the same joint (e.g. paired position+velocity elements).
   """
-  actuator = spec.add_actuator(name=joint_name, target=joint_name)
+  actuator = spec.add_actuator(
+    name=actuator_name if actuator_name is not None else joint_name,
+    target=joint_name,
+  )
 
   actuator.trntype = _TRANSMISSION_TYPE_MAP[transmission_type]
   actuator.dyntype = mujoco.mjtDyn.mjDYN_NONE
@@ -369,21 +391,14 @@ def create_velocity_actuator(
   else:
     actuator.forcelimited = False
 
-  # Set armature, frictionloss, and viscous_damping (None = preserve XML value).
-  if transmission_type == TransmissionType.JOINT:
-    if armature is not None:
-      spec.joint(joint_name).armature = armature
-    if frictionloss is not None:
-      spec.joint(joint_name).frictionloss = frictionloss
-    if viscous_damping is not None:
-      spec.joint(joint_name).damping[0] = viscous_damping
-  elif transmission_type == TransmissionType.TENDON:
-    if armature is not None:
-      spec.tendon(joint_name).armature = armature
-    if frictionloss is not None:
-      spec.tendon(joint_name).frictionloss = frictionloss
-    if viscous_damping is not None:
-      spec.tendon(joint_name).damping[0] = viscous_damping
+  apply_target_overrides(
+    spec,
+    joint_name,
+    transmission_type,
+    armature=armature,
+    frictionloss=frictionloss,
+    viscous_damping=viscous_damping,
+  )
 
   return actuator
 

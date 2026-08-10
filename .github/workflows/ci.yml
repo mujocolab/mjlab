@@ -28,39 +28,53 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           enable-cache: true
-          version: "0.9.27"
+          version: "0.12.1"
       - name: Run lint
-        run: uvx ruff@0.14.14 check --diff
+        run: uvx ruff@0.16.1 check --diff
       - name: Run format
-        run: uvx ruff@0.14.14 format --diff
+        run: uvx ruff@0.16.1 format --diff
 
   tests:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
+        resolution: ["locked"]
+        # Also test against a fresh resolve of the latest compatible
+        # dependencies so a new upstream release breaks a PR instead of a
+        # release.
+        include:
+          - python-version: "3.13"
+            resolution: "unlocked"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
-          version: "0.9.27"
+          version: "0.12.1"
       - name: Restore Warp kernel cache
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/warp
-          key: warp-kernels-${{ runner.os }}-${{ runner.arch }}-${{ matrix.python-version }}-${{ hashFiles('uv.lock', 'mjlab/**/*.py') }}
+          key: warp-kernels-${{ runner.os }}-${{ runner.arch }}-${{ matrix.python-version }}-${{ matrix.resolution }}-${{ hashFiles('uv.lock', 'mjlab/**/*.py') }}
           restore-keys: |
-            warp-kernels-${{ runner.os }}-${{ runner.arch }}-${{ matrix.python-version }}-
-      - name: Test with python ${{ matrix.python-version }}
+            warp-kernels-${{ runner.os }}-${{ runner.arch }}-${{ matrix.python-version }}-${{ matrix.resolution }}-
+      - name: Test with python ${{ matrix.python-version }} (locked deps)
+        if: matrix.resolution == 'locked'
         run: uv run --extra cpu pytest
+      - name: Test with python ${{ matrix.python-version }} (latest deps)
+        if: matrix.resolution == 'unlocked'
+        env:
+          UV_FROZEN: "0"
+        run: uv run --extra cpu --upgrade pytest
 
   pyright:
     runs-on: ubuntu-latest
@@ -68,13 +82,13 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
-          version: "0.9.27"
+          version: "0.12.1"
       - name: Test with python ${{ matrix.python-version }}
         run: uv run --extra cpu pyright
 
@@ -84,12 +98,59 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
-          version: "0.9.27"
+          version: "0.12.1"
       - name: Type check with python ${{ matrix.python-version }}
         run: uv run --extra cpu ty check
+
+  stubs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+          version: "0.12.1"
+      - name: Sync environment
+        run: uv sync --extra cpu
+      - name: Regenerate MuJoCo stubs
+        run: bash typings/generate_mujoco_stubs.sh
+      - name: Verify stubs are up to date
+        run: |
+          if ! git diff --exit-code typings/mujoco; then
+            echo "::error::MuJoCo type stubs are out of date. Run 'make stubs' and commit the result."
+            exit 1
+          fi
+
+  # Mirrors the release smoke test: build the artifacts and import mjlab from an
+  # isolated, freshly resolved install, so packaging and clean-install issues
+  # surface on the PR instead of at publish time.
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+          version: "0.12.1"
+      - name: Install Python 3.13
+        run: uv python install 3.13
+      - name: Build
+        run: uv build
+      # MUJOCO_GL=disable so `import mujoco` skips its GL backend import; the
+      # runner has no GL libraries and the smoke test does not render.
+      - name: Smoke test (wheel)
+        run: uv run --isolated --no-project --with dist/*.whl tests/smoke_test.py
+        env:
+          MUJOCO_GL: disable
+      - name: Smoke test (source distribution)
+        run: uv run --isolated --no-project --with dist/*.tar.gz tests/smoke_test.py
+        env:
+          MUJOCO_GL: disable

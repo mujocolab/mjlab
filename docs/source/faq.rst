@@ -42,6 +42,27 @@ Not all CUDA versions are supported by MuJoCo Warp.
 - **Recommended**: CUDA **12.4+** (for conditional execution support in CUDA
   graphs).
 
+How do I run on CPU without touching the GPU?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Passing ``device="cpu"`` puts all mjlab computation on the CPU, but it does
+**not** stop Warp from initializing the GPU. The first time Warp's runtime
+comes up, it eagerly enumerates and creates a CUDA context on **every**
+visible device, regardless of which device you requested. So on a machine
+with a visible GPU, a ``device="cpu"`` run still claims VRAM.
+
+This happens inside Warp and cannot be prevented from Python once the
+package is imported. To keep the process entirely off the GPU, hide the
+devices from CUDA before launching:
+
+.. code-block:: bash
+
+   CUDA_VISIBLE_DEVICES="" uv run train.py ...
+
+With no visible CUDA devices, Warp initializes CPU-only and never allocates
+on the GPU. See `issue #949
+<https://github.com/mujocolab/mjlab/issues/949>`_ for background.
+
 Performance
 -----------
 
@@ -197,12 +218,14 @@ derived quantities in ``mjData`` (``xpos``, ``xquat``, ``site_xpos``,
 ``cvel``, ``sensordata``, etc.) into a consistent state with the current
 ``qpos``/``qvel``.
 The environment's ``step()`` method calls it once per step, right before
-observation computation, so observations, commands, and interval events
-always see fresh derived quantities. Termination and reward managers run
+observation computation, so observations and commands always see fresh
+derived quantities. Termination, reward, and step/interval events run
 *before* this call and therefore see derived quantities that are stale by
 one physics substep, a deliberate tradeoff that avoids a second
 ``forward()`` call while keeping the MDP well-defined (the staleness is
-consistent across all envs and all steps).
+consistent across all envs and all steps). Because events run before the
+call, any state they write (e.g. a velocity push) is refreshed by it and
+visible to the same step's observations.
 
 The one case where this matters is if you write an event or command that
 both writes state and reads derived quantities in the same function. For

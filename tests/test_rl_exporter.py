@@ -6,6 +6,7 @@ import tempfile
 import mujoco
 import onnx
 import pytest
+import torch
 from conftest import get_test_device
 
 from mjlab.actuator import XmlActuatorCfg
@@ -39,6 +40,15 @@ def test_list_to_csv_str():
   # Test custom delimiter.
   result = list_to_csv_str([1.0, 2.0, 3.0], decimals=1, delimiter=";")
   assert result == "1.0;2.0;3.0"
+
+  # Test nested sequence entries (e.g. per-term clip ranges or vector scales):
+  # each entry is joined with the sub-delimiter so the outer delimiter stays
+  # unambiguous and round-trips via a plain split.
+  result = list_to_csv_str([[1.0, 2.0], 3.0, [4.0, 5.0]], decimals=1)
+  assert result == "1.0;2.0,3.0,4.0;5.0"
+  entries = result.split(",")
+  assert entries == ["1.0;2.0", "3.0", "4.0;5.0"]
+  assert entries[0].split(";") == ["1.0", "2.0"]
 
 
 def test_attach_metadata_to_onnx():
@@ -96,6 +106,47 @@ def test_attach_metadata_to_onnx():
     assert stiffness_values == [20.0, 10.0]  # Natural order: joint_a (20), joint_b (10)
 
 
+def test_attach_metadata_to_onnx_nested_clip_and_scale():
+  """Per-term clip ranges and vector scales must round-trip through a plain
+  comma split without corrupting neighboring entries."""
+  with tempfile.TemporaryDirectory() as tmpdir:
+    onnx_path = os.path.join(tmpdir, "test_policy.onnx")
+
+    input_tensor = onnx.helper.make_tensor_value_info(
+      "input", onnx.TensorProto.FLOAT, [1, 2]
+    )
+    output_tensor = onnx.helper.make_tensor_value_info(
+      "output", onnx.TensorProto.FLOAT, [1, 2]
+    )
+    node = onnx.helper.make_node("Identity", ["input"], ["output"])
+    graph = onnx.helper.make_graph(
+      [node], "test_graph", [input_tensor], [output_tensor]
+    )
+    model = onnx.helper.make_model(graph)
+    onnx.save(model, onnx_path)
+
+    metadata = {
+      "observation_terms_clip": [
+        [float("-inf"), float("inf")],
+        [-1.0, 1.0],
+        [float("-inf"), float("inf")],
+      ],
+      "observation_terms_scale": [1.0, [0.5, 1.2, 0.3], 2.0],
+    }
+    attach_metadata_to_onnx(onnx_path, metadata)
+
+    loaded_model = onnx.load(onnx_path)
+    metadata_props = {prop.key: prop.value for prop in loaded_model.metadata_props}
+
+    clip_entries = metadata_props["observation_terms_clip"].split(",")
+    assert clip_entries == ["-inf;inf", "-1.000;1.000", "-inf;inf"]
+    assert [float(x) for x in clip_entries[1].split(";")] == [-1.0, 1.0]
+
+    scale_entries = metadata_props["observation_terms_scale"].split(",")
+    assert scale_entries == ["1.000", "0.500;1.200;0.300", "2.000"]
+    assert [float(x) for x in scale_entries[1].split(";")] == [0.5, 1.2, 0.3]
+
+
 # Robot with 2 joints but only 1 actuator (underactuated).
 ROBOT_XML_UNDERACTUATED = """
 <mujoco>
@@ -145,7 +196,9 @@ def test_get_base_metadata_skips_non_actuated_joints(device):
       "actor": ObservationGroupCfg(
         terms={
           "joint_pos": ObservationTermCfg(
-            func=lambda env: env.scene["robot"].data.joint_pos
+            func=lambda env: env.scene["robot"].data.joint_pos,
+            history_length=5,
+            scale=2.0,
           ),
         },
       ),
@@ -179,5 +232,115 @@ def test_get_base_metadata_skips_non_actuated_joints(device):
   assert isinstance(damping_meta, list)
   assert len(stiffness_meta) == len(robot.spec.actuators)
   assert len(damping_meta) == len(robot.spec.actuators)
+
+  observation_names = metadata["observation_names"]
+  assert isinstance(observation_names, list)
+  assert "joint_pos" in observation_names
+
+  observation_terms_scale = metadata["observation_terms_scale"]
+  assert isinstance(observation_terms_scale, list)
+  assert len(observation_terms_scale) == len(observation_names)
+  assert observation_terms_scale[0] == 2.0
+
+  observation_history_length = metadata["observation_terms_history_length"]
+  assert isinstance(observation_history_length, list)
+  assert len(observation_history_length) == len(observation_names)
+  assert observation_history_length[0] == 5
+
+  observation_flatten_history_dim = metadata["observation_terms_flatten_history_dim"]
+  assert isinstance(observation_flatten_history_dim, list)
+  assert len(observation_flatten_history_dim) == len(observation_names)
+  # Default flatten_history_dim is 1.0 (True)
+  assert observation_flatten_history_dim[0] is True
+
+  observation_terms_clip = metadata["observation_terms_clip"]
+  assert isinstance(observation_terms_clip, list)
+  assert len(observation_terms_clip) == len(observation_names)
+  # Default clip is [-inf, inf]
+  assert observation_terms_clip[0] == [float("-inf"), float("inf")]
+
+  env.close()
+
+
+def test_get_base_metadata_multiple_terms_scale_clip(device):
+  """get_base_metadata preserves obs term ordering and handles scalar/vector tensor scale, tuple scale, and non-default clip."""
+  robot_cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML_UNDERACTUATED),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(XmlActuatorCfg(target_names_expr=(".*",)),)
+    ),
+  )
+
+  env_cfg = ManagerBasedRlEnvCfg(
+    scene=SceneCfg(
+      terrain=TerrainEntityCfg(terrain_type="plane"),
+      num_envs=1,
+      extent=1.0,
+      entities={"robot": robot_cfg},
+    ),
+    observations={
+      "actor": ObservationGroupCfg(
+        terms={
+          "joint_pos": ObservationTermCfg(
+            func=lambda env: env.scene["robot"].data.joint_pos,
+            scale=torch.tensor(
+              2.0
+            ),  # tensor scale -> should be converted via .tolist()
+            history_length=1,
+          ),
+          "joint_vel": ObservationTermCfg(
+            func=lambda env: env.scene["robot"].data.joint_vel,
+            scale=(0.5, 1.5),  # tuple scale -> stored as-is
+            clip=(-1.0, 1.0),  # non-default clip
+            history_length=1,
+          ),
+          "joint_pos_scaled": ObservationTermCfg(
+            func=lambda env: env.scene["robot"].data.joint_pos,
+            scale=torch.tensor([1.0, 2.0]),  # per-element tensor -> list of floats
+            history_length=1,
+          ),
+        },
+      ),
+    },
+    actions={
+      "joint_pos": mdp.JointPositionActionCfg(
+        entity_name="robot", actuator_names=(".*",), scale=1.0
+      )
+    },
+    sim=SimulationCfg(mujoco=MujocoCfg(timestep=0.01, iterations=1)),
+    decimation=1,
+    episode_length_s=1.0,
+  )
+
+  env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
+  metadata = get_base_metadata(env, run_path="dummy/run")
+
+  observation_names = metadata["observation_names"]
+  scales = metadata["observation_terms_scale"]
+  clips = metadata["observation_terms_clip"]
+  assert isinstance(observation_names, list)
+  assert isinstance(scales, list)
+  assert isinstance(clips, list)
+
+  # Terms appear in definition order.
+  assert observation_names == ["joint_pos", "joint_vel", "joint_pos_scaled"]
+
+  # Scalar tensor scale is unwrapped to a plain float.
+  assert scales[0] == 2.0
+
+  # Tuple scale is stored as list.
+  assert scales[1] == [0.5, 1.5]
+
+  # Per-element tensor scale is converted to a list of floats.
+  assert scales[2] == [1.0, 2.0]
+
+  # joint_pos has default clip.
+  assert clips[0] == [float("-inf"), float("inf")]
+
+  # joint_vel has explicit clip converted to list.
+  assert clips[1] == [-1.0, 1.0]
+
+  # joint_pos_scaled has default clip.
+  assert clips[2] == [float("-inf"), float("inf")]
 
   env.close()

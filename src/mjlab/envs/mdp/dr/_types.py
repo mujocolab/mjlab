@@ -22,12 +22,13 @@ class Operation:
   instances. Users can create custom operations by instantiating this class directly
   and passing them wherever an operation string is accepted.
 
-  The DR engine samples random values for each target axis, then writes the final
-  result as::
+  The DR engine samples random values for each target axis, then computes::
 
-      model_field[envs, entities] = operation.combine(base, random)
+      combined = operation.combine(base, random)
 
-  where ``base`` is either the compile-time default or the current model value,
+  and writes back only the targeted axes of ``combined`` (so events targeting
+  different axes of the same field compose instead of clobbering each other).
+  ``base`` is either the compile-time default or the current model value,
   depending on ``uses_defaults``.
 
   Args:

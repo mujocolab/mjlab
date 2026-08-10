@@ -113,3 +113,16 @@ def test_select_gpus_cpu_mode_empty_cuda_visible_devices():
   selected, num = select_gpus([0])
   assert selected is None
   assert num == 0
+
+
+def test_select_gpus_mig_uuids():
+  """Handles MIG GPU UUIDs in CUDA_VISIBLE_DEVICES."""
+  os.environ["CUDA_VISIBLE_DEVICES"] = "MIG-GPU-abc-123,MIG-GPU-def-456"
+
+  selected, num = select_gpus("all")
+  assert selected == ["MIG-GPU-abc-123", "MIG-GPU-def-456"]
+  assert num == 2
+
+  selected, num = select_gpus([0])
+  assert selected == ["MIG-GPU-abc-123"]
+  assert num == 1

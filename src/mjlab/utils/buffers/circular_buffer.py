@@ -187,6 +187,27 @@ class CircularBuffer:
     if self._buffer is not None:
       self._buffer[:, ids] = 0.0
 
+  def backfill(self, data: torch.Tensor, batch_ids: torch.Tensor) -> None:
+    """Fill the given rows' entire history with one frame, without advancing time.
+
+    Unlike append, the global pointer does not move and other rows are
+    untouched. Used after a partial reset: the reset rows get their first
+    post-reset frame in every slot (the same backfill their next append would
+    apply) while the remaining rows keep their history intact.
+
+    Args:
+      data: Tensor of shape (batch_size, ...); only rows at batch_ids are read.
+      batch_ids: Batch indices to backfill.
+    """
+    if data.shape[0] != self._batch_size:
+      raise ValueError(f"Expected batch size {self._batch_size}, got {data.shape[0]}")
+    if self._buffer is None:
+      raise RuntimeError("Buffer not initialized. Call append() first.")
+
+    data = data.to(self._device)
+    self._buffer[:, batch_ids] = data[batch_ids].unsqueeze(0)
+    self._num_pushes[batch_ids] = 1
+
   def append(self, data: torch.Tensor) -> None:
     """Append a new frame for all batch elements.
 
@@ -208,9 +229,11 @@ class CircularBuffer:
     self._buffer[self._pointer] = data
 
     # Backfill entire history with first frame for newly initialized batches.
+    # The condition and data are reshaped to broadcast against the buffer's
+    # (max_len, batch_size, ...) shape for data of any rank.
     is_first_push = self._num_pushes == 0
-    if torch.any(is_first_push):
-      self._buffer[:, is_first_push] = data[is_first_push]
+    condition = is_first_push.view(1, self._batch_size, *([1] * (data.ndim - 1)))
+    torch.where(condition, data.unsqueeze(0), self._buffer, out=self._buffer)
 
     self._num_pushes += 1
 
@@ -233,11 +256,12 @@ class CircularBuffer:
     if key.numel() != self._batch_size:
       raise ValueError(f"Expected {self._batch_size} lags, got {key.numel()}")
 
+    # Clamp to the oldest retained frame: without the max_len bound, a lag
+    # beyond the buffer length would wrap around to a newer frame once
+    # num_pushes exceeds max_len.
     pushes = self._num_pushes.clamp_min(1)
-    valid = torch.minimum(key, pushes - 1).clamp_min(0)
-
-    if torch.all(valid == 0):
-      return self._buffer[self._pointer]
+    max_lag = torch.minimum(pushes, self._max_len_tensor) - 1
+    valid = torch.minimum(key, max_lag).clamp_min(0)
 
     idx = torch.remainder(self._pointer - valid, self._max_len)
     return self._buffer[idx, self._all_indices]

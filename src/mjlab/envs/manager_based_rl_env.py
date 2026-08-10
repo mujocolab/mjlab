@@ -184,13 +184,15 @@ class ManagerBasedRlEnv:
     # Initialize base environment state.
     self.cfg = cfg
     if self.cfg.seed is not None:
-      self.cfg.seed = self.seed(self.cfg.seed, device=device)
+      self.cfg.seed = self.seed(self.cfg.seed)
     self._sim_step_counter = 0
     self.extras = {}
     self.obs_buf = {}
     self._manual_reset_pending = torch.zeros(
       self.cfg.scene.num_envs, dtype=torch.bool, device=device
     )
+    # Scratch buffer for per-env command dt; see step().
+    self._command_dt = torch.zeros(self.cfg.scene.num_envs, device=device)
 
     # Initialize scene and simulation.
     self.scene = Scene(self.cfg.scene, device=device)
@@ -369,9 +371,15 @@ class ManagerBasedRlEnv:
     self._reset_idx(env_ids)
     self.scene.write_data_to_sim()
     self.sim.forward()
-    self.command_manager.compute(dt=0.0)
+    # Scoped to env_ids so a partial reset does not advance stateful commands in the
+    # other envs.
+    self.command_manager.compute(dt=0.0, env_ids=env_ids)
     self.sim.sense()
-    self.obs_buf = self.observation_manager.compute(update_history=True)
+    # Scoped to env_ids: only the reset envs' history/delay buffers receive
+    # the post-reset frame; other envs' observation timelines are untouched.
+    self.obs_buf = self.observation_manager.compute(
+      update_history=True, env_ids=env_ids
+    )
     self.recorder_manager.record_post_reset(env_ids)
     return self.obs_buf, self.extras
 
@@ -393,20 +401,28 @@ class ManagerBasedRlEnv:
     for *all* envs: non-reset envs pick up post-decimation kinematics, reset envs
     pick up post-reset kinematics.
 
-    The tradeoff is that termination and reward managers see derived quantities that
-    are stale by one physics substep (the last ``mj_step`` ran ``mj_forward`` from
-    *pre*-integration ``qpos``). In practice, the staleness is negligible for reward
-    shaping and termination checks. Critically, the staleness is *consistent*: every
-    env, every step, always sees the same lag, so the MDP is well-defined and the
-    value function can learn the correct mapping.
+    The tradeoff is that termination, reward, and step/interval event managers see
+    derived quantities that are stale by one physics substep (the last ``mj_step``
+    ran ``mj_forward`` from *pre*-integration ``qpos``). In practice, the staleness
+    is negligible for reward shaping, termination checks, and event perturbations.
+    Critically, the staleness is *consistent*: every env, every step, always sees
+    the same lag, so the MDP is well-defined and the value function can learn the
+    correct mapping.
+
+    **Auto-reset parity.** Auto-reset reproduces the explicit ``reset()`` flow:
+    events fire on the terminal state before the reset, and freshly reset envs
+    advance commands with ``dt=0`` so their timers start full.
 
     .. note::
 
-      Event and command authors do not need to call ``sim.forward()`` themselves.
-      This method handles it. The only constraint is: do not read derived quantities
-      (``root_link_pose_w``, ``body_link_vel_w``, etc.) in the same function that
-      writes state (``write_root_state_to_sim``, ``write_joint_state_to_sim``,
-      etc.). See :ref:`faq` for details.
+      Events and reset-path resamples all run *before* ``forward()``, so state
+      they write (e.g. a velocity push) is refreshed automatically and visible
+      in this step's observations. Command updates run *after*
+      the call, so a command that writes sim state must refresh derived
+      quantities itself (see ``MotionCommand._update_command``). In all cases,
+      do not read derived quantities (``root_link_pose_w``, ``body_link_vel_w``,
+      etc.) in the same function that writes state (``write_root_state_to_sim``,
+      ``write_joint_state_to_sim``, etc.). See :ref:`faq` for details.
     """
     if not self.cfg.auto_reset and torch.any(self._manual_reset_pending):
       pending_ids = self._manual_reset_pending.nonzero(as_tuple=False).squeeze(-1)
@@ -440,6 +456,14 @@ class ManagerBasedRlEnv:
     self.reward_buf = self.reward_manager.compute(dt=self.step_dt)
     self.metrics_manager.compute()
 
+    # Events fire before auto-reset, on the terminal state, matching the
+    # explicit flow. Staleness and forward() rules are the same as for
+    # termination/reward (see docstring above).
+    if "step" in self.event_manager.available_modes:
+      self.event_manager.apply(mode="step", dt=self.step_dt)
+    if "interval" in self.event_manager.available_modes:
+      self.event_manager.apply(mode="interval", dt=self.step_dt)
+
     # Reset envs that terminated/timed-out and log the episode info.
     reset_env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
     if self.cfg.auto_reset and len(reset_env_ids) > 0:
@@ -453,12 +477,15 @@ class ManagerBasedRlEnv:
     # the freshly written reset state.
     self.sim.forward()
 
-    self.command_manager.compute(dt=self.step_dt)
-
-    if "step" in self.event_manager.available_modes:
-      self.event_manager.apply(mode="step", dt=self.step_dt)
-    if "interval" in self.event_manager.available_modes:
-      self.event_manager.apply(mode="interval", dt=self.step_dt)
+    # Pass dt=0 for freshly reset envs so their command timers start full,
+    # matching reset().
+    if self.cfg.auto_reset and len(reset_env_ids) > 0:
+      command_dt = self._command_dt
+      command_dt.fill_(self.step_dt)
+      command_dt[reset_env_ids] = 0.0
+      self.command_manager.compute(dt=command_dt)
+    else:
+      self.command_manager.compute(dt=self.step_dt)
 
     self.sim.sense()
     self.obs_buf = self.observation_manager.compute(update_history=True)
@@ -503,11 +530,12 @@ class ManagerBasedRlEnv:
       self._offline_renderer.close()
     self.recorder_manager.close()
 
-  def seed(self, seed: int = -1, device: str | torch.device | None = None) -> int:
+  @staticmethod
+  def seed(seed: int = -1) -> int:
     if seed == -1:
       seed = np.random.randint(0, 10_000)
     print_info(f"Setting seed: {seed}")
-    random_utils.seed_rng(seed, device=device if device is not None else self.device)
+    random_utils.seed_rng(seed)
     return seed
 
   def update_visualizers(self, visualizer: DebugVisualizer) -> None:

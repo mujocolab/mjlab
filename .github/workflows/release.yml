@@ -15,16 +15,26 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.1"
       - name: Install Python 3.13
         run: uv python install 3.13
       - name: Build
         run: uv build
+      # MUJOCO_GL=disable so `import mujoco` skips its GL backend import. Without
+      # it, mujoco 3.10 eagerly imports the EGL bindings at import time (mjlab
+      # defaults MUJOCO_GL=egl on Linux) and crashes on the runner, which has no
+      # GL libraries. The smoke test does not render, so disabling GL is fine.
       - name: Smoke test (wheel)
         run: uv run --isolated --no-project --with dist/*.whl tests/smoke_test.py
+        env:
+          MUJOCO_GL: disable
       - name: Smoke test (source distribution)
         run: uv run --isolated --no-project --with dist/*.tar.gz tests/smoke_test.py
+        env:
+          MUJOCO_GL: disable
       - name: Publish
         run: uv publish

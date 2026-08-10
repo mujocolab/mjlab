@@ -149,42 +149,64 @@ class RecorderManager(ManagerBase):
   """
 
   def __init__(self, cfg: dict[str, RecorderTermCfg], env: ManagerBasedRlEnv):
-    self._term_names: list[str] = []
-    self._terms: list[RecorderTerm] = []
+    self._terms: dict[str, RecorderTerm] = {}
     self.cfg = deepcopy(cfg)
     super().__init__(env)  # calls _prepare_terms()
 
   def __str__(self) -> str:
-    msg = f"<RecorderManager> contains {len(self._term_names)} active terms.\n"
+    msg = f"<RecorderManager> contains {len(self._terms)} active terms.\n"
     table = PrettyTable()
     table.title = "Active Recorder Terms"
     table.field_names = ["Index", "Name"]
-    for idx, name in enumerate(self._term_names):
+    for idx, name in enumerate(self._terms):
       table.add_row([idx, name])
     return msg + table.get_string()
 
+  def __contains__(self, name: str) -> bool:
+    """Return True if a term named ``name`` is registered."""
+    return name in self._terms
+
   @property
   def active_terms(self) -> list[str]:
-    return self._term_names
+    """List of active term names."""
+    return list(self._terms.keys())
+
+  def get_term(self, name: str) -> RecorderTerm:
+    """Return the recorder term registered under ``name``.
+
+    Use this to reach a recorder's public methods (e.g. to start/stop logging)
+    from outside the env loop without touching private state.
+
+    Args:
+      name: Term name as registered in ``ManagerBasedRlEnvCfg.recorders``.
+
+    Raises:
+      KeyError: If no term is registered under ``name``.
+    """
+    try:
+      return self._terms[name]
+    except KeyError:
+      msg = f"No recorder term named '{name}'. Active terms: {self.active_terms}"
+      raise KeyError(msg) from None
 
   def record_pre_reset(self, env_ids: torch.Tensor) -> None:
     """Forward to each term's :meth:`RecorderTerm.record_pre_reset`."""
-    for term in self._terms:
+    for term in self._terms.values():
       term.record_pre_reset(env_ids)
 
   def record_post_reset(self, env_ids: torch.Tensor) -> None:
     """Forward to each term's :meth:`RecorderTerm.record_post_reset`."""
-    for term in self._terms:
+    for term in self._terms.values():
       term.record_post_reset(env_ids)
 
   def record_post_step(self) -> None:
     """Forward to each term's :meth:`RecorderTerm.record_post_step`."""
-    for term in self._terms:
+    for term in self._terms.values():
       term.record_post_step()
 
   def close(self) -> None:
     """Forward to each term's :meth:`RecorderTerm.close`."""
-    for term in self._terms:
+    for term in self._terms.values():
       term.close()
 
   def _prepare_terms(self):
@@ -199,8 +221,7 @@ class RecorderManager(ManagerBase):
           f" got {type(cfg.func).__name__}. Function-based terms are not"
           " supported."
         )
-      self._term_names.append(name)
-      self._terms.append(cfg.func)
+      self._terms[name] = cfg.func
 
 
 class NullRecorderManager:
@@ -219,6 +240,17 @@ class NullRecorderManager:
 
   def __repr__(self) -> str:
     return "NullRecorderManager()"
+
+  def __contains__(self, name: str) -> bool:
+    """Always returns False since there are no terms."""
+    del name
+    return False
+
+  def get_term(self, name: str) -> RecorderTerm:
+    """Always raises KeyError since there are no terms."""
+    del name
+    msg = "NullRecorderManager has no terms."
+    raise KeyError(msg)
 
   def record_pre_reset(self, env_ids: torch.Tensor) -> None:
     del env_ids

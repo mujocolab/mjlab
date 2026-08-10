@@ -24,14 +24,32 @@ from mjlab.terrains.terrain_generator import (
 )
 from mjlab.terrains.utils import find_flat_patches_from_heightfield
 
+# Smallest positive hfield elevation/base size, in meters. MuJoCo rejects
+# non-positive hfield sizes, so flat heightfields (difficulty 0) are clamped to
+# this instead of zero.
+_MIN_HFIELD_HEIGHT = 1e-3
+
+# Physical height (meters) that maps to full color saturation. Heights are
+# colored on this fixed absolute scale rather than normalized per patch, so a
+# given height reads the same color across every terrain and small-amplitude
+# terrain stays gently tinted instead of stretching into rainbow noise.
+_COLOR_SCALE = 0.75
+
 
 def color_by_height(
   spec: mujoco.MjSpec,
   noise: np.ndarray,
   unique_id: str,
-  normalized_elevation: np.ndarray,
+  physical_heights: np.ndarray,
   texture_size: int = 128,
 ) -> str:
+  """Build a height-colored texture for a heightfield.
+
+  Diverging colormap anchored at the ground plane (z=0): cool blue below ground,
+  green at z=0, warm red above. ``physical_heights`` is the surface height of
+  each cell in meters relative to z=0; it is colored on the fixed ``_COLOR_SCALE``
+  so color encodes absolute height consistently across all terrains.
+  """
   texture_name = f"hf_texture_{unique_id}"
   texture = spec.add_texture(
     name=texture_name,
@@ -40,16 +58,20 @@ def color_by_height(
     height=texture_size,
   )
 
-  texture_elevation = ndimage.zoom(
-    normalized_elevation,
+  texture_height = ndimage.zoom(
+    physical_heights,
     (texture_size / noise.shape[0], texture_size / noise.shape[1]),
     order=1,
   )
-  texture_elevation = np.asarray(texture_elevation)
+  texture_height = np.asarray(texture_height)
 
-  hue = 0.5 - texture_elevation * 0.45
-  saturation = 0.6 - texture_elevation * 0.2
-  value = 0.4 + texture_elevation * 0.3
+  # Signed deviation from the ground plane in [-1, 1] on a fixed absolute scale.
+  signed = np.clip(texture_height / _COLOR_SCALE, -1.0, 1.0)
+
+  # signed=+1 -> hue 0.0 (red, high), 0 -> 0.33 (green, ground), -1 -> 0.66 (blue, low).
+  hue = 0.33 - 0.33 * signed
+  saturation = 0.45 + 0.25 * np.abs(signed)
+  value = 0.45 + 0.25 * np.abs(signed)
 
   c = value * saturation
   x = c * (1 - np.abs((hue * 6) % 2 - 1))
@@ -326,7 +348,8 @@ class HfPyramidSlopedTerrainCfg(SubTerrainCfg):
     else:
       hfield_z_offset = 0
 
-    material_name = color_by_height(spec, noise, unique_id, normalized_elevation)
+    physical_heights = hfield_z_offset + normalized_elevation * max_physical_height
+    material_name = color_by_height(spec, noise, unique_id, physical_heights)
 
     hfield_geom = body.add_geom(
       type=mujoco.mjtGeom.mjGEOM_HFIELD,
@@ -378,13 +401,23 @@ class HfRandomUniformTerrainCfg(SubTerrainCfg):
   border_width: float = 0.0
   """Width of the flat border around the terrain edges, in meters. Must be >=
   horizontal_scale if non-zero."""
+  scale_with_difficulty: bool = False
+  """If False (default), the roughness is fixed and ``difficulty`` is ignored,
+  matching upstream behavior. If True, the noise amplitude scales linearly with
+  difficulty (flat at 0, full ``noise_range`` at 1) so the terrain progresses in
+  a curriculum."""
 
   def function(
     self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
   ) -> TerrainOutput:
-    del difficulty  # Unused.
-
     body = spec.body("terrain")
+
+    # When difficulty scaling is enabled, ramp the noise amplitude from flat (0)
+    # to the full configured range (1). Otherwise use the full range regardless
+    # of difficulty (difficulty is ignored).
+    scale = difficulty if self.scale_with_difficulty else 1.0
+    noise_lo = self.noise_range[0] * scale
+    noise_hi = self.noise_range[1] * scale
 
     if self.border_width > 0 and self.border_width < self.horizontal_scale:
       raise ValueError(
@@ -419,8 +452,8 @@ class HfRandomUniformTerrainCfg(SubTerrainCfg):
       width_downsampled = int(inner_size[0] / downsampled_scale)
       length_downsampled = int(inner_size[1] / downsampled_scale)
 
-      height_min = int(self.noise_range[0] / self.vertical_scale)
-      height_max = int(self.noise_range[1] / self.vertical_scale)
+      height_min = int(noise_lo / self.vertical_scale)
+      height_max = int(noise_hi / self.vertical_scale)
       height_step = int(self.noise_step / self.vertical_scale)
 
       height_range = np.arange(height_min, height_max + height_step, height_step)
@@ -443,8 +476,8 @@ class HfRandomUniformTerrainCfg(SubTerrainCfg):
     else:
       width_downsampled = int(self.size[0] / downsampled_scale)
       length_downsampled = int(self.size[1] / downsampled_scale)
-      height_min = int(self.noise_range[0] / self.vertical_scale)
-      height_max = int(self.noise_range[1] / self.vertical_scale)
+      height_min = int(noise_lo / self.vertical_scale)
+      height_max = int(noise_hi / self.vertical_scale)
       height_step = int(self.noise_step / self.vertical_scale)
 
       height_range = np.arange(height_min, height_max + height_step, height_step)
@@ -489,7 +522,8 @@ class HfRandomUniformTerrainCfg(SubTerrainCfg):
       userdata=normalized_elevation.flatten().astype(np.float32).tolist(),
     )
 
-    material_name = color_by_height(spec, noise, unique_id, normalized_elevation)
+    physical_heights = normalized_elevation * max_physical_height
+    material_name = color_by_height(spec, noise, unique_id, physical_heights)
 
     hfield_geom = body.add_geom(
       type=mujoco.mjtGeom.mjGEOM_HFIELD,
@@ -498,7 +532,7 @@ class HfRandomUniformTerrainCfg(SubTerrainCfg):
       material=material_name,
     )
 
-    spawn_height = (self.noise_range[0] + self.noise_range[1]) / 2
+    spawn_height = (noise_lo + noise_hi) / 2
     origin = np.array([self.size[0] / 2, self.size[1] / 2, spawn_height])
 
     flat_patches = _compute_flat_patches(
@@ -616,7 +650,11 @@ class HfWaveTerrainCfg(SubTerrainCfg):
       userdata=normalized_elevation.flatten().astype(np.float32).tolist(),
     )
 
-    material_name = color_by_height(spec, noise, unique_id, normalized_elevation)
+    # The wave oscillates around z=0 (geom is offset down by half the range).
+    physical_heights = (
+      normalized_elevation * max_physical_height - max_physical_height / 2
+    )
+    material_name = color_by_height(spec, noise, unique_id, physical_heights)
 
     hfield_geom = body.add_geom(
       type=mujoco.mjtGeom.mjGEOM_HFIELD,
@@ -783,7 +821,9 @@ class HfDiscreteObstaclesTerrainCfg(SubTerrainCfg):
     else:
       hfield_z_offset = 0
 
-    material_name = color_by_height(spec, noise, unique_id, normalized_elevation)
+    # Physical surface height per cell (pits negative, bumps positive about z=0).
+    physical_heights = hfield_z_offset + normalized_elevation * max_physical_height
+    material_name = color_by_height(spec, noise, unique_id, physical_heights)
 
     hfield_geom = body.add_geom(
       type=mujoco.mjtGeom.mjGEOM_HFIELD,
@@ -887,8 +927,13 @@ class HfPerlinNoiseTerrainCfg(SubTerrainCfg):
       noise_range = noise_max - noise_min if noise_max > noise_min else 1.0
       normalized_elevation = ((noise_raw - noise_min) / noise_range).astype(np.float32)
 
-    max_physical_height = target_height
-    base_thickness = max_physical_height * self.base_thickness_ratio
+    # MuJoCo requires positive hfield elevation and base sizes. At difficulty 0
+    # (target_height == 0) the surface is flat; clamp to a small positive height
+    # so compilation does not fail with "size parameter is not positive".
+    max_physical_height = max(target_height, _MIN_HFIELD_HEIGHT)
+    base_thickness = max(
+      max_physical_height * self.base_thickness_ratio, _MIN_HFIELD_HEIGHT
+    )
 
     unique_id = uuid.uuid4().hex
     field = spec.add_hfield(
@@ -904,8 +949,9 @@ class HfPerlinNoiseTerrainCfg(SubTerrainCfg):
       userdata=normalized_elevation.flatten().tolist(),
     )
 
+    physical_heights = normalized_elevation * max_physical_height
     material_name = color_by_height(
-      spec, normalized_elevation, unique_id, normalized_elevation
+      spec, normalized_elevation, unique_id, physical_heights
     )
 
     hfield_geom = body.add_geom(

@@ -108,13 +108,20 @@ FEET_ONLY_COLLISION = CollisionCfg(
 
 # This enables all collisions.
 # Foot collisions are given custom condim, friction.
+# The go1 XML numbers its secondary collision capsules (FR_thigh_collision1,
+# RL_calf_collision2, ...), so the pattern allows a trailing index. This keeps
+# the match set identical whether patterns are matched by prefix or in full.
+_collision_regex = r".*_collision\d*"
+
 FULL_COLLISION = CollisionCfg(
-  geom_names_expr=(".*_collision",),
+  geom_names_expr=(_collision_regex,),
+  contype=1,
+  conaffinity=1,
   # Harden all collision geoms.
   solref=(0.01, 1),
   # Configure feet colliders. Other colliders are frictionless (condim=1).
-  condim={_foot_regex: 6, ".*_collision": 1},
-  priority={_foot_regex: 1},
+  condim={_foot_regex: 6, _collision_regex: 1},
+  priority={_foot_regex: 1, ".*": 0},
   friction={_foot_regex: (1, 5e-3, 5e-4)},
 )
 

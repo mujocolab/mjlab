@@ -5,9 +5,373 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Version 1.6.0 (August 8, 2026)
+------------------------------
+
+.. admonition:: Breaking API changes
+   :class: attention
+
+   - ``CollisionCfg`` now requires ``contype``, ``conaffinity``, ``condim``,
+     and ``priority`` to be explicit instead of silently defaulting to
+     MuJoCo's values, and dict values for these fields must cover every
+     matched geom (add a catch-all ``".*"`` entry).
+   - ``CommandTerm._update_command`` now takes an ``env_ids`` argument:
+     ``None`` on the regular per-step update and the reset environment ids
+     when called from ``reset()``. Custom command terms must add the
+     parameter (construction raises a ``TypeError`` with migration
+     instructions otherwise) and scope any per-step state advance, such as
+     a motion frame index, to ``env_ids``.
+   - ``ViewerConfig`` is now keyword-only; positional construction no
+     longer works.
+
+.. admonition:: Highlights
+   :class: note
+
+   - Upgraded to MuJoCo and MuJoCo Warp 3.11.
+   - Upgraded ``rsl-rl-lib`` to 5.4.2.
+
 Added
 ^^^^^
 
+- Added ``GeomCfg``, exposed as the ``geoms`` field on ``EntityCfg``, a spec
+  editor that matches geoms by name and patches their attributes. Supports
+  ``group`` (so a geom can collide without being drawn) and all collision
+  attributes; unset attributes are left untouched. Contribution by
+  @bd-pmorais.
+- Added ``diffuse``, ``specular``, ``ambient``, ``active``, and
+  ``attenuation`` fields to ``LightCfg`` for configuring light color and
+  falloff. Contribution by @bd-pmorais.
+- Added ``random``, ``file``, ``cubefiles``, ``gridsize``, ``gridlayout``,
+  ``nchannel``, ``hflip``, and ``vflip`` fields to ``TextureCfg``, so textures
+  can be loaded from image files instead of only built-in patterns.
+  ``width`` and ``height`` are now optional, since file-based textures take
+  their size from the image. Contribution by @bd-pmorais.
+- Added light domain randomization functions: ``dr.light_diffuse``,
+  ``dr.light_specular``, ``dr.light_ambient``, ``dr.light_attenuation``,
+  ``dr.light_cutoff``, and ``dr.light_exponent``. Contribution by @bd-pmorais.
+- Added ``reduce="sum"`` to ``MetricsTermCfg`` for reporting the accumulated
+  episode total (e.g. episodic reward, total distance traveled) instead of a
+  per-step average. Contribution by @bd-mlutter
+- Added ``ViewerConfig.geom_group`` and ``ViewerConfig.site_group`` to
+  control which geom and site visualization groups the offscreen renderer
+  draws. Defaults match MuJoCo's (groups 0 through 2), so rendering is
+  unchanged unless configured. Contribution by @bd-mlutter.
+- Added ``dr.mat_texid`` to randomize which texture fills a given
+  ``mjtTextureRole`` slot (RGB by default) of each selected material,
+  sampling uniformly from ``asset_cfg.texture_names``. Contribution by
+  @bd-pmorais.
+
+.. figure:: _static/changelog/mat_texid_dr.gif
+   :width: 30%
+
+Changed
+^^^^^^^
+
+- Bumped ``mujoco`` and ``mujoco-warp`` from 3.10 to 3.11, and regenerated the
+  bundled MuJoCo type stubs.
+- Bumped ``rsl-rl-lib`` from 5.4.0 to 5.4.2.
+- ``CollisionCfg`` and ``GeomCfg`` now share one write path, and mjlab warns
+  when a ``GeomCfg`` collision patch is overwritten by a ``CollisionCfg``.
+- Changed the default MuJoCo Warp render background to solid black
+  (``0, 0, 0, 1``), matching MuJoCo's native renderer. Contribution by
+  @bd-pmorais.
+- The offscreen renderer now works on a copy of the ``MjModel``, so its
+  render-only tweaks (extent, shadows, reflections, offscreen size) no
+  longer leak into the shared model. Contribution by @bd-mlutter.
+- ``ViewerConfig`` is now keyword-only, with fields grouped and documented.
+  Contribution by @bd-mlutter.
+- ``ViewerConfig.fovy`` now also applies to the ``ASSET_ROOT`` and
+  ``ASSET_BODY`` tracking cameras instead of being silently ignored; leave
+  it at ``None`` (the default) to keep the model value. Contribution by
+  @bd-mlutter.
+- ``auto_reset`` and an explicit ``reset()`` now leave identical command and
+  event timer state (:issue:`1133`).
+
+Fixed
+^^^^^
+
+- The Viser motion scrubber's Start Here button no longer computes relative
+  body poses from stale pre-scrub kinematics, which could spuriously
+  terminate the episode on the next step.
+- Mid-episode lifting command resamples now refresh kinematics and the
+  multi-cube reward cache, so observations and rewards no longer see
+  pre-teleport object positions for one step after each resample.
+- ``UniformVelocityCommand``'s ``init_velocity_prob`` path no longer writes
+  the previous episode's terminal pose back into the sim on reset. It read
+  derived kinematics before ``forward()`` ran and rewrote the root pose; it
+  now reads only qpos for the orientation and writes only the root velocity.
+- ``init_velocity_prob`` now applies on episode reset only. A mid-episode
+  timer resample used to also teleport the root velocity, which ran after
+  ``step()``'s forward and left velocity observations stale for one step.
+- ``Entity.set_joint_position_target`` and its velocity/effort/tendon/site
+  siblings now select the outer product when both ``env_ids`` and the element
+  ids are tensors, instead of pairing them elementwise.
+- ``MotionCommand`` now refreshes kinematics after a timer-expiry resample
+  (finite ``resampling_time_range``), matching its wraparound path.
+- ``CircularBuffer`` lag retrieval now clamps to the oldest retained frame;
+  a lag beyond the buffer length used to wrap around to a newer frame.
+- Camera sensor caches are now invalidated after ``sense()``, so a
+  pre-sense read with ``clone_data=True`` can no longer pin the previous
+  step's frame into the observations (mirrors the raycast fix for
+  :issue:`998`).
+- ``reset(env_ids=...)`` no longer appends a frame to every env's observation
+  history and delay buffers; only the reset envs receive their post-reset
+  frame. Previously, each manual partial reset gave the other envs a duplicate
+  frame, shortening their effective history and drifting their delay
+  schedules.
+- ``reset(env_ids=...)`` no longer advances stateful commands in
+  environments that were not reset. Previously a partial reset gave every
+  environment an extra command update, so with ``auto_reset=False`` a
+  ``MotionCommand`` reference motion played at twice the normal speed and
+  could teleport non-reset robots via the wraparound resample. The adaptive
+  sampling EMA also no longer folds on resets, matching auto-reset
+  training dynamics. :issue:`1138`
+- Interval event timers are now resampled on episode reset for function-based
+  terms, as documented. Previously the countdown carried across episodes, so a
+  new episode's first ``push_robot`` in the velocity and tracking tasks could
+  fire arbitrarily soon after spawn; with mixed function and class interval
+  terms, reset also wrote into the wrong timer slots. Note this changes push
+  timing relative to earlier training runs, and an interval term whose range
+  exceeds the episode length is now re-armed on every reset and will never
+  fire.
+- ``RayCastSensorCfg.include_geom_groups`` now raises on values outside
+  ``[0, mjNGROUP)`` instead of silently excluding every geom.
+- Geoms with a negative group no longer pick up group 5's visibility toggle in
+  the Viser viewer.
+
+Version 1.5.3 (July 22, 2026)
+-----------------------------
+
+Changed
+^^^^^^^
+
+- The Viser reward bar panel's term cap is now configurable via
+  ``ViewerConfig.reward_bar_max_terms``, so environments with more than 20
+  reward terms can show them all. Defaults to 20, preserving previous behavior.
+  :issue:`1079`
+
+Fixed
+^^^^^
+
+- Bumped ``pillow`` (12.3.0), ``onnx`` (1.22.0), and ``soupsieve`` (2.9.1) in the
+  lockfile to pick up security fixes.
+- Fixed raycast sensor debug visualization and observations lagging one step
+  behind the sensed hits. ``sense()`` rebinds the hit tensors after the cache had
+  already been repopulated by a pre-sense reward read, so ``.data`` returned the
+  previous step's hits; the cache is now invalidated after ``postprocess_rays``.
+  With ``ray_alignment="yaw"`` this made debug rays appear tilted by the foot's
+  per-step motion instead of vertical. :issue:`998`
+- Restored ONNX uploads and W&B run metadata for velocity and manipulation
+  training when using RSL-RL's current ``WandbLogWriter`` logger name.
+- The Viser reward bar panel no longer *silently* drops reward terms beyond
+  ``max_terms``; it now emits a warning listing the hidden terms. Previously
+  environments with more than 20 reward terms had the overflow disappear from
+  the bar panel with no indication. :issue:`1079`
+- Fixed the ``terrain_levels_vel`` curriculum promoting every env from level 0
+  to level 1 on the initial reset, ignoring ``max_init_terrain_level=0``. Before
+  the first step the robot sits at its spawn pose rather than a walked-to
+  position, so the distance check was spurious; terrain levels are now frozen on
+  that first reset. :issue:`1094`
+- Fixed the velocity task's actor ``joint_pos`` observation not being biased by
+  the ``encoder_bias`` domain randomization, so the encoder bias only affected
+  actions and never the observed joint positions. The actor now observes biased
+  joint positions while the critic keeps the true (unbiased) values as
+  privileged information, matching the tracking task.
+  See `discussion #1065 <https://github.com/mujocolab/mjlab/discussions/1065>`_.
+- Hardened ``fit_terrain_normal`` against non-finite raycast hits. A single env
+  with a diverged state produced a NaN/Inf covariance that made
+  ``torch.linalg.eigh`` raise and abort the whole batch; such rows now fall back
+  to the up vector. This stops the hard crash so a diverged env can be reset
+  normally; it does not by itself make a diverged env's downstream reward finite.
+  :issue:`912`
+- Enabled ``obs_normalization`` on the Go1 velocity actor and critic to match
+  the other velocity tasks. Without it, extreme-but-finite observations on rough
+  terrain drove value/policy divergence that eventually surfaced as a
+  ``normal expects all elements of std >= 0.0`` crash. Note that Go1 velocity
+  checkpoints trained before this change carry no normalizer buffers and will no
+  longer load; retrain from scratch. :issue:`870` :issue:`1044` :issue:`1053`
+- Fixed ``ContactSensor`` air-time tracking accumulating float32 sim-clock
+  differences, whose quantization error grows with the clock magnitude and made
+  ``compute_first_contact`` / ``compute_first_air`` miss touchdowns on long runs.
+  The exact float64 substep ``dt`` is now accumulated instead. :issue:`1101`
+- Bumped ``mujoco-warp`` to 3.10.0.3, fixing a CUDA 700 illegal memory access in
+  ``smooth.crb`` triggered by startup mass domain randomization (via
+  ``set_const``) once ``num_envs >= 128`` on consumer Ada GPUs. :issue:`1108`
+
+Version 1.5.2 (July 17, 2026)
+-----------------------------
+
+Fixed
+^^^^^
+
+- Fixed CUDA illegal memory accesses when domain randomization triggers
+  ``set_const`` with multiple environments. ``actuator_acc0`` is now expanded
+  per environment before MuJoCo Warp recomputes it.
+- Fixed ``MaterialCfg.reflectance`` being ignored when building the MuJoCo
+  spec. Contribution by @bd-pmorais.
+
+Version 1.5.1 (July 15, 2026)
+-----------------------------
+
+Added
+^^^^^
+
+- Added ``MeshCfg``, a spec editor that matches mesh assets by name and edits
+  their asset-level attributes. The first attribute is ``maxhullvert``, which
+  caps the collision convex hull's vertex count to lower narrowphase cost.
+- Added ``SimulationCfg.broadphase`` and ``SimulationCfg.broadphase_filter``
+  to configure MuJoCo Warp's broadphase collision algorithm and
+  bounding-volume filters.
+
+Changed
+^^^^^^^
+
+- Enabled skybox rendering for camera sensors. Contribution by @bd-pmorais.
+- Bumped the minimum ``mujoco-warp`` to 3.10.0.2, which fixes ``qfrc_constraint``
+  being populated incorrectly across vectorized environments (:issue:`1086`).
+  Earlier 3.10.0.x releases are no longer supported.
+- Command delay on fusable actuators (ideal PD, DC motor) now applies one shared
+  lag per environment across all fused actuators sharing a delay config, matching
+  the built-in actuator path, rather than an independent lag per actuator group
+  (:issue:`1035`).
+
+Fixed
+^^^^^
+
+- Fixed ``TerrainGenerator`` overwriting custom geom names set by sub-terrain
+  functions with the default ``terrain_{i}`` name. Only unnamed geoms are now
+  auto-named.
+- Fixed ``TorchArray`` not expanding world-shared model fields to ``nworld``
+  with mujoco_warp 3.10.0.2, which allocates them as real size-1 arrays
+  instead of stride-0 broadcast views. Multi-env indexing of fields like
+  ``soft_joint_pos_limits`` raised ``IndexError`` during resets (:issue:`1093`).
+- Fixed ``mdp.bad_orientation`` returning NaN when float32 rounding in
+  ``quat_apply_inverse`` pushed the projected-gravity z-component slightly
+  outside ``[-1, 1]``, making ``torch.acos`` return NaN and silently
+  suppressing the termination for flipped robots. The argument is now clamped
+  to ``[-1, 1]``.
+- Fixed a crash when using command delay on ideal PD (or other custom)
+  actuators whenever ``num_envs`` differed from the number of delayed targets,
+  and fused ideal PD and DC motor actuators sharing a transmission and delay
+  config into a single gather, delay, control-law evaluation, and control
+  write, removing per-group host overhead (:issue:`1035`).
+
+Version 1.5.0 (June 28, 2026)
+-----------------------------
+
+Added
+^^^^^
+
+- Added ``reduce="max"`` to ``MetricsTermCfg`` for reporting episode-peak values
+  (e.g. peak power, peak contact force) without needing stateful wrapper classes.
+- Added ``BuiltinDcMotorActuator``, a native MuJoCo ``<dcmotor>`` wrapper.
+  Supports voltage / position / velocity input modes with back-EMF,
+  configurable motor constants, and optional integral, slew, inductance,
+  thermal, LuGre, and cogging extensions.
+- Added ``scale_with_difficulty`` to ``HfRandomUniformTerrainCfg``. When
+  enabled, the noise amplitude scales with difficulty (flat at 0, full
+  ``noise_range`` at 1) so the terrain progresses in a curriculum. Defaults to
+  ``False``, preserving the previous difficulty-independent behavior.
+- Added material domain randomization functions for MuJoCo Warp RGB rendering:
+  ``dr.mat_emission``, ``dr.mat_specular``, ``dr.mat_shininess``, and
+  ``dr.mat_texrepeat``.
+
+Changed
+^^^^^^^
+
+- Bumped ``rsl-rl-lib`` from 5.2.0 to 5.4.0.
+- Bumped ``mujoco`` and ``mujoco-warp`` to 3.10, both pinned from PyPI. The
+  ``py.mujoco.org`` nightly index and the ``mujoco-warp`` git pin are dropped, so
+  resolution no longer breaks when nightly wheels are garbage-collected.
+
+  .. warning::
+
+     ``SimulationCfg.ls_parallel`` is deprecated and now ignored, since parallel
+     linesearch was removed upstream in MuJoCo Warp. Setting it emits a
+     ``DeprecationWarning``; remove it from any ``SimulationCfg`` you construct.
+- Curriculum-mode terrain difficulty is now deterministic across rows
+  and reaches the configured ``difficulty_range`` endpoints
+  (:issue:`1027`).
+- Heightfield terrains now color by absolute height with a diverging palette
+  (cool below the ground plane, green at ground level, warm above) on a fixed
+  scale, replacing the per-patch normalization. Color is now consistent across
+  terrains, and low-amplitude terrain such as ``random_rough`` reads as gently
+  tinted ground instead of high-contrast noise.
+- ``BoxNestedRingsTerrainCfg`` now builds uniform-height concentric ridges
+  whose separating gaps widen with difficulty, replacing the random per-ring
+  heights. Rings are colored by height (like the other terrains) and the outer
+  border matches the ring height.
+- Terrain generation no longer prints timing information to stdout.
+
+Fixed
+^^^^^
+
+- Fixed domain randomization events that target different ``axes`` of the same
+  model field (e.g. two ``dr.geom_size`` events scaling axis 0 and axis 1
+  separately) silently clobbering each other. Each event now writes back only
+  the axes it targeted, so per-axis events compose (:issue:`1042`).
+- Regenerated the bundled MuJoCo type stubs, which had drifted from the
+  installed mujoco version. CI now regenerates them and fails if they are
+  stale, so they stay in sync going forward. Run ``make stubs`` to update them
+  (:issue:`1048`).
+- Fixed ``select_gpus`` crashing when ``CUDA_VISIBLE_DEVICES`` contains MIG
+  UUIDs instead of numeric indices.
+- Fixed pyramid-stairs terrains (``BoxPyramidStairsTerrainCfg``,
+  ``BoxInvertedPyramidStairsTerrainCfg``, and ``BoxOpenStairsTerrainCfg``)
+  leaving an empty, geometry-free border at difficulty 0, where the step
+  height collapses to zero. The flat border frame is now always generated as
+  solid geometry flush with the ground (:issue:`1033`).
+- Fixed ``HfPerlinNoiseTerrainCfg`` failing to compile at difficulty 0, where
+  the target height collapses to zero and MuJoCo rejects the non-positive
+  heightfield size.
+- Fixed ``BoxRandomGridTerrainCfg`` producing NaN colors (and failing to build)
+  at difficulty 0, where the grid height is zero and the color normalization
+  divided by zero.
+- Fixed the center platform z-fighting with surrounding geometry in
+  ``BoxRandomGridTerrainCfg`` (grid cells were left underneath the platform) and
+  ``BoxRandomSpreadTerrainCfg`` (the platform duplicated the floor surface).
+- Fixed ``BoxNarrowBeamsTerrainCfg`` square platform corners protruding between
+  the beams at high difficulty; the platform now shrinks to stay within the
+  beams' angular coverage.
+- Fixed ``BoxSteppingStonesTerrainCfg`` reconfiguring abruptly at a difficulty
+  threshold, where the stone grid re-tiled as its spacing crossed an integer
+  boundary, and leaving an oversized gap around the center platform. The grid is
+  now difficulty-independent and the platform snaps to it as a clean island.
+- Fixed ``train --video``, ``play``, and ``demo`` crashing with ``OpenGL
+  platform library not loaded`` on headless Linux hosts that don't pre-set
+  ``MUJOCO_GL``. The default is now applied in ``mjlab/__init__.py`` (Linux
+  only) so it takes effect before mujoco's GL backend selection runs.
+- Fixed motion tracking re-anchoring to a stale robot pose after a mid-episode
+  motion resample. ``MotionCommand._update_command`` now calls ``sim.forward()``
+  after resampling so relative body poses read the post-teleport state
+  (:issue:`1068`).
+
+Version 1.4.0 (May 26, 2026)
+----------------------------
+
+Added
+^^^^^
+
+- Added ``BuiltinPdActuator``, the implicit-integration version of
+  ``IdealPdActuator``. Same interface (position + velocity targets,
+  kp/kd gains), but expresses the PD as native MuJoCo ``<position>``
+  and ``<velocity>`` elements so the ``implicit`` / ``implicitfast``
+  integrators include the kp/kd derivatives in their velocity update.
+  The actuator stays stable at gain/timestep combinations where
+  explicit Python PD would diverge, which matters when you want to
+  run a real motor's stiff on-board PD gains in sim. ``effort_limit``
+  is enforced as a sum-clamp on the two PD terms via
+  ``jnt_actfrcrange`` (or ``tendon_actfrcrange``). Supported by
+  ``dr.pd_gains`` and ``dr.effort_limits``.
+- Added ``mdp.projected_gravity_from_sensor``, an observation that derives
+  projected gravity from a ``framezaxis`` up-vector sensor (negated) rather
+  than from the root body orientation. Unlike ``mdp.projected_gravity``, it
+  reflects the sensor's site frame, so it can observe IMU mounting domain
+  randomization (e.g. via ``dr.site_quat``). Go1 and G1 ship an
+  ``imu_upvector`` sensor for this.
+- Added ``DebugVisualizer.add_box`` for drawing an axis-oriented box
+  primitive, mirroring ``add_ellipsoid``. Supported by both the native
+  and Viser viewers. ``size`` is the box half-extents (:issue:`992`).
 - Added ``--log-root`` CLI option to ``train``, ``play``, and ``evaluate``
   scripts for choosing where training logs are stored. Defaults to
   ``logs/rsl_rl`` (unchanged behavior). Useful for directing outputs to a
@@ -41,10 +405,24 @@ Added
   prefixed and scattered via ``geom_matid`` alongside the existing
   ``geom_dataid`` table. Variants without a material get ``matid = -1``.
   Contribution by @omarrayyann.
+- Added ``dr.geom_matid`` to randomize which baked material each geom uses
+  per environment, sampling uniformly from ``asset_cfg.material_names``.
+  Contribution by @bd-pmorais.
 
 Changed
 ^^^^^^^
 
+- ``Entity`` now raises a clear error at construction when its spec contains
+  more than one freejoint. An entity models a single system rooted at one
+  body, so it has at most one freejoint; a second one was previously accepted
+  silently and only surfaced later as a cryptic shape mismatch when writing
+  root state. Model each detached floating body as its own entry in
+  ``SceneCfg.entities`` instead.
+- Changed ``compute_root_relative_mpkpe`` to re-anchor the reference to the
+  robot's root each step, removing yaw drift as well as translation so it
+  measures intrinsic body pose error.
+- Changed ``compute_joint_velocity_error`` from an L2 norm to a per-joint
+  RMS, so it no longer scales with the number of joints.
 - Bumped ``mujoco`` to 3.8 and ``mujoco-warp`` to 3.8.0. The ``multiccd``
   enable flag was removed in mujoco 3.8 (it became default-on), so configs
   that listed ``"multiccd"`` in ``MujocoCfg.enableflags`` need to drop it.
@@ -76,10 +454,40 @@ Changed
   air-time fields (``current_air_time``, ``last_air_time``,
   ``current_contact_time``, ``last_contact_time``) have shape ``[B, P]``,
   where ``P`` is the number of resolved primaries (:issue:`914`).
+- Event functions now share a single ``resolve_env_ids`` helper to expand
+  ``env_ids=None`` to all environments, replacing five copies of the same
+  guard. ``push_by_setting_velocity`` and ``apply_external_force_torque``
+  accept ``env_ids=None`` too, so they work as global-time interval terms.
+  Documented when to use ``apply_external_force_torque`` (a constant,
+  self-managed wrench) versus ``apply_body_impulse`` (transient, automatic
+  impulses) versus ``push_by_setting_velocity`` (an instantaneous velocity
+  kick).
 
 Fixed
 ^^^^^
 
+- Removed use of deprecated ``warp-lang`` symbols (``wp.context.runtime``
+  and ``wp.context.Device``) that were dropped in newer ``warp-lang``
+  releases, causing ``AttributeError: module 'warp' has no attribute
+  'context'`` at import/runtime. mjlab now uses
+  ``wp.get_cuda_driver_version()`` and ``wp.Device`` instead
+  (:issue:`967`). Contribution by @rdeits.
+- Fixed the tracking ``evaluate`` script scoring each metric against the
+  next motion frame; the reference is now snapshotted before each step to
+  match the reward.
+- Fixed the tracking end-effector metrics silently scoring zero for an
+  unknown body name; they now raise ``ValueError``.
+- Fixed ``compute_mpkpe`` measuring root-relative instead of global error;
+  it now uses the global reference ``body_pos_w`` (:issue:`1006`).
+- Fixed heavy flicker in offscreen training videos on rough-terrain tasks.
+  The renderer recomputed its context "neighbor" robots every frame from
+  ``env_origins``, which the terrain curriculum mutates on reset, so the
+  neighbor set kept changing and robots popped in and out. The neighbor
+  set is now computed once and cached (:issue:`979`).
+- Fixed command delay only applying to an actuator's position target.
+  ``IdealPdActuator`` and ``DcMotorActuator`` also use velocity and effort, which
+  arrived undelayed and out of sync; all command targets now share one delay.
+  Zero-reference setups are unaffected.
 - Fixed duplicate random seeds across nodes in multi-node training. The
   per-process seed offset in ``scripts/train.py`` now uses the global
   ``RANK`` instead of ``LOCAL_RANK``. Contribution by @bd-pdomanico.
@@ -103,11 +511,6 @@ Fixed
   ``reward_manager.compute()`` had already populated it. The clear now
   happens at the top of ``step()`` and ``reset()`` so that all entries
   survive (:issue:`957`).
-- Fixed ``ManagerBasedRlEnv`` initializing Warp on all visible CUDA devices
-  even when constructed with ``device="cpu"``. ``seed_rng`` now accepts a
-  ``device`` argument and skips ``wp.rand_init`` on CPU devices, so a
-  CPU-only env no longer claims a CUDA context on machines with a visible
-  GPU (:issue:`949`).
 - Fixed ``ContactSensor.compute_first_contact`` and ``compute_first_air``
   occasionally missing events when a contact began or ended right at the
   last physics substep of a control step. ``current_contact_time`` /

@@ -12,6 +12,7 @@ from mjlab.actuator import BuiltinPositionActuatorCfg, XmlActuatorCfg
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.scene import Scene, SceneCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
+from mjlab.utils.spec_config import CollisionCfg, GeomCfg
 
 FIXED_BASE_XML = """
 <mujoco>
@@ -241,6 +242,55 @@ def test_unnamed_freejoint_gets_default_name():
   cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(xml))
   entity = Entity(cfg)
   assert "floating_base_joint" in entity.all_joint_names
+
+
+def test_multiple_freejoints_raises():
+  """An entity with more than one freejoint is rejected at construction."""
+  xml = """
+  <mujoco>
+    <worldbody>
+      <body name="object_a" pos="0 0 1">
+        <freejoint/>
+        <geom type="box" size="0.1 0.1 0.1" mass="0.1"/>
+      </body>
+      <body name="object_b" pos="1 0 1">
+        <freejoint/>
+        <geom type="box" size="0.1 0.1 0.1" mass="0.1"/>
+      </body>
+    </worldbody>
+  </mujoco>
+  """
+  cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(xml))
+  with pytest.raises(ValueError, match="2 freejoints"):
+    Entity(cfg)
+
+
+def test_geom_editor_applied():
+  """Test that geom editors are applied during entity init."""
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(FIXED_BASE_ARTICULATED_XML),
+    geoms=(GeomCfg(geom_names_expr=("link.*_geom",), group=3),),
+  )
+  entity = Entity(cfg)
+
+  assert entity.spec.geom("link1_geom").group == 3
+  assert entity.spec.geom("link2_geom").group == 3
+  assert entity.spec.geom("base_geom").group == 0
+
+
+def test_geom_collision_overlap_warns():
+  """A GeomCfg collision patch clobbered by a CollisionCfg triggers a warning."""
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(FIXED_BASE_ARTICULATED_XML),
+    geoms=(GeomCfg(geom_names_expr=("link1_geom",), condim=6),),
+    collisions=(
+      CollisionCfg(
+        geom_names_expr=("link.*_geom",), contype=1, conaffinity=1, condim=3, priority=0
+      ),
+    ),
+  )
+  with pytest.warns(UserWarning, match="link1_geom.condim"):
+    Entity(cfg)
 
 
 def test_find_methods():
@@ -804,3 +854,17 @@ def test_wildcard_warns_about_unactuated_namespaces():
   )
   with pytest.warns(match="also match.*tendon"):
     Entity(cfg)
+
+
+def test_set_joint_position_target_outer_product(device):
+  """Tensor env_ids + tensor joint_ids select the outer product, not a diagonal."""
+  entity = create_fixed_articulated_entity()
+  entity, _ = initialize_entity_with_sim(entity, device, num_envs=2)
+
+  targets = torch.tensor([[1.0, 2.0], [3.0, 4.0]], device=device)
+  entity.set_joint_position_target(
+    targets,
+    joint_ids=torch.tensor([0, 1], device=device),
+    env_ids=torch.tensor([0, 1], device=device),
+  )
+  assert torch.equal(entity.data.joint_pos_target, targets)

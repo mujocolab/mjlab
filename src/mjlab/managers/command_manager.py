@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import abc
+import inspect
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Sequence
@@ -50,6 +51,7 @@ class CommandTerm(ManagerTermBase):
   def __init__(self, cfg: CommandTermCfg, env: ManagerBasedRlEnv):
     self.cfg = cfg
     super().__init__(env)
+    self._check_update_command_signature()
     self.metrics = dict()
     self.time_left = torch.zeros(self.num_envs, device=self.device)
     self.command_counter = torch.zeros(
@@ -106,13 +108,44 @@ class CommandTerm(ManagerTermBase):
     self._resample(env_ids)
     return extras
 
-  def compute(self, dt: float) -> None:
+  def compute(
+    self, dt: float | torch.Tensor, env_ids: torch.Tensor | None = None
+  ) -> None:
+    """Advance the command state by dt.
+
+    With env_ids=None (the per-step path) all envs are updated; with env_ids
+    (the reset path) timers and the command update are scoped to those envs.
+    Metrics are always refreshed.
+
+    dt may be a scalar (all envs) or a per-env tensor (auto-reset path,
+    where freshly reset envs get zero to keep their timers full). A tensor
+    dt requires env_ids=None.
+    """
     self._update_metrics()
-    self.time_left -= dt
-    resample_env_ids = (self.time_left <= 0.0).nonzero().flatten()
+    if env_ids is None:
+      self.time_left -= dt
+      resample_env_ids = (self.time_left <= 0.0).nonzero().flatten()
+    else:
+      assert not isinstance(dt, torch.Tensor)
+      self.time_left[env_ids] -= dt
+      resample_env_ids = env_ids[self.time_left[env_ids] <= 0.0]
     if len(resample_env_ids) > 0:
       self._resample(resample_env_ids)
-    self._update_command()
+    self._update_command(env_ids)
+
+  def _check_update_command_signature(self) -> None:
+    """Fail fast with a migration hint for terms with the old signature."""
+    try:
+      sig = inspect.signature(self._update_command)
+    except (TypeError, ValueError):
+      return
+    if len(sig.parameters) == 0:
+      raise TypeError(
+        f"{type(self).__name__}._update_command must accept env_ids: "
+        "_update_command(self, env_ids: torch.Tensor | None). It receives "
+        "None on the per-step update and the reset env ids on reset(); "
+        "scope per-step state advances to env_ids."
+      )
 
   def _resample(self, env_ids: torch.Tensor) -> None:
     if len(env_ids) != 0:
@@ -133,8 +166,13 @@ class CommandTerm(ManagerTermBase):
     raise NotImplementedError
 
   @abc.abstractmethod
-  def _update_command(self) -> None:
-    """Update the command based on the current state."""
+  def _update_command(self, env_ids: torch.Tensor | None) -> None:
+    """Update the command based on the current state.
+
+    env_ids is None on the per-step update (all envs) and the reset env ids on reset().
+    Scope per-step state advances (e.g. a motion frame index) to env_ids; pure
+    functions of the current state may ignore it.
+    """
     raise NotImplementedError
 
 
@@ -246,9 +284,9 @@ class CommandManager(ManagerBase):
         extras[f"Metrics/{name}/{metric_name}"] = metric_value
     return extras
 
-  def compute(self, dt: float):
+  def compute(self, dt: float | torch.Tensor, env_ids: torch.Tensor | None = None):
     for term in self._terms.values():
-      term.compute(dt)
+      term.compute(dt, env_ids)
 
   def get_command(self, name: str) -> torch.Tensor:
     return self._terms[name].command
@@ -320,7 +358,9 @@ class NullCommandManager:
   def reset(self, env_ids: torch.Tensor | None = None) -> dict[str, torch.Tensor]:
     return {}
 
-  def compute(self, dt: float) -> None:
+  def compute(
+    self, dt: float | torch.Tensor, env_ids: torch.Tensor | None = None
+  ) -> None:
     pass
 
   def get_command(self, name: str) -> None:

@@ -14,6 +14,7 @@ from ._types import uniform as uniform
 # Geom.
 # isort: split
 from .geom import geom_friction as geom_friction
+from .geom import geom_matid as geom_matid
 from .geom import geom_pos as geom_pos
 from .geom import geom_quat as geom_quat
 from .geom import geom_rgba as geom_rgba
@@ -66,12 +67,23 @@ from .camera import cam_quat as cam_quat
 
 # Light.
 # isort: split
+from .light import light_ambient as light_ambient
+from .light import light_attenuation as light_attenuation
+from .light import light_cutoff as light_cutoff
+from .light import light_diffuse as light_diffuse
 from .light import light_dir as light_dir
+from .light import light_exponent as light_exponent
 from .light import light_pos as light_pos
+from .light import light_specular as light_specular
 
 # Material.
 # isort: split
+from .material import mat_emission as mat_emission
 from .material import mat_rgba as mat_rgba
+from .material import mat_shininess as mat_shininess
+from .material import mat_specular as mat_specular
+from .material import mat_texid as mat_texid
+from .material import mat_texrepeat as mat_texrepeat
 
 # Pair.
 # isort: split

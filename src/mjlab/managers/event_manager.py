@@ -42,8 +42,8 @@ class RecomputeLevel(enum.IntEnum):
 
   set_const_0 = 2
   """Recompute ``dof_invweight0``, ``body_invweight0``, ``tendon_length0``,
-  ``tendon_invweight0``. Use after modifying ``dof_armature``, ``body_inertia``,
-  ``body_pos``, ``body_quat``, or ``qpos0``."""
+  ``tendon_invweight0``, and ``actuator_acc0``. Use after modifying
+  ``dof_armature``, ``body_inertia``, ``body_pos``, ``body_quat``, or ``qpos0``."""
 
   set_const = 3
   """Full recomputation (superset of all lower levels). Use after modifying
@@ -58,6 +58,7 @@ _DERIVED_FIELDS: dict[RecomputeLevel, tuple[str, ...]] = {
     "body_invweight0",
     "tendon_length0",
     "tendon_invweight0",
+    "actuator_acc0",
   ),
 }
 _DERIVED_FIELDS[RecomputeLevel.set_const] = (
@@ -219,17 +220,21 @@ class EventManager(ManagerBase):
         term_cfg.func.reset(env_ids=env_ids)
     if env_ids is None:
       num_envs = self._env.num_envs
+      ids: torch.Tensor | slice = slice(None)
     else:
       num_envs = len(env_ids)
+      ids = env_ids
+    # Iterate the full interval term list: _interval_term_time_left is parallel
+    # to _mode_term_cfgs["interval"], not the class-only subset.
     if "interval" in self._mode_term_cfgs:
-      for index, term_cfg in enumerate(self._mode_class_term_cfgs["interval"]):
+      for index, term_cfg in enumerate(self._mode_term_cfgs["interval"]):
         if not term_cfg.is_global_time:
           assert term_cfg.interval_range_s is not None
           lower, upper = term_cfg.interval_range_s
           sampled_interval = (
             torch.rand(num_envs, device=self.device) * (upper - lower) + lower
           )
-          self._interval_term_time_left[index][env_ids] = sampled_interval
+          self._interval_term_time_left[index][ids] = sampled_interval
     return {}
 
   def apply(
@@ -290,9 +295,12 @@ class EventManager(ManagerBase):
         fired = True
       elif mode == "reset":
         assert global_env_step_count is not None
+        # Reset events require concrete indices: callers (e.g. ManagerBasedRlEnv)
+        # resolve None to all environments upstream. Enforce that here so a future
+        # caller passing None fails loudly instead of leaking a slice into event
+        # functions, which only understand None or a tensor.
+        assert env_ids is not None, "reset events require concrete env_ids, got None"
         min_step_count = term_cfg.min_step_count_between_reset
-        if env_ids is None:
-          env_ids = slice(None)
         if min_step_count == 0:
           self._reset_term_last_triggered_step_id[index][env_ids] = (
             global_env_step_count

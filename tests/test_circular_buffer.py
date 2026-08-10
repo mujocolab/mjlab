@@ -161,6 +161,29 @@ def test_backfill_after_per_batch_reset(device):
   )
 
 
+def test_backfill_multidimensional_data(device):
+  """First-push backfill works for >2D data whose trailing dims differ from batch.
+
+  Regression for #1045: the backfill broadcast hard-coded a 3D condition shape,
+  which misaligned the batch axis with a trailing axis when num_targets != batch.
+  Here batch_size=4 but the trailing axis is 2, so the buggy broadcast raised a
+  4-vs-2 mismatch.
+  """
+  batch_size, num_targets, num_channels = 4, 2, 3
+  buffer = CircularBuffer(max_len=3, batch_size=batch_size, device=device)
+
+  data = torch.arange(
+    batch_size * num_targets * num_channels, dtype=torch.float32, device=device
+  ).reshape(batch_size, num_targets, num_channels)
+  buffer.append(data)
+
+  hist = buffer.buffer  # (batch, max_len, num_targets, num_channels)
+  assert hist.shape == (batch_size, 3, num_targets, num_channels)
+  # First push backfills every history slot with the same frame per batch row.
+  for t in range(3):
+    assert torch.allclose(hist[:, t], data)
+
+
 def test_errors_and_types(device):
   """Error paths: wrong batch, pre-append access, and bad key size."""
   buffer = CircularBuffer(max_len=2, batch_size=2, device=device)
@@ -192,3 +215,54 @@ def test_dtype_and_device_preserved(device):
   buffer.append(x)
   assert buffer.buffer.dtype == torch.float32
   assert buffer.buffer.device.type == torch.device(device).type
+
+
+def test_backfill_only_touches_given_rows(device):
+  """backfill writes one frame into all slots of given rows, no pointer advance."""
+  buffer = CircularBuffer(max_len=3, batch_size=3, device=device)
+  buffer.append(torch.tensor([[1.0], [10.0], [100.0]], device=device))
+  buffer.append(torch.tensor([[2.0], [20.0], [200.0]], device=device))
+  buffer.append(torch.tensor([[3.0], [30.0], [300.0]], device=device))
+
+  buffer.reset(batch_ids=torch.tensor([1], device=device))
+  data = torch.tensor([[-1.0], [99.0], [-1.0]], device=device)
+  buffer.backfill(data, torch.tensor([1], device=device))
+
+  result = buffer.buffer
+  assert torch.allclose(
+    result[0].flatten(), torch.tensor([1.0, 2.0, 3.0], device=device)
+  )
+  assert torch.allclose(
+    result[1].flatten(), torch.tensor([99.0, 99.0, 99.0], device=device)
+  )
+  assert torch.allclose(
+    result[2].flatten(), torch.tensor([100.0, 200.0, 300.0], device=device)
+  )
+  assert buffer.current_length.tolist() == [3, 1, 3]
+
+  # Subsequent appends treat the backfilled row normally.
+  buffer.append(torch.tensor([[4.0], [40.0], [400.0]], device=device))
+  result = buffer.buffer
+  assert torch.allclose(
+    result[1].flatten(), torch.tensor([99.0, 99.0, 40.0], device=device)
+  )
+  assert buffer.current_length.tolist() == [3, 2, 3]
+
+
+def test_backfill_uninitialized_raises(device):
+  buffer = CircularBuffer(max_len=2, batch_size=2, device=device)
+  with pytest.raises(RuntimeError, match="not initialized"):
+    buffer.backfill(torch.zeros(2, 1, device=device), torch.tensor([0], device=device))
+
+
+def test_getitem_lag_clamps_to_oldest_after_wrap(device):
+  buffer = CircularBuffer(max_len=2, batch_size=1, device=device)
+  for v in [1.0, 2.0, 3.0]:
+    buffer.append(torch.tensor([[v]], device=device))
+
+  # Retained frames: [2, 3] (num_pushes exceeds max_len).
+  assert buffer[torch.tensor([0], device=device)].flatten().item() == 3.0
+  assert buffer[torch.tensor([1], device=device)].flatten().item() == 2.0
+  # A lag beyond the retained history clamps to the oldest frame instead of
+  # wrapping around to a newer one.
+  assert buffer[torch.tensor([2], device=device)].flatten().item() == 2.0

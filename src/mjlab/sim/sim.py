@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gc
+import warnings
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal, cast
@@ -66,6 +67,17 @@ _SOLVER_MAP = {
   "newton": mujoco.mjtSolver.mjSOL_NEWTON,
   "cg": mujoco.mjtSolver.mjSOL_CG,
   "pgs": mujoco.mjtSolver.mjSOL_PGS,
+}
+_BROADPHASE_MAP = {
+  "nxn": mjwarp.BroadphaseType.NXN,
+  "sap_tile": mjwarp.BroadphaseType.SAP_TILE,
+  "sap_segmented": mjwarp.BroadphaseType.SAP_SEGMENTED,
+}
+_BROADPHASE_FILTER_MAP = {
+  "plane": mjwarp.BroadphaseFilter.PLANE,
+  "sphere": mjwarp.BroadphaseFilter.SPHERE,
+  "aabb": mjwarp.BroadphaseFilter.AABB,
+  "obb": mjwarp.BroadphaseFilter.OBB,
 }
 
 # Maps short flag names to MuJoCo enum values.
@@ -152,10 +164,36 @@ class SimulationCfg:
 
   Constraint arrays are batched by world: no world may have more than njmax
   constraints. If None, a heuristic value is used."""
-  ls_parallel: bool = True  # Boosts perf quite noticeably.
   contact_sensor_maxmatch: int = 64
+  broadphase: Literal["nxn", "sap_tile", "sap_segmented"] | None = None
+  """Broadphase collision algorithm. If None, use the MuJoCo Warp default."""
+  broadphase_filter: tuple[Literal["plane", "sphere", "aabb", "obb"], ...] | None = None
+  """Bounding-volume filters applied during broadphase collision checking.
+
+  If None, use the MuJoCo Warp default."""
+  ls_parallel: bool | None = None
+  """Deprecated and ignored. Parallel linesearch was removed in MuJoCo Warp 3.10."""
   mujoco: MujocoCfg = field(default_factory=MujocoCfg)
   nan_guard: NanGuardCfg = field(default_factory=NanGuardCfg)
+
+  def __post_init__(self) -> None:
+    if self.ls_parallel is not None:
+      warnings.warn(
+        "SimulationCfg.ls_parallel is deprecated and ignored; parallel "
+        "linesearch was removed in MuJoCo Warp 3.10.",
+        DeprecationWarning,
+        stacklevel=2,
+      )
+
+  def apply_wp_opt(self, wp_opt: mjwarp.Option) -> None:
+    """Apply MuJoCo Warp-only settings to a warp Option (post ``put_model``)."""
+    wp_opt.contact_sensor_maxmatch = self.contact_sensor_maxmatch
+    if self.broadphase is not None:
+      wp_opt.broadphase = _BROADPHASE_MAP[self.broadphase]
+    if self.broadphase_filter is not None:
+      wp_opt.broadphase_filter = mjwarp.BroadphaseFilter(0)
+      for name in self.broadphase_filter:
+        wp_opt.broadphase_filter |= _BROADPHASE_FILTER_MAP[name]
 
 
 class Simulation:
@@ -228,8 +266,7 @@ class Simulation:
 
     with wp.ScopedDevice(self.wp_device):
       self._wp_model = mjwarp.put_model(self._mj_model)
-      self._wp_model.opt.ls_parallel = self.cfg.ls_parallel
-      self._wp_model.opt.contact_sensor_maxmatch = self.cfg.contact_sensor_maxmatch
+      self.cfg.apply_wp_opt(self._wp_model.opt)
       self._finish_init()
 
   def _init_with_variants(
@@ -257,8 +294,7 @@ class Simulation:
       mujoco.mj_forward(self._mj_model, self._mj_data)
 
       self._wp_model = result.wp_model
-      self._wp_model.opt.ls_parallel = self.cfg.ls_parallel
-      self._wp_model.opt.contact_sensor_maxmatch = self.cfg.contact_sensor_maxmatch
+      self.cfg.apply_wp_opt(self._wp_model.opt)
 
       # Snapshot variant-dependent fields as per-world defaults so
       # DR scale/add operations use each variant's base values.

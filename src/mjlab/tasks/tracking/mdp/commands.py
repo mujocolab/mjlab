@@ -121,6 +121,7 @@ class MotionCommand(CommandTerm):
 
     self._ghost_model = None
     self._ghost_color = np.array(cfg.viz.ghost_color, dtype=np.float32)
+    self._pending_forward = False
 
   @property
   def command(self) -> torch.Tensor:
@@ -373,6 +374,7 @@ class MotionCommand(CommandTerm):
       joint_pos,
       joint_vel,
     )
+    self._pending_forward = True
 
   def update_relative_body_poses(self) -> None:
     """Recompute ``body_pos_relative_w`` and ``body_quat_relative_w``.
@@ -404,15 +406,36 @@ class MotionCommand(CommandTerm):
       delta_ori_w, self.body_pos_w - anchor_pos_w_repeat
     )
 
-  def _update_command(self):
-    self.time_steps += 1
-    env_ids = torch.where(self.time_steps >= self.motion.time_step_total)[0]
-    if env_ids.numel() > 0:
-      self._resample_command(env_ids)
+  def reset(self, env_ids: torch.Tensor | slice | None) -> dict[str, float]:
+    extras = super().reset(env_ids)
+    # Reset-path resamples are followed by the env's own forward(); only
+    # compute-path resamples (wraparound or timer expiry) need our refresh.
+    self._pending_forward = False
+    return extras
+
+  def _update_command(self, env_ids: torch.Tensor | None = None):
+    if env_ids is None:
+      self.time_steps += 1
+    else:
+      self.time_steps[env_ids] += 1
+    wrap_ids = torch.where(self.time_steps >= self.motion.time_step_total)[0]
+    if wrap_ids.numel() > 0:
+      self._resample_command(wrap_ids)
+
+    # _resample_command writes qpos/qvel but does not refresh derived
+    # quantities; forward() so update_relative_body_poses reads the
+    # post-teleport robot anchor instead of the stale pre-resample pose.
+    # Covers both the wraparound above and a timer-expiry resample that ran
+    # in compute before this call.
+    if self._pending_forward:
+      self._pending_forward = False
+      self._env.sim.forward()
 
     self.update_relative_body_poses()
 
-    if self.cfg.sampling_mode == "adaptive":
+    # Fold failure counts into the EMA only on the per-step update so
+    # manual resets do not decay it faster.
+    if env_ids is None and self.cfg.sampling_mode == "adaptive":
       self.bin_failed_count = (
         self.cfg.adaptive_alpha * self._current_bin_failed
         + (1 - self.cfg.adaptive_alpha) * self.bin_failed_count
@@ -557,6 +580,9 @@ class MotionCommand(CommandTerm):
       return False
     frame = int(self._scrubber_handles[0].value)
     self.reset_to_frame(env_ids, frame)
+    # reset_to_frame writes qpos/qvel; forward so update_relative_body_poses
+    # reads the scrubbed pose instead of the stale pre-scrub kinematics.
+    self._env.sim.forward()
     self.update_relative_body_poses()
     return True
 

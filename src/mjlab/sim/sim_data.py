@@ -30,8 +30,8 @@ class TorchArray:
       nworld is not None
       and nworld > 1
       and len(self._tensor.shape) > 0
-      and self._tensor.stride(0) == 0
       and self._tensor.shape[0] == 1
+      and (self._tensor.stride(0) == 0 or getattr(wp_array, "_is_batched", False))
     ):
       new_shape = (nworld,) + self._tensor.shape[1:]
       self._tensor = self._tensor.expand(new_shape)

@@ -180,6 +180,26 @@ class DebugVisualizer(ABC):
     ...
 
   @abstractmethod
+  def add_box(
+    self,
+    center: np.ndarray,
+    size: np.ndarray,
+    mat: np.ndarray,
+    color: tuple[float, float, float, float],
+    label: str | None = None,
+  ) -> None:
+    """Add an axis-oriented box visualization.
+
+    Args:
+      center: Center position (3D vector).
+      size: Half-extents along each local axis (3D vector: a, b, c).
+      mat: 3x3 rotation matrix (or flattened 9-element array).
+      color: RGBA color (values 0-1).
+      label: Optional label for this box.
+    """
+    ...
+
+  @abstractmethod
   def clear(self) -> None:
     """Clear all debug visualizations."""
     ...
@@ -240,6 +260,9 @@ class NullDebugVisualizer:
     pass
 
   def add_ellipsoid(self, center, size, mat, color, label=None) -> None:
+    pass
+
+  def add_box(self, center, size, mat, color, label=None) -> None:
     pass
 
   def clear(self) -> None:
