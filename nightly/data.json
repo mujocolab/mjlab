@@ -3028,5 +3028,20 @@
       "ee_pos_error": 0.04685285687446594,
       "ee_ori_error": 0.16541317105293274
     }
+  },
+  {
+    "id": "hop99jcm",
+    "name": "2026-08-11_02-23-57",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/hop99jcm",
+    "created_at": "2026-08-11T09:24:01Z",
+    "commit": "0fb8a68",
+    "metrics": {
+      "success_rate": 0.9921875,
+      "mpkpe": 0.09932168573141098,
+      "r_mpkpe": 0.028457175940275192,
+      "joint_vel_error": 0.5409005880355835,
+      "ee_pos_error": 0.04383521527051926,
+      "ee_ori_error": 0.1643388867378235
+    }
   }
 ]
