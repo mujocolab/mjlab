@@ -3088,5 +3088,20 @@
       "ee_pos_error": 0.043905436992645264,
       "ee_ori_error": 0.1619119644165039
     }
+  },
+  {
+    "id": "xam70c18",
+    "name": "2026-08-15_02-06-57",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/xam70c18",
+    "created_at": "2026-08-15T09:07:02Z",
+    "commit": "0fb8a68",
+    "metrics": {
+      "success_rate": 0.9814453125,
+      "mpkpe": 0.10833524167537689,
+      "r_mpkpe": 0.029765218496322632,
+      "joint_vel_error": 0.5543186664581299,
+      "ee_pos_error": 0.046096958220005035,
+      "ee_ori_error": 0.1650320589542389
+    }
   }
 ]
