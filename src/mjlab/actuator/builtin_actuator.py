@@ -305,7 +305,9 @@ class BuiltinDcMotorActuatorCfg(ActuatorCfg):
 
   * VOLTAGE: ctrl is the drive voltage. cmd.effort_target carries volts, not torque.
   * POSITION / VELOCITY: an internal PID closes on the setpoint and the motor produces
-    torque from its (Vmax-clamped) voltage output.
+    torque from its (Vmax-clamped) voltage output. stiffness and damping use the same
+    joint-space units as the other built-in PD actuators and are converted to the
+    voltage-loop gains internally.
 
   Motor characterization: pass either DcMotorDatasheetParams or DcMotorPhysicalParams
   as motor_params. mjs_setToDCMotor derives K and R (including the viscous-damping
@@ -326,12 +328,12 @@ class BuiltinDcMotorActuatorCfg(ActuatorCfg):
   """ctrl input semantics. See class docstring."""
 
   stiffness: float = 0.0
-  """PID proportional gain kp. Required in POSITION / VELOCITY mode; must be
-  0 in VOLTAGE mode."""
+  """Joint-space proportional gain kp [N*m/rad]. Required in POSITION /
+  VELOCITY mode; must be 0 in VOLTAGE mode."""
 
   damping: float = 0.0
-  """PID derivative gain kd. Used in POSITION / VELOCITY mode; must be 0 in
-  VOLTAGE mode."""
+  """Joint-space derivative gain kd [N*m*s/rad]. Used in POSITION / VELOCITY
+  mode; must be 0 in VOLTAGE mode."""
 
   voltage_limit: float = 0.0
   """Max drive voltage Vmax. Required in POSITION / VELOCITY mode (clamps the
@@ -400,6 +402,8 @@ class BuiltinDcMotorActuatorCfg(ActuatorCfg):
         raise ValueError(f"{self.mode.name} mode requires stiffness > 0.")
       if self.voltage_limit <= 0.0:
         raise ValueError(f"{self.mode.name} mode requires voltage_limit > 0.")
+      if self.gear == 0.0:
+        raise ValueError(f"{self.mode.name} mode requires a non-zero gear ratio.")
     else:
       if self.stiffness != 0.0 or self.damping != 0.0 or self.integral_gain != 0.0:
         raise ValueError(
@@ -462,6 +466,12 @@ class BuiltinDcMotorActuator(Actuator[BuiltinDcMotorActuatorCfg]):
         lugre=_or_zeros(cfg.lugre, 5),
         input_mode=cfg.mode,
       )
+      if cfg.mode != DcMotorInputMode.VOLTAGE:
+        # MuJoCo resolves R and K during set_to_dcmotor. Convert joint-space
+        # PD gains to the voltage-loop gains expected in gainprm[4] and [6].
+        voltage_per_torque = actuator.gainprm[0] / actuator.gainprm[1] / cfg.gear**2
+        actuator.gainprm[4] *= voltage_per_torque
+        actuator.gainprm[6] *= voltage_per_torque
 
       apply_target_overrides(
         spec,
@@ -476,9 +486,9 @@ class BuiltinDcMotorActuator(Actuator[BuiltinDcMotorActuatorCfg]):
 
   def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
     if self.cfg.mode == DcMotorInputMode.POSITION:
-      return cmd.position_target
+      return self.cfg.gear * cmd.position_target
     if self.cfg.mode == DcMotorInputMode.VELOCITY:
-      return cmd.velocity_target
+      return self.cfg.gear * cmd.velocity_target
     # voltage mode: ctrl is the drive voltage carried in effort_target.
     return cmd.effort_target
 

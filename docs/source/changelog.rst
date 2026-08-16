@@ -90,6 +90,9 @@ Changed
 Fixed
 ^^^^^
 
+- ``BuiltinDcMotorActuatorCfg`` now converts its ``stiffness`` and ``damping``
+  from joint-space PD gains to the native DC motor voltage-loop gains, so motor
+  constants no longer silently rescale position and velocity control. :issue:`1041`
 - The Viser motion scrubber's Start Here button no longer computes relative
   body poses from stale pre-scrub kinematics, which could spuriously
   terminate the episode on the next step.

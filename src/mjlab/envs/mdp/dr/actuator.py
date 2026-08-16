@@ -131,8 +131,14 @@ def pd_gains(
         )
       else:
         assert op.name == "abs"
-        env.sim.model.actuator_gainprm[env_ids[:, None], ctrl_ids, 4] = kp_samples
-        env.sim.model.actuator_gainprm[env_ids[:, None], ctrl_ids, 6] = kd_samples
+        gainprm = env.sim.model.actuator_gainprm
+        voltage_per_torque = (
+          gainprm[env_ids[:, None], ctrl_ids, 0]
+          / gainprm[env_ids[:, None], ctrl_ids, 1]
+          / actuator.cfg.gear**2
+        )
+        gainprm[env_ids[:, None], ctrl_ids, 4] = kp_samples * voltage_per_torque
+        gainprm[env_ids[:, None], ctrl_ids, 6] = kd_samples * voltage_per_torque
 
     elif isinstance(actuator, BuiltinPdActuator):
       # ctrl_ids is laid out as [pos_0..pos_{N-1}, vel_0..vel_{N-1}], so the

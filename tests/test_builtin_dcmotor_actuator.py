@@ -108,14 +108,14 @@ def _drive(
 
 
 def test_kr_packed_into_gainprm(device):
-  """The XML compiler derives K and R from the nominal triplet."""
+  """PID gains are scaled after the XML compiler derives K and R."""
   _, sim = initialize_entity(_make_entity(effort_limit=1.5), device)
   m = sim.mj_model
   for i in range(2):
     assert m.actuator_gainprm[i, 0] == pytest.approx(R, abs=1e-6)
     assert m.actuator_gainprm[i, 1] == pytest.approx(K, abs=1e-6)
-    assert m.actuator_gainprm[i, 4] == pytest.approx(5.0)  # kp
-    assert m.actuator_gainprm[i, 6] == pytest.approx(0.5)  # kd
+    assert m.actuator_gainprm[i, 4] == pytest.approx(5.0 * R / K)  # kp
+    assert m.actuator_gainprm[i, 6] == pytest.approx(0.5 * R / K)  # kd
     assert m.actuator_gainprm[i, 7] == pytest.approx(24.0)  # Vmax
     assert m.actuator_gainprm[i, 8] == pytest.approx(1.0)  # input_mode=position
     assert m.actuator_gaintype[i] == mujoco.mjtGain.mjGAIN_DCMOTOR
@@ -190,7 +190,7 @@ def test_back_emf_reduces_torque_at_velocity(device):
 
 
 def test_position_mode_pid_at_rest(device):
-  """kd=0, no Vmax clamp: tau = K * kp * (target - q) / R."""
+  """At rest, stiffness is the joint-space proportional gain."""
   # voltage_limit must be >0 (cfg invariant), pick it big enough not to clamp.
   entity, sim = initialize_entity(
     _make_entity(damping=0.0, voltage_limit=1000.0), device
@@ -198,8 +198,30 @@ def test_position_mode_pid_at_rest(device):
   pos = torch.tensor([[0.1, -0.05]], device=device)
   _drive(entity, sim, device, pos_target=pos)
   v_adr = entity.indexing.joint_v_adr
-  expected = K * 5.0 * pos[0] / R
+  expected = 5.0 * pos[0]
   assert torch.allclose(sim.data.qfrc_actuator[0, v_adr], expected, atol=1e-4)
+
+
+def test_position_mode_pid_gains_are_joint_space(device):
+  """Both PD gains map to torque, while back-EMF remains physical damping."""
+  entity, sim = initialize_entity(_make_entity(voltage_limit=1000.0), device)
+  pos = torch.tensor([[0.5, 0.0]], device=device)
+  velocity = torch.tensor([[0.25, 0.0]], device=device)
+  _drive(entity, sim, device, pos_target=pos, qd0=velocity)
+  v_adr = entity.indexing.joint_v_adr
+  expected = 5.0 * pos[0] - 0.5 * velocity[0] - K * K * velocity[0] / R
+  assert torch.allclose(sim.data.qfrc_actuator[0, v_adr], expected, atol=1e-4)
+
+
+def test_position_mode_pid_gains_account_for_gear(device):
+  """A non-unit transmission preserves the configured joint-space stiffness."""
+  entity, sim = initialize_entity(
+    _make_entity(damping=0.0, voltage_limit=1000.0, gear=2.0), device
+  )
+  pos = torch.tensor([[0.1, 0.0]], device=device)
+  _drive(entity, sim, device, pos_target=pos)
+  v_adr = entity.indexing.joint_v_adr
+  assert torch.allclose(sim.data.qfrc_actuator[0, v_adr], 5.0 * pos[0], atol=1e-4)
 
 
 def test_position_mode_voltage_clamp(device):
@@ -219,7 +241,7 @@ def test_position_mode_voltage_clamp(device):
 
 
 def test_velocity_mode_pid(device):
-  """P-only velocity tracking: tau = K * kp * (target - qdot) / R."""
+  """P-only velocity tracking uses the joint-space proportional gain."""
   entity, sim = initialize_entity(
     _make_entity(mode=DcMotorInputMode.VELOCITY, damping=0.0, voltage_limit=1000.0),
     device,
@@ -228,10 +250,8 @@ def test_velocity_mode_pid(device):
   vel_target = torch.tensor([[3.0, 0.0]], device=device)
   _drive(entity, sim, device, vel_target=vel_target, qd0=qd0)
   v_adr = entity.indexing.joint_v_adr
-  # back-EMF subtracts K*omega; this is folded into the dcmotor bias.
-  # voltage = kp*(target - qdot); tau = K*(voltage - K*omega)/R.
-  voltage = 5.0 * (vel_target[0] - qd0[0])
-  expected = K * (voltage - K * qd0[0]) / R
+  # Back-EMF remains a separate physical damping term.
+  expected = 5.0 * (vel_target[0] - qd0[0]) - K * K * qd0[0] / R
   assert torch.allclose(sim.data.qfrc_actuator[0, v_adr], expected, atol=1e-4)
 
 
@@ -496,6 +516,7 @@ def _scene_env(
   device,
   num_envs=2,
   mode: DcMotorInputMode = DcMotorInputMode.POSITION,
+  gear=1.0,
 ):
   def spec_fn():
     spec = mujoco.MjSpec.from_string(ROBOT_XML)
@@ -515,6 +536,7 @@ def _scene_env(
           damping=0.5 if mode != DcMotorInputMode.VOLTAGE else 0.0,
           voltage_limit=24.0 if mode != DcMotorInputMode.VOLTAGE else 0.0,
           effort_limit=50.0,
+          gear=gear,
         ),
       )
     ),
@@ -534,18 +556,18 @@ def _scene_env(
 
 
 @pytest.mark.parametrize(
-  "operation, kp_in, kd_in, kp_expected, kd_expected",
+  "operation, kp_in, kd_in, kp_expected, kd_expected, gear",
   [
     # scale: multiplies the configured defaults (kp=5.0, kd=0.5).
-    ("scale", 2.0, 3.0, 2.0 * 5.0, 3.0 * 0.5),
+    ("scale", 2.0, 3.0, 2.0 * 5.0, 3.0 * 0.5, 1.0),
     # abs: writes the value directly.
-    ("abs", 10.0, 2.0, 10.0, 2.0),
+    ("abs", 10.0, 2.0, 10.0, 2.0, 2.0),
   ],
 )
 def test_dr_pd_gains_position_mode(
-  device, operation, kp_in, kd_in, kp_expected, kd_expected
+  device, operation, kp_in, kd_in, kp_expected, kd_expected, gear
 ):
-  env = _scene_env(device)
+  env = _scene_env(device, gear=gear)
   robot = env.scene["robot"]
   act = robot.actuators[0]
   assert isinstance(act, BuiltinDcMotorActuator)
@@ -564,14 +586,20 @@ def test_dr_pd_gains_position_mode(
   m = env.sim.model
   n = len(ctrl_ids)
   assert torch.allclose(
-    m.actuator_gainprm[0, ctrl_ids, 4], torch.full((n,), kp_expected, device=device)
+    m.actuator_gainprm[0, ctrl_ids, 4] * K / R * gear**2,
+    torch.full((n,), kp_expected, device=device),
   )
   assert torch.allclose(
-    m.actuator_gainprm[0, ctrl_ids, 6], torch.full((n,), kd_expected, device=device)
+    m.actuator_gainprm[0, ctrl_ids, 6] * K / R * gear**2,
+    torch.full((n,), kd_expected, device=device),
   )
-  # Other env untouched (cfg defaults).
-  assert torch.allclose(m.actuator_gainprm[1, ctrl_ids, 4], torch.tensor(5.0))
-  assert torch.allclose(m.actuator_gainprm[1, ctrl_ids, 6], torch.tensor(0.5))
+  # Other env keeps the configured joint-space defaults.
+  assert torch.allclose(
+    m.actuator_gainprm[1, ctrl_ids, 4] * K / R * gear**2, torch.tensor(5.0)
+  )
+  assert torch.allclose(
+    m.actuator_gainprm[1, ctrl_ids, 6] * K / R * gear**2, torch.tensor(0.5)
+  )
 
 
 def test_dr_pd_gains_voltage_mode_rejected(device):
@@ -649,5 +677,5 @@ def test_delay_position_mode(device):
 
   v_adr = entity.indexing.joint_v_adr
   # With lag=2 and three writes, the effective target is targets[0].
-  expected = K * 10.0 * targets[0][0] / R
+  expected = 10.0 * targets[0][0]
   assert torch.allclose(sim.data.qfrc_actuator[0, v_adr], expected, atol=1e-4)
