@@ -82,3 +82,7 @@ Projects built on mjlab. To add yours, open a pull request or post in
      - In-hand cube reorientation on the Wuji Hand with sim-to-real deployment.
    * - `wbc-mjlab/wbc-mjlab <https://github.com/wbc-mjlab/wbc-mjlab>`_
      - Configurable whole-body control — shared MDP with task configs, one policy for many skills.
+   * - `T1Amoo/onerobotics-a1-mjlab
+       <https://github.com/T1Amoo/onerobotics-a1-mjlab>`_
+     - Official OneRobotics A1 integration with pose-reaching and reinforcement
+       learning.
