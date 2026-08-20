@@ -3,7 +3,7 @@ from pathlib import Path
 
 import torch
 from rsl_rl.env import VecEnv
-from rsl_rl.runners import OnPolicyRunner
+from rsl_rl.runners import OffPolicyRunner, OnPolicyRunner
 
 from mjlab.rl.vecenv_wrapper import RslRlVecEnvWrapper
 
@@ -135,6 +135,74 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     if load_iteration:
       self.current_learning_iteration = loaded_dict["iter"]
 
+    infos = loaded_dict["infos"]
+    if infos and "env_state" in infos:
+      self.env.unwrapped.common_step_counter = infos["env_state"]["common_step_counter"]
+    return infos
+
+
+class MjlabOffPolicyRunner(OffPolicyRunner):
+  """Off-policy (FlashSAC) runner that persists environment state across checkpoints.
+
+  Parallels :class:`MjlabOnPolicyRunner` for the off-policy loop: it persists the
+  environment's ``common_step_counter``, gates W&B uploads on ``upload_model``,
+  and exports ONNX via the legacy (``dynamo=False``) path. FlashSAC checkpoints
+  are native to rsl-rl>=5, so no legacy key migration is needed.
+  """
+
+  env: RslRlVecEnvWrapper
+
+  def export_policy_to_onnx(
+    self, path: str, filename: str = "policy.onnx", verbose: bool = False
+  ) -> None:
+    """Export policy to ONNX using the legacy export path (dynamo=False)."""
+    onnx_model = self.alg.get_policy().as_onnx(verbose=verbose)
+    onnx_model.to("cpu")
+    onnx_model.eval()
+    os.makedirs(path, exist_ok=True)
+    torch.onnx.export(
+      onnx_model,
+      onnx_model.get_dummy_inputs(),  # type: ignore[operator]
+      os.path.join(path, filename),
+      export_params=True,
+      opset_version=18,
+      verbose=verbose,
+      input_names=onnx_model.input_names,  # type: ignore[arg-type]
+      output_names=onnx_model.output_names,  # type: ignore[arg-type]
+      dynamic_axes={},
+      dynamo=False,
+    )
+
+  @staticmethod
+  def _get_export_paths(checkpoint_path: str) -> tuple[Path, str, Path]:
+    """Resolve ONNX export paths from a checkpoint path."""
+    export_dir = Path(checkpoint_path).parent
+    filename = f"{export_dir.name}.onnx"
+    return export_dir, filename, export_dir / filename
+
+  def save(self, path: str, infos=None) -> None:
+    """Save checkpoint, persisting common_step_counter and gating W&B upload."""
+    env_state = {"common_step_counter": self.env.unwrapped.common_step_counter}
+    infos = {**(infos or {}), "env_state": env_state}
+    saved_dict = self.alg.save()
+    saved_dict["iter"] = self.current_learning_iteration
+    saved_dict["infos"] = infos
+    torch.save(saved_dict, path)
+    if self.cfg["upload_model"]:
+      self.logger.save_model(path, self.current_learning_iteration)
+
+  def load(
+    self,
+    path: str,
+    load_cfg: dict | None = None,
+    strict: bool = True,
+    map_location: str | None = None,
+  ) -> dict:
+    """Load checkpoint and restore common_step_counter."""
+    loaded_dict = torch.load(path, map_location=map_location, weights_only=False)
+    load_iteration = self.alg.load(loaded_dict, load_cfg, strict)
+    if load_iteration:
+      self.current_learning_iteration = loaded_dict["iter"]
     infos = loaded_dict["infos"]
     if infos and "env_state" in infos:
       self.env.unwrapped.common_step_counter = infos["env_state"]["common_step_counter"]

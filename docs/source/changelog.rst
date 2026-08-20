@@ -5,6 +5,15 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- Added FlashSAC (off-policy Soft Actor-Critic) support. New RSL-RL config
+  dataclasses (``RslRlOffPolicyRunnerCfg`` and the ``RslRlFlashSac*`` /
+  ``RslRlReplayBufferCfg`` configs) and ``MjlabOffPolicyRunner`` wire the
+  ``FlashSAC`` algorithm and ``OffPolicyRunner`` into mjlab, selectable purely
+  by config. Registered the ``Mjlab-Velocity-Flat-Unitree-G1-FlashSAC`` task.
+
 Version 1.6.0 (August 8, 2026)
 ------------------------------
 
