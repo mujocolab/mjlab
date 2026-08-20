@@ -56,12 +56,13 @@ def unitree_g1_flashsac_runner_cfg() -> RslRlOffPolicyRunnerCfg:
   return RslRlOffPolicyRunnerCfg(
     actor=RslRlFlashSacActorCfg(
       num_blocks=2,
-      hidden_dim=512,
+      # FlashSAC paper Table 9 (GPU sims): actor hidden 128, critic hidden 256.
+      hidden_dim=128,
       obs_normalization=False,
     ),
     critic=RslRlFlashSacCriticCfg(
       num_blocks=2,
-      hidden_dim=512,
+      hidden_dim=256,
       num_bins=101,
       min_v=-5.0,
       max_v=5.0,
