@@ -1,6 +1,12 @@
 from mjlab.rl.config import RslRlBaseRunnerCfg as RslRlBaseRunnerCfg
+from mjlab.rl.config import RslRlFlashSacActorCfg as RslRlFlashSacActorCfg
+from mjlab.rl.config import RslRlFlashSacAlgorithmCfg as RslRlFlashSacAlgorithmCfg
+from mjlab.rl.config import RslRlFlashSacCriticCfg as RslRlFlashSacCriticCfg
 from mjlab.rl.config import RslRlModelCfg as RslRlModelCfg
+from mjlab.rl.config import RslRlOffPolicyRunnerCfg as RslRlOffPolicyRunnerCfg
 from mjlab.rl.config import RslRlOnPolicyRunnerCfg as RslRlOnPolicyRunnerCfg
 from mjlab.rl.config import RslRlPpoAlgorithmCfg as RslRlPpoAlgorithmCfg
+from mjlab.rl.config import RslRlReplayBufferCfg as RslRlReplayBufferCfg
+from mjlab.rl.runner import MjlabOffPolicyRunner as MjlabOffPolicyRunner
 from mjlab.rl.runner import MjlabOnPolicyRunner as MjlabOnPolicyRunner
 from mjlab.rl.vecenv_wrapper import RslRlVecEnvWrapper as RslRlVecEnvWrapper

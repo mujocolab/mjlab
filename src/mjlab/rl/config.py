@@ -143,3 +143,138 @@ class RslRlOnPolicyRunnerCfg(RslRlBaseRunnerCfg):
   """The critic configuration."""
   algorithm: RslRlPpoAlgorithmCfg = field(default_factory=RslRlPpoAlgorithmCfg)
   """The algorithm configuration."""
+
+
+@dataclass
+class RslRlFlashSacActorCfg:
+  """Config for the FlashSAC actor model."""
+
+  num_blocks: int = 2
+  """Number of residual blocks in the actor trunk."""
+  hidden_dim: int = 128
+  """Hidden dimension of the actor."""
+  obs_normalization: bool = False
+  """Whether to apply empirical observation normalization (the network also
+  self-normalizes via BatchNorm, so this is off by default)."""
+  log_std_min: float = -5.0
+  """Lower bound for the (squashed) policy log-std."""
+  log_std_max: float = 2.0
+  """Upper bound for the (squashed) policy log-std."""
+  class_name: str = "FlashSACActorModel"
+  """Model class name resolved by RSL-RL."""
+
+
+@dataclass
+class RslRlFlashSacCriticCfg:
+  """Config for the FlashSAC distributional double critic."""
+
+  num_blocks: int = 2
+  """Number of residual blocks per critic ensemble member."""
+  hidden_dim: int = 256
+  """Hidden dimension of the critic."""
+  num_bins: int = 101
+  """Number of atoms in the categorical (C51) value distribution."""
+  min_v: float = -5.0
+  """Lower bound of the value support. Should match ``-normalized_g_max``."""
+  max_v: float = 5.0
+  """Upper bound of the value support. Should match ``normalized_g_max``."""
+  num_qs: int = 2
+  """Number of Q-ensemble members (clipped double-Q uses 2)."""
+  obs_normalization: bool = False
+  """Whether to apply empirical observation normalization."""
+  class_name: str = "FlashSACCriticModel"
+  """Model class name resolved by RSL-RL."""
+
+
+@dataclass
+class RslRlReplayBufferCfg:
+  """Config for the off-policy replay buffer."""
+
+  capacity: int = 1_000_000
+  """Maximum number of transitions stored."""
+  min_length: int = 10_000
+  """Minimum number of transitions before sampling/updates begin."""
+  sample_batch_size: int = 2048
+  """Mini-batch size drawn from the buffer per gradient step."""
+
+
+@dataclass
+class RslRlFlashSacAlgorithmCfg:
+  """Config for the FlashSAC algorithm."""
+
+  gamma: float = 0.99
+  """The discount factor."""
+  n_step: int = 1
+  """Number of steps for n-step return accumulation."""
+  learning_rate_init: float = 3e-4
+  """Initial learning rate (start of warmup)."""
+  learning_rate_peak: float = 3e-4
+  """Peak learning rate (end of warmup)."""
+  learning_rate_end: float = 1.5e-4
+  """Final learning rate after cosine decay."""
+  learning_rate_warmup_steps: int = 0
+  """Number of linear warmup steps."""
+  learning_rate_decay_steps: int = 1_000_000
+  """Total schedule length (warmup + cosine decay), in gradient steps."""
+  critic_target_update_tau: float = 0.01
+  """EMA coefficient for the target critic update."""
+  num_bins: int = 101
+  """Number of atoms in the categorical TD target. Must match the critic."""
+  min_v: float = -5.0
+  """Lower bound of the value support. Must match the critic and ``-normalized_g_max``."""
+  max_v: float = 5.0
+  """Upper bound of the value support. Must match the critic and ``normalized_g_max``."""
+  temp_initial_value: float = 0.01
+  """Initial entropy-temperature value."""
+  temp_target_sigma: float = 0.15
+  """Target action std used to auto-compute the target entropy when
+  ``temp_target_entropy`` is None."""
+  temp_target_entropy: float | None = None
+  """Target entropy. If None, it is auto-computed from the action dim and
+  ``temp_target_sigma``."""
+  actor_update_period: int = 2
+  """Delayed policy update period (actor/temperature update every N critic updates)."""
+  actor_bc_alpha: float = 0.0
+  """Behavior-cloning regularization coefficient (0 disables it)."""
+  actor_noise_zeta_mu: float = 2.0
+  """Zeta-distribution exponent for action-noise repetition."""
+  actor_noise_zeta_max: int = 16
+  """Maximum noise-repetition length."""
+  normalize_reward: bool = True
+  """Whether to normalize rewards (required True in this version)."""
+  normalized_g_max: float = 5.0
+  """Return-normalization cap; also sets the critic value support magnitude."""
+  use_amp: bool = False
+  """Whether to use automatic mixed precision (must be False in this version)."""
+  class_name: str = "FlashSAC"
+  """Algorithm class name resolved by RSL-RL."""
+
+
+@dataclass
+class RslRlOffPolicyRunnerCfg(RslRlBaseRunnerCfg):
+  """Runner config for off-policy (FlashSAC) training.
+
+  A drop-in sibling of :class:`RslRlOnPolicyRunnerCfg`: it reuses the base
+  runner fields (``obs_groups``, ``num_steps_per_env``, ``save_interval``,
+  ``clip_actions``, ...) and adds the FlashSAC model/algorithm/replay configs.
+  These dataclass defaults are the single source of default hyperparameters;
+  ``asdict`` materializes them into the plain dict RSL-RL consumes (fail-loud:
+  RSL-RL substitutes no defaults of its own).
+  """
+
+  class_name: str = "OffPolicyRunner"
+  """The runner class name."""
+  updates_per_step: float = 1.0
+  """Gradient updates per collected environment step (may be < 1.0)."""
+  torch_compile_mode: str | None = None
+  """torch.compile mode. Must be None in this version (eager-only)."""
+  actor: RslRlFlashSacActorCfg = field(default_factory=RslRlFlashSacActorCfg)
+  """The actor configuration."""
+  critic: RslRlFlashSacCriticCfg = field(default_factory=RslRlFlashSacCriticCfg)
+  """The critic configuration."""
+  algorithm: RslRlFlashSacAlgorithmCfg = field(
+    default_factory=RslRlFlashSacAlgorithmCfg
+  )
+  """The algorithm configuration."""
+  replay: RslRlReplayBufferCfg = field(default_factory=RslRlReplayBufferCfg)
+  """The replay-buffer configuration."""
