@@ -70,7 +70,8 @@ def unitree_g1_flashsac_runner_cfg() -> RslRlOffPolicyRunnerCfg:
     ),
     algorithm=RslRlFlashSacAlgorithmCfg(
       gamma=0.99,
-      n_step=1,
+      # FlashSAC's IsaacLab locomotion recipe uses 3-step returns.
+      n_step=3,
       critic_target_update_tau=0.01,
       num_bins=101,
       min_v=-5.0,
