@@ -3238,5 +3238,20 @@
       "ee_pos_error": 0.04435315728187561,
       "ee_ori_error": 0.1640356183052063
     }
+  },
+  {
+    "id": "bd8hximd",
+    "name": "2026-08-25_02-20-49",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/bd8hximd",
+    "created_at": "2026-08-25T09:20:54Z",
+    "commit": "0fb8a68",
+    "metrics": {
+      "success_rate": 0.9638671875,
+      "mpkpe": 0.10982923209667206,
+      "r_mpkpe": 0.030040310695767403,
+      "joint_vel_error": 0.5473225116729736,
+      "ee_pos_error": 0.045922696590423584,
+      "ee_ori_error": 0.17195424437522888
+    }
   }
 ]
