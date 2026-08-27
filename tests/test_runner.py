@@ -13,6 +13,7 @@ import torch
 from conftest import get_test_device
 from rsl_rl.models import MLPModel
 from rsl_rl.utils import WandbLogWriter
+from rsl_rl.utils.logger import Logger
 from tensordict import TensorDict
 
 import mjlab.scripts.train as train_mod
@@ -524,6 +525,28 @@ def test_onnx_motion_model_clamps_out_of_bounds_time_step():
   torch.testing.assert_close(joint_pos, motion.joint_pos[num_steps - 1 : num_steps])
 
 
+def _make_logger_mock(is_wandb: bool) -> MagicMock:
+  """Mock an rsl-rl Logger, specced off a real (cheap, inert) instance.
+
+  Speccing off an instance rather than the class keeps the instance attributes,
+  so an attribute rsl-rl renames or drops fails the test instead of silently
+  resolving to a truthy mock.
+  """
+  logger = Logger(
+    log_dir=None,
+    cfg={"algorithm": {}},
+    env_cfg={},
+    num_envs=1,
+    is_distributed=False,
+    gpu_world_size=1,
+    gpu_global_rank=0,
+    device="cpu",
+  )
+  mock = MagicMock(spec=logger)
+  mock.writer = MagicMock(spec=WandbLogWriter) if is_wandb else MagicMock()
+  return mock
+
+
 @pytest.mark.parametrize(
   ("runner_module", "runner_class"),
   [
@@ -541,8 +564,7 @@ def test_task_runner_uploads_onnx_for_wandb_logger(
   runner_cls = getattr(runner_mod, runner_class)
   runner = runner_cls.__new__(runner_cls)
   runner.cfg = {"upload_model": True}
-  runner.logger = MagicMock()
-  runner.logger.writer = MagicMock(spec=WandbLogWriter)
+  runner.logger = _make_logger_mock(is_wandb=True)
   runner.env = MagicMock()
   runner.export_policy_to_onnx = MagicMock()
 
@@ -573,8 +595,7 @@ def _make_tracking_runner_shell(registry_name, is_wandb, upload_model=True):
   runner = MotionTrackingOnPolicyRunner.__new__(MotionTrackingOnPolicyRunner)
   runner.registry_name = registry_name
   runner.cfg = {"upload_model": upload_model}
-  runner.logger = MagicMock()
-  runner.logger.writer = MagicMock(spec=WandbLogWriter) if is_wandb else MagicMock()
+  runner.logger = _make_logger_mock(is_wandb)
 
   mock_motion_term = MagicMock()
   mock_motion_term.cfg.anchor_body_name = "pelvis"
