@@ -12,7 +12,7 @@ import pytest
 import torch
 from conftest import get_test_device
 from rsl_rl.models import MLPModel
-from rsl_rl.utils.wandb_log_writer import WandbLogWriter
+from rsl_rl.utils import WandbLogWriter
 from tensordict import TensorDict
 
 import mjlab.scripts.train as train_mod

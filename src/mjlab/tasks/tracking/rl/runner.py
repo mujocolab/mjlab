@@ -4,7 +4,7 @@ from typing import cast
 import torch
 import wandb
 from rsl_rl.env.vec_env import VecEnv
-from rsl_rl.utils.wandb_log_writer import WandbLogWriter
+from rsl_rl.utils import WandbLogWriter
 from torch import nn
 
 from mjlab.rl import RslRlVecEnvWrapper

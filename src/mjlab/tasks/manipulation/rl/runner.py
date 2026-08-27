@@ -1,5 +1,5 @@
 import wandb
-from rsl_rl.utils.wandb_log_writer import WandbLogWriter
+from rsl_rl.utils import WandbLogWriter
 
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.rl.exporter_utils import (
