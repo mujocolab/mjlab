@@ -82,3 +82,6 @@ Projects built on mjlab. To add yours, open a pull request or post in
      - In-hand cube reorientation on the Wuji Hand with sim-to-real deployment.
    * - `wbc-mjlab/wbc-mjlab <https://github.com/wbc-mjlab/wbc-mjlab>`_
      - Configurable whole-body control — shared MDP with task configs, one policy for many skills.
+   * - `pollen-robotics/microduck_rl <https://github.com/pollen-robotics/microduck_rl>`_
+     - Sim-to-real locomotion for `Microduck <https://pollen-robotics.com/microduck/>`_, an
+       open-source 25 cm bipedal robot from Pollen Robotics and Hugging Face.
