@@ -4,7 +4,7 @@ set -euo pipefail
 repo_dir="/home/ut/football_project/mjlab_soccer"
 source_run="2026-08-21_16-21-47_DepthStudent_MountRangeVisualDR_frozenMLP_teacherRollout_alpha025_noDelay_noLongDrop_pixel5_from_B1Teacher49999_seed42_10k_wandb"
 source_checkpoint="model_4000.pt"
-checkpoint="$repo_dir/logs/rsl_rl/g1_velocity_football_depth_temporal_distillation/$source_run/$source_checkpoint"
+checkpoint="/home/ut/football_project/log_old/logs/rsl_rl/g1_velocity_football_depth_temporal_distillation/$source_run/$source_checkpoint"
 run_name="DepthStudent_MountRangeStrongVisualDR_constrainedLatent_lastMLP_mixed030_seed42_resume4000_to10k_wandb"
 
 if [[ ! -f "$checkpoint" ]]; then

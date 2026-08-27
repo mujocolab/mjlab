@@ -1,138 +1,23 @@
-"""Unitree G1 velocity-football task registration."""
+"""Active Unitree G1 velocity-football task registrations."""
 
 from mjlab.tasks.registry import register_mjlab_task
 from mjlab.tasks.velocity_football.rl import VelocityOnPolicyRunner
 
 from .env_cfgs import (
-  FactorialBallRewardVariant,
-  RewardAblationVariant,
-  unitree_g1_dropout5_envelope30_flat_env_cfg,
-  unitree_g1_factorial_dropout_flat_env_cfg,
-  unitree_g1_factorial_flat_env_cfg,
-  unitree_g1_factorial_history30_flat_env_cfg,
   unitree_g1_flat_env_cfg,
-  unitree_g1_isaaclab_aligned_flat_env_cfg,
-  unitree_g1_isaaclab_history5_long_dropout10_flat_env_cfg,
-  unitree_g1_klavier_ball_temporal_flat_env_cfg,
   unitree_g1_long_dropout10_envelope30_legacy_curriculum_flat_env_cfg,
-  unitree_g1_long_dropout10_rough_curriculum10mm_env_cfg,
-  unitree_g1_reward_ablation_flat_env_cfg,
-  unitree_g1_temporal_flat_env_cfg,
-  unitree_g1_temporal_history_flat_env_cfg,
-  unitree_g1_temporal_stop_reward_flat_env_cfg,
-  unitree_g1_transition_dropout25_envelope30_flat_env_cfg,
-  unitree_g1_transition_dropout25_envelope30_legacy_curriculum_flat_env_cfg,
-  unitree_g1_visibility_blend_curriculum_v2_flat_env_cfg,
-  unitree_g1_visibility_blend_flat_env_cfg,
-  unitree_g1_visible_only_envelope30_legacy_curriculum_flat_env_cfg,
-  unitree_g1_visual_mask_flat_env_cfg,
 )
-from .rl_cfg import (
-  unitree_g1_factorial_history30_ppo_runner_cfg,
-  unitree_g1_factorial_ppo_runner_cfg,
-  unitree_g1_klavier_ball_temporal_ppo_runner_cfg,
-  unitree_g1_klavier_replica_ppo_runner_cfg,
-  unitree_g1_ppo_runner_cfg,
-  unitree_g1_temporal_ppo_runner_cfg,
-  unitree_g1_temporal_velocity_pretrain_ppo_runner_cfg,
-  unitree_g1_velocity_pretrain_ppo_runner_cfg,
-  unitree_g1_visual_mask_ppo_runner_cfg,
+from .rl_cfg import unitree_g1_factorial_ppo_runner_cfg, unitree_g1_ppo_runner_cfg
+
+BASE_TASK_ID = "Mjlab-Velocity-Football-Flat-Unitree-G1"
+TEACHER_BASELINE_TASK_ID = (
+  "Mjlab-Velocity-Football-A1R0-LongDropout10-Envelope30-"
+  "LegacyCurriculum-Flat-Unitree-G1"
 )
-from .velocity_env_cfgs import (
-  unitree_g1_current_velocity_pretrain_flat_env_cfg,
-  unitree_g1_klavier_replica_flat_env_cfg,
-  unitree_g1_temporal_velocity_pretrain_flat_env_cfg,
-  unitree_g1_velocity_pretrain_flat_env_cfg,
-)
+
 
 register_mjlab_task(
-  task_id="Mjlab-Velocity-Walk-KlavierReplica-Flat-Unitree-G1",
-  env_cfg=unitree_g1_klavier_replica_flat_env_cfg(),
-  play_env_cfg=unitree_g1_klavier_replica_flat_env_cfg(play=True),
-  rl_cfg=unitree_g1_klavier_replica_ppo_runner_cfg(),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-register_mjlab_task(
-  task_id="Mjlab-Velocity-Football-KlavierReplica-BallTemporal-Flat-Unitree-G1",
-  env_cfg=unitree_g1_klavier_ball_temporal_flat_env_cfg(),
-  play_env_cfg=unitree_g1_klavier_ball_temporal_flat_env_cfg(play=True),
-  rl_cfg=unitree_g1_klavier_ball_temporal_ppo_runner_cfg(),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-register_mjlab_task(
-  task_id="Mjlab-Velocity-Football-Current-Pretrain-Flat-Unitree-G1",
-  env_cfg=unitree_g1_current_velocity_pretrain_flat_env_cfg(),
-  play_env_cfg=unitree_g1_current_velocity_pretrain_flat_env_cfg(play=True),
-  rl_cfg=unitree_g1_velocity_pretrain_ppo_runner_cfg(),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-register_mjlab_task(
-  task_id=(
-    "Mjlab-Velocity-Football-A1R0-LongDropout10-Envelope30-"
-    "LegacyCurriculum-Rough10mm-Unitree-G1"
-  ),
-  env_cfg=unitree_g1_long_dropout10_rough_curriculum10mm_env_cfg(),
-  play_env_cfg=unitree_g1_long_dropout10_rough_curriculum10mm_env_cfg(play=True),
-  rl_cfg=unitree_g1_factorial_ppo_runner_cfg(use_b1_history=True),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-register_mjlab_task(
-  task_id=(
-    "Mjlab-Velocity-Football-A1R0-VisibleOnly-Envelope30-"
-    "LegacyCurriculum-Flat-Unitree-G1"
-  ),
-  env_cfg=unitree_g1_visible_only_envelope30_legacy_curriculum_flat_env_cfg(),
-  play_env_cfg=(
-    unitree_g1_visible_only_envelope30_legacy_curriculum_flat_env_cfg(play=True)
-  ),
-  rl_cfg=unitree_g1_factorial_ppo_runner_cfg(use_b1_history=True),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-register_mjlab_task(
-  task_id="Mjlab-Velocity-Football-Pretrain-Flat-Unitree-G1",
-  env_cfg=unitree_g1_velocity_pretrain_flat_env_cfg(),
-  play_env_cfg=unitree_g1_velocity_pretrain_flat_env_cfg(play=True),
-  rl_cfg=unitree_g1_velocity_pretrain_ppo_runner_cfg(),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-register_mjlab_task(
-  task_id="Mjlab-Velocity-Football-Temporal-Pretrain-Flat-Unitree-G1",
-  env_cfg=unitree_g1_temporal_velocity_pretrain_flat_env_cfg(),
-  play_env_cfg=unitree_g1_temporal_velocity_pretrain_flat_env_cfg(play=True),
-  rl_cfg=unitree_g1_temporal_velocity_pretrain_ppo_runner_cfg(),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-reward_ablation_tasks: tuple[tuple[str, RewardAblationVariant], ...] = (
-  ("Mjlab-Velocity-Football-R0-IsaacLab-Robust-Flat-Unitree-G1", "r0_isaaclab"),
-  ("Mjlab-Velocity-Football-R1-E1-Robust-Flat-Unitree-G1", "r1_e1"),
-  (
-    "Mjlab-Velocity-Football-R2-No-Relative-Velocity-Flat-Unitree-G1",
-    "r2_no_relative_velocity",
-  ),
-  (
-    "Mjlab-Velocity-Football-R3-No-Relative-Position-Flat-Unitree-G1",
-    "r3_no_relative_position",
-  ),
-)
-
-for task_id, variant in reward_ablation_tasks:
-  register_mjlab_task(
-    task_id=task_id,
-    env_cfg=unitree_g1_reward_ablation_flat_env_cfg(variant),
-    play_env_cfg=unitree_g1_reward_ablation_flat_env_cfg(variant, play=True),
-    rl_cfg=unitree_g1_ppo_runner_cfg(),
-    runner_cls=VelocityOnPolicyRunner,
-  )
-
-register_mjlab_task(
-  task_id="Mjlab-Velocity-Football-Flat-Unitree-G1",
+  task_id=BASE_TASK_ID,
   env_cfg=unitree_g1_flat_env_cfg(),
   play_env_cfg=unitree_g1_flat_env_cfg(play=True),
   rl_cfg=unitree_g1_ppo_runner_cfg(),
@@ -140,185 +25,11 @@ register_mjlab_task(
 )
 
 register_mjlab_task(
-  task_id="Mjlab-Velocity-Football-Temporal-Flat-Unitree-G1",
-  env_cfg=unitree_g1_temporal_flat_env_cfg(),
-  play_env_cfg=unitree_g1_temporal_flat_env_cfg(play=True),
-  rl_cfg=unitree_g1_temporal_ppo_runner_cfg(),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-register_mjlab_task(
-  task_id="Mjlab-Velocity-Football-Temporal-StopReward-Flat-Unitree-G1",
-  env_cfg=unitree_g1_temporal_stop_reward_flat_env_cfg(),
-  play_env_cfg=unitree_g1_temporal_stop_reward_flat_env_cfg(play=True),
-  rl_cfg=unitree_g1_temporal_ppo_runner_cfg(),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-for _history_length in (5, 20):
-  register_mjlab_task(
-    task_id=(
-      f"Mjlab-Velocity-Football-Temporal-History{_history_length}-Flat-Unitree-G1"
-    ),
-    env_cfg=unitree_g1_temporal_history_flat_env_cfg(_history_length),
-    play_env_cfg=unitree_g1_temporal_history_flat_env_cfg(
-      _history_length,
-      play=True,
-    ),
-    rl_cfg=unitree_g1_temporal_ppo_runner_cfg(),
-    runner_cls=VelocityOnPolicyRunner,
-  )
-
-register_mjlab_task(
-  task_id="Mjlab-Velocity-Football-VisualMask-Flat-Unitree-G1",
-  env_cfg=unitree_g1_visual_mask_flat_env_cfg(),
-  play_env_cfg=unitree_g1_visual_mask_flat_env_cfg(play=True),
-  rl_cfg=unitree_g1_visual_mask_ppo_runner_cfg(),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-register_mjlab_task(
-  task_id="Mjlab-Velocity-Football-IsaacLabAligned-Flat-Unitree-G1",
-  env_cfg=unitree_g1_isaaclab_aligned_flat_env_cfg(),
-  play_env_cfg=unitree_g1_isaaclab_aligned_flat_env_cfg(play=True),
-  rl_cfg=unitree_g1_factorial_ppo_runner_cfg(use_b1_history=False),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-register_mjlab_task(
-  task_id=(
-    "Mjlab-Velocity-Football-IsaacLabAligned-History5-LongDropout10-Flat-Unitree-G1"
-  ),
-  env_cfg=unitree_g1_isaaclab_history5_long_dropout10_flat_env_cfg(),
-  play_env_cfg=unitree_g1_isaaclab_history5_long_dropout10_flat_env_cfg(play=True),
-  rl_cfg=unitree_g1_factorial_ppo_runner_cfg(use_b1_history=False),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-factorial_tasks: tuple[tuple[str, bool, FactorialBallRewardVariant], ...] = (
-  (
-    "Mjlab-Velocity-Football-A0R0-Flat-Unitree-G1",
-    False,
-    "r0_isaaclab_ball",
-  ),
-  (
-    "Mjlab-Velocity-Football-A0R1-Flat-Unitree-G1",
-    False,
-    "r1_ball_center",
-  ),
-  (
-    "Mjlab-Velocity-Football-A1R0-Flat-Unitree-G1",
-    True,
-    "r0_isaaclab_ball",
-  ),
-  (
-    "Mjlab-Velocity-Football-A1R1-Flat-Unitree-G1",
-    True,
-    "r1_ball_center",
-  ),
-)
-
-for task_id, use_b1_history, reward_variant in factorial_tasks:
-  register_mjlab_task(
-    task_id=task_id,
-    env_cfg=unitree_g1_factorial_flat_env_cfg(
-      use_b1_history=use_b1_history,
-      reward_variant=reward_variant,
-    ),
-    play_env_cfg=unitree_g1_factorial_flat_env_cfg(
-      use_b1_history=use_b1_history,
-      reward_variant=reward_variant,
-      play=True,
-    ),
-    rl_cfg=unitree_g1_factorial_ppo_runner_cfg(
-      use_b1_history=use_b1_history,
-    ),
-    runner_cls=VelocityOnPolicyRunner,
-  )
-
-register_mjlab_task(
-  task_id="Mjlab-Velocity-Football-A1R0-History30-Flat-Unitree-G1",
-  env_cfg=unitree_g1_factorial_history30_flat_env_cfg(),
-  play_env_cfg=unitree_g1_factorial_history30_flat_env_cfg(play=True),
-  rl_cfg=unitree_g1_factorial_history30_ppo_runner_cfg(),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-register_mjlab_task(
-  task_id="Mjlab-Velocity-Football-A1R0-Dropout10-Flat-Unitree-G1",
-  env_cfg=unitree_g1_factorial_dropout_flat_env_cfg(),
-  play_env_cfg=unitree_g1_factorial_dropout_flat_env_cfg(play=True),
-  rl_cfg=unitree_g1_factorial_ppo_runner_cfg(use_b1_history=True),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-register_mjlab_task(
-  task_id="Mjlab-Velocity-Football-A1R0-Dropout5-Flat-Unitree-G1",
-  env_cfg=unitree_g1_factorial_dropout_flat_env_cfg(
-    dropout_probability=0.0,
-    episode_dropout_probability=0.05,
-  ),
-  play_env_cfg=unitree_g1_factorial_dropout_flat_env_cfg(play=True),
-  rl_cfg=unitree_g1_factorial_ppo_runner_cfg(use_b1_history=True),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-register_mjlab_task(
-  task_id="Mjlab-Velocity-Football-A1R0-Dropout5-Envelope30-Flat-Unitree-G1",
-  env_cfg=unitree_g1_dropout5_envelope30_flat_env_cfg(),
-  play_env_cfg=unitree_g1_dropout5_envelope30_flat_env_cfg(play=True),
-  rl_cfg=unitree_g1_factorial_ppo_runner_cfg(use_b1_history=True),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-register_mjlab_task(
-  task_id=(
-    "Mjlab-Velocity-Football-A1R0-TransitionDropout25-Envelope30-Flat-Unitree-G1"
-  ),
-  env_cfg=unitree_g1_transition_dropout25_envelope30_flat_env_cfg(),
-  play_env_cfg=unitree_g1_transition_dropout25_envelope30_flat_env_cfg(play=True),
-  rl_cfg=unitree_g1_factorial_ppo_runner_cfg(use_b1_history=True),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-register_mjlab_task(
-  task_id=(
-    "Mjlab-Velocity-Football-A1R0-LongDropout10-Envelope30-"
-    "LegacyCurriculum-Flat-Unitree-G1"
-  ),
+  task_id=TEACHER_BASELINE_TASK_ID,
   env_cfg=unitree_g1_long_dropout10_envelope30_legacy_curriculum_flat_env_cfg(),
   play_env_cfg=(
     unitree_g1_long_dropout10_envelope30_legacy_curriculum_flat_env_cfg(play=True)
   ),
-  rl_cfg=unitree_g1_factorial_ppo_runner_cfg(use_b1_history=True),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-register_mjlab_task(
-  task_id=(
-    "Mjlab-Velocity-Football-A1R0-TransitionDropout25-Envelope30-"
-    "LegacyCurriculum-Flat-Unitree-G1"
-  ),
-  env_cfg=(unitree_g1_transition_dropout25_envelope30_legacy_curriculum_flat_env_cfg()),
-  play_env_cfg=(
-    unitree_g1_transition_dropout25_envelope30_legacy_curriculum_flat_env_cfg(play=True)
-  ),
-  rl_cfg=unitree_g1_factorial_ppo_runner_cfg(use_b1_history=True),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-register_mjlab_task(
-  task_id="Mjlab-Velocity-Football-A1R0-VisibilityBlend-Flat-Unitree-G1",
-  env_cfg=unitree_g1_visibility_blend_flat_env_cfg(),
-  play_env_cfg=unitree_g1_visibility_blend_flat_env_cfg(play=True),
-  rl_cfg=unitree_g1_factorial_ppo_runner_cfg(use_b1_history=True),
-  runner_cls=VelocityOnPolicyRunner,
-)
-
-register_mjlab_task(
-  task_id="Mjlab-Velocity-Football-A1R0-VisibilityBlend-V2-Flat-Unitree-G1",
-  env_cfg=unitree_g1_visibility_blend_curriculum_v2_flat_env_cfg(),
-  play_env_cfg=unitree_g1_visibility_blend_curriculum_v2_flat_env_cfg(play=True),
   rl_cfg=unitree_g1_factorial_ppo_runner_cfg(use_b1_history=True),
   runner_cls=VelocityOnPolicyRunner,
 )

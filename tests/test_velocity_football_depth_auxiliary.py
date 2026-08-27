@@ -6,21 +6,14 @@ from typing import Any, cast
 import torch
 from tensordict import TensorDict
 
-from mjlab.rl import RslRlOnPolicyRunnerCfg
-from mjlab.sensor import CameraSensorCfg
-from mjlab.tasks.registry import load_env_cfg, load_rl_cfg, load_runner_cls
-from mjlab.tasks.velocity_football_depth import V1_TASK_ID
 from mjlab.tasks.velocity_football_depth.algorithm import BallAuxiliaryPPO
 from mjlab.tasks.velocity_football_depth.env_cfg import (
   DEPTH_HISTORY_LENGTH,
   DEPTH_POLICY_HEIGHT,
   DEPTH_POLICY_WIDTH,
-  DEPTH_SENSOR_NAME,
 )
 from mjlab.tasks.velocity_football_depth.model import DepthAuxCNNModel
-from mjlab.tasks.velocity_football_depth.runner import (
-  DepthAuxVelocityOnPolicyRunner,
-)
+from mjlab.tasks.velocity_football_depth.runner import DepthAuxVelocityOnPolicyRunner
 
 
 def _distribution_cfg() -> dict[str, Any]:
@@ -29,30 +22,6 @@ def _distribution_cfg() -> dict[str, Any]:
     "init_std": 1.0,
     "std_type": "scalar",
   }
-
-
-def test_v1_task_contract() -> None:
-  env_cfg = load_env_cfg(V1_TASK_ID)
-  rl_cfg = cast(RslRlOnPolicyRunnerCfg, load_rl_cfg(V1_TASK_ID))
-  camera = cast(
-    CameraSensorCfg,
-    next(
-      sensor
-      for sensor in env_cfg.scene.sensors or ()
-      if sensor.name == DEPTH_SENSOR_NAME
-    ),
-  )
-
-  assert camera.data_types == ("depth", "segmentation")
-  assert env_cfg.observations["depth"].history_length == DEPTH_HISTORY_LENGTH
-  assert not env_cfg.observations["depth"].flatten_history_dim
-  assert tuple(env_cfg.observations["ball_aux_target"].terms) == ("target",)
-  assert rl_cfg.obs_groups == {
-    "actor": ("actor", "depth"),
-    "critic": ("critic", "depth", "critic_ball"),
-  }
-  assert "BallAuxiliaryPPO" in rl_cfg.algorithm.class_name
-  assert load_runner_cls(V1_TASK_ID) is DepthAuxVelocityOnPolicyRunner
 
 
 def test_depth_model_outputs_policy_and_supervised_ball_bottleneck() -> None:

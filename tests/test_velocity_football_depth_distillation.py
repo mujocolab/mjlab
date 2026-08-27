@@ -7,10 +7,8 @@ from tensordict import TensorDict
 
 from mjlab.tasks.registry import load_env_cfg, load_rl_cfg, load_runner_cls
 from mjlab.tasks.velocity_football_depth import (
-  DISTILLATION_TASK_ID,
-  STUDENT_PPO_TASK_ID,
-  TEMPORAL_DISTILLATION_TASK_ID,
-  TEMPORAL_MOUNT_RANGE_STRONG_CONSTRAINED_DISTILLATION_TASK_ID,
+  DEPTH_BASELINE_TASK_ID,
+  DEPTH_CANDIDATE_TASK_ID,
 )
 from mjlab.tasks.velocity_football_depth.distillation import (
   FOOTBALL_HISTORY_DIM,
@@ -22,7 +20,6 @@ from mjlab.tasks.velocity_football_depth.distillation import (
   DepthTemporalLatentStudentModel,
 )
 from mjlab.tasks.velocity_football_depth.runner import (
-  DepthStudentPpoRunner,
   DepthTeacherDistillationRunner,
 )
 
@@ -103,35 +100,9 @@ def _make_temporal_student(
   )
 
 
-def test_depth_distillation_tasks_expose_teacher_student_contracts() -> None:
-  env_cfg = load_env_cfg(DISTILLATION_TASK_ID)
-  distill_cfg = cast(Any, load_rl_cfg(DISTILLATION_TASK_ID))
-  ppo_cfg = cast(Any, load_rl_cfg(STUDENT_PPO_TASK_ID))
-
-  assert env_cfg.observations["teacher_actor"].history_length == 5
-  assert env_cfg.observations["student_proprio"].history_length == 5
-  assert tuple(env_cfg.observations["student_proprio"].terms)[-1] == "actions"
-  assert env_cfg.observations["depth"].history_length == 5
-  assert not env_cfg.observations["depth"].flatten_history_dim
-  assert "actor" not in env_cfg.observations
-  assert "critic_history" not in env_cfg.observations
-
-  assert distill_cfg.obs_groups == {
-    "student": ("teacher_actor",),
-    "teacher": ("teacher_actor",),
-  }
-  assert distill_cfg.algorithm.rollout_policy == "teacher"
-  assert distill_cfg.student.cnn_cfg["freeze_coordinate_actor"]
-  assert ppo_cfg.algorithm.learning_rate == 1.0e-4
-  assert not ppo_cfg.actor.cnn_cfg["freeze_coordinate_actor"]
-  assert ppo_cfg.obs_groups["critic"] == ("critic",)
-  assert load_runner_cls(DISTILLATION_TASK_ID) is DepthTeacherDistillationRunner
-  assert load_runner_cls(STUDENT_PPO_TASK_ID) is DepthStudentPpoRunner
-
-
 def test_temporal_teacher_distillation_contract_has_no_student_coordinates() -> None:
-  env_cfg = load_env_cfg(TEMPORAL_DISTILLATION_TASK_ID)
-  distill_cfg = cast(Any, load_rl_cfg(TEMPORAL_DISTILLATION_TASK_ID))
+  env_cfg = load_env_cfg(DEPTH_BASELINE_TASK_ID)
+  distill_cfg = cast(Any, load_rl_cfg(DEPTH_BASELINE_TASK_ID))
 
   assert env_cfg.observations["actor"].history_length == 5
   assert env_cfg.observations["actor_history"].history_length == 10
@@ -144,15 +115,13 @@ def test_temporal_teacher_distillation_contract_has_no_student_coordinates() -> 
   assert distill_cfg.obs_groups["student"] == ("actor",)
   assert distill_cfg.obs_groups["teacher"] == ("actor", "actor_history")
   assert distill_cfg.algorithm.class_name.endswith("TeacherRolloutDistillation")
-  assert load_runner_cls(TEMPORAL_DISTILLATION_TASK_ID) is (
-    DepthTeacherDistillationRunner
-  )
+  assert load_runner_cls(DEPTH_BASELINE_TASK_ID) is (DepthTeacherDistillationRunner)
 
 
 def test_constrained_latent_distillation_configuration() -> None:
   cfg = cast(
     Any,
-    load_rl_cfg(TEMPORAL_MOUNT_RANGE_STRONG_CONSTRAINED_DISTILLATION_TASK_ID),
+    load_rl_cfg(DEPTH_CANDIDATE_TASK_ID),
   )
 
   assert cfg.algorithm.class_name.endswith("ConstrainedLatentDistillation")

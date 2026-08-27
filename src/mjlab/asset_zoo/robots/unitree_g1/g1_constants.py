@@ -20,71 +20,11 @@ from mjlab.utils.spec_config import CollisionCfg
 G1_XML: Path = (
   MJLAB_SRC_PATH / "asset_zoo" / "robots" / "unitree_g1" / "xmls" / "g1.xml"
 )
-G1_KLAVIER_XML: Path = (
-  MJLAB_SRC_PATH
-  / "asset_zoo"
-  / "robots"
-  / "unitree_g1"
-  / "klavier_model"
-  / "g1_29dof_football.xml"
-)
 assert G1_XML.exists()
-assert G1_KLAVIER_XML.exists()
-
-
-def _get_spec(xml_path: Path) -> mujoco.MjSpec:
-  spec = mujoco.MjSpec.from_file(str(xml_path))
-  if xml_path.name != "g1_29dof_football.xml":
-    return spec
-
-  # The Isaac Lab football XML is a complete standalone scene. MjLab owns the
-  # terrain and football as separate scene entities, so retain only the robot.
-  spec.delete(spec.body("football_ball"))
-  spec.delete(spec.geom("floor"))
-
-  # MjLab adds its configured actuators below when building the Entity. Keeping
-  # the XML motors would create 58 actuators for the same 29 joints.
-  for actuator in list(spec.actuators):
-    spec.delete(actuator)
-
-  spec.sensor("imu_gyro").name = "imu_ang_vel"
-  spec.sensor("frame_vel").name = "imu_lin_vel"
-  spec.add_sensor(
-    name="root_angmom",
-    type=mujoco.mjtSensor.mjSENS_SUBTREEANGMOM,
-    objtype=mujoco.mjtObj.mjOBJ_BODY,
-    objname="pelvis",
-  )
-
-  # Preserve the Isaac Lab collision geometry while supplying the names/sites
-  # used by MjLab's G1 task configuration.
-  for body in spec.bodies:
-    collision_geoms = [geom for geom in body.geoms if geom.contype != 0]
-    if body.name in {"left_ankle_roll_link", "right_ankle_roll_link"}:
-      side = body.name.split("_", maxsplit=1)[0]
-      if len(collision_geoms) != 7:
-        raise ValueError(
-          f"Expected 7 {side} foot collision geoms, got {len(collision_geoms)}"
-        )
-      for index, geom in enumerate(collision_geoms, start=1):
-        geom.name = f"{side}_foot{index}_collision"
-      body.add_site(name=f"{side}_foot", pos=(0.04, 0.0, -0.037))
-    else:
-      stem = body.name.removesuffix("_link")
-      for index, geom in enumerate(collision_geoms, start=1):
-        suffix = "" if len(collision_geoms) == 1 else str(index)
-        geom.name = f"{stem}{suffix}_collision"
-
-  return spec
 
 
 def get_spec() -> mujoco.MjSpec:
-  return _get_spec(G1_XML)
-
-
-def get_klavier_spec() -> mujoco.MjSpec:
-  """Load the copied Klavier G1 model while stripping its standalone scene."""
-  return _get_spec(G1_KLAVIER_XML)
+  return mujoco.MjSpec.from_file(str(G1_XML))
 
 
 ##
@@ -331,16 +271,6 @@ def get_g1_robot_cfg() -> EntityCfg:
     init_state=KNEES_BENT_KEYFRAME,
     collisions=(FULL_COLLISION,),
     spec_fn=get_spec,
-    articulation=G1_ARTICULATION,
-  )
-
-
-def get_g1_klavier_robot_cfg() -> EntityCfg:
-  """Get the copied Klavier/IsaacLab G1 as an independent MjLab entity."""
-  return EntityCfg(
-    init_state=KNEES_BENT_KEYFRAME,
-    collisions=(FULL_COLLISION,),
-    spec_fn=get_klavier_spec,
     articulation=G1_ARTICULATION,
   )
 

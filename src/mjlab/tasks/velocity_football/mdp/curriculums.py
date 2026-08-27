@@ -246,16 +246,16 @@ def push_velocity_levels(
   unlock_lin_vel_y: tuple[float, float] | None = None,
   survival_threshold: float = 0.95,
 ) -> dict[str, torch.Tensor]:
-  """Performance-gated push curriculum used by the Klavier walk task."""
+  """Performance-gated push curriculum for football locomotion."""
   if not 0.0 <= survival_threshold <= 1.0:
     raise ValueError("survival_threshold must be in [0, 1]")
   event_cfg = env.event_manager.get_term_cfg(event_term_name)
-  start = getattr(env, "_klavier_push_start_range", None)
+  start = getattr(env, "_football_push_start_range", None)
   if start is None:
     start = dict(event_cfg.params["velocity_range"])
-    env._klavier_push_start_range = start
+    env._football_push_start_range = start
   progress = getattr(
-    env, "_klavier_push_progress", torch.tensor(0.0, device=env.device)
+    env, "_football_push_progress", torch.tensor(0.0, device=env.device)
   )
   unlocked = True
   if unlock_command_name is not None:
@@ -282,11 +282,10 @@ def push_velocity_levels(
   if (
     unlocked
     and env.common_step_counter % env.max_episode_length == 0
-    and torch.mean(selected_lengths)
-    >= env.max_episode_length * survival_threshold
+    and torch.mean(selected_lengths) >= env.max_episode_length * survival_threshold
   ):
     progress = torch.clamp(progress + 0.1, 0.0, 1.0)
-  env._klavier_push_progress = progress.detach()
+  env._football_push_progress = progress.detach()
   updated = {}
   for key, initial_range in start.items():
     initial = torch.tensor(initial_range, device=env.device)

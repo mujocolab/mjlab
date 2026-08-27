@@ -27,11 +27,9 @@ from mjlab.scripts.sim2sim.d435_ball_observer import (
 )
 from mjlab.scripts.sim2sim.detection_window import DetectionWindow
 from mjlab.tasks.registry import load_env_cfg, load_rl_cfg
+from mjlab.tasks.velocity_football.config.g1 import TEACHER_BASELINE_TASK_ID
 
-TASK_ID = "Mjlab-Velocity-Football-Flat-Unitree-G1"
-KLAVIER_BALL_TEMPORAL_TASK_ID = (
-  "Mjlab-Velocity-Football-KlavierReplica-BallTemporal-Flat-Unitree-G1"
-)
+TASK_ID = TEACHER_BASELINE_TASK_ID
 FRAME_STACK = 5
 TEMPORAL_HISTORY_LENGTH = 10
 BALL_VISIBILITY_X_RANGE = (0.05, 1.00)
@@ -244,7 +242,9 @@ def align_legacy_metadata_to_task(
       "Task action joints and ONNX metadata joints do not describe the same set: "
       f"task={configured_names}, metadata={metadata.joint_names}."
     )
-  natural_default = dict(zip(metadata.joint_names, metadata.default_joint_pos, strict=True))
+  natural_default = dict(
+    zip(metadata.joint_names, metadata.default_joint_pos, strict=True)
+  )
   corrected_default = np.asarray(
     [natural_default[name] for name in configured_names], dtype=np.float32
   )

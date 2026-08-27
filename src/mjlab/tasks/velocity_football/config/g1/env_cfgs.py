@@ -3,11 +3,7 @@
 from copy import deepcopy
 from typing import Literal
 
-from mjlab.asset_zoo.robots import (
-  G1_ACTION_SCALE,
-  get_g1_klavier_robot_cfg,
-  get_g1_robot_cfg,
-)
+from mjlab.asset_zoo.robots import G1_ACTION_SCALE, get_g1_robot_cfg
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs import mdp as envs_mdp
 from mjlab.envs.mdp.actions import JointPositionActionCfg
@@ -29,7 +25,6 @@ from mjlab.tasks.velocity import mdp
 from mjlab.tasks.velocity_football.mdp.curriculums import (
   lin_vel_cmd_levels,
   normal_control_lin_vel_cmd_levels,
-  push_velocity_levels,
   scheduled_rough_terrain_levels,
   visibility_blend_task_levels,
 )
@@ -43,7 +38,6 @@ from mjlab.tasks.velocity_football.mdp.metrics import (
 from mjlab.tasks.velocity_football.mdp.observations import (
   ball_visible_mask,
   episode_ball_observation_hidden,
-  masked_ball_features_b,
   masked_ball_pos_b,
   masked_ball_to_feet_vectors_b,
   perceived_ball_pos_b,
@@ -75,7 +69,6 @@ from mjlab.terrains.terrain_generator import TerrainGeneratorCfg
 from mjlab.utils.noise import UniformNoiseCfg
 
 from .pose import get_isaaclab_default_keyframe
-from .velocity_env_cfgs import KLAVIER_JOINT_ORDER
 
 
 def unitree_g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
@@ -537,176 +530,6 @@ def unitree_g1_factorial_flat_env_cfg(
     actor.terms.pop("ball_pos_b")
     actor.terms.pop("ball_to_feet_vectors_b")
   _configure_factorial_ball_reward(cfg, reward_variant)
-  return cfg
-
-
-def unitree_g1_klavier_ball_temporal_flat_env_cfg(
-  play: bool = False,
-) -> ManagerBasedRlEnvCfg:
-  """Scheme A: Klavier walk body plus an independent 10x7 BallCNN stream."""
-  cfg = unitree_g1_factorial_flat_env_cfg(
-    use_b1_history=True,
-    reward_variant="r0_isaaclab_ball",
-    play=play,
-    history_length=10,
-  )
-  cfg.scene.num_envs = 1 if play else 4096
-  cfg.scene.extent = 2.5
-  cfg.scene.entities["robot"] = get_g1_klavier_robot_cfg()
-  cfg.scene.entities["robot"].init_state = get_isaaclab_default_keyframe()
-
-  ordered_joints = SceneEntityCfg(
-    "robot",
-    joint_names=KLAVIER_JOINT_ORDER,
-    preserve_order=True,
-  )
-  # Preserve the Walk checkpoint's interleaved 29-joint observation contract.
-  # actor_history deliberately contains only the seven football features.
-  for group_name in ("actor", "critic", "critic_history"):
-    group = cfg.observations[group_name]
-    for term_name in ("joint_pos", "joint_vel", "joint_torques"):
-      if term_name in group.terms:
-        group.terms[term_name].params["asset_cfg"] = deepcopy(ordered_joints)
-
-  action_obs = cfg.observations["actor"].terms["actions"]
-  action_obs.delay_min_lag = 0
-  action_obs.delay_max_lag = 2
-  action = cfg.actions["joint_pos"]
-  assert isinstance(action, JointPositionActionCfg)
-  action.actuator_names = KLAVIER_JOINT_ORDER
-  action.preserve_order = True
-  action.scale = G1_ACTION_SCALE
-
-  # Reuse the exact startup dynamics randomization used by the copied Walk task.
-  cfg.events["foot_friction"].params.update(
-    {
-      "asset_cfg": SceneEntityCfg("robot", geom_names=(r".*_collision",)),
-      "ranges": (0.3, 1.6),
-      "shared_random": False,
-    }
-  )
-  cfg.events["base_mass"] = EventTermCfg(
-    func=envs_mdp.dr.body_mass,
-    mode="startup",
-    params={
-      "asset_cfg": SceneEntityCfg("robot", body_names=("torso_link",)),
-      "ranges": (-1.0, 5.0),
-      "operation": "add",
-    },
-  )
-  cfg.events["base_com"].params.update(
-    {
-      "asset_cfg": SceneEntityCfg("robot", body_names=("torso_link",)),
-      "ranges": {0: (-0.05, 0.05), 1: (-0.05, 0.05), 2: (-0.05, 0.05)},
-    }
-  )
-  cfg.events["joint_default_pos"] = EventTermCfg(
-    func=envs_mdp.dr.joint_default_pos,
-    mode="startup",
-    params={
-      "asset_cfg": SceneEntityCfg("robot", joint_names=(r".*",)),
-      "ranges": (-0.015, 0.015),
-      "operation": "add",
-    },
-  )
-  cfg.events["joint_friction"] = EventTermCfg(
-    func=envs_mdp.dr.joint_friction,
-    mode="startup",
-    params={
-      "asset_cfg": SceneEntityCfg("robot", joint_names=(r".*",)),
-      "ranges": (0.5, 1.5),
-      "operation": "scale",
-    },
-  )
-  cfg.events["joint_armature"] = EventTermCfg(
-    func=envs_mdp.dr.joint_armature,
-    mode="startup",
-    params={
-      "asset_cfg": SceneEntityCfg("robot", joint_names=(r".*",)),
-      "ranges": (0.5, 1.5),
-      "operation": "scale",
-    },
-  )
-  cfg.events["actuator_gains"] = EventTermCfg(
-    func=envs_mdp.dr.pd_gains,
-    mode="startup",
-    params={
-      "asset_cfg": SceneEntityCfg("robot", actuator_names=r".*"),
-      "kp_range": (0.8, 1.2),
-      "kd_range": (0.8, 1.2),
-      "operation": "scale",
-    },
-  )
-
-  # Keep the coordinated football placement while matching Walk's reset/push
-  # velocity perturbations. Ball placement and football rewards stay unchanged.
-  cfg.events["reset_football"].params["robot_velocity_range"] = {
-    "x": (-0.5, 0.5),
-    "y": (-0.5, 0.5),
-    "z": (-0.5, 0.5),
-    "roll": (-0.5, 0.5),
-    "pitch": (-0.5, 0.5),
-    "yaw": (-0.5, 0.5),
-  }
-
-  # Ten percent of all episodes lose the complete synchronized ball stream
-  # after 2--6 s and remain blind until reset. Sample only from the 95%
-  # non-standing episodes so long-dropout and standing modes remain disjoint.
-  command = cfg.commands["twist"]
-  assert isinstance(command, UniformVelocityCommandCfg)
-  command.standing_mode_per_episode = True
-  transition_probability = 0.0 if play else 0.10 / 0.95
-  actor_history = cfg.observations["actor_history"]
-  for term in actor_history.terms.values():
-    # Train from exact ball geometry while retaining the legacy 0--2 control
-    # step observation latency.  Long-term visibility loss remains enabled.
-    term.params["bias_range"] = 0.0
-    term.params["frame_noise_range"] = 0.0
-    term.noise = None
-    term.delay_min_lag = 0
-    term.delay_max_lag = 0
-    term.params["dropout_probability"] = 0.0
-    term.params["episode_dropout_probability"] = 0.0
-    term.params["transition_dropout_probability"] = transition_probability
-    term.params["transition_dropout_start_range_s"] = (2.0, 6.0)
-    term.params["transition_dropout_duration_range_s"] = (0.2, 0.8)
-    term.params["transition_dropout_until_end_probability"] = 0.0 if play else 1.0
-    term.params["transition_excluded_standing_command_name"] = "twist"
-    term.params["sensor_reward_fade_out_s"] = 0.5
-    term.params["sensor_reward_fade_in_s"] = 0.5
-
-  # One 7-D term means ball XY, both foot vectors, and visibility pass through
-  # exactly one delay buffer and therefore always use the same 0--2-step frame.
-  ball_features = deepcopy(actor_history.terms["ball_pos_b"])
-  ball_features.func = masked_ball_features_b
-  ball_features.delay_min_lag = 0
-  ball_features.delay_max_lag = 2
-  actor_history.terms = {"ball_features_b": ball_features}
-  ball_termination = cfg.terminations["ball_out_of_control"].params
-  ball_termination["ignore_episode_hidden"] = False
-  ball_termination["ignore_when_sensor_hidden"] = not play
-  cfg.rewards["track_ball_lin_vel_xy_exp"].params["gate_by_sensor_health"] = True
-  cfg.rewards["ball_front_control"].params["gate_by_sensor_health"] = True
-
-  if not play:
-    cfg.curriculum["push_velocity_levels"] = CurriculumTermCfg(
-      func=push_velocity_levels,
-      params={
-        "event_term_name": "push_robot",
-        "unlock_command_name": "twist",
-        "unlock_lin_vel_x": (-0.5, 2.0),
-        "unlock_lin_vel_y": (-0.5, 0.5),
-        "survival_threshold": 0.95,
-        "max_velocity_range": {
-          "x": (-1.5, 1.5),
-          "y": (-1.0, 1.0),
-          "z": (-0.5, 0.5),
-          "roll": (-0.8, 0.8),
-          "pitch": (-0.8, 0.8),
-          "yaw": (-1.57, 1.57),
-        },
-      },
-    )
   return cfg
 
 

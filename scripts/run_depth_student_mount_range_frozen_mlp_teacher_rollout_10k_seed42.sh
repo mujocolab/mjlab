@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo_dir="/home/ut/football_project/mjlab_soccer"
 teacher_run="2026-08-14_11-44-01_B1_A1R0_longdropout10_isaac_actor_dr_flat_seed42_from_walk16000_to50k_wandb"
-teacher_checkpoint="$repo_dir/logs/rsl_rl/g1_velocity_football/$teacher_run/model_49999.pt"
+teacher_checkpoint="/home/ut/football_project/log_old/logs/rsl_rl/g1_velocity_football/$teacher_run/model_49999.pt"
 run_name="DepthStudent_MountRangeVisualDR_frozenMLP_teacherRollout_alpha025_noDelay_noLongDrop_pixel5_from_B1Teacher49999_seed42_10k_wandb"
 
 if [[ ! -f "$teacher_checkpoint" ]]; then

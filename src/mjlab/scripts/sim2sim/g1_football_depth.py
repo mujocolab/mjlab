@@ -42,14 +42,14 @@ from mjlab.scripts.sim2sim.g1_football import (
 )
 from mjlab.sensor import CameraSensorCfg
 from mjlab.tasks.registry import load_env_cfg, load_rl_cfg
-from mjlab.tasks.velocity_football_depth import TEMPORAL_DISTILLATION_TASK_ID
+from mjlab.tasks.velocity_football_depth import DEPTH_CANDIDATE_TASK_ID
 from mjlab.tasks.velocity_football_depth.env_cfg import (
   DEPTH_MAX_METERS,
   DEPTH_MIN_METERS,
   DEPTH_SENSOR_NAME,
 )
 
-TASK_ID = TEMPORAL_DISTILLATION_TASK_ID
+TASK_ID = DEPTH_CANDIDATE_TASK_ID
 
 # Keep these deployment-only limits in lockstep with
 # klavier_rl_deploy-isaacsim5.1_de/deploy/robots/g1/config/policy/velocity/
@@ -755,8 +755,7 @@ def run(cfg: Sim2SimCfg) -> None:
   metadata = DepthPolicyMetadata.from_session(session)
 
   model, timestep, decimation, depth_cfg = build_model(
-    task_id=cfg.task_id,
-    obstruct_depth=cfg.obstruct_depth
+    task_id=cfg.task_id, obstruct_depth=cfg.obstruct_depth
   )
   data = mujoco.MjData(model)
   bindings = ModelBindings.from_model(model, metadata.joint_names)
