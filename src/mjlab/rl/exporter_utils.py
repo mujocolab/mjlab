@@ -32,7 +32,9 @@ def list_to_csv_str(
 
 
 def get_base_metadata(
-  env: ManagerBasedRlEnv, run_path: str
+  env: ManagerBasedRlEnv,
+  run_path: str,
+  observation_group: str = "actor",
 ) -> dict[str, list | str | float]:
   """Get base metadata common to all RL policy exports.
 
@@ -46,28 +48,26 @@ def get_base_metadata(
   robot: Entity = env.scene["robot"]
   joint_action = env.action_manager.get_term("joint_pos")
   assert isinstance(joint_action, JointPositionAction)
-  # Build mapping from joint name to actuator ID for natural joint order.
+  # Build mapping from joint name to actuator ID. Policy action dimensions may
+  # use a custom order, so metadata must follow the action term rather than the
+  # entity's natural MJCF joint order.
   # Each spec actuator controls exactly one joint (via its target field).
   joint_name_to_ctrl_id = {}
   for actuator in robot.spec.actuators:
     joint_name = actuator.target.split("/")[-1]
     joint_name_to_ctrl_id[joint_name] = actuator.id
-  # Get actuator IDs in natural joint order (same order as robot.joint_names).
-  ctrl_ids_natural = [
-    joint_name_to_ctrl_id[jname]
-    for jname in robot.joint_names  # global joint order
-    if jname in joint_name_to_ctrl_id  # skip non-actuated joints
-  ]
-  joint_stiffness = env.sim.mj_model.actuator_gainprm[ctrl_ids_natural, 0]
-  joint_damping = -env.sim.mj_model.actuator_biasprm[ctrl_ids_natural, 2]
+  policy_joint_names = list(joint_action.target_names)
+  ctrl_ids_policy = [joint_name_to_ctrl_id[name] for name in policy_joint_names]
+  joint_stiffness = env.sim.mj_model.actuator_gainprm[ctrl_ids_policy, 0]
+  joint_damping = -env.sim.mj_model.actuator_biasprm[ctrl_ids_policy, 2]
   observation_term_scale: list = []
   observation_term_flatten_history_dim: list = []
   observation_term_history_length: list = []
   observation_term_clip: list = []
-  observation_names = env.observation_manager.active_terms["actor"]
+  observation_names = env.observation_manager.active_terms[observation_group]
 
   for active_term in observation_names:
-    cfg = env.observation_manager.get_term_cfg("actor", active_term)
+    cfg = env.observation_manager.get_term_cfg(observation_group, active_term)
 
     if cfg.scale is None:
       observation_term_scale.append(1.0)
@@ -89,10 +89,12 @@ def get_base_metadata(
 
   return {
     "run_path": run_path,
-    "joint_names": list(robot.joint_names),
+    "joint_names": policy_joint_names,
     "joint_stiffness": joint_stiffness.tolist(),
     "joint_damping": joint_damping.tolist(),
-    "default_joint_pos": robot.data.default_joint_pos[0].cpu().tolist(),
+    "default_joint_pos": robot.data.default_joint_pos[
+      0, joint_action.target_ids
+    ].cpu().tolist(),
     "command_names": list(env.command_manager.active_terms),
     "observation_names": observation_names,
     "observation_terms_scale": observation_term_scale,

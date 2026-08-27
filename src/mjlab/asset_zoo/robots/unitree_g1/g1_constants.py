@@ -20,16 +20,21 @@ from mjlab.utils.spec_config import CollisionCfg
 G1_XML: Path = (
   MJLAB_SRC_PATH / "asset_zoo" / "robots" / "unitree_g1" / "xmls" / "g1.xml"
 )
-# G1_XML: Path = Path(
-#   "/home/ut/football_project/klavier_rl_lab/rl_lab/assets/robots/"
-#   "unitree/g1/g1_description/g1_29dof_football.xml"
-# )
+G1_KLAVIER_XML: Path = (
+  MJLAB_SRC_PATH
+  / "asset_zoo"
+  / "robots"
+  / "unitree_g1"
+  / "klavier_model"
+  / "g1_29dof_football.xml"
+)
 assert G1_XML.exists()
+assert G1_KLAVIER_XML.exists()
 
 
-def get_spec() -> mujoco.MjSpec:
-  spec = mujoco.MjSpec.from_file(str(G1_XML))
-  if G1_XML.name != "g1_29dof_football.xml":
+def _get_spec(xml_path: Path) -> mujoco.MjSpec:
+  spec = mujoco.MjSpec.from_file(str(xml_path))
+  if xml_path.name != "g1_29dof_football.xml":
     return spec
 
   # The Isaac Lab football XML is a complete standalone scene. MjLab owns the
@@ -71,6 +76,15 @@ def get_spec() -> mujoco.MjSpec:
         geom.name = f"{stem}{suffix}_collision"
 
   return spec
+
+
+def get_spec() -> mujoco.MjSpec:
+  return _get_spec(G1_XML)
+
+
+def get_klavier_spec() -> mujoco.MjSpec:
+  """Load the copied Klavier G1 model while stripping its standalone scene."""
+  return _get_spec(G1_KLAVIER_XML)
 
 
 ##
@@ -317,6 +331,16 @@ def get_g1_robot_cfg() -> EntityCfg:
     init_state=KNEES_BENT_KEYFRAME,
     collisions=(FULL_COLLISION,),
     spec_fn=get_spec,
+    articulation=G1_ARTICULATION,
+  )
+
+
+def get_g1_klavier_robot_cfg() -> EntityCfg:
+  """Get the copied Klavier/IsaacLab G1 as an independent MjLab entity."""
+  return EntityCfg(
+    init_state=KNEES_BENT_KEYFRAME,
+    collisions=(FULL_COLLISION,),
+    spec_fn=get_klavier_spec,
     articulation=G1_ARTICULATION,
   )
 

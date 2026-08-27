@@ -112,6 +112,19 @@ def unitree_g1_factorial_ppo_runner_cfg(
   return cfg
 
 
+def unitree_g1_factorial_history30_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
+  """A1R0 runner whose causal Actor covers the full 30-frame window."""
+  cfg = unitree_g1_factorial_ppo_runner_cfg(use_b1_history=True)
+  assert cfg.actor.cnn_cfg is not None
+  cfg.actor.cnn_cfg = {
+    **cfg.actor.cnn_cfg,
+    "output_channels": (64, 64, 64, 64),
+    "dilations": (1, 2, 4, 8),
+    "activate_last": False,
+  }
+  return cfg
+
+
 def unitree_g1_temporal_velocity_pretrain_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
   """TemporalCNN configuration for the matched walking pretraining stage."""
   cfg = unitree_g1_temporal_ppo_runner_cfg()
@@ -123,4 +136,49 @@ def unitree_g1_velocity_pretrain_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
   """Create the RL runner configuration for football-compatible walking."""
   cfg = unitree_g1_ppo_runner_cfg()
   cfg.experiment_name = "g1_velocity_football_pretrain"
+  return cfg
+
+
+def unitree_g1_klavier_replica_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
+  """PPO parameters copied from Klavier ``UnitreeG1FlatPPORunnerCfg``."""
+  cfg = unitree_g1_ppo_runner_cfg()
+  cfg.actor.hidden_dims = (1024, 512, 256)
+  cfg.critic.hidden_dims = (1024, 512, 256)
+  cfg.algorithm.entropy_coef = 0.005
+  cfg.algorithm.symmetry_cfg = {
+    "data_augmentation_func": (
+      "mjlab.tasks.velocity_football.rl.klavier_symmetry:data_augmentation_func"
+    ),
+    "use_data_augmentation": False,
+    "use_mirror_loss": True,
+    "mirror_loss_coeff": 1.0,
+  }
+  cfg.experiment_name = "g1_velocity_walk_klavier_replica"
+  cfg.save_interval = 200
+  cfg.max_iterations = 10_001
+  cfg.run_name = "unitree_g1_flat_copied_model_seed42_10k_wandb"
+  return cfg
+
+
+def unitree_g1_klavier_ball_temporal_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
+  """Scheme A PPO: transferred 490-D Walk MLP plus a 64-D causal BallCNN."""
+  cfg = unitree_g1_factorial_ppo_runner_cfg(use_b1_history=True)
+  # Match the Klavier Walk checkpoint MLP so its weights transfer exactly.
+  # Keep the BallCNN unchanged.
+  cfg.actor.hidden_dims = (1024, 512, 256)
+  cfg.critic.hidden_dims = (1024, 512, 256)
+  cfg.algorithm.entropy_coef = 0.01
+  cfg.algorithm.symmetry_cfg = {
+    "data_augmentation_func": (
+      "mjlab.tasks.velocity_football.rl.klavier_symmetry:data_augmentation_func"
+    ),
+    "use_data_augmentation": False,
+    "use_mirror_loss": True,
+    "mirror_loss_coeff": 1.0,
+  }
+  cfg.experiment_name = "g1_velocity_football_klavier_ball_temporal"
+  cfg.save_interval = 200
+  cfg.max_iterations = 50_001
+  cfg.run_name = "schemeA_ballcnn64_longdropout10_from_walk20000_seed42_50k_wandb"
+  cfg.upload_model = False
   return cfg

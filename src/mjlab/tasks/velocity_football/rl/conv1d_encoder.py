@@ -31,6 +31,7 @@ class Conv1dEncoder(nn.Module):
     dilations: tuple[int, ...] | None = None,
     causal: bool = False,
     output_mode: str = "global_pool",
+    activate_last: bool = True,
   ) -> None:
     super().__init__()
     if not output_channels:
@@ -52,21 +53,22 @@ class Conv1dEncoder(nn.Module):
 
     layers: list[nn.Module] = []
     in_channels = input_channels
-    for out_channels, dilation in zip(output_channels, dilations, strict=True):
+    for layer_index, (out_channels, dilation) in enumerate(
+      zip(output_channels, dilations, strict=True)
+    ):
       if causal:
         layers.append(nn.ConstantPad1d(((kernel_size - 1) * dilation, 0), 0.0))
-      layers.extend(
-        (
-          nn.Conv1d(
-            in_channels,
-            out_channels,
-            kernel_size,
-            dilation=dilation,
-            padding=0 if causal else (kernel_size // 2) * dilation,
-          ),
-          _ACTIVATIONS[activation](),
+      layers.append(
+        nn.Conv1d(
+          in_channels,
+          out_channels,
+          kernel_size,
+          dilation=dilation,
+          padding=0 if causal else (kernel_size // 2) * dilation,
         )
       )
+      if activate_last or layer_index < len(output_channels) - 1:
+        layers.append(_ACTIVATIONS[activation]())
       in_channels = out_channels
     if output_mode == "global_pool":
       layers.extend((_POOLS[global_pool](1), nn.Flatten(start_dim=1)))

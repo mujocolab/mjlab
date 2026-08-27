@@ -178,10 +178,20 @@ def _shared_masked_ball_visual(
   x_range: tuple[float, float],
   y_range: tuple[float, float],
   dropout_probability: float,
+  episode_dropout_probability: float,
   bias_range: float,
   frame_noise_range: float,
   ball_cfg: SceneEntityCfg,
   asset_cfg: SceneEntityCfg,
+  visibility_rise_alpha: float = 0.20,
+  visibility_fall_alpha: float = 0.05,
+  sensor_reward_fade_out_s: float | None = None,
+  sensor_reward_fade_in_s: float | None = None,
+  transition_excluded_standing_command_name: str | None = None,
+  transition_dropout_probability: float = 0.0,
+  transition_dropout_start_range_s: tuple[float, float] = (2.0, 6.0),
+  transition_dropout_duration_range_s: tuple[float, float] = (0.2, 0.8),
+  transition_dropout_until_end_probability: float = 0.0,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
   """Return synchronized masked ball position, foot vectors, and visibility.
 
@@ -190,8 +200,34 @@ def _shared_masked_ball_visual(
   """
   if not 0.0 <= dropout_probability <= 1.0:
     raise ValueError("dropout_probability must be in [0, 1]")
+  if not 0.0 <= episode_dropout_probability <= 1.0:
+    raise ValueError("episode_dropout_probability must be in [0, 1]")
   if x_range[0] > x_range[1] or y_range[0] > y_range[1]:
     raise ValueError("ball visibility ranges must be ordered")
+  if not 0.0 < visibility_rise_alpha <= 1.0:
+    raise ValueError("visibility_rise_alpha must be in (0, 1]")
+  if not 0.0 < visibility_fall_alpha <= 1.0:
+    raise ValueError("visibility_fall_alpha must be in (0, 1]")
+  if sensor_reward_fade_out_s is not None and sensor_reward_fade_out_s <= 0.0:
+    raise ValueError("sensor_reward_fade_out_s must be positive")
+  if sensor_reward_fade_in_s is not None and sensor_reward_fade_in_s <= 0.0:
+    raise ValueError("sensor_reward_fade_in_s must be positive")
+  if not 0.0 <= transition_dropout_probability <= 1.0:
+    raise ValueError("transition_dropout_probability must be in [0, 1]")
+  if not 0.0 <= transition_dropout_until_end_probability <= 1.0:
+    raise ValueError("transition_dropout_until_end_probability must be in [0, 1]")
+  if (
+    transition_dropout_start_range_s[0] < 0.0
+    or transition_dropout_start_range_s[0] > transition_dropout_start_range_s[1]
+  ):
+    raise ValueError(
+      "transition_dropout_start_range_s must be non-negative and ordered"
+    )
+  if (
+    transition_dropout_duration_range_s[0] <= 0.0
+    or transition_dropout_duration_range_s[0] > transition_dropout_duration_range_s[1]
+  ):
+    raise ValueError("transition_dropout_duration_range_s must be positive and ordered")
 
   env_state = vars(env)
   cache = cast(
@@ -200,8 +236,13 @@ def _shared_masked_ball_visual(
   )
   valid_cache = (
     isinstance(cache, dict)
+    and "episode_hidden" in cache
+    and "synthetic_hidden" in cache
+    and "visibility_gate" in cache
+    and "sensor_gate" in cache
     and cache["step"].shape == env.episode_length_buf.shape
     and cache["ball_pos"].shape == (env.num_envs, 2)
+    and cache["episode_hidden"].shape == env.episode_length_buf.shape
   )
   if not valid_cache:
     cache = {
@@ -209,12 +250,87 @@ def _shared_masked_ball_visual(
       "ball_pos": torch.zeros(env.num_envs, 2, device=env.device),
       "feet": torch.zeros(env.num_envs, 4, device=env.device),
       "visible": torch.zeros(env.num_envs, 1, device=env.device),
+      "visibility_gate": torch.zeros(env.num_envs, device=env.device),
+      "sensor_gate": torch.ones(env.num_envs, device=env.device),
+      "sensor_blend_progress": torch.ones(env.num_envs, device=env.device),
+      "episode_hidden": torch.zeros(
+        env.num_envs,
+        dtype=torch.bool,
+        device=env.device,
+      ),
+      "synthetic_hidden": torch.zeros(
+        env.num_envs, dtype=torch.bool, device=env.device
+      ),
+      "transition_episode": torch.zeros(
+        env.num_envs, dtype=torch.bool, device=env.device
+      ),
+      "transition_start_step": torch.zeros_like(env.episode_length_buf),
+      "transition_end_step": torch.zeros_like(env.episode_length_buf),
     }
     env_state["_football_masked_ball_visual"] = cache
   assert cache is not None
 
   new_step = cache["step"] != env.episode_length_buf
   if torch.any(new_step):
+    reset_mask = new_step & (env.episode_length_buf == 0)
+    if torch.any(reset_mask):
+      if episode_dropout_probability > 0.0:
+        cache["episode_hidden"][reset_mask] = (
+          torch.rand(env.num_envs, device=env.device)[reset_mask]
+          < episode_dropout_probability
+        )
+      else:
+        cache["episode_hidden"][reset_mask] = False
+      reset_ids = torch.where(reset_mask)[0]
+      if transition_dropout_probability > 0.0:
+        eligible_ids = reset_ids
+        if transition_excluded_standing_command_name is not None:
+          command_term = env.command_manager.get_term(
+            transition_excluded_standing_command_name
+          )
+          standing = getattr(command_term, "is_standing_env", None)
+          if not isinstance(standing, torch.Tensor):
+            raise ValueError(
+              f"Command {transition_excluded_standing_command_name!r} does not "
+              "expose is_standing_env."
+            )
+          eligible_ids = reset_ids[~standing[reset_ids]]
+        cache["transition_episode"][reset_ids] = False
+        cache["transition_episode"][eligible_ids] = (
+          torch.rand(eligible_ids.numel(), device=env.device)
+          < transition_dropout_probability
+        )
+        start_s = torch.empty(reset_ids.numel(), device=env.device).uniform_(
+          *transition_dropout_start_range_s
+        )
+        duration_s = torch.empty(reset_ids.numel(), device=env.device).uniform_(
+          *transition_dropout_duration_range_s
+        )
+        start_step = torch.ceil(start_s / env.step_dt).to(
+          dtype=env.episode_length_buf.dtype
+        )
+        duration_step = torch.clamp(
+          torch.ceil(duration_s / env.step_dt).to(dtype=env.episode_length_buf.dtype),
+          min=1,
+        )
+        until_end = (
+          torch.rand(reset_ids.numel(), device=env.device)
+          < transition_dropout_until_end_probability
+        )
+        end_step = start_step + duration_step
+        end_step[until_end] = torch.iinfo(env.episode_length_buf.dtype).max
+        cache["transition_start_step"][reset_ids] = start_step
+        cache["transition_end_step"][reset_ids] = end_step
+      else:
+        cache["transition_episode"][reset_ids] = False
+
+    synthetic_hidden = (
+      cache["transition_episode"]
+      & (env.episode_length_buf >= cache["transition_start_step"])
+      & (env.episode_length_buf < cache["transition_end_step"])
+    )
+    cache["synthetic_hidden"][new_step] = synthetic_hidden[new_step]
+
     true_ball_pos = ball_pos_b(env, ball_cfg=ball_cfg, asset_cfg=asset_cfg)
     true_feet = ball_to_feet_vectors_b(
       env,
@@ -237,14 +353,57 @@ def _shared_masked_ball_visual(
       & (true_ball_pos[:, 1] >= y_range[0])
       & (true_ball_pos[:, 1] <= y_range[1])
     )
+    sensor_hidden = cache["episode_hidden"] | cache["synthetic_hidden"]
+    reward_visible = in_rectangle.clone()
+    visible = reward_visible & ~sensor_hidden
     if dropout_probability > 0.0:
       random_visible = (
         torch.rand(env.num_envs, device=env.device) >= dropout_probability
       )
-      visible = in_rectangle & random_visible
-    else:
-      visible = in_rectangle
+      visible &= random_visible
+      reward_visible &= random_visible
     visible_float = visible.unsqueeze(1).to(perceived_ball_pos.dtype)
+
+    # Reward-side mode blending uses a short visibility decay.  The Actor still
+    # receives the binary mask and its ten-frame history, so this does not alter
+    # the exported observation contract.
+    visibility_gate = cache["visibility_gate"]
+    target_visibility = reward_visible[new_step].to(visibility_gate.dtype)
+    alpha = torch.where(
+      target_visibility > visibility_gate[new_step],
+      visibility_rise_alpha,
+      visibility_fall_alpha,
+    )
+    visibility_gate[new_step] += alpha * (target_visibility - visibility_gate[new_step])
+    visibility_gate[reset_mask] = reward_visible[reset_mask].to(visibility_gate.dtype)
+
+    sensor_gate = cache["sensor_gate"]
+    target_sensor = (~sensor_hidden[new_step]).to(sensor_gate.dtype)
+    if sensor_reward_fade_out_s is None:
+      sensor_alpha = torch.where(
+        target_sensor > sensor_gate[new_step],
+        visibility_rise_alpha,
+        visibility_fall_alpha,
+      )
+      sensor_gate[new_step] += sensor_alpha * (target_sensor - sensor_gate[new_step])
+      sensor_gate[reset_mask] = target_sensor[reset_mask[new_step]]
+    else:
+      fade_in_s = sensor_reward_fade_in_s or sensor_reward_fade_out_s
+      progress = cache["sensor_blend_progress"]
+      progress_step = torch.where(
+        sensor_hidden[new_step],
+        torch.full_like(target_sensor, -env.step_dt / sensor_reward_fade_out_s),
+        torch.full_like(target_sensor, env.step_dt / fade_in_s),
+      )
+      progress[new_step] = torch.clamp(
+        progress[new_step] + progress_step,
+        min=0.0,
+        max=1.0,
+      )
+      progress[reset_mask] = target_sensor[reset_mask[new_step]]
+      sensor_gate[new_step] = progress[new_step].square() * (
+        3.0 - 2.0 * progress[new_step]
+      )
 
     cache["ball_pos"][new_step] = (perceived_ball_pos * visible_float)[new_step]
     cache["feet"][new_step] = (perceived_feet * visible_float)[new_step]
@@ -259,8 +418,18 @@ def masked_ball_pos_b(
   x_range: tuple[float, float] = (0.05, 1.00),
   y_range: tuple[float, float] = (-0.70, 0.70),
   dropout_probability: float = 0.0,
+  episode_dropout_probability: float = 0.0,
   bias_range: float = 0.10,
   frame_noise_range: float = 0.06,
+  visibility_rise_alpha: float = 0.20,
+  visibility_fall_alpha: float = 0.05,
+  sensor_reward_fade_out_s: float | None = None,
+  sensor_reward_fade_in_s: float | None = None,
+  transition_excluded_standing_command_name: str | None = None,
+  transition_dropout_probability: float = 0.0,
+  transition_dropout_start_range_s: tuple[float, float] = (2.0, 6.0),
+  transition_dropout_duration_range_s: tuple[float, float] = (0.2, 0.8),
+  transition_dropout_until_end_probability: float = 0.0,
   ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
   asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG,
 ) -> torch.Tensor:
@@ -270,10 +439,20 @@ def masked_ball_pos_b(
     x_range,
     y_range,
     dropout_probability,
+    episode_dropout_probability,
     bias_range,
     frame_noise_range,
     ball_cfg,
     asset_cfg,
+    visibility_rise_alpha,
+    visibility_fall_alpha,
+    sensor_reward_fade_out_s,
+    sensor_reward_fade_in_s,
+    transition_excluded_standing_command_name,
+    transition_dropout_probability,
+    transition_dropout_start_range_s,
+    transition_dropout_duration_range_s,
+    transition_dropout_until_end_probability,
   )[0]
 
 
@@ -282,8 +461,18 @@ def masked_ball_to_feet_vectors_b(
   x_range: tuple[float, float] = (0.05, 1.00),
   y_range: tuple[float, float] = (-0.70, 0.70),
   dropout_probability: float = 0.0,
+  episode_dropout_probability: float = 0.0,
   bias_range: float = 0.10,
   frame_noise_range: float = 0.06,
+  visibility_rise_alpha: float = 0.20,
+  visibility_fall_alpha: float = 0.05,
+  sensor_reward_fade_out_s: float | None = None,
+  sensor_reward_fade_in_s: float | None = None,
+  transition_excluded_standing_command_name: str | None = None,
+  transition_dropout_probability: float = 0.0,
+  transition_dropout_start_range_s: tuple[float, float] = (2.0, 6.0),
+  transition_dropout_duration_range_s: tuple[float, float] = (0.2, 0.8),
+  transition_dropout_until_end_probability: float = 0.0,
   ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
   asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG,
 ) -> torch.Tensor:
@@ -293,10 +482,20 @@ def masked_ball_to_feet_vectors_b(
     x_range,
     y_range,
     dropout_probability,
+    episode_dropout_probability,
     bias_range,
     frame_noise_range,
     ball_cfg,
     asset_cfg,
+    visibility_rise_alpha,
+    visibility_fall_alpha,
+    sensor_reward_fade_out_s,
+    sensor_reward_fade_in_s,
+    transition_excluded_standing_command_name,
+    transition_dropout_probability,
+    transition_dropout_start_range_s,
+    transition_dropout_duration_range_s,
+    transition_dropout_until_end_probability,
   )[1]
 
 
@@ -305,8 +504,18 @@ def ball_visible_mask(
   x_range: tuple[float, float] = (0.05, 1.00),
   y_range: tuple[float, float] = (-0.70, 0.70),
   dropout_probability: float = 0.0,
+  episode_dropout_probability: float = 0.0,
   bias_range: float = 0.10,
   frame_noise_range: float = 0.06,
+  visibility_rise_alpha: float = 0.20,
+  visibility_fall_alpha: float = 0.05,
+  sensor_reward_fade_out_s: float | None = None,
+  sensor_reward_fade_in_s: float | None = None,
+  transition_excluded_standing_command_name: str | None = None,
+  transition_dropout_probability: float = 0.0,
+  transition_dropout_start_range_s: tuple[float, float] = (2.0, 6.0),
+  transition_dropout_duration_range_s: tuple[float, float] = (0.2, 0.8),
+  transition_dropout_until_end_probability: float = 0.0,
   ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
   asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG,
 ) -> torch.Tensor:
@@ -316,11 +525,118 @@ def ball_visible_mask(
     x_range,
     y_range,
     dropout_probability,
+    episode_dropout_probability,
     bias_range,
     frame_noise_range,
     ball_cfg,
     asset_cfg,
+    visibility_rise_alpha,
+    visibility_fall_alpha,
+    sensor_reward_fade_out_s,
+    sensor_reward_fade_in_s,
+    transition_excluded_standing_command_name,
+    transition_dropout_probability,
+    transition_dropout_start_range_s,
+    transition_dropout_duration_range_s,
+    transition_dropout_until_end_probability,
   )[2]
+
+
+def masked_ball_features_b(
+  env: ManagerBasedRlEnv,
+  x_range: tuple[float, float] = (0.05, 1.00),
+  y_range: tuple[float, float] = (-0.70, 0.70),
+  dropout_probability: float = 0.0,
+  episode_dropout_probability: float = 0.0,
+  bias_range: float = 0.10,
+  frame_noise_range: float = 0.06,
+  visibility_rise_alpha: float = 0.20,
+  visibility_fall_alpha: float = 0.05,
+  sensor_reward_fade_out_s: float | None = None,
+  sensor_reward_fade_in_s: float | None = None,
+  transition_excluded_standing_command_name: str | None = None,
+  transition_dropout_probability: float = 0.0,
+  transition_dropout_start_range_s: tuple[float, float] = (2.0, 6.0),
+  transition_dropout_duration_range_s: tuple[float, float] = (0.2, 0.8),
+  transition_dropout_until_end_probability: float = 0.0,
+  ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG,
+) -> torch.Tensor:
+  """Return the complete 7-D ball stream for one shared delay buffer.
+
+  Packing position, both foot vectors, and visibility into one observation term
+  guarantees that all seven values are selected from the same delayed frame.
+  """
+  ball_pos, feet, visible = _shared_masked_ball_visual(
+    env,
+    x_range,
+    y_range,
+    dropout_probability,
+    episode_dropout_probability,
+    bias_range,
+    frame_noise_range,
+    ball_cfg,
+    asset_cfg,
+    visibility_rise_alpha,
+    visibility_fall_alpha,
+    sensor_reward_fade_out_s,
+    sensor_reward_fade_in_s,
+    transition_excluded_standing_command_name,
+    transition_dropout_probability,
+    transition_dropout_start_range_s,
+    transition_dropout_duration_range_s,
+    transition_dropout_until_end_probability,
+  )
+  return torch.cat((ball_pos, feet, visible), dim=-1)
+
+
+def episode_ball_observation_hidden(
+  env: ManagerBasedRlEnv,
+  x_range: tuple[float, float] = (0.05, 1.00),
+  y_range: tuple[float, float] = (-0.70, 0.70),
+  dropout_probability: float = 0.0,
+  episode_dropout_probability: float = 0.0,
+  bias_range: float = 0.10,
+  frame_noise_range: float = 0.06,
+  visibility_rise_alpha: float = 0.20,
+  visibility_fall_alpha: float = 0.05,
+  sensor_reward_fade_out_s: float | None = None,
+  sensor_reward_fade_in_s: float | None = None,
+  transition_excluded_standing_command_name: str | None = None,
+  transition_dropout_probability: float = 0.0,
+  transition_dropout_start_range_s: tuple[float, float] = (2.0, 6.0),
+  transition_dropout_duration_range_s: tuple[float, float] = (0.2, 0.8),
+  transition_dropout_until_end_probability: float = 0.0,
+  ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ROBOT_CFG,
+) -> torch.Tensor:
+  """Privileged Critic flag for whole-episode synthetic ball blindness.
+
+  Calling the shared visual path makes this term independent of observation
+  group evaluation order while preserving the exact Actor dropout sample.
+  """
+  _shared_masked_ball_visual(
+    env,
+    x_range,
+    y_range,
+    dropout_probability,
+    episode_dropout_probability,
+    bias_range,
+    frame_noise_range,
+    ball_cfg,
+    asset_cfg,
+    visibility_rise_alpha,
+    visibility_fall_alpha,
+    sensor_reward_fade_out_s,
+    sensor_reward_fade_in_s,
+    transition_excluded_standing_command_name,
+    transition_dropout_probability,
+    transition_dropout_start_range_s,
+    transition_dropout_duration_range_s,
+    transition_dropout_until_end_probability,
+  )
+  cache = vars(env)["_football_masked_ball_visual"]
+  return cache["episode_hidden"].to(dtype=torch.float32).unsqueeze(1)
 
 
 def foot_height(env: ManagerBasedRlEnv, sensor_name: str) -> torch.Tensor:

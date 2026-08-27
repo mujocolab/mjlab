@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any
 
 import mujoco
 import numpy as np
@@ -8,20 +8,17 @@ import pytest
 from mjlab.scripts.sim2sim.d435_ball_observer import (
   D435_CAMERA_NAME,
   D435Config,
+  YoloBallDetector,
   camera_point_to_yaw,
+  project_bbox_bottom_to_ground_yaw,
 )
 from mjlab.scripts.sim2sim.g1_football import (
   B1_HISTORY_OBS_DIM,
-  BALL_OBSERVATION_BIAS_RANGE,
-  BALL_OBSERVATION_FRAME_NOISE_RANGE,
-  BALL_OBSERVATION_HOLD_PROBABILITY,
-  BALL_OBSERVATION_MAX_DELAY_STEPS,
-  BALL_DISTURBANCE_INTERVAL_RANGE,
-  BALL_DISTURBANCE_LINEAR_VELOCITY_RANGE,
   EXPECTED_ACTION_DIM,
   EXPECTED_OBS_DIM,
   EXPECTED_OBSERVATION_NAMES,
   FRAME_STACK,
+  ISAACLAB_ALIGNED_OBS_DIM,
   PROPRIOCEPTIVE_OBS_DIM,
   PROPRIOCEPTIVE_OBSERVATION_NAMES,
   TEMPORAL_HISTORY_LENGTH,
@@ -29,35 +26,15 @@ from mjlab.scripts.sim2sim.g1_football import (
   TEMPORAL_OBSERVATION_NAMES,
   TEMPORAL_TERM_DIMS,
   TERM_DIMS,
-  BallRelativeCommandGenerator,
-  BallVelocityDisturbance,
   KeyboardController,
   ModelBindings,
   ObservationAssembler,
   PolicyMetadata,
-  PerturbedBallObserver,
   Sim2SimCfg,
-  StopSkillCommandGenerator,
-  StopSkillCommandGeneratorCfg,
   build_model,
   compute_football_observation,
   configure_tracking_camera,
 )
-
-
-class _ConstantBallObserver:
-  def reset(self) -> None:
-    pass
-
-  def observe(self, data: Any) -> tuple[np.ndarray, np.ndarray]:
-    del data
-    return (
-      np.asarray((0.4, 0.1), dtype=np.float32),
-      np.asarray((0.2, 0.1, 0.3, 0.1), dtype=np.float32),
-    )
-
-  def close(self) -> None:
-    pass
 
 
 def make_terms(fill: float = 0.0) -> dict[str, np.ndarray]:
@@ -67,12 +44,19 @@ def make_terms(fill: float = 0.0) -> dict[str, np.ndarray]:
 def make_session(
   *, input_dim: int = EXPECTED_OBS_DIM, output_dim: int = EXPECTED_ACTION_DIM
 ) -> Any:
+  observation_names = (
+    TEMPORAL_OBSERVATION_NAMES
+    if input_dim == ISAACLAB_ALIGNED_OBS_DIM
+    else EXPECTED_OBSERVATION_NAMES
+  )
   metadata = {
     "joint_names": ",".join(f"joint_{index}" for index in range(29)),
     "default_joint_pos": ",".join("0" for _ in range(29)),
     "action_scale": ",".join("0.5" for _ in range(29)),
-    "observation_names": ",".join(EXPECTED_OBSERVATION_NAMES),
-    "observation_terms_history_length": ",".join("5" for _ in TERM_DIMS),
+    "observation_names": ",".join(observation_names),
+    "observation_terms_history_length": ",".join(
+      "5" for _ in observation_names
+    ),
   }
   return SimpleNamespace(
     get_inputs=lambda: [SimpleNamespace(name="obs", shape=[1, input_dim])],
@@ -88,9 +72,7 @@ def make_temporal_session(
 ) -> Any:
   b1_stacked = input_dim == PROPRIOCEPTIVE_OBS_DIM
   observation_names = (
-    PROPRIOCEPTIVE_OBSERVATION_NAMES
-    if b1_stacked
-    else TEMPORAL_OBSERVATION_NAMES
+    PROPRIOCEPTIVE_OBSERVATION_NAMES if b1_stacked else TEMPORAL_OBSERVATION_NAMES
   )
   observation_history = "5" if b1_stacked else "0"
   metadata = {
@@ -127,31 +109,6 @@ def test_observation_assembler_uses_term_major_five_frame_history() -> None:
     term_history = obs[offset : offset + FRAME_STACK * dim]
     np.testing.assert_array_equal(term_history, 1.0)
     offset += FRAME_STACK * dim
-
-
-def test_ball_observation_disturbance_uses_fixed_episode_bias_only() -> None:
-  observer = PerturbedBallObserver(_ConstantBallObserver(), seed=42)
-  observer.reset()
-  base_ball = np.asarray((0.4, 0.1), dtype=np.float32)
-  base_feet = np.asarray((0.2, 0.1, 0.3, 0.1), dtype=np.float32)
-  dummy_data = cast(mujoco.MjData, None)
-
-  assert np.all(np.abs(observer._bias) <= BALL_OBSERVATION_BIAS_RANGE)
-  assert BALL_OBSERVATION_FRAME_NOISE_RANGE == 0.0
-  assert BALL_OBSERVATION_MAX_DELAY_STEPS == 0
-  assert BALL_OBSERVATION_HOLD_PROBABILITY == 0.0
-  for _ in range(20):
-    ball, feet = observer.observe(dummy_data)
-    error = ball - base_ball
-    frame_noise = error - observer._bias
-    assert np.all(
-      np.abs(frame_noise) <= BALL_OBSERVATION_FRAME_NOISE_RANGE + 1.0e-6
-    )
-    np.testing.assert_allclose(
-      feet.reshape(-1, 2) - base_feet.reshape(-1, 2),
-      np.broadcast_to(error, (2, 2)),
-      atol=1.0e-6,
-    )
 
 
 def test_observation_assembler_uses_latest_action_without_deployment_delay() -> None:
@@ -193,6 +150,24 @@ def test_policy_metadata_validates_dimensions_and_layout() -> None:
 
   assert len(metadata.joint_names) == EXPECTED_ACTION_DIM
   assert metadata.observation_names == EXPECTED_OBSERVATION_NAMES
+
+
+def test_isaaclab_aligned_policy_uses_stacked_visibility_mask() -> None:
+  metadata = PolicyMetadata.from_session(
+    make_session(input_dim=ISAACLAB_ALIGNED_OBS_DIM)
+  )
+  assembler = ObservationAssembler(metadata)
+  terms = {
+    name: np.ones(dim, dtype=np.float32) for name, dim in TEMPORAL_TERM_DIMS.items()
+  }
+
+  obs = assembler.reset(terms)
+  inputs = assembler.policy_inputs(obs)
+
+  assert not metadata.is_temporal
+  assert metadata.observation_names == TEMPORAL_OBSERVATION_NAMES
+  assert obs.shape == (ISAACLAB_ALIGNED_OBS_DIM,)
+  assert inputs["obs"].shape == (1, ISAACLAB_ALIGNED_OBS_DIM)
 
 
 def test_temporal_policy_metadata_and_assembler_build_dual_inputs() -> None:
@@ -274,18 +249,107 @@ def test_policy_metadata_rejects_previous_535_observation_policy() -> None:
 
 
 def test_d435_optical_point_transforms_to_yaw_frame() -> None:
-  cfg = D435Config(
-    camera_pos_pelvis=(0.0, 0.0, 0.0),
-    camera_quat_pelvis_wxyz=(1.0, 0.0, 0.0, 0.0),
-  )
-
   point = camera_point_to_yaw(
     (0.2, 0.1, 1.0),
+    (0.0, 0.0, 0.0),
+    np.eye(3),
+    (0.0, 0.0, 0.0),
     (1.0, 0.0, 0.0, 0.0),
-    cfg,
   )
 
   np.testing.assert_allclose(point, (0.2, -0.1, -1.0), atol=1e-6)
+
+
+def test_d435_defaults_match_deployment_camera_contract() -> None:
+  cfg = D435Config()
+
+  assert cfg.width == 640
+  assert cfg.height == 480
+  assert cfg.rgb_fovy_deg == pytest.approx(42.5)
+  assert cfg.depth_fovy_deg == pytest.approx(58.0)
+  assert cfg.min_depth == pytest.approx(0.3)
+  assert cfg.max_depth == pytest.approx(3.0)
+  assert cfg.depth_roi_px == 4
+  assert cfg.confidence_threshold == pytest.approx(0.5)
+  assert cfg.camera_pos_torso == pytest.approx((0.0576235, 0.01753, 0.42987))
+  assert cfg.camera_quat_torso_wxyz == pytest.approx(
+    (0.6592524821, 0.2557071857, -0.2557071857, -0.6592524821)
+  )
+
+
+def test_sim2sim_defaults_to_robocup_visual_observation() -> None:
+  cfg = Sim2SimCfg()
+
+  assert cfg.ball_observer == "robocup"
+  assert cfg.yolo_confidence is None
+
+
+def test_robocup_yolo_preprocess_uses_top_left_black_padding() -> None:
+  detector = object.__new__(YoloBallDetector)
+  detector.cfg = D435Config(vision_mode="robocup")
+  detector.input_width = 4
+  detector.input_height = 4
+  rgb = np.full((2, 4, 3), 255, dtype=np.uint8)
+
+  tensor, scale, pad_x, pad_y = detector._preprocess(rgb)
+
+  assert scale == pytest.approx(1.0)
+  assert pad_x == 0.0
+  assert pad_y == 0.0
+  np.testing.assert_allclose(tensor[0, :, :2, :], 1.0)
+  np.testing.assert_array_equal(tensor[0, :, 2:, :], 0.0)
+
+
+def test_robocup_bbox_bottom_ray_intersects_ground_plane() -> None:
+  position = project_bbox_bottom_to_ground_yaw(
+    box=(40.0, 30.0, 60.0, 60.0),
+    intrinsics=(100.0, 100.0, 50.0, 50.0),
+    camera_pos_w=(0.0, 0.0, 1.0),
+    camera_rotation_w=np.eye(3),
+    root_pos_w=(0.0, 0.0, 0.0),
+    root_quat_wxyz=(1.0, 0.0, 0.0, 0.0),
+  )
+
+  assert position is not None
+  np.testing.assert_allclose(position, (0.0, -0.1, 0.0), atol=1.0e-6)
+
+
+def test_d435_camera_is_attached_to_torso_with_rgb_fov() -> None:
+  model, _, _ = build_model()
+  camera_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, D435_CAMERA_NAME)
+  torso_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "robot/torso_link")
+
+  assert model.cam_bodyid[camera_id] == torso_id
+  assert model.cam_fovy[camera_id] == pytest.approx(42.5)
+
+
+def test_yolo_decoder_matches_deployment_direct_detection_layout() -> None:
+  detector = object.__new__(YoloBallDetector)
+  detector.cfg = D435Config(confidence_threshold=0.5)
+  detections = detector._decode_output(
+    np.asarray(
+      [
+        [
+          [10.0, 20.0],
+          [11.0, 21.0],
+          [30.0, 40.0],
+          [31.0, 41.0],
+          [0.9, 0.4],
+          [0.0, 0.0],
+        ]
+      ],
+      dtype=np.float32,
+    ),
+    image_width=640,
+    image_height=480,
+    scale=1.0,
+    pad_x=0.0,
+    pad_y=0.0,
+  )
+
+  assert len(detections) == 1
+  np.testing.assert_allclose(detections[0][0], (10.0, 11.0, 30.0, 31.0))
+  assert detections[0][1] == pytest.approx(0.9)
 
 
 def test_tracking_camera_follows_pelvis_with_fixed_view_angles() -> None:
@@ -325,6 +389,30 @@ def test_numeric_keyboard_controls_velocity_command_and_stop() -> None:
   assert controller.reset_requested
 
 
+def test_keyboard_command_limits_match_full_training_range() -> None:
+  controller = KeyboardController(np.zeros(3, dtype=np.float32))
+
+  for _ in range(30):
+    controller(ord("8"))
+    controller(ord("4"))
+    controller(ord("7"))
+  np.testing.assert_allclose(controller.command, (2.0, 0.5, 1.0), atol=1e-7)
+
+  for _ in range(40):
+    controller(ord("2"))
+    controller(ord("6"))
+    controller(ord("9"))
+  np.testing.assert_allclose(controller.command, (-0.5, -0.5, -1.0), atol=1e-7)
+
+
+def test_sim2sim_rejects_initial_command_outside_training_range() -> None:
+  with pytest.raises(ValueError, match="outside the trained range"):
+    Sim2SimCfg(command_x=2.1)
+
+  cfg = Sim2SimCfg(command_x=2.0, command_y=-0.5, command_yaw=1.0)
+  assert cfg.command_x == pytest.approx(2.0)
+
+
 def test_numeric_keypad_uses_the_same_command_mapping() -> None:
   controller = KeyboardController(np.zeros(3, dtype=np.float32))
 
@@ -333,103 +421,6 @@ def test_numeric_keypad_uses_the_same_command_mapping() -> None:
   controller(327)  # GLFW_KEY_KP_7
 
   np.testing.assert_allclose(controller.command, (0.1, 0.1, 0.1))
-
-
-def test_ball_velocity_disturbance_is_disabled_by_default() -> None:
-  assert not Sim2SimCfg().ball_velocity_disturbance
-  assert not Sim2SimCfg().ball_relative_command_generator
-  assert Sim2SimCfg().stop_skill.enabled
-
-
-def test_ball_relative_command_generator_decelerates_and_returns_to_user() -> None:
-  generator = BallRelativeCommandGenerator()
-  moving = np.asarray([0.8, 0.0, 0.0], dtype=np.float32)
-  stopped = np.zeros(3, dtype=np.float32)
-  anchor = np.asarray([0.25, 0.0], dtype=np.float32)
-  generator.reset(moving, anchor)
-
-  first = generator.update(stopped, anchor, dt=0.1)
-  np.testing.assert_allclose(first, (0.76, 0.0, 0.0), atol=1e-6)
-
-  output = first
-  for _ in range(24):
-    output = generator.update(stopped, anchor, dt=0.1)
-  np.testing.assert_allclose(output, stopped, atol=1e-6)
-
-
-def test_ball_relative_command_generator_chases_ball_moving_forward() -> None:
-  generator = BallRelativeCommandGenerator()
-  moving = np.asarray([0.8, 0.0, 0.0], dtype=np.float32)
-  stopped = np.zeros(3, dtype=np.float32)
-  generator.reset(moving, np.asarray([0.25, 0.0], dtype=np.float32))
-
-  output = generator.update(
-    stopped,
-    np.asarray([0.80, 0.0], dtype=np.float32),
-    dt=0.1,
-  )
-
-  assert output[0] > moving[0]
-
-
-def test_stop_skill_generator_rises_then_falls_to_keyboard_target() -> None:
-  generator = StopSkillCommandGenerator(StopSkillCommandGeneratorCfg())
-  moving = np.asarray([0.8, 0.0, 0.0], dtype=np.float32)
-  stopped = np.zeros(3, dtype=np.float32)
-  generator.reset(moving)
-
-  first = generator.update(stopped, dt=0.02)
-  np.testing.assert_allclose(first, moving)
-
-  references = [generator.update(stopped, dt=0.02) for _ in range(60)]
-  forward_references = np.asarray(references)[:, 0]
-
-  assert np.max(forward_references) > moving[0]
-  assert generator.state == StopSkillCommandGenerator.IDLE
-  np.testing.assert_allclose(references[-1], stopped, atol=1e-6)
-  np.testing.assert_allclose(generator.target_reference, stopped, atol=1e-6)
-
-
-def test_stop_skill_generator_ignores_slow_keyboard_deceleration() -> None:
-  generator = StopSkillCommandGenerator(StopSkillCommandGeneratorCfg())
-  command = np.asarray([0.8, 0.0, 0.0], dtype=np.float32)
-  generator.reset(command)
-
-  for forward_command in np.linspace(0.79, 0.60, 20):
-    command[0] = forward_command
-    output = generator.update(command, dt=0.02)
-    np.testing.assert_allclose(output, command)
-
-  assert generator.state == StopSkillCommandGenerator.IDLE
-
-
-def test_ball_velocity_disturbance_adds_xyz_velocity_without_angular_kick() -> None:
-  model, _, _ = build_model()
-  data = mujoco.MjData(model)
-  ball_joint_id = mujoco.mj_name2id(
-    model, mujoco.mjtObj.mjOBJ_JOINT, "ball/ball_freejoint"
-  )
-  ball_dof_adr = int(model.jnt_dofadr[ball_joint_id])
-  disturbance = BallVelocityDisturbance(ball_dof_adr, rng=np.random.default_rng(7))
-  initial_velocity = np.asarray((1.0, 2.0, 3.0, 4.0, 5.0, 6.0), dtype=np.float64)
-  data.qvel[ball_dof_adr : ball_dof_adr + 6] = initial_velocity
-  disturbance.reset(float(data.time))
-
-  assert BALL_DISTURBANCE_INTERVAL_RANGE[0] <= disturbance.next_trigger_time
-  assert disturbance.next_trigger_time <= BALL_DISTURBANCE_INTERVAL_RANGE[1]
-  data.time = disturbance.next_trigger_time
-  delta = disturbance.update(data)
-
-  assert delta is not None
-  for value, bounds in zip(delta, BALL_DISTURBANCE_LINEAR_VELOCITY_RANGE, strict=True):
-    assert bounds[0] <= value <= bounds[1]
-  np.testing.assert_allclose(
-    data.qvel[ball_dof_adr : ball_dof_adr + 3], initial_velocity[:3] + delta
-  )
-  np.testing.assert_array_equal(
-    data.qvel[ball_dof_adr + 3 : ball_dof_adr + 6], initial_velocity[3:]
-  )
-  assert data.time + 5.0 <= disturbance.next_trigger_time <= data.time + 6.0
 
 
 def test_task_model_contains_policy_joints_ball_and_native_timing() -> None:

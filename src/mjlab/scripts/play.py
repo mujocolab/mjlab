@@ -10,6 +10,7 @@ from typing import Literal
 
 import torch
 import tyro
+from rsl_rl.algorithms import Distillation
 
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
@@ -202,8 +203,14 @@ def run_play(task_id: str, cfg: PlayConfig):
   else:
     runner_cls = load_runner_cls(task_id) or MjlabOnPolicyRunner
     runner = runner_cls(env, asdict(agent_cfg), device=device)
+    # Distillation algorithms key their checkpoints on "student"/"teacher"
+    # rather than PPO's "actor"/"critic"; picking the wrong key is a silent
+    # no-op in rsl_rl's load(), so the policy would stay randomly initialized.
+    policy_load_cfg = (
+      {"student": True} if isinstance(runner.alg, Distillation) else {"actor": True}
+    )
     runner.load(
-      str(resume_path), load_cfg={"actor": True}, strict=True, map_location=device
+      str(resume_path), load_cfg=policy_load_cfg, strict=True, map_location=device
     )
     policy = runner.get_inference_policy(device=device)
 
@@ -211,11 +218,12 @@ def run_play(task_id: str, cfg: PlayConfig):
   ckpt_manager: CheckpointManager | None = None
   if TRAINED_MODE and resume_path is not None:
     _ckpt_runner = runner  # pyright: ignore[reportPossiblyUnboundVariable]
+    _policy_load_cfg = policy_load_cfg  # pyright: ignore[reportPossiblyUnboundVariable]
 
     def _reload_policy(path: str):
       _ckpt_runner.load(
         path,
-        load_cfg={"actor": True},
+        load_cfg=_policy_load_cfg,
         strict=True,
         map_location=device,
       )

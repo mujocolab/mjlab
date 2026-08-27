@@ -14,6 +14,15 @@ artifacts/
 render_robots.py
 benchmark_results/
 
+# Training checkpoints, exported policies, and runtime logs.
+*.pt
+*.pth
+*.ckpt
+*.onnx
+events.out.tfevents.*
+torchrunx/
+*.wandb
+
 # Documentation outputs.
 **/_build/*
 **/generated/*

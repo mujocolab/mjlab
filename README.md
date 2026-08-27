@@ -64,11 +64,21 @@ uv run train Mjlab-Velocity-Flat-Unitree-G1 \
 
   然后初始化足球策略：
 
-  uv run train Mjlab-Velocity-Football-Flat-Unitree-G1 \
-    --pretrained-checkpoint /home/ut/mjlab_soccer/logs/rsl_rl/g1_velocity_football_pretrain/2026-07-22_10-38-13/model_20000.pt \
+  uv run train  Mjlab-Velocity-Football-A1R0-History30-Flat-Unitree-G1 \
+    --pretrained-checkpoint /home/ut/football_project/mjlab_soccer/logs/rsl_rl/g1_velocity_football_pretrain/2026-07-23_18-17-07/model_16000.pt \
     --env.scene.num-envs 4096 \
-    --agent.upload-model False
+    --agent.upload-model False \
+    --agent.seed 42 \
+    --agent.max-iterations 20000 \
+    --agent.save-interval 1000 \
+    --agent.logger wandb \
+    --agent.run-name B1_A1R0_history30_seed42_from_walk16000_football20k_wandb_offline
+
+
 ```
+##
+  uv run sim2sim-g1-football --policy /path/to/policy.onnx
+##
 
 See the [Distributed Training guide](https://mujocolab.github.io/mjlab/main/source/training/distributed_training.html) for details.
 

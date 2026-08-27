@@ -401,6 +401,8 @@ class HfRandomUniformTerrainCfg(SubTerrainCfg):
   border_width: float = 0.0
   """Width of the flat border around the terrain edges, in meters. Must be >=
   horizontal_scale if non-zero."""
+  platform_width: float = 0.0
+  """Width of a flat square platform at the terrain center, in meters."""
   scale_with_difficulty: bool = False
   """If False (default), the roughness is fixed and ``difficulty`` is ignored,
   matching upstream behavior. If True, the noise amplitude scales linearly with
@@ -493,6 +495,22 @@ class HfRandomUniformTerrainCfg(SubTerrainCfg):
       y_upsampled = np.linspace(0, self.size[1], length_pixels)
       z_upsampled = func(x_upsampled, y_upsampled)
       noise = np.rint(z_upsampled).astype(np.int16)
+
+    if self.platform_width > 0:
+      if self.platform_width > min(self.size):
+        raise ValueError(
+          f"Platform width ({self.platform_width}) must fit inside terrain "
+          f"size ({self.size})"
+        )
+      platform_pixels = int(self.platform_width / self.horizontal_scale)
+      half_platform = platform_pixels // 2
+      center_x = width_pixels // 2
+      center_y = length_pixels // 2
+      platform_height = int(round(0.5 * (noise_lo + noise_hi) / self.vertical_scale))
+      noise[
+        center_x - half_platform : center_x + half_platform + platform_pixels % 2,
+        center_y - half_platform : center_y + half_platform + platform_pixels % 2,
+      ] = platform_height
 
     elevation_min = np.min(noise)
     elevation_max = np.max(noise)

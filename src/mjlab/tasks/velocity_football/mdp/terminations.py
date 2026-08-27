@@ -23,10 +23,17 @@ def ball_out_of_control(
   max_forward: float,
   max_lateral: float,
   max_height: float,
+  ignore_episode_hidden: bool = False,
+  ignore_when_ball_unseen: bool = False,
+  ignore_when_sensor_hidden: bool = False,
   ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> torch.Tensor:
-  """Terminate when the football leaves the robot's recoverable control region."""
+  """Terminate when the football leaves the robot's recoverable control region.
+
+  When requested, environments whose football observation is intentionally hidden
+  for the whole episode are exempt so they can keep following the velocity command.
+  """
   ball: Entity = env.scene[ball_cfg.name]
   robot: Entity = env.scene[asset_cfg.name]
   ball_relative_w = ball.data.root_link_pos_w - robot.data.root_link_pos_w
@@ -34,13 +41,35 @@ def ball_out_of_control(
 
   planar_distance = torch.linalg.vector_norm(ball_relative_w[:, :2], dim=1)
   height_above_origin = ball.data.root_link_pos_w[:, 2] - env.scene.env_origins[:, 2]
-  return (
+  out_of_control = (
     (planar_distance > max_distance)
     | (ball_relative_b[:, 0] < min_forward)
     | (ball_relative_b[:, 0] > max_forward)
     | (torch.abs(ball_relative_b[:, 1]) > max_lateral)
     | (height_above_origin > max_height)
   )
+  if ignore_episode_hidden:
+    visual_cache = vars(env).get("_football_masked_ball_visual")
+    if isinstance(visual_cache, dict):
+      episode_hidden = visual_cache.get("episode_hidden")
+      if isinstance(episode_hidden, torch.Tensor):
+        if episode_hidden.shape == out_of_control.shape:
+          out_of_control &= ~episode_hidden
+  if ignore_when_ball_unseen:
+    visual_cache = vars(env).get("_football_masked_ball_visual")
+    if isinstance(visual_cache, dict):
+      visible = visual_cache.get("visible")
+      if isinstance(visible, torch.Tensor):
+        if visible.shape == (out_of_control.shape[0], 1):
+          out_of_control &= visible[:, 0].bool()
+  if ignore_when_sensor_hidden:
+    visual_cache = vars(env).get("_football_masked_ball_visual")
+    if isinstance(visual_cache, dict):
+      sensor_hidden = visual_cache.get("synthetic_hidden")
+      if isinstance(sensor_hidden, torch.Tensor):
+        if sensor_hidden.shape == out_of_control.shape:
+          out_of_control &= ~sensor_hidden
+  return out_of_control
 
 
 def illegal_contact(

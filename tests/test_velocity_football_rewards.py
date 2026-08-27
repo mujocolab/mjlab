@@ -11,10 +11,12 @@ from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.tasks.velocity_football.mdp.rewards import (
   ball_front_control,
   ball_outside_control_zone_l2,
+  command_velocity_envelope_l2,
   stop_ball_lin_vel_xy_exp,
   track_ball_lin_vel_xy_exp,
   track_ball_relative_pos_xy_exp,
   track_ball_relative_vel_xy_exp,
+  track_visibility_blended_linear_velocity,
 )
 
 
@@ -33,6 +35,8 @@ def _make_env(*, command: torch.Tensor, robot_quat_w: torch.Tensor) -> Any:
       root_link_pos_w=robot_pos_w,
       root_link_quat_w=robot_quat_w,
       root_link_lin_vel_w=torch.zeros_like(robot_pos_w),
+      root_link_lin_vel_b=torch.zeros_like(robot_pos_w),
+      root_link_ang_vel_b=torch.zeros_like(robot_pos_w),
     )
   )
   return SimpleNamespace(
@@ -173,6 +177,60 @@ def test_ball_velocity_reward_can_track_monotonic_ball_command() -> None:
   )
 
   torch.testing.assert_close(actual, torch.ones(1), atol=1e-6, rtol=0.0)
+
+
+def test_ball_velocity_reward_is_zero_without_visual_observation() -> None:
+  env = _make_env(
+    command=torch.tensor([[0.5, 0.0, 0.0], [0.5, 0.0, 0.0]]),
+    robot_quat_w=_identity_quat(batch_size=2),
+  )
+  env.scene["ball"].data.root_link_lin_vel_w[:, 0] = 0.5
+  env._football_masked_ball_visual = {
+    "visibility_gate": torch.tensor([0.0, 1.0])
+  }
+  reward = _make_reward(env)
+
+  actual = reward(
+    env,
+    std=0.5,
+    command_name="twist",
+    gate_by_position=False,
+    gate_by_visibility=True,
+  )
+
+  torch.testing.assert_close(actual, torch.tensor([0.0, 1.0]))
+
+
+def test_visibility_blend_uses_command_when_hidden_and_bounded_recovery_when_seen() -> None:
+  env = _make_env(
+    command=torch.tensor([[0.5, 0.0, 0.0], [0.5, 0.0, 0.0]]),
+    robot_quat_w=_identity_quat(batch_size=2),
+  )
+  env.scene["ball"].data.root_link_pos_w[:, 0] = 0.5
+  env.scene["robot"].data.root_link_lin_vel_b[:, 0] = torch.tensor([0.5, 0.6])
+  env._football_masked_ball_visual = {
+    "visibility_gate": torch.tensor([0.0, 1.0])
+  }
+
+  actual = track_visibility_blended_linear_velocity(
+    env,
+    std=0.5,
+    command_name="twist",
+  )
+
+  torch.testing.assert_close(actual, torch.ones(2), atol=1e-6, rtol=0.0)
+
+
+def test_command_velocity_envelope_has_low_speed_floor_and_high_speed_ratio() -> None:
+  env = _make_env(
+    command=torch.tensor([[0.1, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+    robot_quat_w=_identity_quat(batch_size=2),
+  )
+  env.scene["robot"].data.root_link_lin_vel_b[:, 0] = torch.tensor([0.25, 1.3])
+
+  actual = command_velocity_envelope_l2(env, command_name="twist")
+
+  torch.testing.assert_close(actual, torch.tensor([0.05**2, 0.10**2]))
 
 
 def test_stop_ball_reward_is_gated_by_low_speed_command() -> None:

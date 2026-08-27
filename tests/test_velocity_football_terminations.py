@@ -98,3 +98,71 @@ def test_ball_out_of_control_height_is_relative_to_each_environment_origin() -> 
   )
 
   torch.testing.assert_close(_evaluate(env), torch.tensor([False, True]))
+
+
+def test_ball_out_of_control_ignores_episode_hidden_environments() -> None:
+  env = _make_env(
+    robot_pos_w=torch.zeros(3, 3),
+    robot_quat_w=_identity_quat(3),
+    ball_pos_w=torch.tensor([[1.01, 0.0, 0.11], [1.01, 0.0, 0.11], [0.25, 0.0, 0.11]]),
+  )
+  env._football_masked_ball_visual = {
+    "episode_hidden": torch.tensor([False, True, True])
+  }
+
+  actual = ball_out_of_control(
+    env,
+    max_distance=1.5,
+    min_forward=0.0,
+    max_forward=1.0,
+    max_lateral=0.5,
+    max_height=0.5,
+    ignore_episode_hidden=True,
+  )
+
+  torch.testing.assert_close(actual, torch.tensor([True, False, False]))
+
+
+def test_ball_out_of_control_can_ignore_currently_unseen_ball() -> None:
+  env = _make_env(
+    robot_pos_w=torch.zeros(2, 3),
+    robot_quat_w=_identity_quat(2),
+    ball_pos_w=torch.tensor([[1.01, 0.0, 0.11], [1.01, 0.0, 0.11]]),
+  )
+  env._football_masked_ball_visual = {"visible": torch.tensor([[1.0], [0.0]])}
+
+  actual = ball_out_of_control(
+    env,
+    max_distance=1.5,
+    min_forward=0.0,
+    max_forward=1.0,
+    max_lateral=0.5,
+    max_height=0.5,
+    ignore_when_ball_unseen=True,
+  )
+
+  torch.testing.assert_close(actual, torch.tensor([True, False]))
+
+
+def test_ball_out_of_control_only_ignores_exogenous_sensor_dropout() -> None:
+  env = _make_env(
+    robot_pos_w=torch.zeros(2, 3),
+    robot_quat_w=_identity_quat(2),
+    ball_pos_w=torch.tensor([[1.01, 0.0, 0.11], [1.01, 0.0, 0.11]]),
+  )
+  env._football_masked_ball_visual = {
+    "synthetic_hidden": torch.tensor([False, True]),
+    "visible": torch.zeros(2, 1),
+  }
+
+  actual = ball_out_of_control(
+    env,
+    max_distance=1.5,
+    min_forward=0.0,
+    max_forward=1.0,
+    max_lateral=0.5,
+    max_height=0.5,
+    ignore_when_sensor_hidden=True,
+  )
+
+  torch.testing.assert_close(actual, torch.tensor([True, False]))

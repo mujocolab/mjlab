@@ -349,9 +349,8 @@ class StopSkillVelocityReference:
     window_acceleration = (normalized_command - old_command) / (
       self.cfg.trigger_window * dt
     )
-    condition = (
-      (window_acceleration < -self.cfg.acceleration_threshold)
-      & (window_drop > self.cfg.minimum_command_drop)
+    condition = (window_acceleration < -self.cfg.acceleration_threshold) & (
+      window_drop > self.cfg.minimum_command_drop
     )
     self.condition_count = torch.where(
       condition,
@@ -526,7 +525,13 @@ class UniformVelocityCommand(CommandTerm):
       assert self.cfg.ranges.heading is not None
       self.heading_target[env_ids] = r.uniform_(*self.cfg.ranges.heading)
       self.is_heading_env[env_ids] = r.uniform_(0.0, 1.0) <= self.cfg.rel_heading_envs
-    self.is_standing_env[env_ids] = r.uniform_(0.0, 1.0) <= self.cfg.rel_standing_envs
+    standing_sample_ids = (
+      episode_reset_ids if self.cfg.standing_mode_per_episode else env_ids
+    )
+    self.is_standing_env[standing_sample_ids] = (
+      torch.empty(len(standing_sample_ids), device=self.device).uniform_(0.0, 1.0)
+      <= self.cfg.rel_standing_envs
+    )
 
     # Randomly assign world-frame envs.
     self.is_world_env[env_ids] = r.uniform_(0.0, 1.0) <= self.cfg.rel_world_envs
@@ -887,6 +892,8 @@ class UniformVelocityCommandCfg(CommandTermCfg):
   heading_command: bool = False
   heading_control_stiffness: float = 1.0
   rel_standing_envs: float = 0.0
+  standing_mode_per_episode: bool = False
+  """Keep the sampled standing mode fixed across periodic command resampling."""
   rel_heading_envs: float = 1.0
   rel_world_envs: float = 0.0
   """Fraction of environments that use world-frame velocity commands.

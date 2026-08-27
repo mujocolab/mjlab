@@ -4,13 +4,17 @@ from copy import deepcopy
 
 from mjlab.asset_zoo.robots import (
   G1_ACTION_SCALE,
+  get_g1_klavier_robot_cfg,
   get_g1_robot_cfg,
 )
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs import mdp as envs_mdp
 from mjlab.envs.mdp.actions import JointPositionActionCfg
+from mjlab.managers.curriculum_manager import CurriculumTermCfg
 from mjlab.managers.event_manager import EventTermCfg
+from mjlab.managers.observation_manager import ObservationTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
+from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import (
   ContactMatch,
   ContactSensorCfg,
@@ -21,9 +25,42 @@ from mjlab.sensor import (
 )
 from mjlab.tasks.velocity import mdp
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
+from mjlab.tasks.velocity_football import mdp as football_mdp
 from mjlab.tasks.velocity_football.velocity_env_cfg import make_velocity_env_cfg
 
 from .pose import get_isaaclab_default_keyframe
+
+KLAVIER_JOINT_ORDER = (
+  "left_hip_pitch_joint",
+  "right_hip_pitch_joint",
+  "waist_yaw_joint",
+  "left_hip_roll_joint",
+  "right_hip_roll_joint",
+  "waist_roll_joint",
+  "left_hip_yaw_joint",
+  "right_hip_yaw_joint",
+  "waist_pitch_joint",
+  "left_knee_joint",
+  "right_knee_joint",
+  "left_shoulder_pitch_joint",
+  "right_shoulder_pitch_joint",
+  "left_ankle_pitch_joint",
+  "right_ankle_pitch_joint",
+  "left_shoulder_roll_joint",
+  "right_shoulder_roll_joint",
+  "left_ankle_roll_joint",
+  "right_ankle_roll_joint",
+  "left_shoulder_yaw_joint",
+  "right_shoulder_yaw_joint",
+  "left_elbow_joint",
+  "right_elbow_joint",
+  "left_wrist_roll_joint",
+  "right_wrist_roll_joint",
+  "left_wrist_pitch_joint",
+  "right_wrist_pitch_joint",
+  "left_wrist_yaw_joint",
+  "right_wrist_yaw_joint",
+)
 
 
 def unitree_g1_velocity_pretrain_rough_env_cfg(
@@ -221,6 +258,288 @@ def unitree_g1_velocity_pretrain_flat_env_cfg(
   # Disable terrain curriculum (not present in play mode since rough clears all).
   cfg.curriculum.pop("terrain_levels", None)
 
+  return cfg
+
+
+def unitree_g1_klavier_replica_flat_env_cfg(
+  play: bool = False,
+) -> ManagerBasedRlEnvCfg:
+  """Reproduce Klavier ``unitree_g1_flat`` with its copied G1 MJCF model."""
+  cfg = unitree_g1_velocity_pretrain_flat_env_cfg(play=play)
+  cfg.scene.num_envs = 4096
+  cfg.scene.extent = 2.5
+  cfg.scene.entities["robot"] = get_g1_klavier_robot_cfg()
+  cfg.scene.entities["robot"].init_state = get_isaaclab_default_keyframe()
+
+  ordered_joints = SceneEntityCfg(
+    "robot",
+    joint_names=KLAVIER_JOINT_ORDER,
+    preserve_order=True,
+  )
+  for group_name in ("actor", "critic"):
+    group = cfg.observations[group_name]
+    group.history_length = 5
+    group.flatten_history_dim = True
+    group.terms["joint_pos"].params["asset_cfg"] = deepcopy(ordered_joints)
+    group.terms["joint_vel"].params["asset_cfg"] = deepcopy(ordered_joints)
+  action_obs = cfg.observations["actor"].terms["actions"]
+  action_obs.delay_min_lag = 0
+  action_obs.delay_max_lag = 2
+  cfg.observations["critic"].terms["joint_torques"] = ObservationTermCfg(
+    func=football_mdp.joint_effort,
+    params={"asset_cfg": deepcopy(ordered_joints)},
+  )
+
+  action = cfg.actions["joint_pos"]
+  assert isinstance(action, JointPositionActionCfg)
+  action.actuator_names = KLAVIER_JOINT_ORDER
+  action.preserve_order = True
+  action.scale = G1_ACTION_SCALE
+
+  cfg.events["reset_base"].params = {
+    "pose_range": {
+      "x": (-0.5, 0.5),
+      "y": (-0.5, 0.5),
+      "yaw": (-3.14, 3.14),
+    },
+    "velocity_range": {
+      "x": (-0.5, 0.5),
+      "y": (-0.5, 0.5),
+      "z": (-0.5, 0.5),
+      "roll": (-0.5, 0.5),
+      "pitch": (-0.5, 0.5),
+      "yaw": (-0.5, 0.5),
+    },
+  }
+  cfg.events["foot_friction"].params.update(
+    {
+      "asset_cfg": SceneEntityCfg("robot", geom_names=(r".*_collision",)),
+      "ranges": (0.3, 1.6),
+      "shared_random": False,
+    }
+  )
+  cfg.events["base_mass"] = EventTermCfg(
+    func=envs_mdp.dr.body_mass,
+    mode="startup",
+    params={
+      "asset_cfg": SceneEntityCfg("robot", body_names=("torso_link",)),
+      "ranges": (-1.0, 5.0),
+      "operation": "add",
+    },
+  )
+  cfg.events["base_com"].params.update(
+    {
+      "ranges": {0: (-0.05, 0.05), 1: (-0.05, 0.05), 2: (-0.05, 0.05)},
+    }
+  )
+  cfg.events["joint_default_pos"] = EventTermCfg(
+    func=envs_mdp.dr.joint_default_pos,
+    mode="startup",
+    params={
+      "asset_cfg": SceneEntityCfg("robot", joint_names=(r".*",)),
+      "ranges": (-0.015, 0.015),
+      "operation": "add",
+    },
+  )
+  cfg.events["joint_friction"] = EventTermCfg(
+    func=envs_mdp.dr.joint_friction,
+    mode="startup",
+    params={
+      "asset_cfg": SceneEntityCfg("robot", joint_names=(r".*",)),
+      "ranges": (0.5, 1.5),
+      "operation": "scale",
+    },
+  )
+  cfg.events["joint_armature"] = EventTermCfg(
+    func=envs_mdp.dr.joint_armature,
+    mode="startup",
+    params={
+      "asset_cfg": SceneEntityCfg("robot", joint_names=(r".*",)),
+      "ranges": (0.5, 1.5),
+      "operation": "scale",
+    },
+  )
+  cfg.events["actuator_gains"] = EventTermCfg(
+    func=envs_mdp.dr.pd_gains,
+    mode="startup",
+    params={
+      "asset_cfg": SceneEntityCfg("robot", actuator_names=r".*"),
+      "kp_range": (0.8, 1.2),
+      "kd_range": (0.8, 1.2),
+      "operation": "scale",
+    },
+  )
+
+  undesired_cfg = ContactSensorCfg(
+    name="klavier_undesired_contact",
+    primary=ContactMatch(
+      mode="body",
+      pattern=r"^(?!.*(ankle_roll|wrist_yaw)).*$",
+      entity="robot",
+    ),
+    secondary=None,
+    fields=("found", "force"),
+    reduce="netforce",
+    history_length=4,
+  )
+  cfg.scene.sensors = (cfg.scene.sensors or ()) + (undesired_cfg,)
+
+  robot_all_joints = SceneEntityCfg("robot", joint_names=(r".*",))
+  feet_bodies = SceneEntityCfg(
+    "robot",
+    body_names=("left_ankle_roll_link", "right_ankle_roll_link"),
+    preserve_order=True,
+  )
+  cfg.rewards = {
+    "is_terminated": RewardTermCfg(func=mdp.is_terminated, weight=-200.0),
+    "track_lin_vel_xy_exp": RewardTermCfg(
+      func=football_mdp.klavier_track_lin_vel_xy_exp,
+      weight=1.0,
+      params={"command_name": "twist", "std": 0.5},
+    ),
+    "track_ang_vel_z_exp": RewardTermCfg(
+      func=football_mdp.klavier_track_ang_vel_z_exp,
+      weight=1.0,
+      params={"command_name": "twist", "std": 0.5},
+    ),
+    "lin_vel_z_l2": RewardTermCfg(func=football_mdp.klavier_lin_vel_z_l2, weight=-2.0),
+    "ang_vel_xy_l2": RewardTermCfg(func=football_mdp.klavier_ang_vel_xy_l2, weight=-0.1),
+    "flat_orientation_l2": RewardTermCfg(
+      func=mdp.flat_orientation_l2, weight=-1.0
+    ),
+    "body_orientation_l2": RewardTermCfg(
+      func=football_mdp.klavier_body_orientation_l2,
+      weight=-5.0,
+      params={"asset_cfg": SceneEntityCfg("robot", body_names=("torso_link",))},
+    ),
+    "joint_torques_l2": RewardTermCfg(
+      func=mdp.joint_torques_l2,
+      weight=-1e-5,
+      params={"asset_cfg": SceneEntityCfg("robot", actuator_names=r".*")},
+    ),
+    "joint_acc_l2": RewardTermCfg(
+      func=mdp.joint_acc_l2,
+      weight=-1e-7,
+      params={"asset_cfg": deepcopy(robot_all_joints)},
+    ),
+    "default_joint_pos_l2": RewardTermCfg(
+      func=football_mdp.klavier_joint_deviation_l2,
+      weight=-0.05,
+      params={"asset_cfg": deepcopy(robot_all_joints)},
+    ),
+    "joint_deviation_legs_exp": RewardTermCfg(
+      func=football_mdp.klavier_joint_deviation_exp,
+      weight=0.5,
+      params={
+        "std": 0.4,
+        "asset_cfg": SceneEntityCfg(
+          "robot",
+          joint_names=(r".*_hip_yaw.*", r".*_hip_roll.*", r"waist_.*"),
+        ),
+      },
+    ),
+    "joint_deviation_arms_exp": RewardTermCfg(
+      func=football_mdp.klavier_joint_deviation_exp,
+      weight=0.5,
+      params={
+        "std": 0.5,
+        "asset_cfg": SceneEntityCfg(
+          "robot",
+          joint_names=(
+            r".*_shoulder_roll.*",
+            r".*_shoulder_yaw.*",
+            r".*_elbow.*",
+            r".*_wrist.*",
+          ),
+        ),
+      },
+    ),
+    "joint_pos_limits": RewardTermCfg(func=mdp.joint_pos_limits, weight=-10.0),
+    "joint_mirror": RewardTermCfg(
+      func=football_mdp.klavier_joint_mirror,
+      weight=-0.25,
+      params={
+        "mirror_joints": (
+          ("left_hip_pitch_joint", "right_shoulder_pitch_joint"),
+          ("right_hip_pitch_joint", "left_shoulder_pitch_joint"),
+        )
+      },
+    ),
+    "action_rate_l2": RewardTermCfg(func=mdp.action_rate_l2, weight=-0.05),
+    "undesired_contacts": RewardTermCfg(
+      func=football_mdp.klavier_undesired_contacts,
+      weight=-1.0,
+      params={"sensor_name": undesired_cfg.name, "threshold": 1.0},
+    ),
+    "contact_forces": RewardTermCfg(
+      func=football_mdp.klavier_contact_forces,
+      weight=-1e-3,
+      params={"sensor_name": "feet_ground_contact", "threshold": 300.0},
+    ),
+    "feet_slide": RewardTermCfg(
+      func=football_mdp.klavier_feet_slide,
+      weight=-0.25,
+      params={"sensor_name": "feet_ground_contact", "asset_cfg": feet_bodies},
+    ),
+    "feet_gait": RewardTermCfg(
+      func=football_mdp.klavier_feet_gait,
+      weight=0.5,
+      params={
+        "sensor_name": "feet_ground_contact",
+        "period": 0.6,
+        "offset": (0.0, 0.5),
+        "threshold": 0.56,
+        "command_name": "twist",
+      },
+    ),
+    "feet_air_time": RewardTermCfg(
+      func=football_mdp.klavier_feet_air_time,
+      weight=1.0,
+      params={
+        "sensor_name": "feet_ground_contact",
+        "command_name": "twist",
+        "threshold": 0.3,
+      },
+    ),
+    "stand_still_without_cmd": RewardTermCfg(
+      func=football_mdp.klavier_stand_still_without_cmd,
+      weight=-1.0,
+      params={"command_name": "twist", "asset_cfg": robot_all_joints},
+    ),
+  }
+  cfg.curriculum = {
+    "lin_vel_cmd_levels": CurriculumTermCfg(
+      func=football_mdp.lin_vel_cmd_levels,
+      params={
+        "command_name": "twist",
+        "reward_term_name": "track_lin_vel_xy_exp",
+        "max_lin_vel_x": (-1.0, 2.0),
+        "max_lin_vel_y": (-1.0, 1.0),
+      },
+    ),
+    "push_velocity_levels": CurriculumTermCfg(
+      func=football_mdp.push_velocity_levels,
+      params={
+        "event_term_name": "push_robot",
+        "max_velocity_range": {
+          "x": (-1.5, 1.5),
+          "y": (-1.0, 1.0),
+          "z": (-0.5, 0.5),
+          "roll": (-0.8, 0.8),
+          "pitch": (-0.8, 0.8),
+          "yaw": (-1.57, 1.57),
+        },
+      },
+    ),
+  }
+
+  cfg.sim.mujoco.timestep = 0.005
+  cfg.decimation = 4
+  cfg.episode_length_s = 20.0
+  cfg.viewer.body_name = "torso_link"
+  if play:
+    cfg.scene.num_envs = 1
+    cfg.curriculum = {}
   return cfg
 
 

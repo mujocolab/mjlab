@@ -18,7 +18,7 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
   env: RslRlVecEnvWrapper
 
   _PRETRAIN_ACTOR_OBS_DIM = 490
-  _FOOTBALL_ACTOR_OBS_DIM = 520
+  _FOOTBALL_ACTOR_OBS_DIMS = frozenset({520, 525})
   _TEMPORAL_PRETRAIN_CURRENT_DIM = 98
   _TEMPORAL_FOOTBALL_CURRENT_DIM = 105
   _TEMPORAL_LATENT_DIM = 64
@@ -28,6 +28,8 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
   _STACKED_B1_FOOTBALL_MLP_DIM = 554
   _FIRST_LAYER_KEY = "mlp.0.weight"
   _TEMPORAL_CNN_FIRST_LAYER_KEY = "cnn_encoders.actor_history.net.0.weight"
+  _HISTORY30_CONV_WEIGHT_KEY = "cnn_encoders.actor_history.net.10.weight"
+  _HISTORY30_CONV_BIAS_KEY = "cnn_encoders.actor_history.net.10.bias"
   _NORMALIZER_VECTOR_KEYS = frozenset(
     {
       "obs_normalizer._mean",
@@ -111,7 +113,7 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
       )
     legacy_transfer = (
       source_first.shape[1] == self._PRETRAIN_ACTOR_OBS_DIM
-      and target_first.shape[1] == self._FOOTBALL_ACTOR_OBS_DIM
+      and target_first.shape[1] in self._FOOTBALL_ACTOR_OBS_DIMS
     )
     temporal_source_dim = (
       self._TEMPORAL_PRETRAIN_CURRENT_DIM + self._TEMPORAL_LATENT_DIM
@@ -136,20 +138,26 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
       and target_first.shape[1] == self._STACKED_B1_FOOTBALL_MLP_DIM
       and any(key.startswith("cnn_encoders.actor_history.") for key in target)
     )
+    target_only = target.keys() - source.keys()
+    history30_transfer = source_first.shape == target_first.shape and target_only == {
+      self._HISTORY30_CONV_WEIGHT_KEY,
+      self._HISTORY30_CONV_BIAS_KEY,
+    }
     if not (
       legacy_transfer
       or temporal_transfer
       or current_mlp_transfer
       or stacked_b1_transfer
+      or history30_transfer
     ):
       raise ValueError(
         "Unsupported walking-to-football Actor dimensions: "
         f"source={source_first.shape[1]}, target={target_first.shape[1]}. "
-        "Expected legacy 490->520, TemporalCNN 162->169, current MLP "
-        "98->105, current MLP to B1 98->169, or stacked B1 490->554."
+        "Expected legacy 490->520/525, TemporalCNN 162->169, current MLP "
+        "98->105, current MLP to B1 98->169, stacked B1 490->554, "
+        "or the B1 History10->History30 CNN extension."
       )
 
-    target_only = target.keys() - source.keys()
     allowed_target_only = {
       key
       for key in target
@@ -157,7 +165,7 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
       or key.startswith("obs_normalizers_3d.actor_history.")
     }
     if target_only and (
-      not (current_mlp_transfer or stacked_b1_transfer)
+      not (current_mlp_transfer or stacked_b1_transfer or history30_transfer)
       or not target_only <= allowed_target_only
     ):
       raise ValueError(
@@ -169,7 +177,19 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
     retained_target_keys: list[str] = []
     for key, target_value in target.items():
       if key not in source:
-        transferred[key] = target_value
+        if history30_transfer and key == self._HISTORY30_CONV_WEIGHT_KEY:
+          # Causal Conv1d reads the current sample at the final kernel tap.
+          # Identity initialization preserves the source policy as closely as
+          # possible while the new dilation-8 layer starts learning.
+          identity = torch.zeros_like(target_value)
+          channels = identity.shape[0]
+          indices = torch.arange(channels, device=identity.device)
+          identity[indices, indices, -1] = 1.0
+          transferred[key] = identity
+        elif history30_transfer and key == self._HISTORY30_CONV_BIAS_KEY:
+          transferred[key] = torch.zeros_like(target_value)
+        else:
+          transferred[key] = target_value
         retained_target_keys.append(key)
         continue
       source_value = source[key]
@@ -250,6 +270,12 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
         )
 
     self.alg.actor.load_state_dict(transferred, strict=True)
+    if history30_transfer:
+      print(
+        "[INFO] B1 History10->History30 Actor transfer: copied all existing "
+        "weights and initialized the new dilation-8 convolution as identity. "
+        "Critic and PPO optimizer start fresh."
+      )
     if current_mlp_transfer or stacked_b1_transfer:
       source_parameter_count = sum(value.numel() for value in source.values())
       retained_parameter_count = sum(

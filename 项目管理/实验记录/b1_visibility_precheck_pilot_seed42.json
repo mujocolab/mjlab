@@ -1,0 +1,14 @@
+{
+  "checkpoint": "/home/ut/football_project/mjlab_soccer/logs/rsl_rl/g1_velocity_football/2026-08-01_10-51-45_TemporalCNN_Football_hist10_visualmask_seed42_20k/model_19999.pt",
+  "completed_episodes": 0,
+  "invisible_frame_fraction": 0.0045,
+  "num_envs": 8,
+  "passes_invisible_frame_gate": false,
+  "passes_recovery_episode_gate": false,
+  "recovered_episodes": 1,
+  "recovery_episode_fraction": 0.125,
+  "sampled_episodes": 8,
+  "seed": 42,
+  "steps": 250,
+  "task": "Mjlab-Velocity-Football-Temporal-Flat-Unitree-G1"
+}

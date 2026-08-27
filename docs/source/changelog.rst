@@ -8,6 +8,39 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added an A1R0 visible-only coordinate-Teacher task that preserves the
+  LongDropout10 baseline's architecture, observation randomization, rewards,
+  and curriculum while removing artificial football-loss episodes and their
+  sensor-health gates.
+- Added a depth perception distillation pipeline that reconstructs the frozen
+  525-input coordinate policy's football history, supervises it from the
+  synchronized coordinate observations, distills deterministic Teacher actions,
+  and supports low-learning-rate PPO fine-tuning from the Student checkpoint.
+- Added an IsaacLab-aligned History5 LongDropout10 football task that preserves
+  the 525-input MLP Actor while training mutually exclusive visible-standing
+  and long sensor-loss episodes with sensor-health reward gating.
+- Added an asymmetric G1 direct-depth football task whose Actor consumes a
+  calibrated depth image while its training-only Critic additionally observes
+  the true yaw-frame football position.
+- Added a temporal-depth successor with five-frame image history, an explicit
+  ball-position, distance, and visibility bottleneck, privileged auxiliary
+  supervision, and compatible initialization from the 490-input walking Actor.
+- Added a G1 football IsaacLabAligned task with the original full observation
+  frame plus a football-visibility mask, stacked five times into a
+  525-dimensional MLP Actor input.
+- Added a staged 10 mm random-rough terrain curriculum for the G1 football task.
+- Added a G1 football transition-dropout task that replaces whole-episode
+  blindness with scheduled mid-episode sensor loss, short reacquisition and
+  long safe-walking branches while retaining physical ball-loss accountability.
+  Its velocity curriculum uses completed normal-control episodes only and logs
+  visual-loss episode performance separately.
+- Added a separately registered legacy-curriculum variant of the transition-
+  dropout task for controlled continuation from existing checkpoints.
+- Added mutually exclusive football episode modes with 85% moving control, 5%
+  visible zero-command ball stopping, and 10% externally injected long sensor
+  loss. The long-dropout task has no short loss or reacquisition branch.
+- Added a RoboCup-compatible Sim2Sim football observer using the shared YOLO
+  model, top-left image padding, and bounding-box ground-ray projection.
 - Added the frozen A0R0/A0R1/A1R0/A1R1 football ablation tasks. The A1 Actor
   encodes a 10-frame, 7-feature ball trajectory with a causal dilated CNN, and
   exported ONNX policies expose a matching ``(1, 10, 7)`` history input.
@@ -22,22 +55,37 @@ Added
   iteration counter, or environment state.
 - Added ``sim2sim-g1-football`` to run 520-input G1 football ONNX policies in
   native MuJoCo using D435 RGB-D ball perception and deployment-style history.
-- Added ``--ball-observation-seed`` to ``sim2sim-g1-football`` for reproducible
-  paired evaluations of football position bias, frame noise, delay, and dropout.
 - Added an explicit ball-relative velocity reference generator for G1 football
   training. It uses filtered football position and relative velocity feedback
   with deadbands and acceleration limits while keeping the original user command
   as the football's global velocity-tracking objective.
-- Added the optional ``--ball-relative-command-generator`` Sim2Sim control path,
-  separate user/reference command curves, and ``--ball-velocity-seed`` for paired
-  disturbance experiments.
-- Added a Sim2Sim-only keyboard deceleration skill that generates a
-  minimum-jerk rise-and-fall policy reference, with a separate monotonic target,
-  trigger hysteresis, configurable timing, and CSV/plot telemetry.
+- Added a live G1 football Sim2Sim detection window showing the D435 RGB image,
+  YOLO bounding box and confidence, robot-frame ball position, and robot/foot
+  vectors to the detected ball.
 
 Changed
 ^^^^^^^
 
+- Aligned the direct-depth G1 football sim-to-sim action path with the robot
+  deployment: raw policy actions, final joint targets, and per-step target
+  changes now use the same clamps, while keyboard commands use the deployment
+  velocity envelope.
+- Aligned the G1 football LongDropout10 Actor observation randomization with
+  the Isaac Lab 520-input policy: independent ball and foot-vector noise,
+  zero-to-two-step latency, and no extra fixed perception or encoder bias.
+- Changed the G1 football Rough10mm task to use the curriculum's maximum
+  roughness consistently during play.
+- Simplified ``sim2sim-g1-football`` to the direct deployment command path by
+  removing research-only command generators, injected disturbances, kinematics
+  plots, CSV exports, and their archived analysis assets. The D435/RoboCup YOLO
+  diagnostics remain available in one window with the RGB detection box and
+  robot-frame football vectors.
+- Changed ``sim2sim-g1-football`` command limits to match the completed
+  football curriculum: ``vx=[-0.5, 2.0]``, ``vy=[-0.5, 0.5]``, and
+  ``yaw=[-1.0, 1.0]``. Out-of-range initial commands now fail explicitly.
+- Changed transition-dropout football rewards to fade out over 0.5 seconds
+  after the binary ball-observation mask becomes invalid. The policy continues
+  tracking the unmodified velocity command during short and long sensor loss.
 - Replaced the G1 football training task's ball-relative command correction with
   a vectorized stop-skill reference. Rapid deceleration now produces a
   ``0.2 m/s`` minimum-jerk rise over ``0.3 s`` followed by a ``0.3 s`` fall;
@@ -64,9 +112,6 @@ Changed
 Fixed
 ^^^^^
 
-- Fixed the default Sim2Sim stop-skill generator conflicting with an explicitly
-  enabled ball-relative command generator. The ball-relative generator now
-  takes precedence, matching E4 evaluation semantics.
 - The Viser reward bar panel no longer *silently* drops reward terms beyond
   ``max_terms``; it now emits a warning listing the hidden terms. Previously
   environments with more than 20 reward terms had the overflow disappear from

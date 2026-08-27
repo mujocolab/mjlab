@@ -47,6 +47,29 @@ def _get_velocity_command(
   return selected_command
 
 
+def _football_visibility_gate(env: ManagerBasedRlEnv) -> torch.Tensor:
+  """Return the shared, smoothed Actor football-visibility gate."""
+  cache = vars(env).get("_football_masked_ball_visual")
+  if isinstance(cache, dict):
+    gate = cache.get("visibility_gate")
+    if isinstance(gate, torch.Tensor) and gate.shape == (env.num_envs,):
+      return gate
+    visible = cache.get("visible")
+    if isinstance(visible, torch.Tensor) and visible.shape == (env.num_envs, 1):
+      return visible[:, 0]
+  return torch.zeros(env.num_envs, device=env.device)
+
+
+def _football_sensor_gate(env: ManagerBasedRlEnv) -> torch.Tensor:
+  """Return the smoothed health gate for exogenous ball-sensor dropout."""
+  cache = vars(env).get("_football_masked_ball_visual")
+  if isinstance(cache, dict):
+    gate = cache.get("sensor_gate")
+    if isinstance(gate, torch.Tensor) and gate.shape == (env.num_envs,):
+      return gate
+  return torch.ones(env.num_envs, device=env.device)
+
+
 class track_ball_lin_vel_xy_exp:
   """Reward instantaneous football planar velocity tracking."""
 
@@ -65,6 +88,8 @@ class track_ball_lin_vel_xy_exp:
     gate_std_x: float = 0.10,
     gate_std_y: float = 0.05,
     gate_by_position: bool = True,
+    gate_by_visibility: bool = False,
+    gate_by_sensor_health: bool = False,
     use_user_command: bool = False,
     use_ball_command: bool = False,
     ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
@@ -85,22 +110,26 @@ class track_ball_lin_vel_xy_exp:
 
     error = torch.sum(torch.square(command[:, :2] - ball_velocity_b[:, :2]), dim=1)
     velocity_reward = torch.exp(-error / std**2)
-    if not gate_by_position:
-      return velocity_reward
-
-    x_min, x_max = control_x_range
-    if x_min > x_max or control_y_abs <= 0.0:
-      raise ValueError("Invalid football control-zone bounds")
-    if gate_std_x <= 0.0 or gate_std_y <= 0.0:
-      raise ValueError("gate_std_x and gate_std_y must be positive")
-    ball_relative_b = ball_pos_b(env, ball_cfg=ball_cfg, asset_cfg=asset_cfg)
-    x_out = torch.relu(
-      torch.maximum(x_min - ball_relative_b[:, 0], ball_relative_b[:, 0] - x_max)
-      / gate_std_x
-    )
-    y_out = torch.relu((torch.abs(ball_relative_b[:, 1]) - control_y_abs) / gate_std_y)
-    position_gate = torch.exp(-(x_out.square() + y_out.square()))
-    return velocity_reward * position_gate
+    if gate_by_position:
+      x_min, x_max = control_x_range
+      if x_min > x_max or control_y_abs <= 0.0:
+        raise ValueError("Invalid football control-zone bounds")
+      if gate_std_x <= 0.0 or gate_std_y <= 0.0:
+        raise ValueError("gate_std_x and gate_std_y must be positive")
+      ball_relative_b = ball_pos_b(env, ball_cfg=ball_cfg, asset_cfg=asset_cfg)
+      x_out = torch.relu(
+        torch.maximum(x_min - ball_relative_b[:, 0], ball_relative_b[:, 0] - x_max)
+        / gate_std_x
+      )
+      y_out = torch.relu(
+        (torch.abs(ball_relative_b[:, 1]) - control_y_abs) / gate_std_y
+      )
+      velocity_reward *= torch.exp(-(x_out.square() + y_out.square()))
+    if gate_by_visibility:
+      velocity_reward *= _football_visibility_gate(env)
+    if gate_by_sensor_health:
+      velocity_reward *= _football_sensor_gate(env)
+    return velocity_reward
 
 
 def stop_ball_lin_vel_xy_exp(
@@ -199,6 +228,8 @@ def ball_front_control(
   env: ManagerBasedRlEnv,
   x_range: tuple[float, float],
   y_abs: float,
+  gate_by_visibility: bool = False,
+  gate_by_sensor_health: bool = False,
   ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
 ) -> torch.Tensor:
@@ -215,7 +246,242 @@ def ball_front_control(
   ball_pos_b = quat_apply_inverse(robot.data.root_link_quat_w, ball_relative_w)
   in_x_range = (ball_pos_b[:, 0] >= x_min) & (ball_pos_b[:, 0] <= x_max)
   in_y_range = torch.abs(ball_pos_b[:, 1]) <= y_abs
-  return (in_x_range & in_y_range).float()
+  reward = (in_x_range & in_y_range).float()
+  if gate_by_visibility:
+    reward *= _football_visibility_gate(env)
+  if gate_by_sensor_health:
+    reward *= _football_sensor_gate(env)
+  return reward
+
+
+def track_visibility_blended_linear_velocity(
+  env: ManagerBasedRlEnv,
+  std: float,
+  command_name: str,
+  target_ball_x: float = 0.25,
+  recovery_gain_x: float = 1.0,
+  recovery_gain_y: float = 1.5,
+  min_tolerance_x: float = 0.10,
+  min_tolerance_y: float = 0.08,
+  relative_tolerance: float = 0.20,
+  ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Track command velocity plus a visibility-gated, bounded ball correction."""
+  if std <= 0.0:
+    raise ValueError("std must be positive")
+  if min_tolerance_x <= 0.0 or min_tolerance_y <= 0.0:
+    raise ValueError("minimum velocity tolerances must be positive")
+  if relative_tolerance < 0.0:
+    raise ValueError("relative_tolerance must be non-negative")
+
+  command = env.command_manager.get_command(command_name)
+  assert command is not None, f"Command '{command_name}' not found."
+  robot: Entity = env.scene[asset_cfg.name]
+  ball_relative = ball_pos_b(env, ball_cfg=ball_cfg, asset_cfg=asset_cfg)
+  gate = _football_visibility_gate(env)
+  tolerance_x = torch.maximum(
+    torch.full_like(command[:, 0], min_tolerance_x),
+    relative_tolerance * torch.abs(command[:, 0]),
+  )
+  tolerance_y = torch.maximum(
+    torch.full_like(command[:, 1], min_tolerance_y),
+    relative_tolerance * torch.abs(command[:, 1]),
+  )
+  correction_x = torch.clamp(
+    recovery_gain_x * (ball_relative[:, 0] - target_ball_x),
+    min=-tolerance_x,
+    max=tolerance_x,
+  )
+  correction_y = torch.clamp(
+    recovery_gain_y * ball_relative[:, 1],
+    min=-tolerance_y,
+    max=tolerance_y,
+  )
+  target_xy = command[:, :2] + gate[:, None] * torch.stack(
+    (correction_x, correction_y), dim=1
+  )
+  actual = robot.data.root_link_lin_vel_b
+  error = torch.sum(torch.square(target_xy - actual[:, :2]), dim=1)
+  error += torch.square(actual[:, 2])
+  return torch.exp(-error / std**2)
+
+
+def track_visibility_blended_angular_velocity(
+  env: ManagerBasedRlEnv,
+  std: float,
+  command_name: str,
+  recovery_gain_yaw: float = 1.5,
+  min_tolerance_yaw: float = 0.15,
+  relative_tolerance: float = 0.20,
+  ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Track yaw command plus a bounded correction toward a visible football."""
+  if std <= 0.0 or min_tolerance_yaw <= 0.0:
+    raise ValueError("std and min_tolerance_yaw must be positive")
+  if relative_tolerance < 0.0:
+    raise ValueError("relative_tolerance must be non-negative")
+
+  command = env.command_manager.get_command(command_name)
+  assert command is not None, f"Command '{command_name}' not found."
+  robot: Entity = env.scene[asset_cfg.name]
+  ball_relative = ball_pos_b(env, ball_cfg=ball_cfg, asset_cfg=asset_cfg)
+  gate = _football_visibility_gate(env)
+  tolerance = torch.maximum(
+    torch.full_like(command[:, 2], min_tolerance_yaw),
+    relative_tolerance * torch.abs(command[:, 2]),
+  )
+  bearing = torch.atan2(ball_relative[:, 1], ball_relative[:, 0])
+  correction = torch.clamp(
+    recovery_gain_yaw * bearing,
+    min=-tolerance,
+    max=tolerance,
+  )
+  target_yaw = command[:, 2] + gate * correction
+  actual = robot.data.root_link_ang_vel_b
+  error = torch.square(target_yaw - actual[:, 2])
+  error += torch.sum(torch.square(actual[:, :2]), dim=1)
+  return torch.exp(-error / std**2)
+
+
+def track_visible_recovery_linear_velocity(
+  env: ManagerBasedRlEnv,
+  std: float,
+  command_name: str,
+  target_ball_x: float = 0.25,
+  recovery_gain_x: float = 1.0,
+  recovery_gain_y: float = 1.5,
+  min_tolerance_x: float = 0.10,
+  min_tolerance_y: float = 0.08,
+  relative_tolerance: float = 0.20,
+  ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Visible-branch reward for bounded recovery toward the football."""
+  command = env.command_manager.get_command(command_name)
+  assert command is not None, f"Command '{command_name}' not found."
+  robot: Entity = env.scene[asset_cfg.name]
+  ball_relative = ball_pos_b(env, ball_cfg=ball_cfg, asset_cfg=asset_cfg)
+  gate = _football_visibility_gate(env)
+  tolerance_x = torch.maximum(
+    torch.full_like(command[:, 0], min_tolerance_x),
+    relative_tolerance * torch.abs(command[:, 0]),
+  )
+  tolerance_y = torch.maximum(
+    torch.full_like(command[:, 1], min_tolerance_y),
+    relative_tolerance * torch.abs(command[:, 1]),
+  )
+  correction = torch.stack(
+    (
+      torch.clamp(
+        recovery_gain_x * (ball_relative[:, 0] - target_ball_x),
+        min=-tolerance_x,
+        max=tolerance_x,
+      ),
+      torch.clamp(
+        recovery_gain_y * ball_relative[:, 1],
+        min=-tolerance_y,
+        max=tolerance_y,
+      ),
+    ),
+    dim=1,
+  )
+  target = command[:, :2] + correction
+  actual = robot.data.root_link_lin_vel_b
+  error = torch.sum(torch.square(target - actual[:, :2]), dim=1)
+  error += torch.square(actual[:, 2])
+  return gate * torch.exp(-error / std**2)
+
+
+def track_visible_recovery_angular_velocity(
+  env: ManagerBasedRlEnv,
+  std: float,
+  command_name: str,
+  recovery_gain_yaw: float = 1.5,
+  min_tolerance_yaw: float = 0.15,
+  relative_tolerance: float = 0.20,
+  ball_cfg: SceneEntityCfg = _DEFAULT_BALL_CFG,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Visible-branch yaw reward for a bounded turn toward the football."""
+  command = env.command_manager.get_command(command_name)
+  assert command is not None, f"Command '{command_name}' not found."
+  robot: Entity = env.scene[asset_cfg.name]
+  ball_relative = ball_pos_b(env, ball_cfg=ball_cfg, asset_cfg=asset_cfg)
+  gate = _football_visibility_gate(env)
+  tolerance = torch.maximum(
+    torch.full_like(command[:, 2], min_tolerance_yaw),
+    relative_tolerance * torch.abs(command[:, 2]),
+  )
+  correction = torch.clamp(
+    recovery_gain_yaw * torch.atan2(ball_relative[:, 1], ball_relative[:, 0]),
+    min=-tolerance,
+    max=tolerance,
+  )
+  actual = robot.data.root_link_ang_vel_b
+  error = torch.square(command[:, 2] + correction - actual[:, 2])
+  error += torch.sum(torch.square(actual[:, :2]), dim=1)
+  return gate * torch.exp(-error / std**2)
+
+
+def track_hidden_linear_velocity(
+  env: ManagerBasedRlEnv,
+  std: float,
+  command_name: str,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Hidden-branch reward for following the unmodified user command."""
+  return (1.0 - _football_visibility_gate(env)) * track_linear_velocity(
+    env, std=std, command_name=command_name, asset_cfg=asset_cfg
+  )
+
+
+def track_hidden_angular_velocity(
+  env: ManagerBasedRlEnv,
+  std: float,
+  command_name: str,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Hidden-branch yaw reward for following the unmodified user command."""
+  return (1.0 - _football_visibility_gate(env)) * track_angular_velocity(
+    env, std=std, command_name=command_name, asset_cfg=asset_cfg
+  )
+
+
+def command_velocity_envelope_l2(
+  env: ManagerBasedRlEnv,
+  command_name: str,
+  min_tolerance_x: float = 0.10,
+  min_tolerance_y: float = 0.08,
+  min_tolerance_yaw: float = 0.15,
+  relative_tolerance: float = 0.20,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Quadratic cost only outside the command-relative recovery envelope."""
+  if min(min_tolerance_x, min_tolerance_y, min_tolerance_yaw) <= 0.0:
+    raise ValueError("minimum velocity tolerances must be positive")
+  if relative_tolerance < 0.0:
+    raise ValueError("relative_tolerance must be non-negative")
+  command = env.command_manager.get_command(command_name)
+  assert command is not None, f"Command '{command_name}' not found."
+  robot: Entity = env.scene[asset_cfg.name]
+  actual = torch.stack(
+    (
+      robot.data.root_link_lin_vel_b[:, 0],
+      robot.data.root_link_lin_vel_b[:, 1],
+      robot.data.root_link_ang_vel_b[:, 2],
+    ),
+    dim=1,
+  )
+  minimum = torch.tensor(
+    (min_tolerance_x, min_tolerance_y, min_tolerance_yaw),
+    device=command.device,
+    dtype=command.dtype,
+  )
+  tolerance = torch.maximum(minimum, relative_tolerance * torch.abs(command))
+  excess = torch.relu(torch.abs(actual - command) - tolerance)
+  return torch.sum(torch.square(excess), dim=1)
 
 
 def ball_outside_control_zone_l2(
@@ -264,6 +530,211 @@ def track_linear_velocity(
   z_error = torch.square(actual[:, 2])
   lin_vel_error = xy_error + z_error
   return torch.exp(-lin_vel_error / std**2)
+
+
+def klavier_track_lin_vel_xy_exp(
+  env: ManagerBasedRlEnv,
+  std: float,
+  command_name: str,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """IsaacLab/Klavier planar velocity tracking reward."""
+  asset: Entity = env.scene[asset_cfg.name]
+  command = env.command_manager.get_command(command_name)
+  assert command is not None
+  error = torch.sum(
+    torch.square(command[:, :2] - asset.data.root_link_lin_vel_b[:, :2]), dim=1
+  )
+  return torch.exp(-error / std**2)
+
+
+def klavier_track_ang_vel_z_exp(
+  env: ManagerBasedRlEnv,
+  std: float,
+  command_name: str,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """IsaacLab/Klavier yaw-rate tracking reward."""
+  asset: Entity = env.scene[asset_cfg.name]
+  command = env.command_manager.get_command(command_name)
+  assert command is not None
+  error = torch.square(command[:, 2] - asset.data.root_link_ang_vel_b[:, 2])
+  return torch.exp(-error / std**2)
+
+
+def klavier_lin_vel_z_l2(
+  env: ManagerBasedRlEnv,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  asset: Entity = env.scene[asset_cfg.name]
+  return torch.square(asset.data.root_link_lin_vel_b[:, 2])
+
+
+def klavier_ang_vel_xy_l2(
+  env: ManagerBasedRlEnv,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  asset: Entity = env.scene[asset_cfg.name]
+  return torch.sum(torch.square(asset.data.root_link_ang_vel_b[:, :2]), dim=1)
+
+
+def klavier_body_orientation_l2(
+  env: ManagerBasedRlEnv,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  asset: Entity = env.scene[asset_cfg.name]
+  quat_w = asset.data.body_link_quat_w[:, asset_cfg.body_ids, :].squeeze(1)
+  gravity_b = quat_apply_inverse(quat_w, asset.data.gravity_vec_w)
+  return torch.sum(torch.square(gravity_b[:, :2]), dim=1)
+
+
+def klavier_joint_mirror(
+  env: ManagerBasedRlEnv,
+  mirror_joints: tuple[tuple[str, str], ...],
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Reproduce the two cross-body posture pairs used by the source task."""
+  asset: Entity = env.scene[asset_cfg.name]
+  cache_name = "_klavier_joint_mirror_ids"
+  pairs = getattr(env, cache_name, None)
+  if pairs is None:
+    pairs = []
+    for left, right in mirror_joints:
+      left_ids, _ = asset.find_joints(left)
+      right_ids, _ = asset.find_joints(right)
+      pairs.append((left_ids, right_ids))
+    setattr(env, cache_name, pairs)
+  result = torch.zeros(env.num_envs, device=env.device)
+  default = asset.data.default_joint_pos
+  assert default is not None
+  for left_ids, right_ids in pairs:
+    left = asset.data.joint_pos[:, left_ids] - default[:, left_ids]
+    right = asset.data.joint_pos[:, right_ids] - default[:, right_ids]
+    result += torch.sum(torch.square(left - right), dim=1)
+  return result / max(len(pairs), 1)
+
+
+def klavier_joint_deviation_l2(
+  env: ManagerBasedRlEnv,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  asset: Entity = env.scene[asset_cfg.name]
+  default = asset.data.default_joint_pos
+  assert default is not None
+  error = asset.data.joint_pos[:, asset_cfg.joint_ids] - default[:, asset_cfg.joint_ids]
+  return torch.sum(torch.square(error), dim=1)
+
+
+def klavier_joint_deviation_exp(
+  env: ManagerBasedRlEnv,
+  std: float,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  asset: Entity = env.scene[asset_cfg.name]
+  default = asset.data.default_joint_pos
+  assert default is not None
+  error = asset.data.joint_pos[:, asset_cfg.joint_ids] - default[:, asset_cfg.joint_ids]
+  return torch.exp(-torch.sum(torch.square(error), dim=1) / std**2)
+
+
+def klavier_feet_gait(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  period: float,
+  offset: tuple[float, float],
+  threshold: float,
+  command_name: str,
+) -> torch.Tensor:
+  sensor: ContactSensor = env.scene[sensor_name]
+  contact_time = sensor.data.current_contact_time
+  assert contact_time is not None
+  is_contact = contact_time > 0
+  phase = ((env.episode_length_buf * env.step_dt) / period).unsqueeze(1)
+  offsets = torch.tensor(offset, device=env.device).view(1, -1)
+  is_stance = ((phase + offsets) % 1.0) < threshold
+  command = env.command_manager.get_command(command_name)
+  assert command is not None
+  return (is_stance == is_contact).float().mean(dim=1) * (
+    torch.linalg.norm(command, dim=1) > 0.1
+  )
+
+
+def klavier_feet_air_time(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  command_name: str,
+  threshold: float,
+) -> torch.Tensor:
+  sensor: ContactSensor = env.scene[sensor_name]
+  air = sensor.data.current_air_time
+  contact = sensor.data.current_contact_time
+  assert air is not None and contact is not None
+  in_contact = contact > 0
+  mode_time = torch.where(in_contact, contact, air)
+  single_stance = torch.mean(in_contact.float(), dim=1) == 0.5
+  mode_time = torch.min(
+    torch.where(single_stance.unsqueeze(-1), mode_time, 0.0), dim=1
+  ).values
+  command = env.command_manager.get_command(command_name)
+  assert command is not None
+  return torch.clamp(threshold - torch.abs(mode_time - threshold), min=0.0) * (
+    torch.linalg.norm(command, dim=1) > 0.1
+  )
+
+
+def klavier_feet_slide(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  asset_cfg: SceneEntityCfg,
+) -> torch.Tensor:
+  sensor: ContactSensor = env.scene[sensor_name]
+  found = sensor.data.found
+  assert found is not None
+  asset: Entity = env.scene[asset_cfg.name]
+  speed = torch.linalg.norm(
+    asset.data.body_link_lin_vel_w[:, asset_cfg.body_ids, :2], dim=-1
+  )
+  return torch.sum(speed * (found > 0), dim=1)
+
+
+def klavier_contact_forces(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  threshold: float,
+) -> torch.Tensor:
+  sensor: ContactSensor = env.scene[sensor_name]
+  force = sensor.data.force
+  assert force is not None
+  return torch.sum(
+    torch.clamp(torch.linalg.norm(force, dim=-1) - threshold, min=0.0), dim=1
+  )
+
+
+def klavier_undesired_contacts(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  threshold: float,
+) -> torch.Tensor:
+  sensor: ContactSensor = env.scene[sensor_name]
+  force = sensor.data.force
+  assert force is not None
+  return (torch.linalg.norm(force, dim=-1) > threshold).any(dim=1).float()
+
+
+def klavier_stand_still_without_cmd(
+  env: ManagerBasedRlEnv,
+  command_name: str,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  asset: Entity = env.scene[asset_cfg.name]
+  default = asset.data.default_joint_pos
+  assert default is not None
+  diff = asset.data.joint_pos[:, asset_cfg.joint_ids] - default[:, asset_cfg.joint_ids]
+  command = env.command_manager.get_command(command_name)
+  assert command is not None
+  return torch.sum(torch.abs(diff), dim=1) * (
+    torch.linalg.norm(command, dim=1) < 0.1
+  )
 
 
 def track_angular_velocity(

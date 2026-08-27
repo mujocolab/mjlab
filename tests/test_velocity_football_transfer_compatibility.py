@@ -146,6 +146,25 @@ def test_load_pretrained_transfers_only_walking_actor_prefix(tmp_path) -> None:
   assert runner.env.unwrapped.common_step_counter == 0
 
 
+def test_load_pretrained_expands_walking_actor_for_masked_five_frame_input(
+  tmp_path,
+) -> None:
+  source = _actor_state(490, fill=2.0)
+  target_actor = _FakeActor(_actor_state(525, fill=10.0))
+  runner = _fake_runner(target_actor)
+  checkpoint = tmp_path / "walking.pt"
+  torch.save({"actor_state_dict": source}, checkpoint)
+
+  runner.load_pretrained(str(checkpoint))
+  actual = target_actor.state_dict()
+
+  torch.testing.assert_close(actual["mlp.0.weight"][:, :490], source["mlp.0.weight"])
+  assert torch.count_nonzero(actual["mlp.0.weight"][:, 490:]) == 0
+  torch.testing.assert_close(
+    actual["obs_normalizer._mean"][:, 490:], torch.full((1, 35), 10.0)
+  )
+
+
 def test_load_pretrained_rejects_wrong_actor_observation_size(tmp_path) -> None:
   checkpoint = tmp_path / "native_velocity.pt"
   torch.save({"actor_state_dict": _actor_state(99, fill=1.0)}, checkpoint)

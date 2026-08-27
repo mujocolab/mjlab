@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import mujoco
 import numpy as np
@@ -17,43 +17,53 @@ FloatArray = npt.NDArray[np.float32]
 D435_CAMERA_NAME = "sim_d435"
 _FOOTBALL_TEXTURE_NAME = "sim_football_checker"
 _FOOTBALL_MATERIAL_NAME = "sim_football_material"
-_CAMERA_FRAME_TO_OPTICAL_FRAME = np.diag([1.0, -1.0, -1.0])
+_OPTICAL_TO_CAMERA_FRAME = np.diag([1.0, -1.0, -1.0])
 
 
 @dataclass(frozen=True)
 class D435Config:
-  """Simulated G1 D435 camera and football detector parameters."""
+  """Python mirror of the production football RGB-D configuration."""
 
   width: int = 640
   height: int = 480
-  horizontal_fov_deg: float = 87.0
-  vertical_fov_deg: float = 58.0
+  rgb_fovy_deg: float = 42.5
+  depth_fovy_deg: float = 58.0
   min_depth: float = 0.3
-  max_depth: float = 5.0
+  max_depth: float = 3.0
   depth_roi_px: int = 4
   ball_radius: float = 0.1098
-  confidence_threshold: float = 0.25
+  confidence_threshold: float = 0.5
   iou_threshold: float = 0.5
   ball_class_id: int = 0
+  max_detections: int = 5
+  max_nms_candidates: int = 3000
   max_hold_time: float = 0.5
+  vision_mode: Literal["deployment_rgbd", "robocup"] = "deployment_rgbd"
+  ground_height: float = 0.0
   camera_name: str = D435_CAMERA_NAME
-  camera_pos_pelvis: tuple[float, float, float] = (
-    0.14764571478,
-    0.0,
-    0.4626817855,
+  # torso -> camera pose: Unitree's official factory D435i mount, taken from
+  # the stock (unmodified) g1_29dof.xml / g1_23dof.xml MJCF description
+  # (matches the C++ deployment fallback default in football_observations.h).
+  # This project had been using a custom-remounted position instead
+  # ([0.1135993074, 0.01753, 0.3934754688]).
+  camera_pos_torso: tuple[float, float, float] = (
+    0.0576235,
+    0.01753,
+    0.42987,
   )
-  camera_quat_pelvis_wxyz: tuple[float, float, float, float] = (
-    0.69411524,
-    0.13492234,
-    -0.13492234,
-    -0.69411524,
+  camera_quat_torso_wxyz: tuple[float, float, float, float] = (
+    0.6592524821,
+    0.2557071857,
+    -0.2557071857,
+    -0.6592524821,
   )
 
   @property
   def intrinsics(self) -> tuple[float, float, float, float]:
-    fx = 0.5 * self.width / math.tan(math.radians(self.horizontal_fov_deg) / 2.0)
-    fy = 0.5 * self.height / math.tan(math.radians(self.vertical_fov_deg) / 2.0)
-    return fx, fy, 0.5 * (self.width - 1.0), 0.5 * (self.height - 1.0)
+    # The deployment deprojects aligned depth with RGB intrinsics. Its FOV
+    # fallback derives both focal lengths from the vertical RGB FOV.
+    focal = 0.5 * self.height / math.tan(math.radians(self.rgb_fovy_deg) / 2.0)
+    return focal, focal, 0.5 * self.width, 0.5 * self.height
 
 
 def default_yolo_model() -> Path:
@@ -74,14 +84,14 @@ def default_yolo_model() -> Path:
 
 
 def add_d435_camera(spec: mujoco.MjSpec, cfg: D435Config) -> None:
-  """Attach the simulated D435 camera to the compiled scene's robot pelvis."""
-  pelvis = spec.body("robot/pelvis")
-  if pelvis is None:
-    raise ValueError("MJLab scene is missing body 'robot/pelvis'.")
-  camera = pelvis.add_camera(
+  """Attach the RGB camera exactly as in the deployment football XML."""
+  torso = spec.body("robot/torso_link")
+  if torso is None:
+    raise ValueError("MJLab scene is missing body 'robot/torso_link'.")
+  camera = torso.add_camera(
     name=cfg.camera_name,
-    pos=cfg.camera_pos_pelvis,
-    quat=cfg.camera_quat_pelvis_wxyz,
+    pos=cfg.camera_pos_torso,
+    quat=cfg.camera_quat_torso_wxyz,
   )
   fx, fy, _, _ = cfg.intrinsics
   camera.focal_pixel = np.asarray((fx, fy), dtype=np.float64)
@@ -116,20 +126,6 @@ def add_football_visual_material(spec: mujoco.MjSpec) -> None:
   ball_geom.group = 0
 
 
-def _quat_to_matrix(quat_wxyz: npt.ArrayLike) -> npt.NDArray[np.float64]:
-  quat = np.asarray(quat_wxyz, dtype=np.float64)
-  quat /= np.linalg.norm(quat)
-  w, x, y, z = quat
-  return np.asarray(
-    (
-      (1.0 - 2.0 * (y * y + z * z), 2.0 * (x * y - w * z), 2.0 * (x * z + w * y)),
-      (2.0 * (x * y + w * z), 1.0 - 2.0 * (x * x + z * z), 2.0 * (y * z - w * x)),
-      (2.0 * (x * z - w * y), 2.0 * (y * z + w * x), 1.0 - 2.0 * (x * x + y * y)),
-    ),
-    dtype=np.float64,
-  )
-
-
 def world_to_yaw(vector_w: npt.ArrayLike, root_quat_wxyz: npt.ArrayLike) -> FloatArray:
   """Express a world-frame vector in the robot's gravity-aligned yaw frame."""
   w, x, y, z = np.asarray(root_quat_wxyz, dtype=np.float64)
@@ -144,45 +140,23 @@ def world_to_yaw(vector_w: npt.ArrayLike, root_quat_wxyz: npt.ArrayLike) -> Floa
 
 def camera_point_to_yaw(
   point_optical: npt.ArrayLike,
+  camera_pos_w: npt.ArrayLike,
+  camera_rotation_w: npt.ArrayLike,
+  root_pos_w: npt.ArrayLike,
   root_quat_wxyz: npt.ArrayLike,
-  cfg: D435Config,
 ) -> FloatArray:
-  """Transform a D435 optical-frame point into the robot yaw-aligned frame."""
-  camera_rotation_pelvis = _quat_to_matrix(cfg.camera_quat_pelvis_wxyz)
-  optical_rotation_pelvis = camera_rotation_pelvis @ _CAMERA_FRAME_TO_OPTICAL_FRAME
-  point_pelvis = np.asarray(cfg.camera_pos_pelvis) + (
-    optical_rotation_pelvis @ np.asarray(point_optical, dtype=np.float64)
+  """Match deployment optical -> camera -> world -> robot-yaw conversion."""
+  point_camera = _OPTICAL_TO_CAMERA_FRAME @ np.asarray(point_optical, dtype=np.float64)
+  point_world = np.asarray(camera_pos_w, dtype=np.float64) + (
+    np.asarray(camera_rotation_w, dtype=np.float64).reshape(3, 3) @ point_camera
   )
-  point_world = _quat_to_matrix(root_quat_wxyz) @ point_pelvis
-  return world_to_yaw(point_world, root_quat_wxyz)
-
-
-def _resize_bilinear(
-  image: npt.NDArray[np.uint8], width: int, height: int
-) -> npt.NDArray[np.uint8]:
-  """Resize an RGB image without adding an OpenCV runtime dependency."""
-  src_height, src_width = image.shape[:2]
-  if (src_width, src_height) == (width, height):
-    return image.copy()
-  x = np.linspace(0.0, src_width - 1.0, width)
-  y = np.linspace(0.0, src_height - 1.0, height)
-  x0 = np.floor(x).astype(np.int32)
-  y0 = np.floor(y).astype(np.int32)
-  x1 = np.minimum(x0 + 1, src_width - 1)
-  y1 = np.minimum(y0 + 1, src_height - 1)
-  wx = (x - x0)[None, :, None]
-  wy = (y - y0)[:, None, None]
-  top = (
-    image[y0[:, None], x0[None, :]] * (1.0 - wx) + image[y0[:, None], x1[None, :]] * wx
+  return world_to_yaw(
+    point_world - np.asarray(root_pos_w, dtype=np.float64), root_quat_wxyz
   )
-  bottom = (
-    image[y1[:, None], x0[None, :]] * (1.0 - wx) + image[y1[:, None], x1[None, :]] * wx
-  )
-  return np.clip(top * (1.0 - wy) + bottom * wy, 0.0, 255.0).astype(np.uint8)
 
 
 class YoloBallDetector:
-  """Minimal YOLO ONNX detector for the simulated D435 RGB stream."""
+  """Python port of the deployment YoloBallDetector ONNX path."""
 
   def __init__(self, model_path: Path, cfg: D435Config) -> None:
     if not model_path.is_file():
@@ -206,57 +180,190 @@ class YoloBallDetector:
   ) -> tuple[FloatArray, float, float, float]:
     height, width = rgb.shape[:2]
     scale = min(self.input_width / width, self.input_height / height)
-    resized_width = max(1, int(round(width * scale)))
-    resized_height = max(1, int(round(height * scale)))
-    resized = _resize_bilinear(rgb, resized_width, resized_height)
-    pad_x = 0.5 * (self.input_width - resized_width)
-    pad_y = 0.5 * (self.input_height - resized_height)
-    left = int(math.floor(pad_x))
-    top = int(math.floor(pad_y))
-    canvas = np.full((self.input_height, self.input_width, 3), 114, dtype=np.uint8)
-    canvas[top : top + resized_height, left : left + resized_width] = resized
-    tensor = canvas.astype(np.float32).transpose(2, 0, 1)[None] / 255.0
-    return tensor, scale, float(left), float(top)
+    resized_width = max(1, int(math.floor(width * scale + 0.5)))
+    resized_height = max(1, int(math.floor(height * scale + 0.5)))
+    pad_width = self.input_width - resized_width
+    pad_height = self.input_height - resized_height
+    if self.cfg.vision_mode == "robocup":
+      pad_left = 0
+      pad_top = 0
+      pad_value = 0.0
+    else:
+      pad_left = int(math.floor(pad_width / 2.0 - 0.1 + 0.5))
+      pad_top = int(math.floor(pad_height / 2.0 - 0.1 + 0.5))
+      pad_value = 114.0
+
+    # Match the deployment's half-pixel bilinear sampler, including leaving
+    # target pixels outside the valid source interval at letterbox gray.
+    target_x = np.arange(self.input_width, dtype=np.float32)
+    target_y = np.arange(self.input_height, dtype=np.float32)
+    source_x = (target_x - pad_left + 0.5) / scale - 0.5
+    source_y = (target_y - pad_top + 0.5) / scale - 0.5
+    valid_x = (source_x >= 0.0) & (source_x <= width - 1)
+    valid_y = (source_y >= 0.0) & (source_y <= height - 1)
+    x0 = np.clip(np.floor(source_x).astype(np.int32), 0, width - 1)
+    y0 = np.clip(np.floor(source_y).astype(np.int32), 0, height - 1)
+    x1 = np.minimum(x0 + 1, width - 1)
+    y1 = np.minimum(y0 + 1, height - 1)
+    weight_x = (source_x - x0)[None, :, None]
+    weight_y = (source_y - y0)[:, None, None]
+    top = (
+      rgb[y0[:, None], x0[None, :]] * (1.0 - weight_x)
+      + rgb[y0[:, None], x1[None, :]] * weight_x
+    )
+    bottom = (
+      rgb[y1[:, None], x0[None, :]] * (1.0 - weight_x)
+      + rgb[y1[:, None], x1[None, :]] * weight_x
+    )
+    sampled = top * (1.0 - weight_y) + bottom * weight_y
+    canvas = np.full(
+      (self.input_height, self.input_width, 3), pad_value, dtype=np.float32
+    )
+    valid = valid_y[:, None] & valid_x[None, :]
+    canvas[valid] = sampled[valid]
+    tensor = canvas.transpose(2, 0, 1)[None] / 255.0
+    return tensor.astype(np.float32), scale, float(pad_left), float(pad_top)
+
+  @staticmethod
+  def _box_iou(left: FloatArray, right: FloatArray) -> float:
+    x1 = max(float(left[0]), float(right[0]))
+    y1 = max(float(left[1]), float(right[1]))
+    x2 = min(float(left[2]), float(right[2]))
+    y2 = min(float(left[3]), float(right[3]))
+    intersection = max(0.0, x2 - x1) * max(0.0, y2 - y1)
+    left_area = max(0.0, float(left[2] - left[0])) * max(0.0, float(left[3] - left[1]))
+    right_area = max(0.0, float(right[2] - right[0])) * max(
+      0.0, float(right[3] - right[1])
+    )
+    return intersection / max(left_area + right_area - intersection, 1.0e-6)
+
+  def _decode_output(
+    self,
+    output: Any,
+    image_width: int,
+    image_height: int,
+    scale: float,
+    pad_x: float,
+    pad_y: float,
+  ) -> list[tuple[FloatArray, float]]:
+    predictions = np.asarray(output, dtype=np.float32)
+    while predictions.ndim > 2 and predictions.shape[0] == 1:
+      predictions = predictions[0]
+    if predictions.ndim != 2:
+      return []
+    rows, cols = predictions.shape
+    if (rows in (6, 7, 84, 85) or rows < cols) and rows >= 6:
+      predictions = predictions.T
+      rows, cols = predictions.shape
+    if rows <= 0 or cols < 6:
+      return []
+
+    candidates: list[tuple[FloatArray, float]] = []
+    for prediction in predictions:
+      if cols in (6, 7):
+        offset = 1 if cols == 7 else 0
+        box = prediction[offset : offset + 4].copy()
+        confidence = float(prediction[offset + 4])
+        class_id = int(math.floor(float(prediction[offset + 5]) + 0.5))
+      else:
+        center_x, center_y, width, height = (float(value) for value in prediction[:4])
+        box = np.asarray(
+          (
+            center_x - 0.5 * width,
+            center_y - 0.5 * height,
+            center_x + 0.5 * width,
+            center_y + 0.5 * height,
+          ),
+          dtype=np.float32,
+        )
+        class_start = 5 if cols == 85 else 4
+        objectness = float(prediction[4]) if cols == 85 else 1.0
+        class_scores = objectness * prediction[class_start:]
+        class_id = int(np.argmax(class_scores))
+        confidence = float(class_scores[class_id])
+
+      if (
+        class_id != self.cfg.ball_class_id or confidence < self.cfg.confidence_threshold
+      ):
+        continue
+      box[[0, 2]] = (box[[0, 2]] - pad_x) / scale
+      box[[1, 3]] = (box[[1, 3]] - pad_y) / scale
+      box[[0, 2]] = np.clip(box[[0, 2]], 0.0, image_width - 1.0)
+      box[[1, 3]] = np.clip(box[[1, 3]], 0.0, image_height - 1.0)
+      if box[2] <= box[0] or box[3] <= box[1]:
+        continue
+      candidates.append((box, confidence))
+
+    candidates.sort(key=lambda item: item[1], reverse=True)
+    candidates = candidates[: self.cfg.max_nms_candidates]
+    kept: list[tuple[FloatArray, float]] = []
+    for candidate in candidates:
+      if any(
+        self._box_iou(candidate[0], previous[0]) > self.cfg.iou_threshold
+        for previous in kept
+      ):
+        continue
+      kept.append(candidate)
+      if len(kept) >= self.cfg.max_detections:
+        break
+    return kept
 
   def detect(self, rgb: npt.NDArray[np.uint8]) -> tuple[FloatArray, float] | None:
-    """Return the best ball bounding box in source pixels and its confidence."""
+    """Return the deployment-selected ball box and confidence."""
     tensor, scale, pad_x, pad_y = self._preprocess(rgb)
-    output = np.asarray(
-      self.session.run(None, {self.input_name: tensor})[0], dtype=np.float32
-    ).squeeze()
-    if output.ndim != 2:
-      raise ValueError(f"Unexpected YOLO output shape: {output.shape}")
-    if output.shape[0] < output.shape[1]:
-      output = output.T
-    if output.shape[1] < 5:
-      raise ValueError(f"Unexpected YOLO prediction shape: {output.shape}")
-
-    boxes_xywh = output[:, :4]
-    class_scores = output[:, 4:]
-    class_ids = np.argmax(class_scores, axis=1)
-    scores = class_scores[np.arange(class_scores.shape[0]), class_ids]
-    keep = (class_ids == self.cfg.ball_class_id) & (
-      scores >= self.cfg.confidence_threshold
-    )
-    if not np.any(keep):
+    detections: list[tuple[FloatArray, float]] = []
+    for output in self.session.run(None, {self.input_name: tensor}):
+      detections.extend(
+        self._decode_output(
+          output,
+          rgb.shape[1],
+          rgb.shape[0],
+          scale,
+          pad_x,
+          pad_y,
+        )
+      )
+    if not detections:
       return None
 
-    boxes_xywh = boxes_xywh[keep]
-    scores = scores[keep]
-    boxes = np.empty_like(boxes_xywh)
-    boxes[:, 0] = boxes_xywh[:, 0] - 0.5 * boxes_xywh[:, 2]
-    boxes[:, 1] = boxes_xywh[:, 1] - 0.5 * boxes_xywh[:, 3]
-    boxes[:, 2] = boxes_xywh[:, 0] + 0.5 * boxes_xywh[:, 2]
-    boxes[:, 3] = boxes_xywh[:, 1] + 0.5 * boxes_xywh[:, 3]
-    boxes[:, (0, 2)] = (boxes[:, (0, 2)] - pad_x) / scale
-    boxes[:, (1, 3)] = (boxes[:, (1, 3)] - pad_y) / scale
-    boxes[:, (0, 2)] = np.clip(boxes[:, (0, 2)], 0.0, rgb.shape[1] - 1.0)
-    boxes[:, (1, 3)] = np.clip(boxes[:, (1, 3)], 0.0, rgb.shape[0] - 1.0)
+    if self.cfg.vision_mode == "robocup":
+      return max(detections, key=lambda item: item[1])
 
-    # Class filtering leaves only football candidates. Standard NMS always keeps
-    # the highest-confidence candidate, which is the only result needed here.
-    best = int(np.argmax(scores))
-    return boxes[best], float(scores[best])
+    image_area = float(rgb.shape[0] * rgb.shape[1])
+    return max(
+      detections,
+      key=lambda item: item[1]
+      / (1.0 + 8.0 * max(float(np.prod(item[0][2:] - item[0][:2])), 1.0) / image_area),
+    )
+
+
+def project_bbox_bottom_to_ground_yaw(
+  box: npt.ArrayLike,
+  intrinsics: tuple[float, float, float, float],
+  camera_pos_w: npt.ArrayLike,
+  camera_rotation_w: npt.ArrayLike,
+  root_pos_w: npt.ArrayLike,
+  root_quat_wxyz: npt.ArrayLike,
+  *,
+  ground_height: float = 0.0,
+) -> FloatArray | None:
+  """Port RoboCup's bbox-bottom optical-ray/ground-plane intersection."""
+  x1, _, x2, y2 = (float(value) for value in np.asarray(box).reshape(4))
+  fx, fy, cx, cy = intrinsics
+  pixel_u = 0.5 * (x1 + x2)
+  ray_optical = np.asarray(((pixel_u - cx) / fx, (y2 - cy) / fy, 1.0), dtype=np.float64)
+  ray_camera = _OPTICAL_TO_CAMERA_FRAME @ ray_optical
+  ray_world = np.asarray(camera_rotation_w, dtype=np.float64).reshape(3, 3) @ ray_camera
+  camera_pos = np.asarray(camera_pos_w, dtype=np.float64)
+  if abs(float(ray_world[2])) < 1.0e-8:
+    return None
+  scale = (ground_height - float(camera_pos[2])) / float(ray_world[2])
+  if not math.isfinite(scale) or scale <= 0.0:
+    return None
+  point_world = camera_pos + scale * ray_world
+  return world_to_yaw(
+    point_world - np.asarray(root_pos_w, dtype=np.float64), root_quat_wxyz
+  )
 
 
 class D435BallObserver:
@@ -274,6 +381,11 @@ class D435BallObserver:
     self.cfg = cfg
     self.root_body_id = root_body_id
     self.foot_body_ids = foot_body_ids
+    self.camera_id = mujoco.mj_name2id(
+      model, mujoco.mjtObj.mjOBJ_CAMERA, cfg.camera_name
+    )
+    if self.camera_id < 0:
+      raise ValueError(f"MuJoCo model is missing camera {cfg.camera_name!r}.")
     self.renderer = mujoco.Renderer(model, height=cfg.height, width=cfg.width)
     self.scene_option = mujoco.MjvOption()
     self.detector = YoloBallDetector(yolo_model, cfg)
@@ -297,6 +409,10 @@ class D435BallObserver:
       data, camera=self.cfg.camera_name, scene_option=self.scene_option
     )
     rgb = np.asarray(self.renderer.render(), dtype=np.uint8).copy()
+    if self.cfg.vision_mode == "robocup":
+      self.last_rgb = rgb
+      self.last_depth = None
+      return rgb, np.empty((0, 0), dtype=np.float32)
     self.renderer.enable_depth_rendering()
     self.renderer.update_scene(
       data, camera=self.cfg.camera_name, scene_option=self.scene_option
@@ -310,20 +426,36 @@ class D435BallObserver:
   def _depth_at_box(
     self, depth: FloatArray, box: FloatArray
   ) -> tuple[int, int, float] | None:
-    center_u = int(round(0.5 * (float(box[0]) + float(box[2]))))
-    center_v = int(round(0.5 * (float(box[1]) + float(box[3]))))
+    center_u = int(math.floor(0.5 * (float(box[0]) + float(box[2])) + 0.5))
+    center_v = int(math.floor(0.5 * (float(box[1]) + float(box[3])) + 0.5))
     half = max(1, self.cfg.depth_roi_px)
     u1, u2 = max(0, center_u - half), min(depth.shape[1], center_u + half + 1)
     v1, v2 = max(0, center_v - half), min(depth.shape[0], center_v + half + 1)
-    values = depth[v1:v2, u1:u2]
-    values = values[
+    distance = self._median_valid_depth(depth[v1:v2, u1:u2])
+    if distance is None:
+      # The synchronized deployment falls back from the center ROI to the
+      # complete aligned RGB bounding box.
+      x1 = max(0, int(math.floor(float(box[0]))))
+      y1 = max(0, int(math.floor(float(box[1]))))
+      x2 = min(depth.shape[1], int(math.ceil(float(box[2]))))
+      y2 = min(depth.shape[0], int(math.ceil(float(box[3]))))
+      distance = self._median_valid_depth(depth[y1:y2, x1:x2])
+    if distance is None:
+      return None
+    return center_u, center_v, distance
+
+  def _median_valid_depth(self, values: FloatArray) -> float | None:
+    valid = values[
       np.isfinite(values)
       & (values >= self.cfg.min_depth)
       & (values <= self.cfg.max_depth)
-    ]
-    if values.size == 0:
+    ].reshape(-1)
+    if valid.size == 0:
       return None
-    return center_u, center_v, float(np.median(values))
+    # std::nth_element in deployment selects the upper middle sample rather
+    # than averaging the two middle values for an even-sized region.
+    middle = valid.size // 2
+    return float(np.partition(valid, middle)[middle])
 
   def observe(self, data: mujoco.MjData) -> tuple[FloatArray, FloatArray]:
     rgb, depth = self._render(data)
@@ -334,18 +466,39 @@ class D435BallObserver:
 
     if detection is not None:
       box, _ = detection
-      depth_sample = self._depth_at_box(depth, box)
-      if depth_sample is not None:
-        u, v, distance = depth_sample
-        fx, fy, cx, cy = self.cfg.intrinsics
-        point_optical = np.asarray(
-          ((u - cx) * distance / fx, (v - cy) * distance / fy, distance)
+      camera_rotation_w = data.cam_xmat[self.camera_id].reshape(3, 3)
+      if self.cfg.vision_mode == "robocup":
+        ball_pos_yaw = project_bbox_bottom_to_ground_yaw(
+          box,
+          self.cfg.intrinsics,
+          data.cam_xpos[self.camera_id],
+          camera_rotation_w,
+          root_pos,
+          root_quat,
+          ground_height=self.cfg.ground_height,
         )
-        ray_norm = np.linalg.norm(point_optical)
-        if ray_norm > 1e-6:
-          point_optical += point_optical / ray_norm * self.cfg.ball_radius
-        self.last_ball_pos_yaw = camera_point_to_yaw(point_optical, root_quat, self.cfg)
-        self.last_detection_time = float(data.time)
+        if ball_pos_yaw is not None:
+          self.last_ball_pos_yaw = ball_pos_yaw
+          self.last_detection_time = float(data.time)
+      else:
+        depth_sample = self._depth_at_box(depth, box)
+        if depth_sample is not None:
+          u, v, distance = depth_sample
+          fx, fy, cx, cy = self.cfg.intrinsics
+          point_optical = np.asarray(
+            ((u - cx) * distance / fx, (v - cy) * distance / fy, distance)
+          )
+          ray_norm = np.linalg.norm(point_optical)
+          if ray_norm > 1e-6:
+            point_optical += point_optical / ray_norm * self.cfg.ball_radius
+          self.last_ball_pos_yaw = camera_point_to_yaw(
+            point_optical,
+            data.cam_xpos[self.camera_id],
+            camera_rotation_w,
+            root_pos,
+            root_quat,
+          )
+          self.last_detection_time = float(data.time)
 
     if (
       self.last_ball_pos_yaw is None
@@ -405,7 +558,7 @@ def make_ball_observer(
   cfg: D435Config,
 ) -> Any:
   """Build either the deployment-like D435 observer or a truth debug observer."""
-  if source == "d435":
+  if source in {"d435", "robocup"}:
     return D435BallObserver(
       model,
       root_body_id=root_body_id,

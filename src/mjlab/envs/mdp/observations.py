@@ -72,6 +72,15 @@ def joint_vel_rel(
   return asset.data.joint_vel[:, jnt_ids] - default_joint_vel[:, jnt_ids]
 
 
+def joint_effort(
+  env: ManagerBasedRlEnv,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Applied actuator effort in the requested joint order."""
+  asset: Entity = env.scene[asset_cfg.name]
+  return asset.data.qfrc_actuator[:, asset_cfg.joint_ids]
+
+
 ##
 # Actions.
 ##

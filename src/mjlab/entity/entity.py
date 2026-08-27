@@ -527,6 +527,7 @@ class Entity:
   def find_joints_by_actuator_names(
     self,
     actuator_name_keys: str | Sequence[str],
+    preserve_order: bool = False,
   ) -> tuple[list[int], list[str]]:
     # Collect all actuated joint names.
     actuated_joint_names_set = set()
@@ -540,7 +541,9 @@ class Entity:
 
     # Find joints matching the pattern within actuated joints.
     _, matched_joint_names = self.find_joints(
-      actuator_name_keys, joint_subset=actuated_in_natural_order, preserve_order=False
+      actuator_name_keys,
+      joint_subset=actuated_in_natural_order,
+      preserve_order=preserve_order,
     )
 
     # Map joint names back to entity-local indices (indices into self.joint_names).

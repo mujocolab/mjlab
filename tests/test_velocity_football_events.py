@@ -6,19 +6,32 @@ from typing import Any
 
 import torch
 
-from mjlab.tasks.velocity_football.mdp.events import reset_football
+from mjlab.tasks.velocity_football.mdp.events import (
+  kick_football_velocity,
+  reset_football,
+)
 
 
 class _FakeEntity:
   def __init__(self, default_root_state: torch.Tensor) -> None:
-    self.data = SimpleNamespace(default_root_state=default_root_state)
+    self.data = SimpleNamespace(
+      default_root_state=default_root_state,
+      root_link_vel_w=torch.zeros(default_root_state.shape[0], 6),
+    )
     self.written_state: torch.Tensor | None = None
     self.written_env_ids: torch.Tensor | None = None
+    self.written_velocity: torch.Tensor | None = None
 
   def write_root_state_to_sim(
     self, root_state: torch.Tensor, env_ids: torch.Tensor
   ) -> None:
     self.written_state = root_state.clone()
+    self.written_env_ids = env_ids.clone()
+
+  def write_root_link_velocity_to_sim(
+    self, velocity: torch.Tensor, env_ids: torch.Tensor
+  ) -> None:
+    self.written_velocity = velocity.clone()
     self.written_env_ids = env_ids.clone()
 
 
@@ -120,3 +133,38 @@ def test_reset_football_uses_reference_randomization_ranges() -> None:
   lateral = -sin_yaw * relative_xy_w[:, 0] + cos_yaw * relative_xy_w[:, 1]
   assert torch.all((forward >= 0.1) & (forward <= 0.5))
   assert torch.all((lateral >= -0.15) & (lateral <= 0.15))
+
+
+def test_reset_football_can_make_most_conservative_case_stationary() -> None:
+  env = _make_env()
+
+  reset_football(
+    env,
+    env_ids=None,
+    ball_velocity_range=(-0.4, 0.4),
+    stationary_ball_probability=1.0,
+  )
+
+  ball_state = env.scene["ball"].written_state
+  assert ball_state is not None
+  torch.testing.assert_close(ball_state[:, 7:9], torch.zeros(2, 2))
+
+
+def test_kick_football_velocity_adds_only_planar_delta() -> None:
+  env = _make_env()
+
+  kick_football_velocity(
+    env,
+    env_ids=torch.tensor([0, 1]),
+    probability=1.0,
+    velocity_delta_range=(0.4, 0.4),
+  )
+
+  ball = env.scene["ball"]
+  assert ball.written_velocity is not None
+  torch.testing.assert_close(
+    ball.written_velocity,
+    torch.tensor(
+      [[0.4, 0.4, 0.0, 0.0, 0.0, 0.0], [0.4, 0.4, 0.0, 0.0, 0.0, 0.0]]
+    ),
+  )
