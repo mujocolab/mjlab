@@ -5,6 +5,11 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Changed
+^^^^^^^
+
+- Bumped ``rsl-rl-lib`` from 5.4.2 to 5.5.0. 
+
 Version 1.6.0 (August 8, 2026)
 ------------------------------
 
