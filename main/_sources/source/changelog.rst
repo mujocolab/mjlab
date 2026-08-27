@@ -5,6 +5,13 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Changed
+^^^^^^^
+
+- Bumped ``rsl-rl-lib`` from 5.4.2 to 5.5.0. This update removes the ``logger_type``
+  attribute of the ``rsl_rl.utils.Logger``, so code that previously checked
+  ``logger.logger_type`` must instead check the type of ``logger.writer``.
+
 Version 1.6.0 (August 8, 2026)
 ------------------------------
 
