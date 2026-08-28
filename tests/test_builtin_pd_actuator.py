@@ -466,3 +466,43 @@ def test_dr_effort_limits_writes_tendon_actfrcrange(device):
     m.tendon_actfrcrange[1, tendon_ids],
     torch.tensor([[-50.0, 50.0]] * len(tendon_ids), device=device),
   )
+
+
+def test_dr_actuator_efficiency_scales_gains_and_limit_together(device):
+  env = _scene_env(device)
+  robot = env.scene["robot"]
+  act = robot.actuators[0]
+  assert isinstance(act, BuiltinPdActuator)
+  n = act.num_targets
+  pos_ids, vel_ids = act.global_ctrl_ids[:n], act.global_ctrl_ids[n:]
+  env.sim.expand_model_fields(
+    ("actuator_gainprm", "actuator_biasprm", "jnt_actfrcrange", "tendon_actfrcrange")
+  )
+
+  dr.actuator_efficiency(
+    env,
+    env_ids=torch.tensor([0], device=device),
+    efficiency_range=(0.8, 0.8),
+    asset_cfg=SceneEntityCfg("robot"),
+  )
+
+  m = env.sim.model
+  assert torch.allclose(
+    m.actuator_gainprm[0, pos_ids, 0], torch.full((n,), 0.8 * KP, device=device)
+  )
+  assert torch.allclose(
+    m.actuator_biasprm[0, pos_ids, 1], torch.full((n,), -0.8 * KP, device=device)
+  )
+  assert torch.allclose(
+    m.actuator_gainprm[0, vel_ids, 0], torch.full((n,), 0.8 * KD, device=device)
+  )
+  assert torch.allclose(
+    m.actuator_biasprm[0, vel_ids, 2], torch.full((n,), -0.8 * KD, device=device)
+  )
+  joint_ids = robot.indexing.joint_ids[act.target_ids]
+  assert torch.allclose(
+    m.jnt_actfrcrange[0, joint_ids],
+    torch.tensor([[-40.0, 40.0]] * len(joint_ids), device=device),
+  )
+  # Env 1 untouched.
+  assert torch.allclose(m.actuator_gainprm[1, pos_ids, 0], torch.tensor(KP))

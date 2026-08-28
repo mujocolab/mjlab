@@ -5,6 +5,12 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- Added ``dr.actuator_efficiency``, which scales PD gains and effort limits
+  together by a shared gearbox-efficiency factor.
+
 Changed
 ^^^^^^^
 

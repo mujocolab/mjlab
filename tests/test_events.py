@@ -487,6 +487,94 @@ def test_effort_limits_accepts_operation_object(device):
   assert torch.allclose(ideal_str.force_limit, ideal_obj.force_limit)
 
 
+def _make_efficiency_env(device, num_envs=2):
+  """_make_pd_env plus effort-limit state, with the ideal mock upgraded to DcMotor."""
+  env, ideal = _make_pd_env(device, num_envs)
+
+  dc = Mock(spec=actuator.DcMotorActuator)
+  attrs = ("ctrl_ids", "global_ctrl_ids", "stiffness", "damping")
+  for a in (*attrs, "default_stiffness", "default_damping"):
+    setattr(dc, a, getattr(ideal, a))
+  dc.force_limit = torch.tensor([[50.0, 50.0]] * num_envs, device=device)
+  dc.default_force_limit = dc.force_limit.clone()
+  dc.saturation_effort = torch.tensor([[200.0, 200.0]] * num_envs, device=device)
+  dc.cfg = Mock(saturation_effort=200.0)
+  dc.set_gains = actuator.IdealPdActuator.set_gains.__get__(dc)
+  dc.set_effort_limit = actuator.IdealPdActuator.set_effort_limit.__get__(dc)
+  env.scene["robot"].actuators[2] = dc
+
+  env.sim.model.actuator_forcerange = torch.zeros((num_envs, 6, 2), device=device)
+  env.sim.model.actuator_forcerange[:, :, 0] = -100.0
+  env.sim.model.actuator_forcerange[:, :, 1] = 100.0
+  defaults = {
+    "actuator_gainprm": env.sim.model.actuator_gainprm[0].clone(),
+    "actuator_biasprm": env.sim.model.actuator_biasprm[0].clone(),
+    "actuator_forcerange": env.sim.model.actuator_forcerange[0].clone(),
+  }
+  env.sim.get_default_field = lambda f: defaults[f]
+  return env, dc
+
+
+def test_actuator_efficiency(device):
+  """One eta scales kp, kd, effort limit, and stall torque together."""
+  env, dc = _make_efficiency_env(device)
+
+  dr.actuator_efficiency(
+    env,
+    torch.tensor([0], device=device),
+    efficiency_range=(0.8, 0.8),
+    asset_cfg=SceneEntityCfg("robot"),
+  )
+
+  def full(n, v):
+    return torch.full((n,), v, device=device)
+
+  m = env.sim.model
+  ids = [0, 1, 2, 3]  # Builtin + Xml.
+  assert torch.allclose(m.actuator_gainprm[0, ids, 0], full(4, 40.0))
+  assert torch.allclose(m.actuator_biasprm[0, ids, 1], full(4, -40.0))
+  assert torch.allclose(m.actuator_biasprm[0, ids, 2], full(4, -4.0))
+  assert torch.allclose(m.actuator_forcerange[0, ids, 1], full(4, 80.0))
+  assert torch.allclose(dc.stiffness[0], full(2, 80.0))
+  assert torch.allclose(dc.damping[0], full(2, 8.0))
+  assert torch.allclose(dc.force_limit[0], full(2, 40.0))
+  assert torch.allclose(dc.saturation_effort[0], full(2, 160.0))
+  # Env 1 untouched.
+  assert torch.allclose(m.actuator_gainprm[1, ids, 0], full(4, 50.0))
+  assert torch.allclose(dc.stiffness[1], full(2, 100.0))
+
+
+def test_actuator_efficiency_correlated_samples(device):
+  """kp, kd, and the limit share a single sample per target."""
+  env, _ = _make_efficiency_env(device)
+
+  torch.manual_seed(42)
+  dr.actuator_efficiency(
+    env, None, efficiency_range=(0.5, 1.0), asset_cfg=SceneEntityCfg("robot")
+  )
+
+  m = env.sim.model
+  eta = m.actuator_gainprm[:, :4, 0] / 50.0
+  # Guard against a no-op passing vacuously (eta would be all ones).
+  assert ((eta >= 0.5) & (eta < 1.0)).all()
+  assert torch.allclose(m.actuator_biasprm[:, :4, 2], -5.0 * eta)
+  assert torch.allclose(m.actuator_forcerange[:, :4, 1], 100.0 * eta)
+  assert not torch.allclose(eta[0], eta[1])
+
+
+def test_actuator_efficiency_no_accumulation(device):
+  """Repeated calls scale from defaults, not the current values."""
+  env, dc = _make_efficiency_env(device)
+
+  for _ in range(3):
+    dr.actuator_efficiency(
+      env, None, efficiency_range=(0.8, 0.8), asset_cfg=SceneEntityCfg("robot")
+    )
+
+  assert abs(env.sim.model.actuator_gainprm[0, 0, 0].item() - 40.0) < 1e-5
+  assert abs(dc.force_limit[0, 0].item() - 40.0) < 1e-5
+
+
 def test_pd_gains_rejects_unsupported_operation(device):
   """Operations other than scale/abs raise ValueError."""
   env, _ = _make_pd_env(device)

@@ -10,6 +10,7 @@ from mjlab.actuator import (
   BuiltinDcMotorActuator,
   BuiltinPdActuator,
   BuiltinPositionActuator,
+  DcMotorActuator,
   IdealPdActuator,
 )
 from mjlab.actuator.actuator import TransmissionType
@@ -304,4 +305,103 @@ def effort_limits(
         f"effort_limits only supports BuiltinPositionActuator, BuiltinPdActuator, "
         f"BuiltinDcMotorActuator, XmlActuator (position), and IdealPdActuator, "
         f"got {type(actuator).__name__}"
+      )
+
+
+@requires_model_fields(
+  "actuator_gainprm",
+  "actuator_biasprm",
+  "actuator_forcerange",
+  "jnt_actfrcrange",
+  "tendon_actfrcrange",
+)
+def actuator_efficiency(
+  env: ManagerBasedRlEnv,
+  env_ids: torch.Tensor | None,
+  efficiency_range: tuple[float, float],
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+  distribution: Literal["uniform", "log_uniform"] = "uniform",
+) -> None:
+  """Scale PD gains and effort limits together by a shared efficiency factor.
+
+  Models gearbox efficiency: delivered torque is ``eta * commanded torque``,
+  saturating at ``eta * effort_limit``. For a PD actuator this is exactly
+  equivalent to scaling kp, kd, and the effort limit by the same eta, so one
+  eta is sampled per target and applied to all three — unlike ``pd_gains`` +
+  ``effort_limits``, which sample independently. Always scales from
+  compile-time defaults; if those events also target the same actuators, the
+  last one to run overwrites the shared fields.
+  """
+  asset: Entity = env.scene[asset_cfg.name]
+
+  if env_ids is None:
+    env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
+  else:
+    env_ids = env_ids.to(env.device, dtype=torch.int)
+
+  if isinstance(asset_cfg.actuator_ids, list):
+    actuators = [asset.actuators[i] for i in asset_cfg.actuator_ids]
+  elif isinstance(asset_cfg.actuator_ids, slice):
+    actuators = asset.actuators[asset_cfg.actuator_ids]
+  else:
+    actuators = [asset.actuators[asset_cfg.actuator_ids]]
+
+  def scale(field: str, ids: torch.Tensor, col: int, eta: torch.Tensor) -> None:
+    default = env.sim.get_default_field(field)
+    getattr(env.sim.model, field)[env_ids[:, None], ids, col] = default[ids, col] * eta
+
+  dist = resolve_distribution(distribution)
+  lo = torch.tensor(efficiency_range[0], device=env.device)
+  hi = torch.tensor(efficiency_range[1], device=env.device)
+
+  for actuator in actuators:
+    ctrl_ids = actuator.global_ctrl_ids
+    n = (
+      actuator.num_targets if isinstance(actuator, BuiltinPdActuator) else len(ctrl_ids)
+    )
+    eta = dist.sample(lo, hi, (len(env_ids), n), env.device)
+
+    if isinstance(actuator, BuiltinPositionActuator) or (
+      isinstance(actuator, XmlActuator) and actuator.command_field == "position"
+    ):
+      scale("actuator_gainprm", ctrl_ids, 0, eta)
+      scale("actuator_biasprm", ctrl_ids, 1, eta)
+      scale("actuator_biasprm", ctrl_ids, 2, eta)
+      scale("actuator_forcerange", ctrl_ids, 0, eta)
+      scale("actuator_forcerange", ctrl_ids, 1, eta)
+
+    elif isinstance(actuator, BuiltinPdActuator):
+      # ctrl_ids is [pos_0..pos_{N-1}, vel_0..vel_{N-1}]; one eta scales kp on
+      # the position half, kd on the velocity half, and the joint/tendon
+      # sum-clamp carrying the effort limit.
+      scale("actuator_gainprm", ctrl_ids, 0, eta.repeat(1, 2))
+      scale("actuator_biasprm", ctrl_ids[:n], 1, eta)
+      scale("actuator_biasprm", ctrl_ids[n:], 2, eta)
+      joint = actuator.transmission_type == TransmissionType.JOINT
+      indexing = asset.indexing.joint_ids if joint else asset.indexing.tendon_ids
+      field = "jnt_actfrcrange" if joint else "tendon_actfrcrange"
+      scale(field, indexing[actuator.target_ids], 0, eta)
+      scale(field, indexing[actuator.target_ids], 1, eta)
+
+    elif isinstance(actuator, IdealPdActuator):
+      assert actuator.default_stiffness is not None
+      assert actuator.default_damping is not None
+      assert actuator.default_force_limit is not None
+      actuator.set_gains(
+        env_ids,
+        kp=actuator.default_stiffness[env_ids] * eta,
+        kd=actuator.default_damping[env_ids] * eta,
+      )
+      actuator.set_effort_limit(env_ids, actuator.default_force_limit[env_ids] * eta)
+      if isinstance(actuator, DcMotorActuator):
+        # Stall torque shrinks with eta too; velocity_limit (no-load speed) is
+        # kinematic and stays untouched.
+        assert actuator.saturation_effort is not None
+        actuator.saturation_effort[env_ids] = actuator.cfg.saturation_effort * eta
+
+    else:
+      raise TypeError(
+        f"actuator_efficiency only supports BuiltinPositionActuator, "
+        f"BuiltinPdActuator, XmlActuator (position), and IdealPdActuator "
+        f"(including DcMotorActuator), got {type(actuator).__name__}"
       )
