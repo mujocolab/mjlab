@@ -17,6 +17,9 @@ Fixed
 
 - Capped ``wandb`` below 0.29, which removed the ``start_method`` setting still passed
   by ``rsl-rl-lib`` and crashed training runs launched with ``--logger wandb``.
+- ``distribution="gaussian"`` domain randomization now draws an independent value per
+  environment. ``sample_gaussian`` ignored its ``size`` argument when ``mean``/``std``
+  were tensors, so every environment received the same sample :issue:`1168`.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------
