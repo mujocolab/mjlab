@@ -920,16 +920,23 @@ bounds:
     truncated_normal = dr.Distribution(
         name="truncated_normal",
         sample=lambda lo, hi, shape, device: torch.clamp(
-            torch.normal(
-                mean=(lo + hi) / 2,
-                std=(hi - lo) / 4,  # 95% of samples within bounds
-            ).expand(shape),
+            (lo + hi) / 2
+            + (hi - lo) / 4  # 95% of samples within bounds
+            * torch.randn(shape, device=device),
             min=lo,
             max=hi,
         ),
     )
 
     params={"distribution": truncated_normal, "ranges": (0.3, 1.2)}
+
+.. warning::
+
+   ``sample`` receives ``lower``/``upper`` as tensors, so the sampled tensor must be
+   built from ``shape`` (for example via ``torch.randn(shape, device=device)``). Passing
+   tensor bounds straight to a sampler such as ``torch.normal`` yields a tensor shaped
+   like the bounds, not like ``shape``, which silently gives every environment the same
+   value.
 
 Operation
 ^^^^^^^^^

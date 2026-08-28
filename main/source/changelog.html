@@ -564,6 +564,9 @@ attribute of the <code class="docutils literal notranslate"><span class="pre">rs
 <ul class="simple">
 <li><p>Capped <code class="docutils literal notranslate"><span class="pre">wandb</span></code> below 0.29, which removed the <code class="docutils literal notranslate"><span class="pre">start_method</span></code> setting still passed
 by <code class="docutils literal notranslate"><span class="pre">rsl-rl-lib</span></code> and crashed training runs launched with <code class="docutils literal notranslate"><span class="pre">--logger</span> <span class="pre">wandb</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">distribution=&quot;gaussian&quot;</span></code> domain randomization now draws an independent value per
+environment. <code class="docutils literal notranslate"><span class="pre">sample_gaussian</span></code> ignored its <code class="docutils literal notranslate"><span class="pre">size</span></code> argument when <code class="docutils literal notranslate"><span class="pre">mean</span></code>/<code class="docutils literal notranslate"><span class="pre">std</span></code>
+were tensors, so every environment received the same sample <a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/1168">#1168</a>.</p></li>
 </ul>
 </section>
 </section>

@@ -1622,10 +1622,9 @@ bounds:</p>
 <span class="n">truncated_normal</span> <span class="o">=</span> <span class="n">dr</span><span class="o">.</span><span class="n">Distribution</span><span class="p">(</span>
     <span class="n">name</span><span class="o">=</span><span class="s2">&quot;truncated_normal&quot;</span><span class="p">,</span>
     <span class="n">sample</span><span class="o">=</span><span class="k">lambda</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
-            <span class="n">mean</span><span class="o">=</span><span class="p">(</span><span class="n">lo</span> <span class="o">+</span> <span class="n">hi</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
-            <span class="n">std</span><span class="o">=</span><span class="p">(</span><span class="n">hi</span> <span class="o">-</span> <span class="n">lo</span><span class="p">)</span> <span class="o">/</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># 95% of samples within bounds</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">lo</span> <span class="o">+</span> <span class="n">hi</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="o">+</span> <span class="p">(</span><span class="n">hi</span> <span class="o">-</span> <span class="n">lo</span><span class="p">)</span> <span class="o">/</span> <span class="mi">4</span>  <span class="c1"># 95% of samples within bounds</span>
+        <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
         <span class="nb">min</span><span class="o">=</span><span class="n">lo</span><span class="p">,</span>
         <span class="nb">max</span><span class="o">=</span><span class="n">hi</span><span class="p">,</span>
     <span class="p">),</span>
@@ -1633,6 +1632,14 @@ bounds:</p>
 
 <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;distribution&quot;</span><span class="p">:</span> <span class="n">truncated_normal</span><span class="p">,</span> <span class="s2">&quot;ranges&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">)}</span>
 </pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><code class="docutils literal notranslate"><span class="pre">sample</span></code> receives <code class="docutils literal notranslate"><span class="pre">lower</span></code>/<code class="docutils literal notranslate"><span class="pre">upper</span></code> as tensors, so the sampled tensor must be
+built from <code class="docutils literal notranslate"><span class="pre">shape</span></code> (for example via <code class="docutils literal notranslate"><span class="pre">torch.randn(shape,</span> <span class="pre">device=device)</span></code>). Passing
+tensor bounds straight to a sampler such as <code class="docutils literal notranslate"><span class="pre">torch.normal</span></code> yields a tensor shaped
+like the bounds, not like <code class="docutils literal notranslate"><span class="pre">shape</span></code>, which silently gives every environment the same
+value.</p>
 </div>
 </section>
 <section id="operation">
