@@ -1745,7 +1745,7 @@ requires-dist = [
     { name = "trimesh", specifier = ">=4.8.3" },
     { name = "tyro", specifier = ">=1.0.1" },
     { name = "viser", specifier = ">=1.0.27" },
-    { name = "wandb", specifier = ">=0.22.3" },
+    { name = "wandb", specifier = ">=0.22.3,<0.29" },
     { name = "warp-lang", marker = "sys_platform != 'darwin'", specifier = ">=1.14.0", index = "https://pypi.nvidia.com/" },
     { name = "warp-lang", marker = "sys_platform == 'darwin'", specifier = ">=1.14.0" },
 ]
