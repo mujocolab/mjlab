@@ -12,6 +12,12 @@ Changed
   attribute of the ``rsl_rl.utils.Logger``, so code that previously checked
   ``logger.logger_type`` must instead check the type of ``logger.writer``.
 
+Fixed
+^^^^^
+
+- Capped ``wandb`` below 0.29, which removed the ``start_method`` setting still passed
+  by ``rsl-rl-lib`` and crashed training runs launched with ``--logger wandb``.
+
 Version 1.6.0 (August 8, 2026)
 ------------------------------
 
