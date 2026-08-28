@@ -214,9 +214,10 @@ def test_log_uniform_distribution(device):
 
 
 def test_gaussian_distribution(device):
-  """Gaussian: mean/std interpretation, values cluster around mean."""
+  """Gaussian: mean/std interpretation, every env gets an independent draw."""
   torch.manual_seed(42)
-  env = create_test_env(device, num_envs=128)
+  num_envs = 128
+  env = create_test_env(device, num_envs=num_envs)
 
   mean, std = 0.5, 0.05
   dr.geom_friction(
@@ -230,7 +231,52 @@ def test_gaussian_distribution(device):
   )
 
   vals = env.sim.model.geom_friction[:, env.scene["robot"].indexing.geom_ids[0], 0]
+  # Exact float32 collisions between independent draws are possible, so require most
+  # values to differ, not all.
+  assert len(torch.unique(vals)) > num_envs // 2
   assert abs(vals.mean().item() - mean) < 0.05
+  # Rejects a differently-shaped distribution (uniform here has std ~0.014) while
+  # clearing the worst deviation over 50k seeds on CPU and CUDA (0.017).
+  assert abs(vals.std().item() - std) < 0.025
+
+
+def test_gaussian_two_dim_field_and_env_subset(device):
+  """Gaussian on a 2D field: only the selected envs change, and they differ."""
+  torch.manual_seed(42)
+  env = create_test_env(device, num_envs=32)
+  dof_adr = env.scene["robot"].indexing.joint_v_adr
+
+  before = env.sim.model.dof_damping[:, dof_adr].clone()
+  dr.joint_damping(
+    env,
+    env_ids=torch.arange(0, 32, 2, device=device),
+    ranges=(5.0, 0.5),
+    operation="abs",
+    distribution="gaussian",
+    asset_cfg=SceneEntityCfg("robot", joint_names=(".*",)),
+  )
+  after = env.sim.model.dof_damping[:, dof_adr]
+
+  assert torch.equal(after[1::2], before[1::2])
+  assert len(torch.unique(after[::2])) > after[::2].numel() // 2
+
+
+def test_gaussian_quat_field(device):
+  """Gaussian on a quat field: the 0-dim angle bounds still sample per env."""
+  torch.manual_seed(42)
+  num_envs = 32
+  env = create_test_env(device, num_envs=num_envs, expand_fields=("body_quat",))
+
+  dr.body_quat(
+    env,
+    env_ids=None,
+    roll_range=(0.0, 0.2),
+    distribution="gaussian",
+    asset_cfg=SceneEntityCfg("robot", body_names=("base",)),
+  )
+
+  quats = env.sim.model.body_quat[:, env.scene["robot"].indexing.body_ids[0]]
+  assert len(torch.unique(quats, dim=0)) > num_envs // 2
 
 
 # Axes.
