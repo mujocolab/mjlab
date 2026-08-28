@@ -261,6 +261,24 @@ def test_gaussian_two_dim_field_and_env_subset(device):
   assert len(torch.unique(after[::2])) > after[::2].numel() // 2
 
 
+def test_gaussian_quat_field(device):
+  """Gaussian on a quat field: the 0-dim angle bounds still sample per env."""
+  torch.manual_seed(42)
+  num_envs = 32
+  env = create_test_env(device, num_envs=num_envs, expand_fields=("body_quat",))
+
+  dr.body_quat(
+    env,
+    env_ids=None,
+    roll_range=(0.0, 0.2),
+    distribution="gaussian",
+    asset_cfg=SceneEntityCfg("robot", body_names=("base",)),
+  )
+
+  quats = env.sim.model.body_quat[:, env.scene["robot"].indexing.body_ids[0]]
+  assert len(torch.unique(quats, dim=0)) > num_envs // 2
+
+
 # Axes.
 
 
