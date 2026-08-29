@@ -573,6 +573,17 @@ Fixed
   list. No in-tree caller currently invokes this method, so the bug was
   latent.
 
+Added
+^^^^^
+
+- The ``play`` CLI now supports loading the ``env.yaml`` via the new
+  ``--env-yaml`` argument, which applies the same observation config
+  loading logic as ``train``. This allows users to run the play viewer
+  with the same observation configuration used during training. When
+  ``--env-yaml`` is not provided, the play falls back to find the
+  ``env.yaml`` from the checkpoint directory or from the W&B run
+  config (:issue:`901`).
+
 Version 1.3.0 (April 14, 2026)
 ------------------------------
 
