@@ -15,6 +15,10 @@ Changed
 Fixed
 ^^^^^
 
+- ``FlatPatchSamplingCfg(patch_radius=0)`` no longer collapses every patch to
+  the sub-terrain center. The edge-exclusion mask used negative-zero slicing
+  (``arr[-0:]`` is ``arr[0:]``), which cleared the whole valid mask and left
+  the center fallback as the only sampled point.
 - Capped ``wandb`` below 0.29, which removed the ``start_method`` setting still passed
   by ``rsl-rl-lib`` and crashed training runs launched with ``--logger wandb``.
 - ``distribution="gaussian"`` domain randomization now draws an independent value per
