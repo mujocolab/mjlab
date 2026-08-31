@@ -20,7 +20,8 @@ class FlatPatchSamplingCfg:
   num_patches: int = 10
   """Number of flat patches to sample per sub-terrain."""
   patch_radius: float = 0.5
-  """Radius of the circular footprint used to test flatness, in meters."""
+  """Radius of the circular footprint used to test flatness, in meters. ``0``
+  tests a single pixel, which accepts every location."""
   max_height_diff: float = 0.05
   """Maximum allowed height variation within the patch footprint, in meters."""
   x_range: tuple[float, float] = (-1e6, 1e6)

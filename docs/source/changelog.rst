@@ -20,6 +20,9 @@ Fixed
 - ``distribution="gaussian"`` domain randomization now draws an independent value per
   environment. ``sample_gaussian`` ignored its ``size`` argument when ``mean``/``std``
   were tensors, so every environment received the same sample :issue:`1168`.
+- ``FlatPatchSamplingCfg(patch_radius=0)`` no longer collapses every patch to the
+  sub-terrain center. The edge-exclusion mask sliced ``arr[-0:]``, which is
+  ``arr[0:]``, so it cleared the entire valid mask :issue:`1171`.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------

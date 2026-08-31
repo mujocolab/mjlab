@@ -74,6 +74,19 @@ def test_fallback_when_no_valid_patches(rng: np.random.Generator):
   np.testing.assert_allclose(patches[:, 1], center_y)
 
 
+def test_zero_patch_radius(rng: np.random.Generator):
+  """patch_radius=0 excludes no edge pixels, so every pixel stays valid."""
+  heights = np.zeros((4, 4), dtype=np.float64)
+  cfg = FlatPatchSamplingCfg(num_patches=16, patch_radius=0.0, max_height_diff=0.1)
+  patches = find_flat_patches_from_heightfield(
+    heights=heights, horizontal_scale=0.1, z_offset=0.0, cfg=cfg, rng=rng
+  )
+  # All 16 pixels are valid, so the draw covers the grid exactly.
+  assert len(np.unique(patches[:, :2], axis=0)) == 16
+  np.testing.assert_allclose(np.unique(patches[:, 0]), [0.0, 0.1, 0.2, 0.3])
+  np.testing.assert_allclose(np.unique(patches[:, 1]), [0.0, 0.1, 0.2, 0.3])
+
+
 def test_patches_respect_edge_margin(rng: np.random.Generator):
   """No patch center should be within patch_radius of the heightfield edge."""
   heights = np.zeros((80, 80), dtype=np.float64)
