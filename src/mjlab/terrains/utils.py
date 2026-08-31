@@ -67,14 +67,12 @@ def find_flat_patches_from_heightfield(
   valid_mask = (max_h - min_h) <= cfg.max_height_diff
 
   # Exclude pixels whose footprint would extend outside the array. This
-  # ensures the full patch circle lies within the heightfield bounds.
-  # Guard against radius_pixels == 0: numpy's arr[-0:] is arr[0:], which
-  # would wipe the entire mask instead of excluding nothing.
-  if radius_pixels > 0:
-    valid_mask[:radius_pixels, :] = False
-    valid_mask[-radius_pixels:, :] = False
-    valid_mask[:, :radius_pixels] = False
-    valid_mask[:, -radius_pixels:] = False
+  # ensures the full patch circle lies within the heightfield bounds. Far edges
+  # index from num_rows/num_cols, not from -radius_pixels: arr[-0:] is arr[0:].
+  valid_mask[:radius_pixels, :] = False
+  valid_mask[num_rows - radius_pixels :, :] = False
+  valid_mask[:, :radius_pixels] = False
+  valid_mask[:, num_cols - radius_pixels :] = False
 
   # Apply spatial range constraints.
   # MuJoCo hfield convention: columns map to the x-axis, rows map to the
