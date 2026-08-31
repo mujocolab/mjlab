@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Aug 28, 2026"/>
+    <meta name="docbuild:last-update" content="Aug 31, 2026"/>
   </head>
   
   
@@ -567,6 +567,9 @@ by <code class="docutils literal notranslate"><span class="pre">rsl-rl-lib</span
 <li><p><code class="docutils literal notranslate"><span class="pre">distribution=&quot;gaussian&quot;</span></code> domain randomization now draws an independent value per
 environment. <code class="docutils literal notranslate"><span class="pre">sample_gaussian</span></code> ignored its <code class="docutils literal notranslate"><span class="pre">size</span></code> argument when <code class="docutils literal notranslate"><span class="pre">mean</span></code>/<code class="docutils literal notranslate"><span class="pre">std</span></code>
 were tensors, so every environment received the same sample <a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/1168">#1168</a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FlatPatchSamplingCfg(patch_radius=0)</span></code> no longer collapses every patch to the
+sub-terrain center. The edge-exclusion mask sliced <code class="docutils literal notranslate"><span class="pre">arr[-0:]</span></code>, which is
+<code class="docutils literal notranslate"><span class="pre">arr[0:]</span></code>, so it cleared the entire valid mask <a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/1171">#1171</a>.</p></li>
 </ul>
 </section>
 </section>
@@ -1761,7 +1764,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Aug 28, 2026.
+  Last updated on Aug 31, 2026.
   <br/>
 </p>
   </div>
