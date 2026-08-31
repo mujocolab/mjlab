@@ -57,6 +57,26 @@ def _make_entity(
   return create_entity_with_actuator(ROBOT_XML, cfg)
 
 
+def _make_sorted_entity() -> Entity:
+  """Same actuator, but with EntityCfg.sort_actuators=True (per-target
+  edit_spec calls)."""
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        BuiltinPdActuatorCfg(
+          target_names_expr=("joint.*",),
+          stiffness=KP,
+          damping=KD,
+          effort_limit=None,
+        ),
+      )
+    ),
+    sort_actuators=True,
+  )
+  return Entity(cfg)
+
+
 def _at_rest_with_targets(
   entity: Entity,
   sim,
@@ -94,6 +114,28 @@ def test_two_ctrls_per_target_with_pos_then_vel_layout(device):
   names = [sim.mj_model.actuator(i).name for i in act.global_ctrl_ids.tolist()]
   assert names[:n] == [f"{name}_pd_pos" for name in act.target_names]
   assert names[n:] == [f"{name}_pd_vel" for name in act.target_names]
+
+
+def test_sort_actuators_keeps_pos_then_vel_layout(device):
+  """With sort_actuators=True, edit_spec is called once per target, which
+  interleaves pos/vel elements in the spec. The ctrl order seen by compute()
+  and dr.pd_gains must still be [pos..., vel...], and the resulting torques
+  must match the unsorted path."""
+  entity, sim = initialize_entity(_make_sorted_entity(), device)
+  act = entity.actuators[0]
+  assert isinstance(act, BuiltinPdActuator)
+
+  n = act.num_targets
+  names = [sim.mj_model.actuator(i).name for i in act.global_ctrl_ids.tolist()]
+  assert names[:n] == [f"{name}_pd_pos" for name in act.target_names]
+  assert names[n:] == [f"{name}_pd_vel" for name in act.target_names]
+
+  pos = torch.tensor([[0.1, -0.05]], device=device)
+  vel = torch.tensor([[0.2, -0.1]], device=device)
+  _at_rest_with_targets(entity, sim, device, pos, vel)
+  v_adr = entity.indexing.joint_v_adr
+  expected = KP * pos[0] + KD * vel[0]
+  assert torch.allclose(sim.data.qfrc_actuator[0, v_adr], expected, atol=1e-4)
 
 
 def test_site_transmission_rejected():

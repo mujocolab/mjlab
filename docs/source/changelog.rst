@@ -15,6 +15,11 @@ Changed
 Fixed
 ^^^^^
 
+- ``BuiltinPdActuator`` now keeps its ``[pos..., vel...]`` ctrl layout when the
+  entity uses ``sort_actuators=True``. The per-target ``edit_spec`` calls
+  interleaved the position and velocity elements, so position targets were
+  written to velocity actuators and vice versa, silently corrupting the PD
+  torques (and the ``dr.pd_gains`` randomization).
 - Capped ``wandb`` below 0.29, which removed the ``start_method`` setting still passed
   by ``rsl-rl-lib`` and crashed training runs launched with ``--logger wandb``.
 - ``distribution="gaussian"`` domain randomization now draws an independent value per
