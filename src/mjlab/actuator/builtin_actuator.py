@@ -11,6 +11,7 @@ from enum import IntEnum
 from typing import TYPE_CHECKING
 
 import mujoco
+import mujoco_warp as mjwarp
 import numpy as np
 import torch
 
@@ -143,6 +144,12 @@ class BuiltinPdActuator(Actuator[BuiltinPdActuatorCfg]):
     target_names: list[str],
   ) -> None:
     super().__init__(cfg, entity, target_ids, target_names)
+    # Pos/vel elements tracked separately so the [pos..., vel...] ctrl block
+    # layout can be restored in initialize() even when edit_spec is called
+    # once per target (EntityCfg.sort_actuators=True), which would otherwise
+    # interleave them.
+    self._pos_mjs_actuators: list[mujoco.MjsActuator] = []
+    self._vel_mjs_actuators: list[mujoco.MjsActuator] = []
 
   @property
   def num_targets(self) -> int:
@@ -165,7 +172,7 @@ class BuiltinPdActuator(Actuator[BuiltinPdActuatorCfg]):
         viscous_damping=self.cfg.viscous_damping,
         transmission_type=self.cfg.transmission_type,
       )
-      self._mjs_actuators.append(pos_act)
+      self._pos_mjs_actuators.append(pos_act)
     for target_name in target_names:
       vel_act = create_velocity_actuator(
         spec,
@@ -174,7 +181,7 @@ class BuiltinPdActuator(Actuator[BuiltinPdActuatorCfg]):
         damping=self.cfg.damping,
         transmission_type=self.cfg.transmission_type,
       )
-      self._mjs_actuators.append(vel_act)
+      self._vel_mjs_actuators.append(vel_act)
     # Effort limit: sum-clamp on the joint/tendon, not on each element.
     if self.cfg.effort_limit is not None:
       lim = self.cfg.effort_limit
@@ -185,6 +192,21 @@ class BuiltinPdActuator(Actuator[BuiltinPdActuatorCfg]):
           target = spec.tendon(target_name)
         target.actfrclimited = mujoco.mjtLimited.mjLIMITED_TRUE
         target.actfrcrange[:] = np.array([-lim, lim])
+
+  def initialize(
+    self,
+    mj_model: mujoco.MjModel,
+    model: mjwarp.Model,
+    data: mjwarp.Data,
+    device: str,
+  ) -> None:
+    # edit_spec may have been called once per target (sort_actuators=True),
+    # interleaving pos/vel elements in the spec. The order the elements appear
+    # in the spec does not matter; what matters is the order of ctrl_ids,
+    # which is derived from _mjs_actuators in the base class. Restore the
+    # [pos..., vel...] block layout that compute() and dr.pd_gains rely on.
+    self._mjs_actuators = self._pos_mjs_actuators + self._vel_mjs_actuators
+    super().initialize(mj_model, model, data, device)
 
   def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
     return torch.cat((cmd.position_target, cmd.velocity_target), dim=1)
