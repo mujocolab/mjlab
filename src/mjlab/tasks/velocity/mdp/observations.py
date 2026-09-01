@@ -45,3 +45,14 @@ def foot_contact_forces(env: ManagerBasedRlEnv, sensor_name: str) -> torch.Tenso
   assert sensor_data.force is not None
   forces_flat = sensor_data.force.flatten(start_dim=1)  # [B, N*3]
   return torch.sign(forces_flat) * torch.log1p(torch.abs(forces_flat))
+
+
+def terrain_type(env: ManagerBasedRlEnv) -> torch.Tensor:
+  """Per-env terrain column index, shape [B, 1].
+
+  Intended as the expert-assignment observation for multi-teacher
+  distillation: each terrain type maps to the expert trained on it.
+  """
+  terrain = env.scene.terrain
+  assert terrain is not None
+  return terrain.terrain_types.float().unsqueeze(-1)
