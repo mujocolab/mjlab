@@ -80,10 +80,16 @@ def terrain_levels_vel(
   num_cols = terrain_origins.shape[1]
   if num_cols == len(sub_terrain_names):
     types = terrain.terrain_types
+    # Batched per-type means: one index_add and one bincount instead of a
+    # masked mean (and a host sync) per terrain type.
+    counts = torch.bincount(types, minlength=num_cols)
+    sums = torch.zeros(num_cols, device=levels.device, dtype=levels.dtype)
+    sums.index_add_(0, types, levels)
+    means = sums / counts.clamp(min=1)
+    present = (counts > 0).tolist()
     for i, name in enumerate(sub_terrain_names):
-      mask = types == i
-      if mask.any():
-        result[name] = torch.mean(levels[mask])
+      if present[i]:
+        result[name] = means[i]
 
   return result
 

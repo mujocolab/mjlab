@@ -23,6 +23,11 @@ if TYPE_CHECKING:
 _DEFAULT_ASSET_CFG = SceneEntityCfg("robot")
 _SE3_KEYS = ("x", "y", "z", "roll", "pitch", "yaw")
 
+# Range tensors keyed by (ranges, device). Ranges come from static configs, so
+# caching them avoids a host-to-device copy, which synchronizes the device, on
+# every reset.
+_SE3_RANGE_CACHE: dict[tuple[tuple[tuple[float, float], ...], str], torch.Tensor] = {}
+
 
 def _sample_se3_range(
   range_dict: dict[str, tuple[float, float]] | None,
@@ -36,8 +41,14 @@ def _sample_se3_range(
   returned tensor has the requested ``shape`` whose last dimension must be 6.
   """
   range_dict = range_dict or {}
-  range_list = [range_dict.get(key, (0.0, 0.0)) for key in _SE3_KEYS]
-  ranges = torch.tensor(range_list, device=device)
+  range_list = tuple(
+    (float(lo), float(hi))
+    for lo, hi in (range_dict.get(k, (0.0, 0.0)) for k in _SE3_KEYS)
+  )
+  key = (range_list, str(device))
+  ranges = _SE3_RANGE_CACHE.get(key)
+  if ranges is None:
+    ranges = _SE3_RANGE_CACHE[key] = torch.tensor(range_list, device=device)
   return sample_uniform(ranges[:, 0], ranges[:, 1], shape, device=device)
 
 

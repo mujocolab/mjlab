@@ -39,3 +39,41 @@ def _configure_pre29(allow_tf32: bool):
   """Configure PyTorch CUDA and cuDNN backends for PyTorch <2.9."""
   torch.backends.cuda.matmul.allow_tf32 = allow_tf32
   torch.backends.cudnn.allow_tf32 = allow_tf32
+
+
+def as_index(ids: torch.Tensor) -> slice | torch.Tensor:
+  """Return ``ids`` as a slice when it is a contiguous ascending range.
+
+  Indexing a tensor with a slice produces a view, whereas indexing with an index
+  tensor launches a gather (or scatter) kernel. Element ids of an entity are
+  usually contiguous, so converting them once at setup lets the hot path index
+  simulation arrays without any kernel launches. Reading ``ids`` synchronizes with
+  the device, so only call this at setup time.
+  """
+  if ids.ndim != 1 or ids.numel() == 0:
+    return ids
+  values = ids.tolist()
+  start = values[0]
+  if values == list(range(start, start + len(values))):
+    return slice(start, start + len(values))
+  return ids
+
+
+def compose_index(
+  sel: slice | torch.Tensor,
+  ids: torch.Tensor,
+  local: torch.Tensor | slice | None,
+) -> slice | torch.Tensor:
+  """Map local indices through ``ids`` (i.e. ``ids[local]``), preferring slices.
+
+  ``sel`` is the :func:`as_index` form of ``ids``. When both ``sel`` and ``local``
+  are slices the result is a slice too, so the caller can index without a gather.
+  ``None`` selects everything.
+  """
+  if local is None:
+    return sel
+  if isinstance(local, slice) and isinstance(sel, slice):
+    start, stop, step = local.indices(sel.stop - sel.start)
+    if step == 1 and stop >= start:
+      return slice(sel.start + start, sel.start + stop)
+  return ids[local]

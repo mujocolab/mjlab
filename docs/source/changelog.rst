@@ -8,6 +8,31 @@ Upcoming version (not yet released)
 Changed
 ^^^^^^^
 
+- Reduced the per-step host overhead of ``ManagerBasedRlEnv.step`` by roughly a
+  third (about 30-35% fewer kernel launches on the bundled velocity and manipulation
+  tasks) and removed several hidden host-device synchronizations from the hot path:
+
+  - ``EntityData`` properties derived from kinematic quantities (``root_link_pose_w``,
+    ``body_link_vel_w``, ``projected_gravity_b``, ...) are now cached until the next
+    ``sim.step()``/``forward()``/``reset()``, so several terms reading the same
+    quantity in one step share a single computation. Treat the returned tensors as
+    read-only. ``sim.data.version`` exposes the counter the cache is keyed on.
+  - Entity element ids that form a contiguous range (the common case) are indexed
+    with slices instead of index tensors, making ``joint_pos``, ``joint_vel``,
+    actuator ctrl writes and action target writes views/copies rather than gathers.
+  - ``RewardManager`` and ``TerminationManager`` gather term values into one buffer
+    and weight, scrub and accumulate them in a handful of batched ops. Their
+    ``reset()`` logs (and ``CommandTerm``/``CurriculumManager`` reset logs) are 0-d
+    tensors instead of Python floats, avoiding a device sync per logged term.
+  - ``UniformVelocityCommand`` updates heading, world-frame and standing commands
+    with masked ops instead of ``nonzero``/``any``, and ``RayCastSensor`` yaw
+    alignment no longer branches on a device value.
+  - ``ContactSensor`` lays out each field's MuJoCo sensors contiguously in
+    ``sensordata`` so fields are read as views, and air-time tracking uses fewer
+    launches per substep.
+  - ``ObservationManager`` only copies term outputs when nothing downstream
+    already does, ``UniformNoiseCfg`` caches its range and fuses the additive
+    noise, and ``nan_policy="sanitize"`` scrubs unconditionally without a sync.
 - Bumped ``rsl-rl-lib`` from 5.4.2 to 5.5.0. This update removes the ``logger_type``
   attribute of the ``rsl_rl.utils.Logger``, so code that previously checked
   ``logger.logger_type`` must instead check the type of ``logger.writer``.

@@ -20,6 +20,7 @@ from mjlab.utils.lab_api.string import resolve_matching_names
 from mjlab.utils.mujoco import dof_width, qpos_width
 from mjlab.utils.spec import auto_wrap_fixed_base_mocap
 from mjlab.utils.string import resolve_expr
+from mjlab.utils.torch import as_index
 from mjlab.utils.xml import fix_spec_xml, strip_buffer_textures
 
 if TYPE_CHECKING:
@@ -62,6 +63,32 @@ class EntityIndexing:
   joint_v_adr: torch.Tensor
   free_joint_q_adr: torch.Tensor
   free_joint_v_adr: torch.Tensor
+
+  # Index forms of the id/address tensors above, computed once at construction (see
+  # ``as_index``): a slice when the ids form a contiguous ascending range, else the
+  # tensor itself. Indexing simulation arrays with a slice is a view, so the common
+  # case of an entity whose elements are laid out contiguously pays no gather or
+  # scatter kernels on the hot path.
+  body_sel: slice | torch.Tensor = field(init=False, repr=False)
+  geom_sel: slice | torch.Tensor = field(init=False, repr=False)
+  site_sel: slice | torch.Tensor = field(init=False, repr=False)
+  tendon_sel: slice | torch.Tensor = field(init=False, repr=False)
+  ctrl_sel: slice | torch.Tensor = field(init=False, repr=False)
+  joint_q_sel: slice | torch.Tensor = field(init=False, repr=False)
+  joint_v_sel: slice | torch.Tensor = field(init=False, repr=False)
+  free_joint_q_sel: slice | torch.Tensor = field(init=False, repr=False)
+  free_joint_v_sel: slice | torch.Tensor = field(init=False, repr=False)
+
+  def __post_init__(self) -> None:
+    self.body_sel = as_index(self.body_ids)
+    self.geom_sel = as_index(self.geom_ids)
+    self.site_sel = as_index(self.site_ids)
+    self.tendon_sel = as_index(self.tendon_ids)
+    self.ctrl_sel = as_index(self.ctrl_ids)
+    self.joint_q_sel = as_index(self.joint_q_adr)
+    self.joint_v_sel = as_index(self.joint_v_adr)
+    self.free_joint_q_sel = as_index(self.free_joint_q_adr)
+    self.free_joint_v_sel = as_index(self.free_joint_v_adr)
 
   @property
   def root_body_id(self) -> int:

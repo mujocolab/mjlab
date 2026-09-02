@@ -87,15 +87,17 @@ class UniformVelocityCommand(CommandTerm):
     # Copy sampled velocities as world-frame reference for world envs.
     self.vel_command_w[env_ids] = self.vel_command_b[env_ids]
 
-    # Forward-only envs: positive lin_vel_x, zero lateral and angular.
-    self.is_forward_env[env_ids] = r.uniform_(0.0, 1.0) <= self.cfg.rel_forward_envs
-    fwd_ids = env_ids[self.is_forward_env[env_ids]]
-    if len(fwd_ids) > 0:
-      self.vel_command_b[fwd_ids, 0] = (
-        self.vel_command_b[fwd_ids, 0].abs().clamp(min=0.3)
+    # Forward-only envs: positive lin_vel_x, zero lateral and angular. Masked
+    # rather than index-gathered so no host synchronization is needed.
+    is_forward = r.uniform_(0.0, 1.0) <= self.cfg.rel_forward_envs
+    self.is_forward_env[env_ids] = is_forward
+    if self.cfg.rel_forward_envs > 0.0:
+      cmd = self.vel_command_b[env_ids]
+      forward_cmd = torch.zeros_like(cmd)
+      forward_cmd[:, 0] = cmd[:, 0].abs().clamp(min=0.3)
+      self.vel_command_b[env_ids] = torch.where(
+        is_forward.unsqueeze(1), forward_cmd, cmd
       )
-      self.vel_command_b[fwd_ids, 1] = 0.0
-      self.vel_command_b[fwd_ids, 2] = 0.0
 
   def reset(self, env_ids: torch.Tensor | slice | None) -> dict[str, float]:
     extras = super().reset(env_ids)
@@ -115,28 +117,38 @@ class UniformVelocityCommand(CommandTerm):
   def _update_command(self, env_ids: torch.Tensor | None = None) -> None:
     # Pure function of the current state; refreshing all envs is safe.
     del env_ids
+    # Every branch below is masked with ``where``/``masked_fill_`` rather than
+    # gathering indices with ``nonzero``/``any``, which would synchronize the
+    # host with the device on every step.
     if self.cfg.heading_command:
       self.heading_error = wrap_to_pi(self.heading_target - self.robot.data.heading_w)
-      heading_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
-      self.vel_command_b[heading_ids, 2] = torch.clip(
-        self.cfg.heading_control_stiffness * self.heading_error[heading_ids],
+      heading_cmd = torch.clip(
+        self.cfg.heading_control_stiffness * self.heading_error,
         min=self.cfg.ranges.ang_vel_z[0],
         max=self.cfg.ranges.ang_vel_z[1],
       )
+      self.vel_command_b[:, 2] = torch.where(
+        self.is_heading_env, heading_cmd, self.vel_command_b[:, 2]
+      )
     # World-frame envs: rotate world-frame linear vel into body frame.
-    if self.is_world_env.any():
-      w_ids = self.is_world_env.nonzero(as_tuple=False).flatten()
-      heading = self.robot.data.heading_w[w_ids]
+    if self.cfg.rel_world_envs > 0.0:
+      heading = self.robot.data.heading_w
       cos_h = torch.cos(heading)
       sin_h = torch.sin(heading)
-      vx_w = self.vel_command_w[w_ids, 0]
-      vy_w = self.vel_command_w[w_ids, 1]
-      self.vel_command_b[w_ids, 0] = cos_h * vx_w + sin_h * vy_w
-      self.vel_command_b[w_ids, 1] = -sin_h * vx_w + cos_h * vy_w
+      vx_w = self.vel_command_w[:, 0]
+      vy_w = self.vel_command_w[:, 1]
+      vx_b = cos_h * vx_w + sin_h * vy_w
+      vy_b = -sin_h * vx_w + cos_h * vy_w
+      self.vel_command_b[:, 0] = torch.where(
+        self.is_world_env, vx_b, self.vel_command_b[:, 0]
+      )
+      self.vel_command_b[:, 1] = torch.where(
+        self.is_world_env, vy_b, self.vel_command_b[:, 1]
+      )
 
-    standing_env_ids = self.is_standing_env.nonzero(as_tuple=False).flatten()
-    self.vel_command_b[standing_env_ids, :] = 0.0
-    self.vel_command_w[standing_env_ids, :] = 0.0
+    standing = self.is_standing_env.unsqueeze(1)
+    self.vel_command_b.masked_fill_(standing, 0.0)
+    self.vel_command_w.masked_fill_(standing, 0.0)
 
   # GUI.
 

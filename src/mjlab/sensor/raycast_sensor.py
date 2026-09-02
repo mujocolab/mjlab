@@ -844,43 +844,31 @@ class RayCastSensor(Sensor[RayCastData]):
     when the X-axis projection onto the XY plane is too small.
     """
     batch_size = rot_mat.shape[0]
-    device = rot_mat.device
-    dtype = rot_mat.dtype
 
-    # Project X-axis onto XY plane.
-    x_axis = rot_mat[:, :, 0]  # First column [B, 3]
-    x_proj = x_axis.clone()
-    x_proj[:, 2] = 0  # Zero out Z component
+    # Project the X-axis onto the XY plane (dropping Z).
+    x_proj = rot_mat[:, :2, 0]  # [B, 2]
     x_norm = x_proj.norm(dim=1)  # [B]
 
-    # Check for singularity (X-axis nearly vertical).
+    # Singular when the X-axis is nearly vertical. Branch-free: the Y-axis
+    # fallback is always computed and selected per row with ``where`` so this
+    # never synchronizes with the device.
     threshold = 0.1
     singular = x_norm < threshold  # [B]
 
-    # For singular cases, use Y-axis instead.
-    if singular.any():
-      y_axis = rot_mat[:, :, 1]  # Second column [B, 3]
-      y_proj = y_axis.clone()
-      y_proj[:, 2] = 0
-      y_norm = y_proj.norm(dim=1).clamp(min=1e-6)
-      y_proj = y_proj / y_norm.unsqueeze(-1)
-      # Y-axis points left; rotate -90° around Z to get forward direction.
-      # [y_x, y_y] -> [y_y, -y_x]
-      x_from_y = torch.zeros_like(y_proj)
-      x_from_y[:, 0] = y_proj[:, 1]
-      x_from_y[:, 1] = -y_proj[:, 0]
-      x_proj[singular] = x_from_y[singular]
-      x_norm[singular] = 1.0  # Already normalized
+    # Y-axis points left; rotate -90° around Z to get forward direction:
+    # [y_x, y_y] -> [y_y, -y_x].
+    y_proj = rot_mat[:, :2, 1]  # [B, 2]
+    y_norm = y_proj.norm(dim=1).clamp(min=1e-6)
+    x_from_y = torch.stack([y_proj[:, 1], -y_proj[:, 0]], dim=-1) / y_norm.unsqueeze(-1)
 
-    # Normalize X projection.
-    x_norm = x_norm.clamp(min=1e-6)
-    x_proj = x_proj / x_norm.unsqueeze(-1)
+    forward = torch.where(
+      singular.unsqueeze(-1), x_from_y, x_proj / x_norm.clamp(min=1e-6).unsqueeze(-1)
+    )  # [B, 2], unit length.
 
-    # Build yaw-only rotation matrix.
-    yaw_mat = torch.zeros((batch_size, 3, 3), device=device, dtype=dtype)
-    yaw_mat[:, 0, 0] = x_proj[:, 0]
-    yaw_mat[:, 1, 0] = x_proj[:, 1]
-    yaw_mat[:, 0, 1] = -x_proj[:, 1]
-    yaw_mat[:, 1, 1] = x_proj[:, 0]
-    yaw_mat[:, 2, 2] = 1
-    return yaw_mat
+    # Build yaw-only rotation matrix in one stack.
+    c = forward[:, 0]
+    s = forward[:, 1]
+    zero = torch.zeros_like(c)
+    one = torch.ones_like(c)
+    yaw_mat = torch.stack([c, -s, zero, s, c, zero, zero, zero, one], dim=-1)
+    return yaw_mat.view(batch_size, 3, 3)

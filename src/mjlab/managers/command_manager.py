@@ -98,11 +98,13 @@ class CommandTerm(ManagerTermBase):
   def command(self):
     raise NotImplementedError
 
-  def reset(self, env_ids: torch.Tensor | slice | None) -> dict[str, float]:
+  def reset(self, env_ids: torch.Tensor | slice | None) -> dict[str, Any]:
     assert isinstance(env_ids, torch.Tensor)
     extras = {}
     for metric_name, metric_value in self.metrics.items():
-      extras[metric_name] = torch.mean(metric_value[env_ids]).item()
+      # Logged as a 0-d tensor: calling .item() here would synchronize with the
+      # device on every reset. The logger reads the value later.
+      extras[metric_name] = torch.mean(metric_value[env_ids])
       metric_value[env_ids] = 0.0
     self.command_counter[env_ids] = 0
     self._resample(env_ids)

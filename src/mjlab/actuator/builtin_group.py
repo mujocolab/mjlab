@@ -21,6 +21,7 @@ from mjlab.actuator.builtin_actuator import (
   BuiltinVelocityActuator,
 )
 from mjlab.utils.buffers import DelayBuffer
+from mjlab.utils.torch import as_index
 
 if TYPE_CHECKING:
   from mjlab.actuator.actuator import Actuator
@@ -61,6 +62,14 @@ class _FusedDelayGroup:
   per_env_phase: bool
   absorbed_actuators: list[Actuator] = field(default_factory=list)
   delay_buffer: DelayBuffer | None = field(default=None, init=False)
+  # Slice forms of the ids (when contiguous) so the per-substep target gather and
+  # ctrl write are views/copies rather than index kernels.
+  target_sel: torch.Tensor | slice = field(init=False, repr=False)
+  ctrl_sel: torch.Tensor | slice = field(init=False, repr=False)
+
+  def __post_init__(self) -> None:
+    self.target_sel = as_index(self.target_ids)
+    self.ctrl_sel = as_index(self.ctrl_ids)
 
 
 @dataclass
@@ -69,7 +78,7 @@ class BuiltinActuatorGroup:
 
   _index_groups: dict[
     tuple[type[BuiltinActuatorType], TransmissionType],
-    tuple[torch.Tensor, torch.Tensor],
+    tuple[torch.Tensor | slice, torch.Tensor | slice],
   ]
   _delayed_groups: list[_FusedDelayGroup]
 
@@ -121,13 +130,15 @@ class BuiltinActuatorGroup:
       delayed_grouped.setdefault(delay_key, []).append(act)
 
     # Build non-delayed index groups.
+    # Ids that form a contiguous range are stored as slices so the per-substep
+    # target gather and ctrl write become views/copies instead of index kernels.
     index_groups: dict[
       tuple[type[BuiltinActuatorType], TransmissionType],
-      tuple[torch.Tensor, torch.Tensor],
+      tuple[torch.Tensor | slice, torch.Tensor | slice],
     ] = {
       key: (
-        torch.cat([a.target_ids for a in acts], dim=0),
-        torch.cat([a.ctrl_ids for a in acts], dim=0),
+        as_index(torch.cat([a.target_ids for a in acts], dim=0)),
+        as_index(torch.cat([a.ctrl_ids for a in acts], dim=0)),
       )
       for key, acts in builtin_groups.items()
     }
@@ -187,6 +198,6 @@ class BuiltinActuatorGroup:
     for group in self._delayed_groups:
       assert group.delay_buffer is not None
       target_tensor = getattr(data, group.target_attr)
-      targets = target_tensor[:, group.target_ids]
+      targets = target_tensor[:, group.target_sel]
       group.delay_buffer.append(targets)
-      data.write_ctrl(group.delay_buffer.compute(), group.ctrl_ids)
+      data.write_ctrl(group.delay_buffer.compute(), group.ctrl_sel)

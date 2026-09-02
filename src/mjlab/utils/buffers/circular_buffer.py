@@ -135,6 +135,10 @@ class CircularBuffer:
     self._max_len_tensor = torch.full(
       (batch_size,), max_len, dtype=torch.long, device=device
     )
+    # Row ``s`` holds the chronological slot order when the oldest slot is ``s``,
+    # so ``buffer`` selects a precomputed row instead of rebuilding the index.
+    slots = torch.arange(max_len, device=device)
+    self._chrono_indices = (slots[None, :] + slots[:, None]) % max_len
 
   @property
   def batch_size(self) -> int:
@@ -170,7 +174,7 @@ class CircularBuffer:
       raise RuntimeError("Buffer not initialized. Call append() first.")
 
     start = (self._pointer + 1) % self._max_len
-    idx = (torch.arange(self._max_len, device=self._device) + start) % self._max_len
+    idx = self._chrono_indices[start]
     buf = self._buffer.index_select(0, idx)  # (max_len, batch, ...)
     return buf.transpose(0, 1)  # (batch, max_len, ...)
 

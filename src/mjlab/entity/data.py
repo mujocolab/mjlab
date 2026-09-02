@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Sequence
 
 import mujoco_warp as mjwarp
@@ -12,6 +12,7 @@ from mjlab.utils.lab_api.math import (
   quat_from_matrix,
   quat_mul,
 )
+from mjlab.utils.torch import compose_index
 
 if TYPE_CHECKING:
   from mjlab.entity.entity import EntityIndexing
@@ -31,6 +32,15 @@ def compute_velocity_from_cvel(
   return torch.cat([lin_vel_w, ang_vel_w], dim=-1)
 
 
+def _index(
+  env_ids: torch.Tensor | slice, ids: torch.Tensor | slice
+) -> tuple[torch.Tensor | slice, torch.Tensor | slice]:
+  """Make ``[env_ids, ids]`` select the outer product when both are tensors."""
+  if isinstance(env_ids, torch.Tensor) and isinstance(ids, torch.Tensor):
+    return env_ids[:, None], ids
+  return env_ids, ids
+
+
 @dataclass
 class EntityData:
   """Data container for an entity.
@@ -39,6 +49,15 @@ class EntityData:
   root_link_pose_w) require sim.forward() to be current. If you write then read,
   call sim.forward() in between. Event order matters when mixing reads and writes.
   All inputs/outputs use world frame.
+
+  Properties derived from kinematic quantities (``xpos``, ``xquat``, ``cvel``, ...)
+  are cached until the next simulation kernel launch (``sim.step()``,
+  ``sim.forward()``, ``sim.reset()``), so reading e.g. ``root_link_quat_w`` from
+  several observation and reward terms in the same step costs one computation.
+  Treat the returned tensors as read-only: mutating them in place would be visible
+  to every other reader in the same step. Properties that read ``qpos``/``qvel``
+  directly (``joint_pos``, ``joint_vel``, ...) are views into the simulation
+  arrays and always reflect the latest writes.
   """
 
   indexing: EntityIndexing
@@ -73,6 +92,13 @@ class EntityData:
 
   encoder_bias: torch.Tensor
 
+  # Cache of derived kinematic quantities, valid for ``data.version`` equal to
+  # ``_cache_version``. See ``_derived_cache``.
+  _cache: dict[str, torch.Tensor] = field(
+    default_factory=dict, init=False, repr=False, compare=False
+  )
+  _cache_version: int = field(default=-1, init=False, repr=False, compare=False)
+
   # State dimensions.
   POS_DIM = 3
   QUAT_DIM = 4
@@ -100,7 +126,7 @@ class EntityData:
     assert pose.shape[-1] == self.ROOT_POSE_DIM
 
     env_ids = self._resolve_env_ids(env_ids)
-    self.data.qpos[env_ids, self.indexing.free_joint_q_adr] = pose
+    self.data.qpos[_index(env_ids, self.indexing.free_joint_q_sel)] = pose
 
   def write_root_velocity(
     self, velocity: torch.Tensor, env_ids: torch.Tensor | slice | None = None
@@ -110,10 +136,10 @@ class EntityData:
     assert velocity.shape[-1] == self.ROOT_VEL_DIM
 
     env_ids = self._resolve_env_ids(env_ids)
-    quat_w = self.data.qpos[env_ids, self.indexing.free_joint_q_adr[3:7]]
+    quat_w = self.data.qpos[_index(env_ids, self._free_joint_quat_index())]
     ang_vel_b = quat_apply_inverse(quat_w, velocity[:, 3:])
     velocity_qvel = torch.cat([velocity[:, :3], ang_vel_b], dim=-1)
-    self.data.qvel[env_ids, self.indexing.free_joint_v_adr] = velocity_qvel
+    self.data.qvel[_index(env_ids, self.indexing.free_joint_v_sel)] = velocity_qvel
 
   def write_root_velocity_b(
     self, velocity_b: torch.Tensor, env_ids: torch.Tensor | slice | None = None
@@ -128,11 +154,11 @@ class EntityData:
     assert velocity_b.shape[-1] == self.ROOT_VEL_DIM
 
     env_ids = self._resolve_env_ids(env_ids)
-    quat_w = self.data.qpos[env_ids, self.indexing.free_joint_q_adr[3:7]]
+    quat_w = self.data.qpos[_index(env_ids, self._free_joint_quat_index())]
     lin_vel_w = quat_apply(quat_w, velocity_b[:, :3])
     # Free joint qvel holds world-frame linear and body-frame angular velocity.
     velocity_qvel = torch.cat([lin_vel_w, velocity_b[:, 3:]], dim=-1)
-    self.data.qvel[env_ids, self.indexing.free_joint_v_adr] = velocity_qvel
+    self.data.qvel[_index(env_ids, self.indexing.free_joint_v_sel)] = velocity_qvel
 
   def write_root_com_velocity(
     self, velocity: torch.Tensor, env_ids: torch.Tensor | slice | None = None
@@ -143,7 +169,7 @@ class EntityData:
 
     env_ids = env_ids if env_ids is not None else slice(None)
     com_offset_b = self.model.body_ipos[:, self.indexing.root_body_id]
-    quat_w = self.data.qpos[:, self.indexing.free_joint_q_adr[3:7]][env_ids]
+    quat_w = self.data.qpos[:, self._free_joint_quat_index()][env_ids]
     com_offset_w = quat_apply(quat_w, com_offset_b[env_ids])
     lin_vel_com = velocity[:, :3]
     ang_vel_w = velocity[:, 3:]
@@ -174,9 +200,10 @@ class EntityData:
       raise ValueError("Cannot write joint position for non-articulated entity.")
 
     env_ids = self._resolve_env_ids(env_ids)
-    joint_ids = joint_ids if joint_ids is not None else slice(None)
-    q_slice = self.indexing.joint_q_adr[joint_ids]
-    self.data.qpos[env_ids, q_slice] = position
+    q_index = compose_index(
+      self.indexing.joint_q_sel, self.indexing.joint_q_adr, joint_ids
+    )
+    self.data.qpos[_index(env_ids, q_index)] = position
 
   def write_joint_velocity(
     self,
@@ -188,9 +215,10 @@ class EntityData:
       raise ValueError("Cannot write joint velocity for non-articulated entity.")
 
     env_ids = self._resolve_env_ids(env_ids)
-    joint_ids = joint_ids if joint_ids is not None else slice(None)
-    v_slice = self.indexing.joint_v_adr[joint_ids]
-    self.data.qvel[env_ids, v_slice] = velocity
+    v_index = compose_index(
+      self.indexing.joint_v_sel, self.indexing.joint_v_adr, joint_ids
+    )
+    self.data.qvel[_index(env_ids, v_index)] = velocity
 
   def write_external_wrench(
     self,
@@ -200,12 +228,17 @@ class EntityData:
     env_ids: torch.Tensor | slice | None = None,
   ) -> None:
     env_ids = self._resolve_env_ids(env_ids)
-    local_body_ids = body_ids if body_ids is not None else slice(None)
-    global_body_ids = self.indexing.body_ids[local_body_ids]
+    if body_ids is None or isinstance(body_ids, (slice, torch.Tensor)):
+      global_body_ids = compose_index(
+        self.indexing.body_sel, self.indexing.body_ids, body_ids
+      )
+    else:
+      global_body_ids = self.indexing.body_ids[body_ids]
+    env_index, body_index = _index(env_ids, global_body_ids)
     if force is not None:
-      self.data.xfrc_applied[env_ids, global_body_ids, 0:3] = force
+      self.data.xfrc_applied[env_index, body_index, 0:3] = force
     if torque is not None:
-      self.data.xfrc_applied[env_ids, global_body_ids, 3:6] = torque
+      self.data.xfrc_applied[env_index, body_index, 3:6] = torque
 
   def write_ctrl(
     self,
@@ -217,9 +250,10 @@ class EntityData:
       raise ValueError("Cannot write control for non-actuated entity.")
 
     env_ids = self._resolve_env_ids(env_ids)
-    local_ctrl_ids = ctrl_ids if ctrl_ids is not None else slice(None)
-    global_ctrl_ids = self.indexing.ctrl_ids[local_ctrl_ids]
-    self.data.ctrl[env_ids, global_ctrl_ids] = ctrl
+    global_ctrl_ids = compose_index(
+      self.indexing.ctrl_sel, self.indexing.ctrl_ids, ctrl_ids
+    )
+    self.data.ctrl[_index(env_ids, global_ctrl_ids)] = ctrl
 
   def write_mocap_pose(
     self, pose: torch.Tensor, env_ids: torch.Tensor | slice | None = None
@@ -229,19 +263,24 @@ class EntityData:
     assert pose.shape[-1] == self.ROOT_POSE_DIM
 
     env_ids = self._resolve_env_ids(env_ids)
-    self.data.mocap_pos[env_ids, self.indexing.mocap_id] = pose[:, 0:3].unsqueeze(1)
-    self.data.mocap_quat[env_ids, self.indexing.mocap_id] = pose[:, 3:7].unsqueeze(1)
+    self.data.mocap_pos[env_ids, self.indexing.mocap_id] = pose[:, 0:3]
+    self.data.mocap_quat[env_ids, self.indexing.mocap_id] = pose[:, 3:7]
 
   def clear_state(self, env_ids: torch.Tensor | slice | None = None) -> None:
     if self.is_actuated:
       env_ids = self._resolve_env_ids(env_ids)
-      self.joint_pos_target[env_ids] = 0.0
-      self.joint_vel_target[env_ids] = 0.0
-      self.joint_effort_target[env_ids] = 0.0
-      self.tendon_len_target[env_ids] = 0.0
-      self.tendon_vel_target[env_ids] = 0.0
-      self.tendon_effort_target[env_ids] = 0.0
-      self.site_effort_target[env_ids] = 0.0
+      for target in (
+        self.joint_pos_target,
+        self.joint_vel_target,
+        self.joint_effort_target,
+        self.tendon_len_target,
+        self.tendon_vel_target,
+        self.tendon_effort_target,
+        self.site_effort_target,
+      ):
+        # Targets for absent transmission types are (num_envs, 0): skip the launch.
+        if target.shape[1] > 0:
+          target[env_ids] = 0.0
 
   def _resolve_env_ids(
     self, env_ids: torch.Tensor | slice | None
@@ -249,23 +288,45 @@ class EntityData:
     """Convert env_ids to consistent indexing format."""
     if env_ids is None:
       return slice(None)
-    if isinstance(env_ids, torch.Tensor):
-      return env_ids[:, None]
     return env_ids
+
+  def _free_joint_quat_index(self) -> torch.Tensor | slice:
+    """Index of the free joint's quaternion within qpos."""
+    return compose_index(
+      self.indexing.free_joint_q_sel, self.indexing.free_joint_q_adr, slice(3, 7)
+    )
 
   def _joint_dof_field(self, field_name: str) -> torch.Tensor:
     """Return a generalized-force field sliced to this entity's joint DoFs."""
     field = getattr(self.data, field_name)
-    return field[:, self.indexing.joint_v_adr]
+    return field[:, self.indexing.joint_v_sel]
+
+  def _derived_cache(self) -> dict[str, torch.Tensor]:
+    """Return the cache for quantities derived from the current kinematic state.
+
+    The cache is keyed on ``data.version``, which :class:`~mjlab.sim.sim.Simulation`
+    bumps after every kernel launch that modifies the simulation arrays. If the
+    data object exposes no version (e.g. a raw ``mjwarp.Data``), nothing is cached.
+    """
+    version = getattr(self.data, "version", None)
+    if version is None:
+      return {}
+    if version != self._cache_version:
+      self._cache.clear()
+      self._cache_version = version
+    return self._cache
 
   # Root properties
 
   @property
   def root_link_pose_w(self) -> torch.Tensor:
     """Root link pose in world frame. Shape (num_envs, 7)."""
-    pos_w = self.data.xpos[:, self.indexing.root_body_id]  # (num_envs, 3)
-    quat_w = self.data.xquat[:, self.indexing.root_body_id]  # (num_envs, 4)
-    return torch.cat([pos_w, quat_w], dim=-1)  # (num_envs, 7)
+    cache = self._derived_cache()
+    if (out := cache.get("root_link_pose_w")) is None:
+      pos_w = self.data.xpos[:, self.indexing.root_body_id]  # (num_envs, 3)
+      quat_w = self.data.xquat[:, self.indexing.root_body_id]  # (num_envs, 4)
+      out = cache["root_link_pose_w"] = torch.cat([pos_w, quat_w], dim=-1)
+    return out
 
   @property
   def root_link_vel_w(self) -> torch.Tensor:
@@ -274,115 +335,158 @@ class EntityData:
     # will be in body frame and needs to be rotated to world frame.
     # Note also that an extra forward() call might be required to make
     # both values equal.
-    pos = self.data.xpos[:, self.indexing.root_body_id]  # (num_envs, 3)
-    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
-    cvel = self.data.cvel[:, self.indexing.root_body_id]  # (num_envs, 6)
-    return compute_velocity_from_cvel(pos, subtree_com, cvel)  # (num_envs, 6)
+    cache = self._derived_cache()
+    if (out := cache.get("root_link_vel_w")) is None:
+      pos = self.data.xpos[:, self.indexing.root_body_id]  # (num_envs, 3)
+      subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
+      cvel = self.data.cvel[:, self.indexing.root_body_id]  # (num_envs, 6)
+      out = cache["root_link_vel_w"] = compute_velocity_from_cvel(
+        pos, subtree_com, cvel
+      )
+    return out
 
   @property
   def root_com_pose_w(self) -> torch.Tensor:
     """Root center-of-mass pose in world frame. Shape (num_envs, 7)."""
-    pos_w = self.data.xipos[:, self.indexing.root_body_id]
-    quat = self.data.xquat[:, self.indexing.root_body_id]
-    body_iquat = self.model.body_iquat[:, self.indexing.root_body_id]
-    assert body_iquat is not None
-    quat_w = quat_mul(quat, body_iquat.squeeze(1))
-    return torch.cat([pos_w, quat_w], dim=-1)
+    cache = self._derived_cache()
+    if (out := cache.get("root_com_pose_w")) is None:
+      pos_w = self.data.xipos[:, self.indexing.root_body_id]
+      quat = self.data.xquat[:, self.indexing.root_body_id]
+      body_iquat = self.model.body_iquat[:, self.indexing.root_body_id]
+      assert body_iquat is not None
+      quat_w = quat_mul(quat, body_iquat.squeeze(1))
+      out = cache["root_com_pose_w"] = torch.cat([pos_w, quat_w], dim=-1)
+    return out
 
   @property
   def root_com_vel_w(self) -> torch.Tensor:
     """Root center-of-mass velocity in world frame. Shape (num_envs, 6)."""
     # NOTE: Equivalent sensor is framelinvel/frameangvel with objtype="body".
-    pos = self.data.xipos[:, self.indexing.root_body_id]  # (num_envs, 3)
-    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
-    cvel = self.data.cvel[:, self.indexing.root_body_id]  # (num_envs, 6)
-    return compute_velocity_from_cvel(pos, subtree_com, cvel)  # (num_envs, 6)
+    cache = self._derived_cache()
+    if (out := cache.get("root_com_vel_w")) is None:
+      pos = self.data.xipos[:, self.indexing.root_body_id]  # (num_envs, 3)
+      subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
+      cvel = self.data.cvel[:, self.indexing.root_body_id]  # (num_envs, 6)
+      out = cache["root_com_vel_w"] = compute_velocity_from_cvel(pos, subtree_com, cvel)
+    return out
 
   # Body properties
 
   @property
   def body_link_pose_w(self) -> torch.Tensor:
     """Body link pose in world frame. Shape (num_envs, num_bodies, 7)."""
-    pos_w = self.data.xpos[:, self.indexing.body_ids]
-    quat_w = self.data.xquat[:, self.indexing.body_ids]
-    return torch.cat([pos_w, quat_w], dim=-1)
+    cache = self._derived_cache()
+    if (out := cache.get("body_link_pose_w")) is None:
+      pos_w = self.data.xpos[:, self.indexing.body_sel]
+      quat_w = self.data.xquat[:, self.indexing.body_sel]
+      out = cache["body_link_pose_w"] = torch.cat([pos_w, quat_w], dim=-1)
+    return out
 
   @property
   def body_link_vel_w(self) -> torch.Tensor:
     """Body link velocity in world frame. Shape (num_envs, num_bodies, 6)."""
     # NOTE: Equivalent sensor is framelinvel/frameangvel with objtype="xbody".
-    pos = self.data.xpos[:, self.indexing.body_ids]  # (num_envs, num_bodies, 3)
-    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
-    cvel = self.data.cvel[:, self.indexing.body_ids]
-    return compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
+    cache = self._derived_cache()
+    if (out := cache.get("body_link_vel_w")) is None:
+      pos = self.data.xpos[:, self.indexing.body_sel]  # (num_envs, num_bodies, 3)
+      subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
+      cvel = self.data.cvel[:, self.indexing.body_sel]
+      out = cache["body_link_vel_w"] = compute_velocity_from_cvel(
+        pos, subtree_com.unsqueeze(1), cvel
+      )
+    return out
 
   @property
   def body_com_pose_w(self) -> torch.Tensor:
     """Body center-of-mass pose in world frame. Shape (num_envs, num_bodies, 7)."""
-    pos_w = self.data.xipos[:, self.indexing.body_ids]
-    quat = self.data.xquat[:, self.indexing.body_ids]
-    body_iquat = self.model.body_iquat[:, self.indexing.body_ids]
-    quat_w = quat_mul(quat, body_iquat)
-    return torch.cat([pos_w, quat_w], dim=-1)
+    cache = self._derived_cache()
+    if (out := cache.get("body_com_pose_w")) is None:
+      pos_w = self.data.xipos[:, self.indexing.body_sel]
+      quat = self.data.xquat[:, self.indexing.body_sel]
+      body_iquat = self.model.body_iquat[:, self.indexing.body_sel]
+      quat_w = quat_mul(quat, body_iquat)
+      out = cache["body_com_pose_w"] = torch.cat([pos_w, quat_w], dim=-1)
+    return out
 
   @property
   def body_com_vel_w(self) -> torch.Tensor:
     """Body center-of-mass velocity in world frame. Shape (num_envs, num_bodies, 6)."""
     # NOTE: Equivalent sensor is framelinvel/frameangvel with objtype="body".
-    pos = self.data.xipos[:, self.indexing.body_ids]
-    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
-    cvel = self.data.cvel[:, self.indexing.body_ids]
-    return compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
+    cache = self._derived_cache()
+    if (out := cache.get("body_com_vel_w")) is None:
+      pos = self.data.xipos[:, self.indexing.body_sel]
+      subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
+      cvel = self.data.cvel[:, self.indexing.body_sel]
+      out = cache["body_com_vel_w"] = compute_velocity_from_cvel(
+        pos, subtree_com.unsqueeze(1), cvel
+      )
+    return out
 
   @property
   def body_external_wrench(self) -> torch.Tensor:
     """Body external wrench in world frame. Shape (num_envs, num_bodies, 6)."""
-    return self.data.xfrc_applied[:, self.indexing.body_ids]
+    return self.data.xfrc_applied[:, self.indexing.body_sel]
 
   # Geom properties
 
   @property
   def geom_pose_w(self) -> torch.Tensor:
     """Geom pose in world frame. Shape (num_envs, num_geoms, 7)."""
-    pos_w = self.data.geom_xpos[:, self.indexing.geom_ids]
-    xmat = self.data.geom_xmat[:, self.indexing.geom_ids]
-    quat_w = quat_from_matrix(xmat)
-    return torch.cat([pos_w, quat_w], dim=-1)
+    cache = self._derived_cache()
+    if (out := cache.get("geom_pose_w")) is None:
+      pos_w = self.data.geom_xpos[:, self.indexing.geom_sel]
+      xmat = self.data.geom_xmat[:, self.indexing.geom_sel]
+      quat_w = quat_from_matrix(xmat)
+      out = cache["geom_pose_w"] = torch.cat([pos_w, quat_w], dim=-1)
+    return out
 
   @property
   def geom_vel_w(self) -> torch.Tensor:
     """Geom velocity in world frame. Shape (num_envs, num_geoms, 6)."""
-    pos = self.data.geom_xpos[:, self.indexing.geom_ids]
-    body_ids = self.model.geom_bodyid[self.indexing.geom_ids]  # (num_geoms,)
-    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
-    cvel = self.data.cvel[:, body_ids]
-    return compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
+    cache = self._derived_cache()
+    if (out := cache.get("geom_vel_w")) is None:
+      pos = self.data.geom_xpos[:, self.indexing.geom_sel]
+      body_ids = self.model.geom_bodyid[self.indexing.geom_sel]  # (num_geoms,)
+      subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
+      cvel = self.data.cvel[:, body_ids]
+      out = cache["geom_vel_w"] = compute_velocity_from_cvel(
+        pos, subtree_com.unsqueeze(1), cvel
+      )
+    return out
 
   # Site properties
 
   @property
   def site_pose_w(self) -> torch.Tensor:
     """Site pose in world frame. Shape (num_envs, num_sites, 7)."""
-    pos_w = self.data.site_xpos[:, self.indexing.site_ids]
-    mat_w = self.data.site_xmat[:, self.indexing.site_ids]
-    quat_w = quat_from_matrix(mat_w)
-    return torch.cat([pos_w, quat_w], dim=-1)
+    cache = self._derived_cache()
+    if (out := cache.get("site_pose_w")) is None:
+      pos_w = self.data.site_xpos[:, self.indexing.site_sel]
+      mat_w = self.data.site_xmat[:, self.indexing.site_sel]
+      quat_w = quat_from_matrix(mat_w)
+      out = cache["site_pose_w"] = torch.cat([pos_w, quat_w], dim=-1)
+    return out
 
   @property
   def site_vel_w(self) -> torch.Tensor:
     """Site velocity in world frame. Shape (num_envs, num_sites, 6)."""
-    pos = self.data.site_xpos[:, self.indexing.site_ids]
-    body_ids = self.model.site_bodyid[self.indexing.site_ids]  # (num_sites,)
-    subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
-    cvel = self.data.cvel[:, body_ids]
-    return compute_velocity_from_cvel(pos, subtree_com.unsqueeze(1), cvel)
+    cache = self._derived_cache()
+    if (out := cache.get("site_vel_w")) is None:
+      pos = self.data.site_xpos[:, self.indexing.site_sel]
+      body_ids = self.model.site_bodyid[self.indexing.site_sel]  # (num_sites,)
+      subtree_com = self.data.subtree_com[:, self.indexing.root_body_id]
+      cvel = self.data.cvel[:, body_ids]
+      out = cache["site_vel_w"] = compute_velocity_from_cvel(
+        pos, subtree_com.unsqueeze(1), cvel
+      )
+    return out
 
   # Joint properties
 
   @property
   def joint_pos(self) -> torch.Tensor:
     """Joint positions. Shape (num_envs, num_joints)."""
-    return self.data.qpos[:, self.indexing.joint_q_adr]
+    return self.data.qpos[:, self.indexing.joint_q_sel]
 
   @property
   def joint_pos_biased(self) -> torch.Tensor:
@@ -392,24 +496,24 @@ class EntityData:
   @property
   def joint_vel(self) -> torch.Tensor:
     """Joint velocities. Shape (num_envs, nv)."""
-    return self.data.qvel[:, self.indexing.joint_v_adr]
+    return self.data.qvel[:, self.indexing.joint_v_sel]
 
   @property
   def joint_acc(self) -> torch.Tensor:
     """Joint accelerations. Shape (num_envs, nv)."""
-    return self.data.qacc[:, self.indexing.joint_v_adr]
+    return self.data.qacc[:, self.indexing.joint_v_sel]
 
   # Tendon properties
 
   @property
   def tendon_len(self) -> torch.Tensor:
     """Tendon lengths. Shape (num_envs, num_tendons)."""
-    return self.data.ten_length[:, self.indexing.tendon_ids]
+    return self.data.ten_length[:, self.indexing.tendon_sel]
 
   @property
   def tendon_vel(self) -> torch.Tensor:
     """Tendon velocities. Shape (num_envs, num_tendons)."""
-    return self.data.ten_velocity[:, self.indexing.tendon_ids]
+    return self.data.ten_velocity[:, self.indexing.tendon_sel]
 
   # Generalized forces
 
@@ -428,7 +532,7 @@ class EntityData:
     This is not the same as joint-space generalized force. Use ``qfrc_actuator`` for
     the actuator contribution projected into DoF space.
     """
-    return self.data.actuator_force[:, self.indexing.ctrl_ids]
+    return self.data.actuator_force[:, self.indexing.ctrl_sel]
 
   @property
   def qfrc_actuator(self) -> torch.Tensor:
@@ -522,7 +626,7 @@ class EntityData:
   @property
   def body_link_ang_vel_w(self) -> torch.Tensor:
     """Body link angular velocities in world frame. Shape (num_envs, num_bodies, 3)."""
-    return self.data.cvel[:, self.indexing.body_ids, 0:3]
+    return self.data.cvel[:, self.indexing.body_sel, 0:3]
 
   @property
   def body_com_pos_w(self) -> torch.Tensor:
@@ -543,7 +647,7 @@ class EntityData:
   def body_com_ang_vel_w(self) -> torch.Tensor:
     """Body COM angular velocities in world frame. Shape (num_envs, num_bodies, 3)."""
     # Angular velocity is the same for link and COM frames.
-    return self.data.cvel[:, self.indexing.body_ids, 0:3]
+    return self.data.cvel[:, self.indexing.body_sel, 0:3]
 
   @property
   def body_external_force(self) -> torch.Tensor:
@@ -573,7 +677,7 @@ class EntityData:
   @property
   def geom_ang_vel_w(self) -> torch.Tensor:
     """Geom angular velocities in world frame. Shape (num_envs, num_geoms, 3)."""
-    body_ids = self.model.geom_bodyid[self.indexing.geom_ids]
+    body_ids = self.model.geom_bodyid[self.indexing.geom_sel]
     return self.data.cvel[:, body_ids, 0:3]
 
   @property
@@ -594,7 +698,7 @@ class EntityData:
   @property
   def site_ang_vel_w(self) -> torch.Tensor:
     """Site angular velocities in world frame. Shape (num_envs, num_sites, 3)."""
-    body_ids = self.model.site_bodyid[self.indexing.site_ids]
+    body_ids = self.model.site_bodyid[self.indexing.site_sel]
     return self.data.cvel[:, body_ids, 0:3]
 
   # Derived properties.
@@ -602,30 +706,58 @@ class EntityData:
   @property
   def projected_gravity_b(self) -> torch.Tensor:
     """Gravity vector projected into body frame. Shape (num_envs, 3)."""
-    return quat_apply_inverse(self.root_link_quat_w, self.gravity_vec_w)
+    cache = self._derived_cache()
+    if (out := cache.get("projected_gravity_b")) is None:
+      out = cache["projected_gravity_b"] = quat_apply_inverse(
+        self.root_link_quat_w, self.gravity_vec_w
+      )
+    return out
 
   @property
   def heading_w(self) -> torch.Tensor:
     """Heading angle in world frame. Shape (num_envs,)."""
-    forward_w = quat_apply(self.root_link_quat_w, self.forward_vec_b)
-    return torch.atan2(forward_w[:, 1], forward_w[:, 0])
+    cache = self._derived_cache()
+    if (out := cache.get("heading_w")) is None:
+      forward_w = quat_apply(self.root_link_quat_w, self.forward_vec_b)
+      out = cache["heading_w"] = torch.atan2(forward_w[:, 1], forward_w[:, 0])
+    return out
 
   @property
   def root_link_lin_vel_b(self) -> torch.Tensor:
     """Root link linear velocity in body frame. Shape (num_envs, 3)."""
-    return quat_apply_inverse(self.root_link_quat_w, self.root_link_lin_vel_w)
+    cache = self._derived_cache()
+    if (out := cache.get("root_link_lin_vel_b")) is None:
+      out = cache["root_link_lin_vel_b"] = quat_apply_inverse(
+        self.root_link_quat_w, self.root_link_lin_vel_w
+      )
+    return out
 
   @property
   def root_link_ang_vel_b(self) -> torch.Tensor:
     """Root link angular velocity in body frame. Shape (num_envs, 3)."""
-    return quat_apply_inverse(self.root_link_quat_w, self.root_link_ang_vel_w)
+    cache = self._derived_cache()
+    if (out := cache.get("root_link_ang_vel_b")) is None:
+      out = cache["root_link_ang_vel_b"] = quat_apply_inverse(
+        self.root_link_quat_w, self.root_link_ang_vel_w
+      )
+    return out
 
   @property
   def root_com_lin_vel_b(self) -> torch.Tensor:
     """Root COM linear velocity in body frame. Shape (num_envs, 3)."""
-    return quat_apply_inverse(self.root_link_quat_w, self.root_com_lin_vel_w)
+    cache = self._derived_cache()
+    if (out := cache.get("root_com_lin_vel_b")) is None:
+      out = cache["root_com_lin_vel_b"] = quat_apply_inverse(
+        self.root_link_quat_w, self.root_com_lin_vel_w
+      )
+    return out
 
   @property
   def root_com_ang_vel_b(self) -> torch.Tensor:
     """Root COM angular velocity in body frame. Shape (num_envs, 3)."""
-    return quat_apply_inverse(self.root_link_quat_w, self.root_com_ang_vel_w)
+    cache = self._derived_cache()
+    if (out := cache.get("root_com_ang_vel_b")) is None:
+      out = cache["root_com_ang_vel_b"] = quat_apply_inverse(
+        self.root_link_quat_w, self.root_com_ang_vel_w
+      )
+    return out

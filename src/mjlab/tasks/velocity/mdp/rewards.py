@@ -445,18 +445,13 @@ class variable_posture:
 
     linear_speed = torch.norm(command[:, :2], dim=1)
     angular_speed = torch.abs(command[:, 2])
-    total_speed = linear_speed + angular_speed
+    total_speed = (linear_speed + angular_speed).unsqueeze(1)
 
-    standing_mask = (total_speed < walking_threshold).float()
-    walking_mask = (
-      (total_speed >= walking_threshold) & (total_speed < running_threshold)
-    ).float()
-    running_mask = (total_speed >= running_threshold).float()
-
-    std = (
-      self.std_standing * standing_mask.unsqueeze(1)
-      + self.std_walking * walking_mask.unsqueeze(1)
-      + self.std_running * running_mask.unsqueeze(1)
+    # Select the per-joint std for each env's speed regime.
+    std = torch.where(
+      total_speed < walking_threshold,
+      self.std_standing,
+      torch.where(total_speed < running_threshold, self.std_walking, self.std_running),
     )
 
     current_joint_pos = asset.data.joint_pos[:, asset_cfg.joint_ids]

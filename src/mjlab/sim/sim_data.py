@@ -197,6 +197,22 @@ class WarpBridge(Generic[T]):
     object.__setattr__(self, "_struct", struct)
     object.__setattr__(self, "_wrapped_cache", {})
     object.__setattr__(self, "_nworld", nworld)
+    object.__setattr__(self, "_version", 0)
+
+  @property
+  def version(self) -> int:
+    """Counter incremented each time simulation kernels modify the wrapped arrays.
+
+    :class:`Simulation` bumps it after ``step()``, ``forward()``, ``reset()`` and
+    constant recomputation. Consumers that derive quantities from the arrays (e.g.
+    :class:`~mjlab.entity.data.EntityData`) compare it against the version they
+    last computed at to decide whether their cached results are still valid.
+    """
+    return self._version
+
+  def bump_version(self) -> None:
+    """Mark the wrapped arrays as modified, invalidating derived-quantity caches."""
+    object.__setattr__(self, "_version", self._version + 1)
 
   def __getattr__(self, name: str) -> Any:
     """Get attribute from the wrapped data, wrapping Warp arrays as TorchArray."""

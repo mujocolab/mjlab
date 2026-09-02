@@ -277,6 +277,11 @@ class ObservationManager(ManagerBase):
     if policy == "disabled":
       return tensor
 
+    if policy == "sanitize":
+      # Unconditional scrub: one launch and no host synchronization, unlike
+      # checking ``.any()`` first.
+      return torch.nan_to_num(tensor, nan=0.0, posinf=0.0, neginf=0.0)
+
     has_nan = torch.isnan(tensor).any()
     has_inf = torch.isinf(tensor).any()
 
@@ -343,23 +348,36 @@ class ObservationManager(ManagerBase):
       group_term_names, self._group_obs_term_cfgs[group_name], strict=False
     )
     for term_name, term_cfg in obs_terms:
-      obs: torch.Tensor = term_cfg.func(self._env, **term_cfg.params).clone()
+      raw: torch.Tensor = term_cfg.func(self._env, **term_cfg.params)
+      # Term functions may return views into simulation buffers, so ``raw`` is
+      # never modified in place. ``owned`` tracks whether ``obs`` is already a
+      # fresh tensor; a copy is only made when nothing downstream (noise, clip,
+      # scale, delay, history, concatenation) produces one.
+      obs = raw
       if isinstance(term_cfg.noise, noise_cfg.NoiseCfg):
         obs = term_cfg.noise.apply(obs)
       elif isinstance(term_cfg.noise, noise_cfg.NoiseModelCfg):
         obs = self._group_obs_class_instances[group_name][term_name](obs)
+      owned = obs is not raw
       if term_cfg.clip:
-        obs = obs.clip_(min=term_cfg.clip[0], max=term_cfg.clip[1])
+        if owned:
+          obs = obs.clip_(min=term_cfg.clip[0], max=term_cfg.clip[1])
+        else:
+          obs = obs.clip(min=term_cfg.clip[0], max=term_cfg.clip[1])
+        owned = True
       if term_cfg.scale is not None:
         scale = term_cfg.scale
         assert isinstance(scale, torch.Tensor)
-        obs = obs.mul_(scale)
+        obs = obs.mul_(scale) if owned else obs * scale
+        owned = True
 
       # Check for NaN/Inf before delay/history buffers (per-term checking).
       if group_cfg.nan_check_per_term and group_cfg.nan_policy != "disabled":
-        obs = self._check_and_handle_nans(
+        checked = self._check_and_handle_nans(
           obs, context=f"{group_name}/{term_name}", policy=group_cfg.nan_policy
         )
+        owned = owned or checked is not obs
+        obs = checked
 
       if term_cfg.delay_max_lag > 0:
         delay_buffer = self._group_obs_term_delay_buffer[group_name][term_name]
@@ -382,6 +400,10 @@ class ObservationManager(ManagerBase):
         else:
           group_obs[term_name] = circular_buffer.buffer
       else:
+        # Concatenation copies; otherwise hand out a copy so the returned
+        # observation does not alias simulation state.
+        if not owned and not self._group_obs_concatenate[group_name]:
+          obs = obs.clone()
         group_obs[term_name] = obs
 
     # Final NaN check for non-per-term checking.

@@ -64,15 +64,27 @@ class RewardManager(ManagerBase):
 
     self.cfg = deepcopy(cfg)
     super().__init__(env=env)
-    self._episode_sums = dict()
-    for term_name in self._term_names:
-      self._episode_sums[term_name] = torch.zeros(
-        self.num_envs, dtype=torch.float, device=self.device
-      )
-    self._reward_buf = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
-    self._step_reward = torch.zeros(
-      (self.num_envs, len(self._term_names)), dtype=torch.float, device=self.device
+    num_terms = len(self._term_names)
+    # Per-term values live in (num_envs, num_terms) buffers so the weighting,
+    # NaN scrubbing, summation and episode bookkeeping run as a handful of batched
+    # ops instead of several per term. ``_episode_sums`` exposes column views.
+    self._episode_sums_buf = torch.zeros(
+      (self.num_envs, num_terms), dtype=torch.float, device=self.device
     )
+    self._episode_sums = {
+      term_name: self._episode_sums_buf[:, idx]
+      for idx, term_name in enumerate(self._term_names)
+    }
+    self._reward_buf = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
+    self._raw_values = torch.zeros(
+      (self.num_envs, num_terms), dtype=torch.float, device=self.device
+    )
+    self._step_reward = torch.zeros_like(self._raw_values)
+    self._zeros = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
+    # Term weights as a device tensor, rebuilt only when a weight changes (e.g. by
+    # a curriculum), so the per-step weighting needs no host-to-device copy.
+    self._weights_key: tuple[float, ...] | None = None
+    self._weights = torch.zeros(num_terms, dtype=torch.float, device=self.device)
 
   def __str__(self) -> str:
     msg = f"<RewardManager> contains {len(self._term_names)} active terms.\n"
@@ -102,35 +114,51 @@ class RewardManager(ManagerBase):
   ) -> dict[str, torch.Tensor]:
     if env_ids is None:
       env_ids = slice(None)
-    extras = {}
-    for key in self._episode_sums.keys():
-      episodic_sum_avg = torch.mean(self._episode_sums[key][env_ids])
-      extras["Episode_Reward/" + key] = (
-        episodic_sum_avg / self._env.max_episode_length_s
-      )
-      self._episode_sums[key][env_ids] = 0.0
+    # One batched mean over the selected envs; the logged values are 0-d views.
+    episodic_avg = (
+      self._episode_sums_buf[env_ids].mean(dim=0) / self._env.max_episode_length_s
+    )
+    extras = {
+      "Episode_Reward/" + key: episodic_avg[idx]
+      for idx, key in enumerate(self._term_names)
+    }
+    self._episode_sums_buf[env_ids] = 0.0
     for term_cfg in self._class_term_cfgs:
       term_cfg.func.reset(env_ids=env_ids)
     return extras
 
   def compute(self, dt: float) -> torch.Tensor:
-    self._reward_buf[:] = 0.0
     scale = dt if self._scale_by_dt else 1.0
-    for term_idx, (name, term_cfg) in enumerate(
-      zip(self._term_names, self._term_cfgs, strict=False)
-    ):
+    values: list[torch.Tensor] = []
+    for name, term_cfg in zip(self._term_names, self._term_cfgs, strict=False):
       if term_cfg.weight == 0.0:
-        self._step_reward[:, term_idx] = 0.0
+        values.append(self._zeros)
         continue
       value = term_cfg.func(self._env, **term_cfg.params)
       self._check_term_shape(name, value)
-      value = value * term_cfg.weight * scale
-      # NaN/Inf can occur from corrupted physics state; zero them to avoid policy crash.
-      value = torch.nan_to_num(value, nan=0.0, posinf=0.0, neginf=0.0)
-      self._reward_buf += value
-      self._episode_sums[name] += value
-      self._step_reward[:, term_idx] = value / scale
+      if value.dtype != torch.float:
+        value = value.float()
+      values.append(value)
+    if not values:
+      return self._reward_buf
+    # One launch gathers every term into the (num_envs, num_terms) buffer.
+    torch.stack(values, dim=1, out=self._raw_values)
+    # Unscaled reward rate per term (raw * weight).
+    torch.mul(self._raw_values, self._term_weights(), out=self._step_reward)
+    # NaN/Inf can occur from corrupted physics state; zero them to avoid policy crash.
+    torch.nan_to_num_(self._step_reward, nan=0.0, posinf=0.0, neginf=0.0)
+    scaled = self._step_reward * scale if scale != 1.0 else self._step_reward
+    torch.sum(scaled, dim=1, out=self._reward_buf)
+    self._episode_sums_buf += scaled
     return self._reward_buf
+
+  def _term_weights(self) -> torch.Tensor:
+    """Device tensor of term weights, refreshed when any weight changes."""
+    weights = tuple(float(term_cfg.weight) for term_cfg in self._term_cfgs)
+    if weights != self._weights_key:
+      self._weights_key = weights
+      self._weights = torch.tensor(weights, dtype=torch.float, device=self.device)
+    return self._weights
 
   def debug_vis(self, visualizer: DebugVisualizer) -> None:
     """Delegate debug visualization to class-based reward terms."""

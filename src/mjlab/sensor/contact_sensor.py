@@ -237,6 +237,8 @@ class ContactSensor(Sensor[ContactData]):
         )
 
     self._slots: list[_ContactSlot] = []
+    self._field_slots: dict[str, list[_ContactSlot]] = {}
+    self._field_views: dict[str, torch.Tensor] = {}
     self._data: mjwarp.Data | None = None
     self._device: str | None = None
     self._air_time_state: _AirTimeState | None = None
@@ -269,19 +271,24 @@ class ContactSensor(Sensor[ContactData]):
     # so each sensor's `sensordata` block is laid out as `[B, num_slots * dim]`
     # and `_extract_sensor_data` can reshape per field without computing
     # per-field offsets within an interleaved per-slot layout.
-    for prim in primary_names:
-      for field in self.cfg.fields:
-        sensor_name = f"{self.cfg.name}_{prim}_{field}"
-
+    #
+    # Sensors are added field-major (all primaries of one field, then the next
+    # field) so each field occupies one contiguous `sensordata` block in primary
+    # order and can be read as a single view (see `initialize`). Slots keep the
+    # primary-major order of the output layout.
+    for field in self.cfg.fields:
+      for prim in primary_names:
         self._add_contact_sensor_to_spec(
-          scene_spec, sensor_name, prim, secondary_name, field
+          scene_spec, f"{self.cfg.name}_{prim}_{field}", prim, secondary_name, field
         )
 
+    for prim in primary_names:
+      for field in self.cfg.fields:
         self._slots.append(
           _ContactSlot(
             primary_name=prim,
             field_name=field,
-            sensor_name=sensor_name,
+            sensor_name=f"{self.cfg.name}_{prim}_{field}",
           )
         )
 
@@ -301,6 +308,24 @@ class ContactSensor(Sensor[ContactData]):
       start = sensor.adr[0]
       dim = sensor.dim[0]
       slot.data_view = data.sensordata[:, start : start + dim]
+
+    # Per-field slots in primary order, and a single `[B, N, dim]` view of
+    # `sensordata` for every field whose sensors form one contiguous block (the
+    # layout `edit_spec` produces). Reading a view launches no kernels, unlike
+    # concatenating per-primary chunks.
+    self._field_slots = {
+      field: [slot for slot in self._slots if slot.field_name == field]
+      for field in self.cfg.fields
+    }
+    self._field_views = {}
+    for field, slots in self._field_slots.items():
+      block = self.cfg.num_slots * _CONTACT_DATA_DIMS[field]
+      adrs = [int(mj_model.sensor(slot.sensor_name).adr[0]) for slot in slots]
+      if adrs and all(adr == adrs[0] + i * block for i, adr in enumerate(adrs)):
+        start, end = adrs[0], adrs[0] + len(slots) * block
+        self._field_views[field] = data.sensordata[:, start:end].view(
+          -1, len(slots) * self.cfg.num_slots, _CONTACT_DATA_DIMS[field]
+        )
 
     self._data = data
     self._device = device
@@ -393,27 +418,38 @@ class ContactSensor(Sensor[ContactData]):
     within_dt = self._air_time_state.current_air_time < (dt + abs_tol)
     return is_in_air & within_dt
 
-  def _extract_sensor_data(self) -> ContactData:
+  def _extract_sensor_data(self, fields: tuple[str, ...] | None = None) -> ContactData:
+    """Read the requested fields (default: all configured) from sensordata."""
     if not self._slots:
       raise RuntimeError(f"Sensor '{self.cfg.name}' not initialized")
-
-    field_chunks: dict[str, list[torch.Tensor]] = {f: [] for f in self.cfg.fields}
-
-    for slot in self._slots:
-      assert slot.data_view is not None
-      field_dim = _CONTACT_DATA_DIMS[slot.field_name]
-      raw = slot.data_view.view(slot.data_view.size(0), self.cfg.num_slots, field_dim)
-      field_chunks[slot.field_name].append(raw)
+    if fields is None:
+      fields = self.cfg.fields
 
     out = ContactData()
-    for field, chunks in field_chunks.items():
-      cat = torch.cat(chunks, dim=1)
-      if cat.size(-1) == 1:
-        cat = cat.squeeze(-1)
-      setattr(out, field, cat)
+    for field in fields:
+      raw = self._field_views.get(field)
+      if raw is None:
+        # Non-contiguous layout: concatenate the per-primary chunks.
+        field_dim = _CONTACT_DATA_DIMS[field]
+        chunks = []
+        for slot in self._field_slots[field]:
+          assert slot.data_view is not None
+          chunks.append(
+            slot.data_view.view(slot.data_view.size(0), self.cfg.num_slots, field_dim)
+          )
+        raw = torch.cat(chunks, dim=1)
+      if raw.size(-1) == 1:
+        raw = raw.squeeze(-1)
+      setattr(out, field, raw)
 
     if self.cfg.global_frame and self.cfg.reduce != "netforce":
-      out = self._transform_to_global_frame(out)
+      if out.normal is not None and out.tangent is not None:
+        out = self._transform_to_global_frame(out)
+      elif out.force is not None or out.torque is not None:
+        raise ValueError(
+          "global_frame=True requires 'normal' and 'tangent' to be extracted "
+          "alongside 'force'/'torque'."
+        )
 
     return out
 
@@ -441,9 +477,10 @@ class ContactSensor(Sensor[ContactData]):
   def _update_air_time_tracking(self, dt: float) -> None:
     assert self._air_time_state is not None
 
-    contact_data = self._extract_sensor_data()
-    if contact_data.found is None or "found" not in self.cfg.fields:
+    if "found" not in self.cfg.fields:
       return
+    contact_data = self._extract_sensor_data(("found",))
+    assert contact_data.found is not None
 
     # Accumulate the exact float64 substep dt rather than differencing the
     # float32 sim clock (`data.time`). The clock's quantization error grows with
@@ -457,32 +494,27 @@ class ContactSensor(Sensor[ContactData]):
     if self.cfg.num_slots > 1:
       found = found.view(found.size(0), -1, self.cfg.num_slots).any(dim=-1)
     is_contact = found > 0
+    in_air = ~is_contact
 
     state = self._air_time_state
+    air_time = state.current_air_time + elapsed_time
+    contact_time = state.current_contact_time + elapsed_time
     is_first_contact = (state.current_air_time > 0) & is_contact
-    is_first_detached = (state.current_contact_time > 0) & ~is_contact
+    is_first_detached = (state.current_contact_time > 0) & in_air
 
-    state.last_air_time[:] = torch.where(
-      is_first_contact,
-      state.current_air_time + elapsed_time,
-      state.last_air_time,
+    torch.where(
+      is_first_contact, air_time, state.last_air_time, out=state.last_air_time
     )
-    state.current_air_time[:] = torch.where(
-      ~is_contact,
-      state.current_air_time + elapsed_time,
-      torch.zeros_like(state.current_air_time),
-    )
-
-    state.last_contact_time[:] = torch.where(
+    torch.where(
       is_first_detached,
-      state.current_contact_time + elapsed_time,
+      contact_time,
       state.last_contact_time,
+      out=state.last_contact_time,
     )
-    state.current_contact_time[:] = torch.where(
-      is_contact,
-      state.current_contact_time + elapsed_time,
-      torch.zeros_like(state.current_contact_time),
-    )
+    # Elapsed time keeps accumulating while the phase persists and drops to zero
+    # when it ends; multiplying by the phase mask does both in one launch.
+    torch.mul(air_time, in_air, out=state.current_air_time)
+    torch.mul(contact_time, is_contact, out=state.current_contact_time)
 
   def _update_history(self) -> None:
     """Roll history buffer and insert current contact data at index 0."""

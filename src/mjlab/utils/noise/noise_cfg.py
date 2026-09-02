@@ -71,14 +71,19 @@ class UniformNoiseCfg(NoiseCfg):
   @override
   def apply(self, data: torch.Tensor) -> torch.Tensor:
     n_min = self._get_cached_tensor("n_min", self.n_min, data.device)
-    n_max = self._get_cached_tensor("n_max", self.n_max, data.device)
+    cache = self._tensor_cache[str(data.device)]
+    n_range = cache.get("n_range")
+    if n_range is None:
+      n_max = self._get_cached_tensor("n_max", self.n_max, data.device)
+      n_range = cache["n_range"] = n_max - n_min
 
     # Generate uniform noise in [0, 1) and scale to [n_min, n_max).
-    noise = torch.rand_like(data) * (n_max - n_min) + n_min
-
     if self.operation == "add":
-      return data + noise
-    elif self.operation == "scale":
+      # data + rand * range + n_min, fused into two launches after the draw.
+      return torch.addcmul(data + n_min, torch.rand_like(data), n_range)
+    noise = torch.rand_like(data) * n_range + n_min
+
+    if self.operation == "scale":
       return data * noise
     elif self.operation == "abs":
       return noise

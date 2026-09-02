@@ -30,6 +30,7 @@ import torch
 from mjlab.actuator.actuator import ActuatorCmd, TransmissionType, delay_command
 from mjlab.actuator.pd_actuator import IdealPdActuator
 from mjlab.utils.buffers import DelayBuffer
+from mjlab.utils.torch import as_index
 
 if TYPE_CHECKING:
   from mjlab.actuator.actuator import Actuator
@@ -91,6 +92,14 @@ class _FusedGroup:
   absorbed_actuators: list[Actuator] = field(default_factory=list)
   params: dict[str, torch.Tensor] = field(default_factory=dict, init=False)
   delay_buffer: DelayBuffer | None = field(default=None, init=False)
+  # Slice forms of the ids (when contiguous) so the per-substep gathers and ctrl
+  # write are views/copies rather than index kernels.
+  target_sel: torch.Tensor | slice = field(init=False, repr=False)
+  ctrl_sel: torch.Tensor | slice = field(init=False, repr=False)
+
+  def __post_init__(self) -> None:
+    self.target_sel = as_index(self.target_ids)
+    self.ctrl_sel = as_index(self.ctrl_ids)
 
   @property
   def has_delay(self) -> bool:
@@ -200,7 +209,7 @@ class FusedActuatorGroup:
       pos_attr, vel_attr, eff_attr, cur_pos_attr, cur_vel_attr = _FIELD_MAP[
         group.transmission_type
       ]
-      ids = group.target_ids
+      ids = group.target_sel
       pos_target = getattr(data, pos_attr)[:, ids]
       vel_target = getattr(data, vel_attr)[:, ids]
       effort_target = getattr(data, eff_attr)[:, ids]
@@ -220,4 +229,4 @@ class FusedActuatorGroup:
         vel=vel,
       )
       torques = group.actuator_type.control_law(group.params, cmd)
-      data.write_ctrl(torques, group.ctrl_ids)
+      data.write_ctrl(torques, group.ctrl_sel)

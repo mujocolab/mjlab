@@ -481,6 +481,7 @@ class Simulation:
     fn = getattr(mjwarp, level.name)
     with wp.ScopedDevice(self.wp_device):
       fn(self._wp_model, self._wp_data)
+    self._data_bridge.bump_version()
 
   def forward(self) -> None:
     with wp.ScopedDevice(self.wp_device):
@@ -488,14 +489,22 @@ class Simulation:
         wp.capture_launch(self.forward_graph)
       else:
         mjwarp.forward(self.wp_model, self.wp_data)
+    self._data_bridge.bump_version()
 
   def step(self) -> None:
     with wp.ScopedDevice(self.wp_device):
-      with self.nan_guard.watch(self.data):
-        if self.use_cuda_graph and self.step_graph is not None:
-          wp.capture_launch(self.step_graph)
-        else:
-          mjwarp.step(self.wp_model, self.wp_data)
+      if self.nan_guard.enabled:
+        with self.nan_guard.watch(self.data):
+          self._step_kernels()
+      else:
+        self._step_kernels()
+    self._data_bridge.bump_version()
+
+  def _step_kernels(self) -> None:
+    if self.use_cuda_graph and self.step_graph is not None:
+      wp.capture_launch(self.step_graph)
+    else:
+      mjwarp.step(self.wp_model, self.wp_data)
 
   def reset(self, env_ids: torch.Tensor | None = None) -> None:
     with wp.ScopedDevice(self.wp_device):
@@ -509,6 +518,7 @@ class Simulation:
         wp.capture_launch(self.reset_graph)
       else:
         mjwarp.reset_data(self.wp_model, self.wp_data, reset=self._reset_mask_wp)
+    self._data_bridge.bump_version()
 
   def set_sensor_context(self, ctx: SensorContext) -> None:
     """Wire a SensorContext for camera/raycast sensing.

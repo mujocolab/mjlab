@@ -92,18 +92,18 @@ class CurriculumManager(ManagerBase):
         terms.append((term_name, data))
     return terms
 
-  def reset(self, env_ids: torch.Tensor | slice | None = None) -> dict[str, float]:
-    extras = {}
+  def reset(
+    self, env_ids: torch.Tensor | slice | None = None
+  ) -> dict[str, float | torch.Tensor]:
+    # Tensor states are logged as-is: calling .item() here would synchronize
+    # with the device on every reset. The logger reads the values later.
+    extras: dict[str, float | torch.Tensor] = {}
     for term_name, term_state in self._curriculum_state.items():
       if term_state is not None:
         if isinstance(term_state, dict):
           for key, value in term_state.items():
-            if isinstance(value, torch.Tensor):
-              value = value.item()
             extras[f"Curriculum/{term_name}/{key}"] = value
         else:
-          if isinstance(term_state, torch.Tensor):
-            term_state = term_state.item()
           extras[f"Curriculum/{term_name}"] = term_state
     for term_cfg in self._class_term_cfgs:
       term_cfg.func.reset(env_ids=env_ids)

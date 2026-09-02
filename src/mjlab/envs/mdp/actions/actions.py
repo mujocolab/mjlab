@@ -10,6 +10,7 @@ import torch
 from mjlab.actuator.actuator import TransmissionType
 from mjlab.managers.action_manager import ActionTerm, ActionTermCfg
 from mjlab.utils.lab_api.string import resolve_matching_names_values
+from mjlab.utils.torch import as_index
 
 if TYPE_CHECKING:
   from mjlab.entity import Entity
@@ -52,6 +53,9 @@ class BaseAction(ActionTerm):
     # Find targets based on transmission type.
     target_ids, target_names = self._find_targets(cfg)
     self._target_ids = torch.tensor(target_ids, device=self.device, dtype=torch.long)
+    # Slice form of the target ids (when contiguous) so per-substep target writes
+    # are plain copies rather than scatter kernels.
+    self._target_sel = as_index(self._target_ids)
     self._target_names = target_names
 
     self._num_targets = len(target_ids)
@@ -219,9 +223,9 @@ class JointPositionAction(BaseAction):
       self._offset = self._entity.data.default_joint_pos[:, self._target_ids].clone()
 
   def apply_actions(self) -> None:
-    encoder_bias = self._entity.data.encoder_bias[:, self._target_ids]
+    encoder_bias = self._entity.data.encoder_bias[:, self._target_sel]
     target = self._processed_actions - encoder_bias
-    self._entity.set_joint_position_target(target, joint_ids=self._target_ids)
+    self._entity.set_joint_position_target(target, joint_ids=self._target_sel)
 
 
 @dataclass(kw_only=True)
@@ -252,9 +256,9 @@ class RelativeJointPositionAction(BaseAction):
   """Control joints via position targets relative to current positions."""
 
   def apply_actions(self) -> None:
-    current_pos = self._entity.data.joint_pos[:, self._target_ids]
+    current_pos = self._entity.data.joint_pos[:, self._target_sel]
     target = current_pos + self._processed_actions
-    self._entity.set_joint_position_target(target, joint_ids=self._target_ids)
+    self._entity.set_joint_position_target(target, joint_ids=self._target_sel)
 
 
 class JointVelocityAction(BaseAction):
@@ -268,7 +272,7 @@ class JointVelocityAction(BaseAction):
 
   def apply_actions(self) -> None:
     self._entity.set_joint_velocity_target(
-      self._processed_actions, joint_ids=self._target_ids
+      self._processed_actions, joint_ids=self._target_sel
     )
 
 
@@ -280,7 +284,7 @@ class JointEffortAction(BaseAction):
 
   def apply_actions(self) -> None:
     self._entity.set_joint_effort_target(
-      self._processed_actions, joint_ids=self._target_ids
+      self._processed_actions, joint_ids=self._target_sel
     )
 
 
@@ -330,7 +334,7 @@ class TendonLengthAction(BaseAction):
 
   def apply_actions(self) -> None:
     self._entity.set_tendon_len_target(
-      self._processed_actions, tendon_ids=self._target_ids
+      self._processed_actions, tendon_ids=self._target_sel
     )
 
 
@@ -342,7 +346,7 @@ class TendonVelocityAction(BaseAction):
 
   def apply_actions(self) -> None:
     self._entity.set_tendon_vel_target(
-      self._processed_actions, tendon_ids=self._target_ids
+      self._processed_actions, tendon_ids=self._target_sel
     )
 
 
@@ -354,7 +358,7 @@ class TendonEffortAction(BaseAction):
 
   def apply_actions(self) -> None:
     self._entity.set_tendon_effort_target(
-      self._processed_actions, tendon_ids=self._target_ids
+      self._processed_actions, tendon_ids=self._target_sel
     )
 
 
@@ -382,5 +386,5 @@ class SiteEffortAction(BaseAction):
 
   def apply_actions(self) -> None:
     self._entity.set_site_effort_target(
-      self._processed_actions, site_ids=self._target_ids
+      self._processed_actions, site_ids=self._target_sel
     )
