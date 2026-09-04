@@ -15,6 +15,10 @@ Changed
 Fixed
 ^^^^^
 
+- Adaptive motion-command sampling now normalises failure statistics before
+  applying ``adaptive_uniform_ratio``, making it a scale-invariant coverage
+  floor. Set ``adaptive_uniform_mode="additive"`` to retain legacy
+  pseudo-count behaviour :issue:`1153`.
 - Capped ``wandb`` below 0.29, which removed the ``start_method`` setting still passed
   by ``rsl-rl-lib`` and crashed training runs launched with ``--logger wandb``.
 - ``distribution="gaussian"`` domain randomization now draws an independent value per

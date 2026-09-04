@@ -10,7 +10,10 @@ from conftest import get_test_device
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.managers.command_manager import CommandTerm, CommandTermCfg
 from mjlab.tasks.cartpole.cartpole_env_cfg import cartpole_balance_env_cfg
-from mjlab.tasks.tracking.mdp.commands import MotionCommand
+from mjlab.tasks.tracking.mdp.commands import (
+  MotionCommand,
+  _adaptive_sampling_probabilities,
+)
 
 
 @pytest.fixture(scope="module")
@@ -108,6 +111,7 @@ def _make_motion_command_stub(time_steps, total, sampling_mode="uniform"):
   cmd.cfg = Mock()
   cmd.cfg.sampling_mode = sampling_mode
   cmd.cfg.adaptive_alpha = 0.5
+  cmd.cfg.adaptive_uniform_mode = "mixture"
   cmd.bin_failed_count = torch.tensor([1.0, 1.0])
   cmd._current_bin_failed = torch.tensor([4.0, 4.0])
   cmd._pending_forward = False
@@ -177,3 +181,52 @@ def test_motion_command_timer_resample_triggers_forward():
   cmd._env.sim.forward.reset_mock()
   MotionCommand._update_command(cmd, env_ids=None)
   cmd._env.sim.forward.assert_not_called()
+
+
+def test_adaptive_sampling_zero_failures_is_uniform():
+  probabilities = _adaptive_sampling_probabilities(
+    torch.zeros(5), 0.2, torch.tensor([1.0])
+  )
+
+  torch.testing.assert_close(probabilities, torch.full((5,), 0.2))
+
+
+def test_adaptive_sampling_mixture_is_scale_invariant():
+  kernel = torch.tensor([0.2, 0.5, 0.3])
+  probabilities = _adaptive_sampling_probabilities(
+    torch.tensor([1.0, 0.0, 3.0, 2.0]), 0.1, kernel
+  )
+  scaled_probabilities = _adaptive_sampling_probabilities(
+    torch.tensor([100.0, 0.0, 300.0, 200.0]), 0.1, kernel
+  )
+
+  torch.testing.assert_close(probabilities, scaled_probabilities)
+
+
+def test_adaptive_sampling_mixture_honors_uniform_floor():
+  uniform_ratio = 0.25
+  bin_count = 7
+  probabilities = _adaptive_sampling_probabilities(
+    torch.nn.functional.one_hot(torch.tensor(3), bin_count).float() * 100.0,
+    uniform_ratio,
+    torch.tensor([1.0]),
+  )
+
+  floor = uniform_ratio / bin_count
+  assert torch.all(probabilities >= floor)
+  torch.testing.assert_close(probabilities.sum(), torch.tensor(1.0))
+  torch.testing.assert_close(
+    probabilities[3], torch.tensor(1.0 - uniform_ratio + floor)
+  )
+
+
+def test_adaptive_sampling_additive_mode_preserves_legacy_formula():
+  counts = torch.tensor([2.0, 0.0, 1.0])
+  uniform_ratio = 0.2
+  probabilities = _adaptive_sampling_probabilities(
+    counts, uniform_ratio, torch.tensor([1.0]), mode="additive"
+  )
+  expected = counts + uniform_ratio / counts.numel()
+  expected = expected / expected.sum()
+
+  torch.testing.assert_close(probabilities, expected)

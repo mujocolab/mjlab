@@ -33,6 +33,89 @@ if TYPE_CHECKING:
 _DESIRED_FRAME_COLORS = ((1.0, 0.5, 0.5), (0.5, 1.0, 0.5), (0.5, 0.5, 1.0))
 
 
+def _adaptive_sampling_probabilities(
+  failure_counts: torch.Tensor,
+  uniform_ratio: float,
+  kernel: torch.Tensor,
+  mode: Literal["mixture", "additive"] = "mixture",
+) -> torch.Tensor:
+  """Compute adaptive sampling probabilities from failure statistics.
+
+  In ``"mixture"`` mode, failure counts are first normalised into a
+  distribution.  The configured uniform ratio is then an actual convex-mixture
+  weight, so it is independent of the number of failures or environments.  The
+  ``"additive"`` mode retains the pre-fix pseudo-count behaviour for configs
+  that need to reproduce an older run.
+
+  Args:
+    failure_counts: One-dimensional, non-negative failure EMA per motion bin.
+    uniform_ratio: Mass assigned to the uniform distribution in mixture mode.
+    kernel: Non-negative smoothing kernel. It is normalised internally.
+    mode: Either the scale-invariant ``"mixture"`` or legacy ``"additive"``.
+
+  Returns:
+    A finite, non-negative probability vector that sums to one.
+  """
+  if failure_counts.ndim != 1 or failure_counts.numel() == 0:
+    raise ValueError("failure_counts must be a non-empty one-dimensional tensor")
+  if kernel.ndim != 1 or kernel.numel() == 0:
+    raise ValueError("kernel must be a non-empty one-dimensional tensor")
+  if mode not in ("mixture", "additive"):
+    raise ValueError(f"unsupported adaptive sampling mode: {mode!r}")
+  if not math.isfinite(uniform_ratio) or uniform_ratio < 0.0:
+    raise ValueError("uniform_ratio must be finite and non-negative")
+  if mode == "mixture" and uniform_ratio > 1.0:
+    raise ValueError("uniform_ratio must be at most 1 in mixture mode")
+
+  if not failure_counts.is_floating_point():
+    failure_counts = failure_counts.float()
+  counts = failure_counts.clamp_min(0)
+  bin_count = counts.numel()
+  uniform = torch.full_like(counts, 1.0 / bin_count)
+
+  kernel = kernel.to(device=counts.device, dtype=counts.dtype)
+  kernel_sum = kernel.sum().clamp_min(torch.finfo(counts.dtype).tiny)
+  kernel = kernel / kernel_sum
+
+  if mode == "additive":
+    distribution = counts + uniform_ratio / bin_count
+  else:
+    # Clamp the denominator before division so an all-zero EMA never creates
+    # NaNs, while the where branch still selects an exactly uniform prior.
+    safe_total = counts.sum().clamp_min(torch.finfo(counts.dtype).tiny)
+    distribution = torch.where(counts.sum() > 0, counts / safe_total, uniform)
+
+  if kernel.numel() > 1:
+    distribution = torch.nn.functional.pad(
+      distribution.unsqueeze(0).unsqueeze(0),
+      (0, kernel.numel() - 1),
+      mode="replicate",
+    )
+    distribution = torch.nn.functional.conv1d(distribution, kernel.view(1, 1, -1)).view(
+      -1
+    )
+
+  # Replicate padding changes the total mass at the boundaries. Renormalising
+  # here is required before applying a convex mixture; otherwise the requested
+  # uniform ratio would again depend on the failure scale.
+  distribution_total = distribution.sum()
+  distribution = torch.where(
+    distribution_total > 0,
+    distribution / distribution_total.clamp_min(torch.finfo(distribution.dtype).tiny),
+    uniform,
+  )
+
+  if mode == "mixture":
+    distribution = (1.0 - uniform_ratio) * distribution + uniform_ratio * uniform
+
+  total = distribution.sum()
+  return torch.where(
+    total > 0,
+    distribution / total.clamp_min(torch.finfo(distribution.dtype).tiny),
+    uniform,
+  )
+
+
 class MotionLoader:
   def __init__(
     self, motion_file: str, body_indexes: torch.Tensor, device: str = "cpu"
@@ -259,19 +342,12 @@ class MotionCommand(CommandTerm):
       self._current_bin_failed[:] = torch.bincount(fail_bins, minlength=self.bin_count)
 
     # Sample.
-    sampling_probabilities = (
-      self.bin_failed_count + self.cfg.adaptive_uniform_ratio / float(self.bin_count)
+    sampling_probabilities = _adaptive_sampling_probabilities(
+      self.bin_failed_count,
+      self.cfg.adaptive_uniform_ratio,
+      self.kernel,
+      self.cfg.adaptive_uniform_mode,
     )
-    sampling_probabilities = torch.nn.functional.pad(
-      sampling_probabilities.unsqueeze(0).unsqueeze(0),
-      (0, self.cfg.adaptive_kernel_size - 1),  # Non-causal kernel
-      mode="replicate",
-    )
-    sampling_probabilities = torch.nn.functional.conv1d(
-      sampling_probabilities, self.kernel.view(1, 1, -1)
-    ).view(-1)
-
-    sampling_probabilities = sampling_probabilities / sampling_probabilities.sum()
 
     sampled_bins = torch.multinomial(
       sampling_probabilities, len(env_ids), replacement=True
@@ -616,6 +692,7 @@ class MotionCommandCfg(CommandTermCfg):
   adaptive_kernel_size: int = 1
   adaptive_lambda: float = 0.8
   adaptive_uniform_ratio: float = 0.1
+  adaptive_uniform_mode: Literal["mixture", "additive"] = "mixture"
   adaptive_alpha: float = 0.001
   sampling_mode: Literal["adaptive", "uniform", "start"] = "adaptive"
 
