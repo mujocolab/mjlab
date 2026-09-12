@@ -5,6 +5,22 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- ``ContactSensor`` history buffers now cover every requested per-contact
+  field (``found``, ``pos``, ``normal``, ``tangent`` in addition to the
+  ``force``/``torque``/``dist`` buffering introduced for decimation-safe
+  detection in PR #699), so brief collisions that appear and resolve
+  within a decimation substep can be detected without relying on contact
+  forces.
+- Added ``ContactSensorCfg.catch_substep_contacts``, extending the PR #699
+  approach with an opt-in per-control-step latch that accumulates contacts
+  across physics substeps and exposes ``found_any``, ``force_peak``,
+  ``dist_at_peak``, and ``pos_at_peak`` on ``ContactData``. The env clears
+  the latch at each control-step boundary via the new
+  ``Scene.begin_control_step()`` hook.
+
 Changed
 ^^^^^^^
 
@@ -15,6 +31,9 @@ Changed
 Fixed
 ^^^^^
 
+- Sensor data cached during the reward/termination stage of ``ManagerBasedRlEnv.step()``
+  is now invalidated after the post-decimation ``forward()``, so observations
+  read post-forward values instead of a stale snapshot.
 - Capped ``wandb`` below 0.29, which removed the ``start_method`` setting still passed
   by ``rsl-rl-lib`` and crashed training runs launched with ``--logger wandb``.
 - ``distribution="gaussian"`` domain randomization now draws an independent value per
