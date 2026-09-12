@@ -7126,5 +7126,38 @@
         "overhead_pct": 53.97746501943019
       }
     ]
+  },
+  {
+    "created_at": "2026-09-12T10:13:05.163158+00:00",
+    "commit": "8ee51fb",
+    "results": [
+      {
+        "task": "Mjlab-Velocity-Flat-Unitree-Go1",
+        "num_envs": 4096,
+        "num_steps": 200,
+        "decimation": 4,
+        "physics_sps": 998730.7499151764,
+        "env_sps": 318801.56899570127,
+        "overhead_pct": 68.07932778451273
+      },
+      {
+        "task": "Mjlab-Tracking-Flat-Unitree-G1",
+        "num_envs": 4096,
+        "num_steps": 200,
+        "decimation": 4,
+        "physics_sps": 724234.9173868925,
+        "env_sps": 247784.55704952672,
+        "overhead_pct": 65.78671490411472
+      },
+      {
+        "task": "Mjlab-Lift-Cube-Yam",
+        "num_envs": 4096,
+        "num_steps": 200,
+        "decimation": 4,
+        "physics_sps": 1892281.7943194981,
+        "env_sps": 867426.0171259671,
+        "overhead_pct": 54.1597863632192
+      }
+    ]
   }
 ]
