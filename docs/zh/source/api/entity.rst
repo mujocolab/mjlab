@@ -3,7 +3,7 @@ mjlab.entity
 
 .. automodule:: mjlab.entity
 
-.. rubric:: Classes
+.. rubric:: 类
 
 .. hlist::
   :columns: 3

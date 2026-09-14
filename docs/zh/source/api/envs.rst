@@ -3,7 +3,7 @@ mjlab.envs
 
 .. automodule:: mjlab.envs
 
-.. rubric:: Classes
+.. rubric:: 类
 
 .. hlist::
   :columns: 3

@@ -3,7 +3,7 @@ mjlab.scene
 
 .. automodule:: mjlab.scene
 
-.. rubric:: Classes
+.. rubric:: 类
 
 .. hlist::
   :columns: 3

@@ -3,7 +3,7 @@ mjlab.managers
 
 .. automodule:: mjlab.managers
 
-.. rubric:: Classes
+.. rubric:: 类
 
 .. hlist::
   :columns: 3
@@ -40,7 +40,7 @@ mjlab.managers
   - :class:`RecorderTerm`
   - :class:`RecorderTermCfg`
 
-Base
+基类
 ----
 
 .. autoclass:: ManagerBase
@@ -62,7 +62,7 @@ Base
   :exclude-members: __init__
   :undoc-members:
 
-Action Manager
+动作管理器
 --------------
 
 .. autoclass:: ActionManager
@@ -78,7 +78,7 @@ Action Manager
   :exclude-members: __init__
   :undoc-members:
 
-Observation Manager
+观测管理器
 -------------------
 
 .. autoclass:: ObservationManager
@@ -96,7 +96,7 @@ Observation Manager
   :exclude-members: __init__
   :undoc-members:
 
-Reward Manager
+奖励管理器
 --------------
 
 .. autoclass:: RewardManager
@@ -108,7 +108,7 @@ Reward Manager
   :exclude-members: __init__
   :undoc-members:
 
-Termination Manager
+终止管理器
 -------------------
 
 .. autoclass:: TerminationManager
@@ -120,7 +120,7 @@ Termination Manager
   :exclude-members: __init__
   :undoc-members:
 
-Command Manager
+指令管理器
 ---------------
 
 .. autoclass:: CommandManager
@@ -140,7 +140,7 @@ Command Manager
   :exclude-members: __init__
   :undoc-members:
 
-Curriculum Manager
+课程管理器
 ------------------
 
 .. autoclass:: CurriculumManager
@@ -156,7 +156,7 @@ Curriculum Manager
   :exclude-members: __init__
   :undoc-members:
 
-Event Manager
+事件管理器
 -------------
 
 .. autoclass:: EventManager
@@ -172,7 +172,7 @@ Event Manager
   :exclude-members: __init__
   :undoc-members:
 
-Metrics Manager
+指标管理器
 ---------------
 
 .. autoclass:: MetricsManager
@@ -187,7 +187,7 @@ Metrics Manager
   :members:
   :exclude-members: __init__
 
-Recorder Manager
+记录器管理器
 ----------------
 
 .. autoclass:: RecorderManager

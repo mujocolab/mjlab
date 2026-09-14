@@ -3,7 +3,7 @@ mjlab.actuator
 
 .. automodule:: mjlab.actuator
 
-.. rubric:: Classes
+.. rubric:: 类
 
 .. hlist::
   :columns: 3
@@ -36,7 +36,7 @@ mjlab.actuator
   - :class:`LearnedMlpActuator`
   - :class:`LearnedMlpActuatorCfg`
 
-Base
+基类
 ----
 
 .. autoclass:: Actuator
@@ -54,7 +54,7 @@ Base
   :exclude-members: __init__
   :undoc-members:
 
-Builtin Actuators
+内置执行器
 -----------------
 
 .. autoclass:: BuiltinActuatorGroup
@@ -134,7 +134,7 @@ Builtin Actuators
   :exclude-members: __init__
   :undoc-members:
 
-XML Actuators
+XML 执行器
 -------------
 
 .. autoclass:: XmlActuator
@@ -146,7 +146,7 @@ XML Actuators
   :exclude-members: __init__
   :undoc-members:
 
-Ideal PD Actuator
+理想 PD 执行器
 -----------------
 
 .. autoclass:: IdealPdActuator
@@ -158,7 +158,7 @@ Ideal PD Actuator
   :exclude-members: __init__
   :undoc-members:
 
-DC Motor Actuator
+直流电机执行器
 -----------------
 
 .. autoclass:: DcMotorActuator
@@ -170,7 +170,7 @@ DC Motor Actuator
   :exclude-members: __init__
   :undoc-members:
 
-Learned MLP Actuator
+学习型 MLP 执行器
 --------------------
 
 .. autoclass:: LearnedMlpActuator

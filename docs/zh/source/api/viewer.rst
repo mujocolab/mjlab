@@ -3,7 +3,7 @@ mjlab.viewer
 
 .. automodule:: mjlab.viewer
 
-.. rubric:: Classes
+.. rubric:: 类
 
 .. hlist::
   :columns: 3
@@ -14,7 +14,7 @@ mjlab.viewer
   - :class:`ViserPlayViewer`
   - :class:`OffscreenRenderer`
 
-.. rubric:: Protocols
+.. rubric:: 协议
 
 .. hlist::
   :columns: 3
@@ -59,7 +59,7 @@ OffscreenRenderer
   :members:
   :show-inheritance:
 
-Protocols
+协议
 ---------
 
 .. autoclass:: EnvProtocol

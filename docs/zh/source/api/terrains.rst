@@ -3,7 +3,7 @@ mjlab.terrains
 
 .. automodule:: mjlab.terrains
 
-.. rubric:: Classes
+.. rubric:: 类
 
 .. hlist::
   :columns: 3
@@ -31,7 +31,7 @@ mjlab.terrains
   - :class:`BoxSteppingStonesTerrainCfg`
   - :class:`BoxTiltedGridTerrainCfg`
 
-Core
+核心
 ----
 
 .. autoclass:: TerrainEntity
@@ -64,7 +64,7 @@ Core
   :exclude-members: __init__
   :undoc-members:
 
-Heightfield Terrains
+高度场地形
 --------------------
 
 .. autoclass:: HfDiscreteObstaclesTerrainCfg
@@ -97,7 +97,7 @@ Heightfield Terrains
   :undoc-members:
   :show-inheritance:
 
-Primitive (Box) Terrains
+图元（盒体）地形
 ------------------------
 
 .. autoclass:: BoxFlatTerrainCfg

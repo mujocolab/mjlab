@@ -3,7 +3,7 @@ mjlab.sim
 
 .. automodule:: mjlab.sim
 
-.. rubric:: Classes
+.. rubric:: 类
 
 .. hlist::
   :columns: 3

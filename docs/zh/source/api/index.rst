@@ -1,7 +1,7 @@
-API Reference
+API 参考
 =============
 
-This section provides detailed API documentation for all public modules in mjlab.
+本节提供 mjlab 所有公共模块的详细 API 文档。
 
 .. toctree::
    :maxdepth: 1

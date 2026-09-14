@@ -3,7 +3,7 @@ mjlab.sensor
 
 .. automodule:: mjlab.sensor
 
-.. rubric:: Classes
+.. rubric:: 类
 
 .. hlist::
   :columns: 3
@@ -27,7 +27,7 @@ mjlab.sensor
   - :class:`CameraSensorCfg`
   - :class:`CameraSensorData`
 
-Base
+基类
 ----
 
 .. autoclass:: Sensor
@@ -43,7 +43,7 @@ Base
 .. autoclass:: SensorContext
   :members:
 
-Builtin Sensor
+内置传感器
 --------------
 
 .. autoclass:: BuiltinSensor
@@ -61,7 +61,7 @@ Builtin Sensor
   :exclude-members: __init__
   :undoc-members:
 
-Contact Sensor
+接触传感器
 --------------
 
 .. autoclass:: ContactSensor
@@ -82,7 +82,7 @@ Contact Sensor
   :exclude-members: __init__
   :undoc-members:
 
-Ray Cast Sensor
+光线投射传感器
 ---------------
 
 .. autoclass:: RayCastSensor
@@ -109,7 +109,7 @@ Ray Cast Sensor
   :exclude-members: __init__
   :undoc-members:
 
-Camera Sensor
+相机传感器
 -------------
 
 .. autoclass:: CameraSensor

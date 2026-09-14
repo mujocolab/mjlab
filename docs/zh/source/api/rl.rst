@@ -3,7 +3,7 @@ mjlab.rl
 
 .. automodule:: mjlab.rl
 
-.. rubric:: Classes
+.. rubric:: 类
 
 .. hlist::
   :columns: 3
@@ -15,7 +15,7 @@ mjlab.rl
   - :class:`RslRlModelCfg`
   - :class:`RslRlBaseRunnerCfg`
 
-Runner
+运行器
 ------
 
 .. autoclass:: MjlabOnPolicyRunner
@@ -26,7 +26,7 @@ Runner
   :members:
   :show-inheritance:
 
-Configuration
+配置
 -------------
 
 .. autoclass:: RslRlOnPolicyRunnerCfg

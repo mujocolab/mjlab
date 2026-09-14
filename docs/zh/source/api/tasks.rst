@@ -3,7 +3,7 @@ mjlab.tasks
 
 .. automodule:: mjlab.tasks.registry
 
-.. rubric:: Functions
+.. rubric:: 函数
 
 .. hlist::
   :columns: 3
