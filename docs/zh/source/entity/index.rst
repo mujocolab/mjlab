@@ -1,76 +1,70 @@
 .. _entity:
 
-Entity
-======
+实体（Entity）
+==============
 
-An ``Entity`` represents a physical object in the simulation: a robot, a
-manipulated object, or a fixed fixture like a table. It is the central
-abstraction in mjlab's physics layer.
+``Entity`` 表示仿真中的一个物理对象：机器人、被操作的对象，或桌子这类
+固定装置。它是 mjlab 物理层的核心抽象。
 
-A single ``Entity`` class covers all variants (contrast Isaac Lab, which
-splits this across ``Articulation``, ``RigidObject``, and several other
-subclasses of ``AssetBase``). Two orthogonal boolean properties classify
-each instance:
+单一的 ``Entity`` 类覆盖所有变体（对比 Isaac Lab——它把这一概念拆分为
+``Articulation``、``RigidObject`` 以及 ``AssetBase`` 的若干其他子类）。
+两个正交的布尔属性对每个实例分类：
 
-**Base type.**
-  A *fixed-base* entity is welded to the world and has no free joint. A
-  *floating-base* entity has a free joint giving it 6-DOF movement.
+**基座类型。**
+  *固定基座* 实体被焊接在世界坐标系上，没有自由关节。*浮动基座* 实体
+  拥有一个自由关节，提供 6 自由度运动。
 
-**Articulation.**
-  An *articulated* entity has internal joints (revolute, prismatic, etc.).
-  A *non-articulated* entity has none beyond a possible free joint.
+**铰接性。**
+  *铰接* 实体拥有内部关节（转动关节、滑动关节等）。*非铰接* 实体除了
+  可能存在的自由关节外没有其他关节。
 
 .. list-table::
    :header-rows: 1
    :widths: 30 25 15 15 15
 
-   * - Type
-     - Example
+   * - 类型
+     - 例子
      - ``is_fixed_base``
      - ``is_articulated``
      - ``is_actuated``
-   * - Fixed non-articulated
-     - Table, wall
+   * - 固定基座、非铰接
+     - 桌子、墙
      - True
      - False
      - False
-   * - Fixed articulated
-     - Robot arm, door
+   * - 固定基座、铰接
+     - 机械臂、门
      - True
      - True
      - True/False
-   * - Floating non-articulated
-     - Box, ball, mug
+   * - 浮动基座、非铰接
+     - 盒子、球、杯子
      - False
      - False
      - False
-   * - Floating articulated
-     - Humanoid, quadruped
+   * - 浮动基座、铰接
+     - 人形机器人、四足机器人
      - False
      - True
      - True/False
 
 .. note::
 
-   mjlab automatically wraps every fixed-base entity in a
+   mjlab 会自动把每个固定基座实体包装进一个
    `mocap body <https://mujoco.readthedocs.io/en/stable/modeling.html#mocap-bodies>`_
-   so that each parallel environment can place the entity at a different
-   position. Without this wrapping, all fixed-base entities would be
-   welded to the world origin. The wrapping is transparent, but
-   **positioning only happens when a reset event runs**. You must
-   include a reset event such as ``reset_root_state_uniform`` in your
-   event config; without one, every fixed-base entity will remain at
-   the origin. See the :ref:`FAQ <faq>` for a full example. Mocap
-   entities can also be repositioned at runtime via
-   ``entity.write_mocap_pose_to_sim()``.
+   （运动捕获体），使每个并行环境可以把该实体放到不同位置。若没有这层
+   包装，所有固定基座实体都会被焊死在世界原点。包装过程是透明的，但
+   **只有在重置事件运行时才会执行定位**。你必须在自己的事件配置中包含
+   ``reset_root_state_uniform`` 之类的重置事件；否则每个固定基座实体都会
+   停在原点。完整示例见 :ref:`FAQ <faq>`。mocap 实体也可以在运行时通过
+   ``entity.write_mocap_pose_to_sim()`` 重新定位。
 
 
-Configuring an entity
----------------------
+配置实体
+--------
 
-Every entity is described by an ``EntityCfg``. Only ``spec_fn`` is
-required in practice; all other fields have sensible defaults. A passive
-floating object needs nothing more than:
+每个实体都由一个 ``EntityCfg`` 描述。实践中只有 ``spec_fn`` 是必需的，
+其他字段都有合理的默认值。一个被动浮动物体只需要：
 
 .. code-block:: python
 
@@ -78,7 +72,7 @@ floating object needs nothing more than:
 
     cube_cfg = EntityCfg(spec_fn=get_cube_spec)
 
-An actuated robot uses more of the interface:
+带执行器的机器人会用到更多接口：
 
 .. code-block:: python
 
@@ -103,45 +97,42 @@ An actuated robot uses more of the interface:
         collisions=(my_collision_cfg,),
     )
 
-The following sections describe each field.
+以下小节逐一说明各字段。
 
 ``spec_fn``
 ^^^^^^^^^^^
 
-A callable that returns an ``mujoco.MjSpec``. The scene calls it during
-composition, attaches the returned spec with a name prefix, and compiles
-everything into a shared ``MjModel``.
+一个返回 ``mujoco.MjSpec`` 的可调用对象。场景在组合阶段调用它，为返回
+的 spec 附加名称前缀，并把所有内容编译进共享的 ``MjModel``。
 
-For simple cases a lambda suffices:
+简单场景下一个 lambda 就够用：
 
 .. code-block:: python
 
     spec_fn = lambda: mujoco.MjSpec.from_file("robot.xml")
 
-For anything more involved, use a regular function. MuJoCo resolves mesh
-assets from disk automatically, so ``get_spec`` only needs to load the
-XML:
+稍微复杂的情况请使用普通函数。MuJoCo 会自动从磁盘解析网格资源，因此
+``get_spec`` 只需要加载 XML：
 
 .. code-block:: python
 
     def get_spec() -> mujoco.MjSpec:
         return mujoco.MjSpec.from_file(str(ROBOT_XML))
 
-Because ``spec_fn`` is an arbitrary callable, you can perform any
-`MjSpec edits <https://mujoco.readthedocs.io/en/stable/python.html#spec>`_
-before returning: add bodies, change joint limits, swap materials,
-or build the entire model programmatically without an XML file at all.
+由于 ``spec_fn`` 是任意的可调用对象，你可以在返回前执行任意
+`MjSpec 编辑 <https://mujoco.readthedocs.io/en/stable/python.html#spec>`_：
+添加 body、修改关节限位、更换材质，甚至完全不使用 XML、以纯编程方式
+构建整个模型。
 
 ``init_state``
 ^^^^^^^^^^^^^^
 
-Default root pose, root velocity, and joint positions/velocities. These
-values are stored as a MuJoCo keyframe and used by reset events to
-return the entity to its initial configuration.
+默认的根位姿、根速度和关节位置/速度。这些值以 MuJoCo keyframe 的形式
+存储，供重置事件在把实体恢复到初始配置时使用。
 
-``joint_pos`` and ``joint_vel`` are dicts mapping regex patterns to
-values. Patterns are matched against joint names in order, so later
-entries override earlier ones for any joint that matches both:
+``joint_pos`` 和 ``joint_vel`` 是把正则模式映射到取值的字典。模式按
+顺序与关节名匹配，因此对同时命中多个模式的关节，靠后的条目会覆盖
+靠前的条目：
 
 .. code-block:: python
 
@@ -154,91 +145,78 @@ entries override earlier ones for any joint that matches both:
         },
     )
 
-Set ``joint_pos=None`` to use an existing keyframe from the MJCF model
-instead of defining values here.
+把 ``joint_pos`` 设为 ``None`` 可以直接使用 MJCF 模型中已有的 keyframe，
+而无需在此处定义数值。
 
 ``articulation``
 ^^^^^^^^^^^^^^^^
 
-Actuator configuration. Only needed for entities that have actuated
-joints. Passive objects (boxes, tables, walls) can omit this field
-entirely. See :ref:`actuators` for details on actuator types.
+执行器配置。只有带受控关节的实体才需要。被动对象（盒子、桌子、墙）
+可以完全省略此字段。执行器类型的细节见 :ref:`actuators`。
 
-``soft_joint_pos_limit_factor`` (default 1.0) shrinks the joint range
-used by soft-limit penalty rewards, so the policy is penalized before
-reaching the physical hard stop. This does not modify the actual joint
-limits in the MuJoCo model.
+``soft_joint_pos_limit_factor``（默认 1.0）用于收缩软限位惩罚奖励所
+使用的关节范围，使策略在到达物理硬限位之前就受到惩罚。它不会修改
+MuJoCo 模型中的实际关节限位。
 
-Spec editors
-^^^^^^^^^^^^
+Spec 编辑器
+^^^^^^^^^^^
 
-The remaining fields are optional tuples of spec editor configs that
-modify the ``MjSpec`` before compilation:
+其余字段是可选的 spec 编辑器配置元组，会在编译前修改 ``MjSpec``：
 
 .. list-table::
    :header-rows: 1
    :widths: 20 80
 
-   * - Field
-     - Purpose
+   * - 字段
+     - 用途
    * - ``collisions``
-     - Replace the entity's collision structure: which geoms collide, and
-       with what contact parameters.
+     - 替换实体的碰撞结构：哪些 geom 参与碰撞，以及使用什么接触参数。
    * - ``lights``
-     - Add lights to specific bodies.
+     - 向指定 body 添加光源。
    * - ``cameras``
-     - Add cameras to specific bodies.
+     - 向指定 body 添加相机。
    * - ``textures``
-     - Add procedural textures (checker, gradient, etc.).
+     - 添加程序化纹理（棋盘格、渐变等）。
    * - ``materials``
-     - Add materials and optionally assign them to geoms by regex.
+     - 添加材质，并可通过正则将其指定给 geom。
    * - ``geoms``
-     - Patch attributes of existing geoms (visualization group, collision
-       attributes). Unset attributes are left untouched.
+     - 修补现有 geom 的属性（可视化分组、碰撞属性）。未设置的属性保持
+       原样。
 
-Each editor accepts regex patterns to target specific elements. For
-example, a ``CollisionCfg`` with ``geom_names_expr=(".*_foot.*",)``
-sets contact parameters only on foot geoms. See the asset zoo
-(``mjlab.asset_zoo.robots``) for complete examples.
+每个编辑器都接受正则模式来定位目标元素。例如，带有
+``geom_names_expr=(".*_foot.*",)`` 的 ``CollisionCfg`` 只对脚部 geom
+设置接触参数。完整示例见资产库（``mjlab.asset_zoo.robots``）。
 
-``geoms`` and ``collisions`` both write geom attributes but with
-different semantics. A ``GeomCfg`` is a sparse *patch*: every attribute
-defaults to ``None``, and only attributes you set are written. A
-``CollisionCfg`` is a *policy*: ``contype``, ``conaffinity``,
-``condim``, and ``priority`` are required and always written to every
-matched geom, and non-matched geoms have collision disabled by default,
-so the entity's contact behavior is fully determined by the config
-regardless of the source XML. Collision configs are applied after geom
-configs; mjlab warns if a ``GeomCfg`` sets a collision attribute that a
-``CollisionCfg`` then overwrites.
+``geoms`` 与 ``collisions`` 都会写 geom 属性，但语义不同。``GeomCfg``
+是稀疏 *补丁*：每个属性默认 ``None``，只有你显式设置的属性才会被写入。
+``CollisionCfg`` 则是一条 *策略*：``contype``、``conaffinity``、
+``condim`` 和 ``priority`` 是必填项，且总会写入每个命中的 geom，未命中
+的 geom 默认禁用碰撞，因此实体的接触行为完全由配置决定，与来源 XML
+无关。碰撞配置在 geom 配置之后应用；如果 ``GeomCfg`` 设置的碰撞属性
+随后被 ``CollisionCfg`` 覆盖，mjlab 会给出警告。
 
-Heterogeneous worlds
-^^^^^^^^^^^^^^^^^^^^
+异构 world
+^^^^^^^^^^
 
-For scenes that need different mesh assets in different parallel worlds
-(for example, training a manipulation policy that generalizes across
-object shapes), use ``VariantEntityCfg`` instead of ``EntityCfg``. Each
-world is assigned a variant proportional to a configurable weight, and
-mesh-dependent compiled constants (collision bounds, body inertials,
-subtree mass) are stored as per-world arrays so domain randomization and
-viewers stay consistent. See :ref:`heterogeneous_worlds`.
+如果场景需要在不同的并行 world 中使用不同的网格资产（例如训练一个
+需要泛化到不同物体形状的操作策略），请使用 ``VariantEntityCfg`` 而不是
+``EntityCfg``。每个 world 会按可配置的权重被分配一个变体，依赖网格的
+编译期常量（碰撞包围盒、body 惯量、子树质量）会以按 world 数组的形式
+存储，从而保证域随机化和查看器的一致性。见 :ref:`heterogeneous_worlds`。
 
-Subclassing Entity
-^^^^^^^^^^^^^^^^^^
+子类化 Entity
+^^^^^^^^^^^^^
 
-``Entity`` and ``EntityCfg`` can be subclassed for specialized behavior.
-mjlab itself does this for terrain: ``TerrainEntity`` extends ``Entity``
-with procedural terrain generation and per-environment origin
-computation, and ``TerrainEntityCfg`` adds fields like
-``terrain_type``, ``env_spacing``, and ``terrain_generator``. The same
-pattern works for any domain-specific entity that needs logic beyond
-what ``EntityCfg`` and spec editors provide.
+``Entity`` 和 ``EntityCfg`` 可以被子类化以实现特化行为。mjlab 自身
+对地形就是这样做的：``TerrainEntity`` 扩展 ``Entity``，加入程序化地形
+生成与逐环境原点计算；``TerrainEntityCfg`` 则增加了 ``terrain_type``、
+``env_spacing``、``terrain_generator`` 等字段。任何需要超出
+``EntityCfg`` 与 spec 编辑器能力的领域特定实体都可以沿用这一模式。
 
-Finding elements
-^^^^^^^^^^^^^^^^
+查找元素
+^^^^^^^^
 
-Entity provides ``find_*`` methods that accept regex patterns and return
-matched element indices and names:
+Entity 提供 ``find_*`` 方法，接受正则模式并返回匹配元素的索引和名称：
 
 .. code-block:: python
 
@@ -246,34 +224,29 @@ matched element indices and names:
     ids, names = entity.find_geoms((".*foot.*",))
     ids, names = entity.find_bodies((".*",))
 
-Available methods: ``find_bodies()``, ``find_joints()``,
-``find_geoms()``, ``find_sites()``, ``find_tendons()``.
-These are used internally during scene construction and manager
-initialization. In reward and observation terms, prefer
-``SceneEntityCfg`` with name patterns as described below.
+可用方法：``find_bodies()``、``find_joints()``、``find_geoms()``、
+``find_sites()``、``find_tendons()``。它们在场景构建和管理器初始化期间
+被内部使用。在奖励与观测项中，请优先使用带名称模式的 ``SceneEntityCfg``，
+如下文所述。
 
 
-Reading runtime state
----------------------
+读取运行时状态
+--------------
 
-Once entities are added to a ``SceneCfg`` and the environment is
-constructed, their state is accessible through three interfaces at
-decreasing levels of abstraction.
+实体被加入 ``SceneCfg`` 且环境构建完成后，可以通过三层抽象程度递减的
+接口访问其状态。
 
 EntityData
 ^^^^^^^^^^
 
-``entity.data`` is the primary interface for reward, observation, and
-termination functions. It exposes kinematic state (poses, velocities, accelerations), actuator forces,
-generalized forces, and derived body-frame quantities such as projected
-gravity, all as PyTorch tensors with
-shape ``(num_envs, ...)``. See :ref:`entity_data` for the full property
-reference.
+``entity.data`` 是奖励、观测和终止函数的主要接口。它以形状为
+``(num_envs, ...)`` 的 PyTorch 张量暴露运动学状态（位姿、速度、加速度）、
+执行器力、广义力以及投影重力等派生的 body 系物理量。完整的属性参考见
+:ref:`entity_data`。
 
-``SceneEntityCfg`` selects which entity and which elements within it a
-term operates on. Regex patterns in ``joint_names``, ``body_names``,
-``site_names``, etc. are resolved to integer indices once at manager
-initialization, so there is no regex overhead at runtime:
+``SceneEntityCfg`` 决定某个项作用于哪个实体以及实体内的哪些元素。
+``joint_names``、``body_names``、``site_names`` 等正则模式会在管理器
+初始化时一次性解析为整数索引，运行时没有任何正则开销：
 
 .. code-block:: python
 
@@ -289,22 +262,19 @@ initialization, so there is no regex overhead at runtime:
             torch.square(asset.data.projected_gravity_b[:, :2]), dim=1
         )
 
-``SceneEntityCfg`` also supports regex element selection through
-``joint_names``, ``body_names``, ``site_names``, etc. The resolved
-integer indices (e.g., ``asset_cfg.joint_ids``) make the runtime read a
-single tensor slice with no regex overhead.
+``SceneEntityCfg`` 还支持通过 ``joint_names``、``body_names``、
+``site_names`` 等进行正则元素选择。解析后的整数索引（例如
+``asset_cfg.joint_ids``）让运行时读取退化为单次张量切片，没有正则开销。
 
-Sensors
-^^^^^^^
+传感器
+^^^^^^
 
-Sensors are configured on the **scene**, not on individual entities.
-A sensor can reference an entity element (e.g., a contact sensor on the
-robot's feet, an accelerometer attached to a body site), but it can also
-be independent of any entity. This is why sensors live in ``SceneCfg``
-rather than ``EntityCfg``.
+传感器配置在 **场景** 上，而不是在单个实体上。传感器可以引用实体的
+某个元素（例如机器人脚上的接触传感器、附着在 body site 上的加速度计），
+也可以完全不依赖任何实体。这就是传感器放在 ``SceneCfg`` 而不是
+``EntityCfg`` 中的原因。
 
-At runtime, sensors are accessed by name through ``env.scene``, the same
-way entities are:
+运行时，传感器通过 ``env.scene`` 按名称访问，方式与实体相同：
 
 .. code-block:: python
 
@@ -312,19 +282,18 @@ way entities are:
         sensor = env.scene[sensor_name]
         return torch.sum(torch.square(sensor.data), dim=-1)
 
-Builtin sensors wrap MuJoCo sensor types (accelerometer, gyro, framepos,
-subtreeangmom, etc.). ``ContactSensor``, ``RayCastSensor``, and
-``CameraSensor`` provide higher-level abstractions for contact detection,
-terrain scanning, and RGB-D rendering. See :ref:`sensors` for details.
+内置传感器包装了 MuJoCo 的传感器类型（accelerometer、gyro、framepos、
+subtreeangmom 等）。``ContactSensor``、``RayCastSensor`` 和
+``CameraSensor`` 为接触检测、地形扫描和 RGB-D 渲染提供了更高层级的
+抽象。详见 :ref:`sensors`。
 
-Raw simulation data
-^^^^^^^^^^^^^^^^^^^
+原始仿真数据
+^^^^^^^^^^^^
 
-For anything not covered by ``EntityData`` or sensors, the underlying
-MuJoCo Warp arrays are accessible through ``env.sim.data`` and
-``env.sim.model``. These expose the full ``mjData`` and ``mjModel``
-fields as PyTorch tensors (zero-copy), indexed by global MuJoCo IDs
-rather than per-entity IDs:
+对于 ``EntityData`` 和传感器未覆盖的内容，可以通过 ``env.sim.data`` 和
+``env.sim.model`` 访问底层 MuJoCo Warp 数组。它们以 PyTorch 张量形式
+（零拷贝）暴露完整的 ``mjData`` 和 ``mjModel`` 字段，按全局 MuJoCo ID
+而非按实体 ID 索引：
 
 .. code-block:: python
 
@@ -337,16 +306,15 @@ rather than per-entity IDs:
     # Model-level constants.
     body_mass = env.sim.model.body_mass  # (nbody,)
 
-This is useful for low-level operations or when you need quantities
-that span multiple entities.
+这对底层操作或需要跨实体物理量的场景非常有用。
 
 .. note::
 
-   The main limitation of raw sim data is that you must manage global
-   MuJoCo indices yourself. In the future, we plan to support MuJoCo's
+   原始仿真数据的主要局限是你必须自行管理全局 MuJoCo 索引。我们计划在
+   未来支持 MuJoCo 的
    `bind <https://mujoco.readthedocs.io/en/latest/python.html#relationship-to-pymjcf-and-bind>`_
-   functionality, which will allow binding spec elements directly to
-   their corresponding data views without manual index bookkeeping.
+   功能，届时可以直接把 spec 元素绑定到对应的数据视图，无需手工维护
+   索引。
 
 .. toctree::
    :maxdepth: 1
