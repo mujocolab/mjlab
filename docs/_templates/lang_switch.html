@@ -1,0 +1,7 @@
+{# 中英文档切换链接:两站中同一页面的 pagename 相同,目标前缀由 conf.py 注入 #}
+<div class="doc-lang-switch">
+  <a href="{{ pathto(lang_switch_prefix + pagename + '.html', 1) }}"
+     title="{%- if doc_lang == 'zh' -%}Switch to English{%- else -%}切换到中文{%- endif -%}">
+    {%- if doc_lang == "zh" -%}English{%- else -%}中文{%- endif -%}
+  </a>
+</div>
