@@ -30,15 +30,14 @@ FAIL_PATTERNS = (
 )
 
 HAN = r"[\u4e00-\u9fff]"
-BAD_AFTER = set("（）〈〉《》【】『』「」") | set(
-  chr(c) for c in range(0x4E00, 0xA000))
+BAD_AFTER = set("（）〈〉《》【】『』「」") | set(chr(c) for c in range(0x4E00, 0xA000))
 
 # 行内标记成对扫描:角色 / 双反引号 / 粗体 / 斜体(alternation 有序)
 MARKUP = re.compile(
-  r"(:[a-zA-Z0-9_+-]+:`[^`]+`"   # :role:`text`
-  r"|``[^`]+``"                   # ``literal``
-  r"|\*\*[^*\n]+\*\*"             # **bold**
-  r"|\*[^*\n]+\*)"                # *emphasis*
+  r"(:[a-zA-Z0-9_+-]+:`[^`]+`"  # :role:`text`
+  r"|``[^`]+``"  # ``literal``
+  r"|\*\*[^*\n]+\*\*"  # **bold**
+  r"|\*[^*\n]+\*)"  # *emphasis*
 )
 
 
@@ -68,7 +67,7 @@ def fix_line(line: str) -> str:
   body = line
   m = re.match(r"^(\s*\*\s)", line)
   if m:
-    bullet, body = m.group(1), line[m.end():]
+    bullet, body = m.group(1), line[m.end() :]
   insertions = []
   for mm in MARKUP.finditer(body):
     s, e = mm.span()

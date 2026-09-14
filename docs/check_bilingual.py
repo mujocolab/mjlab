@@ -29,7 +29,7 @@ UNDERLINE_CHARS = set("=-~^\"'+#*_")
 # 识别),中文版书写为合法章节,属预期差异而非翻译遗漏。
 KNOWN_SECTION_EXCEPTIONS = {
   "faq.rst": "英文版 'What is flat patch sampling...' 标题比其下划线长 1 字符,"
-             "docutils 不识别为章节;中文版为合法章节。",
+  "docutils 不识别为章节;中文版为合法章节。",
 }
 
 
@@ -78,7 +78,9 @@ def code_blocks(text: str) -> list:
       while i < len(lines) and lines[i].strip().startswith(":"):
         i += 1
       block = []
-      while i < len(lines) and (lines[i].startswith((" ", "\t")) or not lines[i].strip()):
+      while i < len(lines) and (
+        lines[i].startswith((" ", "\t")) or not lines[i].strip()
+      ):
         block.append(lines[i])
         i += 1
       blocks.append("\n".join(block).rstrip())
@@ -104,8 +106,10 @@ def main() -> int:
     failures.append(f"中文树缺失文件: {only_en}")
   if only_zh:
     failures.append(f"中文树多余文件: {only_zh}")
-  print(f"[1] 文件集合: 英文 {len(en_files)} 个, 中文 {len(zh_files)} 个, "
-        f"缺失 {len(only_en)}, 多余 {len(only_zh)}")
+  print(
+    f"[1] 文件集合: 英文 {len(en_files)} 个, 中文 {len(zh_files)} 个, "
+    f"缺失 {len(only_en)}, 多余 {len(only_zh)}"
+  )
 
   # 2/3. 逐文件章节结构与代码块 parity
   sec_bad = code_bad = 0
@@ -117,8 +121,10 @@ def main() -> int:
         print(f"[2] 章节结构(已知豁免): {key} - {KNOWN_SECTION_EXCEPTIONS[key]}")
       else:
         sec_bad += 1
-        failures.append(f"章节结构不一致: {key} "
-                        f"英文={section_counts(en_text)} 中文={section_counts(zh_text)}")
+        failures.append(
+          f"章节结构不一致: {key} "
+          f"英文={section_counts(en_text)} 中文={section_counts(zh_text)}"
+        )
     if code_blocks(en_text) != code_blocks(zh_text):
       code_bad += 1
       failures.append(f"代码块内容不一致: {key}")
@@ -131,9 +137,6 @@ def main() -> int:
     checked = broken = 0
     for html in build.rglob("*.html"):
       rel = html.relative_to(build)
-      zh_out = build / "zh" / rel
-      en_out = build / rel
-      is_zh_page = rel.parts[0] == "zh" if len(rel.parts) > 1 else False
       text = html.read_text(encoding="utf-8", errors="ignore")
       m = re.search(r'class="doc-lang-switch">\s*<a href="([^"]+)"', text)
       if not m:
@@ -144,7 +147,6 @@ def main() -> int:
         broken += 1
         failures.append(f"切换链接失效: {rel} -> {m.group(1)}")
     print(f"[4] 切换链接: 检查 {checked} 个, 失效 {broken} 个")
-
 
   # 5. 渲染星号残留断言(仅 zh 站;剔除代码/pre 后正文不得含 ** 或紧邻汉字的 *)
   if args.build:

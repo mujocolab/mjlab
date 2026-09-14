@@ -5,6 +5,15 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- Chinese documentation with a bilingual build. The user-facing docs are
+  translated under ``docs/zh/`` with page-for-page parity, ``MJLAB_DOC_LANG=zh``
+  builds the Chinese site alongside the English one, and a sidebar switch links
+  every page to its counterpart. A consistency checker
+  (``docs/check_bilingual.py``) guards parity between the two trees.
+
 Changed
 ^^^^^^^
 
