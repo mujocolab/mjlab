@@ -4,6 +4,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.." # 仓库根目录
 
+# 干净构建:移除旧产物,避免被排除页面(如 GLOSSARY.md)的陈旧输出残留
+rm -rf docs/_build
+
 uv run --group docs sphinx-build -j auto docs docs/_build "$@"
 MJLAB_DOC_LANG=zh uv run --group docs sphinx-build -j auto -c docs docs/zh docs/_build/zh "$@"
 

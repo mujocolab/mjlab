@@ -87,6 +87,11 @@ exclude_patterns = [
   ".DS_Store",
   "README.md",
   "licenses/*",
+  # 中文翻译规范,仅随仓库分发,不进站点。
+  # 中文构建以 -c docs -i docs/zh 分离配置运行,两处路径都写上以
+  # 覆盖不同基准(英文树 docs/GLOSSARY.md 不存在,无害)。
+  "GLOSSARY.md",
+  "zh/GLOSSARY.md",
 ]
 
 autodoc_mock_imports = [
