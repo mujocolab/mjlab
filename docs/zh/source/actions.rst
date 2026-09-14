@@ -95,10 +95,10 @@
 
 动作维度根据配置自动选择：
 
-- ``orientation_weight == 0``：**3D**（仅位置）
-- ``orientation_weight > 0, use_relative_mode=True``：**6D**（位置增量
+- ``orientation_weight == 0``：**3D** （仅位置）
+- ``orientation_weight > 0, use_relative_mode=True``：**6D** （位置增量
   + 轴角增量）
-- ``orientation_weight > 0, use_relative_mode=False``：**7D**（绝对位置
+- ``orientation_weight > 0, use_relative_mode=False``：**7D** （绝对位置
   + 四元数）
 
 所有目标（位置、姿态、关节限位、姿态保持）都堆叠进同一个 DLS 系统。

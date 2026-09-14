@@ -75,14 +75,14 @@
 
 两种生成模式控制地形类型在网格上的分布：
 
-**课程模式**（``curriculum=True``）。每种地形类型恰好占一列；无论
+**课程模式** （``curriculum=True`` ）。每种地形类型恰好占一列；无论
 ``num_cols`` 取值多少，生成器都使用 ``len(sub_terrains)`` 列。同一列的
 所有块共享同一地形类型，难度从第 0 行（最简单）到第 ``num_rows - 1``
 行（最难）递增。``proportion`` 字段控制出生时机器人在各列间的分布，
 而不是列数。正是这种结构化布局让课程系统能随表现提升把环境推进到更难
 的行。
 
-**随机模式**（``curriculum=False``）。每块独立按 ``proportion`` 加权
+**随机模式** （``curriculum=False`` ）。每块独立按 ``proportion`` 加权
 采样一种地形类型，并从 ``difficulty_range`` 中采样难度。``num_cols``
 被尊重。这种方式提供最大多样性，但没有结构化的难度递进。
 
@@ -124,7 +124,7 @@ mjlab 提供两族子地形类型：由 box geom 构建的 **图元地形**，�
 
 完全由 box geom 构建的程序化地形块。离散几何使它们特别适合楼梯、
 踏脚石和其他结构化障碍。大多数图元类型共享几个常见参数：
-``platform_width``（中央平坦区）、``border_width``（平坦边界），以及
+``platform_width`` （中央平坦区）、``border_width`` （平坦边界），以及
 一至多个随难度缩放的范围。
 
 .. grid:: 3
@@ -275,7 +275,7 @@ mjlab 在 ``mjlab.terrains.config`` 中自带三个现成的
 
 关键概念：
 
-- 每个环境跟踪 ``terrain_level``（行索引）和 ``terrain_type``（列
+- 每个环境跟踪 ``terrain_level`` （行索引）和 ``terrain_type`` （列
   索引）。
 - ``TerrainEntityCfg.max_init_terrain_level`` 控制环境首次重置时的
   起始高度上限。设为 5 表示环境从第 0 到 5 行开始。

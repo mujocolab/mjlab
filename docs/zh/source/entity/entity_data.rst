@@ -24,8 +24,8 @@
 坐标系中表示；以 ``_b`` 结尾的属性在实体的基座坐标系中表示。详见
 :ref:`frame-conventions`。
 
-每个实体有两个根参考点：**连杆原点**（link origin，MJCF 中定义的 body
-坐标系原点）和 **质心**（center of mass, COM）。哪个更相关取决于任务。
+每个实体有两个根参考点：**连杆原点** （link origin，MJCF 中定义的 body
+坐标系原点）和 **质心** （center of mass, COM）。哪个更相关取决于任务。
 
 .. admonition:: MuJoCo 的混合坐标系 ``qvel``
 
@@ -349,12 +349,12 @@ body 属性给出实体所有 body 的运动学状态。第二维是 ``num_bodie
 
 属性名通过后缀标明其参考坐标系。
 
-``_w``（世界坐标系）
+``_w`` （世界坐标系）
     固定的全局坐标系。原点通常在场景原点，坐标轴在整个回合内保持不变。
     当你需要绝对位置时（例如检测机器人是否低于某个高度阈值），世界系
     物理量非常有用。
 
-``_b``（body 坐标系 / 基座坐标系）
+``_b`` （body 坐标系 / 基座坐标系）
     实体根 body 的坐标系，随机器人平移和旋转。大多数观测项使用 body 系
     物理量，因为它们对机器人的朝向不变。用 body 系表达的速度无论机器人
     朝北还是朝南读数都相同，这让策略更容易泛化。
@@ -396,7 +396,7 @@ EntityData 属性按照对 ``sim.forward()`` 的行为差异分为两类：
 MuJoCo 不直接存储世界坐标系下的线速度。它为每个 body 存储一个称为
 ``cvel`` 的 6 维空间速度（基于质心的速度），布局为
 ``(angular[3], linear[3])``。该向量表达在 **c 系** 中：一个以
-``subtree_com``（body 运动子树的质心）为中心、方向与世界坐标系一致的
+``subtree_com`` （body 运动子树的质心）为中心、方向与世界坐标系一致的
 坐标系。MuJoCo 用这种表示来提高远离世界原点的机构的数值精度。背景知识
 参见
 `c-frame variables <https://mujoco.readthedocs.io/en/stable/APIreference/APItypes.html#c-frame-variables>`_
@@ -432,8 +432,8 @@ EntityData 中的每个速度属性（``root_link_vel_w``、``body_link_vel_w``�
 ``geom_vel_w``、``site_vel_w`` 及其质心变体）都使用这一函数，只需代入
 相应的点：
 
-- **连杆速度** 使用 ``xpos``（body 坐标系原点）。
-- **质心速度** 使用 ``xipos``（body 质心）。
+- **连杆速度** 使用 ``xpos`` （body 坐标系原点）。
+- **质心速度** 使用 ``xipos`` （body 质心）。
 - **geom/site 速度** 使用 ``geom_xpos``/``site_xpos``，``cvel`` 从其
   父 body 查询。
 

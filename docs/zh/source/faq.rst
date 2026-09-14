@@ -36,7 +36,7 @@ MuJoCo Warp 并不支持所有 CUDA 版本。
 
 - CUDA 兼容性详情见
   `mujoco_warp#101 <https://github.com/google-deepmind/mujoco_warp/issues/101>`_。
-- **推荐**：CUDA **12.4+**（支持 CUDA graph 的条件执行）。
+- **推荐**：CUDA **12.4+** （支持 CUDA graph 的条件执行）。
 
 如何在不碰 GPU 的情况下跑 CPU？
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -68,7 +68,7 @@ Warp 初始化 GPU。Warp 运行时第一次启动时会急切地枚举并为 **
 推荐什么 GPU？
 ~~~~~~~~~~~~~~
 
-- **RTX 40 系**（或更新）
+- **RTX 40 系** （或更新）
 - **L40s、H100**
 
 支持多 GPU 训练吗？
@@ -95,7 +95,7 @@ Warp 初始化 GPU。Warp 运行时第一次启动时会急切地枚举并为 **
 这是 **物理状态** 中的 NaN/Inf 传播到策略网络，使其输出标准差变为负数
 或 NaN 导致的。
 
-可能的原因很多，包括 **MuJoCo Warp**（仍在 beta）的潜在缺陷。mjlab
+可能的原因很多，包括 **MuJoCo Warp** （仍在 beta）的潜在缺陷。mjlab
 提供两个互补机制：
 
 1. **为了训练稳定** - NaN 终止
@@ -269,7 +269,7 @@ mjlab 目前支持两个用于策略评估与调试的可视化器：
 - **Viser** - `Viser <https://github.com/nerfstudio-project/viser>`_，
   基于 Web 的 3D 可视化工具。
 
-我们正在探索 **训练时可视化**（如实时采样查看器），尚未提供。
+我们正在探索 **训练时可视化** （如实时采样查看器），尚未提供。
 
 替代方案：mjlab 支持 **视频记录到 Weights & Biases (W&B)**，可以直接
 在实验仪表盘中查看回合采样视频。
@@ -279,7 +279,7 @@ mjlab 目前支持两个用于策略评估与调试的可视化器：
 
 出于性能考虑，查看器只渲染少量环境。
 
-- **离屏渲染器**（录制视频用）：渲染被跟踪环境及其最近的邻居，数量由
+- **离屏渲染器** （录制视频用）：渲染被跟踪环境及其最近的邻居，数量由
   ``ViewerConfig.max_extra_envs`` 控制（默认 2）。
 - **原生/Viser 查看器**：受 MuJoCo 几何缓冲区限制（默认 10000 个
   geom）。查看器显示几何预算内放得下的环境。
@@ -330,7 +330,7 @@ env_origins 如何决定机器人布局？
 
 机器人间距取决于地形配置：
 
-**平面地形**（``terrain_type="plane"``）：
+**平面地形** （``terrain_type="plane"`` ）：
   - 自动生成近似正方形的网格
   - 网格尺寸：``ceil(sqrt(num_envs))`` 行 x 列
   - 间距由 ``env_spacing`` 参数控制（默认 2.0m）
@@ -340,7 +340,7 @@ env_origins 如何决定机器人布局？
   - **重要**：``env_spacing=0`` 时所有机器人都在 (0, 0, 0)
   - 实现：``terrain_importer.py:_compute_env_origins_grid()``
 
-**程序化地形**（``terrain_type="generator"``）：
+**程序化地形** （``terrain_type="generator"`` ）：
   - 原点从预生成的子地形块加载
   - 网格尺寸：``TerrainGeneratorCfg.num_rows x num_cols``
   - 行索引 = 难度等级（课程模式）
@@ -440,8 +440,8 @@ env_origins 如何决定机器人布局？
 
 mjlab 包含两个 **参考机器人**：
 
-- **Unitree Go1**（四足）。
-- **Unitree G1**（人形）。
+- **Unitree Go1** （四足）。
+- **Unitree G1** （人形）。
 
 这些机器人用于：
 

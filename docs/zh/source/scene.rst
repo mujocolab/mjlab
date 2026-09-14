@@ -106,7 +106,7 @@ MuJoCo Warp 中的每个环境都是一个拥有独立状态的 world。环境�
 
 .. note::
 
-   目前所有环境共享同一个 ``MjModel``（相同的网格、几何与运动树）。
+   目前所有环境共享同一个 ``MjModel`` （相同的网格、几何与运动树）。
    允许不同 world 拥有不同网格或几何的异构仿真，
    `MuJoCo Warp 正在开发中 <https://github.com/google-deepmind/mujoco_warp/pull/1009>`_。
    上游落地后 mjlab 将提供支持。

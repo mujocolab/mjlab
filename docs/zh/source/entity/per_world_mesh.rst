@@ -209,13 +209,13 @@ mjlab 遍历每个变体的 body 树，按 ``(body_path, role)`` 对网格 geom
 * **geom_dataid** 是一张 ``(num_envs, ngeom)`` 表。world W 对应的行
   决定每个槽位指向哪个已编译网格。``-1`` 是 mujoco_warp 原生理解的
   "跳过我" 哨兵值。
-* **网格派生字段**（``geom_size``、``geom_rbound``、``geom_aabb``、
+* **网格派生字段** （``geom_size``、``geom_rbound``、``geom_aabb``、
   ``geom_pos``、``geom_quat``、``body_mass``、``body_subtreemass``、
   ``body_inertia``、``body_invweight0``、``body_ipos``、
-  ``body_iquat``）以 ``(num_envs, ...)`` 数组存储。sphere world 的取值
+  ``body_iquat`` ）以 ``(num_envs, ...)`` 数组存储。sphere world 的取值
   反映球形的惯量张量和球形的 AABB；cone world 的取值反映圆锥。完整
   清单见 ``mjlab.entity.variants.VARIANT_DEPENDENT_FIELDS``。
-* **逐网格 geom 属性**（接触位、摩擦、质量、密度、condim、group、
+* **逐网格 geom 属性** （接触位、摩擦、质量、密度、condim、group、
   priority、rgba、solref、solimp、margin、gap）在合并时按变体捕获到
   ``VariantGeomSpec`` 中，并在逐变体参考编译期间原样恢复到槽位 geom
   上。因此如果 sphere 的碰撞 geom 是 ``friction=0.5``、cone 的是
@@ -265,7 +265,7 @@ world 分配
 world 如何映射到变体由 ``VariantEntityCfg`` 的 ``assignment`` 字段控制，
 它接受三种形式：
 
-* ``None``（默认）：在变体间均匀分配。
+* ``None`` （默认）：在变体间均匀分配。
 * ``dict[str, float]``：逐变体权重。未列出的变体默认权重 1.0。
 * ``Callable[[int], Sequence[int]]``：显式分配函数，在仿真初始化时以
   ``num_envs`` 调用。

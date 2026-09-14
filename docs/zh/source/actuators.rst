@@ -54,13 +54,13 @@ mjlab 提供 **内置** 执行器——利用物理引擎的隐式积分获得�
 配置执行器时的关键设计决策是选择 **内置** 还是 **显式** 类型。两者的
 差异归结为 MuJoCo 积分器如何处理依赖速度的力。
 
-**内置执行器**（``BuiltinPositionActuator``、``BuiltinVelocityActuator``、
+**内置执行器** （``BuiltinPositionActuator``、``BuiltinVelocityActuator``、
 ``BuiltinMotorActuator``、``BuiltinPdActuator``、
 ``BuiltinDcMotorActuator``、``BuiltinMuscleActuator``）在 MjSpec 中创建
 MuJoCo 原生执行器元素。物理引擎负责计算控制律，并隐式积分依赖速度的
 阻尼力。这带来最佳的数值稳定性，在高增益或大时间步长下尤其明显。
 
-**显式执行器**（``IdealPdActuator``、``DcMotorActuator``、
+**显式执行器** （``IdealPdActuator``、``DcMotorActuator``、
 ``LearnedMlpActuator``）在用户代码中计算力矩，再经由作为直通件的
 ``<motor>`` 执行器转发。由于积分器无法把这些外部计算的力纳入速度导数
 的考量，其数值鲁棒性不如内置类型。当需要内置类型无法表达的自定义控制律
@@ -366,7 +366,7 @@ mjlab 在 ``mjlab.utils.actuator`` 中提供了根据电机物理规格计算执
 
 .. note::
 
-     示例使用 ``DAMPING_RATIO = 2.0``（过阻尼）而不是临界阻尼值 1.0。
+     示例使用 ``DAMPING_RATIO = 2.0`` （过阻尼）而不是临界阻尼值 1.0。
      原因在于反射惯量的计算只考虑了电机转子惯量，没有考虑被驱动连杆的
      表观惯量。实践中关节处的总有效惯量高于反射电机惯量，因此在真实
      系统惯量被低估时，过阻尼比能提供更好的稳定裕度。

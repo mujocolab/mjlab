@@ -112,7 +112,7 @@
 因此策略从第零步就拿到有效数据。
 
 ``flatten_history_dim=True`` 且 ``concatenate_terms=True`` 时，mjlab
-使用 **term 优先**（term-major）排序：每个项的完整历史先展平，再跨项
+使用 **term 优先** （term-major）排序：每个项的完整历史先展平，再跨项
 拼接。
 
 .. code-block:: text
@@ -121,7 +121,7 @@
     [A_t0, A_t1, A_t2, B_t0, B_t1, B_t2]
      └─ A history ──┘  └─ B history ─┘
 
-一些框架使用 **时间优先**（time-major）排序：先在每个时间步拼出完整帧，
+一些框架使用 **时间优先** （time-major）排序：先在每个时间步拼出完整帧，
 再跨时间拼接。在不同排序的框架之间迁移策略时，需要对观测向量重新
 排索引。
 

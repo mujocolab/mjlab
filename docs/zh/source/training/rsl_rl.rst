@@ -119,11 +119,11 @@ mjlab 中的每个任务都是一个配对：环境配置（``ManagerBasedRlEnvC
 ``play`` 的关键参数：
 
 ``--agent``
-    策略模式：``"trained"``（默认）、``"zero"``（零动作）或
-    ``"random"``（均匀随机）。
+    策略模式：``"trained"`` （默认）、``"zero"`` （零动作）或
+    ``"random"`` （均匀随机）。
 
 ``--viewer``
-    查看器后端：``"native"``（MuJoCo 查看器）或 ``"viser"``（浏览器）。
+    查看器后端：``"native"`` （MuJoCo 查看器）或 ``"viser"`` （浏览器）。
 
 ``--no-terminations``
     禁用终止条件，让策略无限运行。
@@ -226,8 +226,8 @@ W&B。在 runner 配置中设 ``upload_model=False`` 可禁用上传、保留指
         --agent.resume True
 
 runner 会在 ``logs/rsl_rl/{experiment_name}/`` 下搜索最近的运行目录并
-加载编号最高的检查点。用 ``--agent.load-run``（目录名正则）和
-``--agent.load-checkpoint``（检查点文件名正则）缩小搜索范围。
+加载编号最高的检查点。用 ``--agent.load-run`` （目录名正则）和
+``--agent.load-checkpoint`` （检查点文件名正则）缩小搜索范围。
 
 ``--agent.max-iterations`` 控制从检查点再跑多少 *额外* 迭代。如果从
 迭代 11500 恢复并保持默认 ``--agent.max-iterations 300``，训练将运行

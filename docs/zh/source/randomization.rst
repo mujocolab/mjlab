@@ -503,7 +503,7 @@ Inertia," IEEE RA-L 2022 <https://par.nsf.gov/servlets/purl/10347458>`_。
      - 方法相同。``dr.pseudo_inertia`` 联合随机化全部四项并保证物理
        一致性。
    * - ``geom_pos``、``geom_quat``
-     - **不安全**（不支持 ``mj_setConst``）
+     - **不安全** （不支持 ``mj_setConst`` ）
      - 对动态 body 上的 geom **安全**
      - FK 每步从 ``geom_pos``/``geom_quat`` 重算
        ``geom_xpos``/``geom_xmat``，局部 ``geom_aabb`` 保持有效
@@ -511,12 +511,12 @@ Inertia," IEEE RA-L 2022 <https://par.nsf.gov/servlets/purl/10347458>`_。
        <dr-static-body-caveat>`。
    * - ``geom_size``
      - **不安全**
-     - **安全**（自动重算包围盒）
+     - **安全** （自动重算包围盒）
      - ``dr.geom_size`` 在写入新尺寸后内联重算 ``geom_rbound`` 与
        ``geom_aabb``。仅支持图元类型（球、胶囊、椭球、圆柱、盒）。
    * - ``geom_rbound``、``geom_aabb``
-     - **不安全**（内部派生量）
-     - **不随机化**（派生量）
+     - **不安全** （内部派生量）
+     - **不随机化** （派生量）
      - 宽相加速数据。只在模型加载时设置一次。``geom_size`` 改变时
        需要重算。
    * - ``geom_friction``、``geom_rgba``
@@ -564,9 +564,9 @@ Inertia," IEEE RA-L 2022 <https://par.nsf.gov/servlets/purl/10347458>`_。
 .. admonition:: ``geom_pos``/``geom_quat`` 与 ``body_pos``/``body_quat``
    的静态 body 注意事项
 
-   MuJoCo Warp 的正向运动学会跳过既 **焊接在世界**（``body_weldid ==
-   0``）又 **不是 mocap body 后代**（``body_mocapid[root] == -1``）的
-   geom。对这类 geom，``geom_xpos``/``geom_xmat`` 只在 ``make_data``
+   MuJoCo Warp 的正向运动学会跳过既 **焊接在世界** （``body_weldid == 0``）
+   又 **不是 mocap body 后代** （``body_mocapid[root] == -1``）的 geom。
+   对这类 geom，``geom_xpos``/``geom_xmat`` 只在 ``make_data``
    时计算一次，之后不再更新。修改 ``geom_pos`` 或父 ``body_pos`` 会让
    世界系碰撞位置过期。
 
@@ -857,7 +857,7 @@ MuJoCo 的标准 geom 摩擦是 3 向量 ``[tangential, torsional, rolling]``，
 
    * - 取值
      - 行为
-   * - ``"uniform"``（默认）
+   * - ``"uniform"`` （默认）
      - 在 ``ranges[0]`` 与 ``ranges[1]`` 之间均匀采样
    * - ``"log_uniform"``
      - 在对数空间采样，适用于跨数量级的参数（如扭转摩擦）。两个范围
@@ -906,7 +906,7 @@ MuJoCo 的标准 geom 摩擦是 3 向量 ``[tangential, torsional, rolling]``，
 
    * - 取值
      - 行为
-   * - ``"abs"``（默认）
+   * - ``"abs"`` （默认）
      - 把字段直接设为采样值
    * - ``"scale"``
      - 把原始默认值乘以采样值
@@ -1218,7 +1218,7 @@ MuJoCo Warp 提供了一组等价函数（``set_const``、``set_const_0``、
        ``body_pos``、``body_quat`` 或 ``qpos0`` 之后
    * - ``set_const``
      - 以上全部
-     - 修改 ``body_mass`` 或 ``body_ipos``（质心）之后
+     - 修改 ``body_mass`` 或 ``body_ipos`` （质心）之后
 
 内置 ``dr`` 函数已经声明了正确的等级。当 ``EventManager`` 在一次
 ``apply()`` 调用中触发多个 DR 项时，它会跟踪其中最强的等级，并在末尾
