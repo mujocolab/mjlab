@@ -1,0 +1,455 @@
+.. _sensors:
+
+Sensors
+=======
+
+As described in :ref:`entity`, sensors sit between ``EntityData`` and
+raw simulation arrays in mjlab's data access hierarchy. At their
+simplest, they wrap MuJoCo sensor primitives with a clean interface
+that maps to real robot hardware. Beyond wrapping, they are a general
+abstraction for transforming simulation data into structured outputs:
+``ContactSensor`` aggregates contact pairs with reduction and air time
+tracking, ``RayCastSensor`` performs GPU-accelerated terrain scanning,
+``CameraSensor`` renders RGB and depth images on the GPU, and the base
+``Sensor`` class can be subclassed for custom measurement logic.
+
+Sensors are configured at the **scene level**, not on individual entities. A
+sensor can reference an entity element (a contact sensor on the robot's
+feet, an accelerometer attached to a body site), but it can also be
+independent of any entity entirely. This is why sensors live in
+``SceneCfg`` rather than ``EntityCfg``.
+
+.. code-block:: python
+
+    from mjlab.sensor import (
+        BuiltinSensorCfg, ContactSensorCfg, ContactMatch, ObjRef,
+    )
+
+    # A robot with an IMU accelerometer and foot contact detection.
+    scene_cfg = SceneCfg(
+        entities={"robot": robot_cfg},
+        sensors=(
+            BuiltinSensorCfg(
+                name="imu_acc",
+                sensor_type="accelerometer",
+                obj=ObjRef(type="site", name="imu_site", entity="robot"),
+            ),
+            ContactSensorCfg(
+                name="feet_contact",
+                primary=ContactMatch(
+                    mode="geom", pattern=r".*_foot$", entity="robot",
+                ),
+                secondary=ContactMatch(mode="body", pattern="terrain"),
+                fields=("found", "force"),
+            ),
+        ),
+    )
+
+    # Access at runtime.
+    imu = env.scene["robot/imu_acc"].data        # [B, 3] acceleration
+    feet = env.scene["feet_contact"].data         # ContactData
+    feet.found                                    # [B, P] contact count per foot
+    feet.force                                    # [B, P, 3] contact force per foot
+
+mjlab provides four sensor types: ``BuiltinSensor`` for native MuJoCo
+measurements, ``ContactSensor`` for structured contact detection,
+``RayCastSensor`` for GPU-accelerated raycasting, and ``CameraSensor``
+for RGB-D rendering. The base ``Sensor`` class can be subclassed for
+custom measurement logic; see `Extending: custom sensors`_ below.
+
+
+BuiltinSensor
+-------------
+
+``BuiltinSensor`` wraps MuJoCo's native sensor types. Each sensor is
+attached to a MuJoCo element (site, joint, body, etc.) via ``ObjRef``
+and returns a ``torch.Tensor`` with shape ``[num_envs, dim]`` where
+``dim`` depends on the sensor type (3 for vectors, 4 for quaternions,
+1 for scalars).
+
++-----------+----------------------------------------------------------------------------------------------------------------------------------------------------+
+| Category  | Available Sensors                                                                                                                                  |
++===========+====================================================================================================================================================+
+| **Site**  | ``accelerometer``, ``velocimeter``, ``gyro``, ``force``, ``torque``, ``magnetometer``, ``rangefinder``                                             |
++-----------+----------------------------------------------------------------------------------------------------------------------------------------------------+
+| **Joint** | ``jointpos``, ``jointvel``, ``jointlimitpos``, ``jointlimitvel``, ``jointlimitfrc``, ``jointactuatorfrc``                                          |
++-----------+----------------------------------------------------------------------------------------------------------------------------------------------------+
+| **Frame** | ``framepos``, ``framequat``, ``framexaxis``, ``frameyaxis``, ``framezaxis``, ``framelinvel``, ``frameangvel``, ``framelinacc``, ``frameangacc``    |
++-----------+----------------------------------------------------------------------------------------------------------------------------------------------------+
+| **Other** | ``actuatorpos``, ``actuatorvel``, ``actuatorfrc``, ``subtreecom``, ``subtreelinvel``, ``subtreeangmom``, ``clock``, ``e_potential``, ``e_kinetic`` |
++-----------+----------------------------------------------------------------------------------------------------------------------------------------------------+
+
+``ObjRef`` identifies which MuJoCo element the sensor attaches to. The
+``entity`` field scopes the lookup to a specific entity's namespace, and
+the sensor name is auto-prefixed accordingly (e.g., ``"imu_acc"`` on
+entity ``"robot"`` becomes ``"robot/imu_acc"``).
+
+.. code-block:: python
+
+    from mjlab.sensor import BuiltinSensorCfg, ObjRef
+
+    # Accelerometer attached to a site.
+    BuiltinSensorCfg(
+        name="imu_acc",
+        sensor_type="accelerometer",
+        obj=ObjRef(type="site", name="imu_site", entity="robot"),
+    )
+
+    # Joint limit sensor with output clamping.
+    BuiltinSensorCfg(
+        name="knee_limit",
+        sensor_type="jointlimitpos",
+        obj=ObjRef(type="joint", name="knee_joint", entity="robot"),
+        cutoff=0.1,
+    )
+
+    # Relative frame position (end-effector w.r.t. base).
+    BuiltinSensorCfg(
+        name="ee_pos",
+        sensor_type="framepos",
+        obj=ObjRef(type="body", name="end_effector", entity="robot"),
+        ref=ObjRef(type="body", name="base", entity="robot"),
+    )
+
+
+Auto-discovery
+^^^^^^^^^^^^^^
+
+Sensors already defined in an entity's XML are automatically discovered
+during scene composition and prefixed with the entity name. There is no
+need to create a ``BuiltinSensorCfg`` for these.
+
+.. code-block:: xml
+
+    <!-- In robot.xml -->
+    <sensor>
+        <accelerometer name="trunk_imu" site="imu_site"/>
+        <jointpos name="hip_sensor" joint="hip_joint"/>
+    </sensor>
+
+.. code-block:: python
+
+    # Access by prefixed name.
+    imu = env.scene["robot/trunk_imu"]
+    hip = env.scene["robot/hip_sensor"]
+
+
+ContactSensor
+-------------
+
+Each physics step, MuJoCo produces a flat, unstructured list of contact
+pairs across the entire scene. A single foot geom might generate several
+simultaneous contacts with the ground, interleaved with contacts from
+other entities. ``ContactSensor`` filters this raw list to the pairs you
+care about, reduces multiple contacts per element down to a fixed count,
+and packages the result into clean, batched tensors your policy can
+consume directly. It builds on MuJoCo's native
+`contact sensor <https://mujoco.readthedocs.io/en/stable/XMLreference.html#sensor-contact>`_.
+
+Primary and secondary
+^^^^^^^^^^^^^^^^^^^^^
+
+Contacts are pairwise: you typically want to know "did the robot's feet
+touch the terrain?", not just "did something touch something."
+``primary`` defines the elements you are measuring (the feet).
+``secondary`` optionally restricts what they are contacting (the
+terrain). When ``secondary`` is ``None``, any contact with a primary
+element counts.
+
+Each side is specified with a ``ContactMatch``. The ``mode`` selects the
+MuJoCo element type (``"geom"``, ``"body"``, or ``"subtree"``) and the
+``pattern`` accepts a regex or tuple of regexes matched against element
+names within the entity.
+
+.. code-block:: python
+
+    from mjlab.sensor import ContactSensorCfg, ContactMatch
+
+    # Foot geoms contacting the terrain body.
+    ContactSensorCfg(
+        name="feet_ground",
+        primary=ContactMatch(
+            mode="geom", pattern=r".*_foot$", entity="robot",
+        ),
+        secondary=ContactMatch(mode="body", pattern="terrain"),
+        fields=("found", "force"),
+    )
+
+    # Self-collision: pelvis subtree against itself.
+    ContactSensorCfg(
+        name="self_collision",
+        primary=ContactMatch(
+            mode="subtree", pattern="pelvis", entity="robot",
+        ),
+        secondary=ContactMatch(
+            mode="subtree", pattern="pelvis", entity="robot",
+        ),
+        fields=("found",),
+    )
+
+Output shape
+^^^^^^^^^^^^
+
+A pattern like ``r".*_foot$"`` resolves to ``P`` primary elements (e.g.
+four feet on a quadruped). Each primary becomes one column on the
+per-contact axis of the output tensors:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 25 40
+
+   * - Field group
+     - Shape
+     - Notes
+   * - Per-contact
+       (``found``, ``force``, ``torque``, ``dist``, ``pos``, ``normal``,
+       ``tangent``)
+     - ``[B, P * num_slots, ...]``
+     - Primary-major: indices
+       ``[i * num_slots : (i + 1) * num_slots]`` belong to primary ``i``.
+   * - Per-primary
+       (``current_air_time``, ``last_air_time``,
+       ``current_contact_time``, ``last_contact_time``)
+     - ``[B, P]``
+     - Air-time fields are accumulated per primary, reducing across
+       slots (any slot in contact counts as the primary in contact).
+
+With the default ``num_slots=1`` the two shape families coincide
+(``N == P``), which is why most code can treat both as ``[B, P, ...]``.
+
+Use :attr:`mjlab.sensor.contact_sensor.ContactSensor.primary_names` to
+recover the index-to-name mapping after pattern expansion:
+
+.. code-block:: python
+
+    sensor = env.scene["feet_contact"]
+    sensor.primary_names                # ["FR_foot", "FL_foot", "RR_foot", "RL_foot"]
+    sensor.data.current_air_time[:, 0]  # air time for FR_foot
+
+Reduction
+^^^^^^^^^
+
+A single primary element can have many simultaneous contacts with the
+secondary (e.g. a flat foot resting on rough terrain has multiple
+contact points). The ``reduce`` mode collapses those raw contacts down
+to ``num_slots`` representative contacts:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 80
+
+   * - Mode
+     - Behavior
+   * - ``"none"``
+     - Fast, non-deterministic selection of up to ``num_slots`` contacts.
+   * - ``"mindist"``
+     - Keep the deepest ``num_slots`` contacts.
+   * - ``"maxforce"``
+     - Keep the strongest ``num_slots`` contacts by force magnitude.
+   * - ``"netforce"``
+     - Sum all contacts into a single net wrench at the force-weighted
+       centroid. Always emits one slot per primary regardless of
+       ``num_slots``.
+
+When to set ``num_slots > 1``
+"""""""""""""""""""""""""""""
+
+Almost all configurations leave ``num_slots`` at its default of ``1``,
+because pattern expansion already produces one column per element of
+interest (one per foot, one per finger, one per body link). Increase
+``num_slots`` only when a single primary may have several physically
+distinct contact points that you want to inspect separately, for
+example:
+
+- Computing a center of pressure on a flat foot from its corner
+  contacts.
+- Reasoning about grasp quality from multiple fingertip-to-object
+  contact points.
+- Detecting tipping by watching whether one corner of a contact patch
+  loses contact.
+
+In those cases pair ``num_slots`` with ``reduce`` in
+``{"mindist", "maxforce", "none"}``. With ``reduce="netforce"`` it has
+no effect.
+
+.. note::
+
+   ``num_slots`` is a ceiling on what the sensor will store, not a
+   guarantee that MuJoCo will produce that many contacts. The collision
+   detector caps the number of contact points generated for each
+   geom-pair according to the geom types involved. For example a
+   sphere-vs-plane pair produces at most one contact, and a box-vs-box
+   pair produces at most four. Setting ``num_slots=8`` on a sphere
+   primary against a plane secondary therefore leaves seven slots
+   permanently zero. Check
+   `MuJoCo's collision documentation <https://mujoco.readthedocs.io/en/stable/computation/index.html#collision-detection>`_
+   for the per-pair limits.
+
+Fields
+^^^^^^
+
+The ``fields`` tuple selects which contact quantities to extract. Only
+requested fields are allocated; the rest are ``None`` on the output
+dataclass. Available fields are ``"found"``, ``"force"``,
+``"torque"``, ``"dist"``, ``"pos"``, ``"normal"``, and ``"tangent"``.
+
+.. note::
+
+   ``torque`` and the friction-tangent component of ``force`` are zero
+   unless the contact pair has friction enabled, which requires
+   ``condim >= 3`` on at least one geom in the pair. With ``condim=1``
+   (frictionless), the contact only produces a normal force. This is a
+   physics property of the contact, not a sensor limitation.
+
+Air time tracking
+^^^^^^^^^^^^^^^^^
+
+Locomotion tasks often need to know when feet land and take off for
+gait rewards. Setting ``track_air_time=True`` enables per-primary
+timing. The sensor maintains four additional tensors on
+``ContactData``, each shaped ``[B, P]``: ``current_air_time``,
+``last_air_time``, ``current_contact_time``, and
+``last_contact_time``. Two helper methods provide edge detection for
+transition events:
+
+.. code-block:: python
+
+    sensor = env.scene["feet_air"]
+    first_contact = sensor.compute_first_contact(dt)  # [B, P], True for primaries that just landed
+    first_air = sensor.compute_first_air(dt)           # [B, P], True for primaries that just took off
+
+Air time is per primary even when ``num_slots > 1``: the sensor reduces
+``found`` across slots so that any slot in contact counts as the
+primary being in contact.
+
+.. _contact-sensor-history:
+
+History (decimation safe contacts)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When using decimation (multiple physics substeps per policy step), a
+brief collision can occur and resolve entirely within the substep loop.
+By the time the policy reads the sensor, the contact is gone and
+``found`` reports zero. Setting ``history_length`` on the sensor config
+tells the sensor to keep a rolling buffer of the last *N* substeps for
+force, torque, and distance fields. The policy can then inspect the
+full history and decide whether a real contact occurred.
+
+Set ``history_length`` equal to your decimation value so the buffer
+covers exactly one policy step:
+
+.. code-block:: python
+
+    ContactSensorCfg(
+        name="self_collision",
+        primary=ContactMatch(mode="subtree", pattern="pelvis", entity="robot"),
+        secondary=ContactMatch(mode="subtree", pattern="pelvis", entity="robot"),
+        fields=("found", "force"),
+        history_length=4,  # matches decimation=4
+    )
+
+The history tensors live on ``ContactData`` alongside the regular
+fields:
+
+.. code-block:: python
+
+    data = sensor.data
+    data.force_history   # [B, N, H, 3]  (H = history_length)
+    data.torque_history  # [B, N, H, 3]
+    data.dist_history    # [B, N, H]
+
+Index 0 is the most recent substep. To check whether any substep had
+a contact force above a threshold:
+
+.. code-block:: python
+
+    force_mag = torch.norm(data.force_history, dim=-1)  # [B, N, H]
+    had_contact = (force_mag > 10.0).any(dim=1).any(dim=-1)  # [B]
+
+.. note::
+
+   ``track_air_time=True`` already accumulates contact state across
+   substeps for gait rewards, so feet ground sensors typically do not
+   need ``history_length``. Use history for sensors where you need to
+   detect brief collisions that would otherwise be missed (self
+   collisions, illegal contact terminations).
+
+
+Output
+^^^^^^
+
+``ContactData`` is a dataclass whose fields correspond to the
+``fields`` tuple on the config. Unrequested fields are ``None``.
+
+.. code-block:: python
+
+    @dataclass
+    class ContactData:
+        found: Tensor | None     # [B, N] contact count
+        force: Tensor | None     # [B, N, 3]
+        torque: Tensor | None    # [B, N, 3]
+        dist: Tensor | None      # [B, N] penetration depth
+        pos: Tensor | None       # [B, N, 3] contact position
+        normal: Tensor | None    # [B, N, 3] surface normal
+        tangent: Tensor | None   # [B, N, 3]
+
+        # With track_air_time=True.
+        current_air_time: Tensor | None
+        last_air_time: Tensor | None
+        current_contact_time: Tensor | None
+        last_contact_time: Tensor | None
+
+
+RayCastSensor
+-------------
+
+``RayCastSensor`` provides GPU-accelerated raycasting for terrain
+scanning and depth sensing. It supports grid and pinhole camera ray
+patterns with configurable alignment modes. See :ref:`raycast_sensor`
+for full documentation.
+
+
+RGB-D Camera
+------------
+
+``CameraSensor`` renders RGB and depth images from MuJoCo cameras. See
+:ref:`rgbd_camera` for full documentation.
+
+
+Extending: custom sensors
+-------------------------
+
+All sensors inherit from ``Sensor[T]``, a generic base class where
+``T`` is the data type returned by the ``data`` property (e.g.,
+``torch.Tensor`` for ``BuiltinSensor``, ``ContactData`` for
+``ContactSensor``).
+
+The base class provides automatic per-step caching. The ``data``
+property calls ``_compute_data()`` on first access each step and
+caches the result. The cache is invalidated automatically when
+``update()`` or ``reset()`` is called, so multiple reads within the
+same step (from different observation or reward terms) pay the
+computation cost only once.
+
+**Lifecycle methods:**
+
+- ``edit_spec``: Add sensor elements to the MjSpec during scene
+  construction.
+- ``initialize``: Post-compilation setup. Cache sensor indices,
+  allocate buffers, resolve references.
+- ``update``: Called each physics step. Invalidates the data cache.
+  Override to maintain per-step state (e.g., air time counters).
+- ``reset``: Called on environment reset. Invalidates the data cache.
+  Override to clear per-environment state.
+- ``_compute_data``: Compute and return the sensor output. Called
+  lazily by the ``data`` property when the cache is stale.
+
+``ContactSensor`` and ``RayCastSensor`` are the most complete
+reference implementations for custom sensor development.
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   raycast_sensor
+   rgbd_camera

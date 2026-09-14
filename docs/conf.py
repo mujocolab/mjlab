@@ -163,10 +163,25 @@ smv_tag_whitelist = os.getenv("SMV_TAG_WHITELIST", r"^v[1-9]\d*\.\d+\.\d+$")
 html_sidebars = {
   "**": [
     "navbar-logo.html",
+    "lang_switch.html",
     "search-field.html",
     "versioning.html",
     "sbt-sidebar-nav.html",
   ]
+}
+
+# 中文文档构建支持(方案A:目录镜像)。设置 MJLAB_DOC_LANG=zh 后,以本配置构建 docs/zh
+# 源树即可产出中文站点;未设置时英文构建行为保持不变。
+doc_lang = os.getenv("MJLAB_DOC_LANG", "en")
+if doc_lang == "zh":
+  language = "zh_CN"
+  html_title = "mjlab 中文文档"
+  html_theme_options["logo"]["text"] = "mjlab 中文文档"
+
+# 语言切换链接上下文:中英两站页面(pagename)一一对应,仅站点根相差 zh/ 前缀
+html_context = {
+  "doc_lang": doc_lang,
+  "lang_switch_prefix": "../" if doc_lang == "zh" else "zh/",
 }
 
 
