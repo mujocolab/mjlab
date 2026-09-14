@@ -145,6 +145,22 @@ def main() -> int:
         failures.append(f"切换链接失效: {rel} -> {m.group(1)}")
     print(f"[4] 切换链接: 检查 {checked} 个, 失效 {broken} 个")
 
+
+  # 5. 渲染星号残留断言(仅 zh 站;剔除代码/pre 后正文不得含 ** 或紧邻汉字的 *)
+  if args.build:
+    build = Path(args.build)
+    star_bad, star_checked = 0, 0
+    for html in (build / "zh").rglob("*.html"):
+      raw = html.read_text(encoding="utf-8", errors="ignore")
+      raw = re.sub(r"<(pre|code|script|style)[\s\S]*?</\1>", "", raw)
+      raw = re.sub(r"<[^>]+>", "", raw)  # 剥标签,只看正文文本
+      raw = re.sub(r"\*{1,2}(?:args|kwargs)", "", raw)  # 排除 Python 签名
+      star_checked += 1
+      if "**" in raw or re.search(r"\*[\u4e00-\u9fff]|[\u4e00-\u9fff（]\*", raw):
+        star_bad += 1
+        failures.append(f"星号残留: {html.relative_to(build)}")
+    print(f"[5] 星号残留: 检查 {star_checked} 页, 异常 {star_bad} 页")
+
   if failures:
     print("\n=== 校验失败 ===")
     for f in failures:

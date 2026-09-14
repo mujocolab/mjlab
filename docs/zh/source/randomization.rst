@@ -491,7 +491,7 @@ Inertia," IEEE RA-L 2022 <https://par.nsf.gov/servlets/purl/10347458>`_。
      - mjlab / MuJoCo Warp
      - 差异原因
    * - ``body_pos``、``body_quat``
-     - 配合 ``mj_setConst`` 安全，但**对静态 body 不安全**
+     - 配合 ``mj_setConst`` 安全，但 **对静态 body 不安全**
        （使中相 BVH 失效）
      - 配合 ``set_const_0`` **安全**
      - 没有会失效的碰撞 BVH（见上）。无论 ``body_treeid`` 如何，所有

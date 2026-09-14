@@ -32,27 +32,27 @@
       :link: install-uv-dependency
       :link-type: ref
 
-      你在自己的、由 ``uv`` 管理的项目中**将 mjlab 作为依赖使用**。
+      你在自己的、由 ``uv`` 管理的项目中 **将 mjlab 作为依赖使用**。
       **（推荐大多数用户选择）**
 
    .. grid-item-card:: 方式 2 - 开发 / 贡献 (uv)
       :link: install-uv-develop
       :link-type: ref
 
-      你直接在 mjlab 仓库内**试用 mjlab** 或**为 mjlab 本身做贡献**，
+      你直接在 mjlab 仓库内 **试用 mjlab** 或 **为 mjlab 本身做贡献**，
       环境由 ``uv`` 管理。
 
    .. grid-item-card:: 方式 3 - 传统 pip / venv / conda
       :link: install-pip
       :link-type: ref
 
-      你使用**传统工具**（``pip`` / ``venv`` / ``conda``），**不使用 uv**。
+      你使用 **传统工具** （``pip`` / ``venv`` / ``conda``）， **不使用 uv**。
 
    .. grid-item-card:: 方式 4 - Docker / 集群
       :link: install-docker
       :link-type: ref
 
-      你在**容器或集群中运行**，倾向于**基于 Docker** 的部署方式。
+      你在 **容器或集群中运行**，倾向于 **基于 Docker** 的部署方式。
 
 
 .. _install-uv-dependency:

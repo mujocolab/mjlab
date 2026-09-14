@@ -5,7 +5,7 @@
 
 mjlab 自带两个交互式查看器，用于评估训练好的策略和调试环境行为：一个
 基于 MuJoCo `passive viewer <https://mujoco.readthedocs.io/en/stable/python.html#passive-viewer>`_
-的 **原生查看器**（打开桌面窗口），以及一个运行在浏览器中的
+的 **原生查看器** （打开桌面窗口），以及一个运行在浏览器中的
 `Viser <https://viser.studio/main/>`_ **查看器**。两者共享同一个
 ``ViewerConfig``，执行相同的仿真循环；差别在于界面、功能集和各自的
 适用场景。
