@@ -1,11 +1,10 @@
 .. _tutorial-cartpole:
 
-Cartpole: Building Your First Environment
-=========================================
+Cartpole：构建你的第一个环境
+============================
 
-This tutorial walks through building a cartpole swingup task from scratch.
-A cart slides along a rail with a pole attached by a hinge. The agent
-applies force to the cart to swing the pole up and balance it.
+本教程带你从零开始构建一个 cartpole 摆杆起摆任务。小车沿轨道滑动，
+通过铰链连接一根摆杆。智能体对小车施加力，把摆杆甩起并保持平衡。
 
 .. raw:: html
 
@@ -16,15 +15,15 @@ applies force to the cart to swing the pole up and balance it.
      A trained agent performing the swingup task.
    </p>
 
-The entire task lives in two files: an XML model and a Python module. We
-will build both piece by piece, then snap them together at the end.
+整个任务只包含两个文件：一个 XML 模型和一个 Python 模块。我们将逐块
+构建它们，最后把它们拼装到一起。
 
 
-The XML model
--------------
+XML 模型
+--------
 
-Every environment starts with a MuJoCo XML that defines the physical
-system. For cartpole that means two bodies, two joints, and one motor:
+每个环境都从一个定义物理系统的 MuJoCo XML 开始。对 cartpole 来说，就是
+两个 body、两个 joint 和一个 motor：
 
 .. code-block:: xml
 
@@ -45,32 +44,29 @@ system. For cartpole that means two bodies, two joints, and one motor:
              ctrllimited="true" ctrlrange="-1 1"/>
     </actuator>
 
-The motor has gear ratio 10 and control range [-1, 1], so the maximum
-force is 10 N. ``ctrllimited`` tells MuJoCo to clamp the control signal
-internally, so policy outputs outside this range are safe.
+电机的齿轮比为 10，控制范围为 [-1, 1]，因此最大作用力为 10 N。
+``ctrllimited`` 让 MuJoCo 在内部对控制信号做截断，因此策略输出超出
+该范围也是安全的。
 
-The full XML is at ``src/mjlab/tasks/cartpole/cartpole.xml``.
+完整 XML 位于 ``src/mjlab/tasks/cartpole/cartpole.xml``。
 
 
-Building the environment
-------------------------
+构建环境
+--------
 
-Everything else lives in a single file, ``cartpole_env_cfg.py``. An
-mjlab environment is made of small, composable pieces. We will define
-each piece, then assemble them into a complete config at the end.
+其余内容都在单个文件 ``cartpole_env_cfg.py`` 中。mjlab 环境由小的、
+可组合的部件构成。我们先逐一定义这些部件，最后组装成完整配置。
 
-Entity: wrapping the XML
-^^^^^^^^^^^^^^^^^^^^^^^^
+实体：封装 XML
+^^^^^^^^^^^^^^
 
-An entity is a simulated object in the scene. It can be anything from a
-static table to an articulated robot. The ``EntityCfg`` wraps a MuJoCo
-XML and, optionally, actuator and initial state configurations. At
-runtime, the entity exposes simulation data (joint positions, velocities,
-etc.) as batched PyTorch tensors.
+实体是场景中被仿真的对象，可以是静态桌子，也可以是铰接机器人。
+``EntityCfg`` 封装一个 MuJoCo XML，并可选地附带执行器配置与初始状态
+配置。运行时，实体把仿真数据（关节位置、速度等）暴露为批处理的
+PyTorch 张量。
 
-The cartpole is an articulated entity with one actuator, so we need a
-function that loads the XML, an actuator configuration, and an initial
-state.
+cartpole 是带一个执行器的铰接实体，因此我们需要一个加载 XML 的函数、
+一个执行器配置和一个初始状态。
 
 .. code-block:: python
 
@@ -85,14 +81,13 @@ state.
         actuators=(XmlActuatorCfg(target_names_expr=("slider",)),),
     )
 
-The initial joint state depends on the task variant:
+初始关节状态取决于任务变体：
 
 .. tab-set::
 
-   .. tab-item:: Swingup
+   .. tab-item:: Swingup（起摆）
 
-      The pole starts pointing down (``hinge = pi``). The agent must swing
-      it up and balance it.
+      摆杆初始朝下（``hinge = pi``）。智能体必须把它甩起并保持平衡。
 
       .. code-block:: python
 
@@ -101,10 +96,9 @@ The initial joint state depends on the task variant:
               joint_vel={".*": 0.0},
           )
 
-   .. tab-item:: Balance
+   .. tab-item:: Balance（平衡）
 
-      The pole starts upright (``hinge = 0``). The agent only needs to
-      keep it balanced.
+      摆杆初始直立（``hinge = 0``）。智能体只需要保持平衡。
 
       .. code-block:: python
 
@@ -113,7 +107,7 @@ The initial joint state depends on the task variant:
               joint_vel={".*": 0.0},
           )
 
-Now we can snap these together into an ``EntityCfg``:
+现在把它们组装成一个 ``EntityCfg``：
 
 .. code-block:: python
 
@@ -125,49 +119,44 @@ Now we can snap these together into an ``EntityCfg``:
             init_state=_SWINGUP_INIT if swing_up else _BALANCE_INIT,
         )
 
-That is the entity done. Later, we will pass it to the scene so the
-environment knows what to simulate.
+实体部分到此完成。稍后我们会把它传入场景，让环境知道要仿真什么。
 
-Observations: what the agent sees
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+观测：智能体看到什么
+^^^^^^^^^^^^^^^^^^^^
 
-Each observation term is a function that reads from the simulation and
-returns a tensor. The observation manager concatenates them into a single
-vector for the policy. mjlab provides common terms in ``mjlab.envs.mdp``
-(joint positions, velocities, etc.), but you can always define your own.
+每个观测项都是一个从仿真读取数据并返回张量的函数。观测管理器把它们
+拼接成单个向量交给策略。mjlab 在 ``mjlab.envs.mdp`` 中提供了常见观测项
+（关节位置、速度等），你也完全可以自定义。
 
-The cartpole has two moving parts, so its physical state is fully
-described by two positions and two velocities:
+cartpole 有两个可动部件，其物理状态由两个位置和两个速度即可完整描述：
 
 .. list-table::
    :header-rows: 1
    :widths: 22 12 66
 
-   * - Term
-     - Dim
-     - Description
+   * - 项
+     - 维度
+     - 描述
    * - ``cart_pos``
      - 1
-     - Where is the cart on the rail?
+     - 小车在轨道上的位置
    * - ``pole_angle``
      - 2
-     - Which way is the pole pointing? (cosine and sine)
+     - 摆杆指向哪个方向（余弦与正弦）
    * - ``cart_vel``
      - 1
-     - How fast is the cart moving?
+     - 小车移动的速度
    * - ``pole_vel``
      - 1
-     - How fast is the pole rotating?
+     - 摆杆转动的角速度
 
 .. tip::
 
-   The pole angle is encoded as cosine and sine rather than a raw angle.
-   MuJoCo's unlimited hinge does not wrap the angle, so as the pole
-   spins the raw value keeps growing. Cosine and sine give the same
-   output for the same physical angle regardless of how many rotations
-   have occurred.
+   摆杆角度用余弦和正弦编码，而不是原始角度。MuJoCo 的无限制铰链不会
+   对角度做回绕，摆杆持续旋转时原始数值会一直增长。而余弦与正弦对同一
+   物理角度给出相同输出，与已经转了多少圈无关。
 
-This is the one custom observation function:
+这就是那个自定义观测函数：
 
 .. code-block:: python
 
@@ -178,14 +167,12 @@ This is the one custom observation function:
 
 .. note::
 
-   All data in mjlab is batched: tensors have shape
-   ``[num_envs, ...]`` because many environments run in parallel.
-   Every function you write should accept and return tensors with this
-   leading batch dimension.
+   mjlab 中的所有数据都是批处理的：张量形状为 ``[num_envs, ...]``，
+   因为大量环境在并行运行。你编写的每个函数都应接受并返回带有这一
+   前导批维的张量。
 
-To wire these up, we create ``ObservationTermCfg`` entries and group
-them. ``SceneEntityCfg`` scopes each function to specific joints on
-the entity:
+要把它们接起来，我们创建 ``ObservationTermCfg`` 条目并进行分组。
+``SceneEntityCfg`` 把每个函数限定到实体的特定关节上：
 
 .. code-block:: python
 
@@ -205,11 +192,10 @@ the entity:
         func=joint_vel_rel, params={"asset_cfg": hinge_cfg},
     )
 
-Each term pairs a function with the parameters to call it with. Now
-we group them. The RL algorithm expects an ``"actor"`` and ``"critic"``
-group; they share the same terms here, but when you add noise later
-you can give the critic clean observations
-(asymmetric actor-critic [#aac]_).
+每个观测项都把一个函数与其调用参数配对。接下来对它们分组。RL 算法
+期望存在 ``"actor"`` 和 ``"critic"`` 两个组；这里它们共享相同的项，
+但之后你加入噪声时可以让 critic 拿到干净的观测（非对称 actor-critic
+[#aac]_）。
 
 .. code-block:: python
 
@@ -225,13 +211,12 @@ you can give the critic clean observations
         "critic": ObservationGroupCfg({**actor_terms}),
     }
 
-Actions: what the agent does
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+动作：智能体做什么
+^^^^^^^^^^^^^^^^^^
 
-The agent outputs a single scalar: the force on the cart.
-``JointEffortActionCfg`` writes the policy output to the actuator's
-effort target. The ``XmlActuator`` passes it to MuJoCo's ``ctrl``
-buffer, which clamps it to [-1, 1] and multiplies by the gear ratio:
+智能体输出一个标量：施加在小车上的力。``JointEffortActionCfg`` 把策略
+输出写入执行器的 effort 目标。``XmlActuator`` 会把它传入 MuJoCo 的
+``ctrl`` 缓冲区，由后者截断到 [-1, 1] 并乘以齿轮比：
 
 .. code-block:: python
 
@@ -243,14 +228,13 @@ buffer, which clamps it to [-1, 1] and multiplies by the gear ratio:
         ),
     }
 
-Rewards: the training signal
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+奖励：训练信号
+^^^^^^^^^^^^^^
 
-Each reward term is a function that returns a scalar per environment.
-The reward manager computes a weighted sum of all terms each step.
+每个奖励项都是一个按环境返回标量的函数。奖励管理器每步计算所有奖励项
+的加权和。
 
-The cartpole reward reproduces dm_control's smooth reward as a single
-multiplicative term:
+cartpole 的奖励以单个乘积项复现了 dm_control 的平滑奖励：
 
 .. math::
 
@@ -259,9 +243,8 @@ multiplicative term:
        \times \underbrace{\frac{4 + q(u)}{5}}_{\text{small control}}
        \times \underbrace{\frac{1 + g(\dot\theta)}{2}}_{\text{small velocity}}
 
-Each factor is between 0 and 1. The product is high only when all four
-conditions hold simultaneously, preventing the agent from trading off
-one factor against another.
+每个因子都在 0 到 1 之间。只有四个条件同时满足时乘积才会高，这避免了
+智能体用一个因子去交换另一个因子。
 
 .. code-block:: python
 
@@ -273,13 +256,12 @@ one factor against another.
         ),
     }
 
-Terminations: when to stop
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+终止：何时停止
+^^^^^^^^^^^^^^
 
-The cartpole has no failure states, so the only termination is a time
-limit. Setting ``time_out=True`` tells the RL algorithm this is a
-truncation, not a true terminal state, so it bootstraps the value
-function past the episode boundary:
+cartpole 没有失败状态，因此唯一的终止就是时间上限。设置
+``time_out=True`` 告诉 RL 算法这是截断（truncation）而不是真正的终止
+状态，从而让算法在回合边界之外对价值函数做自举（bootstrap）：
 
 .. code-block:: python
 
@@ -287,11 +269,11 @@ function past the episode boundary:
         "time_out": TerminationTermCfg(func=time_out, time_out=True),
     }
 
-Events: resetting the state
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+事件：重置状态
+^^^^^^^^^^^^^^
 
-At the start of each episode, reset events randomize joint positions and
-velocities around the initial state we defined in the entity:
+每个回合开始时，重置事件会围绕实体中定义的初始状态对关节位置和速度做
+随机化：
 
 .. code-block:: python
 
@@ -316,14 +298,14 @@ velocities around the initial state we defined in the entity:
         ),
     }
 
-The offsets are relative to the entity's initial state. For swingup the
-hinge starts at pi, so the noise keeps it near pointing down.
+这些偏移量是相对实体初始状态的。起摆变体中铰链初始值为 pi，因此噪声
+会让它保持在接近朝下的位置。
 
-Snapping everything together
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+拼装完整环境
+^^^^^^^^^^^^
 
-``ManagerBasedRlEnvCfg`` is where all the pieces come together. The
-scene holds the entity, and the config holds everything else:
+``ManagerBasedRlEnvCfg`` 是所有部件汇聚的地方。场景持有实体，配置持有
+其余一切：
 
 .. code-block:: python
 
@@ -346,22 +328,20 @@ scene holds the entity, and the config holds everything else:
         episode_length_s=50.0,
     )
 
-``decimation=5`` means the physics runs five substeps per policy step,
-giving a 20 Hz control frequency. ``disableflags=("contact",)`` skips
-contact computation since cartpole has no collisions. ``num_envs=1`` is
-the default; override it from the CLI with ``--num-envs``.
+``decimation=5`` 表示每个策略步执行 5 个物理子步，控制频率为 20 Hz。
+``disableflags=("contact",)`` 跳过接触计算，因为 cartpole 没有碰撞。
+``num_envs=1`` 是默认值；可以通过命令行 ``--num-envs`` 覆盖。
 
 
-Registration and training
--------------------------
+注册与训练
+----------
 
-The last step is to register the task so it can be launched by name.
-Each registration pairs an environment config with an RL config that
-specifies the network architecture and PPO hyperparameters. For cartpole
-a small network of two 64 unit hidden layers is plenty. The full RL
-config is in ``cartpole_env_cfg.py`` alongside the environment config.
+最后一步是注册任务，使其能按名称启动。每次注册都把一个环境配置与一个
+RL 配置配对，后者指定网络结构和 PPO 超参数。对 cartpole 来说，一个两层
+64 单元隐层的小网络就足够了。完整 RL 配置与环境配置一起放在
+``cartpole_env_cfg.py`` 中。
 
-This goes in ``__init__.py``:
+注册代码放在 ``__init__.py`` 中：
 
 .. code-block:: python
 
@@ -372,13 +352,13 @@ This goes in ``__init__.py``:
         rl_cfg=cartpole_ppo_runner_cfg(),
     )
 
-Train:
+训练：
 
 .. code-block:: bash
 
     uv run train Mjlab-Cartpole-Swingup --env.scene.num-envs 4096
 
-Play back a trained checkpoint, either from a local file or a W&B run:
+回放训练好的检查点，可以是本地文件，也可以是 W&B run：
 
 .. code-block:: bash
 
@@ -390,9 +370,9 @@ Play back a trained checkpoint, either from a local file or a W&B run:
    :align: center
    :alt: Cartpole swingup training curve
 
-   Mean reward over 5 seeds (shaded: one standard deviation).
+   5 个随机种子的平均奖励（阴影：一个标准差）。
 
-Config fields can be overridden from the CLI:
+配置字段可以通过命令行覆盖：
 
 .. code-block:: bash
 
@@ -402,12 +382,11 @@ Config fields can be overridden from the CLI:
         --agent.algorithm.entropy-coef 0.005
 
 
-Next steps
-----------
+下一步
+------
 
-**Add observation noise.** The current config has no noise, so the
-policy is brittle. Add noise to any observation term to train a more
-robust policy:
+**添加观测噪声。** 当前配置没有任何噪声，策略会比较脆弱。给任意观测项
+加上噪声可以训练出更鲁棒的策略：
 
 .. code-block:: python
 
@@ -419,21 +398,18 @@ robust policy:
         noise=UniformNoiseCfg(n_min=-0.05, n_max=0.05),
     )
 
-**Randomize the physics.** Use the :ref:`domain_randomization` system
-to vary pole mass or joint damping across environments, training a
-policy that transfers across physical variations.
+**随机化物理参数。** 利用 :ref:`domain_randomization` 系统在不同环境间
+改变摆杆质量或关节阻尼，训练出能迁移到物理参数变化的策略。
 
-**Explore other tasks.** The library ships with locomotion,
-manipulation, and motion tracking tasks you can run out of the box:
-``Mjlab-Velocity-Flat-Unitree-Go1``, ``Mjlab-Lift-Cube-Yam``, and
-``Mjlab-Tracking-Flat-Unitree-G1``, among others. Reading their source
-shows how more complex observation and reward structures are composed.
+**探索其他任务。** 本库自带运动（locomotion）、操作（manipulation）和
+运动跟踪任务，开箱即用：例如 ``Mjlab-Velocity-Flat-Unitree-Go1``、
+``Mjlab-Lift-Cube-Yam`` 和 ``Mjlab-Tracking-Flat-Unitree-G1``。阅读它们
+的源码可以了解更复杂的观测与奖励结构是如何组合的。
 
-**Build something new.** The cartpole is intentionally minimal. Once
-you are comfortable with the pieces, try designing your own robot model
-and task from scratch. The same pattern applies regardless of how
-complex the system becomes.
+**构建新东西。** cartpole 被刻意设计得很精简。熟悉这些部件之后，试着
+从零开始设计你自己的机器人模型和任务。无论系统变得多复杂，模式都是
+一样的。
 
-.. rubric:: References
+.. rubric:: 参考文献
 
 .. [#aac] Pinto, L., Andrychowicz, M., Welinder, P., Zaremba, W., & Abbeel, P. (2018). `Asymmetric Actor Critic for Image-Based Robot Learning <https://www.roboticsproceedings.org/rss14/p08.pdf>`_. *Robotics: Science and Systems XIV*.

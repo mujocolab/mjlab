@@ -1,37 +1,36 @@
-Contributing
-============
+贡献指南
+========
 
-Bug fixes and documentation improvements are always welcome.
+随时欢迎缺陷修复与文档改进。
 
 .. important::
 
-   For new features, please
-   `open an issue <https://github.com/mujocolab/mjlab/issues>`_ first so
-   we can discuss whether it fits the project scope.
+   开发新功能前，请先
+   `提交 issue <https://github.com/mujocolab/mjlab/issues>`_，
+   以便我们讨论它是否符合项目范围。
 
 
-Development setup
------------------
+开发环境搭建
+------------
 
-Clone the repository and sync dependencies:
+克隆仓库并同步依赖：
 
 .. code-block:: bash
 
    git clone https://github.com/mujocolab/mjlab.git && cd mjlab
    uv sync
 
-Install pre-commit hooks to catch formatting and lint issues before each
-commit:
+安装 pre-commit 钩子，在每次提交前捕获格式与 lint 问题：
 
 .. code-block:: bash
 
    uvx pre-commit install
 
 
-Common commands
----------------
+常用命令
+--------
 
-The ``Makefile`` provides shortcuts for the most common development tasks:
+``Makefile`` 为最常见的开发任务提供了快捷方式：
 
 .. code-block:: bash
 
@@ -42,67 +41,61 @@ The ``Makefile`` provides shortcuts for the most common development tasks:
    make test        # Run the full test suite
    make test-all    # Format + type check + full test suite
 
-You can also run individual tests for faster iteration:
+也可以单独运行某个测试以加快迭代：
 
 .. code-block:: bash
 
    uv run pytest tests/test_rewards.py
 
-Type checking (``make type``) is required. PRs that do not pass will be
-blocked.
+类型检查（``make type``）是必需的，未通过的 PR 会被阻止合并。
 
 
-Building the docs
------------------
+构建文档
+--------
 
-Build the documentation locally:
+在本地构建文档：
 
 .. code-block:: bash
 
    make docs
 
-The HTML output is written to ``docs/_build/``. For live reload during
-editing:
+HTML 输出写入 ``docs/_build/``。编辑时如需实时刷新：
 
 .. code-block:: bash
 
    make docs-watch
 
 
-Submitting a pull request
--------------------------
+提交 pull request
+-----------------
 
-1. Fork the repository and create a feature branch.
-2. Make your changes.
-3. Run ``make test-all`` to verify formatting, type checking, and tests
-   pass.
-4. Add an entry to the "Upcoming version" section in
-   ``docs/source/changelog.rst`` under the appropriate category
-   (Added / Changed / Fixed), following
-   `Keep a Changelog <https://keepachangelog.com/>`_ conventions.
-5. Submit a pull request.
+1. Fork 仓库并创建功能分支。
+2. 完成修改。
+3. 运行 ``make test-all``，确认格式、类型检查与测试全部通过。
+4. 按照 `Keep a Changelog <https://keepachangelog.com/>`_ 的惯例，在
+   ``docs/source/changelog.rst`` 的 "Upcoming version" 小节中按相应类别
+   （Added / Changed / Fixed）添加条目。
+5. 提交 pull request。
 
 
-Development with Claude Code
-----------------------------
+使用 Claude Code 开发
+---------------------
 
-The repository includes a ``CLAUDE.md`` file at the project root. This file
-defines development conventions, style guidelines, and common commands for
-`Claude Code <https://claude.com/claude-code>`_. It is also a useful
-reference for human contributors since it captures the same rules enforced
-in CI.
+仓库根目录包含 ``CLAUDE.md`` 文件，定义了
+`Claude Code <https://claude.com/claude-code>`_ 的开发约定、风格指南与
+常用命令。由于它记录的正是 CI 中强制执行的规则，对人类贡献者同样具有
+参考价值。
 
-The project also includes shared commands in ``.claude/commands/``.
-Any contributor with Claude Code installed can invoke them as slash commands.
+项目还在 ``.claude/commands/`` 中提供了共享命令，任何安装了 Claude Code
+的贡献者都可以用斜杠命令调用它们。
 
 ``/update-mjwarp <commit-hash>``
-   Update the ``mujoco-warp`` dependency to a specific commit. This edits
-   ``pyproject.toml``, runs ``uv lock``, and opens a PR in one step.
+   把 ``mujoco-warp`` 依赖更新到指定 commit。一步完成编辑
+   ``pyproject.toml``、运行 ``uv lock`` 并发起 PR。
 
    .. code-block:: text
 
       /update-mjwarp e28c6038cdf8a353b4146974e4cf37e74dda809a
 
 ``/commit-push-pr``
-   Stage current changes, commit, push, and open a PR.
-
+   暂存当前改动，提交、推送并发起 PR。

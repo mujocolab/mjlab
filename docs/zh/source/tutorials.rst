@@ -1,9 +1,9 @@
 .. _tutorials:
 
-Tutorials
-=========
+教程
+====
 
-Tutorials to help you get started with mjlab.
+帮助你快速上手 mjlab 的系列教程。
 
 .. toctree::
    :maxdepth: 1

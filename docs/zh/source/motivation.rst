@@ -1,88 +1,74 @@
 .. _motivation:
 
-Why mjlab?
-==========
+为什么选择 mjlab？
+==================
 
-Reinforcement learning has become a powerful tool for training robot
-controllers in simulation and transferring them to real hardware. The
-fidelity of this pipeline hinges on getting simulation details right.
+强化学习已经成为在仿真中训练机器人控制器并将其迁移到真实硬件的有力工具。
+这条技术路线的可靠性取决于对仿真细节的把握。
 
-Several frameworks address this.
+目前有若干框架在解决这个问题。
 `Isaac Lab <https://github.com/isaac-sim/IsaacLab>`_
-provides a comprehensive manager-based API for composing RL environments,
-but requires the Omniverse runtime, which adds installation complexity and
-startup latency.
-`MuJoCo Playground <https://playground.mujoco.org/>`_ takes the opposite
-approach: minimal
-abstractions and monolithic environment definitions that are easy to hack
-and quick to prototype, but code duplication across robots and tasks makes
-multi-task codebases difficult to maintain. There remains a gap for a
-framework that is both lightweight and built on a proven orchestration API
-with access to best-in-class physics.
+为组合强化学习环境提供了完整的基于管理器的 API，但它依赖 Omniverse 运行时，
+安装复杂且启动缓慢。
+`MuJoCo Playground <https://playground.mujoco.org/>`_ 则走了相反的路线：
+抽象极简、环境定义整体化，便于魔改和快速原型开发，但跨机器人、跨任务的
+代码重复使多任务代码库难以维护。一个既轻量、又构建在成熟编排 API 之上、
+同时能使用顶级物理引擎的框架，仍然缺位。
 
-mjlab fills this gap. It adopts Isaac Lab's manager-based design, where
-users compose self-contained building blocks for observations, rewards,
-events, and commands, and pairs it with MuJoCo Warp for GPU-accelerated
-physics simulation. The result is a framework with minimal dependencies,
-fast startup, direct access to native MuJoCo model and data structures,
-and a PyTorch-native interface for policy training.
+mjlab 正是为此而生。它采用 Isaac Lab 的基于管理器的设计，让用户组合
+自包含的构建模块来定义观测、奖励、事件和指令，并将其与 MuJoCo Warp 的
+GPU 加速物理仿真相结合。最终得到的框架依赖精简、启动迅速、可直接访问
+MuJoCo 原生的模型与数据结构，并为策略训练提供 PyTorch 原生接口。
 
 
-Design philosophy
------------------
+设计哲学
+--------
 
-mjlab is designed around three core engineering commitments:
+mjlab 围绕三项核心工程承诺设计：
 
-1. **Minimal installation friction.** A single
-   ``uvx --from mjlab --refresh demo`` command is enough to run the
-   framework. No heavyweight runtimes, no multi-gigabyte downloads. The
-   dependency footprint is kept intentionally small.
+1. **安装零负担。** 一条 ``uvx --from mjlab --refresh demo`` 命令即可运行
+   本框架。没有笨重的运行时，没有数 GB 的下载。依赖足迹被刻意保持得很小。
 
-2. **Transparent and inspectable physics.** mjlab targets a single physics
-   stack, MuJoCo Warp, to prioritize simulation transparency and
-   debuggability. The framework exposes MuJoCo-native ``MjModel`` and
-   ``MjData`` structures for direct inspection and state access.
-   Cross-simulator portability is a non-goal; mjlab favors precise control
-   and interpretability over backend generality.
+2. **透明、可检视的物理。** mjlab 只面向单一物理后端 MuJoCo Warp，把仿真
+   的透明性与可调试性放在首位。框架直接暴露 MuJoCo 原生的 ``MjModel`` 和
+   ``MjData`` 结构，便于直接检视和访问状态。跨仿真器可移植性不是我们的
+   目标；相比后端的通用性，mjlab 更看重精确控制与可解释性。
 
-3. **Tight MuJoCo ecosystem integration.** Users work directly with MuJoCo
-   models and conventions. MJCF files, MuJoCo Menagerie assets, and
-   standard MuJoCo tooling all work without translation layers.
+3. **深度融入 MuJoCo 生态。** 用户直接使用 MuJoCo 的模型与约定。MJCF 文件、
+   MuJoCo Menagerie 资产以及标准 MuJoCo 工具链都能即插即用，无需任何转换层。
 
 
-Scope
------
+范围
+----
 
-mjlab provides infrastructure for rigid-body robot learning. It includes
-depth and raycast sensors for geometric perception. High-fidelity RGB
-rendering is out of scope. This does not preclude vision-based policies:
-a common approach is to train privileged policies using full state, then
-distill into vision-based controllers using external rendering.
+mjlab 为刚体机器人学习提供基础设施，包含用于几何感知的深度传感器与
+光线投射传感器。高保真 RGB 渲染不在范围内。但这并不妨碍视觉策略的开发：
+一种常见做法是先用完整状态训练特权策略，再借助外部渲染将其蒸馏为
+基于视觉的控制器。
 
-The framework is intended to be extended to custom robots, tasks, sensors,
-and actuators. It ships with reference implementations of velocity tracking,
-motion imitation, and manipulation tasks.
+本框架旨在支持用户扩展自定义的机器人、任务、传感器和执行器，并随附
+速度跟踪、运动模仿和操作任务的参考实现。
 
 
-Comparison
-----------
+对比
+----
 
 .. list-table::
    :header-rows: 1
    :widths: 25 25 50
 
-   * - Framework
-     - Strengths
-     - Best for
+   * - 框架
+     - 优势
+     - 适合场景
    * - **mjlab**
-     - Lightweight, fast iteration, native MuJoCo, PyTorch
-     - MuJoCo users who want structured RL environments with GPU acceleration
+     - 轻量、迭代快、原生 MuJoCo、PyTorch
+     - 希望用 GPU 加速构建结构化强化学习环境的 MuJoCo 用户
    * - **Isaac Lab**
-     - Photorealistic rendering, USD pipeline, Omniverse ecosystem
-     - Projects that need Isaac Sim capabilities
+     - 照片级渲染、USD 流水线、Omniverse 生态
+     - 需要 Isaac Sim 能力的项目
    * - **MuJoCo Playground**
-     - Minimal abstractions, easy to hack, quick prototyping
-     - One-off experiments and rapid iteration on single tasks
+     - 抽象极简、易于魔改、快速原型
+     - 一次性实验与单任务快速迭代
    * - **Newton**
-     - Multi-physics solvers (deformables, VBD), differentiable simulation
-     - Projects that need solver flexibility beyond rigid-body MuJoCo
+     - 多物理求解器（可变形体、VBD）、可微仿真
+     - 需要超出刚体 MuJoCo 的求解器灵活性的项目

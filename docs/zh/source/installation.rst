@@ -1,10 +1,9 @@
 .. _installation:
 
-Installation Guide
-==================
+安装指南
+========
 
-This guide presents different installation paths so you can
-choose the one that best fits your use case.
+本指南介绍几种不同的安装路径，你可以选择最适合自己用例的一种。
 
 .. contents::
    :local:
@@ -12,70 +11,71 @@ choose the one that best fits your use case.
 
 .. note::
 
-    **System Requirements**
+    **系统要求**
 
-    - **Training**: Linux + NVIDIA GPU (CUDA 12.4+ recommended)
-    - **Evaluation**: Linux, macOS, or Windows (WSL)
-    - **Python**: 3.10 or higher
+    - **训练**：Linux + NVIDIA GPU（推荐 CUDA 12.4+）
+    - **评估**：Linux、macOS 或 Windows (WSL)
+    - **Python**：3.10 或更高版本
 
-    See :ref:`faq` for more details on what is exactly supported.
+    有关支持范围的更多细节见 :ref:`faq`。
 
 
-How to choose an installation method?
--------------------------------------
+如何选择安装方式？
+------------------
 
-Select the card that best matches how you plan to use ``mjlab``.
+选择与你的使用方式最匹配的卡片。
 
 .. grid:: 2
    :gutter: 2
 
-   .. grid-item-card:: Method 1 - Use mjlab as a dependency (uv)
+   .. grid-item-card:: 方式 1 - 将 mjlab 作为依赖使用 (uv)
       :link: install-uv-dependency
       :link-type: ref
 
-      You are **using mjlab as a dependency** in your own project managed by ``uv``. **(Recommended for most users)**
+      你在自己的、由 ``uv`` 管理的项目中**将 mjlab 作为依赖使用**。
+      **（推荐大多数用户选择）**
 
-   .. grid-item-card:: Method 2 - Develop / contribute (uv)
+   .. grid-item-card:: 方式 2 - 开发 / 贡献 (uv)
       :link: install-uv-develop
       :link-type: ref
 
-      You are **trying mjlab** or **contributing to mjlab itself** directly from inside the mjlab repository, with ``uv`` managing the environment.
+      你直接在 mjlab 仓库内**试用 mjlab** 或**为 mjlab 本身做贡献**，
+      环境由 ``uv`` 管理。
 
-   .. grid-item-card:: Method 3 - Classic pip / venv / conda
+   .. grid-item-card:: 方式 3 - 传统 pip / venv / conda
       :link: install-pip
       :link-type: ref
 
-      You are using **classic tools** (``pip`` / ``venv`` / ``conda``) and **do not use uv**.
+      你使用**传统工具**（``pip`` / ``venv`` / ``conda``），**不使用 uv**。
 
-   .. grid-item-card:: Method 4 - Docker / clusters
+   .. grid-item-card:: 方式 4 - Docker / 集群
       :link: install-docker
       :link-type: ref
 
-      You are **running in containers or on clusters** and prefer a **Docker-based** setup.
+      你在**容器或集群中运行**，倾向于**基于 Docker** 的部署方式。
 
 
 .. _install-uv-dependency:
 
-Method 1 - Use mjlab as a dependency (uv)
------------------------------------------
+方式 1 - 将 mjlab 作为依赖使用 (uv)
+-----------------------------------
 
-This is our recommended way to use ``mjlab``. You have
-your own project and want to use ``mjlab`` as a dependency
-using ``uv``.
+这是我们推荐的使用 ``mjlab`` 的方式。你拥有自己的项目，希望用 ``uv``
+把 ``mjlab`` 作为依赖引入。
 
-1. Install uv
-^^^^^^^^^^^^^
+1. 安装 uv
+^^^^^^^^^^
 
-If you do not have ``uv`` installed, run:
+如果尚未安装 ``uv``，请运行：
 
 .. code-block:: bash
 
    curl -LsSf https://astral.sh/uv/install.sh | sh
 
-2. Initialize your project
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+2. 初始化你的项目
+^^^^^^^^^^^^^^^^^
 
-Initialize a managed Python project:
+初始化一个受管理的 Python 项目：
 
 .. code-block:: bash
 
@@ -83,20 +83,18 @@ Initialize a managed Python project:
    uv init --package my_mjlab_project
    cd my_mjlab_project
 
-3. Add mjlab dependencies
-^^^^^^^^^^^^^^^^^^^^^^^^^
+3. 添加 mjlab 依赖
+^^^^^^^^^^^^^^^^^^
 
-There are different options to add ``mjlab`` as a dependency.
-We recommend using the latest stable version from PyPI. If you need
-the latest features, use the direct GitHub installation. Finally, if you
-need to use a feature you have developed locally, use the local editable
-install. These options are interchangeable: you can switch at any time.
+将 ``mjlab`` 添加为依赖有几种方式。我们推荐使用 PyPI 上的最新稳定版本；
+如果需要最新特性，可以使用 GitHub 直装；如果需要使用你本地开发的特性，
+则用本地可编辑安装。这几种方式可以互换，随时切换。
 
 .. tab-set::
 
    .. tab-item:: PyPI
 
-      Once in your project, install the latest snapshot from PyPI:
+      进入你的项目后，安装 PyPI 上的最新版本：
 
       .. code:: bash
 
@@ -104,7 +102,7 @@ install. These options are interchangeable: you can switch at any time.
 
    .. tab-item:: Source
 
-      Once in your project, install directly from GitHub without cloning:
+      进入你的项目后，无需克隆即可从 GitHub 直接安装：
 
       .. code:: bash
 
@@ -112,13 +110,13 @@ install. These options are interchangeable: you can switch at any time.
 
    .. tab-item:: Local
 
-      Clone the repository:
+      克隆仓库：
 
       .. code:: bash
 
          git clone https://github.com/mujocolab/mjlab.git
 
-      Once in your project, add it as an editable dependency:
+      进入你的项目后，将其添加为可编辑依赖：
 
       .. code:: bash
 
@@ -126,14 +124,15 @@ install. These options are interchangeable: you can switch at any time.
 
 .. tip::
 
-   For a complete example of how to structure a project that integrates a custom robot
-   with an existing ``mjlab`` task, check out the
-   `ANYmal C Velocity Tracking <https://github.com/mujocolab/anymal_c_velocity>`_ repository.
+   想了解如何组织"自定义机器人 + 现有 ``mjlab`` 任务"的项目结构，
+   可以参考
+   `ANYmal C Velocity Tracking <https://github.com/mujocolab/anymal_c_velocity>`_
+   仓库中的完整示例。
 
-Verification
-^^^^^^^^^^^^
+验证
+^^^^
 
-After installation, verify that ``mjlab`` is working by running the demo:
+安装完成后，运行 demo 验证 ``mjlab`` 是否正常工作：
 
 .. code-block:: bash
 
@@ -142,20 +141,20 @@ After installation, verify that ``mjlab`` is working by running the demo:
 
 .. _install-uv-develop:
 
-Method 2 - Develop / contribute (uv)
-------------------------------------
+方式 2 - 开发 / 贡献 (uv)
+-------------------------
 
-This method is for developing ``mjlab`` itself or contributing to the project.
+此方式适用于开发 ``mjlab`` 本身或为项目做贡献。
 
 .. code:: bash
 
    git clone https://github.com/mujocolab/mjlab.git && cd mjlab
    uv sync
 
-Verification
-^^^^^^^^^^^^
+验证
+^^^^
 
-After installation, verify that ``mjlab`` is working by running the demo:
+安装完成后，运行 demo 验证 ``mjlab`` 是否正常工作：
 
 .. code-block:: bash
 
@@ -164,20 +163,20 @@ After installation, verify that ``mjlab`` is working by running the demo:
 
 .. _install-pip:
 
-Method 3 - Classic pip / venv / conda
--------------------------------------
+方式 3 - 传统 pip / venv / conda
+--------------------------------
 
-Activate your virtual environment (``venv``, ``conda``, etc.), then install:
+激活你的虚拟环境（``venv``、``conda`` 等），然后安装：
 
 .. code:: bash
 
    pip install mjlab
 
 
-Verification
-^^^^^^^^^^^^
+验证
+^^^^
 
-After installation, verify that ``mjlab`` is working by running the demo:
+安装完成后，运行 demo 验证 ``mjlab`` 是否正常工作：
 
 .. code-block:: bash
 
@@ -186,48 +185,46 @@ After installation, verify that ``mjlab`` is working by running the demo:
 
 .. _install-docker:
 
-Method 4 - Docker / clusters
-----------------------------
+方式 4 - Docker / 集群
+----------------------
 
-Prerequisites:
+前置条件：
 
-- Install Docker: `Docker installation guide <https://docs.docker.com/engine/install/>`_.
-- Install an appropriate NVIDIA driver for your system and the
-  `NVIDIA Container Toolkit <https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html>`_.
+- 安装 Docker：`Docker 安装指南 <https://docs.docker.com/engine/install/>`_。
+- 为你的系统安装合适的 NVIDIA 驱动以及
+  `NVIDIA Container Toolkit <https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html>`_。
 
-  - Be sure to register the container runtime with Docker and restart,
-    as described in the Docker configuration section of the NVIDIA
-    install guide.
+  - 务必按 NVIDIA 安装指南中 Docker 配置一节的说明注册容器运行时并重启。
 
 .. tab-set::
 
-   .. tab-item:: Pre-built image (recommended)
+   .. tab-item:: 预构建镜像（推荐）
 
-      Pull and run the latest image from the GitHub Container Registry:
+      从 GitHub Container Registry 拉取并运行最新镜像：
 
       .. code-block:: bash
 
          docker run --rm --runtime=nvidia --gpus all \
            ghcr.io/mujocolab/mjlab uv run demo
 
-      The image is rebuilt on every push to ``main``.
+      该镜像在每次 push 到 ``main`` 时重新构建。
 
-   .. tab-item:: Local build
+   .. tab-item:: 本地构建
 
-      Build from source and run:
+      从源码构建并运行：
 
       .. code-block:: bash
 
          ./scripts/run_docker.sh uv run demo
 
 
-Having some troubles?
----------------------
+遇到问题了？
+------------
 
-1. **Check the FAQ**
+1. **查阅 FAQ**
 
-    Consult the mjlab :ref:`faq` for answers to common installation and runtime issues
+    常见安装与运行问题请先查阅 mjlab 的 :ref:`faq`
 
-2. **Still stuck?**
+2. **仍然没有解决？**
 
-    Open an issue on GitHub: https://github.com/mujocolab/mjlab/issues
+    在 GitHub 上提交 issue：https://github.com/mujocolab/mjlab/issues
