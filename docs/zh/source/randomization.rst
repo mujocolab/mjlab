@@ -1311,7 +1311,7 @@ MuJoCo Warp 提供了一组等价函数（``set_const``、``set_const_0``、
 
    .. grid-item-card::
 
-      .. image:: _static/dr_combined_rand.gif
+      .. image:: ../../source/_static/dr_combined_rand.gif
          :alt: Cube color, size, and link orientations randomized each reset
 
       立方体颜色（``dr.geom_rgba``）、立方体尺寸（``dr.geom_size``）
@@ -1320,7 +1320,7 @@ MuJoCo Warp 提供了一组等价函数（``set_const``、``set_const_0``、
 
    .. grid-item-card::
 
-      .. image:: _static/dr_pseudo_inertia.gif
+      .. image:: ../../source/_static/dr_pseudo_inertia.gif
          :alt: Inertia ellipsoids resizing each episode reset
 
       对连杆 2 和 3 施加 ``alpha_range=(-0.5, 0.5)`` 的

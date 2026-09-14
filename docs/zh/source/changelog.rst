@@ -80,7 +80,7 @@ Added
   sampling uniformly from ``asset_cfg.texture_names``. Contribution by
   @bd-pmorais.
 
-.. figure:: _static/changelog/mat_texid_dr.gif
+.. figure:: ../../source/_static/changelog/mat_texid_dr.gif
    :width: 30%
 
 Changed
@@ -1003,7 +1003,7 @@ Changed
 - Replaced ``moviepy`` with ``mediapy`` for video recording. ``mediapy``
   handles cloud storage paths (GCS, S3) natively (`#637 <https://github.com/mujocolab/mjlab/pull/637>`_).
 
-.. figure:: _static/changelog/native_reward.png
+.. figure:: ../../source/_static/changelog/native_reward.png
    :width: 80%
 
 Version 1.1.0 (February 12, 2026)
@@ -1017,7 +1017,7 @@ Added
 - Added terrain visualizer (`#609 <https://github.com/mujocolab/mjlab/pull/609>`_). Contribution by
   `@mktk1117 <https://github.com/mktk1117>`_.
 
-.. figure:: _static/changelog/terrain_visualizer.jpg
+.. figure:: ../../source/_static/changelog/terrain_visualizer.jpg
    :width: 80%
 
 - Added many new terrains including ``HfDiscreteObstaclesTerrainCfg``,

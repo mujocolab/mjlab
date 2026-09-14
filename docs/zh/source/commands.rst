@@ -74,7 +74,7 @@
 调试可视化。下图是 ``MotionCommand`` 的幻影可视化——在参考位姿处渲染
 一个半透明的机器人副本，与真实机器人并列。
 
-.. figure:: _static/ghost_visualization.png
+.. figure:: ../../source/_static/ghost_visualization.png
    :align: center
    :width: 100%
 

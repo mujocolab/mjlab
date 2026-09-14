@@ -6,7 +6,7 @@
 mjlab 分为两层：**仿真层** 负责对机器人和世界建模，**管理器层** 在其上定义
 强化学习问题。理解这一分层是建立系统全局认知的最快途径。
 
-.. figure:: _static/architecture_diagram.png
+.. figure:: ../../source/_static/architecture_diagram.png
    :width: 60%
    :align: center
    :alt: mjlab 架构图

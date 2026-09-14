@@ -365,7 +365,7 @@ RL 配置配对，后者指定网络结构和 PPO 超参数。对 cartpole 来�
     uv run play Mjlab-Cartpole-Swingup --checkpoint-file logs/rsl_rl/cartpole/model_500.pt
     uv run play Mjlab-Cartpole-Swingup --wandb-run-path <user/project/run_id>
 
-.. figure:: ../_static/tutorials/cartpole_training_curve.png
+.. figure:: ../../../source/_static/tutorials/cartpole_training_curve.png
    :width: 70%
    :align: center
    :alt: Cartpole swingup training curve

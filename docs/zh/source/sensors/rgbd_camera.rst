@@ -199,6 +199,6 @@ Viser 查看器会自动发现场景中的所有 ``CameraSensor`` 实例，并�
 标示相机的位置、姿态和视场。深度图像附带一个交互式滑杆，用于调整可视化
 范围。
 
-.. image:: ../_static/viser_camera_pane.png
+.. image:: ../../../source/_static/viser_camera_pane.png
    :align: center
    :alt: Viser viewer showing camera image panels and frustum visualization

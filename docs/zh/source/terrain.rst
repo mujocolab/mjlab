@@ -131,67 +131,67 @@ mjlab 提供两族子地形类型：由 box geom 构建的 **图元地形**，�
 
    .. grid-item-card:: 平地（Flat）
 
-      .. image:: _static/terrains/box_flat.png
+      .. image:: ../../source/_static/terrains/box_flat.png
 
       平坦 box 地形块。适合作为课程网格中的简单基线。
 
    .. grid-item-card:: 金字塔楼梯（Pyramid Stairs）
 
-      .. image:: _static/terrains/box_pyramid_stairs.png
+      .. image:: ../../source/_static/terrains/box_pyramid_stairs.png
 
       金字塔楼梯，台阶向内下降至中央平台。
 
    .. grid-item-card:: 倒金字塔楼梯（Inverted Pyramid Stairs）
 
-      .. image:: _static/terrains/box_inverted_pyramid_stairs.png
+      .. image:: ../../source/_static/terrains/box_inverted_pyramid_stairs.png
 
       倒金字塔，台阶从外向内上升。
 
    .. grid-item-card:: 随机楼梯（Random Stairs）
 
-      .. image:: _static/terrains/box_random_stairs.png
+      .. image:: ../../source/_static/terrains/box_random_stairs.png
 
       每级台阶高度随机的金字塔楼梯。
 
    .. grid-item-card:: 开放楼梯（Open Stairs）
 
-      .. image:: _static/terrains/box_open_stairs.png
+      .. image:: ../../source/_static/terrains/box_open_stairs.png
 
       同心台阶环。依据 ``inverted`` 标志可呈碗状或金字塔状。
 
    .. grid-item-card:: 随机网格（Random Grid）
 
-      .. image:: _static/terrains/box_random_grid.png
+      .. image:: ../../source/_static/terrains/box_random_grid.png
 
       高度随机采样的盒子网格。
 
    .. grid-item-card:: 随机散布（Random Spread）
 
-      .. image:: _static/terrains/box_random_spread.png
+      .. image:: ../../source/_static/terrains/box_random_spread.png
 
       随机位置与朝向、尺寸各异的盒子散布在地形块上。
 
    .. grid-item-card:: 踏脚石（Stepping Stones）
 
-      .. image:: _static/terrains/box_stepping_stones.png
+      .. image:: ../../source/_static/terrains/box_stepping_stones.png
 
       从深坑中升起的踏脚石柱。
 
    .. grid-item-card:: 窄梁（Narrow Beams）
 
-      .. image:: _static/terrains/box_narrow_beams.png
+      .. image:: ../../source/_static/terrains/box_narrow_beams.png
 
       从坑上中央平台向外辐射的径向横梁。
 
    .. grid-item-card:: 倾斜网格（Tilted Grid）
 
-      .. image:: _static/terrains/box_tilted_grid.png
+      .. image:: ../../source/_static/terrains/box_tilted_grid.png
 
       各自独立倾斜的网格瓦片。
 
    .. grid-item-card:: 嵌套圆环（Nested Rings）
 
-      .. image:: _static/terrains/box_nested_rings.png
+      .. image:: ../../source/_static/terrains/box_nested_rings.png
 
       随机高度的同心环结构。
 
@@ -206,32 +206,32 @@ mjlab 提供两族子地形类型：由 box geom 构建的 **图元地形**，�
 
    .. grid-item-card:: 金字塔坡（Pyramid Slope）
 
-      .. image:: _static/terrains/hf_pyramid_slope.png
+      .. image:: ../../source/_static/terrains/hf_pyramid_slope.png
 
       顶部带平坦平台的平滑金字塔坡面。``inverted=True`` 把平台放在
       底部。
 
    .. grid-item-card:: 均匀随机（Random Uniform）
 
-      .. image:: _static/terrains/hf_random_uniform.png
+      .. image:: ../../source/_static/terrains/hf_random_uniform.png
 
       随机均匀噪声，可选地降采样并插值以控制特征尺寸。
 
    .. grid-item-card:: 波浪（Wave）
 
-      .. image:: _static/terrains/hf_wave.png
+      .. image:: ../../source/_static/terrains/hf_wave.png
 
       正弦波剖面。
 
    .. grid-item-card:: 离散障碍（Discrete Obstacles）
 
-      .. image:: _static/terrains/hf_discrete_obstacles.png
+      .. image:: ../../source/_static/terrains/hf_discrete_obstacles.png
 
       散布在平坦基面上的矩形凸起与凹坑。
 
    .. grid-item-card:: Perlin 噪声（Perlin Noise）
 
-      .. image:: _static/terrains/hf_perlin_noise.png
+      .. image:: ../../source/_static/terrains/hf_perlin_noise.png
 
       分形 Perlin 噪声产生自然的地形起伏。
 
@@ -337,7 +337,7 @@ Viser 查看器中开关：
 - **Group 4**：环境原点 site（绿色球体，位于每个环境位置）
 - **Group 5**：地形原点 site（蓝色球体，位于每个子地形块中心）
 
-.. figure:: _static/terrains/flat_patch_group.png
+.. figure:: ../../source/_static/terrains/flat_patch_group.png
    :width: 100%
    :align: center
    :alt: Flat patch visualization

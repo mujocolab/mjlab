@@ -93,7 +93,7 @@ NaN 守卫在检测到 NaN/Inf 时捕获仿真状态，帮助调试数值不稳�
     uv run viz-nan /tmp/mjlab/nan_dumps/nan_dump_20251014_123456.npz
 
 
-.. figure:: ../_static/content/nan_debug.gif
+.. figure:: ../../../source/_static/content/nan_debug.gif
    :alt: NaN Debug Viewer
 
    NaN 调试查看器。

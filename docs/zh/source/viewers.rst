@@ -92,7 +92,7 @@ mjlab 自带两个交互式查看器，用于评估训练好的策略和调试�
 原生 MuJoCo 查看器
 -------------------
 
-.. figure:: _static/native_viewer.png
+.. figure:: ../../source/_static/native_viewer.png
    :width: 100%
    :align: center
    :alt: Native MuJoCo viewer with reward plots
@@ -150,7 +150,7 @@ MuJoCo 通道保持分离：程序化力使用 ``xfrc_applied`` （笛卡尔 bod
 Viser（基于浏览器）
 --------------------
 
-.. figure:: _static/viser_viewer.png
+.. figure:: ../../source/_static/viser_viewer.png
    :width: 100%
    :align: center
    :alt: Viser browser-based viewer

@@ -1,7 +1,7 @@
 欢迎使用 mjlab！
 ================
 
-.. figure:: source/_static/mjlab-banner.jpg
+.. figure:: ../source/_static/mjlab-banner.jpg
    :width: 100%
    :alt: mjlab
 
