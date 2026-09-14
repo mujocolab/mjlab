@@ -10,4 +10,11 @@ rm -rf docs/_build
 uv run --group docs sphinx-build -j auto docs docs/_build "$@"
 MJLAB_DOC_LANG=zh uv run --group docs sphinx-build -j auto -c docs docs/zh docs/_build/zh "$@"
 
+# 中文树与英文树共用 docs/source/_static(经 html_static_path 已复制到
+# docs/_build/zh/_static)。中文 rst 中的图片引用相对路径与英文一致,
+# 会解析到 zh/source/_static,这里镜像一份保证全部命中。
+mkdir -p docs/_build/zh/source
+rm -rf docs/_build/zh/source/_static
+cp -r docs/_build/zh/_static docs/_build/zh/source/_static
+
 echo "双语构建完成: docs/_build (英文) + docs/_build/zh (中文)"
