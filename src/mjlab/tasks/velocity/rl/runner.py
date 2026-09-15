@@ -1,4 +1,5 @@
 import wandb
+from rsl_rl.utils import WandbLogWriter
 
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.rl.exporter_utils import (
@@ -16,17 +17,11 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
     policy_dir, filename, onnx_path = self._get_export_paths(path)
     try:
       self.export_policy_to_onnx(str(policy_dir), filename)
-      run_name: str = (
-        wandb.run.name
-        if self.logger.logger_type in ("wandb", "WandbLogWriter") and wandb.run
-        else "local"
-      )  # type: ignore[assignment]
+      is_wandb = isinstance(self.logger.writer, WandbLogWriter)
+      run_name: str = wandb.run.name if is_wandb and wandb.run else "local"  # type: ignore[assignment]
       metadata = get_base_metadata(self.env.unwrapped, run_name)
       attach_metadata_to_onnx(str(onnx_path), metadata)
-      if (
-        self.logger.logger_type in ("wandb", "WandbLogWriter")
-        and self.cfg["upload_model"]
-      ):
+      if is_wandb and self.cfg["upload_model"]:
         wandb.save(str(onnx_path), base_path=str(policy_dir))
     except Exception as e:
       print(f"[WARN] ONNX export failed (training continues): {e}")

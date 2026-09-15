@@ -5,6 +5,25 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Changed
+^^^^^^^
+
+- Bumped ``rsl-rl-lib`` from 5.4.2 to 5.5.0. This update removes the ``logger_type``
+  attribute of the ``rsl_rl.utils.Logger``, so code that previously checked
+  ``logger.logger_type`` must instead check the type of ``logger.writer``.
+
+Fixed
+^^^^^
+
+- Capped ``wandb`` below 0.29, which removed the ``start_method`` setting still passed
+  by ``rsl-rl-lib`` and crashed training runs launched with ``--logger wandb``.
+- ``distribution="gaussian"`` domain randomization now draws an independent value per
+  environment. ``sample_gaussian`` ignored its ``size`` argument when ``mean``/``std``
+  were tensors, so every environment received the same sample :issue:`1168`.
+- ``FlatPatchSamplingCfg(patch_radius=0)`` no longer collapses every patch to the
+  sub-terrain center. The edge-exclusion mask sliced ``arr[-0:]``, which is
+  ``arr[0:]``, so it cleared the entire valid mask :issue:`1171`.
+
 Version 1.6.0 (August 8, 2026)
 ------------------------------
 

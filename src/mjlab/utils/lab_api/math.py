@@ -10,6 +10,8 @@
 #     identical functionality.
 #   - 2025-12-29: Fixed NaN in apply_delta_pose() when rotation angle is zero by clamping
 #     the angle to eps before division.
+#   - 2026-08-28: Fixed sample_gaussian() ignoring the size argument when mean/std were
+#     tensors, which collapsed every sample to a single value.
 
 """Sub-module containing utilities for various math operations."""
 
@@ -1415,21 +1417,24 @@ def sample_gaussian(
 ) -> torch.Tensor:
     """Sample using gaussian distribution.
 
+    Unlike ``torch.normal``, a negative :attr:`std` is not rejected: it yields the same
+    distribution as its absolute value, and checking would cost a device sync per call.
+
     Args:
-        mean: Mean of the gaussian.
-        std: Std of the gaussian.
+        mean: Mean of the gaussian. Expandable to :attr:`size`.
+        std: Std of the gaussian. Expandable to :attr:`size`.
         size: The shape of the tensor.
         device: Device to create tensor on.
 
     Returns:
-        Sampled tensor.
+        Sampled tensor. Shape is :attr:`size`; a mean or std that cannot be expanded to
+        it raises rather than silently resizing the output.
     """
-    if isinstance(mean, float):
-        if isinstance(size, int):
-            size = (size,)
-        return torch.normal(mean=mean, std=std, size=size).to(device=device)
-    else:
-        return torch.normal(mean=mean, std=std).to(device=device)
+    if isinstance(size, int):
+        size = (size,)
+    mean = torch.as_tensor(mean, device=device).expand(size)
+    std = torch.as_tensor(std, device=device).expand(size)
+    return mean + std * torch.randn(size, device=device)
 
 
 def sample_cylinder(
