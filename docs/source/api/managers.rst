@@ -26,6 +26,7 @@ mjlab.managers
   - :class:`NullCommandManager`
   - :class:`CommandTerm`
   - :class:`CommandTermCfg`
+  - :class:`CommandHistory`
   - :class:`CurriculumManager`
   - :class:`NullCurriculumManager`
   - :class:`CurriculumTermCfg`
@@ -139,6 +140,9 @@ Command Manager
   :members:
   :exclude-members: __init__
   :undoc-members:
+
+.. autoclass:: CommandHistory
+  :members:
 
 Curriculum Manager
 ------------------

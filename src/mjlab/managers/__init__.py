@@ -3,6 +3,7 @@
 from mjlab.managers.action_manager import ActionManager as ActionManager
 from mjlab.managers.action_manager import ActionTerm as ActionTerm
 from mjlab.managers.action_manager import ActionTermCfg as ActionTermCfg
+from mjlab.managers.command_manager import CommandHistory as CommandHistory
 from mjlab.managers.command_manager import CommandManager as CommandManager
 from mjlab.managers.command_manager import CommandTerm as CommandTerm
 from mjlab.managers.command_manager import CommandTermCfg as CommandTermCfg

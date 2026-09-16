@@ -5,6 +5,17 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- ``CommandTermCfg`` gained ``track_command_history``. When enabled, the term records
+  every command it samples during an episode -- the one drawn on reset plus each
+  resample -- with the episode time it took effect, exposed as
+  ``term.command_history``. Intended for curricula that must account for a command
+  that changed mid-episode rather than only the one active at reset. Terms that
+  sample outside the resampling timer, as ``MotionCommand`` does on clip wraparound,
+  report it through ``CommandTerm._record_command_resample``.
+
 Changed
 ^^^^^^^
 

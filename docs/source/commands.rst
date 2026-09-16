@@ -50,6 +50,78 @@ If the environment has no commands, the manager no-ops all operations
 and returns empty tensors. There is no special handling required.
 
 
+Command history
+---------------
+
+A command term only exposes the value it holds *right now*. Because
+commands are resampled mid-episode, that value says little about what
+the episode as a whole asked for: an environment commanded 0.1 m/s for
+three seconds and 1.0 m/s for the next seventeen ends the episode
+looking identical to one commanded 1.0 m/s throughout.
+
+Setting ``track_command_history=True`` on any ``CommandTermCfg`` makes
+the term record the whole episode:
+
+.. code-block:: python
+
+    commands = {
+        "twist": UniformVelocityCommandCfg(
+            resampling_time_range=(3.0, 8.0),
+            track_command_history=True,
+            ...
+        ),
+    }
+
+The record is a sequence of *segments* -- the command drawn on reset,
+then one per resample -- reachable through ``term.command_history``:
+
+.. code-block:: python
+
+    term = env.command_manager.get_term("twist")
+    history = term.command_history
+    assert history is not None  # None unless tracking is enabled.
+
+    # history.commands     (num_envs, capacity, command_dim)
+    # history.start_times  (num_envs, capacity), seconds into the episode
+    # history.lengths      (num_envs,), how many slots are valid
+
+A segment ends when the next one starts; the last one is still open, so
+``durations`` asks the caller when it ends. Pass the current episode
+time to measure the episode as it happened, or the full episode length
+to hold the last command to the end:
+
+.. code-block:: python
+
+    weights = history.durations(env.max_episode_length_s)
+    speeds = torch.norm(history.commands[:, :, :2], dim=-1)
+    mean_speed = (speeds * weights).sum(-1) / weights.sum(-1).clamp(min=1e-6)
+
+Two things to keep in mind. Each entry is a *snapshot* taken when the
+segment began, not an average over it, so a term whose command keeps
+changing within a segment -- ``UniformVelocityCommand`` in heading or
+world-frame mode, where the yaw rate tracks a heading error and the
+planar command rotates with the robot -- is only faithfully described
+by the components it leaves alone. And the record is cleared per
+episode, in ``reset()``; curriculum terms still see the episode that
+just ended, because the curriculum manager resets before the command
+manager does.
+
+Custom terms that sample a new command outside the resampling timer
+must say so, or the history will not see it. ``MotionCommand`` does
+this when a clip wraps around:
+
+.. code-block:: python
+
+    def _update_command(self, env_ids=None):
+        ...
+        if wrap_ids.numel() > 0:
+            self._resample_command(wrap_ids)
+            self._record_command_resample(wrap_ids)
+
+Such a term should also override ``_history_capacity`` to budget for
+that extra cadence, using ``_segments_per_episode`` for the arithmetic.
+
+
 Included command terms
 ----------------------
 

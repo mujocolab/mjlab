@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import abc
 import inspect
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Sequence
@@ -18,6 +19,83 @@ if TYPE_CHECKING:
 
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
   from mjlab.viewer.debug_visualizer import DebugVisualizer
+
+
+_MAX_HISTORY_CAPACITY = 256
+"""Slot cap, for configs with no real horizon."""
+
+
+class CommandHistory:
+  """Per-episode record of the commands a term sampled.
+
+  An episode is a sequence of segments: the command drawn on reset, then one per
+  resample. Slot ``k`` of env ``i`` holds the command that took effect at
+  ``start_times[i, k]``, in seconds since that env's episode began; only the
+  first ``lengths[i]`` slots are valid.
+
+  Appending is two-phase: :meth:`mark_pending` on resample, :meth:`flush` once
+  the term has post-processed the sampled value into the one it will track.
+  """
+
+  def __init__(
+    self, num_envs: int, capacity: int, command_dim: int, device: str
+  ) -> None:
+    if capacity < 1:
+      raise ValueError(f"capacity must be at least 1, got {capacity}.")
+    self.num_envs = num_envs
+    self.capacity = capacity
+    self.commands = torch.zeros(num_envs, capacity, command_dim, device=device)
+    self.start_times = torch.zeros(num_envs, capacity, device=device)
+    self.lengths = torch.zeros(num_envs, dtype=torch.long, device=device)
+    self._pending = torch.zeros(num_envs, dtype=torch.bool, device=device)
+    self._slots = torch.arange(capacity, device=device)
+
+  @property
+  def valid_mask(self) -> torch.Tensor:
+    """Which slots hold a segment, shape (num_envs, capacity)."""
+    return self._slots < self.lengths.unsqueeze(-1)
+
+  def clear(self, env_ids: torch.Tensor) -> None:
+    """Drop the record of the given envs and cancel their pending appends."""
+    self.commands[env_ids] = 0.0
+    self.start_times[env_ids] = 0.0
+    self.lengths[env_ids] = 0
+    self._pending[env_ids] = False
+
+  def mark_pending(self, env_ids: torch.Tensor) -> None:
+    self._pending[env_ids] = True
+
+  def flush(self, commands: torch.Tensor, times: torch.Tensor) -> None:
+    """Append ``commands``/``times`` for every env marked pending."""
+    env_ids = self._pending.nonzero(as_tuple=False).flatten()
+    if len(env_ids) == 0:
+      return
+    # Saturate rather than raise: a resampling range shortened at runtime can
+    # outrun the capacity the buffer was sized for.
+    slots = self.lengths[env_ids].clamp(max=self.capacity - 1)
+    self.commands[env_ids, slots] = commands[env_ids]
+    self.start_times[env_ids, slots] = times[env_ids]
+    self.lengths[env_ids] = (self.lengths[env_ids] + 1).clamp(max=self.capacity)
+    self._pending[env_ids] = False
+
+  def durations(self, end_time: float | torch.Tensor) -> torch.Tensor:
+    """Return how long each segment lasted, shape (num_envs, capacity).
+
+    A segment ends when the next one starts; the last one is still open, so the
+    caller says when it ends via ``end_time`` (scalar or per env) -- the current
+    episode time to measure the episode as it happened, the full episode length
+    to hold the last command to the end. Zero past :attr:`lengths`.
+    """
+    end = torch.as_tensor(
+      end_time, dtype=self.start_times.dtype, device=self.start_times.device
+    )
+    end = end.expand(self.num_envs).reshape(self.num_envs, 1)
+    next_start = torch.empty_like(self.start_times)
+    next_start[:, :-1] = self.start_times[:, 1:]
+    next_start[:, -1:] = end
+    last_slot = (self.lengths - 1).clamp(min=0).unsqueeze(-1)
+    next_start.scatter_(1, last_slot, end)
+    return (next_start - self.start_times).clamp(min=0.0) * self.valid_mask
 
 
 @dataclass(kw_only=True)
@@ -39,6 +117,11 @@ class CommandTermCfg(abc.ABC):
   the command term's ``_debug_vis_impl`` method is called each frame to render
   visual aids (e.g., velocity arrows, target markers)."""
 
+  track_command_history: bool = False
+  """Whether to keep a :class:`CommandHistory` of every command sampled during
+  an episode, stamped with the episode time it took effect.
+  """
+
   @abc.abstractmethod
   def build(self, env: ManagerBasedRlEnv) -> CommandTerm:
     """Build the command term from this config."""
@@ -58,6 +141,7 @@ class CommandTerm(ManagerTermBase):
       self.num_envs, device=self.device, dtype=torch.long
     )
     self._debug_vis_enabled: bool = True
+    self._command_history: CommandHistory | None = None
 
   def debug_vis(self, visualizer: "DebugVisualizer") -> None:
     if self.cfg.debug_vis and self._debug_vis_enabled:
@@ -98,13 +182,75 @@ class CommandTerm(ManagerTermBase):
   def command(self):
     raise NotImplementedError
 
+  @property
+  def command_history(self) -> CommandHistory | None:
+    """Commands sampled this episode, or None unless ``cfg`` asks to track them.
+
+    Cleared per episode in :meth:`reset`. A curriculum term still sees the
+    finished episode, since the curriculum manager resets before this one.
+    """
+    return self._command_history
+
+  def _ensure_command_history(self) -> None:
+    if self._command_history is not None or not self.cfg.track_command_history:
+      return
+    self._command_history = CommandHistory(
+      num_envs=self.num_envs,
+      capacity=min(self._history_capacity(), _MAX_HISTORY_CAPACITY),
+      command_dim=self.command.shape[-1],
+      device=self.device,
+    )
+
+  def _segments_per_episode(self, interval: float) -> int:
+    """How often something on a period of ``interval`` seconds can fire in one
+    episode. For sizing overrides of :meth:`_history_capacity`."""
+    horizon = self._env.max_episode_length_s
+    if horizon <= 0.0 or not math.isfinite(horizon):
+      return _MAX_HISTORY_CAPACITY
+    # Nothing can fire faster than once per env step; this also covers a
+    # zero-length interval.
+    return min(
+      math.ceil(horizon / max(interval, self._env.step_dt)), _MAX_HISTORY_CAPACITY
+    )
+
+  def _history_capacity(self) -> int:
+    """Command history slots per env: one per resample, plus the reset draw.
+
+    A term that also samples outside the resampling timer should override this
+    and budget for that cadence on top of ``super()._history_capacity()``. The
+    result is clamped to :data:`_MAX_HISTORY_CAPACITY`.
+    """
+    return self._segments_per_episode(self.cfg.resampling_time_range[0]) + 1
+
+  def _record_command_resample(self, env_ids: torch.Tensor) -> None:
+    """Note that ``env_ids`` were just given a new command.
+
+    :meth:`_resample` calls this. A term that samples outside it -- as
+    ``MotionCommand`` does on clip wraparound -- must call it itself for the
+    history to see the new command. The value is committed at the end of the
+    current :meth:`compute`, once :meth:`_update_command` has settled it.
+    """
+    if self._command_history is not None:
+      self._command_history.mark_pending(env_ids)
+
+  @property
+  def _episode_time(self) -> torch.Tensor:
+    """Seconds elapsed in the current episode, shape (num_envs,)."""
+    return self._env.episode_length_buf * self._env.step_dt
+
   def reset(self, env_ids: torch.Tensor | slice | None) -> dict[str, float]:
     assert isinstance(env_ids, torch.Tensor)
+    self._ensure_command_history()
     extras = {}
     for metric_name, metric_value in self.metrics.items():
       extras[metric_name] = torch.mean(metric_value[env_ids]).item()
       metric_value[env_ids] = 0.0
     self.command_counter[env_ids] = 0
+    # Clear before resampling, so the command drawn below is the new episode's
+    # first entry. The compute() that follows commits it, by which point the env
+    # has zeroed the episode clock.
+    if self._command_history is not None:
+      self._command_history.clear(env_ids)
     self._resample(env_ids)
     return extras
 
@@ -120,7 +266,11 @@ class CommandTerm(ManagerTermBase):
     dt may be a scalar (all envs) or a per-env tensor (auto-reset path,
     where freshly reset envs get zero to keep their timers full). A tensor
     dt requires env_ids=None.
+
+    History entries are committed last, once _update_command has settled the
+    value a resample drew.
     """
+    self._ensure_command_history()
     self._update_metrics()
     if env_ids is None:
       self.time_left -= dt
@@ -132,6 +282,8 @@ class CommandTerm(ManagerTermBase):
     if len(resample_env_ids) > 0:
       self._resample(resample_env_ids)
     self._update_command(env_ids)
+    if self._command_history is not None:
+      self._command_history.flush(self.command, self._episode_time)
 
   def _check_update_command_signature(self) -> None:
     """Fail fast with a migration hint for terms with the old signature."""
@@ -154,6 +306,7 @@ class CommandTerm(ManagerTermBase):
       )
       self._resample_command(env_ids)
       self.command_counter[env_ids] += 1
+      self._record_command_resample(env_ids)
 
   @abc.abstractmethod
   def _update_metrics(self) -> None:
@@ -308,6 +461,9 @@ class CommandManager(ManagerBase):
         raise TypeError(
           f"Returned object for the term {term_name} is not of type CommandType."
         )
+      # Allocate now, so that a None command_history means tracking is off
+      # rather than not-yet-allocated.
+      term._ensure_command_history()
       self._terms[term_name] = term
 
 

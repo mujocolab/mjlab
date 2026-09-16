@@ -406,6 +406,13 @@ class MotionCommand(CommandTerm):
       delta_ori_w, self.body_pos_w - anchor_pos_w_repeat
     )
 
+  def _history_capacity(self) -> int:
+    # Clips restart on wraparound too, on a cadence the resampling timer knows
+    # nothing about, so budget for both. The extra slot covers an env that
+    # starts near the end of its clip and wraps almost immediately.
+    clip_duration = self.motion.time_step_total * self._env.step_dt
+    return super()._history_capacity() + self._segments_per_episode(clip_duration) + 1
+
   def reset(self, env_ids: torch.Tensor | slice | None) -> dict[str, float]:
     extras = super().reset(env_ids)
     # Reset-path resamples are followed by the env's own forward(); only
@@ -421,6 +428,7 @@ class MotionCommand(CommandTerm):
     wrap_ids = torch.where(self.time_steps >= self.motion.time_step_total)[0]
     if wrap_ids.numel() > 0:
       self._resample_command(wrap_ids)
+      self._record_command_resample(wrap_ids)
 
     # _resample_command writes qpos/qvel but does not refresh derived
     # quantities; forward() so update_relative_body_poses reads the
