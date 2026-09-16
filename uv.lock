@@ -4,29 +4,29 @@ requires-python = ">=3.10, <3.14"
 resolution-markers = [
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version < '3.11' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version < '3.11' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'darwin'",
     "python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version < '3.11' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
     "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform == 'darwin'",
     "python_full_version < '3.11' and platform_machine == 'arm64' and sys_platform == 'darwin'",
@@ -486,22 +486,22 @@ source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
-    "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'darwin'",
-    "python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
@@ -865,6 +865,18 @@ wheels = [
 ]
 
 [[package]]
+name = "googleapis-common-protos"
+version = "1.75.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8a/c5/4353a188e2c335aee33269e8b654af228278cca8e5f0b4b5f11e5d0e9adb/googleapis_common_protos-1.75.3.tar.gz", hash = "sha256:57c435ac2c68b108999b6db075d9053e4d7a936ba57b4a3d45667b1346f1738a", size = 153905, upload-time = "2026-09-03T22:31:21.869Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1a/7a/7d79170c6ce6f12e109df2b3879d6b934010cf4f99aea8de8b7e5408c174/googleapis_common_protos-1.75.3-py3-none-any.whl", hash = "sha256:a018d2bf098ca9fb6faa08d5bb780e2a2c2f73c566f069761331386c9596d3f2", size = 306984, upload-time = "2026-09-03T22:30:45.133Z" },
+]
+
+[[package]]
 name = "grpcio"
 version = "1.76.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1100,22 +1112,22 @@ source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
-    "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'darwin'",
-    "python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
@@ -1731,7 +1743,7 @@ requires-dist = [
     { name = "numpy" },
     { name = "onnxscript", specifier = ">=0.5.4" },
     { name = "prettytable" },
-    { name = "rsl-rl-lib", specifier = "==5.5.0" },
+    { name = "rsl-rl-lib", specifier = "==5.5.1" },
     { name = "scipy", specifier = ">=1.15" },
     { name = "tensorboard", specifier = ">=2.20.0" },
     { name = "tensordict" },
@@ -1745,7 +1757,7 @@ requires-dist = [
     { name = "trimesh", specifier = ">=4.8.3" },
     { name = "tyro", specifier = ">=1.0.1" },
     { name = "viser", specifier = ">=1.0.27" },
-    { name = "wandb", specifier = ">=0.22.3,<0.29" },
+    { name = "wandb", specifier = ">=0.29" },
     { name = "warp-lang", marker = "sys_platform != 'darwin'", specifier = ">=1.14.0", index = "https://pypi.nvidia.com/" },
     { name = "warp-lang", marker = "sys_platform == 'darwin'", specifier = ">=1.14.0" },
 ]
@@ -1972,22 +1984,22 @@ source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
-    "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'darwin'",
-    "python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
@@ -2151,15 +2163,15 @@ source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'darwin'",
     "python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
@@ -2451,6 +2463,87 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b2/88/c3fad7bcb0f57c6f7795e28c479545cd47ca9109b174765f7cca0121148e/onnxscript-0.5.4.tar.gz", hash = "sha256:311e08ce513484a1fadfc19f3ad28f83ed41a8ce73eca4d038cd3623f6f52104", size = 584052, upload-time = "2025-10-16T17:55:27.615Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9d/b2/bd42c04bd731769667df20de57f80b9753dbffb72bb24fddf4bb87a65433/onnxscript-0.5.4-py3-none-any.whl", hash = "sha256:640d2aa55364b9b0d66c280cc4b22cd2c918fde9a1a72c2460d2fbe24b9181dc", size = 679346, upload-time = "2025-10-16T17:55:29.886Z" },
+]
+
+[[package]]
+name = "opentelemetry-api"
+version = "1.44.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ee/8b/aa9e2d8b8dfa7c946f7dec5d1f8f6ba8eca062f43509a06bdb5ce93d26c0/opentelemetry_api-1.44.0.tar.gz", hash = "sha256:67647e5e9566edcf421166fdf022b3537f818635daa852b289e34604dc6fb33a", size = 72406, upload-time = "2026-07-16T15:25:32.678Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ca/6f/a04e900f465ff3221ccc395522503e2d10e79fa21f2723c8e177aae1e0d1/opentelemetry_api-1.44.0-py3-none-any.whl", hash = "sha256:94b98c893a91b88657eaac1e3ba89618cdb85be6918196705354f34728b2cdef", size = 60018, upload-time = "2026-07-16T15:25:11.657Z" },
+]
+
+[[package]]
+name = "opentelemetry-exporter-otlp-proto-common"
+version = "1.44.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-proto" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/61/09/4d717852c1cf3f854b76c7110a5d00883bc3c99288b9b0dbcbeb9e306eb6/opentelemetry_exporter_otlp_proto_common-1.44.0.tar.gz", hash = "sha256:dc87a5a5bc58f149a56d1547e4691588fa12994cdc3bc039a694ccb3375862ac", size = 20202, upload-time = "2026-07-16T15:25:37.658Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5e/71/65fd9d54c10b860f87c045ccee1264cab7011268895d3528818a29c1172a/opentelemetry_exporter_otlp_proto_common-1.44.0-py3-none-any.whl", hash = "sha256:9a9fe61bba73d802904bc989f1d6b4a7b1ee40f06c40e98d6f85af65aaebb694", size = 17045, upload-time = "2026-07-16T15:25:18.201Z" },
+]
+
+[[package]]
+name = "opentelemetry-exporter-otlp-proto-http"
+version = "1.44.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "googleapis-common-protos" },
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-exporter-otlp-proto-common" },
+    { name = "opentelemetry-proto" },
+    { name = "opentelemetry-sdk" },
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1a/87/95e2a5aaa795b4e2260d74e16df2d5541deb2ea9de010bcd615f4dee2654/opentelemetry_exporter_otlp_proto_http-1.44.0.tar.gz", hash = "sha256:c633d7270ad6b57cd4cfbe8b0007a9e2e7c0cb50bd6c50fe2a7b245f721a09d8", size = 25806, upload-time = "2026-07-16T15:25:39.162Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cd/d0/fdeb1a98d8d3a6205f5f297c51b4a9bfe65126ab60339669bbe3dd54c2e2/opentelemetry_exporter_otlp_proto_http-1.44.0-py3-none-any.whl", hash = "sha256:838592fce774c1c8bb7b9a0a7facbfa82e17be5a8a4e94cef10cb84ae026bae3", size = 21850, upload-time = "2026-07-16T15:25:20.006Z" },
+]
+
+[[package]]
+name = "opentelemetry-proto"
+version = "1.44.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/64/01/40ac4ae9a149263cc52c2cee200ddd80cb6d8db1a4610abf8eabce0fe771/opentelemetry_proto-1.44.0.tar.gz", hash = "sha256:c547a79c2f8c0c515d31509154682e5921c7cfd5ca67b70e1f9266e2c3e103f3", size = 46488, upload-time = "2026-07-16T15:25:45.34Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d1/7c/8be563d68e93bbefa5c8affb82ddcff91b3ad858ce49957ba7b16fd3e0ab/opentelemetry_proto-1.44.0-py3-none-any.whl", hash = "sha256:898b155a0e1557afd867478fb6158e8122a46329ca0bb8dc53cc55e98f017f56", size = 72483, upload-time = "2026-07-16T15:25:28.429Z" },
+]
+
+[[package]]
+name = "opentelemetry-sdk"
+version = "1.44.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-semantic-conventions" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5d/77/a6592cbc7c8d9bcc9d6757a9df45e04a7c585e3e6e7a13456da522b21109/opentelemetry_sdk-1.44.0.tar.gz", hash = "sha256:cebe7f65dc12f26ead75c6064de12fd2a9052e5060c0272d402cfa203aae123b", size = 208624, upload-time = "2026-07-16T15:25:46.078Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e7/23/ff077e61886ee020a17ce9c8b6fa11c601c8d8345b09ea24f605445df62a/opentelemetry_sdk-1.44.0-py3-none-any.whl", hash = "sha256:df081c4c6bcfdb1211e3e86140376792643128a25f8d72d1d27675936e7e96ad", size = 137221, upload-time = "2026-07-16T15:25:29.534Z" },
+]
+
+[[package]]
+name = "opentelemetry-semantic-conventions"
+version = "0.65b0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-api" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8f/73/0cbdebcb4cf545fdd328da14f5137e37d0770c3f26185e478b0d15d94f50/opentelemetry_semantic_conventions-0.65b0.tar.gz", hash = "sha256:f9b2b81e9d5b64f11bc952075e7e9c7fb0aab075c7fd1c46d597f1b919852d60", size = 148774, upload-time = "2026-07-16T15:25:46.902Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a6/0e/49df70d9b81fb5cbae4bbf2a49d865b09bcbcbc4eb53f5851b1027738d78/opentelemetry_semantic_conventions-0.65b0-py3-none-any.whl", hash = "sha256:1cacde7b0ad306f84c5ef08c3dbe1bbaf20165bba6f8bff43b670e555a086bcb", size = 204645, upload-time = "2026-07-16T15:25:30.688Z" },
 ]
 
 [[package]]
@@ -3221,7 +3314,7 @@ wheels = [
 
 [[package]]
 name = "rsl-rl-lib"
-version = "5.5.0"
+version = "5.5.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "gitpython" },
@@ -3236,9 +3329,9 @@ dependencies = [
     { name = "torch", version = "2.9.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu128') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
     { name = "torch", version = "2.10.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cpu') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu128')" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/47/4d/9e015172774bc07e14f72b82bbc9fd9ab9ac65cfbdfe70844ba344ed3c43/rsl_rl_lib-5.5.0.tar.gz", hash = "sha256:26b5f2e8ee6f2d5bda38d4cc5e5b6420aa60cdbf108b1c131ac4a008bb29d943", size = 67466, upload-time = "2026-08-27T07:13:02.614Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/97/0e/142a31e8124255ec9276516c49c6fbe1497f2146ea384a92b81d23e3c525/rsl_rl_lib-5.5.1.tar.gz", hash = "sha256:50129065b35c69735ea197343321145a400af8c1b5fe9a28116fdaf1890fab43", size = 68077, upload-time = "2026-09-09T11:28:51.656Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4e/55/bb460ef8188f4cef79df2bd0103897a87aa6cd81018bb696fe7afe22f2b0/rsl_rl_lib-5.5.0-py3-none-any.whl", hash = "sha256:95b716da32e19055596f1d3bcf24f02e13bdadf4b9ffffacc22a832239e60255", size = 99594, upload-time = "2026-08-27T07:13:01.164Z" },
+    { url = "https://files.pythonhosted.org/packages/f7/d3/0d4d446c61cb61377802c9e4366cfab8a6c378b9dbcaaad376dcc152c03c/rsl_rl_lib-5.5.1-py3-none-any.whl", hash = "sha256:bdb6382e21c62ddc2b47a37f39318486d0dfde234c7d446bfd42be482ecbd6ea", size = 100035, upload-time = "2026-09-09T11:28:50.331Z" },
 ]
 
 [[package]]
@@ -3354,22 +3447,22 @@ source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
-    "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'darwin'",
-    "python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
@@ -3420,19 +3513,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/4e/7b/f127a5795d5ba8ece4e0dce7d4a9fb7cb9e4f4757137757d7a69ab7d4f1a/scipy-1.16.2-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:fa01f0f6a3050fa6a9771a95d5faccc8e2f5a92b4a2e5440a0fa7264a2398472", size = 38783985, upload-time = "2025-09-11T17:43:06.661Z" },
     { url = "https://files.pythonhosted.org/packages/3e/9f/bc81c1d1e033951eb5912cd3750cc005943afa3e65a725d2443a3b3c4347/scipy-1.16.2-cp313-cp313t-win_amd64.whl", hash = "sha256:116296e89fba96f76353a8579820c2512f6e55835d3fad7780fece04367de351", size = 38631367, upload-time = "2025-09-11T17:43:14.44Z" },
     { url = "https://files.pythonhosted.org/packages/d6/5e/2cc7555fd81d01814271412a1d59a289d25f8b63208a0a16c21069d55d3e/scipy-1.16.2-cp313-cp313t-win_arm64.whl", hash = "sha256:98e22834650be81d42982360382b43b17f7ba95e0e6993e2a4f5b9ad9283a94d", size = 25787992, upload-time = "2025-09-11T17:43:19.745Z" },
-]
-
-[[package]]
-name = "sentry-sdk"
-version = "2.42.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "certifi" },
-    { name = "urllib3" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/31/04/ec8c1dd9250847303d98516e917978cb1c7083024770d86d657d2ccb5a70/sentry_sdk-2.42.1.tar.gz", hash = "sha256:8598cc6edcfe74cb8074ba6a7c15338cdee93d63d3eb9b9943b4b568354ad5b6", size = 354839, upload-time = "2025-10-20T12:38:40.45Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0f/cb/c21b96ff379923310b4fb2c06e8d560d801e24aeb300faa72a04776868fc/sentry_sdk-2.42.1-py2.py3-none-any.whl", hash = "sha256:f8716b50c927d3beb41bc88439dc6bcd872237b596df5b14613e2ade104aee02", size = 380952, upload-time = "2025-10-20T12:38:38.88Z" },
 ]
 
 [[package]]
@@ -3586,22 +3666,22 @@ source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
-    "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'darwin'",
-    "python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
@@ -3663,22 +3743,22 @@ source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
-    "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'darwin'",
-    "python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
@@ -3724,22 +3804,22 @@ source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'darwin'",
+    "python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
-    "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'darwin'",
-    "python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
@@ -4078,29 +4158,29 @@ source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version < '3.11' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version < '3.11' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
-    "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'darwin'",
     "python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'darwin'",
     "python_full_version == '3.11.*' and platform_machine == 'arm64' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version < '3.11' and platform_machine != 'arm64' and platform_machine != 's390x' and sys_platform == 'darwin'",
     "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform == 'darwin'",
     "python_full_version < '3.11' and platform_machine == 'arm64' and sys_platform == 'darwin'",
@@ -4161,18 +4241,18 @@ source = { registry = "https://download.pytorch.org/whl/cu128" }
 resolution-markers = [
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version < '3.11' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version < '3.11' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version < '3.11' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
 ]
@@ -4227,18 +4307,18 @@ source = { registry = "https://download.pytorch.org/whl/cpu" }
 resolution-markers = [
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version < '3.11' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version < '3.11' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version < '3.11' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
 ]
@@ -4555,31 +4635,32 @@ wheels = [
 
 [[package]]
 name = "wandb"
-version = "0.22.3"
+version = "0.30.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
-    { name = "gitpython" },
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-exporter-otlp-proto-http" },
+    { name = "opentelemetry-sdk" },
     { name = "packaging" },
     { name = "platformdirs" },
     { name = "protobuf" },
     { name = "pydantic" },
     { name = "pyyaml" },
     { name = "requests" },
-    { name = "sentry-sdk" },
     { name = "typing-extensions" },
+    { name = "xxhash" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c1/d1/6b70f365ed86bd69debba8ad55dec8606fc21006e7ca703a5a091bd3b719/wandb-0.22.3.tar.gz", hash = "sha256:04468a8ab2769a46f5e384c9c4ada5da0dced005ca689a8424e4b8b5cb2a0291", size = 44337368, upload-time = "2025-10-28T23:59:10.275Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/86/10/c4481d12b26f57606d1ef7c8d56825ad6af769cbb8cd29ee501ac6bbbc2d/wandb-0.30.0.tar.gz", hash = "sha256:f2d7de3c2019204f493f3f9e9166071c2be36f74140af2e1409b4de0fd84c454", size = 40862616, upload-time = "2026-09-09T00:16:41.551Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/23/02/87fb60f587ec249f784a40bd91c30de1b2b24d691ee72675d5b66c3d0728/wandb-0.22.3-py3-none-macosx_12_0_arm64.whl", hash = "sha256:81b3b6e405f38342b0a080898b7d00c5b9375432f5ba358942a09e65cdcfe781", size = 18758047, upload-time = "2025-10-28T23:58:46.56Z" },
-    { url = "https://files.pythonhosted.org/packages/26/88/64081740ef2b2efc7fbcb2139a07a849e42bcb09ae0c56ae50c41bd0ad63/wandb-0.22.3-py3-none-macosx_12_0_x86_64.whl", hash = "sha256:d29c16817cca6401b4919069ec7570c781eacb67dc0b1ff2e0096a9a59581720", size = 19798011, upload-time = "2025-10-28T23:58:49.718Z" },
-    { url = "https://files.pythonhosted.org/packages/19/72/c4f922b33dbb84d1c81ee045ff8791dd14e26d79e1e9bbafff964b7043e2/wandb-0.22.3-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:bb955d73a4ba55df9adc61fafbabef5556784d33fc39c7b5c8165d2694ddeb3b", size = 18542713, upload-time = "2025-10-28T23:58:51.927Z" },
-    { url = "https://files.pythonhosted.org/packages/ad/98/3ce5f6e2086d91b0c51b38ae7ff591109e7da2bb25fe1a12eec0cdbaa494/wandb-0.22.3-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:23f3ebe41a26506117a098fdfd2706ed0e50b37899bfbefe3a0628fcbd70c69d", size = 19984910, upload-time = "2025-10-28T23:58:54.641Z" },
-    { url = "https://files.pythonhosted.org/packages/5e/57/e68cb38427b60490d6ddf1b992e6c7f36be83be1079d291ce87a8d347f48/wandb-0.22.3-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:2973462bed5d4a653b1a97cf9fc350673bb200fb356a2f4eba34beae9b87e0aa", size = 18581776, upload-time = "2025-10-28T23:58:56.975Z" },
-    { url = "https://files.pythonhosted.org/packages/66/6d/543f907ce0c6b6da13628b23d19ca7282c559fd73eb47b04977b9a61d0c6/wandb-0.22.3-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:c5c2bd18f95c1639863c527da0a5818ac6b0e5194f9c691426b265908ddd8b2c", size = 20078800, upload-time = "2025-10-28T23:58:59.217Z" },
-    { url = "https://files.pythonhosted.org/packages/da/91/1decaf1a6ac2017481c782e0fad7f90bc9ae4057f3d76d478cb6527f3dd3/wandb-0.22.3-py3-none-win32.whl", hash = "sha256:09ca1edfe0fd6dc30447d368acddb825668e60ee705c98594a6bbfd30d34d47e", size = 19160297, upload-time = "2025-10-28T23:59:01.536Z" },
-    { url = "https://files.pythonhosted.org/packages/4c/ba/3b092634279994b0c79fe05220532822be09f3a353ae95c54e7142769db8/wandb-0.22.3-py3-none-win_amd64.whl", hash = "sha256:55403bf93872c9978433d101324f51e43e78c70c809bf6d06ca7b2760e39f497", size = 19160300, upload-time = "2025-10-28T23:59:04.06Z" },
-    { url = "https://files.pythonhosted.org/packages/7f/80/4662fce9eebcc8c71f5083e9152ccaf7d43d4ca9c446e1422f9aa784a51c/wandb-0.22.3-py3-none-win_arm64.whl", hash = "sha256:49f66b05882abfa53816cc8d01b3c2435a89c5a090176802fa6928b5979d34d9", size = 17461959, upload-time = "2025-10-28T23:59:07.059Z" },
+    { url = "https://files.pythonhosted.org/packages/71/5a/83201590d1e84a3b7d0a0cc7b53ee1318def18ba5431a32b26a44e6694f6/wandb-0.30.0-py3-none-macosx_13_0_arm64.whl", hash = "sha256:f4f908ace761db42d239d100230df0b77eb9684924d962a762bba176d829a236", size = 23464329, upload-time = "2026-09-09T00:16:20.505Z" },
+    { url = "https://files.pythonhosted.org/packages/35/b6/c0acf63242a0b8a3df9f877249ca260be80b86ecb08396fc34982967a50e/wandb-0.30.0-py3-none-macosx_13_0_x86_64.whl", hash = "sha256:9cf2492acd5c66ba7217667386e2a90535ccaec08079b97c389c3da5d15cde48", size = 25250085, upload-time = "2026-09-09T00:16:23.401Z" },
+    { url = "https://files.pythonhosted.org/packages/91/69/0593b9e43cd3fc257a0f6ceaf5e078f2b28baf1968e00dfa1be98261ee68/wandb-0.30.0-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:72b564712e85e10d78d37ccdaef4a908d28cbb39240c9c00fa4dde567150c764", size = 24049519, upload-time = "2026-09-09T00:16:25.874Z" },
+    { url = "https://files.pythonhosted.org/packages/26/13/775a4c7d87fb771a2ddb104ce7c5c5d393e48720e448b4e8c43aac7cd4ce/wandb-0.30.0-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:bad9412f137d02303bf178513e0109f4fed37a6c817604085a1a4151047d8790", size = 26105520, upload-time = "2026-09-09T00:16:28.146Z" },
+    { url = "https://files.pythonhosted.org/packages/58/36/4974e9ec44c23dd28a39c8ee699f1b8911dd6619c932c3fe94b016bc8a1f/wandb-0.30.0-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:1f2cc20c033f1650d387ca073177e629f1e2a1b5c4be393698e3db4752b9cf3a", size = 24112309, upload-time = "2026-09-09T00:16:30.3Z" },
+    { url = "https://files.pythonhosted.org/packages/05/77/5eddd97f33f581f4d167f41bbf4736f2a51ad7271b9c9ed5dceb6994cbd6/wandb-0.30.0-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:e7dc3b0b1567f6a121d8f7a58131b5d085861139a653ef8bed1569c9be796721", size = 26320243, upload-time = "2026-09-09T00:16:32.878Z" },
+    { url = "https://files.pythonhosted.org/packages/2f/e7/821c363f0a74aa9826ca058d3f6f8f8e41697001a0a869b5ccc7eca5b0e4/wandb-0.30.0-py3-none-win_amd64.whl", hash = "sha256:217bde0a7c49482f26166a1a7bee760bb9e2658135b2d45a33aacabffec68817", size = 24083356, upload-time = "2026-09-09T00:16:36.766Z" },
+    { url = "https://files.pythonhosted.org/packages/3a/60/fd40e8b1a6136f4df97739a503c239fb4dab67f093cb9cccb5a1dd9d1895/wandb-0.30.0-py3-none-win_arm64.whl", hash = "sha256:36d6d8a5b88b36ad82b0f7ffab79033a8bbba047b5a90c0b7e26d0cf3a09f0b6", size = 21788859, upload-time = "2026-09-09T00:16:39.088Z" },
 ]
 
 [[package]]
@@ -4589,18 +4670,18 @@ source = { registry = "https://pypi.nvidia.com/" }
 resolution-markers = [
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version >= '3.13' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.12.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform == 'linux'",
-    "python_full_version < '3.11' and platform_machine != 's390x' and sys_platform == 'linux'",
-    "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
+    "python_full_version < '3.11' and platform_machine != 's390x' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform == 'linux'",
     "python_full_version < '3.11' and platform_machine != 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
     "python_full_version < '3.11' and platform_machine == 's390x' and sys_platform != 'darwin' and sys_platform != 'linux'",
 ]
