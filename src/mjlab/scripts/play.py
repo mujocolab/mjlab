@@ -49,6 +49,9 @@ class PlayConfig:
   viewer: Literal["auto", "native", "viser"] = "auto"
   no_terminations: bool = False
   """Disable all termination conditions (useful for viewing motions with dummy agents)."""
+  sim_backend: str | None = None
+  """Override the simulation backend ("mjwarp", "mujoco", "mujoco_with_kinematics", or a registered
+  backend name). If None, uses the task's default."""
   log_root: str = "logs/rsl_rl"
   """Root directory under which experiment logs are written."""
 
@@ -155,6 +158,8 @@ def run_play(task_id: str, cfg: PlayConfig):
       )
     log_dir = resume_path.parent
 
+  if cfg.sim_backend is not None:
+    env_cfg.sim.backend = cfg.sim_backend
   if cfg.num_envs is not None:
     env_cfg.scene.num_envs = cfg.num_envs
   if cfg.video_height is not None:

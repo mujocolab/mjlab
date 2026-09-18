@@ -19,11 +19,11 @@ from mjlab.utils.nan_guard import NanGuard, NanGuardCfg
 
 if TYPE_CHECKING:
   from mjlab.entity.variants import VariantMetadata
+  from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnvCfg
   from mjlab.sensor.sensor_context import SensorContext
 
-# Type aliases for better IDE support while maintaining runtime compatibility
-# At runtime, WarpBridge wraps the actual MJWarp objects.
-if TYPE_CHECKING:
+  # Type aliases for better IDE support while maintaining runtime compatibility
+  # At runtime, WarpBridge wraps the actual MJWarp objects.
   ModelBridge = mjwarp.Model
   DataBridge = mjwarp.Data
 else:
@@ -154,6 +154,9 @@ class MujocoCfg:
 
 @dataclass(kw_only=True)
 class SimulationCfg:
+  # The built-in backends are "mjwarp", "mujoco", and "mujoco_with_kinematics".
+  # Additional backends may be registered via `mjlab.sim.register_simulation_backend`.
+  backend: str = "mjwarp"
   nconmax: int | None = None
   """Number of contacts to allocate per world.
 
@@ -579,3 +582,14 @@ class Simulation:
       reasons.append(f"driver {driver_ver[0]}.{driver_ver[1]} < 12.4")
     print(f"[WARNING] CUDA Graphs disabled: {', '.join(reasons)}")
     return False
+
+  # Environment and Model setup methods
+
+  @classmethod
+  def setup_cfg(cls, cfg: ManagerBasedRlEnvCfg) -> None:
+    """Apply sim backend-specific fixups to the environment configuration."""
+    del cfg  # unused
+
+  def setup_model(self, model: mujoco.MjModel) -> None:
+    """Apply sim backend-specific fixups to the model."""
+    del model  # unused

@@ -38,6 +38,8 @@ from mjlab.managers.termination_manager import TerminationManager, TerminationTe
 from mjlab.scene import Scene
 from mjlab.scene.scene import SceneCfg
 from mjlab.sim import SimulationCfg
+from mjlab.sim.mujoco_sim import MujocoSimulation, MujocoSimulationWithKinematics
+from mjlab.sim.registry import get_simulation_backend
 from mjlab.sim.sim import Simulation
 from mjlab.utils import random as random_utils
 from mjlab.utils.logging import print_info
@@ -194,21 +196,54 @@ class ManagerBasedRlEnv:
     # Scratch buffer for per-env command dt; see step().
     self._command_dt = torch.zeros(self.cfg.scene.num_envs, device=device)
 
-    # Initialize scene and simulation.
+    # Figure out the sim backend class.
+    sim_cls = get_simulation_backend(self.cfg.sim.backend)
+
+    # Apply any necessary corrections to the scene for compatibility with the simulation backend.
+    sim_cls.setup_cfg(self.cfg)
+
+    # Initialize scene.
     self.scene = Scene(self.cfg.scene, device=device)
-    self.sim = Simulation(
-      num_envs=self.scene.num_envs,
-      cfg=self.cfg.sim,
-      spec=self.scene.spec,
-      variant_info=self.scene.collect_variant_info(),
-      device=device,
-    )
+
+    # Initialize simulation backend.
+    if sim_cls in (MujocoSimulation, MujocoSimulationWithKinematics):
+      # collect_variant_info() returns an empty list for tasks that don't use mesh variants
+      if self.scene.collect_variant_info():
+        msg = "Mesh variants are not yet supported for MuJoCo simulation."
+        raise NotImplementedError(msg)
+      # The _with_kinematics variant adds derived body kinematics (xpos/xquat/
+      # subtree_com/cvel) to sim.data for entity.data accessors; see MujocoKinematics.
+      self.sim = sim_cls(
+        num_envs=self.scene.num_envs,
+        cfg=self.cfg.sim,
+        spec=self.scene.spec,
+        device=device,
+      )
+    elif sim_cls == Simulation:
+      self.sim = Simulation(
+        num_envs=self.scene.num_envs,
+        cfg=self.cfg.sim,
+        spec=self.scene.spec,
+        variant_info=self.scene.collect_variant_info(),
+        device=device,
+      )
+    else:
+      # Externally-registered backend; see mjlab.sim.registry.
+      self.sim = sim_cls(
+        num_envs=self.scene.num_envs,
+        cfg=self.cfg.sim,
+        spec=self.scene.spec,
+        device=device,
+      )
 
     self.scene.initialize(
       mj_model=self.sim.mj_model,
-      model=self.sim.model,
-      data=self.sim.data,
+      model=self.sim.model,  # type: ignore[arg-type]
+      data=self.sim.data,  # type: ignore[arg-type]
     )
+
+    # Apply any necessary corrections to the model for compatibility with the simulation backend.
+    self.sim.setup_model(self.sim.mj_model)
 
     # Wire sensor context to simulation for sense_graph.
     if self.scene.sensor_context is not None:

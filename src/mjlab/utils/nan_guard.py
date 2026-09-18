@@ -1,5 +1,6 @@
 """Lightweight NaN guard for capturing simulation states when NaN/Inf detected."""
 
+import warnings
 from collections import deque
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -97,19 +98,34 @@ class NanGuard:
       Boolean tensor where True indicates environments with NaN/Inf values.
     """
     tensors_to_check = [
-      data.qpos,
-      data.qvel,
-      data.qacc,
-      data.qacc_warmstart,
-      data.sensordata,
+      "qpos",
+      "qvel",
+      "qacc",
+      "qacc_warmstart",
+      "sensordata",
     ]
 
     # Build per-env NaN mask (True if env has NaN/Inf in any tensor).
     nan_mask = torch.zeros(
       data.qpos.shape[0], dtype=torch.bool, device=data.qpos.device
     )
+    missing = []
     for t in tensors_to_check:
-      nan_mask |= torch.isnan(t).any(dim=-1) | torch.isinf(t).any(dim=-1)
+      tensor = getattr(data, t, None)
+      if tensor is not None:
+        nan_mask |= torch.isnan(tensor).any(dim=-1) | torch.isinf(tensor).any(dim=-1)
+      else:
+        missing.append(t)
+
+    if missing:
+      # A backend whose data bridge doesn't expose a field is silently skipped,
+      # so the guard can pass without having checked everything. Surface that so
+      # the absence of a NaN report isn't mistaken for a clean bill of health.
+      warnings.warn(
+        f"NanGuard skipped fields not exposed by this backend: {missing}. "
+        "NaN/Inf in these fields will go undetected.",
+        stacklevel=2,
+      )
 
     return nan_mask
 

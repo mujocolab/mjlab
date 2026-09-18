@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Sequence
 
 import mujoco
-import mujoco_warp as mjwarp
 import numpy as np
 import torch
 
@@ -23,6 +22,8 @@ from mjlab.utils.string import resolve_expr
 from mjlab.utils.xml import fix_spec_xml, strip_buffer_textures
 
 if TYPE_CHECKING:
+  import mujoco_warp as mjwarp
+
   from mjlab.entity.variants import VariantMetadata
 
 

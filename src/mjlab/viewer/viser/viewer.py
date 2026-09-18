@@ -18,6 +18,7 @@ import viser
 from typing_extensions import override
 
 from mjlab.sensor.raycast_sensor import RayCastSensor
+from mjlab.sim.mujoco_sim import MujocoKinematics, MujocoSimulation
 from mjlab.sim.sim import Simulation
 from mjlab.viewer.base import (
   BaseViewer,
@@ -87,12 +88,13 @@ class ViserPlayViewer(BaseViewer):
     self._timing_last_log_time: float = 0.0
     self._external_server = viser_server is not None
     self._server = viser_server or viser.ViserServer(label="mjlab")
+    self._kinematic_data: MujocoKinematics | None = None
 
   @override
   def setup(self) -> None:
     """Setup the viewer resources."""
     sim = self.env.unwrapped.sim
-    assert isinstance(sim, Simulation)
+    assert isinstance(sim, (Simulation, MujocoSimulation))
 
     self._threadpool = ThreadPoolExecutor(max_workers=1)
     self._counter = 0
@@ -106,6 +108,8 @@ class ViserPlayViewer(BaseViewer):
       sim_model=sim.model,
       expanded_fields=sim.expanded_fields,
     )
+    if isinstance(sim, MujocoSimulation):
+      self._kinematic_data = MujocoKinematics(sim)
 
     self._scene.env_idx = self.cfg.env_idx
     self._scene.debug_visualization_enabled = (
@@ -374,12 +378,16 @@ class ViserPlayViewer(BaseViewer):
     if self._term_overlays:
       self._term_overlays.update(self._is_paused)
 
-  def _update_camera_feeds(self, sim: Simulation, has_pending_updates: bool) -> None:
+  def _update_camera_feeds(
+    self, sim: Simulation | MujocoSimulation, has_pending_updates: bool
+  ) -> None:
     """Push camera sensor frames to GUI when needed."""
     t0 = time.perf_counter()
     if self._camera_overlays and self._should_update_cameras(
       self._is_paused, has_pending_updates
     ):
+      if isinstance(sim, MujocoSimulation):
+        raise NotImplementedError("Cameras not yet implemented for MuJoCo backend")
       self._camera_overlays.update(
         sim.data, self._scene.env_idx, self._scene._scene_offset
       )
@@ -434,8 +442,24 @@ class ViserPlayViewer(BaseViewer):
         self._debug_overlays.queue()
     self._debug_queue_last_ms = (time.perf_counter() - t0) * 1000.0
 
+  def _update_scene_mujoco(self, sim: MujocoSimulation) -> None:
+    """Update scene from MuJoCo backend by computing body kinematics."""
+    assert self._kinematic_data is not None
+    self._kinematic_data.forward(sim)
+
+    self._scene.update_from_arrays(
+      body_xpos=self._kinematic_data.body_xpos,
+      body_xmat=self._kinematic_data.body_xmat,
+      mocap_pos=self._kinematic_data.mocap_pos,
+      mocap_quat=self._kinematic_data.mocap_quat,
+      env_idx=self._scene.env_idx,
+      qpos=self._kinematic_data.qpos,
+      qvel=self._kinematic_data.qvel,
+      ctrl=self._kinematic_data.ctrl,
+    )
+
   def _submit_scene_update_if_needed(
-    self, sim: Simulation, has_pending_updates: bool
+    self, sim: Simulation | MujocoSimulation, has_pending_updates: bool
   ) -> None:
     """Submit a scene sync job when the update policy allows it."""
     t_enqueue_start = time.perf_counter()
@@ -452,7 +476,10 @@ class ViserPlayViewer(BaseViewer):
       with self._sim_lock:
         t0 = time.perf_counter()
         with self._server.atomic():
-          self._scene.update(sim.data)
+          if isinstance(sim, MujocoSimulation):
+            self._update_scene_mujoco(sim)
+          else:
+            self._scene.update(sim.data)
           self._server.flush()
         self._scene_update_last_ms = (time.perf_counter() - t0) * 1000.0
 
@@ -502,7 +529,7 @@ class ViserPlayViewer(BaseViewer):
   def sync_env_to_viewer(self) -> None:
     """Synchronize environment state to viewer."""
     sim = self.env.unwrapped.sim
-    assert isinstance(sim, Simulation)
+    assert isinstance(sim, (Simulation, MujocoSimulation))
     self._scene.paused = self._is_paused
     self._counter += 1
     if self._counter % 10 == 0:
