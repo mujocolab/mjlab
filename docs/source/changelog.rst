@@ -8,8 +8,8 @@ Upcoming version (not yet released)
 Changed
 ^^^^^^^
 
-- Bumped ``rsl-rl-lib`` from 5.5.0 to 5.5.1. This remove the need for capping
-  ``wandb`` below 0.29
+- Bumped ``rsl-rl-lib`` from 5.5.0 to 5.5.1. This removes the need for capping
+  ``wandb`` below 0.29.
 
 - Bumped ``rsl-rl-lib`` from 5.4.2 to 5.5.0. This update removes the ``logger_type``
   attribute of the ``rsl_rl.utils.Logger``, so code that previously checked
