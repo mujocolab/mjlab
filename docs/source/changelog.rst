@@ -5,6 +5,11 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- Added Python 3.14 support
+
 Changed
 ^^^^^^^
 
