@@ -70,7 +70,27 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     Extends the base implementation to persist the environment's
     common_step_counter and to respect the ``upload_model`` config flag.
     """
-    env_state = {"common_step_counter": self.env.unwrapped.common_step_counter}
+    obs_history_cfg: dict[str, dict] = {}
+    for group_name, group_cfg in self.env.unwrapped.observation_manager.cfg.items():
+      if group_cfg is None:
+        continue
+      term_history: dict[str, dict] = {}
+      for term_name, term_cfg in group_cfg.terms.items():
+        if term_cfg is None:
+          continue
+        term_history[term_name] = {
+          "history_length": term_cfg.history_length,
+          "flatten_history_dim": term_cfg.flatten_history_dim,
+        }
+      obs_history_cfg[group_name] = {
+        "history_length": group_cfg.history_length,
+        "flatten_history_dim": group_cfg.flatten_history_dim,
+        "terms": term_history,
+      }
+    env_state = {
+      "common_step_counter": self.env.unwrapped.common_step_counter,
+      "obs_history_cfg": obs_history_cfg,
+    }
     infos = {**(infos or {}), "env_state": env_state}
     # Inline base OnPolicyRunner.save() to conditionally gate W&B upload.
     saved_dict = self.alg.save()
