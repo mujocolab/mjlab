@@ -167,7 +167,11 @@ one terrain type so that difficulty increases monotonically along rows.
 At environment construction each environment is assigned a random
 starting row within ``[0, max_init_terrain_level]``. The
 ``terrain_levels_vel`` curriculum term promotes or demotes environments
-on each reset based on distance traveled during the episode.
+on each reset based on distance traveled during the episode. The
+distance is judged against the velocity command integrated over the
+episode: a robot moves up once it covers ``promotion_fraction`` of it
+(capped at half a terrain tile) and moves down if it covers less than
+half.
 Environments that reach the maximum level are randomly reassigned to
 any row, maintaining coverage across all difficulty levels. See
 :ref:`terrain` for details on configuring the terrain grid itself.

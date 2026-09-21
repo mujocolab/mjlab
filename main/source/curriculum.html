@@ -59,7 +59,7 @@
     <link rel="prev" title="Domain Randomization" href="randomization.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Sep 19, 2026"/>
+    <meta name="docbuild:last-update" content="Sep 21, 2026"/>
   </head>
   
   
@@ -642,7 +642,11 @@ one terrain type so that difficulty increases monotonically along rows.</p>
 <p>At environment construction each environment is assigned a random
 starting row within <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">max_init_terrain_level]</span></code>. The
 <code class="docutils literal notranslate"><span class="pre">terrain_levels_vel</span></code> curriculum term promotes or demotes environments
-on each reset based on distance traveled during the episode.
+on each reset based on distance traveled during the episode. The
+distance is judged against the velocity command integrated over the
+episode: a robot moves up once it covers <code class="docutils literal notranslate"><span class="pre">promotion_fraction</span></code> of it
+(capped at half a terrain tile) and moves down if it covers less than
+half.
 Environments that reach the maximum level are randomly reassigned to
 any row, maintaining coverage across all difficulty levels. See
 <a class="reference internal" href="terrain.html#terrain"><span class="std std-ref">Terrain</span></a> for details on configuring the terrain grid itself.</p>
@@ -741,7 +745,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Sep 19, 2026.
+  Last updated on Sep 21, 2026.
   <br/>
 </p>
   </div>
