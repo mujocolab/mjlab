@@ -78,6 +78,7 @@ Table of Contents
    :caption: Training & Debugging
 
    source/training/rsl_rl
+   source/training/distillation
    source/viewers
    source/training/distributed_training
    source/training/cloud

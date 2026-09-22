@@ -5,6 +5,24 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- Teacher-student distillation and RL fine-tuning support following
+  `arXiv:2505.11164 <https://arxiv.org/abs/2505.11164>`_.
+  ``MjlabDistillationRunner`` wraps rsl-rl's DAgger-style ``Distillation``
+  algorithm with mjlab checkpoint handling (``teacher_checkpoints`` loads
+  frozen teachers from PPO checkpoints), ``MultiTeacherModel`` distills
+  several experts into one student with per-env expert assignment,
+  ``init_checkpoint`` initializes a PPO actor from a distilled student with
+  a reduced action std, and ``CriticWarmupPPO`` freezes the actor while the
+  critic warms up. New example tasks
+  ``Mjlab-Velocity-Rough-Unitree-G1-Distill`` (height-scan teacher into a
+  blind recurrent student) and
+  ``Mjlab-Velocity-Rough-Unitree-G1-Distill-Finetune`` (asymmetric PPO
+  fine-tuning of the distilled student). See the new "Teacher-Student
+  Distillation" documentation page.
+
 Changed
 ^^^^^^^
 

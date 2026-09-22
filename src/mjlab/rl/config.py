@@ -143,3 +143,115 @@ class RslRlOnPolicyRunnerCfg(RslRlBaseRunnerCfg):
   """The critic configuration."""
   algorithm: RslRlPpoAlgorithmCfg = field(default_factory=RslRlPpoAlgorithmCfg)
   """The algorithm configuration."""
+  init_checkpoint: str | None = None
+  """Optional checkpoint to initialize the actor from before training.
+
+  Unlike ``resume``, only model weights are restored (no optimizer state or
+  iteration count). Supports PPO checkpoints (``actor_state_dict``) and
+  distillation checkpoints (``student_state_dict``), enabling RL fine-tuning
+  of a distilled student policy. Distribution parameters (e.g. the action
+  std) are intentionally not restored so the configured ``init_std``
+  applies, following the reduced-initial-std recipe of arXiv:2505.11164.
+  """
+
+
+@dataclass
+class RslRlCriticWarmupPpoAlgorithmCfg(RslRlPpoAlgorithmCfg):
+  """PPO with an initial critic-only warmup phase.
+
+  For the first ``critic_warmup_updates`` updates the actor is frozen and
+  only the critic (and normalizers) train. Used when fine-tuning a distilled
+  policy with RL: the pre-trained policy would otherwise be destroyed by
+  gradients from a randomly initialized value function (arXiv:2505.11164).
+  """
+
+  critic_warmup_updates: int = 0
+  """Number of updates during which the actor parameters stay frozen."""
+  class_name: str = "mjlab.rl.ppo:CriticWarmupPPO"
+
+
+@dataclass
+class RslRlDistillationAlgorithmCfg:
+  """Config for DAgger-style teacher-student distillation.
+
+  The student acts in the environment (sampling from its own action
+  distribution for exploration noise) while the teacher labels every visited
+  state; the student regresses onto the teacher actions. This is on-policy
+  dataset aggregation (DAgger), not behavior cloning of teacher rollouts.
+  """
+
+  num_learning_epochs: int = 1
+  """The number of learning epochs per update."""
+  gradient_length: int = 15
+  """Number of consecutive steps per backpropagation (truncated BPTT length
+  for recurrent students). Should divide num_learning_epochs *
+  num_steps_per_env, otherwise trailing steps are never backpropagated.
+  """
+  learning_rate: float = 1e-3
+  """The learning rate for the student."""
+  max_grad_norm: float | None = 1.0
+  """The maximum gradient norm. None disables clipping."""
+  loss_type: Literal["mse", "huber"] = "mse"
+  """The regression loss between student and teacher actions."""
+  optimizer: Literal["adam", "adamw", "sgd", "rmsprop"] = "adam"
+  """The optimizer to use."""
+  class_name: str = "Distillation"
+  """Algorithm class name resolved by RSL-RL."""
+
+
+@dataclass
+class RslRlMultiTeacherModelCfg:
+  """Config for a multi-expert teacher (arXiv:2505.11164).
+
+  Wraps several frozen expert models; each environment is labeled by the
+  expert selected via an integer observation group (e.g. the terrain type),
+  so a single student distills all experts at once.
+  """
+
+  teachers: Tuple[RslRlModelCfg, ...] = ()
+  """One model config per expert. All experts share the teacher obs set."""
+  assignment_group: str = "teacher_assignment"
+  """Observation group holding the per-env expert index, shape (num_envs, 1).
+  This group must exist in the environment observations but should not be
+  listed in the runner's ``obs_groups``.
+  """
+  class_name: str = "mjlab.rl.multi_teacher:MultiTeacherModel"
+  """Model class resolved by RSL-RL."""
+
+
+@dataclass
+class RslRlDistillationRunnerCfg(RslRlBaseRunnerCfg):
+  class_name: str = "DistillationRunner"
+  """The runner class name."""
+  student: RslRlModelCfg = field(
+    default_factory=lambda: RslRlModelCfg(
+      distribution_cfg={
+        "class_name": "GaussianDistribution",
+        "init_std": 0.5,
+        "std_type": "scalar",
+      }
+    )
+  )
+  """The student configuration. Give the student a distribution so rollouts
+  carry zero-mean exploration noise (the std receives no gradient from the
+  distillation loss, so ``init_std`` sets a fixed noise scale)."""
+  teacher: RslRlModelCfg | RslRlMultiTeacherModelCfg = field(
+    default_factory=RslRlModelCfg
+  )
+  """The teacher configuration. Must match the architecture the teacher
+  checkpoint was trained with (including its distribution config)."""
+  algorithm: RslRlDistillationAlgorithmCfg = field(
+    default_factory=RslRlDistillationAlgorithmCfg
+  )
+  """The algorithm configuration."""
+  obs_groups: dict[str, tuple[str, ...]] = field(
+    default_factory=lambda: {"student": ("student",), "teacher": ("teacher",)},
+  )
+  teacher_checkpoints: Tuple[str, ...] = ()
+  """Checkpoints to load the teacher(s) from. One path for a single teacher,
+  one per expert for a multi-teacher setup. PPO (``actor_state_dict``) and
+  distillation (``student_state_dict``) checkpoints are supported."""
+  inherit_env_state_from_teacher: bool = True
+  """Restore the env's common_step_counter from the (first) teacher
+  checkpoint so time-based curricula and randomization schedules start in
+  their end-of-training state rather than from scratch."""
