@@ -85,3 +85,7 @@ Projects built on mjlab. To add yours, open a pull request or post in
    * - `pollen-robotics/microduck_rl <https://github.com/pollen-robotics/microduck_rl>`_
      - Sim-to-real locomotion for `Microduck <https://pollen-robotics.com/microduck/>`_, an
        open-source 25 cm bipedal robot from Pollen Robotics and Hugging Face.
+   * - `T1Amoo/onerobotics-a1-mjlab
+       <https://github.com/T1Amoo/onerobotics-a1-mjlab>`_
+     - Official OneRobotics A1 integration with pose-reaching and reinforcement
+       learning.
