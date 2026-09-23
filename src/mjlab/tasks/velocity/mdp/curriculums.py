@@ -7,7 +7,7 @@ import torch
 from mjlab.entity import Entity
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
-from .velocity_command import UniformVelocityCommandCfg
+from .velocity_command import UniformVelocityCommand, UniformVelocityCommandCfg
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
@@ -27,7 +27,14 @@ def terrain_levels_vel(
   env_ids: torch.Tensor,
   command_name: str,
   asset_cfg: SceneEntityCfg = _DEFAULT_SCENE_CFG,
+  promotion_fraction: float = 0.8,
+  min_commanded_distance: float = 1.0,
 ) -> dict[str, torch.Tensor]:
+  """Promote or demote envs by distance walked relative to distance commanded.
+
+  Envs commanded less than min_commanded_distance meters are never promoted, so
+  drift cannot promote an env that was asked to stand still.
+  """
   asset: Entity = env.scene[asset_cfg.name]
 
   terrain = env.scene.terrain
@@ -35,24 +42,32 @@ def terrain_levels_vel(
   terrain_generator = terrain.cfg.terrain_generator
   assert terrain_generator is not None
 
-  command = env.command_manager.get_command(command_name)
-  assert command is not None
+  command_term = env.command_manager.get_term(command_name)
+  assert isinstance(command_term, UniformVelocityCommand)
 
   # Compute the distance the robot walked.
   distance = torch.norm(
-    asset.data.root_link_pos_w[env_ids, :2] - env.scene.env_origins[env_ids, :2],
+    asset.data.root_link_pos_w[env_ids, :2] - command_term.episode_start_pos_w[env_ids],
     dim=1,
   )
 
+  # Episodes that ended early owe the time left at the current command, so that
+  # falling does not shrink the requirement.
+  time_left = env.max_episode_length_s - env.episode_length_buf[env_ids] * env.step_dt
+  commanded_distance = torch.norm(
+    command_term.commanded_displacement_w[env_ids], dim=1
+  ) + torch.norm(command_term.command[env_ids, :2], dim=1) * time_left.clamp(min=0.0)
+
   # Robots that walked far enough progress to harder terrains.
-  move_up = distance > terrain_generator.size[0] / 2
+  move_up = distance > torch.clamp(
+    commanded_distance * promotion_fraction, max=terrain_generator.size[0] / 2
+  )
+  move_up &= commanded_distance >= min_commanded_distance
 
   # Robots that walked less than half of their required distance go to
   # simpler terrains.
-  move_down = (
-    distance < torch.norm(command[env_ids, :2], dim=1) * env.max_episode_length_s * 0.5
-  )
-  move_down *= ~move_up
+  move_down = distance < commanded_distance * 0.5
+  move_down &= ~move_up
 
   # On the initial reset (before any env step) the robot is still at its spawn
   # pose rather than a walked-to position, so ``distance`` is meaningless and
