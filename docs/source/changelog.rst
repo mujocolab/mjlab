@@ -26,6 +26,10 @@ Fixed
 - ``FlatPatchSamplingCfg(patch_radius=0)`` no longer collapses every patch to the
   sub-terrain center. The edge-exclusion mask sliced ``arr[-0:]``, which is
   ``arr[0:]``, so it cleared the entire valid mask :issue:`1171`.
+- ``DelayBuffer(per_env=False)`` now keeps a single lag across all environments when
+  ``hold_prob > 0``. The hold decision was drawn independently per environment, so
+  some environments adopted the new shared lag while others kept their old one. This
+  affected observation terms with ``delay_per_env=False`` and ``delay_hold_prob > 0``.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------
