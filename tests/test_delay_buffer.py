@@ -104,6 +104,25 @@ def test_delay_buffer_shared_lags(device):
   assert torch.all(lags == lags[0])
 
 
+def test_delay_buffer_shared_lags_with_hold_prob(device):
+  """Shared mode keeps one lag across environments when hold_prob > 0."""
+  buffer = DelayBuffer(
+    min_lag=0,
+    max_lag=3,
+    batch_size=8,
+    per_env=False,
+    hold_prob=0.5,
+    device=device,
+    generator=make_gen(0, device),
+  )
+
+  for i in range(20):
+    buffer.append(torch.full((8, 1), float(i), device=device))
+    buffer.compute()
+    lags = buffer.current_lags
+    assert torch.all(lags == lags[0])
+
+
 ##
 # Hold probability.
 ##

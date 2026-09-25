@@ -46,6 +46,10 @@ Fixed
 - ``DelayBuffer`` now samples a lag on the first step after creation or reset.
   Previously, with ``update_period > 0`` or ``hold_prob > 0``, environments could run
   with zero delay at the start of every episode, even with ``min_lag == max_lag``.
+- ``DelayBuffer(per_env=False)`` now keeps a single lag across all environments when
+  ``hold_prob > 0``. The hold decision was drawn independently per environment, so
+  some environments adopted the new shared lag while others kept their old one. This
+  affected observation terms with ``delay_per_env=False`` and ``delay_hold_prob > 0``.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------
