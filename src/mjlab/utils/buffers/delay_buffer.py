@@ -315,15 +315,15 @@ class DelayBuffer:
       candidate_lags = shared_lag.expand(self.batch_size)
 
     if self.hold_prob > 0.0:
-      should_sample = (
-        torch.rand(
-          self.batch_size,
-          dtype=torch.float32,
-          device=self.device,
-          generator=self.generator,
-        )
-        >= self.hold_prob
+      # In shared mode the hold decision is shared too, otherwise some envs would
+      # adopt the new lag while others keep their old one.
+      draws = torch.rand(
+        self.batch_size if self.per_env else 1,
+        dtype=torch.float32,
+        device=self.device,
+        generator=self.generator,
       )
+      should_sample = (draws >= self.hold_prob).expand(self.batch_size)
       update_mask = mask & should_sample
     else:
       update_mask = mask
