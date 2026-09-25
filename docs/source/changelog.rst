@@ -26,6 +26,10 @@ Fixed
 - ``FlatPatchSamplingCfg(patch_radius=0)`` no longer collapses every patch to the
   sub-terrain center. The edge-exclusion mask sliced ``arr[-0:]``, which is
   ``arr[0:]``, so it cleared the entire valid mask :issue:`1171`.
+- ``NoiseModelWithAdditiveBias`` now draws a fresh bias on every reset. It applied
+  ``bias_noise_cfg`` to the previous episode's bias instead of to zero, so with the
+  default ``"add"`` operation the per-episode bias performed a random walk and grew
+  well beyond the configured range over the course of training.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------

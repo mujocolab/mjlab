@@ -14,7 +14,9 @@ from mjlab.managers.observation_manager import (
 from mjlab.utils.noise.noise_cfg import (
   ConstantNoiseCfg,
   NoiseModelWithAdditiveBiasCfg,
+  UniformNoiseCfg,
 )
+from mjlab.utils.noise.noise_model import NoiseModelWithAdditiveBias
 
 
 @pytest.fixture
@@ -235,12 +237,7 @@ def test_noise_tensor_caching(device):
 
 
 def test_shared_term_name_noise_models_are_per_group(mock_env, device):
-  """Each group owns its own noise model instance when they share a term name.
-
-  ConstantNoiseCfg(op="add") shifts the additive-bias tensor by the configured
-  amount on every reset, so each group's observation drifts by its own value
-  after each manager.reset().
-  """
+  """Each group owns its own noise model instance when they share a term name."""
 
   def obs_func(env):
     return torch.zeros((env.num_envs, 3), device=device)
@@ -272,8 +269,27 @@ def test_shared_term_name_noise_models_are_per_group(mock_env, device):
   obs = manager.compute()
   assert isinstance(obs["actor"], torch.Tensor)
   assert isinstance(obs["critic"], torch.Tensor)
-  assert torch.allclose(obs["actor"], torch.full((4, 3), 20.0, device=device))
-  assert torch.allclose(obs["critic"], torch.full((4, 3), -2.0, device=device))
+  assert torch.allclose(obs["actor"], torch.full((4, 3), 10.0, device=device))
+  assert torch.allclose(obs["critic"], torch.full((4, 3), -1.0, device=device))
+
+
+def test_additive_bias_is_resampled_on_reset(device):
+  """Each reset draws a fresh bias instead of accumulating onto the previous one."""
+  model = NoiseModelWithAdditiveBias(
+    NoiseModelWithAdditiveBiasCfg(
+      noise_cfg=ConstantNoiseCfg(bias=0.0),
+      bias_noise_cfg=UniformNoiseCfg(n_min=-0.1, n_max=0.1),
+    ),
+    num_envs=256,
+    device=device,
+  )
+  data = torch.zeros((256, 3), device=device)
+  for _ in range(50):
+    model.reset()
+  assert torch.all(model(data).abs() <= 0.1)
+
+  model.reset(torch.tensor([0], device=device))
+  assert torch.all(model(data).abs() <= 0.1)
 
 
 def test_multiple_terms_with_different_noise(mock_env, device):
