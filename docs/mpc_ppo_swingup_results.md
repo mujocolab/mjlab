@@ -109,3 +109,68 @@ supports.
 ```bash
 uv run --extra cpu python scripts/benchmarks/mpopi_benchmark.py --task Mjlab-Cartpole-Swingup --num-envs 64 --iterations 200 --eval-every 10 --eval-steps 400 --seeds 5 --seed-offset 400 --arms A_ppo D_mpc_ppo D_mpc_naive D_mpc_bc_only D_mpc_no_bc
 ```
+
+## MPOPI as the teacher (pre-registration)
+
+All results above used MPPI (one sampling iteration per control step) as the
+teacher. MPOPI (`iterations = L > 1`) refines the mean and per-dimension std
+over L batches within a control step. Planned before running:
+
+**Part 1: controller comparison at equal simulation budget** (K × L rollouts
+of H = 20 steps per control step), swing-up, 8 envs × 400 steps, eval seeds
+10000 and 10001:
+
+| Budget K·L | MPPI | MPOPI |
+|---|---|---|
+| 32 | K = 32, L = 1 | K = 16, L = 2; K = 8, L = 4 |
+| 96 | K = 96, L = 1 | K = 32, L = 3 |
+
+MPOPI "wins" a budget if its best configuration scores higher than MPPI on
+both eval seeds.
+
+**Part 2: MPOPI teacher for PPO.** `D_mpc_bc_only` and `D_mpc_ppo` rerun on
+seeds 400–404 with every setting unchanged except the planner, which becomes
+the better MPOPI configuration at budget 32. Compared, paired by seed, with the
+MPPI-teacher runs above on AUC. Run regardless of the Part 1 outcome.
+
+## MPOPI as the teacher: results
+
+**Part 1 (controller, 8 envs × 400 steps):**
+
+| Budget K·L | Planner | Seed 10000 | Seed 10001 | Planning s/step* |
+|---|---|---|---|---|
+| 32 | MPPI K = 32 | 0.773 | 0.788 | 1.5 |
+| 32 | MPOPI K = 16, L = 2 | 0.817 | 0.808 | 2.2 |
+| 32 | **MPOPI K = 8, L = 4** | **0.851** | **0.828** | 3.2 |
+| 96 | MPPI K = 96 | 0.871 | 0.873 | 2.3 |
+| 96 | **MPOPI K = 32, L = 3** | **0.905** | **0.904** | 3.3 |
+
+\*Ten runs in parallel on one CPU. MPOPI wins both budgets on both seeds
+by the registered criterion. At the same number of simulated steps it is
+slower in wall-clock time because its L batches run one after another. The
+gain is in the balancing phase: after 100 steps (swing-up) the two are equal
+(0.59/0.58 vs 0.60/0.55), after 200 steps MPOPI leads (0.74/0.73 vs
+0.69/0.71).
+
+**Part 2 (MPOPI K = 8, L = 4 as the teacher, seeds 400–404, paired with the
+MPPI-teacher runs above):**
+
+| Arm | Teacher | AUC | Final | Iteration reaching 0.040 | Mean reward of collected MPC data |
+|---|---|---|---|---|---|
+| `D_mpc_bc_only` | MPPI | 0.0322 | 0.0346 | 30 20 30 20 30 | 0.0249 |
+| `D_mpc_bc_only` | MPOPI | 0.0274 | 0.0274 | 50 30 30 30 30 | 0.0219 |
+| `D_mpc_ppo` | MPPI | 0.0318 | 0.0344 | 50 30 30 50 50 | 0.0249 |
+| `D_mpc_ppo` | MPOPI | 0.0278 | 0.0351 | 50 40 190 40 40 | 0.0219 |
+
+MPOPI − MPPI teacher, AUC: `D_mpc_bc_only` −0.0047 (1/5 seeds positive,
+p = 0.31); `D_mpc_ppo` −0.0040 (1/5, p = 0.44).
+
+**Reading.** The better controller did not make a better teacher. The data
+MPOPI collected had a *lower* mean reward than MPPI's (0.0219 vs 0.0249),
+even though MPOPI scored higher as a controller. The difference is that
+collection adds execution noise (σ = 0.3) to every action. An untested
+explanation: with only 8 samples per batch and a std that MPOPI shrinks
+(down to 0.1), the planner explores narrowly and recovers worse from the
+injected noise. Checking it would need MPOPI evaluated as a controller under
+the same execution noise, or a smaller execution std. With 5 seeds none of
+the differences is significant; the direction is against the MPOPI teacher.
