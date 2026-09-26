@@ -126,6 +126,23 @@ class Sensor(ABC, Generic[T]):
     """Invalidate the cached data, forcing recomputation on next access."""
     self._cache_valid = False
 
+  def invalidate_cache(self) -> None:
+    """Public wrapper around ``_invalidate_cache``.
+
+    Allows container objects (e.g. scenes) to drop stale cached data without
+    reaching into private state.
+    """
+    self._invalidate_cache()
+
+  def begin_control_step(self) -> None:
+    """Mark the start of a new control (policy) step.
+
+    Called by the environment once before its physics substep loop. Sensors
+    that accumulate state across substeps (e.g. the contact sensor's
+    substep-collision latch) override this to clear their per-control-step
+    accumulators. The base implementation does nothing.
+    """
+
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
     """Reset sensor state for specified environments.
 
