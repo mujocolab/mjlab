@@ -1,6 +1,6 @@
 .PHONY: sync
 sync:
-	uv sync --all-packages --extra cu128 --group dev
+	uv sync --all-packages --extra cu130 --group dev
 
 .PHONY: sync-cpu
 sync-cpu:

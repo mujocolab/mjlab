@@ -32,7 +32,7 @@ def _configure_29(allow_tf32: bool):
   # tf32 for performance, ieee for full FP32 accuracy.
   precision = "tf32" if allow_tf32 else "ieee"
   torch.backends.cuda.matmul.fp32_precision = precision
-  torch.backends.cudnn.fp32_precision = precision  # type: ignore
+  torch.backends.cudnn.fp32_precision = precision
 
 
 def _configure_pre29(allow_tf32: bool):

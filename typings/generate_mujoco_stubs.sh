@@ -14,7 +14,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --no-sync runs in the already-synced project environment (so mujoco is
-# importable) without disturbing it; the conflicting cpu/cu128 extras mean a
+# importable) without disturbing it; the conflicting cpu/cu130 extras mean a
 # plain "uv run" would re-sync and churn the environment.
 STUBGEN_VERSION="2.5.5"
 STUBGEN=(uv run --no-sync --with "pybind11-stubgen==${STUBGEN_VERSION}" pybind11-stubgen)
