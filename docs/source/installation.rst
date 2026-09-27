@@ -14,7 +14,7 @@ choose the one that best fits your use case.
 
     **System Requirements**
 
-    - **Training**: Linux + NVIDIA GPU (CUDA 12.4+ recommended)
+    - **Training**: Linux + NVIDIA GPU (Turing or newer) with driver 580+
     - **Evaluation**: Linux, macOS, or Windows (WSL)
     - **Python**: 3.10 or higher
 

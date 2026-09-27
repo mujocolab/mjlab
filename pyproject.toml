@@ -21,6 +21,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: 3 :: Only",
   "Typing :: Typed",
   "Environment :: GPU :: NVIDIA CUDA",
@@ -28,12 +29,12 @@ classifiers = [
   "Natural Language :: English",
 ]
 description = "Isaac Lab API, powered by MuJoCo-Warp, for RL and robotics research."
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.10,<3.15"
 dependencies = [
   "prettytable",
   "tqdm",
   "tyro>=1.0.1",
-  "torch>=2.7.0",
+  "torch>=2.14.0",
   "torchrunx>=0.3.4",
   "warp-lang>=1.14.0",
   "mujoco-warp~=3.11.0",
@@ -91,12 +92,12 @@ docs = [
 ]
 
 [project.optional-dependencies]
-cu128 = ["torch>=2.7.0"]
-cpu = ["torch>=2.7.0"]
+cu130 = ["torch>=2.14.0"]
+cpu = ["torch>=2.14.0"]
 
 [tool.uv]
 conflicts = [
-  [{extra = "cu128"}, {extra = "cpu"}],
+  [{extra = "cu130"}, {extra = "cpu"}],
 ]
 constraint-dependencies = [
   "GitPython>=3.1.59",
@@ -116,8 +117,8 @@ url = "https://pypi.nvidia.com/"
 explicit = true
 
 [[tool.uv.index]]
-name = "pytorch-cu128"
-url = "https://download.pytorch.org/whl/cu128"
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
 [[tool.uv.index]]
@@ -128,7 +129,7 @@ explicit = true
 [tool.uv.sources]
 warp-lang = { index = "nvidia", marker = "sys_platform != 'darwin'" }
 torch = [
-  { index = "pytorch-cu128", extra = "cu128", marker = "sys_platform != 'darwin'" },
+  { index = "pytorch-cu130", extra = "cu130", marker = "sys_platform != 'darwin'" },
   { index = "pytorch-cpu", extra = "cpu", marker = "sys_platform != 'darwin'" },
 ]
 
