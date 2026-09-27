@@ -45,6 +45,10 @@ class UniformVelocityCommand(CommandTerm):
     self.is_world_env = torch.zeros_like(self.is_heading_env)
     self.is_forward_env = torch.zeros_like(self.is_heading_env)
 
+    # World-frame integral of the commanded linear velocity over the episode.
+    self.commanded_displacement_w = torch.zeros(self.num_envs, 2, device=self.device)
+    self.episode_start_pos_w = torch.zeros(self.num_envs, 2, device=self.device)
+
     self.metrics["error_vel_xy"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["error_vel_yaw"] = torch.zeros(self.num_envs, device=self.device)
 
@@ -97,8 +101,21 @@ class UniformVelocityCommand(CommandTerm):
       self.vel_command_b[fwd_ids, 1] = 0.0
       self.vel_command_b[fwd_ids, 2] = 0.0
 
+  def _integrate_command(
+    self, dt: float | torch.Tensor, env_ids: torch.Tensor | None
+  ) -> None:
+    # Rotating by the actual heading keeps heading and world-frame envs exact.
+    heading = self.robot.data.heading_w
+    cos_h, sin_h = torch.cos(heading), torch.sin(heading)
+    vx, vy = self.vel_command_b[:, 0], self.vel_command_b[:, 1]
+    vel_w = torch.stack([cos_h * vx - sin_h * vy, sin_h * vx + cos_h * vy], dim=-1)
+    step_w = vel_w * torch.as_tensor(dt, device=self.device).reshape(-1, 1)
+    ids = slice(None) if env_ids is None else env_ids
+    self.commanded_displacement_w[ids] += step_w[ids]
+
   def reset(self, env_ids: torch.Tensor | slice | None) -> dict[str, float]:
     extras = super().reset(env_ids)
+    self.commanded_displacement_w[env_ids] = 0.0
     if self.cfg.init_velocity_prob > 0.0:
       assert isinstance(env_ids, torch.Tensor)
       r = torch.empty(len(env_ids), device=self.device)
@@ -201,6 +218,13 @@ class UniformVelocityCommand(CommandTerm):
   def compute(
     self, dt: float | torch.Tensor, env_ids: torch.Tensor | None = None
   ) -> None:
+    # Before resampling: the current command is the one held over the elapsed dt.
+    self._integrate_command(dt, env_ids)
+    # Freshly reset envs; by now forward() has refreshed their spawn pose.
+    fresh = (self._env.episode_length_buf == 0).unsqueeze(-1)
+    self.episode_start_pos_w = torch.where(
+      fresh, self.robot.data.root_link_pos_w[:, :2], self.episode_start_pos_w
+    )
     super().compute(dt, env_ids)
     if self._joystick_enabled is not None and self._joystick_enabled.value:
       assert self._joystick_get_env_idx is not None
