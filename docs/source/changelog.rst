@@ -29,7 +29,8 @@ Fixed
 - ``NoiseModelWithAdditiveBias`` now draws a fresh bias on every reset. It applied
   ``bias_noise_cfg`` to the previous episode's bias instead of to zero, so with the
   default ``"add"`` operation the per-episode bias performed a random walk and grew
-  well beyond the configured range over the course of training.
+  well beyond the configured range over the course of training. The first episode's
+  bias with ``sample_bias_per_component=True`` is no longer the sum of two draws.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------
