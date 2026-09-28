@@ -6,10 +6,16 @@ action ``u0`` with a fixed execution std ``sigma``, so the behavior policy is
 the Gaussian ``mu(a|s) = N(a; u0(s), sigma^2 I)`` and ``log mu(a|s)`` is exact.
 Segments are returned in the layout of :meth:`ReplayBuffer.insert`, so MPOPI's
 importance correction can use them like past PPO rollouts.
+
+Two variants produce labels for behavior cloning only (no behavior density):
+``sigma = 0`` executes ``u0`` itself, and passing ``policy`` to
+:meth:`MpcCollector.collect` lets the policy act while the MPC labels the
+visited states (DAgger).
 """
 
 import copy
 import time
+from collections.abc import Callable
 
 import torch
 from tensordict import TensorDict
@@ -45,8 +51,8 @@ class MpcCollector:
       device: Torch / simulation device.
       seed: Seed of the real envs and of the execution noise.
     """
-    if execution_std <= 0.0:
-      raise ValueError("execution_std must be > 0 for a proper behavior density.")
+    if execution_std < 0.0:
+      raise ValueError("execution_std must be >= 0.")
     self.num_envs = num_envs
     self.num_steps = num_steps
     self.execution_std = execution_std
@@ -62,8 +68,15 @@ class MpcCollector:
     self.generator = torch.Generator(device=self.device).manual_seed(seed)
     self.obs = self.env.get_observations()
 
-  def collect(self) -> tuple[dict, dict[str, float]]:
+  def collect(
+    self, policy: Callable[[TensorDict], torch.Tensor] | None = None
+  ) -> tuple[dict, dict[str, float]]:
     """Roll out one ``[T, N]`` segment.
+
+    Args:
+      policy: If given, this policy acts and the MPC action ``u0`` is only
+        recorded as a label (DAgger). ``behavior_log_prob`` is then zero and
+        not a density, as with ``execution_std == 0``.
 
     Returns:
       Keyword arguments for :meth:`ReplayBuffer.insert` (without
@@ -77,8 +90,14 @@ class MpcCollector:
       for _ in range(t_steps):
         plan = self.planner.plan(self.env.unwrapped)
         mean = plan.action
-        noise = torch.randn(mean.shape, device=self.device, generator=self.generator)
-        action = mean + self.execution_std * noise
+        has_density = policy is None and self.execution_std > 0.0
+        if policy is not None:
+          action = policy(self.obs)
+        elif has_density:
+          noise = torch.randn(mean.shape, device=self.device, generator=self.generator)
+          action = mean + self.execution_std * noise
+        else:
+          action = mean.clone()
         obs_list.append(self.obs)
         self.obs, reward, done, extras = self.env.step(action)
         reset_ids = done.nonzero(as_tuple=False).flatten()
@@ -86,7 +105,10 @@ class MpcCollector:
           self.planner.reset(reset_ids)  # The warm-start plan is now invalid.
         actions.append(action)
         means.append(mean)
-        log_mu.append(self._log_prob(action, mean))
+        if has_density:
+          log_mu.append(self._log_prob(action, mean))
+        else:
+          log_mu.append(torch.zeros(n, 1, device=self.device))
         rewards.append(reward.view(n, 1).float())
         dones.append(done.view(n, 1).bool())
         time_out = extras.get("time_outs", torch.zeros_like(done))

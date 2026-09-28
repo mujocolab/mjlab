@@ -17,6 +17,7 @@ separate buffer, the same MPOPI estimators correct it, and an annealed
 behavior-cloning term pulls the policy mean toward the MPC action.
 """
 
+from collections.abc import Callable
 from dataclasses import asdict, replace
 from typing import Any, Generator, Protocol, cast
 
@@ -39,7 +40,9 @@ _Pool = dict[str, Any]
 class MpcDataSource(Protocol):
   """What ``MpopiPpo`` needs from an MPC collector."""
 
-  def collect(self) -> tuple[dict, dict[str, float]]: ...
+  def collect(
+    self, policy: Callable[[TensorDict], torch.Tensor] | None = None
+  ) -> tuple[dict, dict[str, float]]: ...
 
   def close(self) -> None: ...
 
@@ -128,10 +131,14 @@ class MpopiPpo(PPO):
       use_in_ppo = self.mpc_cfg.use_in_ppo
     else:
       use_in_ppo = True
-    if use_in_ppo or bc_weight > 0.0:
+    if use_in_ppo:
       replay, mpopi_metrics = self.mpopi.process(
         self.replay, self.actor, self.critic, self.policy_version, num_fresh
       )
+    elif bc_weight > 0.0:
+      # Behavior cloning only: no importance weights or V-trace are needed,
+      # and the data may have no behavior density (execution_std 0, DAgger).
+      replay, mpopi_metrics = self._bc_batch(), {}
     else:
       replay, mpopi_metrics = None, {}
     if replay is not None and not use_in_ppo:
@@ -260,13 +267,55 @@ class MpopiPpo(PPO):
     if cfg.collects(version):
       if self.mpc_collector is None:
         raise RuntimeError("mpc_ppo needs attach_mpc_collector() before training.")
-      segment, collect_metrics = self.mpc_collector.collect()
+      policy = self._act_stochastic if cfg.driver == "policy" else None
+      segment, collect_metrics = self.mpc_collector.collect(policy)
       self.replay.insert(**segment, policy_version=version)
       metrics.update({f"collect_{k}": v for k, v in collect_metrics.items()})
     if cfg.max_age is not None:
       self.replay.evict_older_than(version, cfg.max_age)
     metrics["buffer_segments"] = float(len(self.replay))
     return metrics
+
+  def _act_stochastic(self, obs: TensorDict) -> torch.Tensor:
+    """Sample from the current policy (DAgger's acting policy)."""
+    with torch.no_grad():
+      return self.actor(obs, stochastic_output=True)
+
+  def _bc_batch(self) -> MpopiBatch | None:
+    """Every MPC sample in the buffer as a behavior-cloning-only batch.
+
+    The PPO fields are filled with the current actor and critic so that the
+    (masked-out) PPO terms stay finite; only the behavior mean ``u0`` is used.
+    """
+    slots = self.replay.slots(self.policy_version)
+    if not slots:
+      return None
+    buffer = self.replay
+    assert buffer.observations is not None
+    idx = torch.tensor(slots, device=buffer.device)
+    obs = cast(TensorDict, buffer.observations[idx].flatten(0, 2))
+    actions = buffer.actions[idx].flatten(0, 2)
+    behavior = tuple(p[idx].flatten(0, 2) for p in buffer.behavior_distribution_params)
+    with torch.no_grad():
+      self.actor(obs, stochastic_output=True)
+      log_prob = self.actor.get_output_log_prob(actions).view(-1, 1)
+      params = tuple(p.clone() for p in self.actor.output_distribution_params)
+      values = self.critic(obs)
+    zeros = torch.zeros_like(values)
+    return MpopiBatch(
+      observations=obs,
+      actions=actions,
+      values=values,
+      advantages=zeros,
+      returns=values,
+      old_actions_log_prob=log_prob,
+      old_distribution_params=params,
+      behavior_actions_log_prob=zeros,
+      behavior_distribution_params=behavior,
+      weights=zeros,
+      mask=torch.zeros_like(values, dtype=torch.bool),
+      policy_age=torch.zeros_like(values, dtype=torch.long),
+    )
 
   def save(self) -> dict:
     saved = super().save()

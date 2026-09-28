@@ -31,7 +31,13 @@ class MpcDataCfg:
   """Stop collecting after this many PPO iterations."""
   execution_std: float = 0.3
   """Std of the executed Gaussian noise around the MPC action, in policy
-  action units. Defines ``mu(a|s) = N(a; u0(s), execution_std^2)``."""
+  action units. Defines ``mu(a|s) = N(a; u0(s), execution_std^2)``. 0 executes
+  the MPC action itself; there is then no behavior density, so the data can
+  only be used for behavior cloning (``use_in_ppo=False``)."""
+  driver: Literal["mpc", "policy"] = "mpc"
+  """Who acts in the MPC envs. ``"policy"`` is DAgger: the current policy acts
+  and the MPC only labels the states it visits, so behavior cloning happens on
+  the policy's own state distribution. Requires ``use_in_ppo=False``."""
   buffer_segments: int = 8
   """MPC segments kept in the buffer (all of them are used at every update)."""
   max_age: int | None = 10
@@ -44,14 +50,20 @@ class MpcDataCfg:
   """Initial weight of the behavior-cloning loss ``||mean_pi(s) - u0(s)||^2``
   (mean over action dims) on MPC samples. 0 disables it."""
   bc_iterations: int = 50
-  """The behavior-cloning weight decays linearly to 0 over this many
-  iterations."""
+  """The behavior-cloning weight decays linearly over this many iterations."""
+  bc_floor: float = 0.0
+  """Lower bound of the behavior-cloning weight after the decay. Above 0 the
+  policy keeps a small pull toward the MPC for the whole run, which needs the
+  MPC data to stay in the buffer (``max_age=None``)."""
   planner: SamplingMpcCfg = field(default_factory=SamplingMpcCfg)
 
   def bc_weight(self, iteration: int) -> float:
-    if self.bc_iterations <= 0:
+    if self.bc_coef == 0.0:
       return 0.0
-    return self.bc_coef * max(0.0, 1.0 - iteration / self.bc_iterations)
+    if self.bc_iterations <= 0:
+      return self.bc_floor
+    decayed = self.bc_coef * max(0.0, 1.0 - iteration / self.bc_iterations)
+    return max(self.bc_floor, decayed)
 
   def collects(self, iteration: int) -> bool:
     return iteration < self.collect_iterations and iteration % self.collect_every == 0
@@ -59,8 +71,15 @@ class MpcDataCfg:
   def validate(self) -> None:
     if self.num_envs < 1 or self.num_steps < 1 or self.collect_every < 1:
       raise ValueError("num_envs, num_steps and collect_every must be >= 1.")
-    if self.execution_std <= 0.0:
-      raise ValueError("execution_std must be > 0.")
+    if self.execution_std < 0.0:
+      raise ValueError("execution_std must be >= 0.")
+    if self.use_in_ppo and (self.execution_std == 0.0 or self.driver == "policy"):
+      raise ValueError(
+        "MPC samples in PPO's loss need a behavior density: use execution_std"
+        " > 0 and driver='mpc', or set use_in_ppo=False (behavior cloning only)."
+      )
+    if not 0.0 <= self.bc_floor <= self.bc_coef:
+      raise ValueError("bc_floor must be in [0, bc_coef].")
     if self.buffer_segments < 1:
       raise ValueError("buffer_segments must be >= 1.")
     if self.max_age is not None and self.max_age < 0:

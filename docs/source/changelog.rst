@@ -21,6 +21,9 @@ Added
   records the executed actions with their Gaussian behavior density, and adds
   them to PPO's updates with MPOPI's importance correction plus an annealed
   behavior-cloning term. Settings are under ``--agent.algorithm.mpopi.mpc``.
+- ``mpc_ppo`` behavior-cloning options: ``execution_std=0`` clones the MPC
+  action without noise, ``driver="policy"`` labels the policy's own states with
+  the MPC (DAgger), and ``bc_floor`` keeps a minimum cloning weight.
 
 Changed
 ^^^^^^^

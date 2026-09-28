@@ -70,8 +70,12 @@ def test_mpc_data_cfg_schedule_and_round_trip():
   assert [cfg.bc_weight(i) for i in (0, 2, 4, 9)] == [2.0, 1.0, 0.0, 0.0]
   full = MpopiCfg(mode="mpc_ppo", mpc=replace(cfg, planner=TINY_PLANNER))
   assert MpopiCfg.from_dict(asdict(full)) == full
-  with pytest.raises(ValueError, match="execution_std"):
+  with pytest.raises(ValueError, match="behavior density"):
     MpopiCfg(mode="mpc_ppo", mpc=MpcDataCfg(execution_std=0.0)).validate()
+  with pytest.raises(ValueError, match="behavior density"):
+    MpopiCfg(mode="mpc_ppo", mpc=MpcDataCfg(driver="policy")).validate()
+  floored = replace(cfg, bc_floor=0.5)
+  assert [floored.bc_weight(i) for i in (0, 2, 4, 9)] == [2.0, 1.0, 0.5, 0.5]
 
 
 def test_collector_records_exact_behavior_density(device):
@@ -154,3 +158,51 @@ def test_behavior_cloning_pulls_policy_toward_mpc(device):
     _close(runner)
   # Same seed, same MPC data: only the BC term differs.
   assert errors[1] < 0.7 * errors[0]
+
+
+def test_collector_labels_without_noise_and_for_dagger(device):
+  collector = MpcCollector(
+    load_env_cfg(TASK),
+    num_envs=2,
+    num_steps=3,
+    planner_cfg=TINY_PLANNER,
+    execution_std=0.0,
+    device=device,
+  )
+  try:
+    plain, _ = collector.collect()
+    dagger, _ = collector.collect(lambda obs: torch.full((2, 1), 0.7, device=device))
+  finally:
+    collector.close()
+  # Without noise the MPC action itself is executed.
+  torch.testing.assert_close(plain["actions"], plain["behavior_distribution_params"][0])
+  # DAgger: the policy acts, the MPC action is only the label.
+  assert (dagger["actions"] == 0.7).all()
+  assert not (dagger["behavior_distribution_params"][0] == 0.7).all()
+  for segment in (plain, dagger):
+    assert (segment["behavior_log_prob"] == 0.0).all()  # No density.
+
+
+def test_dagger_with_bc_floor_keeps_cloning_after_collection(device):
+  mpc = MpcDataCfg(
+    num_envs=2,
+    num_steps=4,
+    collect_iterations=2,
+    buffer_segments=4,
+    max_age=None,
+    execution_std=0.0,
+    driver="policy",
+    use_in_ppo=False,
+    bc_iterations=2,
+    bc_floor=0.1,
+    planner=TINY_PLANNER,
+  )
+  runner = _runner(device, mpc)
+  logs = _learn(runner, 4)
+  assert [log["mpc/bc_weight"] for log in logs] == [1.0, 0.5, 0.1, 0.1]
+  assert [log["mpc/buffer_segments"] for log in logs] == [1, 2, 2, 2]
+  assert logs[3]["mpc/bc_loss"] > 0.0  # Collection stopped; cloning goes on.
+  assert all("mpopi/accepted" not in log for log in logs)  # Not in PPO's loss.
+  for p in _alg(runner).actor.parameters():
+    assert torch.isfinite(p).all()
+  _close(runner)
