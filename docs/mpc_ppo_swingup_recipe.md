@@ -141,3 +141,55 @@ Written before any GPU run. Notebook: `notebooks/mpc_dagger_colab.ipynb`.
 - Also reported: final score, seeds reaching 0.040, and estimated GPU
   wall-clock time to 0.040 (measured MPC time plus mean PPO time per
   iteration).
+
+## GPU confirmation: results
+
+Colab GPU (`cuda:0`), seeds 500–509, all 20 runs finished, settings as
+registered (checked in each run's `summary.json`). Two runs shared the GPU
+at a time, so times include that contention: the last DAgger run, which ran
+alone, took 258 s instead of about 550 s.
+
+| Arm | AUC | Final | Seeds reaching 0.040 | Iteration reaching 0.040 | Est. seconds to 0.040 | Run s | MPC s |
+|---|---|---|---|---|---|---|---|
+| `A_ppo` | 0.0230 | 0.0261 | 4/10 | 50 40 70 40 (others never) | 51–87 | 246 | 0 |
+| DAgger (MPOPI) | 0.0289 | 0.0344 | 9/10 | 30–140 (median 50) | 170–479 | 519 | 291 |
+
+Per-seed AUC (PPO / DAgger / difference):
+
+| Seed | 500 | 501 | 502 | 503 | 504 | 505 | 506 | 507 | 508 | 509 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| PPO | 0.0204 | 0.0112 | 0.0105 | 0.0373 | 0.0362 | 0.0246 | 0.0284 | 0.0185 | 0.0138 | 0.0296 |
+| DAgger | 0.0286 | 0.0221 | 0.0324 | 0.0237 | 0.0335 | 0.0272 | 0.0265 | 0.0223 | 0.0351 | 0.0371 |
+| Diff | +0.0082 | +0.0110 | +0.0219 | −0.0135 | −0.0027 | +0.0026 | −0.0018 | +0.0038 | +0.0213 | +0.0075 |
+
+Mean normalized score by iteration:
+
+| Arm | 0 | 20 | 30 | 40 | 50 | 80 | 120 | 160 | 199 |
+|---|---|---|---|---|---|---|---|---|---|
+| PPO | 0.06 | 0.21 | 0.33 | 0.43 | 0.47 | 0.52 | 0.52 | 0.56 | 0.54 |
+| DAgger | 0.10 | 0.38 | 0.53 | 0.60 | 0.75 | 0.75 | 0.57 | 0.51 | 0.72 |
+
+**Hypothesis not confirmed.** DAgger − PPO AUC: +0.0058, 7 of 10 seeds
+positive, Wilcoxon p = 0.13 (registered threshold 0.05). Secondary: final
+score +0.0083, 8 of 10 seeds, p = 0.084.
+
+Reading:
+
+- The direction is the same as on CPU and consistent in most seeds: DAgger
+  learns faster early (0.75 vs 0.47 of the maximum at iteration 50) and
+  reached 0.040 on 9 of 10 seeds versus 4 of 10 for PPO. But the effect on
+  AUC is smaller than on CPU (+0.0058 vs +0.0093) and not significant.
+- The CPU finding "no drop after BC ends" did not replicate: the GPU mean
+  falls from 0.75 (iterations 50–80) to about 0.51–0.57 (120–160) and
+  recovers to 0.72 at the end. The three seeds where DAgger lost (503, 504,
+  506) are seeds where plain PPO did well on its own.
+- Cost: on this GPU, when plain PPO reaches 0.040 it does so in 50–90 s;
+  DAgger needs about 350–480 s because MPOPI labeling takes about 290 s per
+  run. Per PPO iteration DAgger is more reliable; per second of compute it
+  is not, at this scale.
+
+Status of the recipe: a consistent but unconfirmed advantage in sample
+efficiency, with a real compute cost. Options: more seeds (about 25–30 would
+be needed to detect +0.006 reliably given the per-seed spread), a longer or
+floored BC phase with a log-parameterized std to address the mid-training
+drop, or cheaper labeling (fewer labeled steps or a smaller planner).
