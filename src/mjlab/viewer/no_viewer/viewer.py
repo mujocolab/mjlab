@@ -1,6 +1,6 @@
 """mjlab play viewer that has no viewer.
 
-Enables user to run the policy without having a viewer, so faster
+Enables user to run the policy without having a viewer and no fixed/max framerate
 """
 
 from __future__ import annotations
