@@ -1,8 +1,10 @@
+import math
 import os
 from pathlib import Path
 
 import torch
 from rsl_rl.env import VecEnv
+from rsl_rl.modules import GaussianDistribution
 from rsl_rl.runners import OnPolicyRunner
 
 from mjlab.rl.mpopi.algorithm import MpopiPpo
@@ -30,8 +32,12 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
         if train_cfg[key].get("rnn_type") is None:
           for opt in ("rnn_type", "rnn_hidden_dim", "rnn_num_layers"):
             train_cfg[key].pop(opt, None)
+    mpopi_cfg = train_cfg.get("algorithm", {}).get("mpopi") or {}
+    min_action_std = mpopi_cfg.get("min_action_std")
     _resolve_mpopi_mode(train_cfg)
     super().__init__(env, train_cfg, log_dir, device)
+    if min_action_std is not None:
+      set_min_action_std(self.alg.actor, min_action_std)
     self._attach_mpc_collector()
 
   def _attach_mpc_collector(self) -> None:
@@ -168,6 +174,15 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
 
 
 MPOPI_PPO_CLASS_NAME = "mjlab.rl.mpopi:MpopiPpo"
+
+
+def set_min_action_std(actor, min_std: float) -> None:
+  """Raise the lower bound of a Gaussian actor's std to ``min_std``."""
+  dist = getattr(actor, "distribution", None)
+  if not isinstance(dist, GaussianDistribution):
+    raise ValueError("min_action_std requires a Gaussian actor distribution.")
+  dist.std_range[0] = max(dist.std_range[0], min_std)
+  dist.log_std_range[0] = math.log(dist.std_range[0])
 
 
 def _resolve_mpopi_mode(train_cfg: dict) -> None:

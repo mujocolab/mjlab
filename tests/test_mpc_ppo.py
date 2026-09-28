@@ -239,3 +239,29 @@ def test_mpc_injection_mixes_a_fixed_fraction_for_the_whole_run(device):
   for p in _alg(runner).actor.parameters():
     assert torch.isfinite(p).all()
   _close(runner)
+
+
+@pytest.mark.parametrize("mode", ["ppo", "mpc_ppo"])
+def test_min_action_std_bounds_the_actor_std(device, mode):
+  env_cfg = load_env_cfg(TASK)
+  env_cfg.scene.num_envs = 4
+  agent = load_rl_cfg(TASK)
+  assert isinstance(agent, RslRlOnPolicyRunnerCfg)
+  agent.logger = "tensorboard"
+  mpc = MpcDataCfg(num_envs=1, num_steps=2, planner=TINY_PLANNER)
+  agent.algorithm = replace(
+    agent.algorithm, mpopi=MpopiCfg(mode=mode, mpc=mpc, min_action_std=0.3)
+  )
+  env = RslRlVecEnvWrapper(ManagerBasedRlEnv(cfg=env_cfg, device=device))
+  runner = MjlabOnPolicyRunner(env, asdict(agent), log_dir=None, device=device)
+  actor = runner.alg.actor
+  with torch.no_grad():
+    actor.distribution.std_param.fill_(-1.0)  # type: ignore[union-attr]
+    actor(env.get_observations(), stochastic_output=True)
+  torch.testing.assert_close(
+    actor.output_distribution_params[1], torch.full((4, 1), 0.3, device=device)
+  )
+  if mode == "mpc_ppo":
+    _close(runner)
+  else:
+    env.close()

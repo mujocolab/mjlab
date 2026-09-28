@@ -149,6 +149,11 @@ class MpopiCfg:
   """``"self_normalized"`` rescales accepted replay weights to mean 1."""
   mpc: MpcDataCfg = field(default_factory=MpcDataCfg)
   """MPC data source; only used in mode ``"mpc_ppo"``."""
+  min_action_std: float | None = None
+  """Lower bound on the std of a Gaussian actor, in every mode including
+  ``"ppo"`` (applied by the runner). Keeps the std from collapsing toward the
+  distribution's own floor of 1e-6, where log-probabilities overflow and the
+  parameters turn NaN. None keeps RSL-RL's default range."""
 
   @classmethod
   def from_dict(cls, data: dict[str, Any]) -> "MpopiCfg":
@@ -188,6 +193,8 @@ class MpopiCfg:
       raise ValueError("log_ratio_clamp must be > 0.")
     if self.trace_clip_max <= 0.0:
       raise ValueError("trace_clip_max must be > 0.")
+    if self.min_action_std is not None and self.min_action_std <= 0.0:
+      raise ValueError("min_action_std must be > 0.")
     if self.mode == "mpc_ppo":
       self.mpc.validate()
     clip_max = self.importance_weight_clip_max

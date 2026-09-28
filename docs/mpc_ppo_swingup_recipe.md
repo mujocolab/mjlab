@@ -91,13 +91,13 @@ Paired AUC differences (Wilcoxon, two-sided):
 
 **Floor arms crashed.** 9 of the 10 runs with a BC floor stopped with
 `RuntimeError: normal expects all elements of std >= 0.0` between
-iterations 80 and 140: the Cartpole actor uses a directly parameterized
-(`std_type="scalar"`) standard deviation, and a gradient step pushed it
-below zero. The mechanism is not verified; a plausible one is that the
-persistent BC pull keeps the policy change per update small, the adaptive
-KL schedule then raises the learning rate toward its 1e-2 cap, and one large
-step overshoots the std. A floor would need a log-parameterized std or a
-std clamp, which changes PPO itself and was not part of this study.
+iterations 80 and 140. RSL-RL clamps the std to at least 1e-6 before
+sampling, so this error means the std was NaN: the actor parameters had become
+NaN (an earlier version of this note wrongly said the std went negative). The
+mechanism is not verified; a plausible one is that the std collapses toward
+the 1e-6 floor, where log-probabilities and PPO ratios overflow. A higher std
+floor (`min_action_std`, added later) changes PPO itself and was not part of
+this study.
 
 **Reproducibility.** `A_ppo` and `R1_mppi_noise` repeat the earlier study's
 seeds but not its per-seed curves (earlier AUC 0.0271 and 0.0322, now

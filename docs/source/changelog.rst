@@ -27,6 +27,8 @@ Added
 - ``mpc_ppo`` option ``inject_fraction``: MPC samples make up a fixed fraction of
   every PPO batch (MPC-Injection). With ``correction=False`` the MPC data may be
   collected without execution noise.
+- ``--agent.algorithm.mpopi.min-action-std``: lower bound on a Gaussian actor's
+  std in every mode, including plain ``ppo``.
 
 Changed
 ^^^^^^^

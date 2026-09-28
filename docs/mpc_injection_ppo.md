@@ -57,13 +57,17 @@ iteration 20, 0.32 at 50 and 0.40 at 199 (`PPO`: 0.21, 0.51, 0.68;
 
 **10 of 15 runs crashed** with `RuntimeError: normal expects all elements of
 std >= 0.0` between iterations 120 and 180, the same failure as the BC-floor
-runs. The crash rate grows with the injected fraction (3/5, 2/5, 5/5). A
-plausible mechanism, not verified: the injected actions are the noise-free
-MPC action, and PPO's surrogate raises `log π(u0|o)` for samples with positive
-advantage; for a Gaussian this pushes the std down (the gradient of the log
-density with respect to σ grows like 1/σ as the mean approaches `u0`), and the
-Cartpole actor's directly parameterized std (`std_type="scalar"`) is pushed
-below zero.
+runs. The crash rate grows with the injected fraction (3/5, 2/5, 5/5).
+Correction (2026-09-29): an earlier version of this note said the std went
+negative. RSL-RL clamps the std to at least 1e-6 before sampling, so it cannot
+be negative; the error means the std was NaN, i.e. the actor parameters had
+become NaN. A plausible mechanism, not verified: the injected actions are the
+noise-free MPC action, and PPO's surrogate raises `log π(u0|o)` for samples
+with positive advantage; for a Gaussian this shrinks the std (the gradient of
+the log density with respect to σ grows like 1/σ as the mean approaches
+`u0`) toward the 1e-6 floor, where log-probabilities and PPO ratios overflow
+and NaN reaches the parameters. `min_action_std` (a higher std floor, applied
+to every method) was added to test this.
 
 **H1 not supported.** Every finished `MPC-Inject` run had a lower AUC than
 `PPO` on the same seed, and most runs did not finish. Injecting noise-free MPC
@@ -83,7 +87,7 @@ p = 0.25 was run for the 10 seeds.
 | `MPC-DAgger` | 10/10 | **0.0289** | **0.0344** | 9/10 |
 | `MPC-Inject` (p = 0.25) | **8/10** | 0.0206 | 0.0272 | 6/8 |
 
-The two failed runs (seeds 506 and 507) crashed with the negative-std error,
+The two failed runs (seeds 506 and 507) crashed with the NaN-std error,
 at iterations 181 and 141. Mean normalized score by iteration:
 
 | Arm | 0 | 20 | 30 | 40 | 50 | 80 | 120 | 160 | 199 |
