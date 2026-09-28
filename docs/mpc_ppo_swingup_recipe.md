@@ -127,3 +127,17 @@ p = 0.13, and in wall-clock time plain PPO still reaches 0.040 sooner on
 this CPU because MPOPI labeling costs about 2000 s per run here. Worth
 checking next: more seeds, GPU cost, and whether the drop-free behavior
 holds on a harder task.
+
+## GPU confirmation (pre-registration)
+
+Written before any GPU run. Notebook: `notebooks/mpc_dagger_colab.ipynb`.
+
+- Arms: `A_ppo` and the chosen DAgger recipe above, unchanged.
+- Fresh seeds 500–509 (10 seeds), 200 iterations, same evaluation, on a
+  Colab GPU; one process per run, 1 CPU thread each, two runs at a time.
+- **Hypothesis:** DAgger AUC > PPO AUC. Paired two-sided Wilcoxon over the
+  10 seeds, α = 0.05. Confirmed only if the mean difference is positive and
+  p < 0.05.
+- Also reported: final score, seeds reaching 0.040, and estimated GPU
+  wall-clock time to 0.040 (measured MPC time plus mean PPO time per
+  iteration).
