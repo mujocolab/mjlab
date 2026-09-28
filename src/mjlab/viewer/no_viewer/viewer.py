@@ -5,8 +5,8 @@ Enables user to run the policy without having a viewer and no fixed/max framerat
 
 from __future__ import annotations
 
-from threading import  Lock
 import time
+from threading import Lock
 
 from typing_extensions import override
 
@@ -15,6 +15,7 @@ from mjlab.viewer.base import (
   EnvProtocol,
   PolicyProtocol,
 )
+
 
 class HeadlessPlayViewer(BaseViewer):
   """Interactive Viser-based viewer with playback controls."""
@@ -28,16 +29,19 @@ class HeadlessPlayViewer(BaseViewer):
     self._sim_lock = Lock()
 
   @override
-  def setup (self):
+  def setup(self):
     pass
+
   @override
-  def sync_env_to_viewer (self):
+  def sync_env_to_viewer(self):
     pass
+
   @override
-  def sync_viewer_to_env (self):
+  def sync_viewer_to_env(self):
     pass
+
   @override
-  def close (self):
+  def close(self):
     pass
 
   @override

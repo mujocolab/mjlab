@@ -19,7 +19,7 @@ from mjlab.tasks.tracking.mdp import MotionCommandCfg
 from mjlab.utils.os import get_wandb_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.utils.wrappers import VideoRecorder
-from mjlab.viewer import NativeMujocoViewer, ViserPlayViewer, HeadlessPlayViewer
+from mjlab.viewer import HeadlessPlayViewer, NativeMujocoViewer, ViserPlayViewer
 from mjlab.viewer.viser.viewer import CheckpointManager, format_time_ago
 
 
