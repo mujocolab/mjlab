@@ -23,11 +23,7 @@ import torch
 
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
 from mjlab.mpc.config import SamplingMpcCfg
-
-# Simulation fields that fully determine the next step for tasks without
-# stateful managers (e.g. Cartpole). Copying them reproduces the real env's
-# dynamics and rewards exactly (see tests/test_mpc_sampling.py).
-_STATE_FIELDS = ("qpos", "qvel", "act", "qacc_warmstart", "ctrl")
+from mjlab.mpc.state_sync import freeze_commands, sync_env_state
 
 
 @dataclass
@@ -129,6 +125,9 @@ class SamplingMpc:
     env_cfg.scene.num_envs = num_real * cfg.num_samples
     env_cfg.auto_reset = False
     env_cfg.terminations = {}  # Every sample is rolled out for the full horizon.
+    # Random pushes would perturb samples unpredictably; keep startup events so
+    # the same model fields are expanded per world as in the real env.
+    env_cfg.events = {k: v for k, v in env_cfg.events.items() if v.mode != "interval"}
     with preserve_global_rng():
       self.env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
       self.env.reset()
@@ -183,13 +182,9 @@ class SamplingMpc:
     )
 
   def _copy_state(self, real_env: ManagerBasedRlEnv) -> None:
-    src, dst = real_env.sim.data, self.env.sim.data
-    for name in _STATE_FIELDS:
-      value = getattr(src, name)
-      if value.shape[-1] == 0:
-        continue
-      getattr(dst, name)[:] = value.repeat_interleave(self.cfg.num_samples, dim=0)
-    self.env.sim.forward()
+    with torch.inference_mode():
+      sync_env_state(real_env, self.env, self.cfg.num_samples)
+      freeze_commands(self.env)
 
   def _rollout(
     self, real_env: ManagerBasedRlEnv, samples: torch.Tensor
