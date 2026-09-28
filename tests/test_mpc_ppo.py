@@ -72,8 +72,14 @@ def test_mpc_data_cfg_schedule_and_round_trip():
   assert MpopiCfg.from_dict(asdict(full)) == full
   with pytest.raises(ValueError, match="behavior density"):
     MpopiCfg(mode="mpc_ppo", mpc=MpcDataCfg(execution_std=0.0)).validate()
-  with pytest.raises(ValueError, match="behavior density"):
+  with pytest.raises(ValueError, match="DAgger labels"):
     MpopiCfg(mode="mpc_ppo", mpc=MpcDataCfg(driver="policy")).validate()
+  # Naive injection needs no density.
+  MpopiCfg(
+    mode="mpc_ppo", mpc=MpcDataCfg(execution_std=0.0, correction=False)
+  ).validate()
+  with pytest.raises(ValueError, match="inject_fraction"):
+    MpopiCfg(mode="mpc_ppo", mpc=MpcDataCfg(inject_fraction=1.0)).validate()
   floored = replace(cfg, bc_floor=0.5)
   assert [floored.bc_weight(i) for i in (0, 2, 4, 9)] == [2.0, 1.0, 0.5, 0.5]
 
@@ -203,6 +209,33 @@ def test_dagger_with_bc_floor_keeps_cloning_after_collection(device):
   assert [log["mpc/buffer_segments"] for log in logs] == [1, 2, 2, 2]
   assert logs[3]["mpc/bc_loss"] > 0.0  # Collection stopped; cloning goes on.
   assert all("mpopi/accepted" not in log for log in logs)  # Not in PPO's loss.
+  for p in _alg(runner).actor.parameters():
+    assert torch.isfinite(p).all()
+  _close(runner)
+
+
+def test_mpc_injection_mixes_a_fixed_fraction_for_the_whole_run(device):
+  mpc = MpcDataCfg(
+    num_envs=2,
+    num_steps=4,
+    collect_iterations=2,
+    buffer_segments=4,
+    max_age=None,
+    execution_std=0.0,
+    correction=False,
+    bc_coef=0.0,
+    inject_fraction=0.2,
+    planner=TINY_PLANNER,
+  )
+  runner = _runner(device, mpc)
+  logs = _learn(runner, 4)
+  num_fresh = 8 * 8  # num_envs x num_steps_per_env of the PPO runner.
+  # 1 segment (8 samples) after the first collection, then 16 samples kept.
+  assert [log["mpopi/sampled"] for log in logs] == [8, 16, 16, 16]
+  # Once enough data exists, MPC is 0.2 of the batch: 16 / (64 + 16).
+  assert logs[3]["mpopi/sampled"] / (num_fresh + logs[3]["mpopi/sampled"]) == 0.2
+  assert all(log["mpopi/accepted"] == log["mpopi/sampled"] for log in logs)
+  assert all(log["mpopi/weight_mean"] == 1.0 for log in logs)  # Naive: w = 1.
   for p in _alg(runner).actor.parameters():
     assert torch.isfinite(p).all()
   _close(runner)

@@ -44,6 +44,10 @@ class MpcDataCfg:
   """Segments collected more than this many iterations ago are not used."""
   use_in_ppo: bool = True
   """Add MPC samples to PPO's surrogate and value losses."""
+  inject_fraction: float | None = None
+  """Fraction of each PPO batch made of MPC samples, drawn uniformly from the
+  buffer at every update (MPC-Injection with a fixed mixing ratio). None uses
+  every MPC sample in the buffer."""
   correction: bool = True
   """Importance-correct MPC samples (MPOPI). False treats them as on-policy."""
   bc_coef: float = 1.0
@@ -73,11 +77,17 @@ class MpcDataCfg:
       raise ValueError("num_envs, num_steps and collect_every must be >= 1.")
     if self.execution_std < 0.0:
       raise ValueError("execution_std must be >= 0.")
-    if self.use_in_ppo and (self.execution_std == 0.0 or self.driver == "policy"):
+    if self.use_in_ppo and self.driver == "policy":
       raise ValueError(
-        "MPC samples in PPO's loss need a behavior density: use execution_std"
-        " > 0 and driver='mpc', or set use_in_ppo=False (behavior cloning only)."
+        "DAgger labels are not the executed actions: use use_in_ppo=False."
       )
+    if self.use_in_ppo and self.correction and self.execution_std == 0.0:
+      raise ValueError(
+        "Importance correction needs a behavior density: use execution_std > 0,"
+        " correction=False (naive injection) or use_in_ppo=False."
+      )
+    if self.inject_fraction is not None and not 0.0 < self.inject_fraction < 1.0:
+      raise ValueError("inject_fraction must be in (0, 1).")
     if not 0.0 <= self.bc_floor <= self.bc_coef:
       raise ValueError("bc_floor must be in [0, bc_coef].")
     if self.buffer_segments < 1:

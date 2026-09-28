@@ -79,9 +79,21 @@ class MpopiPpo(PPO):
         raise ValueError("mpc_ppo requires a Gaussian actor distribution.")
       # MPC data reuses MPOPI's estimators; every segment in the buffer is used.
       mode = "mpopi_ppo" if self.mpc_cfg.correction else "naive_replay_ppo"
-      mpc_mpopi_cfg = replace(
-        cfg, mode=mode, sampling_strategy="all", max_policy_age=None
-      )
+      fraction = self.mpc_cfg.inject_fraction
+      if fraction is None:
+        mpc_mpopi_cfg = replace(
+          cfg, mode=mode, sampling_strategy="all", max_policy_age=None
+        )
+      else:
+        # A fraction p of the batch is MPC: p / (1 - p) MPC samples per fresh one.
+        mpc_mpopi_cfg = replace(
+          cfg,
+          mode=mode,
+          sampling_strategy="uniform",
+          replay_ratio=fraction / (1.0 - fraction),
+          replay_batch_size=None,
+          max_policy_age=None,
+        )
       self.mpopi = Mpopi(mpc_mpopi_cfg, gamma=self.gamma, lam=self.lam)
       self.replay = ReplayBuffer(self.mpc_cfg.buffer_segments, device=self.device)
     shape = (storage.num_transitions_per_env, storage.num_envs, 1)

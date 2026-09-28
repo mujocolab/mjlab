@@ -7,6 +7,7 @@ critic, and produces PPO-compatible samples whose surrogate weights are
 PPO's clipped ratio stays ``pi_theta / pi_old``; the weight is a constant.
 """
 
+import math
 from dataclasses import dataclass, field
 
 import torch
@@ -243,7 +244,10 @@ class Mpopi:
       )
       params.append(p_old)
       p_mu = tuple(p[i] for p in buffer.behavior_distribution_params)
-      kl.append(actor.get_kl_divergence(p_mu, p_old))
+      if all(bool((p > 0).all()) for p in p_mu[1:]):
+        kl.append(actor.get_kl_divergence(p_mu, p_old))
+      else:  # Deterministic behavior (e.g. noise-free MPC): no density, no KL.
+        kl.append(torch.full(p_old[0].shape[:-1], math.nan, device=buffer.device))
       values.append(critic(obs).view(num_steps, num_envs, 1))
       boot_values.append(critic(buffer.bootstrap_observations[i]))
 

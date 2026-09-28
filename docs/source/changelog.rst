@@ -24,6 +24,9 @@ Added
 - ``mpc_ppo`` behavior-cloning options: ``execution_std=0`` clones the MPC
   action without noise, ``driver="policy"`` labels the policy's own states with
   the MPC (DAgger), and ``bc_floor`` keeps a minimum cloning weight.
+- ``mpc_ppo`` option ``inject_fraction``: MPC samples make up a fixed fraction of
+  every PPO batch (MPC-Injection). With ``correction=False`` the MPC data may be
+  collected without execution noise.
 
 Changed
 ^^^^^^^
