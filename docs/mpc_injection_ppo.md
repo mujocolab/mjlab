@@ -69,3 +69,42 @@ below zero.
 `PPO` on the same seed, and most runs did not finish. Injecting noise-free MPC
 data into PPO as if it were on-policy both hurt learning and destabilized the
 policy's exploration noise on this task.
+
+## Results (GPU, seeds 500–509)
+
+Colab GPU (`cuda:0`), notebook `notebooks/mpc_dagger_vs_inject_colab.ipynb`
+run with the defaults: `PPO` and `MPC-DAgger` were reused from the DAgger GPU
+confirmation (same seeds, byte-identical `curves.csv`), and `MPC-Inject` with
+p = 0.25 was run for the 10 seeds.
+
+| Arm | Runs finished | AUC | Final | Seeds reaching 0.040 |
+|---|---|---|---|---|
+| `PPO` | 10/10 | 0.0230 | 0.0261 | 4/10 |
+| `MPC-DAgger` | 10/10 | **0.0289** | **0.0344** | 9/10 |
+| `MPC-Inject` (p = 0.25) | **8/10** | 0.0206 | 0.0272 | 6/8 |
+
+The two failed runs (seeds 506 and 507) crashed with the negative-std error,
+at iterations 181 and 141. Mean normalized score by iteration:
+
+| Arm | 0 | 20 | 30 | 40 | 50 | 80 | 120 | 160 | 199 |
+|---|---|---|---|---|---|---|---|---|---|
+| `PPO` | 0.06 | 0.21 | 0.33 | 0.43 | 0.47 | 0.52 | 0.52 | 0.56 | 0.54 |
+| `MPC-DAgger` | 0.10 | 0.38 | 0.53 | 0.60 | 0.75 | 0.75 | 0.57 | 0.51 | 0.72 |
+| `MPC-Inject` | 0.10 | 0.28 | 0.31 | 0.31 | 0.32 | 0.41 | 0.45 | 0.58 | 0.55 |
+
+Paired AUC (Wilcoxon, two-sided, over the 8 seeds where `MPC-Inject`
+finished):
+
+- **H1** `MPC-Inject − PPO`: −0.0024, 3/8 seeds positive, p = 0.84. **Not
+  supported.**
+- **H2** `MPC-Inject − MPC-DAgger`: −0.0094, 1/8 seeds positive, **p = 0.023**.
+  `MPC-Inject` is worse than `MPC-DAgger`. Counting the two crashed runs as
+  losses would only strengthen this.
+- Reference: `MPC-DAgger − PPO` +0.0058, 7/10, p = 0.13 (unchanged).
+
+The GPU run reproduces the CPU picture with fewer crashes: injection gives a
+slightly faster first 20 iterations than `PPO` (0.28 vs 0.21) and then stalls
+around 0.31–0.45 until iteration 120, while `MPC-DAgger` climbs to 0.75. It is
+the first result in this project that reaches p < 0.05. On this task,
+injecting MPC data into PPO as if it were on-policy is a worse use of the same
+MPC teacher than DAgger-style imitation.
