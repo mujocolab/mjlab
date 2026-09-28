@@ -18,6 +18,8 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Literal
 
+import imageio_ffmpeg
+import numpy as np
 import torch
 import tyro
 
@@ -45,6 +47,8 @@ class EvalVelocityCfg:
   )
   out: Path | None = None
   """Optional JSON file for the results."""
+  video_dir: Path | None = None
+  """If set, save an MP4 of each controller and speed (first env) here."""
 
 
 def fixed_speed_cfg(
@@ -73,8 +77,10 @@ def fixed_speed_cfg(
 
 def run(cfg: EvalVelocityCfg, controller: str, speed: float) -> dict:
   env_cfg = fixed_speed_cfg(cfg.task, speed, cfg.num_envs, cfg.seed)
-  env = ManagerBasedRlEnv(cfg=env_cfg, device=cfg.device)
+  render_mode = "rgb_array" if cfg.video_dir is not None else None
+  env = ManagerBasedRlEnv(cfg=env_cfg, device=cfg.device, render_mode=render_mode)
   env.reset()
+  frames: list[np.ndarray] = []
   robot = env.scene["robot"]
   n, dim = cfg.num_envs, env.action_manager.total_action_dim
   planner = (
@@ -98,6 +104,10 @@ def run(cfg: EvalVelocityCfg, controller: str, speed: float) -> dict:
     if planner is not None and bool(fell.any()):
       planner.reset(fell.nonzero().flatten())
     rewards.append(float(reward.mean()))
+    if render_mode is not None:
+      frame = env.render()
+      if frame is not None:
+        frames.append(np.ascontiguousarray(frame))
     if step >= cfg.settle_steps:
       speeds.append(robot.data.root_link_lin_vel_b[:, 0].clone())
     if planner is not None and (step + 1) % 25 == 0:
@@ -110,6 +120,8 @@ def run(cfg: EvalVelocityCfg, controller: str, speed: float) -> dict:
   env.close()
   if planner is not None:
     planner.close()
+  if frames and cfg.video_dir is not None:
+    _write_video(cfg.video_dir / f"{controller}_{speed:.1f}mps.mp4", frames)
   v = torch.stack(speeds)  # [T, N]
   result = {
     "controller": controller,
@@ -122,6 +134,17 @@ def run(cfg: EvalVelocityCfg, controller: str, speed: float) -> dict:
   if planner is not None:
     result["plan_seconds_per_step"] = plan_time / cfg.steps
   return result
+
+
+def _write_video(path: Path, frames: list[np.ndarray], fps: int = 50) -> None:
+  path.parent.mkdir(parents=True, exist_ok=True)
+  h, w = frames[0].shape[:2]
+  writer = imageio_ffmpeg.write_frames(str(path), (w, h), fps=fps, macro_block_size=1)
+  writer.send(None)
+  for frame in frames:
+    writer.send(frame[..., :3].astype(np.uint8))
+  writer.close()
+  print(f"Wrote {path}")
 
 
 def main(cfg: EvalVelocityCfg) -> None:
