@@ -118,6 +118,8 @@ class SamplingMpc:
     """
     if cfg.iterations < 1 or cfg.num_samples < 2 or cfg.horizon < 1:
       raise ValueError("Need iterations >= 1, num_samples >= 2 and horizon >= 1.")
+    if cfg.num_knots is not None and cfg.num_knots < 1:
+      raise ValueError("num_knots must be >= 1.")
     self.cfg = cfg
     self.num_real = num_real
     self.device = torch.device(device)
@@ -157,7 +159,7 @@ class SamplingMpc:
     returns: torch.Tensor | None = None
     ess: torch.Tensor | None = None
     for it in range(cfg.iterations):
-      noise = torch.randn(n, k, h, a, device=self.device, generator=self.generator)
+      noise = self._sample_noise(n, k, h, a)
       noise[:, 0] = 0.0  # Nominal sample.
       samples = mean[:, None] + std[:, None] * noise
       if cfg.action_clip is not None:
@@ -180,6 +182,20 @@ class SamplingMpc:
     return MpcPlan(
       action=first, std=std[:, 0].clone(), best_return=best_return, ess=ess
     )
+
+  def _sample_noise(self, n: int, k: int, h: int, a: int) -> torch.Tensor:
+    """Standard normal noise ``[N, K, H, A]``, optionally smooth in time."""
+    knots = self.cfg.num_knots
+    if knots is None or knots >= h:
+      return torch.randn(n, k, h, a, device=self.device, generator=self.generator)
+    values = torch.randn(n, k, knots, a, device=self.device, generator=self.generator)
+    if knots == 1:
+      return values.expand(n, k, h, a).clone()
+    # Linear interpolation between knots at t = 0, ..., h - 1.
+    pos = torch.linspace(0, knots - 1, h, device=self.device)
+    lo = pos.floor().long().clamp(max=knots - 2)
+    frac = (pos - lo)[None, None, :, None]
+    return values[:, :, lo] * (1 - frac) + values[:, :, lo + 1] * frac
 
   def _copy_state(self, real_env: ManagerBasedRlEnv) -> None:
     with torch.inference_mode():

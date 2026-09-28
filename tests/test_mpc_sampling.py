@@ -138,3 +138,21 @@ def test_same_seed_gives_same_plan(real_env, device):
     planner.close()
   torch.testing.assert_close(plans[0], plans[1], atol=0.0, rtol=0.0)
   assert not any(math.isnan(v) for v in plans[0].flatten().tolist())
+
+
+def test_knot_noise_is_piecewise_linear(device):
+  cfg = SamplingMpcCfg(num_samples=3, horizon=7, num_knots=3, seed=0)
+  planner = SamplingMpc(load_env_cfg(TASK), NUM_REAL, cfg, device=device)
+  try:
+    noise = planner._sample_noise(NUM_REAL, 3, 7, 1)
+  finally:
+    planner.close()
+  assert noise.shape == (NUM_REAL, 3, 7, 1)
+  # Knots at t = 0, 3, 6: second differences vanish inside each segment.
+  second = noise[:, :, 2:] - 2 * noise[:, :, 1:-1] + noise[:, :, :-2]
+  torch.testing.assert_close(
+    second[:, :, [0, 1, 3, 4]],
+    torch.zeros_like(second[:, :, [0, 1, 3, 4]]),
+    atol=1e-5,
+    rtol=0,
+  )

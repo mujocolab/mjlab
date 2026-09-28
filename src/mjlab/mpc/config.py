@@ -27,5 +27,10 @@ class SamplingMpcCfg:
   """MPOPI only: lower bound on the adapted std, as a fraction of noise_std."""
   max_std_scale: float = 3.0
   """MPOPI only: upper bound on the adapted std, as a fraction of noise_std."""
+  num_knots: int | None = None
+  """Sample the noise at this many evenly spaced knots over the horizon and
+  interpolate linearly between them (smooth perturbations, like the spline
+  plans of MuJoCo MPC). None samples independent noise at every step, which
+  action-rate penalties punish heavily on high-dimensional robots."""
   seed: int = 0
   """Seed of the planner's private random generator."""
