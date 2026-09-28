@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Sep 27, 2026"/>
+    <meta name="docbuild:last-update" content="Sep 28, 2026"/>
   </head>
   
   
@@ -572,6 +572,11 @@ were tensors, so every environment received the same sample <a class="extlink-is
 <li><p><code class="docutils literal notranslate"><span class="pre">FlatPatchSamplingCfg(patch_radius=0)</span></code> no longer collapses every patch to the
 sub-terrain center. The edge-exclusion mask sliced <code class="docutils literal notranslate"><span class="pre">arr[-0:]</span></code>, which is
 <code class="docutils literal notranslate"><span class="pre">arr[0:]</span></code>, so it cleared the entire valid mask <a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/1171">#1171</a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NoiseModelWithAdditiveBias</span></code> now draws a fresh bias on every reset. It applied
+<code class="docutils literal notranslate"><span class="pre">bias_noise_cfg</span></code> to the previous episode’s bias instead of to zero, so with the
+default <code class="docutils literal notranslate"><span class="pre">&quot;add&quot;</span></code> operation the per-episode bias performed a random walk and grew
+well beyond the configured range over the course of training. The first episode’s
+bias with <code class="docutils literal notranslate"><span class="pre">sample_bias_per_component=True</span></code> is no longer the sum of two draws.</p></li>
 </ul>
 </section>
 </section>
@@ -1766,7 +1771,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Sep 27, 2026.
+  Last updated on Sep 28, 2026.
   <br/>
 </p>
   </div>
