@@ -40,3 +40,32 @@ the Go2), p = 0.10 and p = 0.50 (secondary).
 - **H2 (descriptive):** `MPC-Inject` (p = 0.25) compared with `MPC-DAgger`.
 - Also reported: final score, whether the score still drops after the MPC
   phase (the MPC data stays in every batch here), and wall-clock time.
+
+## Results (CPU)
+
+| Arm | Runs finished | AUC (finished runs) | Paired with `PPO` |
+|---|---|---|---|
+| `PPO` (recipe study) | 5/5 | 0.0273 | – |
+| `MPC-DAgger` (recipe study) | 5/5 | 0.0366 | +0.0093, 4/5 seeds |
+| `MPC-Inject` p = 0.10 | 2/5 | 0.0172 | −0.0101, 0/2 seeds |
+| `MPC-Inject` p = 0.25 | 3/5 | 0.0172 | −0.0147, 0/3 seeds |
+| `MPC-Inject` p = 0.50 | **0/5** | – | – |
+
+Mean normalized score of the finished runs: p = 0.25 reached 0.24 at
+iteration 20, 0.32 at 50 and 0.40 at 199 (`PPO`: 0.21, 0.51, 0.68;
+`MPC-DAgger`: 0.34, 0.84, 0.78). Injection did not speed up the start either.
+
+**10 of 15 runs crashed** with `RuntimeError: normal expects all elements of
+std >= 0.0` between iterations 120 and 180, the same failure as the BC-floor
+runs. The crash rate grows with the injected fraction (3/5, 2/5, 5/5). A
+plausible mechanism, not verified: the injected actions are the noise-free
+MPC action, and PPO's surrogate raises `log π(u0|o)` for samples with positive
+advantage; for a Gaussian this pushes the std down (the gradient of the log
+density with respect to σ grows like 1/σ as the mean approaches `u0`), and the
+Cartpole actor's directly parameterized std (`std_type="scalar"`) is pushed
+below zero.
+
+**H1 not supported.** Every finished `MPC-Inject` run had a lower AUC than
+`PPO` on the same seed, and most runs did not finish. Injecting noise-free MPC
+data into PPO as if it were on-policy both hurt learning and destabilized the
+policy's exploration noise on this task.
