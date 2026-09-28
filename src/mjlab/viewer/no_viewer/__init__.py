@@ -1,1 +1,1 @@
-from mjlab.viewer.no_viewer.viewer import NonePlayViewer as NonePlayViewer
+from mjlab.viewer.no_viewer.viewer import HeadlessPlayViewer as HeadlessPlayViewer

@@ -19,7 +19,7 @@ from mjlab.tasks.tracking.mdp import MotionCommandCfg
 from mjlab.utils.os import get_wandb_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.utils.wrappers import VideoRecorder
-from mjlab.viewer import NativeMujocoViewer, ViserPlayViewer, NonePlayViewer
+from mjlab.viewer import NativeMujocoViewer, ViserPlayViewer, HeadlessPlayViewer
 from mjlab.viewer.viser.viewer import CheckpointManager, format_time_ago
 
 
@@ -292,7 +292,7 @@ def run_play(task_id: str, cfg: PlayConfig):
   elif resolved_viewer == "viser":
     ViserPlayViewer(env, policy, checkpoint_manager=ckpt_manager).run()
   elif resolved_viewer == "none":
-    NonePlayViewer(env, policy).run()
+    HeadlessPlayViewer(env, policy).run()
   else:
     raise RuntimeError(f"Unsupported viewer backend: {resolved_viewer}")
 

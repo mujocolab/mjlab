@@ -1,4 +1,4 @@
-"""mjlab play viewer that has no viewer.
+"""mjlab headless play viewer.
 
 Enables user to run the policy without having a viewer and no fixed/max framerate
 """
@@ -16,7 +16,7 @@ from mjlab.viewer.base import (
   PolicyProtocol,
 )
 
-class NonePlayViewer(BaseViewer):
+class HeadlessPlayViewer(BaseViewer):
   """Interactive Viser-based viewer with playback controls."""
 
   def __init__(

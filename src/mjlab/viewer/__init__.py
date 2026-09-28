@@ -8,4 +8,4 @@ from mjlab.viewer.native import NativeMujocoViewer as NativeMujocoViewer
 from mjlab.viewer.offscreen_renderer import OffscreenRenderer as OffscreenRenderer
 from mjlab.viewer.viewer_config import ViewerConfig as ViewerConfig
 from mjlab.viewer.viser import ViserPlayViewer as ViserPlayViewer
-from mjlab.viewer.no_viewer import NonePlayViewer as NonePlayViewer
+from mjlab.viewer.no_viewer import HeadlessPlayViewer as HeadlessPlayViewer
