@@ -44,6 +44,7 @@ Table of Contents
 
    source/installation
    source/tutorials
+   source/gym_mujoco
    source/contributing
 
 .. toctree::

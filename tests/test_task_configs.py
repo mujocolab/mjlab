@@ -13,6 +13,12 @@ def all_task_ids() -> list[str]:
   return list_tasks()
 
 
+@pytest.fixture(scope="module")
+def original_task_ids(all_task_ids: list[str]) -> list[str]:
+  """Keep the pre-existing task assertions while Gym tasks use stock semantics."""
+  return [task_id for task_id in all_task_ids if not task_id.startswith("Mjlab-Gym-")]
+
+
 def test_all_tasks_loadable(all_task_ids: list[str]) -> None:
   """All registered tasks should be loadable without errors."""
   for task_id in all_task_ids:
@@ -37,9 +43,9 @@ def test_all_tasks_have_play_config(all_task_ids: list[str]) -> None:
       pytest.fail(f"Failed to load task '{task_id}' in play mode: {e}")
 
 
-def test_play_mode_episode_length(all_task_ids: list[str]) -> None:
-  """Play mode tasks should have infinite episode length."""
-  for task_id in all_task_ids:
+def test_play_mode_episode_length(original_task_ids: list[str]) -> None:
+  """Original tasks disable the training time limit during playback."""
+  for task_id in original_task_ids:
     cfg = load_env_cfg(task_id, play=True)
     assert cfg.episode_length_s >= 1e9, (
       f"{task_id} (play mode) episode_length_s={cfg.episode_length_s}, expected >= 1e9"
@@ -65,9 +71,11 @@ def test_play_mode_observation_corruption_disabled(all_task_ids: list[str]) -> N
     )
 
 
-def test_training_mode_observation_corruption_enabled(all_task_ids: list[str]) -> None:
-  """Training mode tasks should have observation corruption enabled for policy."""
-  for task_id in all_task_ids:
+def test_training_mode_observation_corruption_enabled(
+  original_task_ids: list[str],
+) -> None:
+  """Original tasks enable observation corruption for the policy."""
+  for task_id in original_task_ids:
     cfg = load_env_cfg(task_id)
 
     assert "actor" in cfg.observations, (

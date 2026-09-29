@@ -11,6 +11,8 @@ motions/
 *_rerun*
 artifacts/
 .venv/
+.cache/
+.tools/
 render_robots.py
 benchmark_results/
 
