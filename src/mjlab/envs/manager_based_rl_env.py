@@ -371,6 +371,10 @@ class ManagerBasedRlEnv:
     self._reset_idx(env_ids)
     self.scene.write_data_to_sim()
     self.sim.forward()
+    # Refresh cached sensor data for the freshly reset envs (sensor.reset()
+    # already dropped the caches, but keep the guarantee explicit after the
+    # forward() that rewrote sensordata).
+    self.scene.invalidate_sensor_caches()
     # Scoped to env_ids so a partial reset does not advance stateful commands in the
     # other envs.
     self.command_manager.compute(dt=0.0, env_ids=env_ids)
@@ -433,6 +437,9 @@ class ManagerBasedRlEnv:
 
     self.extras["log"] = dict()
     self.action_manager.process_action(action.to(self.device))
+    # Clear per-control-step sensor accumulators (e.g. the contact sensor's
+    # substep-collision latch) so they only cover this step's substeps.
+    self.scene.begin_control_step()
 
     for _ in range(self.cfg.decimation):
       self._sim_step_counter += 1
@@ -476,6 +483,10 @@ class ManagerBasedRlEnv:
     # one-substep staleness left by mj_step; for reset envs it picks up
     # the freshly written reset state.
     self.sim.forward()
+    # forward() rewrote sensordata for every env, so any sensor data cached
+    # during the reward/termination stage is stale. Drop the caches so
+    # observation-time reads observe the post-forward state.
+    self.scene.invalidate_sensor_caches()
 
     # Pass dt=0 for freshly reset envs so their command timers start full,
     # matching reset().

@@ -1180,3 +1180,486 @@ def test_global_frame_maxforce_rotation(device):
   assert torch.all(sensor_force[:, 2].abs() > 1.0), (
     f"sensor_force z-component should be non-trivial, got {sensor_force[:, 2].tolist()}"
   )
+
+
+##
+# History extension tests (found/pos/normal/tangent).
+##
+
+
+def _place_box_on_ground(sim: Simulation, scene: Scene, z: float = 0.11):
+  """Place the falling-box entity at rest just above the ground plane."""
+  root_state = torch.zeros((2, 13), device=sim.device)
+  root_state[:, 2] = z
+  root_state[:, 3] = 1.0
+  scene["box"].write_root_state_to_sim(root_state)
+
+
+def test_found_history_shape_and_disabled(device):
+  """found_history has shape [B, N, H] when enabled and is None otherwise."""
+  history_len = 4
+  sensor_cfg = ContactSensorCfg(
+    name="box_contact",
+    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
+    secondary=None,
+    fields=("found",),
+    history_length=history_len,
+  )
+
+  scene, sim = create_scene_with_sensor(FALLING_BOX_XML, "box", sensor_cfg, device)
+
+  _place_box_on_ground(sim, scene)
+  for _ in range(100):
+    sim.step()
+    scene.update(dt=sim.cfg.mujoco.timestep)
+
+  data = scene["box_contact"].data
+  assert data.found_history is not None
+  assert data.found_history.shape == (2, 1, history_len)
+
+  # While the box rests on the ground every buffered substep saw contact.
+  assert torch.all(data.found_history > 0)
+
+
+def test_found_history_disabled_by_default(device):
+  """found_history stays None when history_length=0."""
+  sensor_cfg = ContactSensorCfg(
+    name="box_contact",
+    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
+    secondary=None,
+    fields=("found",),
+  )
+
+  scene, _ = create_scene_with_sensor(FALLING_BOX_XML, "box", sensor_cfg, device)
+
+  assert scene["box_contact"].data.found_history is None
+
+
+def test_history_rolls_found(device):
+  """index 0 holds the newest substep: lifting the box writes 0 to slot 0 only."""
+  history_len = 3
+  sensor_cfg = ContactSensorCfg(
+    name="box_contact",
+    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
+    secondary=None,
+    fields=("found",),
+    history_length=history_len,
+  )
+
+  scene, sim = create_scene_with_sensor(FALLING_BOX_XML, "box", sensor_cfg, device)
+
+  sensor = scene["box_contact"]
+
+  # Box resting on ground: every substep in contact.
+  _place_box_on_ground(sim, scene)
+  for _ in range(100):
+    sim.step()
+    scene.update(dt=sim.cfg.mujoco.timestep)
+
+  # Teleport the box far above the ground: the next substep has no contact.
+  _place_box_on_ground(sim, scene, z=1.0)
+  sim.step()
+  scene.update(dt=sim.cfg.mujoco.timestep)
+
+  found_history = sensor.data.found_history
+  assert found_history is not None
+  assert torch.all(found_history[:, :, 0] == 0), (
+    f"index 0 should hold the airborne substep, got {found_history}"
+  )
+  assert torch.all(found_history[:, :, 1] > 0), (
+    f"index 1 should hold the resting substep, got {found_history}"
+  )
+
+
+def test_vector_field_history_shapes(device):
+  """pos/normal/tangent history buffers are allocated and populated."""
+  history_len = 3
+  sensor_cfg = ContactSensorCfg(
+    name="box_contact",
+    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
+    secondary=None,
+    fields=("found", "force", "dist", "pos", "normal", "tangent"),
+    history_length=history_len,
+  )
+
+  scene, sim = create_scene_with_sensor(FALLING_BOX_XML, "box", sensor_cfg, device)
+
+  _place_box_on_ground(sim, scene)
+  for _ in range(100):
+    sim.step()
+    scene.update(dt=sim.cfg.mujoco.timestep)
+
+  data = scene["box_contact"].data
+  for name in ("pos_history", "normal_history", "tangent_history"):
+    values = getattr(data, name)
+    assert values is not None
+    assert values.shape == (2, 1, history_len, 3)
+  # With history_length=1 the newest entry equals the current read exactly.
+  torch.testing.assert_close(data.pos_history[:, :, 0, :], data.pos)
+  torch.testing.assert_close(data.normal_history[:, :, 0, :], data.normal)
+  torch.testing.assert_close(data.tangent_history[:, :, 0, :], data.tangent)
+  torch.testing.assert_close(data.found_history[:, :, 0], data.found)
+  torch.testing.assert_close(data.dist_history[:, :, 0], data.dist)
+
+
+def test_found_history_reset(device):
+  """reset(env_ids) zeroes found_history only for the given envs."""
+  history_len = 3
+  sensor_cfg = ContactSensorCfg(
+    name="box_contact",
+    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
+    secondary=None,
+    fields=("found",),
+    history_length=history_len,
+  )
+
+  scene, _ = create_scene_with_sensor(FALLING_BOX_XML, "box", sensor_cfg, device)
+
+  sensor = scene["box_contact"]
+  sensor._history_state["found"][:] = 1.0
+
+  sensor.reset(torch.tensor([0], device=device))
+
+  data = sensor.data
+  assert data.found_history is not None
+  assert torch.all(data.found_history[0] == 0)
+  assert torch.all(data.found_history[1] == 1.0)
+
+
+##
+# Substep contact latch tests (catch_substep_contacts).
+##
+
+
+# Stiff, highly elastic contact so a dropped ball impacts and separates
+# within a single control step (mirrors scripts/demos/contact_sensor_decimation.py).
+BOUNCY_BALL_XML = """
+<mujoco>
+  <worldbody>
+    <body name="ground" pos="0 0 0">
+      <geom name="ground_geom" type="plane" size="5 5 0.1"/>
+    </body>
+    <body name="ball" pos="0 0 1">
+      <freejoint/>
+      <geom name="ball_geom" type="sphere" size="0.05" mass="0.1"
+            solref="-1000 0"/>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+
+def test_latch_disabled_outputs_are_none(device):
+  """Latch outputs stay None when catch_substep_contacts=False (default)."""
+  sensor_cfg = ContactSensorCfg(
+    name="box_contact",
+    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
+    secondary=None,
+    fields=("found", "force"),
+  )
+
+  scene, _ = create_scene_with_sensor(FALLING_BOX_XML, "box", sensor_cfg, device)
+
+  data = scene["box_contact"].data
+  assert data.found_any is None
+  assert data.force_peak is None
+  assert data.dist_at_peak is None
+  assert data.pos_at_peak is None
+
+
+def test_latch_requires_found_field(device):
+  """catch_substep_contacts without the found field raises."""
+  sensor_cfg = ContactSensorCfg(
+    name="box_contact",
+    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
+    secondary=None,
+    fields=("force",),
+    catch_substep_contacts=True,
+  )
+
+  with pytest.raises(ValueError, match="requires 'found'"):
+    ContactSensorCfg.build(sensor_cfg)
+
+
+def test_latch_found_any_or_semantics(device):
+  """found_any stays True after contact resolves within the control step."""
+  sensor_cfg = ContactSensorCfg(
+    name="box_contact",
+    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
+    secondary=None,
+    fields=("found", "force"),
+    catch_substep_contacts=True,
+  )
+
+  scene, sim = create_scene_with_sensor(FALLING_BOX_XML, "box", sensor_cfg, device)
+
+  sensor = scene["box_contact"]
+
+  # Settle the box on the ground, then latch three resting substeps followed
+  # by one airborne substep.
+  _place_box_on_ground(sim, scene)
+  for _ in range(100):
+    sim.step()
+    scene.update(dt=sim.cfg.mujoco.timestep)
+
+  sensor.begin_control_step()
+  for _ in range(3):
+    sim.step()
+    scene.update(dt=sim.cfg.mujoco.timestep)
+  _place_box_on_ground(sim, scene, z=1.0)
+  sim.step()
+  scene.update(dt=sim.cfg.mujoco.timestep)
+
+  data = sensor.data
+  assert data.found is not None
+  assert torch.all(data.found == 0), "box should be airborne on the last substep"
+  assert data.found_any is not None
+  assert torch.all(data.found_any), (
+    "found_any should latch the earlier resting substeps"
+  )
+
+
+def test_latch_force_peak_matches_substep_maximum(device):
+  """force_peak/dist_at_peak equal the largest-magnitude substep values."""
+  history_len = 8
+  sensor_cfg = ContactSensorCfg(
+    name="box_contact",
+    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
+    secondary=None,
+    fields=("found", "force", "dist"),
+    history_length=history_len,
+    catch_substep_contacts=True,
+  )
+
+  scene, sim = create_scene_with_sensor(FALLING_BOX_XML, "box", sensor_cfg, device)
+
+  sensor = scene["box_contact"]
+
+  # Drop the box and wait for first ground contact, then capture one
+  # control-step window of the settling impact where forces vary per substep.
+  root_state = torch.zeros((2, 13), device=sim.device)
+  root_state[:, 2] = 0.5
+  root_state[:, 3] = 1.0
+  scene["box"].write_root_state_to_sim(root_state)
+
+  landed = False
+  for _ in range(300):
+    sim.step()
+    scene.update(dt=sim.cfg.mujoco.timestep)
+    if torch.all(sensor.data.found > 0):
+      landed = True
+      break
+  assert landed, "box should have reached the ground"
+
+  sensor.begin_control_step()
+  forces = []
+  dists = []
+  for _ in range(history_len):
+    sim.step()
+    scene.update(dt=sim.cfg.mujoco.timestep)
+    forces.append(sensor.data.force.clone())
+    dists.append(sensor.data.dist.clone())
+
+  force_sequence = torch.stack(forces, dim=2)  # [B, N, H, 3]
+  mag = force_sequence.norm(dim=-1)  # [B, N, H]
+  peak_idx = mag.argmax(dim=2)  # [B, N]
+
+  data = sensor.data
+  assert data.found_any is not None
+  assert torch.any(data.found_any), "impact should have latched a contact"
+  assert data.force_peak is not None
+  for b in range(2):
+    for n in range(1):
+      torch.testing.assert_close(
+        data.force_peak[b, n], force_sequence[b, n, peak_idx[b, n]]
+      )
+      torch.testing.assert_close(data.dist_at_peak[b, n], dists[peak_idx[b, n]][b, n])
+
+
+def test_latch_begin_control_step_clears(device):
+  """begin_control_step resets found_any and peak trackers."""
+  sensor_cfg = ContactSensorCfg(
+    name="box_contact",
+    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
+    secondary=None,
+    fields=("found", "force", "pos"),
+    catch_substep_contacts=True,
+  )
+
+  scene, _ = create_scene_with_sensor(FALLING_BOX_XML, "box", sensor_cfg, device)
+
+  sensor = scene["box_contact"]
+  sensor._latch_state["found_any"][:] = True
+  sensor._latch_state["peak_mag"][:] = 5.0
+  sensor._latch_state["force_peak"][:] = 9.0
+  sensor._latch_state["pos_at_peak"][:] = 9.0
+
+  sensor.begin_control_step()
+
+  data = sensor.data
+  assert data.found_any is not None
+  assert torch.all(~data.found_any)
+  assert data.force_peak is not None
+  assert torch.all(data.force_peak == 0)
+  assert data.pos_at_peak is not None
+  assert torch.all(data.pos_at_peak == 0)
+
+
+def test_latch_reset_scoped(device):
+  """reset(env_ids) clears the latch only for the listed envs."""
+  sensor_cfg = ContactSensorCfg(
+    name="box_contact",
+    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
+    secondary=None,
+    fields=("found", "force"),
+    catch_substep_contacts=True,
+  )
+
+  scene, _ = create_scene_with_sensor(FALLING_BOX_XML, "box", sensor_cfg, device)
+
+  sensor = scene["box_contact"]
+  sensor._latch_state["found_any"][:] = True
+  sensor._latch_state["peak_mag"][:] = 5.0
+  sensor._latch_state["force_peak"][:] = 9.0
+
+  sensor.reset(torch.tensor([0], device=device))
+
+  data = sensor.data
+  assert data.found_any is not None
+  assert not data.found_any[0].any()
+  assert data.found_any[1].all()
+  assert data.force_peak is not None
+  assert torch.all(data.force_peak[0] == 0)
+  assert torch.all(data.force_peak[1] == 9.0)
+
+
+def test_latch_catches_impact_missed_by_final_substep(device):
+  """Integration: a bouncing ball's brief impact latches even though the
+  final substep of the control step reports no contact."""
+  decimation = 20
+  sensor_cfg = ContactSensorCfg(
+    name="ball_contact",
+    primary=ContactMatch(mode="geom", pattern="ball_geom", entity="ball"),
+    secondary=None,
+    fields=("found", "force"),
+    catch_substep_contacts=True,
+  )
+
+  scene, sim = create_scene_with_sensor(BOUNCY_BALL_XML, "ball", sensor_cfg, device)
+
+  sensor = scene["ball_contact"]
+
+  # Drop the ball from 0.5 m and scan control-step windows around the bounces.
+  root_state = torch.zeros((2, 13), device=sim.device)
+  root_state[:, 2] = 0.5
+  root_state[:, 3] = 1.0
+  scene["ball"].write_root_state_to_sim(root_state)
+
+  latched_only = 0
+  for _ in range(40):
+    sensor.begin_control_step()
+    for _ in range(decimation):
+      sim.step()
+      scene.update(dt=sim.cfg.mujoco.timestep)
+    data = sensor.data
+    instant = data.found[:, 0] > 0
+    latched = data.found_any[:, 0]
+    assert torch.all(latched | ~instant), (
+      "found_any must be a superset of the instantaneous read"
+    )
+    latched_only += int(torch.sum(latched & ~instant).item())
+
+  assert latched_only > 0, (
+    "expected at least one control step where the impact was latched but the "
+    "final-substep snapshot reported no contact"
+  )
+
+
+##
+# Fast-ball crossing regression test.
+##
+
+
+# Ball and paddle live in one entity so both geoms resolve in the same scope.
+# The paddle is a jointless (static) thin box; the ball is launched fast
+# enough to enter and leave the paddle's contact zone within a single
+# control step of decimation substeps. Stiff near-elastic contact makes the
+# ball rebound off the paddle rather than tunnel through it.
+FAST_BALL_PADDLE_XML = """
+<mujoco>
+  <worldbody>
+    <body name="paddle" pos="0 0 0.15">
+      <geom name="paddle_geom" type="box" size="0.01 0.15 0.15" mass="100"/>
+    </body>
+    <body name="ball" pos="-0.25 0 0.15">
+      <freejoint/>
+      <geom name="ball_geom" type="sphere" size="0.033" mass="0.058"
+            solref="-100000 0"/>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+
+def test_fast_ball_crossing_latched_but_missed_by_snapshot(device):
+  """Regression: a fast ball hitting a thin paddle mid-control-step.
+
+  At 10 m/s and a 2 ms physics timestep the ball crosses the paddle's
+  contact zone in ~4 of the 20 substeps of one control step. The
+  final-substep ``found`` snapshot is 0 (the ball is already past the
+  paddle), which is exactly the tennis-style collision that motivated
+  ``catch_substep_contacts`` and the history extension.
+  """
+  decimation = 20
+  sensor_cfg = ContactSensorCfg(
+    name="ball_contact",
+    primary=ContactMatch(mode="geom", pattern="ball_geom", entity="ball"),
+    secondary=ContactMatch(mode="geom", pattern="paddle_geom", entity="ball"),
+    fields=("found", "force", "dist", "pos"),
+    history_length=decimation,
+    catch_substep_contacts=True,
+  )
+
+  scene, sim = create_scene_with_sensor(
+    FAST_BALL_PADDLE_XML, "ball", sensor_cfg, device
+  )
+
+  sensor = scene["ball_contact"]
+
+  # Launch the ball at +10 m/s from 0.25 m before the paddle plane.
+  root_state = torch.zeros((2, 13), device=sim.device)
+  root_state[:, 0] = -0.25
+  root_state[:, 2] = 0.15
+  root_state[:, 3] = 1.0
+  root_state[:, 7] = 10.0
+  scene["ball"].write_root_state_to_sim(root_state)
+
+  sensor.begin_control_step()
+  for _ in range(decimation):
+    sim.step()
+    scene.update(dt=sim.cfg.mujoco.timestep)
+
+  data = sensor.data
+
+  # The final-substep snapshot missed the collision entirely: the ball is
+  # already past the paddle.
+  assert torch.all(data.found == 0), (
+    "ball should have left the contact zone before the final substep; "
+    "tune the launch speed so the crossing fits inside one control step"
+  )
+
+  # The latch caught it.
+  assert data.found_any is not None
+  assert torch.all(data.found_any), "latch must record the mid-step collision"
+  assert data.force_peak is not None
+  assert torch.all(data.force_peak.norm(dim=-1) > 0), "impact must carry force"
+  assert data.pos_at_peak is not None
+  assert torch.all(data.pos_at_peak[..., 0].abs() < 0.1), (
+    f"impact should sit near the paddle plane, got {data.pos_at_peak[..., 0]}"
+  )
+
+  # The extended history caught it too.
+  assert data.found_history is not None
+  assert torch.all((data.found_history > 0).any(dim=-1)), (
+    "found_history must contain at least one contact substep"
+  )

@@ -58,6 +58,13 @@ _CONTACT_REDUCE_MAP = {
   "netforce": 3,
 }
 
+# Per-contact fields that support history buffering, in ContactData
+# attribute order. Scalar fields buffer to [B, N, H], vector fields to
+# [B, N, H, 3].
+_HISTORY_SCALAR_FIELDS = ("found", "dist")
+_HISTORY_VECTOR_FIELDS = ("force", "torque", "pos", "normal", "tangent")
+_HISTORY_FIELDS = _HISTORY_SCALAR_FIELDS + _HISTORY_VECTOR_FIELDS
+
 _MODE_TO_OBJTYPE = {
   "geom": mujoco.mjtObj.mjOBJ_GEOM,
   "body": mujoco.mjtObj.mjOBJ_BODY,
@@ -138,10 +145,22 @@ class ContactSensorCfg(SensorCfg):
     global_frame: Rotate ``force``/``torque`` from the contact frame to the
       global frame. Requires ``"normal"`` and ``"tangent"`` in ``fields``.
       Implicit when ``reduce="netforce"``.
+    catch_substep_contacts: If True, accumulate a per-control-step latch on
+      every physics substep (via ``update()``) and expose it as extra
+      ``ContactData`` fields: ``found_any`` (contact in *any* substep since
+      the last ``begin_control_step()``), ``force_peak``/``dist_at_peak``/
+      ``pos_at_peak`` (values at the largest-magnitude substep). Rewards can
+      read these directly instead of hand-reducing ``*_history`` buffers to
+      detect brief collisions that resolve before the final substep. Requires
+      ``"found"`` in ``fields``. The env clears the latch at each control-step
+      boundary via ``begin_control_step()``. Defaults to False (all latch
+      outputs stay ``None``).
     history_length: If >0, keep a rolling buffer of the last N substeps of
-      ``force``/``torque``/``dist`` data. Set to your decimation value so the
-      buffer covers exactly one policy step; useful for catching brief
-      collisions that resolve mid-substep. ``0`` disables the buffer.
+      every requested per-contact field (found/force/torque/dist/pos/normal/
+      tangent) as ``<field>_history`` on ``ContactData``. Set to your
+      decimation value so the buffer covers exactly one policy step; useful
+      for catching brief collisions that resolve mid-substep. ``0`` disables
+      the buffer.
     debug: Print each MuJoCo sensor as it is added to the spec. Useful for
       checking that pattern expansion produced the elements you expected.
   """
@@ -155,6 +174,7 @@ class ContactSensorCfg(SensorCfg):
   track_air_time: bool = False
   global_frame: bool = False
   history_length: int = 0
+  catch_substep_contacts: bool = False
   debug: bool = False
 
   def build(self) -> ContactSensor:
@@ -220,6 +240,28 @@ class ContactData:
   """[B, N, H, 3] contact torques over last H substeps (index 0 = most recent)"""
   dist_history: torch.Tensor | None = None
   """[B, N, H] penetration depth over last H substeps (index 0 = most recent)"""
+  found_history: torch.Tensor | None = None
+  """[B, N, H] match counts over last H substeps (index 0 = most recent)"""
+  pos_history: torch.Tensor | None = None
+  """[B, N, H, 3] contact positions over last H substeps (index 0 = most recent)"""
+  normal_history: torch.Tensor | None = None
+  """[B, N, H, 3] contact normals over last H substeps (index 0 = most recent)"""
+  tangent_history: torch.Tensor | None = None
+  """[B, N, H, 3] contact tangents over last H substeps (index 0 = most recent)"""
+
+  found_any: torch.Tensor | None = None
+  """[B, N] bool: contact in any substep since the last control-step boundary.
+
+  Only populated when ``catch_substep_contacts=True``."""
+  force_peak: torch.Tensor | None = None
+  """[B, N, 3] force at the largest-magnitude substep since the boundary.
+
+  Only populated when ``catch_substep_contacts=True`` and ``"force"`` is
+  requested."""
+  dist_at_peak: torch.Tensor | None = None
+  """[B, N] penetration depth at the peak substep (see ``force_peak``)."""
+  pos_at_peak: torch.Tensor | None = None
+  """[B, N, 3] contact position at the peak substep (see ``force_peak``)."""
 
 
 class ContactSensor(Sensor[ContactData]):
@@ -236,11 +278,18 @@ class ContactSensor(Sensor[ContactData]):
           "in fields (needed to build rotation matrix)"
         )
 
+    if cfg.catch_substep_contacts and "found" not in cfg.fields:
+      raise ValueError(
+        f"Sensor '{cfg.name}': catch_substep_contacts=True requires 'found' in "
+        "fields (the latch derives contact events from the found field)"
+      )
+
     self._slots: list[_ContactSlot] = []
     self._data: mjwarp.Data | None = None
     self._device: str | None = None
     self._air_time_state: _AirTimeState | None = None
     self._history_state: dict[str, torch.Tensor] | None = None
+    self._latch_state: dict[str, torch.Tensor] | None = None
 
   @property
   def primary_names(self) -> list[str]:
@@ -321,17 +370,37 @@ class ContactSensor(Sensor[ContactData]):
       n_contacts = n_primary * self.cfg.num_slots
       h = self.cfg.history_length
       self._history_state = {}
+      for field in _HISTORY_VECTOR_FIELDS:
+        if field in self.cfg.fields:
+          self._history_state[field] = torch.zeros(
+            (n_envs, n_contacts, h, 3), device=device
+          )
+      for field in _HISTORY_SCALAR_FIELDS:
+        if field in self.cfg.fields:
+          self._history_state[field] = torch.zeros(
+            (n_envs, n_contacts, h), device=device
+          )
+
+    if self.cfg.catch_substep_contacts:
+      n_envs = data.time.shape[0]
+      n_contacts = n_primary * self.cfg.num_slots
+      self._latch_state = {
+        "found_any": torch.zeros((n_envs, n_contacts), dtype=torch.bool, device=device),
+        # Peak-magnitude tracker for selecting the representative substep;
+        # init below zero so the first substep always seeds the latch.
+        "peak_mag": torch.full((n_envs, n_contacts), -1.0, device=device),
+      }
       if "force" in self.cfg.fields:
-        self._history_state["force"] = torch.zeros(
-          (n_envs, n_contacts, h, 3), device=device
-        )
-      if "torque" in self.cfg.fields:
-        self._history_state["torque"] = torch.zeros(
-          (n_envs, n_contacts, h, 3), device=device
+        self._latch_state["force_peak"] = torch.zeros(
+          (n_envs, n_contacts, 3), device=device
         )
       if "dist" in self.cfg.fields:
-        self._history_state["dist"] = torch.zeros(
-          (n_envs, n_contacts, h), device=device
+        self._latch_state["dist_at_peak"] = torch.zeros(
+          (n_envs, n_contacts), device=device
+        )
+      if "pos" in self.cfg.fields:
+        self._latch_state["pos_at_peak"] = torch.zeros(
+          (n_envs, n_contacts, 3), device=device
         )
 
   def _compute_data(self) -> ContactData:
@@ -342,9 +411,13 @@ class ContactSensor(Sensor[ContactData]):
       out.current_contact_time = self._air_time_state.current_contact_time
       out.last_contact_time = self._air_time_state.last_contact_time
     if self._history_state is not None:
-      out.force_history = self._history_state.get("force")
-      out.torque_history = self._history_state.get("torque")
-      out.dist_history = self._history_state.get("dist")
+      for field in _HISTORY_FIELDS:
+        setattr(out, f"{field}_history", self._history_state.get(field))
+    if self._latch_state is not None:
+      out.found_any = self._latch_state["found_any"]
+      out.force_peak = self._latch_state.get("force_peak")
+      out.dist_at_peak = self._latch_state.get("dist_at_peak")
+      out.pos_at_peak = self._latch_state.get("pos_at_peak")
     return out
 
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
@@ -364,12 +437,33 @@ class ContactSensor(Sensor[ContactData]):
       for buf in self._history_state.values():
         buf[env_ids] = 0.0
 
+    # Reset latch state for specified envs.
+    if self._latch_state is not None:
+      self._latch_state["found_any"][env_ids] = False
+      self._latch_state["peak_mag"][env_ids] = -1.0
+      for name in ("force_peak", "dist_at_peak", "pos_at_peak"):
+        if name in self._latch_state:
+          self._latch_state[name][env_ids] = 0.0
+
+  def begin_control_step(self) -> None:
+    """Clear the per-control-step latch (all envs)."""
+    self._invalidate_cache()
+    if self._latch_state is None:
+      return
+    self._latch_state["found_any"].zero_()
+    self._latch_state["peak_mag"].fill_(-1.0)
+    for name in ("force_peak", "dist_at_peak", "pos_at_peak"):
+      if name in self._latch_state:
+        self._latch_state[name].zero_()
+
   def update(self, dt: float) -> None:
     super().update(dt)
     if self._air_time_state is not None:
       self._update_air_time_tracking(dt)
     if self._history_state is not None:
       self._update_history()
+    if self._latch_state is not None:
+      self._update_latch()
 
   def compute_first_contact(self, dt: float, abs_tol: float = 1.0e-6) -> torch.Tensor:
     """Returns [B, P] bool: True for primaries that landed within the last dt seconds."""
@@ -484,23 +578,59 @@ class ContactSensor(Sensor[ContactData]):
       torch.zeros_like(state.current_contact_time),
     )
 
+  def _update_latch(self) -> None:
+    """Accumulate contact events over the current control step.
+
+    ``found_any`` ORs the per-substep match counts; the peak fields capture
+    the values of the substep with the largest force magnitude (deepest
+    penetration when force is not requested).
+    """
+    assert self._latch_state is not None
+
+    data = self._extract_sensor_data()
+    state = self._latch_state
+
+    if data.found is not None:
+      state["found_any"] |= data.found > 0
+
+    if data.force is not None:
+      mag = data.force.norm(dim=-1)
+    elif data.dist is not None:
+      mag = -data.dist
+    elif data.found is not None:
+      mag = data.found.float()
+    else:
+      return
+
+    update = mag > state["peak_mag"]
+    state["peak_mag"] = torch.where(update, mag, state["peak_mag"])
+    if "force_peak" in state and data.force is not None:
+      state["force_peak"] = torch.where(
+        update[..., None], data.force, state["force_peak"]
+      )
+    if "dist_at_peak" in state and data.dist is not None:
+      state["dist_at_peak"] = torch.where(update, data.dist, state["dist_at_peak"])
+    if "pos_at_peak" in state and data.pos is not None:
+      state["pos_at_peak"] = torch.where(
+        update[..., None], data.pos, state["pos_at_peak"]
+      )
+
   def _update_history(self) -> None:
-    """Roll history buffer and insert current contact data at index 0."""
+    """Roll history buffers and insert current contact data at index 0."""
     assert self._history_state is not None
 
     contact_data = self._extract_sensor_data()
 
-    if "force" in self._history_state and contact_data.force is not None:
-      self._history_state["force"] = self._history_state["force"].roll(1, dims=2)
-      self._history_state["force"][:, :, 0, :] = contact_data.force
-
-    if "torque" in self._history_state and contact_data.torque is not None:
-      self._history_state["torque"] = self._history_state["torque"].roll(1, dims=2)
-      self._history_state["torque"][:, :, 0, :] = contact_data.torque
-
-    if "dist" in self._history_state and contact_data.dist is not None:
-      self._history_state["dist"] = self._history_state["dist"].roll(1, dims=2)
-      self._history_state["dist"][:, :, 0] = contact_data.dist
+    for field, buf in self._history_state.items():
+      values = getattr(contact_data, field)
+      if values is None:
+        continue
+      rolled = buf.roll(1, dims=2)
+      if field in _HISTORY_SCALAR_FIELDS:
+        rolled[:, :, 0] = values
+      else:
+        rolled[:, :, 0, :] = values
+      self._history_state[field] = rolled
 
   def _resolve_primary_names(
     self, entities: dict[str, Entity], match: ContactMatch

@@ -193,6 +193,22 @@ class Scene:
     for sensor in self._sensors.values():
       sensor.reset(env_ids)
 
+  def begin_control_step(self) -> None:
+    """Notify sensors that a new control (policy) step is starting.
+
+    Called once before the env's physics substep loop so sensors that
+    accumulate state across substeps (e.g. the contact sensor's
+    ``catch_substep_contacts`` latch) can reset their per-control-step
+    accumulators.
+    """
+    for sensor in self._sensors.values():
+      sensor.begin_control_step()
+
+  def invalidate_sensor_caches(self) -> None:
+    """Drop cached sensor data so the next read recomputes from sim state."""
+    for sensor in self._sensors.values():
+      sensor.invalidate_cache()
+
   def update(self, dt: float) -> None:
     for ent in self._entities.values():
       ent.update(dt)
