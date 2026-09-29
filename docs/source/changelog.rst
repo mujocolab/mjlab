@@ -35,6 +35,10 @@ Fixed
   defined no ``reset`` method, so an episode ending with a foot in the air carried that
   swing's peak height into the first landing of the next episode and corrupted the
   landing penalty and ``Metrics/peak_height_mean``.
+- ``csv_to_npz`` now keeps the last frame of the input motion. It built output times
+  with ``torch.arange(0, duration, dt)``, which leaves out the end point, so a
+  91-frame clip resampled from 30 to 50 fps gave 150 frames instead of 151 and never
+  reached the final pose.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------
