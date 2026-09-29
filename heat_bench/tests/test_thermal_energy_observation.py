@@ -150,6 +150,15 @@ def test_substep_heat_is_averaged_not_last_sample():
   assert obs.shape == (num_envs, 14)
   assert term._substep_count == 0  # Drained after __call__.
 
+  assert term.last_current.shape == (num_envs, 12)
+  assert term.last_torque.shape == (num_envs, 12)
+  expected_mean_torque = sum(torques) / len(torques)
+  assert torch.allclose(
+    term.last_torque[0, 0],
+    torch.tensor(expected_mean_torque, device=device),
+    rtol=1e-4,
+  )
+
   cfg = load_heat_bench_config()["thermal"]
   gear_ratio_n, kt, rd = (
     cfg["gear_ratio_N"],

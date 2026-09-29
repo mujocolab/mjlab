@@ -50,7 +50,9 @@ class ThermalEnergyObservation:
     self._asset = env.scene[asset_cfg.name]
     joint_ids, joint_names = self._asset.find_joints(asset_cfg.joint_names)
     self._joint_ids = torch.tensor(joint_ids, device=env.device, dtype=torch.long)
-    self._joint_names = joint_names
+    self.joint_names: list[str] = joint_names
+    """Resolved joint names, in the same order as last_current/last_torque
+    and the first 12 entries of thermal.T (e.g. viewer code reads this)."""
 
     thermal_cfg = hb_cfg["thermal"]
     self._gear_ratio_n = float(thermal_cfg["gear_ratio_N"])
@@ -63,12 +65,15 @@ class ThermalEnergyObservation:
     self.last_joint_temps = torch.zeros(env.num_envs, 12, device=env.device)
     self.last_energy_wh_step = torch.zeros(env.num_envs, device=env.device)
     self.last_soc = torch.ones(env.num_envs, device=env.device)
+    self.last_current = torch.zeros(env.num_envs, 12, device=env.device)
+    self.last_torque = torch.zeros(env.num_envs, 12, device=env.device)
 
     # Physics-substep accumulators, drained and reset every __call__. See
     # the module docstring for why heat/power are accumulated here instead
     # of sampled once after the control step's decimation loop.
     self._heat_accum = torch.zeros(env.num_envs, 12, device=env.device)
     self._current_accum = torch.zeros(env.num_envs, 12, device=env.device)
+    self._torque_accum = torch.zeros(env.num_envs, 12, device=env.device)
     self._mech_power_accum = torch.zeros(env.num_envs, device=env.device)
     self._substep_count = 0
 
@@ -95,6 +100,7 @@ class ThermalEnergyObservation:
 
     self._heat_accum += current.square() * self._rd
     self._current_accum += current.abs()
+    self._torque_accum += tau
     self._mech_power_accum += (tau * qd).clamp(min=0.0).sum(dim=-1)
     self._substep_count += 1
 
@@ -113,6 +119,7 @@ class ThermalEnergyObservation:
     if self._substep_count > 0:
       joule_heat = self._heat_accum / self._substep_count
       mean_current = self._current_accum / self._substep_count
+      mean_torque = self._torque_accum / self._substep_count
       mech_power = self._mech_power_accum / self._substep_count
     else:
       # No physics substep has run yet -- e.g. the observation compute
@@ -124,10 +131,12 @@ class ThermalEnergyObservation:
       current = tau / (self._gear_ratio_n * self._kt)
       joule_heat = current.square() * self._rd
       mean_current = current.abs()
+      mean_torque = tau
       mech_power = (tau * qd).clamp(min=0.0).sum(dim=-1)
 
     self._heat_accum.zero_()
     self._current_accum.zero_()
+    self._torque_accum.zero_()
     self._mech_power_accum.zero_()
     self._substep_count = 0
 
@@ -140,6 +149,8 @@ class ThermalEnergyObservation:
     self.last_joint_temps = temps[:, :12]
     self.last_energy_wh_step = energy_step
     self.last_soc = soc
+    self.last_current = mean_current
+    self.last_torque = mean_torque
 
     return torch.cat(
       [temps[:, :12], soc.unsqueeze(-1), bus_voltage.unsqueeze(-1)], dim=-1

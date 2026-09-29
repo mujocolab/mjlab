@@ -21,12 +21,12 @@ import torch
 import tyro
 
 from heat_bench.envs_mjlab.go2_eval_env_cfg import go2_eval_env_cfg
+from heat_bench.viewer import HealthMonitoringViewer
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
 from mjlab.tasks.registry import load_rl_cfg, load_runner_cls
 from mjlab.utils.os import get_checkpoint_path, get_wandb_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
-from mjlab.viewer import ViserPlayViewer
 
 REFERENCE_TASK_ID = "Mjlab-Velocity-Rough-Unitree-Go1"
 
@@ -78,10 +78,10 @@ def run_play(cfg: PlayConfig) -> None:
   policy = runner.get_inference_policy(device=device)
 
   print(
-    "[INFO] Launching Viser viewer -- see the 'Metrics' tab for live "
-    "thermal/battery state."
+    "[INFO] Launching Viser viewer -- see the 'Robot Health' tab for live "
+    "per-node thermal/electrical/torque monitoring."
   )
-  ViserPlayViewer(env, policy).run()
+  HealthMonitoringViewer(env, policy).run()
   env.close()
 
 
