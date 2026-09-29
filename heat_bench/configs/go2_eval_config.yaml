@@ -24,10 +24,87 @@ thermal:
   initial_chassis_temperature_c: 25.0
 
 battery:
-  nominal_voltage_v: 24.0        # PLACEHOLDER, 6S Li-ion pack nominal
-  capacity_ah: 15.0              # PLACEHOLDER
-  num_series_cells: 6            # PLACEHOLDER
-  internal_resistance_ohm: 0.03  # PLACEHOLDER, ~30 mOhm pack-level
-  ocv_at_soc0_v: 19.8            # PLACEHOLDER, 3.3V/cell
-  ocv_at_soc1_v: 25.2            # PLACEHOLDER, 4.2V/cell
+  # Which physics/heat_bench/physics/battery_ecm.py class to use -- see
+  # that file's module docstring for what each model adds. Both share one
+  # step() interface, so switching here is the only change needed.
+  #   "rint"            -> BatchedBatteryECM (Model 1, original)
+  #   "rint_soc_aging"  -> AdvancedBatteryECM (Model 2, SoC-dependent R +
+  #                        chassis-temperature-coupled aging)
+  model: "rint"
+
+  # GIVEN: Unitree's official Go2 "Standard Version" (BT2-05) battery spec,
+  # https://www.unitree.com/go2/battery. Rated Voltage 29.6V and Charge
+  # Limit Voltage 33.6V both divide evenly by 8 at 3.7V/4.2V per cell --
+  # confirms an 8S Li-ion pack, matching Rated Capacity 8000mAh x 29.6V =
+  # 236.8Wh (also given directly). The BT2-06 "Long Endurance" variant
+  # exists but its numbers weren't available where this was pulled from.
+  nominal_voltage_v: 29.6        # GIVEN, "Rated Voltage"
+  capacity_ah: 8.0               # GIVEN, "Rated Capacity" (8000 mAh)
+  num_series_cells: 8            # GIVEN (derived: 29.6/3.7 = 33.6/4.2 = 8)
+  ocv_at_soc1_v: 33.6            # GIVEN, "Charge Limit Voltage" (4.2V/cell)
+  ocv_at_soc0_v: 24.0            # PLACEHOLDER, 3.0V/cell std Li-ion cutoff
   initial_soc: 1.0
+
+  # Used by "rint" (Model 1) only: one fixed internal resistance.
+  internal_resistance_ohm: 0.03  # PLACEHOLDER, not published by Unitree
+
+  # Used by "rint_soc_aging" (Model 2) only. R(SoC) is piecewise-linear:
+  # flat at mid_ohm through [soc_breakpoint_low, soc_breakpoint_high], then
+  # ramps up toward low_soc_extra_ohm / high_soc_extra_ohm added on top at
+  # SoC 0 / 1 respectively -- matches the literature's "roughly flat over
+  # the mid-range, substantial increase near both empty and full" shape.
+  # mid_ohm matches the Model 1 placeholder so the two models start from
+  # the same baseline and only differ by the SoC-dependence itself.
+  soc_dependent_resistance:
+    mid_ohm: 0.03                 # PLACEHOLDER, same as internal_resistance_ohm
+    low_soc_extra_ohm: 0.05       # PLACEHOLDER
+    high_soc_extra_ohm: 0.01      # PLACEHOLDER
+    soc_breakpoint_low: 0.15      # PLACEHOLDER
+    soc_breakpoint_high: 0.9      # PLACEHOLDER
+
+  # Used by "rint_soc_aging" (Model 2) only. Semi-empirical capacity-loss
+  # model Q_loss = B*exp((-Ea+alpha*|I|)/(R*T))*(Ah)^z, GIVEN constants
+  # cited in Shu et al. 2025 (Appl. Sci., 10.3390/app15010382, their Eq.
+  # 18); the model and these constants originate from Petit, Prada, and
+  # Sauvant-Moynot, "Development of an empirical aging model for Li-ion
+  # batteries and application to assess the impact of Vehicle-to-Grid
+  # strategies on battery lifetime," Appl. Energy 2016, 172, 398-407
+  # (Shu et al.'s reference [38]) -- not Go2-specific, but a real
+  # experimentally-validated battery-aging model, not a guess. T uses the
+  # LPTN chassis node as a battery-temperature proxy.
+  aging:
+    B: 130.0                # GIVEN (cited)
+    Ea_j_per_mol: 18461.0    # GIVEN (cited)
+    alpha: 32.0              # GIVEN (cited)
+    R_gas: 8.314             # GIVEN, ideal gas constant, J/(mol*K)
+    z: 0.4                   # GIVEN (cited)
+
+# Optional simulated payload (e.g. a backpack strapped to the trunk), via
+# mjlab's physically-consistent dr.pseudo_inertia (jointly randomizes mass,
+# inertia, and COM -- see mjlab.envs.mdp.dr.body.pseudo_inertia). Disabled
+# by default so existing eval/play runs are unaffected.
+#
+# alpha scales mass and inertia by exp(2*alpha), COM unchanged. Go1's trunk
+# is 5.204 kg by default: alpha=0.162 -> ~+2kg (~38% heavier),
+# alpha=0.336 -> ~+5kg (~2x). Solve for a target kg: alpha = 0.5 *
+# ln((trunk_mass_kg + payload_kg) / trunk_mass_kg).
+payload:
+  enabled: false                 # PLACEHOLDER, opt-in
+  alpha_range: [0.0, 0.0]        # log mass-scale range; see comment above
+  mode: "reset"                  # "reset" = new payload every episode,
+                                  # "startup" = fixed once per run
+
+# Transient external disturbance ("push or kick the robot"), via mjlab's
+# force-based dr.apply_body_impulse -- unlike push_by_setting_velocity
+# (an instantaneous, mass-independent qvel overwrite), this writes a real
+# force+torque wrench to xfrc_applied for a sampled duration, so it respects
+# the robot's own mass/inertia and contacts, and renders as a visible arrow
+# in the Viser/native debug-vis overlay. Go1's total mass is ~12.74 kg
+# (~125 N body weight); force_range below is roughly +/-1x body weight,
+# following the same convention as scripts/demos/body_impulse.py (0.8x).
+impulse_disturbance:
+  force_range: [-125.0, 125.0]   # N, per component, on the trunk
+  torque_range: [-15.0, 15.0]    # N*m, per component
+  duration_s: [0.05, 0.15]       # seconds the impulse is held
+  cooldown_s: [1.0, 3.0]         # seconds of silence between impulses
+  body_names: ["trunk"]

@@ -18,8 +18,12 @@ Go2 MJCF later without touching the physics engines.
 - **`physics/lptn_engine.py`** — `BatchedLPTNEngine`: a batched 14-node
   lumped-parameter thermal network (12 actuators + 1 chassis + 1 ambient
   boundary node), integrated with forward Euler.
-- **`physics/battery_ecm.py`** — `BatchedBatteryECM`: Coulomb counting,
-  state of charge, and voltage sag under load.
+- **`physics/battery_ecm.py`** — two swappable battery models, selected via
+  `battery.model` in `configs/go2_eval_config.yaml`: `BatchedBatteryECM`
+  ("rint", default), a fixed-resistance Rint model, and `AdvancedBatteryECM`
+  ("rint_soc_aging"), which adds SoC-dependent internal resistance and a
+  chassis-temperature-coupled capacity-loss/aging estimate. See "Related
+  work" below for citations.
 - **`envs_mjlab/eval_observations.py`** — `ThermalEnergyObservation`, the
   mjlab observation term wiring both engines into the sim loop. Joule heat,
   current, and mechanical power are accumulated at *physics-substep*
@@ -58,41 +62,97 @@ either engine.
 The 14-node topology, the 50Hz (control step) / 200Hz (physics substep)
 update split, and the substep-averaged heat-input approach were
 cross-checked against published thermal-aware quadruped locomotion
-research, using the same Unitree-A1-class robot:
+research, using the same Unitree-A1-class robot: [[1]](#references),
+[[2]](#references). Both papers use the same 14-node LPTN (12 motors + 1
+non-actuator node + ambient), updated at 50Hz synchronized with a 200Hz
+PD/physics loop — matching this package's `env.step_dt`/`physics_dt`
+split exactly. Their heat input is RMS torque over the 200Hz samples
+inside each 50Hz interval; since heat ∝ I² and RMS(x)² = mean(x²), that's
+mathematically the same operation as this package's per-substep
+mean-of-I² accumulation. The one difference is discretization method:
+both papers use zero-order-hold (exact, matrix-exponential)
+discretization, kept here as forward Euler instead — benchmarked at
+~140x the per-step cost of the current `bmm`-based Euler update for no
+accuracy benefit, since the thermal time constant (`Rth*Cth ≈ 800s`) is
+~40,000x the control step. Both papers' underlying thermal model
+parameters (not just topology) come from a separate companion paper,
+[[3]](#references) (not on arXiv).
 
-- Qian et al., *"Learning Thermal-Aware Locomotion Policies for an
-  Electrically-Actuated Quadruped Robot,"* [arXiv:2603.01631](https://arxiv.org/abs/2603.01631).
-- Wan et al., *"Learning to Balance Motor Thermal Safety and Quadrupedal
-  Locomotion Performance with Residual Policy,"* [arXiv:2605.27046](https://arxiv.org/abs/2605.27046).
+The two battery models (`physics/battery_ecm.py`) were similarly
+cross-checked. Model 1 ("rint") matches the battery topology used in the
+one legged-robot-specific battery paper found, [[4]](#references) — their
+Eq. 12–13 use the same voltage-source-plus-series-resistance topology
+(solved in the opposite direction: given power demand, solve for current,
+since their use case is MPC power allocation rather than passive
+observation). Model 2's capacity-loss/aging term
+(`Q_loss = B·exp((-Ea+α|I|)/(R·T))·(Ah)^z`) is their Eq. 18, which is
+itself drawn from [[5]](#references). Model 2's battery constants
+(capacity, voltage, series cell count, full-charge OCV) come from
+Unitree's official Go2 spec, [[6]](#references).
 
-Both papers use the same 14-node LPTN (12 motors + 1 non-actuator node +
-ambient), updated at 50Hz synchronized with a 200Hz PD/physics loop —
-matching this package's `env.step_dt`/`physics_dt` split exactly. Their
-heat input is RMS torque over the 200Hz samples inside each 50Hz interval;
-since heat ∝ I² and RMS(x)² = mean(x²), that's mathematically the same
-operation as this package's per-substep mean-of-I² accumulation. The one
-difference is discretization method: both papers use zero-order-hold
-(exact, matrix-exponential) discretization, kept here as forward Euler
-instead — benchmarked at ~140x the per-step cost of the current
-`bmm`-based Euler update for no accuracy benefit, since the thermal time
-constant (`Rth*Cth ≈ 800s`) is ~40,000x the control step. Both papers'
-underlying thermal model parameters (not just topology) come from a
-separate companion paper, Lin, Qian, Luo, Liang, *"Temperature
-Distribution Prediction of the Quadruped Robot Based on the
-Lumped-parameter Thermal Networks,"* ROBOT journal, 2025 (not on arXiv).
+## References
+
+1. Qian et al., *"Learning Thermal-Aware Locomotion Policies for an
+   Electrically-Actuated Quadruped Robot,"* [arXiv:2603.01631](https://arxiv.org/abs/2603.01631).
+2. Wan et al., *"Learning to Balance Motor Thermal Safety and Quadrupedal
+   Locomotion Performance with Residual Policy,"* [arXiv:2605.27046](https://arxiv.org/abs/2605.27046).
+3. Lin, Qian, Luo, Liang, *"Temperature Distribution Prediction of the
+   Quadruped Robot Based on the Lumped-parameter Thermal Networks,"*
+   ROBOT journal, 2025 (not on arXiv).
+4. Shu, Huang, Ren, Wu, Li, *"Learning-Based Model Predictive Control for
+   Legged Robots with Battery–Supercapacitor Hybrid Energy Storage
+   System,"* Appl. Sci. 2025, 15, 382, [10.3390/app15010382](https://doi.org/10.3390/app15010382).
+5. Petit, Prada, Sauvant-Moynot, *"Development of an empirical aging model
+   for Li-ion batteries and application to assess the impact of
+   Vehicle-to-Grid strategies on battery lifetime,"* Appl. Energy 2016,
+   172, 398–407.
+6. Unitree, *Go2 battery specification* (BT2-05 "Standard Version"),
+   <https://www.unitree.com/go2/battery> — data source, not a paper: 8S
+   Li-ion, 8000mAh (236.8Wh), 29.6V nominal / 33.6V charge limit.
 
 ## Known placeholders
 
-Go2's motor/electrical constants in `configs/go2_eval_config.yaml`
-(gear ratio, torque constant, phase resistance, joint thermal
-capacitance/resistance) are given, real values. Everything else —
-battery pack capacity/OCV/internal resistance, chassis thermal
-capacitance, and the convection-vs-velocity coefficients — is a
-placeholder, clearly tagged `# PLACEHOLDER` in the config, pending either
-a real Go2 datasheet or calibration against real hardware telemetry
-(e.g. Unitree's per-motor `MotorState.temperature`, which is a direct
-sensor reading and the best available ground truth for tuning `Rth`/`Cth`
-once real logs exist).
+Go2's motor/electrical constants (gear ratio, torque constant, phase
+resistance, joint thermal capacitance/resistance) are given, real values.
+The battery pack's nominal voltage, capacity, series cell count, and
+full-charge OCV are now also given, from Unitree's official Go2 battery
+spec ([[6]](#references), BT2-05 "Standard Version"): an 8S Li-ion pack,
+8000mAh (236.8Wh), 29.6V nominal / 33.6V charge limit.
+Still placeholder, clearly tagged `# PLACEHOLDER` in
+`configs/go2_eval_config.yaml`: internal resistance (not published by
+Unitree), the empty-pack OCV (standard 3.0V/cell Li-ion cutoff, not
+Go2-specific), chassis thermal capacitance, and the convection-vs-velocity
+coefficients -- pending either further datasheet digging or calibration
+against real hardware telemetry (e.g. Unitree's per-motor
+`MotorState.temperature`, a direct sensor reading and the best available
+ground truth for tuning `Rth`/`Cth` once real logs exist).
+
+## Optional scenario features
+
+All disabled/default off unless you opt in, so existing eval/play runs are
+unaffected. Config values live in `configs/go2_eval_config.yaml` unless
+noted otherwise.
+
+- **Payload** (`payload:` section) — a simulated backpack/load, via
+  `dr.pseudo_inertia` (jointly randomizes mass, inertia, and COM; see
+  `heat_bench/envs_mjlab/go2_eval_env_cfg.py`). Set `enabled: true` and an
+  `alpha_range` (log mass-scale; see the inline comment for the kg→alpha
+  formula). `mode: "reset"` samples a new payload every episode, `"startup"`
+  fixes one for the whole run. Config-only right now — no CLI flag.
+- **Push disturbance** (`--push-disturbance` on `play.py`) — re-enables
+  mjlab's standard training-time push event (`push_by_setting_velocity`):
+  an instantaneous, mass-independent `qvel` overwrite every 1–3s. No real
+  force is computed, so there's nothing to visualize as an arrow.
+- **Impulse disturbance** (`--impulse-disturbance` on `play.py`,
+  `impulse_disturbance:` section for magnitude/timing) — a real force+
+  torque wrench (`apply_body_impulse`) held for a sampled duration,
+  respecting the robot's mass/inertia/contacts. Renders as a visible arrow
+  in the viewer automatically (mjlab's built-in debug-vis, no extra code
+  needed). Both disturbances can be combined.
+- **Battery model A/B comparison** (`--battery-model rint|rint_soc_aging`
+  plus `--port` on `play.py`) — override `battery.model` for a single run
+  without editing the yaml; launch two instances on different ports to
+  compare side by side.
 
 ## Usage
 
@@ -106,6 +166,12 @@ uv run python -m heat_bench.scripts.run_eval \
 uv run python -m heat_bench.scripts.play \
   --checkpoint-file logs/rsl_rl/go1_velocity/<run>/model_<N>.pt \
   --num-envs 4
+
+# With disturbances and a specific battery model.
+uv run python -m heat_bench.scripts.play \
+  --checkpoint-file logs/rsl_rl/go1_velocity/<run>/model_<N>.pt \
+  --num-envs 4 --push-disturbance --impulse-disturbance \
+  --battery-model rint_soc_aging
 ```
 
 ## Tests

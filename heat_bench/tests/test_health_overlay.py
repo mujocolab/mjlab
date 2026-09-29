@@ -32,6 +32,7 @@ def _fake_term(num_envs: int = 2, initial_soc: float = 1.0) -> SimpleNamespace:
       soc=torch.full((num_envs,), initial_soc),
       bus_voltage=torch.full((num_envs,), 24.0),
       cum_wh=torch.zeros(num_envs),
+      capacity_loss_pct=torch.zeros(num_envs),
     ),
   )
 
@@ -44,7 +45,9 @@ def test_setup_tab_creates_all_widgets():
   assert server.gui.add_uplot.call_count == 4  # thermal, current, torque, bus voltage
   assert server.gui.add_html.call_count == 3  # thermal, current, torque bar panels
   assert server.gui.add_progress_bar.call_count == 1
-  assert server.gui.add_number.call_count == 2  # SoC % readout, cumulative energy
+  assert (
+    server.gui.add_number.call_count == 3
+  )  # SoC %, cumulative energy, capacity loss
 
 
 def test_update_grows_history_and_pushes_values():

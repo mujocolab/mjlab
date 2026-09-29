@@ -1,4 +1,4 @@
-"""Pure-tensor tests for BatchedBatteryECM (no simulation required)."""
+"""Pure-tensor tests for BatchedBatteryECM, Model 1 (no simulation required)."""
 
 import os
 
@@ -26,18 +26,27 @@ def make_battery(num_envs: int) -> BatchedBatteryECM:
   return BatchedBatteryECM(CFG, num_envs, get_test_device())
 
 
+def _chassis_temp(num_envs: int, device: str) -> torch.Tensor:
+  """Model 1 ignores this; a fixed placeholder is enough for these tests."""
+  return torch.full((num_envs,), 25.0, device=device)
+
+
 def test_zero_current_leaves_soc_and_energy_unchanged():
   battery = make_battery(num_envs=1)
   current = torch.zeros(1, 12, device=battery.device)
   mech_power = torch.zeros(1, device=battery.device)
   heat = torch.zeros(1, 12, device=battery.device)
+  chassis_temp = _chassis_temp(1, battery.device)
 
   for _ in range(10):
-    energy, bus_v, soc = battery.step(current, mech_power, heat, DT)
+    energy, bus_v, soc, capacity_loss = battery.step(
+      current, mech_power, heat, chassis_temp, DT
+    )
 
   assert torch.allclose(soc, torch.ones_like(soc))
   assert torch.allclose(energy, torch.zeros_like(energy))
   assert torch.allclose(bus_v, torch.tensor([25.2], device=battery.device))
+  assert torch.allclose(capacity_loss, torch.zeros_like(capacity_loss))
 
 
 def test_constant_current_matches_closed_form_coulomb_count():
@@ -46,10 +55,11 @@ def test_constant_current_matches_closed_form_coulomb_count():
   current[0, 0] = 10.0  # 10 A pack draw.
   mech_power = torch.zeros(1, device=battery.device)
   heat = torch.zeros(1, 12, device=battery.device)
+  chassis_temp = _chassis_temp(1, battery.device)
 
   num_steps = 100
   for _ in range(num_steps):
-    battery.step(current, mech_power, heat, DT)
+    battery.step(current, mech_power, heat, chassis_temp, DT)
 
   expected_ah = 10.0 * num_steps * DT / 3600.0
   expected_soc = 1.0 - expected_ah / CFG["capacity_ah"]
@@ -66,12 +76,13 @@ def test_higher_current_lowers_bus_voltage_at_fixed_soc():
   high_i = make_battery(num_envs=1)
   mech_power = torch.zeros(1, device=low_i.device)
   heat = torch.zeros(1, 12, device=low_i.device)
+  chassis_temp = _chassis_temp(1, low_i.device)
 
   low_current = torch.full((1, 12), 1.0 / 12, device=low_i.device)
   high_current = torch.full((1, 12), 10.0 / 12, device=high_i.device)
 
-  _, low_bus_v, _ = low_i.step(low_current, mech_power, heat, DT)
-  _, high_bus_v, _ = high_i.step(high_current, mech_power, heat, DT)
+  _, low_bus_v, _, _ = low_i.step(low_current, mech_power, heat, chassis_temp, DT)
+  _, high_bus_v, _, _ = high_i.step(high_current, mech_power, heat, chassis_temp, DT)
 
   assert high_bus_v.item() < low_bus_v.item()
 
@@ -82,9 +93,10 @@ def test_mech_power_adds_to_energy_without_double_clamping():
   battery = make_battery(num_envs=1)
   current = torch.zeros(1, 12, device=battery.device)
   heat = torch.zeros(1, 12, device=battery.device)
+  chassis_temp = _chassis_temp(1, battery.device)
 
   positive_power = torch.tensor([50.0], device=battery.device)
-  energy, _, _ = battery.step(current, positive_power, heat, DT)
+  energy, _, _, _ = battery.step(current, positive_power, heat, chassis_temp, DT)
   expected_wh = 50.0 * DT / 3600.0
   assert torch.allclose(energy, torch.tensor([expected_wh], device=battery.device))
 
@@ -95,9 +107,10 @@ def test_cum_wh_accumulates_across_steps():
   current = torch.zeros(1, 12, device=battery.device)
   heat = torch.zeros(1, 12, device=battery.device)
   power = torch.tensor([50.0], device=battery.device)
+  chassis_temp = _chassis_temp(1, battery.device)
 
   for _ in range(10):
-    battery.step(current, power, heat, DT)
+    battery.step(current, power, heat, chassis_temp, DT)
 
   expected_cum_wh = 50.0 * DT / 3600.0 * 10
   assert torch.allclose(
@@ -113,9 +126,10 @@ def test_reset_only_affects_indexed_envs():
   current = torch.full((4, 12), 5.0 / 12, device=battery.device)
   mech_power = torch.zeros(4, device=battery.device)
   heat = torch.zeros(4, 12, device=battery.device)
+  chassis_temp = _chassis_temp(4, battery.device)
 
   for _ in range(20):
-    battery.step(current, mech_power, heat, DT)
+    battery.step(current, mech_power, heat, chassis_temp, DT)
 
   drained_soc = battery.soc.clone()
   battery.reset(env_ids=torch.tensor([1, 3], device=battery.device))

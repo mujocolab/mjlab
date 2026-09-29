@@ -27,9 +27,14 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from heat_bench.physics.battery_ecm import BatchedBatteryECM
-from heat_bench.physics.lptn_engine import BatchedLPTNEngine
+from heat_bench.physics.battery_ecm import AdvancedBatteryECM, BatchedBatteryECM
+from heat_bench.physics.lptn_engine import CHASSIS_IDX, BatchedLPTNEngine
 from mjlab.managers.scene_entity_config import SceneEntityCfg
+
+_BATTERY_MODELS = {
+  "rint": BatchedBatteryECM,
+  "rint_soc_aging": AdvancedBatteryECM,
+}
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
@@ -59,14 +64,24 @@ class ThermalEnergyObservation:
     self._kt = float(thermal_cfg["motor_torque_constant_Kt"])
     self._rd = float(thermal_cfg["phase_resistance_Rd"])
 
+    battery_cfg = hb_cfg["battery"]
+    battery_model_name = battery_cfg.get("model", "rint")
+    if battery_model_name not in _BATTERY_MODELS:
+      raise ValueError(
+        f"Unknown battery.model '{battery_model_name}'; expected one of "
+        f"{sorted(_BATTERY_MODELS)}."
+      )
+    battery_cls = _BATTERY_MODELS[battery_model_name]
+
     self.thermal = BatchedLPTNEngine(thermal_cfg, env.num_envs, env.device)
-    self.battery = BatchedBatteryECM(hb_cfg["battery"], env.num_envs, env.device)
+    self.battery = battery_cls(battery_cfg, env.num_envs, env.device)
 
     self.last_joint_temps = torch.zeros(env.num_envs, 12, device=env.device)
     self.last_energy_wh_step = torch.zeros(env.num_envs, device=env.device)
     self.last_soc = torch.ones(env.num_envs, device=env.device)
     self.last_current = torch.zeros(env.num_envs, 12, device=env.device)
     self.last_torque = torch.zeros(env.num_envs, 12, device=env.device)
+    self.last_capacity_loss_pct = torch.zeros(env.num_envs, device=env.device)
 
     # Physics-substep accumulators, drained and reset every __call__. See
     # the module docstring for why heat/power are accumulated here instead
@@ -142,8 +157,9 @@ class ThermalEnergyObservation:
 
     base_lin_vel_xy = env.scene[asset_cfg.name].data.root_link_lin_vel_b[:, :2]
     temps = self.thermal.step(joule_heat, base_lin_vel_xy, env.step_dt)
-    energy_step, bus_voltage, soc = self.battery.step(
-      mean_current, mech_power, joule_heat, env.step_dt
+    chassis_temp_c = temps[:, CHASSIS_IDX]
+    energy_step, bus_voltage, soc, capacity_loss_pct = self.battery.step(
+      mean_current, mech_power, joule_heat, chassis_temp_c, env.step_dt
     )
 
     self.last_joint_temps = temps[:, :12]
@@ -151,6 +167,7 @@ class ThermalEnergyObservation:
     self.last_soc = soc
     self.last_current = mean_current
     self.last_torque = mean_torque
+    self.last_capacity_loss_pct = capacity_loss_pct
 
     return torch.cat(
       [temps[:, :12], soc.unsqueeze(-1), bus_voltage.unsqueeze(-1)], dim=-1
@@ -196,3 +213,12 @@ def battery_cumulative_energy_wh(
   reduce metric only exposes this at episode end, not per step)."""
   term = _thermal_energy_term(env, obs_group, obs_term)
   return term.battery.cum_wh
+
+
+def battery_capacity_loss_pct(
+  env: "ManagerBasedRlEnv", obs_group: str, obs_term: str
+) -> torch.Tensor:
+  """Cumulative capacity-loss/aging estimate. Always 0 for the "rint"
+  battery model (no aging tracked); nonzero for "rint_soc_aging"."""
+  term = _thermal_energy_term(env, obs_group, obs_term)
+  return term.last_capacity_loss_pct

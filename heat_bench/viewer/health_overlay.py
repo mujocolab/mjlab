@@ -109,6 +109,7 @@ class RobotHealthOverlay:
     self._soc_readout: viser.GuiNumberHandle | None = None
     self._bus_voltage_chart = _MultiSeriesChart(["bus_voltage_v"])
     self._cum_energy_readout: viser.GuiNumberHandle | None = None
+    self._capacity_loss_readout: viser.GuiNumberHandle | None = None
 
   def setup_tab(self) -> None:
     """Build all widgets. Call from inside a ``with tabs.add_tab(...):`` block."""
@@ -143,6 +144,11 @@ class RobotHealthOverlay:
     self._cum_energy_readout = self._server.gui.add_number(
       "Cumulative energy (Wh)", initial_value=0.0, disabled=True
     )
+    # Always 0 for the "rint" battery model (no aging tracked); nonzero
+    # only when battery.model="rint_soc_aging" in the config.
+    self._capacity_loss_readout = self._server.gui.add_number(
+      "Capacity loss (%)", initial_value=0.0, disabled=True
+    )
 
   def update(self, paused: bool, env_idx: int) -> None:
     if paused:
@@ -173,6 +179,10 @@ class RobotHealthOverlay:
     )
     if self._cum_energy_readout is not None:
       self._cum_energy_readout.value = float(term.battery.cum_wh[env_idx].item())
+    if self._capacity_loss_readout is not None:
+      self._capacity_loss_readout.value = float(
+        term.battery.capacity_loss_pct[env_idx].item()
+      )
 
   def on_env_switch(self) -> None:
     self.clear_histories()

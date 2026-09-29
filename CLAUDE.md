@@ -58,3 +58,33 @@ Some style guidelines to follow:
   - Use functions and fixtures; do not use test classes.
   - Favor targeted, efficient tests over exhaustive edge-case coverage.
   - Prefer running individual tests rather than the full test suite to improve iteration speed.
+
+# heat_bench research references
+
+`heat_bench/` (passive thermal/battery/torque benchmark for trained
+policies) bases several design decisions on published research rather than
+guesswork — the 14-node thermal topology, the 50Hz/200Hz update split, and
+both battery models. Full context and citations live in
+`heat_bench/README.md`'s "References" section; the papers themselves:
+
+1. Qian et al., *"Learning Thermal-Aware Locomotion Policies for an
+   Electrically-Actuated Quadruped Robot,"* arXiv:2603.01631.
+2. Wan et al., *"Learning to Balance Motor Thermal Safety and Quadrupedal
+   Locomotion Performance with Residual Policy,"* arXiv:2605.27046.
+3. Lin, Qian, Luo, Liang, *"Temperature Distribution Prediction of the
+   Quadruped Robot Based on the Lumped-parameter Thermal Networks,"* ROBOT
+   journal, 2025 (not on arXiv).
+4. Shu, Huang, Ren, Wu, Li, *"Learning-Based Model Predictive Control for
+   Legged Robots with Battery–Supercapacitor Hybrid Energy Storage
+   System,"* Appl. Sci. 2025, 15, 382, 10.3390/app15010382.
+5. Petit, Prada, Sauvant-Moynot, *"Development of an empirical aging model
+   for Li-ion batteries and application to assess the impact of
+   Vehicle-to-Grid strategies on battery lifetime,"* Appl. Energy 2016,
+   172, 398–407.
+6. Unitree, *Go2 battery specification* (BT2-05), unitree.com/go2/battery
+   — a data source, not a paper.
+
+When adding a new heat_bench design decision backed by research, cite it
+in both places: inline in the relevant module/config comment, and in
+`heat_bench/README.md`'s References list (add here too if it's a new
+source).

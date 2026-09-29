@@ -1,5 +1,6 @@
 """Tests for ThermalEnergyObservation and its go2_eval_env_cfg wiring."""
 
+import importlib
 import os
 from unittest.mock import Mock
 
@@ -7,9 +8,12 @@ import torch
 from heat_bench.envs_mjlab.eval_observations import ThermalEnergyObservation
 from heat_bench.envs_mjlab.go2_eval_env_cfg import (
   CumulativeDistanceTraveled,
+  add_impulse_disturbance,
+  add_push_disturbance,
   go2_eval_env_cfg,
   load_heat_bench_config,
 )
+from heat_bench.physics.battery_ecm import AdvancedBatteryECM
 
 from mjlab.asset_zoo.robots import get_go1_robot_cfg
 from mjlab.entity import Entity
@@ -52,8 +56,81 @@ def test_thermal_group_and_metrics_added_without_touching_actor():
     "distance_traveled",
     "battery_cumulative_energy_wh",
     "distance_traveled_cumulative",
+    "battery_capacity_loss_pct",
   }
   assert expected_metrics <= set(eval_cfg.metrics)
+
+
+def test_payload_event_absent_by_default():
+  """Payload is opt-in via config -- disabled by default must not add an
+  event, so existing eval/play runs are unaffected."""
+  eval_cfg = go2_eval_env_cfg(play=True)
+  assert "payload_mass" not in eval_cfg.events
+
+
+def test_push_disturbance_absent_unless_added():
+  """play=True strips push_robot for deterministic viewing by default;
+  add_push_disturbance() opts back in without touching go2_eval_env_cfg()."""
+  eval_cfg = go2_eval_env_cfg(play=True)
+  assert "push_robot" not in eval_cfg.events
+
+  add_push_disturbance(eval_cfg)
+  assert "push_robot" in eval_cfg.events
+  assert eval_cfg.events["push_robot"].mode == "interval"
+
+
+def test_impulse_disturbance_absent_unless_added():
+  """apply_body_impulse is force-based (writes xfrc_applied) and holds for
+  a sampled duration -- distinct from add_push_disturbance's velocity kick."""
+  eval_cfg = go2_eval_env_cfg(play=True)
+  assert "impulse_disturbance" not in eval_cfg.events
+
+  add_impulse_disturbance(eval_cfg)
+  assert "impulse_disturbance" in eval_cfg.events
+  event = eval_cfg.events["impulse_disturbance"]
+  assert event.mode == "step"
+  assert event.params["force_range"] == (-125.0, 125.0)
+  assert event.params["asset_cfg"].body_names == ("trunk",)
+
+
+def test_go2_eval_env_cfg_battery_model_override():
+  """battery_model= lets scripts (e.g. play.py's --battery-model) A/B
+  compare models without editing configs/go2_eval_config.yaml."""
+  default_cfg = go2_eval_env_cfg(play=True)
+  default_params = default_cfg.observations["thermal"].terms["thermal_energy"].params
+  assert default_params["config"]["battery"]["model"] == "rint"
+
+  overridden_cfg = go2_eval_env_cfg(play=True, battery_model="rint_soc_aging")
+  overridden_params = (
+    overridden_cfg.observations["thermal"].terms["thermal_energy"].params
+  )
+  assert overridden_params["config"]["battery"]["model"] == "rint_soc_aging"
+
+
+def test_payload_event_registered_when_enabled(monkeypatch):
+  hb_cfg = load_heat_bench_config()
+  hb_cfg["payload"] = {
+    "enabled": True,
+    "alpha_range": [0.1, 0.3],
+    "mode": "startup",
+  }
+  # `heat_bench.envs_mjlab.__init__` re-exports a function also named
+  # `go2_eval_env_cfg`, shadowing the submodule attribute of the same name
+  # on the package -- `import heat_bench.envs_mjlab.go2_eval_env_cfg as x`
+  # would silently bind the function, not the module. importlib.import_module
+  # goes through sys.modules directly and isn't affected.
+  go2_eval_env_cfg_module = importlib.import_module(
+    "heat_bench.envs_mjlab.go2_eval_env_cfg"
+  )
+  monkeypatch.setattr(go2_eval_env_cfg_module, "load_heat_bench_config", lambda: hb_cfg)
+
+  eval_cfg = go2_eval_env_cfg(play=True)
+
+  assert "payload_mass" in eval_cfg.events
+  event = eval_cfg.events["payload_mass"]
+  assert event.mode == "startup"
+  assert event.params["alpha_range"] == (0.1, 0.3)
+  assert event.params["asset_cfg"].body_names == ("trunk",)
 
 
 def _build_go1_entity(device: str, num_envs: int) -> tuple[Entity, Simulation]:
@@ -100,6 +177,40 @@ def test_call_steps_engines_once_and_returns_expected_shape():
   term.reset(env_ids=torch.tensor([0], device=device))
   assert term.battery.soc[0].item() == 1.0
   assert term.battery.soc[1].item() != 1.0
+
+
+def test_battery_model_switch_via_config():
+  """battery.model in go2_eval_config.yaml selects which battery_ecm class
+  ThermalEnergyObservation instantiates -- same call signature either way,
+  so this shouldn't require any branching in the observation term itself."""
+  device = get_test_device()
+  num_envs = 2
+  entity, sim = _build_go1_entity(device, num_envs)
+
+  hb_cfg = load_heat_bench_config()
+  hb_cfg["battery"]["model"] = "rint_soc_aging"
+
+  env = Mock()
+  env.num_envs = num_envs
+  env.device = device
+  env.step_dt = 0.02
+  env.scene = {"robot": entity}
+
+  asset_cfg = SceneEntityCfg(name="robot", joint_names=(".*",))
+  term_cfg = ObservationTermCfg(
+    func=ThermalEnergyObservation,
+    params={"asset_cfg": asset_cfg, "config": hb_cfg},
+  )
+  term = ThermalEnergyObservation(term_cfg, env)
+  assert isinstance(term.battery, AdvancedBatteryECM)
+
+  sim.data.qfrc_actuator[:] = 20.0
+  sim.data.qvel[:] = 5.0
+  for _ in range(30):
+    obs = term(env, asset_cfg)
+
+  assert obs.shape == (num_envs, 14)
+  assert (term.last_capacity_loss_pct >= 0).all()
 
 
 def test_substep_heat_is_averaged_not_last_sample():
