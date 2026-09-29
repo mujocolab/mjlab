@@ -31,6 +31,10 @@ Fixed
   default ``"add"`` operation the per-episode bias performed a random walk and grew
   well beyond the configured range over the course of training. The first episode's
   bias with ``sample_bias_per_component=True`` is no longer the sum of two draws.
+- ``DelayBuffer(per_env=False)`` now keeps a single lag across all environments when
+  ``hold_prob > 0``. The hold decision was drawn independently per environment, so
+  some environments adopted the new shared lag while others kept their old one. This
+  affected observation terms with ``delay_per_env=False`` and ``delay_hold_prob > 0``.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------
