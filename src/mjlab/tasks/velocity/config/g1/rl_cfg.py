@@ -44,3 +44,11 @@ def unitree_g1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
     num_steps_per_env=24,
     max_iterations=30_000,
   )
+
+
+def unitree_g1_short_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
+  """Runner of ``Mjlab-Velocity-Flat-Unitree-G1-2k`` (2000 iterations)."""
+  cfg = unitree_g1_ppo_runner_cfg()
+  cfg.experiment_name = "g1_velocity_2k"
+  cfg.max_iterations = 2_000
+  return cfg

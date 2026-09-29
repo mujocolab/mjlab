@@ -29,6 +29,10 @@ Added
   collected without execution noise.
 - ``--agent.algorithm.mpopi.min-action-std``: lower bound on a Gaussian actor's
   std in every mode, including plain ``ppo``.
+- ``Mjlab-Velocity-Flat-Unitree-G1-2k``: flat G1 velocity task for 2000
+  iterations whose command curriculum reaches forward speeds up to 1.5 m/s at
+  iteration 500. ``scripts/mpc/eval_mpc_velocity.py`` can evaluate a trained
+  checkpoint at fixed speeds (``--controllers policy --checkpoint ...``).
 
 Changed
 ^^^^^^^

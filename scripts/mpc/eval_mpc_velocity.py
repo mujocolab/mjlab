@@ -1,14 +1,18 @@
-"""Evaluate sampling MPC as a controller on a velocity-tracking task.
+"""Evaluate controllers on a velocity-tracking task at fixed forward speeds.
 
 For each commanded forward speed (straight ahead, no turning), a ``play`` env
-of the task is driven by the MPC (or by zero actions as a baseline) from a fixed
-seed. Reported per speed: the achieved forward speed in the base frame, the
+of the task is driven from a fixed seed by the sampling MPC, by a trained
+policy checkpoint, or by zero actions as a baseline. Reported per speed: the achieved forward speed in the base frame, the
 tracking error, falls per env, and the mean per-step reward.
 
 Example (GPU)::
 
   uv run python scripts/mpc/eval_mpc_velocity.py --device cuda:0 \\
     --speeds 0.5 1.0 1.5 --num-envs 8 --steps 250 --mpc.num-samples 32
+
+  uv run python scripts/mpc/eval_mpc_velocity.py \\
+    --task Mjlab-Velocity-Flat-Unitree-G1-2k --controllers policy \\
+    --checkpoint logs/rsl_rl/g1_velocity_2k/<run>/model_1999.pt
 """
 
 import copy
@@ -22,11 +26,13 @@ import imageio_ffmpeg
 import numpy as np
 import torch
 import tyro
+from tensordict import TensorDict
 
 import mjlab.tasks  # noqa: F401  (populates the registry)
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
 from mjlab.mpc import SamplingMpc, SamplingMpcCfg
-from mjlab.tasks.registry import load_env_cfg
+from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
+from mjlab.tasks.registry import load_env_cfg, load_rl_cfg, load_runner_cls
 
 
 @dataclass
@@ -34,7 +40,7 @@ class EvalVelocityCfg:
   task: str = "Mjlab-Velocity-Flat-Unitree-G1"
   speeds: tuple[float, ...] = (0.5, 1.0, 1.5)
   """Commanded forward speeds in m/s (base frame, no lateral or yaw command)."""
-  controllers: tuple[Literal["zero", "mpc"], ...] = ("zero", "mpc")
+  controllers: tuple[Literal["zero", "mpc", "policy"], ...] = ("zero", "mpc")
   num_envs: int = 8
   steps: int = 250
   """Control steps per speed (250 = 5 s at 50 Hz)."""
@@ -45,6 +51,8 @@ class EvalVelocityCfg:
   mpc: SamplingMpcCfg = field(
     default_factory=lambda: SamplingMpcCfg(num_samples=32, horizon=20, noise_std=0.3)
   )
+  checkpoint: Path | None = None
+  """Policy checkpoint (``model_*.pt``) for the ``policy`` controller."""
   out: Path | None = None
   """Optional JSON file for the results."""
   video_dir: Path | None = None
@@ -88,6 +96,10 @@ def run(cfg: EvalVelocityCfg, controller: str, speed: float) -> dict:
     if controller == "mpc"
     else None
   )
+  policy, clip, obs = None, None, None
+  if controller == "policy":
+    policy, clip = _load_policy(cfg, env)
+    obs = env.observation_manager.compute()
   speeds, rewards = [], []
   falls = torch.zeros(n, device=cfg.device)
   plan_time = 0.0
@@ -96,9 +108,14 @@ def run(cfg: EvalVelocityCfg, controller: str, speed: float) -> dict:
       t0 = time.time()
       action = planner.plan(env).action
       plan_time += time.time() - t0
+    elif policy is not None:
+      with torch.inference_mode():
+        action = policy(TensorDict(obs, batch_size=[n]))
+      if clip is not None:
+        action = action.clamp(-clip, clip)
     else:
       action = torch.zeros(n, dim, device=cfg.device)
-    _, reward, terminated, truncated, _ = env.step(action)
+    obs, reward, terminated, truncated, _ = env.step(action)
     fell = terminated & ~truncated
     falls += fell.float()
     if planner is not None and bool(fell.any()):
@@ -134,6 +151,24 @@ def run(cfg: EvalVelocityCfg, controller: str, speed: float) -> dict:
   if planner is not None:
     result["plan_seconds_per_step"] = plan_time / cfg.steps
   return result
+
+
+def _load_policy(cfg: EvalVelocityCfg, env: ManagerBasedRlEnv):
+  """Deterministic policy of ``cfg.checkpoint`` and its action clipping."""
+  if cfg.checkpoint is None:
+    raise ValueError("The policy controller needs --checkpoint.")
+  agent_cfg = load_rl_cfg(cfg.task)
+  runner_cls = load_runner_cls(cfg.task) or MjlabOnPolicyRunner
+  # The wrapper resets the env; the caller starts from the reset state.
+  wrapped = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
+  runner = runner_cls(wrapped, asdict(agent_cfg), device=cfg.device)
+  runner.load(
+    str(cfg.checkpoint),
+    load_cfg={"actor": True},
+    strict=True,
+    map_location=cfg.device,
+  )
+  return runner.get_inference_policy(device=cfg.device), agent_cfg.clip_actions
 
 
 def _write_video(path: Path, frames: list[np.ndarray], fps: int = 50) -> None:

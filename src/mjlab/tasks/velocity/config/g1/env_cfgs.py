@@ -218,3 +218,38 @@ def unitree_g1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     twist_cmd.ranges.ang_vel_z = (-0.7, 0.7)
 
   return cfg
+
+
+SHORT_ITERATIONS = 2_000
+"""PPO iterations of the short G1 flat task (``Mjlab-Velocity-Flat-Unitree-G1-2k``)."""
+SHORT_MAX_SPEED = 1.5
+"""Top forward speed (m/s) commanded by the short task's last curriculum stage."""
+SHORT_STAGE_ITERATION = 500
+"""Iteration at which the short task starts commanding ``SHORT_MAX_SPEED``."""
+
+
+def unitree_g1_flat_short_env_cfg(
+  play: bool = False, steps_per_iteration: int = 24
+) -> ManagerBasedRlEnvCfg:
+  """Flat G1 velocity task that reaches its final speed range in 2000 iterations.
+
+  The default curriculum only adds speeds above 1 m/s after 5000 iterations and
+  targets 3 m/s. Here the forward range grows from (-1, 1) to (-1, 1.5) m/s at
+  iteration 500, so a 2000-iteration run spends 1500 iterations on the target.
+  """
+  cfg = unitree_g1_flat_env_cfg(play=play)
+  twist_cmd = cfg.commands["twist"]
+  assert isinstance(twist_cmd, UniformVelocityCommandCfg)
+  if play:
+    twist_cmd.ranges.lin_vel_x = (-1.0, SHORT_MAX_SPEED)
+    twist_cmd.ranges.ang_vel_z = (-0.7, 0.7)
+    return cfg
+  cfg.curriculum["command_vel"].params["velocity_stages"] = [
+    {"step": 0, "lin_vel_x": (-1.0, 1.0), "ang_vel_z": (-0.5, 0.5)},
+    {
+      "step": SHORT_STAGE_ITERATION * steps_per_iteration,
+      "lin_vel_x": (-1.0, SHORT_MAX_SPEED),
+      "ang_vel_z": (-0.7, 0.7),
+    },
+  ]
+  return cfg
