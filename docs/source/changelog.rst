@@ -31,6 +31,10 @@ Fixed
   default ``"add"`` operation the per-episode bias performed a random walk and grew
   well beyond the configured range over the course of training. The first episode's
   bias with ``sample_bias_per_component=True`` is no longer the sum of two draws.
+- ``csv_to_npz`` now keeps the last frame of the input motion. It built output times
+  with ``torch.arange(0, duration, dt)``, which leaves out the end point, so a
+  91-frame clip resampled from 30 to 50 fps gave 150 frames instead of 151 and never
+  reached the final pose.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------
