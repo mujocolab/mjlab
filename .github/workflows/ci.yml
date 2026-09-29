@@ -69,12 +69,12 @@ jobs:
             warp-kernels-${{ runner.os }}-${{ runner.arch }}-${{ matrix.python-version }}-${{ matrix.resolution }}-
       - name: Test with python ${{ matrix.python-version }} (locked deps)
         if: matrix.resolution == 'locked'
-        run: uv run --extra cpu pytest
+        run: uv run --extra cpu --extra gym pytest
       - name: Test with python ${{ matrix.python-version }} (latest deps)
         if: matrix.resolution == 'unlocked'
         env:
           UV_FROZEN: "0"
-        run: uv run --extra cpu --upgrade pytest
+        run: uv run --extra cpu --extra gym --upgrade pytest
 
   pyright:
     runs-on: ubuntu-latest

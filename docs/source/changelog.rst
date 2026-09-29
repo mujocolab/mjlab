@@ -5,6 +5,21 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- Eleven manager-based Gymnasium MuJoCo v5 tasks with batched MuJoCo Warp physics.
+  Tasks run without Gymnasium; the optional ``gym`` extra enables reference MDP
+  checks against Gymnasium.
+  Task-specific batched PPO configurations and native viewer cameras cover
+  locomotion, Standup and manipulation. Humanoid tasks use Newton in place of
+  unsupported PGS. Joint observations reuse native relative-position terms;
+  Reacher targets use the command manager. Free-root quaternion observations
+  use a 6D rotation representation.
+  Reacher, Pusher and Swimmer include validated 4096-environment PPO defaults with
+  128-step rollouts, five epochs and four minibatches.
+- RK4 integration as an explicit ``MujocoCfg`` option.
+
 Changed
 ^^^^^^^
 

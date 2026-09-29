@@ -94,6 +94,7 @@ docs = [
 [project.optional-dependencies]
 cu130 = ["torch>=2.14.0"]
 cpu = ["torch>=2.14.0"]
+gym = ["gymnasium==1.3.0"]
 
 [tool.uv]
 conflicts = [
@@ -149,6 +150,7 @@ ignore = ["B011"]
 pythonVersion = "3.10"
 venvPath = "."
 venv = ".venv"
+include = ["./src", "./tests", "./scripts"]
 ignore = ["./typings", "./src/mjlab/utils/lab_api", "./docs"]
 stubPath = "typings"
 

@@ -61,6 +61,7 @@ _CONE_MAP = {
 }
 _INTEGRATOR_MAP = {
   "euler": mujoco.mjtIntegrator.mjINT_EULER,
+  "rk4": mujoco.mjtIntegrator.mjINT_RK4,
   "implicitfast": mujoco.mjtIntegrator.mjINT_IMPLICITFAST,
 }
 _SOLVER_MAP = {
@@ -100,7 +101,7 @@ class MujocoCfg:
 
   # Integrator settings.
   timestep: float = 0.002
-  integrator: Literal["euler", "implicitfast"] = "implicitfast"
+  integrator: Literal["euler", "rk4", "implicitfast"] = "implicitfast"
 
   # Friction settings.
   impratio: float = 1.0
