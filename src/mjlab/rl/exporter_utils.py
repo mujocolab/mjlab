@@ -32,13 +32,15 @@ def list_to_csv_str(
 
 
 def get_base_metadata(
-  env: ManagerBasedRlEnv, run_path: str
+  env: ManagerBasedRlEnv, run_path: str, obs_group: str = "actor"
 ) -> dict[str, list | str | float]:
   """Get base metadata common to all RL policy exports.
 
   Args:
     env: The RL environment.
     run_path: W&B run path or other identifier.
+    obs_group: Observation group consumed by the exported policy (e.g.
+      "student" for distilled policies).
 
   Returns:
     Dictionary of metadata fields that are common across all tasks.
@@ -64,10 +66,10 @@ def get_base_metadata(
   observation_term_flatten_history_dim: list = []
   observation_term_history_length: list = []
   observation_term_clip: list = []
-  observation_names = env.observation_manager.active_terms["actor"]
+  observation_names = env.observation_manager.active_terms[obs_group]
 
   for active_term in observation_names:
-    cfg = env.observation_manager.get_term_cfg("actor", active_term)
+    cfg = env.observation_manager.get_term_cfg(obs_group, active_term)
 
     if cfg.scale is None:
       observation_term_scale.append(1.0)
