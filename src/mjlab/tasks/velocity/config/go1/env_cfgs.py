@@ -35,6 +35,8 @@ def unitree_go1_rough_env_cfg(
   """Create Unitree Go1 rough terrain velocity configuration."""
   cfg = make_velocity_env_cfg()
 
+  # I added this to avoid fixed value of maximum contact per world.
+  cfg.sim.nconmax = None
   cfg.sim.mujoco.ccd_iterations = 500
   cfg.sim.mujoco.impratio = 10
   cfg.sim.mujoco.cone = "elliptic"
