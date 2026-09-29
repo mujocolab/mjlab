@@ -9,6 +9,7 @@ from conftest import get_test_device
 
 from mjlab.entity import EntityCfg
 from mjlab.envs.mdp import dr
+from mjlab.envs.mdp.dr.body import _eigh_3x3_jacobi
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import Scene, SceneCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
@@ -1001,6 +1002,14 @@ def test_pseudo_inertia_partial_env_ids(device):
   assert not torch.allclose(mass_after[0], mass_before[0], atol=1e-6)
   # Env 1 unchanged.
   assert torch.allclose(mass_after[1], mass_before[1], atol=1e-6)
+
+
+def test_eigh_3x3_jacobi_equal_diagonal():
+  """Equal diagonal entries with nonzero coupling still need a rotation."""
+  A = torch.tensor([[2.0, 1.0, 0.0], [1.0, 2.0, 0.0], [0.0, 0.0, 3.0]])
+  eigvals, V = _eigh_3x3_jacobi(A)
+  torch.testing.assert_close(eigvals, torch.tensor([1.0, 3.0, 3.0]))
+  torch.testing.assert_close(V @ torch.diag(eigvals) @ V.T, A)
 
 
 # Camera / Light DR tests.

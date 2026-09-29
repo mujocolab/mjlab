@@ -95,11 +95,13 @@ def _eigh_3x3_jacobi(
       aqq = D[..., q, q]
 
       # Jacobi rotation: tau = (aqq - app) / (2*apq),
-      # t = sign(tau) / (|tau| + sqrt(1 + tau^2)).
+      # t = sign(tau) / (|tau| + sqrt(1 + tau^2)), with sign(0) = 1 so that
+      # equal diagonal entries get a 45 degree rotation.
       diff = aqq - app
       denom = 2 * apq
       tau = diff / denom
-      t = torch.sign(tau) / (torch.abs(tau) + torch.sqrt(1 + tau * tau))
+      sign = torch.where(tau >= 0, 1.0, -1.0)
+      t = sign / (torch.abs(tau) + torch.sqrt(1 + tau * tau))
       # When apq ≈ 0, skip rotation (t = 0).
       t = torch.where(torch.abs(denom) > 1e-30, t, torch.zeros_like(t))
 
