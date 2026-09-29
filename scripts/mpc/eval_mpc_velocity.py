@@ -2,8 +2,9 @@
 
 For each commanded forward speed (straight ahead, no turning), a ``play`` env
 of the task is driven from a fixed seed by the sampling MPC, by a trained
-policy checkpoint, or by zero actions as a baseline. Reported per speed: the achieved forward speed in the base frame, the
-tracking error, falls per env, and the mean per-step reward.
+policy checkpoint, or by zero actions as a baseline. Reported per speed: the
+achieved forward speed in the base frame, the tracking error, falls per env,
+and the mean per-step reward.
 
 Example (GPU)::
 
