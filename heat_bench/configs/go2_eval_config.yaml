@@ -1,0 +1,33 @@
+# heat_bench hardware/physics constants.
+#
+# `robot.simulated_mjcf` is the MJCF body mjlab actually steps in physics
+# (currently Go1 -- mjlab has no Go2 asset yet). `robot.modeled_hardware`
+# names the actuator/battery electro-thermal model these constants describe
+# (Go2). The two are intentionally different until a real Go2 MJCF is
+# imported; see heat_bench/README-less design note in the plan doc.
+robot:
+  simulated_mjcf: "unitree_go1"
+  modeled_hardware: "unitree_go2"
+  num_actuated_joints: 12
+
+thermal:
+  gear_ratio_N: 6.22                       # GIVEN
+  motor_torque_constant_Kt: 0.26           # GIVEN, N*m/A
+  phase_resistance_Rd: 0.66                # GIVEN, ohm
+  joint_thermal_capacitance_Cth: 400.0     # GIVEN, J/K, per-actuator node
+  joint_thermal_resistance_Rth: 2.0        # GIVEN, K/W, fixed actuator<->chassis link
+  chassis_thermal_capacitance_Cth_chassis: 2000.0   # PLACEHOLDER, J/K
+  chassis_convection_base_conductance: 0.8          # PLACEHOLDER, W/K at v_xy=0
+  chassis_convection_velocity_gain: 1.5             # PLACEHOLDER, W/K per (m/s)
+  ambient_temperature_c: 25.0              # boundary condition (fixed, not integrated)
+  initial_joint_temperature_c: 25.0
+  initial_chassis_temperature_c: 25.0
+
+battery:
+  nominal_voltage_v: 24.0        # PLACEHOLDER, 6S Li-ion pack nominal
+  capacity_ah: 15.0              # PLACEHOLDER
+  num_series_cells: 6            # PLACEHOLDER
+  internal_resistance_ohm: 0.03  # PLACEHOLDER, ~30 mOhm pack-level
+  ocv_at_soc0_v: 19.8            # PLACEHOLDER, 3.3V/cell
+  ocv_at_soc1_v: 25.2            # PLACEHOLDER, 4.2V/cell
+  initial_soc: 1.0

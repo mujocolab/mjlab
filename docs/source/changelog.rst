@@ -5,6 +5,16 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- ``heat_bench``, a standalone benchmark package for passively measuring
+  thermal accumulation and battery energy usage of existing trained
+  locomotion policies on rough terrain. Adds a batched 14-node lumped
+  thermal network and a Coulomb-counting battery model, wired into mjlab as
+  a read-only observation group and episode metrics on top of the existing
+  Go1 rough-terrain task.
+
 Changed
 ^^^^^^^
 

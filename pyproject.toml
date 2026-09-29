@@ -133,7 +133,7 @@ torch = [
 ]
 
 [tool.ruff]
-src = ["src"]  # Helpful for recognizing first-party imports.
+src = ["src", "heat_bench"]  # Helpful for recognizing first-party imports.
 indent-width = 2
 exclude = [
   "src/mjlab/utils/lab_api",
@@ -155,10 +155,11 @@ stubPath = "typings"
 extra-paths = ["typings"]
 
 [tool.ty.src]
-include = ["src", "tests"]
+include = ["src", "tests", "heat_bench"]
 exclude = ["src/mjlab/utils/lab_api", "typings"]
 
 [tool.pytest.ini_options]
+pythonpath = ["."]
 markers = [
   "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]
