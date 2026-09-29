@@ -29,6 +29,9 @@ Added
   collected without execution noise.
 - ``--agent.algorithm.mpopi.min-action-std``: lower bound on a Gaussian actor's
   std in every mode, including plain ``ppo``.
+- ``mpc_ppo`` option ``replay_own_rollouts``: also replay PPO's own past
+  rollouts with MPOPI's correction while the MPC data only feeds behavior
+  cloning (for example DAgger combined with Replay-IS).
 - ``Mjlab-Velocity-Flat-Unitree-G1-2k``: flat G1 velocity task for 2000
   iterations whose command curriculum reaches forward speeds up to 1.5 m/s at
   iteration 500. ``scripts/mpc/eval_mpc_velocity.py`` can evaluate a trained

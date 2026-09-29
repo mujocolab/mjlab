@@ -59,6 +59,11 @@ class MpcDataCfg:
   """Lower bound of the behavior-cloning weight after the decay. Above 0 the
   policy keeps a small pull toward the MPC for the whole run, which needs the
   MPC data to stay in the buffer (``max_age=None``)."""
+  replay_own_rollouts: bool = False
+  """Also replay past PPO rollouts with MPOPI's correction, as in mode
+  ``"mpopi_ppo"`` (Replay-IS), using the top-level replay settings. Requires
+  ``use_in_ppo=False``: the MPC data then only feeds behavior cloning, for
+  example DAgger combined with Replay-IS."""
   planner: SamplingMpcCfg = field(default_factory=SamplingMpcCfg)
 
   def bc_weight(self, iteration: int) -> float:
@@ -85,6 +90,11 @@ class MpcDataCfg:
       raise ValueError(
         "Importance correction needs a behavior density: use execution_std > 0,"
         " correction=False (naive injection) or use_in_ppo=False."
+      )
+    if self.replay_own_rollouts and self.use_in_ppo:
+      raise ValueError(
+        "replay_own_rollouts replays PPO's own data; MPC data must then be"
+        " behavior cloning only: use use_in_ppo=False."
       )
     if self.inject_fraction is not None and not 0.0 < self.inject_fraction < 1.0:
       raise ValueError("inject_fraction must be in (0, 1).")
@@ -113,8 +123,10 @@ class MpopiCfg:
   - ``"naive_replay_ppo"``: replay data is added to PPO's batch as if it were
     on-policy (importance ratio forced to 1). Baseline for the correction.
   - ``"mpopi_ppo"``: replay data is importance-corrected by MPOPI.
-  - ``"mpc_ppo"``: no replay of PPO's own data; MPC-generated data (see
-    ``mpc``) is added instead, importance-corrected with the same estimators.
+  - ``"mpc_ppo"``: MPC-generated data (see ``mpc``) is added instead of PPO's
+    own past data, importance-corrected with the same estimators, or used for
+    behavior cloning only. ``mpc.replay_own_rollouts`` also replays PPO's own
+    data.
   """
   replay_buffer_size: int = 4
   """Number of past rollout segments (iterations) kept in the replay buffer.

@@ -214,6 +214,36 @@ def test_dagger_with_bc_floor_keeps_cloning_after_collection(device):
   _close(runner)
 
 
+def test_dagger_with_own_replay_uses_both_sources(device):
+  mpc = MpcDataCfg(
+    num_envs=2,
+    num_steps=4,
+    collect_iterations=3,
+    execution_std=0.0,
+    driver="policy",
+    use_in_ppo=False,
+    bc_iterations=3,
+    replay_own_rollouts=True,
+    planner=TINY_PLANNER,
+  )
+  with pytest.raises(ValueError, match="replay_own_rollouts"):
+    replace(mpc, driver="mpc", execution_std=0.3, use_in_ppo=True).validate()
+  runner = _runner(device, mpc)
+  alg = _alg(runner)
+  logs = _learn(runner, 3)
+  assert alg.own_replay is not None and len(alg.own_replay) == 3
+  assert len(alg.replay) == 3  # MPC labels, in their own buffer.
+  num_fresh = 8 * 8
+  for log in logs[1:]:
+    assert log["mpopi/accepted"] > 0  # Past PPO data enters PPO's loss...
+    # ...but the MPC labels do not: only fresh and replayed PPO samples count.
+    assert log["mpopi/gradient_samples"] == num_fresh + log["mpopi/accepted"]
+    assert log["mpc/bc_loss"] > 0.0
+  for p in alg.actor.parameters():
+    assert torch.isfinite(p).all()
+  _close(runner)
+
+
 def test_mpc_injection_mixes_a_fixed_fraction_for_the_whole_run(device):
   mpc = MpcDataCfg(
     num_envs=2,
