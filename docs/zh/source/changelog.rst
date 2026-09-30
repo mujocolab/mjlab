@@ -17,9 +17,6 @@ Added
 Changed
 ^^^^^^^
 
-- Bumped ``rsl-rl-lib`` from 5.5.0 to 5.5.1. This removes the need for capping
-  ``wandb`` below 0.29.
-
 - Bumped ``rsl-rl-lib`` from 5.4.2 to 5.5.0. This update removes the ``logger_type``
   attribute of the ``rsl_rl.utils.Logger``, so code that previously checked
   ``logger.logger_type`` must instead check the type of ``logger.writer``.
@@ -35,11 +32,6 @@ Fixed
 - ``FlatPatchSamplingCfg(patch_radius=0)`` no longer collapses every patch to the
   sub-terrain center. The edge-exclusion mask sliced ``arr[-0:]``, which is
   ``arr[0:]``, so it cleared the entire valid mask :issue:`1171`.
-- ``NoiseModelWithAdditiveBias`` now draws a fresh bias on every reset. It applied
-  ``bias_noise_cfg`` to the previous episode's bias instead of to zero, so with the
-  default ``"add"`` operation the per-episode bias performed a random walk and grew
-  well beyond the configured range over the course of training. The first episode's
-  bias with ``sample_bias_per_component=True`` is no longer the sum of two draws.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------

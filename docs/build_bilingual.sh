@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# 中英双语文档一键构建脚本:英文站输出 docs/_build,中文站输出 docs/_build/zh
+# 用法: bash docs/build_bilingual.sh [额外的 sphinx-build 选项, 如 -E]
+set -euo pipefail
+cd "$(dirname "$0")/.." # 仓库根目录
+
+# 干净构建:移除旧产物,避免被排除页面(如 GLOSSARY.md)的陈旧输出残留
+rm -rf docs/_build
+
+uv run --group docs sphinx-build -j auto docs docs/_build "$@"
+MJLAB_DOC_LANG=zh uv run --group docs sphinx-build -j auto -c docs docs/zh docs/_build/zh "$@"
+
+# 中文树与英文树共用 docs/source/_static(经 html_static_path 已复制到
+# docs/_build/zh/_static)。中文 rst 中的图片引用相对路径与英文一致,
+# 会解析到 zh/source/_static,这里镜像一份保证全部命中。
+mkdir -p docs/_build/zh/source
+rm -rf docs/_build/zh/source/_static
+cp -r docs/_build/zh/_static docs/_build/zh/source/_static
+
+echo "双语构建完成: docs/_build (英文) + docs/_build/zh (中文)"

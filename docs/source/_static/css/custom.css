@@ -170,3 +170,12 @@ a {
 .bd-sidebar .navbar-icon-links {
     padding: 0 1rem 0.25rem !important;
 }
+/* 中英文档切换链接 */
+.doc-lang-switch {
+  padding: 0.25rem 1rem;
+  font-size: 0.9rem;
+}
+
+.doc-lang-switch a {
+  font-weight: 600;
+}

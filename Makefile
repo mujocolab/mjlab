@@ -61,6 +61,14 @@ docs-multiversion:
 docs-watch:
 	uv run --group docs sphinx-autobuild -j auto docs docs/_build
 
+.PHONY: docs-zh
+docs-zh:
+	MJLAB_DOC_LANG=zh uv run --group docs sphinx-build -j auto -c docs docs/zh docs/_build/zh
+
+.PHONY: docs-bilingual
+docs-bilingual:
+	bash docs/build_bilingual.sh
+
 .PHONY: publish-test
 publish-test: build
 	uv publish --publish-url https://test.pypi.org/legacy/
