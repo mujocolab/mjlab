@@ -5,6 +5,12 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- Added ``graph_conditional`` in ``SimulationCfg`` to control whether MuJoCo Warp uses
+  CUDA graph conditional nodes.
+
 Changed
 ^^^^^^^
 
