@@ -61,6 +61,22 @@ functions return a boolean tensor of shape ``[num_envs]``.
        cleanly.
 
 
+Velocity task contact termination
+---------------------------------
+
+The velocity task provides ``illegal_contact`` in
+``mjlab.tasks.velocity.mdp.terminations``. It looks up the contact sensor
+by ``sensor_name``.
+
+When force history is available, the term terminates an episode if any
+recorded contact force magnitude strictly exceeds ``force_threshold``,
+which defaults to 10.0 N. Without force history, it terminates on any
+detected contact in ``found`` and ignores ``force_threshold``.
+
+Isaac Lab requires an explicit ``threshold`` argument for its equivalent
+term. Set ``force_threshold`` explicitly when migrating a configuration.
+
+
 Writing custom termination functions
 -------------------------------------
 

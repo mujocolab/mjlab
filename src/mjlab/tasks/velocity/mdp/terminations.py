@@ -19,6 +19,15 @@ def illegal_contact(
   sensor_name: str,
   force_threshold: float = 10.0,
 ) -> torch.Tensor:
+  """Terminate on contact using force history when available.
+
+  With force history, terminate if any recorded contact force magnitude
+  strictly exceeds ``force_threshold`` (in newtons). The default is 10.0 N;
+  Isaac Lab's equivalent requires an explicit ``threshold`` argument.
+
+  Without force history, terminate if any contact is found, ignoring
+  ``force_threshold``.
+  """
   sensor: ContactSensor = env.scene[sensor_name]
   data = sensor.data
   if data.force_history is not None:

@@ -8,6 +8,10 @@ Upcoming version (not yet released)
 Changed
 ^^^^^^^
 
+- Documented the velocity task's ``illegal_contact`` default force threshold,
+  contact-detection fallback, and migration difference from Isaac Lab
+  (:issue:`1179`).
+
 - Bumped ``rsl-rl-lib`` from 5.5.0 to 5.5.1. This removes the need for capping
   ``wandb`` below 0.29.
 
