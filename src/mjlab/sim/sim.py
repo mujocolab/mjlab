@@ -171,6 +171,8 @@ class SimulationCfg:
   """Bounding-volume filters applied during broadphase collision checking.
 
   If None, use the MuJoCo Warp default."""
+  graph_conditional: bool | None = None
+  """Use CUDA graph conditional nodes. If None, use the MuJoCo Warp default."""
   ls_parallel: bool | None = None
   """Deprecated and ignored. Parallel linesearch was removed in MuJoCo Warp 3.10."""
   mujoco: MujocoCfg = field(default_factory=MujocoCfg)
@@ -188,6 +190,8 @@ class SimulationCfg:
   def apply_wp_opt(self, wp_opt: mjwarp.Option) -> None:
     """Apply MuJoCo Warp-only settings to a warp Option (post ``put_model``)."""
     wp_opt.contact_sensor_maxmatch = self.contact_sensor_maxmatch
+    if self.graph_conditional is not None:
+      wp_opt.graph_conditional = self.graph_conditional
     if self.broadphase is not None:
       wp_opt.broadphase = _BROADPHASE_MAP[self.broadphase]
     if self.broadphase_filter is not None:
