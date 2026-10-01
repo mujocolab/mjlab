@@ -46,13 +46,15 @@ class DelayBuffer:
 
     **Staggered updates (per_env_phase=True)**
       Each environment gets a random phase_offset ∈ [0, N), causing
-      lag updates to occur on different timesteps:
+      lag updates to occur on different timesteps. Each environment also
+      samples on its first step so that its lag starts in [min_lag, max_lag]:
         Env 0: updates at t=0, N, 2N, ...
-        Env 1: updates at t=3, N+3, 2N+3, ...
-        Env 2: updates at t=7, N+7, 2N+7, ...
+        Env 1: updates at t=0, 3, N+3, 2N+3, ...
+        Env 2: updates at t=0, 7, N+7, 2N+7, ...
 
     **Hold probability (hold_prob=0.2)**
-      Even when an update would occur, keep previous lag with 20% chance.
+      Even when an update would occur, keep previous lag with 20% chance
+      (except when no lag has been sampled or set yet).
       Creates temporal correlation in delay patterns.
 
   Per-Environment vs Shared Lags
@@ -72,7 +74,9 @@ class DelayBuffer:
   ==============
 
     reset(batch_ids=[1]) clears history for specified environments:
-      - Sets lag and step counter to zero
+      - Sets lag and step counter to zero; unless set_lags() is called first, the
+        next compute() samples a fresh lag in [min_lag, max_lag] regardless of
+        update phase or hold_prob
       - Clears circular buffer for those rows
       - Next append backfills their history with first new value
       - Until that append, compute() returns zeros for reset rows
@@ -113,7 +117,7 @@ class DelayBuffer:
       ...     hold_prob=0.2               # 20% chance to hold lag
       ... )
       >>> # Env 0 refreshes at t=0,10,20,...
-      >>> # Env 1 refreshes at t=3,13,23,... (random offset)
+      >>> # Env 1 refreshes at t=0,3,13,23,... (random offset)
       >>> # But each refresh has 20% chance to keep previous lag
   """
 
@@ -154,6 +158,8 @@ class DelayBuffer:
     )
     self._current_lags = torch.zeros(batch_size, dtype=torch.long, device=device)
     self._step_count = torch.zeros(batch_size, dtype=torch.long, device=device)
+    # Rows whose lag has not been sampled or set since creation or reset.
+    self._needs_lag = torch.ones(batch_size, dtype=torch.bool, device=device)
 
     if update_period > 0 and per_env_phase:
       self._phase_offsets = torch.randint(
@@ -190,6 +196,7 @@ class DelayBuffer:
     """
     idx = slice(None) if batch_ids is None else batch_ids
     self._current_lags[idx] = lags.clamp(self.min_lag, self.max_lag)
+    self._needs_lag[idx] = False
 
   def reset(
     self, batch_ids: Sequence[int] | torch.Tensor | slice | None = None
@@ -206,6 +213,7 @@ class DelayBuffer:
     self._buffer.reset(batch_ids=batch_ids)
     idx = slice(None) if batch_ids is None else batch_ids
     self._current_lags[idx] = 0
+    self._needs_lag[idx] = True
     self._step_count[idx] = 0
     if self.update_period > 0 and self.per_env_phase:
       new_phases = torch.randint(
@@ -274,22 +282,28 @@ class DelayBuffer:
 
   def _update_lags(self) -> None:
     """Update current lags according to configured policy."""
+    # Rows without a lag since creation or reset have no previous lag to keep, so
+    # they always sample, regardless of their update phase or hold_prob.
+    needs_lag = self._needs_lag
     if self.update_period > 0:
       phase_adjusted_count = (self._step_count + self._phase_offsets) % (
         self.update_period
       )
-      should_update = phase_adjusted_count == 0
+      should_update = (phase_adjusted_count == 0) | needs_lag
     else:
       should_update = torch.ones(self.batch_size, dtype=torch.bool, device=self.device)
-    new_lags = self._sample_lags(should_update)
+    new_lags = self._sample_lags(should_update, force=needs_lag)
     self._current_lags = torch.where(should_update, new_lags, self._current_lags)
+    self._needs_lag.zero_()
     self._step_count += 1
 
-  def _sample_lags(self, mask: torch.Tensor) -> torch.Tensor:
+  def _sample_lags(self, mask: torch.Tensor, force: torch.Tensor) -> torch.Tensor:
     """Sample new lags for specified environments.
 
     Args:
       mask: Boolean mask of shape (batch_size,) indicating which envs to sample.
+      force: Boolean mask of shape (batch_size,) indicating which envs to sample
+        regardless of hold_prob.
 
     Returns:
       New lags with shape (batch_size,).
@@ -328,4 +342,4 @@ class DelayBuffer:
     else:
       update_mask = mask
 
-    return torch.where(update_mask, candidate_lags, self._current_lags)
+    return torch.where(update_mask | force, candidate_lags, self._current_lags)

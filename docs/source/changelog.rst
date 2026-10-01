@@ -31,6 +31,11 @@ Fixed
   default ``"add"`` operation the per-episode bias performed a random walk and grew
   well beyond the configured range over the course of training. The first episode's
   bias with ``sample_bias_per_component=True`` is no longer the sum of two draws.
+- ``DelayBuffer`` no longer returns lags below ``min_lag`` after creation or reset. The
+  lag started at 0 and was only resampled on an environment's next scheduled refresh,
+  so with ``update_period > 0`` (staggered by default) or ``hold_prob > 0`` many
+  environments ran without any delay for the first steps of every episode, even with
+  ``min_lag == max_lag``. This affected observation terms and actuators with delays.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------

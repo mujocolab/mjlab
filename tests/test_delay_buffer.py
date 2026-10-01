@@ -209,6 +209,39 @@ def test_update_period_changes_only_on_schedule(device):
   assert lag_values[9] == lag_values[10] == lag_values[11]
 
 
+@pytest.mark.parametrize(
+  "kwargs",
+  [
+    {"update_period": 10, "per_env_phase": True},
+    {"hold_prob": 0.5},
+  ],
+  ids=["staggered_update_period", "hold_prob"],
+)
+def test_lags_stay_within_range_from_first_step(device, kwargs):
+  """Lags never fall below min_lag, including right after creation and reset."""
+  B = 16
+  buf = DelayBuffer(
+    min_lag=2,
+    max_lag=2,
+    batch_size=B,
+    device=device,
+    generator=make_gen(0, device),
+    **kwargs,
+  )
+
+  def run(start: int) -> None:
+    for t in range(start, start + 4):
+      buf.append(torch.full((B, 1), float(t), device=device))
+      y = buf.compute()
+      assert torch.all(buf.current_lags == 2), buf.current_lags.tolist()
+      expected = float(max(t - 2, start))
+      assert torch.all(y == expected), y.squeeze(-1).tolist()
+
+  run(0)
+  buf.reset()
+  run(100)
+
+
 ##
 # Reset behavior.
 ##
