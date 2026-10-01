@@ -77,3 +77,68 @@ def test_accepts_string_path(tmp_path: Path):
   recorder.close()
 
   assert list(Path(folder).glob("*.mp4"))
+
+
+def test_episode_trigger_records_episode_once(tmp_path: Path):
+  """An episode trigger records one video per triggered episode.
+
+  With video_length shorter than the episode, the recording must not restart
+  mid-episode and overwrite the episode's video with a later chunk.
+  """
+  from mjlab.utils.wrappers.video_recorder import VideoRecorder
+
+  env = _make_mock_env()
+  recorder = VideoRecorder(
+    env,
+    video_folder=tmp_path,
+    episode_trigger=lambda episode: episode == 0,
+    video_length=5,
+    disable_logger=True,
+  )
+
+  # 20 steps inside a single episode (the mock never terminates).
+  action = torch.zeros(1)
+  for _ in range(20):
+    recorder.step(action)
+
+  recorder.close()
+
+  assert recorder.video_count == 1
+  videos = list(tmp_path.glob("*.mp4"))
+  assert len(videos) == 1
+  assert len(media.read_video(str(videos[0]))) == 5
+
+
+def test_episode_trigger_fires_at_each_triggered_episode_start(tmp_path: Path):
+  """The episode trigger is re-evaluated at the start of every new episode."""
+  from mjlab.utils.wrappers.video_recorder import VideoRecorder
+
+  env = _make_mock_env()
+  # Episodes last 4 steps: env 0 terminates on every 4th step.
+  env.step.side_effect = [
+    (
+      torch.zeros(1),
+      torch.zeros(1),
+      torch.tensor([i % 4 == 3]),
+      torch.zeros(1, dtype=torch.bool),
+      {},
+    )
+    for i in range(12)
+  ]
+  recorder = VideoRecorder(
+    env,
+    video_folder=tmp_path,
+    episode_trigger=lambda episode: episode in (0, 2),
+    video_length=2,
+    disable_logger=True,
+  )
+
+  action = torch.zeros(1)
+  for _ in range(12):
+    recorder.step(action)
+
+  recorder.close()
+
+  assert recorder.video_count == 2
+  videos = sorted(p.name for p in tmp_path.glob("*.mp4"))
+  assert videos == ["rl-video-episode-0.mp4", "rl-video-episode-2.mp4"]
