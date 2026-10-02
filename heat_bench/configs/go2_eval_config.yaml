@@ -14,6 +14,13 @@ thermal:
   gear_ratio_N: 6.22                       # GIVEN
   motor_torque_constant_Kt: 0.26           # GIVEN, N*m/A
   phase_resistance_Rd: 0.66                # GIVEN, ohm
+  # Temperature dependence of Rd and Kt (heat_bench/physics/motor_thermal.py).
+  # Both coefficients are linear and referenced to 20C; set both to 0.0 to
+  # recover constant Rd/Kt (exact pre-Phase-1 behavior).
+  phase_resistance_temp_coeff_per_c: 0.00393   # GIVEN, annealed copper (NBS Misc. Pub. 17)
+  torque_constant_temp_coeff_per_c: -0.0012    # GIVEN for NdFeB N42, reversible alpha(Br), 20-80C (Arnold datasheet); Go2 grade unknown
+  motor_temp_coeff_reference_c: 20.0           # GIVEN, reference temp of both coefficients above
+  motor_constants_reference_temp_c: 25.0       # PLACEHOLDER, temp at which Rd/Kt above were specified
   joint_thermal_capacitance_Cth: 400.0     # GIVEN, J/K, per-actuator node
   joint_thermal_resistance_Rth: 2.0        # GIVEN, K/W, fixed actuator<->chassis link
   chassis_thermal_capacitance_Cth_chassis: 2000.0   # PLACEHOLDER, J/K

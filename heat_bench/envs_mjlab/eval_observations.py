@@ -1,11 +1,13 @@
 """Observation term wiring the thermal + battery physics engines into mjlab.
 
-``ThermalEnergyObservation`` is a passive, read-only observation term: it
-reads actuator state each control step, feeds it through the two physics
-engines, and returns their state as an observation vector. It does not
-modify torque, rewards, or termination -- see the ``# FAULT-INJECTION SEAM``
-comment below for where a future active-fault-mitigation phase would hook
-in without touching the engines themselves.
+``ThermalEnergyObservation`` is a read-only observation term: it reads
+actuator state each control step, feeds it through the two physics engines,
+and returns their state as an observation vector. It does not modify torque,
+rewards, or termination -- actuator intervention lives in the separate
+``apply_actuator_health`` event (``actuator_health.py``). Phase resistance
+and torque constant are temperature-dependent (``physics/motor_thermal.py``),
+evaluated at each joint's last known temperature, so a hot joint draws more
+current and makes more heat for the same torque.
 
 Joule heat and mechanical power are accumulated at *physics-substep*
 resolution rather than sampled once after the control step's decimation
@@ -29,6 +31,7 @@ import torch
 
 from heat_bench.physics.battery_ecm import AdvancedBatteryECM, BatchedBatteryECM
 from heat_bench.physics.lptn_engine import CHASSIS_IDX, BatchedLPTNEngine
+from heat_bench.physics.motor_thermal import MotorThermalModel
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 _BATTERY_MODELS = {
@@ -61,8 +64,7 @@ class ThermalEnergyObservation:
 
     thermal_cfg = hb_cfg["thermal"]
     self._gear_ratio_n = float(thermal_cfg["gear_ratio_N"])
-    self._kt = float(thermal_cfg["motor_torque_constant_Kt"])
-    self._rd = float(thermal_cfg["phase_resistance_Rd"])
+    self.motor = MotorThermalModel.from_config(thermal_cfg)
 
     battery_cfg = hb_cfg["battery"]
     battery_model_name = battery_cfg.get("model", "rint")
@@ -101,6 +103,15 @@ class ThermalEnergyObservation:
     self._orig_sim_step = env.sim.step
     env.sim.step = self._accumulate_substep  # ty: ignore[invalid-assignment]
 
+  def _electrical(self, tau: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """Per-joint (current, Joule heat) for realized torque ``tau``.
+
+    Rd/Kt use the last control step's joint temperatures (thermal state only
+    advances once per control step, so they're constant across substeps)."""
+    joint_temps = self.thermal.T[:, :12]
+    current = tau / (self._gear_ratio_n * self.motor.torque_constant(joint_temps))
+    return current, current.square() * self.motor.phase_resistance(joint_temps)
+
   def _accumulate_substep(self) -> None:
     self._orig_sim_step()
     tau = self._asset.data.qfrc_actuator[:, self._joint_ids]
@@ -111,9 +122,9 @@ class ThermalEnergyObservation:
     # the electro-thermal model below. This runs every physics substep, so
     # a future fault (e.g. a millisecond-scale back-EMF trip) would be
     # visible here even though the control step is coarser.
-    current = tau / (self._gear_ratio_n * self._kt)
+    current, joule_heat = self._electrical(tau)
 
-    self._heat_accum += current.square() * self._rd
+    self._heat_accum += joule_heat
     self._current_accum += current.abs()
     self._torque_accum += tau
     self._mech_power_accum += (tau * qd).clamp(min=0.0).sum(dim=-1)
@@ -143,8 +154,7 @@ class ThermalEnergyObservation:
       # well-formed value.
       tau = self._asset.data.qfrc_actuator[:, self._joint_ids]
       qd = self._asset.data.joint_vel[:, self._joint_ids]
-      current = tau / (self._gear_ratio_n * self._kt)
-      joule_heat = current.square() * self._rd
+      current, joule_heat = self._electrical(tau)
       mean_current = current.abs()
       mean_torque = tau
       mech_power = (tau * qd).clamp(min=0.0).sum(dim=-1)

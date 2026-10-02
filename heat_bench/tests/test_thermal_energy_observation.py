@@ -325,3 +325,55 @@ def test_cumulative_distance_traveled_accumulates_and_resets():
   metric.reset(env_ids=torch.tensor([0], device=device))
   assert metric._cum_distance[0].item() == 0.0
   assert metric._cum_distance[1].item() == 0.0
+
+
+def _substep_heat_and_current(temp_c: float, hb_cfg: dict):
+  """Accumulate one physics substep at a fixed torque with joints at temp_c."""
+  device = get_test_device()
+  entity, sim = _build_go1_entity(device, num_envs=1)
+  env = Mock()
+  env.num_envs = 1
+  env.device = device
+  env.scene = {"robot": entity}
+  env.sim = sim
+  term = ThermalEnergyObservation(
+    ObservationTermCfg(
+      func=ThermalEnergyObservation,
+      params={
+        "asset_cfg": SceneEntityCfg(name="robot", joint_names=(".*",)),
+        "config": hb_cfg,
+      },
+    ),
+    env,
+  )
+  term._orig_sim_step = lambda: None  # Hold qfrc_actuator fixed.
+  sim.data.qfrc_actuator[:] = 5.0
+  term.thermal.T[:, :12] = temp_c
+  term._accumulate_substep()
+  return term._heat_accum.clone(), term._current_accum.clone()
+
+
+def test_hot_joints_draw_more_current_and_heat_for_same_torque():
+  hb_cfg = load_heat_bench_config()
+  heat_cold, current_cold = _substep_heat_and_current(25.0, hb_cfg)
+  heat_hot, current_hot = _substep_heat_and_current(80.0, hb_cfg)
+  kt_ratio = (1 - 0.0012 * 60) / (1 - 0.0012 * 5)
+  rd_ratio = (1 + 0.00393 * 60) / (1 + 0.00393 * 5)
+  torch.testing.assert_close(current_hot, current_cold / kt_ratio)
+  torch.testing.assert_close(heat_hot, heat_cold * rd_ratio / kt_ratio**2)
+
+
+def test_zero_temp_coefficients_match_constant_rd_kt():
+  hb_cfg = load_heat_bench_config()
+  hb_cfg["thermal"]["phase_resistance_temp_coeff_per_c"] = 0.0
+  hb_cfg["thermal"]["torque_constant_temp_coeff_per_c"] = 0.0
+  heat, current = _substep_heat_and_current(80.0, hb_cfg)
+  thermal_cfg = hb_cfg["thermal"]
+  expected_current = 5.0 / (
+    thermal_cfg["gear_ratio_N"] * thermal_cfg["motor_torque_constant_Kt"]
+  )
+  torch.testing.assert_close(current, torch.full_like(current, expected_current))
+  torch.testing.assert_close(
+    heat,
+    torch.full_like(heat, expected_current**2 * thermal_cfg["phase_resistance_Rd"]),
+  )

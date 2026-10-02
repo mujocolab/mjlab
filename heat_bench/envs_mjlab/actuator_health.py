@@ -1,15 +1,20 @@
 """Per-(env, joint) actuator health state and the actuator writes it drives.
 
-``apply_actuator_health`` is the active counterpart to the passive
-``ThermalEnergyObservation``: a separate ``mode="step"`` event term that will
-own thermal derating and failure states (see ``heat_bench/PLAN.md``). It
-reads the observation term's cached state and writes ``actuator_forcerange``
--- the observation term itself is never modified.
+``apply_actuator_health`` is the active counterpart to the read-only
+``ThermalEnergyObservation``: a separate ``mode="step"`` event term that owns
+thermal derating and failure states (see ``heat_bench/PLAN.md``). It reads
+the observation term's cached joint temperatures and writes
+``actuator_forcerange`` every control step as::
 
-Phase 0 (this file today) is plumbing only: the state buffers exist and
-reset per episode, and every control step writes ``baseline * derate`` with
-``derate`` fixed at 1.0, i.e. an identity write that leaves the simulation
-unchanged.
+  baseline * derate * thermal_derate
+
+- ``thermal_derate`` (Phase 1) is ``Kt(T) / Kt_spec``, capped at 1: a real
+  motor driver limits *current*, so as the magnets warm and Kt fades the
+  same current limit yields proportionally less torque
+  (``physics/motor_thermal.py``). Reversible -- recomputed every step.
+- ``derate`` is the externally-set fault factor (``scripted_joint_fault``,
+  future shutdown conditions); the two multiply, as a current-capacity loss
+  and a torque-per-amp loss would physically.
 
 Timing: step events run after the decimation loop and before observation
 compute (``ManagerBasedRlEnv.step``), so each call sees joint temperatures
@@ -25,6 +30,7 @@ from typing import TYPE_CHECKING
 
 import torch
 
+from heat_bench.physics.motor_thermal import MotorThermalModel
 from mjlab.managers.event_manager import RecomputeLevel
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
@@ -35,7 +41,8 @@ if TYPE_CHECKING:
 
 class ActuatorState(IntEnum):
   """Discrete per-joint consequence state (see PLAN.md, "Causes vs.
-  consequence states"). Only HEALTHY is used in Phase 0."""
+  consequence states"). Thermal Kt fade alone never changes it; only fault
+  conditions (e.g. ``scripted_joint_fault``) set non-HEALTHY states."""
 
   HEALTHY = 0
   DERATED = 1
@@ -85,7 +92,10 @@ class apply_actuator_health:
 
     num_joints = len(joint_ids)
     self.derate = torch.ones(env.num_envs, num_joints, device=env.device)
-    """Continuous torque-ceiling scale in [0, 1]; 1.0 = full effort limit."""
+    """Fault torque-ceiling scale in [0, 1], set externally; 1.0 = no fault."""
+    self.thermal_derate = torch.ones(env.num_envs, num_joints, device=env.device)
+    """Kt(T)/Kt_spec torque-ceiling scale in (0, 1], recomputed every step."""
+    self._motor = MotorThermalModel.from_config(cfg.params["config"]["thermal"])
     self.state = torch.full(
       (env.num_envs, num_joints),
       ActuatorState.HEALTHY,
@@ -109,6 +119,7 @@ class apply_actuator_health:
     if env_ids is None:
       env_ids = slice(None)
     self.derate[env_ids] = 1.0
+    self.thermal_derate[env_ids] = 1.0
     self.state[env_ids] = ActuatorState.HEALTHY
     # The live field still holds this term's own (possibly derated) write
     # from the previous episode unless a DR event rewrote it since. Only take
@@ -135,17 +146,23 @@ class apply_actuator_health:
     asset_cfg: SceneEntityCfg,
     obs_group: str,
     obs_term: str,
+    config: dict,
   ) -> None:
-    del env_ids, asset_cfg  # Step mode always covers all envs.
+    del env_ids, asset_cfg, config  # Step mode covers all envs; config read in init.
     if self._thermal_term is None:
       self._thermal_term = env.observation_manager.get_term_cfg(
         obs_group, obs_term
       ).func
 
-    # Phase 1 hook: update self.derate / self.state from
-    # self._thermal_term.last_joint_temps here.
+    # Temps are from the end of the previous control step (see module
+    # docstring). Colder-than-spec magnets don't raise the spec effort limit.
+    temps = self._thermal_term.last_joint_temps
+    self.thermal_derate = (
+      self._motor.torque_constant(temps) / self._motor.kt_spec
+    ).clamp(max=1.0)
 
-    self._last_written = self.baseline_forcerange * self.derate.unsqueeze(-1)
+    scale = self.derate * self.thermal_derate
+    self._last_written = self.baseline_forcerange * scale.unsqueeze(-1)
     env.sim.model.actuator_forcerange[:, self.ctrl_ids] = self._last_written
 
 
@@ -153,8 +170,8 @@ class scripted_joint_fault:
   """Demo scenario: drive joints healthy -> derated -> dead on a timer.
 
   Not a physical failure model -- a scripted stand-in for exercising the
-  ``apply_actuator_health`` write path before Phases 1-2 decide derate/state
-  from tracked temperature. Writes that term's ``derate``/``state`` buffers
+  ``apply_actuator_health`` write path alongside Phase 1's temperature-driven
+  ``thermal_derate``. Writes that term's ``derate``/``state`` buffers
   for the given joints as a function of per-env episode time, so the schedule
   restarts whenever an env resets. Use with ``mode="step"``, registered
   *before* the health term so its write lands in the same step (see

@@ -63,9 +63,10 @@ Some style guidelines to follow:
 
 `heat_bench/` (passive thermal/battery/torque benchmark for trained
 policies) bases several design decisions on published research rather than
-guesswork — the 14-node thermal topology, the 50Hz/200Hz update split, and
-both battery models. Full context and citations live in
-`heat_bench/README.md`'s "References" section; the papers themselves:
+guesswork — the 14-node thermal topology, the 50Hz/200Hz update split,
+both battery models, and the Rd(T)/Kt(T) motor coefficients. Full context
+and citations live in `heat_bench/README.md`'s "References" section; the
+papers themselves:
 
 1. Qian et al., *"Learning Thermal-Aware Locomotion Policies for an
    Electrically-Actuated Quadruped Robot,"* arXiv:2603.01631.
@@ -83,6 +84,10 @@ both battery models. Full context and citations live in
    172, 398–407.
 6. Unitree, *Go2 battery specification* (BT2-05), unitree.com/go2/battery
    — a data source, not a paper.
+7. U.S. Bureau of Standards, *Copper Wire Card*, Misc. Pub. No. 17, 1919
+   — annealed-copper resistance temperature coefficient (data source).
+8. Arnold Magnetic Technologies, *N42 NdFeB* datasheet — reversible
+   α(Br) of NdFeB magnets (data source).
 
 When adding a new heat_bench design decision backed by research, cite it
 in both places: inline in the relevant module/config comment, and in

@@ -1,0 +1,104 @@
+"""Temperature dependence of a PMSM actuator's phase resistance and Kt.
+
+Two distinct, reversible effects, both linear in temperature:
+
+- **Phase resistance** ``Rd(T)``: copper resistivity rises with temperature,
+  so the same current dissipates more Joule heat. Annealed copper's
+  temperature coefficient is 0.00393 /°C referenced to 20°C (NBS Misc. Pub.
+  17, *Copper Wire Card*, 1919).
+- **Torque constant** ``Kt(T)``: NdFeB remanence ``Br`` falls with
+  temperature, so the same torque needs more current. Arnold Magnetic
+  Technologies' N42 datasheet gives a reversible coefficient of α(Br) =
+  −0.12 %/°C, measured between 20 and 80°C (applied linearly beyond 80°C
+  here; Go2's actual magnet grade is unknown). Since ``Kt ∝ Br``, the same
+  coefficient applies to ``Kt``.
+
+Only the *reversible* magnet fade is modeled. Permanent demagnetization
+above a grade's maximum operating temperature is a separate, accumulating
+effect (see ``heat_bench/PLAN.md``).
+
+Each coefficient is defined relative to its own reference temperature
+(``coeff_ref_c``, 20°C for both sources above), while the nominal Rd/Kt
+values are specified at ``spec_ref_c``; ``temperature_scale`` converts
+between the two exactly instead of assuming they coincide.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+import torch
+
+# Floor on the Kt scale so a (non-physical) extrapolation far past the
+# datasheet range can never divide by zero or flip sign.
+_MIN_KT_SCALE = 0.05
+
+
+def temperature_scale(
+  temps: torch.Tensor, coeff_per_c: float, coeff_ref_c: float, spec_ref_c: float
+) -> torch.Tensor:
+  """Return ``X(T) / X(spec_ref_c)`` for a property linear in temperature.
+
+  ``X(T) = X(coeff_ref_c) * (1 + coeff_per_c * (T - coeff_ref_c))``.
+  """
+  spec = 1.0 + coeff_per_c * (spec_ref_c - coeff_ref_c)
+  return (1.0 + coeff_per_c * (temps - coeff_ref_c)) / spec
+
+
+def phase_resistance(
+  temps: torch.Tensor,
+  rd_spec: float,
+  coeff_per_c: float,
+  coeff_ref_c: float,
+  spec_ref_c: float,
+) -> torch.Tensor:
+  """Per-joint phase resistance (ohm) at ``temps`` (°C)."""
+  return rd_spec * temperature_scale(temps, coeff_per_c, coeff_ref_c, spec_ref_c)
+
+
+def torque_constant(
+  temps: torch.Tensor,
+  kt_spec: float,
+  coeff_per_c: float,
+  coeff_ref_c: float,
+  spec_ref_c: float,
+) -> torch.Tensor:
+  """Per-joint motor torque constant (N·m/A) at ``temps`` (°C)."""
+  scale = temperature_scale(temps, coeff_per_c, coeff_ref_c, spec_ref_c)
+  return kt_spec * scale.clamp(min=_MIN_KT_SCALE)
+
+
+@dataclass(frozen=True)
+class MotorThermalModel:
+  """Rd(T)/Kt(T) for one motor type, built from the yaml ``thermal`` section.
+
+  Setting both coefficients to 0 recovers constant ``Rd``/``Kt``.
+  """
+
+  rd_spec: float
+  kt_spec: float
+  rd_coeff_per_c: float
+  kt_coeff_per_c: float
+  coeff_ref_c: float
+  spec_ref_c: float
+
+  @classmethod
+  def from_config(cls, thermal_cfg: dict) -> MotorThermalModel:
+    return cls(
+      rd_spec=float(thermal_cfg["phase_resistance_Rd"]),
+      kt_spec=float(thermal_cfg["motor_torque_constant_Kt"]),
+      rd_coeff_per_c=float(thermal_cfg.get("phase_resistance_temp_coeff_per_c", 0.0)),
+      kt_coeff_per_c=float(thermal_cfg.get("torque_constant_temp_coeff_per_c", 0.0)),
+      coeff_ref_c=float(thermal_cfg.get("motor_temp_coeff_reference_c", 20.0)),
+      spec_ref_c=float(thermal_cfg.get("motor_constants_reference_temp_c", 25.0)),
+    )
+
+  def phase_resistance(self, temps: torch.Tensor) -> torch.Tensor:
+    return phase_resistance(
+      temps, self.rd_spec, self.rd_coeff_per_c, self.coeff_ref_c, self.spec_ref_c
+    )
+
+  def torque_constant(self, temps: torch.Tensor) -> torch.Tensor:
+    return torque_constant(
+      temps, self.kt_spec, self.kt_coeff_per_c, self.coeff_ref_c, self.spec_ref_c
+    )

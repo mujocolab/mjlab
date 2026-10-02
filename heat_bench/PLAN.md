@@ -71,37 +71,38 @@ has followed since day one exists specifically so this remains possible.
   the existing `effort_limit`/`forcerange` lever rather than switching
   actuator families.
 
-## The two temperature-dependent effects that must both be added
+## The two temperature-dependent effects (implemented in Phase 1)
 
-Both currently fixed constants in `_accumulate_substep`
-(`eval_observations.py:64,114`: `current = tau / (gear_ratio * self._kt)`,
-`joule_heat = current² * self._rd`) — neither depends on temperature
-today. Confirmed via code read; this is not yet implemented anywhere.
-These are two *distinct* physical mechanisms, easy to conflate:
+Implemented in `heat_bench/physics/motor_thermal.py` and used by
+`ThermalEnergyObservation._electrical` (previously fixed constants). These
+are two *distinct* physical mechanisms, easy to conflate:
 
 - **`Rd(T)` — copper resistance rise.** Makes the *same current* generate
   *more heat* (`heat = I² · Rd(T)`). Does not by itself change how much
   current a given torque needs.
-- **`Kt(T)` — magnet demagnetization fade** (NdFeB, above ~80°C). Makes
-  the *same torque* require *more current* (`I = τ / (N · Kt(T))`), since
-  the motor is less efficient at converting current to torque.
+- **`Kt(T)` — magnet remanence fade.** Makes the *same torque* require
+  *more current* (`I = τ / (N · Kt(T))`). Two separate NdFeB effects,
+  corrected from an earlier draft that merged them as "fade above ~80°C":
+  - *Reversible* fade at **all** temperatures, −0.12 %/°C for N42 (Arnold
+    datasheet, measured 20–80°C), recovered on cooling. **Phase 1.**
+  - *Irreversible* demagnetization above a grade's max operating
+    temperature (~80°C for standard N grades). Accumulating damage —
+    **Phase 2**, not modeled yet.
 
-Together they form the actual runaway loop: hotter → weaker magnets
-(`Kt` drops) → more current needed to hold the same commanded torque →
-that larger current meets *higher* resistance (`Rd` up) → disproportionately
-more heat → hotter still. This is a genuine positive-feedback loop with
-**no built-in brake** — the only thing that can arrest it is the
-derating `EventTerm` forcing `τ` down via `forcerange`, which forces
-`current` down even as `Kt(T)` keeps falling. This is the mechanistic
-reason the derating system isn't optional polish — without it, a joint
-that starts losing `Kt` has no way to stop accelerating toward failure
-in this model.
+Since a real driver limits *current*, `Kt(T)` also lowers the joint's torque
+ceiling: Phase 1's thermal derate is exactly `Kt(T)/Kt_spec` (≈0.93 at
+80°C) — physics only, no invented protection curve.
 
-Both `Rd(T)` and `Kt(T)` are read-modify additions to the *existing*
-`_accumulate_substep` current/heat computation (fixed constant →
-temperature-dependent lookup against `self.thermal`'s last-known temps),
-not part of the new EventTerm. Placeholder-tag both coefficients the same
-way existing config placeholders are tagged, pending real Go2 data.
+Together they form a positive-feedback loop: hotter → `Kt` drops → more
+current for the same torque → that current meets higher `Rd` → heat for the
+same torque scales as `Rd(T)/Kt(T)²` (≈×1.4 at 80°C) → hotter still.
+**This raises the equilibrium temperature but is only a true runaway above
+a critical load**: the loop diverges when the extra heat per °C exceeds the
+joint→chassis conductance, i.e. sustained per-joint heat
+`P > 1/(Rth·(α_Rd + 2|α_Kt|)) ≈ 1/(2·0.0063) ≈ 80 W` (≈18 N·m continuous on
+one joint). Normal walking is ~25 W on the hottest knee. Stopping a true
+runaway needs torque reduction beyond physics — the user's planned Unitree
+80°C shutdown condition, or a protective policy.
 
 ## Closed-loop behavior to verify (both directions)
 
@@ -111,8 +112,10 @@ both read/write through the same realized-torque path
 (`qfrc_actuator` is computed *after* any actuator override, and the
 monitor reads it *after* the step). Concretely, verify both:
 
-1. **Protective loop (Phase 1 derating).** Hot joint → EventTerm reduces
-   `forcerange` → policy's commanded torque gets clamped lower →
+1. **Protective loop.** Hot joint → EventTerm reduces `forcerange` (Phase
+   1: only by the physical `Kt` ratio, a weak brake; stronger reduction
+   comes from a future shutdown condition) → policy's commanded torque
+   gets clamped lower →
    `_accumulate_substep` reads the now-smaller realized torque → smaller
    computed current/heat → LPTN's existing passive joint→chassis
    conduction (always active, proportional to `(T_joint - T_chassis)/Rth`,
@@ -123,8 +126,9 @@ monitor reads it *after* the step). Concretely, verify both:
 2. **Runaway loop (no intervention, or intervention arrives too late).**
    Hot joint → `Kt(T)` drops → more current for same commanded torque →
    `Rd(T)` up → disproportionately more heat → hotter → repeat,
-   accelerating, until either derating catches it (loop 1 kicks in) or
-   the terminal `dead` threshold is crossed (Phase 2, permanent).
+   — settling at a higher equilibrium below ~80 W/joint, accelerating
+   only above it, until a shutdown/derating condition catches it or the
+   terminal `dead` threshold is crossed (Phase 2, permanent).
 3. **Inactivity cooldown**, independent of both loops above: a joint
    given zero commanded torque (or forced to ~zero via derate/`free`)
    cools via the same always-on passive conduction path — no special
@@ -229,14 +233,22 @@ Original scope:
   resets correctly, event runs every step, can write a no-op/identity
   `forcerange` equal to the existing `effort_limit`).
 
-### Phase 1 — Reversible thermal derating + the two temperature effects
-- Add `Rd(T)` and `Kt(T)` to `_accumulate_substep`'s current/heat
-  computation (placeholder-tagged coefficients).
-- Add the derate decision function in the new EventTerm: temperature →
-  `forcerange` scale, flat below a threshold, tapering above it
-  (placeholder curve).
-- Verify the closed loop per the "Closed-loop behavior to verify"
-  section above, via the Robot Health viewer tab.
+### Phase 1 — Temperature-dependent motor physics — DONE
+- `Rd(T)` and `Kt(T)` (`physics/motor_thermal.py`), linear, cited
+  coefficients (copper 0.00393/°C, NBS Misc. Pub. 17; NdFeB N42
+  −0.12 %/°C, Arnold datasheet), both referenced to 20°C; nominal Rd/Kt
+  assumed specified at 25°C (placeholder). Zeroing both coefficients
+  recovers the old constant model exactly.
+- Event writes `baseline × derate × thermal_derate`, with
+  `thermal_derate = min(1, Kt(T)/Kt_spec)` recomputed every step from the
+  previous step's joint temps. `derate` stays the external fault factor
+  (scripted faults, future shutdown) so the two compose. Thermal fade never
+  changes `state`.
+- Decided against the originally planned taper curve: the user wants
+  degradation physically faithful. Unitree's 80°C joint shutdown is a
+  separate condition the user will add later.
+- Target is long eval runs (temps rise over minutes; a 20 s episode barely
+  warms a joint). Hot-start / short-episode support deferred to training.
 
 ### Phase 2 — Terminal thermal failure
 - Insulation-melt-analogue threshold: once crossed, latch `dead`
@@ -287,7 +299,8 @@ Original scope:
 ## Open questions to resolve when each phase starts
 
 - Mechanical failure states (Phase 3): reversible or terminal?
-- Failure-decision granularity: physics substep or control step?
-- Exact placeholder curve shapes for `Rd(T)`, `Kt(T)`, and the derate
-  function — need at least a plausible shape before Phase 1 can be
-  verified qualitatively, even without real calibration data.
+- Unitree 80°C shutdown condition (user-owned): trip/re-enable hysteresis
+  and where it writes (`derate`/`state`), plus a cited source.
+- Resolved: failure-decision granularity is the control step (Phase 0);
+  `Rd(T)`/`Kt(T)` are linear with cited coefficients and the thermal derate
+  is the physical `Kt` ratio (Phase 1).

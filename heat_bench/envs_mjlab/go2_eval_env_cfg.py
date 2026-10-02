@@ -148,6 +148,7 @@ def go2_eval_env_cfg(
         "asset_cfg": robot_asset_cfg,
         "obs_group": "thermal",
         "obs_term": "thermal_energy",
+        "config": hb_cfg,
       },
     )
 

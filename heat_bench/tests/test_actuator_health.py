@@ -2,6 +2,7 @@
 
 import importlib
 import os
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import Mock
 
@@ -48,7 +49,14 @@ def _make_term(device: str, num_envs: int):
     "asset_cfg": SceneEntityCfg(name="robot", joint_names=(".*",)),
     "obs_group": "thermal",
     "obs_term": "thermal_energy",
+    "config": load_heat_bench_config(),
   }
+  # Stand-in for ThermalEnergyObservation: joints at the Rd/Kt spec
+  # reference temperature, i.e. no thermal derate.
+  env.thermal_stub = SimpleNamespace(
+    last_joint_temps=torch.full((num_envs, 12), 25.0, device=device)
+  )
+  env.observation_manager.get_term_cfg.return_value = Mock(func=env.thermal_stub)
   term_cfg = EventTermCfg(func=apply_actuator_health, mode="step", params=params)
   return apply_actuator_health(term_cfg, env), env, entity, params
 
@@ -103,7 +111,6 @@ def test_buffers_init_healthy_and_reset_only_selected_envs():
   torch.testing.assert_close(term.baseline_forcerange[1], forcerange[1, term.ctrl_ids])
 
   # Identity write preserves the DR'd limits rather than clobbering them.
-  env.observation_manager.get_term_cfg.return_value = Mock(func=Mock())
   term.reset(None)
   before = forcerange.clone()
   term(env, None, **params)
@@ -114,6 +121,11 @@ def test_buffers_init_healthy_and_reset_only_selected_envs():
 def test_identity_write_in_real_env():
   cfg = go2_eval_env_cfg(play=True)
   cfg.scene.num_envs = 2
+  # Zero temperature coefficients -> thermal_derate stays 1, so the write
+  # must be an exact identity. (The hb_cfg dict is shared with the obs term.)
+  thermal_cfg = cfg.events["actuator_health"].params["config"]["thermal"]
+  thermal_cfg["torque_constant_temp_coeff_per_c"] = 0.0
+  thermal_cfg["phase_resistance_temp_coeff_per_c"] = 0.0
   env = ManagerBasedRlEnv(cfg=cfg, device=get_test_device())
   try:
     env.reset()
@@ -144,7 +156,6 @@ def test_reset_restores_joint_degraded_last_episode():
   reset, rather than the degraded write being re-snapshotted as baseline."""
   device = get_test_device()
   term, env, _, params = _make_term(device, num_envs=2)
-  env.observation_manager.get_term_cfg.return_value = Mock(func=Mock())
   forcerange = env.sim.model.actuator_forcerange
   full = forcerange[:, term.ctrl_ids].clone()
 
@@ -193,3 +204,53 @@ def test_scripted_fault_follows_schedule_on_selected_joints_only():
   others = [j for j in range(12) if j not in idx]
   assert (health.derate[:, others] == 1.0).all()
   assert (health.state[:, others] == ActuatorState.HEALTHY).all()
+
+
+def test_hot_joint_torque_limit_follows_kt_fade_and_composes_with_derate():
+  device = get_test_device()
+  term, env, _, params = _make_term(device, num_envs=2)
+  forcerange = env.sim.model.actuator_forcerange
+  full = forcerange[:, term.ctrl_ids].clone()
+  kt_ratio = (1 - 0.0012 * 60) / (1 - 0.0012 * 5)
+
+  env.thermal_stub.last_joint_temps[0, 0] = 80.0  # One hot joint.
+  env.thermal_stub.last_joint_temps[1] = 0.0  # Cold magnets.
+  term.derate[0, 0] = 0.5  # Scripted fault on the same joint.
+  term(env, None, **params)
+
+  torch.testing.assert_close(term.thermal_derate[0, 0].item(), kt_ratio)
+  torch.testing.assert_close(
+    forcerange[0, term.ctrl_ids[0]], full[0, 0] * 0.5 * kt_ratio
+  )
+  torch.testing.assert_close(forcerange[0, term.ctrl_ids[1:]], full[0, 1:])
+  # Colder than spec never raises the limit above the effort limit.
+  torch.testing.assert_close(forcerange[1, term.ctrl_ids], full[1])
+  # Thermal fade alone is not a fault state.
+  assert (term.state == ActuatorState.HEALTHY).all()
+
+  term.reset(torch.tensor([0], device=device))
+  assert (term.thermal_derate[0] == 1.0).all()
+
+
+@pytest.mark.slow
+def test_hot_start_derates_torque_limit_in_real_env(monkeypatch):
+  hb_cfg = load_heat_bench_config()
+  hb_cfg["thermal"]["initial_joint_temperature_c"] = 80.0
+  module = importlib.import_module("heat_bench.envs_mjlab.go2_eval_env_cfg")
+  monkeypatch.setattr(module, "load_heat_bench_config", lambda: hb_cfg)
+  cfg = go2_eval_env_cfg(play=True)
+  cfg.scene.num_envs = 2
+  env = ManagerBasedRlEnv(cfg=cfg, device=get_test_device())
+  try:
+    env.reset()
+    term = env.event_manager.get_term_cfg("actuator_health").func
+    full = term.baseline_forcerange.clone()
+    actions = torch.zeros(env.action_space.shape, device=env.device)
+    for _ in range(3):
+      env.step(actions)
+    # Joints barely move from 80C in 3 steps: limit ~= Kt(80)/Kt(25).
+    kt_ratio = (1 - 0.0012 * 60) / (1 - 0.0012 * 5)
+    limit = env.sim.model.actuator_forcerange[:, term.ctrl_ids]
+    torch.testing.assert_close(limit, full * kt_ratio, rtol=1e-3, atol=1e-3)
+  finally:
+    env.close()

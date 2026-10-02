@@ -18,6 +18,13 @@ Go2 MJCF later without touching the physics engines.
 - **`physics/lptn_engine.py`** — `BatchedLPTNEngine`: a batched 14-node
   lumped-parameter thermal network (12 actuators + 1 chassis + 1 ambient
   boundary node), integrated with forward Euler.
+- **`physics/motor_thermal.py`** — `MotorThermalModel`: temperature-
+  dependent phase resistance `Rd(T)` (copper, +0.393%/°C [[7]](#references))
+  and torque constant `Kt(T)` (reversible NdFeB magnet fade, −0.12%/°C
+  [[8]](#references)). A hot joint draws more current and makes more heat
+  for the same torque (≈×1.4 heat at 80°C), and — since a motor driver
+  limits current — has a lower torque ceiling. Set both
+  `*_temp_coeff_per_c` values in the yaml to 0 to recover constant Rd/Kt.
 - **`physics/battery_ecm.py`** — two swappable battery models, selected via
   `battery.model` in `configs/go2_eval_config.yaml`: `BatchedBatteryECM`
   ("rint", default), a fixed-resistance Rint model, and `AdvancedBatteryECM`
@@ -37,13 +44,15 @@ Go2 MJCF later without touching the physics engines.
   depends on.
 - **`envs_mjlab/actuator_health.py`** — `apply_actuator_health`, a
   `mode="step"` event term that owns per-(env, joint) actuator health
-  (continuous derate factor + discrete `ActuatorState`) and writes
-  `actuator_forcerange` every control step, as `baseline × derate` where
-  the baseline is snapshotted at reset (so it composes with effort-limit
-  domain randomization). Currently a Phase 0 scaffold: derate is always
-  1.0, so the write is an identity and behavior is unchanged. Toggle with
-  `actuator_health.enabled` in the yaml. See `PLAN.md` for the phases that
-  build on it.
+  (fault derate factor + discrete `ActuatorState`) and writes
+  `actuator_forcerange` every control step as
+  `baseline × derate × thermal_derate`. `thermal_derate = min(1,
+  Kt(T)/Kt_spec)` is the physical torque-ceiling loss from magnet fade
+  (≈0.93 at 80°C), recomputed every step and recovered on cooling;
+  `derate` is the external fault factor (e.g. `--joint-fault`). The
+  baseline is refreshed at reset (so it composes with effort-limit domain
+  randomization). Toggle with `actuator_health.enabled` in the yaml. See
+  `PLAN.md` for the phases that build on it.
 - **`scripts/run_eval.py`** — headless batch evaluation of a checkpoint,
   dumping per-episode results to CSV/JSON.
 - **`scripts/play.py`** + **`viewer/`** — an interactive Viser-based viewer
@@ -118,6 +127,17 @@ Unitree's official Go2 spec, [[6]](#references).
 6. Unitree, *Go2 battery specification* (BT2-05 "Standard Version"),
    <https://www.unitree.com/go2/battery> — data source, not a paper: 8S
    Li-ion, 8000mAh (236.8Wh), 29.6V nominal / 33.6V charge limit.
+7. U.S. Bureau of Standards, *Copper Wire Card*, Miscellaneous
+   Publication No. 17, 1919,
+   <https://nvlpubs.nist.gov/nistpubs/Legacy/MP/nbsmiscellaneouspub17.pdf>
+   — data source: annealed-copper resistance temperature coefficient
+   0.00393 /°C at 20°C.
+8. Arnold Magnetic Technologies, *N42 Sintered Neodymium-Iron-Boron
+   Magnets* datasheet,
+   <https://www.arnoldmagnetics.com/wp-content/uploads/2017/11/N42-151021.pdf>
+   — data source: reversible temperature coefficient of induction
+   α(Br) = −0.12 %/°C, measured 20–80°C. Go2's actual magnet grade is
+   unknown; N42 is a representative standard grade.
 
 ## Known placeholders
 
@@ -128,8 +148,10 @@ full-charge OCV are now also given, from Unitree's official Go2 battery
 spec ([[6]](#references), BT2-05 "Standard Version"): an 8S Li-ion pack,
 8000mAh (236.8Wh), 29.6V nominal / 33.6V charge limit.
 Still placeholder, clearly tagged `# PLACEHOLDER` in
-`configs/go2_eval_config.yaml`: internal resistance (not published by
-Unitree), the empty-pack OCV (standard 3.0V/cell Li-ion cutoff, not
+`configs/go2_eval_config.yaml`: the temperature at which Go2's Rd/Kt were
+specified (assumed 25°C; the Rd(T)/Kt(T) coefficients themselves are cited
+material constants [[7]](#references), [[8]](#references)), internal
+resistance (not published by Unitree), the empty-pack OCV (standard 3.0V/cell Li-ion cutoff, not
 Go2-specific), chassis thermal capacitance, and the convection-vs-velocity
 coefficients -- pending either further datasheet digging or calibration
 against real hardware telemetry (e.g. Unitree's per-motor
