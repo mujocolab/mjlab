@@ -35,6 +35,15 @@ Go2 MJCF later without touching the physics engines.
   (joint temps, battery energy/SoC, distance) without touching rewards,
   actions, or the actor/critic observation groups a trained checkpoint
   depends on.
+- **`envs_mjlab/actuator_health.py`** — `apply_actuator_health`, a
+  `mode="step"` event term that owns per-(env, joint) actuator health
+  (continuous derate factor + discrete `ActuatorState`) and writes
+  `actuator_forcerange` every control step, as `baseline × derate` where
+  the baseline is snapshotted at reset (so it composes with effort-limit
+  domain randomization). Currently a Phase 0 scaffold: derate is always
+  1.0, so the write is an identity and behavior is unchanged. Toggle with
+  `actuator_health.enabled` in the yaml. See `PLAN.md` for the phases that
+  build on it.
 - **`scripts/run_eval.py`** — headless batch evaluation of a checkpoint,
   dumping per-episode results to CSV/JSON.
 - **`scripts/play.py`** + **`viewer/`** — an interactive Viser-based viewer
@@ -149,6 +158,12 @@ noted otherwise.
   respecting the robot's mass/inertia/contacts. Renders as a visible arrow
   in the viewer automatically (mjlab's built-in debug-vis, no extra code
   needed). Both disturbances can be combined.
+- **Scripted joint fault** (`--joint-fault JOINT [JOINT ...]` on
+  `play.py`) — drives the named joints through healthy → derated (torque
+  limit ramps to 30% over 3–6s) → dead (zero torque at 10s), timed per
+  episode, via `scripted_joint_fault` writing the actuator-health event's
+  buffers. A controlled demo of the torque-limit path, not a physical
+  failure model — Phase 1+ derive failure from tracked temperature.
 - **Battery model A/B comparison** (`--battery-model rint|rint_soc_aging`
   plus `--port` on `play.py`) — override `battery.model` for a single run
   without editing the yaml; launch two instances on different ports to

@@ -14,6 +14,10 @@ from pathlib import Path
 import torch
 import yaml
 
+from heat_bench.envs_mjlab.actuator_health import (
+  apply_actuator_health,
+  scripted_joint_fault,
+)
 from heat_bench.envs_mjlab.eval_observations import (
   ThermalEnergyObservation,
   battery_capacity_loss_pct,
@@ -136,6 +140,17 @@ def go2_eval_env_cfg(
     params={"obs_group": "thermal", "obs_term": "thermal_energy"},
   )
 
+  if hb_cfg.get("actuator_health", {}).get("enabled", False):
+    cfg.events["actuator_health"] = EventTermCfg(
+      func=apply_actuator_health,
+      mode="step",
+      params={
+        "asset_cfg": robot_asset_cfg,
+        "obs_group": "thermal",
+        "obs_term": "thermal_energy",
+      },
+    )
+
   payload_cfg = hb_cfg.get("payload", {})
   if payload_cfg.get("enabled", False):
     cfg.events["payload_mass"] = EventTermCfg(
@@ -205,3 +220,37 @@ def add_impulse_disturbance(
       "asset_cfg": SceneEntityCfg("robot", body_names=tuple(impulse_cfg["body_names"])),
     },
   )
+
+
+def add_scripted_joint_fault(
+  cfg: ManagerBasedRlEnvCfg,
+  joint_names: tuple[str, ...],
+  derate_start_s: float = 3.0,
+  derate_end_s: float = 6.0,
+  derate_floor: float = 0.3,
+  dead_at_s: float = 10.0,
+) -> None:
+  """Script joints through healthy -> derated -> dead, mutating ``cfg``.
+
+  Demo of the ``actuator_health`` write path (see ``scripted_joint_fault``).
+  All selected joints share one schedule; every other joint stays at full
+  health. Requires ``actuator_health`` to be enabled. Re-inserts the health
+  term after the fault event so the scripted derate applies in the same
+  control step.
+  """
+  if "actuator_health" not in cfg.events:
+    raise ValueError("add_scripted_joint_fault requires actuator_health enabled.")
+  health_event = cfg.events.pop("actuator_health")
+  cfg.events["joint_fault"] = EventTermCfg(
+    func=scripted_joint_fault,
+    mode="step",
+    params={
+      "joint_names": tuple(joint_names),
+      "health_term": "actuator_health",
+      "derate_start_s": derate_start_s,
+      "derate_end_s": derate_end_s,
+      "derate_floor": derate_floor,
+      "dead_at_s": dead_at_s,
+    },
+  )
+  cfg.events["actuator_health"] = health_event

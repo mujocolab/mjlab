@@ -204,7 +204,22 @@ thermal/mechanical stress needed to exercise any of the above.
 
 ## Step-by-step phases
 
-### Phase 0 — New EventTerm scaffold (additive only)
+### Phase 0 — New EventTerm scaffold (additive only) — DONE
+Implemented in `heat_bench/envs_mjlab/actuator_health.py`, gated by
+`actuator_health.enabled` (default on). Decisions made while building it:
+- **Granularity: control step.** Step events run after the decimation loop
+  and before observation compute, so the event reads temps from the end of
+  the previous control step (20 ms lag) and its write governs every
+  substep of the next one.
+- **Baseline snapshotted at reset.** `reset()` runs after reset-mode DR
+  events, so it copies the live per-env `forcerange` and each step writes
+  `baseline × derate`. This resolves the DR write-ordering risk under
+  "Event design" for `effort_limits`. `pd_gains` vs. gain writes for
+  `free`/`locked` still needs the same treatment in Phase 3.
+- The thermal obs term is resolved lazily on first call (the
+  EventManager is built before the ObservationManager).
+
+Original scope:
 - Add `apply_actuator_health` EventTerm, wired into
   `go2_eval_env_cfg.py` alongside the existing `"thermal"` observation
   group. No changes to `ThermalEnergyObservation`.

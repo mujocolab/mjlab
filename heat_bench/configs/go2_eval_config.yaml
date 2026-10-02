@@ -108,3 +108,11 @@ impulse_disturbance:
   duration_s: [0.05, 0.15]       # seconds the impulse is held
   cooldown_s: [1.0, 3.0]         # seconds of silence between impulses
   body_names: ["trunk"]
+
+# Active actuator-health event (heat_bench/envs_mjlab/actuator_health.py):
+# owns per-joint derate/failure state and writes actuator_forcerange every
+# control step. Phase 0 is an identity write (no behavior change); derating
+# thresholds and failure limits will be added to this section in later
+# phases -- see heat_bench/PLAN.md.
+actuator_health:
+  enabled: true

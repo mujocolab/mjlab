@@ -24,6 +24,7 @@ import viser
 from heat_bench.envs_mjlab.go2_eval_env_cfg import (
   add_impulse_disturbance,
   add_push_disturbance,
+  add_scripted_joint_fault,
   go2_eval_env_cfg,
 )
 from heat_bench.viewer import HealthMonitoringViewer
@@ -66,6 +67,11 @@ class PlayConfig:
   """Override configs/go2_eval_config.yaml's battery.model ("rint" or
   "rint_soc_aging") for this run, e.g. to launch two instances on
   different --port values and compare them side by side."""
+  joint_fault: tuple[str, ...] = ()
+  """Joint names (e.g. 'FR_calf_joint RL_calf_joint') to script through
+  healthy -> derated (torque limit ramps to 30% over 3-6s) -> dead (zero
+  torque at 10s), timed per episode. All other joints stay healthy. Demo of the actuator_health
+  write path; not yet a temperature-driven failure."""
   port: int = 8080
   """Viser server port. Use a different port per instance to run more than
   one viewer (e.g. two battery models) side by side."""
@@ -80,6 +86,8 @@ def run_play(cfg: PlayConfig) -> None:
     add_push_disturbance(env_cfg)
   if cfg.impulse_disturbance:
     add_impulse_disturbance(env_cfg)
+  if cfg.joint_fault:
+    add_scripted_joint_fault(env_cfg, cfg.joint_fault)
   agent_cfg = load_rl_cfg(REFERENCE_TASK_ID)
   env_cfg.scene.num_envs = cfg.num_envs
 
@@ -103,6 +111,12 @@ def run_play(cfg: PlayConfig) -> None:
     print(
       "[INFO] Impulse disturbance enabled: force-based push/kick -- watch "
       "for the magenta arrow (debug visualization is on by default)."
+    )
+
+  if cfg.joint_fault:
+    print(
+      f"[INFO] Scripted joint fault on {', '.join(cfg.joint_fault)}: healthy 0-3s, "
+      "derated to 30% torque by 6s, dead (zero torque) at 10s."
     )
 
   runner_cls = load_runner_cls(REFERENCE_TASK_ID) or MjlabOnPolicyRunner
