@@ -2,15 +2,25 @@
 #
 # `robot.simulated_mjcf` is the MJCF body mjlab actually steps in physics
 # (currently Go1 -- mjlab has no Go2 asset yet). `robot.modeled_hardware`
-# names the actuator/battery electro-thermal model these constants describe
-# (Go2). The two are intentionally different until a real Go2 MJCF is
-# imported; see heat_bench/README-less design note in the plan doc.
+# names the hardware the benchmark targets (Go2): the battery constants are
+# Go2 specs, while the motor/thermal constants are the papers' A1-class set
+# (see the note under `thermal:`). Simulated body and modeled hardware are
+# intentionally different until a real Go2 MJCF is imported; see
+# heat_bench/README-less design note in the plan doc.
 robot:
   simulated_mjcf: "unitree_go1"
   modeled_hardware: "unitree_go2"
   num_actuated_joints: 12
 
 thermal:
+  # The motor/thermal constants below (gear_ratio_N, Kt, Rd, Cth, Rth) are
+  # the Unitree-A1-class parameter set from the papers this thermal model is
+  # based on (heat_bench/README.md References [1]-[3]) -- NOT Go2 motor
+  # specs. They are kept as one consistent set on purpose: the 12-joint
+  # topology is shared, so the model's behavior carries over. Don't swap
+  # individual values for Go2 datasheet numbers (e.g. GO-M8010-6: ratio
+  # 6.33, output-side Kt 0.639 N*m/A); mixing sources breaks the set's
+  # internal consistency. Replace the whole module/set if upgrading.
   gear_ratio_N: 6.22                       # GIVEN
   motor_torque_constant_Kt: 0.26           # GIVEN, N*m/A
   phase_resistance_Rd: 0.66                # GIVEN, ohm

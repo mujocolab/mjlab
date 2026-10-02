@@ -141,8 +141,17 @@ Unitree's official Go2 spec, [[6]](#references).
 
 ## Known placeholders
 
-Go2's motor/electrical constants (gear ratio, torque constant, phase
-resistance, joint thermal capacitance/resistance) are given, real values.
+The motor/thermal constants (gear ratio, torque constant, phase
+resistance, joint thermal capacitance/resistance) are given, real values
+from the papers this thermal model is based on ([[1]](#references)–[[3]](#references))
+— a Unitree-A1-class parameter set, not Go2 motor specs. They're kept as
+one consistent set on purpose: the 12-joint topology is shared, so the
+model's behavior carries over, and the thermal/battery models are meant to
+be swapped as whole modules if upgraded. Don't replace single values with
+Go2 datasheet numbers (Unitree's GO-M8010-6 manual lists ratio 6.33 and an
+output-side torque constant of 0.639 N·m/A vs this set's 6.22 × 0.26 =
+1.617): mixing sources while keeping the set's phase resistance gave ~6×
+the Joule heat and a joint at 179°C within 3 minutes.
 The battery pack's nominal voltage, capacity, series cell count, and
 full-charge OCV are now also given, from Unitree's official Go2 battery
 spec ([[6]](#references), BT2-05 "Standard Version"): an 8S Li-ion pack,
