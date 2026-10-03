@@ -31,6 +31,10 @@ Fixed
   default ``"add"`` operation the per-episode bias performed a random walk and grew
   well beyond the configured range over the course of training. The first episode's
   bias with ``sample_bias_per_component=True`` is no longer the sum of two draws.
+- ``feet_swing_height`` now zeroes ``peak_heights`` on environment reset. Previously it
+  defined no ``reset`` method, so an episode ending with a foot in the air carried that
+  swing's peak height into the first landing of the next episode and corrupted the
+  landing penalty and ``Metrics/peak_height_mean``.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------

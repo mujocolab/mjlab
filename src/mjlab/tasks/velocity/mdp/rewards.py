@@ -322,6 +322,11 @@ class feet_swing_height:
     )
     return cost
 
+  def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
+    if env_ids is None:
+      env_ids = slice(None)
+    self.peak_heights[env_ids] = 0.0
+
 
 def feet_slip(
   env: ManagerBasedRlEnv,
