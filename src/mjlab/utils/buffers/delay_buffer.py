@@ -46,16 +46,18 @@ class DelayBuffer:
 
     **Staggered updates (per_env_phase=True)**
       Each environment gets a random phase_offset ∈ [0, N), causing
-      lag updates to occur on different timesteps. Each environment also
-      samples on its first step so that its lag starts in [min_lag, max_lag]:
+      lag updates to occur on different timesteps:
         Env 0: updates at t=0, N, 2N, ...
-        Env 1: updates at t=0, 3, N+3, 2N+3, ...
-        Env 2: updates at t=0, 7, N+7, 2N+7, ...
+        Env 1: updates at t=3, N+3, 2N+3, ...
+        Env 2: updates at t=7, N+7, 2N+7, ...
 
     **Hold probability (hold_prob=0.2)**
-      Even when an update would occur, keep previous lag with 20% chance
-      (except when no lag has been sampled or set yet).
+      Even when an update would occur, keep previous lag with 20% chance.
       Creates temporal correlation in delay patterns.
+
+    **First step**
+      The first compute() after creation or reset always samples a lag, ignoring
+      update phase and hold_prob, unless set_lags() was called first.
 
   Per-Environment vs Shared Lags
   ==============================
@@ -74,9 +76,7 @@ class DelayBuffer:
   ==============
 
     reset(batch_ids=[1]) clears history for specified environments:
-      - Sets lag and step counter to zero; unless set_lags() is called first, the
-        next compute() samples a fresh lag in [min_lag, max_lag] regardless of
-        update phase or hold_prob
+      - Sets lag and step counter to zero
       - Clears circular buffer for those rows
       - Next append backfills their history with first new value
       - Until that append, compute() returns zeros for reset rows
@@ -117,7 +117,7 @@ class DelayBuffer:
       ...     hold_prob=0.2               # 20% chance to hold lag
       ... )
       >>> # Env 0 refreshes at t=0,10,20,...
-      >>> # Env 1 refreshes at t=0,3,13,23,... (random offset)
+      >>> # Env 1 refreshes at t=3,13,23,... (random offset)
       >>> # But each refresh has 20% chance to keep previous lag
   """
 
@@ -282,28 +282,23 @@ class DelayBuffer:
 
   def _update_lags(self) -> None:
     """Update current lags according to configured policy."""
-    # Rows without a lag since creation or reset have no previous lag to keep, so
-    # they always sample, regardless of their update phase or hold_prob.
-    needs_lag = self._needs_lag
     if self.update_period > 0:
       phase_adjusted_count = (self._step_count + self._phase_offsets) % (
         self.update_period
       )
-      should_update = (phase_adjusted_count == 0) | needs_lag
+      should_update = (phase_adjusted_count == 0) | self._needs_lag
     else:
       should_update = torch.ones(self.batch_size, dtype=torch.bool, device=self.device)
-    new_lags = self._sample_lags(should_update, force=needs_lag)
+    new_lags = self._sample_lags(should_update)
     self._current_lags = torch.where(should_update, new_lags, self._current_lags)
     self._needs_lag.zero_()
     self._step_count += 1
 
-  def _sample_lags(self, mask: torch.Tensor, force: torch.Tensor) -> torch.Tensor:
+  def _sample_lags(self, mask: torch.Tensor) -> torch.Tensor:
     """Sample new lags for specified environments.
 
     Args:
       mask: Boolean mask of shape (batch_size,) indicating which envs to sample.
-      force: Boolean mask of shape (batch_size,) indicating which envs to sample
-        regardless of hold_prob.
 
     Returns:
       New lags with shape (batch_size,).
@@ -342,4 +337,6 @@ class DelayBuffer:
     else:
       update_mask = mask
 
-    return torch.where(update_mask | force, candidate_lags, self._current_lags)
+    # Rows without a lag have nothing to hold, so they always take the new sample.
+    update_mask = update_mask | self._needs_lag
+    return torch.where(update_mask, candidate_lags, self._current_lags)
