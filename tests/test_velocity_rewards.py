@@ -7,10 +7,10 @@ from unittest.mock import MagicMock, PropertyMock
 
 import torch
 
-from mjlab.managers.reward_manager import RewardTermCfg
+from mjlab.managers.reward_manager import RewardManager, RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
-from mjlab.sensor import RayCastData, RayCastSensor
-from mjlab.tasks.velocity.mdp.rewards import upright
+from mjlab.sensor import ContactSensor, RayCastData, RayCastSensor, TerrainHeightSensor
+from mjlab.tasks.velocity.mdp.rewards import feet_swing_height, upright
 from mjlab.utils.lab_api.math import quat_from_euler_xyz
 
 
@@ -188,3 +188,65 @@ def test_batch_consistency():
   assert r[1].item() > 0.99
   assert r[2].item() < 0.7
   assert r[3].item() > 0.99
+
+
+def test_feet_swing_height_reset_clears_peak_heights():
+  """Resetting an env mid-swing clears its peak_heights before the next landing."""
+  B, num_feet = 2, 2
+  contact_sensor = MagicMock(spec=ContactSensor)
+  contact_sensor.data.found = torch.zeros(B, num_feet)
+  contact_sensor.compute_first_contact.return_value = torch.zeros(
+    B, num_feet, dtype=torch.bool
+  )
+
+  height_sensor = MagicMock(spec=TerrainHeightSensor)
+  height_sensor.num_frames = num_feet
+  height_sensor.data.heights = torch.full((B, num_feet), 0.5)
+
+  env = MagicMock()
+  env.num_envs = B
+  env.device = "cpu"
+  env.step_dt = 0.02
+  env.max_episode_length_s = 10.0
+  env.extras = {"log": {}}
+  sensors = {"feet_contact": contact_sensor, "foot_height": height_sensor}
+  env.scene.__getitem__ = MagicMock(side_effect=lambda k: sensors[k])
+  env.command_manager.get_command.return_value = torch.tensor([[1.0, 0.0, 0.0]] * B)
+
+  cfg = {
+    "swing": RewardTermCfg(
+      func=feet_swing_height,
+      weight=1.0,
+      params={
+        "sensor_name": "feet_contact",
+        "height_sensor_name": "foot_height",
+        "target_height": 0.1,
+        "command_name": "twist",
+        "command_threshold": 0.05,
+      },
+    )
+  }
+  manager = RewardManager(cfg, env, scale_by_dt=False)
+
+  # Step 1: both envs are in the air at 0.5 m, recording peak_heights = 0.5.
+  manager.compute(dt=0.02)
+  term = manager._class_term_cfgs[0].func
+  assert torch.allclose(term.peak_heights, torch.full((B, num_feet), 0.5))
+
+  # Env 0 resets mid-air; env 1 continues its episode.
+  manager.reset(env_ids=torch.tensor([0]))
+  assert torch.allclose(term.peak_heights[0], torch.zeros(num_feet))
+  assert torch.allclose(term.peak_heights[1], torch.full((num_feet,), 0.5))
+
+  # Step 2: env 0 swings to target_height (0.1 m) in the new episode.
+  height_sensor.data.heights = torch.tensor([[0.1, 0.1], [0.1, 0.1]])
+  manager.compute(dt=0.02)
+
+  # Step 3: both envs land. Env 0 has zero error; env 1 is penalized for its 0.5 m peak.
+  contact_sensor.data.found = torch.ones(B, num_feet)
+  contact_sensor.compute_first_contact.return_value = torch.ones(
+    B, num_feet, dtype=torch.bool
+  )
+  rewards = manager.compute(dt=0.02)
+  expected = torch.tensor([0.0, 2.0 * (0.5 / 0.1 - 1.0) ** 2])
+  torch.testing.assert_close(rewards, expected)
