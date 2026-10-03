@@ -581,6 +581,8 @@ bias with <code class="docutils literal notranslate"><span class="pre">sample_bi
 defined no <code class="docutils literal notranslate"><span class="pre">reset</span></code> method, so an episode ending with a foot in the air carried that
 swing’s peak height into the first landing of the next episode and corrupted the
 landing penalty and <code class="docutils literal notranslate"><span class="pre">Metrics/peak_height_mean</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">csv_to_npz</span></code> now keeps the last frame of the input motion. Previously the
+resampled motion stopped one output step short and never reached the final pose.</p></li>
 </ul>
 </section>
 </section>

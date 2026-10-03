@@ -35,6 +35,8 @@ Fixed
   defined no ``reset`` method, so an episode ending with a foot in the air carried that
   swing's peak height into the first landing of the next episode and corrupted the
   landing penalty and ``Metrics/peak_height_mean``.
+- ``csv_to_npz`` now keeps the last frame of the input motion. Previously the
+  resampled motion stopped one output step short and never reached the final pose.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------
