@@ -41,7 +41,9 @@ class MpcDataSource(Protocol):
   """What ``MpopiPpo`` needs from an MPC collector."""
 
   def collect(
-    self, policy: Callable[[TensorDict], torch.Tensor] | None = None
+    self,
+    policy: Callable[[TensorDict], torch.Tensor] | None = None,
+    policy_mean: Callable[[TensorDict], torch.Tensor] | None = None,
   ) -> tuple[dict, dict[str, float]]: ...
 
   def close(self) -> None: ...
@@ -300,7 +302,8 @@ class MpopiPpo(PPO):
       if self.mpc_collector is None:
         raise RuntimeError("mpc_ppo needs attach_mpc_collector() before training.")
       policy = self._act_stochastic if cfg.driver == "policy" else None
-      segment, collect_metrics = self.mpc_collector.collect(policy)
+      policy_mean = self._act_mean if cfg.teacher_gap_every is not None else None
+      segment, collect_metrics = self.mpc_collector.collect(policy, policy_mean)
       self.replay.insert(**segment, policy_version=version)
       metrics.update({f"collect_{k}": v for k, v in collect_metrics.items()})
     if cfg.max_age is not None:
@@ -312,6 +315,11 @@ class MpopiPpo(PPO):
     """Sample from the current policy (DAgger's acting policy)."""
     with torch.no_grad():
       return self.actor(obs, stochastic_output=True)
+
+  def _act_mean(self, obs: TensorDict) -> torch.Tensor:
+    """Mean action of the current policy (compared with the MPC plan)."""
+    with torch.no_grad():
+      return self.actor(obs)
 
   def _bc_batch(self) -> MpopiBatch | None:
     """Every MPC sample in the buffer as a behavior-cloning-only batch.

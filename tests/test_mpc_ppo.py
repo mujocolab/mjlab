@@ -228,10 +228,17 @@ def test_dagger_with_own_replay_uses_both_sources(device):
   )
   with pytest.raises(ValueError, match="replay_own_rollouts"):
     replace(mpc, driver="mpc", execution_std=0.3, use_in_ppo=True).validate()
-  runner = _runner(device, mpc)
+  runner = _runner(device, replace(mpc, teacher_gap_every=2))
   alg = _alg(runner)
   logs = _learn(runner, 3)
   assert alg.own_replay is not None and len(alg.own_replay) == 3
+  # Teacher-versus-policy comparison on 2 of the 4 collected steps.
+  for log in logs:
+    assert 0.0 <= log["mpc/collect_teacher_better_frac"] <= 1.0
+    assert log["mpc/collect_teacher_gap"] == pytest.approx(
+      log["mpc/collect_teacher_return"] - log["mpc/collect_teacher_policy_return"],
+      abs=1e-5,
+    )
   assert len(alg.replay) == 3  # MPC labels, in their own buffer.
   num_fresh = 8 * 8
   for log in logs[1:]:

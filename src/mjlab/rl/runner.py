@@ -60,6 +60,7 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
       clip_actions=self.env.clip_actions,
       device=self.device,
       seed=int(self.cfg.get("seed", 0)) + 1,  # Different starts from training.
+      teacher_gap_every=cfg.teacher_gap_every,
     )
     alg.attach_mpc_collector(collector)
 

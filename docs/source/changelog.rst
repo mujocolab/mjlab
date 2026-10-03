@@ -32,6 +32,10 @@ Added
 - ``mpc_ppo`` option ``replay_own_rollouts``: also replay PPO's own past
   rollouts with MPOPI's correction while the MPC data only feeds behavior
   cloning (for example DAgger combined with Replay-IS).
+- ``mpc_ppo`` option ``teacher_gap_every``: while collecting, compare the
+  planner's plan with the policy's mean action from the same state over the
+  planner horizon and log the return gap and how often the plan is better
+  (``SamplingMpc.compare_with_policy``).
 - ``Mjlab-Velocity-Flat-Unitree-G1-2k``: flat G1 velocity task for 2000
   iterations whose command curriculum reaches forward speeds up to 1.5 m/s at
   iteration 500. ``scripts/mpc/eval_mpc_velocity.py`` can evaluate a trained

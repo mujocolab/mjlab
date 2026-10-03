@@ -39,6 +39,7 @@ class MpcCollector:
     clip_actions: float | None = None,
     device: str = "cpu",
     seed: int = 0,
+    teacher_gap_every: int | None = None,
   ) -> None:
     """
     Args:
@@ -50,11 +51,18 @@ class MpcCollector:
       clip_actions: Same action clipping as the PPO env wrapper.
       device: Torch / simulation device.
       seed: Seed of the real envs and of the execution noise.
+      teacher_gap_every: If set, every this many collected steps compare the
+        planner's plan with the policy's mean action from the same state (see
+        :meth:`SamplingMpc.compare_with_policy`). Needs ``policy_mean`` in
+        :meth:`collect`.
     """
     if execution_std < 0.0:
       raise ValueError("execution_std must be >= 0.")
+    if teacher_gap_every is not None and teacher_gap_every < 1:
+      raise ValueError("teacher_gap_every must be >= 1.")
     self.num_envs = num_envs
     self.num_steps = num_steps
+    self.teacher_gap_every = teacher_gap_every
     self.execution_std = execution_std
     self.device = torch.device(device)
     real_cfg = copy.deepcopy(env_cfg)
@@ -69,7 +77,9 @@ class MpcCollector:
     self.obs = self.env.get_observations()
 
   def collect(
-    self, policy: Callable[[TensorDict], torch.Tensor] | None = None
+    self,
+    policy: Callable[[TensorDict], torch.Tensor] | None = None,
+    policy_mean: Callable[[TensorDict], torch.Tensor] | None = None,
   ) -> tuple[dict, dict[str, float]]:
     """Roll out one ``[T, N]`` segment.
 
@@ -77,6 +87,8 @@ class MpcCollector:
       policy: If given, this policy acts and the MPC action ``u0`` is only
         recorded as a label (DAgger). ``behavior_log_prob`` is then zero and
         not a density, as with ``execution_std == 0``.
+      policy_mean: Deterministic policy compared with the planner every
+        ``teacher_gap_every`` steps (metrics ``teacher_*``).
 
     Returns:
       Keyword arguments for :meth:`ReplayBuffer.insert` (without
@@ -86,10 +98,19 @@ class MpcCollector:
     obs_list: list[TensorDict] = []
     actions, rewards, dones, time_outs, log_mu, means = [], [], [], [], [], []
     ess_sum, start = 0.0, time.time()
+    gap_every = self.teacher_gap_every if policy_mean is not None else None
+    teacher_returns, policy_returns = [], []
     with torch.no_grad():
-      for _ in range(t_steps):
+      for step in range(t_steps):
         plan = self.planner.plan(self.env.unwrapped)
         mean = plan.action
+        if gap_every is not None and step % gap_every == 0:
+          assert policy_mean is not None
+          r_teacher, r_policy = self.planner.compare_with_policy(
+            self.env.unwrapped, policy_mean
+          )
+          teacher_returns.append(r_teacher)
+          policy_returns.append(r_policy)
         has_density = policy is None and self.execution_std > 0.0
         if policy is not None:
           action = policy(self.obs)
@@ -135,6 +156,17 @@ class MpcCollector:
       "planner_ess": ess_sum / t_steps,
       "seconds": time.time() - start,
     }
+    if teacher_returns:
+      r_t, r_p = torch.cat(teacher_returns), torch.cat(policy_returns)
+      gap = r_t - r_p
+      metrics.update(
+        {
+          "teacher_return": float(r_t.mean()),
+          "teacher_policy_return": float(r_p.mean()),
+          "teacher_gap": float(gap.mean()),
+          "teacher_better_frac": float((gap > 0).float().mean()),
+        }
+      )
     return segment, metrics
 
   def _log_prob(self, action: torch.Tensor, mean: torch.Tensor) -> torch.Tensor:

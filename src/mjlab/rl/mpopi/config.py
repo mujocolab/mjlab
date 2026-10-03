@@ -59,6 +59,13 @@ class MpcDataCfg:
   """Lower bound of the behavior-cloning weight after the decay. Above 0 the
   policy keeps a small pull toward the MPC for the whole run, which needs the
   MPC data to stay in the buffer (``max_age=None``)."""
+  teacher_gap_every: int | None = None
+  """Every this many collected steps, also roll out the planner's final plan
+  (open loop) and the policy's mean action (closed loop) from the same state
+  for the planner horizon, and log the return difference
+  (``mpc/collect_teacher_gap``) and the fraction of states where the plan is
+  better (``mpc/collect_teacher_better_frac``). Costs one extra planner
+  rollout per measured step; None disables it."""
   replay_own_rollouts: bool = False
   """Also replay past PPO rollouts with MPOPI's correction, as in mode
   ``"mpopi_ppo"`` (Replay-IS), using the top-level replay settings. Requires
@@ -91,6 +98,8 @@ class MpcDataCfg:
         "Importance correction needs a behavior density: use execution_std > 0,"
         " correction=False (naive injection) or use_in_ppo=False."
       )
+    if self.teacher_gap_every is not None and self.teacher_gap_every < 1:
+      raise ValueError("teacher_gap_every must be >= 1.")
     if self.replay_own_rollouts and self.use_in_ppo:
       raise ValueError(
         "replay_own_rollouts replays PPO's own data; MPC data must then be"

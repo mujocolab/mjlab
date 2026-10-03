@@ -16,10 +16,12 @@ import contextlib
 import copy
 import math
 import random
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import numpy as np
 import torch
+from tensordict import TensorDict
 
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
 from mjlab.mpc.config import SamplingMpcCfg
@@ -138,6 +140,7 @@ class SamplingMpc:
     self.plan_seq = torch.zeros(
       num_real, cfg.horizon, self.action_dim, device=self.device
     )
+    self.last_plan: torch.Tensor | None = None
 
   def reset(self, env_ids: torch.Tensor | None = None) -> None:
     """Forget the warm-start plan (e.g. after the real env was reset)."""
@@ -177,6 +180,7 @@ class SamplingMpc:
     assert returns is not None and ess is not None
     best_return = returns.max(dim=1).values
     first = mean[:, 0].clone()
+    self.last_plan = mean.clone()
     # Warm start: shift the plan one step and repeat the last action.
     self.plan_seq = torch.cat([mean[:, 1:], mean[:, -1:]], dim=1)
     return MpcPlan(
@@ -201,6 +205,37 @@ class SamplingMpc:
     with torch.inference_mode():
       sync_env_state(real_env, self.env, self.cfg.num_samples)
       freeze_commands(self.env)
+
+  def compare_with_policy(
+    self,
+    real_env: ManagerBasedRlEnv,
+    policy: Callable[[TensorDict], torch.Tensor],
+  ) -> tuple[torch.Tensor, torch.Tensor]:
+    """Horizon returns of the last plan and of ``policy`` from the same state.
+
+    Call right after :meth:`plan` on the same ``real_env`` state. From each real
+    env's state, planning world 0 executes the plan just optimized (open loop)
+    and planning world 1 is driven by ``policy`` (closed loop on the planning
+    env's observations), both for ``horizon`` steps with the task's rewards.
+
+    Returns:
+      ``(teacher_return [N], policy_return [N])``.
+    """
+    if self.last_plan is None:
+      raise RuntimeError("compare_with_policy() needs a plan(): call plan() first.")
+    n, k, h = self.num_real, self.cfg.num_samples, self.cfg.horizon
+    self._copy_state(real_env)
+    total = torch.zeros(n, k, device=self.device)
+    with torch.inference_mode():
+      obs = self.env.observation_manager.compute()
+      for t in range(h):
+        action = self.last_plan[:, t].repeat_interleave(k, dim=0).view(n, k, -1)
+        policy_action = policy(TensorDict(obs, batch_size=[n * k])).view(n, k, -1)
+        action = action.clone()
+        action[:, 1] = policy_action[:, 1]
+        obs, _, _, _, _ = self.env.step(action.view(n * k, -1))
+        total += self.env.reward_buf.view(n, k)
+    return total[:, 0], total[:, 1]
 
   def _rollout(
     self, real_env: ManagerBasedRlEnv, samples: torch.Tensor

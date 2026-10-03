@@ -156,3 +156,20 @@ def test_knot_noise_is_piecewise_linear(device):
     atol=1e-5,
     rtol=0,
   )
+
+
+def test_compare_with_policy_matches_open_loop_rollouts(real_env, mpc):
+  mpc.plan(real_env)
+  assert mpc.last_plan is not None
+  n, k, h = NUM_REAL, mpc.cfg.num_samples, mpc.cfg.horizon
+
+  def zero_policy(obs):
+    return torch.zeros(obs.batch_size[0], mpc.action_dim, device=mpc.device)
+
+  r_teacher, r_policy = mpc.compare_with_policy(real_env, zero_policy)
+  # A policy that outputs zeros is the open-loop zero sequence; the teacher is
+  # the open-loop plan. Both must match plain rollouts of those sequences.
+  plan = mpc.last_plan[:, None].expand(n, k, h, -1).clone()
+  torch.testing.assert_close(r_teacher, mpc._rollout(real_env, plan)[:, 0])
+  zeros = torch.zeros_like(plan)
+  torch.testing.assert_close(r_policy, mpc._rollout(real_env, zeros)[:, 0])
