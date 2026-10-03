@@ -1,3 +1,4 @@
+import math
 from typing import Any
 
 import numpy as np
@@ -68,8 +69,11 @@ class MotionLoader:
 
   def _interpolate_motion(self):
     """Interpolates the motion to the output fps."""
-    times = torch.arange(
-      0, self.duration, self.output_dt, device=self.device, dtype=torch.float32
+    # Include the end point when it lands on the output grid. The tolerance stops
+    # float rounding from dropping it (e.g. 2.3 / 0.02 = 114.99999999999999).
+    num_frames = math.floor(self.duration / self.output_dt + 1e-6) + 1
+    times = (
+      torch.arange(num_frames, device=self.device, dtype=torch.float32) * self.output_dt
     )
     self.output_frames = times.shape[0]
     index_0, index_1, blend = self._compute_frame_blend(times)
