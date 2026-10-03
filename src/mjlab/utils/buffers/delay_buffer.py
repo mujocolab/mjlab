@@ -286,11 +286,10 @@ class DelayBuffer:
       phase_adjusted_count = (self._step_count + self._phase_offsets) % (
         self.update_period
       )
-      should_update = (phase_adjusted_count == 0) | self._needs_lag
+      should_update = phase_adjusted_count == 0
     else:
       should_update = torch.ones(self.batch_size, dtype=torch.bool, device=self.device)
-    new_lags = self._sample_lags(should_update)
-    self._current_lags = torch.where(should_update, new_lags, self._current_lags)
+    self._current_lags = self._sample_lags(should_update)
     self._needs_lag.zero_()
     self._step_count += 1
 
