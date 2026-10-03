@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Sep 29, 2026"/>
+    <meta name="docbuild:last-update" content="Oct 03, 2026"/>
   </head>
   
   
@@ -577,6 +577,10 @@ sub-terrain center. The edge-exclusion mask sliced <code class="docutils literal
 default <code class="docutils literal notranslate"><span class="pre">&quot;add&quot;</span></code> operation the per-episode bias performed a random walk and grew
 well beyond the configured range over the course of training. The first episode’s
 bias with <code class="docutils literal notranslate"><span class="pre">sample_bias_per_component=True</span></code> is no longer the sum of two draws.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">feet_swing_height</span></code> now zeroes <code class="docutils literal notranslate"><span class="pre">peak_heights</span></code> on environment reset. Previously it
+defined no <code class="docutils literal notranslate"><span class="pre">reset</span></code> method, so an episode ending with a foot in the air carried that
+swing’s peak height into the first landing of the next episode and corrupted the
+landing penalty and <code class="docutils literal notranslate"><span class="pre">Metrics/peak_height_mean</span></code>.</p></li>
 </ul>
 </section>
 </section>
@@ -1771,7 +1775,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Sep 29, 2026.
+  Last updated on Oct 03, 2026.
   <br/>
 </p>
   </div>
