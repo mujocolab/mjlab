@@ -5,8 +5,11 @@ import pytest
 import torch
 
 import mjlab.tasks  # noqa: F401
+from mjlab.entity import EntityCfg
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.managers.event_manager import RecomputeLevel
+from mjlab.scene import Scene, SceneCfg
+from mjlab.sensor import GridPatternCfg, ObjRef, RayCastSensor, RayCastSensorCfg
 from mjlab.sim import MujocoSimulation, Simulation, SimulationCfg
 from mjlab.tasks.registry import load_env_cfg
 
@@ -184,11 +187,66 @@ def test_diverged_env_keeps_its_nans():
   assert sim.data.qpos[0].isfinite().all()
 
 
-def test_env_matches_mjwarp():
-  """Same seed and actions through events, randomization, and resets."""
-  qpos = {}
+RAY_XML = """
+<mujoco>
+  <worldbody>
+    <geom name="floor" type="plane" size="10 10 .1"/>
+    <geom name="step" type="box" size=".3 2 .1" pos=".3 0 .1"/>
+    <geom name="canopy" type="box" size="2 2 .01" pos="0 0 1" group="1"/>
+    <body name="base" pos="0 0 2" euler="20 10 0">
+      <freejoint/>
+      <geom type="box" size=".2 .2 .1"/>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+
+
+def test_raycast_sensor_matches_mjwarp():
+  cfg = RayCastSensorCfg(
+    name="scan",
+    frame=ObjRef(type="body", name="base", entity="robot"),
+    pattern=GridPatternCfg(size=(1.0, 1.0), resolution=0.25),
+    ray_alignment="yaw",
+    max_distance=5.0,
+    exclude_parent_body=True,
+    include_geom_groups=(0,),
+  )
+  data = {}
   for backend in ("mujoco", "mjwarp"):
-    cfg = load_env_cfg("Mjlab-Lift-Cube-Yam")
+    entity = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(RAY_XML))
+    scene_cfg = SceneCfg(num_envs=NUM_ENVS, entities={"robot": entity}, sensors=(cfg,))
+    scene = Scene(scene_cfg, "cpu")
+    sensor = scene["scan"]
+    assert isinstance(sensor, RayCastSensor)
+    if backend == "mujoco":
+      sim = MujocoSimulation(NUM_ENVS, SimulationCfg(), scene.compile())
+      scene.initialize(sim.mj_model, sim.model, sim.data, sensor_context=False)
+      sim.set_raycast_sensors([sensor])
+    else:
+      sim = Simulation(NUM_ENVS, SimulationCfg(), scene.compile(), device="cpu")
+      scene.initialize(sim.mj_model, sim.model, sim.data)
+      assert scene.sensor_context is not None
+      sim.set_sensor_context(scene.sensor_context)
+    sim.data.qpos[:, 0] = torch.linspace(-0.5, 0.5, NUM_ENVS)
+    sim.forward()
+    sim.sense()
+    data[backend] = sensor.data
+  ours, theirs = data["mujoco"], data["mjwarp"]
+  torch.testing.assert_close(ours.distances, theirs.distances, atol=1e-5, rtol=0)
+  torch.testing.assert_close(ours.normals_w, theirs.normals_w, atol=1e-5, rtol=0)
+  torch.testing.assert_close(ours.hit_pos_w, theirs.hit_pos_w, atol=1e-5, rtol=0)
+  # Yaw-aligned rays fall straight down past the group 1 canopy onto step or floor.
+  on_step = (ours.distances - 1.8).abs() < 1e-4
+  on_floor = (ours.distances - 2.0).abs() < 1e-4
+  assert on_step.any() and on_floor.any() and (on_step | on_floor).all()
+
+
+def test_env_matches_mjwarp():
+  """Same seed and actions through events, randomization, raycasts, and resets."""
+  qpos, reward = {}, {}
+  for backend in ("mujoco", "mjwarp"):
+    cfg = load_env_cfg("Mjlab-Velocity-Flat-Unitree-Go1")
     cfg.sim.backend = backend
     cfg.scene.num_envs = NUM_ENVS
     cfg.seed = 0
@@ -197,12 +255,14 @@ def test_env_matches_mjwarp():
     for _ in range(5):
       env.step(torch.zeros(env.action_space.shape))
     qpos[backend] = env.sim.data.qpos.clone()
+    reward[backend] = env.reward_buf.clone()
     env.close()
   torch.testing.assert_close(qpos["mujoco"], qpos["mjwarp"], atol=1e-4, rtol=0)
+  torch.testing.assert_close(reward["mujoco"], reward["mjwarp"], atol=1e-4, rtol=0)
 
 
-def test_sensors_that_render_need_mjwarp():
-  cfg = load_env_cfg("Mjlab-Velocity-Flat-Unitree-Go1")
+def test_cameras_need_mjwarp():
+  cfg = load_env_cfg("Mjlab-Lift-Cube-Yam-Rgb")
   cfg.sim.backend = "mujoco"
   cfg.scene.num_envs = NUM_ENVS
   with pytest.raises(NotImplementedError, match="mjwarp"):

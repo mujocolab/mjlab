@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, cast
 
 import mjbatch
@@ -15,6 +16,8 @@ from mjlab.utils.nan_guard import NanGuard
 
 if TYPE_CHECKING:
   import mujoco_warp as mjwarp
+
+  from mjlab.sensor.raycast_sensor import RayCastSensor
 
 
 class _Data:
@@ -81,7 +84,7 @@ class MujocoSimulation:
   """CPU simulation: C MuJoCo stepped across a thread pool by mjbatch.
 
   Presents the same model and data tensors as the MJWarp :class:`Simulation`, on the
-  CPU. Cameras, raycast sensors, and mesh variants need MJWarp.
+  CPU. Cameras and mesh variants need MJWarp.
   """
 
   def __init__(self, num_envs: int, cfg: SimulationCfg, model: mujoco.MjModel) -> None:
@@ -99,6 +102,7 @@ class MujocoSimulation:
     self._batch = mjbatch.Batch(model, num_envs, cfg.nthread or 0)
     self._data = _Data(self._batch, self._mj_data)
     self._model = _Model(self._batch, model)
+    self._raycast_sensors: Sequence[RayCastSensor] = ()
     self._reset_mask = np.zeros(num_envs, dtype=bool)
     self._default_model_fields: dict[str, torch.Tensor] = {}
     self._expanded_fields: set[str] = set()
@@ -174,5 +178,15 @@ class MujocoSimulation:
     self._batch.forward(ids)
     self._batch.reset(ids)
 
+  def set_raycast_sensors(self, sensors: Sequence[RayCastSensor]) -> None:
+    """Take over raycasting for these sensors."""
+    self._raycast_sensors = sensors
+    for sensor in sensors:
+      sensor.set_context(self)
+
   def sense(self) -> None:
-    """Nothing to do: the sensors that render need the MJWarp backend."""
+    """Cast the raycast sensors' rays. Call once per env step, before observations."""
+    for sensor in self._raycast_sensors:
+      sensor.prepare_rays()
+      sensor.raycast_mujoco(self._batch)
+      sensor.postprocess_rays()

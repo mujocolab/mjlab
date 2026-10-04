@@ -78,13 +78,12 @@ The environment then lives on the CPU whatever ``device`` you pass, and the
 policy still trains on the GPU when one is available.
 ``SimulationCfg.nthread`` sets the number of worker threads, which defaults
 to every logical CPU. The rest of the task config is unchanged: actuators,
-events, domain randomization, builtin and contact sensors, and both viewers
-work as they do with MuJoCo Warp.
+events, domain randomization, builtin, contact, and raycast sensors, and both
+viewers work as they do with MuJoCo Warp.
 
 Not supported on this backend yet:
 
-- Raycast and camera sensors. This includes the velocity tasks, which use a
-  terrain height sensor.
+- Camera sensors.
 - Mesh variants.
 - ``DifferentialIKAction``.
 
