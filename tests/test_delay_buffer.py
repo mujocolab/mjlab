@@ -104,6 +104,40 @@ def test_delay_buffer_shared_lags(device):
   assert torch.all(lags == lags[0])
 
 
+@pytest.mark.parametrize("per_env", [True, False])
+def test_hold_decision_matches_lag_sharing(device, per_env):
+  """The hold decision is drawn per env, or once for the batch in shared mode."""
+  B, steps = 256, 40
+  buf = DelayBuffer(
+    min_lag=0,
+    max_lag=50,
+    batch_size=B,
+    per_env=per_env,
+    hold_prob=0.5,
+    device=device,
+    generator=make_gen(0, device),
+  )
+  obs = torch.zeros(B, 1, device=device)
+  buf.append(obs)
+  buf.compute()
+
+  num_held_steps = 0
+  for _ in range(steps):
+    prev = buf.current_lags.clone()
+    buf.append(obs)
+    buf.compute()
+    num_held = int((buf.current_lags == prev).sum())
+    if per_env:
+      # About half of the envs hold on any given step.
+      assert B // 4 < num_held < 3 * B // 4
+    else:
+      assert torch.all(buf.current_lags == buf.current_lags[0])
+      num_held_steps += num_held == B
+  if not per_env:
+    # The whole batch holds on about half of the steps.
+    assert steps // 8 < num_held_steps < 7 * steps // 8
+
+
 ##
 # Hold probability.
 ##
