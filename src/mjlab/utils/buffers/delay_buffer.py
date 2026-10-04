@@ -71,12 +71,14 @@ class DelayBuffer:
     **per_env=False**
       All environments share one sampled lag:
         All batches: lag=2 → all return obs from t-2
+      The lag and its update schedule belong to the whole batch, so per_env_phase
+      is ignored and a partial reset leaves them untouched.
 
   Reset Behavior
   ==============
 
     reset(batch_ids=[1]) clears history for specified environments:
-      - Sets lag and step counter to zero
+      - Sets lag and step counter to zero (per_env=True only)
       - Clears circular buffer for those rows
       - Next append backfills their history with first new value
       - Until that append, compute() returns zeros for reset rows
@@ -151,6 +153,7 @@ class DelayBuffer:
     self.update_period = update_period
     self.per_env_phase = per_env_phase
     self.generator = generator
+    self._staggered = per_env and per_env_phase and update_period > 0
 
     buffer_size = max_lag + 1 if max_lag > 0 else 1
     self._buffer = CircularBuffer(
@@ -161,7 +164,7 @@ class DelayBuffer:
     # Rows whose lag has not been sampled or set since creation or reset.
     self._needs_lag = torch.ones(batch_size, dtype=torch.bool, device=device)
 
-    if update_period > 0 and per_env_phase:
+    if self._staggered:
       self._phase_offsets = torch.randint(
         0,
         update_period,
@@ -211,11 +214,14 @@ class DelayBuffer:
       batch_ids = list(indices)
 
     self._buffer.reset(batch_ids=batch_ids)
+    # A shared lag belongs to the whole batch, so only a full reset clears it.
+    if not self.per_env and batch_ids is not None:
+      return
     idx = slice(None) if batch_ids is None else batch_ids
     self._current_lags[idx] = 0
     self._needs_lag[idx] = True
     self._step_count[idx] = 0
-    if self.update_period > 0 and self.per_env_phase:
+    if self._staggered:
       new_phases = torch.randint(
         0,
         self.update_period,

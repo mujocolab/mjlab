@@ -138,6 +138,30 @@ def test_hold_decision_matches_lag_sharing(device, per_env):
     assert steps // 8 < num_held_steps < 7 * steps // 8
 
 
+@pytest.mark.parametrize("update_period", [0, 5])
+def test_shared_lag_survives_partial_resets(device, update_period):
+  """Partial resets do not pull envs off the shared lag or its schedule."""
+  B = 8
+  buf = DelayBuffer(
+    min_lag=1,
+    max_lag=5,
+    batch_size=B,
+    per_env=False,
+    hold_prob=0.5,
+    update_period=update_period,
+    device=device,
+    generator=make_gen(0, device),
+  )
+  obs = torch.zeros(B, 1, device=device)
+  for t in range(60):
+    if t % 3 == 0:
+      buf.reset([t % B, (t + 3) % B])
+    buf.append(obs)
+    buf.compute()
+    lags = buf.current_lags
+    assert torch.all(lags == lags[0]) and lags[0] >= 1
+
+
 ##
 # Hold probability.
 ##

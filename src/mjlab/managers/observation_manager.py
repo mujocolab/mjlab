@@ -52,7 +52,7 @@ class ObservationTermCfg(ManagerTermBaseCfg):
 
   delay_per_env_phase: bool = True
   """If True and update_period > 0, stagger update timing across envs to avoid
-  synchronized resampling."""
+  synchronized resampling. Ignored when delay_per_env is False."""
 
   history_length: int = 0
   """Number of past observations to keep in history. 0 = no history."""
