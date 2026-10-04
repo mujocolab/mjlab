@@ -594,6 +594,9 @@ resampled motion stopped one output step short and never reached the final pose.
 <li><p><code class="docutils literal notranslate"><span class="pre">DelayBuffer</span></code> now samples a lag on the first step after creation or reset.
 Previously, with <code class="docutils literal notranslate"><span class="pre">update_period</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> or <code class="docutils literal notranslate"><span class="pre">hold_prob</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>, environments could run
 with zero delay at the start of every episode, even with <code class="docutils literal notranslate"><span class="pre">min_lag</span> <span class="pre">==</span> <span class="pre">max_lag</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DelayBuffer(per_env=False)</span></code> now draws the <code class="docutils literal notranslate"><span class="pre">hold_prob</span></code> decision once for the
+whole batch. Previously it was drawn per environment, so environments stopped
+sharing a lag.</p></li>
 </ul>
 </section>
 </section>

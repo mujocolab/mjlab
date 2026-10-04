@@ -46,6 +46,9 @@ Fixed
 - ``DelayBuffer`` now samples a lag on the first step after creation or reset.
   Previously, with ``update_period > 0`` or ``hold_prob > 0``, environments could run
   with zero delay at the start of every episode, even with ``min_lag == max_lag``.
+- ``DelayBuffer(per_env=False)`` now draws the ``hold_prob`` decision once for the
+  whole batch. Previously it was drawn per environment, so environments stopped
+  sharing a lag.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------
