@@ -55,6 +55,10 @@ class DelayBuffer:
       Even when an update would occur, keep previous lag with 20% chance.
       Creates temporal correlation in delay patterns.
 
+    **First step**
+      The first compute() after creation or reset always samples a lag, ignoring
+      update phase and hold_prob, unless set_lags() was called first.
+
   Per-Environment vs Shared Lags
   ==============================
 
@@ -154,6 +158,8 @@ class DelayBuffer:
     )
     self._current_lags = torch.zeros(batch_size, dtype=torch.long, device=device)
     self._step_count = torch.zeros(batch_size, dtype=torch.long, device=device)
+    # Rows whose lag has not been sampled or set since creation or reset.
+    self._needs_lag = torch.ones(batch_size, dtype=torch.bool, device=device)
 
     if update_period > 0 and per_env_phase:
       self._phase_offsets = torch.randint(
@@ -190,6 +196,7 @@ class DelayBuffer:
     """
     idx = slice(None) if batch_ids is None else batch_ids
     self._current_lags[idx] = lags.clamp(self.min_lag, self.max_lag)
+    self._needs_lag[idx] = False
 
   def reset(
     self, batch_ids: Sequence[int] | torch.Tensor | slice | None = None
@@ -206,6 +213,7 @@ class DelayBuffer:
     self._buffer.reset(batch_ids=batch_ids)
     idx = slice(None) if batch_ids is None else batch_ids
     self._current_lags[idx] = 0
+    self._needs_lag[idx] = True
     self._step_count[idx] = 0
     if self.update_period > 0 and self.per_env_phase:
       new_phases = torch.randint(
@@ -281,8 +289,8 @@ class DelayBuffer:
       should_update = phase_adjusted_count == 0
     else:
       should_update = torch.ones(self.batch_size, dtype=torch.bool, device=self.device)
-    new_lags = self._sample_lags(should_update)
-    self._current_lags = torch.where(should_update, new_lags, self._current_lags)
+    self._current_lags = self._sample_lags(should_update)
+    self._needs_lag.zero_()
     self._step_count += 1
 
   def _sample_lags(self, mask: torch.Tensor) -> torch.Tensor:
@@ -328,4 +336,6 @@ class DelayBuffer:
     else:
       update_mask = mask
 
+    # Rows without a lag have nothing to hold, so they always take the new sample.
+    update_mask = update_mask | self._needs_lag
     return torch.where(update_mask, candidate_lags, self._current_lags)
