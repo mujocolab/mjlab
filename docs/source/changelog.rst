@@ -49,6 +49,11 @@ Fixed
 - ``DelayBuffer(per_env=False)`` now draws the ``hold_prob`` decision once for the
   whole batch. Previously it was drawn per environment, so environments stopped
   sharing a lag.
+- ``VideoRecorder`` now evaluates ``episode_trigger`` once per episode, at its first
+  step, as gymnasium's ``RecordVideo`` does. It was checked on every step, so when
+  ``video_length`` was shorter than the episode a finished recording restarted
+  mid-episode and overwrote ``rl-video-episode-N.mp4`` with a later chunk of the
+  same episode.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------

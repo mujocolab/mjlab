@@ -63,6 +63,7 @@ class VideoRecorder(ManagerBasedRlEnv):
 
     self.step_count: int = 0
     self.episode_count: int = 0  # Tracks actual episodes
+    self._at_episode_start: bool = True  # episode_trigger is checked only here
     self.video_count: int = 0  # Tracks completed videos
     self.is_recording: bool = False
     self.current_video_frames: list[np.ndarray] = []
@@ -95,9 +96,14 @@ class VideoRecorder(ManagerBasedRlEnv):
     step_triggered = self.step_trigger is not None and self.step_trigger(
       self.step_count
     )
-    episode_triggered = self.episode_trigger is not None and self.episode_trigger(
-      self.episode_count
+    # Like gymnasium's RecordVideo, evaluate the episode trigger once per episode,
+    # at its first step, so a finished recording does not restart mid-episode.
+    episode_triggered = (
+      self._at_episode_start
+      and self.episode_trigger is not None
+      and self.episode_trigger(self.episode_count)
     )
+    self._at_episode_start = False
 
     if (step_triggered or episode_triggered) and not self.is_recording:
       # Track which trigger started the recording for filename generation
@@ -114,6 +120,7 @@ class VideoRecorder(ManagerBasedRlEnv):
     # This matches gymnasium's behavior for vectorized environments.
     if terminated[0] or truncated[0]:
       self.episode_count += 1
+      self._at_episode_start = True
 
     # Record frame if recording.
     if self.is_recording:
