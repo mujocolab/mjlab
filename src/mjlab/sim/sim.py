@@ -154,6 +154,12 @@ class MujocoCfg:
 
 @dataclass(kw_only=True)
 class SimulationCfg:
+  backend: Literal["mjwarp", "mujoco"] = "mjwarp"
+  """Physics backend. ``mjwarp`` runs MuJoCo Warp, on the GPU when one is available.
+  ``mujoco`` runs C MuJoCo on a CPU thread pool and keeps the environment on the CPU;
+  the MuJoCo Warp settings below are ignored."""
+  nthread: int | None = None
+  """Worker threads for the ``mujoco`` backend. If None, use every logical CPU."""
   nconmax: int | None = None
   """Number of contacts to allocate per world.
 

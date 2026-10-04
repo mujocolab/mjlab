@@ -10,6 +10,7 @@ import torch
 import warp as wp
 
 from mjlab.managers.action_manager import ActionTerm, ActionTermCfg
+from mjlab.sim.sim import Simulation
 from mjlab.utils.lab_api.math import (
   apply_delta_pose,
   compute_pose_error,
@@ -152,7 +153,9 @@ class DifferentialIKAction(ActionTerm):
     nworld = self.num_envs
     nv = self._env.sim.mj_model.nv
 
-    with wp.ScopedDevice(self._env.sim.wp_device):
+    assert isinstance(self._env.sim, Simulation), "mjwarp.jac needs the mjwarp backend."
+    self._sim = self._env.sim
+    with wp.ScopedDevice(self._sim.wp_device):
       self._jacp_wp = wp.zeros((nworld, 3, nv), dtype=float)
       self._jacr_wp = wp.zeros((nworld, 3, nv), dtype=float)
       self._point_wp = wp.zeros(nworld, dtype=wp.vec3)
@@ -303,10 +306,10 @@ class DifferentialIKAction(ActionTerm):
 
   def _compute_jacobian(self) -> None:
     """Compute the frame Jacobian."""
-    with wp.ScopedDevice(self._env.sim.wp_device):
+    with wp.ScopedDevice(self._sim.wp_device):
       mjwarp.jac(
-        self._env.sim.wp_model,
-        self._env.sim.wp_data,
+        self._sim.wp_model,
+        self._sim.wp_data,
         self._jacp_wp,
         self._jacr_wp,
         self._point_wp,
