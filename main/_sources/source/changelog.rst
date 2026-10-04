@@ -37,6 +37,9 @@ Fixed
   landing penalty and ``Metrics/peak_height_mean``.
 - ``csv_to_npz`` now keeps the last frame of the input motion. Previously the
   resampled motion stopped one output step short and never reached the final pose.
+- ``DelayBuffer`` now samples a lag on the first step after creation or reset.
+  Previously, with ``update_period > 0`` or ``hold_prob > 0``, environments could run
+  with zero delay at the start of every episode, even with ``min_lag == max_lag``.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------

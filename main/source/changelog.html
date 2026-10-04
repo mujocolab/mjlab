@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Oct 03, 2026"/>
+    <meta name="docbuild:last-update" content="Oct 04, 2026"/>
   </head>
   
   
@@ -583,6 +583,9 @@ swing’s peak height into the first landing of the next episode and corrupted t
 landing penalty and <code class="docutils literal notranslate"><span class="pre">Metrics/peak_height_mean</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">csv_to_npz</span></code> now keeps the last frame of the input motion. Previously the
 resampled motion stopped one output step short and never reached the final pose.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DelayBuffer</span></code> now samples a lag on the first step after creation or reset.
+Previously, with <code class="docutils literal notranslate"><span class="pre">update_period</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> or <code class="docutils literal notranslate"><span class="pre">hold_prob</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>, environments could run
+with zero delay at the start of every episode, even with <code class="docutils literal notranslate"><span class="pre">min_lag</span> <span class="pre">==</span> <span class="pre">max_lag</span></code>.</p></li>
 </ul>
 </section>
 </section>
@@ -1777,7 +1780,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Oct 03, 2026.
+  Last updated on Oct 04, 2026.
   <br/>
 </p>
   </div>
