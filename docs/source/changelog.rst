@@ -5,6 +5,12 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- Added ``SimulationCfg.graph_conditional`` to toggle MuJoCo Warp's CUDA graph
+  conditional nodes, which require CUDA 12.4 or newer.
+
 Changed
 ^^^^^^^
 
