@@ -126,38 +126,54 @@ class IdealPdActuator(Actuator, Generic[IdealPdCfgT]):
     env_ids: torch.Tensor | slice,
     kp: torch.Tensor | None = None,
     kd: torch.Tensor | None = None,
+    *,
+    target_ids: torch.Tensor | slice | None = None,
   ) -> None:
-    """Set PD gains for specified environments.
+    """Set PD gains for specified environments and local targets.
 
     Args:
       env_ids: Environment indices to update.
-      kp: New proportional gains. Shape: (num_envs, num_actuators) or (num_envs,).
-      kd: New derivative gains. Shape: (num_envs, num_actuators) or (num_envs,).
+      kp: New proportional gains. Shape: (num_envs, num_targets) or (num_envs,).
+      kd: New derivative gains. Shape: (num_envs, num_targets) or (num_envs,).
+      target_ids: Target columns within this actuator. None updates all targets.
     """
     assert self.stiffness is not None
     assert self.damping is not None
+    if target_ids is None:
+      target_ids = slice(None)
+    if isinstance(env_ids, torch.Tensor) and isinstance(target_ids, torch.Tensor):
+      env_ids = env_ids[:, None]
 
     if kp is not None:
       if kp.ndim == 1:
         kp = kp.unsqueeze(-1)
-      self.stiffness[env_ids] = kp
+      self.stiffness[env_ids, target_ids] = kp
 
     if kd is not None:
       if kd.ndim == 1:
         kd = kd.unsqueeze(-1)
-      self.damping[env_ids] = kd
+      self.damping[env_ids, target_ids] = kd
 
   def set_effort_limit(
-    self, env_ids: torch.Tensor | slice, effort_limit: torch.Tensor
+    self,
+    env_ids: torch.Tensor | slice,
+    effort_limit: torch.Tensor,
+    *,
+    target_ids: torch.Tensor | slice | None = None,
   ) -> None:
-    """Set effort limits for specified environments.
+    """Set effort limits for specified environments and local targets.
 
     Args:
       env_ids: Environment indices to update.
-      effort_limit: New effort limits. Shape: (num_envs, num_actuators) or (num_envs,).
+      effort_limit: New effort limits. Shape: (num_envs, num_targets) or (num_envs,).
+      target_ids: Target columns within this actuator. None updates all targets.
     """
     assert self.force_limit is not None
+    if target_ids is None:
+      target_ids = slice(None)
+    if isinstance(env_ids, torch.Tensor) and isinstance(target_ids, torch.Tensor):
+      env_ids = env_ids[:, None]
 
     if effort_limit.ndim == 1:
       effort_limit = effort_limit.unsqueeze(-1)
-    self.force_limit[env_ids] = effort_limit
+    self.force_limit[env_ids, target_ids] = effort_limit
