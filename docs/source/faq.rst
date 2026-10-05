@@ -85,7 +85,6 @@ Not supported on this backend yet:
 
 - Camera sensors.
 - Mesh variants.
-- ``DifferentialIKAction``.
 
 Performance
 -----------

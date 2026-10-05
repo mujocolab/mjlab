@@ -495,6 +495,17 @@ class Simulation:
     with wp.ScopedDevice(self.wp_device):
       fn(self._wp_model, self._wp_data)
 
+  def jac(
+    self, jacp: wp.array, jacr: wp.array, point: wp.array, body: wp.array
+  ) -> None:
+    """Fill the Jacobians of one world-frame point per env, moving with ``body``.
+
+    ``jacp`` and ``jacr`` are (num_envs, 3, nv), ``point`` (num_envs,) vec3, and
+    ``body`` (num_envs,) int32.
+    """
+    with wp.ScopedDevice(self.wp_device):
+      mjwarp.jac(self.wp_model, self.wp_data, jacp, jacr, point, body)
+
   def forward(self) -> None:
     with wp.ScopedDevice(self.wp_device):
       if self.use_cuda_graph and self.forward_graph is not None:

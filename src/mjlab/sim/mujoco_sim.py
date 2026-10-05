@@ -16,6 +16,7 @@ from mjlab.utils.nan_guard import NanGuard
 
 if TYPE_CHECKING:
   import mujoco_warp as mjwarp
+  import warp as wp
 
   from mjlab.sensor.raycast_sensor import RayCastSensor
 
@@ -159,6 +160,17 @@ class MujocoSimulation:
     """
     del level
     self._batch.set_const()
+
+  def jac(
+    self, jacp: wp.array, jacr: wp.array, point: wp.array, body: wp.array
+  ) -> None:
+    """Fill the Jacobians of one world-frame point per env, moving with ``body``."""
+    self._batch.jac(
+      jacp.numpy(),
+      jacr.numpy(),
+      point.numpy(),
+      body.numpy(),  # pyright: ignore[reportArgumentType]
+    )
 
   def forward(self) -> None:
     self._batch.forward()

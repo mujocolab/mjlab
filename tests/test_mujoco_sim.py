@@ -3,6 +3,7 @@
 import mujoco
 import pytest
 import torch
+import warp as wp
 
 import mjlab.tasks  # noqa: F401
 from mjlab.entity import EntityCfg
@@ -130,6 +131,27 @@ def test_trajectory_matches_mjwarp(sims):
     torch.testing.assert_close(
       getattr(cpu.data, name), getattr(warp.data, name)[:], atol=1e-3, rtol=0, msg=name
     )
+
+
+def test_jac_matches_mjwarp(sims):
+  nv = sims[0].mj_model.nv
+  jacobians = []
+  for sim in sims:
+    roll = torch.linspace(-1.0, 1.0, NUM_ENVS)
+    sim.data.qpos[:, 3] = torch.cos(roll / 2)
+    sim.data.qpos[:, 4] = torch.sin(roll / 2)
+    sim.forward()
+    jacp = wp.zeros((NUM_ENVS, 3, nv), dtype=float, device="cpu")
+    jacr = wp.zeros((NUM_ENVS, 3, nv), dtype=float, device="cpu")
+    point = wp.array(sim.data.xpos[:, 3].numpy() + 0.1, dtype=wp.vec3, device="cpu")
+    body = wp.full(NUM_ENVS, 3, dtype=wp.int32, device="cpu")
+    sim.jac(jacp, jacr, point, body)
+    jacobians.append((wp.to_torch(jacp), wp.to_torch(jacr)))
+  (ours_p, ours_r), (theirs_p, theirs_r) = jacobians
+  torch.testing.assert_close(ours_p, theirs_p, atol=1e-5, rtol=0)
+  torch.testing.assert_close(ours_r, theirs_r, atol=1e-5, rtol=0)
+  assert ours_p.abs().max() > 0.1 and ours_r.abs().max() > 0.1
+  assert not torch.allclose(ours_p[0], ours_p[-1], atol=1e-3)
 
 
 def test_first_read_of_a_derived_field_is_current():
