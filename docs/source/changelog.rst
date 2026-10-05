@@ -49,6 +49,9 @@ Fixed
 - ``DelayBuffer(per_env=False)`` now draws the ``hold_prob`` decision once for the
   whole batch. Previously it was drawn per environment, so environments stopped
   sharing a lag.
+- Envs sampled by ``rel_forward_envs`` now keep their straight command. Previously,
+  if an env was also sampled as a heading or world frame env, its yaw rate was
+  replaced by a heading turn or its velocity by the world frame sample.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------
