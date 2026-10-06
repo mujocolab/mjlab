@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Oct 04, 2026"/>
+    <meta name="docbuild:last-update" content="Oct 06, 2026"/>
   </head>
   
   
@@ -597,6 +597,9 @@ with zero delay at the start of every episode, even with <code class="docutils l
 <li><p><code class="docutils literal notranslate"><span class="pre">DelayBuffer(per_env=False)</span></code> now draws the <code class="docutils literal notranslate"><span class="pre">hold_prob</span></code> decision once for the
 whole batch. Previously it was drawn per environment, so environments stopped
 sharing a lag.</p></li>
+<li><p>Envs sampled by <code class="docutils literal notranslate"><span class="pre">rel_forward_envs</span></code> now keep their straight command. Previously,
+if an env was also sampled as a heading or world frame env, its yaw rate was
+replaced by a heading turn or its velocity by the world frame sample.</p></li>
 </ul>
 </section>
 </section>
@@ -1792,7 +1795,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Oct 04, 2026.
+  Last updated on Oct 06, 2026.
   <br/>
 </p>
   </div>
