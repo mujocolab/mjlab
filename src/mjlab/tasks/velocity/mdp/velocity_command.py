@@ -11,6 +11,7 @@ from mjlab.entity import Entity
 from mjlab.managers.command_manager import CommandTerm, CommandTermCfg
 from mjlab.utils.lab_api.math import (
   matrix_from_quat,
+  quat_apply,
   wrap_to_pi,
 )
 
@@ -124,6 +125,13 @@ class UniformVelocityCommand(CommandTerm):
       r = torch.empty(len(env_ids), device=self.device)
       init_ids = env_ids[r.uniform_(0.0, 1.0) < self.cfg.init_velocity_prob]
       if len(init_ids) > 0:
+        # Resolve standing, heading and world-frame envs so the command read below
+        # is the one they will receive. Derived kinematics are stale here, so the
+        # heading comes from qpos.
+        quat_w = self._env.sim.data.qpos[:, self.robot.indexing.free_joint_q_adr[3:7]]
+        forward_w = quat_apply(quat_w, self.robot.data.forward_vec_b)
+        heading_w = torch.atan2(forward_w[:, 1], forward_w[:, 0])
+        self._resolve_command(heading_w, init_ids)
         # Start these envs already moving at the commanded planar velocity.
         # Safe pre-forward: the body-frame write reads orientation from qpos.
         vel_b = torch.zeros(len(init_ids), 6, device=self.device)
@@ -135,18 +143,25 @@ class UniformVelocityCommand(CommandTerm):
   def _update_command(self, env_ids: torch.Tensor | None = None) -> None:
     # Pure function of the current state; refreshing all envs is safe.
     del env_ids
+    self._resolve_command(self.robot.data.heading_w)
+
+  def _resolve_command(
+    self, heading_w: torch.Tensor, env_ids: torch.Tensor | None = None
+  ) -> None:
+    scope = torch.zeros_like(self.is_heading_env)
+    scope[slice(None) if env_ids is None else env_ids] = True
     if self.cfg.heading_command:
-      self.heading_error = wrap_to_pi(self.heading_target - self.robot.data.heading_w)
-      heading_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
+      self.heading_error = wrap_to_pi(self.heading_target - heading_w)
+      heading_ids = (self.is_heading_env & scope).nonzero(as_tuple=False).flatten()
       self.vel_command_b[heading_ids, 2] = torch.clip(
         self.cfg.heading_control_stiffness * self.heading_error[heading_ids],
         min=self.cfg.ranges.ang_vel_z[0],
         max=self.cfg.ranges.ang_vel_z[1],
       )
     # World-frame envs: rotate world-frame linear vel into body frame.
-    if self.is_world_env.any():
-      w_ids = self.is_world_env.nonzero(as_tuple=False).flatten()
-      heading = self.robot.data.heading_w[w_ids]
+    w_ids = (self.is_world_env & scope).nonzero(as_tuple=False).flatten()
+    if len(w_ids) > 0:
+      heading = heading_w[w_ids]
       cos_h = torch.cos(heading)
       sin_h = torch.sin(heading)
       vx_w = self.vel_command_w[w_ids, 0]
@@ -154,7 +169,7 @@ class UniformVelocityCommand(CommandTerm):
       self.vel_command_b[w_ids, 0] = cos_h * vx_w + sin_h * vy_w
       self.vel_command_b[w_ids, 1] = -sin_h * vx_w + cos_h * vy_w
 
-    standing_env_ids = self.is_standing_env.nonzero(as_tuple=False).flatten()
+    standing_env_ids = (self.is_standing_env & scope).nonzero(as_tuple=False).flatten()
     self.vel_command_b[standing_env_ids, :] = 0.0
     self.vel_command_w[standing_env_ids, :] = 0.0
 
