@@ -40,6 +40,10 @@ Added
   iterations whose command curriculum reaches forward speeds up to 1.5 m/s at
   iteration 500. ``scripts/mpc/eval_mpc_velocity.py`` can evaluate a trained
   checkpoint at fixed speeds (``--controllers policy --checkpoint ...``).
+- MPOPI and ``mpc_ppo`` updates log the wall time of each phase
+  (``time/mpc``, ``time/replay``, ``time/sgd``, ``time/rest``). Replay segments
+  are now evaluated in one batch, and MPC planning rollouts skip observation
+  computation; both give the same results as before, faster.
 
 Changed
 ^^^^^^^

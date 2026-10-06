@@ -225,36 +225,31 @@ class Mpopi:
     """Recompute pi_old log-probs, values and V-trace targets for segments.
 
     Returns flat ``[S * T * N, ...]`` tensors (segment-major, then time, env).
+    All segments go through the actor and critic in one batch.
     """
     assert buffer.observations is not None
     assert buffer.bootstrap_observations is not None
     num_steps, num_envs = buffer.observations.batch_size[1:3]
-    logp, values, boot_values, params, kl = [], [], [], [], []
-    for i in slots:
-      obs = buffer.observations[i].flatten(0, 1)
-      actor(obs, stochastic_output=True)
-      logp.append(
-        actor.get_output_log_prob(buffer.actions[i].flatten(0, 1)).view(
-          num_steps, num_envs, 1
-        )
-      )
-      p_old = tuple(
-        p.view(num_steps, num_envs, *p.shape[1:])
-        for p in actor.output_distribution_params
-      )
-      params.append(p_old)
-      p_mu = tuple(p[i] for p in buffer.behavior_distribution_params)
-      if all(bool((p > 0).all()) for p in p_mu[1:]):
-        kl.append(actor.get_kl_divergence(p_mu, p_old))
-      else:  # Deterministic behavior (e.g. noise-free MPC): no density, no KL.
-        kl.append(torch.full(p_old[0].shape[:-1], math.nan, device=buffer.device))
-      values.append(critic(obs).view(num_steps, num_envs, 1))
-      boot_values.append(critic(buffer.bootstrap_observations[i]))
-
+    shape = (len(slots), num_steps, num_envs, 1)
     slot_t = torch.tensor(slots, device=buffer.device)
-    old_logp = torch.stack(logp)  # [S, T, N, 1]
+    obs = buffer.observations[slot_t].flatten(0, 2)
+    actor(obs, stochastic_output=True)
+    old_logp = actor.get_output_log_prob(buffer.actions[slot_t].flatten(0, 2)).view(
+      shape
+    )
+    p_old = tuple(actor.output_distribution_params)
+    behavior = tuple(p[slot_t] for p in buffer.behavior_distribution_params)
+    behavior_flat = tuple(p.flatten(0, 2) for p in behavior)
+    # Deterministic behavior (e.g. noise-free MPC) has no density and no KL.
+    has_density = torch.stack(
+      [(p > 0).flatten(1).all(dim=1) for p in behavior[1:]]
+    ).all(dim=0)
+    kl = actor.get_kl_divergence(behavior_flat, p_old).view(shape[:-1])
+    kl = torch.where(has_density[:, None, None], kl, math.nan)
+    values_t = critic(obs).view(shape)
+    boot_values = critic(buffer.bootstrap_observations[slot_t].flatten(0, 1))
+
     beh_logp = buffer.behavior_log_prob[slot_t]
-    values_t = torch.stack(values)
     rewards = bootstrap_time_outs(
       buffer.rewards[slot_t], buffer.time_outs[slot_t], values_t, self.gamma
     )
@@ -275,7 +270,7 @@ class Mpopi:
       rewards=fold(rewards),
       dones=fold(dones),
       values=fold(values_t),
-      bootstrap_values=torch.stack(boot_values).flatten(0, 1),
+      bootstrap_values=boot_values,
       log_ratio=fold(trace_log_ratio),
       gamma=self.gamma,
       lam=self.lam,
@@ -289,21 +284,16 @@ class Mpopi:
     def flat(x: torch.Tensor) -> torch.Tensor:
       return x.flatten(0, 2)
 
-    num_params = len(params[0])
     return {
-      "observations": buffer.observations[slot_t].flatten(0, 2),
+      "observations": obs,
       "actions": flat(buffer.actions[slot_t]),
       "values": flat(values_t),
       "returns": flat(unfold(returns)),
       "advantages": flat(unfold(advantages)),
       "old_actions_log_prob": flat(old_logp),
       "behavior_actions_log_prob": flat(beh_logp),
-      "old_distribution_params": tuple(
-        flat(torch.stack([p[j] for p in params])) for j in range(num_params)
-      ),
-      "behavior_distribution_params": tuple(
-        flat(p[slot_t]) for p in buffer.behavior_distribution_params
-      ),
-      "behavior_kl": torch.stack(kl).flatten(0, 2),
+      "old_distribution_params": p_old,
+      "behavior_distribution_params": behavior_flat,
+      "behavior_kl": kl.flatten(0, 2),
       "policy_age": flat(ages.expand(-1, num_steps, num_envs, 1)),
     }
