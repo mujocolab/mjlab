@@ -100,6 +100,9 @@ class UniformVelocityCommand(CommandTerm):
       )
       self.vel_command_b[fwd_ids, 1] = 0.0
       self.vel_command_b[fwd_ids, 2] = 0.0
+      # Heading and world-frame envs rewrite vel_command_b every step.
+      self.is_heading_env[fwd_ids] = False
+      self.is_world_env[fwd_ids] = False
 
   def _integrate_command(
     self, dt: float | torch.Tensor, env_ids: torch.Tensor | None

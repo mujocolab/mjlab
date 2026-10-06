@@ -179,3 +179,45 @@ def test_commanded_displacement_and_episode_start(device):
   expected = torch.tensor([[0.0, 0.0], [0.0, 0.52]], device=device)
   assert torch.allclose(term.commanded_displacement_w, expected, atol=1e-5)
   assert torch.allclose(term.episode_start_pos_w, pose[[1, 1], :2], atol=1e-6)
+
+
+def test_forward_envs_ignore_heading_and_world_frame(device):
+  scene, sim = make_scene_and_sim(
+    device, load_fixture_xml("floating_base_articulated"), sensors=(), num_envs=2
+  )
+  env = cast(
+    "ManagerBasedRlEnv",
+    SimpleNamespace(
+      scene=scene,
+      sim=sim,
+      num_envs=2,
+      device=device,
+      step_dt=0.02,
+      episode_length_buf=torch.zeros(2, dtype=torch.long, device=device),
+    ),
+  )
+  cfg = UniformVelocityCommandCfg(
+    entity_name="robot",
+    resampling_time_range=(1e9, 1e9),
+    heading_command=True,
+    rel_heading_envs=1.0,
+    rel_world_envs=1.0,
+    rel_forward_envs=1.0,
+    ranges=UniformVelocityCommandCfg.Ranges(
+      lin_vel_x=(-1.0, -1.0),
+      lin_vel_y=(0.8, 0.8),
+      ang_vel_z=(-0.5, 0.5),
+      heading=(1.0, 1.0),
+    ),
+  )
+  term = cfg.build(env)
+  env_ids = torch.arange(2, device=device)
+
+  sim.forward()
+  term.reset(env_ids=env_ids)
+  term.compute(dt=0.0, env_ids=env_ids)
+  term.compute(dt=0.02)
+
+  # Straight ahead at |lin_vel_x|, no lateral or yaw command.
+  expected = torch.tensor([[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]], device=device)
+  torch.testing.assert_close(term.vel_command_b, expected)
