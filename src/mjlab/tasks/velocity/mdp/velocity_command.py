@@ -150,28 +150,25 @@ class UniformVelocityCommand(CommandTerm):
   ) -> None:
     scope = torch.zeros_like(self.is_heading_env)
     scope[slice(None) if env_ids is None else env_ids] = True
+    cmd = self.vel_command_b
     if self.cfg.heading_command:
       self.heading_error = wrap_to_pi(self.heading_target - heading_w)
-      heading_ids = (self.is_heading_env & scope).nonzero(as_tuple=False).flatten()
-      self.vel_command_b[heading_ids, 2] = torch.clip(
-        self.cfg.heading_control_stiffness * self.heading_error[heading_ids],
+      yaw = torch.clip(
+        self.cfg.heading_control_stiffness * self.heading_error,
         min=self.cfg.ranges.ang_vel_z[0],
         max=self.cfg.ranges.ang_vel_z[1],
       )
+      cmd[:, 2] = torch.where(self.is_heading_env & scope, yaw, cmd[:, 2])
     # World-frame envs: rotate world-frame linear vel into body frame.
-    w_ids = (self.is_world_env & scope).nonzero(as_tuple=False).flatten()
-    if len(w_ids) > 0:
-      heading = heading_w[w_ids]
-      cos_h = torch.cos(heading)
-      sin_h = torch.sin(heading)
-      vx_w = self.vel_command_w[w_ids, 0]
-      vy_w = self.vel_command_w[w_ids, 1]
-      self.vel_command_b[w_ids, 0] = cos_h * vx_w + sin_h * vy_w
-      self.vel_command_b[w_ids, 1] = -sin_h * vx_w + cos_h * vy_w
+    is_world = self.is_world_env & scope
+    cos_h, sin_h = torch.cos(heading_w), torch.sin(heading_w)
+    vx_w, vy_w = self.vel_command_w[:, 0], self.vel_command_w[:, 1]
+    cmd[:, 0] = torch.where(is_world, cos_h * vx_w + sin_h * vy_w, cmd[:, 0])
+    cmd[:, 1] = torch.where(is_world, -sin_h * vx_w + cos_h * vy_w, cmd[:, 1])
 
-    standing_env_ids = (self.is_standing_env & scope).nonzero(as_tuple=False).flatten()
-    self.vel_command_b[standing_env_ids, :] = 0.0
-    self.vel_command_w[standing_env_ids, :] = 0.0
+    is_standing = (self.is_standing_env & scope).unsqueeze(-1)
+    self.vel_command_b.masked_fill_(is_standing, 0.0)
+    self.vel_command_w.masked_fill_(is_standing, 0.0)
 
   # GUI.
 
