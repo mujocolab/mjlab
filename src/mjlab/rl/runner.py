@@ -1,13 +1,10 @@
-import math
 import os
 from pathlib import Path
 
 import torch
 from rsl_rl.env import VecEnv
-from rsl_rl.modules import GaussianDistribution
 from rsl_rl.runners import OnPolicyRunner
 
-from mjlab.rl.mpopi.algorithm import MpopiPpo
 from mjlab.rl.vecenv_wrapper import RslRlVecEnvWrapper
 
 
@@ -32,37 +29,7 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
         if train_cfg[key].get("rnn_type") is None:
           for opt in ("rnn_type", "rnn_hidden_dim", "rnn_num_layers"):
             train_cfg[key].pop(opt, None)
-    mpopi_cfg = train_cfg.get("algorithm", {}).get("mpopi") or {}
-    min_action_std = mpopi_cfg.get("min_action_std")
-    _resolve_mpopi_mode(train_cfg)
     super().__init__(env, train_cfg, log_dir, device)
-    if min_action_std is not None:
-      set_min_action_std(self.alg.actor, min_action_std)
-    self._attach_mpc_collector()
-
-  def _attach_mpc_collector(self) -> None:
-    """In mode ``"mpc_ppo"``, give the algorithm an MPC collector on this task."""
-    alg = self.alg
-    if not isinstance(alg, MpopiPpo) or alg.mpc_cfg is None:
-      return
-    if not isinstance(self.env, RslRlVecEnvWrapper):
-      raise ValueError("mpc_ppo requires an mjlab environment.")
-    # Local import: mjlab.mpc.collector imports mjlab.rl (circular).
-    from mjlab.mpc.collector import MpcCollector
-
-    cfg = alg.mpc_cfg
-    collector = MpcCollector(
-      self.env.unwrapped.cfg,
-      num_envs=cfg.num_envs,
-      num_steps=cfg.num_steps,
-      planner_cfg=cfg.planner,
-      execution_std=cfg.execution_std,
-      clip_actions=self.env.clip_actions,
-      device=self.device,
-      seed=int(self.cfg.get("seed", 0)) + 1,  # Different starts from training.
-      teacher_gap_every=cfg.teacher_gap_every,
-    )
-    alg.attach_mpc_collector(collector)
 
   def export_policy_to_onnx(
     self, path: str, filename: str = "policy.onnx", verbose: bool = False
@@ -172,37 +139,3 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     if infos and "env_state" in infos:
       self.env.unwrapped.common_step_counter = infos["env_state"]["common_step_counter"]
     return infos
-
-
-MPOPI_PPO_CLASS_NAME = "mjlab.rl.mpopi:MpopiPpo"
-
-
-def set_min_action_std(actor, min_std: float) -> None:
-  """Raise the lower bound of a Gaussian actor's std to ``min_std``."""
-  dist = getattr(actor, "distribution", None)
-  if not isinstance(dist, GaussianDistribution):
-    raise ValueError("min_action_std requires a Gaussian actor distribution.")
-  dist.std_range[0] = max(dist.std_range[0], min_std)
-  dist.log_std_range[0] = math.log(dist.std_range[0])
-
-
-def _resolve_mpopi_mode(train_cfg: dict) -> None:
-  """Translate ``algorithm.mpopi.mode`` into the RSL-RL algorithm class.
-
-  In ``"ppo"`` mode the ``mpopi`` key is removed so the upstream ``PPO`` class
-  receives exactly the arguments it would without MPOPI. Otherwise the
-  algorithm class becomes :class:`mjlab.rl.mpopi.MpopiPpo`.
-  """
-  alg_cfg = train_cfg.get("algorithm")
-  if alg_cfg is None or "mpopi" not in alg_cfg:
-    return
-  mpopi_cfg = alg_cfg.pop("mpopi")
-  if mpopi_cfg is None or mpopi_cfg.get("mode", "ppo") == "ppo":
-    return
-  if alg_cfg.get("class_name", "PPO") not in ("PPO", MPOPI_PPO_CLASS_NAME):
-    raise ValueError(
-      f"MPOPI mode '{mpopi_cfg['mode']}' requires the PPO algorithm, got "
-      f"class_name='{alg_cfg['class_name']}'."
-    )
-  alg_cfg["class_name"] = MPOPI_PPO_CLASS_NAME
-  alg_cfg["mpopi"] = mpopi_cfg

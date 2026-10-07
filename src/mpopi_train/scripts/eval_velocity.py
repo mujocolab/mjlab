@@ -8,11 +8,10 @@ and the mean per-step reward.
 
 Example (GPU)::
 
-  uv run python scripts/mpc/eval_mpc_velocity.py --device cuda:0 \\
+  uv run mpopi-eval --device cuda:0 \\
     --speeds 0.5 1.0 1.5 --num-envs 8 --steps 250 --mpc.num-samples 32
 
-  uv run python scripts/mpc/eval_mpc_velocity.py \\
-    --task Mjlab-Velocity-Flat-Unitree-G1-2k --controllers policy \\
+  uv run mpopi-eval --task Mpopi-G1-2k-PPO --controllers policy \\
     --checkpoint logs/rsl_rl/g1_velocity_2k/<run>/model_1999.pt
 """
 
@@ -30,10 +29,11 @@ import tyro
 from tensordict import TensorDict
 
 import mjlab.tasks  # noqa: F401  (populates the registry)
+import mpopi_train.tasks  # noqa: F401  (registers the Mpopi-* tasks)
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
-from mjlab.mpc import SamplingMpc, SamplingMpcCfg
 from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
 from mjlab.tasks.registry import load_env_cfg, load_rl_cfg, load_runner_cls
+from mpopi_train.mpc import SamplingMpc, SamplingMpcCfg
 
 
 @dataclass
@@ -183,7 +183,7 @@ def _write_video(path: Path, frames: list[np.ndarray], fps: int = 50) -> None:
   print(f"Wrote {path}")
 
 
-def main(cfg: EvalVelocityCfg) -> None:
+def evaluate(cfg: EvalVelocityCfg) -> None:
   results = [run(cfg, c, s) for s in cfg.speeds for c in cfg.controllers]
   seconds = cfg.steps * 0.02
   print(
@@ -209,5 +209,9 @@ def main(cfg: EvalVelocityCfg) -> None:
     print(f"Wrote {cfg.out}")
 
 
+def main() -> None:
+  evaluate(tyro.cli(EvalVelocityCfg))
+
+
 if __name__ == "__main__":
-  main(tyro.cli(EvalVelocityCfg))
+  main()

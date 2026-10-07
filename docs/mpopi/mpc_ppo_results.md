@@ -46,7 +46,7 @@ run (PPO alone: 38 s).
 
 ## How it works
 
-- `mjlab.mpc.collector.MpcCollector` drives `num_envs` envs of the training
+- `mpopi_train.mpc.collector.MpcCollector` drives `num_envs` envs of the training
   task with `SamplingMpc` and executes `a = u0 + σ ε` around the MPC action
   `u0`. It stores `log μ(a|s) = log N(a; u0, σ²)` and `(u0, σ)` as the
   behavior distribution parameters, in the `ReplayBuffer` segment layout.
@@ -114,5 +114,5 @@ weight, and seeds ≥ 10.
 ## Reproduce
 
 ```bash
-uv run --extra cpu python scripts/benchmarks/mpopi_benchmark.py --task Mjlab-Cartpole-Balance --num-envs 64 --iterations 100 --eval-every 5 --seeds 5 --seed-offset 300 --arms A_ppo D_mpc_ppo D_mpc_naive D_mpc_bc_only D_mpc_no_bc
+uv run --extra cpu python -m mpopi_train.scripts.benchmark --task Mjlab-Cartpole-Balance --num-envs 64 --iterations 100 --eval-every 5 --seeds 5 --seed-offset 300 --arms A_ppo D_mpc_ppo D_mpc_naive D_mpc_bc_only D_mpc_no_bc
 ```

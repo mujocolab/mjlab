@@ -63,6 +63,9 @@ demo = "mjlab.scripts.demo:main"
 list-envs = "mjlab.scripts.list_envs:main"
 viz-nan = "mjlab.scripts.nan_viz:main"
 export-scene = "mjlab.scripts.export_scene:main"
+mpopi-train = "mpopi_train.scripts.train:main"
+mpopi-play = "mpopi_train.scripts.play:main"
+mpopi-eval = "mpopi_train.scripts.eval_velocity:main"
 
 [dependency-groups]
 dev = [
@@ -93,6 +96,9 @@ docs = [
 [project.optional-dependencies]
 cu128 = ["torch>=2.7.0"]
 cpu = ["torch>=2.7.0"]
+
+[tool.uv.build-backend]
+module-name = ["mjlab", "mpopi_train"]
 
 [tool.uv]
 conflicts = [

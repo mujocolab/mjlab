@@ -6,24 +6,25 @@ import pytest
 import torch
 from rsl_rl.algorithms import PPO
 
-from mjlab.rl import RslRlModelCfg, RslRlOnPolicyRunnerCfg, RslRlPpoAlgorithmCfg
-from mjlab.rl.mpopi import MpopiCfg, MpopiPpo
-from mjlab.rl.mpopi.algorithm import weighted_clipped_surrogate
-from mjlab.rl.mpopi.toy_env import PointMassVecEnv
-from mjlab.rl.runner import MjlabOnPolicyRunner
+from mjlab.rl import RslRlModelCfg
+from mpopi_train.algorithms import MpopiCfg, MpopiPpo
+from mpopi_train.algorithms.algorithm import weighted_clipped_surrogate
+from mpopi_train.algorithms.toy_env import PointMassVecEnv
+from mpopi_train.config import MpopiPpoAlgorithmCfg, MpopiRunnerCfg
+from mpopi_train.runner import MpopiOnPolicyRunner
 
 NUM_ENVS, NUM_STEPS = 16, 8
 
 
 def _agent_cfg(mpopi: MpopiCfg | None = None) -> dict:
-  cfg = RslRlOnPolicyRunnerCfg(
+  cfg = MpopiRunnerCfg(
     num_steps_per_env=NUM_STEPS,
     actor=RslRlModelCfg(
       hidden_dims=(16,),
       distribution_cfg={"class_name": "GaussianDistribution", "init_std": 1.0},
     ),
     critic=RslRlModelCfg(hidden_dims=(16,)),
-    algorithm=RslRlPpoAlgorithmCfg(
+    algorithm=MpopiPpoAlgorithmCfg(
       num_learning_epochs=2,
       num_mini_batches=2,
       mpopi=mpopi or MpopiCfg(),
@@ -33,13 +34,13 @@ def _agent_cfg(mpopi: MpopiCfg | None = None) -> dict:
   return asdict(cfg)
 
 
-def _runner(mpopi: MpopiCfg | None = None, seed: int = 0) -> MjlabOnPolicyRunner:
+def _runner(mpopi: MpopiCfg | None = None, seed: int = 0) -> MpopiOnPolicyRunner:
   torch.manual_seed(seed)
   env = PointMassVecEnv(num_envs=NUM_ENVS, max_episode_length=20, seed=seed)
-  return MjlabOnPolicyRunner(env, _agent_cfg(mpopi), log_dir=None, device="cpu")
+  return MpopiOnPolicyRunner(env, _agent_cfg(mpopi), log_dir=None, device="cpu")
 
 
-def _learn(runner: MjlabOnPolicyRunner, iters: int, monkeypatch) -> list[dict]:
+def _learn(runner: MpopiOnPolicyRunner, iters: int, monkeypatch) -> list[dict]:
   """Run ``learn`` and capture every iteration's loss dict."""
   logs: list[dict] = []
   monkeypatch.setattr(
@@ -70,7 +71,7 @@ def test_mpopi_rejects_non_ppo_algorithm():
   cfg["algorithm"]["class_name"] = "Distillation"
   env = PointMassVecEnv(num_envs=NUM_ENVS)
   with pytest.raises(ValueError, match="requires the PPO algorithm"):
-    MjlabOnPolicyRunner(env, cfg, log_dir=None, device="cpu")
+    MpopiOnPolicyRunner(env, cfg, log_dir=None, device="cpu")
 
 
 @pytest.mark.parametrize(

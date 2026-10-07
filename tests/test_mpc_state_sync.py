@@ -6,8 +6,8 @@ from conftest import get_test_device
 
 import mjlab.tasks  # noqa: F401
 from mjlab.envs import ManagerBasedRlEnv
-from mjlab.mpc import SamplingMpc, SamplingMpcCfg
 from mjlab.tasks.registry import load_env_cfg
+from mpopi_train.mpc import SamplingMpc, SamplingMpcCfg
 
 TASK = "Mjlab-Velocity-Flat-Unitree-G1"
 NUM_REAL, NUM_SAMPLES = 2, 2

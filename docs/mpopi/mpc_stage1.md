@@ -8,7 +8,7 @@ controller before it is connected to PPO.
 
 ## How it works
 
-`mjlab.mpc.SamplingMpc` keeps a planning copy of the task with
+`mpopi_train.mpc.SamplingMpc` keeps a planning copy of the task with
 `num_real × num_samples` worlds (auto-reset and terminations off). At every
 control step it:
 
@@ -53,7 +53,7 @@ but has not been evaluated as a controller yet.
 ## Reproduce
 
 ```bash
-uv run --extra cpu python scripts/mpc/eval_mpc.py --num-envs 16 --steps 200 --mpc.num-samples 64 --mpc.horizon 20
+uv run --extra cpu python -m mpopi_train.scripts.eval_mpc --num-envs 16 --steps 200 --mpc.num-samples 64 --mpc.horizon 20
 ```
 
 ## Next

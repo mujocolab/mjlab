@@ -4,7 +4,7 @@ import pytest
 
 from mjlab.asset_zoo.robots import G1_ACTION_SCALE, GO1_ACTION_SCALE
 from mjlab.envs.mdp.actions import JointPositionActionCfg
-from mjlab.tasks.registry import list_tasks, load_env_cfg, load_rl_cfg
+from mjlab.tasks.registry import list_tasks, load_env_cfg
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 
 
@@ -197,16 +197,3 @@ def test_go1_velocity_has_correct_action_scale(
     assert joint_pos_action.scale == GO1_ACTION_SCALE, (
       f"Task {task_id} action scale mismatch, expected GO1_ACTION_SCALE"
     )
-
-
-def test_g1_2k_task_reaches_top_speed_within_its_iterations():
-  task = "Mjlab-Velocity-Flat-Unitree-G1-2k"
-  rl_cfg = load_rl_cfg(task)
-  stages = load_env_cfg(task).curriculum["command_vel"].params["velocity_stages"]
-  last = stages[-1]
-  assert rl_cfg.max_iterations == 2_000
-  assert last["lin_vel_x"][1] == 1.5
-  assert last["step"] < rl_cfg.max_iterations * rl_cfg.num_steps_per_env
-  play_twist = load_env_cfg(task, play=True).commands["twist"]
-  assert isinstance(play_twist, UniformVelocityCommandCfg)
-  assert play_twist.ranges.lin_vel_x[1] == 1.5

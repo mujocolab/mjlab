@@ -133,7 +133,7 @@ mjlab.scripts.train:main            (tyro CLI → TrainConfig)
 
 1. **Algorithm class via `class_name`, no RSL-RL edits.**
    `resolve_callable` accepts `"module.path:Class"` (`rsl_rl/utils/utils.py:129-138`).
-   A subclass `mjlab.rl.mpopi:MpopiPpo(PPO)` is constructed by the unmodified
+   A subclass `mpopi_train.algorithms:MpopiPpo(PPO)` is constructed by the unmodified
    `PPO.construct_algorithm` (static, uses the resolved class,
    `ppo.py:430,458`). Extra config arrives as a constructor kwarg.
 2. **Overrides inside `MpopiPpo`, and nothing else:**
@@ -154,7 +154,7 @@ mjlab.scripts.train:main            (tyro CLI → TrainConfig)
    - `"ppo"`: pop the `mpopi` key so base `PPO` receives *exactly* today's
      kwargs, and leave `class_name` unchanged.
    - `"naive_replay_ppo"` / `"mpopi_ppo"`: set
-     `class_name="mjlab.rl.mpopi:MpopiPpo"` and pass `mpopi_cfg=...`.
+     `class_name="mpopi_train.algorithms:MpopiPpo"` and pass `mpopi_cfg=...`.
    All task runners subclass `MjlabOnPolicyRunner`, so every task gets the
    switch.
 4. **Config.** A new `MpopiCfg` dataclass nested as
@@ -210,6 +210,6 @@ integral). Neither is an importance-sampling correction layer:
 - MPPI is a sampling-based trajectory optimiser and needs a dynamics model.
 
 Your specification defines MPOPI operationally, as a correction layer using
-`ρ = π/μ`. The design in `docs/mpopi_design.md` follows that definition. If you
+`ρ = π/μ`. The design in `docs/mpopi/mpopi_design.md` follows that definition. If you
 meant MPO-style E-step weighting, the estimator in §3 of the design changes, but
 the storage, integration and metrics plumbing does not.

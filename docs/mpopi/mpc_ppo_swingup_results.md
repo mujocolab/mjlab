@@ -107,7 +107,7 @@ supports.
 ## Reproduce
 
 ```bash
-uv run --extra cpu python scripts/benchmarks/mpopi_benchmark.py --task Mjlab-Cartpole-Swingup --num-envs 64 --iterations 200 --eval-every 10 --eval-steps 400 --seeds 5 --seed-offset 400 --arms A_ppo D_mpc_ppo D_mpc_naive D_mpc_bc_only D_mpc_no_bc
+uv run --extra cpu python -m mpopi_train.scripts.benchmark --task Mjlab-Cartpole-Swingup --num-envs 64 --iterations 200 --eval-every 10 --eval-steps 400 --seeds 5 --seed-offset 400 --arms A_ppo D_mpc_ppo D_mpc_naive D_mpc_bc_only D_mpc_no_bc
 ```
 
 ## MPOPI as the teacher (pre-registration)

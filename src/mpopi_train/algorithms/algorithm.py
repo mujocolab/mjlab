@@ -12,7 +12,7 @@ When no replay sample is available it takes exactly the upstream code path, so
 the resulting parameters are identical to plain PPO.
 
 In mode ``"mpc_ppo"`` the replay source is MPC-generated data instead of past
-PPO rollouts: an attached :class:`mjlab.mpc.collector.MpcCollector` fills a
+PPO rollouts: an attached :class:`mpopi_train.mpc.collector.MpcCollector` fills a
 separate buffer, the same MPOPI estimators correct it, and an annealed
 behavior-cloning term pulls the policy mean toward the MPC action.
 """
@@ -31,9 +31,9 @@ from rsl_rl.modules import GaussianDistribution
 from rsl_rl.storage import RolloutStorage
 from tensordict import TensorDict
 
-from mjlab.rl.mpopi.config import MpopiCfg
-from mjlab.rl.mpopi.mpopi import Mpopi, MpopiBatch
-from mjlab.rl.mpopi.replay_buffer import ReplayBuffer
+from mpopi_train.algorithms.config import MpopiCfg
+from mpopi_train.algorithms.mpopi import Mpopi, MpopiBatch
+from mpopi_train.algorithms.replay_buffer import ReplayBuffer
 
 _Pool = dict[str, Any]
 

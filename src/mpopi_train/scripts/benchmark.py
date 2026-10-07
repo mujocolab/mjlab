@@ -1,6 +1,6 @@
 """Benchmark: PPO vs naive replay + PPO vs MPOPI + PPO vs MPC-guided PPO.
 
-Runs every arm for several seeds through the real ``MjlabOnPolicyRunner`` /
+Runs every arm for several seeds through the real ``MpopiOnPolicyRunner`` /
 mode switch and reports a per-iteration score, its area under the curve
 (sample efficiency), the final score, and Welch / Mann-Whitney tests between
 arms.
@@ -19,9 +19,9 @@ Two environments are supported:
 
 Examples::
 
-  uv run --extra cpu python scripts/benchmarks/mpopi_benchmark.py \\
+  uv run --extra cpu python -m mpopi_train.scripts.benchmark \\
     --seeds 10 --iterations 150 --out-dir logs/mpopi_bench/toy
-  uv run --extra cpu python scripts/benchmarks/mpopi_benchmark.py \\
+  uv run --extra cpu python -m mpopi_train.scripts.benchmark \\
     --task Mjlab-Cartpole-Balance --num-envs 64 --iterations 150 \\
     --out-dir logs/mpopi_bench/cartpole
 """
@@ -43,17 +43,18 @@ import tyro
 from rsl_rl.env import VecEnv
 from scipy import stats
 
-from mjlab.mpc import SamplingMpcCfg
 from mjlab.rl import (
   RslRlModelCfg,
   RslRlOnPolicyRunnerCfg,
   RslRlPpoAlgorithmCfg,
   RslRlVecEnvWrapper,
 )
-from mjlab.rl.mpopi import MpopiCfg
-from mjlab.rl.mpopi.config import MpcDataCfg
-from mjlab.rl.mpopi.toy_env import PointMassVecEnv
-from mjlab.rl.runner import MjlabOnPolicyRunner
+from mpopi_train.algorithms import MpopiCfg
+from mpopi_train.algorithms.config import MpcDataCfg
+from mpopi_train.algorithms.toy_env import PointMassVecEnv
+from mpopi_train.config import MpopiRunnerCfg, with_mpopi
+from mpopi_train.mpc import SamplingMpcCfg
+from mpopi_train.runner import MpopiOnPolicyRunner
 
 
 @dataclass(frozen=True)
@@ -162,10 +163,10 @@ class BenchmarkCfg:
     )
   )
   """MPC data source of the ``D_*`` arms. The planner defaults score 0.92 as a
-  controller on Cartpole (``scripts/mpc/eval_mpc.py``, 8 envs)."""
+  controller on Cartpole (``src/mpopi_train/scripts/eval_mpc.py``, 8 envs)."""
 
 
-def evaluate_toy(runner: MjlabOnPolicyRunner, cfg: BenchmarkCfg) -> float:
+def evaluate_toy(runner: MpopiOnPolicyRunner, cfg: BenchmarkCfg) -> float:
   """Mean undiscounted return of the deterministic policy from fixed starts."""
   env = PointMassVecEnv(num_envs=cfg.eval_episodes, device=cfg.device)
   env.pos = torch.linspace(-2.0, 2.0, cfg.eval_episodes, device=cfg.device).view(-1, 1)
@@ -220,7 +221,7 @@ class TaskEvaluator:
       self.env = RslRlVecEnvWrapper(ManagerBasedRlEnv(cfg=env_cfg, device=cfg.device))
     self.steps = cfg.eval_steps
 
-  def __call__(self, runner: MjlabOnPolicyRunner) -> float:
+  def __call__(self, runner: MpopiOnPolicyRunner) -> float:
     policy = runner.alg.get_policy()
     total = 0.0
     with _preserve_rng(), torch.inference_mode():
@@ -236,9 +237,7 @@ class TaskEvaluator:
     self.env.close()
 
 
-def _build(
-  arm: Arm, seed: int, cfg: BenchmarkCfg
-) -> tuple[VecEnv, RslRlOnPolicyRunnerCfg]:
+def _build(arm: Arm, seed: int, cfg: BenchmarkCfg) -> tuple[VecEnv, MpopiRunnerCfg]:
   mpopi = replace(
     arm.mpopi,
     replay_buffer_size=cfg.replay_buffer_size,
@@ -281,16 +280,14 @@ def _build(
   agent.seed = seed
   agent.logger = "tensorboard"
   num_mini_batches = max(1, agent.algorithm.num_mini_batches // arm.minibatch_divisor)
-  agent.algorithm = replace(
-    agent.algorithm, mpopi=mpopi, num_mini_batches=num_mini_batches
-  )
-  return env, agent
+  agent.algorithm = replace(agent.algorithm, num_mini_batches=num_mini_batches)
+  return env, with_mpopi(agent, mpopi)
 
 
 def run_one(arm_name: str, seed: int, cfg: BenchmarkCfg) -> list[dict]:
   torch.manual_seed(seed)
   env, agent = _build(ARMS[arm_name], seed, cfg)
-  runner = MjlabOnPolicyRunner(env, asdict(agent), log_dir=None, device=cfg.device)
+  runner = MpopiOnPolicyRunner(env, asdict(agent), log_dir=None, device=cfg.device)
   env_steps_per_it = env.num_envs * agent.num_steps_per_env
 
   # Accumulate the per-step training reward of each rollout.

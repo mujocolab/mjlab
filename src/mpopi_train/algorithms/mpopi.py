@@ -14,15 +14,15 @@ import torch
 from rsl_rl.models import MLPModel
 from tensordict import TensorDict
 
-from mjlab.rl.mpopi.config import MpopiCfg
-from mjlab.rl.mpopi.estimators import (
+from mpopi_train.algorithms.config import MpopiCfg
+from mpopi_train.algorithms.estimators import (
   bootstrap_time_outs,
   effective_sample_size,
   importance_log_ratio,
   importance_weights,
   vtrace,
 )
-from mjlab.rl.mpopi.replay_buffer import ReplayBuffer
+from mpopi_train.algorithms.replay_buffer import ReplayBuffer
 
 
 @dataclass

@@ -8,8 +8,8 @@ from conftest import get_test_device
 
 import mjlab.tasks  # noqa: F401
 from mjlab.envs import ManagerBasedRlEnv
-from mjlab.mpc import SamplingMpc, SamplingMpcCfg, mppi_weights
 from mjlab.tasks.registry import load_env_cfg
+from mpopi_train.mpc import SamplingMpc, SamplingMpcCfg, mppi_weights
 
 TASK = "Mjlab-Cartpole-Balance"
 NUM_REAL = 2

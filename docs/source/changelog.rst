@@ -5,46 +5,6 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
-Added
-^^^^^
-
-- Experimental MPOPI replay correction for PPO (``mjlab.rl.mpopi``). Setting
-  ``--agent.algorithm.mpopi.mode`` to ``naive_replay_ppo`` or ``mpopi_ppo`` adds
-  importance-weighted samples from past rollouts to each PPO update. The default
-  ``ppo`` mode constructs RSL-RL's ``PPO`` exactly as before.
-- Experimental sampling-based MPC (``mjlab.mpc.SamplingMpc``): MPPI, with an
-  MPOPI option that adapts the sampling distribution within a control step,
-  planning on a batched copy of an mjlab task with the task's own rewards.
-  ``scripts/mpc/eval_mpc.py`` evaluates it as a controller.
-- Experimental MPC-guided PPO: ``--agent.algorithm.mpopi.mode mpc_ppo`` drives
-  extra envs with the sampling MPC (``mjlab.mpc.collector.MpcCollector``),
-  records the executed actions with their Gaussian behavior density, and adds
-  them to PPO's updates with MPOPI's importance correction plus an annealed
-  behavior-cloning term. Settings are under ``--agent.algorithm.mpopi.mpc``.
-- ``mpc_ppo`` behavior-cloning options: ``execution_std=0`` clones the MPC
-  action without noise, ``driver="policy"`` labels the policy's own states with
-  the MPC (DAgger), and ``bc_floor`` keeps a minimum cloning weight.
-- ``mpc_ppo`` option ``inject_fraction``: MPC samples make up a fixed fraction of
-  every PPO batch (MPC-Injection). With ``correction=False`` the MPC data may be
-  collected without execution noise.
-- ``--agent.algorithm.mpopi.min-action-std``: lower bound on a Gaussian actor's
-  std in every mode, including plain ``ppo``.
-- ``mpc_ppo`` option ``replay_own_rollouts``: also replay PPO's own past
-  rollouts with MPOPI's correction while the MPC data only feeds behavior
-  cloning (for example DAgger combined with Replay-IS).
-- ``mpc_ppo`` option ``teacher_gap_every``: while collecting, compare the
-  planner's plan with the policy's mean action from the same state over the
-  planner horizon and log the return gap and how often the plan is better
-  (``SamplingMpc.compare_with_policy``).
-- ``Mjlab-Velocity-Flat-Unitree-G1-2k``: flat G1 velocity task for 2000
-  iterations whose command curriculum reaches forward speeds up to 1.5 m/s at
-  iteration 500. ``scripts/mpc/eval_mpc_velocity.py`` can evaluate a trained
-  checkpoint at fixed speeds (``--controllers policy --checkpoint ...``).
-- MPOPI and ``mpc_ppo`` updates log the wall time of each phase
-  (``time/mpc``, ``time/replay``, ``time/sgd``, ``time/rest``). Replay segments
-  are now evaluated in one batch, and MPC planning rollouts skip observation
-  computation; both give the same results as before, faster.
-
 Changed
 ^^^^^^^
 

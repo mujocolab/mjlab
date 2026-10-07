@@ -21,9 +21,9 @@ import torch
 from tensordict import TensorDict
 
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
-from mjlab.mpc.config import SamplingMpcCfg
-from mjlab.mpc.sampling_mpc import SamplingMpc, preserve_global_rng
 from mjlab.rl.vecenv_wrapper import RslRlVecEnvWrapper
+from mpopi_train.mpc.config import SamplingMpcCfg
+from mpopi_train.mpc.sampling_mpc import SamplingMpc, preserve_global_rng
 
 
 class MpcCollector:

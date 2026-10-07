@@ -7,8 +7,8 @@ import torch
 from rsl_rl.models import MLPModel
 from tensordict import TensorDict
 
-from mjlab.rl.mpopi import Mpopi, MpopiCfg, ReplayBuffer
-from mjlab.rl.mpopi.estimators import vtrace
+from mpopi_train.algorithms import Mpopi, MpopiCfg, ReplayBuffer
+from mpopi_train.algorithms.estimators import vtrace
 
 NUM_STEPS, NUM_ENVS, OBS_DIM, ACT_DIM = 6, 4, 3, 2
 GAMMA, LAM = 0.99, 0.95

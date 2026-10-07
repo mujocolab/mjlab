@@ -8,13 +8,14 @@ from conftest import get_test_device
 
 import mjlab.tasks  # noqa: F401
 from mjlab.envs import ManagerBasedRlEnv
-from mjlab.mpc import SamplingMpcCfg
-from mjlab.mpc.collector import MpcCollector
 from mjlab.rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
-from mjlab.rl.mpopi import MpopiCfg, MpopiPpo
-from mjlab.rl.mpopi.config import MpcDataCfg
-from mjlab.rl.runner import MjlabOnPolicyRunner
 from mjlab.tasks.registry import load_env_cfg, load_rl_cfg
+from mpopi_train.algorithms import MpopiCfg, MpopiPpo
+from mpopi_train.algorithms.config import MpcDataCfg
+from mpopi_train.config import with_mpopi
+from mpopi_train.mpc import SamplingMpcCfg
+from mpopi_train.mpc.collector import MpcCollector
+from mpopi_train.runner import MpopiOnPolicyRunner
 
 TASK = "Mjlab-Cartpole-Balance"
 TINY_PLANNER = SamplingMpcCfg(num_samples=4, horizon=3)
@@ -27,7 +28,7 @@ def device():
 
 def _runner(
   device: str, mpc: MpcDataCfg, seed: int = 0, **ppo_overrides
-) -> MjlabOnPolicyRunner:
+) -> MpopiOnPolicyRunner:
   env_cfg = load_env_cfg(TASK)
   env_cfg.scene.num_envs = 8
   env_cfg.seed = seed
@@ -36,28 +37,27 @@ def _runner(
   agent.num_steps_per_env = 8
   agent.seed = seed
   agent.logger = "tensorboard"
-  agent.algorithm = replace(
-    agent.algorithm, mpopi=MpopiCfg(mode="mpc_ppo", mpc=mpc), **ppo_overrides
-  )
+  agent.algorithm = replace(agent.algorithm, **ppo_overrides)
+  mpopi_agent = with_mpopi(agent, MpopiCfg(mode="mpc_ppo", mpc=mpc))
   env = RslRlVecEnvWrapper(
     ManagerBasedRlEnv(cfg=env_cfg, device=device), clip_actions=agent.clip_actions
   )
-  return MjlabOnPolicyRunner(env, asdict(agent), log_dir=None, device=device)
+  return MpopiOnPolicyRunner(env, asdict(mpopi_agent), log_dir=None, device=device)
 
 
-def _alg(runner: MjlabOnPolicyRunner) -> MpopiPpo:
+def _alg(runner: MpopiOnPolicyRunner) -> MpopiPpo:
   assert isinstance(runner.alg, MpopiPpo)
   return runner.alg
 
 
-def _close(runner: MjlabOnPolicyRunner) -> None:
+def _close(runner: MpopiOnPolicyRunner) -> None:
   collector = _alg(runner).mpc_collector
   assert collector is not None
   collector.close()
   runner.env.close()
 
 
-def _learn(runner: MjlabOnPolicyRunner, iterations: int) -> list[dict]:
+def _learn(runner: MpopiOnPolicyRunner, iterations: int) -> list[dict]:
   logs: list[dict] = []
   runner.logger.log = lambda **kw: logs.append(kw["loss_dict"])  # type: ignore[method-assign]
   runner.learn(num_learning_iterations=iterations)
@@ -286,11 +286,11 @@ def test_min_action_std_bounds_the_actor_std(device, mode):
   assert isinstance(agent, RslRlOnPolicyRunnerCfg)
   agent.logger = "tensorboard"
   mpc = MpcDataCfg(num_envs=1, num_steps=2, planner=TINY_PLANNER)
-  agent.algorithm = replace(
-    agent.algorithm, mpopi=MpopiCfg(mode=mode, mpc=mpc, min_action_std=0.3)
-  )
+  mpopi = MpopiCfg(mode=mode, mpc=mpc, min_action_std=0.3)
   env = RslRlVecEnvWrapper(ManagerBasedRlEnv(cfg=env_cfg, device=device))
-  runner = MjlabOnPolicyRunner(env, asdict(agent), log_dir=None, device=device)
+  runner = MpopiOnPolicyRunner(
+    env, asdict(with_mpopi(agent, mpopi)), log_dir=None, device=device
+  )
   actor = runner.alg.actor
   with torch.no_grad():
     actor.distribution.std_param.fill_(-1.0)  # type: ignore[union-attr]

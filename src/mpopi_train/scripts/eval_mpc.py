@@ -6,7 +6,7 @@ all from the same initial states. No learning is involved.
 
 Example::
 
-  uv run --extra cpu python scripts/mpc/eval_mpc.py --num-envs 16 --steps 200 \\
+  uv run --extra cpu python -m mpopi_train.scripts.eval_mpc --num-envs 16 --steps 200 \\
     --mpc.num-samples 64 --mpc.horizon 20
 """
 
@@ -19,8 +19,8 @@ import tyro
 
 import mjlab.tasks  # noqa: F401  (populates the registry)
 from mjlab.envs import ManagerBasedRlEnv
-from mjlab.mpc import SamplingMpc, SamplingMpcCfg
 from mjlab.tasks.registry import load_env_cfg
+from mpopi_train.mpc import SamplingMpc, SamplingMpcCfg
 
 
 @dataclass

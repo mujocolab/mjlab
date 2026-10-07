@@ -5,7 +5,7 @@ import math
 import pytest
 import torch
 
-from mjlab.rl.mpopi.estimators import (
+from mpopi_train.algorithms.estimators import (
   bootstrap_time_outs,
   effective_sample_size,
   importance_log_ratio,

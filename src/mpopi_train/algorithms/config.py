@@ -4,7 +4,7 @@ import warnings
 from dataclasses import dataclass, field, fields
 from typing import Any, Literal
 
-from mjlab.mpc.config import SamplingMpcCfg
+from mpopi_train.mpc.config import SamplingMpcCfg
 
 MpopiMode = Literal["ppo", "naive_replay_ppo", "mpopi_ppo", "mpc_ppo"]
 
@@ -121,7 +121,7 @@ class MpcDataCfg:
 class MpopiCfg:
   """Config for MPOPI, the replay correction stage that feeds PPO.
 
-  See ``docs/source/training/mpopi.rst`` for the objective and estimator.
+  See ``docs/mpopi/mpopi_design.md`` for the objective and estimator.
   """
 
   mode: MpopiMode = "ppo"

@@ -8,7 +8,7 @@ commands that include 1.5 m/s), this checks the MPC alone.
 
 ## Prerequisites done
 
-- **State sync** (`mjlab.mpc.state_sync`): the planner copies commands and
+- **State sync** (`mpopi_train.mpc.state_sync`): the planner copies commands and
   timers, previous actions, stateful reward terms, sensor histories, entity
   data and domain-randomized model fields. On G1 the planner's per-term
   rewards match the real env to about 1e-5; copying only the simulator state
@@ -24,7 +24,7 @@ commands that include 1.5 m/s), this checks the MPC alone.
 
 ## Pre-registration (written before the GPU run)
 
-`scripts/mpc/eval_mpc_velocity.py`: `play` env, commanded forward speeds 0.5,
+`src/mpopi_train/scripts/eval_velocity.py` (`mpopi-eval`): `play` env, commanded forward speeds 0.5,
 1.0 and 1.5 m/s (no lateral or yaw command), 8 envs × 250 steps (5 s), eval
 seed 10000; speed averaged after the first 50 steps.
 

@@ -24,8 +24,8 @@ import torch
 from tensordict import TensorDict
 
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
-from mjlab.mpc.config import SamplingMpcCfg
-from mjlab.mpc.state_sync import freeze_commands, sync_env_state
+from mpopi_train.mpc.config import SamplingMpcCfg
+from mpopi_train.mpc.state_sync import freeze_commands, sync_env_state
 
 
 @dataclass

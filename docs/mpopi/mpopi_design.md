@@ -1,7 +1,7 @@
 # MPOPI → PPO: Mathematical and Software Design
 
 Status: Phase 4 deliverable (design only, nothing implemented). It builds on
-`docs/mpopi_architecture_audit.md`. Section numbers in square brackets, such as
+`docs/mpopi/mpopi_architecture_audit.md`. Section numbers in square brackets, such as
 [A§2], refer to that audit.
 
 ## 1. Notation
@@ -379,7 +379,7 @@ update():
 
 ## 12. Implementation plan (files)
 
-New: `src/mjlab/rl/mpopi/{__init__,config,estimators,replay_buffer,mpopi,algorithm}.py`.
+New: `src/mpopi_train/algorithms/{__init__,config,estimators,replay_buffer,mpopi,algorithm}.py`.
 `estimators.py` holds pure functions (log ratio, truncation, ESS, V-trace),
 which keeps them trivially testable on CPU.
 
