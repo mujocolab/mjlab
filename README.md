@@ -132,39 +132,12 @@ uv run play Mjlab-Your-Task-Id --agent random  # Sends uniform random actions
 
 When running motion-tracking tasks, add `--registry-name your-org/motions/motion-name` to the command.
 
-## Results
-
-G1 flat velocity task, 4096 robots, 2000 iterations, Kaggle T4 GPUs. Milestones use a 10-iteration
-moving average of the velocity-tracking reward (maximum 2.0; final values are 1.50 to 1.56). The
-1.5 milestone sits just below the final plateau, where the curve is nearly flat, so it shifts by
-hundreds of iterations between runs; the 1.45 milestone is more stable.
-
-| Method | Runs | Iteration reaching 1.45 | Iteration reaching 1.5 | Speed at 1.5 m/s command | Error at 1.5 m/s |
-|---|---|---|---|---|---|
-| PPO | 4 | 1298 to 1458 | 1639 to 1907 | 1.46 to 1.47 | 0.046 to 0.060 |
-| Replay-IS | 2 | 1245, 1330 | 1401, 1450 | 1.47, 1.50 | 0.045, 0.046 |
-| DAgger | 2 | 1182, 1241 | 1443, 1549 | 1.42, 1.42 | 0.080, 0.080 |
-| **Replay-IS + DAgger** | 6 | **916 to 1210** | **1112 to 1385** | 1.43 to 1.50 | 0.037 to 0.076 |
-
-- **Fewer iterations:** Replay-IS + DAgger reaches good tracking in about **28% fewer iterations**
-  than PPO (mean 1240 vs 1734 at the 1.5 milestone), in every run.
-- **Same wall-clock time:** each iteration costs more (about 3.5 to 3.7 s vs 2.8 s on a T4: twice
-  the data per gradient step, plus 22 MPC labeling rounds of about 25 s), so the time to good
-  tracking is about the same as PPO (75 to 85 vs 76 to 87 minutes). Running fewer robots per
-  iteration saved 21% of the time but lost the iteration advantage; less replay data saved only 5%.
-- **Final accuracy:** every run tracks 1.5 m/s without falls. The tracking-error ranges of PPO and
-  Replay-IS + DAgger overlap; the spread comes from the trained policies themselves (re-evaluating
-  with 64 robots for 10 s changed errors by at most 0.005), so more seeds are needed to compare it.
-- **Teacher vs. student:** measured on G1, the MPC plan beats the policy in 98 to 100% of states
-  until labeling stops at iteration 110, so behavior cloning is not stopped because the student
-  overtook the teacher. Whether longer cloning helps is still open.
-
 ## Project Layout
 
 | Path | Content |
 |---|---|
 | [`src/mpopi_train/`](src/mpopi_train/) | The research package: algorithms, MPC, runner, presets, tasks, scripts ([README](src/mpopi_train/README.md)) |
-| [`docs/mpopi/`](docs/mpopi/) | Design notes and earlier experiment write-ups (toy problem, Cartpole) |
+| [`docs/mpopi/`](docs/mpopi/) | Design notes |
 | [`notebooks/`](notebooks/) | Colab and Kaggle notebooks |
 | [`tests/`](tests/) (`test_mpopi_*.py`, `test_mpc_*.py`) | Tests of the package |
 | `src/mjlab/` | Unmodified mjlab |

@@ -255,19 +255,6 @@ uv run --extra cu128 mpopi-play Mpopi-G1-2k-PPO --checkpoint-file logs/rsl_rl/g1
 
 Một cửa sổ (hoặc trang web) mô phỏng sẽ mở ra. Nhấn `Ctrl + C` trong terminal để tắt.
 
-### 6.6. Kết quả tham khảo (để biết mình chạy có đúng không)
-
-Đo trên GPU T4 của Kaggle. "Mốc 1,45" là vòng đầu tiên reward bám vận tốc (trung bình 10 vòng) đạt
-1,45. Mốc này ổn định hơn mốc 1,5, vì gần 1,5 đường học đã gần như nằm ngang.
-
-| Phương pháp | Số lần chạy | Vòng đạt mốc 1,45 | Vận tốc ở lệnh 1,5 m/s | Thời gian một lần train |
-|---|---|---|---|---|
-| PPO | 4 | 1298–1458 | 1,46–1,47 | khoảng 1,5 giờ |
-| Replay-IS + DAgger | 6 | 916–1210 | 1,43–1,50 | khoảng 2 giờ |
-
-Kết quả của bạn nằm trong các khoảng này là bình thường. Replay-IS + DAgger cần **ít vòng hơn**
-PPO, nhưng mỗi vòng tốn thời gian hơn, nên **tổng thời gian tới lúc bám tốt gần như bằng PPO**.
-
 ---
 
 ## 7. Tùy chỉnh (khi đã quen)
@@ -356,7 +343,7 @@ có trong file zip). Để đánh giá lại:
 | `invalid choice: 'Mpopi-G1-2k-...'` hoặc `mpopi-train: command not found` | Sai nhánh hoặc sai thư mục | `cd ~/mjlab_MPOPI` rồi `git checkout mpc-stage1` |
 | Hỏi đăng nhập `wandb` | Quên `--agent.logger tensorboard` | Thêm tùy chọn đó vào lệnh |
 | `uv` tải lại PyTorch mỗi lần chạy | Có lệnh thiếu `--extra cu128` | Luôn dùng `uv run --extra cu128 ...` |
-| Kết quả hai lần train cùng cấu hình khác nhau | Bình thường trong học tăng cường | Chạy nhiều seed và so khoảng giá trị (mục 5.3, 6.6) |
+| Kết quả hai lần train cùng cấu hình khác nhau | Bình thường trong học tăng cường | Chạy nhiều seed và so khoảng giá trị (mục 5.3) |
 | Kaggle: không bật được GPU hoặc Internet | Chưa xác minh số điện thoại | Xác minh trong *Settings* của tài khoản Kaggle |
 | Kaggle: lỗi CUDA trên P100 | P100 không được hỗ trợ | Chọn **GPU T4 x2** |
 | Kaggle: notebook đánh giá không thấy checkpoint | Input là phiên bản mới nhất, không phải phiên bản đã train | Xem mục 8.3 |
