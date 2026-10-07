@@ -257,22 +257,135 @@ Một cửa sổ (hoặc trang web) mô phỏng sẽ mở ra. Nhấn `Ctrl + C` 
 
 ---
 
-## 7. Tùy chỉnh (khi đã quen)
+## 7. Truyền tham số (đổi số vòng, vận tốc, cấu hình phương pháp)
 
-Mọi cấu hình đều đổi được bằng cách thêm vào cuối lệnh train:
+### 7.1. Cú pháp chung
 
-| Muốn | Thêm |
-|---|---|
-| Ít robot hơn (GPU yếu, báo hết bộ nhớ) | `--env.scene.num-envs 2048` |
-| Số vòng học khác | `--agent.max-iterations 1000` |
-| "Thầy" MPC gắn nhãn lâu hơn (tới vòng 300) | `--agent.algorithm.mpopi.mpc.collect-iterations 300 --agent.algorithm.mpopi.mpc.bc-iterations 340` |
-| Ít env phụ cho "thầy" MPC hơn | `--agent.algorithm.mpopi.mpc.num-envs 32` |
-| Lưu lên Weights & Biases thay vì máy | Bỏ `--agent.logger tensorboard` (cần đăng nhập W&B trước) |
-| Xem mọi tùy chọn | `uv run --extra cu128 mpopi-train Mpopi-G1-2k-PPO --help` |
+Mọi tham số được thêm **sau tên task**, dạng `--nhóm.tên giá trị`:
 
-**Lưu ý:** đổi cấu hình thì kết quả **không còn so sánh trực tiếp được** với các lần chạy dùng cấu
-hình chuẩn. Cấu hình chuẩn của từng phương pháp nằm trong `src/mpopi_train/presets.py`; cấu hình
-thực sự đã dùng của mỗi lần chạy được lưu trong `params/agent.yaml` của thư mục lần chạy đó.
+```bash
+uv run --extra cu128 mpopi-train Mpopi-G1-2k-PPO --agent.max-iterations 3000 --agent.seed 2
+```
+
+| Loại giá trị | Cách viết | Ví dụ |
+|---|---|---|
+| Số | Viết thẳng | `--agent.max-iterations 3000` |
+| Đúng/sai | `True` hoặc `False` (viết hoa chữ đầu) | `--agent.algorithm.mpopi.mpc.replay-own-rollouts False` |
+| Cặp số (khoảng min, max) | **Viết liền, cách bằng dấu phẩy, không dấu cách** | `-1.0,2.0` |
+| Chữ | Viết thẳng | `--agent.run-name PPO_s1` |
+
+- Viết `-1.0 2.0` (có dấu cách) cho cặp số sẽ báo lỗi `Unrecognized options`.
+- Tên tham số dùng dấu gạch ngang `-`, không dùng gạch dưới `_` (`max-iterations`, không phải
+  `max_iterations`).
+- Xem **tất cả** tham số và giá trị mặc định:
+  ```bash
+  uv run --extra cu128 mpopi-train Mpopi-G1-2k-Replay-IS-DAgger --help
+  ```
+- Cấu hình thực sự đã dùng của mỗi lần train được lưu trong `params/agent.yaml` và
+  `params/env.yaml` của thư mục lần chạy đó, nên luôn kiểm tra lại được.
+
+### 7.2. Tham số train chung (mọi phương pháp)
+
+| Tham số | Mặc định | Ý nghĩa |
+|---|---|---|
+| `--agent.max-iterations` | `2000` | Số vòng học |
+| `--env.scene.num-envs` | `4096` | Số robot mô phỏng cùng lúc. GPU báo hết bộ nhớ thì giảm (2048, 1024) |
+| `--agent.seed` | `42` | Hạt giống ngẫu nhiên |
+| `--agent.run-name` | tên phương pháp | Tên thư mục kết quả |
+| `--agent.save-interval` | `50` | Cứ bao nhiêu vòng lưu một checkpoint |
+| `--agent.algorithm.learning-rate` | `0.001` | Tốc độ học ban đầu (tự điều chỉnh trong lúc train) |
+| `--agent.logger` | `wandb` | `tensorboard` để lưu trên máy |
+| `--agent.algorithm.mpopi.min-action-std` | `0.05` | Mức nhiễu hành động tối thiểu (chống lỗi NaN) |
+
+### 7.3. Vận tốc mục tiêu (ví dụ đổi 1,5 → 2,0 m/s)
+
+Lệnh vận tốc tăng dần theo **2 giai đoạn** (curriculum):
+
+| Giai đoạn | Bắt đầu từ | Vận tốc thẳng (min, max) | Vận tốc quay (min, max) |
+|---|---|---|---|
+| 0 | đầu train | -1,0 … 1,0 m/s | -0,5 … 0,5 rad/s |
+| 1 | vòng 500 | -1,0 … **1,5** m/s | -0,7 … 0,7 rad/s |
+
+Tham số tương ứng:
+
+| Tham số | Mặc định | Ý nghĩa |
+|---|---|---|
+| `--env.curriculum.command-vel.params.velocity-stages.1.lin-vel-x` | `-1.0,1.5` | Khoảng vận tốc thẳng của giai đoạn 1 |
+| `--env.curriculum.command-vel.params.velocity-stages.1.step` | `12000` | Lúc bắt đầu giai đoạn 1 |
+| `--env.curriculum.command-vel.params.velocity-stages.1.ang-vel-z` | `-0.7,0.7` | Khoảng vận tốc quay của giai đoạn 1 |
+| `--env.curriculum.command-vel.params.velocity-stages.0.lin-vel-x` | `-1.0,1.0` | Khoảng vận tốc thẳng của giai đoạn 0 |
+
+**Bẫy hay gặp:** `step` tính bằng **bước mô phỏng**, không phải số vòng. Mỗi vòng có 24 bước, nên:
+
+> `step` = số vòng muốn bắt đầu giai đoạn × 24. Ví dụ vòng 500 → `12000`, vòng 1000 → `24000`.
+
+Khi đổi số vòng học, mốc này **không tự đổi theo**: phải tự tính lại.
+
+**Ví dụ:** mục tiêu **2,0 m/s**, train **3000 vòng**, lên giai đoạn 2,0 m/s từ **vòng 1000**:
+
+```bash
+uv run --extra cu128 mpopi-train Mpopi-G1-2k-Replay-IS-DAgger --agent.logger tensorboard --agent.seed 1 --agent.run-name RISD_2mps_s1 --agent.max-iterations 3000 --env.curriculum.command-vel.params.velocity-stages.1.lin-vel-x -1.0,2.0 --env.curriculum.command-vel.params.velocity-stages.1.step 24000
+```
+
+Đánh giá ở các vận tốc mới bằng `--speeds`. Ở tham số này, các số **cách nhau bằng dấu cách**:
+
+```bash
+uv run --extra cu128 mpopi-eval --task Mpopi-G1-2k-PPO --controllers policy --num-envs 64 --steps 550 --settle-steps 50 --speeds 0.5 1.0 1.5 2.0 --checkpoint logs/rsl_rl/g1_velocity_2k/TÊN_THƯ_MỤC/model_2999.pt
+```
+
+Lưu ý tên checkpoint cuối đổi theo số vòng: 3000 vòng thì là `model_2999.pt`. Khi xem robot bằng
+`mpopi-play`, lệnh ngẫu nhiên mặc định chỉ tới 1,5 m/s; thêm
+`--env.commands.twist.ranges.lin-vel-x -1.0,2.0` để xem tới 2,0 m/s.
+
+### 7.4. Tham số của Replay-IS (dùng lại dữ liệu cũ)
+
+Áp dụng cho `Mpopi-G1-2k-Replay-IS` và `Mpopi-G1-2k-Replay-IS-DAgger`.
+
+| Tham số | Mặc định | Ý nghĩa |
+|---|---|---|
+| `--agent.algorithm.mpopi.replay-buffer-size` | `4` | Giữ dữ liệu của bao nhiêu vòng gần nhất |
+| `--agent.algorithm.mpopi.replay-ratio` | `1.0` | Lượng dữ liệu cũ so với dữ liệu mới mỗi vòng (0,5 = một nửa) |
+
+### 7.5. Tham số của DAgger ("thầy" MPC)
+
+Áp dụng cho `Mpopi-G1-2k-DAgger` và `Mpopi-G1-2k-Replay-IS-DAgger`. Mọi tham số bắt đầu bằng
+`--agent.algorithm.mpopi.mpc.`, ví dụ `--agent.algorithm.mpopi.mpc.num-envs 32`.
+
+| Tham số (sau `...mpopi.mpc.`) | Mặc định | Ý nghĩa |
+|---|---|---|
+| `num-envs` | `64` | Số robot phụ để thầy gắn nhãn |
+| `num-steps` | `24` | Số bước mỗi lần gắn nhãn |
+| `collect-every` | `5` | Gắn nhãn mỗi bao nhiêu vòng |
+| `collect-iterations` | `110` | Ngừng gắn nhãn sau vòng này |
+| `bc-coef` | `1.0` | Trọng số bắt chước ban đầu |
+| `bc-iterations` | `150` | Trọng số bắt chước giảm dần về 0 tại vòng này |
+| `bc-floor` | `0.0` | Trọng số bắt chước tối thiểu (lớn hơn 0 thì không bao giờ tắt hẳn) |
+| `max-age` | `50` | Nhãn cũ hơn bao nhiêu vòng thì bỏ |
+| `buffer-segments` | `10` | Giữ tối đa bao nhiêu lần gắn nhãn |
+| `replay-own-rollouts` | `False` (DAgger), `True` (Replay-IS-DAgger) | Có dùng lại dữ liệu cũ của chính robot không |
+| `teacher-gap-every` | tắt | Đặt số (ví dụ `4`) để đo thầy hơn trò bao nhiêu; thêm khoảng 12% thời gian gắn nhãn |
+| `planner.num-samples` | `16` | Số chuỗi hành động thầy thử mỗi bước |
+| `planner.iterations` | `2` | Số vòng tinh chỉnh của thầy mỗi bước |
+| `planner.horizon` | `16` | Thầy nhìn trước bao nhiêu bước |
+
+**Ví dụ:** cho thầy gắn nhãn tới vòng 300, bắt chước giảm về 0 tại vòng 340:
+
+```bash
+uv run --extra cu128 mpopi-train Mpopi-G1-2k-Replay-IS-DAgger --agent.logger tensorboard --agent.seed 1 --agent.run-name RISD_bc300_s1 --agent.algorithm.mpopi.mpc.collect-iterations 300 --agent.algorithm.mpopi.mpc.bc-iterations 340
+```
+
+Nên để `bc-iterations` lớn hơn `collect-iterations` khoảng 40 vòng, như cấu hình chuẩn (110 và 150).
+
+### 7.6. Lưu ý khi đổi tham số
+
+- Đổi bất kỳ tham số nào thì kết quả **không còn so sánh trực tiếp được** với các lần chạy dùng
+  cấu hình chuẩn. Muốn so sánh, chạy cả cấu hình chuẩn và cấu hình mới với **cùng các seed**.
+- Đặt `--agent.run-name` nói rõ đã đổi gì (ví dụ `RISD_2mps_s1`, `RISD_bc300_s1`) để khỏi nhầm.
+- Cấu hình chuẩn của từng phương pháp nằm trong `src/mpopi_train/presets.py` (phương pháp) và
+  `src/mpopi_train/tasks.py` (số vòng, vận tốc).
+- Trên Kaggle, ghi tham số vào biến `EXTRA_ARGS` trong ô "0. Cấu hình" của
+  `mpc_g1_train_kaggle.ipynb`; chúng được thêm vào mọi lần train. Với số vòng, đổi biến `ITERATIONS`;
+  với vận tốc khi đánh giá, đổi biến `EVAL_SPEEDS` (ví dụ `"0.5 1.0 1.5 2.0"`).
 
 ---
 
