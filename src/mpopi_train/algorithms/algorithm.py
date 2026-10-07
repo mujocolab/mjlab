@@ -17,7 +17,6 @@ separate buffer, the same MPOPI estimators correct it, and an annealed
 behavior-cloning term pulls the policy mean toward the MPC action.
 """
 
-import time
 from collections.abc import Callable
 from dataclasses import asdict, fields, replace
 from typing import Any, Generator, Protocol, cast
@@ -150,11 +149,8 @@ class MpopiPpo(PPO):
     num_fresh = st.num_envs * st.num_transitions_per_env
     bc_weight = 0.0
     mpc_metrics: dict[str, float] = {}
-    clock = [self._now()]
     if self.mpc_cfg is not None:
       mpc_metrics = self._refresh_mpc_buffer()
-    clock.append(self._now())
-    if self.mpc_cfg is not None:
       bc_weight = self.mpc_cfg.bc_weight(self.policy_version)
       use_in_ppo = self.mpc_cfg.use_in_ppo
     else:
@@ -187,7 +183,6 @@ class MpopiPpo(PPO):
         replay = own if replay is None else _concat_batches(own, replay)
     pool = self._build_pool(replay, num_own)
     weighted = replay is not None
-    clock.append(self._now())
     mean_bc_loss = 0.0
 
     mean_value_loss = 0.0
@@ -272,7 +267,6 @@ class MpopiPpo(PPO):
       mean_entropy += entropy_mean.item()
       mean_kl += kl_mean.item()
 
-    clock.append(self._now())
     # Normalizers are updated on fresh on-policy observations only (upstream).
     obs = cast(TensorDict, st.observations.flatten(0, 1))
     self.actor.update_normalization(obs)
@@ -295,20 +289,9 @@ class MpopiPpo(PPO):
       loss_dict.update({f"mpc/{k}": v for k, v in mpc_metrics.items()})
     if self.own_replay is not None:
       self._store_fresh_segment(self.own_replay)
-    clock.append(self._now())
-    # Wall time of each update phase, in seconds.
-    phases = ("mpc", "replay", "sgd", "rest")
-    for name, start, end in zip(phases, clock[:-1], clock[1:], strict=True):
-      loss_dict[f"time/{name}"] = end - start
     self.policy_version += 1
     st.clear()
     return loss_dict
-
-  def _now(self) -> float:
-    """Wall clock after the queued GPU work has finished."""
-    if torch.device(self.device).type == "cuda":
-      torch.cuda.synchronize(self.device)
-    return time.perf_counter()
 
   def _refresh_mpc_buffer(self) -> dict[str, float]:
     """Collect a new MPC segment when scheduled and drop stale ones."""

@@ -65,6 +65,3 @@ Design notes and earlier results are in `docs/mpopi/`.
   `inject_fraction` makes MPC samples a fixed fraction of every batch;
   `replay_own_rollouts` also replays PPO's own rollouts;
   `teacher_gap_every` logs how much the planner's plan beats the policy.
-
-Updates log the wall time of each phase (`time/mpc`, `time/replay`,
-`time/sgd`, `time/rest`).

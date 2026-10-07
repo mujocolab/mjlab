@@ -245,27 +245,11 @@ class SamplingMpc:
     self._copy_state(real_env)
     total = torch.zeros(n * k, device=self.device)
     flat = samples.reshape(n * k, h, a)
-    with torch.inference_mode(), self._rewards_only():
+    with torch.inference_mode():
       for t in range(h):
         self.env.step(flat[:, t])
         total += self.env.reward_buf
     return total.view(n, k)
-
-  @contextlib.contextmanager
-  def _rewards_only(self):
-    """Skip observation computation in ``env.step`` (rollouts need rewards only).
-
-    Rewards are computed before observations in ``env.step`` and do not read
-    them. The returned observations are stale meanwhile; the planning env's
-    observations are only used by :meth:`compare_with_policy`, which recomputes
-    them after copying the state.
-    """
-    manager = self.env.observation_manager
-    manager.compute = lambda *args, **kwargs: self.env.obs_buf  # type: ignore[method-assign]
-    try:
-      yield
-    finally:
-      del manager.compute  # Back to the class method.
 
   def close(self) -> None:
     self.env.close()
