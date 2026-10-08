@@ -86,4 +86,4 @@ Projects built on mjlab. To add yours, open a pull request or post in
      - Sim-to-real locomotion for `Microduck <https://pollen-robotics.com/microduck/>`_, an
        open-source 25 cm bipedal robot from Pollen Robotics and Hugging Face.
    * - `KingKongRobotics/jumper <https://github.com/KingKongRobotics/jumper>`_
-     - AI toolkit for Jumper, a 22-DoF crab robot, covering appearance, motion training, and scene creation.
+     - Prompt-driven motion training for Jumper, a 22-DoF crab robot.
