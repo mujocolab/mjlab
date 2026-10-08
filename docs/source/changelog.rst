@@ -24,6 +24,10 @@ Changed
 Fixed
 ^^^^^
 
+- ``dr.pd_gains`` and ``dr.effort_limits`` now select individual actuator rows
+  within controller groups. Subset selections no longer raise an index error
+  or change excluded motors. Paired PD rows share one joint or tendon effort
+  limit sample.
 - Capped ``wandb`` below 0.29, which removed the ``start_method`` setting still passed
   by ``rsl-rl-lib`` and crashed training runs launched with ``--logger wandb``.
 - ``distribution="gaussian"`` domain randomization now draws an independent value per

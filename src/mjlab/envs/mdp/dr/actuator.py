@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import TYPE_CHECKING, Literal
 
 import torch
@@ -12,7 +13,7 @@ from mjlab.actuator import (
   BuiltinPositionActuator,
   IdealPdActuator,
 )
-from mjlab.actuator.actuator import TransmissionType
+from mjlab.actuator.actuator import Actuator, TransmissionType
 from mjlab.actuator.builtin_actuator import DcMotorInputMode
 from mjlab.actuator.xml_actuator import XmlActuator
 from mjlab.entity import Entity
@@ -26,6 +27,25 @@ if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
 
 
+def _selected_actuators(
+  asset: Entity, asset_cfg: SceneEntityCfg
+) -> Iterator[tuple[Actuator, torch.Tensor]]:
+  """Yield controller groups and their selected group-local control rows."""
+  selection = asset_cfg.actuator_ids
+  selected_ids = None
+  if selection != slice(None):
+    # SceneEntityCfg IDs index physical actuators, not controller groups.
+    selected_ids = torch.arange(
+      asset.num_actuators, device=asset.indexing.ctrl_ids.device
+    )[selection]
+  for actuator in asset.actuators:
+    rows = torch.arange(len(actuator.ctrl_ids), device=actuator.ctrl_ids.device)
+    if selected_ids is not None:
+      rows = rows[torch.isin(actuator.ctrl_ids, selected_ids)]
+    if rows.numel():
+      yield actuator, rows
+
+
 @requires_model_fields("actuator_gainprm", "actuator_biasprm")
 def pd_gains(
   env: ManagerBasedRlEnv,
@@ -37,6 +57,9 @@ def pd_gains(
   operation: Operation | str = "scale",
 ) -> None:
   """Randomize PD stiffness and damping gains.
+
+  For BuiltinPdActuator, selected position rows receive kp and selected
+  velocity rows receive kd. Unselected rows keep their gains.
 
   Args:
     env: The environment.
@@ -60,22 +83,17 @@ def pd_gains(
   else:
     env_ids = env_ids.to(env.device, dtype=torch.int)
 
-  if isinstance(asset_cfg.actuator_ids, list):
-    actuators = [asset.actuators[i] for i in asset_cfg.actuator_ids]
-  elif isinstance(asset_cfg.actuator_ids, slice):
-    actuators = asset.actuators[asset_cfg.actuator_ids]
-  else:
-    actuators = [asset.actuators[asset_cfg.actuator_ids]]
-
-  for actuator in actuators:
-    ctrl_ids = actuator.global_ctrl_ids
-    # Each target needs one kp draw and one kd draw. For single-element
-    # actuators that's len(ctrl_ids) of each; for BuiltinPd the ctrl tensor
-    # has 2*N entries but only N independent kp/kd values, so we sample
-    # num_targets to avoid throwing the other half away.
-    n_gains = (
-      actuator.num_targets if isinstance(actuator, BuiltinPdActuator) else len(ctrl_ids)
-    )
+  for actuator, rows in _selected_actuators(asset, asset_cfg):
+    ctrl_ids = actuator.global_ctrl_ids[rows]
+    sample_ids = None
+    if isinstance(actuator, BuiltinPdActuator):
+      # Paired rows share a target, even when sorting interleaves their roles.
+      targets, sample_ids = torch.unique(
+        actuator.ctrl_target_ids[rows], return_inverse=True
+      )
+      n_gains = len(targets)
+    else:
+      n_gains = len(rows)
 
     dist = resolve_distribution(distribution)
     kp_samples = dist.sample(
@@ -135,11 +153,12 @@ def pd_gains(
         env.sim.model.actuator_gainprm[env_ids[:, None], ctrl_ids, 6] = kd_samples
 
     elif isinstance(actuator, BuiltinPdActuator):
-      # ctrl_ids is laid out as [pos_0..pos_{N-1}, vel_0..vel_{N-1}], so the
-      # first N rows carry kp and the next N carry kd.
-      n = actuator.num_targets
-      pos_ids = ctrl_ids[:n]
-      vel_ids = ctrl_ids[n:]
+      assert sample_ids is not None
+      position_mask = actuator.position_mask[rows]
+      pos_ids = ctrl_ids[position_mask]
+      vel_ids = ctrl_ids[~position_mask]
+      kp_samples = kp_samples[:, sample_ids[position_mask]]
+      kd_samples = kd_samples[:, sample_ids[~position_mask]]
       if op.name == "scale":
         default_gainprm = env.sim.get_default_field("actuator_gainprm")
         default_biasprm = env.sim.get_default_field("actuator_biasprm")
@@ -161,7 +180,7 @@ def pd_gains(
         env.sim.model.actuator_biasprm[env_ids[:, None], pos_ids, 1] = -kp_samples
         env.sim.model.actuator_gainprm[env_ids[:, None], vel_ids, 0] = kd_samples
         env.sim.model.actuator_biasprm[env_ids[:, None], vel_ids, 2] = -kd_samples
-      # biasprm[2] on the position half stays zero by construction. Writing
+      # biasprm[2] on position rows stays zero by construction. Writing
       # anything else here would inject damping into the position element on
       # top of the velocity element, silently double-counting kd.
 
@@ -173,12 +192,13 @@ def pd_gains(
         assert actuator.default_damping is not None
         actuator.set_gains(
           env_ids,
-          kp=actuator.default_stiffness[env_ids] * kp_samples,
-          kd=actuator.default_damping[env_ids] * kd_samples,
+          kp=actuator.default_stiffness[env_ids[:, None], rows] * kp_samples,
+          kd=actuator.default_damping[env_ids[:, None], rows] * kd_samples,
+          target_ids=rows,
         )
       else:
         assert op.name == "abs"
-        actuator.set_gains(env_ids, kp=kp_samples, kd=kd_samples)
+        actuator.set_gains(env_ids, kp=kp_samples, kd=kd_samples, target_ids=rows)
 
     else:
       raise TypeError(
@@ -198,6 +218,10 @@ def effort_limits(
   operation: Operation | str = "scale",
 ) -> None:
   """Randomize actuator effort limits.
+
+  BuiltinPdActuator limits belong to the joint or tendon. Selecting either
+  control row changes that shared limit, including other rows on the same
+  target. Each shared limit receives one sample per call.
 
   Args:
     env: The environment.
@@ -219,22 +243,31 @@ def effort_limits(
   else:
     env_ids = env_ids.to(env.device, dtype=torch.int)
 
-  if isinstance(asset_cfg.actuator_ids, list):
-    actuators = [asset.actuators[i] for i in asset_cfg.actuator_ids]
-  else:
-    actuators = asset.actuators[asset_cfg.actuator_ids]
-
-  if not isinstance(actuators, list):
-    actuators = [actuators]
-
-  for actuator in actuators:
-    ctrl_ids = actuator.global_ctrl_ids
-    # One effort sample per target. For single-element actuators this matches
-    # ctrl_ids; for BuiltinPd the limit lives on the joint/tendon, so one
-    # sample per target is sufficient regardless of the two-element ctrl.
-    n_samples = (
-      actuator.num_targets if isinstance(actuator, BuiltinPdActuator) else len(ctrl_ids)
-    )
+  seen_targets: dict[str, torch.Tensor] = {}
+  for actuator, rows in _selected_actuators(asset, asset_cfg):
+    ctrl_ids = actuator.global_ctrl_ids[rows]
+    field = None
+    target_global_ids = None
+    if isinstance(actuator, BuiltinPdActuator):
+      targets = torch.unique(actuator.ctrl_target_ids[rows])
+      if actuator.transmission_type == TransmissionType.JOINT:
+        field = "jnt_actfrcrange"
+        target_global_ids = asset.indexing.joint_ids[actuator.target_ids[targets]]
+      else:
+        field = "tendon_actfrcrange"
+        target_global_ids = asset.indexing.tendon_ids[actuator.target_ids[targets]]
+      if field in seen_targets:
+        target_global_ids = target_global_ids[
+          ~torch.isin(target_global_ids, seen_targets[field])
+        ]
+        seen_targets[field] = torch.cat((seen_targets[field], target_global_ids))
+      else:
+        seen_targets[field] = target_global_ids
+      n_samples = len(target_global_ids)
+      if not n_samples:
+        continue
+    else:
+      n_samples = len(rows)
 
     dist = resolve_distribution(distribution)
     effort_samples = dist.sample(
@@ -270,21 +303,18 @@ def effort_limits(
         assert actuator.default_force_limit is not None
         actuator.set_effort_limit(
           env_ids,
-          effort_limit=actuator.default_force_limit[env_ids] * effort_samples,
+          effort_limit=actuator.default_force_limit[env_ids[:, None], rows]
+          * effort_samples,
+          target_ids=rows,
         )
       else:
         assert op.name == "abs"
-        actuator.set_effort_limit(env_ids, effort_limit=effort_samples)
+        actuator.set_effort_limit(env_ids, effort_limit=effort_samples, target_ids=rows)
 
     elif isinstance(actuator, BuiltinPdActuator):
       # BuiltinPd's effort_limit lives on the joint/tendon as a sum-clamp
       # (jnt_actfrcrange / tendon_actfrcrange), not on per-element forcerange.
-      if actuator.transmission_type == TransmissionType.JOINT:
-        field = "jnt_actfrcrange"
-        target_global_ids = asset.indexing.joint_ids[actuator.target_ids]
-      else:
-        field = "tendon_actfrcrange"
-        target_global_ids = asset.indexing.tendon_ids[actuator.target_ids]
+      assert field is not None and target_global_ids is not None
       arr = getattr(env.sim.model, field)
       if op.name == "scale":
         default = env.sim.get_default_field(field)

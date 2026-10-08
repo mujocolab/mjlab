@@ -9,7 +9,11 @@ from conftest import (
   load_fixture_xml,
 )
 
-from mjlab.actuator import BuiltinPositionActuatorCfg, IdealPdActuatorCfg
+from mjlab.actuator import (
+  BuiltinPositionActuatorCfg,
+  IdealPdActuator,
+  IdealPdActuatorCfg,
+)
 
 
 @pytest.fixture(scope="module")
@@ -20,6 +24,75 @@ def device():
 @pytest.fixture(scope="module")
 def robot_xml():
   return load_fixture_xml("floating_base_articulated")
+
+
+@pytest.mark.parametrize(
+  "env_ids, target_ids, values, expected",
+  [
+    (
+      [2, 0],
+      [1, 0],
+      [[20.0, 21.0], [30.0, 31.0]],
+      [[31.0, 30.0], [-1.0, -1.0], [21.0, 20.0]],
+    ),
+    (
+      slice(1, None),
+      [1],
+      [20.0, 30.0],
+      [[-1.0, -1.0], [-1.0, 20.0], [-1.0, 30.0]],
+    ),
+    (
+      [2, 0],
+      slice(None),
+      [20.0, 30.0],
+      [[30.0, 30.0], [-1.0, -1.0], [20.0, 20.0]],
+    ),
+    (
+      slice(1, None),
+      None,
+      [20.0, 30.0],
+      [[-1.0, -1.0], [20.0, 20.0], [30.0, 30.0]],
+    ),
+  ],
+  ids=("cartesian", "env-slice", "target-slice", "default-targets"),
+)
+def test_ideal_pd_setters_select_targets(
+  device, robot_xml, env_ids, target_ids, values, expected
+):
+  """Setters preserve excluded values, index order, and per-env broadcasting."""
+  entity = create_entity_with_actuator(
+    robot_xml,
+    IdealPdActuatorCfg(
+      target_names_expr=("joint.*",),
+      stiffness=100.0,
+      damping=10.0,
+      effort_limit=50.0,
+    ),
+  )
+  entity, _ = initialize_entity(entity, device, num_envs=3)
+  actuator = entity.actuators[0]
+  assert isinstance(actuator, IdealPdActuator)
+  if isinstance(env_ids, list):
+    env_ids = torch.tensor(env_ids, device=device)
+  if isinstance(target_ids, list):
+    target_ids = torch.tensor(target_ids, device=device)
+  values = torch.tensor(values, device=device)
+
+  if target_ids is None:
+    actuator.set_gains(env_ids, values, values + 1.0)
+    actuator.set_effort_limit(env_ids, values + 2.0)
+  else:
+    actuator.set_gains(env_ids, values, values + 1.0, target_ids=target_ids)
+    actuator.set_effort_limit(env_ids, values + 2.0, target_ids=target_ids)
+
+  expected = torch.tensor(expected, device=device)
+  for actual, default, offset in (
+    (actuator.stiffness, 100.0, 0.0),
+    (actuator.damping, 10.0, 1.0),
+    (actuator.force_limit, 50.0, 2.0),
+  ):
+    assert actual is not None
+    assert torch.equal(actual, torch.where(expected < 0.0, default, expected + offset))
 
 
 def test_ideal_pd_matches_builtin_at_rest(device, robot_xml):

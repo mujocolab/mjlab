@@ -29,6 +29,8 @@ from mjlab.utils.spec import (
 )
 
 if TYPE_CHECKING:
+  import mujoco_warp as mjwarp
+
   from mjlab.entity import Entity
 
 
@@ -143,16 +145,35 @@ class BuiltinPdActuator(Actuator[BuiltinPdActuatorCfg]):
     target_names: list[str],
   ) -> None:
     super().__init__(cfg, entity, target_ids, target_names)
+    self._ctrl_target_ids_list: list[int] = []
+    self._position_mask_list: list[bool] = []
+    self._ctrl_target_ids: torch.Tensor | None = None
+    self._position_mask: torch.Tensor | None = None
 
   @property
   def num_targets(self) -> int:
-    """Number of targets. ``ctrl_ids`` is laid out as ``[pos..., vel...]``,
-    each block of length ``num_targets``."""
+    """Number of targets controlled by the paired elements."""
     return len(self._target_ids_list)
 
+  @property
+  def ctrl_target_ids(self) -> torch.Tensor:
+    """Group-local target columns aligned with ``ctrl_ids`` rows.
+
+    Unlike ``target_ids``, these index this actuator's target list rather than
+    the entity's joints or tendons.
+    """
+    assert self._ctrl_target_ids is not None
+    return self._ctrl_target_ids
+
+  @property
+  def position_mask(self) -> torch.Tensor:
+    """Position-element mask aligned with ``ctrl_ids`` rows."""
+    assert self._position_mask is not None
+    return self._position_mask
+
   def edit_spec(self, spec: mujoco.MjSpec, target_names: list[str]) -> None:
-    # Position elements first, then velocity elements, so ctrl_ids is laid out
-    # as [pos_0..pos_{N-1}, vel_0..vel_{N-1}].
+    # Record each element's role and target because sorted entities call this
+    # method once per target instead of once for the complete group.
     for target_name in target_names:
       pos_act = create_position_actuator(
         spec,
@@ -166,6 +187,10 @@ class BuiltinPdActuator(Actuator[BuiltinPdActuatorCfg]):
         transmission_type=self.cfg.transmission_type,
       )
       self._mjs_actuators.append(pos_act)
+      self._ctrl_target_ids_list.append(
+        self.target_names.index(target_name.split("/")[-1])
+      )
+      self._position_mask_list.append(True)
     for target_name in target_names:
       vel_act = create_velocity_actuator(
         spec,
@@ -175,6 +200,10 @@ class BuiltinPdActuator(Actuator[BuiltinPdActuatorCfg]):
         transmission_type=self.cfg.transmission_type,
       )
       self._mjs_actuators.append(vel_act)
+      self._ctrl_target_ids_list.append(
+        self.target_names.index(target_name.split("/")[-1])
+      )
+      self._position_mask_list.append(False)
     # Effort limit: sum-clamp on the joint/tendon, not on each element.
     if self.cfg.effort_limit is not None:
       lim = self.cfg.effort_limit
@@ -185,6 +214,21 @@ class BuiltinPdActuator(Actuator[BuiltinPdActuatorCfg]):
           target = spec.tendon(target_name)
         target.actfrclimited = mujoco.mjtLimited.mjLIMITED_TRUE
         target.actfrcrange[:] = np.array([-lim, lim])
+
+  def initialize(
+    self,
+    mj_model: mujoco.MjModel,
+    model: mjwarp.Model,
+    data: mjwarp.Data,
+    device: str,
+  ) -> None:
+    super().initialize(mj_model, model, data, device)
+    self._ctrl_target_ids = torch.tensor(
+      self._ctrl_target_ids_list, dtype=torch.long, device=device
+    )
+    self._position_mask = torch.tensor(
+      self._position_mask_list, dtype=torch.bool, device=device
+    )
 
   def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
     return torch.cat((cmd.position_target, cmd.velocity_target), dim=1)
