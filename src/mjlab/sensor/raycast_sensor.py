@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Literal
 
 import mujoco
 import mujoco_warp as mjwarp
+import numpy as np
 import torch
 import warp as wp
 from mujoco_warp import rays
@@ -25,7 +26,10 @@ from mjlab.sensor.sensor import Sensor, SensorCfg
 from mjlab.utils.lab_api.math import quat_from_matrix
 
 if TYPE_CHECKING:
+  import mjbatch
+
   from mjlab.sensor.sensor_context import SensorContext
+  from mjlab.sim.mujoco_sim import MujocoSimulation
   from mjlab.viewer.debug_visualizer import DebugVisualizer
 
 RayAlignment = Literal["base", "yaw", "world"]
@@ -471,7 +475,7 @@ class RayCastSensor(Sensor[RayCastData]):
     self._cached_frame_mat: torch.Tensor | None = None
 
     self._debug_vis_enabled: bool = True
-    self._ctx: SensorContext | None = None
+    self._ctx: SensorContext | MujocoSimulation | None = None
 
   def edit_spec(
     self,
@@ -564,8 +568,8 @@ class RayCastSensor(Sensor[RayCastData]):
   def include_geom_groups(self) -> tuple[int, ...] | None:
     return self.cfg.include_geom_groups
 
-  def set_context(self, ctx: SensorContext) -> None:
-    """Wire this sensor to a SensorContext for BVH-accelerated raycasting."""
+  def set_context(self, ctx: SensorContext | MujocoSimulation) -> None:
+    """Wire this sensor to whatever runs its raycasts during sim.sense()."""
     self._ctx = ctx
 
   def _compute_data(self) -> RayCastData:
@@ -769,6 +773,21 @@ class RayCastSensor(Sensor[RayCastData]):
       geomid=self._ray_geomid,  # type: ignore[invalid-argument-type]
       normal=self._ray_normal,  # type: ignore[invalid-argument-type]
       rc=rc,
+    )
+
+  def raycast_mujoco(self, batch: mjbatch.Batch) -> None:
+    """C MuJoCo counterpart of raycast_kernel: mj_ray on mjbatch's thread pool."""
+    assert self._ray_pnt is not None and self._ray_vec is not None
+    assert self._ray_dist is not None and self._ray_geomid is not None
+    assert self._ray_normal is not None and self._ray_bodyexclude is not None
+    batch.rays(
+      self._ray_pnt.numpy(),
+      self._ray_vec.numpy(),
+      self._ray_dist.numpy(),
+      self._ray_geomid.numpy(),
+      self._ray_normal.numpy(),
+      geomgroup=np.array(self._geomgroup, dtype=bool).astype(np.uint8),
+      bodyexclude=self._ray_bodyexclude.numpy(),  # pyright: ignore[reportArgumentType]
     )
 
   def postprocess_rays(self) -> None:

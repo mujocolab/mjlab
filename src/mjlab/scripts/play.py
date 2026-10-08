@@ -168,6 +168,7 @@ def run_play(task_id: str, cfg: PlayConfig):
       "[WARN] Video recording with dummy agents is disabled (no checkpoint/log_dir)."
     )
   env = ManagerBasedRlEnv(cfg=env_cfg, device=device, render_mode=render_mode)
+  device = env.device  # The mujoco backend keeps the env on the CPU.
 
   if TRAINED_MODE and cfg.video:
     print("[INFO] Recording videos during play")

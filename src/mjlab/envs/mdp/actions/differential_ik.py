@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
-import mujoco_warp as mjwarp
 import torch
 import warp as wp
 
@@ -152,7 +151,7 @@ class DifferentialIKAction(ActionTerm):
     nworld = self.num_envs
     nv = self._env.sim.mj_model.nv
 
-    with wp.ScopedDevice(self._env.sim.wp_device):
+    with wp.ScopedDevice(self.device):
       self._jacp_wp = wp.zeros((nworld, 3, nv), dtype=float)
       self._jacr_wp = wp.zeros((nworld, 3, nv), dtype=float)
       self._point_wp = wp.zeros(nworld, dtype=wp.vec3)
@@ -303,12 +302,4 @@ class DifferentialIKAction(ActionTerm):
 
   def _compute_jacobian(self) -> None:
     """Compute the frame Jacobian."""
-    with wp.ScopedDevice(self._env.sim.wp_device):
-      mjwarp.jac(
-        self._env.sim.wp_model,
-        self._env.sim.wp_data,
-        self._jacp_wp,
-        self._jacr_wp,
-        self._point_wp,
-        self._body_wp,
-      )
+    self._env.sim.jac(self._jacp_wp, self._jacr_wp, self._point_wp, self._body_wp)

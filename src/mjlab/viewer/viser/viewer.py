@@ -92,7 +92,6 @@ class ViserPlayViewer(BaseViewer):
   def setup(self) -> None:
     """Setup the viewer resources."""
     sim = self.env.unwrapped.sim
-    assert isinstance(sim, Simulation)
 
     self._threadpool = ThreadPoolExecutor(max_workers=1)
     self._counter = 0
@@ -502,7 +501,6 @@ class ViserPlayViewer(BaseViewer):
   def sync_env_to_viewer(self) -> None:
     """Synchronize environment state to viewer."""
     sim = self.env.unwrapped.sim
-    assert isinstance(sim, Simulation)
     self._scene.paused = self._is_paused
     self._counter += 1
     if self._counter % 10 == 0:

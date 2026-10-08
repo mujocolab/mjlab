@@ -37,7 +37,8 @@ from mjlab.managers.reward_manager import RewardManager, RewardTermCfg
 from mjlab.managers.termination_manager import TerminationManager, TerminationTermCfg
 from mjlab.scene import Scene
 from mjlab.scene.scene import SceneCfg
-from mjlab.sim import SimulationCfg
+from mjlab.sensor import CameraSensor, RayCastSensor
+from mjlab.sim import MujocoSimulation, SimulationCfg
 from mjlab.sim.sim import Simulation
 from mjlab.utils import random as random_utils
 from mjlab.utils.logging import print_info
@@ -183,6 +184,8 @@ class ManagerBasedRlEnv:
   ) -> None:
     # Initialize base environment state.
     self.cfg = cfg
+    if cfg.sim.backend == "mujoco":
+      device = "cpu"  # C MuJoCo state lives in host memory.
     if self.cfg.seed is not None:
       self.cfg.seed = self.seed(self.cfg.seed)
     self._sim_step_counter = 0
@@ -196,22 +199,38 @@ class ManagerBasedRlEnv:
 
     # Initialize scene and simulation.
     self.scene = Scene(self.cfg.scene, device=device)
-    self.sim = Simulation(
-      num_envs=self.scene.num_envs,
-      cfg=self.cfg.sim,
-      spec=self.scene.spec,
-      variant_info=self.scene.collect_variant_info(),
-      device=device,
-    )
+    self.sim: Simulation | MujocoSimulation
+    if self.cfg.sim.backend == "mujoco":
+      if self.scene.collect_variant_info() or any(
+        isinstance(sensor, CameraSensor) for sensor in self.scene.sensors.values()
+      ):
+        raise NotImplementedError("Cameras and mesh variants need the mjwarp backend.")
+      self.sim = MujocoSimulation(
+        self.scene.num_envs, self.cfg.sim, self.scene.spec.compile()
+      )
+    else:
+      self.sim = Simulation(
+        num_envs=self.scene.num_envs,
+        cfg=self.cfg.sim,
+        spec=self.scene.spec,
+        variant_info=self.scene.collect_variant_info(),
+        device=device,
+      )
 
     self.scene.initialize(
       mj_model=self.sim.mj_model,
       model=self.sim.model,
       data=self.sim.data,
+      sensor_context=isinstance(self.sim, Simulation),
     )
 
-    # Wire sensor context to simulation for sense_graph.
-    if self.scene.sensor_context is not None:
+    # Wire sensing to the simulation: the MJWarp render context for sense_graph,
+    # or the raycast sensors themselves for C MuJoCo.
+    if isinstance(self.sim, MujocoSimulation):
+      self.sim.set_raycast_sensors(
+        [s for s in self.scene.sensors.values() if isinstance(s, RayCastSensor)]
+      )
+    elif self.scene.sensor_context is not None:
       self.sim.set_sensor_context(self.scene.sensor_context)
 
     # Print environment info.
