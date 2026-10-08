@@ -24,6 +24,9 @@ Changed
 Fixed
 ^^^^^
 
+- Partial environment resets now preserve untouched environments' actuator delay
+  histories, lag schedules, and control outputs in both explicit and automatic
+  resets :issue:`1216`.
 - Capped ``wandb`` below 0.29, which removed the ``start_method`` setting still passed
   by ``rsl-rl-lib`` and crashed training runs launched with ``--logger wandb``.
 - ``distribution="gaussian"`` domain randomization now draws an independent value per

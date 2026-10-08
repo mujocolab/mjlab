@@ -172,8 +172,11 @@ class BuiltinActuatorGroup:
       for act in group.absorbed_actuators:
         act._delay_buffer = group.delay_buffer
 
-  def apply_controls(self, data: EntityData) -> None:
-    """Write builtin actuator controls to simulation data."""
+  def apply_controls(
+    self, data: EntityData, env_ids: torch.Tensor | None = None
+  ) -> None:
+    """Write controls, backfilling only env_ids on the reset path."""
+    rows = slice(None) if env_ids is None else env_ids
     # Non-delayed: direct write.
     for (actuator_type, transmission_type), (
       target_ids,
@@ -181,12 +184,17 @@ class BuiltinActuatorGroup:
     ) in self._index_groups.items():
       attr_name = _TARGET_TENSOR_MAP[(actuator_type, transmission_type)]
       target_tensor = getattr(data, attr_name)
-      data.write_ctrl(target_tensor[:, target_ids], ctrl_ids)
+      data.write_ctrl(target_tensor[:, target_ids][rows], ctrl_ids, env_ids)
 
     # Delayed: append to buffer, compute delayed value, write.
     for group in self._delayed_groups:
       assert group.delay_buffer is not None
       target_tensor = getattr(data, group.target_attr)
       targets = target_tensor[:, group.target_ids]
-      group.delay_buffer.append(targets)
-      data.write_ctrl(group.delay_buffer.compute(), group.ctrl_ids)
+      if env_ids is None:
+        group.delay_buffer.append(targets)
+        controls = group.delay_buffer.compute()
+      else:
+        group.delay_buffer.backfill(targets, env_ids)
+        controls = group.delay_buffer.peek()
+      data.write_ctrl(controls[rows], group.ctrl_ids, env_ids)

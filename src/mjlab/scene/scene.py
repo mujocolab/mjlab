@@ -199,9 +199,10 @@ class Scene:
     for sensor in self._sensors.values():
       sensor.update(dt)
 
-  def write_data_to_sim(self) -> None:
+  def write_data_to_sim(self, env_ids: torch.Tensor | None = None) -> None:
+    """Write controls for a physics step, or initialize env_ids after a reset."""
     for ent in self._entities.values():
-      ent.write_data_to_sim()
+      ent.write_data_to_sim(env_ids)
 
   # Private methods.
 
