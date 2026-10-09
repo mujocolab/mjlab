@@ -32,7 +32,7 @@ def get_test_device() -> str:
   return "cuda" if torch.cuda.is_available() else "cpu"
 
 
-def _make_term(device: str, num_envs: int):
+def _make_term(device: str, num_envs: int, bus_voltage: float = 33.6, **battery):
   entity = Entity(get_go1_robot_cfg())
   model = entity.compile()
   sim = Simulation(num_envs=num_envs, cfg=SimulationCfg(), model=model, device=device)
@@ -45,16 +45,21 @@ def _make_term(device: str, num_envs: int):
   env.scene = {"robot": entity}
   env.sim = sim
 
+  hb_cfg = load_heat_bench_config()
+  hb_cfg["battery"].update(battery)
   params = {
     "asset_cfg": SceneEntityCfg(name="robot", joint_names=(".*",)),
     "obs_group": "thermal",
     "obs_term": "thermal_energy",
-    "config": load_heat_bench_config(),
+    "config": hb_cfg,
   }
   # Stand-in for ThermalEnergyObservation: joints at the Rd/Kt spec
   # reference temperature, i.e. no thermal derate.
   env.thermal_stub = SimpleNamespace(
-    last_joint_temps=torch.full((num_envs, 12), 25.0, device=device)
+    last_joint_temps=torch.full((num_envs, 12), 25.0, device=device),
+    battery=SimpleNamespace(
+      bus_voltage=torch.full((num_envs,), bus_voltage, device=device)
+    ),
   )
   env.observation_manager.get_term_cfg.return_value = Mock(func=env.thermal_stub)
   term_cfg = EventTermCfg(func=apply_actuator_health, mode="step", params=params)
@@ -126,6 +131,9 @@ def test_identity_write_in_real_env():
   thermal_cfg = cfg.events["actuator_health"].params["config"]["thermal"]
   thermal_cfg["torque_constant_temp_coeff_per_c"] = 0.0
   thermal_cfg["phase_resistance_temp_coeff_per_c"] = 0.0
+  cfg.events["actuator_health"].params["config"]["battery"][
+    "voltage_limited_torque"
+  ] = False
   env = ManagerBasedRlEnv(cfg=cfg, device=get_test_device())
   try:
     env.reset()
@@ -254,3 +262,90 @@ def test_hot_start_derates_torque_limit_in_real_env(monkeypatch):
     torch.testing.assert_close(limit, full * kt_ratio, rtol=1e-3, atol=1e-3)
   finally:
     env.close()
+
+
+def _set_joint_speed(entity, env_idx: int, joint_idx: int, speed: float) -> None:
+  entity.data.data.qvel[env_idx, entity.indexing.joint_v_adr[joint_idx]] = speed
+
+
+def test_voltage_limit_caps_only_forward_torque_of_fast_joint():
+  device = get_test_device()
+  term, env, entity, params = _make_term(device, num_envs=2, bus_voltage=24.0)
+  forcerange = env.sim.model.actuator_forcerange
+  full = forcerange[:, term.ctrl_ids].clone()  # [lo_c, hi_c] = [-limit, +limit]
+  _set_joint_speed(entity, 0, 0, 12.0)
+  term(env, None, **params)
+
+  thermal = params["config"]["thermal"]
+  n, kt, rd = (
+    thermal["gear_ratio_N"],
+    thermal["motor_torque_constant_Kt"],
+    thermal["phase_resistance_Rd"],
+  )
+  hi_v = n * kt * (24.0 - kt * n * 12.0) / rd
+  assert 0.0 < hi_v < full[0, 0, 1].item()  # Voltage-limited, below current limit.
+  written = forcerange[0, term.ctrl_ids[0]]
+  torch.testing.assert_close(written[1].item(), hi_v, rtol=1e-4, atol=1e-4)
+  # Braking direction keeps the full current limit.
+  torch.testing.assert_close(written[0], full[0, 0, 0])
+  # Joints at rest, and the other env, are untouched.
+  torch.testing.assert_close(forcerange[0, term.ctrl_ids[1:]], full[0, 1:])
+  torch.testing.assert_close(forcerange[1, term.ctrl_ids], full[1])
+
+
+def test_voltage_limit_keeps_a_valid_range_at_overspeed_and_when_dead():
+  device = get_test_device()
+  term, env, entity, params = _make_term(device, num_envs=1, bus_voltage=24.0)
+  forcerange = env.sim.model.actuator_forcerange
+  full = forcerange[:, term.ctrl_ids].clone()
+  _set_joint_speed(entity, 0, 0, 30.0)  # Above the 24 V no-load speed.
+  _set_joint_speed(entity, 0, 1, 30.0)
+  term.derate[0, 1] = 0.0  # Dead joint.
+  term(env, None, **params)
+
+  overspeed = forcerange[0, term.ctrl_ids[0]]
+  assert overspeed[0] <= overspeed[1]
+  # Only braking torque is available: both bounds collapse to the lower limit.
+  torch.testing.assert_close(overspeed, full[0, 0, 0].repeat(2))
+  assert (forcerange[0, term.ctrl_ids[1]] == 0.0).all()
+
+
+def test_voltage_limit_disabled_matches_current_limit_only():
+  device = get_test_device()
+  term, env, entity, params = _make_term(
+    device, num_envs=1, bus_voltage=24.0, voltage_limited_torque=False
+  )
+  forcerange = env.sim.model.actuator_forcerange
+  full = forcerange[:, term.ctrl_ids].clone()
+  _set_joint_speed(entity, 0, 0, 12.0)
+  term(env, None, **params)
+  torch.testing.assert_close(forcerange[:, term.ctrl_ids], full)
+
+
+def test_fault_thermal_and_voltage_layers_compose():
+  """Hot, fast, faulted joint on a depleted pack: the written range is the
+  voltage bound clamped into the fault- and thermally-derated current
+  range, each layer using the same Kt(T)/Rd(T)."""
+  device = get_test_device()
+  term, env, entity, params = _make_term(device, num_envs=1, bus_voltage=24.0)
+  forcerange = env.sim.model.actuator_forcerange
+  full = forcerange[0, term.ctrl_ids[0]].clone()  # [-limit, +limit]
+  env.thermal_stub.last_joint_temps[0, 0] = 80.0
+  _set_joint_speed(entity, 0, 0, 10.0)
+  term.derate[0, 0] = 0.8
+  term(env, None, **params)
+
+  thermal = params["config"]["thermal"]
+  n = thermal["gear_ratio_N"]
+  t80 = torch.tensor([80.0], device=device)
+  kt = term._motor.torque_constant(t80).item()
+  rd = term._motor.phase_resistance(t80).item()
+  kt_ratio = kt / thermal["motor_torque_constant_Kt"]
+  lo_c, hi_c = (full * 0.8 * kt_ratio).tolist()
+  hi_v = n * kt * (24.0 - kt * n * 10.0) / rd
+  lo_v = n * kt * (-24.0 - kt * n * 10.0) / rd
+  assert lo_v < lo_c < hi_v < hi_c  # Only the upper bound is voltage-limited.
+
+  written = forcerange[0, term.ctrl_ids[0]].tolist()
+  assert written[0] == pytest.approx(lo_c, rel=1e-4)
+  assert written[1] == pytest.approx(hi_v, rel=1e-4)

@@ -49,6 +49,16 @@ battery:
   #                        chassis-temperature-coupled aging)
   model: "rint"
 
+  # Battery -> torque: limit each joint's torque to what the bus voltage can
+  # drive at its current speed (heat_bench/envs_mjlab/actuator_health.py).
+  # DC-equivalent motor V = I*Rd + Ke*w with Ke = Kt (SI, energy-consistent),
+  # w = N*qd, tau = N*Kt*I, giving one-sided joint-side bounds
+  #   upper = N*Kt*(+V - Kt*N*qd)/Rd,  lower = N*Kt*(-V - Kt*N*qd)/Rd
+  # clamped inside the current (effort) limit. A drained/sagging pack clips
+  # fast motions first; braking and low-speed torque are unaffected.
+  # false = current limit only (pre-battery-coupling behavior).
+  voltage_limited_torque: true
+
   # GIVEN: Unitree's official Go2 "Standard Version" (BT2-05) battery spec,
   # https://www.unitree.com/go2/battery. Rated Voltage 29.6V and Charge
   # Limit Voltage 33.6V both divide evenly by 8 at 3.7V/4.2V per cell --

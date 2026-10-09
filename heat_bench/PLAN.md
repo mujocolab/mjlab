@@ -250,6 +250,26 @@ Original scope:
 - Target is long eval runs (temps rise over minutes; a 20 s episode barely
   warms a joint). Hot-start / short-episode support deferred to training.
 
+### Battery → torque (voltage-limited torque-speed curve) — DONE
+- Before this, the battery was one-way: a 2%-SoC run walked exactly like
+  a full one. Now `apply_actuator_health` narrows each joint's
+  current-limited range to what the bus voltage can drive at its speed:
+  `upper = N·Kt·(+V − Kt·N·q̇)/Rd`, `lower = N·Kt·(−V − Kt·N·q̇)/Rd`
+  (DC-equivalent motor, Ke = Kt in SI — energy-consistent, no new
+  constant, inherits Phase 1's `Kt(T)`/`Rd(T)`). One-sided: back-EMF
+  opposes torque in the direction of motion and helps braking.
+- Voltage bounds are clamped *into* the current-limited range, so the
+  written range is always valid (overspeed collapses to an edge; dead
+  joints stay [0, 0]). Uses the battery model's sagged `bus_voltage`, so
+  heavy load → sag → lower ceiling is a second feedback loop.
+- Updated per control step from the post-decimation joint speed (lags
+  fast swings by ≤ 20 ms; measured, see commit). On by default;
+  `battery.voltage_limited_torque: false` restores current-limit-only.
+- Paper constants unchanged (N 6.22, Kt 0.26, Rd 0.66): full torque up to
+  ~14.8 rad/s at 33.6 V vs ~8.9 rad/s at 24 V.
+- Deferred: a battery safety limit (BMS current/power cap or low-voltage
+  cutoff), like the user's planned 80°C shutdown.
+
 ### Phase 2 — Terminal thermal failure
 - Insulation-melt-analogue threshold: once crossed, latch `dead`
   permanently for that (env, joint) — `forcerange = [0, 0]` reapplied
@@ -279,7 +299,6 @@ Original scope:
 
 ## Non-goals (this pass)
 
-- Velocity-dependent torque-speed derating (voltage-saturation curve).
 - Native electrical actuator model (`BuiltinDcMotorActuatorCfg`
   adoption) — explicitly decided against; see Design decisions.
 - Calibrating thresholds/curves against real hardware telemetry — ships

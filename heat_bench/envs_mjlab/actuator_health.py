@@ -16,11 +16,22 @@ the observation term's cached joint temperatures and writes
   future shutdown conditions); the two multiply, as a current-capacity loss
   and a torque-per-amp loss would physically.
 
+That product is the *current-limited* range. When
+``battery.voltage_limited_torque`` is on, the range is further narrowed to
+what the battery's bus voltage can drive at the joint's current speed
+(``MotorThermalModel.voltage_torque_bounds``): back-EMF eats into torque in
+the direction of motion, so a sagging or depleted pack clips fast motions
+first while braking and low-speed torque stay current-limited. The voltage
+bounds are clamped *into* the current-limited range, so the written range
+is always valid (a dead joint stays [0, 0]).
+
 Timing: step events run after the decimation loop and before observation
 compute (``ManagerBasedRlEnv.step``), so each call sees joint temperatures
 from the end of the previous control step and its writes govern every
 physics substep of the next one. Control-step granularity is intentional --
-failure state shouldn't flicker at the physics rate.
+failure state shouldn't flicker at the physics rate. The voltage bounds use
+the joint speed at the end of the decimation loop, so they lag fast swings
+by up to one control step.
 """
 
 from __future__ import annotations
@@ -69,7 +80,9 @@ class apply_actuator_health:
     asset_cfg: SceneEntityCfg = cfg.params["asset_cfg"]
     self._env = env
     asset = env.scene[asset_cfg.name]
+    self._asset = asset
     joint_ids, self.joint_names = asset.find_joints(asset_cfg.joint_names)
+    self._joint_ids = torch.tensor(joint_ids, device=env.device, dtype=torch.long)
 
     # Actuator ctrl order need not match joint order, so map each resolved
     # joint to the ctrl index of the actuator driving it.
@@ -95,7 +108,18 @@ class apply_actuator_health:
     """Fault torque-ceiling scale in [0, 1], set externally; 1.0 = no fault."""
     self.thermal_derate = torch.ones(env.num_envs, num_joints, device=env.device)
     """Kt(T)/Kt_spec torque-ceiling scale in (0, 1], recomputed every step."""
-    self._motor = MotorThermalModel.from_config(cfg.params["config"]["thermal"])
+    hb_cfg: dict = cfg.params["config"]
+    self._motor = MotorThermalModel.from_config(hb_cfg["thermal"])
+    self._gear_ratio = float(hb_cfg["thermal"]["gear_ratio_N"])
+    self._voltage_limited = bool(hb_cfg["battery"].get("voltage_limited_torque", False))
+    self.voltage_lo = torch.full(
+      (env.num_envs, num_joints), -torch.inf, device=env.device
+    )
+    """Bus-voltage lower torque bound (N·m); -inf when the limit is off."""
+    self.voltage_hi = torch.full(
+      (env.num_envs, num_joints), torch.inf, device=env.device
+    )
+    """Bus-voltage upper torque bound (N·m); +inf when the limit is off."""
     self.state = torch.full(
       (env.num_envs, num_joints),
       ActuatorState.HEALTHY,
@@ -120,6 +144,8 @@ class apply_actuator_health:
       env_ids = slice(None)
     self.derate[env_ids] = 1.0
     self.thermal_derate[env_ids] = 1.0
+    self.voltage_lo[env_ids] = -torch.inf
+    self.voltage_hi[env_ids] = torch.inf
     self.state[env_ids] = ActuatorState.HEALTHY
     # The live field still holds this term's own (possibly derated) write
     # from the previous episode unless a DR event rewrote it since. Only take
@@ -162,7 +188,25 @@ class apply_actuator_health:
     ).clamp(max=1.0)
 
     scale = self.derate * self.thermal_derate
-    self._last_written = self.baseline_forcerange * scale.unsqueeze(-1)
+    current_range = self.baseline_forcerange * scale.unsqueeze(-1)
+    if self._voltage_limited:
+      lo_c, hi_c = current_range[..., 0], current_range[..., 1]
+      self.voltage_lo, self.voltage_hi = self._motor.voltage_torque_bounds(
+        temps,
+        self._asset.data.joint_vel[:, self._joint_ids],
+        self._thermal_term.battery.bus_voltage,
+        self._gear_ratio,
+      )
+      # voltage_lo < voltage_hi always, so clamping both into [lo_c, hi_c]
+      # keeps lo <= hi even at overspeed, where they collapse to an edge.
+      current_range = torch.stack(
+        [
+          self.voltage_lo.clamp(min=lo_c, max=hi_c),
+          self.voltage_hi.clamp(min=lo_c, max=hi_c),
+        ],
+        dim=-1,
+      )
+    self._last_written = current_range
     env.sim.model.actuator_forcerange[:, self.ctrl_ids] = self._last_written
 
 

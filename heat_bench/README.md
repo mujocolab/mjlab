@@ -49,10 +49,14 @@ Go2 MJCF later without touching the physics engines.
   `baseline × derate × thermal_derate`. `thermal_derate = min(1,
   Kt(T)/Kt_spec)` is the physical torque-ceiling loss from magnet fade
   (≈0.93 at 80°C), recomputed every step and recovered on cooling;
-  `derate` is the external fault factor (e.g. `--joint-fault`). The
+  `derate` is the external fault factor (e.g. `--joint-fault`). With
+  `battery.voltage_limited_torque` on (default), that range is narrowed to
+  what the battery's bus voltage can drive at each joint's speed
+  (back-EMF, `V = I·Rd + Kt·ω`): a drained or sagging pack clips fast
+  motions first, while braking and low-speed torque are unaffected. The
   baseline is refreshed at reset (so it composes with effort-limit domain
-  randomization). Toggle with `actuator_health.enabled` in the yaml. See
-  `PLAN.md` for the phases that build on it.
+  randomization). Toggle the whole event with `actuator_health.enabled` in
+  the yaml. See `PLAN.md` for the phases that build on it.
 - **`scripts/run_eval.py`** — headless batch evaluation of a checkpoint,
   dumping per-episode results to CSV/JSON.
 - **`scripts/play.py`** + **`viewer/`** — an interactive Viser-based viewer
@@ -195,6 +199,10 @@ noted otherwise.
   episode, via `scripted_joint_fault` writing the actuator-health event's
   buffers. A controlled demo of the torque-limit path, not a physical
   failure model — Phase 1+ derive failure from tracked temperature.
+- **Battery-limited torque** (`battery.voltage_limited_torque`, on by
+  default) — set `false` to compare against the current-limit-only
+  behavior, e.g. alongside a low `battery.initial_soc` to see what a
+  depleted pack costs.
 - **Battery model A/B comparison** (`--battery-model rint|rint_soc_aging`
   plus `--port` on `play.py`) — override `battery.model` for a single run
   without editing the yaml; launch two instances on different ports to

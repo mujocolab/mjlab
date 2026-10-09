@@ -102,3 +102,34 @@ class MotorThermalModel:
     return torque_constant(
       temps, self.kt_spec, self.kt_coeff_per_c, self.coeff_ref_c, self.spec_ref_c
     )
+
+  def voltage_torque_bounds(
+    self,
+    temps: torch.Tensor,
+    joint_vel: torch.Tensor,
+    bus_voltage: torch.Tensor,
+    gear_ratio: float,
+  ) -> tuple[torch.Tensor, torch.Tensor]:
+    """Joint-side (lower, upper) torque bounds allowed by the bus voltage.
+
+    DC-equivalent motor voltage equation ``V = I·Rd + Ke·ω`` with
+    ``Ke = Kt`` (SI units, energy-consistent: electrical power in equals
+    mechanical power out plus I²R heat), motor speed ``ω = N·q̇`` and joint
+    torque ``τ = N·Kt·I``. Back-EMF opposes torque in the direction of
+    motion and adds to braking torque, so the bounds are asymmetric:
+
+      upper = N·Kt·(+V − Kt·N·q̇) / Rd
+      lower = N·Kt·(−V − Kt·N·q̇) / Rd
+
+    Args:
+      temps: Joint temperatures (°C), shape (N, J).
+      joint_vel: Joint velocities (rad/s), shape (N, J).
+      bus_voltage: Battery bus voltage (V), shape (N,).
+      gear_ratio: Motor-to-joint reduction ``N``.
+    """
+    kt = self.torque_constant(temps)
+    rd = self.phase_resistance(temps)
+    back_emf = kt * gear_ratio * joint_vel
+    v = bus_voltage.unsqueeze(-1)
+    scale = gear_ratio * kt / rd
+    return scale * (-v - back_emf), scale * (v - back_emf)

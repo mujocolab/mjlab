@@ -38,3 +38,26 @@ def test_zero_coefficients_give_constants():
   t = torch.tensor([0.0, 25.0, 150.0])
   torch.testing.assert_close(model.phase_resistance(t), torch.full((3,), model.rd_spec))
   torch.testing.assert_close(model.torque_constant(t), torch.full((3,), model.kt_spec))
+
+
+def test_voltage_torque_bounds_shrink_with_speed_and_voltage(model):
+  n = 6.22
+  t = torch.full((1, 2), model.spec_ref_c)  # Kt/Rd at their spec values.
+  v = torch.tensor([33.6])
+  stall = n * model.kt_spec * 33.6 / model.rd_spec
+
+  lo, hi = model.voltage_torque_bounds(t, torch.zeros(1, 2), v, n)
+  torch.testing.assert_close(hi, torch.full((1, 2), stall))
+  torch.testing.assert_close(lo, torch.full((1, 2), -stall))
+
+  # Moving forward at 10 rad/s: back-EMF eats into forward torque but adds
+  # to braking (reverse) torque by the same amount.
+  qd = torch.tensor([[10.0, 0.0]])
+  lo, hi = model.voltage_torque_bounds(t, qd, v, n)
+  emf_torque = n * model.kt_spec * (model.kt_spec * n * 10.0) / model.rd_spec
+  torch.testing.assert_close(hi[0, 0], torch.tensor(stall - emf_torque))
+  torch.testing.assert_close(lo[0, 0], torch.tensor(-stall - emf_torque))
+
+  # A depleted pack lowers the forward bound at the same speed.
+  _, hi_low = model.voltage_torque_bounds(t, qd, torch.tensor([24.0]), n)
+  assert hi_low[0, 0] < hi[0, 0]
