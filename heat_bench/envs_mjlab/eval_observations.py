@@ -31,7 +31,7 @@ import torch
 
 from heat_bench.physics.battery_ecm import AdvancedBatteryECM, BatchedBatteryECM
 from heat_bench.physics.lptn_engine import CHASSIS_IDX, BatchedLPTNEngine
-from heat_bench.physics.motor_thermal import MotorThermalModel
+from heat_bench.physics.motor_thermal import MotorThermalModel, joint_gear_ratios
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 _BATTERY_MODELS = {
@@ -63,7 +63,7 @@ class ThermalEnergyObservation:
     and the first 12 entries of thermal.T (e.g. viewer code reads this)."""
 
     thermal_cfg = hb_cfg["thermal"]
-    self._gear_ratio_n = float(thermal_cfg["gear_ratio_N"])
+    self._gear_ratio_n = joint_gear_ratios(thermal_cfg, joint_names, env.device)
     self.motor = MotorThermalModel.from_config(thermal_cfg)
 
     battery_cfg = hb_cfg["battery"]

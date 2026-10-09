@@ -22,6 +22,16 @@ thermal:
   # 6.33, output-side Kt 0.639 N*m/A); mixing sources breaks the set's
   # internal consistency. Replace the whole module/set if upgrading.
   gear_ratio_N: 6.22                       # GIVEN
+  # Extra reduction stage per joint on top of gear_ratio_N (regex on joint
+  # name -> multiplier; unmatched joints 1.0). This is the simulated body's
+  # gearing, not a motor constant, so it doesn't touch the paper set above:
+  # Go1's knee has an extra 1.5x stage (mjlab go1_constants.py,
+  # KNEE_GEAR_RATIO = HIP_GEAR_RATIO * 1.5), which is why its knee effort
+  # limit is 35.55 = 1.5 x 23.7 N*m -- with it, every joint reaches the same
+  # motor current at its effort limit. Lowers knee current per joint torque
+  # by 1/1.5 and Joule heat by 1/2.25; back-EMF scales up by 1.5.
+  joint_gear_ratio_scale:
+    ".*_calf_joint": 1.5                   # GIVEN, mjlab Go1 sim body
   motor_torque_constant_Kt: 0.26           # GIVEN, N*m/A
   phase_resistance_Rd: 0.66                # GIVEN, ohm
   # Temperature dependence of Rd and Kt (heat_bench/physics/motor_thermal.py).

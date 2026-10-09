@@ -266,9 +266,22 @@ Original scope:
   fast swings by ≤ 20 ms; measured, see commit). On by default;
   `battery.voltage_limited_torque: false` restores current-limit-only.
 - Paper constants unchanged (N 6.22, Kt 0.26, Rd 0.66): full torque up to
-  ~14.8 rad/s at 33.6 V vs ~8.9 rad/s at 24 V.
+  ~14.8 rad/s at 33.6 V vs ~8.9 rad/s at 24 V on hips/thighs; ~9.9 vs
+  ~5.9 rad/s on knees, whose extra 1.5× stage (see below) spins the motor
+  faster.
 - Deferred: a battery safety limit (BMS current/power cap or low-voltage
   cutoff), like the user's planned 80°C shutdown.
+
+### Per-joint gear ratio (knee reduction) — DONE
+- The paper set's single N = 6.22 was applied to all 12 joints, but the
+  simulated Go1 knee has an extra 1.5× stage (`go1_constants.py`,
+  `KNEE_GEAR_RATIO = HIP_GEAR_RATIO * 1.5`; its 35.55 N·m knee limit is
+  1.5 × 23.7). `thermal.joint_gear_ratio_scale` (regex → multiplier) adds
+  it on top of N without touching the paper set; with it every joint hits
+  the same motor current (~14.7 A) at its effort limit.
+- Effect: knee current per joint torque ×1/1.5, Joule heat ×1/2.25,
+  back-EMF ×1.5. Knees are still the hottest joints (largest torque), but
+  the gap to the thighs shrinks.
 
 ### Phase 2 — Terminal thermal failure — DONE
 - `actuator_health.dead_temp_c`: once a joint's temperature reaches it, the

@@ -3,7 +3,7 @@
 import pytest
 import torch
 from heat_bench.envs_mjlab.go2_eval_env_cfg import load_heat_bench_config
-from heat_bench.physics.motor_thermal import MotorThermalModel
+from heat_bench.physics.motor_thermal import MotorThermalModel, joint_gear_ratios
 
 
 @pytest.fixture
@@ -61,3 +61,13 @@ def test_voltage_torque_bounds_shrink_with_speed_and_voltage(model):
   # A depleted pack lowers the forward bound at the same speed.
   _, hi_low = model.voltage_torque_bounds(t, qd, torch.tensor([24.0]), n)
   assert hi_low[0, 0] < hi[0, 0]
+
+
+def test_joint_gear_ratios_scale_only_matched_joints():
+  cfg = {"gear_ratio_N": 6.0, "joint_gear_ratio_scale": {".*_calf_joint": 1.5}}
+  names = ["FR_hip_joint", "FR_thigh_joint", "FR_calf_joint"]
+  ratios = joint_gear_ratios(cfg, names, device="cpu")
+  torch.testing.assert_close(ratios, torch.tensor([6.0, 6.0, 9.0]))
+  # Without the map every joint gets the base ratio.
+  ratios = joint_gear_ratios({"gear_ratio_N": 6.0}, names, device="cpu")
+  torch.testing.assert_close(ratios, torch.full((3,), 6.0))

@@ -369,11 +369,11 @@ def test_zero_temp_coefficients_match_constant_rd_kt():
   hb_cfg["thermal"]["torque_constant_temp_coeff_per_c"] = 0.0
   heat, current = _substep_heat_and_current(80.0, hb_cfg)
   thermal_cfg = hb_cfg["thermal"]
-  expected_current = 5.0 / (
-    thermal_cfg["gear_ratio_N"] * thermal_cfg["motor_torque_constant_Kt"]
-  )
-  torch.testing.assert_close(current, torch.full_like(current, expected_current))
+  # Knees (every 3rd joint, *_calf_joint) have the extra 1.5x reduction.
+  gear_ratio = torch.tensor([1.0, 1.0, 1.5] * 4, device=current.device)
+  gear_ratio *= thermal_cfg["gear_ratio_N"]
+  expected_current = 5.0 / (gear_ratio * thermal_cfg["motor_torque_constant_Kt"])
+  torch.testing.assert_close(current[0], expected_current)
   torch.testing.assert_close(
-    heat,
-    torch.full_like(heat, expected_current**2 * thermal_cfg["phase_resistance_Rd"]),
+    heat[0], expected_current**2 * thermal_cfg["phase_resistance_Rd"]
   )

@@ -161,6 +161,10 @@ Go2 datasheet numbers (Unitree's GO-M8010-6 manual lists ratio 6.33 and an
 output-side torque constant of 0.639 N·m/A vs this set's 6.22 × 0.26 =
 1.617): mixing sources while keeping the set's phase resistance gave ~6×
 the Joule heat and a joint at 179°C within 3 minutes.
+The one per-joint addition, `thermal.joint_gear_ratio_scale`, is the
+simulated body's gearing rather than a motor constant: Go1's knee has an
+extra 1.5× reduction stage on top of the motor's N (mjlab
+`go1_constants.py`), so knees draw 1/1.5 the current per joint torque.
 The battery pack's nominal voltage, capacity, series cell count, and
 full-charge OCV are now also given, from Unitree's official Go2 battery
 spec ([[6]](#references), BT2-05 "Standard Version"): an 8S Li-ion pack,

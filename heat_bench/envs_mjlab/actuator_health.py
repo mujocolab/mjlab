@@ -46,7 +46,7 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from heat_bench.physics.motor_thermal import MotorThermalModel
+from heat_bench.physics.motor_thermal import MotorThermalModel, joint_gear_ratios
 from mjlab.managers.event_manager import RecomputeLevel
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
@@ -116,7 +116,9 @@ class apply_actuator_health:
     """Kt(T)/Kt_spec torque-ceiling scale in (0, 1], recomputed every step."""
     hb_cfg: dict = cfg.params["config"]
     self._motor = MotorThermalModel.from_config(hb_cfg["thermal"])
-    self._gear_ratio = float(hb_cfg["thermal"]["gear_ratio_N"])
+    self._gear_ratio = joint_gear_ratios(
+      hb_cfg["thermal"], self.joint_names, env.device
+    )
     self._voltage_limited = bool(hb_cfg["battery"].get("voltage_limited_torque", False))
     self._dead_temp_c: float | None = hb_cfg["actuator_health"].get("dead_temp_c")
     self.voltage_lo = torch.full(

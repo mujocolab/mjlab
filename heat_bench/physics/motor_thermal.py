@@ -21,17 +21,40 @@ Each coefficient is defined relative to its own reference temperature
 (``coeff_ref_c``, 20°C for both sources above), while the nominal Rd/Kt
 values are specified at ``spec_ref_c``; ``temperature_scale`` converts
 between the two exactly instead of assuming they coincide.
+
+The motor-to-joint reduction is per joint (``joint_gear_ratios``): the
+motor's own gearbox ``gear_ratio_N`` times an optional extra stage on some
+joints, e.g. a quadruped knee's linkage.
 """
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import torch
 
+from mjlab.utils.string import resolve_expr
+
 # Floor on the Kt scale so a (non-physical) extrapolation far past the
 # datasheet range can never divide by zero or flip sign.
 _MIN_KT_SCALE = 0.05
+
+
+def joint_gear_ratios(
+  thermal_cfg: dict, joint_names: Sequence[str], device: str | torch.device
+) -> torch.Tensor:
+  """Per-joint motor-to-joint reduction ``N``, shape (J,).
+
+  ``gear_ratio_N`` times the first matching entry of the optional
+  ``joint_gear_ratio_scale`` regex map (1.0 for unmatched joints).
+  """
+  scales = resolve_expr(
+    thermal_cfg.get("joint_gear_ratio_scale", {}), tuple(joint_names), 1.0
+  )
+  return float(thermal_cfg["gear_ratio_N"]) * torch.tensor(
+    scales, device=device, dtype=torch.float32
+  )
 
 
 def temperature_scale(
@@ -108,7 +131,7 @@ class MotorThermalModel:
     temps: torch.Tensor,
     joint_vel: torch.Tensor,
     bus_voltage: torch.Tensor,
-    gear_ratio: float,
+    gear_ratio: float | torch.Tensor,
   ) -> tuple[torch.Tensor, torch.Tensor]:
     """Joint-side (lower, upper) torque bounds allowed by the bus voltage.
 
@@ -125,7 +148,7 @@ class MotorThermalModel:
       temps: Joint temperatures (°C), shape (N, J).
       joint_vel: Joint velocities (rad/s), shape (N, J).
       bus_voltage: Battery bus voltage (V), shape (N,).
-      gear_ratio: Motor-to-joint reduction ``N``.
+      gear_ratio: Motor-to-joint reduction ``N``, scalar or per joint (J,).
     """
     kt = self.torque_constant(temps)
     rd = self.phase_resistance(temps)

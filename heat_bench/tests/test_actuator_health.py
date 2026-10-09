@@ -395,3 +395,23 @@ def test_no_death_without_threshold():
   term(env, None, **params)
   assert not term.dead.any()
   assert (term.state == ActuatorState.HEALTHY).all()
+
+
+def test_knee_voltage_limit_uses_its_extra_reduction():
+  """Same joint speed on a thigh and a knee: the knee motor spins 1.5x
+  faster, so its back-EMF eats more of the bus voltage."""
+  device = get_test_device()
+  term, env, entity, params = _make_term(device, num_envs=1, bus_voltage=24.0)
+  thigh, knee = (
+    term.joint_names.index("FR_thigh_joint"),
+    term.joint_names.index("FR_calf_joint"),
+  )
+  _set_joint_speed(entity, 0, thigh, 6.0)
+  _set_joint_speed(entity, 0, knee, 6.0)
+  term(env, None, **params)
+
+  thermal = params["config"]["thermal"]
+  kt, rd = thermal["motor_torque_constant_Kt"], thermal["phase_resistance_Rd"]
+  for j, n in ((thigh, thermal["gear_ratio_N"]), (knee, thermal["gear_ratio_N"] * 1.5)):
+    expected = n * kt * (24.0 - kt * n * 6.0) / rd
+    assert term.voltage_hi[0, j].item() == pytest.approx(expected, rel=1e-4)
