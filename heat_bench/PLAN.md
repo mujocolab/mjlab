@@ -270,11 +270,23 @@ Original scope:
 - Deferred: a battery safety limit (BMS current/power cap or low-voltage
   cutoff), like the user's planned 80°C shutdown.
 
-### Phase 2 — Terminal thermal failure
-- Insulation-melt-analogue threshold: once crossed, latch `dead`
-  permanently for that (env, joint) — `forcerange = [0, 0]` reapplied
-  every step regardless of temperature afterward.
-- Metric: dead-joint count/flag per episode.
+### Phase 2 — Terminal thermal failure — DONE
+- `actuator_health.dead_temp_c`: once a joint's temperature reaches it, the
+  (env, joint) latches `DEAD` (`derate` forced to 0, so `forcerange = [0,
+  0]`) for the rest of the episode, regardless of later cooling. Cleared on
+  episode reset, like joint temperatures and the battery.
+- The threshold is **user-set**, not cited: 85°C by default, `null`
+  disables it. It is distinct from Go2's 80–85°C software shutdown, which is
+  a reversible protective cutoff (still user-owned, not built). It is
+  compared against the lumped joint node, which runs cooler than the real
+  winding hot spot.
+- The latch lives in its own `dead` buffer and is applied after any fault
+  event's write each step, so `scripted_joint_fault` can't revive a dead
+  joint. A dead joint doesn't end the episode.
+- Metrics: `run_eval.py` reports per-episode `dead_joints` and
+  `first_death_s` (NaN if none).
+- Not included: irreversible NdFeB demagnetization (accumulating Kt loss
+  above the magnet grade's max temperature), a separate later item.
 
 ### Phase 3 — Mechanical failure states from disturbance
 - Extend impulse disturbance (or add a new event) so a sufficiently

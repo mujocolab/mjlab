@@ -84,6 +84,12 @@ def run_eval(cfg: RunEvalConfig) -> list[dict[str, float]]:
   thermal_term = env.unwrapped.observation_manager.get_term_cfg(
     "thermal", "thermal_energy"
   ).func
+  # None when actuator_health is disabled: no joint can die.
+  health_term = (
+    env.unwrapped.event_manager.get_term_cfg("actuator_health").func
+    if "actuator_health" in env.unwrapped.event_manager.active_terms.get("step", [])
+    else None
+  )
 
   done_envs = torch.zeros(cfg.num_envs, dtype=torch.bool, device=device)
   max_temp = torch.zeros(cfg.num_envs, device=device)
@@ -92,6 +98,8 @@ def run_eval(cfg: RunEvalConfig) -> list[dict[str, float]]:
   energy_wh = torch.zeros(cfg.num_envs, device=device)
   distance_m = torch.zeros(cfg.num_envs, device=device)
   final_soc = torch.ones(cfg.num_envs, device=device)
+  dead_joints = torch.zeros(cfg.num_envs, device=device)
+  first_death_s = torch.full((cfg.num_envs,), float("nan"), device=device)
 
   obs = env.get_observations()
   print(f"[INFO] Running {cfg.num_envs} evaluation episodes...")
@@ -122,6 +130,18 @@ def run_eval(cfg: RunEvalConfig) -> list[dict[str, float]]:
       distance_m,
     )
     final_soc = torch.where(active, thermal_term.last_soc, final_soc)
+    if health_term is not None:
+      # The death latch is monotonic within an episode, so the max is the
+      # episode's dead-joint count.
+      dead_now = health_term.dead.sum(dim=-1).float()
+      first_death_s = torch.where(
+        active & (dead_now > 0) & first_death_s.isnan(),
+        step_count * env.unwrapped.step_dt,
+        first_death_s,
+      )
+      dead_joints = torch.where(
+        active, torch.maximum(dead_joints, dead_now), dead_joints
+      )
 
     newly_done = dones.bool() & ~done_envs
     done_envs = done_envs | newly_done
@@ -145,6 +165,8 @@ def run_eval(cfg: RunEvalConfig) -> list[dict[str, float]]:
         "distance_m": dist,
         "wh_per_m": energy / dist if dist > 1e-6 else float("nan"),
         "final_soc": final_soc[env_id].item(),
+        "dead_joints": int(dead_joints[env_id].item()),
+        "first_death_s": first_death_s[env_id].item(),
       }
     )
 

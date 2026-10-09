@@ -55,10 +55,15 @@ Go2 MJCF later without touching the physics engines.
   (back-EMF, `V = I·Rd + Kt·ω`): a drained or sagging pack clips fast
   motions first, while braking and low-speed torque are unaffected. The
   baseline is refreshed at reset (so it composes with effort-limit domain
-  randomization). Toggle the whole event with `actuator_health.enabled` in
-  the yaml. See `PLAN.md` for the phases that build on it.
+  randomization). A joint that reaches `actuator_health.dead_temp_c`
+  (85°C by default; `null` disables it) latches `DEAD` (zero torque) until
+  the episode resets, even after cooling — a user-set physical-death
+  threshold, not Go2's 80–85°C software shutdown. Toggle the whole event
+  with `actuator_health.enabled` in the yaml. See `PLAN.md` for the phases
+  that build on it.
 - **`scripts/run_eval.py`** — headless batch evaluation of a checkpoint,
-  dumping per-episode results to CSV/JSON.
+  dumping per-episode results to CSV/JSON (including `dead_joints` and
+  `first_death_s` when a death threshold is set).
 - **`scripts/play.py`** + **`viewer/`** — an interactive Viser-based viewer
   with a live "Robot Health" tab: per-node thermal, current, and torque
   charts (all nodes on shared axes, not just aggregates) plus a battery

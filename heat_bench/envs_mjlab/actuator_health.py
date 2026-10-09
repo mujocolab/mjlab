@@ -15,6 +15,11 @@ the observation term's cached joint temperatures and writes
 - ``derate`` is the externally-set fault factor (``scripted_joint_fault``,
   future shutdown conditions); the two multiply, as a current-capacity loss
   and a torque-per-amp loss would physically.
+- Thermal death (Phase 2): once a joint's temperature reaches
+  ``actuator_health.dead_temp_c`` it latches ``DEAD`` (``derate`` forced to
+  0) until the episode resets, even after it cools. The threshold is
+  user-set and compared against the lumped joint node, which runs cooler
+  than the winding hot spot. ``None`` disables it.
 
 That product is the *current-limited* range. When
 ``battery.voltage_limited_torque`` is on, the range is further narrowed to
@@ -53,7 +58,8 @@ if TYPE_CHECKING:
 class ActuatorState(IntEnum):
   """Discrete per-joint consequence state (see PLAN.md, "Causes vs.
   consequence states"). Thermal Kt fade alone never changes it; only fault
-  conditions (e.g. ``scripted_joint_fault``) set non-HEALTHY states."""
+  conditions (e.g. ``scripted_joint_fault``, the thermal death latch) set
+  non-HEALTHY states."""
 
   HEALTHY = 0
   DERATED = 1
@@ -112,6 +118,7 @@ class apply_actuator_health:
     self._motor = MotorThermalModel.from_config(hb_cfg["thermal"])
     self._gear_ratio = float(hb_cfg["thermal"]["gear_ratio_N"])
     self._voltage_limited = bool(hb_cfg["battery"].get("voltage_limited_torque", False))
+    self._dead_temp_c: float | None = hb_cfg["actuator_health"].get("dead_temp_c")
     self.voltage_lo = torch.full(
       (env.num_envs, num_joints), -torch.inf, device=env.device
     )
@@ -127,6 +134,10 @@ class apply_actuator_health:
       dtype=torch.int8,
     )
     """Discrete ``ActuatorState`` per (env, joint)."""
+    self.dead = torch.zeros(
+      env.num_envs, num_joints, device=env.device, dtype=torch.bool
+    )
+    """Thermal death latch per (env, joint); cleared only on reset."""
     self.baseline_forcerange = env.sim.model.actuator_forcerange[
       :, self.ctrl_ids
     ].clone()
@@ -147,6 +158,7 @@ class apply_actuator_health:
     self.voltage_lo[env_ids] = -torch.inf
     self.voltage_hi[env_ids] = torch.inf
     self.state[env_ids] = ActuatorState.HEALTHY
+    self.dead[env_ids] = False
     # The live field still holds this term's own (possibly derated) write
     # from the previous episode unless a DR event rewrote it since. Only take
     # values that differ from our last write as the new baseline; otherwise a
@@ -186,6 +198,13 @@ class apply_actuator_health:
     self.thermal_derate = (
       self._motor.torque_constant(temps) / self._motor.kt_spec
     ).clamp(max=1.0)
+
+    if self._dead_temp_c is not None:
+      self.dead |= temps >= self._dead_temp_c
+      # Applied after any fault event's write this step, so nothing revives
+      # a dead joint before reset.
+      self.derate.masked_fill_(self.dead, 0.0)
+      self.state.masked_fill_(self.dead, ActuatorState.DEAD)
 
     scale = self.derate * self.thermal_derate
     current_range = self.baseline_forcerange * scale.unsqueeze(-1)

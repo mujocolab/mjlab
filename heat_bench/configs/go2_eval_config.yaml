@@ -138,8 +138,14 @@ impulse_disturbance:
 
 # Active actuator-health event (heat_bench/envs_mjlab/actuator_health.py):
 # owns per-joint derate/failure state and writes actuator_forcerange every
-# control step. Phase 0 is an identity write (no behavior change); derating
-# thresholds and failure limits will be added to this section in later
-# phases -- see heat_bench/PLAN.md.
+# control step: Kt(T) thermal derate, battery voltage limit, scripted faults,
+# and the thermal death latch below -- see heat_bench/PLAN.md.
 actuator_health:
   enabled: true
+  # Joint temperature (C) at which a motor is physically destroyed (the
+  # insulation-melt analogue): the joint latches DEAD -- zero torque -- until
+  # the episode resets, even after it cools. USER-SET, not a cited value.
+  # Compared against the lumped joint node, which runs cooler than the real
+  # winding hot spot. Not Go2's 80-85C software shutdown, which is a
+  # reversible protective cutoff. null = joints never die.
+  dead_temp_c: 85.0               # USER-SET

@@ -32,7 +32,13 @@ def get_test_device() -> str:
   return "cuda" if torch.cuda.is_available() else "cpu"
 
 
-def _make_term(device: str, num_envs: int, bus_voltage: float = 33.6, **battery):
+def _make_term(
+  device: str,
+  num_envs: int,
+  bus_voltage: float = 33.6,
+  dead_temp_c: float | None = None,
+  **battery,
+):
   entity = Entity(get_go1_robot_cfg())
   model = entity.compile()
   sim = Simulation(num_envs=num_envs, cfg=SimulationCfg(), model=model, device=device)
@@ -47,6 +53,7 @@ def _make_term(device: str, num_envs: int, bus_voltage: float = 33.6, **battery)
 
   hb_cfg = load_heat_bench_config()
   hb_cfg["battery"].update(battery)
+  hb_cfg["actuator_health"]["dead_temp_c"] = dead_temp_c
   params = {
     "asset_cfg": SceneEntityCfg(name="robot", joint_names=(".*",)),
     "obs_group": "thermal",
@@ -349,3 +356,42 @@ def test_fault_thermal_and_voltage_layers_compose():
   written = forcerange[0, term.ctrl_ids[0]].tolist()
   assert written[0] == pytest.approx(lo_c, rel=1e-4)
   assert written[1] == pytest.approx(hi_v, rel=1e-4)
+
+
+def test_overheated_joint_dies_and_stays_dead_until_reset():
+  device = get_test_device()
+  term, env, _, params = _make_term(device, num_envs=2, dead_temp_c=120.0)
+  forcerange = env.sim.model.actuator_forcerange
+  full = forcerange[:, term.ctrl_ids].clone()
+  temps = env.thermal_stub.last_joint_temps
+
+  temps[0, 2] = 120.0
+  term(env, None, **params)
+  assert term.state[0, 2] == ActuatorState.DEAD
+  assert (forcerange[0, term.ctrl_ids[2]] == 0.0).all()
+  others = [j for j in range(12) if j != 2]
+  assert (term.state[0, others] == ActuatorState.HEALTHY).all()
+  assert (term.state[1] == ActuatorState.HEALTHY).all()
+  torch.testing.assert_close(forcerange[1, term.ctrl_ids], full[1])
+
+  # Cooling down doesn't revive it, nor does a fault event rewriting derate
+  # (scripted_joint_fault runs before this term every step).
+  temps[0, 2] = 25.0
+  term.derate[0, 2] = 1.0
+  term.state[0, 2] = ActuatorState.HEALTHY
+  term(env, None, **params)
+  assert term.state[0, 2] == ActuatorState.DEAD
+  assert (forcerange[0, term.ctrl_ids[2]] == 0.0).all()
+
+  term.reset(torch.tensor([0], device=device))
+  term(env, None, **params)
+  assert (term.state[0] == ActuatorState.HEALTHY).all()
+  torch.testing.assert_close(forcerange[0, term.ctrl_ids], full[0])
+
+
+def test_no_death_without_threshold():
+  term, env, _, params = _make_term(get_test_device(), num_envs=1)
+  env.thermal_stub.last_joint_temps[:] = 500.0
+  term(env, None, **params)
+  assert not term.dead.any()
+  assert (term.state == ActuatorState.HEALTHY).all()
