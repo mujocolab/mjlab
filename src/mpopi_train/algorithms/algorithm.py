@@ -182,7 +182,6 @@ class MpopiPpo(PPO):
         num_own = own.actions.shape[0]
         replay = own if replay is None else _concat_batches(own, replay)
     pool = self._build_pool(replay, num_own)
-    weighted = replay is not None
     mean_bc_loss = 0.0
 
     mean_value_loss = 0.0
@@ -194,7 +193,8 @@ class MpopiPpo(PPO):
     for batch, weights, mask, bc in self._mini_batch_generator(pool):
       if self.normalize_advantage_per_mini_batch:
         with torch.no_grad():
-          batch.advantages = _normalize(batch.advantages, mask)  # type: ignore[arg-type]
+          assert batch.advantages is not None
+          batch.advantages = _normalize(batch.advantages, mask)
 
       with torch.amp.autocast(  # pyright: ignore[reportPrivateImportUsage]
         device_type=torch.device(self.device).type,
@@ -202,7 +202,8 @@ class MpopiPpo(PPO):
         dtype=torch.bfloat16,
       ):
         self.actor(batch.observations, stochastic_output=True)
-        actions_log_prob = self.actor.get_output_log_prob(batch.actions)  # type: ignore[arg-type]
+        assert batch.actions is not None
+        actions_log_prob = self.actor.get_output_log_prob(batch.actions)
         values = self.critic(batch.observations)
         distribution_params = self.actor.output_distribution_params
         entropy = self.actor.output_entropy
@@ -224,7 +225,7 @@ class MpopiPpo(PPO):
           torch.squeeze(batch.old_actions_log_prob),
           torch.squeeze(batch.advantages),
           self.clip_param,
-          weights=torch.squeeze(weights, -1) if weighted else None,  # type: ignore[arg-type]
+          weights=None if weights is None else torch.squeeze(weights, -1),
           mask=mask,
         )
 
@@ -367,7 +368,8 @@ class MpopiPpo(PPO):
   def _adapt_learning_rate(self, kl_mean: torch.Tensor) -> None:
     """Upstream adaptive KL learning-rate rule (``ppo.py:246-266``)."""
     if self.is_multi_gpu:
-      dist.all_reduce(kl_mean, op=dist.ReduceOp.SUM)  # ty: ignore[possibly-missing-attribute]
+      op = dist.ReduceOp.SUM  # ty: ignore[possibly-missing-attribute]
+      dist.all_reduce(kl_mean, op=op)  # ty: ignore[possibly-missing-attribute]
       kl_mean /= self.gpu_world_size
     if self.gpu_global_rank == 0:
       if kl_mean > self.desired_kl * 2.0:

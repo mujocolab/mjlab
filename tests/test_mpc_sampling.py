@@ -173,3 +173,18 @@ def test_compare_with_policy_matches_open_loop_rollouts(real_env, mpc):
   torch.testing.assert_close(r_teacher, mpc._rollout(real_env, plan)[:, 0])
   zeros = torch.zeros_like(plan)
   torch.testing.assert_close(r_policy, mpc._rollout(real_env, zeros)[:, 0])
+
+
+def test_compare_with_policy_starts_from_the_real_state(real_env, mpc):
+  mpc.plan(real_env)  # Leaves the planning env at the end of a rollout.
+  seen = []
+
+  def recording_policy(obs):
+    seen.append(obs["actor"].clone())
+    return torch.zeros(obs.batch_size[0], mpc.action_dim, device=mpc.device)
+
+  mpc.compare_with_policy(real_env, recording_policy)
+  real_obs = real_env.observation_manager.compute()["actor"]
+  assert isinstance(real_obs, torch.Tensor)
+  k = mpc.cfg.num_samples
+  torch.testing.assert_close(seen[0], real_obs.repeat_interleave(k, dim=0))

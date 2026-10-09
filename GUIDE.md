@@ -315,11 +315,13 @@ Tham số tương ứng:
 | `--env.curriculum.command-vel.params.velocity-stages.1.ang-vel-z` | `-0.7,0.7` | Khoảng vận tốc quay của giai đoạn 1 |
 | `--env.curriculum.command-vel.params.velocity-stages.0.lin-vel-x` | `-1.0,1.0` | Khoảng vận tốc thẳng của giai đoạn 0 |
 
-**Bẫy hay gặp:** `step` tính bằng **bước mô phỏng**, không phải số vòng. Mỗi vòng có 24 bước, nên:
+**Bẫy hay gặp:** `step` tính bằng **bước mô phỏng**, không phải số vòng. Mỗi vòng có 24 bước
+(tham số `--agent.num-steps-per-env`, mặc định 24), nên:
 
 > `step` = số vòng muốn bắt đầu giai đoạn × 24. Ví dụ vòng 500 → `12000`, vòng 1000 → `24000`.
 
-Khi đổi số vòng học, mốc này **không tự đổi theo**: phải tự tính lại.
+Khi đổi số vòng học hoặc `--agent.num-steps-per-env`, mốc này **không tự đổi theo**: phải tự tính
+lại.
 
 **Ví dụ:** mục tiêu **2,0 m/s**, train **3000 vòng**, lên giai đoạn 2,0 m/s từ **vòng 1000**:
 
@@ -359,8 +361,8 @@ Lưu ý tên checkpoint cuối đổi theo số vòng: 3000 vòng thì là `mode
 | `collect-iterations` | `110` | Ngừng gắn nhãn sau vòng này |
 | `bc-coef` | `1.0` | Trọng số bắt chước ban đầu |
 | `bc-iterations` | `150` | Trọng số bắt chước giảm dần về 0 tại vòng này |
-| `bc-floor` | `0.0` | Trọng số bắt chước tối thiểu (lớn hơn 0 thì không bao giờ tắt hẳn) |
-| `max-age` | `50` | Nhãn cũ hơn bao nhiêu vòng thì bỏ |
+| `bc-floor` | `0.0` | Trọng số bắt chước tối thiểu (lớn hơn 0 thì không bao giờ tắt hẳn). **Phải kèm `max-age None`**, nếu không chương trình báo lỗi, vì nhãn cũ sẽ bị bỏ và không còn gì để bắt chước |
+| `max-age` | `50` | Nhãn cũ hơn bao nhiêu vòng thì bỏ (`None` = giữ mãi, tối đa `buffer-segments` lần gắn nhãn gần nhất) |
 | `buffer-segments` | `10` | Giữ tối đa bao nhiêu lần gắn nhãn |
 | `replay-own-rollouts` | `False` (DAgger), `True` (Replay-IS-DAgger) | Có dùng lại dữ liệu cũ của chính robot không |
 | `teacher-gap-every` | tắt | Đặt số (ví dụ `4`) để đo thầy hơn trò bao nhiêu; thêm khoảng 12% thời gian gắn nhãn |

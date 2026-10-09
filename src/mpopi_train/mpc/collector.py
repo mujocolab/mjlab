@@ -40,6 +40,7 @@ class MpcCollector:
     device: str = "cpu",
     seed: int = 0,
     teacher_gap_every: int | None = None,
+    training_env: ManagerBasedRlEnv | None = None,
   ) -> None:
     """
     Args:
@@ -55,6 +56,9 @@ class MpcCollector:
         planner's plan with the policy's mean action from the same state (see
         :meth:`SamplingMpc.compare_with_policy`). Needs ``policy_mean`` in
         :meth:`collect`.
+      training_env: The env PPO trains on. Before each collection its step
+        counter is copied to the MPC envs, so step-based curricula (such as the
+        command range) follow training instead of staying at their first stage.
     """
     if execution_std < 0.0:
       raise ValueError("execution_std must be >= 0.")
@@ -63,6 +67,7 @@ class MpcCollector:
     self.num_envs = num_envs
     self.num_steps = num_steps
     self.teacher_gap_every = teacher_gap_every
+    self.training_env = training_env
     self.execution_std = execution_std
     self.device = torch.device(device)
     real_cfg = copy.deepcopy(env_cfg)
@@ -95,6 +100,8 @@ class MpcCollector:
       ``policy_version``) and collection metrics.
     """
     t_steps, n = self.num_steps, self.num_envs
+    if self.training_env is not None:
+      self.env.unwrapped.common_step_counter = self.training_env.common_step_counter
     obs_list: list[TensorDict] = []
     actions, rewards, dones, time_outs, log_mu, means = [], [], [], [], [], []
     ess_sum, start = 0.0, time.time()

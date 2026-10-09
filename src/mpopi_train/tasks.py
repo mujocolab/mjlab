@@ -25,14 +25,21 @@ G1_EXPERIMENT = "g1_velocity_2k"
 
 
 def g1_2k_env_cfg(
-  play: bool = False, steps_per_iteration: int = 24
+  play: bool = False, steps_per_iteration: int | None = None
 ) -> ManagerBasedRlEnvCfg:
   """Flat G1 velocity task that reaches its final speed range in 2000 iterations.
 
   mjlab's curriculum only adds speeds above 1 m/s after 5000 iterations and
   targets 3 m/s. Here the forward range grows from (-1, 1) to (-1, 1.5) m/s at
   iteration 500, so a 2000-iteration run spends 1500 iterations on the target.
+
+  The curriculum counts env steps, so the stage is placed at
+  ``G1_STAGE_ITERATION * steps_per_iteration``; by default the steps per
+  iteration of the G1 runner. Overriding ``num_steps_per_env`` on the command
+  line does not move it: set the stage ``step`` too.
   """
+  if steps_per_iteration is None:
+    steps_per_iteration = unitree_g1_ppo_runner_cfg().num_steps_per_env
   cfg = unitree_g1_flat_env_cfg(play=play)
   twist_cmd = cfg.commands["twist"]
   assert isinstance(twist_cmd, UniformVelocityCommandCfg)

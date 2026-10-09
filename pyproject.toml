@@ -67,6 +67,11 @@ mpopi-train = "mpopi_train.scripts.train:main"
 mpopi-play = "mpopi_train.scripts.play:main"
 mpopi-eval = "mpopi_train.scripts.eval_velocity:main"
 
+# Registers the Mpopi-* tasks in every process that imports mjlab (also the
+# workers of multi-GPU training and mjlab's own train/play commands).
+[project.entry-points."mjlab.tasks"]
+mpopi_train = "mpopi_train.tasks"
+
 [dependency-groups]
 dev = [
   "ipdb>=0.13.13",

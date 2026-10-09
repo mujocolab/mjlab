@@ -227,7 +227,10 @@ class SamplingMpc:
     self._copy_state(real_env)
     total = torch.zeros(n, k, device=self.device)
     with torch.inference_mode():
-      obs = self.env.observation_manager.compute()
+      # compute() without update_history returns the cache of the last step,
+      # i.e. the end of the previous planning rollout, not the copied state.
+      self.env.sim.sense()
+      obs = self.env.observation_manager.compute(update_history=True)
       for t in range(h):
         action = self.last_plan[:, t].repeat_interleave(k, dim=0).view(n, k, -1)
         policy_action = policy(TensorDict(obs, batch_size=[n * k])).view(n, k, -1)

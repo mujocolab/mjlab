@@ -68,8 +68,10 @@ for s in 1 2 3; do
 done
 ```
 
-Multi-GPU training of one run (`--gpu-ids` with more than one GPU) is not supported for these
-tasks; run one training per GPU with `CUDA_VISIBLE_DEVICES` instead.
+The tasks are registered through the `mjlab.tasks` entry point, so mjlab's own `train` and
+`play` commands (and the worker processes of multi-GPU training) see them too. Multi-GPU training
+of one run (`--gpu-ids` with more than one GPU) is untested; the experiments ran one training per
+GPU with `CUDA_VISIBLE_DEVICES`.
 
 **Evaluate** a checkpoint at fixed forward speeds (64 robots, measured over 10 s after 1 s of
 acceleration). The PPO task is used for every method: same robot and network, and no MPC teacher

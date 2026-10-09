@@ -43,12 +43,15 @@ import tyro
 from rsl_rl.env import VecEnv
 from scipy import stats
 
+import mjlab.tasks  # noqa: F401  (populates the registry)
+from mjlab.envs import ManagerBasedRlEnv
 from mjlab.rl import (
   RslRlModelCfg,
   RslRlOnPolicyRunnerCfg,
   RslRlPpoAlgorithmCfg,
   RslRlVecEnvWrapper,
 )
+from mjlab.tasks.registry import load_env_cfg, load_rl_cfg
 from mpopi_train.algorithms import MpopiCfg
 from mpopi_train.algorithms.config import MpcDataCfg
 from mpopi_train.algorithms.toy_env import PointMassVecEnv
@@ -210,9 +213,6 @@ class TaskEvaluator:
   """
 
   def __init__(self, task: str, cfg: BenchmarkCfg) -> None:
-    from mjlab.envs import ManagerBasedRlEnv
-    from mjlab.tasks.registry import load_env_cfg
-
     env_cfg = load_env_cfg(task, play=True)
     env_cfg.scene.num_envs = cfg.eval_episodes
     env_cfg.seed = cfg.eval_seed
@@ -261,10 +261,6 @@ def _build(arm: Arm, seed: int, cfg: BenchmarkCfg) -> tuple[VecEnv, MpopiRunnerC
       algorithm=cfg.ppo,
     )
   else:
-    import mjlab.tasks  # noqa: F401  (populates the registry)
-    from mjlab.envs import ManagerBasedRlEnv
-    from mjlab.tasks.registry import load_env_cfg, load_rl_cfg
-
     env_cfg = load_env_cfg(cfg.task)
     env_cfg.scene.num_envs = cfg.num_envs
     env_cfg.seed = seed

@@ -23,7 +23,7 @@ Every method bounds the policy std below by 0.05. The settings are in
 ```bash
 uv run mpopi-train Mpopi-G1-2k-Replay-IS-DAgger --agent.seed 1 --agent.run-name Replay-IS-DAgger_s1
 uv run mpopi-play Mpopi-G1-2k-Replay-IS-DAgger --checkpoint-file logs/rsl_rl/g1_velocity_2k/<run>/model_1999.pt
-uv run mpopi-eval --task Mpopi-G1-2k-Replay-IS-DAgger --controllers policy --checkpoint logs/rsl_rl/g1_velocity_2k/<run>/model_1999.pt
+uv run mpopi-eval --task Mpopi-G1-2k-PPO --controllers policy --checkpoint logs/rsl_rl/g1_velocity_2k/<run>/model_1999.pt
 ```
 
 `mpopi-train` and `mpopi-play` are mjlab's `train` and `play` with these tasks
@@ -36,8 +36,9 @@ registered, so every mjlab option works (`--env.scene.num-envs`,
 for s in 1 2 3; do uv run mpopi-train Mpopi-G1-2k-PPO --agent.seed $s --agent.run-name PPO_s$s; done
 ```
 
-Multi-GPU training of one run (`--gpu-ids` with more than one GPU) is not
-supported: the worker processes do not register these tasks.
+The tasks are registered through the `mjlab.tasks` entry point (see
+`pyproject.toml`), so mjlab's own `train` and `play` and the worker processes of
+multi-GPU training see them too. Multi-GPU training of one run is untested.
 
 ## Layout
 

@@ -109,6 +109,11 @@ class MpcDataCfg:
       raise ValueError("inject_fraction must be in (0, 1).")
     if not 0.0 <= self.bc_floor <= self.bc_coef:
       raise ValueError("bc_floor must be in [0, bc_coef].")
+    if self.bc_floor > 0.0 and self.max_age is not None:
+      raise ValueError(
+        "bc_floor > 0 keeps cloning after collection stops, but max_age evicts"
+        " the MPC data it clones: use max_age=None."
+      )
     if self.buffer_segments < 1:
       raise ValueError("buffer_segments must be >= 1.")
     if self.max_age is not None and self.max_age < 0:

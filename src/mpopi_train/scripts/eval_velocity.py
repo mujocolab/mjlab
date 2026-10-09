@@ -18,7 +18,7 @@ Example (GPU)::
 import copy
 import json
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Literal
 
@@ -33,6 +33,7 @@ import mpopi_train.tasks  # noqa: F401  (registers the Mpopi-* tasks)
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
 from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
 from mjlab.tasks.registry import load_env_cfg, load_rl_cfg, load_runner_cls
+from mpopi_train.config import MpopiRunnerCfg
 from mpopi_train.mpc import SamplingMpc, SamplingMpcCfg
 
 
@@ -159,6 +160,10 @@ def _load_policy(cfg: EvalVelocityCfg, env: ManagerBasedRlEnv):
   if cfg.checkpoint is None:
     raise ValueError("The policy controller needs --checkpoint.")
   agent_cfg = load_rl_cfg(cfg.task)
+  if isinstance(agent_cfg, MpopiRunnerCfg):
+    # Only the actor is needed: do not build replay buffers or an MPC teacher.
+    mpopi = replace(agent_cfg.algorithm.mpopi, mode="ppo")
+    agent_cfg.algorithm = replace(agent_cfg.algorithm, mpopi=mpopi)
   runner_cls = load_runner_cls(cfg.task) or MjlabOnPolicyRunner
   # The wrapper resets the env; the caller starts from the reset state.
   wrapped = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
@@ -184,6 +189,8 @@ def _write_video(path: Path, frames: list[np.ndarray], fps: int = 50) -> None:
 
 
 def evaluate(cfg: EvalVelocityCfg) -> None:
+  if cfg.settle_steps >= cfg.steps:
+    raise ValueError("steps must exceed settle_steps (no step would be measured).")
   results = [run(cfg, c, s) for s in cfg.speeds for c in cfg.controllers]
   seconds = cfg.steps * 0.02
   print(
@@ -198,7 +205,8 @@ def evaluate(cfg: EvalVelocityCfg) -> None:
     plan = f"{r['plan_seconds_per_step']:.2f}" if "plan_seconds_per_step" in r else "-"
     print(
       f"{r['command']:>8.2f} {r['controller']:>10} {r['speed']:>7.2f} "
-      f"{r['abs_error']:>7.2f} {r['falls_per_env']:>10.2f} {r['reward_per_step']:>12.4f} "
+      f"{r['abs_error']:>7.2f} {r['falls_per_env']:>10.2f} "
+      f"{r['reward_per_step']:>12.4f} "
       f"{plan:>12}"
     )
   if cfg.out is not None:

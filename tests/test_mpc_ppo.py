@@ -1,6 +1,8 @@
 """Tests for MPC data collection (stage 2) and MPC-guided PPO (stage 3)."""
 
 from dataclasses import asdict, replace
+from types import SimpleNamespace
+from typing import cast
 
 import pytest
 import torch
@@ -59,7 +61,11 @@ def _close(runner: MpopiOnPolicyRunner) -> None:
 
 def _learn(runner: MpopiOnPolicyRunner, iterations: int) -> list[dict]:
   logs: list[dict] = []
-  runner.logger.log = lambda **kw: logs.append(kw["loss_dict"])  # type: ignore[method-assign]
+
+  def log(**kw) -> None:
+    logs.append(kw["loss_dict"])
+
+  runner.logger.log = log  # type: ignore[method-assign]
   runner.learn(num_learning_iterations=iterations)
   return logs
 
@@ -82,6 +88,9 @@ def test_mpc_data_cfg_schedule_and_round_trip():
     MpopiCfg(mode="mpc_ppo", mpc=MpcDataCfg(inject_fraction=1.0)).validate()
   floored = replace(cfg, bc_floor=0.5)
   assert [floored.bc_weight(i) for i in (0, 2, 4, 9)] == [2.0, 1.0, 0.5, 0.5]
+  with pytest.raises(ValueError, match="max_age=None"):
+    floored.validate()  # Labels would be evicted while the floor still clones.
+  replace(floored, max_age=None).validate()
 
 
 def test_collector_records_exact_behavior_density(device):
@@ -187,6 +196,25 @@ def test_collector_labels_without_noise_and_for_dagger(device):
   assert not (dagger["behavior_distribution_params"][0] == 0.7).all()
   for segment in (plain, dagger):
     assert (segment["behavior_log_prob"] == 0.0).all()  # No density.
+
+
+def test_collector_follows_the_training_step_counter(device):
+  training = SimpleNamespace(common_step_counter=12_000)
+  collector = MpcCollector(
+    load_env_cfg(TASK),
+    num_envs=2,
+    num_steps=3,
+    planner_cfg=TINY_PLANNER,
+    execution_std=0.0,
+    device=device,
+    training_env=cast(ManagerBasedRlEnv, training),
+  )
+  try:
+    collector.collect()
+    # Step-based curricula of the MPC envs see the training progress.
+    assert collector.env.unwrapped.common_step_counter == 12_003
+  finally:
+    collector.close()
 
 
 def test_dagger_with_bc_floor_keeps_cloning_after_collection(device):

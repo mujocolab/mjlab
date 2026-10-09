@@ -5,6 +5,18 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- Experimental ``mpopi_train`` package (``src/mpopi_train``), built on mjlab
+  without modifying it: PPO with importance-corrected replay of past rollouts
+  (Replay-IS) and a sampling MPC teacher that labels the policy's states
+  (DAgger). It registers ``Mpopi-G1-2k-*`` tasks (flat G1 velocity tracking up
+  to 1.5 m/s in 2000 iterations, one task per method) through the
+  ``mjlab.tasks`` entry point, so ``train`` and ``play`` see them, and adds the
+  ``mpopi-train``, ``mpopi-play`` and ``mpopi-eval`` commands. See
+  ``src/mpopi_train/README.md``.
+
 Changed
 ^^^^^^^
 

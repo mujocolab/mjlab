@@ -63,6 +63,7 @@ class MpopiRunnerMixin:
       device=self.device,
       seed=int(self.cfg.get("seed", 0)) + 1,  # Different starts from training.
       teacher_gap_every=cfg.teacher_gap_every,
+      training_env=self.env.unwrapped,
     )
     alg.attach_mpc_collector(collector)
 
