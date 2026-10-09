@@ -150,6 +150,7 @@ When running motion-tracking tasks, add `--registry-name your-org/motions/motion
 |---|---|
 | `notebooks/mpc_g1_train_kaggle.ipynb` | Train and evaluate the four methods on Kaggle (2 T4 GPUs, up to 12 h) |
 | `notebooks/mpc_g1_eval_kaggle.ipynb` | Re-evaluate checkpoints of earlier Kaggle runs |
+| `notebooks/mpc_g1_bc_kaggle.ipynb` | How long DAgger should clone the MPC teacher (3 variants, 2 seeds) |
 | Other `mpc_*` and `mpopi_*` notebooks | Earlier experiments; they clone the tag `mpopi-before-module` |
 
 ## Documentation

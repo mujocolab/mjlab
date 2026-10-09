@@ -401,6 +401,7 @@ Kaggle cho dùng miễn phí 2 GPU T4, khoảng 30 giờ mỗi tuần.
 |---|---|
 | `mpc_g1_train_kaggle.ipynb` | Train và đánh giá các phương pháp (tối đa 12 giờ một phiên) |
 | `mpc_g1_eval_kaggle.ipynb` | Chỉ đánh giá lại checkpoint của các lần train trước |
+| `mpc_g1_bc_kaggle.ipynb` | Thí nghiệm thời lượng bắt chước thầy MPC (3 biến thể × 2 seed) |
 
 Lấy file từ thư mục code đã clone, hoặc trên GitHub: mở file, nhấn nút *Download raw file*.
 
