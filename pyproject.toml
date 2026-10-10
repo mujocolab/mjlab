@@ -93,11 +93,12 @@ docs = [
 
 [project.optional-dependencies]
 cu130 = ["torch>=2.14.0"]
+cu126 = ["torch>=2.14.0"]
 cpu = ["torch>=2.14.0"]
 
 [tool.uv]
 conflicts = [
-  [{extra = "cu130"}, {extra = "cpu"}],
+  [{extra = "cu130"}, {extra = "cu126"}, {extra = "cpu"}],
 ]
 constraint-dependencies = [
   "GitPython>=3.1.59",
@@ -122,6 +123,11 @@ url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
 [[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[[tool.uv.index]]
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
@@ -130,6 +136,7 @@ explicit = true
 warp-lang = { index = "nvidia", marker = "sys_platform != 'darwin'" }
 torch = [
   { index = "pytorch-cu130", extra = "cu130", marker = "sys_platform != 'darwin'" },
+  { index = "pytorch-cu126", extra = "cu126", marker = "sys_platform != 'darwin'" },
   { index = "pytorch-cpu", extra = "cpu", marker = "sys_platform != 'darwin'" },
 ]
 
