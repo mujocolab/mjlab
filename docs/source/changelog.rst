@@ -5,8 +5,17 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- Added ``SimulationCfg.graph_conditional`` to toggle MuJoCo Warp's CUDA graph
+  conditional nodes, which require CUDA 12.4 or newer.
+
 Changed
 ^^^^^^^
+
+- Bumped ``rsl-rl-lib`` from 5.5.0 to 5.5.1. This removes the need for capping
+  ``wandb`` below 0.29.
 
 - Bumped ``rsl-rl-lib`` from 5.4.2 to 5.5.0. This update removes the ``logger_type``
   attribute of the ``rsl_rl.utils.Logger``, so code that previously checked
@@ -23,6 +32,26 @@ Fixed
 - ``FlatPatchSamplingCfg(patch_radius=0)`` no longer collapses every patch to the
   sub-terrain center. The edge-exclusion mask sliced ``arr[-0:]``, which is
   ``arr[0:]``, so it cleared the entire valid mask :issue:`1171`.
+- ``NoiseModelWithAdditiveBias`` now draws a fresh bias on every reset. It applied
+  ``bias_noise_cfg`` to the previous episode's bias instead of to zero, so with the
+  default ``"add"`` operation the per-episode bias performed a random walk and grew
+  well beyond the configured range over the course of training. The first episode's
+  bias with ``sample_bias_per_component=True`` is no longer the sum of two draws.
+- ``feet_swing_height`` now zeroes ``peak_heights`` on environment reset. Previously it
+  defined no ``reset`` method, so an episode ending with a foot in the air carried that
+  swing's peak height into the first landing of the next episode and corrupted the
+  landing penalty and ``Metrics/peak_height_mean``.
+- ``csv_to_npz`` now keeps the last frame of the input motion. Previously the
+  resampled motion stopped one output step short and never reached the final pose.
+- ``DelayBuffer`` now samples a lag on the first step after creation or reset.
+  Previously, with ``update_period > 0`` or ``hold_prob > 0``, environments could run
+  with zero delay at the start of every episode, even with ``min_lag == max_lag``.
+- ``DelayBuffer(per_env=False)`` now draws the ``hold_prob`` decision once for the
+  whole batch. Previously it was drawn per environment, so environments stopped
+  sharing a lag.
+- Envs sampled by ``rel_forward_envs`` now keep their straight command. Previously,
+  if an env was also sampled as a heading or world frame env, its yaw rate was
+  replaced by a heading turn or its velocity by the world frame sample.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------

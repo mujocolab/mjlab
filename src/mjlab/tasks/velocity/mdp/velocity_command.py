@@ -11,6 +11,7 @@ from mjlab.entity import Entity
 from mjlab.managers.command_manager import CommandTerm, CommandTermCfg
 from mjlab.utils.lab_api.math import (
   matrix_from_quat,
+  quat_apply,
   wrap_to_pi,
 )
 
@@ -44,6 +45,10 @@ class UniformVelocityCommand(CommandTerm):
     self.is_standing_env = torch.zeros_like(self.is_heading_env)
     self.is_world_env = torch.zeros_like(self.is_heading_env)
     self.is_forward_env = torch.zeros_like(self.is_heading_env)
+
+    # World-frame integral of the commanded linear velocity over the episode.
+    self.commanded_displacement_w = torch.zeros(self.num_envs, 2, device=self.device)
+    self.episode_start_pos_w = torch.zeros(self.num_envs, 2, device=self.device)
 
     self.metrics["error_vel_xy"] = torch.zeros(self.num_envs, device=self.device)
     self.metrics["error_vel_yaw"] = torch.zeros(self.num_envs, device=self.device)
@@ -96,14 +101,37 @@ class UniformVelocityCommand(CommandTerm):
       )
       self.vel_command_b[fwd_ids, 1] = 0.0
       self.vel_command_b[fwd_ids, 2] = 0.0
+      # Heading and world-frame envs rewrite vel_command_b every step.
+      self.is_heading_env[fwd_ids] = False
+      self.is_world_env[fwd_ids] = False
+
+  def _integrate_command(
+    self, dt: float | torch.Tensor, env_ids: torch.Tensor | None
+  ) -> None:
+    # Rotating by the actual heading keeps heading and world-frame envs exact.
+    heading = self.robot.data.heading_w
+    cos_h, sin_h = torch.cos(heading), torch.sin(heading)
+    vx, vy = self.vel_command_b[:, 0], self.vel_command_b[:, 1]
+    vel_w = torch.stack([cos_h * vx - sin_h * vy, sin_h * vx + cos_h * vy], dim=-1)
+    step_w = vel_w * torch.as_tensor(dt, device=self.device).reshape(-1, 1)
+    ids = slice(None) if env_ids is None else env_ids
+    self.commanded_displacement_w[ids] += step_w[ids]
 
   def reset(self, env_ids: torch.Tensor | slice | None) -> dict[str, float]:
     extras = super().reset(env_ids)
+    self.commanded_displacement_w[env_ids] = 0.0
     if self.cfg.init_velocity_prob > 0.0:
       assert isinstance(env_ids, torch.Tensor)
       r = torch.empty(len(env_ids), device=self.device)
       init_ids = env_ids[r.uniform_(0.0, 1.0) < self.cfg.init_velocity_prob]
       if len(init_ids) > 0:
+        # Resolve standing, heading and world-frame envs so the command read below
+        # is the one they will receive. Derived kinematics are stale here, so the
+        # heading comes from qpos.
+        quat_w = self._env.sim.data.qpos[:, self.robot.indexing.free_joint_q_adr[3:7]]
+        forward_w = quat_apply(quat_w, self.robot.data.forward_vec_b)
+        heading_w = torch.atan2(forward_w[:, 1], forward_w[:, 0])
+        self._resolve_command(heading_w, init_ids)
         # Start these envs already moving at the commanded planar velocity.
         # Safe pre-forward: the body-frame write reads orientation from qpos.
         vel_b = torch.zeros(len(init_ids), 6, device=self.device)
@@ -115,28 +143,32 @@ class UniformVelocityCommand(CommandTerm):
   def _update_command(self, env_ids: torch.Tensor | None = None) -> None:
     # Pure function of the current state; refreshing all envs is safe.
     del env_ids
+    self._resolve_command(self.robot.data.heading_w)
+
+  def _resolve_command(
+    self, heading_w: torch.Tensor, env_ids: torch.Tensor | None = None
+  ) -> None:
+    scope = torch.zeros_like(self.is_heading_env)
+    scope[slice(None) if env_ids is None else env_ids] = True
+    cmd = self.vel_command_b
     if self.cfg.heading_command:
-      self.heading_error = wrap_to_pi(self.heading_target - self.robot.data.heading_w)
-      heading_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
-      self.vel_command_b[heading_ids, 2] = torch.clip(
-        self.cfg.heading_control_stiffness * self.heading_error[heading_ids],
+      self.heading_error = wrap_to_pi(self.heading_target - heading_w)
+      yaw = torch.clip(
+        self.cfg.heading_control_stiffness * self.heading_error,
         min=self.cfg.ranges.ang_vel_z[0],
         max=self.cfg.ranges.ang_vel_z[1],
       )
+      cmd[:, 2] = torch.where(self.is_heading_env & scope, yaw, cmd[:, 2])
     # World-frame envs: rotate world-frame linear vel into body frame.
-    if self.is_world_env.any():
-      w_ids = self.is_world_env.nonzero(as_tuple=False).flatten()
-      heading = self.robot.data.heading_w[w_ids]
-      cos_h = torch.cos(heading)
-      sin_h = torch.sin(heading)
-      vx_w = self.vel_command_w[w_ids, 0]
-      vy_w = self.vel_command_w[w_ids, 1]
-      self.vel_command_b[w_ids, 0] = cos_h * vx_w + sin_h * vy_w
-      self.vel_command_b[w_ids, 1] = -sin_h * vx_w + cos_h * vy_w
+    is_world = self.is_world_env & scope
+    cos_h, sin_h = torch.cos(heading_w), torch.sin(heading_w)
+    vx_w, vy_w = self.vel_command_w[:, 0], self.vel_command_w[:, 1]
+    cmd[:, 0] = torch.where(is_world, cos_h * vx_w + sin_h * vy_w, cmd[:, 0])
+    cmd[:, 1] = torch.where(is_world, -sin_h * vx_w + cos_h * vy_w, cmd[:, 1])
 
-    standing_env_ids = self.is_standing_env.nonzero(as_tuple=False).flatten()
-    self.vel_command_b[standing_env_ids, :] = 0.0
-    self.vel_command_w[standing_env_ids, :] = 0.0
+    is_standing = (self.is_standing_env & scope).unsqueeze(-1)
+    self.vel_command_b.masked_fill_(is_standing, 0.0)
+    self.vel_command_w.masked_fill_(is_standing, 0.0)
 
   # GUI.
 
@@ -201,6 +233,13 @@ class UniformVelocityCommand(CommandTerm):
   def compute(
     self, dt: float | torch.Tensor, env_ids: torch.Tensor | None = None
   ) -> None:
+    # Before resampling: the current command is the one held over the elapsed dt.
+    self._integrate_command(dt, env_ids)
+    # Freshly reset envs; by now forward() has refreshed their spawn pose.
+    fresh = (self._env.episode_length_buf == 0).unsqueeze(-1)
+    self.episode_start_pos_w = torch.where(
+      fresh, self.robot.data.root_link_pos_w[:, :2], self.episode_start_pos_w
+    )
     super().compute(dt, env_ids)
     if self._joystick_enabled is not None and self._joystick_enabled.value:
       assert self._joystick_get_env_idx is not None

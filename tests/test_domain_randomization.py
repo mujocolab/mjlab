@@ -9,6 +9,7 @@ from conftest import get_test_device
 
 from mjlab.entity import EntityCfg
 from mjlab.envs.mdp import dr
+from mjlab.envs.mdp.dr.body import _eigh_3x3_jacobi
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import Scene, SceneCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
@@ -69,9 +70,12 @@ class Env:
 
 
 def create_test_env(
-  device, num_envs=NUM_ENVS, expand_fields=("geom_friction", "dof_damping")
+  device,
+  num_envs=NUM_ENVS,
+  expand_fields=("geom_friction", "dof_damping"),
+  xml=ROBOT_XML,
 ):
-  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML))
+  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(xml))
   scene_cfg = SceneCfg(num_envs=num_envs, entities={"robot": entity_cfg})
   scene = Scene(scene_cfg, device)
   model = scene.compile()
@@ -657,12 +661,13 @@ def test_body_quat_only_specified_axes(quat_env):
 # pseudo_inertia tests.
 
 
-def _make_inertia_env(device, num_envs=NUM_ENVS):
+def _make_inertia_env(device, num_envs=NUM_ENVS, xml=ROBOT_XML):
   """Create an env with all inertia-related fields expanded."""
   return create_test_env(
     device,
     num_envs=num_envs,
     expand_fields=("body_mass", "body_ipos", "body_inertia", "body_iquat"),
+    xml=xml,
   )
 
 
@@ -1001,6 +1006,48 @@ def test_pseudo_inertia_partial_env_ids(device):
   assert not torch.allclose(mass_after[0], mass_before[0], atol=1e-6)
   # Env 1 unchanged.
   assert torch.allclose(mass_after[1], mass_before[1], atol=1e-6)
+
+
+def test_pseudo_inertia_skips_massless_body(device):
+  """A massless body keeps its defaults instead of becoming NaN."""
+  xml = """
+  <mujoco>
+    <worldbody>
+      <body name="base">
+        <freejoint/>
+        <geom type="box" size="0.1 0.1 0.1" mass="1.0"/>
+        <body name="imu" pos="0 0 0.1"><site name="imu_site"/></body>
+      </body>
+    </worldbody>
+  </mujoco>
+  """
+  env = _make_inertia_env(device, xml=xml)
+  body_cfg = SceneEntityCfg("robot", body_names=(".*",))
+  body_cfg.resolve(env.scene)
+  base_id, imu_id = env.scene["robot"].indexing.body_ids.tolist()
+
+  dr.pseudo_inertia(env, None, alpha_range=(0.2, 0.2), asset_cfg=body_cfg)
+
+  mass = env.sim.model.body_mass
+  expected = torch.full_like(mass[:, base_id], math.exp(0.4))
+  assert torch.allclose(mass[:, base_id], expected)
+  for field in ("body_mass", "body_ipos", "body_inertia", "body_iquat"):
+    values = getattr(env.sim.model, field)[:, imu_id]
+    default = env.sim.get_default_field(field)[imu_id]
+    assert torch.equal(values, default.expand_as(values)), field
+
+
+def test_pseudo_inertia_rejects_log_uniform(inertia_env):
+  with pytest.raises(ValueError, match="log_uniform"):
+    dr.pseudo_inertia(inertia_env, None, distribution="log_uniform")
+
+
+def test_eigh_3x3_jacobi_equal_diagonal():
+  """Equal diagonal entries with nonzero coupling still need a rotation."""
+  A = torch.tensor([[2.0, 1.0, 0.0], [1.0, 2.0, 0.0], [0.0, 0.0, 3.0]])
+  eigvals, V = _eigh_3x3_jacobi(A)
+  torch.testing.assert_close(eigvals, torch.tensor([1.0, 3.0, 3.0]))
+  torch.testing.assert_close(V @ torch.diag(eigvals) @ V.T, A)
 
 
 # Camera / Light DR tests.

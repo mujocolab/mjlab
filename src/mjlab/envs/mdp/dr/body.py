@@ -23,7 +23,7 @@ from ._core import (
   _sample_angle,
   _select_default_values,
 )
-from ._types import Distribution, Operation
+from ._types import Distribution, Operation, log_uniform, resolve_distribution
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
@@ -95,11 +95,13 @@ def _eigh_3x3_jacobi(
       aqq = D[..., q, q]
 
       # Jacobi rotation: tau = (aqq - app) / (2*apq),
-      # t = sign(tau) / (|tau| + sqrt(1 + tau^2)).
+      # t = sign(tau) / (|tau| + sqrt(1 + tau^2)), with sign(0) = 1 so that
+      # equal diagonal entries get a 45 degree rotation.
       diff = aqq - app
       denom = 2 * apq
       tau = diff / denom
-      t = torch.sign(tau) / (torch.abs(tau) + torch.sqrt(1 + tau * tau))
+      sign = torch.where(tau >= 0, 1.0, -1.0)
+      t = sign / (torch.abs(tau) + torch.sqrt(1 + tau * tau))
       # When apq ≈ 0, skip rotation (t = 0).
       t = torch.where(torch.abs(denom) > 1e-30, t, torch.zeros_like(t))
 
@@ -223,12 +225,9 @@ def _decompose_pseudo_inertia_J(
   # Columns of V are principal axes in body frame; eigenvalues are principal moments.
   principal_moments, V = _eigh_3x3_jacobi(I_com)
 
-  # Ensure V is a proper rotation (det = +1). eigh can return reflections.
-  dets = torch.linalg.det(V)  # (*batch,)
-  neg = dets < 0
-  if torch.any(neg):
-    V = V.clone()
-    V[neg, :, 2] *= -1
+  # Ensure V is a proper rotation (det = +1). Eigenvector signs are arbitrary, so
+  # rebuild the third axis from the first two.
+  V[..., :, 2] = torch.linalg.cross(V[..., :, 0], V[..., :, 1])
 
   # MuJoCo body_iquat is principal->body, i.e. it represents R = V.
   iquat = quat_from_matrix(V)  # (*batch, 4), wxyz
@@ -452,6 +451,9 @@ def pseudo_inertia(
   extract principal moments (``body_inertia``) and principal frame rotation
   (``body_iquat``), so it is exact for any perturbation magnitude.
 
+  Bodies without a positive-definite pseudo-inertia, such as massless bodies, have
+  nothing to randomize and keep their default values.
+
   The 10 parameters and their physical effects:
 
   - ``alpha``: global mass-density scale — mass and inertia scale by
@@ -477,9 +479,16 @@ def pseudo_inertia(
     t1_range: COM shift along the x axis (body frame).
     t2_range: COM shift along the y axis (body frame).
     t3_range: COM shift along the z axis (body frame).
-    distribution: Sampling distribution for all parameters.
+    distribution: Sampling distribution for all parameters. ``log_uniform`` is not
+      supported because the parameters are log-scale offsets centered on zero.
     asset_cfg: Asset and body selection.
   """
+  if resolve_distribution(distribution) is log_uniform:
+    raise ValueError(
+      "dr.pseudo_inertia does not support the log_uniform distribution: its "
+      "parameters are already log-scale offsets centered on zero. Use uniform "
+      "or gaussian instead."
+    )
   if d_range is not None:
     d1_range = d2_range = d3_range = d_range
   if t_range is not None:
@@ -506,6 +515,8 @@ def pseudo_inertia(
 
   # Cholesky factor L: (n_envs, n_bodies, 4, 4), lower triangular.
   L = _cholesky_4x4(J_default)
+  # A non-positive (or NaN) pivot means J is not positive definite.
+  valid = (L.diagonal(dim1=-2, dim2=-1) > 0).all(dim=-1)  # (n_envs, n_bodies)
 
   # Sample perturbation parameters, each (n_envs, n_bodies).
   def sample(r: tuple[float, float]) -> torch.Tensor:
@@ -533,6 +544,12 @@ def pseudo_inertia(
 
   # Decompose back to MuJoCo fields via eigendecomposition (exact).
   mass_new, ipos_new, inertia_new, iquat_new = _decompose_pseudo_inertia_J(J_new)
+
+  mass_new = torch.where(valid, mass_new, def_mass)
+  valid = valid.unsqueeze(-1)
+  ipos_new = torch.where(valid, ipos_new, def_ipos)
+  inertia_new = torch.where(valid, inertia_new, def_inertia)
+  iquat_new = torch.where(valid, iquat_new, def_iquat)
 
   env_grid, entity_grid = torch.meshgrid(env_ids, entity_indices, indexing="ij")
   env.sim.model.body_mass[env_grid, entity_grid] = mass_new

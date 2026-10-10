@@ -81,7 +81,14 @@ def test_mid_episode_resample_does_not_write_velocity(device):
   )
   env = cast(
     "ManagerBasedRlEnv",
-    SimpleNamespace(scene=scene, sim=sim, num_envs=2, device=device, step_dt=0.02),
+    SimpleNamespace(
+      scene=scene,
+      sim=sim,
+      num_envs=2,
+      device=device,
+      step_dt=0.02,
+      episode_length_buf=torch.ones(2, dtype=torch.long, device=device),
+    ),
   )
   cfg = UniformVelocityCommandCfg(
     entity_name="robot",
@@ -118,3 +125,158 @@ def test_mid_episode_resample_does_not_write_velocity(device):
     torch.zeros_like(robot.data.root_link_lin_vel_b),
     atol=1e-6,
   )
+
+
+def test_commanded_displacement_and_episode_start(device):
+  scene, sim = make_scene_and_sim(
+    device, load_fixture_xml("floating_base_articulated"), sensors=(), num_envs=2
+  )
+  episode_length_buf = torch.zeros(2, dtype=torch.long, device=device)
+  env = cast(
+    "ManagerBasedRlEnv",
+    SimpleNamespace(
+      scene=scene,
+      sim=sim,
+      num_envs=2,
+      device=device,
+      step_dt=0.02,
+      episode_length_buf=episode_length_buf,
+    ),
+  )
+  cfg = UniformVelocityCommandCfg(
+    entity_name="robot",
+    resampling_time_range=(1e9, 1e9),
+    rel_heading_envs=0.0,
+    ranges=UniformVelocityCommandCfg.Ranges(
+      lin_vel_x=(1.0, 1.0), lin_vel_y=(0.0, 0.0), ang_vel_z=(0.0, 0.0)
+    ),
+  )
+  term = cfg.build(env)
+  env_ids = torch.arange(2, device=device)
+
+  # Env 0 faces +x, env 1 is yawed 90 degrees and faces +y.
+  half = 0.5**0.5
+  pose = torch.tensor(
+    [[1.0, 2.0, 1.5, 1.0, 0.0, 0.0, 0.0], [3.0, -1.0, 1.5, half, 0.0, 0.0, half]],
+    device=device,
+  )
+  scene["robot"].write_root_link_pose_to_sim(pose, env_ids=env_ids)
+  term.reset(env_ids=env_ids)
+  sim.forward()
+  term.compute(dt=0.0, env_ids=env_ids)
+  assert torch.allclose(term.episode_start_pos_w, pose[:, :2], atol=1e-6)
+
+  # 1 m/s forward for 0.5 s; env 0 is then auto-reset (zero dt) at a new pose.
+  episode_length_buf[:] = 1
+  for _ in range(25):
+    term.compute(dt=0.02)
+  scene["robot"].write_root_link_pose_to_sim(pose[1:], env_ids=env_ids[:1])
+  term.reset(env_ids=env_ids[:1])
+  episode_length_buf[0] = 0
+  sim.forward()
+  term.compute(dt=torch.tensor([0.0, 0.02], device=device))
+
+  expected = torch.tensor([[0.0, 0.0], [0.0, 0.52]], device=device)
+  assert torch.allclose(term.commanded_displacement_w, expected, atol=1e-5)
+  assert torch.allclose(term.episode_start_pos_w, pose[[1, 1], :2], atol=1e-6)
+
+
+def test_forward_envs_ignore_heading_and_world_frame(device):
+  scene, sim = make_scene_and_sim(
+    device, load_fixture_xml("floating_base_articulated"), sensors=(), num_envs=2
+  )
+  env = cast(
+    "ManagerBasedRlEnv",
+    SimpleNamespace(
+      scene=scene,
+      sim=sim,
+      num_envs=2,
+      device=device,
+      step_dt=0.02,
+      episode_length_buf=torch.zeros(2, dtype=torch.long, device=device),
+    ),
+  )
+  cfg = UniformVelocityCommandCfg(
+    entity_name="robot",
+    resampling_time_range=(1e9, 1e9),
+    heading_command=True,
+    rel_heading_envs=1.0,
+    rel_world_envs=1.0,
+    rel_forward_envs=1.0,
+    ranges=UniformVelocityCommandCfg.Ranges(
+      lin_vel_x=(-1.0, -1.0),
+      lin_vel_y=(0.8, 0.8),
+      ang_vel_z=(-0.5, 0.5),
+      heading=(1.0, 1.0),
+    ),
+  )
+  term = cfg.build(env)
+  env_ids = torch.arange(2, device=device)
+
+  sim.forward()
+  term.reset(env_ids=env_ids)
+  term.compute(dt=0.0, env_ids=env_ids)
+  term.compute(dt=0.02)
+
+  # Straight ahead at |lin_vel_x|, no lateral or yaw command.
+  expected = torch.tensor([[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]], device=device)
+  torch.testing.assert_close(term.vel_command_b, expected)
+
+
+@pytest.mark.parametrize(
+  ("rel_standing_envs", "expected"),
+  [(0.0, [0.2, -0.5, -1.0]), (1.0, [0.0, 0.0, 0.0])],
+)
+def test_init_velocity_matches_resolved_command(device, rel_standing_envs, expected):
+  """Standing, heading and world-frame envs start at the command they will
+  actually receive, not at the raw sample."""
+  scene, sim = make_scene_and_sim(
+    device, load_fixture_xml("floating_base_articulated"), sensors=(), num_envs=2
+  )
+  env = cast(
+    "ManagerBasedRlEnv",
+    SimpleNamespace(
+      scene=scene,
+      sim=sim,
+      num_envs=2,
+      device=device,
+      step_dt=0.02,
+      episode_length_buf=torch.zeros(2, dtype=torch.long, device=device),
+    ),
+  )
+  cfg = UniformVelocityCommandCfg(
+    entity_name="robot",
+    resampling_time_range=(1e9, 1e9),
+    init_velocity_prob=1.0,
+    heading_command=True,
+    rel_heading_envs=1.0,
+    rel_world_envs=1.0,
+    rel_standing_envs=rel_standing_envs,
+    ranges=UniformVelocityCommandCfg.Ranges(
+      lin_vel_x=(0.5, 0.5),
+      lin_vel_y=(0.2, 0.2),
+      ang_vel_z=(-1.0, 1.0),
+      heading=(0.0, 0.0),
+    ),
+  )
+  term = cfg.build(env)
+  robot = scene["robot"]
+  env_ids = torch.arange(2, device=device)
+
+  # Derived kinematics hold the unrotated spawn pose; the reset yaws 90 degrees.
+  sim.forward()
+  half = 0.5**0.5
+  pose = torch.tensor([[0.0, 0.0, 1.5, half, 0.0, 0.0, half]], device=device)
+  robot.write_root_link_pose_to_sim(pose.repeat(2, 1), env_ids=env_ids)
+
+  term.reset(env_ids=env_ids)
+  sim.forward()
+  term.compute(dt=0.0, env_ids=env_ids)
+
+  expected = torch.tensor([expected, expected], device=device)
+  torch.testing.assert_close(term.vel_command_b, expected, atol=1e-5, rtol=0)
+  vel_b = torch.cat(
+    [robot.data.root_link_lin_vel_b[:, :2], robot.data.root_link_ang_vel_b[:, 2:]],
+    dim=-1,
+  )
+  torch.testing.assert_close(vel_b, expected, atol=1e-5, rtol=0)
