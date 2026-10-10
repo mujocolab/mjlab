@@ -87,3 +87,7 @@ Projects built on mjlab. To add yours, open a pull request or post in
        open-source 25 cm bipedal robot from Pollen Robotics and Hugging Face.
    * - `KingKongRobotics/jumper <https://github.com/KingKongRobotics/jumper>`_
      - Prompt-driven motion training for Jumper, a 22-DoF crab robot.
+   * - `T1Amoo/onerobotics-a1-mjlab
+       <https://github.com/T1Amoo/onerobotics-a1-mjlab>`_
+     - Official OneRobotics A1 integration with pose-reaching and reinforcement
+       learning.
