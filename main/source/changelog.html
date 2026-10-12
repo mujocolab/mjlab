@@ -575,6 +575,9 @@ attribute of the <code class="docutils literal notranslate"><span class="pre">rs
 <li><p>The viewer now resets recurrent policy hidden state for environments that terminate
 or time out. Previously it only reset the policy when the user pressed the reset
 button, so each auto-reset environment kept the previous episode’s memory <a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/1222">#1222</a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--agent.wandb-tags</span></code> no longer drops tags with wandb 0.30. Tags were passed through
+the <code class="docutils literal notranslate"><span class="pre">WANDB_TAGS</span></code> env var, which wandb ignores once <code class="docutils literal notranslate"><span class="pre">wandb.setup()</span></code> has run, so
+runs were left untagged (the nightly benchmark filters on its <code class="docutils literal notranslate"><span class="pre">nightly</span></code> tag).</p></li>
 <li><p>Capped <code class="docutils literal notranslate"><span class="pre">wandb</span></code> below 0.29, which removed the <code class="docutils literal notranslate"><span class="pre">start_method</span></code> setting still passed
 by <code class="docutils literal notranslate"><span class="pre">rsl-rl-lib</span></code> and crashed training runs launched with <code class="docutils literal notranslate"><span class="pre">--logger</span> <span class="pre">wandb</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">distribution=&quot;gaussian&quot;</span></code> domain randomization now draws an independent value per
