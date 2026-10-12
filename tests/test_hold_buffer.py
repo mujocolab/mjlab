@@ -9,6 +9,7 @@ from mjlab.utils.buffers import HoldBuffer
 
 @pytest.fixture
 def device():
+  """Test device fixture."""
   return get_test_device()
 
 
@@ -36,13 +37,14 @@ def test_hold_buffer_30hz_on_50hz(device):
   "rate,expected", [(0.5, [0, 2, 4, 6]), (1.0, list(range(7))), (2.5, list(range(7)))]
 )
 def test_hold_buffer_rates(device, rate, expected):
+  """Integer periods refresh evenly and rates >= 1 refresh every step."""
   phase = torch.zeros(1, dtype=torch.float64, device=device)
   assert _refresh_steps(HoldBuffer(rate=rate, phase=phase), 7, 1, device)[0] == expected
 
 
 def test_hold_buffer_reset_and_backfill(device):
-  """A reset row refreshes on backfill and on its next step; others keep their
-  schedule."""
+  """A backfill refreshes only the reset row and counts as its first step; the
+  other rows keep their schedule."""
   phase = torch.zeros(2, dtype=torch.float64, device=device)
   buffer = HoldBuffer(rate=0.25, phase=phase)
   buffer.compute(torch.zeros(2, 1, device=device))
@@ -54,15 +56,29 @@ def test_hold_buffer_reset_and_backfill(device):
   )
   assert held[:, 0].tolist() == [0.0, 2.0]
 
-  held = buffer.compute(torch.full((2, 1), 3.0, device=device))
-  assert held[:, 0].tolist() == [0.0, 3.0]
-  # Backfill did not advance row 0, so it refreshes on its 5th step.
-  held = buffer.compute(torch.full((2, 1), 4.0, device=device))
-  assert held[:, 0].tolist() == [0.0, 3.0]
+  for value in (3.0, 4.0):
+    held = buffer.compute(torch.full((2, 1), value, device=device))
+    assert held[:, 0].tolist() == [0.0, 2.0]
+  # Row 0 refreshes on its 5th step, row 1 on its 4th step after the backfill.
   held = buffer.compute(torch.full((2, 1), 5.0, device=device))
-  assert held[:, 0].tolist() == [5.0, 3.0]
+  assert held[:, 0].tolist() == [5.0, 2.0]
+  held = buffer.compute(torch.full((2, 1), 6.0, device=device))
+  assert held[:, 0].tolist() == [5.0, 6.0]
 
 
-def test_hold_buffer_rejects_non_positive_rate(device):
-  with pytest.raises(ValueError, match="rate must be > 0"):
-    HoldBuffer(rate=0.0, phase=torch.zeros(1, device=device))
+def test_hold_buffer_backfill_matches_compute(device):
+  """Reset then backfill (explicit reset) follows the same schedule as reset then
+  compute (auto-reset)."""
+  phase = torch.linspace(0.0, 0.95, 20, dtype=torch.float64, device=device)
+  ids = torch.arange(20, device=device)
+  auto = HoldBuffer(rate=0.3, phase=phase)
+  explicit = HoldBuffer(rate=0.3, phase=phase)
+  for buffer in (auto, explicit):
+    buffer.compute(torch.zeros(20, 1, device=device))
+    buffer.reset()
+
+  auto.compute(torch.ones(20, 1, device=device))
+  explicit.backfill(torch.ones(20, 1, device=device), ids)
+  for k in range(2, 15):
+    data = torch.full((20, 1), float(k), device=device)
+    assert torch.equal(auto.compute(data), explicit.compute(data))

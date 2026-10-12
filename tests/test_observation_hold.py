@@ -15,11 +15,13 @@ from mjlab.managers.observation_manager import (
 
 @pytest.fixture
 def device():
+  """Test device fixture."""
   return get_test_device()
 
 
 @pytest.fixture
 def mock_env(device):
+  """Create a mock environment with a 50 Hz control loop."""
   env = Mock()
   env.num_envs = 4
   env.device = device
@@ -28,6 +30,8 @@ def mock_env(device):
 
 
 def test_hold_terms_in_sync_and_partial_reset(mock_env, device):
+  """Terms with the same rate refresh together, and a partial reset refreshes only
+  the reset env."""
   value = {"v": 0.0}
 
   def obs_func(env):
@@ -93,3 +97,18 @@ def test_hold_feeds_delay_and_history(mock_env, device):
     assert torch.equal(obs[:, 1], held[max(step - 1, 0)])
     expected = torch.stack([held[max(step - i, 0)] for i in (2, 1, 0)], dim=1)
     assert torch.equal(obs[:, 2:5], expected)
+
+
+def test_hold_rejects_non_positive_rate(mock_env, device):
+  """A non-positive rate fails at construction and names the term."""
+
+  def obs_func(env):
+    return torch.zeros((env.num_envs, 1), device=device)
+
+  cfg = {
+    "actor": ObservationGroupCfg(
+      terms={"cam": ObservationTermCfg(func=obs_func, params={}, sample_rate_hz=0.0)}
+    ),
+  }
+  with pytest.raises(ValueError, match="'cam' in group 'actor'"):
+    ObservationManager(cfg, mock_env)

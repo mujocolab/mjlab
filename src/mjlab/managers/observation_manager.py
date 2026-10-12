@@ -34,7 +34,8 @@ class ObservationTermCfg(ManagerTermBaseCfg):
 
   sample_rate_hz: float | None = None
   """Refresh rate in Hz; the term holds its value in between. Terms with the same
-  rate refresh together. If None, refresh every step."""
+  rate refresh together. The term function still runs every step. Rates at or above
+  the control rate refresh every step. If None, refresh every step."""
 
   delay_min_lag: int = 0
   """Minimum lag (in steps) for delayed observations. Lag sampled uniformly from
@@ -52,7 +53,8 @@ class ObservationTermCfg(ManagerTermBaseCfg):
   temporally correlated latency patterns."""
 
   delay_update_period: int = 0
-  """Resample lag every N steps (models multi-rate sensors). If 0, update every step."""
+  """Resample lag every N steps. If 0, update every step. To model a sensor slower
+  than the control rate, use sample_rate_hz."""
 
   delay_per_env_phase: bool = True
   """If True and update_period > 0, stagger update timing across envs to avoid
@@ -264,8 +266,9 @@ class ObservationManager(ManagerBase):
     for group_mods in self._group_obs_class_instances.values():
       for mod in group_mods.values():
         mod.reset(env_ids=env_ids)
-    idx = slice(None) if env_ids is None else env_ids
-    self._hold_phase[idx] = torch.rand_like(self._hold_phase)[idx]
+    if self._hold_phase is not None:
+      idx = slice(None) if env_ids is None else env_ids
+      self._hold_phase[idx] = torch.rand_like(self._hold_phase)[idx]
     return {}
 
   def _check_and_handle_nans(
@@ -437,9 +440,7 @@ class ObservationManager(ManagerBase):
     self._group_obs_term_delay_buffer: dict[str, dict[str, DelayBuffer]] = dict()
     self._group_obs_term_history_buffer: dict[str, dict[str, CircularBuffer]] = dict()
     # Shared by all hold buffers so terms with the same rate refresh together.
-    self._hold_phase = torch.rand(
-      self._env.num_envs, dtype=torch.float64, device=self._env.device
-    )
+    self._hold_phase: torch.Tensor | None = None
 
     for group_name, group_cfg in self.cfg.items():
       group_cfg: ObservationGroupCfg | None
@@ -508,6 +509,15 @@ class ObservationManager(ManagerBase):
           )
 
         if term_cfg.sample_rate_hz is not None:
+          if term_cfg.sample_rate_hz <= 0:
+            raise ValueError(
+              f"Observation term '{term_name}' in group '{group_name}' has"
+              f" sample_rate_hz={term_cfg.sample_rate_hz}; it must be > 0."
+            )
+          if self._hold_phase is None:
+            self._hold_phase = torch.rand(
+              self._env.num_envs, dtype=torch.float64, device=self._env.device
+            )
           group_entry_hold_buffer[term_name] = HoldBuffer(
             rate=term_cfg.sample_rate_hz * self._env.step_dt, phase=self._hold_phase
           )

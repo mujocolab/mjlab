@@ -86,7 +86,7 @@ pipeline in order:
 
 5. **hold**: if ``sample_rate_hz`` is set, the term refreshes at that
    rate and holds its value in between, e.g. a 30 fps camera on a 50 Hz
-   policy.
+   policy. See :ref:`obs-history-delay`.
 
 6. **delay**: if ``delay_max_lag > 0``, the term's output is stored in a
    ring buffer and a value from an earlier step is returned. See
@@ -104,15 +104,17 @@ pipeline in order:
 
 .. _obs-history-delay:
 
-Observation history and delay
-------------------------------
+Observation history, delay, and hold
+------------------------------------
 
-Observations support two temporal features: history and delay. History
-stacks past frames to give the policy temporal context; delay models
-sensor latency by returning observations from earlier timesteps.
+Observations support three temporal features: history, delay, and hold.
+History stacks past frames to give the policy temporal context; delay
+models sensor latency by returning observations from earlier timesteps;
+hold models sensor rate by refreshing a term less often than the policy
+runs.
 
-Both are configured per term via fields on ``ObservationTermCfg``.
-They can also be set at the group level on ``ObservationGroupCfg``,
+All three are configured per term via fields on ``ObservationTermCfg``.
+History can also be set at the group level on ``ObservationGroupCfg``,
 which applies uniformly to all terms in the group. Term-level settings
 override group-level settings.
 
@@ -178,7 +180,41 @@ frequency (``delay_update_period``), hold probability
 (``delay_hold_prob``), and phase staggering
 (``delay_per_env_phase``).
 
-Both history and delay buffers are allocated only when enabled; terms
+Hold
+^^^^
+
+Setting ``sample_rate_hz`` refreshes a term at that rate and holds its
+last value in between, modeling a sensor slower than the control loop
+such as a camera or a height map. Any rate works: rates that don't
+divide the control rate give uneven gaps with the exact average rate.
+Rates at or above the control rate refresh every step.
+
+.. code-block:: text
+
+    50Hz control (20ms/step), sample_rate_hz=30:
+
+    Term output:      A     B     C     D     E     F     G     H
+    Control steps:    0     1     2     3     4     5     6     7
+
+    Policy sees:      A     A     C     C     E     F     F     H
+
+    Refreshes at steps 0, 2, 4, 5, 7 for one phase: gaps of 2, 2, 1
+    average 30 Hz.
+
+Each environment gets a random phase, shared by all terms, so terms with
+the same rate refresh on the same steps (e.g. RGB and depth from one
+camera). The phase is resampled on reset, and a reset environment
+refreshes on its first observation. Noise is applied before hold, so a
+held value keeps the noise of the step it was captured on.
+
+Hold is applied before delay: ``sample_rate_hz`` sets how often a sensor
+produces data and ``delay_*`` sets how late that data arrives.
+
+Hold only changes what the policy sees. The term function still runs
+every step, so it does not save compute such as camera rendering, and
+rewards or terminations that read the same sensor still see fresh data.
+
+History, delay, and hold buffers are allocated only when enabled; terms
 with default settings incur no overhead.
 
 

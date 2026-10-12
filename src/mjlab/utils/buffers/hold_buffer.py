@@ -28,10 +28,18 @@ class HoldBuffer:
 
   @property
   def is_initialized(self) -> bool:
+    """Check if buffer has been initialized with at least one compute."""
     return self._held is not None
 
   def compute(self, data: torch.Tensor) -> torch.Tensor:
-    """Advance one step and return the held data."""
+    """Advance one step and return the held data.
+
+    Args:
+      data: Fresh observation of shape (batch_size, ...).
+
+    Returns:
+      Held observation with shape (batch_size, ...).
+    """
     k = self._step.double()
     due = (self._step == 0) | (
       torch.floor(k * self.rate + self._phase)
@@ -45,10 +53,28 @@ class HoldBuffer:
     return self._held
 
   def backfill(self, data: torch.Tensor, batch_ids: torch.Tensor) -> torch.Tensor:
-    """Refresh the given rows without advancing time."""
-    assert self._held is not None
+    """Refresh the given rows as their first step, without advancing other rows.
+
+    Used after a partial reset. The refresh counts as the reset rows' first step,
+    so their schedule matches a reset followed by compute().
+
+    Args:
+      data: Tensor of shape (batch_size, ...); only rows at batch_ids are read.
+      batch_ids: Batch indices to refresh.
+
+    Returns:
+      Held observation with shape (batch_size, ...).
+    """
+    if self._held is None:
+      raise RuntimeError("Buffer not initialized. Call compute() first.")
+    self._step[batch_ids] = 1
     self._held = self._held.index_put((batch_ids,), data[batch_ids])
     return self._held
 
   def reset(self, batch_ids: Sequence[int] | torch.Tensor | None = None) -> None:
+    """Make the given rows refresh on their next step.
+
+    Args:
+      batch_ids: Batch indices to reset, or None to reset all.
+    """
     self._step[slice(None) if batch_ids is None else batch_ids] = 0
