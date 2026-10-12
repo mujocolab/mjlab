@@ -97,7 +97,9 @@ class MpcCollector:
 
     Returns:
       Keyword arguments for :meth:`ReplayBuffer.insert` (without
-      ``policy_version``) and collection metrics.
+      ``policy_version``) and collection metrics. When the teacher gap is
+      measured, the segment also has ``"teacher_gap"`` ``[T, N, 1]`` (NaN at
+      steps that were not measured), which is not an ``insert`` argument.
     """
     t_steps, n = self.num_steps, self.num_envs
     if self.training_env is not None:
@@ -107,6 +109,7 @@ class MpcCollector:
     ess_sum, start = 0.0, time.time()
     gap_every = self.teacher_gap_every if policy_mean is not None else None
     teacher_returns, policy_returns = [], []
+    step_gaps: list[torch.Tensor] = []
     with torch.no_grad():
       for step in range(t_steps):
         plan = self.planner.plan(self.env.unwrapped)
@@ -118,6 +121,9 @@ class MpcCollector:
           )
           teacher_returns.append(r_teacher)
           policy_returns.append(r_policy)
+          step_gaps.append((r_teacher - r_policy).view(n, 1))
+        elif gap_every is not None:
+          step_gaps.append(torch.full((n, 1), torch.nan, device=self.device))
         has_density = policy is None and self.execution_std > 0.0
         if policy is not None:
           action = policy(self.obs)
@@ -157,6 +163,8 @@ class MpcCollector:
       ),
       "bootstrap_observations": self.obs.clone(),
     }
+    if step_gaps:
+      segment["teacher_gap"] = torch.stack(step_gaps)
     metrics = {
       "reward": float(reward_t.mean()),
       "episodes_done": float(done_t.sum()),

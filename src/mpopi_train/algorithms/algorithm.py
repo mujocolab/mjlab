@@ -36,6 +36,11 @@ from mpopi_train.algorithms.replay_buffer import ReplayBuffer
 
 _Pool = dict[str, Any]
 
+_FLOOR_GATE_EMA = 0.5
+"""Weight of the newest teacher-better fraction in the ``"floor"`` gate."""
+_FLOOR_GATE_STEP = 0.25
+"""Fraction of ``bc_floor`` removed per collection while the gate is closed."""
+
 
 class MpcDataSource(Protocol):
   """What ``MpopiPpo`` needs from an MPC collector."""
@@ -72,6 +77,9 @@ class MpopiPpo(PPO):
     self.policy_version = 0
     self.mpc_cfg = cfg.mpc if cfg.mode == "mpc_ppo" else None
     self.mpc_collector: MpcDataSource | None = None
+    self.bc_floor_scale = 1.0
+    """Multiplier of ``bc_floor``, lowered by the ``"floor"`` gate."""
+    self._teacher_better_ema: float | None = None
     if self.mpc_cfg is None:
       self.mpopi = Mpopi(cfg, gamma=self.gamma, lam=self.lam)
       self.replay = ReplayBuffer(cfg.replay_buffer_size, device=self.device)
@@ -151,7 +159,7 @@ class MpopiPpo(PPO):
     mpc_metrics: dict[str, float] = {}
     if self.mpc_cfg is not None:
       mpc_metrics = self._refresh_mpc_buffer()
-      bc_weight = self.mpc_cfg.bc_weight(self.policy_version)
+      bc_weight = self.mpc_cfg.bc_weight(self.policy_version, self.bc_floor_scale)
       use_in_ppo = self.mpc_cfg.use_in_ppo
     else:
       use_in_ppo = True
@@ -305,12 +313,35 @@ class MpopiPpo(PPO):
       policy = self._act_stochastic if cfg.driver == "policy" else None
       policy_mean = self._act_mean if cfg.teacher_gap_every is not None else None
       segment, collect_metrics = self.mpc_collector.collect(policy, policy_mean)
-      self.replay.insert(**segment, policy_version=version)
+      gap = segment.pop("teacher_gap", None)
+      bc_mask = None
+      if cfg.bc_gate == "per_state":
+        assert gap is not None
+        bc_mask = gap > 0.0  # NaN (not measured) is never kept.
+        metrics["bc_kept_frac"] = float(bc_mask.float().mean())
+      self.replay.insert(**segment, policy_version=version, bc_mask=bc_mask)
       metrics.update({f"collect_{k}": v for k, v in collect_metrics.items()})
+      if cfg.bc_gate == "floor" and "teacher_better_frac" in collect_metrics:
+        self._update_floor_gate(collect_metrics["teacher_better_frac"])
     if cfg.max_age is not None:
       self.replay.evict_older_than(version, cfg.max_age)
     metrics["buffer_segments"] = float(len(self.replay))
+    if cfg.bc_gate == "floor":
+      metrics["bc_floor_scale"] = self.bc_floor_scale
     return metrics
+
+  def _update_floor_gate(self, better_frac: float) -> None:
+    """Lower the floor while the teacher beats the policy in too few states."""
+    assert self.mpc_cfg is not None
+    ema = self._teacher_better_ema
+    ema = (
+      better_frac
+      if ema is None
+      else ((1 - _FLOOR_GATE_EMA) * ema + _FLOOR_GATE_EMA * better_frac)
+    )
+    self._teacher_better_ema = ema
+    if ema < self.mpc_cfg.bc_gate_threshold:
+      self.bc_floor_scale = max(0.0, self.bc_floor_scale - _FLOOR_GATE_STEP)
 
   def _act_stochastic(self, obs: TensorDict) -> torch.Tensor:
     """Sample from the current policy (DAgger's acting policy)."""
@@ -327,6 +358,7 @@ class MpopiPpo(PPO):
 
     The PPO fields are filled with the current actor and critic so that the
     (masked-out) PPO terms stay finite; only the behavior mean ``u0`` is used.
+    Samples outside the buffer's ``bc_mask`` are left out.
     """
     slots = self.replay.slots(self.policy_version)
     if not slots:
@@ -334,9 +366,14 @@ class MpopiPpo(PPO):
     buffer = self.replay
     assert buffer.observations is not None
     idx = torch.tensor(slots, device=buffer.device)
-    obs = cast(TensorDict, buffer.observations[idx].flatten(0, 2))
-    actions = buffer.actions[idx].flatten(0, 2)
-    behavior = tuple(p[idx].flatten(0, 2) for p in buffer.behavior_distribution_params)
+    keep = buffer.bc_mask[idx].flatten(0, 2).view(-1)
+    if not bool(keep.any()):
+      return None
+    obs = cast(TensorDict, buffer.observations[idx].flatten(0, 2)[keep])
+    actions = buffer.actions[idx].flatten(0, 2)[keep]
+    behavior = tuple(
+      p[idx].flatten(0, 2)[keep] for p in buffer.behavior_distribution_params
+    )
     with torch.no_grad():
       self.actor(obs, stochastic_output=True)
       log_prob = self.actor.get_output_log_prob(actions).view(-1, 1)

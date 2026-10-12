@@ -59,6 +59,21 @@ class MpcDataCfg:
   """Lower bound of the behavior-cloning weight after the decay. Above 0 the
   policy keeps a small pull toward the MPC for the whole run, which needs the
   MPC data to stay in the buffer (``max_age=None``)."""
+  bc_gate: Literal["none", "floor", "per_state"] = "none"
+  """Use the measured teacher gap (needs ``teacher_gap_every``) to limit cloning.
+
+  - ``"none"``: the weight follows the schedule above.
+  - ``"floor"``: the floor is lowered while the teacher is no longer better.
+    After each collection, an average (EMA, factor 0.5) of the fraction of
+    states where the plan beats the policy is updated; while it is below
+    ``bc_gate_threshold``, the floor shrinks by a quarter of ``bc_floor``.
+    It never grows back.
+  - ``"per_state"``: only labels of states where the plan beats the policy
+    are cloned. Needs ``teacher_gap_every=1`` so every label is measured.
+  """
+  bc_gate_threshold: float = 0.5
+  """``"floor"`` gate: fraction of states where the teacher is better below
+  which the floor is lowered."""
   teacher_gap_every: int | None = None
   """Every this many collected steps, also roll out the planner's final plan
   (open loop) and the policy's mean action (closed loop) from the same state
@@ -73,13 +88,15 @@ class MpcDataCfg:
   example DAgger combined with Replay-IS."""
   planner: SamplingMpcCfg = field(default_factory=SamplingMpcCfg)
 
-  def bc_weight(self, iteration: int) -> float:
+  def bc_weight(self, iteration: int, floor_scale: float = 1.0) -> float:
+    """Behavior-cloning weight; ``floor_scale`` scales ``bc_floor`` (gate)."""
     if self.bc_coef == 0.0:
       return 0.0
+    floor = self.bc_floor * floor_scale
     if self.bc_iterations <= 0:
-      return self.bc_floor
+      return floor
     decayed = self.bc_coef * max(0.0, 1.0 - iteration / self.bc_iterations)
-    return max(self.bc_floor, decayed)
+    return max(floor, decayed)
 
   def collects(self, iteration: int) -> bool:
     return iteration < self.collect_iterations and iteration % self.collect_every == 0
@@ -114,6 +131,18 @@ class MpcDataCfg:
         "bc_floor > 0 keeps cloning after collection stops, but max_age evicts"
         " the MPC data it clones: use max_age=None."
       )
+    if self.bc_gate != "none" and self.teacher_gap_every is None:
+      raise ValueError("bc_gate needs the teacher gap: set teacher_gap_every.")
+    if self.bc_gate == "floor" and self.bc_floor == 0.0:
+      raise ValueError("bc_gate='floor' lowers bc_floor: use bc_floor > 0.")
+    if self.bc_gate == "per_state" and self.use_in_ppo:
+      raise ValueError("bc_gate='per_state' filters cloning only: use_in_ppo=False.")
+    if self.bc_gate == "per_state" and self.teacher_gap_every != 1:
+      raise ValueError(
+        "bc_gate='per_state' needs a gap for every label: teacher_gap_every=1."
+      )
+    if not 0.0 < self.bc_gate_threshold < 1.0:
+      raise ValueError("bc_gate_threshold must be in (0, 1).")
     if self.buffer_segments < 1:
       raise ValueError("buffer_segments must be >= 1.")
     if self.max_age is not None and self.max_age < 0:

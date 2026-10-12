@@ -18,6 +18,8 @@ class ReplayBuffer:
   (before RSL-RL's time-out bootstrap), dones, time_outs, behavior log-probs and
   behavior distribution params. Per-segment fields: bootstrap observations
   ``[K, N]`` (state after the last step) and the policy version ``[K]``.
+  An optional per-step ``bc_mask`` marks the samples used for behavior cloning
+  (all of them when not given).
   """
 
   def __init__(self, capacity: int, device: str | torch.device = "cpu") -> None:
@@ -36,6 +38,7 @@ class ReplayBuffer:
     self.time_outs: torch.Tensor
     self.behavior_log_prob: torch.Tensor
     self.behavior_distribution_params: tuple[torch.Tensor, ...]
+    self.bc_mask: torch.Tensor
 
   def __len__(self) -> int:
     return int(self.occupied.sum())
@@ -58,6 +61,7 @@ class ReplayBuffer:
     behavior_distribution_params: tuple[torch.Tensor, ...],
     bootstrap_observations: TensorDict,
     policy_version: int,
+    bc_mask: torch.Tensor | None = None,
   ) -> None:
     """Insert one segment, evicting the oldest when full.
 
@@ -71,6 +75,8 @@ class ReplayBuffer:
       behavior_distribution_params: tuple of ``[T, N, ...]``.
       bootstrap_observations: ``[N]`` TensorDict.
       policy_version: Iteration whose policy collected the segment.
+      bc_mask: ``[T, N, 1]`` bool, samples to use for behavior cloning. None
+        uses all of them.
     """
     if self.observations is None:
       self._allocate(
@@ -95,6 +101,10 @@ class ReplayBuffer:
       self.behavior_distribution_params, behavior_distribution_params, strict=True
     ):
       dst[i].copy_(src)
+    if bc_mask is None:
+      self.bc_mask[i].fill_(True)
+    else:
+      self.bc_mask[i].copy_(bc_mask.view_as(self.bc_mask[i]))
     self.occupied[i] = True
     self.policy_version[i] = policy_version
     self._next = (i + 1) % self.capacity
@@ -153,6 +163,7 @@ class ReplayBuffer:
     self.dones = torch.zeros(scalar_shape, dtype=torch.bool, device=dev)
     self.time_outs = torch.zeros(scalar_shape, dtype=torch.bool, device=dev)
     self.behavior_log_prob = torch.zeros(scalar_shape, device=dev)
+    self.bc_mask = torch.ones(scalar_shape, dtype=torch.bool, device=dev)
     self.behavior_distribution_params = tuple(
       _zeros_like(p) for p in behavior_distribution_params
     )

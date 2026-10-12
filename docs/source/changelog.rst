@@ -14,7 +14,8 @@ Added
   (DAgger). It registers ``Mpopi-G1-2k-*`` tasks (flat G1 velocity tracking up
   to 1.5 m/s in 2000 iterations, one task per method) through the
   ``mjlab.tasks`` entry point, so ``train`` and ``play`` see them, and adds the
-  ``mpopi-train``, ``mpopi-play`` and ``mpopi-eval`` commands. See
+  ``mpopi-train``, ``mpopi-play`` and ``mpopi-eval`` commands. DAgger can
+  gate cloning on the measured teacher gap (``bc_gate``). See
   ``src/mpopi_train/README.md``.
 
 Changed

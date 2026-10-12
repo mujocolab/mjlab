@@ -63,6 +63,8 @@ Design notes and earlier results are in `docs/mpopi/`.
   planner labels its states (DAgger); `execution_std=0` clones the MPC action
   without noise; `use_in_ppo=False` keeps MPC samples out of the PPO losses;
   `bc_coef`, `bc_iterations` and `bc_floor` set the cloning weight;
+  `bc_gate` uses the measured teacher gap to lower the floor (`"floor"`) or to
+  clone only states where the plan beats the policy (`"per_state"`);
   `inject_fraction` makes MPC samples a fixed fraction of every batch;
   `replay_own_rollouts` also replays PPO's own rollouts;
   `teacher_gap_every` logs how much the planner's plan beats the policy.

@@ -91,6 +91,11 @@ def test_mpc_data_cfg_schedule_and_round_trip():
   with pytest.raises(ValueError, match="max_age=None"):
     floored.validate()  # Labels would be evicted while the floor still clones.
   replace(floored, max_age=None).validate()
+  assert floored.bc_weight(9, floor_scale=0.5) == 0.25
+  with pytest.raises(ValueError, match="teacher_gap_every"):
+    replace(floored, max_age=None, bc_gate="floor").validate()
+  with pytest.raises(ValueError, match="teacher_gap_every=1"):
+    replace(cfg, use_in_ppo=False, bc_gate="per_state", teacher_gap_every=2).validate()
 
 
 def test_collector_records_exact_behavior_density(device):
@@ -239,6 +244,52 @@ def test_dagger_with_bc_floor_keeps_cloning_after_collection(device):
   assert all("mpopi/accepted" not in log for log in logs)  # Not in PPO's loss.
   for p in _alg(runner).actor.parameters():
     assert torch.isfinite(p).all()
+  _close(runner)
+
+
+_GATED_DAGGER = MpcDataCfg(
+  num_envs=2,
+  num_steps=4,
+  collect_iterations=3,
+  buffer_segments=4,
+  max_age=None,
+  execution_std=0.0,
+  driver="policy",
+  use_in_ppo=False,
+  bc_iterations=2,
+  bc_floor=0.4,
+  teacher_gap_every=1,
+  planner=TINY_PLANNER,
+)
+
+
+def test_per_state_gate_clones_only_where_the_teacher_is_better(device):
+  runner = _runner(device, replace(_GATED_DAGGER, bc_gate="per_state"))
+  alg = _alg(runner)
+  logs = _learn(runner, 3)
+  kept = alg.replay.bc_mask[:3]
+  assert [log["mpc/bc_kept_frac"] for log in logs] == pytest.approx(
+    kept.float().mean(dim=(1, 2, 3)).tolist()
+  )
+  batch = alg._bc_batch()
+  assert (0 if batch is None else len(batch)) == int(kept.sum())
+  _close(runner)
+
+
+def test_floor_gate_lowers_the_floor_when_the_teacher_falls_behind(device):
+  runner = _runner(device, replace(_GATED_DAGGER, bc_gate="floor"))
+  alg = _alg(runner)
+  logs = _learn(runner, 1)
+  assert 0.0 <= logs[0]["mpc/bc_floor_scale"] <= 1.0
+  alg.bc_floor_scale, alg._teacher_better_ema = 1.0, None
+  # EMA of the teacher-better fraction: 1.0, 0.6, 0.4 (< 0.5), 0.2, 0.1, ...
+  scales = []
+  for frac in (1.0, 0.2, 0.2, 0.0, 0.0, 0.0, 0.9):
+    alg._update_floor_gate(frac)
+    scales.append(alg.bc_floor_scale)
+  assert scales == [1.0, 1.0, 0.75, 0.5, 0.25, 0.0, 0.0]
+  assert alg.mpc_cfg is not None
+  assert alg.mpc_cfg.bc_weight(10, alg.bc_floor_scale) == 0.0
   _close(runner)
 
 

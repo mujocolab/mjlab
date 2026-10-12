@@ -365,6 +365,7 @@ Lưu ý tên checkpoint cuối đổi theo số vòng: 3000 vòng thì là `mode
 | `max-age` | `50` | Nhãn cũ hơn bao nhiêu vòng thì bỏ (`None` = giữ mãi, tối đa `buffer-segments` lần gắn nhãn gần nhất) |
 | `buffer-segments` | `10` | Giữ tối đa bao nhiêu lần gắn nhãn |
 | `replay-own-rollouts` | `False` (DAgger), `True` (Replay-IS-DAgger) | Có dùng lại dữ liệu cũ của chính robot không |
+| `bc-gate` | `none` | Dùng Δ đo được để hạn chế bắt chước: `floor` hạ dần mức sàn về 0 khi thầy hơn trò ở dưới `bc-gate-threshold` (mặc định `0.5`) trạng thái; `per_state` chỉ bắt chước nhãn ở trạng thái thầy hơn trò. Cần `teacher-gap-every` (`per_state` cần `1`, thêm khoảng 50% thời gian gắn nhãn) |
 | `teacher-gap-every` | tắt | Đặt số (ví dụ `4`) để đo thầy hơn trò bao nhiêu; thêm khoảng 12% thời gian gắn nhãn |
 | `planner.num-samples` | `16` | Số chuỗi hành động thầy thử mỗi bước |
 | `planner.iterations` | `2` | Số vòng tinh chỉnh của thầy mỗi bước |
@@ -402,6 +403,7 @@ Kaggle cho dùng miễn phí 2 GPU T4, khoảng 30 giờ mỗi tuần.
 | `mpc_g1_train_kaggle.ipynb` | Train và đánh giá các phương pháp (tối đa 12 giờ một phiên) |
 | `mpc_g1_eval_kaggle.ipynb` | Chỉ đánh giá lại checkpoint của các lần train trước |
 | `mpc_g1_bc_kaggle.ipynb` | Thí nghiệm thời lượng bắt chước thầy MPC (3 biến thể × 2 seed) |
+| `mpc_g1_gate_kaggle.ipynb` | Chỉ bắt chước khi thầy còn hơn trò: BC-floor, Gate-floor, Gate-state (× 2 seed) |
 
 Lấy file từ thư mục code đã clone, hoặc trên GitHub: mở file, nhấn nút *Download raw file*.
 
