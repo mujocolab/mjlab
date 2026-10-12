@@ -24,6 +24,9 @@ Changed
 Fixed
 ^^^^^
 
+- The viewer now resets recurrent policy hidden state for environments that terminate
+  or time out. Previously it only reset the policy when the user pressed the reset
+  button, so each auto-reset environment kept the previous episode's memory :issue:`1222`.
 - Capped ``wandb`` below 0.29, which removed the ``start_method`` setting still passed
   by ``rsl-rl-lib`` and crashed training runs launched with ``--logger wandb``.
 - ``distribution="gaussian"`` domain randomization now draws an independent value per
