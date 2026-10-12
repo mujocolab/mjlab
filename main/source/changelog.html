@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Oct 08, 2026"/>
+    <meta name="docbuild:last-update" content="Oct 12, 2026"/>
   </head>
   
   
@@ -572,6 +572,9 @@ attribute of the <code class="docutils literal notranslate"><span class="pre">rs
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>The viewer now resets recurrent policy hidden state for environments that terminate
+or time out. Previously it only reset the policy when the user pressed the reset
+button, so each auto-reset environment kept the previous episode’s memory <a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/1222">#1222</a>.</p></li>
 <li><p>Capped <code class="docutils literal notranslate"><span class="pre">wandb</span></code> below 0.29, which removed the <code class="docutils literal notranslate"><span class="pre">start_method</span></code> setting still passed
 by <code class="docutils literal notranslate"><span class="pre">rsl-rl-lib</span></code> and crashed training runs launched with <code class="docutils literal notranslate"><span class="pre">--logger</span> <span class="pre">wandb</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">distribution=&quot;gaussian&quot;</span></code> domain randomization now draws an independent value per
@@ -1795,7 +1798,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Oct 08, 2026.
+  Last updated on Oct 12, 2026.
   <br/>
 </p>
   </div>
