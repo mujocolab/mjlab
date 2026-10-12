@@ -62,3 +62,34 @@ def test_hold_terms_in_sync_and_partial_reset(mock_env, device):
   assert obs[1, 0] == 10.0
   others = torch.tensor([0, 2, 3], device=device)
   assert torch.equal(obs[others, 0], held[others])
+
+
+def test_hold_feeds_delay_and_history(mock_env, device):
+  """Delay and history operate on the held stream."""
+  value = {"v": 0.0}
+
+  def obs_func(env):
+    return torch.full((env.num_envs, 1), value["v"], device=device)
+
+  def term(**kwargs) -> ObservationTermCfg:
+    return ObservationTermCfg(func=obs_func, params={}, sample_rate_hz=30.0, **kwargs)
+
+  cfg = {
+    "actor": ObservationGroupCfg(
+      terms={
+        "held": term(),
+        "delayed": term(delay_min_lag=1, delay_max_lag=1),
+        "hist": term(history_length=3),
+      }
+    ),
+  }
+  manager = ObservationManager(cfg, mock_env)
+  held: list[torch.Tensor] = []
+  for step in range(10):
+    value["v"] = float(step)
+    obs = manager.compute(update_history=True)["actor"]
+    assert isinstance(obs, torch.Tensor)
+    held.append(obs[:, 0])
+    assert torch.equal(obs[:, 1], held[max(step - 1, 0)])
+    expected = torch.stack([held[max(step - i, 0)] for i in (2, 1, 0)], dim=1)
+    assert torch.equal(obs[:, 2:5], expected)
