@@ -9,7 +9,7 @@ import torch
 from prettytable import PrettyTable
 
 from mjlab.managers.manager_base import ManagerBase, ManagerTermBaseCfg
-from mjlab.utils.buffers import CircularBuffer, DelayBuffer
+from mjlab.utils.buffers import CircularBuffer, DelayBuffer, HoldBuffer
 from mjlab.utils.noise import noise_cfg, noise_model
 from mjlab.utils.noise.noise_cfg import NoiseCfg, NoiseModelCfg
 
@@ -18,9 +18,9 @@ from mjlab.utils.noise.noise_cfg import NoiseCfg, NoiseModelCfg
 class ObservationTermCfg(ManagerTermBaseCfg):
   """Configuration for an observation term.
 
-  Processing pipeline: compute → noise → clip → scale → delay → history.
-  Delay models sensor latency. History provides temporal context. Both are optional
-  and can be combined.
+  Processing pipeline: compute → noise → clip → scale → hold → delay → history.
+  Hold models sensor rate, delay models sensor latency, and history provides temporal
+  context. All are optional and can be combined.
   """
 
   noise: NoiseCfg | NoiseModelCfg | None = None
@@ -31,6 +31,10 @@ class ObservationTermCfg(ManagerTermBaseCfg):
 
   scale: tuple[float, ...] | float | torch.Tensor | None = None
   """Scaling factor(s) to multiply the observation by."""
+
+  sample_rate_hz: float | None = None
+  """Refresh rate in Hz; the term holds its value in between. Terms with the same
+  rate refresh together. If None, refresh every step."""
 
   delay_min_lag: int = 0
   """Minimum lag (in steps) for delayed observations. Lag sampled uniformly from
@@ -116,7 +120,7 @@ class ObservationManager(ManagerBase):
   """Manages observation computation for the environment.
 
   The observation manager computes observations from multiple terms organized
-  into groups. Each term can have noise, clipping, scaling, delay, and history
+  into groups. Each term can have noise, clipping, scaling, hold, delay, and history
   applied. Groups can optionally concatenate their terms into a single tensor.
   """
 
@@ -245,6 +249,10 @@ class ObservationManager(ManagerBase):
         term_cfg.func.reset(env_ids=env_ids)
       for term_name in self._group_obs_term_names[group_name]:
         batch_ids = None if isinstance(env_ids, slice) else env_ids
+        if term_name in self._group_obs_term_hold_buffer[group_name]:
+          self._group_obs_term_hold_buffer[group_name][term_name].reset(
+            batch_ids=batch_ids
+          )
         if term_name in self._group_obs_term_delay_buffer[group_name]:
           self._group_obs_term_delay_buffer[group_name][term_name].reset(
             batch_ids=batch_ids
@@ -256,6 +264,8 @@ class ObservationManager(ManagerBase):
     for group_mods in self._group_obs_class_instances.values():
       for mod in group_mods.values():
         mod.reset(env_ids=env_ids)
+    idx = slice(None) if env_ids is None else env_ids
+    self._hold_phase[idx] = torch.rand_like(self._hold_phase)[idx]
     return {}
 
   def _check_and_handle_nans(
@@ -361,6 +371,12 @@ class ObservationManager(ManagerBase):
           obs, context=f"{group_name}/{term_name}", policy=group_cfg.nan_policy
         )
 
+      if term_cfg.sample_rate_hz is not None:
+        hold_buffer = self._group_obs_term_hold_buffer[group_name][term_name]
+        if env_ids is None or not hold_buffer.is_initialized:
+          obs = hold_buffer.compute(obs)
+        else:
+          obs = hold_buffer.backfill(obs, env_ids)
       if term_cfg.delay_max_lag > 0:
         delay_buffer = self._group_obs_term_delay_buffer[group_name][term_name]
         if env_ids is None or not delay_buffer.is_initialized:
@@ -417,8 +433,13 @@ class ObservationManager(ManagerBase):
     self._group_obs_concatenate: dict[str, bool] = dict()
     self._group_obs_concatenate_dim: dict[str, int] = dict()
     self._group_obs_class_instances: dict[str, dict[str, noise_model.NoiseModel]] = {}
+    self._group_obs_term_hold_buffer: dict[str, dict[str, HoldBuffer]] = dict()
     self._group_obs_term_delay_buffer: dict[str, dict[str, DelayBuffer]] = dict()
     self._group_obs_term_history_buffer: dict[str, dict[str, CircularBuffer]] = dict()
+    # Shared by all hold buffers so terms with the same rate refresh together.
+    self._hold_phase = torch.rand(
+      self._env.num_envs, dtype=torch.float64, device=self._env.device
+    )
 
     for group_name, group_cfg in self.cfg.items():
       group_cfg: ObservationGroupCfg | None
@@ -435,6 +456,7 @@ class ObservationManager(ManagerBase):
       self._group_obs_term_cfgs[group_name] = list()
       self._group_obs_class_term_cfgs[group_name] = list()
       self._group_obs_class_instances[group_name] = {}
+      group_entry_hold_buffer: dict[str, HoldBuffer] = dict()
       group_entry_delay_buffer: dict[str, DelayBuffer] = dict()
       group_entry_history_buffer: dict[str, CircularBuffer] = dict()
 
@@ -485,6 +507,11 @@ class ObservationManager(ManagerBase):
             term_cfg.noise, num_envs=self._env.num_envs, device=self._env.device
           )
 
+        if term_cfg.sample_rate_hz is not None:
+          group_entry_hold_buffer[term_name] = HoldBuffer(
+            rate=term_cfg.sample_rate_hz * self._env.step_dt, phase=self._hold_phase
+          )
+
         if term_cfg.delay_max_lag > 0:
           group_entry_delay_buffer[term_name] = DelayBuffer(
             min_lag=term_cfg.delay_min_lag,
@@ -511,5 +538,6 @@ class ObservationManager(ManagerBase):
 
         self._group_obs_term_dim[group_name].append(obs_dims[1:])
 
+      self._group_obs_term_hold_buffer[group_name] = group_entry_hold_buffer
       self._group_obs_term_delay_buffer[group_name] = group_entry_delay_buffer
       self._group_obs_term_history_buffer[group_name] = group_entry_history_buffer

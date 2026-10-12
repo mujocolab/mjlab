@@ -68,7 +68,7 @@ pipeline in order:
 
 .. code-block:: text
 
-    compute → noise → clip → scale → delay → history
+    compute → noise → clip → scale → hold → delay → history
 
 1. **compute**: the term function is called. It must return a
    ``[num_envs, D]`` tensor.
@@ -84,11 +84,15 @@ pipeline in order:
 4. **scale**: if ``scale`` is set, the output is multiplied
    element-wise. Accepts a scalar, a tuple, or a tensor.
 
-5. **delay**: if ``delay_max_lag > 0``, the term's output is stored in a
+5. **hold**: if ``sample_rate_hz`` is set, the term refreshes at that
+   rate and holds its value in between, e.g. a 30 fps camera on a 50 Hz
+   policy.
+
+6. **delay**: if ``delay_max_lag > 0``, the term's output is stored in a
    ring buffer and a value from an earlier step is returned. See
    :ref:`obs-history-delay`.
 
-6. **history**: if ``history_length > 0``, past outputs are stacked.
+7. **history**: if ``history_length > 0``, past outputs are stacked.
    See :ref:`obs-history-delay`.
 
 .. note::
