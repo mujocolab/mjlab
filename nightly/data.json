@@ -3628,5 +3628,305 @@
       "ee_pos_error": 0.047617681324481964,
       "ee_ori_error": 0.16811791062355042
     }
+  },
+  {
+    "id": "6le45z5f",
+    "name": "2026-10-11_02-04-26",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/6le45z5f",
+    "created_at": "2026-10-11T09:04:31Z",
+    "commit": "033ae22",
+    "metrics": {
+      "success_rate": 0.9521484375,
+      "mpkpe": 0.11224238574504852,
+      "r_mpkpe": 0.03169664740562439,
+      "joint_vel_error": 0.5748583674430847,
+      "ee_pos_error": 0.04929269105195999,
+      "ee_ori_error": 0.17614977061748505
+    }
+  },
+  {
+    "id": "t1nsw7qp",
+    "name": "2026-10-10_02-24-29",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/t1nsw7qp",
+    "created_at": "2026-10-10T09:24:35Z",
+    "commit": "033ae22",
+    "metrics": {
+      "success_rate": 0.9697265625,
+      "mpkpe": 0.10899997502565384,
+      "r_mpkpe": 0.03035981021821499,
+      "joint_vel_error": 0.5493329763412476,
+      "ee_pos_error": 0.04569437354803085,
+      "ee_ori_error": 0.16675879061222076
+    }
+  },
+  {
+    "id": "i3wux5ae",
+    "name": "2026-10-09_02-10-44",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/i3wux5ae",
+    "created_at": "2026-10-09T09:10:49Z",
+    "commit": "033ae22",
+    "metrics": {
+      "success_rate": 0.9580078125,
+      "mpkpe": 0.10853686183691025,
+      "r_mpkpe": 0.030421137809753418,
+      "joint_vel_error": 0.5736657381057739,
+      "ee_pos_error": 0.04541642218828201,
+      "ee_ori_error": 0.16552910208702087
+    }
+  },
+  {
+    "id": "le6f63uf",
+    "name": "2026-10-08_02-09-46",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/le6f63uf",
+    "created_at": "2026-10-08T09:09:50Z",
+    "commit": "033ae22",
+    "metrics": {
+      "success_rate": 0.9892578125,
+      "mpkpe": 0.10750815272331238,
+      "r_mpkpe": 0.029597405344247818,
+      "joint_vel_error": 0.568423867225647,
+      "ee_pos_error": 0.04592226445674896,
+      "ee_ori_error": 0.17167434096336365
+    }
+  },
+  {
+    "id": "k3mp2k0w",
+    "name": "2026-10-07_02-14-46",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/k3mp2k0w",
+    "created_at": "2026-10-07T09:14:51Z",
+    "commit": "bd37751",
+    "metrics": {
+      "success_rate": 0.974609375,
+      "mpkpe": 0.10193166136741638,
+      "r_mpkpe": 0.03052641451358795,
+      "joint_vel_error": 0.5399277806282043,
+      "ee_pos_error": 0.04589587822556496,
+      "ee_ori_error": 0.16520574688911438
+    }
+  },
+  {
+    "id": "bhxgkoqb",
+    "name": "2026-10-06_02-03-13",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/bhxgkoqb",
+    "created_at": "2026-10-06T09:03:18Z",
+    "commit": "bd37751",
+    "metrics": {
+      "success_rate": 0.978515625,
+      "mpkpe": 0.11106513440608978,
+      "r_mpkpe": 0.029747191816568375,
+      "joint_vel_error": 0.5695621371269226,
+      "ee_pos_error": 0.04619254916906357,
+      "ee_ori_error": 0.1700381338596344
+    }
+  },
+  {
+    "id": "yidjv5l2",
+    "name": "2026-10-05_02-04-46",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/yidjv5l2",
+    "created_at": "2026-10-05T09:04:50Z",
+    "commit": "4f73291",
+    "metrics": {
+      "success_rate": 0.9892578125,
+      "mpkpe": 0.09858927130699158,
+      "r_mpkpe": 0.029351189732551575,
+      "joint_vel_error": 0.5370612144470215,
+      "ee_pos_error": 0.04479007422924042,
+      "ee_ori_error": 0.165998637676239
+    }
+  },
+  {
+    "id": "4h1yg571",
+    "name": "2026-10-04_02-08-46",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/4h1yg571",
+    "created_at": "2026-10-04T09:08:51Z",
+    "commit": "4f73291",
+    "metrics": {
+      "success_rate": 0.994140625,
+      "mpkpe": 0.10552552342414856,
+      "r_mpkpe": 0.029126543551683426,
+      "joint_vel_error": 0.54390949010849,
+      "ee_pos_error": 0.04528776928782463,
+      "ee_ori_error": 0.1657143533229828
+    }
+  },
+  {
+    "id": "76qzggrm",
+    "name": "2026-10-03_02-24-45",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/76qzggrm",
+    "created_at": "2026-10-03T09:24:49Z",
+    "commit": "f135c1d",
+    "metrics": {
+      "success_rate": 0.9912109375,
+      "mpkpe": 0.09812484681606293,
+      "r_mpkpe": 0.02839795872569084,
+      "joint_vel_error": 0.551624059677124,
+      "ee_pos_error": 0.04379207640886307,
+      "ee_ori_error": 0.16566205024719238
+    }
+  },
+  {
+    "id": "3dgmchxo",
+    "name": "2026-10-02_02-20-45",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/3dgmchxo",
+    "created_at": "2026-10-02T09:20:50Z",
+    "commit": "f135c1d",
+    "metrics": {
+      "success_rate": 0.9638671875,
+      "mpkpe": 0.10765731334686279,
+      "r_mpkpe": 0.029754456132650375,
+      "joint_vel_error": 0.5729831457138062,
+      "ee_pos_error": 0.04629110172390938,
+      "ee_ori_error": 0.1653398722410202
+    }
+  },
+  {
+    "id": "ebfbp2px",
+    "name": "2026-10-01_02-01-45",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/ebfbp2px",
+    "created_at": "2026-10-01T09:01:49Z",
+    "commit": "f135c1d",
+    "metrics": {
+      "success_rate": 0.9599609375,
+      "mpkpe": 0.10167213529348373,
+      "r_mpkpe": 0.029785670340061188,
+      "joint_vel_error": 0.5470166802406311,
+      "ee_pos_error": 0.045400939881801605,
+      "ee_ori_error": 0.17223021388053894
+    }
+  },
+  {
+    "id": "dbc6vc3r",
+    "name": "2026-09-30_02-08-45",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/dbc6vc3r",
+    "created_at": "2026-09-30T09:08:50Z",
+    "commit": "f135c1d",
+    "metrics": {
+      "success_rate": 0.982421875,
+      "mpkpe": 0.10655394196510315,
+      "r_mpkpe": 0.02851860411465168,
+      "joint_vel_error": 0.5661717057228088,
+      "ee_pos_error": 0.04431237652897835,
+      "ee_ori_error": 0.16079621016979218
+    }
+  },
+  {
+    "id": "jcukmxen",
+    "name": "2026-09-29_02-04-45",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/jcukmxen",
+    "created_at": "2026-09-29T09:04:50Z",
+    "commit": "f135c1d",
+    "metrics": {
+      "success_rate": 0.9775390625,
+      "mpkpe": 0.11074145883321762,
+      "r_mpkpe": 0.02966667339205742,
+      "joint_vel_error": 0.5525954961776733,
+      "ee_pos_error": 0.04604918137192726,
+      "ee_ori_error": 0.16854718327522278
+    }
+  },
+  {
+    "id": "cve9mzk5",
+    "name": "2026-09-28_02-11-47",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/cve9mzk5",
+    "created_at": "2026-09-28T09:11:52Z",
+    "commit": "9ba24f7",
+    "metrics": {
+      "success_rate": 0.986328125,
+      "mpkpe": 0.09889227151870728,
+      "r_mpkpe": 0.0289605762809515,
+      "joint_vel_error": 0.5527235269546509,
+      "ee_pos_error": 0.04513039439916611,
+      "ee_ori_error": 0.1619095355272293
+    }
+  },
+  {
+    "id": "kafu43si",
+    "name": "2026-09-27_02-28-45",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/kafu43si",
+    "created_at": "2026-09-27T09:28:49Z",
+    "commit": "c2e1e06",
+    "metrics": {
+      "success_rate": 0.978515625,
+      "mpkpe": 0.09820139408111572,
+      "r_mpkpe": 0.028586015105247498,
+      "joint_vel_error": 0.5499314069747925,
+      "ee_pos_error": 0.04442298412322998,
+      "ee_ori_error": 0.16248562932014465
+    }
+  },
+  {
+    "id": "l0r5r4fd",
+    "name": "2026-09-24_02-12-46",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/l0r5r4fd",
+    "created_at": "2026-09-24T09:12:50Z",
+    "commit": "c2e1e06",
+    "metrics": {
+      "success_rate": 0.9697265625,
+      "mpkpe": 0.10386253148317337,
+      "r_mpkpe": 0.028818916529417038,
+      "joint_vel_error": 0.5527459383010864,
+      "ee_pos_error": 0.04456000775098801,
+      "ee_ori_error": 0.1730731725692749
+    }
+  },
+  {
+    "id": "1vq88esp",
+    "name": "2026-09-23_02-02-45",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/1vq88esp",
+    "created_at": "2026-09-23T09:02:50Z",
+    "commit": "c2e1e06",
+    "metrics": {
+      "success_rate": 0.97265625,
+      "mpkpe": 0.10932296514511108,
+      "r_mpkpe": 0.029571279883384705,
+      "joint_vel_error": 0.5588440895080566,
+      "ee_pos_error": 0.04545873403549194,
+      "ee_ori_error": 0.17095652222633362
+    }
+  },
+  {
+    "id": "n9nyjwv7",
+    "name": "2026-09-22_02-23-46",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/n9nyjwv7",
+    "created_at": "2026-09-22T09:23:50Z",
+    "commit": "c2e1e06",
+    "metrics": {
+      "success_rate": 0.9755859375,
+      "mpkpe": 0.10316862910985947,
+      "r_mpkpe": 0.028722135350108147,
+      "joint_vel_error": 0.5409780740737915,
+      "ee_pos_error": 0.04391210153698921,
+      "ee_ori_error": 0.16071191430091858
+    }
+  },
+  {
+    "id": "ppzc9yn4",
+    "name": "2026-09-21_02-04-46",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/ppzc9yn4",
+    "created_at": "2026-09-21T09:04:50Z",
+    "commit": "27577db",
+    "metrics": {
+      "success_rate": 0.9873046875,
+      "mpkpe": 0.10924312472343445,
+      "r_mpkpe": 0.029369179159402847,
+      "joint_vel_error": 0.5667978525161743,
+      "ee_pos_error": 0.045938145369291306,
+      "ee_ori_error": 0.17122437059879303
+    }
+  },
+  {
+    "id": "i0echptr",
+    "name": "2026-09-20_02-14-46",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/i0echptr",
+    "created_at": "2026-09-20T09:14:50Z",
+    "commit": "27577db",
+    "metrics": {
+      "success_rate": 0.96875,
+      "mpkpe": 0.10012713074684143,
+      "r_mpkpe": 0.029289521276950836,
+      "joint_vel_error": 0.5537699460983276,
+      "ee_pos_error": 0.04499821364879608,
+      "ee_ori_error": 0.16657757759094238
+    }
   }
 ]
