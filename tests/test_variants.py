@@ -1570,6 +1570,7 @@ def test_dr_body_mass_scale_preserves_variant_baseline():
   from mjlab.managers.event_manager import EventTermCfg
   from mjlab.managers.scene_entity_config import SceneEntityCfg
   from mjlab.scene import SceneCfg
+  from mjlab.sim import Simulation
   from mjlab.terrains import TerrainEntityCfg
 
   light_mass = 0.1
@@ -1608,6 +1609,7 @@ def test_dr_body_mass_scale_preserves_variant_baseline():
     env = ManagerBasedRlEnv(cfg=env_cfg, device="cpu")
   try:
     obj_body = int(env.scene["object"].indexing.root_body_id)
+    assert isinstance(env.sim, Simulation)
     w2v = env.sim.world_to_variant["object"]
     actual = env.sim.model.body_mass[:, obj_body].cpu()
 

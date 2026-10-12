@@ -164,6 +164,7 @@ class Scene:
     mj_model: mujoco.MjModel,
     model: mjwarp.Model,
     data: mjwarp.Data,
+    sensor_context: bool = True,
   ):
     self._default_env_origins = torch.zeros(
       (self._cfg.num_envs, 3), device=self._device, dtype=torch.float32
@@ -175,7 +176,7 @@ class Scene:
 
     # Create SensorContext if any sensors require it.
     ctx_sensors = [s for s in self._sensors.values() if s.requires_sensor_context]
-    if ctx_sensors:
+    if ctx_sensors and sensor_context:
       camera_sensors = [s for s in ctx_sensors if isinstance(s, CameraSensor)]
       raycast_sensors = [s for s in ctx_sensors if isinstance(s, RayCastSensor)]
       self._sensor_context = SensorContext(

@@ -9,6 +9,7 @@ mjlab.sim
   :columns: 3
 
   - :class:`Simulation`
+  - :class:`MujocoSimulation`
   - :class:`SimulationCfg`
   - :class:`MujocoCfg`
   - :class:`TorchArray`
@@ -18,6 +19,9 @@ Simulation
 ----------
 
 .. autoclass:: Simulation
+  :members:
+
+.. autoclass:: MujocoSimulation
   :members:
 
 .. autoclass:: SimulationCfg

@@ -63,6 +63,29 @@ With no visible CUDA devices, Warp initializes CPU-only and never allocates
 on the GPU. See `issue #949
 <https://github.com/mujocolab/mjlab/issues/949>`_ for background.
 
+Can I simulate with C MuJoCo instead of MuJoCo Warp?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Yes. Setting ``SimulationCfg.backend`` to ``"mujoco"`` steps every
+environment with C MuJoCo on a CPU thread pool, through
+`mjbatch <https://github.com/kevinzakka/mjbatch>`_:
+
+.. code-block:: bash
+
+   uv run train Mjlab-Lift-Cube-Yam --env.sim.backend mujoco --env.scene.num-envs 4096
+
+The environment then lives on the CPU whatever ``device`` you pass, and the
+policy still trains on the GPU when one is available.
+``SimulationCfg.nthread`` sets the number of worker threads, which defaults
+to every logical CPU. The rest of the task config is unchanged: actuators,
+events, domain randomization, builtin, contact, and raycast sensors, and both
+viewers work as they do with MuJoCo Warp.
+
+Not supported on this backend yet:
+
+- Camera sensors.
+- Mesh variants.
+
 Performance
 -----------
 
