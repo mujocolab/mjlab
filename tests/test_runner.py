@@ -580,23 +580,26 @@ def _make_logger_mock(is_wandb: bool) -> MagicMock:
   [
     ("mjlab.tasks.velocity.rl.runner", "VelocityOnPolicyRunner"),
     ("mjlab.tasks.manipulation.rl.runner", "ManipulationOnPolicyRunner"),
+    ("mjlab.tasks.tracking.rl.runner", "MotionTrackingOnPolicyRunner"),
   ],
 )
-def test_task_runner_uploads_onnx_for_wandb_logger(
-  runner_module, runner_class, monkeypatch, tmp_path
-):
-  """ONNX is uploaded to W&B when the logger's writer is a WandbLogWriter."""
+def test_task_runners_export_onnx_on_save(runner_module, runner_class):
   import importlib
 
-  runner_mod = importlib.import_module(runner_module)
-  runner_cls = getattr(runner_mod, runner_class)
-  runner = runner_cls.__new__(runner_cls)
+  runner_cls = getattr(importlib.import_module(runner_module), runner_class)
+  assert runner_cls.export_onnx_on_save
+
+
+def test_runner_uploads_onnx_for_wandb_logger(monkeypatch, tmp_path):
+  """ONNX is uploaded to W&B when the logger's writer is a WandbLogWriter."""
+  import mjlab.rl.runner as runner_mod
+
+  runner = MjlabOnPolicyRunner.__new__(MjlabOnPolicyRunner)
   runner.cfg = {"upload_model": True}
   runner.logger = _make_logger_mock(is_wandb=True)
   runner.env = MagicMock()
   runner.export_policy_to_onnx = MagicMock()
 
-  monkeypatch.setattr(MjlabOnPolicyRunner, "save", lambda *a, **kw: None)
   monkeypatch.setattr(runner_mod, "get_base_metadata", lambda *a: {})
   monkeypatch.setattr(runner_mod, "attach_metadata_to_onnx", lambda *a: None)
 
@@ -609,7 +612,7 @@ def test_task_runner_uploads_onnx_for_wandb_logger(
   mock_run.name = "test-run"
   with patch.object(runner_mod, "wandb") as mock_wandb:
     mock_wandb.run = mock_run
-    runner.save(str(checkpoint))
+    runner._export_onnx_with_metadata(str(checkpoint))
 
   mock_wandb.save.assert_called_once_with(
     str(onnx_path), base_path=str(checkpoint.parent)
@@ -641,14 +644,6 @@ def test_tracking_runner_registers_artifact_for_wandb_logger(monkeypatch, tmp_pa
   runner = _make_tracking_runner_shell("org/motions/motion:latest", is_wandb=True)
 
   monkeypatch.setattr(MjlabOnPolicyRunner, "save", lambda *a, **kw: None)
-  monkeypatch.setattr(runner_mod, "get_base_metadata", lambda *a: {})
-  monkeypatch.setattr(runner_mod, "attach_metadata_to_onnx", lambda *a: None)
-  monkeypatch.setattr(
-    runner.env.unwrapped.__class__,
-    "export_policy_to_onnx",
-    lambda *a, **kw: None,
-    raising=False,
-  )
 
   checkpoint = tmp_path / "run-dir" / "model_100.pt"
   checkpoint.parent.mkdir()
@@ -675,8 +670,6 @@ def test_tracking_runner_does_not_register_artifact_for_tensorboard(
   runner = _make_tracking_runner_shell("org/motions/motion:latest", is_wandb=False)
 
   monkeypatch.setattr(MjlabOnPolicyRunner, "save", lambda *a, **kw: None)
-  monkeypatch.setattr(runner_mod, "get_base_metadata", lambda *a: {})
-  monkeypatch.setattr(runner_mod, "attach_metadata_to_onnx", lambda *a: None)
 
   checkpoint = tmp_path / "run-dir" / "model_100.pt"
   checkpoint.parent.mkdir()
