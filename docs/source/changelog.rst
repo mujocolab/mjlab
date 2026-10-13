@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added a ``cu126`` extra (``uv sync --extra cu126``) that installs torch built for
+  CUDA 12.6, for machines whose NVIDIA driver is older than 580. It does not include
+  kernels for Blackwell GPUs.
 - Added ``SimulationCfg.graph_conditional`` to toggle MuJoCo Warp's CUDA graph
   conditional nodes, which require CUDA 12.4 or newer.
 
@@ -27,6 +30,12 @@ Fixed
 - Partial environment resets now preserve untouched environments' actuator delay
   histories, lag schedules, and control outputs in both explicit and automatic
   resets :issue:`1216`.
+- The viewer now resets recurrent policy hidden state for environments that terminate
+  or time out. Previously it only reset the policy when the user pressed the reset
+  button, so each auto-reset environment kept the previous episode's memory :issue:`1222`.
+- ``--agent.wandb-tags`` no longer drops tags with wandb 0.30. Tags were passed through
+  the ``WANDB_TAGS`` env var, which wandb ignores once ``wandb.setup()`` has run, so
+  runs were left untagged (the nightly benchmark filters on its ``nightly`` tag).
 - Capped ``wandb`` below 0.29, which removed the ``start_method`` setting still passed
   by ``rsl-rl-lib`` and crashed training runs launched with ``--logger wandb``.
 - ``distribution="gaussian"`` domain randomization now draws an independent value per
