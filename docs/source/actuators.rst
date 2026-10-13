@@ -454,6 +454,11 @@ joint.
             ([num_envs, num_targets] tensor)
         """
 
+On reset, ``cmd.reset_env_ids`` selects the environments to initialize; it is
+``None`` during physics steps. Command tensors always contain the full batch.
+Stateful ``compute()`` implementations must backfill only the selected rows
+(e.g. using ``CircularBuffer.backfill``), leaving other environments untouched.
+
 **Lifecycle hooks:**
 
 - ``edit_spec``: Modify MjSpec before compilation (add actuators, set

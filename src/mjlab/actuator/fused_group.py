@@ -194,8 +194,11 @@ class FusedActuatorGroup:
         for act in group.absorbed_actuators:
           act._delay_buffer = group.delay_buffer
 
-  def apply_controls(self, data: EntityData) -> None:
-    """Compute and write fused actuator controls to simulation data."""
+  def apply_controls(
+    self, data: EntityData, env_ids: torch.Tensor | None = None
+  ) -> None:
+    """Write controls, backfilling only env_ids on the reset path."""
+    rows = slice(None) if env_ids is None else env_ids
     for group in self._groups:
       pos_attr, vel_attr, eff_attr, cur_pos_attr, cur_vel_attr = _FIELD_MAP[
         group.transmission_type
@@ -209,7 +212,7 @@ class FusedActuatorGroup:
 
       if group.delay_buffer is not None:
         pos_target, vel_target, effort_target = delay_command(
-          group.delay_buffer, pos_target, vel_target, effort_target
+          group.delay_buffer, pos_target, vel_target, effort_target, env_ids
         )
 
       cmd = ActuatorCmd(
@@ -220,4 +223,4 @@ class FusedActuatorGroup:
         vel=vel,
       )
       torques = group.actuator_type.control_law(group.params, cmd)
-      data.write_ctrl(torques, group.ctrl_ids)
+      data.write_ctrl(torques[rows], group.ctrl_ids, env_ids)

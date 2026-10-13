@@ -158,11 +158,16 @@ class LearnedMlpActuator(DcMotorActuator[LearnedMlpActuatorCfg]):
 
     # Update history buffers with current state.
     pos_error = cmd.position_target - cmd.pos
-    self._pos_error_history.append(pos_error)
-    self._vel_history.append(cmd.vel)
+    if cmd.reset_env_ids is None:
+      self._pos_error_history.append(pos_error)
+      self._vel_history.append(cmd.vel)
+    else:
+      self._pos_error_history.backfill(pos_error, cmd.reset_env_ids)
+      self._vel_history.backfill(cmd.vel, cmd.reset_env_ids)
 
     # Save velocity for DC motor clipping in parent class.
-    self._joint_vel_clipped[:] = cmd.vel
+    rows = slice(None) if cmd.reset_env_ids is None else cmd.reset_env_ids
+    self._joint_vel_clipped[rows] = cmd.vel[rows]
 
     num_envs = cmd.pos.shape[0]
     num_joints = cmd.pos.shape[1]

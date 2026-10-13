@@ -5,6 +5,8 @@ import torch
 from conftest import get_test_device
 from test_command_manager import CounterCommand, CounterCommandCfg
 
+from mjlab.actuator import XmlActuatorCfg
+from mjlab.entity import EntityArticulationInfoCfg
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.managers.event_manager import EventTermCfg
 from mjlab.tasks.cartpole.cartpole_env_cfg import cartpole_balance_env_cfg
@@ -196,6 +198,72 @@ def test_partial_reset_leaves_other_envs_obs_buffers_untouched(device):
   assert torch.all(h1 == h1[0])
   assert hist.current_length[1].item() == 1
   env.close()
+
+
+@pytest.mark.parametrize("auto_reset", [False, True])
+def test_partial_reset_preserves_actuator_delay(device, auto_reset):
+  """Unrelated resets must not advance actuator history or change the trajectory."""
+  cfg = _make_cfg(auto_reset)
+  cfg.scene.num_envs = 2
+  cfg.episode_length_s = 10.0
+  cfg.decimation = 2
+  cfg.scene.entities["cartpole"].articulation = EntityArticulationInfoCfg(
+    actuators=(
+      XmlActuatorCfg(
+        target_names_expr=("slider",),
+        delay_min_lag=3,
+        delay_max_lag=3,
+        delay_update_period=4,
+        delay_per_env_phase=False,
+      ),
+    )
+  )
+  env = ManagerBasedRlEnv(cfg, device=device)
+  delay = env.scene["cartpole"].actuators[0]._delay_buffer
+  assert delay is not None
+
+  def snapshot():
+    state = {
+      "history": delay._buffer.buffer,
+      "count": delay._step_count,
+      "lag": delay.current_lags,
+      "phase": delay._phase_offsets,
+      "ctrl": env.sim.data.ctrl,
+      "time": env.sim.data.time,
+      "qpos": env.sim.data.qpos,
+      "qvel": env.sim.data.qvel,
+    }
+    return {name: value[1].clone() for name, value in state.items()}
+
+  try:
+    reference = []
+    for replay in (False, True):
+      env.reset(seed=0)
+      # Both the first reset and a full reset of populated buffers initialize
+      # controls and history without consuming a physics step.
+      assert torch.all(env.sim.data.ctrl == 0)
+      assert torch.all(delay._step_count == 0)
+      assert torch.all(delay._buffer.current_length == 1)
+      for step in range(8):
+        if replay and step == 4:
+          if auto_reset:
+            env.episode_length_buf[0] = env.max_episode_length - 1
+          else:
+            before = snapshot()
+            env.reset(env_ids=torch.tensor([0], device=device))
+            for name, value in snapshot().items():
+              assert torch.equal(value, before[name]), name
+        env.step(torch.full((2, 1), step / 10.0, device=device))
+        assert delay._step_count[1] == (step + 1) * cfg.decimation
+        if replay:
+          for name, value in snapshot().items():
+            torch.testing.assert_close(value, reference[step][name], msg=name)
+          if auto_reset and step == 4:
+            assert env.episode_length_buf[0] == 0
+        else:
+          reference.append(snapshot())
+  finally:
+    env.close()
 
 
 # Section: parity between auto-reset and the explicit reset() flow.

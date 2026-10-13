@@ -887,13 +887,16 @@ class Entity:
     )
     self.reset(env_ids)
 
-  def write_data_to_sim(self) -> None:
+  def write_data_to_sim(self, env_ids: torch.Tensor | None = None) -> None:
     """Convert actuator targets into low-level controls and write them to the sim.
 
     Called before each ``sim.step()`` within the decimation loop. Builtin actuators are
     applied in a single batched operation; custom actuators are applied individually.
+
+    Pass ``env_ids`` after a reset to initialize only those environments' controls
+    and backfill their actuator histories without advancing simulation time.
     """
-    self._apply_actuator_controls()
+    self._apply_actuator_controls(env_ids)
 
   def write_ctrl_to_sim(
     self,
@@ -1332,10 +1335,12 @@ class Entity:
       free_joint_v_adr=free_joint_v_adr,
     )
 
-  def _apply_actuator_controls(self) -> None:
-    self._builtin_group.apply_controls(self._data)
-    self._fused_actuator_group.apply_controls(self._data)
+  def _apply_actuator_controls(self, env_ids: torch.Tensor | None = None) -> None:
+    self._builtin_group.apply_controls(self._data, env_ids)
+    self._fused_actuator_group.apply_controls(self._data, env_ids)
+    rows = slice(None) if env_ids is None else env_ids
     for act in self._custom_actuators:
       command = act.get_command(self._data)
+      command.reset_env_ids = env_ids
       command = act.apply_delay(command)
-      self._data.write_ctrl(act.compute(command), act.ctrl_ids)
+      self._data.write_ctrl(act.compute(command)[rows], act.ctrl_ids, env_ids)

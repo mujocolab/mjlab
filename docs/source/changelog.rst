@@ -27,6 +27,9 @@ Changed
 Fixed
 ^^^^^
 
+- Partial environment resets now preserve untouched environments' actuator delay
+  histories, lag schedules, and control outputs in both explicit and automatic
+  resets :issue:`1216`.
 - The viewer now resets recurrent policy hidden state for environments that terminate
   or time out. Previously it only reset the policy when the user pressed the reset
   button, so each auto-reset environment kept the previous episode's memory :issue:`1222`.
