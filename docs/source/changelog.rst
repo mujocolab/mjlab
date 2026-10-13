@@ -13,6 +13,10 @@ Added
   kernels for Blackwell GPUs.
 - Added ``SimulationCfg.graph_conditional`` to toggle MuJoCo Warp's CUDA graph
   conditional nodes, which require CUDA 12.4 or newer.
+- Added ``MjlabOnPolicyRunner.get_export_metadata()`` so custom runners can add
+  fields to the exported ONNX metadata by overriding it, and
+  ``MjlabOnPolicyRunner.export_onnx_on_save`` to export ONNX on every checkpoint.
+  The velocity, manipulation and tracking runners now share this export path.
 
 Changed
 ^^^^^^^
