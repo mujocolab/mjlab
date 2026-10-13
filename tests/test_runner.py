@@ -170,6 +170,34 @@ def test_export_policy_to_onnx(env, device):
     onnx.checker.check_model(str(onnx_path))
 
 
+def test_save_exports_onnx_with_custom_metadata(env, device, monkeypatch):
+  """Subclasses can extend ONNX metadata by overriding get_export_metadata()."""
+
+  class _Runner(MjlabOnPolicyRunner):
+    export_onnx_on_save = True
+
+    def get_export_metadata(self, run_name):
+      metadata = super().get_export_metadata(run_name)
+      metadata["robot_variant"] = "v2"
+      return metadata
+
+  wrapped_env = RslRlVecEnvWrapper(env)
+  agent_cfg = RslRlOnPolicyRunnerCfg(
+    num_steps_per_env=4, max_iterations=10, save_interval=5
+  )
+
+  with tempfile.TemporaryDirectory() as tmpdir:
+    runner = _Runner(wrapped_env, asdict(agent_cfg), log_dir=tmpdir, device=device)
+    monkeypatch.setattr(runner.logger, "save_model", lambda *args, **kwargs: None)
+    runner.save(str(Path(tmpdir) / "model_0.pt"))
+
+    _, _, onnx_path = runner._get_export_paths(str(Path(tmpdir) / "model_0.pt"))
+    props = {p.key: p.value for p in onnx.load(str(onnx_path)).metadata_props}
+    assert props["robot_variant"] == "v2"
+    assert props["run_path"] == "local"
+    assert "joint_names" in props
+
+
 def _make_actor(obs_dim=8, output_dim=4, obs_normalization=True):
   obs = TensorDict({"actor": torch.zeros(1, obs_dim)})
   obs_groups = {"actor": ["actor"]}
