@@ -8,10 +8,6 @@ from rsl_rl.utils import WandbLogWriter
 from torch import nn
 
 from mjlab.rl import RslRlVecEnvWrapper
-from mjlab.rl.exporter_utils import (
-  attach_metadata_to_onnx,
-  get_base_metadata,
-)
 from mjlab.rl.runner import MjlabOnPolicyRunner
 from mjlab.tasks.tracking.mdp import MotionCommand
 
@@ -47,6 +43,7 @@ class _OnnxMotionModel(nn.Module):
 
 class MotionTrackingOnPolicyRunner(MjlabOnPolicyRunner):
   env: RslRlVecEnvWrapper
+  export_onnx_on_save = True
 
   def __init__(
     self,
@@ -90,28 +87,20 @@ class MotionTrackingOnPolicyRunner(MjlabOnPolicyRunner):
       dynamo=False,
     )
 
+  def get_export_metadata(self, run_name: str) -> dict[str, list | str | float]:
+    metadata = super().get_export_metadata(run_name)
+    motion_term = cast(
+      MotionCommand, self.env.unwrapped.command_manager.get_term("motion")
+    )
+    metadata["anchor_body_name"] = motion_term.cfg.anchor_body_name
+    metadata["body_names"] = list(motion_term.cfg.body_names)
+    return metadata
+
   def save(self, path: str, infos=None):
     super().save(path, infos)
-    policy_dir, filename, onnx_path = self._get_export_paths(path)
-    try:
-      self.export_policy_to_onnx(str(policy_dir), filename)
-      is_wandb = isinstance(self.logger.writer, WandbLogWriter)
-      run_name: str = wandb.run.name if is_wandb and wandb.run else "local"  # type: ignore[assignment]
-      metadata = get_base_metadata(self.env.unwrapped, run_name)
-      motion_term = cast(
-        MotionCommand, self.env.unwrapped.command_manager.get_term("motion")
-      )
-      metadata.update(
-        {
-          "anchor_body_name": motion_term.cfg.anchor_body_name,
-          "body_names": list(motion_term.cfg.body_names),
-        }
-      )
-      attach_metadata_to_onnx(str(onnx_path), metadata)
-      if is_wandb and self.cfg["upload_model"]:
-        wandb.save(str(onnx_path), base_path=str(policy_dir))
-        if self.registry_name is not None:
-          wandb.run.use_artifact(self.registry_name)  # type: ignore
-          self.registry_name = None
-    except Exception as e:
-      print(f"[WARN] ONNX export failed (training continues): {e}")
+    uploaded = (
+      isinstance(self.logger.writer, WandbLogWriter) and self.cfg["upload_model"]
+    )
+    if uploaded and self.registry_name is not None:
+      wandb.run.use_artifact(self.registry_name)  # type: ignore
+      self.registry_name = None
