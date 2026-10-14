@@ -278,30 +278,18 @@ def test_raycast_grid_pattern_num_rays(device):
   assert sensor.num_rays == 6
 
 
-def test_raycast_grid_pattern_anisotropic_resolution(robot_with_floor_xml, device):
+def test_raycast_grid_pattern_anisotropic_resolution(device):
   """Per-axis resolution sets independent spacing along x and y."""
-  raycast_cfg = RayCastSensorCfg(
-    name="aniso_scan",
-    frame=ObjRef(type="body", name="base", entity="robot"),
-    # X: from -0.5 to 0.5 step 0.25 -> 5 points.
-    # Y: from -0.2 to 0.2 step 0.1 -> 5 points.
-    pattern=GridPatternCfg(size=(1.0, 0.4), resolution=(0.25, 0.1)),
-    max_distance=10.0,
-  )
+  # X: from -0.5 to 0.5 step 0.25 -> 5 points.
+  # Y: from -0.2 to 0.2 step 0.1 -> 5 points.
+  pattern = GridPatternCfg(size=(1.0, 0.4), resolution=(0.25, 0.1))
+  offsets, _ = pattern.generate_rays(None, device)
 
-  scene, sim = make_scene_and_sim(device, robot_with_floor_xml, sensors=(raycast_cfg,))
-  sensor = scene["aniso_scan"]
-  assert sensor.num_rays == 25
-
-  sim.step()
-  sim.sense()
-  hit_xy = sensor.data.hit_pos_w[0, :, :2]
-
-  # Unique hit coordinates along each axis reveal the spacing.
-  xs = torch.unique(hit_xy[:, 0].round(decimals=3))
-  ys = torch.unique(hit_xy[:, 1].round(decimals=3))
-  assert torch.allclose(xs.diff(), torch.full_like(xs.diff(), 0.25), atol=0.01)
-  assert torch.allclose(ys.diff(), torch.full_like(ys.diff(), 0.1), atol=0.01)
+  assert offsets.shape == (25, 3)
+  expected_x = torch.arange(-0.5, 0.51, 0.25, device=device)
+  expected_y = torch.arange(-0.2, 0.21, 0.1, device=device)
+  assert torch.allclose(offsets[:, 0].unique(), expected_x)
+  assert torch.allclose(offsets[:, 1].unique(), expected_y)
 
 
 def test_raycast_different_direction(device):

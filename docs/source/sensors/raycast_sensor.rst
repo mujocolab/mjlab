@@ -82,7 +82,7 @@ emitted from the sensor frame.
     # Parallel grid: fixed footprint, height-invariant.
     grid = GridPatternCfg(
         size=(1.0, 1.0),              # Grid dimensions in meters
-        resolution=0.1,               # Spacing between rays (or an (x, y) tuple)
+        resolution=0.1,               # Spacing between rays
         direction=(0.0, 0.0, -1.0),   # Ray direction (down)
     )
 
