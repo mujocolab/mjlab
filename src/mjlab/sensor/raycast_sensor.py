@@ -62,6 +62,14 @@ class GridPatternCfg:
   resolution: float = 0.1
   """Spacing between rays in meters."""
 
+  offset: tuple[float, float] = (0.0, 0.0)
+  """Grid center (x, y) in frame-local coordinates, in meters.
+
+  Shifts the whole grid relative to the attachment frame. Like the ray
+  positions themselves, the offset is rotated by ``ray_alignment``, so a
+  forward offset stays forward in the yaw frame with ``"yaw"`` alignment.
+  """
+
   direction: tuple[float, float, float] = (0.0, 0.0, -1.0)
   """Ray direction in frame-local coordinates."""
 
@@ -79,6 +87,7 @@ class GridPatternCfg:
     """
     del mj_model  # Unused for grid pattern
     size_x, size_y = self.size
+    center_x, center_y = self.offset
     res = self.resolution
 
     x = torch.arange(
@@ -91,8 +100,8 @@ class GridPatternCfg:
 
     num_rays = grid_x.numel()
     local_offsets = torch.zeros((num_rays, 3), device=device, dtype=torch.float32)
-    local_offsets[:, 0] = grid_x.flatten()
-    local_offsets[:, 1] = grid_y.flatten()
+    local_offsets[:, 0] = grid_x.flatten() + center_x
+    local_offsets[:, 1] = grid_y.flatten() + center_y
 
     # All rays share the same direction for grid pattern.
     direction = torch.tensor(self.direction, device=device, dtype=torch.float32)

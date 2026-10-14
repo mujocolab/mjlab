@@ -13,6 +13,9 @@ Added
   kernels for Blackwell GPUs.
 - Added ``SimulationCfg.graph_conditional`` to toggle MuJoCo Warp's CUDA graph
   conditional nodes, which require CUDA 12.4 or newer.
+- Added ``GridPatternCfg.offset`` to shift the ray grid center in frame-local XY,
+  e.g. to bias a height scan toward the direction of travel. The offset follows
+  ``ray_alignment`` like the rest of the pattern.
 
 Changed
 ^^^^^^^
