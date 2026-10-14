@@ -210,6 +210,19 @@ Key changes:
   these changes for you.
 - ``asset_name`` has been unified to ``entity_name`` across all configurations.
 
+4. Contact Termination Threshold
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Isaac Lab's ``illegal_contact`` requires an explicit ``threshold``.
+The mjlab velocity task's equivalent accepts ``force_threshold`` with a
+default of 10.0 N. Set this parameter explicitly to preserve the intended
+threshold when migrating.
+
+The threshold applies only when the sensor provides force history.
+Otherwise, the term uses ``found`` and terminates on any detected contact,
+regardless of ``force_threshold``. Check both the sensor configuration
+and the monitored bodies when comparing termination behavior.
+
 Complete Example Comparison
 ---------------------------
 
