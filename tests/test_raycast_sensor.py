@@ -292,6 +292,29 @@ def test_raycast_grid_pattern_anisotropic_resolution(device):
   assert torch.allclose(offsets[:, 1].unique(), expected_y)
 
 
+def test_raycast_grid_pattern_offset(robot_with_floor_xml, device):
+  """Grid offset shifts the footprint in frame-local XY."""
+  offset = (0.5, -0.2)
+  raycast_cfg = RayCastSensorCfg(
+    name="offset_scan",
+    frame=ObjRef(type="body", name="base", entity="robot"),
+    pattern=GridPatternCfg(size=(0.2, 0.2), resolution=0.1, offset=offset),
+    max_distance=10.0,
+  )
+
+  scene, sim = make_scene_and_sim(device, robot_with_floor_xml, sensors=(raycast_cfg,))
+  sim.step()
+  sim.sense()
+  data = scene["offset_scan"].data
+
+  # Body is at the origin in XY, so the hit centroid equals the offset.
+  centroid = data.hit_pos_w[0, :, :2].mean(dim=0)
+  expected = torch.tensor(offset, device=device)
+  assert torch.allclose(centroid, expected, atol=0.02)
+  # Shifting the grid does not change the distance to a flat floor.
+  assert torch.allclose(data.distances, torch.full_like(data.distances, 2.0), atol=0.1)
+
+
 def test_raycast_different_direction(device):
   """Verify rays work with non-default direction."""
   wall_xml = """
