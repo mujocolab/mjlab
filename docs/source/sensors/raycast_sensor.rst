@@ -83,7 +83,6 @@ emitted from the sensor frame.
     grid = GridPatternCfg(
         size=(1.0, 1.0),              # Grid dimensions in meters
         resolution=0.1,               # Spacing between rays
-        offset=(0.0, 0.0),            # Grid center in frame-local XY
         direction=(0.0, 0.0, -1.0),   # Ray direction (down)
     )
 
