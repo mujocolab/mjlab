@@ -86,6 +86,9 @@ emitted from the sensor frame.
         direction=(0.0, 0.0, -1.0),   # Ray direction (down)
     )
 
+    # Finer spacing along x than y.
+    anisotropic = GridPatternCfg(size=(1.6, 1.0), resolution=(0.05, 0.1))
+
     # Pinhole: perspective projection, diverging rays.
     pinhole = PinholeCameraPatternCfg(
         width=16,

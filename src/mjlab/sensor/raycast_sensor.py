@@ -59,8 +59,12 @@ class GridPatternCfg:
   size: tuple[float, float] = (1.0, 1.0)
   """Grid size (length, width) in meters."""
 
-  resolution: float = 0.1
-  """Spacing between rays in meters."""
+  resolution: float | tuple[float, float] = 0.1
+  """Spacing between rays in meters.
+
+  A single float applies to both axes. A ``(x, y)`` tuple sets the spacing
+  per axis, e.g. finer along the direction of travel than across it.
+  """
 
   direction: tuple[float, float, float] = (0.0, 0.0, -1.0)
   """Ray direction in frame-local coordinates."""
@@ -80,12 +84,15 @@ class GridPatternCfg:
     del mj_model  # Unused for grid pattern
     size_x, size_y = self.size
     res = self.resolution
+    if isinstance(res, (int, float)):
+      res = (res, res)
+    res_x, res_y = res
 
     x = torch.arange(
-      -size_x / 2, size_x / 2 + res * 0.5, res, device=device, dtype=torch.float32
+      -size_x / 2, size_x / 2 + res_x * 0.5, res_x, device=device, dtype=torch.float32
     )
     y = torch.arange(
-      -size_y / 2, size_y / 2 + res * 0.5, res, device=device, dtype=torch.float32
+      -size_y / 2, size_y / 2 + res_y * 0.5, res_y, device=device, dtype=torch.float32
     )
     grid_x, grid_y = torch.meshgrid(x, y, indexing="xy")
 

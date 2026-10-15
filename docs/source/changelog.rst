@@ -13,6 +13,8 @@ Added
   kernels for Blackwell GPUs.
 - Added ``SimulationCfg.graph_conditional`` to toggle MuJoCo Warp's CUDA graph
   conditional nodes, which require CUDA 12.4 or newer.
+- Added per-axis ray spacing to ``GridPatternCfg``: ``resolution`` now also accepts
+  an ``(x, y)`` tuple. A single float still applies to both axes.
 
 Changed
 ^^^^^^^
