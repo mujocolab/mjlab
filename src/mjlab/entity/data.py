@@ -228,9 +228,12 @@ class EntityData:
       raise ValueError("Cannot write mocap pose for non-mocap entity.")
     assert pose.shape[-1] == self.ROOT_POSE_DIM
 
-    env_ids = self._resolve_env_ids(env_ids)
-    self.data.mocap_pos[env_ids, self.indexing.mocap_id] = pose[:, 0:3].unsqueeze(1)
-    self.data.mocap_quat[env_ids, self.indexing.mocap_id] = pose[:, 3:7].unsqueeze(1)
+    # mocap_id is a single int, so index env_ids directly rather than through
+    # _resolve_env_ids: the target is (N, 3) for both tensor and slice env_ids.
+    if env_ids is None:
+      env_ids = slice(None)
+    self.data.mocap_pos[env_ids, self.indexing.mocap_id] = pose[:, 0:3]
+    self.data.mocap_quat[env_ids, self.indexing.mocap_id] = pose[:, 3:7]
 
   def clear_state(self, env_ids: torch.Tensor | slice | None = None) -> None:
     if self.is_actuated:
