@@ -17,6 +17,11 @@ Added
   conditional nodes, which require CUDA 12.4 or newer.
 - Added ``RewardManager.term_rewards`` and ``RewardManager.get_term()`` for the
   per-term reward vector from the last step :issue:`1223`.
+- Added ``MotionCommandCfg.adaptive_uniform_mixing``. The default ``"additive"`` keeps
+  the current sampler, where ``adaptive_uniform_ratio`` acts as a pseudo-count whose
+  weight shrinks as ``num_envs`` and the failure rate grow. ``"mixture"`` mixes the
+  normalized failure distribution with a uniform one, so every bin keeps at least
+  ``adaptive_uniform_ratio / num_bins`` at any scale :issue:`1153`.
 
 Changed
 ^^^^^^^

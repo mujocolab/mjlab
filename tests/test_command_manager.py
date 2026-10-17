@@ -177,3 +177,48 @@ def test_motion_command_timer_resample_triggers_forward():
   cmd._env.sim.forward.reset_mock()
   MotionCommand._update_command(cmd, env_ids=None)
   cmd._env.sim.forward.assert_not_called()
+
+
+def _make_adaptive_probability_stub(counts, mixing, ratio=0.1, kernel_size=1):
+  """A stub with the state MotionCommand._adaptive_sampling_probabilities reads."""
+  cmd = Mock()
+  cmd.bin_failed_count = counts
+  cmd.bin_count = counts.numel()
+  cmd.cfg = Mock()
+  cmd.cfg.adaptive_uniform_ratio = ratio
+  cmd.cfg.adaptive_uniform_mixing = mixing
+  cmd.cfg.adaptive_kernel_size = kernel_size
+  kernel = torch.tensor([0.8**i for i in range(kernel_size)])
+  cmd.kernel = kernel / kernel.sum()
+  return cmd
+
+
+def test_adaptive_additive_mixing_is_pseudo_count():
+  """The default "additive" mode keeps the original pseudo-count formula."""
+  counts = torch.tensor([10.0, 0.0, 0.0, 0.0])
+  cmd = _make_adaptive_probability_stub(counts, "additive")
+  probs = MotionCommand._adaptive_sampling_probabilities(cmd)
+  expected = (counts + 0.1 / 4) / (counts + 0.1 / 4).sum()
+  assert torch.allclose(probs, expected)
+
+
+def test_adaptive_mixture_mixing_keeps_scale_invariant_floor():
+  """In "mixture" mode every bin keeps ratio / num_bins at any failure scale
+  (issue #1153), including after kernel smoothing."""
+  num_bins, ratio = 100, 0.1
+  probs_per_scale = []
+  for scale in (0.1, 1.0, 10.0, 50.0):
+    counts = torch.zeros(num_bins)
+    counts[50] = scale
+    cmd = _make_adaptive_probability_stub(counts, "mixture", ratio, kernel_size=3)
+    probs = MotionCommand._adaptive_sampling_probabilities(cmd)
+    assert probs.sum().item() == pytest.approx(1.0)
+    assert probs.min().item() >= ratio / num_bins - 1e-7
+    probs_per_scale.append(probs)
+  for probs in probs_per_scale[1:]:
+    assert torch.allclose(probs, probs_per_scale[0])
+
+  # No failures recorded yet: fall back to uniform instead of dividing by zero.
+  cmd = _make_adaptive_probability_stub(torch.zeros(num_bins), "mixture", ratio)
+  probs = MotionCommand._adaptive_sampling_probabilities(cmd)
+  assert torch.allclose(probs, torch.full((num_bins,), 1.0 / num_bins))

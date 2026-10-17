@@ -259,20 +259,7 @@ class MotionCommand(CommandTerm):
       self._current_bin_failed[:] = torch.bincount(fail_bins, minlength=self.bin_count)
 
     # Sample.
-    sampling_probabilities = (
-      self.bin_failed_count + self.cfg.adaptive_uniform_ratio / float(self.bin_count)
-    )
-    sampling_probabilities = torch.nn.functional.pad(
-      sampling_probabilities.unsqueeze(0).unsqueeze(0),
-      (0, self.cfg.adaptive_kernel_size - 1),  # Non-causal kernel
-      mode="replicate",
-    )
-    sampling_probabilities = torch.nn.functional.conv1d(
-      sampling_probabilities, self.kernel.view(1, 1, -1)
-    ).view(-1)
-
-    sampling_probabilities = sampling_probabilities / sampling_probabilities.sum()
-
+    sampling_probabilities = self._adaptive_sampling_probabilities()
     sampled_bins = torch.multinomial(
       sampling_probabilities, len(env_ids), replacement=True
     )
@@ -289,6 +276,34 @@ class MotionCommand(CommandTerm):
     self.metrics["sampling_entropy"][:] = H_norm
     self.metrics["sampling_top1_prob"][:] = pmax
     self.metrics["sampling_top1_bin"][:] = imax.float() / self.bin_count
+
+  def _adaptive_sampling_probabilities(self) -> torch.Tensor:
+    """Distribution over motion bins used to draw adaptive start frames."""
+    uniform_ratio = self.cfg.adaptive_uniform_ratio
+    uniform_term = uniform_ratio / float(self.bin_count)
+    sampling_probabilities = self.bin_failed_count
+    if self.cfg.adaptive_uniform_mixing == "additive":
+      sampling_probabilities = sampling_probabilities + uniform_term
+    sampling_probabilities = torch.nn.functional.pad(
+      sampling_probabilities.unsqueeze(0).unsqueeze(0),
+      (0, self.cfg.adaptive_kernel_size - 1),  # Non-causal kernel
+      mode="replicate",
+    )
+    sampling_probabilities = torch.nn.functional.conv1d(
+      sampling_probabilities, self.kernel.view(1, 1, -1)
+    ).view(-1)
+
+    # Fall back to uniform when there is no failure mass yet (only reachable
+    # in "mixture" mode or with a zero uniform ratio).
+    total = sampling_probabilities.sum()
+    sampling_probabilities = torch.where(
+      total > 0, sampling_probabilities / total, 1.0 / self.bin_count
+    )
+    if self.cfg.adaptive_uniform_mixing == "mixture":
+      # Mix after smoothing so every bin keeps at least uniform_term.
+      sampling_probabilities = sampling_probabilities * (1.0 - uniform_ratio)
+      sampling_probabilities = sampling_probabilities + uniform_term
+    return sampling_probabilities
 
   def _uniform_sampling(self, env_ids: torch.Tensor):
     self.time_steps[env_ids] = torch.randint(
@@ -616,6 +631,21 @@ class MotionCommandCfg(CommandTermCfg):
   adaptive_kernel_size: int = 1
   adaptive_lambda: float = 0.8
   adaptive_uniform_ratio: float = 0.1
+  """Weight of the uniform component in adaptive sampling. How it combines with
+  the failure statistics depends on ``adaptive_uniform_mixing``."""
+  adaptive_uniform_mixing: Literal["additive", "mixture"] = "additive"
+  """How ``adaptive_uniform_ratio`` is combined with the per-bin failure EMA.
+
+  - ``"additive"``: add ``adaptive_uniform_ratio / num_bins`` to each bin's failure
+    EMA before normalizing, as in BeyondMimic. The EMA tracks failure counts, so
+    this acts as a pseudo-count: its share of the distribution is
+    ``ratio / (sum(EMA) + ratio)``, which shrinks as ``num_envs`` or the failure
+    rate grows and gives no per-bin lower bound.
+  - ``"mixture"``: normalize the smoothed failure EMA, then mix it with a uniform
+    distribution, ``(1 - ratio) * p + ratio / num_bins``. Every bin keeps at
+    least ``ratio / num_bins`` regardless of ``num_envs`` or the failure rate.
+    ``adaptive_uniform_ratio`` should be in ``[0, 1]``.
+  """
   adaptive_alpha: float = 0.001
   sampling_mode: Literal["adaptive", "uniform", "start"] = "adaptive"
 
