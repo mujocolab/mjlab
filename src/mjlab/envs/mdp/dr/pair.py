@@ -55,7 +55,7 @@ def pair_friction(
       roll2 = roll1 if roll axes are targeted). Use this to maintain isotropic
       friction, matching MuJoCo's geom friction convention.
   """
-  _randomize_model_field(
+  pair_indices = _randomize_model_field(
     env,
     env_ids,
     "pair_friction",
@@ -76,8 +76,6 @@ def pair_friction(
       if env_ids is None
       else env_ids.to(env.device, dtype=torch.int)
     )
-    asset = env.scene[asset_cfg.name]
-    pair_indices = asset.indexing.pair_ids[asset_cfg.pair_ids]
     env_grid, pair_grid = torch.meshgrid(_env_ids, pair_indices, indexing="ij")
     pf = env.sim.model.pair_friction
     pf[env_grid, pair_grid, 1] = pf[env_grid, pair_grid, 0]

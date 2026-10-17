@@ -61,14 +61,19 @@ def _randomize_model_field(
   default_axes: list[int] | None = None,
   valid_axes: list[int] | None = None,
   use_address: bool = False,
-) -> None:
-  """Core randomization engine for model fields."""
+) -> torch.Tensor:
+  """Core randomization engine for model fields.
+
+  Returns the indices along the field's entity dimension that were written, so
+  callers that post-process the field touch the same subset. With string-keyed
+  ranges this is the union of the matched entities, not ``asset_cfg``'s selection.
+  """
   operation = resolve_operation(operation)
   distribution = resolve_distribution(distribution)
 
   # Handle string-keyed ranges: resolve each pattern and recurse.
   if isinstance(ranges, dict) and ranges and isinstance(next(iter(ranges)), str):
-    _randomize_with_string_ranges(
+    return _randomize_with_string_ranges(
       env,
       env_ids,
       field,
@@ -83,7 +88,6 @@ def _randomize_model_field(
       valid_axes=valid_axes,
       use_address=use_address,
     )
-    return
 
   # At this point, string-keyed ranges have been handled above.
   narrowed_ranges: tuple[float, float] | dict[int, tuple[float, float]] = ranges  # type: ignore[assignment]
@@ -147,6 +151,7 @@ def _randomize_model_field(
       model_field[env_grid, entity_grid, axis] = combined[..., axis]
   else:
     model_field[env_grid, entity_grid] = combined
+  return entity_indices
 
 
 def _randomize_with_string_ranges(
@@ -164,12 +169,16 @@ def _randomize_with_string_ranges(
   default_axes: list[int] | None,
   valid_axes: list[int] | None,
   use_address: bool,
-) -> None:
-  """Resolve string-keyed ranges to entity names and recurse."""
+) -> torch.Tensor:
+  """Resolve string-keyed ranges to entity names and recurse.
+
+  Returns the concatenated entity indices written by each pattern.
+  """
   asset: Entity = env.scene[asset_cfg.name]
   names_attr = _ENTITY_NAMES_ATTR[entity_type]
   all_names = list(getattr(asset, names_attr))
 
+  written: list[torch.Tensor] = []
   for pattern, range_val in ranges.items():
     matched = [n for n in all_names if re.fullmatch(pattern, n)]
     if not matched:
@@ -180,7 +189,7 @@ def _randomize_with_string_ranges(
     sub_cfg = SceneEntityCfg(asset_cfg.name)
     setattr(sub_cfg, names_attr, tuple(matched))
     sub_cfg.resolve(env.scene)
-    _randomize_model_field(
+    indices = _randomize_model_field(
       env,
       env_ids,
       field,
@@ -195,6 +204,8 @@ def _randomize_with_string_ranges(
       valid_axes=valid_axes,
       use_address=use_address,
     )
+    written.append(indices)
+  return torch.cat(written)
 
 
 def _get_entity_indices(
