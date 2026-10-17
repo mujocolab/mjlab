@@ -484,6 +484,25 @@ def test_pinhole_camera_pattern_num_rays(device):
   assert sensor.num_rays == 16 * 12
 
 
+def test_pinhole_rays_match_mujoco_image_layout():
+  """Rays go through pixel centers in row-major order with row 0 at the image top,
+  like MuJoCo's camera (-Z forward, +X right, +Y up)."""
+  # fovy=90 with a square image gives tan(fov / 2) = 1 on both axes.
+  cfg = PinholeCameraPatternCfg(width=2, height=2, fovy=90.0)
+  _, directions = cfg.generate_rays(None, "cpu")
+
+  expected = torch.tensor(
+    [
+      [-0.5, 0.5, -1.0],  # Row 0 (top), left.
+      [0.5, 0.5, -1.0],  # Row 0 (top), right.
+      [-0.5, -0.5, -1.0],  # Row 1 (bottom), left.
+      [0.5, -0.5, -1.0],  # Row 1 (bottom), right.
+    ]
+  )
+  expected = expected / expected.norm(dim=1, keepdim=True)
+  assert torch.allclose(directions, expected, atol=1e-6)
+
+
 def test_pinhole_from_intrinsic_matrix():
   """Verify from_intrinsic_matrix creates correct config."""
   # Intrinsic matrix with fx=500, fy=500, cx=320, cy=240.
