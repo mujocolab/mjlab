@@ -135,10 +135,10 @@ def run_evaluate(task_id: str, cfg: EvaluateConfig) -> dict[str, float]:
     ref.robot_joint_vel = command.robot_joint_vel
     ref_command = cast(MotionCommand, ref)
 
-    # Accumulate metrics for envs still running this step. active.any() is
-    # always true here: the loop runs only while some env is not done, and
-    # done_envs is updated below after this point.
-    active = ~done_envs
+    # Accumulate metrics for envs still running this step. Envs that finished
+    # on this step were auto-reset inside env.step, so the robot state read
+    # above is the fresh episode's, not the terminal one; don't score it.
+    active = ~done_envs & ~dones.bool()
     all_active.append(active.float())
     all_mpkpe.append(torch.where(active, compute_mpkpe(ref_command), 0.0))
     all_r_mpkpe.append(
