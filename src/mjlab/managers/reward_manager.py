@@ -44,6 +44,9 @@ class RewardManager(ManagerBase):
       - ``reward_buf`` = raw_value * weight (no dt scaling)
 
     Regardless of the scaling setting:
+      - ``term_rewards`` and ``get_term()`` hold each term's contribution in the
+        same units as ``reward_buf``, so ``term_rewards.sum(dim=-1)`` equals
+        ``reward_buf``
       - ``_step_reward`` (via ``get_active_iterable_terms()``) always contains
         the unscaled reward rate (raw_value * weight)
   """
@@ -70,6 +73,9 @@ class RewardManager(ManagerBase):
         self.num_envs, dtype=torch.float, device=self.device
       )
     self._reward_buf = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
+    self._term_reward_buf = torch.zeros(
+      (self.num_envs, len(self._term_names)), dtype=torch.float, device=self.device
+    )
     self._step_reward = torch.zeros(
       (self.num_envs, len(self._term_names)), dtype=torch.float, device=self.device
     )
@@ -94,6 +100,16 @@ class RewardManager(ManagerBase):
   @property
   def active_terms(self) -> list[str]:
     return self._term_names
+
+  @property
+  def term_rewards(self) -> torch.Tensor:
+    """Per-term rewards from the last ``compute()``, shape ``(num_envs, num_terms)``.
+
+    Columns follow ``active_terms``. Values are weighted and scaled like
+    ``reward_buf``, which is their sum over the last dimension. Useful for
+    algorithms that need the reward vector, such as multi-objective RL.
+    """
+    return self._term_reward_buf
 
   # Methods.
 
@@ -120,6 +136,7 @@ class RewardManager(ManagerBase):
       zip(self._term_names, self._term_cfgs, strict=False)
     ):
       if term_cfg.weight == 0.0:
+        self._term_reward_buf[:, term_idx] = 0.0
         self._step_reward[:, term_idx] = 0.0
         continue
       value = term_cfg.func(self._env, **term_cfg.params)
@@ -129,6 +146,7 @@ class RewardManager(ManagerBase):
       value = torch.nan_to_num(value, nan=0.0, posinf=0.0, neginf=0.0)
       self._reward_buf += value
       self._episode_sums[name] += value
+      self._term_reward_buf[:, term_idx] = value
       self._step_reward[:, term_idx] = value / scale
     return self._reward_buf
 
@@ -156,6 +174,12 @@ class RewardManager(ManagerBase):
     for idx, name in enumerate(self._term_names):
       terms.append((name, [self._step_reward[env_idx, idx].cpu().item()]))
     return terms
+
+  def get_term(self, name: str) -> torch.Tensor:
+    """Return one term's column of ``term_rewards``, shape ``(num_envs,)``."""
+    if name not in self._term_names:
+      raise ValueError(f"Term '{name}' not found in active terms.")
+    return self._term_reward_buf[:, self._term_names.index(name)]
 
   def get_term_cfg(self, term_name: str) -> RewardTermCfg:
     if term_name not in self._term_names:
