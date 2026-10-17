@@ -722,12 +722,13 @@ class Entity:
     # Joint state.
     if self.is_articulated:
       if self.cfg.init_state.joint_pos is None:
-        # Use keyframe joint positions.
+        # Use keyframe joint positions. Inside a scene, mj_model's keyframe holds
+        # every entity's qpos, so index this entity's slots by address.
         key_qpos = mj_model.key("init_state").qpos
-        nq_root = 7 if not self.is_fixed_base else 0
-        default_joint_pos = torch.tensor(key_qpos[nq_root:], device=device)[
-          None
-        ].repeat(nworld, 1)
+        q_adr = indexing.joint_q_adr.cpu().numpy()
+        default_joint_pos = torch.tensor(
+          key_qpos[q_adr], dtype=torch.float, device=device
+        )[None].repeat(nworld, 1)
       else:
         default_joint_pos = torch.tensor(
           resolve_expr(self.cfg.init_state.joint_pos, self.joint_names, 0.0),
