@@ -8,15 +8,26 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
+- ``GridPatternCfg.resolution`` accepts a per-axis ``(x, y)`` tuple.
 - Added a ``cu126`` extra (``uv sync --extra cu126``) that installs torch built for
   CUDA 12.6, for machines whose NVIDIA driver is older than 580. It does not include
   kernels for Blackwell GPUs.
 - Added ``SimulationCfg.graph_conditional`` to toggle MuJoCo Warp's CUDA graph
   conditional nodes, which require CUDA 12.4 or newer.
+- Added ``RewardManager.term_rewards`` and ``RewardManager.get_term()`` for the
+  per-term reward vector from the last step :issue:`1223`.
 
 Changed
 ^^^^^^^
 
+- ``PinholeCameraPatternCfg`` rays now follow MuJoCo's image layout (row 0 at the top,
+  through pixel centers), matching ``CameraSensor``. Previously the image was flipped.
+- Bumped ``mujoco`` and ``mujoco-warp`` from 3.11 to 3.16 and raised the
+  ``warp-lang`` floor to 1.15.
+- ``BuiltinDcMotorActuatorCfg`` PID gains are now in torque space, following
+  MuJoCo 3.14. VELOCITY mode requires ``damping > 0`` and ``stiffness = 0``, and
+  VOLTAGE mode rejects ``voltage_limit`` and ``slew_rate``.
 - Bumped ``rsl-rl-lib`` from 5.5.0 to 5.5.1. This removes the need for capping
   ``wandb`` below 0.29.
 
@@ -30,6 +41,18 @@ Fixed
 - Partial environment resets now preserve untouched environments' actuator delay
   histories, lag schedules, and control outputs in both explicit and automatic
   resets :issue:`1216`.
+- ``VideoRecorder`` now evaluates ``episode_trigger`` only at the start of an episode,
+  so a recording no longer restarts mid-episode and overwrites the video.
+- String-keyed ``dr.geom_size`` and isotropic ``dr.pair_friction`` ranges now
+  post-process only the matched geoms and pairs, not the whole ``asset_cfg`` selection.
+- ``joint_pos=None`` now reads an entity's own slots of the scene keyframe as float32.
+  Previously it read the wrong slots in multi-entity scenes and returned float64.
+- ``Entity.write_mocap_pose_to_sim`` no longer crashes with ``env_ids=None`` when
+  there is more than one environment.
+- The tracking ``evaluate`` script no longer scores each episode's last step,
+  where the robot has already been auto-reset, which inflated the tracking errors.
+- Multi-cube lifting rewards now read the target cube's current position instead of
+  the previous step's.
 - The viewer now resets recurrent policy hidden state for environments that terminate
   or time out. Previously it only reset the policy when the user pressed the reset
   button, so each auto-reset environment kept the previous episode's memory :issue:`1222`.

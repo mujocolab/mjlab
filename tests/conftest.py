@@ -16,7 +16,7 @@ from mjlab.sim.sim import Simulation, SimulationCfg
 @pytest.fixture(scope="session", autouse=True)
 def configure_test_environment():
   """Configure test environment settings automatically for all tests."""
-  wp.config.quiet = True
+  wp.config.log_level = wp.LOG_WARNING
 
 
 def get_test_device() -> str:

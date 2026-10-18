@@ -1520,6 +1520,40 @@ def test_geom_size_raises_on_unsupported_type(device):
     dr.geom_size(env, env_ids=None, ranges=(1.0, 2.0), asset_cfg=plane_cfg)
 
 
+def test_geom_size_string_ranges_recompute_only_matched_geoms(device):
+  """With string-keyed ranges, bounds are recomputed only for the matched geoms,
+  so an unmatched non-primitive geom in the same entity doesn't raise."""
+  PLANE_XML = """
+<mujoco>
+  <worldbody>
+    <geom name="floor" type="plane" size="5 5 0.1"/>
+    <body name="base" pos="0 0 1">
+      <freejoint name="free_joint"/>
+      <geom name="box_geom" type="box" size="0.1 0.1 0.1" mass="1.0"/>
+    </body>
+  </worldbody>
+</mujoco>
+"""
+  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(PLANE_XML))
+  scene_cfg = SceneCfg(num_envs=2, entities={"robot": entity_cfg})
+  scene = Scene(scene_cfg, device)
+  model = scene.compile()
+  sim = Simulation(num_envs=2, cfg=SimulationCfg(), model=model, device=device)
+  scene.initialize(model, sim.model, sim.data)
+  sim.expand_model_fields(("geom_size", "geom_rbound", "geom_aabb"))
+  env = Env(scene, sim, device)
+  robot = env.scene["robot"]
+  box_id = robot.indexing.geom_ids[robot.geom_names.index("box_geom")]
+  floor_id = robot.indexing.geom_ids[robot.geom_names.index("floor")]
+  floor_rbound = env.sim.model.geom_rbound[:, floor_id].clone()
+
+  dr.geom_size(env, env_ids=None, ranges={"box_geom": (1.5, 1.5)})
+
+  expected = torch.full((2,), 0.15 * math.sqrt(3), device=device)
+  assert torch.allclose(env.sim.model.geom_rbound[:, box_id], expected, atol=1e-6)
+  assert torch.equal(env.sim.model.geom_rbound[:, floor_id], floor_rbound)
+
+
 # Tendon DR tests.
 
 TENDON_XML = """
@@ -2525,6 +2559,27 @@ def test_pair_friction_isotropic_roll(pair_env):
   # Tangent and spin axes untouched.
   for ax in (0, 1, 2):
     assert torch.allclose(after[:, pair_ids, ax], before[:, pair_ids, ax])
+
+
+def test_pair_friction_isotropic_string_ranges_only_mirror_matched_pairs(pair_env):
+  """With string-keyed ranges, the isotropic mirror leaves unmatched pairs alone."""
+  env = pair_env
+  robot = env.scene["robot"]
+  base_pair = robot.indexing.pair_ids[robot.pair_names.index("base_floor")]
+  foot_pair = robot.indexing.pair_ids[robot.pair_names.index("foot_floor")]
+  pf = env.sim.model.pair_friction
+  before = pf.clone()  # pair_env is shared across the module; restore at the end.
+  pf[:, foot_pair, 0] = 0.8
+  pf[:, foot_pair, 1] = 0.2  # Anisotropic and not targeted: must survive.
+
+  dr.pair_friction(env, env_ids=None, ranges={"base_floor": (0.3, 0.3)}, isotropic=True)
+  base, foot = pf[:, base_pair].clone(), pf[:, foot_pair].clone()
+  pf.copy_(before)
+
+  assert torch.allclose(base[:, 0], torch.full_like(base[:, 0], 0.3))
+  assert torch.allclose(base[:, 1], base[:, 0])
+  assert torch.allclose(foot[:, 0], torch.full_like(foot[:, 0], 0.8))
+  assert torch.allclose(foot[:, 1], torch.full_like(foot[:, 1], 0.2))
 
 
 def test_pair_friction_isotropic_roll_dict_ranges(pair_env):
