@@ -95,18 +95,9 @@ comparable across runs with different episode lengths.
 Per-term rewards
 ----------------
 
-The environment returns the summed reward, but the per-term values from
-the last step are also available for algorithms that need the reward
-vector, such as multi-objective RL. ``reward_manager.term_rewards`` is a
-``[num_envs, num_terms]`` tensor with columns ordered like
-``reward_manager.active_terms``, and ``reward_manager.get_term(name)``
-returns a single column. Both are weighted and scaled by dt the same way
-as the summed reward, so ``term_rewards.sum(dim=-1)`` equals it.
-
-.. code-block:: python
-
-    obs, reward, terminated, truncated, extras = env.step(action)
-    reward_vec = env.reward_manager.term_rewards  # [num_envs, num_terms]
+``reward_manager.term_rewards`` is the ``[num_envs, num_terms]`` reward vector from
+the last step, with columns ordered like ``active_terms`` and summing to the reward.
+``reward_manager.get_term(name)`` returns one column.
 
 
 Writing custom reward functions
