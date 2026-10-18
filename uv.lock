@@ -869,9 +869,30 @@ wheels = [
 name = "distlib"
 version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.11' and sys_platform != 'darwin'",
+    "python_full_version >= '3.13' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and sys_platform == 'darwin'",
+]
 sdist = { url = "https://files.pythonhosted.org/packages/96/8e/709914eb2b5749865801041647dc7f4e6d00b549cfe88b65ca192995f07c/distlib-0.4.0.tar.gz", hash = "sha256:feec40075be03a04501a973d81f633735b4b69f98b05450592310c0f401a4e0d", size = 614605, upload-time = "2025-07-17T16:52:00.465Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/33/6b/e0547afaf41bf2c42e52430072fa5658766e3d65bd4b03a563d1b6336f57/distlib-0.4.0-py2.py3-none-any.whl", hash = "sha256:9659f7d87e46584a30b5780e43ac7a2143098441670ff0a49d5f9034c54a6c16", size = 469047, upload-time = "2025-07-17T16:51:58.613Z" },
+]
+
+[[package]]
+name = "distlib"
+version = "0.4.4"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.13' and sys_platform != 'darwin'",
+    "python_full_version == '3.12.*' and sys_platform != 'darwin'",
+    "python_full_version == '3.11.*' and sys_platform != 'darwin'",
+]
+sdist = { url = "https://files.pythonhosted.org/packages/68/bc/d36966de7304047a1001a7559fbf266c464bb5d8cc85464536ef8c9bcc32/distlib-0.4.4.tar.gz", hash = "sha256:ca4175b4ac7f71223cc30ed7248c45d2b38c2439d8ee6e498ab67ed63cf3508d", size = 621304, upload-time = "2026-10-16T13:56:34.203Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c1/2b/238f02a4927fa2e27aa995371d240a468b52e42eae44a678434aff736b38/distlib-0.4.4-py2.py3-none-any.whl", hash = "sha256:cf09d55b1e85a89576b036aeb71550bfd68320f3f21761ca329eadadad918638", size = 472099, upload-time = "2026-10-16T13:56:32.053Z" },
 ]
 
 [[package]]
@@ -1057,11 +1078,11 @@ wheels = [
 
 [[package]]
 name = "fsspec"
-version = "2025.9.0"
+version = "2026.9.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/de/e0/bab50af11c2d75c9c4a2a26a5254573c0bd97cea152254401510950486fa/fsspec-2025.9.0.tar.gz", hash = "sha256:19fd429483d25d28b65ec68f9f4adc16c17ea2c7c7bf54ec61360d478fb19c19", size = 304847, upload-time = "2025-09-02T19:10:49.215Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/77/cd/9be253869fc42e764de7f3dedd6969af7d44ff9c3375214a3442a6f3fc08/fsspec-2026.9.0.tar.gz", hash = "sha256:0f08147951c8cb31d844c3547d631053b127863b60be04cf06e121333ee0e2fe", size = 333545, upload-time = "2026-09-18T17:50:42.825Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/47/71/70db47e4f6ce3e5c37a607355f80da8860a33226be640226ac52cb05ef2e/fsspec-2025.9.0-py3-none-any.whl", hash = "sha256:530dc2a2af60a414a832059574df4a6e10cce927f6f4a78209390fe38955cfb7", size = 199289, upload-time = "2025-09-02T19:10:47.708Z" },
+    { url = "https://files.pythonhosted.org/packages/6c/c0/a98505f18594f1bce828bb159cec0fcf9860562f1a2c85913409fc8f3d9e/fsspec-2026.9.0-py3-none-any.whl", hash = "sha256:8dd6e646e99ea382bd85f97a45e6b526a442d79423a7dc673f1e2756d05fcb5f", size = 221738, upload-time = "2026-09-18T17:50:41.341Z" },
 ]
 
 [[package]]
@@ -1931,7 +1952,8 @@ dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "packaging" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "packaging", version = "26.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "pillow" },
     { name = "pyparsing" },
     { name = "python-dateutil" },
@@ -3038,7 +3060,8 @@ dependencies = [
     { name = "flatbuffers", marker = "python_full_version >= '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "packaging", marker = "python_full_version >= '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform == 'darwin') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "packaging", version = "26.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "protobuf", marker = "python_full_version >= '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 wheels = [
@@ -3079,7 +3102,8 @@ dependencies = [
     { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "onnx" },
     { name = "onnx-ir" },
-    { name = "packaging" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "packaging", version = "26.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b2/88/c3fad7bcb0f57c6f7795e28c479545cd47ca9109b174765f7cca0121148e/onnxscript-0.5.4.tar.gz", hash = "sha256:311e08ce513484a1fadfc19f3ad28f83ed41a8ce73eca4d038cd3623f6f52104", size = 584052, upload-time = "2025-10-16T17:55:27.615Z" }
@@ -3253,9 +3277,30 @@ wheels = [
 name = "packaging"
 version = "25.0"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.11' and sys_platform != 'darwin'",
+    "python_full_version >= '3.13' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and sys_platform == 'darwin'",
+]
 sdist = { url = "https://files.pythonhosted.org/packages/a1/d4/1fc4078c65507b51b96ca8f8c3ba19e6a61c8253c72794544580a7b6c24d/packaging-25.0.tar.gz", hash = "sha256:d443872c98d677bf60f6a1f2f8c1cb748e8fe762d2bf9d3148b5599295b0fc4f", size = 165727, upload-time = "2025-04-19T11:48:59.673Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/20/12/38679034af332785aac8774540895e234f4d07f7545804097de4b666afd8/packaging-25.0-py3-none-any.whl", hash = "sha256:29572ef2b1f17581046b3a2227d5c611fb25ec70ca1ba8554b24b0e69331a484", size = 66469, upload-time = "2025-04-19T11:48:57.875Z" },
+]
+
+[[package]]
+name = "packaging"
+version = "26.3"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.13' and sys_platform != 'darwin'",
+    "python_full_version == '3.12.*' and sys_platform != 'darwin'",
+    "python_full_version == '3.11.*' and sys_platform != 'darwin'",
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7d/fa/3944b40b07da9ce895c0e6303a5ab7d53da063554f534556b134a54d6093/packaging-26.3.tar.gz", hash = "sha256:94edc256424af38762eb31306eed28beb9f0efc50a8837492c9d6fd6004aed79", size = 313412, upload-time = "2026-08-04T18:15:28.737Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl", hash = "sha256:d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c", size = 129956, upload-time = "2026-08-04T18:15:27.159Z" },
 ]
 
 [[package]]
@@ -3394,7 +3439,8 @@ dependencies = [
     { name = "identify" },
     { name = "nodeenv" },
     { name = "pyyaml" },
-    { name = "virtualenv" },
+    { name = "virtualenv", version = "21.14.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "virtualenv", version = "21.14.10", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ff/29/7cf5bbc236333876e4b41f56e06857a87937ce4bf91e117a6991a2dbb02a/pre_commit-4.3.0.tar.gz", hash = "sha256:499fe450cc9d42e9d58e606262795ecb64dd05438943c62b66f6a8673da30b16", size = 193792, upload-time = "2025-08-09T18:56:14.651Z" }
 wheels = [
@@ -3646,7 +3692,8 @@ dependencies = [
     { name = "babel" },
     { name = "beautifulsoup4" },
     { name = "docutils" },
-    { name = "packaging" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "packaging", version = "26.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "pygments" },
     { name = "sphinx", version = "8.1.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "sphinx", version = "8.2.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
@@ -3740,7 +3787,8 @@ dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "exceptiongroup", marker = "python_full_version < '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "iniconfig" },
-    { name = "packaging" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "packaging", version = "26.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "pluggy" },
     { name = "pygments" },
     { name = "tomli", marker = "python_full_version < '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
@@ -3764,15 +3812,14 @@ wheels = [
 
 [[package]]
 name = "python-discovery"
-version = "1.2.1"
+version = "1.6.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "filelock" },
-    { name = "platformdirs" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b9/88/815e53084c5079a59df912825a279f41dd2e0df82281770eadc732f5352c/python_discovery-1.2.1.tar.gz", hash = "sha256:180c4d114bff1c32462537eac5d6a332b768242b76b69c0259c7d14b1b680c9e", size = 58457, upload-time = "2026-03-26T22:30:44.496Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fc/54/fad125f5c48f7821644ee6f223ebfcedc4e23597c1a16eeb13d33aa4a91a/python_discovery-1.6.3.tar.gz", hash = "sha256:a62b301d96cf5489cb96ab023b32e068421867fdd5df2e42eece877869047fa2", size = 88998, upload-time = "2026-10-16T03:54:29.507Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/67/0f/019d3949a40280f6193b62bc010177d4ce702d0fce424322286488569cd3/python_discovery-1.2.1-py3-none-any.whl", hash = "sha256:b6a957b24c1cd79252484d3566d1b49527581d46e789aaf43181005e56201502", size = 31674, upload-time = "2026-03-26T22:30:43.396Z" },
+    { url = "https://files.pythonhosted.org/packages/de/ec/643826e4d69b7bdce4213f221e8f5ed06d0a9dd69fa9b33342578d2cc8c8/python_discovery-1.6.3-py3-none-any.whl", hash = "sha256:cb7654125e3dcb594269a6feb56ac693f1f13b7c654493a93eba72dc22d18034", size = 39386, upload-time = "2026-10-16T03:54:28.237Z" },
 ]
 
 [[package]]
@@ -4379,7 +4426,7 @@ dependencies = [
     { name = "docutils", marker = "python_full_version < '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "imagesize", marker = "python_full_version < '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "jinja2", marker = "python_full_version < '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "packaging", marker = "python_full_version < '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "pygments", marker = "python_full_version < '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "requests", marker = "python_full_version < '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "snowballstemmer", marker = "python_full_version < '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
@@ -4415,7 +4462,8 @@ dependencies = [
     { name = "docutils", marker = "python_full_version >= '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "imagesize", marker = "python_full_version >= '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "jinja2", marker = "python_full_version >= '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "packaging", marker = "python_full_version >= '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform == 'darwin') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "packaging", version = "26.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "pygments", marker = "python_full_version >= '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "requests", marker = "python_full_version >= '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "roman-numerals-py", marker = "python_full_version >= '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
@@ -4739,7 +4787,8 @@ dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "packaging" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "packaging", version = "26.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "pillow" },
     { name = "protobuf" },
     { name = "setuptools" },
@@ -4771,7 +4820,8 @@ dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "orjson", marker = "python_full_version < '3.13' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "packaging" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "packaging", version = "26.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "pyvers" },
     { name = "torch", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126' and extra != 'extra-5-mjlab-cu130')" },
     { name = "torch", version = "2.14.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cpu') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
@@ -5230,11 +5280,11 @@ wheels = [
 
 [[package]]
 name = "urllib3"
-version = "2.7.0"
+version = "2.8.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/53/0c/06f8b233b8fd13b9e5ee11424ef85419ba0d8ba0b3138bf360be2ff56953/urllib3-2.7.0.tar.gz", hash = "sha256:231e0ec3b63ceb14667c67be60f2f2c40a518cb38b03af60abc813da26505f4c", size = 433602, upload-time = "2026-05-07T16:13:18.596Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e3/05/b17359e1cefb4f909b5e40b1b90a496d987258916dbbf88e842c729f510e/urllib3-2.8.0.tar.gz", hash = "sha256:63bf2ead4c879426ebf22ef2a781eeb4aa3b4ae798a0435506f8687fd5bb9b63", size = 458972, upload-time = "2026-09-15T19:29:36.253Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7f/3e/5db95bcf282c52709639744ca2a8b149baccf648e39c8cc87553df9eae0c/urllib3-2.7.0-py3-none-any.whl", hash = "sha256:9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897", size = 131087, upload-time = "2026-05-07T16:13:17.151Z" },
+    { url = "https://files.pythonhosted.org/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl", hash = "sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3", size = 135717, upload-time = "2026-09-15T19:29:34.577Z" },
 ]
 
 [[package]]
@@ -5312,18 +5362,47 @@ wheels = [
 
 [[package]]
 name = "virtualenv"
-version = "21.2.0"
+version = "21.14.5"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.11' and sys_platform != 'darwin'",
+    "python_full_version >= '3.13' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and sys_platform == 'darwin'",
+    "python_full_version == '3.11.*' and sys_platform == 'darwin'",
+    "python_full_version < '3.11' and sys_platform == 'darwin'",
+]
 dependencies = [
-    { name = "distlib" },
-    { name = "filelock" },
-    { name = "platformdirs" },
-    { name = "python-discovery" },
+    { name = "distlib", version = "0.4.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "filelock", marker = "python_full_version < '3.11' or sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "platformdirs", marker = "python_full_version < '3.11' or sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "python-discovery", marker = "python_full_version < '3.11' or sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "typing-extensions", marker = "python_full_version < '3.11' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/aa/92/58199fe10049f9703c2666e809c4f686c54ef0a68b0f6afccf518c0b1eb9/virtualenv-21.2.0.tar.gz", hash = "sha256:1720dc3a62ef5b443092e3f499228599045d7fea4c79199770499df8becf9098", size = 5840618, upload-time = "2026-03-09T17:24:38.013Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c4/f9/f323b3b6058cff3853b31cf6a49c0425ed797bf9611572ec10d065e08bac/virtualenv-21.14.5.tar.gz", hash = "sha256:c4cb6c13e46b57225a999c7e22a09b163393878facc7ac4c059a57f46faa1647", size = 5467127, upload-time = "2026-10-02T17:42:25.613Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c6/59/7d02447a55b2e55755011a647479041bc92a82e143f96a8195cb33bd0a1c/virtualenv-21.2.0-py3-none-any.whl", hash = "sha256:1bd755b504931164a5a496d217c014d098426cddc79363ad66ac78125f9d908f", size = 5825084, upload-time = "2026-03-09T17:24:35.378Z" },
+    { url = "https://files.pythonhosted.org/packages/df/93/084f10ebbecdedf7902ed68fbecc903f0e9c5742155bfffb05eccbc071da/virtualenv-21.14.5-py3-none-any.whl", hash = "sha256:b0651e0174982bba17cc6f0aaa2ef496730cb85a3f35eb5d1119d1c904f7d1da", size = 5487482, upload-time = "2026-10-02T17:42:23.38Z" },
+]
+
+[[package]]
+name = "virtualenv"
+version = "21.14.10"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.13' and sys_platform != 'darwin'",
+    "python_full_version == '3.12.*' and sys_platform != 'darwin'",
+    "python_full_version == '3.11.*' and sys_platform != 'darwin'",
+]
+dependencies = [
+    { name = "distlib", version = "0.4.4", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "filelock", marker = "(python_full_version >= '3.11' and sys_platform != 'darwin') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "packaging", version = "26.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "platformdirs", marker = "(python_full_version >= '3.11' and sys_platform != 'darwin') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "python-discovery", marker = "(python_full_version >= '3.11' and sys_platform != 'darwin') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/36/ce/7136eeccc4ff32c06c3b523745af49c5cf6b2e95635d88ae8519a6f4d25b/virtualenv-21.14.10.tar.gz", hash = "sha256:f733501a49404c91b5bb1d34d107073b8f4b93a9a1ddb7e9a950eb8ce60f38ad", size = 5501185, upload-time = "2026-10-17T17:31:55.115Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1f/83/6fb5c79de3fe1f174c5c7f0f7bb79e3fd7a464b14871f7abfdb66dd10396/virtualenv-21.14.10-py3-none-any.whl", hash = "sha256:bf4a0f9671731d097e017e41280aa05e1e1adcd536b0e804fceb3179947ad50e", size = 5494519, upload-time = "2026-10-17T17:31:53.082Z" },
 ]
 
 [[package]]
@@ -5359,7 +5438,8 @@ dependencies = [
     { name = "opentelemetry-api" },
     { name = "opentelemetry-exporter-otlp-proto-http" },
     { name = "opentelemetry-sdk" },
-    { name = "packaging" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "packaging", version = "26.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform != 'darwin') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.11' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "platformdirs" },
     { name = "protobuf" },
     { name = "pydantic" },
@@ -5597,14 +5677,14 @@ wheels = [
 
 [[package]]
 name = "werkzeug"
-version = "3.1.7"
+version = "3.1.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "markupsafe" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b5/43/76ded108b296a49f52de6bac5192ca1c4be84e886f9b5c9ba8427d9694fd/werkzeug-3.1.7.tar.gz", hash = "sha256:fb8c01fe6ab13b9b7cdb46892b99b1d66754e1d7ab8e542e865ec13f526b5351", size = 875700, upload-time = "2026-03-24T01:08:07.687Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a4/34/4dd12fc8bb7d61c91467ec3efe415ffa7d5456f799954b40c5bbaeae470e/werkzeug-3.1.9.tar.gz", hash = "sha256:55ca7c70a75689be937aa27f8ff4b018f06ff4838fc73045560bf0f5a1291060", size = 940188, upload-time = "2026-09-27T18:33:41.637Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7f/b2/0bba9bbb4596d2d2f285a16c2ab04118f6b957d8441566e1abb892e6a6b2/werkzeug-3.1.7-py3-none-any.whl", hash = "sha256:4b314d81163a3e1a169b6a0be2a000a0e204e8873c5de6586f453c55688d422f", size = 226295, upload-time = "2026-03-24T01:08:06.133Z" },
+    { url = "https://files.pythonhosted.org/packages/a1/38/df03f564f43cec2684823f3cccae1a652ee7face1cbaa76fb223096e64d7/werkzeug-3.1.9-py3-none-any.whl", hash = "sha256:6392e50c78460ba618e5b21f08a71f59c99ce99cdc6cf6e3dd7e6ccca8754fab", size = 228700, upload-time = "2026-09-27T18:33:39.685Z" },
 ]
 
 [[package]]
