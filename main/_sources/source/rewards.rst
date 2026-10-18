@@ -92,6 +92,14 @@ are always divided by the episode duration, giving a reward rate that is
 comparable across runs with different episode lengths.
 
 
+Per-term rewards
+----------------
+
+``reward_manager.term_rewards`` is the ``[num_envs, num_terms]`` reward vector from
+the last step, with columns ordered like ``active_terms`` and summing to the reward.
+``reward_manager.get_term(name)`` returns one column.
+
+
 Writing custom reward functions
 -------------------------------
 

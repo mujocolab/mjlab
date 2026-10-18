@@ -476,6 +476,7 @@ document.write(`
                 <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#built-in-reward-functions">Built-in reward functions</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reward-scaling-by-dt">Reward scaling by dt</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#per-term-rewards">Per-term rewards</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#writing-custom-reward-functions">Writing custom reward functions</a></li>
 </ul>
             </nav>
@@ -588,6 +589,12 @@ step contributes proportionally less to the total.</p>
 are always divided by the episode duration, giving a reward rate that is
 comparable across runs with different episode lengths.</p>
 </section>
+<section id="per-term-rewards">
+<h2>Per-term rewards<a class="headerlink" href="#per-term-rewards" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">reward_manager.term_rewards</span></code> is the <code class="docutils literal notranslate"><span class="pre">[num_envs,</span> <span class="pre">num_terms]</span></code> reward vector from
+the last step, with columns ordered like <code class="docutils literal notranslate"><span class="pre">active_terms</span></code> and summing to the reward.
+<code class="docutils literal notranslate"><span class="pre">reward_manager.get_term(name)</span></code> returns one column.</p>
+</section>
 <section id="writing-custom-reward-functions">
 <h2>Writing custom reward functions<a class="headerlink" href="#writing-custom-reward-functions" title="Link to this heading">#</a></h2>
 <p>A reward function accepts <code class="docutils literal notranslate"><span class="pre">env</span></code> as its first argument and returns a
@@ -645,6 +652,7 @@ a class. See <a class="reference internal" href="environment_config.html#env-con
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#built-in-reward-functions">Built-in reward functions</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reward-scaling-by-dt">Reward scaling by dt</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#per-term-rewards">Per-term rewards</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#writing-custom-reward-functions">Writing custom reward functions</a></li>
 </ul>
   </nav></div>
