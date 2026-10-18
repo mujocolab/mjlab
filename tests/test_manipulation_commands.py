@@ -68,7 +68,7 @@ def test_lifting_resample_refreshes_kinematics(device):
   _assert_kinematics_fresh(env.scene, env.sim, "cube0")
 
 
-def test_multi_cube_resample_refreshes_kinematics_and_target_pos(device):
+def test_multi_cube_resample_refreshes_kinematics_and_cache(device):
   names = ("cube0", "cube1")
   env = _make_env(device, names)
   cfg = MultiCubeLiftingCommandCfg(
@@ -94,8 +94,7 @@ def test_multi_cube_resample_refreshes_kinematics_and_target_pos(device):
 
 
 def test_multi_cube_target_object_pos_tracks_sim_between_updates(device):
-  """Rewards run after physics but before the command update, so the target cube
-  position they read must come from the sim, not the previous command update."""
+  """target_object_pos() reflects physics that ran after the last command update."""
   names = ("cube0", "cube1")
   env = _make_env(device, names)
   term = MultiCubeLiftingCommandCfg(
