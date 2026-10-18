@@ -589,6 +589,8 @@ attribute of the <code class="docutils literal notranslate"><span class="pre">rs
 <li><p><code class="docutils literal notranslate"><span class="pre">export-scene</span></code> and <code class="docutils literal notranslate"><span class="pre">Scene.write</span></code> once again copy entity mesh files into
 <code class="docutils literal notranslate"><span class="pre">assets/</span></code>. Exporting an asset_zoo robot wrote only <code class="docutils literal notranslate"><span class="pre">scene.xml</span></code>, which then
 failed to load.</p></li>
+<li><p>The cartpole <code class="docutils literal notranslate"><span class="pre">small_control</span></code> reward term now matches dm_control, which reaches 0
+at the control margin (<code class="docutils literal notranslate"><span class="pre">value_at_margin=0</span></code>) instead of 0.1.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">VideoRecorder</span></code> now evaluates <code class="docutils literal notranslate"><span class="pre">episode_trigger</span></code> only at the start of an episode,
 so a recording no longer restarts mid-episode and overwrites the video.</p></li>
 <li><p>String-keyed <code class="docutils literal notranslate"><span class="pre">dr.geom_size</span></code> and isotropic <code class="docutils literal notranslate"><span class="pre">dr.pair_friction</span></code> ranges now
