@@ -586,6 +586,8 @@ attribute of the <code class="docutils literal notranslate"><span class="pre">rs
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">NoiseModelWithAdditiveBias</span></code> no longer crashes on the first reset when
+<code class="docutils literal notranslate"><span class="pre">bias_noise_cfg</span></code> has per-dimension (tuple) ranges.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">export-scene</span></code> and <code class="docutils literal notranslate"><span class="pre">Scene.write</span></code> once again copy entity mesh files into
 <code class="docutils literal notranslate"><span class="pre">assets/</span></code>. Exporting an asset_zoo robot wrote only <code class="docutils literal notranslate"><span class="pre">scene.xml</span></code>, which then
 failed to load.</p></li>

@@ -38,6 +38,8 @@ Changed
 Fixed
 ^^^^^
 
+- ``NoiseModelWithAdditiveBias`` no longer crashes on the first reset when
+  ``bias_noise_cfg`` has per-dimension (tuple) ranges.
 - ``export-scene`` and ``Scene.write`` once again copy entity mesh files into
   ``assets/``. Exporting an asset_zoo robot wrote only ``scene.xml``, which then
   failed to load.
