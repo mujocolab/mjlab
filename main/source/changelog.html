@@ -596,10 +596,8 @@ Previously it read the wrong slots in multi-entity scenes and returned float64.<
 there is more than one environment.</p></li>
 <li><p>The tracking <code class="docutils literal notranslate"><span class="pre">evaluate</span></code> script no longer scores each episode’s last step,
 where the robot has already been auto-reset, which inflated the tracking errors.</p></li>
-<li><p>Multi-cube lifting rewards now use the target cube’s current position.
-<code class="docutils literal notranslate"><span class="pre">MultiCubeLiftingCommand.target_object_pos()</span></code> returned a value cached in the
-command update, which runs after rewards in <code class="docutils literal notranslate"><span class="pre">step()</span></code>, so the rewards saw the cube
-where it was before the step’s physics.</p></li>
+<li><p>Multi-cube lifting rewards now read the target cube’s current position instead of
+the previous step’s.</p></li>
 <li><p>The viewer now resets recurrent policy hidden state for environments that terminate
 or time out. Previously it only reset the policy when the user pressed the reset
 button, so each auto-reset environment kept the previous episode’s memory <a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/1222">#1222</a>.</p></li>
