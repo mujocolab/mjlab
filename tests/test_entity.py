@@ -750,6 +750,36 @@ def test_joint_pos_none_fixed_base_uses_keyframe():
   assert model.key(0).qpos[0] == 0.5
 
 
+@pytest.mark.parametrize(
+  "keyframe_xml",
+  [XML_WITH_KEYFRAME, XML_FIXED_BASE_WITH_KEYFRAME],
+  ids=["floating", "fixed"],
+)
+def test_joint_pos_none_reads_own_slots_of_scene_keyframe(device, keyframe_xml):
+  """joint_pos=None reads this entity's slots of the scene keyframe as float32."""
+  scene_cfg = SceneCfg(
+    num_envs=2,
+    entities={
+      "box": EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(FLOATING_BASE_XML)),
+      "robot": EntityCfg(
+        init_state=EntityCfg.InitialStateCfg(joint_pos=None),
+        spec_fn=lambda: mujoco.MjSpec.from_string(keyframe_xml),
+      ),
+    },
+  )
+  scene = Scene(scene_cfg, device)
+  model = scene.compile()
+  sim = Simulation(num_envs=2, cfg=SimulationCfg(), model=model, device=device)
+  scene.initialize(sim.mj_model, sim.model, sim.data)
+  robot = scene["robot"]
+
+  default_joint_pos = robot.data.default_joint_pos
+  assert default_joint_pos.dtype == torch.float32
+  assert default_joint_pos.tolist() == [[0.5], [0.5]]
+  robot.write_joint_state_to_sim(default_joint_pos, robot.data.default_joint_vel)
+  assert robot.data.joint_pos.tolist() == [[0.5], [0.5]]
+
+
 XML_WITH_SITES_AND_TENDONS = """
 <mujoco>
   <worldbody>
