@@ -32,6 +32,8 @@ Changed
 Fixed
 ^^^^^
 
+- ``joint_pos=None`` now reads an entity's own slots of the scene keyframe as float32.
+  Previously it read the wrong slots in multi-entity scenes and returned float64.
 - ``Entity.write_mocap_pose_to_sim`` no longer crashes with ``env_ids=None`` when
   there is more than one environment.
 - The tracking ``evaluate`` script no longer scores each episode's last step,

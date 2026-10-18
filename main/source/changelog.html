@@ -580,6 +580,8 @@ attribute of the <code class="docutils literal notranslate"><span class="pre">rs
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">joint_pos=None</span></code> now reads an entity’s own slots of the scene keyframe as float32.
+Previously it read the wrong slots in multi-entity scenes and returned float64.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Entity.write_mocap_pose_to_sim</span></code> no longer crashes with <code class="docutils literal notranslate"><span class="pre">env_ids=None</span></code> when
 there is more than one environment.</p></li>
 <li><p>The tracking <code class="docutils literal notranslate"><span class="pre">evaluate</span></code> script no longer scores each episode’s last step,
