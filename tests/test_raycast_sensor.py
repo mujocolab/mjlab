@@ -278,6 +278,20 @@ def test_raycast_grid_pattern_num_rays(device):
   assert sensor.num_rays == 6
 
 
+def test_raycast_grid_pattern_anisotropic_resolution(device):
+  """Per-axis resolution sets independent spacing along x and y."""
+  # X: from -0.5 to 0.5 step 0.25 -> 5 points.
+  # Y: from -0.2 to 0.2 step 0.1 -> 5 points.
+  pattern = GridPatternCfg(size=(1.0, 0.4), resolution=(0.25, 0.1))
+  offsets, _ = pattern.generate_rays(None, device)
+
+  assert offsets.shape == (25, 3)
+  expected_x = torch.arange(-0.5, 0.51, 0.25, device=device)
+  expected_y = torch.arange(-0.2, 0.21, 0.1, device=device)
+  assert torch.allclose(offsets[:, 0].unique(), expected_x)
+  assert torch.allclose(offsets[:, 1].unique(), expected_y)
+
+
 def test_raycast_different_direction(device):
   """Verify rays work with non-default direction."""
   wall_xml = """
