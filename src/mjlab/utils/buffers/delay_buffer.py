@@ -178,7 +178,7 @@ class DelayBuffer:
 
   @property
   def is_initialized(self) -> bool:
-    """Check if buffer has been initialized with at least one append."""
+    """Check if storage has been initialized by append or backfill."""
     return self._buffer.is_initialized
 
   @property

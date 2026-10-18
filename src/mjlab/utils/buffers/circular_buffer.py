@@ -155,7 +155,7 @@ class CircularBuffer:
 
   @property
   def is_initialized(self) -> bool:
-    """Check if the buffer has been initialized with at least one append."""
+    """Check if storage has been initialized by append or backfill."""
     return self._buffer is not None
 
   @property
@@ -194,6 +194,7 @@ class CircularBuffer:
     untouched. Used after a partial reset: the reset rows get their first
     post-reset frame in every slot (the same backfill their next append would
     apply) while the remaining rows keep their history intact.
+    On first use, allocate zero-filled storage for the untouched rows.
 
     Args:
       data: Tensor of shape (batch_size, ...); only rows at batch_ids are read.
@@ -201,10 +202,11 @@ class CircularBuffer:
     """
     if data.shape[0] != self._batch_size:
       raise ValueError(f"Expected batch size {self._batch_size}, got {data.shape[0]}")
-    if self._buffer is None:
-      raise RuntimeError("Buffer not initialized. Call append() first.")
-
     data = data.to(self._device)
+    if self._buffer is None:
+      self._buffer = torch.zeros(
+        (self._max_len, *data.shape), dtype=data.dtype, device=self._device
+      )
     self._buffer[:, batch_ids] = data[batch_ids].unsqueeze(0)
     self._num_pushes[batch_ids] = 1
 

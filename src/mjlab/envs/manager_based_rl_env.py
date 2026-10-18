@@ -369,7 +369,7 @@ class ManagerBasedRlEnv:
       self.seed(seed)
     self.extras["log"] = dict()
     self._reset_idx(env_ids)
-    self.scene.write_data_to_sim()
+    self.scene.write_data_to_sim(env_ids=env_ids)
     self.sim.forward()
     # Scoped to env_ids so a partial reset does not advance stateful commands in the
     # other envs.
@@ -469,7 +469,7 @@ class ManagerBasedRlEnv:
     if self.cfg.auto_reset and len(reset_env_ids) > 0:
       self.recorder_manager.record_pre_reset(reset_env_ids)
       self._reset_idx(reset_env_ids)
-      self.scene.write_data_to_sim()
+      self.scene.write_data_to_sim(env_ids=reset_env_ids)
 
     # Single forward() call: recompute derived quantities from current
     # qpos/qvel for every env. For non-reset envs this resolves the
