@@ -32,6 +32,8 @@ Changed
 Fixed
 ^^^^^
 
+- ``Entity.write_mocap_pose_to_sim`` no longer crashes with ``env_ids=None`` when
+  there is more than one environment.
 - The tracking ``evaluate`` script no longer scores each episode's last step,
   where the robot has already been auto-reset, which inflated the tracking errors.
 - Multi-cube lifting rewards now use the target cube's current position.
