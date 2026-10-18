@@ -48,10 +48,8 @@ Fixed
   there is more than one environment.
 - The tracking ``evaluate`` script no longer scores each episode's last step,
   where the robot has already been auto-reset, which inflated the tracking errors.
-- Multi-cube lifting rewards now use the target cube's current position.
-  ``MultiCubeLiftingCommand.target_object_pos()`` returned a value cached in the
-  command update, which runs after rewards in ``step()``, so the rewards saw the cube
-  where it was before the step's physics.
+- Multi-cube lifting rewards now read the target cube's current position instead of
+  the previous step's.
 - The viewer now resets recurrent policy hidden state for environments that terminate
   or time out. Previously it only reset the policy when the user pressed the reset
   button, so each auto-reset environment kept the previous episode's memory :issue:`1222`.

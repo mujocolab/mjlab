@@ -180,11 +180,7 @@ class MultiCubeLiftingCommand(CommandTerm):
     return self._padded_geom_ids[self.target_selection]
 
   def target_object_pos(self) -> torch.Tensor:
-    """Position of the target cube per env, read from the current sim state.
-
-    Rewards run before the command manager in ``step()``, so this must not be
-    cached in ``_update_metrics``; that would lag the cube by one step.
-    """
+    """Position of the target cube per env, read from the current sim state."""
     all_pos = torch.stack([c.data.root_link_pos_w for c in self.cubes])
     return all_pos[self.target_selection, self._env_arange]
 

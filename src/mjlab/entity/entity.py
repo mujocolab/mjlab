@@ -723,11 +723,10 @@ class Entity:
     if self.is_articulated:
       if self.cfg.init_state.joint_pos is None:
         # Use keyframe joint positions. The scene keyframe holds every entity's qpos.
-        key_qpos = mj_model.key("init_state").qpos
-        q_adr = indexing.joint_q_adr.cpu().numpy()
-        default_joint_pos = torch.tensor(
-          key_qpos[q_adr], dtype=torch.float, device=device
-        )[None].repeat(nworld, 1)
+        key_qpos = torch.tensor(
+          mj_model.key("init_state").qpos, dtype=torch.float, device=device
+        )
+        default_joint_pos = key_qpos[indexing.joint_q_adr][None].repeat(nworld, 1)
       else:
         default_joint_pos = torch.tensor(
           resolve_expr(self.cfg.init_state.joint_pos, self.joint_names, 0.0),
