@@ -586,6 +586,9 @@ attribute of the <code class="docutils literal notranslate"><span class="pre">rs
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">export-scene</span></code> and <code class="docutils literal notranslate"><span class="pre">Scene.write</span></code> once again copy entity mesh files into
+<code class="docutils literal notranslate"><span class="pre">assets/</span></code>. Exporting an asset_zoo robot wrote only <code class="docutils literal notranslate"><span class="pre">scene.xml</span></code>, which then
+failed to load.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">VideoRecorder</span></code> now evaluates <code class="docutils literal notranslate"><span class="pre">episode_trigger</span></code> only at the start of an episode,
 so a recording no longer restarts mid-episode and overwrites the video.</p></li>
 <li><p>String-keyed <code class="docutils literal notranslate"><span class="pre">dr.geom_size</span></code> and isotropic <code class="docutils literal notranslate"><span class="pre">dr.pair_friction</span></code> ranges now
