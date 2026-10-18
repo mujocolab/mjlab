@@ -14,6 +14,7 @@ from mjlab.terrains.primitive_terrains import (
   BoxSteppingStonesTerrainCfg,
 )
 from mjlab.terrains.terrain_generator import (
+  FlatPatchSamplingCfg,
   SubTerrainCfg,
   TerrainGenerator,
   TerrainGeneratorCfg,
@@ -178,3 +179,32 @@ def test_compile_preserves_custom_names_and_defaults_unnamed_geoms():
 
   names = [model.geom(i).name for i in range(model.ngeom)]
   assert names == ["foo_0", "foo_1", "terrain_2", "terrain_3"]
+
+
+@pytest.mark.parametrize(
+  "preset_name",
+  [
+    "hf_pyramid_slope",
+    "random_rough",
+    "wave_terrain",
+    "discrete_obstacles",
+    "perlin_noise",
+  ],
+)
+def test_heightfield_rows_run_along_y(preset_name):
+  """MuJoCo lays hfield rows along y and columns along x. Otherwise a non-square
+  terrain is stretched and its flat patches land off the sub-terrain."""
+  size = (4.0, 2.0)
+  patch_cfg = FlatPatchSamplingCfg(num_patches=20, patch_radius=0.2)
+  cfg = ALL_TERRAIN_PRESETS[preset_name](
+    size=size, flat_patch_sampling={"init": patch_cfg}
+  )
+  spec = mujoco.MjSpec()
+  spec.worldbody.add_body(name="terrain")
+  out = cfg.function(difficulty=1.0, spec=spec, rng=np.random.default_rng(0))
+
+  hfield = next(g.hfield for g in out.geometries if g.hfield is not None)
+  assert hfield.ncol == 2 * hfield.nrow  # Columns span x, twice as long as y.
+  assert out.flat_patches is not None
+  x, y = out.flat_patches["init"][:, 0], out.flat_patches["init"][:, 1]
+  assert np.all((x >= 0) & (x <= size[0]) & (y >= 0) & (y <= size[1]))
