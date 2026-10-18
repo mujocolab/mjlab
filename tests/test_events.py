@@ -604,10 +604,15 @@ def _make_impulse_env(
   mock_entity = Mock()
   mock_entity.num_bodies = num_bodies
   mock_entity.data = Mock()
+  mock_entity.data.body_link_quat_w = torch.zeros(
+    (num_envs, num_bodies, 4), device=device
+  )
+  mock_entity.data.body_link_quat_w[..., 0] = 1.0
+  # The inertia frame is rotated 90 degrees about x relative to the body frame.
   mock_entity.data.body_com_quat_w = torch.zeros(
     (num_envs, num_bodies, 4), device=device
   )
-  mock_entity.data.body_com_quat_w[..., 0] = 1.0
+  mock_entity.data.body_com_quat_w[..., [0, 1]] = 0.5**0.5
   env.scene = {"robot": mock_entity}
 
   asset_cfg = SceneEntityCfg("robot", body_ids=body_ids)
@@ -671,7 +676,7 @@ def test_apply_body_impulse_basic(device):
 
 
 def test_apply_body_impulse_with_offset(device):
-  """body_point_offset adds cross-product contribution to torque."""
+  """body_point_offset, in the body frame, adds cross-product torque."""
   env, mock_entity, asset_cfg, impulse = _make_impulse_env(
     device, num_envs=1, num_bodies=1, body_ids=[0]
   )
