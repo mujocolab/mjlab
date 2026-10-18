@@ -580,6 +580,8 @@ attribute of the <code class="docutils literal notranslate"><span class="pre">rs
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>String-keyed <code class="docutils literal notranslate"><span class="pre">dr.geom_size</span></code> and isotropic <code class="docutils literal notranslate"><span class="pre">dr.pair_friction</span></code> ranges now
+post-process only the matched geoms and pairs, not the whole <code class="docutils literal notranslate"><span class="pre">asset_cfg</span></code> selection.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">joint_pos=None</span></code> now reads an entity’s own slots of the scene keyframe as float32.
 Previously it read the wrong slots in multi-entity scenes and returned float64.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Entity.write_mocap_pose_to_sim</span></code> no longer crashes with <code class="docutils literal notranslate"><span class="pre">env_ids=None</span></code> when

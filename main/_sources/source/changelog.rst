@@ -32,6 +32,8 @@ Changed
 Fixed
 ^^^^^
 
+- String-keyed ``dr.geom_size`` and isotropic ``dr.pair_friction`` ranges now
+  post-process only the matched geoms and pairs, not the whole ``asset_cfg`` selection.
 - ``joint_pos=None`` now reads an entity's own slots of the scene keyframe as float32.
   Previously it read the wrong slots in multi-entity scenes and returned float64.
 - ``Entity.write_mocap_pose_to_sim`` no longer crashes with ``env_ids=None`` when
