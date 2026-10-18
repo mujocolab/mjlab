@@ -117,7 +117,7 @@ def test_kr_packed_into_gainprm(device):
     assert m.actuator_gainprm[i, 4] == pytest.approx(5.0)  # kp
     assert m.actuator_gainprm[i, 6] == pytest.approx(0.5)  # kd
     assert m.actuator_gainprm[i, 7] == pytest.approx(24.0)  # Vmax
-    assert m.actuator_gainprm[i, 8] == pytest.approx(1.0)  # input_mode=position
+    assert m.actuator_ctrlspec[i] == DcMotorInputMode.POSITION
     assert m.actuator_gaintype[i] == mujoco.mjtGain.mjGAIN_DCMOTOR
     assert m.actuator_biastype[i] == mujoco.mjtBias.mjBIAS_DCMOTOR
     # No activation state: ki=0, no inductance, no thermal/lugre/slew.
@@ -190,7 +190,7 @@ def test_back_emf_reduces_torque_at_velocity(device):
 
 
 def test_position_mode_pid_at_rest(device):
-  """kd=0, no Vmax clamp: tau = K * kp * (target - q) / R."""
+  """kd=0, no Vmax clamp: tau = kp * (target - q)."""
   # voltage_limit must be >0 (cfg invariant), pick it big enough not to clamp.
   entity, sim = initialize_entity(
     _make_entity(damping=0.0, voltage_limit=1000.0), device
@@ -198,7 +198,7 @@ def test_position_mode_pid_at_rest(device):
   pos = torch.tensor([[0.1, -0.05]], device=device)
   _drive(entity, sim, device, pos_target=pos)
   v_adr = entity.indexing.joint_v_adr
-  expected = K * 5.0 * pos[0] / R
+  expected = 5.0 * pos[0]
   assert torch.allclose(sim.data.qfrc_actuator[0, v_adr], expected, atol=1e-4)
 
 
@@ -219,19 +219,19 @@ def test_position_mode_voltage_clamp(device):
 
 
 def test_velocity_mode_pid(device):
-  """P-only velocity tracking: tau = K * kp * (target - qdot) / R."""
+  """Velocity tracking: tau = kd * (target - qdot)."""
   entity, sim = initialize_entity(
-    _make_entity(mode=DcMotorInputMode.VELOCITY, damping=0.0, voltage_limit=1000.0),
+    _make_entity(
+      mode=DcMotorInputMode.VELOCITY, stiffness=0.0, damping=5.0, voltage_limit=1000.0
+    ),
     device,
   )
   qd0 = torch.tensor([[1.0, 0.0]], device=device)
   vel_target = torch.tensor([[3.0, 0.0]], device=device)
   _drive(entity, sim, device, vel_target=vel_target, qd0=qd0)
   v_adr = entity.indexing.joint_v_adr
-  # back-EMF subtracts K*omega; this is folded into the dcmotor bias.
-  # voltage = kp*(target - qdot); tau = K*(voltage - K*omega)/R.
-  voltage = 5.0 * (vel_target[0] - qd0[0])
-  expected = K * (voltage - K * qd0[0]) / R
+  # The driver compensates back-EMF, so the commanded torque is delivered.
+  expected = 5.0 * (vel_target[0] - qd0[0])
   assert torch.allclose(sim.data.qfrc_actuator[0, v_adr], expected, atol=1e-4)
 
 
@@ -362,18 +362,18 @@ def test_integral_gain_ramps_torque(device):
   assert _qfrc(ent_on, sim_on)[0].abs() > 100.0 * _qfrc(ent_off, sim_off)[0].abs()
 
 
-def test_slew_rate_limits_voltage(device):
-  """``slew_rate`` rate-limits ``ctrl``: after one step, effective voltage
-  is far below the requested input."""
+def test_slew_rate_limits_setpoint(device):
+  """``slew_rate`` rate-limits the setpoint: after one step, the tracked
+  position error is far below the requested one."""
   base = dict(
-    mode=DcMotorInputMode.VOLTAGE, stiffness=0.0, damping=0.0, voltage_limit=0.0
+    mode=DcMotorInputMode.POSITION, stiffness=5.0, damping=0.0, voltage_limit=1000.0
   )
   ent_off, sim_off = _make_initialized(device, **base, slew_rate=0.0)
-  ent_on, sim_on = _make_initialized(device, **base, slew_rate=10.0)
+  ent_on, sim_on = _make_initialized(device, **base, slew_rate=0.1)
 
-  V = torch.tensor([[100.0, 0.0]], device=device)
+  target = torch.tensor([[0.5, 0.0]], device=device)
   for sim, ent in ((sim_off, ent_off), (sim_on, ent_on)):
-    _step_n(ent, sim, device, n=1, eff_target=V)
+    _step_n(ent, sim, device, n=1, pos_target=target)
   assert _qfrc(ent_off, sim_off)[0] > 100.0 * _qfrc(ent_on, sim_on)[0]
 
 
@@ -649,5 +649,5 @@ def test_delay_position_mode(device):
 
   v_adr = entity.indexing.joint_v_adr
   # With lag=2 and three writes, the effective target is targets[0].
-  expected = K * 10.0 * targets[0][0] / R
+  expected = 10.0 * targets[0][0]
   assert torch.allclose(sim.data.qfrc_actuator[0, v_adr], expected, atol=1e-4)
