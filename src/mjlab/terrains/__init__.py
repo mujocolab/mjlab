@@ -1,6 +1,7 @@
 from mjlab.terrains.heightfield_terrains import (
   HfDiscreteObstaclesTerrainCfg as HfDiscreteObstaclesTerrainCfg,
 )
+from mjlab.terrains.heightfield_terrains import HfMeshTerrainCfg as HfMeshTerrainCfg
 from mjlab.terrains.heightfield_terrains import (
   HfPerlinNoiseTerrainCfg as HfPerlinNoiseTerrainCfg,
 )

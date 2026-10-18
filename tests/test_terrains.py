@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from mjlab.terrains.config import ALL_TERRAIN_PRESETS
+from mjlab.terrains.heightfield_terrains import HfMeshTerrainCfg
 from mjlab.terrains.primitive_terrains import (
   _MIN_BORDER_HEIGHT,
   BoxInvertedPyramidStairsTerrainCfg,
@@ -14,6 +15,7 @@ from mjlab.terrains.primitive_terrains import (
   BoxSteppingStonesTerrainCfg,
 )
 from mjlab.terrains.terrain_generator import (
+  FlatPatchSamplingCfg,
   SubTerrainCfg,
   TerrainGenerator,
   TerrainGeneratorCfg,
@@ -178,3 +180,36 @@ def test_compile_preserves_custom_names_and_defaults_unnamed_geoms():
 
   names = [model.geom(i).name for i in range(model.ngeom)]
   assert names == ["foo_0", "foo_1", "terrain_2", "terrain_3"]
+
+
+def test_hf_mesh_terrain_follows_non_convex_mesh(tmp_path):
+  """The heightfield follows the mesh's top surface, not its convex hull."""
+  # Open V-shaped valley, z = |x|, running along y.
+  mesh_file = tmp_path / "valley.obj"
+  mesh_file.write_text(
+    "v -2 -1 2\nv 0 -1 0\nv 2 -1 2\nv -2 1 2\nv 0 1 0\nv 2 1 2\n"
+    "f 1 2 5\nf 1 5 4\nf 2 3 6\nf 2 6 5\n"
+  )
+  cfg = HfMeshTerrainCfg(
+    size=(4.0, 2.0),
+    mesh_file=str(mesh_file),
+    horizontal_scale=0.25,
+    flat_patch_sampling={"spawn": FlatPatchSamplingCfg(num_patches=4)},
+  )
+  spec = mujoco.MjSpec()
+  spec.worldbody.add_body(name="terrain")
+  output = cfg.function(difficulty=0.0, spec=spec, rng=np.random.default_rng(0))
+  model = spec.compile()
+  data = mujoco.MjData(model)
+  mujoco.mj_forward(model, data)
+
+  assert (model.hfield_nrow[0], model.hfield_ncol[0]) == (9, 17)
+  np.testing.assert_allclose(output.origin, [2.0, 1.0, 0.0], atol=1e-4)
+  assert output.flat_patches is not None
+  assert output.flat_patches["spawn"].shape == (4, 3)
+  geomid = np.zeros(1, dtype=np.int32)
+  down = np.array([0.0, 0.0, -1.0])
+  for x, y in [(0.01, 1.0), (1.0, 1.5), (2.0, 1.0), (3.25, 0.25), (3.99, 1.99)]:
+    pnt = np.array([x, y, 5.0])
+    dist = mujoco.mj_ray(model, data, pnt, down, None, True, -1, geomid)
+    assert 5.0 - dist == pytest.approx(abs(x - 2.0), abs=1e-3)

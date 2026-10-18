@@ -10,6 +10,7 @@ References:
 
 import uuid
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
 
 import mujoco
@@ -974,6 +975,124 @@ class HfPerlinNoiseTerrainCfg(SubTerrainCfg):
       1.0,  # vertical_scale is 1.0 because we already have physical heights
       grid_spacing,
       0,
+      self.flat_patch_sampling,
+      rng,
+    )
+
+    geom = TerrainGeometry(geom=hfield_geom, hfield=field)
+    return TerrainOutput(origin=origin, geometries=[geom], flat_patches=flat_patches)
+
+
+def _sample_mesh_heights(
+  mesh_file: str, size: tuple[float, float], horizontal_scale: float
+) -> np.ndarray:
+  """Top-surface heights of a mesh on a grid centered on its XY bounding box.
+
+  Returns an array of shape (num_y, num_x), in MuJoCo's hfield layout.
+  """
+  mesh_spec = mujoco.MjSpec()
+  mesh = mesh_spec.add_mesh(name="terrain", file=str(Path(mesh_file).resolve()))
+  # Terrain meshes are usually open surfaces with no enclosed volume.
+  mesh.inertia = mujoco.mjtMeshInertia.mjMESH_INERTIA_SHELL
+  mesh_spec.worldbody.add_geom(type=mujoco.mjtGeom.mjGEOM_MESH, meshname="terrain")
+  model = mesh_spec.compile()
+  data = mujoco.MjData(model)
+  mujoco.mj_kinematics(model, data)
+
+  # The compiler recenters mesh vertices, so map them back through the geom pose.
+  verts = model.mesh_vert @ data.geom_xmat[0].reshape(3, 3).T + data.geom_xpos[0]
+  lo, hi = verts.min(axis=0), verts.max(axis=0)
+  center = (lo[:2] + hi[:2]) / 2
+
+  # MuJoCo spaces hfield samples evenly from edge to edge of the geom.
+  num_x = round(size[0] / horizontal_scale) + 1
+  num_y = round(size[1] / horizontal_scale) + 1
+  xs = center[0] + np.linspace(-size[0] / 2, size[0] / 2, num_x)
+  ys = center[1] + np.linspace(-size[1] / 2, size[1] / 2, num_y)
+  # Rays through a vertex, an edge, or the outer boundary can slip past the mesh,
+  # so nudge samples off grid-aligned vertices and keep them just inside.
+  xs = np.clip(xs + 1.3e-6, lo[0] + 1e-6, hi[0] - 1e-6)
+  ys = np.clip(ys + 0.7e-6, lo[1] + 1e-6, hi[1] - 1e-6)
+
+  heights = np.full((num_y, num_x), np.nan)
+  top = hi[2] + 1.0
+  down = np.array([0.0, 0.0, -1.0])
+  geomid = np.zeros(1, dtype=np.int32)
+  for row, y in enumerate(ys):
+    for col, x in enumerate(xs):
+      pnt = np.array([x, y, top])
+      dist = mujoco.mj_ray(model, data, pnt, down, None, True, -1, geomid)
+      if dist >= 0:
+        heights[row, col] = top - dist
+  missed = np.isnan(heights)
+  if missed.all():
+    raise ValueError(f"No heightfield sample hit the mesh in {mesh_file}.")
+  # Fill holes, edges, and cropped margins from the nearest sample that hit.
+  nearest = ndimage.distance_transform_edt(
+    missed, return_distances=False, return_indices=True
+  )
+  assert isinstance(nearest, np.ndarray)
+  return heights[tuple(nearest)]
+
+
+@dataclass(kw_only=True)
+class HfMeshTerrainCfg(SubTerrainCfg):
+  """Heightfield sampled from a mesh file, such as a scanned or authored terrain.
+
+  MuJoCo collides against a mesh geom's convex hull, so a terrain mesh cannot be
+  used as a geom directly. Instead, a vertical ray is cast onto the mesh at each
+  heightfield sample and the top surface is kept. The mesh's XY bounding box is
+  centered on the sub-terrain without rescaling: parts outside ``size`` are
+  cropped, and samples that miss the mesh copy the nearest sample that hit. Heights
+  keep the mesh's z coordinates. ``difficulty`` is ignored.
+  """
+
+  mesh_file: str
+  """Path to a mesh file MuJoCo can load, such as ``.obj`` or ``.stl``."""
+  horizontal_scale: float = 0.1
+  """Heightfield grid resolution along x and y, in meters per cell."""
+  base_thickness_ratio: float = 1.0
+  """Ratio of the heightfield base thickness to its height range."""
+
+  def function(
+    self, difficulty: float, spec: mujoco.MjSpec, rng: np.random.Generator
+  ) -> TerrainOutput:
+    del difficulty  # The mesh fixes the terrain.
+    body = spec.body("terrain")
+
+    heights = _sample_mesh_heights(self.mesh_file, self.size, self.horizontal_scale)
+    elevation_min = float(heights.min())
+    height_range = max(float(heights.max()) - elevation_min, _MIN_HFIELD_HEIGHT)
+    normalized_elevation = ((heights - elevation_min) / height_range).astype(np.float32)
+
+    unique_id = uuid.uuid4().hex
+    field = spec.add_hfield(
+      name=f"hfield_{unique_id}",
+      size=[
+        self.size[0] / 2,
+        self.size[1] / 2,
+        height_range,
+        max(height_range * self.base_thickness_ratio, _MIN_HFIELD_HEIGHT),
+      ],
+      nrow=heights.shape[0],
+      ncol=heights.shape[1],
+      userdata=normalized_elevation.flatten().tolist(),
+    )
+    material_name = color_by_height(spec, normalized_elevation, unique_id, heights)
+    hfield_geom = body.add_geom(
+      type=mujoco.mjtGeom.mjGEOM_HFIELD,
+      hfieldname=field.name,
+      pos=[self.size[0] / 2, self.size[1] / 2, elevation_min],
+      material=material_name,
+    )
+
+    center_height = heights[heights.shape[0] // 2, heights.shape[1] // 2]
+    origin = np.array([self.size[0] / 2, self.size[1] / 2, center_height])
+    flat_patches = _compute_flat_patches(
+      heights,
+      1.0,  # Heights are already in meters.
+      self.horizontal_scale,
+      elevation_min,
       self.flat_patch_sampling,
       rng,
     )

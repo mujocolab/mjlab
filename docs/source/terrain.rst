@@ -259,6 +259,14 @@ and undulating ground that box geoms cannot represent.
 
       Fractal Perlin noise producing natural terrain undulation.
 
+``HfMeshTerrainCfg`` turns a mesh file, such as a terrain scan, into a
+heightfield by ray casting its top surface. MuJoCo collides against a mesh
+geom's convex hull, so terrain meshes cannot be used as geoms directly.
+
+.. code-block:: python
+
+    scan = terrain_gen.HfMeshTerrainCfg(mesh_file="scan.obj", proportion=1.0)
+
 
 Preset configurations
 ---------------------

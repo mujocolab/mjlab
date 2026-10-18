@@ -15,6 +15,7 @@ mjlab.terrains
   - :class:`SubTerrainCfg`
   - :class:`FlatPatchSamplingCfg`
   - :class:`HfDiscreteObstaclesTerrainCfg`
+  - :class:`HfMeshTerrainCfg`
   - :class:`HfPerlinNoiseTerrainCfg`
   - :class:`HfPyramidSlopedTerrainCfg`
   - :class:`HfRandomUniformTerrainCfg`
@@ -68,6 +69,12 @@ Heightfield Terrains
 --------------------
 
 .. autoclass:: HfDiscreteObstaclesTerrainCfg
+  :members:
+  :exclude-members: __init__
+  :undoc-members:
+  :show-inheritance:
+
+.. autoclass:: HfMeshTerrainCfg
   :members:
   :exclude-members: __init__
   :undoc-members:

@@ -17,6 +17,8 @@ Added
   conditional nodes, which require CUDA 12.4 or newer.
 - Added ``RewardManager.term_rewards`` and ``RewardManager.get_term()`` for the
   per-term reward vector from the last step :issue:`1223`.
+- Added ``HfMeshTerrainCfg``, a sub-terrain that ray casts a mesh file (for example a
+  terrain scan) into a heightfield :issue:`533`.
 
 Changed
 ^^^^^^^
