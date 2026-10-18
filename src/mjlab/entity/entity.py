@@ -202,6 +202,16 @@ class Entity:
         self._free_joint.name = "floating_base_joint"
       self._non_free_joints = tuple(self._all_joints[1:])
 
+    # Joints are looked up by name, so give unnamed ones unique default names.
+    taken = {j.name for j in self._all_joints}
+    for i, joint in enumerate(self._non_free_joints):
+      if not joint.name:
+        name = f"joint_{i}"
+        while name in taken:
+          name += "_"
+        joint.name = name
+        taken.add(name)
+
   def _apply_spec_editors(self) -> None:
     spec_cfg.warn_overlapping_geom_edits(
       self.cfg.geoms, self.cfg.collisions, self._spec

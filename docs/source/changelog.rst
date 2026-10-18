@@ -38,6 +38,8 @@ Changed
 Fixed
 ^^^^^
 
+- Unnamed hinge and slide joints are now auto-named like unnamed freejoints, instead
+  of crashing ``Entity`` initialization with a ``KeyError``.
 - ``VideoRecorder`` now evaluates ``episode_trigger`` only at the start of an episode,
   so a recording no longer restarts mid-episode and overwrites the video.
 - String-keyed ``dr.geom_size`` and isotropic ``dr.pair_friction`` ranges now

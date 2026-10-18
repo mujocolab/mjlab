@@ -244,6 +244,32 @@ def test_unnamed_freejoint_gets_default_name():
   assert "floating_base_joint" in entity.all_joint_names
 
 
+def test_unnamed_joints_get_unique_default_names(device):
+  """Unnamed hinge/slide joints are auto-named so the entity can initialize."""
+  xml = """
+  <mujoco>
+    <worldbody>
+      <body name="door">
+        <joint type="hinge" axis="0 0 1"/>
+        <geom type="box" size="0.1 0.1 0.1" mass="0.1"/>
+        <body name="drawer" pos="0 0 0.3">
+          <joint type="slide" axis="1 0 0"/>
+          <geom type="box" size="0.05 0.05 0.05" mass="0.1"/>
+        </body>
+        <body name="handle" pos="0 0 0.6">
+          <joint name="joint_0" type="hinge" axis="0 1 0"/>
+          <geom type="box" size="0.05 0.05 0.05" mass="0.1"/>
+        </body>
+      </body>
+    </worldbody>
+  </mujoco>
+  """
+  cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(xml))
+  entity = Entity(cfg)
+  assert entity.joint_names == ("joint_0_", "joint_1", "joint_0")
+  initialize_entity_with_sim(entity, device)
+
+
 def test_multiple_freejoints_raises():
   """An entity with more than one freejoint is rejected at construction."""
   xml = """
