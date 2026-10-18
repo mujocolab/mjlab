@@ -228,8 +228,7 @@ class EntityData:
       raise ValueError("Cannot write mocap pose for non-mocap entity.")
     assert pose.shape[-1] == self.ROOT_POSE_DIM
 
-    # mocap_id is a single int, so index env_ids directly rather than through
-    # _resolve_env_ids: the target is (N, 3) for both tensor and slice env_ids.
+    # Bypass _resolve_env_ids since mocap is always a single body.
     if env_ids is None:
       env_ids = slice(None)
     self.data.mocap_pos[env_ids, self.indexing.mocap_id] = pose[:, 0:3]

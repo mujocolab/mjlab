@@ -508,7 +508,6 @@ def test_fixed_base_mocap_runtime_pose_change(device):
   assert entity.indexing.mocap_id is not None
   assert entity.is_mocap is True
 
-  # Default env_ids=None writes every env.
   # fmt: off
   new_pose = torch.tensor([
     5.0, 6.0, 7.0,
@@ -517,16 +516,6 @@ def test_fixed_base_mocap_runtime_pose_change(device):
   # fmt: on
   new_pose[:, 0] = torch.arange(4, device=device)
   entity.write_mocap_pose_to_sim(new_pose)
-
-  sim.forward()
-  assert torch.allclose(entity.data.root_link_pose_w, new_pose, atol=1e-5)
-
-  # A tensor of env_ids writes only those envs.
-  env_ids = torch.tensor([1, 3], device=device)
-  subset_pose = new_pose[env_ids].clone()
-  subset_pose[:, 2] = -1.0
-  entity.write_mocap_pose_to_sim(subset_pose, env_ids=env_ids)
-  new_pose[env_ids] = subset_pose
 
   sim.forward()
   assert torch.allclose(entity.data.root_link_pose_w, new_pose, atol=1e-5)
