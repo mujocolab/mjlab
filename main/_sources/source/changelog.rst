@@ -21,6 +21,9 @@ Added
 Changed
 ^^^^^^^
 
+- Heightfield terrains now lay hfield rows along y and columns along x, as MuJoCo
+  expects. Non-square sub-terrains are no longer stretched with flat patches off the
+  terrain; square ones are mirrored across x=y for a given seed.
 - ``PinholeCameraPatternCfg`` rays now follow MuJoCo's image layout (row 0 at the top,
   through pixel centers), matching ``CameraSensor``. Previously the image was flipped.
 - Bumped ``mujoco`` and ``mujoco-warp`` from 3.11 to 3.16 and raised the

@@ -569,6 +569,9 @@ per-term reward vector from the last step <a class="extlink-issue reference exte
 <section id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Heightfield terrains now lay hfield rows along y and columns along x, as MuJoCo
+expects. Non-square sub-terrains are no longer stretched with flat patches off the
+terrain; square ones are mirrored across x=y for a given seed.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">PinholeCameraPatternCfg</span></code> rays now follow MuJoCo’s image layout (row 0 at the top,
 through pixel centers), matching <code class="docutils literal notranslate"><span class="pre">CameraSensor</span></code>. Previously the image was flipped.</p></li>
 <li><p>Bumped <code class="docutils literal notranslate"><span class="pre">mujoco</span></code> and <code class="docutils literal notranslate"><span class="pre">mujoco-warp</span></code> from 3.11 to 3.16 and raised the
