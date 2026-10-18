@@ -34,6 +34,8 @@ Changed
 Fixed
 ^^^^^
 
+- ``VideoRecorder`` now evaluates ``episode_trigger`` only at the start of an episode,
+  so a recording no longer restarts mid-episode and overwrites the video.
 - String-keyed ``dr.geom_size`` and isotropic ``dr.pair_friction`` ranges now
   post-process only the matched geoms and pairs, not the whole ``asset_cfg`` selection.
 - ``joint_pos=None`` now reads an entity's own slots of the scene keyframe as float32.
