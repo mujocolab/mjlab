@@ -580,6 +580,8 @@ attribute of the <code class="docutils literal notranslate"><span class="pre">rs
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>The tracking <code class="docutils literal notranslate"><span class="pre">evaluate</span></code> script no longer scores each episode’s last step,
+where the robot has already been auto-reset, which inflated the tracking errors.</p></li>
 <li><p>Multi-cube lifting rewards now use the target cube’s current position.
 <code class="docutils literal notranslate"><span class="pre">MultiCubeLiftingCommand.target_object_pos()</span></code> returned a value cached in the
 command update, which runs after rewards in <code class="docutils literal notranslate"><span class="pre">step()</span></code>, so the rewards saw the cube

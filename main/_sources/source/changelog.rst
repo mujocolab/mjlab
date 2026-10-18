@@ -32,6 +32,8 @@ Changed
 Fixed
 ^^^^^
 
+- The tracking ``evaluate`` script no longer scores each episode's last step,
+  where the robot has already been auto-reset, which inflated the tracking errors.
 - Multi-cube lifting rewards now use the target cube's current position.
   ``MultiCubeLiftingCommand.target_object_pos()`` returned a value cached in the
   command update, which runs after rewards in ``step()``, so the rewards saw the cube
