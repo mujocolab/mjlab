@@ -214,6 +214,31 @@ def test_write_no_traversal_escape(minimal_scene_cfg, tmp_path, device):
       assert str(f).startswith(str(out)), f"File escaped output dir: {f}"
 
 
+def test_write_includes_entity_meshes(tmp_path, device):
+  """write() copies mesh files that entities load from disk, so the export loads."""
+  model_dir = tmp_path / "robot"
+  (model_dir / "meshes").mkdir(parents=True)
+  (model_dir / "meshes" / "tet.obj").write_text(
+    "v 0 0 0\nv 1 0 0\nv 0 1 0\nv 0 0 1\nf 1 3 2\nf 1 2 4\nf 1 4 3\nf 2 3 4\n"
+  )
+  (model_dir / "robot.xml").write_text("""
+    <mujoco>
+      <compiler meshdir="meshes"/>
+      <asset><mesh name="tet" file="tet.obj"/></asset>
+      <worldbody><body name="base"><geom type="mesh" mesh="tet"/></body></worldbody>
+    </mujoco>
+  """)
+  entity_cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_file(str(model_dir / "robot.xml"))
+  )
+  scene = Scene(SceneCfg(entities={"robot": entity_cfg}), device)
+
+  out = tmp_path / "out"
+  scene.write(out)
+  assert (out / "assets" / "tet.obj").is_file()
+  mujoco.MjModel.from_xml_path(str(out / "scene.xml"))
+
+
 # ============================================================================
 # Entity Access Tests
 # ============================================================================

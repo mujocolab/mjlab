@@ -92,9 +92,10 @@ def pole_angle_cos_sin(
 
 # Rewards.
 
-# dm_control uses value_at_margin=0.1 by default.
+# dm_control uses value_at_margin=0.1 by default, but its small_control term passes
+# value_at_margin=0, so the quadratic scale is sqrt(1 - 0).
 _GAUSSIAN_SCALE = math.sqrt(-2 * math.log(0.1))
-_QUADRATIC_SCALE = math.sqrt(1 - 0.1)
+_QUADRATIC_SCALE = 1.0
 
 
 def _gaussian_tolerance(x: torch.Tensor, margin: float) -> torch.Tensor:
