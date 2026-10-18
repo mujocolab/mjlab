@@ -83,7 +83,14 @@ class Scene:
       output_dir: Destination directory (created if it doesn't exist).
       zip: If True, produce ``<output_dir>.zip`` instead of a directory.
     """
-    export_spec(self._spec, output_dir, zip=zip)
+    spec = self._spec.copy()
+    # Entity meshes compile straight from disk, so spec.assets holds no mesh bytes.
+    for ent in self._entities.values():
+      for mesh in ent.spec.meshes:
+        path = Path(ent.spec.modelfiledir) / mesh.compiler.meshdir / mesh.file
+        if mesh.file and mesh.file not in spec.assets and path.is_file():
+          spec.assets[mesh.file] = path.read_bytes()
+    export_spec(spec, output_dir, zip=zip)
 
   def to_zip(self, path: Path) -> None:
     """Deprecated. Use ``write(output_dir, zip=True)`` instead."""

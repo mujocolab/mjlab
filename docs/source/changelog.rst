@@ -40,6 +40,11 @@ Fixed
 
 - ``NoiseModelWithAdditiveBias`` no longer crashes on the first reset when
   ``bias_noise_cfg`` has per-dimension (tuple) ranges.
+- ``export-scene`` and ``Scene.write`` once again copy entity mesh files into
+  ``assets/``. Exporting an asset_zoo robot wrote only ``scene.xml``, which then
+  failed to load.
+- The cartpole ``small_control`` reward term now matches dm_control, which reaches 0
+  at the control margin (``value_at_margin=0``) instead of 0.1.
 - ``VideoRecorder`` now evaluates ``episode_trigger`` only at the start of an episode,
   so a recording no longer restarts mid-episode and overwrites the video.
 - String-keyed ``dr.geom_size`` and isotropic ``dr.pair_friction`` ranges now
