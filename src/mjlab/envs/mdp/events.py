@@ -530,7 +530,7 @@ class apply_body_impulse:
       offset_local = torch.tensor(
         body_point_offset, device=self._device, dtype=torch.float32
       )
-      body_quat = self._asset.data.body_com_quat_w[trigger_ids][:, self._body_ids]
+      body_quat = self._asset.data.body_link_quat_w[trigger_ids][:, self._body_ids]
       # Rotate offset into world frame: (n, num_bodies, 3).
       offset_w = quat_apply(
         body_quat.reshape(-1, 4), offset_local.expand(n * self._num_bodies, 3)
@@ -560,7 +560,7 @@ class apply_body_impulse:
     wrench = self._asset.data.body_external_wrench  # (nworld, nbody, 6)
     com_pos = self._asset.data.body_com_pos_w  # (nworld, nbody, 3)
     offset = self._body_point_offset
-    com_quat = self._asset.data.body_com_quat_w if offset is not None else None
+    body_quat = self._asset.data.body_link_quat_w if offset is not None else None
     for env_idx in visualizer.get_env_indices(self._num_envs):
       if not self._active[env_idx]:
         continue
@@ -570,8 +570,8 @@ class apply_body_impulse:
           continue
         force_np = force.cpu().numpy()
         start_np = com_pos[env_idx, i].cpu().numpy()
-        if offset is not None and com_quat is not None:
-          offset_w = quat_apply(com_quat[env_idx, i], offset)
+        if offset is not None and body_quat is not None:
+          offset_w = quat_apply(body_quat[env_idx, i], offset)
           start_np = start_np + offset_w.cpu().numpy()
         end_np = start_np + force_np * viz.scale
         visualizer.add_arrow(
