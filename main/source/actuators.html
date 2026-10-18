@@ -59,7 +59,7 @@
     <link rel="prev" title="Heterogeneous Worlds" href="entity/per_world_mesh.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Oct 12, 2026"/>
+    <meta name="docbuild:last-update" content="Oct 18, 2026"/>
   </head>
   
   
@@ -613,8 +613,11 @@ through the native bias path, so <code class="docutils literal notranslate"><spa
 its velocity derivative as effective damping. Three input modes pick what
 <code class="docutils literal notranslate"><span class="pre">ctrl</span></code> carries: VOLTAGE drives the motor directly; POSITION / VELOCITY
 close an internal PID (with anti-windup and slew limiting) against a
-single setpoint, whose Vmax-clamped output becomes torque. POSITION mode
-pins v_target = 0 (the kd term acts on raw velocity). Optional physics:
+single setpoint. The PID gains are in torque space, <code class="docutils literal notranslate"><span class="pre">stiffness</span></code> on the
+position error and <code class="docutils literal notranslate"><span class="pre">damping</span></code> on the velocity error, and the driver
+compensates back-EMF, so the commanded torque is delivered until the drive
+voltage reaches Vmax. POSITION mode pins v_target = 0 (the kd term acts on
+raw velocity). Optional physics:
 inductance,
 thermal model with I^2R heating, cogging ripple, LuGre friction.
 <code class="docutils literal notranslate"><span class="pre">DcMotorActuator</span></code> (the explicit version) is a software PD with a
@@ -1010,7 +1013,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Oct 12, 2026.
+  Last updated on Oct 18, 2026.
   <br/>
 </p>
   </div>

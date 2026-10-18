@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Oct 12, 2026"/>
+    <meta name="docbuild:last-update" content="Oct 18, 2026"/>
   </head>
   
   
@@ -565,6 +565,11 @@ conditional nodes, which require CUDA 12.4 or newer.</p></li>
 <section id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Bumped <code class="docutils literal notranslate"><span class="pre">mujoco</span></code> and <code class="docutils literal notranslate"><span class="pre">mujoco-warp</span></code> from 3.11 to 3.16 and raised the
+<code class="docutils literal notranslate"><span class="pre">warp-lang</span></code> floor to 1.15.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BuiltinDcMotorActuatorCfg</span></code> PID gains are now in torque space, following
+MuJoCo 3.14. VELOCITY mode requires <code class="docutils literal notranslate"><span class="pre">damping</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> and <code class="docutils literal notranslate"><span class="pre">stiffness</span> <span class="pre">=</span> <span class="pre">0</span></code>, and
+VOLTAGE mode rejects <code class="docutils literal notranslate"><span class="pre">voltage_limit</span></code> and <code class="docutils literal notranslate"><span class="pre">slew_rate</span></code>.</p></li>
 <li><p>Bumped <code class="docutils literal notranslate"><span class="pre">rsl-rl-lib</span></code> from 5.5.0 to 5.5.1. This removes the need for capping
 <code class="docutils literal notranslate"><span class="pre">wandb</span></code> below 0.29.</p></li>
 <li><p>Bumped <code class="docutils literal notranslate"><span class="pre">rsl-rl-lib</span></code> from 5.4.2 to 5.5.0. This update removes the <code class="docutils literal notranslate"><span class="pre">logger_type</span></code>
@@ -1804,7 +1809,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Oct 12, 2026.
+  Last updated on Oct 18, 2026.
   <br/>
 </p>
   </div>
