@@ -258,14 +258,6 @@ def test_posture_std_follows_asset_cfg_joint_order(device):
   expected = torch.exp(torch.tensor([-(2.5e-5 + 9.0) / 2], device=device))
   assert torch.allclose(reward, expected)
 
-  # Without joint_names the term covers every joint.
-  all_cfg = SceneEntityCfg("robot")
-  all_cfg.resolve(env.scene)
-  cfg = RewardTermCfg(
-    func=posture, weight=1.0, params={"asset_cfg": all_cfg, "std": {".*": 1.0}}
-  )
-  assert posture(cfg, env).std.shape == (3,)
-
 
 def test_reward_manager_handles_nan_values(mock_env):
   """Test that RewardManager converts NaN/Inf reward values to zero."""

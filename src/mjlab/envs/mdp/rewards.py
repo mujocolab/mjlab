@@ -109,10 +109,9 @@ class posture:
     assert default_joint_pos is not None
     self.default_joint_pos = default_joint_pos
 
-    # Match asset_cfg's joint order so each std lines up with its joint in __call__.
     asset_cfg = cfg.params["asset_cfg"]
     _, joint_names = asset.find_joints(
-      asset_cfg.joint_names or ".*", preserve_order=asset_cfg.preserve_order
+      asset_cfg.joint_names, preserve_order=asset_cfg.preserve_order
     )
 
     _, _, std = resolve_matching_names_values(
@@ -138,7 +137,9 @@ class electrical_power_cost:
   def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
     asset: Entity = env.scene[cfg.params["asset_cfg"].name]
 
-    joint_ids, _ = asset.find_joints(cfg.params["asset_cfg"].joint_names or ".*")
+    joint_ids, _ = asset.find_joints(
+      cfg.params["asset_cfg"].joint_names,
+    )
     self._joint_ids = torch.tensor(joint_ids, device=env.device, dtype=torch.long)
 
   def __call__(self, env: ManagerBasedRlEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
