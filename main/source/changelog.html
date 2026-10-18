@@ -580,6 +580,10 @@ attribute of the <code class="docutils literal notranslate"><span class="pre">rs
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Multi-cube lifting rewards now use the target cube’s current position.
+<code class="docutils literal notranslate"><span class="pre">MultiCubeLiftingCommand.target_object_pos()</span></code> returned a value cached in the
+command update, which runs after rewards in <code class="docutils literal notranslate"><span class="pre">step()</span></code>, so the rewards saw the cube
+where it was before the step’s physics.</p></li>
 <li><p>The viewer now resets recurrent policy hidden state for environments that terminate
 or time out. Previously it only reset the policy when the user pressed the reset
 button, so each auto-reset environment kept the previous episode’s memory <a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/1222">#1222</a>.</p></li>
