@@ -409,7 +409,11 @@ class variable_posture:
     assert default_joint_pos is not None
     self.default_joint_pos = default_joint_pos
 
-    _, joint_names = asset.find_joints(cfg.params["asset_cfg"].joint_names)
+    # Match asset_cfg's joint order so each std lines up with its joint in __call__.
+    asset_cfg = cfg.params["asset_cfg"]
+    _, joint_names = asset.find_joints(
+      asset_cfg.joint_names or ".*", preserve_order=asset_cfg.preserve_order
+    )
 
     _, _, std_standing = resolve_matching_names_values(
       data=cfg.params["std_standing"],

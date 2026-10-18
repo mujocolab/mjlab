@@ -38,6 +38,9 @@ Changed
 Fixed
 ^^^^^
 
+- ``posture`` and ``variable_posture`` now pair each joint with its own ``std`` when
+  ``asset_cfg.preserve_order=True``, and ``posture`` and ``electrical_power_cost``
+  no longer crash when ``asset_cfg`` has no ``joint_names``.
 - ``VideoRecorder`` now evaluates ``episode_trigger`` only at the start of an episode,
   so a recording no longer restarts mid-episode and overwrites the video.
 - String-keyed ``dr.geom_size`` and isotropic ``dr.pair_friction`` ranges now
