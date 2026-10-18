@@ -331,6 +331,35 @@ def test_reward_scaling_default_is_enabled(mock_env):
   assert torch.allclose(rewards, torch.full((4,), 0.01))
 
 
+def test_term_rewards_sum_to_reward_buf(mock_env):
+  """term_rewards exposes each term's scaled contribution to reward_buf."""
+
+  def ramp(env):
+    return torch.arange(env.num_envs, dtype=torch.float, device=env.device)
+
+  def constant(env):
+    return torch.ones(env.num_envs, device=env.device)
+
+  cfg = {
+    "ramp": RewardTermCfg(func=ramp, weight=2.0, params={}),
+    "off": RewardTermCfg(func=constant, weight=0.0, params={}),
+    "penalty": RewardTermCfg(func=constant, weight=-0.5, params={}),
+  }
+  manager = RewardManager(cfg, mock_env)
+
+  dt = 0.02
+  rewards = manager.compute(dt=dt)
+
+  term_rewards = manager.term_rewards
+  assert term_rewards.shape == (4, 3)
+  assert torch.allclose(term_rewards.sum(dim=-1), rewards)
+  assert torch.allclose(manager.get_term("ramp"), torch.arange(4.0) * 2.0 * dt)
+  assert torch.all(manager.get_term("off") == 0.0)
+  assert torch.allclose(manager.get_term("penalty"), torch.full((4,), -0.5 * dt))
+  with pytest.raises(ValueError, match="not found"):
+    manager.get_term("missing")
+
+
 def test_reward_shape_validation_rejects_bad_compute_output(mock_env):
   """Reward terms must return one scalar per environment."""
   cfg = {"bad": RewardTermCfg(func=lambda env: torch.ones(env.num_envs, 1), weight=1.0)}

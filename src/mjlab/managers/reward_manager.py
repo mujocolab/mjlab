@@ -70,6 +70,7 @@ class RewardManager(ManagerBase):
         self.num_envs, dtype=torch.float, device=self.device
       )
     self._reward_buf = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
+    self._scale = 1.0
     self._step_reward = torch.zeros(
       (self.num_envs, len(self._term_names)), dtype=torch.float, device=self.device
     )
@@ -95,6 +96,11 @@ class RewardManager(ManagerBase):
   def active_terms(self) -> list[str]:
     return self._term_names
 
+  @property
+  def term_rewards(self) -> torch.Tensor:
+    """Per-term rewards from the last step, scaled like ``reward_buf``."""
+    return self._step_reward * self._scale
+
   # Methods.
 
   def reset(
@@ -116,6 +122,7 @@ class RewardManager(ManagerBase):
   def compute(self, dt: float) -> torch.Tensor:
     self._reward_buf[:] = 0.0
     scale = dt if self._scale_by_dt else 1.0
+    self._scale = scale
     for term_idx, (name, term_cfg) in enumerate(
       zip(self._term_names, self._term_cfgs, strict=False)
     ):
@@ -156,6 +163,12 @@ class RewardManager(ManagerBase):
     for idx, name in enumerate(self._term_names):
       terms.append((name, [self._step_reward[env_idx, idx].cpu().item()]))
     return terms
+
+  def get_term(self, name: str) -> torch.Tensor:
+    """Return one term's column of ``term_rewards``, shape ``(num_envs,)``."""
+    if name not in self._term_names:
+      raise ValueError(f"Term '{name}' not found in active terms.")
+    return self.term_rewards[:, self._term_names.index(name)]
 
   def get_term_cfg(self, term_name: str) -> RewardTermCfg:
     if term_name not in self._term_names:
