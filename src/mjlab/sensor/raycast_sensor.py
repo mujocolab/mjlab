@@ -198,9 +198,7 @@ class PinholeCameraPatternCfg:
       aspect = width / height
       h_fov_rad = 2 * math.atan(math.tan(v_fov_rad / 2) * aspect)
 
-    # Normalized pixel-center coordinates in (-1, 1), matching MuJoCo's renderer:
-    # columns run left to right and row 0 is the top of the image. Rays are
-    # row-major, so distances.view(B, height, width) is an upright image.
+    # Normalized pixel centers, row-major with row 0 at the top (MuJoCo's layout).
     cols = torch.arange(width, device=device, dtype=torch.float32)
     rows = torch.arange(height, device=device, dtype=torch.float32)
     u = (cols + 0.5) / width * 2 - 1

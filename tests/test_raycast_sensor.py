@@ -485,8 +485,7 @@ def test_pinhole_camera_pattern_num_rays(device):
 
 
 def test_pinhole_rays_match_mujoco_image_layout():
-  """Rays go through pixel centers in row-major order with row 0 at the image top,
-  like MuJoCo's camera (-Z forward, +X right, +Y up)."""
+  """Rays go through pixel centers, row-major with row 0 at the image top."""
   # fovy=90 with a square image gives tan(fov / 2) = 1 on both axes.
   cfg = PinholeCameraPatternCfg(width=2, height=2, fovy=90.0)
   _, directions = cfg.generate_rays(None, "cpu")
