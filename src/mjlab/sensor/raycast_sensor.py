@@ -198,12 +198,14 @@ class PinholeCameraPatternCfg:
       aspect = width / height
       h_fov_rad = 2 * math.atan(math.tan(v_fov_rad / 2) * aspect)
 
-    # Create normalized pixel coordinates [-1, 1].
-    u = torch.linspace(-1, 1, width, device=device, dtype=torch.float32)
-    v = torch.linspace(-1, 1, height, device=device, dtype=torch.float32)
+    # Normalized pixel centers, row-major with row 0 at the top (MuJoCo's layout).
+    cols = torch.arange(width, device=device, dtype=torch.float32)
+    rows = torch.arange(height, device=device, dtype=torch.float32)
+    u = (cols + 0.5) / width * 2 - 1
+    v = 1 - (rows + 0.5) / height * 2
     grid_u, grid_v = torch.meshgrid(u, v, indexing="xy")
 
-    # Convert to ray directions (MuJoCo camera: -Z forward, +X right, +Y down).
+    # Convert to ray directions (MuJoCo camera: -Z forward, +X right, +Y up).
     ray_x = grid_u.flatten() * math.tan(h_fov_rad / 2)
     ray_y = grid_v.flatten() * math.tan(v_fov_rad / 2)
     ray_z = -torch.ones_like(ray_x)  # Negative Z for MuJoCo camera forward

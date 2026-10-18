@@ -19,6 +19,8 @@ Added
 Changed
 ^^^^^^^
 
+- ``PinholeCameraPatternCfg`` rays now follow MuJoCo's image layout (row 0 at the top,
+  through pixel centers), matching ``CameraSensor``. Previously the image was flipped.
 - Bumped ``mujoco`` and ``mujoco-warp`` from 3.11 to 3.16 and raised the
   ``warp-lang`` floor to 1.15.
 - ``BuiltinDcMotorActuatorCfg`` PID gains are now in torque space, following
