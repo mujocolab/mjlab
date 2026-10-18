@@ -19,6 +19,7 @@ from mjlab.sensor import (
 )
 from mjlab.sensor.raycast_sensor import _geom_groups_to_vec6
 from mjlab.sim import MujocoCfg, SimulationCfg
+from mjlab.utils.lab_api.math import quat_from_euler_xyz
 
 
 @pytest.fixture(scope="module")
@@ -290,6 +291,36 @@ def test_raycast_grid_pattern_anisotropic_resolution(device):
   expected_y = torch.arange(-0.2, 0.21, 0.1, device=device)
   assert torch.allclose(offsets[:, 0].unique(), expected_x)
   assert torch.allclose(offsets[:, 1].unique(), expected_y)
+
+
+def test_raycast_grid_pattern_offset(robot_with_floor_xml, device):
+  """Grid offset is applied in frame-local XY and follows ray_alignment."""
+  raycast_cfg = RayCastSensorCfg(
+    name="offset_scan",
+    frame=ObjRef(type="body", name="base", entity="robot"),
+    pattern=GridPatternCfg(size=(0.2, 0.2), resolution=0.1, offset=(0.5, -0.2)),
+    ray_alignment="yaw",
+    max_distance=10.0,
+  )
+
+  scene, sim = make_scene_and_sim(device, robot_with_floor_xml, sensors=(raycast_cfg,))
+  sensor = scene["offset_scan"]
+
+  # Yaw the body 90 degrees and pitch it 0.3 rad, keeping it above the origin.
+  quat = quat_from_euler_xyz(
+    torch.zeros(1, device=device),
+    torch.full((1,), 0.3, device=device),
+    torch.full((1,), math.pi / 2, device=device),
+  )
+  pose = torch.cat([torch.tensor([[0.0, 0.0, 2.0]], device=device), quat], dim=1)
+  scene["robot"].write_root_link_pose_to_sim(pose)
+  sim.forward()
+  sim.sense()
+
+  # The hit centroid is the offset rotated by the body yaw only.
+  centroid = sensor.data.hit_pos_w[0, :, :2].mean(dim=0)
+  expected = torch.tensor([0.2, 0.5], device=device)
+  assert torch.allclose(centroid, expected, atol=1e-3)
 
 
 def test_raycast_different_direction(device):
