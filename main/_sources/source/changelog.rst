@@ -38,6 +38,8 @@ Changed
 Fixed
 ^^^^^
 
+- ``apply_body_impulse`` now applies ``body_point_offset`` in the body frame, as
+  documented, instead of the body's principal inertia frame.
 - ``NoiseModelWithAdditiveBias`` no longer crashes on the first reset when
   ``bias_noise_cfg`` has per-dimension (tuple) ranges.
 - ``export-scene`` and ``Scene.write`` once again copy entity mesh files into
