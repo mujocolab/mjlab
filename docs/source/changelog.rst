@@ -38,6 +38,9 @@ Changed
 Fixed
 ^^^^^
 
+- ``IdealPdActuator``, DC motor, and learned actuator effort limits raised above
+  ``effort_limit`` (via ``dr.effort_limits`` or ``set_effort_limit``) now apply.
+  Previously the MuJoCo motor still clamped to the configured limit.
 - ``VideoRecorder`` now evaluates ``episode_trigger`` only at the start of an episode,
   so a recording no longer restarts mid-episode and overwrites the video.
 - String-keyed ``dr.geom_size`` and isotropic ``dr.pair_friction`` ranges now

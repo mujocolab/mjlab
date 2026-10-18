@@ -88,7 +88,9 @@ class IdealPdActuator(Actuator, Generic[IdealPdCfgT]):
       actuator = create_motor_actuator(
         spec,
         target_name,
-        effort_limit=self.cfg.effort_limit,
+        # control_law clamps to force_limit, which can be randomized above the
+        # configured limit, so leave the motor itself unlimited.
+        effort_limit=float("inf"),
         armature=self.cfg.armature,
         frictionloss=self.cfg.frictionloss,
         viscous_damping=self.cfg.viscous_damping,

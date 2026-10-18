@@ -9,7 +9,11 @@ from conftest import (
   load_fixture_xml,
 )
 
-from mjlab.actuator import BuiltinPositionActuatorCfg, IdealPdActuatorCfg
+from mjlab.actuator import (
+  BuiltinPositionActuatorCfg,
+  IdealPdActuator,
+  IdealPdActuatorCfg,
+)
 
 
 @pytest.fixture(scope="module")
@@ -162,3 +166,29 @@ def test_ideal_pd_effort_clamping(device, robot_xml):
   assert torch.allclose(
     ideal_ctrl, torch.tensor([effort_limit, -effort_limit], device=device)
   )
+
+
+def test_ideal_pd_effort_limit_raised_after_init(device, robot_xml):
+  """Raising the effort limit above the configured one is not capped by MuJoCo."""
+  ideal_entity = create_entity_with_actuator(
+    robot_xml,
+    IdealPdActuatorCfg(
+      target_names_expr=("joint.*",), effort_limit=5.0, stiffness=100.0, damping=0.0
+    ),
+  )
+  ideal_entity, ideal_sim = initialize_entity(ideal_entity, device)
+  actuator = ideal_entity.actuators[0]
+  assert isinstance(actuator, IdealPdActuator)
+  actuator.set_effort_limit(slice(None), torch.tensor([10.0], device=device))
+
+  ideal_entity.write_joint_state_to_sim(
+    torch.zeros(1, 2, device=device), torch.zeros(1, 2, device=device)
+  )
+  ideal_entity.set_joint_position_target(torch.tensor([[1.0, -1.0]], device=device))
+  ideal_entity.set_joint_velocity_target(torch.zeros(1, 2, device=device))
+  ideal_entity.set_joint_effort_target(torch.zeros(1, 2, device=device))
+  ideal_entity.write_data_to_sim()
+  ideal_sim.forward()
+
+  qfrc = ideal_sim.data.qfrc_actuator[0, ideal_entity.indexing.joint_v_adr]
+  assert torch.allclose(qfrc, torch.tensor([10.0, -10.0], device=device))
