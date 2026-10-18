@@ -7,6 +7,8 @@ import mediapy as media
 import numpy as np
 import torch
 
+from mjlab.utils.wrappers.video_recorder import VideoRecorder
+
 
 def _make_mock_env(num_envs: int = 1):
   """Create a mock environment that produces random RGB frames."""
@@ -30,8 +32,6 @@ def _make_mock_env(num_envs: int = 1):
 
 def test_step_trigger_writes_video(tmp_path: Path):
   """VideoRecorder writes a readable mp4 when the step trigger fires."""
-  from mjlab.utils.wrappers.video_recorder import VideoRecorder
-
   env = _make_mock_env()
   recorder = VideoRecorder(
     env,
@@ -58,8 +58,6 @@ def test_step_trigger_writes_video(tmp_path: Path):
 
 def test_accepts_string_path(tmp_path: Path):
   """VideoRecorder accepts a string path for video_folder."""
-  from mjlab.utils.wrappers.video_recorder import VideoRecorder
-
   env = _make_mock_env()
   folder = str(tmp_path / "vids")
   recorder = VideoRecorder(
@@ -77,3 +75,36 @@ def test_accepts_string_path(tmp_path: Path):
   recorder.close()
 
   assert list(Path(folder).glob("*.mp4"))
+
+
+def test_episode_trigger_fires_at_each_triggered_episode_start(tmp_path: Path):
+  """episode_trigger is evaluated once per episode, at its first step."""
+  env = _make_mock_env()
+  # Episodes last 4 steps: env 0 terminates on every 4th step.
+  env.step.side_effect = [
+    (
+      torch.zeros(1),
+      torch.zeros(1),
+      torch.tensor([i % 4 == 3]),
+      torch.zeros(1, dtype=torch.bool),
+      {},
+    )
+    for i in range(12)
+  ]
+  recorder = VideoRecorder(
+    env,
+    video_folder=tmp_path,
+    episode_trigger=lambda episode: episode in (0, 2),
+    video_length=2,
+    disable_logger=True,
+  )
+
+  action = torch.zeros(1)
+  for _ in range(12):
+    recorder.step(action)
+
+  recorder.close()
+
+  assert recorder.video_count == 2
+  videos = sorted(p.name for p in tmp_path.glob("*.mp4"))
+  assert videos == ["rl-video-episode-0.mp4", "rl-video-episode-2.mp4"]
