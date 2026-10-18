@@ -38,6 +38,8 @@ Changed
 Fixed
 ^^^^^
 
+- ``NoiseModelWithAdditiveBias`` no longer crashes on the first reset when
+  ``bias_noise_cfg`` has per-dimension (tuple) ranges.
 - ``VideoRecorder`` now evaluates ``episode_trigger`` only at the start of an episode,
   so a recording no longer restarts mid-episode and overwrites the video.
 - String-keyed ``dr.geom_size`` and isotropic ``dr.pair_friction`` ranges now
