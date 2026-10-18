@@ -503,7 +503,7 @@ def test_fixed_base_mocap_runtime_pose_change(device):
     init_state=EntityCfg.InitialStateCfg((1.0, 2.0, 3.0), (1.0, 0.0, 0.0, 0.0)),
   )
   entity = Entity(cfg)
-  entity, sim = initialize_entity_with_sim(entity, device)
+  entity, sim = initialize_entity_with_sim(entity, device, num_envs=4)
 
   assert entity.indexing.mocap_id is not None
   assert entity.is_mocap is True
@@ -512,8 +512,9 @@ def test_fixed_base_mocap_runtime_pose_change(device):
   new_pose = torch.tensor([
     5.0, 6.0, 7.0,
     1.0, 0.0, 0.0, 0.0,
-  ], device=device).unsqueeze(0)
+  ], device=device).repeat(4, 1)
   # fmt: on
+  new_pose[:, 0] = torch.arange(4, device=device)
   entity.write_mocap_pose_to_sim(new_pose)
 
   sim.forward()
