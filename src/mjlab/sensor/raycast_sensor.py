@@ -63,10 +63,7 @@ class GridPatternCfg:
   """Spacing between rays in meters, either shared or per axis as ``(x, y)``."""
 
   offset: tuple[float, float] = (0.0, 0.0)
-  """Offset of the grid center from the frame origin in frame-local XY, in
-  meters. Rotated by ``ray_alignment`` like the rest of the pattern, so a
-  forward offset stays forward in the yaw frame with ``"yaw"`` alignment.
-  """
+  """Grid center offset in frame-local XY (meters), rotated by ``ray_alignment``."""
 
   direction: tuple[float, float, float] = (0.0, 0.0, -1.0)
   """Ray direction in frame-local coordinates."""

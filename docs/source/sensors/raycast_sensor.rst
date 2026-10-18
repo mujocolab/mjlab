@@ -86,9 +86,6 @@ emitted from the sensor frame.
         direction=(0.0, 0.0, -1.0),   # Ray direction (down)
     )
 
-    # Forward-biased grid: covers x in [-0.3, 1.3] instead of [-0.8, 0.8].
-    lookahead = GridPatternCfg(size=(1.6, 1.0), resolution=0.1, offset=(0.5, 0.0))
-
     # Pinhole: perspective projection, diverging rays.
     pinhole = PinholeCameraPatternCfg(
         width=16,

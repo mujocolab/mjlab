@@ -317,10 +317,7 @@ def test_raycast_grid_pattern_offset(robot_with_floor_xml, device):
   sim.forward()
   sim.sense()
 
-  # The grid is symmetric, so its hit centroid is the offset rotated by the
-  # body yaw only: R_z(90deg) @ (0.5, -0.2) = (0.2, 0.5). A world-frame offset
-  # would land at (0.5, -0.2); a base-aligned one would be foreshortened by
-  # the pitch.
+  # The hit centroid is the offset rotated by the body yaw only.
   centroid = sensor.data.hit_pos_w[0, :, :2].mean(dim=0)
   expected = torch.tensor([0.2, 0.5], device=device)
   assert torch.allclose(centroid, expected, atol=1e-3)
