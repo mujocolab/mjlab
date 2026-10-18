@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import mujoco
 import numpy as np
 import pytest
+import torch
 
 from mjlab.terrains.config import ALL_TERRAIN_PRESETS
 from mjlab.terrains.primitive_terrains import (
@@ -13,6 +14,7 @@ from mjlab.terrains.primitive_terrains import (
   BoxPyramidStairsTerrainCfg,
   BoxSteppingStonesTerrainCfg,
 )
+from mjlab.terrains.terrain_entity import TerrainEntity, TerrainEntityCfg
 from mjlab.terrains.terrain_generator import (
   SubTerrainCfg,
   TerrainGenerator,
@@ -178,3 +180,23 @@ def test_compile_preserves_custom_names_and_defaults_unnamed_geoms():
 
   names = [model.geom(i).name for i in range(model.ngeom)]
   assert names == ["foo_0", "foo_1", "terrain_2", "terrain_3"]
+
+
+def test_set_terrain_levels_moves_env_origins():
+  """set_terrain_levels writes levels/types and the matching origins, clipped."""
+  cfg = TerrainEntityCfg(terrain_type="plane", num_envs=4, env_spacing=2.0)
+  terrain = TerrainEntity(cfg, device="cpu")
+  # Origin (row, col) encodes its own indices so the lookup is easy to check.
+  rows, cols = torch.meshgrid(torch.arange(5.0), torch.arange(3.0), indexing="ij")
+  terrain.configure_env_origins(torch.stack([rows, cols, torch.zeros_like(rows)], -1))
+  types_before = terrain.terrain_types.clone()
+
+  terrain.set_terrain_levels(torch.tensor([0, 2]), torch.tensor([3, 9]))
+  assert terrain.terrain_levels[[0, 2]].tolist() == [3, 4]  # 9 clipped to last row.
+  assert torch.equal(terrain.terrain_types, types_before)
+
+  terrain.set_terrain_levels(torch.tensor([1]), 1, types=2)
+  assert terrain.env_origins[1].tolist() == [1.0, 2.0, 0.0]
+  levels, types = terrain.terrain_levels, terrain.terrain_types
+  assert torch.equal(terrain.env_origins[:, 0].long(), levels)
+  assert torch.equal(terrain.env_origins[:, 1].long(), types)

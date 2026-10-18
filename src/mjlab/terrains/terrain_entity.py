@@ -233,6 +233,30 @@ class TerrainEntity(Entity):
       self.terrain_levels[env_ids], self.terrain_types[env_ids]
     ]
 
+  def set_terrain_levels(
+    self,
+    env_ids: torch.Tensor,
+    levels: torch.Tensor | int,
+    types: torch.Tensor | int | None = None,
+  ) -> None:
+    """Move environments to the given terrain levels (rows) and optionally types.
+
+    Environments spawn at the new origins on their next reset. Remove level
+    curricula such as ``terrain_levels_vel``, which also move levels on reset.
+    """
+    if self.terrain_origins is None:
+      return
+    assert self.env_origins is not None
+    num_rows, num_cols = self.terrain_origins.shape[:2]
+    levels = torch.as_tensor(levels, device=self._device)
+    self.terrain_levels[env_ids] = levels.long().clip(0, num_rows - 1)
+    if types is not None:
+      types = torch.as_tensor(types, device=self._device)
+      self.terrain_types[env_ids] = types.long().clip(0, num_cols - 1)
+    self.env_origins[env_ids] = self.terrain_origins[
+      self.terrain_levels[env_ids], self.terrain_types[env_ids]
+    ]
+
   def randomize_env_origins(self, env_ids: torch.Tensor) -> None:
     """Randomize the environment origins to random sub-terrains."""
     if self.terrain_origins is None:

@@ -313,6 +313,9 @@ The key concepts:
 - When an environment is promoted past the hardest row, it is randomly
   reassigned to any row in ``[0, num_rows)`` to prevent the policy from
   collapsing to a single difficulty level.
+- ``terrain.set_terrain_levels(env_ids, levels, types=None)`` sets levels
+  (and optionally types) directly; environments spawn there on their next
+  reset. Drop ``terrain_levels_vel`` when using it.
 
 
 Flat patch detection
