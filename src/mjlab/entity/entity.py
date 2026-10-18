@@ -722,8 +722,7 @@ class Entity:
     # Joint state.
     if self.is_articulated:
       if self.cfg.init_state.joint_pos is None:
-        # Use keyframe joint positions. Inside a scene, mj_model's keyframe holds
-        # every entity's qpos, so index this entity's slots by address.
+        # Use keyframe joint positions. The scene keyframe holds every entity's qpos.
         key_qpos = mj_model.key("init_state").qpos
         q_adr = indexing.joint_q_adr.cpu().numpy()
         default_joint_pos = torch.tensor(

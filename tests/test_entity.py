@@ -751,11 +751,12 @@ def test_joint_pos_none_fixed_base_uses_keyframe():
 
 
 @pytest.mark.parametrize(
-  "keyframe_xml", [XML_WITH_KEYFRAME, XML_FIXED_BASE_WITH_KEYFRAME]
+  "keyframe_xml",
+  [XML_WITH_KEYFRAME, XML_FIXED_BASE_WITH_KEYFRAME],
+  ids=["floating", "fixed"],
 )
 def test_joint_pos_none_reads_own_slots_of_scene_keyframe(device, keyframe_xml):
-  """joint_pos=None defaults come from this entity's slots of the scene keyframe,
-  which also holds the qpos of entities added before it."""
+  """joint_pos=None reads this entity's slots of the scene keyframe as float32."""
   scene_cfg = SceneCfg(
     num_envs=2,
     entities={
