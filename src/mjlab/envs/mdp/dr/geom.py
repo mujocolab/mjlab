@@ -42,7 +42,6 @@ def _recompute_geom_bounds(
   ellipsoid, cylinder, box) are handled. Plane, hfield, mesh, and SDF geoms are left
   unchanged.
   """
-
   env_grid, entity_grid = torch.meshgrid(env_ids, entity_indices, indexing="ij")
   size = env.sim.model.geom_size[env_grid, entity_grid]  # (n_envs, n_geoms, 3)
   s0, s1, s2 = size[..., 0], size[..., 1], size[..., 2]

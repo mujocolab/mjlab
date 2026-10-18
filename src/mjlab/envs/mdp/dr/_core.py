@@ -62,12 +62,7 @@ def _randomize_model_field(
   valid_axes: list[int] | None = None,
   use_address: bool = False,
 ) -> torch.Tensor:
-  """Core randomization engine for model fields.
-
-  Returns the indices along the field's entity dimension that were written, so
-  callers that post-process the field touch the same subset. With string-keyed
-  ranges this is the union of the matched entities, not ``asset_cfg``'s selection.
-  """
+  """Core randomization engine for model fields. Returns the written entity indices."""
   operation = resolve_operation(operation)
   distribution = resolve_distribution(distribution)
 
@@ -170,10 +165,7 @@ def _randomize_with_string_ranges(
   valid_axes: list[int] | None,
   use_address: bool,
 ) -> torch.Tensor:
-  """Resolve string-keyed ranges to entity names and recurse.
-
-  Returns the concatenated entity indices written by each pattern.
-  """
+  """Resolve string-keyed ranges to entity names and recurse."""
   asset: Entity = env.scene[asset_cfg.name]
   names_attr = _ENTITY_NAMES_ATTR[entity_type]
   all_names = list(getattr(asset, names_attr))
