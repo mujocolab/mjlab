@@ -98,6 +98,9 @@ Fixed
 - Envs sampled by ``rel_forward_envs`` now keep their straight command. Previously,
   if an env was also sampled as a heading or world frame env, its yaw rate was
   replaced by a heading turn or its velocity by the world frame sample.
+- ``MaterialCfg.geom_names_expr`` now assigns the material to all matching unnamed
+  geoms. Previously it looked up matched names via ``spec.geom(name)``, which always
+  returned the first unnamed geom and left any remaining unnamed geoms unchanged.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------
