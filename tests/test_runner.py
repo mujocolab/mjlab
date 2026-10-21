@@ -561,45 +561,49 @@ def _make_logger_mock(is_wandb: bool) -> MagicMock:
   return mock
 
 
+@pytest.mark.parametrize("upload_model", [True, False])
 @pytest.mark.parametrize(
   ("runner_module", "runner_class"),
   [
     ("mjlab.tasks.velocity.rl.runner", "VelocityOnPolicyRunner"),
     ("mjlab.tasks.manipulation.rl.runner", "ManipulationOnPolicyRunner"),
+    ("mjlab.tasks.tracking.rl.runner", "MotionTrackingOnPolicyRunner"),
   ],
 )
-def test_task_runner_uploads_onnx_for_wandb_logger(
-  runner_module, runner_class, monkeypatch, tmp_path
+def test_task_runner_uploads_onnx_through_logger(
+  runner_module, runner_class, upload_model, monkeypatch, tmp_path
 ):
-  """ONNX is uploaded to W&B when the logger's writer is a WandbLogWriter."""
+  """ONNX goes through Logger.save_model, named after the log directory."""
   import importlib
 
   runner_mod = importlib.import_module(runner_module)
   runner_cls = getattr(runner_mod, runner_class)
   runner = runner_cls.__new__(runner_cls)
-  runner.cfg = {"upload_model": True}
-  runner.logger = _make_logger_mock(is_wandb=True)
+  runner.cfg = {"upload_model": upload_model}
+  runner.current_learning_iteration = 100
+  runner.registry_name = None
+  runner.logger = _make_logger_mock(is_wandb=False)
   runner.env = MagicMock()
   runner.export_policy_to_onnx = MagicMock()
-
-  monkeypatch.setattr(MjlabOnPolicyRunner, "save", lambda *a, **kw: None)
-  monkeypatch.setattr(runner_mod, "get_base_metadata", lambda *a: {})
-  monkeypatch.setattr(runner_mod, "attach_metadata_to_onnx", lambda *a: None)
 
   checkpoint = tmp_path / "run-dir" / "model_100.pt"
   checkpoint.parent.mkdir()
   checkpoint.touch()
   onnx_path = checkpoint.parent / f"{checkpoint.parent.name}.onnx"
+  runner.logger.log_dir = str(checkpoint.parent)
 
-  mock_run = MagicMock()
-  mock_run.name = "test-run"
-  with patch.object(runner_mod, "wandb") as mock_wandb:
-    mock_wandb.run = mock_run
-    runner.save(str(checkpoint))
+  get_base_metadata = MagicMock(return_value={})
+  monkeypatch.setattr(MjlabOnPolicyRunner, "save", lambda *a, **kw: None)
+  monkeypatch.setattr(runner_mod, "get_base_metadata", get_base_metadata)
+  monkeypatch.setattr(runner_mod, "attach_metadata_to_onnx", lambda *a: None)
 
-  mock_wandb.save.assert_called_once_with(
-    str(onnx_path), base_path=str(checkpoint.parent)
-  )
+  runner.save(str(checkpoint))
+
+  get_base_metadata.assert_called_once_with(runner.env.unwrapped, "run-dir")
+  if upload_model:
+    runner.logger.save_model.assert_called_once_with(str(onnx_path), 100)
+  else:
+    runner.logger.save_model.assert_not_called()
 
 
 def _make_tracking_runner_shell(registry_name, is_wandb, upload_model=True):
@@ -609,7 +613,9 @@ def _make_tracking_runner_shell(registry_name, is_wandb, upload_model=True):
   runner = MotionTrackingOnPolicyRunner.__new__(MotionTrackingOnPolicyRunner)
   runner.registry_name = registry_name
   runner.cfg = {"upload_model": upload_model}
+  runner.current_learning_iteration = 100
   runner.logger = _make_logger_mock(is_wandb)
+  runner.logger.log_dir = None
 
   mock_motion_term = MagicMock()
   mock_motion_term.cfg.anchor_body_name = "pelvis"
