@@ -72,6 +72,16 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     filename = f"{export_dir.name}.onnx"
     return export_dir, filename, export_dir / filename
 
+  def _get_run_name(self) -> str:
+    """Run name, taken from the log directory."""
+    log_dir = self.logger.log_dir
+    return Path(log_dir).name if log_dir else "local"
+
+  def _upload_model(self, path: str) -> None:
+    """Upload a model file through the log writer."""
+    if self.cfg["upload_model"]:
+      self.logger.save_model(path, self.current_learning_iteration)
+
   def save(self, path: str, infos=None) -> None:
     """Save checkpoint.
 
@@ -85,8 +95,7 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     saved_dict["iter"] = self.current_learning_iteration
     saved_dict["infos"] = infos
     torch.save(saved_dict, path)
-    if self.cfg["upload_model"]:
-      self.logger.save_model(path, self.current_learning_iteration)
+    self._upload_model(path)
 
   def load(
     self,
