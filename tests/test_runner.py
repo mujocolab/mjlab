@@ -525,6 +525,20 @@ def test_onnx_motion_model_clamps_out_of_bounds_time_step():
   torch.testing.assert_close(joint_pos, motion.joint_pos[num_steps - 1 : num_steps])
 
 
+@pytest.mark.parametrize(
+  ("logger", "expected"),
+  [
+    ("tensorboard", "tensorboard"),
+    ("wandb", {"class_name": "WandbLogWriter", "project_name": "mjlab"}),
+    ("my_pkg.writers:MyLogWriter", {"class_name": "my_pkg.writers:MyLogWriter"}),
+  ],
+)
+def test_runner_converts_logger_cfg(env, device, logger, expected):
+  agent_cfg = asdict(RslRlOnPolicyRunnerCfg(logger=logger))
+  runner = MjlabOnPolicyRunner(RslRlVecEnvWrapper(env), agent_cfg, device=device)
+  assert runner.cfg["logger"] == expected
+
+
 def _make_logger_mock(is_wandb: bool) -> MagicMock:
   """Mock an rsl-rl Logger, specced off a real (cheap, inert) instance.
 

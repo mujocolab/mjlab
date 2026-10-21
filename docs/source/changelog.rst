@@ -15,6 +15,8 @@ Added
   kernels for Blackwell GPUs.
 - Added ``SimulationCfg.graph_conditional`` to toggle MuJoCo Warp's CUDA graph
   conditional nodes, which require CUDA 12.4 or newer.
+- ``RslRlBaseRunnerCfg.logger`` accepts the import path of an
+  ``rsl_rl.utils.LogWriter`` subclass, e.g. ``"my_pkg.writers:MyLogWriter"``.
 - Added ``RewardManager.term_rewards`` and ``RewardManager.get_term()`` for the
   per-term reward vector from the last step :issue:`1223`.
 
