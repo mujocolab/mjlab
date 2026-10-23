@@ -80,7 +80,8 @@ class RslRlVecEnvWrapper(VecEnv):
     assert isinstance(term_or_trunc, torch.Tensor)
     dones = term_or_trunc.to(dtype=torch.long)
     if not self.cfg.is_finite_horizon:
-      extras["time_outs"] = truncated
+      # A terminal state at the time limit has no continuation value to bootstrap.
+      extras["time_outs"] = truncated & ~terminated
     return (
       TensorDict(obs_dict, batch_size=[self.num_envs]),
       rew,
