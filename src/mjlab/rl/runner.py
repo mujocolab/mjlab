@@ -90,10 +90,14 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     """Load checkpoint.
 
     Extends the base implementation to:
-    1. Restore common_step_counter to preserve curricula state.
+    1. Restore common_step_counter with the learning iteration for curricula state.
     2. Migrate legacy checkpoints (actor.* -> mlp.*, actor_obs_normalizer.*
       -> obs_normalizer.*) to the current format (rsl-rl>=4.0).
+
+    Checkpoint tensors default to the runner's device unless map_location is given.
     """
+    if map_location is None:
+      map_location = self.device
     loaded_dict = torch.load(path, map_location=map_location, weights_only=False)
 
     if "model_state_dict" in loaded_dict:
@@ -136,6 +140,6 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
       self.current_learning_iteration = loaded_dict["iter"]
 
     infos = loaded_dict["infos"]
-    if infos and "env_state" in infos:
+    if load_iteration and infos and "env_state" in infos:
       self.env.unwrapped.common_step_counter = infos["env_state"]["common_step_counter"]
     return infos

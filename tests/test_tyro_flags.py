@@ -21,7 +21,7 @@ def find_tyro_cli_calls() -> list[tuple[Path, int, bool]]:
       continue
     for filepath in search_dir.rglob("*.py"):
       try:
-        source = filepath.read_text()
+        source = filepath.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=str(filepath))
       except SyntaxError:
         continue

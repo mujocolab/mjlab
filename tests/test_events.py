@@ -156,6 +156,7 @@ def test_recompute_fields_registered_in_event_manager(device):
     "tendon_length0",
     "tendon_invweight0",
     "actuator_acc0",
+    "eq_data",
   )
 
 

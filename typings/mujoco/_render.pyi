@@ -482,5 +482,5 @@ def mjr_uploadMesh(m: mujoco._structs.MjModel, con: MjrContext, meshid: typing.S
     """
 def mjr_uploadTexture(m: mujoco._structs.MjModel, con: MjrContext, texid: typing.SupportsInt | typing.SupportsIndex) -> None:
     """
-    Upload texture to GPU, overwriting previous upload if any.
+    Upload texture to GPU, overwriting previous upload if any. A by-reference texture (tex_adr == -1) is decoded with mj_loadTexture.
     """

@@ -1,6 +1,9 @@
 """Tests for MjlabOnPolicyRunner."""
 
 import ast
+import os
+import subprocess
+import sys
 import tempfile
 from dataclasses import asdict
 from pathlib import Path
@@ -26,6 +29,7 @@ from mjlab.rl.runner import MjlabOnPolicyRunner
 from mjlab.rl.spatial_softmax import SpatialSoftmaxCNNModel
 from mjlab.scene import SceneCfg
 from mjlab.sim import MujocoCfg, SimulationCfg
+from mjlab.tasks.cartpole.cartpole_env_cfg import cartpole_balance_env_cfg
 from mjlab.tasks.tracking.rl.runner import _OnnxMotionModel
 from mjlab.terrains import TerrainEntityCfg
 from mjlab.utils.os import dump_yaml
@@ -150,6 +154,85 @@ def test_runner_handles_old_checkpoints_without_env_state(env, device):
     runner.load(checkpoint_path)
 
     assert wrapped_env.unwrapped.common_step_counter == 999
+
+
+@pytest.mark.parametrize("load_iteration", [False, True])
+def test_runner_loads_curriculum_counter_with_iteration(
+  env, device, tmp_path, load_iteration
+):
+  """Actor-only loads must not change the destination training timeline."""
+  wrapped_env = RslRlVecEnvWrapper(env)
+  agent_cfg = RslRlOnPolicyRunnerCfg(num_steps_per_env=4, upload_model=False)
+  runner = MjlabOnPolicyRunner(wrapped_env, asdict(agent_cfg), device=device)
+  runner.current_learning_iteration = 100
+  wrapped_env.unwrapped.common_step_counter = 12345
+  checkpoint_path = str(tmp_path / "checkpoint.pt")
+  runner.save(checkpoint_path)
+  saved_actor = {
+    key: value.clone() for key, value in runner.alg.actor.state_dict().items()
+  }
+
+  runner.current_learning_iteration = 7
+  wrapped_env.unwrapped.common_step_counter = 999
+  with torch.no_grad():
+    for parameter in runner.alg.actor.parameters():
+      parameter.add_(1.0)
+  runner.load(checkpoint_path, load_cfg={"actor": True, "iteration": load_iteration})
+
+  for key, value in runner.alg.actor.state_dict().items():
+    torch.testing.assert_close(value, saved_actor[key])
+  assert runner.current_learning_iteration == (100 if load_iteration else 7)
+  assert wrapped_env.unwrapped.common_step_counter == (12345 if load_iteration else 999)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Requires a CUDA checkpoint")
+def test_runner_loads_cuda_checkpoint_on_cpu(tmp_path):
+  """The runner device is sufficient to load a real GPU artifact on a CPU host."""
+  env_cfg = cartpole_balance_env_cfg()
+  source_env = RslRlVecEnvWrapper(ManagerBasedRlEnv(env_cfg, device="cpu"))
+  agent_cfg = RslRlOnPolicyRunnerCfg(num_steps_per_env=1, upload_model=False)
+  agent_cfg.actor.hidden_dims = (8,)
+  agent_cfg.critic.hidden_dims = (8,)
+  checkpoint = tmp_path / "cuda_checkpoint.pt"
+  try:
+    runner = MjlabOnPolicyRunner(source_env, asdict(agent_cfg), device="cuda:0")
+    assert all(parameter.is_cuda for parameter in runner.alg.actor.parameters())
+    runner.save(str(checkpoint))
+  finally:
+    source_env.close()
+
+  script = """
+import sys
+from dataclasses import asdict
+import torch
+from mjlab.envs import ManagerBasedRlEnv
+from mjlab.rl import MjlabOnPolicyRunner, RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
+from mjlab.tasks.cartpole.cartpole_env_cfg import cartpole_balance_env_cfg
+
+assert not torch.cuda.is_available()
+env = RslRlVecEnvWrapper(ManagerBasedRlEnv(cartpole_balance_env_cfg(), device='cpu'))
+try:
+    cfg = RslRlOnPolicyRunnerCfg(num_steps_per_env=1, upload_model=False)
+    cfg.actor.hidden_dims = (8,)
+    cfg.critic.hidden_dims = (8,)
+    runner = MjlabOnPolicyRunner(env, asdict(cfg), device='cpu')
+    runner.load(sys.argv[1])
+    with torch.inference_mode():
+        actions = runner.get_inference_policy()(env.get_observations())
+    assert actions.device.type == 'cpu' and torch.isfinite(actions).all()
+finally:
+    env.close()
+"""
+  process_env = {**os.environ, "CUDA_VISIBLE_DEVICES": "-1", "FORCE_CPU": "1"}
+  result = subprocess.run(
+    [sys.executable, "-c", script, str(checkpoint)],
+    env=process_env,
+    capture_output=True,
+    text=True,
+    encoding="utf-8",
+    timeout=120,
+  )
+  assert result.returncode == 0, result.stdout + result.stderr
 
 
 @pytest.mark.filterwarnings("ignore::DeprecationWarning")

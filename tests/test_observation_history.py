@@ -131,6 +131,49 @@ def test_multi_step_history_not_flattened(mock_env, simple_obs_func):
 # History accumulation tests.
 
 
+@pytest.mark.parametrize(
+  "reset_slice, reset_ids", [(slice(1, 2), [1]), (slice(1, None, 2), [1, 3])]
+)
+def test_slice_reset_preserves_other_observation_timelines(
+  mock_env, simple_obs_func, reset_slice, reset_ids
+):
+  manager = ObservationManager(
+    {
+      "actor": ObservationGroupCfg(
+        terms={
+          "obs": ObservationTermCfg(
+            func=simple_obs_func,
+            delay_min_lag=1,
+            delay_max_lag=1,
+            history_length=3,
+            flatten_history_dim=False,
+          )
+        }
+      )
+    },
+    mock_env,
+  )
+  before = manager.compute(update_history=True)["actor"]
+  for _ in range(4):
+    before = manager.compute(update_history=True)["actor"]
+  assert isinstance(before, torch.Tensor)
+  before = before.clone()
+  keep_ids = [i for i in range(mock_env.num_envs) if i not in reset_ids]
+
+  manager.reset(reset_slice)
+  after = manager.compute(
+    update_history=True,
+    env_ids=torch.tensor(reset_ids, device=mock_env.device),
+  )["actor"]
+  assert isinstance(after, torch.Tensor)
+
+  # Unrelated episodes retain their complete delayed history; reset rows receive
+  # only their first post-reset frame, backfilled through the whole history.
+  assert torch.equal(after[keep_ids], before[keep_ids])
+  assert torch.equal(after[reset_ids], after[reset_ids, :1].expand(-1, 3, -1))
+  assert torch.all(after[reset_ids, -1] > before[reset_ids, -1])
+
+
 def test_history_accumulates_correctly(mock_env, simple_obs_func):
   """Test that history buffer accumulates observations in correct order."""
 

@@ -211,12 +211,16 @@ class DelayBuffer:
     """
     if isinstance(batch_ids, slice):
       indices = range(*batch_ids.indices(self.batch_size))
-      batch_ids = list(indices)
+      batch_ids = None if len(indices) == self.batch_size else list(indices)
 
     self._buffer.reset(batch_ids=batch_ids)
     # A shared lag belongs to the whole batch, so only a full reset clears it.
     if not self.per_env and batch_ids is not None:
-      return
+      reset_rows = torch.zeros(self.batch_size, dtype=torch.bool, device=self.device)
+      reset_rows[batch_ids] = True
+      if not reset_rows.all():
+        return
+      batch_ids = None
     idx = slice(None) if batch_ids is None else batch_ids
     self._current_lags[idx] = 0
     self._needs_lag[idx] = True
