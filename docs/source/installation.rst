@@ -21,6 +21,10 @@ choose the one that best fits your use case.
 
     See :ref:`faq` for more details on what is exactly supported.
 
+``mjlab`` uses MuJoCo 3.17 and MuJoCo Warp 3.17. Keep both packages on the
+same minor version: their model layouts and constant recomputation must agree.
+The dependency constraints allow compatible patch updates within that pair.
+
 
 How to choose an installation method?
 -------------------------------------
