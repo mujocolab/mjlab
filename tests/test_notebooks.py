@@ -79,7 +79,7 @@ def _collect_notebook_imports(path: Path):
   notebook, and written_modules is the set of mjlab modules the notebook
   creates itself.
   """
-  nb = json.loads(path.read_text())
+  nb = json.loads(path.read_text(encoding="utf-8"))
   written = _collect_written_modules(nb)
   imports = []
   for idx, cell in enumerate(nb.get("cells", [])):

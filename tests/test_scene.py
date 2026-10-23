@@ -6,6 +6,7 @@ import mujoco
 import mujoco_warp as mjwarp
 import pytest
 import torch
+import warp as wp
 from conftest import get_test_device, load_fixture_xml
 
 from mjlab.actuator import BuiltinPositionActuatorCfg
@@ -108,8 +109,9 @@ def initialized_scene(scene_with_entities_cfg, device):
   data = mujoco.MjData(model)
   mujoco.mj_resetData(model, data)
 
-  wp_model = mjwarp.put_model(model)
-  wp_data = mjwarp.put_data(model, data, nworld=scene.num_envs)
+  with wp.ScopedDevice(device):
+    wp_model = mjwarp.put_model(model)
+    wp_data = mjwarp.put_data(model, data, nworld=scene.num_envs)
   wp_model = WarpBridge(wp_model, nworld=scene.num_envs)
   wp_data = WarpBridge(wp_data)
 
@@ -378,8 +380,9 @@ def test_full_scene_lifecycle(robot_entity_cfg, device, tmp_path):
   data = mujoco.MjData(model)
   mujoco.mj_resetData(model, data)
 
-  wp_model = mjwarp.put_model(model)
-  wp_data = mjwarp.put_data(model, data, nworld=scene.num_envs)
+  with wp.ScopedDevice(device):
+    wp_model = mjwarp.put_model(model)
+    wp_data = mjwarp.put_data(model, data, nworld=scene.num_envs)
   wp_model = WarpBridge(wp_model, nworld=scene.num_envs)
   wp_data = WarpBridge(wp_data)
 

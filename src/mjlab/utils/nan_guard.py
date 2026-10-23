@@ -1,5 +1,7 @@
 """Lightweight NaN guard for capturing simulation states when NaN/Inf detected."""
 
+import errno
+import shutil
 from collections import deque
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -11,6 +13,20 @@ import mujoco
 import mujoco_warp as mjwarp
 import numpy as np
 import torch
+
+
+def _link_or_copy(source: Path, latest: Path) -> None:
+  """Publish a latest artifact without requiring symlink privileges."""
+  latest.unlink(missing_ok=True)
+  try:
+    latest.symlink_to(source.name)
+  except (NotImplementedError, OSError) as error:
+    if isinstance(error, OSError) and (
+      error.errno not in (errno.EPERM, errno.ENOSYS, errno.ENOTSUP)
+      and getattr(error, "winerror", None) not in (50, 1314)
+    ):
+      raise
+    shutil.copy2(source, latest)
 
 
 @dataclass
@@ -185,17 +201,15 @@ class NanGuard:
     np.savez_compressed(filename, **data)
     mujoco.mj_saveModel(self.mj_model, str(model_filename), None)
 
-    # Create symlinks to latest dumps
+    # Symlink where supported; otherwise expose the same artifacts as copies.
     latest_dump = self.output_dir / "nan_dump_latest.npz"
     latest_model = self.output_dir / "model_latest.mjb"
-    latest_dump.unlink(missing_ok=True)
-    latest_model.unlink(missing_ok=True)
-    latest_dump.symlink_to(filename.name)
-    latest_model.symlink_to(model_filename.name)
+    _link_or_copy(filename, latest_dump)
+    _link_or_copy(model_filename, latest_model)
 
     print(f"[NanGuard] Detected NaN/Inf at step {self.step_counter}")
     print(f"[NanGuard] NaN/Inf found in envs: {nan_env_ids[:10]}...")
     print(f"[NanGuard] Dumping {len(envs_to_dump)} envs: {envs_to_dump}")
     print(f"[NanGuard] Dumped {len(self.buffer)} states to: {filename}")
     print(f"[NanGuard] Saved model to: {model_filename}")
-    print(f"[NanGuard] Latest dump symlinked at: {latest_dump}")
+    print(f"[NanGuard] Latest dump available at: {latest_dump}")

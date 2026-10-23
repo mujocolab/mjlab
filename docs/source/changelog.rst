@@ -26,7 +26,7 @@ Changed
   terrain; square ones are mirrored across x=y for a given seed.
 - ``PinholeCameraPatternCfg`` rays now follow MuJoCo's image layout (row 0 at the top,
   through pixel centers), matching ``CameraSensor``. Previously the image was flipped.
-- Bumped ``mujoco`` and ``mujoco-warp`` from 3.11 to 3.16 and raised the
+- Bumped ``mujoco`` and ``mujoco-warp`` from 3.11 to 3.17 and raised the
   ``warp-lang`` floor to 1.15.
 - ``BuiltinDcMotorActuatorCfg`` PID gains are now in torque space, following
   MuJoCo 3.14. VELOCITY mode requires ``damping > 0`` and ``stiffness = 0``, and
@@ -41,6 +41,23 @@ Changed
 Fixed
 ^^^^^
 
+- Equality constraint reference data is now expanded per world during constant
+  recomputation, so randomized joint defaults keep connect anchors and MuJoCo 3.17
+  inferred weld poses independent across environments.
+- PPO no longer bootstraps terminal states that also reach an episode timeout.
+- Actor-only checkpoint loading preserves the destination environment's curriculum
+  counter unless the training iteration is restored too.
+- Checkpoints load onto the runner's device by default, allowing CUDA checkpoints
+  to be loaded for CPU evaluation without a separate ``map_location`` argument.
+- ``NanGuard`` falls back to copies for the latest dump and model when symlinks
+  are unavailable, so diagnostic dumping still completes without link privileges.
+- Partial-slice observation resets now clear history and delay buffers only for
+  the selected environments. Full resets by slice or explicit row selection also
+  clear shared delay schedules.
+- Observation term inspection now separates terms along the configured
+  concatenation axis, including observations with unflattened history.
+- The Viser play viewer keeps at most one scene update in flight and coalesces
+  pending refreshes, avoiding blocked ticks while a background update is running.
 - ``posture`` and ``variable_posture`` now pair each joint with its own ``std`` when
   ``asset_cfg.preserve_order=True``.
 - ``apply_body_impulse`` now applies ``body_point_offset`` in the body frame, as
