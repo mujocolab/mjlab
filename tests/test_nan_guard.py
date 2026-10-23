@@ -389,7 +389,7 @@ def test_nan_guard_copies_latest_when_symlinks_are_unavailable(
   error: OSError | NotImplementedError
   if reason == "privilege":
     error = OSError("symlink privilege unavailable")
-    error.winerror = 1314
+    monkeypatch.setattr(error, "winerror", 1314, raising=False)
   elif reason == "filesystem":
     error = OSError(errno.ENOTSUP, "symlinks unsupported")
   else:
