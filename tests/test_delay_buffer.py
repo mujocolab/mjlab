@@ -4,6 +4,8 @@ import pytest
 import torch
 from conftest import get_test_device
 
+from mjlab.envs import ManagerBasedRlEnv
+from mjlab.tasks.cartpole.cartpole_env_cfg import cartpole_balance_env_cfg
 from mjlab.utils.buffers import DelayBuffer
 
 
@@ -317,6 +319,100 @@ def test_delay_buffer_reset_all(device):
 
   assert torch.all(buffer.current_lags == 0)
   assert torch.all(buffer._step_count == 0)
+
+
+@pytest.mark.parametrize(
+  "batch_ids",
+  [
+    slice(None),
+    slice(0, 4),
+    slice(None, None, -1),
+    [0, 1, 2, 3],
+    [3, 1, 0, 2],
+    [3, 1, 0, 2, 1],
+    torch.tensor([0, 1, 2, 3]),
+    torch.tensor([3, 1, 0, 2]),
+  ],
+)
+def test_shared_delay_full_reset_clears_schedule(device, batch_ids):
+  if isinstance(batch_ids, torch.Tensor):
+    batch_ids = batch_ids.to(device)
+  buffer = DelayBuffer(
+    min_lag=1,
+    max_lag=1,
+    batch_size=4,
+    device=device,
+    per_env=False,
+    update_period=3,
+  )
+  for i in range(5):
+    buffer.append(torch.full((4, 1), float(i), device=device))
+    buffer.compute()
+
+  buffer.reset(batch_ids)
+
+  assert torch.all(buffer.current_lags == 0)
+  assert torch.all(buffer._step_count == 0)
+  assert torch.equal(buffer.peek(), torch.zeros((4, 1), device=device))
+  buffer.append(torch.full((4, 1), 99.0, device=device))
+  assert torch.equal(buffer.compute(), torch.full((4, 1), 99.0, device=device))
+
+
+@pytest.mark.parametrize("tensor_ids", [False, True])
+def test_shared_delay_duplicate_partial_reset_preserves_schedule(device, tensor_ids):
+  buffer = DelayBuffer(
+    min_lag=1,
+    max_lag=1,
+    batch_size=4,
+    device=device,
+    per_env=False,
+    update_period=3,
+  )
+  for i in range(5):
+    buffer.append(torch.full((4, 1), float(i), device=device))
+    buffer.compute()
+  lags = buffer.current_lags.clone()
+  step_count = buffer._step_count.clone()
+  needs_lag = buffer._needs_lag.clone()
+  before = buffer.peek().clone()
+
+  batch_ids = torch.tensor([0, 0, 1, 2], device=device) if tensor_ids else [0, 0, 1, 2]
+  buffer.reset(batch_ids)
+
+  assert torch.equal(buffer.current_lags, lags)
+  assert torch.equal(buffer._step_count, step_count)
+  assert torch.equal(buffer._needs_lag, needs_lag)
+  assert torch.equal(buffer.peek()[:3], torch.zeros((3, 1), device=device))
+  assert torch.equal(buffer.peek()[3], before[3])
+
+
+def test_environment_full_reset_clears_shared_observation_delay(device):
+  cfg = cartpole_balance_env_cfg()
+  cfg.scene.num_envs = 4
+  term = cfg.observations["actor"].terms["cart_pos"]
+  term.delay_min_lag = 1
+  term.delay_max_lag = 1
+  term.delay_per_env = False
+  term.delay_update_period = 3
+  env = ManagerBasedRlEnv(cfg, device=device)
+  try:
+    env.reset()
+    for _ in range(2):
+      env.step(
+        torch.zeros((env.num_envs, env.action_manager.total_action_dim), device=device)
+      )
+    buffer = env.observation_manager._group_obs_term_delay_buffer["actor"]["cart_pos"]
+    assert torch.all(buffer._step_count > 0)
+
+    # The public reset API passes all row IDs as a tensor, rather than None.
+    env.reset()
+
+    assert torch.all(buffer.current_lags == 0)
+    assert torch.all(buffer._step_count == 0)
+    assert torch.all(buffer._needs_lag)
+    assert torch.all(buffer._buffer.current_length == 1)
+  finally:
+    env.close()
 
 
 def test_delay_buffer_reset_partial(device):

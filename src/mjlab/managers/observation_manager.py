@@ -2,7 +2,7 @@
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Literal, Sequence
+from typing import Literal, Sequence, cast
 
 import numpy as np
 import torch
@@ -187,23 +187,28 @@ class ObservationManager(ManagerBase):
 
     for group_name, _ in self.group_obs_dim.items():
       if not self.group_obs_concatenate[group_name]:
-        buffers = obs_buffer[group_name]
+        buffers = cast(dict[str, torch.Tensor], obs_buffer[group_name])
         assert isinstance(buffers, dict)
         for name, term in buffers.items():
-          terms.append((group_name + "-" + name, term[env_idx].cpu().tolist()))  # type: ignore[unsupported-operator]
+          values = term[env_idx].reshape(-1).cpu().tolist()
+          terms.append((group_name + "-" + name, values))
         continue
 
       idx = 0
       data = obs_buffer[group_name]
       assert isinstance(data, torch.Tensor)
+      data = data[env_idx]
+      concatenate_dim = self._group_obs_concatenate_dim[group_name]
+      if concatenate_dim >= 0:
+        concatenate_dim -= 1  # The batch dimension was removed above.
       for name, shape in zip(
         self._group_obs_term_names[group_name],
         self._group_obs_term_dim[group_name],
         strict=False,
       ):
-        data_length = np.prod(shape)
-        term = data[env_idx, idx : idx + data_length]
-        terms.append((group_name + "-" + name, term.cpu().tolist()))
+        data_length = shape[concatenate_dim]
+        term = data.narrow(concatenate_dim, idx, data_length)
+        terms.append((group_name + "-" + name, term.reshape(-1).cpu().tolist()))
         idx += data_length
 
     return terms
@@ -239,12 +244,17 @@ class ObservationManager(ManagerBase):
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> dict[str, float]:
     # Invalidate cache since reset envs will have different observations.
     self._obs_buffer = None
+    batch_ids: Sequence[int] | torch.Tensor | None
+    if isinstance(env_ids, slice):
+      indices = range(*env_ids.indices(self.num_envs))
+      batch_ids = None if len(indices) == self.num_envs else list(indices)
+    else:
+      batch_ids = env_ids
 
     for group_name, group_cfg in self._group_obs_class_term_cfgs.items():
       for term_cfg in group_cfg:
         term_cfg.func.reset(env_ids=env_ids)
       for term_name in self._group_obs_term_names[group_name]:
-        batch_ids = None if isinstance(env_ids, slice) else env_ids
         if term_name in self._group_obs_term_delay_buffer[group_name]:
           self._group_obs_term_delay_buffer[group_name][term_name].reset(
             batch_ids=batch_ids

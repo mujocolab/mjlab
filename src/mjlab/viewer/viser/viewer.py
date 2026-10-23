@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum, auto
 from threading import Event, Lock
@@ -87,6 +87,7 @@ class ViserPlayViewer(BaseViewer):
     self._timing_last_log_time: float = 0.0
     self._external_server = viser_server is not None
     self._server = viser_server or viser.ViserServer(label="mjlab")
+    self._scene_update_future: Future[None] | None = None
 
   @override
   def setup(self) -> None:
@@ -95,6 +96,7 @@ class ViserPlayViewer(BaseViewer):
     assert isinstance(sim, Simulation)
 
     self._threadpool = ThreadPoolExecutor(max_workers=1)
+    self._scene_update_future = None
     self._counter = 0
     self._pending_update_reasons: set[UpdateReason] = set()
 
@@ -448,6 +450,17 @@ class ViserPlayViewer(BaseViewer):
       self._scene_submit_enqueue_last_ms = 0.0
       return
 
+    if self._scene_update_future is not None:
+      if not self._scene_update_future.done():
+        # Keep pending reasons so a paused viewer refreshes after this frame.
+        self._scene_submit_enqueue_last_ms = 0.0
+        return
+      self._scene_update_future.result()
+
+    # Only replace debug queues after the previous frame has consumed them.
+    # Checking here also avoids blocking the tick on that frame's _sim_lock.
+    self._queue_debug_visualizers()
+
     def update_scene() -> None:
       with self._sim_lock:
         t0 = time.perf_counter()
@@ -456,7 +469,7 @@ class ViserPlayViewer(BaseViewer):
           self._server.flush()
         self._scene_update_last_ms = (time.perf_counter() - t0) * 1000.0
 
-    self._threadpool.submit(update_scene)
+    self._scene_update_future = self._threadpool.submit(update_scene)
     self._scene_submit_enqueue_last_ms = (
       time.perf_counter() - t_enqueue_start
     ) * 1000.0
@@ -510,14 +523,6 @@ class ViserPlayViewer(BaseViewer):
     self._update_env_dependent_plots()
     has_pending_updates = bool(self._pending_update_reasons) or self._scene.needs_update
     self._update_camera_feeds(sim, has_pending_updates)
-    # Queue debug visualizers only when a scene update will actually be
-    # submitted.  Clearing the queues on skipped ticks creates a race
-    # with the background thread that causes debug overlays to blink.
-    will_submit = self._should_submit_scene_update(
-      self._counter, self._is_paused, has_pending_updates
-    )
-    if will_submit:
-      self._queue_debug_visualizers()
     self._submit_scene_update_if_needed(sim, has_pending_updates)
     self._maybe_log_debug_timings()
 
