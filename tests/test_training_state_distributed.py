@@ -105,6 +105,7 @@ def test_two_rank_cpu_stateful_resume_and_rank_failure_propagation(tmp_path):
           env={
             **os.environ,
             "FORCE_CPU": "1",
+            "MUJOCO_GL": "disable",
             "PYTHONUNBUFFERED": "1",
             "PYTHONUTF8": "1",
           },
