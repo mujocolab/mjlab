@@ -5,6 +5,7 @@ import torch
 from rsl_rl.env import VecEnv
 from rsl_rl.runners import OnPolicyRunner
 
+from mjlab.rl.checkpoint import save_checkpoint
 from mjlab.rl.vecenv_wrapper import RslRlVecEnvWrapper
 
 
@@ -76,7 +77,7 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     saved_dict = self.alg.save()
     saved_dict["iter"] = self.current_learning_iteration
     saved_dict["infos"] = infos
-    torch.save(saved_dict, path)
+    save_checkpoint(saved_dict, path)
     if self.cfg["upload_model"]:
       self.logger.save_model(path, self.current_learning_iteration)
 
@@ -139,3 +140,20 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     if infos and "env_state" in infos:
       self.env.unwrapped.common_step_counter = infos["env_state"]["common_step_counter"]
     return infos
+
+  def learn(self, num_learning_iterations: int, init_at_random_ep_len=False) -> None:
+    """Close the native logging writer even if collection or learning fails."""
+    completed = False
+    try:
+      super().learn(num_learning_iterations, init_at_random_ep_len)
+      completed = True
+    finally:
+      # TensorBoard is not a native LogWriter; stop_logging_writer does not close it.
+      writer = self.logger.writer
+      if writer is not None:
+        close = getattr(writer, "close", None)
+        if close is not None:
+          close()
+        elif not completed:
+          self.logger.stop_logging_writer()
+        self.logger.writer = None
