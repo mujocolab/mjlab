@@ -110,6 +110,13 @@ class RslRlBaseRunnerCfg:
   """Tags for the wandb run. Default is empty tuple."""
   resume: bool = False
   """Whether to resume the experiment. Default is False."""
+  stateful_resume: bool = False
+  """Save and restore complete native PPO continuation state at update boundaries.
+
+  Opt-in. Requires compatible software, task and batch/rank
+  topology, and explicit state hooks for custom components. Legacy checkpoints
+  remain usable with ordinary model/optimizer continuation (resume=True).
+  """
   load_run: str = ".*"
   """The run directory to load. Default is ".*" which means all runs. If regex
   expression, the latest (alphabetical order) matching run will be loaded.

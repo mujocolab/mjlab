@@ -50,8 +50,8 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
   cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
   if cuda_visible == "":
     device = "cpu"
-    seed = cfg.agent.seed
-    rank = 0
+    rank = int(os.environ.get("RANK", "0"))
+    seed = cfg.agent.seed + rank
   else:
     local_rank = int(os.environ.get("LOCAL_RANK", "0"))
     rank = int(os.environ.get("RANK", "0"))
@@ -133,6 +133,7 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
   env = ManagerBasedRlEnv(
     cfg=cfg.env, device=device, render_mode="rgb_array" if cfg.video else None
   )
+  runner = None
   try:
     # Only record videos on rank 0 to avoid multiple workers writing to the same files.
     if cfg.video and rank == 0:
@@ -176,7 +177,11 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
       num_learning_iterations=cfg.agent.max_iterations, init_at_random_ep_len=True
     )
   finally:
-    env.close()
+    try:
+      env.close()
+    finally:
+      if runner is not None and isinstance(runner, MjlabOnPolicyRunner):
+        runner.close()
 
 
 def launch_training(task_id: str, args: TrainConfig | None = None):

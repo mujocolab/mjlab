@@ -101,6 +101,7 @@ def test_training_failure_closes_environment(tmp_path, monkeypatch):
 
 def test_runner_failure_closes_logging_writer(monkeypatch):
   runner = object.__new__(MjlabOnPolicyRunner)
+  runner._stateful_resume = False
   runner.logger = MagicMock()
   writer = runner.logger.writer
 
