@@ -229,6 +229,12 @@ Checkpoints are saved every ``save_interval`` iterations and uploaded to W&B
 as model artifacts by default. Set ``upload_model=False`` in the runner
 config to disable uploads while keeping metric logging.
 
+Checkpoint writes use a temporary file beside the destination, flush it, and
+atomically replace the destination only after serialization succeeds. Readers see
+the previous complete checkpoint until replacement. This protects against partial
+writes; it does not guarantee recovery after disk loss. Temporary filenames are
+excluded from the default checkpoint selector.
+
 .. rubric:: Resuming from a checkpoint
 
 .. code-block:: bash

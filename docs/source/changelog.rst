@@ -41,6 +41,10 @@ Changed
 Fixed
 ^^^^^
 
+- Checkpoints are published atomically, preserving the previous complete file if
+  writing or replacement fails. Missing resume paths are resolved before allocating
+  the environment, and training exceptions now close the environment and logger.
+
 - ``posture`` and ``variable_posture`` now pair each joint with its own ``std`` when
   ``asset_cfg.preserve_order=True``.
 - ``apply_body_impulse`` now applies ``body_point_offset`` in the body frame, as
