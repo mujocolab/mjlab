@@ -41,6 +41,10 @@ Changed
 Fixed
 ^^^^^
 
+- ``play --no-terminations`` now also drops curriculum terms that target a termination.
+  ``termination_curriculum`` resolves its target in ``__init__``, so clearing
+  ``terminations`` left those terms pointing at a missing name and raised before the
+  environment was built :issue:`1272`.
 - ``posture`` and ``variable_posture`` now pair each joint with its own ``std`` when
   ``asset_cfg.preserve_order=True``.
 - ``apply_body_impulse`` now applies ``body_point_offset`` in the body frame, as
