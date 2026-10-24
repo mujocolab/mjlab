@@ -21,6 +21,10 @@ Added
 Changed
 ^^^^^^^
 
+- Constant recomputation now reuses a CUDA graph per recomputation level. Repeating
+  an unchanged ``expand_model_fields()`` request preserves existing graphs and
+  sensor contexts.
+
 - Heightfield terrains now lay hfield rows along y and columns along x, as MuJoCo
   expects. Non-square sub-terrains are no longer stretched with flat patches off the
   terrain; square ones are mirrored across x=y for a given seed.
