@@ -138,6 +138,7 @@ class CameraSensor(Sensor[CameraSensorData]):
 
   def __init__(self, cfg: CameraSensorCfg) -> None:
     super().__init__()
+    self._frame_id = 0
     self.cfg = cfg
     self._camera_name = cfg.camera_name if cfg.camera_name is not None else cfg.name
     self._is_wrapping_existing = cfg.camera_name is not None
@@ -207,6 +208,20 @@ class CameraSensor(Sensor[CameraSensorData]):
 
   def set_context(self, ctx: SensorContext) -> None:
     self._ctx = ctx
+    self._on_frame_ready()
+
+  @property
+  def frame_id(self) -> int:
+    """Generation of the rendered buffers, independent of data cache reads.
+
+    Advances after ``sense()`` and when a new render context is attached.
+    Physics updates and resets alone do not produce a camera frame.
+    """
+    return self._frame_id
+
+  def _on_frame_ready(self) -> None:
+    self._frame_id += 1
+    self._invalidate_cache()
 
   def _compute_data(self) -> CameraSensorData:
     if self._ctx is None:

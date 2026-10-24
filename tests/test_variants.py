@@ -1505,19 +1505,20 @@ def test_viser_convex_hulls_are_per_variant():
       "(all envs would share env0's hull)"
     )
 
-    body_xpos = env.sim.data.xpos.cpu().numpy()
-    body_xmat = env.sim.data.xmat.cpu().numpy()
     scene.show_convex_hull = True
     scene.show_only_selected = True
     for target_env in range(env.num_envs):
-      scene.update_from_arrays(body_xpos, body_xmat, env_idx=target_env)
+      scene.env_idx = target_env
+      scene.update(env.sim.data)
       visible_groups = [g for g in groups if g.handle.visible]
       assert len(visible_groups) == 1
       assert target_env in visible_groups[0].env_ids
       assert visible_groups[0].handle.batched_positions.shape[0] == 1
 
     scene.show_only_selected = False
-    scene.update_from_arrays(body_xpos, body_xmat, env_idx=0)
+    scene.refresh_visualization()
+    assert scene.needs_update
+    scene.update(env.sim.data)
     assert all(g.handle.visible for g in groups)
   finally:
     env.close()

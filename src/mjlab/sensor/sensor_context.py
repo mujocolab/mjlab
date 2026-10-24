@@ -109,6 +109,8 @@ class SensorContext:
     if expanded_fields is not None:
       self._disable_precomputed_rays = bool(expanded_fields & _RAY_FIELDS)
     self._create_context(mj_model)
+    for sensor in self.camera_sensors:
+      sensor._on_frame_ready()
 
   def prepare(self) -> None:
     """Pre-graph: transform rays to world frame."""
@@ -123,7 +125,7 @@ class SensorContext:
     # observations serve this step's frames (mirrors the raycast
     # invalidation in postprocess_rays).
     for sensor in self.camera_sensors:
-      sensor._invalidate_cache()
+      sensor._on_frame_ready()
 
   def get_rgb(self, cam_idx: int) -> torch.Tensor:
     """Get unpacked RGB data for a camera.

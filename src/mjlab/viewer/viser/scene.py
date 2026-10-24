@@ -231,6 +231,9 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
     expanded_fields: set[str] | None = None,
   ) -> None:
     self._sim_model = sim_model
+    # Compact pose arrays use row 0, but mesh variants and UI retain global IDs.
+    self._cached_selected_env_idx: int | None = None
+    self._cached_ui_env_idx: int | None = None
     self._expanded_fields = expanded_fields or set()
     self._baked_appearance_fields = (
       self._expanded_fields & _VISER_APPEARANCE_HANDLE_FIELDS
@@ -325,30 +328,36 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
     Converts warp GPU tensors to numpy arrays and delegates to
     ``update_from_arrays``.
     """
-    body_xpos = wp_data.xpos.cpu().numpy()
-    body_xmat = wp_data.xmat.cpu().numpy()
-    if self.mj_model.nmocap > 0:
-      mocap_pos = wp_data.mocap_pos.cpu().numpy()
-      mocap_quat = wp_data.mocap_quat.cpu().numpy()
-    else:
-      mocap_pos = None
-      mocap_quat = None
+    with self._update_lock:
+      if env_idx is None:
+        env_idx = self.env_idx
+      selected = self.show_only_selected and self.num_envs > 1
+      rows = slice(env_idx, env_idx + 1) if selected else slice(None)
+      body_xpos = wp_data.xpos[rows].cpu().numpy()
+      body_xmat = wp_data.xmat[rows].cpu().numpy()
+      if self.mj_model.nmocap > 0:
+        mocap_pos = wp_data.mocap_pos[rows].cpu().numpy()
+        mocap_quat = wp_data.mocap_quat[rows].cpu().numpy()
+      else:
+        mocap_pos = None
+        mocap_quat = None
 
-    kwargs: dict[str, np.ndarray] = {}
-    if self._any_decor_visible():
-      kwargs["qpos"] = wp_data.qpos.cpu().numpy()
-      kwargs["qvel"] = wp_data.qvel.cpu().numpy()
-      if self.mj_model.nu > 0:
-        kwargs["ctrl"] = wp_data.ctrl.cpu().numpy()
+      kwargs: dict[str, np.ndarray] = {}
+      if self._any_decor_visible():
+        kwargs["qpos"] = wp_data.qpos[rows].cpu().numpy()
+        kwargs["qvel"] = wp_data.qvel[rows].cpu().numpy()
+        if self.mj_model.nu > 0:
+          kwargs["ctrl"] = wp_data.ctrl[rows].cpu().numpy()
 
-    self.update_from_arrays(
-      body_xpos,
-      body_xmat,
-      mocap_pos,
-      mocap_quat,
-      env_idx,
-      **kwargs,
-    )
+      self.update_from_arrays(
+        body_xpos,
+        body_xmat,
+        mocap_pos,
+        mocap_quat,
+        env_idx,
+        _selected_env_idx=env_idx if selected else None,
+        **kwargs,
+      )
 
   @override
   def update_from_arrays(
@@ -361,29 +370,45 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
     qpos: np.ndarray | None = None,
     qvel: np.ndarray | None = None,
     ctrl: np.ndarray | None = None,
+    *,
+    _selected_env_idx: int | None = None,
   ) -> None:
     """Update scene and sync debug visualizations."""
-    if env_idx is None:
-      env_idx = self.env_idx
-    self._sync_model_fields(env_idx)
-    super().update_from_arrays(
-      body_xpos,
-      body_xmat,
-      mocap_pos,
-      mocap_quat,
-      env_idx,
-      qpos=qpos,
-      qvel=qvel,
-      ctrl=ctrl,
-    )
-    self._sync_debug_visualizations(self._scene_offset)
+    with self._update_lock:
+      if env_idx is None:
+        env_idx = self.env_idx
+      if _selected_env_idx is None and self.show_only_selected and self.num_envs > 1:
+        rows = slice(env_idx, env_idx + 1)
+        body_xpos, body_xmat = body_xpos[rows], body_xmat[rows]
+        mocap_pos = mocap_pos[rows] if mocap_pos is not None else None
+        mocap_quat = mocap_quat[rows] if mocap_quat is not None else None
+        qpos = qpos[rows] if qpos is not None else None
+        qvel = qvel[rows] if qvel is not None else None
+        ctrl = ctrl[rows] if ctrl is not None else None
+        _selected_env_idx = env_idx
+      self._cached_selected_env_idx = _selected_env_idx
+      self._cached_ui_env_idx = self.env_idx
+      self._sync_model_fields(env_idx)
+      super().update_from_arrays(
+        body_xpos,
+        body_xmat,
+        mocap_pos,
+        mocap_quat,
+        0 if _selected_env_idx is not None else env_idx,
+        qpos=qpos,
+        qvel=qvel,
+        ctrl=ctrl,
+      )
+      self._sync_debug_visualizations(self._scene_offset)
 
   @override
   def update_from_mjdata(self, mj_data: mujoco.MjData) -> None:
     """Update scene and sync debug visualizations."""
-    self._sync_model_fields(self.env_idx)
-    super().update_from_mjdata(mj_data)
-    self._sync_debug_visualizations(self._scene_offset)
+    with self._update_lock:
+      self._cached_selected_env_idx = None
+      self._sync_model_fields(self.env_idx)
+      super().update_from_mjdata(mj_data)
+      self._sync_debug_visualizations(self._scene_offset)
 
   def _sync_model_fields(self, env_idx: int) -> None:
     """Sync visually relevant per-world model fields into the host MjModel."""
@@ -697,6 +722,11 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
 
     self.fixed_bodies_frame.position = scene_offset
     slice_single = self.show_only_selected and self.num_envs > 1
+    selected_env_idx = (
+      self._cached_selected_env_idx
+      if self._cached_selected_env_idx is not None
+      else env_idx
+    )
     hidden_bodies: set[int] = set()
     if self._show_convex_hull and self._hull_hide_meshes:
       hidden_bodies = self._hull_mesh_bodies
@@ -721,7 +751,7 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
           body_ids = mg.body_ids
           mocap_ids = mg.mocap_ids
           if slice_single:
-            mask = env_ids == env_idx
+            mask = env_ids == selected_env_idx
             if not np.any(mask):
               mg.handle.visible = False
               continue
@@ -729,6 +759,8 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
             body_ids = body_ids[mask]
             if mocap_ids is not None:
               mocap_ids = mocap_ids[mask]
+          if self._cached_selected_env_idx is not None:
+            env_ids = np.zeros_like(env_ids)
           if mocap_ids is not None:
             pos = mocap_pos[env_ids, mocap_ids] + scene_offset
             quat = mocap_quat[env_ids, mocap_ids]
@@ -767,11 +799,13 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
           env_ids = hg.env_ids
           body_id = hg.body_id
           if slice_single:
-            mask = env_ids == env_idx
+            mask = env_ids == selected_env_idx
             if not np.any(mask):
               hg.handle.visible = False
               continue
             env_ids = env_ids[mask]
+          if self._cached_selected_env_idx is not None:
+            env_ids = np.zeros_like(env_ids)
           pos = body_xpos[env_ids, body_id] + scene_offset
           quat = body_xquat[env_ids, body_id]
           hg.handle.batched_positions = pos
@@ -786,6 +820,17 @@ class MjlabViserScene(ViserMujocoScene, DebugVisualizer):
       self.server.flush()
 
   # Refresh.
+
+  @override
+  def _refresh_visualization_locked(self) -> None:
+    if self._cached_selected_env_idx is not None and (
+      not self.show_only_selected or self.env_idx != self._cached_ui_env_idx
+    ):
+      # The new selection is absent from the compact cache. Request a fresh
+      # frame rather than indexing it with a global ID or showing the wrong world.
+      self.needs_update = True
+      return
+    super()._refresh_visualization_locked()
 
   @override
   def refresh_visualization(self) -> None:

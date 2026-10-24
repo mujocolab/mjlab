@@ -201,6 +201,12 @@ frustum visualization in the 3D viewport, so you can see exactly what
 the sensor covers. This makes Viser the best tool for debugging camera
 placement, field of view, and depth sensing.
 
+Camera panels copy and encode images only after a new sensor frame or an
+environment selection change. Depth scale and frustum controls also work while
+paused; rescaling depth reuses its last CPU image. In multi-environment scenes,
+``Hide others`` transfers and converts poses only for the selected environment.
+Disabling it resumes updates for all environments.
+
 **Contact visualization.**
 The Controls tab exposes contact rendering options. When enabled, contact
 points appear as colored markers and contact forces as red arrows,
