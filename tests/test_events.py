@@ -156,6 +156,12 @@ def test_recompute_fields_registered_in_event_manager(device):
     "tendon_length0",
     "tendon_invweight0",
     "actuator_acc0",
+    "cam_pos0",
+    "cam_poscom0",
+    "cam_mat0",
+    "light_pos0",
+    "light_poscom0",
+    "light_dir0",
   )
 
 

@@ -1300,6 +1300,11 @@ Fields that only affect contact or joint behavior directly (``geom_friction``,
 ``dof_damping``, ``dof_frictionloss``, etc.) have no derived quantities and
 need no recomputation.
 
+Camera and light reference arrays are expanded per world alongside the other
+derived fields. Tracking modes also require MuJoCo Warp's correction for
+recomputing references directly from local camera/light poses; the published
+MuJoCo Warp 3.16.0 and 3.17.0 derive tracking references from their previous values.
+
 .. note::
 
    mjlab captures ``sim.step()``, ``sim.forward()``, ``sim.reset()``, and
