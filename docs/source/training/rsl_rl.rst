@@ -215,6 +215,13 @@ full list of available fields and their defaults.
 Checkpoints and logging
 -----------------------
 
+The typed runner configuration exposes native RSL ``check_for_nan`` (default:
+``True``) and ``torch_compile_mode`` (default: ``None``). Disabling NaN checks
+removes their per-step host synchronization on CUDA; choose this only when the
+run has an appropriate diagnostic strategy. Compilation accepts ``default`` or
+``max-autotune-no-cudagraphs``. These options retain RSL's existing defaults and
+can be set through ``--agent.check-for-nan`` and ``--agent.torch-compile-mode``.
+
 Training artifacts are written to:
 
 .. code-block:: text

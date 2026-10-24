@@ -123,6 +123,14 @@ class RslRlBaseRunnerCfg:
   upload_model: bool = True
   """Whether to upload model files (.pt, .onnx) to W&B on save. Set to
   False to keep metric logging but avoid storage usage. Default is True."""
+  check_for_nan: bool = True
+  """Check observations, rewards and dones each rollout step (native RSL default).
+
+  CUDA checks require host synchronization. Disable only when another diagnostic
+  strategy is in place and its tradeoff is acceptable for the training run.
+  """
+  torch_compile_mode: Literal["default", "max-autotune-no-cudagraphs"] | None = None
+  """Optional native RSL compilation mode. None leaves compilation disabled."""
 
 
 @dataclass
