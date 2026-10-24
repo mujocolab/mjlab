@@ -161,6 +161,13 @@ class ViserCameraOverlays:
       ViserCameraViewer(self.server, sensor, self.mj_model) for sensor in camera_sensors
     ]
 
+  def needs_update_for(self, env_idx: int, scene_offset: Any) -> bool:
+    """Whether frames, controls, selection or tracking need a GUI refresh."""
+    return any(
+      viewer.needs_update_for(env_idx, scene_offset)
+      for viewer in self.camera_viewers or ()
+    )
+
   def update(self, sim_data: Any, env_idx: int, scene_offset: Any) -> None:
     """Push latest camera images/frustums to GUI."""
     if not self.camera_viewers:

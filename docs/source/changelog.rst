@@ -21,6 +21,9 @@ Added
 Changed
 ^^^^^^^
 
+- The Viser viewer transfers and converts poses only for the selected world when
+  ``Hide others`` is enabled. Camera feeds reuse unchanged rendered frames instead
+  of repeatedly copying and encoding the same images on each viewer tick.
 - Heightfield terrains now lay hfield rows along y and columns along x, as MuJoCo
   expects. Non-square sub-terrains are no longer stretched with flat patches off the
   terrain; square ones are mirrored across x=y for a given seed.
@@ -41,6 +44,10 @@ Changed
 Fixed
 ^^^^^
 
+- Viser camera depth scale and frustum controls now refresh while paused. Depth
+  scaling reuses the last CPU depth image without copying or re-encoding other feeds.
+- The Viser play viewer keeps at most one scene update in flight and coalesces
+  pending refreshes, avoiding blocked ticks while a background update is running.
 - ``posture`` and ``variable_posture`` now pair each joint with its own ``std`` when
   ``asset_cfg.preserve_order=True``.
 - ``apply_body_impulse`` now applies ``body_point_offset`` in the body frame, as

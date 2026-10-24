@@ -34,6 +34,12 @@ Quick start
     data.rgb      # [B, 120, 160, 3] uint8
     data.depth    # [B, 120, 160, 1] float32
 
+``CameraSensor.frame_id`` increases after a completed ``sim.sense()`` or a render
+context replacement. Reading ``data``, updating physics, or resetting a sensor
+alone does not advance it. Consumers can use this generation to avoid copying or
+encoding an unchanged camera frame. The Viser viewer uses it to reuse images;
+changing the selected environment still refreshes every camera feed.
+
 
 Creating vs wrapping cameras
 -----------------------------

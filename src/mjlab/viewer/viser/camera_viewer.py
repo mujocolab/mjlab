@@ -48,6 +48,14 @@ class ViserCameraViewer:
     self._depth_handle: viser.GuiImageHandle | None = None
     self._seg_handle: viser.GuiImageHandle | None = None
     self._frustum_handle: viser.CameraFrustumHandle | None = None
+    self._last_frame_id: int | None = None
+    self._last_env_idx: int | None = None
+    self._last_scene_offset: np.ndarray | None = None
+    self._depth_np: np.ndarray | None = None
+    self._depth_revision = 0
+    self._last_depth_revision = -1
+    self._frustum_revision = 0
+    self._last_frustum_revision = -1
 
     self._camera_name = camera_sensor.camera_name
     self._camera_idx = camera_sensor.camera_idx
@@ -79,6 +87,11 @@ class ViserCameraViewer:
         step=0.1,
         initial_value=1.0,
       )
+
+      @self._depth_scale_slider.on_update
+      def _(_) -> None:
+        self._depth_revision += 1
+
       self._depth_handle = self._server.gui.add_image(
         image=np.zeros((self._display_height, self._display_width, 3), dtype=np.uint8),
         label=f"{self._camera_name}_depth",
@@ -99,7 +112,30 @@ class ViserCameraViewer:
       label="Frustum",
       initial_value=True,
     )
+
+    @self._show_frustum_toggle.on_update
+    def _(_) -> None:
+      self._frustum_revision += 1
+
     self._fov, self._aspect = self._compute_camera_fov_aspect()
+
+  @property
+  def needs_update(self) -> bool:
+    """Whether a new frame or a camera control needs a GUI refresh."""
+    return (
+      self._last_frame_id != self._camera_sensor.frame_id
+      or (self._has_depth and self._depth_revision != self._last_depth_revision)
+      or self._frustum_revision != self._last_frustum_revision
+    )
+
+  def needs_update_for(self, env_idx: int, scene_offset: np.ndarray) -> bool:
+    """Include selection/tracking changes that can finish after a scene job."""
+    return (
+      self.needs_update
+      or env_idx != self._last_env_idx
+      or self._last_scene_offset is None
+      or not np.array_equal(scene_offset, self._last_scene_offset)
+    )
 
   def _compute_camera_fov_aspect(self) -> tuple[float, float]:
     cam_id = self._camera_idx
@@ -154,29 +190,54 @@ class ViserCameraViewer:
   def update(
     self, sim_data, env_idx: int = 0, scene_offset: np.ndarray | None = None
   ) -> None:
-    data = self._camera_sensor.data
+    frame_id = self._camera_sensor.frame_id
+    new_frame = frame_id != self._last_frame_id or env_idx != self._last_env_idx
+    depth_revision = self._depth_revision
+    frustum_revision = self._frustum_revision
+    if new_frame:
+      data = self._camera_sensor.data
+      if self._has_rgb and self._rgb_handle is not None and data.rgb is not None:
+        rgb_np = data.rgb[env_idx].cpu().numpy()
+        self._rgb_handle.image = self._maybe_upsample(rgb_np)
 
-    if self._has_rgb and self._rgb_handle is not None and data.rgb is not None:
-      rgb_np = data.rgb[env_idx].cpu().numpy()
-      self._rgb_handle.image = self._maybe_upsample(rgb_np)
+      if self._has_depth and data.depth is not None:
+        self._depth_np = data.depth[env_idx, ..., 0].cpu().numpy()
+      else:
+        self._depth_np = None
 
-    if self._has_depth and self._depth_handle is not None and data.depth is not None:
-      depth_np = data.depth[env_idx].squeeze().cpu().numpy()
+      if (
+        self._has_seg and self._seg_handle is not None and data.segmentation is not None
+      ):
+        seg_np = data.segmentation[env_idx].cpu().numpy()
+        seg_rgb = _colorize_segmentation(seg_np)
+        self._seg_handle.image = self._maybe_upsample(seg_rgb)
+
+    if (
+      self._depth_handle is not None
+      and self._depth_np is not None
+      and (new_frame or depth_revision != self._last_depth_revision)
+    ):
       depth_scale = max(self._depth_scale_slider.value, 0.01)
-      depth_normalized = np.clip(depth_np / depth_scale, 0.0, 1.0)
+      depth_normalized = np.clip(self._depth_np / depth_scale, 0.0, 1.0)
       depth_uint8 = (depth_normalized * 255).astype(np.uint8)
       self._depth_handle.image = self._maybe_upsample(
         np.repeat(depth_uint8[:, :, np.newaxis], 3, axis=-1)
       )
 
-    if self._has_seg and self._seg_handle is not None and data.segmentation is not None:
-      seg_np = data.segmentation[env_idx].cpu().numpy()
-      seg_rgb = _colorize_segmentation(seg_np)
-      self._seg_handle.image = self._maybe_upsample(seg_rgb)
-
     if scene_offset is None:
       scene_offset = np.zeros(3)
-    self._update_frustum(sim_data, env_idx, scene_offset)
+    if (
+      new_frame
+      or frustum_revision != self._last_frustum_revision
+      or self._last_scene_offset is None
+      or not np.array_equal(scene_offset, self._last_scene_offset)
+    ):
+      self._update_frustum(sim_data, env_idx, scene_offset)
+    self._last_frame_id = frame_id
+    self._last_env_idx = env_idx
+    self._last_depth_revision = depth_revision
+    self._last_frustum_revision = frustum_revision
+    self._last_scene_offset = scene_offset.copy()
 
   def cleanup(self) -> None:
     if self._rgb_handle is not None:
