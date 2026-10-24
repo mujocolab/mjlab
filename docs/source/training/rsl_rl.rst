@@ -229,6 +229,12 @@ Checkpoints are saved every ``save_interval`` iterations and uploaded to W&B
 as model artifacts by default. Set ``upload_model=False`` in the runner
 config to disable uploads while keeping metric logging.
 
+Checkpoint writes use a temporary file beside the destination, flush it, and
+atomically replace the destination only after serialization succeeds. Readers see
+the previous complete checkpoint until replacement. This protects against partial
+writes; it does not guarantee recovery after disk loss. Temporary filenames are
+excluded from the default checkpoint selector.
+
 .. rubric:: Resuming from a checkpoint
 
 .. code-block:: bash
@@ -255,6 +261,77 @@ To resume from a W&B run:
         --num-envs 4096 \
         --agent.resume True \
         --wandb-run-path your-entity/mjlab/run-id
+
+
+.. rubric:: Stateful continuation at PPO update boundaries
+
+Ordinary ``resume=True`` restores the policy, optimizer, iteration and curriculum
+counter into a newly reset simulation. To save the additional state needed to
+continue an in-progress rollout stream, opt in on both the original run and the
+resumed run:
+
+.. code-block:: bash
+
+    uv run train Mjlab-Cartpole-Balance --gpu-ids None \
+        --agent.stateful-resume True --agent.max-iterations 100
+
+    uv run train Mjlab-Cartpole-Balance --gpu-ids None \
+        --agent.stateful-resume True --agent.resume True \
+        --agent.load-run ORIGINAL_RUN --agent.max-iterations 100
+
+Stateful checkpoints contain native learner/optimizer/normalizer state, Python,
+NumPy and Torch RNG states, live per-world Warp model parameters and data,
+environment counters, manager timers/buffers and curriculum parameters,
+observation/action delay and history buffers, the next observation, and recurrent
+actor/critic memory. Saving happens after a complete PPO update. Continuation
+starts at the next iteration and skips initial episode-length randomization,
+environment reset and observation recomputation. ``max_iterations`` remains the
+number of additional updates. Wall-clock timing and external logging sessions
+are not reproducibility guarantees. Full snapshots copy live simulation arrays
+to host memory and can be much larger than ordinary policy checkpoints; allow
+for their host-memory, disk-space and update-boundary I/O costs.
+
+The initial supported contract is the base ``MjlabOnPolicyRunner`` with native
+uncompiled RSL-RL 5.5.1 PPO and
+``MLPModel`` or ``RNNModel`` actor/critic models, including raycast-only sensing.
+Raycast acceleration structures are rebuilt in the fresh environment and refit
+before their next query; sensor buffers are restored. RND, symmetry, camera
+render contexts, video wrappers, external recorders and opaque custom resources
+are rejected. Runner subclasses are rejected before learner allocation, since
+their extra state and overridden training behavior are outside this contract.
+A checkpoint must match the task configuration, model, mjlab source,
+software versions, batch/rank topology and math-backend settings. Mutable numeric
+Warp options are saved; changing host-side solver/feature flags or array layouts
+during training is rejected. This does not promise bitwise GPU determinism or
+cross-device/cross-version reproducibility; MuJoCo Warp's existing determinism
+limitations still apply.
+
+Distributed snapshots store each rank's state. All ranks participate at the same
+update boundary, then rank zero atomically publishes one checkpoint. No collective
+runs inside the ordinary rank-zero ``save()`` hook. Direct distributed API users
+must call ``save_training_checkpoint(path)`` and ``load(path)`` on every rank;
+calling ``save()`` directly is rejected in stateful distributed mode. Capture and
+publication errors propagate to peers, and newly created process groups use a
+bounded timeout. CPU/gloo and CUDA/NCCL use the same protocol. Restore requires the
+same rank topology; rank-specific RNG, simulation state and recurrent memory are
+not broadcast from rank zero. Call ``runner.close()`` after API-driven training to
+release a process group owned by the runner (the training script does this).
+Stateful ``load()`` requires ``map_location`` to match the learner device. Failed
+restore hooks stop all peers; discard the failed runner, since rollback of a
+partially applied custom hook is not guaranteed.
+
+Custom terms, commands, actuators and sensors must implement the explicit
+``training_state_dict()`` / ``load_training_state_dict(state)`` protocol. Return a
+data tree and include every mutable value that influences future outputs,
+including private generators. Restore into the existing runtime object and
+preserve references to simulation arrays. Components with no such state may
+declare ``training_state_stateless = True``; custom functions must explicitly
+declare that stateless contract too. Their defaults and closure captures must be
+immutable data and are fingerprinted; mutable captures require a component hook.
+Unsupported objects and incompatible tensor
+storage/view layouts fail clearly instead of silently restoring partial state.
+Lazy tensors with shared storage require an explicit hook. Checkpoints are trusted
+PyTorch artifacts, with the same trust requirement as ordinary RSL checkpoints.
 
 
 Citation

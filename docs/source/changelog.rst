@@ -8,6 +8,10 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added opt-in stateful native PPO continuation at completed update boundaries,
+  including per-rank RNG, simulation/model, manager/history and recurrent state,
+  with strict compatibility checks and an explicit custom-component state protocol.
+
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
 - ``GridPatternCfg.resolution`` accepts a per-axis ``(x, y)`` tuple.
 - Added a ``cu126`` extra (``uv sync --extra cu126``) that installs torch built for
@@ -40,6 +44,10 @@ Changed
 
 Fixed
 ^^^^^
+
+- Checkpoints are published atomically, preserving the previous complete file if
+  writing or replacement fails. Missing resume paths are resolved before allocating
+  the environment, and training exceptions now close the environment and logger.
 
 - ``posture`` and ``variable_posture`` now pair each joint with its own ``std`` when
   ``asset_cfg.preserve_order=True``.

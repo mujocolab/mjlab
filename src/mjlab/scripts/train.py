@@ -50,8 +50,8 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
   cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
   if cuda_visible == "":
     device = "cpu"
-    seed = cfg.agent.seed
-    rank = 0
+    rank = int(os.environ.get("RANK", "0"))
+    seed = cfg.agent.seed + rank
   else:
     local_rank = int(os.environ.get("LOCAL_RANK", "0"))
     rank = int(os.environ.get("RANK", "0"))
@@ -107,10 +107,6 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
   if rank == 0:
     print(f"[INFO] Logging experiment in directory: {log_dir}")
 
-  env = ManagerBasedRlEnv(
-    cfg=cfg.env, device=device, render_mode="rgb_array" if cfg.video else None
-  )
-
   log_root_path = log_dir.parent  # Go up from specific run dir to experiment dir.
 
   resume_path: Path | None = None
@@ -134,49 +130,58 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
         log_root_path, cfg.agent.load_run, cfg.agent.load_checkpoint
       )
 
-  # Only record videos on rank 0 to avoid multiple workers writing to the same files.
-  if cfg.video and rank == 0:
-    env = VideoRecorder(
-      env,
-      video_folder=Path(log_dir) / "videos" / "train",
-      step_trigger=lambda step: step % cfg.video_interval == 0,
-      video_length=cfg.video_length,
-      disable_logger=True,
-    )
-    print("[INFO] Recording videos during training.")
-
-  env = RslRlVecEnvWrapper(env, clip_actions=cfg.agent.clip_actions)
-
-  agent_cfg = asdict(cfg.agent)
-  env_cfg = asdict(cfg.env)
-
-  runner_cls = load_runner_cls(task_id)
-  if runner_cls is None:
-    runner_cls = MjlabOnPolicyRunner
-
-  runner_kwargs = {}
-  if is_tracking_task:
-    runner_kwargs["registry_name"] = registry_name
-
-  # Write config files before runner creation, since the runner mutates agent_cfg
-  # in-place (e.g., injecting non-serializable objects).
-  if rank == 0:
-    dump_yaml(log_dir / "params" / "env.yaml", env_cfg)
-    dump_yaml(log_dir / "params" / "agent.yaml", agent_cfg)
-
-  runner = runner_cls(env, agent_cfg, str(log_dir), device, **runner_kwargs)
-
-  add_wandb_tags(cfg.agent.wandb_tags)
-  runner.add_git_repo_to_log(__file__)
-  if resume_path is not None:
-    print(f"[INFO]: Loading model checkpoint from: {resume_path}")
-    runner.load(str(resume_path))
-
-  runner.learn(
-    num_learning_iterations=cfg.agent.max_iterations, init_at_random_ep_len=True
+  env = ManagerBasedRlEnv(
+    cfg=cfg.env, device=device, render_mode="rgb_array" if cfg.video else None
   )
+  runner = None
+  try:
+    # Only record videos on rank 0 to avoid multiple workers writing to the same files.
+    if cfg.video and rank == 0:
+      env = VideoRecorder(
+        env,
+        video_folder=Path(log_dir) / "videos" / "train",
+        step_trigger=lambda step: step % cfg.video_interval == 0,
+        video_length=cfg.video_length,
+        disable_logger=True,
+      )
+      print("[INFO] Recording videos during training.")
 
-  env.close()
+    env = RslRlVecEnvWrapper(env, clip_actions=cfg.agent.clip_actions)
+
+    agent_cfg = asdict(cfg.agent)
+    env_cfg = asdict(cfg.env)
+
+    runner_cls = load_runner_cls(task_id)
+    if runner_cls is None:
+      runner_cls = MjlabOnPolicyRunner
+
+    runner_kwargs = {}
+    if is_tracking_task:
+      runner_kwargs["registry_name"] = registry_name
+
+    # Write config files before runner creation, since the runner mutates agent_cfg
+    # in-place (e.g., injecting non-serializable objects).
+    if rank == 0:
+      dump_yaml(log_dir / "params" / "env.yaml", env_cfg)
+      dump_yaml(log_dir / "params" / "agent.yaml", agent_cfg)
+
+    runner = runner_cls(env, agent_cfg, str(log_dir), device, **runner_kwargs)
+
+    add_wandb_tags(cfg.agent.wandb_tags)
+    runner.add_git_repo_to_log(__file__)
+    if resume_path is not None:
+      print(f"[INFO]: Loading model checkpoint from: {resume_path}")
+      runner.load(str(resume_path))
+
+    runner.learn(
+      num_learning_iterations=cfg.agent.max_iterations, init_at_random_ep_len=True
+    )
+  finally:
+    try:
+      env.close()
+    finally:
+      if runner is not None and isinstance(runner, MjlabOnPolicyRunner):
+        runner.close()
 
 
 def launch_training(task_id: str, args: TrainConfig | None = None):
