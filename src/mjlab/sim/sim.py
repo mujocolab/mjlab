@@ -349,7 +349,12 @@ class Simulation:
     self.use_cuda_graph = self._should_use_cuda_graph()
     self.create_graph()
 
-    self.nan_guard = NanGuard(self.cfg.nan_guard, self.num_envs, self._mj_model)
+    self.nan_guard = NanGuard(
+      self.cfg.nan_guard,
+      self.num_envs,
+      self._mj_model,
+      model_provider=lambda: (self.model, self.expanded_fields),
+    )
 
   def create_graph(self) -> None:
     """Capture CUDA graphs for step, forward, and reset operations.

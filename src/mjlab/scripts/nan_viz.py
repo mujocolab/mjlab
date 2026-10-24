@@ -10,13 +10,13 @@ Example:
 from __future__ import annotations
 
 from pathlib import Path
+from threading import Lock
 
-import mujoco
-import numpy as np
 import tyro
 import viser
 
 import mjlab
+from mjlab.utils.nan_replay import NanDump
 from mjlab.viewer.viser import ViserMujocoScene
 
 
@@ -28,21 +28,12 @@ class NanDumpViewer:
     self.output_dir = self.dump_path.parent
 
     print(f"Loading NaN dump from: {self.dump_path}")
-    self.dump = np.load(self.dump_path, allow_pickle=True)
-    self.metadata = self.dump["_metadata"].item()
-
-    model_file = self.output_dir / self.metadata["model_file"]
-    print(f"Loading model from: {model_file}")
-    self.model = mujoco.MjModel.from_binary_path(str(model_file))
-    self.data = mujoco.MjData(self.model)
-
-    self.state_keys = sorted(
-      [k for k in self.dump.keys() if k.startswith("states_step_")],
-      key=lambda x: int(x.split("_")[-1]),
-    )
-    self.state_spec = self.metadata.get(
-      "state_spec", mujoco.mjtState.mjSTATE_PHYSICS.value
-    )
+    self.archive = NanDump(self.dump_path)
+    self.metadata = self.archive.metadata
+    self.state_keys = self.archive.state_keys
+    self.state_spec = self.archive.state_spec
+    self.model, self.data = self.archive.restore(0, 0)
+    self._state_lock = Lock()
     self.num_steps = len(self.state_keys)
     self.num_envs_dumped = self.metadata["num_envs_dumped"]
     self.dumped_env_ids = self.metadata["dumped_env_ids"]
@@ -95,7 +86,8 @@ class NanDumpViewer:
           self._update_state()
 
     # Add standard visualization options (hide debug viz control since no env).
-    self.scene.create_scene_gui(show_debug_viz_control=False)
+    with self.server.gui.add_folder("Scene") as self.scene_folder:
+      self.scene.create_scene_gui(show_debug_viz_control=False)
 
     # Initial state update.
     self._update_state()
@@ -125,19 +117,20 @@ class NanDumpViewer:
 
   def _update_state(self) -> None:
     """Update the visualization to show the current state."""
-    state_key = self.state_keys[self.current_step]
-    states = self.dump[state_key]
-    state = states[self.current_env]
-
-    # Set state and compute derived quantities.
-    mujoco.mj_setState(self.model, self.data, state, self.state_spec)
-    mujoco.mj_forward(self.model, self.data)
-
-    # Update scene from single-environment MuJoCo data.
-    self.scene.update_from_mjdata(self.data)
-
-    # Update info display.
-    self.info_html.content = self._get_info_html()
+    with self._state_lock, self.server.atomic():
+      model, data = self.archive.restore(
+        self.current_step, self.current_env, forward=True
+      )
+      if model is not self.model:
+        # Geometry/material variants require new mesh handles and scene controls.
+        self.scene_folder.remove()
+        self.server.scene.reset()
+        self.scene = ViserMujocoScene(self.server, model, num_envs=1)
+        with self.server.gui.add_folder("Scene") as self.scene_folder:
+          self.scene.create_scene_gui(show_debug_viz_control=False)
+      self.model, self.data = model, data
+      self.scene.update_from_mjdata(self.data)
+      self.info_html.content = self._get_info_html()
 
   def run(self) -> None:
     """Run the viewer (blocks until server is stopped)."""
@@ -149,8 +142,9 @@ class NanDumpViewer:
         import time
 
         # Check if visualization settings changed and need a refresh.
-        if self.scene.needs_update:
-          self.scene.refresh_visualization()
+        with self._state_lock:
+          if self.scene.needs_update:
+            self.scene.refresh_visualization()
 
         time.sleep(0.1)
     except KeyboardInterrupt:
