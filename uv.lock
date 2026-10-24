@@ -2072,6 +2072,7 @@ name = "mjlab"
 version = "1.6.0"
 source = { editable = "." }
 dependencies = [
+    { name = "filelock" },
     { name = "imageio-ffmpeg" },
     { name = "mediapy" },
     { name = "mjviser" },
@@ -2146,6 +2147,7 @@ docs = [
 
 [package.metadata]
 requires-dist = [
+    { name = "filelock", specifier = ">=3.25.2" },
     { name = "imageio-ffmpeg" },
     { name = "mediapy", specifier = ">=1.2.7" },
     { name = "mjviser", specifier = ">=0.0.14" },

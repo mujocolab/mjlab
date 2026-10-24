@@ -1,5 +1,6 @@
 """Tests for NaN guard functionality."""
 
+import errno
 import tempfile
 from pathlib import Path
 
@@ -11,6 +12,12 @@ from conftest import get_test_device
 
 from mjlab.sim.sim import Simulation, SimulationCfg
 from mjlab.utils.nan_guard import NanGuardCfg
+
+
+def _load_dump(path: Path) -> dict[str, np.ndarray]:
+  """Close NPZ handles before Windows temporary-directory cleanup."""
+  with np.load(path, allow_pickle=True) as dump:
+    return {key: dump[key] for key in dump.files}
 
 
 @pytest.fixture
@@ -90,7 +97,7 @@ def test_nan_guard_captures_and_dumps_on_nan(simple_model):
     assert len(dump_files) == 1
 
     # Load and inspect the dump.
-    dump = np.load(dump_files[0], allow_pickle=True)
+    dump = _load_dump(dump_files[0])
     metadata = dump["_metadata"].item()
 
     assert metadata["num_envs_total"] == 4
@@ -136,7 +143,7 @@ def test_nan_guard_detects_correct_env_ids(simple_model):
     ]
     assert len(dump_files) == 1
 
-    dump = np.load(dump_files[0], allow_pickle=True)
+    dump = _load_dump(dump_files[0])
     metadata = dump["_metadata"].item()
 
     # Should detect exactly the environments with NaN/Inf.
@@ -167,7 +174,7 @@ def test_nan_guard_saves_model(simple_model):
     assert len(model_files) == 1
 
     # Verify model file can be loaded.
-    dump = np.load(dump_files[0], allow_pickle=True)
+    dump = _load_dump(dump_files[0])
     metadata = dump["_metadata"].item()
     model_path = Path(tmpdir) / metadata["model_file"]
     assert model_path.exists()
@@ -212,7 +219,7 @@ def test_nan_guard_with_complex_model():
     assert len(model_files) == 1
 
     # Load the saved model and verify it matches.
-    dump = np.load(dump_files[0], allow_pickle=True)
+    dump = _load_dump(dump_files[0])
     metadata = dump["_metadata"].item()
     model_path = Path(tmpdir) / metadata["model_file"]
 
@@ -282,7 +289,7 @@ def test_nan_guard_respects_buffer_size(simple_model):
     dump_files = [
       f for f in Path(tmpdir).glob("nan_dump_*.npz") if "latest" not in f.name
     ]
-    dump = np.load(dump_files[0], allow_pickle=True)
+    dump = _load_dump(dump_files[0])
 
     # Should only have 3 states (buffer size).
     state_keys = [k for k in dump.keys() if k.startswith("states_step_")]
@@ -316,7 +323,7 @@ def test_nan_guard_captures_high_indexed_envs(simple_model):
     ]
     assert len(dump_files) == 1
 
-    dump = np.load(dump_files[0], allow_pickle=True)
+    dump = _load_dump(dump_files[0])
     metadata = dump["_metadata"].item()
 
     assert 7 in metadata["nan_env_ids"]
@@ -328,9 +335,18 @@ def test_nan_guard_captures_high_indexed_envs(simple_model):
     assert state.shape[0] == 1
 
 
-def test_nan_guard_creates_latest_symlinks(simple_model):
-  """NaN guard should create latest symlinks that work correctly."""
+def test_nan_guard_creates_retrievable_latest_artifacts(simple_model):
+  """Latest artifacts remain usable, with symlinks on capable filesystems."""
   with tempfile.TemporaryDirectory() as tmpdir:
+    probe_source = Path(tmpdir) / "probe_source"
+    probe_source.touch()
+    probe_link = Path(tmpdir) / "probe_link"
+    try:
+      probe_link.symlink_to(probe_source.name)
+      supports_symlinks = True
+    except (NotImplementedError, OSError):
+      supports_symlinks = False
+
     cfg = SimulationCfg(
       nan_guard=NanGuardCfg(enabled=True, buffer_size=5, output_dir=tmpdir)
     )
@@ -342,14 +358,15 @@ def test_nan_guard_creates_latest_symlinks(simple_model):
     latest_dump = Path(tmpdir) / "nan_dump_latest.npz"
     latest_model = Path(tmpdir) / "model_latest.mjb"
 
-    # Verify symlinks exist.
+    # Verify both retrieval paths, and retain the native symlink behavior where
+    # supported rather than silently replacing it everywhere with copies.
     assert latest_dump.exists()
     assert latest_model.exists()
-    assert latest_dump.is_symlink()
-    assert latest_model.is_symlink()
+    assert latest_dump.is_symlink() == supports_symlinks
+    assert latest_model.is_symlink() == supports_symlinks
 
     # Load via symlink and verify it works.
-    dump = np.load(latest_dump, allow_pickle=True)
+    dump = _load_dump(latest_dump)
     metadata = dump["_metadata"].item()
 
     # Metadata should reference the timestamped model file.
@@ -360,6 +377,76 @@ def test_nan_guard_creates_latest_symlinks(simple_model):
     # Loading via symlink should work.
     loaded_model = mujoco.MjModel.from_binary_path(str(latest_model))
     assert loaded_model.nq == simple_model.nq
+    assert (
+      latest_model.read_bytes() == (Path(tmpdir) / metadata["model_file"]).read_bytes()
+    )
+
+
+@pytest.mark.parametrize("reason", ["privilege", "filesystem", "unimplemented"])
+def test_nan_guard_copies_latest_when_symlinks_are_unavailable(
+  simple_model, tmp_path, monkeypatch, reason
+):
+  error: OSError | NotImplementedError
+  if reason == "privilege":
+    error = OSError("symlink privilege unavailable")
+    monkeypatch.setattr(error, "winerror", 1314, raising=False)
+  elif reason == "filesystem":
+    error = OSError(errno.ENOTSUP, "symlinks unsupported")
+  else:
+    error = NotImplementedError("symlinks unavailable")
+  attempts = []
+
+  def deny_symlink(path, target, target_is_directory=False):
+    attempts.append(path)
+    raise error
+
+  monkeypatch.setattr(Path, "symlink_to", deny_symlink)
+  cfg = SimulationCfg(nan_guard=NanGuardCfg(enabled=True, output_dir=str(tmp_path)))
+  sim = Simulation(num_envs=2, cfg=cfg, model=simple_model, device=get_test_device())
+  sim.nan_guard.capture(sim.data)
+  sim.data.qpos[0, 0] = float("nan")
+  assert sim.nan_guard.check_and_dump(sim.data)
+  assert sim.nan_guard._dumped
+  assert not sim.nan_guard.check_and_dump(sim.data)
+
+  latest_dump = tmp_path / "nan_dump_latest.npz"
+  latest_model = tmp_path / "model_latest.mjb"
+  # Latest aliases are staged privately, then atomically replace the old path.
+  assert len(attempts) == 2
+  assert attempts[0].name.startswith(".model_latest.mjb.")
+  assert attempts[1].name.startswith(".nan_dump_latest.npz.")
+  assert all(not path.exists() for path in attempts)
+  assert not latest_dump.is_symlink() and not latest_model.is_symlink()
+  with np.load(latest_dump, allow_pickle=True) as dump:
+    metadata = dump["_metadata"].item()
+    state = dump["states_step_000000"][0]
+  assert metadata["dumped_env_ids"] == [0]
+  timestamped_model = tmp_path / metadata["model_file"]
+  timestamped_dump = tmp_path / f"nan_dump_{metadata['timestamp']}.npz"
+  assert latest_model.read_bytes() == timestamped_model.read_bytes()
+  assert latest_dump.read_bytes() == timestamped_dump.read_bytes()
+  loaded_model = mujoco.MjModel.from_binary_path(str(latest_model))
+  data = mujoco.MjData(loaded_model)
+  mujoco.mj_setState(loaded_model, data, state, metadata["state_spec"])
+  assert np.isfinite(data.qpos).all()
+
+
+@pytest.mark.parametrize("error_number", [errno.EIO, errno.EACCES])
+def test_nan_guard_propagates_unrelated_latest_artifact_errors(
+  simple_model, tmp_path, monkeypatch, error_number
+):
+  def fail_symlink(*args, **kwargs):
+    raise OSError(error_number, "unrelated filesystem failure")
+
+  monkeypatch.setattr(Path, "symlink_to", fail_symlink)
+  cfg = SimulationCfg(nan_guard=NanGuardCfg(enabled=True, output_dir=str(tmp_path)))
+  sim = Simulation(num_envs=2, cfg=cfg, model=simple_model, device=get_test_device())
+  sim.nan_guard.capture(sim.data)
+  sim.data.qpos[0, 0] = float("nan")
+  with pytest.raises(OSError, match="unrelated filesystem failure") as caught:
+    sim.nan_guard.check_and_dump(sim.data)
+  assert caught.value.errno == error_number
+  assert not sim.nan_guard._dumped
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Likely bug on CPU MjWarp")
@@ -388,7 +475,7 @@ def test_nan_guard_captures_mocap_state(mocap_model):
     ]
     assert len(dump_files) == 1
 
-    dump = np.load(dump_files[0], allow_pickle=True)
+    dump = _load_dump(dump_files[0])
     metadata = dump["_metadata"].item()
 
     # Metadata should include state_spec with mocap flags.
