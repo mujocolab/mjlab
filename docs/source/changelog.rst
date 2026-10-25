@@ -21,6 +21,8 @@ Added
 Changed
 ^^^^^^^
 
+- ``EntityData`` position accessors read positions directly, avoiding unused
+  quaternion calculations and full-pose allocations.
 - Heightfield terrains now lay hfield rows along y and columns along x, as MuJoCo
   expects. Non-square sub-terrains are no longer stretched with flat patches off the
   terrain; square ones are mirrored across x=y for a given seed.
