@@ -21,6 +21,9 @@ Added
 Changed
 ^^^^^^^
 
+- The tracking ``motion_body_lin_vel`` and ``motion_body_ang_vel`` rewards now remove
+  the yaw offset between the robot and reference anchors, and their functions are
+  renamed from ``motion_global_body_*`` to ``motion_relative_body_*``.
 - Heightfield terrains now lay hfield rows along y and columns along x, as MuJoCo
   expects. Non-square sub-terrains are no longer stretched with flat patches off the
   terrain; square ones are mirrored across x=y for a given seed.

@@ -1,11 +1,15 @@
 """Tests specific to motion tracking tasks."""
 
+from unittest.mock import Mock
+
 import pytest
+import torch
 
 from mjlab.asset_zoo.robots import G1_ACTION_SCALE
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.tasks.registry import list_tasks, load_env_cfg
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
+from mjlab.utils.lab_api.math import quat_apply, quat_from_euler_xyz, quat_mul
 
 
 @pytest.fixture(scope="module")
@@ -31,6 +35,23 @@ def test_tracking_tasks_have_motion_command(tracking_task_ids: list[str]) -> Non
     assert isinstance(motion_cmd, MotionCommandCfg), (
       f"Task {task_id} motion command is not MotionCommandCfg"
     )
+
+
+def test_tracking_velocity_rewards_ignore_heading_offset() -> None:
+  """Body velocity rewards remove only the yaw offset between the anchors."""
+  yaw, tilt = torch.tensor([-3.0, -1.0, 0.4, 2.0]), torch.full((4,), 0.3)
+  offset = quat_from_euler_xyz(tilt, tilt, yaw)
+  heading = quat_from_euler_xyz(0 * yaw, 0 * yaw, yaw)[:, None].expand(-1, 3, -1)
+  cmd = Mock(**{"cfg.body_names": ("a", "b", "c")})
+  cmd.anchor_quat_w = quat_from_euler_xyz(*torch.randn(3, 4))
+  cmd.robot_anchor_quat_w = quat_mul(offset, cmd.anchor_quat_w)
+  cmd.body_lin_vel_w, cmd.body_ang_vel_w = torch.randn(2, 4, 3, 3)
+  cmd.robot_body_lin_vel_w = quat_apply(heading, cmd.body_lin_vel_w)
+  cmd.robot_body_ang_vel_w = quat_apply(heading, cmd.body_ang_vel_w)
+  env = Mock(**{"command_manager.get_term.return_value": cmd})
+  rewards = load_env_cfg("Mjlab-Tracking-Flat-Unitree-G1").rewards
+  for term in (rewards["motion_body_lin_vel"], rewards["motion_body_ang_vel"]):
+    torch.testing.assert_close(term.func(env, **term.params), torch.ones(4))
 
 
 def test_tracking_tasks_have_self_collision_sensor(
