@@ -41,6 +41,8 @@ Changed
 Fixed
 ^^^^^
 
+- ``csv_to_npz`` now computes angular velocities for two-frame motions, including
+  clips reduced to two frames by cropping or resampling.
 - ``posture`` and ``variable_posture`` now pair each joint with its own ``std`` when
   ``asset_cfg.preserve_order=True``.
 - ``apply_body_impulse`` now applies ``body_point_offset`` in the body frame, as
