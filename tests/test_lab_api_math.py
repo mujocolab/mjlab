@@ -1,10 +1,12 @@
 """Tests for mjlab.utils.lab_api.math module."""
 
+import math
+
 import pytest
 import torch
 from conftest import get_test_device
 
-from mjlab.utils.lab_api.math import apply_delta_pose, sample_gaussian
+from mjlab.utils.lab_api.math import apply_delta_pose, quat_slerp, sample_gaussian
 
 
 @pytest.fixture
@@ -78,3 +80,61 @@ def test_sample_gaussian_rejects_unbroadcastable_mean(device):
 
   with pytest.raises(RuntimeError):
     sample_gaussian(mean, 1.0, (3,), device=device)
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("sign", [-1.0, 1.0])
+@pytest.mark.parametrize("tau", [0.25, 0.5, 0.75])
+def test_quat_slerp_preserves_inputs(device, dtype, sign, tau):
+  """Shortest-path interpolation must not change either input's sign."""
+  q1 = torch.tensor([1.0, 0.0, 0.0, 0.0], dtype=dtype, device=device)
+  q2 = sign * torch.tensor(
+    [0.5, 0.0, 0.0, math.sqrt(3) / 2], dtype=dtype, device=device
+  )
+  original_q1, original_q2 = q1.clone(), q2.clone()
+
+  result = quat_slerp(q1, q2, tau)
+
+  torch.testing.assert_close(q1, original_q1, rtol=0, atol=0)
+  torch.testing.assert_close(q2, original_q2, rtol=0, atol=0)
+  expected = torch.tensor(
+    [math.cos(tau * math.pi / 3), 0.0, 0.0, math.sin(tau * math.pi / 3)],
+    dtype=dtype,
+    device=device,
+  )
+  torch.testing.assert_close(result, expected)
+  torch.testing.assert_close(quat_slerp(q1, q2, tau), result)
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_quat_slerp_preserves_input_view_storage(device, dtype):
+  """A row view must not silently modify the caller's quaternion buffer."""
+  quaternions = torch.tensor(
+    [[1.0, 0.0, 0.0, 0.0], [-0.5, 0.0, 0.0, -math.sqrt(3) / 2]],
+    dtype=dtype,
+    device=device,
+  )
+  original = quaternions.clone()
+
+  quat_slerp(quaternions[0], quaternions[1], 0.5)
+
+  torch.testing.assert_close(quaternions, original, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_quat_slerp_accepts_leaf_inputs_requiring_grad(device, dtype):
+  """Selecting the shortest path must not do an in-place write on a leaf."""
+  q1 = torch.tensor(
+    [1.0, 0.0, 0.0, 0.0], dtype=dtype, device=device, requires_grad=True
+  )
+  q2 = torch.tensor(
+    [-0.5, 0.0, 0.0, -math.sqrt(3) / 2],
+    dtype=dtype,
+    device=device,
+    requires_grad=True,
+  )
+
+  result = quat_slerp(q1, q2, 0.5)
+  gradients = torch.autograd.grad(result.sum(), (q1, q2))
+
+  assert all(torch.isfinite(gradient).all() for gradient in gradients)
