@@ -41,6 +41,8 @@ Changed
 Fixed
 ^^^^^
 
+- ``quat_slerp`` no longer modifies its second input when selecting the shortest
+  rotation path, preserving input views and allowing inputs that require gradients.
 - ``posture`` and ``variable_posture`` now pair each joint with its own ``std`` when
   ``asset_cfg.preserve_order=True``.
 - ``apply_body_impulse`` now applies ``body_point_offset`` in the body frame, as
