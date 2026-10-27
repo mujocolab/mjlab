@@ -72,6 +72,8 @@ Changed
 Fixed
 ^^^^^
 
+- ``quat_slerp`` no longer modifies its second input when selecting the shortest
+  rotation path, preserving input views and allowing inputs that require gradients.
 - ``project_points()`` now keeps the leading dimension for a batch of one and
   returns unbatched projections without an extra dimension.
 - YAM RGB and depth cube-lifting tasks now use separate experiment directories,
