@@ -59,8 +59,11 @@ class GridPatternCfg:
   size: tuple[float, float] = (1.0, 1.0)
   """Grid size (length, width) in meters."""
 
-  resolution: float = 0.1
-  """Spacing between rays in meters."""
+  resolution: float | tuple[float, float] = 0.1
+  """Spacing between rays in meters, either shared or per axis as ``(x, y)``."""
+
+  offset: tuple[float, float] = (0.0, 0.0)
+  """Grid center offset in frame-local XY (meters), rotated by ``ray_alignment``."""
 
   direction: tuple[float, float, float] = (0.0, 0.0, -1.0)
   """Ray direction in frame-local coordinates."""
@@ -79,20 +82,24 @@ class GridPatternCfg:
     """
     del mj_model  # Unused for grid pattern
     size_x, size_y = self.size
+    center_x, center_y = self.offset
     res = self.resolution
+    if isinstance(res, (int, float)):
+      res = (res, res)
+    res_x, res_y = res
 
     x = torch.arange(
-      -size_x / 2, size_x / 2 + res * 0.5, res, device=device, dtype=torch.float32
+      -size_x / 2, size_x / 2 + res_x * 0.5, res_x, device=device, dtype=torch.float32
     )
     y = torch.arange(
-      -size_y / 2, size_y / 2 + res * 0.5, res, device=device, dtype=torch.float32
+      -size_y / 2, size_y / 2 + res_y * 0.5, res_y, device=device, dtype=torch.float32
     )
     grid_x, grid_y = torch.meshgrid(x, y, indexing="xy")
 
     num_rays = grid_x.numel()
     local_offsets = torch.zeros((num_rays, 3), device=device, dtype=torch.float32)
-    local_offsets[:, 0] = grid_x.flatten()
-    local_offsets[:, 1] = grid_y.flatten()
+    local_offsets[:, 0] = grid_x.flatten() + center_x
+    local_offsets[:, 1] = grid_y.flatten() + center_y
 
     # All rays share the same direction for grid pattern.
     direction = torch.tensor(self.direction, device=device, dtype=torch.float32)
@@ -198,12 +205,14 @@ class PinholeCameraPatternCfg:
       aspect = width / height
       h_fov_rad = 2 * math.atan(math.tan(v_fov_rad / 2) * aspect)
 
-    # Create normalized pixel coordinates [-1, 1].
-    u = torch.linspace(-1, 1, width, device=device, dtype=torch.float32)
-    v = torch.linspace(-1, 1, height, device=device, dtype=torch.float32)
+    # Normalized pixel centers, row-major with row 0 at the top (MuJoCo's layout).
+    cols = torch.arange(width, device=device, dtype=torch.float32)
+    rows = torch.arange(height, device=device, dtype=torch.float32)
+    u = (cols + 0.5) / width * 2 - 1
+    v = 1 - (rows + 0.5) / height * 2
     grid_u, grid_v = torch.meshgrid(u, v, indexing="xy")
 
-    # Convert to ray directions (MuJoCo camera: -Z forward, +X right, +Y down).
+    # Convert to ray directions (MuJoCo camera: -Z forward, +X right, +Y up).
     ray_x = grid_u.flatten() * math.tan(h_fov_rad / 2)
     ray_y = grid_v.flatten() * math.tan(v_fov_rad / 2)
     ray_z = -torch.ones_like(ray_x)  # Negative Z for MuJoCo camera forward

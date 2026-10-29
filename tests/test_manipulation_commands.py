@@ -2,7 +2,7 @@
 
 A timer-expiry resample runs inside command compute, after the step's single
 sim.forward(). The commands must refresh kinematics themselves so observations
-and the reward-path cache see post-teleport state.
+and rewards see post-teleport state.
 """
 
 from types import SimpleNamespace
@@ -86,7 +86,32 @@ def test_multi_cube_resample_refreshes_kinematics_and_cache(device):
   for name in names:
     _assert_kinematics_fresh(env.scene, env.sim, name)
 
-  # Reward-path cache serves the post-teleport position of the target cube.
+  # Rewards see the post-teleport position of the target cube.
+  all_pos = torch.stack([env.scene[n].data.root_link_pos_w for n in names])
+  arange = torch.arange(env.num_envs, device=device)
+  expected = all_pos[term.target_selection, arange]
+  assert torch.allclose(term.target_object_pos(), expected, atol=1e-6)
+
+
+def test_multi_cube_target_object_pos_tracks_sim_between_updates(device):
+  """target_object_pos() reflects physics that ran after the last command update."""
+  names = ("cube0", "cube1")
+  env = _make_env(device, names)
+  term = MultiCubeLiftingCommandCfg(
+    entity_names=names, resampling_time_range=(1e9, 1e9)
+  ).build(env)
+  term.reset(env_ids=torch.arange(env.num_envs, device=device))
+  env.sim.forward()
+  term.compute(dt=env.sim.cfg.mujoco.timestep)
+
+  # Stand-in for a physics step: move every cube without a command update.
+  for name in names:
+    cube = env.scene[name]
+    pose = cube.data.root_link_pose_w.clone()
+    pose[:, 2] += 0.1
+    cube.write_root_link_pose_to_sim(pose)
+  env.sim.forward()
+
   all_pos = torch.stack([env.scene[n].data.root_link_pos_w for n in names])
   arange = torch.arange(env.num_envs, device=device)
   expected = all_pos[term.target_selection, arange]

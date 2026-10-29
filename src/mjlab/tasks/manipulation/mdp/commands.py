@@ -164,7 +164,6 @@ class MultiCubeLiftingCommand(CommandTerm):
     )
 
     self._env_arange = torch.arange(self.num_envs, device=self.device)
-    self._cached_target_obj_pos = torch.zeros(self.num_envs, 3, device=self.device)
     self._pending_forward = False
 
     self.metrics["position_error"] = torch.zeros(self.num_envs, device=self.device)
@@ -181,19 +180,12 @@ class MultiCubeLiftingCommand(CommandTerm):
     return self._padded_geom_ids[self.target_selection]
 
   def target_object_pos(self) -> torch.Tensor:
-    """Position of the target cube per env.
-
-    Cached per step — updated in _update_metrics which runs before rewards.
-    """
-    return self._cached_target_obj_pos
-
-  def _target_object_pos_from_sim(self) -> torch.Tensor:
+    """Position of the target cube per env, read from the current sim state."""
     all_pos = torch.stack([c.data.root_link_pos_w for c in self.cubes])
     return all_pos[self.target_selection, self._env_arange]
 
   def _update_metrics(self) -> None:
-    self._cached_target_obj_pos = self._target_object_pos_from_sim()
-    obj_pos = self._cached_target_obj_pos
+    obj_pos = self.target_object_pos()
     error = torch.norm(self.target_pos - obj_pos, dim=-1)
     at_goal = (error < self.cfg.success_threshold).float()
     self.episode_success = torch.maximum(self.episode_success, at_goal)
@@ -251,12 +243,10 @@ class MultiCubeLiftingCommand(CommandTerm):
     # Reset-vs-step context is handled via _pending_forward, not env_ids.
     del env_ids
     # A timer-expiry resample teleports the cubes after the step's single
-    # forward(); refresh kinematics and the reward-path cache (updated in
-    # _update_metrics before the resample) so both see post-teleport state.
+    # forward(); refresh kinematics so observations see post-teleport state.
     if self._pending_forward:
       self._pending_forward = False
       self._env.sim.forward()
-      self._cached_target_obj_pos = self._target_object_pos_from_sim()
 
   def _debug_vis_impl(self, visualizer: DebugVisualizer) -> None:
     env_indices = visualizer.get_env_indices(self.num_envs)

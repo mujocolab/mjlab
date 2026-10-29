@@ -19,6 +19,7 @@ from mjlab.sensor import (
 )
 from mjlab.sensor.raycast_sensor import _geom_groups_to_vec6
 from mjlab.sim import MujocoCfg, SimulationCfg
+from mjlab.utils.lab_api.math import quat_from_euler_xyz
 
 
 @pytest.fixture(scope="module")
@@ -278,6 +279,50 @@ def test_raycast_grid_pattern_num_rays(device):
   assert sensor.num_rays == 6
 
 
+def test_raycast_grid_pattern_anisotropic_resolution(device):
+  """Per-axis resolution sets independent spacing along x and y."""
+  # X: from -0.5 to 0.5 step 0.25 -> 5 points.
+  # Y: from -0.2 to 0.2 step 0.1 -> 5 points.
+  pattern = GridPatternCfg(size=(1.0, 0.4), resolution=(0.25, 0.1))
+  offsets, _ = pattern.generate_rays(None, device)
+
+  assert offsets.shape == (25, 3)
+  expected_x = torch.arange(-0.5, 0.51, 0.25, device=device)
+  expected_y = torch.arange(-0.2, 0.21, 0.1, device=device)
+  assert torch.allclose(offsets[:, 0].unique(), expected_x)
+  assert torch.allclose(offsets[:, 1].unique(), expected_y)
+
+
+def test_raycast_grid_pattern_offset(robot_with_floor_xml, device):
+  """Grid offset is applied in frame-local XY and follows ray_alignment."""
+  raycast_cfg = RayCastSensorCfg(
+    name="offset_scan",
+    frame=ObjRef(type="body", name="base", entity="robot"),
+    pattern=GridPatternCfg(size=(0.2, 0.2), resolution=0.1, offset=(0.5, -0.2)),
+    ray_alignment="yaw",
+    max_distance=10.0,
+  )
+
+  scene, sim = make_scene_and_sim(device, robot_with_floor_xml, sensors=(raycast_cfg,))
+  sensor = scene["offset_scan"]
+
+  # Yaw the body 90 degrees and pitch it 0.3 rad, keeping it above the origin.
+  quat = quat_from_euler_xyz(
+    torch.zeros(1, device=device),
+    torch.full((1,), 0.3, device=device),
+    torch.full((1,), math.pi / 2, device=device),
+  )
+  pose = torch.cat([torch.tensor([[0.0, 0.0, 2.0]], device=device), quat], dim=1)
+  scene["robot"].write_root_link_pose_to_sim(pose)
+  sim.forward()
+  sim.sense()
+
+  # The hit centroid is the offset rotated by the body yaw only.
+  centroid = sensor.data.hit_pos_w[0, :, :2].mean(dim=0)
+  expected = torch.tensor([0.2, 0.5], device=device)
+  assert torch.allclose(centroid, expected, atol=1e-3)
+
+
 def test_raycast_different_direction(device):
   """Verify rays work with non-default direction."""
   wall_xml = """
@@ -482,6 +527,24 @@ def test_pinhole_camera_pattern_num_rays(device):
 
   sensor = scene["camera_scan"]
   assert sensor.num_rays == 16 * 12
+
+
+def test_pinhole_rays_match_mujoco_image_layout():
+  """Rays go through pixel centers, row-major with row 0 at the image top."""
+  # fovy=90 with a square image gives tan(fov / 2) = 1 on both axes.
+  cfg = PinholeCameraPatternCfg(width=2, height=2, fovy=90.0)
+  _, directions = cfg.generate_rays(None, "cpu")
+
+  expected = torch.tensor(
+    [
+      [-0.5, 0.5, -1.0],  # Row 0 (top), left.
+      [0.5, 0.5, -1.0],  # Row 0 (top), right.
+      [-0.5, -0.5, -1.0],  # Row 1 (bottom), left.
+      [0.5, -0.5, -1.0],  # Row 1 (bottom), right.
+    ]
+  )
+  expected = expected / expected.norm(dim=1, keepdim=True)
+  assert torch.allclose(directions, expected, atol=1e-6)
 
 
 def test_pinhole_from_intrinsic_matrix():
