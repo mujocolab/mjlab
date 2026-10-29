@@ -56,7 +56,6 @@ class NoiseModelWithAdditiveBias(NoiseModel):
 
     # Initialize bias tensor.
     self._bias = torch.zeros((num_envs, 1), device=self._device)
-    self._num_components: int | None = None
     self._bias_initialized = False
 
   @override
@@ -73,12 +72,16 @@ class NoiseModelWithAdditiveBias(NoiseModel):
 
   def _initialize_bias_shape(self, data_shape: torch.Size) -> None:
     """Initialize bias tensor shape based on data and configuration."""
-    if self._sample_bias_per_component and not self._bias_initialized:
-      *_, self._num_components = data_shape
-      # Expand bias to match number of components.
-      self._bias = self._bias.repeat(1, self._num_components)
-      self._bias_initialized = True
-      # Resample bias with new shape.
+    if self._bias_initialized:
+      return
+    if self._sample_bias_per_component:
+      self._bias = self._bias.new_zeros(data_shape)
+    else:
+      # Keep the environment axis first when broadcasting over spatial dimensions.
+      self._bias = self._bias.reshape(self._num_envs, *([1] * (len(data_shape) - 1)))
+    self._bias_initialized = True
+    if self._sample_bias_per_component:
+      # Resample bias with new shape, preserving pre-call resets of shared bias.
       self.reset()
 
   @override
