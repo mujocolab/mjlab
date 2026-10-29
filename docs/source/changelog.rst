@@ -41,6 +41,9 @@ Changed
 Fixed
 ^^^^^
 
+- Additive observation bias now preserves scalar and multidimensional observation
+  shapes. Spatial dimensions no longer cause broadcasting errors or share biases
+  across environments, and partial resets only resample the selected environments.
 - ``posture`` and ``variable_posture`` now pair each joint with its own ``std`` when
   ``asset_cfg.preserve_order=True``.
 - ``apply_body_impulse`` now applies ``body_point_offset`` in the body frame, as
