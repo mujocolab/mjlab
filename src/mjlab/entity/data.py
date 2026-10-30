@@ -468,7 +468,7 @@ class EntityData:
   @property
   def root_link_pos_w(self) -> torch.Tensor:
     """Root link position in world frame. Shape (num_envs, 3)."""
-    return self.root_link_pose_w[:, 0:3]
+    return self.data.xpos[:, self.indexing.root_body_id].clone()
 
   @property
   def root_link_quat_w(self) -> torch.Tensor:
@@ -488,7 +488,7 @@ class EntityData:
   @property
   def root_com_pos_w(self) -> torch.Tensor:
     """Root COM position in world frame. Shape (num_envs, 3)."""
-    return self.root_com_pose_w[:, 0:3]
+    return self.data.xipos[:, self.indexing.root_body_id].clone()
 
   @property
   def root_com_quat_w(self) -> torch.Tensor:
@@ -509,7 +509,7 @@ class EntityData:
   @property
   def body_link_pos_w(self) -> torch.Tensor:
     """Body link positions in world frame. Shape (num_envs, num_bodies, 3)."""
-    return self.body_link_pose_w[..., 0:3]
+    return self.data.xpos[:, self.indexing.body_ids]
 
   @property
   def body_link_quat_w(self) -> torch.Tensor:
@@ -529,7 +529,7 @@ class EntityData:
   @property
   def body_com_pos_w(self) -> torch.Tensor:
     """Body COM positions in world frame. Shape (num_envs, num_bodies, 3)."""
-    return self.body_com_pose_w[..., 0:3]
+    return self.data.xipos[:, self.indexing.body_ids]
 
   @property
   def body_com_quat_w(self) -> torch.Tensor:
@@ -560,7 +560,7 @@ class EntityData:
   @property
   def geom_pos_w(self) -> torch.Tensor:
     """Geom positions in world frame. Shape (num_envs, num_geoms, 3)."""
-    return self.geom_pose_w[..., 0:3]
+    return self.data.geom_xpos[:, self.indexing.geom_ids]
 
   @property
   def geom_quat_w(self) -> torch.Tensor:
@@ -581,7 +581,7 @@ class EntityData:
   @property
   def site_pos_w(self) -> torch.Tensor:
     """Site positions in world frame. Shape (num_envs, num_sites, 3)."""
-    return self.site_pose_w[..., 0:3]
+    return self.data.site_xpos[:, self.indexing.site_ids]
 
   @property
   def site_quat_w(self) -> torch.Tensor:
