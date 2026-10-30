@@ -41,6 +41,8 @@ Changed
 Fixed
 ^^^^^
 
+- Preserve mesh convex hull vertex limits when merging non-first mesh variants.
+
 - ``posture`` and ``variable_posture`` now pair each joint with its own ``std`` when
   ``asset_cfg.preserve_order=True``.
 - ``apply_body_impulse`` now applies ``body_point_offset`` in the body frame, as
