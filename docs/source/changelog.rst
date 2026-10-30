@@ -41,6 +41,8 @@ Changed
 Fixed
 ^^^^^
 
+- ``upright`` now uses the root body when no body is selected, avoiding shape
+  errors in rewards and debug visualization for multi-body entities.
 - ``posture`` and ``variable_posture`` now pair each joint with its own ``std`` when
   ``asset_cfg.preserve_order=True``.
 - ``apply_body_impulse`` now applies ``body_point_offset`` in the body frame, as
