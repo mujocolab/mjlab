@@ -98,6 +98,11 @@ Fixed
 - Envs sampled by ``rel_forward_envs`` now keep their straight command. Previously,
   if an env was also sampled as a heading or world frame env, its yaw rate was
   replaced by a heading turn or its velocity by the world frame sample.
+- ``configure_torch_backends`` no longer breaks ``torch.compile`` with
+  ``mode="max-autotune"`` or ``"max-autotune-no-cudagraphs"``. On torch 2.9+ it set
+  TF32 through the per-backend ``fp32_precision`` API only, which makes
+  ``torch.get_float32_matmul_precision()`` raise when inductor autotunes a matmul. It
+  now also sets the legacy ``allow_tf32`` flags, which keeps that getter readable.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------

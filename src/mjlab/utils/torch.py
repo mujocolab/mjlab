@@ -1,3 +1,5 @@
+import warnings
+
 import torch
 from packaging.version import parse
 
@@ -33,6 +35,15 @@ def _configure_29(allow_tf32: bool):
   precision = "tf32" if allow_tf32 else "ieee"
   torch.backends.cuda.matmul.fp32_precision = precision
   torch.backends.cudnn.fp32_precision = precision
+
+  # Mirror the setting into the legacy flags. torch.compile's max-autotune modes call
+  # torch.get_float32_matmul_precision(), which raises once only the new per-backend
+  # API has set TF32 ("PyTorch is checking the matmul precision without a specific
+  # backend name"). Writing the legacy flags afterwards keeps both readers consistent.
+  with warnings.catch_warnings():
+    warnings.simplefilter("ignore")  # Deprecation notice for the legacy setters.
+    torch.backends.cuda.matmul.allow_tf32 = allow_tf32
+    torch.backends.cudnn.allow_tf32 = allow_tf32
 
 
 def _configure_pre29(allow_tf32: bool):
