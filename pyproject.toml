@@ -17,7 +17,6 @@ classifiers = [
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -29,7 +28,7 @@ classifiers = [
   "Natural Language :: English",
 ]
 description = "Isaac Lab API, powered by MuJoCo-Warp, for RL and robotics research."
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.11,<3.15"
 dependencies = [
   "prettytable",
   "tqdm",
@@ -153,7 +152,7 @@ select = ["E4", "E7", "E9", "F", "I", "B"]
 ignore = ["B011"]
 
 [tool.pyright]
-pythonVersion = "3.10"
+pythonVersion = "3.11"
 venvPath = "."
 venv = ".venv"
 ignore = ["./typings", "./src/mjlab/utils/lab_api", "./docs"]
