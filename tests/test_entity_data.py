@@ -264,6 +264,79 @@ def test_entity_data_properties_accessible(device, property_name, expected_shape
   assert value.shape == expected_shape, f"{property_name} has unexpected shape"
 
 
+def test_position_components_are_independent_snapshots(device):
+  """Position reads match MuJoCo and remain independent of simulation writes."""
+  xml = """
+  <mujoco>
+    <worldbody>
+      <body name="root">
+        <freejoint/>
+        <inertial pos="0.2 0.1 -0.1" quat="0.5 0.5 0.5 0.5"
+                  mass="1" diaginertia="0.01 0.02 0.03"/>
+        <geom name="root_geom" type="box" size="0.1 0.2 0.3" pos="0.1 0 0"/>
+        <site name="root_site" pos="0 0.2 0.1" euler="20 30 40"/>
+        <body name="child" pos="0.4 0 0.2" euler="0 0 90">
+          <inertial pos="0 0.1 0.2" mass="0.5" diaginertia="0.01 0.01 0.01"/>
+          <geom name="child_geom" type="sphere" size="0.1" pos="0 0.1 0"/>
+          <site name="child_site" pos="0.2 0 0" euler="50 10 20"/>
+        </body>
+      </body>
+    </worldbody>
+  </mujoco>
+  """
+  entity = Entity(EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(xml)))
+  entity, sim = initialize_entity_with_sim(entity, device, num_envs=2)
+  pose = torch.tensor(
+    [[1, 2, 3, 1, 0, 0, 0], [-2, 3, 4, 0.5, 0.5, 0.5, 0.5]],
+    dtype=torch.float32,
+    device=device,
+  )
+  entity.write_root_link_pose_to_sim(pose)
+  sim.forward()
+
+  model = mujoco.MjModel.from_xml_string(xml)
+  reference = mujoco.MjData(model)
+  fields = {
+    "root_link_pos_w": ("xpos", model.body("root").id),
+    "root_com_pos_w": ("xipos", model.body("root").id),
+    "body_link_pos_w": ("xpos", [model.body(n).id for n in ("root", "child")]),
+    "body_com_pos_w": ("xipos", [model.body(n).id for n in ("root", "child")]),
+    "geom_pos_w": (
+      "geom_xpos",
+      [model.geom(n).id for n in ("root_geom", "child_geom")],
+    ),
+    "site_pos_w": (
+      "site_xpos",
+      [model.site(n).id for n in ("root_site", "child_site")],
+    ),
+  }
+  snapshots = {name: getattr(entity.data, name) for name in fields}
+  for name, value in snapshots.items():
+    # Editing a returned position must not write through to MuJoCo's data.
+    value.add_(100)
+    for env_id in range(2):
+      reference.qpos[:] = pose[env_id].cpu().numpy()
+      mujoco.mj_forward(model, reference)
+      field, ids = fields[name]
+      np.testing.assert_allclose(
+        getattr(entity.data, name)[env_id].cpu().numpy(),
+        getattr(reference, field)[ids],
+        atol=1e-6,
+      )
+
+  snapshots = {name: getattr(entity.data, name) for name in fields}
+  saved = {name: value.clone() for name, value in snapshots.items()}
+  pose[0, :3] += 1
+  entity.write_root_link_pose_to_sim(pose[:1], env_ids=torch.tensor([0], device=device))
+  sim.forward()
+  for name in fields:
+    # A new forward updates fresh reads, but must not alter an earlier read.
+    torch.testing.assert_close(snapshots[name], saved[name])
+    updated = saved[name].clone()
+    updated[0] += 1
+    torch.testing.assert_close(getattr(entity.data, name), updated)
+
+
 def test_entity_data_reset_clears_all_targets(device):
   """Test that EntityData.clear_state() zeros out all target buffers."""
   xml_path = Path(__file__).parent / "fixtures" / "tendon_finger.xml"
