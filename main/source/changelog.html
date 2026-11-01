@@ -566,6 +566,10 @@ conditional nodes, which require CUDA 12.4 or newer.</p></li>
 <code class="docutils literal notranslate"><span class="pre">rsl_rl.utils.LogWriter</span></code> subclass, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;my_pkg.writers:MyLogWriter&quot;</span></code>.</p></li>
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">RewardManager.term_rewards</span></code> and <code class="docutils literal notranslate"><span class="pre">RewardManager.get_term()</span></code> for the
 per-term reward vector from the last step <a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/1223">#1223</a>.</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">MjlabOnPolicyRunner.get_export_metadata()</span></code> so custom runners can add
+fields to the exported ONNX metadata by overriding it, and
+<code class="docutils literal notranslate"><span class="pre">MjlabOnPolicyRunner.export_onnx_on_save</span></code> to export ONNX on every checkpoint.
+The velocity, manipulation and tracking runners now share this export path.</p></li>
 </ul>
 </section>
 <section id="changed">

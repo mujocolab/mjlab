@@ -19,6 +19,10 @@ Added
   ``rsl_rl.utils.LogWriter`` subclass, e.g. ``"my_pkg.writers:MyLogWriter"``.
 - Added ``RewardManager.term_rewards`` and ``RewardManager.get_term()`` for the
   per-term reward vector from the last step :issue:`1223`.
+- Added ``MjlabOnPolicyRunner.get_export_metadata()`` so custom runners can add
+  fields to the exported ONNX metadata by overriding it, and
+  ``MjlabOnPolicyRunner.export_onnx_on_save`` to export ONNX on every checkpoint.
+  The velocity, manipulation and tracking runners now share this export path.
 
 Changed
 ^^^^^^^
