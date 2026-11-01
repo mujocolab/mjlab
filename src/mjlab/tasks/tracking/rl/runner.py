@@ -21,7 +21,7 @@ class _OnnxMotionModel(nn.Module):
 
   def __init__(self, actor, motion):
     super().__init__()
-    self.policy = actor.as_onnx(verbose=False)
+    self.policy = actor.as_onnx()
     self.register_buffer("joint_pos", motion.joint_pos.to("cpu"))
     self.register_buffer("joint_vel", motion.joint_vel.to("cpu"))
     self.register_buffer("body_pos_w", motion.body_pos_w.to("cpu"))
