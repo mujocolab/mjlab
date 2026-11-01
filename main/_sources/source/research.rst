@@ -73,7 +73,8 @@ Projects built on mjlab. To add yours, open a pull request or post in
    * - `pal-robotics/pal_mjlab <https://github.com/pal-robotics/pal_mjlab>`_
      - PAL Robotics robots and tasks.
    * - `Msornerrrr/in-hand-rotation-mjlab <https://github.com/Msornerrrr/in-hand-rotation-mjlab>`_
-     - Sim to real RL for in hand cube rotation with the LEAP Hand.
+     - In-hand rotation on the LEAP Hand (cube yaw, SO(3) reorientation, fingertip rotation of 22 objects),
+       trained with PPO and SuperMimic-style world-model RL, with sim-to-real deployment.
    * - `project-instinct/InstinctMJ <https://github.com/project-instinct/InstinctMJ>`_
      - mjlab version of Project-Instinct, a whole-body control toolchain to study Instinct-Level intelligence.
    * - `lzyang2000/twist2_mjlab <https://github.com/lzyang2000/twist2_mjlab>`_
