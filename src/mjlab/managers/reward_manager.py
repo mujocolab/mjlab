@@ -114,7 +114,10 @@ class RewardManager(ManagerBase):
       extras["Episode_Reward/" + key] = (
         episodic_sum_avg / self._env.max_episode_length_s
       )
-      self._episode_sums[key][env_ids] = 0.0
+      if isinstance(env_ids, torch.Tensor) and env_ids.dtype == torch.long:
+        self._episode_sums[key].index_fill_(0, env_ids, 0.0)
+      else:
+        self._episode_sums[key][env_ids] = 0.0
     for term_cfg in self._class_term_cfgs:
       term_cfg.func.reset(env_ids=env_ids)
     return extras

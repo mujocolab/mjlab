@@ -218,9 +218,14 @@ class DelayBuffer:
     if not self.per_env and batch_ids is not None:
       return
     idx = slice(None) if batch_ids is None else batch_ids
-    self._current_lags[idx] = 0
-    self._needs_lag[idx] = True
-    self._step_count[idx] = 0
+    if isinstance(idx, torch.Tensor) and idx.dtype == torch.long:
+      self._current_lags.index_fill_(0, idx, 0)
+      self._needs_lag.index_fill_(0, idx, True)
+      self._step_count.index_fill_(0, idx, 0)
+    else:
+      self._current_lags[idx] = 0
+      self._needs_lag[idx] = True
+      self._step_count[idx] = 0
     if self._staggered:
       new_phases = torch.randint(
         0,

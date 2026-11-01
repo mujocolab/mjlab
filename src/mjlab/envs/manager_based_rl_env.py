@@ -482,7 +482,7 @@ class ManagerBasedRlEnv:
     if self.cfg.auto_reset and len(reset_env_ids) > 0:
       command_dt = self._command_dt
       command_dt.fill_(self.step_dt)
-      command_dt[reset_env_ids] = 0.0
+      command_dt.index_fill_(0, reset_env_ids, 0.0)
       self.command_manager.compute(dt=command_dt)
     else:
       self.command_manager.compute(dt=self.step_dt)
