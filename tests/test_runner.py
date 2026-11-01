@@ -202,7 +202,7 @@ def test_onnx_export_matches_actor():
   """as_onnx() model produces the same output as the full actor with normalization."""
   actor = _make_actor(obs_normalization=True)
   _train_normalizer(actor)
-  onnx_model = actor.as_onnx(verbose=False)
+  onnx_model = actor.as_onnx()
   onnx_model.eval()
   x = torch.randn(4, actor.obs_dim)
   model_out = _model_output(actor, x)
@@ -214,7 +214,7 @@ def test_onnx_export_matches_actor():
 def test_onnx_export_without_normalization():
   """as_onnx() works when normalization is disabled."""
   actor = _make_actor(obs_normalization=False)
-  onnx_model = actor.as_onnx(verbose=False)
+  onnx_model = actor.as_onnx()
   onnx_model.eval()
   x = torch.randn(4, actor.obs_dim)
   with torch.no_grad():
@@ -228,7 +228,7 @@ def test_onnx_runtime_roundtrip_matches_pytorch():
   ort = pytest.importorskip("onnxruntime")
   actor = _make_actor(obs_normalization=True)
   _train_normalizer(actor)
-  onnx_model = actor.as_onnx(verbose=False)
+  onnx_model = actor.as_onnx()
   onnx_model.eval()
 
   x = torch.randn(4, actor.obs_dim)
@@ -308,7 +308,7 @@ def test_cnn_onnx_export_matches_actor():
   actor = _make_cnn_actor(obs_normalization=True)
   _train_cnn_normalizer(actor)
 
-  onnx_model = actor.as_onnx(verbose=False)
+  onnx_model = actor.as_onnx()
   onnx_model.eval()
 
   x_1d = torch.randn(4, _OBS_DIM_1D)
@@ -324,7 +324,7 @@ def test_cnn_onnx_export_matches_actor():
 def test_cnn_onnx_export_to_file():
   """SpatialSoftmaxCNNModel exports to a valid ONNX file."""
   actor = _make_cnn_actor(obs_normalization=False)
-  onnx_model = actor.as_onnx(verbose=False)
+  onnx_model = actor.as_onnx()
   onnx_model.to("cpu")
   onnx_model.eval()
 
@@ -352,7 +352,7 @@ def test_cnn_onnx_runtime_roundtrip_matches_pytorch():
   actor = _make_cnn_actor(obs_normalization=True)
   _train_cnn_normalizer(actor)
 
-  onnx_model = actor.as_onnx(verbose=False)
+  onnx_model = actor.as_onnx()
   onnx_model.eval()
 
   x_1d = torch.randn(4, _OBS_DIM_1D)
