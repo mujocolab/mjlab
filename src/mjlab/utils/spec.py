@@ -459,7 +459,8 @@ def create_muscle_actuator(
 def copy_mesh_data(src: mujoco.MjsMesh, dst: mujoco.MjsMesh) -> None:
   """Copy mesh geometry from *src* to *dst*.
 
-  Copies vertex/face data, file path, scale, reference frame, and smoothing settings.
+  Copies vertex/face data, file path, scale, reference frame, smoothing settings,
+  and the convex hull vertex limit.
   The ``name`` field is NOT copied; set it on *dst* before calling.
   """
   assert dst.name, "dst.name must be set before copy_mesh_data."
@@ -481,6 +482,7 @@ def copy_mesh_data(src: mujoco.MjsMesh, dst: mujoco.MjsMesh) -> None:
   dst.refpos[:] = src.refpos
   dst.refquat[:] = src.refquat
   dst.smoothnormal = src.smoothnormal
+  dst.maxhullvert = src.maxhullvert
 
 
 def copy_texture_data(src: mujoco.MjsTexture, dst: mujoco.MjsTexture) -> None:

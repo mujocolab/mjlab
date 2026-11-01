@@ -18,6 +18,7 @@ from mjlab.entity.variants import (
   VariantGeomSpec,
   VariantSlot,
   allocate_worlds,
+  build_merged_variant_spec,
   build_variant_model,
 )
 from mjlab.viewer.model_sync import (
@@ -26,6 +27,37 @@ from mjlab.viewer.model_sync import (
 )
 
 # Helpers: variant specs with visual + collision mesh geoms.
+
+
+@pytest.mark.parametrize("maxhullvert, expected_vertices", [(8, 8), (-1, 162)])
+def test_merged_variants_preserve_mesh_hull_limits(maxhullvert, expected_vertices):
+  def make_spec(num_geoms: int) -> mujoco.MjSpec:
+    spec = mujoco.MjSpec()
+    mesh = spec.add_mesh(name="sphere")
+    mesh.make_sphere(subdivision=2)
+    mesh.maxhullvert = maxhullvert
+    body = spec.worldbody.add_body(name="prop")
+    body.add_freejoint()
+    for i in range(num_geoms):
+      body.add_geom(
+        type=mujoco.mjtGeom.mjGEOM_MESH,
+        meshname="sphere",
+        pos=[i * 0.2, 0, 0],
+      )
+    return spec
+
+  cfg = VariantEntityCfg(
+    variants={"first": lambda: make_spec(1), "second": lambda: make_spec(2)}
+  )
+  spec, _ = build_merged_variant_spec(cfg)
+  assert [mesh.maxhullvert for mesh in spec.meshes] == [maxhullvert, maxhullvert]
+
+  # The second variant's extra slot makes both meshes collision-referenced
+  # in the merged model, so both compiled hulls must retain their vertex cap.
+  model = spec.compile()
+  for graph_adr in model.mesh_graphadr:
+    assert graph_adr >= 0
+    assert model.mesh_graph[graph_adr] == expected_vertices
 
 
 def _sphere_2col_spec() -> mujoco.MjSpec:
