@@ -166,8 +166,7 @@ class LearnedMlpActuator(DcMotorActuator[LearnedMlpActuatorCfg]):
       self._vel_history.backfill(cmd.vel, cmd.reset_env_ids)
 
     # Save velocity for DC motor clipping in parent class.
-    rows = slice(None) if cmd.reset_env_ids is None else cmd.reset_env_ids
-    self._joint_vel_clipped[rows] = cmd.vel[rows]
+    self._joint_vel_clipped[:] = cmd.vel
 
     num_envs = cmd.pos.shape[0]
     num_joints = cmd.pos.shape[1]
