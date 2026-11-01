@@ -145,6 +145,11 @@ class MotionLoader:
     Returns:
       shape (B, 3).
     """
+    if rotations.shape[0] == 2:
+      # Only one interval is available; use its velocity at both endpoints.
+      q_rel = quat_mul(rotations[1:], quat_conjugate(rotations[:1]))
+      return (axis_angle_from_quat(q_rel) / dt).repeat(2, 1)
+
     q_prev, q_next = rotations[:-2], rotations[2:]
     q_rel = quat_mul(q_next, quat_conjugate(q_prev))  # shape (B−2, 4)
 
