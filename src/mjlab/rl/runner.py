@@ -5,6 +5,7 @@ import torch
 from rsl_rl.env import VecEnv
 from rsl_rl.runners import OnPolicyRunner
 
+from mjlab.rl.exporter_utils import attach_metadata_to_onnx, get_base_metadata
 from mjlab.rl.vecenv_wrapper import RslRlVecEnvWrapper
 
 
@@ -12,6 +13,8 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
   """Base runner that persists environment state across checkpoints."""
 
   env: RslRlVecEnvWrapper
+  export_onnx_on_save: bool = False
+  """Export the policy to ONNX, with metadata attached, on every checkpoint save."""
 
   def __init__(
     self,
@@ -82,11 +85,34 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     if self.cfg["upload_model"]:
       self.logger.save_model(path, self.current_learning_iteration)
 
+  def get_export_metadata(self, run_name: str) -> dict[str, list | str | float]:
+    """Return the metadata attached to the exported ONNX policy.
+
+    Override this in a subclass to add or change metadata fields, e.g.::
+
+      def get_export_metadata(self, run_name):
+        metadata = super().get_export_metadata(run_name)
+        metadata["my_field"] = ...
+        return metadata
+    """
+    return get_base_metadata(self.env.unwrapped, run_name)
+
+  def _export_onnx_with_metadata(self, checkpoint_path: str) -> None:
+    policy_dir, filename, onnx_path = self._get_export_paths(checkpoint_path)
+    try:
+      self.export_policy_to_onnx(str(policy_dir), filename)
+      metadata = self.get_export_metadata(self._get_run_name())
+      attach_metadata_to_onnx(str(onnx_path), metadata)
+      self._upload_model(str(onnx_path))
+    except Exception as e:
+      print(f"[WARN] ONNX export failed (training continues): {e}")
+
   def save(self, path: str, infos=None) -> None:
     """Save checkpoint.
 
     Extends the base implementation to persist the environment's
-    common_step_counter and to respect the ``upload_model`` config flag.
+    common_step_counter, to respect the ``upload_model`` config flag and, when
+    ``export_onnx_on_save`` is set, to export the policy to ONNX.
     """
     env_state = {"common_step_counter": self.env.unwrapped.common_step_counter}
     infos = {**(infos or {}), "env_state": env_state}
@@ -96,6 +122,8 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     saved_dict["infos"] = infos
     torch.save(saved_dict, path)
     self._upload_model(path)
+    if self.export_onnx_on_save:
+      self._export_onnx_with_metadata(path)
 
   def load(
     self,
