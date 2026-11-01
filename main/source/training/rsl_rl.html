@@ -685,8 +685,8 @@ full list of available fields and their defaults.</p>
         agent.yaml            # full runner config
 </pre></div>
 </div>
-<p>Checkpoints are saved every <code class="docutils literal notranslate"><span class="pre">save_interval</span></code> iterations and uploaded to W&amp;B
-as model artifacts by default. Set <code class="docutils literal notranslate"><span class="pre">upload_model=False</span></code> in the runner
+<p>Checkpoints are saved every <code class="docutils literal notranslate"><span class="pre">save_interval</span></code> iterations and uploaded through
+the log writer (W&amp;B by default). Set <code class="docutils literal notranslate"><span class="pre">upload_model=False</span></code> in the runner
 config to disable uploads while keeping metric logging.</p>
 <p class="rubric">Resuming from a checkpoint</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>Mjlab-Velocity-Flat-Unitree-G1<span class="w"> </span><span class="se">\</span>

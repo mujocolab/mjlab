@@ -581,6 +581,8 @@ through pixel centers), matching <code class="docutils literal notranslate"><spa
 <li><p><code class="docutils literal notranslate"><span class="pre">BuiltinDcMotorActuatorCfg</span></code> PID gains are now in torque space, following
 MuJoCo 3.14. VELOCITY mode requires <code class="docutils literal notranslate"><span class="pre">damping</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> and <code class="docutils literal notranslate"><span class="pre">stiffness</span> <span class="pre">=</span> <span class="pre">0</span></code>, and
 VOLTAGE mode rejects <code class="docutils literal notranslate"><span class="pre">voltage_limit</span></code> and <code class="docutils literal notranslate"><span class="pre">slew_rate</span></code>.</p></li>
+<li><p>Task runners upload exported ONNX policies through the log writer instead of
+<code class="docutils literal notranslate"><span class="pre">wandb.save</span></code>, and name the run in the ONNX metadata after the log directory.</p></li>
 <li><p>Bumped <code class="docutils literal notranslate"><span class="pre">rsl-rl-lib</span></code> from 5.5.0 to 5.5.1. This removes the need for capping
 <code class="docutils literal notranslate"><span class="pre">wandb</span></code> below 0.29.</p></li>
 <li><p>Bumped <code class="docutils literal notranslate"><span class="pre">rsl-rl-lib</span></code> from 5.4.2 to 5.5.0. This update removes the <code class="docutils literal notranslate"><span class="pre">logger_type</span></code>
