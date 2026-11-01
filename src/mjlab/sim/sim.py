@@ -352,7 +352,7 @@ class Simulation:
     self.nan_guard = NanGuard(self.cfg.nan_guard, self.num_envs, self._mj_model)
 
   def create_graph(self) -> None:
-    """Capture CUDA graphs for step, forward, and reset operations.
+    """Capture execution graphs and invalidate cached constant recomputation.
 
     This method must be called whenever GPU arrays in the model or data are
     replaced after initialization. The captured graphs hold pointers to the
@@ -363,12 +363,15 @@ class Simulation:
     - ``__init__()`` during simulation initialization
     - ``expand_model_fields()`` after replacing model arrays
 
+    Call this after changing host-side options that alter which kernels execute.
+
     On CPU devices or when memory pools are disabled, this is a no-op.
     """
     self.step_graph = None
     self.forward_graph = None
     self.reset_graph = None
     self.sense_graph = None
+    self._recompute_graphs: dict[RecomputeLevel, wp.Graph] = {}
     if self.use_cuda_graph:
       with _suspend_gc(), wp.ScopedDevice(self.wp_device):
         with wp.ScopedCapture() as capture:
@@ -439,7 +442,7 @@ class Simulation:
   # Methods.
 
   def expand_model_fields(self, fields: tuple[str, ...]) -> None:
-    """Expand model fields to support per-environment parameters."""
+    """Expand model fields, preserving graphs if storage and metadata are unchanged."""
     if not fields:
       return
 
@@ -447,8 +450,11 @@ class Simulation:
     if invalid_fields:
       raise ValueError(f"Fields not found in model: {invalid_fields}")
 
-    expand_model_fields(self._wp_model, self.num_envs, list(fields))
+    metadata_changed = not set(fields).issubset(self._expanded_fields)
+    storage_changed = expand_model_fields(self._wp_model, self.num_envs, list(fields))
     self._expanded_fields.update(fields)
+    if not metadata_changed and not storage_changed:
+      return
     self._model_bridge.clear_cache()
 
     if self._sensor_context is not None:
@@ -456,7 +462,8 @@ class Simulation:
 
     # Field expansion allocates new arrays and replaces them via setattr. The
     # CUDA graph captured the old memory addresses, so we must recreate it.
-    self.create_graph()
+    if storage_changed or self._sensor_context is not None:
+      self.create_graph()
 
   def get_default_field(self, field: str) -> torch.Tensor:
     """Get the default value for a model field, caching for reuse.
@@ -479,15 +486,30 @@ class Simulation:
   def recompute_constants(self, level: RecomputeLevel) -> None:
     """Recompute derived model constants after domain randomization.
 
+    CUDA graphs are captured lazily per level and reuse the current array values.
+    ``create_graph()`` invalidates them whenever simulation storage is replaced.
+
     Args:
       level: Which constants to recompute. ``set_const`` is the most
         expensive (covers body_mass changes), ``set_const_0`` covers
         qpos0/body_inertia/dof_armature changes, and ``set_const_fixed``
         is the cheapest (covers body_gravcomp changes).
     """
+    if level == RecomputeLevel.none:
+      return
     fn = getattr(mjwarp, level.name)
     with wp.ScopedDevice(self.wp_device):
-      fn(self._wp_model, self._wp_data)
+      if not self.use_cuda_graph:
+        fn(self._wp_model, self._wp_data)
+        return
+      graph = self._recompute_graphs.get(level)
+      if graph is None:
+        with _suspend_gc(), wp.ScopedCapture() as capture:
+          fn(self._wp_model, self._wp_data)
+        graph = capture.graph
+        assert graph is not None
+        self._recompute_graphs[level] = graph
+      wp.capture_launch(graph)
 
   def forward(self) -> None:
     with wp.ScopedDevice(self.wp_device):

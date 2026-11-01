@@ -21,9 +21,10 @@ def expand_model_fields(
   model: mjwarp.Model,
   nworld: int,
   fields_to_expand: list[str],
-) -> None:
+) -> bool:
+  """Expand requested arrays, returning whether any storage was replaced."""
   if nworld == 1:
-    return
+    return False
 
   def tile(x: wp.array) -> wp.array | wp.array2d | wp.array3d | wp.array4d:
     # Create new array with same shape but first dim multiplied by nworld.
@@ -48,9 +49,12 @@ def expand_model_fields(
     )
     return dst
 
+  changed = False
   for field in model.__dataclass_fields__:
     if field in fields_to_expand:
       array = getattr(model, field)
       if array.shape[0] != 1:
         continue  # Already per-world (e.g., variant compilation).
       setattr(model, field, tile(array))
+      changed = True
+  return changed
