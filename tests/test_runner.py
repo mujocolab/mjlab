@@ -170,6 +170,34 @@ def test_export_policy_to_onnx(env, device):
     onnx.checker.check_model(str(onnx_path))
 
 
+def test_save_exports_onnx_with_custom_metadata(env, device, monkeypatch):
+  """Subclasses can extend ONNX metadata by overriding get_export_metadata()."""
+
+  class _Runner(MjlabOnPolicyRunner):
+    export_onnx_on_save = True
+
+    def get_export_metadata(self, run_name):
+      metadata = super().get_export_metadata(run_name)
+      metadata["robot_variant"] = "v2"
+      return metadata
+
+  wrapped_env = RslRlVecEnvWrapper(env)
+  agent_cfg = RslRlOnPolicyRunnerCfg(
+    num_steps_per_env=4, max_iterations=10, save_interval=5
+  )
+
+  with tempfile.TemporaryDirectory() as tmpdir:
+    runner = _Runner(wrapped_env, asdict(agent_cfg), log_dir=tmpdir, device=device)
+    monkeypatch.setattr(runner.logger, "save_model", lambda *args, **kwargs: None)
+    runner.save(str(Path(tmpdir) / "model_0.pt"))
+
+    _, _, onnx_path = runner._get_export_paths(str(Path(tmpdir) / "model_0.pt"))
+    props = {p.key: p.value for p in onnx.load(str(onnx_path)).metadata_props}
+    assert props["robot_variant"] == "v2"
+    assert props["run_path"] == Path(tmpdir).name
+    assert "joint_names" in props
+
+
 def _make_actor(obs_dim=8, output_dim=4, obs_normalization=True):
   obs = TensorDict({"actor": torch.zeros(1, obs_dim)})
   obs_groups = {"actor": ["actor"]}
@@ -202,7 +230,7 @@ def test_onnx_export_matches_actor():
   """as_onnx() model produces the same output as the full actor with normalization."""
   actor = _make_actor(obs_normalization=True)
   _train_normalizer(actor)
-  onnx_model = actor.as_onnx(verbose=False)
+  onnx_model = actor.as_onnx()
   onnx_model.eval()
   x = torch.randn(4, actor.obs_dim)
   model_out = _model_output(actor, x)
@@ -214,7 +242,7 @@ def test_onnx_export_matches_actor():
 def test_onnx_export_without_normalization():
   """as_onnx() works when normalization is disabled."""
   actor = _make_actor(obs_normalization=False)
-  onnx_model = actor.as_onnx(verbose=False)
+  onnx_model = actor.as_onnx()
   onnx_model.eval()
   x = torch.randn(4, actor.obs_dim)
   with torch.no_grad():
@@ -228,7 +256,7 @@ def test_onnx_runtime_roundtrip_matches_pytorch():
   ort = pytest.importorskip("onnxruntime")
   actor = _make_actor(obs_normalization=True)
   _train_normalizer(actor)
-  onnx_model = actor.as_onnx(verbose=False)
+  onnx_model = actor.as_onnx()
   onnx_model.eval()
 
   x = torch.randn(4, actor.obs_dim)
@@ -308,7 +336,7 @@ def test_cnn_onnx_export_matches_actor():
   actor = _make_cnn_actor(obs_normalization=True)
   _train_cnn_normalizer(actor)
 
-  onnx_model = actor.as_onnx(verbose=False)
+  onnx_model = actor.as_onnx()
   onnx_model.eval()
 
   x_1d = torch.randn(4, _OBS_DIM_1D)
@@ -324,7 +352,7 @@ def test_cnn_onnx_export_matches_actor():
 def test_cnn_onnx_export_to_file():
   """SpatialSoftmaxCNNModel exports to a valid ONNX file."""
   actor = _make_cnn_actor(obs_normalization=False)
-  onnx_model = actor.as_onnx(verbose=False)
+  onnx_model = actor.as_onnx()
   onnx_model.to("cpu")
   onnx_model.eval()
 
@@ -352,7 +380,7 @@ def test_cnn_onnx_runtime_roundtrip_matches_pytorch():
   actor = _make_cnn_actor(obs_normalization=True)
   _train_cnn_normalizer(actor)
 
-  onnx_model = actor.as_onnx(verbose=False)
+  onnx_model = actor.as_onnx()
   onnx_model.eval()
 
   x_1d = torch.randn(4, _OBS_DIM_1D)
@@ -525,6 +553,20 @@ def test_onnx_motion_model_clamps_out_of_bounds_time_step():
   torch.testing.assert_close(joint_pos, motion.joint_pos[num_steps - 1 : num_steps])
 
 
+@pytest.mark.parametrize(
+  ("logger", "expected"),
+  [
+    ("tensorboard", "tensorboard"),
+    ("wandb", {"class_name": "WandbLogWriter", "project_name": "mjlab"}),
+    ("my_pkg.writers:MyLogWriter", {"class_name": "my_pkg.writers:MyLogWriter"}),
+  ],
+)
+def test_runner_converts_logger_cfg(env, device, logger, expected):
+  agent_cfg = asdict(RslRlOnPolicyRunnerCfg(logger=logger))
+  runner = MjlabOnPolicyRunner(RslRlVecEnvWrapper(env), agent_cfg, device=device)
+  assert runner.cfg["logger"] == expected
+
+
 def _make_logger_mock(is_wandb: bool) -> MagicMock:
   """Mock an rsl-rl Logger, specced off a real (cheap, inert) instance.
 
@@ -552,40 +594,45 @@ def _make_logger_mock(is_wandb: bool) -> MagicMock:
   [
     ("mjlab.tasks.velocity.rl.runner", "VelocityOnPolicyRunner"),
     ("mjlab.tasks.manipulation.rl.runner", "ManipulationOnPolicyRunner"),
+    ("mjlab.tasks.tracking.rl.runner", "MotionTrackingOnPolicyRunner"),
   ],
 )
-def test_task_runner_uploads_onnx_for_wandb_logger(
-  runner_module, runner_class, monkeypatch, tmp_path
-):
-  """ONNX is uploaded to W&B when the logger's writer is a WandbLogWriter."""
+def test_task_runners_export_onnx_on_save(runner_module, runner_class):
   import importlib
 
-  runner_mod = importlib.import_module(runner_module)
-  runner_cls = getattr(runner_mod, runner_class)
-  runner = runner_cls.__new__(runner_cls)
-  runner.cfg = {"upload_model": True}
-  runner.logger = _make_logger_mock(is_wandb=True)
+  runner_cls = getattr(importlib.import_module(runner_module), runner_class)
+  assert runner_cls.export_onnx_on_save
+
+
+@pytest.mark.parametrize("upload_model", [True, False])
+def test_onnx_export_uploads_through_logger(upload_model, monkeypatch, tmp_path):
+  """ONNX goes through Logger.save_model, named after the log directory."""
+  import mjlab.rl.runner as runner_mod
+
+  runner = MjlabOnPolicyRunner.__new__(MjlabOnPolicyRunner)
+  runner.cfg = {"upload_model": upload_model}
+  runner.current_learning_iteration = 100
+  runner.logger = _make_logger_mock(is_wandb=False)
   runner.env = MagicMock()
   runner.export_policy_to_onnx = MagicMock()
-
-  monkeypatch.setattr(MjlabOnPolicyRunner, "save", lambda *a, **kw: None)
-  monkeypatch.setattr(runner_mod, "get_base_metadata", lambda *a: {})
-  monkeypatch.setattr(runner_mod, "attach_metadata_to_onnx", lambda *a: None)
 
   checkpoint = tmp_path / "run-dir" / "model_100.pt"
   checkpoint.parent.mkdir()
   checkpoint.touch()
   onnx_path = checkpoint.parent / f"{checkpoint.parent.name}.onnx"
+  runner.logger.log_dir = str(checkpoint.parent)
 
-  mock_run = MagicMock()
-  mock_run.name = "test-run"
-  with patch.object(runner_mod, "wandb") as mock_wandb:
-    mock_wandb.run = mock_run
-    runner.save(str(checkpoint))
+  get_base_metadata = MagicMock(return_value={})
+  monkeypatch.setattr(runner_mod, "get_base_metadata", get_base_metadata)
+  monkeypatch.setattr(runner_mod, "attach_metadata_to_onnx", lambda *a: None)
 
-  mock_wandb.save.assert_called_once_with(
-    str(onnx_path), base_path=str(checkpoint.parent)
-  )
+  runner._export_onnx_with_metadata(str(checkpoint))
+
+  get_base_metadata.assert_called_once_with(runner.env.unwrapped, "run-dir")
+  if upload_model:
+    runner.logger.save_model.assert_called_once_with(str(onnx_path), 100)
+  else:
+    runner.logger.save_model.assert_not_called()
 
 
 def _make_tracking_runner_shell(registry_name, is_wandb, upload_model=True):
@@ -595,7 +642,9 @@ def _make_tracking_runner_shell(registry_name, is_wandb, upload_model=True):
   runner = MotionTrackingOnPolicyRunner.__new__(MotionTrackingOnPolicyRunner)
   runner.registry_name = registry_name
   runner.cfg = {"upload_model": upload_model}
+  runner.current_learning_iteration = 100
   runner.logger = _make_logger_mock(is_wandb)
+  runner.logger.log_dir = None
 
   mock_motion_term = MagicMock()
   mock_motion_term.cfg.anchor_body_name = "pelvis"
@@ -613,14 +662,6 @@ def test_tracking_runner_registers_artifact_for_wandb_logger(monkeypatch, tmp_pa
   runner = _make_tracking_runner_shell("org/motions/motion:latest", is_wandb=True)
 
   monkeypatch.setattr(MjlabOnPolicyRunner, "save", lambda *a, **kw: None)
-  monkeypatch.setattr(runner_mod, "get_base_metadata", lambda *a: {})
-  monkeypatch.setattr(runner_mod, "attach_metadata_to_onnx", lambda *a: None)
-  monkeypatch.setattr(
-    runner.env.unwrapped.__class__,
-    "export_policy_to_onnx",
-    lambda *a, **kw: None,
-    raising=False,
-  )
 
   checkpoint = tmp_path / "run-dir" / "model_100.pt"
   checkpoint.parent.mkdir()
@@ -647,8 +688,6 @@ def test_tracking_runner_does_not_register_artifact_for_tensorboard(
   runner = _make_tracking_runner_shell("org/motions/motion:latest", is_wandb=False)
 
   monkeypatch.setattr(MjlabOnPolicyRunner, "save", lambda *a, **kw: None)
-  monkeypatch.setattr(runner_mod, "get_base_metadata", lambda *a: {})
-  monkeypatch.setattr(runner_mod, "attach_metadata_to_onnx", lambda *a: None)
 
   checkpoint = tmp_path / "run-dir" / "model_100.pt"
   checkpoint.parent.mkdir()

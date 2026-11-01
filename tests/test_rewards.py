@@ -9,7 +9,7 @@ from conftest import get_test_device
 
 from mjlab.actuator import BuiltinPositionActuatorCfg
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
-from mjlab.envs.mdp.rewards import electrical_power_cost, joint_torques_l2
+from mjlab.envs.mdp.rewards import electrical_power_cost, joint_torques_l2, posture
 from mjlab.managers.reward_manager import RewardManager, RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
@@ -228,6 +228,35 @@ def test_electrical_power_cost_partially_actuated(device):
   #           env1 = max(0,1.0*2.0) + max(0,-4.0*1.0) = 2.0 + 0 = 2.0.
   expected = torch.tensor([6.0, 2.0], device=device)
   assert torch.allclose(power_cost, expected)
+
+
+def test_posture_std_follows_asset_cfg_joint_order(device):
+  """posture divides each joint's error by its own std, in asset_cfg's order."""
+  entity = Entity(
+    EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(PARTIALLY_ACTUATED_ROBOT_XML))
+  )
+  model = entity.compile()
+  sim = Simulation(num_envs=1, cfg=SimulationCfg(), model=model, device=device)
+  entity.initialize(model, sim.model, sim.data, device)
+  env = Mock()
+  env.device = device
+  env.scene = {"robot": entity}
+
+  asset_cfg = SceneEntityCfg(
+    "robot", joint_names=("passive_joint", "actuated_joint1"), preserve_order=True
+  )
+  asset_cfg.resolve(env.scene)
+  std = {"actuated_joint1": 0.1, "passive_joint": 10.0}
+  cfg = RewardTermCfg(
+    func=posture, weight=1.0, params={"asset_cfg": asset_cfg, "std": std}
+  )
+  entity.write_joint_state_to_sim(
+    torch.tensor([[0.3, 0.05, 0.0]], device=device), torch.zeros(1, 3, device=device)
+  )
+  reward = posture(cfg, env)(env, std, asset_cfg)
+  # (0.05 / 10)^2 for passive_joint and (0.3 / 0.1)^2 for actuated_joint1.
+  expected = torch.exp(torch.tensor([-(2.5e-5 + 9.0) / 2], device=device))
+  assert torch.allclose(reward, expected)
 
 
 def test_reward_manager_handles_nan_values(mock_env):

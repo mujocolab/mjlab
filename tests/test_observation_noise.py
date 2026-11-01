@@ -292,6 +292,25 @@ def test_additive_bias_is_resampled_on_reset(device):
   assert torch.all(model(data).abs() <= 0.1)
 
 
+def test_per_dimension_additive_bias_reset_before_first_call(device):
+  """A per-dimension bias range works when reset runs before the first call."""
+  model = NoiseModelWithAdditiveBias(
+    NoiseModelWithAdditiveBiasCfg(
+      noise_cfg=ConstantNoiseCfg(bias=0.0),
+      bias_noise_cfg=UniformNoiseCfg(n_min=(-0.1, -0.2, -0.3), n_max=(0.1, 0.2, 0.3)),
+    ),
+    num_envs=256,
+    device=device,
+  )
+  data = torch.zeros((256, 3), device=device)
+  model.reset()
+  bias = model(data)
+  assert torch.all(bias.abs() <= torch.tensor([0.1, 0.2, 0.3], device=device))
+
+  model.reset(torch.tensor([0], device=device))
+  assert torch.all(model(data).abs() <= torch.tensor([0.1, 0.2, 0.3], device=device))
+
+
 def test_multiple_terms_with_different_noise(mock_env, device):
   """Test multiple observation terms with different noise configs."""
 

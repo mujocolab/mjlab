@@ -187,6 +187,7 @@ def auto_wrap_fixed_base_mocap(
 
     # Wrap in mocap body.
     wrapper_spec = mujoco.MjSpec()
+    wrapper_spec.modelfiledir = original_spec.modelfiledir
     mocap_body = wrapper_spec.worldbody.add_body(name="mocap_base", mocap=True)
     frame = mocap_body.add_frame()
     wrapper_spec.attach(child=original_spec, prefix="", frame=frame)
