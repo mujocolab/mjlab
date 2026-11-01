@@ -434,13 +434,17 @@ class ManagerBasedRlEnv:
     self.extras["log"] = dict()
     self.action_manager.process_action(action.to(self.device))
 
-    for _ in range(self.cfg.decimation):
+    for substep in range(self.cfg.decimation):
       self._sim_step_counter += 1
       self.action_manager.apply_action()
       self.scene.write_data_to_sim()
       self.sim.step()
       self.scene.update(dt=self.physics_dt)
       self.metrics_manager.compute_substep()
+      # The last physics step is sampled by observation_manager.compute() below,
+      # after resets and sim.forward(), so reset envs get their post-reset frame.
+      if substep < self.cfg.decimation - 1:
+        self.observation_manager.compute_substep()
 
     # Update env counters.
     self.episode_length_buf += 1

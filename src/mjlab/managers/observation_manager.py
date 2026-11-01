@@ -39,6 +39,14 @@ class ObservationTermCfg(ManagerTermBaseCfg):
   delay_max_lag: int = 0
   """Maximum lag (in steps) for delayed observations. Use min=max for constant delay."""
 
+  delay_unit: Literal["step", "substep"] = "step"
+  """Unit of the delay lags. With "step" (default), the term is sampled once per control
+  step and lags count control steps. With "substep", the term is also sampled after
+  every physics step inside the decimation loop, so ``delay_min_lag`` and
+  ``delay_max_lag`` count physics steps like actuator delay does. Lag resampling
+  (``delay_hold_prob``, ``delay_update_period``) still happens once per control step.
+  Convert to ms: lag * (1000 / physics_hz)."""
+
   delay_per_env: bool = True
   """If True, each environment samples its own lag. If False, all environments share
   the same lag at each step."""
@@ -330,6 +338,43 @@ class ObservationManager(ManagerBase):
     self._obs_buffer = obs_buffer
     return obs_buffer
 
+  def compute_substep(self) -> None:
+    """Sample terms with ``delay_unit="substep"`` after a physics step.
+
+    Called by the environment inside the decimation loop after every physics step
+    except the last one; the control step sample in :meth:`compute` provides the
+    final frame. Each call appends one frame to the term's delay buffer without
+    advancing its lag schedule, so lags count physics steps. A no-op when no term
+    uses substep delay.
+    """
+    for group_name, term_name, term_cfg in self._substep_delay_terms:
+      obs = self._compute_term(group_name, term_name, term_cfg)
+      self._group_obs_term_delay_buffer[group_name][term_name].append(obs)
+
+  def _compute_term(
+    self, group_name: str, term_name: str, term_cfg: ObservationTermCfg
+  ) -> torch.Tensor:
+    """Evaluate one term and apply noise, clip, scale, and per-term NaN checks."""
+    group_cfg = self.cfg[group_name]
+    obs: torch.Tensor = term_cfg.func(self._env, **term_cfg.params).clone()
+    if isinstance(term_cfg.noise, noise_cfg.NoiseCfg):
+      obs = term_cfg.noise.apply(obs)
+    elif isinstance(term_cfg.noise, noise_cfg.NoiseModelCfg):
+      obs = self._group_obs_class_instances[group_name][term_name](obs)
+    if term_cfg.clip:
+      obs = obs.clip_(min=term_cfg.clip[0], max=term_cfg.clip[1])
+    if term_cfg.scale is not None:
+      scale = term_cfg.scale
+      assert isinstance(scale, torch.Tensor)
+      obs = obs.mul_(scale)
+
+    # Check for NaN/Inf before delay/history buffers (per-term checking).
+    if group_cfg.nan_check_per_term and group_cfg.nan_policy != "disabled":
+      obs = self._check_and_handle_nans(
+        obs, context=f"{group_name}/{term_name}", policy=group_cfg.nan_policy
+      )
+    return obs
+
   def compute_group(
     self,
     group_name: str,
@@ -343,24 +388,7 @@ class ObservationManager(ManagerBase):
       group_term_names, self._group_obs_term_cfgs[group_name], strict=False
     )
     for term_name, term_cfg in obs_terms:
-      obs: torch.Tensor = term_cfg.func(self._env, **term_cfg.params).clone()
-      if isinstance(term_cfg.noise, noise_cfg.NoiseCfg):
-        obs = term_cfg.noise.apply(obs)
-      elif isinstance(term_cfg.noise, noise_cfg.NoiseModelCfg):
-        obs = self._group_obs_class_instances[group_name][term_name](obs)
-      if term_cfg.clip:
-        obs = obs.clip_(min=term_cfg.clip[0], max=term_cfg.clip[1])
-      if term_cfg.scale is not None:
-        scale = term_cfg.scale
-        assert isinstance(scale, torch.Tensor)
-        obs = obs.mul_(scale)
-
-      # Check for NaN/Inf before delay/history buffers (per-term checking).
-      if group_cfg.nan_check_per_term and group_cfg.nan_policy != "disabled":
-        obs = self._check_and_handle_nans(
-          obs, context=f"{group_name}/{term_name}", policy=group_cfg.nan_policy
-        )
-
+      obs = self._compute_term(group_name, term_name, term_cfg)
       if term_cfg.delay_max_lag > 0:
         delay_buffer = self._group_obs_term_delay_buffer[group_name][term_name]
         if env_ids is None or not delay_buffer.is_initialized:
@@ -418,6 +446,7 @@ class ObservationManager(ManagerBase):
     self._group_obs_concatenate_dim: dict[str, int] = dict()
     self._group_obs_class_instances: dict[str, dict[str, noise_model.NoiseModel]] = {}
     self._group_obs_term_delay_buffer: dict[str, dict[str, DelayBuffer]] = dict()
+    self._substep_delay_terms: list[tuple[str, str, ObservationTermCfg]] = []
     self._group_obs_term_history_buffer: dict[str, dict[str, CircularBuffer]] = dict()
 
     for group_name, group_cfg in self.cfg.items():
@@ -485,6 +514,13 @@ class ObservationManager(ManagerBase):
             term_cfg.noise, num_envs=self._env.num_envs, device=self._env.device
           )
 
+        if term_cfg.delay_unit not in ("step", "substep"):
+          raise ValueError(
+            f"Observation term '{group_name}/{term_name}' has invalid delay_unit "
+            f"'{term_cfg.delay_unit}'. Expected 'step' or 'substep'."
+          )
+        if term_cfg.delay_max_lag > 0 and term_cfg.delay_unit == "substep":
+          self._substep_delay_terms.append((group_name, term_name, term_cfg))
         if term_cfg.delay_max_lag > 0:
           group_entry_delay_buffer[term_name] = DelayBuffer(
             min_lag=term_cfg.delay_min_lag,

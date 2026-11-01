@@ -10,6 +10,10 @@ Added
 
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
 - ``GridPatternCfg.resolution`` accepts a per-axis ``(x, y)`` tuple.
+- Added ``ObservationTermCfg.delay_unit``. Setting it to ``"substep"`` samples a
+  delayed observation after every physics step so ``delay_min_lag`` and
+  ``delay_max_lag`` count physics steps, matching actuator delay. The default
+  ``"step"`` keeps the existing behavior :issue:`366`.
 - Added a ``cu126`` extra (``uv sync --extra cu126``) that installs torch built for
   CUDA 12.6, for machines whose NVIDIA driver is older than 580. It does not include
   kernels for Blackwell GPUs.
