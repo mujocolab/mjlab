@@ -608,6 +608,9 @@ documented, instead of the body’s principal inertia frame.</p></li>
 failed to load.</p></li>
 <li><p>The cartpole <code class="docutils literal notranslate"><span class="pre">small_control</span></code> reward term now matches dm_control, which reaches 0
 at the control margin (<code class="docutils literal notranslate"><span class="pre">value_at_margin=0</span></code>) instead of 0.1.</p></li>
+<li><p>Partial environment resets now preserve untouched environments’ actuator delay
+histories, lag schedules, and control outputs in both explicit and automatic
+resets <a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/1216">#1216</a>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">VideoRecorder</span></code> now evaluates <code class="docutils literal notranslate"><span class="pre">episode_trigger</span></code> only at the start of an episode,
 so a recording no longer restarts mid-episode and overwrites the video.</p></li>
 <li><p>String-keyed <code class="docutils literal notranslate"><span class="pre">dr.geom_size</span></code> and isotropic <code class="docutils literal notranslate"><span class="pre">dr.pair_friction</span></code> ranges now

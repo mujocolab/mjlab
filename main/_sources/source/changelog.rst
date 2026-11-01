@@ -60,6 +60,9 @@ Fixed
   failed to load.
 - The cartpole ``small_control`` reward term now matches dm_control, which reaches 0
   at the control margin (``value_at_margin=0``) instead of 0.1.
+- Partial environment resets now preserve untouched environments' actuator delay
+  histories, lag schedules, and control outputs in both explicit and automatic
+  resets :issue:`1216`.
 - ``VideoRecorder`` now evaluates ``episode_trigger`` only at the start of an episode,
   so a recording no longer restarts mid-episode and overwrites the video.
 - String-keyed ``dr.geom_size`` and isotropic ``dr.pair_friction`` ranges now

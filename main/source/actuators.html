@@ -900,6 +900,10 @@ joint.</p>
 <span class="sd">    &quot;&quot;&quot;</span>
 </pre></div>
 </div>
+<p>On reset, <code class="docutils literal notranslate"><span class="pre">cmd.reset_env_ids</span></code> selects the environments to initialize; it is
+<code class="docutils literal notranslate"><span class="pre">None</span></code> during physics steps. Command tensors always contain the full batch.
+Stateful <code class="docutils literal notranslate"><span class="pre">compute()</span></code> implementations must backfill only the selected rows
+(e.g. using <code class="docutils literal notranslate"><span class="pre">CircularBuffer.backfill</span></code>), leaving other environments untouched.</p>
 <p><strong>Lifecycle hooks:</strong></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">edit_spec</span></code>: Modify MjSpec before compilation (add actuators, set
