@@ -183,9 +183,14 @@ class CircularBuffer:
     ids: Sequence[int] | torch.Tensor | slice = (
       slice(None) if batch_ids is None else batch_ids
     )
-    self._num_pushes[ids] = 0
-    if self._buffer is not None:
-      self._buffer[:, ids] = 0.0
+    if isinstance(ids, torch.Tensor) and ids.dtype == torch.long:
+      self._num_pushes.index_fill_(0, ids, 0)
+      if self._buffer is not None:
+        self._buffer.index_fill_(1, ids, 0.0)
+    else:
+      self._num_pushes[ids] = 0
+      if self._buffer is not None:
+        self._buffer[:, ids] = 0.0
 
   def backfill(self, data: torch.Tensor, batch_ids: torch.Tensor) -> None:
     """Fill the given rows' entire history with one frame, without advancing time.
