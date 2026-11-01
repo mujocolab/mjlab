@@ -40,7 +40,7 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     dynamic_axes being deprecated with the new TorchDynamo export path
     (torch>=2.9 default).
     """
-    onnx_model = self.alg.get_policy().as_onnx(verbose=verbose)
+    onnx_model = self.alg.get_policy().as_onnx()
     onnx_model.to("cpu")
     onnx_model.eval()
     os.makedirs(path, exist_ok=True)
