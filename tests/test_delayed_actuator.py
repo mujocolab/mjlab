@@ -212,6 +212,40 @@ def test_delayed_actuator_reset(device):
   assert actuator._delay_buffer.current_lags[0] == 0
 
 
+@pytest.mark.parametrize(
+  "create_entity",
+  [create_entity_with_delayed_builtin, create_entity_with_delayed_ideal],
+)
+def test_scoped_write_preserves_other_envs(device, create_entity):
+  """Builtin and fused control paths must only backfill and write reset rows."""
+  entity, sim = initialize_entity(create_entity(2, 2), device, num_envs=2)
+  entity.write_joint_state_to_sim(
+    torch.zeros(2, 2, device=device), torch.zeros(2, 2, device=device)
+  )
+  for step in range(5):
+    entity.set_joint_position_target(torch.full((2, 2), step / 10.0, device=device))
+    entity.write_data_to_sim()
+  delay = entity.actuators[0]._delay_buffer
+  assert delay is not None
+  history = delay._buffer.buffer[1].clone()
+  ctrl = sim.data.ctrl[1].clone()
+
+  env_ids = torch.tensor([0], device=device)
+  entity.reset(env_ids)
+  entity.set_joint_position_target(
+    torch.full((1, 2), 0.5, device=device), env_ids=env_ids
+  )
+  entity.write_data_to_sim(env_ids)
+
+  assert torch.equal(delay._buffer.buffer[1], history)
+  assert torch.equal(sim.data.ctrl[1], ctrl)
+  assert delay._step_count.tolist() == [0, 5]
+  expected_ctrl = (
+    0.5 if isinstance(entity.actuators[0].cfg, BuiltinPositionActuatorCfg) else 40.0
+  )
+  torch.testing.assert_close(sim.data.ctrl[0], torch.full_like(ctrl, expected_ctrl))
+
+
 def test_delayed_actuator_set_lags(device):
   """Test that set_lags sets lag values on all delay buffers."""
   entity = create_entity_with_delayed_builtin(delay_min_lag=0, delay_max_lag=5)

@@ -5,6 +5,8 @@ import torch
 from conftest import get_test_device
 from test_command_manager import CounterCommand, CounterCommandCfg
 
+from mjlab.actuator import XmlActuatorCfg
+from mjlab.entity import EntityArticulationInfoCfg
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.managers.event_manager import EventTermCfg
 from mjlab.tasks.cartpole.cartpole_env_cfg import cartpole_balance_env_cfg
@@ -196,6 +198,40 @@ def test_partial_reset_leaves_other_envs_obs_buffers_untouched(device):
   assert torch.all(h1 == h1[0])
   assert hist.current_length[1].item() == 1
   env.close()
+
+
+@pytest.mark.parametrize("auto_reset", [False, True])
+def test_partial_reset_preserves_other_envs_actuator_delay(device, auto_reset):
+  """Resetting env 0 must not advance env 1's actuator delay or change its motion."""
+  cfg = _make_cfg(auto_reset)
+  cfg.scene.num_envs = 2
+  cfg.episode_length_s = 10.0
+  cfg.decimation = 2
+  cfg.scene.entities["cartpole"].articulation = EntityArticulationInfoCfg(
+    actuators=(
+      XmlActuatorCfg(target_names_expr=("slider",), delay_min_lag=3, delay_max_lag=3),
+    )
+  )
+  env = ManagerBasedRlEnv(cfg, device=device)
+
+  def rollout(reset_env0: bool) -> list[torch.Tensor]:
+    env.reset(seed=0)
+    states = []
+    for step in range(8):
+      if reset_env0 and step == 4:
+        if auto_reset:
+          env.episode_length_buf[0] = env.max_episode_length - 1
+        else:
+          env.reset(env_ids=torch.tensor([0], device=device))
+      env.step(torch.full((2, 1), step / 10.0, device=device))
+      states.append(torch.cat([env.sim.data.ctrl[1], env.sim.data.qpos[1]]))
+    return states
+
+  try:
+    for expected, actual in zip(rollout(False), rollout(True), strict=True):
+      torch.testing.assert_close(actual, expected)
+  finally:
+    env.close()
 
 
 # Section: parity between auto-reset and the explicit reset() flow.

@@ -146,6 +146,12 @@ class ActuatorCmd:
   """Current positions (joint positions, tendon lengths, or site positions)."""
   vel: torch.Tensor
   """Current velocities (joint velocities, tendon velocities, or site velocities)."""
+  reset_env_ids: torch.Tensor | None = None
+  """Environments being initialized after a reset, or None for a physics step.
+
+  Tensors still contain the full batch. Stateful actuators must only backfill
+  these rows, preserving other environments' history and update schedules.
+  """
 
 
 def delay_command(
@@ -153,6 +159,7 @@ def delay_command(
   position_target: torch.Tensor,
   velocity_target: torch.Tensor,
   effort_target: torch.Tensor,
+  env_ids: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
   """Delay the three command-target fields through one shared channel.
 
@@ -167,13 +174,19 @@ def delay_command(
     position_target: Position targets, shape (num_envs, num_targets).
     velocity_target: Velocity targets, shape (num_envs, num_targets).
     effort_target: Feedforward effort targets, shape (num_envs, num_targets).
+    env_ids: Reset environments to backfill without advancing time. None advances
+      the full batch by one physics step.
 
   Returns:
     The delayed (position_target, velocity_target, effort_target) tuple.
   """
   stacked = torch.stack((position_target, velocity_target, effort_target), dim=-1)
-  buffer.append(stacked)
-  delayed = buffer.compute()
+  if env_ids is None:
+    buffer.append(stacked)
+    delayed = buffer.compute()
+  else:
+    buffer.backfill(stacked, env_ids)
+    delayed = buffer.peek()
   return delayed[..., 0], delayed[..., 1], delayed[..., 2]
 
 
@@ -335,6 +348,7 @@ class Actuator(ABC, Generic[ActuatorCfgT]):
       cmd.position_target,
       cmd.velocity_target,
       cmd.effort_target,
+      cmd.reset_env_ids,
     )
     return dataclasses.replace(
       cmd,

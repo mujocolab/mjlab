@@ -334,7 +334,7 @@ class ViserPlayViewer(BaseViewer):
     with self._sim_lock:
       env.reset(env_ids=env_ids)
       if env.command_manager.apply_gui_reset(env_ids):
-        env.scene.write_data_to_sim()
+        env.scene.write_data_to_sim(env_ids=env_ids)
         env.sim.forward()
         env.sim.sense()
 
