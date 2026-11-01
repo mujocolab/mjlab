@@ -646,6 +646,9 @@ sharing a lag.</p></li>
 <li><p>Envs sampled by <code class="docutils literal notranslate"><span class="pre">rel_forward_envs</span></code> now keep their straight command. Previously,
 if an env was also sampled as a heading or world frame env, its yaw rate was
 replaced by a heading turn or its velocity by the world frame sample.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MaterialCfg.geom_names_expr</span></code> now assigns the material to all matching unnamed
+geoms. Previously it looked up matched names via <code class="docutils literal notranslate"><span class="pre">spec.geom(name)</span></code>, which always
+returned the first unnamed geom and left any remaining unnamed geoms unchanged.</p></li>
 </ul>
 </section>
 </section>
