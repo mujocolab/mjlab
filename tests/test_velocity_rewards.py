@@ -5,11 +5,22 @@ from __future__ import annotations
 import math
 from unittest.mock import MagicMock, PropertyMock
 
+import numpy as np
+import pytest
 import torch
+from conftest import get_test_device, make_scene_and_sim
 
 from mjlab.managers.reward_manager import RewardManager, RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
-from mjlab.sensor import ContactSensor, RayCastData, RayCastSensor, TerrainHeightSensor
+from mjlab.sensor import (
+  ContactSensor,
+  GridPatternCfg,
+  ObjRef,
+  RayCastData,
+  RayCastSensor,
+  RayCastSensorCfg,
+  TerrainHeightSensor,
+)
 from mjlab.tasks.velocity.mdp.rewards import feet_swing_height, upright
 from mjlab.utils.lab_api.math import quat_from_euler_xyz
 
@@ -51,8 +62,7 @@ def _make_env_and_reward(
   if body_quat_w is None:
     body_quat_w = _identity_quat(B)
 
-  # Mock asset data. Use explicit asset_cfg with no body_names so
-  # body_ids stays None and the reward uses root_link_quat_w.
+  # An empty body selection uses root_link_quat_w.
   asset = MagicMock()
   asset.data.root_link_quat_w = body_quat_w
   asset.data.root_link_pos_w = torch.zeros(B, 3)
@@ -188,6 +198,109 @@ def test_batch_consistency():
   assert r[1].item() > 0.99
   assert r[2].item() < 0.7
   assert r[3].item() > 0.99
+
+
+@pytest.fixture(scope="module")
+def upright_env():
+  """Real articulated entity with different root and child orientations."""
+  device = get_test_device()
+  xml = """
+    <mujoco>
+      <worldbody>
+        <geom type="plane" size="10 10 0.1" group="0"/>
+        <body name="base" pos="0 0 1">
+          <freejoint/>
+          <geom type="sphere" size="0.1" mass="1" group="1"/>
+          <body name="child" pos="0 0 0.3">
+            <joint name="hinge" type="hinge" axis="1 0 0"/>
+            <geom type="sphere" size="0.1" mass="0.1" group="1"/>
+          </body>
+        </body>
+      </worldbody>
+    </mujoco>
+  """
+  sensor = RayCastSensorCfg(
+    name="terrain_scan",
+    frame=ObjRef(type="body", name="base", entity="robot"),
+    pattern=GridPatternCfg(size=(0.4, 0.4), resolution=0.2),
+    ray_alignment="world",
+    include_geom_groups=(0,),
+  )
+  scene, sim = make_scene_and_sim(device, xml, sensors=(sensor,), num_envs=2)
+  asset = scene["robot"]
+  root_state = torch.zeros(2, 13, device=device)
+  root_state[:, 2] = 1.0
+  root_state[:, 3:7] = torch.cat((_identity_quat(1), _quat_from_roll(math.pi / 6))).to(
+    device
+  )
+  asset.write_root_state_to_sim(root_state)
+  asset.write_joint_state_to_sim(
+    position=torch.full((2, 1), math.pi / 3, device=device),
+    velocity=torch.zeros(2, 1, device=device),
+  )
+  sim.forward()
+  sim.sense()
+
+  env = MagicMock()
+  env.scene = scene
+  env.num_envs = 2
+  env.device = device
+  return env
+
+
+@pytest.mark.parametrize("terrain_aware", [False, True])
+@pytest.mark.parametrize(
+  "asset_cfg,child_selected",
+  [
+    pytest.param(None, False, id="omitted"),
+    pytest.param(SceneEntityCfg("robot"), False, id="default"),
+    pytest.param(SceneEntityCfg("robot", body_ids=[]), False, id="empty"),
+    pytest.param(SceneEntityCfg("robot", body_names=("child",)), True, id="body-name"),
+    pytest.param(SceneEntityCfg("robot", body_ids=[1]), True, id="body-id"),
+    pytest.param(SceneEntityCfg("robot", body_ids=slice(1, 2)), True, id="body-slice"),
+  ],
+)
+def test_upright_body_selection(upright_env, asset_cfg, child_selected, terrain_aware):
+  """Default selection uses the root, while explicit selections use that body."""
+  params: dict = {"std": 1.0}
+  if asset_cfg is not None:
+    params["asset_cfg"] = asset_cfg
+  if terrain_aware:
+    params["terrain_sensor_names"] = ("terrain_scan",)
+  manager = RewardManager(
+    {"upright": RewardTermCfg(func=upright, weight=1.0, params=params)},
+    upright_env,
+    scale_by_dt=False,
+  )
+  roll = torch.tensor([0.0, math.pi / 6], device=upright_env.device)
+  if child_selected:
+    roll += math.pi / 3
+
+  if terrain_aware:
+    visualizer = MagicMock()
+    visualizer.get_env_indices.return_value = range(2)
+    manager.debug_vis(visualizer)
+    arrows = visualizer.add_arrow.call_args_list
+    assert len(arrows) == 4
+    for i in range(2):
+      terrain_arrow, body_arrow = arrows[2 * i : 2 * i + 2]
+      for arrow in (terrain_arrow, body_arrow):
+        assert arrow.kwargs["start"].shape == (3,)
+        assert arrow.kwargs["end"].shape == (3,)
+      np.testing.assert_allclose(
+        terrain_arrow.kwargs["end"] - terrain_arrow.kwargs["start"],
+        [0.0, 0.0, 0.25],
+        atol=1e-6,
+      )
+      np.testing.assert_allclose(
+        body_arrow.kwargs["end"] - body_arrow.kwargs["start"],
+        [0.0, -0.25 * math.sin(roll[i]), 0.25 * math.cos(roll[i])],
+        atol=1e-6,
+      )
+
+  rewards = manager.compute(dt=0.02)
+  assert rewards.shape == (2,)
+  torch.testing.assert_close(rewards, torch.exp(-torch.sin(roll).square()))
 
 
 def test_feet_swing_height_reset_clears_peak_heights():
