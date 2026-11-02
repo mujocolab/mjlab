@@ -383,7 +383,7 @@ Play back a trained checkpoint, either from a local file or a W&B run:
 .. code-block:: bash
 
     uv run play Mjlab-Cartpole-Swingup --checkpoint-file logs/rsl_rl/cartpole/model_500.pt
-    uv run play Mjlab-Cartpole-Swingup --wandb-run-path <user/project/run_id>
+    uv run play Mjlab-Cartpole-Swingup --checkpoint-run <user/project/run_id>
 
 .. figure:: ../_static/tutorials/cartpole_training_curve.png
    :width: 70%

@@ -118,7 +118,7 @@ Some commonly used top-level flags:
 
     # From W&B.
     uv run play Mjlab-Velocity-Flat-Unitree-G1 \
-        --wandb-run-path your-entity/mjlab/run-id
+        --checkpoint-run your-entity/mjlab/run-id
 
     # From a local checkpoint.
     uv run play Mjlab-Velocity-Flat-Unitree-G1 \
@@ -254,8 +254,7 @@ To resume from a W&B run:
     uv run train Mjlab-Velocity-Flat-Unitree-G1 \
         --num-envs 4096 \
         --agent.resume True \
-        --wandb-run-path your-entity/mjlab/run-id
-
+        --checkpoint-run your-entity/mjlab/run-id
 
 Citation
 --------

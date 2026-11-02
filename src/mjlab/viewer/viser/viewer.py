@@ -5,6 +5,7 @@ Adapted from an MJX visualizer by Chung Min Kim: https://github.com/chungmin99/
 
 from __future__ import annotations
 
+import html
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -45,6 +46,7 @@ class CheckpointManager:
   run_name: str | None = None
   run_url: str | None = None
   run_status: str | None = None
+  source_label: str = "Local"
 
 
 def format_time_ago(seconds: int) -> str:
@@ -220,28 +222,28 @@ class ViserPlayViewer(BaseViewer):
 
     # Checkpoints tab (optional, when checkpoint_manager is provided).
     if self._ckpt_mgr is not None:
-      is_wandb = self._ckpt_mgr.run_url is not None
+      label = html.escape(self._ckpt_mgr.source_label)
+      url = self._ckpt_mgr.run_url
       with tabs.add_tab("Checkpoints", icon=viser.Icon.DATABASE):
-        if is_wandb:
-          url = self._ckpt_mgr.run_url
+        if url is not None:
           self._server.gui.add_html(
             '<div style="font-size:0.85em;line-height:1.25;'
             'padding:0 1em 0.5em 1em;">'
-            "<strong>Source:</strong> W&B<br/>"
+            f"<strong>Source:</strong> {label}<br/>"
             f"<strong>Run:</strong>"
-            f" {self._ckpt_mgr.run_name}<br/>"
+            f" {html.escape(str(self._ckpt_mgr.run_name))}<br/>"
             f"<strong>Status:</strong>"
-            f" {self._ckpt_mgr.run_status}<br/>"
-            f'<a href="{url}" target="_blank"'
+            f" {html.escape(str(self._ckpt_mgr.run_status))}<br/>"
+            f'<a href="{html.escape(url)}" target="_blank"'
             f' style="color:#3b82f6;">'
-            f"Open in W&B</a>"
+            f"Open in {label}</a>"
             "</div>"
           )
         else:
           self._server.gui.add_html(
             '<div style="font-size:0.85em;line-height:1.25;'
             'padding:0 1em 0.5em 1em;">'
-            "<strong>Source:</strong> Local"
+            f"<strong>Source:</strong> {label}"
             "</div>"
           )
 

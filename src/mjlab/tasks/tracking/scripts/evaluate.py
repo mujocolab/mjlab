@@ -11,7 +11,6 @@ from typing import cast
 
 import torch
 import tyro
-import wandb
 
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
@@ -25,7 +24,7 @@ from mjlab.tasks.tracking.mdp.metrics import (
   compute_mpkpe,
   compute_root_relative_mpkpe,
 )
-from mjlab.utils.os import get_wandb_checkpoint_path
+from mjlab.utils.checkpoint_source import WandbCheckpointSource
 from mjlab.utils.torch import configure_torch_backends
 
 
@@ -60,10 +59,12 @@ def run_evaluate(task_id: str, cfg: EvaluateConfig) -> dict[str, float]:
   if not isinstance(motion_cmd, MotionCommandCfg):
     raise ValueError(f"Task {task_id} is not a tracking task.")
 
+  log_root_path = (Path(cfg.log_root) / agent_cfg.experiment_name).resolve()
+  source = WandbCheckpointSource(cfg.wandb_run_path, log_root_path)
+
   # Load motion file from W&B run.
-  api = wandb.Api()
-  run = api.run(cfg.wandb_run_path)
-  art = next((a for a in run.used_artifacts() if a.type == "motions"), None)
+  used = source.wandb_run.used_artifacts()
+  art = next((a for a in used if a.type == "motions"), None)
   if art is None:
     raise RuntimeError("No motion artifact found in the run.")
   motion_cmd.motion_file = str(Path(art.download()) / "motion.npz")
@@ -77,10 +78,7 @@ def run_evaluate(task_id: str, cfg: EvaluateConfig) -> dict[str, float]:
   env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
   env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
-  log_root_path = (Path(cfg.log_root) / agent_cfg.experiment_name).resolve()
-  resume_path, _ = get_wandb_checkpoint_path(
-    log_root_path, Path(cfg.wandb_run_path), cfg.wandb_checkpoint_name
-  )
+  resume_path, _ = source.resolve(cfg.wandb_checkpoint_name)
   print(f"[INFO] Loading checkpoint: {resume_path}")
 
   runner_cls = load_runner_cls(task_id) or MjlabOnPolicyRunner

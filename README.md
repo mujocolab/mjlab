@@ -60,7 +60,7 @@ See the [Distributed Training guide](https://mujocolab.github.io/mjlab/main/sour
 Evaluate a policy while training (fetches latest checkpoint from Weights & Biases):
 
 ```bash
-uv run play Mjlab-Velocity-Flat-Unitree-G1 --wandb-run-path your-org/mjlab/run-id
+uv run play Mjlab-Velocity-Flat-Unitree-G1 --checkpoint-run your-org/mjlab/run-id
 ```
 
 ### 2. Motion Imitation
@@ -69,7 +69,7 @@ Train a humanoid to mimic reference motions. See the [motion imitation guide](ht
 
 ```bash
 uv run train Mjlab-Tracking-Flat-Unitree-G1 --registry-name your-org/motions/motion-name --env.scene.num-envs 4096
-uv run play Mjlab-Tracking-Flat-Unitree-G1 --wandb-run-path your-org/mjlab/run-id
+uv run play Mjlab-Tracking-Flat-Unitree-G1 --checkpoint-run your-org/mjlab/run-id
 ```
 
 ### 3. Sanity-check with Dummy Agents
