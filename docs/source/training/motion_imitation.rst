@@ -62,4 +62,4 @@ Evaluation
 .. code-block:: bash
 
    uv run play Mjlab-Tracking-Flat-Unitree-G1 \
-       --wandb-run-path your-org/mjlab/run-id
+       --checkpoint-run your-org/mjlab/run-id

@@ -20,11 +20,11 @@ The ``play`` script accepts a ``--viewer`` flag:
 
     # Desktop window (MuJoCo native viewer).
     uv run play Mjlab-Velocity-Flat-Unitree-G1 --viewer native \
-        --wandb-run-path your-entity/your-project/run_id
+        --checkpoint-run your-entity/your-project/run_id
 
     # Browser-based viewer (opens localhost:8080).
     uv run play Mjlab-Velocity-Flat-Unitree-G1 --viewer viser \
-        --wandb-run-path your-entity/your-project/run_id
+        --checkpoint-run your-entity/your-project/run_id
 
 The default is ``auto``, which selects native when a display server is
 available (``DISPLAY`` or ``WAYLAND_DISPLAY``) and falls back to Viser
@@ -258,7 +258,7 @@ is set:
 .. code-block:: bash
 
     uv run play Mjlab-Velocity-Flat-Unitree-G1 --video --video-length 300 \
-        --wandb-run-path your-entity/your-project/run_id
+        --checkpoint-run your-entity/your-project/run_id
 
 
 Quick comparison
