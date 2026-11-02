@@ -228,12 +228,12 @@ def make_tracking_env_cfg() -> ManagerBasedRlEnvCfg:
       params={"command_name": "motion", "std": 0.4},
     ),
     "motion_body_lin_vel": RewardTermCfg(
-      func=mdp.motion_global_body_linear_velocity_error_exp,
+      func=mdp.motion_relative_body_linear_velocity_error_exp,
       weight=1.0,
       params={"command_name": "motion", "std": 1.0},
     ),
     "motion_body_ang_vel": RewardTermCfg(
-      func=mdp.motion_global_body_angular_velocity_error_exp,
+      func=mdp.motion_relative_body_angular_velocity_error_exp,
       weight=1.0,
       params={"command_name": "motion", "std": 3.14},
     ),
