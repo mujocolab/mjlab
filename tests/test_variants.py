@@ -5,9 +5,12 @@ from __future__ import annotations
 from typing import Any, cast
 
 import mujoco
+import mujoco_warp as mjwarp
 import numpy as np
 import pytest
 import torch
+import warp as wp
+from mujoco_warp._src.types import BroadphaseType
 
 from mjlab.entity import (
   EntityCfg,
@@ -1166,6 +1169,56 @@ def test_padding_slots_get_disabled():
   assert np.all(result.wp_model.geom_conaffinity.numpy()[mesh_geom_ids[-2:]] == 1)
   # First 3 should be valid (>= 0).
   assert all(d >= 0 for d in sphere_dataid[:3])
+
+
+@pytest.mark.parametrize("broadphase", [BroadphaseType.NXN, BroadphaseType.SAP_TILE])
+@pytest.mark.parametrize("device", ["cpu", "cuda:0"])
+@pytest.mark.parametrize("nworld", [1, 2])
+def test_padding_slots_do_not_generate_contacts(broadphase, device, nworld):
+  """A missing mesh must not collide as a point at the padding geom position."""
+  if device.startswith("cuda") and not torch.cuda.is_available():
+    pytest.skip("CUDA is unavailable")
+
+  def variant(extra):
+    second = '<geom name="extra" type="mesh" mesh="cube"/>' if extra else ""
+    return mujoco.MjSpec.from_string(f"""<mujoco>
+      <asset><mesh name="cube" vertex="-.1 -.1 -.1 -.1 -.1 .1
+        -.1 .1 -.1 -.1 .1 .1 .1 -.1 -.1 .1 -.1 .1 .1 .1 -.1 .1 .1 .1"/>
+      </asset><worldbody><body name="prop"><freejoint/>
+      <inertial pos="0 0 0" mass="1" diaginertia=".01 .01 .01"/>
+      <geom name="base" type="mesh" mesh="cube" pos="2 0 0"/>
+      {second}</body></worldbody></mujoco>""")
+
+  scene_spec, vi = _build_scene_with_variants(
+    lambda: variant(False), lambda: variant(True)
+  )
+  probe = scene_spec.worldbody.add_body(name="probe", pos=[0.05, 0.0, 0.0])
+  probe.add_freejoint()
+  probe.add_geom(name="probe", type=mujoco.mjtGeom.mjGEOM_SPHERE, size=[0.08, 0, 0])
+
+  with wp.ScopedDevice(device):
+    result = build_variant_model(scene_spec, nworld, vi)
+    model = result.wp_model
+    model.opt.broadphase = broadphase
+    data = mjwarp.make_data(result.mj_model, nworld=nworld, nconmax=64, njmax=64)
+    mjwarp.kinematics(model, data)
+    mjwarp.collision(model, data)
+    wp.synchronize()
+
+    dataid = model.geom_dataid.numpy()
+    mesh = result.mj_model.geom_type == mujoco.mjtGeom.mjGEOM_MESH
+    missing = np.flatnonzero(mesh & (dataid[0] < 0))
+    assert len(missing) == 1
+    if nworld > 1:
+      assert np.all(dataid[1, missing] >= 0)
+    count = int(data.nacon.numpy()[0])
+    pairs = data.contact.geom.numpy()[:count]
+    worlds = data.contact.worldid.numpy()[:count]
+    assert not np.isin(pairs[worlds == 0], missing).any()
+    # The same slots remain collidable in the variant that actually fills them.
+    if nworld > 1:
+      for geom_id in missing:
+        assert (pairs[worlds == 1] == geom_id).any()
 
 
 def test_dependent_fields_match_individual_compilation():
