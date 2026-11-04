@@ -70,7 +70,16 @@ def run_play(task_id: str, cfg: PlayConfig):
   # Disable terminations if requested (useful for viewing motions).
   if cfg.no_terminations:
     env_cfg.terminations = {}
+    # termination_curriculum resolves its target by name in __init__, so a curriculum
+    # term left pointing at a cleared termination raises before the env is built.
+    dropped = [
+      k for k, v in env_cfg.curriculum.items() if "termination_name" in v.params
+    ]
+    for k in dropped:
+      del env_cfg.curriculum[k]
     print("[INFO]: Terminations disabled")
+    if dropped:
+      print(f"[INFO]: Dropped curriculum terms targeting them: {dropped}")
 
   # Check if this is a tracking task by checking for motion command.
   is_tracking_task = "motion" in env_cfg.commands and isinstance(
