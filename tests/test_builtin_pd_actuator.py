@@ -6,6 +6,7 @@ gains and effort limits, delay synchronization, and the ordering invariant
 that DR depends on.
 """
 
+from dataclasses import replace
 from unittest.mock import Mock
 
 import mujoco
@@ -80,9 +81,17 @@ def _at_rest_with_targets(
 # ---------------------------------------------------------------------------
 
 
-def test_two_ctrls_per_target_with_pos_then_vel_layout(device):
-  """Each target gets one <position> + one <velocity>, in halves."""
-  entity, sim = initialize_entity(_make_entity(), device)
+@pytest.mark.parametrize("sort_actuators", [False, True])
+def test_two_ctrls_per_target_with_pos_then_vel_layout(device, sort_actuators):
+  """Each target gets one <position> + one <velocity>, in halves.
+
+  sort_actuators=True adds the elements one target at a time, which must not
+  interleave the halves.
+  """
+  entity = _make_entity()
+  if sort_actuators:
+    entity = Entity(replace(entity.cfg, sort_actuators=True))
+  entity, sim = initialize_entity(entity, device)
   act = entity.actuators[0]
   assert isinstance(act, BuiltinPdActuator)
 
