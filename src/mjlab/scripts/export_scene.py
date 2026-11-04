@@ -33,9 +33,19 @@ class ExportSceneCfg:
   zip: bool = False
   """Compress into a zip archive."""
 
+  overwrite: bool = False
+  """Delete a non-empty output directory before exporting."""
+
 
 def export_scene(cfg: ExportSceneCfg) -> None:
   """Export a task scene or entity to a directory."""
+  output_dir = Path(cfg.output_dir)
+  if output_dir.is_dir() and any(output_dir.iterdir()) and not cfg.overwrite:
+    raise SystemExit(
+      f"Error: output directory '{output_dir}' is not empty. Choose another "
+      "--output-dir or pass --overwrite True to delete it first."
+    )
+
   task_ids = list_tasks()
   target = ENTITY_ALIASES.get(cfg.target, cfg.target)
 
@@ -62,8 +72,7 @@ def export_scene(cfg: ExportSceneCfg) -> None:
     print("\nYou can also pass an import path, e.g. my_pkg.robots:get_my_robot_cfg")
     return
 
-  output_dir = Path(cfg.output_dir)
-  if output_dir.exists():
+  if output_dir.is_dir() and cfg.overwrite:
     shutil.rmtree(output_dir)
   scene.write(output_dir, zip=cfg.zip)
   if cfg.zip:

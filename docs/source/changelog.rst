@@ -27,6 +27,9 @@ Added
 Changed
 ^^^^^^^
 
+- ``export-scene`` no longer deletes an existing ``--output-dir``. It stops with an
+  error if the directory is not empty, unless ``--overwrite True`` is passed.
+  Before, ``--output-dir .`` deleted the current directory.
 - Heightfield terrains now lay hfield rows along y and columns along x, as MuJoCo
   expects. Non-square sub-terrains are no longer stretched with flat patches off the
   terrain; square ones are mirrored across x=y for a given seed.
