@@ -27,6 +27,11 @@ Added
 Changed
 ^^^^^^^
 
+- Regex keys in ``init_state.joint_pos``/``joint_vel``, ``posture_target`` and the
+  ``*_names_expr`` fields of spec configs now match whole names, like the rest of
+  mjlab. Before, ``"joint1"`` also matched ``joint10``. Keys that relied on prefix
+  matching need a trailing ``.*``. A ``joint_pos``, ``joint_vel`` or
+  ``posture_target`` key that matches no joint now raises instead of being ignored.
 - Heightfield terrains now lay hfield rows along y and columns along x, as MuJoCo
   expects. Non-square sub-terrains are no longer stretched with flat patches off the
   terrain; square ones are mirrored across x=y for a given seed.
