@@ -26,6 +26,35 @@ if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
 
 
+def _select_actuators(asset: Entity, actuator_ids: list[int] | slice) -> list:
+  """Return the actuator groups covered by entity-level actuator ids.
+
+  ``actuator_ids`` index the entity's MuJoCo actuators (one per ctrl), while
+  ``asset.actuators`` holds groups that may own several ctrls each.
+  """
+  if actuator_ids == slice(None):
+    return list(asset.actuators)
+  if isinstance(actuator_ids, slice):
+    actuator_ids = list(range(asset.num_actuators))[actuator_ids]
+  selected = set(actuator_ids)
+  actuators = []
+  for actuator in asset.actuators:
+    owned = set(actuator.ctrl_ids.tolist())
+    hit = owned & selected
+    if not hit:
+      continue
+    if hit != owned:
+      missing = [asset.actuator_names[i] for i in sorted(owned - hit)]
+      raise ValueError(
+        f"Actuator selection covers only part of a {type(actuator).__name__} "
+        f"group (missing {missing}). Domain randomization applies per group, "
+        "so select all of its actuators or split it into separate actuator "
+        "cfgs."
+      )
+    actuators.append(actuator)
+  return actuators
+
+
 @requires_model_fields("actuator_gainprm", "actuator_biasprm")
 def pd_gains(
   env: ManagerBasedRlEnv,
@@ -60,14 +89,7 @@ def pd_gains(
   else:
     env_ids = env_ids.to(env.device, dtype=torch.int)
 
-  if isinstance(asset_cfg.actuator_ids, list):
-    actuators = [asset.actuators[i] for i in asset_cfg.actuator_ids]
-  elif isinstance(asset_cfg.actuator_ids, slice):
-    actuators = asset.actuators[asset_cfg.actuator_ids]
-  else:
-    actuators = [asset.actuators[asset_cfg.actuator_ids]]
-
-  for actuator in actuators:
+  for actuator in _select_actuators(asset, asset_cfg.actuator_ids):
     ctrl_ids = actuator.global_ctrl_ids
     # Each target needs one kp draw and one kd draw. For single-element
     # actuators that's len(ctrl_ids) of each; for BuiltinPd the ctrl tensor
@@ -219,15 +241,7 @@ def effort_limits(
   else:
     env_ids = env_ids.to(env.device, dtype=torch.int)
 
-  if isinstance(asset_cfg.actuator_ids, list):
-    actuators = [asset.actuators[i] for i in asset_cfg.actuator_ids]
-  else:
-    actuators = asset.actuators[asset_cfg.actuator_ids]
-
-  if not isinstance(actuators, list):
-    actuators = [actuators]
-
-  for actuator in actuators:
+  for actuator in _select_actuators(asset, asset_cfg.actuator_ids):
     ctrl_ids = actuator.global_ctrl_ids
     # One effort sample per target. For single-element actuators this matches
     # ctrl_ids; for BuiltinPd the limit lives on the joint/tendon, so one
