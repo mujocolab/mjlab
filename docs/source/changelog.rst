@@ -49,6 +49,10 @@ Changed
 Fixed
 ^^^^^
 
+- ``dr.pd_gains`` and ``dr.effort_limits`` now randomize the actuators selected by
+  ``asset_cfg.actuator_names``. Before, the ids were used as indices into the list
+  of actuator cfgs, which raised ``IndexError`` or randomized the wrong group. A
+  selection that covers only part of an actuator cfg now raises a clear error.
 - ``posture`` and ``variable_posture`` now pair each joint with its own ``std`` when
   ``asset_cfg.preserve_order=True``.
 - ``apply_body_impulse`` now applies ``body_point_offset`` in the body frame, as
