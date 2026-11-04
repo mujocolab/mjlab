@@ -13,7 +13,7 @@ def resolve_expr(
   result = []
   for name in names:
     for pat, val in patterns:
-      if pat.match(name):
+      if pat.fullmatch(name):
         result.append(val)
         break
     else:
@@ -26,7 +26,7 @@ def filter_exp(
 ) -> tuple[str, ...]:
   """Filter names based on regex patterns."""
   patterns = [re.compile(expr) for expr in exprs]
-  return tuple(name for name in names if any(pat.match(name) for pat in patterns))
+  return tuple(name for name in names if any(pat.fullmatch(name) for pat in patterns))
 
 
 def resolve_field(
