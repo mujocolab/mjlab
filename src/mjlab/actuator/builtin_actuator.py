@@ -175,6 +175,9 @@ class BuiltinPdActuator(Actuator[BuiltinPdActuatorCfg]):
         transmission_type=self.cfg.transmission_type,
       )
       self._mjs_actuators.append(vel_act)
+    # Entity(sort_actuators=True) calls this once per target, which would
+    # interleave pos/vel. A stable sort restores the [pos..., vel...] layout.
+    self._mjs_actuators.sort(key=lambda a: a.name.endswith("_pd_vel"))
     # Effort limit: sum-clamp on the joint/tendon, not on each element.
     if self.cfg.effort_limit is not None:
       lim = self.cfg.effort_limit
