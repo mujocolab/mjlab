@@ -8,7 +8,7 @@ import torch
 from conftest import get_test_device
 
 from mjlab import actuator
-from mjlab.entity import EntityCfg
+from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.envs.mdp import dr, events
 from mjlab.managers.event_manager import (
   EventManager,
@@ -1066,3 +1066,62 @@ def test_interval_timer_reset_all_envs(device):
   timer[:] = 0.0
   manager.reset(env_ids=None)
   assert ((timer >= 5.0) & (timer <= 10.0)).all()
+
+
+def _three_joint_spec():
+  spec = mujoco.MjSpec.from_string(ROBOT_XML)
+  link3 = spec.body("base").add_body(name="link3", pos=(0, 0.2, 0))
+  link3.add_joint(name="joint3", type=mujoco.mjtJoint.mjJNT_HINGE, axis=(0, 0, 1))
+  link3.add_geom(
+    name="link3_geom", type=mujoco.mjtGeom.mjGEOM_BOX, size=(0.05, 0.05, 0.2)
+  )
+  return spec
+
+
+def _make_named_pd_env(device, groups):
+  """Real 3-joint scene whose actuators are split into the given groups."""
+  entity_cfg = EntityCfg(
+    spec_fn=_three_joint_spec,
+    articulation=EntityArticulationInfoCfg(
+      actuators=tuple(
+        actuator.BuiltinPositionActuatorCfg(
+          target_names_expr=g, stiffness=50.0, damping=5.0, effort_limit=100.0
+        )
+        for g in groups
+      )
+    ),
+  )
+  scene = Scene(SceneCfg(num_envs=NUM_ENVS, entities={"robot": entity_cfg}), device)
+  model = scene.compile()
+  sim = Simulation(num_envs=NUM_ENVS, cfg=SimulationCfg(), model=model, device=device)
+  scene.initialize(model, sim.model, sim.data)
+  sim.expand_model_fields(("actuator_gainprm", "actuator_biasprm"))
+  return Env(scene, sim, device)
+
+
+def test_pd_gains_selects_actuator_by_name(device):
+  """Selecting joint3 by name randomizes only the group that owns it."""
+  # Group 0 owns two ctrls, so ctrl index 2 (joint3) is not group index 2.
+  env = _make_named_pd_env(device, groups=[("joint1", "joint2"), ("joint3",)])
+  asset_cfg = SceneEntityCfg("robot", actuator_names=["joint3"])
+  asset_cfg.resolve(env.scene)
+
+  dr.pd_gains(env, None, kp_range=(2.0, 2.0), kd_range=(1.0, 1.0), asset_cfg=asset_cfg)
+
+  robot = env.scene["robot"]
+  untouched, picked = (a.global_ctrl_ids for a in robot.actuators)
+  gainprm = env.sim.model.actuator_gainprm
+  assert torch.allclose(gainprm[:, untouched, 0], torch.tensor(50.0, device=device))
+  assert torch.allclose(gainprm[:, picked, 0], torch.tensor(100.0, device=device))
+
+
+def test_pd_gains_rejects_partial_actuator_group(device):
+  """Selecting one joint of a multi-joint actuator group raises."""
+  env = _make_named_pd_env(device, groups=[("joint.*",)])
+  asset_cfg = SceneEntityCfg("robot", actuator_names=["joint2"])
+  asset_cfg.resolve(env.scene)
+
+  with pytest.raises(ValueError, match="only part of"):
+    dr.pd_gains(
+      env, None, kp_range=(2.0, 2.0), kd_range=(1.0, 1.0), asset_cfg=asset_cfg
+    )
