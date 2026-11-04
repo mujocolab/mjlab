@@ -9,6 +9,12 @@ def resolve_expr(
 ) -> tuple[Any, ...]:
   """Resolve a field value (scalar or dict) to a tuple of values matched by patterns."""
   patterns = [(re.compile(pat), val) for pat, val in pattern_map.items()]
+  unmatched = [p.pattern for p, _ in patterns if not any(p.fullmatch(n) for n in names)]
+  if unmatched:
+    raise ValueError(
+      f"Patterns {unmatched} match none of the names {list(names)}. "
+      "Patterns must match whole names; add '.*' to match a prefix."
+    )
 
   result = []
   for name in names:
