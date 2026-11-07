@@ -49,6 +49,9 @@ Changed
 Fixed
 ^^^^^
 
+- Delayed position actuators now hold the post-reset joint positions until the
+  first action arrives, instead of driving toward 0 for their first ``lag``
+  physics steps after every reset. Targets set during the reset are kept.
 - ``posture`` and ``variable_posture`` now pair each joint with its own ``std`` when
   ``asset_cfg.preserve_order=True``.
 - ``apply_body_impulse`` now applies ``body_point_offset`` in the body frame, as
