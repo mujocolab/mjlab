@@ -246,6 +246,31 @@ def test_scoped_write_preserves_other_envs(device, create_entity):
   torch.testing.assert_close(sim.data.ctrl[0], torch.full_like(ctrl, expected_ctrl))
 
 
+@pytest.mark.parametrize(
+  "create_entity",
+  [create_entity_with_delayed_builtin, create_entity_with_delayed_ideal],
+)
+def test_reset_write_holds_post_reset_pose(device, create_entity):
+  """Delayed actuators hold the post-reset pose, not 0, until the first action."""
+  entity, sim = initialize_entity(create_entity(2, 2), device)
+  pose = torch.tensor([[0.3, -0.2]], device=device)
+  env_ids = torch.tensor([0], device=device)
+  entity.reset(env_ids)
+  entity.write_joint_state_to_sim(pose, torch.zeros_like(pose), env_ids=env_ids)
+  entity.write_data_to_sim(env_ids)
+  torch.testing.assert_close(entity.data.joint_pos_target, torch.zeros_like(pose))
+
+  is_builtin = isinstance(entity.actuators[0].cfg, BuiltinPositionActuatorCfg)
+  action = torch.full_like(pose, 0.5)
+  # Builtin writes the target; ideal PD writes kp * (target - q).
+  delayed = [pose, pose, action]
+  for target in delayed:
+    entity.set_joint_position_target(action)
+    entity.write_data_to_sim()
+    want = target if is_builtin else 80.0 * (target - pose)
+    torch.testing.assert_close(sim.data.ctrl[0], want[0])
+
+
 def test_delayed_actuator_set_lags(device):
   """Test that set_lags sets lag values on all delay buffers."""
   entity = create_entity_with_delayed_builtin(delay_min_lag=0, delay_max_lag=5)
