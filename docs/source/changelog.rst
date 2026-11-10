@@ -49,6 +49,10 @@ Changed
 Fixed
 ^^^^^
 
+- Observations that read a ``ContactSensor`` now see the contact data written by
+  the ``forward()`` at the end of ``step()``. Data cached by an earlier termination
+  or reward read was returned instead unless some environment reset during the
+  step, so one environment's observation depended on whether another one reset.
 - Delayed position actuators now hold the post-reset joint positions until the
   first action arrives, instead of driving toward 0 for their first ``lag``
   physics steps after every reset. Targets set during the reset are kept.

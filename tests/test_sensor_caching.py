@@ -8,6 +8,9 @@ import torch
 from conftest import get_test_device
 
 from mjlab.entity import EntityCfg
+from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
+from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationTermCfg
+from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.scene import Scene, SceneCfg
 from mjlab.sensor import GridPatternCfg, ObjRef, RayCastSensorCfg
 from mjlab.sensor.contact_sensor import ContactMatch, ContactSensorCfg
@@ -248,3 +251,59 @@ def test_stale_cache_without_update(device):
 
   # Values should be the same (stale).
   assert torch.allclose(data2.distances, initial_distances)
+
+
+def _box_contact_force(env: ManagerBasedRlEnv) -> torch.Tensor:
+  return env.scene["box_contact"].data.force.flatten(start_dim=1)
+
+
+def _box_contact_force_sum(env: ManagerBasedRlEnv) -> torch.Tensor:
+  return _box_contact_force(env).sum(dim=1)
+
+
+def test_env_step_observations_see_post_forward_contact_data(device):
+  """A reward read must not leave pre-forward contact data cached for observations.
+
+  Rewards read the sensor before step()'s forward(), observations after it. The
+  observation must match the sensordata written by forward() even when no env
+  resets during the step.
+  """
+  contact_sensor_cfg = ContactSensorCfg(
+    name="box_contact",
+    primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
+    secondary=None,
+    fields=("found", "force"),
+  )
+  cfg = ManagerBasedRlEnvCfg(
+    scene=SceneCfg(
+      num_envs=2,
+      env_spacing=3.0,
+      entities={
+        "box": EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(FALLING_BOX_XML))
+      },
+      sensors=(contact_sensor_cfg,),
+    ),
+    observations={
+      "obs": ObservationGroupCfg(
+        terms={"force": ObservationTermCfg(func=_box_contact_force)}
+      )
+    },
+    rewards={"force": RewardTermCfg(func=_box_contact_force_sum, weight=1.0)},
+    sim=SimulationCfg(njmax=75),
+    decimation=4,
+    episode_length_s=10.0,
+  )
+  env = ManagerBasedRlEnv(cfg=cfg, device=device)
+  env.reset()
+  sensor = env.scene["box_contact"]
+  action = torch.zeros((env.num_envs, 0), device=device)
+
+  for _ in range(60):  # The box lands after ~36 steps.
+    obs, _, terminated, truncated, _ = env.step(action)
+    assert not (terminated | truncated).any()
+    force_obs = obs["obs"]
+    assert isinstance(force_obs, torch.Tensor)
+    sensor._invalidate_cache()
+    assert torch.equal(force_obs, _box_contact_force(env))
+
+  env.close()

@@ -476,6 +476,11 @@ class ManagerBasedRlEnv:
     # one-substep staleness left by mj_step; for reset envs it picks up
     # the freshly written reset state.
     self.sim.forward()
+    # forward() also rewrote sensordata. Drop sensor data cached by the
+    # termination/reward reads above, otherwise observations see it only
+    # when some env happened to reset (Scene.reset invalidates every cache).
+    for sensor in self.scene.sensors.values():
+      sensor._invalidate_cache()
 
     # Pass dt=0 for freshly reset envs so their command timers start full,
     # matching reset().
