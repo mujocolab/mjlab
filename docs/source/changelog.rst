@@ -91,6 +91,10 @@ Fixed
   ``--overwrite True`` to replace a previous export. Contribution by @saikishor.
 - ``upright`` now uses the root body when ``asset_cfg`` selects no bodies, instead
   of raising a shape error on multi-body entities. Contribution by @yunyv.
+- ``reset(env_ids=...)`` no longer adds a step of tracking error to the
+  ``error_vel_xy`` and ``error_vel_yaw`` metrics of the velocity command in the
+  environments it does not reset. With ``auto_reset=False`` and a partial reset on
+  most steps, these metrics were close to double their true value.
 - Delayed position actuators now hold the post-reset joint positions until the
   first action arrives, instead of driving toward 0 for their first ``lag``
   physics steps after every reset. Targets set during the reset are kept.
