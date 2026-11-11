@@ -15,8 +15,9 @@ from mjlab.rl import MjlabOnPolicyRunner, RslRlBaseRunnerCfg, RslRlVecEnvWrapper
 from mjlab.scripts._cli import maybe_print_top_level_help
 from mjlab.tasks.registry import list_tasks, load_env_cfg, load_rl_cfg, load_runner_cls
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
+from mjlab.utils.checkpoint_source import make_checkpoint_source
 from mjlab.utils.gpu import select_gpus
-from mjlab.utils.os import dump_yaml, get_checkpoint_path, get_wandb_checkpoint_path
+from mjlab.utils.os import dump_yaml, get_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.utils.wandb import add_wandb_tags
 from mjlab.utils.wrappers import VideoRecorder
@@ -34,9 +35,10 @@ class TrainConfig:
   log_root: str = "logs/rsl_rl"
   """Root directory under which experiment logs are written."""
   torchrunx_log_dir: str | None = None
-  wandb_run_path: str | None = None
-  wandb_checkpoint_name: str | None = None
-  """Optional checkpoint name within the W&B run to load (e.g. 'model_4000.pt')."""
+  checkpoint_source: str = "wandb"
+  checkpoint_run: str | None = None
+  checkpoint_name: str | None = None
+  """Checkpoint within the run, e.g. 'model_4000.pt'. Defaults to the latest."""
   gpu_ids: list[int] | Literal["all"] | None = field(default_factory=lambda: [0])
 
   @staticmethod
@@ -115,18 +117,16 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
 
   resume_path: Path | None = None
   if cfg.agent.resume:
-    if cfg.wandb_run_path is not None:
-      # Load checkpoint from W&B.
-      resume_path, was_cached = get_wandb_checkpoint_path(
-        log_root_path, Path(cfg.wandb_run_path), cfg.wandb_checkpoint_name
+    if cfg.checkpoint_run is not None:
+      source = make_checkpoint_source(
+        cfg.checkpoint_source, cfg.checkpoint_run, log_root_path
       )
+      resume_path, was_cached = source.resolve(cfg.checkpoint_name)
       if rank == 0:
-        run_id = resume_path.parent.name
-        checkpoint_name = resume_path.name
         cached_str = "cached" if was_cached else "downloaded"
         print(
-          f"[INFO]: Loading checkpoint from W&B: {checkpoint_name} "
-          f"(run: {run_id}, {cached_str})"
+          f"[INFO]: Loading checkpoint from {source.label}: {resume_path.name} "
+          f"(run: {cfg.checkpoint_run}, {cached_str})"
         )
     else:
       # Load checkpoint from local filesystem.
