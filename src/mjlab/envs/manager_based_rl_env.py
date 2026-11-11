@@ -209,6 +209,7 @@ class ManagerBasedRlEnv:
       model=self.sim.model,
       data=self.sim.data,
     )
+    self.sim.add_data_listener(self.scene.invalidate_sensor_caches)
 
     # Wire sensor context to simulation for sense_graph.
     if self.scene.sensor_context is not None:

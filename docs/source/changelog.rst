@@ -55,6 +55,10 @@ Changed
 Fixed
 ^^^^^
 
+- Observations no longer read sensor data cached before the ``forward()`` at the
+  end of ``step()``, which made contact observations depend on whether another
+  environment reset that step. The simulation now invalidates sensor caches
+  whenever its data changes. Reported by @Chr0mium24 in :issue:`1309`.
 - ``export-scene`` no longer deletes a non-empty ``--output-dir``. Pass
   ``--overwrite True`` to replace a previous export. Contribution by @saikishor.
 - ``upright`` now uses the root body when ``asset_cfg`` selects no bodies, instead
