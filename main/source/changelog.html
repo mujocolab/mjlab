@@ -599,6 +599,8 @@ attribute of the <code class="docutils literal notranslate"><span class="pre">rs
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">upright</span></code> now uses the root body when <code class="docutils literal notranslate"><span class="pre">asset_cfg</span></code> selects no bodies, instead
+of raising a shape error on multi-body entities. Contribution by &#64;yunyv.</p></li>
 <li><p>Delayed position actuators now hold the post-reset joint positions until the
 first action arrives, instead of driving toward 0 for their first <code class="docutils literal notranslate"><span class="pre">lag</span></code>
 physics steps after every reset. Targets set during the reset are kept.</p></li>
