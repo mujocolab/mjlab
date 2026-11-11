@@ -133,6 +133,23 @@ class CommandTerm(ManagerTermBase):
       self._resample(resample_env_ids)
     self._update_command(env_ids)
 
+  def state_dict(self) -> dict[str, Any]:
+    """Return serializable term state for checkpointing.
+
+    Override in curriculum commands to persist progress such as difficulty levels
+    or sampling probabilities. The default returns no state. Timers and simulation
+    state are not saved automatically. Callers are responsible for saving the
+    returned dictionary; implementations should copy mutable state as needed.
+    """
+    return {}
+
+  def load_state_dict(self, state: dict[str, Any]) -> None:
+    """Restore term state. Override alongside :meth:`state_dict` as needed.
+
+    Implementations handle device placement and configuration compatibility.
+    The default does nothing.
+    """
+
   def _check_update_command_signature(self) -> None:
     """Fail fast with a migration hint for terms with the old signature."""
     try:
@@ -288,6 +305,25 @@ class CommandManager(ManagerBase):
     for term in self._terms.values():
       term.compute(dt, env_ids)
 
+  def state_dict(self) -> dict[str, dict[str, Any]]:
+    """Collect non-empty term state keyed by term name for caller-managed saving."""
+    state = {}
+    for name, term in self._terms.items():
+      term_state = term.state_dict()
+      if term_state:
+        state[name] = term_state
+    return state
+
+  def load_state_dict(self, state: dict[str, dict[str, Any]]) -> None:
+    """Restore saved terms by name, leaving missing terms unchanged.
+
+    Unknown term names are ignored, allowing commands to be removed between runs.
+    """
+    for name, term_state in state.items():
+      term = self._terms.get(name)
+      if term is not None:
+        term.load_state_dict(term_state)
+
   def get_command(self, name: str) -> torch.Tensor:
     return self._terms[name].command
 
@@ -365,6 +401,12 @@ class NullCommandManager:
 
   def get_command(self, name: str) -> None:
     return None
+
+  def state_dict(self) -> dict[str, dict[str, Any]]:
+    return {}
+
+  def load_state_dict(self, state: dict[str, dict[str, Any]]) -> None:
+    pass
 
   def get_term(self, name: str) -> None:
     return None

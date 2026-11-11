@@ -121,3 +121,31 @@ safely ignore ``env_ids``.
 
 The configuration must implement a ``build(env)`` method that
 constructs the paired term instance.
+
+
+Checkpointing curriculum commands
+--------------------------------
+
+A custom command can own a curriculum that adjusts difficulty or command sampling
+probabilities based on policy performance. Restoring the training step counter
+alone does not recover this progress. Override ``state_dict()`` and
+``load_state_dict(state)`` on the command term to save and restore it.
+
+The command manager collects non-empty term dictionaries by name. Include this
+state in your training checkpoint and restore it after constructing the environment:
+
+.. code-block:: python
+
+    checkpoint["commands"] = env.command_manager.state_dict()
+    # After loading the checkpoint into a newly constructed environment:
+    env.command_manager.load_state_dict(checkpoint.get("commands", {}))
+
+Term implementations choose which curriculum state to save, copy mutable values
+as needed, and handle device placement and configuration changes when restoring.
+The default term hooks return an empty dictionary and do nothing on load.
+Unknown term names are ignored and terms absent from the checkpoint stay unchanged.
+An environment without commands returns empty state and ignores saved entries.
+
+Training runners must explicitly save and restore this state. The hooks do not
+automatically checkpoint simulation state or every curriculum in the environment;
+they support progress owned by command terms that implement them.
