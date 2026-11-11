@@ -16,7 +16,12 @@ from mjlab.sensor import BuiltinSensor, RayCastSensor, Sensor, SensorCfg
 from mjlab.sensor.camera_sensor import CameraSensor
 from mjlab.sensor.sensor_context import SensorContext
 from mjlab.terrains.terrain_entity import TerrainEntity, TerrainEntityCfg
-from mjlab.utils.spec import export_spec, non_default_option_fields
+from mjlab.utils.spec import (
+  attach_unprefixed,
+  compile_spec,
+  export_spec,
+  non_default_option_fields,
+)
 
 _SCENE_XML = Path(__file__).parent / "scene.xml"
 
@@ -69,7 +74,7 @@ class Scene:
       self._cfg.spec_fn(self._spec)
 
   def compile(self) -> mujoco.MjModel:
-    return self._spec.compile()
+    return compile_spec(self._spec)
 
   def write(self, output_dir: Path, *, zip: bool = False) -> None:
     """Write the scene XML and mesh assets to a directory.
@@ -274,7 +279,7 @@ class Scene:
         stacklevel=2,
       )
     frame = self._spec.worldbody.add_frame()
-    self._spec.attach(terrain.spec, prefix="", frame=frame)
+    attach_unprefixed(self._spec, terrain.spec, frame)
 
   def _add_sensors(self) -> None:
     for sensor_cfg in self._cfg.sensors:

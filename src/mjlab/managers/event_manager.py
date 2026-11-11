@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-import enum
 from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
+import mujoco
+import numpy as np
 import torch
+from mujoco_warp import SetConstGroup
 from prettytable import PrettyTable
 
 from mjlab.managers.manager_base import ManagerBase, ManagerTermBaseCfg
@@ -22,76 +24,115 @@ F = Callable[..., None]
 EventMode = Literal["startup", "reset", "interval", "step"]
 
 
-class RecomputeLevel(enum.IntEnum):
-  """Recomputation level for derived model constants after domain randomization.
+_KIN0_INERT0 = SetConstGroup.KIN0 | SetConstGroup.INERT0
 
-  Higher values are more expensive and recompute a superset of the lower levels.
+# The mujoco_warp.set_const groups to run after modifying each model field. Fields
+# not listed here or in recompute_groups() need no recomputation.
+_RECOMPUTE_GROUPS: dict[str, SetConstGroup] = {
+  "body_mass": SetConstGroup.ALL,
+  "body_ipos": _KIN0_INERT0,
+  "body_pos": _KIN0_INERT0,
+  "body_quat": _KIN0_INERT0,
+  "jnt_pos": _KIN0_INERT0,
+  "jnt_axis": _KIN0_INERT0,
+  "qpos0": _KIN0_INERT0,
+  "body_inertia": SetConstGroup.INERT0,
+  "body_iquat": SetConstGroup.INERT0,
+  "dof_armature": SetConstGroup.INERT0,
+  "tendon_armature": SetConstGroup.INERT0,
+  "actuator_armature": SetConstGroup.INERT0,
+  "actuator_gear": SetConstGroup.INERT0,
+  "eq_data": SetConstGroup.KIN0,
+  "geom_size": SetConstGroup.FIXED,
+}
 
-  .. note::
+_TRACKING = [
+  mujoco.mjtCamLight.mjCAMLIGHT_TRACK,
+  mujoco.mjtCamLight.mjCAMLIGHT_TRACKCOM,
+]
+_SPATIAL_WRAPS = [
+  mujoco.mjtWrap.mjWRAP_SITE,
+  mujoco.mjtWrap.mjWRAP_SPHERE,
+  mujoco.mjtWrap.mjWRAP_CYLINDER,
+]
 
-    All levels above ``none`` are expensive (forward kinematics, mass matrix
-    factorization, etc.). Prefer ``startup`` or ``reset`` event modes for
-    DR terms that require recomputation.
-  """
-
-  none = 0
-  """No recomputation needed (e.g. geom_friction, dof_damping)."""
-
-  set_const_fixed = 1
-  """Recompute ``body_subtreemass``. Use after modifying ``body_gravcomp``."""
-
-  set_const_0 = 2
-  """Recompute ``dof_invweight0``, ``body_invweight0``, ``tendon_length0``,
-  ``tendon_invweight0``, and ``actuator_acc0``. Use after modifying
-  ``dof_armature``, ``body_inertia``, ``body_pos``, ``body_quat``, or ``qpos0``."""
-
-  set_const = 3
-  """Full recomputation (superset of all lower levels). Use after modifying
-  ``body_mass`` or ``body_ipos``."""
-
-
-_DERIVED_FIELDS: dict[RecomputeLevel, tuple[str, ...]] = {
-  RecomputeLevel.none: (),
-  RecomputeLevel.set_const_fixed: ("body_subtreemass",),
-  RecomputeLevel.set_const_0: (
+# The fields each group writes. They are expanded per world along with the
+# randomized fields, or every world would read world 0's recomputed values.
+_DERIVED_FIELDS: dict[SetConstGroup, tuple[str, ...]] = {
+  SetConstGroup.FIXED: ("body_subtreemass",),
+  SetConstGroup.KIN0: (
+    "tendon_length0",
+    "eq_data",
+    "cam_pos0",
+    "cam_poscom0",
+    "cam_mat0",
+    "light_pos0",
+    "light_poscom0",
+    "light_dir0",
+  ),
+  SetConstGroup.INERT0: (
     "dof_invweight0",
     "body_invweight0",
-    "tendon_length0",
     "tendon_invweight0",
     "actuator_acc0",
   ),
 }
-_DERIVED_FIELDS[RecomputeLevel.set_const] = (
-  _DERIVED_FIELDS[RecomputeLevel.set_const_fixed]
-  + _DERIVED_FIELDS[RecomputeLevel.set_const_0]
-)
+
+# FIXED recomputes every geom's bounds from geom_size. They need their own memory
+# per world exactly where geom_size has it.
+_EXPANDED_WITH: dict[str, tuple[str, ...]] = {
+  "geom_size": ("geom_rbound", "geom_aabb"),
+}
 
 
-def requires_model_fields(
-  *fields: str, recompute: RecomputeLevel = RecomputeLevel.none
-) -> Callable[[F], F]:
+def recompute_groups(
+  fields: tuple[str, ...], mj_model: mujoco.MjModel
+) -> SetConstGroup:
+  """The set_const groups to run after modifying fields of mj_model."""
+  groups = SetConstGroup.NONE
+  for field in fields:
+    groups |= _RECOMPUTE_GROUPS.get(field, SetConstGroup.NONE)
+  modified = set(fields)
+  # Tracking cameras and lights follow references that KIN0 recomputes.
+  if {"cam_pos", "cam_quat"} & modified and np.isin(mj_model.cam_mode, _TRACKING).any():
+    groups |= SetConstGroup.KIN0
+  if {"light_pos", "light_dir"} & modified and np.isin(
+    mj_model.light_mode, _TRACKING
+  ).any():
+    groups |= SetConstGroup.KIN0
+  # Spatial tendon paths set tendon rest lengths and inverse weights.
+  if {"site_pos", "geom_pos", "geom_quat", "geom_size"} & modified and np.isin(
+    mj_model.wrap_type, _SPATIAL_WRAPS
+  ).any():
+    groups |= _KIN0_INERT0
+  # Site transmissions set actuator_acc0.
+  if {"site_pos", "site_quat"} & modified and (
+    mj_model.actuator_trntype == mujoco.mjtTrn.mjTRN_SITE
+  ).any():
+    groups |= SetConstGroup.INERT0
+  return groups
+
+
+def requires_model_fields(*fields: str) -> Callable[[F], F]:
   """Mark an event function as requiring specific model fields expanded per-world.
 
   Fields listed here are registered in ``EventManager.domain_randomization_fields``
   so that ``sim.expand_model_fields()`` allocates real per-world memory for them.
+  After the event fires, the EventManager recomputes the derived constants that
+  depend on these fields.
 
   Args:
     *fields: Model field names to expand per-world.
-    recompute: Recomputation level after modifying these fields.
-      Derived fields are automatically appended to the model_fields list.
 
   Example::
 
-    @requires_model_fields("body_mass", recompute=RecomputeLevel.set_const)
+    @requires_model_fields("body_mass")
     def body_mass(env, env_ids, ...):
       ...
   """
-  derived = _DERIVED_FIELDS[recompute]
-  all_fields = fields + tuple(f for f in derived if f not in fields)
 
   def decorator(func: F) -> F:
-    func.model_fields = all_fields  # type: ignore[attr-defined]
-    func.recompute = recompute  # type: ignore[attr-defined]
+    func.model_fields = fields  # type: ignore[attr-defined]
     return func
 
   return decorator
@@ -262,7 +303,7 @@ class EventManager(ManagerBase):
         f"Event mode '{mode}' requires the time-step of the environment."
       )
 
-    strongest_fired = RecomputeLevel.none
+    recompute = SetConstGroup.NONE
 
     for index, term_cfg in enumerate(self._mode_term_cfgs[mode]):
       fired = False
@@ -329,12 +370,12 @@ class EventManager(ManagerBase):
         term_cfg.func(self._env, env_ids, **term_cfg.params)
         fired = True
 
-      if fired:
-        level = getattr(term_cfg.func, "recompute", RecomputeLevel.none)
-        strongest_fired = max(strongest_fired, level)
+      if fired and hasattr(term_cfg.func, "model_fields"):
+        fields = term_cfg.func.model_fields
+        recompute |= recompute_groups(fields, self._env.sim.mj_model)
 
-    if strongest_fired != RecomputeLevel.none:
-      self._env.sim.recompute_constants(strongest_fired)
+    if recompute:
+      self._env.sim.recompute_constants(recompute)
 
   def debug_vis(self, visualizer: "DebugVisualizer") -> None:
     """Delegate debug visualization to class-based event terms."""
@@ -385,6 +426,9 @@ class EventManager(ManagerBase):
 
       func = term_cfg.func
       if hasattr(func, "model_fields"):
-        for field in func.model_fields:
+        groups = recompute_groups(func.model_fields, self._env.sim.mj_model)
+        derived = [f for g, fs in _DERIVED_FIELDS.items() if g & groups for f in fs]
+        coupled = [f for m in func.model_fields for f in _EXPANDED_WITH.get(m, ())]
+        for field in (*func.model_fields, *derived, *coupled):
           if field not in self._domain_randomization_fields:
             self._domain_randomization_fields.append(field)

@@ -51,10 +51,17 @@ VIEWER_MODEL_FIELDS = frozenset(
     "body_subtreemass",
     "cam_pos",
     "cam_quat",
+    # Tracking camera and light references, recomputed per world by set_const.
+    "cam_pos0",
+    "cam_poscom0",
+    "cam_mat0",
     "cam_fovy",
     "cam_intrinsic",
     "light_pos",
     "light_dir",
+    "light_pos0",
+    "light_poscom0",
+    "light_dir0",
     "light_ambient",
     "light_diffuse",
     "light_specular",
@@ -92,6 +99,8 @@ def sync_model_fields(
 ) -> None:
   """Copy per-world model fields from sim_model[env_idx] into dst_model."""
   for field_name in fields:
-    src = getattr(sim_model, field_name)[env_idx].cpu().numpy()
     dst = getattr(dst_model, field_name)
+    if dst.size == 0:  # E.g. camera fields of a model without cameras.
+      continue
+    src = getattr(sim_model, field_name)[env_idx].cpu().numpy()
     dst[:] = src.reshape(dst.shape)

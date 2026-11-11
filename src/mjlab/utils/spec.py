@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import warnings
 import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
@@ -13,6 +14,44 @@ import numpy as np
 
 from mjlab.actuator.actuator import TransmissionType
 from mjlab.utils.xml import fix_spec_xml, strip_buffer_textures
+
+_EMPTY_PREFIX_WARNING = "Attaching a spec with an empty prefix"
+
+
+def attach_unprefixed(
+  parent: mujoco.MjSpec, child: mujoco.MjSpec, frame: mujoco.MjsFrame
+) -> None:
+  """Attach child to a frame of parent without a prefix, keeping its names.
+
+  MuJoCo warns that empty prefixes can break saving when default classes clash.
+  mjlab only attaches this way into specs that define no default classes, so the
+  warning is dropped here. MuJoCo also stores it on parent and re-raises it on every
+  compile; compile_spec() ignores it there.
+  """
+  previous = mujoco.get_mju_user_warning()
+
+  def handler(msg: str) -> None:
+    # Runs inside a MuJoCo callback, so it must not raise.
+    if msg.startswith(_EMPTY_PREFIX_WARNING):
+      return
+    if previous is not None:
+      previous(msg)
+    else:
+      print(f"WARNING: {msg}")
+
+  mujoco.set_mju_user_warning(handler)
+  try:
+    parent.attach(child, prefix="", frame=frame)
+  finally:
+    mujoco.set_mju_user_warning(previous)
+
+
+def compile_spec(spec: mujoco.MjSpec) -> mujoco.MjModel:
+  """Compile spec without the warning re-raised for attach_unprefixed()."""
+  with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message=_EMPTY_PREFIX_WARNING)
+    return spec.compile()
+
 
 _DEFAULT_SPEC_OPTION = mujoco.MjSpec().option
 
@@ -190,7 +229,10 @@ def auto_wrap_fixed_base_mocap(
     wrapper_spec.modelfiledir = original_spec.modelfiledir
     mocap_body = wrapper_spec.worldbody.add_body(name="mocap_base", mocap=True)
     frame = mocap_body.add_frame()
-    wrapper_spec.attach(child=original_spec, prefix="", frame=frame)
+    attach_unprefixed(wrapper_spec, original_spec, frame)
+    # The copy drops the warning MuJoCo stored on wrapper_spec, so compiling the
+    # entity on its own does not re-raise it. Nothing else references the original.
+    wrapper_spec = wrapper_spec.copy()
 
     # Re-add keyframes to wrapper spec.
     for qpos, ctrl, name in keyframes:

@@ -10,6 +10,7 @@ from conftest import get_test_device
 from mjlab.entity import EntityCfg
 from mjlab.envs.mdp import dr
 from mjlab.envs.mdp.dr.body import _eigh_3x3_jacobi
+from mjlab.managers.event_manager import recompute_groups
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import Scene, SceneCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
@@ -1321,6 +1322,12 @@ def geom_size_env(device):
   return _make_geom_size_env(device)
 
 
+def _geom_size(env, **kwargs):
+  """Apply dr.geom_size and the set_const groups it declares, like EventManager."""
+  dr.geom_size(env, **kwargs)
+  env.sim.recompute_constants(recompute_groups(("geom_size",), env.sim.mj_model))
+
+
 def _expected_rbound(geom_type, s0, s1, s2):
   """Reference rbound computation matching MuJoCo GetRBound."""
   if geom_type == "sphere":
@@ -1359,7 +1366,7 @@ def test_geom_size_scale_updates_bounds(geom_size_env):
   geom_cfg = SceneEntityCfg("robot", geom_names=(".*",))
   geom_cfg.resolve(env.scene)
 
-  dr.geom_size(
+  _geom_size(
     env,
     env_ids=None,
     ranges=(0.8, 1.5),
@@ -1416,7 +1423,7 @@ def test_geom_size_no_accumulation(device):
   default_size = env.sim.get_default_field("geom_size")[geom_ids].clone()
 
   for _ in range(3):
-    dr.geom_size(
+    _geom_size(
       env,
       env_ids=None,
       ranges=(2.0, 2.0),
@@ -1440,7 +1447,7 @@ def test_geom_size_separate_axes_dont_clobber(device):
   default_size = env.sim.get_default_field("geom_size")[geom_ids].clone()
 
   # Scale axis 0 by 0.1, then axis 1 by 3.0 in a separate event.
-  dr.geom_size(
+  _geom_size(
     env,
     env_ids=None,
     ranges=(0.1, 0.1),
@@ -1448,7 +1455,7 @@ def test_geom_size_separate_axes_dont_clobber(device):
     axes=[0],
     asset_cfg=geom_cfg,
   )
-  dr.geom_size(
+  _geom_size(
     env,
     env_ids=None,
     ranges=(3.0, 3.0),
@@ -1474,7 +1481,7 @@ def test_geom_size_partial_env_ids(device):
 
   original_rbound = env.sim.model.geom_rbound[:, geom_ids].clone()
 
-  dr.geom_size(
+  _geom_size(
     env,
     env_ids=torch.tensor([0, 2], device=device),
     ranges=(2.0, 2.0),
@@ -1517,7 +1524,7 @@ def test_geom_size_raises_on_unsupported_type(device):
   plane_cfg.resolve(env.scene)
 
   with pytest.raises(ValueError, match="unsupported types"):
-    dr.geom_size(env, env_ids=None, ranges=(1.0, 2.0), asset_cfg=plane_cfg)
+    _geom_size(env, env_ids=None, ranges=(1.0, 2.0), asset_cfg=plane_cfg)
 
 
 def test_geom_size_string_ranges_recompute_only_matched_geoms(device):
@@ -1547,7 +1554,7 @@ def test_geom_size_string_ranges_recompute_only_matched_geoms(device):
   floor_id = robot.indexing.geom_ids[robot.geom_names.index("floor")]
   floor_rbound = env.sim.model.geom_rbound[:, floor_id].clone()
 
-  dr.geom_size(env, env_ids=None, ranges={"box_geom": (1.5, 1.5)})
+  _geom_size(env, env_ids=None, ranges={"box_geom": (1.5, 1.5)})
 
   expected = torch.full((2,), 0.15 * math.sqrt(3), device=device)
   assert torch.allclose(env.sim.model.geom_rbound[:, box_id], expected, atol=1e-6)

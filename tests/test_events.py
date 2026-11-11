@@ -6,6 +6,7 @@ import mujoco
 import pytest
 import torch
 from conftest import get_test_device
+from mujoco_warp import SetConstGroup
 
 from mjlab import actuator
 from mjlab.entity import EntityCfg
@@ -13,7 +14,8 @@ from mjlab.envs.mdp import dr, events
 from mjlab.managers.event_manager import (
   EventManager,
   EventTermCfg,
-  RecomputeLevel,
+  recompute_groups,
+  requires_model_fields,
 )
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.scene import Scene, SceneCfg
@@ -150,22 +152,46 @@ def test_recompute_fields_registered_in_event_manager(device):
 
   assert manager.domain_randomization_fields == (
     "body_ipos",
-    "body_subtreemass",
+    "tendon_length0",
+    "eq_data",
+    "cam_pos0",
+    "cam_poscom0",
+    "cam_mat0",
+    "light_pos0",
+    "light_poscom0",
+    "light_dir0",
     "dof_invweight0",
     "body_invweight0",
-    "tendon_length0",
     "tendon_invweight0",
     "actuator_acc0",
   )
 
 
-def test_recompute_level_ordering():
-  """IntEnum max() gives strongest level."""
-  L = RecomputeLevel
-  assert max(L.none, L.set_const_0) == L.set_const_0
-  assert max(L.set_const_0, L.set_const) == L.set_const
-  assert max(L.set_const, L.set_const_fixed) == L.set_const
-  assert max(L.none, L.none) == L.none
+def test_recompute_groups_of_fired_terms_are_combined(device):
+  """Groups inferred from each fired term's fields are OR'ed into one call."""
+  env = Mock()
+  env.num_envs = 2
+  env.device = device
+  env.scene = {}
+  env.sim = Mock()
+
+  @requires_model_fields("eq_data")
+  def kin(env, env_ids):
+    del env, env_ids
+
+  @requires_model_fields("dof_armature")
+  def inert(env, env_ids):
+    del env, env_ids
+
+  cfg = {
+    "kin": EventTermCfg(mode="startup", func=kin, params={}),
+    "inert": EventTermCfg(mode="startup", func=inert, params={}),
+  }
+  EventManager(cfg, env).apply("startup")
+
+  env.sim.recompute_constants.assert_called_once_with(
+    SetConstGroup.KIN0 | SetConstGroup.INERT0
+  )
 
 
 def test_recompute_not_called_when_no_dr_fired(device):
@@ -777,197 +803,156 @@ def test_apply_body_impulse_initial_cooldown(device):
 
 
 # ===========================================================================
-# Section 5: Recomputation integration
+# Section 5: Recomputation vs a recompiled MjSpec
 # ===========================================================================
 
-
-def test_body_mass_recompute_subtreemass(device):
-  """body_subtreemass is correctly recomputed after body_mass change."""
-  env = create_env(device, ("body_mass", "body_subtreemass"))
-  robot = env.scene["robot"]
-  body_ids = robot.indexing.body_ids
-
-  original_subtreemass = env.sim.model.body_subtreemass[:, body_ids].clone()
-
-  env.sim.model.body_mass[0, body_ids] *= 2.0
-  env.sim.recompute_constants(RecomputeLevel.set_const)
-
-  new_subtreemass = env.sim.model.body_subtreemass[:, body_ids]
-
-  assert not torch.allclose(new_subtreemass[0], original_subtreemass[0])
-  torch.testing.assert_close(new_subtreemass[1], original_subtreemass[1])
-
-
-def test_body_mass_recompute_invweight(device):
-  """dof_invweight0 changes after body_mass modification."""
-  env = create_env(
-    device,
-    ("body_mass", "body_subtreemass", "dof_invweight0", "body_invweight0"),
-  )
-  robot = env.scene["robot"]
-  body_ids = robot.indexing.body_ids
-  dof_adr = robot.indexing.joint_v_adr
-
-  original_invweight = env.sim.model.dof_invweight0[:, dof_adr].clone()
-
-  env.sim.model.body_mass[0, body_ids] *= 2.0
-  env.sim.recompute_constants(RecomputeLevel.set_const)
-
-  new_invweight = env.sim.model.dof_invweight0[:, dof_adr]
-
-  assert not torch.allclose(new_invweight[0], original_invweight[0])
-  torch.testing.assert_close(new_invweight[1], original_invweight[1])
-
-
-def test_body_com_offset_recompute(device):
-  """body_ipos modification triggers correct recomputation."""
-  env = create_env(
-    device,
-    ("body_ipos", "body_subtreemass", "dof_invweight0", "body_invweight0"),
-  )
-  robot = env.scene["robot"]
-  body_ids = robot.indexing.body_ids
-  dof_adr = robot.indexing.joint_v_adr
-
-  original_invweight = env.sim.model.dof_invweight0[:, dof_adr].clone()
-
-  link1_idx = body_ids[1]
-  env.sim.model.body_ipos[0, link1_idx, 0] += 0.05
-  env.sim.recompute_constants(RecomputeLevel.set_const)
-
-  new_invweight = env.sim.model.dof_invweight0[:, dof_adr]
-
-  assert not torch.allclose(new_invweight[0], original_invweight[0])
-  torch.testing.assert_close(new_invweight[1], original_invweight[1])
+SET_CONST_XML = """
+<mujoco>
+  <asset><hfield name="h" nrow="3" ncol="3" size="1 1 0.1 0.1"/></asset>
+  <worldbody>
+    <geom type="hfield" hfield="h"/>
+    <body name="base" pos="0 0 1">
+      <freejoint/>
+      <inertial pos="0.01 0.02 0" quat="1 0.1 0 0" mass="5" diaginertia="0.1 0.2 0.3"/>
+      <camera name="cam" mode="trackcom" pos="0 -1 0.5" quat="1 0.3 0 0"/>
+      <light name="light" mode="trackcom" pos="0 0 1" dir="0 0.2 -1"/>
+      <site name="s0" pos="0.1 0 0.1"/>
+      <body name="link1" pos="0.2 0 0">
+        <joint name="j1" type="hinge" axis="0 1 0" armature="0.05"/>
+        <inertial pos="0.05 0 0.01" quat="1 0 0.2 0" mass="1"
+          diaginertia="0.01 0.02 0.015"/>
+        <geom name="wrap" type="cylinder" size="0.04 0.05" contype="0"
+          conaffinity="0"/>
+        <body name="link2" pos="0.2 0 0">
+          <joint name="j2" type="hinge" axis="0 1 0"/>
+          <inertial pos="0.03 0 0" mass="0.5" diaginertia="0.005 0.005 0.005"/>
+          <site name="s1" pos="0.1 0 -0.05"/>
+        </body>
+      </body>
+      <body name="link3" pos="-0.2 0 0">
+        <joint name="j3" type="hinge" axis="0 1 0"/>
+        <inertial pos="-0.03 0 0" mass="0.5" diaginertia="0.005 0.005 0.005"/>
+        <site name="s2" pos="-0.05 0 0"/>
+      </body>
+    </body>
+  </worldbody>
+  <tendon>
+    <spatial name="t"><site site="s0"/><geom geom="wrap"/><site site="s1"/></spatial>
+    <fixed name="tf" armature="0.02">
+      <joint joint="j2" coef="1"/><joint joint="j3" coef="-1"/>
+    </fixed>
+  </tendon>
+  <equality><connect body1="link2" body2="link3" anchor="0.1 0 0"/></equality>
+  <actuator>
+    <position name="a1" joint="j1" kp="10" gear="2" armature="0.01"/>
+    <motor name="a2" tendon="t" gear="1.5"/>
+    <motor name="a3" site="s2" gear="0 0 0 0 1 0"/>
+  </actuator>
+</mujoco>
+"""
 
 
-def test_dof_armature_recompute(device):
-  """dof_armature modification updates dof_invweight0."""
-  env = create_env(
-    device,
-    (
-      "dof_armature",
-      "dof_invweight0",
-      "body_invweight0",
-      "tendon_length0",
-      "tendon_invweight0",
-    ),
-  )
-  robot = env.scene["robot"]
-  dof_adr = robot.indexing.joint_v_adr
-
-  original_invweight = env.sim.model.dof_invweight0[:, dof_adr].clone()
-
-  env.sim.model.dof_armature[0, dof_adr] *= 10.0
-  env.sim.recompute_constants(RecomputeLevel.set_const_0)
-
-  new_invweight = env.sim.model.dof_invweight0[:, dof_adr]
-
-  assert not torch.allclose(new_invweight[0], original_invweight[0])
-  torch.testing.assert_close(new_invweight[1], original_invweight[1])
+def _set(obj, attr, value):
+  setattr(obj, attr, value)
 
 
-# ===========================================================================
-# Section 6: Recompute vs mj_setConst / recompiled MjSpec
-# ===========================================================================
+def _set_anchor(equality, anchor):
+  data = list(equality.data)
+  data[:3] = anchor
+  equality.data = data
 
 
-def test_body_mass_recompute_matches_set_const(device):
-  """Modify body_mass: GPU recompute matches CPU mj_setConst."""
-  gpu_model = mujoco.MjModel.from_xml_string(ROBOT_XML)
-  cpu_model = mujoco.MjModel.from_xml_string(ROBOT_XML)
+# One spec edit per model field whose change requires set_const.
+SPEC_EDITS = {
+  "body_mass": lambda s: _set(s.body("link1"), "mass", 2.0),
+  "body_ipos": lambda s: _set(s.body("link1"), "ipos", [0.08, 0.01, 0.02]),
+  "body_pos": lambda s: _set(s.body("link1"), "pos", [0.25, 0.03, 0.0]),
+  "body_quat": lambda s: _set(s.body("link1"), "quat", [0.98, 0.1, 0.17, 0.0]),
+  "qpos0": lambda s: _set(s.joint("j1"), "ref", 0.3),
+  "jnt_pos": lambda s: _set(s.joint("j1"), "pos", [0.02, 0.0, 0.01]),
+  "jnt_axis": lambda s: _set(s.joint("j1"), "axis", [0.0, 0.6, 0.8]),
+  "body_inertia": lambda s: _set(s.body("link1"), "inertia", [0.02, 0.03, 0.025]),
+  "body_iquat": lambda s: _set(s.body("link1"), "iquat", [0.95, 0.0, 0.0, 0.3]),
+  "dof_armature": lambda s: _set(s.joint("j1"), "armature", 0.2),
+  "tendon_armature": lambda s: _set(s.tendon("tf"), "armature", 0.1),
+  "actuator_armature": lambda s: _set(s.actuator("a1"), "armature", 0.1),
+  "actuator_gear": lambda s: _set(s.actuator("a1"), "gear", [3.0, 0, 0, 0, 0, 0]),
+  "eq_data": lambda s: _set_anchor(s.equalities[0], [0.12, 0.01, 0.0]),
+  "cam_pos": lambda s: _set(s.camera("cam"), "pos", [0.1, -1.2, 0.4]),
+  "cam_quat": lambda s: _set(s.camera("cam"), "quat", [1.0, 0.0, 0.3, 0.0]),
+  "light_pos": lambda s: _set(s.light("light"), "pos", [0.2, 0.0, 1.2]),
+  "light_dir": lambda s: _set(s.light("light"), "dir", [0.3, 0.0, -1.0]),
+  "geom_size": lambda s: _set(s.geom("wrap"), "size", [0.06, 0.05, 0.0]),
+  "geom_pos": lambda s: _set(s.geom("wrap"), "pos", [0.02, 0.0, 0.03]),
+  "geom_quat": lambda s: _set(s.geom("wrap"), "quat", [1.0, 0.4, 0.0, 0.0]),
+  "site_pos": lambda s: _set(s.site("s1"), "pos", [0.12, 0.0, -0.08]),
+  "site_quat": lambda s: _set(s.site("s2"), "quat", [1.0, 0.0, 0.0, 0.4]),
+}
 
-  link1_id = mujoco.mj_name2id(cpu_model, mujoco.mjtObj.mjOBJ_BODY, "link1")
-
-  # GPU path.
-  expand_fields = (
-    "body_mass",
-    "body_subtreemass",
-    "dof_invweight0",
-    "body_invweight0",
-  )
-  sim = Simulation(num_envs=1, cfg=SimulationCfg(), model=gpu_model, device=device)
-  sim.expand_model_fields(expand_fields)
-  sim.model.body_mass[0, link1_id] = 5.0
-  sim.recompute_constants(RecomputeLevel.set_const)
-
-  # CPU ground truth: apply same cfg mutations as Simulation.__init__.
-  SimulationCfg().mujoco.apply(cpu_model)
-  cpu_data = mujoco.MjData(cpu_model)
-  mujoco.mj_forward(cpu_model, cpu_data)
-  cpu_model.body_mass[link1_id] = 5.0
-  mujoco.mj_setConst(cpu_model, cpu_data)
-
-  for field in ("body_subtreemass", "dof_invweight0", "body_invweight0"):
-    gpu_val = getattr(sim.model, field)[0].cpu()
-    ref_val = torch.tensor(getattr(cpu_model, field), dtype=torch.float32)
-    torch.testing.assert_close(gpu_val, ref_val, atol=1e-4, rtol=1e-4)
-
-
-def test_body_ipos_recompute_matches_set_const(device):
-  """Modify body_ipos: GPU recompute matches CPU mj_setConst."""
-  gpu_model = mujoco.MjModel.from_xml_string(ROBOT_XML)
-  cpu_model = mujoco.MjModel.from_xml_string(ROBOT_XML)
-
-  link1_id = mujoco.mj_name2id(cpu_model, mujoco.mjtObj.mjOBJ_BODY, "link1")
-
-  # GPU path.
-  expand_fields = (
-    "body_ipos",
-    "body_subtreemass",
-    "dof_invweight0",
-    "body_invweight0",
-  )
-  sim = Simulation(num_envs=1, cfg=SimulationCfg(), model=gpu_model, device=device)
-  sim.expand_model_fields(expand_fields)
-  sim.model.body_ipos[0, link1_id, 0] += 0.05
-  sim.recompute_constants(RecomputeLevel.set_const)
-
-  # CPU ground truth: apply same cfg mutations as Simulation.__init__.
-  SimulationCfg().mujoco.apply(cpu_model)
-  cpu_data = mujoco.MjData(cpu_model)
-  mujoco.mj_forward(cpu_model, cpu_data)
-  cpu_model.body_ipos[link1_id, 0] += 0.05
-  # Clear body_sameframe so mj_kinematics recomputes xipos from body_ipos.
-  # (When sameframe != 0, mj_local2Global skips the ipos→xipos transform.)
-  cpu_model.body_sameframe[link1_id] = 0
-  mujoco.mj_setConst(cpu_model, cpu_data)
-
-  for field in ("dof_invweight0", "body_invweight0"):
-    gpu_val = getattr(sim.model, field)[0].cpu()
-    ref_val = torch.tensor(getattr(cpu_model, field), dtype=torch.float32)
-    torch.testing.assert_close(gpu_val, ref_val, atol=1e-4, rtol=1e-4)
+# Every field mujoco_warp.set_const writes.
+SET_CONST_OUTPUTS = (
+  "body_subtreemass",
+  "geom_size",
+  "geom_rbound",
+  "geom_aabb",
+  "tendon_length0",
+  "eq_data",
+  "cam_pos0",
+  "cam_poscom0",
+  "cam_mat0",
+  "light_pos0",
+  "light_poscom0",
+  "light_dir0",
+  "dof_invweight0",
+  "body_invweight0",
+  "tendon_invweight0",
+  "actuator_acc0",
+)
 
 
-def test_dof_armature_recompute_matches_recompile(device):
-  """Modify dof_armature: GPU recompute matches fresh MjSpec.compile()."""
-  spec = mujoco.MjSpec.from_string(ROBOT_XML)
-  original_model = spec.compile()
+def test_model_dependent_groups_are_skipped_when_unused():
+  """Without tendons, site actuators, or tracking cameras, these fields stay cheap."""
+  model = mujoco.MjModel.from_xml_string(ROBOT_XML)
+  assert recompute_groups(("geom_size",), model) == SetConstGroup.FIXED
+  for field in ("geom_pos", "site_pos", "site_quat", "cam_pos", "light_pos"):
+    assert recompute_groups((field,), model) == SetConstGroup.NONE
 
-  joint1_id = mujoco.mj_name2id(original_model, mujoco.mjtObj.mjOBJ_JOINT, "joint1")
 
-  # Ground truth: modify spec armature, recompile.
-  spec.joint("joint1").armature = 1.0
-  recompiled_model = spec.compile()
+@pytest.mark.parametrize("field", sorted(SPEC_EDITS))
+def test_recompute_matches_recompiled_spec(device, field):
+  """A DR write to world 0 recomputes exactly what recompiling the spec does,
+  and world 1 keeps the original values."""
+  spec = mujoco.MjSpec.from_string(SET_CONST_XML)
+  original = spec.compile()
+  SPEC_EDITS[field](spec)
+  edited = spec.compile()
 
-  # GPU path.
-  expand_fields = (
-    "dof_armature",
-    "dof_invweight0",
-    "body_invweight0",
-    "tendon_length0",
-    "tendon_invweight0",
-  )
-  sim = Simulation(num_envs=1, cfg=SimulationCfg(), model=original_model, device=device)
-  sim.expand_model_fields(expand_fields)
+  sim = Simulation(num_envs=2, cfg=SimulationCfg(), model=original, device=device)
 
-  dof_adr = original_model.jnt_dofadr[joint1_id]
-  sim.model.dof_armature[0, dof_adr] = 1.0
-  sim.recompute_constants(RecomputeLevel.set_const_0)
+  @requires_model_fields(field)
+  def write_world_0(env, env_ids):
+    del env_ids
+    target = getattr(env.sim.model, field)
+    value = torch.as_tensor(getattr(edited, field), dtype=target.dtype)
+    if field == "eq_data":  # Only the anchor is user-set; KIN0 derives the rest.
+      value = torch.as_tensor(original.eq_data, dtype=target.dtype)
+      value[:, :3] = torch.as_tensor(edited.eq_data[:, :3])
+    target[0] = value.reshape(target[0].shape).to(device)
 
-  gpu_dof_invweight = sim.model.dof_invweight0[0].cpu()
-  ref_dof_invweight = torch.tensor(recompiled_model.dof_invweight0, dtype=torch.float32)
-  torch.testing.assert_close(gpu_dof_invweight, ref_dof_invweight, atol=1e-4, rtol=1e-4)
+  env = Mock(num_envs=2, device=device, scene={}, sim=sim)
+  cfg = {"dr": EventTermCfg(mode="startup", func=write_world_0, params={})}
+  manager = EventManager(cfg, env)
+  sim.expand_model_fields(manager.domain_randomization_fields)
+  manager.apply("startup")
+
+  for name in (field, *SET_CONST_OUTPUTS):
+    arr = getattr(sim.model, name)
+    for world, ref in ((0, edited), (1, original)):
+      actual = arr[min(world, arr.shape[0] - 1)].cpu().flatten()
+      expected = torch.as_tensor(getattr(ref, name), dtype=actual.dtype).flatten()
+      torch.testing.assert_close(
+        actual, expected, atol=1e-5, rtol=1e-4, msg=f"{name}, world {world}"
+      )
 
 
 # ===========================================================================

@@ -13,10 +13,10 @@ import torch
 import warp as wp
 
 from mjlab.entity.variants import VARIANT_DEPENDENT_FIELDS, build_variant_model
-from mjlab.managers.event_manager import RecomputeLevel
 from mjlab.sim.randomization import expand_model_fields
 from mjlab.sim.sim_data import TorchArray, WarpBridge
 from mjlab.utils.nan_guard import NanGuard, NanGuardCfg
+from mjlab.utils.spec import compile_spec
 
 if TYPE_CHECKING:
   from mjlab.entity.variants import VariantMetadata
@@ -257,7 +257,7 @@ class Simulation:
     if spec is not None and variant_info:
       self._init_with_variants(spec, variant_info)
     elif spec is not None:
-      compiled = spec.compile()
+      compiled = compile_spec(spec)
       cfg.mujoco.apply(compiled)
       self._init_with_model(compiled)
     elif model is not None:
@@ -478,18 +478,14 @@ class Simulation:
       ).clone()
     return self._default_model_fields[field]
 
-  def recompute_constants(self, level: RecomputeLevel) -> None:
+  def recompute_constants(self, groups: mjwarp.SetConstGroup) -> None:
     """Recompute derived model constants after domain randomization.
 
     Args:
-      level: Which constants to recompute. ``set_const`` is the most
-        expensive (covers body_mass changes), ``set_const_0`` covers
-        qpos0/body_inertia/dof_armature changes, and ``set_const_fixed``
-        is the cheapest (covers body_gravcomp changes).
+      groups: mujoco_warp.SetConstGroup flags selecting what to recompute.
     """
-    fn = getattr(mjwarp, level.name)
     with wp.ScopedDevice(self.wp_device):
-      fn(self._wp_model, self._wp_data)
+      mjwarp.set_const(self._wp_model, self._wp_data, groups=groups)
 
   def forward(self) -> None:
     with wp.ScopedDevice(self.wp_device):
