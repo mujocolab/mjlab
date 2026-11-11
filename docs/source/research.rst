@@ -90,3 +90,6 @@ Projects built on mjlab. To add yours, open a pull request or post in
      - Prompt-driven motion training for Jumper, a 22-DoF crab robot.
    * - `vssinghh/so101-mjlab <https://github.com/vssinghh/so101-mjlab>`_
      - Sim to real cube lifting with the SO-ARM101 robot arm.
+   * - `HybridRobotics/supermimic <https://github.com/HybridRobotics/supermimic>`_
+     - `SuperTrack <https://montreal.ubisoft.com/en/supertrack-motion-tracking-for-physically-simulated-characters-using-supervised-learning/>`_
+       implementation that trains world models and policies to imitate motion data.
