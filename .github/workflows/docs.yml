@@ -6,6 +6,7 @@ on:
       - main
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -30,8 +31,23 @@ jobs:
         with:
           version: "0.12.1"
 
-      - name: Build Sphinx Documentation
-        run: uv run --group docs sphinx-multiversion docs docs/_build
+      # Pushes to main only rebuild main. The version metadata for all refs is
+      # still generated so the version switcher lists every release.
+      - name: Build main
+        if: github.ref_type == 'branch' && github.event_name == 'push'
+        shell: bash
+        run: |
+          uv run --group docs sphinx-multiversion docs docs/_build --dump-metadata \
+            | jq --arg d "$PWD/docs" '.main.confdir = $d' > "$RUNNER_TEMP/smv.json"
+          uv run --group docs sphinx-build -j auto \
+            -D smv_metadata_path="$RUNNER_TEMP/smv.json" \
+            -D smv_current_version=main \
+            docs docs/_build/main
+
+      # Releases rebuild every version so older pages list the new release.
+      - name: Build all versions
+        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
+        run: uv run --group docs sphinx-multiversion docs docs/_build -jauto
 
       - name: Add root redirect
         run: echo '<meta http-equiv="refresh" content="0; url=main/index.html">' > docs/_build/index.html
