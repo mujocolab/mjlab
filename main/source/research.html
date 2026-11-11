@@ -475,7 +475,17 @@ document.write(`
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#citing-mjlab">Citing mjlab</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#publications">Publications</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#publications">Publications</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#motion-tracking-and-teleoperation">Motion tracking and teleoperation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#motion-retargeting">Motion retargeting</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#locomotion">Locomotion</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#athletic-skills">Athletic skills</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#loco-manipulation">Loco-manipulation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dexterous-manipulation">Dexterous manipulation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#musculoskeletal-control">Musculoskeletal control</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#robot-design-and-learning-methods">Robot design and learning methods</a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#projects">Projects</a></li>
 </ul>
             </nav>
@@ -504,50 +514,155 @@ document.write(`
 </section>
 <section id="publications">
 <h2>Publications<a class="headerlink" href="#publications" title="Link to this heading">#</a></h2>
-<p>Papers that use mjlab. To add your work, open a pull request or post in
+<p>Papers that use mjlab, grouped by topic and sorted newest first. To add your work,
+open a pull request or post in
 <a class="reference external" href="https://github.com/mujocolab/mjlab/discussions/categories/show-and-tell">Show and Tell</a>.</p>
-<div class="pst-scrollable-table-container"><table class="table">
-<colgroup>
-<col style="width: 60.0%" />
-<col style="width: 30.0%" />
-<col style="width: 10.0%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Title</p></th>
-<th class="head"><p>Authors</p></th>
-<th class="head"><p>Year</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><a class="reference external" href="https://arxiv.org/abs/2602.03205">HUSKY: Humanoid Skateboarding System via Physics-Aware Whole-Body Control</a></p></td>
-<td><p>Han, Wang, Zhang, Liu, Luo, Bai, Li</p></td>
-<td><p>2026</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://arxiv.org/abs/2602.06827">DynaRetarget: Dynamically-Feasible Retargeting using Sampling-Based
-Trajectory Optimization</a></p></td>
-<td><p>Dhedin, Taouil, Omar, Yu, Tao, Dai, Khadiv</p></td>
-<td><p>2026</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://arxiv.org/abs/2602.15060">CLOT: Closed-Loop Global Motion Tracking for Whole-Body Humanoid
-Teleoperation</a></p></td>
-<td><p>Zhu, Cai, Yang, Ren, Xie, Wang, Wu, et al.</p></td>
-<td><p>2026</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://arxiv.org/abs/2607.28623">PAC-MAN: Perception-Aware CBF-RL for Whole-Body Safety in Humanoid
-Dodgeball</a>
-(<a class="reference external" href="https://github.com/lzyang2000/perceptive_cbf_rl">code</a>)</p></td>
-<td><p>Yang, Li, Ames</p></td>
-<td><p>2026</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://arxiv.org/abs/2610.28480">SuperMimic: Scaling Humanoid Whole-Body Control with One Differentiable World
+<section id="motion-tracking-and-teleoperation">
+<h3>Motion tracking and teleoperation<a class="headerlink" href="#motion-tracking-and-teleoperation" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.36615">HumiMimic: Mimetic Embodiment Transfer of Human-Humanoid Interaction from
+In-the-Wild Videos</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.32277">Delay Randomization Widens the Delay Margin of Learned Humanoid Motion Trackers</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.28480">SuperMimic: Scaling Humanoid Whole-Body Control with One Differentiable World
 Model</a>
-(<a class="reference external" href="https://github.com/HybridRobotics/supermimic">code</a>)</p></td>
-<td><p>Liao, Shao, Long, Zakka, Horowitz, Abbeel, Sreenath</p></td>
-<td><p>2026</p></td>
-</tr>
-</tbody>
-</table>
-</div>
+(<a class="reference external" href="https://github.com/HybridRobotics/supermimic">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.20606">Modeling and Understanding Neural Weights of Humanoid Policies with Diffusion</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.18991">Contact-UAN: Unsupervised Actuator Networks as a Residual World Model for Humanoid
+Control</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.09055">MimicX: Policy-in-the-Loop Supervision Refinement for Video-Driven Humanoid Motion
+Tracking</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.05324">CoDance: Learning Reactive and Compliant Human-Humanoid Interaction from Video</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.02341">Filter-Aware Fine-Tuning for Safe Humanoid Whole-Body Tracking</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2609.39000">NEXUS: Perceptive Whole-Body Control for Terrain-Adaptive Teleoperation</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2609.28378">ForgetMimic: Motion Unlearning for Reinforcement Learning Humanoid Control</a>
+(<a class="reference external" href="https://github.com/Zili1000/ForgetMimic">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2609.09918">ViBe: Visual Behavior Adaptation for Perceptive Humanoid Whole-Body Control</a>
+(<a class="reference external" href="https://github.com/lok-i/vibe">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2608.01834">Teleopit: A Full-Embodiment Humanoid Teleoperation System</a>
+(<a class="reference external" href="https://github.com/BotRunner64/Teleopit">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2608.00820">LooperMuscle: Fast and Stable Learning of Humanoid Whole-Body Tracking via
+Structured Mixture-of-Experts</a>
+(<a class="reference external" href="https://github.com/LooperMuscle/Code">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2607.19903">What Matters in Humanoid General Motion Tracking? An Empirical Study</a>
+(<a class="reference external" href="https://github.com/hucebot/yahmp">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2602.15060">CLOT: Closed-Loop Global Motion Tracking for Whole-Body Humanoid Teleoperation</a>
+(<a class="reference external" href="https://github.com/zhutengjie/CLOT">code</a>)</p></li>
+</ul>
+</section>
+<section id="motion-retargeting">
+<h3>Motion retargeting<a class="headerlink" href="#motion-retargeting" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.29169">SMR: Learning streaming motion retargeting for humanoids from human semantic</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.28470">Fast Motion Retargeting Pipeline for Scalable Humanoid Robot Learning</a>
+(<a class="reference external" href="https://github.com/DARoSLab/FRDV">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2608.03116">Shooting for Contact: Contact-Implicit Multiple Shooting for Dynamic Motion
+Retargeting</a>
+(<a class="reference external" href="https://github.com/sesteban951/shooting-for-contact">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2603.09956">Kinodynamic Motion Retargeting for Humanoid Locomotion via Multi-Contact
+Whole-Body Trajectory Optimization</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2602.06827">DynaRetarget: Dynamically-Feasible Retargeting using Sampling-Based Trajectory
+Optimization</a></p></li>
+</ul>
+</section>
+<section id="locomotion">
+<h3>Locomotion<a class="headerlink" href="#locomotion" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.04238">Humanoid Rickshaw Pulling: Whole-Body Locomotion under Coupled Wheeled Loads</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2609.28878">Online Sim-to-Real Adaptation via Closed-Loop System Modeling</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2609.21572">SABER: Learning Attention-based Semantic Affordance for Legged Locomotion</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2608.28090">Stay Seated: Learning Omnidirectional Humanoid Locomotion on a Passive Mobile
+Chair with Casters</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2607.24083">Learning Reusable Hybrid Motion Priors for Humanoid Locomotion from Motion
+Imitation</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2606.23249">LP-NavOA: Integrated Local Navigation and Obstacle Avoidance for Humanoid Robots
+under Limited Perception</a>
+(<a class="reference external" href="https://github.com/shenqiqishi/LP-NavOA-code">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2606.16542">ADAPT: Analytical Disturbance-Aware Policy Training for Humanoid Locomotion</a>
+(<a class="reference external" href="https://github.com/blyu413/ADAPT">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2606.10288">MARCH: Model-Assisted Reinforcement Learning for the Perceptive Control of
+Humanoids over Sparse Footholds</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2606.07083">Predictive Style Matching: Natural and Robust Humanoid Locomotion</a>
+(<a class="reference external" href="https://github.com/simeon-ned/predictive-style-matching">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2605.12084">Learning What Matters: Adaptive Information-Theoretic Objectives for Robot
+Exploration</a></p></li>
+</ul>
+</section>
+<section id="athletic-skills">
+<h3>Athletic skills<a class="headerlink" href="#athletic-skills" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.40003">Humanoid Dodgeball: Learning Fast Dynamic Obstacle Avoidance Motions for Humanoids</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2609.31840">Humanoid Badminton: Learning Dynamic Racket Skills from Limited Human Motion Data</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2608.20087">Towards Professional Tennis Styles for Humanoid Robots with Adaptive Motion
+Planning and Tracking</a>
+(<a class="reference external" href="https://github.com/noitom-robotics/AdaPT">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2607.28623">PAC-MAN: Perception-Aware CBF-RL for Whole-Body Safety in Humanoid Dodgeball</a>
+(<a class="reference external" href="https://github.com/lzyang2000/perceptive_cbf_rl">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2607.12702">Vision-Based Dribbling for Humanoid Soccer via Privileged Representation Learning</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2606.26215">TaskNPoint: How to Teach Your Humanoid to Hit a Backhand in Minutes</a>
+(<a class="reference external" href="https://github.com/wernerb43/tasknpoint">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2602.03205">HUSKY: Humanoid Skateboarding System via Physics-Aware Whole-Body Control</a>
+(<a class="reference external" href="https://github.com/TeleHuman/humanoid_skateboarding">code</a>)</p></li>
+</ul>
+</section>
+<section id="loco-manipulation">
+<h3>Loco-manipulation<a class="headerlink" href="#loco-manipulation" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://arxiv.org/abs/2611.05507">Ctrl-F: Force as an Interface for Humanoid Loco-Manipulation</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.36270">Learning Multi-Phase Robot Loco-Manipulation via Phase-Conditioned Policy
+Optimization</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.24847">DiPLO: Self-distilled Diffusion Planning for Loco-manipulation</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.20968">SOMA: Stack-of-Objects Manipulation using a Quadruped Robot</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.13087">Belief-Overlap Partial Inversion: Object-Centric Flow Replanning for Humanoid
+Loco-Manipulation</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.09117">Workhorse: Learning Robust Whole-Body Humanoid Loco-Manipulation from Human Data</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.05678">Dataset-Free Compliant Humanoid Loco-Manipulation with Dynamic Online Posture</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2609.19340">ViLoMan: Learning Visual-Proprioceptive Whole-Body Loco-Manipulation Skills for
+Humanoid Robots</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2608.12063">Learning Loco-Manipulation From SMPC Demonstrations With Sparse Offline-to-Online
+RL</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2606.06493">HANDOFF: Humanoid Agentic Task-Space Whole-Body Control via Distilled
+Complementary Teachers</a>
+(<a class="reference external" href="https://github.com/lzyang2000/HANDOFF">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2606.05687">Accelerating and Scaling MPC-Guided Reinforcement Learning for Humanoid Locomotion
+and Manipulation</a>
+(<a class="reference external" href="https://github.com/junhengl/mpc-rl">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2605.03452">BifrostUMI: Bridging Robot-Free Demonstrations and Humanoid Whole-Body
+Manipulation</a></p></li>
+</ul>
+</section>
+<section id="dexterous-manipulation">
+<h3>Dexterous manipulation<a class="headerlink" href="#dexterous-manipulation" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.37652">Dexterous In-Hand Object Pose Reaching with Learned Safety Filters</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.22184">Whole-Body Dexterity</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.13643">DexBioLab: Benchmarking Dexterous Manipulation with Dynamic Experimental Phenomena
+in Realistic Laboratories</a>
+(<a class="reference external" href="https://github.com/CumulusAlpha/DexBioLab">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2609.32064">Grasp2Twist: Learning Bimanual Dexterous Jar Opening by Reinforcement Learning</a></p></li>
+</ul>
+</section>
+<section id="musculoskeletal-control">
+<h3>Musculoskeletal control<a class="headerlink" href="#musculoskeletal-control" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://arxiv.org/abs/2610.36535">A generalist policy for muscle-driven control across individual musculoskeletal
+models</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2609.19690">UniExo: Unified Multi-Skill Policies for Musculoskeletal Locomotion and
+Co-Adaptive Exoskeleton Control</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2603.08617">Diff-Muscle: Efficient Learning for Musculoskeletal Robotic Table Tennis</a></p></li>
+</ul>
+</section>
+<section id="robot-design-and-learning-methods">
+<h3>Robot design and learning methods<a class="headerlink" href="#robot-design-and-learning-methods" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://arxiv.org/abs/2609.38405">Draft: A Parametric Tool for Robot Design Exploration</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2609.26989">Spiderbot: An Open-Source Energy-Efficient Hexapod with Passive Gravity
+Compensation</a>
+(<a class="reference external" href="https://github.com/ERC-BPGC/SpiderBot">code</a>)</p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2609.19588">Quantifying Mechanical Intelligence in Legged Robots with Information Theory</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2609.08905">Visible-Reachable Workspace for Perception-Aware Humanoid Design</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2603.19078">Articulated-Body Dynamics Network: Dynamics-Grounded Prior for Robot Learning</a></p></li>
+</ul>
+</section>
 </section>
 <section id="projects">
 <h2>Projects<a class="headerlink" href="#projects" title="Link to this heading">#</a></h2>
@@ -660,7 +775,17 @@ open-source 25 cm bipedal robot from Pollen Robotics and Hugging Face.</p></td>
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#citing-mjlab">Citing mjlab</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#publications">Publications</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#publications">Publications</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#motion-tracking-and-teleoperation">Motion tracking and teleoperation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#motion-retargeting">Motion retargeting</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#locomotion">Locomotion</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#athletic-skills">Athletic skills</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#loco-manipulation">Loco-manipulation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dexterous-manipulation">Dexterous manipulation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#musculoskeletal-control">Musculoskeletal control</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#robot-design-and-learning-methods">Robot design and learning methods</a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#projects">Projects</a></li>
 </ul>
   </nav></div>
