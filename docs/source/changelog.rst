@@ -51,6 +51,8 @@ Changed
 Fixed
 ^^^^^
 
+- ``export-scene`` no longer deletes a non-empty ``--output-dir``. Pass
+  ``--overwrite True`` to replace a previous export. Contribution by @saikishor.
 - ``upright`` now uses the root body when ``asset_cfg`` selects no bodies, instead
   of raising a shape error on multi-body entities. Contribution by @yunyv.
 - Delayed position actuators now hold the post-reset joint positions until the
