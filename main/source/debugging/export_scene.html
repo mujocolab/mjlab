@@ -526,7 +526,11 @@ that returns an <code class="docutils literal notranslate"><span class="pre">Ent
 <section id="options">
 <h2>Options<a class="headerlink" href="#options" title="Link to this heading">#</a></h2>
 <dl class="simple">
-<dt><code class="docutils literal notranslate"><span class="pre">--output-dir</span> <span class="pre">DIR</span></code> <em>(default: “export”)</em></dt><dd><p>Destination directory. Cleaned before each export to prevent stale assets.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">--output-dir</span> <span class="pre">DIR</span></code> <em>(default: “export”)</em></dt><dd><p>Destination directory. The export stops with an error if it already exists and
+is not empty, so existing files are never deleted by accident.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">--overwrite</span> <span class="pre">True</span></code> <em>(default: False)</em></dt><dd><p>Delete a non-empty output directory before exporting, to replace a previous
+export without leaving stale assets behind.</p>
 </dd>
 <dt><code class="docutils literal notranslate"><span class="pre">--zip</span> <span class="pre">True</span></code> <em>(default: False)</em></dt><dd><p>Compress the output into a <code class="docutils literal notranslate"><span class="pre">.zip</span></code> archive and remove the directory.</p>
 </dd>
