@@ -545,10 +545,8 @@ document.write(`
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Post-graph: compute raycast hit positions.&quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">raycast_sensors</span><span class="p">:</span>
       <span class="n">sensor</span><span class="o">.</span><span class="n">postprocess_rays</span><span class="p">()</span>
-    <span class="c1"># Fresh render results: drop camera data cached by a pre-sense read so</span>
-    <span class="c1"># observations serve this step&#39;s frames (mirrors the raycast</span>
-    <span class="c1"># invalidation in postprocess_rays).</span>
-    <span class="k">for</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera_sensors</span><span class="p">:</span>
+    <span class="c1"># Drop data cached by a pre-sense read so it reflects the new buffers.</span>
+    <span class="k">for</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">raycast_sensors</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">camera_sensors</span><span class="p">):</span>
       <span class="n">sensor</span><span class="o">.</span><span class="n">_invalidate_cache</span><span class="p">()</span></div>
 
 

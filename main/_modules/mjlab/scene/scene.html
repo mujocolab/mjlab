@@ -636,6 +636,14 @@ document.write(`
     <span class="k">for</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sensors</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
       <span class="n">sensor</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
 
+<div class="viewcode-block" id="Scene.invalidate_sensor_caches">
+<a class="viewcode-back" href="../../../source/api/scene.html#mjlab.scene.Scene.invalidate_sensor_caches">[docs]</a>
+  <span class="k">def</span><span class="w"> </span><span class="nf">invalidate_sensor_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Drop every sensor&#39;s cached data, e.g. after the sim data changed.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sensors</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+      <span class="n">sensor</span><span class="o">.</span><span class="n">_invalidate_cache</span><span class="p">()</span></div>
+
+
 <div class="viewcode-block" id="Scene.write_data_to_sim">
 <a class="viewcode-back" href="../../../source/api/scene.html#mjlab.scene.Scene.write_data_to_sim">[docs]</a>
   <span class="k">def</span><span class="w"> </span><span class="nf">write_data_to_sim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>

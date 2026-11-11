@@ -528,8 +528,10 @@ document.write(`
 
 <span class="sd">    This property returns the sensor&#39;s current data in its specific type.</span>
 <span class="sd">    The data type is specified by the type parameter T. The data is cached</span>
-<span class="sd">    per-step and recomputed only when the cache is invalidated (after</span>
-<span class="sd">    `reset()` or `update()` is called).</span>
+<span class="sd">    and recomputed only after the cache is invalidated: by `reset()` and</span>
+<span class="sd">    `update()`, and, inside an env, whenever the simulation data changes</span>
+<span class="sd">    (`step()`, `forward()`, `reset()`) or `sense()` refreshes ray and render</span>
+<span class="sd">    buffers.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The sensor data in the format specified by type parameter T.</span>
@@ -545,7 +547,9 @@ document.write(`
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute and return the sensor data.</span>
 
 <span class="sd">    Subclasses must implement this method to compute the sensor&#39;s data.</span>
-<span class="sd">    This is called by the `data` property when the cache is invalid.</span>
+<span class="sd">    This is called by the `data` property when the cache is invalid, possibly</span>
+<span class="sd">    more than once per env step, so it must not have side effects. Keep</span>
+<span class="sd">    per-step state in `update()`.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The computed sensor data.</span>

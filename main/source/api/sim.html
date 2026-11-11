@@ -485,6 +485,7 @@ document.write(`
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.Simulation.expand_model_fields"><code class="docutils literal notranslate"><span class="pre">Simulation.expand_model_fields()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.Simulation.get_default_field"><code class="docutils literal notranslate"><span class="pre">Simulation.get_default_field()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.Simulation.recompute_constants"><code class="docutils literal notranslate"><span class="pre">Simulation.recompute_constants()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.Simulation.add_data_listener"><code class="docutils literal notranslate"><span class="pre">Simulation.add_data_listener()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.Simulation.set_sensor_context"><code class="docutils literal notranslate"><span class="pre">Simulation.set_sensor_context()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.Simulation.sense"><code class="docutils literal notranslate"><span class="pre">Simulation.sense()</span></code></a></li>
 </ul>
@@ -659,6 +660,12 @@ qpos0/body_inertia/dof_armature changes, and <code class="docutils literal notra
 is the cheapest (covers body_gravcomp changes).</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.sim.Simulation.add_data_listener">
+<span class="sig-name descname"><span class="pre">add_data_listener</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/sim/sim.html#Simulation.add_data_listener"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sim.Simulation.add_data_listener" title="Link to this definition">#</a></dt>
+<dd><p>Call <code class="docutils literal notranslate"><span class="pre">fn</span></code> whenever <code class="docutils literal notranslate"><span class="pre">step()</span></code>, <code class="docutils literal notranslate"><span class="pre">forward()</span></code> or <code class="docutils literal notranslate"><span class="pre">reset()</span></code> changes data.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -943,6 +950,7 @@ such as expand_model_fields(), to ensure the cache reflects the updated arrays.<
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.Simulation.expand_model_fields"><code class="docutils literal notranslate"><span class="pre">Simulation.expand_model_fields()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.Simulation.get_default_field"><code class="docutils literal notranslate"><span class="pre">Simulation.get_default_field()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.Simulation.recompute_constants"><code class="docutils literal notranslate"><span class="pre">Simulation.recompute_constants()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.Simulation.add_data_listener"><code class="docutils literal notranslate"><span class="pre">Simulation.add_data_listener()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.Simulation.set_sensor_context"><code class="docutils literal notranslate"><span class="pre">Simulation.set_sensor_context()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.Simulation.sense"><code class="docutils literal notranslate"><span class="pre">Simulation.sense()</span></code></a></li>
 </ul>

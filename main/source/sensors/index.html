@@ -913,12 +913,14 @@ for full documentation.</p>
 <code class="docutils literal notranslate"><span class="pre">T</span></code> is the data type returned by the <code class="docutils literal notranslate"><span class="pre">data</span></code> property (e.g.,
 <code class="docutils literal notranslate"><span class="pre">torch.Tensor</span></code> for <code class="docutils literal notranslate"><span class="pre">BuiltinSensor</span></code>, <code class="docutils literal notranslate"><span class="pre">ContactData</span></code> for
 <code class="docutils literal notranslate"><span class="pre">ContactSensor</span></code>).</p>
-<p>The base class provides automatic per-step caching. The <code class="docutils literal notranslate"><span class="pre">data</span></code>
-property calls <code class="docutils literal notranslate"><span class="pre">_compute_data()</span></code> on first access each step and
-caches the result. The cache is invalidated automatically when
-<code class="docutils literal notranslate"><span class="pre">update()</span></code> or <code class="docutils literal notranslate"><span class="pre">reset()</span></code> is called, so multiple reads within the
-same step (from different observation or reward terms) pay the
-computation cost only once.</p>
+<p>The base class caches the output of <code class="docutils literal notranslate"><span class="pre">_compute_data()</span></code>. The cache is
+invalidated whenever the data it depends on changes: by <code class="docutils literal notranslate"><span class="pre">update()</span></code>
+and <code class="docutils literal notranslate"><span class="pre">reset()</span></code>, after every <code class="docutils literal notranslate"><span class="pre">sim.step()</span></code>, <code class="docutils literal notranslate"><span class="pre">sim.forward()</span></code> and
+<code class="docutils literal notranslate"><span class="pre">sim.reset()</span></code>, and after <code class="docutils literal notranslate"><span class="pre">sim.sense()</span></code> refreshes ray and render
+buffers. Reads between those points (from different observation or
+reward terms) pay the computation cost only once. Because a step can
+recompute the data more than once, <code class="docutils literal notranslate"><span class="pre">_compute_data()</span></code> must not have
+side effects; keep per-step state in <code class="docutils literal notranslate"><span class="pre">update()</span></code>.</p>
 <p><strong>Lifecycle methods:</strong></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">edit_spec</span></code>: Add sensor elements to the MjSpec during scene

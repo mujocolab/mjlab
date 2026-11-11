@@ -790,8 +790,10 @@ is ready to run. Use this to cache sensor indices, allocate buffers, etc.</p>
 <dd><p>Get the current sensor data, using cached value if available.</p>
 <p>This property returns the sensor’s current data in its specific type.
 The data type is specified by the type parameter T. The data is cached
-per-step and recomputed only when the cache is invalidated (after
-<cite>reset()</cite> or <cite>update()</cite> is called).</p>
+and recomputed only after the cache is invalidated: by <cite>reset()</cite> and
+<cite>update()</cite>, and, inside an env, whenever the simulation data changes
+(<cite>step()</cite>, <cite>forward()</cite>, <cite>reset()</cite>) or <cite>sense()</cite> refreshes ray and render
+buffers.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>The sensor data in the format specified by type parameter T.</p>

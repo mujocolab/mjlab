@@ -481,6 +481,7 @@ document.write(`
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.to_zip"><code class="docutils literal notranslate"><span class="pre">Scene.to_zip()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.collect_variant_info"><code class="docutils literal notranslate"><span class="pre">Scene.collect_variant_info()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.sensor_context"><code class="docutils literal notranslate"><span class="pre">Scene.sensor_context</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.invalidate_sensor_caches"><code class="docutils literal notranslate"><span class="pre">Scene.invalidate_sensor_caches()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.write_data_to_sim"><code class="docutils literal notranslate"><span class="pre">Scene.write_data_to_sim()</span></code></a></li>
 </ul>
 </li>
@@ -563,6 +564,12 @@ avoid mutation.</p>
 <dt class="sig sig-object py" id="mjlab.scene.Scene.sensor_context">
 <em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sensor_context</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="sensor.html#mjlab.sensor.SensorContext" title="mjlab.sensor.sensor_context.SensorContext"><span class="pre">SensorContext</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></em><a class="headerlink" href="#mjlab.scene.Scene.sensor_context" title="Link to this definition">#</a></dt>
 <dd><p>Shared sensing resources, or None if no cameras/raycasts.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.scene.Scene.invalidate_sensor_caches">
+<span class="sig-name descname"><span class="pre">invalidate_sensor_caches</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/scene/scene.html#Scene.invalidate_sensor_caches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.scene.Scene.invalidate_sensor_caches" title="Link to this definition">#</a></dt>
+<dd><p>Drop every sensor’s cached data, e.g. after the sim data changed.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -678,6 +685,7 @@ have been added but before compilation.</p>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.to_zip"><code class="docutils literal notranslate"><span class="pre">Scene.to_zip()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.collect_variant_info"><code class="docutils literal notranslate"><span class="pre">Scene.collect_variant_info()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.sensor_context"><code class="docutils literal notranslate"><span class="pre">Scene.sensor_context</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.invalidate_sensor_caches"><code class="docutils literal notranslate"><span class="pre">Scene.invalidate_sensor_caches()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.write_data_to_sim"><code class="docutils literal notranslate"><span class="pre">Scene.write_data_to_sim()</span></code></a></li>
 </ul>
 </li>

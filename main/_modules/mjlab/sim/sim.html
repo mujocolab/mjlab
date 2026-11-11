@@ -415,6 +415,7 @@ document.write(`
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">gc</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">cast</span>
@@ -775,6 +776,7 @@ document.write(`
     <span class="bp">self</span><span class="o">.</span><span class="n">_model_bridge</span> <span class="o">=</span> <span class="n">WarpBridge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wp_model</span><span class="p">,</span> <span class="n">nworld</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_envs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_data_bridge</span> <span class="o">=</span> <span class="n">WarpBridge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wp_data</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_sensor_context</span><span class="p">:</span> <span class="n">SensorContext</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_data_listeners</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">use_cuda_graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_use_cuda_graph</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">create_graph</span><span class="p">()</span>
@@ -937,6 +939,7 @@ document.write(`
         <span class="n">wp</span><span class="o">.</span><span class="n">capture_launch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">forward_graph</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">mjwarp</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wp_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">wp_data</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_notify_data_changed</span><span class="p">()</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">with</span> <span class="n">wp</span><span class="o">.</span><span class="n">ScopedDevice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wp_device</span><span class="p">):</span>
@@ -945,6 +948,7 @@ document.write(`
           <span class="n">wp</span><span class="o">.</span><span class="n">capture_launch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">step_graph</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">mjwarp</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wp_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">wp_data</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_notify_data_changed</span><span class="p">()</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">with</span> <span class="n">wp</span><span class="o">.</span><span class="n">ScopedDevice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wp_device</span><span class="p">):</span>
@@ -958,6 +962,14 @@ document.write(`
         <span class="n">wp</span><span class="o">.</span><span class="n">capture_launch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reset_graph</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">mjwarp</span><span class="o">.</span><span class="n">reset_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wp_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">wp_data</span><span class="p">,</span> <span class="n">reset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_reset_mask_wp</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_notify_data_changed</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Simulation.add_data_listener">
+<a class="viewcode-back" href="../../../source/api/sim.html#mjlab.sim.Simulation.add_data_listener">[docs]</a>
+  <span class="k">def</span><span class="w"> </span><span class="nf">add_data_listener</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Call ``fn`` whenever ``step()``, ``forward()`` or ``reset()`` changes data.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_data_listeners</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="Simulation.set_sensor_context">
 <a class="viewcode-back" href="../../../source/api/sim.html#mjlab.sim.Simulation.set_sensor_context">[docs]</a>
@@ -996,6 +1008,10 @@ document.write(`
 
 
   <span class="c1"># Private methods.</span>
+
+  <span class="k">def</span><span class="w"> </span><span class="nf">_notify_data_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_listeners</span><span class="p">:</span>
+      <span class="n">fn</span><span class="p">()</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">_sense_kernel</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;GPU kernel sequence for sensing (captured in sense_graph).&quot;&quot;&quot;</span>
