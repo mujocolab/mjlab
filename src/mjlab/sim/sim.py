@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gc
 import warnings
+from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal, cast
@@ -345,6 +346,7 @@ class Simulation:
     self._model_bridge = WarpBridge(self._wp_model, nworld=self.num_envs)
     self._data_bridge = WarpBridge(self._wp_data)
     self._sensor_context: SensorContext | None = None
+    self._data_listeners: list[Callable[[], None]] = []
 
     self.use_cuda_graph = self._should_use_cuda_graph()
     self.create_graph()
@@ -495,6 +497,7 @@ class Simulation:
         wp.capture_launch(self.forward_graph)
       else:
         mjwarp.forward(self.wp_model, self.wp_data)
+    self._notify_data_changed()
 
   def step(self) -> None:
     with wp.ScopedDevice(self.wp_device):
@@ -503,6 +506,7 @@ class Simulation:
           wp.capture_launch(self.step_graph)
         else:
           mjwarp.step(self.wp_model, self.wp_data)
+    self._notify_data_changed()
 
   def reset(self, env_ids: torch.Tensor | None = None) -> None:
     with wp.ScopedDevice(self.wp_device):
@@ -516,6 +520,11 @@ class Simulation:
         wp.capture_launch(self.reset_graph)
       else:
         mjwarp.reset_data(self.wp_model, self.wp_data, reset=self._reset_mask_wp)
+    self._notify_data_changed()
+
+  def add_data_listener(self, fn: Callable[[], None]) -> None:
+    """Call ``fn`` whenever ``step()``, ``forward()`` or ``reset()`` changes data."""
+    self._data_listeners.append(fn)
 
   def set_sensor_context(self, ctx: SensorContext) -> None:
     """Wire a SensorContext for camera/raycast sensing.
@@ -548,6 +557,10 @@ class Simulation:
     ctx.finalize()
 
   # Private methods.
+
+  def _notify_data_changed(self) -> None:
+    for fn in self._data_listeners:
+      fn()
 
   def _sense_kernel(self) -> None:
     """GPU kernel sequence for sensing (captured in sense_graph)."""

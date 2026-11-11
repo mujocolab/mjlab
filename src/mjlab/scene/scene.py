@@ -206,6 +206,11 @@ class Scene:
     for sensor in self._sensors.values():
       sensor.update(dt)
 
+  def invalidate_sensor_caches(self) -> None:
+    """Drop every sensor's cached data, e.g. after the sim data changed."""
+    for sensor in self._sensors.values():
+      sensor._invalidate_cache()
+
   def write_data_to_sim(self, env_ids: torch.Tensor | None = None) -> None:
     """Write controls for a physics step, or initialize env_ids after a reset."""
     for ent in self._entities.values():
