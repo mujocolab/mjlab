@@ -8,6 +8,8 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
+  local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
 - ``GridPatternCfg.resolution`` accepts a per-axis ``(x, y)`` tuple.
 - Added a ``cu126`` extra (``uv sync --extra cu126``) that installs torch built for
@@ -52,6 +54,8 @@ Changed
 Fixed
 ^^^^^
 
+- ``upright`` now uses the root body when ``asset_cfg`` selects no bodies, instead
+  of raising a shape error on multi-body entities. Contribution by @yunyv.
 - Delayed position actuators now hold the post-reset joint positions until the
   first action arrives, instead of driving toward 0 for their first ``lag``
   physics steps after every reset. Targets set during the reset are kept.
