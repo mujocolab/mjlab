@@ -55,6 +55,8 @@ Changed
 Fixed
 ^^^^^
 
+- ``BuiltinPdActuator`` now sends position and velocity targets to the right
+  elements when ``EntityCfg.sort_actuators=True``. Contribution by @saikishor.
 - Observations no longer read sensor data cached before the ``forward()`` at the
   end of ``step()``, which made contact observations depend on whether another
   environment reset that step. The simulation now invalidates sensor caches

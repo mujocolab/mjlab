@@ -619,6 +619,9 @@ document.write(`
         <span class="n">transmission_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">transmission_type</span><span class="p">,</span>
       <span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_mjs_actuators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vel_act</span><span class="p">)</span>
+    <span class="c1"># Entity(sort_actuators=True) calls this once per target, which would</span>
+    <span class="c1"># interleave pos/vel. A stable sort restores the [pos..., vel...] layout.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_mjs_actuators</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_pd_vel&quot;</span><span class="p">))</span>
     <span class="c1"># Effort limit: sum-clamp on the joint/tendon, not on each element.</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">effort_limit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">lim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">effort_limit</span>

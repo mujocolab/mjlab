@@ -603,6 +603,8 @@ attribute of the <code class="docutils literal notranslate"><span class="pre">rs
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">BuiltinPdActuator</span></code> now sends position and velocity targets to the right
+elements when <code class="docutils literal notranslate"><span class="pre">EntityCfg.sort_actuators=True</span></code>. Contribution by &#64;saikishor.</p></li>
 <li><p>Observations no longer read sensor data cached before the <code class="docutils literal notranslate"><span class="pre">forward()</span></code> at the
 end of <code class="docutils literal notranslate"><span class="pre">step()</span></code>, which made contact observations depend on whether another
 environment reset that step. The simulation now invalidates sensor caches
