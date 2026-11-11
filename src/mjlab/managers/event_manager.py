@@ -47,13 +47,13 @@ _RECOMPUTE_GROUPS: dict[str, SetConstGroup] = {
 }
 
 _TRACKING = [
-  mujoco.mjtCamLight.mjCAMLIGHT_TRACK,
-  mujoco.mjtCamLight.mjCAMLIGHT_TRACKCOM,
+  int(mujoco.mjtCamLight.mjCAMLIGHT_TRACK),
+  int(mujoco.mjtCamLight.mjCAMLIGHT_TRACKCOM),
 ]
 _SPATIAL_WRAPS = [
-  mujoco.mjtWrap.mjWRAP_SITE,
-  mujoco.mjtWrap.mjWRAP_SPHERE,
-  mujoco.mjtWrap.mjWRAP_CYLINDER,
+  int(mujoco.mjtWrap.mjWRAP_SITE),
+  int(mujoco.mjtWrap.mjWRAP_SPHERE),
+  int(mujoco.mjtWrap.mjWRAP_CYLINDER),
 ]
 
 # The fields each group writes. They are expanded per world along with the
