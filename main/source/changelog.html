@@ -577,6 +577,10 @@ The velocity, manipulation and tracking runners now share this export path.</p><
 <section id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Regex keys in <code class="docutils literal notranslate"><span class="pre">init_state.joint_pos</span></code>/<code class="docutils literal notranslate"><span class="pre">joint_vel</span></code>, <code class="docutils literal notranslate"><span class="pre">posture_target</span></code> and spec
+config <code class="docutils literal notranslate"><span class="pre">*_names_expr</span></code> fields now match whole names, so <code class="docutils literal notranslate"><span class="pre">&quot;joint1&quot;</span></code> no longer
+matches <code class="docutils literal notranslate"><span class="pre">joint10</span></code>. Keys in <code class="docutils literal notranslate"><span class="pre">joint_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">joint_vel</span></code> or <code class="docutils literal notranslate"><span class="pre">posture_target</span></code> that
+match no joint now raise. Contribution by &#64;saikishor.</p></li>
 <li><p>Heightfield terrains now lay hfield rows along y and columns along x, as MuJoCo
 expects. Non-square sub-terrains are no longer stretched with flat patches off the
 terrain; square ones are mirrored across x=y for a given seed.</p></li>
