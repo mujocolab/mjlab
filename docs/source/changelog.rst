@@ -51,6 +51,8 @@ Changed
 Fixed
 ^^^^^
 
+- ``upright`` now uses the root body when ``asset_cfg`` selects no bodies, instead
+  of raising a shape error on multi-body entities. Contribution by @yunyv.
 - Delayed position actuators now hold the post-reset joint positions until the
   first action arrives, instead of driving toward 0 for their first ``lag``
   physics steps after every reset. Targets set during the reset are kept.
