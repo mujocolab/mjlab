@@ -38,8 +38,7 @@ class PlayConfig:
   wandb_checkpoint_name: str | None = None
   """Optional checkpoint name within the W&B run to load (e.g. 'model_4000.pt')."""
   checkpoint_file: str | None = None
-  """Local checkpoint path, or 'latest' for the newest run's highest-numbered
-  checkpoint under ``{log_root}/{experiment_name}/``."""
+  """Local checkpoint path, or 'latest' for the newest local run's last checkpoint."""
   motion_file: str | None = None
   num_envs: int | None = None
   device: str | None = None
@@ -137,7 +136,9 @@ def run_play(task_id: str, cfg: PlayConfig):
     log_root_path = (Path(cfg.log_root) / agent_cfg.experiment_name).resolve()
     if cfg.checkpoint_file is not None:
       if cfg.checkpoint_file == "latest":
-        resume_path = get_checkpoint_path(log_root_path, checkpoint="model_.*.pt")
+        resume_path = get_checkpoint_path(
+          log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint
+        )
       else:
         resume_path = Path(cfg.checkpoint_file)
       if not resume_path.exists():

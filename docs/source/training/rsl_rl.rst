@@ -124,11 +124,8 @@ Some commonly used top-level flags:
     uv run play Mjlab-Velocity-Flat-Unitree-G1 \
         --checkpoint-file logs/rsl_rl/g1_velocity/2025-01-27_14-30-00/model_1000.pt
 
-    # From the latest local run and checkpoint.
+    # From the last checkpoint of the newest local run.
     uv run play Mjlab-Velocity-Flat-Unitree-G1 --checkpoint-file latest
-
-``latest`` loads the highest-numbered checkpoint from the newest run (by name)
-under ``{log_root}/{experiment_name}/``. The selected run must contain a checkpoint.
 
 Key ``play`` arguments:
 

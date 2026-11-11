@@ -378,11 +378,11 @@ Train:
 
     uv run train Mjlab-Cartpole-Swingup --env.scene.num-envs 4096
 
-Play back a trained checkpoint, either from a local file or a W&B run:
+Play back the newest local checkpoint, or one from a W&B run:
 
 .. code-block:: bash
 
-    uv run play Mjlab-Cartpole-Swingup --checkpoint-file logs/rsl_rl/cartpole/model_500.pt
+    uv run play Mjlab-Cartpole-Swingup --checkpoint-file latest
     uv run play Mjlab-Cartpole-Swingup --wandb-run-path <user/project/run_id>
 
 .. figure:: ../_static/tutorials/cartpole_training_curve.png
