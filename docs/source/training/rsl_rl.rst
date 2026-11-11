@@ -124,6 +124,9 @@ Some commonly used top-level flags:
     uv run play Mjlab-Velocity-Flat-Unitree-G1 \
         --checkpoint-file logs/rsl_rl/g1_velocity/2025-01-27_14-30-00/model_1000.pt
 
+    # From the last checkpoint of the newest local run.
+    uv run play Mjlab-Velocity-Flat-Unitree-G1 --checkpoint-file latest
+
 Key ``play`` arguments:
 
 ``--agent``
