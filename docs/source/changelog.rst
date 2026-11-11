@@ -8,6 +8,8 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
+  local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
 - ``GridPatternCfg.resolution`` accepts a per-axis ``(x, y)`` tuple.
 - Added a ``cu126`` extra (``uv sync --extra cu126``) that installs torch built for
@@ -27,6 +29,10 @@ Added
 Changed
 ^^^^^^^
 
+- Regex keys in ``init_state.joint_pos``/``joint_vel``, ``posture_target`` and spec
+  config ``*_names_expr`` fields now match whole names, so ``"joint1"`` no longer
+  matches ``joint10``. Keys in ``joint_pos``, ``joint_vel`` or ``posture_target`` that
+  match no joint now raise. Contribution by @saikishor.
 - Heightfield terrains now lay hfield rows along y and columns along x, as MuJoCo
   expects. Non-square sub-terrains are no longer stretched with flat patches off the
   terrain; square ones are mirrored across x=y for a given seed.
@@ -50,8 +56,15 @@ Fixed
 ^^^^^
 
 - ``BuiltinPdActuator`` now sends position and velocity targets to the right
-  ctrl elements when ``EntityCfg.sort_actuators=True``. Before, the elements were
-  interleaved per joint, so targets and ``dr.pd_gains`` hit the wrong elements.
+  elements when ``EntityCfg.sort_actuators=True``. Contribution by @saikishor.
+- Observations no longer read sensor data cached before the ``forward()`` at the
+  end of ``step()``, which made contact observations depend on whether another
+  environment reset that step. The simulation now invalidates sensor caches
+  whenever its data changes. Reported by @Chr0mium24 in :issue:`1309`.
+- ``export-scene`` no longer deletes a non-empty ``--output-dir``. Pass
+  ``--overwrite True`` to replace a previous export. Contribution by @saikishor.
+- ``upright`` now uses the root body when ``asset_cfg`` selects no bodies, instead
+  of raising a shape error on multi-body entities. Contribution by @yunyv.
 - Delayed position actuators now hold the post-reset joint positions until the
   first action arrives, instead of driving toward 0 for their first ``lag``
   physics steps after every reset. Targets set during the reset are kept.

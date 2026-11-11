@@ -16,7 +16,7 @@ from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
 from mjlab.scripts._cli import maybe_print_top_level_help
 from mjlab.tasks.registry import list_tasks, load_env_cfg, load_rl_cfg, load_runner_cls
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
-from mjlab.utils.os import get_wandb_checkpoint_path
+from mjlab.utils.os import get_checkpoint_path, get_wandb_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.utils.wrappers import VideoRecorder
 from mjlab.viewer import NativeMujocoViewer, ViserPlayViewer
@@ -38,6 +38,7 @@ class PlayConfig:
   wandb_checkpoint_name: str | None = None
   """Optional checkpoint name within the W&B run to load (e.g. 'model_4000.pt')."""
   checkpoint_file: str | None = None
+  """Local checkpoint path, or 'latest' for the newest local run's last checkpoint."""
   motion_file: str | None = None
   num_envs: int | None = None
   device: str | None = None
@@ -134,10 +135,15 @@ def run_play(task_id: str, cfg: PlayConfig):
   if TRAINED_MODE:
     log_root_path = (Path(cfg.log_root) / agent_cfg.experiment_name).resolve()
     if cfg.checkpoint_file is not None:
-      resume_path = Path(cfg.checkpoint_file)
+      if cfg.checkpoint_file == "latest":
+        resume_path = get_checkpoint_path(
+          log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint
+        )
+      else:
+        resume_path = Path(cfg.checkpoint_file)
       if not resume_path.exists():
         raise FileNotFoundError(f"Checkpoint file not found: {resume_path}")
-      print(f"[INFO]: Loading checkpoint: {resume_path.name}")
+      print(f"[INFO]: Loading checkpoint: {resume_path}")
     else:
       if cfg.wandb_run_path is None:
         raise ValueError(
