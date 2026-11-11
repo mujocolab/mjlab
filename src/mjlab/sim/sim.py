@@ -209,11 +209,11 @@ class Simulation:
 
   CUDA Graph Capture
   ------------------
-  On CUDA devices with memory pools enabled, the simulation captures CUDA graphs
-  for ``step()``, ``forward()``, and ``reset()`` operations. Graph capture records
-  a sequence of GPU kernels and their memory addresses, then replays the entire
-  sequence with a single kernel launch, eliminating CPU overhead from repeated
-  kernel dispatches.
+  On CPU, and on CUDA devices with memory pools enabled, the simulation captures
+  graphs for ``step()``, ``forward()``, and ``reset()`` operations. Graph capture
+  records a sequence of kernels and their memory addresses, then replays the entire
+  sequence with a single launch, eliminating Python overhead from repeated kernel
+  dispatches. On CPU this makes stepping several times faster.
 
   **Important:** A captured graph holds pointers to the GPU arrays that existed
   at capture time. If those arrays are later replaced (e.g., via
@@ -348,7 +348,7 @@ class Simulation:
     self._sensor_context: SensorContext | None = None
     self._data_listeners: list[Callable[[], None]] = []
 
-    self.use_cuda_graph = self._should_use_cuda_graph()
+    self.use_cuda_graph = self._can_capture_graphs()
     self.create_graph()
 
     self.nan_guard = NanGuard(self.cfg.nan_guard, self.num_envs, self._mj_model)
@@ -365,7 +365,7 @@ class Simulation:
     - ``__init__()`` during simulation initialization
     - ``expand_model_fields()`` after replacing model arrays
 
-    On CPU devices or when memory pools are disabled, this is a no-op.
+    On CUDA devices without memory pools, this is a no-op.
     """
     self.step_graph = None
     self.forward_graph = None
@@ -577,10 +577,10 @@ class Simulation:
     for sensor in ctx.raycast_sensors:
       sensor.raycast_kernel(rc=rc)
 
-  def _should_use_cuda_graph(self) -> bool:
-    """Determine if CUDA graphs can be used based on device and driver version."""
+  def _can_capture_graphs(self) -> bool:
+    """Whether Warp can capture graphs on this device."""
     if not self.wp_device.is_cuda:
-      return False
+      return True  # Warp captures and replays on CPU too.
 
     driver_ver = wp.get_cuda_driver_version()
     has_mempool = wp.is_mempool_enabled(self.wp_device)
