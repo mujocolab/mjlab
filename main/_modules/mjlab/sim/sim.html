@@ -636,11 +636,11 @@ document.write(`
 
 <span class="sd">  CUDA Graph Capture</span>
 <span class="sd">  ------------------</span>
-<span class="sd">  On CUDA devices with memory pools enabled, the simulation captures CUDA graphs</span>
-<span class="sd">  for ``step()``, ``forward()``, and ``reset()`` operations. Graph capture records</span>
-<span class="sd">  a sequence of GPU kernels and their memory addresses, then replays the entire</span>
-<span class="sd">  sequence with a single kernel launch, eliminating CPU overhead from repeated</span>
-<span class="sd">  kernel dispatches.</span>
+<span class="sd">  On CPU, and on CUDA devices with memory pools enabled, the simulation captures</span>
+<span class="sd">  graphs for ``step()``, ``forward()``, and ``reset()`` operations. Graph capture</span>
+<span class="sd">  records a sequence of kernels and their memory addresses, then replays the entire</span>
+<span class="sd">  sequence with a single launch, eliminating Python overhead from repeated kernel</span>
+<span class="sd">  dispatches. On CPU this makes stepping several times faster.</span>
 
 <span class="sd">  **Important:** A captured graph holds pointers to the GPU arrays that existed</span>
 <span class="sd">  at capture time. If those arrays are later replaced (e.g., via</span>
@@ -778,7 +778,7 @@ document.write(`
     <span class="bp">self</span><span class="o">.</span><span class="n">_sensor_context</span><span class="p">:</span> <span class="n">SensorContext</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_data_listeners</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">use_cuda_graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_use_cuda_graph</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">use_cuda_graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_can_capture_graphs</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">create_graph</span><span class="p">()</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">nan_guard</span> <span class="o">=</span> <span class="n">NanGuard</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">nan_guard</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_envs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mj_model</span><span class="p">)</span>
@@ -797,7 +797,7 @@ document.write(`
 <span class="sd">    - ``__init__()`` during simulation initialization</span>
 <span class="sd">    - ``expand_model_fields()`` after replacing model arrays</span>
 
-<span class="sd">    On CPU devices or when memory pools are disabled, this is a no-op.</span>
+<span class="sd">    On CUDA devices without memory pools, this is a no-op.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">step_graph</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">forward_graph</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1028,10 +1028,10 @@ document.write(`
     <span class="k">for</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="n">ctx</span><span class="o">.</span><span class="n">raycast_sensors</span><span class="p">:</span>
       <span class="n">sensor</span><span class="o">.</span><span class="n">raycast_kernel</span><span class="p">(</span><span class="n">rc</span><span class="o">=</span><span class="n">rc</span><span class="p">)</span>
 
-  <span class="k">def</span><span class="w"> </span><span class="nf">_should_use_cuda_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Determine if CUDA graphs can be used based on device and driver version.&quot;&quot;&quot;</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">_can_capture_graphs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Whether Warp can capture graphs on this device.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">wp_device</span><span class="o">.</span><span class="n">is_cuda</span><span class="p">:</span>
-      <span class="k">return</span> <span class="kc">False</span>
+      <span class="k">return</span> <span class="kc">True</span>  <span class="c1"># Warp captures and replays on CPU too.</span>
 
     <span class="n">driver_ver</span> <span class="o">=</span> <span class="n">wp</span><span class="o">.</span><span class="n">get_cuda_driver_version</span><span class="p">()</span>
     <span class="n">has_mempool</span> <span class="o">=</span> <span class="n">wp</span><span class="o">.</span><span class="n">is_mempool_enabled</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wp_device</span><span class="p">)</span>

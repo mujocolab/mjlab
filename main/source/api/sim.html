@@ -573,11 +573,11 @@ document.write(`
 <dd><p>GPU-accelerated MuJoCo simulation powered by MJWarp.</p>
 <section id="cuda-graph-capture">
 <h3>CUDA Graph Capture<a class="headerlink" href="#cuda-graph-capture" title="Link to this heading">#</a></h3>
-<p>On CUDA devices with memory pools enabled, the simulation captures CUDA graphs
-for <code class="docutils literal notranslate"><span class="pre">step()</span></code>, <code class="docutils literal notranslate"><span class="pre">forward()</span></code>, and <code class="docutils literal notranslate"><span class="pre">reset()</span></code> operations. Graph capture records
-a sequence of GPU kernels and their memory addresses, then replays the entire
-sequence with a single kernel launch, eliminating CPU overhead from repeated
-kernel dispatches.</p>
+<p>On CPU, and on CUDA devices with memory pools enabled, the simulation captures
+graphs for <code class="docutils literal notranslate"><span class="pre">step()</span></code>, <code class="docutils literal notranslate"><span class="pre">forward()</span></code>, and <code class="docutils literal notranslate"><span class="pre">reset()</span></code> operations. Graph capture
+records a sequence of kernels and their memory addresses, then replays the entire
+sequence with a single launch, eliminating Python overhead from repeated kernel
+dispatches. On CPU this makes stepping several times faster.</p>
 <p><strong>Important:</strong> A captured graph holds pointers to the GPU arrays that existed
 at capture time. If those arrays are later replaced (e.g., via
 <code class="docutils literal notranslate"><span class="pre">expand_model_fields()</span></code>), the graph will still read from the old arrays,
@@ -602,7 +602,7 @@ graphs will silently read from the old arrays, ignoring any new values.</p>
 <p>Called automatically by:
 - <code class="docutils literal notranslate"><span class="pre">__init__()</span></code> during simulation initialization
 - <code class="docutils literal notranslate"><span class="pre">expand_model_fields()</span></code> after replacing model arrays</p>
-<p>On CPU devices or when memory pools are disabled, this is a no-op.</p>
+<p>On CUDA devices without memory pools, this is a no-op.</p>
 </dd></dl>
 
 <dl class="py property">
