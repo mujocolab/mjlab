@@ -841,8 +841,8 @@ config is in <code class="docutils literal notranslate"><span class="pre">cartpo
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>Mjlab-Cartpole-Swingup<span class="w"> </span>--env.scene.num-envs<span class="w"> </span><span class="m">4096</span>
 </pre></div>
 </div>
-<p>Play back a trained checkpoint, either from a local file or a W&amp;B run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>play<span class="w"> </span>Mjlab-Cartpole-Swingup<span class="w"> </span>--checkpoint-file<span class="w"> </span>logs/rsl_rl/cartpole/model_500.pt
+<p>Play back the newest local checkpoint, or one from a W&amp;B run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>play<span class="w"> </span>Mjlab-Cartpole-Swingup<span class="w"> </span>--checkpoint-file<span class="w"> </span>latest
 uv<span class="w"> </span>run<span class="w"> </span>play<span class="w"> </span>Mjlab-Cartpole-Swingup<span class="w"> </span>--wandb-run-path<span class="w"> </span>&lt;user/project/run_id&gt;
 </pre></div>
 </div>
