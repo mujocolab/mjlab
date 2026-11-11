@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Jun 01, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 11, 2026"/>
   </head>
   
   
@@ -169,6 +169,11 @@
   <label class="sidebar-version-label" for="version-select">Version</label>
   <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
     <option value="builtin_actuator.html" selected>main</option>
+    <option value="../../../../v1.6.0/index.html" >v1.6.0</option>
+    <option value="../../../../v1.5.3/index.html" >v1.5.3</option>
+    <option value="../../../../v1.5.2/index.html" >v1.5.2</option>
+    <option value="../../../../v1.5.1/index.html" >v1.5.1</option>
+    <option value="../../../../v1.5.0/index.html" >v1.5.0</option>
     <option value="../../../../v1.4.0/index.html" >v1.4.0</option>
     <option value="../../../../v1.3.0/index.html" >v1.3.0</option>
     <option value="../../../../v1.2.0/index.html" >v1.2.0</option>
@@ -712,12 +717,13 @@ document.write(`
 <span class="k">class</span><span class="w"> </span><span class="nc">DcMotorInputMode</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;What the ``ctrl`` signal of a ``&lt;dcmotor&gt;`` represents.</span>
 
-<span class="sd">  Values match MuJoCo&#39;s enum, consumed by mjs_setToDCMotor and read as gainprm[8].</span>
+<span class="sd">  Values match mjtCtrlInput, consumed by mjs_setToDCMotor and stored in</span>
+<span class="sd">  actuator_ctrlspec.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="n">VOLTAGE</span> <span class="o">=</span> <span class="mi">0</span>
-  <span class="n">POSITION</span> <span class="o">=</span> <span class="mi">1</span>
-  <span class="n">VELOCITY</span> <span class="o">=</span> <span class="mi">2</span></div>
+  <span class="n">VOLTAGE</span> <span class="o">=</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtCtrlInput</span><span class="o">.</span><span class="n">mjINPUT_VOLTAGE</span><span class="o">.</span><span class="n">value</span>
+  <span class="n">POSITION</span> <span class="o">=</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtCtrlInput</span><span class="o">.</span><span class="n">mjINPUT_POS</span><span class="o">.</span><span class="n">value</span>
+  <span class="n">VELOCITY</span> <span class="o">=</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtCtrlInput</span><span class="o">.</span><span class="n">mjINPUT_VEL</span><span class="o">.</span><span class="n">value</span></div>
 
 
 
@@ -777,8 +783,10 @@ document.write(`
 <span class="sd">  Three input modes select what ctrl carries:</span>
 
 <span class="sd">  * VOLTAGE: ctrl is the drive voltage. cmd.effort_target carries volts, not torque.</span>
-<span class="sd">  * POSITION / VELOCITY: an internal PID closes on the setpoint and the motor produces</span>
-<span class="sd">    torque from its (Vmax-clamped) voltage output.</span>
+<span class="sd">  * POSITION / VELOCITY: an internal PID closes on the setpoint with torque-space</span>
+<span class="sd">    gains, stiffness on the position error and damping on the velocity error. The</span>
+<span class="sd">    driver compensates back-EMF, so the commanded torque is delivered until the</span>
+<span class="sd">    drive voltage reaches Vmax.</span>
 
 <span class="sd">  Motor characterization: pass either DcMotorDatasheetParams or DcMotorPhysicalParams</span>
 <span class="sd">  as motor_params. mjs_setToDCMotor derives K and R (including the viscous-damping</span>
@@ -799,28 +807,28 @@ document.write(`
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;ctrl input semantics. See class docstring.&quot;&quot;&quot;</span>
 
   <span class="n">stiffness</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;PID proportional gain kp. Required in POSITION / VELOCITY mode; must be</span>
-<span class="sd">  0 in VOLTAGE mode.&quot;&quot;&quot;</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;PID gain kp on the position error, in torque space. Required in POSITION</span>
+<span class="sd">  mode; must be 0 otherwise.&quot;&quot;&quot;</span>
 
   <span class="n">damping</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;PID derivative gain kd. Used in POSITION / VELOCITY mode; must be 0 in</span>
-<span class="sd">  VOLTAGE mode.&quot;&quot;&quot;</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;PID gain kd on the velocity error, in torque space. Required in VELOCITY</span>
+<span class="sd">  mode, optional in POSITION mode; must be 0 in VOLTAGE mode.&quot;&quot;&quot;</span>
 
   <span class="n">voltage_limit</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Max drive voltage Vmax. Required in POSITION / VELOCITY mode (clamps the</span>
-<span class="sd">  PID output). In VOLTAGE mode it is an optional clamp on ctrl; 0 disables.&quot;&quot;&quot;</span>
+<span class="sd">  PID&#39;s drive voltage); must be 0 in VOLTAGE mode.&quot;&quot;&quot;</span>
 
   <span class="n">integral_gain</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;PID integral gain ki. In position mode the integrator tracks</span>
-<span class="sd">  ki * integral(target - q); in velocity mode, ki * (integral(target) - q).</span>
-<span class="sd">  Must be 0 in VOLTAGE mode.&quot;&quot;&quot;</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;PID integral gain ki on the accumulated position error. POSITION mode</span>
+<span class="sd">  only.&quot;&quot;&quot;</span>
 
   <span class="n">integral_limit</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Anti-windup clamp Imax on the integrator state. 0 disables (the</span>
 <span class="sd">  integrator can run away).&quot;&quot;&quot;</span>
 
   <span class="n">slew_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;Max rate of change of ctrl per second. 0 disables.&quot;&quot;&quot;</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Max rate of change of the setpoint per second. Must be 0 in VOLTAGE mode.</span>
+<span class="sd">  0 disables.&quot;&quot;&quot;</span>
 
   <span class="n">effort_limit</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Continuous torque cap [N*m]. Sets actuator_forcerange. None leaves the</span>
@@ -869,15 +877,20 @@ document.write(`
       <span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">in</span> <span class="p">(</span><span class="n">DcMotorInputMode</span><span class="o">.</span><span class="n">POSITION</span><span class="p">,</span> <span class="n">DcMotorInputMode</span><span class="o">.</span><span class="n">VELOCITY</span><span class="p">):</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stiffness</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> mode requires stiffness &gt; 0.&quot;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="n">DcMotorInputMode</span><span class="o">.</span><span class="n">POSITION</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">stiffness</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;POSITION mode requires stiffness &gt; 0.&quot;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="n">DcMotorInputMode</span><span class="o">.</span><span class="n">VELOCITY</span> <span class="ow">and</span> <span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stiffness</span> <span class="o">!=</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">damping</span> <span class="o">&lt;=</span> <span class="mf">0.0</span>
+      <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;VELOCITY mode requires damping &gt; 0 and stiffness = 0.&quot;</span><span class="p">)</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">voltage_limit</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> mode requires voltage_limit &gt; 0.&quot;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stiffness</span> <span class="o">!=</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">damping</span> <span class="o">!=</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">integral_gain</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-          <span class="s2">&quot;stiffness, damping, and integral_gain are unused in VOLTAGE mode.&quot;</span>
-        <span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">any</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">stiffness</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">damping</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">voltage_limit</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">slew_rate</span><span class="p">)):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="s2">&quot;stiffness, damping, voltage_limit, and slew_rate are unused in VOLTAGE mode.&quot;</span>
+      <span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">integral_gain</span> <span class="o">!=</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">!=</span> <span class="n">DcMotorInputMode</span><span class="o">.</span><span class="n">POSITION</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;integral_gain requires POSITION mode.&quot;</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span>
       <span class="s2">&quot;integral_gain&quot;</span><span class="p">,</span>
@@ -941,7 +954,7 @@ document.write(`
         <span class="n">inductance</span><span class="o">=</span><span class="p">[</span><span class="n">cfg</span><span class="o">.</span><span class="n">inductance</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">electrical_time_constant</span><span class="p">],</span>
         <span class="n">thermal</span><span class="o">=</span><span class="n">_or_zeros</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">thermal</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
         <span class="n">lugre</span><span class="o">=</span><span class="n">_or_zeros</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">lugre</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
-        <span class="n">input_mode</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
+        <span class="n">ctrlspec</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
       <span class="p">)</span>
 
       <span class="n">apply_target_overrides</span><span class="p">(</span>
@@ -1190,7 +1203,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Jun 01, 2026.
+  Last updated on Nov 11, 2026.
   <br/>
 </p>
   </div>

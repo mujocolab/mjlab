@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Jun 01, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 11, 2026"/>
   </head>
   
   
@@ -169,6 +169,11 @@
   <label class="sidebar-version-label" for="version-select">Version</label>
   <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
     <option value="sim.html" selected>main</option>
+    <option value="../../../../v1.6.0/index.html" >v1.6.0</option>
+    <option value="../../../../v1.5.3/index.html" >v1.5.3</option>
+    <option value="../../../../v1.5.2/index.html" >v1.5.2</option>
+    <option value="../../../../v1.5.1/index.html" >v1.5.1</option>
+    <option value="../../../../v1.5.0/index.html" >v1.5.0</option>
     <option value="../../../../v1.4.0/index.html" >v1.4.0</option>
     <option value="../../../../v1.3.0/index.html" >v1.3.0</option>
     <option value="../../../../v1.2.0/index.html" >v1.2.0</option>
@@ -409,6 +414,7 @@ document.write(`
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">gc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">cast</span>
@@ -474,6 +480,17 @@ document.write(`
   <span class="s2">&quot;newton&quot;</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtSolver</span><span class="o">.</span><span class="n">mjSOL_NEWTON</span><span class="p">,</span>
   <span class="s2">&quot;cg&quot;</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtSolver</span><span class="o">.</span><span class="n">mjSOL_CG</span><span class="p">,</span>
   <span class="s2">&quot;pgs&quot;</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtSolver</span><span class="o">.</span><span class="n">mjSOL_PGS</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">_BROADPHASE_MAP</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s2">&quot;nxn&quot;</span><span class="p">:</span> <span class="n">mjwarp</span><span class="o">.</span><span class="n">BroadphaseType</span><span class="o">.</span><span class="n">NXN</span><span class="p">,</span>
+  <span class="s2">&quot;sap_tile&quot;</span><span class="p">:</span> <span class="n">mjwarp</span><span class="o">.</span><span class="n">BroadphaseType</span><span class="o">.</span><span class="n">SAP_TILE</span><span class="p">,</span>
+  <span class="s2">&quot;sap_segmented&quot;</span><span class="p">:</span> <span class="n">mjwarp</span><span class="o">.</span><span class="n">BroadphaseType</span><span class="o">.</span><span class="n">SAP_SEGMENTED</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">_BROADPHASE_FILTER_MAP</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s2">&quot;plane&quot;</span><span class="p">:</span> <span class="n">mjwarp</span><span class="o">.</span><span class="n">BroadphaseFilter</span><span class="o">.</span><span class="n">PLANE</span><span class="p">,</span>
+  <span class="s2">&quot;sphere&quot;</span><span class="p">:</span> <span class="n">mjwarp</span><span class="o">.</span><span class="n">BroadphaseFilter</span><span class="o">.</span><span class="n">SPHERE</span><span class="p">,</span>
+  <span class="s2">&quot;aabb&quot;</span><span class="p">:</span> <span class="n">mjwarp</span><span class="o">.</span><span class="n">BroadphaseFilter</span><span class="o">.</span><span class="n">AABB</span><span class="p">,</span>
+  <span class="s2">&quot;obb&quot;</span><span class="p">:</span> <span class="n">mjwarp</span><span class="o">.</span><span class="n">BroadphaseFilter</span><span class="o">.</span><span class="n">OBB</span><span class="p">,</span>
 <span class="p">}</span>
 
 <span class="c1"># Maps short flag names to MuJoCo enum values.</span>
@@ -568,10 +585,46 @@ document.write(`
 
 <span class="sd">  Constraint arrays are batched by world: no world may have more than njmax</span>
 <span class="sd">  constraints. If None, a heuristic value is used.&quot;&quot;&quot;</span>
-  <span class="n">ls_parallel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># Boosts perf quite noticeably.</span>
   <span class="n">contact_sensor_maxmatch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span>
+  <span class="n">broadphase</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;nxn&quot;</span><span class="p">,</span> <span class="s2">&quot;sap_tile&quot;</span><span class="p">,</span> <span class="s2">&quot;sap_segmented&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Broadphase collision algorithm. If None, use the MuJoCo Warp default.&quot;&quot;&quot;</span>
+  <span class="n">broadphase_filter</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;plane&quot;</span><span class="p">,</span> <span class="s2">&quot;sphere&quot;</span><span class="p">,</span> <span class="s2">&quot;aabb&quot;</span><span class="p">,</span> <span class="s2">&quot;obb&quot;</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Bounding-volume filters applied during broadphase collision checking.</span>
+
+<span class="sd">  If None, use the MuJoCo Warp default.&quot;&quot;&quot;</span>
+  <span class="n">graph_conditional</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Use CUDA graph conditional nodes, which let the solver exit early once all</span>
+<span class="sd">  worlds converge. Requires CUDA 12.4 or newer.</span>
+
+<span class="sd">  If None, use the MuJoCo Warp default.&quot;&quot;&quot;</span>
+  <span class="n">ls_parallel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Deprecated and ignored. Parallel linesearch was removed in MuJoCo Warp 3.10.&quot;&quot;&quot;</span>
   <span class="n">mujoco</span><span class="p">:</span> <span class="n">MujocoCfg</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">MujocoCfg</span><span class="p">)</span>
-  <span class="n">nan_guard</span><span class="p">:</span> <span class="n">NanGuardCfg</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">NanGuardCfg</span><span class="p">)</span></div>
+  <span class="n">nan_guard</span><span class="p">:</span> <span class="n">NanGuardCfg</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">NanGuardCfg</span><span class="p">)</span>
+
+  <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ls_parallel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+        <span class="s2">&quot;SimulationCfg.ls_parallel is deprecated and ignored; parallel &quot;</span>
+        <span class="s2">&quot;linesearch was removed in MuJoCo Warp 3.10.&quot;</span><span class="p">,</span>
+        <span class="ne">DeprecationWarning</span><span class="p">,</span>
+        <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+      <span class="p">)</span>
+
+<div class="viewcode-block" id="SimulationCfg.apply_wp_opt">
+<a class="viewcode-back" href="../../../source/api/sim.html#mjlab.sim.SimulationCfg.apply_wp_opt">[docs]</a>
+  <span class="k">def</span><span class="w"> </span><span class="nf">apply_wp_opt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wp_opt</span><span class="p">:</span> <span class="n">mjwarp</span><span class="o">.</span><span class="n">Option</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply MuJoCo Warp-only settings to a warp Option (post ``put_model``).&quot;&quot;&quot;</span>
+    <span class="n">wp_opt</span><span class="o">.</span><span class="n">contact_sensor_maxmatch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">contact_sensor_maxmatch</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">broadphase</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">wp_opt</span><span class="o">.</span><span class="n">broadphase</span> <span class="o">=</span> <span class="n">_BROADPHASE_MAP</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">broadphase</span><span class="p">]</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">broadphase_filter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">wp_opt</span><span class="o">.</span><span class="n">broadphase_filter</span> <span class="o">=</span> <span class="n">mjwarp</span><span class="o">.</span><span class="n">BroadphaseFilter</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">broadphase_filter</span><span class="p">:</span>
+        <span class="n">wp_opt</span><span class="o">.</span><span class="n">broadphase_filter</span> <span class="o">|=</span> <span class="n">_BROADPHASE_FILTER_MAP</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph_conditional</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">wp_opt</span><span class="o">.</span><span class="n">graph_conditional</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph_conditional</span></div>
+</div>
 
 
 
@@ -650,8 +703,7 @@ document.write(`
 
     <span class="k">with</span> <span class="n">wp</span><span class="o">.</span><span class="n">ScopedDevice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wp_device</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_wp_model</span> <span class="o">=</span> <span class="n">mjwarp</span><span class="o">.</span><span class="n">put_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mj_model</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_wp_model</span><span class="o">.</span><span class="n">opt</span><span class="o">.</span><span class="n">ls_parallel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">ls_parallel</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_wp_model</span><span class="o">.</span><span class="n">opt</span><span class="o">.</span><span class="n">contact_sensor_maxmatch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">contact_sensor_maxmatch</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">apply_wp_opt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wp_model</span><span class="o">.</span><span class="n">opt</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_finish_init</span><span class="p">()</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">_init_with_variants</span><span class="p">(</span>
@@ -679,8 +731,7 @@ document.write(`
       <span class="n">mujoco</span><span class="o">.</span><span class="n">mj_forward</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mj_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mj_data</span><span class="p">)</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">_wp_model</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">wp_model</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_wp_model</span><span class="o">.</span><span class="n">opt</span><span class="o">.</span><span class="n">ls_parallel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">ls_parallel</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_wp_model</span><span class="o">.</span><span class="n">opt</span><span class="o">.</span><span class="n">contact_sensor_maxmatch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">contact_sensor_maxmatch</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">apply_wp_opt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wp_model</span><span class="o">.</span><span class="n">opt</span><span class="p">)</span>
 
       <span class="c1"># Snapshot variant-dependent fields as per-world defaults so</span>
       <span class="c1"># DR scale/add operations use each variant&#39;s base values.</span>
@@ -1031,7 +1082,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Jun 01, 2026.
+  Last updated on Nov 11, 2026.
   <br/>
 </p>
   </div>

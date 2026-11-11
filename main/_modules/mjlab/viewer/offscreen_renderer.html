@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Jun 01, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 11, 2026"/>
   </head>
   
   
@@ -169,6 +169,11 @@
   <label class="sidebar-version-label" for="version-select">Version</label>
   <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
     <option value="offscreen_renderer.html" selected>main</option>
+    <option value="../../../../v1.6.0/index.html" >v1.6.0</option>
+    <option value="../../../../v1.5.3/index.html" >v1.5.3</option>
+    <option value="../../../../v1.5.2/index.html" >v1.5.2</option>
+    <option value="../../../../v1.5.1/index.html" >v1.5.1</option>
+    <option value="../../../../v1.5.0/index.html" >v1.5.0</option>
     <option value="../../../../v1.4.0/index.html" >v1.4.0</option>
     <option value="../../../../v1.3.0/index.html" >v1.3.0</option>
     <option value="../../../../v1.2.0/index.html" >v1.2.0</option>
@@ -408,11 +413,13 @@ document.write(`
   <h1>Source code for mjlab.viewer.offscreen_renderer</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;MuJoCo offscreen renderer for headless visualization.&quot;&quot;&quot;</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">mujoco</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.entity</span><span class="w"> </span><span class="kn">import</span> <span class="n">Entity</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.scene</span><span class="w"> </span><span class="kn">import</span> <span class="n">Scene</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.viewer.model_sync</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
   <span class="n">VIEWER_MODEL_FIELDS</span><span class="p">,</span>
@@ -421,6 +428,41 @@ document.write(`
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.viewer.native.visualizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">MujocoNativeDebugVisualizer</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.viewer.viewer_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">ViewerConfig</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_camera_body_id</span><span class="p">(</span><span class="n">cfg</span><span class="p">:</span> <span class="n">ViewerConfig</span><span class="p">,</span> <span class="n">entities</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Entity</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Resolve the body id the camera tracks, or -1 for free cameras.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">origin_type</span> <span class="ow">in</span> <span class="p">(</span>
+    <span class="n">ViewerConfig</span><span class="o">.</span><span class="n">OriginType</span><span class="o">.</span><span class="n">AUTO</span><span class="p">,</span>
+    <span class="n">ViewerConfig</span><span class="o">.</span><span class="n">OriginType</span><span class="o">.</span><span class="n">WORLD</span><span class="p">,</span>
+  <span class="p">):</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+
+  <span class="n">entity_name</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">entity_name</span>
+  <span class="k">if</span> <span class="n">entity_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">entities</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Cannot auto-detect entity: scene has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">entities</span><span class="p">)</span><span class="si">}</span><span class="s2"> entities &quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">entities</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">). Set ViewerConfig.entity_name to choose one.&quot;</span>
+      <span class="p">)</span>
+    <span class="n">entity_name</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">entities</span><span class="p">))</span>
+  <span class="k">elif</span> <span class="n">entity_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">entities</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+      <span class="sa">f</span><span class="s2">&quot;Entity &#39;</span><span class="si">{</span><span class="n">entity_name</span><span class="si">}</span><span class="s2">&#39; not found in scene. &quot;</span>
+      <span class="sa">f</span><span class="s2">&quot;Available entities: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">entities</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">.&quot;</span>
+    <span class="p">)</span>
+  <span class="n">entity</span> <span class="o">=</span> <span class="n">entities</span><span class="p">[</span><span class="n">entity_name</span><span class="p">]</span>
+
+  <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">origin_type</span> <span class="o">==</span> <span class="n">ViewerConfig</span><span class="o">.</span><span class="n">OriginType</span><span class="o">.</span><span class="n">ASSET_ROOT</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">entity</span><span class="o">.</span><span class="n">indexing</span><span class="o">.</span><span class="n">root_body_id</span>
+
+  <span class="k">assert</span> <span class="n">cfg</span><span class="o">.</span><span class="n">origin_type</span> <span class="o">==</span> <span class="n">ViewerConfig</span><span class="o">.</span><span class="n">OriginType</span><span class="o">.</span><span class="n">ASSET_BODY</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">cfg</span><span class="o">.</span><span class="n">body_name</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;body_name is required for the ASSET_BODY origin type.&quot;</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">body_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">entity</span><span class="o">.</span><span class="n">body_names</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Body &#39;</span><span class="si">{</span><span class="n">cfg</span><span class="o">.</span><span class="n">body_name</span><span class="si">}</span><span class="s2">&#39; not found in entity &#39;</span><span class="si">{</span><span class="n">entity_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
+  <span class="n">body_ids</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">entity</span><span class="o">.</span><span class="n">find_bodies</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">body_name</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">entity</span><span class="o">.</span><span class="n">indexing</span><span class="o">.</span><span class="n">bodies</span><span class="p">[</span><span class="n">body_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">id</span>
 
 
 <div class="viewcode-block" id="OffscreenRenderer">
@@ -437,25 +479,25 @@ document.write(`
     <span class="n">expanded_fields</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
   <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span> <span class="o">=</span> <span class="n">cfg</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span> <span class="o">=</span> <span class="n">scene</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_sim_model</span> <span class="o">=</span> <span class="n">sim_model</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_expanded_fields</span> <span class="o">=</span> <span class="n">expanded_fields</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjData</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span> <span class="o">=</span> <span class="n">scene</span>
+
+    <span class="c1"># Work on a copy so render-only tweaks (extent, shadows, reflections,</span>
+    <span class="c1"># sameframe shortcuts) never leak into the shared model.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjData</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sim_model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">disable_model_sameframe_shortcuts</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_orig_extent</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">stat</span><span class="o">.</span><span class="n">extent</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_render_extent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_render_extent</span><span class="p">()</span>
+
     <span class="c1"># Keep extent override local to offscreen rendering so shadow/camera scaling</span>
     <span class="c1"># is not dominated by the full multi-env world bounds.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">stat</span><span class="o">.</span><span class="n">extent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_render_extent</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">stat</span><span class="o">.</span><span class="n">extent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_render_extent</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">distance</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">vis</span><span class="o">.</span><span class="n">global_</span><span class="o">.</span><span class="n">offheight</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">height</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">vis</span><span class="o">.</span><span class="n">global_</span><span class="o">.</span><span class="n">offwidth</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">width</span>
-    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">fovy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">cfg</span><span class="o">.</span><span class="n">origin_type</span> <span class="ow">in</span> <span class="p">(</span>
-      <span class="n">cfg</span><span class="o">.</span><span class="n">OriginType</span><span class="o">.</span><span class="n">AUTO</span><span class="p">,</span>
-      <span class="n">cfg</span><span class="o">.</span><span class="n">OriginType</span><span class="o">.</span><span class="n">WORLD</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">fovy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">vis</span><span class="o">.</span><span class="n">global_</span><span class="o">.</span><span class="n">fovy</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">fovy</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">cfg</span><span class="o">.</span><span class="n">enable_shadows</span><span class="p">:</span>
@@ -463,13 +505,15 @@ document.write(`
     <span class="k">if</span> <span class="ow">not</span> <span class="n">cfg</span><span class="o">.</span><span class="n">enable_reflections</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">mat_reflectance</span><span class="p">[:]</span> <span class="o">=</span> <span class="mf">0.0</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_cam</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_camera</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_cam</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_camera</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">scene</span><span class="o">.</span><span class="n">entities</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_env_ids</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">Renderer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span> <span class="o">=</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjvOption</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">geomgroup</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">geom_group</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">sitegroup</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">site_group</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_pert</span> <span class="o">=</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjvPerturb</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_catmask</span> <span class="o">=</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtCatBit</span><span class="o">.</span><span class="n">mjCAT_DYNAMIC</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_extra_env_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_catmask</span> <span class="o">=</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtCatBit</span><span class="o">.</span><span class="n">mjCAT_DYNAMIC</span></div>
 
 
   <span class="nd">@property</span>
@@ -500,12 +544,56 @@ document.write(`
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Renderer not initialized. Call &#39;initialize()&#39; first.&quot;</span><span class="p">)</span>
 
-    <span class="n">nworld</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">nworld</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">nworld</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">nworld</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">return</span>
 
-    <span class="n">env_idx</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">env_idx</span><span class="p">),</span> <span class="n">nworld</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_sync_model_fields</span><span class="p">(</span><span class="n">env_idx</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_env_ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_env_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_env_ids</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">env_origins</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+      <span class="p">)</span>
+
+    <span class="c1"># The primary env frames the camera and receives the debug overlays.</span>
+    <span class="n">primary_env</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_env_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_sync_model_fields</span><span class="p">(</span><span class="n">primary_env</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_sync_data_fields</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">primary_env</span><span class="p">)</span>
+
+    <span class="n">cam</span> <span class="o">=</span> <span class="n">camera</span> <span class="k">if</span> <span class="n">camera</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cam</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span><span class="o">.</span><span class="n">update_scene</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span> <span class="n">camera</span><span class="o">=</span><span class="n">cam</span><span class="p">,</span> <span class="n">scene_option</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="p">)</span>
+
+    <span class="c1"># Note: update_scene() resets the scene each frame, so no need to manually clear.</span>
+    <span class="k">if</span> <span class="n">debug_vis_callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">visualizer</span> <span class="o">=</span> <span class="n">MujocoNativeDebugVisualizer</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span><span class="o">.</span><span class="n">scene</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">env_idx</span><span class="o">=</span><span class="n">primary_env</span>
+      <span class="p">)</span>
+      <span class="n">debug_vis_callback</span><span class="p">(</span><span class="n">visualizer</span><span class="p">)</span>
+
+    <span class="c1"># Add neighboring environments as geoms for context.</span>
+    <span class="k">for</span> <span class="n">env_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_env_ids</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_sync_model_fields</span><span class="p">(</span><span class="n">env_id</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_sync_data_fields</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">env_id</span><span class="p">)</span>
+      <span class="n">mujoco</span><span class="o">.</span><span class="n">mjv_addGeoms</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pert</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_catmask</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span><span class="o">.</span><span class="n">scene</span><span class="p">,</span>
+      <span class="p">)</span></div>
+
+
+  <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Renderer not initialized. Call &#39;initialize()&#39; first.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span><span class="o">.</span><span class="n">render</span><span class="p">()</span>
+
+  <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span> <span class="o">=</span> <span class="kc">None</span>
+
+  <span class="k">def</span><span class="w"> </span><span class="nf">_sync_data_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">env_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Copy one env&#39;s state into the host MjData and refresh kinematics.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">nq</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">qpos</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">qpos</span><span class="p">[</span><span class="n">env_idx</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">qvel</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">qvel</span><span class="p">[</span><span class="n">env_idx</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
@@ -514,66 +602,6 @@ document.write(`
       <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">mocap_quat</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">mocap_quat</span><span class="p">[</span><span class="n">env_idx</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
     <span class="n">mujoco</span><span class="o">.</span><span class="n">mj_forward</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
 
-    <span class="n">cam</span> <span class="o">=</span> <span class="n">camera</span> <span class="k">if</span> <span class="n">camera</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cam</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span><span class="o">.</span><span class="n">update_scene</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span> <span class="n">camera</span><span class="o">=</span><span class="n">cam</span><span class="p">)</span>
-
-    <span class="c1"># Note: update_scene() resets the scene each frame, so no need to manually clear.</span>
-    <span class="k">if</span> <span class="n">debug_vis_callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">visualizer</span> <span class="o">=</span> <span class="n">MujocoNativeDebugVisualizer</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span><span class="o">.</span><span class="n">scene</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">env_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">env_idx</span>
-      <span class="p">)</span>
-      <span class="n">debug_vis_callback</span><span class="p">(</span><span class="n">visualizer</span><span class="p">)</span>
-
-    <span class="c1"># Add nearest neighboring environments as geoms for context.</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_extra_env_ids</span><span class="p">(</span><span class="n">nworld</span><span class="p">,</span> <span class="n">env_idx</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_sync_model_fields</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">nq</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">qpos</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">qpos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">qvel</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">qvel</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">nmocap</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">mocap_pos</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">mocap_pos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">mocap_quat</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">mocap_quat</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-      <span class="n">mujoco</span><span class="o">.</span><span class="n">mj_forward</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
-      <span class="n">mujoco</span><span class="o">.</span><span class="n">mjv_addGeoms</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_pert</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_catmask</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span><span class="o">.</span><span class="n">scene</span><span class="p">,</span>
-      <span class="p">)</span>
-
-    <span class="bp">self</span><span class="o">.</span><span class="n">_sync_model_fields</span><span class="p">(</span><span class="n">env_idx</span><span class="p">)</span></div>
-
-
-  <span class="k">def</span><span class="w"> </span><span class="nf">_get_extra_env_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nworld</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">env_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return nearest neighboring env ids to render as context.</span>
-
-<span class="sd">    We render a small local neighborhood around ``env_idx`` instead of the first</span>
-<span class="sd">    N environments, so videos stay focused on the tracked robot and nearby peers.</span>
-
-<span class="sd">    The neighbor set is computed once and cached. ``env_origins`` can mutate during</span>
-<span class="sd">    training (e.g. the terrain curriculum reassigns origins on reset), so recomputing</span>
-<span class="sd">    every frame would make the context robots pop in and out, causing video flicker.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extra_env_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extra_env_ids</span>
-
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">max_extra_envs</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">nworld</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_extra_env_ids</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extra_env_ids</span>
-
-    <span class="n">k</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">max_extra_envs</span><span class="p">,</span> <span class="n">nworld</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">origins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">env_origins</span><span class="p">[:</span><span class="n">nworld</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-    <span class="n">ref</span> <span class="o">=</span> <span class="n">origins</span><span class="p">[</span><span class="n">env_idx</span><span class="p">]</span>
-    <span class="n">dist2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">origins</span> <span class="o">-</span> <span class="n">ref</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">dist2</span><span class="p">[</span><span class="n">env_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
-
-    <span class="n">nearest</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argpartition</span><span class="p">(</span><span class="n">dist2</span><span class="p">,</span> <span class="n">kth</span><span class="o">=</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)[:</span><span class="n">k</span><span class="p">]</span>
-    <span class="n">nearest</span> <span class="o">=</span> <span class="n">nearest</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">dist2</span><span class="p">[</span><span class="n">nearest</span><span class="p">])]</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_extra_env_ids</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nearest</span><span class="p">]</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extra_env_ids</span>
-
   <span class="k">def</span><span class="w"> </span><span class="nf">_sync_model_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Sync visually relevant per-world model fields into the host MjModel.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sim_model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expanded_fields</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -581,89 +609,71 @@ document.write(`
     <span class="n">fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expanded_fields</span> <span class="o">&amp;</span> <span class="n">VIEWER_MODEL_FIELDS</span>
     <span class="n">sync_model_fields</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sim_model</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">env_idx</span><span class="p">)</span>
 
-  <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Renderer not initialized. Call &#39;initialize()&#39; first.&quot;</span><span class="p">)</span>
+  <span class="nd">@staticmethod</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">_get_env_ids</span><span class="p">(</span><span class="n">cfg</span><span class="p">:</span> <span class="n">ViewerConfig</span><span class="p">,</span> <span class="n">env_origins</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the ids of the environments to render, primary env first.</span>
 
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span><span class="o">.</span><span class="n">render</span><span class="p">()</span>
+<span class="sd">    The primary env is cfg.env_idx (clamped to the available worlds), followed</span>
+<span class="sd">    by up to max_extra_envs nearest neighbors by env origin, so videos stay</span>
+<span class="sd">    focused on the tracked robot and nearby peers.</span>
 
-  <span class="k">def</span><span class="w"> </span><span class="nf">_setup_camera</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjvCamera</span><span class="p">:</span>
+<span class="sd">    The set is resolved once, on first use, and kept stable: env_origins can</span>
+<span class="sd">    mutate during training (e.g. the terrain curriculum reassigns origins on</span>
+<span class="sd">    reset), and recomputing every frame would make the context robots pop in</span>
+<span class="sd">    and out, causing video flicker.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">max_extra_envs</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;&#39;max_extra_envs&#39; must be non-negative, got </span><span class="si">{</span><span class="n">cfg</span><span class="o">.</span><span class="n">max_extra_envs</span><span class="si">}</span><span class="s2">.&quot;</span>
+      <span class="p">)</span>
+
+    <span class="n">n_world</span> <span class="o">=</span> <span class="n">env_origins</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">env_idx</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">env_idx</span><span class="p">),</span> <span class="n">n_world</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">max_extra_envs</span><span class="p">,</span> <span class="n">n_world</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">k</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">return</span> <span class="p">(</span><span class="n">env_idx</span><span class="p">,)</span>
+
+    <span class="n">dist2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">env_origins</span> <span class="o">-</span> <span class="n">env_origins</span><span class="p">[</span><span class="n">env_idx</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">dist2</span><span class="p">[</span><span class="n">env_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+    <span class="n">nearest</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argpartition</span><span class="p">(</span><span class="n">dist2</span><span class="p">,</span> <span class="n">kth</span><span class="o">=</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)[:</span><span class="n">k</span><span class="p">]</span>
+    <span class="n">nearest</span> <span class="o">=</span> <span class="n">nearest</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">dist2</span><span class="p">[</span><span class="n">nearest</span><span class="p">])]</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">env_idx</span><span class="p">,</span> <span class="o">*</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nearest</span><span class="p">))</span>
+
+  <span class="nd">@staticmethod</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">_setup_camera</span><span class="p">(</span>
+    <span class="n">cfg</span><span class="p">:</span> <span class="n">ViewerConfig</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjModel</span><span class="p">,</span>
+    <span class="n">entities</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Entity</span><span class="p">],</span>
+  <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjvCamera</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Setup camera based on config&#39;s origin_type.&quot;&quot;&quot;</span>
+    <span class="n">body_id</span> <span class="o">=</span> <span class="n">_get_camera_body_id</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">entities</span><span class="p">)</span>
+
     <span class="n">camera</span> <span class="o">=</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjvCamera</span><span class="p">()</span>
-    <span class="n">mujoco</span><span class="o">.</span><span class="n">mjv_defaultFreeCamera</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">camera</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">origin_type</span> <span class="ow">in</span> <span class="p">(</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">OriginType</span><span class="o">.</span><span class="n">AUTO</span><span class="p">,</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">OriginType</span><span class="o">.</span><span class="n">WORLD</span><span class="p">,</span>
-    <span class="p">):</span>
-      <span class="c1"># Free camera, no tracking.</span>
+    <span class="n">mujoco</span><span class="o">.</span><span class="n">mjv_defaultFreeCamera</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">camera</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">body_id</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
       <span class="n">camera</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtCamera</span><span class="o">.</span><span class="n">mjCAMERA_FREE</span><span class="o">.</span><span class="n">value</span>
-      <span class="n">camera</span><span class="o">.</span><span class="n">fixedcamid</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-      <span class="n">camera</span><span class="o">.</span><span class="n">trackbodyid</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-
-    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">origin_type</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">OriginType</span><span class="o">.</span><span class="n">ASSET_ROOT</span><span class="p">:</span>
-      <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.entity</span><span class="w"> </span><span class="kn">import</span> <span class="n">Entity</span>
-
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">entity_name</span><span class="p">:</span>
-        <span class="n">robot</span><span class="p">:</span> <span class="n">Entity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">entity_name</span><span class="p">]</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># Auto-detect if only one entity.</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">entities</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-          <span class="n">robot</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">entities</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Multiple entities in scene (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">entities</span><span class="p">)</span><span class="si">}</span><span class="s2">): &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">entities</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">. &quot;</span>
-            <span class="s2">&quot;Set ViewerConfig.entity_name to choose which one.&quot;</span>
-          <span class="p">)</span>
-
-      <span class="n">body_id</span> <span class="o">=</span> <span class="n">robot</span><span class="o">.</span><span class="n">indexing</span><span class="o">.</span><span class="n">root_body_id</span>
+    <span class="k">else</span><span class="p">:</span>
       <span class="n">camera</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtCamera</span><span class="o">.</span><span class="n">mjCAMERA_TRACKING</span><span class="o">.</span><span class="n">value</span>
-      <span class="n">camera</span><span class="o">.</span><span class="n">trackbodyid</span> <span class="o">=</span> <span class="n">body_id</span>
-      <span class="n">camera</span><span class="o">.</span><span class="n">fixedcamid</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-
-    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">origin_type</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">OriginType</span><span class="o">.</span><span class="n">ASSET_BODY</span><span class="p">:</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">entity_name</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">body_name</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;entity_name/body_name required for ASSET_BODY origin type&quot;</span><span class="p">)</span>
-
-      <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.entity</span><span class="w"> </span><span class="kn">import</span> <span class="n">Entity</span>
-
-      <span class="n">robot</span><span class="p">:</span> <span class="n">Entity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">entity_name</span><span class="p">]</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">body_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">robot</span><span class="o">.</span><span class="n">body_names</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-          <span class="sa">f</span><span class="s2">&quot;Body &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">body_name</span><span class="si">}</span><span class="s2">&#39; not found in asset &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">entity_name</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
-        <span class="p">)</span>
-      <span class="n">body_id_list</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">robot</span><span class="o">.</span><span class="n">find_bodies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">body_name</span><span class="p">)</span>
-      <span class="n">body_id</span> <span class="o">=</span> <span class="n">robot</span><span class="o">.</span><span class="n">indexing</span><span class="o">.</span><span class="n">bodies</span><span class="p">[</span><span class="n">body_id_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">id</span>
-
-      <span class="n">camera</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtCamera</span><span class="o">.</span><span class="n">mjCAMERA_TRACKING</span><span class="o">.</span><span class="n">value</span>
-      <span class="n">camera</span><span class="o">.</span><span class="n">trackbodyid</span> <span class="o">=</span> <span class="n">body_id</span>
-      <span class="n">camera</span><span class="o">.</span><span class="n">fixedcamid</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-
-    <span class="n">camera</span><span class="o">.</span><span class="n">lookat</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">lookat</span>
-    <span class="n">camera</span><span class="o">.</span><span class="n">elevation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">elevation</span>
-    <span class="n">camera</span><span class="o">.</span><span class="n">azimuth</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">azimuth</span>
-    <span class="n">camera</span><span class="o">.</span><span class="n">distance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">distance</span>
+    <span class="n">camera</span><span class="o">.</span><span class="n">trackbodyid</span> <span class="o">=</span> <span class="n">body_id</span>
+    <span class="n">camera</span><span class="o">.</span><span class="n">fixedcamid</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">camera</span><span class="o">.</span><span class="n">lookat</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">lookat</span>
+    <span class="n">camera</span><span class="o">.</span><span class="n">elevation</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">elevation</span>
+    <span class="n">camera</span><span class="o">.</span><span class="n">azimuth</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">azimuth</span>
+    <span class="n">camera</span><span class="o">.</span><span class="n">distance</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">distance</span>
 
     <span class="k">return</span> <span class="n">camera</span>
 
-  <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_renderer</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">stat</span><span class="o">.</span><span class="n">extent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orig_extent</span>
-
-  <span class="k">def</span><span class="w"> </span><span class="nf">_compute_render_extent</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+  <span class="nd">@staticmethod</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">_compute_render_extent</span><span class="p">(</span><span class="n">distance</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute a stable extent for offscreen rendering.</span>
 
-<span class="sd">    MuJoCo scales z-near/z-far and shadow clip with ``model.stat.extent``. In large</span>
-<span class="sd">    scenes this auto extent can become very large, which causes shadow-map precision</span>
-<span class="sd">    artifacts in offscreen video rendering.</span>
-
-<span class="sd">    We therefore use a local extent tied to the active camera distance.</span>
+<span class="sd">    MuJoCo scales z-near/z-far and shadow clip with ``model.stat.extent``. In</span>
+<span class="sd">    large scenes this auto extent can become very large, which causes</span>
+<span class="sd">    shadow-map precision artifacts in offscreen video rendering. We therefore</span>
+<span class="sd">    use a local extent tied to the camera distance, keeping enough room for</span>
+<span class="sd">    the tracked subject and camera motion.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Keep enough room for the tracked subject and camera motion.</span>
-    <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">1.5</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">distance</span><span class="p">))</span></div>
+    <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">1.5</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">distance</span><span class="p">))</span></div>
 
 </pre></div>
 
@@ -712,7 +722,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Jun 01, 2026.
+  Last updated on Nov 11, 2026.
   <br/>
 </p>
   </div>

@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Jun 01, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 11, 2026"/>
   </head>
   
   
@@ -169,6 +169,11 @@
   <label class="sidebar-version-label" for="version-select">Version</label>
   <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
     <option value="dc_actuator.html" selected>main</option>
+    <option value="../../../../v1.6.0/index.html" >v1.6.0</option>
+    <option value="../../../../v1.5.3/index.html" >v1.5.3</option>
+    <option value="../../../../v1.5.2/index.html" >v1.5.2</option>
+    <option value="../../../../v1.5.1/index.html" >v1.5.1</option>
+    <option value="../../../../v1.5.0/index.html" >v1.5.0</option>
     <option value="../../../../v1.4.0/index.html" >v1.4.0</option>
     <option value="../../../../v1.3.0/index.html" >v1.3.0</option>
     <option value="../../../../v1.2.0/index.html" >v1.2.0</option>
@@ -422,12 +427,40 @@ document.write(`
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.actuator.actuator</span><span class="w"> </span><span class="kn">import</span> <span class="n">ActuatorCmd</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.actuator.pd_actuator</span><span class="w"> </span><span class="kn">import</span> <span class="n">IdealPdActuator</span><span class="p">,</span> <span class="n">IdealPdActuatorCfg</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.actuator.pd_actuator</span><span class="w"> </span><span class="kn">import</span> <span class="n">IdealPdActuator</span><span class="p">,</span> <span class="n">IdealPdActuatorCfg</span><span class="p">,</span> <span class="n">pd_torque</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
   <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.entity</span><span class="w"> </span><span class="kn">import</span> <span class="n">Entity</span>
 
 <span class="n">DcMotorCfgT</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;DcMotorCfgT&quot;</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="s2">&quot;DcMotorActuatorCfg&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">dc_motor_clip</span><span class="p">(</span>
+  <span class="n">effort</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+  <span class="n">saturation_effort</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+  <span class="n">velocity_limit</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+  <span class="n">force_limit</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+  <span class="n">vel</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Clip effort to the DC motor torque-speed curve.</span>
+
+<span class="sd">  Linear torque-speed curve: full saturation_effort at zero velocity falling to</span>
+<span class="sd">  zero at velocity_limit, further bounded by the continuous force_limit. Shared</span>
+<span class="sd">  by DcMotorActuator._clip_effort and the fused control law so the curve lives in</span>
+<span class="sd">  one place.</span>
+
+<span class="sd">  The corner velocity where the curve intersects force_limit is recomputed from</span>
+<span class="sd">  force_limit every call rather than cached, since force_limit can be</span>
+<span class="sd">  domain-randomized after initialize() (e.g. via set_effort_limit); caching it</span>
+<span class="sd">  would silently go stale.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">vel_at_effort_lim</span> <span class="o">=</span> <span class="n">velocity_limit</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">force_limit</span> <span class="o">/</span> <span class="n">saturation_effort</span><span class="p">)</span>
+  <span class="n">vel_clipped</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">vel</span><span class="p">,</span> <span class="nb">min</span><span class="o">=-</span><span class="n">vel_at_effort_lim</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="n">vel_at_effort_lim</span><span class="p">)</span>
+  <span class="n">torque_speed_top</span> <span class="o">=</span> <span class="n">saturation_effort</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">vel_clipped</span> <span class="o">/</span> <span class="n">velocity_limit</span><span class="p">)</span>
+  <span class="n">torque_speed_bottom</span> <span class="o">=</span> <span class="n">saturation_effort</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">vel_clipped</span> <span class="o">/</span> <span class="n">velocity_limit</span><span class="p">)</span>
+  <span class="n">max_effort</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">torque_speed_top</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="n">force_limit</span><span class="p">)</span>
+  <span class="n">min_effort</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">torque_speed_bottom</span><span class="p">,</span> <span class="nb">min</span><span class="o">=-</span><span class="n">force_limit</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">effort</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="n">min_effort</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="n">max_effort</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="DcMotorActuatorCfg">
@@ -503,6 +536,28 @@ document.write(`
 <span class="sd">  The continuous torque limit (effort_limit) further constrains the output.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
+  <span class="c1"># Same stateless-law compute as IdealPd, with the torque-speed curve added to</span>
+  <span class="c1"># the law. The velocity feedback the curve needs comes straight from cmd.vel.</span>
+  <span class="n">param_names</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="o">*</span><span class="n">IdealPdActuator</span><span class="o">.</span><span class="n">param_names</span><span class="p">,</span>
+    <span class="s2">&quot;saturation_effort&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;velocity_limit_motor&quot;</span><span class="p">,</span>
+  <span class="p">)</span>
+
+<div class="viewcode-block" id="DcMotorActuator.control_law">
+<a class="viewcode-back" href="../../../source/api/actuator.html#mjlab.actuator.DcMotorActuator.control_law">[docs]</a>
+  <span class="nd">@staticmethod</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">control_law</span><span class="p">(</span><span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">cmd</span><span class="p">:</span> <span class="n">ActuatorCmd</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="n">torque</span> <span class="o">=</span> <span class="n">pd_torque</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;stiffness&quot;</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;damping&quot;</span><span class="p">],</span> <span class="n">cmd</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dc_motor_clip</span><span class="p">(</span>
+      <span class="n">torque</span><span class="p">,</span>
+      <span class="n">params</span><span class="p">[</span><span class="s2">&quot;saturation_effort&quot;</span><span class="p">],</span>
+      <span class="n">params</span><span class="p">[</span><span class="s2">&quot;velocity_limit_motor&quot;</span><span class="p">],</span>
+      <span class="n">params</span><span class="p">[</span><span class="s2">&quot;force_limit&quot;</span><span class="p">],</span>
+      <span class="n">cmd</span><span class="o">.</span><span class="n">vel</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="DcMotorActuator.__init__">
 <a class="viewcode-back" href="../../../source/api/actuator.html#mjlab.actuator.DcMotorActuator.__init__">[docs]</a>
   <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
@@ -515,7 +570,6 @@ document.write(`
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">entity</span><span class="p">,</span> <span class="n">target_ids</span><span class="p">,</span> <span class="n">target_names</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">saturation_effort</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">velocity_limit_motor</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_vel_at_effort_lim</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_joint_vel_clipped</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 
@@ -545,50 +599,24 @@ document.write(`
       <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
       <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
     <span class="p">)</span>
-
-    <span class="c1"># Compute corner velocity where torque-speed curve intersects effort_limit.</span>
-    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">force_limit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_vel_at_effort_lim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">velocity_limit_motor</span> <span class="o">*</span> <span class="p">(</span>
-      <span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">force_limit</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">saturation_effort</span>
-    <span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_joint_vel_clipped</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">num_envs</span><span class="p">,</span> <span class="n">num_joints</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="DcMotorActuator.compute">
-<a class="viewcode-back" href="../../../source/api/actuator.html#mjlab.actuator.DcMotorActuator.compute">[docs]</a>
-  <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">:</span> <span class="n">ActuatorCmd</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_joint_vel_clipped</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_joint_vel_clipped</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">vel</span>
-    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span></div>
-
-
   <span class="k">def</span><span class="w"> </span><span class="nf">_clip_effort</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">effort</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="c1"># Retained for LearnedMlpActuator, which has its own (stateful) compute and</span>
+    <span class="c1"># reuses this torque-speed clip. DcMotorActuator itself clips inside</span>
+    <span class="c1"># control_law via dc_motor_clip.</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">saturation_effort</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">velocity_limit_motor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">force_limit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vel_at_effort_lim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_joint_vel_clipped</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-
-    <span class="c1"># Clip velocity to corner velocity range.</span>
-    <span class="n">vel_clipped</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">dc_motor_clip</span><span class="p">(</span>
+      <span class="n">effort</span><span class="p">,</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">saturation_effort</span><span class="p">,</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">velocity_limit_motor</span><span class="p">,</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">force_limit</span><span class="p">,</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_joint_vel_clipped</span><span class="p">,</span>
-      <span class="nb">min</span><span class="o">=-</span><span class="bp">self</span><span class="o">.</span><span class="n">_vel_at_effort_lim</span><span class="p">,</span>
-      <span class="nb">max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_vel_at_effort_lim</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="c1"># Compute torque-speed curve limits.</span>
-    <span class="n">torque_speed_top</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">saturation_effort</span> <span class="o">*</span> <span class="p">(</span>
-      <span class="mf">1.0</span> <span class="o">-</span> <span class="n">vel_clipped</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">velocity_limit_motor</span>
-    <span class="p">)</span>
-    <span class="n">torque_speed_bottom</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">saturation_effort</span> <span class="o">*</span> <span class="p">(</span>
-      <span class="o">-</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">vel_clipped</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">velocity_limit_motor</span>
-    <span class="p">)</span>
-
-    <span class="c1"># Apply continuous torque constraint.</span>
-    <span class="n">max_effort</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">torque_speed_top</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">force_limit</span><span class="p">)</span>
-    <span class="n">min_effort</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">torque_speed_bottom</span><span class="p">,</span> <span class="nb">min</span><span class="o">=-</span><span class="bp">self</span><span class="o">.</span><span class="n">force_limit</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">effort</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="n">min_effort</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="n">max_effort</span><span class="p">)</span></div>
+    <span class="p">)</span></div>
 
 </pre></div>
 
@@ -637,7 +665,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Jun 01, 2026.
+  Last updated on Nov 11, 2026.
   <br/>
 </p>
   </div>

@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Jun 01, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 11, 2026"/>
   </head>
   
   
@@ -169,6 +169,11 @@
   <label class="sidebar-version-label" for="version-select">Version</label>
   <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
     <option value="heightfield_terrains.html" selected>main</option>
+    <option value="../../../../v1.6.0/index.html" >v1.6.0</option>
+    <option value="../../../../v1.5.3/index.html" >v1.5.3</option>
+    <option value="../../../../v1.5.2/index.html" >v1.5.2</option>
+    <option value="../../../../v1.5.1/index.html" >v1.5.1</option>
+    <option value="../../../../v1.5.0/index.html" >v1.5.0</option>
     <option value="../../../../v1.4.0/index.html" >v1.4.0</option>
     <option value="../../../../v1.3.0/index.html" >v1.3.0</option>
     <option value="../../../../v1.2.0/index.html" >v1.2.0</option>
@@ -727,6 +732,8 @@ document.write(`
 
       <span class="n">noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">hf_raw</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">)</span>
 
+    <span class="c1"># MuJoCo hfields lay rows along y and columns along x.</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">noise</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
     <span class="n">elevation_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">noise</span><span class="p">)</span>
     <span class="n">elevation_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">noise</span><span class="p">)</span>
     <span class="n">elevation_range</span> <span class="o">=</span> <span class="p">(</span>
@@ -912,6 +919,8 @@ document.write(`
       <span class="n">z_upsampled</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">x_upsampled</span><span class="p">,</span> <span class="n">y_upsampled</span><span class="p">)</span>
       <span class="n">noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">z_upsampled</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">)</span>
 
+    <span class="c1"># MuJoCo hfields lay rows along y and columns along x.</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">noise</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
     <span class="n">elevation_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">noise</span><span class="p">)</span>
     <span class="n">elevation_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">noise</span><span class="p">)</span>
     <span class="n">elevation_range</span> <span class="o">=</span> <span class="p">(</span>
@@ -1046,6 +1055,8 @@ document.write(`
       <span class="n">hf_raw</span> <span class="o">=</span> <span class="n">amplitude_pixels</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">yy</span> <span class="o">*</span> <span class="n">wave_number</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">xx</span> <span class="o">*</span> <span class="n">wave_number</span><span class="p">))</span>
       <span class="n">noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">hf_raw</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">)</span>
 
+    <span class="c1"># MuJoCo hfields lay rows along y and columns along x.</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">noise</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
     <span class="n">elevation_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">noise</span><span class="p">)</span>
     <span class="n">elevation_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">noise</span><span class="p">)</span>
     <span class="n">elevation_range</span> <span class="o">=</span> <span class="p">(</span>
@@ -1216,6 +1227,8 @@ document.write(`
       <span class="p">]</span> <span class="o">=</span> <span class="n">noise</span>
       <span class="n">noise</span> <span class="o">=</span> <span class="n">outer_noise</span>
 
+    <span class="c1"># MuJoCo hfields lay rows along y and columns along x.</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">noise</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
     <span class="n">elevation_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">noise</span><span class="p">)</span>
     <span class="n">elevation_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">noise</span><span class="p">)</span>
     <span class="n">elevation_range</span> <span class="o">=</span> <span class="p">(</span>
@@ -1363,6 +1376,9 @@ document.write(`
       <span class="n">noise_range</span> <span class="o">=</span> <span class="n">noise_max</span> <span class="o">-</span> <span class="n">noise_min</span> <span class="k">if</span> <span class="n">noise_max</span> <span class="o">&gt;</span> <span class="n">noise_min</span> <span class="k">else</span> <span class="mf">1.0</span>
       <span class="n">normalized_elevation</span> <span class="o">=</span> <span class="p">((</span><span class="n">noise_raw</span> <span class="o">-</span> <span class="n">noise_min</span><span class="p">)</span> <span class="o">/</span> <span class="n">noise_range</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
+    <span class="c1"># MuJoCo hfields lay rows along y and columns along x.</span>
+    <span class="n">normalized_elevation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">normalized_elevation</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
     <span class="c1"># MuJoCo requires positive hfield elevation and base sizes. At difficulty 0</span>
     <span class="c1"># (target_height == 0) the surface is flat; clamp to a small positive height</span>
     <span class="c1"># so compilation does not fail with &quot;size parameter is not positive&quot;.</span>
@@ -1465,7 +1481,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Jun 01, 2026.
+  Last updated on Nov 11, 2026.
   <br/>
 </p>
   </div>

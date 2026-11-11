@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Jun 01, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 11, 2026"/>
   </head>
   
   
@@ -169,6 +169,11 @@
   <label class="sidebar-version-label" for="version-select">Version</label>
   <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
     <option value="actuator.html" selected>main</option>
+    <option value="../../../../v1.6.0/index.html" >v1.6.0</option>
+    <option value="../../../../v1.5.3/index.html" >v1.5.3</option>
+    <option value="../../../../v1.5.2/index.html" >v1.5.2</option>
+    <option value="../../../../v1.5.1/index.html" >v1.5.1</option>
+    <option value="../../../../v1.5.0/index.html" >v1.5.0</option>
     <option value="../../../../v1.4.0/index.html" >v1.4.0</option>
     <option value="../../../../v1.3.0/index.html" >v1.3.0</option>
     <option value="../../../../v1.2.0/index.html" >v1.2.0</option>
@@ -414,7 +419,7 @@ document.write(`
 <span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Generic</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">TypeVar</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">ClassVar</span><span class="p">,</span> <span class="n">Generic</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">TypeVar</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">mujoco</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">mujoco_warp</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mjwarp</span>
@@ -561,14 +566,79 @@ document.write(`
   <span class="n">pos</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Current positions (joint positions, tendon lengths, or site positions).&quot;&quot;&quot;</span>
   <span class="n">vel</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;Current velocities (joint velocities, tendon velocities, or site velocities).&quot;&quot;&quot;</span></div>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Current velocities (joint velocities, tendon velocities, or site velocities).&quot;&quot;&quot;</span>
+  <span class="n">reset_env_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Environments being initialized after a reset, or None for a physics step.</span>
 
+<span class="sd">  Tensors still contain the full batch. Stateful actuators must only backfill</span>
+<span class="sd">  these rows, preserving other environments&#39; history and update schedules.</span>
+<span class="sd">  &quot;&quot;&quot;</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">delay_command</span><span class="p">(</span>
+  <span class="n">buffer</span><span class="p">:</span> <span class="n">DelayBuffer</span><span class="p">,</span>
+  <span class="n">position_target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+  <span class="n">velocity_target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+  <span class="n">effort_target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+  <span class="n">env_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Delay the three command-target fields through one shared channel.</span>
+
+<span class="sd">  Every target the policy issues (position, velocity, effort) travels the same</span>
+<span class="sd">  command bus and incurs the same latency, so they are stacked and delayed</span>
+<span class="sd">  together by a single DelayBuffer. Feedback (pos, vel) is never delayed. Shared</span>
+<span class="sd">  by Actuator.apply_delay and the fused group so the command-delay semantics</span>
+<span class="sd">  live in exactly one place.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    buffer: The delay buffer to append to and read the delayed command from.</span>
+<span class="sd">    position_target: Position targets, shape (num_envs, num_targets).</span>
+<span class="sd">    velocity_target: Velocity targets, shape (num_envs, num_targets).</span>
+<span class="sd">    effort_target: Feedforward effort targets, shape (num_envs, num_targets).</span>
+<span class="sd">    env_ids: Reset environments to backfill without advancing time. None advances</span>
+<span class="sd">      the full batch by one physics step.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The delayed (position_target, velocity_target, effort_target) tuple.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">stacked</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">position_target</span><span class="p">,</span> <span class="n">velocity_target</span><span class="p">,</span> <span class="n">effort_target</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">env_ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">buffer</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stacked</span><span class="p">)</span>
+    <span class="n">delayed</span> <span class="o">=</span> <span class="n">buffer</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">buffer</span><span class="o">.</span><span class="n">backfill</span><span class="p">(</span><span class="n">stacked</span><span class="p">,</span> <span class="n">env_ids</span><span class="p">)</span>
+    <span class="n">delayed</span> <span class="o">=</span> <span class="n">buffer</span><span class="o">.</span><span class="n">peek</span><span class="p">()</span>
+  <span class="k">return</span> <span class="n">delayed</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">delayed</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">delayed</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="Actuator">
 <a class="viewcode-back" href="../../../source/api/actuator.html#mjlab.actuator.Actuator">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Actuator</span><span class="p">(</span><span class="n">ABC</span><span class="p">,</span> <span class="n">Generic</span><span class="p">[</span><span class="n">ActuatorCfgT</span><span class="p">]):</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Base actuator interface.&quot;&quot;&quot;</span>
+
+  <span class="c1"># Fusion contract. An actuator whose control output is a stateless function of</span>
+  <span class="c1"># per-target parameters and the command implements control_law over the</span>
+  <span class="c1"># parameter tensors named in param_names, and applies it through the shared</span>
+  <span class="c1"># compute (see IdealPdActuator). Such actuators are fused automatically (see</span>
+  <span class="c1"># mjlab.actuator.fused_group). Actuators with a custom compute (built-ins, XML,</span>
+  <span class="c1"># learned networks) are not fused; they need no opt-out flag, since overriding</span>
+  <span class="c1"># compute is itself the signal.</span>
+  <span class="n">param_names</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="p">()</span>
+
+<div class="viewcode-block" id="Actuator.control_law">
+<a class="viewcode-back" href="../../../source/api/actuator.html#mjlab.actuator.Actuator.control_law">[docs]</a>
+  <span class="nd">@staticmethod</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">control_law</span><span class="p">(</span><span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">cmd</span><span class="p">:</span> <span class="n">ActuatorCmd</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Stateless control law over per-target parameters.</span>
+
+<span class="sd">    params maps each name in param_names to its tensor of shape</span>
+<span class="sd">    (num_envs, num_targets); for a fused group these are the concatenated</span>
+<span class="sd">    tensors. Returns the control signal of the same trailing shape. Implemented</span>
+<span class="sd">    by stateless-law actuator types.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
 
 <div class="viewcode-block" id="Actuator.__init__">
 <a class="viewcode-back" href="../../../source/api/actuator.html#mjlab.actuator.Actuator.__init__">[docs]</a>
@@ -711,16 +781,18 @@ document.write(`
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_delay_buffer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">cmd</span>
-    <span class="n">targets</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
-      <span class="p">(</span><span class="n">cmd</span><span class="o">.</span><span class="n">position_target</span><span class="p">,</span> <span class="n">cmd</span><span class="o">.</span><span class="n">velocity_target</span><span class="p">,</span> <span class="n">cmd</span><span class="o">.</span><span class="n">effort_target</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span>
+    <span class="n">position_target</span><span class="p">,</span> <span class="n">velocity_target</span><span class="p">,</span> <span class="n">effort_target</span> <span class="o">=</span> <span class="n">delay_command</span><span class="p">(</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_delay_buffer</span><span class="p">,</span>
+      <span class="n">cmd</span><span class="o">.</span><span class="n">position_target</span><span class="p">,</span>
+      <span class="n">cmd</span><span class="o">.</span><span class="n">velocity_target</span><span class="p">,</span>
+      <span class="n">cmd</span><span class="o">.</span><span class="n">effort_target</span><span class="p">,</span>
+      <span class="n">cmd</span><span class="o">.</span><span class="n">reset_env_ids</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_delay_buffer</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
-    <span class="n">delayed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_delay_buffer</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
       <span class="n">cmd</span><span class="p">,</span>
-      <span class="n">position_target</span><span class="o">=</span><span class="n">delayed</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-      <span class="n">velocity_target</span><span class="o">=</span><span class="n">delayed</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-      <span class="n">effort_target</span><span class="o">=</span><span class="n">delayed</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+      <span class="n">position_target</span><span class="o">=</span><span class="n">position_target</span><span class="p">,</span>
+      <span class="n">velocity_target</span><span class="o">=</span><span class="n">velocity_target</span><span class="p">,</span>
+      <span class="n">effort_target</span><span class="o">=</span><span class="n">effort_target</span><span class="p">,</span>
     <span class="p">)</span></div>
 
 
@@ -878,7 +950,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Jun 01, 2026.
+  Last updated on Nov 11, 2026.
   <br/>
 </p>
   </div>

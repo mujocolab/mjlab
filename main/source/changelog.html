@@ -1256,9 +1256,9 @@ damping (<code class="docutils literal notranslate"><span class="pre">f</span> <
 used by position and velocity actuators. Maps to <code class="docutils literal notranslate"><span class="pre">&lt;joint</span> <span class="pre">damping&gt;</span></code> for
 JOINT transmission and <code class="docutils literal notranslate"><span class="pre">&lt;tendon</span> <span class="pre">damping&gt;</span></code> for TENDON transmission.
 Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code> (preserves the XML value).</p></li>
-<li><p>Added <code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderManager</span></code> for logging observations,
+<li><p>Added <a class="reference internal" href="api/managers.html#mjlab.managers.RecorderManager" title="mjlab.managers.RecorderManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderManager</span></code></a> for logging observations,
 actions, or arbitrary environment data during rollouts. Implement a
-<code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderTerm</span></code> subclass and register it in the
+<a class="reference internal" href="api/managers.html#mjlab.managers.RecorderTerm" title="mjlab.managers.RecorderTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderTerm</span></code></a> subclass and register it in the
 <code class="docutils literal notranslate"><span class="pre">recorders</span></code> dict on <code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg</span></code>. The manager provides
 <code class="docutils literal notranslate"><span class="pre">record_pre_reset</span></code>, <code class="docutils literal notranslate"><span class="pre">record_post_reset</span></code>, and <code class="docutils literal notranslate"><span class="pre">record_post_step</span></code>
 lifecycle hooks with no opinion on how data is stored.</p></li>

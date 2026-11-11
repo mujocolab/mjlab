@@ -474,12 +474,92 @@ document.write(`
             </div>
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#viewerconfig">ViewerConfig</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#baseviewer">BaseViewer</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#nativemujocoviewer">NativeMujocoViewer</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#viserplayviewer">ViserPlayViewer</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#offscreenrenderer">OffscreenRenderer</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#protocols">Protocols</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#viewerconfig">ViewerConfig</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig"><code class="docutils literal notranslate"><span class="pre">ViewerConfig</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.OriginType"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.OriginType</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.OriginType.AUTO"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.OriginType.AUTO</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.OriginType.WORLD"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.OriginType.WORLD</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.OriginType.ASSET_ROOT"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.OriginType.ASSET_ROOT</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.OriginType.ASSET_BODY"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.OriginType.ASSET_BODY</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.origin_type"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.origin_type</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.height"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.height</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.width"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.width</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.enable_reflections"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.enable_reflections</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.enable_shadows"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.enable_shadows</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.geom_group"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.geom_group</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.site_group"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.site_group</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.env_idx"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.env_idx</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.max_extra_envs"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.max_extra_envs</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.reward_bar_max_terms"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.reward_bar_max_terms</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.distance"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.distance</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.elevation"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.elevation</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.azimuth"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.azimuth</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.fovy"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.fovy</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.lookat"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.lookat</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.entity_name"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.entity_name</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.body_name"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.body_name</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#baseviewer">BaseViewer</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer"><code class="docutils literal notranslate"><span class="pre">BaseViewer</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer.__init__"><code class="docutils literal notranslate"><span class="pre">BaseViewer.__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer.tick"><code class="docutils literal notranslate"><span class="pre">BaseViewer.tick()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#nativemujocoviewer">NativeMujocoViewer</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.NativeMujocoViewer"><code class="docutils literal notranslate"><span class="pre">NativeMujocoViewer</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.NativeMujocoViewer.__init__"><code class="docutils literal notranslate"><span class="pre">NativeMujocoViewer.__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.NativeMujocoViewer.setup"><code class="docutils literal notranslate"><span class="pre">NativeMujocoViewer.setup()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.NativeMujocoViewer.sync_env_to_viewer"><code class="docutils literal notranslate"><span class="pre">NativeMujocoViewer.sync_env_to_viewer()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.NativeMujocoViewer.sync_viewer_to_env"><code class="docutils literal notranslate"><span class="pre">NativeMujocoViewer.sync_viewer_to_env()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.NativeMujocoViewer.close"><code class="docutils literal notranslate"><span class="pre">NativeMujocoViewer.close()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.NativeMujocoViewer.reset_environment"><code class="docutils literal notranslate"><span class="pre">NativeMujocoViewer.reset_environment()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#viserplayviewer">ViserPlayViewer</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViserPlayViewer"><code class="docutils literal notranslate"><span class="pre">ViserPlayViewer</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViserPlayViewer.__init__"><code class="docutils literal notranslate"><span class="pre">ViserPlayViewer.__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViserPlayViewer.setup"><code class="docutils literal notranslate"><span class="pre">ViserPlayViewer.setup()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViserPlayViewer.sync_env_to_viewer"><code class="docutils literal notranslate"><span class="pre">ViserPlayViewer.sync_env_to_viewer()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViserPlayViewer.sync_viewer_to_env"><code class="docutils literal notranslate"><span class="pre">ViserPlayViewer.sync_viewer_to_env()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViserPlayViewer.reset_environment"><code class="docutils literal notranslate"><span class="pre">ViserPlayViewer.reset_environment()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViserPlayViewer.close"><code class="docutils literal notranslate"><span class="pre">ViserPlayViewer.close()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViserPlayViewer.is_running"><code class="docutils literal notranslate"><span class="pre">ViserPlayViewer.is_running()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#offscreenrenderer">OffscreenRenderer</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.OffscreenRenderer"><code class="docutils literal notranslate"><span class="pre">OffscreenRenderer</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.OffscreenRenderer.__init__"><code class="docutils literal notranslate"><span class="pre">OffscreenRenderer.__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.OffscreenRenderer.update"><code class="docutils literal notranslate"><span class="pre">OffscreenRenderer.update()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#protocols">Protocols</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.EnvProtocol"><code class="docutils literal notranslate"><span class="pre">EnvProtocol</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.EnvProtocol.__init__"><code class="docutils literal notranslate"><span class="pre">EnvProtocol.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.PolicyProtocol"><code class="docutils literal notranslate"><span class="pre">PolicyProtocol</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.PolicyProtocol.__init__"><code class="docutils literal notranslate"><span class="pre">PolicyProtocol.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.VerbosityLevel"><code class="docutils literal notranslate"><span class="pre">VerbosityLevel</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.VerbosityLevel.__new__"><code class="docutils literal notranslate"><span class="pre">VerbosityLevel.__new__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
             </nav>
         </div>
@@ -491,49 +571,346 @@ document.write(`
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="mjlab-viewer">
-<h1>mjlab.viewer<a class="headerlink" href="#mjlab-viewer" title="Link to this heading">#</a></h1>
+  <section id="module-mjlab.viewer">
+<span id="mjlab-viewer"></span><h1>mjlab.viewer<a class="headerlink" href="#module-mjlab.viewer" title="Link to this heading">#</a></h1>
+<p>Viewer module for environment visualization.</p>
 <p class="rubric">Classes</p>
 <table class="hlist"><tr><td><ul class="simple">
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ViewerConfig</span></code></p></li>
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseViewer</span></code></p></li>
+<li><p><a class="reference internal" href="#mjlab.viewer.ViewerConfig" title="mjlab.viewer.ViewerConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">ViewerConfig</span></code></a></p></li>
+<li><p><a class="reference internal" href="#mjlab.viewer.BaseViewer" title="mjlab.viewer.BaseViewer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseViewer</span></code></a></p></li>
 </ul>
 </td><td><ul class="simple">
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">NativeMujocoViewer</span></code></p></li>
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ViserPlayViewer</span></code></p></li>
+<li><p><a class="reference internal" href="#mjlab.viewer.NativeMujocoViewer" title="mjlab.viewer.NativeMujocoViewer"><code class="xref py py-class docutils literal notranslate"><span class="pre">NativeMujocoViewer</span></code></a></p></li>
+<li><p><a class="reference internal" href="#mjlab.viewer.ViserPlayViewer" title="mjlab.viewer.ViserPlayViewer"><code class="xref py py-class docutils literal notranslate"><span class="pre">ViserPlayViewer</span></code></a></p></li>
 </ul>
 </td><td><ul class="simple">
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">OffscreenRenderer</span></code></p></li>
+<li><p><a class="reference internal" href="#mjlab.viewer.OffscreenRenderer" title="mjlab.viewer.OffscreenRenderer"><code class="xref py py-class docutils literal notranslate"><span class="pre">OffscreenRenderer</span></code></a></p></li>
 </ul>
 </td></tr></table>
 <p class="rubric">Protocols</p>
 <table class="hlist"><tr><td><ul class="simple">
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">EnvProtocol</span></code></p></li>
+<li><p><a class="reference internal" href="#mjlab.viewer.EnvProtocol" title="mjlab.viewer.EnvProtocol"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnvProtocol</span></code></a></p></li>
 </ul>
 </td><td><ul class="simple">
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">PolicyProtocol</span></code></p></li>
+<li><p><a class="reference internal" href="#mjlab.viewer.PolicyProtocol" title="mjlab.viewer.PolicyProtocol"><code class="xref py py-class docutils literal notranslate"><span class="pre">PolicyProtocol</span></code></a></p></li>
 </ul>
 </td><td><ul class="simple">
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">VerbosityLevel</span></code></p></li>
+<li><p><a class="reference internal" href="#mjlab.viewer.VerbosityLevel" title="mjlab.viewer.VerbosityLevel"><code class="xref py py-class docutils literal notranslate"><span class="pre">VerbosityLevel</span></code></a></p></li>
 </ul>
 </td></tr></table>
 <section id="viewerconfig">
 <h2>ViewerConfig<a class="headerlink" href="#viewerconfig" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.viewer.</span></span><span class="sig-name descname"><span class="pre">ViewerConfig</span></span><a class="reference internal" href="../../_modules/mjlab/viewer/viewer_config.html#ViewerConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.ViewerConfig" title="Link to this definition">#</a></dt>
+<dd><dl class="py class">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.OriginType">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">OriginType</span></span><a class="reference internal" href="../../_modules/mjlab/viewer/viewer_config.html#ViewerConfig.OriginType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.ViewerConfig.OriginType" title="Link to this definition">#</a></dt>
+<dd><p>The frame in which the camera position and target are defined.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.OriginType.AUTO">
+<span class="sig-name descname"><span class="pre">AUTO</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.OriginType.AUTO" title="Link to this definition">#</a></dt>
+<dd><p>Track the first non-fixed body, or fall back to a free camera.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.OriginType.WORLD">
+<span class="sig-name descname"><span class="pre">WORLD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.OriginType.WORLD" title="Link to this definition">#</a></dt>
+<dd><p>Free camera at the configured lookat point.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.OriginType.ASSET_ROOT">
+<span class="sig-name descname"><span class="pre">ASSET_ROOT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.OriginType.ASSET_ROOT" title="Link to this definition">#</a></dt>
+<dd><p>Track the root body of the asset defined by entity_name.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.OriginType.ASSET_BODY">
+<span class="sig-name descname"><span class="pre">ASSET_BODY</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.OriginType.ASSET_BODY" title="Link to this definition">#</a></dt>
+<dd><p>Track the body defined by body_name in the asset defined by
+entity_name.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.origin_type">
+<span class="sig-name descname"><span class="pre">origin_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#mjlab.viewer.ViewerConfig.OriginType" title="mjlab.viewer.viewer_config.ViewerConfig.OriginType"><span class="pre">OriginType</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.origin_type" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.height">
+<span class="sig-name descname"><span class="pre">height</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">240</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.height" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.width">
+<span class="sig-name descname"><span class="pre">width</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">320</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.width" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.enable_reflections">
+<span class="sig-name descname"><span class="pre">enable_reflections</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.enable_reflections" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.enable_shadows">
+<span class="sig-name descname"><span class="pre">enable_shadows</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.enable_shadows" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.geom_group">
+<span class="sig-name descname"><span class="pre">geom_group</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(1,</span> <span class="pre">1,</span> <span class="pre">1,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">0)</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.geom_group" title="Link to this definition">#</a></dt>
+<dd><p>Which geom visualization groups the offscreen renderer draws.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.site_group">
+<span class="sig-name descname"><span class="pre">site_group</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(1,</span> <span class="pre">1,</span> <span class="pre">1,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">0)</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.site_group" title="Link to this definition">#</a></dt>
+<dd><p>Which site visualization groups the offscreen renderer draws.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.env_idx">
+<span class="sig-name descname"><span class="pre">env_idx</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.env_idx" title="Link to this definition">#</a></dt>
+<dd><p>Environment rendered as the primary env and tracked by the camera.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.max_extra_envs">
+<span class="sig-name descname"><span class="pre">max_extra_envs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.max_extra_envs" title="Link to this definition">#</a></dt>
+<dd><p>Number of neighboring environments to render around env_idx.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.reward_bar_max_terms">
+<span class="sig-name descname"><span class="pre">reward_bar_max_terms</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">20</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.reward_bar_max_terms" title="Link to this definition">#</a></dt>
+<dd><p>Maximum number of reward terms shown in the Viser reward bar panel.</p>
+<p>Terms beyond this limit are dropped (with a warning). Raise it for
+environments with many reward terms.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.distance">
+<span class="sig-name descname"><span class="pre">distance</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5.0</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.distance" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.elevation">
+<span class="sig-name descname"><span class="pre">elevation</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">-45.0</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.elevation" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.azimuth">
+<span class="sig-name descname"><span class="pre">azimuth</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">90.0</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.azimuth" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.fovy">
+<span class="sig-name descname"><span class="pre">fovy</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.fovy" title="Link to this definition">#</a></dt>
+<dd><p>Vertical field of view in degrees. None keeps the model default.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.lookat">
+<span class="sig-name descname"><span class="pre">lookat</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0)</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.lookat" title="Link to this definition">#</a></dt>
+<dd><p>Look-at target in the world frame. Only used by the AUTO and WORLD free
+cameras; the ASSET_ROOT and ASSET_BODY tracking cameras ignore it.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.entity_name">
+<span class="sig-name descname"><span class="pre">entity_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.entity_name" title="Link to this definition">#</a></dt>
+<dd><p>Entity tracked by the camera. Auto-detected if the scene has exactly one
+entity.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.viewer.ViewerConfig.body_name">
+<span class="sig-name descname"><span class="pre">body_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#mjlab.viewer.ViewerConfig.body_name" title="Link to this definition">#</a></dt>
+<dd><p>Body tracked by the camera. Required for ASSET_BODY.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="baseviewer">
 <h2>BaseViewer<a class="headerlink" href="#baseviewer" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="mjlab.viewer.BaseViewer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.viewer.</span></span><span class="sig-name descname"><span class="pre">BaseViewer</span></span><a class="reference internal" href="../../_modules/mjlab/viewer/base.html#BaseViewer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.BaseViewer" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a></p>
+<p>Abstract base class for environment viewers.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.BaseViewer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mjlab.viewer.EnvProtocol" title="mjlab.viewer.base.EnvProtocol"><span class="pre">EnvProtocol</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mjlab.viewer.PolicyProtocol" title="mjlab.viewer.base.PolicyProtocol"><span class="pre">PolicyProtocol</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">30.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbosity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">VerbosityLevel.SILENT</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/mjlab/viewer/base.html#BaseViewer.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.BaseViewer.__init__" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.BaseViewer.tick">
+<span class="sig-name descname"><span class="pre">tick</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/base.html#BaseViewer.tick"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.BaseViewer.tick" title="Link to this definition">#</a></dt>
+<dd><p>Advance one tick: drain actions, step physics, maybe render.</p>
+<p>Returns True when a render frame was produced, False otherwise.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="nativemujocoviewer">
 <h2>NativeMujocoViewer<a class="headerlink" href="#nativemujocoviewer" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="mjlab.viewer.NativeMujocoViewer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.viewer.</span></span><span class="sig-name descname"><span class="pre">NativeMujocoViewer</span></span><a class="reference internal" href="../../_modules/mjlab/viewer/native/viewer.html#NativeMujocoViewer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.NativeMujocoViewer" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mjlab.viewer.BaseViewer" title="mjlab.viewer.base.BaseViewer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseViewer</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.NativeMujocoViewer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mjlab.viewer.EnvProtocol" title="mjlab.viewer.base.EnvProtocol"><span class="pre">EnvProtocol</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mjlab.viewer.PolicyProtocol" title="mjlab.viewer.base.PolicyProtocol"><span class="pre">PolicyProtocol</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">60.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PlotCfg</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_perturbations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbosity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mjlab.viewer.VerbosityLevel" title="mjlab.viewer.base.VerbosityLevel"><span class="pre">VerbosityLevel</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">VerbosityLevel.SILENT</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/mjlab/viewer/native/viewer.html#NativeMujocoViewer.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.NativeMujocoViewer.__init__" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.NativeMujocoViewer.setup">
+<span class="sig-name descname"><span class="pre">setup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/native/viewer.html#NativeMujocoViewer.setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.NativeMujocoViewer.setup" title="Link to this definition">#</a></dt>
+<dd><p>Setup MuJoCo viewer resources.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.NativeMujocoViewer.sync_env_to_viewer">
+<span class="sig-name descname"><span class="pre">sync_env_to_viewer</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/native/viewer.html#NativeMujocoViewer.sync_env_to_viewer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.NativeMujocoViewer.sync_env_to_viewer" title="Link to this definition">#</a></dt>
+<dd><p>Copy env state to viewer; update reward figures; render other envs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.NativeMujocoViewer.sync_viewer_to_env">
+<span class="sig-name descname"><span class="pre">sync_viewer_to_env</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/native/viewer.html#NativeMujocoViewer.sync_viewer_to_env"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.NativeMujocoViewer.sync_viewer_to_env" title="Link to this definition">#</a></dt>
+<dd><p>Sync mouse perturbation to sim via <code class="docutils literal notranslate"><span class="pre">qfrc_applied</span></code>.</p>
+<p>Mouse perturbation forces are converted from Cartesian body space
+(<code class="docutils literal notranslate"><span class="pre">xfrc_applied</span></code>) to generalized joint space (<code class="docutils literal notranslate"><span class="pre">qfrc_applied</span></code>)
+so that they coexist with programmatic forces on <code class="docutils literal notranslate"><span class="pre">xfrc_applied</span></code>.
+See the module docstring for details on the channel separation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.NativeMujocoViewer.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/native/viewer.html#NativeMujocoViewer.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.NativeMujocoViewer.close" title="Link to this definition">#</a></dt>
+<dd><p>Close viewer and cleanup.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.NativeMujocoViewer.reset_environment">
+<span class="sig-name descname"><span class="pre">reset_environment</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/native/viewer.html#NativeMujocoViewer.reset_environment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.NativeMujocoViewer.reset_environment" title="Link to this definition">#</a></dt>
+<dd><p>Extend BaseViewer.reset_environment to clear reward histories.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="viserplayviewer">
 <h2>ViserPlayViewer<a class="headerlink" href="#viserplayviewer" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="mjlab.viewer.ViserPlayViewer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.viewer.</span></span><span class="sig-name descname"><span class="pre">ViserPlayViewer</span></span><a class="reference internal" href="../../_modules/mjlab/viewer/viser/viewer.html#ViserPlayViewer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.ViserPlayViewer" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mjlab.viewer.BaseViewer" title="mjlab.viewer.base.BaseViewer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseViewer</span></code></a></p>
+<p>Interactive Viser-based viewer with playback controls.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.ViserPlayViewer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mjlab.viewer.EnvProtocol" title="mjlab.viewer.EnvProtocol"><span class="pre">EnvProtocol</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mjlab.viewer.PolicyProtocol" title="mjlab.viewer.PolicyProtocol"><span class="pre">PolicyProtocol</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">60.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbosity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mjlab.viewer.VerbosityLevel" title="mjlab.viewer.VerbosityLevel"><span class="pre">VerbosityLevel</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">VerbosityLevel.SILENT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">viser_server</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">viser.ViserServer</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">CheckpointManager</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/viser/viewer.html#ViserPlayViewer.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.ViserPlayViewer.__init__" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.ViserPlayViewer.setup">
+<span class="sig-name descname"><span class="pre">setup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/viser/viewer.html#ViserPlayViewer.setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.ViserPlayViewer.setup" title="Link to this definition">#</a></dt>
+<dd><p>Setup the viewer resources.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.ViserPlayViewer.sync_env_to_viewer">
+<span class="sig-name descname"><span class="pre">sync_env_to_viewer</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/viser/viewer.html#ViserPlayViewer.sync_env_to_viewer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.ViserPlayViewer.sync_env_to_viewer" title="Link to this definition">#</a></dt>
+<dd><p>Synchronize environment state to viewer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.ViserPlayViewer.sync_viewer_to_env">
+<span class="sig-name descname"><span class="pre">sync_viewer_to_env</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/viser/viewer.html#ViserPlayViewer.sync_viewer_to_env"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.ViserPlayViewer.sync_viewer_to_env" title="Link to this definition">#</a></dt>
+<dd><p>Synchronize viewer state to environment (e.g., perturbations).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.ViserPlayViewer.reset_environment">
+<span class="sig-name descname"><span class="pre">reset_environment</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/viser/viewer.html#ViserPlayViewer.reset_environment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.ViserPlayViewer.reset_environment" title="Link to this definition">#</a></dt>
+<dd><p>Extend BaseViewer.reset_environment to clear reward and metrics histories.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.ViserPlayViewer.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/viser/viewer.html#ViserPlayViewer.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.ViserPlayViewer.close" title="Link to this definition">#</a></dt>
+<dd><p>Close the viewer and cleanup resources.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.ViserPlayViewer.is_running">
+<span class="sig-name descname"><span class="pre">is_running</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/viser/viewer.html#ViserPlayViewer.is_running"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.ViserPlayViewer.is_running" title="Link to this definition">#</a></dt>
+<dd><p>Check if viewer is running.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="offscreenrenderer">
 <h2>OffscreenRenderer<a class="headerlink" href="#offscreenrenderer" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="mjlab.viewer.OffscreenRenderer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.viewer.</span></span><span class="sig-name descname"><span class="pre">OffscreenRenderer</span></span><a class="reference internal" href="../../_modules/mjlab/viewer/offscreen_renderer.html#OffscreenRenderer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.OffscreenRenderer" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.OffscreenRenderer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MjModel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mjlab.viewer.ViewerConfig" title="mjlab.viewer.viewer_config.ViewerConfig"><span class="pre">ViewerConfig</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">scene</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="scene.html#mjlab.scene.Scene" title="mjlab.scene.scene.Scene"><span class="pre">Scene</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sim_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expanded_fields</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#set" title="(in Python v3.15)"><span class="pre">set</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/offscreen_renderer.html#OffscreenRenderer.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.OffscreenRenderer.__init__" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.OffscreenRenderer.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug_vis_callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">MujocoNativeDebugVisualizer</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">camera</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/offscreen_renderer.html#OffscreenRenderer.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.OffscreenRenderer.update" title="Link to this definition">#</a></dt>
+<dd><p>Update renderer with simulation data.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="protocols">
 <h2>Protocols<a class="headerlink" href="#protocols" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="mjlab.viewer.EnvProtocol">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.viewer.</span></span><span class="sig-name descname"><span class="pre">EnvProtocol</span></span><a class="reference internal" href="../../_modules/mjlab/viewer/base.html#EnvProtocol"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.EnvProtocol" title="Link to this definition">#</a></dt>
+<dd><p>Interface we expect from RL environments, which can be either vanilla
+<cite>ManagerBasedRlEnv</cite> objects or wrapped with <cite>VideoRecorder</cite>,
+<cite>RslRlVecEnvWrapper</cite>, etc.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.EnvProtocol.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mjlab.viewer.EnvProtocol.__init__" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mjlab.viewer.PolicyProtocol">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.viewer.</span></span><span class="sig-name descname"><span class="pre">PolicyProtocol</span></span><a class="reference internal" href="../../_modules/mjlab/viewer/base.html#PolicyProtocol"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.PolicyProtocol" title="Link to this definition">#</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.PolicyProtocol.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mjlab.viewer.PolicyProtocol.__init__" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mjlab.viewer.VerbosityLevel">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.viewer.</span></span><span class="sig-name descname"><span class="pre">VerbosityLevel</span></span><a class="reference internal" href="../../_modules/mjlab/viewer/base.html#VerbosityLevel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.VerbosityLevel" title="Link to this definition">#</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="mjlab.viewer.VerbosityLevel.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mjlab.viewer.VerbosityLevel.__new__" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 
@@ -582,12 +959,92 @@ document.write(`
   </div>
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#viewerconfig">ViewerConfig</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#baseviewer">BaseViewer</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#nativemujocoviewer">NativeMujocoViewer</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#viserplayviewer">ViserPlayViewer</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#offscreenrenderer">OffscreenRenderer</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#protocols">Protocols</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#viewerconfig">ViewerConfig</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig"><code class="docutils literal notranslate"><span class="pre">ViewerConfig</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.OriginType"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.OriginType</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.OriginType.AUTO"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.OriginType.AUTO</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.OriginType.WORLD"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.OriginType.WORLD</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.OriginType.ASSET_ROOT"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.OriginType.ASSET_ROOT</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.OriginType.ASSET_BODY"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.OriginType.ASSET_BODY</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.origin_type"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.origin_type</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.height"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.height</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.width"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.width</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.enable_reflections"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.enable_reflections</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.enable_shadows"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.enable_shadows</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.geom_group"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.geom_group</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.site_group"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.site_group</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.env_idx"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.env_idx</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.max_extra_envs"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.max_extra_envs</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.reward_bar_max_terms"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.reward_bar_max_terms</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.distance"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.distance</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.elevation"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.elevation</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.azimuth"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.azimuth</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.fovy"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.fovy</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.lookat"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.lookat</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.entity_name"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.entity_name</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViewerConfig.body_name"><code class="docutils literal notranslate"><span class="pre">ViewerConfig.body_name</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#baseviewer">BaseViewer</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer"><code class="docutils literal notranslate"><span class="pre">BaseViewer</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer.__init__"><code class="docutils literal notranslate"><span class="pre">BaseViewer.__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer.tick"><code class="docutils literal notranslate"><span class="pre">BaseViewer.tick()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#nativemujocoviewer">NativeMujocoViewer</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.NativeMujocoViewer"><code class="docutils literal notranslate"><span class="pre">NativeMujocoViewer</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.NativeMujocoViewer.__init__"><code class="docutils literal notranslate"><span class="pre">NativeMujocoViewer.__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.NativeMujocoViewer.setup"><code class="docutils literal notranslate"><span class="pre">NativeMujocoViewer.setup()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.NativeMujocoViewer.sync_env_to_viewer"><code class="docutils literal notranslate"><span class="pre">NativeMujocoViewer.sync_env_to_viewer()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.NativeMujocoViewer.sync_viewer_to_env"><code class="docutils literal notranslate"><span class="pre">NativeMujocoViewer.sync_viewer_to_env()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.NativeMujocoViewer.close"><code class="docutils literal notranslate"><span class="pre">NativeMujocoViewer.close()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.NativeMujocoViewer.reset_environment"><code class="docutils literal notranslate"><span class="pre">NativeMujocoViewer.reset_environment()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#viserplayviewer">ViserPlayViewer</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViserPlayViewer"><code class="docutils literal notranslate"><span class="pre">ViserPlayViewer</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViserPlayViewer.__init__"><code class="docutils literal notranslate"><span class="pre">ViserPlayViewer.__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViserPlayViewer.setup"><code class="docutils literal notranslate"><span class="pre">ViserPlayViewer.setup()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViserPlayViewer.sync_env_to_viewer"><code class="docutils literal notranslate"><span class="pre">ViserPlayViewer.sync_env_to_viewer()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViserPlayViewer.sync_viewer_to_env"><code class="docutils literal notranslate"><span class="pre">ViserPlayViewer.sync_viewer_to_env()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViserPlayViewer.reset_environment"><code class="docutils literal notranslate"><span class="pre">ViserPlayViewer.reset_environment()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViserPlayViewer.close"><code class="docutils literal notranslate"><span class="pre">ViserPlayViewer.close()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.ViserPlayViewer.is_running"><code class="docutils literal notranslate"><span class="pre">ViserPlayViewer.is_running()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#offscreenrenderer">OffscreenRenderer</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.OffscreenRenderer"><code class="docutils literal notranslate"><span class="pre">OffscreenRenderer</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.OffscreenRenderer.__init__"><code class="docutils literal notranslate"><span class="pre">OffscreenRenderer.__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.OffscreenRenderer.update"><code class="docutils literal notranslate"><span class="pre">OffscreenRenderer.update()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#protocols">Protocols</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.EnvProtocol"><code class="docutils literal notranslate"><span class="pre">EnvProtocol</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.EnvProtocol.__init__"><code class="docutils literal notranslate"><span class="pre">EnvProtocol.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.PolicyProtocol"><code class="docutils literal notranslate"><span class="pre">PolicyProtocol</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.PolicyProtocol.__init__"><code class="docutils literal notranslate"><span class="pre">PolicyProtocol.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.VerbosityLevel"><code class="docutils literal notranslate"><span class="pre">VerbosityLevel</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.VerbosityLevel.__new__"><code class="docutils literal notranslate"><span class="pre">VerbosityLevel.__new__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
   </nav></div>
 

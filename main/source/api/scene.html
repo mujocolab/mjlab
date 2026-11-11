@@ -474,7 +474,28 @@ document.write(`
             </div>
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#scene">Scene</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#scene">Scene</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene"><code class="docutils literal notranslate"><span class="pre">Scene</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.__init__"><code class="docutils literal notranslate"><span class="pre">Scene.__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.write"><code class="docutils literal notranslate"><span class="pre">Scene.write()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.to_zip"><code class="docutils literal notranslate"><span class="pre">Scene.to_zip()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.collect_variant_info"><code class="docutils literal notranslate"><span class="pre">Scene.collect_variant_info()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.sensor_context"><code class="docutils literal notranslate"><span class="pre">Scene.sensor_context</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.write_data_to_sim"><code class="docutils literal notranslate"><span class="pre">Scene.write_data_to_sim()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.SceneCfg"><code class="docutils literal notranslate"><span class="pre">SceneCfg</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.SceneCfg.num_envs"><code class="docutils literal notranslate"><span class="pre">SceneCfg.num_envs</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.SceneCfg.env_spacing"><code class="docutils literal notranslate"><span class="pre">SceneCfg.env_spacing</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.SceneCfg.terrain"><code class="docutils literal notranslate"><span class="pre">SceneCfg.terrain</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.SceneCfg.entities"><code class="docutils literal notranslate"><span class="pre">SceneCfg.entities</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.SceneCfg.sensors"><code class="docutils literal notranslate"><span class="pre">SceneCfg.sensors</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.SceneCfg.extent"><code class="docutils literal notranslate"><span class="pre">SceneCfg.extent</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.SceneCfg.spec_fn"><code class="docutils literal notranslate"><span class="pre">SceneCfg.spec_fn</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
             </nav>
         </div>
@@ -486,20 +507,122 @@ document.write(`
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="mjlab-scene">
-<h1>mjlab.scene<a class="headerlink" href="#mjlab-scene" title="Link to this heading">#</a></h1>
+  <section id="module-mjlab.scene">
+<span id="mjlab-scene"></span><h1>mjlab.scene<a class="headerlink" href="#module-mjlab.scene" title="Link to this heading">#</a></h1>
 <p class="rubric">Classes</p>
 <table class="hlist"><tr><td><ul class="simple">
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Scene</span></code></p></li>
+<li><p><a class="reference internal" href="#mjlab.scene.Scene" title="mjlab.scene.Scene"><code class="xref py py-class docutils literal notranslate"><span class="pre">Scene</span></code></a></p></li>
 </ul>
 </td><td><ul class="simple">
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">SceneCfg</span></code></p></li>
+<li><p><a class="reference internal" href="#mjlab.scene.SceneCfg" title="mjlab.scene.SceneCfg"><code class="xref py py-class docutils literal notranslate"><span class="pre">SceneCfg</span></code></a></p></li>
 </ul>
 </td><td><ul class="simple">
 </ul>
 </td></tr></table>
 <section id="scene">
 <h2>Scene<a class="headerlink" href="#scene" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="mjlab.scene.Scene">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.scene.</span></span><span class="sig-name descname"><span class="pre">Scene</span></span><a class="reference internal" href="../../_modules/mjlab/scene/scene.html#Scene"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.scene.Scene" title="Link to this definition">#</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="mjlab.scene.Scene.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scene_cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mjlab.scene.SceneCfg" title="mjlab.scene.scene.SceneCfg"><span class="pre">SceneCfg</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/scene/scene.html#Scene.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.scene.Scene.__init__" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.scene.Scene.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><span class="pre">Path</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">zip</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/scene/scene.html#Scene.write"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.scene.Scene.write" title="Link to this definition">#</a></dt>
+<dd><p>Write the scene XML and mesh assets to a directory.</p>
+<p>Creates <code class="docutils literal notranslate"><span class="pre">scene.xml</span></code> and an <code class="docutils literal notranslate"><span class="pre">assets/</span></code> subdirectory containing mesh files
+referenced by the scene. When <em>zip</em> is True the directory is compressed into a
+<code class="docutils literal notranslate"><span class="pre">.zip</span></code> archive and the directory is removed. Operates on a copy of the spec to
+avoid mutation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output_dir</strong> – Destination directory (created if it doesn’t exist).</p></li>
+<li><p><strong>zip</strong> – If True, produce <code class="docutils literal notranslate"><span class="pre">&lt;output_dir&gt;.zip</span></code> instead of a directory.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.scene.Scene.to_zip">
+<span class="sig-name descname"><span class="pre">to_zip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><span class="pre">Path</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/scene/scene.html#Scene.to_zip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.scene.Scene.to_zip" title="Link to this definition">#</a></dt>
+<dd><p>Deprecated. Use <code class="docutils literal notranslate"><span class="pre">write(output_dir,</span> <span class="pre">zip=True)</span></code> instead.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.scene.Scene.collect_variant_info">
+<span class="sig-name descname"><span class="pre">collect_variant_info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">VariantMetadata</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/mjlab/scene/scene.html#Scene.collect_variant_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.scene.Scene.collect_variant_info" title="Link to this definition">#</a></dt>
+<dd><p>Collect variant metadata for entities with mesh variants.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mjlab.scene.Scene.sensor_context">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sensor_context</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="sensor.html#mjlab.sensor.SensorContext" title="mjlab.sensor.sensor_context.SensorContext"><span class="pre">SensorContext</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></em><a class="headerlink" href="#mjlab.scene.Scene.sensor_context" title="Link to this definition">#</a></dt>
+<dd><p>Shared sensing resources, or None if no cameras/raycasts.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.scene.Scene.write_data_to_sim">
+<span class="sig-name descname"><span class="pre">write_data_to_sim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/scene/scene.html#Scene.write_data_to_sim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.scene.Scene.write_data_to_sim" title="Link to this definition">#</a></dt>
+<dd><p>Write controls for a physics step, or initialize env_ids after a reset.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mjlab.scene.SceneCfg">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.scene.</span></span><span class="sig-name descname"><span class="pre">SceneCfg</span></span><a class="reference internal" href="../../_modules/mjlab/scene/scene.html#SceneCfg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.scene.SceneCfg" title="Link to this definition">#</a></dt>
+<dd><p>Configuration for a simulation scene.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.scene.SceneCfg.num_envs">
+<span class="sig-name descname"><span class="pre">num_envs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#mjlab.scene.SceneCfg.num_envs" title="Link to this definition">#</a></dt>
+<dd><p>Number of parallel environments.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.scene.SceneCfg.env_spacing">
+<span class="sig-name descname"><span class="pre">env_spacing</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></em><a class="headerlink" href="#mjlab.scene.SceneCfg.env_spacing" title="Link to this definition">#</a></dt>
+<dd><p>Spacing between environment origins in meters.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.scene.SceneCfg.terrain">
+<span class="sig-name descname"><span class="pre">terrain</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="terrains.html#mjlab.terrains.TerrainEntityCfg" title="mjlab.terrains.terrain_entity.TerrainEntityCfg"><span class="pre">TerrainEntityCfg</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#mjlab.scene.SceneCfg.terrain" title="Link to this definition">#</a></dt>
+<dd><p>Terrain configuration. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no terrain is added.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.scene.SceneCfg.entities">
+<span class="sig-name descname"><span class="pre">entities</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="entity.html#mjlab.entity.EntityCfg" title="mjlab.entity.entity.EntityCfg"><span class="pre">EntityCfg</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#mjlab.scene.SceneCfg.entities" title="Link to this definition">#</a></dt>
+<dd><p>Mapping of entity names to their configurations.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.scene.SceneCfg.sensors">
+<span class="sig-name descname"><span class="pre">sensors</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="sensor.html#mjlab.sensor.SensorCfg" title="mjlab.sensor.sensor.SensorCfg"><span class="pre">SensorCfg</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#mjlab.scene.SceneCfg.sensors" title="Link to this definition">#</a></dt>
+<dd><p>Sensor configurations to attach to the scene.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.scene.SceneCfg.extent">
+<span class="sig-name descname"><span class="pre">extent</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#mjlab.scene.SceneCfg.extent" title="Link to this definition">#</a></dt>
+<dd><p>Override for <code class="docutils literal notranslate"><span class="pre">mjModel.stat.extent</span></code>. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, MuJoCo computes
+it automatically.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.scene.SceneCfg.spec_fn">
+<span class="sig-name descname"><span class="pre">spec_fn</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">MjSpec</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#mjlab.scene.SceneCfg.spec_fn" title="Link to this definition">#</a></dt>
+<dd><p>Optional callback to modify the <code class="docutils literal notranslate"><span class="pre">MjSpec</span></code> after entities and sensors
+have been added but before compilation.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 
@@ -548,7 +671,28 @@ document.write(`
   </div>
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#scene">Scene</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#scene">Scene</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene"><code class="docutils literal notranslate"><span class="pre">Scene</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.__init__"><code class="docutils literal notranslate"><span class="pre">Scene.__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.write"><code class="docutils literal notranslate"><span class="pre">Scene.write()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.to_zip"><code class="docutils literal notranslate"><span class="pre">Scene.to_zip()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.collect_variant_info"><code class="docutils literal notranslate"><span class="pre">Scene.collect_variant_info()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.sensor_context"><code class="docutils literal notranslate"><span class="pre">Scene.sensor_context</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.Scene.write_data_to_sim"><code class="docutils literal notranslate"><span class="pre">Scene.write_data_to_sim()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.SceneCfg"><code class="docutils literal notranslate"><span class="pre">SceneCfg</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.SceneCfg.num_envs"><code class="docutils literal notranslate"><span class="pre">SceneCfg.num_envs</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.SceneCfg.env_spacing"><code class="docutils literal notranslate"><span class="pre">SceneCfg.env_spacing</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.SceneCfg.terrain"><code class="docutils literal notranslate"><span class="pre">SceneCfg.terrain</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.SceneCfg.entities"><code class="docutils literal notranslate"><span class="pre">SceneCfg.entities</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.SceneCfg.sensors"><code class="docutils literal notranslate"><span class="pre">SceneCfg.sensors</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.SceneCfg.extent"><code class="docutils literal notranslate"><span class="pre">SceneCfg.extent</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.scene.SceneCfg.spec_fn"><code class="docutils literal notranslate"><span class="pre">SceneCfg.spec_fn</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
   </nav></div>
 

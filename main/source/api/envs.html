@@ -474,9 +474,51 @@ document.write(`
             </div>
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#managerbasedrlenv">ManagerBasedRlEnv</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#vecenvobs">VecEnvObs</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#vecenvstepreturn">VecEnvStepReturn</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#managerbasedrlenv">ManagerBasedRlEnv</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.__init__"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.num_envs"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.num_envs</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.physics_dt"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.physics_dt</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.step_dt"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.step_dt</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.device"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.device</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.max_episode_length_s"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.max_episode_length_s</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.max_episode_length"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.max_episode_length</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.unwrapped"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.unwrapped</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.load_managers"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.load_managers()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.step"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.step()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.decimation"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.decimation</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.scene"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.scene</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.observations"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.observations</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.actions"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.actions</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.events"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.events</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.seed"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.seed</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.sim"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.sim</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.viewer"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.viewer</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.episode_length_s"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.episode_length_s</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.rewards"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.rewards</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.terminations"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.terminations</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.commands"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.commands</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.curriculum"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.curriculum</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.metrics"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.metrics</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.recorders"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.recorders</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.is_finite_horizon"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.is_finite_horizon</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.auto_reset"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.auto_reset</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.scale_rewards_by_dt"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.scale_rewards_by_dt</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#vecenvobs">VecEnvObs</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.VecEnvObs"><code class="docutils literal notranslate"><span class="pre">VecEnvObs</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#vecenvstepreturn">VecEnvStepReturn</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.VecEnvStepReturn"><code class="docutils literal notranslate"><span class="pre">VecEnvStepReturn</span></code></a></li>
+</ul>
+</li>
 </ul>
             </nav>
         </div>
@@ -488,28 +530,337 @@ document.write(`
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="mjlab-envs">
-<h1>mjlab.envs<a class="headerlink" href="#mjlab-envs" title="Link to this heading">#</a></h1>
+  <section id="module-mjlab.envs">
+<span id="mjlab-envs"></span><h1>mjlab.envs<a class="headerlink" href="#module-mjlab.envs" title="Link to this heading">#</a></h1>
 <p class="rubric">Classes</p>
 <table class="hlist"><tr><td><ul class="simple">
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ManagerBasedRlEnv</span></code></p></li>
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg</span></code></p></li>
+<li><p><a class="reference internal" href="#mjlab.envs.ManagerBasedRlEnv" title="mjlab.envs.ManagerBasedRlEnv"><code class="xref py py-class docutils literal notranslate"><span class="pre">ManagerBasedRlEnv</span></code></a></p></li>
+<li><p><a class="reference internal" href="#mjlab.envs.ManagerBasedRlEnvCfg" title="mjlab.envs.ManagerBasedRlEnvCfg"><code class="xref py py-class docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg</span></code></a></p></li>
 </ul>
 </td><td><ul class="simple">
-<li><p><code class="xref py py-data docutils literal notranslate"><span class="pre">VecEnvObs</span></code></p></li>
+<li><p><a class="reference internal" href="#mjlab.envs.VecEnvObs" title="mjlab.envs.VecEnvObs"><code class="xref py py-data docutils literal notranslate"><span class="pre">VecEnvObs</span></code></a></p></li>
 </ul>
 </td><td><ul class="simple">
-<li><p><code class="xref py py-data docutils literal notranslate"><span class="pre">VecEnvStepReturn</span></code></p></li>
+<li><p><a class="reference internal" href="#mjlab.envs.VecEnvStepReturn" title="mjlab.envs.VecEnvStepReturn"><code class="xref py py-data docutils literal notranslate"><span class="pre">VecEnvStepReturn</span></code></a></p></li>
 </ul>
 </td></tr></table>
 <section id="managerbasedrlenv">
 <h2>ManagerBasedRlEnv<a class="headerlink" href="#managerbasedrlenv" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnv">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.envs.</span></span><span class="sig-name descname"><span class="pre">ManagerBasedRlEnv</span></span><a class="reference internal" href="../../_modules/mjlab/envs/manager_based_rl_env.html#ManagerBasedRlEnv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnv" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Manager-based RL environment.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnv.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mjlab.envs.ManagerBasedRlEnvCfg" title="mjlab.envs.manager_based_rl_env.ManagerBasedRlEnvCfg"><span class="pre">ManagerBasedRlEnvCfg</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">render_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/envs/manager_based_rl_env.html#ManagerBasedRlEnv.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnv.__init__" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnv.num_envs">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">num_envs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnv.num_envs" title="Link to this definition">#</a></dt>
+<dd><p>Number of parallel environments.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnv.physics_dt">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">physics_dt</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnv.physics_dt" title="Link to this definition">#</a></dt>
+<dd><p>Physics simulation step size.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnv.step_dt">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">step_dt</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnv.step_dt" title="Link to this definition">#</a></dt>
+<dd><p>Environment step size (physics_dt * decimation).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnv.device">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">device</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnv.device" title="Link to this definition">#</a></dt>
+<dd><p>Device for computation.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnv.max_episode_length_s">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">max_episode_length_s</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnv.max_episode_length_s" title="Link to this definition">#</a></dt>
+<dd><p>Maximum episode length in seconds.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnv.max_episode_length">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">max_episode_length</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnv.max_episode_length" title="Link to this definition">#</a></dt>
+<dd><p>Maximum episode length in steps.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnv.unwrapped">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">unwrapped</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#mjlab.envs.ManagerBasedRlEnv" title="mjlab.envs.manager_based_rl_env.ManagerBasedRlEnv"><span class="pre">ManagerBasedRlEnv</span></a></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnv.unwrapped" title="Link to this definition">#</a></dt>
+<dd><p>Get the unwrapped environment (base case for wrapper chains).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnv.load_managers">
+<span class="sig-name descname"><span class="pre">load_managers</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/envs/manager_based_rl_env.html#ManagerBasedRlEnv.load_managers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnv.load_managers" title="Link to this definition">#</a></dt>
+<dd><p>Load and initialize all managers.</p>
+<p>Order is important! Event and command managers must be loaded first,
+then action and observation managers, then other RL managers.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnv.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">action</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.15)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.15)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/mjlab/envs/manager_based_rl_env.html#ManagerBasedRlEnv.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnv.step" title="Link to this definition">#</a></dt>
+<dd><p>Run one environment step: apply actions, simulate, compute RL signals.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">auto_reset=True</span></code> (default), environments that terminate or time out are
+reset in place and the returned observation is the post-reset state. When
+<code class="docutils literal notranslate"><span class="pre">auto_reset=False</span></code>, the reset is skipped and the returned observation is the
+terminal state; the caller must call <code class="docutils literal notranslate"><span class="pre">reset(env_ids=...)</span></code> for done envs before
+the next <code class="docutils literal notranslate"><span class="pre">step()</span></code>.</p>
+<p><strong>Forward-call placement.</strong> MuJoCo’s <code class="docutils literal notranslate"><span class="pre">mj_step</span></code> runs forward kinematics <em>before</em>
+integration, so after stepping, derived quantities (<code class="docutils literal notranslate"><span class="pre">xpos</span></code>, <code class="docutils literal notranslate"><span class="pre">xquat</span></code>,
+<code class="docutils literal notranslate"><span class="pre">site_xpos</span></code>, <code class="docutils literal notranslate"><span class="pre">cvel</span></code>, <code class="docutils literal notranslate"><span class="pre">sensordata</span></code>) lag <code class="docutils literal notranslate"><span class="pre">qpos</span></code>/<code class="docutils literal notranslate"><span class="pre">qvel</span></code> by one physics
+substep. Rather than calling <code class="docutils literal notranslate"><span class="pre">sim.forward()</span></code> twice (once after the decimation
+loop and once after the reset block), this method calls it <strong>once</strong>, right
+before observation computation. This single call refreshes derived quantities
+for <em>all</em> envs: non-reset envs pick up post-decimation kinematics, reset envs
+pick up post-reset kinematics.</p>
+<p>The tradeoff is that termination, reward, and step/interval event managers see
+derived quantities that are stale by one physics substep (the last <code class="docutils literal notranslate"><span class="pre">mj_step</span></code>
+ran <code class="docutils literal notranslate"><span class="pre">mj_forward</span></code> from <em>pre</em>-integration <code class="docutils literal notranslate"><span class="pre">qpos</span></code>). In practice, the staleness
+is negligible for reward shaping, termination checks, and event perturbations.
+Critically, the staleness is <em>consistent</em>: every env, every step, always sees
+the same lag, so the MDP is well-defined and the value function can learn the
+correct mapping.</p>
+<p><strong>Auto-reset parity.</strong> Auto-reset reproduces the explicit <code class="docutils literal notranslate"><span class="pre">reset()</span></code> flow:
+events fire on the terminal state before the reset, and freshly reset envs
+advance commands with <code class="docutils literal notranslate"><span class="pre">dt=0</span></code> so their timers start full.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Events and reset-path resamples all run <em>before</em> <code class="docutils literal notranslate"><span class="pre">forward()</span></code>, so state
+they write (e.g. a velocity push) is refreshed automatically and visible
+in this step’s observations. Command updates run <em>after</em>
+the call, so a command that writes sim state must refresh derived
+quantities itself (see <code class="docutils literal notranslate"><span class="pre">MotionCommand._update_command</span></code>). In all cases,
+do not read derived quantities (<code class="docutils literal notranslate"><span class="pre">root_link_pose_w</span></code>, <code class="docutils literal notranslate"><span class="pre">body_link_vel_w</span></code>,
+etc.) in the same function that writes state (<code class="docutils literal notranslate"><span class="pre">write_root_state_to_sim</span></code>,
+<code class="docutils literal notranslate"><span class="pre">write_joint_state_to_sim</span></code>, etc.). See <a class="reference internal" href="../faq.html#faq"><span class="std std-ref">FAQ &amp; Troubleshooting</span></a> for details.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.envs.</span></span><span class="sig-name descname"><span class="pre">ManagerBasedRlEnvCfg</span></span><a class="reference internal" href="../../_modules/mjlab/envs/manager_based_rl_env.html#ManagerBasedRlEnvCfg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg" title="Link to this definition">#</a></dt>
+<dd><p>Configuration for a manager-based RL environment.</p>
+<p>This config defines all aspects of an RL environment: the physical scene,
+observations, actions, rewards, terminations, and optional features like
+commands and curriculum learning.</p>
+<p>The environment step size is <code class="docutils literal notranslate"><span class="pre">sim.mujoco.timestep</span> <span class="pre">*</span> <span class="pre">decimation</span></code>. For example,
+with a 2ms physics timestep and decimation=10, the environment runs at 50Hz.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.decimation">
+<span class="sig-name descname"><span class="pre">decimation</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.decimation" title="Link to this definition">#</a></dt>
+<dd><p>Number of physics simulation steps per environment step. Higher values mean
+coarser control frequency. Environment step duration = physics_dt * decimation.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.scene">
+<span class="sig-name descname"><span class="pre">scene</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="scene.html#mjlab.scene.SceneCfg" title="mjlab.scene.scene.SceneCfg"><span class="pre">SceneCfg</span></a></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.scene" title="Link to this definition">#</a></dt>
+<dd><p>Scene configuration defining terrain, entities, and sensors. The scene
+specifies <code class="docutils literal notranslate"><span class="pre">num_envs</span></code>, the number of parallel environments.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.observations">
+<span class="sig-name descname"><span class="pre">observations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="managers.html#mjlab.managers.ObservationGroupCfg" title="mjlab.managers.observation_manager.ObservationGroupCfg"><span class="pre">ObservationGroupCfg</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.observations" title="Link to this definition">#</a></dt>
+<dd><p>Observation groups configuration. Each group (e.g., “actor”, “critic”) contains
+observation terms that are concatenated. Groups can have different settings for
+noise, history, and delay.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.actions">
+<span class="sig-name descname"><span class="pre">actions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="managers.html#mjlab.managers.ActionTermCfg" title="mjlab.managers.action_manager.ActionTermCfg"><span class="pre">ActionTermCfg</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.actions" title="Link to this definition">#</a></dt>
+<dd><p>Action terms configuration. Each term controls a specific entity/aspect
+(e.g., joint positions). Action dimensions are concatenated across terms.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.events">
+<span class="sig-name descname"><span class="pre">events</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="managers.html#mjlab.managers.EventTermCfg" title="mjlab.managers.event_manager.EventTermCfg"><span class="pre">EventTermCfg</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.events" title="Link to this definition">#</a></dt>
+<dd><p>Event terms for domain randomization and state resets. Default includes
+<code class="docutils literal notranslate"><span class="pre">reset_scene_to_default</span></code> which resets entities to their initial state.
+Can be set to empty to disable all events including default reset.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.seed">
+<span class="sig-name descname"><span class="pre">seed</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.seed" title="Link to this definition">#</a></dt>
+<dd><p>Random seed for reproducibility. If None, a random seed is used. The actual
+seed used is stored back into this field after initialization.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.sim">
+<span class="sig-name descname"><span class="pre">sim</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="sim.html#mjlab.sim.SimulationCfg" title="mjlab.sim.sim.SimulationCfg"><span class="pre">SimulationCfg</span></a></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.sim" title="Link to this definition">#</a></dt>
+<dd><p>Simulation configuration including physics timestep, solver iterations,
+contact parameters, and NaN guarding.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.viewer">
+<span class="sig-name descname"><span class="pre">viewer</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="viewer.html#mjlab.viewer.ViewerConfig" title="mjlab.viewer.viewer_config.ViewerConfig"><span class="pre">ViewerConfig</span></a></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.viewer" title="Link to this definition">#</a></dt>
+<dd><p>Viewer configuration for rendering (camera position, resolution, etc.).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.episode_length_s">
+<span class="sig-name descname"><span class="pre">episode_length_s</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.episode_length_s" title="Link to this definition">#</a></dt>
+<dd><p>Duration of an episode (in seconds).</p>
+<dl class="simple">
+<dt>Episode length in steps is computed as:</dt><dd><p>ceil(episode_length_s / (sim.mujoco.timestep * decimation))</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.rewards">
+<span class="sig-name descname"><span class="pre">rewards</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="managers.html#mjlab.managers.RewardTermCfg" title="mjlab.managers.reward_manager.RewardTermCfg"><span class="pre">RewardTermCfg</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.rewards" title="Link to this definition">#</a></dt>
+<dd><p>Reward terms configuration.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.terminations">
+<span class="sig-name descname"><span class="pre">terminations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="managers.html#mjlab.managers.TerminationTermCfg" title="mjlab.managers.termination_manager.TerminationTermCfg"><span class="pre">TerminationTermCfg</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.terminations" title="Link to this definition">#</a></dt>
+<dd><p>Termination terms configuration. If empty, episodes never reset. Use
+<code class="docutils literal notranslate"><span class="pre">mdp.time_out</span></code> with <code class="docutils literal notranslate"><span class="pre">time_out=True</span></code> for episode time limits.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.commands">
+<span class="sig-name descname"><span class="pre">commands</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="managers.html#mjlab.managers.CommandTermCfg" title="mjlab.managers.command_manager.CommandTermCfg"><span class="pre">CommandTermCfg</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.commands" title="Link to this definition">#</a></dt>
+<dd><p>Command generator terms (e.g., velocity targets).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.curriculum">
+<span class="sig-name descname"><span class="pre">curriculum</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="managers.html#mjlab.managers.CurriculumTermCfg" title="mjlab.managers.curriculum_manager.CurriculumTermCfg"><span class="pre">CurriculumTermCfg</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.curriculum" title="Link to this definition">#</a></dt>
+<dd><p>Curriculum terms for adaptive difficulty.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.metrics">
+<span class="sig-name descname"><span class="pre">metrics</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="managers.html#mjlab.managers.MetricsTermCfg" title="mjlab.managers.metrics_manager.MetricsTermCfg"><span class="pre">MetricsTermCfg</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.metrics" title="Link to this definition">#</a></dt>
+<dd><p>Custom metric terms for logging per-step values as episode averages.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.recorders">
+<span class="sig-name descname"><span class="pre">recorders</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="managers.html#mjlab.managers.RecorderTermCfg" title="mjlab.managers.recorder_manager.RecorderTermCfg"><span class="pre">RecorderTermCfg</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.recorders" title="Link to this definition">#</a></dt>
+<dd><p>Recorder terms for logging observations, actions, or other data during rollouts.
+If empty, a no-op manager is used with zero overhead.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.is_finite_horizon">
+<span class="sig-name descname"><span class="pre">is_finite_horizon</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.is_finite_horizon" title="Link to this definition">#</a></dt>
+<dd><p>Whether the task has a finite or infinite horizon. Defaults to False (infinite).</p>
+<ul class="simple">
+<li><p><strong>Finite horizon (True)</strong>: The time limit defines the task boundary. When reached,
+no future value exists beyond it, so the agent receives a terminal done signal.</p></li>
+<li><p><strong>Infinite horizon (False)</strong>: The time limit is an artificial cutoff. The agent
+receives a truncated done signal to bootstrap the value of continuing beyond the
+limit.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.auto_reset">
+<span class="sig-name descname"><span class="pre">auto_reset</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.auto_reset" title="Link to this definition">#</a></dt>
+<dd><p>Whether to automatically reset environments that terminate or time out.</p>
+<p>When True (default), <code class="docutils literal notranslate"><span class="pre">step()</span></code> resets done environments and returns post-reset
+observations. When False, <code class="docutils literal notranslate"><span class="pre">step()</span></code> returns the true terminal observation and the
+caller must explicitly call <code class="docutils literal notranslate"><span class="pre">reset(env_ids=...)</span></code> for done environments before the
+next <code class="docutils literal notranslate"><span class="pre">step()</span></code>.</p>
+<p>Note: mjlab’s bundled <code class="docutils literal notranslate"><span class="pre">train.py</span></code> goes through rsl_rl’s <code class="docutils literal notranslate"><span class="pre">OnPolicyRunner</span></code>, which
+does not drive manual resets. <code class="docutils literal notranslate"><span class="pre">auto_reset=False</span></code> is intended for users running
+their own training loop (or a wrapper that handles the reset between steps).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.scale_rewards_by_dt">
+<span class="sig-name descname"><span class="pre">scale_rewards_by_dt</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.scale_rewards_by_dt" title="Link to this definition">#</a></dt>
+<dd><p>Whether to multiply rewards by the environment step duration (dt).</p>
+<p>When True (default), reward values are scaled by step_dt to normalize cumulative
+episodic rewards across different simulation frequencies. Set to False for
+algorithms that expect unscaled reward signals (e.g., HER, static reward scaling).</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="vecenvobs">
 <h2>VecEnvObs<a class="headerlink" href="#vecenvobs" title="Link to this heading">#</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="mjlab.envs.VecEnvObs">
+<span class="sig-prename descclassname"><span class="pre">mjlab.envs.</span></span><span class="sig-name descname"><span class="pre">VecEnvObs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mjlab.envs.VecEnvObs" title="Link to this definition">#</a></dt>
+<dd><p>The type of parameterized generics.</p>
+<p>That is, for example, <cite>type(List[int])</cite> is <cite>_GenericAlias</cite>.</p>
+<p>Objects which are instances of this class include:
+* Parameterized container types, e.g. <cite>Tuple[int]</cite>, <cite>List[int]</cite>.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Note that native container types, e.g. <cite>tuple</cite>, <cite>list</cite>, use
+<cite>types.GenericAlias</cite> instead.</p></li>
+</ul>
+</div></blockquote>
+<ul>
+<li><dl class="simple">
+<dt>Parameterized classes:</dt><dd><p>class C[T]: pass
+# C[int] is a _GenericAlias</p>
+</dd>
+</dl>
+</li>
+<li><p><cite>Callable</cite> aliases, generic <cite>Callable</cite> aliases, and
+parameterized <cite>Callable</cite> aliases:</p>
+<blockquote>
+<div><p>T = TypeVar(‘T’)
+# _CallableGenericAlias inherits from _GenericAlias.
+A = Callable[[], None]  # _CallableGenericAlias
+B = Callable[[T], None]  # _CallableGenericAlias
+C = B[int]  # _CallableGenericAlias</p>
+</div></blockquote>
+</li>
+<li><dl class="simple">
+<dt>Parameterized <cite>Final</cite>, <cite>ClassVar</cite>, <cite>TypeForm</cite>, <cite>TypeGuard</cite>, and <cite>TypeIs</cite>:</dt><dd><p># All _GenericAlias
+Final[int]
+ClassVar[float]
+TypeForm[bytearray]
+TypeGuard[bool]
+TypeIs[range]</p>
+</dd>
+</dl>
+</li>
+</ul>
+<p>Note that instances of this class are not classes (e.g by <cite>inspect.isclass</cite>),
+even though they behave like them.</p>
+<p>alias of <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code> | <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]]</p>
+</dd></dl>
+
 </section>
 <section id="vecenvstepreturn">
 <h2>VecEnvStepReturn<a class="headerlink" href="#vecenvstepreturn" title="Link to this heading">#</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="mjlab.envs.VecEnvStepReturn">
+<span class="sig-prename descclassname"><span class="pre">mjlab.envs.</span></span><span class="sig-name descname"><span class="pre">VecEnvStepReturn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mjlab.envs.VecEnvStepReturn" title="Link to this definition">#</a></dt>
+<dd><p>Built-in immutable sequence.</p>
+<p>If no argument is given, the constructor returns an empty tuple.
+If iterable is specified the tuple is initialized from iterable’s items.</p>
+<p>If the argument is a tuple, the return value is the same object.</p>
+<p>alias of <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code> | <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>]</p>
+</dd></dl>
+
 </section>
 </section>
 
@@ -558,9 +909,51 @@ document.write(`
   </div>
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#managerbasedrlenv">ManagerBasedRlEnv</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#vecenvobs">VecEnvObs</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#vecenvstepreturn">VecEnvStepReturn</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#managerbasedrlenv">ManagerBasedRlEnv</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.__init__"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.num_envs"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.num_envs</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.physics_dt"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.physics_dt</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.step_dt"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.step_dt</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.device"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.device</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.max_episode_length_s"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.max_episode_length_s</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.max_episode_length"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.max_episode_length</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.unwrapped"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.unwrapped</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.load_managers"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.load_managers()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnv.step"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv.step()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.decimation"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.decimation</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.scene"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.scene</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.observations"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.observations</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.actions"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.actions</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.events"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.events</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.seed"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.seed</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.sim"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.sim</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.viewer"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.viewer</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.episode_length_s"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.episode_length_s</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.rewards"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.rewards</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.terminations"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.terminations</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.commands"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.commands</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.curriculum"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.curriculum</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.metrics"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.metrics</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.recorders"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.recorders</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.is_finite_horizon"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.is_finite_horizon</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.auto_reset"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.auto_reset</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.scale_rewards_by_dt"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.scale_rewards_by_dt</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#vecenvobs">VecEnvObs</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.VecEnvObs"><code class="docutils literal notranslate"><span class="pre">VecEnvObs</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#vecenvstepreturn">VecEnvStepReturn</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.VecEnvStepReturn"><code class="docutils literal notranslate"><span class="pre">VecEnvStepReturn</span></code></a></li>
+</ul>
+</li>
 </ul>
   </nav></div>
 
