@@ -411,7 +411,9 @@ document.write(`
                 <article class="bd-article">
                   
   <h1>Source code for mjlab.rl.vecenv_wrapper</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">rsl_rl.env</span><span class="w"> </span><span class="kn">import</span> <span class="n">VecEnv</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tensordict</span><span class="w"> </span><span class="kn">import</span> <span class="n">TensorDict</span>
 
@@ -443,7 +445,7 @@ document.write(`
 
 
   <span class="nd">@property</span>
-  <span class="k">def</span><span class="w"> </span><span class="nf">cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ManagerBasedRlEnvCfg</span><span class="p">:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ManagerBasedRlEnvCfg</span><span class="p">:</span>  <span class="c1"># ty: ignore[incompatible-property-override]</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">unwrapped</span><span class="o">.</span><span class="n">cfg</span>
 
   <span class="nd">@property</span>
@@ -479,13 +481,20 @@ document.write(`
   <span class="k">def</span><span class="w"> </span><span class="nf">seed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">unwrapped</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
 
+  <span class="k">def</span><span class="w"> </span><span class="nf">_to_tensordict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">TensorDict</span><span class="p">:</span>
+    <span class="c1"># TensorDict accepts nested dicts, which its type stubs do not express.</span>
+    <span class="k">return</span> <span class="n">TensorDict</span><span class="p">(</span>
+      <span class="n">obs_dict</span><span class="p">,</span>  <span class="c1"># ty: ignore[invalid-argument-type]</span>
+      <span class="n">batch_size</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_envs</span><span class="p">],</span>
+    <span class="p">)</span>
+
   <span class="k">def</span><span class="w"> </span><span class="nf">get_observations</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorDict</span><span class="p">:</span>
     <span class="n">obs_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unwrapped</span><span class="o">.</span><span class="n">observation_manager</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">TensorDict</span><span class="p">(</span><span class="n">obs_dict</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_envs</span><span class="p">])</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_tensordict</span><span class="p">(</span><span class="n">obs_dict</span><span class="p">)</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">TensorDict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
     <span class="n">obs_dict</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">TensorDict</span><span class="p">(</span><span class="n">obs_dict</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_envs</span><span class="p">]),</span> <span class="n">extras</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_tensordict</span><span class="p">(</span><span class="n">obs_dict</span><span class="p">),</span> <span class="n">extras</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span> <span class="n">actions</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
@@ -500,7 +509,7 @@ document.write(`
     <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">is_finite_horizon</span><span class="p">:</span>
       <span class="n">extras</span><span class="p">[</span><span class="s2">&quot;time_outs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">truncated</span>
     <span class="k">return</span> <span class="p">(</span>
-      <span class="n">TensorDict</span><span class="p">(</span><span class="n">obs_dict</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_envs</span><span class="p">]),</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_to_tensordict</span><span class="p">(</span><span class="n">obs_dict</span><span class="p">),</span>
       <span class="n">rew</span><span class="p">,</span>
       <span class="n">dones</span><span class="p">,</span>
       <span class="n">extras</span><span class="p">,</span>

@@ -477,13 +477,13 @@ document.write(`
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">torch</span><span class="o">.</span><span class="n">onnx</span><span class="o">.</span><span class="n">export</span><span class="p">(</span>
       <span class="n">onnx_model</span><span class="p">,</span>
-      <span class="n">onnx_model</span><span class="o">.</span><span class="n">get_dummy_inputs</span><span class="p">(),</span>  <span class="c1"># type: ignore[operator]</span>
+      <span class="n">onnx_model</span><span class="o">.</span><span class="n">get_dummy_inputs</span><span class="p">(),</span>  <span class="c1"># ty: ignore[call-non-callable]</span>
       <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">filename</span><span class="p">),</span>
       <span class="n">export_params</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
       <span class="n">opset_version</span><span class="o">=</span><span class="mi">18</span><span class="p">,</span>
       <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
-      <span class="n">input_names</span><span class="o">=</span><span class="n">onnx_model</span><span class="o">.</span><span class="n">input_names</span><span class="p">,</span>  <span class="c1"># type: ignore[arg-type]</span>
-      <span class="n">output_names</span><span class="o">=</span><span class="n">onnx_model</span><span class="o">.</span><span class="n">output_names</span><span class="p">,</span>  <span class="c1"># type: ignore[arg-type]</span>
+      <span class="n">input_names</span><span class="o">=</span><span class="n">onnx_model</span><span class="o">.</span><span class="n">input_names</span><span class="p">,</span>  <span class="c1"># ty: ignore[invalid-argument-type]</span>
+      <span class="n">output_names</span><span class="o">=</span><span class="n">onnx_model</span><span class="o">.</span><span class="n">output_names</span><span class="p">,</span>  <span class="c1"># ty: ignore[invalid-argument-type]</span>
       <span class="n">dynamic_axes</span><span class="o">=</span><span class="p">{},</span>
       <span class="n">dynamo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span></div>

@@ -585,7 +585,7 @@ document.write(`
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Manager-based RL environment.&quot;&quot;&quot;</span>
 
   <span class="n">is_vector_env</span> <span class="o">=</span> <span class="kc">True</span>
-  <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;render_modes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;rgb_array&quot;</span><span class="p">],</span>
     <span class="s2">&quot;mujoco_version&quot;</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">__version__</span><span class="p">,</span>
     <span class="s2">&quot;warp_version&quot;</span><span class="p">:</span> <span class="n">wp</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">version</span><span class="p">,</span>

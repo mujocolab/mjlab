@@ -545,7 +545,7 @@ document.write(`
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">F</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">F</span><span class="p">:</span>
-    <span class="n">func</span><span class="o">.</span><span class="n">model_fields</span> <span class="o">=</span> <span class="n">fields</span>  <span class="c1"># type: ignore[attr-defined]</span>
+    <span class="n">func</span><span class="o">.</span><span class="n">model_fields</span> <span class="o">=</span> <span class="n">fields</span>  <span class="c1"># ty: ignore[missing-attribute]</span>
     <span class="k">return</span> <span class="n">func</span>
 
   <span class="k">return</span> <span class="n">decorator</span>

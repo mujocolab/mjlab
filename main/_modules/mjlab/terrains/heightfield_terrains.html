@@ -1260,9 +1260,9 @@ document.write(`
     <span class="c1"># For &quot;choice&quot; mode, obstacles can be negative (pits), so offset the</span>
     <span class="c1"># geom down so that the zero-level of the noise aligns with z=0.</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">obstacle_height_mode</span> <span class="o">==</span> <span class="s2">&quot;choice&quot;</span><span class="p">:</span>
-      <span class="n">hfield_z_offset</span> <span class="o">=</span> <span class="n">elevation_min</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">vertical_scale</span>
+      <span class="n">hfield_z_offset</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">elevation_min</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">vertical_scale</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">hfield_z_offset</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="n">hfield_z_offset</span> <span class="o">=</span> <span class="mf">0.0</span>
 
     <span class="c1"># Physical surface height per cell (pits negative, bumps positive about z=0).</span>
     <span class="n">physical_heights</span> <span class="o">=</span> <span class="n">hfield_z_offset</span> <span class="o">+</span> <span class="n">normalized_elevation</span> <span class="o">*</span> <span class="n">max_physical_height</span>

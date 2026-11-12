@@ -425,7 +425,7 @@ document.write(`
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">cast</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">mujoco</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
@@ -539,7 +539,7 @@ document.write(`
           <span class="sa">f</span><span class="s2">&quot;Mixed XML actuator types for targets: </span><span class="si">{</span><span class="n">breakdown</span><span class="si">}</span><span class="s2">. &quot;</span>
           <span class="sa">f</span><span class="s2">&quot;Split into separate XmlActuatorCfg groups.&quot;</span>
         <span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_command_field</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">CommandField</span><span class="p">,</span> <span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_command_field</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="XmlActuator.compute">

@@ -436,7 +436,8 @@ document.write(`
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize the tensor proxy with a Warp array.&quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_wp_array</span> <span class="o">=</span> <span class="n">wp_array</span>
     <span class="c1"># Workaround for Warp bug: wp.to_torch fails on empty CPU arrays.</span>
-    <span class="k">if</span> <span class="n">wp_array</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">is_cpu</span> <span class="ow">and</span> <span class="n">wp_array</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># type: ignore[union-attr]</span>
+    <span class="k">assert</span> <span class="n">wp_array</span><span class="o">.</span><span class="n">device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">wp_array</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">is_cpu</span> <span class="ow">and</span> <span class="n">wp_array</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
         <span class="n">wp_array</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">wp</span><span class="o">.</span><span class="n">dtype_to_torch</span><span class="p">(</span><span class="n">wp_array</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="p">)</span>
@@ -453,7 +454,7 @@ document.write(`
       <span class="n">new_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">nworld</span><span class="p">,)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tensor</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">new_shape</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_is_cuda</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wp_array</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">is_cpu</span>  <span class="c1"># type: ignore</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_is_cuda</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">wp_array</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">is_cpu</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_torch_stream</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_stream</span><span class="p">()</span></div>
 
 
