@@ -1,5 +1,5 @@
 [build-system]
-requires = ["uv_build>=0.12.1,<0.13.0"]
+requires = ["uv_build>=0.13.7,<0.14.0"]
 build-backend = "uv_build"
 
 [project]
@@ -68,10 +68,9 @@ export-scene = "mjlab.scripts.export_scene:main"
 dev = [
   "ipdb>=0.13.13",
   "pre-commit>=4.3.0",
-  "pyright>=1.1.408",
   "onnxruntime>=1.19.0; python_version >= '3.11'",
   "pytest>=v9.0.3",
-  "ruff>=0.16.1",
+  "ruff>=0.17.4",
   "ty>=v0.0.14",
 ]
 docs = [
@@ -150,13 +149,6 @@ exclude = [
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "B"]
 ignore = ["B011"]
-
-[tool.pyright]
-pythonVersion = "3.11"
-venvPath = "."
-venv = ".venv"
-ignore = ["./typings", "./src/mjlab/utils/lab_api", "./docs"]
-stubPath = "typings"
 
 [tool.ty.environment]
 extra-paths = ["typings"]

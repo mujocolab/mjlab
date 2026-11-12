@@ -30,14 +30,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           enable-cache: true
-          version: "0.12.1"
+          version: "0.13.7"
       - name: Run lint
-        run: uvx ruff@0.16.1 check --diff
+        run: uvx ruff@0.17.4 check --diff
       - name: Run format
-        run: uvx ruff@0.16.1 format --diff
+        run: uvx ruff@0.17.4 format --diff
 
   tests:
     runs-on: ubuntu-latest
@@ -55,11 +55,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
-          version: "0.12.1"
+          version: "0.13.7"
       - name: Restore Warp kernel cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -76,22 +76,6 @@ jobs:
           UV_FROZEN: "0"
         run: uv run --extra cpu --upgrade pytest
 
-  pyright:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Setup uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-        with:
-          python-version: ${{ matrix.python-version }}
-          enable-cache: true
-          version: "0.12.1"
-      - name: Test with python ${{ matrix.python-version }}
-        run: uv run --extra cpu pyright
-
   ty-check:
     runs-on: ubuntu-latest
     strategy:
@@ -100,11 +84,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
-          version: "0.12.1"
+          version: "0.13.7"
       - name: Type check with python ${{ matrix.python-version }}
         run: uv run --extra cpu ty check
 
@@ -113,10 +97,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           enable-cache: true
-          version: "0.12.1"
+          version: "0.13.7"
       - name: Sync environment
         run: uv sync --extra cpu
       - name: Regenerate MuJoCo stubs
@@ -136,10 +120,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           enable-cache: true
-          version: "0.12.1"
+          version: "0.13.7"
       - name: Install Python 3.13
         run: uv python install 3.13
       - name: Build

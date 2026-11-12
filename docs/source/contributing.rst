@@ -36,7 +36,7 @@ The ``Makefile`` provides shortcuts for the most common development tasks:
 .. code-block:: bash
 
    make format      # Format code and fix lint errors (ruff)
-   make type        # Type check (ty + pyright)
+   make type        # Type check (ty)
    make check       # Format + type check
    make test-fast   # Run tests, excluding slow ones
    make test        # Run the full test suite

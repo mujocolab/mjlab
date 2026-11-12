@@ -216,7 +216,7 @@ def run_play(task_id: str, cfg: PlayConfig):
   # Build checkpoint manager for hot-swapping checkpoints in the viewer.
   ckpt_manager: CheckpointManager | None = None
   if TRAINED_MODE and resume_path is not None:
-    _ckpt_runner = runner  # pyright: ignore[reportPossiblyUnboundVariable]
+    _ckpt_runner = runner
 
     def _reload_policy(path: str):
       _ckpt_runner.load(
@@ -254,7 +254,7 @@ def run_play(task_id: str, cfg: PlayConfig):
       api = wandb.Api()
       run_path = str(cfg.wandb_run_path)
       wandb_run = api.run(run_path)
-      _log_root = log_root_path  # pyright: ignore[reportPossiblyUnboundVariable]
+      _log_root = log_root_path
 
       def fetch_available_wandb() -> list[tuple[str, str]]:
         wandb_run.load()

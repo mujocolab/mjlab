@@ -268,8 +268,8 @@ def test_onnx_runtime_roundtrip_matches_pytorch():
       onnx_model,
       (x,),
       str(path),
-      input_names=onnx_model.input_names,  # pyright: ignore[reportArgumentType]
-      output_names=onnx_model.output_names,  # pyright: ignore[reportArgumentType]
+      input_names=onnx_model.input_names,
+      output_names=onnx_model.output_names,
       opset_version=18,
       dynamo=False,
     )
@@ -360,12 +360,12 @@ def test_cnn_onnx_export_to_file():
     onnx_path = Path(tmpdir) / "cnn_policy.onnx"
     torch.onnx.export(
       onnx_model,
-      onnx_model.get_dummy_inputs(),  # pyright: ignore[reportCallIssue]
+      onnx_model.get_dummy_inputs(),
       str(onnx_path),
       export_params=True,
       opset_version=18,
-      input_names=onnx_model.input_names,  # pyright: ignore[reportArgumentType]
-      output_names=onnx_model.output_names,  # pyright: ignore[reportArgumentType]
+      input_names=onnx_model.input_names,
+      output_names=onnx_model.output_names,
       dynamic_axes={},
       dynamo=False,
     )
@@ -393,8 +393,8 @@ def test_cnn_onnx_runtime_roundtrip_matches_pytorch():
       onnx_model,
       (x_1d, x_2d),
       str(path),
-      input_names=onnx_model.input_names,  # pyright: ignore[reportArgumentType]
-      output_names=onnx_model.output_names,  # pyright: ignore[reportArgumentType]
+      input_names=onnx_model.input_names,
+      output_names=onnx_model.output_names,
       opset_version=18,
       dynamo=False,
     )
