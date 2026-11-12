@@ -46,7 +46,32 @@ class TrainConfig:
     return TrainConfig(env=env_cfg, agent=agent_cfg)
 
 
-def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
+def resolve_resume_path(cfg: TrainConfig, log_root_path: Path) -> Path | None:
+  """Find the checkpoint to resume from, or None when not resuming.
+
+  Must run before the new run directory is created: the local lookup picks the
+  most recent run directory, which would otherwise be the new, empty one.
+  """
+  if not cfg.agent.resume:
+    return None
+  if cfg.wandb_run_path is not None:
+    resume_path, was_cached = get_wandb_checkpoint_path(
+      log_root_path, Path(cfg.wandb_run_path), cfg.wandb_checkpoint_name
+    )
+    cached_str = "cached" if was_cached else "downloaded"
+    print(
+      f"[INFO]: Loading checkpoint from W&B: {resume_path.name} "
+      f"(run: {resume_path.parent.name}, {cached_str})"
+    )
+    return resume_path
+  return get_checkpoint_path(
+    log_root_path, cfg.agent.load_run, cfg.agent.load_checkpoint
+  )
+
+
+def run_train(
+  task_id: str, cfg: TrainConfig, log_dir: Path, resume_path: Path | None = None
+) -> None:
   cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
   if cuda_visible == "":
     device = "cpu"
@@ -111,29 +136,6 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
     cfg=cfg.env, device=device, render_mode="rgb_array" if cfg.video else None
   )
 
-  log_root_path = log_dir.parent  # Go up from specific run dir to experiment dir.
-
-  resume_path: Path | None = None
-  if cfg.agent.resume:
-    if cfg.wandb_run_path is not None:
-      # Load checkpoint from W&B.
-      resume_path, was_cached = get_wandb_checkpoint_path(
-        log_root_path, Path(cfg.wandb_run_path), cfg.wandb_checkpoint_name
-      )
-      if rank == 0:
-        run_id = resume_path.parent.name
-        checkpoint_name = resume_path.name
-        cached_str = "cached" if was_cached else "downloaded"
-        print(
-          f"[INFO]: Loading checkpoint from W&B: {checkpoint_name} "
-          f"(run: {run_id}, {cached_str})"
-        )
-    else:
-      # Load checkpoint from local filesystem.
-      resume_path = get_checkpoint_path(
-        log_root_path, cfg.agent.load_run, cfg.agent.load_checkpoint
-      )
-
   # Only record videos on rank 0 to avoid multiple workers writing to the same files.
   if cfg.video and rank == 0:
     env = VideoRecorder(
@@ -189,6 +191,8 @@ def launch_training(task_id: str, args: TrainConfig | None = None):
   if args.agent.run_name:
     log_dir_name += f"_{args.agent.run_name}"
   log_dir = log_root_path / log_dir_name
+  # Resolve once, before torchrunx or any worker creates log_dir.
+  resume_path = resolve_resume_path(args, log_root_path)
 
   # Select GPUs based on CUDA_VISIBLE_DEVICES and user specification.
   selected_gpus, num_gpus = select_gpus(args.gpu_ids)
@@ -201,7 +205,7 @@ def launch_training(task_id: str, args: TrainConfig | None = None):
 
   if num_gpus <= 1:
     # CPU or single GPU: run directly without torchrunx.
-    run_train(task_id, args, log_dir)
+    run_train(task_id, args, log_dir, resume_path)
   else:
     # Multi-GPU: use torchrunx.
     import torchrunx
@@ -225,7 +229,7 @@ def launch_training(task_id: str, args: TrainConfig | None = None):
       workers_per_host=num_gpus,
       backend=None,  # Let rsl_rl handle process group initialization.
       copy_env_vars=torchrunx.DEFAULT_ENV_VARS_FOR_COPY + ("MUJOCO*",),
-    ).run(run_train, task_id, args, log_dir)
+    ).run(run_train, task_id, args, log_dir, resume_path)
 
 
 def main():
