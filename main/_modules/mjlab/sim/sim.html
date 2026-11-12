@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Nov 11, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 12, 2026"/>
   </head>
   
   
@@ -426,10 +426,10 @@ document.write(`
 <span class="kn">import</span><span class="w"> </span><span class="nn">warp</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">wp</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.entity.variants</span><span class="w"> </span><span class="kn">import</span> <span class="n">VARIANT_DEPENDENT_FIELDS</span><span class="p">,</span> <span class="n">build_variant_model</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.managers.event_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecomputeLevel</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sim.randomization</span><span class="w"> </span><span class="kn">import</span> <span class="n">expand_model_fields</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sim.sim_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">TorchArray</span><span class="p">,</span> <span class="n">WarpBridge</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.nan_guard</span><span class="w"> </span><span class="kn">import</span> <span class="n">NanGuard</span><span class="p">,</span> <span class="n">NanGuardCfg</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.spec</span><span class="w"> </span><span class="kn">import</span> <span class="n">compile_spec</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
   <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.entity.variants</span><span class="w"> </span><span class="kn">import</span> <span class="n">VariantMetadata</span>
@@ -686,7 +686,7 @@ document.write(`
     <span class="k">if</span> <span class="n">spec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">variant_info</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_init_with_variants</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">variant_info</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">spec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">compiled</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">compile</span><span class="p">()</span>
+      <span class="n">compiled</span> <span class="o">=</span> <span class="n">compile_spec</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
       <span class="n">cfg</span><span class="o">.</span><span class="n">mujoco</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">compiled</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_init_with_model</span><span class="p">(</span><span class="n">compiled</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -919,18 +919,14 @@ document.write(`
 
 <div class="viewcode-block" id="Simulation.recompute_constants">
 <a class="viewcode-back" href="../../../source/api/sim.html#mjlab.sim.Simulation.recompute_constants">[docs]</a>
-  <span class="k">def</span><span class="w"> </span><span class="nf">recompute_constants</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="n">RecomputeLevel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">recompute_constants</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">groups</span><span class="p">:</span> <span class="n">mjwarp</span><span class="o">.</span><span class="n">SetConstGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Recompute derived model constants after domain randomization.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      level: Which constants to recompute. ``set_const`` is the most</span>
-<span class="sd">        expensive (covers body_mass changes), ``set_const_0`` covers</span>
-<span class="sd">        qpos0/body_inertia/dof_armature changes, and ``set_const_fixed``</span>
-<span class="sd">        is the cheapest (covers body_gravcomp changes).</span>
+<span class="sd">      groups: mujoco_warp.SetConstGroup flags selecting what to recompute.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">fn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mjwarp</span><span class="p">,</span> <span class="n">level</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">wp</span><span class="o">.</span><span class="n">ScopedDevice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wp_device</span><span class="p">):</span>
-      <span class="n">fn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wp_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wp_data</span><span class="p">)</span></div>
+      <span class="n">mjwarp</span><span class="o">.</span><span class="n">set_const</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wp_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wp_data</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">groups</span><span class="p">)</span></div>
 
 
   <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1098,7 +1094,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Nov 11, 2026.
+  Last updated on Nov 12, 2026.
   <br/>
 </p>
   </div>

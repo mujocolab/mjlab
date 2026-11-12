@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Nov 11, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 12, 2026"/>
   </head>
   
   
@@ -429,7 +429,12 @@ document.write(`
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sensor.camera_sensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">CameraSensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sensor.sensor_context</span><span class="w"> </span><span class="kn">import</span> <span class="n">SensorContext</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.terrains.terrain_entity</span><span class="w"> </span><span class="kn">import</span> <span class="n">TerrainEntity</span><span class="p">,</span> <span class="n">TerrainEntityCfg</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.spec</span><span class="w"> </span><span class="kn">import</span> <span class="n">export_spec</span><span class="p">,</span> <span class="n">non_default_option_fields</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.spec</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+  <span class="n">attach_unprefixed</span><span class="p">,</span>
+  <span class="n">compile_spec</span><span class="p">,</span>
+  <span class="n">export_spec</span><span class="p">,</span>
+  <span class="n">non_default_option_fields</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="n">_SCENE_XML</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;scene.xml&quot;</span>
 
@@ -490,7 +495,7 @@ document.write(`
 
 
   <span class="k">def</span><span class="w"> </span><span class="nf">compile</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjModel</span><span class="p">:</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">compile</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">compile_spec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Scene.write">
 <a class="viewcode-back" href="../../../source/api/scene.html#mjlab.scene.Scene.write">[docs]</a>
@@ -710,7 +715,7 @@ document.write(`
         <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
       <span class="p">)</span>
     <span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">worldbody</span><span class="o">.</span><span class="n">add_frame</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">terrain</span><span class="o">.</span><span class="n">spec</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">frame</span><span class="p">)</span>
+    <span class="n">attach_unprefixed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="p">,</span> <span class="n">terrain</span><span class="o">.</span><span class="n">spec</span><span class="p">,</span> <span class="n">frame</span><span class="p">)</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">_add_sensors</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">for</span> <span class="n">sensor_cfg</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">sensors</span><span class="p">:</span>
@@ -769,7 +774,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Nov 11, 2026.
+  Last updated on Nov 12, 2026.
   <br/>
 </p>
   </div>

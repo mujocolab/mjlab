@@ -29,6 +29,16 @@ Added
 Changed
 ^^^^^^^
 
+- Upgraded MuJoCo and MuJoCo Warp to 4.0.1. mjlab now depends on ``mujoco-core``
+  instead of ``mujoco``. To upgrade an existing environment, run
+  ``uv sync --reinstall-package mujoco-core``: removing ``mujoco`` deletes files that
+  ``mujoco-core`` shares with it.
+- ``requires_model_fields`` no longer takes ``recompute``: the event manager infers
+  which derived constants to recompute from the listed fields, using MuJoCo Warp's
+  ``set_const`` groups. ``RecomputeLevel`` is removed, and
+  ``sim.recompute_constants()`` takes ``mujoco_warp.SetConstGroup`` flags.
+- ``dr.geom_size`` now recomputes broadphase bounds with ``set_const`` after the event
+  fires. Calling it directly no longer updates ``geom_rbound`` and ``geom_aabb``.
 - Regex keys in ``init_state.joint_pos``/``joint_vel``, ``posture_target`` and spec
   config ``*_names_expr`` fields now match whole names, so ``"joint1"`` no longer
   matches ``joint10``. Keys in ``joint_pos``, ``joint_vel`` or ``posture_target`` that
@@ -55,6 +65,17 @@ Changed
 Fixed
 ^^^^^
 
+- Domain randomization of body poses, centers of mass, masses and ``qpos0`` now keeps
+  equality constraint anchors (``eq_data``) and tracking camera and light references
+  per world. Previously every world used world 0's values.
+- Randomizing ``geom_size``, ``geom_pos``, ``geom_quat`` or ``site_pos`` in models
+  with spatial tendons now recomputes tendon rest lengths and inverse weights, and
+  randomizing ``site_pos`` or ``site_quat`` with site transmission actuators now
+  recomputes ``actuator_acc0``.
+- ``dr.cam_pos``, ``dr.cam_quat``, ``dr.light_pos`` and ``dr.light_dir`` now update
+  tracking cameras and lights, and viewers show them at each world's pose.
+- DR terms that list ``jnt_pos`` or ``jnt_axis`` in ``requires_model_fields`` now
+  recompute the derived inertia constants.
 - ``BuiltinPdActuator`` now sends position and velocity targets to the right
   elements when ``EntityCfg.sort_actuators=True``. Contribution by @saikishor.
 - Observations no longer read sensor data cached before the ``forward()`` at the

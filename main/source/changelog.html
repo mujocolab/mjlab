@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Nov 11, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 12, 2026"/>
   </head>
   
   
@@ -577,6 +577,16 @@ The velocity, manipulation and tracking runners now share this export path.</p><
 <section id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Upgraded MuJoCo and MuJoCo Warp to 4.0.1. mjlab now depends on <code class="docutils literal notranslate"><span class="pre">mujoco-core</span></code>
+instead of <code class="docutils literal notranslate"><span class="pre">mujoco</span></code>. To upgrade an existing environment, run
+<code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">sync</span> <span class="pre">--reinstall-package</span> <span class="pre">mujoco-core</span></code>: removing <code class="docutils literal notranslate"><span class="pre">mujoco</span></code> deletes files that
+<code class="docutils literal notranslate"><span class="pre">mujoco-core</span></code> shares with it.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">requires_model_fields</span></code> no longer takes <code class="docutils literal notranslate"><span class="pre">recompute</span></code>: the event manager infers
+which derived constants to recompute from the listed fields, using MuJoCo Warp’s
+<code class="docutils literal notranslate"><span class="pre">set_const</span></code> groups. <code class="docutils literal notranslate"><span class="pre">RecomputeLevel</span></code> is removed, and
+<code class="docutils literal notranslate"><span class="pre">sim.recompute_constants()</span></code> takes <code class="docutils literal notranslate"><span class="pre">mujoco_warp.SetConstGroup</span></code> flags.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dr.geom_size</span></code> now recomputes broadphase bounds with <code class="docutils literal notranslate"><span class="pre">set_const</span></code> after the event
+fires. Calling it directly no longer updates <code class="docutils literal notranslate"><span class="pre">geom_rbound</span></code> and <code class="docutils literal notranslate"><span class="pre">geom_aabb</span></code>.</p></li>
 <li><p>Regex keys in <code class="docutils literal notranslate"><span class="pre">init_state.joint_pos</span></code>/<code class="docutils literal notranslate"><span class="pre">joint_vel</span></code>, <code class="docutils literal notranslate"><span class="pre">posture_target</span></code> and spec
 config <code class="docutils literal notranslate"><span class="pre">*_names_expr</span></code> fields now match whole names, so <code class="docutils literal notranslate"><span class="pre">&quot;joint1&quot;</span></code> no longer
 matches <code class="docutils literal notranslate"><span class="pre">joint10</span></code>. Keys in <code class="docutils literal notranslate"><span class="pre">joint_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">joint_vel</span></code> or <code class="docutils literal notranslate"><span class="pre">posture_target</span></code> that
@@ -603,6 +613,17 @@ attribute of the <code class="docutils literal notranslate"><span class="pre">rs
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Domain randomization of body poses, centers of mass, masses and <code class="docutils literal notranslate"><span class="pre">qpos0</span></code> now keeps
+equality constraint anchors (<code class="docutils literal notranslate"><span class="pre">eq_data</span></code>) and tracking camera and light references
+per world. Previously every world used world 0’s values.</p></li>
+<li><p>Randomizing <code class="docutils literal notranslate"><span class="pre">geom_size</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_quat</span></code> or <code class="docutils literal notranslate"><span class="pre">site_pos</span></code> in models
+with spatial tendons now recomputes tendon rest lengths and inverse weights, and
+randomizing <code class="docutils literal notranslate"><span class="pre">site_pos</span></code> or <code class="docutils literal notranslate"><span class="pre">site_quat</span></code> with site transmission actuators now
+recomputes <code class="docutils literal notranslate"><span class="pre">actuator_acc0</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dr.cam_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">dr.cam_quat</span></code>, <code class="docutils literal notranslate"><span class="pre">dr.light_pos</span></code> and <code class="docutils literal notranslate"><span class="pre">dr.light_dir</span></code> now update
+tracking cameras and lights, and viewers show them at each world’s pose.</p></li>
+<li><p>DR terms that list <code class="docutils literal notranslate"><span class="pre">jnt_pos</span></code> or <code class="docutils literal notranslate"><span class="pre">jnt_axis</span></code> in <code class="docutils literal notranslate"><span class="pre">requires_model_fields</span></code> now
+recompute the derived inertia constants.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">BuiltinPdActuator</span></code> now sends position and velocity targets to the right
 elements when <code class="docutils literal notranslate"><span class="pre">EntityCfg.sort_actuators=True</span></code>. Contribution by &#64;saikishor.</p></li>
 <li><p>Observations no longer read sensor data cached before the <code class="docutils literal notranslate"><span class="pre">forward()</span></code> at the
@@ -1874,7 +1895,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Nov 11, 2026.
+  Last updated on Nov 12, 2026.
   <br/>
 </p>
   </div>

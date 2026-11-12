@@ -61,7 +61,7 @@
     <link rel="prev" title="Events" href="events.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Nov 11, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 12, 2026"/>
   </head>
   
   
@@ -563,7 +563,7 @@ the <code class="docutils literal notranslate"><span class="pre">dr</span></code
 </div>
 <p>Each <code class="docutils literal notranslate"><span class="pre">dr</span></code> function is decorated with <code class="docutils literal notranslate"><span class="pre">&#64;requires_model_fields</span></code> which
 automatically tracks the fields that need to be expanded for per-world
-storage <strong>and</strong> the <code class="docutils literal notranslate"><span class="pre">RecomputeLevel</span></code> needed to keep
+storage <strong>and</strong> the <code class="docutils literal notranslate"><span class="pre">set_const</span></code> groups needed to keep
 <a class="reference internal" href="#dr-recomputation"><span class="std std-ref">derived quantities</span></a> consistent.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">mode</span></code> parameter controls when the event fires:</p>
 <ul class="simple">
@@ -652,23 +652,22 @@ and <code class="docutils literal notranslate"><span class="pre">dr.body_ipos</s
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.body_mass</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">body_mass</span></code></p></td>
 <td><p>Mass of the body</p></td>
-<td><p>Triggers <code class="docutils literal notranslate"><span class="pre">set_const</span></code> recomputation</p></td>
+<td></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.body_com_offset</span></code> (alias <code class="docutils literal notranslate"><span class="pre">body_ipos</span></code>)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">body_ipos</span></code></p></td>
 <td><p>Center of mass position relative to the body frame</p></td>
-<td><p>Triggers <code class="docutils literal notranslate"><span class="pre">set_const</span></code></p></td>
+<td></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.body_pos</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">body_pos</span></code></p></td>
 <td><p>Position of the body frame in the parent frame</p></td>
-<td><p>Triggers <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+<td></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.body_quat</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">body_quat</span></code></p></td>
 <td><p>Orientation of the body frame</p></td>
-<td><p>Accepts roll/pitch/yaw ranges (radians); composes with default;
-triggers <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+<td><p>Accepts roll/pitch/yaw ranges (radians); composes with default</p></td>
 </tr>
 </tbody>
 </table>
@@ -697,7 +696,7 @@ triggers <code class="docutils literal notranslate"><span class="pre">set_const_
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.joint_armature</span></code> (alias <code class="docutils literal notranslate"><span class="pre">dof_armature</span></code>)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">dof_armature</span></code></p></td>
 <td><p>Added rotor inertia (models geared transmissions)</p></td>
-<td><p>Triggers <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+<td></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dr.joint_friction</span></code> (alias <code class="docutils literal notranslate"><span class="pre">dof_frictionloss</span></code>)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">dof_frictionloss</span></code></p></td>
@@ -717,7 +716,7 @@ triggers <code class="docutils literal notranslate"><span class="pre">set_const_
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.joint_default_pos</span></code> (alias <code class="docutils literal notranslate"><span class="pre">qpos0</span></code>)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">qpos0</span></code></p></td>
 <td><p>Reference joint position (zero-spring equilibrium)</p></td>
-<td><p>Triggers <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+<td></td>
 </tr>
 </tbody>
 </table>
@@ -962,7 +961,7 @@ elements. See <a class="reference internal" href="#dr-pair-friction"><span class
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dr.tendon_armature</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">tendon_armature</span></code></p></td>
 <td><p>Inertia associated with tendon velocity</p></td>
-<td><p>Triggers <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+<td></td>
 </tr>
 </tbody>
 </table>
@@ -1157,7 +1156,7 @@ that compares to C MuJoCo.</p>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">body_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">body_quat</span></code></p></td>
 <td><p>Safe with <code class="docutils literal notranslate"><span class="pre">mj_setConst</span></code>, but <strong>unsafe for static bodies</strong>
 (invalidates midphase BVH)</p></td>
-<td><p><strong>Safe</strong> with <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+<td><p><strong>Safe</strong> with <code class="docutils literal notranslate"><span class="pre">KIN0</span> <span class="pre">|</span> <span class="pre">INERT0</span></code></p></td>
 <td><p>No collision BVH to invalidate (see above). Body FK runs for
 all bodies regardless of <code class="docutils literal notranslate"><span class="pre">body_treeid</span></code>. See the
 <a class="reference internal" href="#dr-static-body-caveat"><span class="std std-ref">static-body caveat</span></a> below.</p></td>
@@ -1178,16 +1177,17 @@ valid (see above). See the
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">geom_size</span></code></p></td>
 <td><p><strong>Unsafe</strong></p></td>
-<td><p><strong>Safe</strong> (recomputes bounds automatically)</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">dr.geom_size</span></code> recomputes <code class="docutils literal notranslate"><span class="pre">geom_rbound</span></code> and <code class="docutils literal notranslate"><span class="pre">geom_aabb</span></code>
-inline after writing new sizes. Only primitive types (sphere,
-capsule, ellipsoid, cylinder, box) are supported.</p></td>
+<td><p><strong>Safe</strong> with <code class="docutils literal notranslate"><span class="pre">FIXED</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">set_const</span></code> recomputes <code class="docutils literal notranslate"><span class="pre">geom_rbound</span></code> and <code class="docutils literal notranslate"><span class="pre">geom_aabb</span></code> from
+the new sizes, and tendon rest lengths when spatial tendons
+exist. <code class="docutils literal notranslate"><span class="pre">dr.geom_size</span></code> supports only primitive types (sphere,
+capsule, ellipsoid, cylinder, box).</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">geom_rbound</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_aabb</span></code></p></td>
 <td><p><strong>Unsafe</strong> (internal derived quantities)</p></td>
 <td><p><strong>Not randomized</strong> (derived)</p></td>
-<td><p>Broadphase acceleration data. Only set once during model
-loading. Would need recomputation if <code class="docutils literal notranslate"><span class="pre">geom_size</span></code> changes.</p></td>
+<td><p>Broadphase acceleration data, recomputed by <code class="docutils literal notranslate"><span class="pre">FIXED</span></code> when
+<code class="docutils literal notranslate"><span class="pre">geom_size</span></code> changes.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">geom_friction</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_rgba</span></code></p></td>
 <td><p>Safe</p></td>
@@ -1197,7 +1197,7 @@ step.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dof_armature</span></code></p></td>
 <td><p>Safe with <code class="docutils literal notranslate"><span class="pre">mj_setConst</span></code></p></td>
-<td><p><strong>Safe</strong> with <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+<td><p><strong>Safe</strong> with <code class="docutils literal notranslate"><span class="pre">INERT0</span></code></p></td>
 <td><p>Same approach.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dof_damping</span></code>, <code class="docutils literal notranslate"><span class="pre">dof_frictionloss</span></code>, <code class="docutils literal notranslate"><span class="pre">jnt_stiffness</span></code>,
@@ -1208,7 +1208,7 @@ step.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">qpos0</span></code></p></td>
 <td><p>Safe with <code class="docutils literal notranslate"><span class="pre">mj_setConst</span></code></p></td>
-<td><p><strong>Safe</strong> with <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+<td><p><strong>Safe</strong> with <code class="docutils literal notranslate"><span class="pre">KIN0</span> <span class="pre">|</span> <span class="pre">INERT0</span></code></p></td>
 <td><p>Same approach.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tendon_stiffness</span></code>, <code class="docutils literal notranslate"><span class="pre">tendon_damping</span></code>, <code class="docutils literal notranslate"><span class="pre">tendon_frictionloss</span></code></p></td>
@@ -1219,7 +1219,7 @@ zero/non-zero transition special in C MuJoCo.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tendon_armature</span></code></p></td>
 <td><p>Safe with <code class="docutils literal notranslate"><span class="pre">mj_setConst</span></code></p></td>
-<td><p><strong>Safe</strong> with <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
+<td><p><strong>Safe</strong> with <code class="docutils literal notranslate"><span class="pre">INERT0</span></code></p></td>
 <td><p>Contributes to the mass matrix via <code class="docutils literal notranslate"><span class="pre">smooth.tendon_armature()</span></code>.
 Same approach as <code class="docutils literal notranslate"><span class="pre">dof_armature</span></code>.</p></td>
 </tr>
@@ -1231,8 +1231,8 @@ Same approach as <code class="docutils literal notranslate"><span class="pre">do
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">site_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">site_quat</span></code></p></td>
 <td><p>Mostly safe (<code class="docutils literal notranslate"><span class="pre">mj_setConst</span></code> for tracking cameras/lights)</p></td>
 <td><p><strong>Safe</strong></p></td>
-<td><p>Sites are recomputed via FK. No tracking camera concern in
-typical RL usage.</p></td>
+<td><p>Sites are recomputed via FK. When spatial tendons exist,
+<code class="docutils literal notranslate"><span class="pre">site_pos</span></code> also recomputes their rest lengths.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">bvh_aabb</span></code>, <code class="docutils literal notranslate"><span class="pre">oct_aabb</span></code>, <code class="docutils literal notranslate"><span class="pre">oct_coeff</span></code></p></td>
 <td><p><strong>Unsafe</strong></p></td>
@@ -1268,48 +1268,10 @@ the broadphase reads every step:</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">geom_rbound</span></code>: bounding sphere radius (used for sphere-filter pruning)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">geom_aabb</span></code>: local axis-aligned bounding box (used for AABB/OBB pruning)</p></li>
 </ul>
-<p>Both are copied from <code class="docutils literal notranslate"><span class="pre">MjModel</span></code> during model loading and never recomputed
-by MuJoCo Warp. <code class="docutils literal notranslate"><span class="pre">dr.geom_size</span></code> handles this by recomputing both fields
-inline (pure PyTorch, no Warp kernel needed) after writing the new sizes.</p>
-<p>The formulas are type-dependent:</p>
-<div class="pst-scrollable-table-container"><table class="table">
-<colgroup>
-<col style="width: 23.1%" />
-<col style="width: 38.5%" />
-<col style="width: 38.5%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Geom type</p></th>
-<th class="head"><p><code class="docutils literal notranslate"><span class="pre">geom_rbound</span></code></p></th>
-<th class="head"><p><code class="docutils literal notranslate"><span class="pre">geom_aabb</span></code> half-size</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>Sphere</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">s[0]</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">(s[0],</span> <span class="pre">s[0],</span> <span class="pre">s[0])</span></code></p></td>
-</tr>
-<tr class="row-odd"><td><p>Capsule</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">s[0]</span> <span class="pre">+</span> <span class="pre">s[1]</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">(s[0],</span> <span class="pre">s[0],</span> <span class="pre">s[0]</span> <span class="pre">+</span> <span class="pre">s[1])</span></code></p></td>
-</tr>
-<tr class="row-even"><td><p>Cylinder</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">sqrt(s[0]²</span> <span class="pre">+</span> <span class="pre">s[1]²)</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">(s[0],</span> <span class="pre">s[0],</span> <span class="pre">s[1])</span></code></p></td>
-</tr>
-<tr class="row-odd"><td><p>Ellipsoid</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">max(s[0],</span> <span class="pre">s[1],</span> <span class="pre">s[2])</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">(s[0],</span> <span class="pre">s[1],</span> <span class="pre">s[2])</span></code></p></td>
-</tr>
-<tr class="row-even"><td><p>Box</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">sqrt(s[0]²</span> <span class="pre">+</span> <span class="pre">s[1]²</span> <span class="pre">+</span> <span class="pre">s[2]²)</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">(s[0],</span> <span class="pre">s[1],</span> <span class="pre">s[2])</span></code></p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<p>Plane, heightfield, mesh, and SDF geoms are not supported because their bounds
-come from vertex data or are infinite, not derivable from <code class="docutils literal notranslate"><span class="pre">geom_size</span></code>.</p>
+<p>After <code class="docutils literal notranslate"><span class="pre">dr.geom_size</span></code> fires, the <code class="docutils literal notranslate"><span class="pre">EventManager</span></code> runs <code class="docutils literal notranslate"><span class="pre">set_const</span></code>, which
+recomputes both from the new sizes. Plane, heightfield, mesh, and SDF geoms are
+not supported because their bounds come from vertex data or are infinite, not from
+<code class="docutils literal notranslate"><span class="pre">geom_size</span></code>.</p>
 </section>
 <section id="pair-friction-and-isotropic-friction">
 <span id="dr-pair-friction"></span><h3><code class="docutils literal notranslate"><span class="pre">pair_friction</span></code> and isotropic friction<a class="headerlink" href="#pair-friction-and-isotropic-friction" title="Link to this heading">#</a></h3>
@@ -1453,7 +1415,7 @@ do not have one yet. They will be added as demand arises.</p>
 <tbody>
 <tr class="row-even"><td><p>Body</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">body_gravcomp</span></code></p></td>
-<td><p>Gravity compensation weight. Needs <code class="docutils literal notranslate"><span class="pre">set_const_fixed</span></code>.</p></td>
+<td><p>Gravity compensation weight. Needs no recomputation.</p></td>
 </tr>
 <tr class="row-odd"><td><p>Joint / DOF</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">jnt_margin</span></code></p></td>
@@ -1926,7 +1888,7 @@ simulation.</p></li>
 </ol>
 <p>Instead, mjlab modifies the expanded arrays in place on the GPU and selectively
 recompute only the derived quantities that depend on what changed. This is
-what the <code class="docutils literal notranslate"><span class="pre">RecomputeLevel</span></code> system handles.</p>
+what the <code class="docutils literal notranslate"><span class="pre">set_const</span></code> groups handle.</p>
 </section>
 <section id="recomputation-of-derived-fields">
 <span id="dr-recomputation"></span><h3>Recomputation of derived fields<a class="headerlink" href="#recomputation-of-derived-fields" title="Link to this heading">#</a></h3>
@@ -1936,47 +1898,87 @@ on <code class="docutils literal notranslate"><span class="pre">body_mass</span>
 <code class="docutils literal notranslate"><span class="pre">body_subtreemass</span></code>, the constraint solver will use stale impedance values
 and the simulation will be subtly wrong.</p>
 <p>In C MuJoCo, the solution is to call <a class="reference external" href="https://mujoco.readthedocs.io/en/latest/programming/simulation.html#mjmodel-changes">mj_setConst</a>
-after modifying model parameters at runtime. MuJoCo Warp provides an equivalent
-set of functions (<code class="docutils literal notranslate"><span class="pre">set_const</span></code>, <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code>, <code class="docutils literal notranslate"><span class="pre">set_const_fixed</span></code>) that run
-on the GPU and operate on all worlds in parallel. mjlab calls these
+after modifying model parameters at runtime. MuJoCo Warp provides <code class="docutils literal notranslate"><span class="pre">set_const</span></code>,
+which runs on the GPU for all worlds in parallel and takes a
+<code class="docutils literal notranslate"><span class="pre">mujoco_warp.SetConstGroup</span></code> bitmask selecting what to recompute. mjlab calls it
 automatically.</p>
-<p>The three recomputation levels, from cheapest to most expensive:</p>
+<p>Each group recomputes a set of derived fields:</p>
 <div class="pst-scrollable-table-container"><table class="table">
 <colgroup>
-<col style="width: 25.0%" />
-<col style="width: 35.0%" />
-<col style="width: 40.0%" />
+<col style="width: 15.0%" />
+<col style="width: 85.0%" />
 </colgroup>
 <thead>
-<tr class="row-odd"><th class="head"><p>Level</p></th>
+<tr class="row-odd"><th class="head"><p>Group</p></th>
 <th class="head"><p>What it recomputes</p></th>
-<th class="head"><p>When to use</p></th>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">set_const_fixed</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">body_subtreemass</span></code></p></td>
-<td><p>After changing <code class="docutils literal notranslate"><span class="pre">body_gravcomp</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FIXED</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">body_subtreemass</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_rbound</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_aabb</span></code>, and <code class="docutils literal notranslate"><span class="pre">geom_size</span></code> of
+heightfields</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">set_const_0</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">dof_invweight0</span></code>, <code class="docutils literal notranslate"><span class="pre">body_invweight0</span></code>, <code class="docutils literal notranslate"><span class="pre">tendon_length0</span></code>,
-<code class="docutils literal notranslate"><span class="pre">tendon_invweight0</span></code>, <code class="docutils literal notranslate"><span class="pre">actuator_acc0</span></code>, plus camera and light
-references</p></td>
-<td><p>After changing <code class="docutils literal notranslate"><span class="pre">dof_armature</span></code>, <code class="docutils literal notranslate"><span class="pre">tendon_armature</span></code>,
-<code class="docutils literal notranslate"><span class="pre">body_inertia</span></code>, <code class="docutils literal notranslate"><span class="pre">body_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">body_quat</span></code>, or <code class="docutils literal notranslate"><span class="pre">qpos0</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">KIN0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tendon_length0</span></code>, <code class="docutils literal notranslate"><span class="pre">eq_data</span></code> (connect and weld anchors), and the
+reference poses of tracking cameras and lights</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">set_const</span></code></p></td>
-<td><p>Everything above</p></td>
-<td><p>After changing <code class="docutils literal notranslate"><span class="pre">body_mass</span></code> or <code class="docutils literal notranslate"><span class="pre">body_ipos</span></code> (center of mass)</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">INERT0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dof_invweight0</span></code>, <code class="docutils literal notranslate"><span class="pre">body_invweight0</span></code>, <code class="docutils literal notranslate"><span class="pre">tendon_invweight0</span></code>,
+<code class="docutils literal notranslate"><span class="pre">actuator_acc0</span></code></p></td>
 </tr>
 </tbody>
 </table>
 </div>
-<p>The built-in <code class="docutils literal notranslate"><span class="pre">dr</span></code> functions already declare the correct level. When the
-<code class="docutils literal notranslate"><span class="pre">EventManager</span></code> fires multiple DR terms in a single <code class="docutils literal notranslate"><span class="pre">apply()</span></code> call, it
-tracks the strongest level among them and calls <code class="docutils literal notranslate"><span class="pre">sim.recompute_constants()</span></code>
-once at the end. Manual calls are unnecessary unless writing
-custom DR logic.</p>
+<p>The groups to run follow from the fields a DR term modifies. mjlab’s mapping
+extends the one documented by <code class="docutils literal notranslate"><span class="pre">mujoco_warp.set_const</span></code>, and its tests check it
+against recompiling the modified <code class="docutils literal notranslate"><span class="pre">MjSpec</span></code> with MuJoCo:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 60.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Modified field</p></th>
+<th class="head"><p>Groups</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">body_mass</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ALL</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">body_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">body_quat</span></code>, <code class="docutils literal notranslate"><span class="pre">body_ipos</span></code>, <code class="docutils literal notranslate"><span class="pre">jnt_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">jnt_axis</span></code>,
+<code class="docutils literal notranslate"><span class="pre">qpos0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KIN0</span> <span class="pre">|</span> <span class="pre">INERT0</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">eq_data</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KIN0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">body_inertia</span></code>, <code class="docutils literal notranslate"><span class="pre">body_iquat</span></code>, <code class="docutils literal notranslate"><span class="pre">dof_armature</span></code>, <code class="docutils literal notranslate"><span class="pre">tendon_armature</span></code>,
+<code class="docutils literal notranslate"><span class="pre">actuator_armature</span></code>, <code class="docutils literal notranslate"><span class="pre">actuator_gear</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">INERT0</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">geom_size</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">FIXED</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Some fields only need recomputation when the model uses what they affect:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">cam_pos</span></code> and <code class="docutils literal notranslate"><span class="pre">cam_quat</span></code> need <code class="docutils literal notranslate"><span class="pre">KIN0</span></code> when the model has tracking cameras,
+and <code class="docutils literal notranslate"><span class="pre">light_pos</span></code> and <code class="docutils literal notranslate"><span class="pre">light_dir</span></code> when it has tracking lights.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">geom_size</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">geom_quat</span></code>, and <code class="docutils literal notranslate"><span class="pre">site_pos</span></code> need
+<code class="docutils literal notranslate"><span class="pre">KIN0</span> <span class="pre">|</span> <span class="pre">INERT0</span></code> when the model has spatial tendons, whose paths set tendon rest
+lengths and inverse weights.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">site_pos</span></code> and <code class="docutils literal notranslate"><span class="pre">site_quat</span></code> need <code class="docutils literal notranslate"><span class="pre">INERT0</span></code> when the model has site
+transmission actuators, which set <code class="docutils literal notranslate"><span class="pre">actuator_acc0</span></code>.</p></li>
+</ul>
+<p>DR terms only list the fields they modify with <code class="docutils literal notranslate"><span class="pre">&#64;requires_model_fields</span></code>. The
+<code class="docutils literal notranslate"><span class="pre">EventManager</span></code> infers the groups, expands the fields those groups write per world
+so every world keeps its own values, and after an <code class="docutils literal notranslate"><span class="pre">apply()</span></code> call runs
+<code class="docutils literal notranslate"><span class="pre">sim.recompute_constants()</span></code> once with the groups of every term that fired. A
+custom term that modifies a field outside this mapping and needs recomputation can
+call <code class="docutils literal notranslate"><span class="pre">sim.recompute_constants()</span></code> itself.</p>
 <p>Fields that only affect contact or joint behavior directly (<code class="docutils literal notranslate"><span class="pre">geom_friction</span></code>,
 <code class="docutils literal notranslate"><span class="pre">dof_damping</span></code>, <code class="docutils literal notranslate"><span class="pre">dof_frictionloss</span></code>, etc.) have no derived quantities and
 need no recomputation.</p>
@@ -2242,7 +2244,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Nov 11, 2026.
+  Last updated on Nov 12, 2026.
   <br/>
 </p>
   </div>

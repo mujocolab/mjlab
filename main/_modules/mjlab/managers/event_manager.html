@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Nov 11, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 12, 2026"/>
   </head>
   
   
@@ -415,13 +415,15 @@ document.write(`
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">enum</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">deepcopy</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Literal</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">mujoco</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mujoco_warp</span><span class="w"> </span><span class="kn">import</span> <span class="n">SetConstGroup</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">prettytable</span><span class="w"> </span><span class="kn">import</span> <span class="n">PrettyTable</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.managers.manager_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ManagerBase</span><span class="p">,</span> <span class="n">ManagerTermBaseCfg</span>
@@ -435,76 +437,115 @@ document.write(`
 <span class="n">EventMode</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;startup&quot;</span><span class="p">,</span> <span class="s2">&quot;reset&quot;</span><span class="p">,</span> <span class="s2">&quot;interval&quot;</span><span class="p">,</span> <span class="s2">&quot;step&quot;</span><span class="p">]</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">RecomputeLevel</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">IntEnum</span><span class="p">):</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;Recomputation level for derived model constants after domain randomization.</span>
+<span class="n">_KIN0_INERT0</span> <span class="o">=</span> <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">KIN0</span> <span class="o">|</span> <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">INERT0</span>
 
-<span class="sd">  Higher values are more expensive and recompute a superset of the lower levels.</span>
+<span class="c1"># The mujoco_warp.set_const groups to run after modifying each model field. Fields</span>
+<span class="c1"># not listed here or in recompute_groups() need no recomputation.</span>
+<span class="n">_RECOMPUTE_GROUPS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">SetConstGroup</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s2">&quot;body_mass&quot;</span><span class="p">:</span> <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">ALL</span><span class="p">,</span>
+  <span class="s2">&quot;body_ipos&quot;</span><span class="p">:</span> <span class="n">_KIN0_INERT0</span><span class="p">,</span>
+  <span class="s2">&quot;body_pos&quot;</span><span class="p">:</span> <span class="n">_KIN0_INERT0</span><span class="p">,</span>
+  <span class="s2">&quot;body_quat&quot;</span><span class="p">:</span> <span class="n">_KIN0_INERT0</span><span class="p">,</span>
+  <span class="s2">&quot;jnt_pos&quot;</span><span class="p">:</span> <span class="n">_KIN0_INERT0</span><span class="p">,</span>
+  <span class="s2">&quot;jnt_axis&quot;</span><span class="p">:</span> <span class="n">_KIN0_INERT0</span><span class="p">,</span>
+  <span class="s2">&quot;qpos0&quot;</span><span class="p">:</span> <span class="n">_KIN0_INERT0</span><span class="p">,</span>
+  <span class="s2">&quot;body_inertia&quot;</span><span class="p">:</span> <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">INERT0</span><span class="p">,</span>
+  <span class="s2">&quot;body_iquat&quot;</span><span class="p">:</span> <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">INERT0</span><span class="p">,</span>
+  <span class="s2">&quot;dof_armature&quot;</span><span class="p">:</span> <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">INERT0</span><span class="p">,</span>
+  <span class="s2">&quot;tendon_armature&quot;</span><span class="p">:</span> <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">INERT0</span><span class="p">,</span>
+  <span class="s2">&quot;actuator_armature&quot;</span><span class="p">:</span> <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">INERT0</span><span class="p">,</span>
+  <span class="s2">&quot;actuator_gear&quot;</span><span class="p">:</span> <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">INERT0</span><span class="p">,</span>
+  <span class="s2">&quot;eq_data&quot;</span><span class="p">:</span> <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">KIN0</span><span class="p">,</span>
+  <span class="s2">&quot;geom_size&quot;</span><span class="p">:</span> <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">FIXED</span><span class="p">,</span>
+<span class="p">}</span>
 
-<span class="sd">  .. note::</span>
+<span class="n">_TRACKING</span> <span class="o">=</span> <span class="p">[</span>
+  <span class="nb">int</span><span class="p">(</span><span class="n">mujoco</span><span class="o">.</span><span class="n">mjtCamLight</span><span class="o">.</span><span class="n">mjCAMLIGHT_TRACK</span><span class="p">),</span>
+  <span class="nb">int</span><span class="p">(</span><span class="n">mujoco</span><span class="o">.</span><span class="n">mjtCamLight</span><span class="o">.</span><span class="n">mjCAMLIGHT_TRACKCOM</span><span class="p">),</span>
+<span class="p">]</span>
+<span class="n">_SPATIAL_WRAPS</span> <span class="o">=</span> <span class="p">[</span>
+  <span class="nb">int</span><span class="p">(</span><span class="n">mujoco</span><span class="o">.</span><span class="n">mjtWrap</span><span class="o">.</span><span class="n">mjWRAP_SITE</span><span class="p">),</span>
+  <span class="nb">int</span><span class="p">(</span><span class="n">mujoco</span><span class="o">.</span><span class="n">mjtWrap</span><span class="o">.</span><span class="n">mjWRAP_SPHERE</span><span class="p">),</span>
+  <span class="nb">int</span><span class="p">(</span><span class="n">mujoco</span><span class="o">.</span><span class="n">mjtWrap</span><span class="o">.</span><span class="n">mjWRAP_CYLINDER</span><span class="p">),</span>
+<span class="p">]</span>
 
-<span class="sd">    All levels above ``none`` are expensive (forward kinematics, mass matrix</span>
-<span class="sd">    factorization, etc.). Prefer ``startup`` or ``reset`` event modes for</span>
-<span class="sd">    DR terms that require recomputation.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-
-  <span class="n">none</span> <span class="o">=</span> <span class="mi">0</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;No recomputation needed (e.g. geom_friction, dof_damping).&quot;&quot;&quot;</span>
-
-  <span class="n">set_const_fixed</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;Recompute ``body_subtreemass``. Use after modifying ``body_gravcomp``.&quot;&quot;&quot;</span>
-
-  <span class="n">set_const_0</span> <span class="o">=</span> <span class="mi">2</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;Recompute ``dof_invweight0``, ``body_invweight0``, ``tendon_length0``,</span>
-<span class="sd">  ``tendon_invweight0``, and ``actuator_acc0``. Use after modifying</span>
-<span class="sd">  ``dof_armature``, ``body_inertia``, ``body_pos``, ``body_quat``, or ``qpos0``.&quot;&quot;&quot;</span>
-
-  <span class="n">set_const</span> <span class="o">=</span> <span class="mi">3</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;Full recomputation (superset of all lower levels). Use after modifying</span>
-<span class="sd">  ``body_mass`` or ``body_ipos``.&quot;&quot;&quot;</span>
-
-
-<span class="n">_DERIVED_FIELDS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">RecomputeLevel</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
-  <span class="n">RecomputeLevel</span><span class="o">.</span><span class="n">none</span><span class="p">:</span> <span class="p">(),</span>
-  <span class="n">RecomputeLevel</span><span class="o">.</span><span class="n">set_const_fixed</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;body_subtreemass&quot;</span><span class="p">,),</span>
-  <span class="n">RecomputeLevel</span><span class="o">.</span><span class="n">set_const_0</span><span class="p">:</span> <span class="p">(</span>
+<span class="c1"># The fields each group writes. They are expanded per world along with the</span>
+<span class="c1"># randomized fields, or every world would read world 0&#39;s recomputed values.</span>
+<span class="n">_DERIVED_FIELDS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">SetConstGroup</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">FIXED</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;body_subtreemass&quot;</span><span class="p">,),</span>
+  <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">KIN0</span><span class="p">:</span> <span class="p">(</span>
+    <span class="s2">&quot;tendon_length0&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;eq_data&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;cam_pos0&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;cam_poscom0&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;cam_mat0&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;light_pos0&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;light_poscom0&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;light_dir0&quot;</span><span class="p">,</span>
+  <span class="p">),</span>
+  <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">INERT0</span><span class="p">:</span> <span class="p">(</span>
     <span class="s2">&quot;dof_invweight0&quot;</span><span class="p">,</span>
     <span class="s2">&quot;body_invweight0&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;tendon_length0&quot;</span><span class="p">,</span>
     <span class="s2">&quot;tendon_invweight0&quot;</span><span class="p">,</span>
     <span class="s2">&quot;actuator_acc0&quot;</span><span class="p">,</span>
   <span class="p">),</span>
 <span class="p">}</span>
-<span class="n">_DERIVED_FIELDS</span><span class="p">[</span><span class="n">RecomputeLevel</span><span class="o">.</span><span class="n">set_const</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-  <span class="n">_DERIVED_FIELDS</span><span class="p">[</span><span class="n">RecomputeLevel</span><span class="o">.</span><span class="n">set_const_fixed</span><span class="p">]</span>
-  <span class="o">+</span> <span class="n">_DERIVED_FIELDS</span><span class="p">[</span><span class="n">RecomputeLevel</span><span class="o">.</span><span class="n">set_const_0</span><span class="p">]</span>
-<span class="p">)</span>
+
+<span class="c1"># FIXED recomputes every geom&#39;s bounds from geom_size. They need their own memory</span>
+<span class="c1"># per world exactly where geom_size has it.</span>
+<span class="n">_EXPANDED_WITH</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s2">&quot;geom_size&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;geom_rbound&quot;</span><span class="p">,</span> <span class="s2">&quot;geom_aabb&quot;</span><span class="p">),</span>
+<span class="p">}</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">requires_model_fields</span><span class="p">(</span>
-  <span class="o">*</span><span class="n">fields</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">recompute</span><span class="p">:</span> <span class="n">RecomputeLevel</span> <span class="o">=</span> <span class="n">RecomputeLevel</span><span class="o">.</span><span class="n">none</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">F</span><span class="p">],</span> <span class="n">F</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">recompute_groups</span><span class="p">(</span>
+  <span class="n">fields</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">mj_model</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjModel</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SetConstGroup</span><span class="p">:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;The set_const groups to run after modifying fields of mj_model.&quot;&quot;&quot;</span>
+  <span class="n">groups</span> <span class="o">=</span> <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">NONE</span>
+  <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+    <span class="n">groups</span> <span class="o">|=</span> <span class="n">_RECOMPUTE_GROUPS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">NONE</span><span class="p">)</span>
+  <span class="n">modified</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span>
+  <span class="c1"># Tracking cameras and lights follow references that KIN0 recomputes.</span>
+  <span class="k">if</span> <span class="p">{</span><span class="s2">&quot;cam_pos&quot;</span><span class="p">,</span> <span class="s2">&quot;cam_quat&quot;</span><span class="p">}</span> <span class="o">&amp;</span> <span class="n">modified</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">mj_model</span><span class="o">.</span><span class="n">cam_mode</span><span class="p">,</span> <span class="n">_TRACKING</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+    <span class="n">groups</span> <span class="o">|=</span> <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">KIN0</span>
+  <span class="k">if</span> <span class="p">{</span><span class="s2">&quot;light_pos&quot;</span><span class="p">,</span> <span class="s2">&quot;light_dir&quot;</span><span class="p">}</span> <span class="o">&amp;</span> <span class="n">modified</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span>
+    <span class="n">mj_model</span><span class="o">.</span><span class="n">light_mode</span><span class="p">,</span> <span class="n">_TRACKING</span>
+  <span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+    <span class="n">groups</span> <span class="o">|=</span> <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">KIN0</span>
+  <span class="c1"># Spatial tendon paths set tendon rest lengths and inverse weights.</span>
+  <span class="k">if</span> <span class="p">{</span><span class="s2">&quot;site_pos&quot;</span><span class="p">,</span> <span class="s2">&quot;geom_pos&quot;</span><span class="p">,</span> <span class="s2">&quot;geom_quat&quot;</span><span class="p">,</span> <span class="s2">&quot;geom_size&quot;</span><span class="p">}</span> <span class="o">&amp;</span> <span class="n">modified</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span>
+    <span class="n">mj_model</span><span class="o">.</span><span class="n">wrap_type</span><span class="p">,</span> <span class="n">_SPATIAL_WRAPS</span>
+  <span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+    <span class="n">groups</span> <span class="o">|=</span> <span class="n">_KIN0_INERT0</span>
+  <span class="c1"># Site transmissions set actuator_acc0.</span>
+  <span class="k">if</span> <span class="p">{</span><span class="s2">&quot;site_pos&quot;</span><span class="p">,</span> <span class="s2">&quot;site_quat&quot;</span><span class="p">}</span> <span class="o">&amp;</span> <span class="n">modified</span> <span class="ow">and</span> <span class="p">(</span>
+    <span class="n">mj_model</span><span class="o">.</span><span class="n">actuator_trntype</span> <span class="o">==</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtTrn</span><span class="o">.</span><span class="n">mjTRN_SITE</span>
+  <span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+    <span class="n">groups</span> <span class="o">|=</span> <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">INERT0</span>
+  <span class="k">return</span> <span class="n">groups</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">requires_model_fields</span><span class="p">(</span><span class="o">*</span><span class="n">fields</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">F</span><span class="p">],</span> <span class="n">F</span><span class="p">]:</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Mark an event function as requiring specific model fields expanded per-world.</span>
 
 <span class="sd">  Fields listed here are registered in ``EventManager.domain_randomization_fields``</span>
 <span class="sd">  so that ``sim.expand_model_fields()`` allocates real per-world memory for them.</span>
+<span class="sd">  After the event fires, the EventManager recomputes the derived constants that</span>
+<span class="sd">  depend on these fields.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    *fields: Model field names to expand per-world.</span>
-<span class="sd">    recompute: Recomputation level after modifying these fields.</span>
-<span class="sd">      Derived fields are automatically appended to the model_fields list.</span>
 
 <span class="sd">  Example::</span>
 
-<span class="sd">    @requires_model_fields(&quot;body_mass&quot;, recompute=RecomputeLevel.set_const)</span>
+<span class="sd">    @requires_model_fields(&quot;body_mass&quot;)</span>
 <span class="sd">    def body_mass(env, env_ids, ...):</span>
 <span class="sd">      ...</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">derived</span> <span class="o">=</span> <span class="n">_DERIVED_FIELDS</span><span class="p">[</span><span class="n">recompute</span><span class="p">]</span>
-  <span class="n">all_fields</span> <span class="o">=</span> <span class="n">fields</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">derived</span> <span class="k">if</span> <span class="n">f</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">)</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">F</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">F</span><span class="p">:</span>
-    <span class="n">func</span><span class="o">.</span><span class="n">model_fields</span> <span class="o">=</span> <span class="n">all_fields</span>  <span class="c1"># type: ignore[attr-defined]</span>
-    <span class="n">func</span><span class="o">.</span><span class="n">recompute</span> <span class="o">=</span> <span class="n">recompute</span>  <span class="c1"># type: ignore[attr-defined]</span>
+    <span class="n">func</span><span class="o">.</span><span class="n">model_fields</span> <span class="o">=</span> <span class="n">fields</span>  <span class="c1"># type: ignore[attr-defined]</span>
     <span class="k">return</span> <span class="n">func</span>
 
   <span class="k">return</span> <span class="n">decorator</span>
@@ -689,7 +730,7 @@ document.write(`
         <span class="sa">f</span><span class="s2">&quot;Event mode &#39;</span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2">&#39; requires the time-step of the environment.&quot;</span>
       <span class="p">)</span>
 
-    <span class="n">strongest_fired</span> <span class="o">=</span> <span class="n">RecomputeLevel</span><span class="o">.</span><span class="n">none</span>
+    <span class="n">recompute</span> <span class="o">=</span> <span class="n">SetConstGroup</span><span class="o">.</span><span class="n">NONE</span>
 
     <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">term_cfg</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mode_term_cfgs</span><span class="p">[</span><span class="n">mode</span><span class="p">]):</span>
       <span class="n">fired</span> <span class="o">=</span> <span class="kc">False</span>
@@ -756,12 +797,12 @@ document.write(`
         <span class="n">term_cfg</span><span class="o">.</span><span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="p">,</span> <span class="n">env_ids</span><span class="p">,</span> <span class="o">**</span><span class="n">term_cfg</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
         <span class="n">fired</span> <span class="o">=</span> <span class="kc">True</span>
 
-      <span class="k">if</span> <span class="n">fired</span><span class="p">:</span>
-        <span class="n">level</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">term_cfg</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="s2">&quot;recompute&quot;</span><span class="p">,</span> <span class="n">RecomputeLevel</span><span class="o">.</span><span class="n">none</span><span class="p">)</span>
-        <span class="n">strongest_fired</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">strongest_fired</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">fired</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">term_cfg</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="s2">&quot;model_fields&quot;</span><span class="p">):</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="n">term_cfg</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">model_fields</span>
+        <span class="n">recompute</span> <span class="o">|=</span> <span class="n">recompute_groups</span><span class="p">(</span><span class="n">fields</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">mj_model</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">strongest_fired</span> <span class="o">!=</span> <span class="n">RecomputeLevel</span><span class="o">.</span><span class="n">none</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">recompute_constants</span><span class="p">(</span><span class="n">strongest_fired</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">recompute</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">recompute_constants</span><span class="p">(</span><span class="n">recompute</span><span class="p">)</span>
 
 <div class="viewcode-block" id="EventManager.debug_vis">
 <a class="viewcode-back" href="../../../source/api/managers.html#mjlab.managers.EventManager.debug_vis">[docs]</a>
@@ -815,7 +856,10 @@ document.write(`
 
       <span class="n">func</span> <span class="o">=</span> <span class="n">term_cfg</span><span class="o">.</span><span class="n">func</span>
       <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s2">&quot;model_fields&quot;</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">func</span><span class="o">.</span><span class="n">model_fields</span><span class="p">:</span>
+        <span class="n">groups</span> <span class="o">=</span> <span class="n">recompute_groups</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">model_fields</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">mj_model</span><span class="p">)</span>
+        <span class="n">derived</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">g</span><span class="p">,</span> <span class="n">fs</span> <span class="ow">in</span> <span class="n">_DERIVED_FIELDS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">g</span> <span class="o">&amp;</span> <span class="n">groups</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fs</span><span class="p">]</span>
+        <span class="n">coupled</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">func</span><span class="o">.</span><span class="n">model_fields</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">_EXPANDED_WITH</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="p">())]</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">(</span><span class="o">*</span><span class="n">func</span><span class="o">.</span><span class="n">model_fields</span><span class="p">,</span> <span class="o">*</span><span class="n">derived</span><span class="p">,</span> <span class="o">*</span><span class="n">coupled</span><span class="p">):</span>
           <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_domain_randomization_fields</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_domain_randomization_fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field</span><span class="p">)</span></div>
 
@@ -866,7 +910,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Nov 11, 2026.
+  Last updated on Nov 12, 2026.
   <br/>
 </p>
   </div>

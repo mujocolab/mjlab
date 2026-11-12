@@ -59,7 +59,7 @@
     <link rel="prev" title="mjlab.scene" href="scene.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Nov 11, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 12, 2026"/>
   </head>
   
   
@@ -650,14 +650,11 @@ randomized values.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="mjlab.sim.Simulation.recompute_constants">
-<span class="sig-name descname"><span class="pre">recompute_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">RecomputeLevel</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/sim/sim.html#Simulation.recompute_constants"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sim.Simulation.recompute_constants" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">recompute_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SetConstGroup</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/sim/sim.html#Simulation.recompute_constants"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sim.Simulation.recompute_constants" title="Link to this definition">#</a></dt>
 <dd><p>Recompute derived model constants after domain randomization.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>level</strong> – Which constants to recompute. <code class="docutils literal notranslate"><span class="pre">set_const</span></code> is the most
-expensive (covers body_mass changes), <code class="docutils literal notranslate"><span class="pre">set_const_0</span></code> covers
-qpos0/body_inertia/dof_armature changes, and <code class="docutils literal notranslate"><span class="pre">set_const_fixed</span></code>
-is the cheapest (covers body_gravcomp changes).</p>
+<dd class="field-odd"><p><strong>groups</strong> – mujoco_warp.SetConstGroup flags selecting what to recompute.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -751,7 +748,7 @@ worlds converge. Requires CUDA 12.4 or newer.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="mjlab.sim.SimulationCfg.apply_wp_opt">
-<span class="sig-name descname"><span class="pre">apply_wp_opt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wp_opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">mujoco_warp.Option</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/sim/sim.html#SimulationCfg.apply_wp_opt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sim.SimulationCfg.apply_wp_opt" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">apply_wp_opt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wp_opt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Option</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/sim/sim.html#SimulationCfg.apply_wp_opt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sim.SimulationCfg.apply_wp_opt" title="Link to this definition">#</a></dt>
 <dd><p>Apply MuJoCo Warp-only settings to a warp Option (post <code class="docutils literal notranslate"><span class="pre">put_model</span></code>).</p>
 </dd></dl>
 
@@ -850,7 +847,7 @@ worlds converge. Requires CUDA 12.4 or newer.</p>
 <dd><p>Warp array that behaves like a torch.Tensor with shared memory.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="mjlab.sim.TorchArray.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wp_array</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">warp.array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nworld</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/sim/sim_data.html#TorchArray.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sim.TorchArray.__init__" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wp_array</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nworld</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/sim/sim_data.html#TorchArray.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sim.TorchArray.__init__" title="Link to this definition">#</a></dt>
 <dd><p>Initialize the tensor proxy with a Warp array.</p>
 </dd></dl>
 
@@ -1037,7 +1034,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Nov 11, 2026.
+  Last updated on Nov 12, 2026.
   <br/>
 </p>
   </div>
