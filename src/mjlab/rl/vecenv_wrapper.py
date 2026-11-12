@@ -1,3 +1,5 @@
+from typing import Any
+
 import torch
 from rsl_rl.env import VecEnv
 from tensordict import TensorDict
@@ -25,7 +27,7 @@ class RslRlVecEnvWrapper(VecEnv):
     self.env.reset()
 
   @property
-  def cfg(self) -> ManagerBasedRlEnvCfg:
+  def cfg(self) -> ManagerBasedRlEnvCfg:  # ty: ignore[incompatible-property-override]
     return self.unwrapped.cfg
 
   @property
@@ -61,13 +63,20 @@ class RslRlVecEnvWrapper(VecEnv):
   def seed(self, seed: int = -1) -> int:
     return self.unwrapped.seed(seed)
 
+  def _to_tensordict(self, obs_dict: dict[str, Any]) -> TensorDict:
+    # TensorDict accepts nested dicts, which its type stubs do not express.
+    return TensorDict(
+      obs_dict,  # ty: ignore[invalid-argument-type]
+      batch_size=[self.num_envs],
+    )
+
   def get_observations(self) -> TensorDict:
     obs_dict = self.unwrapped.observation_manager.compute()
-    return TensorDict(obs_dict, batch_size=[self.num_envs])
+    return self._to_tensordict(obs_dict)
 
   def reset(self) -> tuple[TensorDict, dict]:
     obs_dict, extras = self.env.reset()
-    return TensorDict(obs_dict, batch_size=[self.num_envs]), extras
+    return self._to_tensordict(obs_dict), extras
 
   def step(
     self, actions: torch.Tensor
@@ -82,7 +91,7 @@ class RslRlVecEnvWrapper(VecEnv):
     if not self.cfg.is_finite_horizon:
       extras["time_outs"] = truncated
     return (
-      TensorDict(obs_dict, batch_size=[self.num_envs]),
+      self._to_tensordict(obs_dict),
       rew,
       dones,
       extras,

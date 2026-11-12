@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -25,7 +25,7 @@ class DebugVisualizer(ABC):
   show_all_envs: bool
   """If True, visualize all environments instead of just env_idx."""
 
-  def get_env_indices(self, num_envs: int) -> Iterable[int]:
+  def get_env_indices(self, num_envs: int) -> Sequence[int]:
     """Get the environment indices to visualize.
 
     This helper method handles the show_all_envs logic so implementations
@@ -213,7 +213,7 @@ class NullDebugVisualizer:
     self.show_all_envs = False
     self._meansize = meansize
 
-  def get_env_indices(self, num_envs: int) -> Iterable[int]:
+  def get_env_indices(self, num_envs: int) -> Sequence[int]:
     """Get the environment indices to visualize."""
     if self.show_all_envs:
       return range(num_envs)

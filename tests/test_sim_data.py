@@ -43,7 +43,7 @@ def test_torch_array_ops_work(device):
     wp_arr = wp.array([1.0, 2.0], dtype=wp.float32)
   torch_arr = TorchArray(wp_arr)
   assert torch.allclose(torch_arr * 2, torch.tensor([2.0, 4.0], device=device))
-  assert torch.sum(torch_arr).item() == 3.0  # type: ignore
+  assert torch.sum(torch_arr).item() == 3.0  # ty: ignore[invalid-argument-type]
 
 
 def test_torch_array_expands_batched_singleton_world_dim(device):

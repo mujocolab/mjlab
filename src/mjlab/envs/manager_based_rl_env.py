@@ -167,7 +167,7 @@ class ManagerBasedRlEnv:
   """Manager-based RL environment."""
 
   is_vector_env = True
-  metadata = {
+  metadata: dict[str, Any] = {
     "render_modes": [None, "rgb_array"],
     "mujoco_version": mujoco.__version__,
     "warp_version": wp.config.version,

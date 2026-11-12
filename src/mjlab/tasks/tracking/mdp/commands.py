@@ -362,7 +362,7 @@ class MotionCommand(CommandTerm):
       lower=self.cfg.joint_position_range[0],
       upper=self.cfg.joint_position_range[1],
       size=joint_pos.shape,
-      device=joint_pos.device,  # type: ignore
+      device=joint_pos.device,
     )
 
     self._write_reference_state_to_sim(

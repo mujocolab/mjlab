@@ -767,16 +767,16 @@ class RayCastSensor(Sensor[RayCastData]):
     assert self._ray_geomid is not None
     assert self._ray_normal is not None
     rays(
-      m=self._model.struct,  # type: ignore[attr-defined]
-      d=self._data.struct,  # type: ignore[attr-defined]
-      pnt=self._ray_pnt,  # type: ignore[invalid-argument-type]
-      vec=self._ray_vec,  # type: ignore[invalid-argument-type]
+      m=self._model.struct,  # ty: ignore[missing-attribute]
+      d=self._data.struct,  # ty: ignore[missing-attribute]
+      pnt=self._ray_pnt,  # ty: ignore[invalid-argument-type]
+      vec=self._ray_vec,  # ty: ignore[invalid-argument-type]
       geomgroup=self._geomgroup,
       flg_static=True,
       bodyexclude=self._ray_bodyexclude,
-      dist=self._ray_dist,  # type: ignore[invalid-argument-type]
-      geomid=self._ray_geomid,  # type: ignore[invalid-argument-type]
-      normal=self._ray_normal,  # type: ignore[invalid-argument-type]
+      dist=self._ray_dist,  # ty: ignore[invalid-argument-type]
+      geomid=self._ray_geomid,  # ty: ignore[invalid-argument-type]
+      normal=self._ray_normal,  # ty: ignore[invalid-argument-type]
       rc=rc,
     )
 

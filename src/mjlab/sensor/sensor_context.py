@@ -18,11 +18,11 @@ if TYPE_CHECKING:
 
 @wp.kernel
 def _unpack_rgb_kernel(
-  packed: wp.array2d(dtype=wp.uint32),  # type: ignore[valid-type]
-  rgb: wp.array3d(dtype=wp.uint8),  # type: ignore[valid-type]
+  packed: wp.array2d(dtype=wp.uint32),  # ty: ignore[invalid-type-form]
+  rgb: wp.array3d(dtype=wp.uint8),  # ty: ignore[invalid-type-form]
 ):
   """Unpack ABGR uint32 pixels into separate R, G, B uint8 channels."""
-  world_idx, pixel_idx = wp.tid()  # type: ignore[attr-defined]
+  world_idx, pixel_idx = wp.tid()  # ty: ignore[invalid-assignment, not-iterable]
   val = packed[world_idx, pixel_idx]
   b = wp.uint8(val & wp.uint32(0xFF))
   g = wp.uint8((val >> wp.uint32(8)) & wp.uint32(0xFF))

@@ -26,6 +26,9 @@ class SpatialSoftmax(nn.Module):
       distributions.
   """
 
+  pos_x: torch.Tensor
+  pos_y: torch.Tensor
+
   def __init__(self, height: int, width: int, temperature: float = 1.0) -> None:
     super().__init__()
     # Create normalised coordinate grids in [-1, 1].
@@ -54,10 +57,8 @@ class SpatialSoftmax(nn.Module):
     # Spatial softmax.
     weights = torch.softmax(features / self.temperature, dim=-1)
     # Expected coordinates.
-    pos_x: torch.Tensor = self.pos_x  # type: ignore[assignment]
-    pos_y: torch.Tensor = self.pos_y  # type: ignore[assignment]
-    expected_x = (weights * pos_x).sum(dim=-1)
-    expected_y = (weights * pos_y).sum(dim=-1)
+    expected_x = (weights * self.pos_x).sum(dim=-1)
+    expected_y = (weights * self.pos_y).sum(dim=-1)
     # Interleave: (B, C*2).
     return torch.stack([expected_x, expected_y], dim=-1).reshape(B, C * 2)
 
@@ -96,8 +97,8 @@ class SpatialSoftmaxCNN(nn.Module):
       **cnn_kwargs,
     )
     # cnn.output_dim is (H, W) when flatten=False.
-    out_h, out_w = self.cnn.output_dim  # type: ignore[misc]
-    num_channels: int = self.cnn.output_channels  # type: ignore[assignment]
+    out_h, out_w = self.cnn.output_dim  # ty: ignore[not-iterable]
+    num_channels: int = self.cnn.output_channels  # ty: ignore[invalid-assignment]
     self.spatial_softmax = SpatialSoftmax(out_h, out_w, temperature)
     self._output_dim = num_channels * 2
 
@@ -167,7 +168,7 @@ class SpatialSoftmaxCNNModel(CNNModel):
         group_cfg.pop("spatial_softmax", None)
         temperature = group_cfg.pop("spatial_softmax_temperature", 1.0)
         _cnns[obs_group] = SpatialSoftmaxCNN(
-          input_dim=self.obs_dims_2d[idx],
+          input_dim=self.obs_dims_2d[idx],  # ty: ignore[invalid-argument-type]
           input_channels=self.obs_channels_2d[idx],
           temperature=temperature,
           **group_cfg,
@@ -179,7 +180,7 @@ class SpatialSoftmaxCNNModel(CNNModel):
         raise ValueError(
           "The output of the CNN must be flattened before passing it to the MLP."
         )
-      self.cnn_latent_dim += int(cnn.output_dim)  # type: ignore[arg-type]
+      self.cnn_latent_dim += int(cnn.output_dim)
 
     MLPModel.__init__(
       self,
