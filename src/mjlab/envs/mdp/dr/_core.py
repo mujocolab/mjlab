@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import torch
 
@@ -73,7 +73,7 @@ def _randomize_model_field(
       env_ids,
       field,
       entity_type=entity_type,
-      ranges=ranges,  # type: ignore[arg-type]
+      ranges=ranges,  # ty: ignore[invalid-argument-type]
       distribution=distribution,
       operation=operation,
       asset_cfg=asset_cfg,
@@ -85,7 +85,7 @@ def _randomize_model_field(
     )
 
   # At this point, string-keyed ranges have been handled above.
-  narrowed_ranges: tuple[float, float] | dict[int, tuple[float, float]] = ranges  # type: ignore[assignment]
+  narrowed_ranges = cast(tuple[float, float] | dict[int, tuple[float, float]], ranges)
 
   asset = env.scene[asset_cfg.name]
 

@@ -12,7 +12,7 @@ If your XML has actuators on both joints and tendons, use two configs with diffe
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import mujoco
 import torch
@@ -113,7 +113,7 @@ class XmlActuator(Actuator[XmlActuatorCfg]):
           f"Mixed XML actuator types for targets: {breakdown}. "
           f"Split into separate XmlActuatorCfg groups."
         )
-      self._command_field = cast(CommandField, fields[0])
+      self._command_field = fields[0]
 
   def compute(self, cmd: ActuatorCmd) -> torch.Tensor:
     if self._command_field == "position":

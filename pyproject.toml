@@ -71,7 +71,7 @@ dev = [
   "onnxruntime>=1.19.0; python_version >= '3.11'",
   "pytest>=v9.0.3",
   "ruff>=0.17.4",
-  "ty>=v0.0.14",
+  "ty>=0.0.101",
 ]
 docs = [
   "myst-parser>=4.0.1",

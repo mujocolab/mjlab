@@ -87,7 +87,7 @@ def test_old_style_update_command_raises(counter_env):
   """Terms with the old zero-arg _update_command fail fast at construction."""
 
   class OldStyleCommand(CounterCommand):
-    def _update_command(self) -> None:  # type: ignore[override]
+    def _update_command(self) -> None:  # ty: ignore[incompatible-method-override]
       self.ticks += 1
 
   @dataclass(kw_only=True)

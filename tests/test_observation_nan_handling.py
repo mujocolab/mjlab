@@ -223,7 +223,7 @@ def test_nan_check_dict_output(mock_env, device):
   manager = ObservationManager(cfg, mock_env)
   obs = manager.compute()
 
-  policy: dict[str, torch.Tensor] = obs["actor"]  # type: ignore[assignment]
+  policy: dict[str, torch.Tensor] = obs["actor"]  # ty: ignore[invalid-assignment]
   policy_obs = policy["obs1"]
   assert not torch.isnan(policy_obs).any()
   assert policy_obs[1, 1] == 0.0

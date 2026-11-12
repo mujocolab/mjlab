@@ -114,7 +114,7 @@ def initialized_scene(scene_with_entities_cfg, device):
   wp_model = WarpBridge(wp_model, nworld=scene.num_envs)
   wp_data = WarpBridge(wp_data)
 
-  scene.initialize(model, wp_model, wp_data)  # type: ignore
+  scene.initialize(model, wp_model, wp_data)  # ty: ignore[invalid-argument-type]
   return scene, wp_data
 
 
@@ -384,7 +384,7 @@ def test_full_scene_lifecycle(robot_entity_cfg, device, tmp_path):
   wp_model = WarpBridge(wp_model, nworld=scene.num_envs)
   wp_data = WarpBridge(wp_data)
 
-  scene.initialize(model, wp_model, wp_data)  # type: ignore
+  scene.initialize(model, wp_model, wp_data)  # ty: ignore[invalid-argument-type]
 
   scene.reset()
   scene.update(0.01)

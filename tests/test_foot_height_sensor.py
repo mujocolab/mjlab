@@ -116,7 +116,7 @@ def test_foot_height_observation(device):
   sim.sense()
 
   env = _FakeEnv(scene)
-  obs = foot_height(env, "foot_height_scan")  # type: ignore[invalid-argument-type]
+  obs = foot_height(env, "foot_height_scan")  # ty: ignore[invalid-argument-type]
   sensor: TerrainHeightSensor = scene["foot_height_scan"]
   direct = sensor.data.heights
 

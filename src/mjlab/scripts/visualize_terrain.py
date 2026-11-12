@@ -235,7 +235,7 @@ def main():
       terrain_type = type(selected_instance)
 
       # Instantiate sub-terrain config with current GUI state.
-      sub_cfg_params = {}
+      sub_cfg_params: dict[str, Any] = {}
       for field in dataclasses.fields(terrain_type):
         if field.name in ["proportion", "size", "flat_patch_sampling"]:
           sub_cfg_params[field.name] = getattr(selected_instance, field.name)

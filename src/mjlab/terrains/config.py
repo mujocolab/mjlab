@@ -15,6 +15,7 @@ It will be auto-included in ALL_TERRAIN_PRESETS and ALL_TERRAINS_CFG.
 """
 
 from collections.abc import Callable
+from types import FunctionType
 from typing import Any, TypeVar
 
 import mjlab.terrains as terrain_gen
@@ -25,7 +26,7 @@ from mjlab.terrains.terrain_generator import SubTerrainCfg, TerrainGeneratorCfg
 
 ALL_TERRAIN_PRESETS: dict[str, Callable[..., SubTerrainCfg]] = {}
 
-_F = TypeVar("_F", bound=Callable[..., SubTerrainCfg])
+_F = TypeVar("_F", bound=FunctionType)
 
 
 def terrain_preset(fn: _F) -> _F:

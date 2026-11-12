@@ -132,7 +132,7 @@ def requires_model_fields(*fields: str) -> Callable[[F], F]:
   """
 
   def decorator(func: F) -> F:
-    func.model_fields = fields  # type: ignore[attr-defined]
+    func.model_fields = fields  # ty: ignore[missing-attribute]
     return func
 
   return decorator

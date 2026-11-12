@@ -296,6 +296,7 @@ class feet_swing_height:
     assert command is not None
     height_sensor: TerrainHeightSensor = env.scene[height_sensor_name]
     foot_heights = height_sensor.data.heights
+    assert contact_sensor.data.found is not None
     in_air = contact_sensor.data.found == 0
     self.peak_heights = torch.where(
       in_air,
