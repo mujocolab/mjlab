@@ -19,6 +19,9 @@ from mjlab.sensor.raycast_sensor import RingPatternCfg as RingPatternCfg
 from mjlab.sensor.sensor import Sensor as Sensor
 from mjlab.sensor.sensor import SensorCfg as SensorCfg
 from mjlab.sensor.sensor_context import SensorContext as SensorContext
+from mjlab.sensor.tactile_sensor import TactileData as TactileData
+from mjlab.sensor.tactile_sensor import TactileSensor as TactileSensor
+from mjlab.sensor.tactile_sensor import TactileSensorCfg as TactileSensorCfg
 from mjlab.sensor.terrain_height_sensor import TerrainHeightData as TerrainHeightData
 from mjlab.sensor.terrain_height_sensor import (
   TerrainHeightSensor as TerrainHeightSensor,

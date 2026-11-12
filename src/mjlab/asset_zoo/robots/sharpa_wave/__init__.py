@@ -1,0 +1,1 @@
+"""Sharpa Wave dexterous hand."""
