@@ -65,6 +65,8 @@ Changed
 Fixed
 ^^^^^
 
+- ``--agent.resume`` with multiple GPUs now loads the latest previous run. The
+  checkpoint, including a W&B download, is now resolved once before the workers start.
 - Domain randomization of body poses, centers of mass, masses and ``qpos0`` now keeps
   equality constraint anchors (``eq_data``) and tracking camera and light references
   per world. Previously every world used world 0's values.
