@@ -18,6 +18,7 @@ import viser
 from typing_extensions import override
 
 from mjlab.sensor.raycast_sensor import RayCastSensor
+from mjlab.sensor.tactile_sensor import TactileSensor
 from mjlab.sim.sim import Simulation
 from mjlab.viewer.base import (
   BaseViewer,
@@ -26,6 +27,7 @@ from mjlab.viewer.base import (
   VerbosityLevel,
   ViewerAction,
 )
+from mjlab.viewer.viewer_config import ViewerConfig
 from mjlab.viewer.viser.overlays import (
   ViserCameraOverlays,
   ViserContactOverlays,
@@ -185,10 +187,14 @@ class ViserPlayViewer(BaseViewer):
         self._create_reward_debug_vis_gui()
 
       with self._server.gui.add_folder("Scene"):
+        # The free camera orbits the model center; aim it at the configured
+        # point instead. mjviser measures elevation upward, MuJoCo downward.
+        if self.cfg.origin_type == ViewerConfig.OriginType.WORLD:
+          self._scene.mj_model.stat.center[:] = self.cfg.lookat
         self._scene.create_scene_gui(
           camera_distance=self.cfg.distance,
           camera_azimuth=self.cfg.azimuth,
-          camera_elevation=self.cfg.elevation,
+          camera_elevation=-self.cfg.elevation,
           debug_viz_extra_gui=_debug_viz_extra,
         )
 
@@ -391,7 +397,7 @@ class ViserPlayViewer(BaseViewer):
     vis_sensors = [
       s
       for s in env.scene.sensors.values()
-      if isinstance(s, RayCastSensor) and s.cfg.debug_vis
+      if isinstance(s, (RayCastSensor, TactileSensor)) and s.cfg.debug_vis
     ]
     if not vis_sensors:
       return
