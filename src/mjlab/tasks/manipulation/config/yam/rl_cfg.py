@@ -104,6 +104,18 @@ def yam_lift_cube_vision_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
   )
 
 
+def yam_lift_cube_rgb_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
+  cfg = yam_lift_cube_vision_ppo_runner_cfg()
+  cfg.experiment_name = "yam_lift_cube_rgb"
+  return cfg
+
+
+def yam_lift_cube_depth_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
+  cfg = yam_lift_cube_vision_ppo_runner_cfg()
+  cfg.experiment_name = "yam_lift_cube_depth"
+  return cfg
+
+
 def yam_multi_cube_seg_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
   return RslRlOnPolicyRunnerCfg(
     actor=RslRlModelCfg(
