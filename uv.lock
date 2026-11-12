@@ -1,12 +1,12 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11, <3.15"
 resolution-markers = [
     "python_full_version >= '3.13' and sys_platform != 'darwin'",
-    "python_full_version == '3.12.*' and sys_platform != 'darwin'",
-    "python_full_version < '3.12' and sys_platform != 'darwin'",
     "python_full_version >= '3.13' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and sys_platform != 'darwin'",
     "python_full_version == '3.12.*' and sys_platform == 'darwin'",
+    "python_full_version < '3.12' and sys_platform != 'darwin'",
     "python_full_version < '3.12' and sys_platform == 'darwin'",
 ]
 required-markers = [
@@ -70,7 +70,7 @@ version = "4.14.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "idna" },
-    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/61/cc/a381afa6efea9f496eff839d4a6a1aed3bfafc7b3ab4b0d1b243a12573dd/anyio-4.14.2.tar.gz", hash = "sha256:cfa139f3ed1a23ee8f88a145ddb5ac7605b8bbfd8592baacd7ce3d8bb4313c7f", size = 260176, upload-time = "2026-07-12T20:29:07.082Z" }
 wheels = [
@@ -204,7 +204,7 @@ name = "cffi"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pycparser", marker = "implementation_name != 'PyPy' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "pycparser", marker = "implementation_name != 'PyPy'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/eb/56/b1ba7935a17738ae8453301356628e8147c79dbb825bcbc73dc7401f9846/cffi-2.0.0.tar.gz", hash = "sha256:44d1b5909021139fe36001ae048dbdde8214afa20200eda0f64c068cac5d5529", size = 523588, upload-time = "2025-09-08T23:24:04.541Z" }
 wheels = [
@@ -356,7 +356,7 @@ name = "click"
 version = "8.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/46/61/de6cd827efad202d7057d93e0fed9294b96952e188f7384832791c7b2254/click-8.3.0.tar.gz", hash = "sha256:e7b8232224eba16f4ebe410c25ced9f7875cb5f3263ffc93cc3e8da705e229c4", size = 276943, upload-time = "2025-09-18T17:32:23.696Z" }
 wheels = [
@@ -386,8 +386,8 @@ name = "contourpy"
 version = "1.3.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/58/01/1253e6698a07380cd31a736d248a3f2a50a7c88779a1813da27503cadc2a/contourpy-1.3.3.tar.gz", hash = "sha256:083e12155b210502d0bca491432bb04d56dc3432f95a979b429f2848c3dbe880", size = 13466174, upload-time = "2025-07-26T12:03:12.549Z" }
 wheels = [
@@ -469,7 +469,7 @@ name = "cryptography"
 version = "50.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cffi", marker = "platform_python_implementation != 'PyPy' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "cffi", marker = "platform_python_implementation != 'PyPy'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/de/41/6cbdcf9142d00fe82836fbb51e503e58088575cf7a0fe1dbff6695bf0840/cryptography-50.0.0.tar.gz", hash = "sha256:eeac2acb5a20ed25e0ad6d1df9891a520b78b404266b6d11778f25d5d691a6c9", size = 880201, upload-time = "2026-07-31T14:25:10.11Z" }
 wheels = [
@@ -608,34 +608,34 @@ wheels = [
 
 [package.optional-dependencies]
 cublas = [
-    { name = "nvidia-cublas-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cublas-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 cudart = [
-    { name = "nvidia-cuda-runtime-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cuda-runtime-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 cufft = [
-    { name = "nvidia-cufft-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cufft-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 cufile = [
-    { name = "nvidia-cufile-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cufile-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 cupti = [
-    { name = "nvidia-cuda-cupti-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cuda-cupti-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 curand = [
-    { name = "nvidia-curand-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-curand-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 cusolver = [
-    { name = "nvidia-cusolver-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cusolver-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 cusparse = [
-    { name = "nvidia-cusparse-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cusparse-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 nvrtc = [
-    { name = "nvidia-cuda-nvrtc-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cuda-nvrtc-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 nvtx = [
-    { name = "nvidia-nvtx-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-nvtx-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 
 [[package]]
@@ -653,43 +653,43 @@ wheels = [
 
 [package.optional-dependencies]
 cublas = [
-    { name = "nvidia-cublas", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "nvidia-cuda-nvrtc", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cublas", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cuda-nvrtc", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 cudart = [
-    { name = "nvidia-cuda-runtime", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cuda-runtime", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 cufft = [
-    { name = "nvidia-cufft", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "nvidia-nvjitlink", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cufft", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-nvjitlink", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 cufile = [
-    { name = "nvidia-cufile", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'aarch64' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (platform_machine == 'aarch64' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (platform_machine == 'aarch64' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (platform_machine == 'x86_64' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (platform_machine == 'x86_64' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cufile", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 cupti = [
-    { name = "nvidia-cuda-cupti", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cuda-cupti", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 curand = [
-    { name = "nvidia-curand", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-curand", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 cusolver = [
-    { name = "nvidia-cublas", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "nvidia-cusolver", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "nvidia-cusparse", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "nvidia-nvjitlink", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cublas", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cusolver", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cusparse", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-nvjitlink", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 cusparse = [
-    { name = "nvidia-cusparse", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "nvidia-nvjitlink", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cusparse", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-nvjitlink", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 nvjitlink = [
-    { name = "nvidia-nvjitlink", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-nvjitlink", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 nvrtc = [
-    { name = "nvidia-cuda-nvrtc", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cuda-nvrtc", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 nvtx = [
-    { name = "nvidia-nvtx", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-nvtx", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 
 [[package]]
@@ -1016,8 +1016,8 @@ name = "imageio"
 version = "2.37.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "pillow" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0c/47/57e897fb7094afb2d26e8b2e4af9a45c7cf1a405acdeeca001fdf2c98501/imageio-2.37.0.tar.gz", hash = "sha256:71b57b3669666272c818497aebba2b4c5f20d5b37c81720e5e1a56d59c492996", size = 389963, upload-time = "2025-01-20T02:42:37.089Z" }
@@ -1105,17 +1105,17 @@ name = "ipython"
 version = "9.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
     { name = "decorator" },
     { name = "ipython-pygments-lexers" },
     { name = "jedi" },
     { name = "matplotlib-inline" },
-    { name = "pexpect", marker = "(sys_platform != 'emscripten' and sys_platform != 'win32') or (sys_platform == 'emscripten' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'emscripten' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'emscripten' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'win32' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "pexpect", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
     { name = "prompt-toolkit" },
     { name = "pygments" },
     { name = "stack-data" },
     { name = "traitlets" },
-    { name = "typing-extensions", marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/2a/34/29b18c62e39ee2f7a6a3bba7efd952729d8aadd45ca17efc34453b717665/ipython-9.6.0.tar.gz", hash = "sha256:5603d6d5d356378be5043e69441a072b50a5b33b4503428c77b04cb8ce7bc731", size = 4396932, upload-time = "2025-09-29T10:55:53.948Z" }
 wheels = [
@@ -1361,8 +1361,8 @@ dependencies = [
     { name = "cycler" },
     { name = "fonttools" },
     { name = "kiwisolver" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "packaging" },
     { name = "pillow" },
     { name = "pyparsing" },
@@ -1457,8 +1457,8 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ipython" },
     { name = "matplotlib" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "pillow" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7c/99/8b59dbcebf7e84b35e86c893f52fdc2953299d66ef1fcbacca26162818b0/mediapy-1.2.7.tar.gz", hash = "sha256:fd3826ca156f9165cd369f44d4d345d5609df1da3caf867df7ce304e19dd7fde", size = 28660, upload-time = "2026-07-01T13:14:43.448Z" }
@@ -1476,8 +1476,8 @@ dependencies = [
     { name = "mjviser" },
     { name = "mujoco-core", extra = ["rendering"] },
     { name = "mujoco-warp" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "onnxscript" },
     { name = "prettytable" },
     { name = "rsl-rl-lib" },
@@ -1494,8 +1494,8 @@ dependencies = [
     { name = "tyro" },
     { name = "viser" },
     { name = "wandb" },
-    { name = "warp-lang", version = "1.18.0", source = { registry = "https://pypi.nvidia.com/" }, marker = "sys_platform != 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "warp-lang", version = "1.18.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "warp-lang", version = "1.18.0", source = { registry = "https://pypi.nvidia.com/" }, marker = "sys_platform != 'darwin'" },
+    { name = "warp-lang", version = "1.18.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'darwin'" },
 ]
 
 [package.optional-dependencies]
@@ -1504,11 +1504,11 @@ cpu = [
     { name = "torch", version = "2.14.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cpu') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 cu126 = [
-    { name = "torch", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "torch", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "torch", version = "2.14.1+cu126", source = { registry = "https://download.pytorch.org/whl/cu126" }, marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 cu130 = [
-    { name = "torch", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "torch", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "torch", version = "2.14.0+cu130", source = { registry = "https://download.pytorch.org/whl/cu130" }, marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 
@@ -1517,7 +1517,6 @@ dev = [
     { name = "ipdb" },
     { name = "onnxruntime" },
     { name = "pre-commit" },
-    { name = "pyright" },
     { name = "pytest" },
     { name = "ruff" },
     { name = "ty" },
@@ -1575,9 +1574,8 @@ dev = [
     { name = "ipdb", specifier = ">=0.13.13" },
     { name = "onnxruntime", marker = "python_full_version >= '3.11'", specifier = ">=1.19.0" },
     { name = "pre-commit", specifier = ">=4.3.0" },
-    { name = "pyright", specifier = ">=1.1.408" },
     { name = "pytest", specifier = ">=9.0.3" },
-    { name = "ruff", specifier = ">=0.16.1" },
+    { name = "ruff", specifier = ">=0.17.4" },
     { name = "ty", specifier = ">=0.0.14" },
 ]
 docs = [
@@ -1602,8 +1600,8 @@ version = "0.0.17"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mujoco-core" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "pillow" },
     { name = "trimesh" },
     { name = "viser" },
@@ -1618,8 +1616,8 @@ name = "ml-dtypes"
 version = "0.5.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0e/4a/c27b42ed9b1c7d13d9ba8b6905dece787d6259152f2309338aed29b2447b/ml_dtypes-0.5.4.tar.gz", hash = "sha256:8ab06a50fb9bf9666dd0fe5dfb4676fa2b0ac0f31ecff72a6c3af8e22c063453", size = 692314, upload-time = "2025-11-17T22:32:31.031Z" }
 wheels = [
@@ -1717,8 +1715,8 @@ name = "mujoco-core"
 version = "4.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e8/fb/55e0bbfa81dc9f0c1db559813cba914a267f2547c43918c97e4c1597b134/mujoco_core-4.0.1.tar.gz", hash = "sha256:062883cac035b1b3ae6a769cccd155ecc8f06d8c1cb004c33e01d1cb0f0ccf49", size = 1849567, upload-time = "2026-11-11T16:19:55.415Z" }
 wheels = [
@@ -1758,10 +1756,10 @@ dependencies = [
     { name = "absl-py" },
     { name = "etils", extra = ["epath"] },
     { name = "mujoco-core" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "warp-lang", version = "1.18.0", source = { registry = "https://pypi.nvidia.com/" }, marker = "sys_platform != 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "warp-lang", version = "1.18.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "warp-lang", version = "1.18.0", source = { registry = "https://pypi.nvidia.com/" }, marker = "sys_platform != 'darwin'" },
+    { name = "warp-lang", version = "1.18.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'darwin'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0e/3b/3f7b2ca9bcbe08e4f0ae7745c939871e0b08f7e8d0af0bfd16bb0325296f/mujoco_warp-4.0.1.tar.gz", hash = "sha256:e1e40c16b944afe0e4f0ea646852df4cde110a31bdda9d4190c194906efa84c4", size = 2390466, upload-time = "2026-11-11T16:18:20.58Z" }
 wheels = [
@@ -1892,8 +1890,8 @@ version = "2.5.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.13' and sys_platform != 'darwin'",
-    "python_full_version == '3.12.*' and sys_platform != 'darwin'",
     "python_full_version >= '3.13' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and sys_platform != 'darwin'",
     "python_full_version == '3.12.*' and sys_platform == 'darwin'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/22/fd/89965aa4ac08c74998539fcbf24fa3540f3e15237fbeb6bcf9c908f4aade/numpy-2.5.1.tar.gz", hash = "sha256:a48a113e6afea91f5608793bafa7ef2ad481fefbda87ec5069f483de61cb9fa3", size = 20755553, upload-time = "2026-07-04T17:08:00.933Z" }
@@ -2289,8 +2287,8 @@ version = "1.22.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ml-dtypes" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "protobuf" },
     { name = "typing-extensions" },
 ]
@@ -2322,8 +2320,8 @@ version = "0.1.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ml-dtypes" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "onnx" },
     { name = "typing-extensions" },
 ]
@@ -2338,8 +2336,8 @@ version = "1.30.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "flatbuffers" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "packaging" },
     { name = "protobuf" },
 ]
@@ -2376,8 +2374,8 @@ version = "0.5.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ml-dtypes" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "onnx" },
     { name = "onnx-ir" },
     { name = "packaging" },
@@ -2949,7 +2947,7 @@ name = "pynacl"
 version = "1.6.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cffi", marker = "platform_python_implementation != 'PyPy' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "cffi", marker = "platform_python_implementation != 'PyPy'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d9/9a/4019b524b03a13438637b11538c82781a5eda427394380381af8f04f467a/pynacl-1.6.2.tar.gz", hash = "sha256:018494d6d696ae03c7e656e5e74cdfd8ea1326962cc401bcf018f1ed8436811c", size = 3511692, upload-time = "2026-01-01T17:48:10.851Z" }
 wheels = [
@@ -2998,24 +2996,11 @@ wheels = [
 ]
 
 [[package]]
-name = "pyright"
-version = "1.1.408"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "nodeenv" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/74/b2/5db700e52554b8f025faa9c3c624c59f1f6c8841ba81ab97641b54322f16/pyright-1.1.408.tar.gz", hash = "sha256:f28f2321f96852fa50b5829ea492f6adb0e6954568d1caa3f3af3a5f555eb684", size = 4400578, upload-time = "2026-01-08T08:07:38.795Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0c/82/a2c93e32800940d9573fb28c346772a14778b84ba7524e691b324620ab89/pyright-1.1.408-py3-none-any.whl", hash = "sha256:090b32865f4fdb1e0e6cd82bf5618480d48eecd2eb2e70f960982a3d9a4c17c1", size = 6399144, upload-time = "2026-01-08T08:07:37.082Z" },
-]
-
-[[package]]
 name = "pytest"
 version = "9.0.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
     { name = "iniconfig" },
     { name = "packaging" },
     { name = "pluggy" },
@@ -3169,8 +3154,8 @@ version = "5.5.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "gitpython" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "onnx" },
     { name = "onnxscript" },
     { name = "tensorboard" },
@@ -3187,27 +3172,27 @@ wheels = [
 
 [[package]]
 name = "ruff"
-version = "0.16.1"
+version = "0.17.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/70/25/7113f6d5498888c5fb7db34081cba7d5971c4cb1bfb26819966eee68f003/ruff-0.16.1.tar.gz", hash = "sha256:fedad7c801dabd3fb9741d76aca39246e6ddd9ca446a015875207bf19f1e6bc7", size = 4877500, upload-time = "2026-07-30T19:37:01.379Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/84/0e/3d154514b5bad104f7e1c13169c2d09aa9959fccdc06eb47610ccdfa83ed/ruff-0.17.4.tar.gz", hash = "sha256:f32d178b50e826e00f6c6c1be3f56333068acb9b67fe167143527fa9b81e890d", size = 5357750, upload-time = "2026-11-05T18:52:17.638Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1b/bd/694da69368e0973de65df2ddc73ab18d43c469d5963d9b150911de6bc513/ruff-0.16.1-py3-none-linux_armv6l.whl", hash = "sha256:58edb313b88f0c5460a26adf5f39a37a3be789494a15e3e411e35fa78b89f9a0", size = 10839126, upload-time = "2026-07-30T19:36:13.697Z" },
-    { url = "https://files.pythonhosted.org/packages/3f/f0/b626e5d5bd0dd9576263658ef12885e2288afd1029a48e26ffed65ec1ac1/ruff-0.16.1-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:fde5a99e2f97479af66edd6622c6d5a2a7592c77cf4153d9e4428f5eeb55b60c", size = 11070253, upload-time = "2026-07-30T19:36:17.14Z" },
-    { url = "https://files.pythonhosted.org/packages/83/63/f40acfb6b35b88623e71684942b552c3edd96035f5d98f313815f7b277de/ruff-0.16.1-py3-none-macosx_11_0_arm64.whl", hash = "sha256:e0d4c20532fca4f7fa609369161d968dd28f65d83dabbd61d8e9c7edbf7001f6", size = 10561425, upload-time = "2026-07-30T19:36:20.04Z" },
-    { url = "https://files.pythonhosted.org/packages/aa/dd/14ec0e9c2b4d315547dd38765004b4863e354e1b52cb308272215d9f6f6d/ruff-0.16.1-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:30affbcedf59ad5703d9c91f82266e02b47739f797e1a7b6e158e5526a6dae38", size = 10948879, upload-time = "2026-07-30T19:36:22.476Z" },
-    { url = "https://files.pythonhosted.org/packages/33/e9/9d870cbae575030fdef595f04b4b97573c525b5497cce4f4498cf2f85446/ruff-0.16.1-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:24e9c631573cbca9d20f1283f8f479b2afa4a8503504822bd71a293889f16743", size = 10643691, upload-time = "2026-07-30T19:36:24.914Z" },
-    { url = "https://files.pythonhosted.org/packages/c4/09/12743d544e2173f53ecd27217c65f90d2bc0f8424a66a60339e56bbc0457/ruff-0.16.1-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:b41bdd48fb420987a9b5212e4957c26ad4abce401fa9ea9d4d85843727945f4f", size = 11435354, upload-time = "2026-07-30T19:36:28.447Z" },
-    { url = "https://files.pythonhosted.org/packages/7f/89/a1652b2daee52083c9554a6333b678a8b01d0400f976827bb87857f9449a/ruff-0.16.1-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:b0d1e1393b7648079e13669de1c1f4fde06d4583e84d8fd5c1551e0a77a2aa75", size = 12259033, upload-time = "2026-07-30T19:36:31.326Z" },
-    { url = "https://files.pythonhosted.org/packages/16/96/ecdcb8c54ee7b123b487f807eb014e6e019155a0b81dfb669acd52f28ce3/ruff-0.16.1-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:07bf434b1c95f4e093be4532068ef4fcf00924eb2ade8796075980902d6fd54a", size = 11667981, upload-time = "2026-07-30T19:36:34.394Z" },
-    { url = "https://files.pythonhosted.org/packages/cd/90/c52e12e0d862e9572f2a33aa227409143520abe53111e9a6babbac7b4af8/ruff-0.16.1-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:39897739f112253ee4fdd2e8aa9a4f9ded99fb2be367d5f31dfa4ded6025584c", size = 11468183, upload-time = "2026-07-30T19:36:37.339Z" },
-    { url = "https://files.pythonhosted.org/packages/2c/6b/4ffb7ad1d83eb16cf8cbb3c8815d3f11c88460fd162d4b372a2059be1c2a/ruff-0.16.1-py3-none-manylinux_2_31_riscv64.whl", hash = "sha256:82ae3c0c0d74daf17b968a10b7b3bb3ef297ab7de0c1f749646b25e690ccb150", size = 11470071, upload-time = "2026-07-30T19:36:39.91Z" },
-    { url = "https://files.pythonhosted.org/packages/9c/72/32ae7db4c0b5e32ab611787caa19d1546800676d79f7483b7100a3561bf4/ruff-0.16.1-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:4d5f2ed10f8242d83fc08d521301089364e3375375705356f20c0e31606ef3ef", size = 10919503, upload-time = "2026-07-30T19:36:42.65Z" },
-    { url = "https://files.pythonhosted.org/packages/f7/ca/3d901ba6ad6fc38da39c3448fc6c59ac945679293a17c3ceb6d6c1cba13e/ruff-0.16.1-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:a4665b309891f83f3e3c25447935f1213e9abbd4b5640af7a1f2def9f8d413c1", size = 10649861, upload-time = "2026-07-30T19:36:45.18Z" },
-    { url = "https://files.pythonhosted.org/packages/92/79/894ef1ced26552d5f8c9cf6d85b0687840e1128c55aeab7b9c2d54a0d880/ruff-0.16.1-py3-none-musllinux_1_2_i686.whl", hash = "sha256:26e9ca5c9bc3971f20d3cf18a957f52ffd6a5f6564ff15c4912a144dcac22494", size = 11148137, upload-time = "2026-07-30T19:36:47.936Z" },
-    { url = "https://files.pythonhosted.org/packages/2d/69/3609a09fa1cb46cc28b762363e440a354204e5dff01bd0c8d7437874d6b9/ruff-0.16.1-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:67e1e1e3fa4f0c82f0e36d4cd61e661f6e7a6196cb1aa92fe0828fa7b8f257cd", size = 11559211, upload-time = "2026-07-30T19:36:50.448Z" },
-    { url = "https://files.pythonhosted.org/packages/fc/8a/fb22af2fd78a736e241fabf67e30ce1799a64244026377a49e133af90762/ruff-0.16.1-py3-none-win32.whl", hash = "sha256:d31765e131295b8445caf301e3e8a85b34d1b9b211b4109b7ba457888b051806", size = 10838258, upload-time = "2026-07-30T19:36:53.298Z" },
-    { url = "https://files.pythonhosted.org/packages/d4/35/e57fd9fb5d423961df087a00b12d42c0a830288dc2f3b45ecca299158b4f/ruff-0.16.1-py3-none-win_amd64.whl", hash = "sha256:09b05e8b90c2cb06ad63464350e7a45e8e44a2dfe52072ebfba6666ca8d3f596", size = 11961111, upload-time = "2026-07-30T19:36:56.107Z" },
-    { url = "https://files.pythonhosted.org/packages/cb/46/240ea004bf6dc4feb40e9832f2205a476a47dd5b8a3f8211a5fc5f95e20e/ruff-0.16.1-py3-none-win_arm64.whl", hash = "sha256:dbaadaac38c70239f056d306b7476f246b0bf000fa6b3876402acbf5b227eaf8", size = 11309414, upload-time = "2026-07-30T19:36:58.79Z" },
+    { url = "https://files.pythonhosted.org/packages/e0/61/c83c78bbb6108f6c6270a106cf12b54175f4f42da088b9bb880f18e31289/ruff-0.17.4-py3-none-linux_armv6l.whl", hash = "sha256:2b08c4ff98dc234f4a3871a3105353b922fa875ea1073ca31001eb8c06bb4d89", size = 10252195, upload-time = "2026-11-05T18:51:36.594Z" },
+    { url = "https://files.pythonhosted.org/packages/0a/12/dd158708378866e8b53e145a465dbc51a7cccb9fa197a74d67eaedde7234/ruff-0.17.4-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:13e781c3c5f663e7fba737eaaeb70dd943dd55171daf316afb25cd5268cfe0c7", size = 10266044, upload-time = "2026-11-05T18:51:39.502Z" },
+    { url = "https://files.pythonhosted.org/packages/28/32/89a94a8eb11fd505a381ae6f04e190d038d9958695209dc1786ce5cfcda3/ruff-0.17.4-py3-none-macosx_11_0_arm64.whl", hash = "sha256:7ed2f416349944f908f9574215994602242b0836844eba48eec61473033afca0", size = 9432227, upload-time = "2026-11-05T18:51:41.968Z" },
+    { url = "https://files.pythonhosted.org/packages/58/de/a392dc38b215798ae72e639d228b7f6c02d826a95d1c0ad7c4c0ee49ef5b/ruff-0.17.4-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8ea6e0017c785f7282092b11e46338e4ebed1b9e575ebf2e55a8a1eda968241a", size = 10136900, upload-time = "2026-11-05T18:51:44.562Z" },
+    { url = "https://files.pythonhosted.org/packages/b7/8f/a880f60f42005f6ffdf58f77af34c7ee327000b5607f48a2f6a69d8b242c/ruff-0.17.4-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:7e061dcc0933c7031a616ac8d66ac540309b2aa21ab558101a8f53e9ac7a1185", size = 10051245, upload-time = "2026-11-05T18:51:46.7Z" },
+    { url = "https://files.pythonhosted.org/packages/09/55/98844264108af7d5ec27ca3a9cd5a989094ca657a14599c4b69a537a0e9a/ruff-0.17.4-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:f99e95a1515161138be3cbd1b06c06e739d8feb38ade35564556999fffc3686e", size = 10704341, upload-time = "2026-11-05T18:51:49.228Z" },
+    { url = "https://files.pythonhosted.org/packages/28/a2/5edf97659c3ac7c73f978003bd314936f671037fdac6b978e9de3e4b2b65/ruff-0.17.4-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:5f28cf0dd37cb172fa5a8d2e92e6ada3a9dbd0609f094ed24039929eef0b7524", size = 11394465, upload-time = "2026-11-05T18:51:51.534Z" },
+    { url = "https://files.pythonhosted.org/packages/f2/8f/51371ae856b2bef4d15a044a574695fbc0f6ae63aafa42a2a22428070fb6/ruff-0.17.4-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:6b21c771b296888e8a35c6f48555f4b44e4483f61675d6ed51810a5203469ce6", size = 10988262, upload-time = "2026-11-05T18:51:53.91Z" },
+    { url = "https://files.pythonhosted.org/packages/af/1b/62874f14c7873f27c7887d2b1ea41de990e14ba9518801ffe8eacb5d51a6/ruff-0.17.4-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2cd025509b2e15721b426fc70fd946d71f43b3db3b08e946dfec2d696d911690", size = 10572829, upload-time = "2026-11-05T18:51:56.129Z" },
+    { url = "https://files.pythonhosted.org/packages/98/30/860b9dae67432b16b88558a9cb2d3194825fa62838f8b9cc49f5d9022095/ruff-0.17.4-py3-none-manylinux_2_31_riscv64.whl", hash = "sha256:49b77f7b3921669466882a4881168801bdb06ec2cd83fb936049016cf5fdece1", size = 10617545, upload-time = "2026-11-05T18:51:58.172Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/08/781a4b41a1c83fd6e30fea610d6502a6f94e49cf94693fd37bdcbc6bfe11/ruff-0.17.4-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:e3b84eb74f260d1c2dbd236fd9d4c011d4fdd0a52bdf8aea57a10e3a1b71fca5", size = 10111955, upload-time = "2026-11-05T18:52:00.59Z" },
+    { url = "https://files.pythonhosted.org/packages/3c/e9/94b1c7b677120f30839254518924f73a8157e9bcfa200edcd5796fecdb99/ruff-0.17.4-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:20e43d7a08e712e33067ba887e6574546c79bd4831596ce8f16803ac7ff9ad90", size = 10058355, upload-time = "2026-11-05T18:52:03.61Z" },
+    { url = "https://files.pythonhosted.org/packages/27/5f/a825910b9f309336dc33cb8c0774126662c1d2f765699b3e0a1bd538d01f/ruff-0.17.4-py3-none-musllinux_1_2_i686.whl", hash = "sha256:0d1f4848fd2ec0499be4046db9b7dfcc952666885f00233cc7033515282556a8", size = 10415932, upload-time = "2026-11-05T18:52:06.264Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/b8/0796468423413ea4df1a6e2442ae26cf49b8f7dda0eecf246e0d5d0dde54/ruff-0.17.4-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:6007e7f3a0e55b0fbdb947af69cf24c21b4928df6be8ef3e767c69b5ccccf496", size = 10826033, upload-time = "2026-11-05T18:52:08.675Z" },
+    { url = "https://files.pythonhosted.org/packages/b9/ab/d8e407669ffe5014429baf780c2df47e001968a6e4c17f615e2e7b13a9ba/ruff-0.17.4-py3-none-win32.whl", hash = "sha256:3971a78cba76298b284c8321e6d40d93045ed348bec5c369d85099efc97fb7cf", size = 9931993, upload-time = "2026-11-05T18:52:11.169Z" },
+    { url = "https://files.pythonhosted.org/packages/bd/15/42af8a72d8946e3c9efd2bbf6641e462b6832783b0d043d63ef5b280ba7f/ruff-0.17.4-py3-none-win_amd64.whl", hash = "sha256:67c5a894fc054cf41f75f7afa24815de5a74329d97634126c2a1015740ff4e8c", size = 10292922, upload-time = "2026-11-05T18:52:13.436Z" },
+    { url = "https://files.pythonhosted.org/packages/68/9e/f1dbffcfb8ff25dadbc21f87a8b73c3848abe4abada9d4b08ccef8bec40c/ruff-0.17.4-py3-none-win_arm64.whl", hash = "sha256:181ae38a9a8fb94925bf7d0794327b48d7fd7f4b50cfd84c0e999cc09ef8d131", size = 9889396, upload-time = "2026-11-05T18:52:15.549Z" },
 ]
 
 [[package]]
@@ -3215,8 +3200,8 @@ name = "scipy"
 version = "1.16.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/4c/3b/546a6f0bfe791bbb7f8d591613454d15097e53f906308ec6f7c1ce588e8e/scipy-1.16.2.tar.gz", hash = "sha256:af029b153d243a80afb6eabe40b0a07f8e35c9adc269c019f364ad747f826a6b", size = 30580599, upload-time = "2025-09-11T17:48:08.271Z" }
 wheels = [
@@ -3334,7 +3319,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "alabaster" },
     { name = "babel" },
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
     { name = "docutils" },
     { name = "imagesize" },
     { name = "jinja2" },
@@ -3562,7 +3547,7 @@ version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
-    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/eb/e3/7c1dc7381d9f8ab7d854328ebfa884e62cb3f3d8549ddfd37c7814f42afa/starlette-1.3.1.tar.gz", hash = "sha256:05d0213193f2fbaae60e2ecb593b4add4262ad4e46536b54abe36f11a71724e0", size = 2703240, upload-time = "2026-06-12T09:23:11.602Z" }
 wheels = [
@@ -3589,8 +3574,8 @@ dependencies = [
     { name = "absl-py" },
     { name = "grpcio" },
     { name = "markdown" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "packaging" },
     { name = "pillow" },
     { name = "protobuf" },
@@ -3619,9 +3604,9 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cloudpickle" },
     { name = "importlib-metadata" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "orjson", marker = "python_full_version < '3.13' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "orjson", marker = "python_full_version < '3.13'" },
     { name = "packaging" },
     { name = "pyvers" },
     { name = "torch", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126' and extra != 'extra-5-mjlab-cu130')" },
@@ -3658,10 +3643,10 @@ version = "2.14.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.13' and sys_platform != 'darwin'",
-    "python_full_version == '3.12.*' and sys_platform != 'darwin'",
-    "python_full_version < '3.12' and sys_platform != 'darwin'",
     "python_full_version >= '3.13' and sys_platform == 'darwin'",
+    "python_full_version == '3.12.*' and sys_platform != 'darwin'",
     "python_full_version == '3.12.*' and sys_platform == 'darwin'",
+    "python_full_version < '3.12' and sys_platform != 'darwin'",
     "python_full_version < '3.12' and sys_platform == 'darwin'",
 ]
 dependencies = [
@@ -3757,19 +3742,19 @@ resolution-markers = [
     "python_full_version < '3.12' and sys_platform != 'darwin'",
 ]
 dependencies = [
-    { name = "cuda-bindings", version = "13.4.3", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "cuda-toolkit", version = "13.0.3.0", source = { registry = "https://pypi.org/simple" }, extra = ["cublas", "cudart", "cufft", "cufile", "cupti", "curand", "cusolver", "cusparse", "nvjitlink", "nvrtc", "nvtx"], marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "cuda-bindings", version = "13.4.3", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "cuda-toolkit", version = "13.0.3.0", source = { registry = "https://pypi.org/simple" }, extra = ["cublas", "cudart", "cufft", "cufile", "cupti", "curand", "cusolver", "cusparse", "nvjitlink", "nvrtc", "nvtx"], marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "filelock", marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "fsspec", marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "jinja2", marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "networkx", marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "nvidia-cudnn-cu13", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "nvidia-cusparselt-cu13", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "nvidia-nccl-cu13", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "nvidia-nvshmem-cu13", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cudnn-cu13", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cusparselt-cu13", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-nccl-cu13", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-nvshmem-cu13", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "setuptools", marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "sympy", marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "triton", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "triton", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "typing-extensions", marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 wheels = [
@@ -3800,20 +3785,20 @@ resolution-markers = [
     "python_full_version < '3.12' and sys_platform != 'darwin'",
 ]
 dependencies = [
-    { name = "cuda-bindings", version = "12.9.9", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "cuda-toolkit", version = "12.6.3", source = { registry = "https://pypi.org/simple" }, extra = ["cublas", "cudart", "cufft", "cufile", "cupti", "curand", "cusolver", "cusparse", "nvrtc", "nvtx"], marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "cuda-bindings", version = "12.9.9", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "cuda-toolkit", version = "12.6.3", source = { registry = "https://pypi.org/simple" }, extra = ["cublas", "cudart", "cufft", "cufile", "cupti", "curand", "cusolver", "cusparse", "nvrtc", "nvtx"], marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "filelock", marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "fsspec", marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "jinja2", marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "networkx", marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "nvidia-cudnn-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "nvidia-cusparselt-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "nvidia-nccl-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "nvidia-nvjitlink-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "nvidia-nvshmem-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cudnn-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-cusparselt-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-nccl-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "nvidia-nvshmem-cu12", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "setuptools", marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "sympy", marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "triton", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "triton", marker = "(sys_platform == 'linux' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "typing-extensions", marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
 ]
 wheels = [
@@ -3841,8 +3826,8 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cloudpickle" },
     { name = "fabric" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "torch", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'darwin' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (extra != 'extra-5-mjlab-cpu' and extra != 'extra-5-mjlab-cu126' and extra != 'extra-5-mjlab-cu130')" },
     { name = "torch", version = "2.14.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cpu') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
     { name = "torch", version = "2.14.0+cu130", source = { registry = "https://download.pytorch.org/whl/cu130" }, marker = "(sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
@@ -3859,7 +3844,7 @@ name = "tqdm"
 version = "4.67.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a8/4b/29b4ef32e036bb34e4ab51796dd745cdba7ed47ad142a9f4a1eb8e0c744d/tqdm-4.67.1.tar.gz", hash = "sha256:f8aef9c52c08c13a65f30ea34f4e5aac3fd1a34959879d7e59e63027286627f2", size = 169737, upload-time = "2024-11-24T20:12:22.481Z" }
 wheels = [
@@ -3880,8 +3865,8 @@ name = "trimesh"
 version = "4.8.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/be/17/9799bd734de0aa75332727b10ecf56e2c93efa70dfc7a2966bed33539ef5/trimesh-4.8.3.tar.gz", hash = "sha256:d2a1974efccb0737a1faac14d69740c644bb6738a99c790c1df752fe72c2a759", size = 831222, upload-time = "2025-09-26T20:07:59.595Z" }
 wheels = [
@@ -4021,8 +4006,8 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "imageio" },
     { name = "msgspec" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "requests" },
     { name = "rich" },
     { name = "tqdm" },
@@ -4076,11 +4061,10 @@ resolution-markers = [
     "python_full_version < '3.12' and sys_platform != 'darwin'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and sys_platform != 'darwin') or (python_full_version >= '3.12' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version >= '3.12' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version >= '3.12' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and sys_platform != 'darwin') or (python_full_version < '3.12' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.12' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.12' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform == 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 wheels = [
-    { url = "https://pypi.nvidia.com/warp-lang/warp_lang-1.18.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:3d0a12f411555c08015f84060187a0466800d2c837eb8800977b9604be438c21" },
     { url = "https://pypi.nvidia.com/warp-lang/warp_lang-1.18.0-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:090962bfae7dd22ade0d8e0258f41635e0e58980f15bcc9e7a7d312819dfe440" },
     { url = "https://pypi.nvidia.com/warp-lang/warp_lang-1.18.0-py3-none-manylinux_2_34_aarch64.whl", hash = "sha256:d76ab8c7d4f4897405fa0a744d38812fc44cfc8162c40e658dc9ca7790b6a645" },
     { url = "https://pypi.nvidia.com/warp-lang/warp_lang-1.18.0-py3-none-win_amd64.whl", hash = "sha256:1769e55746739f2e244a2b412123003c462ec3d977dfb5f420f924a8553d30aa" },
@@ -4096,14 +4080,11 @@ resolution-markers = [
     "python_full_version < '3.12' and sys_platform == 'darwin'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and sys_platform == 'darwin') or (python_full_version >= '3.12' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version >= '3.12' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version >= '3.12' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
-    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and sys_platform == 'darwin') or (python_full_version < '3.12' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (python_full_version < '3.12' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (python_full_version < '3.12' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu126') or (sys_platform != 'darwin' and extra == 'extra-5-mjlab-cpu' and extra == 'extra-5-mjlab-cu130') or (sys_platform != 'darwin' and extra == 'extra-5-mjlab-cu126' and extra == 'extra-5-mjlab-cu130')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/59/ca/0f88f27e9367b55df2c87fd6dbb96f15871ab7fcca14dd9ec92ec4688a30/warp_lang-1.18.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:3d0a12f411555c08015f84060187a0466800d2c837eb8800977b9604be438c21", size = 27819487, upload-time = "2026-10-05T00:22:32.346Z" },
-    { url = "https://files.pythonhosted.org/packages/13/69/5fc4388c6af4c78cd247776bb6928cabe83d893896444dd2127ccbe8b2ca/warp_lang-1.18.0-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:090962bfae7dd22ade0d8e0258f41635e0e58980f15bcc9e7a7d312819dfe440", size = 148811186, upload-time = "2026-10-05T00:23:01.197Z" },
-    { url = "https://files.pythonhosted.org/packages/be/41/6e255904a10cd1b3b1a61cc9ac21551812ffc55b1c68324de4c0c24a6660/warp_lang-1.18.0-py3-none-manylinux_2_34_aarch64.whl", hash = "sha256:d76ab8c7d4f4897405fa0a744d38812fc44cfc8162c40e658dc9ca7790b6a645", size = 147348850, upload-time = "2026-10-05T00:23:31.015Z" },
-    { url = "https://files.pythonhosted.org/packages/3e/75/888dfe20326fea1a3b46b68a239ccd5db717bb039d511ab6fca7c77e6fea/warp_lang-1.18.0-py3-none-win_amd64.whl", hash = "sha256:1769e55746739f2e244a2b412123003c462ec3d977dfb5f420f924a8553d30aa", size = 134607061, upload-time = "2026-10-05T00:23:56.792Z" },
 ]
 
 [[package]]
