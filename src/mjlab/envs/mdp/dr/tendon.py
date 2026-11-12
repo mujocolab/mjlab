@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from mjlab.managers.event_manager import RecomputeLevel, requires_model_fields
+from mjlab.managers.event_manager import requires_model_fields
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 from ._core import (
@@ -102,7 +102,7 @@ def tendon_friction(
 tendon_frictionloss = tendon_friction
 
 
-@requires_model_fields("tendon_armature", recompute=RecomputeLevel.set_const_0)
+@requires_model_fields("tendon_armature")
 def tendon_armature(
   env: ManagerBasedRlEnv,
   env_ids: torch.Tensor | None,
@@ -113,7 +113,7 @@ def tendon_armature(
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
-  """Randomize tendon armature. Triggers ``set_const_0``."""
+  """Randomize tendon armature."""
   _randomize_model_field(
     env,
     env_ids,

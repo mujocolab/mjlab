@@ -1,10 +1,17 @@
 """Tests for spec.py utilities."""
 
+import warnings
+
 import mujoco
 import numpy as np
 import pytest
 
-from mjlab.utils.spec import create_position_actuator, create_velocity_actuator
+from mjlab.utils.spec import (
+  attach_unprefixed,
+  compile_spec,
+  create_position_actuator,
+  create_velocity_actuator,
+)
 
 
 @pytest.fixture
@@ -212,3 +219,33 @@ def test_velocity_actuator_forces_clipped_to_effort_limit(
   data.ctrl[0] = 100.0
   mujoco.mj_forward(model, data)
   assert abs(data.actuator_force[0]) <= effort_limit + 1e-6
+
+
+def test_attach_unprefixed_silences_only_the_empty_prefix_warning(
+  tmp_path, monkeypatch, capsys
+):
+  """Only the empty-prefix warning is dropped, at attach and on compile. Nothing
+  raises inside MuJoCo's callback even when warnings are errors, and the previous
+  handler is restored."""
+  monkeypatch.chdir(tmp_path)  # MuJoCo logs warnings to MUJOCO_LOG.TXT in the cwd.
+  parent = mujoco.MjSpec()
+  child = mujoco.MjSpec()
+  child.option.timestep = 0.005  # Conflicts with the parent: MuJoCo warns.
+  child.worldbody.add_body(name="b")
+  previous = mujoco.get_mju_user_warning()
+
+  with warnings.catch_warnings():
+    warnings.simplefilter("error")
+    attach_unprefixed(parent, child, parent.worldbody.add_frame())
+  with warnings.catch_warnings(record=True) as caught:
+    warnings.simplefilter("always")
+    compile_spec(parent)
+  messages = [str(w.message) for w in caught]
+  assert not any("empty prefix" in m for m in messages)
+  assert any("Attach conflict" in m for m in messages)
+
+  out = capsys.readouterr().out
+  assert "empty prefix" not in out
+  assert "WARNING" in out
+  assert mujoco.get_mju_user_warning() is previous
+  assert not (tmp_path / "MUJOCO_LOG.TXT").exists()
