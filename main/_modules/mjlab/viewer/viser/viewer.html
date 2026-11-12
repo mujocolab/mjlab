@@ -431,6 +431,7 @@ document.write(`
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">override</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sensor.raycast_sensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">RayCastSensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sensor.tactile_sensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">TactileSensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sim.sim</span><span class="w"> </span><span class="kn">import</span> <span class="n">Simulation</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.viewer.base</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
   <span class="n">BaseViewer</span><span class="p">,</span>
@@ -439,6 +440,7 @@ document.write(`
   <span class="n">VerbosityLevel</span><span class="p">,</span>
   <span class="n">ViewerAction</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.viewer.viewer_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">ViewerConfig</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.viewer.viser.overlays</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
   <span class="n">ViserCameraOverlays</span><span class="p">,</span>
   <span class="n">ViserContactOverlays</span><span class="p">,</span>
@@ -605,10 +607,14 @@ document.write(`
         <span class="bp">self</span><span class="o">.</span><span class="n">_create_reward_debug_vis_gui</span><span class="p">()</span>
 
       <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add_folder</span><span class="p">(</span><span class="s2">&quot;Scene&quot;</span><span class="p">):</span>
+        <span class="c1"># The free camera orbits the model center; aim it at the configured</span>
+        <span class="c1"># point instead. mjviser measures elevation upward, MuJoCo downward.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">origin_type</span> <span class="o">==</span> <span class="n">ViewerConfig</span><span class="o">.</span><span class="n">OriginType</span><span class="o">.</span><span class="n">WORLD</span><span class="p">:</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">mj_model</span><span class="o">.</span><span class="n">stat</span><span class="o">.</span><span class="n">center</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">lookat</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">create_scene_gui</span><span class="p">(</span>
           <span class="n">camera_distance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">distance</span><span class="p">,</span>
           <span class="n">camera_azimuth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">azimuth</span><span class="p">,</span>
-          <span class="n">camera_elevation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">elevation</span><span class="p">,</span>
+          <span class="n">camera_elevation</span><span class="o">=-</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">elevation</span><span class="p">,</span>
           <span class="n">debug_viz_extra_gui</span><span class="o">=</span><span class="n">_debug_viz_extra</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -812,7 +818,7 @@ document.write(`
     <span class="n">vis_sensors</span> <span class="o">=</span> <span class="p">[</span>
       <span class="n">s</span>
       <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">scene</span><span class="o">.</span><span class="n">sensors</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">RayCastSensor</span><span class="p">)</span> <span class="ow">and</span> <span class="n">s</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">debug_vis</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="p">(</span><span class="n">RayCastSensor</span><span class="p">,</span> <span class="n">TactileSensor</span><span class="p">))</span> <span class="ow">and</span> <span class="n">s</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">debug_vis</span>
     <span class="p">]</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">vis_sensors</span><span class="p">:</span>
       <span class="k">return</span>
