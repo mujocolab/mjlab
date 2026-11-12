@@ -67,8 +67,7 @@ Fixed
 
 - ONNX policy metadata now exports the real ``joint_stiffness`` and
   ``joint_damping`` for ``IdealPdActuator``, ``DcMotorActuator`` and
-  ``LearnedMlpActuator``. Before, it exported 1.0 and 0.0, read from the plain
-  ``<motor>`` element these actuators use.
+  ``LearnedMlpActuator``. 
 - Domain randomization of body poses, centers of mass, masses and ``qpos0`` now keeps
   equality constraint anchors (``eq_data``) and tracking camera and light references
   per world. Previously every world used world 0's values.
