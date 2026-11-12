@@ -95,7 +95,7 @@ _ENABLE_FLAG_MAP: dict[str, int] = {
 }
 
 
-@dataclass
+@dataclass(slots=True)
 class MujocoCfg:
   """Configuration for MuJoCo simulation parameters."""
 
@@ -153,7 +153,7 @@ class MujocoCfg:
       model.opt.enableflags |= _ENABLE_FLAG_MAP[flag]
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class SimulationCfg:
   nconmax: int | None = None
   """Number of contacts to allocate per world.

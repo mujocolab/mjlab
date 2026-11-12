@@ -16,6 +16,7 @@ from mjlab.actuator.actuator import TransmissionType
 from mjlab.actuator.xml_actuator import XmlActuator
 from mjlab.entity.data import EntityData
 from mjlab.utils import spec_config as spec_cfg
+from mjlab.utils.lab_api.math import normalize
 from mjlab.utils.lab_api.string import resolve_matching_names
 from mjlab.utils.mujoco import dof_width, qpos_width
 from mjlab.utils.spec import auto_wrap_fixed_base_mocap
@@ -843,7 +844,9 @@ class Entity:
       default_joint_pos_limits=default_joint_pos_limits,
       joint_pos_limits=joint_pos_limits,
       soft_joint_pos_limits=soft_joint_pos_limits,
-      gravity_vec_w=torch.tensor([0.0, 0.0, -1.0], device=device).repeat(nworld, 1),
+      gravity_vec_w=normalize(
+        torch.tensor(mj_model.opt.gravity, dtype=torch.float, device=device)
+      ).repeat(nworld, 1),
       forward_vec_b=torch.tensor([1.0, 0.0, 0.0], device=device).repeat(nworld, 1),
       is_fixed_base=self.is_fixed_base,
       is_articulated=self.is_articulated,

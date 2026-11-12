@@ -69,10 +69,8 @@ class upright:
 
   Uses the root body unless ``asset_cfg`` selects a single body.
 
-  Without ``terrain_sensor_names``, penalizes tilt relative to world up (correct for
-  flat ground).
-
-  With ``terrain_sensor_names``, penalizes tilt relative to the terrain surface normal.
+  Measures tilt against configured gravity, or the terrain surface normal when
+  ``terrain_sensor_names`` is set.
   """
 
   def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
@@ -100,7 +98,7 @@ class upright:
       target_b = quat_apply_inverse(body_quat_w, terrain_normal)  # [B, 3]
       xy_squared = torch.sum(torch.square(target_b[:, :2]), dim=1)
     else:
-      gravity_w = asset.data.gravity_vec_w  # [3]
+      gravity_w = asset.data.gravity_vec_w  # [B, 3]
       projected_gravity_b = quat_apply_inverse(body_quat_w, gravity_w)
       xy_squared = torch.sum(torch.square(projected_gravity_b[:, :2]), dim=1)
 
