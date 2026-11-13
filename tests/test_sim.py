@@ -186,3 +186,76 @@ def test_xpos_matches_qpos_after_forward(robot_xml, device):
   sim.forward()
   xpos_fresh = sim.data.xpos[:, 1].clone()
   torch.testing.assert_close(xpos_fresh, qpos_pos, atol=1e-5, rtol=0)
+
+
+@pytest.mark.parametrize(
+  ("integrator", "expected"),
+  [
+    ("euler", mujoco.mjtIntegrator.mjINT_EULER),
+    ("rk4", mujoco.mjtIntegrator.mjINT_RK4),
+    ("implicit", mujoco.mjtIntegrator.mjINT_IMPLICIT),
+    ("implicitfast", mujoco.mjtIntegrator.mjINT_IMPLICITFAST),
+    ("discrete", mujoco.mjtIntegrator.mjINT_DISCRETE),
+  ],
+)
+def test_all_mjwarp_integrators_step(robot_xml, device, integrator, expected):
+  """All five MuJoCo Warp 4.0.1 integrators configure and step cleanly."""
+  model = mujoco.MjModel.from_xml_string(robot_xml)
+  cfg = SimulationCfg(mujoco=MujocoCfg(integrator=integrator))
+  sim = Simulation(num_envs=1, cfg=cfg, model=model, device=device)
+  assert sim.mj_model.opt.integrator == expected
+  assert sim.wp_model.opt.integrator == expected
+  sim.step()
+  assert torch.isfinite(sim.data.qpos[:]).all()
+
+
+def test_warn_overflow_and_deterministic_and_put_data_sizing(robot_xml, device):
+  """warn_overflow, deterministic, and 4.0.1 put_data buffer sizes are piped."""
+  model = mujoco.MjModel.from_xml_string(robot_xml)
+  default_opt = mjwarp.put_model(model).opt
+
+  # Unset (None) preserves put_model defaults.
+  sim_default = Simulation(num_envs=1, cfg=SimulationCfg(), model=model, device=device)
+  assert sim_default.wp_model.opt.warn_overflow == default_opt.warn_overflow
+  assert sim_default.wp_model.opt.deterministic == default_opt.deterministic
+
+  # Boolean False disables all overflow warnings and determinism flags.
+  sim_off = Simulation(
+    num_envs=2,
+    cfg=SimulationCfg(
+      warn_overflow=False,
+      deterministic=False,
+      naconmax=96,
+      nccdmax=12,
+      naccdmax=32,
+      njmax=40,
+      njmax_nnz=256,
+      nvmax=4,
+    ),
+    model=model,
+    device=device,
+  )
+  assert sim_off.wp_model.opt.warn_overflow == 0
+  assert sim_off.wp_model.opt.deterministic == 0
+  assert sim_off.wp_data.naconmax == 96
+  assert sim_off.wp_data.naccdmax == 32
+  assert sim_off.wp_data.njmax == 40
+  assert sim_off.wp_data.njmax_nnz == 256
+  assert sim_off.wp_data.nvmax == 4
+
+  # Tuple of specific flags sets exact bitmasks.
+  sim_flags = Simulation(
+    num_envs=1,
+    cfg=SimulationCfg(
+      warn_overflow=("nefc", "narrowphase"),
+      deterministic=("contacts", "atomics"),
+    ),
+    model=model,
+    device=device,
+  )
+  assert sim_flags.wp_model.opt.warn_overflow == int(
+    mjwarp.OverflowType.NEFC | mjwarp.OverflowType.NARROWPHASE
+  )
+  assert sim_flags.wp_model.opt.deterministic == int(
+    mjwarp.DeterminismType.CONTACTS | mjwarp.DeterminismType.ATOMICS
+  )

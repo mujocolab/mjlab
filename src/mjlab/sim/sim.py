@@ -62,7 +62,10 @@ _CONE_MAP = {
 }
 _INTEGRATOR_MAP = {
   "euler": mujoco.mjtIntegrator.mjINT_EULER,
+  "rk4": mujoco.mjtIntegrator.mjINT_RK4,
+  "implicit": mujoco.mjtIntegrator.mjINT_IMPLICIT,
   "implicitfast": mujoco.mjtIntegrator.mjINT_IMPLICITFAST,
+  "discrete": mujoco.mjtIntegrator.mjINT_DISCRETE,
 }
 _SOLVER_MAP = {
   "newton": mujoco.mjtSolver.mjSOL_NEWTON,
@@ -79,6 +82,42 @@ _BROADPHASE_FILTER_MAP = {
   "sphere": mjwarp.BroadphaseFilter.SPHERE,
   "aabb": mjwarp.BroadphaseFilter.AABB,
   "obb": mjwarp.BroadphaseFilter.OBB,
+}
+
+OverflowFlag = Literal[
+  "nefc",
+  "njmax_nnz",
+  "broadphase",
+  "narrowphase",
+  "ccd",
+  "hfield",
+  "contact_match",
+  "nvmax",
+  "epa_horizon",
+  "iterations",
+  "ls_iterations",
+  "tactile",
+]
+DeterminismFlag = Literal["contacts", "constraint", "atomics"]
+
+_OVERFLOW_MAP: dict[OverflowFlag, mjwarp.OverflowType] = {
+  "nefc": mjwarp.OverflowType.NEFC,
+  "njmax_nnz": mjwarp.OverflowType.NJMAX_NNZ,
+  "broadphase": mjwarp.OverflowType.BROADPHASE,
+  "narrowphase": mjwarp.OverflowType.NARROWPHASE,
+  "ccd": mjwarp.OverflowType.CCD,
+  "hfield": mjwarp.OverflowType.HFIELD,
+  "contact_match": mjwarp.OverflowType.CONTACT_MATCH,
+  "nvmax": mjwarp.OverflowType.NVMAX,
+  "epa_horizon": mjwarp.OverflowType.EPA_HORIZON,
+  "iterations": mjwarp.OverflowType.ITERATIONS,
+  "ls_iterations": mjwarp.OverflowType.LS_ITERATIONS,
+  "tactile": mjwarp.OverflowType.TACTILE,
+}
+_DETERMINISM_MAP: dict[DeterminismFlag, mjwarp.DeterminismType] = {
+  "contacts": mjwarp.DeterminismType.CONTACTS,
+  "constraint": mjwarp.DeterminismType.CONSTRAINT,
+  "atomics": mjwarp.DeterminismType.ATOMICS,
 }
 
 # Maps short flag names to MuJoCo enum values.
@@ -101,7 +140,9 @@ class MujocoCfg:
 
   # Integrator settings.
   timestep: float = 0.002
-  integrator: Literal["euler", "implicitfast"] = "implicitfast"
+  integrator: Literal["euler", "rk4", "implicit", "implicitfast", "discrete"] = (
+    "implicitfast"
+  )
 
   # Friction settings.
   impratio: float = 1.0
@@ -160,11 +201,23 @@ class SimulationCfg:
 
   Contacts exist in large heterogenous arrays: one world may have more than nconmax
   contacts. If None, a heuristic value is used."""
+  naconmax: int | None = None
+  """Total number of contacts to allocate across all worlds.
+
+  Overrides ``nconmax * nworld`` when set. If None, MuJoCo Warp derives it."""
+  nccdmax: int | None = None
+  """Maximum CCD contacts per world. If None, a heuristic value is used."""
+  naccdmax: int | None = None
+  """Total CCD buffer size across all worlds. If None, MuJoCo Warp derives it."""
   njmax: int | None = None
   """Number of constraints to allocate per world.
 
   Constraint arrays are batched by world: no world may have more than njmax
   constraints. If None, a heuristic value is used."""
+  njmax_nnz: int | None = None
+  """Maximum non-zeros in the sparse constraint Jacobian per world."""
+  nvmax: int | None = None
+  """Capacity for compacted active DOFs per world, in ``[0, nv]``."""
   contact_sensor_maxmatch: int = 64
   broadphase: Literal["nxn", "sap_tile", "sap_segmented"] | None = None
   """Broadphase collision algorithm. If None, use the MuJoCo Warp default."""
@@ -177,6 +230,17 @@ class SimulationCfg:
   worlds converge. Requires CUDA 12.4 or newer.
 
   If None, use the MuJoCo Warp default."""
+  warn_overflow: bool | tuple[OverflowFlag, ...] | None = None
+  """Overflow warnings to enable in MuJoCo Warp.
+
+  ``False`` disables all overflow print warnings, ``True`` enables all of them, a
+  tuple enables only the named flags, and ``None`` keeps the MuJoCo Warp default."""
+  deterministic: bool | tuple[DeterminismFlag, ...] | None = None
+  """Deterministic execution flags for MuJoCo Warp.
+
+  ``False`` disables deterministic sorting and atomics, ``True`` enables all
+  determinism flags, a tuple enables only the named flags, and ``None`` keeps the
+  MuJoCo Warp default."""
   ls_parallel: bool | None = None
   """Deprecated and ignored. Parallel linesearch was removed in MuJoCo Warp 3.10."""
   mujoco: MujocoCfg = field(default_factory=MujocoCfg)
@@ -202,6 +266,32 @@ class SimulationCfg:
         wp_opt.broadphase_filter |= _BROADPHASE_FILTER_MAP[name]
     if self.graph_conditional is not None:
       wp_opt.graph_conditional = self.graph_conditional
+    if self.warn_overflow is not None:
+      if isinstance(self.warn_overflow, bool):
+        wp_opt.warn_overflow = self.warn_overflow
+      else:
+        mask = 0
+        for flag in self.warn_overflow:
+          if flag not in _OVERFLOW_MAP:
+            raise ValueError(
+              f"Unknown warn_overflow flag {flag!r}. "
+              f"Valid flags: {sorted(_OVERFLOW_MAP)}"
+            )
+          mask |= int(_OVERFLOW_MAP[flag])
+        wp_opt.warn_overflow = mask
+    if self.deterministic is not None:
+      if isinstance(self.deterministic, bool):
+        wp_opt.deterministic = self.deterministic
+      else:
+        mask = 0
+        for flag in self.deterministic:
+          if flag not in _DETERMINISM_MAP:
+            raise ValueError(
+              f"Unknown deterministic flag {flag!r}. "
+              f"Valid flags: {sorted(_DETERMINISM_MAP)}"
+            )
+          mask |= int(_DETERMINISM_MAP[flag])
+        wp_opt.deterministic = mask
 
 
 class Simulation:
@@ -337,7 +427,12 @@ class Simulation:
       self._mj_data,
       nworld=self.num_envs,
       nconmax=self.cfg.nconmax,
+      nccdmax=self.cfg.nccdmax,
       njmax=self.cfg.njmax,
+      njmax_nnz=self.cfg.njmax_nnz,
+      naconmax=self.cfg.naconmax,
+      naccdmax=self.cfg.naccdmax,
+      nvmax=self.cfg.nvmax,
     )
 
     self._reset_mask_wp = wp.zeros(self.num_envs, dtype=bool)
