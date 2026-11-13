@@ -50,8 +50,8 @@ functions return a boolean tensor of shape ``[num_envs]``.
        ``env.max_episode_length``. Register with ``time_out=True`` so
        the manager treats it as a truncation.
    * - ``bad_orientation``
-     - Returns ``True`` when the angle between the asset's up axis and
-       world up exceeds ``limit_angle`` (radians).
+     - Returns ``True`` when the asset's tilt relative to gravity exceeds
+       ``limit_angle`` (radians).
    * - ``root_height_below_minimum``
      - Returns ``True`` when the asset's root link height is below
        ``minimum_height`` (meters).
