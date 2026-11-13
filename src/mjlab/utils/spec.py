@@ -6,14 +6,23 @@ import shutil
 import warnings
 import xml.etree.ElementTree as ET
 import zipfile
+from enum import Enum
 from pathlib import Path
 from typing import Callable
 
 import mujoco
 import numpy as np
 
-from mjlab.actuator.actuator import TransmissionType
 from mjlab.utils.xml import fix_spec_xml, strip_buffer_textures
+
+
+class TransmissionType(str, Enum):
+  """Transmission types for actuators."""
+
+  JOINT = "joint"
+  TENDON = "tendon"
+  SITE = "site"
+
 
 _EMPTY_PREFIX_WARNING = "Attaching a spec with an empty prefix"
 

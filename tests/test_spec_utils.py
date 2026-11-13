@@ -1,5 +1,7 @@
 """Tests for spec.py utilities."""
 
+import subprocess
+import sys
 import warnings
 
 import mujoco
@@ -249,3 +251,13 @@ def test_attach_unprefixed_silences_only_the_empty_prefix_warning(
   assert "WARNING" in out
   assert mujoco.get_mju_user_warning() is previous
   assert not (tmp_path / "MUJOCO_LOG.TXT").exists()
+
+
+def test_spec_utils_imports_standalone_without_circular_import():
+  """Importing mjlab.utils.spec in a fresh interpreter does not trigger a cycle."""
+  code = (
+    "import mjlab.utils.spec as s; "
+    "import mjlab.actuator as a; "
+    "assert s.TransmissionType is a.TransmissionType"
+  )
+  subprocess.run([sys.executable, "-c", code], check=True)
