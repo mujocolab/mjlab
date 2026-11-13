@@ -5,6 +5,7 @@ import mujoco_warp as mjwarp
 import numpy as np
 import pytest
 import torch
+import warp as wp
 from conftest import get_test_device
 
 from mjlab.sim import MujocoCfg, Simulation, SimulationCfg
@@ -186,3 +187,104 @@ def test_xpos_matches_qpos_after_forward(robot_xml, device):
   sim.forward()
   xpos_fresh = sim.data.xpos[:, 1].clone()
   torch.testing.assert_close(xpos_fresh, qpos_pos, atol=1e-5, rtol=0)
+
+
+def test_expand_model_fields_skips_unchanged_graph_rebuild(robot_xml, device):
+  """Repeated expand_model_fields with already-expanded fields preserves graphs."""
+  model = mujoco.MjModel.from_xml_string(robot_xml)
+  sim = Simulation(num_envs=2, cfg=SimulationCfg(), model=model, device=device)
+  sim.expand_model_fields(("body_mass", "body_subtreemass"))
+  step_graph_before = sim.step_graph
+
+  # Re-requesting already expanded fields is a no-op and keeps graphs intact.
+  sim.expand_model_fields(("body_mass",))
+  assert sim.step_graph is step_graph_before
+
+  # Adding a new field replaces storage and invalidates cached recompute graphs.
+  sim._recompute_graphs[int(mjwarp.SetConstGroup.FIXED)] = object()
+  sim.expand_model_fields(("geom_friction",))
+  assert sim._recompute_graphs == {}
+  if sim.use_cuda_graph:
+    assert sim.step_graph is not step_graph_before
+
+
+def test_recompute_constants_none_is_noop_and_preserves_state(
+  robot_xml, device, monkeypatch
+):
+  """SetConstGroup.NONE is a no-op; active groups update constants and keep qpos."""
+  model = mujoco.MjModel.from_xml_string(robot_xml)
+  sim = Simulation(num_envs=2, cfg=SimulationCfg(), model=model, device=device)
+  sim.expand_model_fields(
+    ("body_mass", "body_subtreemass", "body_invweight0", "dof_invweight0")
+  )
+
+  called = False
+  orig_set_const = mjwarp.set_const
+
+  def spy_set_const(*args, **kwargs):
+    nonlocal called
+    called = True
+    return orig_set_const(*args, **kwargs)
+
+  monkeypatch.setattr(mjwarp, "set_const", spy_set_const)
+  sim.recompute_constants(mjwarp.SetConstGroup.NONE)
+  assert not called
+
+  sim.step()
+  qpos_before = sim.data.qpos.clone()
+  sim.model.body_mass[:, 1] *= torch.tensor([1.5, 2.5], device=device)
+  sim.recompute_constants(mjwarp.SetConstGroup.ALL)
+  assert called
+  torch.testing.assert_close(sim.data.qpos[:], qpos_before)
+  assert sim.model.body_subtreemass[1, 1] > sim.model.body_subtreemass[0, 1]
+
+
+@pytest.mark.skipif(not wp.is_cuda_available(), reason="Warp CUDA device required")
+def test_cuda_set_const_graph_replay_matches_eager(robot_xml):
+  """CUDA graph capture and replay of mjwarp.set_const matches eager execution."""
+  model = mujoco.MjModel.from_xml_string(robot_xml)
+  data = mujoco.MjData(model)
+  mujoco.mj_forward(model, data)
+
+  with wp.ScopedDevice("cuda:0"):
+    wp_m_graph = mjwarp.put_model(model)
+    wp_d_graph = mjwarp.put_data(model, data, nworld=2)
+    wp_m_eager = mjwarp.put_model(model)
+    wp_d_eager = mjwarp.put_data(model, data, nworld=2)
+
+    for wm in (wp_m_graph, wp_m_eager):
+      for fname in (
+        "body_mass",
+        "body_subtreemass",
+        "body_invweight0",
+        "dof_invweight0",
+      ):
+        arr = getattr(wm, fname).numpy()
+        setattr(
+          wm, fname, wp.array(np.repeat(arr, 2, axis=0), dtype=getattr(wm, fname).dtype)
+        )
+
+    with wp.ScopedCapture() as cap:
+      mjwarp.set_const(wp_m_graph, wp_d_graph, groups=mjwarp.SetConstGroup.ALL)
+
+    for scale in ((1.2, 2.4), (0.7, 3.1)):
+      for wm in (wp_m_graph, wp_m_eager):
+        masses = wm.body_mass.numpy()
+        masses[0, 1] = model.body_mass[1] * scale[0]
+        masses[1, 1] = model.body_mass[1] * scale[1]
+        wm.body_mass.assign(masses)
+
+      wp.capture_launch(cap.graph)
+      mjwarp.set_const(wp_m_eager, wp_d_eager, groups=mjwarp.SetConstGroup.ALL)
+      wp.synchronize()
+
+      np.testing.assert_allclose(
+        wp_m_graph.body_subtreemass.numpy(),
+        wp_m_eager.body_subtreemass.numpy(),
+        rtol=1e-5,
+      )
+      np.testing.assert_allclose(
+        wp_m_graph.dof_invweight0.numpy(),
+        wp_m_eager.dof_invweight0.numpy(),
+        rtol=1e-5,
+      )
