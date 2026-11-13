@@ -658,3 +658,131 @@ def test_cache_invalidated_on_reset(mock_env, simple_obs_func):
   # After reset, delay buffer is cleared, so we get the current (fresh) observation.
   # The value should have advanced since the obs_func counter continues incrementing.
   assert val_after != val_before
+
+
+##
+# Substep delay tests.
+##
+
+
+def _substep_cfg(func, **kwargs):
+  return {
+    "actor": ObservationGroupCfg(
+      terms={"obs1": ObservationTermCfg(func=func, params={}, **kwargs)}
+    ),
+  }
+
+
+def _actor(manager, **kwargs) -> torch.Tensor:
+  obs = manager.compute(update_history=True, **kwargs)["actor"]
+  assert isinstance(obs, torch.Tensor)
+  return obs
+
+
+def _control_step(manager, decimation) -> torch.Tensor:
+  """Mimic ManagerBasedRlEnv.step(): sample every physics step but the last."""
+  for _ in range(decimation - 1):
+    manager.compute_substep()
+  return _actor(manager)
+
+
+def test_substep_delay_counts_physics_steps(mock_env, simple_obs_func, device):
+  """With delay_unit="substep", a lag of 2 reaches back 2 physics steps."""
+  cfg = _substep_cfg(
+    simple_obs_func, delay_min_lag=2, delay_max_lag=2, delay_unit="substep"
+  )
+  manager = ObservationManager(cfg, mock_env)
+  # _prepare_terms consumed value=1; the first compute samples value=2.
+  obs = _actor(manager)
+  assert torch.allclose(obs, torch.full((4, 3), 2.0, device=device))
+
+  # Physics steps sample 3, 4, 5 and the control step samples 6; lag 2 -> 4.
+  obs = _control_step(manager, decimation=4)
+  assert torch.allclose(obs, torch.full((4, 3), 4.0, device=device))
+
+  # Next control step samples 7, 8, 9, 10; lag 2 -> 8.
+  obs = _control_step(manager, decimation=4)
+  assert torch.allclose(obs, torch.full((4, 3), 8.0, device=device))
+
+
+def test_step_delay_ignores_substeps(mock_env, simple_obs_func, device):
+  """The default delay_unit="step" does no work in compute_substep()."""
+  cfg = _substep_cfg(simple_obs_func, delay_min_lag=1, delay_max_lag=1)
+  manager = ObservationManager(cfg, mock_env)
+  manager.compute(update_history=True)  # value=2
+  manager.compute_substep()
+  manager.compute_substep()
+  obs = _actor(manager)  # value=3, lag 1 -> 2
+  assert torch.allclose(obs, torch.full((4, 3), 2.0, device=device))
+
+
+def test_substep_without_delay_is_not_sampled(mock_env, simple_obs_func, device):
+  """A substep term with no lag is not evaluated inside the decimation loop."""
+  cfg = _substep_cfg(simple_obs_func, delay_unit="substep")
+  manager = ObservationManager(cfg, mock_env)
+  manager.compute_substep()
+  obs = _actor(manager)
+  assert torch.allclose(obs, torch.full((4, 3), 2.0, device=device))
+
+
+def test_substep_delay_applies_scale_per_sample(mock_env, simple_obs_func, device):
+  """Scale and clip run on every physics step sample before delay."""
+  cfg = _substep_cfg(
+    simple_obs_func,
+    delay_min_lag=1,
+    delay_max_lag=1,
+    delay_unit="substep",
+    scale=10.0,
+    clip=(0.0, 45.0),
+  )
+  manager = ObservationManager(cfg, mock_env)
+  manager.compute(update_history=True)  # value=2 -> 20
+  # Physics steps sample 3, 4 (-> 30, 40) and the control step 5 (-> 45 clipped).
+  obs = _control_step(manager, decimation=3)
+  assert torch.allclose(obs, torch.full((4, 3), 40.0, device=device))
+
+
+def test_substep_delay_with_history(mock_env, simple_obs_func, device):
+  """History keeps one delayed frame per control step."""
+  cfg = _substep_cfg(
+    simple_obs_func,
+    delay_min_lag=1,
+    delay_max_lag=1,
+    delay_unit="substep",
+    history_length=2,
+  )
+  manager = ObservationManager(cfg, mock_env)
+  manager.compute(update_history=True)  # value=2, fills history with 2.
+  obs = _control_step(manager, decimation=2)  # samples 3, 4; lag 1 -> 3.
+  assert obs.shape == (4, 6)
+  expected = torch.tensor([2.0] * 3 + [3.0] * 3, device=device).expand(4, -1)
+  assert torch.allclose(obs, expected)
+
+
+def test_substep_delay_partial_reset_backfills(mock_env, device):
+  """A reset env restarts from its post-reset frame; others keep their timeline."""
+  value = {"v": 0.0}
+
+  def obs_func(env):
+    return torch.full((env.num_envs, 1), value["v"], device=device)
+
+  cfg = _substep_cfg(obs_func, delay_min_lag=2, delay_max_lag=2, delay_unit="substep")
+  manager = ObservationManager(cfg, mock_env)
+  for v in (1.0, 2.0, 3.0):
+    value["v"] = v
+    manager.compute_substep()
+  value["v"] = 4.0
+  manager.compute(update_history=True)
+
+  env_ids = torch.tensor([1], device=device)
+  manager.reset(env_ids)
+  value["v"] = 100.0
+  obs = _actor(manager, env_ids=env_ids)
+  assert obs[1, 0].item() == 100.0
+  assert obs[0, 0].item() == 2.0
+
+
+def test_invalid_delay_unit_raises(mock_env, simple_obs_func):
+  cfg = _substep_cfg(simple_obs_func, delay_max_lag=1, delay_unit="ms")
+  with pytest.raises(ValueError, match="delay_unit"):
+    ObservationManager(cfg, mock_env)

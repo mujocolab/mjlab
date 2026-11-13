@@ -174,6 +174,40 @@ frequency (``delay_update_period``), hold probability
 (``delay_hold_prob``), and phase staggering
 (``delay_per_env_phase``).
 
+Substep delay
+"""""""""""""
+
+By default lags count control steps, so the finest delay is one
+``step_dt``. Set ``delay_unit="substep"`` on a term to count lags in
+physics steps instead, matching actuator delay. The term is then also
+sampled after every physics step inside the decimation loop, and
+``delay_min_lag`` / ``delay_max_lag`` are in units of ``physics_dt``:
+
+.. code-block:: python
+
+    # 200 Hz physics, decimation 4 (50 Hz control): 10-15 ms joint
+    # velocity latency.
+    "joint_vel": ObservationTermCfg(
+        func=mdp.joint_vel_rel,
+        delay_min_lag=2,
+        delay_max_lag=3,
+        delay_unit="substep",
+    ),
+
+Convert with ``lag = latency_seconds / physics_dt``. Noise, clip and
+scale run on every physics step sample, then the delayed frame is read
+once per control step and passed to history as usual. Lag resampling
+(``delay_update_period``, ``delay_hold_prob``) still happens once per
+control step. Physics step samples taken inside the decimation loop see
+the same data as per-substep metrics: ``qpos`` and ``qvel`` are current,
+while derived quantities such as body poses and ``sensordata`` lag by one
+physics step. The last sample of each control step is taken after
+``sim.forward()``, so it is fully up to date.
+
+Substep delay costs one extra term evaluation per physics step for each
+term that enables it; terms with ``delay_unit="step"`` are not evaluated
+inside the decimation loop.
+
 Both history and delay buffers are allocated only when enabled; terms
 with default settings incur no overhead.
 
