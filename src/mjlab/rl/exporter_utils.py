@@ -3,6 +3,7 @@
 import onnx
 import torch
 
+from mjlab.actuator import IdealPdActuator
 from mjlab.entity import Entity
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.envs.mdp.actions import JointPositionAction
@@ -60,6 +61,23 @@ def get_base_metadata(
   ]
   joint_stiffness = env.sim.mj_model.actuator_gainprm[ctrl_ids_natural, 0]
   joint_damping = -env.sim.mj_model.actuator_biasprm[ctrl_ids_natural, 2]
+  # IdealPd and its DC-motor/learned subclasses drive a plain <motor> and keep
+  # kp/kd in torch, so gainprm/biasprm above do not hold their gains.
+  actuated_names = [
+    jname for jname in robot.joint_names if jname in joint_name_to_ctrl_id
+  ]
+  for act in robot.actuators:
+    if isinstance(act, IdealPdActuator):
+      assert act.default_stiffness is not None and act.default_damping is not None
+      for name, kp, kd in zip(
+        act.target_names,
+        act.default_stiffness[0].tolist(),
+        act.default_damping[0].tolist(),
+        strict=True,
+      ):
+        if name in actuated_names:
+          i = actuated_names.index(name)
+          joint_stiffness[i], joint_damping[i] = kp, kd
   observation_term_scale: list = []
   observation_term_flatten_history_dim: list = []
   observation_term_history_length: list = []

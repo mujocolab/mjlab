@@ -9,7 +9,7 @@ import pytest
 import torch
 from conftest import get_test_device
 
-from mjlab.actuator import XmlActuatorCfg
+from mjlab.actuator import IdealPdActuatorCfg, XmlActuatorCfg
 from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg, mdp
 from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationTermCfg
@@ -343,4 +343,55 @@ def test_get_base_metadata_multiple_terms_scale_clip(device):
   # joint_pos_scaled has default clip.
   assert clips[2] == [float("-inf"), float("inf")]
 
+  env.close()
+
+
+def test_get_base_metadata_reads_ideal_pd_gains(device):
+  """IdealPd gains live in torch, not in the <motor> element's gainprm."""
+
+  def spec_fn():
+    spec = mujoco.MjSpec.from_string(ROBOT_XML_UNDERACTUATED)
+    for a in list(spec.actuators):
+      spec.delete(a)
+    return spec
+
+  robot_cfg = EntityCfg(
+    spec_fn=spec_fn,
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        IdealPdActuatorCfg(target_names_expr=("joint.*",), stiffness=40.0, damping=2.0),
+      )
+    ),
+  )
+  env_cfg = ManagerBasedRlEnvCfg(
+    scene=SceneCfg(
+      terrain=TerrainEntityCfg(terrain_type="plane"),
+      num_envs=1,
+      extent=1.0,
+      entities={"robot": robot_cfg},
+    ),
+    observations={
+      "actor": ObservationGroupCfg(
+        terms={
+          "joint_pos": ObservationTermCfg(
+            func=lambda env: env.scene["robot"].data.joint_pos
+          ),
+        },
+      ),
+    },
+    actions={
+      "joint_pos": mdp.JointPositionActionCfg(
+        entity_name="robot", actuator_names=(".*",), scale=1.0
+      )
+    },
+    sim=SimulationCfg(mujoco=MujocoCfg(timestep=0.01, iterations=1)),
+    decimation=1,
+    episode_length_s=1.0,
+  )
+  env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
+
+  metadata = get_base_metadata(env, run_path="dummy/run")
+
+  assert metadata["joint_stiffness"] == [40.0, 40.0]
+  assert metadata["joint_damping"] == [2.0, 2.0]
   env.close()
