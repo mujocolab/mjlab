@@ -63,18 +63,21 @@ class UniformVelocityCommand(CommandTerm):
     return self.vel_command_b
 
   def _update_metrics(self) -> None:
+    # The metrics are running sums, accumulated in compute() for its env_ids.
+    pass
+
+  def _accumulate_metrics(self, env_ids: torch.Tensor | None) -> None:
     max_command_time = self.cfg.resampling_time_range[1]
     max_command_step = max_command_time / self._env.step_dt
-    self.metrics["error_vel_xy"] += (
-      torch.norm(
-        self.vel_command_b[:, :2] - self.robot.data.root_link_lin_vel_b[:, :2], dim=-1
-      )
-      / max_command_step
+    error_vel_xy = torch.norm(
+      self.vel_command_b[:, :2] - self.robot.data.root_link_lin_vel_b[:, :2], dim=-1
     )
-    self.metrics["error_vel_yaw"] += (
-      torch.abs(self.vel_command_b[:, 2] - self.robot.data.root_link_ang_vel_b[:, 2])
-      / max_command_step
+    error_vel_yaw = torch.abs(
+      self.vel_command_b[:, 2] - self.robot.data.root_link_ang_vel_b[:, 2]
     )
+    ids = slice(None) if env_ids is None else env_ids
+    self.metrics["error_vel_xy"][ids] += error_vel_xy[ids] / max_command_step
+    self.metrics["error_vel_yaw"][ids] += error_vel_yaw[ids] / max_command_step
 
   def _resample_command(self, env_ids: torch.Tensor) -> None:
     r = torch.empty(len(env_ids), device=self.device)
@@ -235,6 +238,7 @@ class UniformVelocityCommand(CommandTerm):
   ) -> None:
     # Before resampling: the current command is the one held over the elapsed dt.
     self._integrate_command(dt, env_ids)
+    self._accumulate_metrics(env_ids)
     # Freshly reset envs; by now forward() has refreshed their spawn pose.
     fresh = (self._env.episode_length_buf == 0).unsqueeze(-1)
     self.episode_start_pos_w = torch.where(
