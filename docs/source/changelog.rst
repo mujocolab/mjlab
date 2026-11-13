@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added fixed-base support to ``VariantEntityCfg`` by auto-wrapping fixed-base
+  mesh variants in a mocap root body for per-environment placement and collision
+  :issue:`1204`.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
