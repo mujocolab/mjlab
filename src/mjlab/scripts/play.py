@@ -3,6 +3,7 @@
 import os
 import sys
 import time as _time
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,6 +29,19 @@ def _parse_wandb_dt(value: str | datetime) -> datetime:
   if isinstance(value, str):
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
   return value
+
+
+def _has_display(
+  *,
+  platform: str | None = None,
+  env: Mapping[str, str] | None = None,
+) -> bool:
+  """Return True when a local GUI display is available for the native viewer."""
+  plat = sys.platform if platform is None else platform
+  target_env = os.environ if env is None else env
+  if plat in ("win32", "darwin"):
+    return not bool(target_env.get("SSH_CONNECTION") or target_env.get("SSH_TTY"))
+  return bool(target_env.get("DISPLAY") or target_env.get("WAYLAND_DISPLAY"))
 
 
 @dataclass(frozen=True)
@@ -287,9 +301,7 @@ def run_play(task_id: str, cfg: PlayConfig):
 
   # Handle "auto" viewer selection.
   if cfg.viewer == "auto":
-    has_display = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
-    resolved_viewer = "native" if has_display else "viser"
-    del has_display
+    resolved_viewer = "native" if _has_display() else "viser"
   else:
     resolved_viewer = cfg.viewer
 
