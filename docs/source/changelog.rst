@@ -65,6 +65,12 @@ Changed
 Fixed
 ^^^^^
 
+- Entities with non-actuated ball joints: joint ids passed to the joint write
+  API, actuators, joint observations, rewards, ``reset_joints_by_offset`` and domain
+  randomization now map to the joint's qpos/qvel columns; ``default_joint_pos`` and
+  ``default_joint_vel`` follow the qpos/qvel layout, and joint position differences
+  of ball joints are rotation vectors rather than quaternion subtractions
+  (:issue:`475`).
 - YAM RGB and depth cube-lifting tasks now use separate experiment directories,
   ``yam_lift_cube_rgb`` and ``yam_lift_cube_depth``.
 - ``EntityData.gravity_vec_w`` now initializes from normalized model gravity, so

@@ -44,7 +44,8 @@ def joint_vel_l2(
 ) -> torch.Tensor:
   """Penalize joint velocities on the articulation using L2 squared kernel."""
   asset: Entity = env.scene[asset_cfg.name]
-  return torch.sum(torch.square(asset.data.joint_vel[:, asset_cfg.joint_ids]), dim=1)
+  v_cols = asset.indexing.v_cols(asset_cfg.joint_ids)
+  return torch.sum(torch.square(asset.data.joint_vel[:, v_cols]), dim=1)
 
 
 def joint_acc_l2(
@@ -52,7 +53,8 @@ def joint_acc_l2(
 ) -> torch.Tensor:
   """Penalize joint accelerations on the articulation using L2 squared kernel."""
   asset: Entity = env.scene[asset_cfg.name]
-  return torch.sum(torch.square(asset.data.joint_acc[:, asset_cfg.joint_ids]), dim=1)
+  v_cols = asset.indexing.v_cols(asset_cfg.joint_ids)
+  return torch.sum(torch.square(asset.data.joint_acc[:, v_cols]), dim=1)
 
 
 def action_rate_l2(env: ManagerBasedRlEnv) -> torch.Tensor:
@@ -85,14 +87,13 @@ def joint_pos_limits(
   asset: Entity = env.scene[asset_cfg.name]
   soft_joint_pos_limits = asset.data.soft_joint_pos_limits
   assert soft_joint_pos_limits is not None
-  out_of_limits = -(
-    asset.data.joint_pos[:, asset_cfg.joint_ids]
-    - soft_joint_pos_limits[:, asset_cfg.joint_ids, 0]
-  ).clip(max=0.0)
-  out_of_limits += (
-    asset.data.joint_pos[:, asset_cfg.joint_ids]
-    - soft_joint_pos_limits[:, asset_cfg.joint_ids, 1]
-  ).clip(min=0.0)
+  joint_pos = asset.data.joint_limit_pos[:, asset_cfg.joint_ids]
+  out_of_limits = -(joint_pos - soft_joint_pos_limits[:, asset_cfg.joint_ids, 0]).clip(
+    max=0.0
+  )
+  out_of_limits += (joint_pos - soft_joint_pos_limits[:, asset_cfg.joint_ids, 1]).clip(
+    min=0.0
+  )
   return torch.sum(out_of_limits, dim=1)
 
 
@@ -119,15 +120,28 @@ class posture:
       list_of_strings=joint_names,
     )
     self.std = torch.tensor(std, device=env.device, dtype=torch.float32)
+    # qvel column -> joint, to sum a ball joint's rotation vector into one error.
+    self._v_to_joint = torch.tensor(
+      [i for i, cols in enumerate(asset.indexing.joint_v_cols) for _ in cols],
+      device=env.device,
+    )
 
   def __call__(
     self, env: ManagerBasedRlEnv, std, asset_cfg: SceneEntityCfg
   ) -> torch.Tensor:
     del std  # Unused.
     asset: Entity = env.scene[asset_cfg.name]
-    current_joint_pos = asset.data.joint_pos[:, asset_cfg.joint_ids]
-    desired_joint_pos = self.default_joint_pos[:, asset_cfg.joint_ids]
-    error_squared = torch.square(current_joint_pos - desired_joint_pos)
+    if asset.indexing.has_ball_joints:
+      diff = asset.data.joint_pos_difference(
+        asset.data.joint_pos, self.default_joint_pos
+      )
+      error_squared = torch.zeros(
+        diff.shape[0], asset.num_joints, dtype=diff.dtype, device=diff.device
+      ).index_add_(1, self._v_to_joint, torch.square(diff))[:, asset_cfg.joint_ids]
+    else:
+      current_joint_pos = asset.data.joint_pos[:, asset_cfg.joint_ids]
+      desired_joint_pos = self.default_joint_pos[:, asset_cfg.joint_ids]
+      error_squared = torch.square(current_joint_pos - desired_joint_pos)
     return torch.exp(-torch.mean(error_squared / (self.std**2), dim=1))
 
 

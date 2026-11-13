@@ -58,6 +58,10 @@ def joint_pos_rel(
   assert default_joint_pos is not None
   jnt_ids = asset_cfg.joint_ids
   joint_pos = asset.data.joint_pos_biased if biased else asset.data.joint_pos
+  if asset.indexing.has_ball_joints:
+    # Ball joints: rotation vector from the default orientation (qvel layout).
+    diff = asset.data.joint_pos_difference(joint_pos, default_joint_pos)
+    return diff[:, asset.indexing.v_cols(jnt_ids)]
   return joint_pos[:, jnt_ids] - default_joint_pos[:, jnt_ids]
 
 
@@ -68,8 +72,8 @@ def joint_vel_rel(
   asset: Entity = env.scene[asset_cfg.name]
   default_joint_vel = asset.data.default_joint_vel
   assert default_joint_vel is not None
-  jnt_ids = asset_cfg.joint_ids
-  return asset.data.joint_vel[:, jnt_ids] - default_joint_vel[:, jnt_ids]
+  v_cols = asset.indexing.v_cols(asset_cfg.joint_ids)
+  return asset.data.joint_vel[:, v_cols] - default_joint_vel[:, v_cols]
 
 
 ##

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -16,6 +17,7 @@ from mjlab.actuator.actuator import TransmissionType
 from mjlab.actuator.xml_actuator import XmlActuator
 from mjlab.entity.data import EntityData
 from mjlab.utils import spec_config as spec_cfg
+from mjlab.utils.lab_api.math import normalize
 from mjlab.utils.lab_api.string import resolve_matching_names
 from mjlab.utils.mujoco import dof_width, qpos_width
 from mjlab.utils.spec import auto_wrap_fixed_base_mocap
@@ -24,6 +26,9 @@ from mjlab.utils.xml import fix_spec_xml, strip_buffer_textures
 
 if TYPE_CHECKING:
   from mjlab.entity.variants import VariantMetadata
+
+
+JointIds = torch.Tensor | slice | Sequence[int] | None
 
 
 @dataclass(frozen=False)
@@ -63,9 +68,59 @@ class EntityIndexing:
   free_joint_q_adr: torch.Tensor
   free_joint_v_adr: torch.Tensor
 
+  # Columns of each non-free joint in joint_pos / joint_vel. A hinge or slide joint
+  # has one column; a ball joint has 4 (quaternion) / 3 (angular velocity).
+  joint_q_cols: tuple[tuple[int, ...], ...] = ()
+  joint_v_cols: tuple[tuple[int, ...], ...] = ()
+
   @property
   def root_body_id(self) -> int:
     return self.bodies[0].id
+
+  @functools.cached_property
+  def has_ball_joints(self) -> bool:
+    return any(len(cols) > 1 for cols in self.joint_q_cols)
+
+  def q_cols(self, joint_ids: JointIds) -> JointIds:
+    """Columns of joint_pos (qpos layout) that hold the joints in joint_ids.
+
+    Without ball joints, joint and column indices coincide and joint_ids is
+    returned unchanged. A tensor of ids is read on the host.
+    """
+    return self._expand(joint_ids, self.joint_q_cols)
+
+  def v_cols(self, joint_ids: JointIds) -> JointIds:
+    """Columns of joint_vel (qvel layout) that hold the joints in joint_ids."""
+    return self._expand(joint_ids, self.joint_v_cols)
+
+  def _expand(self, joint_ids: JointIds, cols: tuple[tuple[int, ...], ...]) -> JointIds:
+    if not self.has_ball_joints:
+      return joint_ids
+    if joint_ids is None or joint_ids == slice(None):
+      return slice(None)
+    if isinstance(joint_ids, slice):
+      ids: Sequence[int] = range(len(cols))[joint_ids]
+    elif isinstance(joint_ids, torch.Tensor):
+      ids = joint_ids.reshape(-1).tolist()
+    else:
+      ids = joint_ids
+    return [c for i in ids for c in cols[int(i)]]
+
+  @functools.cached_property
+  def joint_q_adr_by_joint(self) -> torch.Tensor:
+    """qpos address of the first coordinate of each non-free joint."""
+    return self.joint_q_adr[[cols[0] for cols in self.joint_q_cols]]
+
+  @functools.cached_property
+  def joint_v_adr_by_joint(self) -> torch.Tensor:
+    """qvel address of the first coordinate of each non-free joint."""
+    return self.joint_v_adr[[cols[0] for cols in self.joint_v_cols]]
+
+  @functools.cached_property
+  def ball_q_adr(self) -> torch.Tensor:
+    """qpos addresses of all ball-joint quaternions, 4 per ball joint."""
+    cols = [c for cols in self.joint_q_cols if len(cols) == 4 for c in cols]
+    return self.joint_q_adr[cols].long()
 
 
 def _outer_index(
@@ -721,6 +776,8 @@ class Entity:
 
     # Joint state.
     if self.is_articulated:
+      joint_ids_list = [j.id for j in self._non_free_joints]
+      self._check_ball_joints_not_actuated(mj_model)
       if self.cfg.init_state.joint_pos is None:
         # Use keyframe joint positions. The scene keyframe holds every entity's qpos.
         key_qpos = torch.tensor(
@@ -728,17 +785,30 @@ class Entity:
         )
         default_joint_pos = key_qpos[indexing.joint_q_adr][None].repeat(nworld, 1)
       else:
+        # One value per hinge/slide joint; a ball joint keeps its qpos0 quaternion.
+        per_joint = resolve_expr(self.cfg.init_state.joint_pos, self.joint_names, 0.0)
         default_joint_pos = torch.tensor(
-          resolve_expr(self.cfg.init_state.joint_pos, self.joint_names, 0.0),
+          _expand_per_joint(
+            per_joint,
+            indexing.joint_q_cols,
+            [mj_model.qpos0[a : a + 4] for a in mj_model.jnt_qposadr[joint_ids_list]],
+          ),
+          dtype=torch.float,
           device=device,
         )[None].repeat(nworld, 1)
+      # One value per hinge/slide joint; a ball joint's angular velocity is zero.
+      per_joint = resolve_expr(self.cfg.init_state.joint_vel, self.joint_names, 0.0)
       default_joint_vel = torch.tensor(
-        resolve_expr(self.cfg.init_state.joint_vel, self.joint_names, 0.0),
+        _expand_per_joint(
+          per_joint, indexing.joint_v_cols, [np.zeros(3)] * len(per_joint)
+        ),
+        dtype=torch.float,
         device=device,
       )[None].repeat(nworld, 1)
+      if indexing.has_ball_joints:
+        default_joint_pos = _normalize_ball_quats(default_joint_pos, indexing)
 
-      # Joint limits.
-      joint_ids_list = [j.id for j in self._non_free_joints]
+      # Joint limits (one row per joint; a ball joint's range bounds its angle).
       dof_limits = model.jnt_range[:, joint_ids_list]
       default_joint_pos_limits = dof_limits.clone()
       joint_pos_limits = default_joint_pos_limits.clone()
@@ -916,7 +986,9 @@ class Entity:
     targets = self._data.joint_pos_target
     stored = targets[env_ids]
     targets[env_ids] = torch.where(
-      self._cleared_joint_pos_target[env_ids], self._data.joint_pos[env_ids], stored
+      self._cleared_joint_pos_target[env_ids],
+      self._data.joint_pos_by_joint[env_ids],
+      stored,
     )
     self._apply_actuator_controls(env_ids)
     targets[env_ids] = stored
@@ -1308,6 +1380,8 @@ class Entity:
     joint_v_adr = []
     free_joint_q_adr = []
     free_joint_v_adr = []
+    joint_q_cols: list[tuple[int, ...]] = []
+    joint_v_cols: list[tuple[int, ...]] = []
     for joint in self.spec.joints:
       jnt = model.joint(joint.name)
       jnt_type = jnt.type[0]
@@ -1317,8 +1391,11 @@ class Entity:
         free_joint_v_adr.extend(range(vadr, vadr + 6))
         free_joint_q_adr.extend(range(qadr, qadr + 7))
       else:
-        joint_v_adr.extend(range(vadr, vadr + dof_width(jnt_type)))
-        joint_q_adr.extend(range(qadr, qadr + qpos_width(jnt_type)))
+        nq, nv = qpos_width(jnt_type), dof_width(jnt_type)
+        joint_q_cols.append(tuple(range(len(joint_q_adr), len(joint_q_adr) + nq)))
+        joint_v_cols.append(tuple(range(len(joint_v_adr), len(joint_v_adr) + nv)))
+        joint_v_adr.extend(range(vadr, vadr + nv))
+        joint_q_adr.extend(range(qadr, qadr + nq))
     joint_q_adr = torch.tensor(joint_q_adr, dtype=torch.int, device=device)
     joint_v_adr = torch.tensor(joint_v_adr, dtype=torch.int, device=device)
     free_joint_v_adr = torch.tensor(free_joint_v_adr, dtype=torch.int, device=device)
@@ -1357,7 +1434,21 @@ class Entity:
       joint_v_adr=joint_v_adr,
       free_joint_q_adr=free_joint_q_adr,
       free_joint_v_adr=free_joint_v_adr,
+      joint_q_cols=tuple(joint_q_cols),
+      joint_v_cols=tuple(joint_v_cols),
     )
+
+  def _check_ball_joints_not_actuated(self, mj_model: mujoco.MjModel) -> None:
+    ball = int(mujoco.mjtJoint.mjJNT_BALL)
+    balls = {
+      name
+      for name, j in zip(self.joint_names, self._non_free_joints, strict=True)
+      if int(mj_model.joint(j.name).type[0]) == ball
+    }
+    for act in self._actuators:
+      hit = balls & set(act.target_names)
+      if act.transmission_type == TransmissionType.JOINT and hit:
+        raise ValueError(f"Ball joints cannot be actuator targets: {sorted(hit)}.")
 
   def _apply_actuator_controls(self, env_ids: torch.Tensor | None = None) -> None:
     self._builtin_group.apply_controls(self._data, env_ids)
@@ -1368,3 +1459,27 @@ class Entity:
       command.reset_env_ids = env_ids
       command = act.apply_delay(command)
       self._data.write_ctrl(act.compute(command)[rows], act.ctrl_ids, env_ids)
+
+
+def _expand_per_joint(
+  per_joint: Sequence[float],
+  cols: tuple[tuple[int, ...], ...],
+  multi: Sequence[np.ndarray],
+) -> list[float]:
+  """Expand one value per joint to qpos/qvel layout; joints with several
+  columns take their entry of ``multi`` instead."""
+  out: list[float] = []
+  for value, joint_cols, other in zip(per_joint, cols, multi, strict=True):
+    out.extend([value] if len(joint_cols) == 1 else [float(x) for x in other])
+  return out
+
+
+def _normalize_ball_quats(
+  joint_pos: torch.Tensor, indexing: EntityIndexing
+) -> torch.Tensor:
+  """Copy of qpos-layout joint_pos with unit ball-joint quaternions."""
+  cols = [c for jc in indexing.joint_q_cols if len(jc) == 4 for c in jc]
+  quats = joint_pos[:, cols].reshape(joint_pos.shape[0], -1, 4)
+  out = joint_pos.clone()
+  out[:, cols] = normalize(quats).reshape(joint_pos.shape[0], -1)
+  return out
