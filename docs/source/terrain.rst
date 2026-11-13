@@ -4,12 +4,12 @@ Terrain
 =======
 
 The terrain is the shared ground surface for all environments in a scene.
-mjlab supports two modes: a flat ground plane for tasks that do not need
-varying terrain, and a procedural terrain generator that assembles a grid
-of sub-terrain patches with configurable difficulty. Procedural terrain
-is particularly useful for training locomotion policies, where a
-curriculum of increasing ground difficulty drives robust walking and
-climbing behaviors.
+mjlab supports three modes: a flat ground plane for tasks that do not need
+varying terrain, an imported triangle mesh for scanned or CAD environments,
+and a procedural terrain generator that assembles a grid of sub-terrain
+patches with configurable difficulty. Procedural terrain is particularly
+useful for training locomotion policies, where a curriculum of increasing
+ground difficulty drives robust walking and climbing behaviors.
 
 Terrain is configured through ``TerrainEntityCfg`` and passed to the
 scene via the ``terrain`` field of ``SceneCfg``. See :ref:`scene` for
@@ -28,6 +28,41 @@ with spacing controlled by ``env_spacing`` on ``SceneCfg``.
     from mjlab.terrains import TerrainEntityCfg
 
     terrain = TerrainEntityCfg(terrain_type="plane")
+
+
+Mesh terrain
+------------
+
+To use an external triangle mesh (``.obj``, ``.stl``, ``.ply``, ``.glb``) as
+the shared scene ground, set ``terrain_type="mesh"`` and provide ``mesh_path``:
+
+.. code-block:: python
+
+    from mjlab.terrains import TerrainEntityCfg
+
+    terrain = TerrainEntityCfg(
+        terrain_type="mesh",
+        mesh_path="assets/outdoor_scan.obj",
+        mesh_scale=(1.0, 1.0, 1.0),
+        mesh_collision_mode="heightfield",
+    )
+
+Environments are arranged in a regular XY grid (using ``env_spacing``), and by
+default each environment's spawn height ``env_origins[:, 2]`` is automatically
+sampled from the mesh top surface at its ``(x, y)`` coordinates (override with
+``mesh_origin_z`` if fixed height is preferred).
+
+Because MuJoCo collides individual ``mjGEOM_MESH`` assets via their convex
+hulls, three collision modes are available through ``mesh_collision_mode``:
+
+- ``"heightfield"`` (default): renders and raycasts against the exact triangle
+  mesh in group 0 while colliding against a concave rasterized ``hfield`` in
+  group 3 (at ``mesh_horizontal_scale`` spacing). Best for 2.5D scans, hills,
+  valleys, and stairs stored as a single welded mesh.
+- ``"parts"``: splits multi-part scene files and disconnected shells into
+  individual ``mjGEOM_MESH`` colliders. Best for pre-decomposed CoACD/V-HACD
+  assets or architectural scenes with overhangs.
+- ``"convex"``: uses a single ``mjGEOM_MESH`` convex-hull collider.
 
 
 Procedural terrain
@@ -260,6 +295,16 @@ and undulating ground that box geoms cannot represent.
       Fractal Perlin noise producing natural terrain undulation.
 
 
+Mesh sub-terrains
+^^^^^^^^^^^^^^^^^
+
+``MeshTerrainCfg`` imports external mesh patches directly inside a
+``TerrainGeneratorCfg`` grid alongside procedural ``Box*`` and ``Hf*``
+sub-terrains. It supports per-axis ``scale``, optional curriculum-scaled
+``z_scale_range``, ``collision_mode`` (``"heightfield"``, ``"parts"``, or
+``"convex"``), and ``flat_patch_sampling``.
+
+
 Preset configurations
 ---------------------
 
@@ -353,12 +398,12 @@ use ``reset_root_state_from_flat_patches`` as the reset event term. See
 
 .. note::
 
-   Only heightfield (``Hf*``) terrains support flat patch detection.
-   Primitive (``Box*``) terrains do not have heightfield data to analyze.
-   If any sub-terrain in the grid configures ``flat_patch_sampling``,
-   the flat patches array is allocated for all cells; sub-terrains
-   without patches have their slots filled with the sub-terrain's spawn
-   origin so that the reset event always receives valid positions.
+   Heightfield (``Hf*``) and mesh (``MeshTerrainCfg``) sub-terrains support
+   flat patch detection. Primitive (``Box*``) terrains do not have heightfield
+   data to analyze. If any sub-terrain in the grid configures
+   ``flat_patch_sampling``, the flat patches array is allocated for all cells;
+   sub-terrains without patches have their slots filled with the sub-terrain's
+   spawn origin so that the reset event always receives valid positions.
 
 
 Debug visualization

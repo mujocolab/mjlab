@@ -11,6 +11,8 @@ from mjlab.terrains.heightfield_terrains import (
   HfRandomUniformTerrainCfg as HfRandomUniformTerrainCfg,
 )
 from mjlab.terrains.heightfield_terrains import HfWaveTerrainCfg as HfWaveTerrainCfg
+from mjlab.terrains.mesh_terrains import MeshCollisionMode as MeshCollisionMode
+from mjlab.terrains.mesh_terrains import MeshTerrainCfg as MeshTerrainCfg
 from mjlab.terrains.primitive_terrains import BoxFlatTerrainCfg as BoxFlatTerrainCfg
 from mjlab.terrains.primitive_terrains import (
   BoxInvertedPyramidStairsTerrainCfg as BoxInvertedPyramidStairsTerrainCfg,

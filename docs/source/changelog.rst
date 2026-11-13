@@ -8,6 +8,10 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added mesh terrain import via ``TerrainEntityCfg(terrain_type="mesh", ...)`` and
+  ``MeshTerrainCfg`` for ``.obj``/``.stl``/``.ply``/``.glb`` assets with
+  ``"heightfield"``, ``"parts"``, and ``"convex"`` collision modes and flat-patch
+  detection :issue:`533`.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
