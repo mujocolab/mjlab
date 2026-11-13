@@ -437,3 +437,129 @@ def test_camera_create_on_parent_body(device):
   assert isinstance(data, CameraSensorData)
   assert data.rgb is not None
   assert data.rgb.shape == (2, 12, 16, 3)
+
+
+DEPTH_CLIP_SCENE_XML = """
+  <mujoco>
+    <worldbody>
+      <light pos="0 0 6" dir="0 0 -1"/>
+      <geom name="near_box" type="box" size="0.25 0.25 0.1" pos="-0.4 0 3.0"
+            rgba="1 0 0 1"/>
+      <geom name="far_box" type="box" size="0.25 0.25 0.1" pos="0.4 0 1.0"
+            rgba="0 1 0 1"/>
+      <camera name="clip_cam" pos="0 0 5" quat="1 0 0 0"
+              fovy="45" resolution="32 24"/>
+    </worldbody>
+  </mujoco>
+"""
+
+
+def test_camera_depth_clipping_validation():
+  """Invalid max_depth and depth_clipping_behavior raise ValueError."""
+  with pytest.raises(ValueError, match="max_depth must be positive"):
+    CameraSensorCfg(name="cam", data_types=("depth",), max_depth=0.0)
+  with pytest.raises(ValueError, match="max_depth must be positive"):
+    CameraSensorCfg(name="cam", data_types=("depth",), max_depth=-1.5)
+  with pytest.raises(ValueError, match="Invalid depth_clipping_behavior"):
+    CameraSensorCfg(
+      name="cam",
+      data_types=("depth",),
+      depth_clipping_behavior="invalid",  # ty: ignore[invalid-argument-type]
+    )
+
+
+@pytest.mark.parametrize("behavior", ["zero", "max", "none"])
+def test_camera_depth_clipping_with_max_depth(device, behavior):
+  """max_depth clips far hits while preserving near hits and shared buffer."""
+  cam_cfg = CameraSensorCfg(
+    name="test_cam",
+    camera_name="world/clip_cam",
+    width=32,
+    height=24,
+    data_types=("depth",),
+    max_depth=3.0,
+    depth_clipping_behavior=behavior,
+  )
+  scene, sim = _make_scene_and_sim(
+    device, sensors=(cam_cfg,), xml=DEPTH_CLIP_SCENE_XML, num_envs=1
+  )
+  assert scene.sensor_context is not None
+
+  sim.forward()
+  sim.sense()
+
+  sensor = scene["test_cam"]
+  raw_depth = scene.sensor_context.get_depth(sensor.camera_idx)
+  clipped = sensor.data.depth
+  assert clipped is not None
+  assert clipped.dtype == torch.float32
+  assert clipped.data_ptr() != raw_depth.data_ptr()
+
+  # Raw buffer has near (~1.9 m), far (~3.9 m), and sky (0.0) pixels untouched.
+  near_mask = (raw_depth > 1.5) & (raw_depth < 2.5)
+  far_mask = raw_depth > 3.5
+  sky_mask = raw_depth == 0.0
+  assert near_mask.any()
+  assert far_mask.any()
+  assert sky_mask.any()
+
+  # Near hits are preserved identically across all clipping behaviors.
+  torch.testing.assert_close(clipped[near_mask], raw_depth[near_mask])
+
+  miss_or_far = far_mask | sky_mask
+  if behavior == "zero":
+    assert (clipped[miss_or_far] == 0.0).all()
+  elif behavior == "max":
+    torch.testing.assert_close(
+      clipped[miss_or_far], torch.full_like(clipped[miss_or_far], 3.0)
+    )
+  else:
+    assert torch.isinf(clipped[miss_or_far]).all()
+    assert (clipped[miss_or_far] > 0).all()
+
+
+def test_camera_depth_clipping_default_zfar_and_zero_copy(device):
+  """max_depth=None uses zfar for 'max' and stays zero-copy for default 'zero'."""
+  cam_zero = CameraSensorCfg(
+    name="cam_zero",
+    camera_name="world/clip_cam",
+    width=32,
+    height=24,
+    data_types=("depth",),
+  )
+  scene, sim = _make_scene_and_sim(
+    device, sensors=(cam_zero,), xml=DEPTH_CLIP_SCENE_XML, num_envs=1
+  )
+  assert scene.sensor_context is not None
+  sim.forward()
+  sim.sense()
+  sensor_zero = scene["cam_zero"]
+  raw = scene.sensor_context.get_depth(sensor_zero.camera_idx)
+  assert sensor_zero.data.depth is not None
+  assert sensor_zero.data.depth.data_ptr() == raw.data_ptr()
+
+  cam_max = CameraSensorCfg(
+    name="cam_max",
+    camera_name="world/clip_cam",
+    width=32,
+    height=24,
+    data_types=("depth",),
+    depth_clipping_behavior="max",
+  )
+  scene2, sim2 = _make_scene_and_sim(
+    device, sensors=(cam_max,), xml=DEPTH_CLIP_SCENE_XML, num_envs=1
+  )
+  sim2.forward()
+  sim2.sense()
+  expected_zfar = float(sim2.mj_model.vis.map.zfar * sim2.mj_model.stat.extent)
+  depth_max = scene2["cam_max"].data.depth
+  assert depth_max is not None
+  assert scene2.sensor_context is not None
+  raw2 = scene2.sensor_context.get_depth(scene2["cam_max"].camera_idx)
+  sky_mask = raw2 == 0.0
+  hit_mask = raw2 > 0.0
+  assert sky_mask.any() and hit_mask.any()
+  torch.testing.assert_close(depth_max[hit_mask], raw2[hit_mask])
+  torch.testing.assert_close(
+    depth_max[sky_mask], torch.full_like(depth_max[sky_mask], expected_zfar)
+  )
