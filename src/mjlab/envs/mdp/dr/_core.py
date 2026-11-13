@@ -208,9 +208,9 @@ def _get_entity_indices(
 ) -> torch.Tensor:
   match entity_type:
     case "dof":
-      return indexing.joint_v_adr[asset_cfg.joint_ids]
+      return indexing.joint_v_adr[indexing.v_cols(asset_cfg.joint_ids)]
     case "joint" if use_address:
-      return indexing.joint_q_adr[asset_cfg.joint_ids]
+      return indexing.joint_q_adr[indexing.q_cols(asset_cfg.joint_ids)]
     case "joint":
       return indexing.joint_ids[asset_cfg.joint_ids]
     case "body":

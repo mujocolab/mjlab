@@ -7,8 +7,11 @@ import mujoco_warp as mjwarp
 import torch
 
 from mjlab.utils.lab_api.math import (
+  axis_angle_from_quat,
+  normalize,
   quat_apply,
   quat_apply_inverse,
+  quat_conjugate,
   quat_from_matrix,
   quat_mul,
 )
@@ -175,8 +178,14 @@ class EntityData:
 
     env_ids = self._resolve_env_ids(env_ids)
     joint_ids = joint_ids if joint_ids is not None else slice(None)
-    q_slice = self.indexing.joint_q_adr[joint_ids]
+    q_slice = self.indexing.joint_q_adr[self.indexing.q_cols(joint_ids)]
     self.data.qpos[env_ids, q_slice] = position
+    if self.indexing.has_ball_joints:
+      # Ball joints take a full quaternion; keep it a unit quaternion.
+      adr = self.indexing.ball_q_adr
+      quats = self.data.qpos[env_ids, adr]
+      quats = normalize(quats.reshape(*quats.shape[:-1], -1, 4))
+      self.data.qpos[env_ids, adr] = quats.reshape(*quats.shape[:-2], -1)
 
   def write_joint_velocity(
     self,
@@ -189,7 +198,7 @@ class EntityData:
 
     env_ids = self._resolve_env_ids(env_ids)
     joint_ids = joint_ids if joint_ids is not None else slice(None)
-    v_slice = self.indexing.joint_v_adr[joint_ids]
+    v_slice = self.indexing.joint_v_adr[self.indexing.v_cols(joint_ids)]
     self.data.qvel[env_ids, v_slice] = velocity
 
   def write_external_wrench(
@@ -383,13 +392,88 @@ class EntityData:
 
   @property
   def joint_pos(self) -> torch.Tensor:
-    """Joint positions. Shape (num_envs, num_joints)."""
+    """Joint positions in qpos layout (a ball joint has a wxyz quaternion).
+
+    Shape (num_envs, nq), which is (num_envs, num_joints) without ball joints.
+    Use ``indexing.q_cols(joint_ids)`` to select joints.
+    """
     return self.data.qpos[:, self.indexing.joint_q_adr]
 
   @property
+  def joint_pos_by_joint(self) -> torch.Tensor:
+    """First qpos coordinate of each joint. Shape (num_envs, num_joints).
+
+    Equals ``joint_pos`` without ball joints. Indexed by joint id, as the joint
+    targets are; a ball joint's entry is not a joint angle.
+    """
+    return self.data.qpos[:, self.indexing.joint_q_adr_by_joint]
+
+  @property
   def joint_pos_biased(self) -> torch.Tensor:
-    """Joint positions with encoder bias applied. Shape (num_envs, num_joints)."""
-    return self.joint_pos + self.encoder_bias
+    """Joint positions with encoder bias applied. Shape as ``joint_pos``.
+
+    The bias (one value per joint) applies to hinge and slide joints only.
+    """
+    if not self.indexing.has_ball_joints:
+      return self.joint_pos + self.encoder_bias
+    scalar = [i for i, c in enumerate(self.indexing.joint_q_cols) if len(c) == 1]
+    cols = [self.indexing.joint_q_cols[i][0] for i in scalar]
+    out = self.joint_pos.clone()
+    out[:, cols] += self.encoder_bias[:, scalar]
+    return out
+
+  def joint_pos_difference(
+    self, joint_pos: torch.Tensor, reference: torch.Tensor
+  ) -> torch.Tensor:
+    """``joint_pos - reference`` in qvel layout, both in qpos layout.
+
+    Ball joints give the rotation vector of ``conj(reference) * joint_pos`` (joint
+    frame, as ``mj_differentiatePos``), never a quaternion subtraction. Shape
+    (num_envs, nv); select joints with ``indexing.v_cols(joint_ids)``.
+    """
+    if not self.indexing.has_ball_joints:
+      return joint_pos - reference
+    out = torch.empty(
+      (*joint_pos.shape[:-1], len(self.indexing.joint_v_adr)),
+      dtype=joint_pos.dtype,
+      device=joint_pos.device,
+    )
+    for q, v in zip(
+      self.indexing.joint_q_cols, self.indexing.joint_v_cols, strict=True
+    ):
+      if len(q) == 1:
+        out[..., v[0]] = joint_pos[..., q[0]] - reference[..., q[0]]
+      else:
+        dq = quat_mul(
+          quat_conjugate(reference[..., q[0] : q[-1] + 1]),
+          joint_pos[..., q[0] : q[-1] + 1],
+        )
+        out[..., v[0] : v[-1] + 1] = axis_angle_from_quat(dq)
+    return out
+
+  @property
+  def joint_limit_pos(self) -> torch.Tensor:
+    """Each joint's coordinate as its range bounds it. Shape (num_envs, num_joints).
+
+    Hinge and slide joints give their position, a ball joint its rotation angle
+    (MuJoCo limits the angle of a ball joint). Equals ``joint_pos`` without ball
+    joints.
+    """
+    if not self.indexing.has_ball_joints:
+      return self.joint_pos
+    out = self.joint_pos_by_joint.clone()
+    joint_pos = self.joint_pos
+    for i, q in enumerate(self.indexing.joint_q_cols):
+      if len(q) == 4:
+        out[:, i] = torch.linalg.norm(
+          axis_angle_from_quat(joint_pos[:, q[0] : q[-1] + 1]), dim=-1
+        )
+    return out
+
+  @property
+  def joint_vel_by_joint(self) -> torch.Tensor:
+    """First qvel coordinate of each joint. Shape (num_envs, num_joints)."""
+    return self.data.qvel[:, self.indexing.joint_v_adr_by_joint]
 
   @property
   def joint_vel(self) -> torch.Tensor:

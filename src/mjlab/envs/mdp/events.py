@@ -293,15 +293,32 @@ def reset_joints_by_offset(
   soft_joint_pos_limits = asset.data.soft_joint_pos_limits
   assert soft_joint_pos_limits is not None
 
-  joint_pos = default_joint_pos[env_ids][:, asset_cfg.joint_ids].clone()
-  joint_pos += sample_uniform(*position_range, joint_pos.shape, env.device)
-  joint_pos_limits = soft_joint_pos_limits[env_ids][:, asset_cfg.joint_ids]
-  joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
-
-  joint_vel = default_joint_vel[env_ids][:, asset_cfg.joint_ids].clone()
+  joint_ids = asset_cfg.joint_ids
+  indexing = asset.indexing
+  if indexing.has_ball_joints:
+    # Offsets and limits apply to hinge and slide joints; ball joints keep their
+    # default orientation.
+    joint_pos = default_joint_pos[env_ids][:, indexing.q_cols(joint_ids)].clone()
+    joint_vel = default_joint_vel[env_ids][:, indexing.v_cols(joint_ids)].clone()
+    ids = (
+      range(asset.num_joints)[joint_ids] if isinstance(joint_ids, slice) else joint_ids
+    )
+    widths = [len(indexing.joint_q_cols[int(i)]) for i in ids]
+    scalar = [k for k, w in enumerate(widths) if w == 1]
+    cols = [sum(widths[:k]) for k in scalar]
+    limits = soft_joint_pos_limits[env_ids][:, joint_ids][:, scalar]
+    pos = joint_pos[:, cols] + sample_uniform(
+      *position_range, (len(env_ids), len(cols)), env.device
+    )
+    joint_pos[:, cols] = pos.clamp_(limits[..., 0], limits[..., 1])
+  else:
+    joint_pos = default_joint_pos[env_ids][:, joint_ids].clone()
+    joint_pos += sample_uniform(*position_range, joint_pos.shape, env.device)
+    joint_pos_limits = soft_joint_pos_limits[env_ids][:, joint_ids]
+    joint_pos = joint_pos.clamp_(joint_pos_limits[..., 0], joint_pos_limits[..., 1])
+    joint_vel = default_joint_vel[env_ids][:, joint_ids].clone()
   joint_vel += sample_uniform(*velocity_range, joint_vel.shape, env.device)
 
-  joint_ids = asset_cfg.joint_ids
   if isinstance(joint_ids, list):
     joint_ids = torch.tensor(joint_ids, device=env.device)
 

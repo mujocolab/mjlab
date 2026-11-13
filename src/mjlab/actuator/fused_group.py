@@ -43,8 +43,8 @@ _FIELD_MAP: dict[TransmissionType, tuple[str, str, str, str, str]] = {
     "joint_pos_target",
     "joint_vel_target",
     "joint_effort_target",
-    "joint_pos",
-    "joint_vel",
+    "joint_pos_by_joint",
+    "joint_vel_by_joint",
   ),
   TransmissionType.TENDON: (
     "tendon_len_target",

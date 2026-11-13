@@ -389,8 +389,8 @@ class Actuator(ABC, Generic[ActuatorCfgT]):
         position_target=data.joint_pos_target[:, self.target_ids],
         velocity_target=data.joint_vel_target[:, self.target_ids],
         effort_target=data.joint_effort_target[:, self.target_ids],
-        pos=data.joint_pos[:, self.target_ids],
-        vel=data.joint_vel[:, self.target_ids],
+        pos=data.joint_pos_by_joint[:, self.target_ids],
+        vel=data.joint_vel_by_joint[:, self.target_ids],
       )
     elif self.transmission_type == TransmissionType.TENDON:
       return ActuatorCmd(

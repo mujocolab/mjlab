@@ -216,7 +216,8 @@ class JointPositionAction(BaseAction):
     super().__init__(cfg=cfg, env=env)
 
     if cfg.use_default_offset:
-      self._offset = self._entity.data.default_joint_pos[:, self._target_ids].clone()
+      q_cols = self._entity.indexing.q_cols(self._target_ids)
+      self._offset = self._entity.data.default_joint_pos[:, q_cols].clone()
 
   def apply_actions(self) -> None:
     encoder_bias = self._entity.data.encoder_bias[:, self._target_ids]
@@ -252,7 +253,7 @@ class RelativeJointPositionAction(BaseAction):
   """Control joints via position targets relative to current positions."""
 
   def apply_actions(self) -> None:
-    current_pos = self._entity.data.joint_pos[:, self._target_ids]
+    current_pos = self._entity.data.joint_pos_by_joint[:, self._target_ids]
     target = current_pos + self._processed_actions
     self._entity.set_joint_position_target(target, joint_ids=self._target_ids)
 
@@ -264,7 +265,8 @@ class JointVelocityAction(BaseAction):
     super().__init__(cfg=cfg, env=env)
 
     if cfg.use_default_offset:
-      self._offset = self._entity.data.default_joint_vel[:, self._target_ids].clone()
+      v_cols = self._entity.indexing.v_cols(self._target_ids)
+      self._offset = self._entity.data.default_joint_vel[:, v_cols].clone()
 
   def apply_actions(self) -> None:
     self._entity.set_joint_velocity_target(
