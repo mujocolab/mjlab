@@ -389,6 +389,37 @@ def test_term_rewards_sum_to_reward_buf(mock_env):
     manager.get_term("missing")
 
 
+def test_get_episode_sums_and_scale_by_dt(mock_env):
+  """get_episode_sums exposes cumulative episode rewards until reset clears them."""
+
+  def ramp(env):
+    return torch.arange(1, env.num_envs + 1, dtype=torch.float, device=env.device)
+
+  cfg = {"track": RewardTermCfg(func=ramp, weight=2.0, params={})}
+  manager_dt = RewardManager(cfg, mock_env, scale_by_dt=True)
+  assert manager_dt.scale_by_dt is True
+
+  dt = 0.02
+  manager_dt.compute(dt=dt)
+  manager_dt.compute(dt=dt)
+  expected_dt = torch.tensor([1.0, 2.0, 3.0, 4.0]) * 2.0 * dt * 2
+  assert torch.allclose(manager_dt.get_episode_sums("track"), expected_dt)
+
+  manager_dt.reset(env_ids=torch.tensor([0, 2]))
+  assert manager_dt.get_episode_sums("track")[0] == 0.0
+  assert manager_dt.get_episode_sums("track")[2] == 0.0
+  assert torch.isclose(manager_dt.get_episode_sums("track")[1], expected_dt[1])
+
+  manager_unscaled = RewardManager(cfg, mock_env, scale_by_dt=False)
+  assert manager_unscaled.scale_by_dt is False
+  manager_unscaled.compute(dt=dt)
+  expected_unscaled = torch.tensor([1.0, 2.0, 3.0, 4.0]) * 2.0
+  assert torch.allclose(manager_unscaled.get_episode_sums("track"), expected_unscaled)
+
+  with pytest.raises(ValueError, match="not found"):
+    manager_dt.get_episode_sums("missing")
+
+
 def test_reward_shape_validation_rejects_bad_compute_output(mock_env):
   """Reward terms must return one scalar per environment."""
   cfg = {"bad": RewardTermCfg(func=lambda env: torch.ones(env.num_envs, 1), weight=1.0)}

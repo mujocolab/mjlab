@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``commands_vel_adaptive`` velocity command curriculum gated on episodic
+  tracking reward EMA, along with ``RewardManager.get_episode_sums()`` and
+  ``RewardManager.scale_by_dt`` :issue:`1286`.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.

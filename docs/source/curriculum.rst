@@ -48,6 +48,10 @@ Built-in curriculum functions
      - Widens velocity command ranges based on training step count.
        Each stage specifies a step threshold and the new ranges to
        apply once that threshold is exceeded.
+   * - ``commands_vel_adaptive`` *(class)*
+     - Widens ``lin_vel_x`` symmetrically by ``delta`` toward
+       ``max_lin_vel_x`` once an EMA of finished-episode tracking reward
+       exceeds ``reward_fraction`` of the term's weight.
    * - ``reward_curriculum``
      - Adjusts a reward term's weight and/or params according to
        training step thresholds. Replaces the older ``reward_weight``
@@ -152,6 +156,36 @@ Start with a permissive energy threshold and reduce it over training:
 
 The ``time_out`` field on ``TerminationTermCfg`` can also be toggled
 via stages if needed, though this is uncommon in practice.
+
+
+Adaptive velocity command curriculum
+------------------------------------
+
+``commands_vel_adaptive`` gates ``lin_vel_x`` expansion on policy tracking
+performance instead of a fixed step schedule. On every non-empty reset
+batch, it updates an exponential moving average (EMA) of finished-episode
+tracking reward normalized by the reward term's full-episode weight, and
+decides at most once per ``update_interval_steps`` (default: one episode)
+whether to widen ``lin_vel_x`` by ``delta`` up to ``max_lin_vel_x``:
+
+.. code-block:: python
+
+    from mjlab.managers.curriculum_manager import CurriculumTermCfg
+
+    curriculum = {
+        "command_vel": CurriculumTermCfg(
+            func=mdp.commands_vel_adaptive,
+            params={
+                "command_name": "twist",
+                "max_lin_vel_x": (-2.0, 2.5),
+                "reward_name": "track_linear_velocity",
+                "reward_fraction": 0.8,
+                "delta": 0.1,
+            },
+        ),
+    }
+
+The command range never narrows once widened.
 
 
 Terrain curriculum

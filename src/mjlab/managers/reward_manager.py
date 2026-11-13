@@ -97,6 +97,11 @@ class RewardManager(ManagerBase):
     return self._term_names
 
   @property
+  def scale_by_dt(self) -> bool:
+    """Whether rewards and episode sums are multiplied by ``dt``."""
+    return self._scale_by_dt
+
+  @property
   def term_rewards(self) -> torch.Tensor:
     """Per-term rewards from the last step, scaled like ``reward_buf``."""
     return self._step_reward * self._scale
@@ -174,6 +179,12 @@ class RewardManager(ManagerBase):
     if term_name not in self._term_names:
       raise ValueError(f"Term '{term_name}' not found in active terms.")
     return self._term_cfgs[self._term_names.index(term_name)]
+
+  def get_episode_sums(self, term_name: str) -> torch.Tensor:
+    """Return one term's cumulative episode reward tensor, shape ``(num_envs,)``."""
+    if term_name not in self._episode_sums:
+      raise ValueError(f"Term '{term_name}' not found in active terms.")
+    return self._episode_sums[term_name]
 
   def _prepare_terms(self):
     for term_name, term_cfg in self.cfg.items():

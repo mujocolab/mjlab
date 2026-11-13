@@ -99,6 +99,12 @@ Per-term rewards
 the last step, with columns ordered like ``active_terms`` and summing to the reward.
 ``reward_manager.get_term(name)`` returns one column.
 
+``reward_manager.get_episode_sums(term_name)`` returns the ``[num_envs]`` cumulative
+episodic reward buffer for ``term_name`` (scaled by ``dt`` when
+``reward_manager.scale_by_dt`` is ``True``). During ``env.reset()`` / episodic resets,
+curriculum terms run before ``reward_manager.reset()`` zeroes finished environments, so
+curriculums can read completed episode returns directly.
+
 
 Writing custom reward functions
 -------------------------------
