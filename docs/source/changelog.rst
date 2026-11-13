@@ -29,8 +29,6 @@ Added
 Changed
 ^^^^^^^
 
-- ``SimulationCfg`` and ``MujocoCfg`` now reject unknown attributes, including
-  ``cfg.sim.gravity`` (use ``cfg.sim.mujoco.gravity``) :issue:`1318`.
 - Upgraded MuJoCo and MuJoCo Warp to 4.0.1. mjlab now depends on ``mujoco-core``
   instead of ``mujoco``. To upgrade an existing environment, run
   ``uv sync --reinstall-package mujoco-core``: removing ``mujoco`` deletes files that

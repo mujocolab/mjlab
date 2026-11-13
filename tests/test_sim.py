@@ -42,15 +42,6 @@ def robot_xml():
     """
 
 
-@pytest.mark.parametrize(
-  ("cfg", "attribute"),
-  [(SimulationCfg(), "gravity"), (MujocoCfg(), "gravty")],
-)
-def test_simulation_configs_reject_unknown_attributes(cfg, attribute):
-  with pytest.raises(AttributeError, match=attribute):
-    setattr(cfg, attribute, (0.0, 0.0, -9.81))
-
-
 def test_simulation_config_is_piped(robot_xml, device):
   """Test that SimulationCfg values are applied to both mj_model and wp_model."""
   model = mujoco.MjModel.from_xml_string(robot_xml)

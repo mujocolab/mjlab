@@ -381,11 +381,13 @@ Property names encode their reference frame with a suffix.
     makes it easier for the policy to generalize.
 
 ``projected_gravity_b`` rotates ``gravity_vec_w`` into the base frame.
-``gravity_vec_w`` is normalized model gravity, set at initialization.
-Runtime gravity changes must update it explicitly.
+``gravity_vec_w`` is the direction of the model's gravity, read once at
+initialization. With zero gravity it falls back to ``[0, 0, -1]``. If you
+change gravity after initialization, update ``gravity_vec_w`` yourself.
 
-With default gravity, an upright robot reads ``[0, 0, -1]``. Zero gravity
-produces a zero vector, which ``bad_orientation`` interprets as a 90-degree tilt.
+With default gravity, an upright robot reads ``[0, 0, -1]``. As the robot
+tilts, the x and y components grow, giving the policy a direct signal for
+orientation correction.
 
 Quaternion convention
 ^^^^^^^^^^^^^^^^^^^^^
