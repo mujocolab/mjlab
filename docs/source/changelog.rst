@@ -65,6 +65,10 @@ Changed
 Fixed
 ^^^^^
 
+- ``BaseViewer`` now resets recurrent policies on episode truncations (timeouts) as
+  well as terminations when stepping 5-tuple environments, and inspects
+  ``policy.reset`` so zero-argument and required-mask signatures work alongside
+  ``rsl-rl``'s optional-mask signature :issue:`1305`.
 - YAM RGB and depth cube-lifting tasks now use separate experiment directories,
   ``yam_lift_cube_rgb`` and ``yam_lift_cube_depth``.
 - ``EntityData.gravity_vec_w`` now initializes from normalized model gravity, so
