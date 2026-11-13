@@ -380,11 +380,14 @@ Property names encode their reference frame with a suffix.
     body frame reads the same whether the robot faces north or south, which
     makes it easier for the policy to generalize.
 
-``projected_gravity_b`` is a good example of why the frame suffix
-matters. It takes the world-frame gravity vector ``[0, 0, -1]`` and
-rotates it into the base frame. When the robot is upright the result is
-``[0, 0, -1]``; as the robot tilts, the x and y components grow,
-giving the policy a direct signal for orientation correction.
+``projected_gravity_b`` rotates ``gravity_vec_w`` into the base frame.
+``gravity_vec_w`` is the direction of the model's gravity, read once at
+initialization. With zero gravity it falls back to ``[0, 0, -1]``. If you
+change gravity after initialization, update ``gravity_vec_w`` yourself.
+
+With default gravity, an upright robot reads ``[0, 0, -1]``. As the robot
+tilts, the x and y components grow, giving the policy a direct signal for
+orientation correction.
 
 Quaternion convention
 ^^^^^^^^^^^^^^^^^^^^^
