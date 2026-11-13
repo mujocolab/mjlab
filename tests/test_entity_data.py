@@ -2,6 +2,7 @@
 
 import math
 from pathlib import Path
+from unittest.mock import Mock
 
 import mujoco
 import numpy as np
@@ -17,7 +18,12 @@ from conftest import (
 from mjlab.actuator import BuiltinMotorActuatorCfg
 from mjlab.actuator.actuator import TransmissionType
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
-from mjlab.sim.sim import Simulation, SimulationCfg
+from mjlab.envs.mdp.observations import projected_gravity
+from mjlab.envs.mdp.rewards import flat_orientation_l2
+from mjlab.envs.mdp.terminations import bad_orientation
+from mjlab.managers.reward_manager import RewardTermCfg
+from mjlab.sim.sim import MujocoCfg, Simulation, SimulationCfg
+from mjlab.tasks.velocity.mdp.rewards import upright
 from mjlab.utils.lab_api.math import quat_apply, quat_apply_inverse
 
 FLOATING_BASE_XML = """
@@ -56,13 +62,80 @@ def create_floating_base_entity():
   return Entity(cfg)
 
 
-def initialize_entity_with_sim(entity, device, num_envs=1):
+def initialize_entity_with_sim(entity, device, num_envs=1, sim_cfg=None):
   """Initialize an entity with a simulation."""
   model = entity.compile()
-  sim_cfg = SimulationCfg()
+  sim_cfg = sim_cfg or SimulationCfg()
   sim = Simulation(num_envs=num_envs, cfg=sim_cfg, model=model, device=device)
   entity.initialize(model, sim.model, sim.data, device)
   return entity, sim
+
+
+@pytest.mark.parametrize(
+  ("gravity", "expected_gravity_w"),
+  [
+    ((0.0, 0.0, -9.81), (0.0, 0.0, -1.0)),
+    ((-3.0, 0.0, -4.0), (-0.6, 0.0, -0.8)),
+    ((0.0, 0.0, 0.0), (0.0, 0.0, -1.0)),
+  ],
+  ids=["default", "tilted", "zero"],
+)
+def test_projected_gravity_uses_model_gravity(device, gravity, expected_gravity_w):
+  entity = create_floating_base_entity()
+  cfg = SimulationCfg(mujoco=MujocoCfg(gravity=gravity))
+  entity, sim = initialize_entity_with_sim(entity, device, num_envs=2, sim_cfg=cfg)
+
+  # Keep one body upright and yaw the other by 90 degrees.
+  root_pose = entity.data.default_root_state[:, :7].clone()
+  root_pose[1, 3:7] = torch.tensor(
+    [math.sqrt(0.5), 0.0, 0.0, math.sqrt(0.5)], device=device
+  )
+  entity.write_root_link_pose_to_sim(root_pose)
+  sim.forward()
+
+  expected_w = torch.tensor(expected_gravity_w, device=device).repeat(2, 1)
+  torch.testing.assert_close(entity.data.gravity_vec_w, expected_w)
+  gx, gy, gz = expected_gravity_w
+  expected_b = torch.tensor([expected_gravity_w, (gy, -gx, gz)], device=device)
+  torch.testing.assert_close(entity.data.projected_gravity_b, expected_b)
+
+
+def test_orientation_terms_with_tilted_gravity(device):
+  angle = math.radians(8.0)
+  gravity = (-9.81 * math.sin(angle), 0.0, -9.81 * math.cos(angle))
+  entity = create_floating_base_entity()
+  cfg = SimulationCfg(mujoco=MujocoCfg(gravity=gravity))
+  entity, sim = initialize_entity_with_sim(entity, device, num_envs=2, sim_cfg=cfg)
+
+  # Align the second robot's up axis opposite gravity.
+  root_pose = entity.data.default_root_state[:, :7].clone()
+  root_pose[1, 3:7] = torch.tensor(
+    [math.cos(angle / 2), 0.0, math.sin(angle / 2), 0.0], device=device
+  )
+  entity.write_root_link_pose_to_sim(root_pose)
+  sim.forward()
+  env = Mock()
+  env.scene = {"robot": entity}
+
+  expected_gravity = torch.tensor(
+    [[-math.sin(angle), 0.0, -math.cos(angle)], [0.0, 0.0, -1.0]],
+    device=device,
+  )
+  torch.testing.assert_close(projected_gravity(env), expected_gravity)
+  tilt_penalty = math.sin(angle) ** 2
+  torch.testing.assert_close(
+    flat_orientation_l2(env), torch.tensor([tilt_penalty, 0.0], device=device)
+  )
+  torch.testing.assert_close(
+    bad_orientation(env, limit_angle=math.radians(5.0)),
+    torch.tensor([True, False], device=device),
+  )
+  reward = upright(RewardTermCfg(func=upright, weight=1.0), env)
+  std = 0.2
+  torch.testing.assert_close(
+    reward(env, std=std),
+    torch.tensor([math.exp(-tilt_penalty / std**2), 1.0], device=device),
+  )
 
 
 def test_root_velocity_world_frame_roundtrip(device):

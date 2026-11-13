@@ -67,6 +67,9 @@ Fixed
 
 - YAM RGB and depth cube-lifting tasks now use separate experiment directories,
   ``yam_lift_cube_rgb`` and ``yam_lift_cube_depth``.
+- ``EntityData.gravity_vec_w`` now initializes from normalized model gravity, so
+  orientation observations, rewards, and terminations respect tilted gravity
+  :issue:`1318`.
 - Domain randomization of body poses, centers of mass, masses and ``qpos0`` now keeps
   equality constraint anchors (``eq_data``) and tracking camera and light references
   per world. Previously every world used world 0's values.

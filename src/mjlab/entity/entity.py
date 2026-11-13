@@ -797,6 +797,12 @@ class Entity:
       joint_vel_target = torch.empty(nworld, 0, dtype=torch.float, device=device)
       joint_effort_target = torch.empty(nworld, 0, dtype=torch.float, device=device)
 
+    # Orientation terms need a reference direction, so fall back to world -Z
+    # when gravity is zero.
+    gravity = mj_model.opt.gravity
+    gravity_norm = np.linalg.norm(gravity)
+    gravity_dir = gravity / gravity_norm if gravity_norm > 0 else (0.0, 0.0, -1.0)
+
     # Only allocate tendon targets if there are actuators using tendon transmission.
     if self.has_tendon_actuators:
       num_tendons = len(self.tendon_names)
@@ -843,7 +849,9 @@ class Entity:
       default_joint_pos_limits=default_joint_pos_limits,
       joint_pos_limits=joint_pos_limits,
       soft_joint_pos_limits=soft_joint_pos_limits,
-      gravity_vec_w=torch.tensor([0.0, 0.0, -1.0], device=device).repeat(nworld, 1),
+      gravity_vec_w=torch.tensor(gravity_dir, dtype=torch.float, device=device).repeat(
+        nworld, 1
+      ),
       forward_vec_b=torch.tensor([1.0, 0.0, 0.0], device=device).repeat(nworld, 1),
       is_fixed_base=self.is_fixed_base,
       is_articulated=self.is_articulated,
