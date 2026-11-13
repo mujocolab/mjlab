@@ -26,6 +26,9 @@ mjlab.sensor
   - :class:`CameraSensor`
   - :class:`CameraSensorCfg`
   - :class:`CameraSensorData`
+  - :class:`TactileSensor`
+  - :class:`TactileSensorCfg`
+  - :class:`TactileData`
 
 Base
 ----
@@ -123,4 +126,20 @@ Camera Sensor
 
 
 .. autoclass:: CameraSensorData
+  :members:
+
+Tactile Sensor
+--------------
+
+.. autoclass:: TactileSensor
+  :members:
+  :show-inheritance:
+
+.. autoclass:: TactileSensorCfg
+  :members:
+  :exclude-members: __init__
+  :undoc-members:
+
+
+.. autoclass:: TactileData
   :members:
