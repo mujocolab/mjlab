@@ -1,3 +1,5 @@
+from typing import Literal
+
 from mjlab.rl import (
   RslRlModelCfg,
   RslRlOnPolicyRunnerCfg,
@@ -56,7 +58,9 @@ def yam_lift_cube_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
   )
 
 
-def yam_lift_cube_vision_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
+def yam_lift_cube_vision_ppo_runner_cfg(
+  cam_type: Literal["rgb", "depth"],
+) -> RslRlOnPolicyRunnerCfg:
   cnn_cfg = _VISION_CNN_CFG
   class_name = _VISION_MODEL_CLS
   return RslRlOnPolicyRunnerCfg(
@@ -93,7 +97,7 @@ def yam_lift_cube_vision_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
       desired_kl=0.01,
       max_grad_norm=1.0,
     ),
-    experiment_name="yam_lift_cube_vision",
+    experiment_name=f"yam_lift_cube_{cam_type}",
     save_interval=100,
     num_steps_per_env=24,
     max_iterations=3_000,
@@ -102,18 +106,6 @@ def yam_lift_cube_vision_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
       "critic": ("critic", "camera"),
     },
   )
-
-
-def yam_lift_cube_rgb_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
-  cfg = yam_lift_cube_vision_ppo_runner_cfg()
-  cfg.experiment_name = "yam_lift_cube_rgb"
-  return cfg
-
-
-def yam_lift_cube_depth_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
-  cfg = yam_lift_cube_vision_ppo_runner_cfg()
-  cfg.experiment_name = "yam_lift_cube_depth"
-  return cfg
 
 
 def yam_multi_cube_seg_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:

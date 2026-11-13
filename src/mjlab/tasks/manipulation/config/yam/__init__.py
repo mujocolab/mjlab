@@ -7,9 +7,8 @@ from .env_cfgs import (
   yam_multi_cube_seg_env_cfg,
 )
 from .rl_cfg import (
-  yam_lift_cube_depth_ppo_runner_cfg,
   yam_lift_cube_ppo_runner_cfg,
-  yam_lift_cube_rgb_ppo_runner_cfg,
+  yam_lift_cube_vision_ppo_runner_cfg,
   yam_multi_cube_seg_ppo_runner_cfg,
 )
 
@@ -25,7 +24,7 @@ register_mjlab_task(
   task_id="Mjlab-Lift-Cube-Yam-Rgb",
   env_cfg=yam_lift_cube_vision_env_cfg(cam_type="rgb"),
   play_env_cfg=yam_lift_cube_vision_env_cfg(cam_type="rgb", play=True),
-  rl_cfg=yam_lift_cube_rgb_ppo_runner_cfg(),
+  rl_cfg=yam_lift_cube_vision_ppo_runner_cfg(cam_type="rgb"),
   runner_cls=ManipulationOnPolicyRunner,
 )
 
@@ -33,7 +32,7 @@ register_mjlab_task(
   task_id="Mjlab-Lift-Cube-Yam-Depth",
   env_cfg=yam_lift_cube_vision_env_cfg(cam_type="depth"),
   play_env_cfg=yam_lift_cube_vision_env_cfg(cam_type="depth", play=True),
-  rl_cfg=yam_lift_cube_depth_ppo_runner_cfg(),
+  rl_cfg=yam_lift_cube_vision_ppo_runner_cfg(cam_type="depth"),
   runner_cls=ManipulationOnPolicyRunner,
 )
 
