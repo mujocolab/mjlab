@@ -1426,10 +1426,23 @@ def build_variant_model(
     dataid_table[:, slot_geom_ids] = variant_slot_mesh_ids[w2v]
     matid_table[:, slot_geom_ids] = variant_slot_matids[w2v]
 
+  # MuJoCo Warp compiles out its missing-mesh broadphase guard when
+  # geom_dataid.shape[0] == 1, causing unfilled mesh slots (dataid == -1) to
+  # collide at the origin. Pad a duplicate row when nworld == 1 has unfilled
+  # mesh slots; world 0 still indexes row 0 % 2 == 0.
+  mesh_mask = model.geom_type == mujoco.mjtGeom.mjGEOM_MESH
+  wp_dataid_table = (
+    np.repeat(dataid_table, 2, axis=0)
+    if nworld == 1 and bool(np.any(dataid_table[0, mesh_mask] < 0))
+    else dataid_table
+  )
+
   # Build warp model.
   m = mjwarp.put_model(model)
-  m.geom_dataid = wp.array(dataid_table, dtype=int)
+  m.geom_dataid = wp.array(wp_dataid_table, dtype=int)
+  m.geom_dataid._is_batched = True  # ty: ignore[missing-attribute]
   m.geom_matid = wp.array(matid_table, dtype=int)
+  m.geom_matid._is_batched = True  # ty: ignore[missing-attribute]
 
   # Populate dependent per-world fields.
   _populate_dependent_fields(m, model, nworld, variant_info, world_to_variant)

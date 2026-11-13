@@ -65,6 +65,8 @@ Changed
 Fixed
 ^^^^^
 
+- Unfilled per-world mesh variant slots (``geom_dataid = -1``) no longer produce
+  phantom collisions at the origin when ``num_envs=1`` :issue:`1231`.
 - YAM RGB and depth cube-lifting tasks now use separate experiment directories,
   ``yam_lift_cube_rgb`` and ``yam_lift_cube_depth``.
 - ``EntityData.gravity_vec_w`` now initializes from normalized model gravity, so

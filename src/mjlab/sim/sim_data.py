@@ -36,6 +36,13 @@ class TorchArray:
     ):
       new_shape = (nworld,) + self._tensor.shape[1:]
       self._tensor = self._tensor.expand(new_shape)
+    elif (
+      nworld is not None
+      and len(self._tensor.shape) > 0
+      and self._tensor.shape[0] > nworld
+      and getattr(wp_array, "_is_batched", False)
+    ):
+      self._tensor = self._tensor[:nworld]
 
     self._is_cuda = not wp_array.device.is_cpu
     self._torch_stream = self._setup_stream()
