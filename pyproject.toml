@@ -93,6 +93,7 @@ docs = [
 cu130 = ["torch>=2.14.0"]
 cu126 = ["torch>=2.14.0"]
 cpu = ["torch>=2.14.0"]
+studio = ["mujoco-studio~=4.0.1"]
 
 [tool.uv]
 conflicts = [

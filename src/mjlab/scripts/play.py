@@ -19,7 +19,7 @@ from mjlab.tasks.tracking.mdp import MotionCommandCfg
 from mjlab.utils.os import get_checkpoint_path, get_wandb_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.utils.wrappers import VideoRecorder
-from mjlab.viewer import NativeMujocoViewer, ViserPlayViewer
+from mjlab.viewer import NativeMujocoViewer, StudioMujocoViewer, ViserPlayViewer
 from mjlab.viewer.viser.viewer import CheckpointManager, format_time_ago
 
 
@@ -47,7 +47,7 @@ class PlayConfig:
   video_height: int | None = None
   video_width: int | None = None
   camera: int | str | None = None
-  viewer: Literal["auto", "native", "viser"] = "auto"
+  viewer: Literal["auto", "native", "viser", "studio", "studio-web"] = "auto"
   no_terminations: bool = False
   """Disable all termination conditions (useful for viewing motions with dummy agents)."""
   log_root: str = "logs/rsl_rl"
@@ -297,6 +297,10 @@ def run_play(task_id: str, cfg: PlayConfig):
     NativeMujocoViewer(env, policy).run()
   elif resolved_viewer == "viser":
     ViserPlayViewer(env, policy, checkpoint_manager=ckpt_manager).run()
+  elif resolved_viewer == "studio":
+    StudioMujocoViewer(env, policy).run()
+  elif resolved_viewer == "studio-web":
+    StudioMujocoViewer(env, policy, gfx="web").run()
   else:
     raise RuntimeError(f"Unsupported viewer backend: {resolved_viewer}")
 

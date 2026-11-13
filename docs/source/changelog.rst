@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added optional ``StudioMujocoViewer`` (``uv sync --extra studio``) and
+  ``play --viewer studio`` / ``play --viewer studio-web`` backed by MuJoCo 4.0.1's
+  ``mujoco.studio`` Filament PBR desktop and WebAssembly viewers :issue:`909`.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.

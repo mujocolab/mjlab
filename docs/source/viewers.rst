@@ -26,6 +26,14 @@ The ``play`` script accepts a ``--viewer`` flag:
     uv run play Mjlab-Velocity-Flat-Unitree-G1 --viewer viser \
         --wandb-run-path your-entity/your-project/run_id
 
+    # MuJoCo Studio Filament PBR viewer (requires `uv sync --extra studio`).
+    uv run play Mjlab-Velocity-Flat-Unitree-G1 --viewer studio \
+        --wandb-run-path your-entity/your-project/run_id
+
+    # MuJoCo Studio WebAssembly browser viewer (requires `uv sync --extra studio`).
+    uv run play Mjlab-Velocity-Flat-Unitree-G1 --viewer studio-web \
+        --wandb-run-path your-entity/your-project/run_id
+
 The default is ``auto``, which selects native when a display server is
 available (``DISPLAY`` or ``WAYLAND_DISPLAY``) and falls back to Viser
 on headless machines.
@@ -220,6 +228,25 @@ giving immediate visual feedback on collision behavior.
    and will not reflect per-world DR changes. This will be addressed in
    a future release. For now, use the native viewer when you need to
    verify visual DR.
+
+
+MuJoCo Studio (Filament PBR & Web WASM)
+---------------------------------------
+
+MuJoCo 4.0.1 introduces ``mujoco.studio``, providing physically based rendering
+(PBR) powered by Google Filament in either a desktop window (``--viewer studio``)
+or a browser-streamed WebAssembly client (``--viewer studio-web``).
+
+Install the optional ``studio`` extra first:
+
+.. code-block:: bash
+
+    uv sync --extra studio
+
+``StudioMujocoViewer`` syncs the active environment's state (including mocap
+poses, actuator controls, and external wrenches) and per-world visual domain
+randomization fields into Studio, while forwarding Studio's reset, pause,
+single-step, and mouse perturbation events back into mjlab.
 
 
 Debug visualization
