@@ -59,7 +59,7 @@
     <link rel="prev" title="mjlab.actuator" href="actuator.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Nov 12, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 13, 2026"/>
   </head>
   
   
@@ -207,6 +207,7 @@
 <li class="toctree-l1 has-children"><a class="reference internal" href="../sensors/index.html">Sensors</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="../sensors/raycast_sensor.html">RayCast Sensor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../sensors/rgbd_camera.html">RGB-D Camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sensors/tactile_sensor.html">Tactile Sensor</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1"><a class="reference internal" href="../scene.html">Scene</a></li>
@@ -687,6 +688,41 @@ document.write(`
 </li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tactile-sensor">Tactile Sensor</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensor"><code class="docutils literal notranslate"><span class="pre">TactileSensor</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensor.__init__"><code class="docutils literal notranslate"><span class="pre">TactileSensor.__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensor.edit_spec"><code class="docutils literal notranslate"><span class="pre">TactileSensor.edit_spec()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensor.initialize"><code class="docutils literal notranslate"><span class="pre">TactileSensor.initialize()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensor.taxel_pos_w"><code class="docutils literal notranslate"><span class="pre">TactileSensor.taxel_pos_w()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensor.debug_vis"><code class="docutils literal notranslate"><span class="pre">TactileSensor.debug_vis()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.geom"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.geom</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.pos"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.pos</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.quat"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.quat</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.size"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.size</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.resolution"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.resolution</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.cutoff"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.cutoff</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.debug_vis"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.debug_vis</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.VizCfg"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.VizCfg</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.VizCfg.depth_range"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.VizCfg.depth_range</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.VizCfg.idle_color"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.VizCfg.idle_color</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.viz"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.viz</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.prefixed_name"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.prefixed_name</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.build"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.build()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileData"><code class="docutils literal notranslate"><span class="pre">TactileData</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileData.depth"><code class="docutils literal notranslate"><span class="pre">TactileData.depth</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileData.slip"><code class="docutils literal notranslate"><span class="pre">TactileData.slip</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileData.__init__"><code class="docutils literal notranslate"><span class="pre">TactileData.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
             </nav>
         </div>
@@ -708,22 +744,25 @@ document.write(`
 <li><p><a class="reference internal" href="#mjlab.sensor.BuiltinSensor" title="mjlab.sensor.BuiltinSensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">BuiltinSensor</span></code></a></p></li>
 <li><p><a class="reference internal" href="#mjlab.sensor.BuiltinSensorCfg" title="mjlab.sensor.BuiltinSensorCfg"><code class="xref py py-class docutils literal notranslate"><span class="pre">BuiltinSensorCfg</span></code></a></p></li>
 <li><p><a class="reference internal" href="#mjlab.sensor.ObjRef" title="mjlab.sensor.ObjRef"><code class="xref py py-class docutils literal notranslate"><span class="pre">ObjRef</span></code></a></p></li>
+<li><p><a class="reference internal" href="#mjlab.sensor.ContactSensor" title="mjlab.sensor.ContactSensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">ContactSensor</span></code></a></p></li>
 </ul>
 </td><td><ul class="simple">
-<li><p><a class="reference internal" href="#mjlab.sensor.ContactSensor" title="mjlab.sensor.ContactSensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">ContactSensor</span></code></a></p></li>
 <li><p><a class="reference internal" href="#mjlab.sensor.ContactSensorCfg" title="mjlab.sensor.ContactSensorCfg"><code class="xref py py-class docutils literal notranslate"><span class="pre">ContactSensorCfg</span></code></a></p></li>
 <li><p><a class="reference internal" href="#mjlab.sensor.ContactData" title="mjlab.sensor.ContactData"><code class="xref py py-class docutils literal notranslate"><span class="pre">ContactData</span></code></a></p></li>
 <li><p><a class="reference internal" href="#mjlab.sensor.ContactMatch" title="mjlab.sensor.ContactMatch"><code class="xref py py-class docutils literal notranslate"><span class="pre">ContactMatch</span></code></a></p></li>
 <li><p><a class="reference internal" href="#mjlab.sensor.RayCastSensor" title="mjlab.sensor.RayCastSensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">RayCastSensor</span></code></a></p></li>
 <li><p><a class="reference internal" href="#mjlab.sensor.RayCastSensorCfg" title="mjlab.sensor.RayCastSensorCfg"><code class="xref py py-class docutils literal notranslate"><span class="pre">RayCastSensorCfg</span></code></a></p></li>
-</ul>
-</td><td><ul class="simple">
 <li><p><a class="reference internal" href="#mjlab.sensor.RayCastData" title="mjlab.sensor.RayCastData"><code class="xref py py-class docutils literal notranslate"><span class="pre">RayCastData</span></code></a></p></li>
 <li><p><a class="reference internal" href="#mjlab.sensor.GridPatternCfg" title="mjlab.sensor.GridPatternCfg"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridPatternCfg</span></code></a></p></li>
+</ul>
+</td><td><ul class="simple">
 <li><p><a class="reference internal" href="#mjlab.sensor.PinholeCameraPatternCfg" title="mjlab.sensor.PinholeCameraPatternCfg"><code class="xref py py-class docutils literal notranslate"><span class="pre">PinholeCameraPatternCfg</span></code></a></p></li>
 <li><p><a class="reference internal" href="#mjlab.sensor.CameraSensor" title="mjlab.sensor.CameraSensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">CameraSensor</span></code></a></p></li>
 <li><p><a class="reference internal" href="#mjlab.sensor.CameraSensorCfg" title="mjlab.sensor.CameraSensorCfg"><code class="xref py py-class docutils literal notranslate"><span class="pre">CameraSensorCfg</span></code></a></p></li>
 <li><p><a class="reference internal" href="#mjlab.sensor.CameraSensorData" title="mjlab.sensor.CameraSensorData"><code class="xref py py-class docutils literal notranslate"><span class="pre">CameraSensorData</span></code></a></p></li>
+<li><p><a class="reference internal" href="#mjlab.sensor.TactileSensor" title="mjlab.sensor.TactileSensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">TactileSensor</span></code></a></p></li>
+<li><p><a class="reference internal" href="#mjlab.sensor.TactileSensorCfg" title="mjlab.sensor.TactileSensorCfg"><code class="xref py py-class docutils literal notranslate"><span class="pre">TactileSensorCfg</span></code></a></p></li>
+<li><p><a class="reference internal" href="#mjlab.sensor.TactileData" title="mjlab.sensor.TactileData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TactileData</span></code></a></p></li>
 </ul>
 </td></tr></table>
 <section id="base">
@@ -2048,6 +2087,182 @@ MuJoCo object types. Background pixels are <code class="docutils literal notrans
 </dd></dl>
 
 </section>
+<section id="tactile-sensor">
+<h2>Tactile Sensor<a class="headerlink" href="#tactile-sensor" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensor">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.sensor.</span></span><span class="sig-name descname"><span class="pre">TactileSensor</span></span><a class="reference internal" href="../../_modules/mjlab/sensor/tactile_sensor.html#TactileSensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sensor.TactileSensor" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mjlab.sensor.Sensor" title="mjlab.sensor.sensor.Sensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sensor</span></code></a>[<a class="reference internal" href="#mjlab.sensor.TactileData" title="mjlab.sensor.tactile_sensor.TactileData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TactileData</span></code></a>]</p>
+<p>Taxel grid sensor returning <a class="reference internal" href="#mjlab.sensor.TactileData" title="mjlab.sensor.TactileData"><code class="xref py py-class docutils literal notranslate"><span class="pre">TactileData</span></code></a> views into sensordata.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensor.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mjlab.sensor.TactileSensorCfg" title="mjlab.sensor.tactile_sensor.TactileSensorCfg"><span class="pre">TactileSensorCfg</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/sensor/tactile_sensor.html#TactileSensor.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sensor.TactileSensor.__init__" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensor.edit_spec">
+<span class="sig-name descname"><span class="pre">edit_spec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scene_spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MjSpec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entities</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="entity.html#mjlab.entity.Entity" title="mjlab.entity.entity.Entity"><span class="pre">Entity</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/sensor/tactile_sensor.html#TactileSensor.edit_spec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sensor.TactileSensor.edit_spec" title="Link to this definition">#</a></dt>
+<dd><p>Edit the scene spec to add this sensor.</p>
+<p>This is called during scene construction to add sensor elements
+to the MjSpec.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scene_spec</strong> – The scene MjSpec to edit.</p></li>
+<li><p><strong>entities</strong> – Dictionary of entities in the scene, keyed by name.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensor.initialize">
+<span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mj_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MjModel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/sensor/tactile_sensor.html#TactileSensor.initialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sensor.TactileSensor.initialize" title="Link to this definition">#</a></dt>
+<dd><p>Initialize the sensor after model compilation.</p>
+<p>This is called after the MjSpec is compiled into an MjModel and the simulation
+is ready to run. Use this to cache sensor indices, allocate buffers, etc.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mj_model</strong> – The compiled MuJoCo model.</p></li>
+<li><p><strong>model</strong> – The mjwarp model wrapper.</p></li>
+<li><p><strong>data</strong> – The mjwarp data arrays.</p></li>
+<li><p><strong>device</strong> – Device for tensor operations (e.g., “cuda”, “cpu”).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensor.taxel_pos_w">
+<span class="sig-name descname"><span class="pre">taxel_pos_w</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="../../_modules/mjlab/sensor/tactile_sensor.html#TactileSensor.taxel_pos_w"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sensor.TactileSensor.taxel_pos_w" title="Link to this definition">#</a></dt>
+<dd><p>World positions of the taxels [B, R * C, 3], in row-major grid order.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensor.debug_vis">
+<span class="sig-name descname"><span class="pre">debug_vis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">visualizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DebugVisualizer</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/sensor/tactile_sensor.html#TactileSensor.debug_vis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sensor.TactileSensor.debug_vis" title="Link to this definition">#</a></dt>
+<dd><p>Visualize sensor data for debugging.</p>
+<p>Base implementation does nothing. Override in subclasses that support
+debug visualization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>visualizer</strong> – The debug visualizer to draw to.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensorCfg">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.sensor.</span></span><span class="sig-name descname"><span class="pre">TactileSensorCfg</span></span><a class="reference internal" href="../../_modules/mjlab/sensor/tactile_sensor.html#TactileSensorCfg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sensor.TactileSensorCfg" title="Link to this definition">#</a></dt>
+<dd><p>A taxel grid projected onto the surface of a collision geom.</p>
+<p>The grid lives in a pad frame given in the geom’s body frame. Its +z axis
+points out of the surface: each taxel is cast from the pad’s xy plane along
+-z and placed where it first hits the geom.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensorCfg.geom">
+<span class="sig-name descname"><span class="pre">geom</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#mjlab.sensor.ObjRef" title="mjlab.sensor.ObjRef"><span class="pre">ObjRef</span></a></em><a class="headerlink" href="#mjlab.sensor.TactileSensorCfg.geom" title="Link to this definition">#</a></dt>
+<dd><p>Collision geom carrying the taxels. Must have type “geom”.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensorCfg.pos">
+<span class="sig-name descname"><span class="pre">pos</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0)</span></em><a class="headerlink" href="#mjlab.sensor.TactileSensorCfg.pos" title="Link to this definition">#</a></dt>
+<dd><p>Pad center in the geom’s body frame.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensorCfg.quat">
+<span class="sig-name descname"><span class="pre">quat</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(1.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0)</span></em><a class="headerlink" href="#mjlab.sensor.TactileSensorCfg.quat" title="Link to this definition">#</a></dt>
+<dd><p>Pad orientation in the geom’s body frame (w, x, y, z).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensorCfg.size">
+<span class="sig-name descname"><span class="pre">size</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(0.016,</span> <span class="pre">0.01)</span></em><a class="headerlink" href="#mjlab.sensor.TactileSensorCfg.size" title="Link to this definition">#</a></dt>
+<dd><p>Grid extent along the pad’s x and y axes (m).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensorCfg.resolution">
+<span class="sig-name descname"><span class="pre">resolution</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(10,</span> <span class="pre">7)</span></em><a class="headerlink" href="#mjlab.sensor.TactileSensorCfg.resolution" title="Link to this definition">#</a></dt>
+<dd><p>Number of taxels along the pad’s x and y axes.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensorCfg.cutoff">
+<span class="sig-name descname"><span class="pre">cutoff</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#mjlab.sensor.TactileSensorCfg.cutoff" title="Link to this definition">#</a></dt>
+<dd><p>When positive, clamps every reading to this value.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensorCfg.debug_vis">
+<span class="sig-name descname"><span class="pre">debug_vis</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#mjlab.sensor.TactileSensorCfg.debug_vis" title="Link to this definition">#</a></dt>
+<dd><p>Enable debug visualization.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensorCfg.VizCfg">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">VizCfg</span></span><a class="reference internal" href="../../_modules/mjlab/sensor/tactile_sensor.html#TactileSensorCfg.VizCfg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sensor.TactileSensorCfg.VizCfg" title="Link to this definition">#</a></dt>
+<dd><dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensorCfg.VizCfg.depth_range">
+<span class="sig-name descname"><span class="pre">depth_range</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.001</span></em><a class="headerlink" href="#mjlab.sensor.TactileSensorCfg.VizCfg.depth_range" title="Link to this definition">#</a></dt>
+<dd><p>Depth (m) that maps to the hottest color.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensorCfg.VizCfg.idle_color">
+<span class="sig-name descname"><span class="pre">idle_color</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(0.55,</span> <span class="pre">0.55,</span> <span class="pre">0.6,</span> <span class="pre">0.35)</span></em><a class="headerlink" href="#mjlab.sensor.TactileSensorCfg.VizCfg.idle_color" title="Link to this definition">#</a></dt>
+<dd><p>Color of taxels that are not in contact.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensorCfg.viz">
+<span class="sig-name descname"><span class="pre">viz</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#mjlab.sensor.TactileSensorCfg.VizCfg" title="mjlab.sensor.TactileSensorCfg.VizCfg"><span class="pre">VizCfg</span></a></em><a class="headerlink" href="#mjlab.sensor.TactileSensorCfg.viz" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensorCfg.prefixed_name">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">prefixed_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></em><a class="headerlink" href="#mjlab.sensor.TactileSensorCfg.prefixed_name" title="Link to this definition">#</a></dt>
+<dd><p>The sensor name as it appears in the MuJoCo model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileSensorCfg.build">
+<span class="sig-name descname"><span class="pre">build</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#mjlab.sensor.TactileSensor" title="mjlab.sensor.tactile_sensor.TactileSensor"><span class="pre">TactileSensor</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/sensor/tactile_sensor.html#TactileSensorCfg.build"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sensor.TactileSensorCfg.build" title="Link to this definition">#</a></dt>
+<dd><p>Build sensor instance from this config.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileData">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.sensor.</span></span><span class="sig-name descname"><span class="pre">TactileData</span></span><a class="reference internal" href="../../_modules/mjlab/sensor/tactile_sensor.html#TactileData"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sensor.TactileData" title="Link to this definition">#</a></dt>
+<dd><p>Tactile readings, laid out as images over the taxel grid.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileData.depth">
+<span class="sig-name descname"><span class="pre">depth</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Tensor</span></em><a class="headerlink" href="#mjlab.sensor.TactileData.depth" title="Link to this definition">#</a></dt>
+<dd><p>Penetration depth of the contacting object at each taxel [B, R, C] (m).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileData.slip">
+<span class="sig-name descname"><span class="pre">slip</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Tensor</span></em><a class="headerlink" href="#mjlab.sensor.TactileData.slip" title="Link to this definition">#</a></dt>
+<dd><p>Tangential sliding speed along the pad’s x and y axes [B, R, C, 2] (m/s).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mjlab.sensor.TactileData.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">depth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slip</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#mjlab.sensor.TactileData.__init__" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 </section>
 
 
@@ -2308,6 +2523,41 @@ MuJoCo object types. Background pixels are <code class="docutils literal notrans
 </li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tactile-sensor">Tactile Sensor</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensor"><code class="docutils literal notranslate"><span class="pre">TactileSensor</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensor.__init__"><code class="docutils literal notranslate"><span class="pre">TactileSensor.__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensor.edit_spec"><code class="docutils literal notranslate"><span class="pre">TactileSensor.edit_spec()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensor.initialize"><code class="docutils literal notranslate"><span class="pre">TactileSensor.initialize()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensor.taxel_pos_w"><code class="docutils literal notranslate"><span class="pre">TactileSensor.taxel_pos_w()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensor.debug_vis"><code class="docutils literal notranslate"><span class="pre">TactileSensor.debug_vis()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.geom"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.geom</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.pos"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.pos</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.quat"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.quat</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.size"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.size</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.resolution"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.resolution</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.cutoff"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.cutoff</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.debug_vis"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.debug_vis</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.VizCfg"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.VizCfg</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.VizCfg.depth_range"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.VizCfg.depth_range</span></code></a></li>
+<li class="toc-h5 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.VizCfg.idle_color"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.VizCfg.idle_color</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.viz"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.viz</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.prefixed_name"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.prefixed_name</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileSensorCfg.build"><code class="docutils literal notranslate"><span class="pre">TactileSensorCfg.build()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileData"><code class="docutils literal notranslate"><span class="pre">TactileData</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileData.depth"><code class="docutils literal notranslate"><span class="pre">TactileData.depth</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileData.slip"><code class="docutils literal notranslate"><span class="pre">TactileData.slip</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.TactileData.__init__"><code class="docutils literal notranslate"><span class="pre">TactileData.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
   </nav></div>
 
@@ -2341,7 +2591,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Nov 12, 2026.
+  Last updated on Nov 13, 2026.
   <br/>
 </p>
   </div>

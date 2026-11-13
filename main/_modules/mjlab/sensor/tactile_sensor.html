@@ -1,0 +1,809 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>mjlab.sensor.tactile_sensor &#8212; mjlab Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/twemoji.css" />
+    <link rel="stylesheet" type="text/css" href="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=53359634" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/custom.css?v=3ea80bc3" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js"></script>
+    <script src="../../../_static/twemoji.js"></script>
+    <script src="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/js/all.min.js?v=ec35c6c9"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/mjlab/sensor/tactile_sensor';</script>
+    <link rel="icon" href="../../../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+    <meta name="docbuild:last-update" content="Nov 13, 2026"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">mjlab Documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item">
+<div class="sidebar-version-switcher">
+  <label class="sidebar-version-label" for="version-select">Version</label>
+  <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
+    <option value="tactile_sensor.html" selected>main</option>
+    <option value="../../../../v1.6.0/index.html" >v1.6.0</option>
+    <option value="../../../../v1.5.3/index.html" >v1.5.3</option>
+    <option value="../../../../v1.5.2/index.html" >v1.5.2</option>
+    <option value="../../../../v1.5.1/index.html" >v1.5.1</option>
+    <option value="../../../../v1.5.0/index.html" >v1.5.0</option>
+    <option value="../../../../v1.4.0/index.html" >v1.4.0</option>
+    <option value="../../../../v1.3.0/index.html" >v1.3.0</option>
+    <option value="../../../../v1.2.0/index.html" >v1.2.0</option>
+    <option value="../../../../v1.1.1/index.html" >v1.1.1</option>
+    <option value="../../../../v1.1.0/index.html" >v1.1.0</option>
+    <option value="../../../../v1.0.0/index.html" >v1.0.0</option>
+  </select>
+</div>
+</div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../../source/installation.html">Installation Guide</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../source/tutorials.html">Tutorials</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/tutorials/cartpole.html">Cartpole: Building Your First Environment</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/contributing.html">Contributing</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../../source/architecture_overview.html">Architecture Overview</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../source/entity/index.html">Entity</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/entity/entity_data.html">Entity Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/entity/per_world_mesh.html">Heterogeneous Worlds</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/actuators.html">Actuators</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../source/sensors/index.html">Sensors</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/sensors/raycast_sensor.html">RayCast Sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/sensors/rgbd_camera.html">RGB-D Camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/sensors/tactile_sensor.html">Tactile Sensor</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/scene.html">Scene</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/terrain.html">Terrain</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">The Manager Layer</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../../source/environment_config.html">Environment Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/actions.html">Actions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/terminations.html">Terminations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/commands.html">Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/events.html">Events</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/randomization.html">Domain Randomization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/curriculum.html">Curriculum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/recorders.html">Recorders</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training &amp; Debugging</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../source/training/rsl_rl.html">Training with RSL-RL</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/training/motion_imitation.html">Motion Imitation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/viewers.html">Viewers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/training/distributed_training.html">Distributed Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/training/cloud.html">Cloud Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/debugging/nan_guard.html">NaN Guard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/debugging/export_scene.html">Export Scene</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../source/api/index.html">API Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/api/envs.html">mjlab.envs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/api/scene.html">mjlab.scene</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/api/sim.html">mjlab.sim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/api/entity.html">mjlab.entity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/api/actuator.html">mjlab.actuator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/api/sensor.html">mjlab.sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/api/managers.html">mjlab.managers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/api/terrains.html">mjlab.terrains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/api/rl.html">mjlab.rl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/api/viewer.html">mjlab.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/api/tasks.html">mjlab.tasks</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Further Reading</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../../source/motivation.html">Why mjlab?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/migration_isaac_lab.html">Migrating from Isaac Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/faq.html">FAQ &amp; Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/research.html">Research</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/changelog.html">Changelog</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/issues/new?title=Issue%20on%20page%20%2F_modules/mjlab/sensor/tactile_sensor.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1></h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for mjlab.sensor.tactile_sensor</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Tactile sensor: a grid of taxels on the surface of a collision geom.</span>
+
+<span class="sd">Wraps MuJoCo&#39;s tactile sensor. Each taxel reports how deep a contacting object</span>
+<span class="sd">reaches at that point, plus how fast the object slides past it. The taxels are</span>
+<span class="sd">placed by projecting a regular grid onto the geom&#39;s collision surface (the</span>
+<span class="sd">convex hull MuJoCo collides with, for meshes), so they lie exactly where</span>
+<span class="sd">objects touch and the readings come back as images.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">mujoco</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">mujoco_warp</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mjwarp</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.entity</span><span class="w"> </span><span class="kn">import</span> <span class="n">Entity</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sensor.builtin_sensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">ObjRef</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sensor.sensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sensor</span><span class="p">,</span> <span class="n">SensorCfg</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+  <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.viewer.debug_visualizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">DebugVisualizer</span>
+
+
+<div class="viewcode-block" id="TactileData">
+<a class="viewcode-back" href="../../../source/api/sensor.html#mjlab.sensor.TactileData">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TactileData</span><span class="p">:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Tactile readings, laid out as images over the taxel grid.&quot;&quot;&quot;</span>
+
+  <span class="n">depth</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Penetration depth of the contacting object at each taxel [B, R, C] (m).&quot;&quot;&quot;</span>
+
+  <span class="n">slip</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Tangential sliding speed along the pad&#39;s x and y axes [B, R, C, 2] (m/s).&quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="TactileSensorCfg">
+<a class="viewcode-back" href="../../../source/api/sensor.html#mjlab.sensor.TactileSensorCfg">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TactileSensorCfg</span><span class="p">(</span><span class="n">SensorCfg</span><span class="p">):</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;A taxel grid projected onto the surface of a collision geom.</span>
+
+<span class="sd">  The grid lives in a pad frame given in the geom&#39;s body frame. Its +z axis</span>
+<span class="sd">  points out of the surface: each taxel is cast from the pad&#39;s xy plane along</span>
+<span class="sd">  -z and placed where it first hits the geom.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">geom</span><span class="p">:</span> <span class="n">ObjRef</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Collision geom carrying the taxels. Must have type &quot;geom&quot;.&quot;&quot;&quot;</span>
+
+  <span class="n">pos</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Pad center in the geom&#39;s body frame.&quot;&quot;&quot;</span>
+
+  <span class="n">quat</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Pad orientation in the geom&#39;s body frame (w, x, y, z).&quot;&quot;&quot;</span>
+
+  <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.016</span><span class="p">,</span> <span class="mf">0.010</span><span class="p">)</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Grid extent along the pad&#39;s x and y axes (m).&quot;&quot;&quot;</span>
+
+  <span class="n">resolution</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Number of taxels along the pad&#39;s x and y axes.&quot;&quot;&quot;</span>
+
+  <span class="n">cutoff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;When positive, clamps every reading to this value.&quot;&quot;&quot;</span>
+
+  <span class="n">debug_vis</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Enable debug visualization.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TactileSensorCfg.VizCfg">
+<a class="viewcode-back" href="../../../source/api/sensor.html#mjlab.sensor.TactileSensorCfg.VizCfg">[docs]</a>
+  <span class="nd">@dataclass</span>
+  <span class="k">class</span><span class="w"> </span><span class="nc">VizCfg</span><span class="p">:</span>
+    <span class="n">depth_range</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Depth (m) that maps to the hottest color.&quot;&quot;&quot;</span>
+
+    <span class="n">idle_color</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.55</span><span class="p">,</span> <span class="mf">0.55</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.35</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Color of taxels that are not in contact.&quot;&quot;&quot;</span></div>
+
+
+  <span class="n">viz</span><span class="p">:</span> <span class="n">VizCfg</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">VizCfg</span><span class="p">)</span>
+
+  <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s2">&quot;geom&quot;</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;TactileSensorCfg.geom must be a geom, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;resolution must be at least 2x2, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">prefixed_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">entity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">entity</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+<div class="viewcode-block" id="TactileSensorCfg.build">
+<a class="viewcode-back" href="../../../source/api/sensor.html#mjlab.sensor.TactileSensorCfg.build">[docs]</a>
+  <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TactileSensor</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">TactileSensor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="TactileSensor">
+<a class="viewcode-back" href="../../../source/api/sensor.html#mjlab.sensor.TactileSensor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TactileSensor</span><span class="p">(</span><span class="n">Sensor</span><span class="p">[</span><span class="n">TactileData</span><span class="p">]):</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Taxel grid sensor returning :class:`TactileData` views into sensordata.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TactileSensor.__init__">
+<a class="viewcode-back" href="../../../source/api/sensor.html#mjlab.sensor.TactileSensor.__init__">[docs]</a>
+  <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">:</span> <span class="n">TactileSensorCfg</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span> <span class="o">=</span> <span class="n">cfg</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">prefixed_name</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_taxel_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="si">}</span><span class="s2">_taxels&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_debug_vis_enabled</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_mjdata</span><span class="p">:</span> <span class="n">mjwarp</span><span class="o">.</span><span class="n">Data</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_view</span><span class="p">:</span> <span class="n">TactileData</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_taxel_geom_id</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_taxels_local</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="TactileSensor.edit_spec">
+<a class="viewcode-back" href="../../../source/api/sensor.html#mjlab.sensor.TactileSensor.edit_spec">[docs]</a>
+  <span class="k">def</span><span class="w"> </span><span class="nf">edit_spec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scene_spec</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjSpec</span><span class="p">,</span> <span class="n">entities</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Entity</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">del</span> <span class="n">entities</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span>
+    <span class="n">geom_name</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">prefixed_name</span><span class="p">()</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">scene_spec</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">compile</span><span class="p">()</span>
+    <span class="n">points</span><span class="p">,</span> <span class="n">frames</span> <span class="o">=</span> <span class="n">_project_grid</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">geom</span><span class="p">(</span><span class="n">geom_name</span><span class="p">)</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">cfg</span><span class="p">)</span>
+
+    <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">resolution</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">rows</span> <span class="o">*</span> <span class="n">cols</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">)</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">idx</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">idx</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">idx</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:],</span> <span class="n">idx</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">1</span><span class="p">:]</span>
+    <span class="n">faces</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">d</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">b</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)])</span>
+    <span class="n">scene_spec</span><span class="o">.</span><span class="n">add_mesh</span><span class="p">(</span>
+      <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_taxel_name</span><span class="p">,</span>
+      <span class="n">uservert</span><span class="o">=</span><span class="n">points</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+      <span class="n">usernormal</span><span class="o">=</span><span class="n">frames</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+      <span class="n">userface</span><span class="o">=</span><span class="n">faces</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+      <span class="n">inertia</span><span class="o">=</span><span class="n">mujoco</span><span class="o">.</span><span class="n">mjtMeshInertia</span><span class="o">.</span><span class="n">mjMESH_INERTIA_SHELL</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># The taxel geom only poses the taxels; the geom it covers makes the contacts.</span>
+    <span class="n">scene_spec</span><span class="o">.</span><span class="n">geom</span><span class="p">(</span><span class="n">geom_name</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">add_geom</span><span class="p">(</span>
+      <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_taxel_name</span><span class="p">,</span>
+      <span class="nb">type</span><span class="o">=</span><span class="n">mujoco</span><span class="o">.</span><span class="n">mjtGeom</span><span class="o">.</span><span class="n">mjGEOM_MESH</span><span class="p">,</span>
+      <span class="n">meshname</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_taxel_name</span><span class="p">,</span>
+      <span class="n">contype</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+      <span class="n">conaffinity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+      <span class="n">density</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+      <span class="n">group</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+      <span class="n">rgba</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">scene_spec</span><span class="o">.</span><span class="n">add_sensor</span><span class="p">(</span>
+      <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span>
+      <span class="nb">type</span><span class="o">=</span><span class="n">mujoco</span><span class="o">.</span><span class="n">mjtSensor</span><span class="o">.</span><span class="n">mjSENS_TACTILE</span><span class="p">,</span>
+      <span class="n">objtype</span><span class="o">=</span><span class="n">mujoco</span><span class="o">.</span><span class="n">mjtObj</span><span class="o">.</span><span class="n">mjOBJ_MESH</span><span class="p">,</span>
+      <span class="n">objname</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_taxel_name</span><span class="p">,</span>
+      <span class="n">reftype</span><span class="o">=</span><span class="n">mujoco</span><span class="o">.</span><span class="n">mjtObj</span><span class="o">.</span><span class="n">mjOBJ_GEOM</span><span class="p">,</span>
+      <span class="n">refname</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_taxel_name</span><span class="p">,</span>
+      <span class="n">cutoff</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">cutoff</span> <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">cutoff</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TactileSensor.initialize">
+<a class="viewcode-back" href="../../../source/api/sensor.html#mjlab.sensor.TactileSensor.initialize">[docs]</a>
+  <span class="k">def</span><span class="w"> </span><span class="nf">initialize</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span> <span class="n">mj_model</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjModel</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">mjwarp</span><span class="o">.</span><span class="n">Model</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">mjwarp</span><span class="o">.</span><span class="n">Data</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span>
+  <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">del</span> <span class="n">model</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_mjdata</span> <span class="o">=</span> <span class="n">data</span>
+    <span class="n">sensor</span> <span class="o">=</span> <span class="n">mj_model</span><span class="o">.</span><span class="n">sensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">)</span>
+    <span class="n">adr</span><span class="p">,</span> <span class="n">dim</span> <span class="o">=</span> <span class="n">sensor</span><span class="o">.</span><span class="n">adr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sensor</span><span class="o">.</span><span class="n">dim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="c1"># MuJoCo stores the channels as contiguous blocks: [depth, slip_x, slip_y].</span>
+    <span class="n">channels</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">sensordata</span><span class="p">[:,</span> <span class="n">adr</span> <span class="p">:</span> <span class="n">adr</span> <span class="o">+</span> <span class="n">dim</span><span class="p">]</span><span class="o">.</span><span class="n">unflatten</span><span class="p">(</span>
+      <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">resolution</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_view</span> <span class="o">=</span> <span class="n">TactileData</span><span class="p">(</span>
+      <span class="n">depth</span><span class="o">=</span><span class="n">channels</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">slip</span><span class="o">=</span><span class="n">channels</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_taxel_geom_id</span> <span class="o">=</span> <span class="n">mj_model</span><span class="o">.</span><span class="n">geom</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_taxel_name</span><span class="p">)</span><span class="o">.</span><span class="n">id</span>
+    <span class="n">mesh</span> <span class="o">=</span> <span class="n">mj_model</span><span class="o">.</span><span class="n">geom_dataid</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_taxel_geom_id</span><span class="p">]</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">mj_model</span><span class="o">.</span><span class="n">mesh_vertadr</span><span class="p">[</span><span class="n">mesh</span><span class="p">]</span>
+    <span class="n">verts</span> <span class="o">=</span> <span class="n">mj_model</span><span class="o">.</span><span class="n">mesh_vert</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="n">mj_model</span><span class="o">.</span><span class="n">mesh_vertnum</span><span class="p">[</span><span class="n">mesh</span><span class="p">]]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_taxels_local</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">verts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span></div>
+
+
+  <span class="k">def</span><span class="w"> </span><span class="nf">_compute_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TactileData</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_view</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_view</span>
+
+<div class="viewcode-block" id="TactileSensor.taxel_pos_w">
+<a class="viewcode-back" href="../../../source/api/sensor.html#mjlab.sensor.TactileSensor.taxel_pos_w">[docs]</a>
+  <span class="k">def</span><span class="w"> </span><span class="nf">taxel_pos_w</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;World positions of the taxels [B, R * C, 3], in row-major grid order.&quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mjdata</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_taxels_local</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mjdata</span><span class="o">.</span><span class="n">geom_xpos</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_taxel_geom_id</span><span class="p">]</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mjdata</span><span class="o">.</span><span class="n">geom_xmat</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_taxel_geom_id</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pos</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_taxels_local</span> <span class="o">@</span> <span class="n">mat</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TactileSensor.debug_vis">
+<a class="viewcode-back" href="../../../source/api/sensor.html#mjlab.sensor.TactileSensor.debug_vis">[docs]</a>
+  <span class="k">def</span><span class="w"> </span><span class="nf">debug_vis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">visualizer</span><span class="p">:</span> <span class="n">DebugVisualizer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">debug_vis</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_debug_vis_enabled</span><span class="p">:</span>
+      <span class="k">return</span>
+    <span class="n">depth</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">depth</span>
+    <span class="n">env_ids</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">visualizer</span><span class="o">.</span><span class="n">get_env_indices</span><span class="p">(</span><span class="n">depth</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">env_ids</span><span class="p">:</span>
+      <span class="k">return</span>
+    <span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">taxel_pos_w</span><span class="p">()[</span><span class="n">env_ids</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">heat</span> <span class="o">=</span> <span class="p">(</span><span class="n">depth</span><span class="p">[</span><span class="n">env_ids</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">viz</span><span class="o">.</span><span class="n">depth_range</span><span class="p">)</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">heat</span> <span class="o">=</span> <span class="n">heat</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">resolution</span>
+    <span class="n">radius</span> <span class="o">=</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">rows</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">cols</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">env_ids</span><span class="p">)):</span>
+      <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">pos</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">heat</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">color</span> <span class="o">=</span> <span class="n">_heat_color</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="k">if</span> <span class="n">h</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">viz</span><span class="o">.</span><span class="n">idle_color</span>
+        <span class="n">visualizer</span><span class="o">.</span><span class="n">add_sphere</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">radius</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="mf">0.6</span> <span class="o">*</span> <span class="n">h</span><span class="p">),</span> <span class="n">color</span><span class="p">)</span></div>
+</div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_heat_color</span><span class="p">(</span><span class="n">h</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Yellow at light contact to deep red at full depth.&quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="mf">0.2</span> <span class="o">*</span> <span class="n">h</span><span class="p">,</span> <span class="mf">0.85</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">h</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.15</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">h</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_project_grid</span><span class="p">(</span>
+  <span class="n">model</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjModel</span><span class="p">,</span> <span class="n">geom_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">cfg</span><span class="p">:</span> <span class="n">TactileSensorCfg</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Cast the taxel grid onto the geom&#39;s collision surface, in its body frame.</span>
+
+<span class="sd">  Returns taxel positions [R * C, 3] and per-taxel frames [R * C, 3, 3] whose</span>
+<span class="sd">  rows are the surface normal, then the tangents along the pad&#39;s x and y.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">pad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">9</span><span class="p">)</span>
+  <span class="n">mujoco</span><span class="o">.</span><span class="n">mju_quat2Mat</span><span class="p">(</span><span class="n">pad</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">quat</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+  <span class="n">pad</span> <span class="o">=</span> <span class="n">pad</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+  <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">resolution</span>
+  <span class="n">u</span> <span class="o">=</span> <span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">/</span> <span class="n">rows</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">v</span> <span class="o">=</span> <span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">/</span> <span class="n">cols</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">cfg</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+  <span class="n">uv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+  <span class="n">geom_pos</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">geom_pos</span><span class="p">[</span><span class="n">geom_id</span><span class="p">]</span>
+  <span class="n">geom_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">9</span><span class="p">)</span>
+  <span class="n">mujoco</span><span class="o">.</span><span class="n">mju_quat2Mat</span><span class="p">(</span><span class="n">geom_mat</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">geom_quat</span><span class="p">[</span><span class="n">geom_id</span><span class="p">])</span>
+  <span class="n">geom_mat</span> <span class="o">=</span> <span class="n">geom_mat</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+  <span class="c1"># Start every ray outside the geom&#39;s bounding sphere.</span>
+  <span class="n">standoff</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">geom_rbound</span><span class="p">[</span><span class="n">geom_id</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="n">geom_pos</span><span class="p">))</span>
+  <span class="n">origins</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">pos</span> <span class="o">+</span> <span class="n">uv</span> <span class="o">@</span> <span class="n">pad</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="n">standoff</span> <span class="o">*</span> <span class="n">pad</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span>
+  <span class="n">direction</span> <span class="o">=</span> <span class="o">-</span><span class="n">pad</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span>
+
+  <span class="n">geom_type</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">geom_type</span><span class="p">[</span><span class="n">geom_id</span><span class="p">]</span>
+  <span class="k">if</span> <span class="n">geom_type</span> <span class="o">==</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtGeom</span><span class="o">.</span><span class="n">mjGEOM_MESH</span><span class="p">:</span>
+    <span class="n">dist</span><span class="p">,</span> <span class="n">normals</span> <span class="o">=</span> <span class="n">_ray_hull</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">geom_id</span><span class="p">,</span> <span class="n">geom_pos</span><span class="p">,</span> <span class="n">geom_mat</span><span class="p">,</span> <span class="n">origins</span><span class="p">,</span> <span class="n">direction</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">geom_type</span> <span class="ow">in</span> <span class="p">(</span><span class="n">mujoco</span><span class="o">.</span><span class="n">mjtGeom</span><span class="o">.</span><span class="n">mjGEOM_PLANE</span><span class="p">,</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtGeom</span><span class="o">.</span><span class="n">mjGEOM_HFIELD</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Tactile sensors cannot cover </span><span class="si">{</span><span class="n">mujoco</span><span class="o">.</span><span class="n">mjtGeom</span><span class="p">(</span><span class="n">geom_type</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">dist</span><span class="p">,</span> <span class="n">normals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">origins</span><span class="p">),</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">origins</span><span class="p">),</span> <span class="mi">3</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">origin</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">origins</span><span class="p">):</span>
+      <span class="n">dist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mju_rayGeom</span><span class="p">(</span>
+        <span class="n">geom_pos</span><span class="p">,</span>
+        <span class="n">geom_mat</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">geom_size</span><span class="p">[</span><span class="n">geom_id</span><span class="p">],</span>
+        <span class="n">origin</span><span class="p">,</span>
+        <span class="n">direction</span><span class="p">,</span>
+        <span class="n">geom_type</span><span class="p">,</span>
+        <span class="n">normals</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+      <span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">dist</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+      <span class="sa">f</span><span class="s2">&quot;Tactile sensor &#39;</span><span class="si">{</span><span class="n">cfg</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dist</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">))</span><span class="si">}</span><span class="s2"> of </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">dist</span><span class="p">)</span><span class="si">}</span><span class="s2"> taxels &quot;</span>
+      <span class="sa">f</span><span class="s2">&quot;miss geom &#39;</span><span class="si">{</span><span class="n">cfg</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">prefixed_name</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39;. Shrink size or recenter the pad.&quot;</span>
+    <span class="p">)</span>
+  <span class="n">points</span> <span class="o">=</span> <span class="n">origins</span> <span class="o">+</span> <span class="n">dist</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">direction</span>
+  <span class="n">tangent_x</span> <span class="o">=</span> <span class="n">pad</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">normals</span> <span class="o">@</span> <span class="n">pad</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">normals</span>
+  <span class="n">tangent_x</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">tangent_x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+  <span class="n">tangent_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">normals</span><span class="p">,</span> <span class="n">tangent_x</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">points</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">normals</span><span class="p">,</span> <span class="n">tangent_x</span><span class="p">,</span> <span class="n">tangent_y</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ray_hull</span><span class="p">(</span>
+  <span class="n">model</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjModel</span><span class="p">,</span>
+  <span class="n">geom_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+  <span class="n">geom_pos</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+  <span class="n">geom_mat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+  <span class="n">origins</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+  <span class="n">direction</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Intersect rays with the convex hull MuJoCo collides the mesh geom against.&quot;&quot;&quot;</span>
+  <span class="n">mesh</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">geom_dataid</span><span class="p">[</span><span class="n">geom_id</span><span class="p">]</span>
+  <span class="n">graphadr</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">mesh_graphadr</span><span class="p">[</span><span class="n">mesh</span><span class="p">]</span>
+  <span class="k">if</span> <span class="n">graphadr</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Mesh geom &#39;</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">geom</span><span class="p">(</span><span class="n">geom_id</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; has no convex hull.&quot;</span><span class="p">)</span>
+  <span class="n">graph</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">mesh_graph</span><span class="p">[</span><span class="n">graphadr</span><span class="p">:]</span>
+  <span class="n">nvert</span><span class="p">,</span> <span class="n">nface</span> <span class="o">=</span> <span class="n">graph</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">graph</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+  <span class="n">faces</span> <span class="o">=</span> <span class="n">graph</span><span class="p">[</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">nvert</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">nface</span> <span class="p">:][:</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">nface</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+  <span class="n">start</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">mesh_vertadr</span><span class="p">[</span><span class="n">mesh</span><span class="p">]</span>
+  <span class="n">verts</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">mesh_vert</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="n">model</span><span class="o">.</span><span class="n">mesh_vertnum</span><span class="p">[</span><span class="n">mesh</span><span class="p">]]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+  <span class="n">verts</span> <span class="o">=</span> <span class="n">verts</span> <span class="o">@</span> <span class="n">geom_mat</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="n">geom_pos</span>
+
+  <span class="c1"># Outward face planes n . x + c = 0.</span>
+  <span class="n">tri</span> <span class="o">=</span> <span class="n">verts</span><span class="p">[</span><span class="n">faces</span><span class="p">]</span>
+  <span class="n">normals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">tri</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">tri</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">tri</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">tri</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+  <span class="n">normals</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">normals</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+  <span class="n">offsets</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;fi,fi-&gt;f&quot;</span><span class="p">,</span> <span class="n">normals</span><span class="p">,</span> <span class="n">tri</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+  <span class="n">flip</span> <span class="o">=</span> <span class="n">normals</span> <span class="o">@</span> <span class="n">verts</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">offsets</span> <span class="o">&gt;</span> <span class="mi">0</span>
+  <span class="n">normals</span><span class="p">[</span><span class="n">flip</span><span class="p">],</span> <span class="n">offsets</span><span class="p">[</span><span class="n">flip</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">normals</span><span class="p">[</span><span class="n">flip</span><span class="p">],</span> <span class="o">-</span><span class="n">offsets</span><span class="p">[</span><span class="n">flip</span><span class="p">]</span>
+
+  <span class="c1"># Clip each ray against every face plane; it enters at the last entering plane.</span>
+  <span class="n">denom</span> <span class="o">=</span> <span class="n">normals</span> <span class="o">@</span> <span class="n">direction</span>
+  <span class="n">t</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">origins</span> <span class="o">@</span> <span class="n">normals</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="n">offsets</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">denom</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">denom</span><span class="p">)</span>
+  <span class="n">t_enter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">denom</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
+  <span class="n">entry</span> <span class="o">=</span> <span class="n">t_enter</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">t_in</span> <span class="o">=</span> <span class="n">t_enter</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">t_out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">denom</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">hit</span> <span class="o">=</span> <span class="p">(</span><span class="n">t_in</span> <span class="o">&lt;=</span> <span class="n">t_out</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">t_in</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">hit</span><span class="p">,</span> <span class="n">t_in</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">),</span> <span class="n">normals</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span>
+</pre></div>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By The mjlab Developers
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2025, The mjlab Developers.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p class="last-updated">
+  Last updated on Nov 13, 2026.
+  <br/>
+</p>
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

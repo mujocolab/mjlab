@@ -59,7 +59,7 @@
     <link rel="prev" title="Actuators" href="../actuators.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Nov 12, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 13, 2026"/>
   </head>
   
   
@@ -207,6 +207,7 @@
 <li class="toctree-l1 current active has-children"><a class="current reference internal" href="#">Sensors</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="raycast_sensor.html">RayCast Sensor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="rgbd_camera.html">RGB-D Camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tactile_sensor.html">Tactile Sensor</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1"><a class="reference internal" href="../scene.html">Scene</a></li>
@@ -493,6 +494,7 @@ document.write(`
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#raycastsensor">RayCastSensor</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#rgb-d-camera">RGB-D Camera</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tactile-sensor">Tactile Sensor</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#extending-custom-sensors">Extending: custom sensors</a></li>
 </ul>
             </nav>
@@ -514,8 +516,10 @@ that maps to real robot hardware. Beyond wrapping, they are a general
 abstraction for transforming simulation data into structured outputs:
 <code class="docutils literal notranslate"><span class="pre">ContactSensor</span></code> aggregates contact pairs with reduction and air time
 tracking, <code class="docutils literal notranslate"><span class="pre">RayCastSensor</span></code> performs GPU-accelerated terrain scanning,
-<code class="docutils literal notranslate"><span class="pre">CameraSensor</span></code> renders RGB and depth images on the GPU, and the base
-<code class="docutils literal notranslate"><span class="pre">Sensor</span></code> class can be subclassed for custom measurement logic.</p>
+<code class="docutils literal notranslate"><span class="pre">CameraSensor</span></code> renders RGB and depth images on the GPU,
+<code class="docutils literal notranslate"><span class="pre">TactileSensor</span></code> reports contact depth and slip over a grid of taxels,
+and the base <code class="docutils literal notranslate"><span class="pre">Sensor</span></code> class can be subclassed for custom measurement
+logic.</p>
 <p>Sensors are configured at the <strong>scene level</strong>, not on individual entities. A
 sensor can reference an entity element (a contact sensor on the robot’s
 feet, an accelerometer attached to a body site), but it can also be
@@ -552,10 +556,11 @@ independent of any entity entirely. This is why sensors live in
 <span class="n">feet</span><span class="o">.</span><span class="n">force</span>                                    <span class="c1"># [B, P, 3] contact force per foot</span>
 </pre></div>
 </div>
-<p>mjlab provides four sensor types: <code class="docutils literal notranslate"><span class="pre">BuiltinSensor</span></code> for native MuJoCo
+<p>mjlab provides five sensor types: <code class="docutils literal notranslate"><span class="pre">BuiltinSensor</span></code> for native MuJoCo
 measurements, <code class="docutils literal notranslate"><span class="pre">ContactSensor</span></code> for structured contact detection,
-<code class="docutils literal notranslate"><span class="pre">RayCastSensor</span></code> for GPU-accelerated raycasting, and <code class="docutils literal notranslate"><span class="pre">CameraSensor</span></code>
-for RGB-D rendering. The base <code class="docutils literal notranslate"><span class="pre">Sensor</span></code> class can be subclassed for
+<code class="docutils literal notranslate"><span class="pre">RayCastSensor</span></code> for GPU-accelerated raycasting, <code class="docutils literal notranslate"><span class="pre">CameraSensor</span></code>
+for RGB-D rendering, and <code class="docutils literal notranslate"><span class="pre">TactileSensor</span></code> for touch sensing over a
+grid of taxels. The base <code class="docutils literal notranslate"><span class="pre">Sensor</span></code> class can be subclassed for
 custom measurement logic; see <a class="reference internal" href="#extending-custom-sensors">Extending: custom sensors</a> below.</p>
 <section id="builtinsensor">
 <h2>BuiltinSensor<a class="headerlink" href="#builtinsensor" title="Link to this heading">#</a></h2>
@@ -907,6 +912,12 @@ for full documentation.</p>
 <p><code class="docutils literal notranslate"><span class="pre">CameraSensor</span></code> renders RGB and depth images from MuJoCo cameras. See
 <a class="reference internal" href="rgbd_camera.html#rgbd-camera"><span class="std std-ref">RGB-D Camera</span></a> for full documentation.</p>
 </section>
+<section id="tactile-sensor">
+<h2>Tactile Sensor<a class="headerlink" href="#tactile-sensor" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">TactileSensor</span></code> places a grid of taxels on the surface of a collision
+geom and reports contact depth and slip at each taxel as images. See
+<a class="reference internal" href="tactile_sensor.html#tactile-sensor"><span class="std std-ref">Tactile Sensor</span></a> for full documentation.</p>
+</section>
 <section id="extending-custom-sensors">
 <h2>Extending: custom sensors<a class="headerlink" href="#extending-custom-sensors" title="Link to this heading">#</a></h2>
 <p>All sensors inherit from <code class="docutils literal notranslate"><span class="pre">Sensor[T]</span></code>, a generic base class where
@@ -1005,6 +1016,7 @@ reference implementations for custom sensor development.</p>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#raycastsensor">RayCastSensor</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#rgb-d-camera">RGB-D Camera</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tactile-sensor">Tactile Sensor</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#extending-custom-sensors">Extending: custom sensors</a></li>
 </ul>
   </nav></div>
@@ -1039,7 +1051,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Nov 12, 2026.
+  Last updated on Nov 13, 2026.
   <br/>
 </p>
   </div>

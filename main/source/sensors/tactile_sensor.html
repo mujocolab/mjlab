@@ -1,0 +1,799 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tactile Sensor &#8212; mjlab Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="../../_static/twemoji.css" />
+    <link rel="stylesheet" type="text/css" href="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/css/all.min.css?v=53359634" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=3ea80bc3" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js"></script>
+    <script src="../../_static/twemoji.js"></script>
+    <script src="/home/runner/work/mjlab/mjlab/.venv/lib/python3.13/site-packages/sphinxcontrib/icon/node_modules/@fortawesome/fontawesome-free/js/all.min.js?v=ec35c6c9"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'source/sensors/tactile_sensor';</script>
+    <link rel="icon" href="../../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Scene" href="../scene.html" />
+    <link rel="prev" title="RGB-D Camera" href="rgbd_camera.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+    <meta name="docbuild:last-update" content="Nov 13, 2026"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">mjlab Documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item">
+<div class="sidebar-version-switcher">
+  <label class="sidebar-version-label" for="version-select">Version</label>
+  <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
+    <option value="tactile_sensor.html" selected>main</option>
+    <option value="../../../v1.6.0/index.html" >v1.6.0</option>
+    <option value="../../../v1.5.3/index.html" >v1.5.3</option>
+    <option value="../../../v1.5.2/index.html" >v1.5.2</option>
+    <option value="../../../v1.5.1/index.html" >v1.5.1</option>
+    <option value="../../../v1.5.0/index.html" >v1.5.0</option>
+    <option value="../../../v1.4.0/index.html" >v1.4.0</option>
+    <option value="../../../v1.3.0/index.html" >v1.3.0</option>
+    <option value="../../../v1.2.0/index.html" >v1.2.0</option>
+    <option value="../../../v1.1.1/index.html" >v1.1.1</option>
+    <option value="../../../v1.1.0/index.html" >v1.1.0</option>
+    <option value="../../../v1.0.0/index.html" >v1.0.0</option>
+  </select>
+</div>
+</div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Guide</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials.html">Tutorials</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/cartpole.html">Cartpole: Building Your First Environment</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../architecture_overview.html">Architecture Overview</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../entity/index.html">Entity</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../entity/entity_data.html">Entity Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../entity/per_world_mesh.html">Heterogeneous Worlds</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../actuators.html">Actuators</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Sensors</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="raycast_sensor.html">RayCast Sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rgbd_camera.html">RGB-D Camera</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Tactile Sensor</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../scene.html">Scene</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../terrain.html">Terrain</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">The Manager Layer</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../environment_config.html">Environment Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../actions.html">Actions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../terminations.html">Terminations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../events.html">Events</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../randomization.html">Domain Randomization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../curriculum.html">Curriculum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recorders.html">Recorders</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training &amp; Debugging</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../training/rsl_rl.html">Training with RSL-RL</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../training/motion_imitation.html">Motion Imitation</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../viewers.html">Viewers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/distributed_training.html">Distributed Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/cloud.html">Cloud Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../debugging/nan_guard.html">NaN Guard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../debugging/export_scene.html">Export Scene</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">API Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/envs.html">mjlab.envs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/scene.html">mjlab.scene</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/sim.html">mjlab.sim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/entity.html">mjlab.entity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/actuator.html">mjlab.actuator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/sensor.html">mjlab.sensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/managers.html">mjlab.managers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/terrains.html">mjlab.terrains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/rl.html">mjlab.rl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/viewer.html">mjlab.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/tasks.html">mjlab.tasks</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Further Reading</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../motivation.html">Why mjlab?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration_isaac_lab.html">Migrating from Isaac Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ &amp; Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../research.html">Research</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/edit/main/docs/source/sensors/tactile_sensor.rst" target="_blank"
+   class="btn btn-sm btn-source-edit-button dropdown-item"
+   title="Suggest edit"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-pencil-alt"></i>
+  </span>
+<span class="btn__text-container">Suggest edit</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/mujocolab/mjlab/issues/new?title=Issue%20on%20page%20%2Fsource/sensors/tactile_sensor.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../../_sources/source/sensors/tactile_sensor.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Tactile Sensor</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick start</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#placing-the-taxels">Placing the taxels</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-each-taxel-measures">What each taxel measures</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#output">Output</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fingertips-on-the-sharpa-wave-hand">Fingertips on the Sharpa Wave hand</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#visualization">Visualization</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#demos">Demos</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="tactile-sensor">
+<span id="id1"></span><h1>Tactile Sensor<a class="headerlink" href="#tactile-sensor" title="Link to this heading">#</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">TactileSensor</span></code> places a grid of taxels on the surface of a collision
+geom and reports, at every taxel, how deep a touching object reaches
+and how fast it slides. The readings come back as images over the
+taxel grid. It wraps MuJoCo’s
+<a class="reference external" href="https://mujoco.readthedocs.io/en/stable/XMLreference.html#sensor-tactile">tactile sensor</a>.</p>
+<figure class="align-center" style="max-width: 480px; margin-left: auto; margin-right: auto;">
+  <video controls style="display: block; width: 100%; height: auto;">
+    <source src="../../_static/tactile/braille_demo.mp4" type="video/mp4">
+  </video>
+  <figcaption>
+    <p><span class="caption-text">The Sharpa Wave hand reads a braille
+    plaque with the tactile sensor on its index fingertip. Each braille
+    cell is decoded from the depth readings.</span></p>
+  </figcaption>
+</figure><section id="quick-start">
+<h2>Quick start<a class="headerlink" href="#quick-start" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">ObjRef</span><span class="p">,</span> <span class="n">TactileSensorCfg</span>
+
+<span class="c1"># A 10 x 7 taxel grid on a fingertip pad.</span>
+<span class="n">tactile_cfg</span> <span class="o">=</span> <span class="n">TactileSensorCfg</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;index_tactile&quot;</span><span class="p">,</span>
+    <span class="n">geom</span><span class="o">=</span><span class="n">ObjRef</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;geom&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;right_index_pad_collision&quot;</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="s2">&quot;robot&quot;</span><span class="p">),</span>
+    <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mf">0.017</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+    <span class="n">quat</span><span class="o">=</span><span class="p">(</span><span class="mf">0.7071</span><span class="p">,</span> <span class="mf">0.7071</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+    <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mf">0.016</span><span class="p">,</span> <span class="mf">0.010</span><span class="p">),</span>
+    <span class="n">resolution</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">scene_cfg</span> <span class="o">=</span> <span class="n">SceneCfg</span><span class="p">(</span>
+    <span class="n">entities</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;robot&quot;</span><span class="p">:</span> <span class="n">robot_cfg</span><span class="p">},</span>
+    <span class="n">sensors</span><span class="o">=</span><span class="p">(</span><span class="n">tactile_cfg</span><span class="p">,),</span>
+<span class="p">)</span>
+
+<span class="c1"># Access at runtime.</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">scene</span><span class="p">[</span><span class="s2">&quot;robot/index_tactile&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+<span class="n">data</span><span class="o">.</span><span class="n">depth</span>  <span class="c1"># [B, 10, 7] penetration depth (m)</span>
+<span class="n">data</span><span class="o">.</span><span class="n">slip</span>   <span class="c1"># [B, 10, 7, 2] sliding speed along the pad&#39;s x and y (m/s)</span>
+</pre></div>
+</div>
+<p>The sensor name is prefixed with the geom’s entity, so <code class="docutils literal notranslate"><span class="pre">&quot;index_tactile&quot;</span></code>
+on entity <code class="docutils literal notranslate"><span class="pre">&quot;robot&quot;</span></code> becomes <code class="docutils literal notranslate"><span class="pre">&quot;robot/index_tactile&quot;</span></code>.</p>
+</section>
+<section id="placing-the-taxels">
+<h2>Placing the taxels<a class="headerlink" href="#placing-the-taxels" title="Link to this heading">#</a></h2>
+<p>The geom already exists in the model. The configuration does not change
+it; it only defines where the taxels go. You describe a flat grid in a
+<em>pad frame</em> and the sensor projects that grid onto the geom’s surface.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pos</span></code> and <code class="docutils literal notranslate"><span class="pre">quat</span></code> place the pad frame in the geom’s body frame.
+The pad’s +z axis points out of the surface.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">size</span></code> is the extent of the grid along the pad’s x and y axes, in
+meters.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">resolution</span></code> is the number of taxels along the pad’s x and y axes.</p></li>
+</ul>
+<p>When the scene is built, each grid point is cast along the pad’s -z
+axis. The taxel is placed where that ray first hits the geom’s
+collision surface.</p>
+<figure class="align-center" id="id3">
+<a class="reference internal image-reference" href="../../_images/projection.png"><img alt="A planar grid of points above a geom, each cast along -z onto its surface." src="../../_images/projection.png" style="width: 640px;" />
+</a>
+<figcaption>
+<p><span class="caption-text">The configuration (blue) defines a flat grid in the pad frame. Each
+grid point is cast along -z onto the existing collision geom (grey).
+The landing points are the taxels (black).</span><a class="headerlink" href="#id3" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+<p>For mesh geoms the collision surface is the mesh’s convex hull, which is
+what MuJoCo collides against. Primitive geoms (spheres, capsules, boxes,
+cylinders, ellipsoids) use their exact shape. Planes and height fields
+are not supported.</p>
+<p>Each taxel also gets its own frame: the surface normal at that point,
+plus two tangents aligned with the pad’s x and y axes. The two slip
+channels are measured along these tangents.</p>
+<p>If any ray misses the geom, scene construction raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
+that reports how many taxels missed. Shrink <code class="docutils literal notranslate"><span class="pre">size</span></code> or move <code class="docutils literal notranslate"><span class="pre">pos</span></code>
+until the whole grid lands on the surface.</p>
+</section>
+<section id="what-each-taxel-measures">
+<h2>What each taxel measures<a class="headerlink" href="#what-each-taxel-measures" title="Link to this heading">#</a></h2>
+<p>At every physics step, MuJoCo finds the geoms in contact with the
+sensor’s body. For each of those geoms, it evaluates the geom’s signed
+distance at every taxel.</p>
+<ul class="simple">
+<li><p><strong>Depth</strong> is how far the deepest touching geom reaches past the taxel,
+in meters. It is zero where nothing reaches the taxel.</p></li>
+<li><p><strong>Slip</strong> is the speed of the touching geom relative to the sensor’s
+body, projected onto the taxel’s two tangents, in meters per second.
+Each channel is an absolute value, so it reports speed but not
+direction. It is zero wherever depth is zero. When several geoms
+touch the same taxel, their slip values add.</p></li>
+</ul>
+<figure class="align-center" id="id4">
+<a class="reference internal image-reference" href="../../_images/reading.png"><img alt="A sphere pressing into a row of taxels, with the depth and slip readings below." src="../../_images/reading.png" style="width: 640px;" />
+</a>
+<figcaption>
+<p><span class="caption-text">An object presses into the pad while sliding at velocity <em>v</em>. Taxels
+under the object read a depth <em>d</em>. The same taxels also read a slip
+<em>s</em><sub>x</sub> equal to <em>v</em> along the pad’s x axis.</span><a class="headerlink" href="#id4" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+<p>Contacts are soft in MuJoCo, so depth is the overlap the contact solver
+allows between the two geoms. Its value depends on the contact
+parameters (<code class="docutils literal notranslate"><span class="pre">solref</span></code> and <code class="docutils literal notranslate"><span class="pre">solimp</span></code>) of the pair. A softer contact
+gives larger depths for the same force.</p>
+</section>
+<section id="output">
+<h2>Output<a class="headerlink" href="#output" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">TactileData</span></code> is a dataclass of two tensors laid out over the taxel
+grid. Rows run along the pad’s x axis and columns along its y axis.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Shape</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">depth</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[B,</span> <span class="pre">R,</span> <span class="pre">C]</span></code></p></td>
+<td><p>Penetration depth at each taxel (m).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">slip</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[B,</span> <span class="pre">R,</span> <span class="pre">C,</span> <span class="pre">2]</span></code></p></td>
+<td><p>Sliding speed along the pad’s x axis (channel 0) and y axis
+(channel 1) (m/s).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">R</span></code> and <code class="docutils literal notranslate"><span class="pre">C</span></code> are <code class="docutils literal notranslate"><span class="pre">resolution[0]</span></code> and <code class="docutils literal notranslate"><span class="pre">resolution[1]</span></code>.</p>
+<p>The world positions of the taxels are available from
+<code class="docutils literal notranslate"><span class="pre">taxel_pos_w()</span></code>. It returns a <code class="docutils literal notranslate"><span class="pre">[B,</span> <span class="pre">R</span> <span class="pre">*</span> <span class="pre">C,</span> <span class="pre">3]</span></code> tensor in row-major
+grid order, so <code class="docutils literal notranslate"><span class="pre">taxel_pos_w().view(B,</span> <span class="pre">R,</span> <span class="pre">C,</span> <span class="pre">3)</span></code> lines up with the
+images.</p>
+<p>Set <code class="docutils literal notranslate"><span class="pre">cutoff</span></code> to a positive value to clamp every reading, depth and
+slip alike, to at most that value.</p>
+</section>
+<section id="fingertips-on-the-sharpa-wave-hand">
+<h2>Fingertips on the Sharpa Wave hand<a class="headerlink" href="#fingertips-on-the-sharpa-wave-hand" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">get_fingertip_tactile_cfgs</span></code> returns one sensor configuration per
+fingertip pad of the Sharpa Wave hand, named <code class="docutils literal notranslate"><span class="pre">&quot;{finger}_tactile&quot;</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.asset_zoo.robots.sharpa_wave.sharpa_constants</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_fingertip_tactile_cfgs</span><span class="p">,</span>
+    <span class="n">get_sharpa_robot_cfg</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">scene_cfg</span> <span class="o">=</span> <span class="n">SceneCfg</span><span class="p">(</span>
+    <span class="n">entities</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;robot&quot;</span><span class="p">:</span> <span class="n">get_sharpa_robot_cfg</span><span class="p">(</span><span class="s2">&quot;right&quot;</span><span class="p">)},</span>
+    <span class="n">sensors</span><span class="o">=</span><span class="n">get_fingertip_tactile_cfgs</span><span class="p">(</span><span class="s2">&quot;right&quot;</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">7</span><span class="p">)),</span>
+<span class="p">)</span>
+
+<span class="n">index</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">scene</span><span class="p">[</span><span class="s2">&quot;robot/index_tactile&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">depth</span>  <span class="c1"># [B, 10, 7]</span>
+</pre></div>
+</div>
+<p>Each grid covers the palmar side of the fingertip’s elastomer pad.
+Pass <code class="docutils literal notranslate"><span class="pre">fingers</span></code> to sensorize a subset of the fingertips.</p>
+</section>
+<section id="visualization">
+<h2>Visualization<a class="headerlink" href="#visualization" title="Link to this heading">#</a></h2>
+<p>Set <code class="docutils literal notranslate"><span class="pre">debug_vis=True</span></code> to draw every taxel as a small sphere in the
+viewer. Taxels out of contact use <code class="docutils literal notranslate"><span class="pre">viz.idle_color</span></code>. Taxels in contact
+are colored from yellow to red by depth, reaching full red at
+<code class="docutils literal notranslate"><span class="pre">viz.depth_range</span></code> meters.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tactile_cfg</span> <span class="o">=</span> <span class="n">TactileSensorCfg</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;index_tactile&quot;</span><span class="p">,</span>
+    <span class="n">geom</span><span class="o">=</span><span class="n">ObjRef</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;geom&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;right_index_pad_collision&quot;</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="s2">&quot;robot&quot;</span><span class="p">),</span>
+    <span class="n">debug_vis</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">tactile_cfg</span><span class="o">.</span><span class="n">viz</span><span class="o">.</span><span class="n">depth_range</span> <span class="o">=</span> <span class="mf">0.0005</span>  <span class="c1"># Full red at 0.5 mm.</span>
+</pre></div>
+</div>
+<p>The Viser viewer lists each tactile sensor under its debug
+visualization controls, so individual sensors can be shown or hidden.</p>
+</section>
+<section id="demos">
+<h2>Demos<a class="headerlink" href="#demos" title="Link to this heading">#</a></h2>
+<p>Two demos run the sensor on the Sharpa Wave hand.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># A probe presses and slides on each fingertip; shows depth and slip images.</span>
+uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>scripts/demos/tactile_sensor.py
+
+<span class="c1"># The index fingertip reads a braille plaque and decodes it from the depth.</span>
+uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>scripts/demos/tactile_braille.py
+</pre></div>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="rgbd_camera.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">RGB-D Camera</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../scene.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Scene</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick start</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#placing-the-taxels">Placing the taxels</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-each-taxel-measures">What each taxel measures</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#output">Output</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fingertips-on-the-sharpa-wave-hand">Fingertips on the Sharpa Wave hand</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#visualization">Visualization</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#demos">Demos</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By The mjlab Developers
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2025, The mjlab Developers.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p class="last-updated">
+  Last updated on Nov 13, 2026.
+  <br/>
+</p>
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
