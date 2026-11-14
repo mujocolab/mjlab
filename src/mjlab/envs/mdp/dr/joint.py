@@ -224,8 +224,10 @@ def encoder_bias(
   if isinstance(joint_ids, slice):
     num_joints = asset.num_joints
     joint_ids_tensor = torch.arange(num_joints, device=env.device)
+  elif isinstance(joint_ids, torch.Tensor):
+    joint_ids_tensor = joint_ids.to(device=env.device, dtype=torch.long)
   else:
-    joint_ids_tensor = torch.tensor(joint_ids, device=env.device)
+    joint_ids_tensor = torch.tensor(joint_ids, device=env.device, dtype=torch.long)
 
   num_joints = len(joint_ids_tensor)
   bias_samples = sample_uniform(

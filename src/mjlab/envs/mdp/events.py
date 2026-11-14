@@ -372,7 +372,7 @@ def apply_external_force_torque(
   asset: Entity = env.scene[asset_cfg.name]
   num_bodies = (
     len(asset_cfg.body_ids)
-    if isinstance(asset_cfg.body_ids, list)
+    if isinstance(asset_cfg.body_ids, (list, torch.Tensor))
     else asset.num_bodies
   )
   size = (len(env_ids), num_bodies, 3)
@@ -449,7 +449,7 @@ class apply_body_impulse:
 
     self._num_bodies = (
       len(self._body_ids)
-      if isinstance(self._body_ids, list)
+      if isinstance(self._body_ids, (list, torch.Tensor))
       else self._asset.num_bodies
     )
 

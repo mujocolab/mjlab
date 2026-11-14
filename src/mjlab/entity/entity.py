@@ -1223,7 +1223,7 @@ class Entity:
     forces: torch.Tensor,
     torques: torch.Tensor,
     env_ids: torch.Tensor | slice | None = None,
-    body_ids: Sequence[int] | slice | None = None,
+    body_ids: torch.Tensor | Sequence[int] | slice | None = None,
   ) -> None:
     """Apply external wrenches to bodies in the simulation.
 

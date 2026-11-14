@@ -3,6 +3,8 @@
 from dataclasses import dataclass, field
 from typing import NamedTuple
 
+import torch
+
 from mjlab.entity import Entity
 from mjlab.scene import Scene
 
@@ -73,68 +75,90 @@ class SceneEntityCfg:
   joint_names: str | tuple[str, ...] | None = None
   """Names of joints to include. Can be a single string or tuple."""
 
-  joint_ids: list[int] | slice = field(default_factory=lambda: slice(None))
-  """IDs of joints to include. Can be a list or slice."""
+  joint_ids: torch.Tensor | list[int] | slice = field(
+    default_factory=lambda: slice(None)
+  )
+  """IDs of joints to include. Resolved to an on-device tensor or slice."""
 
   body_names: str | tuple[str, ...] | None = None
   """Names of bodies to include. Can be a single string or tuple."""
 
-  body_ids: list[int] | slice = field(default_factory=lambda: slice(None))
-  """IDs of bodies to include. Can be a list or slice."""
+  body_ids: torch.Tensor | list[int] | slice = field(
+    default_factory=lambda: slice(None)
+  )
+  """IDs of bodies to include. Resolved to an on-device tensor or slice."""
 
   geom_names: str | tuple[str, ...] | None = None
   """Names of geometries to include. Can be a single string or tuple."""
 
-  geom_ids: list[int] | slice = field(default_factory=lambda: slice(None))
-  """IDs of geometries to include. Can be a list or slice."""
+  geom_ids: torch.Tensor | list[int] | slice = field(
+    default_factory=lambda: slice(None)
+  )
+  """IDs of geometries to include. Resolved to an on-device tensor or slice."""
 
   site_names: str | tuple[str, ...] | None = None
   """Names of sites to include. Can be a single string or tuple."""
 
-  site_ids: list[int] | slice = field(default_factory=lambda: slice(None))
-  """IDs of sites to include. Can be a list or slice."""
+  site_ids: torch.Tensor | list[int] | slice = field(
+    default_factory=lambda: slice(None)
+  )
+  """IDs of sites to include. Resolved to an on-device tensor or slice."""
 
   actuator_names: str | list[str] | None = None
   """Names of actuators to include. Can be a single string or list."""
 
-  actuator_ids: list[int] | slice = field(default_factory=lambda: slice(None))
-  """IDs of actuators to include. Can be a list or slice."""
+  actuator_ids: torch.Tensor | list[int] | slice = field(
+    default_factory=lambda: slice(None)
+  )
+  """IDs of actuators to include. Resolved to an on-device tensor or slice."""
 
   tendon_names: str | tuple[str, ...] | None = None
   """Names of tendons to include. Can be a single string or tuple."""
 
-  tendon_ids: list[int] | slice = field(default_factory=lambda: slice(None))
-  """IDs of tendons to include. Can be a list or slice."""
+  tendon_ids: torch.Tensor | list[int] | slice = field(
+    default_factory=lambda: slice(None)
+  )
+  """IDs of tendons to include. Resolved to an on-device tensor or slice."""
 
   camera_names: str | tuple[str, ...] | None = None
   """Names of cameras to include. Can be a single string or tuple."""
 
-  camera_ids: list[int] | slice = field(default_factory=lambda: slice(None))
-  """IDs of cameras to include. Can be a list or slice."""
+  camera_ids: torch.Tensor | list[int] | slice = field(
+    default_factory=lambda: slice(None)
+  )
+  """IDs of cameras to include. Resolved to an on-device tensor or slice."""
 
   light_names: str | tuple[str, ...] | None = None
   """Names of lights to include. Can be a single string or tuple."""
 
-  light_ids: list[int] | slice = field(default_factory=lambda: slice(None))
-  """IDs of lights to include. Can be a list or slice."""
+  light_ids: torch.Tensor | list[int] | slice = field(
+    default_factory=lambda: slice(None)
+  )
+  """IDs of lights to include. Resolved to an on-device tensor or slice."""
 
   material_names: str | tuple[str, ...] | None = None
   """Names of materials to include. Can be a single string or tuple."""
 
-  material_ids: list[int] | slice = field(default_factory=lambda: slice(None))
-  """IDs of materials to include. Can be a list or slice."""
+  material_ids: torch.Tensor | list[int] | slice = field(
+    default_factory=lambda: slice(None)
+  )
+  """IDs of materials to include. Resolved to an on-device tensor or slice."""
 
   texture_names: str | tuple[str, ...] | None = None
   """Names of textures to include. Can be a single string or tuple."""
 
-  texture_ids: list[int] | slice = field(default_factory=lambda: slice(None))
-  """IDs of textures to include. Can be a list or slice."""
+  texture_ids: torch.Tensor | list[int] | slice = field(
+    default_factory=lambda: slice(None)
+  )
+  """IDs of textures to include. Resolved to an on-device tensor or slice."""
 
   pair_names: str | tuple[str, ...] | None = None
   """Names of contact pairs to include. Can be a single string or tuple."""
 
-  pair_ids: list[int] | slice = field(default_factory=lambda: slice(None))
-  """IDs of contact pairs to include. Can be a list or slice."""
+  pair_ids: torch.Tensor | list[int] | slice = field(
+    default_factory=lambda: slice(None)
+  )
+  """IDs of contact pairs to include. Resolved to an on-device tensor or slice."""
 
   preserve_order: bool = False
   """If True, maintains the order of components as specified."""
@@ -148,6 +172,10 @@ class SceneEntityCfg:
     2. Only names provided: Computes IDs (optimizes to slice(None) if all selected)
     3. Only IDs provided: Computes names
 
+    Resolved non-slice ID collections are stored as ``torch.long`` tensors on the
+    scene/entity device so indexing simulation tensors does not trigger implicit
+    host-to-device copies or CUDA stream synchronizations.
+
     Args:
       scene: The scene containing the entity to resolve against.
 
@@ -156,22 +184,44 @@ class SceneEntityCfg:
       KeyError: If the entity name is not found in the scene.
     """
     entity = scene[self.name]
+    device = self._infer_device(scene, entity)
 
     for config in _FIELD_CONFIGS:
-      self._resolve_field(entity, config)
+      self._resolve_field(entity, config, device)
 
-  def _resolve_field(self, entity: Entity, config: _FieldConfig) -> None:
+  @staticmethod
+  def _infer_device(scene: Scene, entity: Entity) -> torch.device | str:
+    scene_device = getattr(scene, "device", None)
+    if isinstance(scene_device, (str, torch.device)):
+      return scene_device
+    data = getattr(entity, "_data", None)
+    data_device = getattr(data, "device", None)
+    if isinstance(data_device, (str, torch.device)):
+      return data_device
+    indexing = getattr(entity, "indexing", None)
+    body_ids = getattr(indexing, "body_ids", None)
+    if isinstance(body_ids, torch.Tensor):
+      return body_ids.device
+    return "cpu"
+
+  def _resolve_field(
+    self,
+    entity: Entity,
+    config: _FieldConfig,
+    device: torch.device | str,
+  ) -> None:
     """Resolve a single field's names and IDs.
 
     Args:
       entity: The entity to resolve against.
       config: Field configuration specifying attribute names and methods.
+      device: Device on which resolved index tensors should live.
     """
     names = getattr(self, config.names_attr)
     ids = getattr(self, config.ids_attr)
 
     # Early return if nothing to resolve.
-    if names is None and not isinstance(ids, list):
+    if names is None and isinstance(ids, slice):
       return
 
     # Get entity metadata.
@@ -179,17 +229,22 @@ class SceneEntityCfg:
     entity_count = getattr(entity, config.num_attr)
     find_method = getattr(entity, config.find_method)
 
-    # Normalize single values to lists for uniform processing.
+    # Normalize single values and tensors to lists for uniform validation.
     names = self._normalize_to_list(names)
-    if isinstance(ids, (int, list)):
-      ids = self._normalize_to_list(ids)
-      setattr(self, config.ids_attr, ids)
+    ids_list: list[int] | None = None
+    if not isinstance(ids, slice):
+      ids_list = self._normalize_ids_to_list(ids)
 
     # Handle three resolution cases.
-    if names is not None and isinstance(ids, list):
+    if names is not None and ids_list is not None:
       setattr(self, config.names_attr, names)
       self._validate_consistency(
-        names, ids, entity_all_names, find_method, config.kind_label
+        names, ids_list, entity_all_names, find_method, config.kind_label
+      )
+      setattr(
+        self,
+        config.ids_attr,
+        torch.tensor(ids_list, dtype=torch.long, device=device),
       )
     elif names is not None:
       self._resolve_names_to_ids(
@@ -199,9 +254,15 @@ class SceneEntityCfg:
         find_method,
         config.names_attr,
         config.ids_attr,
+        device,
       )
-    elif isinstance(ids, list):
-      self._resolve_ids_to_names(ids, entity_all_names, config.names_attr)
+    elif ids_list is not None:
+      self._resolve_ids_to_names(ids_list, entity_all_names, config.names_attr)
+      setattr(
+        self,
+        config.ids_attr,
+        torch.tensor(ids_list, dtype=torch.long, device=device),
+      )
 
   def _normalize_to_list(self, value: str | int | tuple | list | None) -> list | None:
     """Convert single values to lists for uniform processing."""
@@ -212,6 +273,19 @@ class SceneEntityCfg:
     if isinstance(value, list):
       return value
     return list(value)
+
+  @staticmethod
+  def _normalize_ids_to_list(
+    value: torch.Tensor | list[int] | tuple[int, ...] | int,
+  ) -> list[int]:
+    """Convert an ID specification into a plain Python list of ints."""
+    if isinstance(value, torch.Tensor):
+      if value.ndim == 0:
+        return [int(value.item())]
+      return [int(i) for i in value.tolist()]
+    if isinstance(value, int):
+      return [value]
+    return [int(i) for i in value]
 
   def _validate_consistency(
     self,
@@ -244,6 +318,7 @@ class SceneEntityCfg:
     find_method,
     names_attr: str,
     ids_attr: str,
+    device: torch.device | str,
   ) -> None:
     """Resolve names to IDs, optimizing to slice(None) when all are selected."""
     found_ids, found_names = find_method(names, preserve_order=self.preserve_order)
@@ -255,7 +330,11 @@ class SceneEntityCfg:
     if len(found_ids) == entity_count and found_names == list(entity_all_names):
       setattr(self, ids_attr, slice(None))
     else:
-      setattr(self, ids_attr, found_ids)
+      setattr(
+        self,
+        ids_attr,
+        torch.tensor(found_ids, dtype=torch.long, device=device),
+      )
 
   def _resolve_ids_to_names(
     self, ids: list[int], entity_all_names: list[str], names_attr: str
