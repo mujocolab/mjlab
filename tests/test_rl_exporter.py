@@ -9,7 +9,13 @@ import pytest
 import torch
 from conftest import get_test_device
 
-from mjlab.actuator import XmlActuatorCfg
+from mjlab.actuator import (
+  BuiltinPdActuatorCfg,
+  BuiltinPositionActuatorCfg,
+  IdealPdActuatorCfg,
+  XmlActuatorCfg,
+)
+from mjlab.actuator.actuator import TransmissionType
 from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg, mdp
 from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationTermCfg
@@ -342,5 +348,153 @@ def test_get_base_metadata_multiple_terms_scale_clip(device):
 
   # joint_pos_scaled has default clip.
   assert clips[2] == [float("-inf"), float("inf")]
+
+  env.close()
+
+
+ROBOT_XML_JOINT_AND_TENDON = """
+<mujoco>
+  <worldbody>
+    <body name="base" pos="0 0 1">
+      <freejoint name="free_joint"/>
+      <geom name="base_geom" type="box" size="0.2 0.2 0.1" mass="1.0"/>
+      <body name="link1" pos="0 0 0">
+        <joint name="joint1" type="hinge" axis="0 0 1" range="-1.57 1.57"/>
+        <geom name="link1_geom" type="box" size="0.1 0.1 0.1" mass="0.1"/>
+      </body>
+      <body name="link2" pos="0 0 0">
+        <joint name="joint2" type="hinge" axis="0 0 1" range="-1.57 1.57"/>
+        <geom name="link2_geom" type="box" size="0.1 0.1 0.1" mass="0.1"/>
+      </body>
+    </body>
+  </worldbody>
+  <tendon>
+    <fixed name="tendon1">
+      <joint joint="joint2" coef="1.0"/>
+    </fixed>
+  </tendon>
+</mujoco>
+"""
+
+
+def test_get_base_metadata_with_tendon_and_hybrid_actions(device):
+  """get_base_metadata exports tendon metadata and distinguishes joint vs tendon actions."""
+  robot_cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML_JOINT_AND_TENDON),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        IdealPdActuatorCfg(
+          target_names_expr=("joint1",),
+          stiffness=40.0,
+          damping=3.0,
+          effort_limit=50.0,
+        ),
+        BuiltinPositionActuatorCfg(
+          target_names_expr=("tendon1",),
+          transmission_type=TransmissionType.TENDON,
+          stiffness=25.0,
+          damping=1.5,
+          effort_limit=30.0,
+        ),
+      )
+    ),
+  )
+
+  env_cfg = ManagerBasedRlEnvCfg(
+    scene=SceneCfg(
+      terrain=TerrainEntityCfg(terrain_type="plane"),
+      num_envs=1,
+      extent=1.0,
+      entities={"robot": robot_cfg},
+    ),
+    observations={
+      "actor": ObservationGroupCfg(
+        terms={
+          "joint_pos": ObservationTermCfg(
+            func=lambda env: env.scene["robot"].data.joint_pos
+          ),
+        }
+      )
+    },
+    actions={
+      "joint_pos": mdp.JointPositionActionCfg(
+        entity_name="robot", actuator_names=("joint1",), scale=0.5
+      ),
+      "tendon_len": mdp.TendonLengthActionCfg(
+        entity_name="robot", actuator_names=("tendon1",), scale=0.25
+      ),
+    },
+    sim=SimulationCfg(mujoco=MujocoCfg(timestep=0.01, iterations=1)),
+    decimation=1,
+    episode_length_s=1.0,
+  )
+
+  env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
+  metadata = get_base_metadata(env, run_path="dummy/tendon_run")
+
+  # IdealPdActuator joint gains and BuiltinPositionActuator tendon gains extracted cleanly.
+  assert metadata["joint_names"] == ["joint1", "joint2"]
+  assert metadata["joint_stiffness"] == [40.0]
+  assert metadata["joint_damping"] == [3.0]
+  assert metadata["tendon_names"] == ["tendon1"]
+  assert metadata["tendon_stiffness"] == [25.0]
+  assert metadata["tendon_damping"] == [1.5]
+  assert isinstance(metadata["default_tendon_len"], list)
+  assert len(metadata["default_tendon_len"]) == 1
+  assert metadata["tendon_action_scale"] == 0.25
+  assert metadata["action_names"] == ["joint1", "tendon1"]
+  assert metadata["action_transmission_types"] == ["joint", "tendon"]
+  assert metadata["action_scale"] == [0.5, 0.25]
+
+  env.close()
+
+
+def test_get_base_metadata_builtin_pd_actuator_gains(device):
+  """BuiltinPdActuator exports kp from position element and kd from velocity element."""
+  robot_cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML_JOINT_AND_TENDON),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        BuiltinPdActuatorCfg(
+          target_names_expr=("joint1", "joint2"),
+          stiffness=60.0,
+          damping=4.5,
+          effort_limit=80.0,
+        ),
+      )
+    ),
+  )
+
+  env_cfg = ManagerBasedRlEnvCfg(
+    scene=SceneCfg(
+      terrain=TerrainEntityCfg(terrain_type="plane"),
+      num_envs=1,
+      extent=1.0,
+      entities={"robot": robot_cfg},
+    ),
+    observations={
+      "actor": ObservationGroupCfg(
+        terms={
+          "joint_pos": ObservationTermCfg(
+            func=lambda env: env.scene["robot"].data.joint_pos
+          ),
+        }
+      )
+    },
+    actions={
+      "joint_pos": mdp.JointPositionActionCfg(
+        entity_name="robot", actuator_names=(".*",), scale=1.0
+      ),
+    },
+    sim=SimulationCfg(mujoco=MujocoCfg(timestep=0.01, iterations=1)),
+    decimation=1,
+    episode_length_s=1.0,
+  )
+
+  env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
+  metadata = get_base_metadata(env, run_path="dummy/builtin_pd")
+
+  assert metadata["joint_stiffness"] == [60.0, 60.0]
+  assert metadata["joint_damping"] == [4.5, 4.5]
 
   env.close()

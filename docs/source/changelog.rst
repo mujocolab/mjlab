@@ -8,6 +8,12 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- ``get_base_metadata()`` now exports tendon metadata (``tendon_names``,
+  ``tendon_stiffness``, ``tendon_damping``, ``default_tendon_len``,
+  ``tendon_action_scale``) when tendons are present, adds ``action_names`` and
+  ``action_transmission_types`` across all action terms, and extracts true PD gains
+  from ``IdealPdActuator``, ``DcMotorActuator``, ``BuiltinPdActuator``, and
+  ``BuiltinDcMotorActuator`` :issue:`1208`.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
