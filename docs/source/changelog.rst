@@ -8,6 +8,10 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Documented ``illegal_contact`` and ``self_collision_cost`` ``force_threshold=10.0`` N
+  defaults, ``ContactSensorCfg.history_length`` fallback semantics, and quadruped
+  contact termination differences relative to Isaac Lab / ``legged_gym``
+  :issue:`1179`.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.

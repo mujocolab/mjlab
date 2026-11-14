@@ -162,11 +162,13 @@ def self_collision_cost(
   sensor_name: str,
   force_threshold: float = 10.0,
 ) -> torch.Tensor:
-  """Penalize self-collisions.
+  """Penalize collisions reported by a ``ContactSensor``.
 
-  When the sensor provides force history (from ``history_length > 0``),
-  counts substeps where any contact force exceeds *force_threshold*.
-  Falls back to the instantaneous ``found`` count otherwise.
+  When the sensor provides ``force_history`` (``history_length > 0`` and
+  ``"force"`` in ``fields``), counts substeps where any contact force norm
+  exceeds ``force_threshold`` (default ``10.0`` N; pass ``force_threshold=1.0``
+  when matching Isaac Lab ``undesired_contacts`` configs). Falls back to the
+  instantaneous ``found`` count when ``force_history`` is None.
   """
   sensor: ContactSensor = env.scene[sensor_name]
   data = sensor.data

@@ -210,6 +210,28 @@ Key changes:
   these changes for you.
 - ``asset_name`` has been unified to ``entity_name`` across all configurations.
 
+4. Contact Terminations and Force Thresholds
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When porting ``illegal_contact`` terminations or ``undesired_contacts`` /
+``self_collision_cost`` rewards from Isaac Lab or ``legged_gym``, watch for two
+behavioral differences:
+
+- **Default force threshold (10.0 N vs 1.0 N):** Isaac Lab's
+  ``mdp.illegal_contact`` requires an explicit ``threshold`` parameter (commonly
+  ``threshold=1.0`` N in locomotion tasks). In ``mjlab``, ``illegal_contact``
+  and ``self_collision_cost`` default to ``force_threshold=10.0`` N whenever the
+  ``ContactSensorCfg`` records ``force_history`` (``history_length > 0`` and
+  ``"force"`` in ``fields``), falling back to boolean ``found`` when
+  ``history_length == 0``. Pass ``"force_threshold": 1.0`` in ``params`` if your
+  ported task expects 1 N contact sensitivity.
+- **Quadruped termination body sets:** In ``mjlab``'s Unitree Go1 rough-terrain
+  config, ``illegal_contact`` terminates on thigh-ground contact
+  (``thigh_ground_touch`` at ``10.0`` N) while trunk/head and shank contacts are
+  penalized softly via ``self_collision_cost`` so the robot can recover from
+  brief trunk grazes on tall steps. ``legged_gym`` and Isaac Lab Go1/Go2 configs
+  typically terminate on ``trunk``/``base`` contact instead.
+
 Complete Example Comparison
 ---------------------------
 
