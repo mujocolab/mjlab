@@ -65,6 +65,12 @@ Changed
 Fixed
 ^^^^^
 
+- Motion tracking tasks now truncate episodes with ``motion_time_out``
+  (``time_out=True``) when the reference clip ends, instead of wrapping silently inside
+  ``MotionCommand`` and bootstrapping value targets across teleported resets
+  :issue:`1106`.
+- ``TerminationManager`` now clears ``time_outs`` on steps where a non-timeout
+  termination also fires, so failed terminal states are not bootstrapped as timeouts.
 - YAM RGB and depth cube-lifting tasks now use separate experiment directories,
   ``yam_lift_cube_rgb`` and ``yam_lift_cube_depth``.
 - ``EntityData.gravity_vec_w`` now initializes from normalized model gravity, so

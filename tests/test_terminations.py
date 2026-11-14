@@ -10,6 +10,7 @@ from conftest import get_test_device
 from mjlab.envs.mdp.terminations import nan_detection
 from mjlab.managers.termination_manager import TerminationManager, TerminationTermCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
+from mjlab.tasks.tracking.mdp.terminations import motion_time_out
 from mjlab.tasks.velocity.mdp.terminations import (
   out_of_terrain_bounds,
   terrain_edge_reached,
@@ -238,3 +239,37 @@ def test_out_of_terrain_bounds_includes_border_width(mock_grid_terrain_env):
   asset.data.root_link_pos_w[1, 0] = 42.0  # Past border edge (limit 41.7m).
   result = out_of_terrain_bounds(env)
   assert not result[0] and result[1]
+
+
+def test_termination_overrides_simultaneous_time_out(mock_env):
+  """Failure termination takes precedence over simultaneous timeout."""
+  cfg = {
+    "timeout": TerminationTermCfg(
+      func=lambda env: torch.tensor([True, True, False, False]),
+      time_out=True,
+    ),
+    "failure": TerminationTermCfg(
+      func=lambda env: torch.tensor([False, True, True, False]),
+      time_out=False,
+    ),
+  }
+  manager = TerminationManager(cfg, mock_env)
+  dones = manager.compute()
+  assert dones.tolist() == [True, True, True, False]
+  assert manager.terminated.tolist() == [False, True, True, False]
+  assert manager.time_outs.tolist() == [True, False, False, False]
+
+  reset_info = manager.reset()
+  assert reset_info["Episode_Termination/timeout"] == 2
+  assert reset_info["Episode_Termination/failure"] == 2
+
+
+def test_motion_time_out_fires_on_final_frame(mock_env):
+  """motion_time_out truncates when the clip reaches its final frame."""
+  cmd = Mock()
+  cmd.time_steps = torch.tensor([0, 8, 9, 10], dtype=torch.long)
+  cmd.motion.time_step_total = 10
+  mock_env.command_manager.get_term.return_value = cmd
+
+  result = motion_time_out(mock_env, command_name="motion")
+  assert result.tolist() == [False, False, True, True]

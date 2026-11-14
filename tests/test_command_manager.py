@@ -177,3 +177,32 @@ def test_motion_command_timer_resample_triggers_forward():
   cmd._env.sim.forward.reset_mock()
   MotionCommand._update_command(cmd, env_ids=None)
   cmd._env.sim.forward.assert_not_called()
+
+
+def test_motion_command_uniform_sampling_excludes_final_frame():
+  """Uniform RSI leaves room for reset()'s +1 advance without wrapping."""
+  cmd = Mock()
+  cmd.device = "cpu"
+  cmd.bin_count = 4
+  cmd.time_steps = torch.zeros(256, dtype=torch.long)
+  cmd.metrics = {
+    "sampling_entropy": torch.zeros(256),
+    "sampling_top1_prob": torch.zeros(256),
+    "sampling_top1_bin": torch.zeros(256),
+  }
+  cmd.motion.time_step_total = 5
+  MotionCommand._uniform_sampling(cmd, torch.arange(256))
+  assert int(cmd.time_steps.min().item()) >= 0
+  assert int(cmd.time_steps.max().item()) <= 3
+
+
+def test_motion_command_auto_reset_false_holds_final_frame():
+  """Done envs do not teleport over terminal observations when auto_reset=False."""
+  cmd = _make_motion_command_stub([9, 9], total=10)
+  cmd._env.cfg.auto_reset = False
+  cmd._env.reset_buf = torch.tensor([True, False])
+  MotionCommand._update_command(cmd, env_ids=None)
+  # Env 0 is done so its frame holds at 9 without resampling; env 1 wraps.
+  assert cmd.time_steps[0].item() == 9
+  (wrap_ids,), _ = cmd._resample_command.call_args
+  assert wrap_ids.tolist() == [1]

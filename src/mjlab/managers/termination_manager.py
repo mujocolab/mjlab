@@ -108,6 +108,7 @@ class TerminationManager(ManagerBase):
       else:
         self._terminated_buf |= value
       self._term_dones[name][:] = value
+    self._truncated_buf &= ~self._terminated_buf
     return self._truncated_buf | self._terminated_buf
 
   def get_term(self, name: str) -> torch.Tensor:

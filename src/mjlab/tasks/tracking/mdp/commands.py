@@ -291,8 +291,9 @@ class MotionCommand(CommandTerm):
     self.metrics["sampling_top1_bin"][:] = imax.float() / self.bin_count
 
   def _uniform_sampling(self, env_ids: torch.Tensor):
+    max_step = max(1, self.motion.time_step_total - 1)
     self.time_steps[env_ids] = torch.randint(
-      0, self.motion.time_step_total, (len(env_ids),), device=self.device
+      0, max_step, (len(env_ids),), device=self.device
     )
     self.metrics["sampling_entropy"][:] = 1.0  # Maximum entropy for uniform.
     self.metrics["sampling_top1_prob"][:] = 1.0 / self.bin_count
@@ -420,7 +421,13 @@ class MotionCommand(CommandTerm):
       self.time_steps[env_ids] += 1
     wrap_ids = torch.where(self.time_steps >= self.motion.time_step_total)[0]
     if wrap_ids.numel() > 0:
-      self._resample_command(wrap_ids)
+      if env_ids is None and self._env.cfg.auto_reset is False:
+        done_mask = self._env.reset_buf[wrap_ids]
+        if torch.any(done_mask):
+          self.time_steps[wrap_ids[done_mask]] = self.motion.time_step_total - 1
+          wrap_ids = wrap_ids[~done_mask]
+      if wrap_ids.numel() > 0:
+        self._resample_command(wrap_ids)
 
     # _resample_command writes qpos/qvel but does not refresh derived
     # quantities; forward() so update_relative_body_poses reads the

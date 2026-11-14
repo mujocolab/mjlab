@@ -15,6 +15,12 @@ if TYPE_CHECKING:
   from mjlab.managers.scene_entity_config import SceneEntityCfg
 
 
+def motion_time_out(env: ManagerBasedRlEnv, command_name: str) -> torch.Tensor:
+  """Truncate when the reference motion reaches its final frame."""
+  command = cast(MotionCommand, env.command_manager.get_term(command_name))
+  return command.time_steps + 1 >= command.motion.time_step_total
+
+
 def bad_anchor_pos(
   env: ManagerBasedRlEnv, command_name: str, threshold: float
 ) -> torch.Tensor:
