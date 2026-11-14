@@ -202,13 +202,36 @@ def test_position_mode_pid_at_rest(device):
   assert torch.allclose(sim.data.qfrc_actuator[0, v_adr], expected, atol=1e-4)
 
 
+def test_position_mode_pid_gains_independent_of_motor_constants(device):
+  """Below Vmax, stiffness and damping act directly in joint torque space."""
+  kp, kd = 12.0, 1.5
+  q0 = torch.tensor([[0.05, -0.1]], device=device)
+  qd0 = torch.tensor([[0.4, -0.3]], device=device)
+  pos_target = torch.tensor([[0.25, 0.1]], device=device)
+  expected = kp * (pos_target[0] - q0[0]) - kd * qd0[0]
+
+  for kt, resistance in ((0.08, 0.5), (0.8, 5.0), (2.5, 0.2)):
+    cfg = BuiltinDcMotorActuatorCfg(
+      target_names_expr=("joint.*",),
+      mode=DcMotorInputMode.POSITION,
+      motor_params=DcMotorPhysicalParams(kt=kt, ke=kt, resistance=resistance),
+      stiffness=kp,
+      damping=kd,
+      voltage_limit=1e4,
+    )
+    ent, sim = initialize_entity(create_entity_with_actuator(ROBOT_XML, cfg), device)
+    _drive(ent, sim, device, pos_target=pos_target, q0=q0, qd0=qd0)
+    v_adr = ent.indexing.joint_v_adr
+    assert torch.allclose(sim.data.qfrc_actuator[0, v_adr], expected, atol=1e-4)
+
+
 def test_position_mode_voltage_clamp(device):
   """Huge position error -> PID voltage saturates at Vmax."""
   entity, sim = initialize_entity(
     _make_entity(stiffness=100.0, damping=0.0, voltage_limit=2.0),
     device,
   )
-  # kp * err = 100 * 0.5 = 50 V, well above Vmax=2.
+  # Commanded tau = 100 * 0.5 = 50 N*m requires V = R * 50 / K = 600 V >> Vmax=2.
   pos = torch.tensor([[0.5, 0.0]], device=device)
   _drive(entity, sim, device, pos_target=pos)
   v_adr = entity.indexing.joint_v_adr
@@ -247,7 +270,7 @@ def test_effort_limit_clamps_torque(device):
     assert m.actuator_forcerange[i, 0] == pytest.approx(-0.1)
     assert m.actuator_forcerange[i, 1] == pytest.approx(0.1)
 
-  # Unclamped tau would be K * 100 * 0.5 / R ~= K*50/R, well above 0.1.
+  # Unclamped tau would be kp * err = 100 * 0.5 = 50 N*m, well above 0.1.
   pos = torch.tensor([[0.5, 0.0]], device=device)
   _drive(entity, sim, device, pos_target=pos)
   v_adr = entity.indexing.joint_v_adr
