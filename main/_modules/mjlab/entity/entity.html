@@ -1182,50 +1182,29 @@ document.write(`
         <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
       <span class="p">)[</span><span class="kc">None</span><span class="p">]</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">nworld</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
-      <span class="c1"># Joint limits.</span>
-      <span class="n">joint_ids_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_non_free_joints</span><span class="p">]</span>
-      <span class="n">dof_limits</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">jnt_range</span><span class="p">[:,</span> <span class="n">joint_ids_list</span><span class="p">]</span>
-      <span class="n">default_joint_pos_limits</span> <span class="o">=</span> <span class="n">dof_limits</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-      <span class="n">joint_pos_limits</span> <span class="o">=</span> <span class="n">default_joint_pos_limits</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-
-      <span class="n">joint_pos_mean</span> <span class="o">=</span> <span class="p">(</span><span class="n">joint_pos_limits</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">joint_pos_limits</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span>
-      <span class="n">joint_pos_range</span> <span class="o">=</span> <span class="n">joint_pos_limits</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">joint_pos_limits</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-
-      <span class="c1"># Soft limits.</span>
-      <span class="n">soft_limit_factor</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">articulation</span><span class="o">.</span><span class="n">soft_joint_pos_limit_factor</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">articulation</span>
-        <span class="k">else</span> <span class="mf">1.0</span>
-      <span class="p">)</span>
-      <span class="n">soft_joint_pos_limits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
-        <span class="p">[</span>
-          <span class="n">joint_pos_mean</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">joint_pos_range</span> <span class="o">*</span> <span class="n">soft_limit_factor</span><span class="p">,</span>
-          <span class="n">joint_pos_mean</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">joint_pos_range</span> <span class="o">*</span> <span class="n">soft_limit_factor</span><span class="p">,</span>
-        <span class="p">],</span>
-        <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-      <span class="p">)</span>
-
-      <span class="c1"># Unlimited joints have jnt_range=[0,0] in MuJoCo, which makes all</span>
-      <span class="c1"># the computed limits [0,0]. Override to [-inf, inf] so downstream</span>
-      <span class="c1"># clamping becomes a no-op. (Can&#39;t do this before soft-limit math</span>
-      <span class="c1"># because inf - inf = NaN.)</span>
-      <span class="n">unlimited</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-        <span class="n">mj_model</span><span class="o">.</span><span class="n">jnt_limited</span><span class="p">[</span><span class="n">joint_ids_list</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span>
-      <span class="p">)</span>
-      <span class="k">for</span> <span class="n">limits</span> <span class="ow">in</span> <span class="p">(</span><span class="n">joint_pos_limits</span><span class="p">,</span> <span class="n">default_joint_pos_limits</span><span class="p">,</span> <span class="n">soft_joint_pos_limits</span><span class="p">):</span>
-        <span class="n">limits</span><span class="p">[:,</span> <span class="n">unlimited</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;-inf&quot;</span><span class="p">)</span>
-        <span class="n">limits</span><span class="p">[:,</span> <span class="n">unlimited</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">empty_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">nworld</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
       <span class="n">default_joint_pos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="o">*</span><span class="n">empty_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
       <span class="n">default_joint_vel</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="o">*</span><span class="n">empty_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-      <span class="n">default_joint_pos_limits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
-        <span class="o">*</span><span class="n">empty_shape</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+
+    <span class="c1"># Joint limits are read from the model on access, so they follow DR.</span>
+    <span class="n">joint_ids_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_non_free_joints</span><span class="p">]</span>
+    <span class="n">joint_unlimited</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+      <span class="n">mj_model</span><span class="o">.</span><span class="n">jnt_limited</span><span class="p">[</span><span class="n">joint_ids_list</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span>
+    <span class="p">)</span>
+    <span class="n">soft_limit_factor</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">articulation</span><span class="o">.</span><span class="n">soft_joint_pos_limit_factor</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">articulation</span>
+      <span class="k">else</span> <span class="mf">1.0</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_articulated</span><span class="p">:</span>
+      <span class="n">default_joint_pos_limits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">joint_unlimited</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">jnt_range</span><span class="p">[:,</span> <span class="n">joint_ids_list</span><span class="p">],</span>
       <span class="p">)</span>
-      <span class="n">joint_pos_limits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="o">*</span><span class="n">empty_shape</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-      <span class="n">soft_joint_pos_limits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
-        <span class="o">*</span><span class="n">empty_shape</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
-      <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">default_joint_pos_limits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">nworld</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_actuated</span><span class="p">:</span>
       <span class="n">joint_pos_target</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
@@ -1292,8 +1271,8 @@ document.write(`
       <span class="n">default_joint_pos</span><span class="o">=</span><span class="n">default_joint_pos</span><span class="p">,</span>
       <span class="n">default_joint_vel</span><span class="o">=</span><span class="n">default_joint_vel</span><span class="p">,</span>
       <span class="n">default_joint_pos_limits</span><span class="o">=</span><span class="n">default_joint_pos_limits</span><span class="p">,</span>
-      <span class="n">joint_pos_limits</span><span class="o">=</span><span class="n">joint_pos_limits</span><span class="p">,</span>
-      <span class="n">soft_joint_pos_limits</span><span class="o">=</span><span class="n">soft_joint_pos_limits</span><span class="p">,</span>
+      <span class="n">joint_unlimited</span><span class="o">=</span><span class="n">joint_unlimited</span><span class="p">,</span>
+      <span class="n">soft_joint_pos_limit_factor</span><span class="o">=</span><span class="n">soft_limit_factor</span><span class="p">,</span>
       <span class="n">gravity_vec_w</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">gravity_dir</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
         <span class="n">nworld</span><span class="p">,</span> <span class="mi">1</span>
       <span class="p">),</span>
