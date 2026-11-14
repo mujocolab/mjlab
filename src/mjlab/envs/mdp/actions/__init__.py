@@ -34,3 +34,11 @@ from mjlab.envs.mdp.actions.differential_ik import (
 from mjlab.envs.mdp.actions.differential_ik import (
   DifferentialIKActionCfg as DifferentialIKActionCfg,
 )
+from mjlab.envs.mdp.actions.hierarchical import CommandAction as CommandAction
+from mjlab.envs.mdp.actions.hierarchical import CommandActionCfg as CommandActionCfg
+from mjlab.envs.mdp.actions.hierarchical import (
+  PreTrainedPolicyAction as PreTrainedPolicyAction,
+)
+from mjlab.envs.mdp.actions.hierarchical import (
+  PreTrainedPolicyActionCfg as PreTrainedPolicyActionCfg,
+)

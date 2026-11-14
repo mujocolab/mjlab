@@ -8,6 +8,10 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``PreTrainedPolicyAction`` (``PreTrainedPolicyActionCfg``) and
+  ``CommandAction`` (``CommandActionCfg``) in ``mjlab.envs.mdp`` for hierarchical RL
+  workflows with frozen TorchScript, ONNX, or callable low-level policies and
+  substep decimation :issue:`1279`.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
