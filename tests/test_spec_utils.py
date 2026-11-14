@@ -1,5 +1,6 @@
 """Tests for spec.py utilities."""
 
+import os
 import subprocess
 import sys
 import warnings
@@ -260,4 +261,5 @@ def test_spec_utils_imports_standalone_without_circular_import():
     "import mjlab.actuator as a; "
     "assert s.TransmissionType is a.TransmissionType"
   )
-  subprocess.run([sys.executable, "-c", code], check=True)
+  env = {**os.environ, "MUJOCO_GL": "disable"}
+  subprocess.run([sys.executable, "-c", code], check=True, env=env)
