@@ -89,7 +89,10 @@ class _OnnxPolicyWrapper:
     obs_np = obs.detach().cpu().numpy().astype(np.float32, copy=False)
     if self._fixed_single_batch and obs_np.shape[0] > 1:
       chunks = [
-        self._session.run(None, {self._input_name: obs_np[i : i + 1]})[0]
+        np.asarray(
+          self._session.run(None, {self._input_name: obs_np[i : i + 1]})[0],
+          dtype=np.float32,
+        )
         for i in range(obs_np.shape[0])
       ]
       out_np = np.concatenate(chunks, axis=0)
