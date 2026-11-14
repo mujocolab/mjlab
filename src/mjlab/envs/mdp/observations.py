@@ -83,6 +83,29 @@ def last_action(env: ManagerBasedRlEnv, action_name: str | None = None) -> torch
   return env.action_manager.get_term(action_name).raw_action
 
 
+def action_command(env: ManagerBasedRlEnv, action_name: str) -> torch.Tensor:
+  """Processed command buffer from a ``CommandAction`` or ``PreTrainedPolicyAction``."""
+  parent_env = getattr(env, "_parent_env", env)
+  term = parent_env.action_manager.get_term(action_name)
+  command = getattr(term, "command", None)
+  if not isinstance(command, torch.Tensor):
+    raise TypeError(
+      f"Action term '{action_name}' ({type(term).__name__}) has no 'command' tensor."
+    )
+  return command
+
+
+def hierarchical_command(env: ManagerBasedRlEnv) -> torch.Tensor:
+  """Processed command passed into a ``PreTrainedPolicyAction``'s low-level obs."""
+  command = getattr(env, "hierarchical_command", None)
+  if not isinstance(command, torch.Tensor):
+    raise RuntimeError(
+      "hierarchical_command() may only be used inside "
+      "PreTrainedPolicyActionCfg.low_level_observations."
+    )
+  return command
+
+
 ##
 # Commands.
 ##
