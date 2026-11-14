@@ -8,6 +8,7 @@ import mujoco
 import numpy as np
 import pytest
 import torch
+import trimesh
 
 from mjlab.entity import (
   EntityCfg,
@@ -20,6 +21,7 @@ from mjlab.entity.variants import (
   allocate_worlds,
   build_variant_model,
 )
+from mjlab.scene import Scene, SceneCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
 from mjlab.viewer.model_sync import (
   disable_model_sameframe_shortcuts,
@@ -345,7 +347,7 @@ def test_empty_variants_raises():
 
 
 def _fixed_base_sphere_spec() -> mujoco.MjSpec:
-  """Fixed-base sphere variant (no free joint): currently unsupported."""
+  """Fixed-base sphere variant (no free joint), auto-wrapped in mocap."""
   spec = mujoco.MjSpec()
   m = spec.add_mesh(name="sphere")
   m.make_sphere(subdivision=2)
@@ -354,15 +356,79 @@ def _fixed_base_sphere_spec() -> mujoco.MjSpec:
   return spec
 
 
-def test_fixed_base_variants_rejected():
-  """Variants must be floating-base; fixed-base raises with a clear message."""
+def _fixed_base_cone_spec() -> mujoco.MjSpec:
+  """Fixed-base cone variant (no free joint), auto-wrapped in mocap."""
+  spec = mujoco.MjSpec()
+  m = spec.add_mesh(name="cone")
+  m.make_cone(nedge=12, radius=0.08)
+  body = spec.worldbody.add_body(name="prop")
+  body.add_geom(type=mujoco.mjtGeom.mjGEOM_MESH, meshname="cone")
+  return spec
+
+
+def test_fixed_base_variants_build_as_mocap():
+  """Fixed-base variants auto-wrap in a mocap root body matching EntityCfg."""
   cfg = VariantEntityCfg(
     variants={
-      "a": _fixed_base_sphere_spec,
-      "b": _fixed_base_sphere_spec,
+      "sphere": _fixed_base_sphere_spec,
+      "cone": _fixed_base_cone_spec,
     },
   )
-  with pytest.raises(ValueError, match="floating-base"):
+  entity = cfg.build()
+  assert entity.is_fixed_base is True
+  assert entity.is_mocap is True
+  assert entity.body_names == ("mocap_base", "prop")
+  assert entity.variant_metadata is not None
+  paths = {s.key.body_path for s in entity.variant_metadata.slots}
+  assert paths == {"/mocap_base/prop"}
+
+
+def test_mixed_floating_and_fixed_base_variants_rejected():
+  """Mixing floating-base and fixed-base variants raises ValueError."""
+  cfg = VariantEntityCfg(
+    variants={
+      "floating": _simple_sphere_spec,
+      "fixed": _fixed_base_sphere_spec,
+    },
+  )
+  with pytest.raises(ValueError, match="joint"):
+    cfg.build()
+
+
+def test_mixed_mocap_and_non_mocap_fixed_variants_rejected():
+  """Mixing mocap=True and mocap=False fixed-base variants raises ValueError."""
+
+  def _explicit_mocap_spec() -> mujoco.MjSpec:
+    spec = mujoco.MjSpec()
+    m = spec.add_mesh(name="sphere")
+    m.make_sphere(subdivision=2)
+    body = spec.worldbody.add_body(name="prop", mocap=True)
+    body.add_geom(type=mujoco.mjtGeom.mjGEOM_MESH, meshname="sphere")
+    return spec
+
+  cfg = VariantEntityCfg(
+    variants={
+      "non_mocap": _fixed_base_sphere_spec,
+      "mocap": _explicit_mocap_spec,
+    },
+  )
+  with pytest.raises(ValueError, match="mocap"):
+    cfg.build()
+
+
+def test_fixed_base_variants_reserved_mocap_base_name_rejected():
+  """Fixed-base variants cannot already define a body named 'mocap_base'."""
+
+  def _bad_name_spec() -> mujoco.MjSpec:
+    spec = mujoco.MjSpec()
+    m = spec.add_mesh(name="sphere")
+    m.make_sphere(subdivision=2)
+    body = spec.worldbody.add_body(name="mocap_base")
+    body.add_geom(type=mujoco.mjtGeom.mjGEOM_MESH, meshname="sphere")
+    return spec
+
+  cfg = VariantEntityCfg(variants={"a": _bad_name_spec})
+  with pytest.raises(ValueError, match="mocap_base"):
     cfg.build()
 
 
@@ -1780,3 +1846,159 @@ def test_sync_model_fields_copies_only_requested_env_fields():
 
   np.testing.assert_allclose(model.geom_rgba, [[0.5, 0.6, 0.7, 0.8]])
   np.testing.assert_allclose(model.geom_pos, original_geom_pos)
+
+
+def _fixed_box_mesh_spec(half_z: float) -> mujoco.MjSpec:
+  """Fixed-base box mesh variant with customizable half-height in Z."""
+  box = trimesh.creation.box(extents=(0.6, 0.6, 2.0 * half_z))
+  spec = mujoco.MjSpec()
+  mesh = spec.add_mesh(
+    name="block",
+    uservert=box.vertices.astype(np.float64).reshape(-1).tolist(),
+    userface=box.faces.astype(np.int32).reshape(-1).tolist(),
+  )
+  assert mesh is not None
+  body = spec.worldbody.add_body(name="fixture")
+  body.add_geom(name="col", type=mujoco.mjtGeom.mjGEOM_MESH, meshname="block")
+  return spec
+
+
+def _falling_sphere_spec(radius: float = 0.05) -> mujoco.MjSpec:
+  """Dynamic falling sphere used to probe per-world fixture collision."""
+  spec = mujoco.MjSpec()
+  body = spec.worldbody.add_body(name="ball")
+  body.add_freejoint()
+  body.add_geom(type=mujoco.mjtGeom.mjGEOM_SPHERE, size=[radius, 0.0, 0.0], mass=0.5)
+  return spec
+
+
+def test_fixed_base_variants_per_world_placement_and_partial_reset():
+  """Fixed-base variants place independently per world and support partial reset."""
+  scene_cfg = SceneCfg(
+    num_envs=4,
+    env_spacing=3.0,
+    entities={
+      "fixture": VariantEntityCfg(
+        variants={
+          "sphere": _fixed_base_sphere_spec,
+          "cone": _fixed_base_cone_spec,
+        },
+        assignment=lambda n: [w % 2 for w in range(n)],
+      ),
+    },
+  )
+  scene = Scene(scene_cfg, device="cpu")
+  sim = Simulation(
+    num_envs=4,
+    cfg=SimulationCfg(),
+    spec=scene.spec,
+    variant_info=scene.collect_variant_info(),
+    device="cpu",
+  )
+  scene.initialize(sim.mj_model, sim.model, sim.data)
+
+  fixture = scene["fixture"]
+  assert fixture.is_fixed_base is True
+  assert fixture.is_mocap is True
+
+  # 90-degree yaw quaternion (cos(pi/4), 0, 0, sin(pi/4)).
+  s = float(np.sqrt(0.5))
+  initial_poses = torch.tensor(
+    [
+      [0.0, 0.0, 0.2, 1.0, 0.0, 0.0, 0.0],
+      [3.0, 1.0, 0.4, s, 0.0, 0.0, s],
+      [-3.0, 2.0, 0.6, 0.0, 0.0, 0.0, 1.0],
+      [6.0, -1.0, 0.8, s, 0.0, s, 0.0],
+    ],
+    dtype=torch.float32,
+  )
+  fixture.write_mocap_pose_to_sim(initial_poses)
+  sim.forward()
+
+  torch.testing.assert_close(
+    fixture.data.root_link_pose_w, initial_poses, atol=1e-5, rtol=1e-5
+  )
+
+  # Partial reset on envs [1, 3] leaves envs [0, 2] untouched.
+  partial_ids = torch.tensor([1, 3], dtype=torch.int)
+  updated_subset = torch.tensor(
+    [
+      [10.0, 20.0, 1.5, 1.0, 0.0, 0.0, 0.0],
+      [-10.0, -20.0, 2.5, 1.0, 0.0, 0.0, 0.0],
+    ],
+    dtype=torch.float32,
+  )
+  fixture.write_mocap_pose_to_sim(updated_subset, env_ids=partial_ids)
+  sim.forward()
+
+  expected = initial_poses.clone()
+  expected[partial_ids] = updated_subset
+  torch.testing.assert_close(
+    fixture.data.root_link_pose_w, expected, atol=1e-5, rtol=1e-5
+  )
+
+
+def test_fixed_base_variants_collision_and_immobility_under_impact():
+  """Translated fixed-base variants collide with per-world meshes and stay immobile."""
+  ball_radius = 0.05
+  slab_half_z = 0.05
+  tall_half_z = 0.25
+
+  scene_cfg = SceneCfg(
+    num_envs=2,
+    env_spacing=5.0,
+    entities={
+      "fixture": VariantEntityCfg(
+        variants={
+          "slab": lambda: _fixed_box_mesh_spec(slab_half_z),
+          "tall": lambda: _fixed_box_mesh_spec(tall_half_z),
+        },
+        assignment=lambda _n: [0, 1],
+      ),
+      "ball": EntityCfg(spec_fn=lambda: _falling_sphere_spec(ball_radius)),
+    },
+  )
+  scene = Scene(scene_cfg, device="cpu")
+  sim = Simulation(
+    num_envs=2,
+    cfg=SimulationCfg(),
+    spec=scene.spec,
+    variant_info=scene.collect_variant_info(),
+    device="cpu",
+  )
+  scene.initialize(sim.mj_model, sim.model, sim.data)
+
+  fixture = scene["fixture"]
+  ball = scene["ball"]
+
+  fixture_poses = torch.tensor(
+    [
+      [0.0, 0.0, 0.5, 1.0, 0.0, 0.0, 0.0],
+      [5.0, 0.0, 0.5, 1.0, 0.0, 0.0, 0.0],
+    ],
+    dtype=torch.float32,
+  )
+  fixture.write_mocap_pose_to_sim(fixture_poses)
+
+  ball_states = torch.zeros((2, 13), dtype=torch.float32)
+  ball_states[0, :7] = torch.tensor([0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+  ball_states[1, :7] = torch.tensor([5.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+  ball.write_root_state_to_sim(ball_states)
+  sim.forward()
+
+  for _ in range(400):
+    sim.step()
+  sim.forward()
+
+  # Fixture remains strictly immobile at its assigned mocap poses after impact.
+  torch.testing.assert_close(
+    fixture.data.root_link_pose_w, fixture_poses, atol=1e-6, rtol=1e-6
+  )
+
+  # Ball rests on top of each world's distinct mesh surface:
+  # world 0 top = 0.5 + 0.05 = 0.55 -> ball center ~ 0.60
+  # world 1 top = 0.5 + 0.25 = 0.75 -> ball center ~ 0.80
+  ball_z = ball.data.root_link_pos_w[:, 2]
+  assert abs(float(ball_z[0]) - (0.5 + slab_half_z + ball_radius)) < 0.015
+  assert abs(float(ball_z[1]) - (0.5 + tall_half_z + ball_radius)) < 0.015
+  assert float(ball_z[1] - ball_z[0]) > 0.15

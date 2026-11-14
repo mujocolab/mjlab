@@ -47,7 +47,12 @@ import warp as wp
 
 from mjlab.entity.entity import EntityCfg
 from mjlab.utils.mujoco import dof_width, qpos_width
-from mjlab.utils.spec import copy_material_data, copy_mesh_data, copy_texture_data
+from mjlab.utils.spec import (
+  auto_wrap_fixed_base_mocap,
+  copy_material_data,
+  copy_mesh_data,
+  copy_texture_data,
+)
 
 # Reserved name prefixes for synthesized template entities. Source variant
 # specs must not create geoms, bodies, meshes, or other named items under
@@ -676,12 +681,24 @@ def validate_variant_specs(
   ref_signature = _extract_body_signature(root_bodies[0])
   ref_modes = _collect_inertial_modes(root_bodies[0])
   ref_spec = specs[0]
+  ref_mocap = bool(root_bodies[0].mocap)
 
   for i in range(1, len(names)):
     other_name = names[i]
     other_signature = _extract_body_signature(root_bodies[i])
     other_modes = _collect_inertial_modes(root_bodies[i])
     other_spec = specs[i]
+    other_mocap = bool(root_bodies[i].mocap)
+
+    if other_mocap != ref_mocap:
+      raise ValueError(
+        _format_variant_error(
+          other_name,
+          f"root body mocap={other_mocap} differs from '{ref_name}' "
+          f"(mocap={ref_mocap}).",
+          "all variants must agree on whether the root body is mocap.",
+        )
+      )
 
     _compare_body_signatures(ref_name, ref_signature, other_name, other_signature)
     _compare_inertial_modes(ref_name, ref_modes, other_name, other_modes)
@@ -908,17 +925,47 @@ def build_merged_variant_spec(
     list(spec.worldbody.bodies)[0] for spec in variant_specs
   ]
 
-  # Variant entities must be floating-base. Mocap auto-wrap is not applied
-  # for variant entities, so fixed-base variants would silently stack at
-  # the world origin. Variants share joint structure (validated above), so
-  # checking the first is sufficient.
-  ref_joints = list(variant_bodies[0].joints)
-  if not ref_joints or ref_joints[0].type != mujoco.mjtJoint.mjJNT_FREE:
+  # Validate root joint topology and auto-wrap fixed-base variants in mocap
+  # so they can be positioned per environment via write_mocap_pose_to_sim /
+  # reset_root_state_uniform, matching ordinary EntityCfg behavior.
+  free_joints = [
+    j for j in variant_specs[0].joints if j.type == mujoco.mjtJoint.mjJNT_FREE
+  ]
+  if len(free_joints) > 1:
     raise ValueError(
-      "VariantEntityCfg requires floating-base variants. Each variant's "
-      "root body must declare a free joint via body.add_freejoint(); "
-      "fixed-base variants are not supported."
+      _format_variant_error(
+        variant_names[0],
+        f"variant declares {len(free_joints)} freejoints; at most one is allowed.",
+        "declare a single freejoint on the variant's root body, or omit it for "
+        "a fixed-base variant.",
+      )
     )
+  if len(free_joints) == 1:
+    ref_joints = list(variant_bodies[0].joints)
+    if not ref_joints or ref_joints[0].type != mujoco.mjtJoint.mjJNT_FREE:
+      raise ValueError(
+        _format_variant_error(
+          variant_names[0],
+          "freejoint must be the first joint on the variant's root body.",
+          "declare the freejoint via root_body.add_freejoint().",
+        )
+      )
+  elif not bool(variant_bodies[0].mocap):
+    for v_name, v_spec in zip(variant_names, variant_specs, strict=False):
+      for body in v_spec.bodies[1:]:
+        if body.name == "mocap_base":
+          raise ValueError(
+            _format_variant_error(
+              v_name,
+              "body name 'mocap_base' is reserved when auto-wrapping fixed-base "
+              "variants in mocap.",
+              "rename the body or set mocap=True directly on the root body.",
+            )
+          )
+    variant_specs = [
+      auto_wrap_fixed_base_mocap(lambda s=spec: s)() for spec in variant_specs
+    ]
+    variant_bodies = [list(spec.worldbody.bodies)[0] for spec in variant_specs]
 
   # Compute slot-based metadata from source specs BEFORE any mesh
   # renaming or merging. This captures (body_path, role, ordinal) keyed

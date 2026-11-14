@@ -89,12 +89,16 @@ another), the per-mesh-geom attributes that travel with the mesh
 others), and explicit body inertial values within whichever single
 inertial mode the variants agree on per body.
 
-**Must match across variants:** the body tree, joint topology,
-primitive (non-mesh) geoms, and any actuators / sensors / tendons /
-equalities. Variants must also agree on the inertial representation
-per body (mesh-derived, diagonal, or fullinertia), and may not use the
-reserved ``mjlab/pad/`` name prefix on any element. Variant entities
-must also be floating-base: the root body declares a freejoint.
+**Must match across variants:** the body tree, joint topology (including
+whether the root body is floating-base or fixed-base), primitive
+(non-mesh) geoms, and any actuators / sensors / tendons / equalities.
+Variants must also agree on the inertial representation per body
+(mesh-derived, diagonal, or fullinertia), and may not use the reserved
+``mjlab/pad/`` name prefix on any element. Fixed-base variants (no
+freejoint) are automatically wrapped in a mocap body just like standard
+``EntityCfg`` assets, so each world's instance can be placed at its own
+``env_origin`` or randomized pose via ``reset_root_state_uniform`` or
+``entity.write_mocap_pose_to_sim()``.
 
 The validator runs at entity build time and raises ``ValueError``
 naming the offending variant and the exact mismatch.
@@ -457,10 +461,6 @@ not affect training throughput.
 
 Limitations
 -----------
-
-**Floating-base only.** Each variant's root body must declare a free
-joint. Fixed-base variants are rejected; mocap auto-wrapping that
-applies to non-variant entities is not applied here.
 
 **Material assets are not propagated.** Each variant's ``contype``,
 ``conaffinity``, ``condim``, ``friction``, ``mass``, ``density``,
