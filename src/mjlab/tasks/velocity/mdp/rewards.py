@@ -152,7 +152,13 @@ class upright:
   def _get_body_quat_w(asset: Entity, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     # An unset selection is slice(None), which would index every body.
     ids = asset_cfg.body_ids
-    if ids == [] or (asset_cfg.body_names is None and ids == slice(None)):
+    is_empty = (isinstance(ids, torch.Tensor) and ids.numel() == 0) or (
+      isinstance(ids, list) and len(ids) == 0
+    )
+    is_unset = (
+      asset_cfg.body_names is None and isinstance(ids, slice) and ids == slice(None)
+    )
+    if is_empty or is_unset:
       return asset.data.root_link_quat_w
     return asset.data.body_link_quat_w[:, ids, :].squeeze(1)
 

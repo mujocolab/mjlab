@@ -26,6 +26,18 @@ if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
 
 
+def _select_actuators(
+  asset: Entity, actuator_ids: torch.Tensor | list[int] | slice | int
+) -> list:
+  if isinstance(actuator_ids, torch.Tensor):
+    return [asset.actuators[int(i)] for i in actuator_ids.tolist()]
+  if isinstance(actuator_ids, list):
+    return [asset.actuators[i] for i in actuator_ids]
+  if isinstance(actuator_ids, slice):
+    return list(asset.actuators[actuator_ids])
+  return [asset.actuators[actuator_ids]]
+
+
 @requires_model_fields("actuator_gainprm", "actuator_biasprm")
 def pd_gains(
   env: ManagerBasedRlEnv,
@@ -60,12 +72,7 @@ def pd_gains(
   else:
     env_ids = env_ids.to(env.device, dtype=torch.int)
 
-  if isinstance(asset_cfg.actuator_ids, list):
-    actuators = [asset.actuators[i] for i in asset_cfg.actuator_ids]
-  elif isinstance(asset_cfg.actuator_ids, slice):
-    actuators = asset.actuators[asset_cfg.actuator_ids]
-  else:
-    actuators = [asset.actuators[asset_cfg.actuator_ids]]
+  actuators = _select_actuators(asset, asset_cfg.actuator_ids)
 
   for actuator in actuators:
     ctrl_ids = actuator.global_ctrl_ids
@@ -219,13 +226,7 @@ def effort_limits(
   else:
     env_ids = env_ids.to(env.device, dtype=torch.int)
 
-  if isinstance(asset_cfg.actuator_ids, list):
-    actuators = [asset.actuators[i] for i in asset_cfg.actuator_ids]
-  else:
-    actuators = asset.actuators[asset_cfg.actuator_ids]
-
-  if not isinstance(actuators, list):
-    actuators = [actuators]
+  actuators = _select_actuators(asset, asset_cfg.actuator_ids)
 
   for actuator in actuators:
     ctrl_ids = actuator.global_ctrl_ids

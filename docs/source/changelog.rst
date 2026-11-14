@@ -29,6 +29,10 @@ Added
 Changed
 ^^^^^^^
 
+- ``SceneEntityCfg.resolve()`` now stores non-slice component ID collections as
+  on-device ``torch.long`` tensors instead of Python ``list[int]``, eliminating
+  implicit host-to-device copies and CUDA stream synchronizations when indexing
+  entity data in MDP terms :issue:`1019`.
 - Upgraded MuJoCo and MuJoCo Warp to 4.0.1. mjlab now depends on ``mujoco-core``
   instead of ``mujoco``. To upgrade an existing environment, run
   ``uv sync --reinstall-package mujoco-core``: removing ``mujoco`` deletes files that

@@ -196,7 +196,7 @@ class EntityData:
     self,
     force: torch.Tensor | None,
     torque: torch.Tensor | None,
-    body_ids: Sequence[int] | slice | None = None,
+    body_ids: torch.Tensor | Sequence[int] | slice | None = None,
     env_ids: torch.Tensor | slice | None = None,
   ) -> None:
     env_ids = self._resolve_env_ids(env_ids)
