@@ -69,6 +69,7 @@ close(), and is_running().
 
 from __future__ import annotations
 
+import inspect
 import signal
 import time
 import traceback
@@ -76,7 +77,7 @@ from abc import ABC, abstractmethod
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum, IntEnum
-from typing import TYPE_CHECKING, Any, Optional, Protocol
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Protocol
 
 import torch
 
@@ -188,6 +189,9 @@ class BaseViewer(ABC):
 
     # Action queue, drained on main thread each tick.
     self._actions: deque[tuple[ViewerAction, Optional[Any]]] = deque()
+    self._policy_reset_cache: (
+      tuple[Any, Literal["optional_arg", "required_arg", "no_arg"]] | None
+    ) = None
 
   # Abstract hooks.
 
@@ -279,6 +283,49 @@ class BaseViewer(ABC):
 
   # Core loop.
 
+  def _resolve_policy_reset(
+    self,
+  ) -> tuple[
+    Callable[..., Any] | None, Literal["optional_arg", "required_arg", "no_arg"]
+  ]:
+    """Return ``policy.reset`` and its calling convention, cached per policy."""
+    reset_fn = getattr(self.policy, "reset", None)
+    if reset_fn is None or not callable(reset_fn):
+      return None, "no_arg"
+    if self._policy_reset_cache is not None and self._policy_reset_cache[0] == reset_fn:
+      return reset_fn, self._policy_reset_cache[1]
+
+    mode: Literal["optional_arg", "required_arg", "no_arg"] = "optional_arg"
+    try:
+      sig = inspect.signature(reset_fn)
+    except (TypeError, ValueError):
+      mode = "optional_arg"
+    else:
+      positional = [
+        p
+        for p in sig.parameters.values()
+        if p.kind
+        in (
+          inspect.Parameter.POSITIONAL_ONLY,
+          inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        )
+      ]
+      has_varargs = any(
+        p.kind == inspect.Parameter.VAR_POSITIONAL for p in sig.parameters.values()
+      )
+      if positional:
+        if positional[0].default is inspect.Parameter.empty:
+          mode = "required_arg"
+        else:
+          mode = "optional_arg"
+      elif has_varargs:
+        mode = "optional_arg"
+      else:
+        mode = "no_arg"
+
+    self._policy_reset_cache = (reset_fn, mode)
+    return reset_fn, mode
+
   def _execute_step(self) -> bool:
     """Run one obs/policy/step cycle.
 
@@ -288,10 +335,15 @@ class BaseViewer(ABC):
       with torch.no_grad():
         obs = self.env.get_observations()
         actions = self.policy(obs)
-        dones = self.env.step(actions)[2]
-        reset_fn = getattr(self.policy, "reset", None)
+        step_out = self.env.step(actions)
+        dones = step_out[2] | step_out[3] if len(step_out) == 5 else step_out[2]
+        reset_fn, mode = self._resolve_policy_reset()
         if reset_fn is not None:
-          reset_fn(dones)
+          if mode == "no_arg":
+            if bool(torch.as_tensor(dones).any()):
+              reset_fn()
+          else:
+            reset_fn(dones)
         self._step_count += 1
         self._stats_steps += 1
         return True
@@ -341,9 +393,15 @@ class BaseViewer(ABC):
 
   def reset_environment(self) -> None:
     self.env.reset()
-    reset_fn = getattr(self.policy, "reset", None)
+    reset_fn, mode = self._resolve_policy_reset()
     if reset_fn is not None:
-      reset_fn()
+      if mode == "required_arg":
+        all_done = torch.ones(
+          self.env.num_envs, dtype=torch.bool, device=self.env.device
+        )
+        reset_fn(all_done)
+      else:
+        reset_fn()
     self._step_count = 0
     self._sim_budget = 0.0
     self._last_error = None

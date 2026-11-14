@@ -225,6 +225,86 @@ def test_step_without_policy_reset():
   assert v._execute_step()
 
 
+def test_step_combines_terminated_and_truncated_from_five_tuple():
+  """Vanilla 5-tuple env.step() passes terminated | truncated to policy.reset()."""
+  v = FakeViewer(step_dt=0.01)
+  v._execute_step = BaseViewer._execute_step.__get__(v, FakeViewer)
+  terminated = torch.tensor([False, True, False])
+  truncated = torch.tensor([False, False, True])
+  v.env = MagicMock()
+  v.env.step.return_value = (MagicMock(), MagicMock(), terminated, truncated, {})
+  v.policy = MagicMock()
+
+  assert v._execute_step()
+  passed = v.policy.reset.call_args.args[0]
+  assert torch.equal(passed, torch.tensor([False, True, True]))
+
+
+def test_zero_arg_policy_reset_only_fires_on_done_and_hot_swaps():
+  """A 0-arg policy.reset() is called only when an env finishes, and hot-swap
+  updates the cached signature."""
+  v = FakeViewer(step_dt=0.01)
+  v._execute_step = BaseViewer._execute_step.__get__(v, FakeViewer)
+  v.env = MagicMock()
+  v.env.num_envs = 2
+  v.env.device = "cpu"
+
+  class ZeroArgPolicy:
+    def __init__(self) -> None:
+      self.resets = 0
+
+    def __call__(self, obs: torch.Tensor) -> torch.Tensor:
+      return obs
+
+    def reset(self) -> None:
+      self.resets += 1
+
+  class RequiredArgPolicy:
+    def __init__(self) -> None:
+      self.masks: list[torch.Tensor] = []
+
+    def __call__(self, obs: torch.Tensor) -> torch.Tensor:
+      return obs
+
+    def reset(self, dones: torch.Tensor) -> None:
+      self.masks.append(dones.clone())
+
+  p0 = ZeroArgPolicy()
+  v.policy = p0
+
+  # Not done -> 0-arg reset must not wipe state mid-episode.
+  v.env.step.return_value = (
+    MagicMock(),
+    MagicMock(),
+    torch.tensor([False, False]),
+    torch.tensor([False, False]),
+    {},
+  )
+  assert v._execute_step()
+  assert p0.resets == 0
+
+  # Truncation -> 0-arg reset fires.
+  v.env.step.return_value = (
+    MagicMock(),
+    MagicMock(),
+    torch.tensor([False, False]),
+    torch.tensor([False, True]),
+    {},
+  )
+  assert v._execute_step()
+  assert p0.resets == 1
+
+  # Hot-swap to policy requiring dones tensor on both step and reset_environment().
+  p1 = RequiredArgPolicy()
+  v.policy = p1
+  v.reset_environment()
+  assert len(p1.masks) == 1
+  assert torch.equal(p1.masks[0], torch.tensor([True, True]))
+  assert v._execute_step()
+  assert len(p1.masks) == 2
+  assert torch.equal(p1.masks[1], torch.tensor([False, True]))
+
+
 # Formatting and status.
 
 
