@@ -1,11 +1,15 @@
 """Tests specific to motion tracking tasks."""
 
+from unittest.mock import Mock
+
 import pytest
+import torch
 
 from mjlab.asset_zoo.robots import G1_ACTION_SCALE
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.tasks.registry import list_tasks, load_env_cfg
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
+from mjlab.tasks.tracking.mdp.commands import MotionCommand
 
 
 @pytest.fixture(scope="module")
@@ -132,3 +136,60 @@ def test_g1_tracking_has_correct_action_scale(g1_tracking_task_ids: list[str]) -
     assert joint_pos_action.scale == G1_ACTION_SCALE, (
       f"Task {task_id} action scale mismatch, expected G1_ACTION_SCALE"
     )
+
+
+def _make_stub_motion_command(
+  *,
+  bin_count: int = 100,
+  adaptive_uniform_ratio: float = 0.1,
+  adaptive_kernel_size: int = 1,
+  adaptive_lambda: float = 0.8,
+) -> MotionCommand:
+  cmd = object.__new__(MotionCommand)
+  cmd.cfg = Mock()
+  cmd.cfg.adaptive_uniform_ratio = adaptive_uniform_ratio
+  cmd.cfg.adaptive_kernel_size = adaptive_kernel_size
+  cmd.cfg.adaptive_lambda = adaptive_lambda
+  cmd.bin_count = bin_count
+  cmd.bin_failed_count = torch.zeros(bin_count, dtype=torch.float32)
+  cmd._current_bin_failed = torch.zeros(bin_count, dtype=torch.float32)
+  kernel = torch.tensor(
+    [adaptive_lambda**i for i in range(adaptive_kernel_size)], dtype=torch.float32
+  )
+  cmd.kernel = kernel / kernel.sum()
+  return cmd
+
+
+@pytest.mark.parametrize("scale", [0.1, 1.0, 10.0, 50.0, 500.0])
+def test_adaptive_sampling_uniform_floor_scale_invariant(scale: float) -> None:
+  """Uniform prior share stays invariant to failure-count scale (#1153)."""
+  cmd = _make_stub_motion_command(bin_count=100, adaptive_uniform_ratio=0.1)
+  cmd.bin_failed_count[0] = scale
+
+  probs = cmd._compute_adaptive_sampling_probs()
+
+  assert torch.isclose(probs.sum(), torch.tensor(1.0), atol=1e-6)
+  assert torch.isclose(probs[0], torch.tensor(0.901), atol=1e-6)
+  assert torch.allclose(probs[1:], torch.full((99,), 0.001), atol=1e-6)
+
+
+def test_adaptive_sampling_zero_failures_falls_back_to_uniform() -> None:
+  """Zero accumulated failures produce a valid uniform distribution even at eps=0."""
+  cmd = _make_stub_motion_command(bin_count=20, adaptive_uniform_ratio=0.0)
+  probs = cmd._compute_adaptive_sampling_probs()
+
+  assert torch.allclose(probs, torch.full((20,), 1.0 / 20.0), atol=1e-6)
+
+
+def test_motion_command_cfg_validates_adaptive_uniform_ratio() -> None:
+  """MotionCommandCfg rejects adaptive_uniform_ratio outside [0, 1]."""
+  for bad_ratio in (-0.1, 1.5):
+    with pytest.raises(ValueError, match="adaptive_uniform_ratio"):
+      MotionCommandCfg(
+        motion_file="dummy.npz",
+        anchor_body_name="pelvis",
+        body_names=("pelvis",),
+        entity_name="robot",
+        resampling_time_range=(10.0, 10.0),
+        adaptive_uniform_ratio=bad_ratio,
+      )
