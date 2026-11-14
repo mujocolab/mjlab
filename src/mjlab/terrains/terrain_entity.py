@@ -250,6 +250,42 @@ class TerrainEntity(Entity):
       self.terrain_levels[env_ids], self.terrain_types[env_ids]
     ]
 
+  def set_terrain_levels(
+    self,
+    env_ids: torch.Tensor | slice | None,
+    levels: torch.Tensor | int,
+    terrain_types: torch.Tensor | int | None = None,
+  ) -> None:
+    """Set explicit terrain difficulty levels and optional column types.
+
+    No-op when ``terrain_origins`` is None (e.g. ground-plane terrain).
+    Levels are clamped to ``[0, num_rows - 1]`` and terrain types to
+    ``[0, num_cols - 1]``.
+    """
+    if self.terrain_origins is None:
+      return
+    assert self.env_origins is not None
+    if env_ids is None:
+      env_ids = slice(None)
+    num_rows, num_cols = self.terrain_origins.shape[:2]
+
+    if isinstance(levels, int):
+      levels_tensor = torch.full_like(self.terrain_levels[env_ids], levels)
+    else:
+      levels_tensor = levels.to(device=self._device, dtype=torch.long)
+    self.terrain_levels[env_ids] = torch.clamp(levels_tensor, 0, num_rows - 1)
+
+    if terrain_types is not None:
+      if isinstance(terrain_types, int):
+        types_tensor = torch.full_like(self.terrain_types[env_ids], terrain_types)
+      else:
+        types_tensor = terrain_types.to(device=self._device, dtype=torch.long)
+      self.terrain_types[env_ids] = torch.clamp(types_tensor, 0, num_cols - 1)
+
+    self.env_origins[env_ids] = self.terrain_origins[
+      self.terrain_levels[env_ids], self.terrain_types[env_ids]
+    ]
+
   # Private methods.
 
   def _import_ground_plane(self, name: str) -> None:

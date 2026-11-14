@@ -68,6 +68,20 @@ def randomize_terrain(env: ManagerBasedRlEnv, env_ids: torch.Tensor | None) -> N
     terrain.randomize_env_origins(env_ids)
 
 
+def set_terrain_levels(
+  env: ManagerBasedRlEnv,
+  env_ids: torch.Tensor | None,
+  levels: torch.Tensor | int,
+  terrain_types: torch.Tensor | int | None = None,
+) -> None:
+  """Set explicit terrain difficulty levels on reset before spawning entities."""
+  env_ids = resolve_env_ids(env, env_ids)
+
+  terrain = env.scene.terrain
+  if terrain is not None:
+    terrain.set_terrain_levels(env_ids, levels=levels, terrain_types=terrain_types)
+
+
 def reset_scene_to_default(
   env: ManagerBasedRlEnv, env_ids: torch.Tensor | None
 ) -> None:

@@ -5,7 +5,16 @@ from dataclasses import dataclass
 import mujoco
 import numpy as np
 import pytest
+import torch
+from conftest import get_test_device, load_fixture_xml
 
+from mjlab.actuator import BuiltinPositionActuatorCfg
+from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
+from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg, mdp
+from mjlab.managers.curriculum_manager import CurriculumTermCfg
+from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationTermCfg
+from mjlab.scene import SceneCfg
+from mjlab.terrains import TerrainEntity, TerrainEntityCfg
 from mjlab.terrains.config import ALL_TERRAIN_PRESETS
 from mjlab.terrains.primitive_terrains import (
   _MIN_BORDER_HEIGHT,
@@ -208,3 +217,147 @@ def test_heightfield_rows_run_along_y(preset_name):
   assert out.flat_patches is not None
   x, y = out.flat_patches["init"][:, 0], out.flat_patches["init"][:, 1]
   assert np.all((x >= 0) & (x <= size[0]) & (y >= 0) & (y <= size[1]))
+
+
+def test_terrain_entity_set_terrain_levels_and_clamping() -> None:
+  """TerrainEntity.set_terrain_levels sets levels/types, clamps, and no-ops on plane."""
+  device = get_test_device()
+  gen_cfg = TerrainGeneratorCfg(
+    num_rows=4,
+    num_cols=2,
+    size=(4.0, 4.0),
+    curriculum=True,
+    sub_terrains={
+      "col0": BoxPyramidStairsTerrainCfg(
+        proportion=0.5,
+        size=(4.0, 4.0),
+        step_height_range=(0.02, 0.1),
+        step_width=0.3,
+      ),
+      "col1": BoxInvertedPyramidStairsTerrainCfg(
+        proportion=0.5,
+        size=(4.0, 4.0),
+        step_height_range=(0.02, 0.1),
+        step_width=0.3,
+      ),
+    },
+  )
+  terrain = TerrainEntity(
+    TerrainEntityCfg(
+      terrain_type="generator",
+      terrain_generator=gen_cfg,
+      num_envs=4,
+    ),
+    device=device,
+  )
+  assert terrain.terrain_origins is not None
+
+  # Scalar level across all envs.
+  terrain.set_terrain_levels(env_ids=None, levels=2, terrain_types=1)
+  assert terrain.terrain_levels.tolist() == [2, 2, 2, 2]
+  assert terrain.terrain_types.tolist() == [1, 1, 1, 1]
+  torch.testing.assert_close(
+    terrain.env_origins, terrain.terrain_origins[2, 1].expand(4, 3)
+  )
+
+  # Subset env_ids with tensor levels + out-of-range clamping.
+  env_ids = torch.tensor([0, 3], device=device)
+  terrain.set_terrain_levels(
+    env_ids=env_ids,
+    levels=torch.tensor([-5, 99], device=device),
+    terrain_types=torch.tensor([0, 7], device=device),
+  )
+  assert terrain.terrain_levels.tolist() == [0, 2, 2, 3]
+  assert terrain.terrain_types.tolist() == [0, 1, 1, 1]
+  torch.testing.assert_close(terrain.env_origins[0], terrain.terrain_origins[0, 0])
+  torch.testing.assert_close(terrain.env_origins[3], terrain.terrain_origins[3, 1])
+
+  # Ground-plane terrain safely no-ops.
+  plane = TerrainEntity(TerrainEntityCfg(terrain_type="plane", num_envs=2), device)
+  origins_before = plane.env_origins.clone()
+  plane.set_terrain_levels(env_ids=None, levels=3)
+  torch.testing.assert_close(plane.env_origins, origins_before)
+
+
+def _zero_curriculum(env: ManagerBasedRlEnv, env_ids: torch.Tensor) -> torch.Tensor:
+  assert env.scene.terrain is not None
+  env.scene.terrain.set_terrain_levels(env_ids, levels=0, terrain_types=0)
+  return torch.tensor(0.0, device=env.device)
+
+
+def test_env_reset_options_terrain_levels_spawns_on_requested_patch() -> None:
+  """ManagerBasedRlEnv.reset(options={'terrain_levels': ...}) overrides curriculum."""
+  device = get_test_device()
+  xml = load_fixture_xml("floating_base_articulated")
+  robot_cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(xml),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        BuiltinPositionActuatorCfg(
+          target_names_expr=("joint.*",), stiffness=20.0, damping=2.0
+        ),
+      ),
+    ),
+  )
+  gen_cfg = TerrainGeneratorCfg(
+    num_rows=3,
+    num_cols=2,
+    size=(4.0, 4.0),
+    curriculum=True,
+    sub_terrains={
+      "a": BoxPyramidStairsTerrainCfg(
+        proportion=0.5,
+        size=(4.0, 4.0),
+        step_height_range=(0.01, 0.05),
+        step_width=0.3,
+      ),
+      "b": BoxInvertedPyramidStairsTerrainCfg(
+        proportion=0.5,
+        size=(4.0, 4.0),
+        step_height_range=(0.01, 0.05),
+        step_width=0.3,
+      ),
+    },
+  )
+  cfg = ManagerBasedRlEnvCfg(
+    decimation=2,
+    scene=SceneCfg(
+      num_envs=3,
+      terrain=TerrainEntityCfg(terrain_type="generator", terrain_generator=gen_cfg),
+      entities={"robot": robot_cfg},
+    ),
+    actions={
+      "joint_pos": mdp.JointPositionActionCfg(
+        entity_name="robot", actuator_names=("joint.*",)
+      )
+    },
+    observations={
+      "actor": ObservationGroupCfg(
+        terms={"joint_pos": ObservationTermCfg(func=mdp.joint_pos_rel)}
+      )
+    },
+    curriculum={"force_zero": CurriculumTermCfg(func=_zero_curriculum)},
+  )
+  env = ManagerBasedRlEnv(cfg=cfg, device=device)
+  try:
+    assert env.scene.terrain is not None
+    assert env.scene.terrain.terrain_origins is not None
+    env.reset(
+      options={
+        "terrain_levels": torch.tensor([2, 1, 2], device=device),
+        "terrain_types": torch.tensor([1, 0, 0], device=device),
+      }
+    )
+    assert env.scene.terrain.terrain_levels.tolist() == [2, 1, 2]
+    assert env.scene.terrain.terrain_types.tolist() == [1, 0, 0]
+
+    robot = env.scene["robot"]
+    expected_xy = env.scene.terrain.terrain_origins[
+      env.scene.terrain.terrain_levels, env.scene.terrain.terrain_types
+    ][:, :2]
+    default_xy = robot.data.default_root_state[:, :2]
+    torch.testing.assert_close(
+      robot.data.root_link_pose_w[:, :2], default_xy + expected_xy
+    )
+  finally:
+    env.close()
