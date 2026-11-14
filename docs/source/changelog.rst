@@ -8,6 +8,11 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``*_manager_class`` fields on ``ManagerBasedRlEnvCfg`` so downstream projects
+  can substitute custom ``RewardManager``, ``ObservationManager``, ``ActionManager``,
+  ``TerminationManager``, ``EventManager``, ``CommandManager``, ``CurriculumManager``,
+  ``MetricsManager``, or ``RecorderManager`` subclasses via class reference or
+  ``"module:ClassName"`` import path :issue:`1177`.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
