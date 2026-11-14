@@ -5,6 +5,7 @@ import pytest
 from mjlab.asset_zoo.robots import G1_ACTION_SCALE
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.tasks.registry import list_tasks, load_env_cfg
+from mjlab.tasks.tracking import mdp
 from mjlab.tasks.tracking.mdp import MotionCommandCfg
 
 
@@ -132,3 +133,18 @@ def test_g1_tracking_has_correct_action_scale(g1_tracking_task_ids: list[str]) -
     assert joint_pos_action.scale == G1_ACTION_SCALE, (
       f"Task {task_id} action scale mismatch, expected G1_ACTION_SCALE"
     )
+
+
+def test_tracking_tasks_have_motion_time_out_truncation(
+  tracking_task_ids: list[str],
+) -> None:
+  """All tracking tasks should truncate when the reference clip ends."""
+  for task_id in tracking_task_ids:
+    for play_mode in [False, True]:
+      cfg = load_env_cfg(task_id, play=play_mode)
+      assert "motion_time_out" in cfg.terminations, (
+        f"Task {task_id} (play={play_mode}) missing 'motion_time_out' termination"
+      )
+      term = cfg.terminations["motion_time_out"]
+      assert term.time_out is True
+      assert term.func is mdp.motion_time_out
