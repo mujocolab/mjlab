@@ -8,6 +8,10 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``touch``, ``camprojection``, ``ballquat``, ``ballangvel``,
+  ``tendonlimitpos``, ``tendonlimitvel``, ``tendonlimitfrc``, ``insidesite``,
+  ``geomdist``, ``geomnormal``, and ``geomfromto`` sensor types to
+  ``BuiltinSensorCfg``.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.

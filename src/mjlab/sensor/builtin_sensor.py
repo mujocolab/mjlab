@@ -21,6 +21,8 @@ SensorType = Literal[
   "torque",
   "magnetometer",
   "rangefinder",
+  "touch",
+  "camprojection",
   # Joint sensors.
   "jointpos",
   "jointvel",
@@ -28,9 +30,14 @@ SensorType = Literal[
   "jointlimitvel",
   "jointlimitfrc",
   "jointactuatorfrc",
+  "ballquat",
+  "ballangvel",
   # Tendon sensors.
   "tendonpos",
   "tendonvel",
+  "tendonlimitpos",
+  "tendonlimitvel",
+  "tendonlimitfrc",
   "tendonactuatorfrc",
   # Actuator sensors.
   "actuatorpos",
@@ -50,6 +57,11 @@ SensorType = Literal[
   "subtreecom",
   "subtreelinvel",
   "subtreeangmom",
+  # Spatial / geometry query sensors.
+  "insidesite",
+  "geomdist",
+  "geomnormal",
+  "geomfromto",
   # Misc.
   "e_potential",
   "e_kinetic",
@@ -65,6 +77,8 @@ _SENSOR_TYPE_MAP = {
   "torque": mujoco.mjtSensor.mjSENS_TORQUE,
   "magnetometer": mujoco.mjtSensor.mjSENS_MAGNETOMETER,
   "rangefinder": mujoco.mjtSensor.mjSENS_RANGEFINDER,
+  "touch": mujoco.mjtSensor.mjSENS_TOUCH,
+  "camprojection": mujoco.mjtSensor.mjSENS_CAMPROJECTION,
   # Joint sensors.
   "jointpos": mujoco.mjtSensor.mjSENS_JOINTPOS,
   "jointvel": mujoco.mjtSensor.mjSENS_JOINTVEL,
@@ -72,9 +86,14 @@ _SENSOR_TYPE_MAP = {
   "jointlimitvel": mujoco.mjtSensor.mjSENS_JOINTLIMITVEL,
   "jointlimitfrc": mujoco.mjtSensor.mjSENS_JOINTLIMITFRC,
   "jointactuatorfrc": mujoco.mjtSensor.mjSENS_JOINTACTFRC,
+  "ballquat": mujoco.mjtSensor.mjSENS_BALLQUAT,
+  "ballangvel": mujoco.mjtSensor.mjSENS_BALLANGVEL,
   # Tendon sensors.
   "tendonpos": mujoco.mjtSensor.mjSENS_TENDONPOS,
   "tendonvel": mujoco.mjtSensor.mjSENS_TENDONVEL,
+  "tendonlimitpos": mujoco.mjtSensor.mjSENS_TENDONLIMITPOS,
+  "tendonlimitvel": mujoco.mjtSensor.mjSENS_TENDONLIMITVEL,
+  "tendonlimitfrc": mujoco.mjtSensor.mjSENS_TENDONLIMITFRC,
   "tendonactuatorfrc": mujoco.mjtSensor.mjSENS_TENDONACTFRC,
   # Actuator sensors.
   "actuatorpos": mujoco.mjtSensor.mjSENS_ACTUATORPOS,
@@ -94,6 +113,11 @@ _SENSOR_TYPE_MAP = {
   "subtreecom": mujoco.mjtSensor.mjSENS_SUBTREECOM,
   "subtreelinvel": mujoco.mjtSensor.mjSENS_SUBTREELINVEL,
   "subtreeangmom": mujoco.mjtSensor.mjSENS_SUBTREEANGMOM,
+  # Spatial / geometry query sensors.
+  "insidesite": mujoco.mjtSensor.mjSENS_INSIDESITE,
+  "geomdist": mujoco.mjtSensor.mjSENS_GEOMDIST,
+  "geomnormal": mujoco.mjtSensor.mjSENS_GEOMNORMAL,
+  "geomfromto": mujoco.mjtSensor.mjSENS_GEOMFROMTO,
   # Misc.
   "clock": mujoco.mjtSensor.mjSENS_CLOCK,
   "e_potential": mujoco.mjtSensor.mjSENS_E_POTENTIAL,
@@ -119,6 +143,8 @@ _SENSORS_REQUIRING_SITE = {
   "torque",
   "magnetometer",
   "rangefinder",
+  "touch",
+  "camprojection",
 }
 
 _SENSORS_REQUIRING_SPATIAL_FRAME = {
@@ -131,12 +157,20 @@ _SENSORS_REQUIRING_SPATIAL_FRAME = {
   "frameangvel",
   "framelinacc",
   "frameangacc",
+  "insidesite",
 }
 
 _SENSORS_REQUIRING_BODY = {
   "subtreecom",
   "subtreelinvel",
   "subtreeangmom",
+}
+
+_GEOM_OR_BODY_TYPES = {"geom", "body"}
+_SENSORS_REQUIRING_GEOM_OR_BODY = {
+  "geomdist",
+  "geomnormal",
+  "geomfromto",
 }
 
 _SENSOR_OBJECT_REQUIREMENTS = {
@@ -146,8 +180,13 @@ _SENSOR_OBJECT_REQUIREMENTS = {
   "jointlimitvel": "joint",
   "jointlimitfrc": "joint",
   "jointactuatorfrc": "joint",
+  "ballquat": "joint",
+  "ballangvel": "joint",
   "tendonpos": "tendon",
   "tendonvel": "tendon",
+  "tendonlimitpos": "tendon",
+  "tendonlimitvel": "tendon",
+  "tendonlimitfrc": "tendon",
   "tendonactuatorfrc": "tendon",
   "actuatorpos": "actuator",
   "actuatorvel": "actuator",
@@ -165,6 +204,13 @@ _SENSORS_ALLOWING_REF = {
   "frameangvel",
   "framelinacc",
   "frameangacc",
+}
+_SENSORS_REQUIRING_REF_TYPES: dict[str, set[str]] = {
+  "camprojection": {"camera"},
+  "insidesite": {"site"},
+  "geomdist": _GEOM_OR_BODY_TYPES,
+  "geomnormal": _GEOM_OR_BODY_TYPES,
+  "geomfromto": _GEOM_OR_BODY_TYPES,
 }
 
 
@@ -201,7 +247,8 @@ class BuiltinSensorCfg(SensorCfg):
   ref: ObjRef | None = None
   """The type and name of object to which the frame-of-reference is attached to."""
   cutoff: float = 0.0
-  """When this value is positive, it limits the absolute value of the sensor output."""
+  """Output magnitude clamp when positive, or maximum search distance for
+  ``geomdist``, ``geomnormal``, and ``geomfromto``."""
 
   @property
   def prefixed_name(self) -> str:
@@ -211,6 +258,9 @@ class BuiltinSensorCfg(SensorCfg):
     return self.name
 
   def __post_init__(self) -> None:
+    if self.cutoff < 0.0:
+      raise ValueError(f"cutoff must be non-negative, got {self.cutoff}")
+
     if self.sensor_type in _SENSORS_REQUIRING_SITE:
       if self.obj is None:
         raise ValueError(
@@ -244,6 +294,18 @@ class BuiltinSensorCfg(SensorCfg):
           f"got '{self.obj.type}'"
         )
 
+    elif self.sensor_type in _SENSORS_REQUIRING_GEOM_OR_BODY:
+      if self.obj is None:
+        raise ValueError(
+          f"Sensor type '{self.sensor_type}' requires obj with type in "
+          f"{sorted(_GEOM_OR_BODY_TYPES)}"
+        )
+      if self.obj.type not in _GEOM_OR_BODY_TYPES:
+        raise ValueError(
+          f"Sensor type '{self.sensor_type}' requires obj.type in "
+          f"{sorted(_GEOM_OR_BODY_TYPES)}, got '{self.obj.type}'"
+        )
+
     elif self.sensor_type in _SENSOR_OBJECT_REQUIREMENTS:
       required_type = _SENSOR_OBJECT_REQUIREMENTS[self.sensor_type]
       if self.obj is None:
@@ -256,7 +318,19 @@ class BuiltinSensorCfg(SensorCfg):
           f"got '{self.obj.type}'"
         )
 
-    if self.ref is not None and self.sensor_type not in _SENSORS_ALLOWING_REF:
+    if self.sensor_type in _SENSORS_REQUIRING_REF_TYPES:
+      allowed_ref_types = _SENSORS_REQUIRING_REF_TYPES[self.sensor_type]
+      if self.ref is None:
+        raise ValueError(
+          f"Sensor type '{self.sensor_type}' requires ref with type in "
+          f"{sorted(allowed_ref_types)}"
+        )
+      if self.ref.type not in allowed_ref_types:
+        raise ValueError(
+          f"Sensor type '{self.sensor_type}' requires ref.type in "
+          f"{sorted(allowed_ref_types)}, got '{self.ref.type}'"
+        )
+    elif self.ref is not None and self.sensor_type not in _SENSORS_ALLOWING_REF:
       raise ValueError(
         f"Sensor type '{self.sensor_type}' does not support ref specification"
       )

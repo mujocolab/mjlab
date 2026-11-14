@@ -376,3 +376,193 @@ def test_deepcopy_no_double_prefix():
   cfg_copy = copy.deepcopy(cfg)
   assert cfg_copy.prefixed_name == "robot/joint1_pos"
   assert cfg_copy.name == "joint1_pos"
+
+
+def test_new_sensor_validation_errors():
+  """Verify obj, ref, and cutoff validation for spatial, projection, and geom sensors."""
+  with pytest.raises(ValueError, match="cutoff must be non-negative"):
+    BuiltinSensorCfg(
+      name="bad_cutoff",
+      sensor_type="jointpos",
+      obj=ObjRef(type="joint", name="joint1"),
+      cutoff=-0.1,
+    )
+
+  with pytest.raises(ValueError, match="requires ref with type"):
+    BuiltinSensorCfg(
+      name="missing_cam_ref",
+      sensor_type="camprojection",
+      obj=ObjRef(type="site", name="s1"),
+    )
+
+  with pytest.raises(ValueError, match="requires ref.type in"):
+    BuiltinSensorCfg(
+      name="wrong_cam_ref",
+      sensor_type="camprojection",
+      obj=ObjRef(type="site", name="s1"),
+      ref=ObjRef(type="site", name="s2"),
+    )
+
+  with pytest.raises(ValueError, match="requires ref.type in"):
+    BuiltinSensorCfg(
+      name="wrong_inside_ref",
+      sensor_type="insidesite",
+      obj=ObjRef(type="body", name="b1"),
+      ref=ObjRef(type="body", name="b2"),
+    )
+
+  with pytest.raises(ValueError, match="requires obj.type in"):
+    BuiltinSensorCfg(
+      name="wrong_geom_obj",
+      sensor_type="geomdist",
+      obj=ObjRef(type="site", name="s1"),
+      ref=ObjRef(type="geom", name="g2"),
+    )
+
+  with pytest.raises(ValueError, match="requires ref.type in"):
+    BuiltinSensorCfg(
+      name="wrong_geom_ref",
+      sensor_type="geomfromto",
+      obj=ObjRef(type="geom", name="g1"),
+      ref=ObjRef(type="site", name="s2"),
+    )
+
+
+def test_extended_mjwarp_builtin_sensors(device):
+  """Verify ball, tendon-limit, touch, camprojection, insidesite, and geom sensors."""
+  xml = """
+    <mujoco>
+      <worldbody>
+        <camera name="cam" pos="0 0 2" resolution="64 48"/>
+        <site name="zone" type="box" pos="0 0 0.2" size="0.5 0.5 0.5"/>
+        <geom name="floor" type="plane" size="2 2 0.1" pos="0 0 0"/>
+        <body name="ball_body" pos="0 0 0.1">
+          <joint name="ball_j" type="ball"/>
+          <geom name="g1" type="sphere" size="0.1" mass="1.0"/>
+          <site name="touch_site" type="sphere" pos="0 0 0" size="0.11"/>
+        </body>
+        <body name="upper_body" pos="0 0 0.6">
+          <joint name="slide_j" type="slide" axis="0 0 1" range="-0.2 0.2" limited="true"/>
+          <geom name="g2" type="sphere" size="0.1" mass="1.0"/>
+          <site name="upper_site" pos="0 0 0"/>
+        </body>
+      </worldbody>
+      <tendon>
+        <spatial name="ten" limited="true" range="0.1 0.35">
+          <site site="touch_site"/>
+          <site site="upper_site"/>
+        </spatial>
+      </tendon>
+    </mujoco>
+  """
+  entity_cfg = EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(xml))
+  sensors = (
+    BuiltinSensorCfg(
+      name="ball_q",
+      sensor_type="ballquat",
+      obj=ObjRef(type="joint", name="ball_j", entity="robot"),
+    ),
+    BuiltinSensorCfg(
+      name="ball_w",
+      sensor_type="ballangvel",
+      obj=ObjRef(type="joint", name="ball_j", entity="robot"),
+    ),
+    BuiltinSensorCfg(
+      name="ten_lim_pos",
+      sensor_type="tendonlimitpos",
+      obj=ObjRef(type="tendon", name="ten", entity="robot"),
+    ),
+    BuiltinSensorCfg(
+      name="ten_lim_vel",
+      sensor_type="tendonlimitvel",
+      obj=ObjRef(type="tendon", name="ten", entity="robot"),
+    ),
+    BuiltinSensorCfg(
+      name="ten_lim_frc",
+      sensor_type="tendonlimitfrc",
+      obj=ObjRef(type="tendon", name="ten", entity="robot"),
+    ),
+    BuiltinSensorCfg(
+      name="foot_touch",
+      sensor_type="touch",
+      obj=ObjRef(type="site", name="touch_site", entity="robot"),
+    ),
+    BuiltinSensorCfg(
+      name="cam_proj",
+      sensor_type="camprojection",
+      obj=ObjRef(type="site", name="touch_site", entity="robot"),
+      ref=ObjRef(type="camera", name="cam", entity="robot"),
+    ),
+    BuiltinSensorCfg(
+      name="in_zone",
+      sensor_type="insidesite",
+      obj=ObjRef(type="body", name="ball_body", entity="robot"),
+      ref=ObjRef(type="site", name="zone", entity="robot"),
+    ),
+    BuiltinSensorCfg(
+      name="pair_dist",
+      sensor_type="geomdist",
+      obj=ObjRef(type="geom", name="g1", entity="robot"),
+      ref=ObjRef(type="geom", name="g2", entity="robot"),
+      cutoff=2.0,
+    ),
+    BuiltinSensorCfg(
+      name="pair_norm",
+      sensor_type="geomnormal",
+      obj=ObjRef(type="geom", name="g1", entity="robot"),
+      ref=ObjRef(type="geom", name="g2", entity="robot"),
+      cutoff=2.0,
+    ),
+    BuiltinSensorCfg(
+      name="pair_fromto",
+      sensor_type="geomfromto",
+      obj=ObjRef(type="geom", name="g1", entity="robot"),
+      ref=ObjRef(type="geom", name="g2", entity="robot"),
+      cutoff=2.0,
+    ),
+  )
+
+  scene_cfg = SceneCfg(
+    num_envs=2,
+    env_spacing=3.0,
+    entities={"robot": entity_cfg},
+    sensors=sensors,
+  )
+  scene = Scene(scene_cfg, device)
+  model = scene.compile()
+  sim = Simulation(num_envs=2, cfg=SimulationCfg(njmax=30), model=model, device=device)
+  scene.initialize(sim.mj_model, sim.model, sim.data)
+
+  sim.data.qvel[0, :3] = torch.tensor([0.3, -0.2, 0.1], device=device)
+  sim.step()
+
+  assert scene["robot/ball_q"].data.shape == (2, 4)
+  assert scene["robot/ball_w"].data.shape == (2, 3)
+  assert torch.linalg.norm(scene["robot/ball_w"].data[0]) > 0.0
+  assert scene["robot/ten_lim_pos"].data.shape == (2, 1)
+  assert (scene["robot/ten_lim_pos"].data < 0.0).all()
+  assert scene["robot/ten_lim_vel"].data.shape == (2, 1)
+  assert scene["robot/ten_lim_frc"].data.shape == (2, 1)
+  assert (scene["robot/ten_lim_frc"].data > 0.0).all()
+  assert scene["robot/foot_touch"].data.shape == (2, 1)
+  assert scene["robot/cam_proj"].data.shape == (2, 2)
+  assert torch.allclose(
+    scene["robot/cam_proj"].data,
+    torch.tensor([[32.0, 24.0], [32.0, 24.0]], device=device),
+    atol=1e-2,
+  )
+  assert scene["robot/in_zone"].data.shape == (2, 1)
+  assert torch.allclose(scene["robot/in_zone"].data, torch.ones((2, 1), device=device))
+  assert scene["robot/pair_dist"].data.shape == (2, 1)
+  assert torch.allclose(
+    scene["robot/pair_dist"].data,
+    torch.full((2, 1), 0.3, device=device),
+    atol=2e-2,
+  )
+  assert scene["robot/pair_norm"].data.shape == (2, 3)
+  assert torch.allclose(
+    scene["robot/pair_norm"].data[:, 2],
+    torch.ones(2, device=device),
+    atol=1e-3,
+  )
+  assert scene["robot/pair_fromto"].data.shape == (2, 6)
