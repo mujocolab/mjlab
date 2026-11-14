@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``TerrainEntity.set_terrain_levels()`` and ``options={"terrain_levels": ...}``
+  support in ``ManagerBasedRlEnv.reset()`` to explicitly set per-episode terrain
+  difficulty levels and sub-terrain types :issue:`1039`.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.

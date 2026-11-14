@@ -363,13 +363,12 @@ class ManagerBasedRlEnv:
     env_ids: torch.Tensor | None = None,
     options: dict[str, Any] | None = None,
   ) -> tuple[types.VecEnvObs, dict]:
-    del options  # Unused.
     if env_ids is None:
       env_ids = torch.arange(self.num_envs, dtype=torch.int64, device=self.device)
     if seed is not None:
       self.seed(seed)
     self.extras["log"] = dict()
-    self._reset_idx(env_ids)
+    self._reset_idx(env_ids, options=options)
     self.scene.write_data_to_sim(env_ids=env_ids)
     self.sim.forward()
     # Scoped to env_ids so a partial reset does not advance stateful commands in the
@@ -578,8 +577,22 @@ class ManagerBasedRlEnv:
     self.observation_space = batch_space(self.single_observation_space, self.num_envs)
     self.action_space = batch_space(self.single_action_space, self.num_envs)
 
-  def _reset_idx(self, env_ids: torch.Tensor | None = None) -> None:
+  def _reset_idx(
+    self,
+    env_ids: torch.Tensor | None = None,
+    options: dict[str, Any] | None = None,
+  ) -> None:
     self.curriculum_manager.compute(env_ids=env_ids)
+    if (
+      options is not None
+      and "terrain_levels" in options
+      and self.scene.terrain is not None
+    ):
+      self.scene.terrain.set_terrain_levels(
+        env_ids=env_ids,
+        levels=options["terrain_levels"],
+        terrain_types=options.get("terrain_types"),
+      )
     self.sim.reset(env_ids)
     self.scene.reset(env_ids)
 
