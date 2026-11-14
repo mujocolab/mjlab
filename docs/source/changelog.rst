@@ -51,8 +51,8 @@ Changed
 - Bumped ``mujoco`` and ``mujoco-warp`` from 3.11 to 3.16 and raised the
   ``warp-lang`` floor to 1.15.
 - ``BuiltinDcMotorActuatorCfg`` PID gains are now in torque space, following
-  MuJoCo 3.14. VELOCITY mode requires ``damping > 0`` and ``stiffness = 0``, and
-  VOLTAGE mode rejects ``voltage_limit`` and ``slew_rate``.
+  MuJoCo 3.14 :issue:`1041`. VELOCITY mode requires ``damping > 0`` and
+  ``stiffness = 0``, and VOLTAGE mode rejects ``voltage_limit`` and ``slew_rate``.
 - Task runners upload exported ONNX policies through the log writer instead of
   ``wandb.save``, and name the run in the ONNX metadata after the log directory.
 - Bumped ``rsl-rl-lib`` from 5.5.0 to 5.5.1. This removes the need for capping
