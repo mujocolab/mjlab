@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Exposed ``MjlabOnPolicyRunner.export_onnx_with_metadata()`` as a public
+  method so runner subclasses that replace ``save()`` can still export and
+  upload deployable ONNX policies :issue:`1288`.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.

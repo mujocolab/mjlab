@@ -1,6 +1,7 @@
 """Tests for MjlabOnPolicyRunner."""
 
 import ast
+import importlib
 import tempfile
 from dataclasses import asdict
 from pathlib import Path
@@ -16,6 +17,7 @@ from rsl_rl.utils import WandbLogWriter
 from rsl_rl.utils.logger import Logger
 from tensordict import TensorDict
 
+import mjlab.rl.runner as runner_mod
 import mjlab.scripts.train as train_mod
 from mjlab.actuator import XmlActuatorCfg
 from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
@@ -626,13 +628,66 @@ def test_onnx_export_uploads_through_logger(upload_model, monkeypatch, tmp_path)
   monkeypatch.setattr(runner_mod, "get_base_metadata", get_base_metadata)
   monkeypatch.setattr(runner_mod, "attach_metadata_to_onnx", lambda *a: None)
 
-  runner._export_onnx_with_metadata(str(checkpoint))
+  runner.export_onnx_with_metadata(str(checkpoint))
 
   get_base_metadata.assert_called_once_with(runner.env.unwrapped, "run-dir")
   if upload_model:
     runner.logger.save_model.assert_called_once_with(str(onnx_path), 100)
   else:
     runner.logger.save_model.assert_not_called()
+
+
+@pytest.mark.parametrize(
+  ("runner_module", "runner_class"),
+  [
+    ("mjlab.tasks.velocity.rl.runner", "VelocityOnPolicyRunner"),
+    ("mjlab.tasks.manipulation.rl.runner", "ManipulationOnPolicyRunner"),
+    ("mjlab.tasks.tracking.rl.runner", "MotionTrackingOnPolicyRunner"),
+  ],
+)
+def test_custom_save_subclass_can_call_export_onnx_with_metadata(
+  runner_module, runner_class, monkeypatch, tmp_path
+):
+  """Subclasses overriding save() can call export_onnx_with_metadata() directly."""
+  base_cls = getattr(importlib.import_module(runner_module), runner_class)
+
+  class _CustomSaveRunner(base_cls):
+    def save(self, path: str, infos=None) -> None:
+      torch.save({"custom": True, "infos": infos}, path)
+      self.export_onnx_with_metadata(path)
+
+  runner = _CustomSaveRunner.__new__(_CustomSaveRunner)
+  runner.cfg = {"upload_model": True}
+  runner.current_learning_iteration = 42
+  runner.logger = _make_logger_mock(is_wandb=False)
+  runner.logger.log_dir = str(tmp_path / "exp-run")
+  runner.env = MagicMock()
+  mock_motion = MagicMock()
+  mock_motion.cfg.anchor_body_name = "pelvis"
+  mock_motion.cfg.body_names = ["pelvis", "torso"]
+  runner.env.unwrapped.command_manager.get_term.return_value = mock_motion
+  runner.export_policy_to_onnx = MagicMock()
+
+  monkeypatch.setattr(runner_mod, "get_base_metadata", lambda env, run: {"run": run})
+  attached: dict[str, dict] = {}
+  monkeypatch.setattr(
+    runner_mod,
+    "attach_metadata_to_onnx",
+    lambda onnx_p, meta: attached.setdefault(onnx_p, meta),
+  )
+
+  ckpt = tmp_path / "exp-run" / "model_42.pt"
+  ckpt.parent.mkdir()
+  runner.save(str(ckpt))
+
+  assert ckpt.exists()
+  expected_onnx = ckpt.parent / "exp-run.onnx"
+  runner.export_policy_to_onnx.assert_called_once_with(str(ckpt.parent), "exp-run.onnx")
+  assert str(expected_onnx) in attached
+  assert attached[str(expected_onnx)]["run"] == "exp-run"
+  if runner_class == "MotionTrackingOnPolicyRunner":
+    assert attached[str(expected_onnx)]["anchor_body_name"] == "pelvis"
+  runner.logger.save_model.assert_called_once_with(str(expected_onnx), 42)
 
 
 def _make_tracking_runner_shell(registry_name, is_wandb, upload_model=True):

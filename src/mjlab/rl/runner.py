@@ -97,7 +97,13 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     """
     return get_base_metadata(self.env.unwrapped, run_name)
 
-  def _export_onnx_with_metadata(self, checkpoint_path: str) -> None:
+  def export_onnx_with_metadata(self, checkpoint_path: str) -> None:
+    """Export the policy to ONNX next to ``checkpoint_path`` with metadata.
+
+    Subclasses that override :meth:`save` without calling ``super().save()``
+    (e.g. off-policy runners with custom checkpoint schemas) can call this
+    method directly to produce and upload the deployable ONNX policy.
+    """
     policy_dir, filename, onnx_path = self._get_export_paths(checkpoint_path)
     try:
       self.export_policy_to_onnx(str(policy_dir), filename)
@@ -106,6 +112,8 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
       self._upload_model(str(onnx_path))
     except Exception as e:
       print(f"[WARN] ONNX export failed (training continues): {e}")
+
+  _export_onnx_with_metadata = export_onnx_with_metadata
 
   def save(self, path: str, infos=None) -> None:
     """Save checkpoint.
@@ -123,7 +131,7 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     torch.save(saved_dict, path)
     self._upload_model(path)
     if self.export_onnx_on_save:
-      self._export_onnx_with_metadata(path)
+      self.export_onnx_with_metadata(path)
 
   def load(
     self,
