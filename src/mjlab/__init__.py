@@ -1,21 +1,53 @@
 import os
 import sys
-
-# Default to EGL for GPU-accelerated offscreen rendering on Linux. Must be set
-# before any mujoco import: mujoco's gl_context module captures MUJOCO_GL once
-# at load time. Override with e.g. MUJOCO_GL=osmesa on clusters without EGL.
-# Linux-only because mujoco's gl_context rejects "egl" on macOS/Windows and
-# raises at import. On those platforms we leave MUJOCO_GL alone so mujoco
-# defaults to GLFW.
-if sys.platform.startswith("linux"):
-  os.environ.setdefault("MUJOCO_GL", "egl")
-
 import traceback
+from collections.abc import Mapping, MutableMapping
 from importlib.metadata import entry_points
 from pathlib import Path
 
 import tyro
 import warp as wp
+
+
+def _is_wsl(
+  *,
+  env: Mapping[str, str] | None = None,
+  osrelease_path: Path | str = "/proc/sys/kernel/osrelease",
+) -> bool:
+  """Return True when running inside Windows Subsystem for Linux (WSL)."""
+  target_env = os.environ if env is None else env
+  if target_env.get("WSL_DISTRO_NAME") or target_env.get("WSL_INTEROP"):
+    return True
+  try:
+    osrelease = Path(osrelease_path).read_text(encoding="utf-8", errors="ignore")
+  except OSError:
+    return False
+  return "microsoft" in osrelease.lower()
+
+
+def _configure_linux_gl_env(
+  *,
+  platform: str | None = None,
+  env: MutableMapping[str, str] | None = None,
+  osrelease_path: Path | str = "/proc/sys/kernel/osrelease",
+) -> None:
+  """Configure Linux/WSL OpenGL environment defaults before importing MuJoCo.
+
+  Defaults to ``MUJOCO_GL=egl`` on Linux for GPU-accelerated offscreen rendering
+  (override with e.g. ``MUJOCO_GL=osmesa`` on clusters without EGL). On WSL2,
+  Mesa >= 24.3 defaults window contexts to software ``llvmpipe`` unless
+  ``GALLIUM_DRIVER=d3d12`` is set.
+  """
+  plat = sys.platform if platform is None else platform
+  if not plat.startswith("linux"):
+    return
+  target_env = os.environ if env is None else env
+  target_env.setdefault("MUJOCO_GL", "egl")
+  if _is_wsl(env=target_env, osrelease_path=osrelease_path):
+    target_env.setdefault("GALLIUM_DRIVER", "d3d12")
+
+
+_configure_linux_gl_env()
 
 MJLAB_SRC_PATH: Path = Path(__file__).parent
 

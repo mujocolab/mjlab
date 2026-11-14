@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``win32`` (``AMD64``) and ``linux`` (``aarch64``) to ``uv``'s
+  ``required-environments`` so lockfiles validate wheels across Windows x64 and
+  Linux ARM64 alongside Linux x64 and macOS Apple Silicon.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
@@ -65,6 +68,9 @@ Changed
 Fixed
 ^^^^^
 
+- Defaulted ``GALLIUM_DRIVER=d3d12`` on WSL2 so interactive OpenGL windows use
+  Direct3D 12 GPU acceleration instead of software ``llvmpipe``, and fixed
+  ``play --viewer auto`` display detection on Windows and macOS :issue:`1182`.
 - YAM RGB and depth cube-lifting tasks now use separate experiment directories,
   ``yam_lift_cube_rgb`` and ``yam_lift_cube_depth``.
 - ``EntityData.gravity_vec_w`` now initializes from normalized model gravity, so

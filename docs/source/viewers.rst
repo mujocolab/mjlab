@@ -26,9 +26,12 @@ The ``play`` script accepts a ``--viewer`` flag:
     uv run play Mjlab-Velocity-Flat-Unitree-G1 --viewer viser \
         --wandb-run-path your-entity/your-project/run_id
 
-The default is ``auto``, which selects native when a display server is
-available (``DISPLAY`` or ``WAYLAND_DISPLAY``) and falls back to Viser
-on headless machines.
+The default is ``auto``, which selects native when a local GUI display is
+available (desktop Windows/macOS without SSH, or Linux/WSLg with ``DISPLAY``
+or ``WAYLAND_DISPLAY``) and falls back to Viser on headless machines. On
+WSL2, mjlab automatically sets ``GALLIUM_DRIVER=d3d12`` when unset so the
+native viewer uses Direct3D 12 GPU acceleration instead of software
+``llvmpipe``.
 
 For quick exploration without a trained checkpoint, pass ``--agent zero``
 or ``--agent random`` to use a dummy policy:
