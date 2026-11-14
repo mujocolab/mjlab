@@ -343,10 +343,16 @@ class EventManager(ManagerBase):
         assert env_ids is not None, "reset events require concrete env_ids, got None"
         min_step_count = term_cfg.min_step_count_between_reset
         if min_step_count == 0:
-          self._reset_term_last_triggered_step_id[index][env_ids] = (
-            global_env_step_count
-          )
-          self._reset_term_last_triggered_once[index][env_ids] = True
+          if isinstance(env_ids, torch.Tensor) and env_ids.dtype == torch.long:
+            self._reset_term_last_triggered_step_id[index].index_fill_(
+              0, env_ids, global_env_step_count
+            )
+            self._reset_term_last_triggered_once[index].index_fill_(0, env_ids, True)
+          else:
+            self._reset_term_last_triggered_step_id[index][env_ids] = (
+              global_env_step_count
+            )
+            self._reset_term_last_triggered_once[index][env_ids] = True
           term_cfg.func(self._env, env_ids, **term_cfg.params)
           fired = True
         else:

@@ -103,8 +103,8 @@ class CommandTerm(ManagerTermBase):
     extras = {}
     for metric_name, metric_value in self.metrics.items():
       extras[metric_name] = torch.mean(metric_value[env_ids]).item()
-      metric_value[env_ids] = 0.0
-    self.command_counter[env_ids] = 0
+      metric_value.index_fill_(0, env_ids, 0.0)
+    self.command_counter.index_fill_(0, env_ids, 0)
     self._resample(env_ids)
     return extras
 
