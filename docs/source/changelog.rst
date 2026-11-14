@@ -8,6 +8,10 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Exposed all MuJoCo Warp 4.0.1 integrators (``rk4``, ``implicit``, and ``discrete``
+  in addition to ``euler`` and ``implicitfast``) on ``MujocoCfg``, and added
+  ``warn_overflow``, ``deterministic``, ``naconmax``, ``nccdmax``, ``naccdmax``,
+  ``njmax_nnz``, and ``nvmax`` to ``SimulationCfg`` :issue:`1263`.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
