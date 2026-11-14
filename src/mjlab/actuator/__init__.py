@@ -4,6 +4,7 @@ from mjlab.actuator.actuator import Actuator as Actuator
 from mjlab.actuator.actuator import ActuatorCfg as ActuatorCfg
 from mjlab.actuator.actuator import ActuatorCmd as ActuatorCmd
 from mjlab.actuator.actuator import CommandField as CommandField
+from mjlab.actuator.actuator import TransmissionType as TransmissionType
 from mjlab.actuator.builtin_actuator import (
   BuiltinDcMotorActuator as BuiltinDcMotorActuator,
 )

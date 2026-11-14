@@ -5,7 +5,6 @@ from __future__ import annotations
 import dataclasses
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
 from typing import TYPE_CHECKING, ClassVar, Generic, Literal, TypeVar
 
 import mujoco
@@ -13,6 +12,7 @@ import mujoco_warp as mjwarp
 import torch
 
 from mjlab.utils.buffers import DelayBuffer
+from mjlab.utils.spec import TransmissionType as TransmissionType
 
 if TYPE_CHECKING:
   from mjlab.entity import Entity
@@ -21,14 +21,6 @@ if TYPE_CHECKING:
 ActuatorCfgT = TypeVar("ActuatorCfgT", bound="ActuatorCfg")
 
 CommandField = Literal["position", "velocity", "effort"]
-
-
-class TransmissionType(str, Enum):
-  """Transmission types for actuators."""
-
-  JOINT = "joint"
-  TENDON = "tendon"
-  SITE = "site"
 
 
 @dataclass(kw_only=True)
