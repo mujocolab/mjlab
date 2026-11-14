@@ -148,11 +148,15 @@ def test_velocity_only(device):
   assert torch.allclose(sim.data.qfrc_actuator[0, v_adr], KD * vel[0], atol=1e-4)
 
 
-def test_pd_superposition(device):
+@pytest.mark.parametrize("sort_actuators", [False, True])
+def test_pd_superposition(device, sort_actuators):
   """Both targets nonzero: qfrc = kp * pos_target + kd * vel_target."""
-  entity, sim = initialize_entity(_make_entity(effort_limit=None), device)
-  pos = torch.tensor([[0.1, -0.05]], device=device)
-  vel = torch.tensor([[0.2, -0.1]], device=device)
+  entity = _make_entity(effort_limit=None)
+  if sort_actuators:
+    entity = Entity(replace(entity.cfg, sort_actuators=True))
+  entity, sim = initialize_entity(entity, device)
+  pos = torch.tensor([[0.1, 0.2]], device=device)
+  vel = torch.tensor([[1.0, 2.0]], device=device)
   _at_rest_with_targets(entity, sim, device, pos, vel)
   v_adr = entity.indexing.joint_v_adr
   expected = KP * pos[0] + KD * vel[0]
@@ -245,7 +249,12 @@ def test_reset_clears_delay_buffer(device):
 # ---------------------------------------------------------------------------
 
 
-def _scene_env(device, transmission=TransmissionType.JOINT, num_envs=2):
+def _scene_env(
+  device,
+  transmission=TransmissionType.JOINT,
+  num_envs=2,
+  sort_actuators: bool = False,
+):
   """Build a real scene/sim with one BuiltinPd-driven entity for DR tests."""
   if transmission == TransmissionType.JOINT:
     xml = ROBOT_XML
@@ -265,6 +274,7 @@ def _scene_env(device, transmission=TransmissionType.JOINT, num_envs=2):
 
   entity_cfg = EntityCfg(
     spec_fn=spec_fn,
+    sort_actuators=sort_actuators,
     articulation=EntityArticulationInfoCfg(
       actuators=(
         BuiltinPdActuatorCfg(
@@ -291,8 +301,9 @@ def _scene_env(device, transmission=TransmissionType.JOINT, num_envs=2):
   return env
 
 
-def test_dr_pd_gains_scales_halves_independently(device):
-  env = _scene_env(device)
+@pytest.mark.parametrize("sort_actuators", [False, True])
+def test_dr_pd_gains_scales_halves_independently(device, sort_actuators):
+  env = _scene_env(device, sort_actuators=sort_actuators)
   robot = env.scene["robot"]
   act = robot.actuators[0]
   assert isinstance(act, BuiltinPdActuator)
@@ -343,9 +354,28 @@ def test_dr_pd_gains_scales_halves_independently(device):
   assert torch.allclose(m.actuator_gainprm[1, pos_ids, 0], torch.tensor(KP))
   assert torch.allclose(m.actuator_gainprm[1, vel_ids, 0], torch.tensor(KD))
 
+  # Verify forward force computation uses the scaled gains on the right targets.
+  robot.write_joint_state_to_sim(
+    position=torch.zeros(2, n, device=device),
+    velocity=torch.zeros(2, n, device=device),
+  )
+  robot.set_joint_position_target(
+    torch.tensor([[0.1, 0.05], [0.1, 0.05]], device=device)
+  )
+  robot.set_joint_velocity_target(torch.tensor([[0.5, 0.2], [0.5, 0.2]], device=device))
+  robot.set_joint_effort_target(torch.zeros(2, n, device=device))
+  robot.write_data_to_sim()
+  env.sim.forward()
+  v_adr = robot.indexing.joint_v_adr
+  expected_env0 = 2.0 * KP * torch.tensor(
+    [0.1, 0.05], device=device
+  ) + 3.0 * KD * torch.tensor([0.5, 0.2], device=device)
+  assert torch.allclose(env.sim.data.qfrc_actuator[0, v_adr], expected_env0, atol=1e-4)
 
-def test_dr_pd_gains_abs_writes_correct_columns(device):
-  env = _scene_env(device)
+
+@pytest.mark.parametrize("sort_actuators", [False, True])
+def test_dr_pd_gains_abs_writes_correct_columns(device, sort_actuators):
+  env = _scene_env(device, sort_actuators=sort_actuators)
   robot = env.scene["robot"]
   act = robot.actuators[0]
   assert isinstance(act, BuiltinPdActuator)
