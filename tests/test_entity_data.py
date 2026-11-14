@@ -524,6 +524,25 @@ def test_joint_pos_limits_match_soft_limits_for_unlimited(device):
     assert limits_tensor[0, 1, 1] == float("inf")
 
 
+def test_joint_limits_follow_randomized_jnt_range(device):
+  """Per-env jnt_range writes reach the limits; the defaults keep the original."""
+  cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(MIXED_LIMITS_XML),
+    articulation=EntityArticulationInfoCfg(soft_joint_pos_limit_factor=0.5),
+  )
+  entity, sim = initialize_entity_with_sim(Entity(cfg), device, num_envs=2)
+  sim.expand_model_fields(("jnt_range",))
+  slider = entity.indexing.joint_ids[0]
+  sim.model.jnt_range[0, slider] = torch.tensor([-1.0, 3.0], device=device)
+
+  expected = torch.tensor([[-1.0, 3.0], [-2.0, 2.0]], device=device)
+  torch.testing.assert_close(entity.data.joint_pos_limits[:, 0], expected)
+  expected_soft = torch.tensor([[0.0, 2.0], [-1.0, 1.0]], device=device)
+  torch.testing.assert_close(entity.data.soft_joint_pos_limits[:, 0], expected_soft)
+  original = torch.tensor([[-2.0, 2.0], [-2.0, 2.0]], device=device)
+  torch.testing.assert_close(entity.data.default_joint_pos_limits[:, 0], original)
+
+
 def test_reset_joints_by_offset_respects_unlimited(device):
   """reset_joints_by_offset must not clamp unlimited joints to [0, 0]."""
   cfg = EntityCfg(

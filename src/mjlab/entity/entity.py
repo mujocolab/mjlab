@@ -737,50 +737,29 @@ class Entity:
         device=device,
       )[None].repeat(nworld, 1)
 
-      # Joint limits.
-      joint_ids_list = [j.id for j in self._non_free_joints]
-      dof_limits = model.jnt_range[:, joint_ids_list]
-      default_joint_pos_limits = dof_limits.clone()
-      joint_pos_limits = default_joint_pos_limits.clone()
-
-      joint_pos_mean = (joint_pos_limits[..., 0] + joint_pos_limits[..., 1]) / 2
-      joint_pos_range = joint_pos_limits[..., 1] - joint_pos_limits[..., 0]
-
-      # Soft limits.
-      soft_limit_factor = (
-        self.cfg.articulation.soft_joint_pos_limit_factor
-        if self.cfg.articulation
-        else 1.0
-      )
-      soft_joint_pos_limits = torch.stack(
-        [
-          joint_pos_mean - 0.5 * joint_pos_range * soft_limit_factor,
-          joint_pos_mean + 0.5 * joint_pos_range * soft_limit_factor,
-        ],
-        dim=-1,
-      )
-
-      # Unlimited joints have jnt_range=[0,0] in MuJoCo, which makes all
-      # the computed limits [0,0]. Override to [-inf, inf] so downstream
-      # clamping becomes a no-op. (Can't do this before soft-limit math
-      # because inf - inf = NaN.)
-      unlimited = ~torch.tensor(
-        mj_model.jnt_limited[joint_ids_list], device=device, dtype=torch.bool
-      )
-      for limits in (joint_pos_limits, default_joint_pos_limits, soft_joint_pos_limits):
-        limits[:, unlimited, 0] = float("-inf")
-        limits[:, unlimited, 1] = float("inf")
     else:
       empty_shape = (nworld, 0)
       default_joint_pos = torch.empty(*empty_shape, dtype=torch.float, device=device)
       default_joint_vel = torch.empty(*empty_shape, dtype=torch.float, device=device)
-      default_joint_pos_limits = torch.empty(
-        *empty_shape, 2, dtype=torch.float, device=device
+
+    # Joint limits are read from the model on access, so they follow DR.
+    joint_ids_list = [j.id for j in self._non_free_joints]
+    joint_unlimited = ~torch.tensor(
+      mj_model.jnt_limited[joint_ids_list], device=device, dtype=torch.bool
+    )
+    soft_limit_factor = (
+      self.cfg.articulation.soft_joint_pos_limit_factor
+      if self.cfg.articulation
+      else 1.0
+    )
+    if self.is_articulated:
+      default_joint_pos_limits = torch.where(
+        joint_unlimited[:, None],
+        torch.tensor([-torch.inf, torch.inf], device=device),
+        model.jnt_range[:, joint_ids_list],
       )
-      joint_pos_limits = torch.empty(*empty_shape, 2, dtype=torch.float, device=device)
-      soft_joint_pos_limits = torch.empty(
-        *empty_shape, 2, dtype=torch.float, device=device
-      )
+    else:
+      default_joint_pos_limits = torch.empty(nworld, 0, 2, device=device)
 
     if self.is_actuated:
       joint_pos_target = torch.zeros(
@@ -847,8 +826,8 @@ class Entity:
       default_joint_pos=default_joint_pos,
       default_joint_vel=default_joint_vel,
       default_joint_pos_limits=default_joint_pos_limits,
-      joint_pos_limits=joint_pos_limits,
-      soft_joint_pos_limits=soft_joint_pos_limits,
+      joint_unlimited=joint_unlimited,
+      soft_joint_pos_limit_factor=soft_limit_factor,
       gravity_vec_w=torch.tensor(gravity_dir, dtype=torch.float, device=device).repeat(
         nworld, 1
       ),
