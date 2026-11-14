@@ -31,9 +31,12 @@ class CameraSensorCfg(SensorCfg):
   or to a specific body via ``parent_body``.
 
   Note:
-    All camera sensors in a scene must share identical values for
-    use_textures, use_shadows, and enabled_geom_groups. This is a
-    constraint of the underlying mujoco_warp rendering system.
+    All camera sensors in a scene share a single ``mjwarp.RenderContext``
+    and must agree on shared render settings (``use_textures``,
+    ``use_shadows``, ``enabled_geom_groups``, ``samples_per_pixel``,
+    ``background_color``, ``render_skybox``, ``use_ambient_lighting``,
+    ``enable_backface_culling``, ``shadow_light_fraction``, and
+    ``deterministic``).
   """
 
   camera_name: str | None = None
@@ -84,6 +87,27 @@ class CameraSensorCfg(SensorCfg):
   enabled_geom_groups: tuple[int, ...] = (0, 1, 2)
   """Geom groups (0-5) visible to the camera."""
 
+  samples_per_pixel: int = 1
+  """Sub-pixel anti-aliasing samples per axis (renders n*n rays per pixel)."""
+
+  background_color: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)
+  """RGBA background color in [0, 1] used when no skybox is rendered."""
+
+  render_skybox: bool = True
+  """Whether to shade missed rays with the MuJoCo skybox texture if present."""
+
+  use_ambient_lighting: bool = True
+  """Whether to include headlight, per-light, and fallback ambient lighting."""
+
+  enable_backface_culling: bool = True
+  """Drop primitive-ray hits whose normal faces away from the ray."""
+
+  shadow_light_fraction: float = 0.3
+  """Fraction in [0, 1] of direct light reaching occluded points."""
+
+  deterministic: bool = False
+  """Use deterministic execution for flex BVH vertex normal accumulation."""
+
   orthographic: bool = False
   """Use orthographic projection instead of perspective."""
 
@@ -100,6 +124,19 @@ class CameraSensorCfg(SensorCfg):
       raise ValueError(f"Invalid camera data types: {invalid}. Valid types: {valid}")
     if not self.data_types:
       raise ValueError("At least one data type must be specified.")
+    if self.samples_per_pixel < 1:
+      raise ValueError(f"samples_per_pixel must be >= 1, got {self.samples_per_pixel}.")
+    if len(self.background_color) != 4 or any(
+      c < 0.0 or c > 1.0 for c in self.background_color
+    ):
+      raise ValueError(
+        "background_color must be a 4-tuple of RGBA floats in [0, 1], "
+        f"got {self.background_color!r}."
+      )
+    if not 0.0 <= self.shadow_light_fraction <= 1.0:
+      raise ValueError(
+        f"shadow_light_fraction must be in [0, 1], got {self.shadow_light_fraction}."
+      )
 
   def build(self) -> CameraSensor:
     return CameraSensor(self)

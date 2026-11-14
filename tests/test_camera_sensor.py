@@ -437,3 +437,78 @@ def test_camera_create_on_parent_body(device):
   assert isinstance(data, CameraSensorData)
   assert data.rgb is not None
   assert data.rgb.shape == (2, 12, 16, 3)
+
+
+def test_camera_render_options_validation() -> None:
+  with pytest.raises(ValueError, match="samples_per_pixel must be >= 1"):
+    CameraSensorCfg(name="bad_spp", samples_per_pixel=0)
+
+  with pytest.raises(ValueError, match="background_color must be a 4-tuple"):
+    CameraSensorCfg(
+      name="bad_bg",
+      background_color=(0.0, 0.0, 1.5, 1.0),
+    )
+
+  with pytest.raises(ValueError, match="shadow_light_fraction must be in"):
+    CameraSensorCfg(name="bad_shadow", shadow_light_fraction=-0.1)
+
+
+def test_camera_shared_render_options_mismatch_raises(device: str) -> None:
+  cam_a = CameraSensorCfg(
+    name="cam_a",
+    pos=(0.0, 0.0, 3.0),
+    width=16,
+    height=12,
+    samples_per_pixel=1,
+  )
+  cam_b = CameraSensorCfg(
+    name="cam_b",
+    pos=(0.0, 0.0, 2.0),
+    width=16,
+    height=12,
+    samples_per_pixel=2,
+  )
+  with pytest.raises(ValueError, match="samples_per_pixel"):
+    _make_scene_and_sim(device, sensors=(cam_a, cam_b))
+
+
+def test_camera_render_options_propagate_and_affect_output(device: str) -> None:
+  # Camera pointing +Z away from the floor so every pixel hits background_color.
+  sky_xml = """
+    <mujoco>
+      <worldbody>
+        <geom name="floor" type="plane" size="10 10 0.1" pos="0 0 0"/>
+        <camera name="sky_cam" pos="0 0 1" quat="0 1 0 0"
+                fovy="45" resolution="8 8"/>
+      </worldbody>
+    </mujoco>
+  """
+  cam_cfg = CameraSensorCfg(
+    name="sky_cam",
+    camera_name="world/sky_cam",
+    width=8,
+    height=8,
+    data_types=("rgb",),
+    samples_per_pixel=2,
+    background_color=(0.0, 1.0, 0.0, 1.0),
+    render_skybox=False,
+    use_ambient_lighting=False,
+    enable_backface_culling=False,
+    shadow_light_fraction=0.1,
+    deterministic=True,
+  )
+  scene, sim = _make_scene_and_sim(device, sensors=(cam_cfg,), xml=sky_xml, num_envs=1)
+  assert scene.sensor_context is not None
+  rc = scene.sensor_context.render_context
+  assert rc.samples_per_pixel == 2
+  assert rc.render_skybox is False
+  assert rc.use_ambient_lighting is False
+  assert rc.enable_backface_culling is False
+  assert rc.shadow_light_fraction == pytest.approx(0.1)
+
+  sim.forward()
+  sim.sense()
+  rgb = scene["sky_cam"].data.rgb
+  assert rgb is not None
+  expected_green = torch.tensor([0, 255, 0], dtype=torch.uint8, device=device)
+  assert torch.equal(rgb[0, 0, 0], expected_green)

@@ -35,6 +35,19 @@ def _unpack_rgb_kernel(
 # Fields that require per-pixel ray recomputation at render time.
 _RAY_FIELDS = frozenset({"cam_fovy", "cam_intrinsic"})
 
+_SHARED_RENDER_SETTINGS = (
+  "use_textures",
+  "use_shadows",
+  "enabled_geom_groups",
+  "samples_per_pixel",
+  "background_color",
+  "render_skybox",
+  "use_ambient_lighting",
+  "enable_backface_culling",
+  "shadow_light_fraction",
+  "deterministic",
+)
+
 
 class SensorContext:
   """Container for shared sensing resources.
@@ -235,24 +248,12 @@ class SensorContext:
     ref = self.camera_sensors[0].cfg
     for s in self.camera_sensors[1:]:
       cfg = s.cfg
-      if cfg.use_textures != ref.use_textures:
-        raise ValueError(
-          "All camera sensors must share the same use_textures "
-          f"setting. '{s.cfg.name}' differs from "
-          f"'{ref.name}'."
-        )
-      if cfg.use_shadows != ref.use_shadows:
-        raise ValueError(
-          "All camera sensors must share the same use_shadows "
-          f"setting. '{s.cfg.name}' differs from "
-          f"'{ref.name}'."
-        )
-      if cfg.enabled_geom_groups != ref.enabled_geom_groups:
-        raise ValueError(
-          "All camera sensors must share the same "
-          f"enabled_geom_groups. '{s.cfg.name}' differs from "
-          f"'{ref.name}'."
-        )
+      for attr in _SHARED_RENDER_SETTINGS:
+        if getattr(cfg, attr) != getattr(ref, attr):
+          raise ValueError(
+            f"All camera sensors must share the same {attr} "
+            f"setting. '{cfg.name}' differs from '{ref.name}'."
+          )
 
   def _raycast_geom_groups(self) -> set[int]:
     """Compute the union of geom groups across all raycast sensors."""
@@ -277,6 +278,13 @@ class SensorContext:
       ref_cfg = self.camera_sensors[0].cfg
       use_textures = ref_cfg.use_textures
       use_shadows = ref_cfg.use_shadows
+      samples_per_pixel = ref_cfg.samples_per_pixel
+      background_color = ref_cfg.background_color
+      render_skybox = ref_cfg.render_skybox
+      use_ambient_lighting = ref_cfg.use_ambient_lighting
+      enable_backface_culling = ref_cfg.enable_backface_culling
+      shadow_light_fraction = ref_cfg.shadow_light_fraction
+      deterministic = ref_cfg.deterministic
       cam_geom_groups = set(ref_cfg.enabled_geom_groups)
 
       if self.raycast_sensors and raycast_geom_groups != cam_geom_groups:
@@ -312,6 +320,13 @@ class SensorContext:
       # Raycasts-only: need BVH but no camera rendering.
       use_textures = False
       use_shadows = False
+      samples_per_pixel = 1
+      background_color = (0.0, 0.0, 0.0, 1.0)
+      render_skybox = False
+      use_ambient_lighting = True
+      enable_backface_culling = True
+      shadow_light_fraction = 0.3
+      deterministic = False
       enabled_geom_groups = sorted(raycast_geom_groups)
       cam_active = [False] * ncam
 
@@ -324,12 +339,17 @@ class SensorContext:
         render_depth=render_depth,
         use_textures=use_textures,
         use_shadows=use_shadows,
+        use_ambient_lighting=use_ambient_lighting,
         enabled_geom_groups=enabled_geom_groups,
         cam_active=cam_active,
+        background_color=background_color,
         use_precomputed_rays=not self._disable_precomputed_rays,
         render_seg=render_seg,
-        render_skybox=True,
-        background_color=(0.0, 0.0, 0.0, 1.0),
+        render_skybox=render_skybox,
+        enable_backface_culling=enable_backface_culling,
+        shadow_light_fraction=shadow_light_fraction,
+        samples_per_pixel=samples_per_pixel,
+        deterministic=deterministic,
       )
 
     # Cache address arrays from the render context. An adr value of -1 means that data

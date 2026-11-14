@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added MuJoCo Warp raytracer options (``samples_per_pixel``, ``background_color``,
+  ``render_skybox``, ``use_ambient_lighting``, ``enable_backface_culling``,
+  ``shadow_light_fraction``, and ``deterministic``) to ``CameraSensorCfg``.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.

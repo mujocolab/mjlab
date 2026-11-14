@@ -159,11 +159,17 @@ Only requested types are allocated; the other field on
 Render settings
 ---------------
 
-All camera sensors in a scene must share identical values for
-``use_textures``, ``use_shadows``, and ``enabled_geom_groups``. This
-is a constraint of the underlying MuJoCo Warp rendering system, which
-uses a single ``RenderContext`` for all cameras. Mismatched settings
-raise a ``ValueError`` at scene construction.
+``CameraSensorCfg`` exposes MuJoCo Warp's raytracer options:
+``use_textures``, ``use_shadows``, ``enabled_geom_groups``,
+``samples_per_pixel`` (sub-pixel anti-aliasing samples per axis),
+``background_color``, ``render_skybox``, ``use_ambient_lighting``,
+``enable_backface_culling``, ``shadow_light_fraction``, and
+``deterministic``.
+
+All camera sensors in a scene must share identical values for these
+render settings. This is a constraint of the underlying MuJoCo Warp
+rendering system, which uses a single ``RenderContext`` for all cameras.
+Mismatched settings raise a ``ValueError`` at scene construction.
 
 .. code-block:: python
 
