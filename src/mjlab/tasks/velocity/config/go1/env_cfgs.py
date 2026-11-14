@@ -228,6 +228,10 @@ def unitree_go1_rough_env_cfg(
   # orientation alone. Let out_of_terrain_bounds handle resets.
   cfg.terminations.pop("fell_over", None)
 
+  # Unlike legged_gym / Isaac Lab configs that terminate on trunk contact at
+  # threshold=1.0 N, Go1 rough penalizes trunk/head and shank contacts softly
+  # above (10.0 N default) so the robot can scrape over tall steps, while hard-
+  # terminating when the thighs collapse onto terrain (> 10.0 N).
   cfg.terminations["illegal_contact"] = TerminationTermCfg(
     func=mdp.illegal_contact,
     params={"sensor_name": thigh_ground_cfg.name},

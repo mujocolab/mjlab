@@ -61,6 +61,30 @@ functions return a boolean tensor of shape ``[num_envs]``.
        cleanly.
 
 
+Task-level contact terminations
+-------------------------------
+
+Locomotion and manipulation tasks also provide ``illegal_contact(env,
+sensor_name, force_threshold=10.0)`` in ``mjlab.tasks.velocity.mdp`` and
+``mjlab.tasks.manipulation.mdp``:
+
+- When the referenced ``ContactSensorCfg`` sets ``history_length > 0`` and
+  includes ``"force"`` in ``fields``, ``illegal_contact`` terminates any
+  environment whose contact force norm exceeds ``force_threshold`` (in Newtons)
+  on any physics substep in the history window.
+- When ``force_history`` is unavailable (``history_length == 0``), it falls back
+  to ``data.found > 0`` and ``force_threshold`` is ignored.
+
+.. note::
+
+   ``force_threshold`` defaults to ``10.0`` N in ``mjlab`` (both in
+   ``illegal_contact`` and in ``self_collision_cost``). In Isaac Lab /
+   ``legged_gym`` locomotion tasks, ``threshold`` is a required argument and is
+   typically set to ``1.0`` N. Pass ``params={"sensor_name": ...,
+   "force_threshold": 1.0}`` explicitly when reproducing Isaac Lab contact
+   termination sensitivity.
+
+
 Writing custom termination functions
 -------------------------------------
 
