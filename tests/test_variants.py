@@ -1780,3 +1780,70 @@ def test_sync_model_fields_copies_only_requested_env_fields():
 
   np.testing.assert_allclose(model.geom_rgba, [[0.5, 0.6, 0.7, 0.8]])
   np.testing.assert_allclose(model.geom_pos, original_geom_pos)
+
+
+@pytest.mark.parametrize("broadphase", ["nxn", "sap_tile"])
+@pytest.mark.parametrize("num_envs", [1, 2])
+def test_unfilled_mesh_slots_do_not_collide_in_single_or_multi_world(
+  broadphase: str, num_envs: int
+) -> None:
+  """Unfilled variant mesh slots (dataid == -1) produce no phantom contacts,
+  including when num_envs == 1."""
+
+  def _one_high_mesh_spec() -> mujoco.MjSpec:
+    spec = mujoco.MjSpec()
+    m0 = spec.add_mesh(name="m0")
+    m0.make_sphere(subdivision=1)
+    body = spec.worldbody.add_body(name="prop")
+    body.add_freejoint()
+    body.add_geom(
+      name="col_0",
+      type=mujoco.mjtGeom.mjGEOM_MESH,
+      meshname="m0",
+      pos=(0.0, 0.0, 3.0),
+    )
+    return spec
+
+  def _two_mesh_spec() -> mujoco.MjSpec:
+    spec = _one_high_mesh_spec()
+    m1 = spec.add_mesh(name="m1")
+    m1.make_sphere(subdivision=1)
+    spec.body("prop").add_geom(
+      name="col_1",
+      type=mujoco.mjtGeom.mjGEOM_MESH,
+      meshname="m1",
+      pos=(0.0, 0.0, 0.0),
+    )
+    return spec
+
+  scene_spec, vi = _build_scene_with_variants(
+    _one_high_mesh_spec,
+    _two_mesh_spec,
+    weight_a=1.0,
+    weight_b=0.0,
+  )
+  # Floor at z = -0.5 overlaps the unfilled col_1 slot at z = 0, but not col_0 at z = 3.
+  scene_spec.worldbody.add_geom(
+    name="floor",
+    type=mujoco.mjtGeom.mjGEOM_PLANE,
+    pos=(0.0, 0.0, -0.5),
+    size=(5.0, 5.0, 0.1),
+  )
+
+  sim = Simulation(
+    num_envs=num_envs,
+    cfg=SimulationCfg(broadphase=cast(Any, broadphase)),
+    spec=scene_spec,
+    variant_info=vi,
+    device="cpu",
+  )
+  assert sim.model.geom_dataid.shape == (num_envs, sim.mj_model.ngeom)
+
+  # Unfilled col_1 slot must not collide with the floor.
+  sim.forward()
+  assert int(sim.wp_data.nacon.numpy()[0]) == 0
+
+  # Lowering the body so filled col_0 reaches the floor must register contacts.
+  sim.data.qpos[:, 2] = -3.0
+  sim.forward()
+  assert int(sim.wp_data.nacon.numpy()[0]) > 0
