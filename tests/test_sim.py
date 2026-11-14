@@ -56,8 +56,18 @@ def test_simulation_config_is_piped(robot_xml, device):
       solver="cg",
       iterations=7,
       ls_iterations=14,
+      noslip_iterations=3,
+      noslip_tolerance=1e-5,
       ccd_iterations=20,
+      ccd_tolerance=1e-5,
+      sdf_initpoints=24,
+      sdf_iterations=6,
+      sleep_tolerance=5e-3,
       gravity=(0, 0, 7.5),
+      wind=(1.0, -2.0, 0.5),
+      magnetic=(0.1, -0.4, 0.2),
+      density=1.225,
+      viscosity=1.8e-5,
       enableflags=("energy",),
     ),
   )
@@ -70,8 +80,18 @@ def test_simulation_config_is_piped(robot_xml, device):
   assert sim.mj_model.opt.solver == mujoco.mjtSolver.mjSOL_CG
   assert sim.mj_model.opt.iterations == cfg.mujoco.iterations
   assert sim.mj_model.opt.ls_iterations == cfg.mujoco.ls_iterations
+  assert sim.mj_model.opt.noslip_iterations == cfg.mujoco.noslip_iterations
+  assert sim.mj_model.opt.noslip_tolerance == pytest.approx(cfg.mujoco.noslip_tolerance)
   assert sim.mj_model.opt.ccd_iterations == cfg.mujoco.ccd_iterations
+  assert sim.mj_model.opt.ccd_tolerance == pytest.approx(cfg.mujoco.ccd_tolerance)
+  assert sim.mj_model.opt.sdf_initpoints == cfg.mujoco.sdf_initpoints
+  assert sim.mj_model.opt.sdf_iterations == cfg.mujoco.sdf_iterations
+  assert sim.mj_model.opt.sleep_tolerance == pytest.approx(cfg.mujoco.sleep_tolerance)
   assert tuple(sim.mj_model.opt.gravity) == cfg.mujoco.gravity
+  assert tuple(sim.mj_model.opt.wind) == pytest.approx(cfg.mujoco.wind)
+  assert tuple(sim.mj_model.opt.magnetic) == pytest.approx(cfg.mujoco.magnetic)
+  assert sim.mj_model.opt.density == pytest.approx(cfg.mujoco.density)
+  assert sim.mj_model.opt.viscosity == pytest.approx(cfg.mujoco.viscosity)
   assert sim.mj_model.opt.enableflags & mujoco.mjtEnableBit.mjENBL_ENERGY
 
   # MujocoCfg should be inherited by wp_model via put_model.
@@ -81,6 +101,25 @@ def test_simulation_config_is_piped(robot_xml, device):
   np.testing.assert_almost_equal(
     sim.model.opt.gravity[0].cpu().numpy(), cfg.mujoco.gravity
   )
+  assert cfg.mujoco.wind is not None
+  assert cfg.mujoco.magnetic is not None
+  np.testing.assert_almost_equal(
+    sim.model.opt.wind[0].cpu().numpy(), cfg.mujoco.wind, decimal=5
+  )
+  np.testing.assert_almost_equal(
+    sim.model.opt.magnetic[0].cpu().numpy(), cfg.mujoco.magnetic, decimal=5
+  )
+  assert sim.model.opt.density[0].item() == pytest.approx(cfg.mujoco.density)
+  assert sim.model.opt.viscosity[0].item() == pytest.approx(cfg.mujoco.viscosity)
+  assert sim.model.opt.sleep_tolerance[0].item() == pytest.approx(
+    cfg.mujoco.sleep_tolerance
+  )
+  assert sim.model.opt.ccd_tolerance[0].item() == pytest.approx(
+    cfg.mujoco.ccd_tolerance
+  )
+  assert sim.model.opt.noslip_iterations == cfg.mujoco.noslip_iterations
+  assert sim.model.opt.sdf_initpoints == cfg.mujoco.sdf_initpoints
+  assert sim.model.opt.sdf_iterations == cfg.mujoco.sdf_iterations
   assert sim.model.opt.integrator == mujoco.mjtIntegrator.mjINT_EULER
   assert sim.model.opt.solver == mujoco.mjtSolver.mjSOL_CG
   assert sim.model.opt.iterations == cfg.mujoco.iterations
@@ -109,6 +148,55 @@ def test_ls_parallel_is_deprecated():
   """Setting the removed ls_parallel option warns instead of erroring."""
   with pytest.warns(DeprecationWarning, match="ls_parallel"):
     SimulationCfg(ls_parallel=True)
+
+
+def test_pgs_solver_rejected_early(robot_xml, device):
+  """SimulationCfg and Simulation reject solver='pgs' with a clear ValueError."""
+  with pytest.raises(ValueError, match="pgs"):
+    SimulationCfg(mujoco=MujocoCfg(solver="pgs"))
+
+  cfg = SimulationCfg()
+  cfg.mujoco.solver = "pgs"
+  model = mujoco.MjModel.from_xml_string(robot_xml)
+  with pytest.raises(ValueError, match="pgs"):
+    Simulation(num_envs=1, cfg=cfg, model=model, device=device)
+
+
+def test_unset_optional_mujoco_fields_preserve_xml_options(device):
+  """Leaving optional MujocoCfg fields None preserves values from XML <option>."""
+  xml = """
+    <mujoco>
+      <option density="1.2" viscosity="2e-5" wind="3 0 0" sleep_tolerance="0.008"/>
+      <worldbody>
+        <body name="box" pos="0 0 1">
+          <freejoint/>
+          <geom type="box" size="0.1 0.1 0.1" mass="1.0"/>
+        </body>
+      </worldbody>
+    </mujoco>
+  """
+  model = mujoco.MjModel.from_xml_string(xml)
+  sim = Simulation(num_envs=1, cfg=SimulationCfg(), model=model, device=device)
+
+  assert sim.mj_model.opt.density == pytest.approx(1.2)
+  assert sim.mj_model.opt.viscosity == pytest.approx(2e-5)
+  assert tuple(sim.mj_model.opt.wind) == pytest.approx((3.0, 0.0, 0.0))
+  assert sim.mj_model.opt.sleep_tolerance == pytest.approx(0.008)
+
+
+def test_sleep_enableflag_and_tolerance_step(robot_xml, device):
+  """MuJoCo 4.0 island sleeping steps cleanly with sleep_tolerance configured."""
+  model = mujoco.MjModel.from_xml_string(robot_xml)
+  cfg = SimulationCfg(
+    mujoco=MujocoCfg(
+      solver="newton",
+      sleep_tolerance=5e-3,
+      enableflags=("sleep",),
+    )
+  )
+  sim = Simulation(num_envs=2, cfg=cfg, model=model, device=device)
+  sim.step()
+  assert sim.model.opt.enableflags & mujoco.mjtEnableBit.mjENBL_SLEEP
 
 
 def test_sim_reset_restores_initial_state(robot_xml, device):

@@ -114,10 +114,27 @@ class MujocoCfg:
   tolerance: float = 1e-8
   ls_iterations: int = 50
   ls_tolerance: float = 0.01
+  noslip_iterations: int | None = None
+  noslip_tolerance: float | None = None
   ccd_iterations: int = 50
+  ccd_tolerance: float | None = None
+  sdf_initpoints: int | None = None
+  sdf_iterations: int | None = None
+  sleep_tolerance: float | None = None
 
-  # Other.
+  # Environment / medium settings.
   gravity: tuple[float, float, float] = (0.0, 0.0, -9.81)
+  wind: tuple[float, float, float] | None = None
+  magnetic: tuple[float, float, float] | None = None
+  density: float | None = None
+  viscosity: float | None = None
+
+  # Global contact override settings (active on CPU MuJoCo when enableflags=("override",)).
+  o_margin: float | None = None
+  o_solref: tuple[float, float] | None = None
+  o_solimp: tuple[float, float, float, float, float] | None = None
+  o_friction: tuple[float, float, float, float, float] | None = None
+
   # Global MuJoCo option flags. Names match the XML <flag> attributes
   # (e.g. "contact", "gravity", "sensor"). See mjtDisableBit / mjtEnableBit.
   disableflags: tuple[str, ...] = ()
@@ -139,6 +156,34 @@ class MujocoCfg:
     model.opt.ls_iterations = self.ls_iterations
     model.opt.ls_tolerance = self.ls_tolerance
     model.opt.ccd_iterations = self.ccd_iterations
+    if self.noslip_iterations is not None:
+      model.opt.noslip_iterations = self.noslip_iterations
+    if self.noslip_tolerance is not None:
+      model.opt.noslip_tolerance = self.noslip_tolerance
+    if self.ccd_tolerance is not None:
+      model.opt.ccd_tolerance = self.ccd_tolerance
+    if self.sdf_initpoints is not None:
+      model.opt.sdf_initpoints = self.sdf_initpoints
+    if self.sdf_iterations is not None:
+      model.opt.sdf_iterations = self.sdf_iterations
+    if self.sleep_tolerance is not None:
+      model.opt.sleep_tolerance = self.sleep_tolerance
+    if self.wind is not None:
+      model.opt.wind[:] = self.wind
+    if self.magnetic is not None:
+      model.opt.magnetic[:] = self.magnetic
+    if self.density is not None:
+      model.opt.density = self.density
+    if self.viscosity is not None:
+      model.opt.viscosity = self.viscosity
+    if self.o_margin is not None:
+      model.opt.o_margin = self.o_margin
+    if self.o_solref is not None:
+      model.opt.o_solref[:] = self.o_solref
+    if self.o_solimp is not None:
+      model.opt.o_solimp[:] = self.o_solimp
+    if self.o_friction is not None:
+      model.opt.o_friction[:] = self.o_friction
     for flag in self.disableflags:
       if flag not in _DISABLE_FLAG_MAP:
         raise ValueError(
@@ -190,6 +235,10 @@ class SimulationCfg:
         DeprecationWarning,
         stacklevel=2,
       )
+    if self.mujoco.solver == "pgs":
+      raise ValueError(
+        "Solver 'pgs' is not supported by MuJoCo Warp; use 'newton' or 'cg'."
+      )
 
   def apply_wp_opt(self, wp_opt: mjwarp.Option) -> None:
     """Apply MuJoCo Warp-only settings to a warp Option (post ``put_model``)."""
@@ -236,6 +285,10 @@ class Simulation:
     spec: mujoco.MjSpec | None = None,
     variant_info: list[tuple[str, VariantMetadata]] | None = None,
   ):
+    if cfg.mujoco.solver == "pgs":
+      raise ValueError(
+        "Solver 'pgs' is not supported by MuJoCo Warp; use 'newton' or 'cg'."
+      )
     self.cfg = cfg
     self.device = device
     self.wp_device = wp.get_device(self.device)
