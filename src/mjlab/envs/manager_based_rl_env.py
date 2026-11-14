@@ -1,10 +1,12 @@
+import importlib
 import math
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Annotated, Any, TypeVar
 
 import mujoco
 import numpy as np
 import torch
+import tyro
 import warp as wp
 from prettytable import PrettyTable
 
@@ -162,6 +164,87 @@ class ManagerBasedRlEnvCfg:
   algorithms that expect unscaled reward signals (e.g., HER, static reward scaling).
   """
 
+  # Manager class overrides (accept a ManagerBase subclass or "module:ClassName").
+
+  event_manager_class: Annotated[
+    type[EventManager] | str, tyro.conf.arg(constructor=str)
+  ] = EventManager
+  """Manager class (or ``'module:ClassName'`` import path) for events."""
+
+  command_manager_class: Annotated[
+    type[CommandManager] | str, tyro.conf.arg(constructor=str)
+  ] = CommandManager
+  """Manager class (or ``'module:ClassName'`` import path) for commands."""
+
+  action_manager_class: Annotated[
+    type[ActionManager] | str, tyro.conf.arg(constructor=str)
+  ] = ActionManager
+  """Manager class (or ``'module:ClassName'`` import path) for actions."""
+
+  observation_manager_class: Annotated[
+    type[ObservationManager] | str, tyro.conf.arg(constructor=str)
+  ] = ObservationManager
+  """Manager class (or ``'module:ClassName'`` import path) for observations."""
+
+  termination_manager_class: Annotated[
+    type[TerminationManager] | str, tyro.conf.arg(constructor=str)
+  ] = TerminationManager
+  """Manager class (or ``'module:ClassName'`` import path) for terminations."""
+
+  reward_manager_class: Annotated[
+    type[RewardManager] | str, tyro.conf.arg(constructor=str)
+  ] = RewardManager
+  """Manager class (or ``'module:ClassName'`` import path) for rewards."""
+
+  curriculum_manager_class: Annotated[
+    type[CurriculumManager] | str, tyro.conf.arg(constructor=str)
+  ] = CurriculumManager
+  """Manager class (or ``'module:ClassName'`` import path) for curriculum."""
+
+  metrics_manager_class: Annotated[
+    type[MetricsManager] | str, tyro.conf.arg(constructor=str)
+  ] = MetricsManager
+  """Manager class (or ``'module:ClassName'`` import path) for metrics."""
+
+  recorder_manager_class: Annotated[
+    type[RecorderManager] | str, tyro.conf.arg(constructor=str)
+  ] = RecorderManager
+  """Manager class (or ``'module:ClassName'`` import path) for recorders."""
+
+
+_ManagerT = TypeVar("_ManagerT")
+
+
+def _resolve_manager_class(
+  cls_or_path: type[_ManagerT] | str, expected_base: type[_ManagerT]
+) -> type[_ManagerT]:
+  """Resolve a manager class or ``'module:ClassName'`` / ``'module.ClassName'`` path."""
+  if isinstance(cls_or_path, str):
+    if ":" in cls_or_path:
+      module_name, attr_name = cls_or_path.split(":", maxsplit=1)
+    elif "." in cls_or_path:
+      module_name, attr_name = cls_or_path.rsplit(".", maxsplit=1)
+    else:
+      raise ValueError(
+        f"Invalid manager import path {cls_or_path!r}. "
+        f"Expected 'module:ClassName' or 'module.ClassName'."
+      )
+    if not module_name or not attr_name:
+      raise ValueError(
+        f"Invalid manager import path {cls_or_path!r}. "
+        f"Expected 'module:ClassName' or 'module.ClassName'."
+      )
+    module = importlib.import_module(module_name)
+    resolved = getattr(module, attr_name)
+  else:
+    resolved = cls_or_path
+
+  if not (isinstance(resolved, type) and issubclass(resolved, expected_base)):
+    raise TypeError(
+      f"Expected a subclass of {expected_base.__name__}, got {resolved!r}."
+    )
+  return resolved
+
 
 class ManagerBasedRlEnv:
   """Manager-based RL environment."""
@@ -306,45 +389,62 @@ class ManagerBasedRlEnv:
     then action and observation managers, then other RL managers.
     """
     # Event manager (required before everything else for domain randomization).
-    self.event_manager = EventManager(self.cfg.events, self)
+    event_cls = _resolve_manager_class(self.cfg.event_manager_class, EventManager)
+    self.event_manager = event_cls(self.cfg.events, self)
     print_info(f"[INFO] {self.event_manager}")
 
     self.sim.expand_model_fields(self.event_manager.domain_randomization_fields)
 
     # Command manager (must be before observation manager since observations
     # may reference commands).
-    if len(self.cfg.commands) > 0:
-      self.command_manager = CommandManager(self.cfg.commands, self)
+    command_cls = _resolve_manager_class(self.cfg.command_manager_class, CommandManager)
+    if len(self.cfg.commands) > 0 or command_cls is not CommandManager:
+      self.command_manager = command_cls(self.cfg.commands, self)
     else:
       self.command_manager = NullCommandManager()
     print_info(f"[INFO] {self.command_manager}")
 
     # Action and observation managers.
-    self.action_manager = ActionManager(self.cfg.actions, self)
+    action_cls = _resolve_manager_class(self.cfg.action_manager_class, ActionManager)
+    self.action_manager = action_cls(self.cfg.actions, self)
     print_info(f"[INFO] {self.action_manager}")
-    self.observation_manager = ObservationManager(self.cfg.observations, self)
+    obs_cls = _resolve_manager_class(
+      self.cfg.observation_manager_class, ObservationManager
+    )
+    self.observation_manager = obs_cls(self.cfg.observations, self)
     print_info(f"[INFO] {self.observation_manager}")
 
     # Other RL-specific managers.
 
-    self.termination_manager = TerminationManager(self.cfg.terminations, self)
+    term_cls = _resolve_manager_class(
+      self.cfg.termination_manager_class, TerminationManager
+    )
+    self.termination_manager = term_cls(self.cfg.terminations, self)
     print_info(f"[INFO] {self.termination_manager}")
-    self.reward_manager = RewardManager(
+    reward_cls = _resolve_manager_class(self.cfg.reward_manager_class, RewardManager)
+    self.reward_manager = reward_cls(
       self.cfg.rewards, self, scale_by_dt=self.cfg.scale_rewards_by_dt
     )
     print_info(f"[INFO] {self.reward_manager}")
-    if len(self.cfg.curriculum) > 0:
-      self.curriculum_manager = CurriculumManager(self.cfg.curriculum, self)
+    curriculum_cls = _resolve_manager_class(
+      self.cfg.curriculum_manager_class, CurriculumManager
+    )
+    if len(self.cfg.curriculum) > 0 or curriculum_cls is not CurriculumManager:
+      self.curriculum_manager = curriculum_cls(self.cfg.curriculum, self)
     else:
       self.curriculum_manager = NullCurriculumManager()
     print_info(f"[INFO] {self.curriculum_manager}")
-    if len(self.cfg.metrics) > 0:
-      self.metrics_manager = MetricsManager(self.cfg.metrics, self)
+    metrics_cls = _resolve_manager_class(self.cfg.metrics_manager_class, MetricsManager)
+    if len(self.cfg.metrics) > 0 or metrics_cls is not MetricsManager:
+      self.metrics_manager = metrics_cls(self.cfg.metrics, self)
     else:
       self.metrics_manager = NullMetricsManager()
     print_info(f"[INFO] {self.metrics_manager}")
-    if len(self.cfg.recorders) > 0:
-      self.recorder_manager = RecorderManager(self.cfg.recorders, self)
+    recorder_cls = _resolve_manager_class(
+      self.cfg.recorder_manager_class, RecorderManager
+    )
+    if len(self.cfg.recorders) > 0 or recorder_cls is not RecorderManager:
+      self.recorder_manager = recorder_cls(self.cfg.recorders, self)
     else:
       self.recorder_manager = NullRecorderManager()
     print_info(f"[INFO] {self.recorder_manager}")
