@@ -156,6 +156,34 @@ Only requested types are allocated; the other field on
        MuJoCo object types. Background pixels are ``(-1, -1)``.
 
 
+Depth range and clipping
+------------------------
+
+By default, MuJoCo Warp encodes rays with no hit or hits beyond the global far
+plane (``vis.map.zfar * stat.extent``) as ``0.0``. You can set a per-sensor
+maximum range with ``max_depth`` and control how out-of-range or missed pixels
+are encoded with ``depth_clipping_behavior``:
+
+- ``"zero"`` (default): ``0.0``. When ``max_depth`` is ``None`` and
+  ``clone_data`` is ``False``, the returned tensor remains a zero-copy view of
+  the render buffer.
+- ``"max"``: ``max_depth`` if set, otherwise the model far plane ``zfar``.
+- ``"none"``: ``float("inf")``.
+
+.. code-block:: python
+
+    CameraSensorCfg(
+        name="wrist_depth",
+        camera_name="robot/wrist_cam",
+        data_types=("depth",),
+        max_depth=1.5,
+        depth_clipping_behavior="max",
+    )
+
+When clipping is active, ``CameraSensor`` returns a new tensor rather than
+mutating the shared render buffer in place.
+
+
 Render settings
 ---------------
 

@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``CameraSensorCfg.max_depth`` and
+  ``CameraSensorCfg.depth_clipping_behavior`` (``"zero"``, ``"max"``, ``"none"``)
+  for per-camera depth range clipping and miss encoding :issue:`1233`.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.

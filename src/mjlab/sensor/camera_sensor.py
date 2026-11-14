@@ -16,6 +16,7 @@ if TYPE_CHECKING:
   from mjlab.sensor.sensor_context import SensorContext
 
 CameraDataType = Literal["rgb", "depth", "segmentation"]
+DepthClippingBehavior = Literal["zero", "max", "none"]
 
 # Default MuJoCo fov, in degrees.
 _DEFAULT_CAM_FOVY = 45.0
@@ -87,6 +88,23 @@ class CameraSensorCfg(SensorCfg):
   orthographic: bool = False
   """Use orthographic projection instead of perspective."""
 
+  max_depth: float | None = None
+  """Per-sensor maximum depth range in meters.
+
+  Hits with planar depth greater than ``max_depth`` are treated as misses
+  and replaced according to ``depth_clipping_behavior``. If ``None``, the
+  model far plane (``vis.map.zfar * stat.extent``) is used.
+  """
+
+  depth_clipping_behavior: DepthClippingBehavior = "zero"
+  """Value assigned to depth pixels with no hit or beyond max range.
+
+  - ``"zero"``: ``0.0`` (default, preserves zero-copy when ``max_depth`` is
+    ``None`` and ``clone_data`` is ``False``).
+  - ``"max"``: ``max_depth`` if set, otherwise the model far plane ``zfar``.
+  - ``"none"``: ``float("inf")``.
+  """
+
   clone_data: bool = False
   """If True, clone tensors on each access.
 
@@ -100,6 +118,14 @@ class CameraSensorCfg(SensorCfg):
       raise ValueError(f"Invalid camera data types: {invalid}. Valid types: {valid}")
     if not self.data_types:
       raise ValueError("At least one data type must be specified.")
+    if self.max_depth is not None and self.max_depth <= 0.0:
+      raise ValueError(f"max_depth must be positive, got {self.max_depth}.")
+    valid_clip = {"zero", "max", "none"}
+    if self.depth_clipping_behavior not in valid_clip:
+      raise ValueError(
+        f"Invalid depth_clipping_behavior: {self.depth_clipping_behavior!r}. "
+        f"Valid options: {valid_clip}"
+      )
 
   def build(self) -> CameraSensor:
     return CameraSensor(self)
@@ -143,6 +169,7 @@ class CameraSensor(Sensor[CameraSensorData]):
     self._is_wrapping_existing = cfg.camera_name is not None
     self._ctx: SensorContext | None = None
     self._camera_idx: int = -1
+    self._zfar: float = 0.0
 
   @property
   def camera_name(self) -> str:
@@ -204,6 +231,7 @@ class CameraSensor(Sensor[CameraSensorData]):
       raise ValueError(
         f"Camera '{self._camera_name}' not found in model. Available: {available}"
       ) from e
+    self._zfar = float(mj_model.vis.map.zfar * mj_model.stat.extent)
 
   def set_context(self, ctx: SensorContext) -> None:
     self._ctx = ctx
@@ -223,7 +251,18 @@ class CameraSensor(Sensor[CameraSensorData]):
       rgb_data = rgb.clone() if self.cfg.clone_data else rgb
     if "depth" in self.cfg.data_types:
       depth = self._ctx.get_depth(self._camera_idx)
-      depth_data = depth.clone() if self.cfg.clone_data else depth
+      if self.cfg.max_depth is None and self.cfg.depth_clipping_behavior == "zero":
+        depth_data = depth.clone() if self.cfg.clone_data else depth
+      else:
+        far = self.cfg.max_depth if self.cfg.max_depth is not None else self._zfar
+        miss = (depth <= 0.0) | (depth > far)
+        if self.cfg.depth_clipping_behavior == "zero":
+          fill = 0.0
+        elif self.cfg.depth_clipping_behavior == "max":
+          fill = far
+        else:
+          fill = float("inf")
+        depth_data = torch.where(miss, fill, depth)
     if "segmentation" in self.cfg.data_types:
       seg = self._ctx.get_segmentation(self._camera_idx)
       seg_data = seg.clone() if self.cfg.clone_data else seg
