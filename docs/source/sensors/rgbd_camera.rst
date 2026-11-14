@@ -160,10 +160,15 @@ Render settings
 ---------------
 
 All camera sensors in a scene must share identical values for
-``use_textures``, ``use_shadows``, and ``enabled_geom_groups``. This
-is a constraint of the underlying MuJoCo Warp rendering system, which
-uses a single ``RenderContext`` for all cameras. Mismatched settings
-raise a ``ValueError`` at scene construction.
+``use_textures``, ``use_shadows``, ``enabled_geom_groups``, and
+``update_period``. This is a constraint of the underlying MuJoCo Warp
+rendering system, which uses a single ``RenderContext`` for all cameras.
+Mismatched settings raise a ``ValueError`` at scene construction.
+
+Set ``update_period`` (in environment steps) to render at a lower rate
+than the control loop while reusing the previous frame on skipped steps.
+Environment resets automatically force an immediate refresh so post-reset
+observations never read pre-reset images.
 
 .. code-block:: python
 

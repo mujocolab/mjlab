@@ -77,6 +77,7 @@ class TactileSensorCfg(SensorCfg):
   viz: VizCfg = field(default_factory=VizCfg)
 
   def __post_init__(self) -> None:
+    super().__post_init__()
     if self.geom.type != "geom":
       raise ValueError(f"TactileSensorCfg.geom must be a geom, got {self.geom.type}")
     if min(self.resolution) < 2:
@@ -167,6 +168,11 @@ class TactileSensor(Sensor[TactileData]):
 
   def _compute_data(self) -> TactileData:
     assert self._view is not None
+    if self.effective_update_period > 1:
+      return TactileData(
+        depth=self._view.depth.clone(),
+        slip=self._view.slip.clone(),
+      )
     return self._view
 
   def taxel_pos_w(self) -> torch.Tensor:

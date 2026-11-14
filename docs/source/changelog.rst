@@ -8,6 +8,10 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``SensorCfg.update_period`` to decouple per-sensor refresh rates from the
+  environment control frequency across camera, raycast, contact, tactile, and builtin
+  sensors, skipping GPU rendering/raycasting on intermediate steps while forcing fresh
+  updates on resets :issue:`1096`, :issue:`1024`.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.

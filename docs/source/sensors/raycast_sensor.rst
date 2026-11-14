@@ -220,7 +220,10 @@ Output
 .. note::
 
    Set ``debug_vis=True`` on the config to visualize ray hits at
-   runtime.
+   runtime, or set ``update_period`` (in environment steps) to cast rays
+   at a lower rate than the policy loop while refreshing automatically
+   on resets. Each ``RayCastSensor`` can use an independent
+   ``update_period``.
 
 
 Examples

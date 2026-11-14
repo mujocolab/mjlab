@@ -32,8 +32,9 @@ class CameraSensorCfg(SensorCfg):
 
   Note:
     All camera sensors in a scene must share identical values for
-    use_textures, use_shadows, and enabled_geom_groups. This is a
-    constraint of the underlying mujoco_warp rendering system.
+    use_textures, use_shadows, enabled_geom_groups, and effective
+    update_period. This is a constraint of the underlying mujoco_warp
+    rendering system.
   """
 
   camera_name: str | None = None
@@ -94,6 +95,7 @@ class CameraSensorCfg(SensorCfg):
   """
 
   def __post_init__(self) -> None:
+    super().__post_init__()
     valid = {"rgb", "depth", "segmentation"}
     invalid = {dt for dt in self.data_types if dt not in valid}
     if invalid:

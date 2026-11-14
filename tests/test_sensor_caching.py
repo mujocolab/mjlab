@@ -9,9 +9,22 @@ from conftest import get_test_device
 
 from mjlab.entity import EntityCfg
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
-from mjlab.managers import ObservationGroupCfg, ObservationTermCfg, RewardTermCfg
+from mjlab.envs.mdp.terminations import time_out
+from mjlab.managers import (
+  EventTermCfg,
+  ObservationGroupCfg,
+  ObservationTermCfg,
+  RewardTermCfg,
+  TerminationTermCfg,
+)
 from mjlab.scene import Scene, SceneCfg
-from mjlab.sensor import GridPatternCfg, ObjRef, RayCastSensorCfg
+from mjlab.sensor import (
+  BuiltinSensorCfg,
+  CameraSensorCfg,
+  GridPatternCfg,
+  ObjRef,
+  RayCastSensorCfg,
+)
 from mjlab.sensor.contact_sensor import ContactMatch, ContactSensorCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
 
@@ -279,4 +292,161 @@ def test_observations_see_post_forward_contact_data(device):
     obs = env.step(torch.zeros(2, 0, device=device))[0]["obs"]
     env.scene.invalidate_sensor_caches()
     torch.testing.assert_close(obs, _box_force(env))
+  env.close()
+
+
+def test_independent_camera_and_raycast_update_periods(device):
+  """Raycast and camera sensors can run at independent update periods."""
+  entity_cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_WITH_FLOOR_XML)
+  )
+  cam_cfg = CameraSensorCfg(
+    name="cam",
+    pos=(0.0, 0.0, 5.0),
+    quat=(1.0, 0.0, 0.0, 0.0),
+    width=16,
+    height=12,
+    data_types=("depth",),
+    update_period=3,
+  )
+  ray_cfg = RayCastSensorCfg(
+    name="scan",
+    frame=ObjRef(type="body", name="base", entity="robot"),
+    pattern=GridPatternCfg(size=(0.2, 0.2), resolution=0.2),
+    max_distance=10.0,
+    update_period=2,
+  )
+  scene = Scene(
+    SceneCfg(num_envs=1, entities={"robot": entity_cfg}, sensors=(cam_cfg, ray_cfg)),
+    device,
+  )
+  model = scene.compile()
+  sim = Simulation(num_envs=1, cfg=SimulationCfg(njmax=20), model=model, device=device)
+  scene.initialize(sim.mj_model, sim.model, sim.data)
+  assert scene.sensor_context is not None
+  sim.set_sensor_context(scene.sensor_context)
+
+  def _set_height(z: float) -> None:
+    root = torch.zeros((1, 13), device=device)
+    root[:, 2] = z
+    root[:, 3] = 1.0
+    scene["robot"].write_root_state_to_sim(root)
+    sim.forward()
+
+  # Sense 0 (both due): z=2.0.
+  _set_height(2.0)
+  sim.sense()
+  cam_d0 = scene["cam"].data.depth.clone()
+  torch.testing.assert_close(
+    scene["scan"].data.distances,
+    torch.full_like(scene["scan"].data.distances, 2.0),
+  )
+
+  # Sense 1 (neither due): z=3.0, both hold z=2.0 readings.
+  _set_height(3.0)
+  sim.sense()
+  torch.testing.assert_close(scene["cam"].data.depth, cam_d0)
+  torch.testing.assert_close(
+    scene["scan"].data.distances,
+    torch.full_like(scene["scan"].data.distances, 2.0),
+  )
+
+  # Sense 2 (raycast due at period=2, camera still holds period=3): z=3.5.
+  _set_height(3.5)
+  sim.sense()
+  torch.testing.assert_close(scene["cam"].data.depth, cam_d0)
+  torch.testing.assert_close(
+    scene["scan"].data.distances,
+    torch.full_like(scene["scan"].data.distances, 3.5),
+  )
+
+  # Sense 3 (camera due at period=3, raycast holds 3.5): z=4.0.
+  _set_height(4.0)
+  sim.sense()
+  assert not torch.allclose(scene["cam"].data.depth, cam_d0)
+  torch.testing.assert_close(
+    scene["scan"].data.distances,
+    torch.full_like(scene["scan"].data.distances, 3.5),
+  )
+
+
+def test_env_periodic_sensors_hold_and_refresh_on_auto_reset(device):
+  """Periodic context and builtin sensors hold across steps and refresh on reset."""
+  reset_heights = [2.0]
+
+  def _place_robot(env: ManagerBasedRlEnv, env_ids: torch.Tensor | None) -> None:
+    ids = slice(None) if env_ids is None else env_ids
+    n = env.num_envs if env_ids is None else len(env_ids)
+    root = torch.zeros((n, 13), device=env.device)
+    root[:, 2] = reset_heights[0]
+    root[:, 3] = 1.0
+    env.scene["robot"].write_root_state_to_sim(root, env_ids=ids)
+
+  cfg = ManagerBasedRlEnvCfg(
+    scene=SceneCfg(
+      num_envs=2,
+      env_spacing=5.0,
+      entities={
+        "robot": EntityCfg(
+          spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_WITH_FLOOR_XML)
+        )
+      },
+      sensors=(
+        RayCastSensorCfg(
+          name="scan",
+          frame=ObjRef(type="body", name="base", entity="robot"),
+          pattern=GridPatternCfg(size=(0.0, 0.0), resolution=0.2),
+          max_distance=10.0,
+          update_period=4,
+        ),
+        BuiltinSensorCfg(
+          name="base_pos",
+          sensor_type="framepos",
+          obj=ObjRef(type="body", name="base", entity="robot"),
+          update_period=4,
+        ),
+      ),
+    ),
+    observations={
+      "actor": ObservationGroupCfg(
+        terms={
+          "ray": ObservationTermCfg(
+            func=lambda env: env.scene["scan"].data.distances,
+          ),
+          "z": ObservationTermCfg(
+            func=lambda env: env.scene["robot/base_pos"].data[:, 2:3],
+          ),
+        },
+        concatenate_terms=True,
+      )
+    },
+    events={"reset_pose": EventTermCfg(func=_place_robot, mode="reset")},
+    terminations={"time_out": TerminationTermCfg(func=time_out, time_out=True)},
+    sim=SimulationCfg(njmax=20),
+    decimation=4,
+    # Two env steps per episode (2 * 4 * 0.002 = 0.016s), shorter than update_period=4.
+    episode_length_s=0.016,
+  )
+  env = ManagerBasedRlEnv(cfg=cfg, device=device)
+  obs, _ = env.reset()
+  actor_obs0 = obs["actor"]
+  assert isinstance(actor_obs0, torch.Tensor)
+  torch.testing.assert_close(actor_obs0, torch.full((2, 2), 2.0, device=device))
+
+  # Step 1: robot falls under gravity, no reset yet, update_period=4 holds 2.0.
+  action = torch.zeros((2, 0), device=device)
+  obs1, _, term1, trunc1, _ = env.step(action)
+  assert not (term1 | trunc1).any()
+  actor_obs1 = obs1["actor"]
+  assert isinstance(actor_obs1, torch.Tensor)
+  torch.testing.assert_close(actor_obs1, torch.full((2, 2), 2.0, device=device))
+
+  # Step 2: episode times out and auto-resets to z=3.5; both sensors must refresh
+  # immediately even though only 2 steps elapsed (< update_period=4).
+  reset_heights[0] = 3.5
+  obs2, _, _, trunc2, _ = env.step(action)
+  assert trunc2.all()
+  actor_obs2 = obs2["actor"]
+  assert isinstance(actor_obs2, torch.Tensor)
+  torch.testing.assert_close(actor_obs2, torch.full((2, 2), 3.5, device=device))
   env.close()

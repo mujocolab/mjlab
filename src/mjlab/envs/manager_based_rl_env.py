@@ -375,7 +375,8 @@ class ManagerBasedRlEnv:
     # Scoped to env_ids so a partial reset does not advance stateful commands in the
     # other envs.
     self.command_manager.compute(dt=0.0, env_ids=env_ids)
-    self.sim.sense()
+    self.sim.sense(force_update=True)
+    self.scene.step_sensors(force_update=True)
     # Scoped to env_ids: only the reset envs' history/delay buffers receive
     # the post-reset frame; other envs' observation timelines are untouched.
     self.obs_buf = self.observation_manager.compute(
@@ -488,7 +489,9 @@ class ManagerBasedRlEnv:
     else:
       self.command_manager.compute(dt=self.step_dt)
 
-    self.sim.sense()
+    force_sensor_update = self.cfg.auto_reset and len(reset_env_ids) > 0
+    self.sim.sense(force_update=force_sensor_update)
+    self.scene.step_sensors(force_update=force_sensor_update)
     self.obs_buf = self.observation_manager.compute(update_history=True)
 
     if self.cfg.auto_reset and len(reset_env_ids) > 0:

@@ -336,15 +336,24 @@ class ContactSensor(Sensor[ContactData]):
 
   def _compute_data(self) -> ContactData:
     out = self._extract_sensor_data()
+    clone = self.effective_update_period > 1
     if self._air_time_state is not None:
-      out.current_air_time = self._air_time_state.current_air_time
-      out.last_air_time = self._air_time_state.last_air_time
-      out.current_contact_time = self._air_time_state.current_contact_time
-      out.last_contact_time = self._air_time_state.last_contact_time
+      s = self._air_time_state
+      out.current_air_time = s.current_air_time.clone() if clone else s.current_air_time
+      out.last_air_time = s.last_air_time.clone() if clone else s.last_air_time
+      out.current_contact_time = (
+        s.current_contact_time.clone() if clone else s.current_contact_time
+      )
+      out.last_contact_time = (
+        s.last_contact_time.clone() if clone else s.last_contact_time
+      )
     if self._history_state is not None:
-      out.force_history = self._history_state.get("force")
-      out.torque_history = self._history_state.get("torque")
-      out.dist_history = self._history_state.get("dist")
+      fh = self._history_state.get("force")
+      th = self._history_state.get("torque")
+      dh = self._history_state.get("dist")
+      out.force_history = fh.clone() if (clone and fh is not None) else fh
+      out.torque_history = th.clone() if (clone and th is not None) else th
+      out.dist_history = dh.clone() if (clone and dh is not None) else dh
     return out
 
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:

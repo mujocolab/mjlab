@@ -211,6 +211,7 @@ class BuiltinSensorCfg(SensorCfg):
     return self.name
 
   def __post_init__(self) -> None:
+    super().__post_init__()
     if self.sensor_type in _SENSORS_REQUIRING_SITE:
       if self.obj is None:
         raise ValueError(
@@ -343,4 +344,6 @@ class BuiltinSensor(Sensor[torch.Tensor]):
 
   def _compute_data(self) -> torch.Tensor:
     assert self._data_view is not None
+    if self.effective_update_period > 1:
+      return self._data_view.clone()
     return self._data_view

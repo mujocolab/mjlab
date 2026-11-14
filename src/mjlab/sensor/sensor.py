@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 import mujoco
@@ -23,6 +23,12 @@ class SensorCfg(ABC):
   """Base configuration for a sensor."""
 
   name: str
+  update_period: int = field(default=0, kw_only=True)
+  """Environment steps between sensor refreshes (0 or 1 updates every step)."""
+
+  def __post_init__(self) -> None:
+    if self.update_period < 0:
+      raise ValueError(f"update_period must be >= 0, got {self.update_period}")
 
   @property
   def prefixed_name(self) -> str:
@@ -53,6 +59,28 @@ class Sensor(ABC, Generic[T]):
   def __init__(self) -> None:
     self._cached_data: T | None = None
     self._cache_valid: bool = False
+    self._update_due: bool = True
+    self._steps_since_update: int = 0
+
+  @property
+  def effective_update_period(self) -> int:
+    """Number of environment steps between sensor refreshes (>= 1)."""
+    cfg = getattr(self, "cfg", None)
+    period = getattr(cfg, "update_period", 0) if cfg is not None else 0
+    return max(1, period)
+
+  def _advance_period(self, force: bool = False) -> bool:
+    """Advance the per-step update schedule and return True if due."""
+    period = self.effective_update_period
+    if period <= 1 or force or self._update_due:
+      self._update_due = False
+      self._steps_since_update = 1
+      return True
+    if self._steps_since_update >= period:
+      self._steps_since_update = 1
+      return True
+    self._steps_since_update += 1
+    return False
 
   @abstractmethod
   def edit_spec(
@@ -140,6 +168,7 @@ class Sensor(ABC, Generic[T]):
       env_ids: Environment indices to reset. If None, reset all environments.
     """
     del env_ids  # Unused.
+    self._update_due = True
     self._invalidate_cache()
 
   def update(self, dt: float) -> None:
@@ -152,7 +181,8 @@ class Sensor(ABC, Generic[T]):
       dt: Time step in seconds.
     """
     del dt  # Unused.
-    self._invalidate_cache()
+    if self.effective_update_period <= 1:
+      self._invalidate_cache()
 
   def debug_vis(self, visualizer: DebugVisualizer) -> None:
     """Visualize sensor data for debugging.

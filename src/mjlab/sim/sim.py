@@ -5,7 +5,7 @@ import warnings
 from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import mujoco
 import mujoco_warp as mjwarp
@@ -346,6 +346,7 @@ class Simulation:
     self._model_bridge = WarpBridge(self._wp_model, nworld=self.num_envs)
     self._data_bridge = WarpBridge(self._wp_data)
     self._sensor_context: SensorContext | None = None
+    self._sense_graphs: dict[tuple[bool, tuple[bool, ...]], Any] = {}
     self._data_listeners: list[Callable[[], None]] = []
 
     self.use_cuda_graph = self._can_capture_graphs()
@@ -371,6 +372,7 @@ class Simulation:
     self.forward_graph = None
     self.reset_graph = None
     self.sense_graph = None
+    self._sense_graphs.clear()
     if self.use_cuda_graph:
       with _suspend_gc(), wp.ScopedDevice(self.wp_device):
         with wp.ScopedCapture() as capture:
@@ -383,9 +385,12 @@ class Simulation:
           mjwarp.reset_data(self.wp_model, self.wp_data, reset=self._reset_mask_wp)
         self.reset_graph = capture.graph
         if self._sensor_context is not None:
+          ctx = self._sensor_context
+          all_due = (ctx.has_cameras, (True,) * len(ctx.raycast_sensors))
           with wp.ScopedCapture() as capture:
-            self._sense_kernel()
+            self._sense_kernel(*all_due)
           self.sense_graph = capture.graph
+          self._sense_graphs[all_due] = self.sense_graph
 
   # Properties.
 
@@ -531,26 +536,40 @@ class Simulation:
     self._sensor_context = ctx
     self.create_graph()
 
-  def sense(self) -> None:
+  def sense(self, *, force_update: bool = False) -> None:
     """Execute the sense pipeline: prepare -> graph -> finalize.
 
     Runs BVH refit, camera rendering, and raycasting in a single
-    CUDA graph launch. Should be called once per env step, right
-    before observation computation.
+    CUDA graph launch for sensors whose ``update_period`` is due (or all
+    sensors when ``force_update=True``). Skips GPU work completely on
+    steps where no context sensor is due.
     """
     if self._sensor_context is None:
       return
 
     ctx = self._sensor_context
-    ctx.prepare()
+    render_cameras, due_raycasts = ctx.resolve_due(force_update)
+    if not render_cameras and not any(due_raycasts):
+      return
 
-    with wp.ScopedDevice(self.wp_device):
-      if self.use_cuda_graph and self.sense_graph is not None:
-        wp.capture_launch(self.sense_graph)
-      else:
-        self._sense_kernel()
+    ctx.prepare(due_raycasts)
+    schedule = (render_cameras, due_raycasts)
 
-    ctx.finalize()
+    if self.use_cuda_graph:
+      graph = self._sense_graphs.get(schedule)
+      if graph is None:
+        with _suspend_gc(), wp.ScopedDevice(self.wp_device):
+          with wp.ScopedCapture() as capture:
+            self._sense_kernel(render_cameras, due_raycasts)
+        graph = capture.graph
+        self._sense_graphs[schedule] = graph
+      with wp.ScopedDevice(self.wp_device):
+        wp.capture_launch(graph)
+    else:
+      with wp.ScopedDevice(self.wp_device):
+        self._sense_kernel(render_cameras, due_raycasts)
+
+    ctx.finalize(render_cameras, due_raycasts)
 
   # Private methods.
 
@@ -558,20 +577,32 @@ class Simulation:
     for fn in self._data_listeners:
       fn()
 
-  def _sense_kernel(self) -> None:
+  def _sense_kernel(
+    self,
+    render_cameras: bool | None = None,
+    due_raycasts: tuple[bool, ...] | None = None,
+  ) -> None:
     """GPU kernel sequence for sensing (captured in sense_graph)."""
     assert self._sensor_context is not None
     ctx = self._sensor_context
     rc = ctx.render_context
 
+    if render_cameras is None:
+      render_cameras = ctx.has_cameras
+
     mjwarp.refit_bvh(self.wp_model, self.wp_data, rc)
 
-    if ctx.has_cameras:
+    if render_cameras and ctx.has_cameras:
       mjwarp.render(self.wp_model, self.wp_data, rc)
       ctx.unpack_rgb()
 
-    for sensor in ctx.raycast_sensors:
-      sensor.raycast_kernel(rc=rc)
+    if due_raycasts is None:
+      for sensor in ctx.raycast_sensors:
+        sensor.raycast_kernel(rc=rc)
+    else:
+      for sensor, due in zip(ctx.raycast_sensors, due_raycasts, strict=True):
+        if due:
+          sensor.raycast_kernel(rc=rc)
 
   def _can_capture_graphs(self) -> bool:
     """Whether Warp can capture graphs on this device."""
