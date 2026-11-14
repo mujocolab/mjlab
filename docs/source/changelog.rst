@@ -8,6 +8,10 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``.viser`` and standalone ``.html`` 3D rollout recording to ``ViserPlayViewer``
+  (interactive browser GUI controls and ``record_rollout()``) along with
+  ``--viser-record-file`` and ``--viser-record-steps`` CLI options in ``play``
+  :issue:`404`.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
