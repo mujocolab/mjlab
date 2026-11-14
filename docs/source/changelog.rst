@@ -29,6 +29,9 @@ Added
 Changed
 ^^^^^^^
 
+- ``Simulation.recompute_constants()`` now lazily captures and caches a CUDA graph
+  per ``SetConstGroup`` mask, and ``Simulation.expand_model_fields()`` skips graph
+  and sensor-context rebuilds when all requested fields are already expanded.
 - Upgraded MuJoCo and MuJoCo Warp to 4.0.1. mjlab now depends on ``mujoco-core``
   instead of ``mujoco``. To upgrade an existing environment, run
   ``uv sync --reinstall-package mujoco-core``: removing ``mujoco`` deletes files that

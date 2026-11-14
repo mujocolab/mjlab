@@ -5,7 +5,7 @@ import warnings
 from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import mujoco
 import mujoco_warp as mjwarp
@@ -347,6 +347,7 @@ class Simulation:
     self._data_bridge = WarpBridge(self._wp_data)
     self._sensor_context: SensorContext | None = None
     self._data_listeners: list[Callable[[], None]] = []
+    self._recompute_graphs: dict[int, Any] = {}
 
     self.use_cuda_graph = self._can_capture_graphs()
     self.create_graph()
@@ -371,6 +372,7 @@ class Simulation:
     self.forward_graph = None
     self.reset_graph = None
     self.sense_graph = None
+    self._recompute_graphs = {}
     if self.use_cuda_graph:
       with _suspend_gc(), wp.ScopedDevice(self.wp_device):
         with wp.ScopedCapture() as capture:
@@ -449,16 +451,22 @@ class Simulation:
     if invalid_fields:
       raise ValueError(f"Fields not found in model: {invalid_fields}")
 
-    expand_model_fields(self._wp_model, self.num_envs, list(fields))
+    new_metadata = any(f not in self._expanded_fields for f in fields)
+    storage_replaced = expand_model_fields(self._wp_model, self.num_envs, list(fields))
     self._expanded_fields.update(fields)
+
+    if not storage_replaced and not new_metadata:
+      return
+
     self._model_bridge.clear_cache()
 
     if self._sensor_context is not None:
       self._sensor_context.recreate(self._mj_model, self._expanded_fields)
 
-    # Field expansion allocates new arrays and replaces them via setattr. The
-    # CUDA graph captured the old memory addresses, so we must recreate it.
-    self.create_graph()
+    if storage_replaced:
+      # Field expansion allocates new arrays and replaces them via setattr. The
+      # CUDA graph captured the old memory addresses, so we must recreate it.
+      self.create_graph()
 
   def get_default_field(self, field: str) -> torch.Tensor:
     """Get the default value for a model field, caching for reuse.
@@ -484,8 +492,21 @@ class Simulation:
     Args:
       groups: mujoco_warp.SetConstGroup flags selecting what to recompute.
     """
+    group_mask = mjwarp.SetConstGroup(groups)
+    if group_mask == mjwarp.SetConstGroup.NONE:
+      return
     with wp.ScopedDevice(self.wp_device):
-      mjwarp.set_const(self._wp_model, self._wp_data, groups=groups)
+      if self.use_cuda_graph and self.wp_device.is_cuda:
+        key = int(group_mask)
+        graph = self._recompute_graphs.get(key)
+        if graph is None:
+          with _suspend_gc(), wp.ScopedCapture() as capture:
+            mjwarp.set_const(self._wp_model, self._wp_data, groups=group_mask)
+          graph = capture.graph
+          self._recompute_graphs[key] = graph
+        wp.capture_launch(graph)
+      else:
+        mjwarp.set_const(self._wp_model, self._wp_data, groups=group_mask)
 
   def forward(self) -> None:
     with wp.ScopedDevice(self.wp_device):

@@ -1306,18 +1306,18 @@ need no recomputation.
 .. note::
 
    mjlab captures ``sim.step()``, ``sim.forward()``, ``sim.reset()``, and
-   ``sim.sense()`` as individual CUDA graphs for performance. All event
-   manager logic, including ``recompute_constants``, runs as regular
-   Python between these graph replays, so it will not break graph capture.
+   ``sim.sense()`` as individual CUDA graphs for performance, and on CUDA
+   lazily captures and caches one graph per ``SetConstGroup`` combination used
+   by ``sim.recompute_constants()``. All event manager logic runs between
+   these graph replays, so it will not break graph capture.
 
-   That said, ``set_const`` is expensive: it runs forward kinematics, the
-   composite rigid body algorithm, and mass matrix factorization across all
-   worlds. Calling it every step via an ``interval`` event would add
-   significant overhead. In practice, fields that need recomputation
-   (``body_mass``, ``body_com_offset``, ``joint_armature``, etc.) are best
-   randomized with ``startup`` or ``reset`` modes. Fields that need no
-   recomputation (``geom_friction``, ``dof_damping``, etc.) are cheap to
-   randomize at any frequency.
+   That said, ``set_const`` still runs forward kinematics, the composite rigid
+   body algorithm, and mass matrix factorization across all worlds. Calling it
+   every step via an ``interval`` event adds GPU work. In practice, fields
+   that need recomputation (``body_mass``, ``body_com_offset``,
+   ``joint_armature``, etc.) are best randomized with ``startup`` or ``reset``
+   modes. Fields that need no recomputation (``geom_friction``,
+   ``dof_damping``, etc.) are cheap to randomize at any frequency.
 
 
 .. _dr-custom-event-terms:
