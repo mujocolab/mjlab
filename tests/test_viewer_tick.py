@@ -214,6 +214,21 @@ def test_step_resets_policy_for_done_envs():
   v.policy.reset.assert_called_once_with(dones)
 
 
+def test_step_resets_policy_on_truncation():
+  """_execute_step() treats truncations from a 5-tuple step as dones."""
+  v = FakeViewer(step_dt=0.01)
+  v._execute_step = BaseViewer._execute_step.__get__(v, FakeViewer)
+  terminated = torch.tensor([False, True, False])
+  truncated = torch.tensor([False, False, True])
+  v.env = MagicMock()
+  v.env.step.return_value = (MagicMock(), MagicMock(), terminated, truncated, {})
+  v.policy = MagicMock()
+
+  assert v._execute_step()
+  (dones,), _ = v.policy.reset.call_args
+  assert dones.tolist() == [False, True, True]
+
+
 def test_step_without_policy_reset():
   """_execute_step() works when the policy has no reset method."""
   v = FakeViewer(step_dt=0.01)
