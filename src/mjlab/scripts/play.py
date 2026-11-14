@@ -48,6 +48,10 @@ class PlayConfig:
   video_width: int | None = None
   camera: int | str | None = None
   viewer: Literal["auto", "native", "viser"] = "auto"
+  viser_record_file: str | None = None
+  """Optional output path (.viser or .html) to record a Viser 3D rollout and exit."""
+  viser_record_steps: int = 200
+  """Number of environment steps to record when viser_record_file is specified."""
   no_terminations: bool = False
   """Disable all termination conditions (useful for viewing motions with dummy agents)."""
   log_root: str = "logs/rsl_rl"
@@ -287,16 +291,35 @@ def run_play(task_id: str, cfg: PlayConfig):
 
   # Handle "auto" viewer selection.
   if cfg.viewer == "auto":
-    has_display = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
-    resolved_viewer = "native" if has_display else "viser"
-    del has_display
+    if cfg.viser_record_file is not None:
+      resolved_viewer = "viser"
+    else:
+      has_display = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+      resolved_viewer = "native" if has_display else "viser"
+      del has_display
   else:
     resolved_viewer = cfg.viewer
+
+  if cfg.viser_record_file is not None and resolved_viewer != "viser":
+    env.close()
+    raise ValueError("--viser-record-file requires --viewer viser (or --viewer auto).")
 
   if resolved_viewer == "native":
     NativeMujocoViewer(env, policy).run()
   elif resolved_viewer == "viser":
-    ViserPlayViewer(env, policy, checkpoint_manager=ckpt_manager).run()
+    viewer = ViserPlayViewer(env, policy, checkpoint_manager=ckpt_manager)
+    if cfg.viser_record_file is not None:
+      try:
+        print(
+          f"[INFO]: Recording {cfg.viser_record_steps} steps to "
+          f"{cfg.viser_record_file}..."
+        )
+        viewer.record_rollout(cfg.viser_record_file, num_steps=cfg.viser_record_steps)
+        print(f"[INFO]: Saved Viser recording to {cfg.viser_record_file}")
+      finally:
+        viewer.close()
+    else:
+      viewer.run()
   else:
     raise RuntimeError(f"Unsupported viewer backend: {resolved_viewer}")
 

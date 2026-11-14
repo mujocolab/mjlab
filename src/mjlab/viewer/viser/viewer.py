@@ -10,6 +10,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum, auto
+from pathlib import Path
 from threading import Event, Lock
 from typing import Any, Optional
 
@@ -87,6 +88,13 @@ class ViserPlayViewer(BaseViewer):
     self._scene_submit_enqueue_last_ms: float = 0.0
     self._scene_update_last_ms: float = 0.0
     self._timing_last_log_time: float = 0.0
+    self._serializer: Any = None
+    self._recording_frames: int = 0
+    self._recording_duration: float = 0.0
+    self._recording_prev_step_count: int = 0
+    self._record_button: viser.GuiButtonHandle | None = None
+    self._record_filename: viser.GuiTextHandle | None = None
+    self._record_status_html: viser.GuiHtmlHandle | None = None
     self._external_server = viser_server is not None
     self._server = viser_server or viser.ViserServer(label="mjlab")
 
@@ -166,6 +174,26 @@ class ViserPlayViewer(BaseViewer):
             self.request_reset_speed()
           else:
             self.request_speed_up()
+
+      # Rollout recording controls (.viser / .html).
+      with self._server.gui.add_folder("Recording"):
+        self._record_filename = self._server.gui.add_text(
+          "Filename",
+          initial_value="rollout.viser",
+        )
+        self._record_button = self._server.gui.add_button(
+          "Start Recording",
+          icon=viser.Icon.PLAYER_RECORD,
+        )
+        self._record_status_html = self._server.gui.add_html("")
+        self._update_recording_status_html("Idle")
+
+        @self._record_button.on_click
+        def _(_) -> None:
+          if self.is_recording:
+            self.stop_recording(send_download=True)
+          else:
+            self.start_recording()
 
       # Let command terms create their own GUI controls.
       env = self.env.unwrapped
@@ -454,12 +482,24 @@ class ViserPlayViewer(BaseViewer):
       self._scene_submit_enqueue_last_ms = 0.0
       return
 
+    step_count_snapshot = self._step_count
+    step_dt = self.env.unwrapped.step_dt
+
     def update_scene() -> None:
       with self._sim_lock:
         t0 = time.perf_counter()
+        if self._serializer is not None:
+          step_delta = max(0, step_count_snapshot - self._recording_prev_step_count)
+          if step_delta > 0 and self._recording_frames > 0:
+            dt = step_delta * step_dt
+            self._serializer.insert_sleep(dt)
+            self._recording_duration += dt
+          self._recording_prev_step_count = step_count_snapshot
         with self._server.atomic():
           self._scene.update(sim.data)
           self._server.flush()
+        if self._serializer is not None:
+          self._recording_frames += 1
         self._scene_update_last_ms = (time.perf_counter() - t0) * 1000.0
 
     self._threadpool.submit(update_scene)
@@ -513,6 +553,11 @@ class ViserPlayViewer(BaseViewer):
     self._counter += 1
     if self._counter % 10 == 0:
       self._update_status_display()
+      if self.is_recording:
+        self._update_recording_status_html(
+          f"Recording: {self._recording_frames} frames "
+          f"({self._recording_duration:.2f}s)"
+        )
     self._update_env_dependent_plots()
     has_pending_updates = bool(self._pending_update_reasons) or self._scene.needs_update
     self._update_camera_feeds(sim, has_pending_updates)
@@ -537,8 +582,135 @@ class ViserPlayViewer(BaseViewer):
     """Extend BaseViewer.reset_environment to clear reward and metrics histories."""
     with self._sim_lock:
       super().reset_environment()
+      self._recording_prev_step_count = 0
     if self._term_overlays:
       self._term_overlays.clear_histories()
+
+  @property
+  def is_recording(self) -> bool:
+    """Whether a Viser scene rollout recording is currently active."""
+    return self._serializer is not None
+
+  def _update_recording_status_html(self, text: str) -> None:
+    if self._record_status_html is not None:
+      self._record_status_html.content = (
+        '<div style="font-size: 0.85em; line-height: 1.25; '
+        f'padding: 0 1em 0.5em 1em;">{text}</div>'
+      )
+
+  def _resolved_download_filename(self) -> str:
+    raw = (
+      self._record_filename.value.strip()
+      if self._record_filename is not None
+      else "rollout.viser"
+    )
+    if not raw:
+      return "rollout.viser"
+    suffix = Path(raw).suffix.lower()
+    if suffix not in (".viser", ".html"):
+      return f"{raw}.viser"
+    return raw
+
+  def start_recording(self) -> None:
+    """Start capturing 3D scene updates into a Viser recording."""
+    sim = self.env.unwrapped.sim
+    assert isinstance(sim, Simulation)
+    with self._sim_lock:
+      if self._serializer is not None:
+        return
+      with self._server.atomic():
+        self._scene.update(sim.data)
+        self._server.flush()
+      self._serializer = self._server.get_scene_serializer()
+      self._recording_frames = 1
+      self._recording_duration = 0.0
+      self._recording_prev_step_count = self._step_count
+
+    if self._record_button is not None:
+      self._record_button.label = "Stop & Download"
+      self._record_button.icon = viser.Icon.PLAYER_STOP
+      self._record_button.color = "red"
+    self._update_recording_status_html("Recording: 1 frame (0.00s)")
+
+  def stop_recording(
+    self,
+    output_path: str | Path | None = None,
+    *,
+    send_download: bool = False,
+  ) -> bytes:
+    """Finalize the active Viser recording and return serialized bytes.
+
+    If ``output_path`` (or the GUI filename when ``send_download=True``) ends with
+    ``.html``, exports a self-contained HTML viewer; otherwise exports binary
+    ``.viser`` data.
+    """
+    with self._sim_lock:
+      serializer = self._serializer
+      if serializer is None:
+        raise RuntimeError("No active Viser recording to stop.")
+      self._serializer = None
+      frames = self._recording_frames
+      duration = self._recording_duration
+
+    download_name = self._resolved_download_filename()
+    if output_path is not None:
+      as_html = Path(output_path).suffix.lower() == ".html"
+    else:
+      as_html = Path(download_name).suffix.lower() == ".html"
+
+    payload = (
+      serializer.as_html().encode("utf-8") if as_html else serializer.serialize()
+    )
+
+    if output_path is not None:
+      out = Path(output_path)
+      out.parent.mkdir(parents=True, exist_ok=True)
+      out.write_bytes(payload)
+
+    if send_download:
+      self._server.send_file_download(download_name, payload, save_immediately=True)
+
+    if self._record_button is not None:
+      self._record_button.label = "Start Recording"
+      self._record_button.icon = viser.Icon.PLAYER_RECORD
+      self._record_button.color = None
+    self._update_recording_status_html(f"Saved {frames} frames ({duration:.2f}s)")
+    return payload
+
+  def record_rollout(
+    self,
+    output_path: str | Path | None,
+    num_steps: int,
+  ) -> bytes:
+    """Step the environment deterministically and export a ``.viser``/``.html`` file."""
+    if num_steps < 0:
+      raise ValueError(f"num_steps must be >= 0, got {num_steps}.")
+    if not hasattr(self, "_scene"):
+      self.setup()
+
+    sim = self.env.unwrapped.sim
+    assert isinstance(sim, Simulation)
+    step_dt = self.env.unwrapped.step_dt
+
+    self.reset_environment()
+    self._queue_debug_visualizers()
+    self.start_recording()
+
+    for _ in range(num_steps):
+      if not self._execute_step():
+        break
+      self._queue_debug_visualizers()
+      with self._sim_lock:
+        assert self._serializer is not None
+        self._serializer.insert_sleep(step_dt)
+        self._recording_duration += step_dt
+        self._recording_prev_step_count = self._step_count
+        with self._server.atomic():
+          self._scene.update(sim.data)
+          self._server.flush()
+        self._recording_frames += 1
+
+    return self.stop_recording(output_path=output_path, send_download=False)
 
   @override
   def close(self) -> None:
