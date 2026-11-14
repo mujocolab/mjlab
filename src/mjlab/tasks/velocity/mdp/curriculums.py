@@ -80,18 +80,29 @@ def terrain_levels_vel(
   # Update terrain levels.
   terrain.update_env_origins(env_ids, move_up, move_down)
 
-  # Compute per-terrain-type mean levels.
+  # Compute per-terrain-type mean levels and progression signals.
+  terrain_origins = terrain.terrain_origins
+  assert terrain_origins is not None
+  top_row = terrain_origins.shape[0] - 1
   levels = terrain.terrain_levels.float()
+  if move_up.numel() > 0:
+    promote_rate = move_up.float().mean()
+    demote_rate = move_down.float().mean()
+  else:
+    promote_rate = torch.zeros((), device=levels.device)
+    demote_rate = torch.zeros((), device=levels.device)
+
   result: dict[str, torch.Tensor] = {
     "mean": torch.mean(levels),
     "max": torch.max(levels),
+    "frac_at_max": (terrain.terrain_levels == top_row).float().mean(),
+    "promote_rate": promote_rate,
+    "demote_rate": demote_rate,
   }
 
   # In curriculum mode num_cols == num_terrains (one column per type),
   # so the column index directly maps to the sub-terrain name.
   sub_terrain_names = list(terrain_generator.sub_terrains.keys())
-  terrain_origins = terrain.terrain_origins
-  assert terrain_origins is not None
   num_cols = terrain_origins.shape[1]
   if num_cols == len(sub_terrain_names):
     types = terrain.terrain_types

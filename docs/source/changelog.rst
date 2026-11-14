@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``frac_at_max``, ``promote_rate``, and ``demote_rate`` outputs to
+  ``terrain_levels_vel`` to distinguish mastered terrains from plateaus
+  :issue:`1287`.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.

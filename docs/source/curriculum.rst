@@ -176,6 +176,14 @@ Environments that reach the maximum level are randomly reassigned to
 any row, maintaining coverage across all difficulty levels. See
 :ref:`terrain` for details on configuring the terrain grid itself.
 
+Because solved environments wrap to a random row, ``mean`` settles near
+the middle of the grid both when a terrain is mastered and when the
+policy is stuck partway up. To distinguish ongoing progress from a
+plateau, ``terrain_levels_vel`` also logs ``frac_at_max`` (fraction of
+all environments currently on the top row), ``promote_rate`` (fraction
+of the resetting batch promoted), and ``demote_rate`` (fraction of the
+resetting batch demoted), alongside per-sub-terrain mean levels.
+
 
 Writing custom curriculum functions
 ------------------------------------

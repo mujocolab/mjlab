@@ -112,3 +112,60 @@ def test_early_termination_owes_the_time_left():
   terrain_levels_vel(env, torch.arange(1), command_name="twist")
 
   assert terrain.terrain_levels.tolist() == [2]
+
+
+def test_promote_and_demote_rates_reflect_reset_batch():
+  """promote_rate and demote_rate measure only the resetting batch."""
+  terrain = _FakeTerrain(num_envs=6, size=8.0)
+  terrain.terrain_levels[:] = 3
+  env = _make_env(terrain, common_step_counter=1, walked=0.0, commanded=4.0)
+  # Reset envs [0, 1, 2, 3]:
+  #   env 0: walked 4.0 >= 3.2 -> promote
+  #   env 1: walked 3.5 >= 3.2 -> promote
+  #   env 2: walked 2.5 in [2.0, 3.2] -> stay
+  #   env 3: walked 1.0 < 2.0 -> demote
+  # Envs 4, 5 do not reset and must not dilute the rates.
+  asset = env.scene["robot"]
+  asset.data.root_link_pos_w = torch.tensor(
+    [
+      [4.0, 0.0, 0.0],
+      [3.5, 0.0, 0.0],
+      [2.5, 0.0, 0.0],
+      [1.0, 0.0, 0.0],
+      [10.0, 0.0, 0.0],
+      [0.0, 0.0, 0.0],
+    ]
+  )
+
+  out = terrain_levels_vel(env, torch.tensor([0, 1, 2, 3]), command_name="twist")
+
+  assert torch.isclose(out["promote_rate"], torch.tensor(0.5))
+  assert torch.isclose(out["demote_rate"], torch.tensor(0.25))
+
+
+def test_frac_at_max_counts_envs_on_top_row():
+  """frac_at_max reports the fraction of all envs on max_terrain_level - 1."""
+  terrain = _FakeTerrain(num_envs=4, size=8.0)
+  top_row = terrain.max_terrain_level - 1
+  terrain.terrain_levels = torch.tensor([0, top_row, top_row, 5], dtype=torch.long)
+  # Use common_step_counter=0 so levels are frozen and rates are 0.
+  env = _make_env(terrain, common_step_counter=0, walked=10.0, commanded=10.0)
+
+  out = terrain_levels_vel(env, torch.arange(4), command_name="twist")
+
+  assert torch.isclose(out["frac_at_max"], torch.tensor(0.5))
+  assert out["promote_rate"].item() == 0.0
+  assert out["demote_rate"].item() == 0.0
+
+
+def test_empty_reset_batch_reports_zero_rates_without_nan():
+  """Empty env_ids returns finite zero promote/demote rates."""
+  terrain = _FakeTerrain(num_envs=4, size=8.0)
+  env = _make_env(terrain, common_step_counter=1, walked=5.0, commanded=5.0)
+
+  out = terrain_levels_vel(env, torch.empty(0, dtype=torch.long), command_name="twist")
+
+  assert not torch.isnan(out["promote_rate"])
+  assert not torch.isnan(out["demote_rate"])
+  assert out["promote_rate"].item() == 0.0
+  assert out["demote_rate"].item() == 0.0
