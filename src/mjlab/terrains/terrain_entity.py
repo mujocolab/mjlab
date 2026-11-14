@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Literal
 
 import mujoco
@@ -8,6 +9,12 @@ import numpy as np
 import torch
 
 from mjlab.entity import Entity, EntityCfg
+from mjlab.terrains.mesh_terrains import (
+  MeshCollisionMode,
+  build_mesh_terrain_geometries,
+  load_terrain_meshes,
+  query_mesh_top_z,
+)
 from mjlab.terrains.terrain_generator import TerrainGenerator, TerrainGeneratorCfg
 from mjlab.utils import spec_config as spec_cfg
 
@@ -58,7 +65,7 @@ _DEFAULT_PLANE_MATERIAL = spec_cfg.MaterialCfg(
   texrepeat=(4.0, 4.0),
   reflectance=0.2,
   texture="groundplane",
-  geom_names_expr=("terrain$",),
+  geom_names_expr=("terrain(|_part_\\d+)$",),
 )
 
 
@@ -66,12 +73,32 @@ _DEFAULT_PLANE_MATERIAL = spec_cfg.MaterialCfg(
 class TerrainEntityCfg(EntityCfg):
   """Configuration for terrain as an entity."""
 
-  terrain_type: Literal["generator", "plane"] = "plane"
-  """Type of terrain to generate. "generator" uses procedural terrain with
-  sub-terrain grid, "plane" creates a flat ground plane."""
+  terrain_type: Literal["generator", "plane", "mesh"] = "plane"
+  """Type of terrain to generate. ``"generator"`` uses procedural terrain with a
+  sub-terrain grid, ``"plane"`` creates a flat ground plane, and ``"mesh"`` imports
+  an external triangle mesh file."""
   terrain_generator: TerrainGeneratorCfg | None = None
   """Configuration for procedural terrain generation. Required when
-  terrain_type is "generator"."""
+  terrain_type is ``"generator"``."""
+  mesh_path: Path | str | None = None
+  """Path to a mesh file (``.obj``, ``.stl``, ``.ply``, ``.glb``) when
+  ``terrain_type == "mesh"``."""
+  mesh_scale: tuple[float, float, float] = (1.0, 1.0, 1.0)
+  """Per-axis ``(sx, sy, sz)`` scale factors applied to ``mesh_path``."""
+  mesh_collision_mode: MeshCollisionMode = "heightfield"
+  """Collision representation for ``terrain_type == "mesh"``: ``"heightfield"``,
+  ``"parts"``, or ``"convex"``."""
+  mesh_horizontal_scale: float = 0.05
+  """Heightfield collision grid spacing (meters) when
+  ``mesh_collision_mode == "heightfield"``."""
+  mesh_center_xy: bool = True
+  """Center the imported mesh's XY bounding box at the world origin."""
+  mesh_align_min_z: bool = False
+  """Shift the imported mesh along Z so its minimum vertex Z is 0.0."""
+  mesh_origin_z: float | None = None
+  """Explicit Z height for grid environment origins on mesh terrain. When
+  ``None``, each environment origin's Z is sampled from the mesh top surface at
+  its ``(x, y)`` grid coordinates."""
   env_spacing: float | None = 2.0
   """Distance between environment origins when using grid layout. Required for
   "plane" terrain or when no sub-terrain origins exist."""
@@ -158,6 +185,14 @@ class TerrainEntity(Entity):
       self._configure_env_origins()
       self._flat_patches: dict[str, torch.Tensor] = {}
       self._flat_patch_radii: dict[str, float] = {}
+    elif self.cfg.terrain_type == "mesh":
+      if self.cfg.mesh_path is None:
+        raise ValueError("mesh_path must be specified for terrain_type 'mesh'")
+      combined_mesh = self._import_mesh("terrain")
+      self._configure_env_origins()
+      self._apply_mesh_env_origin_heights(combined_mesh.vertices, combined_mesh.faces)
+      self._flat_patches = {}
+      self._flat_patch_radii = {}
     else:
       raise ValueError(f"Unknown terrain type: {self.cfg.terrain_type}")
 
@@ -257,6 +292,40 @@ class TerrainEntity(Entity):
       name=name,
       type=mujoco.mjtGeom.mjGEOM_PLANE,
       size=(0, 0, 0.01),
+    )
+
+  def _import_mesh(self, name: str):
+    assert self.cfg.mesh_path is not None
+    parts, combined = load_terrain_meshes(
+      self.cfg.mesh_path,
+      scale=self.cfg.mesh_scale,
+      target_xy_center=(0.0, 0.0) if self.cfg.mesh_center_xy else None,
+      align_min_z=self.cfg.mesh_align_min_z,
+    )
+    body = self._spec.worldbody.add_body(name=name)
+    build_mesh_terrain_geometries(
+      self._spec,
+      body,
+      parts,
+      combined,
+      collision_mode=self.cfg.mesh_collision_mode,
+      horizontal_scale=self.cfg.mesh_horizontal_scale,
+      geom_name=name,
+    )
+    return combined
+
+  def _apply_mesh_env_origin_heights(
+    self, vertices: np.ndarray, faces: np.ndarray
+  ) -> None:
+    if self.env_origins is None:
+      return
+    if self.cfg.mesh_origin_z is not None:
+      self.env_origins[:, 2] = self.cfg.mesh_origin_z
+      return
+    xy = self.env_origins[:, :2].detach().cpu().numpy()
+    z = query_mesh_top_z(vertices, faces, xy, fallback_z=0.0)
+    self.env_origins[:, 2] = torch.from_numpy(z).to(
+      device=self._device, dtype=torch.float
     )
 
   def _add_env_origin_sites(self) -> None:
