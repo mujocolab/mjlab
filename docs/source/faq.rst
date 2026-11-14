@@ -317,6 +317,31 @@ Viewers render a small number of environments for performance reasons.
   (default 10,000 geoms). The viewer shows whichever environments fit
   within the geometry budget.
 
+Offscreen rendering segfaults or hangs on headless Blackwell GPUs (EGL)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On some headless Blackwell (``sm_120``) environments with ``MUJOCO_GL=egl``
+(such as Google Colab G4 runtimes), creating an environment with
+``render_mode="rgb_array"`` or ``--video True`` can segfault (``SIGSEGV``) or
+hang during renderer initialization due to driver-level contention between
+Warp's resident CUDA context and headless EGL.
+
+Workarounds:
+
+1. **Interactive inspection without OpenGL**: Use the Viser web viewer
+   (``--viewer viser``), which streams scene geometry without creating an
+   OpenGL/EGL context, or switch offscreen rendering to CPU OSMesa
+   (``MUJOCO_GL=osmesa``) when ``libosmesa6`` is installed.
+2. **Two-process record-then-replay (fast EGL video)**: Run the rollout in a
+   pure Warp/CUDA process with ``render_mode=None``, save the host model via
+   ``mujoco.mj_saveModel(env.sim.mj_model, "model.mjb")`` along with a saved
+   ``qpos`` trajectory from ``env.sim.data.qpos``, and render the frames in a
+   separate plain-``mujoco`` subprocess (``MUJOCO_GL=egl``, without importing
+   Warp or mjlab) using ``mujoco.Renderer``.
+
+See `issue #1160 <https://github.com/mujocolab/mjlab/issues/1160>`_ for the
+diagnostic matrix and background.
+
 Why are my fixed-base robots all stacked at the origin instead of in a grid?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

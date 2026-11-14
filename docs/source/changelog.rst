@@ -8,6 +8,8 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Documented headless EGL + Warp CUDA crash/deadlock workarounds for Blackwell
+  (``sm_120``) GPUs in the FAQ :issue:`1160`.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
