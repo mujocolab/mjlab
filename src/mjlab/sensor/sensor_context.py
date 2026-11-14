@@ -110,18 +110,47 @@ class SensorContext:
       self._disable_precomputed_rays = bool(expanded_fields & _RAY_FIELDS)
     self._create_context(mj_model)
 
-  def prepare(self) -> None:
-    """Pre-graph: transform rays to world frame."""
-    for sensor in self.raycast_sensors:
-      sensor.prepare_rays()
+  def resolve_due(self, force_update: bool = False) -> tuple[bool, tuple[bool, ...]]:
+    """Advance sensor schedules and return (render_cameras, due_raycasts)."""
+    render_cameras = False
+    if self.camera_sensors:
+      cam_due = [s._advance_period(force_update) for s in self.camera_sensors]
+      render_cameras = any(cam_due)
+      if render_cameras:
+        for s in self.camera_sensors:
+          s._update_due = False
+          s._steps_since_update = 1
+    due_raycasts = tuple(s._advance_period(force_update) for s in self.raycast_sensors)
+    return render_cameras, due_raycasts
 
-  def finalize(self) -> None:
-    """Post-graph: compute raycast hit positions."""
-    for sensor in self.raycast_sensors:
-      sensor.postprocess_rays()
-    # Drop data cached by a pre-sense read so it reflects the new buffers.
-    for sensor in (*self.raycast_sensors, *self.camera_sensors):
-      sensor._invalidate_cache()
+  def prepare(self, due_raycasts: tuple[bool, ...] | None = None) -> None:
+    """Pre-graph: transform rays to world frame."""
+    if due_raycasts is None:
+      for sensor in self.raycast_sensors:
+        sensor.prepare_rays()
+    else:
+      for sensor, due in zip(self.raycast_sensors, due_raycasts, strict=True):
+        if due:
+          sensor.prepare_rays()
+
+  def finalize(
+    self,
+    render_cameras: bool = True,
+    due_raycasts: tuple[bool, ...] | None = None,
+  ) -> None:
+    """Post-graph: compute raycast hit positions and drop refreshed caches."""
+    if due_raycasts is None:
+      for sensor in self.raycast_sensors:
+        sensor.postprocess_rays()
+        sensor._invalidate_cache()
+    else:
+      for sensor, due in zip(self.raycast_sensors, due_raycasts, strict=True):
+        if due:
+          sensor.postprocess_rays()
+          sensor._invalidate_cache()
+    if render_cameras:
+      for sensor in self.camera_sensors:
+        sensor._invalidate_cache()
 
   def get_rgb(self, cam_idx: int) -> torch.Tensor:
     """Get unpacked RGB data for a camera.
@@ -233,6 +262,7 @@ class SensorContext:
   def _validate_sensor_settings(self) -> None:
     """Validate that all camera sensors share render settings."""
     ref = self.camera_sensors[0].cfg
+    ref_period = self.camera_sensors[0].effective_update_period
     for s in self.camera_sensors[1:]:
       cfg = s.cfg
       if cfg.use_textures != ref.use_textures:
@@ -252,6 +282,12 @@ class SensorContext:
           "All camera sensors must share the same "
           f"enabled_geom_groups. '{s.cfg.name}' differs from "
           f"'{ref.name}'."
+        )
+      if s.effective_update_period != ref_period:
+        raise ValueError(
+          "All camera sensors must share the same update_period. "
+          f"'{s.cfg.name}' ({s.effective_update_period}) differs from "
+          f"'{ref.name}' ({ref_period})."
         )
 
   def _raycast_geom_groups(self) -> set[int]:

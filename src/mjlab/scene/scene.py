@@ -212,9 +212,17 @@ class Scene:
       sensor.update(dt)
 
   def invalidate_sensor_caches(self) -> None:
-    """Drop every sensor's cached data, e.g. after the sim data changed."""
+    """Drop cached data for every-step sensors after sim data changes."""
     for sensor in self._sensors.values():
-      sensor._invalidate_cache()
+      if sensor.effective_update_period <= 1:
+        sensor._invalidate_cache()
+
+  def step_sensors(self, *, force_update: bool = False) -> None:
+    """Advance update schedules for periodic non-context sensors."""
+    for sensor in self._sensors.values():
+      if not sensor.requires_sensor_context and sensor.effective_update_period > 1:
+        if sensor._advance_period(force_update):
+          sensor._invalidate_cache()
 
   def write_data_to_sim(self, env_ids: torch.Tensor | None = None) -> None:
     """Write controls for a physics step, or initialize env_ids after a reset."""

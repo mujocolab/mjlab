@@ -437,3 +437,74 @@ def test_camera_create_on_parent_body(device):
   assert isinstance(data, CameraSensorData)
   assert data.rgb is not None
   assert data.rgb.shape == (2, 12, 16, 3)
+
+
+def test_camera_update_period_skips_and_force_refreshes(device):
+  """Camera with update_period=3 skips intermediate steps and refreshes on force."""
+  cam_cfg = CameraSensorCfg(
+    name="test_cam",
+    camera_name="world/overhead_cam",
+    width=32,
+    height=24,
+    data_types=("depth",),
+    update_period=3,
+  )
+  scene, sim = _make_scene_and_sim(device, sensors=(cam_cfg,), num_envs=1)
+  geom_id = sim.mj_model.geom("world/red_box").id
+  sim.expand_model_fields(("geom_pos",))
+
+  # Step 0 (initial sense): renders baseline with box at z=0.5.
+  sim.forward()
+  sim.sense()
+  d0 = scene["test_cam"].data.depth.clone()
+
+  # Move box closer to overhead camera (z=1.5); steps 1 and 2 must hold d0.
+  sim.model.geom_pos[0, geom_id, 2] = 1.5
+  for _ in range(2):
+    sim.forward()
+    sim.sense()
+    torch.testing.assert_close(scene["test_cam"].data.depth, d0)
+
+  # Step 3 is due: depth must reflect new box height.
+  sim.forward()
+  sim.sense()
+  d3 = scene["test_cam"].data.depth.clone()
+  assert not torch.allclose(d3, d0)
+
+  # Step 4 would normally skip, but force_update=True refreshes immediately.
+  sim.model.geom_pos[0, geom_id, 2] = 2.0
+  sim.forward()
+  sim.sense(force_update=True)
+  d_forced = scene["test_cam"].data.depth
+  assert not torch.allclose(d_forced, d3)
+
+
+def test_camera_update_period_mismatch_raises(device):
+  """Cameras with different effective update_period values fail validation."""
+  cam_a = CameraSensorCfg(
+    name="cam_a",
+    pos=(0.0, 0.0, 3.0),
+    width=16,
+    height=12,
+    update_period=2,
+  )
+  cam_b = CameraSensorCfg(
+    name="cam_b",
+    pos=(0.0, 0.0, 4.0),
+    width=16,
+    height=12,
+    update_period=4,
+  )
+  with pytest.raises(ValueError, match="update_period"):
+    _make_scene_and_sim(device, sensors=(cam_a, cam_b))
+
+  # update_period=0 and update_period=1 both mean every step and may coexist.
+  cam_0 = CameraSensorCfg(name="cam_0", pos=(0.0, 0.0, 3.0), update_period=0)
+  cam_1 = CameraSensorCfg(name="cam_1", pos=(0.0, 0.0, 4.0), update_period=1)
+  _make_scene_and_sim(device, sensors=(cam_0, cam_1))
+
+
+def test_negative_update_period_raises():
+  """Negative update_period is rejected at config construction."""
+  with pytest.raises(ValueError, match="update_period"):
+    CameraSensorCfg(name="bad_cam", update_period=-1)
