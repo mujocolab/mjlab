@@ -247,6 +247,26 @@ class MotionCommand(CommandTerm):
       self.joint_vel - self.robot_joint_vel, dim=-1
     )
 
+  def _compute_adaptive_sampling_probs(self) -> torch.Tensor:
+    smoothed_failed = torch.nn.functional.pad(
+      self.bin_failed_count.unsqueeze(0).unsqueeze(0),
+      (0, self.cfg.adaptive_kernel_size - 1),  # Non-causal kernel
+      mode="replicate",
+    )
+    smoothed_failed = torch.nn.functional.conv1d(
+      smoothed_failed, self.kernel.view(1, 1, -1)
+    ).view(-1)
+
+    uniform_probs = torch.full_like(smoothed_failed, 1.0 / float(self.bin_count))
+    failed_sum = smoothed_failed.sum()
+    failure_probs = torch.where(
+      failed_sum > 0.0,
+      smoothed_failed / failed_sum.clamp_min(1e-12),
+      uniform_probs,
+    )
+    eps = self.cfg.adaptive_uniform_ratio
+    return (1.0 - eps) * failure_probs + eps * uniform_probs
+
   def _adaptive_sampling(self, env_ids: torch.Tensor):
     episode_failed = self._env.termination_manager.terminated[env_ids]
     if torch.any(episode_failed):
@@ -256,22 +276,10 @@ class MotionCommand(CommandTerm):
         self.bin_count - 1,
       )
       fail_bins = current_bin_index[env_ids][episode_failed]
-      self._current_bin_failed[:] = torch.bincount(fail_bins, minlength=self.bin_count)
+      self._current_bin_failed += torch.bincount(fail_bins, minlength=self.bin_count)
 
     # Sample.
-    sampling_probabilities = (
-      self.bin_failed_count + self.cfg.adaptive_uniform_ratio / float(self.bin_count)
-    )
-    sampling_probabilities = torch.nn.functional.pad(
-      sampling_probabilities.unsqueeze(0).unsqueeze(0),
-      (0, self.cfg.adaptive_kernel_size - 1),  # Non-causal kernel
-      mode="replicate",
-    )
-    sampling_probabilities = torch.nn.functional.conv1d(
-      sampling_probabilities, self.kernel.view(1, 1, -1)
-    ).view(-1)
-
-    sampling_probabilities = sampling_probabilities / sampling_probabilities.sum()
+    sampling_probabilities = self._compute_adaptive_sampling_probs()
 
     sampled_bins = torch.multinomial(
       sampling_probabilities, len(env_ids), replacement=True
@@ -625,6 +633,12 @@ class MotionCommandCfg(CommandTermCfg):
     ghost_color: tuple[float, float, float, float] = (0.5, 0.7, 0.5, 0.5)
 
   viz: VizCfg = field(default_factory=VizCfg)
+
+  def __post_init__(self) -> None:
+    if not 0.0 <= self.adaptive_uniform_ratio <= 1.0:
+      raise ValueError(
+        f"adaptive_uniform_ratio must be in [0, 1], got {self.adaptive_uniform_ratio}"
+      )
 
   def build(self, env: ManagerBasedRlEnv) -> MotionCommand:
     return MotionCommand(self, env)

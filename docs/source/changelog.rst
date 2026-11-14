@@ -65,6 +65,10 @@ Changed
 Fixed
 ^^^^^
 
+- ``MotionCommand`` adaptive bin sampling now mixes the normalized failure
+  distribution with a uniform prior ``(1 - eps) * p_fail + eps / bin_count`` so
+  ``adaptive_uniform_ratio`` enforces a true uniform floor independent of ``num_envs``
+  and failure rate :issue:`1153`.
 - YAM RGB and depth cube-lifting tasks now use separate experiment directories,
   ``yam_lift_cube_rgb`` and ``yam_lift_cube_depth``.
 - ``EntityData.gravity_vec_w`` now initializes from normalized model gravity, so
