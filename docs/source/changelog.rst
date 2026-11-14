@@ -8,6 +8,11 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Exposed ``sleep_tolerance``, ``ccd_tolerance``, ``noslip_iterations``,
+  ``noslip_tolerance``, ``sdf_initpoints``, ``sdf_iterations``, ``wind``,
+  ``magnetic``, ``density``, ``viscosity``, and global contact override fields on
+  ``MujocoCfg``, and added early validation rejecting ``solver="pgs"`` in
+  ``SimulationCfg``.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
