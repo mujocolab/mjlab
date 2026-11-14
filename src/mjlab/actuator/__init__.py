@@ -5,6 +5,9 @@ from mjlab.actuator.actuator import ActuatorCfg as ActuatorCfg
 from mjlab.actuator.actuator import ActuatorCmd as ActuatorCmd
 from mjlab.actuator.actuator import CommandField as CommandField
 from mjlab.actuator.builtin_actuator import (
+  BuiltinActuatorCfg as BuiltinActuatorCfg,
+)
+from mjlab.actuator.builtin_actuator import (
   BuiltinDcMotorActuator as BuiltinDcMotorActuator,
 )
 from mjlab.actuator.builtin_actuator import (
@@ -61,3 +64,4 @@ from mjlab.actuator.pd_actuator import IdealPdActuator as IdealPdActuator
 from mjlab.actuator.pd_actuator import IdealPdActuatorCfg as IdealPdActuatorCfg
 from mjlab.actuator.xml_actuator import XmlActuator as XmlActuator
 from mjlab.actuator.xml_actuator import XmlActuatorCfg as XmlActuatorCfg
+from mjlab.utils.spec import HistoryInterp as HistoryInterp

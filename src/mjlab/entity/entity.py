@@ -869,6 +869,29 @@ class Entity:
     self._cleared_joint_pos_target = torch.zeros_like(
       joint_pos_target, dtype=torch.bool
     )
+    self._ctrl_history_dst_cols: torch.Tensor | None = None
+    self._ctrl_history_src_ctrl_cols: torch.Tensor | None = None
+    if self.is_actuated and mj_model.nhistory > 0:
+      dst_cols: list[int] = []
+      src_cols: list[int] = []
+      for uid in indexing.ctrl_ids.tolist():
+        nsample = int(mj_model.actuator_history[uid, 0])
+        if nsample <= 0:
+          continue
+        ctrladr = int(mj_model.actuator_ctrladr[uid])
+        ctrlnum = int(mj_model.actuator_ctrlnum[uid])
+        values_offset = int(mj_model.actuator_historyadr[uid]) + 2 + nsample
+        for sample_idx in range(nsample):
+          for ch in range(ctrlnum):
+            dst_cols.append(values_offset + sample_idx * ctrlnum + ch)
+            src_cols.append(ctrladr + ch)
+      if dst_cols:
+        self._ctrl_history_dst_cols = torch.tensor(
+          dst_cols, dtype=torch.long, device=device
+        )
+        self._ctrl_history_src_ctrl_cols = torch.tensor(
+          src_cols, dtype=torch.long, device=device
+        )
 
   def update(self, dt: float) -> None:
     """Advance actuator internal state by one physics substep.
@@ -1368,3 +1391,13 @@ class Entity:
       command.reset_env_ids = env_ids
       command = act.apply_delay(command)
       self._data.write_ctrl(act.compute(command)[rows], act.ctrl_ids, env_ids)
+    if (
+      env_ids is not None
+      and len(env_ids) > 0
+      and self._ctrl_history_dst_cols is not None
+      and self._ctrl_history_src_ctrl_cols is not None
+    ):
+      env_rows = env_ids[:, None]
+      self._data.data.history[env_rows, self._ctrl_history_dst_cols] = (
+        self._data.data.ctrl[env_rows, self._ctrl_history_src_ctrl_cols]
+      )

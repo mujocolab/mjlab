@@ -8,6 +8,10 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added native MuJoCo history buffer configuration (``delay``, ``nsample``, ``interp``)
+  to ``BuiltinActuatorCfg`` and ``BuiltinSensorCfg`` (plus ``interval`` on
+  ``BuiltinSensorCfg`` and ``Simulation.reset_history()``) for kernel-level continuous
+  delays, sub-step interpolation, and discrete sensor sampling.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.

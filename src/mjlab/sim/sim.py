@@ -518,6 +518,19 @@ class Simulation:
         mjwarp.reset_data(self.wp_model, self.wp_data, reset=self._reset_mask_wp)
     self._notify_data_changed()
 
+  def reset_history(self, env_ids: torch.Tensor | None = None) -> None:
+    """Reset native MuJoCo actuator and sensor history buffers."""
+    if self._mj_model.nhistory == 0:
+      return
+    with wp.ScopedDevice(self.wp_device):
+      if env_ids is None:
+        self._reset_mask.fill_(True)
+      else:
+        self._reset_mask.fill_(False)
+        self._reset_mask[env_ids] = True
+      mjwarp.reset_history(self.wp_model, self.wp_data, reset=self._reset_mask_wp)
+    self._notify_data_changed()
+
   def add_data_listener(self, fn: Callable[[], None]) -> None:
     """Call ``fn`` whenever ``step()``, ``forward()`` or ``reset()`` changes data."""
     self._data_listeners.append(fn)

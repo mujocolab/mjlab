@@ -11,6 +11,11 @@ import torch
 
 from mjlab.entity import Entity
 from mjlab.sensor.sensor import Sensor, SensorCfg
+from mjlab.utils.spec import (
+  HISTORY_INTERP_MAP,
+  HistoryInterp,
+  validate_history_params,
+)
 
 SensorType = Literal[
   # Site sensors.
@@ -202,6 +207,24 @@ class BuiltinSensorCfg(SensorCfg):
   """The type and name of object to which the frame-of-reference is attached to."""
   cutoff: float = 0.0
   """When this value is positive, it limits the absolute value of the sensor output."""
+  delay: float = 0.0
+  """Native continuous sensor delay in seconds, evaluated inside ``mj_step``.
+
+  Requires ``nsample > 0`` (e.g. ``ceil(max_delay / physics_dt) + 1``). Supports
+  per-world randomization via ``model.sensor_delay``.
+  """
+  nsample: int = 0
+  """History buffer capacity in samples. Must be positive when ``delay > 0`` or
+  ``interval[0] > 0``."""
+  interp: HistoryInterp = "zoh"
+  """History buffer interpolation: ``"zoh"``, ``"linear"``, or ``"cubic"``."""
+  interval: tuple[float, float] = (0.0, 0.0)
+  """Discrete sensor sampling ``(period, phase)`` in seconds.
+
+  When ``period > 0``, the sensor updates only once every ``period`` seconds
+  starting at ``phase`` (``0.0`` triggers the first sample at ``t = 0``), and
+  reads from its history buffer in between. Requires ``nsample > 0``.
+  """
 
   @property
   def prefixed_name(self) -> str:
@@ -260,6 +283,16 @@ class BuiltinSensorCfg(SensorCfg):
       raise ValueError(
         f"Sensor type '{self.sensor_type}' does not support ref specification"
       )
+    if len(self.interval) != 2:
+      raise ValueError(
+        f"interval must be a (period, phase) pair, got {self.interval!r}."
+      )
+    validate_history_params(
+      delay=self.delay,
+      nsample=self.nsample,
+      interp=self.interp,
+      interval_period=self.interval[0],
+    )
 
   def build(self) -> BuiltinSensor:
     return BuiltinSensor(self)
@@ -317,7 +350,7 @@ class BuiltinSensor(Sensor[torch.Tensor]):
           )
 
     # Add sensor to spec.
-    scene_spec.add_sensor(
+    mjs_sensor = scene_spec.add_sensor(
       name=self.cfg.prefixed_name,
       type=_SENSOR_TYPE_MAP[self.cfg.sensor_type],
       objtype=(
@@ -330,6 +363,16 @@ class BuiltinSensor(Sensor[torch.Tensor]):
       refname=(self.cfg.ref.prefixed_name() if self.cfg.ref is not None else None),
       cutoff=self.cfg.cutoff if self.cfg.cutoff > 0 else None,
     )
+    if (
+      self.cfg.delay > 0.0
+      or self.cfg.nsample > 0
+      or self.cfg.interp != "zoh"
+      or self.cfg.interval != (0.0, 0.0)
+    ):
+      mjs_sensor.delay = self.cfg.delay
+      mjs_sensor.nsample = self.cfg.nsample
+      mjs_sensor.interp = HISTORY_INTERP_MAP[self.cfg.interp]
+      mjs_sensor.interval[:] = self.cfg.interval
 
   def initialize(
     self, mj_model: mujoco.MjModel, model: mjwarp.Model, data: mjwarp.Data, device: str

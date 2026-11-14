@@ -114,6 +114,17 @@ entity ``"robot"`` becomes ``"robot/imu_acc"``).
         ref=ObjRef(type="body", name="base", entity="robot"),
     )
 
+    # Native sensor delay and discrete sampling interval (100 Hz rate, 5 ms lag).
+    BuiltinSensorCfg(
+        name="imu_gyro",
+        sensor_type="gyro",
+        obj=ObjRef(type="site", name="imu_site", entity="robot"),
+        delay=0.005,
+        nsample=6,
+        interp="linear",
+        interval=(0.01, 0.0),
+    )
+
 
 Auto-discovery
 ^^^^^^^^^^^^^^

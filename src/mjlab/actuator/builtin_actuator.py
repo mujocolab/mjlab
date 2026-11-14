@@ -21,11 +21,14 @@ from mjlab.actuator.actuator import (
   TransmissionType,
 )
 from mjlab.utils.spec import (
+  HistoryInterp,
   apply_target_overrides,
+  configure_actuator_history,
   create_motor_actuator,
   create_muscle_actuator,
   create_position_actuator,
   create_velocity_actuator,
+  validate_history_params,
 )
 
 if TYPE_CHECKING:
@@ -33,7 +36,29 @@ if TYPE_CHECKING:
 
 
 @dataclass(kw_only=True)
-class BuiltinPositionActuatorCfg(ActuatorCfg):
+class BuiltinActuatorCfg(ActuatorCfg):
+  """Base configuration for native MuJoCo built-in actuators."""
+
+  delay: float = 0.0
+  """Native continuous command delay in seconds, evaluated inside ``mj_step``.
+
+  Requires ``nsample > 0`` (e.g. ``ceil(max_delay / physics_dt) + 1``). Unlike
+  ``delay_min_lag`` / ``delay_max_lag`` (Python step-quantized command jitter),
+  this uses MuJoCo's kernel-level history buffer with sub-step interpolation and
+  supports per-world randomization via ``model.actuator_delay``.
+  """
+  nsample: int = 0
+  """History buffer capacity in samples. Must be positive when ``delay > 0``."""
+  interp: HistoryInterp = "zoh"
+  """History buffer interpolation: ``"zoh"``, ``"linear"``, or ``"cubic"``."""
+
+  def __post_init__(self) -> None:
+    super().__post_init__()
+    validate_history_params(delay=self.delay, nsample=self.nsample, interp=self.interp)
+
+
+@dataclass(kw_only=True)
+class BuiltinPositionActuatorCfg(BuiltinActuatorCfg):
   """Configuration for MuJoCo built-in position actuator.
 
   Under the hood, this creates a <position> actuator for each target and sets the
@@ -87,6 +112,9 @@ class BuiltinPositionActuator(Actuator[BuiltinPositionActuatorCfg]):
         frictionloss=self.cfg.frictionloss,
         viscous_damping=self.cfg.viscous_damping,
         transmission_type=self.cfg.transmission_type,
+        delay=self.cfg.delay,
+        nsample=self.cfg.nsample,
+        interp=self.cfg.interp,
       )
       self._mjs_actuators.append(actuator)
 
@@ -95,7 +123,7 @@ class BuiltinPositionActuator(Actuator[BuiltinPositionActuatorCfg]):
 
 
 @dataclass(kw_only=True)
-class BuiltinPdActuatorCfg(ActuatorCfg):
+class BuiltinPdActuatorCfg(BuiltinActuatorCfg):
   """Implicit-integration version of IdealPdActuator.
 
   Both consume a position target and a velocity target with kp/kd gains. The
@@ -164,6 +192,9 @@ class BuiltinPdActuator(Actuator[BuiltinPdActuatorCfg]):
         frictionloss=self.cfg.frictionloss,
         viscous_damping=self.cfg.viscous_damping,
         transmission_type=self.cfg.transmission_type,
+        delay=self.cfg.delay,
+        nsample=self.cfg.nsample,
+        interp=self.cfg.interp,
       )
       self._mjs_actuators.append(pos_act)
     for target_name in target_names:
@@ -173,6 +204,9 @@ class BuiltinPdActuator(Actuator[BuiltinPdActuatorCfg]):
         actuator_name=f"{target_name}_pd_vel",
         damping=self.cfg.damping,
         transmission_type=self.cfg.transmission_type,
+        delay=self.cfg.delay,
+        nsample=self.cfg.nsample,
+        interp=self.cfg.interp,
       )
       self._mjs_actuators.append(vel_act)
     # Entity(sort_actuators=True) calls this once per target, which would
@@ -194,7 +228,7 @@ class BuiltinPdActuator(Actuator[BuiltinPdActuatorCfg]):
 
 
 @dataclass(kw_only=True)
-class BuiltinMotorActuatorCfg(ActuatorCfg):
+class BuiltinMotorActuatorCfg(BuiltinActuatorCfg):
   """Configuration for MuJoCo built-in motor actuator.
 
   Under the hood, this creates a <motor> actuator for each target and sets its effort
@@ -237,6 +271,9 @@ class BuiltinMotorActuator(Actuator[BuiltinMotorActuatorCfg]):
         frictionloss=self.cfg.frictionloss,
         viscous_damping=self.cfg.viscous_damping,
         transmission_type=self.cfg.transmission_type,
+        delay=self.cfg.delay,
+        nsample=self.cfg.nsample,
+        interp=self.cfg.interp,
       )
       self._mjs_actuators.append(actuator)
 
@@ -297,7 +334,7 @@ class DcMotorPhysicalParams:
 
 
 @dataclass(kw_only=True)
-class BuiltinDcMotorActuatorCfg(ActuatorCfg):
+class BuiltinDcMotorActuatorCfg(BuiltinActuatorCfg):
   """Native MuJoCo ``<dcmotor>`` wrapper.
 
   Models a DC motor: torque is derived from voltage via the motor constant K and
@@ -482,6 +519,12 @@ class BuiltinDcMotorActuator(Actuator[BuiltinDcMotorActuatorCfg]):
         frictionloss=cfg.frictionloss,
         viscous_damping=cfg.viscous_damping,
       )
+      configure_actuator_history(
+        actuator,
+        delay=cfg.delay,
+        nsample=cfg.nsample,
+        interp=cfg.interp,
+      )
 
       self._mjs_actuators.append(actuator)
 
@@ -495,7 +538,7 @@ class BuiltinDcMotorActuator(Actuator[BuiltinDcMotorActuatorCfg]):
 
 
 @dataclass(kw_only=True)
-class BuiltinVelocityActuatorCfg(ActuatorCfg):
+class BuiltinVelocityActuatorCfg(BuiltinActuatorCfg):
   """Configuration for MuJoCo built-in velocity actuator.
 
   Under the hood, this creates a <velocity> actuator for each target and sets the
@@ -546,6 +589,9 @@ class BuiltinVelocityActuator(Actuator[BuiltinVelocityActuatorCfg]):
         frictionloss=self.cfg.frictionloss,
         viscous_damping=self.cfg.viscous_damping,
         transmission_type=self.cfg.transmission_type,
+        delay=self.cfg.delay,
+        nsample=self.cfg.nsample,
+        interp=self.cfg.interp,
       )
       self._mjs_actuators.append(actuator)
 
@@ -554,7 +600,7 @@ class BuiltinVelocityActuator(Actuator[BuiltinVelocityActuatorCfg]):
 
 
 @dataclass(kw_only=True)
-class BuiltinMuscleActuatorCfg(ActuatorCfg):
+class BuiltinMuscleActuatorCfg(BuiltinActuatorCfg):
   """Configuration for MuJoCo built-in muscle actuator."""
 
   length_range: tuple[float, float] = (0.0, 0.0)
@@ -627,6 +673,9 @@ class BuiltinMuscleActuator(Actuator[BuiltinMuscleActuatorCfg]):
         fpmax=self.cfg.fpmax,
         fvmax=self.cfg.fvmax,
         transmission_type=self.cfg.transmission_type,
+        delay=self.cfg.delay,
+        nsample=self.cfg.nsample,
+        interp=self.cfg.interp,
       )
       self._mjs_actuators.append(actuator)
 

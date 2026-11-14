@@ -29,3 +29,4 @@ from mjlab.sensor.terrain_height_sensor import (
 from mjlab.sensor.terrain_height_sensor import (
   TerrainHeightSensorCfg as TerrainHeightSensorCfg,
 )
+from mjlab.utils.spec import HistoryInterp as HistoryInterp

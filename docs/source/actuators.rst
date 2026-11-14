@@ -278,6 +278,29 @@ delay_max_lag]``. Delays are quantized to physics timesteps. For
 example, with 500Hz physics (2ms/step), ``delay_min_lag=2`` represents
 a 4ms minimum delay.
 
+Built-in actuators also expose MuJoCo 4.0's native kernel-level history
+buffers through ``delay`` (continuous delay in seconds), ``nsample``
+(history buffer capacity), and ``interp`` (``"zoh"``, ``"linear"``, or
+``"cubic"``). Unlike step-quantized Python command buffers, native delay
+is evaluated inside ``mj_step`` with sub-step interpolation and can be
+randomized per environment through ``model.actuator_delay``:
+
+.. code-block:: python
+
+    from mjlab.actuator import BuiltinPositionActuatorCfg
+
+    # 3.5 ms continuous delay on a 2 ms physics step with linear interpolation.
+    actuators = (
+        BuiltinPositionActuatorCfg(
+            target_names_expr=(".*",),
+            stiffness=80.0,
+            damping=10.0,
+            delay=0.0035,
+            nsample=4,
+            interp="linear",
+        ),
+    )
+
 
 Authoring actuator configs
 --------------------------

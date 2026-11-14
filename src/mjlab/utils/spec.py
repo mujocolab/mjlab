@@ -7,7 +7,7 @@ import warnings
 import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Literal
 
 import mujoco
 import numpy as np
@@ -158,6 +158,53 @@ _TRANSMISSION_TYPE_MAP = {
   TransmissionType.SITE: mujoco.mjtTrn.mjTRN_SITE,
 }
 
+HistoryInterp = Literal["zoh", "linear", "cubic"]
+
+HISTORY_INTERP_MAP: dict[HistoryInterp, int] = {
+  "zoh": 0,
+  "linear": 1,
+  "cubic": 2,
+}
+
+
+def validate_history_params(
+  *,
+  delay: float,
+  nsample: int,
+  interp: HistoryInterp,
+  interval_period: float = 0.0,
+) -> None:
+  """Validate MuJoCo history buffer parameters."""
+  if delay < 0.0:
+    raise ValueError(f"delay must be non-negative, got {delay}.")
+  if nsample < 0:
+    raise ValueError(f"nsample must be non-negative, got {nsample}.")
+  if interp not in HISTORY_INTERP_MAP:
+    raise ValueError(
+      f"interp must be one of {tuple(HISTORY_INTERP_MAP)}, got {interp!r}."
+    )
+  if interval_period < 0.0:
+    raise ValueError(f"interval period must be non-negative, got {interval_period}.")
+  if (delay > 0.0 or interval_period > 0.0) and nsample <= 0:
+    raise ValueError(
+      "nsample must be > 0 when delay > 0 or sensor interval period > 0."
+    )
+
+
+def configure_actuator_history(
+  actuator: mujoco.MjsActuator,
+  *,
+  delay: float = 0.0,
+  nsample: int = 0,
+  interp: HistoryInterp = "zoh",
+) -> None:
+  """Configure native MuJoCo history and delay on an actuator spec element."""
+  validate_history_params(delay=delay, nsample=nsample, interp=interp)
+  if delay > 0.0 or nsample > 0 or interp != "zoh":
+    actuator.delay = delay
+    actuator.nsample = nsample
+    actuator.interp = HISTORY_INTERP_MAP[interp]
+
 
 def apply_target_overrides(
   spec: mujoco.MjSpec,
@@ -284,6 +331,9 @@ def create_motor_actuator(
   frictionloss: float | None = None,
   viscous_damping: float | None = None,
   transmission_type: TransmissionType = TransmissionType.JOINT,
+  delay: float = 0.0,
+  nsample: int = 0,
+  interp: HistoryInterp = "zoh",
 ) -> mujoco.MjsActuator:
   """Create a <motor> actuator."""
   actuator = spec.add_actuator(name=joint_name, target=joint_name)
@@ -308,6 +358,7 @@ def create_motor_actuator(
     frictionloss=frictionloss,
     viscous_damping=viscous_damping,
   )
+  configure_actuator_history(actuator, delay=delay, nsample=nsample, interp=interp)
 
   return actuator
 
@@ -324,6 +375,9 @@ def create_position_actuator(
   viscous_damping: float | None = None,
   transmission_type: TransmissionType = TransmissionType.JOINT,
   actuator_name: str | None = None,
+  delay: float = 0.0,
+  nsample: int = 0,
+  interp: HistoryInterp = "zoh",
 ) -> mujoco.MjsActuator:
   """Creates a <position> actuator.
 
@@ -387,6 +441,7 @@ def create_position_actuator(
     frictionloss=frictionloss,
     viscous_damping=viscous_damping,
   )
+  configure_actuator_history(actuator, delay=delay, nsample=nsample, interp=interp)
 
   return actuator
 
@@ -402,6 +457,9 @@ def create_velocity_actuator(
   viscous_damping: float | None = None,
   transmission_type: TransmissionType = TransmissionType.JOINT,
   actuator_name: str | None = None,
+  delay: float = 0.0,
+  nsample: int = 0,
+  interp: HistoryInterp = "zoh",
 ) -> mujoco.MjsActuator:
   """Creates a <velocity> actuator.
 
@@ -442,6 +500,7 @@ def create_velocity_actuator(
     frictionloss=frictionloss,
     viscous_damping=viscous_damping,
   )
+  configure_actuator_history(actuator, delay=delay, nsample=nsample, interp=interp)
 
   return actuator
 
@@ -463,6 +522,9 @@ def create_muscle_actuator(
   fpmax: float = 1.3,
   fvmax: float = 1.2,
   transmission_type: TransmissionType = TransmissionType.TENDON,
+  delay: float = 0.0,
+  nsample: int = 0,
+  interp: HistoryInterp = "zoh",
 ) -> mujoco.MjsActuator:
   """Create a MuJoCo <muscle> actuator with muscle dynamics.
 
@@ -489,6 +551,7 @@ def create_muscle_actuator(
   # TODO(kevin): Double check this.
   actuator.ctrllimited = True
   actuator.ctrlrange[:] = np.array([0.0, 1.0])
+  configure_actuator_history(actuator, delay=delay, nsample=nsample, interp=interp)
 
   return actuator
 
