@@ -34,8 +34,8 @@ keywords:
   - robotics
 license: Apache-2.0
 commit: 0af4087961d6fbe573243951547eb384983aa9c9
-version: 1.6.0
-date-released: '2026-08-08'
+version: 1.6.1
+date-released: '2026-11-15'
 preferred-citation:
   type: article
   title: >-

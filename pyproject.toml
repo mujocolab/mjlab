@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "mjlab"
-version = "1.6.0"
+version = "1.6.1"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -41,7 +41,7 @@ dependencies = [
   "trimesh>=4.8.3",
   "scipy>=1.15",
   "viser>=1.0.27",
-  "mjviser>=0.0.14",
+  "mjviser>=0.0.14,<0.0.17",
   "mediapy>=1.2.7",
   "numpy",
   "imageio-ffmpeg",
