@@ -59,7 +59,7 @@
     <link rel="prev" title="Migrating from Isaac Lab" href="migration_isaac_lab.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Nov 14, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 15, 2026"/>
   </head>
   
   
@@ -170,6 +170,7 @@
   <label class="sidebar-version-label" for="version-select">Version</label>
   <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
     <option value="faq.html" selected>main</option>
+    <option value="../../v1.6.1/source/faq.html" >v1.6.1</option>
     <option value="../../v1.6.0/source/faq.html" >v1.6.0</option>
     <option value="../../v1.5.3/source/faq.html" >v1.5.3</option>
     <option value="../../v1.5.2/source/faq.html" >v1.5.2</option>
@@ -764,7 +765,7 @@ scenes by attaching entity specs into a parent scene spec using
 the child to the parent. This is a MuJoCo design decision: there is no
 sensible way to merge engine options (timestep, gravity, solver settings,
 etc.) across multiple attached models.</p>
-<p>To configure simulation options, use <a class="reference internal" href="api/sim.html#mjlab.sim.MujocoCfg" title="mjlab.sim.sim.MujocoCfg"><code class="xref py py-class docutils literal notranslate"><span class="pre">MujocoCfg</span></code></a> in
+<p>To configure simulation options, use <code class="xref py py-class docutils literal notranslate"><span class="pre">MujocoCfg</span></code> in
 your task’s Python config:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sim.sim</span><span class="w"> </span><span class="kn">import</span> <span class="n">MujocoCfg</span><span class="p">,</span> <span class="n">SimulationCfg</span>
 
@@ -1146,7 +1147,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Nov 14, 2026.
+  Last updated on Nov 15, 2026.
   <br/>
 </p>
   </div>

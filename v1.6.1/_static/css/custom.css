@@ -1,0 +1,172 @@
+/*
+ * PyData Sphinx Theme — Option A (Indigo/Teal)
+ * Aesthetic: modern lab — indigo primary, teal accent, neutral grays
+ */
+
+/* LIGHT THEME */
+html[data-theme="light"] {
+    /* Brand */
+    --pst-color-primary: #4F46E5;
+    /* Indigo-600 */
+    --pst-color-secondary: #14B8A6;
+    /* Teal-500 */
+    --pst-color-secondary-highlight: #2DD4BF;
+    /* Teal-400 */
+
+    /* Links / code links */
+    --pst-color-inline-code-links: #0D9488;
+    /* Teal-600 */
+    --pst-color-link: var(--pst-color-primary);
+    --pst-color-link-hover: #4338CA;
+    /* Indigo-700 */
+
+    /* Semantic */
+    --pst-color-info: var(--pst-color-secondary);
+    --pst-color-info-highlight: var(--pst-color-secondary);
+    --pst-color-info-bg: #D1FAE5;
+    /* Teal-50 */
+    --pst-color-attention: #F59E0B;
+    /* Amber-500 */
+    --pst-color-target: #EEF2FF;
+    /* Indigo-50 */
+
+    /* Text */
+    --pst-color-text-base: #1F2937;
+    /* Slate-800 */
+    --pst-color-text-muted: #6B7280;
+    /* Slate-500 */
+
+    /* Surfaces */
+    --pst-color-background: #FFFFFF;
+    --pst-color-on-background: #FFFFFF;
+    --pst-color-surface: #F3F4F6;
+    /* Gray-100 */
+    --pst-color-on-surface: #E5E7EB;
+    /* Gray-200 */
+    --pst-color-shadow: #D1D5DB;
+    --pst-color-border: #E5E7EB;
+
+    /* Inline code */
+    --pst-color-inline-code: #0D9488;
+    /* Teal-600 */
+
+    /* Tables / hovers */
+    --pst-color-table-row-hover-bg: #EEF2FF;
+    /* Indigo-50 */
+
+    /* Accent (sparingly) */
+    --pst-color-accent: #10B981;
+    /* Emerald-500 */
+}
+
+/* DARK THEME */
+html[data-theme="dark"] {
+    /* Brand */
+    --pst-color-primary: #A5B4FC;
+    /* Indigo-300/200 mix for readability */
+    --pst-color-secondary: #5EEAD4;
+    /* Teal-300 */
+    --pst-color-secondary-highlight: #2DD4BF;
+
+    /* Links / code links */
+    --pst-color-inline-code-links: #93C5FD;
+    /* Indigo-300 */
+    --pst-color-link: var(--pst-color-primary);
+    --pst-color-link-hover: #818CF8;
+    /* Indigo-400 */
+
+    /* Semantic */
+    --pst-color-info: var(--pst-color-secondary);
+    --pst-color-info-highlight: var(--pst-color-secondary);
+    --pst-color-info-bg: #042F2E;
+    /* Deep teal */
+    --pst-color-attention: #F59E0B;
+    --pst-color-target: #1B1C2A;
+    /* Indigo-tinted surface */
+
+    /* Text */
+    --pst-color-text-base: #E5E7EB;
+    /* Gray-200 */
+    --pst-color-text-muted: #9CA3AF;
+    /* Gray-400 */
+
+    /* Surfaces */
+    --pst-color-background: #0B0C10;
+    /* Deep graphite */
+    --pst-color-on-background: #12131A;
+    --pst-color-surface: #111827;
+    /* Slate-900 */
+    --pst-color-on-surface: #1F2937;
+    /* Slate-800 */
+    --pst-color-shadow: #0F172A;
+    --pst-color-border: #2A2D3A;
+
+    /* Inline code */
+    --pst-color-inline-code: #5EEAD4;
+    /* Teal-300 */
+
+    /* Tables / hovers */
+    --pst-color-table-row-hover-bg: #1B1C2A;
+
+    /* Accent */
+    --pst-color-accent: #34D399;
+    /* Emerald-400 */
+}
+
+/* General tweaks */
+a {
+    text-decoration: none !important;
+}
+
+.bd-header-announcement a,
+.bd-header-version-warning a {
+    color: #5EEAD4;
+}
+
+.form-control {
+    border-radius: 0 !important;
+    border: none !important;
+    outline: none !important;
+}
+
+.navbar-brand,
+.navbar-icon-links {
+    padding-top: 0rem !important;
+    padding-bottom: 0rem !important;
+}
+
+/* Version switcher */
+.sidebar-version-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.sidebar-version-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--pst-color-text-muted);
+    white-space: nowrap;
+}
+
+.sidebar-version-select {
+    flex: 1;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--pst-color-border);
+    border-radius: 4px;
+    background: var(--pst-color-background);
+    color: var(--pst-color-text-base);
+    cursor: pointer;
+}
+
+.sidebar-version-select:hover {
+    border-color: var(--pst-color-primary);
+}
+
+/* Sidebar section spacing */
+.bd-sidebar .navbar-icon-links {
+    padding: 0 1rem 0.25rem !important;
+}
